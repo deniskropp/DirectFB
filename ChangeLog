@@ -1,3 +1,1436 @@
+2007-01-29   dok	01:00:45	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/i810/i810.c (1.18) (+1 -1;)
+		gfxdrivers/unichrome/uc_overlay.c (1.9) (+2 -0;)
+		gfxdrivers/sis315/sis315.c (1.20) (+3 -1;)
+		gfxdrivers/nsc/nsc_galfns.c (1.13) (+4 -4;)
+		gfxdrivers/matrox/matrox_screen_crtc2.c (1.17) (+2 -0;)
+		gfxdrivers/i830/i830_overlay.c (1.9) (+2 -0;)
+		gfxdrivers/i830/i830.c (1.13) (+2 -0;)
+		gfxdrivers/i810/i810_overlay.c (1.14) (+2 -0;)
+	
+	In drivers including <fbdev/fbdev.h> do that before <dfb_types.h> gets in.
+	
+2007-01-29   dok	01:00:01	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	systems/fbdev/agp.c (1.7) (+2 -0;)
+		systems/fbdev/vt.c (1.7) (+2 -0;)
+		systems/fbdev/fbdev.h (1.10) (+2 -0;)
+		systems/fbdev/fbdev.c (1.52) (+2 -0;)
+	
+	Include <asm/types.h> before <dfb_types.h> is included somehow.
+	
+	This works around the 64bit type clash between <asm/types.h> and <stdint.h> (used by dfb_types.h).
+	
+	Any help for proper fixes or some explanation would be appreciated!
+	
+2007-01-28   dok	21:24:44	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/gfxcard.c (1.200) (+8 -1;)
+	
+	In dfb_gfxcard_reserve_memory() show sizes in warning about too less memory,
+	also align the requested size according to byte offset alignment or warn if
+	that's not specified, yet.
+	
+2007-01-27   dok	18:03:23	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/fusion.c (1.28) (+11 -6;)
+	
+	Fix fusion_sync() timeout during XDirectFB shutdown.
+	
+	Apart from other small changes, fusion_sync() returns DFB_OK in case
+	the select() call was interrupted (EINTR). Continuously sent signals
+	could have cause these timeouts, but I don't know if and why they would
+	be there.
+	
+	It's still a hot fix, as it could be that the call is interrupted with
+	data available, couldn't it?
+	
+	A proper solution could be to support fsync(fusion_fd), but what about
+	the timeout?
+	
+2007-01-27   dok	15:23:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/object.c (1.18) (+2 -1;)
+	
+	Further minimize impact of a shutdown issue which only seems to happen with
+	XDirectFB, e.g. on Ctrl-Alt-BackSpace. The problem is that waiting for the
+	dispatcher to process pending messages fails, or at least the detection is
+	broken whether there are any pending messages.
+	
+	Only call fusion_sync() if the pool that is to be destroyed has objects.
+	
+2007-01-26   dok	23:32:24	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/unichrome/Makefile.am (1.5) (+2 -1;)
+	
+	Added -lm for sin().
+	
+2007-01-26   syrjala	08:24:38	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/gfx/generic/generic.c (1.223) (+4 -5;)
+	
+	Revert the previous AiRGB change. Not sure what I was thinking...
+	
+2007-01-25   syrjala	21:21:21	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/gfx/generic/generic.c (1.222) (+5 -4;)
+	
+	Source color alpha value wasn't always correctly inverted for AiRGB.
+	
+2007-01-25   dok	02:52:44	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	wm/default/default.c (1.47) (+171 -89;)
+	
+	Use DFBUpdates to manage an update queue and do optimizations like taking
+	the bounding box instead of multiple smaller regions if the number of pixels
+	in the bounding box is not much higher than the total of the smaller ones.
+	
+	Even this takes the number of smaller regions into account, because of the
+	increasing overhead per region.
+	
+	Next to performance, the visual experience is enhanced by coalesced updates.
+	
+	Another advantage is that when multiple regions are updated, first it renders
+	all regions and then it flips all regions. Previously, each time the flip was
+	done immediately for each rendered region.
+	
+2007-01-25   dok	01:34:23	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/util.c (1.26) (+2 -0;)
+	
+	Fixed missing bounding box update when a newly added update is merged with an existing.
+	
+2007-01-24   syrjala	23:48:21	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/core/gfxcard.c (1.199) (+1 -4;)
+	
+	Fixed a bug in dfb_gfxcard_tileblit(). It first removes all completely
+	clipped tiles, but then forgets the new dx1 coordinate and starts
+	blitting from the original dx1 position.
+	
+2007-01-24   syrjala	22:10:56	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.104) (+3 -0;)
+	
+	SMF_CLIP was ignored.
+	
+2007-01-24   dok	03:56:32	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.66) (+21 -35;)
+	
+	Cleanup, reorder, rephrase, ...
+	
+2007-01-24   dok	03:12:35	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/arena.c (1.6) (+3 -0;)
+		lib/fusion/shm/shm.h (1.2) (+2 -0;)
+		lib/fusion/shm/shm.c (1.8) (+43 -0;)
+	
+	Added fusion_shm_attach_unattached() to attach to pools that have been
+	created AFTER fusion_shm_init() attached to pools during fusion_enter().
+	
+	This can happen easily when starting a number of processes with the new
+	"force-slave" option. They'll all block at fusion_enter() until the master
+	has completed its fusion_enter().
+	
+	DirectFB shared memory pools are created by the master after fusion_enter(),
+	but during fusion_arena_enter(). Slaves will block at this point again, until
+	the master has finished the rest of the setup and returns from entering the
+	arena.
+	
+	When others actually join the arena, right after acquiring the lock for it,
+	the new function fusion_shm_attach_unattached() is called to attach to any
+	pools created by the master while entering (initializing) the arena.
+	
+2007-01-24   dok	02:04:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/conf.h (1.4) (+1 -0;)
+		src/misc/conf.c (1.124) (+4 -0;)
+		lib/fusion/fusion.c (1.27) (+3 -0;)
+	
+	Added runtime option "force-slave" to always enter as a slave, waiting for
+	the master, if not already there. This feature only works with recent kernel
+	module.
+	
+2007-01-24   dok	01:22:53	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/conf.c (1.123) (+5 -8;)
+	
+	Read DIRECTFB_SESSION variable after reading all files and DFBARGS,
+	so only the command line can override the current session.
+	
+	Still thinking though, if DFBARGS should override DIRECTFB_SESSION...
+	
+2007-01-23   dok	23:00:07	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.302) (+1 -0;)
+		src/Makefile.am (1.29) (+3 -0;)
+		lib/voodoo/Makefile.am (1.11) (+3 -0;)
+		lib/fusion/Makefile.am (1.16) (+3 -0;)
+		lib/direct/trace.c (1.22) (+29 -11;)
+		lib/direct/Makefile.am (1.25) (+3 -0;)
+	
+	If trace support and shared libraries are enabled, for each library to install,
+	also generate a file containing the output of "nm -n <that library>".
+	
+	That's the command that is used at runtime via popen().
+	
+	Now the code first checks if it can fopen() a file with the same name as the
+	one passed to "nm -n", but with an "nm-n." prefix.
+	
+	This is both a performance improvement and a nice solution for (embedded) targets
+	without 'nm' being available or fast enough.
+	
+2007-01-23   dok	23:00:07	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	rules/nmfile.make (1.1) (EfqonE3CyULZsG3s; )
+	
+	If trace support and shared libraries are enabled, for each library to install,
+	also generate a file containing the output of "nm -n <that library>".
+	
+	That's the command that is used at runtime via popen().
+	
+	Now the code first checks if it can fopen() a file with the same name as the
+	one passed to "nm -n", but with an "nm-n." prefix.
+	
+	This is both a performance improvement and a nice solution for (embedded) targets
+	without 'nm' being available or fast enough.
+	
+2007-01-23   dok	20:56:04	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/direct/util.c (1.19) (+0 -24;)
+		lib/direct/util.h (1.25) (+23 -2;)
+	
+	Made direct_snputs() static inline.
+	
+	Removed assertion 'n > 0', instead return NULL if destination can't
+	even hold the zero termination character.
+	
+2007-01-23   dok	20:49:38	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/direct/debug.h (1.19) (+0 -1;)
+	
+	Removed <direct/util.h> include.
+	
+2007-01-23   dok	20:48:51	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/fusion.c (1.26) (+1 -0;)
+		lib/fusion/shm/shm.c (1.7) (+1 -0;)
+		lib/fusion/shm/heap.c (1.11) (+1 -0;)
+	
+	Added missing <direct/util.h> includes.
+	
+2007-01-23   dok	20:26:54	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_maven.c (1.26) (+2 -2;)
+		lib/fusion/shm/shm.c (1.6) (+1 -1;)
+		lib/fusion/ref.c (1.11) (+1 -1;)
+		lib/fusion/reactor.c (1.19) (+1 -1;)
+		lib/fusion/lock.c (1.7) (+1 -1;)
+		lib/direct/trace.c (1.21) (+1 -3;)
+		lib/direct/stream.c (1.30) (+1 -1;)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.57) (+1 -2;)
+		inputdrivers/lirc/lirc.c (1.32) (+2 -2;)
+	
+	Easy part, replacing strncpy() by direct_snputs().
+	
+	Replacing all relevant snprintf() will be harder...
+	
+2007-01-23   dok	18:47:09	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/direct/util.c (1.18) (+24 -0;)
+		lib/direct/util.h (1.24) (+7 -0;)
+	
+	Added direct_snputs(s,d,n) to set a string with a maximum size including the
+	zero termination. This acts like a strncpy(d,s,n), but always terminates the
+	string like snprintf(d,n,"%s",s) which is more or less slower.
+	
+2007-01-23   dok	16:46:55	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	wm/default/default.c (1.46) (+5 -3;)
+	
+	When Meta-P is pressed, only show/enable the cursor if it has ever been set.
+	
+	This fixes the cursor showing up on my Xv enabled Xawtv window (cursor on video layer :).
+	
+2007-01-23   dok	16:33:38	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb_keyboard.h (1.29) (+1 -1;)
+	
+	Fixed DIKT_UNICODE detection in DFB_KEY_TYPE(symbol) for values > 255.
+	
+2007-01-23   dok	16:26:04	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.232) (+2 -0;)
+	
+	Do the same as for surfaces recently: revert to direct local reaction calls.
+	Fixes rare glitches in heavy window resizing in LiTE.
+	
+2007-01-23   dok	16:22:39	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/fusion.c (1.25) (+1 -1;)
+	
+	Reduce timeout in fusion_sync().
+	
+	At the moment it always seems to fail, but this should be fixed asap.
+	
+2007-01-23   dok	16:21:23	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/reactor.c (1.18) (+2 -2;)
+	
+	Already fixed.
+	
+2007-01-23   dok	16:11:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/reactor.c (1.17) (+1 -1;)
+	
+	Commented out recent change until it's fixed.
+	
+2007-01-23   dok	13:14:54	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/reactor.c (1.16) (+2 -0;)
+	
+	Use direct_list_move_to_front() in lock_node() as the list could be long
+	in case an application attaches to a lot of reactors, most probably its own,
+	e.g. using a lot of small surfaces.
+	
+2007-01-23   dok	13:11:46	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/direct/list.h (1.9) (+44 -0;)
+	
+	Added direct_list_move_to_front( **list, *link ).
+	
+2007-01-22   syrjala	21:31:48	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	directfb-config.in (1.24) (+1 -1;)
+	
+	Eliminate bashism (function keyword).
+	
+2007-01-22   syrjala	21:26:11	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/display/idirectfbsurface.c (1.129) (+4 -4;)
+	
+	Fix ALUT44 Clear() by calling dfb_state_set_color().
+	
+2007-01-22   syrjala	21:20:18	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/core/gfxcard.c (1.198) (+2 -2;)
+	
+	Fix glyph rendering to indexed formats by calling dfb_state_set_color().
+	
+2007-01-22   dok	19:54:29	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/conf.h (1.3) (+1 -0;)
+		lib/fusion/shm/heap.c (1.10) (+7 -3;)
+		lib/fusion/fusion.c (1.24) (+38 -8;)
+	
+	Only use MADV_REMOVE if kernel version is 2.6.19.2 or higher.
+	
+	Print info message during startup.
+	
+	Use fallback definition for MADV_REMOVE (9) if headers don't have it. This
+	is ok for now, as we're only using it with 2.6.19.2 or higher anyways. It
+	would be bad if this feature was unused just because of the headers at build
+	time...
+	
+2007-01-22   syrjala	19:25:54	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/gfx/generic/Makefile.am (1.26) (+4 -0;)
+		src/gfx/generic/generic.c (1.221) (+245 -1938;)
+	
+	Use cpp templates for 16bpp and 32bpp code.
+	- Removes duplicated code.
+	- Implements some missing gfx funcs.
+	- Fixes missing EXPAND() calls in some acc funcs.
+	- Fixes blit direction handling in some 16bpp blit funcs.
+	
+2007-01-22   syrjala	19:25:54	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/gfx/generic/template_acc_16.h (1.1) (7QiIxCZHyXmZnx3s; )
+		src/gfx/generic/template_colorkey_32.h (1.1) (7QiIxCZHyXmZnx3s; )
+		src/gfx/generic/template_colorkey_16.h (1.1) (7QiIxCZHyXmZnx3s; )
+		src/gfx/generic/template_acc_32.h (1.1) (7QiIxCZHyXmZnx3s; )
+	
+	Use cpp templates for 16bpp and 32bpp code.
+	- Removes duplicated code.
+	- Implements some missing gfx funcs.
+	- Fixes missing EXPAND() calls in some acc funcs.
+	- Fixes blit direction handling in some 16bpp blit funcs.
+	
+2007-01-22   dok	03:06:11	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/shm/heap.c (1.9) (+9 -2;)
+	
+	That's birthday and christmas at once: Glorious MADV_REMOVE! I found you!
+	
+	If available, the code for freeing blocks in the heap uses
+	
+		madvise( ADDRESS(block), blocks * BLOCKSIZE, MADV_REMOVE )
+	
+	to punch a whole in the tmpfs file (loosing the data) to really free
+	the associated physical RAM.
+	
+	
+	You can see the difference in 'ls -l' and 'df'.
+	
+2007-01-22   dok	02:38:50	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/shm/heap.c (1.8) (+4 -55;)
+		lib/fusion/shm/shm_internal.h (1.6) (+0 -5;)
+		lib/fusion/shm/shm.c (1.5) (+0 -19;)
+		lib/fusion/shm/pool.c (1.8) (+4 -112;)
+	
+	Good bye shared memory segfault cure handler :)
+	
+	It'd been so easy. Simply mmap() the whole address range once and
+	only ftruncate() for resizing the heap.
+	
+	No more dynamic remapping, no more pending remap messages...
+	
+2007-01-22   dok	01:21:27	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/shm/heap.c (1.7) (+1 -11;)
+	
+	Replaced 'unlink before (re)open or memset' by a simple O_TRUNC, doooh...
+	
+2007-01-21   syrjala	22:39:09	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	autogen.sh (1.14) (+12 -1;)
+	
+	Fix version check for automake-1.10.
+	
+2007-01-21   dok	22:11:25	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.166) (+3 -0;)
+	
+	Added a few more formats that make the windowed primary use DWCAPS_ALPHACHANNEL.
+	
+2007-01-20   dok	04:04:13	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/fusion.c (1.23) (+2 -0;)
+	
+	Use O_APPEND for FER_SLAVE.
+	
+2007-01-14   dok	21:06:45	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/shm/pool.c (1.7) (+2 -2;)
+	
+	Change minimum pool size (without info table) to 8192 (from 16384).
+	A value of 4096 didn't work somehow.
+	
+2007-01-14   dok	21:03:34	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layer_context.c (1.56) (+20 -16;)
+	
+	Call dfb_windowstack_resize() and dfb_windowstack_repaint_all() later, i.e.
+	after the new settings have been written back into the context's config structure.
+	
+2007-01-14   dok	21:02:11	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/call.c (1.5) (+1 -1;)
+		lib/fusion/types.h (1.7) (+4 -3;)
+	
+	Added FCEF_NODIRECT which forces execution of the call in the Fusion
+	Dispatch thread even if it's the calling process' own call.
+	
+2007-01-11   andi	18:05:24	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	systems/osx/Makefile.am (1.4) (+1 -1;)
+		systems/osx/primary.c (1.10) (+1 -0;)
+	
+	- include <fusion/fusion.h>
+	- -framework CoreGraphics is obsolete in OSX 10.4, use ApplicationServices instead
+	
+2007-01-10   syrjala	18:18:24	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/gfx/generic/generic.c (1.220) (+11 -11;)
+	
+	Some stretch ops didn't start at Xphase.
+	
+2007-01-10   syrjala	18:06:39	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/gfx/convert.c (1.27) (+2 -0;)
+		src/misc/gfx_util.c (1.66) (+23 -23;)
+		src/gfx/generic/generic.c (1.219) (+280 -593;)
+		src/gfx/convert.h (1.35) (+11 -11;)
+	
+	Fix bugs in RGB18/ARGB1666/ARGB6666 support,
+	and eliminate unnecessary gfx functions.
+	
+2007-01-10   klan	10:06:36	
+
+	Files:	configure.in (1.301) (+1 -3;)
+	
+	Removed check for sisfb.h.
+	
+2007-01-10   dok	01:57:37	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/linux_input/linux_input.c (1.58) (+2 -2;)
+	
+	Replaced "#ifndef input_absinfo" which doesn't work
+	by "#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)".
+	
+2007-01-09   dok	23:33:25	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	wm/default/default.c (1.45) (+5 -5;)
+	
+	Make cursor area backing store surface same format as layer.
+	
+2007-01-09   mws	18:34:13	
+
+	Files:	inputdrivers/linux_input/linux_input.c (1.57) (+26 -5;)
+	
+	added compat defines for touchpad linux input support for
+	kernels before 2.6.x;
+	should break nothing for now - hopefully :)
+	
+2007-01-09   syrjala	17:24:34	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/gfx/generic/generic.c (1.218) (+180 -181;)
+	
+	Cosmetics.
+	
+2007-01-07   syrjala	22:49:14	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/idirectfb.c (1.165) (+100 -43;)
+	
+	Don't corrupt the return interface pointer in API methods,
+	ie. only set the pointer if the method succeeds.
+	
+2007-01-07   syrjala	22:46:03	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/media/idirectfbdatabuffer_file.c (1.21) (+3 -1;)
+	
+	Fix a memory leak.
+	
+2007-01-06   syrjala	18:09:10	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	inputdrivers/linux_input/linux_input.c (1.56) (+1 -1;)
+	
+	Remove a misplaced semicolon.
+	
+2007-01-05   dok	17:55:08	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/shmalloc.c (1.5) (+13 -5;)
+	
+	Nicer shared memory allocation info as in dfbdump.
+	
+2007-01-05   dok	17:54:51	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/shm/pool.c (1.6) (+4 -0;)
+	
+	Print shared memory leaks on pool shutdown (debug mode and 'debugshm' option).
+	
+2007-01-05   dok	17:53:29	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	systems/sdl/sdl.c (1.12) (+13 -1;)
+	
+	Free fake modes on shutdown.
+	
+2007-01-05   dok	17:52:59	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb_util.h (1.5) (+54 -0;)
+		src/misc/util.c (1.25) (+102 -0;)
+	
+	Added some basic update region management.
+	
+2007-01-03   marka	10:42:13	
+
+	Files:	gfxdrivers/unichrome/Readme.txt (1.5) (+8 -18;)
+	
+	Document recommended changes in overlay and AiRGB usage.
+	
+2007-01-02   marka	17:46:19	
+
+	Files:	gfxdrivers/unichrome/uc_accel.c (1.6) (+0 -4;)
+	
+	Remove redundant comment.
+	
+2007-01-02   marka	17:45:58	
+
+	Files:	gfxdrivers/unichrome/uc_accel.h (1.2) (+4 -0;)
+		gfxdrivers/unichrome/uc_state.c (1.6) (+48 -3;)
+		gfxdrivers/unichrome/uc_hwset.c (1.6) (+2 -1;)
+		gfxdrivers/unichrome/uc_hwmap.c (1.3) (+7 -2;)
+		gfxdrivers/unichrome/uc_hw.h (1.4) (+4 -2;)
+	
+	Implemented acceleration for blits involving the AiRGB pixel format.
+	
+	DSPF_AiRGB is now supported as a source format for most blits and stretch
+	blits.  Blits _to_ AiRGB surfaces are also accelerated provided they don't
+	require blending.
+	
+2006-12-30   syrjala	18:26:36	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	inputdrivers/linux_input/linux_input.c (1.55) (+361 -122;)
+	
+	Improve touchpad support:
+	- Detect touchpads in init.
+	- Read min/max coordinates from the device.
+	- Add drag support.
+	- Clean up the code.
+	
+2006-12-29   syrjala	20:31:20	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	inputdrivers/linux_input/linux_input.c (1.54) (+2 -2;)
+	
+	Fix some incorrect key mappings. Patch from Stefan Lucke.
+	
+2006-12-28   klan	11:19:25	
+
+	Files:	src/display/idirectfbsurface.c (1.128) (+2 -2;)
+	
+	In IDirectFBSurface_FillRectangles():
+	use D_MALLOC/D_FREE instead of malloc/free (thanks to Kamijo Takashi <kamijo@digion.com>).
+	
+2006-12-24   klan	14:23:01	
+
+	Files:	src/media/idirectfbdatabuffer_file.c (1.20) (+2 -7;)
+	
+	Avoid locking in HasData().
+	
+2006-12-22   dok	19:14:42	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.61) (+29 -7;)
+	
+	Check bit depth in case of an indexed PNG. Don't assume 8 bit. Added 4 bit
+	support.
+	
+2006-12-20   dok	02:05:32	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layer_context.c (1.55) (+8 -2;)
+	
+	Support DLBM_BACKSYSTEM as a default.
+	
+2006-12-20   dok	02:04:07	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/shm/shm.c (1.4) (+2 -2;)
+	
+	Fall back to /dev/shm if no mount point could be determined.
+	
+2006-12-20   dok	02:03:04	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/shm/heap.c (1.6) (+2 -1;)
+	
+	Turn warning into debug.
+	
+2006-12-14   dok	09:44:22	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/surfaces.c (1.148) (+2 -2;)
+	
+	Allow read access to "owned" surfaces.
+	
+2006-12-13   klan	18:16:30	
+
+	Files:	gfxdrivers/radeon/r200_state.c (1.6) (+2 -1;)
+	
+	Initialize pointsize register.
+	
+2006-12-13   klan	18:15:22	
+
+	Files:	gfxdrivers/radeon/r100_3d.c (1.4) (+2 -1;)
+		gfxdrivers/radeon/r300_3d.c (1.6) (+1 -1;)
+		gfxdrivers/radeon/r200_3d.c (1.5) (+2 -1;)
+	
+	Must adjust point coordinates by +1.
+	
+2006-12-12   klan	20:36:06	
+
+	Files:	gfxdrivers/unichrome/uc_primary.c (1.3) (+3 -0;)
+	
+	Check pixelformat when enabling alphachannel (it should be AiRGB, I think).
+	
+2006-12-11   klan	14:44:25	
+
+	Files:	lib/direct/stream.c (1.29) (+3 -3;)
+	
+	Set RTSP connection type to Close.
+	
+2006-12-11   klan	13:56:49	
+
+	Files:	lib/direct/stream.c (1.28) (+266 -204;)
+	
+	Implemented seekability over RTSP.
+	
+2006-12-10   dok	00:01:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/hash.c (1.6) (+4 -5;)
+	
+	Fix fusion_hash_iterate() to support a nested fusion_hash_remove() on the
+	current item (or others, except the next).
+	
+2006-12-09   dok	15:35:18	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/hash.h (1.3) (+3 -0;)
+	
+	Added missing prototype of fusion_hash_size().
+	
+2006-12-09   dok	14:47:39	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/hash.c (1.5) (+1 -1;)
+	
+	Fixed fusion_hash_create() that was not passing the pool pointer to the
+	internal function.
+	
+2006-12-09   klan	11:27:28	
+
+	Files:	lib/direct/clock.c (1.5) (+10 -2;)
+	
+	Autodetect clock skew.
+	
+2006-12-08   klan	12:16:39	
+
+	Files:	gfxdrivers/radeon/r300_state.c (1.9) (+3 -3;)
+	
+	Fixed a wrong comparison.
+	
+2006-12-08   klan	12:15:33	
+
+	Files:	gfxdrivers/radeon/radeon.c (1.48) (+21 -8;)
+	
+	Added radeonInvalidateState().
+	
+2006-12-08   klan	12:14:37	
+
+	Files:	src/core/gfxcard.c (1.197) (+4 -1;)
+		src/core/gfxcard.h (1.95) (+7 -1;)
+	
+	Added GraphicsDeviceFuncs::InvalidateState(): notify the driver that
+	the current rendering state is no longer valid.
+	
+2006-12-06   klan	14:10:13	
+
+	Files:	src/core/surfaces.c (1.147) (+3 -1;)
+	
+	Dispatch surface's notifications asynchronously.
+	
+	This change fixes an assertion failure that happens in the following case:
+	1. Resize (Downsize) Surface
+	... and immediatly after ...
+	2. Blit to Surface
+	
+2006-12-06   klan	14:05:13	
+
+	Files:	lib/fusion/reactor.c (1.15) (+28 -0;)
+		lib/fusion/reactor.h (1.7) (+9 -0;)
+	
+	Added fusion_reactor_sync(bool) to specify whether message dispacthing to
+	local reactions must be synchronized with global reactions or not
+	(i.e. fusion_reactor_sync(false) makes notifications happen immediatly in the dispatcher process).
+	
+2006-12-06   klan	14:00:27	
+
+	Files:	gfxdrivers/radeon/radeon.c (1.47) (+9 -4;)
+		gfxdrivers/radeon/radeon_mmio.h (1.7) (+10 -5;)
+	
+	Provided a return value to radeon_waitfifo() and radeon_waitidle().
+	
+2006-12-04   dok	22:52:38	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	README (1.123) (+1 -0;)
+		interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.37) (+9 -7;)
+	
+	Thanks to Vaclav Slavik for fixing loading of mono-only fonts.
+	
+2006-12-04   klan	17:49:53	
+
+	Files:	gfxdrivers/radeon/r300_state.c (1.8) (+23 -28;)
+		gfxdrivers/radeon/radeon_regs.h (1.12) (+3 -2;)
+		gfxdrivers/radeon/radeon.c (1.46) (+2 -2;)
+	
+	R300 supports 3D Colorkeying. :)
+	
+2006-12-04   klan	11:35:26	
+
+	Files:	gfxdrivers/radeon/r300_3d.c (1.5) (+165 -31;)
+		gfxdrivers/radeon/radeon_state.h (1.6) (+5 -0;)
+		gfxdrivers/radeon/radeon.c (1.45) (+16 -8;)
+		gfxdrivers/radeon/r300_state.c (1.7) (+36 -27;)
+	
+	Implemented r300Blit3D_420, R300StretchBlit_420 and r300TextureTrinangles_420.
+	
+2006-12-03   klan	19:02:05	
+
+	Files:	gfxdrivers/radeon/Makefile.am (1.12) (+2 -1;)
+		gfxdrivers/radeon/radeon_regs.h (1.11) (+1 -1;)
+		gfxdrivers/radeon/radeon_3d.h (1.3) (+5 -0;)
+		gfxdrivers/radeon/radeon.c (1.44) (+34 -21;)
+		gfxdrivers/radeon/r300_state.c (1.6) (+68 -65;)
+		gfxdrivers/radeon/r300_program.h (1.2) (+2 -0;)
+		gfxdrivers/radeon/r300_3d.c (1.4) (+91 -5;)
+	
+	Implemented
+	 - StretchBlit
+	 - TextureTriangles
+	 - Alphablend
+	 - Deinterlacing
+	for the R300 chipset family (thanks to Timon <timon37@interia.pl>).
+	
+2006-12-03   klan	19:02:05	
+
+	Files:	gfxdrivers/radeon/vertex_shader.h (1.1) (68Ii6BPUSjwuQ6Xr; )
+	
+	Implemented
+	 - StretchBlit
+	 - TextureTriangles
+	 - Alphablend
+	 - Deinterlacing
+	for the R300 chipset family (thanks to Timon <timon37@interia.pl>).
+	
+2006-12-02   klan	09:07:59	
+
+	Files:	src/display/idirectfbsurface.c (1.127) (+1 -1;)
+	
+	Allow the DirectFBGL module to Probe the destination surface.
+	
+2006-12-02   klan	09:06:46	
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_default.c (1.43) (+26 -24;)
+	
+	Workaround for a repeated char (0) within the glyphs table.
+	
+2006-12-01   klan	17:35:44	
+
+	Files:	configure.in (1.300) (+6 -1;)
+		lib/direct/types.h (1.21) (+8 -9;)
+		lib/direct/build.h.in (1.7) (+1 -0;)
+	
+	Check for stdbool.h presence during configuration and define DIRECT_BUILD_STDBOOL accordingly.
+	
+2006-12-01   klan	14:06:18	
+
+	Files:	include/directfbgl.h (1.2) (+14 -0;)
+	
+	Added IDirectFBGL::GetProcAddress(), get the address of on OpenGL function
+	(required to avoid hard dependency and allow portability between different environments).
+	
+	Added definition DIRECTFBGL_INTERFACE_VERSION to check interface compatibility.
+	
+2006-12-01   klan	10:43:34	
+
+	Files:	proxy/dispatcher/idirectfbscreen_dispatcher.c (1.6) (+106 -4;)
+		proxy/requestor/idirectfbscreen_requestor.c (1.3) (+105 -15;)
+		proxy/dispatcher/idirectfbscreen_dispatcher.h (1.2) (+16 -15;)
+	
+	Implemented GetID, GetDescription, GetSize, SetPowerMode and WaitForSync.
+	
+2006-12-01   klan	10:42:27	
+
+	Files:	proxy/dispatcher/idirectfbwindow_dispatcher.c (1.9) (+44 -0;)
+		proxy/requestor/idirectfbwindow_requestor.c (1.8) (+64 -4;)
+	
+	Implemented GetPosition and GetSize.
+	
+2006-11-30   klan	17:08:00	
+
+	Files:	proxy/dispatcher/idirectfbfont_dispatcher.c (1.8) (+49 -0;)
+		proxy/requestor/idirectfbwindow_requestor.c (1.7) (+126 -3;)
+		proxy/requestor/idirectfbinputdevice_requestor.c (1.3) (+32 -1;)
+		proxy/requestor/idirectfbfont_requestor.c (1.6) (+47 -0;)
+		proxy/dispatcher/idirectfbwindow_dispatcher.h (1.2) (+3 -0;)
+		proxy/dispatcher/idirectfbwindow_dispatcher.c (1.8) (+162 -3;)
+		proxy/dispatcher/idirectfbscreen_dispatcher.c (1.5) (+14 -0;)
+		proxy/dispatcher/idirectfbinputdevice_dispatcher.h (1.2) (+1 -0;)
+		proxy/dispatcher/idirectfbinputdevice_dispatcher.c (1.4) (+44 -1;)
+	
+	Added missing methods.
+	
+2006-11-30   klan	14:57:49	
+
+	Files:	proxy/dispatcher/idirectfbsurface_dispatcher.c (1.12) (+184 -12;)
+		proxy/requestor/idirectfbsurface_requestor.c (1.15) (+126 -0;)
+		proxy/dispatcher/idirectfbsurface_dispatcher.h (1.4) (+4 -0;)
+	
+	Added missing methods.
+	
+2006-11-29   dok	11:38:07	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic.c (1.217) (+84 -0;)
+	
+	Added Bop_argb_blend_alphachannel_src_invsrc_Aop_PFI[] as a fast path
+	for blending from ARGB with SRCALPHA / INVSRCALPHA.
+	Implemented for RGB16 and RGB32 so far.
+	
+2006-11-29   klan	09:32:25	
+
+	Files:	include/directfb_util.h (1.4) (+9 -0;)
+	
+	C++ fix.
+	
+2006-11-28   klan	18:30:19	
+
+	Files:	patches/radeonfb-r300fix-2.6.18-rc2.patch.bz2 (1.2) (+0 -0;)
+	
+	Removed 2.6.18-rc2, added 2.6.18.
+	
+2006-11-28   klan	18:30:19	
+
+	Files:	patches/radeonfb-r300fix-2.6.18.patch.bz2 (1.1) (l40KOGZ8koDuQsWr; )
+	
+	Removed 2.6.18-rc2, added 2.6.18.
+	
+2006-11-28   klan	10:53:42	
+
+	Files:	gfxdrivers/sis315/Makefile.am (1.14) (+1 -2;)
+		gfxdrivers/sis315/sisfb.h (1.5) (+0 -0;)
+		gfxdrivers/sis315/sis315_compat.h (1.6) (+73 -6;)
+		gfxdrivers/sis315/sis315.h (1.6) (+2 -2;)
+		gfxdrivers/sis315/sis315.c (1.19) (+2 -2;)
+	
+	Removed sisfb.h. Put the declarations in sis315_compact.h.
+	
+2006-11-26   klan	14:01:26	
+
+	Files:	gfxdrivers/radeon/radeon.c (1.43) (+9 -11;)
+	
+	Compare bytes instead of bits when checking for pixelformat compatibility.
+	
+2006-11-26   klan	14:00:02	
+
+	Files:	lib/direct/stream.c (1.27) (+3 -1;)
+	
+	Allow to wait() on a RTSP stream.
+	
+2006-11-26   klan	13:58:58	
+
+	Files:	include/directfb.h (1.320) (+5 -3;)
+	
+	Be more precise about the behaviour of IDirectFBSurface::Flip().
+	
+2006-11-24   syrjala	23:53:55	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	configure.in (1.299) (+17 -1;)
+		inputdrivers/Makefile.am (1.22) (+5 -0;)
+	
+	tslib input driver by Shane Volpe <shanevolpe@gmail.com>. Thanks!
+	Support for multiple devices and some coding style cleanups by me.
+	
+2006-11-24   syrjala	23:53:55	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	inputdrivers/tslib/.cvsignore (1.1) (o6MWgjdFRJ7eLYVr; )
+		inputdrivers/tslib/tslib.c (1.1) (o6MWgjdFRJ7eLYVr; )
+		inputdrivers/tslib/Makefile.am (1.1) (o6MWgjdFRJ7eLYVr; )
+	
+	tslib input driver by Shane Volpe <shanevolpe@gmail.com>. Thanks!
+	Support for multiple devices and some coding style cleanups by me.
+	
+2006-11-24   mws	16:16:09	
+
+	Files:	.cvsignore (1.11) (+14 -0;)
+	
+	add some personal stuff in .cvsignore
+	e.g. kdevelop project files
+	
+2006-11-24   mws	16:09:02	
+
+	Files:	inputdrivers/dynapro/.cvsignore (1.1) (BQhuDzola8W5cWVr; )
+	
+	add cvsignore
+	
+2006-11-24   dok	14:02:55	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	README (1.122) (+1 -0;)
+		inputdrivers/linux_input/linux_input.c (1.53) (+147 -7;)
+	
+	Thanks a lot to Attilio Fiandrotti for adding touchpad support!
+	
+2006-11-24   dok	00:08:14	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	systems/fbdev/fbdev.c (1.51) (+2 -0;)
+	
+	Readded setpgid(0,0) also in system_join().
+	
+2006-11-23   dok	10:26:13	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	systems/fbdev/fbdev.c (1.50) (+2 -0;)
+	
+	Readded setpgid(0,0) in system_initialize().
+	
+2006-11-21   klan	16:03:46	
+
+	Files:	gfxdrivers/sis315/Makefile.am (1.13) (+2 -1;)
+		gfxdrivers/sis315/sisfb.h (1.4) (+131 -80;)
+		gfxdrivers/sis315/sis315_compat.h (1.5) (+1 -1;)
+		gfxdrivers/sis315/sis315.c (1.18) (+4 -4;)
+	
+	Need sisfb.h to build.
+	Either if sisfb.h is in the include path (i.e. headers come form linux-2.4)
+	the driver should not rely on that header because linux-2.6 may be running
+	instead and 2.4 and 2.6 versions of sisfb_info are incompatible.
+	
+2006-11-21   klan	14:55:40	
+
+	Files:	systems/fbdev/fbdev.c (1.49) (+2 -2;)
+	
+	Fixed warnings (on x86_64).
+	
+2006-11-21   klan	14:36:36	
+
+	Files:	configure.in (1.298) (+34 -28;)
+	
+	Cosmetics.
+	
+2006-11-21   klan	13:19:35	
+
+	Files:	src/idirectfb.c (1.164) (+4 -4;)
+	
+	Enable DWOP_SCALE by default for windowed primary surfaces.
+	
+2006-11-21   klan	13:18:11	
+
+	Files:	src/core/gfxcard.c (1.196) (+5 -0;)
+	
+	In dfb_gfxcard_stretchblit():
+	be smart and execute dfb_gfxcard_blit when possible.
+	
+2006-11-20   syrjala	22:04:44	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/core/surfaces.c (1.146) (+6 -9;)
+	
+	Don't try to immediately allocate the new video instance when reallocating
+	a buffer (unless the policy is CSP_VIDEOONLY). Fixes corruption problems
+	in XDirectFB caused by window resize failing.
+	
+2006-11-20   syrjala	20:52:29	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.99) (+1 -1;)
+	
+	v4l2 code still used dfb_surface_soft_lock() without the CoreDFB argument.
+	
+2006-11-20   dok	11:40:13	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/direct/memcpy.c (1.11) (+72 -0;)
+	
+	Readded generic64_memcpy().
+	
+2006-11-19   dok	11:41:44	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.60) (+4 -6;)
+	
+	Fix array stride mismatch in FindColorKey(), thanks to Ben Combee!
+	
+2006-11-18   klan	11:54:13	
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_gif.c (1.8) (+4 -17;)
+	
+	Fixed incorrect frame delay computation.
+	Do not use variadic arguments.
+	
+2006-11-18   klan	11:08:41	
+
+	Files:	src/idirectfb.c (1.163) (+3 -3;)
+		src/media/idirectfbvideoprovider.h (1.6) (+3 -0;)
+		src/media/idirectfbvideoprovider.c (1.11) (+2 -1;)
+		src/media/idirectfbimageprovider.h (1.8) (+2 -0;)
+		src/media/idirectfbdatabuffer.c (1.12) (+1 -1;)
+	
+	Enable passing the actual CoreDFB to all external interfaces
+	(excluding DirectFBGL that gets its own IDirectFBSurface).
+	
+2006-11-18   dok	10:45:14	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic.c (1.216) (+13 -0;)
+		src/misc/conf.h (1.66) (+3 -2;)
+		src/misc/conf.c (1.122) (+7 -0;)
+	
+	Added option "no-software" to disable software fallbacks. This is mainly for
+	debugging/profiling purpose. It will print out a warning with the operation
+	and flags each time a fallback would occur.
+	
+2006-11-17   klan	17:28:02	
+
+	Files:	proxy/dispatcher/idirectfbdatabuffer_dispatcher.c (1.7) (+1 -1;)
+		proxy/requestor/idirectfbdatabuffer_requestor.c (1.5) (+1 -1;)
+		proxy/requestor/idirectfb_requestor.c (1.9) (+4 -3;)
+	
+	Workaround to follow recent API changes (that shouldn't happen between release candidates!!).
+	
+2006-11-17   klan	17:25:49	
+
+	Files:	gfxdrivers/radeon/radeon.c (1.42) (+63 -14;)
+	
+	Attempt to make acceleration work on ppc:
+	enable acceleration only for formats that have the same pixel size
+	as the primary layer (to avoid changing the byte swapper).
+	
+2006-11-15   dok	02:12:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	systems/osx/primary.c (1.9) (+5 -5;)
+	
+	round 2
+	
+2006-11-13   dok	21:42:28	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	systems/osx/osx.c (1.9) (+2 -2;)
+		systems/osx/primary.c (1.8) (+5 -5;)
+	
+	Fix SHCALLOC and friends, i.e follow API change.
+	
+	Can't test myself.
+	
+2006-11-12   dok	12:19:54	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.319) (+18 -1;)
+		wm/default/default.c (1.44) (+96 -21;)
+		src/windows/idirectfbwindow.c (1.96) (+25 -0;)
+		src/misc/conf.h (1.65) (+5 -0;)
+		src/misc/conf.c (1.121) (+18 -0;)
+		src/display/idirectfbsurface_window.c (1.57) (+2 -2;)
+		src/idirectfb.c (1.162) (+13 -2;)
+	
+	Added support for scaled windows.
+	
+	New window option DWOP_SCALE prevents the surface from being resized when the window
+	size on screen changes, i.e. via IDirectFBWindow::Resize() or SetBounds().
+	
+	The surface can be resized separately using IDirectFBWindow::ResizeSurface() if needed.
+	
+	New runtime option "scaled=<width>x<height>" scales the window to the specified size
+	for 'force-windowed' apps. The surface size will not be affected, still set via "mode=".
+	
+	
+	Try "df_andi --dfb:force-windowed,mode=640x480,scaled=800x600" in a running session!
+	
+	Also enjoy resizing the window (just scaling differently) using Meta-Ctrl-MouseMotion :)
+	
+2006-11-12   dok	11:33:37	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.318) (+14 -0;)
+		wm/default/default.c (1.43) (+125 -8;)
+		src/windows/idirectfbwindow.c (1.95) (+18 -0;)
+		src/core/windows.h (1.65) (+10 -0;)
+		src/core/windows.c (1.231) (+43 -0;)
+	
+	Added IDirectFBWindow::SetBounds() to do a move and resize in one step.
+	
+	Internally this will use existing the WM API that allows changing any
+	combination of items in the window configuration. Due to historical reasons
+	there has only been one item changed at a time. Now it can happen that both
+	flags CWCF_POSITION and CWCF_SIZE are set when calling wm_set_window_config().
+	
+	The default window manager module got a special function to implement the
+	combined move/resize in this case. The older separate move and resize functions
+	could be replaced by calling the new function, but that's not done, yet.
+	
+2006-11-12   dok	09:54:04	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/input.h (1.42) (+1 -1;)
+	
+	Fixed prototype.
+	
+2006-11-11   klan	09:29:48	
+
+	Files:	src/gfx/generic/generic.c (1.215) (+4 -0;)
+	
+	Skip MMX test on AMD64.
+	
+2006-11-10   dok	21:34:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.59) (+141 -36;)
+	
+	Support loading of indexed PNG files directly to LUT8 surface.
+	
+	Provide palette of image via GetSurfaceDescription().
+	
+2006-11-10   dok	13:13:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbdump.c (1.54) (+2 -0;)
+	
+	Fixed warning.
+	
+2006-11-10   dok	13:06:25	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbg.c (1.10) (+1 -0;)
+	
+	#include <unistd.h>
+	
+2006-11-09   dok	10:59:31	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.161) (+17 -41;)
+		wm/unique/uniquewm.c (1.11) (+1 -1;)
+		wm/default/default.c (1.42) (+30 -22;)
+		systems/x11/primary.c (1.11) (+1 -1;)
+		systems/vnc/primary.c (1.5) (+1 -1;)
+		systems/sdl/primary.c (1.13) (+1 -1;)
+		systems/osx/primary.c (1.7) (+1 -1;)
+		src/windows/idirectfbwindow.h (1.9) (+2 -1;)
+		src/windows/idirectfbwindow.c (1.94) (+6 -2;)
+		src/media/idirectfbimageprovider.h (1.7) (+1 -0;)
+		src/media/idirectfbimageprovider.c (1.9) (+4 -1;)
+		src/media/idirectfbdatabuffer_streamed.c (1.21) (+3 -2;)
+		src/media/idirectfbdatabuffer_memory.c (1.15) (+3 -2;)
+		src/media/idirectfbdatabuffer_file.c (1.19) (+3 -2;)
+		src/media/idirectfbdatabuffer.h (1.4) (+12 -4;)
+		src/media/idirectfbdatabuffer.c (1.11) (+6 -3;)
+		src/gfx/generic/generic.c (1.214) (+2 -2;)
+		src/display/idirectfbsurface_window.h (1.7) (+2 -1;)
+		src/display/idirectfbsurface_window.c (1.56) (+5 -4;)
+		src/display/idirectfbsurface_layer.h (1.9) (+2 -1;)
+		src/display/idirectfbsurface_layer.c (1.45) (+5 -4;)
+		src/display/idirectfbsurface.h (1.22) (+4 -1;)
+		src/display/idirectfbsurface.c (1.126) (+8 -7;)
+		src/display/idirectfbdisplaylayer.h (1.8) (+2 -1;)
+		src/display/idirectfbdisplaylayer.c (1.87) (+9 -6;)
+		src/core/windowstack.h (1.11) (+2 -1;)
+		src/core/windowstack.c (1.29) (+6 -5;)
+		src/core/surfaces.h (1.70) (+6 -2;)
+		src/core/surfaces.c (1.145) (+22 -8;)
+		src/core/surfacemanager.h (1.23) (+4 -2;)
+		src/core/layer_context.h (1.18) (+2 -1;)
+		src/core/layer_context.c (1.54) (+3 -2;)
+		src/core/input.c (1.121) (+7 -3;)
+		src/core/gfxcard.c (1.195) (+2 -2;)
+		src/idirectfb.h (1.13) (+30 -0;)
+	
+	Added ability to let only one Fusionee write to a surface,
+	set via owner field of CoreSurface.
+	
+	Had to add CoreDFB* parameter to dfb_surface_software_lock() and
+	dfb_surface_hardware_lock() where the owner is being checked.
+	
+2006-11-09   dok	10:59:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_default.c (1.42) (+1 -1;)
+		lib/fusion/shm/heap.c (1.5) (+11 -4;)
+		lib/direct/clock.h (1.4) (+3 -0;)
+		lib/direct/clock.c (1.4) (+16 -0;)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.98) (+13 -9;)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_gif.c (1.7) (+18 -4;)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.58) (+12 -7;)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_mpeg2.c (1.14) (+11 -6;)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.52) (+12 -7;)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.56) (+9 -4;)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_dfiff.c (1.2) (+16 -3;)
+		interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.36) (+1 -1;)
+	
+	Added ability to let only one Fusionee write to a surface,
+	set via owner field of CoreSurface.
+	
+	Had to add CoreDFB* parameter to dfb_surface_software_lock() and
+	dfb_surface_hardware_lock() where the owner is being checked.
+	
+2006-11-09   dok	10:54:33	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	systems/sdl/sdlinput.c (1.16) (+1 -1;)
+	
+	Removed "Unknown key pressed" message which can happen on supported (via symbol) keys.
+	
+2006-11-05   dok	19:40:45	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/shm/shm_internal.h (1.5) (+0 -4;)
+	
+	Fix single app build.
+	
+2006-11-04   dok	13:25:47	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.230) (+18 -18;)
+	
+	Give the WM a chance to provide its own surface.
+	
+	The WM may link a surface to the window in the PreConfigureWindow() call.
+	
+2006-11-04   dok	13:21:29	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/surfaces.h (1.69) (+1 -2;)
+		src/core/windows.c (1.229) (+0 -10;)
+	
+	Removed more.
+	
+2006-11-04   dok	13:04:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	wm/default/default.c (1.41) (+1 -4;)
+		wm/unique/window.c (1.13) (+3 -6;)
+		wm/unique/uwmdump.c (1.4) (+13 -18;)
+		wm/unique/context.c (1.16) (+2 -7;)
+	
+	Removed some obsolete crap.
+	
+2006-11-04   dok	13:04:09	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/surfaces.c (1.144) (+0 -1;)
+		tools/dfbdump.c (1.53) (+13 -18;)
+		src/core/windows_internal.h (1.15) (+0 -3;)
+		src/core/windows.h (1.64) (+0 -19;)
+		src/core/windows.c (1.228) (+3 -36;)
+	
+	Removed some obsolete crap.
+	
+2006-11-03   dok	00:19:24	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.297) (+1 -1;)
+	
+	That was enough for RC3.
+	
+2006-11-02   dok	23:56:15	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fonts.c (1.62) (+1 -1;)
+	
+	Increase row width.
+	
+2006-11-02   dok	23:44:54	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.317) (+1 -1;)
+	
+	Fixed wrong pixel format index of LUT2.
+	
+2006-11-02   dok	23:24:57	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/shmalloc.c (1.4) (+4 -4;)
+		lib/fusion/shm/heap.c (1.4) (+1 -0;)
+	
+	Make shared memory allocation output use direct_log_printf as for local memory.
+	
+	Print list of allocations if maximum heap size has been reached.
+	
+2006-11-02   dok	23:06:06	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbdump.c (1.52) (+43 -27;)
+	
+	Show allocations in both DirectFB shared memory pools with option "-s".
+	
+	Show FusionID and offset within file/heap.
+	
+2006-11-02   dok	22:45:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/direct/mem.c (1.11) (+1 -16;)
+	
+	Let "debugmem" option only influence output of allocations, but always track
+	them in debug enabled builds.
+	
+2006-11-02   dok	22:34:47	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/direct/conf.h (1.9) (+2 -0;)
+		src/misc/conf.c (1.120) (+14 -0;)
+		src/core/core.c (1.126) (+3 -2;)
+		lib/fusion/fusion.c (1.22) (+3 -2;)
+		lib/fusion/conf.h (1.2) (+2 -0;)
+		lib/direct/mem.c (1.10) (+18 -4;)
+	
+	Added options "debugmem" and "debugshm" to turn on local/shared memory allocation
+	debugging separately from "debug" option.
+	
+2006-11-02   dok	22:32:38	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/direct/trace.c (1.20) (+11 -3;)
+	
+	Fixed crash with symbol table lookup code when filename is NULL.
+	
+2006-11-02   dok	22:25:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/direct/interface.c (1.11) (+1 -1;)
+	
+	Use direct_memmove() here, too.
+	
+2006-11-02   dok	21:58:50	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/direct/mem.c (1.9) (+1 -1;)
+		lib/direct/memcpy.h (1.4) (+4 -3;)
+	
+	Use memmove() in any overlapping case, don't allow moving downward, because
+	the read/write block size of the memcpy() is not known and the difference
+	between from and to area is often only a few bytes, e.g. moving trailing items
+	after removing an item from an array.
+	
+2006-11-02   dok	21:25:04	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/shmalloc.c (1.3) (+8 -6;)
+		lib/fusion/shm/shm_internal.h (1.4) (+7 -4;)
+		lib/fusion/shm/heap.c (1.3) (+4 -6;)
+	
+	Include Fusion ID of allocator in debug info.
+	
+2006-11-02   dok	21:10:07	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbdump.c (1.51) (+4 -0;)
+	
+	Just for debugging I added the option "-p" to pause() dfbdump.
+	
+	One could run it as a master and look at the foot print or other
+	things that are there before any application specific stuff happens.
+	
+2006-11-02   dok	21:06:26	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/shmalloc.h (1.9) (+0 -22;)
+		lib/fusion/shm/shm_internal.h (1.3) (+1 -0;)
+		lib/fusion/shm/pool.c (1.5) (+5 -3;)
+		lib/fusion/shm/heap.c (1.2) (+27 -3;)
+	
+	Initialize the heap info table to serve for the maximum pool size specified
+	at creation of the pool. Previously, the initial table served for 4 MB heap.
+	If there were more allocations, the heap info table was reallocated at the
+	end of the heap, i.e. at 4 MB making it impossible to ever go back below
+	the 4 MB heap size. Next barrier was 8 MB, 16 MB ...these are gone.
+	
+	Unlink potentially remaining file from a previous session before creating
+	the shared memory file in tmpfs.
+	
+	Removed memset() on the initial heap to take advantage of the actual allocation
+	of the pages happening when first accessed. If it's a new file, which it is
+	now, it will be zeroed anyways.
+	
+	The maximum size specified during creation of a pool is now taken as an
+	additional size after the heap info table. Previously, it could happen that
+	the size was too small to host the fixed sized heap info table.
+	
+2006-11-02   dok	20:52:28	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/direct/debug.c (1.21) (+2 -2;)
+	
+	Fixed two messages not being debug messages.
+	
+2006-11-02   klan	13:53:47	
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_gif.c (1.6) (+17 -16;)
+	
+	Fixed hundredths to microseconds conversion.
+	
+2006-11-02   klan	11:52:27	
+
+	Files:	lib/direct/list.h (1.8) (+6 -6;)
+		lib/direct/util.h (1.23) (+5 -5;)
+		lib/direct/utf8.h (1.4) (+1 -1;)
+		lib/direct/serial.h (1.4) (+5 -5;)
+		lib/direct/memcpy.h (1.3) (+1 -1;)
+	
+	__inline__ instead of inline (same as typeof).
+	
+2006-11-02   klan	11:46:12	
+
+	Files:	lib/direct/interface.h (1.10) (+1 -1;)
+		lib/direct/list.h (1.7) (+4 -4;)
+	
+	Use __typeof__ instead of typeof because the latter requires standard to be gnu89/gnu99.
+	
+2006-11-01   dok	09:00:12	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.35) (+1 -1;)
+		src/gfx/generic/generic.c (1.213) (+7 -7;)
+	
+	type fixes
+	
+2006-10-31   dok	11:26:32	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.34) (+12 -0;)
+	
+	This was missing from the recent LUT2 commit.
+	
+	It adds support for LUT2 fonts to the FT2 module.
+	
+2006-10-30   dok	00:37:40	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/Makefile.am (1.29) (+2 -1;)
+	
+	Added dgiff.h
+	
+2006-10-30   dok	00:12:35	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.62) (+734 -2831;)
+		configure.in (1.296) (+1 -1;)
+		NEWS (1.61) (+106 -0;)
+	
+	shine
+	
 2006-10-30   dok	00:10:11	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	gfxdrivers/matrox/Makefile.am (1.20) (+0 -1;)
@@ -549,12 +1982,34 @@
 	
 2006-10-09   dok	08:09:39	Denis Oliver Kropp <dok@directfb.org>
 
-	Files:	include/dgiff.h (1.1) (UZIaLceoSOqnWYPr; )
-		tools/mkdgiff.c (1.1) (UZIaLceoSOqnWYPr; )
+	Files:	interfaces/IDirectFBFont/Makefile.am (1.16) (+10 -0;)
 		tools/Makefile.am (1.40) (+9 -1;)
 		tools/.cvsignore (1.15) (+1 -0;)
+	
+	DGIFF - DirectFB Glyph Image File Format
+	
+	Added a new font module and a tool called mkdgiff to generate .dgiff from .ttf or other.
+	
+	Purpose of DGIFF is to offload as much as possible from runtime, especially during
+	application startup when loading the default or system fonts. mkdgiff uses FreeType2
+	to load the glyphs of the font and stores them in one or more ready to use font cache
+	rows, up to 2047 pixels wide right now.
+	
+	The loader creates preallocated surfaces from the mmapped font file. The only copy ever
+	made would be when the surface is transfered to video memory for acceleration.
+	
+	DGIFF supports different sizes of one face in a single file.
+	
+	You can specify these options on the mkdgiff command line:
+	
+	   -f, --format    <pixelformat>   Choose the pixel format (default A8)
+	   -s, --sizes     <s1>[,s2...]    Choose sizes to generate glyph images for
+	
+2006-10-09   dok	08:09:39	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/dgiff.h (1.1) (UZIaLceoSOqnWYPr; )
+		tools/mkdgiff.c (1.1) (UZIaLceoSOqnWYPr; )
 		interfaces/IDirectFBFont/idirectfbfont_dgiff.c (1.1) (UZIaLceoSOqnWYPr; )
-		interfaces/IDirectFBFont/Makefile.am (1.16) (+10 -0;)
 	
 	DGIFF - DirectFB Glyph Image File Format
 	
@@ -747,9 +2202,14 @@
 2006-09-30   dok	21:17:43	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	README (1.117) (+1 -1;)
-		inputdrivers/dynapro/Makefile.am (1.1) (kUMXxOTE39gvFTOr; )
 		inputdrivers/Makefile.am (1.21) (+5 -0;)
 		configure.in (1.292) (+15 -1;)
+	
+	New 3M DynaPro Touchscreen driver, thanks to Pär Degerman <parde@ikp.liu.se>!
+	
+2006-09-30   dok	21:17:43	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/dynapro/Makefile.am (1.1) (kUMXxOTE39gvFTOr; )
 	
 	New 3M DynaPro Touchscreen driver, thanks to Pär Degerman <parde@ikp.liu.se>!
 	
@@ -1139,8 +2599,18 @@
 2006-09-11   dok	15:05:25	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	tools/.cvsignore (1.14) (+1 -0;)
-		tools/mkdfiff.c (1.1) (5dsOrZKaseR0dqMr; )
 		tools/Makefile.am (1.38) (+4 -1;)
+	
+	First shot at DFIFF - DirectFB Fast Image File Format
+	
+	Includes mkdfiff tool and a very simple and fast image provider.
+	
+	Loading of a 32x32 icon, for example, was about six times faster
+	than with the PNG loader.
+	
+2006-09-11   dok	15:05:25	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/mkdfiff.c (1.1) (5dsOrZKaseR0dqMr; )
 	
 	First shot at DFIFF - DirectFB Fast Image File Format
 	
@@ -1152,7 +2622,17 @@
 2006-09-11   dok	15:05:10	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	interfaces/IDirectFBImageProvider/Makefile.am (1.17) (+9 -0;)
-		interfaces/IDirectFBImageProvider/idirectfbimageprovider_dfiff.c (1.1) (5dsOrZKaseR0dqMr; )
+	
+	First shot at DFIFF - DirectFB Fast Image File Format
+	
+	Includes mkdfiff tool and a very simple and fast image provider.
+	
+	Loading of a 32x32 icon, for example, was about six times faster
+	than with the PNG loader.
+	
+2006-09-11   dok	15:05:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_dfiff.c (1.1) (5dsOrZKaseR0dqMr; )
 	
 	First shot at DFIFF - DirectFB Fast Image File Format
 	
@@ -1237,8 +2717,13 @@
 2006-09-03   dok	11:54:39	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	tests/.cvsignore (1.2) (+1 -0;)
-		tests/fusion_reactor.c (1.1) (PuZJ9vP2dMDRpnLr; )
 		tests/Makefile.am (1.2) (+4 -1;)
+	
+	Small test for problem with pending messages from destroyed reactors.
+	
+2006-09-03   dok	11:54:39	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tests/fusion_reactor.c (1.1) (PuZJ9vP2dMDRpnLr; )
 	
 	Small test for problem with pending messages from destroyed reactors.
 	
@@ -1345,15 +2830,25 @@
 2006-08-14   dok	09:19:32	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	Makefile.am (1.24) (+5 -0;)
-		tests/fusion_fork.c (1.1) (a0qIkvKBLBmacNIr; )
-		tests/Makefile.am (1.1) (a0qIkvKBLBmacNIr; )
-		tests/.cvsignore (1.1) (a0qIkvKBLBmacNIr; )
 		lib/fusion/types.h (1.6) (+2 -2;)
 		lib/fusion/fusion_internal.h (1.6) (+2 -0;)
 		lib/fusion/fusion.h (1.6) (+11 -0;)
 		lib/fusion/fusion.c (1.19) (+129 -0;)
 		configure.in (1.288) (+10 -0;)
 		TODO (1.65) (+1 -4;)
+	
+	Implemented experimental fork() handling in Fusion.
+	
+	Added FusionForkAction being FFA_CLOSE by default, which can be changed to
+	FFA_FORK with a call to fusion_world_set_fork_action() for each Fusionee/World.
+	
+	Added test program "fusion_fork" to demonstrate and test the new feature.
+	
+2006-08-14   dok	09:19:32	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tests/.cvsignore (1.1) (a0qIkvKBLBmacNIr; )
+		tests/fusion_fork.c (1.1) (a0qIkvKBLBmacNIr; )
+		tests/Makefile.am (1.1) (a0qIkvKBLBmacNIr; )
 	
 	Implemented experimental fork() handling in Fusion.
 	
@@ -1619,10 +3114,16 @@
 		gfxdrivers/radeon/radeon.h (1.8) (+16 -2;)
 		gfxdrivers/radeon/radeon.c (1.39) (+146 -233;)
 		gfxdrivers/radeon/r300_state.c (1.4) (+446 -195;)
-		gfxdrivers/radeon/r300_program.h (1.1) (1AF4b7itAAEwcqHr; )
-		gfxdrivers/radeon/r300_3d.c (1.1) (1AF4b7itAAEwcqHr; )
 		gfxdrivers/radeon/r200_state.c (1.3) (+46 -31;)
 		gfxdrivers/radeon/r100_state.c (1.3) (+38 -32;)
+	
+	This is my latest development version of the radeon driver.
+	Main changes affect the R300, which now supports FillTriangles() and DSDRAW_BLEND.
+	
+2006-08-03   klan	17:20:00	
+
+	Files:	gfxdrivers/radeon/r300_3d.c (1.1) (1AF4b7itAAEwcqHr; )
+		gfxdrivers/radeon/r300_program.h (1.1) (1AF4b7itAAEwcqHr; )
 	
 	This is my latest development version of the radeon driver.
 	Main changes affect the R300, which now supports FillTriangles() and DSDRAW_BLEND.
@@ -1815,8 +3316,16 @@
 2006-07-23   klan	12:46:42	
 
 	Files:	docs/html/Makefile.am (1.6) (+2 -1;)
-		include/directfbgl.h (1.1) (RNWrbzV3K4Vi3ZFr; )
 		include/Makefile.am (1.27) (+2 -1;)
+	
+	Moved DirectFBGL header to the proper location.
+	
+	We need the header here since the DirectFBGL interface is strongly
+	integrated within DirectFB and we want to support external implementations.
+	
+2006-07-23   klan	12:46:42	
+
+	Files:	include/directfbgl.h (1.1) (RNWrbzV3K4Vi3ZFr; )
 	
 	Moved DirectFBGL header to the proper location.
 	
@@ -1856,8 +3365,13 @@
 		lib/fusion/types.h (1.5) (+1 -0;)
 		lib/fusion/object.h (1.9) (+16 -1;)
 		lib/fusion/object.c (1.13) (+97 -2;)
+	
+	New fusion hash and property support for object
+	
+2006-07-22   memmel	20:24:28	
+
+	Files:	lib/fusion/hash.c (1.1) (0AXL1WwLJkJJCTFr; )
 		lib/fusion/hash.h (1.1) (0AXL1WwLJkJJCTFr; )
-		lib/fusion/hash.c (1.1) (0AXL1WwLJkJJCTFr; )
 	
 	New fusion hash and property support for object
 	
@@ -1943,8 +3457,14 @@
 2006-07-19   klan	10:10:32	
 
 	Files:	configure.in (1.285) (+2 -1;)
-		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_gif.c (1.1) (pLET5rKy3rPCjsFr; )
 		interfaces/IDirectFBVideoProvider/Makefile.am (1.23) (+19 -1;)
+	
+	Added Animated GIF video provider.
+	(I put it here, instead of DirectFB-extra, because it may be usefull for animated cursors).
+	
+2006-07-19   klan	10:10:32	
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_gif.c (1.1) (pLET5rKy3rPCjsFr; )
 	
 	Added Animated GIF video provider.
 	(I put it here, instead of DirectFB-extra, because it may be usefull for animated cursors).

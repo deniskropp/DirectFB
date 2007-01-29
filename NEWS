@@ -1,3 +1,153 @@
+1.0.0-rc3
+---------
+
+API
+- Added IDirectFBWindow::SetBounds() to do a move and resize in one step.
+- New window option DWOP_SCALE prevents the surface from being resized when the window
+  size on screen changes, i.e. via IDirectFBWindow::Resize() or SetBounds().
+- The surface can be resized separately using IDirectFBWindow::ResizeSurface() if needed.
+- Enable DWOP_SCALE by default for windowed primary surface (IDirectFB::CreateSurface).
+- Fixed DIKT_UNICODE detection in DFB_KEY_TYPE(symbol) for values > 255.
+
+Runtime Options
+- New runtime option "scaled=<width>x<height>" scales the window to the specified size
+  for 'force-windowed' apps. The surface size will not be affected, still set via "mode=".
+- Added options "debugmem" and "debugshm" to turn on local/shared memory allocation
+  debugging separately from "debug" option.
+- Let "debugmem" option only influence output of allocations, but always track
+  them in debug enabled builds.
+- Added option "no-software" to disable software fallbacks. This is mainly for
+  debugging/profiling purpose. It will print out a warning with the operation
+  and flags each time a fallback would occur.
+- Read DIRECTFB_SESSION variable after reading all files and DFBARGS,
+  so only the command line can override the current session.
+- Added runtime option "force-slave" to always enter as a slave, waiting for
+  the master, if not already there. This feature only works with recent kernel module.
+
+Graphics Core
+- Added InvalidateState() at driver level API to notify the driver that
+  the current rendering state is no longer valid.
+
+Surface Core
+- Added ability to let only one Fusionee write to a surface,
+  set via owner field of CoreSurface.
+- Don't try to immediately allocate the new video instance when reallocating
+  a buffer (unless the policy is CSP_VIDEOONLY). Fixes corruption problems
+  in XDirectFB caused by window resize failing.
+- Dispatch surface's notifications directly (if local).
+  This change fixes an assertion failure that happens in the following case:
+  Resize (Downsize) Surface ... and immediatly after ... Blit to Surface.
+
+Layer Core
+- Support DLBM_BACKSYSTEM as a (driver) default.
+
+Window Core
+- Give the WM a chance to provide its own surface.
+  The WM may link a surface to the window in the PreConfigureWindow() call.
+- Dispatch window's notifications directly (if local).
+
+Software Rendering
+- Added Bop_argb_blend_alphachannel_src_invsrc_Aop_PFI[] as a fast path for blending
+  from ARGB with SRCALPHA / INVSRCALPHA. Implemented for RGB16 and RGB32 so far.
+- Use cpp templates for 16bpp and 32bpp code.
+- Removes duplicated code.
+- Implements some missing gfx funcs.
+- Fixes missing EXPAND() calls in some acc funcs.
+- Fixes blit direction handling in some 16bpp blit funcs.
+
+Utils
+- Added some basic update region management (DFBUpdates) with functions for adding
+  updates, keeping a maximum number of regions, merging if possible or required.
+  First version, IQ 10.
+
+libdirect
+- Autodetect clock skew.
+- Added direct_list_move_to_front( **list, *link ).
+- Added direct_snputs(s,d,n) to set a string with a maximum size including the
+  zero termination. This acts like a strncpy(d,s,n), but always terminates the
+  string like snprintf(d,n,"%s",s) which is more or less slower.
+- If trace support and shared libraries are enabled, for each library to install,
+  also generate a file containing the output of "nm -n <that library>".
+  That's the command that is used at runtime via popen().
+- Now the code first checks if it can fopen() a file with the same name as the one passed
+  to "nm -n", but with an "nm-n." prefix. This is both a performance improvement and a nice
+  solution for (embedded) targets without 'nm' being available or fast enough.
+
+libdirect (optional part)
+- Implemented seekability over RTSP.
+
+libfusion
+- Use MADV_REMOVE if possible to give memory back to the system after freeing a block
+  in the middle of the heap.
+- No more signal handler used, because no more mremap() is done, only ftruncate()
+  is called to resize the shared memory heap. The initial mmap() now covers the whole
+  address range.
+- Initialize the heap info table to serve for the maximum pool size specified
+  at creation of the pool. Previously, the initial table served for 4 MB heap.
+  If there were more allocations, the heap info table was reallocated at the
+  end of the heap, i.e. at 4 MB making it impossible to ever go back below
+  the 4 MB heap size. Next barrier was 8 MB, 16 MB ...these are gone.
+- The maximum size specified during creation of a pool is now taken as an
+  additional size after the heap info table. Previously, it could happen that
+  the size was too small to host the fixed sized heap info table.
+- Include Fusion ID of allocator and offset within heap in shm allocation debug info.
+- Print shared memory leaks on pool shutdown (debug mode and 'debugshm' option).
+- Added fusion_reactor_direct(bool) to specify whether local message handlers (reactions)
+  should be called directly, which has been the previous behaviour for years...
+- Fall back to /dev/shm if no mount point could be determined.
+- Added FCEF_NODIRECT which forces execution of the call in the Fusion
+  Dispatch thread even if it's the calling process' own call.
+- Only call fusion_sync() if the pool that is to be destroyed has objects.
+- Fixed fusion_sync() timeout during XDirectFB shutdown.
+- Fixed concurrent startup of master and slaves.
+
+Voodoo
+- Missing methods added and more implemented.
+
+PNG Image Provider
+- Support loading of indexed PNG files directly to LUT8 surface.
+- Provide palette of image via GetSurfaceDescription().
+
+FT2 Font
+- Added support for LUT2 fonts for using fast antialiased text rendering with indexed to indexed translation.
+- Thanks to Vaclav Slavik for fixing loading of mono-only fonts.
+
+Default WM
+- Added support for scaled windows.
+- Make cursor area backing store surface same format as layer.
+- Use DFBUpdates to manage an update queue and do optimizations like taking
+  the bounding box instead of multiple smaller regions if the number of pixels
+  in the bounding box is not much higher than the total of the smaller ones.
+- Even this takes the number of smaller regions into account, because of the
+  increasing overhead per region.
+- Next to performance, the visual experience is enhanced by coalesced updates.
+- Another advantage is that when multiple regions are updated, first it renders
+  all regions and then it flips all regions. Previously, each time the flip was
+  done immediately for each rendered region.
+
+Radeon Driver
+- Implemented StretchBlit, TextureTriangles, Alphablend, Deinterlacing
+  for the R300 chipset family, thanks to Timon +timon37 * interia-pl+!!!
+- Support color keying for TMU based functions on R300.
+
+Unichrome Driver
+- Implemented acceleration for blits involving the AiRGB pixel format.
+- DSPF_AiRGB is now supported as a source format for most blits and stretch blits.
+- Blits _to_ AiRGB surfaces are also accelerated provided they don't require blending.
+
+Linux Input
+- Added Touchpad support!
+
+tslib Input
+- New driver, thanks to Shane Volpe!
+
+dfbdump tool
+- Added the option "-p" to pause() dfbdump after initialization, e.g.
+  to run it as a master and look at the foot print or other things that
+  are there before any application specific stuff happens.
+- Show allocations in both DirectFB shared memory pools with option "-s".
+
+
 1.0.0-rc2
 ---------
 
