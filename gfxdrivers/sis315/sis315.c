@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.c,v 1.19 2006-11-28 10:53:42 klan Exp $
+ * $Id: sis315.c,v 1.20 2007-01-29 01:00:45 dok Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -24,6 +24,8 @@
 
 #include <stdio.h>
 #include <sys/ioctl.h>
+
+#include <fbdev/fbdev.h>  /* FIXME: Needs to be included before dfb_types.h to work around a type clash with asm/types.h */
 
 #include <directfb.h>
 

@@ -1,7 +1,7 @@
 /*
  * $Workfile: nsc_galfns.c $
- * $Revision: 1.12 $
- * $Author: syrjala $
+ * $Revision: 1.13 $
+ * $Author: dok $
  *
  * File Contents: This file contains the main functions of the Geode
  *                frame buffer device drivers GAL function definitions.
@@ -153,9 +153,9 @@
 #include <sys/ioctl.h>
 #endif
 
-#include <direct/memcpy.h>
+#include <fbdev/fbdev.h>  /* FIXME: Needs to be included before dfb_types.h to work around a type clash with asm/types.h */
 
-#include <fbdev/fbdev.h>
+#include <direct/memcpy.h>
 
 static FBDev *dfb_fbdev = NULL;
 

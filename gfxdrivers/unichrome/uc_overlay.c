@@ -9,6 +9,8 @@
 
 #include <config.h>
 
+#include <fbdev/fbdev.h>  /* FIXME: Needs to be included before dfb_types.h to work around a type clash with asm/types.h */
+
 #include "unichrome.h"
 #include "uc_overlay.h"
 #include "vidregs.h"

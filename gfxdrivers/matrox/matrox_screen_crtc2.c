@@ -30,6 +30,8 @@
 #include <stdio.h>
 #include <sys/ioctl.h>
 
+#include <fbdev/fbdev.h>  /* FIXME: Needs to be included before dfb_types.h to work around a type clash with asm/types.h */
+
 #include <directfb.h>
 
 #include <direct/messages.h>

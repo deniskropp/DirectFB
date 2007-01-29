@@ -24,6 +24,7 @@
 
 #include <config.h>
 
+#include <fbdev/fbdev.h>  /* FIXME: Needs to be included before dfb_types.h to work around a type clash with asm/types.h */
 #include <dfb_types.h>
 
 #include <stdio.h>
@@ -47,7 +48,6 @@
 #include <core/surfaces.h>
 
 /* need fb handle to get accel, MMIO programming in the i810 is useless */
-#include <fbdev/fbdev.h>
 #include <gfx/convert.h>
 #include <gfx/util.h>
 #include <misc/conf.h>

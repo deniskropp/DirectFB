@@ -29,6 +29,8 @@
 
 #include <string.h>
 
+#include <fbdev/fbdev.h>  /* FIXME: Needs to be included before dfb_types.h to work around a type clash with asm/types.h */
+
 #include <core/coredefs.h>
 #include <core/layers.h>
 #include <core/surfaces.h>
