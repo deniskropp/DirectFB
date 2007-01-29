@@ -152,7 +152,7 @@ typedef struct {
      char license[FS_SOUND_DRIVER_INFO_LICENSE_LENGTH]; /* Driver license. */
 } FSSoundDriverInfo;
 
-#define FS_SOUND_DEVICE_INFO_NAME_LENGTH    256
+#define FS_SOUND_DEVICE_INFO_NAME_LENGTH    96
 
 /*
  * Description of the sound device.
