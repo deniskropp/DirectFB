@@ -429,6 +429,15 @@ fs_core_device_description( CoreSound *core )
      return &(core->shared->description);
 }
 
+CoreSoundDeviceConfig *
+fs_core_device_config( CoreSound *core )
+{
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+     
+     return &(core->shared->config);
+}
+
 /******************************************************************************/
 
 static DirectSignalHandlerResult

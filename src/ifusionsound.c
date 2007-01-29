@@ -101,10 +101,11 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
                            IFusionSoundBuffer        **ret_interface )
 {
      DFBResult                 ret;
-     int                       channels = fs_config->channels;
-     FSSampleFormat            format   = fs_config->sampleformat;
-     int                       rate     = fs_config->samplerate;
-     int                       length   = 0;
+     CoreSoundDeviceConfig    *config;
+     int                       channels;
+     FSSampleFormat            format;
+     int                       rate;
+     int                       length;
      FSBufferDescriptionFlags  flags;
      CoreSoundBuffer          *buffer;
      IFusionSoundBuffer       *interface;
@@ -113,7 +114,13 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
 
      if (!desc || !ret_interface)
           return DFB_INVARG;
-
+          
+     config   = fs_core_device_config( data->core );
+     channels = config->channels;
+     format   = config->format;
+     rate     = config->rate;
+     length   = 0;
+          
      flags = desc->flags;
 
      if (flags & ~FSBDF_ALL)
@@ -158,7 +165,7 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
      if (length < 1)
           return DFB_INVARG;
           
-     if (length > 0xfffffff)
+     if (length > 0x0fffffff)
           return DFB_LIMITEXCEEDED;
 
      ret = fs_buffer_create( data->core,
@@ -184,12 +191,13 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
                            IFusionSoundStream        **ret_interface )
 {
      DFBResult                 ret;
-     int                       channels  = fs_config->channels;
-     FSSampleFormat            format    = fs_config->sampleformat;
-     int                       rate      = fs_config->samplerate;
-     int                       size      = 0;
-     int                       prebuffer = 0; /* no prebuffer by default */
-     FSStreamDescriptionFlags  flags     = FSSDF_NONE;
+     CoreSoundDeviceConfig    *config;
+     int                       channels;
+     FSSampleFormat            format;
+     int                       rate;
+     int                       size;
+     int                       prebuffer;
+     FSStreamDescriptionFlags  flags;
      CoreSoundBuffer          *buffer;
      IFusionSoundStream       *interface;
 
@@ -197,6 +205,13 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
 
      if (!ret_interface)
           return DFB_INVARG;
+     
+     config    = fs_core_device_config( data->core );
+     channels  = config->channels;
+     format    = config->format;
+     rate      = config->rate;
+     size      = 0;
+     prebuffer = 0; /* no prebuffer by default */
 
      if (desc) {
           flags = desc->flags;
@@ -251,7 +266,7 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
      }
      
      if (!size)
-          size = rate * fs_config->buffertime / 1000;
+          size = rate / 5; /* defaults to 1/5 second */
 
      /* Limit ring buffer size to five seconds. */
      if (size > rate * 5)

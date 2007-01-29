@@ -32,6 +32,7 @@
 #include <fusion/object.h>
 
 #include <core/types_sound.h>
+#include <core/sound_device.h>
 
 /*
  * Core initialization and deinitialization
@@ -86,6 +87,11 @@ FusionSHMPoolShared *fs_core_shmpool( CoreSound *core );
  * Returns device information.
  */ 
 FSDeviceDescription *fs_core_device_description( CoreSound *core );
+
+/*
+ * Returns device configuration.
+ */
+CoreSoundDeviceConfig *fs_core_device_config( CoreSound *core );
 
 
 #endif
