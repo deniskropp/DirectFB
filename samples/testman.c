@@ -299,7 +299,6 @@ MosaicAddWindow( TestManager  *tm,
                  void         *layout_data,
                  SaWManWindow *window )
 {
-     SaWManWindow   *other = NULL;
      ISaWManManager *manager;
 
      D_MAGIC_ASSERT( tm, TestManager );
@@ -310,10 +309,7 @@ MosaicAddWindow( TestManager  *tm,
 
      tm->windows[tm->num_windows++] = window;
 
-     if (tm->num_windows > 1)
-          other = tm->windows[tm->num_windows-2];
-
-     manager->InsertWindow( manager, window, other, DFB_TRUE );
+     manager->InsertWindow( manager, window, NULL, DFB_TRUE );
 
      MosaicRelayout( tm, layout_data );
 }
@@ -332,13 +328,7 @@ MosaicRemoveWindow( TestManager  *tm,
      manager = tm->manager;
      D_ASSERT( manager != NULL );
 
-     for (; index<tm->num_windows-1; index++)
-          tm->windows[index] = tm->windows[index+1];
-
-     tm->windows[index] = NULL;
-
-     tm->num_windows--;
-
+     /* Remove window from layout. */
      manager->RemoveWindow( manager, window );
 
      MosaicRelayout( tm, layout_data );
@@ -375,9 +365,11 @@ LayoutWindowAdd( TestManager  *tm,
           return DFB_LIMITEXCEEDED;
      }
 
+     /* Set some default borders. */
      window->border_normal     = 2;
      window->border_fullscreen = 4;
 
+     /* Call the layout implementation. */
      layout->AddWindow( tm, layout->data, window );
 
      return DFB_OK;
@@ -402,6 +394,8 @@ LayoutWindowRemove( TestManager  *tm,
      D_ASSERT( layout->RemoveWindow != NULL );
 
      for (i=0; i<tm->num_windows; i++) {
+          D_MAGIC_ASSERT( tm->windows[i], SaWManWindow );
+
           if (tm->windows[i] == window)
                break;
      }
@@ -411,6 +405,15 @@ LayoutWindowRemove( TestManager  *tm,
           return DFB_BUG;
      }
 
+     /* Remove window from our own list of managed windows. */
+     for (; i<tm->num_windows-1; i++)
+          tm->windows[i] = tm->windows[i+1];
+
+     tm->windows[i] = NULL;
+
+     tm->num_windows--;
+
+     /* Call the layout implementation. */
      layout->RemoveWindow( tm, layout->data, window, i );
 
      return DFB_OK;
