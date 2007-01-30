@@ -1,0 +1,693 @@
+/*
+   (c) Copyright 2001-2007  directfb.org
+   (c) Copyright 2000-2004  convergence (integrated) media GmbH.
+
+   All rights reserved.
+
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org> and
+              Ville Syrjälä <syrjala@sci.fi>.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+
+#include <config.h>
+
+#include <directfb.h>
+#include <directfb_util.h>
+
+#include <direct/debug.h>
+#include <direct/messages.h>
+#include <direct/util.h>
+
+#include <core/gfxcard.h>
+#include <core/palette.h>
+#include <core/state.h>
+#include <core/surfacemanager.h>
+#include <core/surfaces.h>
+#include <core/windows.h>
+#include <core/windows_internal.h>
+#include <core/windowstack.h>
+
+#include <gfx/convert.h>
+
+#include <misc/util.h>
+
+#include <sawman_manager.h>
+
+#include "stretch_algos.h"
+
+/**********************************************************************************************************************/
+
+static DFBResult
+smooth_stretchblit( CardState         *state,
+                    int                x,
+                    int                y,
+                    int                width,
+                    int                height,
+                    const StretchAlgo *algo )
+{
+     DFBResult    ret;
+     void        *src;
+     int          spitch;
+     void        *dst;
+     int          dpitch;
+     CoreSurface *source;
+     CoreSurface *destination;
+     DFBRegion    clip;
+
+     D_ASSERT( state != NULL );
+     D_ASSERT( state->source != NULL );
+     D_ASSERT( state->source->manager != NULL );
+     D_ASSERT( state->destination != NULL );
+     D_ASSERT( state->source->manager == state->destination->manager );
+
+     source      = state->source;
+     destination = state->destination;
+     clip        = state->clip;
+
+     switch (destination->format) {
+          case DSPF_RGB16:
+               switch (source->format) {
+                    case DSPF_RGB16:
+                         if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+                              if (!algo->func_rgb16_keyed)
+                                   return DFB_UNSUPPORTED;
+                         }
+                         else if (!algo->func_rgb16)
+                              return DFB_UNSUPPORTED;
+
+                         break;
+
+                    case DSPF_LUT8:
+                         D_ASSERT( source->palette != NULL );
+
+                         if (!algo->func_rgb16_indexed)
+                              return DFB_UNSUPPORTED;
+
+                         break;
+
+                    case DSPF_RGB32:
+                         if (!algo->func_rgb16_from32)
+                              return DFB_UNSUPPORTED;
+
+                         break;
+
+                    default:
+                         return DFB_UNSUPPORTED;
+               }
+               break;
+
+          case DSPF_ARGB4444:
+               switch (source->format) {
+                    case DSPF_ARGB4444:
+                         algo->func_argb4444( dst, dpitch, src, spitch, source->width, source->height, width, height, &clip );
+                         break;
+
+                    default:
+                         return DFB_UNSUPPORTED;
+               }
+               break;
+
+          default:
+               return DFB_UNSUPPORTED;
+     }
+
+     dfb_state_lock( state );
+
+     dfb_surfacemanager_lock( source->manager );
+
+     ret = dfb_surface_software_lock( state->core, source, DSLF_READ, &src, &spitch, true );
+     if (ret) {
+          D_DERROR( ret, "IDirectFBSurface::Lock() on source failed!\n" );
+          dfb_surfacemanager_unlock( state->source->manager );
+          dfb_state_unlock( state );
+          return ret;
+     }
+
+     ret = dfb_surface_software_lock( state->core, state->destination, DSLF_WRITE, &dst, &dpitch, false );
+     if (ret) {
+          D_DERROR( ret, "IDirectFBSurface::Lock() on destination failed!\n" );
+          dfb_surface_unlock( source, true );
+          dfb_surfacemanager_unlock( source->manager );
+          dfb_state_unlock( state );
+          return ret;
+     }
+
+     dfb_surfacemanager_unlock( source->manager );
+
+
+     dst += DFB_BYTES_PER_LINE( destination->format, x ) + y * dpitch;
+
+     dfb_region_translate( &clip, - x, - y );
+
+     switch (destination->format) {
+          case DSPF_RGB16:
+               switch (source->format) {
+                    case DSPF_RGB16:
+                         if (state->blittingflags & DSBLIT_SRC_COLORKEY)
+                              algo->func_rgb16_keyed( dst, dpitch, src, spitch, source->width, source->height, width, height, &clip,
+                                                      state->src_colorkey );
+                         else
+                              algo->func_rgb16( dst, dpitch, src, spitch, source->width, source->height, width, height, &clip );
+                         break;
+
+                    case DSPF_LUT8:
+                         D_ASSERT( source->palette != NULL );
+                         algo->func_rgb16_indexed( dst, dpitch, src, spitch, source->width, source->height, width, height, source->palette->entries );
+                         break;
+
+                    case DSPF_RGB32:
+                         algo->func_rgb16_from32( dst, dpitch, src, spitch, source->width, source->height, width, height, &clip );
+                         break;
+
+                    default:
+                         D_BUG( "unsupported source format %s", dfb_pixelformat_name(source->format) );
+               }
+               break;
+
+          case DSPF_ARGB4444:
+               switch (source->format) {
+                    case DSPF_ARGB4444:
+                         algo->func_argb4444( dst, dpitch, src, spitch, source->width, source->height, width, height, &clip );
+                         break;
+
+                    default:
+                         D_BUG( "unsupported source format %s", dfb_pixelformat_name(source->format) );
+               }
+               break;
+
+          default:
+               D_BUG( "unsupported destination format %s", dfb_pixelformat_name(destination->format) );
+     }
+
+
+     dfb_surface_unlock( source, true );
+     dfb_surface_unlock( destination, false );
+
+     dfb_state_unlock( state );
+
+     return DFB_OK;
+}
+
+/**********************************************************************************************************************/
+
+void
+sawman_draw_cursor( CoreWindowStack *stack, CardState *state, DFBRegion *region )
+{
+     DFBRectangle            src;
+     DFBRectangle            clip;
+     DFBSurfaceBlittingFlags flags = DSBLIT_BLEND_ALPHACHANNEL;
+
+     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( state, CardState );
+     DFB_REGION_ASSERT( region );
+
+     D_ASSUME( stack->cursor.opacity > 0 );
+
+     /* Initialize source rectangle. */
+     src.x = region->x1 - stack->cursor.x + stack->cursor.hot.x;
+     src.y = region->y1 - stack->cursor.y + stack->cursor.hot.y;
+     src.w = region->x2 - region->x1 + 1;
+     src.h = region->y2 - region->y1 + 1;
+
+     /* Initialize source clipping rectangle */
+     clip.x = clip.y = 0;
+     clip.w = stack->cursor.surface->width;
+     clip.h = stack->cursor.surface->height;
+
+     /* Intersect rectangles */
+     if (!dfb_rectangle_intersect( &src, &clip ))
+          return;
+
+     /* Use global alpha blending. */
+     if (stack->cursor.opacity != 0xFF) {
+          flags |= DSBLIT_BLEND_COLORALPHA;
+
+          /* Set opacity as blending factor. */
+          if (state->color.a != stack->cursor.opacity) {
+               state->color.a   = stack->cursor.opacity;
+               state->modified |= SMF_COLOR;
+          }
+     }
+
+     /* Different compositing methods depending on destination format. */
+     if (flags & DSBLIT_BLEND_ALPHACHANNEL) {
+          if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format )) {
+               /*
+                * Always use compliant Porter/Duff SRC_OVER,
+                * if the destination has an alpha channel.
+                *
+                * Cd = destination color  (non-premultiplied)
+                * Ad = destination alpha
+                *
+                * Cs = source color       (non-premultiplied)
+                * As = source alpha
+                *
+                * Ac = color alpha
+                *
+                * cd = Cd * Ad            (premultiply destination)
+                * cs = Cs * As            (premultiply source)
+                *
+                * The full equation to calculate resulting color and alpha (premultiplied):
+                *
+                * cx = cd * (1-As*Ac) + cs * Ac
+                * ax = Ad * (1-As*Ac) + As * Ac
+                */
+               dfb_state_set_src_blend( state, DSBF_ONE );
+
+               /* Need to premultiply source with As*Ac or only with Ac? */
+               if (! (stack->cursor.surface->caps & DSCAPS_PREMULTIPLIED))
+                    flags |= DSBLIT_SRC_PREMULTIPLY;
+               else if (flags & DSBLIT_BLEND_COLORALPHA)
+                    flags |= DSBLIT_SRC_PREMULTCOLOR;
+
+               /* Need to premultiply/demultiply destination? */
+//               if (! (state->destination->caps & DSCAPS_PREMULTIPLIED))
+//                    flags |= DSBLIT_DST_PREMULTIPLY | DSBLIT_DEMULTIPLY;
+          }
+          else {
+               /*
+                * We can avoid DSBLIT_SRC_PREMULTIPLY for destinations without an alpha channel
+                * by using another blending function, which is more likely that it's accelerated
+                * than premultiplication at this point in time.
+                *
+                * This way the resulting alpha (ax) doesn't comply with SRC_OVER,
+                * but as the destination doesn't have an alpha channel it's no problem.
+                *
+                * As the destination's alpha value is always 1.0 there's no need for
+                * premultiplication. The resulting alpha value will also be 1.0 without
+                * exceptions, therefore no need for demultiplication.
+                *
+                * cx = Cd * (1-As*Ac) + Cs*As * Ac  (still same effect as above)
+                * ax = Ad * (1-As*Ac) + As*As * Ac  (wrong, but discarded anyways)
+                */
+               if (stack->cursor.surface->caps & DSCAPS_PREMULTIPLIED) {
+                    /* Need to premultiply source with Ac? */
+                    if (flags & DSBLIT_BLEND_COLORALPHA)
+                         flags |= DSBLIT_SRC_PREMULTCOLOR;
+
+                    dfb_state_set_src_blend( state, DSBF_ONE );
+               }
+               else
+                    dfb_state_set_src_blend( state, DSBF_SRCALPHA );
+          }
+     }
+
+     /* Set blitting flags. */
+     dfb_state_set_blitting_flags( state, flags );
+
+     /* Set blitting source. */
+     state->source    = stack->cursor.surface;
+     state->modified |= SMF_SOURCE;
+
+     /* Blit from the window to the region being updated. */
+     dfb_gfxcard_blit( &src, region->x1, region->y1, state );
+
+     /* Reset blitting source. */
+     state->source    = NULL;
+     state->modified |= SMF_SOURCE;
+}
+
+static void
+draw_border( CoreWindowStack *stack,
+             CoreWindow      *window,
+             CardState       *state,
+             const DFBRegion *region,
+             int              thickness )
+{
+     int          i;
+     DFBRegion    clip;
+     DFBRectangle rects[4];
+
+     static const DFBColor focused_colors[]   = { { 0xf0, 0xd0, 0xd0, 0x40 },
+                                                  { 0xff, 0xc0, 0xa0, 0x20 },
+                                                  { 0xff, 0xb0, 0x90, 0x20 },
+                                                  { 0xff, 0xa0, 0x80, 0x20 } };
+
+     static const DFBColor unfocused_colors[] = { { 0xf0, 0xb0, 0xb0, 0xa0 },
+                                                  { 0xff, 0x90, 0x90, 0x90 },
+                                                  { 0xff, 0x80, 0x80, 0x80 },
+                                                  { 0xff, 0x70, 0x70, 0x70 } };
+
+     const DFBColor *colors = (window->flags & CWF_FOCUSED) ? focused_colors : unfocused_colors;
+
+     /* Check thickness. */
+     if (thickness < 1 || thickness > D_ARRAY_SIZE(focused_colors)) {
+          D_WARN( "border thickness %d higher than %d or below 1", thickness, D_ARRAY_SIZE(focused_colors) );
+          return;
+     }
+
+     /* Initialize border rectangles. */
+     rects[0] = window->config.bounds;
+
+     for (i=1; i<thickness; i++) {
+          rects[i].x = rects[i-1].x + 1;
+          rects[i].y = rects[i-1].y + 1;
+          rects[i].w = rects[i-1].w - 2;
+          rects[i].h = rects[i-1].h - 2;
+     }
+
+     /* Save clipping region. */
+     clip = state->clip;
+
+     /* Change clipping region. */
+     dfb_state_set_clip( state, region );
+
+     /* Draw border rectangles. */
+     for (i=0; i<thickness; i++) {
+          dfb_state_set_color( state, &colors[i] );
+          dfb_gfxcard_drawrectangle( &rects[i], state );
+     }
+
+     /* Restore clipping region. */
+     dfb_state_set_clip( state, &clip );
+}
+
+void
+sawman_draw_window( SaWManWindow *sawwin,
+                    CardState    *state,
+                    DFBRegion    *pregion,
+                    bool          alpha_channel )
+{
+     DFBRectangle             src;
+     DFBSurfaceBlittingFlags  flags = DSBLIT_NOFX;
+     CoreWindow              *window;
+     CoreWindowStack         *stack;
+     DFBRegion                xregion = *pregion;
+     DFBRegion                *region = &xregion;
+     int                      border;
+     SaWMan                  *sawman;
+
+     D_MAGIC_ASSERT( sawwin, SaWManWindow );
+     D_MAGIC_ASSERT( state, CardState );
+     DFB_REGION_ASSERT( region );
+
+     window = sawwin->window;
+     stack  = sawwin->stack;
+     sawman = sawwin->sawman;
+
+     D_ASSERT( window != NULL );
+     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( sawman, SaWMan );
+
+     border = sawman_window_border( sawwin );
+     if (border) {
+          if (!dfb_region_intersect( region,
+                                     window->config.bounds.x + border,
+                                     window->config.bounds.y + border,
+                                     window->config.bounds.x + window->config.bounds.w - border - 1,
+                                     window->config.bounds.y + window->config.bounds.h - border - 1 ))
+               return;
+     }
+
+     /* Initialize source rectangle. */
+     dfb_rectangle_from_region( &src, region );
+
+     /* Subtract window offset. */
+     src.x -= window->config.bounds.x;
+     src.y -= window->config.bounds.y;
+
+     /* Use per pixel alpha blending. */
+     if (alpha_channel && (window->config.options & DWOP_ALPHACHANNEL))
+          flags |= DSBLIT_BLEND_ALPHACHANNEL;
+
+     /* Use global alpha blending. */
+     if (window->config.opacity != 0xFF) {
+          flags |= DSBLIT_BLEND_COLORALPHA;
+
+          /* Set opacity as blending factor. */
+          if (state->color.a != window->config.opacity) {
+               state->color.a   = window->config.opacity;
+               state->modified |= SMF_COLOR;
+          }
+     }
+
+     /* Use source color keying. */
+     if (window->config.options & DWOP_COLORKEYING) {
+          flags |= DSBLIT_SRC_COLORKEY;
+
+          /* Set window color key. */
+          dfb_state_set_src_colorkey( state, window->config.color_key );
+     }
+
+     /* Use automatic deinterlacing. */
+     if (window->surface->caps & DSCAPS_INTERLACED)
+          flags |= DSBLIT_DEINTERLACE;
+
+     /* Different compositing methods depending on destination format. */
+     if (flags & DSBLIT_BLEND_ALPHACHANNEL) {
+          if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format )) {
+               /*
+                * Always use compliant Porter/Duff SRC_OVER,
+                * if the destination has an alpha channel.
+                *
+                * Cd = destination color  (non-premultiplied)
+                * Ad = destination alpha
+                *
+                * Cs = source color       (non-premultiplied)
+                * As = source alpha
+                *
+                * Ac = color alpha
+                *
+                * cd = Cd * Ad            (premultiply destination)
+                * cs = Cs * As            (premultiply source)
+                *
+                * The full equation to calculate resulting color and alpha (premultiplied):
+                *
+                * cx = cd * (1-As*Ac) + cs * Ac
+                * ax = Ad * (1-As*Ac) + As * Ac
+                */
+               dfb_state_set_src_blend( state, DSBF_ONE );
+
+               /* Need to premultiply source with As*Ac or only with Ac? */
+               if (! (window->surface->caps & DSCAPS_PREMULTIPLIED))
+                    flags |= DSBLIT_SRC_PREMULTIPLY;
+               else if (flags & DSBLIT_BLEND_COLORALPHA)
+                    flags |= DSBLIT_SRC_PREMULTCOLOR;
+
+               /* Need to premultiply/demultiply destination? */
+//               if (! (state->destination->caps & DSCAPS_PREMULTIPLIED))
+//                    flags |= DSBLIT_DST_PREMULTIPLY | DSBLIT_DEMULTIPLY;
+          }
+          else {
+               /*
+                * We can avoid DSBLIT_SRC_PREMULTIPLY for destinations without an alpha channel
+                * by using another blending function, which is more likely that it's accelerated
+                * than premultiplication at this point in time.
+                *
+                * This way the resulting alpha (ax) doesn't comply with SRC_OVER,
+                * but as the destination doesn't have an alpha channel it's no problem.
+                *
+                * As the destination's alpha value is always 1.0 there's no need for
+                * premultiplication. The resulting alpha value will also be 1.0 without
+                * exceptions, therefore no need for demultiplication.
+                *
+                * cx = Cd * (1-As*Ac) + Cs*As * Ac  (still same effect as above)
+                * ax = Ad * (1-As*Ac) + As*As * Ac  (wrong, but discarded anyways)
+                */
+               if (window->surface->caps & DSCAPS_PREMULTIPLIED) {
+                    /* Need to premultiply source with Ac? */
+                    if (flags & DSBLIT_BLEND_COLORALPHA)
+                         flags |= DSBLIT_SRC_PREMULTCOLOR;
+
+                    dfb_state_set_src_blend( state, DSBF_ONE );
+               }
+               else
+                    dfb_state_set_src_blend( state, DSBF_SRCALPHA );
+          }
+     }
+
+     /* Set blitting flags. */
+     dfb_state_set_blitting_flags( state, flags );
+
+     /* Set blitting source. */
+     state->source    = window->surface;
+     state->modified |= SMF_SOURCE;
+
+     if ((window->config.options & DWOP_SCALE) &&
+         (window->config.bounds.w != window->surface->width  ||
+          window->config.bounds.h != window->surface->height ||
+          sawman->scaling_mode == SWMSM_SMOOTH_SW))
+     {
+          DFBResult    ret  = DFB_UNSUPPORTED;
+          DFBRegion    clip = state->clip;
+          DFBRectangle dst  = window->config.bounds;
+
+          region->x1 &= ~1;
+          region->x2 |=  1;
+
+          /* Change clipping region. */
+          dfb_state_set_clip( state, region );
+
+          /* Scale window to the screen clipped by the region being updated. */
+          if (sawman->scaling_mode == SWMSM_SMOOTH_SW) {
+               if (dst.w == window->surface->width && dst.h == window->surface->height)
+                    ret = smooth_stretchblit( state, dst.x, dst.y, dst.w, dst.h, &wm_stretch_simple );
+               else if (dst.w < window->surface->width && dst.h < window->surface->height)
+                    ret = smooth_stretchblit( state, dst.x, dst.y, dst.w, dst.h, &wm_stretch_down2 );
+               else
+                    ret = smooth_stretchblit( state, dst.x, dst.y, dst.w, dst.h, &wm_stretch_hv4 );
+          }
+
+          /* Standard scaling selected or fallback for smooth scaling required. */
+          if (ret) {
+               DFBRectangle src = { 0, 0, window->surface->width, window->surface->height };
+
+               dfb_gfxcard_stretchblit( &src, &dst, state );
+          }
+
+          /* Restore clipping region. */
+          dfb_state_set_clip( state, &clip );
+     }
+     else {
+          D_ASSERT( window->surface->width  == window->config.bounds.w );
+          D_ASSERT( window->surface->height == window->config.bounds.h );
+
+          /* Blit from the window to the region being updated. */
+          dfb_gfxcard_blit( &src, region->x1, region->y1, state );
+     }
+
+     if (border)
+          draw_border( stack, window, state, pregion, border );
+
+     /* Reset blitting source. */
+     state->source    = NULL;
+     state->modified |= SMF_SOURCE;
+}
+
+void
+sawman_draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
+{
+     DFBRectangle dst;
+
+     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( state, CardState );
+     DFB_REGION_ASSERT( region );
+
+     D_ASSERT( stack->bg.image != NULL || (stack->bg.mode != DLBM_IMAGE &&
+                                           stack->bg.mode != DLBM_TILE) );
+
+     /* Initialize destination rectangle. */
+     dfb_rectangle_from_region( &dst, region );
+
+     switch (stack->bg.mode) {
+          case DLBM_COLOR: {
+               CoreSurface *dest  = state->destination;
+               DFBColor    *color = &stack->bg.color;
+
+               /* Set the background color. */
+               if (DFB_PIXELFORMAT_IS_INDEXED( dest->format ))
+                    dfb_state_set_color_index( state,  /* FIXME: don't search every time */
+                                               dfb_palette_search( dest->palette, color->r,
+                                                                   color->g, color->b, color->a ) );
+               else
+                    dfb_state_set_color( state, color );
+
+               /* Simply fill the background. */
+               dfb_gfxcard_fillrectangles( &dst, 1, state );
+
+               break;
+          }
+
+          case DLBM_IMAGE: {
+               CoreSurface *bg = stack->bg.image;
+
+               /* Set blitting source. */
+               state->source    = bg;
+               state->modified |= SMF_SOURCE;
+
+               /* Set blitting flags. */
+               dfb_state_set_blitting_flags( state, DSBLIT_NOFX );
+
+               /* Check the size of the background image. */
+               if (bg->width == stack->width && bg->height == stack->height) {
+                    /* Simple blit for 100% fitting background image. */
+                    dfb_gfxcard_blit( &dst, dst.x, dst.y, state );
+               }
+               else {
+                    DFBRegion    clip = state->clip;
+                    DFBRectangle src  = { 0, 0, bg->width, bg->height };
+
+                    /* Change clipping region. */
+                    dfb_state_set_clip( state, region );
+
+                    /*
+                     * Scale image to fill the whole screen
+                     * clipped to the region being updated.
+                     */
+                    dst.x = 0;
+                    dst.y = 0;
+                    dst.w = stack->width;
+                    dst.h = stack->height;
+
+                    /* Stretch blit for non fitting background images. */
+                    dfb_gfxcard_stretchblit( &src, &dst, state );
+
+                    /* Restore clipping region. */
+                    dfb_state_set_clip( state, &clip );
+               }
+
+               /* Reset blitting source. */
+               state->source    = NULL;
+               state->modified |= SMF_SOURCE;
+
+               break;
+          }
+
+          case DLBM_TILE: {
+               CoreSurface  *bg   = stack->bg.image;
+               DFBRegion     clip = state->clip;
+               DFBRectangle  src  = { 0, 0, bg->width, bg->height };
+
+               /* Set blitting source. */
+               state->source    = bg;
+               state->modified |= SMF_SOURCE;
+
+               /* Set blitting flags. */
+               dfb_state_set_blitting_flags( state, DSBLIT_NOFX );
+
+               /* Change clipping region. */
+               dfb_state_set_clip( state, region );
+
+               /* Tiled blit (aligned). */
+               dfb_gfxcard_tileblit( &src,
+                                     (region->x1 / src.w) * src.w,
+                                     (region->y1 / src.h) * src.h,
+                                     (region->x2 / src.w + 1) * src.w,
+                                     (region->y2 / src.h + 1) * src.h,
+                                     state );
+
+               /* Restore clipping region. */
+               dfb_state_set_clip( state, &clip );
+
+               /* Reset blitting source. */
+               state->source    = NULL;
+               state->modified |= SMF_SOURCE;
+
+               break;
+          }
+
+          case DLBM_DONTCARE:
+               break;
+
+          default:
+               D_BUG( "unknown background mode" );
+               break;
+     }
+}
+
