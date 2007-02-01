@@ -689,7 +689,7 @@ fs_core_initialize( CoreSound *core )
           return D_OOM();
 
      /* create sound thread */
-     core->sound_thread = direct_thread_create( DTT_CRITICAL, sound_thread, core, "Sound Mixer" );
+     core->sound_thread = direct_thread_create( DTT_OUTPUT, sound_thread, core, "Sound Mixer" );
 
      return DFB_OK;
 }
