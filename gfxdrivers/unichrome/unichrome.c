@@ -45,6 +45,7 @@
 #include "uc_state.h"
 #include "uc_accel.h"
 #include "uc_fifo.h"
+#include "uc_ioctl.h"
 #include "mmio.h"
 #include "uc_probe.h"
 
@@ -435,6 +436,16 @@ static void driver_get_info(GraphicsDevice* device,
      info->device_data_size = sizeof (UcDeviceData);
 }
 
+static void uc_probe_fbdev(UcDriverData *ucdrv)
+{
+     struct fb_flip flip;
+     FBDev *dfb_fbdev = dfb_system_data();
+     flip.device = VIAFB_FLIP_NOP;
+     if (ioctl(dfb_fbdev->fd, FBIO_FLIPONVSYNC, &flip) == 0)
+          ucdrv->canfliponvsync = true;
+     else
+          ucdrv->canfliponvsync = false;
+}
 
 static DFBResult driver_init_driver(GraphicsDevice* device,
                                     GraphicsDeviceFuncs* funcs,
@@ -469,6 +480,9 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
 
      // Get hardware id and revision.
      uc_probe_pci(ucdrv);
+
+     // Check framebuffer device capabilities
+     uc_probe_fbdev(ucdrv);
 
      /* FIXME: this belongs to device_data! */
      ucdrv->fifo = uc_fifo_create(ucdrv->pool, UC_FIFO_SIZE);

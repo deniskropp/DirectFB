@@ -136,6 +136,7 @@ typedef struct _UcDriverData {
      char            hwrev;      // Hardware revision
      char*           name;       // Graphics device name, eg CLE266/UniChrome
      volatile void*  hwregs;     // Hardware register base
+     bool            canfliponvsync; // Kernel-assisted flip on vsync available
      struct uc_fifo* fifo;       // Data FIFO.
      
      FusionSHMPoolShared *pool;

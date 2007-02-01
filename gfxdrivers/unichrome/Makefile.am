@@ -29,6 +29,7 @@ libdirectfb_unichrome_la_SOURCES =  \
 	uc_ovl_hwmap.c  uc_ovl_hwset.c  \
 	uc_primary.c                    \
 	uc_spic.c                       \
+	uc_ioctl.h                      \
 	mmio.h          vidregs.h       \
 	regs2d.h        regs3d.h
 

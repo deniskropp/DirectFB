@@ -9,15 +9,13 @@
 
 #include <config.h>
 
-#include <fbdev/fbdev.h>  /* FIXME: Needs to be included before dfb_types.h to work around a type clash with asm/types.h */
-
 #include "unichrome.h"
 #include "uc_overlay.h"
+#include "uc_ioctl.h"
 #include "vidregs.h"
 #include "mmio.h"
 
 #include <stdlib.h>
-#include <sys/ioctl.h>
 #include <unistd.h>
 
 #include <fbdev/fbdev.h>
@@ -162,6 +160,12 @@ uc_ovl_set_region( CoreLayer                  *layer,
     ucovl->deinterlace = config->options & DLOP_DEINTERLACING;
     ucovl->surface     = surface;
 
+    if (ucdrv->canfliponvsync) {
+        FBDev *dfb_fbdev = dfb_system_data();
+        int field_option = VIAFB_WAIT_FLIP; // wait for any pending flip
+        ioctl(dfb_fbdev->fd, FBIO_WAITFORVSYNC, &field_option);
+    }
+
     return uc_ovl_update(ucdrv, ucovl, UC_OVL_CHANGE, surface);
 }
 
@@ -272,24 +276,56 @@ uc_ovl_flip_region( CoreLayer           *layer,
 
     ucovl->field = 0;
 
-    if (ucovl->config.options & DLOP_FIELD_PARITY)
+    if (ucdrv->canfliponvsync)
     {
-        int field_option;
-        
-        if (ucovl->config.parity == 0)  // top field first?
-            field_option = 2;  // wait for bottom field
+        if (ucovl->config.options & DLOP_FIELD_PARITY)
+        {
+            struct fb_flip flip;
+            int field_option;
+
+            field_option = VIAFB_WAIT_FLIP; // ensure last pending flip complete
+            ioctl(dfb_fbdev->fd, FBIO_WAITFORVSYNC, &field_option);
+
+            flip.device = VIAFB_FLIP_V1;
+            flip.field = ucovl->config.parity;
+            flip.count = 0; // until we implement this
+
+            uc_ovl_map_buffer(surface->format,
+                surface->front_buffer->video.offset,
+                ucovl->v1.ox, ucovl->v1.oy, surface->width, surface->height,
+                surface->front_buffer->video.pitch, 0,
+                &flip.offset[0], &flip.offset[1], &flip.offset[2]);
+
+            ioctl(dfb_fbdev->fd, FBIO_FLIPONVSYNC, &flip);
+        }
         else
-            field_option = 1;  // wait for top field
-        ioctl(dfb_fbdev->fd, FBIO_WAITFORVSYNC, &field_option);
-        // that actually waits for VBLANK so we need a further delay
-        // to be sure the field has started and that the flip will
-        // take effect on the next field
-        usleep(2500);
+        {
+            ret = uc_ovl_update(ucdrv, ucovl, UC_OVL_FLIP, surface);
+            if (ret)
+                return ret;
+        }
     }
+    else
+    {
+        if (ucovl->config.options & DLOP_FIELD_PARITY)
+        {
+            int field_option;
+        
+            if (ucovl->config.parity == 0)  // top field first?
+                field_option = VIAFB_WAIT_BOTTOMFIELD;
+            else
+                field_option = VIAFB_WAIT_TOPFIELD;
+            ioctl(dfb_fbdev->fd, FBIO_WAITFORVSYNC, &field_option);
+            // that actually waits for VBLANK so we need a further delay
+            // to be sure the field has started and that the flip will
+            // take effect on the next field
+            usleep(2500);
+        }
     
-    ret = uc_ovl_update(ucdrv, ucovl, UC_OVL_FLIP, surface);
-    if (ret)
-        return ret;
+        ret = uc_ovl_update(ucdrv, ucovl, UC_OVL_FLIP, surface);
+        if (ret)
+            return ret;
+    }
 
     if (flags & DSFLIP_WAIT)
         dfb_layer_wait_vsync(layer);
