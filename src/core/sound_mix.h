@@ -41,6 +41,13 @@
 # warning FSF_FROM_SRC() is not defined!!
 #endif
 
+#define FSF_INTERP( a, b, w ) ( \
+ __extension__({                \
+     register __fsf _a = (a);   \
+     register __fsf _b = (b);   \
+     _a + fsf_mul( _b-_a, w );  \
+ })                             \
+)
 
 static int
 FUNC_NAME(FORMAT,mono,fw) ( CoreSoundBuffer *buffer,
@@ -62,7 +69,6 @@ FUNC_NAME(FORMAT,mono,fw) ( CoreSoundBuffer *buffer,
           for (i = 0; i < max; i += inc) {
                long  p = (i >> FS_PITCH_BITS) + pos;
                __fsf s;
-               __fsf t;
           
                if (p >= buffer->length)
                     p %= buffer->length;
@@ -70,27 +76,18 @@ FUNC_NAME(FORMAT,mono,fw) ( CoreSoundBuffer *buffer,
                s = FSF_FROM_SRC( src, p );
                
                if (i & (FS_PITCH_ONE-1)) {
-                    __fsf l, r, w;
+                    __fsf w;
                     long  q = p + 1;
                     
                     if (q == buffer->length)
                          q = 0;
-                    t = FSF_FROM_SRC( src, q );
                     
-                    w = fsf_from_int_scaled( FS_PITCH_ONE-(i&(FS_PITCH_ONE-1)),
-                                             FS_PITCH_BITS );
-                    l = fsf_mul( left, w );
-                    r = fsf_mul( right, w );
-                    
-                    dst[0] += (l == FSF_ONE) ? s :
-                              (fsf_mul( s, l ) + fsf_mul( t, left-l ));
-                    dst[1] += (r == FSF_ONE) ? s :
-                              (fsf_mul( s, r ) + fsf_mul( t, right-r ));
+                    w = fsf_from_int_scaled( i & (FS_PITCH_ONE-1), FS_PITCH_BITS );
+                    s = FSF_INTERP( s, FSF_FROM_SRC( src, q ), w );
                }
-               else {
-                    dst[0] += (left  == FSF_ONE) ? s : fsf_mul( s, left  );
-                    dst[1] += (right == FSF_ONE) ? s : fsf_mul( s, right );
-               }
+
+               dst[0] += (left  == FSF_ONE) ? s : fsf_mul( s, left  );
+               dst[1] += (right == FSF_ONE) ? s : fsf_mul( s, right );
                
                dst += 2;
           }
@@ -137,7 +134,6 @@ FUNC_NAME(FORMAT,mono,rw) ( CoreSoundBuffer *buffer,
           for (i = 0; i > max; i += inc) {
                long  p = (i >> FS_PITCH_BITS) + pos;
                __fsf s;
-               __fsf t;
           
                if (p <= -buffer->length)
                     p %= buffer->length;
@@ -147,27 +143,18 @@ FUNC_NAME(FORMAT,mono,rw) ( CoreSoundBuffer *buffer,
                s = FSF_FROM_SRC( src, p );
                
                if (-i & (FS_PITCH_ONE-1)) {
-                    __fsf l, r, w;
+                    __fsf w;
                     long  q = p - 1;
                     
                     if (q == -1)
                          q += buffer->length;
-                    t = FSF_FROM_SRC( src, q );
                     
-                    w = fsf_from_int_scaled( FS_PITCH_ONE-(-i&(FS_PITCH_ONE-1)),
-                                             FS_PITCH_BITS );
-                    l = fsf_mul( left, w );
-                    r = fsf_mul( right, w );
-                    
-                    dst[0] += (l == FSF_ONE) ? s :
-                              (fsf_mul( s, l ) + fsf_mul( t, left-l ));
-                    dst[1] += (r == FSF_ONE) ? s :
-                              (fsf_mul( s, r ) + fsf_mul( t, right-r ));
+                    w = fsf_from_int_scaled( -i & (FS_PITCH_ONE-1), FS_PITCH_BITS );
+                    s = FSF_INTERP( s, FSF_FROM_SRC( src, q ), w );
                }
-               else {
-                    dst[0] += (left  == FSF_ONE) ? s : fsf_mul( s, left  );
-                    dst[1] += (right == FSF_ONE) ? s : fsf_mul( s, right );
-               }
+               
+               dst[0] += (left  == FSF_ONE) ? s : fsf_mul( s, left  );
+               dst[1] += (right == FSF_ONE) ? s : fsf_mul( s, right );
                
                dst += 2;
           }
@@ -220,7 +207,7 @@ FUNC_NAME(FORMAT,stereo,fw) ( CoreSoundBuffer *buffer,
                     p %= buffer->length;
                     
                if (i & (FS_PITCH_ONE-1)) {
-                    __fsf l, r, w;
+                    __fsf w, sl, sr;
                     long  q = p + 1;
                     
                     if (q == buffer->length)
@@ -228,31 +215,23 @@ FUNC_NAME(FORMAT,stereo,fw) ( CoreSoundBuffer *buffer,
                     p <<= 1;
                     q <<= 1;
                          
-                    w = fsf_from_int_scaled( FS_PITCH_ONE-(i&(FS_PITCH_ONE-1)),
-                                             FS_PITCH_BITS );
-                    l = fsf_mul( left, w );
-                    r = fsf_mul( right, w );
+                    w  = fsf_from_int_scaled( i & (FS_PITCH_ONE-1), FS_PITCH_BITS );
+                    sl = FSF_INTERP( FSF_FROM_SRC( src, p+0 ), 
+                                     FSF_FROM_SRC( src, q+0 ), w );
+                    sr = FSF_INTERP( FSF_FROM_SRC( src, p+1 ),
+                                     FSF_FROM_SRC( src, q+1 ), w );
                     
-                    dst[0] += (l == FSF_ONE)
-                              ? FSF_FROM_SRC( src, p )
-                              : (fsf_mul( FSF_FROM_SRC( src, p ), l ) + 
-                                 fsf_mul( FSF_FROM_SRC( src, q ), left-l ));
-                    p++;
-                    q++;
-                    dst[1] += (r == FSF_ONE)
-                              ? FSF_FROM_SRC( src, p )
-                              : (fsf_mul( FSF_FROM_SRC( src, p ), r ) +
-                                 fsf_mul( FSF_FROM_SRC( src, q ), right-r ));
+                    dst[0] += (left  == FSF_ONE) ? sl : fsf_mul( sl, left  );
+                    dst[1] += (right == FSF_ONE) ? sr : fsf_mul( sr, right );
                }
                else {
                     p <<= 1;
                     dst[0] += (left == FSF_ONE)
-                              ? FSF_FROM_SRC( src, p )
-                              : fsf_mul( FSF_FROM_SRC( src, p ), left  );
-                    p++;
+                              ? FSF_FROM_SRC( src, p+0 )
+                              : fsf_mul( FSF_FROM_SRC( src, p+0 ), left  );
                     dst[1] += (right == FSF_ONE)
-                              ? FSF_FROM_SRC( src, p )
-                              : fsf_mul( FSF_FROM_SRC( src, p ), right );
+                              ? FSF_FROM_SRC( src, p+1 )
+                              : fsf_mul( FSF_FROM_SRC( src, p+1 ), right );
                }
                
                dst += 2;
@@ -266,16 +245,15 @@ FUNC_NAME(FORMAT,stereo,fw) ( CoreSoundBuffer *buffer,
           long p = (i >> FS_PITCH_BITS) + pos;
 
           if (p >= buffer->length)
-               p %= buffer->length;
-                    
+               p %= buffer->length;         
           p <<= 1;
+          
           dst[0] += (left == FSF_ONE)
-                    ? FSF_FROM_SRC( src, p )
-                    : fsf_mul( FSF_FROM_SRC( src, p ), left  );
-          p++;
+                    ? FSF_FROM_SRC( src, p+0 )
+                    : fsf_mul( FSF_FROM_SRC( src, p+0), left  );
           dst[1] += (right == FSF_ONE)
-                    ? FSF_FROM_SRC( src, p )
-                    : fsf_mul( FSF_FROM_SRC( src, p ), right );
+                    ? FSF_FROM_SRC( src, p+1 )
+                    : fsf_mul( FSF_FROM_SRC( src, p+1 ), right );
               
           dst += 2;
      }     
@@ -308,7 +286,7 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
                     p += buffer->length;
                     
                if (-i & (FS_PITCH_ONE-1)) {
-                    __fsf l, r, w;
+                    __fsf w, sl, sr;
                     long  q = p - 1;
                     
                     if (q == -1)
@@ -316,31 +294,23 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
                     p <<= 1;
                     q <<= 1;
                          
-                    w = fsf_from_int_scaled( FS_PITCH_ONE-(-i&(FS_PITCH_ONE-1)),
-                                             FS_PITCH_BITS );
-                    l = fsf_mul( left, w );
-                    r = fsf_mul( right, w );
+                    w  = fsf_from_int_scaled( -i & (FS_PITCH_ONE-1), FS_PITCH_BITS );
+                    sl = FSF_INTERP( FSF_FROM_SRC( src, p+0 ), 
+                                     FSF_FROM_SRC( src, q+0 ), w );
+                    sr = FSF_INTERP( FSF_FROM_SRC( src, p+1 ),
+                                     FSF_FROM_SRC( src, q+1 ), w );
                     
-                    dst[0] += (l == FSF_ONE)
-                              ? FSF_FROM_SRC( src, p )
-                              : (fsf_mul( FSF_FROM_SRC( src, p ), l ) + 
-                                 fsf_mul( FSF_FROM_SRC( src, q ), left-l ));
-                    p++;
-                    q++;
-                    dst[1] += (r == FSF_ONE)
-                              ? FSF_FROM_SRC( src, p )
-                              : (fsf_mul( FSF_FROM_SRC( src, p ), r ) +
-                                 fsf_mul( FSF_FROM_SRC( src, q ), right-r ));
+                    dst[0] += (left  == FSF_ONE) ? sl : fsf_mul( sl, left  );
+                    dst[1] += (right == FSF_ONE) ? sr : fsf_mul( sr, right );
                }
                else {
                     p <<= 1;
                     dst[0] += (left == FSF_ONE)
-                              ? FSF_FROM_SRC( src, p )
-                              : fsf_mul( FSF_FROM_SRC( src, p ), left  );
-                    p++;
+                              ? FSF_FROM_SRC( src, p+0 )
+                              : fsf_mul( FSF_FROM_SRC( src, p+0 ), left  );
                     dst[1] += (right == FSF_ONE)
-                              ? FSF_FROM_SRC( src, p )
-                              : fsf_mul( FSF_FROM_SRC( src, p ), right );
+                              ? FSF_FROM_SRC( src, p+1 )
+                              : fsf_mul( FSF_FROM_SRC( src, p+1 ), right );
                }
                
                dst += 2;
@@ -356,16 +326,15 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
           if (p <= -buffer->length)
                p %= buffer->length;
           if (p < 0)
-               p += buffer->length;
-                    
+               p += buffer->length;            
           p <<= 1;
+          
           dst[0] += (left == FSF_ONE)
-                    ? FSF_FROM_SRC( src, p )
-                    : fsf_mul( FSF_FROM_SRC( src, p ), left  );
-          p++;
+                    ? FSF_FROM_SRC( src, p+0 )
+                    : fsf_mul( FSF_FROM_SRC( src, p+0 ), left  );
           dst[1] += (right == FSF_ONE)
-                    ? FSF_FROM_SRC( src, p )
-                    : fsf_mul( FSF_FROM_SRC( src, p ), right );
+                    ? FSF_FROM_SRC( src, p+1 )
+                    : fsf_mul( FSF_FROM_SRC( src, p+1 ), right );
               
           dst += 2;
      }     
@@ -373,6 +342,7 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
      return (int)(dst - dest);
 }
 
+#undef FSF_INTERP
 
 #undef FUNC_NAME
 #undef GEN_FUNC_NAME
