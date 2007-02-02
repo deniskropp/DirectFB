@@ -16,9 +16,9 @@
 #include "loader.h"
 
 
-static float values[4] = { 0.25f, 0.5f, 0.5f, 0 };
+static float values[5] = { 0.25f, 0.5f, 0.5f, 0, 0.5f };
 
-static const char *channels[4] = { "Pitch", "Volume", "Pan", "Position" };
+static const char *channels[5] = { "Pitch", "Volume", "Pan", "Position", "Direction" };
 
 static IFusionSound         *sound;
 static IFusionSoundBuffer   *buffer;
@@ -90,6 +90,9 @@ slider_update( LiteSlider *slider, float pos, void *ctx )
           case 3:
                playback->Start( playback, pos * sample_length, -1 );
                break;
+          case 4:
+               playback->SetDirection( playback, (pos < 0.5f) ? FSPD_BACKWARD : FSPD_FORWARD );
+               break;
           default:
                break;
      }
@@ -117,8 +120,8 @@ main (int argc, char *argv[])
 {
      int           i;
      DFBResult     ret;
-     LiteLabel    *label[4];
-     LiteSlider   *slider[4];
+     LiteLabel    *label[5];
+     LiteSlider   *slider[5];
      LiteButton   *playbutton;
      LiteWindow   *window;
      DFBRectangle  rect;
@@ -149,7 +152,7 @@ main (int argc, char *argv[])
      rect.x = LITE_CENTER_HORIZONTALLY;
      rect.y = LITE_CENTER_VERTICALLY;
      rect.w = 330;
-     rect.h = 170;
+     rect.h = 195;
 
      /* create a window */
      ret = lite_new_window( NULL,
@@ -159,7 +162,7 @@ main (int argc, char *argv[])
                             basename(argv[1]), &window );
 
      /* setup the labels */
-     for (i=0; i<4; i++) {
+     for (i=0; i<5; i++) {
           ret = lite_new_label( LITE_BOX(window),
                                 &(DFBRectangle){ 10, 10 + i * 25, 85, 18 },
                                 liteDefaultLabelTheme, 18, &label[i] );
@@ -168,7 +171,7 @@ main (int argc, char *argv[])
      }
 
      /* setup the sliders */
-     for (i=0; i<4; i++) {
+     for (i=0; i<5; i++) {
           ret = lite_new_slider( LITE_BOX(window),
                                  &(DFBRectangle){ 100, 10 + i * 25, 220, 20 },
                                  liteDefaultSliderTheme, &slider[i] );
@@ -180,7 +183,7 @@ main (int argc, char *argv[])
 
      /* setup the play/pause button */
      ret = lite_new_button( LITE_BOX(window),
-                            &(DFBRectangle){ 150, 110, 50, 50 },
+                            &(DFBRectangle){ 150, 135, 50, 50 },
                             liteDefaultButtonTheme, &playbutton );
      lite_set_button_image( playbutton, LITE_BS_NORMAL, "stop.png" );
      lite_set_button_image( playbutton, LITE_BS_DISABLED, "stop_disabled.png" );
