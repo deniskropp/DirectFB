@@ -5084,7 +5084,8 @@ typedef struct {
           double            framerate;    /* number of frames per second        */
           double            aspect;       /* frame aspect ratio                 */
           int               bitrate;      /* amount of bits per second          */
-     } video;
+     }
+      video;
 
      struct {
           char              encoding[DFB_STREAM_DESC_ENCODING_LENGTH]; /*
@@ -5092,7 +5093,8 @@ typedef struct {
           int               samplerate;   /* number of samples per second       */
           int               channels;     /* number of channels per sample      */
           int               bitrate;      /* amount of bits per second          */
-     } audio;
+     }
+      audio;
 
      char                   title[DFB_STREAM_DESC_TITLE_LENGTH];     /* title   */
      char                   author[DFB_STREAM_DESC_AUTHOR_LENGTH];   /* author  */
