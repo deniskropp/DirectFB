@@ -5,7 +5,7 @@ Denis Oliver Kropp <dok@directfb.org>
 Andreas Hundt <andi@fischlustig.de>
 Sven Neumann <sven@convergence.de>
 Ville Syrjälä <syrjala@sci.fi>
-Claudio Ciccani <klan82@cheapnet.it>
+Claudio Ciccani <klan@users.sf.net>
 
 
 Helping Developers
@@ -23,7 +23,6 @@ Holger Wächtler <holger@convergence.de>         (Linux Input driver)
 David Wood <DWood@daedalcorp.com>               (Voodoo gfx driver)
 Liam Girdwood <liam.girdwood@wolfsonmicro.com>  (WM97xx Touchscreen driver)
 Brandon M. Reynolds <breynolds@comtime.com>     (ELO Touchscreen driver)
-Claudio Ciccani <klan82@cheapnet.it>            (nVidia gfx driver)
 Andreas Oberritter <obi@tuxbox.org>             (SiS 315 gfx driver)
 Nathanael D. Noblet <nathanael@gnat.ca>         (Gunze Touchscreen driver)
 
