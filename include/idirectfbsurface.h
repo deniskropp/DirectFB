@@ -181,6 +181,8 @@ public:
 
      void                   GetClip             (DFBRegion                *clip);
 
+     int                    GetFramebufferOffset();
+
      void                   ReleaseSource       ();
      void                   SetIndexTranslation (const int                *indices,
                                                  int                       num_indices);

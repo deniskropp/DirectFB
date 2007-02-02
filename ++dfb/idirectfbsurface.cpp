@@ -382,6 +382,15 @@ void IDirectFBSurface::GetClip (DFBRegion *clip)
      DFBCHECK( iface->GetClip (iface, clip) );
 }
 
+int IDirectFBSurface::GetFramebufferOffset()
+{
+     int offset;
+
+     DFBCHECK( iface->GetFramebufferOffset (iface, &offset) );
+
+     return offset;
+}
+
 void IDirectFBSurface::ReleaseSource()
 {
      DFBCHECK( iface->ReleaseSource (iface) );
