@@ -206,7 +206,7 @@ typedef enum {
      /* Signed 32 bit (native endian). */
      FSSF_S32            = FS_SAMPLEFORMAT( 3, 32, 32, 1 ),
      
-     /* Floating-point 32 bit. */
+     /* Floating-point 32 bit (native endian). */
      FSSF_FLOAT          = FS_SAMPLEFORMAT( 4, 32, 32, 1 ),
 } FSSampleFormat;
 
@@ -222,7 +222,7 @@ typedef enum {
 
 #define FS_SAMPLEFORMAT_DEPTH( fmt )  (((fmt) & 0x0003f800) >> 11)
 
-#define FS_SIGNED_SAMPLEFORMAT( fmt ) (((fmt) & 0x00040000) ? 1 : 0)
+#define FS_SIGNED_SAMPLEFORMAT( fmt ) (((fmt) & 0x00040000) !=  0)
 
 
 /*
