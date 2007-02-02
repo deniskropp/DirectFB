@@ -1,3 +1,6 @@
+SUBDIRS = tests
+
+
 INCLUDES = \
 	-I$(top_srcdir)/include	\
 	@DIRECTFB_CFLAGS@
@@ -9,7 +12,7 @@ LDADD = \
 
 noinst_PROGRAMS = simple
 
-bin_PROGRAMS = dfbshow dfbswitch
+bin_PROGRAMS = dfbplay dfbshow dfbswitch
 
 
 simple_SOURCES = \
@@ -23,5 +26,8 @@ dfbshow_SOURCES = \
 	dfbimage.cpp	\
 	dfbimage.h	\
 	dfbshow.cpp
+
+dfbplay_SOURCES = \
+	dfbplay.cpp
 
 dfbswitch_SOURCES = dfbswitch.cpp

@@ -381,3 +381,15 @@ void IDirectFBSurface::GetClip (DFBRegion *clip)
 {
      DFBCHECK( iface->GetClip (iface, clip) );
 }
+
+void IDirectFBSurface::ReleaseSource()
+{
+     DFBCHECK( iface->ReleaseSource (iface) );
+}
+
+void IDirectFBSurface::SetIndexTranslation (const int *indices,
+                                            int        num_indices)
+{
+     DFBCHECK( iface->SetIndexTranslation (iface, indices, num_indices) );
+}
+

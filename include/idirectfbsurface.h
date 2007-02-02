@@ -181,6 +181,10 @@ public:
 
      void                   GetClip             (DFBRegion                *clip);
 
+     void                   ReleaseSource       ();
+     void                   SetIndexTranslation (const int                *indices,
+                                                 int                       num_indices);
+
      inline IDirectFBSurface& operator = (const IDirectFBSurface& other){
           return IPPAny<IDirectFBSurface, IDirectFBSurface_C>::operator =(other);
      }

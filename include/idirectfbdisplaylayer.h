@@ -109,6 +109,7 @@ public:
                                                    int                             hot_y);
      void                   SetCursorOpacity      (__u8                            opacity);
 
+     void                   SwitchContext         (DFBBoolean                      exclusive);
 
      inline IDirectFBDisplayLayer& operator = (const IDirectFBDisplayLayer& other){
           return IPPAny<IDirectFBDisplayLayer, IDirectFBDisplayLayer_C>::operator =(other);

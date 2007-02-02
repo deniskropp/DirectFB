@@ -80,8 +80,8 @@ public:
                                               int                     dy);
      void                  MoveTo            (int                     x,
                                               int                     y);
-     void                  Resize            (unsigned int            width,
-                                              unsigned int            height);
+     void                  Resize            (int                     width,
+                                              int                     height);
 
      void                  SetStackingClass  (DFBWindowStackingClass  stacking_class);
      void                  Raise             ();
@@ -94,6 +94,13 @@ public:
      void                  Close             ();
      void                  Destroy           ();
 
+     void                  SetBounds         (int                     x,
+                                              int                     y,
+                                              int                     width,
+                                              int                     height);
+
+     void                  ResizeSurface     (int                     width,
+                                              int                     height);
 
      inline IDirectFBWindow& operator = (const IDirectFBWindow& other){
           return IPPAny<IDirectFBWindow, IDirectFBWindow_C>::operator =(other);

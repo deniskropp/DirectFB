@@ -249,3 +249,8 @@ void IDirectFBDisplayLayer::SetCursorOpacity (__u8 opacity)
      DFBCHECK( iface->SetCursorOpacity (iface, opacity) );
 }
 
+void IDirectFBDisplayLayer::SwitchContext (DFBBoolean exclusive)
+{
+     DFBCHECK( iface->SwitchContext (iface, exclusive) );
+}
+

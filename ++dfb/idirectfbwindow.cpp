@@ -180,8 +180,8 @@ void IDirectFBWindow::MoveTo (int x, int y)
      DFBCHECK( iface->MoveTo (iface, x, y) );
 }
 
-void IDirectFBWindow::Resize (unsigned int width,
-                              unsigned int height)
+void IDirectFBWindow::Resize (int width,
+                              int height)
 {
      DFBCHECK( iface->Resize (iface, width, height) );
 }
@@ -229,5 +229,19 @@ void IDirectFBWindow::Close()
 void IDirectFBWindow::Destroy()
 {
      DFBCHECK( iface->Destroy (iface) );
+}
+
+void IDirectFBWindow::SetBounds (int x,
+                                 int y,
+                                 int width,
+                                 int height)
+{
+     DFBCHECK( iface->SetBounds (iface, x, y, width, height) );
+}
+
+void IDirectFBWindow::ResizeSurface (int width,
+                                     int height)
+{
+     DFBCHECK( iface->ResizeSurface (iface, width, height) );
 }
 
