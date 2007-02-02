@@ -60,7 +60,7 @@ typedef struct {
 /*
  * Internal definitions.
  */
-#define FS_PITCH_BITS  12
+#define FS_PITCH_BITS  14
 #define FS_PITCH_ONE   (1 << FS_PITCH_BITS)
 
 /*
