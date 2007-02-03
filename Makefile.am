@@ -38,6 +38,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = directfb.pc directfb-internal.pc
 
 EXTRA_DIST = \
+	autogen.sh	\
 	fb.modes 		\
 	directfb.spec.in	\
 	directfb.spec
