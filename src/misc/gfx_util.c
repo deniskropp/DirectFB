@@ -175,6 +175,7 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                     *d++ = pixel >> 16;
                }
                break;
+
           case DSPF_RGB24:
                for (i = 0; i < len; i++) {
 #ifdef WORDS_BIGENDIAN
@@ -235,8 +236,7 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                     src++;
                     len--;
                }
-               
-               for (i = 0; i < (len&~1); i += 2) {
+               for (i = 0; i < (len-1); i += 2) {
                     u32 y0, u, v;
                     u32 y1, u1, v1;
                     
@@ -249,11 +249,10 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                                   
                     u = (u + u1) >> 1;
                     v = (v + v1) >> 1;
-                                  
+                    
                     ((u16*)d)[i+0] = y0 | (u << 8);
                     ((u16*)d)[i+1] = y1 | (v << 8);
                }
-               
                if (len & 1) {
                     u32 y, u, v;
                     
@@ -278,9 +277,8 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                     d += 2;
                     src++;
                     len--;
-               }
-               
-               for (i = 0; i < (len&~1); i += 2) {
+               } 
+               for (i = 0; i < (len-1); i += 2) {
                     u32 y0, u, v;
                     u32 y1, u1, v1;
                     
@@ -297,7 +295,6 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                     ((u16*)d)[i+0] = u | (y0 << 8);
                     ((u16*)d)[i+1] = v | (y1 << 8);
                }
-               
                if (len & 1) {
                     u32 y, u, v;
                     
@@ -328,7 +325,7 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
           case DSPF_I420:
                d1 = dst[1];
                d2 = dst[2];
-               for (i = 0; i < (len&~1); i += 2) {
+               for (i = 0; i < (len-1); i += 2) {
                     u32 y0, u0, v0;
                     u32 y1, u1, v1;
                     
@@ -347,12 +344,27 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                          d2[i>>1] = (v0 + v1) >> 1;
                     }
                }
+               if (len & 1) {
+                    u32 y, u, v;
+                    
+                    i = len-1;
+                    
+                    RGB_TO_YCBCR( (src[i] >> 16) & 0xff, 
+                                  (src[i] >>  8) & 0xff,
+                                  (src[i]      ) & 0xff, y, u, v );
+                    
+                    d[i] = y;
+                    if (dy & 1) {
+                         d1[i>>1] = u;
+                         d2[i>>1] = v;
+                    }
+               }
                break;
                     
           case DSPF_NV12:
           case DSPF_NV16:
                d1 = dst[1];
-               for (i = 0; i < (len&~1); i += 2) {
+               for (i = 0; i < (len-1); i += 2) {
                     u32 y0, u0, v0;
                     u32 y1, u1, v1;
                     
@@ -371,11 +383,24 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                                               (((v0 + v1) >> 1) << 8);
                     }
                }
+               if (len & 1) {
+                    u32 y, u, v;
+                    
+                    i = len-1;
+                    
+                    RGB_TO_YCBCR( (src[i] >> 16) & 0xff, 
+                                  (src[i] >>  8) & 0xff,
+                                  (src[i]      ) & 0xff, y, u, v );
+                                  
+                    d[i] = y;
+                    if (dst_surface->format == DSPF_NV16 || dy & 1)
+                         ((u16*)d1)[i>>1] = u | (v << 8);
+               }
                break;
                
           case DSPF_NV21:
                d1 = dst[1];
-               for (i = 0; i < (len&~1); i += 2) {
+               for (i = 0; i < (len-1); i += 2) {
                     u32 y0, u0, v0;
                     u32 y1, u1, v1;
                     
@@ -394,6 +419,19 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                                               (((u0 + u1) >> 1) << 8);
                     }
                }
+               if (len & 1) {
+                    u32 y, u, v;
+                    
+                    i = len-1;
+                    
+                    RGB_TO_YCBCR( (src[i] >> 16) & 0xff, 
+                                  (src[i] >>  8) & 0xff,
+                                  (src[i]      ) & 0xff, y, u, v );
+                                  
+                    d[i] = y;
+                    if (dy & 1)
+                         ((u16*)d1)[i>>1] = v | (u << 8);
+               }  
                break;
 
           default:
