@@ -17,7 +17,7 @@ $names{"count"} = 'Andreas Kotes <count@convergence.de>';
 $names{"mm"} = 'Martin Mueller <mm@convergence.de>';
 $names{"syrjala"} = 'Ville Syrjala <syrjala@sci.fi>';
 $names{"andros"} = 'Andreas Robinson <andro134+student.liu.se>';
-$names{"klan"} = 'Claudio Ciccani <klan82@cheapnet.it>';
+$names{"klan"} = 'Claudio Ciccani <klan@users.sf.net>';
 $names{"obi"} = 'Andreas Oberritter <obi@tuxbox.org>';
 $names{"adaplas"} = 'Antonino Daplas <adaplas@users.sourceforge.net>';
 
