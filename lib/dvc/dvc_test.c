@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <time.h>
 
 #include <directfb.h>
 
@@ -70,9 +71,7 @@ format_id_to_name( DFBSurfacePixelFormat id )
 static inline unsigned long 
 millisec( void )
 {
-     struct timeval t;
-     gettimeofday( &t, NULL );
-     return t.tv_sec * 1000 + t.tv_usec / 1000;
+     return clock()/1000;
 }
 
 static unsigned int rand_pool = 0x12345678;
