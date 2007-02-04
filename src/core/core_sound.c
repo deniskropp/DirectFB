@@ -531,14 +531,15 @@ sound_thread( DirectThread *thread, void *arg )
                               register __fsf s;
                               s = fsf_add( mixing[i], mixing[i+1] );
                               s = fsf_shr( s, 1 );
-                              s = fsf_clip( s );                  
+                              s = fsf_dither( s, 8 );
+                              s = fsf_clip( s );      
                               output[i>>1] = fsf_to_u8( s );
                          }
-                    } else {      
+                    } else {
                          for (i = 0; i < mixed; i++) {
                               register __fsf s;
-                              s = mixing[i];                       
-                              s = fsf_clip( s );                  
+                              s = fsf_dither( mixing[i], 8 );
+                              s = fsf_clip( s );     
                               output[i] = fsf_to_u8( s );
                          }
                     }
@@ -549,14 +550,15 @@ sound_thread( DirectThread *thread, void *arg )
                               register __fsf s;
                               s = fsf_add( mixing[i], mixing[i+1] );
                               s = fsf_shr( s, 1 );
-                              s = fsf_clip( s );                         
+                              s = fsf_dither( s, 16 );
+                              s = fsf_clip( s );     
                               ((__s16*)output)[i>>1] = fsf_to_s16( s );
                          }
                     } else {
                          for (i = 0; i < mixed; i++) {
                               register __fsf s;
-                              s = mixing[i];
-                              s = fsf_clip( s );                         
+                              s = fsf_dither( mixing[i], 16 );
+                              s = fsf_clip( s );  
                               ((__s16*)output)[i] = fsf_to_s16( s );
                          }
                     }
