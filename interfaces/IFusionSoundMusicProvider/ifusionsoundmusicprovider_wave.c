@@ -1048,7 +1048,7 @@ IFusionSoundMusicProvider_Wave_GetStreamDescription( IFusionSoundMusicProvider *
                desc->sampleformat = FSSF_S32;
                break;
      }
-     desc->buffersize   = data->samplerate/5;
+     desc->buffersize   = data->samplerate/10;
 
      return DFB_OK;
 }
@@ -1080,7 +1080,7 @@ IFusionSoundMusicProvider_Wave_GetBufferDescription( IFusionSoundMusicProvider *
                desc->sampleformat = FSSF_S32;
                break;
      }
-     desc->length       = data->samplerate/5;
+     desc->length       = data->samplerate/10;
 
      return DFB_OK;
 }

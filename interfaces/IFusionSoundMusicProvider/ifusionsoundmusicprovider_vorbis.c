@@ -570,7 +570,7 @@ IFusionSoundMusicProvider_Vorbis_GetStreamDescription( IFusionSoundMusicProvider
      desc->samplerate   = data->info->rate;
      desc->channels     = data->info->channels;
      desc->sampleformat = FSSF_FLOAT;
-     desc->buffersize   = desc->samplerate/5;
+     desc->buffersize   = desc->samplerate/10;
 
      return DFB_OK;
 }
@@ -589,7 +589,7 @@ IFusionSoundMusicProvider_Vorbis_GetBufferDescription( IFusionSoundMusicProvider
      desc->samplerate   = data->info->rate;
      desc->channels     = data->info->channels;
      desc->sampleformat = FSSF_FLOAT;
-     desc->length       = desc->samplerate/5;
+     desc->length       = desc->samplerate/10;
 
      return DFB_OK;
 }
