@@ -106,10 +106,10 @@ dfb_vt_initialize()
      dfb_vt = D_CALLOC( 1, sizeof(VirtualTerminal) );
 
      setsid();
-     dfb_vt->fd0 = open( "/dev/tty0", O_RDONLY );
+     dfb_vt->fd0 = open( "/dev/tty0", O_RDONLY | O_NOCTTY );
      if (dfb_vt->fd0 < 0) {
           if (errno == ENOENT) {
-               dfb_vt->fd0 = open( "/dev/vc/0", O_RDONLY );
+               dfb_vt->fd0 = open( "/dev/vc/0", O_RDONLY | O_NOCTTY );
                if (dfb_vt->fd0 < 0) {
                     if (errno == ENOENT) {
                          D_PERROR( "DirectFB/core/vt: Couldn't open "
@@ -319,7 +319,7 @@ dfb_vt_detach( bool force )
           int            fd;
           struct vt_stat vt_state;
 
-          fd = open( "/dev/tty", O_RDONLY );
+          fd = open( "/dev/tty", O_RDONLY | O_NOCTTY );
           if (fd < 0) {
                if (errno == ENXIO)
                     return DFB_OK;
@@ -435,11 +435,11 @@ vt_init_switching()
      /* FIXME: Opening the device should be moved out of this function. */
 
      snprintf(buf, 32, "/dev/tty%d", dfb_vt->num);
-     dfb_vt->fd = open( buf, O_RDWR );
+     dfb_vt->fd = open( buf, O_RDWR | O_NOCTTY );
      if (dfb_vt->fd < 0) {
           if (errno == ENOENT) {
                snprintf(buf, 32, "/dev/vc/%d", dfb_vt->num);
-               dfb_vt->fd = open( buf, O_RDWR );
+               dfb_vt->fd = open( buf, O_RDWR | O_NOCTTY );
                if (dfb_vt->fd < 0) {
                     if (errno == ENOENT) {
                          D_PERROR( "DirectFB/core/vt: Couldn't open "
@@ -460,6 +460,10 @@ vt_init_switching()
           }
      }
 
+     /* attach to the new TTY before doing anything like KDSETMODE with it,
+        otherwise we'd get access denied error: */
+     ioctl( dfb_vt->fd, TIOCSCTTY, 0 );
+
      write( dfb_vt->fd, cursoroff_str, sizeof(cursoroff_str) );
      if (dfb_config->kd_graphics) {
           if (ioctl( dfb_vt->fd, KDSETMODE, KD_GRAPHICS ) < 0) {
@@ -470,11 +474,6 @@ vt_init_switching()
      }
      else {
           write( dfb_vt->fd, blankoff_str, sizeof(blankoff_str) );
-     }
-
-     if (dfb_config->vt_switch) {
-          ioctl( dfb_vt->fd0, TIOCNOTTY, 0 );
-          ioctl( dfb_vt->fd, TIOCSCTTY, 0 );
      }
 
      if (dfb_config->vt_switching) {

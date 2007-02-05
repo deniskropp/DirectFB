@@ -441,8 +441,6 @@ system_initialize( CoreDFB *core, void **data )
 
      shared->page_mask = page_size < 0 ? 0 : (page_size - 1);
 
-     setpgid( 0, 0 );
-
      ret = dfb_fbdev_open();
      if (ret)
           goto error;
@@ -614,8 +612,6 @@ system_join( CoreDFB *core, void **data )
 
      dfb_fbdev->core = core;
      dfb_fbdev->shared = shared;
-
-     setpgid( 0, 0 );
 
      /* Open framebuffer device */
      ret = dfb_fbdev_open();
@@ -832,9 +828,6 @@ system_thread_init()
 {
      if (dfb_config->block_all_signals)
           direct_signals_block_all();
-
-     if (dfb_config->vt)
-          return dfb_vt_detach( false );
 
      return DFB_OK;
 }
