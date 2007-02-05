@@ -517,10 +517,12 @@ IFusionSoundMusicProvider_Mad_GetStreamDescription( IFusionSoundMusicProvider *t
      if (!desc)
           return DFB_INVARG;
 
-     desc->flags      = FSSDF_SAMPLERATE | FSSDF_CHANNELS | FSSDF_BUFFERSIZE;
-     desc->samplerate = data->samplerate;
-     desc->channels   = data->channels;
-     desc->buffersize = 1152;
+     desc->flags        = FSSDF_SAMPLERATE   | FSSDF_CHANNELS  |
+                          FSSDF_SAMPLEFORMAT | FSSDF_BUFFERSIZE;
+     desc->samplerate   = data->samplerate;
+     desc->channels     = data->channels;
+     desc->sampleformat = FSSF_S32;
+     desc->buffersize   = 1152*2;
 
      return DFB_OK;
 }
@@ -534,10 +536,12 @@ IFusionSoundMusicProvider_Mad_GetBufferDescription( IFusionSoundMusicProvider *t
      if (!desc)
           return DFB_INVARG;
 
-     desc->flags      = FSBDF_SAMPLERATE | FSBDF_CHANNELS | FSBDF_LENGTH;
-     desc->samplerate = data->samplerate;
-     desc->channels   = data->channels;
-     desc->length     = 1152;
+     desc->flags        = FSBDF_SAMPLERATE   | FSBDF_CHANNELS | 
+                          FSBDF_SAMPLEFORMAT | FSBDF_LENGTH;
+     desc->samplerate   = data->samplerate;
+     desc->channels     = data->channels;
+     desc->sampleformat = FSSF_S32;
+     desc->length       = 1152*2;
 
      return DFB_OK;
 }
