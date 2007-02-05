@@ -86,14 +86,16 @@ typedef float __fsf;
 
 
 #ifdef FS_ENABLE_DITHERING
-# define fsf_dither( s, b ) ( \
+# define fsf_dither_profile( p )
+# define fsf_dither( s, b, p ) ( \
  __extension__({ \
      D_ONCE( "float dithering not yes implemented" ); \
      s; \
  }) \
 ) 
 #else
-# define fsf_dither( s, b ) s
+# define fsf_dither_profile( p )
+# define fsf_dither( s, b, p )  (s)
 #endif
 
 #else /* !FS_USE_IEEE_FLOATS (Fixed Point) */
@@ -181,26 +183,27 @@ typedef signed long __fsf;
 #ifdef FS_ENABLE_DITHERING
 /* 
  * Noise Shaping (i.e. dithering + re-shaping of noise frequency contour).
- * Using the following formula: 
+ * Using the following function: 
  *   y(n) = x(n) + 0.5 * E(x(n-1)) + dither
  * where y(n) is output sample at n, x(n) is input sample at n,
  * E(x) is the error the original and the quantized sample.
  */
-# define fsf_dither( s, b ) ( \
+# define fsf_dither_profile( p ) \
+     struct { __fsf e; unsigned int r; } p = { 0, 0 }
+# define fsf_dither( s, b, p ) ( \
  __extension__({ \
-     static __fsf        _e = 0; \
-     static unsigned int _r = 0; \
-     const int           _m = (1 << (FSF_DECIBITS+1-(b))) - 1; \
-     register __fsf      _o; \
-     _o = (s) + _e - (_r & _m); \
-     _r = _r * 196314165 + 907633515; \
-     _o = _o + (_r & _m); \
-     _e = ((s) - (_o & ~_m)) >> 1; \
+     const long     _m = (1 << (FSF_DECIBITS+1-(b))) - 1; \
+     register __fsf _o; \
+     _o    = (s) + (p).e - ((p).r & _m); \
+     (p).r = (p).r * 196314165 + 907633515; \
+     _o    = _o + ((p).r & _m); \
+     (p).e = ((s) - (_o & ~_m)) >> 1; \
      _o; \
    }) \
 )
 #else
-# define fsf_dither( s, b ) s
+# define fsf_dither_profile( p )
+# define fsf_dither( s, b, p )  (s)
 #endif
 
 #endif /* FS_USE_IEEE_FLOATS */

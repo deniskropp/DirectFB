@@ -467,6 +467,9 @@ sound_thread( DirectThread *thread, void *arg )
      int                 samples = shared->config.buffersize * 2;
      int                 mixed   = 0;
      
+     fsf_dither_profile(left);
+     fsf_dither_profile(right);
+     
      fs_device_get_capabilities( core->device, &caps );
      
      while (true) {
@@ -527,59 +530,65 @@ sound_thread( DirectThread *thread, void *arg )
           switch (shared->config.format) {
                case FSSF_U8:
                     if (shared->config.channels == 1) {
-                         for (i = 0; i < mixed; i += 2) {
+                         for (i = 0; i < mixed>>1; i++) {
                               register __fsf s;
-                              s = fsf_add( mixing[i], mixing[i+1] );
+                              s = fsf_add( mixing[i*2+0], mixing[i*2+1] );
                               s = fsf_shr( s, 1 );
-                              s = fsf_dither( s, 8 );
+                              s = fsf_dither( s, 8, left );
                               s = fsf_clip( s );      
-                              output[i>>1] = fsf_to_u8( s );
+                              output[i] = fsf_to_u8( s );
                          }
                     } else {
-                         for (i = 0; i < mixed; i++) {
+                         for (i = 0; i < mixed; i += 2) {
                               register __fsf s;
-                              s = fsf_dither( mixing[i], 8 );
-                              s = fsf_clip( s );     
-                              output[i] = fsf_to_u8( s );
+                              s = fsf_dither( mixing[i+0], 8, left );
+                              s = fsf_clip( s );
+                              output[i+0] = fsf_to_u8( s );
+                              s = fsf_dither( mixing[i+1], 8, right );
+                              s = fsf_clip( s );
+                              output[i+1] = fsf_to_u8( s );
                          }
                     }
                     break;
                case FSSF_S16:
                     if (shared->config.channels == 1) {
-                         for (i = 0; i < mixed; i += 2) {
+                         for (i = 0; i < mixed>>1; i++) {
                               register __fsf s;
-                              s = fsf_add( mixing[i], mixing[i+1] );
+                              s = fsf_add( mixing[i*2+0], mixing[i*2+1] );
                               s = fsf_shr( s, 1 );
-                              s = fsf_dither( s, 16 );
+                              s = fsf_dither( s, 16, left );
                               s = fsf_clip( s );     
-                              ((__s16*)output)[i>>1] = fsf_to_s16( s );
+                              ((s16*)output)[i] = fsf_to_s16( s );
                          }
                     } else {
-                         for (i = 0; i < mixed; i++) {
+                         for (i = 0; i < mixed; i += 2) {
                               register __fsf s;
-                              s = fsf_dither( mixing[i], 16 );
-                              s = fsf_clip( s );  
-                              ((__s16*)output)[i] = fsf_to_s16( s );
+                              s = fsf_dither( mixing[i+0], 16, left );
+                              s = fsf_clip( s );
+                              ((s16*)output)[i+0] = fsf_to_s16( s );
+                              s = fsf_dither( mixing[i+1], 16, right );
+                              s = fsf_clip( s );
+                              ((s16*)output)[i+1] = fsf_to_s16( s );
                          }
                     }
                     break;
                case FSSF_S24:
                     if (shared->config.channels == 1) {
-                         for (i = 0; i < mixed; i += 2) {
+                         for (i = 0; i < mixed>>1; i++) {
                               register __fsf s;
                               register int   d;
-                              s = fsf_add( mixing[i], mixing[i+1] );
+                              s = fsf_add( mixing[i*2+0], mixing[i*2+1] );
                               s = fsf_shr( s, 1 );
                               s = fsf_clip( s );
                               d = fsf_to_s24( s );
 #ifdef WORDS_BIGENDIAN
-                              output[(i>>1)*3+0] = d >> 16;
-                              output[(i>>1)*3+1] = d >>  8;
-                              output[(i>>1)*3+2] = d      ;
+                              output[i*3+0] = d >> 16;
+                              output[i*3+1] = d >>  8;
+                              output[i*3+2] = d      ;
 #else
-                              output[(i>>1)*3+0] = d      ;
-                              output[(i>>1)*3+1] = d >>  8;
-                              output[(i>>1)*3+2] = d >> 16;
+                              output[i*3+0] = d      ;
+                              output[i*3+1] = d >>  8;
+                              output[i*3+2] = d >> 16;
 #endif
                          }
                     } else {
@@ -603,30 +612,30 @@ sound_thread( DirectThread *thread, void *arg )
                     break;
                case FSSF_S32:
                     if (shared->config.channels == 1) {
-                         for (i = 0; i < mixed; i += 2) {
+                         for (i = 0; i < mixed>>1; i++) {
                               register __fsf s;
-                              s = fsf_add( mixing[i], mixing[i+1] );
+                              s = fsf_add( mixing[i*2+0], mixing[i*2+1] );
                               s = fsf_shr( s, 1 );
                               s = fsf_clip( s );                         
-                              ((__s32*)output)[i>>1] = fsf_to_s32( s );
+                              ((s32*)output)[i] = fsf_to_s32( s );
                          }
                     } else {
                          for (i = 0; i < mixed; i++) {
                               register __fsf s;
                               s = mixing[i];
                               s = fsf_clip( s );                         
-                              ((__s32*)output)[i] = fsf_to_s32( s );
+                              ((s32*)output)[i] = fsf_to_s32( s );
                          }
                     }
                     break;
                case FSSF_FLOAT:
                     if (shared->config.channels == 1) {
-                         for (i = 0; i < mixed; i += 2) {
+                         for (i = 0; i < mixed>>1; i++) {
                               register __fsf s;
-                              s = fsf_add( mixing[i], mixing[i+1] );
+                              s = fsf_add( mixing[i*2+0], mixing[i*2+1] );
                               s = fsf_shr( s, 1 );
                               s = fsf_clip( s );                         
-                              ((float*)output)[i>>1] = fsf_to_float( s );
+                              ((float*)output)[i] = fsf_to_float( s );
                          }
                     } else {
                          for (i = 0; i < mixed; i++) {
