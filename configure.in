@@ -1182,7 +1182,17 @@ fi
     
 enable_linux_input=no
 if test "$checkfor_linux_input" = "yes"; then
-    enable_linux_input=yes
+  AC_CHECK_HEADER([linux/input.h], enable_linux_input=yes, enable_linux_input=no
+    AC_MSG_WARN([*** no linux/input.h -- Linux Input driver will not be built.]))
+
+  if test "$enable_linux_input" = "yes"; then
+    AC_MSG_CHECKING([for struct input_absinfo in linux/input.h])
+    AC_TRY_COMPILE([#include <linux/input.h>], [struct input_absinfo x; (void)x;],
+       AC_DEFINE(HAVE_INPUT_ABSINFO,1,
+         [Define to 1 if struct input_absinfo is defined in linux/input.h.])
+       AC_MSG_RESULT(yes),
+       AC_MSG_RESULT(no))
+  fi
 fi
 
 enable_lirc=no

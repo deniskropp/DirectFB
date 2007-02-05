@@ -110,7 +110,7 @@ DFB_INPUT_DRIVER( linux_input )
 #define test_bit(bit, array) ((array[LONG(bit)] >> OFF(bit)) & 1)
 
 /* compat for 2.4.x kernel - just a compile fix */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,0)
+#ifndef HAVE_INPUT_ABSINFO
 struct input_absinfo {
         __s32 value;
         __s32 minimum;
