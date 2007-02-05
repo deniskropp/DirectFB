@@ -187,7 +187,7 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
                }
           }
                
-          usleep( 15000 );
+          usleep( 20000 );
      } while (status != FMSTATE_FINISHED);
      
      return DFENUM_OK;
