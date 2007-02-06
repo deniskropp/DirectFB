@@ -804,6 +804,9 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
 
           direct_thread_testcancel( thread );
 
+          if (status < 0)
+               continue;
+
           /* timeout? */
           if (status == 0) {
                DFBInputEvent devt;
