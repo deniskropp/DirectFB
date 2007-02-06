@@ -26,7 +26,6 @@
 
 #include <fusionsound.h>
 
-#include <ifusionsound.h>
 #include <media/ifusionsoundmusicprovider.h>
 
 #include <direct/types.h>
@@ -595,8 +594,7 @@ IFusionSoundMusicProvider_Playlist_SelectTrack( IFusionSoundMusicProvider *thiz,
           
           if (!entry->provider) {
                DFBResult ret;
-               ret = ifusionsound_singleton->CreateMusicProvider( ifusionsound_singleton,
-                                                                  entry->url, &entry->provider );
+               ret = IFusionSoundMusicProvider_Create( entry->url, &entry->provider );
                if (ret)
                     return ret;
                
