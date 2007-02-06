@@ -88,6 +88,7 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
      int sw, sh, sp, sfmt;   // Source width, height, pitch and format
      int dx, dy;             // Destination position
      int dw, dh;             // Destination width and height
+     int pfetch;             // Source pixels required for one line
      VideoMode *videomode;
      DFBRectangle scr;       // Screen size
      u32 dst_key = 0;        // Destination color key (hw format)
@@ -99,7 +100,7 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
 
      u32 win_start, win_end;   // Overlay register settings
      u32 zoom, mini;
-     u32 dcount, falign, qwpitch;
+     u32 dcount, falign, qwfetch;
      u32 y_start, u_start, v_start;
      u32 v_ctrl, fifo_ctrl;
      u32 alpha = 0;
@@ -108,7 +109,7 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
 
      if (!ucovl->v1.isenabled) return DFB_OK;
 
-     qwpitch = 0;
+     qwfetch = 0;
 
      // Get screen size
      videomode = dfb_system_current_mode();
@@ -164,7 +165,8 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
           // The parts that fall outside the screen are clipped.
 
           uc_ovl_map_window(scr.w, scr.h, &(ucovl->v1.win), sw, sh,
-                            &win_start, &win_end, &ucovl->v1.ox, &ucovl->v1.oy);
+                            &win_start, &win_end,
+                            &ucovl->v1.ox, &ucovl->v1.oy, &pfetch);
 
           // Get scaling and data-fetch parameters
 
@@ -177,7 +179,7 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
 
           uc_ovl_map_vzoom(sh, dh, &zoom, &mini);
           uc_ovl_map_hzoom(sw, dw, &zoom, &mini, &falign, &dcount);
-          qwpitch = uc_ovl_map_qwpitch(falign, sfmt, sw);
+          qwfetch = uc_ovl_map_qwfetch(falign, sfmt, pfetch);
 
           // Prepare destination color key
           dst_key = uc_ovl_map_colorkey(&(ucovl->v1.dst_key));
@@ -224,7 +226,7 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
           VIDEO_OUT(vio, V1_WIN_END_Y, win_end);
 
           VIDEO_OUT(vio, V1_SOURCE_HEIGHT, (sh << 16) | dcount);
-          VIDEO_OUT(vio, V12_QWORD_PER_LINE, qwpitch);
+          VIDEO_OUT(vio, V12_QWORD_PER_LINE, qwfetch);
           VIDEO_OUT(vio, V1_STRIDE, sp | ((sp >> 1) << 16));
 
           VIDEO_OUT(vio, V1_MINI_CONTROL, mini);

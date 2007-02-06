@@ -65,10 +65,11 @@ typedef struct _UcOverlayData {
 bool uc_ovl_map_vzoom(int sh, int dh, u32* zoom, u32* mini);
 bool uc_ovl_map_hzoom(int sw, int dw,  u32* zoom, u32* mini,
                       u32* falign, u32* dcount);
-u32 uc_ovl_map_qwpitch(int falign, DFBSurfacePixelFormat format, int sw);
+u32 uc_ovl_map_qwfetch(int falign, DFBSurfacePixelFormat format, int pfetch);
 u32 uc_ovl_map_format(DFBSurfacePixelFormat format);
 void uc_ovl_map_window(int scrw, int scrh, DFBRectangle* win, int sw, int sh,
-                       u32* win_start, u32* win_end, int* ox, int* oy);
+                       u32* win_start, u32* win_end,
+                       int* ox, int* oy, int *pfetch);
 void uc_ovl_map_buffer(DFBSurfacePixelFormat format, u32 buf,
                        int x, int y, int w, int h, int pitch, int field,
                        u32* y_start, u32* u_start, u32* v_start);

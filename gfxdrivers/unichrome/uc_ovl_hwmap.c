@@ -154,35 +154,35 @@ bool uc_ovl_map_hzoom(int sw, int dw,  u32* zoom, u32* mini,
 /**
  * @param falign    fetch alignment
  * @param format    overlay pixel format
- * @param sw        source width
+ * @param pfetch    source pixels per line
  *
- * @returns qword pitch register setting
+ * @returns qword fetch register setting
  *
  * @note Derived from VIA's V4L driver. See ddover.c, DDOver_GetFetch()
  * @note Only call after uc_ovl_map_hzoom()
  */
-u32 uc_ovl_map_qwpitch(int falign, DFBSurfacePixelFormat format, int sw)
+u32 uc_ovl_map_qwfetch(int falign, DFBSurfacePixelFormat format, int pfetch)
 {
     int fetch = 0;
 
     switch (format) {
     case DSPF_YV12:
-        fetch = ALIGN_TO(sw, 32) >> 4;
+        fetch = ALIGN_TO(pfetch, 32) >> 4;
         break;
     case DSPF_I420:
-        fetch = (ALIGN_TO(sw, 16) >> 4) + 1;
+        fetch = (ALIGN_TO(pfetch, 16) >> 4) + 1;
         break;
     case DSPF_UYVY:
     case DSPF_YUY2:
-        fetch = (ALIGN_TO(sw << 1, 16) >> 4) + 1;
+        fetch = (ALIGN_TO(pfetch << 1, 16) >> 4) + 1;
         break;
     case DSPF_ARGB1555:
     case DSPF_RGB16:
-        fetch = (ALIGN_TO(sw << 1, 16) >> 4) + 1;
+        fetch = (ALIGN_TO(pfetch << 1, 16) >> 4) + 1;
         break;
     case DSPF_RGB32:
     case DSPF_ARGB:
-        fetch = (ALIGN_TO(sw << 2, 16) >> 4) + 1;
+        fetch = (ALIGN_TO(pfetch << 2, 16) >> 4) + 1;
         break;
     default:
         D_BUG("Unexpected pixelformat!");
@@ -239,9 +239,11 @@ u32 uc_ovl_map_format(DFBSurfacePixelFormat format)
  *
  * @parm ox         will hold new leftmost coordinate in source surface
  * @parm oy         will hold new topmost coordinate in source surface
+ * @parm pfetch     will hold number of required source pixels per line
  */
 void uc_ovl_map_window(int scrw, int scrh, DFBRectangle* win, int sw, int sh,
-                       u32* win_start, u32* win_end, int* ox, int* oy)
+                       u32* win_start, u32* win_end,
+                       int* ox, int* oy, int *pfetch)
 {
     int x1, y1, x2, y2;
     int x,y,dw,dh;      // These help making the code readable...
@@ -272,9 +274,10 @@ void uc_ovl_map_window(int scrw, int scrh, DFBRectangle* win, int sw, int sh,
     }
     else if ((y < 0) && (y+dh < scrh)) {
         // Top clip
-        y1 = 0;
         y2 = y+dh-1;
         *oy = (int) (((float) (sh * -y)) / ((float) dh) + 0.5);
+        y1 = ((4-*oy)&3)*dh/sh;
+        *oy = (*oy + 3) & ~3;
     }
     else if ((y >= 0) && (y+dh >= scrh)) {
         // Bottom clip
@@ -283,9 +286,10 @@ void uc_ovl_map_window(int scrw, int scrh, DFBRectangle* win, int sw, int sh,
     }
     else { // if (y < 0) && (y+dh >= scrh)
         // Top and bottom clip
-        y1 = 0;
         y2 = scrh-1;
         *oy = (int) (((float) (sh * -y)) / ((float) dh) + 0.5);
+        y1 = ((4-*oy)&3)*dh/sh;
+        *oy = (*oy + 3) & ~3;
     }
 
     // Horizontal clipping
@@ -294,24 +298,33 @@ void uc_ovl_map_window(int scrw, int scrh, DFBRectangle* win, int sw, int sh,
         // No clipping
         x1 = x;
         x2 = x+dw-1;
+        *pfetch = sw;
     }
     else if ((x < 0) && (x+dw < scrw)) {
         // Left clip
-        x1 = 0;
         x2 = x+dw-1;
         *ox = (int) (((float) (sw * -x)) / ((float) dw) + 0.5);
+        x1 = ((32-*ox)&31)*dw/sw;
+        *ox = (*ox + 31) & ~31;
+        *pfetch = sw - *ox;
     }
     else if ((x >= 0) && (x+dw >= scrw)) {
         // Right clip
         x1 = x;
         x2 = scrw-1;
+        *pfetch = sw - (x+dw-scrw)*sw/dw;
     }
     else { // if (x < 0) && (x+dw >= scrw)
         // Left and right clip
-        x1 = 0;
         x2 = scrw-1;
         *ox = (int) (((float) (sw * -x)) / ((float) dw) + 0.5);
+        x1 = ((32-*ox)&31)*dw/sw;
+        *ox = (*ox + 31) & ~31;
+        *pfetch = sw - *ox - (x+dw-scrw)*sw/dw;
     }
+
+    if (pfetch < 0)
+        pfetch = 0;
 
     *win_start = (x1 << 16) | y1;
     *win_end = (x2 << 16) | y2;
