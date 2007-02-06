@@ -59,8 +59,10 @@ dvc_picture_size( DVCPixelFormat f, int w, int h )
      D_ASSERT( h > 0 );
      
      for (i = 0; i < DVC_NUM_PLANES(f); i++) {
-          size += ((w + (DVC_PLANE_ALIGN(f,i)-1)) >> DVC_PLANE_H_SHIFT(f,i)) * 
-                  (h >> DVC_PLANE_V_SHIFT(f,i)) * DVC_PLANE_BPS(f,i);
+          int pitch;
+          pitch = ((w + (DVC_PLANE_ALIGN(f,i)-1)) >> DVC_PLANE_H_SHIFT(f,i));
+          pitch = (pitch * DVC_PLANE_BPS(f,i) + 7) & ~7;
+          size += pitch * (h >> DVC_PLANE_V_SHIFT(f,i));
      }
      
      return size;
@@ -85,13 +87,13 @@ dvc_picture_init( DVCPicture     *picture,
      picture->height = h;
      
      picture->base[0] = base;
-     picture->pitch[0] = ((w + (DVC_PLANE_ALIGN(f,0)-1)) >> DVC_PLANE_H_SHIFT(f,0))
-                         * DVC_PLANE_BPS(f,0);
+     picture->pitch[0] = (((w + (DVC_PLANE_ALIGN(f,0)-1)) >> DVC_PLANE_H_SHIFT(f,0))
+                              * DVC_PLANE_BPS(f,0) + 7) & ~7;
      for (i = 1; i < DVC_NUM_PLANES(f); i++) {
           picture->base[i] = picture->base[i-1] + 
                              picture->pitch[i-1] * (h >> DVC_PLANE_V_SHIFT(f,i-1));
-          picture->pitch[i] = ((w + (DVC_PLANE_ALIGN(f,i)-1)) >> DVC_PLANE_H_SHIFT(f,i))
-                             * DVC_PLANE_BPS(f,i);
+          picture->pitch[i] = (((w + (DVC_PLANE_ALIGN(f,i)-1)) >> DVC_PLANE_H_SHIFT(f,i))
+                                   * DVC_PLANE_BPS(f,i) + 7) & ~7;
      }
      
      picture->palette = NULL;
