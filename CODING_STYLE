@@ -23,7 +23,7 @@ Functions
    type
    function( args )
    {
-      do_something( args );
+        do_something( args );
    }
 
    type
@@ -31,9 +31,9 @@ Functions
              very_long_argument2,
              very_long_argument3 )
    {
-      do_something( very_long_argument1, 
-                    very_long_argument2,
-                    very_long_argument3 );
+        do_something( very_long_argument1, 
+                      very_long_argument2,
+                      very_long_argument3 );
    }
 
    
@@ -42,23 +42,23 @@ Braces
 
    We use a bracing style similar to K&R style:
    
-      if (condition) {
-         do_this();
-         do_that();
-      }
-      else {
-         do_other();
-      }
+   if (condition) {
+        do_this();
+        do_that();
+   }
+   else {
+        do_other();
+   }
 
-      if (condition_1 && condition_2 && condition_3 &&
-          condition_4 && condition_5 && condition_6)
-      {
-         do_this();
-         do_that();
-      }
-      else {
-         do_other();
-      }
+   if (condition_1 && condition_2 && condition_3 &&
+       condition_4 && condition_5 && condition_6)
+   {
+        do_this();
+        do_that();
+   }
+   else {
+        do_other();
+   }
 
 
 Final Recommendations
