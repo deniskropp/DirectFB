@@ -40,7 +40,7 @@ typedef float __fsf;
 
 #define FSF_ONE   1.0f
 
-#define FSF_MAX   0.9999998807907f
+#define FSF_MAX   0.999999880791f
 
 #define FSF_MIN  -1.0f
 
@@ -92,7 +92,7 @@ typedef float __fsf;
      register __fsf _o; \
      _o    = (s) - (p).d; \
      (p).r = (p).r * 196314165 + 907633515; \
-     (p).d = (float)((p).r >> (32-(b))) / (1 << 31); \
+     (p).d = (float)((p).r >> (b)) / 2147483648.0f; \
      _o    = _o + (p).d; \
      _o;\
  }) \
@@ -182,11 +182,12 @@ typedef signed long __fsf;
 
 #ifdef FS_ENABLE_DITHERING
 /* 
- * Noise Shaping (i.e. dithering + re-shaping of noise frequency contour).
+ * Noise Shaped Dithering.
+ *
  * Using the following function: 
  *   y(n) = x(n) + 0.5 * E(x(n-1)) + dither
  * where y(n) is output sample at n, x(n) is input sample at n,
- * E(x) is the error the original and the quantized sample.
+ * E(x) is the error between the original and the quantized sample.
  */
 # define fsf_dither_profile( p ) \
      struct { __fsf e; unsigned int r; } p = { 0, 0 }
