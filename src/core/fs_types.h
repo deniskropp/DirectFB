@@ -55,10 +55,6 @@ typedef float __fsf;
 
 #define fsf_mul( a, b )              ((a) * (b))
 
-#define fsf_mull( a, b )             fsf_mul( a, b )
-
-#define fsf_mulll( a, b )            fsf_mul( a, b )
-
 #define fsf_div( a, b )              ((a) / (b))
 
 #define fsf_clip( x )                (((x) > FSF_MAX) ? FSF_MAX : \
@@ -86,11 +82,19 @@ typedef float __fsf;
 
 
 #ifdef FS_ENABLE_DITHERING
-# define fsf_dither_profile( p )
+/*
+ * Simple Dithering.
+ */
+# define fsf_dither_profile( p ) \
+     struct { __fsf d; unsigned int r; } p = { 0, 0 }
 # define fsf_dither( s, b, p ) ( \
  __extension__({ \
-     D_ONCE( "float dithering not yes implemented" ); \
-     s; \
+     register __fsf _o; \
+     _o    = (s) - (p).d; \
+     (p).r = (p).r * 196314165 + 907633515; \
+     (p).d = (float)((p).r >> (32-(b))) / (1 << 31); \
+     _o    = _o + (p).d; \
+     _o;\
  }) \
 ) 
 #else
@@ -122,16 +126,12 @@ typedef signed long __fsf;
 
 #define fsf_shr( a, b )              ((a) >> (b))
 
-#define fsf_shl( a, b )              ((a) << (b))
-
-#define fsf_mulll( a, b )            (((long long)(a) * (long long)(b)) >> FSF_DECIBITS)
-
-#define fsf_mull( a, b )             (((a) >> (FSF_DECIBITS-15)) * ((b) >> 15))
+#define fsf_shl( a, b )              ((a) << (b))          
 
 #if (SIZEOF_LONG == 8) || defined(FS_ENABLE_PRECISION)
-# define fsf_mul( a, b )             fsf_mulll( a, b )
+# define fsf_mul( a, b )             (((long long)(a) * (long long)(b)) >> FSF_DECIBITS)
 #else
-# define fsf_mul( a, b )             fsf_mull( a, b )
+# define fsf_mul( a, b )             (((a) >> (FSF_DECIBITS-15)) * ((b) >> 15))
 #endif
 
 #define fsf_div( a, b )              ((a) / (b))
