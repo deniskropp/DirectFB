@@ -215,7 +215,9 @@ static void Store_RGB16_LE_MMX( DVCContext *ctx )
      int       w = ctx->len;
      
      if (w > 15) {
-          int n;
+          const u64 *d5x = &dth5[ctx->dst_y&1];
+          const u64 *d6x = &dth6[ctx->dst_y&1];
+          int        n;
           
           while ((long)D & 6) {
                *D++ = ((S->RGB.r & 0xf8) << 8) |
@@ -284,8 +286,8 @@ static void Store_RGB16_LE_MMX( DVCContext *ctx )
                "jnz           1b       \n\t"
                "emms"
                : "=&S" (S), "=&D" (D), "=&c" (n)
-               : "m" (dth5[ctx->dst_y&1]), "m" (dth6[ctx->dst_y&1]),
-                 "m" (*msk5), "m" (*msk6), "0" (S), "1" (D), "2" (n)
+               : "m" (*d5x), "m" (*d6x), "m" (*msk5), "m" (*msk6),
+                 "0" (S), "1" (D), "2" (n)
                : "memory" );
      }
      
