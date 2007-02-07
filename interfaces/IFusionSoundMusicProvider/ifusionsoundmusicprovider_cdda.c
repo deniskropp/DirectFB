@@ -71,7 +71,6 @@ struct cdda_track {
 typedef struct {
      int                           ref;        /* reference counter */
 
-     DirectStream                 *stream;
      int                           fd;
 
      unsigned int                  current_track;
@@ -84,6 +83,7 @@ typedef struct {
      pthread_mutex_t               lock;
      bool                          playing;
      bool                          finished;
+     bool                          seeked;
 
      int                           buffered_frames;
      s16                          *src_buffer;
@@ -587,8 +587,8 @@ IFusionSoundMusicProvider_CDDA_Destruct( IFusionSoundMusicProvider *thiz )
           D_FREE( data->tracks );
      }
 
-     if (data->stream)
-          direct_stream_destroy( data->stream );
+     if (data->fd > 0)
+          close( data->fd );
 
      pthread_mutex_destroy( &data->lock );
 
@@ -745,7 +745,7 @@ IFusionSoundMusicProvider_CDDA_GetStreamDescription( IFusionSoundMusicProvider *
      desc->samplerate   = 44100;
      desc->channels     = 2;
      desc->sampleformat = FSSF_S16;
-     desc->buffersize   = 5292; /* 120 ms */
+     desc->buffersize   = 4704;
 
      return DFB_OK;
 }
@@ -764,7 +764,7 @@ IFusionSoundMusicProvider_CDDA_GetBufferDescription( IFusionSoundMusicProvider *
      desc->samplerate   = 44100;
      desc->channels     = 2;
      desc->sampleformat = FSSF_S16;
-     desc->length       = 5292; /* 120 ms */
+     desc->length       = 4704;
 
      return DFB_OK;
 }
@@ -799,6 +799,11 @@ CDDAStreamThread( DirectThread *thread, void *ctx )
           if (!data->playing) {
                pthread_mutex_unlock( &data->lock );
                break;
+          }
+          
+          if (data->seeked) {
+               data->dest.stream->Flush( data->dest.stream );
+               data->seeked = false;
           }
 
           pos = data->tracks[data->current_track].frame;
@@ -1159,6 +1164,7 @@ IFusionSoundMusicProvider_CDDA_SeekTo( IFusionSoundMusicProvider *thiz,
 
      pthread_mutex_lock( &data->lock );
      track->frame = frame;
+     data->seeked = true;
      pthread_mutex_unlock( &data->lock );
 
      return DFB_OK;
@@ -1231,8 +1237,11 @@ Construct( IFusionSoundMusicProvider *thiz,
 
      data->ref = 1;
 
-     data->stream = direct_stream_dup( stream );
-     data->fd     = direct_stream_fileno( stream );
+     data->fd = dup( direct_stream_fileno( stream ) );
+     if (data->fd < 0) {
+          IFusionSoundMusicProvider_CDDA_Destruct( thiz );
+          return DFB_IO;
+     }          
 
      /* reset to blocking mode */
      fcntl( data->fd, F_SETFL,
