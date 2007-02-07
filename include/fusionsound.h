@@ -282,9 +282,10 @@ typedef struct {
  * Information about an IFusionSoundMusicProvider.
  */
 typedef enum {
-     FMCAPS_BASIC      = 0x00000000,  /* Basic ops (PlayTo, Stop).      */
-     FMCAPS_SEEK       = 0x00000001,  /* Supports SeekTo.               */
-     FMCAPS_RESAMPLE   = 0x00000002,  /* Supports audio resampling.     */
+     FMCAPS_BASIC      = 0x00000000,  /* Basic ops (PlayTo, Stop).                */
+     FMCAPS_SEEK       = 0x00000001,  /* Supports SeekTo.                         */
+     FMCAPS_RESAMPLE   = 0x00000002,  /* Supports audio resampling.               */
+     FMCAPS_HALFRATE   = 0x00000004,  /* Supports decoding at half original rate. */
 } FSMusicProviderCapabilities;
 
 /*
