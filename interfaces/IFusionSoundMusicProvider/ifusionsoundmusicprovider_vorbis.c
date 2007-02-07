@@ -70,6 +70,7 @@ typedef struct {
      pthread_mutex_t               lock;
      bool                          playing;
      bool                          finished;
+     bool                          seeked;
 
      void                         *buf;
 
@@ -450,10 +451,9 @@ IFusionSoundMusicProvider_Vorbis_GetCapabilities( IFusionSoundMusicProvider   *t
      if (!caps)
           return DFB_INVARG;
 
+     *caps = FMCAPS_BASIC | FMCAPS_HALFRATE;
      if (direct_stream_seekable( data->stream ))
-          *caps = FMCAPS_BASIC | FMCAPS_SEEK;
-     else
-          *caps = FMCAPS_BASIC;
+          *caps |= FMCAPS_SEEK;
 
      return DFB_OK;
 }
@@ -613,6 +613,11 @@ VorbisStreamThread( DirectThread *thread, void *ctx )
                pthread_mutex_unlock( &data->lock );
                break;
           }
+          
+          if (data->seeked) {
+               data->dest.stream->Flush( data->dest.stream );
+               data->seeked = false;
+          }
 
           len = ov_read_float( &data->vf, &src,
                                data->dest.length, &section );
@@ -657,7 +662,8 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
      destination->GetDescription( destination, &desc );
 
      /* check if destination samplerate is supported */
-     if (desc.samplerate != data->info->rate)
+     if (desc.samplerate != data->info->rate &&
+         desc.samplerate != data->info->rate/2)
           return DFB_UNSUPPORTED;
 
      /* check if number of channels is supported */
@@ -680,6 +686,11 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
      thiz->Stop( thiz );
 
      pthread_mutex_lock( &data->lock );
+     
+     if (ov_halfrate( &data->vf, (desc.samplerate == data->info->rate/2) )) {
+          pthread_mutex_unlock( &data->lock );
+          return DFB_UNSUPPORTED;
+     }
 
      /* allocate buffer */
      data->buf = D_MALLOC( desc.buffersize * desc.channels *
@@ -805,7 +816,8 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      destination->GetDescription( destination, &desc );
 
      /* check if destination samplerate is supported */
-     if (desc.samplerate != data->info->rate)
+     if (desc.samplerate != data->info->rate &&
+         desc.samplerate != data->info->rate/2)
           return DFB_UNSUPPORTED;
 
      /* check if number of channels is supported */
@@ -828,6 +840,11 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      thiz->Stop( thiz );
 
      pthread_mutex_lock( &data->lock );
+     
+     if (ov_halfrate( &data->vf, (desc.samplerate == data->info->rate/2) )) {
+          pthread_mutex_unlock( &data->lock );
+          return DFB_UNSUPPORTED;
+     }
 
      /* reference destination stream */
      destination->AddRef( destination );
@@ -947,6 +964,9 @@ IFusionSoundMusicProvider_Vorbis_SeekTo( IFusionSoundMusicProvider *thiz,
           if (ov_time_seek( &data->vf, seconds ))
                ret = DFB_FAILURE;
      }
+     
+     if (ret == DFB_OK)
+          data->seeked = true;
 
      pthread_mutex_unlock( &data->lock );
 

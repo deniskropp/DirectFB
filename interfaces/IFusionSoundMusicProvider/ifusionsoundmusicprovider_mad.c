@@ -486,10 +486,9 @@ IFusionSoundMusicProvider_Mad_GetCapabilities( IFusionSoundMusicProvider   *thiz
      if (!caps)
           return DFB_INVARG;
 
+     *caps = FMCAPS_BASIC | FMCAPS_HALFRATE;
      if (direct_stream_seekable( data->s ))
-          *caps = FMCAPS_BASIC | FMCAPS_SEEK;
-     else
-          *caps = FMCAPS_BASIC;
+          *caps |= FMCAPS_SEEK;
 
      return DFB_OK;
 }
