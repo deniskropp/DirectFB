@@ -70,6 +70,7 @@ typedef struct {
      pthread_mutex_t               lock;
      bool                          playing;
      bool                          finished;
+     bool                          seeked;
 
      void                         *src_buffer;
      void                         *dst_buffer;
@@ -1109,6 +1110,11 @@ WaveStreamThread( DirectThread *thread, void *ctx )
                pthread_mutex_unlock( &data->lock );
                break;
           }
+          
+          if (data->seeked) {
+               data->dest.stream->Flush( data->dest.stream );
+               data->seeked = false;
+          }
 
           ret = direct_stream_wait( data->stream, count, &tv );
           if (ret != DFB_TIMEOUT)
@@ -1491,6 +1497,8 @@ IFusionSoundMusicProvider_Wave_SeekTo( IFusionSoundMusicProvider *thiz,
 
      pthread_mutex_lock( &data->lock );
      ret = direct_stream_seek( data->stream, offset );
+     if (ret == DFB_OK)
+          data->seeked = true;
      pthread_mutex_unlock( &data->lock );
 
      return ret;
