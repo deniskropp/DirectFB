@@ -63,9 +63,9 @@ D_DEBUG_DOMAIN( Direct_Memcpy, "Direct/Memcpy", "Direct's Memcpy Routines" );
 
 static void * generic64_memcpy( void * to, const void * from, size_t len )
 {
-     register __u8 *d = (__u8*)to;
-     register __u8 *s = (__u8*)from;
-     size_t         n;
+     register u8 *d = (__u8*)to;
+     register u8 *s = (__u8*)from;
+     size_t       n;
 
      if (len >= 128) {
           unsigned long delta;
@@ -79,11 +79,11 @@ static void * generic64_memcpy( void * to, const void * from, size_t len )
                     *d++ = *s++;
                }
                if ((unsigned long)d & 2) {
-                    *((__u16*)d) = *((__u16*)s);
+                    *((u16*)d) = *((u16*)s);
                     d += 2; s += 2;
                }
                if ((unsigned long)d & 4) {
-                    *((__u32*)d) = *((__u32*)s);
+                    *((u32*)d) = *((u32*)s);
                     d += 4; s += 4;
                }
           }
@@ -92,14 +92,14 @@ static void * generic64_memcpy( void * to, const void * from, size_t len )
           len &= 63;
           
           for (; n; n--) {
-               ((__u64*)d)[0] = ((__u64*)s)[0];
-               ((__u64*)d)[1] = ((__u64*)s)[1];
-               ((__u64*)d)[2] = ((__u64*)s)[2];
-               ((__u64*)d)[3] = ((__u64*)s)[3];
-               ((__u64*)d)[4] = ((__u64*)s)[4];
-               ((__u64*)d)[5] = ((__u64*)s)[5];
-               ((__u64*)d)[6] = ((__u64*)s)[6];
-               ((__u64*)d)[7] = ((__u64*)s)[7];
+               ((u64*)d)[0] = ((u64*)s)[0];
+               ((u64*)d)[1] = ((u64*)s)[1];
+               ((u64*)d)[2] = ((u64*)s)[2];
+               ((u64*)d)[3] = ((u64*)s)[3];
+               ((u64*)d)[4] = ((u64*)s)[4];
+               ((u64*)d)[5] = ((u64*)s)[5];
+               ((u64*)d)[6] = ((u64*)s)[6];
+               ((u64*)d)[7] = ((u64*)s)[7];
                d += 64; s += 64;
           }
      }
@@ -110,15 +110,15 @@ static void * generic64_memcpy( void * to, const void * from, size_t len )
           n = len >> 3;
           
           for (; n; n--) {
-               *((__u64*)d) = *((__u64*)s);
+               *((u64*)d) = *((u64*)s);
                d += 8; s += 8;
           }
           if (len & 4) {
-               *((__u32*)d) = *((__u32*)s);
+               *((u32*)d) = *((u32*)s);
                d += 4; s += 4;
           }
           if (len & 2)  {
-               *((__u16*)d) = *((__u16*)s);
+               *((u16*)d) = *((u16*)s);
                d += 2; s += 2;
           }
           if (len & 1)
