@@ -63,10 +63,13 @@ main (int argc, char *argv[])
      if (ret)
           DirectFBErrorFatal ("FusionSoundCreate", ret);
 
-     /* Fill stream description (using defaults of 44kHz and 16bit). */
-     desc.flags      = FSSDF_BUFFERSIZE | FSSDF_CHANNELS;
-     desc.buffersize = 32768;
-     desc.channels   = 1;
+     /* Fill stream description. */
+     desc.flags        = FSSDF_SAMPLERATE | FSSDF_BUFFERSIZE |
+                         FSSDF_CHANNELS   | FSSDF_SAMPLEFORMAT;
+     desc.samplerate   = 44100;
+     desc.buffersize   = 32768;
+     desc.channels     = 1;
+     desc.sampleformat = FSSF_S16;
 
      /* Create the sound stream and feed it. */
      ret = sound->CreateStream (sound, &desc, &stream);
