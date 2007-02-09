@@ -185,7 +185,7 @@ typedef signed long __fsf;
  * Noise Shaped Dithering.
  *
  * Using the following function: 
- *   y(n) = x(n) + 1/2 * E(x(n-1)) - 1/8 * E(x(n-2)) + 1/8 * E(x(n-3)) + dither
+ *   y(n) = x(n) + E(x(n-1)) - 1/2 * E(x(n-2)) + 1/2 * E(x(n-3)) + dither
  * where y(n) is output sample at n, x(n) is input sample at n,
  * E(x) is the error between the original and the quantized sample.
  */
@@ -194,13 +194,14 @@ typedef signed long __fsf;
 # define fsf_dither( s, b, p ) ( \
  __extension__({ \
      const long     _m = (1 << (FSF_DECIBITS+1-(b))) - 1; \
-     register __fsf _o; \
-     _o       = (s) + (p).e[0] - (p).e[1] + (p).e[2] - ((p).r & _m); \
+     register __fsf _s, _o; \
+     _s       = (s) + (p).e[0] - (p).e[1] + (p).e[2]; \
+     _o       = _s + (1 << (FSF_DECIBITS-(b))) - ((p).r & _m); \
      (p).r    = (p).r * 196314165 + 907633515; \
      _o      += (p).r & _m; \
      (p).e[2] = (p).e[1]; \
-     (p).e[1] = (p).e[0] >> 2; \
-     (p).e[0] = ((s) - (_o & ~_m)) >> 1; \
+     (p).e[1] = (p).e[0] >> 1; \
+     (p).e[0] = _s - (_o & ~_m); \
      _o; \
    }) \
 )
