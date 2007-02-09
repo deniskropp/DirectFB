@@ -11,6 +11,8 @@
 
 #include <config.h>
 
+#include <fbdev/fbdev.h>
+
 #include <directfb.h>
 
 #include <direct/messages.h>
