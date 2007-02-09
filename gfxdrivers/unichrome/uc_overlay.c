@@ -9,6 +9,8 @@
 
 #include <config.h>
 
+#include <fbdev/fbdev.h>
+
 #include "unichrome.h"
 #include "uc_overlay.h"
 #include "uc_ioctl.h"
@@ -17,8 +19,6 @@
 
 #include <stdlib.h>
 #include <unistd.h>
-
-#include <fbdev/fbdev.h>
 
 #include <direct/messages.h>
 
