@@ -1,3 +1,22 @@
+1.0.0-rc4
+---------
+
+FBDev System Module
+- Many thanks to Vaclav Slavik for fixing up VT initialization.
+  Check the ChangeLog for a detailed description.
+
+Unichrome Driver
+- Allow for improved timing of video layer flips when the FIELD_PARITY option
+  is in use.  The improvement is only possible if the kernel framebuffer
+  supports it.  If not, we do the best we can but occasional glitches may
+  occur under high processor load.
+
+Misc/minor (usually not in a summary, but due to the few changes...)
+- Distribute autogen.sh
+- Add new lines to work around nested structs being taken by the doc generator.
+- Avoid cutting away the last pixel of a planar yuv row.
+
+
 1.0.0-rc3
 ---------
 

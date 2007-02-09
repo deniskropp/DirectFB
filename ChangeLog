@@ -1,3 +1,95 @@
+2007-02-05   dok	11:48:52	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	systems/fbdev/fbdev.c (1.53) (+0 -7;)
+		systems/fbdev/vt.c (1.8) (+9 -10;)
+	
+	Many thanks to Vaclav Slavik for these many fixes :-)
+	
+	* Previously, the process attached itself to a new controlling TTY
+	only if vt_switch option was on. This patch changes it to always
+	(unless VT handling is completely disabled, of course) attach the
+	process to the TTY being used by the app as the new controlling TTY.
+	This is because we always need some controlling TTY, without it, there
+	could be SIGHUP/SIGCONT signals (see e.g. my post about re-adding
+	setpgid() call). Note that the patch moves TIOCSCTTY call outside
+	of "if vt-switch" branch, but completely removes TIOCNOTTY - - that's
+	because the latter is not needed, setsid() already detached the
+	process from controlling TTY. So "vt-switch" now only
+	controls "physical" change of the currently active console.
+	
+	* /dev/tty? files are opened with O_NOCTTY. Linux kernel has a feature
+	that if a process without controlling TTY opens a TTY device, it's
+	made its controlling TTY, unless you use O_NOCTTY, so this change
+	ensure that we only attach to the desired TTY explicitly using
+	TIOCSCTTY.
+	
+	* Moved TIOCSCTTY before KBSETMODE use, otherwise non-root users get
+	EPERM from KBSETMODE ioctl(), because you can't do that operation on
+	anything other than your controlling TTY normally.
+	
+	* Removed setpgid() calls, because they interfered with setsid() later
+	and weren't really necessary now that other cTTY problems were fixed.
+	Ditto for the removed dfb_vt_detach() call (I couldn't find any
+	information about why it was there in the first place, but everything
+	works without it as far as I can tell).
+	
+2007-02-03   klan	11:54:58	
+
+	Files:	src/misc/gfx_util.c (1.67) (+49 -11;)
+	
+	Avoid cutting away the last pixel of a planar yuv row.
+	
+2007-02-03   klan	11:36:33	
+
+	Files:	mkchlog (1.9) (+1 -1;)
+	
+	Changed my email address.
+	
+2007-02-03   klan	11:35:45	
+
+	Files:	Makefile.am (1.25) (+1 -0;)
+	
+	Distribute autogen.sh.
+	
+2007-02-02   dok	23:10:43	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.321) (+4 -2;)
+	
+	Add new lines to work around nested structs being taken by the doc generator.
+	
+2007-02-02   klan	18:30:41	
+
+	Files:	AUTHORS (1.20) (+1 -2;)
+	
+	Display my new email address (the old one may not work in future).
+	
+2007-02-01   marka	18:42:44	
+
+	Files:	gfxdrivers/unichrome/Makefile.am (1.6) (+1 -0;)
+		gfxdrivers/unichrome/unichrome.h (1.6) (+1 -0;)
+		gfxdrivers/unichrome/unichrome.c (1.12) (+14 -0;)
+		gfxdrivers/unichrome/uc_overlay.c (1.10) (+53 -17;)
+	
+	Allow for improved timing of video layer flips when the FIELD_PARITY option
+	is in use.  The improvement is only possible if the kernel framebuffer
+	supports it.  If not, we do the best we can but occasional glitches may
+	occur under high processor load.
+	
+2007-02-01   marka	18:42:44	
+
+	Files:	gfxdrivers/unichrome/uc_ioctl.h (1.1) (zmW76HzyW1ShMO4s; )
+	
+	Allow for improved timing of video layer flips when the FIELD_PARITY option
+	is in use.  The improvement is only possible if the kernel framebuffer
+	supports it.  If not, we do the best we can but occasional glitches may
+	occur under high processor load.
+	
+2007-01-29   dok	20:28:50	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.64) (+25 -0;)
+	
+	updated for RC3
+	
 2007-01-29   dok	20:27:21	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	lib/fusion/reactor.c (1.20) (+5 -8;)
