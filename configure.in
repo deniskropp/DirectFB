@@ -1161,7 +1161,7 @@ if test "$checkfor_gunze" = "yes"; then
 fi
 
 enable_h3600_ts=no
-if test "checkfor_h3600ts" = "yes"; then
+if test "$checkfor_h3600ts" = "yes"; then
   dnl Test for H3600 Touchscreen support
   AC_CHECK_HEADER( [linux/h3600_ts.h], enable_h3600_ts=yes, enable_h3600_ts=no  
     AC_MSG_WARN([*** H3600 Touchscreen driver will not be built.]))
