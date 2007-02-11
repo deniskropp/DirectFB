@@ -83,18 +83,17 @@ typedef float __fsf;
 
 #ifdef FS_ENABLE_DITHERING
 /*
- * Simple Dithering.
+ * Triangular Dithering.
  */
 # define fsf_dither_profile( p ) \
-     struct { __fsf d; unsigned int r; } p = { 0, 0 }
+     struct { unsigned int r; } p = { 0 }
 # define fsf_dither( s, b, p ) ( \
  __extension__({ \
-     register __fsf _o; \
-     _o    = (s) - (p).d; \
+     register int _r; \
+     _r    = -((p).r >> (b)); \
      (p).r = (p).r * 196314165 + 907633515; \
-     (p).d = (float)((p).r >> (b)) / 2147483648.0f; \
-     _o    = _o + (p).d; \
-     _o;\
+     _r   += (p).r >> (b); \
+     (s) + (float)_r / 2147483648.0f; \
  }) \
 ) 
 #else
@@ -185,7 +184,7 @@ typedef signed long __fsf;
  * Noise Shaped Dithering.
  *
  * Using the following function: 
- *   y(n) = x(n) + E(x(n-1)) - 1/2 * E(x(n-2)) + 1/2 * E(x(n-3)) + dither
+ *   y(n) = x(n) + 1.75 * E(x(n-1)) - 1.5 * E(x(n-2)) + 0.75 * E(x(n-3)) + dither
  * where y(n) is output sample at n, x(n) is input sample at n,
  * E(x) is the error between the original and the quantized sample.
  */
@@ -199,9 +198,10 @@ typedef signed long __fsf;
      _o       = _s + (1 << (FSF_DECIBITS-(b))) - ((p).r & _m); \
      (p).r    = (p).r * 196314165 + 907633515; \
      _o      += (p).r & _m; \
-     (p).e[2] = (p).e[1]; \
-     (p).e[1] = (p).e[0] >> 1; \
+     (p).e[2] = (p).e[1] >> 1; \
+     (p).e[1] = (p).e[0] - ((p).e[0] >> 3); \
      (p).e[0] = _s - (_o & ~_m); \
+     (p).e[0] = ((p).e[0] << 1) - ((p).e[0] >> 2); \
      _o; \
    }) \
 )
