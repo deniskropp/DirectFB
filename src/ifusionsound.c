@@ -154,8 +154,8 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
      }
      
      if (flags & FSBDF_SAMPLERATE) {
-          if (desc->samplerate < 1)
-               return DFB_INVARG;
+          if (desc->samplerate < 100)
+               return DFB_UNSUPPORTED;
           rate = desc->samplerate;
      }
           
@@ -247,8 +247,8 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
           }    
 
           if (flags & FSSDF_SAMPLERATE) {
-               if (desc->samplerate < 1)
-                    return DFB_INVARG;
+               if (desc->samplerate < 100)
+                    return DFB_UNSUPPORTED;
                rate = desc->samplerate;
           }
                
