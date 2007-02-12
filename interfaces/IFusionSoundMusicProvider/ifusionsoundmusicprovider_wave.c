@@ -1641,7 +1641,7 @@ parse_headers( DirectStream *stream,
                    "Unsupported number of channels (%d).\n", fmt.channels );
           return DFB_UNSUPPORTED;
      }
-     if (fmt.frequency < 4000 || fmt.frequency > 48000) {
+     if (fmt.frequency < 1000) {
           D_DEBUG( "IFusionSoundMusicProvider_Wave: "
                    "Unsupported frequency (%dHz).\n", fmt.frequency );
           return DFB_UNSUPPORTED;
