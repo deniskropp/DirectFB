@@ -183,25 +183,24 @@ typedef signed long __fsf;
 /* 
  * Noise Shaped Dithering.
  *
- * Using the following function: 
- *   y(n) = x(n) + 1.75 * E(x(n-1)) - 1.5 * E(x(n-2)) + 0.75 * E(x(n-3)) + dither
- * where y(n) is output sample at n, x(n) is input sample at n,
- * E(x) is the error between the original and the quantized sample.
+ * Using (approximately) the following 5th order FIR filter:
+ *        { 2.0, -2.125, 1.85, -1.39, 0.69 }
  */
 # define fsf_dither_profile( p ) \
-     struct { __fsf e[3]; unsigned int r; } p = { {0, 0, 0}, 0 }
+     struct { __fsf e[5]; unsigned int r; } p = { {0, 0, 0, 0, 0}, 0 }
 # define fsf_dither( s, b, p ) ( \
  __extension__({ \
      const long     _m = (1 << (FSF_DECIBITS+1-(b))) - 1; \
      register __fsf _s, _o; \
-     _s       = (s) + (p).e[0] - (p).e[1] + (p).e[2]; \
+     _s       = (s) + (p).e[0] - (p).e[1] + (p).e[2] - (p).e[3] + (p).e[4]; \
      _o       = _s + (1 << (FSF_DECIBITS-(b))) - ((p).r & _m); \
      (p).r    = (p).r * 196314165 + 907633515; \
      _o      += (p).r & _m; \
-     (p).e[2] = (p).e[1] >> 1; \
-     (p).e[1] = (p).e[0] - ((p).e[0] >> 3); \
-     (p).e[0] = _s - (_o & ~_m); \
-     (p).e[0] = ((p).e[0] << 1) - ((p).e[0] >> 2); \
+     (p).e[4] = (p).e[3] >> 1; \
+     (p).e[3] = (p).e[2] - ((p).e[2] >> 2); \
+     (p).e[2] = (p).e[1] - ((p).e[1] >> 3); \
+     (p).e[1] = (p).e[0] + ((p).e[0] >> 4); \
+     (p).e[0] = (_s - (_o & ~_m)) << 1; \
      _o; \
    }) \
 )
