@@ -315,7 +315,7 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
      }
 
      /* Mix the data into the buffer. */
-     if (pitch && (left || right)) {
+     if ((long)inc && (left || right)) {
           SoundMXFunc func;
           
           func = (pitch < 0)
@@ -325,7 +325,7 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
      }
      else {
           /* Produce silence. */
-          len = (pitch) ? ((max/inc) << 1) : max_samples;
+          len = ((long)inc) ? ((max/inc) << 1) : max_samples;
      }
      
      num = (max >> FS_PITCH_BITS);
