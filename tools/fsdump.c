@@ -110,8 +110,32 @@ buffer_callback( FusionObjectPool *pool,
 
      printf( "%6d  ", buffer->length );
 
+     printf( "%6d    ", buffer->channels );
 
+     switch (buffer->format) {
+          case FSSF_U8:
+               printf( "   U8   " );
+               break;
+          case FSSF_S16:
+               printf( "  S16   " );
+               break;
+          case FSSF_S24:
+               printf( "  S24   " );
+               break;
+          case FSSF_S32:
+               printf( "  S32   " );
+               break;
+          case FSSF_FLOAT:
+               printf( " FLOAT  " );
+               break;
+          default:
+               printf( "        " );
+               break;
+     }
 
+     printf( "%8d    ", buffer->rate );
+
+     printf( "%4dk ", buffer->length*buffer->bytes/1024 );
 
      printf( "\n" );
 
@@ -123,7 +147,7 @@ dump_buffers( CoreSound *core )
 {
      printf( "\n"
              "----------------------------[ Sound Buffers ]----------------------------\n" );
-     printf( "Reference  . Refs  Length\n" );
+     printf( "Reference  . Refs  Length  Channels  Format  Samplerate   Size\n" );
      printf( "-------------------------------------------------------------------------\n" );
 
      fs_core_enum_buffers( core, buffer_callback, NULL );
