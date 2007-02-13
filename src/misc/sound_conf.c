@@ -62,7 +62,10 @@ static const char *config_usage =
      "  samplerate=<samplerate>        Set the default sample rate\n"
      "  buffertime=<millisec>          Set the default buffer time\n"
      "  session=<num>                  Select multi app world (-1 = new)\n"
+     "  quiet                          No text output except debugging\n"
      "  [no-]banner                    Show FusionSound banner on startup\n"
+     "  [no-]debug                     Enable debug output\n"
+     "  [no-]trace                     Enable stack trace support\n"
      "\n";
      
 typedef struct {
@@ -291,11 +294,32 @@ fs_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      }
+     else if (!strcmp( name, "quiet" )) {
+          direct_config->quiet = true;
+     }
      else if (!strcmp( name, "banner" )) {
           fs_config->banner = true;
      }
      else if (!strcmp( name, "no-banner" )) {
           fs_config->banner = false;
+     }
+     else if (!strcmp( name, "debug" )) {
+          if (value)
+               direct_debug_config_domain( value, true );
+          else
+               direct_config->debug = true;
+     } 
+     else if (!strcmp( name, "no-debug" )) {
+          if (value)
+               direct_debug_config_domain( value, false );
+          else
+               direct_config->debug = false;
+     }
+     else if (!strcmp( name, "trace" )) {
+          direct_config->trace = true;
+     } 
+     else if (!strcmp( name, "no-trace" )) {
+          direct_config->trace = false;
      }
      else
           return DFB_UNSUPPORTED;

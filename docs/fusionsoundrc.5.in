@@ -78,9 +78,21 @@ unused session number. The default session number is
 DIRECTFB_SESSION + 1.
 
 .TP
+.BI quiet
+Suppress console output. Only error messages will be displayed.
+
+.TP
 .BI [no-]banner
 Enables the output of the FusionSound banner at startup. 
 This is on by default.
+
+.TP
+.BI [no-]debug
+Enable debug output.
+
+.TP
+.BI [no-]trace
+Enable stack trace support.
 
 
 .SH EXAMPLES
