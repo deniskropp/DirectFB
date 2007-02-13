@@ -12,7 +12,8 @@ LDADD = \
 
 noinst_PROGRAMS = simple
 
-bin_PROGRAMS = dfbplay dfbshow dfbswitch
+#dfbplay removed to fix build for now
+bin_PROGRAMS = dfbshow dfbswitch
 
 
 simple_SOURCES = \
