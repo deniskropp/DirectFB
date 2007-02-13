@@ -97,15 +97,16 @@ fs_device_initialize( CoreSound *core, CoreSoundDevice **ret_device )
                if (!funcs)
                     continue;
                
-               if (fs_config->driver && strcmp( module->name, fs_config->driver ))
-                    continue;
+               if (!device->module && 
+                  (!fs_config->driver || !strcmp( module->name, fs_config->driver ))) {
+                    if (funcs->Probe() == DFB_OK) {
+                         device->module = module;
+                         device->funcs  = funcs;
                
-               if (funcs->Probe() == DFB_OK) {
-                    device->module = module;
-                    device->funcs  = funcs;
-               
-                    funcs->GetDriverInfo( &device->info );
-                    break;
+                         funcs->GetDriverInfo( &device->info );
+                         
+                         direct_module_ref( module );
+                    }
                }
           
                direct_module_unref( module );
