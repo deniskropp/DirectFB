@@ -190,6 +190,8 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
           usleep( 20000 );
      } while (status != FMSTATE_FINISHED);
      
+     printf( "\n" );
+     
      return DFENUM_OK;
 }     
 
@@ -204,16 +206,7 @@ main( int argc, char *argv[] )
 
      if (argc != 2)
           usage( argv[0] );
-          
-     /* Get terminal attributes. */
-     tcgetattr( fileno(stdin), &term );
-          
-     /* Don't catch SIGINT. */
-     DirectFBSetOption( "dont-catch", "2" );
-     
-     /* Register clean-up handler for SIGINT. */
-     signal( SIGINT, cleanup );
-
+         
      /* Retrieve the main sound interface. */
      ret = FusionSoundCreate( &sound );
      if (ret)
@@ -221,8 +214,18 @@ main( int argc, char *argv[] )
 
      /* Create a music provider for the specified file. */
      ret = sound->CreateMusicProvider( sound, argv[1], &provider );
-     if (ret)
-          FusionSoundErrorFatal( "IFusionSound::CreateMusicProvider", ret );
+     if (ret) {
+          FusionSoundError( "IFusionSound::CreateMusicProvider", ret );
+          sound->Release( sound );
+          return 1;
+     }
+
+     /* Get terminal attributes. */
+     tcgetattr( fileno(stdin), &term );
+     
+     /* Register clean-up handlers. */
+     signal( SIGINT, cleanup );
+     signal( SIGTERM, cleanup );
      
      if (isatty( fileno(stdin) )) {
           struct termios cur;
