@@ -709,8 +709,8 @@ typedef enum {
  * <b>Information</b> provided by <i>GetStatus()</i> includes the current
  * <b>position</b> and whether the playback is <b>running</b>.
  *
- * <b>Parameters</b> provide <b>live</b> control over <b>volume</b>, <b>pan</b>
- * and <b>pitch</b> (speed factor) of the playback.
+ * <b>Parameters</b> provide <b>live</b> control over <b>volume</b>, <b>pan</b>,
+ * <b>pitch</b> (speed factor) and <b>direction</b> of the playback.
  */
 DEFINE_INTERFACE( IFusionSoundPlayback,
 
@@ -953,7 +953,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
           IFusionSoundMusicProvider *thiz,
           IFusionSoundBuffer        *destination,
           FMBufferCallback           callback,
-          void                      *ctx
+          void                      *callbackdata
      );
 
      /*
