@@ -334,16 +334,20 @@ static size_t
 ov_read_callback( void *dst, size_t size, size_t nmemb, void *ctx )
 {
      DirectStream *stream = ctx;
-     unsigned int  length = size * nmemb;
+     size_t        total  = size * nmemb;
+     size_t        length = 0;
      DirectResult  ret;
 
-     if (length) {
-          direct_stream_wait( stream, length, NULL );
-          ret = direct_stream_read( stream, length, dst, &length );
+     while (length < total) {
+          unsigned int read = 0;
+          direct_stream_wait( stream, total-length, NULL );
+          ret = direct_stream_read( stream, total-length, dst+length, &read );
           if (ret) {
-               errno = (ret == DFB_EOF) ? 0 : -1;
-               return errno;
+               if (!length)
+                    return (ret == DFB_EOF) ? 0 : -1;
+               break;
           }
+          length += read;
      }
 
      return length;
@@ -631,8 +635,6 @@ VorbisStreamThread( DirectThread *thread, void *ctx )
                else {
                     data->finished = true;
                }
-               pthread_mutex_unlock( &data->lock );
-               continue;
           }
 
           pthread_mutex_unlock( &data->lock );
@@ -687,9 +689,13 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
 
      pthread_mutex_lock( &data->lock );
      
-     if (ov_halfrate( &data->vf, (desc.samplerate == data->info->rate/2) )) {
-          pthread_mutex_unlock( &data->lock );
-          return DFB_UNSUPPORTED;
+     if (desc.samplerate == data->info->rate/2) {
+          if (ov_halfrate( &data->vf, 1 )) {
+               pthread_mutex_unlock( &data->lock );
+               return DFB_UNSUPPORTED;
+          }
+     } else {
+          ov_halfrate( &data->vf, 0 );
      }
 
      /* allocate buffer */
@@ -841,9 +847,13 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
 
      pthread_mutex_lock( &data->lock );
      
-     if (ov_halfrate( &data->vf, (desc.samplerate == data->info->rate/2) )) {
-          pthread_mutex_unlock( &data->lock );
-          return DFB_UNSUPPORTED;
+     if (desc.samplerate == data->info->rate/2) {
+          if (ov_halfrate( &data->vf, 1 )) {
+               pthread_mutex_unlock( &data->lock );
+               return DFB_UNSUPPORTED;
+          }
+     } else {
+          ov_halfrate( &data->vf, 0 );
      }
 
      /* reference destination stream */
