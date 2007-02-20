@@ -5,8 +5,9 @@
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <sven@convergence.de> and
+              Claudio Ciccani <klan@users.sf.net>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -133,7 +134,7 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
 
      data->pending = length;
      
-     while (data->pending > 0) {
+     while (data->pending) {
           DFBResult ret;
           int       num;
           int       bytes;
@@ -170,8 +171,7 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
           }
 
           /* Update input parameters. */
-          data->pending -= num;
-          sample_data   += bytes;
+          sample_data += bytes;
      }
 
      pthread_mutex_unlock( &data->lock );
@@ -288,7 +288,8 @@ IFusionSoundStream_GetPresentationDelay( IFusionSoundStream *thiz,
 
      pthread_mutex_lock( &data->lock );
 
-     *delay = fs_core_output_delay( data->core )  +  data->filled * 1000 / data->rate;
+     *delay = fs_core_output_delay( data->core ) +
+              (data->filled + data->pending) * 1000 / data->rate;
 
      pthread_mutex_unlock( &data->lock );
 
@@ -417,7 +418,7 @@ IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
 
      D_ASSERT( length <= data->size - data->filled );
 
-     while (length) {
+     while (length && data->pending) {
           int num = MIN( length, data->size - data->pos_write );
 
           /* Write data. */
@@ -450,6 +451,10 @@ IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
 
           /* Update the fill level. */
           data->filled += num;
+          
+          /* Update amount of pending frames. */
+          if (data->pending)
+               data->pending -= num;
      }
 
      if (ret_bytes)
