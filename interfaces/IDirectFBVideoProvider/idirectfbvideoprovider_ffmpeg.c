@@ -418,6 +418,14 @@ FFmpegInput( DirectThread *self, void *arg )
                usleep( 100 );
                continue;
           }
+          else if (data->video.queue.size == 0 || 
+                   data->audio.queue.size == 0) {
+               if (!buffering && url_is_streamed( &data->context->pb )) {
+                    pthread_mutex_lock( &data->video.queue.lock );
+                    pthread_mutex_lock( &data->audio.queue.lock );
+                    buffering = true;
+               }
+          }
           
           if (av_read_frame( data->context, &packet ) < 0) {
                if (url_feof( &data->context->pb )) {
@@ -426,8 +434,8 @@ FFmpegInput( DirectThread *self, void *arg )
                          pthread_mutex_unlock( &data->video.queue.lock );
                          buffering = false;
                     }
-                    else if (data->video.queue.size == 0 &&
-                             data->audio.queue.size == 0) {
+                    if (data->video.queue.size == 0 &&
+                        data->audio.queue.size == 0) {
                          if (data->flags & DVPLAY_LOOPING) {
                               data->input.seek_time = 0;
                               data->input.seek_flag = 0;
@@ -1504,7 +1512,7 @@ Construct( IDirectFBVideoProvider *thiz,
                              FSSDF_SAMPLEFORMAT | FSSDF_SAMPLERATE;
           dsc.channels     = data->audio.ctx->channels;
           dsc.samplerate   = data->audio.ctx->sample_rate;
-          dsc.buffersize   = dsc.samplerate*125/1000; /* 125(ms) */
+          dsc.buffersize   = dsc.samplerate/10; /* 100(ms) */
           dsc.sampleformat = FSSF_S16;
 
           ret = data->audio.sound->CreateStream( data->audio.sound, 
