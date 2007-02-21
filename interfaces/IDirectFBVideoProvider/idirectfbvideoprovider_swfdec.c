@@ -77,7 +77,7 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, Swfdec )
 typedef struct {
      DirectLink       link;
      SwfdecBuffer    *buffer;
-     __s64            pts;
+     s64              pts;
 } FrameLink;
 
 typedef struct {
@@ -116,6 +116,8 @@ typedef struct {
           DirectThread     *thread;
           pthread_mutex_t   lock;
           
+          bool              buffering;
+          
           double            seek;
      } input;
      
@@ -124,7 +126,7 @@ typedef struct {
           pthread_mutex_t   lock;
           pthread_cond_t    cond;
                    
-          __s64             pts;
+          s64               pts;
           
           bool              seeked;
 
@@ -135,7 +137,7 @@ typedef struct {
           DirectThread     *thread;
           pthread_mutex_t   lock;
           
-          __s64             pts;
+          s64               pts;
           
           bool              seeked;
 
@@ -163,7 +165,7 @@ static inline long long usec( void )
 /*****************************************************************************/
 
 static void
-add_frame( FrameQueue *queue, SwfdecBuffer *buffer, __s64 pts )
+add_frame( FrameQueue *queue, SwfdecBuffer *buffer, s64 pts )
 {
      FrameLink *f;
      
@@ -185,7 +187,7 @@ add_frame( FrameQueue *queue, SwfdecBuffer *buffer, __s64 pts )
 }
 
 static bool
-get_frame( FrameQueue *queue, SwfdecBuffer **ret_buffer, __s64 *ret_pts )
+get_frame( FrameQueue *queue, SwfdecBuffer **ret_buffer, s64 *ret_pts )
 {
      FrameLink *f;
      
@@ -239,8 +241,10 @@ SwfInput( DirectThread *self, void *arg )
 {
      IDirectFBVideoProvider_Swfdec_data *data   = arg;
      IDirectFBDataBuffer                *buffer = data->buffer;
-     __s64                               pts    = 0;
+     s64                                 pts    = 0;
      unsigned int                        q_max;
+     
+     data->input.buffering = true;
      
      while (!direct_thread_is_canceled( self )) {
           DFBResult     ret;
@@ -285,6 +289,8 @@ SwfInput( DirectThread *self, void *arg )
                break;
           }
      }
+     
+     data->input.buffering = false;
 
      q_max = MAX( (int)data->rate/3, 2 );
      
@@ -360,9 +366,9 @@ SwfPutImage( CoreDFB      *core,
 {
      DFBRegion     clip;
      DFBRectangle  srect;
-     __u8         *D;
-     __u32        *S;
-     __u8         *dst, *src;
+     u8           *D;
+     u32          *S;
+     u8           *dst, *src;
      int           pitch;
      int           sw  = source->length & 0xffff;
      int           sh  = source->length >> 16;
@@ -384,8 +390,8 @@ SwfPutImage( CoreDFB      *core,
      src  = source->data + srect.y * sw * 4 + srect.x * 4;
      
      for (h = srect.h; h; h--) {
-          D = (__u8 *) dst;
-          S = (__u32*) src;
+          D = (u8 *) dst;
+          S = (u32*) src;
           w = srect.w;
           
           switch (surface->format) {
@@ -396,92 +402,88 @@ SwfPutImage( CoreDFB      *core,
                     }
                     break;
                case DSPF_ARGB4444:
-                    if ((__u32)D & 2) {
-                         *((__u16*)D) = RGB32_TO_ARGB4444( *S );
+                    if ((long)D & 2) {
+                         *((u16*)D) = RGB32_TO_ARGB4444( *S );
                          D += 2; S++;
                          w--;
                     }
 
                     for (n = w/2; n--;) {
-                         __u32 p0, p1;
-                         p0 = RGB32_TO_ARGB4444( *(S+0) );
-                         p1 = RGB32_TO_ARGB4444( *(S+1) );
+                         u32 p0 = RGB32_TO_ARGB4444( *(S+0) );
+                         u32 p1 = RGB32_TO_ARGB4444( *(S+1) );
 #ifdef WORDS_BIGENDIAN
-                         *((__u32*)D) = (p0 << 16) | p1;
+                         *((u32*)D) = (p0 << 16) | p1;
 #else
-                         *((__u32*)D) = p0 | (p1 << 16);
+                         *((u32*)D) = p0 | (p1 << 16);
 #endif
                          D += 4; S += 2;
                     }
 
                     if (w & 1)
-                         *((__u16*)D) = RGB32_TO_ARGB4444( *S );
+                         *((u16*)D) = RGB32_TO_ARGB4444( *S );
                     break;
                case DSPF_ARGB2554: 
-                    if ((__u32)D & 2) {
-                         *((__u16*)D) = RGB32_TO_ARGB2554( *S );
+                    if ((long)D & 2) {
+                         *((u16*)D) = RGB32_TO_ARGB2554( *S );
                          D += 2; S++;
                          w--;
                     }
 
                     for (n = w/2; n--;) {
-                         __u32 p0, p1;
-                         p0 = RGB32_TO_ARGB2554( *(S+0) );
-                         p1 = RGB32_TO_ARGB2554( *(S+1) );
+                         u32 p0 = RGB32_TO_ARGB2554( *(S+0) );
+                         u32 p1 = RGB32_TO_ARGB2554( *(S+1) );
 #ifdef WORDS_BIGENDIAN
-                         *((__u32*)D) = (p0 << 16) | p1;
+                         *((u32*)D) = (p0 << 16) | p1;
 #else
-                         *((__u32*)D) = p0 | (p1 << 16);
+                         *((u32*)D) = p0 | (p1 << 16);
 #endif
                          D += 4; S += 2;
                     }
 
                     if (w & 1)
-                         *((__u16*)D) = RGB32_TO_ARGB2554( *S );
+                         *((u16*)D) = RGB32_TO_ARGB2554( *S );
                     break;
                case DSPF_ARGB1555:
-                    if ((__u32)D & 2) {
-                         *((__u16*)D) = RGB32_TO_ARGB1555( *S );
+                    if ((long)D & 2) {
+                         *((u16*)D) = RGB32_TO_ARGB1555( *S );
                          D += 2; S++;
                          w--;
                     }
 
                     for (n = w/2; n--;) {
-                         __u32 p0, p1;
-                         p0 = RGB32_TO_ARGB1555( *(S+0) );
-                         p1 = RGB32_TO_ARGB1555( *(S+1) );
+                         u32 p0 = RGB32_TO_ARGB1555( *(S+0) );
+                         u32 p1 = RGB32_TO_ARGB1555( *(S+1) );
 #ifdef WORDS_BIGENDIAN
-                         *((__u32*)D) = (p0 << 16) | p1;
+                         *((u32*)D) = (p0 << 16) | p1;
 #else
-                         *((__u32*)D) = p0 | (p1 << 16);
+                         *((u32*)D) = p0 | (p1 << 16);
 #endif
                          D += 4; S += 2;
                     }
 
                     if (w & 1)
-                         *((__u16*)D) = RGB32_TO_ARGB1555( *S );
+                         *((u16*)D) = RGB32_TO_ARGB1555( *S );
                     break;
                case DSPF_RGB16:
-                    if ((__u32)D & 2) {
-                         *((__u16*)D) = RGB32_TO_RGB16( *S );
+                    if ((long)D & 2) {
+                         *((u16*)D) = RGB32_TO_RGB16( *S );
                          D += 2; S++;
                          w--;
                     }
 
                     for (n = w/2; n--;) {
-                         __u32 p0, p1;
-                         p0 = RGB32_TO_RGB16( *(S+0) );
-                         p1 = RGB32_TO_RGB16( *(S+1) );
+                         u32 p0 = RGB32_TO_RGB16( *(S+0) );
+                         u32 p1 = RGB32_TO_RGB16( *(S+1) );
 #ifdef WORDS_BIGENDIAN
-                         *((__u32*)D) = (p0 << 16) | p1;
+                         *((u32*)D) = (p0 << 16) | p1;
 #else
-                         *((__u32*)D) = p0 | (p1 << 16);
+                         *((u32*)D) = p0 | (p1 << 16);
 #endif
                          D += 4; S += 2;
                     }
 
                     if (w & 1)
-                         *((__u16*)D) = RGB32_TO_RGB16( *S );
+                         *((u16*)D) = RGB32_TO_RGB16( *S );
                     break;
                case DSPF_RGB24:
                     while (w--) {
@@ -497,7 +499,7 @@ SwfPutImage( CoreDFB      *core,
                     break;
                case DSPF_AiRGB:
                     while (w--) {
-                         *((__u32*)D) = *S++ ^ 0xff000000;
+                         *((u32*)D) = *S++ ^ 0xff000000;
                          D += 4;
                     }
                     break;
@@ -586,7 +588,7 @@ SwfAudio( DirectThread *self, void *arg )
      while (data->status == DVSTATE_PLAY) {
           SwfdecBuffer *buffer;
           int           delay = 0;
-          __s64         pts;
+          s64           pts;
           
           direct_thread_testcancel( self );
           
@@ -614,8 +616,8 @@ SwfAudio( DirectThread *self, void *arg )
                                          buffer->data, buffer->length/4 );
                }
                else {
-                    int   len = 44100/data->rate;
-                    __s16 buf[len*2];
+                    int len = 44100/data->rate;
+                    s16 buf[len*2];
                     memset( buf, 0, sizeof(buf) );
                     data->stream->Write( data->stream, buf, len );
                }
@@ -906,7 +908,10 @@ IDirectFBVideoProvider_Swfdec_GetStatus( IDirectFBVideoProvider *thiz,
      if (!status)
           return DFB_INVARG;
 
-     *status = data->status;
+     if (data->status == DVSTATE_PLAY && data->input.buffering)
+          *status = DVSTATE_BUFFERING;
+     else
+          *status = data->status;
 
      return DFB_OK;
 }
@@ -1142,12 +1147,15 @@ IDirectFBVideoProvider_Swfdec_SetSpeed( IDirectFBVideoProvider *thiz,
      pthread_mutex_lock( &data->video.lock );
      pthread_mutex_lock( &data->audio.lock );
      
-     if (multiplier)
+     if (multiplier) {
+          if (multiplier < 0.01)
+               multiplier = 0.01;
           data->interval = 1000000.0/(data->rate*multiplier);
+     }
      pthread_cond_signal( &data->video.cond );
      
 #ifdef HAVE_FUSIONSOUND
-     if (data->playback && multiplier >= 0.01)
+     if (data->playback)
           data->playback->SetPitch( data->playback, multiplier );
 #endif
 
@@ -1299,7 +1307,7 @@ Construct( IDirectFBVideoProvider *thiz,
 
           dsc.flags        = FSSDF_BUFFERSIZE   | FSSDF_CHANNELS  |
                              FSSDF_SAMPLEFORMAT | FSSDF_SAMPLERATE;
-          dsc.buffersize   = 44100.0*120/1000;
+          dsc.buffersize   = 4410;
           dsc.channels     = 2;
           dsc.samplerate   = 44100;
           dsc.sampleformat = FSSF_S16;
