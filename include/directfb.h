@@ -1019,7 +1019,7 @@ typedef enum {
 
 #define DFB_ALPHA_BITS_PER_PIXEL(fmt)   (((fmt) & 0x0000F000) >> 12)
 
-#define DFB_PIXELFORMAT_HAS_ALPHA(fmt)  (((fmt) & 0x00010000) >> 16)
+#define DFB_PIXELFORMAT_HAS_ALPHA(fmt)  (((fmt) & 0x00010000) !=  0)
 
 #define DFB_BITS_PER_PIXEL(fmt)         (((fmt) & 0x007E0000) >> 17)
 
@@ -1031,11 +1031,11 @@ typedef enum {
 
 #define DFB_PLANE_MULTIPLY(fmt,height)  ((((((fmt) & 0x3C000000) >> 26) + 4) * (height)) >> 2)
 
-#define DFB_PIXELFORMAT_IS_INDEXED(fmt) (((fmt) & 0x40000000) >> 30)
+#define DFB_PIXELFORMAT_IS_INDEXED(fmt) (((fmt) & 0x40000000) !=  0)
 
-#define DFB_PLANAR_PIXELFORMAT(fmt)     (((fmt) & 0x3C000000) ? 1 : 0)
+#define DFB_PLANAR_PIXELFORMAT(fmt)     (((fmt) & 0x3C000000) !=  0)
 
-#define DFB_PIXELFORMAT_INV_ALPHA(fmt)  (((fmt) & 0x80000000) >> 31)
+#define DFB_PIXELFORMAT_INV_ALPHA(fmt)  (((fmt) & 0x80000000) !=  0)
 
 
 /*
@@ -1301,10 +1301,12 @@ typedef enum {
  * Information about the status of an IDirectFBVideoProvider.
  */
 typedef enum {
-     DVSTATE_UNKNOWN    = 0x00000000, /* unknown status            */
-     DVSTATE_PLAY       = 0x00000001, /* video provider is playing */
-     DVSTATE_STOP       = 0x00000002, /* playback was stopped      */
-     DVSTATE_FINISHED   = 0x00000003  /* playback is finished      */
+     DVSTATE_UNKNOWN    = 0x00000000, /* unknown status               */
+     DVSTATE_PLAY       = 0x00000001, /* video provider is playing    */
+     DVSTATE_STOP       = 0x00000002, /* playback was stopped         */
+     DVSTATE_FINISHED   = 0x00000003, /* playback is finished         */
+     DVSTATE_BUFFERING  = 0x00000004  /* video provider is buffering,
+                                         playback is running          */
 } DFBVideoProviderStatus;
 
 /*
