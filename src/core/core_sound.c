@@ -462,7 +462,7 @@ sound_thread( DirectThread *thread, void *arg )
      CoreSoundShared    *shared  = core->shared;
      DeviceCapabilities  caps;
      
-     __u8               *output  = core->output_buffer;
+     u8                 *output  = core->output_buffer;
      __fsf              *mixing  = core->mixing_buffer;
      int                 samples = shared->config.buffersize * 2;
      int                 mixed   = 0;
