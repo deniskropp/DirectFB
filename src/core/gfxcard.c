@@ -2079,6 +2079,15 @@ dfb_gfxcard_auxmemory_virtual( GraphicsDevice *device,
      return dfb_system_aux_memory_virtual( offset );
 }
 
+void *
+dfb_gfxcard_get_device_data()
+{
+     D_ASSERT( card != NULL );
+     D_ASSERT( card->shared != NULL );
+
+     return card->shared->device_data;
+}
+
 /** internal **/
 
 /*
