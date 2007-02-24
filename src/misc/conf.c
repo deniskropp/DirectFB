@@ -95,6 +95,7 @@ static const char *config_usage =
      "  [no-]mmx                       Enable mmx support\n"
 #endif
      "  [no-]agp[=<mode>]              Enable AGP support\n"
+     "  [no-]thrifty-surface-buffers   Free sysmem instance on xfer to video memory\n"
      "  font-format=<pixelformat>      Set the preferred font format\n"
      "  dont-catch=<num>[[,<num>]...]  Don't catch these signals\n"
      "  [no-]sighandler                Enable signal handler\n"
@@ -767,6 +768,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
           else {
                dfb_config->agp = 8; /* maximum possible */
           }
+     } else
+     if (strcmp (name, "thrifty-surface-buffer" ) == 0) {
+          dfb_config->thrifty_surface_buffers = true;
+     } else
+     if (strcmp (name, "no-thrifty-surface-buffer" ) == 0) {
+          dfb_config->thrifty_surface_buffers = false;
      } else
      if (strcmp (name, "no-agp" ) == 0) {
           dfb_config->agp = 0;

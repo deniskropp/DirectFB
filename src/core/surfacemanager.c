@@ -50,6 +50,8 @@
 #include <core/surfacemanager.h>
 #include <core/system.h>
 
+#include <misc/conf.h>
+
 #include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
@@ -278,12 +280,29 @@ DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager )
      while (h) {
           c = h->chunks;
           while (c) {
-               if (c->buffer &&
-                   c->buffer->policy != CSP_VIDEOONLY &&
-                   c->buffer->video.health == CSH_STORED)
-               {
-                    dfb_surfacemanager_assure_system( manager, c->buffer );
-                    c->buffer->video.health = CSH_RESTORE;
+               if (c->buffer) {
+                    SurfaceBuffer *buffer = c->buffer;
+
+                    switch (buffer->policy) {
+                         case CSP_SYSTEMONLY:
+                              break;
+
+                         case CSP_VIDEOONLY:
+                              /* FIXME */
+                              break;
+
+                         case CSP_VIDEOLOW:
+                         case CSP_VIDEOHIGH:
+                              switch (buffer->video.health) {
+                                   case CSH_STORED:
+                                        dfb_surfacemanager_assure_system( manager, buffer );
+                                   case CSH_RESTORE:
+                                        dfb_surfacemanager_deallocate( manager, buffer );
+                                   default:
+                                        break;
+                              }
+                              break;
+                    }
                }
 
                c = c->next;
@@ -301,9 +320,39 @@ DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager )
 
 DFBResult dfb_surfacemanager_resume( SurfaceManager *manager )
 {
+     Heap  *h;
+     Chunk *c;
+
      D_MAGIC_ASSERT( manager, SurfaceManager );
 
      dfb_surfacemanager_lock( manager );
+
+     h = manager->heaps;
+     while (h) {
+          c = h->chunks;
+          while (c) {
+               if (c->buffer) {
+                    SurfaceBuffer *buffer = c->buffer;
+
+                    switch (buffer->policy) {
+                         case CSP_SYSTEMONLY:
+                              break;
+
+                         case CSP_VIDEOONLY:
+                              /* FIXME */
+                              break;
+
+                         case CSP_VIDEOLOW:
+                         case CSP_VIDEOHIGH:
+                              break;
+                    }
+               }
+
+               c = c->next;
+          }
+
+          h = h->next;
+     }
 
      manager->suspended = false;
 
@@ -695,6 +744,17 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
                chunk->tolerations = 0;
 
                dfb_surface_notify_listeners( surface, CSNF_VIDEO );
+
+               /* Free system instance. */
+               if (dfb_config->thrifty_surface_buffers) {
+                    if (buffer->system.health && !(buffer->flags & SBF_FOREIGN_SYSTEM)) {
+                         buffer->system.health = CSH_INVALID;
+
+                         SHFREE( buffer->surface->shmpool_data, buffer->system.addr );
+                         buffer->system.addr = NULL;
+                    }
+               }
+
                break;
           }
 
@@ -737,7 +797,9 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
                Chunk *chunk = buffer->video.chunk;
 
                /* Download? */
-               if (buffer->flags & SBF_WRITTEN && buffer->video.health == CSH_STORED) {
+               if (buffer->system.health == CSH_INVALID ||
+                   (buffer->flags & SBF_WRITTEN && buffer->video.health == CSH_STORED))
+               {
                     void *video  = (chunk->heap->storage == CSS_VIDEO)
                                    ? dfb_system_video_memory_virtual( buffer->video.offset )
                                    : dfb_system_aux_memory_virtual( buffer->video.offset );

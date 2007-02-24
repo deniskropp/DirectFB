@@ -157,6 +157,8 @@ typedef struct
                                                      used by DirectFB */
      bool       i8xx_overlay_pipe_b;              /* video overlay output via pixel pipe B */
      bool       primary_only;                     /* tell application only about primary layer */
+
+     bool       thrifty_surface_buffers;          /* don't keep system instance while video instance is alive */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;
