@@ -262,13 +262,16 @@ void waitretrace (void)
 
 static DFBResult dfb_fbdev_open()
 {
+     DFBResult error_result = DFB_FAILURE;
+
      if (dfb_config->fb_device) {
           dfb_fbdev->fd = open( dfb_config->fb_device, O_RDWR );
           if (dfb_fbdev->fd < 0) {
                D_PERROR( "DirectFB/FBDev: Error opening '%s'!\n",
                          dfb_config->fb_device);
 
-               return errno2result( errno );
+               error_result = errno2result( errno );
+               goto error;
           }
      }
      else if (getenv( "FRAMEBUFFER" ) && *getenv( "FRAMEBUFFER" ) != '\0') {
@@ -277,7 +280,8 @@ static DFBResult dfb_fbdev_open()
                D_PERROR( "DirectFB/FBDev: Error opening '%s'!\n",
                           getenv ("FRAMEBUFFER"));
 
-               return errno2result( errno );
+               error_result = errno2result( errno );
+               goto error;
           }
      }
      else {
@@ -285,11 +289,21 @@ static DFBResult dfb_fbdev_open()
           if (dfb_fbdev->fd < 0) {
                D_ERROR( "DirectFB/FBDev: Error opening framebuffer device!\n" );
                D_ERROR( "DirectFB/FBDev: Use 'fbdev' option or set FRAMEBUFFER environment variable.\n" );
-               return DFB_INIT;
+               error_result = DFB_INIT;
+               goto error;
           }
      }
 
+     /* should be closed automatically in children upon exec(...) */
+     if (fcntl( dfb_fbdev->fd, F_SETFD, FD_CLOEXEC ) < 0)
+     {
+          D_PERROR( "Fusion/Init: Setting FD_CLOEXEC flag failed!\n" );
+          goto error;
+     }
+
      return DFB_OK;
+error:
+     return error_result; 
 }
 
 /******************************************************************************/
