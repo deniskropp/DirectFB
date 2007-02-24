@@ -72,6 +72,7 @@ static const char *config_usage =
      "  force-slave                    Always enter as a slave, waiting for the master, if not there\n"
      "  remote=<host>[:<session>]      Select remote session to connect to\n"
      "  tmpfs=<directory>              Location of shared memory file\n"
+     "  shmfile-group=<groupname>      Group that owns shared memory file\n"
      "  memcpy=<method>                Skip memcpy() probing (help = show list)\n"
      "  primary-layer=<id>             Select an alternative primary layer\n"
      "  primary-only                   Tell application only about the primary layer\n"
@@ -447,6 +448,15 @@ DFBResult dfb_config_set( const char *name, const char *value )
           else {
                D_ERROR("DirectFB/Config 'tmpfs': No directory specified!\n");
                return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "shmfile-group" ) == 0) {
+          if (value) {
+                fusion_config->shmfile_group = D_STRDUP( value );
+          }
+          else {
+                D_ERROR("DirectFB/Config 'shmfile-group': No file group name specified!\n");
+                return DFB_INVARG;
           }
      } else
      if (strcmp (name, "memcpy" ) == 0) {

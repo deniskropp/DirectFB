@@ -55,6 +55,7 @@ Cambridge, MA 02139, USA.
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <grp.h>
 
 #include <direct/debug.h>
 #include <direct/list.h>
@@ -603,6 +604,7 @@ __shmalloc_init_heap( FusionSHM  *shm,
      int              heapsize = (space + BLOCKSIZE-1) / BLOCKSIZE;
      int              fd       = -1;
      shmalloc_heap   *heap     = NULL;
+     struct group    *pGroupInfo;
 
      D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, '%s', %p, %p )\n",
                  __FUNCTION__, shm, filename, addr_base, ret_fd );
@@ -629,6 +631,18 @@ __shmalloc_init_heap( FusionSHM  *shm,
           ret = errno2result(errno);
           D_PERROR( "Fusion/SHM: Could not open shared memory file '%s'!\n", filename );
           goto error;
+     }
+
+
+
+     if (fusion_config->shmfile_group) {
+          // obtain the group id #
+          pGroupInfo = getgrnam(fusion_config->shmfile_group);
+
+          // chgrp the SH_FILE dev entry
+          if (fchown(fd, -1, pGroupInfo->gr_gid) != 0) {
+               D_WARN("Fusion/SHM: changing permissions on /dev/shm/fusion.# failed... continuing on.");
+          }
      }
 
      fchmod( fd, 0660 );
