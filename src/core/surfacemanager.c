@@ -297,7 +297,8 @@ DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager )
                                    case CSH_STORED:
                                         dfb_surfacemanager_assure_system( manager, buffer );
                                    case CSH_RESTORE:
-                                        dfb_surfacemanager_deallocate( manager, buffer );
+                                        if (!buffer->video.locked)
+                                             dfb_surfacemanager_deallocate( manager, buffer );
                                    default:
                                         break;
                               }
