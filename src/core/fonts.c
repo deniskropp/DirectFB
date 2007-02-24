@@ -223,14 +223,17 @@ dfb_font_get_glyph_data( CoreFont        *font,
      data = direct_hash_lookup( font->glyph_hash, index );
      if (data) {
           D_MAGIC_ASSERT( data, CoreGlyphData );
-          D_ASSERT( data->row >= 0 );
-          D_ASSERT( data->row < font->num_rows );
 
-          row = font->rows[data->row];
+          if (font->rows) {
+               D_ASSERT( data->row >= 0 );
+               D_ASSERT( data->row < font->num_rows );
 
-          D_MAGIC_ASSERT( row, CoreFontCacheRow );
+               row = font->rows[data->row];
 
-          row->stamp = font->row_stamp++;
+               D_MAGIC_ASSERT( row, CoreFontCacheRow );
+
+               row->stamp = font->row_stamp++;
+          }
 
           *ret_data = data;
           return DFB_OK;
