@@ -1331,9 +1331,11 @@ DFBResult dfb_config_read( const char *filename )
 
           ret = dfb_config_set( name, value );
           if (ret) {
-               if (ret == DFB_UNSUPPORTED)
-                    D_ERROR( "DirectFB/Config: In config file `%s': "
-                             "Invalid option `%s'!\n", filename, name );
+               if (ret == DFB_UNSUPPORTED) {
+                    D_ERROR( "DirectFB/Config: *********** In config file `%s': "
+                             "Invalid option `%s'! ***********\n", filename, name );
+                    continue;
+               }
                break;
           }
      }
