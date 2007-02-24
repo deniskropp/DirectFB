@@ -6290,6 +6290,67 @@ void gGetDeviceInfo( GraphicsDeviceInfo *info )
                           DSBLIT_DEMULTIPLY       |    \
                           DSBLIT_XOR)
 
+#ifndef WORDS_BIGENDIAN
+#define BGR_TO_RGB16(pixel)  ( (((pixel) <<  8) & 0xF800) | \
+                               (((pixel) >>  5) & 0x07E0) | \
+                               (((pixel) >> 19) & 0x001F) )
+
+/*
+ * Fast RGB24 to RGB16 conversion.
+ */
+static void
+Bop_rgb24_to_Aop_rgb16_LE( GenefxState *gfxs )
+{
+     int  w = gfxs->length;
+     u8  *S = gfxs->Bop[0];
+     u16 *D = gfxs->Aop[0];
+
+     while ((unsigned long)S & 3) {
+          *D++ = PIXEL_RGB16( S[0], S[1], S[2] );
+
+          S += 3;
+          w -= 1;
+     }
+
+     if ((unsigned long)D & 2) {
+          *D++ = PIXEL_RGB16( S[0], S[1], S[2] );
+
+          w -= 1;
+          S += 3;
+
+          while (w > 1) {
+               *(u32*)D = PIXEL_RGB16( S[0], S[1], S[2] ) | (PIXEL_RGB16( S[3], S[4], S[5] ) << 16);
+
+               w -= 2;
+               D += 2;
+               S += 6;
+          }
+     }
+     else {
+          int  n;
+          u32 *S32 = (u32*)S;
+          u32 *D32 = (u32*)D;
+
+          for (n=0; n<w-1; n+=2) {
+
+               D32[n+0] = BGR_TO_RGB16(  S32[0] ) | (BGR_TO_RGB16( (S32[0] >> 24) | (S32[1] <<  8) ) << 16);
+               D32[n+1] = BGR_TO_RGB16( (S32[1] >> 16) | (S32[2] << 16) ) | (BGR_TO_RGB16( S32[2] >> 8 ) << 16);
+
+               w -= 4;
+               D += 2;
+               S += 12;
+          }
+     }
+
+     while (w > 0) {
+          *D++ = PIXEL_RGB16( S[0], S[1], S[2] );
+
+          w -= 1;
+          S += 3;
+     }
+}
+#endif  /* #ifndef WORDS_BIGENDIAN */
+
 bool gAcquire( CardState *state, DFBAccelerationMask accel )
 {
      GenefxState *gfxs;
@@ -6806,6 +6867,15 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          break;
                     }
                }
+#ifndef WORDS_BIGENDIAN
+               if (state->blittingflags == DSBLIT_NOFX &&
+                   source->format      == DSPF_RGB24 &&
+                   destination->format == DSPF_RGB16)
+               {
+                    *funcs++ = Bop_rgb24_to_Aop_rgb16_LE;
+                    break;
+               }
+#endif
                /* fallthru */
           case DFXL_STRETCHBLIT: {
                     int  modulation = state->blittingflags & MODULATION_FLAGS;
