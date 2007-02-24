@@ -453,11 +453,14 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "shmfile-group" ) == 0) {
           if (value) {
-                fusion_config->shmfile_group = D_STRDUP( value );
+               if (fusion_config->shmfile_group)
+                    D_FREE( fusion_config->shmfile_group );
+
+               fusion_config->shmfile_group = D_STRDUP( value );
           }
           else {
-                D_ERROR("DirectFB/Config 'shmfile-group': No file group name specified!\n");
-                return DFB_INVARG;
+               D_ERROR("DirectFB/Config 'shmfile-group': No file group name specified!\n");
+               return DFB_INVARG;
           }
      } else
      if (strcmp (name, "memcpy" ) == 0) {

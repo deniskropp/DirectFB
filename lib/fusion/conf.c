@@ -33,8 +33,7 @@
 
 
 static FusionConfig config = {
-     tmpfs:    NULL,
-     shmfile_group: "sys"     /* FIXME: Temp. needed because messaging/properties don't read directfbrc */
+     tmpfs:    NULL
 };
 
 FusionConfig *fusion_config = &config;
