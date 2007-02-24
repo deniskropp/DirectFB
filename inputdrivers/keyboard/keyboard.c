@@ -190,6 +190,9 @@ keyboard_get_symbol( int                             code,
      }
 
      /* special keys not in the map, hack? */
+     if (code == 124)         /* keypad equal key */
+          return DIKS_EQUALS_SIGN;
+
      if (code == 125)         /* left windows key */
           return DIKS_META;
 
@@ -243,6 +246,9 @@ keyboard_get_identifier( int code, unsigned short value )
      }
 
      /* special keys not in the map, hack? */
+     if (code == 124)         /* keypad equal key */
+          return DIKI_KP_EQUAL;
+
      if (code == 125)         /* left windows key */
           return DIKI_META_L;
 
