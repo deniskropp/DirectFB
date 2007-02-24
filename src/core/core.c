@@ -122,6 +122,7 @@ struct __DFB_CoreDFB {
      CoreDFBShared           *shared;
 
      bool                     master;
+     bool                     suspended;
 
      DirectLink              *cleanups;
 
@@ -641,23 +642,37 @@ dfb_core_suspend( CoreDFB *core )
      if (!core->master)
           return DFB_ACCESSDENIED;
 
+     if (core->suspended)
+          return DFB_BUSY;
+
      ret = dfb_core_input.Suspend( core );
      if (ret)
-          return ret;
+          goto error_input;
 
      ret = dfb_core_layers.Suspend( core );
      if (ret)
-          return ret;
+          goto error_layers;
 
      ret = dfb_core_screens.Suspend( core );
      if (ret)
-          return ret;
+          goto error_screens;
 
      ret = dfb_core_gfxcard.Suspend( core );
      if (ret)
-          return ret;
+          goto error_gfxcard;
+
+     core->suspended = true;
 
      return DFB_OK;
+
+error_gfxcard:
+     dfb_core_screens.Resume( core );
+error_screens:
+     dfb_core_layers.Resume( core );
+error_layers:
+     dfb_core_input.Resume( core );
+error_input:
+     return ret;
 }
 
 DFBResult
@@ -675,23 +690,37 @@ dfb_core_resume( CoreDFB *core )
      if (!core->master)
           return DFB_ACCESSDENIED;
 
-     ret = dfb_core_input.Resume( core );
-     if (ret)
-          return ret;
+     if (!core->suspended)
+          return DFB_BUSY;
 
      ret = dfb_core_gfxcard.Resume( core );
      if (ret)
-          return ret;
+          goto error_gfxcard;
 
      ret = dfb_core_screens.Resume( core );
      if (ret)
-          return ret;
+          goto error_screens;
 
      ret = dfb_core_layers.Resume( core );
      if (ret)
-          return ret;
+          goto error_layers;
+
+     ret = dfb_core_input.Resume( core );
+     if (ret)
+          goto error_input;
+
+     core->suspended = false;
 
      return DFB_OK;
+
+error_input:
+     dfb_core_layers.Suspend( core );
+error_layers:
+     dfb_core_screens.Suspend( core );
+error_screens:
+     dfb_core_gfxcard.Suspend( core );
+error_gfxcard:
+     return ret;
 }
 
 CoreCleanup *

@@ -383,27 +383,30 @@ vt_thread( DirectThread *thread, void *arg )
                     continue;
 
                case SIG_SWITCH_FROM:
-                    if (ioctl( dfb_vt->fd, VT_RELDISP,
-                               dfb_core_suspend( NULL ) == DFB_OK ? 1 : 0 ) < 0)
-                         D_PERROR( "DirectFB/fbdev/vt: VT_RELDISP failed\n" );
+                    if (dfb_core_suspend( dfb_fbdev->core ) == DFB_OK) {
+                         if (ioctl( dfb_vt->fd, VT_RELDISP, VT_ACKACQ ) < 0)
+                              D_PERROR( "DirectFB/fbdev/vt: VT_RELDISP failed\n" );
+                    }
 
                     break;
 
                case SIG_SWITCH_TO:
-                    dfb_core_resume( NULL );
+                    if (dfb_core_resume( dfb_fbdev->core ) == DFB_OK) {
+                         if (ioctl( dfb_vt->fd, VT_RELDISP, VT_ACKACQ ) < 0)
+                              D_PERROR( "DirectFB/fbdev/vt: VT_RELDISP failed\n" );
 
-                    if (ioctl( dfb_vt->fd, VT_RELDISP, 2 ) < 0)
-                         D_PERROR( "DirectFB/fbdev/vt: VT_RELDISP failed\n" );
-
-                    if (dfb_config->kd_graphics) {
-                         if (ioctl( dfb_vt->fd, KDSETMODE, KD_GRAPHICS ) < 0)
-                              D_PERROR( "DirectFB/fbdev/vt: KD_GRAPHICS failed!\n" );
+                         if (dfb_config->kd_graphics) {
+                              if (ioctl( dfb_vt->fd, KDSETMODE, KD_GRAPHICS ) < 0)
+                                   D_PERROR( "DirectFB/fbdev/vt: KD_GRAPHICS failed!\n" );
+                         }
                     }
 
                     break;
           }
 
           dfb_vt->vt_sig = -1;
+
+          pthread_cond_signal( &dfb_vt->wait );
      }
 
      return NULL;
@@ -415,6 +418,9 @@ vt_switch_handler( int signum )
      D_DEBUG_AT( VT, "%s( %d )\n", __FUNCTION__, signum );
 
      pthread_mutex_lock( &dfb_vt->lock );
+
+     while (dfb_vt->vt_sig != -1)
+          pthread_cond_wait( &dfb_vt->wait, &dfb_vt->lock );
 
      dfb_vt->vt_sig = signum;
 
@@ -482,7 +488,7 @@ vt_init_switching()
 
           memset( &sig_tty, 0, sizeof( sig_tty ) );
           sig_tty.sa_handler = vt_switch_handler;
-          sigemptyset( &sig_tty.sa_mask );
+          sigfillset( &sig_tty.sa_mask );
 
           if (sigaction( SIG_SWITCH_FROM, &sig_tty, &dfb_vt->sig_usr1 ) ||
               sigaction( SIG_SWITCH_TO, &sig_tty, &dfb_vt->sig_usr2 )) {
