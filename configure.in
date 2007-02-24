@@ -1261,6 +1261,16 @@ if test "$with_tests" != "yes"; then
 fi
 
 
+# How big of a buffer fusion uses to read messages from the fusion device
+AC_ARG_WITH(message-size,
+[  --with-message-size=SIZE allow fusion messages up to SIZE bytes [[default=1024]]],
+[ ], [with_message_size=no])
+test x"$with_message_size" = x"no" && with_message_size=1024
+FUSION_MESSAGE_SIZE=$with_message_size
+AC_SUBST(FUSION_MESSAGE_SIZE)
+
+
+
 AC_ARG_WITH(tools,
   [  --without-tools           do not build any tools])
 if test "$with_tools" != "no"; then
@@ -1516,6 +1526,7 @@ Build options:
 
 Misc options:
   Multi Application Core    $enable_multi
+  Fusion message size       $with_message_size
   Voodoo (network support)  $enable_voodoo
   Debug supported           $enable_debug_support
   Debug enabled             $enable_debug

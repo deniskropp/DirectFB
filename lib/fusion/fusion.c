@@ -917,7 +917,7 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
 {
      int          len = 0;
      int          result;
-     char         buf[1024];
+     char         buf[FUSION_MESSAGE_SIZE];
      fd_set       set;
      FusionWorld *world = arg;
 
@@ -944,7 +944,7 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
           D_MAGIC_ASSERT( world, FusionWorld );
 
           if (FD_ISSET( world->fusion_fd, &set )) {
-               len = read( world->fusion_fd, buf, 1024 );
+               len = read( world->fusion_fd, buf, FUSION_MESSAGE_SIZE );
                if (len < 0)
                     break;
 
