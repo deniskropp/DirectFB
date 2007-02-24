@@ -769,10 +769,10 @@ DFBResult dfb_config_set( const char *name, const char *value )
                dfb_config->agp = 8; /* maximum possible */
           }
      } else
-     if (strcmp (name, "thrifty-surface-buffer" ) == 0) {
+     if (strcmp (name, "thrifty-surface-buffers" ) == 0) {
           dfb_config->thrifty_surface_buffers = true;
      } else
-     if (strcmp (name, "no-thrifty-surface-buffer" ) == 0) {
+     if (strcmp (name, "no-thrifty-surface-buffers" ) == 0) {
           dfb_config->thrifty_surface_buffers = false;
      } else
      if (strcmp (name, "no-agp" ) == 0) {
