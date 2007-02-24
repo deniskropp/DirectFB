@@ -441,12 +441,14 @@ dfb_windowstack_cursor_set_opacity( CoreWindowStack *stack, u8 opacity )
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
-     /* Set new opacity. */
-     stack->cursor.opacity = opacity;
-
-     /* Notify WM. */
-     if (stack->cursor.enabled)
-          dfb_wm_update_cursor( stack, CCUF_OPACITY );
+     if (stack->cursor.opacity != opacity) {
+          /* Set new opacity. */
+          stack->cursor.opacity = opacity;
+          
+          /* Notify WM. */
+          if (stack->cursor.enabled)
+               dfb_wm_update_cursor( stack, CCUF_OPACITY );
+     }
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
