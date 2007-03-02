@@ -67,6 +67,8 @@ typedef struct
      bool      deinit_check;
 
      bool      vt_switch;                         /* allocate a new VT */
+     int       vt_num;                            /* number of TTY to use or -1
+                                                     if the default */
      bool      kd_graphics;                       /* put terminal into graphics
                                                      mode */
 

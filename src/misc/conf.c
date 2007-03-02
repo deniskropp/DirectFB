@@ -102,6 +102,7 @@ static const char *config_usage =
      "  [no-]deinit-check              Enable deinit check at exit\n"
      "  block-all-signals              Block all signals\n"
      "  [no-]vt-switch                 Allocate/switch to a new VT\n"
+     "  vt-num=<num>                   Use given VT instead of current/new one\n"
      "  [no-]vt-switching              Allow Ctrl+Alt+<F?> (EXPERIMENTAL)\n"
      "  [no-]graphics-vt               Put terminal into graphics mode\n"
      "  [no-]vt                        Use VT handling code at all?\n"
@@ -343,6 +344,7 @@ static void config_allocate()
      dfb_config->mmx                      = true;
      dfb_config->vt                       = true;
      dfb_config->vt_switch                = true;
+     dfb_config->vt_num                   = -1;
      dfb_config->vt_switching             = true;
      dfb_config->kd_graphics              = true;
      dfb_config->translucent_windows      = true;
@@ -889,6 +891,22 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-vt-switch" ) == 0) {
           dfb_config->vt_switch = false;
+     } else
+     if (strcmp (name, "vt-num" ) == 0) {
+          if (value) {
+               int vt_num;
+
+               if (sscanf( value, "%d", &vt_num ) < 1) {
+                    D_ERROR("DirectFB/Config 'vt-num': Could not parse value!\n");
+                    return DFB_INVARG;
+               }
+
+               dfb_config->vt_num = vt_num;
+          }
+          else {
+               D_ERROR("DirectFB/Config 'vt-num': No value specified!\n");
+               return DFB_INVARG;
+          }
      } else
      if (strcmp (name, "vt-switching" ) == 0) {
           dfb_config->vt_switching = true;

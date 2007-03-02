@@ -148,22 +148,30 @@ dfb_vt_initialize()
 
 
      if (!dfb_config->vt_switch) {
-          dfb_vt->num = dfb_vt->prev;
+          if (dfb_config->vt_num != -1)
+               dfb_vt->num = dfb_config->vt_num;
+          else
+               dfb_vt->num = dfb_vt->prev;
 
           /* move vt to framebuffer */
           dfb_vt->old_fb = vt_get_fb( dfb_vt->num );
           vt_set_fb( dfb_vt->num, -1 );
      }
      else {
-          int n;
+          if (dfb_config->vt_num == -1) {
+               int n;
 
-          n = ioctl( dfb_vt->fd0, VT_OPENQRY, &dfb_vt->num );
-          if (n < 0 || dfb_vt->num == -1) {
-               D_PERROR( "DirectFB/core/vt: Cannot allocate VT!\n" );
-               close( dfb_vt->fd0 );
-               D_FREE( dfb_vt );
-               dfb_vt = NULL;
-               return DFB_INIT;
+               n = ioctl( dfb_vt->fd0, VT_OPENQRY, &dfb_vt->num );
+               if (n < 0 || dfb_vt->num == -1) {
+                    D_PERROR( "DirectFB/core/vt: Cannot allocate VT!\n" );
+                    close( dfb_vt->fd0 );
+                    D_FREE( dfb_vt );
+                    dfb_vt = NULL;
+                    return DFB_INIT;
+               }
+          }
+          else {
+               dfb_vt->num = dfb_config->vt_num;
           }
 
           /* move vt to framebuffer */
