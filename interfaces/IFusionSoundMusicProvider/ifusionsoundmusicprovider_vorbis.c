@@ -286,7 +286,7 @@ vorbis_mix_audio( float **src, void *dst, int len,
                     s32   *d  = dst;
 
                     for (i = 0; i < len; i++)
-                         d[i] = FtoS32( (s0[i] + s1[i]) / 2.0f );
+                         d[i] = FtoS32( (s0[i] + s1[i]) / 2.f );
                }
                break;
 
@@ -298,7 +298,7 @@ vorbis_mix_audio( float **src, void *dst, int len,
                          float *d = &((float*)dst)[i];
 
                          for (j = 0; j < len; j++) {
-                              *d  = s[j];
+                              *d  = CLAMP(s[j], -1.f, +1.f);
                                d += d_n;
                          }
                     }
@@ -309,7 +309,7 @@ vorbis_mix_audio( float **src, void *dst, int len,
                     float *d = dst;
 
                     for (i = 0; i < len; i++)
-                         d[i*2+0] = d[i*2+1] = s[i];
+                         d[i*2+0] = d[i*2+1] = CLAMP(s[i], -1.f, +1.f);
                }
                /* Downmix stereo to mono */
                else if (s_n > d_n) {
@@ -317,8 +317,10 @@ vorbis_mix_audio( float **src, void *dst, int len,
                     float *s1 = src[1];
                     float *d  = dst;
 
-                    for (i = 0; i < len; i++)
-                         d[i] = (s0[i] + s1[i]) / 2.0f;
+                    for (i = 0; i < len; i++) {
+                         float c = (s0[i] + s1[i]) / 2.f;
+                         d[i] = CLAMP(c, -1.f, +1.f);
+                    }
                }
                break;
 
