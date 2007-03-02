@@ -13,10 +13,11 @@
 #include <direct/list.h>
 
 
-IFusionSound              *sound    = NULL;
-IFusionSoundMusicProvider *provider = NULL;
-IFusionSoundStream        *stream   = NULL;
-struct termios             term;
+static IFusionSound              *sound    = NULL;
+static IFusionSoundMusicProvider *provider = NULL;
+static IFusionSoundStream        *stream   = NULL;
+static IFusionSoundPlayback      *playback = NULL;
+static struct termios             term;
 
 
 static void
@@ -30,6 +31,8 @@ usage( const char *progname )
      fprintf( stderr, "  [-] seek backward (-15s)\n" );
      fprintf( stderr, "  [ ] switch to next track\n" );
      fprintf( stderr, "  [r] toggle track repeat\n" );
+     fprintf( stderr, "  [v] decrease volume level\n" );
+     fprintf( stderr, "  [V] increase volume level\n" );
      fprintf( stderr, "  [q] quit\n\n" );
      exit( 1 );
 }
@@ -41,6 +44,8 @@ cleanup( int s )
      
      if (provider)
           provider->Release( provider );
+     if (playback)
+          playback->Release( playback );
      if (stream)
           stream->Release( stream );
      if (sound)
@@ -68,6 +73,7 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
      FSMusicProviderStatus status = FMSTATE_UNKNOWN;
      double                len    = 0;
      static int            flags  = FMPLAY_NOFX;
+     static float          volume = 1.0;
      FSStreamDescription   s_dsc;
           
      /* Select current track in playlist. */
@@ -86,6 +92,10 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
               dsc.channels     != s_dsc.channels   ||
               dsc.sampleformat != s_dsc.sampleformat)
           {
+               if (playback) {
+                    playback->Release( playback ); 
+                    playback = NULL;
+               }
                stream->Release( stream );
                stream = NULL;
           }
@@ -98,7 +108,11 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
                return DFENUM_CANCEL;
           }
           stream->GetDescription( stream, &s_dsc );
+          stream->GetPlayback( stream, &playback );
      }
+
+     /* Reset volume level. */
+     playback->SetVolume( playback, volume );
           
      /* Query provider for track length. */
      provider->GetLength( provider, &len );
@@ -176,6 +190,14 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
                          case 'r':
                               flags ^= FMPLAY_LOOPING;
                               provider->SetPlaybackFlags( provider, flags );
+                              break;
+                         case 'v':
+                              volume -= 0.1;
+                              playback->SetVolume( playback, volume );
+                              break;
+                         case 'V':
+                              volume += 0.1;
+                              playback->SetVolume( playback, volume );
                               break;
                          case 'q':
                          case 'Q':
