@@ -87,7 +87,8 @@ fusion_ref_init (FusionRef         *ref,
      ioctl( world->fusion_fd, FUSION_ENTRY_SET_INFO, &info );
 
      /* Keep back pointer to shared world data. */
-     ref->multi.shared = world->shared;
+     ref->multi.shared  = world->shared;
+     ref->multi.creator = fusion_id( world );
 
      return DFB_OK;
 }

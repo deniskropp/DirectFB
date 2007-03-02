@@ -38,6 +38,7 @@ typedef union {
      struct {
           int                      id;
           const FusionWorldShared *shared;
+          FusionID                 creator;
      } multi;
 
      /* single app */

@@ -167,9 +167,9 @@ surface_callback( FusionObjectPool *pool,
      }
 
 #if FUSION_BUILD_MULTI
-     printf( "0x%08x : ", object->ref.multi.id );
+     printf( "0x%08x [%3lx] : ", object->ref.multi.id, object->ref.multi.creator );
 #else
-     printf( "N/A        : " );
+     printf( "N/A              : " );
 #endif
 
      printf( "%3d   ", refs );
@@ -232,9 +232,9 @@ static void
 dump_surfaces()
 {
      printf( "\n"
-             "-----------------------------[ Surfaces ]-------------------------------\n" );
-     printf( "Reference  . Refs  Width Height  Format     Video   System  Capabilities\n" );
-     printf( "------------------------------------------------------------------------\n" );
+             "-----------------------------[ Surfaces ]-------------------------------------\n" );
+     printf( "Reference   FID  . Refs  Width Height  Format     Video   System  Capabilities\n" );
+     printf( "------------------------------------------------------------------------------\n" );
 
      dfb_core_enum_surfaces( NULL, surface_callback, &mem );
 
@@ -269,9 +269,9 @@ context_callback( FusionObjectPool *pool,
      }
 
 #if FUSION_BUILD_MULTI
-     printf( "0x%08x : ", object->ref.multi.id );
+     printf( "0x%08x [%3lx] : ", object->ref.multi.id, object->ref.multi.creator );
 #else
-     printf( "N/A        : " );
+     printf( "N/A              : " );
 #endif
 
      printf( "%3d   ", refs );
@@ -319,9 +319,9 @@ dump_contexts( CoreLayer *layer )
           return;
 
      printf( "\n"
-             "----------------------------------[ Contexts of Layer %d ]-----------------------------------\n", dfb_layer_id( layer ));
-     printf( "Reference  . Refs  Width Height Format   Location on screen  Regions  Active  Info    Level\n" );
-     printf( "--------------------------------------------------------------------------------------------\n" );
+             "----------------------------------[ Contexts of Layer %d ]----------------------------------------\n", dfb_layer_id( layer ));
+     printf( "Reference   FID  . Refs  Width Height Format   Location on screen  Regions  Active  Info    Level\n" );
+     printf( "-------------------------------------------------------------------------------------------------\n" );
 
      dfb_core_enum_layer_contexts( NULL, context_callback, layer );
 }
@@ -342,9 +342,9 @@ window_callback( CoreWindow *window,
      }
 
 #if FUSION_BUILD_MULTI
-     printf( "0x%08x : ", window->object.ref.multi.id );
+     printf( "0x%08x [%3lx] : ", window->object.ref.multi.id, window->object.ref.multi.creator );
 #else
-     printf( "N/A        : " );
+     printf( "N/A              : " );
 #endif
 
      printf( "%3d   ", refs );
@@ -427,9 +427,9 @@ dump_windows( CoreLayer *layer )
 
      if (stack->num) {
           printf( "\n"
-                  "-----------------------------------[ Windows of Layer %d ]-----------------------------------\n", dfb_layer_id( layer ) );
-          printf( "Reference  . Refs     X     Y   Width Height Opacity   ID     Capabilities   State & Options\n" );
-          printf( "--------------------------------------------------------------------------------------------\n" );
+                  "-----------------------------------[ Windows of Layer %d ]-----------------------------------------\n", dfb_layer_id( layer ) );
+          printf( "Reference   FID  . Refs     X     Y   Width Height Opacity   ID     Capabilities   State & Options\n" );
+          printf( "--------------------------------------------------------------------------------------------------\n" );
 
           dfb_wm_enum_windows( stack, window_callback, NULL );
      }
