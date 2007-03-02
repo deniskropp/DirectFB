@@ -406,6 +406,34 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                                    }
                                    break;
 
+                              case 2:
+                                   for (y=0; y<data->height; y++) {
+                                        int  n = 6;
+                                        u8  *S = data->image + data->pitch * y;
+                                        u32 *D = image_argb  + data->width * y * 4;
+
+                                        for (x=0; x<data->width; x++) {
+                                             D[x] = data->palette[ (S[x>>2] >> n) & 3 ];
+
+                                             n = (n ? n - 2 : 6);
+                                        }
+                                   }
+                                   break;
+
+                              case 1:
+                                   for (y=0; y<data->height; y++) {
+                                        int  n = 7;
+                                        u8  *S = data->image + data->pitch * y;
+                                        u32 *D = image_argb  + data->width * y * 4;
+
+                                        for (x=0; x<data->width; x++) {
+                                             D[x] = data->palette[ (S[x>>3] >> n) & 1 ];
+
+                                             n = (n ? n - 1 : 7);
+                                        }
+                                   }
+                                   break;
+
                               default:
                                    D_ERROR( "ImageProvider/PNG: Unsupported indexed bit depth %d!\n",
                                             data->info_ptr->bit_depth );
