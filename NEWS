@@ -1,3 +1,54 @@
+1.0.0-rc5
+---------
+
+API | IDirectFBVideoProvider
+- Another (binary compatible) API change: added DVSTATE_BUFFERING.
+
+Build Options
+- This patch adds '--with-message-size=SIZE' to allow fusion messages up to SIZE bytes (default is 1024).
+
+Runtime Options
+- New option "shmfile-group=<groupname>" to set the group that owns shared memory files.
+- Added option "[no-]thrifty-surface-buffers" to free sysmem instance on xfer to video memory.
+- Don't abort if an unsupported option is found, but give a fat warning.
+- New option "vt-num=<num>" to use given VT instead of current/new one.
+
+Graphics Core
+- Added dfb_gfxcard_get_device_data().
+- This fixes unconditional access to conditionally allocated font row data, thanks to Ben Combee!
+- Surface manager always deallocates all auto video instances when suspending.
+  This has the nice side effect of free space being defragmented after resume :)
+
+Window Core
+- Don't notify WM if cursor opacity didn't actually change.
+
+Software Rendering
+- Added fast RGB24 to RGB16 conversion (little endian only).
+
+libdirect (optional part)
+- Finally found the way to embed MPEG streams within the RMF container.
+- Dropped down RTSP seekability (never worked fine).
+
+PNG Image Provider
+- Implemented 1 and 2 bit indexed PNG support.
+
+Keyboard (TTY)
+- Added keypad equal support.
+
+Linux Input
+- Added keypad equal support.
+
+H3600 Touchscreen
+- Thanks to Philip Jägenstedt :philipj 0pera c0m: for fixing the H3600 check!
+
+FBDev System
+- Improved robustness of VT switching, e.g. for rapidly switching back and forth.
+- Set FD_CLOEXEC on the frame buffer device file descriptor.
+
+dfbdump tool
+- Show creator of references (of windows, surfaces, contexts etc).
+
+
 1.0.0-rc4
 ---------
 
