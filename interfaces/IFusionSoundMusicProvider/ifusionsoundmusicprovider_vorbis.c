@@ -93,8 +93,7 @@ static __inline__ int
 FtoU8( float s )
 {
      int d;
-     d  = s * 128.f;
-     d += 128;
+     d  = s * 128.f + 128.5f;
      return CLAMP( d, 0, 255 );
 }
 
@@ -102,7 +101,7 @@ static __inline__ int
 FtoS16( float s )
 {
      int d;
-     d = s * 32768.f;
+     d = s * 32768.f + 0.5f;
      return CLAMP( d, -32768, 32767 );
 }
 
@@ -110,7 +109,7 @@ static __inline__ int
 FtoS24( float s )
 {
      int d;
-     d = s * 8388608.f;
+     d = s * 8388608.f + 0.5f;
      return CLAMP( d, -8388608, 8388607 );
 }
 
@@ -159,7 +158,7 @@ vorbis_mix_audio( float **src, void *dst, int len,
                     u8    *d  = dst;
 
                     for (i = 0; i < len; i++)
-                         d[i] = (FtoU8(s0[i]) + FtoU8(s1[i])) >> 1;
+                         d[i] = FtoU8((s0[i] + s1[i])/2.f);
                }
                break;
 
@@ -191,7 +190,7 @@ vorbis_mix_audio( float **src, void *dst, int len,
                     s16   *d  = dst;
 
                     for (i = 0; i < len; i++)
-                         d[i] = (FtoS16(s0[i]) + FtoS16(s1[i])) >> 1;
+                         d[i] = FtoS16((s0[i] + s1[i])/2.f);
                }
                break;
 
@@ -243,7 +242,7 @@ vorbis_mix_audio( float **src, void *dst, int len,
                     u8    *d  = dst;
 
                     for (i = 0; i < len; i++) {
-                         int c = (FtoS24(s0[i]) + FtoS24(s1[i])) >> 1;
+                         int c = FtoS24((s0[i] + s1[i])/2.f);
 #ifdef WORDS_BIGENDIAN
                          d[0] = c >> 16;
                          d[1] = c >> 8;
@@ -286,7 +285,7 @@ vorbis_mix_audio( float **src, void *dst, int len,
                     s32   *d  = dst;
 
                     for (i = 0; i < len; i++)
-                         d[i] = FtoS32( (s0[i] + s1[i]) / 2.f );
+                         d[i] = FtoS32((s0[i] + s1[i])/2.f);
                }
                break;
 
@@ -671,8 +670,7 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
           return DFB_UNSUPPORTED;
 
      /* check if number of channels is supported */
-     if (desc.channels != data->info->channels &&
-        (desc.channels > 2 || data->info->channels > 2))
+     if (desc.channels > 2)
           return DFB_UNSUPPORTED;
 
      /* check if destination format is supported */
@@ -829,8 +827,7 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           return DFB_UNSUPPORTED;
 
      /* check if number of channels is supported */
-     if (desc.channels != data->info->channels &&
-        (desc.channels > 2 || data->info->channels > 2))
+     if (desc.channels > 2)
           return DFB_UNSUPPORTED;
 
      /* check if destination format is supported */
@@ -1083,6 +1080,7 @@ Construct( IFusionSoundMusicProvider *thiz,
           IFusionSoundMusicProvider_Vorbis_Destruct( thiz );
           return DFB_FAILURE;
      }
+     data->info->channels = MIN( data->info->channels, 2 );
 
      direct_util_recursive_pthread_mutex_init( &data->lock );
 
