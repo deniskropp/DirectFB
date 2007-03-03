@@ -1668,15 +1668,24 @@ parse_headers( DirectStream *stream,
           wave_read( tmp, fmt_len - sizeof(fmt) );
      }
 
-     wave_read( buf, 4 );
-     if (buf[0] != 'd' || buf[1] != 'a' || buf[2] != 't' || buf[3] != 'a') {
-          D_DEBUG( "IFusionSoundMusicProvider_Wave: Expected 'data' header.\n" );
-          return DFB_UNSUPPORTED;
-     }
+     while (true) {
+          wave_read( buf, 4 );
 
-     wave_read( &data_size, 4 );
-     if (byteorder != HOST_BYTEORDER)
-          SWAP32( data_size );
+          wave_read( &data_size, 4 );
+          if (byteorder != HOST_BYTEORDER)
+               SWAP32( data_size );
+
+          if (buf[0] != 'd' || buf[1] != 'a' || buf[2] != 't' || buf[3] != 'a') {
+               D_DEBUG( "IFusionSoundMusicProvider_Wave: Expected 'data' header, got '%c%c%c%c'.\n", buf[0], buf[1], buf[2], buf[3] );
+
+               if (data_size) {
+                    char tmp[data_size];
+                    wave_read( tmp, data_size );
+               }
+          }
+          else
+               break;
+     }
 
      if (ret_byteorder)
           *ret_byteorder = byteorder;
