@@ -238,8 +238,8 @@ dump_surfaces()
 
      dfb_core_enum_surfaces( NULL, surface_callback, &mem );
 
-     printf( "                                          ------   ------\n" );
-     printf( "                                         %6dk  %6dk   -> %dk total\n",
+     printf( "                                                ------   ------\n" );
+     printf( "                                               %6dk  %6dk   -> %dk total\n",
              mem.video >> 10, (mem.system + mem.presys) >> 10,
              (mem.video + mem.system + mem.presys) >> 10);
 }
