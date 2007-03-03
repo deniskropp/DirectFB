@@ -28,6 +28,7 @@
 #include <config.h>
 
 #include <direct/debug.h>
+#include <direct/mem.h>
 #include <direct/memcpy.h>
 
 #include <fusion/object.h>
@@ -41,7 +42,11 @@ static inline bool ensure_capacity( FusionVector *vector )
      D_ASSERT( vector->capacity > 0 );
 
      if (!vector->elements) {
-          vector->elements = SHMALLOC( vector->pool, vector->capacity * sizeof(void*) );
+          if (vector->pool)
+               vector->elements = SHMALLOC( vector->pool, vector->capacity * sizeof(void*) );
+          else
+               vector->elements = D_MALLOC( vector->capacity * sizeof(void*) );
+
           if (!vector->elements)
                return false;
      }
@@ -50,7 +55,11 @@ static inline bool ensure_capacity( FusionVector *vector )
           void *oldelements = vector->elements;
           int   capacity    = vector->capacity << 1;
 
-          elements = SHMALLOC( vector->pool, capacity * sizeof(void*) );
+          if (vector->pool)
+               elements = SHMALLOC( vector->pool, capacity * sizeof(void*) );
+          else
+               elements = D_MALLOC( capacity * sizeof(void*) );
+
           if (!elements)
                return false;
 
@@ -60,7 +69,10 @@ static inline bool ensure_capacity( FusionVector *vector )
           vector->elements = elements;
           vector->capacity = capacity;
 
-          SHFREE( vector->pool, oldelements );
+          if (vector->pool)
+               SHFREE( vector->pool, oldelements );
+          else
+               D_FREE( oldelements );
      }
 
      return true;
@@ -89,7 +101,11 @@ fusion_vector_destroy( FusionVector *vector )
      D_ASSERT( vector->count == 0 || vector->elements != NULL );
 
      if (vector->elements) {
-          SHFREE( vector->pool, vector->elements );
+          if (vector->pool)
+               SHFREE( vector->pool, vector->elements );
+          else
+               D_FREE( vector->elements );
+
           vector->elements = NULL;
      }
 
