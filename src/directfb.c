@@ -183,7 +183,7 @@ DirectFBCreate( IDirectFB **interface )
                              "     =======================|  DirectFB " DIRECTFB_VERSION "  |=======================\n"
                              "          (c) 2001-2007  The DirectFB Organization (directfb.org)\n"
                              "          (c) 2000-2004  Convergence (integrated media) GmbH\n"
-                             "        ----------------------------------------------------------------\n"
+                             "        ------------------------------------------------------------\n"
                              "\n" );
      }
 
