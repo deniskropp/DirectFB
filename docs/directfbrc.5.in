@@ -2,7 +2,7 @@
 .\"
 .\" This man page is Copyright (C) 2002 Sven Neumann <neo@directfb.org>
 
-.TH DIRECTFBRC 5 "22 Dec 2004" "Version @DIRECTFB_VERSION@" "DirectFB Manual Pages"
+.TH DIRECTFBRC 5 "03 Mar 2007" "Version @DIRECTFB_VERSION@" "DirectFB Manual Pages"
 
 .SH NAME
 directfbrc \- DirectFB configuration file
@@ -20,12 +20,20 @@ and a per-user
 \fB$HOME\fP/.directfbrc
 which may override system settings.
 
+Further customization is available per executable (basename of argv[0]):
+.I /etc/directfbrc.$0
+and a per-user
+.I
+\fB$HOME\fP/.directfbrc.$0
+
+After config files, the environment variable DFBARGS is parsed.
+
 The same parameters that can be used in the
 .B directfbrc
-file can also be passed to DirectFB applications on the command-line
+file can be passed via this variable or on the command-line
 by prefixing them with 
 .BR --dfb:
-
+separated each with a comma.
 
 .SH SYNTAX
 
@@ -72,6 +80,10 @@ Some frame buffer devices (namely vesafb) don't support mode switches
 and can only be used in the resolution that is set on boot time.
 
 .TP
+.BI scaled=<width>x<height>
+Scale the window to this size for 'force-windowed' apps.
+
+.TP
 .BI depth=<pixeldepth>
 Sets the default pixel depth in bits per pixel. If unspecified
 DirectFB will use the depth specified in the first mode from
@@ -97,13 +109,12 @@ world using the lowest unused session number. This will override
 the environment variable "DIRECTFB_SESSION".
 
 .TP
-.BI remote=<host>[:<session>]
-Select the remote session to connect to.
+.BI force-slave
+Always enter as a slave, waiting for the master, if not there.
 
 .TP
-.BI primary-layer=<id>
-Selects which layer is the "primary layer", default is the first.
-Check 'dfbinfo' for a list of layers supported by your hardware.
+.BI remote=<host>[:<session>]
+Select the remote session to connect to.
 
 .TP
 .BI tmpfs=<directory>
@@ -113,10 +124,23 @@ useful if the automatic detection fails or if non-tmpfs storage
 is desired.
 
 .TP
+.BI shmfile-group=<groupname>
+Group that owns shared memory files.
+
+.TP
 .BI memcpy=<method>
 With this option the probing of memcpy() routines can be skipped,
 saving a lot of startup time. Pass "help" for a list of possible
 values.
+
+.TP
+.BI primary-layer=<id>
+Selects which layer is the "primary layer", default is the first.
+Check 'dfbinfo' for a list of layers supported by your hardware.
+
+.TP
+.BI primary-only
+Tell application only about the primary layer.
 
 .TP
 .BI quiet
@@ -132,6 +156,14 @@ default.
 .BI [no-]debug
 Enables debug output. This is on by default but you won't see any
 debug output unless you compiled DirectFB with debugging support.
+
+.TP
+.BI [no-]debugmem
+Enable memory allocation tracking.
+
+.TP
+.BI [no-]debugshm
+Enable shared memory allocation tracking.
 
 .TP
 .BI [no-]trace
@@ -168,6 +200,10 @@ display layers (if there are any), but all graphics operations will
 be performed by the software renderer.
 
 .TP
+.BI [no-]software
+This option allows to disable software fallbacks.
+
+.TP
 .BI [no-]dma
 Turns DMA acceleration on, if supported by the driver. By default 
 DMA acceleration is off.
@@ -190,6 +226,10 @@ Turns AGP memory support on. The option enables DirectFB using the AGP
 memory to extend the amount of video memory available. You can specify
 the AGP mode to use (e.g. 1, 2, 4, 8 or 0 to disable agp). By default
 AGP memory support is off.
+
+.TP
+.BI [no-]thrifty-surface-buffers
+Free sysmem instance on xfer to video memory.
 
 .TP
 .BI font-format=<format>
@@ -230,6 +270,10 @@ This option activates blocking of all signals, useful for DirectFB daemons
 .BI [no-]vt-switch
 By default DirectFB allocates a new virtual terminal and switches to
 it.
+
+.TP
+.BI vt-num=<num>
+Use given VT instead of current/new one.
 
 .TP
 .BI [no-]vt-switching
@@ -299,21 +343,14 @@ Map the CapsLock key to Meta. Useful for users of the builtin WM
 without a Meta key on the keyboard (e.g. Window key).
 
 .TP
-.BI [no-]cursor
-By default DirectFB shows a mouse cursor when an application makes use
-of windows. This option allows to switch the cursor off permanently.
-Applications cannot enable it explicitly.
-
-.TP
 .BI linux-input-ir-only
 Ignore all non-IR Linux Input devices.
 
 .TP
-.BI disable-module=<modulename>
-Suppress loading of this module. The module name is the filename
-without the \fBlibdirectfb_\fP prefix and without extension (for
-example \fBkeyboard\fP to disable loading of the keyboard input
-module).
+.BI [no-]cursor
+By default DirectFB shows a mouse cursor when an application makes use
+of windows. This option allows to switch the cursor off permanently.
+Applications cannot enable it explicitly.
 
 .TP
 .BI wm=<wm>
@@ -365,8 +402,16 @@ Limits the amount if AGP memory used by DirectFB. The amount of AGP
 memory is specified in Kilobytes.
 
 .TP
-.BI matrox-tv-standard=[pal|ntsc]
-Controls the signal produced by the TV output of Matrox cards.
+.BI screenshot-dir=<directory>
+If specified DirectFB will dump the screen contents in PPM format
+into this directory when the <Print> key gets pressed.
+
+.TP
+.BI disable-module=<modulename>
+Suppress loading of this module. The module name is the filename
+without the \fBlibdirectfb_\fP prefix and without extension (for
+example \fBkeyboard\fP to disable loading of the keyboard input
+module).
 
 .TP
 .BI [no-]matrox-sgram
@@ -381,13 +426,32 @@ If you have a dual head G400/G450/G550 you can use this option to
 enable additional layers using the second head.
 
 .TP
-.BI screenshot-dir=<directory>
-If specified DirectFB will dump the screen contents in PPM format
-into this directory when the <Print> key gets pressed.
+.BI matrox-tv-standard=[pal|ntsc]
+Controls the signal produced by the TV output of Matrox cards.
+
+.TP
+.BI matrox-cable-type=(composite|scart-rgb|scart-composite)
+Matrox cable type (default=composite).
+
+.TP
+.BI h3600-device=<device>
+Use this device for the H3600 TS driver.
+
+.TP
+.BI mut-device=<device>
+Use this device for the MuTouch driver.
+
+.TP
+.BI penmount-device=<device>
+Use this device for the PenMount driver.
 
 .TP
 .BI unichrome-revision=<revision>
 Override the hardware revision number used by the Unichrome driver.
+
+.TP
+.BI i8xx_overlay_pipe_b
+Redirect videolayer to pixelpipe B.
 
 .TP
 .BI window-surface-policy=<policy>
