@@ -180,7 +180,7 @@ DirectFBCreate( IDirectFB **interface )
           direct_log_printf( NULL,
                              "\n"
                              "     =======================|  DirectFB " DIRECTFB_VERSION "  |=======================\n"
-                             "          (c) 2001-2006  United Cultures of Earth - go for outer space!\n"
+                             "          (c) 2001-2007  The DirectFB Organization (directfb.org)\n"
                              "          (c) 2000-2004  Convergence (integrated media) GmbH\n"
                              "        ----------------------------------------------------------------\n"
                              "\n" );
