@@ -93,6 +93,11 @@ static void
 motion_realize( SDLInputData *data )
 {
      if (motionX.type != DIET_UNKNOWN) {
+          if (motionY.type != DIET_UNKNOWN) {
+               /* let DirectFB know two events are coming */
+               motionX.flags  |= DIEF_FOLLOW;
+          }
+
           dfb_input_dispatch( data->device, &motionX );
 
           motionX.type = DIET_UNKNOWN;
