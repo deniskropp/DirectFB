@@ -243,7 +243,7 @@ vorbis_mix_audio( float **src, void *dst, int len,
                     u8    *d  = dst;
 
                     for (i = 0; i < len; i++) {
-                         int c = (FtoU8(s0[i]) + FtoU8(s1[i])) >> 1;
+                         int c = (FtoS24(s0[i]) + FtoS24(s1[i])) >> 1;
 #ifdef WORDS_BIGENDIAN
                          d[0] = c >> 16;
                          d[1] = c >> 8;
