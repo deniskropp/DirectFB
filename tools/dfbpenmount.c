@@ -1,7 +1,9 @@
 /*
-   (c) Copyright 2000-2006  convergence integrated media GmbH.
+   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2000-2004  Convergence (integrated media) GmbH
+
    All rights reserved.
-   
+
    Written by Nikita Egorov <nikego@gmail.com>
    
    Calibration utility for PenMount's touchscreen panel. Run the program 
