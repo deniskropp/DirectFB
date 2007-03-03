@@ -1,3 +1,533 @@
+2007-03-03   dok	22:46:13	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.308) (+1 -1;)
+		src/directfb.c (1.89) (+1 -1;)
+	
+	1.0.0
+	
+2007-03-03   dok	21:53:44	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	proxy/dispatcher/idirectfb_dispatcher.c (1.12) (+8 -5;)
+		proxy/requestor/idirectfbwindow_requestor.c (1.10) (+4 -1;)
+		proxy/requestor/idirectfbinputdevice_requestor.c (1.5) (+4 -1;)
+		proxy/requestor/idirectfb_requestor.c (1.11) (+11 -4;)
+		proxy/dispatcher/idirectfbwindow_dispatcher.c (1.11) (+10 -4;)
+		proxy/dispatcher/idirectfbinputdevice_dispatcher.c (1.6) (+10 -4;)
+	
+	Fix type punn-ishment.
+	
+2007-03-03   dok	20:57:09	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/i810/i810.c (1.19) (+2 -2;)
+		tools/gendoc.pl (1.31) (+6 -4;)
+		tools/dfbpenmount.c (1.4) (+4 -2;)
+		inputdrivers/wm97xx_ts/wm97xx_ts.c (1.11) (+7 -5;)
+		inputdrivers/dreamboxremote/dreamboxremote.c (1.4) (+7 -5;)
+		gfxdrivers/i810/i810_overlay.c (1.15) (+4 -2;)
+		gfxdrivers/i810/i810.h (1.5) (+4 -2;)
+	
+	Updated copyright information.
+	
+2007-03-03   dok	20:53:55	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	wm/unique/stret.c (1.14) (+5 -4;)
+		wm/unique/devices/wheel.c (1.5) (+5 -4;)
+		wm/unique/devices/pointer.c (1.5) (+5 -4;)
+		wm/unique/devices/keyboard.c (1.5) (+5 -4;)
+		wm/unique/classes/window.c (1.6) (+5 -4;)
+		wm/unique/classes/root.c (1.5) (+5 -4;)
+		wm/unique/classes/frame.c (1.3) (+5 -4;)
+		wm/unique/classes/foo.c (1.8) (+5 -4;)
+		wm/unique/window.h (1.4) (+5 -4;)
+		wm/unique/window.c (1.14) (+5 -4;)
+		wm/unique/uwmdump.c (1.5) (+5 -4;)
+		wm/unique/uniquewm.h (1.4) (+5 -4;)
+		wm/unique/uniquewm.c (1.12) (+5 -4;)
+		wm/unique/unique.c (1.18) (+5 -4;)
+		wm/unique/types.h (1.6) (+5 -4;)
+		wm/unique/test_foo.c (1.3) (+5 -4;)
+		wm/unique/test_color.c (1.3) (+5 -4;)
+		wm/unique/stret_test.c (1.7) (+34 -0;)
+		wm/unique/stret_iteration.h (1.5) (+5 -4;)
+		wm/unique/stret_iteration.c (1.6) (+5 -4;)
+		wm/unique/stret.h (1.7) (+5 -4;)
+	
+	Updated copyright information.
+	
+2007-03-03   dok	20:53:54	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/display/idirectfbsurface_layer.c (1.46) (+5 -4;)
+		wm/unique/internal.h (1.13) (+5 -4;)
+		wm/unique/input_switch.h (1.3) (+5 -4;)
+		wm/unique/input_switch.c (1.6) (+5 -4;)
+		wm/unique/input_events.h (1.3) (+5 -4;)
+		wm/unique/input_channel.h (1.3) (+5 -4;)
+		wm/unique/input_channel.c (1.4) (+5 -4;)
+		wm/unique/device.h (1.6) (+5 -4;)
+		wm/unique/device.c (1.10) (+5 -4;)
+		wm/unique/decoration.h (1.3) (+5 -4;)
+		wm/unique/decoration.c (1.3) (+5 -4;)
+		wm/unique/context.h (1.6) (+5 -4;)
+		wm/unique/context.c (1.17) (+5 -4;)
+		wm/default/default.c (1.48) (+5 -4;)
+		tools/raw32toraw24.c (1.14) (+35 -1;)
+		tools/raw16toraw24.c (1.10) (+35 -1;)
+		tools/raw15toraw24.c (1.8) (+35 -1;)
+		tools/mkdgiff.c (1.3) (+33 -1;)
+		tools/mkdfiff.c (1.5) (+34 -0;)
+		tools/fx.c (1.2) (+34 -0;)
+		tools/fusion_bench.c (1.39) (+5 -4;)
+		tools/directfb-csource.c (1.33) (+5 -4;)
+		tools/dfbsummon.c (1.11) (+5 -4;)
+		tools/dfbscreen.c (1.9) (+5 -4;)
+		tools/dfbproxy.c (1.2) (+5 -4;)
+		tools/dfblayer.c (1.8) (+5 -4;)
+		tools/dfbinput.c (1.4) (+5 -4;)
+		tools/dfbinfo.c (1.20) (+5 -4;)
+		tools/dfbg.c (1.11) (+5 -4;)
+		tools/dfbdump.c (1.57) (+5 -4;)
+		tests/fusion_stream.c (1.2) (+34 -0;)
+		tests/fusion_reactor.c (1.4) (+10 -1;)
+		tests/fusion_fork.c (1.2) (+10 -1;)
+		systems/x11/xwindow.h (1.5) (+28 -0;)
+		systems/x11/xwindow.c (1.10) (+28 -0;)
+		systems/x11/x11input.c (1.17) (+5 -4;)
+		systems/x11/x11.h (1.4) (+5 -4;)
+		systems/x11/x11.c (1.10) (+5 -4;)
+		systems/x11/primary.h (1.2) (+5 -4;)
+		systems/x11/primary.c (1.12) (+5 -4;)
+		systems/vnc/vnc.h (1.2) (+5 -4;)
+		systems/vnc/vnc.c (1.6) (+5 -4;)
+		systems/vnc/primary.h (1.2) (+5 -4;)
+		systems/vnc/primary.c (1.6) (+11 -0;)
+		systems/sdl/sdlinput.c (1.18) (+5 -4;)
+		systems/sdl/sdl.h (1.4) (+5 -4;)
+		systems/sdl/sdl.c (1.13) (+5 -4;)
+		systems/sdl/primary.h (1.2) (+5 -4;)
+		systems/sdl/primary.c (1.14) (+5 -4;)
+		systems/osx/primary.h (1.2) (+5 -4;)
+		systems/osx/primary.c (1.11) (+5 -4;)
+		systems/osx/osxinput.c (1.9) (+5 -4;)
+		systems/osx/osx.h (1.2) (+5 -4;)
+		systems/osx/osx.c (1.10) (+5 -4;)
+		systems/fbdev/vt.h (1.3) (+5 -4;)
+		systems/fbdev/vt.c (1.11) (+5 -4;)
+		systems/fbdev/fbdev.h (1.11) (+5 -4;)
+		systems/fbdev/fbdev.c (1.55) (+5 -4;)
+		systems/fbdev/agp.h (1.2) (+3 -3;)
+		systems/fbdev/agp.c (1.8) (+3 -3;)
+		src/windows/idirectfbwindow.h (1.10) (+5 -4;)
+		src/windows/idirectfbwindow.c (1.97) (+5 -4;)
+		src/misc/util.h (1.33) (+5 -4;)
+		src/misc/util.c (1.27) (+5 -4;)
+		src/misc/gfx_util.h (1.19) (+5 -4;)
+		src/misc/gfx_util.c (1.68) (+3 -3;)
+		src/misc/conf.h (1.69) (+5 -4;)
+		src/misc/conf.c (1.132) (+5 -4;)
+		src/media/idirectfbvideoprovider.h (1.7) (+3 -3;)
+		src/media/idirectfbvideoprovider.c (1.12) (+4 -4;)
+		src/media/idirectfbimageprovider.h (1.9) (+5 -4;)
+		src/media/idirectfbimageprovider.c (1.10) (+6 -4;)
+		src/media/idirectfbfont.h (1.10) (+6 -4;)
+		src/media/idirectfbfont.c (1.39) (+6 -4;)
+		src/media/idirectfbdatabuffer_streamed.c (1.22) (+6 -4;)
+		src/media/idirectfbdatabuffer_memory.c (1.16) (+6 -4;)
+		src/media/idirectfbdatabuffer_file.c (1.22) (+4 -3;)
+		src/media/idirectfbdatabuffer.h (1.5) (+7 -5;)
+		src/media/idirectfbdatabuffer.c (1.13) (+6 -4;)
+		src/input/idirectfbinputdevice.h (1.5) (+6 -4;)
+		src/input/idirectfbinputdevice.c (1.40) (+5 -4;)
+		src/input/idirectfbinputbuffer.h (1.12) (+5 -4;)
+		src/input/idirectfbinputbuffer.c (1.60) (+6 -4;)
+		src/gfx/generic/yuvtbl-gen.c (1.5) (+2 -2;)
+		src/gfx/generic/template_colorkey_32.h (1.2) (+3 -3;)
+		src/gfx/generic/template_colorkey_16.h (1.2) (+3 -3;)
+		src/gfx/generic/template_acc_32.h (1.2) (+3 -3;)
+		src/gfx/generic/template_acc_16.h (1.2) (+3 -3;)
+		src/gfx/generic/generic_mmx.h (1.15) (+3 -3;)
+		src/gfx/generic/generic_64.h (1.5) (+3 -3;)
+		src/gfx/generic/generic.h (1.29) (+3 -3;)
+		src/gfx/generic/generic.c (1.225) (+3 -3;)
+		src/gfx/generic/duffs_device.h (1.2) (+3 -3;)
+		src/gfx/util.h (1.13) (+5 -4;)
+		src/gfx/util.c (1.25) (+5 -4;)
+		src/gfx/convert.h (1.36) (+5 -4;)
+		src/gfx/convert.c (1.28) (+5 -4;)
+		src/gfx/clip.h (1.9) (+5 -4;)
+		src/gfx/clip.c (1.11) (+5 -4;)
+		src/display/idirectfbsurface_window.h (1.8) (+5 -4;)
+		src/display/idirectfbsurface_window.c (1.58) (+5 -4;)
+		src/display/idirectfbsurface_layer.h (1.10) (+5 -4;)
+	
+	Updated copyright information.
+	
+2007-03-03   dok	20:53:53	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/shm/fake.c (1.4) (+5 -4;)
+		src/display/idirectfbsurface.h (1.23) (+5 -4;)
+		src/display/idirectfbsurface.c (1.130) (+5 -4;)
+		src/display/idirectfbscreen.h (1.2) (+5 -4;)
+		src/display/idirectfbscreen.c (1.15) (+5 -4;)
+		src/display/idirectfbpalette.h (1.4) (+5 -4;)
+		src/display/idirectfbpalette.c (1.18) (+5 -4;)
+		src/display/idirectfbdisplaylayer.h (1.9) (+5 -4;)
+		src/display/idirectfbdisplaylayer.c (1.88) (+5 -4;)
+		src/core/wm_module.h (1.12) (+5 -4;)
+		src/core/wm.h (1.14) (+5 -4;)
+		src/core/wm.c (1.15) (+5 -4;)
+		src/core/windowstack.h (1.12) (+5 -4;)
+		src/core/windowstack.c (1.31) (+5 -4;)
+		src/core/windows_internal.h (1.16) (+5 -4;)
+		src/core/windows.h (1.66) (+5 -4;)
+		src/core/windows.c (1.234) (+5 -4;)
+		src/core/system.h (1.29) (+5 -4;)
+		src/core/system.c (1.27) (+5 -4;)
+		src/core/surfaces.h (1.71) (+5 -4;)
+		src/core/surfaces.c (1.150) (+5 -4;)
+		src/core/surfacemanager.h (1.24) (+5 -4;)
+		src/core/surfacemanager.c (1.79) (+3 -3;)
+		src/core/state.h (1.29) (+5 -4;)
+		src/core/state.c (1.32) (+5 -4;)
+		src/core/screens_internal.h (1.5) (+5 -4;)
+		src/core/screens.h (1.9) (+5 -4;)
+		src/core/screens.c (1.16) (+5 -4;)
+		src/core/screen.h (1.5) (+5 -4;)
+		src/core/screen.c (1.6) (+5 -4;)
+		src/core/palette.h (1.20) (+5 -4;)
+		src/core/palette.c (1.29) (+5 -4;)
+		src/core/layers_internal.h (1.16) (+5 -4;)
+		src/core/layers.h (1.74) (+5 -4;)
+		src/core/layers.c (1.150) (+5 -4;)
+		src/core/layer_region.h (1.10) (+5 -4;)
+		src/core/layer_region.c (1.31) (+5 -4;)
+		src/core/layer_control.h (1.6) (+5 -4;)
+		src/core/layer_control.c (1.13) (+5 -4;)
+		src/core/layer_context.h (1.19) (+5 -4;)
+		src/core/layer_context.c (1.57) (+5 -4;)
+		src/core/input_driver.h (1.10) (+5 -4;)
+		src/core/input.h (1.43) (+5 -4;)
+		src/core/input.c (1.122) (+5 -4;)
+		src/core/graphics_driver.h (1.10) (+5 -4;)
+		src/core/gfxcard.h (1.97) (+5 -4;)
+		src/core/gfxcard.c (1.202) (+3 -3;)
+		src/core/fonts.h (1.28) (+5 -4;)
+		src/core/fonts.c (1.64) (+5 -4;)
+		src/core/coretypes.h (1.28) (+5 -4;)
+		src/core/coredefs.h (1.42) (+5 -4;)
+		src/core/core_system.h (1.14) (+5 -4;)
+		src/core/core_parts.h (1.8) (+5 -4;)
+		src/core/core_parts.c (1.10) (+5 -4;)
+		src/core/core.h (1.29) (+5 -4;)
+		src/core/core.c (1.128) (+5 -4;)
+		src/core/colorhash.h (1.5) (+5 -4;)
+		src/core/colorhash.c (1.17) (+5 -4;)
+		src/core/clipboard.h (1.4) (+5 -4;)
+		src/core/clipboard.c (1.13) (+5 -4;)
+		src/idirectfb.h (1.14) (+5 -4;)
+		src/idirectfb.c (1.167) (+5 -4;)
+		src/directfb.c (1.88) (+5 -4;)
+		proxy/requestor/idirectfbwindow_requestor.h (1.3) (+5 -4;)
+		proxy/requestor/idirectfbwindow_requestor.c (1.9) (+5 -4;)
+		proxy/requestor/idirectfbsurface_requestor.h (1.3) (+5 -4;)
+		proxy/requestor/idirectfbsurface_requestor.c (1.16) (+5 -4;)
+		proxy/requestor/idirectfbscreen_requestor.c (1.4) (+5 -4;)
+		proxy/requestor/idirectfbpalette_requestor.h (1.3) (+5 -4;)
+		proxy/requestor/idirectfbpalette_requestor.c (1.5) (+5 -4;)
+		proxy/requestor/idirectfbinputdevice_requestor.h (1.2) (+5 -4;)
+		proxy/requestor/idirectfbinputdevice_requestor.c (1.4) (+5 -4;)
+		proxy/requestor/idirectfbimageprovider_requestor.c (1.4) (+5 -4;)
+		proxy/requestor/idirectfbfoo_requestor.h (1.3) (+5 -4;)
+		proxy/requestor/idirectfbfoo_requestor.c (1.4) (+5 -4;)
+		proxy/requestor/idirectfbfont_requestor.h (1.3) (+5 -4;)
+		proxy/requestor/idirectfbfont_requestor.c (1.7) (+5 -4;)
+		proxy/requestor/idirectfbeventbuffer_requestor.h (1.3) (+5 -4;)
+		proxy/requestor/idirectfbeventbuffer_requestor.c (1.6) (+5 -4;)
+		proxy/requestor/idirectfbdisplaylayer_requestor.h (1.3) (+5 -4;)
+		proxy/requestor/idirectfbdisplaylayer_requestor.c (1.5) (+5 -4;)
+		proxy/requestor/idirectfbdatabuffer_requestor.c (1.6) (+5 -4;)
+		proxy/requestor/idirectfb_requestor.c (1.10) (+5 -4;)
+		proxy/dispatcher/idirectfbwindow_dispatcher.h (1.3) (+5 -4;)
+		proxy/dispatcher/idirectfbwindow_dispatcher.c (1.10) (+5 -4;)
+		proxy/dispatcher/idirectfbsurface_dispatcher.h (1.5) (+5 -4;)
+		proxy/dispatcher/idirectfbsurface_dispatcher.c (1.13) (+5 -4;)
+		proxy/dispatcher/idirectfbscreen_dispatcher.h (1.3) (+5 -4;)
+		proxy/dispatcher/idirectfbscreen_dispatcher.c (1.7) (+5 -4;)
+		proxy/dispatcher/idirectfbpalette_dispatcher.h (1.2) (+5 -4;)
+		proxy/dispatcher/idirectfbpalette_dispatcher.c (1.7) (+5 -4;)
+		proxy/dispatcher/idirectfbinputdevice_dispatcher.h (1.3) (+5 -4;)
+		proxy/dispatcher/idirectfbinputdevice_dispatcher.c (1.5) (+6 -4;)
+		proxy/dispatcher/idirectfbimageprovider_dispatcher.h (1.2) (+5 -4;)
+		proxy/dispatcher/idirectfbimageprovider_dispatcher.c (1.6) (+5 -4;)
+		proxy/dispatcher/idirectfbfoo_dispatcher.h (1.2) (+5 -4;)
+		proxy/dispatcher/idirectfbfoo_dispatcher.c (1.6) (+5 -4;)
+		proxy/dispatcher/idirectfbfont_dispatcher.h (1.2) (+5 -4;)
+		proxy/dispatcher/idirectfbfont_dispatcher.c (1.9) (+5 -4;)
+		proxy/dispatcher/idirectfbeventbuffer_dispatcher.h (1.3) (+5 -4;)
+		proxy/dispatcher/idirectfbeventbuffer_dispatcher.c (1.6) (+5 -4;)
+		proxy/dispatcher/idirectfbdisplaylayer_dispatcher.h (1.2) (+5 -4;)
+		proxy/dispatcher/idirectfbdisplaylayer_dispatcher.c (1.7) (+5 -4;)
+		proxy/dispatcher/idirectfbdatabuffer_dispatcher.h (1.3) (+5 -4;)
+		proxy/dispatcher/idirectfbdatabuffer_dispatcher.c (1.8) (+5 -4;)
+		proxy/dispatcher/idirectfb_dispatcher.h (1.3) (+5 -4;)
+		proxy/dispatcher/idirectfb_dispatcher.c (1.11) (+5 -4;)
+		lib/voodoo/types.h (1.3) (+5 -4;)
+		lib/voodoo/server.h (1.2) (+5 -4;)
+		lib/voodoo/server.c (1.7) (+5 -4;)
+		lib/voodoo/message.h (1.6) (+5 -4;)
+		lib/voodoo/manager.h (1.3) (+5 -4;)
+		lib/voodoo/manager.c (1.14) (+5 -4;)
+		lib/voodoo/internal.h (1.3) (+5 -4;)
+		lib/voodoo/interface.h (1.3) (+5 -4;)
+		lib/voodoo/interface.c (1.3) (+5 -4;)
+		lib/voodoo/conf.h (1.2) (+5 -4;)
+		lib/voodoo/conf.c (1.2) (+5 -4;)
+		lib/voodoo/client.h (1.2) (+5 -4;)
+		lib/voodoo/client.c (1.5) (+5 -4;)
+		lib/fusion/shm/shm_internal.h (1.7) (+5 -4;)
+		lib/fusion/shm/shm.h (1.3) (+5 -4;)
+		lib/fusion/shm/shm.c (1.9) (+5 -4;)
+		lib/fusion/shm/pool.h (1.3) (+5 -4;)
+		lib/fusion/shm/pool.c (1.9) (+5 -4;)
+		lib/fusion/shm/heap.c (1.13) (+5 -4;)
+	
+	Updated copyright information.
+	
+2007-03-03   dok	20:53:52	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/mach64/mach64.h (1.17) (+5 -4;)
+		lib/fusion/vector.h (1.5) (+5 -4;)
+		lib/fusion/vector.c (1.8) (+5 -4;)
+		lib/fusion/types.h (1.8) (+5 -4;)
+		lib/fusion/shmalloc.h (1.10) (+5 -4;)
+		lib/fusion/shmalloc.c (1.6) (+5 -4;)
+		lib/fusion/ref.h (1.7) (+5 -4;)
+		lib/fusion/ref.c (1.13) (+5 -4;)
+		lib/fusion/reactor.h (1.9) (+5 -4;)
+		lib/fusion/reactor.c (1.21) (+5 -4;)
+		lib/fusion/property.h (1.4) (+5 -4;)
+		lib/fusion/property.c (1.5) (+5 -4;)
+		lib/fusion/object.h (1.10) (+5 -4;)
+		lib/fusion/object.c (1.19) (+5 -4;)
+		lib/fusion/lock.h (1.7) (+5 -4;)
+		lib/fusion/lock.c (1.8) (+5 -4;)
+		lib/fusion/hash.h (1.4) (+7 -6;)
+		lib/fusion/hash.c (1.7) (+7 -6;)
+		lib/fusion/fusion_internal.h (1.8) (+5 -4;)
+		lib/fusion/fusion.h (1.7) (+5 -4;)
+		lib/fusion/fusion.c (1.30) (+5 -4;)
+		lib/fusion/conf.h (1.6) (+5 -4;)
+		lib/fusion/conf.c (1.4) (+5 -4;)
+		lib/fusion/call.h (1.5) (+5 -4;)
+		lib/fusion/call.c (1.6) (+5 -4;)
+		lib/fusion/arena.h (1.4) (+5 -4;)
+		lib/fusion/arena.c (1.7) (+5 -4;)
+		lib/direct/util.h (1.26) (+5 -4;)
+		lib/direct/util.c (1.20) (+5 -4;)
+		lib/direct/utf8.h (1.5) (+5 -4;)
+		lib/direct/utf8.c (1.3) (+5 -4;)
+		lib/direct/types.h (1.22) (+5 -4;)
+		lib/direct/tree.h (1.4) (+5 -4;)
+		lib/direct/tree.c (1.3) (+5 -4;)
+		lib/direct/trace.h (1.4) (+5 -4;)
+		lib/direct/trace.c (1.23) (+5 -4;)
+		lib/direct/thread.h (1.7) (+5 -4;)
+		lib/direct/thread.c (1.15) (+5 -4;)
+		lib/direct/system.h (1.4) (+5 -4;)
+		lib/direct/system.c (1.10) (+5 -4;)
+		lib/direct/stream.h (1.8) (+3 -3;)
+		lib/direct/stream.c (1.32) (+3 -3;)
+		lib/direct/signals.h (1.5) (+5 -4;)
+		lib/direct/signals.c (1.12) (+5 -4;)
+		lib/direct/serial.h (1.5) (+5 -4;)
+		lib/direct/modules.h (1.3) (+5 -4;)
+		lib/direct/modules.c (1.6) (+5 -4;)
+		lib/direct/messages.h (1.10) (+5 -4;)
+		lib/direct/messages.c (1.11) (+5 -4;)
+		lib/direct/memcpy.h (1.5) (+5 -4;)
+		lib/direct/memcpy.c (1.13) (+3 -3;)
+		lib/direct/mem.h (1.9) (+5 -4;)
+		lib/direct/mem.c (1.12) (+5 -4;)
+		lib/direct/log.h (1.2) (+5 -4;)
+		lib/direct/log.c (1.5) (+3 -3;)
+		lib/direct/list.h (1.10) (+5 -4;)
+		lib/direct/list.c (1.3) (+5 -4;)
+		lib/direct/interface_implementation.h (1.5) (+5 -4;)
+		lib/direct/interface.h (1.11) (+5 -4;)
+		lib/direct/interface.c (1.12) (+5 -4;)
+		lib/direct/hash.h (1.3) (+5 -4;)
+		lib/direct/hash.c (1.7) (+5 -4;)
+		lib/direct/dtest.c (1.8) (+34 -0;)
+		lib/direct/direct.h (1.3) (+5 -4;)
+		lib/direct/direct.c (1.6) (+5 -4;)
+		lib/direct/debug.h (1.20) (+5 -4;)
+		lib/direct/debug.c (1.23) (+5 -4;)
+		lib/direct/conf.h (1.10) (+5 -4;)
+		lib/direct/conf.c (1.7) (+5 -4;)
+		lib/direct/clock.h (1.5) (+5 -4;)
+		lib/direct/clock.c (1.6) (+5 -4;)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.100) (+5 -4;)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_gif.c (1.9) (+2 -2;)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.63) (+5 -4;)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_mpeg2.c (1.15) (+5 -4;)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.53) (+5 -4;)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.58) (+5 -4;)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_dfiff.c (1.3) (+10 -1;)
+		interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.38) (+5 -4;)
+		interfaces/IDirectFBFont/idirectfbfont_dgiff.c (1.2) (+5 -4;)
+		interfaces/IDirectFBFont/idirectfbfont_default.c (1.44) (+5 -4;)
+		inputdrivers/ucb1x00_ts/ucb1x00_ts.c (1.11) (+5 -4;)
+		inputdrivers/tslib/tslib.c (1.2) (+2 -2;)
+		inputdrivers/sonypi/sonypi.c (1.15) (+5 -4;)
+		inputdrivers/serialmouse/serialmouse.c (1.33) (+5 -4;)
+		inputdrivers/ps2mouse/ps2mouse.c (1.56) (+5 -4;)
+		inputdrivers/lirc/lirc.c (1.33) (+5 -4;)
+		inputdrivers/linux_input/linux_input.c (1.62) (+5 -4;)
+		inputdrivers/keyboard/keyboard.c (1.61) (+5 -4;)
+		inputdrivers/joystick/joystick.c (1.32) (+5 -4;)
+		inputdrivers/h3600_ts/h3600_ts.c (1.23) (+5 -4;)
+		inputdrivers/gunze/dfb-calib.c (1.2) (+34 -0;)
+		inputdrivers/dbox2remote/dbox2remote.c (1.21) (+5 -4;)
+		include/directfbgl.h (1.3) (+2 -2;)
+		include/directfb_version.h.in (1.4) (+7 -5;)
+		include/directfb_util.h (1.6) (+5 -4;)
+		include/directfb_keyboard.h (1.30) (+5 -4;)
+		include/directfb.h (1.323) (+5 -4;)
+		include/dgiff.h (1.2) (+8 -1;)
+		include/dfiff.h (1.2) (+8 -1;)
+		include/dfb_types.h (1.8) (+28 -0;)
+		gfxdrivers/unichrome/uc_primary.c (1.4) (+6 -4;)
+		gfxdrivers/tdfx/tdfx.h (1.7) (+5 -4;)
+		gfxdrivers/tdfx/tdfx.c (1.35) (+5 -4;)
+		gfxdrivers/sis315/sis315_mmio.h (1.5) (+28 -0;)
+		gfxdrivers/sis315/sis315_mmio.c (1.4) (+28 -0;)
+		gfxdrivers/savage/savage_streams_old.h (1.4) (+7 -6;)
+		gfxdrivers/savage/savage_streams_old.c (1.20) (+6 -5;)
+		gfxdrivers/savage/savage_bci.h (1.3) (+7 -5;)
+		gfxdrivers/savage/savage4.h (1.3) (+7 -5;)
+		gfxdrivers/savage/savage4.c (1.17) (+7 -5;)
+		gfxdrivers/savage/savage3d.h (1.3) (+7 -5;)
+		gfxdrivers/savage/savage3d.c (1.14) (+7 -5;)
+		gfxdrivers/savage/savage2000.h (1.3) (+7 -5;)
+		gfxdrivers/savage/savage2000.c (1.7) (+7 -5;)
+		gfxdrivers/savage/savage.h (1.4) (+7 -5;)
+		gfxdrivers/savage/savage.c (1.18) (+7 -5;)
+		gfxdrivers/savage/mmio.h (1.6) (+7 -5;)
+		gfxdrivers/nvidia/nvidia_state.h (1.4) (+3 -3;)
+		gfxdrivers/nvidia/nvidia_state.c (1.10) (+3 -3;)
+		gfxdrivers/nvidia/nvidia_regs.h (1.7) (+0 -28;)
+		gfxdrivers/nvidia/nvidia_objects.h (1.3) (+2 -2;)
+		gfxdrivers/nvidia/nvidia_accel.h (1.3) (+3 -3;)
+		gfxdrivers/nvidia/nvidia_2d.h (1.6) (+3 -3;)
+		gfxdrivers/nvidia/nvidia_2d.c (1.21) (+3 -3;)
+		gfxdrivers/nvidia/nvidia.h (1.45) (+3 -3;)
+		gfxdrivers/nvidia/nvidia.c (1.99) (+3 -3;)
+		gfxdrivers/neomagic/neomagic.h (1.10) (+5 -4;)
+		gfxdrivers/neomagic/neomagic.c (1.24) (+5 -4;)
+		gfxdrivers/neomagic/neo_overlay.c (1.20) (+5 -4;)
+		gfxdrivers/neomagic/neo2200.c (1.22) (+5 -4;)
+		gfxdrivers/matrox/regs.h (1.28) (+0 -27;)
+		gfxdrivers/matrox/mmio.h (1.18) (+5 -4;)
+		gfxdrivers/matrox/matrox_state.h (1.8) (+5 -4;)
+		gfxdrivers/matrox/matrox_state.c (1.66) (+5 -4;)
+		gfxdrivers/matrox/matrox_spic.c (1.24) (+5 -4;)
+		gfxdrivers/matrox/matrox_screen_crtc2.c (1.18) (+5 -4;)
+		gfxdrivers/matrox/matrox_crtc2.c (1.39) (+5 -4;)
+		gfxdrivers/matrox/matrox_bes.c (1.70) (+5 -4;)
+		gfxdrivers/matrox/matrox_3d.h (1.2) (+5 -4;)
+		gfxdrivers/matrox/matrox_3d.c (1.9) (+5 -4;)
+		gfxdrivers/matrox/matrox.h (1.44) (+5 -4;)
+		gfxdrivers/matrox/matrox.c (1.105) (+5 -4;)
+		gfxdrivers/mach64/regs.h (1.15) (+0 -27;)
+		gfxdrivers/mach64/mmio.h (1.9) (+5 -4;)
+		gfxdrivers/mach64/mach64_state.h (1.9) (+5 -4;)
+		gfxdrivers/mach64/mach64_state.c (1.24) (+5 -4;)
+		gfxdrivers/mach64/mach64_overlay.c (1.22) (+5 -4;)
+	
+	Updated copyright information.
+	
+2007-03-03   dok	20:53:51	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	README (1.125) (+8 -5;)
+		gfxdrivers/mach64/mach64.c (1.45) (+5 -4;)
+		gfxdrivers/cyber5k/regs.h (1.3) (+0 -27;)
+		gfxdrivers/cyber5k/mmio.h (1.7) (+5 -4;)
+		gfxdrivers/cyber5k/cyber5k_underlay.c (1.10) (+5 -4;)
+		gfxdrivers/cyber5k/cyber5k_overlay.h (1.3) (+5 -4;)
+		gfxdrivers/cyber5k/cyber5k_overlay.c (1.5) (+5 -4;)
+		gfxdrivers/cyber5k/cyber5k_alpha.h (1.3) (+5 -4;)
+		gfxdrivers/cyber5k/cyber5k_alpha.c (1.4) (+6 -5;)
+		gfxdrivers/cyber5k/cyber5k.h (1.6) (+5 -4;)
+		gfxdrivers/cyber5k/cyber5k.c (1.19) (+5 -4;)
+		gfxdrivers/cle266/uc_primary.c (1.4) (+6 -4;)
+		gfxdrivers/ati128/regs.h (1.7) (+0 -27;)
+		gfxdrivers/ati128/mmio.h (1.12) (+5 -4;)
+		gfxdrivers/ati128/ati128_state.h (1.7) (+5 -4;)
+		gfxdrivers/ati128/ati128_state.c (1.15) (+5 -4;)
+		gfxdrivers/ati128/ati128_overlay.c (1.24) (+5 -4;)
+		gfxdrivers/ati128/ati128.h (1.13) (+5 -4;)
+		gfxdrivers/ati128/ati128.c (1.38) (+5 -4;)
+	
+	Updated copyright information.
+	
+2007-03-03   dok	20:06:47	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/directfb.c (1.87) (+1 -1;)
+	
+	|     =======================|  DirectFB 1.0.0-rc5  |=======================
+	|          (c) 2001-2007  The DirectFB Organization (directfb.org)
+	|          (c) 2000-2004  Convergence (integrated media) GmbH
+	|        ----------------------------------------------------------------
+	
+	
+	comments?
+	
+2007-03-03   dok	19:57:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	systems/sdl/sdlinput.c (1.17) (+5 -0;)
+	
+	Thanks to Ben Combee for adding DIEF_FOLLOW support to SDL Input!
+	
+2007-03-03   dok	19:35:03	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tests/.cvsignore (1.3) (+1 -0;)
+	
+	ignore
+	
+2007-03-03   dok	19:33:34	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/vector.c (1.7) (+20 -4;)
+	
+	Use local memory (D_MALLOC instead of SHMALLOC) if pool is NULL.
+	
+2007-03-03   dok	19:32:17	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/conf.c (1.131) (+1 -1;)
+	
+	typo
+	
+2007-03-03   dok	19:00:51	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.69) (+0 -1;)
+		docs/directfbrc.5.in (1.34) (+88 -24;)
+	
+	Wuah...
+	
+2007-03-03   dok	11:01:46	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbdump.c (1.56) (+2 -2;)
+	
+	align output
+	
+2007-03-02   dok	20:39:29	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.66) (+225 -0;)
+		TODO (1.68) (+8 -0;)
+		NEWS (1.64) (+51 -0;)
+	
+	Updated.
+	
+	TODOs for 1.0.0 added, feel free to extend this list :)
+	
 2007-03-02   dok	20:14:44	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	src/misc/conf.c (1.130) (+18 -0;)
@@ -141,12 +671,7 @@
 2007-02-12   dok	11:55:35	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	tests/Makefile.am (1.3) (+6 -2;)
-	
-	Just another test app.
-	
-2007-02-12   dok	11:55:35	Denis Oliver Kropp <dok@directfb.org>
-
-	Files:	tests/fusion_stream.c (1.1) (7STw1TC95YBAdc6s; )
+		tests/fusion_stream.c (1.1) (7STw1TC95YBAdc6s; )
 	
 	Just another test app.
 	
@@ -294,15 +819,7 @@
 		gfxdrivers/unichrome/unichrome.h (1.6) (+1 -0;)
 		gfxdrivers/unichrome/unichrome.c (1.12) (+14 -0;)
 		gfxdrivers/unichrome/uc_overlay.c (1.10) (+53 -17;)
-	
-	Allow for improved timing of video layer flips when the FIELD_PARITY option
-	is in use.  The improvement is only possible if the kernel framebuffer
-	supports it.  If not, we do the best we can but occasional glitches may
-	occur under high processor load.
-	
-2007-02-01   marka	18:42:44	
-
-	Files:	gfxdrivers/unichrome/uc_ioctl.h (1.1) (zmW76HzyW1ShMO4s; )
+		gfxdrivers/unichrome/uc_ioctl.h (1.1) (zmW76HzyW1ShMO4s; )
 	
 	Allow for improved timing of video layer flips when the FIELD_PARITY option
 	is in use.  The improvement is only possible if the kernel framebuffer
@@ -508,25 +1025,11 @@
 
 	Files:	configure.in (1.302) (+1 -0;)
 		src/Makefile.am (1.29) (+3 -0;)
+		rules/nmfile.make (1.1) (EfqonE3CyULZsG3s; )
 		lib/voodoo/Makefile.am (1.11) (+3 -0;)
 		lib/fusion/Makefile.am (1.16) (+3 -0;)
 		lib/direct/trace.c (1.22) (+29 -11;)
 		lib/direct/Makefile.am (1.25) (+3 -0;)
-	
-	If trace support and shared libraries are enabled, for each library to install,
-	also generate a file containing the output of "nm -n <that library>".
-	
-	That's the command that is used at runtime via popen().
-	
-	Now the code first checks if it can fopen() a file with the same name as the
-	one passed to "nm -n", but with an "nm-n." prefix.
-	
-	This is both a performance improvement and a nice solution for (embedded) targets
-	without 'nm' being available or fast enough.
-	
-2007-01-23   dok	23:00:07	Denis Oliver Kropp <dok@directfb.org>
-
-	Files:	rules/nmfile.make (1.1) (EfqonE3CyULZsG3s; )
 	
 	If trace support and shared libraries are enabled, for each library to install,
 	also generate a file containing the output of "nm -n <that library>".
@@ -679,20 +1182,11 @@
 2007-01-22   syrjala	19:25:54	Ville Syrjala <syrjala@sci.fi>
 
 	Files:	src/gfx/generic/Makefile.am (1.26) (+4 -0;)
-		src/gfx/generic/generic.c (1.221) (+245 -1938;)
-	
-	Use cpp templates for 16bpp and 32bpp code.
-	- Removes duplicated code.
-	- Implements some missing gfx funcs.
-	- Fixes missing EXPAND() calls in some acc funcs.
-	- Fixes blit direction handling in some 16bpp blit funcs.
-	
-2007-01-22   syrjala	19:25:54	Ville Syrjala <syrjala@sci.fi>
-
-	Files:	src/gfx/generic/template_acc_16.h (1.1) (7QiIxCZHyXmZnx3s; )
 		src/gfx/generic/template_colorkey_32.h (1.1) (7QiIxCZHyXmZnx3s; )
 		src/gfx/generic/template_colorkey_16.h (1.1) (7QiIxCZHyXmZnx3s; )
 		src/gfx/generic/template_acc_32.h (1.1) (7QiIxCZHyXmZnx3s; )
+		src/gfx/generic/template_acc_16.h (1.1) (7QiIxCZHyXmZnx3s; )
+		src/gfx/generic/generic.c (1.221) (+245 -1938;)
 	
 	Use cpp templates for 16bpp and 32bpp code.
 	- Removes duplicated code.
@@ -1095,23 +1589,13 @@
 2006-12-03   klan	19:02:05	
 
 	Files:	gfxdrivers/radeon/Makefile.am (1.12) (+2 -1;)
+		gfxdrivers/radeon/vertex_shader.h (1.1) (68Ii6BPUSjwuQ6Xr; )
 		gfxdrivers/radeon/radeon_regs.h (1.11) (+1 -1;)
 		gfxdrivers/radeon/radeon_3d.h (1.3) (+5 -0;)
 		gfxdrivers/radeon/radeon.c (1.44) (+34 -21;)
 		gfxdrivers/radeon/r300_state.c (1.6) (+68 -65;)
 		gfxdrivers/radeon/r300_program.h (1.2) (+2 -0;)
 		gfxdrivers/radeon/r300_3d.c (1.4) (+91 -5;)
-	
-	Implemented
-	 - StretchBlit
-	 - TextureTriangles
-	 - Alphablend
-	 - Deinterlacing
-	for the R300 chipset family (thanks to Timon <timon37@interia.pl>).
-	
-2006-12-03   klan	19:02:05	
-
-	Files:	gfxdrivers/radeon/vertex_shader.h (1.1) (68Ii6BPUSjwuQ6Xr; )
 	
 	Implemented
 	 - StretchBlit
@@ -1203,12 +1687,7 @@
 2006-11-28   klan	18:30:19	
 
 	Files:	patches/radeonfb-r300fix-2.6.18-rc2.patch.bz2 (1.2) (+0 -0;)
-	
-	Removed 2.6.18-rc2, added 2.6.18.
-	
-2006-11-28   klan	18:30:19	
-
-	Files:	patches/radeonfb-r300fix-2.6.18.patch.bz2 (1.1) (l40KOGZ8koDuQsWr; )
+		patches/radeonfb-r300fix-2.6.18.patch.bz2 (1.1) (l40KOGZ8koDuQsWr; )
 	
 	Removed 2.6.18-rc2, added 2.6.18.
 	
@@ -1243,16 +1722,10 @@
 2006-11-24   syrjala	23:53:55	Ville Syrjala <syrjala@sci.fi>
 
 	Files:	configure.in (1.299) (+17 -1;)
-		inputdrivers/Makefile.am (1.22) (+5 -0;)
-	
-	tslib input driver by Shane Volpe <shanevolpe@gmail.com>. Thanks!
-	Support for multiple devices and some coding style cleanups by me.
-	
-2006-11-24   syrjala	23:53:55	Ville Syrjala <syrjala@sci.fi>
-
-	Files:	inputdrivers/tslib/.cvsignore (1.1) (o6MWgjdFRJ7eLYVr; )
 		inputdrivers/tslib/tslib.c (1.1) (o6MWgjdFRJ7eLYVr; )
 		inputdrivers/tslib/Makefile.am (1.1) (o6MWgjdFRJ7eLYVr; )
+		inputdrivers/tslib/.cvsignore (1.1) (o6MWgjdFRJ7eLYVr; )
+		inputdrivers/Makefile.am (1.22) (+5 -0;)
 	
 	tslib input driver by Shane Volpe <shanevolpe@gmail.com>. Thanks!
 	Support for multiple devices and some coding style cleanups by me.
@@ -2324,34 +2797,12 @@
 	
 2006-10-09   dok	08:09:39	Denis Oliver Kropp <dok@directfb.org>
 
-	Files:	interfaces/IDirectFBFont/Makefile.am (1.16) (+10 -0;)
-		tools/Makefile.am (1.40) (+9 -1;)
-		tools/.cvsignore (1.15) (+1 -0;)
-	
-	DGIFF - DirectFB Glyph Image File Format
-	
-	Added a new font module and a tool called mkdgiff to generate .dgiff from .ttf or other.
-	
-	Purpose of DGIFF is to offload as much as possible from runtime, especially during
-	application startup when loading the default or system fonts. mkdgiff uses FreeType2
-	to load the glyphs of the font and stores them in one or more ready to use font cache
-	rows, up to 2047 pixels wide right now.
-	
-	The loader creates preallocated surfaces from the mmapped font file. The only copy ever
-	made would be when the surface is transfered to video memory for acceleration.
-	
-	DGIFF supports different sizes of one face in a single file.
-	
-	You can specify these options on the mkdgiff command line:
-	
-	   -f, --format    <pixelformat>   Choose the pixel format (default A8)
-	   -s, --sizes     <s1>[,s2...]    Choose sizes to generate glyph images for
-	
-2006-10-09   dok	08:09:39	Denis Oliver Kropp <dok@directfb.org>
-
 	Files:	include/dgiff.h (1.1) (UZIaLceoSOqnWYPr; )
 		tools/mkdgiff.c (1.1) (UZIaLceoSOqnWYPr; )
+		tools/Makefile.am (1.40) (+9 -1;)
+		tools/.cvsignore (1.15) (+1 -0;)
 		interfaces/IDirectFBFont/idirectfbfont_dgiff.c (1.1) (UZIaLceoSOqnWYPr; )
+		interfaces/IDirectFBFont/Makefile.am (1.16) (+10 -0;)
 	
 	DGIFF - DirectFB Glyph Image File Format
 	
@@ -2544,14 +2995,9 @@
 2006-09-30   dok	21:17:43	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	README (1.117) (+1 -1;)
+		inputdrivers/dynapro/Makefile.am (1.1) (kUMXxOTE39gvFTOr; )
 		inputdrivers/Makefile.am (1.21) (+5 -0;)
 		configure.in (1.292) (+15 -1;)
-	
-	New 3M DynaPro Touchscreen driver, thanks to Pär Degerman <parde@ikp.liu.se>!
-	
-2006-09-30   dok	21:17:43	Denis Oliver Kropp <dok@directfb.org>
-
-	Files:	inputdrivers/dynapro/Makefile.am (1.1) (kUMXxOTE39gvFTOr; )
 	
 	New 3M DynaPro Touchscreen driver, thanks to Pär Degerman <parde@ikp.liu.se>!
 	
@@ -2941,18 +3387,8 @@
 2006-09-11   dok	15:05:25	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	tools/.cvsignore (1.14) (+1 -0;)
+		tools/mkdfiff.c (1.1) (5dsOrZKaseR0dqMr; )
 		tools/Makefile.am (1.38) (+4 -1;)
-	
-	First shot at DFIFF - DirectFB Fast Image File Format
-	
-	Includes mkdfiff tool and a very simple and fast image provider.
-	
-	Loading of a 32x32 icon, for example, was about six times faster
-	than with the PNG loader.
-	
-2006-09-11   dok	15:05:25	Denis Oliver Kropp <dok@directfb.org>
-
-	Files:	tools/mkdfiff.c (1.1) (5dsOrZKaseR0dqMr; )
 	
 	First shot at DFIFF - DirectFB Fast Image File Format
 	
@@ -2964,17 +3400,7 @@
 2006-09-11   dok	15:05:10	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	interfaces/IDirectFBImageProvider/Makefile.am (1.17) (+9 -0;)
-	
-	First shot at DFIFF - DirectFB Fast Image File Format
-	
-	Includes mkdfiff tool and a very simple and fast image provider.
-	
-	Loading of a 32x32 icon, for example, was about six times faster
-	than with the PNG loader.
-	
-2006-09-11   dok	15:05:10	Denis Oliver Kropp <dok@directfb.org>
-
-	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_dfiff.c (1.1) (5dsOrZKaseR0dqMr; )
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_dfiff.c (1.1) (5dsOrZKaseR0dqMr; )
 	
 	First shot at DFIFF - DirectFB Fast Image File Format
 	
@@ -3059,13 +3485,8 @@
 2006-09-03   dok	11:54:39	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	tests/.cvsignore (1.2) (+1 -0;)
+		tests/fusion_reactor.c (1.1) (PuZJ9vP2dMDRpnLr; )
 		tests/Makefile.am (1.2) (+4 -1;)
-	
-	Small test for problem with pending messages from destroyed reactors.
-	
-2006-09-03   dok	11:54:39	Denis Oliver Kropp <dok@directfb.org>
-
-	Files:	tests/fusion_reactor.c (1.1) (PuZJ9vP2dMDRpnLr; )
 	
 	Small test for problem with pending messages from destroyed reactors.
 	
@@ -3172,25 +3593,15 @@
 2006-08-14   dok	09:19:32	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	Makefile.am (1.24) (+5 -0;)
+		tests/fusion_fork.c (1.1) (a0qIkvKBLBmacNIr; )
+		tests/Makefile.am (1.1) (a0qIkvKBLBmacNIr; )
+		tests/.cvsignore (1.1) (a0qIkvKBLBmacNIr; )
 		lib/fusion/types.h (1.6) (+2 -2;)
 		lib/fusion/fusion_internal.h (1.6) (+2 -0;)
 		lib/fusion/fusion.h (1.6) (+11 -0;)
 		lib/fusion/fusion.c (1.19) (+129 -0;)
 		configure.in (1.288) (+10 -0;)
 		TODO (1.65) (+1 -4;)
-	
-	Implemented experimental fork() handling in Fusion.
-	
-	Added FusionForkAction being FFA_CLOSE by default, which can be changed to
-	FFA_FORK with a call to fusion_world_set_fork_action() for each Fusionee/World.
-	
-	Added test program "fusion_fork" to demonstrate and test the new feature.
-	
-2006-08-14   dok	09:19:32	Denis Oliver Kropp <dok@directfb.org>
-
-	Files:	tests/.cvsignore (1.1) (a0qIkvKBLBmacNIr; )
-		tests/fusion_fork.c (1.1) (a0qIkvKBLBmacNIr; )
-		tests/Makefile.am (1.1) (a0qIkvKBLBmacNIr; )
 	
 	Implemented experimental fork() handling in Fusion.
 	
@@ -3456,16 +3867,10 @@
 		gfxdrivers/radeon/radeon.h (1.8) (+16 -2;)
 		gfxdrivers/radeon/radeon.c (1.39) (+146 -233;)
 		gfxdrivers/radeon/r300_state.c (1.4) (+446 -195;)
+		gfxdrivers/radeon/r300_program.h (1.1) (1AF4b7itAAEwcqHr; )
+		gfxdrivers/radeon/r300_3d.c (1.1) (1AF4b7itAAEwcqHr; )
 		gfxdrivers/radeon/r200_state.c (1.3) (+46 -31;)
 		gfxdrivers/radeon/r100_state.c (1.3) (+38 -32;)
-	
-	This is my latest development version of the radeon driver.
-	Main changes affect the R300, which now supports FillTriangles() and DSDRAW_BLEND.
-	
-2006-08-03   klan	17:20:00	
-
-	Files:	gfxdrivers/radeon/r300_3d.c (1.1) (1AF4b7itAAEwcqHr; )
-		gfxdrivers/radeon/r300_program.h (1.1) (1AF4b7itAAEwcqHr; )
 	
 	This is my latest development version of the radeon driver.
 	Main changes affect the R300, which now supports FillTriangles() and DSDRAW_BLEND.
@@ -3658,16 +4063,8 @@
 2006-07-23   klan	12:46:42	
 
 	Files:	docs/html/Makefile.am (1.6) (+2 -1;)
+		include/directfbgl.h (1.1) (RNWrbzV3K4Vi3ZFr; )
 		include/Makefile.am (1.27) (+2 -1;)
-	
-	Moved DirectFBGL header to the proper location.
-	
-	We need the header here since the DirectFBGL interface is strongly
-	integrated within DirectFB and we want to support external implementations.
-	
-2006-07-23   klan	12:46:42	
-
-	Files:	include/directfbgl.h (1.1) (RNWrbzV3K4Vi3ZFr; )
 	
 	Moved DirectFBGL header to the proper location.
 	
@@ -3707,13 +4104,8 @@
 		lib/fusion/types.h (1.5) (+1 -0;)
 		lib/fusion/object.h (1.9) (+16 -1;)
 		lib/fusion/object.c (1.13) (+97 -2;)
-	
-	New fusion hash and property support for object
-	
-2006-07-22   memmel	20:24:28	
-
-	Files:	lib/fusion/hash.c (1.1) (0AXL1WwLJkJJCTFr; )
 		lib/fusion/hash.h (1.1) (0AXL1WwLJkJJCTFr; )
+		lib/fusion/hash.c (1.1) (0AXL1WwLJkJJCTFr; )
 	
 	New fusion hash and property support for object
 	
@@ -3799,14 +4191,8 @@
 2006-07-19   klan	10:10:32	
 
 	Files:	configure.in (1.285) (+2 -1;)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_gif.c (1.1) (pLET5rKy3rPCjsFr; )
 		interfaces/IDirectFBVideoProvider/Makefile.am (1.23) (+19 -1;)
-	
-	Added Animated GIF video provider.
-	(I put it here, instead of DirectFB-extra, because it may be usefull for animated cursors).
-	
-2006-07-19   klan	10:10:32	
-
-	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_gif.c (1.1) (pLET5rKy3rPCjsFr; )
 	
 	Added Animated GIF video provider.
 	(I put it here, instead of DirectFB-extra, because it may be usefull for animated cursors).

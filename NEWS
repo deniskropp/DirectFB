@@ -1,3 +1,16 @@
+1.0.0
+-----
+
+libfusion
+- Use local memory for FusionVector (D_MALLOC instead of SHMALLOC) if pool is NULL in fusion_vector_init().
+
+SDL Input
+- Thanks to Ben Combee for adding DIEF_FOLLOW support!
+
+dfbdump tool
+- Align output of summarized surface memory again.
+
+
 1.0.0-rc5
 ---------
 
