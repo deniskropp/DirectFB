@@ -570,9 +570,9 @@ Dispatch_CreateEventBuffer( IDirectFB *thiz, IDirectFB *real,
 {
      DirectResult          ret;
      IDirectFBEventBuffer *buffer;
-     IDirectFBEventBuffer *requestor;
      VoodooInstanceID      instance;
      VoodooMessageParser   parser;
+     void                 *requestor;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
@@ -585,7 +585,7 @@ Dispatch_CreateEventBuffer( IDirectFB *thiz, IDirectFB *real,
           return ret;
 
      ret = voodoo_construct_requestor( manager, "IDirectFBEventBuffer",
-                                       instance, buffer, (void**) &requestor );
+                                       instance, buffer, &requestor );
      if (ret) {
           buffer->Release( buffer );
           return ret;
@@ -600,11 +600,11 @@ Dispatch_CreateInputEventBuffer( IDirectFB *thiz, IDirectFB *real,
 {
      DirectResult                ret;
      IDirectFBEventBuffer       *buffer;
-     IDirectFBEventBuffer       *requestor;
      VoodooInstanceID            instance;
      DFBInputDeviceCapabilities  caps;
      DFBBoolean                  global;
      VoodooMessageParser         parser;
+     void                       *requestor;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
@@ -619,7 +619,7 @@ Dispatch_CreateInputEventBuffer( IDirectFB *thiz, IDirectFB *real,
           return ret;
 
      ret = voodoo_construct_requestor( manager, "IDirectFBEventBuffer",
-                                       instance, buffer, (void**) &requestor );
+                                       instance, buffer, &requestor );
      if (ret) {
           buffer->Release( buffer );
           return ret;
@@ -937,6 +937,7 @@ Dispatch_CreateDataBuffer( IDirectFB *thiz, IDirectFB *real,
      VoodooMessageParser  parser;
      VoodooInstanceID     instance;
      DataBufferEntry     *entry;
+     void                *ptr;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
@@ -945,9 +946,11 @@ Dispatch_CreateDataBuffer( IDirectFB *thiz, IDirectFB *real,
      VOODOO_PARSER_END( parser );
 
      ret = voodoo_construct_requestor( manager, "IDirectFBDataBuffer",
-                                       instance, NULL, (void**) &requestor );
+                                       instance, NULL, &ptr );
      if (ret)
           return ret;
+
+     requestor = ptr;
 
      entry = D_CALLOC( 1, sizeof(DataBufferEntry) );
      if (!entry) {

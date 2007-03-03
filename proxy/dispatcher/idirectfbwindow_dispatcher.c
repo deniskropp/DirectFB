@@ -554,9 +554,9 @@ Dispatch_CreateEventBuffer( IDirectFBWindow *thiz, IDirectFBWindow *real,
 {
      DirectResult                ret;
      IDirectFBEventBuffer       *buffer;
-     IDirectFBEventBuffer       *requestor;
      VoodooInstanceID            instance;
      VoodooMessageParser         parser;
+     void                       *requestor;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
 
@@ -569,7 +569,7 @@ Dispatch_CreateEventBuffer( IDirectFBWindow *thiz, IDirectFBWindow *real,
           return ret;
 
      ret = voodoo_construct_requestor( manager, "IDirectFBEventBuffer",
-                                       instance, buffer, (void**) &requestor );
+                                       instance, buffer, &requestor );
      if (ret)
           buffer->Release( buffer );
 
@@ -587,6 +587,7 @@ Dispatch_AttachEventBuffer( IDirectFBWindow *thiz, IDirectFBWindow *real,
      IDirectFBEventBuffer_Requestor_data *buffer_data;
      VoodooInstanceID                     instance;
      VoodooMessageParser                  parser;
+     void                                *ptr;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
 
@@ -594,9 +595,11 @@ Dispatch_AttachEventBuffer( IDirectFBWindow *thiz, IDirectFBWindow *real,
      VOODOO_PARSER_GET_ID( parser, instance );
      VOODOO_PARSER_END( parser );
 
-     ret = voodoo_manager_lookup_remote( manager, instance, (void**) &buffer );
+     ret = voodoo_manager_lookup_remote( manager, instance, &ptr );
      if (ret)
           return ret;
+
+     buffer = ptr;
 
      DIRECT_INTERFACE_GET_DATA_FROM( buffer, buffer_data, IDirectFBEventBuffer_Requestor );
 
@@ -616,6 +619,7 @@ Dispatch_DetachEventBuffer( IDirectFBWindow *thiz, IDirectFBWindow *real,
      IDirectFBEventBuffer_Requestor_data *buffer_data;
      VoodooInstanceID                     instance;
      VoodooMessageParser                  parser;
+     void                                *ptr;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
 
@@ -623,9 +627,11 @@ Dispatch_DetachEventBuffer( IDirectFBWindow *thiz, IDirectFBWindow *real,
      VOODOO_PARSER_GET_ID( parser, instance );
      VOODOO_PARSER_END( parser );
 
-     ret = voodoo_manager_lookup_remote( manager, instance, (void**) &buffer );
+     ret = voodoo_manager_lookup_remote( manager, instance, &ptr );
      if (ret)
           return ret;
+
+     buffer = ptr;
 
      DIRECT_INTERFACE_GET_DATA_FROM( buffer, buffer_data, IDirectFBEventBuffer_Requestor );
 

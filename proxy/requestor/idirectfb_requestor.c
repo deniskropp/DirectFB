@@ -463,6 +463,7 @@ IDirectFB_Requestor_CreateEventBuffer( IDirectFB             *thiz,
      IDirectFBEventBuffer *buffer;
      IDirectFBEventBuffer *dispatcher;
      VoodooInstanceID      instance;
+     void                 *ptr;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
@@ -476,11 +477,13 @@ IDirectFB_Requestor_CreateEventBuffer( IDirectFB             *thiz,
 
      /* Create the dispatcher. */
      ret = voodoo_construct_dispatcher( data->manager, "IDirectFBEventBuffer", buffer,
-                                        data->instance, NULL, &instance, (void**) &dispatcher );
+                                        data->instance, NULL, &instance, &ptr );
      if (ret) {
           buffer->Release( buffer );
           return ret;
      }
+
+     dispatcher = ptr;
 
      /* Send the request including the instance ID of the dispatcher. */
      ret = voodoo_manager_request( data->manager, data->instance,
@@ -508,6 +511,7 @@ IDirectFB_Requestor_CreateInputEventBuffer( IDirectFB                   *thiz,
      IDirectFBEventBuffer *buffer;
      IDirectFBEventBuffer *dispatcher;
      VoodooInstanceID      instance;
+     void                 *ptr;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
@@ -521,11 +525,13 @@ IDirectFB_Requestor_CreateInputEventBuffer( IDirectFB                   *thiz,
 
      /* Create the dispatcher. */
      ret = voodoo_construct_dispatcher( data->manager, "IDirectFBEventBuffer", buffer,
-                                        data->instance, NULL, &instance, (void**) &dispatcher );
+                                        data->instance, NULL, &instance, &ptr );
      if (ret) {
           buffer->Release( buffer );
           return ret;
      }
+
+     dispatcher = ptr;
 
      /* Send the request including the instance ID of the dispatcher. */
      ret = voodoo_manager_request( data->manager, data->instance,
@@ -650,6 +656,7 @@ IDirectFB_Requestor_CreateDataBuffer( IDirectFB                       *thiz,
      IDirectFBDataBuffer *buffer;
      IDirectFBDataBuffer *dispatcher;
      VoodooInstanceID     instance;
+     void                *ptr;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
@@ -689,13 +696,13 @@ IDirectFB_Requestor_CreateDataBuffer( IDirectFB                       *thiz,
 
      /* Create the dispatcher. */
      ret = voodoo_construct_dispatcher( data->manager, "IDirectFBDataBuffer",
-                                        buffer, data->instance, NULL, &instance, (void**) &dispatcher );
+                                        buffer, data->instance, NULL, &instance, &ptr );
      if (ret) {
           buffer->Release( buffer );
           return ret;
      }
 
-
+     dispatcher = ptr;
 
      /* Send the request including the instance ID of the dispatcher. */
      ret = voodoo_manager_request( data->manager, data->instance,

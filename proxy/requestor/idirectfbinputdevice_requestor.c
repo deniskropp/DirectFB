@@ -138,6 +138,7 @@ IDirectFBInputDevice_Requestor_CreateEventBuffer( IDirectFBInputDevice  *thiz,
      IDirectFBEventBuffer  *dispatcher;
      VoodooInstanceID       instance;
      VoodooResponseMessage *response;
+     void                  *ptr;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice_Requestor)
 
@@ -151,11 +152,13 @@ IDirectFBInputDevice_Requestor_CreateEventBuffer( IDirectFBInputDevice  *thiz,
 
      /* Create the dispatcher. */
      ret = voodoo_construct_dispatcher( data->manager, "IDirectFBEventBuffer",
-                                        buffer, data->instance, NULL, &instance, (void**) &dispatcher );
+                                        buffer, data->instance, NULL, &instance, &ptr );
      if (ret) {
           buffer->Release( buffer );
           return ret;
      }
+
+     dispatcher = ptr;
 
      /* Send the request including the instance ID of the dispatcher. */
      ret = voodoo_manager_request( data->manager, data->instance,
