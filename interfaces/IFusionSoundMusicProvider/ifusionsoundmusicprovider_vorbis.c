@@ -34,12 +34,18 @@
 
 #include <direct/types.h>
 #include <direct/mem.h>
+#include <direct/memcpy.h>
 #include <direct/stream.h>
 #include <direct/thread.h>
 #include <direct/util.h>
 
-#include <vorbis/codec.h>
-#include <vorbis/vorbisfile.h>
+#ifdef USE_TREMOR
+# include <tremor/ivorbiscodec.h>
+# include <tremor/ivorbisfile.h>
+#else
+# include <vorbis/codec.h>
+# include <vorbis/vorbisfile.h>
+#endif
 
 static DFBResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx );
@@ -88,6 +94,144 @@ typedef struct {
 
 
 /* mixing functions */
+#ifdef USE_TREMOR
+
+static void
+vorbis_mix_audio( s16 *src, void *dst, int len,
+                  FSSampleFormat format, int src_channels, int dst_channels )
+{
+     int s_n = src_channels;
+     int d_n = dst_channels;
+     int i;
+
+     switch (format) {
+          case FSSF_U8:
+               /* Copy/Interleave channels */
+               if (s_n == d_n) {
+                    for (i = 0; i < len*s_n; i++)
+                         ((u8*)dst)[i] = (src[i] >> 8) + 128;
+               }
+               /* Upmix mono to stereo */
+               else if (s_n < d_n) {
+                    for (i = 0; i < len; i++)
+                         ((u8*)dst)[i*2+0] = ((u8*)dst)[i*2+1] = (src[i] >> 8) + 128;
+               }
+               /* Downmix stereo to mono */
+               else if (s_n > d_n) {
+                    for (i = 0; i < len; i++)
+                        ((u8*)dst)[i] = ((src[i*2+0] + src[i*2+1]) >> 9) + 128;
+               }
+               break;
+
+          case FSSF_S16:
+               /* Copy/Interleave channels */
+               if (s_n == d_n) {
+                    direct_memcpy( dst, src, len*s_n*2 );
+               }
+               /* Upmix mono to stereo */
+               else if (s_n < d_n) {
+                    for (i = 0; i < len; i++)
+                         ((u16*)dst)[i*2+0] = ((u16*)dst)[i*2+1] = src[i];
+               }
+               /* Downmix stereo to mono */
+               else if (s_n > d_n) {
+                    for (i = 0; i < len; i++)
+                         ((u16*)dst)[i] = (src[i*2+0] + src[i*2+1]) >> 1;
+               }
+               break;
+
+          case FSSF_S24:
+               /* Copy/Interleave channels */
+               if (s_n == d_n) {
+                    for (i = 0; i < len*s_n; i++) {
+#ifdef WORDS_BIGENDIAN
+                         ((u8*)dst)[0] = src[i] >> 8;
+                         ((u8*)dst)[1] = src[i];
+                         ((u8*)dst)[2] = 0;
+#else
+                         ((u8*)dst)[0] = 0;
+                         ((u8*)dst)[1] = src[i];
+                         ((u8*)dst)[2] = src[i] >> 8;
+#endif
+                         dst += 3;
+                    }
+               }
+               /* Upmix mono to stereo */
+               else if (s_n < d_n) {
+                    for (i = 0; i < len; i++) {
+#ifdef WORDS_BIGENDIAN
+                         ((u8*)dst)[0] = ((u8*)dst)[3] = src[i] >> 8;
+                         ((u8*)dst)[1] = ((u8*)dst)[4] = src[i];
+                         ((u8*)dst)[2] = ((u8*)dst)[5] = 0;
+#else
+                         ((u8*)dst)[0] = ((u8*)dst)[3] = 0;
+                         ((u8*)dst)[1] = ((u8*)dst)[4] = src[i];
+                         ((u8*)dst)[2] = ((u8*)dst)[5] = src[i] >> 8;
+#endif
+                         dst += 6;
+                    }
+               }
+               /* Downmix stereo to mono */
+               else if (s_n > d_n) {
+                    for (i = 0; i < len; i++) {
+                         int s = (src[i*2+0] + src[i*2+1]) << 7;
+#ifdef WORDS_BIGENDIAN
+                         ((u8*)dst)[0] = s >> 16;
+                         ((u8*)dst)[1] = s >> 8;
+                         ((u8*)dst)[2] = s;
+#else
+                         ((u8*)dst)[0] = s;
+                         ((u8*)dst)[1] = s >> 8;
+                         ((u8*)dst)[2] = s >> 16;
+#endif
+                         dst += 3;
+                    }
+               }
+               break;
+
+          case FSSF_S32:
+               /* Copy/Interleave channels */
+               if (s_n == d_n) {
+                    for (i = 0; i < len*s_n; i++)
+                         ((u32*)dst)[i] = src[i] << 16;
+               }
+               /* Upmix mono to stereo */
+               else if (s_n < d_n) {
+                    for (i = 0; i < len; i++)
+                         ((u32*)dst)[i*2+0] = ((u32*)dst)[i*2+1] = src[i] << 16;
+               }
+               /* Downmix stereo to mono */
+               else if (s_n > d_n) {
+                    for (i = 0; i < len; i++)
+                         ((u32*)dst)[i] = (src[i*2+0] + src[i*2+1]) << 15;
+               }
+               break;
+
+          case FSSF_FLOAT:
+               /* Copy/Interleave channels */
+               if (s_n == d_n) {
+                    for (i = 0; i < len*s_n; i++)
+                         ((float*)dst)[i] = src[i] / 32768.f;
+               }
+               /* Upmix mono to stereo */
+               else if (s_n < d_n) {
+                    for (i = 0; i < len; i++)
+                         ((float*)dst)[i*2+0] = ((float*)dst)[i*2+1] = src[i] / 32768.f;
+               }
+               /* Downmix stereo to mono */
+               else if (s_n > d_n) {
+                    for (i = 0; i < len; i++)
+                         ((float*)dst)[i] = (src[i*2+0] + src[i*2+1]) / 65536.f;
+               }
+               break;
+
+          default:
+               D_BUG( "unexpected sample format" );
+               break;
+     }
+}
+
+#else /* !USE_TREMOR */
 
 static __inline__ int
 FtoU8( float s )
@@ -329,6 +473,8 @@ vorbis_mix_audio( float **src, void *dst, int len,
      }
 }
 
+#endif /* USE_TREMOR */
+
 /* I/O callbacks */
 
 static size_t
@@ -456,7 +602,11 @@ IFusionSoundMusicProvider_Vorbis_GetCapabilities( IFusionSoundMusicProvider   *t
      if (!caps)
           return DFB_INVARG;
 
+#ifdef USE_TREMOR
+     *caps = FMCAPS_BASIC;
+#else
      *caps = FMCAPS_BASIC | FMCAPS_HALFRATE;
+#endif
      if (direct_stream_seekable( data->stream ))
           *caps |= FMCAPS_SEEK;
 
@@ -574,7 +724,11 @@ IFusionSoundMusicProvider_Vorbis_GetStreamDescription( IFusionSoundMusicProvider
                           FSSDF_SAMPLEFORMAT | FSSDF_BUFFERSIZE;
      desc->samplerate   = data->info->rate;
      desc->channels     = data->info->channels;
+#ifdef USE_TREMOR
+     desc->sampleformat = FSSF_S16;
+#else
      desc->sampleformat = FSSF_FLOAT;
+#endif
      desc->buffersize   = desc->samplerate/10;
 
      return DFB_OK;
@@ -593,7 +747,11 @@ IFusionSoundMusicProvider_Vorbis_GetBufferDescription( IFusionSoundMusicProvider
                           FSBDF_SAMPLEFORMAT | FSBDF_LENGTH;
      desc->samplerate   = data->info->rate;
      desc->channels     = data->info->channels;
+#ifdef USE_TREMOR
+     desc->sampleformat = FSSF_S16;
+#else
      desc->sampleformat = FSSF_FLOAT;
+#endif
      desc->length       = desc->samplerate/10;
 
      return DFB_OK;
@@ -605,7 +763,11 @@ VorbisStreamThread( DirectThread *thread, void *ctx )
      IFusionSoundMusicProvider_Vorbis_data *data =
           (IFusionSoundMusicProvider_Vorbis_data*) ctx;
 
-     float **src; // src[0] = first channel, src[1] = second channel, ...
+#ifdef USE_TREMOR
+     s16     src[2048]; // interleaved
+#else
+     float **src;      // non-interleaved
+#endif
      char   *dst     = data->buf;
      int     section = 0;
 
@@ -624,8 +786,13 @@ VorbisStreamThread( DirectThread *thread, void *ctx )
                data->seeked = false;
           }
 
+#ifdef USE_TREMOR
+          len = ov_read( &data->vf, (char*)&src[0], sizeof(src), &section );
+          len = (len > 0) ? (len/(data->info->channels*2)) : len;
+#else
           len = ov_read_float( &data->vf, &src,
                                data->dest.length, &section );
+#endif
           if (len == 0) {
                if (data->flags & FMPLAY_LOOPING) {
                     if (direct_stream_remote( data->stream ))
@@ -665,9 +832,14 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
      destination->GetDescription( destination, &desc );
 
      /* check if destination samplerate is supported */
+#ifdef USE_TREMOR
+     if (desc.samplerate != data->info->rate)
+          return DFB_UNSUPPORTED;
+#else
      if (desc.samplerate != data->info->rate &&
          desc.samplerate != data->info->rate/2)
           return DFB_UNSUPPORTED;
+#endif
 
      /* check if number of channels is supported */
      if (desc.channels > 2)
@@ -689,6 +861,7 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
 
      pthread_mutex_lock( &data->lock );
      
+#ifndef USE_TREMOR
      if (desc.samplerate == data->info->rate/2) {
           if (ov_halfrate( &data->vf, 1 )) {
                pthread_mutex_unlock( &data->lock );
@@ -697,6 +870,7 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
      } else {
           ov_halfrate( &data->vf, 0 );
      }
+#endif
 
      /* allocate buffer */
      data->buf = D_MALLOC( desc.buffersize * desc.channels *
@@ -744,7 +918,11 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
                                      FS_BITS_PER_SAMPLE(data->dest.format) >> 3;
 
      while (data->playing && !data->finished) {
+#ifdef USE_TREMOR
+          s16     src[2048];
+#else
           float **src;
+#endif
           char   *dst;
           long    len;
           int     pos = 0;
@@ -765,7 +943,12 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
           }
 
           do {
+#ifdef USE_TREMOR
+               len = ov_read( &data->vf, (char*)&src[0], sizeof(src), &section );
+               len = (len > 0) ? (len/(data->info->channels*2)) : len;
+#else
                len = ov_read_float( &data->vf, &src, size-pos, &section );
+#endif
                if (len == 0) {
                     if (data->flags & FMPLAY_LOOPING) {
                          if (direct_stream_remote( data->stream ))
@@ -822,9 +1005,14 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      destination->GetDescription( destination, &desc );
 
      /* check if destination samplerate is supported */
+#ifdef USE_TREMOR
+     if (desc.samplerate != data->info->rate)
+          return DFB_UNSUPPORTED;
+#else
      if (desc.samplerate != data->info->rate &&
          desc.samplerate != data->info->rate/2)
           return DFB_UNSUPPORTED;
+#endif
 
      /* check if number of channels is supported */
      if (desc.channels > 2)
@@ -846,6 +1034,7 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
 
      pthread_mutex_lock( &data->lock );
      
+#ifndef USE_TREMOR
      if (desc.samplerate == data->info->rate/2) {
           if (ov_halfrate( &data->vf, 1 )) {
                pthread_mutex_unlock( &data->lock );
@@ -854,6 +1043,7 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      } else {
           ov_halfrate( &data->vf, 0 );
      }
+#endif
 
      /* reference destination stream */
      destination->AddRef( destination );
@@ -970,6 +1160,9 @@ IFusionSoundMusicProvider_Vorbis_SeekTo( IFusionSoundMusicProvider *thiz,
           ret = direct_stream_seek( data->stream, off );
      }
      else {
+#ifdef USE_TREMOR
+          seconds *= 1000;
+#endif
           if (ov_time_seek( &data->vf, seconds ))
                ret = DFB_FAILURE;
      }
@@ -991,7 +1184,11 @@ IFusionSoundMusicProvider_Vorbis_GetPos( IFusionSoundMusicProvider *thiz,
      if (!seconds)
           return DFB_INVARG;
 
+#ifdef USE_TREMOR
+     *seconds = (double)ov_time_tell( &data->vf ) / 1000.0;
+#else
      *seconds = ov_time_tell( &data->vf );
+#endif
 
      return DFB_OK;
 }
@@ -1007,7 +1204,11 @@ IFusionSoundMusicProvider_Vorbis_GetLength( IFusionSoundMusicProvider *thiz,
      if (!seconds)
           return DFB_INVARG;
 
+#ifdef USE_TREMOR
+     length = (double)ov_time_total( &data->vf, -1 ) / 1000.0;
+#else
      length = ov_time_total( &data->vf, -1 );
+#endif
      if (length < 0) {
           if (data->info->bitrate_nominal) {
                length = direct_stream_length( data->stream ) /
