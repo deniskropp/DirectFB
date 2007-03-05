@@ -282,9 +282,9 @@ fs_playback_set_volume( CorePlayback *playback,
 {
      D_ASSERT( playback != NULL );
      D_ASSERT( left >= 0.0f );
-     D_ASSERT( left < 256.0f );
+     D_ASSERT( left <= 64.0f );
      D_ASSERT( right >= 0.0f );
-     D_ASSERT( right < 256.0f );
+     D_ASSERT( right <= 64.0f );
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
