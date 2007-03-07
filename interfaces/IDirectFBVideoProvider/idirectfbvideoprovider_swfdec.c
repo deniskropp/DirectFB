@@ -589,7 +589,7 @@ SwfVideo( DirectThread *self, void *arg )
                     drop = false;
                }
                else {
-                    drop = true;
+                    drop = (duration <= -data->interval);
                }
           }
 
@@ -986,32 +986,6 @@ IDirectFBVideoProvider_Swfdec_GetLength( IDirectFBVideoProvider *thiz,
 }
 
 static DFBResult
-IDirectFBVideoProvider_Swfdec_GetColorAdjustment( IDirectFBVideoProvider *thiz,
-                                                  DFBColorAdjustment     *adj )
-{
-     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Swfdec )
-
-     if (!adj)
-          return DFB_INVARG;
-          
-     adj->flags = DCAF_NONE;
-     
-     return DFB_UNIMPLEMENTED;
-}
-
-static DFBResult
-IDirectFBVideoProvider_Swfdec_SetColorAdjustment( IDirectFBVideoProvider   *thiz,
-                                                  const DFBColorAdjustment *adj )
-{
-     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Swfdec )
-
-     if (!adj)
-          return DFB_INVARG;
-     
-     return DFB_UNIMPLEMENTED;
-}
-
-static DFBResult
 IDirectFBVideoProvider_Swfdec_SendEvent( IDirectFBVideoProvider *thiz,
                                          const DFBEvent         *evt )
 {
@@ -1365,8 +1339,6 @@ Construct( IDirectFBVideoProvider *thiz,
 #endif
      thiz->GetPos                = IDirectFBVideoProvider_Swfdec_GetPos;
      thiz->GetLength             = IDirectFBVideoProvider_Swfdec_GetLength;
-     thiz->GetColorAdjustment    = IDirectFBVideoProvider_Swfdec_GetColorAdjustment;
-     thiz->SetColorAdjustment    = IDirectFBVideoProvider_Swfdec_SetColorAdjustment;
      thiz->SendEvent             = IDirectFBVideoProvider_Swfdec_SendEvent;
      thiz->SetSpeed              = IDirectFBVideoProvider_Swfdec_SetSpeed;
      thiz->GetSpeed              = IDirectFBVideoProvider_Swfdec_GetSpeed;
