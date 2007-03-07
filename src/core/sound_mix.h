@@ -68,19 +68,17 @@ FUNC_NAME(FORMAT,mono,fw) ( CoreSoundBuffer *buffer,
           /* upsample */
           for (i = 0; i < max; i += inc) {
                long  p = (i >> FS_PITCH_BITS) + pos;
+               long  q;
                __fsf s;
           
                if (p >= buffer->length)
                     p %= buffer->length;
+               q = p + 1;
                     
                s = FSF_FROM_SRC( src, p );
                
-               if (i & (FS_PITCH_ONE-1)) {
+               if (i & (FS_PITCH_ONE-1) && q < buffer->length) {
                     __fsf w;
-                    long  q = p + 1;
-                    
-                    if (q == buffer->length)
-                         q = 0;
                     
                     w = fsf_from_int_scaled( i & (FS_PITCH_ONE-1), FS_PITCH_BITS );
                     s = FSF_INTERP( s, FSF_FROM_SRC( src, q ), w );
@@ -133,21 +131,19 @@ FUNC_NAME(FORMAT,mono,rw) ( CoreSoundBuffer *buffer,
           /* upsample */
           for (i = 0; i > max; i += inc) {
                long  p = (i >> FS_PITCH_BITS) + pos;
+               long  q;
                __fsf s;
           
                if (p <= -buffer->length)
                     p %= buffer->length;
                if (p < 0)
                     p += buffer->length;
+               q = p - 1;
                     
                s = FSF_FROM_SRC( src, p );
                
-               if (-i & (FS_PITCH_ONE-1)) {
+               if (-i & (FS_PITCH_ONE-1) && q >= 0) {
                     __fsf w;
-                    long  q = p - 1;
-                    
-                    if (q == -1)
-                         q += buffer->length;
                     
                     w = fsf_from_int_scaled( -i & (FS_PITCH_ONE-1), FS_PITCH_BITS );
                     s = FSF_INTERP( s, FSF_FROM_SRC( src, q ), w );
@@ -202,16 +198,15 @@ FUNC_NAME(FORMAT,stereo,fw) ( CoreSoundBuffer *buffer,
           /* upsample */
           for (i = 0; i < max; i += inc) {
                long p = (i >> FS_PITCH_BITS) + pos;
+               long q;
 
                if (p >= buffer->length)
                     p %= buffer->length;
+               q = p + 1;
                     
-               if (i & (FS_PITCH_ONE-1)) {
+               if (i & (FS_PITCH_ONE-1) && q < buffer->length) {
                     __fsf w, sl, sr;
-                    long  q = p + 1;
                     
-                    if (q == buffer->length)
-                         q = 0;
                     p <<= 1;
                     q <<= 1;
                          
@@ -279,18 +274,17 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
           /* upsample */
           for (i = 0; i > max; i += inc) {
                long p = (i >> FS_PITCH_BITS) + pos;
+               long q;
 
                if (p <= -buffer->length)
                     p %= buffer->length;
                if (p < 0)
                     p += buffer->length;
+               q = p - 1;
                     
-               if (-i & (FS_PITCH_ONE-1)) {
+               if (-i & (FS_PITCH_ONE-1) && q >= 0) {
                     __fsf w, sl, sr;
-                    long  q = p - 1;
                     
-                    if (q == -1)
-                         q += buffer->length;
                     p <<= 1;
                     q <<= 1;
                          
