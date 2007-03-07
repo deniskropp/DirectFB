@@ -258,8 +258,8 @@ static bool uc_blit_planar(void* drv, void* dev, DFBRectangle* rect, int dx, int
 {
     UC_ACCEL_BEGIN()
 
-    int uv_dst_offset = ucdev->dst_offset + (ucdev->dst_pitch * rect->h);
-    int uv_src_offset = ucdev->src_offset + (ucdev->src_pitch * rect->h);
+    int uv_dst_offset = ucdev->dst_offset + (ucdev->dst_pitch * ucdev->dst_height);
+    int uv_src_offset = ucdev->src_offset + (ucdev->src_pitch * ucdev->src_height);
     
     int uv_dst_pitch = ucdev->dst_pitch / 2;
     int uv_src_pitch = ucdev->src_pitch / 2;
@@ -292,8 +292,8 @@ static bool uc_blit_planar(void* drv, void* dev, DFBRectangle* rect, int dx, int
     
     // now for the second chrominance plane
     
-    uv_src_offset += uv_src_pitch * rect2.h;
-    uv_dst_offset += uv_dst_pitch * rect2.h;
+    uv_src_offset += uv_src_pitch * ucdev->src_height/2;
+    uv_dst_offset += uv_dst_pitch * ucdev->dst_height/2;
     
     UC_FIFO_PREPARE ( fifo, 6 );
     UC_FIFO_ADD_HDR( fifo, HC_ParaType_NotTex << 16 );

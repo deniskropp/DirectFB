@@ -158,13 +158,15 @@ uc_set_destination( UcDriverData *ucdrv,
      DFBSurfacePixelFormat  dst_format  = destination->format;
      int                    dst_offset  = buffer->video.offset;
      int                    dst_pitch   = buffer->video.pitch;
+     int                    dst_height  = destination->height;
      int                    dst_bpp     = DFB_BYTES_PER_PIXEL( dst_format );
 
 
      /* Save FIFO space and CPU cycles. */
      if (ucdev->dst_format == dst_format &&
          ucdev->dst_offset == dst_offset &&
-         ucdev->dst_pitch  == dst_pitch)
+         ucdev->dst_pitch  == dst_pitch &&
+         ucdev->dst_height == dst_height)
           return;
 
      // 2D engine setting
@@ -196,6 +198,7 @@ uc_set_destination( UcDriverData *ucdrv,
      ucdev->dst_format = dst_format;
      ucdev->dst_offset = dst_offset;
      ucdev->dst_pitch  = dst_pitch;
+     ucdev->dst_height = dst_height;
 }
 
 /// Set new source (2D)
@@ -223,6 +226,7 @@ uc_set_source_2d( UcDriverData *ucdrv,
      
      ucdev->src_offset = buffer->video.offset;
      ucdev->src_pitch = buffer->video.pitch;
+     ucdev->src_height = state->source->height;
 
      UC_VALIDATE( uc_source2d );
 }
@@ -329,6 +333,7 @@ uc_set_source_3d( UcDriverData *ucdrv,
 
      ucdev->src_offset = src_offset;
      ucdev->src_pitch = src_pitch;
+     ucdev->src_height = src_height;
 
      UC_VALIDATE( uc_source3d );
 }
