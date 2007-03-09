@@ -182,7 +182,8 @@ typedef int (*SoundMXFunc) ( CoreSoundBuffer *buffer,
                              long             inc,
                              long             max,
                              __fsf            left,
-                             __fsf            right );
+                             __fsf            right,
+                             bool             last );
 
 
 #define FORMAT u8
@@ -259,7 +260,8 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
                  int             *ret_num,
                  int             *ret_len )
 {
-     DFBResult  ret = DFB_OK;
+     DFBResult  ret  = DFB_OK;
+     bool       last = false;
      long long  inc;
      long long  max;
      int        num;
@@ -299,8 +301,9 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
                     stop -= buffer->length;
                tmp = (long long)(stop - pos) << FS_PITCH_BITS;
                if (max <= tmp) {
-                    max = tmp;
-                    ret = DFB_BUFFEREMPTY;
+                    max  = tmp;
+                    last = true;
+                    ret  = DFB_BUFFEREMPTY;
                }
           } else {
                /* Make sure stop position is greater than start position. */
@@ -308,8 +311,9 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
                     stop += buffer->length;
                tmp = (long long)(stop - pos) << FS_PITCH_BITS;
                if (max >= tmp) {
-                    max = tmp;
-                    ret = DFB_BUFFEREMPTY;
+                    max  = tmp;
+                    last = true;
+                    ret  = DFB_BUFFEREMPTY;
                }
           }
      }
@@ -321,7 +325,7 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
           func = (pitch < 0)
                  ? MIX_RW[FS_SAMPLEFORMAT_INDEX(buffer->format)][buffer->channels-1]
                  : MIX_FW[FS_SAMPLEFORMAT_INDEX(buffer->format)][buffer->channels-1];
-          len  = func( buffer, dest, pos, inc, max, left, right );
+          len  = func( buffer, dest, pos, inc, max, left, right, last );
      }
      else {
           /* Produce silence. */

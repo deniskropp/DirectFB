@@ -56,29 +56,35 @@ FUNC_NAME(FORMAT,mono,fw) ( CoreSoundBuffer *buffer,
                             long             inc,
                             long             max,
                             __fsf            left,
-                            __fsf            right )
+                            __fsf            right,
+                            bool             last )
 
 {
      TYPE  *src = buffer->data;
      __fsf *dst = dest;
-     long   i;
+     long   i   = 0;
 
 #ifdef FS_ENABLE_LINEAR_FILTER
      if (inc < FS_PITCH_ONE) {
           /* upsample */
-          for (i = 0; i < max; i += inc) {
+          if (last)
+               max -= FS_PITCH_ONE;
+
+          for (; i < max; i += inc) {
                long  p = (i >> FS_PITCH_BITS) + pos;
-               long  q;
                __fsf s;
           
                if (p >= buffer->length)
                     p %= buffer->length;
-               q = p + 1;
                     
                s = FSF_FROM_SRC( src, p );
                
-               if (i & (FS_PITCH_ONE-1) && q < buffer->length) {
+               if (i & (FS_PITCH_ONE-1)) {
                     __fsf w;
+                    long  q = p + 1;
+                    
+                    if (q == buffer->length)
+                         q = 0;
                     
                     w = fsf_from_int_scaled( i & (FS_PITCH_ONE-1), FS_PITCH_BITS );
                     s = FSF_INTERP( s, FSF_FROM_SRC( src, q ), w );
@@ -90,11 +96,12 @@ FUNC_NAME(FORMAT,mono,fw) ( CoreSoundBuffer *buffer,
                dst += 2;
           }
           
-          return (int)(dst - dest);
+          if (last)
+               max += FS_PITCH_ONE;
      }
 #endif /* FS_ENABLE_LINEAR_FILTER */
 
-     for (i = 0; i < max; i += inc) {
+     for (; i < max; i += inc) {
           long  p = (i >> FS_PITCH_BITS) + pos;
           __fsf s;
           
@@ -119,31 +126,37 @@ FUNC_NAME(FORMAT,mono,rw) ( CoreSoundBuffer *buffer,
                             long             inc,
                             long             max,
                             __fsf            left,
-                            __fsf            right )
+                            __fsf            right,
+                            bool             last )
 
 {
      TYPE  *src = buffer->data;
      __fsf *dst = dest;
-     long   i;
+     long   i   = 0;
 
 #ifdef FS_ENABLE_LINEAR_FILTER
      if (-inc < FS_PITCH_ONE) {
           /* upsample */
-          for (i = 0; i > max; i += inc) {
+          if (last)
+               max += FS_PITCH_ONE;
+
+          for (; i > max; i += inc) {
                long  p = (i >> FS_PITCH_BITS) + pos;
-               long  q;
                __fsf s;
           
                if (p <= -buffer->length)
                     p %= buffer->length;
                if (p < 0)
                     p += buffer->length;
-               q = p - 1;
                     
                s = FSF_FROM_SRC( src, p );
                
-               if (-i & (FS_PITCH_ONE-1) && q >= 0) {
+               if (-i & (FS_PITCH_ONE-1)) {
                     __fsf w;
+                    long  q = p - 1;
+                    
+                    if (q == -1)
+                         q += buffer->length;
                     
                     w = fsf_from_int_scaled( -i & (FS_PITCH_ONE-1), FS_PITCH_BITS );
                     s = FSF_INTERP( s, FSF_FROM_SRC( src, q ), w );
@@ -155,11 +168,12 @@ FUNC_NAME(FORMAT,mono,rw) ( CoreSoundBuffer *buffer,
                dst += 2;
           }
           
-          return (int)(dst - dest);
+          if (last)
+               max -= FS_PITCH_ONE;
      }
 #endif /* FS_ENABLE_LINEAR_FILTER */
 
-     for (i = 0; i > max; i += inc) {
+     for (; i > max; i += inc) {
           long  p = (i >> FS_PITCH_BITS) + pos;
           __fsf s;
           
@@ -187,26 +201,31 @@ FUNC_NAME(FORMAT,stereo,fw) ( CoreSoundBuffer *buffer,
                               long             inc,
                               long             max,
                               __fsf            left,
-                              __fsf            right )
+                              __fsf            right,
+                              bool             last )
 {
      TYPE  *src = buffer->data;
      __fsf *dst = dest;
-     long   i;
+     long   i   = 0;
 
 #ifdef FS_ENABLE_LINEAR_FILTER
      if (inc < FS_PITCH_ONE) {
           /* upsample */
-          for (i = 0; i < max; i += inc) {
+          if (last)
+               max -= FS_PITCH_ONE;
+
+          for (; i < max; i += inc) {
                long p = (i >> FS_PITCH_BITS) + pos;
-               long q;
 
                if (p >= buffer->length)
                     p %= buffer->length;
-               q = p + 1;
                     
-               if (i & (FS_PITCH_ONE-1) && q < buffer->length) {
+               if (i & (FS_PITCH_ONE-1)) {
                     __fsf w, sl, sr;
+                    long  q = p + 1;
                     
+                    if (q == buffer->length)
+                         q = 0;
                     p <<= 1;
                     q <<= 1;
                          
@@ -232,11 +251,12 @@ FUNC_NAME(FORMAT,stereo,fw) ( CoreSoundBuffer *buffer,
                dst += 2;
           } 
           
-          return (int)(dst - dest);
+          if (last)
+               max += FS_PITCH_ONE;
      }
 #endif /* FS_ENABLE_LINEAR_FILTER */
 
-     for (i = 0; i < max; i += inc) {
+     for (; i < max; i += inc) {
           long p = (i >> FS_PITCH_BITS) + pos;
 
           if (p >= buffer->length)
@@ -263,28 +283,33 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
                               long             inc,
                               long             max,
                               __fsf            left,
-                              __fsf            right )
+                              __fsf            right,
+                              bool             last )
 {
      TYPE  *src = buffer->data;
      __fsf *dst = dest;
-     long   i;
+     long   i   = 0;
 
 #ifdef FS_ENABLE_LINEAR_FILTER
      if (-inc < FS_PITCH_ONE) {
           /* upsample */
-          for (i = 0; i > max; i += inc) {
+          if (last)
+               max += FS_PITCH_ONE;
+
+          for (; i > max; i += inc) {
                long p = (i >> FS_PITCH_BITS) + pos;
-               long q;
 
                if (p <= -buffer->length)
                     p %= buffer->length;
                if (p < 0)
                     p += buffer->length;
-               q = p - 1;
                     
-               if (-i & (FS_PITCH_ONE-1) && q >= 0) {
+               if (-i & (FS_PITCH_ONE-1)) {
                     __fsf w, sl, sr;
+                    long  q = p - 1;
                     
+                    if (q == -1)
+                         q += buffer->length;
                     p <<= 1;
                     q <<= 1;
                          
@@ -310,11 +335,12 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
                dst += 2;
           } 
           
-          return (int)(dst - dest);
+          if (last)
+               max -= FS_PITCH_ONE;
      }
 #endif /* FS_ENABLE_LINEAR_FILTER */
 
-     for (i = 0; i > max; i += inc) {
+     for (; i > max; i += inc) {
           long p = (i >> FS_PITCH_BITS) + pos;
 
           if (p <= -buffer->length)
