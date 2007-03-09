@@ -171,7 +171,10 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
           }
 
           /* Update input parameters. */
-          sample_data += bytes;
+          sample_data += bytes;           
+          /* Update amount of pending frames. */
+          if (data->pending)
+               data->pending -= num;
      }
 
      pthread_mutex_unlock( &data->lock );
@@ -418,7 +421,7 @@ IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
 
      D_ASSERT( length <= data->size - data->filled );
 
-     while (length && data->pending) {
+     while (length) {
           int num = MIN( length, data->size - data->pos_write );
 
           /* Write data. */
@@ -451,10 +454,6 @@ IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
 
           /* Update the fill level. */
           data->filled += num;
-          
-          /* Update amount of pending frames. */
-          if (data->pending)
-               data->pending -= num;
      }
 
      if (ret_bytes)
