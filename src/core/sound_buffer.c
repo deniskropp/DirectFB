@@ -260,12 +260,11 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
                  int             *ret_num,
                  int             *ret_len )
 {
-     DFBResult  ret  = DFB_OK;
-     bool       last = false;
      long long  inc;
      long long  max;
      int        num;
      int        len;
+     bool       last = false;
 
      D_ASSERT( buffer != NULL );
      D_ASSERT( buffer->data != NULL );
@@ -303,7 +302,6 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
                if (max <= tmp) {
                     max  = tmp;
                     last = true;
-                    ret  = DFB_BUFFEREMPTY;
                }
           } else {
                /* Make sure stop position is greater than start position. */
@@ -313,7 +311,6 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
                if (max >= tmp) {
                     max  = tmp;
                     last = true;
-                    ret  = DFB_BUFFEREMPTY;
                }
           }
      }
@@ -353,6 +350,6 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
      D_DEBUG( "FusionSound/Core: %s ... mixed %d (%d/%d).\n",
               __FUNCTION__, ABS(num), len >> 1, max_samples >> 1 ); 
 
-     return ret;
+     return last ? DFB_BUFFEREMPTY : DFB_OK;
 }
 
