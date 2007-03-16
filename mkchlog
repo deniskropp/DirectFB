@@ -37,11 +37,11 @@ while (<>) {
 	($ignore, $revision) = split;
 	@junk = split(/\./, $revision);
     } elsif (/^date: /) {
-	($ignore, $date, $time, $ignore, $ignore, $author, $ignore, $ignore,
-	 $ignore, $plus, $minus, $ignore) = split;
+	($ignore, $date, $time, $ignore, $author, $ignore, $ignore,
+	 $ignore, $plus, $minus, $ignore, $ignore, $ignore, $commitid) = split;
 	$time =~ s/:[0-9][0-9];$//;
 	$author =~ s/;$//;
-	$datetimeauthor = "$date $time $author";
+	$datetimeauthor = "$date $time $author $commitid";
 	$body = "";
 	$firstline = 1;
 	while (<>) {
