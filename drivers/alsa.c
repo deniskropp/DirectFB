@@ -262,6 +262,10 @@ device_write( void *device_data, void *samples, unsigned int size )
      src = samples;
      while (frames) {
           r = snd_pcm_writei( data->handle, src, frames );
+          if (r == -ESTRPIPE) {
+               while ((r = snd_pcm_resume( data->handle )) == -EAGAIN)
+                    sleep( 1 );
+          }
           if (r < 0) {
                r = snd_pcm_prepare( data->handle );
                if (r < 0) {
