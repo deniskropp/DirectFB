@@ -326,6 +326,11 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
           rect = dst_data->area.wanted;
      }
 
+     if (setjmp( data->png_ptr->jmpbuf )) {
+          D_ERROR( "ImageProvider/JPEG: Error during decoding!\n" );
+          return DFB_FAILURE;
+     }
+
      /* Read until image is completely decoded. */
      ret = push_data_until_stage( data, STAGE_END, 16384 );
      if (ret)
