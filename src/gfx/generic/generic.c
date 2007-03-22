@@ -6327,19 +6327,20 @@ Bop_rgb24_to_Aop_rgb16_LE( GenefxState *gfxs )
           }
      }
      else {
-          int  n;
           u32 *S32 = (u32*)S;
           u32 *D32 = (u32*)D;
 
-          for (n=0; n<w-1; n+=2) {
+          while (w > 3) {
+               D32[0] = BGR_TO_RGB16(  S32[0] ) | (BGR_TO_RGB16( (S32[0] >> 24) | (S32[1] <<  8) ) << 16);
+               D32[1] = BGR_TO_RGB16( (S32[1] >> 16) | (S32[2] << 16) ) | (BGR_TO_RGB16( S32[2] >> 8 ) << 16);
 
-               D32[n+0] = BGR_TO_RGB16(  S32[0] ) | (BGR_TO_RGB16( (S32[0] >> 24) | (S32[1] <<  8) ) << 16);
-               D32[n+1] = BGR_TO_RGB16( (S32[1] >> 16) | (S32[2] << 16) ) | (BGR_TO_RGB16( S32[2] >> 8 ) << 16);
-
-               w -= 4;
-               D += 2;
-               S += 12;
+               D32 += 2;
+               S32 += 3;
+               w   -= 4;
           }
+
+          S = (u8*)  S32;
+          D = (u16*) D32;
      }
 
      while (w > 0) {
