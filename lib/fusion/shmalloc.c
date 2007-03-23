@@ -50,6 +50,8 @@
 
 #if DIRECT_BUILD_DEBUGS  /* Build with debug support? */
 
+D_DEBUG_DOMAIN( Fusion_SHM, "Fusion/SHM", "Fusion Shared Memory" );
+
 void
 fusion_dbg_print_memleaks( FusionSHMPoolShared *pool )
 {
@@ -120,8 +122,6 @@ fusion_dbg_shmalloc( FusionSHMPoolShared *pool,
      if (!pool->debug)
           return fusion_shmalloc( pool, __size );
 
-     D_HEAVYDEBUG("Fusion/SHM: allocating %7d bytes in %s (%s: %u)\n", __size, func, file, line);
-
      /* Lock the pool. */
      ret = fusion_skirmish_prevail( &pool->lock );
      if (ret) {
@@ -139,6 +139,10 @@ fusion_dbg_shmalloc( FusionSHMPoolShared *pool,
 
      /* Fill description. */
      desc = fill_shmem_desc( data, __size, func, file, line, _fusion_id(pool->shm->world) );
+
+     D_DEBUG_AT( Fusion_SHM, "allocating %9d bytes at %p [%8lu] in %-30s [%3lx] (%s: %u)\n",
+                 desc->bytes, desc->mem, (ulong)desc->mem - (ulong)pool->heap,
+                 desc->func, desc->fid, desc->file, desc->line );
 
      /* Add description to list. */
      direct_list_append( &pool->allocs, &desc->link );
@@ -169,8 +173,6 @@ fusion_dbg_shcalloc( FusionSHMPoolShared *pool,
      if (!pool->debug)
           return fusion_shcalloc( pool, __nmemb, __size );
 
-     D_HEAVYDEBUG("Fusion/SHM: allocating %7d bytes in %s (%s: %u)\n", __size, func, file, line);
-
      /* Lock the pool. */
      ret = fusion_skirmish_prevail( &pool->lock );
      if (ret) {
@@ -188,6 +190,10 @@ fusion_dbg_shcalloc( FusionSHMPoolShared *pool,
 
      /* Fill description. */
      desc = fill_shmem_desc( data, __nmemb * __size, func, file, line, _fusion_id(pool->shm->world) );
+
+     D_DEBUG_AT( Fusion_SHM, "allocating %9d bytes at %p [%8lu] in %-30s [%3lx] (%s: %u)\n",
+                 desc->bytes, desc->mem, (ulong)desc->mem - (ulong)pool->heap,
+                 desc->func, desc->fid, desc->file, desc->line );
 
      /* Add description to list. */
      direct_list_append( &pool->allocs, &desc->link );
@@ -262,6 +268,10 @@ fusion_dbg_shrealloc( FusionSHMPoolShared *pool,
      /* Fill description. */
      desc = fill_shmem_desc( data, __size, func, file, line, _fusion_id(pool->shm->world) );
 
+     D_DEBUG_AT( Fusion_SHM, "reallocating %9d bytes at %p [%8lu] in %-30s [%3lx] (%s: %u) '%s'\n",
+                 desc->bytes, desc->mem, (ulong)desc->mem - (ulong)pool->heap,
+                 desc->func, desc->fid, desc->file, desc->line, what );
+
      /* Add description to list. */
      direct_list_append( &pool->allocs, &desc->link );
 
@@ -310,6 +320,10 @@ fusion_dbg_shfree( FusionSHMPoolShared *pool,
           return; /* shouldn't happen due to the break */
      }
 
+     D_DEBUG_AT( Fusion_SHM, "freeing %9d bytes at %p [%8lu] in %-30s [%3lx] (%s: %u) '%s'\n",
+                 desc->bytes, desc->mem, (ulong)desc->mem - (ulong)pool->heap,
+                 desc->func, desc->fid, desc->file, desc->line, what );
+
      /* Remove the description. */
      direct_list_remove( &pool->allocs, &desc->link );
 
@@ -342,8 +356,6 @@ fusion_dbg_shstrdup( FusionSHMPoolShared *pool,
 
      length = strlen( string ) + 1;
 
-     D_HEAVYDEBUG("Fusion/SHM: allocating %7d bytes in %s (%s: %u)\n", length, func, file, line);
-
      /* Lock the pool. */
      ret = fusion_skirmish_prevail( &pool->lock );
      if (ret) {
@@ -361,6 +373,12 @@ fusion_dbg_shstrdup( FusionSHMPoolShared *pool,
 
      /* Fill description. */
      desc = fill_shmem_desc( data, length, func, file, line, _fusion_id(pool->shm->world) );
+
+     D_DEBUG_AT( Fusion_SHM, "allocating %9d bytes at %p [%8lu] in %-30s [%3lx] (%s: %u) <- \"%s\"\n",
+                 desc->bytes, desc->mem, (ulong)desc->mem - (ulong)pool->heap,
+                 desc->func, desc->fid, desc->file, desc->line, string );
+
+     D_DEBUG_AT( Fusion_SHM, "  -> allocs: %p\n", pool->allocs );
 
      /* Add description to list. */
      direct_list_append( &pool->allocs, &desc->link );

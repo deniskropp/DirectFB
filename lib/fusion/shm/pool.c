@@ -128,6 +128,11 @@ fusion_shm_pool_create( FusionWorld          *world,
 
      D_DEBUG_AT( Fusion_SHMPool, "  -> index %d\n", i );
 
+     memset( &shm->pools[i], 0, sizeof(FusionSHMPool) );
+     memset( &shared->pools[i], 0, sizeof(FusionSHMPoolShared) );
+
+     shared->pools[i].index = i;
+
      ret = init_pool( shm, &shm->pools[i], &shared->pools[i], name, max_size, debug );
      if (ret)
           goto error;
@@ -424,6 +429,9 @@ init_pool( FusionSHM           *shm,
      world = shm->world;
 
      D_MAGIC_ASSERT( world, FusionWorld );
+
+     D_ASSERT( pool != NULL );
+     D_ASSERT( shared != NULL );
 
      /* Fill out information for new pool. */
      pool_new.max_size = max_size;
