@@ -98,7 +98,7 @@ typedef float __fsf;
 ) 
 #else
 # define fsf_dither_profile( p )
-# define fsf_dither( s, b, p )  (s)
+# define fsf_dither( s, b, p )  ((s) + (1.0f / (float)(1 << (b))))
 #endif
 
 #else /* !FS_USE_IEEE_FLOATS (Fixed Point) */
@@ -206,7 +206,7 @@ typedef signed long __fsf;
 )
 #else
 # define fsf_dither_profile( p )
-# define fsf_dither( s, b, p )  (s)
+# define fsf_dither( s, b, p )  ((s) + (1 << (FSF_DECIBITS-(b))))
 #endif
 
 #endif /* FS_USE_IEEE_FLOATS */
