@@ -97,6 +97,16 @@ void direct_thread_cancel     ( DirectThread *thread );
 bool direct_thread_is_canceled( DirectThread *thread );
 
 /*
+ * Detach a thread.
+ */
+void direct_thread_detach     ( DirectThread *thread );
+
+/*
+ * Returns true if the specified thread has been detached.
+ */
+bool direct_thread_is_detached( DirectThread *thread );
+
+/*
  * Check if the calling thread is canceled.
  * Must not be called by other threads than 'thread'.
  * This function won't return if the thread is canceled.

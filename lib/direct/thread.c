@@ -69,6 +69,7 @@ struct __D_DirectThread {
      bool                  canceled; /* Set when direct_thread_cancel() is called. */
      bool                  joining;  /* Set when direct_thread_join() is called. */
      bool                  joined;   /* Set when direct_thread_join() has finished. */
+     bool                  detached; /* Set when direct_thread_detach() is called. */
 
 #ifdef DIRECT_THREAD_WAIT_INIT
      bool                  init;     /* Set to true before calling the main routine. */
@@ -314,6 +315,30 @@ direct_thread_is_canceled( DirectThread *thread )
 }
 
 void
+direct_thread_detach( DirectThread *thread )
+{
+     D_MAGIC_ASSERT( thread, DirectThread );
+     D_ASSERT( thread->thread != -1 );
+     D_ASSERT( !pthread_equal( thread->thread, pthread_self() ) );
+
+     D_ASSUME( !thread->canceled );
+
+     D_DEBUG_AT( Direct_Thread, "Detaching %d.\n", thread->tid );
+
+     thread->detached = true;
+
+     pthread_detach( thread->thread );
+}
+
+bool
+direct_thread_is_detached( DirectThread *thread )
+{
+     D_MAGIC_ASSERT( thread, DirectThread );
+
+     return thread->detached;
+}
+
+void
 direct_thread_testcancel( DirectThread *thread )
 {
      D_MAGIC_ASSERT( thread, DirectThread );
@@ -334,6 +359,10 @@ direct_thread_join( DirectThread *thread )
      D_ASSUME( !pthread_equal( thread->thread, pthread_self() ) );
      D_ASSUME( !thread->joining );
      D_ASSUME( !thread->joined );
+     D_ASSUME( !thread->detached );
+
+     if (thread->detached)
+          return;
 
      if (!thread->joining && !pthread_equal( thread->thread, pthread_self() )) {
           thread->joining = true;
@@ -363,6 +392,10 @@ direct_thread_destroy( DirectThread *thread )
 
      D_ASSUME( !pthread_equal( thread->thread, pthread_self() ) );
      //D_ASSUME( thread->joined );
+     D_ASSUME( !thread->detached );
+
+     if (thread->detached)
+          return;
 
      if (!thread->joined && !pthread_equal( thread->thread, pthread_self() )) {
           if (thread->canceled)
@@ -417,7 +450,23 @@ thread_type_name( DirectThreadType type )
 
 /******************************************************************************/
 
-__attribute__((no_instrument_function))
+static void
+direct_thread_cleanup( void *arg )
+{
+     DirectThread *thread = arg;
+
+     D_MAGIC_ASSERT( thread, DirectThread );
+
+     if (thread->detached) {
+          D_MAGIC_CLEAR( thread );
+
+          D_FREE( thread->name );
+          D_FREE( thread );
+     }
+}
+
+/******************************************************************************/
+
 static void *
 direct_thread_main( void *arg )
 {
@@ -426,6 +475,9 @@ direct_thread_main( void *arg )
      DirectThreadInitHandler *handler;
 
      D_MAGIC_ASSERT( thread, DirectThread );
+
+     pthread_cleanup_push( direct_thread_cleanup, thread );
+
 
      pthread_setspecific( thread_key, thread );
 
@@ -495,6 +547,8 @@ direct_thread_main( void *arg )
                  ret, thread->name, thread_type_name(thread->type), thread->tid );
 
      D_MAGIC_ASSERT( thread, DirectThread );
+
+     pthread_cleanup_pop( 1 );
 
      return ret;
 }
