@@ -230,6 +230,14 @@ fusion_hash_destroy( FusionHash *hash )
           SHFREE( hash->pool, hash );
 }
 
+void
+fusion_hash_set_autofree( FusionHash *hash, bool free_keys, bool free_values )
+{
+     D_MAGIC_ASSERT( hash, FusionHash );
+
+     hash->free_keys   = free_keys;
+     hash->free_values = free_values;
+}
 
 /**
  * fusion_hash_lookup:
@@ -323,19 +331,23 @@ fusion_hash_replace (FusionHash *hash,
           if ( old_key)
                *old_key = (*node)->key;
           else if ( hash->key_type != HASH_INT ) {
-               if (hash->local)
-                    D_FREE((*node)->key);
-               else
-                    SHFREE(hash->pool, (*node)->key );
+               if (hash->free_keys) {
+                    if (hash->local)
+                         D_FREE((*node)->key);
+                    else
+                         SHFREE(hash->pool, (*node)->key );
+               }
           }
 
           if ( old_value)
                *old_value = (*node)->value;
           else if ( hash->value_type != HASH_INT ) {
-               if (hash->local)
-                    D_FREE((*node)->value);
-               else
-                    SHFREE(hash->pool, (*node)->value );
+               if (hash->free_values) {
+                    if (hash->local)
+                         D_FREE((*node)->value);
+                    else
+                         SHFREE(hash->pool, (*node)->value );
+               }
           }
      }
      else {
@@ -521,19 +533,23 @@ fusion_hash_node_destroy (FusionHash *hash,FusionHashNode *node,
      if ( old_key)
           *old_key = node->key;
      else if ( hash->key_type != HASH_INT ) {
-          if ( hash->local)
-               D_FREE(node->key );
-          else
-               SHFREE(hash->pool,node->key );
+          if (hash->free_keys) {
+               if ( hash->local)
+                    D_FREE(node->key );
+               else
+                    SHFREE(hash->pool,node->key );
+          }
      }
 
      if ( old_value)
           *old_value = node->value;
      else if ( hash->value_type != HASH_INT ) {
-          if ( hash->local)
-               D_FREE(node->value );
-          else
-               SHFREE(hash->pool,node->value );
+          if (hash->free_keys) {
+               if ( hash->local)
+                    D_FREE(node->value );
+               else
+                    SHFREE(hash->pool,node->value );
+          }
      }
 
      if ( hash->local)

@@ -80,6 +80,9 @@ struct __Fusion_FusionHash
     int             nnodes;
     FusionHashNode      **nodes;
     FusionSHMPoolShared *pool;
+
+    bool  free_keys;
+    bool  free_values;
 };
 
 typedef bool (*FusionHashIteratorFunc)( FusionHash *hash,
@@ -118,6 +121,9 @@ fusion_hash_replace (FusionHash *hash,
                      void **old_value);
 void
 fusion_hash_destroy( FusionHash *hash );
+
+void
+fusion_hash_set_autofree( FusionHash *hash, bool free_keys, bool free_values );
 
 void *
 fusion_hash_lookup (FusionHash *hash, const void * key);
