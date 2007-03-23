@@ -619,7 +619,7 @@ leave_pool( FusionSHM           *shm,
      if (munmap( shared->addr_base, shared->max_size ))
           D_PERROR( "Fusion/SHM: Could not munmap shared memory file '%s'!\n", pool->filename );
 
-     if (close( pool->fd ))
+     if (pool->fd != -1 && close( pool->fd ))
           D_PERROR( "Fusion/SHM: Could not close shared memory file '%s'!\n", pool->filename );
 
      pool->attached = false;
@@ -660,7 +660,7 @@ shutdown_pool( FusionSHM           *shm,
      if (munmap( shared->addr_base, shared->max_size ))
           D_PERROR( "Fusion/SHM: Could not munmap shared memory file '%s'!\n", pool->filename );
 
-     if (close( pool->fd ))
+     if (pool->fd != -1 && close( pool->fd ))
           D_PERROR( "Fusion/SHM: Could not close shared memory file '%s'!\n", pool->filename );
 
      if (unlink( pool->filename ))

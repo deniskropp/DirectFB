@@ -659,6 +659,9 @@ __shmalloc_init_heap( FusionSHM  *shm,
           goto error;
      }
 
+     close( fd );
+     fd = -1;
+
      if (heap != addr_base) {
           D_ERROR( "Fusion/SHM: mmap() returned address (%p) differs from requested (%p)\n", heap, addr_base );
           ret = DFB_FUSION;
@@ -738,6 +741,9 @@ __shmalloc_join_heap( FusionSHM  *shm,
           goto error;
      }
 
+     close( fd );
+     fd = -1;
+
      if (heap != addr_base) {
           D_ERROR( "Fusion/SHM: mmap() returned address (%p) differs from requested (%p)\n", heap, addr_base );
           ret = DFB_FUSION;
@@ -791,13 +797,15 @@ __shmalloc_brk( shmalloc_heap *heap, int increment )
           int new_size = heap->size + increment;
 
           if (new_size > shared->max_size) {
-               D_WARN( "maximum shared memory size exceeded!" );
+               D_WARN( "maximum shared memory file size (%dk) exceeded (%dk by %dk) in '%s'!",
+                       shared->max_size >> 10, new_size >> 10, increment >> 10, pool->filename );
                fusion_dbg_print_memleaks( shared );
                return NULL;
           }
 
-          if (ftruncate( pool->fd, new_size ) < 0) {
-               D_PERROR( "Fusion/SHM: ftruncating shared memory file failed!\n" );
+          if (truncate( pool->filename, new_size ) < 0) {
+               D_PERROR( "Fusion/SHM: truncating shared memory file '%s' from %dkb to %dkb failed!\n",
+                         pool->filename, heap->size >> 10, new_size >> 10 );
                return NULL;
           }
 
