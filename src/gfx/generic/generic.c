@@ -5012,6 +5012,7 @@ static void Bop_a8_set_alphapixel_Aop_alut44( GenefxState *gfxs )
 #undef SET_PIXEL
 }
 
+#undef SET_PIXEL_DUFFS_DEVICE
 
 static GenefxFunc Bop_a8_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_a8_set_alphapixel_Aop_argb1555,          /* DSPF_ARGB1555 */
@@ -5988,6 +5989,24 @@ static void Dacc_RGB_to_YCbCr_C( GenefxState *gfxs )
 
 static GenefxFunc Dacc_RGB_to_YCbCr = Dacc_RGB_to_YCbCr_C;
 
+/* change the last value to adjust the size of the device (1-4) */
+#define SET_PIXEL_DUFFS_DEVICE( D, S, w ) \
+     SET_PIXEL_DUFFS_DEVICE_N( D, S, w, 3 )
+
+#define SET_PIXEL( D, S )               \
+     switch (S >> 26) {                 \
+          case 0:                       \
+               break;                   \
+          case 0x3f:                    \
+               D = RGB32_TO_RGB16( S ); \
+               break;                   \
+          default:                      \
+               D = (((( (((S>>8) & 0xf800) | ((S>>3) & 0x001f))                                     \
+                        - (D & 0xf81f)) * ((S>>26)+1) + ((D & 0xf81f)<<6)) & 0x003e07c0)            \
+                      +                                                                             \
+                    ((( ((S>>5) & 0x07e0)                                                           \
+                        - (D & 0x07e0)) * ((S>>26)+1) + ((D & 0x07e0)<<6)) & 0x0001f800)) >> 6;     \
+     } while (0)
 
 static void Bop_argb_blend_alphachannel_src_invsrc_Aop_rgb16( GenefxState *gfxs )
 {
@@ -5995,21 +6014,11 @@ static void Bop_argb_blend_alphachannel_src_invsrc_Aop_rgb16( GenefxState *gfxs 
      u32 *S = gfxs->Bop[0];
      u16 *D = gfxs->Aop[0];
 
-     while (w--) {
-          u16 dp16   = *D;
-          u32 sp32   = *S++;
-          int salpha = (sp32 >> 26) + 1;
-
-#define rb (((sp32 >> 8) & 0xf800) | ((sp32 >> 3) & 0x001f))
-#define g   ((sp32 >> 5) & 0x07e0)
-
-          *D++ = ((((rb-(dp16 & 0xf81f))*salpha+((dp16 & 0xf81f)<<6)) & 0x003e07c0) +
-                  ((( g-(dp16 & 0x07e0))*salpha+((dp16 & 0x07e0)<<6)) & 0x0001f800)) >> 6;
-
-#undef rb
-#undef g
-     }
+     SET_PIXEL_DUFFS_DEVICE( D, S, w );
 }
+
+#undef SET_PIXEL_DUFFS_DEVICE
+#undef SET_PIXEL
 
 static void Bop_argb_blend_alphachannel_src_invsrc_Aop_rgb32( GenefxState *gfxs )
 {
