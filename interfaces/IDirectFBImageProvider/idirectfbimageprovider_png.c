@@ -327,7 +327,7 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
      }
 
      if (setjmp( data->png_ptr->jmpbuf )) {
-          D_ERROR( "ImageProvider/JPEG: Error during decoding!\n" );
+          D_ERROR( "ImageProvider/PNG: Error during decoding!\n" );
           return DFB_FAILURE;
      }
 
