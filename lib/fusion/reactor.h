@@ -47,7 +47,7 @@ typedef struct {
      DirectLink    link;
      ReactionFunc  func;
      void         *ctx;
-     bool          attached;
+     void         *node_link;
 } Reaction;
 
 typedef struct {

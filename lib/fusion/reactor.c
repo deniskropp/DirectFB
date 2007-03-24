@@ -81,18 +81,27 @@ typedef struct {
 
      int                magic;
 
-     pthread_mutex_t    lock;
+     pthread_rwlock_t   lock;
 
      int                reactor_id;
      FusionReactor     *reactor;
 
-     DirectLink        *reactions; /* reactor listeners attached to node  */
+     DirectLink        *links; /* reactor listeners attached to node  */
 } ReactorNode;
+
+typedef struct {
+     DirectLink         link;
+
+     int                magic;
+
+     Reaction          *reaction;
+} NodeLink;
 
 /**************************************************************************************************/
 
 static ReactorNode *lock_node      ( int                 reactor_id,
                                      bool                add_it,
+                                     bool                wlock,
                                      FusionReactor      *reactor, /* one of reactor and world must not be NULL */
                                      FusionWorld        *world );
 
@@ -150,6 +159,7 @@ fusion_reactor_new( int                msg_size,
                  reactor, reactor->id, reactor->globals_lock, reactor->globals_lock->multi.id );
 
      reactor->shared = shared;
+     reactor->direct = true;
 
      D_MAGIC_SET( reactor, FusionReactor );
 
@@ -270,6 +280,7 @@ fusion_reactor_attach( FusionReactor *reactor,
                        Reaction      *reaction )
 {
      ReactorNode *node;
+     NodeLink    *link;
 
      D_MAGIC_ASSERT( reactor, FusionReactor );
 
@@ -280,9 +291,15 @@ fusion_reactor_attach( FusionReactor *reactor,
                  "fusion_reactor_attach( %p [%d], func %p, ctx %p, reaction %p )\n",
                  reactor, reactor->id, func, ctx, reaction );
 
-     node = lock_node( reactor->id, true, reactor, NULL );
-     if (!node)
+     link = D_CALLOC( 1, sizeof(NodeLink) );
+     if (!link)
+          return D_OOM();
+
+     node = lock_node( reactor->id, true, true, reactor, NULL );
+     if (!node) {
+          D_FREE( link );
           return DFB_FUSION;
+     }
 
      while (ioctl( _fusion_fd( reactor->shared ), FUSION_REACTOR_ATTACH, &reactor->id )) {
           switch (errno) {
@@ -292,25 +309,47 @@ fusion_reactor_attach( FusionReactor *reactor,
                case EINVAL:
                     D_ERROR( "Fusion/Reactor: invalid reactor\n" );
                     unlock_node( node );
+                    D_FREE( link );
                     return DFB_DESTROYED;
           }
 
           D_PERROR( "FUSION_REACTOR_ATTACH" );
           unlock_node( node );
+          D_FREE( link );
           return DFB_FUSION;
      }
 
      /* fill out callback information */
-     reaction->func     = func;
-     reaction->ctx      = ctx;
-     reaction->attached = true;
+     reaction->func      = func;
+     reaction->ctx       = ctx;
+     reaction->node_link = link;
+
+     link->reaction = reaction;
+
+     D_MAGIC_SET( link, NodeLink );
 
      /* prepend the reaction to the local reaction list */
-     direct_list_prepend( &node->reactions, &reaction->link );
+     direct_list_prepend( &node->links, &link->link );
 
      unlock_node( node );
 
      return DFB_OK;
+}
+
+static void
+remove_node_link( ReactorNode *node,
+                  NodeLink    *link )
+{
+     D_MAGIC_ASSERT( node, ReactorNode );
+     D_MAGIC_ASSERT( link, NodeLink );
+
+     D_ASSUME( link->reaction == NULL );
+
+     direct_list_remove( &node->links, &link->link );
+
+     D_MAGIC_CLEAR( link );
+
+     D_FREE( link );
 }
 
 DirectResult
@@ -318,6 +357,7 @@ fusion_reactor_detach (FusionReactor *reactor,
                        Reaction      *reaction)
 {
      ReactorNode *node;
+     NodeLink    *link;
 
      D_MAGIC_ASSERT( reactor, FusionReactor );
 
@@ -327,18 +367,23 @@ fusion_reactor_detach (FusionReactor *reactor,
                  "fusion_reactor_detach( %p [%d], reaction %p ) <- func %p, ctx %p\n",
                  reactor, reactor->id, reaction, reaction->func, reaction->ctx );
 
-     node = lock_node( reactor->id, false, reactor, NULL );
+     node = lock_node( reactor->id, false, true, reactor, NULL );
      if (!node) {
           D_BUG( "node not found" );
           return DFB_BUG;
      }
 
-     D_ASSUME( reaction->attached );
+     link = reaction->node_link;
+     D_ASSUME( link != NULL );
 
-     if (reaction->attached) {
-          reaction->attached = false;
+     if (link) {
+          D_ASSERT( link->reaction == reaction );
 
-          direct_list_remove( &node->reactions, &reaction->link );
+          reaction->node_link = NULL;
+
+          link->reaction = NULL;
+
+          remove_node_link( node, link );
 
           while (ioctl( _fusion_fd( reactor->shared ), FUSION_REACTOR_DETACH, &reactor->id )) {
                switch (errno) {
@@ -540,7 +585,7 @@ fusion_reactor_direct( FusionReactor *reactor, bool direct )
 void
 _fusion_reactor_free_all( FusionWorld *world )
 {
-     ReactorNode *node, *next;
+     ReactorNode *node;
 
      D_MAGIC_ASSERT( world, FusionWorld );
 
@@ -549,8 +594,27 @@ _fusion_reactor_free_all( FusionWorld *world )
 
      pthread_mutex_lock( &world->reactor_nodes_lock );
 
-     direct_list_foreach_safe (node, next, world->reactor_nodes)
+     direct_list_foreach (node, world->reactor_nodes) {
+          NodeLink *link;
+
+          D_MAGIC_ASSERT( node, ReactorNode );
+
+          pthread_rwlock_wrlock( &node->lock );
+
+          direct_list_foreach (link, node->links) {
+               D_MAGIC_ASSERT( link, NodeLink );
+
+               D_MAGIC_CLEAR( link );
+
+               D_FREE( link );
+          }
+
+          pthread_rwlock_unlock( &node->lock );
+
+          D_MAGIC_CLEAR( node );
+
           D_FREE( node );
+     }
 
      world->reactor_nodes = NULL;
 
@@ -562,9 +626,8 @@ _fusion_reactor_process_message( FusionWorld *world,
                                  int          reactor_id,
                                  const void  *msg_data )
 {
-     DirectLink  *n;
-     Reaction    *reaction;
      ReactorNode *node;
+     NodeLink    *link;
 
      D_MAGIC_ASSERT( world, FusionWorld );
      D_ASSERT( msg_data != NULL );
@@ -573,37 +636,40 @@ _fusion_reactor_process_message( FusionWorld *world,
                  "  _fusion_reactor_process_message( [%d], msg_data %p )\n", reactor_id, msg_data );
 
      /* Find the local counter part of the reactor. */
-     node = lock_node( reactor_id, false, NULL, world );
+     node = lock_node( reactor_id, false, false, NULL, world );
      if (!node)
           return;
 
      D_DEBUG_AT( Fusion_Reactor, "    -> node %p, reactor %p\n", node, node->reactor );
 
-     D_ASSUME( node->reactions != NULL );
+     D_ASSUME( node->links != NULL );
 
-     if (!node->reactions) {
+     if (!node->links) {
           D_DEBUG_AT( Fusion_Reactor, "    -> no local reactions!?!\n" );
           unlock_node( node );
           return;
      }
 
-     direct_list_foreach_safe (reaction, n, node->reactions) {
-          /* FIXME: don't cleanup asynchronously */
-          if (!reaction->attached) {
-               D_DEBUG_AT( Fusion_Reactor, "    -> cleaning up %p, func %p, ctx %p\n",
-                           reaction, reaction->func, reaction->ctx );
+     direct_list_foreach (link, node->links) {
+          Reaction *reaction;
 
-               direct_list_remove( &node->reactions, &reaction->link );
+          D_MAGIC_ASSERT( link, NodeLink );
+
+          reaction = link->reaction;
+          if (!reaction)
                continue;
-          }
 
           if (reaction->func( msg_data, reaction->ctx ) == RS_REMOVE) {
                D_DEBUG_AT( Fusion_Reactor, "    -> removing %p, func %p, ctx %p\n",
                            reaction, reaction->func, reaction->ctx );
 
-               reaction->attached = false;
+               /* FIXME: we can't do that when the underlying struct was freed before RS_REMOVE
+                  is returned, but this is not really required anyways, just for protection. */
+               //reaction->node_link = NULL;
 
-               direct_list_remove( &node->reactions, &reaction->link );
+               link->reaction = NULL;
+
+               /* We can't remove the link as we only have read lock, to avoid dead locks. */
 
                while (ioctl( world->fusion_fd, FUSION_REACTOR_DETACH, &reactor_id )) {
                     switch (errno) {
@@ -693,7 +759,7 @@ process_globals( FusionReactor      *reactor,
  *****************************/
 
 static ReactorNode *
-lock_node( int reactor_id, bool add_it, FusionReactor *reactor, FusionWorld *world )
+lock_node( int reactor_id, bool add_it, bool wlock, FusionReactor *reactor, FusionWorld *world )
 {
      DirectLink        *n;
      ReactorNode       *node;
@@ -727,17 +793,41 @@ lock_node( int reactor_id, bool add_it, FusionReactor *reactor, FusionWorld *wor
      pthread_mutex_lock( &world->reactor_nodes_lock );
 
      direct_list_foreach_safe (node, n, world->reactor_nodes) {
+          D_MAGIC_ASSERT( node, ReactorNode );
+
           if (node->reactor_id == reactor_id) {
-               pthread_mutex_lock( &node->lock );
+               if (wlock) {
+                    DirectLink *n;
+                    NodeLink   *link;
+
+                    pthread_rwlock_wrlock( &node->lock );
+
+                    /* FIXME: don't cleanup asynchronously */
+                    direct_list_foreach_safe (link, n, node->links) {
+                         D_MAGIC_ASSERT( link, NodeLink );
+
+                         if (!link->reaction) {
+                              D_DEBUG_AT( Fusion_Reactor, "    -> cleaning up %p\n", link );
+                         
+                              remove_node_link( node, link );
+                         }
+                         else
+                              D_ASSERT( link->reaction->node_link == link );
+                    }
+               }
+               else
+                    pthread_rwlock_rdlock( &node->lock );
 
                /* FIXME: Don't cleanup asynchronously. */
-               if (!node->reactions && !add_it) {
+               if (!node->links && !add_it) {
 //                    D_DEBUG_AT( Fusion_Reactor, "      -> cleaning up mine %p\n", node );
 
                     direct_list_remove( &world->reactor_nodes, &node->link );
 
-                    pthread_mutex_unlock( &node->lock );
-                    pthread_mutex_destroy( &node->lock );
+                    pthread_rwlock_unlock( &node->lock );
+                    pthread_rwlock_destroy( &node->lock );
+
+                    D_MAGIC_CLEAR( node );
 
                     D_FREE( node );
 
@@ -758,14 +848,16 @@ lock_node( int reactor_id, bool add_it, FusionReactor *reactor, FusionWorld *wor
           }
 
           /* FIXME: Don't cleanup asynchronously. */
-          if (!pthread_mutex_trylock( &node->lock )) {
-               if (!node->reactions) {
+          if (!pthread_rwlock_trywrlock( &node->lock )) {
+               if (!node->links) {
 //                    D_DEBUG_AT( Fusion_Reactor, "      -> cleaning up other %p\n", node );
 
                     direct_list_remove( &world->reactor_nodes, &node->link );
 
-                    pthread_mutex_unlock( &node->lock );
-                    pthread_mutex_destroy( &node->lock );
+                    pthread_rwlock_unlock( &node->lock );
+                    pthread_rwlock_destroy( &node->lock );
+
+                    D_MAGIC_CLEAR( node );
 
                     D_FREE( node );
                }
@@ -773,7 +865,7 @@ lock_node( int reactor_id, bool add_it, FusionReactor *reactor, FusionWorld *wor
                     /*D_DEBUG_AT( Fusion_Reactor, "      -> keeping other %p (%d reactions)\n",
                                 node, direct_list_count_elements_EXPENSIVE( node->reactions ) );*/
 
-                    pthread_mutex_unlock( &node->lock );
+                    pthread_rwlock_unlock( &node->lock );
                }
           }
      }
@@ -789,13 +881,19 @@ lock_node( int reactor_id, bool add_it, FusionReactor *reactor, FusionWorld *wor
                return NULL;
           }
 
-          direct_util_recursive_pthread_mutex_init( &node->lock );
+          //direct_util_recursive_pthread_mutex_init( &node->lock );
+          pthread_rwlock_init( &node->lock, NULL );
 
 
-          pthread_mutex_lock( &node->lock );
+          if (wlock)
+               pthread_rwlock_wrlock( &node->lock );
+          else
+               pthread_rwlock_rdlock( &node->lock );
 
           node->reactor_id = reactor_id;
           node->reactor    = reactor;
+
+          D_MAGIC_SET( node, ReactorNode );
 
           direct_list_prepend( &world->reactor_nodes, &node->link );
 
@@ -819,7 +917,7 @@ unlock_node( ReactorNode *node )
 /*     D_DEBUG_AT( Fusion_Reactor, "    unlock_node( %p, reactor %p [%d] )\n",
                  node, node->reactor, node->reactor->id );*/
 
-     pthread_mutex_unlock( &node->lock );
+     pthread_rwlock_unlock( &node->lock );
 }
 
 #else /* FUSION_BUILD_MULTI */
