@@ -610,6 +610,7 @@ _fusion_reactor_free_all( FusionWorld *world )
           }
 
           pthread_rwlock_unlock( &node->lock );
+          pthread_rwlock_destroy( &node->lock );
 
           D_MAGIC_CLEAR( node );
 
