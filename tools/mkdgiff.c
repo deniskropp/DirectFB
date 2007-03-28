@@ -370,6 +370,9 @@ do_face( FT_Face face, int size )
 
      D_DEBUG_AT( mkdgiff, "%s( %p, %d ) <- %ld glyphs\n", __FUNCTION__, face, size, face->num_glyphs );
 
+     /* Clear to not leak any data into file. */
+     memset( &header, 0, sizeof(header) );
+
      /* Set the desired size. */
      ret = FT_Set_Char_Size( face, 0, size << 6, 0, 0 );
      if (ret) {
@@ -538,7 +541,8 @@ main( int argc, char *argv[] )
 
      direct_initialize();
 
-     direct_config->debug = true;
+     direct_config->debug    = true;
+     direct_config->debugmem = true;
 
      /* Parse the command line. */
      if (!parse_command_line( argc, argv ))
