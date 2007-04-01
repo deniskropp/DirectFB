@@ -51,17 +51,24 @@
 static inline void
 validate_clip( CardState *state,
                int        xmax,
-               int        ymax )
+               int        ymax,
+               bool       warn )
 {
      D_MAGIC_ASSERT( state, CardState );
-
      DFB_REGION_ASSERT( &state->clip );
+
+     D_ASSERT( xmax > 0 );
+     D_ASSERT( ymax > 0 );
 
      if (state->clip.x1 <= xmax &&
          state->clip.y1 <= ymax &&
          state->clip.x2 <= xmax &&
          state->clip.y2 <= ymax)
           return;
+
+     if (warn)
+          D_WARN( "Clip %d,%d-%dx%d invalid, adjusting to fit %dx%d",
+                  DFB_RECTANGLE_VALS_FROM_REGION( &state->clip ), xmax+1, ymax+1 );
 
      if (state->clip.x1 > xmax)
           state->clip.x1 = xmax;
@@ -148,7 +155,7 @@ dfb_state_set_destination( CardState *state, CoreSurface *destination )
                     return;
                }
 
-               validate_clip( state, destination->width - 1, destination->height - 1 );
+               validate_clip( state, destination->width - 1, destination->height - 1, false );
           }
 
           if (state->destination) {
@@ -207,21 +214,25 @@ dfb_state_set_source( CardState *state, CoreSurface *source )
 void
 dfb_state_update( CardState *state, bool update_source )
 {
-     D_MAGIC_ASSERT( state, CardState );
+     CoreSurface *destination;
 
+     D_MAGIC_ASSERT( state, CardState );
      DFB_REGION_ASSERT( &state->clip );
 
+     destination = state->destination;
+
      if (D_FLAGS_IS_SET( state->flags, CSF_DESTINATION )) {
-          CoreSurface *destination = state->destination;
 
           D_ASSERT( destination != NULL );
 
           if (direct_serial_update( &state->dst_serial, &destination->serial )) {
-               validate_clip( state, destination->width - 1, destination->height - 1 );
+               validate_clip( state, destination->width - 1, destination->height - 1, true );
 
                state->modified |= SMF_DESTINATION;
           }
      }
+     else if (destination)
+          validate_clip( state, destination->width - 1, destination->height - 1, true );
 
      if (update_source && D_FLAGS_IS_SET( state->flags, CSF_SOURCE )) {
           CoreSurface *source = state->source;
