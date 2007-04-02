@@ -57,8 +57,10 @@ validate_clip( CardState *state,
      D_MAGIC_ASSERT( state, CardState );
      DFB_REGION_ASSERT( &state->clip );
 
-     D_ASSERT( xmax > 0 );
-     D_ASSERT( ymax > 0 );
+     D_ASSERT( xmax >= 0 );
+     D_ASSERT( ymax >= 0 );
+     D_ASSERT( state->clip.x1 <= state->clip.x2 );
+     D_ASSERT( state->clip.y1 <= state->clip.y2 );
 
      if (state->clip.x1 <= xmax &&
          state->clip.y1 <= ymax &&
