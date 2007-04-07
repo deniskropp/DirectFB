@@ -45,6 +45,7 @@
 #include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
+#include <direct/util.h>
 #include <fusion/object.h>
 #include <fusion/shmalloc.h>
 #include <fusion/hash.h>
@@ -95,7 +96,7 @@ static const unsigned int primes[] =
 };
 
 
-static const unsigned int nprimes = sizeof (primes) / sizeof (primes[0]);
+static const unsigned int nprimes = D_ARRAY_SIZE( primes );
 
 static DirectResult
 fusion_hash_create_internal(bool type,FusionSHMPoolShared *pool,

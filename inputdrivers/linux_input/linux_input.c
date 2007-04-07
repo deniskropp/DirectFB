@@ -350,11 +350,11 @@ timeout_sub( struct timeval *timeout, struct timeval *sub );
 static int
 translate_key( unsigned short code )
 {
-     if (code < sizeof(basic_keycodes)/sizeof(basic_keycodes[0]))
+     if (code < D_ARRAY_SIZE( basic_keycodes ))
           return basic_keycodes[code];
 
      if (code >= KEY_OK)
-          if (code - KEY_OK < sizeof(ext_keycodes)/sizeof(ext_keycodes[0]))
+          if (code - KEY_OK < D_ARRAY_SIZE( ext_keycodes ))
                return ext_keycodes[code-KEY_OK];
 
      return DIKI_UNKNOWN;

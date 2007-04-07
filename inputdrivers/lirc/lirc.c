@@ -51,6 +51,7 @@
 #include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/thread.h>
+#include <direct/util.h>
 
 #include <core/input_driver.h>
 
@@ -90,7 +91,7 @@ static DFBInputDeviceKeySymbol lirc_parse_line(const char *line)
 
      if (!keynames_sorted) {
           qsort ( keynames,
-                  sizeof(keynames) / sizeof(keynames[0]),
+                  D_ARRAY_SIZE( keynames ),
                   sizeof(keynames[0]),
                   (__compar_fn_t) keynames_sort_compare );
           keynames_sorted = true;
@@ -117,7 +118,7 @@ static DFBInputDeviceKeySymbol lirc_parse_line(const char *line)
                return (DFBInputDeviceKeySymbol) name[0];
           default:
                symbol_name = bsearch( name, keynames,
-                                      sizeof(keynames)/sizeof(keynames[0]),
+                                      D_ARRAY_SIZE( keynames ),
                                       sizeof(keynames[0]),
                                       (__compar_fn_t) keynames_compare );
                if (symbol_name)

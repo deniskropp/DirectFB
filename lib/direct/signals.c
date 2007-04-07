@@ -73,7 +73,7 @@ static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, /*SIGPIPE,*/ /*SIGP
                                 SIGSEGV, SIGTRAP, /*SIGSYS, SIGEMT,*/ SIGBUS,
                                 SIGXCPU, SIGXFSZ };
 
-#define NUM_SIGS_TO_HANDLE ((int)(sizeof(sigs_to_handle)/sizeof(sigs_to_handle[0])))
+#define NUM_SIGS_TO_HANDLE ((int)D_ARRAY_SIZE( sigs_to_handle ))
 
 static SigHandled sigs_handled[NUM_SIGS_TO_HANDLE];
 

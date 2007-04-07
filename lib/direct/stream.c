@@ -848,7 +848,7 @@ static const RTPPayload payloads[] = {
    //{ -1, PAYLOAD_AUDIO, "mpeg4-generic", "audio/aac",    0x00ff },
 };
 
-#define NUM_PAYLOADS (sizeof(payloads)/sizeof(payloads[0]))
+#define NUM_PAYLOADS D_ARRAY_SIZE( payloads )
 
 static DirectResult
 sdp_parse( DirectStream *stream, int length, SDPStreamDesc **ret_streams, int *ret_num )

@@ -1209,7 +1209,7 @@ radeon_find_chipset( RadeonDriverData *rdrv, int *ret_devid, int *ret_index )
           if (ret_devid)
                *ret_devid = device_id;        
           
-          for (i = 0; i < sizeof(dev_table)/sizeof(dev_table[0]); i++) {
+          for (i = 0; i < D_ARRAY_SIZE( dev_table ); i++) {
                if ((unsigned int)dev_table[i].id == device_id) {
                     if (ret_index)
                          *ret_index = i;

@@ -62,7 +62,7 @@ static struct {
      { DSPF_A8,       "A8"       },
      { DSPF_LUT8,     "LUT8"     }
 };
-static int n_pixelformats = sizeof (pixelformats) / sizeof (pixelformats[0]);
+static int n_pixelformats = D_ARRAY_SIZE( pixelformats );
 
 
 static void       print_usage     (const char             *prg_name);
