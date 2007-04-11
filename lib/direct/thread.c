@@ -410,7 +410,12 @@ direct_thread_destroy( DirectThread *thread )
                else
                     D_ERROR( "Direct/Thread: Canceling %d!\n", thread->tid );
 
+               thread->detached = true;
+
+               pthread_detach( thread->thread );
                pthread_cancel( thread->thread );
+
+               return;
           }
      }
 
