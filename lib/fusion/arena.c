@@ -354,6 +354,8 @@ create_arena( FusionWorld *world,
           return NULL;
      }
 
+     arena->shared = shared;
+
      snprintf( buf, sizeof(buf), "Arena '%s'", name );
 
      /* Initialize lock and reference counter. */
@@ -385,11 +387,6 @@ create_arena( FusionWorld *world,
      ret = fusion_skirmish_prevail( &arena->lock );
      if (ret)
           goto error_prevail;
-
-     /* Unlock the list. */
-     fusion_skirmish_dismiss( &shared->arenas_lock );
-
-     arena->shared = shared;
 
      D_MAGIC_SET( arena, FusionArena );
 
