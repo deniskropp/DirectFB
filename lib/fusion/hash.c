@@ -544,7 +544,7 @@ fusion_hash_node_destroy (FusionHash *hash,FusionHashNode *node,
      if ( old_value)
           *old_value = node->value;
      else if ( hash->value_type != HASH_INT ) {
-          if (hash->free_keys) {
+          if (hash->free_values) {
                if ( hash->local)
                     D_FREE(node->value );
                else
