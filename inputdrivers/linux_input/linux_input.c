@@ -918,13 +918,13 @@ get_device_info( int              fd,
                DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "Linux" );
 
      /* get event type bits */
-     ioctl( fd, EVIOCGBIT(0, EV_MAX), evbit );
+     ioctl( fd, EVIOCGBIT(0, sizeof(evbit)), evbit );
 
      if (test_bit( EV_KEY, evbit )) {
           int i;
 
           /* get keyboard bits */
-          ioctl( fd, EVIOCGBIT(EV_KEY, KEY_MAX), keybit );
+          ioctl( fd, EVIOCGBIT(EV_KEY, sizeof(keybit)), keybit );
 
 	  /**  count typical keyboard keys only */
           for (i=KEY_Q; i<KEY_M; i++)
@@ -944,7 +944,7 @@ get_device_info( int              fd,
           int i;
 
           /* get bits for relative axes */
-          ioctl( fd, EVIOCGBIT(EV_REL, REL_MAX), relbit );
+          ioctl( fd, EVIOCGBIT(EV_REL, sizeof(relbit)), relbit );
 
           for (i=0; i<REL_MAX; i++)
                if (test_bit( i, relbit ))
@@ -955,7 +955,7 @@ get_device_info( int              fd,
           int i;
 
           /* get bits for absolute axes */
-          ioctl( fd, EVIOCGBIT(EV_ABS, ABS_MAX), absbit );
+          ioctl( fd, EVIOCGBIT(EV_ABS, sizeof(absbit)), absbit );
 
           for (i=0; i<ABS_PRESSURE; i++)
                if (test_bit( i, absbit ))
@@ -1141,7 +1141,7 @@ driver_open_device( CoreInputDevice  *device,
      data->touchpad = touchpad;
 
      /* check if the device has LEDs */
-     ret = ioctl( fd, EVIOCGBIT(EV_LED, LED_MAX), ledbit );
+     ret = ioctl( fd, EVIOCGBIT(EV_LED, sizeof(ledbit)), ledbit );
      if (ret < 0)
           D_PERROR( "DirectFB/linux_input: could not get LED bits" );
      else
@@ -1151,7 +1151,7 @@ driver_open_device( CoreInputDevice  *device,
 
      if (data->has_leds) {
           /* get LED state */
-          ret = ioctl( fd, EVIOCGLED(LED_MAX), data->led_state );
+          ret = ioctl( fd, EVIOCGLED(sizeof(data->led_state)), data->led_state );
           if (ret < 0) {
                D_PERROR( "DirectFB/linux_input: could not get LED state" );
                ioctl( fd, EVIOCGRAB, 0 );
