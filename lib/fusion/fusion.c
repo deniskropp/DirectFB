@@ -68,7 +68,8 @@
 #include <linux/fusion.h>
 
 
-D_DEBUG_DOMAIN( Fusion_Main, "Fusion/Main", "Fusion - High level IPC" );
+D_DEBUG_DOMAIN( Fusion_Main,          "Fusion/Main",          "Fusion - High level IPC" );
+D_DEBUG_DOMAIN( Fusion_Main_Dispatch, "Fusion/Main/Dispatch", "Fusion - High level IPC Dispatch" );
 
 /**********************************************************************************************************************/
 
@@ -922,6 +923,8 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
      fd_set       set;
      FusionWorld *world = arg;
 
+     D_DEBUG_AT( Fusion_Main_Dispatch, "%s() running...\n", __FUNCTION__ );
+
      while (true) {
           char *buf_p = buf;
 
@@ -949,6 +952,8 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                if (len < 0)
                     break;
 
+               D_DEBUG_AT( Fusion_Main_Dispatch, "  -> got %d bytes...\n", len );
+
                while (buf_p < buf + len) {
                     FusionReadMessage *header = (FusionReadMessage*) buf_p;
                     void              *data   = buf_p + sizeof(FusionReadMessage);
@@ -957,16 +962,22 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
 
                     switch (header->msg_type) {
                          case FMT_SEND:
-                              if (!world->refs)
+                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SEND!\n" );
+                              if (!world->refs) {
+                                   D_DEBUG_AT( Fusion_Main_Dispatch, "  -> good bye!\n" );
                                    return NULL;
+                              }
                               break;
                          case FMT_CALL:
+                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL...\n" );
                               _fusion_call_process( world, header->msg_id, data );
                               break;
                          case FMT_REACTOR:
+                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_REACTOR...\n" );
                               _fusion_reactor_process_message( world, header->msg_id, data );
                               break;
                          case FMT_SHMPOOL:
+                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SHMPOOL...\n" );
                               _fusion_shmpool_process( world, header->msg_id, data );
                               break;
                          default:

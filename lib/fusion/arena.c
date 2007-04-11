@@ -197,7 +197,7 @@ fusion_arena_add_shared_field (FusionArena *arena,
 
      D_MAGIC_ASSERT( arena, FusionArena );
 
-     D_DEBUG_AT( Fusion_Arena, "%s( '%s', '%s' -> %p )\n", __FUNCTION__, name, data );
+     D_DEBUG_AT( Fusion_Arena, "%s( '%s', '%s' -> %p )\n", __FUNCTION__, arena->name, name, data );
 
      shared = arena->shared;
      D_MAGIC_ASSERT( shared, FusionWorldShared );
@@ -233,7 +233,7 @@ fusion_arena_get_shared_field (FusionArena  *arena,
 
      D_MAGIC_ASSERT( arena, FusionArena );
 
-     D_DEBUG_AT( Fusion_Arena, "%s( '%s', '%s' )\n", __FUNCTION__, name );
+     D_DEBUG_AT( Fusion_Arena, "%s( '%s', '%s' )\n", __FUNCTION__, arena->name, name );
 
      /* Lock the arena. */
      if (fusion_skirmish_prevail( &arena->lock ))
@@ -242,7 +242,7 @@ fusion_arena_get_shared_field (FusionArena  *arena,
      /* Lookup entry. */
      ptr = fusion_hash_lookup( arena->field_hash, name );
 
-     D_DEBUG_AT( Fusion_Arena, "  -> %p\n", __FUNCTION__, ptr );
+     D_DEBUG_AT( Fusion_Arena, "  -> %p\n", ptr );
 
      /* Unlock the arena. */
      fusion_skirmish_dismiss( &arena->lock );
@@ -267,6 +267,9 @@ fusion_arena_exit (FusionArena   *arena,
      FusionWorldShared *shared;
 
      D_MAGIC_ASSERT( arena, FusionArena );
+
+     D_DEBUG_AT( Fusion_Arena, "%s( '%s' )\n", __FUNCTION__, arena->name );
+
      D_ASSERT( shutdown != NULL );
 
      shared = arena->shared;
