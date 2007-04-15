@@ -431,7 +431,7 @@ cdda_get_metadata( struct cdda_track *tracks,
      cddb_disc_set_discid( disc, discid );
 
      /* search through categories */
-     for (i = 0; i < sizeof(cddb_cats)/sizeof(cddb_cats[0]); i++) {
+     for (i = 0; i < D_ARRAY_SIZE( cddb_cats ); i++) {
           cddb_disc_set_category_str( disc, cddb_cats[i] );
 
           /* retrieve informations from the server */

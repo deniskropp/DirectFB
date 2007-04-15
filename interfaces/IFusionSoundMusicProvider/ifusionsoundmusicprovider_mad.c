@@ -1150,7 +1150,7 @@ Construct( IFusionSoundMusicProvider *thiz,
                         MIN( FS_TRACK_DESC_ALBUM_LENGTH-1, sizeof(id3.album) ) );
                data->desc.year = strtol( id3.year, NULL, 10 );
 
-               if (id3.genre < sizeof(id3_genres)/sizeof(id3_genres[0])) {
+               if (id3.genre < D_ARRAY_SIZE( id3_genres )) {
                     const char *genre = id3_genres[(int)id3.genre];
                     strncpy( data->desc.genre, genre,
                              MIN( FS_TRACK_DESC_GENRE_LENGTH-1, strlen(genre) ) );
