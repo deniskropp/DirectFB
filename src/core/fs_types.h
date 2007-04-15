@@ -183,8 +183,11 @@ typedef signed long __fsf;
 /* 
  * Noise Shaped Dithering.
  *
- * Using (approximately) the following 5th order FIR filter:
- *        { 2.0, -2.125, 1.85, -1.39, 0.69 }
+ * Rough adaption of the following 5th order FIR filter:
+ *        { 2.033, -2.165, 1.959, -1.590, 0.6149 }
+ * Reference: 
+ *   Stanley P. Lipshitz, John Vanderkooy, and Robert A. Wannamaker,
+ *   "Minimally Audible Noise Shaping", J. Audio Eng. Soc., Vol.39, No.11, 1991.
  */
 # define fsf_dither_profile( p ) \
      struct { __fsf e[5]; unsigned int r; } p = { {0, 0, 0, 0, 0}, 0 }
@@ -196,11 +199,12 @@ typedef signed long __fsf;
      _o       = _s + (1 << (FSF_DECIBITS-(b))) - ((p).r & _m); \
      (p).r    = (p).r * 196314165 + 907633515; \
      _o      += (p).r & _m; \
-     (p).e[4] = (p).e[3] >> 1; \
+     (p).e[4] = ((p).e[3] >> 1) - ((p).e[3] >> 3); \
      (p).e[3] = (p).e[2] - ((p).e[2] >> 2); \
-     (p).e[2] = (p).e[1] - ((p).e[1] >> 3); \
+     (p).e[2] = (p).e[1] - ((p).e[1] >> 4); \
      (p).e[1] = (p).e[0] + ((p).e[0] >> 4); \
-     (p).e[0] = (_s - (_o & ~_m)) << 1; \
+     (p).e[0] = _s - (_o & ~_m); \
+     (p).e[0] = ((p).e[0] << 1) + ((p).e[0] >> 5); \
      _o; \
    }) \
 )
