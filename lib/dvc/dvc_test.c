@@ -204,12 +204,14 @@ main( int argc, char **argv )
      IDirectFBSurface       *primary;
      IDirectFBSurface       *source;
      IDirectFBImageProvider *provider;
+     IDirectFBEventBuffer   *buffer;
      DFBSurfaceDescription   dsc;
      DVCPicture              picture;
      unsigned long           start, now;
-     unsigned long           num = 0;
+     unsigned long           num;
      int                     dw, dh;
      DFBSurfacePixelFormat   df;
+     static char             buf[128];
           
      DirectFBInit( &argc, &argv );
      
@@ -218,6 +220,8 @@ main( int argc, char **argv )
      ret = DirectFBCreate( &dfb );
      if (ret)
           DirectFBErrorFatal( "DirectFBCreate()", ret );
+          
+     dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
      
      ret = dfb->CreateImageProvider( dfb, file, &provider );
      if (ret)
@@ -239,7 +243,7 @@ main( int argc, char **argv )
      
      dsc.flags = DSDESC_CAPS;
      dsc.caps  = DSCAPS_PRIMARY;
-     dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
+          
      ret = dfb->CreateSurface( dfb, &dsc, &primary );
      if (ret)
           DirectFBErrorFatal( "IDirectFB::CreateSurface( primary )", ret );
@@ -247,24 +251,80 @@ main( int argc, char **argv )
      primary->GetPixelFormat( primary, &df );
      primary->Clear( primary, 0, 0, 0, 0 );
      
+     {
+          IDirectFBFont      *font;
+          DFBFontDescription  fdsc;
+     
+          fdsc.flags  = DFDESC_HEIGHT;
+          fdsc.height = 36;
+          
+          ret = dfb->CreateFont( dfb, "/usr/share/fonts/truetype/decker.ttf", &fdsc, &font );
+          if (ret)
+               ret = dfb->CreateFont( dfb, NULL, &fdsc, &font );
+          if (ret)
+               DirectFBErrorFatal( "IDirectFB::CreateFont()", ret );
+          primary->SetFont( primary, font );
+          font->Release( font );
+     }     
+     
+     ret = dfb->CreateInputEventBuffer( dfb, DICAPS_KEYS, 0, &buffer );
+     if (ret)
+          DirectFBErrorFatal( "IDirectFB::CreateInputEventBuffer()", ret );
+     
      sleep(2);
      
      printf( "** Benchmarking at %dx%d %s->%s **\n", 
              sw, sh, format_id_to_name(sf), format_id_to_name(df) );
      fflush( stdout );
      
+     /* copy/convert test */
      start = millisec();
+     num   = 0;
      do {
           DFBRectangle rect = { x:myrand()%(dw-sw), y:myrand()%(dh-sh), w:sw, h:sh };
-          dvc_copy_to_surface( &picture, primary, &rect, NULL );
+          dvc_scale_to_surface( &picture, primary, &rect, NULL );
           num++;
      } while ((now=millisec()) < (start+3000));
      
-     printf( "%.3f MPixel/s, %.3f Frames/s, (%.3f sec)\n", 
+     printf( "Copy/Convert    %.3f MPixel/s, %.3f Frames/s, (%.3f sec)\n", 
              (double)sw*sh*num/(double)(now-start)/1000.0, 
              (double)num*1000.0/(double)(now-start), (double)(now-start)/1000.0 );
      fflush( stdout );
+     
+     snprintf( buf, sizeof(buf), "%.3f MPixel/s, %.3f Frames/s", 
+               (double)sw*sh*num/(double)(now-start)/1000.0,
+               (double)num*1000.0/(double)(now-start) );
+     primary->SetColor( primary, 0xff, 0xff, 0x00, 0xff );
+     primary->DrawString( primary, buf, -1, dw/2, dh/2-36, DSTF_CENTER | DSTF_TOP );
+
+     buffer->Reset( buffer );   
+     buffer->WaitForEventWithTimeout( buffer, 5, 0 );
+     buffer->Reset( buffer );
+     
+     /* scale/convert test */
+     start = millisec();
+     num   = 0;
+     do {
+          dvc_scale_to_surface( &picture, primary, NULL, NULL );
+          num++;
+     } while ((now=millisec()) < (start+3000));
+     
+     printf( "Scale/Convert   %.3f MPixel/s, %.3f Frames/s, (%.3f sec)\n", 
+             (double)dw*dh*num/(double)(now-start)/1000.0, 
+             (double)num*1000.0/(double)(now-start), (double)(now-start)/1000.0 );
+     fflush( stdout );
+     
+     snprintf( buf, sizeof(buf), "%.3f MPixel/s, %.3f Frames/s", 
+               (double)dw*dh*num/(double)(now-start)/1000.0,
+               (double)num*1000.0/(double)(now-start) );
+     primary->SetColor( primary, 0xff, 0xff, 0x00, 0xff );
+     primary->DrawString( primary, buf, -1, dw/2, dh/2-36, DSTF_CENTER | DSTF_TOP );
+     
+     buffer->Reset( buffer );
+     buffer->WaitForEventWithTimeout( buffer, 5, 0 );
+     buffer->Reset( buffer );
              
+     buffer->Release( buffer );
      source->Release( source );
      primary->Release( primary );
      dfb->Release( dfb );

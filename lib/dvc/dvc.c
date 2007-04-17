@@ -176,11 +176,13 @@ typedef union {
 typedef struct {
      void        *src_base[3];
      void        *src[3];
-     int          src_x, src_y;
+     int          sx, sy;
+     int          sw, sh;
      
      void        *dst_base[3];
      void        *dst[3];
-     int          dst_x, dst_y;
+     int          dx, dy;
+     int          dw, dh;
      
      DFBColor    *slut;
      int          slut_size;
@@ -188,10 +190,12 @@ typedef struct {
      int          dlut_size;
      
      DVCColormap *colormap;
-     
-     int          len;
 
      DVCColor    *buf[2];
+     
+     int          h_scale;
+     int          v_scale;
+     int          s_v;
 } DVCContext;
 
 typedef void (*DVCFunction) ( DVCContext *ctx );
@@ -266,7 +270,7 @@ static void Load_I8( DVCContext *ctx )
      u8       *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
      DFBColor *P = ctx->slut;
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           u8 s = *S++;
@@ -282,7 +286,7 @@ static void Load_AI8( DVCContext *ctx )
      u8       *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
      DFBColor *P = ctx->slut;
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           u8 s = *S++;
@@ -299,7 +303,7 @@ static void Load_A4I4( DVCContext *ctx )
      u8       *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
      DFBColor *P = ctx->slut;
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           u8 s = *S++;
@@ -316,7 +320,7 @@ static void Load_A8I8_LE( DVCContext *ctx )
      u16       *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
      DFBColor *P = ctx->slut;
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           u16 s = le16(*S++);
@@ -333,7 +337,7 @@ static void Load_A8I8_BE( DVCContext *ctx )
      u16       *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
      DFBColor *P = ctx->slut;
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           u16 s = be16(*S++);
@@ -349,7 +353,7 @@ static void Load_Y8( DVCContext *ctx )
 {
      u8       *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           D->YUV.y = *S++;
@@ -363,7 +367,7 @@ static void Load_RGB8( DVCContext *ctx )
 {
      u8       *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           u8 s = *S++;
@@ -378,7 +382,7 @@ static void Load_RGB15_LE( DVCContext *ctx )
 {
      u16      *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           u16 s = le16(*S++);
@@ -393,7 +397,7 @@ static void Load_RGB15_BE( DVCContext *ctx )
 {
      u16      *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           u16 s = be16(*S++);
@@ -408,7 +412,7 @@ static void Load_RGB16_LE( DVCContext *ctx )
 {
      u16      *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           u16 s = le16(*S++);
@@ -423,7 +427,7 @@ static void Load_RGB16_BE( DVCContext *ctx )
 {
      u16      *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           u16 s = be16(*S++);
@@ -438,7 +442,7 @@ static void Load_RGB24_LE( DVCContext *ctx )
 {
      u8       *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           D->RGB.r = S[2];
@@ -453,7 +457,7 @@ static void Load_RGB24_BE( DVCContext *ctx )
 {
      u8       *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           D->RGB.r = S[0];
@@ -468,7 +472,7 @@ static void Load_RGB32_LE( DVCContext *ctx )
 {
      u32      *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           u32 s = le32(*S++);
@@ -483,7 +487,7 @@ static void Load_RGB32_BE( DVCContext *ctx )
 {
      u32      *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           u32 s = be32(*S++);
@@ -498,7 +502,7 @@ static void Load_ARGB_LE( DVCContext *ctx )
 {
      u32      *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      direct_memcpy( D, S, w*4 );
 }
@@ -507,7 +511,7 @@ static void Load_ARGB_BE( DVCContext *ctx )
 {
      u32      *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           u32 s = be32(*S++);
@@ -523,7 +527,7 @@ static void Load_RGBA_LE( DVCContext *ctx )
 {
      u32      *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           u32 s = le32(*S++);
@@ -539,7 +543,7 @@ static void Load_RGBA_BE( DVCContext *ctx )
 {
      u32      *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           u32 s = be32(*S++);
@@ -555,7 +559,7 @@ static void Load_YUYV_LE( DVCContext *ctx )
 {
      u32      *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len >> 1;
+     int       w = ctx->sw >> 1;
      
      for (; w; w--) {
           u32 s = *S++;
@@ -582,7 +586,7 @@ static void Load_YUYV_BE( DVCContext *ctx )
 {
      u32      *S = ctx->src[0];
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len >> 1;
+     int       w = ctx->sw >> 1;
      
      for (; w; w--) {
           u32 s = *S++;
@@ -610,7 +614,7 @@ static void Load_NV12_LE( DVCContext *ctx )
      u8       *Sy  = ctx->src[0];
      u16      *Suv = ctx->src[1];
      DVCColor *D   = ctx->buf[0];
-     int       w   = ctx->len;
+     int       w   = ctx->sw;
      int       i;
      
      for (i = 0; i < w; i++) {
@@ -626,7 +630,7 @@ static void Load_NV12_BE( DVCContext *ctx )
      u8       *Sy  = ctx->src[0];
      u16      *Suv = ctx->src[1];
      DVCColor *D   = ctx->buf[0];
-     int       w   = ctx->len;
+     int       w   = ctx->sw;
      int       i;
      
      for (i = 0; i < w; i++) {
@@ -643,7 +647,7 @@ static void Load_YUV444( DVCContext *ctx )
      u8       *Su = ctx->src[1];
      u8       *Sv = ctx->src[2];
      DVCColor *D  = ctx->buf[0];
-     int       w  = ctx->len;
+     int       w  = ctx->sw;
      
      for (; w; w--) {
           D->YUV.y = *Sy++;
@@ -659,7 +663,7 @@ static void Load_YUV422( DVCContext *ctx )
      u8       *Su = ctx->src[1];
      u8       *Sv = ctx->src[2];
      DVCColor *D  = ctx->buf[0];
-     int       w  = ctx->len >> 1;
+     int       w  = ctx->sw >> 1;
      
      for (; w; w--) {
           D[0].YUV.y = Sy[0];
@@ -674,7 +678,7 @@ static void Load_YUV422( DVCContext *ctx )
           Sv++;
      }
     
-     if (ctx->len & 1) {
+     if (ctx->sw & 1) {
           D->YUV.y = *Sy;
           D->YUV.u = *Su;
           D->YUV.v = *Sv;
@@ -688,7 +692,7 @@ static void Load_YUV411( DVCContext *ctx )
      u8       *Su = ctx->src[1];
      u8       *Sv = ctx->src[2];
      DVCColor *D  = ctx->buf[0];
-     int       w  = ctx->len >> 2;
+     int       w  = ctx->sw >> 2;
      
      for (; w; w--) {
           D[0].YUV.y = Sy[0];
@@ -709,7 +713,7 @@ static void Load_YUV411( DVCContext *ctx )
           Sv++;
      }
      
-     for (w = ctx->len & 3; w; w--) {
+     for (w = ctx->sw & 3; w; w--) {
           D->YUV.y = *Sy++;
           D->YUV.u = *Su;
           D->YUV.v = *Sv;
@@ -797,7 +801,7 @@ static void Store_I8( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u8       *D = ctx->dst[0];
-     int       w = ctx->len;
+     int       w = ctx->dw;
      
      for (; w; w--) {
           *D++ = palette_search_rgb( S, ctx->dlut, ctx->dlut_size );
@@ -809,7 +813,7 @@ static void Store_AI8( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u8       *D = ctx->dst[0];
-     int       w = ctx->len;
+     int       w = ctx->dw;
      
      for (; w; w--) {
           *D++ = palette_search_rgba( S, ctx->dlut, ctx->dlut_size );
@@ -821,7 +825,7 @@ static void Store_A4I4( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u8       *D = ctx->dst[0];
-     int       w = ctx->len;
+     int       w = ctx->dw;
      
      for (; w; w--) {
           u8 idx = palette_search_rgb( S, ctx->dlut, ctx->dlut_size );
@@ -834,7 +838,7 @@ static void Store_A8I8_LE( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u16      *D = ctx->dst[0];
-     int       w = ctx->len;
+     int       w = ctx->dw;
      
      for (; w; w--) {
           u8 idx = palette_search_rgb( S, ctx->dlut, ctx->dlut_size );
@@ -847,7 +851,7 @@ static void Store_A8I8_BE( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u16      *D = ctx->dst[0];
-     int       w = ctx->len;
+     int       w = ctx->dw;
      
      for (; w; w--) {
           u8 idx = palette_search_rgb( S, ctx->dlut, ctx->dlut_size );
@@ -860,7 +864,7 @@ static void Store_Y8( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u8       *D = ctx->dst[0];
-     int       w = ctx->len;
+     int       w = ctx->dw;
      
      for (; w; w--) {
           *D++ = S->YUV.y;
@@ -872,7 +876,7 @@ static void Store_RGB8( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u8       *D = ctx->dst[0];
-     int       w = ctx->len;
+     int       w = ctx->dw;
      
      for (; w; w--) {
           *D++ = ((S->RGB.r & 0xe0)     ) |
@@ -886,10 +890,10 @@ static void Store_RGB15_LE( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u16      *D = ctx->dst[0];
-     int       w = ctx->len;
+     int       w = ctx->dw;
      int       n;
      
-     dither5_init( ctx->dst_y );
+     dither5_init( ctx->dy );
      
      if ((long)D & 2) {
           *D++ = le16(0x8000                      |
@@ -924,10 +928,10 @@ static void Store_RGB15_BE( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u16      *D = ctx->dst[0];
-     int       w = ctx->len;
+     int       w = ctx->dw;
      int       n;
      
-     dither5_init( ctx->dst_y );
+     dither5_init( ctx->dy );
      
      if ((long)D & 2) {
           *D++ = be16(0x8000                      |
@@ -962,11 +966,11 @@ static void Store_RGB16_LE( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u16      *D = ctx->dst[0];
-     int       w = ctx->len;
+     int       w = ctx->dw;
      int       n;
      
-     dither5_init( ctx->dst_y );
-     dither6_init( ctx->dst_y );
+     dither5_init( ctx->dy );
+     dither6_init( ctx->dy );
      
      if ((long)D & 2) {
           *D++ = le16((dither5(S->RGB.r, 1) << 8) |
@@ -998,11 +1002,11 @@ static void Store_RGB16_BE( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u16      *D = ctx->dst[0];
-     int       w = ctx->len;
+     int       w = ctx->dw;
      int       n;
      
-     dither5_init( ctx->dst_y );
-     dither6_init( ctx->dst_y );
+     dither5_init( ctx->dy );
+     dither6_init( ctx->dy );
      
      if ((long)D & 2) {
           *D++ = be16((dither5(S->RGB.r, 1) << 8) |
@@ -1034,7 +1038,7 @@ static void Store_RGB24_LE( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u8       *D = ctx->dst[0];
-     int       w = ctx->len; 
+     int       w = ctx->dw; 
      
      for (; w; w--) {
           D[0] = S->RGB.b;
@@ -1049,7 +1053,7 @@ static void Store_RGB24_BE( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u8       *D = ctx->dst[0];
-     int       w = ctx->len; 
+     int       w = ctx->dw; 
      
      for (; w; w--) {
           D[0] = S->RGB.r;
@@ -1064,7 +1068,7 @@ static void Store_RGB32_LE( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u32      *D = ctx->dst[0];
-     int       w = ctx->len; 
+     int       w = ctx->dw; 
      
      direct_memcpy( D, S, w*4 );
 }
@@ -1073,7 +1077,7 @@ static void Store_RGB32_BE( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u32      *D = ctx->dst[0];
-     int       w = ctx->len; 
+     int       w = ctx->dw; 
      
      for (; w; w--) {
           *D++ = be32((S->RGB.r << 16) |
@@ -1087,7 +1091,7 @@ static void Store_ARGB_LE( DVCContext *ctx )
 {  
      DVCColor *S = ctx->buf[0];
      u32      *D = ctx->dst[0];
-     int       w = ctx->len; 
+     int       w = ctx->dw; 
      
      direct_memcpy( D, S, w*4 );
 }
@@ -1096,7 +1100,7 @@ static void Store_ARGB_BE( DVCContext *ctx )
 {  
      DVCColor *S = ctx->buf[0];
      u32      *D = ctx->dst[0];
-     int       w = ctx->len; 
+     int       w = ctx->dw; 
      
      for (; w; w--) {
           *D++ = be32((S->RGB.a << 24) |
@@ -1111,7 +1115,7 @@ static void Store_RGBA_LE( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u32      *D = ctx->dst[0];
-     int       w = ctx->len;
+     int       w = ctx->dw;
      
      for (; w; w--) {
           *D++ = le32((S->RGB.r << 24) |
@@ -1126,7 +1130,7 @@ static void Store_RGBA_BE( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u32      *D = ctx->dst[0];
-     int       w = ctx->len;
+     int       w = ctx->dw;
      
      for (; w; w--) {
           *D++ = be32((S->RGB.r << 24) |
@@ -1141,7 +1145,7 @@ static void Store_YUYV_LE( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u32      *D = ctx->dst[0];
-     int       w = ctx->len >> 1;
+     int       w = ctx->dw >> 1;
      
      for (; w; w--) {
           u32 y0 = S[0].YUV.y;
@@ -1161,7 +1165,7 @@ static void Store_YUYV_BE( DVCContext *ctx )
 {
      DVCColor *S = ctx->buf[0];
      u32      *D = ctx->dst[0];
-     int       w = ctx->len >> 1;
+     int       w = ctx->dw >> 1;
      
      for (; w; w--) {
           u32 y0 = S[0].YUV.y;
@@ -1183,13 +1187,13 @@ static void Store_NV12_LE( DVCContext *ctx )
      DVCColor *S1  = ctx->buf[1];
      u8       *Dy  = ctx->dst[0];
      u16      *Duv = ctx->dst[1];
-     int       w   = ctx->len & ~1;
+     int       w   = ctx->dw & ~1;
      int       i;
      
      for (i = 0; i < w; i++)
           Dy[i] = S0[i].YUV.y;
       
-     if (ctx->dst_y & 1) {
+     if (ctx->dy & 1) {
           if (S1) {
                for (w = w>>1; w; w--) {
                     *Duv++ = le16((((S0[0].YUV.u + S0[1].YUV.u +
@@ -1216,13 +1220,13 @@ static void Store_NV12_BE( DVCContext *ctx )
      DVCColor *S1  = ctx->buf[1];
      u8       *Dy  = ctx->dst[0];
      u16      *Duv = ctx->dst[1];
-     int       w   = ctx->len & ~1;
+     int       w   = ctx->dw & ~1;
      int       i;
      
      for (i = 0; i < w; i++)
           Dy[i] = S0[i].YUV.y;
       
-     if (ctx->dst_y & 1) {
+     if (ctx->dy & 1) {
           if (S1) {
                for (w = w>>1; w; w--) {
                     *Duv++ = be16((((S0[0].YUV.u + S0[1].YUV.u +
@@ -1249,7 +1253,7 @@ static void Store_YUV444( DVCContext *ctx )
      u8       *Dy = ctx->dst[0];
      u8       *Du = ctx->dst[1];
      u8       *Dv = ctx->dst[2];
-     int       w  = ctx->len;
+     int       w  = ctx->dw;
      int       i;
      
      for (i = 0; i < w; i++) {
@@ -1265,7 +1269,7 @@ static void Store_YUV422( DVCContext *ctx )
      u8       *Dy = ctx->dst[0];
      u8       *Du = ctx->dst[1];
      u8       *Dv = ctx->dst[2];
-     int       w  = ctx->len >> 1;
+     int       w  = ctx->dw >> 1;
      
      for (; w; w--) {
           *Dy++ = S[0].YUV.y;
@@ -1280,12 +1284,12 @@ static void Store_YUV420( DVCContext *ctx )
 {
      Store_Y8( ctx );
           
-     if (ctx->dst_y & 1) {
+     if (ctx->dy & 1) {
           DVCColor *S0 = ctx->buf[0];
           DVCColor *S1 = ctx->buf[1];
           u8       *Du = ctx->dst[1];
           u8       *Dv = ctx->dst[2];
-          int       w  = ctx->len >> 1;
+          int       w  = ctx->dw >> 1;
      
           if (S1) {
                for (; w; w--) {
@@ -1313,7 +1317,7 @@ static void Store_YUV411( DVCContext *ctx )
      u8       *Dy = ctx->dst[0];
      u8       *Du = ctx->dst[1];
      u8       *Dv = ctx->dst[2];
-     int       w  = ctx->len >> 2;
+     int       w  = ctx->dw >> 2;
      
      for (; w; w--) {
           *Dy++ = S[0].YUV.y;
@@ -1330,12 +1334,12 @@ static void Store_YUV410( DVCContext *ctx )
 {     
      Store_Y8( ctx );
       
-     if ((ctx->dst_y & 3) == 3) {   
+     if ((ctx->dy & 3) == 3) {   
           DVCColor *S0 = ctx->buf[0];
           DVCColor *S1 = ctx->buf[1];
           u8       *Du = ctx->dst[1];
           u8       *Dv = ctx->dst[2];
-          int       w  = ctx->len >> 2;
+          int       w  = ctx->dw >> 2;
 
           if (S1) {
                /* FIXME: YUV444/YUV422/YUV411 -> YUV410 */
@@ -1397,10 +1401,24 @@ static DVCFunction Store_Proc[DVC_NUM_PIXELFORMATS] = {
 
 /*****************************************************************************/
 
+static void Colormap_Proc( DVCContext *ctx )
+{
+     DVCColormap *C = ctx->colormap;
+     DVCColor    *D = ctx->buf[0];
+     int          w = ctx->sw;
+     
+     for (; w; w--) {
+          D->RGB.r = C->RGB.r[D->RGB.r];
+          D->RGB.g = C->RGB.g[D->RGB.g];
+          D->RGB.b = C->RGB.b[D->RGB.b];
+          D++;
+     }
+}
+
 static void YCbCr_to_RGB_Proc_C( DVCContext *ctx )
 {
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           YCBCR_TO_RGB( D->YUV.y, D->YUV.u, D->YUV.v,
@@ -1414,7 +1432,7 @@ static DVCFunction YCbCr_to_RGB_Proc = YCbCr_to_RGB_Proc_C;
 static void RGB_to_YCbCr_Proc_C( DVCContext *ctx )
 {
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           RGB_TO_YCBCR( D->RGB.r, D->RGB.g, D->RGB.b,
@@ -1428,7 +1446,7 @@ static DVCFunction RGB_to_YCbCr_Proc = RGB_to_YCbCr_Proc_C;
 static void Premultiply_Proc( DVCContext *ctx )
 {
      DVCColor *D = ctx->buf[0];
-     int       w = ctx->len;
+     int       w = ctx->sw;
      
      for (; w; w--) {
           switch (D->RGB.a) {
@@ -1450,19 +1468,151 @@ static void Premultiply_Proc( DVCContext *ctx )
      }
 }
 
-static void Colormap_Proc( DVCContext *ctx )
+static void ScaleH_Up_Proc_C( DVCContext *ctx )
 {
-     DVCColormap *C = ctx->colormap;
-     DVCColor    *D = ctx->buf[0];
-     int          w = ctx->len;
+     u32 *S = (u32*)ctx->buf[0];
+     u32 *D = (u32*)ctx->buf[0] + ctx->dw - 1;
+     int  i = ctx->h_scale * (ctx->dw - 1);
+     int  j = i & ~0xffff;
+     int  n = ctx->dw;
      
-     for (; w; w--) {
-          D->RGB.r = C->RGB.r[D->RGB.r];
-          D->RGB.g = C->RGB.g[D->RGB.g];
-          D->RGB.b = C->RGB.b[D->RGB.b];
-          D++;
+     for (; n && i >= j; n--) {
+          *D-- = S[i>>16];
+          i -= ctx->h_scale;
      }
-}    
+
+     for (; n; n--) {
+          int p = i >> 16;
+          int w = i & 0xff00;
+               
+          if (w) {
+               w >>= 8;
+               *D = ((((S[p] & 0x00ff00ff) * (256-w) + (S[p+1] & 0x00ff00ff) * w) >> 8) & 0x00ff00ff) |
+                    ((((S[p] & 0xff00ff00) >> 8) * (256-w) + ((S[p+1] & 0xff00ff00) >> 8) * w) & 0xff00ff00);
+          }
+          else {
+               *D = S[p];
+          }
+               
+          D--;
+          i -= ctx->h_scale;
+     }
+}
+
+static DVCFunction ScaleH_Up_Proc = ScaleH_Up_Proc_C;
+
+static void ScaleH_Up4_Proc( DVCContext *ctx )
+{
+     u32 *S = (u32*)ctx->buf[0];
+     u32 *D = (u32*)ctx->buf[0] + ctx->dw - 1;
+     int  i = ctx->h_scale * (ctx->dw - 1);
+     int  j = i & ~0xffff;
+     int  n = ctx->dw;
+     
+     for (; n && i >= j; n--) {
+          *D-- = S[i>>16];
+          i -= ctx->h_scale;
+     }
+
+     for (; n; n--) {
+          int p = i >> 16;
+          
+          switch (i & (3 << 14)) {
+               case 0:
+                    *D = S[p];
+                    break;
+               case 1 << 14:
+                    *D = ((((S[p] & 0x00ff00ff) * 3 + (S[p+1] & 0x00ff00ff)) >> 2) & 0x00ff00ff) |
+                         ((((S[p] & 0xff00ff00) >> 2) * 3 + ((S[p+1] & 0xff00ff00) >> 2)) & 0xff00ff00);
+                    break;
+               case 2 << 14:
+                    *D = (((S[p] ^ S[p+1]) & 0xfefefefe) >> 1) + (S[p] & S[p+1]);
+                    break;
+               case 3 << 14:
+                    *D = ((((S[p] & 0x00ff00ff) + (S[p+1] & 0x00ff00ff) * 3) >> 2) & 0x00ff00ff) |
+                         ((((S[p] & 0xff00ff00) >> 2) + ((S[p+1] & 0xff00ff00) >> 2) * 3) & 0xff00ff00);
+                    break;
+          }
+               
+          D--;
+          i -= ctx->h_scale;
+     }
+}
+
+static void ScaleH_Down_Proc( DVCContext *ctx )
+{
+     u32 *S = (u32*)ctx->buf[0];
+     u32 *D = (u32*)ctx->buf[0];
+     int  i = 0;
+     int  n = ctx->dw;
+          
+     for (; n; n--) {
+          *D++ = S[i>>16];
+          i += ctx->h_scale;
+     }
+}
+
+static void ScaleV_Up_Proc_C( DVCContext *ctx )
+{
+     u32 *S = (u32*)ctx->buf[1];
+     u32 *D = (u32*)ctx->buf[0];
+     
+     if (ctx->s_v & 0xff00) {
+          int b = (ctx->s_v & 0xff00) >> 8;
+          int a = 256 - b;
+          int n = ctx->dw;
+          
+          for (; n; n--) {
+               *D = ((((*S & 0x00ff00ff) * a + (*D & 0x00ff00ff) * b) >> 8) & 0x00ff00ff) |
+                    ((((*S & 0xff00ff00) >> 8) * a + ((*D & 0xff00ff00) >> 8) * b) & 0xff00ff00);
+               D++;
+               S++;
+          }
+     }
+     else if (ctx->s_v & 0x00ff) {
+          direct_memcpy( D, S, ctx->dw * sizeof(DVCColor) );
+     }
+}
+
+static DVCFunction ScaleV_Up_Proc = ScaleV_Up_Proc_C;
+
+static void ScaleV_Up4_Proc( DVCContext *ctx )
+{
+     u32 *S = (u32*)ctx->buf[1];
+     u32 *D = (u32*)ctx->buf[0];
+     int  n;
+     
+     if (ctx->s_v & 0xffff) {
+          switch (ctx->s_v & (3 << 14)) {
+               case 0:
+                    direct_memcpy( D, S, ctx->dw * sizeof(DVCColor) ); 
+                    break;
+               case 1 << 14:
+                    for (n = ctx->dw; n; n--) {
+                         *D = ((((*S & 0x00ff00ff) * 3 + (*D & 0x00ff00ff)) >> 2) & 0x00ff00ff) |
+                              ((((*S & 0xff00ff00) >> 2) * 3 + ((*D & 0xff00ff00) >> 2)) & 0xff00ff00);
+                         D++;
+                         S++;
+                    }
+                    break;
+               case 2 << 14:
+                    for (n = ctx->dw; n; n--) {
+                         *D = (((*S ^ *D) & 0xfefefefe) >> 1) + (*S & *D);
+                         D++;
+                         S++;
+                    }
+                    break;
+               case 3 << 14:
+                    for (n = ctx->dw; n; n--) {
+                         *D = ((((*S & 0x00ff00ff) + (*D & 0x00ff00ff) * 3) >> 2) & 0x00ff00ff) |
+                              ((((*S & 0xff00ff00) >> 2) + ((*D & 0xff00ff00) >> 2) * 3) & 0xff00ff00);
+                         D++;
+                         S++;
+                    }
+                    break;
+          }
+     }
+}
 
 /*****************************************************************************/
 
@@ -1553,38 +1703,62 @@ compute_v_offset( const DVCPicture *pic,
 # include "dvc_mmx.h"
 #endif
 
+#define SWAP_BUFFERS() { \
+     DVCColor *tmp = ctx.buf[1]; \
+     ctx.buf[1] = ctx.buf[0]; \
+     ctx.buf[0] = tmp; \
+}
 
 DFBResult
-dvc_copy( const DVCPicture   *source,
-          const DVCPicture   *dest,
-          const DFBRectangle *rect,
-          int                 dx,
-          int                 dy,
-          const DVCColormap  *colormap )
+dvc_scale( const DVCPicture   *source,
+           const DVCPicture   *dest,
+           const DFBRectangle *srect,
+           const DFBRectangle *drect,
+           const DVCColormap  *colormap )
 {
      DVCContext   ctx;
-     DVCFunction  funcs[6];
-     DVCFunction *func = funcs;
-     int          sx, sy;
-     int          sw, sh;
+     DVCFunction  load;
+     DVCFunction  store;
+     DVCFunction  filters[6];
+     DVCFunction *filter = filters;
+     int          len;
      
      D_ASSERT( source != NULL );
      D_ASSERT( dest != NULL );
      
-     if (rect) {
-          sx = rect->x;
-          sy = rect->y;
-          sw = rect->w;
-          sh = rect->h;
-     } else {
-          sx = sy = 0;
-          sw = source->width;
-          sh = source->height;
+     if (srect) {
+          ctx.sx = srect->x;
+          ctx.sy = srect->y;
+          ctx.sw = srect->w;
+          ctx.sh = srect->h;
+     }
+     else {
+          ctx.sx = ctx.sy = 0;
+          ctx.sw = source->width;
+          ctx.sh = source->height;
      }
      
+     if (drect) {
+          ctx.dx = drect->x;
+          ctx.dy = drect->y;
+          ctx.dw = drect->w;
+          ctx.dh = drect->h;
+     }
+     else {
+          ctx.dx = ctx.dy = 0;
+          ctx.dw = dest->width;
+          ctx.dh = dest->height;
+     }
+     
+     ctx.h_scale = (ctx.sw << 16) / ctx.dw;
+     ctx.v_scale = (ctx.sh << 16) / ctx.dh;
+     
      if (source->format == dest->format && !colormap &&
-        (!dest->premultiplied || source->premultiplied)) {
-          picture_copy_simple( source, dest, sx, sy, sw, sh, dx, dy );
+         ctx.h_scale == (1 << 16) && ctx.v_scale == (1 << 16) &&
+         (!dest->premultiplied || source->premultiplied))
+     {
+          picture_copy_simple( source, dest, 
+                               ctx.sx, ctx.sy, ctx.sw, ctx.sh, ctx.dx, ctx.dy );
           return DFB_OK;
      }
     
@@ -1593,37 +1767,56 @@ dvc_copy( const DVCPicture   *source,
 #endif
      
      /* Begin ctx functions setup. */
-     *func = Load_Proc[DVC_PIXELFORMAT_INDEX(source->format)];
-     if (!*func)
+     load = Load_Proc[DVC_PIXELFORMAT_INDEX(source->format)];
+     if (!load)
           return DFB_UNSUPPORTED;
-     func++;
-     
+          
+     store = Store_Proc[DVC_PIXELFORMAT_INDEX(dest->format)];
+     if (!store)
+          return DFB_UNSUPPORTED;
+          
      if (colormap)
-          *func++ = Colormap_Proc;
+          *filter++ = Colormap_Proc;
      
      if (DVC_YCBCR_PIXELFORMAT(source->format) && 
         !DVC_YCBCR_PIXELFORMAT(dest->format))
-          *func++ = YCbCr_to_RGB_Proc;
+          *filter++ = YCbCr_to_RGB_Proc;
      else if (!DVC_YCBCR_PIXELFORMAT(source->format) &&
                DVC_YCBCR_PIXELFORMAT(dest->format))
-          *func++ = RGB_to_YCbCr_Proc;
+          *filter++ = RGB_to_YCbCr_Proc;
           
      if (dest->premultiplied && 
          DVC_ALPHA_PIXELFORMAT(source->format) && !source->premultiplied)
-          *func++ = Premultiply_Proc;
+          *filter++ = Premultiply_Proc;
           
-     *func = Store_Proc[DVC_PIXELFORMAT_INDEX(dest->format)];
-     if (!*func)
-          return DFB_UNSUPPORTED;
-     func++;
+     if (ctx.h_scale < (1 << 16)) {
+          switch (ctx.h_scale) {
+               case 1 << 15:
+               case 1 << 14:
+                    *filter++ = ScaleH_Up4_Proc;
+                    break;
+               default:
+                    *filter++ = ScaleH_Up_Proc;
+                    break;
+          }
+     }
+     else if (ctx.h_scale > (1 << 16))
+          *filter++ = ScaleH_Down_Proc;
+           
+     if (ctx.v_scale < (1 << 16)) {
+          switch (ctx.v_scale) {
+               case 1 << 15:
+               case 1 << 14:
+                    *filter++ = ScaleV_Up4_Proc;
+                    break;
+               default:
+                    *filter++ = ScaleV_Up_Proc;
+                    break;
+          }
+     }
      
-     *func = NULL;
+     *filter = NULL;
      /* End ctx functions setup. */
-     
-     ctx.src_x = sx;
-     ctx.src_y = sy;
-     ctx.dst_x = dx;
-     ctx.dst_y = dy;
      
      if (DVC_INDEXED_PIXELFORMAT(source->format)) {
           ctx.slut      = source->palette;
@@ -1636,16 +1829,18 @@ dvc_copy( const DVCPicture   *source,
      
      ctx.colormap = (DVCColormap*) colormap;
      
-     ctx.len = sw & ~((1 << DVC_PLANE_H_SHIFT(source->format,0)) - 1);
-     ctx.buf[0] = (ctx.len > 1024)
-                   ? malloc( ctx.len * sizeof(DVCColor) )
-                   : alloca( ctx.len * sizeof(DVCColor) );
+     len = MAX( ctx.sw, ctx.dw );
+     ctx.buf[0] = (len > 512)
+                   ? malloc( len * sizeof(DVCColor) )
+                   : alloca( len * sizeof(DVCColor) );
      
-     if (DVC_PLANE_V_SHIFT(dest->format,1) > DVC_PLANE_V_SHIFT(source->format,1) ||
-         DVC_PLANE_V_SHIFT(dest->format,2) > DVC_PLANE_V_SHIFT(source->format,2)) {
-          ctx.buf[1] = (ctx.len > 1024)
-                        ? malloc( ctx.len * sizeof(DVCColor) )
-                        : alloca( ctx.len * sizeof(DVCColor) );
+     if (ctx.v_scale < (1 << 16) ||
+         DVC_PLANE_V_SHIFT(dest->format,1) > DVC_PLANE_V_SHIFT(source->format,1) ||
+         DVC_PLANE_V_SHIFT(dest->format,2) > DVC_PLANE_V_SHIFT(source->format,2))
+     {
+          ctx.buf[1] = (len > 512)
+                        ? malloc( len * sizeof(DVCColor) )
+                        : alloca( len * sizeof(DVCColor) );
      }
      else {
           ctx.buf[1] = NULL;
@@ -1654,32 +1849,68 @@ dvc_copy( const DVCPicture   *source,
      if (!DVC_ALPHA_PIXELFORMAT(source->format) &&
           DVC_ALPHA_PIXELFORMAT(dest->format))
      {
-          memset( ctx.buf[0], 0xff, ctx.len * sizeof(DVCColor) );
+          memset( ctx.buf[0], 0xff, len * sizeof(DVCColor) );
           if (ctx.buf[1])
-               memset( ctx.buf[0], 0xff, ctx.len * sizeof(DVCColor) );
+               memset( ctx.buf[0], 0xff, len * sizeof(DVCColor) );
      }
      
-     compute_h_offset( source, source->base, ctx.src_x, ctx.src_base );
-     compute_h_offset( dest,   dest->base,   ctx.dst_x, ctx.dst_base );
+     compute_h_offset( source, source->base, ctx.sx, ctx.src_base );
+     compute_h_offset( dest,   dest->base,   ctx.dx, ctx.dst_base );
      
-     for (; sh; sh--) {
-          compute_v_offset( source, ctx.src_base, ctx.src_y, ctx.src );
-          compute_v_offset( dest,   ctx.dst_base, ctx.dst_y, ctx.dst );
+     ctx.s_v = ctx.sy << 16;
+
+     if (ctx.v_scale < (1 << 16)) {
+          int dy2 = ctx.dy + ctx.dh;
           
-          for (func = funcs; *func; func++)
-               (*func)( &ctx );
+          while (ctx.dy < dy2) {
+               compute_v_offset( source, ctx.src_base, ctx.sy, ctx.src );
+               compute_v_offset( dest,   ctx.dst_base, ctx.dy, ctx.dst );
+          
+               load( &ctx );
+               for (filter = filters; *filter; filter++)
+                    (*filter)( &ctx );
+               store( &ctx );
+          
+               ctx.dy++;
+               ctx.s_v += ctx.v_scale;
+               if (ctx.s_v > (ctx.sy << 16)) {
+                    ctx.sy = (ctx.s_v >> 16) + 1;
+                    if (ctx.sy == source->height)
+                         break;
+                    SWAP_BUFFERS()
+               }
+          }
+          
+          while (ctx.dy < dy2) {
+               compute_v_offset( dest, ctx.dst_base, ctx.dy, ctx.dst );
                
-          ctx.src_y++;
-          ctx.dst_y++;
+               store( &ctx );
+               
+               ctx.dy++;
+          }
+     }
+     else {
+          int n;
           
-          if (ctx.buf[1]) {
-               DVCColor *tmp = ctx.buf[1];
-               ctx.buf[1] = ctx.buf[0];
-               ctx.buf[0] = tmp;
+          for (n = ctx.dh; n; n--) {
+               compute_v_offset( source, ctx.src_base, ctx.sy, ctx.src );
+               compute_v_offset( dest,   ctx.dst_base, ctx.dy, ctx.dst );
+          
+               load( &ctx );
+               for (filter = filters; *filter; filter++)
+                    (*filter)( &ctx );
+               store( &ctx );
+          
+               ctx.dy++;
+               ctx.s_v += ctx.v_scale;
+               ctx.sy = ctx.s_v >> 16;
+          
+               if (ctx.buf[1])
+                    SWAP_BUFFERS()
           }
      }
      
-     if (ctx.len > 1024) {
+     if (len > 512) {
           free( ctx.buf[0] );
           if (ctx.buf[1])
                free( ctx.buf[1]);
@@ -1689,15 +1920,15 @@ dvc_copy( const DVCPicture   *source,
 }
 
 DFBResult 
-dvc_copy_to_surface( const DVCPicture   *source,
-                     IDirectFBSurface   *dest,
-                     const DFBRectangle *dest_rect,
-                     const DVCColormap  *colormap )
+dvc_scale_to_surface( const DVCPicture   *source,
+                      IDirectFBSurface   *dest,
+                      const DFBRectangle *dest_rect,
+                      const DVCColormap  *colormap )
 {
      IDirectFBSurface_data *dst_data;
      DVCPicture             picture;
-     DFBRectangle           rect;
-     int                    dx, dy;
+     DFBRectangle           srect;
+     DFBRectangle           drect;
      DFBResult              ret;
      
      D_ASSERT( source != NULL );
@@ -1705,29 +1936,27 @@ dvc_copy_to_surface( const DVCPicture   *source,
      
      DIRECT_INTERFACE_GET_DATA_FROM( dest, dst_data, IDirectFBSurface );
      
+     srect.x = srect.y = 0;
+     srect.w = source->width;
+     srect.h = source->height;
+     
      if (dest_rect) {
-          rect.x = rect.y = 0;
-          rect.w = MIN( dest_rect->w, source->width );
-          rect.h = MIN( dest_rect->h, source->height );
-          dx     = dest_rect->x + dst_data->area.wanted.x;
-          dy     = dest_rect->y + dst_data->area.wanted.y;
+          drect = *dest_rect;
+          drect.x += dst_data->area.wanted.x;
+          drect.y += dst_data->area.wanted.y;
      }
      else {
-          rect.x = rect.y = 0;
-          rect.w = source->width;
-          rect.h = source->height;
-          dx     = dst_data->area.wanted.x;
-          dy     = dst_data->area.wanted.y;
+          drect = dst_data->area.wanted;
      }
      
      {
           DFBRegion clip;
      
           dfb_region_from_rectangle( &clip, &dst_data->area.current );
-          if (!dfb_clip_blit_precheck( &clip, rect.w, rect.h, dx, dy ))
+          if (!dfb_clip_blit_precheck( &clip, drect.w, drect.h, drect.x, drect.y ))
                return DFB_INVAREA;
      
-          dfb_clip_blit( &clip, &rect, &dx, &dy );
+          dfb_clip_stretchblit( &clip, &srect, &drect );
      }
      
      picture.format = dfb2dvc_pixelformat( dst_data->surface->format );
@@ -1771,7 +2000,7 @@ dvc_copy_to_surface( const DVCPicture   *source,
      picture.separated = (dst_data->caps & DSCAPS_SEPARATED) != 0;
      picture.premultiplied = (dst_data->caps & DSCAPS_PREMULTIPLIED) != 0;
      
-     dvc_copy( source, &picture, &rect, dx, dy, colormap );
+     dvc_scale( source, &picture, &srect, &drect, colormap );
      
      dfb_surface_unlock( dst_data->surface, 0 );
      

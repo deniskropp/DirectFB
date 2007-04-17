@@ -16,7 +16,7 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
    
-   DVC - DirectFB Video Converter
+   DVC - DirectFB Video Converter (also Scaler)
 */
 
 #ifndef __DVC_H__
@@ -318,20 +318,19 @@ void         dvc_picture_init( DVCPicture     *picture,
  * performing format conversion when requested.
  * No clipping is done. 
  */
-DFBResult    dvc_copy( const DVCPicture   *source,
-                       const DVCPicture   *dest,
-                       const DFBRectangle *rect,
-                       int                 dx,
-                       int                 dy,
-                       const DVCColormap  *colormap );                         
+DFBResult    dvc_scale( const DVCPicture   *source,
+                        const DVCPicture   *dest,
+                        const DFBRectangle *srect,
+                        const DFBRectangle *drect,
+                        const DVCColormap  *colormap );                         
 /*
  * Copy contents of "source" picture to "dest" surface
  * performing format conversion when requested.
  */                    
-DFBResult    dvc_copy_to_surface  ( const DVCPicture   *source,
-                                    IDirectFBSurface   *dest,
-                                    const DFBRectangle *dest_rect,
-                                    const DVCColormap  *colormap );
+DFBResult    dvc_scale_to_surface( const DVCPicture   *source,
+                                   IDirectFBSurface   *dest,
+                                   const DFBRectangle *dest_rect,
+                                   const DVCColormap  *colormap );
 
                                    
 #ifdef __cplusplus

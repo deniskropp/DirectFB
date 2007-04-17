@@ -95,10 +95,10 @@ static void YCbCr_to_RGB_Proc_MMX( DVCContext *ctx )
           "emms                   \n\t"
           "2:"     
           : "=&D" (D)
-          : "c" (ctx->len), "m" (*sub0), "m" (*sub1), "r" (mul), "0" (D)
+          : "c" (ctx->sw), "m" (*sub0), "m" (*sub1), "r" (mul), "0" (D)
           : "memory" );
 
-     for (w = ctx->len & 3; w; w--) {
+     for (w = ctx->sw&3; w; w--) {
           YCBCR_TO_RGB( D->YUV.y, D->YUV.u, D->YUV.v,
                         D->RGB.r, D->RGB.g, D->RGB.b );
           D++;
@@ -132,10 +132,10 @@ static void Load_RGB32_LE_MMX( DVCContext *ctx )
           "emms                  \n\t"
           "2:"
           : "=&S" (S), "=&D" (D)
-          : "c" (ctx->len), "m" (alpha), "0" (S), "1" (D)
+          : "c" (ctx->sw), "m" (alpha), "0" (S), "1" (D)
           : "memory" );
           
-     for (w = ctx->len&3; w; w--) {
+     for (w = ctx->sw&3; w; w--) {
           D->RGB.r = *S >> 16;
           D->RGB.g = *S >>  8;
           D->RGB.b = *S;
@@ -190,11 +190,11 @@ static void Load_YUV422_MMX( DVCContext *ctx )
           "emms                   \n\t"
           "2:"
           : "=&r" (Sy), "=&r" (Su), "=&r" (Sv), "=&D" (D)
-          : "c" (ctx->len), "m" (alpha),
+          : "c" (ctx->sw), "m" (alpha),
             "0" (Sy), "1" (Su), "2" (Sv), "3" (D)
           : "memory");
      
-     for (i = 0; i < (ctx->len&7); i++) {
+     for (i = 0; i < (ctx->sw&7); i++) {
           D[i].YUV.y = Sy[i];
           D[i].YUV.u = Su[i>>1];
           D[i].YUV.v = Sv[i>>1];
@@ -212,11 +212,11 @@ static void Store_RGB16_LE_MMX( DVCContext *ctx )
      
      DVCColor *S = ctx->buf[0];
      u16      *D = ctx->dst[0];
-     int       w = ctx->len;
+     int       w = ctx->dw;
      
      if (w > 15) {
-          const u64 *d5x = &dth5[ctx->dst_y&1];
-          const u64 *d6x = &dth6[ctx->dst_y&1];
+          const u64 *d5x = &dth5[ctx->dy&1];
+          const u64 *d6x = &dth6[ctx->dy&1];
           int        n;
           
           while ((long)D & 6) {
@@ -300,6 +300,148 @@ static void Store_RGB16_LE_MMX( DVCContext *ctx )
      }
 }
 
+static void ScaleH_Up_Proc_MMX( DVCContext *ctx )
+{
+     u32 *S = (u32*)ctx->buf[0];
+     u32 *D = (u32*)ctx->buf[0] + ctx->dw - 1;
+     int  i = ctx->h_scale * (ctx->dw - 1);
+     int  j = i & ~0xffff;
+     int  n = ctx->dw;
+     
+     for (; n && i >= j; n--) {
+          *D-- = S[i>>16];
+          i -= ctx->h_scale;
+     }
+
+     __asm__ __volatile__(
+          "pxor       %%mm7, %%mm7\n\t"
+          "push          %1\n\t"
+          "shr           $1,    %1\n\t"
+          "jz            2f\n\t"
+          ".align 16\n"
+          "1:\n\t"
+          "mov           %2, %%eax\n\t"
+          "movd          %2, %%mm4\n\t"
+          "shr          $16, %%eax\n\t"
+          "punpcklwd  %%mm4, %%mm4\n\t"
+          "movq (%3,%%eax,4), %%mm0\n\t"
+          "punpckldq  %%mm4, %%mm4\n\t"
+          "movq       %%mm0, %%mm1\n\t"
+          "sub           %4,    %2\n\t"
+          "psrlw         $1, %%mm4\n\t"
+          "mov           %2, %%eax\n\t"
+          "movd          %2, %%mm5\n\t"
+          "shr          $16, %%eax\n\t"
+          "punpcklwd  %%mm5, %%mm5\n\t"
+          "movq (%3,%%eax,4), %%mm2\n\t"
+          "punpckldq  %%mm5, %%mm5\n\t"
+          "movq       %%mm2, %%mm3\n\t"
+          "psrlw         $1, %%mm5\n\t"
+          "punpcklbw  %%mm7, %%mm0\n\t"
+          "punpckhbw  %%mm7, %%mm1\n\t"
+          "punpcklbw  %%mm7, %%mm2\n\t"
+          "punpckhbw  %%mm7, %%mm3\n\t"
+          "psubw      %%mm0, %%mm1\n\t"
+          "psubw      %%mm2, %%mm3\n\t"
+          "psllw         $1, %%mm1\n\t"
+          "psllw         $1, %%mm3\n\t"
+          "pmulhw     %%mm4, %%mm1\n\t"
+          "sub           %4,    %2\n\t"
+          "sub           $8,    %0\n\t"
+          "pmulhw     %%mm5, %%mm3\n\t"
+          "paddw      %%mm1, %%mm0\n\t"
+          "paddw      %%mm3, %%mm2\n\t"
+          "packuswb   %%mm0, %%mm2\n\t"
+          "movq       %%mm2, 4(%0)\n\t"
+          "dec           %1\n\t"
+          "jnz           1b\n\t"
+          ".align 8\n"
+          "2:\n\t"
+          "pop           %1\n\t"
+          "testb         $1,   %b1\n\t"
+          "jz            3f\n\t"
+          "movd          %2, %%mm4\n\t"
+          "shr          $16,    %2\n\t"
+          "punpcklwd  %%mm4, %%mm4\n\t"
+          "movq   (%3,%2,4), %%mm0\n\t"
+          "punpckldq  %%mm4, %%mm4\n\t"
+          "movq       %%mm0, %%mm1\n\t" 
+          "psrlw         $1, %%mm4\n\t"     
+          "punpcklbw  %%mm7, %%mm0\n\t"
+          "punpckhbw  %%mm7, %%mm1\n\t"
+          "psubw      %%mm0, %%mm1\n\t"
+          "psllw         $1, %%mm1\n\t"
+          "pmulhw     %%mm4, %%mm1\n\t"
+          "paddw      %%mm1, %%mm0\n\t"
+          "packuswb   %%mm0, %%mm0\n\t"
+          "movd       %%mm0,  (%0)\n\t"
+          "3:\n\t"
+          "emms"
+          : "=&D" (D), "=&r" (n), "=&r" (i)
+          : "S" (S), "rm" (ctx->h_scale), "0" (D), "1" (n), "2" (i)
+          : "eax", "st" );
+}
+
+static void ScaleV_Up_Proc_MMX( DVCContext *ctx )
+{
+     u32 *S = (u32*)ctx->buf[1];
+     u32 *D = (u32*)ctx->buf[0];
+     
+     if (ctx->s_v & 0xffff) {
+          __asm__ __volatile__(
+               "movd          %3, %%mm4\n\t"
+               "pxor       %%mm7, %%mm7\n\t"
+               "punpcklwd  %%mm4, %%mm4\n\t"
+               "punpckldq  %%mm4, %%mm4\n\t"
+               "push          %2\n\t"
+               "shr           $1,    %2\n\t"
+               "jz            2f\n\t"
+               ".align 16\n"
+               "1:\n\t"
+               "movq        (%0), %%mm0\n\t"
+               "movq        (%1), %%mm1\n\t"
+               "movq       %%mm0, %%mm2\n\t"
+               "movq       %%mm1, %%mm3\n\t"
+               "punpcklbw  %%mm7, %%mm0\n\t"
+               "punpcklbw  %%mm7, %%mm1\n\t"
+               "punpckhbw  %%mm7, %%mm2\n\t"
+               "punpckhbw  %%mm7, %%mm3\n\t"
+               "psubw      %%mm1, %%mm0\n\t"
+               "psubw      %%mm3, %%mm2\n\t"
+               "psllw         $1, %%mm0\n\t"
+               "psllw         $1, %%mm2\n\t"
+               "pmulhw     %%mm4, %%mm0\n\t"
+               "add           $8,    %1\n\t"
+               "add           $8,    %0\n\t"
+               "pmulhw     %%mm4, %%mm2\n\t"
+               "paddw      %%mm1, %%mm0\n\t"
+               "paddw      %%mm3, %%mm2\n\t"
+               "packuswb   %%mm2, %%mm0\n\t"
+               "movq       %%mm0,-8(%0)\n\t"
+               "dec           %2\n\t"
+               "jnz           1b\n\t"
+               ".align 8\n"
+               "2:\n\t"
+               "pop           %2\n\t"
+               "testb         $1,   %b2\n\t"
+               "jz            3f\n\t"
+               "movd        (%0), %%mm0\n\t"
+               "movd        (%1), %%mm1\n\t"
+               "punpcklbw  %%mm7, %%mm0\n\t"
+               "punpcklbw  %%mm7, %%mm1\n\t"
+               "psubw      %%mm1, %%mm0\n\t"
+               "psllw         $1, %%mm0\n\t"
+               "pmulhw     %%mm4, %%mm0\n\t"
+               "paddw      %%mm1, %%mm0\n\t"
+               "packuswb   %%mm0, %%mm0\n\t"
+               "movd       %%mm0,  (%0)\n\t"
+               "3:\n\t" 
+               "emms"
+               : "=&D" (D), "=&S" (S)
+               : "c" (ctx->dw), "r" ((ctx->s_v & 0xffff)>>1), "0" (D), "1" (S)
+               : "memory", "st" );
+     }
+}
 
 
 #define CPUID( i, a, b, c, d )                     \
@@ -364,14 +506,16 @@ static void init_mmx( void )
 
      if (!have_mmx)
           return;
-          
-     YCbCr_to_RGB_Proc = YCbCr_to_RGB_Proc_MMX;
      
      Load_Proc[DVC_PIXELFORMAT_INDEX(DVCPF_RGB32_LE)] = Load_RGB32_LE_MMX;
      Load_Proc[DVC_PIXELFORMAT_INDEX(DVCPF_YUV422)]   = Load_YUV422_MMX;
      Load_Proc[DVC_PIXELFORMAT_INDEX(DVCPF_YUV420)]   = Load_YUV422_MMX;
      
      Store_Proc[DVC_PIXELFORMAT_INDEX(DVCPF_RGB16_LE)] = Store_RGB16_LE_MMX;
+     
+     YCbCr_to_RGB_Proc = YCbCr_to_RGB_Proc_MMX;
+     ScaleH_Up_Proc    = ScaleH_Up_Proc_MMX;
+     ScaleV_Up_Proc    = ScaleV_Up_Proc_MMX;
 }
 
 
