@@ -363,7 +363,7 @@ queue_is_full( PacketQueue *queue )
 static void*
 FFmpegInput( DirectThread *self, void *arg )
 {
-     IDirectFBVideoProvider_FFmpeg_data *data      = arg;
+     IDirectFBVideoProvider_FFmpeg_data *data = arg;
 
      if (url_is_streamed( &data->context->pb )) {
           pthread_mutex_lock( &data->video.queue.lock );
@@ -550,9 +550,9 @@ FFmpegPutFrame( IDirectFBVideoProvider_FFmpeg_data *data )
      picture.separated = false;
      picture.premultiplied = false;
      
-     dvc_copy_to_surface( &picture, data->video.dest, 
-                          data->video.rect.w ? &data->video.rect : NULL,
-                          data->video.colormap );
+     dvc_scale_to_surface( &picture, data->video.dest, 
+                           data->video.rect.w ? &data->video.rect : NULL,
+                           data->video.colormap );
 }
 
 static void*
@@ -821,9 +821,8 @@ IDirectFBVideoProvider_FFmpeg_GetCapabilities( IDirectFBVideoProvider       *thi
           return DFB_INVARG;
    
 
-     *caps = DVCAPS_BASIC      | DVCAPS_SPEED    |
-             DVCAPS_BRIGHTNESS | DVCAPS_CONTRAST |
-             DVCAPS_SATURATION;
+     *caps = DVCAPS_BASIC      | DVCAPS_SCALE    | DVCAPS_SPEED     |
+             DVCAPS_BRIGHTNESS | DVCAPS_CONTRAST | DVCAPS_SATURATION;
      if (data->seekable)
           *caps |= DVCAPS_SEEK;
      if (data->video.src_frame->interlaced_frame)
@@ -1241,14 +1240,16 @@ IDirectFBVideoProvider_FFmpeg_SetSpeed( IDirectFBVideoProvider *thiz,
      
      if (multiplier)
           multiplier = MAX( multiplier, 0.01 );
-     data->speed = multiplier;
+          
+     if (multiplier > data->speed)
+          pthread_cond_signal( &data->video.cond );
      
 #ifdef HAVE_FUSIONSOUND
      if (data->audio.playback)
           data->audio.playback->SetPitch( data->audio.playback, multiplier );
 #endif
      
-     pthread_cond_signal( &data->video.cond );
+     data->speed = multiplier;
      
      pthread_mutex_unlock( &data->audio.lock );
      pthread_mutex_unlock( &data->video.lock );    
