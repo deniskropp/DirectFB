@@ -781,7 +781,7 @@ IDirectFBVideoProvider_Swfdec_GetStreamDescription( IDirectFBVideoProvider *thiz
      snprintf( desc->video.encoding,
                DFB_STREAM_DESC_ENCODING_LENGTH, "Shockwave Flash" );
      desc->video.framerate = data->rate;
-     desc->video.aspect    = (double)data->width / (double) data->height;
+     desc->video.aspect    = 0;
      desc->video.bitrate   = 0;
 
      snprintf( desc->audio.encoding,
@@ -828,7 +828,7 @@ IDirectFBVideoProvider_Swfdec_PlayTo( IDirectFBVideoProvider *thiz,
           case DSPF_AiRGB:
                break;
           default:
-               D_DEBUG( "IDirectFBVideoProvider_Swf: "
+               D_DEBUG( "IDirectFBVideoProvider_Swfdec: "
                         "unsupported destination pixelformat.\n" );
                return DFB_UNSUPPORTED;
      }
