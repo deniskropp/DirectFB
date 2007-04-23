@@ -4749,7 +4749,11 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       *
       * After binding, bound window will be automatically moved
       * when this window moves to a new position.<br>
-      * Call Bind() again to move bound window to a new position.
+      * Binding the same window to multiple windows is not supported.
+      * Subsequent call to Bind() automatically unbounds the bound window
+      * before binding it again.<br>
+      * To move the bound window to a new position call Bind() again 
+      * with the new coordinates.
       */
      DFBResult (*Bind) (
           IDirectFBWindow               *thiz,
