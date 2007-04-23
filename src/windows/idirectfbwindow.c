@@ -905,6 +905,46 @@ IDirectFBWindow_ResizeSurface( IDirectFBWindow *thiz,
                                   width, height, window->surface->format );
 }
 
+static DFBResult
+IDirectFBWindow_Bind( IDirectFBWindow *thiz,
+                      IDirectFBWindow *source,
+                      int              x,
+                      int              y )
+{
+     IDirectFBWindow_data *source_data;
+ 
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     DIRECT_INTERFACE_GET_DATA_FROM(source, source_data, IDirectFBWindow);
+
+     if (source_data->destroyed)
+          return DFB_DESTROYED;
+
+     return dfb_window_bind( data->window, source_data->window, x, y );
+}
+
+static DFBResult
+IDirectFBWindow_Unbind( IDirectFBWindow *thiz,
+                        IDirectFBWindow *source )
+{
+     IDirectFBWindow_data *source_data;
+ 
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     DIRECT_INTERFACE_GET_DATA_FROM(source, source_data, IDirectFBWindow);
+
+     if (source_data->destroyed)
+          return DFB_DESTROYED;
+
+     return dfb_window_unbind( data->window, source_data->window );
+}
+
 DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                            CoreWindow      *window,
@@ -966,6 +1006,8 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->Destroy = IDirectFBWindow_Destroy;
      thiz->SetBounds = IDirectFBWindow_SetBounds;
      thiz->ResizeSurface = IDirectFBWindow_ResizeSurface;
+     thiz->Bind = IDirectFBWindow_Bind;
+     thiz->Unbind = IDirectFBWindow_Unbind;
 
      return DFB_OK;
 }

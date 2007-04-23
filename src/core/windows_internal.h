@@ -59,6 +59,14 @@ typedef enum {
 #define DFB_WINDOW_ENTERED(w)      ((w)->flags & CWF_ENTERED)
 #define DFB_WINDOW_DESTROYED(w)    ((w)->flags & CWF_DESTROYED)
 
+typedef struct {
+     DirectLink              link;
+
+     CoreWindow             *window;
+     int                     x;
+     int                     y;
+} BoundWindow;
+
 /*
  * Core data of a window.
  */
@@ -86,6 +94,10 @@ struct __DFB_CoreWindow {
 
      CoreGraphicsSerial      serial1;
      CoreGraphicsSerial      serial2;
+
+     BoundWindow            *bound_windows;  /* list of bound windows */
+
+     CoreWindow             *boundto;        /* window to which this window is bound */
 };
 
 /*

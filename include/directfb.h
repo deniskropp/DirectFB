@@ -4740,6 +4740,31 @@ DEFINE_INTERFACE(   IDirectFBWindow,
           int                            width,
           int                            height
      );
+
+
+   /** Binding **/
+     
+     /*
+      * Bind a window at the specified position of this window.
+      *
+      * After binding, bound window will be automatically moved
+      * when this window moves to a new position.<br>
+      * Call Bind() again to move bound window to a new position.
+      */
+     DFBResult (*Bind) (
+          IDirectFBWindow               *thiz,
+          IDirectFBWindow               *window,
+          int                            x,
+          int                            y
+     );
+
+     /*
+      * Unbind a window from this window.
+      */
+     DFBResult (*Unbind) (
+          IDirectFBWindow               *thiz,
+          IDirectFBWindow               *window
+     );
 )
 
 

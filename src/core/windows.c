@@ -478,6 +478,7 @@ dfb_window_destroy( CoreWindow *window )
 {
      DFBWindowEvent   evt;
      CoreWindowStack *stack;
+     BoundWindow     *bound;
 
      D_ASSERT( window != NULL );
      D_ASSERT( DFB_WINDOW_INITIALIZED( window ) );
@@ -501,6 +502,24 @@ dfb_window_destroy( CoreWindow *window )
           dfb_windowstack_unlock( stack );
           return;
      }
+
+     /* Unbind bound windows. */
+     bound = window->bound_windows;
+     while (bound) {
+          BoundWindow *next = (BoundWindow*)bound->link.next;
+
+          direct_list_remove( (DirectLink**)&window->bound_windows, &bound->link );
+
+          bound->window->boundto = NULL;
+
+          SHFREE( stack->shmpool, bound );
+
+          bound = next;
+     }
+
+     /* Unbind this window. */
+     if (window->boundto)
+          dfb_window_unbind( window->boundto, window );
 
      /* Make sure the window is no longer visible. */
      dfb_window_set_opacity( window, 0 );
@@ -753,15 +772,39 @@ dfb_window_putbelow( CoreWindow *window,
      return ret;
 }
 
+static DFBResult
+move_window( CoreWindow *window,
+             int         x,
+             int         y )
+{
+     DFBResult         ret; 
+     CoreWindowConfig  config;
+     BoundWindow      *bound;
+
+     config.bounds.x = x;
+     config.bounds.y = y;
+
+     ret = dfb_wm_set_window_config( window, &config, CWCF_POSITION );
+     if (ret)
+          return ret;
+
+     direct_list_foreach (bound, window->bound_windows) {
+          move_window( bound->window,
+                       window->config.bounds.x + bound->x,
+                       window->config.bounds.y + bound->y );
+     }
+
+     return DFB_OK;
+}
+
 DFBResult
 dfb_window_move( CoreWindow *window,
                  int         x,
                  int         y,
                  bool        relative )
 {
-     DFBResult         ret;
-     CoreWindowConfig  config;
-     CoreWindowStack  *stack = window->stack;
+     DFBResult        ret;    
+     CoreWindowStack *stack = window->stack;
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -773,21 +816,22 @@ dfb_window_move( CoreWindow *window,
           return DFB_DESTROYED;
      }
 
-     if (relative) {
-          config.bounds.x = window->config.bounds.x + x;
-          config.bounds.y = window->config.bounds.y + y;
-     }
-     else {
-          config.bounds.x = x;
-          config.bounds.y = y;
+     if (window->boundto) {
+          dfb_windowstack_unlock( stack );
+          return DFB_UNSUPPORTED;
      }
 
-     if (config.bounds.x == window->config.bounds.x && config.bounds.y == window->config.bounds.y) {
+     if (relative) {
+          x += window->config.bounds.x;
+          y += window->config.bounds.y;
+     }
+
+     if (x == window->config.bounds.x && y == window->config.bounds.y) {
           dfb_windowstack_unlock( stack );
           return DFB_OK;
      }
 
-     ret = dfb_wm_set_window_config( window, &config, CWCF_POSITION );
+     ret = move_window( window, x, y );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
@@ -805,6 +849,8 @@ dfb_window_set_bounds( CoreWindow *window,
      DFBResult         ret;
      CoreWindowConfig  config;
      CoreWindowStack  *stack = window->stack;
+     int               old_x;
+     int               old_y;
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -814,6 +860,16 @@ dfb_window_set_bounds( CoreWindow *window,
      if (DFB_WINDOW_DESTROYED( window )) {
           dfb_windowstack_unlock( stack );
           return DFB_DESTROYED;
+     }
+
+     old_x = window->config.bounds.x;
+     old_y = window->config.bounds.y;
+
+     if (window->boundto) {
+          if (old_x != x || old_y != y) {
+               dfb_windowstack_unlock( stack );
+               return DFB_UNSUPPORTED;
+          }
      }
 
      config.bounds.x = x;
@@ -831,11 +887,25 @@ dfb_window_set_bounds( CoreWindow *window,
      }
 
      ret = dfb_wm_set_window_config( window, &config, CWCF_POSITION | CWCF_SIZE );
+     if (ret) {
+          dfb_windowstack_unlock( stack );
+          return ret;
+     }
+
+     if (old_x != x || old_y != y) {
+          BoundWindow *bound;
+
+          direct_list_foreach (bound, window->bound_windows) {
+               move_window( bound->window,
+                            window->config.bounds.x + bound->x,
+                            window->config.bounds.y + bound->y );
+          }
+     }
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
 
-     return ret;
+     return DFB_OK;
 }
 
 DFBResult
@@ -882,6 +952,112 @@ dfb_window_resize( CoreWindow   *window,
      return ret;
 }
 
+DFBResult
+dfb_window_bind( CoreWindow *window,
+                 CoreWindow *source,
+                 int         x,
+                 int         y )
+{
+     DFBResult        ret;
+     CoreWindowStack *stack = window->stack;
+     BoundWindow     *bound;
+
+     if (window == source)
+          return DFB_UNSUPPORTED;
+     
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack ))
+          return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
+     if (DFB_WINDOW_DESTROYED( source )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
+     bound = SHCALLOC( stack->shmpool, 1, sizeof(BoundWindow) );
+     if (!bound) {
+          dfb_windowstack_unlock( stack );
+          return DFB_NOSHAREDMEMORY;
+     }                    
+
+     if (source->boundto)
+          dfb_window_unbind( source->boundto, source );
+
+     ret = move_window( source,
+                        window->config.bounds.x + x,
+                        window->config.bounds.y + y );
+     if (ret) {
+          SHFREE( stack->shmpool, bound );
+          dfb_windowstack_unlock( stack );
+          return ret;
+     }
+
+     bound->window = source;
+     bound->x      = x;
+     bound->y      = y;
+
+     direct_list_append( (DirectLink**)&window->bound_windows, &bound->link );
+
+     source->boundto = window;
+
+     dfb_windowstack_unlock( stack );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_window_unbind( CoreWindow *window,
+                   CoreWindow *source )
+{
+     CoreWindowStack *stack = window->stack;
+     BoundWindow     *bound;
+
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack ))
+          return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
+     if (DFB_WINDOW_DESTROYED( source )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
+     if (source->boundto != window) {
+          dfb_windowstack_unlock( stack );
+          return DFB_UNSUPPORTED;
+     }
+
+     direct_list_foreach (bound, window->bound_windows) {
+          if (bound->window == source) {
+               direct_list_remove( (DirectLink**)&window->bound_windows, &bound->link );
+
+               bound->window->boundto = NULL;
+
+               SHFREE( stack->shmpool, bound );
+
+               break;
+          }
+     }
+
+     if (!bound)
+          D_BUG( "window not found" );
+
+     dfb_windowstack_unlock( stack );
+
+     return bound ? DFB_OK : DFB_ITEMNOTFOUND;
+}
+     
 DFBResult
 dfb_window_set_colorkey( CoreWindow *window,
                          u32         color_key )

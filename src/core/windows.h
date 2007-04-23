@@ -130,6 +130,22 @@ dfb_window_resize( CoreWindow   *window,
                    int           height );
 
 /*
+ * binds a window to this window
+ */
+DFBResult
+dfb_window_bind( CoreWindow *window,
+                 CoreWindow *source,
+                 int         x,
+                 int         y );
+
+/*
+ * unbinds a window from this window
+ */
+DFBResult
+dfb_window_unbind( CoreWindow *window,
+                   CoreWindow *source );
+
+/*
  * changes stacking class
  */
 DFBResult
