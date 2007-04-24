@@ -180,7 +180,7 @@ typedef struct {
 
 #define IO_BUFFER_SIZE       8 /* in kylobytes */
 
-#define MAX_QUEUE_LEN        5 /* in seconds */
+#define MAX_QUEUE_LEN        3 /* in seconds */
 
 #define GAP_TOLERANCE    15000 /* in microseconds */
 
@@ -325,7 +325,7 @@ getclock( struct timespec *ret )
 #endif
 }
 
-static inline __s64
+static inline s64
 get_stream_clock( IDirectFBVideoProvider_FFmpeg_data *data )
 {
 #ifdef HAVE_FUSIONSOUND
@@ -371,10 +371,12 @@ FFmpegInput( DirectThread *self, void *arg )
           data->input.buffering = true;
      }
      
-     data->video.pts = data->audio.pts = -1;
+     data->audio.pts = -1;
 
-     while (!direct_thread_is_canceled( self )) {
+     while (data->status != DVSTATE_STOP) {
           AVPacket packet;
+          
+          direct_thread_testcancel( self );
           
           pthread_mutex_lock( &data->input.lock );
           
@@ -395,7 +397,6 @@ FFmpegInput( DirectThread *self, void *arg )
                   
                     if (data->status == DVSTATE_FINISHED)
                          data->status = DVSTATE_PLAY;
-                    data->video.pts = 
                     data->audio.pts = -1;
                     data->video.seeked = true;
                     data->audio.seeked = true;
@@ -417,7 +418,7 @@ FFmpegInput( DirectThread *self, void *arg )
                     data->input.buffering = false;
                }
                pthread_mutex_unlock( &data->input.lock );
-               usleep( 100 );
+               usleep( 500 );
                continue;
           }
           else if (data->video.queue.size == 0 || 
@@ -1034,6 +1035,12 @@ IDirectFBVideoProvider_FFmpeg_Stop( IDirectFBVideoProvider *thiz )
           
      data->status = DVSTATE_STOP;
      
+     if (data->input.thread) {
+          direct_thread_join( data->input.thread );
+          direct_thread_destroy( data->input.thread );
+          data->input.thread = NULL;
+     }
+     
      if (data->video.thread) {
           pthread_mutex_lock( &data->video.lock );
           pthread_cond_signal( &data->video.cond );
@@ -1349,7 +1356,8 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
                    !strcmp( format->name, "ra"  ) ||
                    !strcmp( format->name, "wma" ) ||
                    !strcmp( format->name, "swf" ) ||
-                   !strcmp( format->name, "gif" ))
+                   !strcmp( format->name, "gif" ) ||
+                   !strcmp( format->name, "rm"  ))
                     return DFB_UNSUPPORTED;
           }
 
@@ -1555,9 +1563,6 @@ Construct( IDirectFBVideoProvider *thiz,
 
      if (data->context->start_time != AV_NOPTS_VALUE)
           data->start_time = data->context->start_time;
-     
-     data->video.pts = 
-     data->audio.pts = (double)data->start_time / AV_TIME_BASE;
  
      direct_util_recursive_pthread_mutex_init( &data->input.lock );
      direct_util_recursive_pthread_mutex_init( &data->video.lock );
