@@ -116,7 +116,10 @@ typedef struct {
           DirectThread     *thread;
           pthread_mutex_t   lock;
           
+          s64               pts;
+          
           bool              buffering;
+          bool              eos;
           
           double            seek;
      } input;
@@ -165,7 +168,7 @@ static inline s64 usec( void )
 /*****************************************************************************/
 
 static void
-add_frame( FrameQueue *queue, SwfdecBuffer *buffer, s64 pts )
+put_frame( FrameQueue *queue, SwfdecBuffer *buffer, s64 pts )
 {
      FrameLink *f;
      
@@ -241,15 +244,16 @@ SwfInput( DirectThread *self, void *arg )
 {
      IDirectFBVideoProvider_Swfdec_data *data   = arg;
      IDirectFBDataBuffer                *buffer = data->buffer;
-     s64                                 pts    = 0;
      unsigned int                        q_max;
      
      data->input.buffering = true;
      
-     while (!direct_thread_is_canceled( self )) {
+     while (data->status != DVSTATE_STOP && !data->input.eos) {
           DFBResult     ret;
           unsigned char tmp[4096];
           unsigned int  len = 0;
+          
+          direct_thread_testcancel( self );
           
           ret = buffer->WaitForDataWithTimeout( buffer, sizeof(tmp), 0, 1 );
           if (ret == DFB_TIMEOUT)
@@ -285,8 +289,8 @@ SwfInput( DirectThread *self, void *arg )
                pthread_mutex_lock( &data->input.lock );
                swfdec_decoder_eof( data->decoder );
                swfdec_decoder_parse( data->decoder );
+               data->input.eos = true;
                pthread_mutex_unlock( &data->input.lock );
-               break;
           }
      }
      
@@ -294,10 +298,12 @@ SwfInput( DirectThread *self, void *arg )
 
      q_max = MAX( (int)data->rate/3, 2 );
      
-     while (!direct_thread_is_canceled( self )) {
+     while (data->status != DVSTATE_STOP) {
           SwfdecBuffer *buffer;
           DFBRectangle  rect;
           int           w, h;
+          
+          direct_thread_testcancel( self );
                    
           pthread_mutex_lock( &data->input.lock );
           
@@ -310,7 +316,7 @@ SwfInput( DirectThread *self, void *arg )
                flush_frames( &data->audio.queue );
                data->video.seeked = true;
                data->audio.seeked = true;
-               pts = data->input.seek * 1000000ll;
+               data->input.pts = data->input.seek * 1000000ll;
                if (data->video.thread)
                     pthread_cond_signal( &data->video.cond );
                pthread_mutex_unlock( &data->audio.lock );
@@ -322,7 +328,7 @@ SwfInput( DirectThread *self, void *arg )
                    data->audio.queue.count >= q_max) 
           {
                pthread_mutex_unlock( &data->input.lock );
-               usleep( 100 );
+               usleep( 500 );
                continue;
           }
           
@@ -331,7 +337,7 @@ SwfInput( DirectThread *self, void *arg )
 #ifdef HAVE_FUSIONSOUND
           if (data->stream) {
                buffer = swfdec_render_get_audio( data->decoder );
-               add_frame( &data->audio.queue, buffer, pts );
+               put_frame( &data->audio.queue, buffer, data->input.pts );
           }
 #endif
           swfdec_decoder_get_image_size( data->decoder, &w, &h );
@@ -347,9 +353,9 @@ SwfInput( DirectThread *self, void *arg )
           buffer = swfdec_render_get_image( data->decoder );
           if (buffer)
                buffer->length = (h << 16) | (w & 0xffff);
-          add_frame( &data->video.queue, buffer, pts );
+          put_frame( &data->video.queue, buffer, data->input.pts );
           
-          pts += data->interval;
+          data->input.pts += data->interval;
           
           pthread_mutex_unlock( &data->input.lock );
      }
@@ -530,7 +536,7 @@ SwfVideo( DirectThread *self, void *arg )
      IDirectFBVideoProvider_Swfdec_data *data = arg;
      bool                                drop = false;
      
-     while (data->status == DVSTATE_PLAY) {
+     while (data->status != DVSTATE_STOP) {
           SwfdecBuffer *buffer;
           s64           time;
           
@@ -605,7 +611,7 @@ SwfAudio( DirectThread *self, void *arg )
 {
      IDirectFBVideoProvider_Swfdec_data *data = arg;
 
-     while (data->status == DVSTATE_PLAY) {
+     while (data->status != DVSTATE_STOP) {
           SwfdecBuffer *buffer;
           s64           pts;
           
@@ -894,12 +900,16 @@ IDirectFBVideoProvider_Swfdec_Stop( IDirectFBVideoProvider *thiz )
  
      data->status = DVSTATE_STOP;
      
+     if (data->input.thread) {
+          direct_thread_join( data->input.thread );
+          direct_thread_destroy( data->input.thread );
+          data->input.thread = NULL;
+     }
+     
      if (data->video.thread) {
-          if (!data->speed) {
-               pthread_mutex_lock( &data->video.lock );
-               pthread_cond_signal( &data->video.cond );
-               pthread_mutex_unlock( &data->video.lock );
-          }
+          pthread_mutex_lock( &data->video.lock );
+          pthread_cond_signal( &data->video.cond );
+          pthread_mutex_unlock( &data->video.lock );
           direct_thread_join( data->video.thread );
           direct_thread_destroy( data->video.thread );
           data->video.thread = NULL;
@@ -909,6 +919,11 @@ IDirectFBVideoProvider_Swfdec_Stop( IDirectFBVideoProvider *thiz )
           direct_thread_join( data->audio.thread );
           direct_thread_destroy( data->audio.thread );
           data->audio.thread = NULL;
+     }
+     
+     if (data->dest) {
+          data->dest->Release( data->dest );
+          data->dest = NULL;
      }
      
      pthread_mutex_unlock( &data->input.lock );
@@ -1143,13 +1158,15 @@ IDirectFBVideoProvider_Swfdec_SetSpeed( IDirectFBVideoProvider *thiz,
                multiplier = 0.01;
           data->interval = 1000000.0/(data->rate*multiplier);
      }
-     pthread_cond_signal( &data->video.cond );
      
 #ifdef HAVE_FUSIONSOUND
      if (data->playback)
           data->playback->SetPitch( data->playback, multiplier );
 #endif
 
+     if (multiplier > data->speed)
+          pthread_cond_signal( &data->video.cond );
+          
      data->speed = multiplier;
      
      pthread_mutex_unlock( &data->audio.lock );
