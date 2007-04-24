@@ -585,7 +585,7 @@ fusion_reactor_direct( FusionReactor *reactor, bool direct )
 void
 _fusion_reactor_free_all( FusionWorld *world )
 {
-     ReactorNode *node;
+     ReactorNode *node, *temp;
 
      D_MAGIC_ASSERT( world, FusionWorld );
 
@@ -594,7 +594,7 @@ _fusion_reactor_free_all( FusionWorld *world )
 
      pthread_mutex_lock( &world->reactor_nodes_lock );
 
-     direct_list_foreach (node, world->reactor_nodes) {
+     direct_list_foreach_safe (node, temp, world->reactor_nodes) {
           NodeLink *link;
 
           D_MAGIC_ASSERT( node, ReactorNode );
