@@ -336,8 +336,6 @@ IDirectFBVideoProvider_Xine_GetStreamDescription( IDirectFBVideoProvider *thiz,
                desc->video.framerate = 90000.0 / desc->video.framerate;
           desc->video.aspect    = xine_get_stream_info( data->stream,
                                                         XINE_STREAM_INFO_VIDEO_RATIO ) / 10000.0;
-          if (!desc->video.aspect)
-               desc->video.aspect = 4.0/3.0;
           desc->video.bitrate   = xine_get_stream_info( data->stream,
                                                         XINE_STREAM_INFO_VIDEO_BITRATE );
      }
