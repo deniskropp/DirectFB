@@ -184,7 +184,7 @@ typedef struct {
 
 #define GAP_TOLERANCE    15000 /* in microseconds */
 
-#define GAP_THRESHOLD  1000000 /* in microseconds */
+#define GAP_THRESHOLD   500000 /* in microseconds */
 
 /*****************************************************************************/
 
@@ -251,7 +251,7 @@ av_seek_callback( void *opaque, offset_t offset, int whence )
 /*****************************************************************************/
 
 static bool
-add_packet( PacketQueue *queue, AVPacket *packet )
+put_packet( PacketQueue *queue, AVPacket *packet )
 {
      PacketLink *p;
      
@@ -455,12 +455,12 @@ FFmpegInput( DirectThread *self, void *arg )
           }
           
           if (packet.stream_index == data->video.st->index) {
-               add_packet( &data->video.queue, &packet );
+               put_packet( &data->video.queue, &packet );
           }
 #ifdef HAVE_FUSIONSOUND
           else if (data->audio.stream &&
                    packet.stream_index == data->audio.st->index) {
-               add_packet( &data->audio.queue, &packet );
+               put_packet( &data->audio.queue, &packet );
           }
 #endif
           else {
@@ -603,7 +603,7 @@ FFmpegVideo( DirectThread *self, void *arg )
           
           if (pkt.dts != AV_NOPTS_VALUE) {
                data->video.pts = av_rescale_q( pkt.dts, 
-                                               st->time_base, AV_TIME_BASE_Q );
+                                               st->time_base, AV_TIME_BASE_Q );  
           } else {
                data->video.pts += duration;
           }
@@ -696,7 +696,7 @@ FFmpegAudio( DirectThread *self, void *arg )
           
           if (pkt.pts != AV_NOPTS_VALUE) {
                data->audio.pts = av_rescale_q( pkt.pts,
-                                               st->time_base, AV_TIME_BASE_Q );
+                                               st->time_base, AV_TIME_BASE_Q ); 
           }
           else if (size) {
                data->audio.pts += (s64)size * AV_TIME_BASE / data->audio.sample_rate;
@@ -767,9 +767,17 @@ IDirectFBVideoProvider_FFmpeg_Destruct( IDirectFBVideoProvider *thiz )
      if (data->video.colormap)
           D_FREE( data->video.colormap );
           
-     if (data->context) {
-          data->context->iformat->flags |= AVFMT_NOFILE;
-          av_close_input_file( data->context );
+     if (data->context) { 
+          AVInputFormat *iformat = data->context->iformat;
+          /* Ugly hack to fix a bug (segfault) in url_fclose() */
+          if (!(iformat->flags & AVFMT_NOFILE)) {
+               iformat->flags |= AVFMT_NOFILE;
+               av_close_input_file( data->context );
+               iformat->flags ^= AVFMT_NOFILE;
+          }
+          else {
+               av_close_input_file( data->context );
+          }
      }
           
      if (data->buffer)
@@ -918,6 +926,8 @@ IDirectFBVideoProvider_FFmpeg_GetStreamDescription( IDirectFBVideoProvider *thiz
      desc->video.aspect    = av_q2d( data->video.ctx->sample_aspect_ratio );
      if (!finite( desc->video.aspect ))
           desc->video.aspect = 0.0;
+     if (desc->video.aspect)
+          desc->video.aspect *= (double)data->video.ctx->width/(double)data->video.ctx->height;
      desc->video.bitrate   = data->video.ctx->bit_rate;
 
      if (data->audio.st) {
