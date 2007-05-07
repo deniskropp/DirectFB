@@ -225,7 +225,7 @@ static DFBResult dfb_fbdev_read_modes();
 static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format );
 static DFBResult dfb_fbdev_set_palette( CorePalette *palette );
 static DFBResult dfb_fbdev_set_rgb332_palette();
-static DFBResult dfb_fbdev_pan( int offset, bool onsync );
+static DFBResult dfb_fbdev_pan( int xoffset, int yoffset, bool onsync );
 static DFBResult dfb_fbdev_blank( int level );
 static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                                      VideoMode             *mode,
@@ -1107,6 +1107,10 @@ primaryInitLayer( CoreLayer                  *layer,
      
      tmp.format     = DSPF_RGB16;
      tmp.buffermode = DLBM_FRONTONLY;
+     tmp.source.x   = 0;
+     tmp.source.y   = 0;
+     tmp.source.w   = config->width;
+     tmp.source.h   = config->height;
      if (dfb_fbdev_set_mode( NULL, NULL, &tmp ))
           config->pixelformat = dfb_pixelformat_for_depth( dfb_fbdev->shared->orig_var.bits_per_pixel );
      else
@@ -1255,8 +1259,8 @@ primaryTestRegion( CoreLayer                  *layer,
 
      videomode = dfb_fbdev->shared->modes;
      while (videomode) {
-          if (videomode->xres == config->width  &&
-              videomode->yres == config->height)
+          if (videomode->xres == config->source.w  &&
+              videomode->yres == config->source.h)
                break;
 
           videomode = videomode->next;
@@ -1300,11 +1304,12 @@ primarySetRegion( CoreLayer                  *layer,
      DFBResult  ret;
      VideoMode *videomode;
      VideoMode *highest = NULL;
+     FBDevShared *shared = dfb_fbdev->shared;
 
-     videomode = dfb_fbdev->shared->modes;
+     videomode = shared->modes;
      while (videomode) {
-          if (videomode->xres == config->width  &&
-              videomode->yres == config->height)
+          if (videomode->xres == config->source.w  &&
+              videomode->yres == config->source.h)
           {
                if (!highest || highest->priority < videomode->priority)
                     highest = videomode;
@@ -1316,7 +1321,21 @@ primarySetRegion( CoreLayer                  *layer,
      if (!highest)
           return DFB_UNSUPPORTED;
 
-     if (updated & (CLRCF_BUFFERMODE | CLRCF_FORMAT | CLRCF_HEIGHT | CLRCF_SURFACE | CLRCF_WIDTH)) {
+     switch (updated & (CLRCF_BUFFERMODE | CLRCF_FORMAT | CLRCF_HEIGHT |
+                        CLRCF_SURFACE | CLRCF_WIDTH |  CLRCF_SOURCE)) {
+     case CLRCF_SOURCE:
+          if (config->source.w == shared->current_mode.xres &&
+              config->source.h == shared->current_mode.yres) {
+               ret = dfb_fbdev_pan( config->source.x,
+                                    surface->front_buffer->video.offset /
+                                    surface->front_buffer->video.pitch + config->source.y,
+                                    true );
+               if (ret)
+                    return ret;
+               break;
+          }
+          /* fall through */
+     default:
           ret = dfb_fbdev_set_mode( surface, highest, config );
           if (ret)
                return ret;
@@ -1324,6 +1343,9 @@ primarySetRegion( CoreLayer                  *layer,
 
      if ((updated & CLRCF_PALETTE) && palette)
           dfb_fbdev_set_palette( palette );
+
+     /* remember configuration */
+     shared->config = *config;
 
      return DFB_OK;
 }
@@ -1346,13 +1368,15 @@ primaryFlipRegion( CoreLayer           *layer,
                    DFBSurfaceFlipFlags  flags )
 {
      DFBResult ret;
+     CoreLayerRegionConfig *config = &dfb_fbdev->shared->config;
 
      if (((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) &&
          !dfb_config->pollvsync_after)
           dfb_screen_wait_vsync( dfb_screens_at(DSCID_PRIMARY) );
 
-     ret = dfb_fbdev_pan( surface->back_buffer->video.offset /
-                          surface->back_buffer->video.pitch,
+     ret = dfb_fbdev_pan( config->source.x,
+                          surface->back_buffer->video.offset /
+                          surface->back_buffer->video.pitch + config->source.y,
                           (flags & DSFLIP_WAITFORSYNC) == DSFLIP_ONSYNC );
      if (ret)
           return ret;
@@ -1583,27 +1607,45 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
 /*
  * pans display (flips buffer) using fbdev ioctl
  */
-static DFBResult dfb_fbdev_pan( int offset, bool onsync )
+static DFBResult dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
 {
      struct fb_var_screeninfo *var;
 
      var = &dfb_fbdev->shared->current_var;
 
-     if (var->yres_virtual < offset + var->yres) {
-          D_ERROR( "DirectFB/FBDev: yres %d, vyres %d, offset %d\n",
-                    var->yres, var->yres_virtual, offset );
+     if (var->xres_virtual < xoffset + var->xres) {
+          D_ERROR( "DirectFB/FBDev: xres %d, vxres %d, xoffset %d\n",
+                    var->xres, var->xres_virtual, xoffset ); 
           D_BUG( "panning buffer out of range" );
           return DFB_BUG;
      }
 
-     var->xoffset = 0;
-     var->yoffset = offset;
+     if (var->yres_virtual < yoffset + var->yres) {
+          D_ERROR( "DirectFB/FBDev: yres %d, vyres %d, offset %d\n",
+                    var->yres, var->yres_virtual, yoffset );
+          D_BUG( "panning buffer out of range" );
+          return DFB_BUG;
+     }
+
+     var->xoffset = xoffset - (xoffset % dfb_fbdev->shared->fix.xpanstep);
+
+     if (dfb_fbdev->shared->fix.ywrapstep) {
+          var->yoffset = yoffset - (yoffset % dfb_fbdev->shared->fix.ywrapstep);
+          var->vmode |= FB_VMODE_YWRAP;
+     } else {
+          var->yoffset = yoffset - (yoffset % dfb_fbdev->shared->fix.ypanstep);
+          var->vmode &= ~FB_VMODE_YWRAP;
+     }
+
      var->activate = onsync ? FB_ACTIVATE_VBL : FB_ACTIVATE_NOW;
 
      if (FBDEV_IOCTL( FBIOPAN_DISPLAY, var ) < 0) {
           int erno = errno;
 
-          D_PERROR( "DirectFB/FBDev: Panning display failed!\n" );
+          D_PERROR( "DirectFB/FBDev: Panning display failed (x=%u y=%u ywrap=%d vbl=%d)!\n",
+                    var->xoffset, var->yoffset,
+                    (var->vmode & FB_VMODE_YWRAP) ? 1 : 0,
+                    (var->activate & FB_ACTIVATE_VBL) ? 1 : 0);
 
           return errno2result( erno );
      }
@@ -1633,7 +1675,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                                      VideoMode             *mode,
                                      CoreLayerRegionConfig *config )
 {
-     unsigned int              vyres;
+     unsigned int              vxres, vyres;
      struct fb_var_screeninfo  var;
      FBDevShared              *shared = dfb_fbdev->shared;
      DFBSurfacePixelFormat     format;
@@ -1652,15 +1694,24 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
 
      if (!mode)
           mode = &shared->current_mode;
-
-     vyres = mode->yres;
-
+ 
      var = shared->current_var;
 
-     var.xoffset = 0;
-     var.yoffset = 0;
-
      if (config) {
+          DFBRectangle *source = &config->source;
+
+          /* Is panning supported? */
+          if (source->w != mode->xres && shared->fix.xpanstep == 0)
+               return DFB_UNSUPPORTED;
+          if (source->h != mode->yres && shared->fix.ypanstep == 0 && shared->fix.ywrapstep == 0)
+               return DFB_UNSUPPORTED;
+
+          vxres = config->width;
+          vyres = config->height;
+
+          var.xoffset = source->x;
+          var.yoffset = source->y;
+
           switch (config->buffermode) {
                case DLBM_TRIPLE:
                     vyres *= 3;
@@ -1767,14 +1818,21 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     return DFB_UNSUPPORTED;
           }
      }
-     else
+     else {
+          vxres = mode->xres;
+          vyres = mode->yres;
+
+          var.xoffset = 0;
+          var.yoffset = 0;
+
           var.bits_per_pixel = mode->bpp;
+     }
 
      var.activate = surface ? FB_ACTIVATE_NOW : FB_ACTIVATE_TEST;
 
      var.xres = mode->xres;
      var.yres = mode->yres;
-     var.xres_virtual = mode->xres;
+     var.xres_virtual = vxres;
      var.yres_virtual = vyres;
 
      var.pixclock = mode->pixclock;
@@ -1827,6 +1885,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
      if (shared->fix.smem_len < (var.yres_virtual *
                                  var.xres_virtual *
                                  var.bits_per_pixel >> 3)
+         || (var.xres_virtual < vxres)
          || (var.yres_virtual < vyres))
      {
           if (surface) {
@@ -1847,6 +1906,19 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
           struct fb_fix_screeninfo  fix;
 
           FBDEV_IOCTL( FBIOGET_VSCREENINFO, &var );
+
+          vxres = var.xres_virtual;
+          switch (config->buffermode) {
+          case DLBM_TRIPLE:
+               vyres = var.yres_virtual / 3;
+               break;
+          case DLBM_BACKVIDEO:
+               vyres = var.yres_virtual / 2;
+               break;
+          default:
+               vyres = var.yres_virtual;
+               break;
+          }
 
           format = dfb_fbdev_get_pixelformat( &var );
           if (format == DSPF_UNKNOWN) {
@@ -1886,8 +1958,8 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
           shared->orig_var.xoffset = 0;
           shared->orig_var.yoffset = 0;
 
-          surface->width  = mode->xres;
-          surface->height = mode->yres;
+          surface->width  = vxres;
+          surface->height = vyres;
           surface->format = format;
 
           /* To get the new pitch */
@@ -1948,7 +2020,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     surface->back_buffer->video.health = CSH_STORED;
                     surface->back_buffer->video.pitch = fix.line_length;
                     surface->back_buffer->video.offset =
-                         surface->back_buffer->video.pitch * var.yres;
+                         surface->back_buffer->video.pitch * vyres;
 
                     if (surface->idle_buffer != surface->front_buffer) {
                          if (surface->idle_buffer->system.addr)
@@ -1980,7 +2052,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     surface->back_buffer->video.health = CSH_STORED;
                     surface->back_buffer->video.pitch = fix.line_length;
                     surface->back_buffer->video.offset =
-                         surface->back_buffer->video.pitch * var.yres;
+                         surface->back_buffer->video.pitch * vyres;
 
                     if (surface->idle_buffer == surface->front_buffer) {
                          surface->idle_buffer = SHCALLOC( surface->shmpool, 1, sizeof(SurfaceBuffer) );
@@ -1999,7 +2071,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     surface->idle_buffer->video.health = CSH_STORED;
                     surface->idle_buffer->video.pitch = fix.line_length;
                     surface->idle_buffer->video.offset =
-                         surface->idle_buffer->video.pitch * var.yres * 2;
+                         surface->idle_buffer->video.pitch * vyres * 2;
                     break;
                case DLBM_BACKSYSTEM:
                     surface->caps |= DSCAPS_DOUBLE;
@@ -2036,7 +2108,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     break;
           }
 
-          dfb_fbdev_pan( 0, false );
+          dfb_fbdev_pan( var.xoffset, var.yoffset, false );
 
           dfb_gfxcard_after_set_var();
 

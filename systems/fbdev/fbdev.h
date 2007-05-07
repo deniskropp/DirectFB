@@ -33,6 +33,8 @@
 
 #include <core/coretypes.h>
 
+#include <core/layers_internal.h>
+
 #include <core/system.h>
 
 #include <fusion/call.h>
@@ -89,6 +91,8 @@ typedef struct {
 
      FusionSHMPoolShared     *shmpool;
      FusionSHMPoolShared     *shmpool_data;
+
+     CoreLayerRegionConfig    config;
 } FBDevShared;
 
 typedef struct {
