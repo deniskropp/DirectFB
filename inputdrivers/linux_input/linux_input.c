@@ -93,7 +93,9 @@ typedef unsigned long kernel_ulong_t;
 #include <misc/conf.h>
 #include <misc/util.h>
 
+#ifdef LINUX_INPUT_USE_FBDEV
 #include <fbdev/fbdev.h>
+#endif
 
 #include <core/input_driver.h>
 
@@ -135,7 +137,9 @@ typedef struct {
      unsigned long            led_state[NBITS(LED_MAX)];
      DFBInputDeviceLockState  locks;
 
+#ifdef LINUX_INPUT_USE_FBDEV
      VirtualTerminal         *vt;
+#endif
 
      int                      dx;
      int                      dy;
@@ -360,6 +364,7 @@ translate_key( unsigned short code )
      return DIKI_UNKNOWN;
 }
 
+#ifdef LINUX_INPUT_USE_FBDEV
 static DFBInputDeviceKeySymbol
 keyboard_get_symbol( int                             code,
                      unsigned short                  value,
@@ -568,6 +573,7 @@ keyboard_read_value( LinuxInputData *data,
 
      return entry.kb_value;
 }
+#endif /* LINUX_INPUT_USE_FBDEV */
 
 /*
  * Translates key and button events.
@@ -1108,7 +1114,9 @@ driver_open_device( CoreInputDevice  *device,
      char             buf[32];
      unsigned long    ledbit[NBITS(LED_MAX)];
      LinuxInputData  *data;
+#ifdef LINUX_INPUT_USE_FBDEV
      FBDev           *dfb_fbdev = dfb_system_data();
+#endif
      bool             touchpad;
 
      snprintf( buf, 32, "/dev/input/event%d", device_nums[number] );
@@ -1137,7 +1145,9 @@ driver_open_device( CoreInputDevice  *device,
 
      data->fd     = fd;
      data->device = device;
+#ifdef LINUX_INPUT_USE_FBDEV
      data->vt     = dfb_fbdev->vt;
+#endif
      data->touchpad = touchpad;
 
      /* check if the device has LEDs */
@@ -1184,6 +1194,7 @@ driver_get_keymap_entry( CoreInputDevice           *device,
                          void                      *driver_data,
                          DFBInputDeviceKeymapEntry *entry )
 {
+#ifdef LINUX_INPUT_USE_FBDEV
      LinuxInputData             *data = (LinuxInputData*) driver_data;
      int                         code = entry->code;
      unsigned short              value;
@@ -1236,6 +1247,9 @@ driver_get_keymap_entry( CoreInputDevice           *device,
                                                             DIKSI_ALT_SHIFT );
 
      return DFB_OK;
+#else
+     return DFB_UNSUPPORTED;
+#endif
 }
 
 /*

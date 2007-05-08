@@ -547,6 +547,10 @@ if test "$have_linux" = "no"; then
 *** no linux kernel -- building without linux fbdev support.])
 fi
 
+if test "$enable_fbdev" = "yes"; then
+  AC_DEFINE(LINUX_INPUT_USE_FBDEV,1,[Define to 1 if Linux Input driver should use FBDev system module for console keymap queries.])
+fi
+
 AM_CONDITIONAL(FBDEV_CORE, test "$enable_fbdev" = "yes")
 
 
