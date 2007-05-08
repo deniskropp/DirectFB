@@ -1544,22 +1544,28 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
                if (fbdev_compatible_format( var, 0, 3, 3, 2, 0, 5, 2, 0 ))*/
 
                return DSPF_RGB332;
-
           case 15:
-               if (dfb_fbdev_compatible_format( var, 0, 5, 5, 5, 0, 10, 5, 0 ) |
-                   dfb_fbdev_compatible_format( var, 1, 5, 5, 5,15, 10, 5, 0 ) )
-                    return DSPF_ARGB1555;
+               if (dfb_fbdev_compatible_format( var, 0, 5, 5, 5, 0, 10, 5, 0 ))
+                    return DSPF_RGB555;
+
+               if(dfb_fbdev_compatible_format( var, 1, 5, 5, 5, 15, 10, 5, 0 ))
+                   return DSPF_ARGB1555;
 
                break;
 
-          case 16:
-               if (dfb_fbdev_compatible_format( var, 0, 5, 5, 5, 0, 10, 5, 0 ) |
-                   dfb_fbdev_compatible_format( var, 1, 5, 5, 5,15, 10, 5, 0 ) )
-                    return DSPF_ARGB1555;
+         case 16:
 
-               if (dfb_fbdev_compatible_format( var, 0, 4, 4, 4,  0, 8, 4, 0 ) |
-                   dfb_fbdev_compatible_format( var, 4, 4, 4, 4, 12, 8, 4, 0 ) )
+               if (dfb_fbdev_compatible_format( var, 0, 5, 5, 5, 0, 10, 5, 0 ))
+                    return DSPF_RGB555;
+
+               if(dfb_fbdev_compatible_format( var, 1, 5, 5, 5, 15, 10, 5, 0 ))
+                   return DSPF_ARGB1555;
+
+               if (dfb_fbdev_compatible_format( var, 4, 4, 4, 4, 12, 8, 4, 0 ))
                     return DSPF_ARGB4444;
+
+               if (dfb_fbdev_compatible_format( var, 0, 4, 4, 4, 0, 8, 4, 0 ))
+                    return DSPF_RGB444;
 
                if (dfb_fbdev_compatible_format( var, 0, 5, 6, 5, 0, 11, 5, 0 ))
                     return DSPF_RGB16;
@@ -1745,6 +1751,15 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     var.blue.offset   = 0;
                     break;
 
+               case DSPF_RGB555:
+                    var.red.length    = 5;
+                    var.green.length  = 5;
+                    var.blue.length   = 5;
+                    var.red.offset    = 10;
+                    var.green.offset  = 5;
+                    var.blue.offset   = 0;
+                    break;
+
                case DSPF_ARGB4444:
                     var.transp.length = 4;
                     var.red.length    = 4;
@@ -1755,6 +1770,24 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     var.green.offset  = 4;
                     var.blue.offset   = 0;
                     break;
+
+              case DSPF_RGB444:
+                    var.red.length = 4;
+                    var.green.length = 4;
+                    var.blue.length = 4;
+                    var.red.offset = 8;
+                    var.green.offset = 4;
+                    var.blue.offset =  0;
+                    break;
+
+              case DSPF_RGB32:
+                   var.red.length    = 8;
+                   var.green.length  = 8;
+                   var.blue.length   = 8;
+                   var.red.offset    = 16;
+                   var.green.offset  = 8;
+                   var.blue.offset   = 0;
+                   break;
 
                case DSPF_RGB16:
                     var.red.length    = 5;
@@ -1779,7 +1812,6 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
 
                case DSPF_LUT8:
                case DSPF_RGB24:
-               case DSPF_RGB32:
                case DSPF_RGB332:
                     break;
 
@@ -2232,10 +2264,13 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
 
      switch (format) {
           case DSPF_ARGB1555:
+          case DSPF_RGB555:
                red_size   = 32;
                green_size = 32;
                blue_size  = 32;
                break;
+          case DSPF_ARGB4444:
+          case DSPF_RGB444:
           case DSPF_RGB16:
                red_size   = 32;
                green_size = 64;

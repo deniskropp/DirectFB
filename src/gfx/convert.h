@@ -45,6 +45,10 @@
                                  (((g)&0xF8) << 2) | \
                                  (((b)&0xF8) >> 3) )
 
+#define PIXEL_RGB555(r,g,b)  ( (((r)&0xF8) << 7) | \
+                                 (((g)&0xF8) << 2) | \
+                                 (((b)&0xF8) >> 3) )
+
 #define PIXEL_ARGB2554(a,r,g,b)( (((a)&0xC0) << 8) | \
                                  (((r)&0xF8) << 6) | \
                                  (((g)&0xF8) << 1) | \
@@ -52,6 +56,10 @@
 
 #define PIXEL_ARGB4444(a,r,g,b)( (((a)&0xF0) << 8) | \
                                  (((r)&0xF0) << 4) | \
+                                 (((g)&0xF0)     ) | \
+                                 (((b)&0xF0) >> 4) )
+
+#define PIXEL_RGB444(r,g,b)  ( (((r)&0xF0) << 4) | \
                                  (((g)&0xF0)     ) | \
                                  (((b)&0xF0) >> 4) )
 
@@ -104,7 +112,7 @@
                                  ((y) << 8)  | \
                                   (v) )
 #else /* little endian */
-     
+
 #define PIXEL_YUY2(y,u,v)      ( ((v) << 24) | \
                                  ((y) << 16) | \
                                  ((u) << 8)  | \
@@ -145,6 +153,14 @@
                                     (((pixel) & 0x03E0) << 6) | \
                                     (((pixel) & 0x001F) << 3) )
 
+#define ARGB1555_TO_RGB555(pixel) ( (((pixel) & 0x7C00) << 9) | \
+                                      (((pixel) & 0x03E0) << 6) | \
+                                      (((pixel) & 0x001F) << 3) )
+
+#define ARGB1555_TO_RGB444(pixel) ( (((pixel) & 0x7800) >> 3) | \
+                                      (((pixel) & 0x03C0) >> 2) | \
+                                      (((pixel) & 0x001E) >> 1) )
+
 
 #define RGB16_TO_RGB332(pixel) ( (((pixel) & 0xE000) >> 8) | \
                                  (((pixel) & 0x0700) >> 6) | \
@@ -173,6 +189,14 @@
                                  (((pixel) & 0xF800) << 8) | \
                                  (((pixel) & 0x07E0) << 5) | \
                                  (((pixel) & 0x001F) << 3) )
+
+#define RGB16_TO_RGB555(pixel)  ( (((pixel) & 0xF800) >> 1) | \
+                                    (((pixel) & 0x07C0) >> 1) | \
+                                    (((pixel) & 0x001F)) )
+
+#define RGB16_TO_RGB444(pixel)  ( (((pixel) & 0xF000) >> 4) | \
+                                    (((pixel) & 0x0780) >> 3) | \
+                                    (((pixel) & 0x001F) >> 1) )
 
 #define RGB18_TO_ARGB(pixel)   ( 0xFF000000 |                \
                                  (((pixel) & 0xFC00) << 10) | \
@@ -210,6 +234,14 @@
 #define RGB32_TO_ARGB(pixel)   ( 0xFF000000 | (pixel) )
 
 
+#define RGB32_TO_RGB555(pixel)  ( (((pixel) & 0xF80000) >> 9) | \
+                                    (((pixel) & 0x00F800) >> 6) | \
+                                    (((pixel) & 0x0000F8) >> 3) )
+
+#define RGB32_TO_RGB444(pixel)  ( (((pixel) & 0xF00000) >> 12) | \
+                                    (((pixel) & 0x00F000) >>  8) | \
+                                    (((pixel) & 0x0000F0) >>  4) )
+
 #define ARGB_TO_ARGB1555(pixel)  ( (((pixel) & 0x80000000) >> 16) | \
                                    (((pixel) & 0x00F80000) >>  9) | \
                                    (((pixel) & 0x0000F800) >>  6) | \
@@ -225,7 +257,13 @@
                                    (((pixel) & 0x0000F000) >>  8) | \
                                    (((pixel) & 0x000000F0) >>  4) )
 
+#define ARGB_TO_RGB444(pixel)  ( (((pixel) & 0x00F00000) >> 12) | \
+                                   (((pixel) & 0x0000F000) >>  8) | \
+                                   (((pixel) & 0x000000F0) >>  4) )
 
+#define ARGB_TO_RGB555(pixel)  ( (((pixel) & 0x00F80000) >>  9) | \
+                                   (((pixel) & 0x0000F800) >>  6) | \
+                                   (((pixel) & 0x000000F8) >>  3) )
 /* RGB <-> YCbCr conversion */
 
 extern const u16 y_for_rgb[256];

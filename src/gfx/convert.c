@@ -74,11 +74,17 @@ dfb_color_to_pixel( DFBSurfacePixelFormat format,
           case DSPF_ARGB1555:
                pixel = PIXEL_ARGB1555( 0, r, g, b );
                break;
+          case DSPF_RGB555:
+               pixel = PIXEL_RGB555( r, g, b );
+               break;
           case DSPF_ARGB2554:
                pixel = PIXEL_ARGB2554( 0, r, g, b );
                break;
           case DSPF_ARGB4444:
                pixel = PIXEL_ARGB4444( 0, r, g, b );
+               break;
+          case DSPF_RGB444:
+               pixel = PIXEL_RGB444( r, g, b );
                break;
           case DSPF_RGB16:
                pixel = PIXEL_RGB16( r, g, b );
@@ -127,6 +133,9 @@ dfb_pixelformat_name( DFBSurfacePixelFormat format )
 
           case DSPF_ARGB1555:
                return "ARGB1555";
+
+          case DSPF_RGB555:
+               return "RGB555";
 
           case DSPF_RGB16:
                return "RGB16";
@@ -187,6 +196,9 @@ dfb_pixelformat_name( DFBSurfacePixelFormat format )
 
           case DSPF_ARGB4444:
                return "ARGB4444";
+
+          case DSPF_RGB444:
+               return "RGB444";
 
           case DSPF_ARGB1666:
                return "ARGB1666";

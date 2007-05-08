@@ -192,7 +192,9 @@ static const FormatString format_strings[] = {
      { "RGB332",   DSPF_RGB332   },
      { "UYVY",     DSPF_UYVY     },
      { "YUY2",     DSPF_YUY2     },
-     { "YV12",     DSPF_YV12     }
+     { "YV12",     DSPF_YV12     },
+     { "RGB444", DSPF_RGB444 },
+     { "RGB555", DSPF_RGB555 }
 };
 
 #define NUM_FORMAT_STRINGS (sizeof(format_strings) / sizeof(FormatString))

@@ -1108,6 +1108,8 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
           case DSPF_UYVY:
           case DSPF_YUY2:
           case DSPF_YV12:
+          case DSPF_RGB444:
+          case DSPF_RGB555:
                break;
 
           default:
@@ -1238,6 +1240,8 @@ DFBResult dfb_surface_dump( CoreDFB     *core,
           case DSPF_RGB32:
           case DSPF_YUY2:
           case DSPF_UYVY:
+          case DSPF_RGB444:
+          case DSPF_RGB555:
                rgb   = true;
                break;
 
@@ -1405,6 +1409,14 @@ DFBResult dfb_surface_dump( CoreDFB     *core,
                          buf_g[n] = (data16[n] & 0x8000) ? 0xff : 0x00;
                     }
                     break;
+               case DSPF_RGB555:
+                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+                         buf_p[n3+0] = (data16[n] & 0x7C00) >> 7;
+                         buf_p[n3+1] = (data16[n] & 0x03E0) >> 2;
+                         buf_p[n3+2] = (data16[n] & 0x001F) << 3;
+                    }
+                    break;
+
                case DSPF_ARGB2554:
                     for (n=0, n3=0; n<surface->width; n++, n3+=3) {
                          buf_p[n3+0] = (data16[n] & 0x3E00) >> 6;
@@ -1435,6 +1447,13 @@ DFBResult dfb_surface_dump( CoreDFB     *core,
 
                          buf_g[n]  = (data16[n] >> 12);
                          buf_g[n] |= buf_g[n] << 4;
+                    }
+                    break;
+              case DSPF_RGB444:
+                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+                         buf_p[n3+0] = (data16[n] & 0x0F00) >> 4;
+                         buf_p[n3+1] = (data16[n] & 0x00F0);
+                         buf_p[n3+2] = (data16[n] & 0x000F) << 4;
                     }
                     break;
                case DSPF_RGB332:

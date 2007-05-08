@@ -449,7 +449,15 @@ window_at_pointer( CoreWindowStack *stack,
                                                         pitch * wy);
                                         break;
 
+                                   case DSPF_ARGB4444:
+                                   case DSPF_RGB444:
+                                        pixel = *(u16*)(data + 2 * wx +
+                                                        pitch * wy)
+                                                & 0xfff;
+                                        break;
+
                                    case DSPF_ARGB1555:
+                                   case DSPF_RGB555:
                                         pixel = *(u16*)(data + 2 * wx +
                                                         pitch * wy)
                                                 & 0x7fff;
