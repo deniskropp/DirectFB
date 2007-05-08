@@ -3550,6 +3550,7 @@ wm_update_cursor( CoreWindowStack       *stack,
      else if (stack->cursor.opacity) {
           CoreLayer *layer = dfb_layer_at( context->layer_id );
           CardState *state = &layer->state;
+          DFBRectangle source = primary->config.source;
 
           /* backup region under cursor */
           if (!data->cursor_bs_valid) {
@@ -3591,6 +3592,19 @@ wm_update_cursor( CoreWindowStack       *stack,
           }
           else
                dfb_layer_region_flip_update( primary, &data->cursor_region, DSFLIP_BLIT );
+
+          /* Pan to follow the cursor. */
+          if (source.x > stack->cursor.x)
+               source.x = stack->cursor.x;
+          else if (source.x + source.w - 1 < stack->cursor.x)
+               source.x = stack->cursor.x - source.w + 1;
+
+          if (source.y > stack->cursor.y)
+               source.y = stack->cursor.y;
+          else if (source.y + source.h - 1 < stack->cursor.y)
+               source.y = stack->cursor.y - source.h + 1;
+
+          dfb_layer_context_set_sourcerectangle( context, &source );
      }
      else if (restored)
           dfb_layer_region_flip_update( primary, &old_region, DSFLIP_BLIT );
