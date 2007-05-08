@@ -1013,9 +1013,9 @@ IDirectFB_CreateInputEventBuffer( IDirectFB                   *thiz,
      IDirectFBEventBuffer      *iface;
      CreateEventBuffer_Context context;
 
-     D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
-
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
+
+     D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
 
      if (!interface)
           return DFB_INVARG;

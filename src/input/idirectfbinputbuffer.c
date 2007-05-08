@@ -620,9 +620,9 @@ DFBResult IDirectFBEventBuffer_AttachInputDevice( IDirectFBEventBuffer *thiz,
 {
      AttachedDevice *attached;
 
-     D_ASSERT( device != NULL );
-
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     D_ASSERT( device != NULL );
 
      attached = D_CALLOC( 1, sizeof(AttachedDevice) );
      attached->device = device;
@@ -641,9 +641,9 @@ DFBResult IDirectFBEventBuffer_DetachInputDevice( IDirectFBEventBuffer *thiz,
      AttachedDevice *attached;
      DirectLink     *link;
 
-     D_ASSERT( device != NULL );
-
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     D_ASSERT( device != NULL );
      
      direct_list_foreach_safe (attached, link, data->devices) {
           if (attached->device == device) {
@@ -664,10 +664,10 @@ DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
                                              CoreWindow           *window )
 {
      AttachedWindow *attached;
-
-     D_ASSERT( window != NULL );
      
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     D_ASSERT( window != NULL );
 
      attached = D_CALLOC( 1, sizeof(AttachedWindow) );
      attached->window = window;
@@ -688,9 +688,9 @@ DFBResult IDirectFBEventBuffer_DetachWindow( IDirectFBEventBuffer *thiz,
      AttachedWindow *attached;
      DirectLink     *link;
 
-     D_ASSERT( window != NULL );
-
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     D_ASSERT( window != NULL );
      
      direct_list_foreach_safe (attached, link, data->windows) {
           if (!attached->window || attached->window == window) {
