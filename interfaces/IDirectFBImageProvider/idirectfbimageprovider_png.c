@@ -635,8 +635,6 @@ png_info_callback( png_structp png_read_ptr,
                /* ...or based on trans rgb value */
                png_color_16p trans = &data->info_ptr->trans_values;
 
-               D_WARN("color key from non-palette source is untested");
-
                data->color_key = (((trans->red & 0xff00) << 8) |
                                   ((trans->green & 0xff00)) |
                                   ((trans->blue & 0xff00) >> 8));
