@@ -140,9 +140,12 @@ fusion_skirmish_swoop( FusionSkirmish *skirmish )
 DirectResult
 fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
 {
+     int data[2];
+
      D_ASSERT( skirmish != NULL );
 
-     int data[2] = { skirmish->multi.id, 0 };
+     data[0] = skirmish->multi.id;
+     data[1] = 0;
 
      while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_LOCK_COUNT, data)) {
            switch (errno) {
