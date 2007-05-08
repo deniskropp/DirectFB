@@ -36,32 +36,44 @@
 
 #include <fusion/object.h>
 
+typedef enum {
+     CWMGT_KEYBOARD,
+     CWMGT_POINTER,
+     CWMGT_KEY,
+     CWMGT_UNSELECTED_KEYS,
+} CoreWMGrabTarget;
 
 typedef enum {
-     CWCF_NONE      = 0x00000000,
+     CWCF_NONE          = 0x00000000,
 
-     CWCF_POSITION  = 0x00000001,
-     CWCF_SIZE      = 0x00000002,
-     CWCF_OPACITY   = 0x00000004,
-     CWCF_STACKING  = 0x00000008,
+     CWCF_POSITION      = 0x00000001,
+     CWCF_SIZE          = 0x00000002,
+     CWCF_OPACITY       = 0x00000004,
+     CWCF_STACKING      = 0x00000008,
 
-     CWCF_OPTIONS   = 0x00000010,
-     CWCF_EVENTS    = 0x00000020,
+     CWCF_OPTIONS       = 0x00000010,
+     CWCF_EVENTS        = 0x00000020,
 
-     CWCF_COLOR_KEY = 0x00000100,
-     CWCF_OPAQUE    = 0x00000200,
+     CWCF_COLOR_KEY     = 0x00000100,
+     CWCF_OPAQUE        = 0x00000200,
 
-     CWCF_ALL       = 0x0000033F
+     CWCF_KEY_SELECTION = 0x00001000,
+
+     CWCF_ALL           = 0x0000133F
 } CoreWindowConfigFlags;
 
 struct __DFB_CoreWindowConfig {
-     DFBRectangle            bounds;         /* position and size */
-     int                     opacity;        /* global alpha factor */
-     DFBWindowStackingClass  stacking;       /* level boundaries */
-     DFBWindowOptions        options;        /* flags for appearance/behaviour */
-     DFBWindowEventType      events;         /* mask of enabled events */
-     u32                     color_key;      /* transparent pixel */
-     DFBRegion               opaque;         /* region of the window forced to be opaque */
+     DFBRectangle             bounds;         /* position and size */
+     int                      opacity;        /* global alpha factor */
+     DFBWindowStackingClass   stacking;       /* level boundaries */
+     DFBWindowOptions         options;        /* flags for appearance/behaviour */
+     DFBWindowEventType       events;         /* mask of enabled events */
+     u32                      color_key;      /* transparent pixel */
+     DFBRegion                opaque;         /* region of the window forced to be opaque */
+
+     DFBWindowKeySelection    key_selection;  /* how to filter keys in focus */
+     DFBInputDeviceKeySymbol *keys;           /* list of keys for DWKS_LIST */
+     unsigned int             num_keys;       /* number of entries in key array */
 };
 
 
@@ -86,15 +98,9 @@ FUSION_OBJECT_METHODS( CoreWindow, dfb_window )
  * creates a window on a given stack
  */
 DFBResult
-dfb_window_create( CoreWindowStack        *stack,
-                   int                     x,
-                   int                     y,
-                   int                     width,
-                   int                     height,
-                   DFBWindowCapabilities   caps,
-                   DFBSurfaceCapabilities  surface_caps,
-                   DFBSurfacePixelFormat   pixelformat,
-                   CoreWindow            **window );
+dfb_window_create( CoreWindowStack             *stack,
+                   const DFBWindowDescription  *desc,
+                   CoreWindow                 **ret_window );
 
 /*
  * deinitializes a window and removes it from the window stack
@@ -241,10 +247,14 @@ dfb_window_repaint( CoreWindow          *window,
 DFBResult
 dfb_window_request_focus( CoreWindow *window );
 
-DFBResult dfb_window_grab_keyboard  ( CoreWindow                 *window );
-DFBResult dfb_window_ungrab_keyboard( CoreWindow                 *window );
-DFBResult dfb_window_grab_pointer   ( CoreWindow                 *window );
-DFBResult dfb_window_ungrab_pointer ( CoreWindow                 *window );
+DFBResult dfb_window_set_key_selection( CoreWindow                    *window,
+                                        DFBWindowKeySelection          selection,
+                                        const DFBInputDeviceKeySymbol *keys,
+                                        unsigned int                   num_keys );
+
+DFBResult dfb_window_change_grab    ( CoreWindow                 *window,
+                                      CoreWMGrabTarget            target,
+                                      bool                        grab );
 DFBResult dfb_window_grab_key       ( CoreWindow                 *window,
                                       DFBInputDeviceKeySymbol     symbol,
                                       DFBInputDeviceModifierMask  modifiers );

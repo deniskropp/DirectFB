@@ -603,43 +603,54 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
                                     const DFBWindowDescription  *desc,
                                     IDirectFBWindow            **window )
 {
-     CoreWindow            *w;
-     DFBResult              ret;
-     unsigned int           width        = 128;
-     unsigned int           height       = 128;
-     int                    posx         = 0;
-     int                    posy         = 0;
-     DFBWindowCapabilities  caps         = 0;
-     DFBSurfaceCapabilities surface_caps = DSCAPS_NONE;
-     DFBSurfacePixelFormat  format       = DSPF_UNKNOWN;
+     CoreWindow           *w;
+     DFBResult             ret;
+     DFBWindowDescription  wd;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
+     memset( &wd, 0, sizeof(wd) );
 
-     if (desc->flags & DWDESC_WIDTH)
-          width = desc->width;
-     if (desc->flags & DWDESC_HEIGHT)
-          height = desc->height;
-     if (desc->flags & DWDESC_PIXELFORMAT)
-          format = desc->pixelformat;
-     if (desc->flags & DWDESC_POSX)
-          posx = desc->posx;
-     if (desc->flags & DWDESC_POSY)
-          posy = desc->posy;
+     wd.flags = DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_POSX | DWDESC_POSY |
+                DWDESC_PIXELFORMAT | DWDESC_SURFACE_CAPS | DWDESC_CAPS;
+
+     wd.width  = (desc->flags & DWDESC_WIDTH)  ? desc->width  : 480;
+     wd.height = (desc->flags & DWDESC_HEIGHT) ? desc->height : 300;
+     wd.posx   = (desc->flags & DWDESC_POSX)   ? desc->posx   : 100;
+     wd.posy   = (desc->flags & DWDESC_POSY)   ? desc->posy   : 100;
+
      if (desc->flags & DWDESC_CAPS)
-          caps = desc->caps;
+          wd.caps = desc->caps;
+
+     if (desc->flags & DWDESC_PIXELFORMAT)
+          wd.pixelformat = desc->pixelformat;
+
      if (desc->flags & DWDESC_SURFACE_CAPS)
-          surface_caps = desc->surface_caps;
+          wd.surface_caps = desc->surface_caps;
 
-     if ((caps & ~DWCAPS_ALL) || !window)
+     if (desc->flags & DWDESC_PARENT) {
+          wd.flags     |= DWDESC_PARENT;
+          wd.parent_id  = desc->parent_id;
+     }
+
+     if (desc->flags & DWDESC_OPTIONS) {
+          wd.flags   |= DWDESC_OPTIONS;
+          wd.options  = desc->options;
+     }
+
+     if (desc->flags & DWDESC_STACKING) {
+          wd.flags    |= DWDESC_STACKING;
+          wd.stacking  = desc->stacking;
+     }
+
+
+     if ((wd.caps & ~DWCAPS_ALL) || !window)
           return DFB_INVARG;
 
-     if (width < 1 || width > 4096 || height < 1 || height > 4096)
+     if (wd.width < 1 || wd.width > 4096 || wd.height < 1 || wd.height > 4096)
           return DFB_INVARG;
 
-     ret = dfb_layer_context_create_window( data->core, data->context,
-                                            posx, posy, width, height, caps,
-                                            surface_caps, format, &w );
+     ret = dfb_layer_context_create_window( data->core, data->context, &wd, &w );
      if (ret)
           return ret;
 

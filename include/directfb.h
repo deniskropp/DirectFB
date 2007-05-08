@@ -791,8 +791,11 @@ typedef enum {
      DWDESC_PIXELFORMAT  = 0x00000008,  /* pixelformat field is valid */
      DWDESC_POSX         = 0x00000010,  /* posx field is valid */
      DWDESC_POSY         = 0x00000020,  /* posy field is valid */
-     DWDESC_SURFACE_CAPS = 0x00000040   /* Create the window surface with
+     DWDESC_SURFACE_CAPS = 0x00000040,  /* Create the window surface with
                                            special capabilities. */
+     DWDESC_PARENT       = 0x00000080,  /* This window has a parent according to parent_id field. */
+     DWDESC_OPTIONS      = 0x00000100,  /* Initial window options have been set. */
+     DWDESC_STACKING     = 0x00000200,  /* Initial stacking class has been set. */
 } DFBWindowDescriptionFlags;
 
 /*
@@ -826,6 +829,53 @@ typedef enum {
      DWCAPS_NODECORATION = 0x00000008,  /* The window won't be decorated. */
      DWCAPS_ALL          = 0x0000000F   /* All valid flags. */
 } DFBWindowCapabilities;
+
+/*
+ * Flags controlling the appearance and behaviour of the window.
+ */
+typedef enum {
+     DWOP_NONE           = 0x00000000,  /* none of these */
+     DWOP_COLORKEYING    = 0x00000001,  /* enable color key */
+     DWOP_ALPHACHANNEL   = 0x00000002,  /* enable alpha blending using the
+                                           window's alpha channel */
+     DWOP_OPAQUE_REGION  = 0x00000004,  /* overrides DWOP_ALPHACHANNEL for the
+                                           region set by SetOpaqueRegion() */
+     DWOP_SHAPED         = 0x00000008,  /* window doesn't receive mouse events for
+                                           invisible regions, must be used with
+                                           DWOP_ALPHACHANNEL or DWOP_COLORKEYING */
+     DWOP_KEEP_POSITION  = 0x00000010,  /* window can't be moved
+                                           with the mouse */
+     DWOP_KEEP_SIZE      = 0x00000020,  /* window can't be resized
+                                           with the mouse */
+     DWOP_KEEP_STACKING  = 0x00000040,  /* window can't be raised
+                                           or lowered with the mouse */
+     DWOP_GHOST          = 0x00001000,  /* never get focus or input,
+                                           clicks will go through,
+                                           implies DWOP_KEEP... */
+     DWOP_INDESTRUCTIBLE = 0x00002000,  /* window can't be destroyed
+                                           by internal shortcut */
+     DWOP_SCALE          = 0x00010000,  /* Surface won't be changed if window size on screen changes. The surface
+                                           can be resized separately using IDirectFBWindow::ResizeSurface(). */
+     DWOP_ALL            = 0x0001307F   /* all possible options */
+} DFBWindowOptions;
+
+/*
+ * The stacking class restricts the stacking order of windows.
+ */
+typedef enum {
+     DWSC_MIDDLE         = 0x00000000,  /* This is the default stacking
+                                           class of new windows. */
+     DWSC_UPPER          = 0x00000001,  /* Window is always above windows
+                                           in the middle stacking class.
+                                           Only windows that are also in
+                                           the upper stacking class can
+                                           get above them. */
+     DWSC_LOWER          = 0x00000002   /* Window is always below windows
+                                           in the middle stacking class.
+                                           Only windows that are also in
+                                           the lower stacking class can
+                                           get below them. */
+} DFBWindowStackingClass;
 
 
 /*
@@ -1211,6 +1261,9 @@ typedef struct {
      int                                posx;         /* distance from left layer border */
      int                                posy;         /* distance from upper layer border */
      DFBSurfaceCapabilities             surface_caps; /* pixel format */
+     DFBWindowID                        parent_id;    /* window id of parent window */
+     DFBWindowOptions                   options;      /* initial window options */
+     DFBWindowStackingClass             stacking;     /* initial stacking class */
 } DFBWindowDescription;
 
 /*
@@ -4012,12 +4065,25 @@ typedef enum {
 } DFBWindowEventType;
 
 /*
+ * Flags for a window event.
+ */
+typedef enum {
+     DWEF_NONE           = 0x00000000,  /* none of these */
+
+     DWEF_RETURNED       = 0x00000001,  /* This is a returned event, e.g. unconsumed key. */
+
+     DWEF_ALL            = 0x00000001   /* all of these */
+} DFBWindowEventFlags;
+
+/*
  * Event from the windowing system.
  */
 typedef struct {
      DFBEventClass                   clazz;      /* clazz of event */
 
      DFBWindowEventType              type;       /* type of event */
+     DFBWindowEventFlags             flags;      /* event flags */
+
      DFBWindowID                     window_id;  /* source of event */
 
      /* used by DWET_MOVE, DWET_MOTION, DWET_BUTTONDOWN, DWET_BUTTONUP,
@@ -4270,51 +4336,13 @@ DEFINE_INTERFACE(   IDirectFBEventBuffer,
 )
 
 /*
- * Flags controlling the appearance and behaviour of the window.
+ * The key selection defines a mode for filtering keys while the window is having the focus.
  */
 typedef enum {
-     DWOP_NONE           = 0x00000000,  /* none of these */
-     DWOP_COLORKEYING    = 0x00000001,  /* enable color key */
-     DWOP_ALPHACHANNEL   = 0x00000002,  /* enable alpha blending using the
-                                           window's alpha channel */
-     DWOP_OPAQUE_REGION  = 0x00000004,  /* overrides DWOP_ALPHACHANNEL for the
-                                           region set by SetOpaqueRegion() */
-     DWOP_SHAPED         = 0x00000008,  /* window doesn't receive mouse events for
-                                           invisible regions, must be used with
-                                           DWOP_ALPHACHANNEL or DWOP_COLORKEYING */
-     DWOP_KEEP_POSITION  = 0x00000010,  /* window can't be moved
-                                           with the mouse */
-     DWOP_KEEP_SIZE      = 0x00000020,  /* window can't be resized
-                                           with the mouse */
-     DWOP_KEEP_STACKING  = 0x00000040,  /* window can't be raised
-                                           or lowered with the mouse */
-     DWOP_GHOST          = 0x00001000,  /* never get focus or input,
-                                           clicks will go through,
-                                           implies DWOP_KEEP... */
-     DWOP_INDESTRUCTIBLE = 0x00002000,  /* window can't be destroyed
-                                           by internal shortcut */
-     DWOP_SCALE          = 0x00010000,  /* Surface won't be changed if window size on screen changes. The surface
-                                           can be resized separately using IDirectFBWindow::ResizeSurface(). */
-     DWOP_ALL            = 0x0001307F   /* all possible options */
-} DFBWindowOptions;
-
-/*
- * The stacking class restricts the stacking order of windows.
- */
-typedef enum {
-     DWSC_MIDDLE         = 0x00000000,  /* This is the default stacking
-                                           class of new windows. */
-     DWSC_UPPER          = 0x00000001,  /* Window is always above windows
-                                           in the middle stacking class.
-                                           Only windows that are also in
-                                           the upper stacking class can
-                                           get above them. */
-     DWSC_LOWER          = 0x00000002   /* Window is always below windows
-                                           in the middle stacking class.
-                                           Only windows that are also in
-                                           the lower stacking class can
-                                           get below them. */
-} DFBWindowStackingClass;
+     DWKS_ALL            = 0x00000000,  /* Select all keys (default). */
+     DWKS_NONE           = 0x00000001,  /* Don't select any key. */
+     DWKS_LIST           = 0x00000002   /* Select a list of keys. */
+} DFBWindowKeySelection;
 
 /*******************
  * IDirectFBWindow *
@@ -4774,6 +4802,45 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      DFBResult (*Unbind) (
           IDirectFBWindow               *thiz,
           IDirectFBWindow               *window
+     );
+
+
+   /** Key selection **/
+
+     /*
+      * Selects a mode for filtering keys while being focused.
+      *
+      * The <b>selection</b> defines whether all, none or a specific set (list) of keys is selected.
+      * In case of a specific set, the <b>keys</b> array with <b>num_keys</b> has to be provided.
+      *
+      * Multiple calls to this method are possible. Each overrides all settings from the previous call.
+      */
+     DFBResult (*SetKeySelection) (
+          IDirectFBWindow               *thiz,
+          DFBWindowKeySelection          selection,
+          const DFBInputDeviceKeySymbol *keys,
+          unsigned int                   num_keys
+     );
+
+     /*
+      * Grab all unselected (filtered out) keys.
+      *
+      * Unselected keys are those not selected by the focused window. These keys won't be sent
+      * to that window. Instead one window in the stack can collect them.
+      *
+      * See also IDirectFBWindow::UngrabUnselectedKeys() and IDirectFBWindow::SetKeySelection().
+      */
+     DFBResult (*GrabUnselectedKeys) (
+          IDirectFBWindow               *thiz
+     );
+
+     /*
+      * Release the grab of unselected (filtered out) keys.
+      *
+      * See also IDirectFBWindow::GrabUnselectedKeys() and IDirectFBWindow::SetKeySelection().
+      */
+     DFBResult (*UngrabUnselectedKeys) (
+          IDirectFBWindow               *thiz
      );
 )
 

@@ -115,6 +115,7 @@ typedef struct {
      CoreWindow                   *keyboard_window;    /* window grabbing the keyboard */
      CoreWindow                   *focused_window;     /* window having the focus */
      CoreWindow                   *entered_window;     /* window under the pointer */
+     CoreWindow                   *unselkeys_window;   /* window grabbing unselected keys */
 
      DirectLink                   *grabbed_keys;       /* List of currently grabbed keys. */
 
@@ -145,6 +146,33 @@ typedef struct {
 
      CoreLayerRegionConfig         config;
 } WindowData;
+
+/**************************************************************************************************/
+
+static DFBResult
+restack_window( CoreWindow             *window,
+                WindowData             *window_data,
+                CoreWindow             *relative,
+                WindowData             *relative_data,
+                int                     relation,
+                DFBWindowStackingClass  stacking );
+
+static DFBResult
+update_window( CoreWindow          *window,
+               WindowData          *window_data,
+               const DFBRegion     *region,
+               DFBSurfaceFlipFlags  flags,
+               bool                 force_complete,
+               bool                 force_invisible,
+               bool                 scale_region );
+
+/**************************************************************************************************/
+
+static int keys_compare( const void *key1,
+                         const void *key2 )
+{
+     return *(DFBInputDeviceKeySymbol*) key1 - *(DFBInputDeviceKeySymbol*) key2;
+}
 
 /**************************************************************************************************/
 
@@ -288,6 +316,26 @@ get_keyboard_window( CoreWindowStack     *stack,
                    data->keyboard_window : data->focused_window;
           if (!window)
                return NULL;
+
+          /* Check key selection. */
+          switch (window->config.key_selection) {
+               case DWKS_ALL:
+                    break;
+
+               case DWKS_LIST:
+                    D_ASSERT( window->config.keys != NULL );
+                    D_ASSERT( window->config.num_keys > 0 );
+
+                    if (bsearch( &event->key_symbol,
+                                 window->config.keys, window->config.num_keys,
+                                 sizeof(DFBInputDeviceKeySymbol), keys_compare ))
+                         break;
+
+                    /* fall through */
+
+               case DWKS_NONE:
+                    return data->unselkeys_window;
+          }
 
           /* Check if a free array item was found. */
           if (free_key == -1) {
@@ -1554,6 +1602,10 @@ withdraw_window( CoreWindowStack *stack,
                data->keys[i].owner = NULL;
           }
      }
+
+     /* Release grab of unselected keys. */
+     if (data->unselkeys_window == window)
+          data->unselkeys_window = NULL;
 }
 
 static void
@@ -3185,6 +3237,14 @@ wm_remove_window( CoreWindowStack *stack,
 
      remove_window( stack, sdata, window, data );
 
+     /* Free key list. */
+     if (window->config.keys) {
+          SHFREE( stack->shmpool, window->config.keys );
+
+          window->config.keys     = NULL;
+          window->config.num_keys = 0;
+     }
+
      D_MAGIC_CLEAR( data );
 
      return DFB_OK;
@@ -3202,6 +3262,7 @@ wm_set_window_config( CoreWindow             *window,
      CoreWindowStack *stack;
 
      D_ASSERT( window != NULL );
+     D_ASSERT( window->stack != NULL );
      D_ASSERT( wm_data != NULL );
      D_ASSERT( window_data != NULL );
      D_ASSERT( config != NULL );
@@ -3274,6 +3335,41 @@ wm_set_window_config( CoreWindow             *window,
      if (flags & CWCF_OPACITY && config->opacity)
           set_opacity( window, window_data, wm_data, config->opacity );
 
+     if (flags & CWCF_KEY_SELECTION) {
+          if (config->key_selection == DWKS_LIST) {
+               unsigned int             bytes = sizeof(DFBInputDeviceKeySymbol) * config->num_keys;
+               DFBInputDeviceKeySymbol *keys;
+     
+               D_ASSERT( config->keys != NULL );
+               D_ASSERT( config->num_keys > 0 );
+     
+               keys = SHMALLOC( window->stack->shmpool, bytes );
+               if (!keys) {
+                    D_ERROR( "WM/Default: Could not allocate %d bytes for list "
+                             "of selected keys (%d)!\n", bytes, config->num_keys );
+                    return D_OOSHM();
+               }
+     
+               direct_memcpy( keys, config->keys, bytes );
+
+               qsort( keys, config->num_keys, sizeof(DFBInputDeviceKeySymbol), keys_compare );
+     
+               if (window->config.keys)
+                    SHFREE( window->stack->shmpool, window->config.keys );
+     
+               window->config.keys     = keys;
+               window->config.num_keys = config->num_keys;
+          }
+          else if (window->config.keys) {
+               SHFREE( window->stack->shmpool, window->config.keys );
+
+               window->config.keys     = NULL;
+               window->config.num_keys = 0;
+          }
+
+          window->config.key_selection = config->key_selection;
+     }
+
      process_updates( stack->stack_data, wm_data, stack, window->primary_region, DSFLIP_NONE );
 
      return DFB_OK;
@@ -3324,10 +3420,16 @@ wm_grab( CoreWindow *window,
          void       *window_data,
          CoreWMGrab *grab )
 {
+     StackData  *sdata;
+     WindowData *wdata = window_data;
+
      D_ASSERT( window != NULL );
      D_ASSERT( wm_data != NULL );
      D_ASSERT( window_data != NULL );
      D_ASSERT( grab != NULL );
+     D_ASSERT( wdata->stack_data != NULL );
+
+     sdata = wdata->stack_data;
 
      switch (grab->target) {
           case CWMGT_KEYBOARD:
@@ -3338,6 +3440,13 @@ wm_grab( CoreWindow *window,
 
           case CWMGT_KEY:
                return grab_key( window, window_data, grab->symbol, grab->modifiers );
+
+          case CWMGT_UNSELECTED_KEYS:
+               if (sdata->unselkeys_window)
+                    return DFB_LOCKED;
+
+               sdata->unselkeys_window = window;
+               return DFB_OK;
 
           default:
                D_BUG( "unknown grab target" );
@@ -3353,10 +3462,16 @@ wm_ungrab( CoreWindow *window,
            void       *window_data,
            CoreWMGrab *grab )
 {
+     StackData  *sdata;
+     WindowData *wdata = window_data;
+
      D_ASSERT( window != NULL );
      D_ASSERT( wm_data != NULL );
      D_ASSERT( window_data != NULL );
      D_ASSERT( grab != NULL );
+     D_ASSERT( wdata->stack_data != NULL );
+
+     sdata = wdata->stack_data;
 
      switch (grab->target) {
           case CWMGT_KEYBOARD:
@@ -3367,6 +3482,12 @@ wm_ungrab( CoreWindow *window,
 
           case CWMGT_KEY:
                return ungrab_key( window, window_data, grab->symbol, grab->modifiers );
+
+          case CWMGT_UNSELECTED_KEYS:
+               if (sdata->unselkeys_window == window)
+                    sdata->unselkeys_window = NULL;
+
+               return DFB_OK;
 
           default:
                D_BUG( "unknown grab target" );

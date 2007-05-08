@@ -592,17 +592,21 @@ dfb_wm_preconfigure_window( CoreWindowStack *stack,CoreWindow *window )
                return D_OOSHM();
           }
      }
+
+     /* Keep shared window data. */
+     window->window_data = window_data;
+
      /* Tell window manager about the new window. */
      ret = wm_local->funcs->PreConfigureWindow( stack, wm_local->data,
                                        stack->stack_data, window, window_data );
      if (ret) {
-          if (window_data)
+          if (window_data) {
                SHFREE( wm_shared->shmpool, window_data );
+               window->window_data = NULL;
+          }
+
           return ret;
      }
-
-     /* Keep shared window data. */
-     window->window_data = window_data;
 
      return DFB_OK;
 }

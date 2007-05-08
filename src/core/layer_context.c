@@ -1163,16 +1163,10 @@ dfb_layer_context_set_clip_regions( CoreLayerContext *context,
 }
 
 DFBResult
-dfb_layer_context_create_window( CoreDFB                 *core,
-                                 CoreLayerContext        *context,
-                                 int                      x,
-                                 int                      y,
-                                 int                      width,
-                                 int                      height,
-                                 DFBWindowCapabilities    caps,
-                                 DFBSurfaceCapabilities   surface_caps,
-                                 DFBSurfacePixelFormat    pixelformat,
-                                 CoreWindow             **ret_window )
+dfb_layer_context_create_window( CoreDFB                     *core,
+                                 CoreLayerContext            *context,
+                                 const DFBWindowDescription  *desc,
+                                 CoreWindow                 **ret_window )
 {
      DFBResult        ret;
      CoreWindow      *window;
@@ -1181,6 +1175,7 @@ dfb_layer_context_create_window( CoreDFB                 *core,
 
      D_ASSERT( context != NULL );
      D_ASSERT( context->stack != NULL );
+     D_ASSERT( desc != NULL );
      D_ASSERT( ret_window != NULL );
 
      layer = dfb_layer_at( context->layer_id );
@@ -1201,8 +1196,7 @@ dfb_layer_context_create_window( CoreDFB                 *core,
           }
      }
 
-     ret = dfb_window_create( stack, x, y, width, height, caps,
-                              surface_caps, pixelformat, &window );
+     ret = dfb_window_create( stack, desc, &window );
      if (ret) {
           dfb_layer_context_unlock( context );
           return ret;

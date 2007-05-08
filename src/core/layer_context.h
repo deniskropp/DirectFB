@@ -123,16 +123,10 @@ DFBResult dfb_layer_context_set_clip_regions   ( CoreLayerContext            *co
 /*
  * window control
  */
-DFBResult dfb_layer_context_create_window( CoreDFB                *core,
-                                           CoreLayerContext       *context,
-                                           int                     x,
-                                           int                     y,
-                                           int                     width,
-                                           int                     height,
-                                           DFBWindowCapabilities   caps,
-                                           DFBSurfaceCapabilities  surface_caps,
-                                           DFBSurfacePixelFormat   pixelformat,
-                                           CoreWindow            **window );
+DFBResult dfb_layer_context_create_window( CoreDFB                     *core,
+                                           CoreLayerContext            *context,
+                                           const DFBWindowDescription  *desc,
+                                           CoreWindow                 **ret_window );
 
 CoreWindow      *dfb_layer_context_find_window( CoreLayerContext       *context,
                                                 DFBWindowID             id );

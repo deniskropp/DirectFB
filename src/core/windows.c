@@ -233,32 +233,30 @@ create_region( CoreDFB                 *core,
 }
 
 DFBResult
-dfb_window_create( CoreWindowStack        *stack,
-                   int                     x,
-                   int                     y,
-                   int                     width,
-                   int                     height,
-                   DFBWindowCapabilities   caps,
-                   DFBSurfaceCapabilities  surface_caps,
-                   DFBSurfacePixelFormat   pixelformat,
-                   CoreWindow            **ret_window )
+dfb_window_create( CoreWindowStack             *stack,
+                   const DFBWindowDescription  *desc,
+                   CoreWindow                 **ret_window )
 {
-     DFBResult          ret;
-     CoreSurface       *surface;
-     CoreSurfacePolicy  surface_policy = CSP_SYSTEMONLY;
-     CoreLayer         *layer;
-     CoreLayerContext  *context;
-     CoreWindow        *window;
-     CardCapabilities   card_caps;
-     CoreWindowConfig   config;
+     DFBResult               ret;
+     CoreSurface            *surface;
+     CoreSurfacePolicy       surface_policy = CSP_SYSTEMONLY;
+     CoreLayer              *layer;
+     CoreLayerContext       *context;
+     CoreWindow             *window;
+     CardCapabilities        card_caps;
+     CoreWindowConfig        config;
+     DFBWindowCapabilities   caps;
+     DFBSurfaceCapabilities  surface_caps;
+     DFBSurfacePixelFormat   pixelformat;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( stack->context != NULL );
-     D_ASSERT( width > 0 );
-     D_ASSERT( height > 0 );
+     D_ASSERT( desc != NULL );
+     D_ASSERT( desc->width > 0 );
+     D_ASSERT( desc->height > 0 );
      D_ASSERT( ret_window != NULL );
 
-     if (width > 4096 || height > 4096)
+     if (desc->width > 4096 || desc->height > 4096)
           return DFB_LIMITEXCEEDED;
 
      /* Lock the window stack. */
@@ -269,8 +267,12 @@ dfb_window_create( CoreWindowStack        *stack,
      layer   = dfb_layer_at( context->layer_id );
 
 
-     surface_caps &= DSCAPS_INTERLACED | DSCAPS_SEPARATED | DSCAPS_PREMULTIPLIED |
-                     DSCAPS_DEPTH | DSCAPS_STATIC_ALLOC | DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY;
+     caps         = desc->caps;
+     pixelformat  = desc->pixelformat;
+     surface_caps = desc->surface_caps & (DSCAPS_INTERLACED    | DSCAPS_SEPARATED  |
+                                          DSCAPS_PREMULTIPLIED | DSCAPS_DEPTH      |
+                                          DSCAPS_STATIC_ALLOC  | DSCAPS_SYSTEMONLY |
+                                          DSCAPS_VIDEOONLY);
 
      if (!dfb_config->translucent_windows) {
           caps &= ~DWCAPS_ALPHACHANNEL;
@@ -336,10 +338,11 @@ dfb_window_create( CoreWindowStack        *stack,
 
      memset( &config, 0, sizeof(CoreWindowConfig) );
 
-     config.bounds.x = x;
-     config.bounds.y = y;
-     config.bounds.w = width;
-     config.bounds.h = height;
+     config.bounds.x = desc->posx;
+     config.bounds.y = desc->posy;
+     config.bounds.w = desc->width;
+     config.bounds.h = desc->height;
+     config.stacking = (desc->flags & DWDESC_STACKING) ? desc->stacking : DWSC_MIDDLE;
 
      config.events   = DWET_ALL;
 
@@ -349,16 +352,20 @@ dfb_window_create( CoreWindowStack        *stack,
          !DFB_PIXELFORMAT_IS_INDEXED(pixelformat))
           config.options |= DWOP_ALPHACHANNEL;
 
+     /* Override automatic settings. */
+     if (desc->flags & DWDESC_OPTIONS)
+          config.options = desc->options;
 
      /* Create the window object. */
      window = dfb_core_create_window( layer->core );
 
-     window->id     = ++stack->id_pool;
-     window->caps   = caps;
-     window->stack  = stack;
-     window->config = config;
+     window->id        = ++stack->id_pool;
+     window->caps      = caps;
+     window->stack     = stack;
+     window->config    = config;
+     window->parent_id = (desc->flags & DWDESC_PARENT) ? desc->parent_id : 0;
 
-     ret = dfb_wm_preconfigure_window(stack,window);
+     ret = dfb_wm_preconfigure_window( stack, window );
      if(ret) {
           fusion_object_destroy( &window->object );
           dfb_windowstack_unlock( stack );
@@ -367,12 +374,6 @@ dfb_window_create( CoreWindowStack        *stack,
 
      /* wm may have changed values */
      config = window->config;
-     
-     x      = config.bounds.x;
-     y      = config.bounds.y;
-     width  = config.bounds.w;
-     height = config.bounds.h;
-     
      caps   = window->caps;
 
 
@@ -417,7 +418,7 @@ dfb_window_create( CoreWindowStack        *stack,
                if (!window->surface) {
                     /* Create the surface for the window. */
                     ret = dfb_surface_create( layer->core,
-                                              width, height, pixelformat,
+                                              config.bounds.w, config.bounds.h, pixelformat,
                                               surface_policy, surface_caps,
                                               region->surface ?
                                               region->surface->palette : NULL, &surface );
@@ -1229,38 +1230,53 @@ dfb_window_change_events( CoreWindow         *window,
 }
 
 DFBResult
-dfb_window_grab_keyboard( CoreWindow *window )
+dfb_window_set_key_selection( CoreWindow                    *window,
+                              DFBWindowKeySelection          selection,
+                              const DFBInputDeviceKeySymbol *keys,
+                              unsigned int                   num_keys )
 {
-     DFBResult        ret;
-     CoreWMGrab       grab;
-     CoreWindowStack *stack = window->stack;
+    DFBResult         ret;
+    CoreWindowConfig  config;
+    CoreWindowStack  *stack = window->stack;
 
-     /* Lock the window stack. */
-     if (dfb_windowstack_lock( stack ))
-          return DFB_FUSION;
+    D_ASSERT( selection == DWKS_ALL || selection == DWKS_NONE || selection == DWKS_LIST );
+    D_ASSERT( keys != NULL || selection != DWKS_LIST );
+    D_ASSERT( num_keys > 0 || selection != DWKS_LIST );
 
-     /* Never call WM after destroying the window. */
-     if (DFB_WINDOW_DESTROYED( window )) {
-          dfb_windowstack_unlock( stack );
-          return DFB_DESTROYED;
-     }
+    /* Lock the window stack. */
+    if (dfb_windowstack_lock( stack ))
+         return DFB_FUSION;
 
-     grab.target = CWMGT_KEYBOARD;
+    /* Never call WM after destroying the window. */
+    if (DFB_WINDOW_DESTROYED( window )) {
+         dfb_windowstack_unlock( stack );
+         return DFB_DESTROYED;
+    }
 
-     ret = dfb_wm_grab( window, &grab );
+    config.key_selection = selection;
+    config.keys          = (DFBInputDeviceKeySymbol*) keys; /* FIXME */
+    config.num_keys      = num_keys;
 
-     /* Unlock the window stack. */
-     dfb_windowstack_unlock( stack );
+    ret = dfb_wm_set_window_config( window, &config, CWCF_KEY_SELECTION );
 
-     return ret;
+    /* Unlock the window stack. */
+    dfb_windowstack_unlock( stack );
+
+    return ret;
 }
 
 DFBResult
-dfb_window_ungrab_keyboard( CoreWindow *window )
+dfb_window_change_grab( CoreWindow       *window,
+                        CoreWMGrabTarget  target,
+                        bool              grab )
 {
      DFBResult        ret;
-     CoreWMGrab       grab;
-     CoreWindowStack *stack = window->stack;
+     CoreWMGrab       wmgrab;
+     CoreWindowStack *stack;
+
+     D_ASSERT( window != NULL );
+
+     stack = window->stack;
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -1272,63 +1288,12 @@ dfb_window_ungrab_keyboard( CoreWindow *window )
           return DFB_DESTROYED;
      }
 
-     grab.target = CWMGT_KEYBOARD;
+     wmgrab.target = target;
 
-     ret = dfb_wm_ungrab( window, &grab );
-
-     /* Unlock the window stack. */
-     dfb_windowstack_unlock( stack );
-
-     return ret;
-}
-
-DFBResult
-dfb_window_grab_pointer( CoreWindow *window )
-{
-     DFBResult        ret;
-     CoreWMGrab       grab;
-     CoreWindowStack *stack = window->stack;
-
-     /* Lock the window stack. */
-     if (dfb_windowstack_lock( stack ))
-          return DFB_FUSION;
-
-     /* Never call WM after destroying the window. */
-     if (DFB_WINDOW_DESTROYED( window )) {
-          dfb_windowstack_unlock( stack );
-          return DFB_DESTROYED;
-     }
-
-     grab.target = CWMGT_POINTER;
-
-     ret = dfb_wm_grab( window, &grab );
-
-     /* Unlock the window stack. */
-     dfb_windowstack_unlock( stack );
-
-     return ret;
-}
-
-DFBResult
-dfb_window_ungrab_pointer( CoreWindow *window )
-{
-     DFBResult        ret;
-     CoreWMGrab       grab;
-     CoreWindowStack *stack = window->stack;
-
-     /* Lock the window stack. */
-     if (dfb_windowstack_lock( stack ))
-          return DFB_FUSION;
-
-     /* Never call WM after destroying the window. */
-     if (DFB_WINDOW_DESTROYED( window )) {
-          dfb_windowstack_unlock( stack );
-          return DFB_DESTROYED;
-     }
-
-     grab.target = CWMGT_POINTER;
-
-     ret = dfb_wm_ungrab( window, &grab );
+     if (grab)
+         ret = dfb_wm_grab( window, &wmgrab );
+     else
+         ret = dfb_wm_ungrab( window, &wmgrab );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );

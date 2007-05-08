@@ -605,7 +605,7 @@ IDirectFBWindow_GrabKeyboard( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_grab_keyboard( data->window );
+     return dfb_window_change_grab( data->window, CWMGT_KEYBOARD, true );
 }
 
 static DFBResult
@@ -616,7 +616,7 @@ IDirectFBWindow_UngrabKeyboard( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_ungrab_keyboard( data->window );
+     return dfb_window_change_grab( data->window, CWMGT_KEYBOARD, false );
 }
 
 static DFBResult
@@ -627,7 +627,7 @@ IDirectFBWindow_GrabPointer( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_grab_pointer( data->window );
+     return dfb_window_change_grab( data->window, CWMGT_POINTER, true );
 }
 
 static DFBResult
@@ -638,7 +638,7 @@ IDirectFBWindow_UngrabPointer( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_ungrab_pointer( data->window );
+     return dfb_window_change_grab( data->window, CWMGT_POINTER, false );
 }
 
 static DFBResult
@@ -886,8 +886,6 @@ IDirectFBWindow_ResizeSurface( IDirectFBWindow *thiz,
                                int              width,
                                int              height )
 {
-     CoreWindow *window;
-
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
@@ -896,13 +894,55 @@ IDirectFBWindow_ResizeSurface( IDirectFBWindow *thiz,
      if (width < 1 || width > 4096 || height < 1 || height > 4096)
           return DFB_INVARG;
 
-     window = data->window;
+     return dfb_surface_reformat( data->core, data->window->surface,
+                                  width, height, data->window->surface->format );
+}
 
-     if (!(window->config.options & DWOP_SCALE))
-          return DFB_UNSUPPORTED;
+static DFBResult
+IDirectFBWindow_SetKeySelection( IDirectFBWindow               *thiz,
+                                 DFBWindowKeySelection          selection,
+                                 const DFBInputDeviceKeySymbol *keys,
+                                 unsigned int                   num_keys )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
-     return dfb_surface_reformat( data->core, window->surface,
-                                  width, height, window->surface->format );
+     /* What a lovely switch */
+     switch (selection) {
+         case DWKS_ALL:
+         case DWKS_NONE:
+             break;
+         case DWKS_LIST:
+             if (!keys || num_keys == 0)
+         default:
+                 return DFB_INVARG;
+     }
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     return dfb_window_set_key_selection( data->window, selection, keys, num_keys );
+}
+
+static DFBResult
+IDirectFBWindow_GrabUnselectedKeys( IDirectFBWindow *thiz )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     return dfb_window_change_grab( data->window, CWMGT_UNSELECTED_KEYS, true );
+}
+
+static DFBResult
+IDirectFBWindow_UngrabUnselectedKeys( IDirectFBWindow *thiz )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     return dfb_window_change_grab( data->window, CWMGT_UNSELECTED_KEYS, false );
 }
 
 static DFBResult
@@ -1008,6 +1048,9 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->ResizeSurface = IDirectFBWindow_ResizeSurface;
      thiz->Bind = IDirectFBWindow_Bind;
      thiz->Unbind = IDirectFBWindow_Unbind;
+     thiz->SetKeySelection = IDirectFBWindow_SetKeySelection;
+     thiz->GrabUnselectedKeys = IDirectFBWindow_GrabUnselectedKeys;
+     thiz->UngrabUnselectedKeys = IDirectFBWindow_UngrabUnselectedKeys;
 
      return DFB_OK;
 }

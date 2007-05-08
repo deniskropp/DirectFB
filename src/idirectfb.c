@@ -565,21 +565,30 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          return ret;
                     }
                     else {
-                         int                    x, y;
-                         CoreWindow            *window;
-                         DFBWindowCapabilities  window_caps = DWCAPS_NONE;
+                         CoreWindow           *window;
+                         DFBWindowDescription  wd;
 
                          if (caps & DSCAPS_TRIPLE)
                               return DFB_UNSUPPORTED;
 
+                         memset( &wd, 0, sizeof(wd) );
+
+                         wd.flags = DWDESC_POSX | DWDESC_POSY | DWDESC_WIDTH | DWDESC_HEIGHT |
+                                    DWDESC_PIXELFORMAT | DWDESC_SURFACE_CAPS | DWDESC_CAPS;
+
                          if (dfb_config->scaled.width && dfb_config->scaled.height) {
-                              x = (config.width  - dfb_config->scaled.width)  / 2;
-                              y = (config.height - dfb_config->scaled.height) / 2;
+                              wd.posx = (config.width  - dfb_config->scaled.width)  / 2;
+                              wd.posy = (config.height - dfb_config->scaled.height) / 2;
                          }
                          else {
-                              x = (config.width  - width)  / 2;
-                              y = (config.height - height) / 2;
+                              wd.posx = (config.width  - width)  / 2;
+                              wd.posy = (config.height - height) / 2;
                          }
+
+                         wd.width        = width;
+                         wd.height       = height;
+                         wd.pixelformat  = format;
+                         wd.surface_caps = caps;
 
                          switch (format) {
                               case DSPF_ARGB4444:
@@ -588,19 +597,17 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                               case DSPF_ARGB:
                               case DSPF_AYUV:
                               case DSPF_AiRGB:
-                                   window_caps |= DWCAPS_ALPHACHANNEL;
+                                   wd.caps |= DWCAPS_ALPHACHANNEL;
                                    break;
 
                               default:
                                    break;
                          }
 
-                         if (caps & DSCAPS_DOUBLE)
-                              window_caps |= DWCAPS_DOUBLEBUFFER;
+                         if ((caps & DSCAPS_FLIPPING) == DSCAPS_DOUBLE)
+                              wd.caps |= DWCAPS_DOUBLEBUFFER;
 
-                         ret = dfb_layer_context_create_window( data->core, data->context, x, y,
-                                                                width, height, window_caps,
-                                                                caps, format, &window );
+                         ret = dfb_layer_context_create_window( data->core, data->context, &wd, &window );
                          if (ret)
                               return ret;
 

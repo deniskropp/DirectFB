@@ -72,12 +72,6 @@ typedef struct {
      unsigned int   window_data_size;
 } CoreWMInfo;
 
-typedef enum {
-     CWMGT_KEYBOARD,
-     CWMGT_POINTER,
-     CWMGT_KEY
-} CoreWMGrabTarget;
-
 typedef struct {
      CoreWMGrabTarget            target;
 

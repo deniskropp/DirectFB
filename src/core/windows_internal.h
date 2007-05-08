@@ -98,6 +98,8 @@ struct __DFB_CoreWindow {
      BoundWindow            *bound_windows;  /* list of bound windows */
 
      CoreWindow             *boundto;        /* window to which this window is bound */
+
+     DFBWindowID             parent_id;      /* window id of parent window */
 };
 
 /*
