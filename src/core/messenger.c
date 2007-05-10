@@ -25,6 +25,7 @@
 
 #include <direct/debug.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <fusion/hash.h>
 #include <fusion/lock.h>
