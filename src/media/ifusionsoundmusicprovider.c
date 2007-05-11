@@ -255,8 +255,10 @@ IFusionSoundMusicProvider_Create( const char                 *filename,
      /* Find a suitable implemenation */
      ret = DirectGetInterface( &funcs, "IFusionSoundMusicProvider",
                                NULL, DirectProbeInterface, &ctx );
-     if (ret)
+     if (ret) {
+          direct_stream_destroy( stream );
           return ret;
+     }
 
      DIRECT_ALLOCATE_INTERFACE( musicprovider, IFusionSoundMusicProvider );
 
@@ -266,13 +268,13 @@ IFusionSoundMusicProvider_Create( const char                 *filename,
      /* Construct the interface */
      ret = funcs->Construct( musicprovider, filename, stream );
      if (ret)
-          return ret;
+          *interface = NULL;
+     else
+          *interface = musicprovider;
           
      direct_stream_destroy( stream );
 
-     *interface = musicprovider;
-
-     return DFB_OK;
+     return ret;
 }
      
       
