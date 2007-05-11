@@ -300,10 +300,14 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
                               break;
                          case '-':
                               volume -= 0.1;
+                              if (volume < 0.0)
+                                   volume = 0.0;
                               playback->SetVolume( playback, volume );
                               break;
                          case '+':
                               volume += 0.1;
+                              if (volume > 64.0)
+                                   volume = 64.0;
                               playback->SetVolume( playback, volume );
                               break;
                          case 'q':
@@ -316,7 +320,7 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
                }
           }
                
-          usleep( 20000 );
+          usleep( 25000 );
      } while (status != FMSTATE_FINISHED);
      
      fprintf( stderr, "\n" );
