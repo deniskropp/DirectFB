@@ -343,10 +343,9 @@ typedef DFBEnumerationResult (*FSTrackCallback) (
 );
 
 /*
- * <i><b>IFusionSound</b></i> is the main FusionSound interface. Currently it
- * can only be retrieved by calling <i>IDirectFB::GetInterface()</i>. This will
- * change when Fusion and other relevant parts of DirectFB are dumped into a
- * base library.
+ * <i><b>IFusionSound</b></i> is the main FusionSound interface. 
+ * It can be retrieved either by calling <i>IDirectFB::GetInterface()</i> or
+ * by calling <i>FusionSoundCreate()</i> (after <i>FusionSoundInit()</i>).
  *
  * <b>Static sound buffers</b> for smaller samples like sound effects in
  * games or audible feedback in user interfaces are created by calling
@@ -361,6 +360,17 @@ typedef DFBEnumerationResult (*FSTrackCallback) (
  * automatically starts when data is written to the <b>ring buffer</b> for the
  * first time. If the buffer underruns, the playback automatically stops and
  * continues when the ring buffer is written to again.
+ *
+ * <b>Since FusionSound 1.1.0</b>, both Streaming and Static sound buffers support
+ * up to <b>6 channels</b>, with the following mapping:<br>
+ *  1. Mono 1.0     (C)<br>
+ *  2. Stereo 2.0   (L R)<br>
+ *  3. Stereo 3.0   (L C R)<br>
+ *  4. Surround 4.0 (L R RL RR)<br>
+ *  5. Surround 5.0 (L C L RL RR)<br>
+ *  6. Surround 5.1 (L C L RL RR LFE)<br>
+ *  (where C = Center, L = Left, R = Right, RL = Rear Left, RR = Rear Right).
+ *
  */
 DEFINE_INTERFACE( IFusionSound,
 
@@ -841,6 +851,20 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
      DFBResult (*SetDirection) (
           IFusionSoundPlayback     *thiz,
           FSPlaybackDirection       direction
+     );
+     
+     /*
+      * Set the volume levels for downmixing.
+      *
+      * Set the levels used for downmixing center and rear channels
+      * of a multichannel buffer (more than 2 channels).<br>
+      * Levels are linear factors ranging from 0.0f to 1.0f and
+      * being 0.707f (-3dB) by default.
+      */
+     DFBResult (*SetDownmixLevels) (
+          IFusionSoundPlayback     *thiz,
+          float                     center,
+          float                     rear
      );
 )
 

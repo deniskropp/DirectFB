@@ -53,6 +53,8 @@
 
 #include <core/core.h>
 
+#include <fusionsound_limits.h>
+
 #include <core/fs_types.h>
 #include <core/core_sound.h>
 #include <core/playback.h>
@@ -455,6 +457,160 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
 
 /******************************************************************************/
 
+/*
+ * Mixing buffer uses the following channels mapping:
+ *   1. (L)eft
+ *   2. (R)ight
+ *   3. (C)enter
+ *   4. (R)ear (L)eft
+ *   5. (R)ear (R)ight
+ *   6. (S)ubwoofer (aka LFE)
+ * This differs from Surround 5.1 because of Center channel's position.
+ *
+ * According to AC-3 specs, downmixing from 5.1 to stereo is achieved
+ * as following:
+ *   L = L + clev * C + slev * RL
+ *   R = R + clev * C + slev * RR
+ * where clev and slev are -3dB (0.707) by default.
+ * 
+ * In FusionSound we premultiply center and rear channels by the 
+ * respective levels (set by the user) during mixing and then
+ * sum channels when converting to output format.
+ */
+
+#if FS_MAX_CHANNELS >= 5
+# define FS_MIX_OUTPUT_LOOP( BODY ) {                               \
+     __fsf *src = mixing;                                           \
+     u8    *dst = output;                                           \
+     int    n;                                                      \
+     switch (shared->config.channels) {                             \
+          case 1:                                                   \
+               for (n = mixed; n; n--) {                            \
+                    register __fsf s;                               \
+                    const int      c = 0;                           \
+                    s = src[c] + src[1] + src[2] +                  \
+                        src[2] + src[3] + src[4];                   \
+                    s = fsf_shr( s, 1 );                            \
+                    BODY                                            \
+                    src += FS_MAX_CHANNELS;                         \
+               }                                                    \
+               break;                                               \
+          case 2:                                                   \
+               for (n = mixed; n; n--) {                            \
+                    register __fsf s;                               \
+                    int            c;                               \
+                    c = 0;                                          \
+                    s = src[c] + src[2] + src[3];                   \
+                    BODY                                            \
+                    c = 1;                                          \
+                    s = src[c] + src[2] + src[4];                   \
+                    BODY                                            \
+                    src += FS_MAX_CHANNELS;                         \
+               }                                                    \
+               break;                                               \
+          case 3:                                                   \
+               for (n = mixed; n; n--) {                            \
+                    register __fsf s;                               \
+                    int            c;                               \
+                    c = 0;                                          \
+                    s = src[c] + src[3];                            \
+                    BODY                                            \
+                    c = 2;                                          \
+                    s = src[c];                                     \
+                    BODY                                            \
+                    c = 1;                                          \
+                    s = src[c] + src[4];                            \
+                    BODY;                                           \
+                    src += FS_MAX_CHANNELS;                         \
+               }                                                    \
+               break;                                               \
+          case 4:                                                   \
+               for (n = mixed; n; n--) {                            \
+                    register __fsf s;                               \
+                    int            c;                               \
+                    c = 0;                                          \
+                    s = src[c] + src[2];                            \
+                    BODY                                            \
+                    c = 1;                                          \
+                    s = src[c] + src[2];                            \
+                    BODY                                            \
+                    c = 3;                                          \
+                    s = src[c];                                     \
+                    BODY                                            \
+                    c = 4;                                          \
+                    s = src[c];                                     \
+                    BODY                                            \
+                    src += FS_MAX_CHANNELS;                         \
+               }                                                    \
+               break;                                               \
+          case 5:                                                   \
+               for (n = mixed; n; n--) {                            \
+                    int c;                                          \
+                    for (c = 0; c < 5; c++) {                       \
+                         register __fsf s;                          \
+                         if (c == 1)                                \
+                              s = src[2];                           \
+                         else if (c == 2)                           \
+                              s = src[1];                           \
+                         else                                       \
+                              s = src[c];                           \
+                         BODY                                       \
+                    }                                               \
+                    src += FS_MAX_CHANNELS;                         \
+               }                                                    \
+               break;                                               \
+          case 6:                                                   \
+               for (n = mixed; n; n--) {                            \
+                    int c;                                          \
+                    for (c = 0; c < 6; c++) {                       \
+                         register __fsf s;                          \
+                         if (c == 1)                                \
+                              s = src[2];                           \
+                         else if (c == 2)                           \
+                              s = src[1];                           \
+                         else                                       \
+                              s = src[c];                           \
+                         BODY                                       \
+                    }                                               \
+                    src += FS_MAX_CHANNELS;                         \
+               }                                                    \
+               break;                                               \
+          default:                                                  \
+               D_BUG( "unexpected number of channels" );            \
+               break;                                               \
+     }                                                              \
+}
+#else /* FS_MAX_CHANNELS == 2 */
+# define FS_MIX_OUTPUT_LOOP( BODY ) {                               \
+     __fsf *src = mixing;                                           \
+     u8    *dst = output;                                           \
+     int    n;                                                      \
+     if (shared->config.channels == 1) {                            \
+          for (n = mixed; n; n--) {                                 \
+               register __fsf s;                                    \
+               const int      c = 0;                                \
+               s = fsf_shr( src[c] + src[c+1], 1 );                 \
+               BODY                                                 \
+               src += FS_MAX_CHANNELS;                              \
+          }                                                         \
+     }                                                              \
+     else {                                                         \
+          for (n = mixed; n; n--) {                                 \
+               register __fsf s;                                    \
+               int            c;                                    \
+               c = 0;                                               \
+               s = src[c];                                          \
+               BODY                                                 \
+               c = 1;                                               \
+               s = src[c];                                          \
+               BODY                                                 \
+               src += FS_MAX_CHANNELS;                              \
+          }                                                         \
+     }                                                              \
+}
+#endif /* FS_MAX_CHANNELS */      
+
+
 static void *
 sound_thread( DirectThread *thread, void *arg )
 {
@@ -464,16 +620,14 @@ sound_thread( DirectThread *thread, void *arg )
      
      u8                 *output  = core->output_buffer;
      __fsf              *mixing  = core->mixing_buffer;
-     int                 samples = shared->config.buffersize * 2;
+     int                 frames  = shared->config.buffersize;
      int                 mixed   = 0;
      
-     fsf_dither_profile(left);
-     fsf_dither_profile(right);
+     fsf_dither_profiles(dither,FS_MAX_CHANNELS);
      
      fs_device_get_capabilities( core->device, &caps );
      
      while (true) {
-          int         i;
           int         delay;
           int         length = 0;
           DirectLink *next, *l;
@@ -481,7 +635,7 @@ sound_thread( DirectThread *thread, void *arg )
           direct_thread_testcancel( thread );
 
           fs_device_get_output_delay( core->device, &delay );
-          shared->output_delay = (delay + (mixed>>1)) * 1000 / shared->config.rate;
+          shared->output_delay = (delay + mixed) * 1000 / shared->config.rate;
           
           if (!shared->playlist.entries) {
                if (!mixed || delay > 0) {
@@ -489,12 +643,12 @@ sound_thread( DirectThread *thread, void *arg )
                     continue;
                }
                /* Flush remaining frames. */
-               mixed = samples;
+               mixed = frames;
           }
 
           if (mixed == 0) {
                /* Clear mixing buffer. */
-               memset( mixing, 0, samples*sizeof(__fsf) );
+               memset( mixing, 0, frames * FS_MAX_CHANNELS * sizeof(__fsf) );
           }
 
           /* Iterate through running playbacks, mixing them together. */
@@ -507,7 +661,7 @@ sound_thread( DirectThread *thread, void *arg )
                int                num;
 
                ret = fs_playback_mixto( playback, mixing+mixed,
-                                        shared->config.rate, samples-mixed, &num );
+                                        shared->config.rate, frames-mixed, &num );
                if (ret) {
                     direct_list_remove( &shared->playlist.entries, l );
 
@@ -523,135 +677,69 @@ sound_thread( DirectThread *thread, void *arg )
           fusion_skirmish_dismiss( &shared->playlist.lock );
           
           mixed += length;
-          if (caps & DCF_WRITEBLOCKS && mixed < samples)
+          if (caps & DCF_WRITEBLOCKS && mixed < frames)
                continue;
 
           /* Convert mixing buffer to output format, clipping each sample. */
           switch (shared->config.format) {
                case FSSF_U8:
-                    if (shared->config.channels == 1) {
-                         for (i = 0; i < mixed>>1; i++) {
-                              register __fsf s;
-                              s = fsf_add( mixing[i*2+0], mixing[i*2+1] );
-                              s = fsf_shr( s, 1 );
-                              s = fsf_dither( s, 8, left );
-                              s = fsf_clip( s );      
-                              output[i] = fsf_to_u8( s );
-                         }
-                    } else {
-                         for (i = 0; i < mixed; i += 2) {
-                              register __fsf s;
-                              s = fsf_dither( mixing[i+0], 8, left );
-                              s = fsf_clip( s );
-                              output[i+0] = fsf_to_u8( s );
-                              s = fsf_dither( mixing[i+1], 8, right );
-                              s = fsf_clip( s );
-                              output[i+1] = fsf_to_u8( s );
-                         }
-                    }
+                    FS_MIX_OUTPUT_LOOP(
+                         s = fsf_dither( s, 8, dither[c] );
+                         s = fsf_clip( s );                              
+                         *dst++ = fsf_to_u8( s );
+                    )
                     break;
                case FSSF_S16:
-                    if (shared->config.channels == 1) {
-                         for (i = 0; i < mixed>>1; i++) {
-                              register __fsf s;
-                              s = fsf_add( mixing[i*2+0], mixing[i*2+1] );
-                              s = fsf_shr( s, 1 );
-                              s = fsf_dither( s, 16, left );
-                              s = fsf_clip( s );     
-                              ((s16*)output)[i] = fsf_to_s16( s );
-                         }
-                    } else {
-                         for (i = 0; i < mixed; i += 2) {
-                              register __fsf s;
-                              s = fsf_dither( mixing[i+0], 16, left );
-                              s = fsf_clip( s );
-                              ((s16*)output)[i+0] = fsf_to_s16( s );
-                              s = fsf_dither( mixing[i+1], 16, right );
-                              s = fsf_clip( s );
-                              ((s16*)output)[i+1] = fsf_to_s16( s );
-                         }
-                    }
+                    FS_MIX_OUTPUT_LOOP(
+                         s = fsf_dither( s, 16, dither[c] );
+                         s = fsf_clip( s );                              
+                         *((u16*)dst) = fsf_to_s16( s );
+                         dst += 2;
+                    )
                     break;
                case FSSF_S24:
-                    if (shared->config.channels == 1) {
-                         for (i = 0; i < mixed>>1; i++) {
-                              register __fsf s;
-                              register int   d;
-                              s = fsf_add( mixing[i*2+0], mixing[i*2+1] );
-                              s = fsf_shr( s, 1 );
-                              s = fsf_clip( s );
-                              d = fsf_to_s24( s );
 #ifdef WORDS_BIGENDIAN
-                              output[i*3+0] = d >> 16;
-                              output[i*3+1] = d >>  8;
-                              output[i*3+2] = d      ;
+                    FS_MIX_OUTPUT_LOOP({
+                         int d;
+                         s = fsf_clip( s );
+                         d = fsf_to_s24( s );
+                         dst[0] = d >> 16;
+                         dst[1] = d >>  8;
+                         dst[2] = d      ;
+                         dst += 3;
+                    })
 #else
-                              output[i*3+0] = d      ;
-                              output[i*3+1] = d >>  8;
-                              output[i*3+2] = d >> 16;
+                    FS_MIX_OUTPUT_LOOP({
+                         int d;
+                         s = fsf_clip( s );
+                         d = fsf_to_s24( s );
+                         dst[0] = d      ;
+                         dst[1] = d >>  8;
+                         dst[2] = d >> 16;
+                         dst += 3;
+                    })           
 #endif
-                         }
-                    } else {
-                         for (i = 0; i < mixed; i++) {
-                              register __fsf s;
-                              register int   d;
-                              s = mixing[i];
-                              s = fsf_clip( s );
-                              d = fsf_to_s24( s );
-#ifdef WORDS_BIGENDIAN
-                              output[i*3+0] = d >> 16;
-                              output[i*3+1] = d >>  8;
-                              output[i*3+2] = d      ;
-#else
-                              output[i*3+0] = d      ;
-                              output[i*3+1] = d >>  8;
-                              output[i*3+2] = d >> 16;
-#endif
-                         }
-                    }
                     break;
                case FSSF_S32:
-                    if (shared->config.channels == 1) {
-                         for (i = 0; i < mixed>>1; i++) {
-                              register __fsf s;
-                              s = fsf_add( mixing[i*2+0], mixing[i*2+1] );
-                              s = fsf_shr( s, 1 );
-                              s = fsf_clip( s );                         
-                              ((s32*)output)[i] = fsf_to_s32( s );
-                         }
-                    } else {
-                         for (i = 0; i < mixed; i++) {
-                              register __fsf s;
-                              s = mixing[i];
-                              s = fsf_clip( s );                         
-                              ((s32*)output)[i] = fsf_to_s32( s );
-                         }
-                    }
+                    FS_MIX_OUTPUT_LOOP(
+                         s = fsf_clip( s );
+                         *((u32*)dst) = fsf_to_s32( s );
+                         dst += 4;
+                    )    
                     break;
                case FSSF_FLOAT:
-                    if (shared->config.channels == 1) {
-                         for (i = 0; i < mixed>>1; i++) {
-                              register __fsf s;
-                              s = fsf_add( mixing[i*2+0], mixing[i*2+1] );
-                              s = fsf_shr( s, 1 );
-                              s = fsf_clip( s );                         
-                              ((float*)output)[i] = fsf_to_float( s );
-                         }
-                    } else {
-                         for (i = 0; i < mixed; i++) {
-                              register __fsf s;
-                              s = mixing[i];
-                              s = fsf_clip( s );                         
-                              ((float*)output)[i] = fsf_to_float( s );
-                         }
-                    }
+                    FS_MIX_OUTPUT_LOOP(
+                         s = fsf_clip( s );
+                         *((float*)dst) = fsf_to_float( s );
+                         dst += 4;
+                    ) 
                     break;
                default:
                     D_BUG( "unexpected sample format" );
                     break;
           }
 
-          fs_device_write( core->device, output, mixed >> 1 );
+          fs_device_write( core->device, output, mixed );
           
           mixed = 0;
      }
@@ -688,7 +776,8 @@ fs_core_initialize( CoreSound *core )
      shared->playback_pool = fs_playback_pool_create( core->world );
      
      /* allocate mixing buffer */
-     core->mixing_buffer = D_MALLOC( shared->config.buffersize * 2 * sizeof(__fsf) );
+     core->mixing_buffer = D_MALLOC( shared->config.buffersize * 
+                                     FS_MAX_CHANNELS * sizeof(__fsf) );
      if (!core->mixing_buffer)
           return D_OOM();
           

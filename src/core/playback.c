@@ -28,6 +28,7 @@
 
 #include <direct/debug.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <fusion/lock.h>
 
@@ -36,25 +37,6 @@
 #include <core/playback.h>
 
 /******************************************************************************/
-
-struct __FS_CorePlayback {
-     FusionObject     object;
-
-     FusionSkirmish   lock;
-
-     CoreSound       *core;
-     CoreSoundBuffer *buffer;
-     bool             notify;
-
-     bool             disabled;
-     bool             running;
-     int              position;
-     int              stop;
-
-     __fsf            left;        /* multiplier for left channel */
-     __fsf            right;       /* multiplier for right channel */
-     int              pitch;       /* multiplier for sample rate in FS_PITCH_ONE units */
-};
 
 static void fs_playback_notify( CorePlayback                  *playback,
                                 CorePlaybackNotificationFlags  flags,
@@ -94,6 +76,7 @@ fs_playback_create( CoreSound        *core,
                     CorePlayback    **ret_playback )
 {
      CorePlayback *playback;
+     int           i;
 
      D_ASSERT( buffer != NULL );
      D_ASSERT( ret_playback != NULL );
@@ -115,8 +98,8 @@ fs_playback_create( CoreSound        *core,
      /* Initialize private data. */
      playback->core   = core;
      playback->notify = notify;
-     playback->left   = fsf_from_int( 1 );
-     playback->right  = fsf_from_int( 1 );
+     for (i = 0; i < 6; i++)
+          playback->levels[i] = FSF_ONE;
      playback->pitch  = FS_PITCH_ONE;
 
      fusion_skirmish_init( &playback->lock, "FusionSound Playback", fs_core_world(core) );
@@ -277,22 +260,23 @@ fs_playback_set_position( CorePlayback *playback,
 
 DFBResult
 fs_playback_set_volume( CorePlayback *playback,
-                        float         left,
-                        float         right )
+                        float         levels[6] )
 {
+     int i;
+     
      D_ASSERT( playback != NULL );
-     D_ASSERT( left >= 0.0f );
-     D_ASSERT( left <= 64.0f );
-     D_ASSERT( right >= 0.0f );
-     D_ASSERT( right <= 64.0f );
+     D_ASSERT( levels[0] >= 0.0f );
+     D_ASSERT( levels[0] <= 64.0f );
+     D_ASSERT( levels[1] >= 0.0f );
+     D_ASSERT( levels[1] <= 64.0f );
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
           return DFB_FUSION;
 
      /* Adjust volume. */
-     playback->left  = fsf_from_float( left  );
-     playback->right = fsf_from_float( right );
+     for (i = 0; i < 6; i++)
+          playback->levels[i] = fsf_from_float( levels[i] );
 
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
@@ -362,7 +346,7 @@ DFBResult
 fs_playback_mixto( CorePlayback *playback,
                    __fsf        *dest,
                    int           dest_rate,
-                   int           max_samples,
+                   int           max_frames,
                    int          *ret_samples)
 {
      DFBResult ret;
@@ -372,16 +356,16 @@ fs_playback_mixto( CorePlayback *playback,
      D_ASSERT( playback != NULL );
      D_ASSERT( playback->buffer != NULL );
      D_ASSERT( dest != NULL );
-     D_ASSERT( max_samples > 0 );
+     D_ASSERT( max_frames > 0 );
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
           return DFB_FUSION;
 
      /* Mix samples... */
-     ret = fs_buffer_mixto( playback->buffer, dest, dest_rate, max_samples,
-                            playback->position, playback->stop, playback->left,
-                            playback->right, playback->pitch, &pos, &num, ret_samples );
+     ret = fs_buffer_mixto( playback->buffer, dest, dest_rate, max_frames,
+                            playback->position, playback->stop, playback->levels,
+                            playback->pitch, &pos, &num, ret_samples );
      if (ret)
           playback->running = false;
 

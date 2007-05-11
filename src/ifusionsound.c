@@ -34,6 +34,8 @@
 #include <direct/interface.h>
 #include <direct/mem.h>
 
+#include <fusionsound_limits.h>
+
 #include <core/core_sound.h>
 #include <core/sound_buffer.h>
 
@@ -128,8 +130,7 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
 
      if (flags & FSBDF_CHANNELS) {
           switch (desc->channels) {
-               case 1:
-               case 2:
+               case 1 ... FS_MAX_CHANNELS:
                     channels = desc->channels;
                     break;
 
@@ -165,7 +166,7 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
      if (length < 1)
           return DFB_INVARG;
           
-     if (length > 0x07ffffff)
+     if (length > FS_MAX_FRAMES)
           return DFB_LIMITEXCEEDED;
 
      ret = fs_buffer_create( data->core,
@@ -221,8 +222,7 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
 
           if (flags & FSSDF_CHANNELS) {
                switch (desc->channels) {
-                    case 1:
-                    case 2:
+                    case 1 ... FS_MAX_CHANNELS:
                          channels = desc->channels;
                          break;
 

@@ -40,6 +40,8 @@
 #include <direct/debug.h>
 #include <direct/util.h>
 
+#include <fusionsound_limits.h>
+
 #include <misc/conf.h>
 
 #include "sound_conf.h"
@@ -197,7 +199,7 @@ fs_config_set( const char *name, const char *value )
                              "Could not parse value!\n" );
                     return DFB_INVARG;
                }
-               else if (channels < 1 || channels > 2) {
+               else if (channels < 1 || channels > FS_MAX_CHANNELS) {
                     D_ERROR( "FusionSound/Config 'channels': "
                              "Unsupported value '%d'!\n", channels );
                     return DFB_INVARG;

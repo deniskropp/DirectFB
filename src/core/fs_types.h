@@ -85,8 +85,8 @@ typedef float __fsf;
 /*
  * Triangular Dithering.
  */
-# define fsf_dither_profile( p ) \
-     struct { unsigned int r; } p = { 0 }
+# define fsf_dither_profiles( p, n ) \
+     struct { unsigned int r; } p[n] = { [0 ... (n-1)] = { 0 } }
 # define fsf_dither( s, b, p ) ( \
  __extension__({ \
      register int _r; \
@@ -97,13 +97,13 @@ typedef float __fsf;
  }) \
 ) 
 #else
-# define fsf_dither_profile( p )
+# define fsf_dither_profiles( p, n )
 # define fsf_dither( s, b, p )  ((s) + (1.0f / (float)(1 << (b))))
 #endif
 
 #else /* !FS_USE_IEEE_FLOATS (Fixed Point) */
 
-typedef signed long __fsf;
+typedef signed int __fsf;
 
 #define FSF_DECIBITS   23 /* Number of bits for decimal part.
                            * This is 23 by default because we need at least
@@ -146,7 +146,7 @@ typedef signed long __fsf;
 #define fsf_from_float( x )          ((__fsf)((x) * (float)FSF_ONE))
 #define fsf_to_float( x )            ((float)(x) / (float)FSF_ONE)
 
-#if FSF_DECIBITS >= 8
+#if FSF_DECIBITS >= 7
 # define fsf_from_u8( x )            ((__fsf)((x)-128) << (FSF_DECIBITS - 7))
 # define fsf_to_u8( x )              (((x) >> (FSF_DECIBITS - 7))+128)
 #else
@@ -154,7 +154,7 @@ typedef signed long __fsf;
 # define fsf_to_u8( x )              (((x) << (7 - FS_DECIBITS))+128)
 #endif
 
-#if FSF_DECIBITS >= 16
+#if FSF_DECIBITS >= 15
 # define fsf_from_s16( x )           ((__fsf)(x) << (FSF_DECIBITS - 15))
 # define fsf_to_s16( x )             ((x) >> (FSF_DECIBITS - 15))
 #else
@@ -162,7 +162,7 @@ typedef signed long __fsf;
 # define fsf_to_s16( x )             ((x) << (15 - FSF_DECIBITS))
 #endif
 
-#if FSF_DECIBITS >= 24
+#if FSF_DECIBITS >= 23
 # define fsf_from_s24( x )           ((__fsf)(x) << (FSF_DECIBITS - 23))
 # define fsf_to_s24( x )             ((x) >> (FSF_DECIBITS - 23))
 #else
@@ -170,7 +170,7 @@ typedef signed long __fsf;
 # define fsf_to_s24( x )             ((x) << (23 - FSF_DECIBITS))
 #endif
 
-#if FSF_DECIBITS >= 32
+#if FSF_DECIBITS >= 31
 # define fsf_from_s32( x )           ((__fsf)(x) << (FSF_DECIBITS - 31))
 # define fsf_to_s32( x )             ((x) >> (FSF_DECIBITS - 31))
 #else
@@ -189,11 +189,11 @@ typedef signed long __fsf;
  *   Stanley P. Lipshitz, John Vanderkooy, and Robert A. Wannamaker,
  *   "Minimally Audible Noise Shaping", J. Audio Eng. Soc., Vol.39, No.11, 1991.
  */
-# define fsf_dither_profile( p ) \
-     struct { __fsf e[5]; unsigned int r; } p = { {0, 0, 0, 0, 0}, 0 }
+# define fsf_dither_profiles( p, n ) \
+     struct { int e[5]; unsigned int r; } p[n] = { [0 ... (n-1)] = { {0, 0, 0, 0, 0}, 0 } }
 # define fsf_dither( s, b, p ) ( \
  __extension__({ \
-     const long     _m = (1 << (FSF_DECIBITS+1-(b))) - 1; \
+     const int      _m = (1 << (FSF_DECIBITS+1-(b))) - 1; \
      register __fsf _s, _o; \
      _s       = (s) + (p).e[0] - (p).e[1] + (p).e[2] - (p).e[3] + (p).e[4]; \
      _o       = _s + (1 << (FSF_DECIBITS-(b))) - ((p).r & _m); \
@@ -209,7 +209,7 @@ typedef signed long __fsf;
    }) \
 )
 #else
-# define fsf_dither_profile( p )
+# define fsf_dither_profiles( p, n )
 # define fsf_dither( s, b, p )  ((s) + (1 << (FSF_DECIBITS-(b))))
 #endif
 

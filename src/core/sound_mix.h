@@ -55,14 +55,15 @@ FUNC_NAME(FORMAT,mono,fw) ( CoreSoundBuffer *buffer,
                             long             pos,
                             long             inc,
                             long             max,
-                            __fsf            left,
-                            __fsf            right,
+                            __fsf            levels[6],
                             bool             last )
 
 {
-     TYPE  *src = buffer->data;
-     __fsf *dst = dest;
-     long   i   = 0;
+     TYPE  *src   = buffer->data;
+     __fsf *dst   = dest;
+     long   i     = 0;   
+     __fsf  left  = levels[0];
+     __fsf  right = levels[1];
 
 #ifdef FS_ENABLE_LINEAR_FILTER
      if (inc < FS_PITCH_ONE) {
@@ -89,11 +90,11 @@ FUNC_NAME(FORMAT,mono,fw) ( CoreSoundBuffer *buffer,
                     w = fsf_from_int_scaled( i & (FS_PITCH_ONE-1), FS_PITCH_BITS );
                     s = FSF_INTERP( s, FSF_FROM_SRC( src, q ), w );
                }
-
+               
                dst[0] += (left  == FSF_ONE) ? s : fsf_mul( s, left  );
                dst[1] += (right == FSF_ONE) ? s : fsf_mul( s, right );
                
-               dst += 2;
+               dst += FS_MAX_CHANNELS;
           }
           
           if (last)
@@ -113,10 +114,10 @@ FUNC_NAME(FORMAT,mono,fw) ( CoreSoundBuffer *buffer,
           dst[0] += (left  == FSF_ONE) ? s : fsf_mul( s, left  );
           dst[1] += (right == FSF_ONE) ? s : fsf_mul( s, right );
                
-          dst += 2;
+          dst += FS_MAX_CHANNELS;
      }
           
-     return (int)(dst - dest);
+     return (int)(dst - dest)/FS_MAX_CHANNELS;
 }
 
 static int
@@ -125,14 +126,15 @@ FUNC_NAME(FORMAT,mono,rw) ( CoreSoundBuffer *buffer,
                             long             pos,
                             long             inc,
                             long             max,
-                            __fsf            left,
-                            __fsf            right,
+                            __fsf            levels[6],
                             bool             last )
 
 {
-     TYPE  *src = buffer->data;
-     __fsf *dst = dest;
-     long   i   = 0;
+     TYPE  *src   = buffer->data;
+     __fsf *dst   = dest;
+     long   i     = 0;   
+     __fsf  left  = levels[0];
+     __fsf  right = levels[1];
 
 #ifdef FS_ENABLE_LINEAR_FILTER
      if (-inc < FS_PITCH_ONE) {
@@ -165,7 +167,7 @@ FUNC_NAME(FORMAT,mono,rw) ( CoreSoundBuffer *buffer,
                dst[0] += (left  == FSF_ONE) ? s : fsf_mul( s, left  );
                dst[1] += (right == FSF_ONE) ? s : fsf_mul( s, right );
                
-               dst += 2;
+               dst += FS_MAX_CHANNELS;
           }
           
           if (last)
@@ -187,10 +189,10 @@ FUNC_NAME(FORMAT,mono,rw) ( CoreSoundBuffer *buffer,
           dst[0] += (left  == FSF_ONE) ? s : fsf_mul( s, left  );
           dst[1] += (right == FSF_ONE) ? s : fsf_mul( s, right );
                
-          dst += 2;
+          dst += FS_MAX_CHANNELS;
      }
           
-     return (int)(dst - dest);
+     return (int)(dst - dest)/FS_MAX_CHANNELS;
 }
 
 
@@ -200,13 +202,14 @@ FUNC_NAME(FORMAT,stereo,fw) ( CoreSoundBuffer *buffer,
                               long             pos,
                               long             inc,
                               long             max,
-                              __fsf            left,
-                              __fsf            right,
+                              __fsf            levels[6],
                               bool             last )
 {
-     TYPE  *src = buffer->data;
-     __fsf *dst = dest;
-     long   i   = 0;
+     TYPE  *src   = buffer->data;
+     __fsf *dst   = dest;
+     long   i     = 0;   
+     __fsf  left  = levels[0];
+     __fsf  right = levels[1];
 
 #ifdef FS_ENABLE_LINEAR_FILTER
      if (inc < FS_PITCH_ONE) {
@@ -215,13 +218,14 @@ FUNC_NAME(FORMAT,stereo,fw) ( CoreSoundBuffer *buffer,
                max -= FS_PITCH_ONE;
 
           for (; i < max; i += inc) {
-               long p = (i >> FS_PITCH_BITS) + pos;
+               long  p = (i >> FS_PITCH_BITS) + pos;
+               __fsf sl, sr;
 
                if (p >= buffer->length)
                     p %= buffer->length;
                     
                if (i & (FS_PITCH_ONE-1)) {
-                    __fsf w, sl, sr;
+                    __fsf w;
                     long  q = p + 1;
                     
                     if (q == buffer->length)
@@ -230,25 +234,30 @@ FUNC_NAME(FORMAT,stereo,fw) ( CoreSoundBuffer *buffer,
                     q <<= 1;
                          
                     w  = fsf_from_int_scaled( i & (FS_PITCH_ONE-1), FS_PITCH_BITS );
+                    
                     sl = FSF_INTERP( FSF_FROM_SRC( src, p+0 ), 
                                      FSF_FROM_SRC( src, q+0 ), w );
+                    if (left != FSF_ONE)
+                         sl = fsf_mul( sl, left );
                     sr = FSF_INTERP( FSF_FROM_SRC( src, p+1 ),
                                      FSF_FROM_SRC( src, q+1 ), w );
-                    
-                    dst[0] += (left  == FSF_ONE) ? sl : fsf_mul( sl, left  );
-                    dst[1] += (right == FSF_ONE) ? sr : fsf_mul( sr, right );
+                    if (right != FSF_ONE) 
+                         sr = fsf_mul( sr, right );
                }
                else {
                     p <<= 1;
-                    dst[0] += (left == FSF_ONE)
-                              ? FSF_FROM_SRC( src, p+0 )
-                              : fsf_mul( FSF_FROM_SRC( src, p+0 ), left  );
-                    dst[1] += (right == FSF_ONE)
-                              ? FSF_FROM_SRC( src, p+1 )
-                              : fsf_mul( FSF_FROM_SRC( src, p+1 ), right );
+                    sl = (left == FSF_ONE)
+                         ? FSF_FROM_SRC( src, p+0 )
+                         : fsf_mul( FSF_FROM_SRC( src, p+0 ), left );
+                    sr = (right == FSF_ONE)
+                         ? FSF_FROM_SRC( src, p+1 )
+                         : fsf_mul( FSF_FROM_SRC( src, p+1 ), right );
                }
                
-               dst += 2;
+               dst[0] += sl;
+               dst[1] += sr;
+               
+               dst += FS_MAX_CHANNELS;
           } 
           
           if (last)
@@ -265,15 +274,15 @@ FUNC_NAME(FORMAT,stereo,fw) ( CoreSoundBuffer *buffer,
           
           dst[0] += (left == FSF_ONE)
                     ? FSF_FROM_SRC( src, p+0 )
-                    : fsf_mul( FSF_FROM_SRC( src, p+0), left  );
+                    : fsf_mul( FSF_FROM_SRC( src, p+0), left );
           dst[1] += (right == FSF_ONE)
                     ? FSF_FROM_SRC( src, p+1 )
                     : fsf_mul( FSF_FROM_SRC( src, p+1 ), right );
               
-          dst += 2;
+          dst += FS_MAX_CHANNELS;
      }     
 
-     return (int)(dst - dest);
+     return (int)(dst - dest)/FS_MAX_CHANNELS;
 }
 
 static int
@@ -282,13 +291,14 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
                               long             pos,
                               long             inc,
                               long             max,
-                              __fsf            left,
-                              __fsf            right,
+                              __fsf            levels[6],
                               bool             last )
 {
-     TYPE  *src = buffer->data;
-     __fsf *dst = dest;
-     long   i   = 0;
+     TYPE  *src   = buffer->data;
+     __fsf *dst   = dest;
+     long   i     = 0;   
+     __fsf  left  = levels[0];
+     __fsf  right = levels[1];
 
 #ifdef FS_ENABLE_LINEAR_FILTER
      if (-inc < FS_PITCH_ONE) {
@@ -297,7 +307,8 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
                max += FS_PITCH_ONE;
 
           for (; i > max; i += inc) {
-               long p = (i >> FS_PITCH_BITS) + pos;
+               long  p = (i >> FS_PITCH_BITS) + pos;
+               __fsf sl, sr;
 
                if (p <= -buffer->length)
                     p %= buffer->length;
@@ -305,7 +316,7 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
                     p += buffer->length;
                     
                if (-i & (FS_PITCH_ONE-1)) {
-                    __fsf w, sl, sr;
+                    __fsf w;
                     long  q = p - 1;
                     
                     if (q == -1)
@@ -314,25 +325,30 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
                     q <<= 1;
                          
                     w  = fsf_from_int_scaled( -i & (FS_PITCH_ONE-1), FS_PITCH_BITS );
+                    
                     sl = FSF_INTERP( FSF_FROM_SRC( src, p+0 ), 
                                      FSF_FROM_SRC( src, q+0 ), w );
+                    if (left != FSF_ONE)
+                         sl = fsf_mul( sl, left );
                     sr = FSF_INTERP( FSF_FROM_SRC( src, p+1 ),
                                      FSF_FROM_SRC( src, q+1 ), w );
-                    
-                    dst[0] += (left  == FSF_ONE) ? sl : fsf_mul( sl, left  );
-                    dst[1] += (right == FSF_ONE) ? sr : fsf_mul( sr, right );
+                    if (right != FSF_ONE)
+                         sr = fsf_mul( sr, right );
                }
                else {
                     p <<= 1;
-                    dst[0] += (left == FSF_ONE)
-                              ? FSF_FROM_SRC( src, p+0 )
-                              : fsf_mul( FSF_FROM_SRC( src, p+0 ), left  );
-                    dst[1] += (right == FSF_ONE)
-                              ? FSF_FROM_SRC( src, p+1 )
-                              : fsf_mul( FSF_FROM_SRC( src, p+1 ), right );
+                    sl = (left == FSF_ONE)
+                         ? FSF_FROM_SRC( src, p+0 )
+                         : fsf_mul( FSF_FROM_SRC( src, p+0 ), left );
+                    sr = (right == FSF_ONE)
+                         ? FSF_FROM_SRC( src, p+1 )
+                         : fsf_mul( FSF_FROM_SRC( src, p+1 ), right );
                }
                
-               dst += 2;
+               dst[0] += sl;
+               dst[1] += sr;
+               
+               dst += FS_MAX_CHANNELS;
           } 
           
           if (last)
@@ -351,16 +367,389 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
           
           dst[0] += (left == FSF_ONE)
                     ? FSF_FROM_SRC( src, p+0 )
-                    : fsf_mul( FSF_FROM_SRC( src, p+0 ), left  );
+                    : fsf_mul( FSF_FROM_SRC( src, p+0 ), left );
           dst[1] += (right == FSF_ONE)
                     ? FSF_FROM_SRC( src, p+1 )
                     : fsf_mul( FSF_FROM_SRC( src, p+1 ), right );
               
-          dst += 2;
+          dst += FS_MAX_CHANNELS;
      }     
 
-     return (int)(dst - dest);
+     return (int)(dst - dest)/FS_MAX_CHANNELS;
 }
+
+#if FS_MAX_CHANNELS > 2
+static int
+FUNC_NAME(FORMAT,multi,fw) ( CoreSoundBuffer *buffer,
+                             __fsf           *dest,
+                             long             pos,
+                             long             inc,
+                             long             max,
+                             __fsf            levels[6],
+                             bool             last )
+{
+     TYPE  *src = buffer->data;
+     __fsf *dst = dest;
+     long   i   = 0;
+
+#ifdef FS_ENABLE_LINEAR_FILTER
+     if (inc < FS_PITCH_ONE) {
+          /* upsample */
+          if (last)
+               max -= FS_PITCH_ONE;
+
+          for (; i < max; i += inc) {
+               long p = (i >> FS_PITCH_BITS) + pos;
+
+               if (p >= buffer->length)
+                    p %= buffer->length;
+                    
+               if (i & (FS_PITCH_ONE-1)) {
+                    __fsf w, s;
+                    long  q = p + 1;
+                    
+                    if (q == buffer->length)
+                         q = 0;
+                    p *= buffer->channels;
+                    q *= buffer->channels;
+                    
+                    w = fsf_from_int_scaled( i & (FS_PITCH_ONE-1), FS_PITCH_BITS );
+                    
+                    /* front left */
+                    s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                    FSF_FROM_SRC( src, q ), w );
+                    if (levels[0] != FSF_ONE)
+                         s = fsf_mul( s, levels[0] );
+                    dst[0] += s;
+                    p++; q++;
+                    
+                    if (buffer->channels != 4) {
+                         /* front center */
+                         s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                         FSF_FROM_SRC( src, q ), w );
+                         if (levels[2] != FSF_ONE)
+                              s = fsf_mul( s, levels[2] );
+                         dst[2] += s;
+                         p++; q++;
+                    }
+                    
+                    /* front right */
+                    s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                    FSF_FROM_SRC( src, q ), w );
+                    if (levels[1] != FSF_ONE)
+                         s = fsf_mul( s, levels[1] );
+                    dst[1] += s;
+                    p++; q++;
+                    
+                    if (buffer->channels > 3) {                         
+                         /* rear left */     
+                         s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                         FSF_FROM_SRC( src, q ), w );
+                         if (levels[3] != FSF_ONE)
+                              s = fsf_mul( s, levels[3] );
+                         dst[3] += s;
+                         p++; q++;
+                         
+                         /* rear right */
+                         s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                         FSF_FROM_SRC( src, q ), w );
+                         if (levels[4] != FSF_ONE)
+                              s = fsf_mul( s, levels[4] );
+                         dst[4] += s;
+                         p++; q++;
+                         
+                         if (buffer->channels > 5) {
+                              /* subwoofer */
+                              s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                              FSF_FROM_SRC( src, q ), w );
+                              if (levels[5] != FSF_ONE)
+                                   s = fsf_mul( s, levels[5] );
+                              dst[5] += s;
+                         }
+                    }
+               }
+               else {
+                    p *= buffer->channels;
+                    
+                    dst[0] += (levels[0] == FSF_ONE)
+                              ? FSF_FROM_SRC( src, p )
+                              : fsf_mul( FSF_FROM_SRC( src, p ), levels[0] );
+                    p++;
+                    
+                    if (buffer->channels != 4) {
+                         dst[2] += (levels[2] == FSF_ONE)
+                                   ? FSF_FROM_SRC( src, p )
+                                   : fsf_mul( FSF_FROM_SRC( src, p ), levels[2] );
+                         p++;
+                    }
+                    
+                    dst[1] += (levels[1] == FSF_ONE)
+                              ? FSF_FROM_SRC( src, p )
+                              : fsf_mul( FSF_FROM_SRC( src, p ), levels[1] );
+                    p++;
+                    
+                    if (buffer->channels > 3) {                              
+                         dst[3] += (levels[3] == FSF_ONE)
+                                   ? FSF_FROM_SRC( src, p )
+                                   : fsf_mul( FSF_FROM_SRC( src, p ), levels[3] );
+                         p++;
+                         
+                         dst[4] += (levels[4] == FSF_ONE)
+                                   ? FSF_FROM_SRC( src, p )
+                                   : fsf_mul( FSF_FROM_SRC( src, p ), levels[4] );
+                         p++;
+                         
+                         if (buffer->channels > 5) {
+                              dst[5] += (levels[5] == FSF_ONE)
+                                        ? FSF_FROM_SRC( src, p )
+                                        : fsf_mul( FSF_FROM_SRC( src, p ), levels[5] );
+                         }
+                    }
+               }
+               
+               dst += FS_MAX_CHANNELS;
+          } 
+          
+          if (last)
+               max += FS_PITCH_ONE;
+     }
+#endif /* FS_ENABLE_LINEAR_FILTER */
+
+     for (; i < max; i += inc) {
+          long p = (i >> FS_PITCH_BITS) + pos;
+
+          if (p >= buffer->length)
+               p %= buffer->length;         
+          p *= buffer->channels;
+          
+          dst[0] += (levels[0] == FSF_ONE)
+                    ? FSF_FROM_SRC( src, p )
+                    : fsf_mul( FSF_FROM_SRC( src, p ), levels[0] );
+          p++;
+                    
+          if (buffer->channels != 4) {
+               dst[2] += (levels[2] == FSF_ONE)
+                         ? FSF_FROM_SRC( src, p )
+                         : fsf_mul( FSF_FROM_SRC( src, p ), levels[2] );
+               p++;
+          }
+                    
+          dst[1] = (levels[1] == FSF_ONE)
+                   ? FSF_FROM_SRC( src, p )
+                   : fsf_mul( FSF_FROM_SRC( src, p ), levels[1] );
+          p++;
+                   
+          if (buffer->channels > 3) {     
+               dst[3] += (levels[3] == FSF_ONE)
+                         ? FSF_FROM_SRC( src, p )
+                         : fsf_mul( FSF_FROM_SRC( src, p ), levels[3] );
+               p++;
+                         
+               dst[4] += (levels[4] == FSF_ONE)
+                         ? FSF_FROM_SRC( src, p )
+                         : fsf_mul( FSF_FROM_SRC( src, p ), levels[4] );
+               p++;
+                         
+               if (buffer->channels > 5) {
+                    dst[5] += (levels[5] == FSF_ONE)
+                              ? FSF_FROM_SRC( src, p )
+                              : fsf_mul( FSF_FROM_SRC( src, p ), levels[5] );
+               }
+          }
+              
+          dst += FS_MAX_CHANNELS;
+     }     
+
+     return (int)(dst - dest)/FS_MAX_CHANNELS;
+}
+
+static int
+FUNC_NAME(FORMAT,multi,rw) ( CoreSoundBuffer *buffer,
+                             __fsf           *dest,
+                             long             pos,
+                             long             inc,
+                             long             max,
+                             __fsf            levels[6],
+                             bool             last )
+{
+     TYPE  *src = buffer->data;
+     __fsf *dst = dest;
+     long   i   = 0;
+
+#ifdef FS_ENABLE_LINEAR_FILTER
+     if (-inc < FS_PITCH_ONE) {
+          /* upsample */
+          if (last)
+               max -= FS_PITCH_ONE;
+
+          for (; i > max; i += inc) {
+               long p = (i >> FS_PITCH_BITS) + pos;
+
+               if (p <= -buffer->length)
+                    p %= buffer->length;
+               if (p < 0)
+                    p += buffer->length;
+                    
+               if (i & (FS_PITCH_ONE-1)) {
+                    __fsf w, s;
+                    long  q = p - 1;
+                    
+                    if (q == -1)
+                         q += buffer->length;
+                    p *= buffer->channels;
+                    q *= buffer->channels;
+                    
+                    w = fsf_from_int_scaled( -i & (FS_PITCH_ONE-1), FS_PITCH_BITS );
+                    
+                    /* front left */
+                    s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                    FSF_FROM_SRC( src, q ), w );
+                    if (levels[0] != FSF_ONE)
+                         s = fsf_mul( s, levels[0] );
+                    dst[0] += s;
+                    p++; q++;
+                    
+                    if (buffer->channels != 4) {
+                         /* front center */
+                         s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                         FSF_FROM_SRC( src, q ), w );
+                         if (levels[2] != FSF_ONE)
+                              s = fsf_mul( s, levels[2] );
+                         dst[2] += s;
+                         p++; q++;
+                    }
+                    
+                    /* front right */
+                    s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                    FSF_FROM_SRC( src, q ), w );
+                    if (levels[1] != FSF_ONE)
+                         s = fsf_mul( s, levels[1] );
+                    dst[1] += s;
+                    p++; q++;
+                    
+                    if (buffer->channels > 3) {
+                         /* rear left */     
+                         s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                         FSF_FROM_SRC( src, q ), w );
+                         if (levels[3] != FSF_ONE)
+                              s = fsf_mul( s, levels[3] );
+                         dst[3] += s;
+                         p++; q++;
+                         
+                         /* rear right */
+                         s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                         FSF_FROM_SRC( src, q ), w );
+                         if (levels[4] != FSF_ONE)
+                              s = fsf_mul( s, levels[4] );
+                         dst[4] += s;
+                         p++; q++;
+                         
+                         if (buffer->channels > 5) {
+                              /* subwoofer */
+                              s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                              FSF_FROM_SRC( src, q ), w );
+                              if (levels[5] != FSF_ONE)
+                                   s = fsf_mul( s, levels[5] );
+                         }
+                    }
+               }
+               else {
+                    p *= buffer->channels;
+                    
+                    dst[0] += (levels[0] == FSF_ONE)
+                              ? FSF_FROM_SRC( src, p )
+                              : fsf_mul( FSF_FROM_SRC( src, p ), levels[0] );
+                    p++;
+                    
+                    if (buffer->channels != 4) {
+                         dst[2] += (levels[2] == FSF_ONE)
+                                   ? FSF_FROM_SRC( src, p )
+                                   : fsf_mul( FSF_FROM_SRC( src, p ), levels[2] );
+                         p++;
+                    }
+                    
+                    dst[1] += (levels[1] == FSF_ONE)
+                             ? FSF_FROM_SRC( src, p )
+                             : fsf_mul( FSF_FROM_SRC( src, p ), levels[1] );
+                    p++;
+                    
+                    if (buffer->channels > 3) {
+                         dst[3] += (levels[3] == FSF_ONE)
+                                   ? FSF_FROM_SRC( src, p )
+                                   : fsf_mul( FSF_FROM_SRC( src, p ), levels[3] );
+                         p++;
+                         
+                         dst[4] += (levels[4] == FSF_ONE)
+                                   ? FSF_FROM_SRC( src, p )
+                                   : fsf_mul( FSF_FROM_SRC( src, p ), levels[4] );
+                         p++;
+                         
+                         if (buffer->channels > 5) {
+                              dst[5] += (levels[5] == FSF_ONE)
+                                        ? FSF_FROM_SRC( src, p )
+                                        : fsf_mul( FSF_FROM_SRC( src, p ), levels[5] );
+                         }
+                    }
+               }
+               
+               dst += FS_MAX_CHANNELS;
+          } 
+          
+          if (last)
+               max += FS_PITCH_ONE;
+     }
+#endif /* FS_ENABLE_LINEAR_FILTER */
+
+     for (; i > max; i += inc) {
+          long p = (i >> FS_PITCH_BITS) + pos;
+
+          if (p <= -buffer->length)
+               p %= buffer->length;
+          if (p < 0)
+               p += buffer->length;
+          p *= buffer->channels;
+          
+          dst[0] += (levels[0] == FSF_ONE)
+                    ? FSF_FROM_SRC( src, p )
+                    : fsf_mul( FSF_FROM_SRC( src, p ), levels[0] );
+          p++;
+                    
+          if (buffer->channels != 4) {
+               dst[2] += (levels[2] == FSF_ONE)
+                         ? FSF_FROM_SRC( src, p )
+                        : fsf_mul( FSF_FROM_SRC( src, p ), levels[2] );
+               p++;
+          }
+                    
+          dst[1] = (levels[1] == FSF_ONE)
+                   ? FSF_FROM_SRC( src, p )
+                   : fsf_mul( FSF_FROM_SRC( src, p ), levels[1] );
+          p++;
+                   
+          if (buffer->channels > 3) {         
+               dst[3] += (levels[3] == FSF_ONE)
+                         ? FSF_FROM_SRC( src, p )
+                         : fsf_mul( FSF_FROM_SRC( src, p ), levels[3] );
+               p++;
+                         
+               dst[4] += (levels[4] == FSF_ONE)
+                         ? FSF_FROM_SRC( src, p )
+                         : fsf_mul( FSF_FROM_SRC( src, p ), levels[4] );
+               p++;
+                         
+               if (buffer->channels > 5) {
+                    dst[5] += (levels[5] == FSF_ONE)
+                              ? FSF_FROM_SRC( src, p )
+                              : fsf_mul( FSF_FROM_SRC( src, p ), levels[5] );
+               }
+          }
+              
+          dst += FS_MAX_CHANNELS;
+     }     
+
+     return (int)(dst - dest)/FS_MAX_CHANNELS;
+}
+#endif /* FS_MAX_CHANNELS > 2 */
 
 #undef FSF_INTERP
 

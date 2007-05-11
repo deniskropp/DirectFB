@@ -34,6 +34,8 @@
 #include <fusion/shmalloc.h>
 #include <fusion/object.h>
 
+#include <fusionsound_limits.h>
+
 #include <core/core_sound.h>
 #include <core/playback.h>
 #include <core/sound_buffer.h>
@@ -78,7 +80,8 @@ fs_buffer_create( CoreSound        *core,
 
      D_ASSERT( core != NULL );
      D_ASSERT( length > 0 );
-     D_ASSERT( channels == 1 || channels == 2 );
+     D_ASSERT( channels > 0 );
+     D_ASSERT( channels <= FS_MAX_CHANNELS );
      D_ASSERT( rate > 0 );
      D_ASSERT( ret_buffer != NULL );
 
@@ -181,8 +184,7 @@ typedef int (*SoundMXFunc) ( CoreSoundBuffer *buffer,
                              long             pos,
                              long             inc,
                              long             max,
-                             __fsf            left,
-                             __fsf            right,
+                             __fsf            levels[6],
                              bool             last );
 
 
@@ -229,20 +231,80 @@ typedef int (*SoundMXFunc) ( CoreSoundBuffer *buffer,
 #undef  FORMAT
 
 
-static const SoundMXFunc MIX_FW[FS_NUM_SAMPLEFORMATS][2] = {
-     { mix_from_u8_mono_fw,  mix_from_u8_stereo_fw  }, /* FSSF_U8    */
-     { mix_from_s16_mono_fw, mix_from_s16_stereo_fw }, /* FSSF_S16   */
-     { mix_from_s24_mono_fw, mix_from_s24_stereo_fw }, /* FSSF_S24   */
-     { mix_from_s32_mono_fw, mix_from_s32_stereo_fw }, /* FSSF_S32   */
-     { mix_from_f32_mono_fw, mix_from_f32_stereo_fw }, /* FSSF_FLOAT */
+static const SoundMXFunc MIX_FW[FS_NUM_SAMPLEFORMATS][FS_MAX_CHANNELS] = {
+     {
+       mix_from_u8_mono_fw,   mix_from_u8_stereo_fw,
+#if FS_MAX_CHANNELS > 2
+       mix_from_u8_multi_fw,  mix_from_u8_multi_fw,
+       mix_from_u8_multi_fw,  mix_from_u8_multi_fw
+#endif
+     }, /* FSSF_U8 */
+     {
+       mix_from_s16_mono_fw,  mix_from_s16_stereo_fw,
+#if FS_MAX_CHANNELS > 2
+       mix_from_s16_multi_fw, mix_from_s16_multi_fw,
+       mix_from_s16_multi_fw, mix_from_s16_multi_fw
+#endif
+     }, /* FSSF_S16 */
+     {
+       mix_from_s24_mono_fw,  mix_from_s24_stereo_fw,
+#if FS_MAX_CHANNELS > 2
+       mix_from_s24_multi_fw, mix_from_s24_multi_fw,
+       mix_from_s24_multi_fw, mix_from_s24_multi_fw
+#endif
+     }, /* FSSF_S24 */
+     {
+       mix_from_s32_mono_fw,  mix_from_s32_stereo_fw,
+#if FS_MAX_CHANNELS > 2
+       mix_from_s32_multi_fw, mix_from_s32_multi_fw,
+       mix_from_s32_multi_fw, mix_from_s32_multi_fw
+#endif
+     }, /* FSSF_S32 */
+     {
+       mix_from_f32_mono_fw,  mix_from_f32_stereo_fw,
+#if FS_MAX_CHANNELS > 2
+       mix_from_f32_multi_fw, mix_from_f32_multi_fw,
+       mix_from_f32_multi_fw, mix_from_f32_multi_fw
+#endif
+     }  /* FSSF_FLOAT */
 };
 
-static const SoundMXFunc MIX_RW[FS_NUM_SAMPLEFORMATS][2] = {
-     { mix_from_u8_mono_rw,  mix_from_u8_stereo_rw  }, /* FSSF_U8    */
-     { mix_from_s16_mono_rw, mix_from_s16_stereo_rw }, /* FSSF_S16   */
-     { mix_from_s24_mono_rw, mix_from_s24_stereo_rw }, /* FSSF_S24   */
-     { mix_from_s32_mono_rw, mix_from_s32_stereo_rw }, /* FSSF_S32   */
-     { mix_from_f32_mono_rw, mix_from_f32_stereo_rw }, /* FSSF_FLOAT */
+static const SoundMXFunc MIX_RW[FS_NUM_SAMPLEFORMATS][FS_MAX_CHANNELS] = {
+     {
+       mix_from_u8_mono_rw,   mix_from_u8_stereo_rw,
+#if FS_MAX_CHANNELS > 2
+       mix_from_u8_multi_rw,  mix_from_u8_multi_rw,
+       mix_from_u8_multi_rw,  mix_from_u8_multi_rw
+#endif
+     }, /* FSSF_U8 */
+     {
+       mix_from_s16_mono_rw,  mix_from_s16_stereo_rw,
+#if FS_MAX_CHANNELS > 2
+       mix_from_s16_multi_rw, mix_from_s16_multi_rw,
+       mix_from_s16_multi_rw, mix_from_s16_multi_rw
+#endif
+     }, /* FSSF_S16 */
+     {
+       mix_from_s24_mono_rw,  mix_from_s24_stereo_rw,
+#if FS_MAX_CHANNELS > 2
+       mix_from_s24_multi_rw, mix_from_s24_multi_rw,
+       mix_from_s24_multi_rw, mix_from_s24_multi_rw
+#endif
+     }, /* FSSF_S24 */
+     {
+       mix_from_s32_mono_rw,  mix_from_s32_stereo_rw,
+#if FS_MAX_CHANNELS > 2
+       mix_from_s32_multi_rw, mix_from_s32_multi_rw,
+       mix_from_s32_multi_rw, mix_from_s32_multi_rw
+#endif
+     }, /* FSSF_S32 */
+     {
+       mix_from_f32_mono_rw,  mix_from_f32_stereo_rw,
+#if FS_MAX_CHANNELS > 2
+       mix_from_f32_multi_rw, mix_from_f32_multi_rw,
+       mix_from_f32_multi_rw, mix_from_f32_multi_rw
+#endif
+     }  /* FSSF_FLOAT */
 };
 
 
@@ -250,11 +312,10 @@ DFBResult
 fs_buffer_mixto( CoreSoundBuffer *buffer,
                  __fsf           *dest,
                  int              dest_rate,
-                 int              max_samples,
+                 int              max_frames,
                  int              pos,
                  int              stop,
-                 __fsf            left,
-                 __fsf            right,
+                 __fsf            levels[6],
                  int              pitch,
                  int             *ret_pos,
                  int             *ret_num,
@@ -272,13 +333,13 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
      D_ASSERT( pos < buffer->length );
      D_ASSERT( stop <= buffer->length );
      D_ASSERT( dest != NULL );
-     D_ASSERT( max_samples >= 0 );
+     D_ASSERT( max_frames >= 0 );
      
      D_DEBUG( "FusionSound/Core: %s (%p, length %d, pos %d, stop %d, max %d) ...\n",
-              __FUNCTION__, buffer, buffer->length, pos, stop, max_samples >> 1 );
+              __FUNCTION__, buffer, buffer->length, pos, stop, max_frames );
 
      inc = (long long) buffer->rate * pitch / dest_rate;
-     max = (long long) (max_samples >> 1) * inc;
+     max = (long long) max_frames * inc;
 #if SIZEOF_LONG == 4
      if (inc > 0x7fffffffll)
           inc = 0x7fffffffll;
@@ -316,17 +377,17 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
      }
 
      /* Mix the data into the buffer. */
-     if ((long)inc && (left || right)) {
+     if ((long)inc && (levels[0] || levels[1])) {
           SoundMXFunc func;
           
           func = (pitch < 0)
                  ? MIX_RW[FS_SAMPLEFORMAT_INDEX(buffer->format)][buffer->channels-1]
                  : MIX_FW[FS_SAMPLEFORMAT_INDEX(buffer->format)][buffer->channels-1];
-          len  = func( buffer, dest, pos, inc, max, left, right, last );
+          len  = func( buffer, dest, pos, inc, max, levels, last );
      }
      else {
           /* Produce silence. */
-          len = ((long)inc) ? ((max/inc) << 1) : max_samples;
+          len = ((long)inc) ? (max/inc) : max_frames;
      }
      
      num = (max >> FS_PITCH_BITS);
@@ -348,7 +409,7 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
           *ret_len = len;
           
      D_DEBUG( "FusionSound/Core: %s ... mixed %d (%d/%d).\n",
-              __FUNCTION__, ABS(num), len >> 1, max_samples >> 1 ); 
+              __FUNCTION__, ABS(num), len, max_frames ); 
 
      return last ? DFB_BUFFEREMPTY : DFB_OK;
 }

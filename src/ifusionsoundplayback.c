@@ -30,7 +30,9 @@
 
 #include <fusionsound.h>
 
+#include <core/core_sound.h>
 #include <core/playback.h>
+#include <core/sound_buffer.h>
 
 #include <direct/interface.h>
 #include <direct/util.h>
@@ -41,7 +43,7 @@
  * private data struct of IFusionSoundPlayback
  */
 typedef struct {
-     int                    ref;             /* reference counter */
+     int                    ref;       /* reference counter */
 
      CorePlayback          *playback;
      bool                   stream;
@@ -50,6 +52,9 @@ typedef struct {
 
      float                  volume;
      float                  pan;
+
+     float                  center;   /* center channel downmix level */    
+     float                  rear;     /* rear channels downmix level  */
      
      int                    pitch;
      int                    dir;
@@ -57,6 +62,8 @@ typedef struct {
      pthread_mutex_t        lock;
      pthread_cond_t         wait;
 } IFusionSoundPlayback_data;
+
+#define DOWNMIX_LEVEL_3DB  0.70794578438413791
 
 /******/
 
@@ -298,6 +305,27 @@ IFusionSoundPlayback_SetDirection( IFusionSoundPlayback *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IFusionSoundPlayback_SetDownmixLevels( IFusionSoundPlayback *thiz,
+                                       float                 center,
+                                       float                 rear )
+{
+     DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
+     
+     D_DEBUG( "%s (%p, %.3f, %.3f)\n", __FUNCTION__, data->playback, center, rear );
+     
+     if (center < 0.0f || center > 1.0f)
+          return DFB_INVARG;
+          
+     if (rear < 0.0f || rear > 1.0f)
+          return DFB_INVARG;
+          
+     data->center = center;
+     data->rear   = rear;
+     
+     return IFusionSoundPlayback_UpdateVolume( data );
+}
+
 /******/
 
 DFBResult
@@ -333,26 +361,35 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
      data->volume   = 1.0f;
      data->pitch    = FS_PITCH_ONE;
      data->dir      = +1;
+     if (playback->buffer->channels > 2) {
+          data->center =
+          data->rear   = DOWNMIX_LEVEL_3DB;
+          IFusionSoundPlayback_UpdateVolume( data );
+     } else {
+          data->center =
+          data->rear   = 1.0f;
+     }
 
      /* Initialize lock and condition. */
      direct_util_recursive_pthread_mutex_init( &data->lock );
      pthread_cond_init( &data->wait, NULL );
 
      /* Initialize method table. */
-     thiz->AddRef       = IFusionSoundPlayback_AddRef;
-     thiz->Release      = IFusionSoundPlayback_Release;
+     thiz->AddRef           = IFusionSoundPlayback_AddRef;
+     thiz->Release          = IFusionSoundPlayback_Release;
 
-     thiz->Start        = IFusionSoundPlayback_Start;
-     thiz->Stop         = IFusionSoundPlayback_Stop;
-     thiz->Continue     = IFusionSoundPlayback_Continue;
-     thiz->Wait         = IFusionSoundPlayback_Wait;
+     thiz->Start            = IFusionSoundPlayback_Start;
+     thiz->Stop             = IFusionSoundPlayback_Stop;
+     thiz->Continue         = IFusionSoundPlayback_Continue;
+     thiz->Wait             = IFusionSoundPlayback_Wait;
  
-     thiz->GetStatus    = IFusionSoundPlayback_GetStatus;
+     thiz->GetStatus        = IFusionSoundPlayback_GetStatus;
 
-     thiz->SetVolume    = IFusionSoundPlayback_SetVolume;
-     thiz->SetPan       = IFusionSoundPlayback_SetPan;
-     thiz->SetPitch     = IFusionSoundPlayback_SetPitch;
-     thiz->SetDirection = IFusionSoundPlayback_SetDirection;
+     thiz->SetVolume        = IFusionSoundPlayback_SetVolume;
+     thiz->SetPan           = IFusionSoundPlayback_SetPan;
+     thiz->SetPitch         = IFusionSoundPlayback_SetPitch;
+     thiz->SetDirection     = IFusionSoundPlayback_SetDirection;
+     thiz->SetDownmixLevels = IFusionSoundPlayback_SetDownmixLevels;
 
      return DFB_OK;
 }
@@ -385,26 +422,48 @@ IFusionSoundPlayback_React( const void *msg_data,
 static DFBResult
 IFusionSoundPlayback_UpdateVolume( IFusionSoundPlayback_data* data )
 {
-     float left  = 1.0f;
-     float right = 1.0f;
+                       /* L     R     C     Rl    Rr   LFE  */
+     float levels[6] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
 
      if (data->pan != 0.0f) {
           if (data->pan < 0.0f)
-               right = 1.0f + data->pan;
+               levels[1] = levels[4] = 1.0f + data->pan; /* right */
           else if (data->pan > 0.0f)
-               left = 1.0f - data->pan;
+               levels[0] = levels[3] = 1.0f - data->pan; /* left */
      }
 
      if (data->volume != 1.0f) {
-          left *= data->volume;
-          if (left > 64.0f)
-               left = 64.0f;
-
-          right *= data->volume;
-          if (right > 64.0f)
-               right = 64.0f;
+          int i;
+          for (i = 0; i < 6; i++) {
+               levels[i] *= data->volume;
+               if (levels[i] > 64.0f)
+                    levels[i] = 64.0f;
+          }
      }
+     
+     if (data->center != 1.0f || data->rear != 1.0f) {
+          CorePlayback          *playback = data->playback;
+          CoreSoundBuffer       *buffer   = playback->buffer;
+          CoreSoundDeviceConfig *config   = fs_core_device_config( playback->core );
+          
+          if (buffer->channels == 3 || buffer->channels >= 5) {
+               if (config->channels < 3 || config->channels == 4) {
+                    /* downmix center */
+                    levels[2] *= data->center;
+               }
+          }
+          if (buffer->channels >= 4) {
+               if (config->channels < 4) {
+                    /* downmix rear */
+                    levels[3] *= data->rear;
+                    levels[4] *= data->rear;
+               }
+          }
+     }
+     
+     D_DEBUG( "%s: levels [%.3f %.3f %.3f %.3f %.3f %.3f].\n", __FUNCTION__,
+              levels[0], levels[1], levels[2], levels[3], levels[4], levels[5] );
 
-     return fs_playback_set_volume( data->playback, left, right );
+     return fs_playback_set_volume( data->playback, levels );
 }
 
