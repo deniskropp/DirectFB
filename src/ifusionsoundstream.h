@@ -55,6 +55,8 @@ typedef struct {
      int                    pos_read;
      int                    filled;
      int                    pending;
+     
+     IFusionSoundPlayback  *iplayback;
 } IFusionSoundStream_data;
 
 /*

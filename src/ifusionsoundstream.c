@@ -63,6 +63,9 @@ IFusionSoundStream_Destruct( IFusionSoundStream *thiz )
 
      D_ASSERT( data->buffer != NULL );
      D_ASSERT( data->playback != NULL );
+     
+     if (data->iplayback)
+          data->iplayback->Release( data->iplayback );
 
      fs_playback_detach( data->playback, &data->reaction );
 
@@ -303,23 +306,31 @@ static DFBResult
 IFusionSoundStream_GetPlayback( IFusionSoundStream    *thiz,
                                 IFusionSoundPlayback **ret_interface )
 {
-     DFBResult             ret;
-     IFusionSoundPlayback *interface;
-
      DIRECT_INTERFACE_GET_DATA(IFusionSoundStream)
 
      if (!ret_interface)
           return DFB_INVARG;
 
-     DIRECT_ALLOCATE_INTERFACE( interface, IFusionSoundPlayback );
+     if (!data->iplayback) {
+          IFusionSoundPlayback *interface;
+          DFBResult             ret;
+          
+          DIRECT_ALLOCATE_INTERFACE( interface, IFusionSoundPlayback );
 
-     ret = IFusionSoundPlayback_Construct( interface, data->playback, -1 );
-     if (ret)
-          *ret_interface = NULL;
-     else
-          *ret_interface = interface;
+          ret = IFusionSoundPlayback_Construct( interface, data->playback, -1 );
+          if (ret) {
+               *ret_interface = NULL;
+               return ret;
+          }
+          
+          data->iplayback = interface;
+     }
 
-     return ret;
+     data->iplayback->AddRef( data->iplayback );
+     
+     *ret_interface = data->iplayback;
+
+     return DFB_OK;
 }
 
 /******/
