@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2006 Claudio Ciccani <klan@users.sf.net>
+ * Copyright (C) 2005-2007 Claudio Ciccani <klan@users.sf.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -93,8 +93,74 @@ typedef struct {
 } IFusionSoundMusicProvider_Vorbis_data;
 
 
-/* mixing functions */
+/* Mixing Routines */
+
+typedef struct {
+#ifdef WORDS_BIGENDIAN
+     s8 c;
+     u8 b;
+     u8 a;
+#else
+     u8 a;
+     u8 b;
+     s8 c;
+#endif
+} __attribute__((packed)) s24;
+
+
 #ifdef USE_TREMOR
+
+#define VORBIS_MIX_LOOP() \
+ do { \
+     int n; \
+     if (d_n == s_n) { \
+          if (sizeof(TYPE) == sizeof(s16)) { \
+               direct_memcpy( dst, src, len*s_n*sizeof(s16) ); \
+          } \
+          else { \
+               TYPE *d = (TYPE *)dst; \
+               for (n = len*s_n; n; n--) { \
+                    *d++ = CONV(*src); \
+                    src++; \
+               } \
+          } \
+          break; \
+     } \
+     else if (d_n < s_n) { \
+          if (d_n == 1 && s_n == 2) { \
+               /* Downmix to stereo to mono */ \
+               TYPE *d = (TYPE *)dst; \
+               for (n = len; n; n--) { \
+                    *d++ = CONV((src[0]+src[1])>>1); \
+                    src += 2; \
+               } \
+               break; \
+          } \
+     } \
+     else if (d_n > s_n) { \
+          if (d_n == 2 && s_n == 1) { \
+               /* Upmix stereo to mono */ \
+               TYPE *d = (TYPE *)dst; \
+               for (n = len; n; n--) { \
+                    d[0] = d[1] = CONV(*src); \
+                    d += 2; \
+                    src++; \
+               } \
+               break; \
+          } \
+          memset( dst, 0, len * d_n * sizeof(TYPE) ); \
+     } \
+     for (i = 0; i < MIN(s_n,d_n); i++) { \
+          s16  *s = &src[i]; \
+          TYPE *d = &((TYPE *)dst)[i]; \
+          int   n; \
+          for (n = len; n; n--) { \
+               *d  = CONV(*s); \
+                d += d_n; \
+                s += s_n; \
+          } \
+     } \
+ } while (0)
 
 static void
 vorbis_mix_audio( s16 *src, void *dst, int len,
@@ -106,123 +172,43 @@ vorbis_mix_audio( s16 *src, void *dst, int len,
 
      switch (format) {
           case FSSF_U8:
-               /* Copy/Interleave channels */
-               if (s_n == d_n) {
-                    for (i = 0; i < len*s_n; i++)
-                         ((u8*)dst)[i] = (src[i] >> 8) + 128;
-               }
-               /* Upmix mono to stereo */
-               else if (s_n < d_n) {
-                    for (i = 0; i < len; i++)
-                         ((u8*)dst)[i*2+0] = ((u8*)dst)[i*2+1] = (src[i] >> 8) + 128;
-               }
-               /* Downmix stereo to mono */
-               else if (s_n > d_n) {
-                    for (i = 0; i < len; i++)
-                        ((u8*)dst)[i] = ((src[i*2+0] + src[i*2+1]) >> 9) + 128;
-               }
+               #define TYPE u8
+               #define CONV(s) (((s)>>8)+128)
+               VORBIS_MIX_LOOP();
+               #undef TYPE
+               #undef CONV
                break;
 
           case FSSF_S16:
-               /* Copy/Interleave channels */
-               if (s_n == d_n) {
-                    direct_memcpy( dst, src, len*s_n*2 );
-               }
-               /* Upmix mono to stereo */
-               else if (s_n < d_n) {
-                    for (i = 0; i < len; i++)
-                         ((u16*)dst)[i*2+0] = ((u16*)dst)[i*2+1] = src[i];
-               }
-               /* Downmix stereo to mono */
-               else if (s_n > d_n) {
-                    for (i = 0; i < len; i++)
-                         ((u16*)dst)[i] = (src[i*2+0] + src[i*2+1]) >> 1;
-               }
+               #define TYPE s16
+               #define CONV(s) (s)
+               VORBIS_MIX_LOOP();
+               #undef TYPE
+               #undef CONV
                break;
 
           case FSSF_S24:
-               /* Copy/Interleave channels */
-               if (s_n == d_n) {
-                    for (i = 0; i < len*s_n; i++) {
-#ifdef WORDS_BIGENDIAN
-                         ((u8*)dst)[0] = src[i] >> 8;
-                         ((u8*)dst)[1] = src[i];
-                         ((u8*)dst)[2] = 0;
-#else
-                         ((u8*)dst)[0] = 0;
-                         ((u8*)dst)[1] = src[i];
-                         ((u8*)dst)[2] = src[i] >> 8;
-#endif
-                         dst += 3;
-                    }
-               }
-               /* Upmix mono to stereo */
-               else if (s_n < d_n) {
-                    for (i = 0; i < len; i++) {
-#ifdef WORDS_BIGENDIAN
-                         ((u8*)dst)[0] = ((u8*)dst)[3] = src[i] >> 8;
-                         ((u8*)dst)[1] = ((u8*)dst)[4] = src[i];
-                         ((u8*)dst)[2] = ((u8*)dst)[5] = 0;
-#else
-                         ((u8*)dst)[0] = ((u8*)dst)[3] = 0;
-                         ((u8*)dst)[1] = ((u8*)dst)[4] = src[i];
-                         ((u8*)dst)[2] = ((u8*)dst)[5] = src[i] >> 8;
-#endif
-                         dst += 6;
-                    }
-               }
-               /* Downmix stereo to mono */
-               else if (s_n > d_n) {
-                    for (i = 0; i < len; i++) {
-                         int s = (src[i*2+0] + src[i*2+1]) << 7;
-#ifdef WORDS_BIGENDIAN
-                         ((u8*)dst)[0] = s >> 16;
-                         ((u8*)dst)[1] = s >> 8;
-                         ((u8*)dst)[2] = s;
-#else
-                         ((u8*)dst)[0] = s;
-                         ((u8*)dst)[1] = s >> 8;
-                         ((u8*)dst)[2] = s >> 16;
-#endif
-                         dst += 3;
-                    }
-               }
+               #define TYPE s24
+               #define CONV(s) ({ s16 t=(s); (s24){a:0, b:t, c:t>>8}; })
+               VORBIS_MIX_LOOP();
+               #undef TYPE
+               #undef CONV
                break;
 
           case FSSF_S32:
-               /* Copy/Interleave channels */
-               if (s_n == d_n) {
-                    for (i = 0; i < len*s_n; i++)
-                         ((u32*)dst)[i] = src[i] << 16;
-               }
-               /* Upmix mono to stereo */
-               else if (s_n < d_n) {
-                    for (i = 0; i < len; i++)
-                         ((u32*)dst)[i*2+0] = ((u32*)dst)[i*2+1] = src[i] << 16;
-               }
-               /* Downmix stereo to mono */
-               else if (s_n > d_n) {
-                    for (i = 0; i < len; i++)
-                         ((u32*)dst)[i] = (src[i*2+0] + src[i*2+1]) << 15;
-               }
+               #define TYPE s32
+               #define CONV(s) ((s)<<8)
+               VORBIS_MIX_LOOP();
+               #undef TYPE
+               #undef CONV
                break;
 
           case FSSF_FLOAT:
-               /* Copy/Interleave channels */
-               if (s_n == d_n) {
-                    for (i = 0; i < len*s_n; i++)
-                         ((float*)dst)[i] = src[i] / 32768.f;
-               }
-               /* Upmix mono to stereo */
-               else if (s_n < d_n) {
-                    for (i = 0; i < len; i++)
-                         ((float*)dst)[i*2+0] = ((float*)dst)[i*2+1] = src[i] / 32768.f;
-               }
-               /* Downmix stereo to mono */
-               else if (s_n > d_n) {
-                    for (i = 0; i < len; i++)
-                         ((float*)dst)[i] = (src[i*2+0] + src[i*2+1]) / 65536.f;
-               }
+               #define TYPE float
+               #define CONV(s) ((float)(s)/32768.f)
+               VORBIS_MIX_LOOP();
+               #undef TYPE
+               #undef CONV
                break;
 
           default:
@@ -233,7 +219,7 @@ vorbis_mix_audio( s16 *src, void *dst, int len,
 
 #else /* !USE_TREMOR */
 
-static __inline__ int
+static __inline__ u8
 FtoU8( float s )
 {
      int d;
@@ -241,7 +227,7 @@ FtoU8( float s )
      return CLAMP( d, 0, 255 );
 }
 
-static __inline__ int
+static __inline__ s16
 FtoS16( float s )
 {
      int d;
@@ -249,21 +235,118 @@ FtoS16( float s )
      return CLAMP( d, -32768, 32767 );
 }
 
-static __inline__ int
+static __inline__ s24
 FtoS24( float s )
 {
      int d;
      d = s * 8388608.f + 0.5f;
-     return CLAMP( d, -8388608, 8388607 );
+     d = CLAMP( d, -8388608, 8388607 );
+     return (s24) { a:d, b:d>>8, c:d>>16 };
 }
 
-static __inline__ int
+static __inline__ s32
 FtoS32( float s )
 {
-     int d;
-     d = CLAMP( s, -1.f, 1.f ) * 2147483647.f;
-     return d;
+     s = CLAMP( s, -1.f, 1.f );
+     return s * 2147483647.f;
 }
+
+static __inline__ float
+FtoF32( float s )
+{
+     return CLAMP( s, -1.f, 1.f );
+}
+
+#define VORBIS_MIX_LOOP() \
+ do { \
+     int i; \
+     if (s_n == d_n) { \
+          for (i = 0; i < s_n; i++) { \
+               float *s = src[i]; \
+               TYPE  *d = &((TYPE *)dst)[i]; \
+               int    n; \
+               for (n = len; n; n--) { \
+                    *d = CONV(*s); \
+                    d += d_n; \
+                    s++; \
+               } \
+          } \
+     } \
+     else { \
+          float c[6] = { /*L*/0, /*C*/0, /*R*/0, /*Rl*/0, /*Rr*/0, /*LFE*/0 }; \
+          TYPE *d    = (TYPE *)dst; \
+          for (i = 0; i < len; i++) { \
+               float s; \
+               switch (s_n) { \
+                    case 1: \
+                         c[0] = c[2] = src[0][i]; \
+                         break; \
+                    case 4: \
+                         c[3] = src[2][i]; \
+                         c[4] = src[3][i]; \
+                    case 2: \
+                         c[0] = src[0][i]; \
+                         c[2] = src[1][i]; \
+                         break; \
+                    case 6: \
+                         c[5] = src[5][i]; \
+                    case 5: \
+                         c[3] = src[3][i]; \
+                         c[4] = src[4][i]; \
+                    case 3: \
+                         c[0] = src[0][i]; \
+                         c[1] = src[1][i]; \
+                         c[2] = src[2][i]; \
+                         break; \
+                    default: \
+                         break; \
+               } \
+               switch (d_n) { \
+                    case 1: \
+                         s = c[0] + c[2]; \
+                         if (s_n > 2) s += (c[1]*2+c[3]+c[4])*0.7079f; \
+                         s *= 0.5f; \
+                         d[0] = CONV(s); \
+                         break; \
+                    case 2: \
+                         s = c[0]; \
+                         if (s_n > 2) s += (c[1]+c[3])*0.7079f; \
+                         d[0] = CONV(s); \
+                         s = c[2]; \
+                         if (s_n > 2) s += (c[1]+c[4])*0.7079f; \
+                         d[1] = CONV(s); \
+                         break; \
+                    case 3: \
+                         s = c[0] + c[3]*0.7079f; \
+                         d[0] = CONV(s); \
+                         s = c[1]; \
+                         d[1] = CONV(s); \
+                         s = c[2] + c[4]*0.7079f; \
+                         d[2] = CONV(s); \
+                         break; \
+                    case 4: \
+                         s = c[0] + c[1]*0.7079f; \
+                         d[0] = CONV(s); \
+                         s = c[2] + c[1]*0.7079f; \
+                         d[1] = CONV(s); \
+                         d[2] = CONV(c[3]); \
+                         d[3] = CONV(c[4]); \
+                    case 6: \
+                         d[5] = CONV(c[5]); \
+                    case 5: \
+                    default: \
+                         d[0] = CONV(c[0]); \
+                         d[1] = CONV(c[1]); \
+                         d[2] = CONV(c[2]); \
+                         d[3] = CONV(c[3]); \
+                         d[4] = CONV(c[4]); \
+                         break; \
+               } \
+               d += d_n; \
+          } \
+     } \
+ } while (0)
+  
 
 static void
 vorbis_mix_audio( float **src, void *dst, int len,
@@ -271,200 +354,46 @@ vorbis_mix_audio( float **src, void *dst, int len,
 {
      int s_n = src_channels;
      int d_n = dst_channels;
-     int i, j;
 
      switch (format) {
           case FSSF_U8:
-               /* Copy/Interleave channels */
-               if (s_n == d_n) {
-                    for (i = 0; i < s_n; i++) {
-                         float *s = src[i];
-                         u8    *d = &((u8*)dst)[i];
-
-                         for (j = 0; j < len; j++) {
-                              *d  = FtoU8(s[j]);
-                               d += d_n;
-                         }
-                    }
-               }
-               /* Upmix mono to stereo */
-               else if (s_n < d_n) {
-                    float *s = src[0];
-                    u8    *d = dst;
-
-                    for (i = 0; i < len; i++)
-                         d[i*2+0] = d[i*2+1] = FtoU8(s[i]);
-               }
-               /* Downmix stereo to mono */
-               else if (s_n > d_n) {
-                    float *s0 = src[0];
-                    float *s1 = src[1];
-                    u8    *d  = dst;
-
-                    for (i = 0; i < len; i++)
-                         d[i] = FtoU8((s0[i] + s1[i])/2.f);
-               }
+               #define TYPE u8
+               #define CONV FtoU8
+               VORBIS_MIX_LOOP();
+               #undef TYPE
+               #undef CONV
                break;
 
           case FSSF_S16:
-               /* Copy/Interleave channels */
-               if (s_n == d_n) {
-                    for (i = 0; i < s_n; i++) {
-                         float *s = src[i];
-                         s16   *d = &((s16*)dst)[i];
-
-                         for (j = 0; j < len; j++) {
-                              *d  = FtoS16(s[j]);
-                               d += d_n;
-                         }
-                    }
-               }
-               /* Upmix mono to stereo */
-               else if (s_n < d_n) {
-                    float *s = src[0];
-                    s16   *d = dst;
-
-                    for (i = 0; i < len; i++)
-                         d[i*2+0] = d[i*2+1] = FtoS16(s[i]);
-               }
-               /* Downmix stereo to mono */
-               else if (s_n > d_n) {
-                    float *s0 = src[0];
-                    float *s1 = src[1];
-                    s16   *d  = dst;
-
-                    for (i = 0; i < len; i++)
-                         d[i] = FtoS16((s0[i] + s1[i])/2.f);
-               }
+               #define TYPE s16
+               #define CONV FtoS16
+               VORBIS_MIX_LOOP();
+               #undef TYPE
+               #undef CONV
                break;
 
           case FSSF_S24:
-               /* Copy/Interleave channels */
-               if (s_n == d_n) {
-                    for (i = 0; i < s_n; i++) {
-                         float *s = src[i];
-                         u8 *d = &((u8*)dst)[i*3];
-
-                         for (j = 0; j < len; j++) {
-                              int c = FtoS24(s[j]);
-#ifdef WORDS_BIGENDIAN
-                              d[0] = c >> 16;
-                              d[1] = c >> 8;
-                              d[2] = c;
-#else
-                              d[0] = c;
-                              d[1] = c >> 8;
-                              d[2] = c >> 16;
-#endif
-                              d += d_n*3;
-                         }
-                    }
-               }
-               /* Upmix mono to stereo */
-               else if (s_n < d_n) {
-                    float *s = src[0];
-                    u8    *d = dst;
-
-                    for (i = 0; i < len; i++) {
-                         int c = FtoS24(s[i]);
-#ifdef WORDS_BIGENDIAN
-                         d[0] = d[3] = c >> 16;
-                         d[1] = d[4] = c >> 8;
-                         d[2] = d[5] = c;
-#else
-                         d[0] = d[3] = c;
-                         d[1] = d[4] = c >> 8;
-                         d[2] = d[5] = c >> 16;
-#endif
-                         d += 6;
-                    }
-               }
-               /* Downmix stereo to mono */
-               else if (s_n > d_n) {
-                    float *s0 = src[0];
-                    float *s1 = src[1];
-                    u8    *d  = dst;
-
-                    for (i = 0; i < len; i++) {
-                         int c = FtoS24((s0[i] + s1[i])/2.f);
-#ifdef WORDS_BIGENDIAN
-                         d[0] = c >> 16;
-                         d[1] = c >> 8;
-                         d[2] = c;
-#else
-                         d[0] = c;
-                         d[1] = c >> 8;
-                         d[2] = c >> 16;
-#endif
-                         d += 3;
-                    }
-               }
+               #define TYPE s24
+               #define CONV FtoS24
+               VORBIS_MIX_LOOP();
+               #undef TYPE
+               #undef CONV
                break;
 
           case FSSF_S32:
-               /* Copy/Interleave channels */
-               if (s_n == d_n) {
-                    for (i = 0; i < s_n; i++) {
-                         float *s = src[i];
-                         s32   *d = &((s32*)dst)[i];
-
-                         for (j = 0; j < len; j++) {
-                              *d  = FtoS32(s[j]);
-                               d += d_n;
-                         }
-                    }
-               }
-               /* Upmix mono to stereo */
-               else if (s_n < d_n) {
-                    float *s = src[0];
-                    s32   *d = dst;
-
-                    for (i = 0; i < len; i++)
-                         d[i*2+0] = d[i*2+1] = FtoS32(s[i]);
-               }
-               /* Downmix stereo to mono */
-               else if (s_n > d_n) {
-                    float *s0 = src[0];
-                    float *s1 = src[1];
-                    s32   *d  = dst;
-
-                    for (i = 0; i < len; i++)
-                         d[i] = FtoS32((s0[i] + s1[i])/2.f);
-               }
+               #define TYPE s32
+               #define CONV FtoS32
+               VORBIS_MIX_LOOP();
+               #undef TYPE
+               #undef CONV
                break;
 
           case FSSF_FLOAT:
-               /* Copy/Interleave channels */
-               if (s_n == d_n) {
-                    for (i = 0; i < s_n; i++) {
-                         float *s = src[i];
-                         float *d = &((float*)dst)[i];
-
-                         for (j = 0; j < len; j++) {
-                              *d  = CLAMP(s[j], -1.f, +1.f);
-                               d += d_n;
-                         }
-                    }
-               }
-               /* Upmix mono to stereo */
-               else if (s_n < d_n) {
-                    float *s = src[0];
-                    float *d = dst;
-
-                    for (i = 0; i < len; i++)
-                         d[i*2+0] = d[i*2+1] = CLAMP(s[i], -1.f, +1.f);
-               }
-               /* Downmix stereo to mono */
-               else if (s_n > d_n) {
-                    float *s0 = src[0];
-                    float *s1 = src[1];
-                    float *d  = dst;
-
-                    for (i = 0; i < len; i++) {
-                         float c = (s0[i] + s1[i]) / 2.f;
-                         d[i] = CLAMP(c, -1.f, +1.f);
-                    }
-               }
+               #define TYPE float
+               #define CONV FtoF32
+               VORBIS_MIX_LOOP();
+               #undef TYPE
+               #undef CONV
                break;
 
           default:
@@ -841,10 +770,6 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
           return DFB_UNSUPPORTED;
 #endif
 
-     /* check if number of channels is supported */
-     if (desc.channels > 2)
-          return DFB_UNSUPPORTED;
-
      /* check if destination format is supported */
      switch (desc.sampleformat) {
           case FSSF_U8:
@@ -1013,10 +938,6 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
          desc.samplerate != data->info->rate/2)
           return DFB_UNSUPPORTED;
 #endif
-
-     /* check if number of channels is supported */
-     if (desc.channels > 2)
-          return DFB_UNSUPPORTED;
 
      /* check if destination format is supported */
      switch (desc.sampleformat) {
@@ -1281,7 +1202,6 @@ Construct( IFusionSoundMusicProvider *thiz,
           IFusionSoundMusicProvider_Vorbis_Destruct( thiz );
           return DFB_FAILURE;
      }
-     data->info->channels = MIN( data->info->channels, 2 );
 
      direct_util_recursive_pthread_mutex_init( &data->lock );
 
