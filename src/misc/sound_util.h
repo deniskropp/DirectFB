@@ -25,39 +25,11 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __FS_CONFIG_H__
-#define __FS_CONFIG_H__
+#ifndef __FS_UTIL_H__
+#define __FS_UTIL_H__
 
 #include <fusionsound.h>
 
-typedef struct {
-     char           *driver;       /* Used driver, e.g. "oss" */
-     char           *device;       /* Used device, e.g. "/dev/dsp" */
-     
-     FSSampleFormat  sampleformat; /* default sampleformat */
-     FSChannelMode   channelmode;  /* default channelmode */
-     int             samplerate;   /* default samplerate */
-     int             buffertime;   /* default buffertime (in ms) */
+FSChannelMode fs_mode_for_channels( int channels );
 
-     int             session;      /* select multi app world */
-
-     bool            banner;       /* startup banner */
-} FSConfig;
-
-extern FSConfig *fs_config;
-
-/*
- * Allocate Config struct, fill with defaults and parse command line options
- * for overrides. Options identified as FusionSound options are stripped out
- * of the array.
- */
-DFBResult fs_config_init( int *argc, char **argv[] );
-
-/*
- * Set indiviual option. Used by config_init(), and FusionSoundSetOption()
- */
-DFBResult fs_config_set( const char *name, const char *value );
-
-const char *fs_config_usage( void );
-
-#endif /* __FS_CONFIG_H__ */
+#endif /* __FS_UTIL_H__ */

@@ -29,14 +29,17 @@
 
 #include <fusionsound.h>
 
-#include <media/ifusionsoundmusicprovider.h>
-
 #include <direct/types.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/stream.h>
 #include <direct/thread.h>
 #include <direct/util.h>
+
+#include <media/ifusionsoundmusicprovider.h>
+
+#include <misc/sound_util.h>
+
 
 static DFBResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx );
@@ -79,7 +82,7 @@ typedef struct {
           IFusionSoundStream      *stream;
           IFusionSoundBuffer      *buffer;
           FSSampleFormat           format;
-          int                      channels;
+          FSChannelMode            mode;
           int                      length;
      } dest;
 
@@ -137,25 +140,30 @@ getsamp( u8 *src, const int i, FSSampleFormat f )
 }
 
 static inline void
-putsamp( u8 *dst, const int i, FSSampleFormat f, int s )
+putsamp( u8 **dst, FSSampleFormat f, int s )
 {
      switch (f) {
           case FSSF_U8:
-               dst[i] = (s >> 22) ^ 0x80;
+               *((u8*)*dst) = (s >> 22) ^ 0x80;
+               *dst++;
                break;
           case FSSF_S16:
-               ((s16*)dst)[i] = s >> 14;
+               *((s16*)*dst) = s >> 14;
+               *dst += 2;
                break;
           case FSSF_S24:
-               ((s24*)dst)[i].c = s >> 22;
-               ((s24*)dst)[i].b = s >> 14;
-               ((s24*)dst)[i].a = s >>  6;
+               ((s24*)*dst)->c = s >> 22;
+               ((s24*)*dst)->b = s >> 14;
+               ((s24*)*dst)->a = s >>  6;
+               *dst += 3;
                break;
           case FSSF_S32:
-               ((s32*)dst)[i] = s << 2;
+               *((s32*)*dst) = s << 2;
+               *dst += 4;
                break;
           case FSSF_FLOAT:
-               ((float*)dst)[i] = (float)s/(float)(1<<22);
+               *((float*)*dst) = (float)s/(float)(1<<29);
+               *dst += 4;
                break;
           default:
                break;
@@ -164,12 +172,11 @@ putsamp( u8 *dst, const int i, FSSampleFormat f, int s )
 
 static void
 wave_mix_audio( u8 *src, u8 *dst, int len,
-                FSSampleFormat sf, FSSampleFormat df, int sc, int dc )
+                FSSampleFormat sf, FSSampleFormat df, int sc, FSChannelMode dm )
 {
                  /* L  C  R  Rl Rr LFE */
      int c[6]   = { 0, 0, 0, 0, 0, 0 }; /* 30bit samples */
      int sbytes = FS_BYTES_PER_SAMPLE(sf) * sc;
-     int dbytes = FS_BYTES_PER_SAMPLE(df) * dc;
      
 #define clip(s) \
      if ((s) >= (1 << 29)) \
@@ -210,9 +217,10 @@ wave_mix_audio( u8 *src, u8 *dst, int len,
                          c[5] = getsamp( src, 5, sf );
                     break;
           }
+          src += sbytes;
           
-          switch (dc) {
-               case 1:
+          switch (dm) {
+               case FSCM_MONO:
                     s = c[0] + c[2];
                     if (sc > 2) {
                          int sum = (c[1] << 1) + c[3] + c[4];
@@ -222,56 +230,63 @@ wave_mix_audio( u8 *src, u8 *dst, int len,
                     } else {
                          s >>= 1;
                     }
-                    putsamp( dst, 0, df, s );
+                    putsamp( &dst, df, s );
                     break;
-               case 2:
+               case FSCM_STEREO:
+               case FSCM_STEREO21:
                     s = c[0];
                     if (sc > 2) {
                          int sum = c[1] + c[3];
                          s += sum - (sum >> 2);
                          clip(s);
                     }
-                    putsamp( dst, 0, df, s );
+                    putsamp( &dst, df, s );
                     s = c[2];
                     if (sc > 2) {
                          int sum = c[1] + c[4];
                          s += sum - (sum >> 2);
                          clip(s);
                     }
-                    putsamp( dst, 1, df, s );
+                    putsamp( &dst, df, s );
+                    if (FS_MODE_HAS_LFE(dm))
+                         putsamp( &dst, df, c[5] );
                     break;
-               case 3:
+               case FSCM_STEREO30:
+               case FSCM_STEREO31:
                     c[0] += c[3] - (c[3] >> 2);
                     c[2] += c[4] - (c[4] >> 2);
                     clip(c[0]);
                     clip(c[2]);
-                    putsamp( dst, 0, df, c[0] );
-                    putsamp( dst, 1, df, c[1] );
-                    putsamp( dst, 2, df, c[2] );                
-                    break;
-               case 4:
-                    c[0] += c[1] - (c[1] >> 2);
-                    c[2] += c[1] - (c[1] >> 2);
-                    clip(c[0]);
-                    clip(c[2]);
-                    putsamp( dst, 0, df, c[0] );
-                    putsamp( dst, 1, df, c[2] );
-                    putsamp( dst, 2, df, c[3] );
-                    putsamp( dst, 3, df, c[4] );
+                    putsamp( &dst, df, c[0] );
+                    putsamp( &dst, df, c[1] );
+                    putsamp( &dst, df, c[2] );
+                    if (FS_MODE_HAS_LFE(dm))
+                         putsamp( &dst, df, c[5] );               
                     break;
                default:
-                    putsamp( dst, 0, df, c[0] );
-                    putsamp( dst, 1, df, c[1] );
-                    putsamp( dst, 2, df, c[2] );
-                    putsamp( dst, 3, df, c[3] );
-                    putsamp( dst, 4, df, c[4] );
-                    if (dc > 5)
-                         putsamp( dst, 5, df, c[5] );
+                    if (FS_MODE_HAS_CENTER(dm)) {
+                         putsamp( &dst, df, c[0] );
+                         putsamp( &dst, df, c[1] );
+                         putsamp( &dst, df, c[2] );
+                    } else {
+                         c[0] += c[1] - (c[1] >> 2);
+                         c[2] += c[1] - (c[1] >> 2);
+                         clip(c[0]);
+                         clip(c[2]);
+                         putsamp( &dst, df, c[0] );
+                         putsamp( &dst, df, c[2] );
+                    }
+                    if (FS_MODE_NUM_REARS(dm) == 1) {
+                         s = (c[3] + c[4]) >> 1;
+                         putsamp( &dst, df, s );
+                    } else {     
+                         putsamp( &dst, df, c[3] );
+                         putsamp( &dst, df, c[4] );
+                    }
+                    if (FS_MODE_HAS_LFE(dm))
+                         putsamp( &dst, df, c[5] );
                     break;
           }
-          
-          src += sbytes;
-          dst += dbytes;
      }
      
 #undef clip
@@ -442,7 +457,7 @@ WaveStreamThread( DirectThread *thread, void *ctx )
           if (src != dst) {
                wave_mix_audio( src, dst, len,
                                data->format, data->dest.format,
-                               data->channels, data->dest.channels );
+                               data->channels, data->dest.mode );
           }
 
           data->dest.stream->Write( data->dest.stream, dst, len );
@@ -482,6 +497,26 @@ IFusionSoundMusicProvider_Wave_PlayToStream( IFusionSoundMusicProvider *thiz,
           default:
                return DFB_UNSUPPORTED;
      }
+     
+     /* check if destination mode is supported */
+     switch (desc.channelmode) {
+          case FSCM_MONO:
+          case FSCM_STEREO:
+          case FSCM_STEREO21:
+          case FSCM_STEREO30:
+          case FSCM_STEREO31:
+          case FSCM_SURROUND30:
+          case FSCM_SURROUND31:
+          case FSCM_SURROUND40_2F2R:
+          case FSCM_SURROUND41_2F2R:
+          case FSCM_SURROUND40_3F1R:
+          case FSCM_SURROUND41_3F1R:
+          case FSCM_SURROUND50:
+          case FSCM_SURROUND51:
+               break;
+          default:
+               return DFB_UNSUPPORTED;
+     }
 
      thiz->Stop( thiz );
 
@@ -489,8 +524,10 @@ IFusionSoundMusicProvider_Wave_PlayToStream( IFusionSoundMusicProvider *thiz,
 
      /* allocate buffer(s) */
      src_size = desc.buffersize * data->channels * FS_BYTES_PER_SAMPLE(data->format);
-     if (desc.sampleformat != data->format || desc.channels != data->channels) {
-          dst_size = desc.buffersize * desc.channels *
+     if (desc.sampleformat != data->format || 
+         desc.channelmode != fs_mode_for_channels(data->channels)) {
+          dst_size = desc.buffersize * 
+                     FS_CHANNELS_FOR_MODE(desc.channelmode) *
                      FS_BYTES_PER_SAMPLE(desc.sampleformat);
      }
 
@@ -505,10 +542,10 @@ IFusionSoundMusicProvider_Wave_PlayToStream( IFusionSoundMusicProvider *thiz,
 
      /* reference destination stream */
      destination->AddRef( destination );
-     data->dest.stream   = destination;
-     data->dest.format   = desc.sampleformat;
-     data->dest.channels = desc.channels;
-     data->dest.length   = desc.buffersize;
+     data->dest.stream = destination;
+     data->dest.format = desc.sampleformat;
+     data->dest.mode   = desc.channelmode;
+     data->dest.length = desc.buffersize;
 
      if (data->finished) {
           direct_stream_seek( data->stream, data->headsize );
@@ -600,7 +637,7 @@ WaveBufferThread( DirectThread *thread, void *ctx )
 
                     wave_mix_audio( data->src_buffer, dst, size,
                                     data->format, data->dest.format,
-                                    data->channels, data->dest.channels );
+                                    data->channels, data->dest.mode );
 
                     buffer->Unlock( buffer );
 
@@ -655,13 +692,34 @@ IFusionSoundMusicProvider_Wave_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           default:
                return DFB_UNSUPPORTED;
      }
+     
+     /* check if destination mode is supported */
+     switch (desc.channelmode) {
+          case FSCM_MONO:
+          case FSCM_STEREO:
+          case FSCM_STEREO21:
+          case FSCM_STEREO30:
+          case FSCM_STEREO31:
+          case FSCM_SURROUND30:
+          case FSCM_SURROUND31:
+          case FSCM_SURROUND40_2F2R:
+          case FSCM_SURROUND41_2F2R:
+          case FSCM_SURROUND40_3F1R:
+          case FSCM_SURROUND41_3F1R:
+          case FSCM_SURROUND50:
+          case FSCM_SURROUND51:
+               break;
+          default:
+               return DFB_UNSUPPORTED;
+     }
 
      thiz->Stop( thiz );
 
      pthread_mutex_lock( &data->lock );
 
      /* allocate buffer */
-     if (desc.sampleformat != data->format || desc.channels != data->channels) {
+     if (desc.sampleformat != data->format || 
+         desc.channelmode != fs_mode_for_channels(data->channels)) {
           data->src_buffer = D_MALLOC( desc.length * data->channels * 
                                        FS_BYTES_PER_SAMPLE(data->format) );
           if (!data->src_buffer) {
@@ -672,13 +730,13 @@ IFusionSoundMusicProvider_Wave_PlayToBuffer( IFusionSoundMusicProvider *thiz,
 
      /* reference destination stream */
      destination->AddRef( destination );
-     data->dest.buffer   = destination;
-     data->dest.format   = desc.sampleformat;
-     data->dest.channels = desc.channels;
-     data->dest.length   = desc.length;
+     data->dest.buffer = destination;
+     data->dest.format = desc.sampleformat;
+     data->dest.mode   = desc.channelmode;
+     data->dest.length = desc.length;
 
-     data->callback      = callback;
-     data->ctx           = ctx;
+     data->callback    = callback;
+     data->ctx         = ctx;
 
      if (data->finished) {
           direct_stream_seek( data->stream, data->headsize );

@@ -210,7 +210,7 @@ typedef enum {
      FSSF_FLOAT          = FS_SAMPLEFORMAT( 4, 32, 32, 1 ),
 } FSSampleFormat;
 
-/* Number of defined sample formats */
+/* Number of defined sample formats. */
 #define FS_NUM_SAMPLEFORMATS  5
 
 /* These macros extract information about the sample format. */
@@ -226,6 +226,88 @@ typedef enum {
 
 
 /*
+ * @internal
+ *
+ * Encodes channelmode constants in the following way (bit 31 - 0):
+ *
+ * 0000:0000 | 0000:0000 | 0000:0000 | dccb:aaaa
+ *
+ * a) number of channels per frame<br>
+ * b) has a center channel<br>
+ * c) number of rear channels<br>
+ * d) has a LFE channel<br>
+ */
+#define FS_CHANNELMODE( num, center, rears, lfe )  \
+     ( ((num    & 0x3F)      ) |                   \
+       ((center & 0x01) <<  4) |                   \
+       ((rears  & 0x03) <<  5) |                   \
+       ((lfe    & 0x01) <<  7) )                   \
+
+/*
+ * The channel mode provides information about the channels configuration.
+ *
+ * The channel mode instructs FusionSound about the channels configuration.
+ * Particulary usefull when you have a stream with 3, 4 or 5 channels; in 
+ * these cases, if unspecified, FusionSound assumes STEREO30 for 3 channels,
+ * SURROUND40_2F2R for 4 and SURROUND50 for 5.
+ */
+typedef enum {
+     FSCM_UNKNOWN         = 0x00000000, /* Unknown or invalid mode. */
+     
+     /* 1 Channel (Mono). */ 
+     FSCM_MONO            = FS_CHANNELMODE( 1, 0, 0, 0 ),
+     
+     /* 2 Channels (Left Right). */
+     FSCM_STEREO          = FS_CHANNELMODE( 2, 0, 0, 0 ),
+     
+     /* 3 Channels (Left Right Subwoofer). */
+     FSCM_STEREO21        = FS_CHANNELMODE( 3, 0, 0, 1 ),
+
+     /* 3 Channels (Left Center Right). */
+     FSCM_STEREO30        = FS_CHANNELMODE( 3, 1, 0, 0 ),
+     
+     /* 4 Channels (Left Center Right Subwoofer). */
+     FSCM_STEREO31        = FS_CHANNELMODE( 3, 1, 0, 1 ),
+     
+     /* 3 Channels (Left Right Rear). */
+     FSCM_SURROUND30      = FS_CHANNELMODE( 3, 0, 1, 0 ),
+     
+     /* 4 Channels (Left Right Rear Subwoofer). */
+     FSCM_SURROUND31      = FS_CHANNELMODE( 4, 0, 1, 1 ),
+    
+     /* 4 Channels (Left Right RearLeft RearRight). */
+     FSCM_SURROUND40_2F2R = FS_CHANNELMODE( 4, 0, 2, 0 ),
+     
+     /* 5 Channels (Left Right RearLeft RearRight Subwoofer). */
+     FSCM_SURROUND41_2F2R = FS_CHANNELMODE( 5, 0, 2, 1 ),
+     
+     /* 4 Channels (Left Center Right Rear). */
+     FSCM_SURROUND40_3F1R = FS_CHANNELMODE( 4, 1, 1, 0 ),
+     
+     /* 5 Channels (Left Center Right Rear Subwoofer). */
+     FSCM_SURROUND41_3F1R = FS_CHANNELMODE( 5, 1, 1, 1 ),
+     
+     /* 5 Channels (Left Center Right RearLeft RearRight). */
+     FSCM_SURROUND50      = FS_CHANNELMODE( 5, 1, 2, 0 ),
+     
+     /* 6 Channels (Left Center Right RearLeft RearRight Subwoofer). */
+     FSCM_SURROUND51      = FS_CHANNELMODE( 6, 1, 2, 1 ),
+} FSChannelMode;
+
+/* Number of defined channel modes. */
+#define FS_NUM_CHANNELMODES  13
+
+/* These macros extract information about the channel mode. */
+#define FS_CHANNELS_FOR_MODE( mode )  (((mode) & 0x0000000F)     )
+
+#define FS_MODE_HAS_CENTER( mode )    (((mode) & 0x00000010) != 0)
+
+#define FS_MODE_NUM_REARS( mode )     (((mode) & 0x00000060) >> 5)
+
+#define FS_MODE_HAS_LFE( mode )       (((mode) & 0x00000080) != 0)
+
+
+/*
  * Each buffer description flag validates one field of the buffer description.
  */
 typedef enum {
@@ -234,7 +316,8 @@ typedef enum {
      FSBDF_CHANNELS      = 0x00000002,      /* Number of channels is set. */
      FSBDF_SAMPLEFORMAT  = 0x00000004,      /* Sample format is set. */
      FSBDF_SAMPLERATE    = 0x00000008,      /* Sample rate is set. */
-     FSBDF_ALL           = 0x0000000F       /* All of these. */
+     FSBDF_CHANNELMODE   = 0x00000010,      /* Channel mode is set. */
+     FSBDF_ALL           = 0x0000001F       /* All of these. */
 } FSBufferDescriptionFlags;
 
 /*
@@ -248,6 +331,7 @@ typedef struct {
      int                      channels;     /* Number of channels. */
      FSSampleFormat           sampleformat; /* Format of each sample. */
      int                      samplerate;   /* Number of samples per second. */
+     FSChannelMode            channelmode;  /* Channel mode (overrides channels). */
 } FSBufferDescription;
 
 /*
@@ -260,7 +344,8 @@ typedef enum {
      FSSDF_SAMPLEFORMAT  = 0x00000004,      /* Sample format is set. */
      FSSDF_SAMPLERATE    = 0x00000008,      /* Sample rate is set. */
      FSSDF_PREBUFFER     = 0x00000010,      /* Prebuffer amount is set. */
-     FSSDF_ALL           = 0x0000001F       /* All of these. */
+     FSSDF_CHANNELMODE   = 0x00000020,      /* Channel mode is set. */
+     FSSDF_ALL           = 0x0000003F       /* All of these. */
 } FSStreamDescriptionFlags;
 
 /*
@@ -276,6 +361,7 @@ typedef struct {
      int                      samplerate;   /* Number of samples per second (per channel). */
      int                      prebuffer;    /* Samples to buffer before starting the playback.
                                                A negative value disables auto start of playback. */
+     FSChannelMode            channelmode;  /* Channel mode (overrides channels). */
 } FSStreamDescription;
 
 /*
@@ -360,16 +446,6 @@ typedef DFBEnumerationResult (*FSTrackCallback) (
  * automatically starts when data is written to the <b>ring buffer</b> for the
  * first time. If the buffer underruns, the playback automatically stops and
  * continues when the ring buffer is written to again.
- *
- * <b>Since FusionSound 1.1.0</b>, both Streaming and Static sound buffers support
- * up to <b>6 channels</b>, with the following mapping:<br>
- *  1. Mono 1.0     (C)<br>
- *  2. Stereo 2.0   (L R)<br>
- *  3. Stereo 3.0   (L C R)<br>
- *  4. Surround 4.0 (L R RL RR)<br>
- *  5. Surround 5.0 (L C L RL RR)<br>
- *  6. Surround 5.1 (L C L RL RR LFE)<br>
- *  (where C = Center, L = Left, R = Right, RL = Rear Left, RR = Rear Right).
  *
  */
 DEFINE_INTERFACE( IFusionSound,

@@ -112,13 +112,15 @@ IFusionSoundStream_GetDescription( IFusionSoundStream  *thiz,
      if (!desc)
           return DFB_INVARG;
 
-     desc->flags = FSSDF_BUFFERSIZE | FSSDF_CHANNELS |
-                   FSSDF_SAMPLEFORMAT | FSSDF_SAMPLERATE | FSSDF_PREBUFFER;
+     desc->flags = FSSDF_BUFFERSIZE   | FSSDF_CHANNELS   |
+                   FSSDF_SAMPLEFORMAT | FSSDF_SAMPLERATE | 
+                   FSSDF_PREBUFFER    | FSSDF_CHANNELMODE;
      desc->buffersize   = data->size;
-     desc->channels     = data->channels;
+     desc->channels     = FS_CHANNELS_FOR_MODE(data->mode);
      desc->sampleformat = data->format;
      desc->samplerate   = data->rate;
      desc->prebuffer    = data->prebuffer;
+     desc->channelmode  = data->mode;
 
      return DFB_OK;
 }
@@ -340,7 +342,7 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
                               CoreSound          *core,
                               CoreSoundBuffer    *buffer,
                               int                 size,
-                              int                 channels,
+                              FSChannelMode       mode,
                               FSSampleFormat      format,
                               int                 rate,
                               int                 prebuffer )
@@ -376,7 +378,7 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
      data->buffer    = buffer;
      data->playback  = playback;
      data->size      = size;
-     data->channels  = channels;
+     data->mode      = mode;
      data->format    = format;
      data->rate      = rate;
      data->prebuffer = prebuffer;

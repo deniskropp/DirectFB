@@ -40,7 +40,7 @@ DECLARE_MODULE_DIRECTORY( fs_sound_drivers );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define FS_SOUND_DRIVER_ABI_VERSION  1
+#define FS_SOUND_DRIVER_ABI_VERSION  2
 
 
 typedef struct {
@@ -86,7 +86,7 @@ typedef struct {
 
 /* Device Configuration. */
 typedef struct {
-     unsigned int    channels;
+     FSChannelMode   mode;
      FSSampleFormat  format;
      unsigned int    rate;       /* only suggested, the driver can modify it */
      unsigned int    buffersize; /* only suggested, the driver can modify it */

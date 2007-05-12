@@ -30,14 +30,16 @@
 
 #include <fusionsound.h>
 
-#include <media/ifusionsoundmusicprovider.h>
-
 #include <direct/types.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/stream.h>
 #include <direct/thread.h>
 #include <direct/util.h>
+
+#include <media/ifusionsoundmusicprovider.h>
+
+#include <misc/sound_util.h>
 
 #ifdef USE_TREMOR
 # include <tremor/ivorbiscodec.h>
@@ -84,7 +86,7 @@ typedef struct {
           IFusionSoundStream      *stream;
           IFusionSoundBuffer      *buffer;
           FSSampleFormat           format;
-          int                      channels;
+          FSChannelMode            mode;
           int                      length;
      } dest;
 
@@ -164,10 +166,10 @@ typedef struct {
 
 static void
 vorbis_mix_audio( s16 *src, void *dst, int len,
-                  FSSampleFormat format, int src_channels, int dst_channels )
+                  FSSampleFormat format, int src_channels, FSChannelMode dst_mode )
 {
      int s_n = src_channels;
-     int d_n = dst_channels;
+     int d_n = FS_CHANNELS_FOR_MODE(dst_mode);
      int i;
 
      switch (format) {
@@ -260,7 +262,7 @@ FtoF32( float s )
 #define VORBIS_MIX_LOOP() \
  do { \
      int i; \
-     if (s_n == d_n) { \
+     if (fs_mode_for_channels(s_n) == d_m) { \
           for (i = 0; i < s_n; i++) { \
                float *s = src[i]; \
                TYPE  *d = &((TYPE *)dst)[i]; \
@@ -301,48 +303,57 @@ FtoF32( float s )
                     default: \
                          break; \
                } \
-               switch (d_n) { \
-                    case 1: \
+               switch (d_m) { \
+                    case FSCM_MONO: \
                          s = c[0] + c[2]; \
                          if (s_n > 2) s += (c[1]*2+c[3]+c[4])*0.7079f; \
                          s *= 0.5f; \
-                         d[0] = CONV(s); \
+                         *d++ = CONV(s); \
                          break; \
-                    case 2: \
+                    case FSCM_STEREO: \
+                    case FSCM_STEREO21: \
                          s = c[0]; \
                          if (s_n > 2) s += (c[1]+c[3])*0.7079f; \
-                         d[0] = CONV(s); \
+                         *d++ = CONV(s); \
                          s = c[2]; \
                          if (s_n > 2) s += (c[1]+c[4])*0.7079f; \
-                         d[1] = CONV(s); \
+                         *d++ = CONV(s); \
+                         if (FS_MODE_HAS_LFE(d_m)) \
+                              *d++ = CONV(c[5]); \
                          break; \
-                    case 3: \
+                    case FSCM_STEREO30: \
+                    case FSCM_STEREO31: \
                          s = c[0] + c[3]*0.7079f; \
-                         d[0] = CONV(s); \
+                         *d++ = CONV(s); \
                          s = c[1]; \
-                         d[1] = CONV(s); \
+                         *d++ = CONV(s); \
                          s = c[2] + c[4]*0.7079f; \
-                         d[2] = CONV(s); \
+                         *d++ = CONV(s); \
+                         if (FS_MODE_HAS_LFE(d_m)) \
+                              *d++ = CONV(c[5]); \
                          break; \
-                    case 4: \
-                         s = c[0] + c[1]*0.7079f; \
-                         d[0] = CONV(s); \
-                         s = c[2] + c[1]*0.7079f; \
-                         d[1] = CONV(s); \
-                         d[2] = CONV(c[3]); \
-                         d[3] = CONV(c[4]); \
-                    case 6: \
-                         d[5] = CONV(c[5]); \
-                    case 5: \
                     default: \
-                         d[0] = CONV(c[0]); \
-                         d[1] = CONV(c[1]); \
-                         d[2] = CONV(c[2]); \
-                         d[3] = CONV(c[3]); \
-                         d[4] = CONV(c[4]); \
+                         if (FS_MODE_HAS_CENTER(d_m)) { \
+                              *d++ = CONV(c[0]); \
+                              *d++ = CONV(c[1]); \
+                              *d++ = CONV(c[2]); \
+                         } else { \
+                              s = c[0] + c[1]*0.7079f; \
+                              *d++ = CONV(s); \
+                              s = c[2] + c[1]*0.7079f; \
+                              *d++ = CONV(s); \
+                         } \
+                         if (FS_MODE_NUM_REARS(d_m) == 1) { \
+                              s = (c[3] + c[4]) * 0.5f; \
+                              *d++ = CONV(s); \
+                         } else { \
+                              *d++ = CONV(c[3]); \
+                              *d++ = CONV(c[4]); \
+                         } \
+                         if (FS_MODE_HAS_LFE(d_m)) \
+                              *d++ = CONV(c[5]); \
                          break; \
                } \
-               d += d_n; \
           } \
      } \
  } while (0)
@@ -350,10 +361,11 @@ FtoF32( float s )
 
 static void
 vorbis_mix_audio( float **src, void *dst, int len,
-                  FSSampleFormat format, int src_channels, int dst_channels )
+                  FSSampleFormat format, int src_channels, FSChannelMode dst_mode )
 {
      int s_n = src_channels;
-     int d_n = dst_channels;
+     int d_m = dst_mode;
+     int d_n = FS_CHANNELS_FOR_MODE(dst_mode);
 
      switch (format) {
           case FSSF_U8:
@@ -738,7 +750,7 @@ VorbisStreamThread( DirectThread *thread, void *ctx )
 
           if (len > 0) {
                vorbis_mix_audio( src, dst, len, data->dest.format,
-                                 data->info->channels, data->dest.channels );
+                                 data->info->channels, data->dest.mode );
 
                data->dest.stream->Write( data->dest.stream, dst, len );
           }
@@ -781,6 +793,26 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
           default:
                return DFB_UNSUPPORTED;
      }
+     
+     /* check if destination mode is supported */
+     switch (desc.channelmode) {
+          case FSCM_MONO:
+          case FSCM_STEREO:
+          case FSCM_STEREO21:
+          case FSCM_STEREO30:
+          case FSCM_STEREO31:
+          case FSCM_SURROUND30:
+          case FSCM_SURROUND31:
+          case FSCM_SURROUND40_2F2R:
+          case FSCM_SURROUND41_2F2R:
+          case FSCM_SURROUND40_3F1R:
+          case FSCM_SURROUND41_3F1R:
+          case FSCM_SURROUND50:
+          case FSCM_SURROUND51:
+               break;
+          default:
+               return DFB_UNSUPPORTED;
+     }
 
      thiz->Stop( thiz );
 
@@ -807,10 +839,10 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
 
      /* reference destination stream */
      destination->AddRef( destination );
-     data->dest.stream   = destination;
-     data->dest.format   = desc.sampleformat;
-     data->dest.channels = desc.channels;
-     data->dest.length   = desc.buffersize;
+     data->dest.stream = destination;
+     data->dest.format = desc.sampleformat;
+     data->dest.mode   = desc.channelmode;
+     data->dest.length = desc.buffersize;
 
      if (data->finished) {
           if (direct_stream_remote( data->stream ))
@@ -839,8 +871,8 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
 
      IFusionSoundBuffer *buffer    = data->dest.buffer;
      int                 section   = 0;
-     int                 blocksize = data->dest.channels *
-                                     FS_BITS_PER_SAMPLE(data->dest.format) >> 3;
+     int                 blocksize = FS_CHANNELS_FOR_MODE(data->dest.mode) *
+                                     FS_BYTES_PER_SAMPLE(data->dest.format);
 
      while (data->playing && !data->finished) {
 #ifdef USE_TREMOR
@@ -894,7 +926,7 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
                          vorbis_mix_audio( src, &dst[pos*blocksize], n,
                                            data->dest.format,
                                            data->info->channels,
-                                           data->dest.channels );
+                                           data->dest.mode );
                          pos += n;
                          len -= n;
                     } while (n > 0);
@@ -950,6 +982,26 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           default:
                return DFB_UNSUPPORTED;
      }
+     
+     /* check if destination mode is supported */
+     switch (desc.channelmode) {
+          case FSCM_MONO:
+          case FSCM_STEREO:
+          case FSCM_STEREO21:
+          case FSCM_STEREO30:
+          case FSCM_STEREO31:
+          case FSCM_SURROUND30:
+          case FSCM_SURROUND31:
+          case FSCM_SURROUND40_2F2R:
+          case FSCM_SURROUND41_2F2R:
+          case FSCM_SURROUND40_3F1R:
+          case FSCM_SURROUND41_3F1R:
+          case FSCM_SURROUND50:
+          case FSCM_SURROUND51:
+               break;
+          default:
+               return DFB_UNSUPPORTED;
+     }
 
      thiz->Stop( thiz );
 
@@ -968,10 +1020,10 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
 
      /* reference destination stream */
      destination->AddRef( destination );
-     data->dest.buffer   = destination;
-     data->dest.format   = desc.sampleformat;
-     data->dest.channels = desc.channels;
-     data->dest.length   = desc.length;
+     data->dest.buffer = destination;
+     data->dest.format = desc.sampleformat;
+     data->dest.mode   = desc.channelmode;
+     data->dest.length = desc.length;
 
      /* register new callback */
      data->callback = callback;

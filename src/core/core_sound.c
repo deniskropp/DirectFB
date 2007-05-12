@@ -483,8 +483,8 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
      __fsf *src = mixing;                                           \
      u8    *dst = output;                                           \
      int    n;                                                      \
-     switch (shared->config.channels) {                             \
-          case 1:                                                   \
+     switch (mode) {                                                \
+          case FSCM_MONO:                                           \
                for (n = mixed; n; n--) {                            \
                     register __fsf s;                               \
                     const int      c = 0;                           \
@@ -495,7 +495,8 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
                     src += FS_MAX_CHANNELS;                         \
                }                                                    \
                break;                                               \
-          case 2:                                                   \
+          case FSCM_STEREO:                                         \
+          case FSCM_STEREO21:                                       \
                for (n = mixed; n; n--) {                            \
                     register __fsf s;                               \
                     int            c;                               \
@@ -505,10 +506,16 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
                     c = 1;                                          \
                     s = src[c] + src[2] + src[4];                   \
                     BODY                                            \
+                    if (FS_MODE_HAS_LFE(mode)) {                    \
+                         c = 5;                                     \
+                         s = src[c];                                \
+                         BODY;                                      \
+                    }                                               \
                     src += FS_MAX_CHANNELS;                         \
                }                                                    \
                break;                                               \
-          case 3:                                                   \
+          case FSCM_STEREO30:                                       \
+          case FSCM_STEREO31:                                       \
                for (n = mixed; n; n--) {                            \
                     register __fsf s;                               \
                     int            c;                               \
@@ -520,46 +527,64 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
                     BODY                                            \
                     c = 1;                                          \
                     s = src[c] + src[4];                            \
-                    BODY;                                           \
-                    src += FS_MAX_CHANNELS;                         \
-               }                                                    \
-               break;                                               \
-          case 4:                                                   \
-               for (n = mixed; n; n--) {                            \
-                    register __fsf s;                               \
-                    int            c;                               \
-                    c = 0;                                          \
-                    s = src[c] + src[2];                            \
                     BODY                                            \
-                    c = 1;                                          \
-                    s = src[c] + src[2];                            \
-                    BODY                                            \
-                    c = 3;                                          \
-                    s = src[c];                                     \
-                    BODY                                            \
-                    c = 4;                                          \
-                    s = src[c];                                     \
-                    BODY                                            \
-                    src += FS_MAX_CHANNELS;                         \
-               }                                                    \
-               break;                                               \
-          case 5:                                                   \
-               for (n = mixed; n; n--) {                            \
-                    int c;                                          \
-                    for (c = 0; c < 5; c++) {                       \
-                         register __fsf s;                          \
-                         if (c == 1)                                \
-                              s = src[2];                           \
-                         else if (c == 2)                           \
-                              s = src[1];                           \
-                         else                                       \
-                              s = src[c];                           \
+                    if (FS_MODE_HAS_LFE(mode)) {                    \
+                         c = 5;                                     \
+                         s = src[c];                                \
                          BODY                                       \
                     }                                               \
                     src += FS_MAX_CHANNELS;                         \
                }                                                    \
                break;                                               \
-          case 6:                                                   \
+          case FSCM_SURROUND30:                                     \
+          case FSCM_SURROUND31:                                     \
+          case FSCM_SURROUND40_2F2R:                                \
+          case FSCM_SURROUND41_2F2R:                                \
+          case FSCM_SURROUND40_3F1R:                                \
+          case FSCM_SURROUND41_3F1R:                                \
+          case FSCM_SURROUND50:                                     \
+               for (n = mixed; n; n--) {                            \
+                    register __fsf s;                               \
+                    int            c;                               \
+                    if (FS_MODE_HAS_CENTER(mode)) {                 \
+                         c = 0;                                     \
+                         s = src[c];                                \
+                         BODY                                       \
+                         c = 2;                                     \
+                         s = src[c];                                \
+                         BODY                                       \
+                         c = 1;                                     \
+                         s = src[c];                                \
+                         BODY                                       \
+                    } else {                                        \
+                         c = 0;                                     \
+                         s = src[c] + src[2];                       \
+                         BODY                                       \
+                         c = 1;                                     \
+                         s = src[c] + src[2];                       \
+                         BODY                                       \
+                    }                                               \
+                    if (FS_MODE_NUM_REARS(mode) == 1) {             \
+                         c = 3;                                     \
+                         s = fsf_shr( src[c] + src[c+1], 1 );       \
+                         BODY                                       \
+                    } else {                                        \
+                         c = 3;                                     \
+                         s = src[c];                                \
+                         BODY                                       \
+                         c = 4;                                     \
+                         s = src[c];                                \
+                         BODY                                       \
+                    }                                               \
+                    if (FS_MODE_HAS_LFE(mode)) {                    \
+                         c = 5;                                     \
+                         s = src[c];                                \
+                         BODY                                       \
+                    }                                               \
+                    src += FS_MAX_CHANNELS;                         \
+               }                                                    \
+               break;                                               \
+          case FSCM_SURROUND51:                                     \
                for (n = mixed; n; n--) {                            \
                     int c;                                          \
                     for (c = 0; c < 6; c++) {                       \
@@ -576,7 +601,7 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
                }                                                    \
                break;                                               \
           default:                                                  \
-               D_BUG( "unexpected number of channels" );            \
+               D_BUG( "unexpected channel mode" );                  \
                break;                                               \
      }                                                              \
 }
@@ -585,7 +610,7 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
      __fsf *src = mixing;                                           \
      u8    *dst = output;                                           \
      int    n;                                                      \
-     if (shared->config.channels == 1) {                            \
+     if (mode == FSCM_MONO) {                                       \
           for (n = mixed; n; n--) {                                 \
                register __fsf s;                                    \
                const int      c = 0;                                \
@@ -622,6 +647,8 @@ sound_thread( DirectThread *thread, void *arg )
      __fsf              *mixing  = core->mixing_buffer;
      int                 frames  = shared->config.buffersize;
      int                 mixed   = 0;
+     
+     FSChannelMode       mode    = shared->config.mode;
      
      fsf_dither_profiles(dither,FS_MAX_CHANNELS);
      
@@ -783,7 +810,7 @@ fs_core_initialize( CoreSound *core )
           
      /* allocate output buffer */
      core->output_buffer = D_MALLOC( shared->config.buffersize *
-                                     shared->config.channels   *
+                                     FS_CHANNELS_FOR_MODE(shared->config.mode) *
                                      FS_BYTES_PER_SAMPLE(shared->config.format) );
      if (!core->output_buffer)
           return D_OOM();

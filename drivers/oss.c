@@ -181,7 +181,7 @@ device_open( void                  *device_data,
 {
      OSSDeviceData *data       = device_data;
      int            fmt        = fs2oss_format( config->format );
-     int            channels   = config->channels;
+     int            channels   = FS_CHANNELS_FOR_MODE(config->mode);
      int            rate       = config->rate;
      int            buffersize = 0;
 #if defined(SNDCTL_DSP_PROFILE) && defined(APF_NORMAL)
@@ -235,14 +235,13 @@ device_open( void                  *device_data,
 
      /* set number of channels */
      if (ioctl( data->fd, SNDCTL_DSP_CHANNELS, &channels ) < 0 || 
-         channels != config->channels) {
+         channels != FS_CHANNELS_FOR_MODE(config->mode)) {
           D_ERROR( "FusionSound/Device/OSS: unsupported channels mode!\n" );
           close( data->fd );
           return DFB_UNSUPPORTED;
      }
      
-     data->bytes_per_frame = config->channels * 
-                             FS_BITS_PER_SAMPLE(config->format) >> 3;
+     data->bytes_per_frame = channels * FS_BYTES_PER_SAMPLE(config->format);
      
      /* set sample rate */
      if (ioctl( data->fd, SNDCTL_DSP_SPEED, &rate ) < 0) {

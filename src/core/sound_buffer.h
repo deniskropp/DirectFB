@@ -38,7 +38,7 @@ struct __FS_CoreSoundBuffer {
      FusionObject     object;
 
      int              length;
-     int              channels;
+     FSChannelMode    mode;
      FSSampleFormat   format;
      int              rate;
      int              bytes;
@@ -77,7 +77,7 @@ FUSION_OBJECT_METHODS( CoreSoundBuffer, fs_buffer )
 
 DFBResult fs_buffer_create( CoreSound        *core,
                             int               length,
-                            int               channels,
+                            FSChannelMode     mode,
                             FSSampleFormat    format,
                             int               rate,
                             CoreSoundBuffer **ret_buffer );

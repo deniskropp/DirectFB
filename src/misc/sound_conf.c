@@ -33,6 +33,7 @@
 #include <string.h>
 
 #include <fusionsound.h>
+#include <fusionsound_limits.h>
 
 #include <direct/mem.h>
 #include <direct/memcpy.h>
@@ -40,11 +41,10 @@
 #include <direct/debug.h>
 #include <direct/util.h>
 
-#include <fusionsound_limits.h>
-
 #include <misc/conf.h>
 
 #include "sound_conf.h"
+#include "sound_util.h"
 
 
 FSConfig *fs_config = NULL;
@@ -60,6 +60,7 @@ static const char *config_usage =
      "  driver=<driver>                Specify driver to use (e.g \"oss\")\n"
      "  device=<device>                Specify driver ouput device (e.g \"/dev/dsp\")\n"
      "  channels=<channels>            Set the default number of channels\n"
+     "  channelmode=<channelmode>      Set the default channel mode\n"
      "  sampleformat=<sampleformat>    Set the default sample format\n"
      "  samplerate=<samplerate>        Set the default sample rate\n"
      "  buffertime=<millisec>          Set the default buffer time\n"
@@ -83,21 +84,56 @@ static const FormatString format_strings[] = {
      { "FLOAT", FSSF_FLOAT }
 };
 
-#define NUM_FORMAT_STRINGS (sizeof(format_strings) / sizeof(FormatString))
-
-
 static FSSampleFormat
 parse_sampleformat( const char *format )
 {
      int i;
      
-     for (i = 0; i < NUM_FORMAT_STRINGS; i++) {
+     for (i = 0; i < D_ARRAY_SIZE(format_strings); i++) {
           if (!strcmp( format, format_strings[i].string ))
                return format_strings[i].format;
      }
 
      return FSSF_UNKNOWN;
 }
+
+
+typedef struct {
+     const char     *string;
+     FSChannelMode   mode;
+} ModeString;
+
+static const ModeString mode_strings[] = {
+     { "MONO",            FSCM_MONO            },
+     { "STEREO",          FSCM_STEREO          },
+#if FS_MAX_CHANNELS > 2
+     { "STEREO21",        FSCM_STEREO21        },
+     { "STEREO30",        FSCM_STEREO30        },
+     { "STEREO31",        FSCM_STEREO31        },
+     { "SURROUND30",      FSCM_SURROUND30      },
+     { "SURROUND31",      FSCM_SURROUND31      },
+     { "SURROUND40_2F2R", FSCM_SURROUND40_2F2R },
+     { "SURROUND41_2F2R", FSCM_SURROUND41_2F2R },
+     { "SURROUND40_3F1R", FSCM_SURROUND40_3F1R },
+     { "SURROUND41_3F1R", FSCM_SURROUND41_3F1R },
+     { "SURROUND50",      FSCM_SURROUND50      },
+     { "SURROUND51",      FSCM_SURROUND51      }
+#endif
+};
+
+static FSChannelMode
+parse_modestring( const char *mode )
+{
+     int i;
+     
+     for (i = 0; i < D_ARRAY_SIZE(mode_strings); i++) {
+          if (!strcmp( mode, mode_strings[i].string ))
+               return mode_strings[i].mode;
+     }
+
+     return FSCM_UNKNOWN;
+}
+
 
 static DFBResult
 parse_args( const char *args )
@@ -147,8 +183,8 @@ config_allocate()
           
      fs_config = (FSConfig*) D_CALLOC( 1, sizeof(FSConfig) );
      
-     fs_config->channels     = 2;
      fs_config->sampleformat = FSSF_S16;
+     fs_config->channelmode  = FSCM_STEREO;
      fs_config->samplerate   = 48000;
      fs_config->buffertime   = 25;
     
@@ -205,10 +241,29 @@ fs_config_set( const char *name, const char *value )
                     return DFB_INVARG;
                }      
 
-               fs_config->channels = channels;
+               fs_config->channelmode = fs_mode_for_channels( channels );
           }
           else {
                D_ERROR( "FusionSound/Config 'channels': "
+                        "No value specified!\n" );
+               return DFB_INVARG;
+          }
+     }
+     else if (!strcmp( name, "channelmode" )) {
+          if (value) {
+               FSChannelMode mode;
+
+               mode = parse_modestring( value );
+               if (mode == FSCM_UNKNOWN) {
+                    D_ERROR( "FusionSound/Config 'channelmode': "
+                             "Could not parse mode!\n" );
+                    return DFB_INVARG;
+               }      
+
+               fs_config->channelmode = mode;
+          }
+          else {
+               D_ERROR( "FusionSound/Config 'channelmode': "
                         "No value specified!\n" );
                return DFB_INVARG;
           }

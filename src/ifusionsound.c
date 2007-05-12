@@ -46,7 +46,7 @@
 #include <media/ifusionsoundmusicprovider.h>
 
 #include <misc/sound_conf.h>
-
+#include <misc/sound_util.h>
 
 
 static void
@@ -104,7 +104,7 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
 {
      DFBResult                 ret;
      CoreSoundDeviceConfig    *config;
-     int                       channels;
+     FSChannelMode             mode;
      FSSampleFormat            format;
      int                       rate;
      int                       length;
@@ -117,21 +117,46 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
      if (!desc || !ret_interface)
           return DFB_INVARG;
           
-     config   = fs_core_device_config( data->core );
-     channels = config->channels;
-     format   = config->format;
-     rate     = config->rate;
-     length   = 0;
+     config = fs_core_device_config( data->core );
+     mode   = config->mode;
+     format = config->format;
+     rate   = config->rate;
+     length = 0;
           
      flags = desc->flags;
 
      if (flags & ~FSBDF_ALL)
           return DFB_INVARG;
 
-     if (flags & FSBDF_CHANNELS) {
+     
+     if (flags & FSBDF_CHANNELMODE) {
+          switch (desc->channelmode) {
+               case FSCM_MONO:
+               case FSCM_STEREO:
+#if FS_MAX_CHANNELS > 2
+               case FSCM_STEREO21:
+               case FSCM_STEREO30:
+               case FSCM_STEREO31:
+               case FSCM_SURROUND30:
+               case FSCM_SURROUND31:
+               case FSCM_SURROUND40_2F2R:
+               case FSCM_SURROUND41_2F2R:
+               case FSCM_SURROUND40_3F1R:
+               case FSCM_SURROUND41_3F1R:
+               case FSCM_SURROUND50:
+               case FSCM_SURROUND51:
+#endif
+                    mode = desc->channelmode;
+                    break;
+                    
+               default:
+                    return DFB_INVARG;
+          }
+     }
+     else if (flags & FSBDF_CHANNELS) {
           switch (desc->channels) {
                case 1 ... FS_MAX_CHANNELS:
-                    channels = desc->channels;
+                    mode = fs_mode_for_channels( desc->channels );
                     break;
 
                default:
@@ -169,15 +194,14 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
      if (length > FS_MAX_FRAMES)
           return DFB_LIMITEXCEEDED;
 
-     ret = fs_buffer_create( data->core,
-                             length, channels, format, rate, &buffer );
+     ret = fs_buffer_create( data->core, length, mode, format, rate, &buffer );
      if (ret)
           return ret;
 
      DIRECT_ALLOCATE_INTERFACE( interface, IFusionSoundBuffer );
 
      ret = IFusionSoundBuffer_Construct( interface, data->core, buffer,
-                                         length, channels, format, rate );
+                                         length, mode, format, rate );
      fs_buffer_unref( buffer );
 
      if (!ret)
@@ -193,7 +217,7 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
 {
      DFBResult                 ret;
      CoreSoundDeviceConfig    *config;
-     int                       channels;
+     FSChannelMode             mode;
      FSSampleFormat            format;
      int                       rate;
      int                       size;
@@ -208,7 +232,7 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
           return DFB_INVARG;
      
      config    = fs_core_device_config( data->core );
-     channels  = config->channels;
+     mode      = config->mode;
      format    = config->format;
      rate      = config->rate;
      size      = 0;
@@ -220,10 +244,34 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
           if (flags & ~FSSDF_ALL)
                return DFB_INVARG;
 
-          if (flags & FSSDF_CHANNELS) {
+          if (flags & FSBDF_CHANNELMODE) {
+               switch (desc->channelmode) {
+                    case FSCM_MONO:
+                    case FSCM_STEREO:
+#if FS_MAX_CHANNELS > 2
+                    case FSCM_STEREO21:
+                    case FSCM_STEREO30:
+                    case FSCM_STEREO31:
+                    case FSCM_SURROUND30:
+                    case FSCM_SURROUND31:
+                    case FSCM_SURROUND40_2F2R:
+                    case FSCM_SURROUND41_2F2R:
+                    case FSCM_SURROUND40_3F1R:
+                    case FSCM_SURROUND41_3F1R:
+                    case FSCM_SURROUND50:
+                    case FSCM_SURROUND51:
+#endif
+                         mode = desc->channelmode;
+                         break;
+                    
+                    default:
+                         return DFB_INVARG;
+               }
+          }
+          else if (flags & FSSDF_CHANNELS) {
                switch (desc->channels) {
                     case 1 ... FS_MAX_CHANNELS:
-                         channels = desc->channels;
+                         mode = fs_mode_for_channels( desc->channels );
                          break;
 
                     default:
@@ -272,15 +320,14 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
      if (size > rate * 5)
           return DFB_LIMITEXCEEDED;
 
-     ret = fs_buffer_create( data->core,
-                             size, channels, format, rate, &buffer );
+     ret = fs_buffer_create( data->core, size, mode, format, rate, &buffer );
      if (ret)
           return ret;
 
      DIRECT_ALLOCATE_INTERFACE( interface, IFusionSoundStream );
 
      ret = IFusionSoundStream_Construct( interface, data->core, buffer, size,
-                                         channels, format, rate, prebuffer );
+                                         mode, format, rate, prebuffer );
      fs_buffer_unref( buffer );
 
      if (!ret)

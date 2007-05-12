@@ -190,7 +190,7 @@ device_open( void                  *device_data,
      }
 
      if (snd_pcm_hw_params_set_channels( data->handle, params,
-                                         config->channels ) < 0) {
+                                         FS_CHANNELS_FOR_MODE(config->mode) ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't set channels mode!\n" );
           snd_pcm_close( data->handle );
           return DFB_UNSUPPORTED;

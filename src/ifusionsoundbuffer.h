@@ -38,7 +38,7 @@ DFBResult IFusionSoundBuffer_Construct( IFusionSoundBuffer *thiz,
                                         CoreSound          *core,
                                         CoreSoundBuffer    *buffer,
                                         int                 size,
-                                        int                 channels,
+                                        FSChannelMode       mode,
                                         FSSampleFormat      format,
                                         int                 rate );
 
