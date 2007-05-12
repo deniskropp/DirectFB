@@ -58,6 +58,15 @@ Specify a driver specific audio output device to use
 Set the default number of channels to use.
 
 .TP
+.BI channelmode=<channelmode>
+Set the default channel mode.
+This options allows to specify a detailed channels configuration
+and overrides the previous option. 
+Possible values are MONO, STEREO, STEREO21, STEREO30, STEREO31,
+SURROUND30, SURROUND31, SURROUND40_2F2R, SURROUND41_2F2R, 
+SURROUND40_3F1R, SURROUND41_3F1R, SURROUND50, SURROUND51.
+
+.TP
 .BI sampleformat=<sampleformat>
 Set the default sample format to use.
 Possible values are U8, S16, S24, S32 and FLOAT.
