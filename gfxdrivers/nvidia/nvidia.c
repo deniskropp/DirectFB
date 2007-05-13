@@ -445,6 +445,7 @@ static void nv4CheckState( void *drv, void *dev,
                }
                break;
 
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -501,7 +502,8 @@ static void nv4CheckState( void *drv, void *dev,
                     if (destination->format != source->format)
                          return;
                     break;
-                    
+               
+               case DSPF_RGB555:     
                case DSPF_ARGB1555:
                case DSPF_RGB32:
                case DSPF_ARGB:
@@ -564,6 +566,7 @@ static void nv5CheckState( void *drv, void *dev,
                }
                break;
 
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -624,6 +627,7 @@ static void nv5CheckState( void *drv, void *dev,
                          return;
                     break;
 
+               case DSPF_RGB555:
                case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB32:
@@ -679,6 +683,7 @@ static void nv10CheckState( void *drv, void *dev,
                }
                break;
 
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -751,6 +756,7 @@ static void nv10CheckState( void *drv, void *dev,
                          return;
                     break;
 
+               case DSPF_RGB555:
                case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB32:
@@ -805,6 +811,7 @@ static void nv20CheckState( void *drv, void *dev,
                }
                break;
 
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -870,6 +877,7 @@ static void nv20CheckState( void *drv, void *dev,
                          return;
                     break;
 
+               case DSPF_RGB555:
                case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB32:
@@ -923,6 +931,7 @@ static void nv30CheckState( void *drv, void *dev,
                     return;
                break;
 
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -954,6 +963,7 @@ static void nv30CheckState( void *drv, void *dev,
                          return;
                case DSPF_A8:
                case DSPF_RGB332:
+               case DSPF_RGB555:
                case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB32:

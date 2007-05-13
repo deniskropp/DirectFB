@@ -104,6 +104,11 @@ void nv_set_destination( NVidiaDriverData *nvdrv,
                     sformat2D = SURFACES2D_FORMAT_Y8;
                     cformat   = RECT_COLOR_FORMAT_Y32;
                     break;
+               case DSPF_RGB555:
+                    sformat2D = SURFACES2D_FORMAT_X1R5G5B5;
+                    sformat3D = SURFACES3D_FORMAT_COLOR_X1R5G5B5;
+                    cformat   = RECT_COLOR_FORMAT_A1Y15;
+                    break;
                case DSPF_ARGB1555:
                     sformat2D = SURFACES2D_FORMAT_A1R5G5B5;
                     sformat3D = SURFACES3D_FORMAT_COLOR_A1R5G5B5;
@@ -207,7 +212,7 @@ void nv_set_destination( NVidiaDriverData *nvdrv,
           }
           
           NVIDIA_UNSET( COLOR );
-          NVIDIA_UNSET( SRC_BLEND );
+          NVIDIA_UNSET( DST_BLEND );
      }
      else {
           nv_assign_object( nvdrv, nvdev,
@@ -329,8 +334,10 @@ void nv_set_source( NVidiaDriverData *nvdrv,
           nvdev->state3d[1].format |= (size_u << 16) | (size_v << 20);
      }
 
-     if (nvdev->src_format != buffer->format)
+     if (nvdev->src_format != buffer->format) {
+          NVIDIA_UNSET( SRC_BLEND );
           NVIDIA_UNSET( BLITTING_FLAGS );
+     }
      nvdev->src_format = buffer->format;
      
      NVIDIA_SET( SOURCE );
@@ -388,6 +395,7 @@ void nv_set_drawing_color( NVidiaDriverData *nvdrv,
                                               color.g,
                                               color.b );
                break;
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
                nvdev->color2d = PIXEL_ARGB1555( color.a,
                                                 color.r,
@@ -532,31 +540,43 @@ void nv_set_blend_function( NVidiaDriverData *nvdrv,
                             NVidiaDeviceData *nvdev,
                             CardState        *state )
 {
-     u32 blend;
+     DFBSurfaceBlendFunction sblend, dblend;
      
      if (NVIDIA_IS_SET( SRC_BLEND ) && NVIDIA_IS_SET( DST_BLEND ))
           return;
-          
-     blend = state->dst_blend << 28;
+       
+     sblend = state->src_blend;
+     dblend = state->dst_blend;
      
-     if (!DFB_PIXELFORMAT_HAS_ALPHA( nvdev->dst_format )) {
-          switch (state->src_blend) {
-               case DSBF_DESTALPHA:
-                    blend |= TXTRI_BLEND_SRCBLEND_ONE;
-                    break;
-               case DSBF_INVDESTALPHA:
-                    blend |= TXTRI_BLEND_SRCBLEND_ZERO;
-                    break;
-               default:
-                    blend |= state->src_blend << 24;
-          }
-     } else
-          blend |= state->src_blend << 24;
+#if 0
+     if (!DFB_PIXELFORMAT_HAS_ALPHA(nvdev->src_format)) {
+          if (sblend == DSBF_SRCALPHA)
+               sblend = DSBF_ONE;
+          else if (sblend == DSBF_INVSRCALPHA)
+               sblend = DSBF_ZERO;
+               
+          if (dblend == DSBF_SRCALPHA)
+               dblend = DSBF_ONE;
+          else if (dblend == DSBF_INVSRCALPHA)
+               dblend = DSBF_ZERO;
+     }
+#endif
+     if (!DFB_PIXELFORMAT_HAS_ALPHA(nvdev->dst_format)) {
+          if (sblend == DSBF_DESTALPHA)
+               sblend = DSBF_ONE;
+          else if (sblend == DSBF_INVDESTALPHA)
+               sblend = DSBF_ZERO;
+               
+          if (dblend == DSBF_DESTALPHA)
+               dblend = DSBF_ONE;
+          else if (dblend == DSBF_INVDESTALPHA)
+               dblend = DSBF_ZERO;
+     }
           
      nvdev->state3d[0].blend &= 0x00FFFFFF;
-     nvdev->state3d[0].blend |= blend;
+     nvdev->state3d[0].blend |= (sblend << 24) | (dblend << 28);
      nvdev->state3d[1].blend &= 0x00FFFFFF;
-     nvdev->state3d[1].blend |= blend;   
+     nvdev->state3d[1].blend |= (sblend << 24) | (dblend << 28);
          
      if (!NVIDIA_IS_SET( SRC_BLEND ))
           NVIDIA_UNSET( BLITTING_FLAGS );
