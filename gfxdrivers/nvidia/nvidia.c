@@ -475,8 +475,8 @@ static void nv4CheckState( void *drv, void *dev,
                return;
 
           if (accel == DFXL_TEXTRIANGLES) {
-               u32 size = (1 << direct_log2( source->width  )) *
-                          (1 << direct_log2( source->height ));
+               u32 size = 1 << (direct_log2( source->width  ) +
+                                direct_log2( source->height ));
                
                if (size > nvdev->max_texture_size)
                     return;
@@ -594,8 +594,8 @@ static void nv5CheckState( void *drv, void *dev,
                return;
 
           if (accel == DFXL_TEXTRIANGLES) {
-               u32 size = (1 << direct_log2( source->width  )) *
-                          (1 << direct_log2( source->height ));
+               u32 size = 1 << (direct_log2( source->width  ) +
+                                direct_log2( source->height ));
                
                if (size > nvdev->max_texture_size)
                     return;
@@ -709,16 +709,17 @@ static void nv10CheckState( void *drv, void *dev,
                return;
 
           if (accel == DFXL_TEXTRIANGLES) {
-               u32 size = (1 << direct_log2( source->width  )) *
-                          (1 << direct_log2( source->height ));
+               u32 size = 1 << (direct_log2( source->width  ) + 
+                                direct_log2( source->height ));
                
                if (size > nvdev->max_texture_size)
                     return;
           } 
           else if (state->blittingflags & DSBLIT_MODULATE_ALPHA) {
-               if (state->blittingflags & DSBLIT_COLORIZE &&
-                   state->blittingflags & DSBLIT_BLEND_COLORALPHA)
-                    return;
+               if (state->blittingflags & (DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR)) {
+                    if (source->format == DSPF_ARGB && state->src_blend != DSBF_ONE)
+                         return;
+               }
 
                if (state->src_blend != DSBF_ONE &&
                    state->src_blend != DSBF_SRCALPHA)
@@ -834,10 +835,11 @@ static void nv20CheckState( void *drv, void *dev,
               (state->blittingflags & ~NV20_SUPPORTED_BLITTINGFLAGS))
                return;
 
-          if (state->blittingflags & DSBLIT_MODULATE_ALPHA) {
-               if (state->blittingflags & DSBLIT_COLORIZE &&
-                   state->blittingflags & DSBLIT_BLEND_COLORALPHA)
-                    return;
+          if (state->blittingflags & DSBLIT_MODULATE_ALPHA) { 
+               if (state->blittingflags & (DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR)) {
+                    if (source->format == DSPF_ARGB && state->src_blend != DSBF_ONE)
+                         return;
+               }
 
                if (state->src_blend != DSBF_ONE &&
                    state->src_blend != DSBF_SRCALPHA)
@@ -1262,8 +1264,11 @@ static void nv20SetState( void *drv, void *dev,
           case DFXL_STRETCHBLIT:
                nv_set_source( nvdrv, nvdev, state );
                
-               if (state->blittingflags & DSBLIT_MODULATE)
+               if (state->blittingflags & DSBLIT_MODULATE) {
+                    if (state->modified & SMF_SRC_BLEND)
+                         nvdev->set &= ~SMF_BLITTING_FLAGS;
                     nv_set_blitting_color( nvdrv, nvdev, state );
+               }
 
                nv_set_blittingflags( nvdrv, nvdev, state );
 
