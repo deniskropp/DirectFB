@@ -459,6 +459,22 @@ void nv_set_drawing_color( NVidiaDriverData *nvdrv,
      NVIDIA_UNSET( BLITTING_COLOR );
 }
 
+static inline void nv_set_blendcolor( NVidiaDriverData *nvdrv,
+                                      NVidiaDeviceData *nvdev,
+                                      u32               color )
+{
+     if (!nvdev->beta4_set || nvdev->beta4_val != color) {
+          nv_assign_object( nvdrv, nvdev,
+                            SUBC_BETA4, OBJ_BETA4, false );
+                                 
+          nv_begin( SUBC_BETA4, BETA4_FACTOR, 1 );
+          nv_outr( color );
+
+          nvdev->beta4_val = color;
+          nvdev->beta4_set = true;
+     }
+}     
+
 void nv_set_blitting_color( NVidiaDriverData *nvdrv,
                             NVidiaDeviceData *nvdev,
                             CardState        *state )
@@ -487,18 +503,9 @@ void nv_set_blitting_color( NVidiaDriverData *nvdrv,
                nvdev->color3d |= PIXEL_RGB32( color.a,
                                               color.a,
                                               color.a );
-          }        
-               
-          if (!nvdev->beta4_set || nvdev->beta4_val != nvdev->color3d) {
-               nv_assign_object( nvdrv, nvdev,
-                                 SUBC_BETA4, OBJ_BETA4, false );
-                                 
-               nv_begin( SUBC_BETA4, BETA4_FACTOR, 1 );
-               nv_outr( nvdev->color3d );
-
-               nvdev->beta4_val = nvdev->color3d;
-               nvdev->beta4_set = true;
           }
+
+          nv_set_blendcolor( nvdrv, nvdev, nvdev->color3d );
      }
      else if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
                                       DSBLIT_BLEND_ALPHACHANNEL)) {
@@ -557,7 +564,9 @@ void nv_set_blend_function( NVidiaDriverData *nvdrv,
      nvdev->state3d[0].blend |= blend;
      nvdev->state3d[1].blend &= 0x00FFFFFF;
      nvdev->state3d[1].blend |= blend;   
-          
+         
+     if (!NVIDIA_IS_SET( SRC_BLEND ))
+          NVIDIA_UNSET( BLITTING_FLAGS );
      NVIDIA_SET( SRC_BLEND );
      NVIDIA_SET( DST_BLEND );
 }
@@ -600,8 +609,8 @@ void nv_set_blittingflags( NVidiaDriverData *nvdrv,
                            NVidiaDeviceData *nvdev,
                            CardState        *state )
 {
-     u32 operation;
-     bool  src_alpha;
+     u32  operation;
+     bool src_alpha;
      
      if (NVIDIA_IS_SET( BLITTING_FLAGS ))
           return;
@@ -613,13 +622,22 @@ void nv_set_blittingflags( NVidiaDriverData *nvdrv,
      
      if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
                                  DSBLIT_BLEND_ALPHACHANNEL)) {
-          if (state->blittingflags & (DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR))
+          if (state->blittingflags & (DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR)) {
                operation = OPERATION_BLEND_PREMULTIPLIED;
-          else 
+          }
+          else if (state->src_blend == DSBF_ONE) {
+               operation = OPERATION_BLEND_PREMULTIPLIED;
+               nv_set_blendcolor( nvdrv, nvdev, 
+                                  (state->blittingflags & DSBLIT_BLEND_COLORALPHA) 
+                                  ? ((state->color.a << 24) | 0xffffff) : 0xffffffff );
+          }
+          else {
                operation = OPERATION_BLEND;
+          }
      }
-     else if (state->blittingflags & (DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR))
+     else if (state->blittingflags & (DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR)) {
           operation = OPERATION_COLOR_MULTIPLY;
+     }
 
      if (nvdev->src_system) {
           switch (nvdev->src_format) {

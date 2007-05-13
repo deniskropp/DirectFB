@@ -716,16 +716,13 @@ static void nv10CheckState( void *drv, void *dev,
                     return;
           } 
           else if (state->blittingflags & DSBLIT_MODULATE_ALPHA) {
-               if (state->blittingflags & DSBLIT_COLORIZE) {
-                    if (state->blittingflags & DSBLIT_BLEND_COLORALPHA ||
-                        state->src_blend != ((source->format == DSPF_A8) 
-                                             ? DSBF_SRCALPHA : DSBF_ONE))
-                         return;
-               } 
-               else {
-                    if (state->src_blend != DSBF_SRCALPHA)
-                         return;
-               }
+               if (state->blittingflags & DSBLIT_COLORIZE &&
+                   state->blittingflags & DSBLIT_BLEND_COLORALPHA)
+                    return;
+
+               if (state->src_blend != DSBF_ONE &&
+                   state->src_blend != DSBF_SRCALPHA)
+                    return;
 
                if (state->dst_blend != DSBF_INVSRCALPHA)
                     return;
@@ -838,16 +835,14 @@ static void nv20CheckState( void *drv, void *dev,
                return;
 
           if (state->blittingflags & DSBLIT_MODULATE_ALPHA) {
-               if (state->blittingflags & DSBLIT_COLORIZE) {
-                    if (state->blittingflags & DSBLIT_BLEND_COLORALPHA ||
-                        state->src_blend != ((source->format == DSPF_A8) 
-                                             ? DSBF_SRCALPHA : DSBF_ONE))
-                         return;
-               } else {
-                    if (state->src_blend != DSBF_SRCALPHA)
-                         return;
-               }
+               if (state->blittingflags & DSBLIT_COLORIZE &&
+                   state->blittingflags & DSBLIT_BLEND_COLORALPHA)
+                    return;
 
+               if (state->src_blend != DSBF_ONE &&
+                   state->src_blend != DSBF_SRCALPHA)
+                    return;
+                    
                if (state->dst_blend != DSBF_INVSRCALPHA)
                     return;
           }
@@ -1576,7 +1571,7 @@ driver_init_device( GraphicsDevice     *device,
                device_info->caps.blitting = NV10_SUPPORTED_BLITTINGFLAGS;
                break;
           case NV_ARCH_20:
-               device_info->caps.flags    = CCF_CLIPPING | CCF_READSYSMEM;
+               device_info->caps.flags    = CCF_CLIPPING /* | CCF_READSYSMEM*/; /* Crash reported when the flag is on. */
                device_info->caps.accel    = NV20_SUPPORTED_DRAWINGFUNCTIONS |
                                             NV20_SUPPORTED_BLITTINGFUNCTIONS;
                device_info->caps.drawing  = NV20_SUPPORTED_DRAWINGFLAGS;
