@@ -647,6 +647,9 @@ void nv_set_blittingflags( NVidiaDriverData *nvdrv,
 
      if (nvdev->src_system) {
           switch (nvdev->src_format) {
+               case DSPF_RGB555:
+                    nvdev->system_format = IBLIT_COLOR_FORMAT_X1R5G5B5;
+                    break;
                case DSPF_ARGB1555:
                     nvdev->system_format = src_alpha
                                            ? IBLIT_COLOR_FORMAT_A1R5G5B5 
@@ -687,6 +690,9 @@ void nv_set_blittingflags( NVidiaDriverData *nvdrv,
                case DSPF_ALUT44:
                case DSPF_RGB332:
                     nvdev->scaler_format = SCALER_COLOR_FORMAT_Y8;
+                    break;
+               case DSPF_RGB555:
+                    nvdev->scaler_format = SCALER_COLOR_FORMAT_X1R5G5B5;
                     break;
                case DSPF_ARGB1555:
                     nvdev->scaler_format = src_alpha
@@ -732,6 +738,9 @@ void nv_set_blittingflags( NVidiaDriverData *nvdrv,
           nvdev->state3d[1].blend  &= 0xFF00FFF0;
 
           switch (nvdev->src_format) {
+               case DSPF_RGB555:
+                    nvdev->state3d[1].format |= TXTRI_FORMAT_COLOR_X1R5G5B5;
+                    break;
                case DSPF_ARGB1555:
                     nvdev->state3d[1].format |= TXTRI_FORMAT_COLOR_A1R5G5B5;
                     break;
