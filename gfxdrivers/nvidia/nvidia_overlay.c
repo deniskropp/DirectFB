@@ -1,4 +1,9 @@
 /*
+   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2000-2004  Convergence (integrated media) GmbH
+
+   All rights reserved.
+
    Written by Oliver Schwartz <Oliver.Schwartz@gmx.de> and
               Claudio Ciccani <klan@users.sf.net>.
 
@@ -76,11 +81,13 @@ typedef struct {
      } regs;
 } NVidiaOverlayLayerData;
 
-static void ov0_set_regs    ( NVidiaDriverData       *nvdrv,
-                              NVidiaOverlayLayerData *nvov0 );
-static void ov0_calc_regs   ( NVidiaDriverData       *nvdrv,
-                              NVidiaOverlayLayerData *nvov0,
-                              CoreLayerRegionConfig  *config );
+static void ov0_set_regs    ( NVidiaDriverData           *nvdrv,
+                              NVidiaOverlayLayerData     *nvov0,
+                              CoreLayerRegionConfigFlags  flags );
+static void ov0_calc_regs   ( NVidiaDriverData           *nvdrv,
+                              NVidiaOverlayLayerData     *nvov0,
+                              CoreLayerRegionConfig      *config,
+                              CoreLayerRegionConfigFlags  flags );
 static void ov0_set_colorkey( NVidiaDriverData       *nvdrv,
                               NVidiaOverlayLayerData *nvov0,
                               CoreLayerRegionConfig  *config );
@@ -238,8 +245,8 @@ ov0SetRegion( CoreLayer                  *layer,
      if (updated & (CLRCF_WIDTH  | CLRCF_HEIGHT | CLRCF_FORMAT  |
                     CLRCF_SOURCE | CLRCF_DEST   | CLRCF_OPTIONS | CLRCF_OPACITY))
      {
-          ov0_calc_regs( nvdrv, nvov0, config );
-          ov0_set_regs( nvdrv, nvov0 );
+          ov0_calc_regs( nvdrv, nvov0, config, updated );
+          ov0_set_regs( nvdrv, nvov0, updated );
      }
 
      /* set destination colorkey */
@@ -534,8 +541,8 @@ ov0FlipRegion ( CoreLayer           *layer,
                           dstPitch, height, width );
      }
 
-     ov0_calc_regs( nvdrv, nvov0, &nvov0->config );
-     ov0_set_regs( nvdrv, nvov0 );
+     ov0_calc_regs( nvdrv, nvov0, &nvov0->config, CLRCF_SURFACE );
+     ov0_set_regs( nvdrv, nvov0, CLRCF_SURFACE );
 
      if (flags & DSFLIP_WAIT)
           dfb_layer_wait_vsync( layer );
@@ -637,7 +644,7 @@ ov0SetInputField( CoreLayer *layer,
      nvov0->field = field;
      nvov0->regs.BUFFER = 1 << (field << 2);
      
-     ov0_set_regs( nvdrv, nvov0 );
+     nv_out32( nvdrv->mmio_base, PVIDEO_BUFFER, nvov0->regs.BUFFER );
      
      return DFB_OK;
 }
@@ -660,35 +667,47 @@ DisplayLayerFuncs nvidiaOverlayFuncs = {
 
 /* internal */
 
-static void ov0_set_regs( NVidiaDriverData *nvdrv, NVidiaOverlayLayerData *nvov0 )
+static void ov0_set_regs( NVidiaDriverData           *nvdrv, 
+                          NVidiaOverlayLayerData     *nvov0,
+                          CoreLayerRegionConfigFlags  flags )
 {
      volatile u8 *mmio = nvdrv->mmio_base;
      
-     nv_out32( mmio, PVIDEO_BASE_0,      nvov0->regs.BASE_0 );
-     nv_out32( mmio, PVIDEO_BASE_1,      nvov0->regs.BASE_1 );
-     nv_out32( mmio, PVIDEO_SIZE_IN_0,   nvov0->regs.SIZE_IN_0 );
-     nv_out32( mmio, PVIDEO_SIZE_IN_1,   nvov0->regs.SIZE_IN_1 );
-     nv_out32( mmio, PVIDEO_POINT_IN_0,  nvov0->regs.POINT_IN_0 );
-     nv_out32( mmio, PVIDEO_POINT_IN_1,  nvov0->regs.POINT_IN_1 );
-     nv_out32( mmio, PVIDEO_DS_DX_0,     nvov0->regs.DS_DX_0 );
-     nv_out32( mmio, PVIDEO_DS_DX_1,     nvov0->regs.DS_DX_1 );
-     nv_out32( mmio, PVIDEO_DT_DY_0,     nvov0->regs.DT_DY_0 );
-     nv_out32( mmio, PVIDEO_DT_DY_1,     nvov0->regs.DT_DY_1 );
-     nv_out32( mmio, PVIDEO_POINT_OUT_0, nvov0->regs.POINT_OUT_0 );
-     nv_out32( mmio, PVIDEO_POINT_OUT_1, nvov0->regs.POINT_OUT_1 );
-     nv_out32( mmio, PVIDEO_SIZE_OUT_0,  nvov0->regs.SIZE_OUT_0 );
-     nv_out32( mmio, PVIDEO_SIZE_OUT_1,  nvov0->regs.SIZE_OUT_1 );
-     nv_out32( mmio, PVIDEO_FORMAT_0,    nvov0->regs.FORMAT_0 );
-     nv_out32( mmio, PVIDEO_FORMAT_1,    nvov0->regs.FORMAT_1 );
-
+     if (flags & CLRCF_SURFACE) {
+          nv_out32( mmio, PVIDEO_BASE_0, nvov0->regs.BASE_0 );
+          nv_out32( mmio, PVIDEO_BASE_1, nvov0->regs.BASE_1 );
+     }
+     if (flags & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_OPTIONS)) {
+          nv_out32( mmio, PVIDEO_SIZE_IN_0, nvov0->regs.SIZE_IN_0 );
+          nv_out32( mmio, PVIDEO_SIZE_IN_1, nvov0->regs.SIZE_IN_1 );
+     }
+     if (flags & (CLRCF_SOURCE | CLRCF_DEST | CLRCF_OPTIONS)) {
+          nv_out32( mmio, PVIDEO_POINT_IN_0, nvov0->regs.POINT_IN_0 );
+          nv_out32( mmio, PVIDEO_POINT_IN_1, nvov0->regs.POINT_IN_1 );
+          nv_out32( mmio, PVIDEO_DS_DX_0,    nvov0->regs.DS_DX_0 );
+          nv_out32( mmio, PVIDEO_DS_DX_1,    nvov0->regs.DS_DX_1 );
+          nv_out32( mmio, PVIDEO_DT_DY_0,    nvov0->regs.DT_DY_0 );
+          nv_out32( mmio, PVIDEO_DT_DY_1,    nvov0->regs.DT_DY_1 );
+     }
+     if (flags & CLRCF_DEST) {
+          nv_out32( mmio, PVIDEO_POINT_OUT_0, nvov0->regs.POINT_OUT_0 );
+          nv_out32( mmio, PVIDEO_POINT_OUT_1, nvov0->regs.POINT_OUT_1 );
+          nv_out32( mmio, PVIDEO_SIZE_OUT_0,  nvov0->regs.SIZE_OUT_0 );
+          nv_out32( mmio, PVIDEO_SIZE_OUT_1,  nvov0->regs.SIZE_OUT_1 );
+     }
+     if (flags & (CLRCF_FORMAT | CLRCF_SURFACE | CLRCF_OPTIONS)) {
+          nv_out32( mmio, PVIDEO_FORMAT_0, nvov0->regs.FORMAT_0 );
+          nv_out32( mmio, PVIDEO_FORMAT_1, nvov0->regs.FORMAT_1 );
+     }
      nv_out32( mmio, PVIDEO_BUFFER, nvov0->regs.BUFFER );
      nv_out32( mmio, PVIDEO_STOP,   nvov0->regs.STOP );
 }
 
 static void
-ov0_calc_regs( NVidiaDriverData       *nvdrv,
-               NVidiaOverlayLayerData *nvov0,
-               CoreLayerRegionConfig  *config )
+ov0_calc_regs( NVidiaDriverData           *nvdrv,
+               NVidiaOverlayLayerData     *nvov0,
+               CoreLayerRegionConfig      *config,
+               CoreLayerRegionConfigFlags  flags )
 {
      NVidiaDeviceData *nvdev   = nvdrv->device_data;
      DFBRectangle      source  = config->source;
@@ -699,7 +718,7 @@ ov0_calc_regs( NVidiaDriverData       *nvdrv,
      int               width   = config->width;
      int               height  = config->height;
      u32               format;
-
+ 
      source.x <<= 4;
      source.y <<= 4;
      
@@ -717,18 +736,17 @@ ov0_calc_regs( NVidiaDriverData       *nvdrv,
           dest.y    = 0;
      }
 
-     if (source.w < 1 || source.h < 1 || dest.w < 1 || dest.h < 1) {
-          nvov0->regs.BUFFER = 0;
-          nvov0->regs.STOP   = PVIDEO_STOP_OVERLAY_ACTIVE |
-                               PVIDEO_STOP_METHOD_NORMALLY;
-          return;
-     }
-
      if (config->options & DLOP_DEINTERLACING) {
           height   /= 2;
           source.y /= 2;
           source.h /= 2;
           pitch    *= 2;
+     }
+
+     if (source.w < 1 || source.h < 1 || dest.w < 1 || dest.h < 1) {
+          nvov0->regs.STOP = PVIDEO_STOP_OVERLAY_ACTIVE |
+                             PVIDEO_STOP_METHOD_NORMALLY;
+          return;
      }
      
      if (config->format == DSPF_UYVY)
