@@ -1558,7 +1558,10 @@ setup_font_state( CoreFont *font, CardState *state )
 
 
      /* set disabled functions */
-     font->state.disabled = state->disabled;
+     if (state->disabled & DFXL_DRAWSTRING)
+          font->state.disabled = DFXL_ALL;
+     else
+          font->state.disabled = state->disabled;
 }
 
 void
