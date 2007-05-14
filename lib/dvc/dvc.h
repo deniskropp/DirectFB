@@ -193,6 +193,7 @@ dfb2dvc_pixelformat( DFBSurfacePixelFormat format )
                return DVCPF_A4I4;
           case DSPF_RGB332:
                return DVCPF_RGB8;
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
                return DVCPF_RGB15;
           case DSPF_RGB16:
