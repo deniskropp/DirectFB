@@ -395,6 +395,8 @@ static void nvEngineReset( void *drv, void *dev )
 
      nvdev->set        = 0;
      nvdev->dst_format = DSPF_UNKNOWN;
+     nvdev->dst_pitch  = 0;
+     nvdev->src_pitch  = 0;
      nvdev->beta1_set  = false;
      nvdev->beta4_set  = false;
 }
@@ -482,7 +484,7 @@ static void nv4CheckState( void *drv, void *dev,
                if (size > nvdev->max_texture_size)
                     return;
           } 
-          else if (state->blittingflags & DSBLIT_MODULATE_ALPHA) {
+          else if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) {
                if (state->src_blend != DSBF_SRCALPHA   ||
                    state->dst_blend != DSBF_INVSRCALPHA)
                     return;
@@ -603,11 +605,16 @@ static void nv5CheckState( void *drv, void *dev,
                if (size > nvdev->max_texture_size)
                     return;
           }
-          else if (state->blittingflags & DSBLIT_MODULATE_ALPHA) {
-               if (state->src_blend != DSBF_SRCALPHA     ||
-                   state->dst_blend != DSBF_INVSRCALPHA  ||
-                   state->blittingflags & DSBLIT_COLORIZE)
+          else if (state->blittingflags & DSBLIT_MODULATE) {
+               if (state->blittingflags & DSBLIT_MODULATE_ALPHA &&
+                   state->blittingflags & DSBLIT_MODULATE_COLOR)
                     return;
+               
+               if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) {
+                    if (state->src_blend != DSBF_SRCALPHA  || 
+                        state->dst_blend != DSBF_INVSRCALPHA)
+                         return;
+               }
           }
 
           switch (source->format) {
@@ -720,8 +727,8 @@ static void nv10CheckState( void *drv, void *dev,
                if (size > nvdev->max_texture_size)
                     return;
           } 
-          else if (state->blittingflags & DSBLIT_MODULATE_ALPHA) {
-               if (state->blittingflags & (DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR)) {
+          else if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) {
+               if (state->blittingflags & DSBLIT_MODULATE_COLOR) {
                     if (source->format == DSPF_ARGB && state->src_blend != DSBF_ONE)
                          return;
                }
@@ -842,8 +849,8 @@ static void nv20CheckState( void *drv, void *dev,
               (state->blittingflags & ~NV20_SUPPORTED_BLITTINGFLAGS))
                return;
 
-          if (state->blittingflags & DSBLIT_MODULATE_ALPHA) { 
-               if (state->blittingflags & (DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR)) {
+          if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) { 
+               if (state->blittingflags & DSBLIT_MODULATE_COLOR) {
                     if (source->format == DSPF_ARGB && state->src_blend != DSBF_ONE)
                          return;
                }
