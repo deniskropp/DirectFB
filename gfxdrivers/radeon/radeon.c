@@ -484,7 +484,9 @@ static void r100CheckState( void *drv, void *dev,
      switch (destination->format) {               
           case DSPF_A8:
           case DSPF_RGB332:
+          case DSPF_RGB444:
           case DSPF_ARGB4444:
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -566,7 +568,9 @@ static void r100CheckState( void *drv, void *dev,
 
           switch (source->format) {           
                case DSPF_RGB332:
+               case DSPF_RGB444:
                case DSPF_ARGB4444:
+               case DSPF_RGB555:
                case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB32:
@@ -640,7 +644,9 @@ static void r200CheckState( void *drv, void *dev,
      switch (destination->format) {               
           case DSPF_A8:
           case DSPF_RGB332:
+          case DSPF_RGB444:
           case DSPF_ARGB4444:
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -722,7 +728,9 @@ static void r200CheckState( void *drv, void *dev,
          
           switch (source->format) {                    
                case DSPF_RGB332:
+               case DSPF_RGB444:
                case DSPF_ARGB4444:
+               case DSPF_RGB555:
                case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB32:
@@ -818,8 +826,10 @@ static void r300CheckState( void *drv, void *dev,
           case DSPF_ALUT44:
           case DSPF_A8:
           case DSPF_RGB332:
+          case DSPF_RGB444:
           case DSPF_ARGB4444:
           case DSPF_ARGB2554:
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_AiRGB:
           case DSPF_AYUV:
@@ -876,7 +886,9 @@ static void r300CheckState( void *drv, void *dev,
           switch (source->format) {
                case DSPF_A8:                   
                case DSPF_RGB332:
+               case DSPF_RGB444:
                case DSPF_ARGB4444:
+               case DSPF_RGB555:
                case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB32:

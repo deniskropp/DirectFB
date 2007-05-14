@@ -150,10 +150,12 @@ void r200_set_destination( RadeonDriverData *rdrv,
                     rdev->gui_master_cntl = GMC_DST_16BPP;
                     rdev->rb3d_cntl = COLOR_FORMAT_RGB565;
                     break;
+               case DSPF_RGB444:
                case DSPF_ARGB4444:
                     rdev->gui_master_cntl = GMC_DST_16BPP;
                     rdev->rb3d_cntl = COLOR_FORMAT_ARGB4444 | DITHER_ENABLE;
                     break;
+               case DSPF_RGB555:
                case DSPF_ARGB1555:          
                     rdev->gui_master_cntl = GMC_DST_15BPP;
                     rdev->rb3d_cntl = COLOR_FORMAT_ARGB1555 | DITHER_ENABLE;
@@ -219,6 +221,7 @@ void r200_set_destination( RadeonDriverData *rdrv,
                
                RADEON_UNSET( COLOR );
                RADEON_UNSET( SRC_BLEND );
+               RADEON_UNSET( DST_BLEND );
           }
           
           rdev->dst_format = buffer->format;
@@ -285,11 +288,19 @@ void r200_set_source( RadeonDriverData *rdrv,
                              R200_MIN_FILTER_LINEAR);
                rdev->src_mask = 0x00003fff;
                break;
+          case DSPF_RGB444:
+               txformat |= R200_TXFORMAT_ARGB4444;
+               rdev->src_mask = 0x00000fff;
+               break;     
           case DSPF_ARGB4444:
                txformat |= R200_TXFORMAT_ARGB4444 |
                            R200_TXFORMAT_ALPHA_IN_MAP;
                rdev->src_mask = 0x00000fff;
                break;
+          case DSPF_RGB555:
+               txformat |= R200_TXFORMAT_ARGB1555;
+               rdev->src_mask = 0x00007fff;
+               break; 
           case DSPF_ARGB1555:
                txformat |= R200_TXFORMAT_ARGB1555 |
                            R200_TXFORMAT_ALPHA_IN_MAP;
@@ -464,10 +475,12 @@ void r200_set_drawing_color( RadeonDriverData *rdrv,
                color2d = PIXEL_ARGB2554( color.a, color.r,
                                          color.g, color.b );
                break;
+          case DSPF_RGB444:
           case DSPF_ARGB4444:
                color2d = PIXEL_ARGB4444( color.a, color.r,
                                          color.g, color.b );
                break;
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
                color2d = PIXEL_ARGB1555( color.a, color.r,
                                          color.g, color.b );
@@ -587,10 +600,9 @@ void r200_set_src_colorkey( RadeonDriverData *rdrv,
      RADEON_SET( SRC_COLORKEY );
 }
 
-void
-r200_set_blend_function( RadeonDriverData *rdrv,
-                         RadeonDeviceData *rdev,
-                         CardState        *state )
+void r200_set_blend_function( RadeonDriverData *rdrv,
+                              RadeonDeviceData *rdev,
+                              CardState        *state )
 {
      volatile u8   *mmio   = rdrv->mmio_base;
      u32            sblend;
@@ -602,17 +614,16 @@ r200_set_blend_function( RadeonDriverData *rdrv,
      sblend = r200SrcBlend[state->src_blend-1];
      dblend = r200DstBlend[state->dst_blend-1];
 
-     if (!DFB_PIXELFORMAT_HAS_ALPHA( rdev->dst_format )) {
-          switch (state->src_blend) {
-               case DSBF_DESTALPHA:
-                    sblend = SRC_BLEND_GL_ONE;
-                    break;
-               case DSBF_INVDESTALPHA:
-                    sblend = SRC_BLEND_GL_ZERO;
-                    break;
-               default:
-                    break;
-          }
+     if (!DFB_PIXELFORMAT_HAS_ALPHA(rdev->dst_format)) {
+          if (sblend == SRC_BLEND_GL_DST_ALPHA)
+               sblend = SRC_BLEND_GL_ONE;
+          else if (sblend == SRC_BLEND_GL_ONE_MINUS_DST_ALPHA)
+               sblend = SRC_BLEND_GL_ZERO;
+                    
+          if (dblend == DST_BLEND_GL_DST_ALPHA)
+               dblend = DST_BLEND_GL_ONE;
+          else if (dblend == DST_BLEND_GL_ONE_MINUS_DST_ALPHA)
+               dblend = DST_BLEND_GL_ZERO;
      }
 
      radeon_waitfifo( rdrv, rdev, 1 ); 

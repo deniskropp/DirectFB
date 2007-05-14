@@ -50,31 +50,31 @@
 
 
 static const u32 r300SrcBlend[] = {
-     R300_SRC_BLEND_GL_ZERO,                 // DSBF_ZERO
-     R300_SRC_BLEND_GL_ONE,                  // DSBF_ONE
-     R300_SRC_BLEND_GL_SRC_COLOR,            // DSBF_SRCCOLOR
-     R300_SRC_BLEND_GL_ONE_MINUS_SRC_COLOR,  // DSBF_INVSRCCOLOR
-     R300_SRC_BLEND_GL_SRC_ALPHA,            // DSBF_SRCALPHA
-     R300_SRC_BLEND_GL_ONE_MINUS_SRC_ALPHA,  // DSBF_INVSRCALPHA
-     R300_SRC_BLEND_GL_DST_ALPHA,            // DSBF_DSTALPHA
-     R300_SRC_BLEND_GL_ONE_MINUS_DST_ALPHA,  // DSBF_INVDSTALPHA
-     R300_SRC_BLEND_GL_DST_COLOR,            // DSBF_DSTCOLOR
-     R300_SRC_BLEND_GL_ONE_MINUS_DST_COLOR,  // DSBF_INVDSTCOLOR
-     R300_SRC_BLEND_GL_SRC_ALPHA_SATURATE    // DSBF_SRCALPHASAT
+     SRC_BLEND_GL_ZERO,                 // DSBF_ZERO
+     SRC_BLEND_GL_ONE,                  // DSBF_ONE
+     SRC_BLEND_GL_SRC_COLOR,            // DSBF_SRCCOLOR
+     SRC_BLEND_GL_ONE_MINUS_SRC_COLOR,  // DSBF_INVSRCCOLOR
+     SRC_BLEND_GL_SRC_ALPHA,            // DSBF_SRCALPHA
+     SRC_BLEND_GL_ONE_MINUS_SRC_ALPHA,  // DSBF_INVSRCALPHA
+     SRC_BLEND_GL_DST_ALPHA,            // DSBF_DSTALPHA
+     SRC_BLEND_GL_ONE_MINUS_DST_ALPHA,  // DSBF_INVDSTALPHA
+     SRC_BLEND_GL_DST_COLOR,            // DSBF_DSTCOLOR
+     SRC_BLEND_GL_ONE_MINUS_DST_COLOR,  // DSBF_INVDSTCOLOR
+     SRC_BLEND_GL_SRC_ALPHA_SATURATE    // DSBF_SRCALPHASAT
 };
 
 static const u32 r300DstBlend[] = {
-     R300_DST_BLEND_GL_ZERO,                 // DSBF_ZERO
-     R300_DST_BLEND_GL_ONE,                  // DSBF_ONE
-     R300_DST_BLEND_GL_SRC_COLOR,            // DSBF_SRCCOLOR
-     R300_DST_BLEND_GL_ONE_MINUS_SRC_COLOR,  // DSBF_INVSRCCOLOR
-     R300_DST_BLEND_GL_SRC_ALPHA,            // DSBF_SRCALPHA
-     R300_DST_BLEND_GL_ONE_MINUS_SRC_ALPHA,  // DSBF_INVSRCALPHA
-     R300_DST_BLEND_GL_DST_ALPHA,            // DSBF_DSTALPHA
-     R300_DST_BLEND_GL_ONE_MINUS_DST_ALPHA,  // DSBF_INVDSTALPHA
-     R300_DST_BLEND_GL_DST_COLOR,            // DSBF_DSTCOLOR
-     R300_DST_BLEND_GL_ONE_MINUS_DST_COLOR,  // DSBF_INVDSTCOLOR
-     R300_DST_BLEND_GL_ZERO                  // DSBF_SRCALPHASAT
+     DST_BLEND_GL_ZERO,                 // DSBF_ZERO
+     DST_BLEND_GL_ONE,                  // DSBF_ONE
+     DST_BLEND_GL_SRC_COLOR,            // DSBF_SRCCOLOR
+     DST_BLEND_GL_ONE_MINUS_SRC_COLOR,  // DSBF_INVSRCCOLOR
+     DST_BLEND_GL_SRC_ALPHA,            // DSBF_SRCALPHA
+     DST_BLEND_GL_ONE_MINUS_SRC_ALPHA,  // DSBF_INVSRCALPHA
+     DST_BLEND_GL_DST_ALPHA,            // DSBF_DSTALPHA
+     DST_BLEND_GL_ONE_MINUS_DST_ALPHA,  // DSBF_INVDSTALPHA
+     DST_BLEND_GL_DST_COLOR,            // DSBF_DSTCOLOR
+     DST_BLEND_GL_ONE_MINUS_DST_COLOR,  // DSBF_INVDSTCOLOR
+     DST_BLEND_GL_ZERO                  // DSBF_SRCALPHASAT
 };
 
 
@@ -329,9 +329,11 @@ void r300_set_destination( RadeonDriverData *rdrv,
                case DSPF_ARGB2554:
                     rdev->gui_master_cntl = GMC_DST_16BPP;
                     break;
+               case DSPF_RGB444:
                case DSPF_ARGB4444:
                     rdev->gui_master_cntl = GMC_DST_16BPP;
                     break;
+               case DSPF_RGB555:
                case DSPF_ARGB1555:          
                     rdev->gui_master_cntl = GMC_DST_15BPP;
                     break;
@@ -400,6 +402,7 @@ void r300_set_destination( RadeonDriverData *rdrv,
                
                RADEON_UNSET( COLOR );
                RADEON_UNSET( SRC_BLEND );
+               RADEON_UNSET( DST_BLEND );
           }
           
           rdev->dst_format = buffer->format;
@@ -471,9 +474,17 @@ void r300_set_source( RadeonDriverData *rdrv,
                            R300_TX_MIN_FILTER_NEAREST;
                rdev->src_mask = 0x00003fff;
                break;
+          case DSPF_RGB444:
+               txformat = R300_TXFORMAT_RGB444;
+               rdev->src_mask = 0x00000fff;
+               break;  
           case DSPF_ARGB4444:
                txformat = R300_TXFORMAT_ARGB4444;
                rdev->src_mask = 0x00000fff;
+               break;
+          case DSPF_RGB555:
+               txformat = R300_TXFORMAT_RGB555;
+               rdev->src_mask = 0x00007fff;
                break;
           case DSPF_ARGB1555:
                txformat = R300_TXFORMAT_ARGB1555;
@@ -669,10 +680,12 @@ void r300_set_drawing_color( RadeonDriverData *rdrv,
                color2d = PIXEL_ARGB2554( color.a, color.r,
                                          color.g, color.b );
                break;
+          case DSPF_RGB444:
           case DSPF_ARGB4444:
                color2d = PIXEL_ARGB4444( color.a, color.r,
                                          color.g, color.b );
                break;
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
                color2d = PIXEL_ARGB1555( color.a, color.r,
                                          color.g, color.b );
@@ -831,17 +844,16 @@ r300_set_blend_function( RadeonDriverData *rdrv,
      sblend = r300SrcBlend[state->src_blend-1];
      dblend = r300DstBlend[state->dst_blend-1];
 
-     if (!DFB_PIXELFORMAT_HAS_ALPHA( rdev->dst_format )) {
-          switch (state->src_blend) {
-               case DSBF_DESTALPHA:
-                    sblend = R300_SRC_BLEND_GL_ONE;
-                    break;
-               case DSBF_INVDESTALPHA:
-                    sblend = R300_SRC_BLEND_GL_ZERO;
-                    break;
-               default:
-                    break;
-          }
+     if (!DFB_PIXELFORMAT_HAS_ALPHA(rdev->dst_format)) {
+          if (sblend == SRC_BLEND_GL_DST_ALPHA)
+               sblend = SRC_BLEND_GL_ONE;
+          else if (sblend == SRC_BLEND_GL_ONE_MINUS_DST_ALPHA)
+               sblend = SRC_BLEND_GL_ZERO;
+                    
+          if (dblend == DST_BLEND_GL_DST_ALPHA)
+               dblend = DST_BLEND_GL_ONE;
+          else if (dblend == DST_BLEND_GL_ONE_MINUS_DST_ALPHA)
+               dblend = DST_BLEND_GL_ZERO;
      }
      
      rdev->rb3d_blend = sblend | dblend;

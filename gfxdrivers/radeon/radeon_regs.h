@@ -3572,6 +3572,8 @@ I am fairly certain that they are correct unless stated otherwise in comments.
 #    define R300_TXFORMAT_RGB565       R300_EASY_TXFORMAT(X, Y, Z, ONE, Z5Y6X5)
 #    define R300_TXFORMAT_ARGB4444     R300_EASY_TXFORMAT(X, Y, Z, W, W4Z4Y4X4)
 #    define R300_TXFORMAT_ARGB1555     R300_EASY_TXFORMAT(X, Y, Z, W, W1Z5Y5X5)
+#    define R300_TXFORMAT_RGB444       R300_EASY_TXFORMAT(X, Y, Z, ONE, W4Z4Y4X4)
+#    define R300_TXFORMAT_RGB555       R300_EASY_TXFORMAT(X, Y, Z, ONE, W1Z5Y5X5)
 #    define R300_TXFORMAT_RGB332       R300_EASY_TXFORMAT(X, Y, Z, ONE, Z3Y3X2)
 #    define R300_TXFORMAT_A8           R300_EASY_TXFORMAT(ONE, ONE, ONE, X, X8)
 #    define R300_TXFORMAT_I8           R300_EASY_TXFORMAT(X, X, X, X, X8)
