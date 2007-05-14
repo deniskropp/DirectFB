@@ -407,6 +407,7 @@ SwfPutImage( CoreDFB      *core,
                          S++;
                     }
                     break;
+               case DSPF_RGB444:
                case DSPF_ARGB4444:
                     if ((long)D & 2) {
                          *((u16*)D) = RGB32_TO_ARGB4444( *S );
@@ -449,6 +450,7 @@ SwfPutImage( CoreDFB      *core,
                     if (w & 1)
                          *((u16*)D) = RGB32_TO_ARGB2554( *S );
                     break;
+               case DSPF_RGB555:
                case DSPF_ARGB1555:
                     if ((long)D & 2) {
                          *((u16*)D) = RGB32_TO_ARGB1555( *S );
@@ -824,8 +826,10 @@ IDirectFBVideoProvider_Swfdec_PlayTo( IDirectFBVideoProvider *thiz,
      
      switch (dest_data->surface->format) {
           case DSPF_RGB332:
+          case DSPF_RGB444:
           case DSPF_ARGB4444:
           case DSPF_ARGB2554:
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB24:
