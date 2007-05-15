@@ -42,6 +42,7 @@ typedef struct {
      int             session;      /* select multi app world */
 
      bool            banner;       /* startup banner */
+     bool            wait;         /* wait slaves on exit */
 } FSConfig;
 
 extern FSConfig *fs_config;

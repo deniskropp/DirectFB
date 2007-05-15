@@ -69,6 +69,7 @@ static const char *config_usage =
      "  [no-]banner                    Show FusionSound banner on startup\n"
      "  [no-]debug                     Enable debug output\n"
      "  [no-]trace                     Enable stack trace support\n"
+     "  [no-]wait                      Wait slaves before quitting\n" 
      "\n";
      
 typedef struct {
@@ -188,9 +189,12 @@ config_allocate()
      fs_config->samplerate   = 48000;
      fs_config->buffertime   = 25;
     
-     fs_config->session      = MAX(dfb_config->session,0) + 1;
+     fs_config->session  = dfb_config->session;
+     if (fs_config->session >= 0)
+          fs_config->session++;
 
-     fs_config->banner       = dfb_config->banner;
+     fs_config->banner   = dfb_config->banner;
+     fs_config->wait     = true;
 }
 
 const char*
@@ -359,6 +363,12 @@ fs_config_set( const char *name, const char *value )
      }
      else if (!strcmp( name, "no-banner" )) {
           fs_config->banner = false;
+     }
+     else if (!strcmp( name, "wait" )) {
+          fs_config->wait = true;
+     }
+     else if (!strcmp( name, "no-wait" )) {
+          fs_config->wait = false;
      }
      else if (!strcmp( name, "debug" )) {
           if (value)

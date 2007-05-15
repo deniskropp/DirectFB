@@ -103,6 +103,12 @@ Enable debug output.
 .BI [no-]trace
 Enable stack trace support.
 
+.TP
+.BI [no-]wait
+If there are still slaves playing, the option will cause the master
+to fork and wait until all playbacks are finished before releasing
+resources.
+
 
 .SH EXAMPLES
 

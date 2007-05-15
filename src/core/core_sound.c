@@ -106,6 +106,8 @@ struct __FS_CoreSound {
      void                *output_buffer;
 
      DirectSignalHandler *signal_handler;
+     
+     bool                 detached;
 };
 
 /******************************************************************************/
@@ -126,6 +128,10 @@ static int fs_core_arena_leave     ( FusionArena *arena,
 static int fs_core_arena_shutdown  ( FusionArena *arena,
                                      void        *ctx,
                                      bool         emergency);
+
+/******************************************************************************/
+
+static DFBResult fs_core_detach( CoreSound *core );
 
 /******************************************************************************/
 
@@ -238,6 +244,9 @@ fs_core_destroy( CoreSound *core, bool emergency )
                if (emergency) {
                     fusion_kill( core->world, 0, SIGKILL, 1000 );
                }
+               else if (fs_config->wait) {
+                    fs_core_detach( core );
+               }
                else {
                     fusion_kill( core->world, 0, SIGTERM, 5000 );
                     fusion_kill( core->world, 0, SIGKILL, 2000 );
@@ -263,6 +272,9 @@ fs_core_destroy( CoreSound *core, bool emergency )
 
      /* Unlock the core singleton mutex. */
      pthread_mutex_unlock( &core_sound_lock );
+     
+     if (core->detached)
+          _exit( 0 );
 
      return DFB_OK;
 }
@@ -838,7 +850,7 @@ fs_core_leave( CoreSound *core )
 }
 
 static DFBResult
-fs_core_shutdown( CoreSound *core )
+fs_core_shutdown( CoreSound *core, bool local )
 {
      DirectLink      *l, *next;
      CoreSoundShared *shared;
@@ -855,29 +867,31 @@ fs_core_shutdown( CoreSound *core )
      direct_thread_cancel( core->sound_thread );
      direct_thread_join( core->sound_thread );
      direct_thread_destroy( core->sound_thread );
-     
-     /* close output device */
-     fs_device_shutdown( core->device );
 
-     /* clear playback list */
-     fusion_skirmish_prevail( &shared->playlist.lock );
+     if (!local) {
+          /* close output device */
+          fs_device_shutdown( core->device );
+          
+          /* clear playback list */
+          fusion_skirmish_prevail( &shared->playlist.lock );
 
-     direct_list_foreach_safe (l, next, shared->playlist.entries) {
-          CorePlaylistEntry *entry = (CorePlaylistEntry*) l;
+          direct_list_foreach_safe (l, next, shared->playlist.entries) {
+               CorePlaylistEntry *entry = (CorePlaylistEntry*) l;
 
-          fs_playback_unlink( &entry->playback );
+               fs_playback_unlink( &entry->playback );
 
-          SHFREE( shared->shmpool, entry );
+               SHFREE( shared->shmpool, entry );
+          }
+
+          /* destroy playback object pool */
+          fusion_object_pool_destroy( shared->playback_pool, core->world );
+
+          /* destroy buffer object pool */
+          fusion_object_pool_destroy( shared->buffer_pool, core->world );
+
+          /* destroy playlist lock */
+          fusion_skirmish_destroy( &shared->playlist.lock );
      }
-
-     /* destroy playback object pool */
-     fusion_object_pool_destroy( shared->playback_pool, core->world );
-
-     /* destroy buffer object pool */
-     fusion_object_pool_destroy( shared->buffer_pool, core->world );
-
-     /* destroy playlist lock */
-     fusion_skirmish_destroy( &shared->playlist.lock );
      
      /* release buffers */
      D_FREE( core->mixing_buffer );
@@ -885,6 +899,45 @@ fs_core_shutdown( CoreSound *core )
 
      return DFB_OK;
 }
+
+static DFBResult
+fs_core_detach( CoreSound *core )
+{
+     int ret;
+     
+     D_DEBUG( "FusionSound/Core: Detaching...\n" );
+     
+     D_ASSUME( !core->detached );
+     
+     /* detach core from controlling process */
+     fusion_world_set_fork_action( core->world, FFA_FORK );
+     ret = fork();
+     fusion_world_set_fork_action( core->world, FFA_CLOSE );
+     
+     switch (ret) {
+          case -1:
+               D_PERROR( "fork()" );
+               fusion_kill( core->world, 0, SIGTERM, 5000 );
+               fusion_kill( core->world, 0, SIGKILL, 2000 );
+               return DFB_FAILURE;
+          
+          case 0:
+               D_DEBUG( "FusionSound/Core: ... detached.\n" ); 
+               core->detached = true;
+               /* restart sound thread */
+               core->sound_thread = direct_thread_create( DTT_OUTPUT, sound_thread, core, "Sound Mixer" );
+               break;
+          
+          default:
+               core->master = false;
+               /* release local resources */
+               fs_core_shutdown( core, true );
+               break;
+     }
+     
+     return DFB_OK;
+}
+
 
 /******************************************************************************/
 
@@ -953,7 +1006,7 @@ fs_core_arena_shutdown( FusionArena *arena,
      }
 
      /* Shutdown. */
-     ret = fs_core_shutdown( core );
+     ret = fs_core_shutdown( core, false );
      if (ret)
           return ret;
 
