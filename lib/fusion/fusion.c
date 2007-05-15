@@ -207,6 +207,26 @@ fusion_world_fork( FusionWorld *world )
 }
 
 static void
+fusion_fork_handler_parent()
+{
+     int i;
+
+     D_DEBUG_AT( Fusion_Main, "%s()\n", __FUNCTION__ );
+    
+     for (i=0; i<FUSION_MAX_WORLDS; i++) {
+          FusionWorld *world = fusion_worlds[i];
+
+          if (!world)
+               continue;
+
+          D_MAGIC_ASSERT( world, FusionWorld );
+               
+          if (world->fork_action == FFA_FORK)
+               world->forked = true;
+     }
+}
+
+static void
 fusion_fork_handler_child()
 {
      int i;
@@ -261,7 +281,7 @@ init_once()
      struct utsname uts;
      int            i, j, k, l;
 
-     pthread_atfork( NULL, NULL, fusion_fork_handler_child );
+     pthread_atfork( NULL, fusion_fork_handler_parent, fusion_fork_handler_child );
 
      if (uname( &uts ) < 0) {
           D_PERROR( "Fusion/Init: uname() failed!\n" );
@@ -677,11 +697,13 @@ fusion_exit( FusionWorld *world,
           fusion_skirmish_destroy( &shared->reactor_globals );
           fusion_skirmish_destroy( &shared->arenas_lock );
 
-          fusion_shm_pool_destroy( world, shared->main_pool );
+          if (!world->forked)
+               fusion_shm_pool_destroy( world, shared->main_pool );
      }
 
      /* Deinitialize or leave shared memory. */
-     fusion_shm_deinit( world );
+     if (!world->forked)
+          fusion_shm_deinit( world );
 
      /* Reset local dispatch nodes. */
      _fusion_reactor_free_all( world );
@@ -692,7 +714,7 @@ fusion_exit( FusionWorld *world,
 
 
      /* Unmap shared area. */
-     if (fusion_master( world ))
+     if (fusion_master( world ) && !world->forked)
           D_MAGIC_CLEAR( shared );
 
      munmap( shared, sizeof(FusionWorldShared) );

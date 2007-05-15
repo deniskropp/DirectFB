@@ -92,6 +92,7 @@ struct __Fusion_FusionWorld {
      FusionSHM            shm;
 
      FusionForkAction     fork_action;
+     bool                 forked;
 };
 
 /*******************************************
