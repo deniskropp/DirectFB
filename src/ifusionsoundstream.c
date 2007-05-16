@@ -151,8 +151,11 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
           D_ASSERT( data->filled <= data->size );
 
           /* Wait for at least one free sample. */
-          while (data->filled == data->size)
+          while (data->filled == data->size) {
+               pthread_cleanup_push( (void (*)(void *))pthread_mutex_unlock, &data->lock );
                pthread_cond_wait( &data->wait, &data->lock );
+               pthread_cleanup_pop( 0 );
+          }
 
           /* Calculate number of free samples in the buffer. */
           num = data->size - data->filled;
@@ -211,7 +214,9 @@ IFusionSoundStream_Wait( IFusionSoundStream *thiz,
           else if (!data->playing)
                break;
 
+          pthread_cleanup_push( (void (*)(void *))pthread_mutex_unlock, &data->lock );
           pthread_cond_wait( &data->wait, &data->lock );
+          pthread_cleanup_pop( 0 );
      }
 
      pthread_mutex_unlock( &data->lock );
@@ -262,7 +267,9 @@ IFusionSoundStream_Flush( IFusionSoundStream *thiz )
      pthread_mutex_lock( &data->lock );
 
      while (data->playing) {
+          pthread_cleanup_push( (void (*)(void *))pthread_mutex_unlock, &data->lock );
           pthread_cond_wait( &data->wait, &data->lock );
+          pthread_cleanup_pop( 0 );
      }
 
      /* Reset the buffer. */

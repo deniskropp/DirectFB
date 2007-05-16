@@ -182,8 +182,11 @@ IFusionSoundPlayback_Wait( IFusionSoundPlayback *thiz )
                     ret = DFB_UNSUPPORTED;
                     break;
                }
-               else
+               else {
+                    pthread_cleanup_push( (void (*)(void *))pthread_mutex_unlock, &data->lock );
                     pthread_cond_wait( &data->wait, &data->lock );
+                    pthread_cleanup_pop( 0 );
+               }
           }
           else
                break;
