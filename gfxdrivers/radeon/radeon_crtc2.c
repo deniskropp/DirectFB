@@ -356,6 +356,7 @@ crtc2TestRegion( CoreLayer                  *layer,
      switch (config->format) {
           case DSPF_LUT8:
           case DSPF_RGB332:
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB24:
@@ -643,6 +644,7 @@ crtc2_calc_regs( RadeonDriverData      *rdrv,
           case DSPF_RGB332:
                format = DST_8BPP;
                break;
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
                format = DST_15BPP;
                break;
@@ -907,7 +909,8 @@ crtc2_calc_palette( RadeonDriverData      *rdrv,
                          }
                     }
                }
-               break;                    
+               break;
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
                rcrtc2->lut.size = 32;
                for (i = 0; i < 32; i++) {
@@ -991,9 +994,9 @@ static void
 crtc2_set_palette( RadeonDriverData     *rdrv,
                    RadeonCrtc2LayerData *rcrtc2 )
 {
-     volatile u8   *mmio = rdrv->mmio_base;
-     u32            tmp;
-     int            i, j;
+     volatile u8 *mmio = rdrv->mmio_base;
+     u32          tmp;
+     int          i, j;
 
      if (!rcrtc2->lut.size) {
           D_WARN( "palette is empty" );
@@ -1017,4 +1020,4 @@ crtc2_set_palette( RadeonDriverData     *rdrv,
 
      dfb_gfxcard_unlock();
 }
-    
+

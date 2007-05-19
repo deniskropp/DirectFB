@@ -237,6 +237,7 @@ ovlTestRegion( CoreLayer                  *layer,
      
      /* check pixel format */
      switch (config->format) {
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -547,11 +548,12 @@ ovl_calc_coordinates( RadeonDriverData       *rdrv,
           h_inc >>= 1;
      }
 
-     switch (surface->format) { 
-          case DSPF_RGB32:
-          case DSPF_ARGB:
+     switch (surface->format) {
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
                h_inc2 = h_inc;
                break;
           default:
@@ -760,6 +762,7 @@ ovl_calc_regs( RadeonDriverData       *rdrv,
                rovl->regs.SCALE_CNTL |= SCALER_VERT_PICK_NEAREST;
  
           switch (surface->format) {
+               case DSPF_RGB555:
                case DSPF_ARGB1555:
                     rovl->regs.SCALE_CNTL |= SCALER_SOURCE_15BPP |
                                              SCALER_PRG_LOAD_START;
