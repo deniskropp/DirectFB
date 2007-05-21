@@ -401,7 +401,6 @@ void r300_set_destination( RadeonDriverData *rdrv,
                }
                
                RADEON_UNSET( COLOR );
-               RADEON_UNSET( SRC_BLEND );
                RADEON_UNSET( DST_BLEND );
           }
           
@@ -422,10 +421,8 @@ void r300_set_source( RadeonDriverData *rdrv,
      SurfaceBuffer *buffer   = surface->front_buffer;
      volatile u8   *mmio     = rdrv->mmio_base;
      u32            txformat = 0;
-     u32            txfilter = (R300_TX_CLAMP_TO_EDGE << R300_TX_WRAP_S_SHIFT) |
-                               (R300_TX_CLAMP_TO_EDGE << R300_TX_WRAP_T_SHIFT) |
-                               (R300_TX_CLAMP_TO_EDGE << R300_TX_WRAP_Q_SHIFT) |
-                                R300_TX_MAG_FILTER_LINEAR | R300_TX_MIN_FILTER_LINEAR;
+     u32            txfilter = R300_TX_MAG_FILTER_LINEAR |
+                               R300_TX_MIN_FILTER_LINEAR;
 
      if (RADEON_IS_SET( SOURCE )) {
           if ((state->blittingflags & DSBLIT_DEINTERLACE) ==
@@ -440,6 +437,16 @@ void r300_set_source( RadeonDriverData *rdrv,
      rdev->src_pitch  = buffer->video.pitch;
      rdev->src_width  = surface->width;
      rdev->src_height = surface->height;
+
+     if (rdev->accel == DFXL_TEXTRIANGLES) {
+          txfilter |= (R300_TX_CLAMP_TO_BORDER << R300_TX_WRAP_S_SHIFT) |
+                      (R300_TX_CLAMP_TO_BORDER << R300_TX_WRAP_T_SHIFT) |
+                      (R300_TX_CLAMP_TO_BORDER << R300_TX_WRAP_Q_SHIFT);
+     } else {
+          txfilter |= (R300_TX_CLAMP_TO_EDGE << R300_TX_WRAP_S_SHIFT) |
+                      (R300_TX_CLAMP_TO_EDGE << R300_TX_WRAP_T_SHIFT) |
+                      (R300_TX_CLAMP_TO_EDGE << R300_TX_WRAP_Q_SHIFT);
+     }
 
      switch (buffer->format) {
           case DSPF_LUT8:
@@ -556,7 +563,7 @@ void r300_set_source( RadeonDriverData *rdrv,
      radeon_out32( mmio, SRC_PITCH,  rdev->src_pitch );
      
      if (R300_HAS_3DREGS()) {
-          radeon_waitfifo( rdrv, rdev, 6 );
+          radeon_waitfifo( rdrv, rdev, 7 );
           radeon_out32( mmio, R300_TX_CNTL, 0 );
           radeon_out32( mmio, R300_TX_FILTER_0, txfilter );
           radeon_out32( mmio, R300_TX_FORMAT_0, txformat );
@@ -566,6 +573,7 @@ void r300_set_source( RadeonDriverData *rdrv,
           radeon_out32( mmio, R300_TX_PITCH_0, rdev->src_pitch / 
                                                DFB_BYTES_PER_PIXEL(buffer->format) - 8 );
           radeon_out32( mmio, R300_TX_OFFSET_0, rdev->src_offset ); 
+          radeon_out32( mmio, R300_TX_BORDER_COLOR_0, 0 );
      }
 
      if (rdev->src_format != buffer->format)

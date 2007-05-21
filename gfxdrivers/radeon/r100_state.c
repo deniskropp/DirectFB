@@ -77,7 +77,7 @@ void r100_restore( RadeonDriverData *rdrv, RadeonDeviceData *rdev )
 {
      volatile u8 *mmio = rdrv->mmio_base;
      
-     radeon_waitfifo( rdrv, rdev, 10 );
+     radeon_waitfifo( rdrv, rdev, 12 );
      /* enable caches */
      radeon_out32( mmio, RB2D_DSTCACHE_MODE, RB2D_DC_2D_CACHE_AUTOFLUSH |
                                              RB2D_DC_3D_CACHE_AUTOFLUSH );
@@ -95,9 +95,11 @@ void r100_restore( RadeonDriverData *rdrv, RadeonDeviceData *rdev )
      radeon_out32( mmio, PP_MISC, ALPHA_TEST_PASS );
      radeon_out32( mmio, RB3D_ZSTENCILCNTL, Z_TEST_ALWAYS );
      radeon_out32( mmio, RB3D_ROPCNTL, ROP_XOR );
+     radeon_out32( mmio, PP_BORDER_COLOR_0, 0 );
      /* set YUV422 color buffer */
      radeon_out32( mmio, PP_TXFILTER_1, 0 );
      radeon_out32( mmio, PP_TXFORMAT_1, TXFORMAT_VYUY422 );
+     radeon_out32( mmio, PP_BORDER_COLOR_1, 0 );
 }
 
 void r100_set_destination( RadeonDriverData *rdrv,
@@ -210,7 +212,6 @@ void r100_set_destination( RadeonDriverData *rdrv,
                }
                
                RADEON_UNSET( COLOR );
-               RADEON_UNSET( SRC_BLEND );
                RADEON_UNSET( DST_BLEND );
           }
           
@@ -231,10 +232,8 @@ void r100_set_source( RadeonDriverData *rdrv,
      SurfaceBuffer *buffer   = surface->front_buffer;
      volatile u8   *mmio     = rdrv->mmio_base;
      u32            txformat = TXFORMAT_NON_POWER2;
-     u32            txfilter = MAG_FILTER_LINEAR  |
-                               MIN_FILTER_LINEAR  |
-                               CLAMP_S_CLAMP_LAST |
-                               CLAMP_T_CLAMP_LAST;
+     u32            txfilter = MAG_FILTER_LINEAR |
+                               MIN_FILTER_LINEAR;
 
      if (RADEON_IS_SET( SOURCE )) {
           if ((state->blittingflags & DSBLIT_DEINTERLACE) ==
@@ -249,6 +248,15 @@ void r100_set_source( RadeonDriverData *rdrv,
      rdev->src_pitch  = buffer->video.pitch;
      rdev->src_width  = surface->width;
      rdev->src_height = surface->height;
+
+     if (rdev->accel == DFXL_TEXTRIANGLES) {
+          txfilter |= CLAMP_S_CLAMP_GL |
+                      CLAMP_T_CLAMP_GL |
+                      BORDER_MODE_D3D;
+     } else {
+          txfilter |= CLAMP_S_CLAMP_LAST |
+                      CLAMP_T_CLAMP_LAST;
+     }
      
      switch (buffer->format) {
           case DSPF_LUT8:
@@ -593,9 +601,9 @@ void r100_set_blend_function( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev,
                               CardState        *state )
 {
-     volatile u8   *mmio = rdrv->mmio_base;
-     u32            sblend;
-     u32            dblend;
+     volatile u8 *mmio = rdrv->mmio_base;
+     u32          sblend;
+     u32          dblend;
      
      if (RADEON_IS_SET( SRC_BLEND ) && RADEON_IS_SET( DST_BLEND ))
           return;

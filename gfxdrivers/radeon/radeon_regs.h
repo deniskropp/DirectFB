@@ -2443,6 +2443,8 @@
 #define R200_PP_TXSIZE_1                0x2c2c
 #define R200_PP_TXPITCH_0               0x2c10 /* NPOT only */
 #define R200_PP_TXPITCH_1               0x2c30
+#define R200_PP_BORDER_COLOR_0          0x2c14
+#define R200_PP_BORDER_COLOR_1          0x2c34
 #define R200_PP_TXOFFSET_0			0x2d00
 #define R200_PP_TXOFFSET_1              0x2d18
 #       define R200_TXO_ENDIAN_NO_SWAP		(0 << 0)
