@@ -1,0 +1,8 @@
+.libs
+.deps
+Makefile
+Makefile.in
+fusion_fork
+fusion_reactor
+fusion_stream
+*.o
