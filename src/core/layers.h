@@ -305,6 +305,8 @@ void dfb_layers_enumerate( DisplayLayerCallback  callback,
                            void                 *ctx );
 
 
+int        dfb_layer_num();
+
 CoreLayer *dfb_layer_at( DFBDisplayLayerID id );
 
 CoreLayer *dfb_layer_at_translated( DFBDisplayLayerID id );

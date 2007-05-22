@@ -70,9 +70,6 @@
 
 IDirectFB *idirectfb_singleton = NULL;
 
-static DFBResult apply_configuration( IDirectFB        *dfb,
-                                      CoreLayerContext *context );
-
 static DFBResult CreateRemote( const char *host, int session, IDirectFB **ret_interface );
 
 /*
@@ -219,13 +216,6 @@ DirectFBCreate( IDirectFB **interface )
                return ret;
           }
 
-          ret = apply_configuration( dfb, context );
-          if (ret) {
-               dfb_layer_context_unref( context );
-               dfb->Release( dfb );
-               return ret;
-          }
-
           stack = dfb_layer_context_windowstack( context );
           D_ASSERT( stack != NULL );
          
@@ -270,160 +260,6 @@ DirectFBErrorFatal( const char *msg, DFBResult error )
           //IDirectFB_Destruct( idirectfb_singleton );
 
      exit( error );
-}
-
-/**************************************************************************************************/
-
-static DFBResult
-apply_configuration( IDirectFB        *dfb,
-                     CoreLayerContext *context )
-{
-     DFBResult                   ret;
-     CoreWindowStack            *stack;
-     DFBDisplayLayerConfig       layer_config;
-     DFBDisplayLayerConfigFlags  fail;
-
-     stack = dfb_layer_context_windowstack( context );
-     D_ASSERT( stack != NULL );
-
-     /* set default desktop configuration */
-     layer_config.flags = DLCONF_BUFFERMODE;
-
-     if (dfb_config->buffer_mode == -1) {
-          CardCapabilities caps;
-
-          dfb_gfxcard_get_capabilities( &caps );
-
-          if (caps.accel & DFXL_BLIT)
-               layer_config.buffermode = DLBM_BACKVIDEO;
-          else
-               layer_config.buffermode = DLBM_BACKSYSTEM;
-     }
-     else
-          layer_config.buffermode = dfb_config->buffer_mode;
-     
-     if (dfb_config->mode.width > 0 && dfb_config->mode.height > 0) {
-          layer_config.flags |= DLCONF_WIDTH | DLCONF_HEIGHT;
-          layer_config.width  = dfb_config->mode.width;
-          layer_config.height = dfb_config->mode.height;
-     }
-
-     if (dfb_config->mode.format != DSPF_UNKNOWN) {
-          layer_config.flags |= DLCONF_PIXELFORMAT;
-          layer_config.pixelformat = dfb_config->mode.format;
-     }
-     else if (dfb_config->mode.depth > 0) {
-          DFBSurfacePixelFormat format;
-
-          format = dfb_pixelformat_for_depth( dfb_config->mode.depth );
-          if (format != DSPF_UNKNOWN) {
-               layer_config.flags |= DLCONF_PIXELFORMAT;
-               layer_config.pixelformat = format;
-          }
-     }
-
-     if (dfb_layer_context_test_configuration( context, &layer_config, &fail )) {
-          if (fail & (DLCONF_WIDTH | DLCONF_HEIGHT)) {
-               D_ERROR( "DirectFB/DirectFBCreate: "
-                        "Setting desktop resolution to %dx%d failed!\n"
-                        "     -> Using default resolution.\n",
-                        layer_config.width, layer_config.height );
-               
-               layer_config.flags &= ~(DLCONF_WIDTH | DLCONF_HEIGHT);
-          }
-
-          if (fail & DLCONF_PIXELFORMAT) { 
-               D_ERROR( "DirectFB/DirectFBCreate: "
-                        "Setting desktop format failed!\n"
-                        "     -> Using default format.\n" );
-               
-               layer_config.flags &= ~DLCONF_PIXELFORMAT;
-          }
-
-          if (fail & DLCONF_BUFFERMODE) {
-               D_ERROR( "DirectFB/DirectFBCreate: "
-                        "Setting desktop buffer mode failed!\n"
-                        "     -> No virtual resolution support or not enough memory?\n"
-                        "        Falling back to system back buffer.\n" );
-
-               layer_config.buffermode = DLBM_BACKSYSTEM;
-
-               if (dfb_layer_context_test_configuration( context, &layer_config, &fail )) {
-                    D_ERROR( "DirectFB/DirectFBCreate: "
-                             "Setting system memory desktop back buffer failed!\n"
-                             "     -> Using front buffer only mode.\n" );
-                    
-                    layer_config.flags &= ~DLCONF_BUFFERMODE;
-               }
-          }
-     }
-
-     if (layer_config.flags)
-          dfb_layer_context_set_configuration( context, &layer_config );
-
-     /* temporarily disable background */
-     dfb_windowstack_set_background_mode( stack, DLBM_DONTCARE );
-
-     /* set desktop background color */
-     dfb_windowstack_set_background_color( stack, &dfb_config->layer_bg_color );
-
-     /* set desktop background image */
-     if (dfb_config->layer_bg_mode == DLBM_IMAGE ||
-         dfb_config->layer_bg_mode == DLBM_TILE)
-     {
-          DFBSurfaceDescription   desc;
-          IDirectFBImageProvider *provider;
-          IDirectFBSurface       *image;
-          IDirectFBSurface_data  *image_data;
-
-          ret = dfb->CreateImageProvider( dfb, dfb_config->layer_bg_filename, &provider );
-          if (ret) {
-               DirectFBError( "Failed loading background image", ret );
-               return DFB_INIT;
-          }
-
-          dfb_layer_context_get_configuration( context, &layer_config );
-
-          if (dfb_config->layer_bg_mode == DLBM_IMAGE) {
-               desc.flags  = DSDESC_WIDTH | DSDESC_HEIGHT;
-               desc.width  = layer_config.width;
-               desc.height = layer_config.height;
-          }
-          else {
-               provider->GetSurfaceDescription( provider, &desc );
-          }
-
-          desc.flags |= DSDESC_PIXELFORMAT;
-          desc.pixelformat = layer_config.pixelformat;
-
-          ret = dfb->CreateSurface( dfb, &desc, &image );
-          if (ret) {
-               DirectFBError( "Failed creating surface for background image", ret );
-               provider->Release( provider );
-               return DFB_INIT;
-          }
-
-          ret = provider->RenderTo( provider, image, NULL );
-          if (ret) {
-               DirectFBError( "Failed loading background image", ret );
-               image->Release( image );
-               provider->Release( provider );
-               return DFB_INIT;
-          }
-
-          provider->Release( provider );
-
-          image_data = (IDirectFBSurface_data*) image->priv;
-
-          dfb_windowstack_set_background_image( stack, image_data->surface );
-
-          image->Release( image );
-     }
-
-     /* now set the background mode */
-     dfb_windowstack_set_background_mode( stack, dfb_config->layer_bg_mode );
-
-     return DFB_OK;
 }
 
 /**************************************************************************************************/

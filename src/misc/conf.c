@@ -49,6 +49,8 @@
 #include <core/surfaces.h>
 #include <core/layers.h>
 
+#include <gfx/convert.h>
+
 #include <misc/conf.h>
 
 
@@ -116,10 +118,16 @@ static const char *config_usage =
      "  linux-input-ir-only            Ignore all non-IR Linux Input devices\n"
      "  [no-]cursor                    Never create a cursor\n"
      "  wm=<wm>                        Window manager module ('default' or 'unique')\n"
-     "  bg-none                        Disable background clear\n"
-     "  bg-color=AARRGGBB              Use background color (hex)\n"
-     "  bg-image=<filename>            Use background image\n"
-     "  bg-tile=<filename>             Use tiled background image\n"
+     "  init-layer=<id>                Initialize layer with ID (following layer- options apply)\n"
+     "  layer-size=<width>x<height>    Set the pixel resolution\n"
+     "  layer-format=<pixelformat>     Set the pixel format\n"
+     "  layer-depth=<pixeldepth>       Set the pixel depth\n"
+     "  layer-buffer-mode=(auto|triple|backvideo|backsystem|frontonly|windows)\n"
+     "  layer-bg-none                  Disable background clear\n"
+     "  layer-bg-color=AARRGGBB        Use background color (hex)\n"
+     "  layer-bg-image=<filename>      Use background image\n"
+     "  layer-bg-tile=<filename>       Use tiled background image\n"
+     "  layer-src-key=AARRGGBB         Enable color keying (hex)\n"
      "  [no-]translucent-windows       Allow translucent windows\n"
      "  [no-]decorations               Enable window decorations (if supported by wm)\n"
      "  videoram-limit=<amount>        Limit amount of Video RAM in kb\n"
@@ -327,16 +335,27 @@ static void config_cleanup()
  */
 static void config_allocate()
 {
+     int i;
+
      if (dfb_config)
           return;
 
      dfb_config = (DFBConfig*) calloc( 1, sizeof(DFBConfig) );
 
-     dfb_config->layer_bg_color.a         = 0xFF;
-     dfb_config->layer_bg_color.r         = 0x10;
-     dfb_config->layer_bg_color.g         = 0x7c;
-     dfb_config->layer_bg_color.b         = 0xe8;
-     dfb_config->layer_bg_mode            = DLBM_COLOR;
+     for (i=0; i<D_ARRAY_SIZE(dfb_config->layers); i++) {
+          dfb_config->layers[i].background.color.a = 0;
+          dfb_config->layers[i].background.color.r = 0;
+          dfb_config->layers[i].background.color.g = 0;
+          dfb_config->layers[i].background.color.b = 0;
+          dfb_config->layers[i].background.mode    = DLBM_COLOR;
+     }
+
+     dfb_config->layers[0].init               = true;
+     dfb_config->layers[0].background.color.a = 0xff;
+     dfb_config->layers[0].background.color.r = 0xc0;
+     dfb_config->layers[0].background.color.g = 0xb0;
+     dfb_config->layers[0].background.color.b = 0x90;
+
 
      dfb_config->pci.bus                  = 1;
      dfb_config->pci.dev                  = 0;
@@ -490,23 +509,6 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
-     if (strcmp (name, "mode" ) == 0) {
-          if (value) {
-               int width, height;
-
-               if (sscanf( value, "%dx%d", &width, &height ) < 2) {
-                    D_ERROR("DirectFB/Config 'mode': Could not parse mode!\n");
-                    return DFB_INVARG;
-               }
-
-               dfb_config->mode.width  = width;
-               dfb_config->mode.height = height;
-          }
-          else {
-               D_ERROR("DirectFB/Config 'mode': No mode specified!\n");
-               return DFB_INVARG;
-          }
-     } else
      if (strcmp (name, "scaled" ) == 0) {
           if (value) {
                int width, height;
@@ -521,22 +523,6 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR("DirectFB/Config 'scaled': No size specified!\n");
-               return DFB_INVARG;
-          }
-     } else
-     if (strcmp (name, "depth" ) == 0) {
-          if (value) {
-               int depth;
-
-               if (sscanf( value, "%d", &depth ) < 1) {
-                    D_ERROR("DirectFB/Config 'depth': Could not parse value!\n");
-                    return DFB_INVARG;
-               }
-
-               dfb_config->mode.depth = depth;
-          }
-          else {
-               D_ERROR("DirectFB/Config 'depth': No value specified!\n");
                return DFB_INVARG;
           }
      } else
@@ -558,23 +544,6 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "primary-only" ) == 0) {
           dfb_config->primary_only = true;
-     } else
-     if (strcmp (name, "pixelformat" ) == 0) {
-          if (value) {
-               DFBSurfacePixelFormat format;
-
-               format = parse_pixelformat( value );
-               if (format == DSPF_UNKNOWN) {
-                    D_ERROR("DirectFB/Config 'pixelformat': Could not parse format!\n");
-                    return DFB_INVARG;
-               }
-
-               dfb_config->mode.format = format;
-          }
-          else {
-               D_ERROR("DirectFB/Config 'pixelformat': No format specified!\n");
-               return DFB_INVARG;
-          }
      } else
      if (strcmp (name, "font-format" ) == 0) {
           if (value) {
@@ -923,22 +892,6 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "no-graphics-vt" ) == 0) {
           dfb_config->kd_graphics = false;
      } else
-     if (strcmp (name, "bg-none" ) == 0) {
-          dfb_config->layer_bg_mode = DLBM_DONTCARE;
-     } else
-     if (strcmp (name, "bg-image" ) == 0 || strcmp (name, "bg-tile" ) == 0) {
-          if (value) {
-               if (dfb_config->layer_bg_filename)
-                    D_FREE( dfb_config->layer_bg_filename );
-               dfb_config->layer_bg_filename = D_STRDUP( value );
-               dfb_config->layer_bg_mode =
-                    strcmp (name, "bg-tile" ) ? DLBM_IMAGE : DLBM_TILE;
-          }
-          else {
-               D_ERROR( "DirectFB/Config: No image filename specified!\n" );
-               return DFB_INVARG;
-          }
-     } else
      if (strcmp (name, "window-surface-policy" ) == 0) {
           if (value) {
                if (strcmp( value, "auto" ) == 0) {
@@ -968,38 +921,140 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
-     if (strcmp (name, "desktop-buffer-mode" ) == 0) {
+     if (strcmp (name, "init-layer" ) == 0) {
+          if (value) {
+               int id;
+
+               if (sscanf( value, "%d", &id ) < 1) {
+                    D_ERROR("DirectFB/Config 'init-layer': Could not parse id!\n");
+                    return DFB_INVARG;
+               }
+
+               if (id < 0 || id > D_ARRAY_SIZE(dfb_config->layers)) {
+                    D_ERROR("DirectFB/Config 'init-layer': ID %d out of bounds!\n", id);
+                    return DFB_INVARG;
+               }
+
+               dfb_config->layers[id].init = true;
+
+               dfb_config->config_layer = &dfb_config->layers[id];
+          }
+          else {
+               D_ERROR("DirectFB/Config 'init-layer': No id specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "mode" ) == 0 || strcmp (name, "layer-size" ) == 0) {
+          DFBConfigLayer *conf = dfb_config->config_layer;
+
+          if (value) {
+               int width, height;
+
+               if (sscanf( value, "%dx%d", &width, &height ) < 2) {
+                    D_ERROR("DirectFB/Config 'mode': Could not parse mode!\n");
+                    return DFB_INVARG;
+               }
+
+               if (conf == &dfb_config->layers[0]) {
+                    dfb_config->mode.width  = width;
+                    dfb_config->mode.height = height;
+               }
+
+               conf->config.width  = width;
+               conf->config.height = height;
+
+               conf->config.flags |= DLCONF_WIDTH | DLCONF_HEIGHT;
+          }
+          else {
+               D_ERROR("DirectFB/Config '%s': No width and height specified!\n", name);
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "depth" ) == 0 || strcmp (name, "layer-depth" ) == 0) {
+          DFBConfigLayer *conf = dfb_config->config_layer;
+
+          if (value) {
+               int depth;
+
+               if (sscanf( value, "%d", &depth ) < 1) {
+                    D_ERROR("DirectFB/Config 'depth': Could not parse value!\n");
+                    return DFB_INVARG;
+               }
+
+               if (conf == &dfb_config->layers[0]) {
+                    dfb_config->mode.depth = depth;
+               }
+
+               conf->config.pixelformat = dfb_pixelformat_for_depth( depth );
+               conf->config.flags      |= DLCONF_PIXELFORMAT;
+          }
+          else {
+               D_ERROR("DirectFB/Config '%s': No value specified!\n", name);
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "pixelformat" ) == 0 || strcmp (name, "layer-format" ) == 0) {
+          DFBConfigLayer *conf = dfb_config->config_layer;
+
+          if (value) {
+               DFBSurfacePixelFormat format;
+
+               format = parse_pixelformat( value );
+               if (format == DSPF_UNKNOWN) {
+                    D_ERROR("DirectFB/Config 'pixelformat': Could not parse format!\n");
+                    return DFB_INVARG;
+               }
+
+               if (conf == &dfb_config->layers[0])
+                    dfb_config->mode.format = format;
+
+               conf->config.pixelformat = format;
+               conf->config.flags      |= DLCONF_PIXELFORMAT;
+          }
+          else {
+               D_ERROR("DirectFB/Config '%s': No format specified!\n", name);
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "desktop-buffer-mode" ) == 0 || strcmp (name, "layer-buffer-mode" ) == 0) {
+          DFBConfigLayer *conf = dfb_config->config_layer;
+
           if (value) {
                if (strcmp( value, "auto" ) == 0) {
-                    dfb_config->buffer_mode = -1;
+                    conf->config.flags &= ~DLCONF_BUFFERMODE;
                } else
                if (strcmp( value, "triple" ) == 0) {
-                    dfb_config->buffer_mode = DLBM_TRIPLE;
+                    conf->config.buffermode = DLBM_TRIPLE;
+                    conf->config.flags     |= DLCONF_BUFFERMODE;
                } else
                if (strcmp( value, "backvideo" ) == 0) {
-                    dfb_config->buffer_mode = DLBM_BACKVIDEO;
+                    conf->config.buffermode = DLBM_BACKVIDEO;
+                    conf->config.flags     |= DLCONF_BUFFERMODE;
                } else
                if (strcmp( value, "backsystem" ) == 0) {
-                    dfb_config->buffer_mode = DLBM_BACKSYSTEM;
+                    conf->config.buffermode = DLBM_BACKSYSTEM;
+                    conf->config.flags     |= DLCONF_BUFFERMODE;
                } else
                if (strcmp( value, "frontonly" ) == 0) {
-                    dfb_config->buffer_mode = DLBM_FRONTONLY;
+                    conf->config.buffermode = DLBM_FRONTONLY;
+                    conf->config.flags     |= DLCONF_BUFFERMODE;
                } else
                if (strcmp( value, "windows" ) == 0) {
-                    dfb_config->buffer_mode = DLBM_WINDOWS;
+                    conf->config.buffermode = DLBM_WINDOWS;
+                    conf->config.flags     |= DLCONF_BUFFERMODE;
                } else {
-                    D_ERROR( "DirectFB/Config: Unknown buffer mode "
-                             "'%s'!\n", value );
+                    D_ERROR( "DirectFB/Config '%s': Unknown mode '%s'!\n", name, value );
                     return DFB_INVARG;
                }
           }
           else {
-               D_ERROR( "DirectFB/Config: "
-                        "No desktop buffer mode specified!\n" );
+               D_ERROR( "DirectFB/Config '%s': No buffer mode specified!\n", name );
                return DFB_INVARG;
           }
      } else
-     if (strcmp (name, "bg-color" ) == 0) {
+     if (strcmp (name, "layer-src-key" ) == 0) {
+          DFBConfigLayer *conf = dfb_config->config_layer;
+
           if (value) {
                char *error;
                u32   argb;
@@ -1007,23 +1062,106 @@ DFBResult dfb_config_set( const char *name, const char *value )
                argb = strtoul( value, &error, 16 );
 
                if (*error) {
-                    D_ERROR( "DirectFB/Config: Error in bg-color: "
-                             "'%s'!\n", error );
+                    D_ERROR( "DirectFB/Config '%s': Error in color '%s'!\n", name, error );
                     return DFB_INVARG;
                }
 
-               dfb_config->layer_bg_color.b = argb & 0xFF;
+               conf->src_key.b = argb & 0xFF;
                argb >>= 8;
-               dfb_config->layer_bg_color.g = argb & 0xFF;
+               conf->src_key.g = argb & 0xFF;
                argb >>= 8;
-               dfb_config->layer_bg_color.r = argb & 0xFF;
+               conf->src_key.r = argb & 0xFF;
                argb >>= 8;
-               dfb_config->layer_bg_color.a = argb & 0xFF;
+               conf->src_key.a = argb & 0xFF;
 
-               dfb_config->layer_bg_mode = DLBM_COLOR;
+               conf->config.options |= DLOP_SRC_COLORKEY;
+               conf->config.flags   |= DLCONF_OPTIONS;
           }
           else {
-               D_ERROR( "DirectFB/Config: No background color specified!\n" );
+               D_ERROR( "DirectFB/Config '%s': No color specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "bg-none" ) == 0 || strcmp (name, "layer-bg-none" ) == 0) {
+          DFBConfigLayer *conf = dfb_config->config_layer;
+
+          conf->background.mode = DLBM_DONTCARE;
+     } else
+     if (strcmp (name, "bg-image" ) == 0 || strcmp (name, "bg-tile" ) == 0 ||
+         strcmp (name, "layer-bg-image" ) == 0 || strcmp (name, "layer-bg-tile" ) == 0)
+     {
+          DFBConfigLayer *conf = dfb_config->config_layer;
+
+          if (value) {
+               if (conf->background.filename)
+                    D_FREE( conf->background.filename );
+
+               conf->background.filename = D_STRDUP( value );
+               conf->background.mode     = strcmp (name, "bg-tile" ) ? DLBM_IMAGE : DLBM_TILE;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No filename specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "bg-color" ) == 0 || strcmp (name, "layer-bg-color" ) == 0) {
+          DFBConfigLayer *conf = dfb_config->config_layer;
+
+          if (value) {
+               char *error;
+               u32   argb;
+
+               argb = strtoul( value, &error, 16 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in color '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               conf->background.color.b = argb & 0xFF;
+               argb >>= 8;
+               conf->background.color.g = argb & 0xFF;
+               argb >>= 8;
+               conf->background.color.r = argb & 0xFF;
+               argb >>= 8;
+               conf->background.color.a = argb & 0xFF;
+
+               conf->background.mode = DLBM_COLOR;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No color specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "layer-stacking" ) == 0) {
+          DFBConfigLayer *conf = dfb_config->config_layer;
+
+          if (value) {
+               char *stackings = D_STRDUP( value );
+               char *p, *r, *s = stackings;
+
+               while ((r = strtok_r( s, ",", &p ))) {
+                    direct_trim( &r );
+
+                    if (!strcmp( r, "lower" ))
+                         conf->stacking |= (1 << DWSC_LOWER);
+                    else if (!strcmp( r, "middle" ))
+                         conf->stacking |= (1 << DWSC_MIDDLE);
+                    else if (!strcmp( r, "upper" ))
+                         conf->stacking |= (1 << DWSC_UPPER);
+                    else {
+                         D_ERROR( "DirectFB/Config '%s': Unknown class '%s'!\n", name, r );
+                         D_FREE( stackings );
+                         return DFB_INVARG;
+                    }
+
+                    s = NULL;
+               }
+
+               D_FREE( stackings );
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': Missing value!\n", name );
                return DFB_INVARG;
           }
      } else
@@ -1320,6 +1458,8 @@ DFBResult dfb_config_read( const char *filename )
      FILE *f;
 
      config_allocate();
+
+     dfb_config->config_layer = &dfb_config->layers[0];
 
      f = fopen( filename, "r" );
      if (!f) {

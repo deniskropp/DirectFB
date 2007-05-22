@@ -173,9 +173,15 @@ static void drop_window( IDirectFB_data *data );
 void
 IDirectFB_Destruct( IDirectFB *thiz )
 {
+     int             i;
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
 
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
+
+     for (i=0; i<MAX_LAYERS; i++) {
+          if (data->layers[i].context)
+               dfb_layer_context_unref( data->layers[i].context );
+     }
 
      if (data->primary.context)
           dfb_layer_context_unref( data->primary.context );
@@ -510,7 +516,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
           if (desc->flags & DSDESC_WIDTH)
                width = desc->width;
-          else if (data->primary.format)
+          else if (data->primary.width)
                width = data->primary.width;
           else if (dfb_config->mode.width)
                width = dfb_config->mode.width;
@@ -519,7 +525,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
           if (desc->flags & DSDESC_HEIGHT)
                height = desc->height;
-          else if (data->primary.format)
+          else if (data->primary.height)
                height = data->primary.height;
           else if (dfb_config->mode.height)
                height = dfb_config->mode.height;
@@ -1346,6 +1352,185 @@ IDirectFB_GetInterface( IDirectFB   *thiz,
      return ret;
 }
 
+static void
+LoadBackgroundImage( IDirectFB       *dfb,
+                     CoreWindowStack *stack,
+                     DFBConfigLayer  *conf )
+{
+     DFBResult               ret;
+     DFBSurfaceDescription   desc;
+     IDirectFBImageProvider *provider;
+     IDirectFBSurface       *image;
+     IDirectFBSurface_data  *image_data;
+
+     ret = dfb->CreateImageProvider( dfb, conf->background.filename, &provider );
+     if (ret) {
+          D_DERROR( ret, "Failed loading background image '%s'!\n", conf->background.filename );
+          return;
+     }
+
+     if (conf->background.mode == DLBM_IMAGE) {
+          desc.flags  = DSDESC_WIDTH | DSDESC_HEIGHT;
+          desc.width  = conf->config.width;
+          desc.height = conf->config.height;
+     }
+     else {
+          provider->GetSurfaceDescription( provider, &desc );
+     }
+
+     desc.flags |= DSDESC_PIXELFORMAT;
+     desc.pixelformat = conf->config.pixelformat;
+
+     ret = dfb->CreateSurface( dfb, &desc, &image );
+     if (ret) {
+          DirectFBError( "Failed creating surface for background image", ret );
+          provider->Release( provider );
+          return;
+     }
+
+     ret = provider->RenderTo( provider, image, NULL );
+     if (ret) {
+          DirectFBError( "Failed loading background image", ret );
+          image->Release( image );
+          provider->Release( provider );
+          return;
+     }
+
+     provider->Release( provider );
+
+     image_data = (IDirectFBSurface_data*) image->priv;
+
+     dfb_windowstack_set_background_image( stack, image_data->surface );
+
+     image->Release( image );
+}
+
+static DFBResult
+InitLayers( IDirectFB      *dfb,
+            IDirectFB_data *data )
+{
+     DFBResult ret;
+     int       i;
+     int       num = dfb_layer_num();
+
+     for (i=0; i<num; i++) {
+          CoreLayer      *layer = dfb_layer_at_translated( i );
+          DFBConfigLayer *conf  = &dfb_config->layers[i];
+
+          if (conf->init) {
+               CoreLayerContext           *context;
+               CoreWindowStack            *stack;
+               CardCapabilities            caps;
+               DFBDisplayLayerConfigFlags  fail;
+
+               ret = dfb_layer_get_primary_context( layer, false, &context );
+               if (ret) {
+                    D_DERROR( ret, "InitLayers: Could not get context of layer %d!\n", i );
+                    goto error;
+               }
+
+               stack = dfb_layer_context_windowstack( context );
+               D_ASSERT( stack != NULL );
+
+
+               /* set default desktop configuration */
+               if (!(conf->config.flags & DLCONF_BUFFERMODE)) {
+                    dfb_gfxcard_get_capabilities( &caps );
+
+                    conf->config.flags     |= DLCONF_BUFFERMODE;
+                    conf->config.buffermode = (caps.accel & DFXL_BLIT) ? DLBM_BACKVIDEO : DLBM_BACKSYSTEM;
+               }
+
+               if (dfb_layer_context_test_configuration( context, &conf->config, &fail )) {
+                    if (fail & (DLCONF_WIDTH | DLCONF_HEIGHT)) {
+                         D_ERROR( "DirectFB/DirectFBCreate: "
+                                  "Setting desktop resolution to %dx%d failed!\n"
+                                  "     -> Using default resolution.\n",
+                                  conf->config.width, conf->config.height );
+
+                         conf->config.flags &= ~(DLCONF_WIDTH | DLCONF_HEIGHT);
+                    }
+
+                    if (fail & DLCONF_PIXELFORMAT) {
+                         D_ERROR( "DirectFB/DirectFBCreate: "
+                                  "Setting desktop format failed!\n"
+                                  "     -> Using default format.\n" );
+
+                         conf->config.flags &= ~DLCONF_PIXELFORMAT;
+                    }
+
+                    if (fail & DLCONF_BUFFERMODE) {
+                         D_ERROR( "DirectFB/DirectFBCreate: "
+                                  "Setting desktop buffer mode failed!\n"
+                                  "     -> No virtual resolution support or not enough memory?\n"
+                                  "        Falling back to system back buffer.\n" );
+
+                         conf->config.buffermode = DLBM_BACKSYSTEM;
+
+                         if (dfb_layer_context_test_configuration( context, &conf->config, &fail )) {
+                              D_ERROR( "DirectFB/DirectFBCreate: "
+                                       "Setting system memory desktop back buffer failed!\n"
+                                       "     -> Using front buffer only mode.\n" );
+
+                              conf->config.flags &= ~DLCONF_BUFFERMODE;
+                         }
+                    }
+               }
+
+               if (conf->config.flags) {
+                    ret = dfb_layer_context_set_configuration( context, &conf->config );
+                    if (ret) {
+                         D_DERROR( ret, "InitLayers: Could not set configuration for layer %d!\n", i );
+                         dfb_layer_context_unref( context );
+                         goto error;
+                    }
+               }
+
+               ret = dfb_layer_context_get_configuration( context, &conf->config );
+               D_ASSERT( ret == DFB_OK );
+
+               dfb_layer_context_set_src_colorkey( context, conf->src_key.r, conf->src_key.g, conf->src_key.b );
+
+               switch (conf->background.mode) {
+                    case DLBM_COLOR:
+                         dfb_windowstack_set_background_color( stack, &conf->background.color );
+                         break;
+
+                    case DLBM_IMAGE:
+                    case DLBM_TILE:
+                         LoadBackgroundImage( dfb, stack, conf );
+                         break;
+
+                    default:
+                         break;
+               }
+
+               dfb_windowstack_set_background_mode( stack, conf->background.mode );
+
+               data->layers[i].context = context;
+          }
+
+          data->layers[i].layer = layer;
+     }
+
+     for (i=0; i<num; i++) {
+          if (data->layers[i].context)
+               dfb_layer_activate_context( data->layers[i].layer, data->layers[i].context );
+     }
+
+     return DFB_OK;
+
+error:
+     for (i=num-1; i>=0; i--) {
+          if (data->layers[i].context) {
+               dfb_layer_context_unref( data->layers[i].context );
+               data->layers[i].context = NULL;
+          }
+     }
+
+     return ret;
+}
+
 /*
  * Constructor
  *
@@ -1404,6 +1589,15 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
      thiz->WaitIdle = IDirectFB_WaitIdle;
      thiz->WaitForSync = IDirectFB_WaitForSync;
      thiz->GetInterface = IDirectFB_GetInterface;
+
+     if (dfb_core_is_master( core )) {
+          ret = InitLayers( thiz, data );
+          if (ret) {
+               dfb_layer_context_unref( data->context );
+               DIRECT_DEALLOCATE_INTERFACE(thiz);
+               return ret;
+          }
+     }
 
      return DFB_OK;
 }

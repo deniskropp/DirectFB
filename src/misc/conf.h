@@ -34,15 +34,26 @@
 #include <directfb.h>
 #include <fusion/types.h>
 
+#include <core/coredefs.h>
+
+
+typedef struct {
+     bool                                init;
+
+     DFBDisplayLayerConfig               config;
+     DFBColor                            src_key;
+
+     struct {
+          DFBDisplayLayerBackgroundMode  mode;
+          DFBColor                       color;
+          char                          *filename;
+     } background;
+
+     DFBWindowStackingClass              stacking;
+} DFBConfigLayer;
+
 typedef struct
 {
-     DFBDisplayLayerBackgroundMode layer_bg_mode; /* background mode for
-                                                     primary layer */
-     DFBColor  layer_bg_color;                    /* background color for
-                                                     primary layer */
-     char     *layer_bg_filename;                 /* background image for
-                                                     primary layer */
-
      bool      mouse_motion_compression;          /* use motion compression? */
      char     *mouse_protocol;                    /* mouse protocol */
      char     *mouse_source;                      /* mouse source device name */
@@ -162,6 +173,9 @@ typedef struct
      bool       primary_only;                     /* tell application only about primary layer */
 
      bool       thrifty_surface_buffers;          /* don't keep system instance while video instance is alive */
+
+     DFBConfigLayer  layers[MAX_LAYERS];
+     DFBConfigLayer *config_layer;
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

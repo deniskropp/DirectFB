@@ -466,6 +466,14 @@ dfb_layers_enumerate( DisplayLayerCallback  callback,
      }
 }
 
+int
+dfb_layer_num()
+{
+     D_ASSERT( layersfield != NULL );
+
+     return dfb_num_layers;
+}
+
 CoreLayer *
 dfb_layer_at( DFBDisplayLayerID id )
 {

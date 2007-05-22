@@ -33,6 +33,7 @@
 
 #include <fusion/reactor.h>
 
+#include <core/coredefs.h>
 #include <core/coretypes.h>
 
 /*
@@ -61,6 +62,11 @@ typedef struct {
      } primary;                            /* Used for DFSCL_NORMAL's primary. */
 
      bool                        app_focus;
+
+     struct {
+          CoreLayer             *layer;
+          CoreLayerContext      *context;
+     } layers[MAX_LAYERS];
 } IDirectFB_data;
 
 /*
