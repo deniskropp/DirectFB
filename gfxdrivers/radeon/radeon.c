@@ -958,7 +958,7 @@ static void r100SetState( void *drv, void *dev,
      rdev->set &= ~state->modified;
      if (DFB_BLITTING_FUNCTION( accel )) {
           if ((rdev->accel ^ accel) & DFXL_TEXTRIANGLES)
-               rdev->set &= ~(SMF_SOURCE | SMF_BLITTING_FLAGS);
+               rdev->set &= ~SMF_BLITTING_FLAGS;
      }
      
      rdev->accel = accel;
@@ -1041,7 +1041,7 @@ static void r200SetState( void *drv, void *dev,
      rdev->set &= ~state->modified;
      if (DFB_BLITTING_FUNCTION( accel )) {
           if ((rdev->accel ^ accel) & DFXL_TEXTRIANGLES)
-               rdev->set &= ~(SMF_SOURCE | SMF_BLITTING_FLAGS);
+               rdev->set &= ~SMF_BLITTING_FLAGS;
      }
      
      rdev->accel = accel;
@@ -1124,7 +1124,7 @@ static void r300SetState( void *drv, void *dev,
      rdev->set &= ~state->modified;
      if (DFB_BLITTING_FUNCTION( accel )) {
           if ((rdev->accel ^ accel) & DFXL_TEXTRIANGLES)
-               rdev->set &= ~(SMF_SOURCE | SMF_BLITTING_FLAGS);
+               rdev->set &= ~SMF_BLITTING_FLAGS;
      }
      
      rdev->accel = accel;

@@ -232,8 +232,10 @@ void r100_set_source( RadeonDriverData *rdrv,
      SurfaceBuffer *buffer   = surface->front_buffer;
      volatile u8   *mmio     = rdrv->mmio_base;
      u32            txformat = TXFORMAT_NON_POWER2;
-     u32            txfilter = MAG_FILTER_LINEAR |
-                               MIN_FILTER_LINEAR;
+     u32            txfilter = MAG_FILTER_LINEAR  |
+                               MIN_FILTER_LINEAR  |
+                               CLAMP_S_CLAMP_LAST |
+                               CLAMP_T_CLAMP_LAST;
 
      if (RADEON_IS_SET( SOURCE )) {
           if ((state->blittingflags & DSBLIT_DEINTERLACE) ==
@@ -248,15 +250,6 @@ void r100_set_source( RadeonDriverData *rdrv,
      rdev->src_pitch  = buffer->video.pitch;
      rdev->src_width  = surface->width;
      rdev->src_height = surface->height;
-
-     if (rdev->accel == DFXL_TEXTRIANGLES) {
-          txfilter |= CLAMP_S_CLAMP_GL |
-                      CLAMP_T_CLAMP_GL |
-                      BORDER_MODE_D3D;
-     } else {
-          txfilter |= CLAMP_S_CLAMP_LAST |
-                      CLAMP_T_CLAMP_LAST;
-     }
      
      switch (buffer->format) {
           case DSPF_LUT8:
