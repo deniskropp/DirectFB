@@ -130,7 +130,42 @@ ISaWMan_Stop( ISaWMan *thiz,
      if (ret)
           return ret;
 
-     ret = sawman_call( data->sawman, SWMCID_STOP, (void*) pid );
+     ret = sawman_call( sawman, SWMCID_STOP, (void*)(long) pid );
+
+     sawman_unlock( sawman );
+
+     return ret;
+}
+
+static DirectResult
+ISaWMan_ReturnKeyEvent( ISaWMan        *thiz,
+                        DFBWindowEvent *event )
+{
+     DirectResult  ret;
+     SaWMan       *sawman;
+
+     DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     if (!event)
+          return DFB_INVARG;
+
+     /* Only key events! */
+     if (event->type != DWET_KEYDOWN && event->type != DWET_KEYUP)
+          return DFB_UNSUPPORTED;
+
+     /* Don't return same event twice! */
+     if (event->flags & DWEF_RETURNED)
+          return DFB_LIMITEXCEEDED;
+
+     sawman = data->sawman;
+     D_MAGIC_ASSERT( sawman, SaWMan );
+
+     ret = sawman_lock( sawman );
+     if (ret)
+          return ret;
+
+     if (sawman->unselkeys_window)
+          ret = sawman_post_event( sawman, sawman->unselkeys_window, event );
 
      sawman_unlock( sawman );
 
@@ -215,11 +250,12 @@ ISaWMan_Construct( ISaWMan       *thiz,
      data->sawman  = sawman;
      data->process = process;
 
-     thiz->AddRef        = ISaWMan_AddRef;
-     thiz->Release       = ISaWMan_Release;
-     thiz->Start         = ISaWMan_Start;
-     thiz->Stop          = ISaWMan_Stop;
-     thiz->CreateManager = ISaWMan_CreateManager;
+     thiz->AddRef         = ISaWMan_AddRef;
+     thiz->Release        = ISaWMan_Release;
+     thiz->Start          = ISaWMan_Start;
+     thiz->Stop           = ISaWMan_Stop;
+     thiz->ReturnKeyEvent = ISaWMan_ReturnKeyEvent;
+     thiz->CreateManager  = ISaWMan_CreateManager;
 
      return DFB_OK;
 }

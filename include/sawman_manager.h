@@ -40,6 +40,7 @@ extern "C"
 #include <fusion/vector.h>
 
 #include <core/windows.h>
+#include <core/layers_internal.h> /* FIXME */
 #include <core/windows_internal.h> /* FIXME */
 
 #include "sawman_types.h"
@@ -93,7 +94,7 @@ struct __SaWMan_SaWManCallbacks {
 
 
      DirectResult (*WindowPreConfig)( void             *context,
-                                      CoreWindowConfig *config );
+                                      CoreWindow       *window );
 
 
 
@@ -131,13 +132,23 @@ typedef enum {
      SWMCID_STACK_RESIZED
 } SaWManCallID;
 
+typedef enum {
+     SWMSC_MIDDLE = (1 << DWSC_MIDDLE),
+     SWMSC_UPPER  = (1 << DWSC_UPPER),
+     SWMSC_LOWER  = (1 << DWSC_LOWER)
+} SaWManStackingClasses;
+
+
 struct __SaWMan_SaWMan {
      int                   magic;
 
      FusionSkirmish        lock;
 
-     CoreLayerContext     *context;     /* FIXME: support multiple stacks */
-     CoreWindowStack      *stack;       /* FIXME: support multiple stacks */
+
+     FusionVector          layout;
+
+     DirectLink           *tiers;
+
 
      FusionSHMPoolShared  *shmpool;
 
@@ -146,14 +157,8 @@ struct __SaWMan_SaWMan {
 
      FusionCall            process_watch;
 
-     DFBDimension          size;
-
-     FusionVector          layout;
-
-     DFBUpdates            updates;
-     DFBRegion             update_regions[SAWMAN_MAX_UPDATE_REGIONS];
-
      SaWManScalingMode     scaling_mode;
+     bool                  fast_mode;
 
      DFBInputDeviceButtonMask      buttons;
      DFBInputDeviceModifierMask    modifiers;
@@ -163,6 +168,7 @@ struct __SaWMan_SaWMan {
      SaWManWindow         *keyboard_window;    /* window grabbing the keyboard */
      SaWManWindow         *focused_window;     /* window having the focus */
      SaWManWindow         *entered_window;     /* window under the pointer */
+     SaWManWindow         *unselkeys_window;   /* window grabbing unselected keys */
 
      DirectLink           *grabbed_keys;       /* List of currently grabbed keys. */
 
@@ -185,6 +191,36 @@ struct __SaWMan_SaWMan {
      }                     manager;
 };
 
+struct __SaWMan_SaWManTier {
+     DirectLink              link;
+
+     int                     magic;
+
+     DFBDisplayLayerID       layer_id;
+     SaWManStackingClasses   classes;
+
+     CoreWindowStack        *stack;
+     CoreLayerContext       *context;
+     CoreLayerRegion        *region;
+
+     DFBDisplayLayerConfig   config;
+     DFBColor                key;
+
+     DFBDimension            size;
+
+     DFBUpdates              updates;
+     DFBRegion               update_regions[SAWMAN_MAX_UPDATE_REGIONS];
+
+     bool                    active;
+
+     SaWManWindow           *single;
+     int                     single_width;
+     int                     single_height;
+     DFBSurfacePixelFormat   single_format;
+     DFBDisplayLayerOptions  single_options;
+     DFBLocation             single_location;
+};
+
 
 struct __SaWMan_SaWManProcess {
      DirectLink             link;
@@ -205,6 +241,12 @@ struct __SaWMan_SaWManWindow {
 
      SaWMan                *sawman;
      FusionSHMPoolShared   *shmpool;
+
+     SaWManWindow          *parent;
+     FusionVector           children;
+
+     DFBRectangle           src;
+     DFBRectangle           dst;
 
      SaWManProcess         *process;
 
@@ -278,6 +320,10 @@ DirectResult sawman_update_window  ( SaWMan                *sawman,
                                      bool                   force_invisible,
                                      bool                   scale_region );
 
+DirectResult sawman_showing_window ( SaWMan                *sawman,
+                                     SaWManWindow          *sawwin,
+                                     bool                  *ret_showing );
+
 DirectResult sawman_insert_window  ( SaWMan                *sawman,
                                      SaWManWindow          *sawwin,
                                      SaWManWindow          *relative,
@@ -289,6 +335,7 @@ DirectResult sawman_remove_window  ( SaWMan                *sawman,
 DirectResult sawman_withdraw_window( SaWMan                *sawman,
                                      SaWManWindow          *sawwin );
 
+DirectResult sawman_update_geometry( SaWManWindow          *sawwin );
 
 static inline DirectResult
 sawman_lock( SaWMan *sawman )
@@ -341,13 +388,13 @@ sawman_window_priority( const SaWManWindow *sawwin )
 
      switch (window->config.stacking) {
           case DWSC_UPPER:
-               return  1;
+               return 2;
 
           case DWSC_MIDDLE:
-               return  0;
+               return 1;
 
           case DWSC_LOWER:
-               return -1;
+               return 0;
 
           default:
                D_BUG( "unknown stacking class" );
@@ -367,6 +414,72 @@ sawman_window_index( const SaWMan       *sawman,
      D_ASSERT( fusion_vector_contains( &sawman->layout, sawwin ) );
 
      return fusion_vector_index_of( &sawman->layout, sawwin );
+}
+
+static inline SaWManTier *
+sawman_tier_by_class( SaWMan                 *sawman,
+                      DFBWindowStackingClass  stacking )
+{
+     SaWManTier *tier;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_ASSERT( (stacking & ~3) == 0 );
+
+     direct_list_foreach (tier, sawman->tiers) {
+          D_MAGIC_ASSERT( tier, SaWManTier );
+
+          if (tier->classes & (1 << stacking))
+               break;
+     }
+
+     D_ASSERT( tier != NULL );
+
+     return tier;
+}
+
+static inline bool
+sawman_tier_by_stack( SaWMan           *sawman,
+                      CoreWindowStack  *stack,
+                      SaWManTier      **ret_tier )
+{
+     SaWManTier *tier;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_ASSERT( stack != NULL );
+     D_ASSERT( ret_tier != NULL );
+
+     direct_list_foreach (tier, sawman->tiers) {
+          D_MAGIC_ASSERT( tier, SaWManTier );
+
+          if (tier->stack == stack) {
+               *ret_tier = tier;
+               return true;
+          }
+     }
+
+     return false;
+}
+
+static inline bool
+sawman_tier_by_layer( SaWMan             *sawman,
+                      DFBDisplayLayerID   layer_id,
+                      SaWManTier        **ret_tier )
+{
+     SaWManTier *tier;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_ASSERT( ret_tier != NULL );
+
+     direct_list_foreach (tier, sawman->tiers) {
+          D_MAGIC_ASSERT( tier, SaWManTier );
+
+          if (tier->layer_id == layer_id) {
+               *ret_tier = tier;
+               return true;
+          }
+     }
+
+     return false;
 }
 
 #ifdef __cplusplus

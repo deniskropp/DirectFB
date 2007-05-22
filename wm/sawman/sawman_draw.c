@@ -51,15 +51,15 @@
 
 #include "stretch_algos.h"
 
+D_DEBUG_DOMAIN( SaWMan_Draw, "SaWMan/Draw", "SaWMan window manager drawing" );
+
 /**********************************************************************************************************************/
 
 static DFBResult
-smooth_stretchblit( CardState         *state,
-                    int                x,
-                    int                y,
-                    int                width,
-                    int                height,
-                    const StretchAlgo *algo )
+smooth_stretchblit( CardState          *state,
+                    const DFBRectangle *sr,
+                    const DFBRectangle *dr,
+                    const StretchAlgo  *algo )
 {
      DFBResult    ret;
      void        *src;
@@ -115,7 +115,9 @@ smooth_stretchblit( CardState         *state,
           case DSPF_ARGB4444:
                switch (source->format) {
                     case DSPF_ARGB4444:
-                         algo->func_argb4444( dst, dpitch, src, spitch, source->width, source->height, width, height, &clip );
+                         if (!algo->func_argb4444)
+                              return DFB_UNSUPPORTED;
+
                          break;
 
                     default:
@@ -151,28 +153,29 @@ smooth_stretchblit( CardState         *state,
      dfb_surfacemanager_unlock( source->manager );
 
 
-     dst += DFB_BYTES_PER_LINE( destination->format, x ) + y * dpitch;
+     src += DFB_BYTES_PER_LINE( source->format, sr->x ) + sr->y * spitch;
+     dst += DFB_BYTES_PER_LINE( destination->format, dr->x ) + dr->y * dpitch;
 
-     dfb_region_translate( &clip, - x, - y );
+     dfb_region_translate( &clip, - dr->x, - dr->y );
 
      switch (destination->format) {
           case DSPF_RGB16:
                switch (source->format) {
                     case DSPF_RGB16:
                          if (state->blittingflags & DSBLIT_SRC_COLORKEY)
-                              algo->func_rgb16_keyed( dst, dpitch, src, spitch, source->width, source->height, width, height, &clip,
+                              algo->func_rgb16_keyed( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, &clip,
                                                       state->src_colorkey );
                          else
-                              algo->func_rgb16( dst, dpitch, src, spitch, source->width, source->height, width, height, &clip );
+                              algo->func_rgb16( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, &clip );
                          break;
 
                     case DSPF_LUT8:
                          D_ASSERT( source->palette != NULL );
-                         algo->func_rgb16_indexed( dst, dpitch, src, spitch, source->width, source->height, width, height, source->palette->entries );
+                         algo->func_rgb16_indexed( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, source->palette->entries );
                          break;
 
                     case DSPF_RGB32:
-                         algo->func_rgb16_from32( dst, dpitch, src, spitch, source->width, source->height, width, height, &clip );
+                         algo->func_rgb16_from32( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, &clip );
                          break;
 
                     default:
@@ -183,7 +186,7 @@ smooth_stretchblit( CardState         *state,
           case DSPF_ARGB4444:
                switch (source->format) {
                     case DSPF_ARGB4444:
-                         algo->func_argb4444( dst, dpitch, src, spitch, source->width, source->height, width, height, &clip );
+                         algo->func_argb4444( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, &clip );
                          break;
 
                     default:
@@ -332,7 +335,7 @@ draw_border( CoreWindowStack *stack,
 {
      int          i;
      DFBRegion    clip;
-     DFBRectangle rects[4];
+     DFBRectangle rects[thickness];
 
      static const DFBColor focused_colors[]   = { { 0xf0, 0xd0, 0xd0, 0x40 },
                                                   { 0xff, 0xc0, 0xa0, 0x20 },
@@ -347,10 +350,8 @@ draw_border( CoreWindowStack *stack,
      const DFBColor *colors = (window->flags & CWF_FOCUSED) ? focused_colors : unfocused_colors;
 
      /* Check thickness. */
-     if (thickness < 1 || thickness > D_ARRAY_SIZE(focused_colors)) {
-          D_WARN( "border thickness %d higher than %d or below 1", thickness, D_ARRAY_SIZE(focused_colors) );
+     if (thickness < 1)
           return;
-     }
 
      /* Initialize border rectangles. */
      rects[0] = window->config.bounds;
@@ -370,7 +371,7 @@ draw_border( CoreWindowStack *stack,
 
      /* Draw border rectangles. */
      for (i=0; i<thickness; i++) {
-          dfb_state_set_color( state, &colors[i] );
+          dfb_state_set_color( state, &colors[i*4/thickness] );
           dfb_gfxcard_drawrectangle( &rects[i], state );
      }
 
@@ -378,49 +379,28 @@ draw_border( CoreWindowStack *stack,
      dfb_state_set_clip( state, &clip );
 }
 
-void
-sawman_draw_window( SaWManWindow *sawwin,
-                    CardState    *state,
-                    DFBRegion    *pregion,
-                    bool          alpha_channel )
+static void
+draw_window_and_children( SaWManWindow     *sawwin,
+                          CardState        *state,
+                          DFBRegion        *region,
+                          bool              alpha_channel,
+                          CoreWindowConfig *window_config )
 {
-     DFBRectangle             src;
-     DFBSurfaceBlittingFlags  flags = DSBLIT_NOFX;
-     CoreWindow              *window;
-     CoreWindowStack         *stack;
-     DFBRegion                xregion = *pregion;
-     DFBRegion                *region = &xregion;
-     int                      border;
+     int                      i;
      SaWMan                  *sawman;
+     CoreWindow              *window;
+     SaWManWindow            *child;
+     DFBSurfaceBlittingFlags  flags = DSBLIT_NOFX;
 
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
      D_MAGIC_ASSERT( state, CardState );
      DFB_REGION_ASSERT( region );
 
-     window = sawwin->window;
-     stack  = sawwin->stack;
      sawman = sawwin->sawman;
+     window = sawwin->window;
 
-     D_ASSERT( window != NULL );
-     D_ASSERT( stack != NULL );
      D_MAGIC_ASSERT( sawman, SaWMan );
-
-     border = sawman_window_border( sawwin );
-     if (border) {
-          if (!dfb_region_intersect( region,
-                                     window->config.bounds.x + border,
-                                     window->config.bounds.y + border,
-                                     window->config.bounds.x + window->config.bounds.w - border - 1,
-                                     window->config.bounds.y + window->config.bounds.h - border - 1 ))
-               return;
-     }
-
-     /* Initialize source rectangle. */
-     dfb_rectangle_from_region( &src, region );
-
-     /* Subtract window offset. */
-     src.x -= window->config.bounds.x;
-     src.y -= window->config.bounds.y;
+     D_ASSERT( window != NULL );
 
      /* Use per pixel alpha blending. */
      if (alpha_channel && (window->config.options & DWOP_ALPHACHANNEL))
@@ -519,48 +499,91 @@ sawman_draw_window( SaWManWindow *sawwin,
      state->source    = window->surface;
      state->modified |= SMF_SOURCE;
 
-     if ((window->config.options & DWOP_SCALE) &&
-         (window->config.bounds.w != window->surface->width  ||
-          window->config.bounds.h != window->surface->height ||
-          sawman->scaling_mode == SWMSM_SMOOTH_SW))
+     DFBRegion clip = state->clip;
+     DFBRegion new_clip = *region;
+
+     dfb_region_rectangle_intersect( &new_clip, &sawwin->dst );
+
+     /* Change clipping region. */
+     dfb_state_set_clip( state, &new_clip );
+
+     if (!sawman->fast_mode && (window->config.options & DWOP_SCALE)
+         /*(window_config->bounds.w != window->surface->width  ||
+          window_config->bounds.h != window->surface->height || sawman->color_keyed)*/)
      {
           DFBResult    ret  = DFB_UNSUPPORTED;
-          DFBRegion    clip = state->clip;
-          DFBRectangle dst  = window->config.bounds;
-
-          region->x1 &= ~1;
-          region->x2 |=  1;
-
-          /* Change clipping region. */
-          dfb_state_set_clip( state, region );
+          DFBRectangle dst  = sawwin->dst;
+          DFBRectangle src  = sawwin->src;
 
           /* Scale window to the screen clipped by the region being updated. */
           if (sawman->scaling_mode == SWMSM_SMOOTH_SW) {
-               if (dst.w == window->surface->width && dst.h == window->surface->height)
-                    ret = smooth_stretchblit( state, dst.x, dst.y, dst.w, dst.h, &wm_stretch_simple );
+               if (dst.w == src.w && dst.h == src.h)
+                    ret = smooth_stretchblit( state, &src, &dst, &wm_stretch_simple );
                else if (dst.w < window->surface->width && dst.h < window->surface->height)
-                    ret = smooth_stretchblit( state, dst.x, dst.y, dst.w, dst.h, &wm_stretch_down2 );
-               else
-                    ret = smooth_stretchblit( state, dst.x, dst.y, dst.w, dst.h, &wm_stretch_hv4 );
+                    ret = smooth_stretchblit( state, &src, &dst, &wm_stretch_down );
+               else {
+                    src.w--;
+                    src.h--;
+
+                    ret = smooth_stretchblit( state, &src, &dst, &wm_stretch_up );
+               }
           }
 
           /* Standard scaling selected or fallback for smooth scaling required. */
-          if (ret) {
-               DFBRectangle src = { 0, 0, window->surface->width, window->surface->height };
-
+          if (ret)
                dfb_gfxcard_stretchblit( &src, &dst, state );
-          }
-
-          /* Restore clipping region. */
-          dfb_state_set_clip( state, &clip );
      }
      else {
-          D_ASSERT( window->surface->width  == window->config.bounds.w );
-          D_ASSERT( window->surface->height == window->config.bounds.h );
+          DFBRectangle src = sawwin->src;
 
           /* Blit from the window to the region being updated. */
-          dfb_gfxcard_blit( &src, region->x1, region->y1, state );
+          dfb_gfxcard_blit( &src, sawwin->dst.x, sawwin->dst.y, state );
      }
+
+     /* Restore clipping region. */
+     dfb_state_set_clip( state, &clip );
+
+     /* Iterate through child vector. */
+     fusion_vector_foreach (child, i, sawwin->children) {
+          D_MAGIC_ASSERT( child, SaWManWindow );
+          D_ASSERT( child->parent == sawwin );
+
+          /* Draw child and its children. */
+//          draw_window_and_children( child, state, region, alpha_channel, window_config );
+     }
+}
+
+void
+sawman_draw_window( SaWManWindow *sawwin,
+                    CardState    *state,
+                    DFBRegion    *pregion,
+                    bool          alpha_channel )
+{
+     CoreWindow      *window;
+     CoreWindowStack *stack;
+     DFBRegion        xregion = *pregion;
+     DFBRegion       *region  = &xregion;
+     int              border;
+
+     D_MAGIC_ASSERT( sawwin, SaWManWindow );
+     D_MAGIC_ASSERT( state, CardState );
+     DFB_REGION_ASSERT( region );
+
+     window = sawwin->window;
+     stack  = sawwin->stack;
+
+     D_ASSERT( window != NULL );
+     D_ASSERT( stack != NULL );
+
+     border = sawman_window_border( sawwin );
+
+     if (dfb_region_intersect( region,
+                               window->config.bounds.x + border,
+                               window->config.bounds.y + border,
+                               window->config.bounds.x + window->config.bounds.w - border - 1,
+                               window->config.bounds.y + window->config.bounds.h - border - 1 ))
+          draw_window_and_children( sawwin, state, region, alpha_channel, &window->config );
+
 
      if (border)
           draw_border( stack, window, state, pregion, border );
@@ -571,13 +594,20 @@ sawman_draw_window( SaWManWindow *sawwin,
 }
 
 void
-sawman_draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
+sawman_draw_background( SaWManTier *tier, CardState *state, DFBRegion *region )
 {
-     DFBRectangle dst;
+     DFBRectangle     dst;
+     CoreWindowStack *stack;
 
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( tier, SaWManTier );
      D_MAGIC_ASSERT( state, CardState );
      DFB_REGION_ASSERT( region );
+
+     D_DEBUG_AT( SaWMan_Draw, "%s( %p, %p, %d,%d-%dx%d )\n", __FUNCTION__, tier, state,
+                 DFB_RECTANGLE_VALS_FROM_REGION( region ) );
+
+     stack = tier->stack;
+     D_ASSERT( stack != NULL );
 
      D_ASSERT( stack->bg.image != NULL || (stack->bg.mode != DLBM_IMAGE &&
                                            stack->bg.mode != DLBM_TILE) );

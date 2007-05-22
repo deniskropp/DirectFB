@@ -204,7 +204,7 @@ MosaicRelayout( TestManager *tm,
      manager = tm->manager;
      D_ASSERT( manager != NULL );
 
-     manager->GetSize( manager, &size );
+     manager->GetSize( manager, DWSC_MIDDLE, &size );
 
      hcenter = (size.w / 2) & ~1;
      vcenter = size.h / 2;
@@ -291,7 +291,7 @@ MosaicRelayout( TestManager *tm,
           corewindow->config.bounds = bounds[i];
      }
 
-     manager->QueueUpdate( manager, NULL );
+     manager->QueueUpdate( manager, DWSC_MIDDLE, NULL );
 }
 
 static void
@@ -654,11 +654,11 @@ input_filter( void          *context,
 
 
 static DirectResult
-window_preconfig( void             *context,
-                  CoreWindowConfig *config )
+window_preconfig( void       *context,
+                  CoreWindow *window )
 {
      D_INFO( "SaWMan/TestMan: Window preconfig (%d,%d-%dx%d)!\n",
-             DFB_RECTANGLE_VALS( &config->bounds ) );
+             DFB_RECTANGLE_VALS( &window->config.bounds ) );
 
      return DFB_OK;
 }

@@ -31,6 +31,8 @@
 #include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
 
+#include <core/wm.h>
+
 #include <sawman.h>
 #include <sawman_manager.h>
 
@@ -49,7 +51,7 @@ ISaWManManager_Destruct( ISaWManManager *thiz )
 }
 
 
-static DFBResult
+static DirectResult
 ISaWManManager_AddRef( ISaWManManager *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
@@ -59,7 +61,7 @@ ISaWManManager_AddRef( ISaWManManager *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 ISaWManManager_Release( ISaWManManager *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
@@ -70,35 +72,54 @@ ISaWManManager_Release( ISaWManManager *thiz )
      return DFB_OK;
 }
 
-static DFBResult
-ISaWManManager_QueueUpdate( ISaWManManager  *thiz,
-                            const DFBRegion *region )
+static DirectResult
+ISaWManManager_QueueUpdate( ISaWManManager         *thiz,
+                            DFBWindowStackingClass  stacking,
+                            const DFBRegion        *region )
 {
-     SaWMan    *sawman;
-     DFBRegion  update;
+     SaWMan     *sawman;
+     SaWManTier *tier;
+     DFBRegion   update;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
      if (!DFB_REGION_CHECK_IF( region ))
           return DFB_INVAREA;
 
-     sawman = data->sawman;
+     switch (stacking) {
+          case DWSC_LOWER:
+          case DWSC_MIDDLE:
+          case DWSC_UPPER:
+               break;
 
+          default:
+               return DFB_INVARG;
+     }
+
+     sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
      /* FIXME: locking? */
 
-     update = DFB_REGION_INIT_FROM_DIMENSION( &sawman->size );
+     tier = sawman_tier_by_class( sawman, stacking );
+
+     update = DFB_REGION_INIT_FROM_DIMENSION( &tier->size );
+
+//     direct_log_printf( NULL, "Queue %d,%d-%dx%d\n",
+//                        DFB_RECTANGLE_VALS_FROM_REGION(&update) );
 
      if (region && !dfb_region_region_intersect( &update, region ))
           return DFB_OK;
 
-     dfb_updates_add( &sawman->updates, &update );
+//     direct_log_printf( NULL, "   -> %d,%d-%dx%d\n",
+//                        DFB_RECTANGLE_VALS_FROM_REGION(&update) );
+
+     dfb_updates_add( &tier->updates, &update );
 
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 ISaWManManager_CloseWindow( ISaWManManager *thiz,
                             SaWManWindow   *window )
 {
@@ -124,7 +145,7 @@ ISaWManManager_CloseWindow( ISaWManManager *thiz,
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 ISaWManManager_SetVisible( ISaWManManager *thiz,
                            SaWManWindow   *window,
                            DFBBoolean      visible )
@@ -148,7 +169,7 @@ ISaWManManager_SetVisible( ISaWManManager *thiz,
      return DFB_UNIMPLEMENTED;// sawman_set_visible( sawman, window );
 }
 
-static DFBResult
+static DirectResult
 ISaWManManager_SwitchFocus( ISaWManManager *thiz,
                             SaWManWindow   *window )
 {
@@ -169,29 +190,42 @@ ISaWManManager_SwitchFocus( ISaWManManager *thiz,
      return sawman_switch_focus( sawman, window );
 }
 
-static DFBResult
-ISaWManManager_GetSize( ISaWManManager *thiz,
-                        DFBDimension   *ret_size )
+static DirectResult
+ISaWManManager_GetSize( ISaWManManager         *thiz,
+                        DFBWindowStackingClass  stacking,
+                        DFBDimension           *ret_size )
 {
-     SaWMan *sawman;
+     SaWMan     *sawman;
+     SaWManTier *tier;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     switch (stacking) {
+          case DWSC_LOWER:
+          case DWSC_MIDDLE:
+          case DWSC_UPPER:
+               break;
+
+          default:
+               return DFB_INVARG;
+     }
 
      if (!ret_size)
           return DFB_INVARG;
 
      sawman = data->sawman;
-
      D_MAGIC_ASSERT( sawman, SaWMan );
 
      /* FIXME: locking? */
 
-     *ret_size = sawman->size;
+     tier = sawman_tier_by_class( sawman, stacking );
+
+     *ret_size = tier->size;
 
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 ISaWManManager_InsertWindow( ISaWManManager *thiz,
                              SaWManWindow   *window,
                              SaWManWindow   *relative,
@@ -215,7 +249,7 @@ ISaWManManager_InsertWindow( ISaWManManager *thiz,
      return sawman_insert_window( sawman, window, relative, top );
 }
 
-static DFBResult
+static DirectResult
 ISaWManManager_RemoveWindow( ISaWManManager *thiz,
                              SaWManWindow   *window )
 {
@@ -236,12 +270,11 @@ ISaWManManager_RemoveWindow( ISaWManManager *thiz,
      return sawman_remove_window( sawman, window );
 }
 
-static DFBResult
+static DirectResult
 ISaWManManager_SetScalingMode( ISaWManManager    *thiz,
                                SaWManScalingMode  mode )
 {
-     SaWMan    *sawman;
-     DFBRegion  update;
+     SaWMan *sawman;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
@@ -254,12 +287,58 @@ ISaWManManager_SetScalingMode( ISaWManManager    *thiz,
      /* FIXME: locking? */
 
      if (sawman->scaling_mode != mode) {
+          SaWManTier *tier;
+
           sawman->scaling_mode = mode;
 
-          update = DFB_REGION_INIT_FROM_DIMENSION( &sawman->size );
+          direct_list_foreach (tier, sawman->tiers) {
+               DFBRegion update = DFB_REGION_INIT_FROM_DIMENSION( &tier->size );
 
-          dfb_updates_add( &sawman->updates, &update );
+               dfb_updates_add( &tier->updates, &update );
+          }
      }
+
+     return DFB_OK;
+}
+
+static DirectResult
+ISaWManManager_SendWindowEvent( ISaWManManager       *thiz,
+                                const DFBWindowEvent *event,
+                                DFBWindowID           window_id )
+{
+     SaWMan         *sawman;
+     SaWManWindow   *window;
+     DFBWindowEvent  evt;
+
+     DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     if (!event || !window_id)
+          return DFB_INVARG;
+
+     /* Only key events! */
+     if (event->type != DWET_KEYDOWN && event->type != DWET_KEYUP)
+          return DFB_UNSUPPORTED;
+
+     /* Don't return same event twice! */
+     if (event->flags & DWEF_RETURNED)
+          return DFB_LIMITEXCEEDED;
+
+     sawman = data->sawman;
+     D_MAGIC_ASSERT( sawman, SaWMan );
+
+     /* FIXME: locking? */
+
+     direct_list_foreach (window, sawman->windows) {
+          D_MAGIC_ASSERT( window, SaWManWindow );
+
+          if (window->id == window_id)
+               break;
+     }
+
+     if (!window)
+          return DFB_IDNOTFOUND;
+
+     sawman_post_event( sawman, window, &evt );
 
      return DFB_OK;
 }
@@ -275,16 +354,17 @@ ISaWManManager_Construct( ISaWManManager *thiz,
      data->sawman  = sawman;
      data->process = process;
 
-     thiz->AddRef         = ISaWManManager_AddRef;
-     thiz->Release        = ISaWManManager_Release;
-     thiz->QueueUpdate    = ISaWManManager_QueueUpdate;
-     thiz->CloseWindow    = ISaWManManager_CloseWindow;
-     thiz->SetVisible     = ISaWManManager_SetVisible;
-     thiz->SwitchFocus    = ISaWManManager_SwitchFocus;
-     thiz->GetSize        = ISaWManManager_GetSize;
-     thiz->InsertWindow   = ISaWManManager_InsertWindow;
-     thiz->RemoveWindow   = ISaWManManager_RemoveWindow;
-     thiz->SetScalingMode = ISaWManManager_SetScalingMode;
+     thiz->AddRef          = ISaWManManager_AddRef;
+     thiz->Release         = ISaWManManager_Release;
+     thiz->QueueUpdate     = ISaWManManager_QueueUpdate;
+     thiz->CloseWindow     = ISaWManManager_CloseWindow;
+     thiz->SetVisible      = ISaWManManager_SetVisible;
+     thiz->SwitchFocus     = ISaWManManager_SwitchFocus;
+     thiz->GetSize         = ISaWManManager_GetSize;
+     thiz->InsertWindow    = ISaWManManager_InsertWindow;
+     thiz->RemoveWindow    = ISaWManManager_RemoveWindow;
+     thiz->SetScalingMode  = ISaWManManager_SetScalingMode;
+     thiz->SendWindowEvent = ISaWManManager_SendWindowEvent;
 
      return DFB_OK;
 }

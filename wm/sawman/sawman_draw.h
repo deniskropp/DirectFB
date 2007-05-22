@@ -44,7 +44,7 @@ void sawman_draw_window    ( SaWManWindow    *sawwin,
                              DFBRegion       *pregion,
                              bool             alpha_channel );
 
-void sawman_draw_background( CoreWindowStack *stack,
+void sawman_draw_background( SaWManTier      *tier,
                              CardState       *state,
                              DFBRegion       *region );
 

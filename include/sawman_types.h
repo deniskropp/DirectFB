@@ -39,6 +39,7 @@ typedef struct __SaWMan_SaWManCallbacks  SaWManCallbacks;
 typedef struct __SaWMan_SaWManGrabbedKey SaWManGrabbedKey;
 typedef struct __SaWMan_SaWManLayout     SaWManLayout;
 typedef struct __SaWMan_SaWManProcess    SaWManProcess;
+typedef struct __SaWMan_SaWManTier       SaWManTier;
 typedef struct __SaWMan_SaWManWindow     SaWManWindow;
 
 

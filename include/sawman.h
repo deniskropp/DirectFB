@@ -80,6 +80,20 @@ DEFINE_INTERFACE(   ISaWMan,
      );
 
 
+   /** Event handling **/
+
+     /*
+      * Returns a received key event.
+      *
+      * This sends the key event to the key collector.
+      * In the flags field of the event structure DWET_RETURNED will be set.
+      */
+     DirectResult (*ReturnKeyEvent) (
+          ISaWMan                  *thiz,
+          DFBWindowEvent           *event
+     );
+
+
    /** Manager **/
 
      /*
@@ -114,6 +128,7 @@ DEFINE_INTERFACE(   ISaWManManager,
       */
      DirectResult (*QueueUpdate) (
           ISaWManManager           *thiz,
+          DFBWindowStackingClass    stacking,
           const DFBRegion          *region
      );
 
@@ -153,6 +168,7 @@ DEFINE_INTERFACE(   ISaWManManager,
       */
      DirectResult (*GetSize) (
           ISaWManManager           *thiz,
+          DFBWindowStackingClass    stacking,
           DFBDimension             *ret_size
      );
 
@@ -187,6 +203,20 @@ DEFINE_INTERFACE(   ISaWManManager,
      DirectResult (*SetScalingMode) (
           ISaWManManager           *thiz,
           SaWManScalingMode         mode
+     );
+
+
+   /** Event handling **/
+
+     /*
+      * Send an event to a window.
+      *
+      * This sends an event to the window specified by the <b>window_id</b>.
+      */
+     DirectResult (*SendWindowEvent) (
+          ISaWManManager           *thiz,
+          const DFBWindowEvent     *event,
+          DFBWindowID               window_id
      );
 )
 

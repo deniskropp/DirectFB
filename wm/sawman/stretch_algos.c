@@ -29,6 +29,7 @@
 #include <dirent.h>
 
 #include <directfb.h>
+#include <directfb_util.h>
 
 #include <direct/debug.h>
 #include <direct/messages.h>
@@ -37,6 +38,8 @@
 #include <gfx/convert.h>
 
 #include "stretch_algos.h"
+
+#define COLOR_KEY_PROTECT
 
 #define PIXEL_RGB32TO16(p)      ((((p) >> 8) & 0xf800) | (((p) >> 5) & 0x07e0) | (((p) >> 3) & 0x001f))
 
@@ -119,10 +122,10 @@ static void stretch_simple_rgb16_keyed( void        *dst,
                    if (r != src_key)
                         dst32[x] = (((r == 0x20) ? 0x40 : r) << 16) | ((l == 0x20) ? 0x40 : l);
                    else
-                        *(__u16*)dst32 = (l == 0x20) ? 0x40 : l;
+                        *(__u16*)(&dst32[x]) = (l == 0x20) ? 0x40 : l;
               }
               else if (r != src_key)
-                   *(((__u16*)dst32)+1) = (r == 0x20) ? 0x40 : r;
+                   *(((__u16*)(&dst32[x]))+1) = (r == 0x20) ? 0x40 : r;
 
               point += hfraq2;
          }
@@ -133,164 +136,6 @@ static void stretch_simple_rgb16_keyed( void        *dst,
 }
 
 /**********************************************************************************************************************/
-
-static void stretch_down2_rgb16( void         *dst,
-                                 int           dpitch,
-                                 const void   *src,
-                                 int           spitch,
-                                 int           width,
-                                 int           height,
-                                 int           dst_width,
-                                 int           dst_height,
-                                 DFBRegion    *clip )
-{
-     int x, y;
-     int w2     = (clip->x2 - clip->x1 + 1) / 2;
-     int hfraq  = (width  << 20) / dst_width;
-     int vfraq  = (height << 20) / dst_height;
-     int sp2    = spitch / 2;
-     int point0 = clip->x1 * hfraq;
-     int line   = clip->y2 * vfraq;
-
-     D_ASSUME( !(clip->x1 & 1) );
-     D_ASSUME( clip->x2 & 1 );
-
-     dst += clip->x1 * 2;
-
-     for (y=clip->y2; y>=clip->y1; y--) {
-          int point = point0;
-
-          __u16 s1;
-          __u16 s2;
-          __u16 s3;
-          __u16 s4;
-          __u32 dp;
-          __u32 g;
-
-          int sy = (line >> 20);
-
-          if (sy > height - 2)
-               sy = height - 2;
-
-          __u32       *dst32 = dst + dpitch * y;
-          const __u16 *src16 = src + spitch * sy;
-
-
-          for (x=0; x<w2; x++) {
-               s1 = src16[point>>20];
-               s2 = src16[(point>>20) + 1];
-               s3 = src16[(point>>20) + sp2];
-               s4 = src16[(point>>20) + sp2 + 1];
-
-               point += hfraq;
-
-               g = ((((s1 & 0x07e0) + (s2 & 0x07e0) + (s3 & 0x07e0) + (s4 & 0x07e0)) >> 2) & 0x07e0);
-               if (g == 0x20)
-                    g = 0x40;
-
-               dp = g | ((((s1 & 0xf81f) + (s2 & 0xf81f) + (s3 & 0xf81f) + (s4 & 0xf81f)) >> 2) & 0xf81f);
-
-
-
-               s1 = src16[point>>20];
-               s2 = src16[(point>>20) + 1];
-               s3 = src16[(point>>20) + sp2];
-               s4 = src16[(point>>20) + sp2 + 1];
-
-               point += hfraq;
-
-               g = ((((s1 & 0x07e0) + (s2 & 0x07e0) + (s3 & 0x07e0) + (s4 & 0x07e0)) << 14) & 0x07e00000);
-               if (g == 0x200000)
-                    g = 0x400000;
-
-               dp |= g | ((((s1 & 0xf81f) + (s2 & 0xf81f) + (s3 & 0xf81f) + (s4 & 0xf81f)) << 14) & 0xf81f0000);
-
-
-               dst32[x] = dp;
-          }
-
-          line -= vfraq;
-     }
-}
-
-static void stretch_down2_rgb16_keyed( void         *dst,
-                                       int           dpitch,
-                                       const void   *src,
-                                       int           spitch,
-                                       int           width,
-                                       int           height,
-                                       int           dst_width,
-                                       int           dst_height,
-                                       DFBRegion    *clip,
-                                       u16           src_key )
-{
-     int x, y;
-     int w2     = (clip->x2 - clip->x1 + 1) / 2;
-     int hfraq  = (width  << 20) / dst_width;
-     int vfraq  = (height << 20) / dst_height;
-     int sp2    = spitch / 2;
-     int point0 = clip->x1 * hfraq;
-     int line   = clip->y2 * vfraq;
-
-     D_ASSUME( !(clip->x1 & 1) );
-     D_ASSUME( clip->x2 & 1 );
-
-     dst += clip->x1 * 2;
-
-     for (y=clip->y2; y>=clip->y1; y--) {
-          int point = point0;
-
-          __u16 s1;
-          __u16 s2;
-          __u16 s3;
-          __u16 s4;
-
-          int sy = (line >> 20);
-
-          if (sy > height - 2)
-               sy = height - 2;
-
-          __u32       *dst32 = dst + dpitch * y;
-          const __u16 *src16 = src + spitch * sy;
-
-
-          for (x=0; x<w2; x++) {
-               s1 = src16[point>>20];
-               s2 = src16[(point>>20) + 1];
-               s3 = src16[(point>>20) + sp2];
-               s4 = src16[(point>>20) + sp2 + 1];
-
-               point += hfraq;
-
-               register u32 l = ((((s1 & 0xf81f) + (s2 & 0xf81f) + (s3 & 0xf81f) + (s4 & 0xf81f)) >> 2) & 0xf81f) |
-                                ((((s1 & 0x07e0) + (s2 & 0x07e0) + (s3 & 0x07e0) + (s4 & 0x07e0)) >> 2) & 0x07e0);
-
-
-
-               s1 = src16[point>>20];
-               s2 = src16[(point>>20) + 1];
-               s3 = src16[(point>>20) + sp2];
-               s4 = src16[(point>>20) + sp2 + 1];
-
-               point += hfraq;
-
-               register u32 h = ((((s1 & 0xf81f) + (s2 & 0xf81f) + (s3 & 0xf81f) + (s4 & 0xf81f)) >> 2) & 0xf81f) |
-                                ((((s1 & 0x07e0) + (s2 & 0x07e0) + (s3 & 0x07e0) + (s4 & 0x07e0)) >> 2) & 0x07e0);
-
-
-               if (l != src_key) {
-                    if (h != src_key)
-                         dst32[x] = (((h == 0x20) ? 0x40 : h) << 16) | ((l == 0x20) ? 0x40 : l);
-                    else
-                         *(__u16*)dst32 = (l == 0x20) ? 0x40 : l;
-               }
-               else if (h != src_key)
-                    *(((__u16*)dst32)+1) = (h == 0x20) ? 0x40 : h;
-          }
-
-          line -= vfraq;
-     }
-}
 
 static void stretch_down2_rgb16_from32( void         *dst,
                                         int           dpitch,
@@ -319,13 +164,10 @@ static void stretch_down2_rgb16_from32( void         *dst,
           __u32 d1;
           __u32 d2;
 
-          int sy = (line >> 20);
-
-          if (sy > height - 2)
-               sy = height - 2;
+          int sy = ((line >> 20) > height - 2) ? height - 2 : (line >> 20);
 
           __u32       *dst32 = dst + dpitch * y;
-          const __u32 *src32 = src + spitch * sy;
+          const __u16 *src32 = src + spitch * sy;
 
 
           for (x=0; x<w2; x++) {
@@ -386,13 +228,10 @@ static void stretch_down2_rgb16_indexed( void           *dst,
           __u16 s4;
           __u32 dp;
 
-          int sy = (line >> 20);
+          int sy = ((line >> 20) > height - 2) ? height - 2 : (line >> 20);
 
-          if (sy > height - 2)
-               sy = height - 2;
-
-          __u32      *dst32 = dst + dpitch * y;
-          const __u8 *src8  = src + spitch * sy;
+          __u32       *dst32 = dst + dpitch * y;
+          const __u16 *src8  = src + spitch * sy;
 
 
           for (x=0; x<w2; x++) {
@@ -451,10 +290,7 @@ static void stretch_down2_argb4444( void         *dst,
           __u16 s4;
           __u32 dp;
 
-          int sy = (line >> 20);
-
-          if (sy > height - 2)
-               sy = height - 2;
+          int sy = ((line >> 20) > height - 2) ? height - 2 : (line >> 20);
 
           __u32       *dst32 = dst + dpitch * y;
           const __u16 *src16 = src + spitch * sy;
@@ -492,400 +328,6 @@ static void stretch_down2_argb4444( void         *dst,
 
 /**********************************************************************************************************************/
 
-//#define COLOR_KEY_PROTECT
-
-#if 1
-static void stretch_hvx_rgb16( void         *dst,
-                               int           dpitch,
-                               const void   *src,
-                               int           spitch,
-                               int           width,
-                               int           height,
-                               int           dst_width,
-                               int           dst_height,
-                               DFBRegion    *clip )
-{
-    int x;
-    int w      = clip->x2 - clip->x1 + 1;
-    int h      = clip->y2 - clip->y1 + 1;
-    int w2     = w / 2;
-    int hfraq  = (width  << 20) / dst_width;
-    int vfraq  = (height << 20) / dst_height;
-    int point0 = clip->x1 * hfraq;
-    int line   = clip->y2 * vfraq;
-    int dp4    = dpitch / 4;
-
-    int        point = point0;
-    int        last  = (line >> 20) + 1;
-    const u16 *src16 = src + spitch * ((last > height - 1) ? height - 1 : last);
-    u32       *dst32 = dst + clip->x1 * 2 + clip->y2 * dpitch;
-    u32        linecache[w2];
-
-    D_ASSUME( !(clip->x1 & 1) );
-    D_ASSUME( clip->x2 & 1 );
-
-    /* Prefill the line cache. */
-    for (x=0; x<w2; x++) {
-         u32 X, L, R, dp;
-
-         /* Horizontal interpolation of 1st pixel */
-         X = (point >> 14) & 0x3F;
-         L = src16[point>>20];
-         R = src16[(point>>20) + 1];
-
-         dp = (((((R & 0xf81f)-(L & 0xf81f))*X + ((L & 0xf81f)<<6)) & 0x003e07c0) + 
-               ((((R & 0x07e0)-(L & 0x07e0))*X + ((L & 0x07e0)<<6)) & 0x0001f800)) >> 6;
-
-         point += hfraq;
-
-         /* Horizontal interpolation of 2nd pixel */
-         X = (point >> 14) & 0x3F;
-         L = src16[point>>20];
-         R = src16[(point>>20) + 1];
-
-         dp |= (((((R & 0xf81f)-(L & 0xf81f))*X + ((L & 0xf81f)<<6)) & 0x003e07c0) + 
-                ((((R & 0x07e0)-(L & 0x07e0))*X + ((L & 0x07e0)<<6)) & 0x0001f800)) << 10;
-
-         point += hfraq;
-
-         /* Store pixels in line cache. */
-         linecache[x] = dp;
-    }
-
-    /* Scale the image. */
-    while (h--) {
-         point = point0;
-         src16 = src + spitch * (line >> 20);
-
-         for (x=0; x<w2; x++) {
-              u32 X, L, R, dp;
-
-              /* Horizontal interpolation of 1st pixel */
-              L = src16[point>>20];
-              R = src16[(point>>20) + 1];
-              X = (point >> 14) & 0x3F;
-
-              dp = (((((R & 0xf81f)-(L & 0xf81f))*X + ((L & 0xf81f)<<6)) & 0x003e07c0) + 
-                    ((((R & 0x07e0)-(L & 0x07e0))*X + ((L & 0x07e0)<<6)) & 0x0001f800)) >> 6;
-
-              point += hfraq;
-
-              /* Horizontal interpolation of 2nd pixel */
-              L = src16[point>>20];
-              R = src16[(point>>20) + 1];
-              X = (point >> 14) & 0x3F;
-
-              dp |= (((((R & 0xf81f)-(L & 0xf81f))*X + ((L & 0xf81f)<<6)) & 0x003e07c0) + 
-                     ((((R & 0x07e0)-(L & 0x07e0))*X + ((L & 0x07e0)<<6)) & 0x0001f800)) << 10;
-
-              point += hfraq;
-
-              /* Vertical interpolation of both pixels */
-              X = (line >> 15) & 0x1F;
-
-#ifdef COLOR_KEY_PROTECT
-              u32 dt = ((((((linecache[x] & 0x07e0f81f) - (dp & 0x07e0f81f))*X) >> 5) + (dp & 0x07e0f81f)) & 0x07e0f81f) +
-                       ((((((linecache[x]>>5) & 0x07c0f83f) - ((dp>>5) & 0x07c0f83f))*X) + (dp & 0xf81f07e0)) & 0xf81f07e0);
-
-              /* Get two new pixels. */
-              u16 l = dt;
-              u16 h = dt >> 16;
-
-              /* Write to destination with color key protection */
-              dst32[x] = (((h == 0x20) ? 0x40 : h) << 16) | ((l == 0x20) ? 0x40 : l);
-#else
-              /* Write to destination without color key protection */
-              dst32[x] = ((((((linecache[x] & 0x07e0f81f) - (dp & 0x07e0f81f))*X) >> 5) + (dp & 0x07e0f81f)) & 0x07e0f81f) +
-                         ((((((linecache[x]>>5) & 0x07c0f83f) - ((dp>>5) & 0x07c0f83f))*X) + (dp & 0xf81f07e0)) & 0xf81f07e0);
-#endif
-
-              /* Store pixels in line cache. */
-              linecache[x] = dp;
-         }
-
-         dst32 -= dp4;
-
-
-
-         /*
-          * What a great optimization!  -24% time
-          */
-         int next = line - vfraq;
-
-         while ((next >> 20) == (line >> 20) && h) {
-              h--;
-
-#ifdef COLOR_KEY_PROTECT
-              for (x=0; x<w2; x++) {
-                   /* Get two new pixels. */
-                   u16 l = linecache[x];
-                   u16 h = linecache[x] >> 16;
-
-                   /* Write to destination with color key protection */
-                   dst32[x] = (((h == 0x20) ? 0x40 : h) << 16) | ((l == 0x20) ? 0x40 : l);
-              }
-#else
-              memcpy( dst32, linecache, w * 2 );
-#endif
-
-              dst32 -= dp4;
-              next  -= vfraq;
-         }
-
-         line = next;
-    }
-}
-#else
-static void stretch_hv4_rgb16( void         *dst,
-                               int           dpitch,
-                               const void   *src,
-                               int           spitch,
-                               int           width,
-                               int           height,
-                               int           dst_width,
-                               int           dst_height,
-                               DFBRegion    *clip )
-{
-    int x, y;
-    int w2     = (clip->x2 - clip->x1 + 1) / 2;
-    int hfraq  = (width  << 20) / dst_width;
-    int vfraq  = (height << 20) / dst_height;
-    int point0 = clip->x1 * hfraq;
-    int line   = clip->y2 * vfraq;
-
-    __u32 linecache[w2];
-
-    D_ASSUME( !(clip->x1 & 1) );
-    D_ASSUME( clip->x2 & 1 );
-
-    dst += clip->x1 * 2;
-
-    for (y=clip->y2; y>=clip->y1; y--) {
-         int point = point0;
-
-         __u32 dp;
-
-         __u32       *dst32 = dst + dpitch * y;
-         const __u16 *src16 = src + spitch * (line >> 20);
-
-
-         for (x=0; x<w2; x++) {
-              register u32 s1;
-              register u32 s2;
-
-              s1 = src16[point>>20];
-              s2 = src16[(point>>20) + 1];
-
-              switch ((point >> 18) & 0x3) {
-                   case 0:
-                        dp = s1;
-                        break;
-                   case 1:
-                        dp = ((((s2 & 0xf81f) + (s1 & 0xf81f) + (s1 & 0xf81f) + (s1 & 0xf81f)) >> 2) & 0xf81f) |
-                             ((((s2 & 0x07e0) + (s1 & 0x07e0) + (s1 & 0x07e0) + (s1 & 0x07e0)) >> 2) & 0x07e0);
-                        break;
-                   case 2:
-                        dp = ((((s2 & 0xf81f) + (s2 & 0xf81f) + (s2 & 0xf81f) + (s1 & 0xf81f)) >> 2) & 0xf81f) |
-                             ((((s2 & 0x07e0) + (s2 & 0x07e0) + (s2 & 0x07e0) + (s1 & 0x07e0)) >> 2) & 0x07e0);
-                        break;
-                   case 3:
-                        dp = s2;
-                        break;
-              }
-
-              point += hfraq;
-
-
-              s1 = src16[point>>20];
-              s2 = src16[(point>>20) + 1];
-
-              switch ((point >> 18) & 0x3) {
-                   case 0:
-                        dp |= (s1 << 16);
-                        break;
-                   case 1:
-                        dp |= (((((s2 & 0xf81f) + (s1 & 0xf81f) + (s1 & 0xf81f) + (s1 & 0xf81f)) << 14) & 0xf81f0000) |
-                               ((((s2 & 0x07e0) + (s1 & 0x07e0) + (s1 & 0x07e0) + (s1 & 0x07e0)) << 14) & 0x07e00000));
-                        break;
-                   case 2:
-                        dp |= (((((s2 & 0xf81f) + (s2 & 0xf81f) + (s2 & 0xf81f) + (s1 & 0xf81f)) << 14) & 0xf81f0000) |
-                               ((((s2 & 0x07e0) + (s2 & 0x07e0) + (s2 & 0x07e0) + (s1 & 0x07e0)) << 14) & 0x07e00000));
-                        break;
-                   case 3:
-                        dp |= (s2 << 16);
-                        break;
-              }
-
-              point += hfraq;
-
-
-              register u32 dt;
-
-              if (y == clip->y2)
-                   dt = dp;
-              else {
-                   switch ((line >> 18) & 0x3) {
-                        case 0:
-                             dt = dp;
-                             break;
-                        case 1:
-                             dt = (((((linecache[x] & 0x07e0f81f) + (dp & 0x07e0f81f) + (dp & 0x07e0f81f) + (dp & 0x07e0f81f)) >> 2) & 0x07e0f81f) |
-                                   (((((linecache[x] >> 4) & 0x0f81f07e) + ((dp >> 4) & 0x0f81f07e) + ((dp >> 4) & 0x0f81f07e) + ((dp >> 4) & 0x0f81f07e)) << 2) & 0xf81f07e0));
-                             break;
-                        case 2:
-                             dt = (((((linecache[x] & 0x07e0f81f) + (dp & 0x07e0f81f)) >> 1) & 0x07e0f81f) |
-                                   (((((linecache[x] >> 4) & 0x0f81f07e) + ((dp >> 4) & 0x0f81f07e)) << 3) & 0xf81f07e0));
-                             break;
-                        case 3:
-                             dt = (((((linecache[x] & 0x07e0f81f) + (linecache[x] & 0x07e0f81f) + (linecache[x] & 0x07e0f81f) + (dp & 0x07e0f81f)) >> 2) & 0x07e0f81f) |
-                                   (((((linecache[x] >> 4) & 0x0f81f07e) + ((linecache[x] >> 4) & 0x0f81f07e) + ((linecache[x] >> 4) & 0x0f81f07e) + ((dp >> 4) & 0x0f81f07e)) << 2) & 0xf81f07e0));
-                             break;
-                   }
-              }
-
-              register u16 l = dt;
-              register u16 h = dt >> 16;
-
-              dst32[x] = (((h == 0x20) ? 0x40 : h) << 16) | ((l == 0x20) ? 0x40 : l);
-
-              linecache[x] = dp;
-         }
-
-         line -= vfraq;
-    }
-}
-#endif
-
-static void stretch_hv4_rgb16_keyed( void         *dst,
-                                     int           dpitch,
-                                     const void   *src,
-                                     int           spitch,
-                                     int           width,
-                                     int           height,
-                                     int           dst_width,
-                                     int           dst_height,
-                                     DFBRegion    *clip,
-                                     u16           src_key )
-{
-    int x, y;
-    int w2     = (clip->x2 - clip->x1 + 1) / 2;
-    int hfraq  = (width  << 20) / dst_width;
-    int vfraq  = (height << 20) / dst_height;
-    int point0 = clip->x1 * hfraq;
-    int line   = clip->y2 * vfraq;
-    u32 dkey   = src_key | (src_key << 16);
-
-    __u32 linecache[w2];
-
-    D_ASSUME( !(clip->x1 & 1) );
-    D_ASSUME( clip->x2 & 1 );
-
-    dst += clip->x1 * 2;
-
-    for (y=clip->y2; y>=clip->y1; y--) {
-         int point = point0;
-
-         __u32 dp = 0;   /* fix warning */
-
-         __u32       *dst32 = dst + dpitch * y;
-         const __u16 *src16 = src + spitch * (line >> 20);
-
-
-         for (x=0; x<w2; x++) {
-              register u32 s1;
-              register u32 s2;
-
-              s1 = src16[point>>20];
-              s2 = src16[(point>>20) + 1];
-
-              switch ((point >> 18) & 0x3) {
-                   case 0:
-                        dp = s1;
-                        break;
-                   case 1:
-                        dp = ((((s2 & 0xf81f) + (s1 & 0xf81f) + (s1 & 0xf81f) + (s1 & 0xf81f)) >> 2) & 0xf81f) |
-                             ((((s2 & 0x07e0) + (s1 & 0x07e0) + (s1 & 0x07e0) + (s1 & 0x07e0)) >> 2) & 0x07e0);
-                        break;
-                   case 2:
-                        dp = ((((s2 & 0xf81f) + (s2 & 0xf81f) + (s2 & 0xf81f) + (s1 & 0xf81f)) >> 2) & 0xf81f) |
-                             ((((s2 & 0x07e0) + (s2 & 0x07e0) + (s2 & 0x07e0) + (s1 & 0x07e0)) >> 2) & 0x07e0);
-                        break;
-                   case 3:
-                        dp = s2;
-                        break;
-              }
-
-              point += hfraq;
-
-
-              s1 = src16[point>>20];
-              s2 = src16[(point>>20) + 1];
-
-              switch ((point >> 18) & 0x3) {
-                   case 0:
-                        dp |= (s1 << 16);
-                        break;
-                   case 1:
-                        dp |= (((((s2 & 0xf81f) + (s1 & 0xf81f) + (s1 & 0xf81f) + (s1 & 0xf81f)) << 14) & 0xf81f0000) |
-                               ((((s2 & 0x07e0) + (s1 & 0x07e0) + (s1 & 0x07e0) + (s1 & 0x07e0)) << 14) & 0x07e00000));
-                        break;
-                   case 2:
-                        dp |= (((((s2 & 0xf81f) + (s2 & 0xf81f) + (s2 & 0xf81f) + (s1 & 0xf81f)) << 14) & 0xf81f0000) |
-                               ((((s2 & 0x07e0) + (s2 & 0x07e0) + (s2 & 0x07e0) + (s1 & 0x07e0)) << 14) & 0x07e00000));
-                        break;
-                   case 3:
-                        dp |= (s2 << 16);
-                        break;
-              }
-
-              point += hfraq;
-
-
-              register u32 dt = 0;   /* fix warning */
-
-              if (y == clip->y2)
-                   dt = dp;
-              else {
-                   switch ((line >> 18) & 0x3) {
-                        case 0:
-                             dt = dp;
-                             break;
-                        case 1:
-                             dt = (((((linecache[x] & 0x07e0f81f) + (dp & 0x07e0f81f) + (dp & 0x07e0f81f) + (dp & 0x07e0f81f)) >> 2) & 0x07e0f81f) |
-                                   (((((linecache[x] >> 4) & 0x0f81f07e) + ((dp >> 4) & 0x0f81f07e) + ((dp >> 4) & 0x0f81f07e) + ((dp >> 4) & 0x0f81f07e)) << 2) & 0xf81f07e0));
-                             break;
-                        case 2:
-                             dt = (((((linecache[x] & 0x07e0f81f) + (dp & 0x07e0f81f)) >> 1) & 0x07e0f81f) |
-                                   (((((linecache[x] >> 4) & 0x0f81f07e) + ((dp >> 4) & 0x0f81f07e)) << 3) & 0xf81f07e0));
-                             break;
-                        case 3:
-                             dt = (((((linecache[x] & 0x07e0f81f) + (linecache[x] & 0x07e0f81f) + (linecache[x] & 0x07e0f81f) + (dp & 0x07e0f81f)) >> 2) & 0x07e0f81f) |
-                                   (((((linecache[x] >> 4) & 0x0f81f07e) + ((linecache[x] >> 4) & 0x0f81f07e) + ((linecache[x] >> 4) & 0x0f81f07e) + ((dp >> 4) & 0x0f81f07e)) << 2) & 0xf81f07e0));
-                             break;
-                   }
-              }
-
-              if (dt != dkey) {
-                   register u16 l = dt;
-                   register u16 h = dt >> 16;
-
-                   if (l != src_key) {
-                        if (h != src_key)
-                             dst32[x] = (((h == 0x20) ? 0x40 : h) << 16) | ((l == 0x20) ? 0x40 : l);
-                        else
-                             *(__u16*)dst32 = (l == 0x20) ? 0x40 : l;
-                   }
-                   else if (h != src_key)
-                        *(((__u16*)dst32)+1) = (h == 0x20) ? 0x40 : h;
-              }
-
-              linecache[x] = dp;
-         }
-
-         line -= vfraq;
-    }
-}
-
 static void stretch_hv4_rgb16_from32( void         *dst,
                                       int           dpitch,
                                       const void   *src,
@@ -909,8 +351,8 @@ static void stretch_hv4_rgb16_from32( void         *dst,
 
          __u32 s1;
          __u32 s2;
-         __u32 d1 = 0;   /* fix warning */
-         __u32 d2 = 0;   /* fix warning */
+         __u32 d1 = 0;
+         __u32 d2 = 0;
          __u32 dp;
 
          __u32       *dst32 = dst + dpitch * y;
@@ -1019,7 +461,7 @@ static void stretch_hv4_rgb16_indexed( void           *dst,
 
          __u16 s1;
          __u16 s2;
-         __u32 dp = 0;   /* fix warning */
+         __u32 dp = 0;
 
          __u32      *dst32 = dst + dpitch * y;
          const __u8 *src8  = src + spitch * (line >> 20);
@@ -1124,7 +566,7 @@ static void stretch_hv4_argb4444( void         *dst,
 
          __u16 s1;
          __u16 s2;
-         __u32 dp = 0;   /* fix warning */
+         __u32 dp = 0;
 
          __u32       *dst32 = dst + dpitch * y;
          const __u16 *src16 = src + spitch * (line >> 20);
@@ -1208,6 +650,109 @@ static void stretch_hv4_argb4444( void         *dst,
 
 /**********************************************************************************************************************/
 
+#define POINT_0               hfraq
+#define LINE_0                vfraq
+#define POINT_TO_RATIO(p,ps)  ( (((((p)) & 0x3ffff) ? : 0x40000) << 6) / (ps) )
+#define LINE_TO_RATIO(l,ls)   ( (((((l)) & 0x3ffff) ? : 0x40000) << 5) / (ls) )
+
+#define POINT_L(p,ps)  ( (((p)-1) >> 18) - 1 )
+#define POINT_R(p,ps)  ( (((p)-1) >> 18) )
+
+#define LINE_T(l,ls)  ( (((l)-1) >> 18) - 1 )
+#define LINE_B(l,ls)  ( (((l)-1) >> 18) )
+
+static void stretch_hvx_rgb16_down( void       *dst,
+                                    int         dpitch,
+                                    const void *src,
+                                    int         spitch,
+                                    int         width,
+                                    int         height,
+                                    int         dst_width,
+                                    int         dst_height,
+                                    DFBRegion  *clip )
+{
+#include "stretch_hvx_rgb16.h"
+}
+
+#define COLOR_KEY key
+
+static void stretch_hvx_rgb16_down_keyed( void       *dst,
+                                          int         dpitch,
+                                          const void *src,
+                                          int         spitch,
+                                          int         width,
+                                          int         height,
+                                          int         dst_width,
+                                          int         dst_height,
+                                          DFBRegion  *clip,
+                                          u16         key )
+{
+#include "stretch_hvx_rgb16.h"
+}
+
+#undef POINT_0
+#undef LINE_0
+#undef POINT_TO_RATIO
+#undef LINE_TO_RATIO
+#undef POINT_L
+#undef POINT_R
+#undef LINE_T
+#undef LINE_B
+#undef COLOR_KEY
+
+
+#define POINT_0               0
+#define LINE_0                0
+#define POINT_TO_RATIO(p,ps)  ( ((p) & 0x3ffff) >> 12 )
+#define LINE_TO_RATIO(l,ls)   ( ((l) & 0x3ffff) >> 13 )
+
+#define POINT_L(p,ps)  ( (((p)) >> 18) )
+#define POINT_R(p,ps)  ( (((p)) >> 18) + 1 )
+
+#define LINE_T(l,ls)  ( (((l)) >> 18) )
+#define LINE_B(l,ls)  ( (((l)) >> 18) + 1 )
+
+static void stretch_hvx_rgb16_up( void       *dst,
+                                  int         dpitch,
+                                  const void *src,
+                                  int         spitch,
+                                  int         width,
+                                  int         height,
+                                  int         dst_width,
+                                  int         dst_height,
+                                  DFBRegion  *clip )
+{
+#include "stretch_hvx_rgb16.h"
+}
+
+#define COLOR_KEY key
+
+static void stretch_hvx_rgb16_up_keyed( void       *dst,
+                                        int         dpitch,
+                                        const void *src,
+                                        int         spitch,
+                                        int         width,
+                                        int         height,
+                                        int         dst_width,
+                                        int         dst_height,
+                                        DFBRegion  *clip,
+                                        u16         key )
+{
+#include "stretch_hvx_rgb16.h"
+}
+
+#undef POINT_0
+#undef LINE_0
+#undef POINT_TO_RATIO
+#undef LINE_TO_RATIO
+#undef POINT_L
+#undef POINT_R
+#undef LINE_T
+#undef LINE_B
+#undef COLOR_KEY
+
+/**********************************************************************************************************************/
+
 const StretchAlgo wm_stretch_simple =
      { "simple", "Simple Scaler",                           stretch_simple_rgb16,
                                                             stretch_simple_rgb16_keyed,
@@ -1215,16 +760,16 @@ const StretchAlgo wm_stretch_simple =
                                                             NULL,
                                                             NULL };
 
-const StretchAlgo wm_stretch_down2 =
-     { "down2",  "2x2 Down Scaler",                         stretch_down2_rgb16,
-                                                            stretch_down2_rgb16_keyed,
+const StretchAlgo wm_stretch_down =
+     { "down2",  "2x2 Down Scaler",                         stretch_hvx_rgb16_down,
+                                                            stretch_hvx_rgb16_down_keyed,
                                                             stretch_down2_argb4444,
                                                             stretch_down2_rgb16_indexed,
                                                             stretch_down2_rgb16_from32 };
 
-const StretchAlgo wm_stretch_hv4 =
-     { "hv4",    "Horizontal/vertical interpolation",       stretch_hvx_rgb16,
-                                                            stretch_hv4_rgb16_keyed,
+const StretchAlgo wm_stretch_up =
+     { "hv4",    "Horizontal/vertical interpolation",       stretch_hvx_rgb16_up,
+                                                            stretch_hvx_rgb16_up_keyed,
                                                             stretch_hv4_argb4444,
                                                             stretch_hv4_rgb16_indexed,
                                                             stretch_hv4_rgb16_from32 };

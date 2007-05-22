@@ -72,8 +72,8 @@ typedef struct {
 
 
 extern const StretchAlgo wm_stretch_simple;
-extern const StretchAlgo wm_stretch_down2;
-extern const StretchAlgo wm_stretch_hv4;
+extern const StretchAlgo wm_stretch_down;
+extern const StretchAlgo wm_stretch_up;
 
 #endif
 
