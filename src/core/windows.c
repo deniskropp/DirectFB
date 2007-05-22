@@ -773,6 +773,32 @@ dfb_window_putbelow( CoreWindow *window,
      return ret;
 }
 
+DFBResult
+dfb_window_set_config( CoreWindow             *window,
+                       const CoreWindowConfig *config,
+                       CoreWindowConfigFlags   flags )
+{
+     DFBResult         ret;
+     CoreWindowStack  *stack = window->stack;
+
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack ))
+          return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
+     ret = dfb_wm_set_window_config( window, config, flags );
+
+     /* Unlock the window stack. */
+     dfb_windowstack_unlock( stack );
+
+     return ret;
+}
+
 static DFBResult
 move_window( CoreWindow *window,
              int         x,

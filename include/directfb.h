@@ -4344,6 +4344,20 @@ typedef enum {
      DWKS_LIST           = 0x00000002   /* Select a list of keys. */
 } DFBWindowKeySelection;
 
+typedef enum {
+     DWGM_DEFAULT        = 0x00000000,  /* Use default values. */
+     DWGM_FOLLOW         = 0x00000001,  /* Use values of parent window. */
+     DWGM_RECTANGLE      = 0x00000002,  /* Use pixel values as defined. */
+     DWGM_LOCATION       = 0x00000003   /* Use relative values as defined. */
+} DFBWindowGeometryMode;
+
+typedef struct {
+     DFBWindowGeometryMode    mode;
+
+     DFBRectangle             rectangle;
+     DFBLocation              location;
+} DFBWindowGeometry;
+
 /*******************
  * IDirectFBWindow *
  *******************/
@@ -4841,6 +4855,29 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       */
      DFBResult (*UngrabUnselectedKeys) (
           IDirectFBWindow               *thiz
+     );
+
+
+   /** Advanced Geometry **/
+
+     /*
+      * Set area of surface to be shown in window.
+      *
+      * Default and maximum is to show whole surface.
+      */
+     DFBResult (*SetSrcGeometry) (
+          IDirectFBWindow               *thiz,
+          const DFBWindowGeometry       *geometry
+     );
+
+     /*
+      * Set destination location of window within its bounds.
+      *
+      * Default and maximum is to fill whole bounds.
+      */
+     DFBResult (*SetDstGeometry) (
+          IDirectFBWindow               *thiz,
+          const DFBWindowGeometry       *geometry
      );
 )
 

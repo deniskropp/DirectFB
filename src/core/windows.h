@@ -59,7 +59,10 @@ typedef enum {
 
      CWCF_KEY_SELECTION = 0x00001000,
 
-     CWCF_ALL           = 0x0000133F
+     CWCF_SRC_GEOMETRY  = 0x00010000,
+     CWCF_DST_GEOMETRY  = 0x00020000,
+
+     CWCF_ALL           = 0x0003133F
 } CoreWindowConfigFlags;
 
 struct __DFB_CoreWindowConfig {
@@ -74,6 +77,9 @@ struct __DFB_CoreWindowConfig {
      DFBWindowKeySelection    key_selection;  /* how to filter keys in focus */
      DFBInputDeviceKeySymbol *keys;           /* list of keys for DWKS_LIST */
      unsigned int             num_keys;       /* number of entries in key array */
+
+     DFBWindowGeometry        src_geometry;   /* advanced source geometry */
+     DFBWindowGeometry        dst_geometry;   /* advanced destination geometry */
 };
 
 
@@ -202,6 +208,14 @@ dfb_window_putbelow( CoreWindow *window,
 DFBResult
 dfb_window_set_colorkey( CoreWindow *window,
                          u32         color_key );
+
+/*
+ * change window configuration
+ */
+DFBResult
+dfb_window_set_config( CoreWindow             *window,
+                       const CoreWindowConfig *config,
+                       CoreWindowConfigFlags   flags );
 
 /*
  * sets the global alpha factor

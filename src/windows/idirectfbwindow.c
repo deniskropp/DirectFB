@@ -985,6 +985,86 @@ IDirectFBWindow_Unbind( IDirectFBWindow *thiz,
      return dfb_window_unbind( data->window, source_data->window );
 }
 
+static DFBResult
+CheckGeometry( const DFBWindowGeometry *geometry )
+{
+     if (!geometry)
+          return DFB_INVARG;
+
+     switch (geometry->mode) {
+          case DWGM_DEFAULT:
+          case DWGM_FOLLOW:
+               break;
+
+          case DWGM_RECTANGLE:
+               if (geometry->rectangle.x < 0 ||
+                   geometry->rectangle.y < 0 ||
+                   geometry->rectangle.w < 1 ||
+                   geometry->rectangle.h < 1)
+                    return DFB_INVARG;
+               break;
+
+          case DWGM_LOCATION:
+               if (geometry->location.x < 0.0f ||
+                   geometry->location.y < 0.0f ||
+                   geometry->location.w > 1.0f ||
+                   geometry->location.h > 1.0f ||
+                   geometry->location.w <= 0.0f ||
+                   geometry->location.h <= 0.0f ||
+                   geometry->location.x + geometry->location.w > 1.0f ||
+                   geometry->location.y + geometry->location.h > 1.0f)
+                    return DFB_INVARG;
+               break;
+
+          default:
+               return DFB_INVARG;
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBWindow_SetSrcGeometry( IDirectFBWindow         *thiz,
+                                const DFBWindowGeometry *geometry )
+{
+     DFBResult        ret;
+     CoreWindowConfig config;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     ret = CheckGeometry( geometry );
+     if (ret)
+          return ret;
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     config.src_geometry = *geometry;
+
+     return dfb_window_set_config( data->window, &config, CWCF_SRC_GEOMETRY );
+}
+
+static DFBResult
+IDirectFBWindow_SetDstGeometry( IDirectFBWindow         *thiz,
+                                const DFBWindowGeometry *geometry )
+{
+     DFBResult        ret;
+     CoreWindowConfig config;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     ret = CheckGeometry( geometry );
+     if (ret)
+          return ret;
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     config.dst_geometry = *geometry;
+
+     return dfb_window_set_config( data->window, &config, CWCF_DST_GEOMETRY );
+}
+
 DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                            CoreWindow      *window,
@@ -1051,6 +1131,8 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->SetKeySelection = IDirectFBWindow_SetKeySelection;
      thiz->GrabUnselectedKeys = IDirectFBWindow_GrabUnselectedKeys;
      thiz->UngrabUnselectedKeys = IDirectFBWindow_UngrabUnselectedKeys;
+     thiz->SetSrcGeometry = IDirectFBWindow_SetSrcGeometry;
+     thiz->SetDstGeometry = IDirectFBWindow_SetDstGeometry;
 
      return DFB_OK;
 }
