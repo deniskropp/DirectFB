@@ -497,10 +497,6 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                return DFB_INVARG;
      }
 
-     /* Source compatibility with older programs */
-     if ((caps & DSCAPS_FLIPPING) == DSCAPS_FLIPPING)
-          caps &= ~DSCAPS_TRIPLE;
-
      if (caps & DSCAPS_PRIMARY) {
           if (desc->flags & DSDESC_PREALLOCATED)
                return DFB_INVARG;
@@ -540,6 +536,10 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                     if (dfb_config->force_desktop) {
                          CoreSurface *surface;
 
+                         /* Source compatibility with older programs */
+                         if ((caps & DSCAPS_FLIPPING) == DSCAPS_FLIPPING)
+                              caps &= ~DSCAPS_TRIPLE;
+
                          if (caps & DSCAPS_VIDEOONLY)
                               policy = CSP_VIDEOONLY;
                          else if (caps & DSCAPS_SYSTEMONLY)
@@ -574,7 +574,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          CoreWindow           *window;
                          DFBWindowDescription  wd;
 
-                         if (caps & DSCAPS_TRIPLE)
+                         if ((caps & DSCAPS_FLIPPING) == DSCAPS_TRIPLE)
                               return DFB_UNSUPPORTED;
 
                          memset( &wd, 0, sizeof(wd) );
@@ -594,7 +594,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          wd.width        = width;
                          wd.height       = height;
                          wd.pixelformat  = format;
-                         wd.surface_caps = caps;
+                         wd.surface_caps = caps & ~DSCAPS_FLIPPING;
 
                          switch (format) {
                               case DSPF_ARGB4444:
@@ -649,6 +649,10 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                     config.flags |= DLCONF_BUFFERMODE | DLCONF_PIXELFORMAT |
                                     DLCONF_WIDTH | DLCONF_HEIGHT;
+
+                    /* Source compatibility with older programs */
+                    if ((caps & DSCAPS_FLIPPING) == DSCAPS_FLIPPING)
+                         caps &= ~DSCAPS_TRIPLE;
 
                     if (caps & DSCAPS_PREMULTIPLIED) {
                           config.flags        |= DLCONF_SURFACE_CAPS;
@@ -726,6 +730,10 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                }
           }
      }
+
+     /* Source compatibility with older programs */
+     if ((caps & DSCAPS_FLIPPING) == DSCAPS_FLIPPING)
+          caps &= ~DSCAPS_TRIPLE;
 
      if (caps & DSCAPS_TRIPLE)
           return DFB_UNSUPPORTED;
