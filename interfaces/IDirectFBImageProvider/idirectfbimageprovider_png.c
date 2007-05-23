@@ -447,6 +447,8 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
 
                          dfb_scale_linear_32( image_argb, data->width, data->height,
                                               dst, pitch, &rect, dst_surface, &clip );
+
+                         D_FREE( image_argb );
                     }
                }
           }
