@@ -205,6 +205,7 @@ besTestRegion( CoreLayer                  *layer,
           case DSPF_RGB32:
                if (!mdev->g450_matrox)
                     max_width = 512;
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_UYVY:
@@ -277,6 +278,7 @@ besSetRegion( CoreLayer                  *layer,
           DFBColor key = config->dst_key;
 
           switch (dfb_primary_layer_pixelformat()) {
+               case DSPF_RGB555:
                case DSPF_ARGB1555:
                     key.r >>= 3;
                     key.g >>= 3;
@@ -557,6 +559,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
                mbes->regs.besCTL     |= BESHFEN | BESVFEN | BESCUPS;
                break;
 
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
                mbes->regs.besGLOBCTL |= BESRGB15;
                break;

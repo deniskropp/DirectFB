@@ -315,7 +315,9 @@ matrox2064WCheckState( void *drv, void *dev,
                if (DFB_BLITTING_FUNCTION( accel ))
                     return;
           case DSPF_RGB332:
+          case DSPF_RGB444:
           case DSPF_ARGB4444:
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -353,7 +355,9 @@ matroxOldCheckState( void *drv, void *dev,
                if (DFB_BLITTING_FUNCTION( accel ))
                     return;
           case DSPF_RGB332:
+          case DSPF_RGB444:
           case DSPF_ARGB4444:
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -391,10 +395,12 @@ matroxG100CheckState( void *drv, void *dev,
                if (DFB_BLITTING_FUNCTION( accel ))
                     return;
           case DSPF_A8:
+          case DSPF_RGB444:
           case DSPF_ARGB4444:
                if (DFB_BLITTING_FUNCTION( accel ) && MATROX_USE_TMU( state, accel ))
                     return;
           case DSPF_RGB332:
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -422,7 +428,9 @@ matroxG100CheckState( void *drv, void *dev,
                switch (state->source->format) {
                     case DSPF_LUT8:
                     case DSPF_RGB332:
+                    case DSPF_RGB444:
                     case DSPF_ARGB4444:
+                    case DSPF_RGB555:
                     case DSPF_ARGB1555:
                     case DSPF_RGB16:
                          break;
@@ -479,10 +487,12 @@ matroxG200CheckState( void *drv, void *dev,
                if (DFB_BLITTING_FUNCTION( accel ))
                     return;
           case DSPF_A8:
+          case DSPF_RGB444:
           case DSPF_ARGB4444:
                if (MATROX_USE_3D( state, accel ))
                     return;
           case DSPF_RGB332:
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -516,7 +526,9 @@ matroxG200CheckState( void *drv, void *dev,
                          return;
                case DSPF_LUT8:
                case DSPF_RGB332:
+               case DSPF_RGB444:
                case DSPF_ARGB4444:
+               case DSPF_RGB555:
                case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB32:
@@ -601,10 +613,12 @@ matroxG400CheckState( void *drv, void *dev,
                if (DFB_BLITTING_FUNCTION( accel ))
                     return;
           case DSPF_A8:
+          case DSPF_RGB444:
           case DSPF_ARGB4444:
                if (MATROX_USE_3D( state, accel ))
                     return;
           case DSPF_RGB332:
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -642,7 +656,9 @@ matroxG400CheckState( void *drv, void *dev,
                case DSPF_RGB332:
                     if (use_tmu)
                          return;
+               case DSPF_RGB444:
                case DSPF_ARGB4444:
+               case DSPF_RGB555:
                case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB32:

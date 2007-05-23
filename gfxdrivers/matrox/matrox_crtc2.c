@@ -213,6 +213,7 @@ crtc2TestRegion( CoreLayer                  *layer,
      switch (config->format) {
           case DSPF_ARGB:
           case DSPF_RGB32:
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_YUY2:
@@ -443,6 +444,7 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
      mcrtc2->regs.c2CTL |= 1 << 8;
 
      switch (surface->format) {
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -471,6 +473,7 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
                mcrtc2->regs.c2CTL |= C2DEPTH_YCBCR422;
                break;
 
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
                mcrtc2->regs.c2CTL |= C2DEPTH_15BPP;
                break;
