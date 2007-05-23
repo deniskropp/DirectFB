@@ -264,6 +264,7 @@ static void mach64CheckState( void *drv, void *dev,
 {
      switch (state->destination->format) {
           case DSPF_RGB332:
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -300,6 +301,7 @@ static void mach64GTCheckState( void *drv, void *dev,
      Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
 
      switch (state->destination->format) {
+          case DSPF_RGB444:
           case DSPF_ARGB4444:
                /* Not supported. */
                if (mdev->chip < CHIP_3D_RAGE_PRO)
@@ -310,6 +312,7 @@ static void mach64GTCheckState( void *drv, void *dev,
                    mach64_use_scaler_3d( mdev, state, accel ))
                     return;
           case DSPF_RGB332:
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -338,7 +341,9 @@ static void mach64GTCheckState( void *drv, void *dev,
 
           switch (source->format) {
                case DSPF_RGB332:
+               case DSPF_RGB555:
                case DSPF_ARGB1555:
+               case DSPF_RGB444:
                case DSPF_ARGB4444:
                case DSPF_RGB16:
                case DSPF_RGB32:

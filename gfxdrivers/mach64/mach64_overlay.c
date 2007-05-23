@@ -199,6 +199,7 @@ ovTestRegion( CoreLayer                  *layer,
 
      /* check pixel format */
      switch (config->format) {
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -551,6 +552,7 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
           v_inc = (source.h << 12) / dest.h;
 
      switch (surface->format) {
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
                mov->regs.video_FORMAT = SCALER_IN_RGB15;
                break;
@@ -674,6 +676,11 @@ static void ov_calc_colorkey( Mach64DriverData       *mdrv,
      switch (primary_format) {
           case DSPF_RGB332:
                mov->regs.overlay_GRAPHICS_KEY_CLR = PIXEL_RGB332( config->dst_key.r,
+                                                                  config->dst_key.g,
+                                                                  config->dst_key.b );
+               break;
+          case DSPF_RGB555:
+               mov->regs.overlay_GRAPHICS_KEY_CLR = PIXEL_RGB555( config->dst_key.r,
                                                                   config->dst_key.g,
                                                                   config->dst_key.b );
                break;

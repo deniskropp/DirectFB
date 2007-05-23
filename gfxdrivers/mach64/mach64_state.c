@@ -63,6 +63,7 @@ void mach64_set_destination( Mach64DriverData *mdrv,
           case DSPF_RGB332:
                mdev->pix_width |= DST_PIX_WIDTH_8BPP;
                break;
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
                mdev->pix_width |= DST_PIX_WIDTH_15BPP;
                break;
@@ -96,9 +97,11 @@ void mach64gt_set_destination( Mach64DriverData *mdrv,
           case DSPF_RGB332:
                mdev->pix_width |= DST_PIX_WIDTH_RGB332;
                break;
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
                mdev->pix_width |= DST_PIX_WIDTH_ARGB1555;
                break;
+          case DSPF_RGB444:
           case DSPF_ARGB4444:
                mdev->pix_width |= DST_PIX_WIDTH_ARGB4444;
                break;
@@ -142,6 +145,7 @@ void mach64_set_source( Mach64DriverData *mdrv,
           case DSPF_RGB332:
                mdev->pix_width |= SRC_PIX_WIDTH_8BPP;
                break;
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
                mdev->pix_width |= SRC_PIX_WIDTH_15BPP;
                break;
@@ -180,9 +184,11 @@ void mach64gt_set_source( Mach64DriverData *mdrv,
           case DSPF_RGB332:
                mdev->pix_width |= SRC_PIX_WIDTH_RGB332;
                break;
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
                mdev->pix_width |= SRC_PIX_WIDTH_ARGB1555;
                break;
+          case DSPF_RGB444:
           case DSPF_ARGB4444:
                mdev->pix_width |= SRC_PIX_WIDTH_ARGB4444;
                break;
@@ -223,9 +229,11 @@ void mach64gt_set_source_scale( Mach64DriverData *mdrv,
           case DSPF_RGB332:
                mdev->pix_width |= SCALE_PIX_WIDTH_RGB332;
                break;
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
                mdev->pix_width |= SCALE_PIX_WIDTH_ARGB1555;
                break;
+          case DSPF_RGB444:
           case DSPF_ARGB4444:
                mdev->pix_width |= SCALE_PIX_WIDTH_ARGB4444;
                break;
@@ -315,11 +323,21 @@ void mach64_set_color( Mach64DriverData *mdrv,
                                    color.g,
                                    color.b );
                break;
+          case DSPF_RGB555:
+               clr = PIXEL_RGB555( color.r,
+                                   color.g,
+                                   color.b );
+               break;
           case DSPF_ARGB1555:
                clr = PIXEL_ARGB1555( color.a,
                                      color.r,
                                      color.g,
                                      color.b );
+               break;
+          case DSPF_RGB444:
+               clr = PIXEL_RGB444( color.r,
+                                   color.g,
+                                   color.b );
                break;
           case DSPF_ARGB4444:
                clr = PIXEL_ARGB4444( color.a,
@@ -455,12 +473,14 @@ void mach64_set_src_colorkey_scale( Mach64DriverData *mdrv,
                           ((state->src_colorkey & 0x03) <<  6);
                     msk = 0xE0E0C0;
                     break;
+               case DSPF_RGB444:
                case DSPF_ARGB4444:
                     clr = ((state->src_colorkey & 0x0F00) << 12) |
                           ((state->src_colorkey & 0x00F0) <<  8) |
                           ((state->src_colorkey & 0x000F) <<  4);
                     msk = 0xF0F0F0;
                     break;
+               case DSPF_RGB555:
                case DSPF_ARGB1555:
                     clr = ((state->src_colorkey & 0x7C00) << 9) |
                           ((state->src_colorkey & 0x03E0) << 6) |
