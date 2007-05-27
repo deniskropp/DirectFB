@@ -152,6 +152,7 @@ fusion_world_fork( FusionWorld *world )
      int                fd;
      char               buf1[20];
      char               buf2[20];
+     FusionEnter        enter;
      FusionFork         fork;
      FusionWorldShared *shared;
 
@@ -170,6 +171,32 @@ fusion_world_fork( FusionWorld *world )
           D_PERROR( "Fusion/Main: Reopening fusion device (world %d) failed!\n", shared->world_index );
           raise(5);
      }
+
+     /* Drop "identity" when running another program. */
+     if (fcntl( fd, F_SETFD, FD_CLOEXEC ) < 0)
+          D_PERROR( "Fusion/Init: Setting FD_CLOEXEC flag failed!\n" );
+
+     /* Fill enter information. */
+     enter.api.major = FUSION_API_MAJOR;
+     enter.api.minor = FUSION_API_MINOR;
+     enter.fusion_id = 0;     /* Clear for check below. */
+
+     /* Enter the fusion world. */
+     while (ioctl( fd, FUSION_ENTER, &enter )) {
+          if (errno != EINTR) {
+               D_PERROR( "Fusion/Init: Could not reenter world '%d'!\n", shared->world_index );
+               raise(5);
+          }
+     }
+
+     /* Check for valid Fusion ID. */
+     if (!enter.fusion_id) {
+          D_ERROR( "Fusion/Init: Got no ID from FUSION_ENTER! Kernel module might be too old.\n" );
+          raise(5);
+     }
+
+     D_DEBUG_AT( Fusion_Main, "  -> Fusion ID 0x%08lx\n", enter.fusion_id );
+
 
      /* Fill fork information. */
      fork.fusion_id = world->fusion_id;
