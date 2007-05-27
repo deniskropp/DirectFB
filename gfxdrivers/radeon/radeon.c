@@ -555,8 +555,7 @@ static void r100CheckState( void *drv, void *dev,
               state->blittingflags & ~supported_blittingflags)
                return;
           
-          if (source->width  < 8 || source->width  > 2048 ||
-              source->height < 8 || source->height > 2048)
+          if (source->width > 2048 || source->height > 2048)
                return;
 
           if (state->blittingflags & DSBLIT_MODULATE_ALPHA &&
@@ -600,6 +599,8 @@ static void r100CheckState( void *drv, void *dev,
 
                case DSPF_I420:
                case DSPF_YV12:
+                    if (source->width < 2 || source->height < 2)
+                         return;
                     if (destination->format != DSPF_I420 &&
                         destination->format != DSPF_YV12)
                          return;
@@ -715,8 +716,7 @@ static void r200CheckState( void *drv, void *dev,
               state->blittingflags & ~supported_blittingflags)
                return;
           
-          if (source->width  < 8 || source->width  > 2048 ||
-              source->height < 8 || source->height > 2048)
+          if (source->width > 2048 || source->height > 2048)
                return;
 
           if (state->blittingflags & DSBLIT_MODULATE_ALPHA &&
@@ -766,6 +766,8 @@ static void r200CheckState( void *drv, void *dev,
 
                case DSPF_I420:
                case DSPF_YV12:
+                    if (source->width < 2 || source->height < 2)
+                         return;
                     if (destination->format != DSPF_I420 &&
                         destination->format != DSPF_YV12)
                          return;
@@ -872,8 +874,7 @@ static void r300CheckState( void *drv, void *dev,
               state->blittingflags & ~supported_blittingflags)
                return;
           
-          if (source->width  < 8 || source->width  > 2048 ||
-              source->height < 8 || source->height > 2048)
+          if (source->width > 2048 || source->height > 2048)
                return;
 
           if (state->blittingflags & DSBLIT_MODULATE_ALPHA &&
@@ -917,6 +918,8 @@ static void r300CheckState( void *drv, void *dev,
                     
                case DSPF_I420:
                case DSPF_YV12:
+                    if (source->width < 2 || source->height < 2)
+                         return;
                     if (destination->format != DSPF_I420 &&
                         destination->format != DSPF_YV12)
                          return;
