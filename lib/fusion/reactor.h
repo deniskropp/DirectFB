@@ -32,6 +32,7 @@
 #include <direct/list.h>
 
 #include <fusion/types.h>
+#include <fusion/call.h>
 #include <fusion/lock.h>
 
 typedef enum {
@@ -134,6 +135,15 @@ DirectResult   fusion_reactor_dispatch     ( FusionReactor      *reactor,
                                              const void         *msg_data,
                                              bool                self,
                                              const ReactionFunc *globals );
+
+
+/*
+ * Have the call executed when a dispatched message has been processed by all recipients.
+ */
+DirectResult   fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
+                                                     FusionCall     *call,
+                                                     int             call_arg,
+                                                     void           *call_ptr );
 
 /*
  * Dispatch a message to any attached reaction with a given size. Instead of

@@ -68,11 +68,7 @@ typedef struct {
      unsigned int foo;
 } TestMessage;
 
-
 static FusionWorld   *m_world;
-static FusionReactor *m_reactor;
-static Reaction       m_reaction;
-
 
 static ReactionResult
 reaction_callback( const void *msg_data,
@@ -83,13 +79,26 @@ reaction_callback( const void *msg_data,
      return RS_REMOVE;
 }
 
+static int
+dispatch_callback (int   caller,
+                   int   call_arg,
+                   void *call_ptr,
+                   void *ctx )
+{
+     MSG( "Got dispatch callback (FusionID %lu, pid %d)!\n", fusion_id( m_world ), getpid() );
+
+     return 0;
+}
 
 int
 main( int argc, char *argv[] )
 {
-     DirectResult ret;
-     pid_t        child_pid;
-     TestMessage  message = {0};
+     DirectResult   ret;
+     pid_t          child_pid;
+     TestMessage    message = {0};
+     FusionReactor *reactor;
+     Reaction       reaction;
+     FusionCall     call;
 
      DirectFBInit( &argc, &argv );
 
@@ -105,8 +114,8 @@ main( int argc, char *argv[] )
      fusion_world_set_fork_action( m_world, FFA_FORK );
 
 
-     m_reactor = fusion_reactor_new( sizeof(TestMessage), "Test", m_world );
-     if (!m_reactor) {
+     reactor = fusion_reactor_new( sizeof(TestMessage), "Test", m_world );
+     if (!reactor) {
           D_ERROR( "fusion_reactor_new() failed\n" );
           return -1;
      }
@@ -114,7 +123,7 @@ main( int argc, char *argv[] )
 
      MSG( "Attaching to reactor...\n" );
 
-     ret = fusion_reactor_attach( m_reactor, reaction_callback, NULL, &m_reaction );
+     ret = fusion_reactor_attach( reactor, reaction_callback, NULL, &reaction );
      if (ret) {
           D_DERROR( ret, "fusion_reactor_attach() failed" );
           return ret;
@@ -141,17 +150,36 @@ main( int argc, char *argv[] )
                usleep( 100000 );
                MSG( "...returned from fork() in parent, child pid %d.\n", child_pid );
 
+               MSG( "Initializing dispatch callback...\n" );
+
+               ret = fusion_call_init( &call, dispatch_callback, NULL, m_world );
+               if (ret) {
+                    D_DERROR( ret, "fusion_call_init() failed" );
+                    return ret;
+               }
+
+               MSG( "Setting dispatch callback...\n" );
+
+               ret = fusion_reactor_set_dispatch_callback( reactor, &call, 0, NULL );
+               if (ret) {
+                    D_DERROR( ret, "fusion_reactor_set_dispatch_callback() failed" );
+                    return ret;
+               }
+
+
                MSG( "Sending message via reactor...\n" );
-               fusion_reactor_dispatch( m_reactor, &message, true, NULL );
+               fusion_reactor_dispatch( reactor, &message, true, NULL );
+
+               usleep( 100000 );
 
                MSG( "Destroying reactor...\n" );
-               fusion_reactor_destroy( m_reactor );
+               fusion_reactor_destroy( reactor );
                MSG( "...destroyed reactor!\n" );
 
                usleep( 400000 );
 
                MSG( "Freeing reactor...\n" );
-               fusion_reactor_free( m_reactor );
+               fusion_reactor_free( reactor );
                MSG( "...freed reactor!\n" );
 
                break;
