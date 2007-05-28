@@ -804,6 +804,17 @@ fusion_id( const FusionWorld *world )
 }
 
 /*
+ * Return the thread ID of the Fusion Dispatcher within the specified world.
+ */
+pid_t
+fusion_dispatcher_tid( const FusionWorld *world )
+{
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     return direct_thread_get_tid( world->dispatch_loop );
+}
+
+/*
  * Return true if this process is the master.
  */
 bool
