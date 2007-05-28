@@ -71,7 +71,7 @@ static const ReactionFunc unique_context_globals[] = {
 /**************************************************************************************************/
 
 static void
-context_destructor( FusionObject *object, bool zombie )
+context_destructor( FusionObject *object, bool zombie, void *ctx )
 {
      int            i;
      UniqueContext *context = (UniqueContext*) object;
@@ -119,7 +119,7 @@ FusionObjectPool *
 unique_context_pool_create( const FusionWorld *world )
 {
      return fusion_object_pool_create( "UniQuE Context Pool", sizeof(UniqueContext),
-                                       sizeof(UniqueContextNotification), context_destructor, world );
+                                       sizeof(UniqueContextNotification), context_destructor, NULL, world );
 }
 
 /**************************************************************************************************/

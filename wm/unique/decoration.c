@@ -57,7 +57,7 @@ static const ReactionFunc unique_decoration_globals[] = {
 /**************************************************************************************************/
 
 static void
-decoration_destructor( FusionObject *object, bool zombie )
+decoration_destructor( FusionObject *object, bool zombie, void *ctx )
 {
      UniqueDecoration *decoration = (UniqueDecoration*) object;
 
@@ -79,7 +79,7 @@ unique_decoration_pool_create( const FusionWorld *world )
      return fusion_object_pool_create( "UniQuE Decoration Pool",
                                        sizeof(UniqueDecoration),
                                        sizeof(UniqueDecorationNotification),
-                                       decoration_destructor, world );
+                                       decoration_destructor, NULL, world );
 }
 
 /**************************************************************************************************/

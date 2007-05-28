@@ -130,7 +130,7 @@ static inline int get_priority( DFBWindowCapabilities caps, DFBWindowStackingCla
 /**************************************************************************************************/
 
 static void
-window_destructor( FusionObject *object, bool zombie )
+window_destructor( FusionObject *object, bool zombie, void *ctx )
 {
      int            i;
      UniqueContext *context;
@@ -190,7 +190,7 @@ FusionObjectPool *
 unique_window_pool_create( const FusionWorld *world )
 {
      return fusion_object_pool_create( "UniQuE Window Pool", sizeof(UniqueWindow),
-                                       sizeof(UniqueWindowNotification), window_destructor, world );
+                                       sizeof(UniqueWindowNotification), window_destructor, NULL, world );
 }
 
 /**************************************************************************************************/

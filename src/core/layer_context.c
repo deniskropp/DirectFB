@@ -92,7 +92,7 @@ static void      screen_rectangle    ( CoreLayerContext            *context,
 /**********************************************************************************************************************/
 
 static void
-context_destructor( FusionObject *object, bool zombie )
+context_destructor( FusionObject *object, bool zombie, void *ctx )
 {
      CoreLayerContext *context = (CoreLayerContext*) object;
      CoreLayer        *layer   = dfb_layer_at( context->layer_id );
@@ -135,7 +135,7 @@ dfb_layer_context_pool_create( const FusionWorld *world )
      return fusion_object_pool_create( "Layer Context Pool",
                                        sizeof(CoreLayerContext),
                                        sizeof(CoreLayerContextNotification),
-                                       context_destructor, world );
+                                       context_destructor, NULL, world );
 }
 
 /**********************************************************************************************************************/

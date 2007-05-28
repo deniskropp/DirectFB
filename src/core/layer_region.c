@@ -65,7 +65,7 @@ static DFBResult unrealize_region( CoreLayerRegion            *region );
 /******************************************************************************/
 
 static void
-region_destructor( FusionObject *object, bool zombie )
+region_destructor( FusionObject *object, bool zombie, void *ctx )
 {
      CoreLayerRegion  *region  = (CoreLayerRegion*) object;
      CoreLayerContext *context = region->context;
@@ -124,7 +124,7 @@ dfb_layer_region_pool_create( const FusionWorld *world )
      return fusion_object_pool_create( "Layer Region Pool",
                                        sizeof(CoreLayerRegion),
                                        sizeof(CoreLayerRegionNotification),
-                                       region_destructor, world );
+                                       region_destructor, NULL, world );
 }
 
 /******************************************************************************/

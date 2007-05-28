@@ -97,7 +97,7 @@ static const ReactionFunc dfb_window_globals[] = {
  * Window destructor.
  */
 static void
-window_destructor( FusionObject *object, bool zombie )
+window_destructor( FusionObject *object, bool zombie, void *ctx )
 {
      CoreWindow      *window = (CoreWindow*) object;
      CoreWindowStack *stack  = window->stack;
@@ -128,7 +128,7 @@ dfb_window_pool_create( const FusionWorld *world )
      return fusion_object_pool_create( "Window Pool",
                                        sizeof(CoreWindow),
                                        sizeof(DFBWindowEvent),
-                                       window_destructor, world );
+                                       window_destructor, NULL, world );
 }
 
 /**************************************************************************************************/

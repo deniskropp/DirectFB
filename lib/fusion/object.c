@@ -56,6 +56,7 @@ struct __Fusion_FusionObjectPool {
      int                     object_size;
      int                     message_size;
      FusionObjectDestructor  destructor;
+     void                   *ctx;
 
      FusionCall              call;
 };
@@ -131,7 +132,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
           D_DEBUG_AT( Fusion_Object, "  -> calling destructor...\n" );
 
           /* Call the destructor. */
-          pool->destructor( object, false );
+          pool->destructor( object, false, pool->ctx );
 
           D_DEBUG_AT( Fusion_Object, "  -> destructor done.\n" );
 
@@ -151,6 +152,7 @@ fusion_object_pool_create( const char             *name,
                            int                     object_size,
                            int                     message_size,
                            FusionObjectDestructor  destructor,
+                           void                   *ctx,
                            const FusionWorld      *world )
 {
      FusionObjectPool  *pool;
@@ -182,6 +184,7 @@ fusion_object_pool_create( const char             *name,
      pool->object_size  = object_size;
      pool->message_size = message_size;
      pool->destructor   = destructor;
+     pool->ctx          = ctx;
 
      /* Destruction call from Fusion. */
      fusion_call_init( &pool->call, object_reference_watcher, pool, world );
@@ -249,7 +252,7 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
           D_DEBUG_AT( Fusion_Object, "  -> calling destructor...\n" );
 
           /* Call the destructor. */
-          pool->destructor( object, refs > 0 );
+          pool->destructor( object, refs > 0, pool->ctx );
 
           D_DEBUG_AT( Fusion_Object, "  -> destructor done.\n" );
 

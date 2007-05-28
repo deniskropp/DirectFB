@@ -51,7 +51,7 @@ static const ReactionFunc dfb_palette_globals[] = {
           NULL
 };
 
-static void palette_destructor( FusionObject *object, bool zombie )
+static void palette_destructor( FusionObject *object, bool zombie, void *ctx )
 {
      CorePaletteNotification  notification;
      CorePalette             *palette = (CorePalette*) object;
@@ -84,7 +84,7 @@ dfb_palette_pool_create( const FusionWorld *world )
      pool = fusion_object_pool_create( "Palette Pool",
                                        sizeof(CorePalette),
                                        sizeof(CorePaletteNotification),
-                                       palette_destructor, world );
+                                       palette_destructor, NULL, world );
 
      return pool;
 }

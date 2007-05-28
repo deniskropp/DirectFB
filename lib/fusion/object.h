@@ -37,7 +37,7 @@
 #include <fusion/reactor.h>
 #include <direct/debug.h>
 
-typedef void (*FusionObjectDestructor)( FusionObject *object, bool zombie );
+typedef void (*FusionObjectDestructor)( FusionObject *object, bool zombie, void *ctx );
 
 typedef bool (*FusionPropIterator)( char *key, void *value, void *ctx);
 
@@ -80,6 +80,7 @@ FusionObjectPool *fusion_object_pool_create ( const char             *name,
                                               int                     object_size,
                                               int                     message_size,
                                               FusionObjectDestructor  destructor,
+                                              void                   *ctx,
                                               const FusionWorld      *world );
 
 DirectResult      fusion_object_pool_destroy( FusionObjectPool       *pool,

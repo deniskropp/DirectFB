@@ -125,7 +125,7 @@ static const ReactionFunc dfb_surface_globals[] = {
           NULL
 };
 
-static void surface_destructor( FusionObject *object, bool zombie )
+static void surface_destructor( FusionObject *object, bool zombie, void *ctx )
 {
      CoreSurface *surface = (CoreSurface*) object;
 
@@ -170,7 +170,7 @@ FusionObjectPool *dfb_surface_pool_create( const FusionWorld *world )
      pool = fusion_object_pool_create( "Surface Pool",
                                        sizeof(CoreSurface),
                                        sizeof(CoreSurfaceNotification),
-                                       surface_destructor, world );
+                                       surface_destructor, NULL, world );
 
      return pool;
 }
