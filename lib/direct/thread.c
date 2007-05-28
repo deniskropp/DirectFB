@@ -232,6 +232,14 @@ direct_thread_get_name( DirectThread *thread )
      return thread->name;
 }
 
+pid_t
+direct_thread_get_tid( DirectThread *thread )
+{
+     D_MAGIC_ASSERT( thread, DirectThread );
+
+     return thread->tid;
+}
+
 __attribute__((no_instrument_function))
 const char *
 direct_thread_self_name()

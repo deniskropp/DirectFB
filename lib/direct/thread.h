@@ -77,6 +77,11 @@ DirectThread *direct_thread_self       ( void );
 const char   *direct_thread_get_name   ( DirectThread *thread );
 
 /*
+ * Returns the thread ID of the specified thread.
+ */
+pid_t         direct_thread_get_tid    ( DirectThread *thread );
+
+/*
  * Returns the name of the calling thread.
  */
 const char   *direct_thread_self_name  ( void );
