@@ -558,33 +558,37 @@ dfb_x11_update_screen_handler( const DFBRegion *region )
 static DFBResult
 dfb_x11_set_palette_handler( CorePalette *palette )
 {
-     printf("dfb_x11_set_palette_handler\n");
      return DFB_OK;
 }
 
-int
-dfb_x11_call_handler( int   caller,
-                      int   call_arg,
-                      void *call_ptr,
-                      void *ctx )
+FusionCallHandlerResult
+dfb_x11_call_handler( int           caller,
+                      int           call_arg,
+                      void         *call_ptr,
+                      void         *ctx,
+                      unsigned int  serial,
+                      int          *ret_val )
 {
-     printf("dfb_x11_call_handler\n");
      switch (call_arg) {
           case X11_SET_VIDEO_MODE:
-               return dfb_x11_set_video_mode_handler( call_ptr );
+               *ret_val = dfb_x11_set_video_mode_handler( call_ptr );
+               break;
 
           case X11_UPDATE_SCREEN:
-               return dfb_x11_update_screen_handler( call_ptr );
+               *ret_val = dfb_x11_update_screen_handler( call_ptr );
+               break;
 
           case X11_SET_PALETTE:
-               return dfb_x11_set_palette_handler( call_ptr );
+               *ret_val = dfb_x11_set_palette_handler( call_ptr );
+               break;
 
           default:
                D_BUG( "unknown call" );
+               *ret_val = DFB_BUG;
                break;
      }
 
-     return 0;
+     return FCHR_RETURN;
 }
 
 static DFBResult

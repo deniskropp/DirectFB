@@ -29,16 +29,21 @@
 #ifndef __SDL__PRIMARY_H__
 #define __SDL__PRIMARY_H__
 
+#include <fusion/call.h>
+
 #include <core/layers.h>
 #include <core/screens.h>
 
 extern ScreenFuncs       sdlPrimaryScreenFuncs;
 extern DisplayLayerFuncs sdlPrimaryLayerFuncs;
 
-int dfb_sdl_call_handler( int   caller,
-                          int   call_arg,
-                          void *call_ptr,
-                          void *ctx );
+FusionCallHandlerResult
+dfb_sdl_call_handler( int           caller,
+                      int           call_arg,
+                      void         *call_ptr,
+                      void         *ctx,
+                      unsigned int  serial,
+                      int          *ret_val );
 
 #endif
 

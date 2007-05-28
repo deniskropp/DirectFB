@@ -175,11 +175,13 @@ busy_loop( void *arg )
 
 /**********************************************************************************************************************/
 
-static int
-call_handler( int   caller,
-              int   call_arg,
-              void *call_ptr,
-              void *ctx )
+static FusionCallHandlerResult
+call_handler( int           caller,
+              int           call_arg,
+              void         *call_ptr,
+              void         *ctx,
+              unsigned int  serial,
+              int          *ret_val )
 {
      static u32 checksum = 0;
 
@@ -190,7 +192,9 @@ call_handler( int   caller,
      for (i=0; i<block_size/4; i++)
           checksum += values[i];
 
-     return checksum;
+     *ret_val = checksum;
+
+     return FCHR_RETURN;
 }
 
 /**********************************************************************************************************************/

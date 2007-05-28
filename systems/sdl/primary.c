@@ -624,30 +624,35 @@ dfb_sdl_set_palette_handler( CorePalette *palette )
      return DFB_OK;
 }
 
-int
-dfb_sdl_call_handler( int   caller,
-                      int   call_arg,
-                      void *call_ptr,
-                      void *ctx )
+FusionCallHandlerResult
+dfb_sdl_call_handler( int           caller,
+                      int           call_arg,
+                      void         *call_ptr,
+                      void         *ctx,
+                      unsigned int  serial,
+                      int          *ret_val )
 {
      switch (call_arg) {
           case SDL_SET_VIDEO_MODE:
-               return dfb_sdl_set_video_mode_handler( call_ptr );
+               *ret_val = dfb_sdl_set_video_mode_handler( call_ptr );
+               break;
 
           case SDL_UPDATE_SCREEN:
-               dfb_sdl_update_screen_handler( call_ptr );
-               SHFREE( dfb_core_shmpool(dfb_sdl_core), call_ptr );
-               return 0;
+               *ret_val = dfb_sdl_update_screen_handler( call_ptr );
+               SHFREE( dfb_core_shmpool(dfb_sdl_core), call_ptr );    /* FIXME: use reactor with dispatch callback or TLS */
+               break;
 
           case SDL_SET_PALETTE:
-               return dfb_sdl_set_palette_handler( call_ptr );
+               *ret_val = dfb_sdl_set_palette_handler( call_ptr );
+               break;
 
           default:
                D_BUG( "unknown call" );
+               *ret_val = DFB_BUG;
                break;
      }
 
-     return 0;
+     return FCHR_RETURN;
 }
 
 static DFBResult

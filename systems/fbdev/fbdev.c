@@ -94,10 +94,13 @@
 DFB_CORE_SYSTEM( fbdev )
 
 
-static int fbdev_ioctl_call_handler( int   caller,
-                                     int   call_arg,
-                                     void *call_ptr,
-                                     void *ctx );
+static FusionCallHandlerResult
+fbdev_ioctl_call_handler( int           caller,
+                          int           call_arg,
+                          void         *call_ptr,
+                          void         *ctx,
+                          unsigned int  serial,
+                          int          *ret_val );
 
 static int fbdev_ioctl( int request, void *arg, int arg_size );
 
@@ -2425,11 +2428,13 @@ static DFBResult dfb_fbdev_set_rgb332_palette()
      return DFB_OK;
 }
 
-static int
-fbdev_ioctl_call_handler( int   caller,
-                          int   call_arg,
-                          void *call_ptr,
-                          void *ctx )
+static FusionCallHandlerResult
+fbdev_ioctl_call_handler( int           caller,
+                          int           call_arg,
+                          void         *call_ptr,
+                          void         *ctx,
+                          unsigned int  serial,
+                          int          *ret_val )
 {
      int        ret;
      const char cursoroff_str[] = "\033[?1;0;0c";
@@ -2458,10 +2463,10 @@ fbdev_ioctl_call_handler( int   caller,
 static int
 fbdev_ioctl( int request, void *arg, int arg_size )
 {
-     DirectResult  ret;
-     int           erno;
-     void         *tmp_shm = NULL;
-     FBDevShared  *shared;
+     int          ret;
+     int          erno;
+     void        *tmp_shm = NULL;
+     FBDevShared *shared;
 
      D_ASSERT( dfb_fbdev != NULL );
 
@@ -2469,8 +2474,10 @@ fbdev_ioctl( int request, void *arg, int arg_size )
 
      D_ASSERT( shared != NULL );
 
-     if (dfb_core_is_master( dfb_fbdev->core ))
-          return fbdev_ioctl_call_handler( 1, request, arg, NULL );
+     if (dfb_core_is_master( dfb_fbdev->core )) {
+          fbdev_ioctl_call_handler( 1, request, arg, NULL, 0, &ret );
+          return ret;
+     }
 
      if (arg) {
           if (!fusion_is_shared( dfb_core_world(dfb_fbdev->core), arg )) {

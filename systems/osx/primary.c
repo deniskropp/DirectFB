@@ -524,28 +524,34 @@ dfb_osx_set_palette_handler( CorePalette *palette )
      return DFB_OK;
 }
 
-int
-dfb_osx_call_handler( int   caller,
-                      int   call_arg,
-                      void *call_ptr,
-                      void *ctx )
+FusionCallHandlerResult
+dfb_osx_call_handler( int           caller,
+                      int           call_arg,
+                      void         *call_ptr,
+                      void         *ctx,
+                      unsigned int  serial,
+                      int          *ret_val )
 {
      switch (call_arg) {
           case OSX_SET_VIDEO_MODE:
-               return dfb_osx_set_video_mode_handler( call_ptr );
+               *ret_val = dfb_osx_set_video_mode_handler( call_ptr );
+               break;
 
           case OSX_UPDATE_SCREEN:
-               return dfb_osx_update_screen_handler( call_ptr );
+               *ret_val = dfb_osx_update_screen_handler( call_ptr );
+               break;
 
           case OSX_SET_PALETTE:
-               return dfb_osx_set_palette_handler( call_ptr );
+               *ret_val = dfb_osx_set_palette_handler( call_ptr );
+               break;
 
           default:
                D_BUG( "unknown call" );
+               *ret_val = DFB_BUG;
                break;
      }
 
-     return 0;
+     return FCHR_RETURN;
 }
 
 static DFBResult

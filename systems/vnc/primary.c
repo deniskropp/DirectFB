@@ -650,28 +650,34 @@ dfb_vnc_set_palette_handler( CorePalette *palette )
      return DFB_OK;
 }
 
-int
-dfb_vnc_call_handler( int   caller,
-                      int   call_arg,
-                      void *call_ptr,
-                      void *ctx )
+FusionCallHandlerResult
+dfb_vnc_call_handler( int           caller,
+                      int           call_arg,
+                      void         *call_ptr,
+                      void         *ctx,
+                      unsigned int  serial,
+                      int          *ret_val )
 {
      switch (call_arg) {
           case VNC_SET_VIDEO_MODE:
-               return dfb_vnc_set_video_mode_handler( call_ptr );
+               *ret_val = dfb_vnc_set_video_mode_handler( call_ptr );
+               break;
 
           case VNC_UPDATE_SCREEN:
-               return dfb_vnc_update_screen_handler( call_ptr );
+               *ret_val = dfb_vnc_update_screen_handler( call_ptr );
+               break;
 
           case VNC_SET_PALETTE:
-               return dfb_vnc_set_palette_handler( call_ptr );
+               *ret_val = dfb_vnc_set_palette_handler( call_ptr );
+               break;
 
           default:
                D_BUG( "unknown call" );
+               *ret_val = DFB_BUG;
                break;
      }
 
-     return 0;
+     return FCHR_RETURN;
 }
 
 static DFBResult
