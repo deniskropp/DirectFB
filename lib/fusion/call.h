@@ -31,11 +31,17 @@
 
 #include <fusion/types.h>
 
-typedef int (*FusionCallHandler) (int   caller,   /* fusion id of the caller */
-                                  int   call_arg, /* optional call parameter */
-                                  void *call_ptr, /* optional call parameter */
-                                  void *ctx       /* optional handler context */
-                                  );
+typedef enum {
+     FCHR_RETURN,
+     FCHR_RETAIN
+} FusionCallHandlerResult;
+
+typedef FusionCallHandlerResult (*FusionCallHandler) (int           caller,   /* fusion id of the caller */
+                                                      int           call_arg, /* optional call parameter */
+                                                      void         *call_ptr, /* optional call parameter */
+                                                      void         *ctx,      /* optional handler context */
+                                                      unsigned int  serial,
+                                                      int          *ret_val );
 
 typedef struct {
      FusionWorldShared *shared;
@@ -46,18 +52,22 @@ typedef struct {
 } FusionCall;
 
 
-DirectResult fusion_call_init    (FusionCall          *call,
+DirectResult fusion_call_init   ( FusionCall          *call,
                                   FusionCallHandler    handler,
                                   void                *ctx,
-                                  const FusionWorld   *world);
+                                  const FusionWorld   *world );
 
-DirectResult fusion_call_execute (FusionCall          *call,
+DirectResult fusion_call_execute( FusionCall          *call,
                                   FusionCallExecFlags  flags,
                                   int                  call_arg,
                                   void                *call_ptr,
-                                  int                 *ret_val);
+                                  int                 *ret_val );
 
-DirectResult fusion_call_destroy (FusionCall          *call);
+DirectResult fusion_call_return ( FusionCall          *call,
+                                  unsigned int         serial,
+                                  int                  val );
+
+DirectResult fusion_call_destroy( FusionCall          *call );
 
 
 #endif

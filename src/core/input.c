@@ -876,11 +876,13 @@ reload_keymap( CoreInputDevice *device )
      return DFB_OK;
 }
 
-static int
-input_device_call_handler( int   caller,   /* fusion id of the caller */
-                           int   call_arg, /* optional call parameter */
-                           void *call_ptr, /* optional call parameter */
-                           void *ctx )     /* optional handler context */
+static FusionCallHandlerResult
+input_device_call_handler( int           caller,   /* fusion id of the caller */
+                           int           call_arg, /* optional call parameter */
+                           void         *call_ptr, /* optional call parameter */
+                           void         *ctx,      /* optional handler context */
+                           unsigned int  serial,
+                           int          *ret_val )
 {
      CoreInputDeviceCommand  command = call_arg;
      CoreInputDevice        *device  = ctx;
@@ -891,13 +893,15 @@ input_device_call_handler( int   caller,   /* fusion id of the caller */
 
      switch (command) {
           case CIDC_RELOAD_KEYMAP:
-               return reload_keymap( device );
+               *ret_val = reload_keymap( device );
+               break;
 
           default:
                D_BUG( "unknown Core Input Device Command '%d'", command );
+               *ret_val = DFB_BUG;
      }
 
-     return DFB_BUG;
+     return FCHR_RETURN;
 }
 
 static void

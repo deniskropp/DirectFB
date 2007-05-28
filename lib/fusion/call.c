@@ -110,7 +110,13 @@ fusion_call_execute (FusionCall          *call,
           return DFB_DESTROYED;
 
      if (!(flags & FCEF_NODIRECT) && call->fusion_id == _fusion_id( call->shared )) {
-          int ret = call->handler( _fusion_id( call->shared ), call_arg, call_ptr, call->ctx );
+          int                     ret;
+          FusionCallHandlerResult result;
+
+          result = call->handler( _fusion_id( call->shared ), call_arg, call_ptr, call->ctx, 0, &ret );
+
+          if (result != FCHR_RETURN)
+               D_WARN( "local call handler returned FCHR_RETURN, need FCEF_NODIRECT" );
 
           if (ret_val)
                *ret_val = ret;
@@ -149,6 +155,38 @@ fusion_call_execute (FusionCall          *call,
 }
 
 DirectResult
+fusion_call_return( FusionCall   *call,
+                    unsigned int  serial,
+                    int           val )
+{
+     FusionCallReturn call_ret;
+
+     D_ASSERT( call != NULL );
+
+     call_ret.call_id = call->call_id;
+     call_ret.val     = val;
+     call_ret.serial  = serial;
+
+     while (ioctl (_fusion_fd( call->shared ), FUSION_CALL_RETURN, &call_ret)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    D_ERROR ("Fusion/Call: invalid call\n");
+                    return DFB_DESTROYED;
+               default:
+                    break;
+          }
+
+          D_PERROR ("FUSION_CALL_RETURN");
+
+          return DFB_FAILURE;
+     }
+
+     return DFB_OK;
+}
+
+DirectResult
 fusion_call_destroy (FusionCall *call)
 {
      D_ASSERT( call != NULL );
@@ -176,32 +214,46 @@ fusion_call_destroy (FusionCall *call)
 }
 
 void
-_fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *call )
+_fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg )
 {
-     FusionCallHandler call_handler;
-     FusionCallReturn  call_ret;
+     FusionCallHandler       call_handler;
+     FusionCallReturn        call_ret;
+     FusionCallHandlerResult result;
 
      D_MAGIC_ASSERT( world, FusionWorld );
-     D_ASSERT( call != NULL );
+     D_ASSERT( msg != NULL );
 
-     call_handler = call->handler;
+     call_handler = msg->handler;
 
      D_ASSERT( call_handler != NULL );
 
      call_ret.call_id = call_id;
-     call_ret.val     = call_handler( call->caller, call->call_arg, call->call_ptr, call->ctx );
+     call_ret.serial  = msg->serial;
+     call_ret.val     = 0;
 
-     while (ioctl (world->fusion_fd, FUSION_CALL_RETURN, &call_ret)) {
-          switch (errno) {
-               case EINTR:
-                    continue;
-               case EINVAL:
-                    D_ERROR ("Fusion/Call: invalid call\n");
-                    return;
-               default:
-                    D_PERROR ("FUSION_CALL_RETURN");
-                    return;
-          }
+     result = call_handler( msg->caller, msg->call_arg, msg->call_ptr, msg->ctx, msg->serial, &call_ret.val );
+
+     switch (result) {
+          case FCHR_RETURN:
+               while (ioctl (world->fusion_fd, FUSION_CALL_RETURN, &call_ret)) {
+                    switch (errno) {
+                         case EINTR:
+                              continue;
+                         case EINVAL:
+                              D_ERROR ("Fusion/Call: invalid call\n");
+                              return;
+                         default:
+                              D_PERROR ("FUSION_CALL_RETURN");
+                              return;
+                    }
+               }
+               break;
+
+          case FCHR_RETAIN:
+               break;
+
+          default:
+               D_BUG( "unknown result %d from call handler", result );
      }
 }
 

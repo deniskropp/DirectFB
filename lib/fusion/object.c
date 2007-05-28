@@ -60,22 +60,22 @@ struct __Fusion_FusionObjectPool {
      FusionCall              call;
 };
 
-static int
-object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx )
+static FusionCallHandlerResult
+object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, unsigned int serial, int *ret_val )
 {
      FusionObject     *object;
      FusionObjectPool *pool = ctx;
 
      if (caller) {
           D_BUG( "Call not from Fusion/Kernel (caller %d)", caller );
-          return 0;
+          return FCHR_RETURN;
      }
 
      D_MAGIC_ASSERT( pool, FusionObjectPool );
 
      /* Lock the pool. */
      if (fusion_skirmish_prevail( &pool->lock ))
-          return 0;
+          return FCHR_RETURN;
 
      /* Lookup the object. */
      direct_list_foreach (object, pool->objects) {
@@ -93,7 +93,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx )
 
                     direct_list_remove( &pool->objects, &object->link );
                     fusion_skirmish_dismiss( &pool->lock );
-                    return 0;
+                    return FCHR_RETURN;
 
 
                default:
@@ -103,7 +103,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx )
 
                case DFB_BUSY:
                     fusion_skirmish_dismiss( &pool->lock );
-                    return 0;
+                    return FCHR_RETURN;
           }
 
           D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
@@ -114,7 +114,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx )
                D_WARN( "won't destroy incomplete object, leaking some memory" );
                direct_list_remove( &pool->objects, &object->link );
                fusion_skirmish_dismiss( &pool->lock );
-               return 0;
+               return FCHR_RETURN;
           }
 
           /* Set "deinitializing" state. */
@@ -135,7 +135,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx )
 
           D_DEBUG_AT( Fusion_Object, "  -> destructor done.\n" );
 
-          return 0;
+          return FCHR_RETURN;
      }
 
      D_BUG( "unknown object [%d] in '%s'", call_arg, pool->name );
@@ -143,7 +143,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx )
      /* Unlock the pool. */
      fusion_skirmish_dismiss( &pool->lock );
 
-     return 0;
+     return FCHR_RETURN;
 }
 
 FusionObjectPool *

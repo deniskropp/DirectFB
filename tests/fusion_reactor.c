@@ -79,15 +79,17 @@ reaction_callback( const void *msg_data,
      return RS_REMOVE;
 }
 
-static int
-dispatch_callback (int   caller,
-                   int   call_arg,
-                   void *call_ptr,
-                   void *ctx )
+static FusionCallHandlerResult
+dispatch_callback (int           caller,
+                   int           call_arg,
+                   void         *call_ptr,
+                   void         *ctx,
+                   unsigned int  serial,
+                   int          *ret_val )
 {
      MSG( "Got dispatch callback (FusionID %lu, pid %d)!\n", fusion_id( m_world ), getpid() );
 
-     return 0;
+     return FCHR_RETURN;
 }
 
 int
