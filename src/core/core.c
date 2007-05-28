@@ -175,7 +175,7 @@ static CorePart *core_parts[] = {
 
 #define NUM_CORE_PARTS ((int)(sizeof(core_parts)/sizeof(CorePart*)))
 
-#ifdef DFB_DYNAMIC_LINKING
+#if defined(DFB_DYNAMIC_LINKING) && defined(SOPATH)
 /*
  * the library handle for dlopen'ing ourselves
  */
@@ -228,7 +228,7 @@ dfb_core_create( CoreDFB **ret_core )
              DIRECT_BUILD_TRACE ? "[ TRACE ]" : "" );
 
 
-#ifdef DFB_DYNAMIC_LINKING
+#if defined(DFB_DYNAMIC_LINKING) && defined(SOPATH)
      if (!dfb_lib_handle)
 #ifdef RTLD_GLOBAL
           dfb_lib_handle = dlopen(SOPATH, RTLD_GLOBAL|RTLD_LAZY);
