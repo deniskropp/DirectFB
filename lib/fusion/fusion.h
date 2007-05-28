@@ -29,6 +29,8 @@
 #ifndef __FUSION__FUSION_H__
 #define __FUSION__FUSION_H__
 
+#include <sys/types.h>
+
 #include <fusion/types.h>
 
 typedef enum {
