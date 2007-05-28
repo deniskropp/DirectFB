@@ -211,6 +211,50 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
      return DFB_OK;
 }
 
+DirectResult
+fusion_skirmish_wait( FusionSkirmish *skirmish )
+{
+     D_ASSERT( skirmish != NULL );
+
+     while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_WAIT, &skirmish->multi.id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+
+               case EINVAL:
+                    D_ERROR ("Fusion/Lock: invalid skirmish\n");
+                    return DFB_DESTROYED;
+          }
+
+          D_PERROR ("FUSION_SKIRMISH_WAIT");
+          return DFB_FUSION;
+     }
+
+     return DFB_OK;
+}
+
+DirectResult
+fusion_skirmish_notify( FusionSkirmish *skirmish )
+{
+     D_ASSERT( skirmish != NULL );
+
+     while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_NOTIFY, &skirmish->multi.id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+
+               case EINVAL:
+                    D_ERROR ("Fusion/Lock: invalid skirmish\n");
+                    return DFB_DESTROYED;
+          }
+
+          D_PERROR ("FUSION_SKIRMISH_NOTIFY");
+          return DFB_FUSION;
+     }
+
+     return DFB_OK;
+}
+
 #else  /* FUSION_BUILD_MULTI */
 
 DirectResult

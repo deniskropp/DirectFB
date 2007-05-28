@@ -81,6 +81,13 @@ DirectResult fusion_skirmish_dismiss( FusionSkirmish    *skirmish );
  */
 DirectResult fusion_skirmish_destroy( FusionSkirmish    *skirmish );
 
+/*
+ * Wait & Notify.
+ *
+ * Must be locked!
+ */
+DirectResult fusion_skirmish_wait   ( FusionSkirmish    *skirmish );
+DirectResult fusion_skirmish_notify ( FusionSkirmish    *skirmish );
 
 #endif
 
