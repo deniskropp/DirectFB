@@ -1023,7 +1023,7 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                               break;
                          case FMT_REACTOR:
                               D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_REACTOR...\n" );
-                              _fusion_reactor_process_message( world, header->msg_id, data );
+                              _fusion_reactor_process_message( world, header->msg_id, header->msg_channel, data );
                               break;
                          case FMT_SHMPOOL:
                               D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SHMPOOL...\n" );

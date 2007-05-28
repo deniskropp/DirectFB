@@ -110,6 +110,7 @@ FusionWorld *_fusion_world( const FusionWorldShared *shared );
 void _fusion_reactor_free_all       ( FusionWorld   *world );
 void _fusion_reactor_process_message( FusionWorld   *world,
                                       int            reactor_id,
+                                      int            channel,
                                       const void    *msg_data );
 
 /*

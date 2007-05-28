@@ -90,12 +90,21 @@ DirectResult   fusion_reactor_set_lock     ( FusionReactor      *reactor,
                                              FusionSkirmish     *skirmish );
 
 /*
- * Attach a local reaction to the reactor.
+ * Attach a local reaction to the reactor (channel 0).
  */
 DirectResult   fusion_reactor_attach       ( FusionReactor      *reactor,
                                              ReactionFunc        func,
                                              void               *ctx,
                                              Reaction           *reaction );
+
+/*
+ * Attach a local reaction to a specific reactor channel (0-1023).
+ */
+DirectResult   fusion_reactor_attach_channel( FusionReactor      *reactor,
+                                              int                 channel,
+                                              ReactionFunc        func,
+                                              void               *ctx,
+                                              Reaction           *reaction );
 
 /*
  * Detach an attached local reaction from the reactor.
@@ -127,7 +136,7 @@ DirectResult   fusion_reactor_detach_global( FusionReactor      *reactor,
                                              GlobalReaction     *reaction );
 
 /*
- * Dispatch a message to any attached reaction.
+ * Dispatch a message to any attached reaction (channel 0).
  *
  * Setting 'self' to false excludes the caller's local reactions.
  */
@@ -135,14 +144,6 @@ DirectResult   fusion_reactor_dispatch     ( FusionReactor      *reactor,
                                              const void         *msg_data,
                                              bool                self,
                                              const ReactionFunc *globals );
-
-
-/*
- * Have the call executed when a dispatched message has been processed by all recipients.
- */
-DirectResult   fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
-                                                     FusionCall     *call,
-                                                     void           *call_ptr );
 
 /*
  * Dispatch a message to any attached reaction with a given size. Instead of
@@ -156,6 +157,26 @@ DirectResult   fusion_reactor_sized_dispatch( FusionReactor      *reactor,
                                               int                 msg_size,
                                               bool                self,
                                               const ReactionFunc *globals );
+
+/*
+ * Dispatch a message via a specific channel (0-1023).
+ *
+ * Setting 'self' to false excludes the caller's local reactions.
+ */
+DirectResult   fusion_reactor_dispatch_channel( FusionReactor      *reactor,
+                                                int                 channel,
+                                                const void         *msg_data,
+                                                int                 msg_size,
+                                                bool                self,
+                                                const ReactionFunc *globals );
+
+
+/*
+ * Have the call executed when a dispatched message has been processed by all recipients.
+ */
+DirectResult   fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
+                                                     FusionCall     *call,
+                                                     void           *call_ptr );
                                               
 /*
  * Specify whether local message handlers (reactions) should be called directly.

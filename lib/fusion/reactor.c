@@ -95,6 +95,7 @@ typedef struct {
      int                magic;
 
      Reaction          *reaction;
+     int                channel;
 } NodeLink;
 
 /**************************************************************************************************/
@@ -274,16 +275,30 @@ fusion_reactor_set_lock( FusionReactor  *reactor,
 }
 
 DirectResult
-fusion_reactor_attach( FusionReactor *reactor,
+fusion_reactor_attach (FusionReactor *reactor,
                        ReactionFunc   func,
                        void          *ctx,
-                       Reaction      *reaction )
+                       Reaction      *reaction)
 {
-     ReactorNode *node;
-     NodeLink    *link;
+     D_MAGIC_ASSERT( reactor, FusionReactor );
+     D_ASSERT( func != NULL );
+     D_ASSERT( reaction != NULL );
+
+     return fusion_reactor_attach_channel( reactor, 0, func, ctx, reaction );
+}
+
+DirectResult
+fusion_reactor_attach_channel( FusionReactor *reactor,
+                               int            channel,
+                               ReactionFunc   func,
+                               void          *ctx,
+                               Reaction      *reaction )
+{
+     ReactorNode         *node;
+     NodeLink            *link;
+     FusionReactorAttach  attach;
 
      D_MAGIC_ASSERT( reactor, FusionReactor );
-
      D_ASSERT( func != NULL );
      D_ASSERT( reaction != NULL );
 
@@ -301,7 +316,10 @@ fusion_reactor_attach( FusionReactor *reactor,
           return DFB_FUSION;
      }
 
-     while (ioctl( _fusion_fd( reactor->shared ), FUSION_REACTOR_ATTACH, &reactor->id )) {
+     attach.reactor_id = reactor->id;
+     attach.channel    = channel;
+
+     while (ioctl( _fusion_fd( reactor->shared ), FUSION_REACTOR_ATTACH, &attach )) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -325,6 +343,7 @@ fusion_reactor_attach( FusionReactor *reactor,
      reaction->node_link = link;
 
      link->reaction = reaction;
+     link->channel  = channel;
 
      D_MAGIC_SET( link, NodeLink );
 
@@ -353,14 +372,13 @@ remove_node_link( ReactorNode *node,
 }
 
 DirectResult
-fusion_reactor_detach (FusionReactor *reactor,
-                       Reaction      *reaction)
+fusion_reactor_detach( FusionReactor *reactor,
+                       Reaction      *reaction )
 {
      ReactorNode *node;
      NodeLink    *link;
 
      D_MAGIC_ASSERT( reactor, FusionReactor );
-
      D_ASSERT( reaction != NULL );
 
      D_DEBUG_AT( Fusion_Reactor,
@@ -377,7 +395,12 @@ fusion_reactor_detach (FusionReactor *reactor,
      D_ASSUME( link != NULL );
 
      if (link) {
+          FusionReactorDetach detach;
+
           D_ASSERT( link->reaction == reaction );
+
+          detach.reactor_id = reactor->id;
+          detach.channel    = link->channel;
 
           reaction->node_link = NULL;
 
@@ -385,7 +408,7 @@ fusion_reactor_detach (FusionReactor *reactor,
 
           remove_node_link( node, link );
 
-          while (ioctl( _fusion_fd( reactor->shared ), FUSION_REACTOR_DETACH, &reactor->id )) {
+          while (ioctl( _fusion_fd( reactor->shared ), FUSION_REACTOR_DETACH, &detach )) {
                switch (errno) {
                     case EINTR:
                          continue;
@@ -505,13 +528,9 @@ fusion_reactor_dispatch( FusionReactor      *reactor,
                          bool                self,
                          const ReactionFunc *globals )
 {
-    D_MAGIC_ASSERT( reactor, FusionReactor );
+     D_MAGIC_ASSERT( reactor, FusionReactor );
 
-    return fusion_reactor_sized_dispatch(reactor,
-                                         msg_data,
-                                         reactor->msg_size,
-                                         self,
-                                         globals);
+     return fusion_reactor_dispatch_channel( reactor, 0, msg_data, reactor->msg_size, self, globals );
 }
 
 DirectResult
@@ -520,6 +539,19 @@ fusion_reactor_sized_dispatch( FusionReactor      *reactor,
                                int                 msg_size,
                                bool                self,
                                const ReactionFunc *globals )
+{
+     D_MAGIC_ASSERT( reactor, FusionReactor );
+
+     return fusion_reactor_dispatch_channel( reactor, 0, msg_data, msg_size, self, globals );
+}
+
+DirectResult
+fusion_reactor_dispatch_channel( FusionReactor      *reactor,
+                                 int                 channel,
+                                 const void         *msg_data,
+                                 int                 msg_size,
+                                 bool                self,
+                                 const ReactionFunc *globals )
 {
      FusionReactorDispatch dispatch;
 
@@ -542,12 +574,13 @@ fusion_reactor_sized_dispatch( FusionReactor      *reactor,
      
      /* Handle local reactions. */
      if (self && reactor->direct) {
-          _fusion_reactor_process_message( _fusion_world(reactor->shared), reactor->id, msg_data );
+          _fusion_reactor_process_message( _fusion_world(reactor->shared), reactor->id, channel, msg_data );
           self = false;
      }
 
      /* Initialize dispatch data. */
      dispatch.reactor_id = reactor->id;
+     dispatch.channel    = channel;
      dispatch.self       = self;
      dispatch.msg_size   = msg_size;
      dispatch.msg_data   = msg_data;
@@ -662,6 +695,7 @@ _fusion_reactor_free_all( FusionWorld *world )
 void
 _fusion_reactor_process_message( FusionWorld *world,
                                  int          reactor_id,
+                                 int          channel,
                                  const void  *msg_data )
 {
      ReactorNode *node;
@@ -692,6 +726,9 @@ _fusion_reactor_process_message( FusionWorld *world,
           Reaction *reaction;
 
           D_MAGIC_ASSERT( link, NodeLink );
+
+          if (link->channel != channel)
+               continue;
 
           reaction = link->reaction;
           if (!reaction)

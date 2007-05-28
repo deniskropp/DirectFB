@@ -131,6 +131,18 @@ prefix##_attach( type         *object,                                         \
 }                                                                              \
                                                                                \
 static inline DirectResult                                                     \
+prefix##_attach_channel( type         *object,                                 \
+                         int           channel,                                \
+                         ReactionFunc  func,                                   \
+                         void         *ctx,                                    \
+                         Reaction     *ret_reaction )                          \
+{                                                                              \
+     D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
+     return fusion_reactor_attach_channel( ((FusionObject*)object)->reactor,   \
+                                           channel, func, ctx, ret_reaction ); \
+}                                                                              \
+                                                                               \
+static inline DirectResult                                                     \
 prefix##_detach( type     *object,                                             \
                  Reaction *reaction )                                          \
 {                                                                              \
@@ -167,6 +179,18 @@ prefix##_dispatch( type               *object,                                 \
      D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
      return fusion_reactor_dispatch( ((FusionObject*)object)->reactor,         \
                                      message, true, globals );                 \
+}                                                                              \
+                                                                               \
+static inline DirectResult                                                     \
+prefix##_dispatch_channel( type               *object,                         \
+                           int                 channel,                        \
+                           void               *message,                        \
+                           int                 size,                           \
+                           const ReactionFunc *globals )                       \
+{                                                                              \
+     D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
+     return fusion_reactor_dispatch_channel( ((FusionObject*)object)->reactor, \
+                                      channel, message, size, true, globals ); \
 }                                                                              \
                                                                                \
 static inline DirectResult                                                     \
