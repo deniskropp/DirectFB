@@ -162,7 +162,7 @@ main( int argc, char *argv[] )
 
                MSG( "Setting dispatch callback...\n" );
 
-               ret = fusion_reactor_set_dispatch_callback( reactor, &call, 0, NULL );
+               ret = fusion_reactor_set_dispatch_callback( reactor, &call, NULL );
                if (ret) {
                     D_DERROR( ret, "fusion_reactor_set_dispatch_callback() failed" );
                     return ret;

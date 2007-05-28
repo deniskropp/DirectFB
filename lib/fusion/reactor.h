@@ -142,7 +142,6 @@ DirectResult   fusion_reactor_dispatch     ( FusionReactor      *reactor,
  */
 DirectResult   fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
                                                      FusionCall     *call,
-                                                     int             call_arg,
                                                      void           *call_ptr );
 
 /*

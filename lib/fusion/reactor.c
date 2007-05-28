@@ -573,7 +573,6 @@ fusion_reactor_sized_dispatch( FusionReactor      *reactor,
 DirectResult
 fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
                                       FusionCall     *call,
-                                      int             call_arg,
                                       void           *call_ptr )
 {
      FusionReactorSetCallback callback;
@@ -582,13 +581,12 @@ fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
      D_ASSERT( call != NULL );
 
      D_DEBUG_AT( Fusion_Reactor,
-                 "fusion_reactor_set_dispatch_callback( %p [%d], call %p [%d], arg %d, ptr %p)\n",
-                 reactor, reactor->id, call, call->call_id, call_arg, call_ptr );
+                 "fusion_reactor_set_dispatch_callback( %p [%d], call %p [%d], ptr %p)\n",
+                 reactor, reactor->id, call, call->call_id, call_ptr );
 
      /* Fill callback info. */
      callback.reactor_id = reactor->id;
      callback.call_id    = call->call_id;
-     callback.call_arg   = call_arg;
      callback.call_ptr   = call_ptr;
 
      /* Set the dispatch callback. */
