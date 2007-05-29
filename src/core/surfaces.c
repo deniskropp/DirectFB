@@ -835,7 +835,7 @@ DFBResult dfb_surface_software_lock( CoreDFB *core, CoreSurface *surface, DFBSur
           case CSP_VIDEOLOW:
                /* no valid video instance
                   or read access and valid system? system lock! */
-               if ((buffer->video.health != CSH_STORED ||
+               if (((buffer->video.health != CSH_STORED || (flags & CSLF_FORCE)) ||
                     (flags & DSLF_READ && buffer->system.health == CSH_STORED))
                    && !buffer->video.locked)
                {

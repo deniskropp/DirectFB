@@ -6706,7 +6706,12 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      dfb_surfacemanager_lock( destination->manager );
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-          if (dfb_surface_software_lock( state->core, source, DSLF_READ, &gfxs->src_org[0],
+          DFBSurfaceLockFlags flags = DSLF_READ;
+
+          if (accel == DFXL_STRETCHBLIT)
+               flags |= CSLF_FORCE;
+
+          if (dfb_surface_software_lock( state->core, source, flags, &gfxs->src_org[0],
                                          &gfxs->src_pitch, true )) {
                dfb_surfacemanager_unlock( destination->manager );
                return false;
