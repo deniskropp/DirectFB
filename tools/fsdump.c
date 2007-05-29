@@ -110,7 +110,7 @@ buffer_callback( FusionObjectPool *pool,
 
      printf( "%6d  ", buffer->length );
 
-     printf( "%6d    ", buffer->channels );
+     printf( "%6d    ", FS_CHANNELS_FOR_MODE(buffer->mode) );
 
      switch (buffer->format) {
           case FSSF_U8:

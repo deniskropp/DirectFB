@@ -51,7 +51,7 @@ typedef struct {
      CoreSoundBuffer       *buffer;
 
      int                    size;
-     int                    channels;
+     FSChannelMode          mode;
      FSSampleFormat         format;
      int                    rate;
 
@@ -118,13 +118,15 @@ IFusionSoundBuffer_GetDescription( IFusionSoundBuffer  *thiz,
      if (!desc)
           return DFB_INVARG;
 
-     desc->flags = FSBDF_CHANNELS | FSBDF_LENGTH |
-                   FSBDF_SAMPLEFORMAT | FSBDF_SAMPLERATE;
+     desc->flags = FSBDF_CHANNELS     | FSBDF_LENGTH     |
+                   FSBDF_SAMPLEFORMAT | FSBDF_SAMPLERATE |
+                   FSBDF_CHANNELMODE;
 
-     desc->channels     = data->channels;
+     desc->channels     = FS_CHANNELS_FOR_MODE(data->mode);
      desc->length       = data->size;
      desc->sampleformat = data->format;
      desc->samplerate   = data->rate;
+     desc->channelmode  = data->mode;
 
      return DFB_OK;
 }
@@ -170,8 +172,7 @@ IFusionSoundBuffer_Lock( IFusionSoundBuffer  *thiz,
      *ret_data = lock_data;
      
      if (ret_frames)
-          *ret_frames = lock_bytes / 
-                        (data->channels * FS_BYTES_PER_SAMPLE(data->format));
+          *ret_frames = lock_bytes / data->buffer->bytes;
      
      if (ret_bytes)
           *ret_bytes = lock_bytes;
@@ -342,7 +343,7 @@ IFusionSoundBuffer_Construct( IFusionSoundBuffer *thiz,
                               CoreSound          *core,
                               CoreSoundBuffer    *buffer,
                               int                 size,
-                              int                 channels,
+                              FSChannelMode       mode,
                               FSSampleFormat      format,
                               int                 rate )
 {
@@ -356,13 +357,13 @@ IFusionSoundBuffer_Construct( IFusionSoundBuffer *thiz,
      }
 
      /* Initialize private data. */
-     data->ref      = 1;
-     data->core     = core;
-     data->buffer   = buffer;
-     data->size     = size;
-     data->channels = channels;
-     data->format   = format;
-     data->rate     = rate;
+     data->ref    = 1;
+     data->core   = core;
+     data->buffer = buffer;
+     data->size   = size;
+     data->mode   = mode;
+     data->format = format;
+     data->rate   = rate;
 
      direct_util_recursive_pthread_mutex_init( &data->lock );
 

@@ -47,8 +47,8 @@ buffer_destructor( FusionObject *object, bool zombie, void *ctx )
 {
      CoreSoundBuffer *buffer = (CoreSoundBuffer*) object;
 
-     D_DEBUG( "FusionSound/Core: %s (%p, len %d, ch %d, fmt %d, rate %d)%s\n",
-              __FUNCTION__, buffer, buffer->length, buffer->channels,
+     D_DEBUG( "FusionSound/Core: %s (%p, len %d, mode %08x, fmt %08x, rate %d)%s\n",
+              __FUNCTION__, buffer, buffer->length, buffer->mode,
               buffer->format, buffer->rate, zombie ? " ZOMBIE!" : "" );
 
      SHFREE( buffer->shmpool, buffer->data );
@@ -69,38 +69,28 @@ fs_buffer_pool_create( const FusionWorld *world )
 DFBResult
 fs_buffer_create( CoreSound        *core,
                   int               length,
-                  int               channels,
+                  FSChannelMode     mode,
                   FSSampleFormat    format,
                   int               rate,
                   CoreSoundBuffer **ret_buffer )
 {
      int                  bytes;
+     int                  channels;
      CoreSoundBuffer     *buffer;
      FusionSHMPoolShared *pool;
 
      D_ASSERT( core != NULL );
      D_ASSERT( length > 0 );
-     D_ASSERT( channels > 0 );
-     D_ASSERT( channels <= FS_MAX_CHANNELS );
+     D_ASSERT( mode != FSCM_UNKNOWN );
+     D_ASSERT( format != FSSF_UNKNOWN );
      D_ASSERT( rate > 0 );
      D_ASSERT( ret_buffer != NULL );
 
-     D_DEBUG( "FusionSound/Core: %s (len %d, ch %d, fmt %d, rate %d)\n",
-              __FUNCTION__, length, channels, format, rate );
+     D_DEBUG( "FusionSound/Core: %s (len %d, mode %08x, fmt %08x, rate %d)\n",
+              __FUNCTION__, length, mode, format, rate );
 
-     switch (format) {
-          case FSSF_U8:
-          case FSSF_S16:
-          case FSSF_S24:
-          case FSSF_S32:
-          case FSSF_FLOAT:
-               bytes = FS_BYTES_PER_SAMPLE( format );
-               break;
-
-          default:
-               D_BUG( "unknown format" );
-               return DFB_BUG;
-     }
+     bytes = FS_BYTES_PER_SAMPLE( format );
+     channels = FS_CHANNELS_FOR_MODE( mode );
 
      pool = fs_core_shmpool( core );
 
@@ -114,12 +104,12 @@ fs_buffer_create( CoreSound        *core,
           return DFB_NOSYSTEMMEMORY;
      }
 
-     buffer->length   = length;
-     buffer->channels = channels;
-     buffer->format   = format;
-     buffer->rate     = rate;
-     buffer->bytes    = bytes * channels;
-     buffer->shmpool  = pool;
+     buffer->length  = length;
+     buffer->mode    = mode;
+     buffer->format  = format;
+     buffer->rate    = rate;
+     buffer->bytes   = bytes * channels;
+     buffer->shmpool = pool;
 
      fusion_object_activate( &buffer->object );
 
@@ -379,10 +369,12 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
      /* Mix the data into the buffer. */
      if ((long)inc && (levels[0] || levels[1])) {
           SoundMXFunc func;
+          int         format_index  = FS_SAMPLEFORMAT_INDEX(buffer->format);
+          int         channel_index = FS_CHANNELS_FOR_MODE(buffer->mode) - 1;
           
           func = (pitch < 0)
-                 ? MIX_RW[FS_SAMPLEFORMAT_INDEX(buffer->format)][buffer->channels-1]
-                 : MIX_FW[FS_SAMPLEFORMAT_INDEX(buffer->format)][buffer->channels-1];
+                 ? MIX_RW[format_index][channel_index]
+                 : MIX_FW[format_index][channel_index];
           len  = func( buffer, dest, pos, inc, max, levels, last );
      }
      else {

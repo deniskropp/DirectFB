@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
+   (c) Copyright 2002-2005  convergence GmbH.
    
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <sven@convergence.de> and
+              Claudio Ciccani <klan@users.sf.net.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -24,23 +25,11 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __IFUSIONSOUNDBUFFER_H__
-#define __IFUSIONSOUNDBUFFER_H__
+#ifndef __FS_UTIL_H__
+#define __FS_UTIL_H__
 
 #include <fusionsound.h>
 
-#include <core/types_sound.h>
+FSChannelMode fs_mode_for_channels( int channels );
 
-/*
- * initializes interface struct and private data
- */
-DFBResult IFusionSoundBuffer_Construct( IFusionSoundBuffer *thiz,
-                                        CoreSound          *core,
-                                        CoreSoundBuffer    *buffer,
-                                        int                 size,
-                                        FSChannelMode       mode,
-                                        FSSampleFormat      format,
-                                        int                 rate );
-
-
-#endif
+#endif /* __FS_UTIL_H__ */

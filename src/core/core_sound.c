@@ -106,6 +106,8 @@ struct __FS_CoreSound {
      void                *output_buffer;
 
      DirectSignalHandler *signal_handler;
+     
+     bool                 detached;
 };
 
 /******************************************************************************/
@@ -126,6 +128,10 @@ static int fs_core_arena_leave     ( FusionArena *arena,
 static int fs_core_arena_shutdown  ( FusionArena *arena,
                                      void        *ctx,
                                      bool         emergency);
+
+/******************************************************************************/
+
+static DFBResult fs_core_detach( CoreSound *core );
 
 /******************************************************************************/
 
@@ -238,6 +244,9 @@ fs_core_destroy( CoreSound *core, bool emergency )
                if (emergency) {
                     fusion_kill( core->world, 0, SIGKILL, 1000 );
                }
+               else if (fs_config->wait) {
+                    fs_core_detach( core );
+               }
                else {
                     fusion_kill( core->world, 0, SIGTERM, 5000 );
                     fusion_kill( core->world, 0, SIGKILL, 2000 );
@@ -263,6 +272,9 @@ fs_core_destroy( CoreSound *core, bool emergency )
 
      /* Unlock the core singleton mutex. */
      pthread_mutex_unlock( &core_sound_lock );
+     
+     if (core->detached)
+          _exit( 0 );
 
      return DFB_OK;
 }
@@ -483,8 +495,8 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
      __fsf *src = mixing;                                           \
      u8    *dst = output;                                           \
      int    n;                                                      \
-     switch (shared->config.channels) {                             \
-          case 1:                                                   \
+     switch (mode) {                                                \
+          case FSCM_MONO:                                           \
                for (n = mixed; n; n--) {                            \
                     register __fsf s;                               \
                     const int      c = 0;                           \
@@ -495,7 +507,8 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
                     src += FS_MAX_CHANNELS;                         \
                }                                                    \
                break;                                               \
-          case 2:                                                   \
+          case FSCM_STEREO:                                         \
+          case FSCM_STEREO21:                                       \
                for (n = mixed; n; n--) {                            \
                     register __fsf s;                               \
                     int            c;                               \
@@ -505,10 +518,16 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
                     c = 1;                                          \
                     s = src[c] + src[2] + src[4];                   \
                     BODY                                            \
+                    if (FS_MODE_HAS_LFE(mode)) {                    \
+                         c = 5;                                     \
+                         s = src[c];                                \
+                         BODY;                                      \
+                    }                                               \
                     src += FS_MAX_CHANNELS;                         \
                }                                                    \
                break;                                               \
-          case 3:                                                   \
+          case FSCM_STEREO30:                                       \
+          case FSCM_STEREO31:                                       \
                for (n = mixed; n; n--) {                            \
                     register __fsf s;                               \
                     int            c;                               \
@@ -520,46 +539,64 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
                     BODY                                            \
                     c = 1;                                          \
                     s = src[c] + src[4];                            \
-                    BODY;                                           \
-                    src += FS_MAX_CHANNELS;                         \
-               }                                                    \
-               break;                                               \
-          case 4:                                                   \
-               for (n = mixed; n; n--) {                            \
-                    register __fsf s;                               \
-                    int            c;                               \
-                    c = 0;                                          \
-                    s = src[c] + src[2];                            \
                     BODY                                            \
-                    c = 1;                                          \
-                    s = src[c] + src[2];                            \
-                    BODY                                            \
-                    c = 3;                                          \
-                    s = src[c];                                     \
-                    BODY                                            \
-                    c = 4;                                          \
-                    s = src[c];                                     \
-                    BODY                                            \
-                    src += FS_MAX_CHANNELS;                         \
-               }                                                    \
-               break;                                               \
-          case 5:                                                   \
-               for (n = mixed; n; n--) {                            \
-                    int c;                                          \
-                    for (c = 0; c < 5; c++) {                       \
-                         register __fsf s;                          \
-                         if (c == 1)                                \
-                              s = src[2];                           \
-                         else if (c == 2)                           \
-                              s = src[1];                           \
-                         else                                       \
-                              s = src[c];                           \
+                    if (FS_MODE_HAS_LFE(mode)) {                    \
+                         c = 5;                                     \
+                         s = src[c];                                \
                          BODY                                       \
                     }                                               \
                     src += FS_MAX_CHANNELS;                         \
                }                                                    \
                break;                                               \
-          case 6:                                                   \
+          case FSCM_SURROUND30:                                     \
+          case FSCM_SURROUND31:                                     \
+          case FSCM_SURROUND40_2F2R:                                \
+          case FSCM_SURROUND41_2F2R:                                \
+          case FSCM_SURROUND40_3F1R:                                \
+          case FSCM_SURROUND41_3F1R:                                \
+          case FSCM_SURROUND50:                                     \
+               for (n = mixed; n; n--) {                            \
+                    register __fsf s;                               \
+                    int            c;                               \
+                    if (FS_MODE_HAS_CENTER(mode)) {                 \
+                         c = 0;                                     \
+                         s = src[c];                                \
+                         BODY                                       \
+                         c = 2;                                     \
+                         s = src[c];                                \
+                         BODY                                       \
+                         c = 1;                                     \
+                         s = src[c];                                \
+                         BODY                                       \
+                    } else {                                        \
+                         c = 0;                                     \
+                         s = src[c] + src[2];                       \
+                         BODY                                       \
+                         c = 1;                                     \
+                         s = src[c] + src[2];                       \
+                         BODY                                       \
+                    }                                               \
+                    if (FS_MODE_NUM_REARS(mode) == 1) {             \
+                         c = 3;                                     \
+                         s = fsf_shr( src[c] + src[c+1], 1 );       \
+                         BODY                                       \
+                    } else {                                        \
+                         c = 3;                                     \
+                         s = src[c];                                \
+                         BODY                                       \
+                         c = 4;                                     \
+                         s = src[c];                                \
+                         BODY                                       \
+                    }                                               \
+                    if (FS_MODE_HAS_LFE(mode)) {                    \
+                         c = 5;                                     \
+                         s = src[c];                                \
+                         BODY                                       \
+                    }                                               \
+                    src += FS_MAX_CHANNELS;                         \
+               }                                                    \
+               break;                                               \
+          case FSCM_SURROUND51:                                     \
                for (n = mixed; n; n--) {                            \
                     int c;                                          \
                     for (c = 0; c < 6; c++) {                       \
@@ -576,7 +613,7 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
                }                                                    \
                break;                                               \
           default:                                                  \
-               D_BUG( "unexpected number of channels" );            \
+               D_BUG( "unexpected channel mode" );                  \
                break;                                               \
      }                                                              \
 }
@@ -585,7 +622,7 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
      __fsf *src = mixing;                                           \
      u8    *dst = output;                                           \
      int    n;                                                      \
-     if (shared->config.channels == 1) {                            \
+     if (mode == FSCM_MONO) {                                       \
           for (n = mixed; n; n--) {                                 \
                register __fsf s;                                    \
                const int      c = 0;                                \
@@ -622,6 +659,8 @@ sound_thread( DirectThread *thread, void *arg )
      __fsf              *mixing  = core->mixing_buffer;
      int                 frames  = shared->config.buffersize;
      int                 mixed   = 0;
+     
+     FSChannelMode       mode    = shared->config.mode;
      
      fsf_dither_profiles(dither,FS_MAX_CHANNELS);
      
@@ -783,7 +822,7 @@ fs_core_initialize( CoreSound *core )
           
      /* allocate output buffer */
      core->output_buffer = D_MALLOC( shared->config.buffersize *
-                                     shared->config.channels   *
+                                     FS_CHANNELS_FOR_MODE(shared->config.mode) *
                                      FS_BYTES_PER_SAMPLE(shared->config.format) );
      if (!core->output_buffer)
           return D_OOM();
@@ -811,7 +850,7 @@ fs_core_leave( CoreSound *core )
 }
 
 static DFBResult
-fs_core_shutdown( CoreSound *core )
+fs_core_shutdown( CoreSound *core, bool local )
 {
      DirectLink      *l, *next;
      CoreSoundShared *shared;
@@ -828,29 +867,31 @@ fs_core_shutdown( CoreSound *core )
      direct_thread_cancel( core->sound_thread );
      direct_thread_join( core->sound_thread );
      direct_thread_destroy( core->sound_thread );
-     
-     /* close output device */
-     fs_device_shutdown( core->device );
 
-     /* clear playback list */
-     fusion_skirmish_prevail( &shared->playlist.lock );
+     if (!local) {
+          /* close output device */
+          fs_device_shutdown( core->device );
+          
+          /* clear playback list */
+          fusion_skirmish_prevail( &shared->playlist.lock );
 
-     direct_list_foreach_safe (l, next, shared->playlist.entries) {
-          CorePlaylistEntry *entry = (CorePlaylistEntry*) l;
+          direct_list_foreach_safe (l, next, shared->playlist.entries) {
+               CorePlaylistEntry *entry = (CorePlaylistEntry*) l;
 
-          fs_playback_unlink( &entry->playback );
+               fs_playback_unlink( &entry->playback );
 
-          SHFREE( shared->shmpool, entry );
+               SHFREE( shared->shmpool, entry );
+          }
+
+          /* destroy playback object pool */
+          fusion_object_pool_destroy( shared->playback_pool, core->world );
+
+          /* destroy buffer object pool */
+          fusion_object_pool_destroy( shared->buffer_pool, core->world );
+
+          /* destroy playlist lock */
+          fusion_skirmish_destroy( &shared->playlist.lock );
      }
-
-     /* destroy playback object pool */
-     fusion_object_pool_destroy( shared->playback_pool, core->world );
-
-     /* destroy buffer object pool */
-     fusion_object_pool_destroy( shared->buffer_pool, core->world );
-
-     /* destroy playlist lock */
-     fusion_skirmish_destroy( &shared->playlist.lock );
      
      /* release buffers */
      D_FREE( core->mixing_buffer );
@@ -858,6 +899,45 @@ fs_core_shutdown( CoreSound *core )
 
      return DFB_OK;
 }
+
+static DFBResult
+fs_core_detach( CoreSound *core )
+{
+     int ret;
+     
+     D_DEBUG( "FusionSound/Core: Detaching...\n" );
+     
+     D_ASSUME( !core->detached );
+     
+     /* detach core from controlling process */
+     fusion_world_set_fork_action( core->world, FFA_FORK );
+     ret = fork();
+     fusion_world_set_fork_action( core->world, FFA_CLOSE );
+     
+     switch (ret) {
+          case -1:
+               D_PERROR( "fork()" );
+               fusion_kill( core->world, 0, SIGTERM, 5000 );
+               fusion_kill( core->world, 0, SIGKILL, 2000 );
+               return DFB_FAILURE;
+          
+          case 0:
+               D_DEBUG( "FusionSound/Core: ... detached.\n" ); 
+               core->detached = true;
+               /* restart sound thread */
+               core->sound_thread = direct_thread_create( DTT_OUTPUT, sound_thread, core, "Sound Mixer" );
+               break;
+          
+          default:
+               core->master = false;
+               /* release local resources */
+               fs_core_shutdown( core, true );
+               break;
+     }
+     
+     return DFB_OK;
+}
+
 
 /******************************************************************************/
 
@@ -926,7 +1006,7 @@ fs_core_arena_shutdown( FusionArena *arena,
      }
 
      /* Shutdown. */
-     ret = fs_core_shutdown( core );
+     ret = fs_core_shutdown( core, false );
      if (ret)
           return ret;
 

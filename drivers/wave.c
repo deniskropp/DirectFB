@@ -170,12 +170,13 @@ device_open( void                  *device_data,
      header.Subchunk1ID   = FCC('f','m','t',' ');
      header.Subchunk1Size = 16;
      header.AudioFormat   = 1;
-     header.NumChannels   = config->channels;
+     header.NumChannels   = FS_CHANNELS_FOR_MODE(config->mode);
      header.SampleRate    = config->rate;
-     header.ByteRate      = config->rate * config->channels *
-                            FS_BITS_PER_SAMPLE(config->format) >> 3;
-     header.BlockAlign    = config->channels *
-                            FS_BITS_PER_SAMPLE(config->format) >> 3;
+     header.ByteRate      = config->rate *
+                            FS_CHANNELS_FOR_MODE(config->mode) *
+                            FS_BYTES_PER_SAMPLE(config->format);
+     header.BlockAlign    = FS_CHANNELS_FOR_MODE(config->mode) *
+                            FS_BYTES_PER_SAMPLE(config->format);
      header.BitsPerSample = FS_BITS_PER_SAMPLE(config->format);
      header.Subchunk2ID   = FCC('d','a','t','a');
      header.Subchunk2Size = 0;
@@ -202,7 +203,7 @@ device_open( void                  *device_data,
      }
 
      data->bits = FS_BITS_PER_SAMPLE(config->format);
-     data->channels = config->channels;
+     data->channels = FS_CHANNELS_FOR_MODE(config->mode);
 
      return DFB_OK;
 }

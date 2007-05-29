@@ -34,14 +34,15 @@ typedef struct {
      char           *driver;       /* Used driver, e.g. "oss" */
      char           *device;       /* Used device, e.g. "/dev/dsp" */
      
-     int             channels;     /* default number of channels */
      FSSampleFormat  sampleformat; /* default sampleformat */
+     FSChannelMode   channelmode;  /* default channelmode */
      int             samplerate;   /* default samplerate */
      int             buffertime;   /* default buffertime (in ms) */
 
      int             session;      /* select multi app world */
 
      bool            banner;       /* startup banner */
+     bool            wait;         /* wait slaves on exit */
 } FSConfig;
 
 extern FSConfig *fs_config;

@@ -57,25 +57,6 @@ typedef struct {
 } CorePlaybackNotification;
 
 
-struct __FS_CorePlayback {
-     FusionObject     object;
-
-     FusionSkirmish   lock;
-
-     CoreSound       *core;
-     CoreSoundBuffer *buffer;
-     bool             notify;
-
-     bool             disabled;
-     bool             running;
-     int              position;
-     int              stop;
-
-     __fsf            levels[6];   /* multipliers for channels  */
-     int              pitch;       /* multiplier for sample rate in FS_PITCH_ONE units */
-};
-
-
 /*
  * Internal definitions.
  */
@@ -111,6 +92,11 @@ DFBResult fs_playback_set_stop    ( CorePlayback        *playback,
 
 DFBResult fs_playback_set_position( CorePlayback        *playback,
                                     int                  position );
+
+/* Must call fs_playback_set_volume() after this. */                                  
+DFBResult fs_playback_set_downmix ( CorePlayback        *playback,
+                                    float                center,
+                                    float                rear );
 
 DFBResult fs_playback_set_volume  ( CorePlayback        *playback,
                                     float                levels[6] );

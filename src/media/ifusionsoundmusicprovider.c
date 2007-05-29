@@ -246,7 +246,7 @@ IFusionSoundMusicProvider_Create( const char                 *filename,
      ctx.stream   = stream;
      
      /* Clear probe context's header */
-     memset( ctx.header, sizeof(ctx.header), 0 );
+     memset( ctx.header, 0, sizeof(ctx.header) );
      
      /* Fill probe context's header */
      direct_stream_wait( stream, sizeof(ctx.header), NULL );

@@ -38,6 +38,30 @@
 
 /******************************************************************************/
 
+struct __FS_CorePlayback {
+     FusionObject     object;
+
+     FusionSkirmish   lock;
+
+     CoreSound       *core;
+     CoreSoundBuffer *buffer;
+     bool             notify;
+
+     bool             disabled;
+     bool             running;
+     int              position;
+     int              stop;
+     
+     int              pitch;       /* multiplier for sample rate in FS_PITCH_ONE units */
+
+     __fsf            center;      /* downmixing level for center channel */
+     __fsf            rear;        /* downmixing level for rear channel */
+     
+     __fsf            levels[6];   /* multipliers for channels  */
+};
+
+#define DOWNMIX_LEVEL_3DB  0.70794578438413791
+
 static void fs_playback_notify( CorePlayback                  *playback,
                                 CorePlaybackNotificationFlags  flags,
                                 int                            num );
@@ -76,7 +100,6 @@ fs_playback_create( CoreSound        *core,
                     CorePlayback    **ret_playback )
 {
      CorePlayback *playback;
-     int           i;
 
      D_ASSERT( buffer != NULL );
      D_ASSERT( ret_playback != NULL );
@@ -94,15 +117,24 @@ fs_playback_create( CoreSound        *core,
           fusion_object_destroy( &playback->object );
           return DFB_FUSION;
      }
+     
+     fusion_skirmish_init( &playback->lock, "FusionSound Playback", fs_core_world(core) );
 
      /* Initialize private data. */
      playback->core   = core;
      playback->notify = notify;
-     for (i = 0; i < 6; i++)
-          playback->levels[i] = FSF_ONE;
      playback->pitch  = FS_PITCH_ONE;
-
-     fusion_skirmish_init( &playback->lock, "FusionSound Playback", fs_core_world(core) );
+     
+     /* Set default downmixing levels. */
+     fs_playback_set_downmix( playback, DOWNMIX_LEVEL_3DB, DOWNMIX_LEVEL_3DB );
+     
+     /* Set default volume levels. */
+     playback->levels[0] = FSF_ONE;
+     playback->levels[1] = FSF_ONE;
+     playback->levels[2] = playback->center;
+     playback->levels[3] = playback->rear;
+     playback->levels[4] = playback->rear;
+     playback->levels[5] = FSF_ONE;
 
      /* Activate playback object. */
      fusion_object_activate( &playback->object );
@@ -259,6 +291,45 @@ fs_playback_set_position( CorePlayback *playback,
 }
 
 DFBResult
+fs_playback_set_downmix( CorePlayback *playback,
+                         float         center,
+                         float         rear )
+{
+     CoreSoundBuffer       *buffer;
+     CoreSoundDeviceConfig *config;
+     
+     D_ASSERT( playback != NULL );
+     D_ASSERT( center >= 0.0f );
+     D_ASSERT( center <= 1.0f );
+     D_ASSERT( rear >= 0.0f );
+     D_ASSERT( rear <= 1.0f );
+     
+     /* Lock playback. */
+     if (fusion_skirmish_prevail( &playback->lock ))
+          return DFB_FUSION;
+          
+     buffer = playback->buffer;
+     config = fs_core_device_config( playback->core );
+
+     if ( FS_MODE_HAS_CENTER(buffer->mode) &&
+         !FS_MODE_HAS_CENTER(config->mode))
+          playback->center = fsf_from_float( center );
+     else
+          playback->center = FSF_ONE;
+
+     if ( FS_MODE_NUM_REARS(buffer->mode) && 
+         !FS_MODE_NUM_REARS(config->mode))
+          playback->rear = fsf_from_float( rear );
+     else
+          playback->rear = FSF_ONE;
+     
+     /* Unlock playback. */
+     fusion_skirmish_dismiss( &playback->lock );
+     
+     return DFB_OK;
+}
+
+DFBResult
 fs_playback_set_volume( CorePlayback *playback,
                         float         levels[6] )
 {
@@ -277,6 +348,15 @@ fs_playback_set_volume( CorePlayback *playback,
      /* Adjust volume. */
      for (i = 0; i < 6; i++)
           playback->levels[i] = fsf_from_float( levels[i] );
+     
+     /* Apply downmixing levels. */
+     if (playback->center != FSF_ONE) {
+          playback->levels[2] = fsf_mul( playback->levels[2], playback->center );
+     }
+     if (playback->rear != FSF_ONE) {
+          playback->levels[3] = fsf_mul( playback->levels[3], playback->rear );
+          playback->levels[4] = fsf_mul( playback->levels[4], playback->rear );
+     }
 
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );

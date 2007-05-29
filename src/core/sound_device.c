@@ -76,7 +76,7 @@ fs_device_initialize( CoreSound *core, CoreSoundDevice **ret_device )
                FS_SOUND_DRIVER_INFO_VENDOR_LENGTH, "directfb.org" );
      
      /* Set default configuration. */    
-     device->config.channels   = fs_config->channels;
+     device->config.mode       = fs_config->channelmode;
      device->config.format     = fs_config->sampleformat;
      device->config.rate       = fs_config->samplerate;
      device->config.buffersize = fs_config->samplerate * fs_config->buffertime / 1000;
@@ -151,7 +151,7 @@ fs_device_initialize( CoreSound *core, CoreSoundDevice **ret_device )
              
      D_INFO( "FusionSound/Device: %d Hz, %d channel(s), %d bits, %.1f ms.\n",
              device->config.rate,
-             device->config.channels,
+             FS_CHANNELS_FOR_MODE(device->config.mode),
              FS_BITS_PER_SAMPLE(device->config.format),
              (float)device->config.buffersize/device->config.rate*1000.0f  );
      

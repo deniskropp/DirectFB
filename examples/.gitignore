@@ -10,3 +10,4 @@ player
 scope
 simple
 stream
+*.o

@@ -41,7 +41,7 @@ typedef struct {
      CoreSoundBuffer       *buffer;
      CorePlayback          *playback;
      int                    size;
-     int                    channels;
+     FSChannelMode          mode;
      FSSampleFormat         format;
      int                    rate;
      int                    prebuffer;
@@ -66,7 +66,7 @@ DFBResult IFusionSoundStream_Construct( IFusionSoundStream *thiz,
                                         CoreSound          *core,
                                         CoreSoundBuffer    *buffer,
                                         int                 size,
-                                        int                 channels,
+                                        FSChannelMode       mode,
                                         FSSampleFormat      format,
                                         int                 rate,
                                         int                 prebuffer );

@@ -30,9 +30,7 @@
 
 #include <fusionsound.h>
 
-#include <core/core_sound.h>
 #include <core/playback.h>
-#include <core/sound_buffer.h>
 
 #include <direct/interface.h>
 #include <direct/util.h>
@@ -52,9 +50,6 @@ typedef struct {
 
      float                  volume;
      float                  pan;
-
-     float                  center;   /* center channel downmix level */    
-     float                  rear;     /* rear channels downmix level  */
      
      int                    pitch;
      int                    dir;
@@ -62,8 +57,6 @@ typedef struct {
      pthread_mutex_t        lock;
      pthread_cond_t         wait;
 } IFusionSoundPlayback_data;
-
-#define DOWNMIX_LEVEL_3DB  0.70794578438413791
 
 /******/
 
@@ -189,8 +182,11 @@ IFusionSoundPlayback_Wait( IFusionSoundPlayback *thiz )
                     ret = DFB_UNSUPPORTED;
                     break;
                }
-               else
+               else {
+                    pthread_cleanup_push( (void (*)(void *))pthread_mutex_unlock, &data->lock );
                     pthread_cond_wait( &data->wait, &data->lock );
+                    pthread_cleanup_pop( 0 );
+               }
           }
           else
                break;
@@ -310,6 +306,8 @@ IFusionSoundPlayback_SetDownmixLevels( IFusionSoundPlayback *thiz,
                                        float                 center,
                                        float                 rear )
 {
+     DFBResult ret;
+     
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
      
      D_DEBUG( "%s (%p, %.3f, %.3f)\n", __FUNCTION__, data->playback, center, rear );
@@ -320,8 +318,9 @@ IFusionSoundPlayback_SetDownmixLevels( IFusionSoundPlayback *thiz,
      if (rear < 0.0f || rear > 1.0f)
           return DFB_INVARG;
           
-     data->center = center;
-     data->rear   = rear;
+     ret = fs_playback_set_downmix( data->playback, center, rear );
+     if (ret)
+          return ret;
      
      return IFusionSoundPlayback_UpdateVolume( data );
 }
@@ -361,14 +360,6 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
      data->volume   = 1.0f;
      data->pitch    = FS_PITCH_ONE;
      data->dir      = +1;
-     if (playback->buffer->channels > 2) {
-          data->center =
-          data->rear   = DOWNMIX_LEVEL_3DB;
-          IFusionSoundPlayback_UpdateVolume( data );
-     } else {
-          data->center =
-          data->rear   = 1.0f;
-     }
 
      /* Initialize lock and condition. */
      direct_util_recursive_pthread_mutex_init( &data->lock );
@@ -440,29 +431,6 @@ IFusionSoundPlayback_UpdateVolume( IFusionSoundPlayback_data* data )
                     levels[i] = 64.0f;
           }
      }
-     
-     if (data->center != 1.0f || data->rear != 1.0f) {
-          CorePlayback          *playback = data->playback;
-          CoreSoundBuffer       *buffer   = playback->buffer;
-          CoreSoundDeviceConfig *config   = fs_core_device_config( playback->core );
-          
-          if (buffer->channels == 3 || buffer->channels >= 5) {
-               if (config->channels < 3 || config->channels == 4) {
-                    /* downmix center */
-                    levels[2] *= data->center;
-               }
-          }
-          if (buffer->channels >= 4) {
-               if (config->channels < 4) {
-                    /* downmix rear */
-                    levels[3] *= data->rear;
-                    levels[4] *= data->rear;
-               }
-          }
-     }
-     
-     D_DEBUG( "%s: levels [%.3f %.3f %.3f %.3f %.3f %.3f].\n", __FUNCTION__,
-              levels[0], levels[1], levels[2], levels[3], levels[4], levels[5] );
 
      return fs_playback_set_volume( data->playback, levels );
 }
