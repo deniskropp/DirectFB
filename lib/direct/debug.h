@@ -109,8 +109,11 @@ void direct_assumption( const char *exp,
 #endif
 
 
+
+
 #define D_DEBUG_DOMAIN(identifier,name,description)                                  \
-     static DirectDebugDomain identifier = { 0, false, false, name, description }
+     static DirectDebugDomain identifier __attribute__((unused))                     \
+            = { 0, false, false, name, description }
 
 
 #define D_DEBUG(x...)                                                                \
