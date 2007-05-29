@@ -27,8 +27,8 @@ static void STRETCH_HVX_RGB16( void       *dst,
      u32        _lbB[w2+8];
 
      u32       *lbX;
-     u32       *lbT = (u32*)((((u32)(&_lbT[0])) + 31) & ~31);
-     u32       *lbB = (u32*)((((u32)(&_lbB[0])) + 31) & ~31);
+     u32       *lbT = (u32*)((((ulong)(&_lbT[0])) + 31) & ~31);
+     u32       *lbB = (u32*)((((ulong)(&_lbB[0])) + 31) & ~31);
 
      int        lineT = -2000;
 
