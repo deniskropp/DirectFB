@@ -43,7 +43,7 @@
 /******************************************************************************/
 
 static void
-buffer_destructor( FusionObject *object, bool zombie )
+buffer_destructor( FusionObject *object, bool zombie, void *ctx )
 {
      CoreSoundBuffer *buffer = (CoreSoundBuffer*) object;
 
@@ -61,7 +61,7 @@ fs_buffer_pool_create( const FusionWorld *world )
 {
      return fusion_object_pool_create( "Sound Buffers", sizeof(CoreSoundBuffer),
                                        sizeof(CoreSoundBufferNotification),
-                                       buffer_destructor, world );
+                                       buffer_destructor, NULL, world );
 }
 
 /******************************************************************************/

@@ -45,7 +45,7 @@ static void fs_playback_notify( CorePlayback                  *playback,
 /******************************************************************************/
 
 static void
-playback_destructor( FusionObject *object, bool zombie )
+playback_destructor( FusionObject *object, bool zombie, void *ctx )
 {
      CorePlayback *playback = (CorePlayback*) object;
 
@@ -64,7 +64,7 @@ fs_playback_pool_create( const FusionWorld *world )
 {
      return fusion_object_pool_create( "Playbacks", sizeof(CorePlayback),
                                        sizeof(CorePlaybackNotification),
-                                       playback_destructor, world );
+                                       playback_destructor, NULL, world );
 }
 
 /******************************************************************************/
