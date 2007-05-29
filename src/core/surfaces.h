@@ -187,6 +187,8 @@ struct _CoreSurface
      FusionSHMPoolShared   *shmpool_data;  /* for raw data in the surface buffers */
 
      FusionID               owner;
+
+     FusionRef              locks;         /* lock counter */
 };
 
 static inline void *
