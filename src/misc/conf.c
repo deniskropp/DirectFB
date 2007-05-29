@@ -85,6 +85,7 @@ static const char *config_usage =
      "  [no-]debugmem                  Enable memory allocation tracking\n"
      "  [no-]debugshm                  Enable shared memory allocation tracking\n"
      "  [no-]trace                     Enable stack trace support\n"
+     "  [no-]surface-sentinel          Enable surface sentinels at the end of chunks in video memory\n"
      "  log-file=<name>                Write all messages to a file\n"
      "  log-udp=<host>:<port>          Send all messages via UDP to host:port\n"
      "  fatal-level=<level>            Abort on NONE, ASSERT (default) or ASSUME (incl. assert)\n"
@@ -660,6 +661,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-trace" ) == 0) {
           direct_config->trace = false;
+     } else
+     if (strcmp (name, "surface-sentinel" ) == 0) {
+          dfb_config->surface_sentinel = true;
+     } else
+     if (strcmp (name, "no-surface-sentinel" ) == 0) {
+          dfb_config->surface_sentinel = false;
      } else
      if (strcmp (name, "log-file" ) == 0 || strcmp (name, "log-udp" ) == 0) {
           if (value) {

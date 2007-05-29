@@ -71,6 +71,7 @@
 #include <gfx/convert.h>
 #include <gfx/util.h>
 
+#include <misc/conf.h>
 
 D_DEBUG_DOMAIN( Core_Surface, "Core/Surface", "DirectFB Surface Core" );
 
@@ -1010,6 +1011,35 @@ DFBResult dfb_surface_hardware_lock( CoreDFB *core, CoreSurface *surface,
      return DFB_FAILURE;
 }
 
+static void
+check_sentinel( CoreSurface *surface, SurfaceBuffer *buffer )
+{
+     int   i;
+     void *start    = dfb_system_video_memory_virtual( buffer->video.offset );
+     char *sentinel = start + buffer->video.pitch * DFB_PLANE_MULTIPLY( buffer->format,
+                                                                        surface->height );
+ 
+     for (i=0; i<16; i++) {
+          if (sentinel[i] != i) {
+               direct_log_printf( NULL, "\n(!!!) SURFACE SENTINEL ERROR: sentinel %d is %d!\n"
+                                        "      -> offset %d, length %d, size %dx%d, format %s, locked %dx\n",
+                                  i, sentinel[i],
+                                  buffer->video.offset,
+                                  buffer->video.pitch * DFB_PLANE_MULTIPLY( buffer->format,
+                                                                            surface->height ),
+                                  surface->width, surface->height,
+                                  dfb_pixelformat_name( buffer->format ),
+                                  buffer->video.locked );
+
+               /* Restore! */
+//               for (i=0; i<16; i++)
+                    sentinel[i] = i;
+
+//               break;
+          }
+      }
+}
+ 
 void dfb_surface_unlock( CoreSurface *surface, int front )
 {
      int            refs;
@@ -1024,6 +1054,14 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
      buffer = front ? surface->front_buffer : surface->back_buffer;
 
      D_ASSERT( buffer != NULL );
+
+     /* Check buffer health and sentinel. */
+     if (buffer->video.locked || buffer->video.health != CSH_INVALID) {
+          D_ASSERT( buffer->video.health != CSH_INVALID );
+
+          if (buffer->video.chunk && dfb_config->surface_sentinel)
+               check_sentinel( surface, buffer );
+     }
 
      D_DEBUG_AT( Core_Surface, "  -> system/video count: %d/%d before\n", buffer->system.locked, buffer->video.locked );
 

@@ -688,6 +688,18 @@ transfer_buffer( SurfaceBuffer *buffer,
      }
 }
 
+static void
+set_sentinel( CoreSurface *surface, SurfaceBuffer *buffer )
+{
+     int   i;
+     void *start    = dfb_system_video_memory_virtual( buffer->video.offset );
+     char *sentinel = start + buffer->video.pitch * DFB_PLANE_MULTIPLY( buffer->format,
+                                                                        surface->height );
+ 
+     for (i=0; i<16; i++)
+          sentinel[i] = i;
+}
+
 DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
                                            SurfaceBuffer  *buffer )
 {
@@ -962,5 +974,7 @@ occupy_chunk( SurfaceManager *manager, Chunk *chunk, SurfaceBuffer *buffer, int 
      chunk->buffer = buffer;
 
      chunk->heap->min_toleration++;
+
+     set_sentinel( buffer->surface, buffer );
 }
 
