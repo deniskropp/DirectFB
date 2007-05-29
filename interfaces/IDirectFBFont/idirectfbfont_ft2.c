@@ -96,6 +96,7 @@ typedef struct {
      FT_Face      face;
      int          disable_charmap;
      int          fixed_advance;
+     bool         fixed_clip;
      unsigned int indices[256];
 } FT2ImplData;
 
@@ -286,6 +287,17 @@ render_glyph( CoreFont      *thiz,
      info->left = face->glyph->bitmap_left;
      info->top  = thiz->ascender - face->glyph->bitmap_top;
 
+     if (data->fixed_clip) {
+          while (info->left + info->width > data->fixed_advance)
+               info->left--;
+
+          if (info->left < 0)
+               info->left = 0;
+
+          if (info->width > data->fixed_advance)
+               info->width = data->fixed_advance;
+     }
+
      src = face->glyph->bitmap.buffer;
      dst += DFB_BYTES_PER_LINE(surface->format, info->start);
 
@@ -465,6 +477,9 @@ get_glyph_info( CoreFont      *thiz,
      info->height  = face->glyph->bitmap.rows;
      info->advance = data->fixed_advance ?
                      data->fixed_advance : (face->glyph->advance.x >> 6);
+
+     if (data->fixed_clip && info->width > data->fixed_advance)
+          info->width = data->fixed_advance;
 
      return DFB_OK;
 }
@@ -853,6 +868,9 @@ Construct( IDirectFBFont      *thiz,
      if (desc->flags & DFDESC_FIXEDADVANCE) {
           data->fixed_advance = desc->fixed_advance;
           font->maxadvance    = desc->fixed_advance;
+
+          if ((desc->flags & DFDESC_ATTRIBUTES) && (desc->attributes & DFFA_FIXEDCLIP))
+               data->fixed_clip = true;
      }
 
      for (i=0; i<256; i++)

@@ -905,8 +905,9 @@ typedef enum {
      DFFA_NOKERNING      = 0x00000001,  /* don't use kerning */
      DFFA_NOHINTING      = 0x00000002,  /* don't use hinting */
      DFFA_MONOCHROME     = 0x00000004,  /* don't use anti-aliasing */
-     DFFA_NOCHARMAP      = 0x00000008   /* no char map, glyph indices are
+     DFFA_NOCHARMAP      = 0x00000008,  /* no char map, glyph indices are
                                            specified directly */
+     DFFA_FIXEDCLIP      = 0x00000010   /* width fixed advance, clip to it */
 } DFBFontAttributes;
 
 /*
