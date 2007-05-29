@@ -679,6 +679,18 @@ typedef enum {
 } DFBSurfaceBlittingFlags;
 
 /*
+ * Options for drawing and blitting operations. Not mandatory for acceleration.
+ */
+typedef enum {
+     DSRO_NONE                 = 0x00000000, /* None of these. */
+
+     DSRO_SMOOTH_UPSCALE       = 0x00000001, /* Use interpolation for upscale StretchBlit(). */
+     DSRO_SMOOTH_DOWNSCALE     = 0x00000002, /* Use interpolation for downscale StretchBlit(). */
+
+     DSRO_ALL                  = 0x00000003  /* All of these. */
+} DFBSurfaceRenderOptions;
+
+/*
  * Mask of accelerated functions.
  */
 typedef enum {
@@ -3652,6 +3664,20 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           IDirectFBSurface         *thiz,
           const int                *indices,
           int                       num_indices
+     );
+
+
+   /** Rendering **/
+
+     /*
+      * Set options affecting the output of drawing and blitting operations.
+      *
+      * None of these is mandatory and therefore unsupported flags will not
+      * cause a software fallback.
+      */
+     DFBResult (*SetRenderOptions) (
+          IDirectFBSurface         *thiz,
+          DFBSurfaceRenderOptions   options
      );
 )
 

@@ -47,6 +47,8 @@
 #include <direct/memcpy.h>
 #include <direct/util.h>
 
+#include <misc/conf.h>
+
 
 static inline void
 validate_clip( CardState *state,
@@ -94,11 +96,12 @@ dfb_state_init( CardState *state, CoreDFB *core )
 
      memset( state, 0, sizeof(CardState) );
 
-     state->core      = core;
-     state->fusion_id = fusion_id( dfb_core_world(core) );
-     state->modified  = SMF_ALL;
-     state->src_blend = DSBF_SRCALPHA;
-     state->dst_blend = DSBF_INVSRCALPHA;
+     state->core           = core;
+     state->fusion_id      = fusion_id( dfb_core_world(core) );
+     state->modified       = SMF_ALL;
+     state->src_blend      = DSBF_SRCALPHA;
+     state->dst_blend      = DSBF_INVSRCALPHA;
+     state->render_options = dfb_config->render_options;
 
      direct_util_recursive_pthread_mutex_init( &state->lock );
 

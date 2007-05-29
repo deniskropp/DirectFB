@@ -177,6 +177,8 @@ typedef struct
 
      DFBConfigLayer  layers[MAX_LAYERS];
      DFBConfigLayer *config_layer;
+
+     DFBSurfaceRenderOptions  render_options;     /* default render options */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

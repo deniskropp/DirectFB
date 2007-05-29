@@ -2145,6 +2145,19 @@ IDirectFBSurface_ReleaseSource( IDirectFBSurface *thiz )
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBSurface_SetRenderOptions( IDirectFBSurface        *thiz,
+                                   DFBSurfaceRenderOptions  options )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     dfb_state_set_render_options( &data->state, options );
+
+     return DFB_OK;
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -2270,6 +2283,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->Dump = IDirectFBSurface_Dump;
      thiz->DisableAcceleration = IDirectFBSurface_DisableAcceleration;
      thiz->ReleaseSource = IDirectFBSurface_ReleaseSource;
+
+     thiz->SetRenderOptions = IDirectFBSurface_SetRenderOptions;
 
 
      dfb_surface_attach( surface,
