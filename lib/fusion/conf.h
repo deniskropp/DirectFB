@@ -37,6 +37,7 @@ struct __Fusion_FusionConfig {
 
      bool  debugshm;
      bool  madv_remove;
+     bool  madv_remove_force;
      bool  force_slave;
 
      char *shmfile_group;     /* group that owns shm file */

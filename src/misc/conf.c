@@ -84,6 +84,7 @@ static const char *config_usage =
      "  [no-]debug                     Enable debug output\n"
      "  [no-]debugmem                  Enable memory allocation tracking\n"
      "  [no-]debugshm                  Enable shared memory allocation tracking\n"
+     "  [no-]madv-remove               Enable usage of MADV_REMOVE (default = auto)\n"
      "  [no-]trace                     Enable stack trace support\n"
      "  [no-]surface-sentinel          Enable surface sentinels at the end of chunks in video memory\n"
      "  log-file=<name>                Write all messages to a file\n"
@@ -657,6 +658,14 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-debugshm" ) == 0) {
           fusion_config->debugshm = false;
+     } else
+     if (strcmp (name, "madv-remove" ) == 0) {
+          fusion_config->madv_remove       = true;
+          fusion_config->madv_remove_force = true;
+     } else
+     if (strcmp (name, "no-madv-remove" ) == 0) {
+          fusion_config->madv_remove       = false;
+          fusion_config->madv_remove_force = true;
      } else
      if (strcmp (name, "trace" ) == 0) {
           direct_config->trace = true;
