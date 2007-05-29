@@ -201,11 +201,13 @@ unregister_process( SaWMan        *sawman,
 
 /**********************************************************************************************************************/
 
-static int
-process_watcher( int   caller,
-                 int   call_arg,
-                 void *call_ptr,
-                 void *ctx )
+static FusionCallHandlerResult
+process_watcher( int           caller,
+                 int           call_arg,
+                 void         *call_ptr,
+                 void         *ctx,
+                 unsigned int  serial,
+                 int          *ret_val )
 {
      SaWMan        *sawman  = ctx;
      SaWManProcess *process;
@@ -222,7 +224,8 @@ process_watcher( int   caller,
 
      if (!process) {
           D_BUG( "process with pid %d not found", call_arg );
-          return DFB_BUG;
+          *ret_val = DFB_BUG;
+          return FCHR_RETURN;
      }
 
      D_INFO( "SaWMan/Watcher: Process %d [%lu] has exited%s\n", process->pid,
@@ -230,14 +233,16 @@ process_watcher( int   caller,
 
      unregister_process( sawman, process );
 
-     return DFB_OK;
+     return FCHR_RETURN;
 }
 
-static int
-manager_call_handler( int   caller,
-                      int   call_arg,
-                      void *call_ptr,
-                      void *ctx )
+static FusionCallHandlerResult
+manager_call_handler( int           caller,
+                      int           call_arg,
+                      void         *call_ptr,
+                      void         *ctx,
+                      unsigned int  serial,
+                      int          *ret_val )
 {
      DirectResult  ret;
      SaWMan       *sawman = ctx;
@@ -253,64 +258,67 @@ manager_call_handler( int   caller,
 
                     ret = sawman->manager.callbacks.Start( sawman->manager.context, call_ptr, &pid );
                     if (ret)
-                         return ret;
-
-                    return -pid;
+                         *ret_val = ret;
+                    else
+                         *ret_val = -pid;
                }
                break;
 
           case SWMCID_STOP:
                if (sawman->manager.callbacks.Stop)
-                    return sawman->manager.callbacks.Stop( sawman->manager.context, (long) call_ptr, caller );
+                    *ret_val = sawman->manager.callbacks.Stop( sawman->manager.context, (long) call_ptr, caller );
                break;
 
           case SWMCID_PROCESS_ADDED:
                if (sawman->manager.callbacks.ProcessAdded)
-                    return sawman->manager.callbacks.ProcessAdded( sawman->manager.context, call_ptr );
+                    *ret_val = sawman->manager.callbacks.ProcessAdded( sawman->manager.context, call_ptr );
                break;
 
           case SWMCID_PROCESS_REMOVED:
                if (sawman->manager.callbacks.ProcessRemoved)
-                    return sawman->manager.callbacks.ProcessRemoved( sawman->manager.context, call_ptr );
+                    *ret_val = sawman->manager.callbacks.ProcessRemoved( sawman->manager.context, call_ptr );
                break;
 
           case SWMCID_INPUT_FILTER:
                if (sawman->manager.callbacks.InputFilter)
-                    return sawman->manager.callbacks.InputFilter( sawman->manager.context, call_ptr );
+                    *ret_val = sawman->manager.callbacks.InputFilter( sawman->manager.context, call_ptr );
                break;
 
           case SWMCID_WINDOW_PRECONFIG:
                if (sawman->manager.callbacks.WindowPreConfig)
-                    return sawman->manager.callbacks.WindowPreConfig( sawman->manager.context, call_ptr );
+                    *ret_val = sawman->manager.callbacks.WindowPreConfig( sawman->manager.context, call_ptr );
                break;
 
           case SWMCID_WINDOW_ADDED:
                if (sawman->manager.callbacks.WindowAdded)
-                    return sawman->manager.callbacks.WindowAdded( sawman->manager.context, call_ptr );
+                    *ret_val = sawman->manager.callbacks.WindowAdded( sawman->manager.context, call_ptr );
                break;
 
           case SWMCID_WINDOW_REMOVED:
                if (sawman->manager.callbacks.WindowRemoved)
-                    return sawman->manager.callbacks.WindowRemoved( sawman->manager.context, call_ptr );
+                    *ret_val = sawman->manager.callbacks.WindowRemoved( sawman->manager.context, call_ptr );
                break;
 
           case SWMCID_WINDOW_CONFIG:
                if (sawman->manager.callbacks.WindowConfig)
-                    return sawman->manager.callbacks.WindowConfig( sawman->manager.context, call_ptr );
+                    *ret_val = sawman->manager.callbacks.WindowConfig( sawman->manager.context, call_ptr );
                break;
 
           case SWMCID_WINDOW_RESTACK:
                if (sawman->manager.callbacks.WindowRestack)
-                    return sawman->manager.callbacks.WindowRestack( sawman->manager.context, call_ptr );
+                    *ret_val = sawman->manager.callbacks.WindowRestack( sawman->manager.context, call_ptr );
                break;
 
           case SWMCID_STACK_RESIZED:
                if (sawman->manager.callbacks.StackResized)
-                    return sawman->manager.callbacks.StackResized( sawman->manager.context, call_ptr );
+                    *ret_val = sawman->manager.callbacks.StackResized( sawman->manager.context, call_ptr );
                break;
+
+          default:
+               *ret_val = DFB_NOIMPL;
      }
 
-     return DFB_NOIMPL;
+     return FCHR_RETURN;
 }
 
 /**********************************************************************************************************************/
