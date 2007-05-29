@@ -143,6 +143,11 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
      /*
       * Try to load it dynamically.
       */
+
+     /* NULL type means we can't find plugin, so stop immediately */
+     if (type == NULL)
+          return DFB_NOIMPL;
+
      len = strlen(MODULEDIR"/interfaces/") + strlen(type) + 1;
      interface_dir = alloca( len );
      snprintf( interface_dir, len, MODULEDIR"/interfaces/%s", type );
@@ -216,7 +221,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                /*
                 * Almost the same stuff like above, TODO: make function.
                 */
-               if (type && strcmp( type, impl->type ))
+               if (strcmp( type, impl->type ))
                     continue;
 
                if (implementation && strcmp( implementation,
