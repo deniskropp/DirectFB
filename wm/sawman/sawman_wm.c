@@ -1337,6 +1337,7 @@ static DFBResult
 request_focus( SaWMan       *sawman,
                SaWManWindow *sawwin )
 {
+     DFBResult        ret;
      CoreWindowStack *stack;
      SaWManWindow    *entered;
 
@@ -1346,7 +1347,9 @@ request_focus( SaWMan       *sawman,
      stack = sawwin->stack;
      D_ASSERT( stack != NULL );
 
-     sawman_switch_focus( sawman, sawwin );
+     ret = sawman_switch_focus( sawman, sawwin );
+     if (ret)
+          return ret;
 
      entered = sawman->entered_window;
 

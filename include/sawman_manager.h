@@ -114,6 +114,9 @@ struct __SaWMan_SaWManCallbacks {
      DirectResult (*StackResized)   ( void             *context,
                                       DFBDimension     *size );
 
+     DirectResult (*SwitchFocus)    ( void             *context,
+                                      SaWManWindow     *window );
+
 
      /* To be extended... */
 };
@@ -129,7 +132,8 @@ typedef enum {
      SWMCID_WINDOW_REMOVED,
      SWMCID_WINDOW_CONFIG,
      SWMCID_WINDOW_RESTACK,
-     SWMCID_STACK_RESIZED
+     SWMCID_STACK_RESIZED,
+     SWMCID_SWITCH_FOCUS
 } SaWManCallID;
 
 typedef enum {

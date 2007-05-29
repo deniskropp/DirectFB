@@ -314,6 +314,11 @@ manager_call_handler( int           caller,
                     *ret_val = sawman->manager.callbacks.StackResized( sawman->manager.context, call_ptr );
                break;
 
+          case SWMCID_SWITCH_FOCUS:
+               if (sawman->manager.callbacks.SwitchFocus)
+                    *ret_val = sawman->manager.callbacks.SwitchFocus( sawman->manager.context, call_ptr );
+               break;
+
           default:
                *ret_val = DFB_NOIMPL;
      }
@@ -672,6 +677,11 @@ sawman_call( SaWMan       *sawman,
                if (!sawman->manager.callbacks.StackResized)
                     return DFB_NOIMPL;
                break;
+
+          case SWMCID_SWITCH_FOCUS:
+               if (!sawman->manager.callbacks.SwitchFocus)
+                    return DFB_NOIMPL;
+               break;
      }
 
      /* Execute the call in the manager executable. */
@@ -723,6 +733,7 @@ DirectResult
 sawman_switch_focus( SaWMan       *sawman,
                      SaWManWindow *to )
 {
+     DirectResult    ret;
      DFBWindowEvent  evt;
      SaWManWindow   *from;
 
@@ -734,6 +745,15 @@ sawman_switch_focus( SaWMan       *sawman,
 
      if (from == to)
           return DFB_OK;
+
+     switch (ret = sawman_call( sawman, SWMCID_SWITCH_FOCUS, to )) {
+          case DFB_OK:
+          case DFB_NOIMPL:
+               break;
+
+          default:
+               return ret;
+     }
 
      if (from) {
           evt.type = DWET_LOSTFOCUS;
