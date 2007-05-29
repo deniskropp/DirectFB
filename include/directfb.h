@@ -191,7 +191,8 @@ typedef enum {
      DFB_VERSIONMISMATCH,/* Some versions didn't match. */
      DFB_NOSHAREDMEMORY, /* There's not enough shared memory. */
      DFB_EOF,            /* Reached end of file. */
-     DFB_SUSPENDED       /* The requested object is suspended. */
+     DFB_SUSPENDED,      /* The requested object is suspended. */
+     DFB_INCOMPLETE      /* The operation has been executed, but not completely. */
 } DFBResult;
 
 /*

@@ -293,7 +293,7 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                                      IDirectFBSurface       *destination,
                                      const DFBRectangle     *dest_rect )
 {
-     DFBResult              ret;
+     DFBResult              ret = DFB_OK;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
      DFBRegion              clip;
@@ -328,13 +328,19 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
 
      if (setjmp( data->png_ptr->jmpbuf )) {
           D_ERROR( "ImageProvider/PNG: Error during decoding!\n" );
-          return DFB_FAILURE;
+
+          if (data->stage < STAGE_IMAGE)
+               return DFB_FAILURE;
+
+          data->stage = STAGE_ERROR;
      }
 
      /* Read until image is completely decoded. */
-     ret = push_data_until_stage( data, STAGE_END, 16384 );
-     if (ret)
-          return ret;
+     if (data->stage != STAGE_ERROR) {
+          ret = push_data_until_stage( data, STAGE_END, 16384 );
+          if (ret)
+               return ret;
+     }
 
      /* actual rendering */
      if (dfb_rectangle_region_intersects( &rect, &clip )) {
@@ -462,6 +468,9 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
 
           dfb_surface_unlock( dst_surface, false );
      }
+
+     if (data->stage != STAGE_END)
+          ret = DFB_INCOMPLETE;
 
      return ret;
 }
@@ -724,7 +733,7 @@ png_row_callback( png_structp png_read_ptr,
           int size = data->pitch * data->height + 4;
 
           /* allocate image data */
-          data->image = D_MALLOC( size );
+          data->image = D_CALLOC( 1, size );
           if (!data->image) {
                D_ERROR("DirectFB/ImageProvider_PNG: Could not "
                         "allocate %d bytes of system memory!\n", size);

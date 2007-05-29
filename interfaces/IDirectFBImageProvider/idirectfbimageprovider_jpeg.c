@@ -290,6 +290,8 @@ Construct( IDirectFBImageProvider *thiz,
      jerr.pub.error_exit = jpeglib_panic;
 
      if (setjmp(jerr.setjmp_buffer)) {
+          D_ERROR( "ImageProvider/JPEG: Error while reading headers!\n" );
+
           jpeg_destroy_decompress(&cinfo);
           buffer->Release( buffer );
           return DFB_FAILURE;
@@ -417,8 +419,26 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           jerr.pub.error_exit = jpeglib_panic;
 
           if (setjmp(jerr.setjmp_buffer)) {
+               D_ERROR( "ImageProvider/JPEG: Error during decoding!\n" );
+
                jpeg_destroy_decompress(&cinfo);
-               destination->Unlock( destination );
+
+               if (data->image) {
+                    dfb_scale_linear_32( data->image, data->width, data->height,
+                                         dst, pitch, &rect, dst_surface, &clip );
+                    dfb_surface_unlock( dst_surface, 0 );
+                    if (data->render_callback) {
+                         DFBRectangle r = { 0, 0, data->width, data->height };
+
+                         if (data->render_callback( &r, data->render_callback_context ) != DIRCR_OK)
+                              return DFB_INTERRUPTED;
+                    }
+
+                    return DFB_INCOMPLETE;
+               }
+               else
+                    dfb_surface_unlock( dst_surface, 0 );
+
                return DFB_FAILURE;
           }
 
@@ -438,7 +458,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr) &cinfo,
                                               JPOOL_IMAGE, row_stride, 1);
 
-          data->image = D_MALLOC( data->width * data->height * 4 );
+          data->image = D_CALLOC( data->height, data->width * 4 );
           if (!data->image)
                return D_OOM();
           row_ptr = data->image;
@@ -469,7 +489,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                                     dst, pitch, &rect, dst_surface, &clip );
                if (data->render_callback) {
                     DFBRectangle r = { 0, 0, data->width, data->height };
-                    data->render_callback( &r, data->render_callback_context );
+                    cb_result = data->render_callback( &r, data->render_callback_context );
                }
           }
 
