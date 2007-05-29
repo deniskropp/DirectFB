@@ -58,6 +58,7 @@
 #include <core/layers.h>
 #include <core/layers_internal.h>
 #include <core/surfaces.h>
+#include <core/surfacemanager.h>
 #include <core/windows.h>
 #include <core/windowstack.h>
 #include <core/windows_internal.h>
@@ -243,6 +244,71 @@ dump_surfaces()
      printf( "                                               %6dk  %6dk   -> %dk total\n",
              mem.video >> 10, (mem.system + mem.presys) >> 10,
              (mem.video + mem.system + mem.presys) >> 10);
+}
+
+static DFBEnumerationResult
+chunk_callback( SurfaceBuffer *buffer,
+                int            offset,
+                int            length,
+                int            tolerations,
+                void          *ctx )
+{
+     int          i;
+     CoreSurface *surface;
+
+     if (!buffer)
+          return DFENUM_OK;
+
+     surface = buffer->surface;
+
+     printf( "%9d %8d  ", offset, length );
+
+     printf( "%4d x %4d   ", surface->width, surface->height );
+
+     for (i=0; format_names[i].format; i++) {
+          if (surface->format == format_names[i].format)
+               printf( "%8s ", format_names[i].name );
+     }
+
+     printf( "%3d   ", tolerations );
+
+     /* FIXME: assumes all buffers have this flag (or none) */
+     if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM)
+          printf( "preallocated " );
+
+     if (surface->caps & DSCAPS_SYSTEMONLY)
+          printf( "system only  " );
+
+     if (surface->caps & DSCAPS_VIDEOONLY)
+          printf( "video only   " );
+
+     if (surface->caps & DSCAPS_INTERLACED)
+          printf( "interlaced   " );
+
+     if (surface->caps & DSCAPS_DOUBLE)
+          printf( "double       " );
+
+     if (surface->caps & DSCAPS_TRIPLE)
+          printf( "triple       " );
+
+     if (surface->caps & DSCAPS_PREMULTIPLIED)
+          printf( "premultiplied" );
+
+     printf( "\n" );
+
+     return DFENUM_OK;
+}
+
+static void
+dump_video_memory_chunks()
+{
+     printf( "\n"
+             "--------------------------[ Surface Buffers ]--------------------------\n" );
+     printf( "Offset    Length   Width Height     Format  Tolerations / Capabilities\n" );
+     printf( "-----------------------------------------------------------------------\n" );
+
+     dfb_surfacemanager_enumerate_chunks( dfb_gfxcard_surface_manager(),
+                                          chunk_callback, NULL );
 }
 
 static bool
@@ -553,6 +619,7 @@ main( int argc, char *argv[] )
           printf( "\n" );
           dump_shmpool( dfb_core_shmpool(NULL) );
           dump_shmpool( dfb_core_shmpool_data(NULL) );
+          dump_video_memory_chunks();
      }
 #endif
 
