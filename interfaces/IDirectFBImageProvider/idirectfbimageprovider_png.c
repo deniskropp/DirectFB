@@ -204,6 +204,11 @@ Construct( IDirectFBImageProvider *thiz,
      if (!data->png_ptr)
           goto error;
 
+     if (setjmp( data->png_ptr->jmpbuf )) {
+          D_ERROR( "ImageProvider/PNG: Error reading header!\n" );
+          goto error;
+     }
+
      /* Create the PNG info handle. */
      data->info_ptr = png_create_info_struct( data->png_ptr );
      if (!data->info_ptr)
@@ -351,30 +356,32 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
           if (ret)
                return ret;
 
-          if (data->color_type == PNG_COLOR_TYPE_PALETTE) {
-               if (dst_surface->format == DSPF_LUT8 && data->info_ptr->bit_depth == 8) {
-                    /*
-                     * Special indexed PNG to LUT8 loading.
-                     */
+          switch (data->color_type) {
+               case PNG_COLOR_TYPE_PALETTE:
+                    if (dst_surface->format == DSPF_LUT8 && data->info_ptr->bit_depth == 8) {
+                         /*
+                          * Special indexed PNG to LUT8 loading.
+                          */
 
-                    /* FIXME: Limitation for LUT8 is to load complete surface only. */
-                    dfb_clip_rectangle( &clip, &rect );
-                    if (rect.x || rect.y ||
-                        rect.w != dst_surface->width  ||
-                        rect.h != dst_surface->height ||
-                        rect.w != data->width         ||
-                        rect.h != data->height)
-                    {
-                         D_UNIMPLEMENTED();
-                         ret = DFB_UNIMPLEMENTED;
+                         /* FIXME: Limitation for LUT8 is to load complete surface only. */
+                         dfb_clip_rectangle( &clip, &rect );
+                         if (rect.x == 0 && rect.y == 0 &&
+                             rect.w == dst_surface->width  &&
+                             rect.h == dst_surface->height &&
+                             rect.w == data->width         &&
+                             rect.h == data->height)
+                         {
+                              for (y=0; y<data->height; y++)
+                                   direct_memcpy( dst + pitch * y,
+                                                  data->image + data->pitch * y,
+                                                  data->width );
+
+                              break;
+                         }
                     }
+                    /* fall through */
 
-                    for (y=0; y<data->height; y++)
-                         direct_memcpy( dst + pitch * y,
-                                        data->image + data->pitch * y,
-                                        data->width );
-               }
-               else {
+               case PNG_COLOR_TYPE_GRAY: {
                     /*
                      * Convert to ARGB and use generic loading code.
                      */
@@ -393,6 +400,16 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                          ret = DFB_NOSYSTEMMEMORY;
                     }
                     else {
+                         if (data->color_type == PNG_COLOR_TYPE_GRAY) {
+                              int num = 1 << data->info_ptr->bit_depth;
+
+                              for (x=0; x<num; x++) {
+                                   int value = x * 255 / (num - 1);
+
+                                   data->palette[x] = 0xff000000 | (value << 16) | (value << 8) | value;
+                              }
+                         }
+
                          switch (data->info_ptr->bit_depth) {
                               case 8:
                                    for (y=0; y<data->height; y++) {
@@ -453,17 +470,18 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
 
                          dfb_scale_linear_32( image_argb, data->width, data->height,
                                               dst, pitch, &rect, dst_surface, &clip );
-
+ 
                          D_FREE( image_argb );
                     }
+                    break;
                }
-          }
-          else {
-               /*
-                * Generic loading code.
-                */
-               dfb_scale_linear_32( data->image, data->width, data->height,
-                                    dst, pitch, &rect, dst_surface, &clip );
+               default:
+                    /*
+                     * Generic loading code.
+                     */
+                    dfb_scale_linear_32( data->image, data->width, data->height,
+                                         dst, pitch, &rect, dst_surface, &clip );
+                    break;
           }
 
           dfb_surface_unlock( dst_surface, false );
@@ -676,6 +694,13 @@ png_info_callback( png_structp png_read_ptr,
           }
 
           case PNG_COLOR_TYPE_GRAY:
+               data->pitch = data->width;
+
+               if (data->bpp == 16)
+                    png_set_strip_16( data->png_ptr );
+
+               break;
+
           case PNG_COLOR_TYPE_GRAY_ALPHA:
                png_set_gray_to_rgb( data->png_ptr );
                /* fall through */
