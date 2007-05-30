@@ -232,8 +232,8 @@ format_string_compare (const void *key,
      return strcmp ((const char *) key, ((const FormatString *) base)->string);
 }
 
-static DFBSurfacePixelFormat
-parse_pixelformat( const char *format )
+DFBSurfacePixelFormat
+dfb_config_parse_pixelformat( const char *format )
 {
      FormatString *format_string;
 
@@ -999,7 +999,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                DFBSurfacePixelFormat format;
 
-               format = parse_pixelformat( value );
+               format = dfb_config_parse_pixelformat( value );
                if (format == DSPF_UNKNOWN) {
                     D_ERROR("DirectFB/Config 'pixelformat': Could not parse format!\n");
                     return DFB_INVARG;

@@ -206,5 +206,7 @@ DFBResult dfb_config_set( const char *name, const char *value );
 
 const char *dfb_config_usage( void );
 
+DFBSurfacePixelFormat dfb_config_parse_pixelformat( const char *format );
+
 #endif
 
