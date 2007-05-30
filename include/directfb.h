@@ -869,7 +869,11 @@ typedef enum {
                                            by internal shortcut */
      DWOP_SCALE          = 0x00010000,  /* Surface won't be changed if window size on screen changes. The surface
                                            can be resized separately using IDirectFBWindow::ResizeSurface(). */
-     DWOP_ALL            = 0x0001307F   /* all possible options */
+
+     DWOP_KEEP_ABOVE     = 0x00100000,  /* Keep window above parent window. */
+     DWOP_KEEP_UNDER     = 0x00200000,  /* Keep window under parent window. */
+
+     DWOP_ALL            = 0x0031307F   /* all possible options */
 } DFBWindowOptions;
 
 /*
