@@ -147,6 +147,8 @@ DirectResultString( DirectResult result )
                return "End of file!";
           case DFB_SUSPENDED:
                return "Object is suspended!";
+          case DFB_INCOMPLETE:
+               return "Operation incomplete!";
      }
 
      return "UNKNOWN RESULT CODE!";

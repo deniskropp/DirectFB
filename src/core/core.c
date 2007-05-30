@@ -823,7 +823,6 @@ dfb_core_signal_handler( int   num,
 static int
 dfb_core_shutdown( CoreDFB *core, bool emergency )
 {
-     int            i;
      CoreDFBShared *shared;
 
      D_MAGIC_ASSERT( core, CoreDFB );
@@ -832,17 +831,32 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 
      D_MAGIC_ASSERT( shared, CoreDFBShared );
 
-     if (!emergency) {
-          fusion_object_pool_destroy( shared->window_pool, core->world );
-          fusion_object_pool_destroy( shared->layer_region_pool, core->world );
-          fusion_object_pool_destroy( shared->layer_context_pool, core->world );
-          fusion_object_pool_destroy( shared->surface_pool, core->world );
-          fusion_object_pool_destroy( shared->palette_pool, core->world );
-     }
+     /* Destroy layer context and region objects. */
+     fusion_object_pool_destroy( shared->layer_region_pool, core->world );
+     fusion_object_pool_destroy( shared->layer_context_pool, core->world );
 
-     for (i=NUM_CORE_PARTS-1; i>=0; i--)
-          dfb_core_part_shutdown( core, core_parts[i], emergency );
+     /* Shutdown WM core. */
+     dfb_core_part_shutdown( core, &dfb_core_wm, emergency );
 
+     /* Destroy window objects. */
+     fusion_object_pool_destroy( shared->window_pool, core->world );
+
+     /* Shutdown layer core. */
+     dfb_core_part_shutdown( core, &dfb_core_layers, emergency );
+     dfb_core_part_shutdown( core, &dfb_core_screens, emergency );
+
+     /* Destroy surface and palette objects. */
+     fusion_object_pool_destroy( shared->surface_pool, core->world );
+     fusion_object_pool_destroy( shared->palette_pool, core->world );
+
+     /* Destroy remaining core parts. */
+     dfb_core_part_shutdown( core, &dfb_core_gfxcard, emergency );
+     dfb_core_part_shutdown( core, &dfb_core_input, emergency );
+     dfb_core_part_shutdown( core, &dfb_core_system, emergency );
+     dfb_core_part_shutdown( core, &dfb_core_colorhash, emergency );
+     dfb_core_part_shutdown( core, &dfb_core_clipboard, emergency );
+
+     /* Destroy shared memory pool for surface data. */
      fusion_shm_pool_destroy( core->world, shared->shmpool_data );
 
      return 0;

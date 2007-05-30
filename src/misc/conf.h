@@ -173,9 +173,12 @@ typedef struct
      bool       primary_only;                     /* tell application only about primary layer */
 
      bool       thrifty_surface_buffers;          /* don't keep system instance while video instance is alive */
+     bool       surface_sentinel;
 
      DFBConfigLayer  layers[MAX_LAYERS];
      DFBConfigLayer *config_layer;
+
+     DFBSurfaceRenderOptions  render_options;     /* default render options */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

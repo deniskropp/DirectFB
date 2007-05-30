@@ -39,7 +39,21 @@ typedef struct {
      char        *filename;   /* Only set if databuffer is created from file. */
 
      CoreDFB     *core;
+
+     bool         is_memory;
 } IDirectFBDataBuffer_data;
+
+/*
+ * private data struct of IDirectFBDataBuffer_Memory
+ */
+typedef struct {
+     IDirectFBDataBuffer_data  base;
+
+     const void               *buffer;
+     unsigned int              length;
+
+     unsigned int              pos;
+} IDirectFBDataBuffer_Memory_data;
 
 /*
  * base constructor

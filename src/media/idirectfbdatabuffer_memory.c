@@ -57,18 +57,6 @@
 
 #include <media/idirectfbdatabuffer.h>
 
-/*
- * private data struct of IDirectFBDataBuffer_Memory
- */
-typedef struct {
-     IDirectFBDataBuffer_data  base;
-
-     const void               *buffer;
-     unsigned int              length;
-
-     unsigned int              pos;
-} IDirectFBDataBuffer_Memory_data;
-
 
 static void
 IDirectFBDataBuffer_Memory_Destruct( IDirectFBDataBuffer *thiz )
@@ -257,6 +245,8 @@ IDirectFBDataBuffer_Memory_Construct( IDirectFBDataBuffer *thiz,
 
      data->buffer = data_buffer;
      data->length = length;
+
+     data->base.is_memory = true;
 
      thiz->Release                = IDirectFBDataBuffer_Memory_Release;
      thiz->Flush                  = IDirectFBDataBuffer_Memory_Flush;

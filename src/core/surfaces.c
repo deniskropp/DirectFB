@@ -71,6 +71,7 @@
 #include <gfx/convert.h>
 #include <gfx/util.h>
 
+#include <misc/conf.h>
 
 D_DEBUG_DOMAIN( Core_Surface, "Core/Surface", "DirectFB Surface Core" );
 
@@ -157,6 +158,8 @@ static void surface_destructor( FusionObject *object, bool zombie, void *ctx )
                                      &surface->palette_reaction );
           dfb_palette_unlink( &surface->palette );
      }
+
+     fusion_ref_destroy( &surface->locks );
 
      direct_serial_deinit( &surface->serial );
 
@@ -784,6 +787,7 @@ DFBResult dfb_surface_software_lock( CoreDFB *core, CoreSurface *surface, DFBSur
                                      void **data, int *pitch, bool front )
 {
      DFBResult      ret;
+     int            refs;
      SurfaceBuffer *buffer;
 
      D_DEBUG_AT( Core_Surface, "dfb_surface_software_lock( %p, %s%s, %s )\n", surface,
@@ -801,6 +805,17 @@ DFBResult dfb_surface_software_lock( CoreDFB *core, CoreSurface *surface, DFBSur
 
      if (buffer->flags & SBF_SUSPENDED)
           return DFB_SUSPENDED;
+
+     fusion_ref_stat( &surface->locks, &refs );
+
+     if (!refs) {
+          if (buffer->video.locked && (buffer->video.access & VAF_SOFTWARE_LOCK)) {
+               dfb_gfxcard_surface_leave( buffer );
+               buffer->video.access &= ~VAF_SOFTWARE_LOCK;
+          }
+
+          buffer->system.locked = buffer->video.locked = 0;
+     }
 
      switch (buffer->policy) {
           case CSP_SYSTEMONLY:
@@ -820,7 +835,7 @@ DFBResult dfb_surface_software_lock( CoreDFB *core, CoreSurface *surface, DFBSur
           case CSP_VIDEOLOW:
                /* no valid video instance
                   or read access and valid system? system lock! */
-               if ((buffer->video.health != CSH_STORED ||
+               if (((buffer->video.health != CSH_STORED || (flags & CSLF_FORCE)) ||
                     (flags & DSLF_READ && buffer->system.health == CSH_STORED))
                    && !buffer->video.locked)
                {
@@ -906,12 +921,15 @@ DFBResult dfb_surface_software_lock( CoreDFB *core, CoreSurface *surface, DFBSur
 
      D_DEBUG_AT( Core_Surface, "  -> %p [%d]\n", *data, *pitch );
 
+     fusion_ref_up( &surface->locks, false );
+
      return DFB_OK;
 }
 
 DFBResult dfb_surface_hardware_lock( CoreDFB *core, CoreSurface *surface,
                                      DFBSurfaceLockFlags flags, bool front )
 {
+     int            refs;
      SurfaceBuffer *buffer;
 
      D_DEBUG_AT( Core_Surface, "dfb_surface_hardware_lock( %p, %s%s, %s )\n", surface,
@@ -928,11 +946,25 @@ DFBResult dfb_surface_hardware_lock( CoreDFB *core, CoreSurface *surface,
      if (buffer->flags & SBF_SUSPENDED)
           return DFB_SUSPENDED;
 
+     fusion_ref_stat( &surface->locks, &refs );
+
+     if (!refs) {
+          if (buffer->video.locked && (buffer->video.access & VAF_SOFTWARE_LOCK)) {
+               dfb_gfxcard_surface_leave( buffer );
+               buffer->video.access &= ~VAF_SOFTWARE_LOCK;
+          }
+
+          buffer->system.locked = buffer->video.locked = 0;
+     }
+
      switch (buffer->policy) {
           case CSP_SYSTEMONLY:
                system_access_by_software( buffer, flags );
 
                D_DEBUG_AT( Core_Surface, "  -> system only, counter: %d\n", buffer->system.locked );
+
+               fusion_ref_up( &surface->locks, false );
+
                return DFB_OK;
 
           case CSP_VIDEOHIGH:
@@ -965,6 +997,8 @@ DFBResult dfb_surface_hardware_lock( CoreDFB *core, CoreSurface *surface,
                if (flags & DSLF_WRITE)
                     buffer->flags |= SBF_WRITTEN;
 
+               fusion_ref_up( &surface->locks, false );
+
                return DFB_OK;
 
           default:
@@ -977,8 +1011,38 @@ DFBResult dfb_surface_hardware_lock( CoreDFB *core, CoreSurface *surface,
      return DFB_FAILURE;
 }
 
+static void
+check_sentinel( CoreSurface *surface, SurfaceBuffer *buffer )
+{
+     int   i;
+     void *start    = dfb_system_video_memory_virtual( buffer->video.offset );
+     char *sentinel = start + buffer->video.pitch * DFB_PLANE_MULTIPLY( buffer->format,
+                                                                        surface->height );
+ 
+     for (i=0; i<16; i++) {
+          if (sentinel[i] != i) {
+               direct_log_printf( NULL, "\n(!!!) SURFACE SENTINEL ERROR: sentinel %d is %d!\n"
+                                        "      -> offset %d, length %d, size %dx%d, format %s, locked %dx\n",
+                                  i, sentinel[i],
+                                  buffer->video.offset,
+                                  buffer->video.pitch * DFB_PLANE_MULTIPLY( buffer->format,
+                                                                            surface->height ),
+                                  surface->width, surface->height,
+                                  dfb_pixelformat_name( buffer->format ),
+                                  buffer->video.locked );
+
+               /* Restore! */
+//               for (i=0; i<16; i++)
+                    sentinel[i] = i;
+
+//               break;
+          }
+      }
+}
+ 
 void dfb_surface_unlock( CoreSurface *surface, int front )
 {
+     int            refs;
      SurfaceBuffer *buffer;
 
      D_DEBUG_AT( Core_Surface, "dfb_surface_unlock( %p, %s )\n", surface, front ? "front" : "back" );
@@ -991,23 +1055,45 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
 
      D_ASSERT( buffer != NULL );
 
+     /* Check buffer health and sentinel. */
+     if (buffer->video.locked || buffer->video.health != CSH_INVALID) {
+          D_ASSERT( buffer->video.health != CSH_INVALID );
+
+          if (buffer->video.chunk && dfb_config->surface_sentinel)
+               check_sentinel( surface, buffer );
+     }
+
      D_DEBUG_AT( Core_Surface, "  -> system/video count: %d/%d before\n", buffer->system.locked, buffer->video.locked );
 
      D_ASSERT( buffer->system.locked == 0 || buffer->video.locked == 0 );
+     D_ASSERT( buffer->system.locked != 0 || buffer->video.locked != 0 );
 
-     if (buffer->system.locked)
-          buffer->system.locked--;
+     fusion_ref_down( &surface->locks, false );
+     fusion_ref_stat( &surface->locks, &refs );
 
-     if (buffer->video.locked) {
-          buffer->video.locked--;
-
-          /* FIXME: There should be a way to distinguish
-           *        between hardware and software locks. */
-          if (buffer->video.locked == 0 &&
-              buffer->video.access & VAF_SOFTWARE_LOCK)
-          {
+     if (!refs) {
+          if (buffer->video.locked && (buffer->video.access & VAF_SOFTWARE_LOCK)) {
                dfb_gfxcard_surface_leave( buffer );
                buffer->video.access &= ~VAF_SOFTWARE_LOCK;
+          }
+ 
+          buffer->system.locked = buffer->video.locked = 0;
+     }
+     else {
+          if (buffer->system.locked)
+               buffer->system.locked--;
+ 
+          if (buffer->video.locked) {
+               buffer->video.locked--;
+ 
+               /* FIXME: There should be a way to distinguish
+                *        between hardware and software locks. */
+               if (buffer->video.locked == 0 &&
+                   buffer->video.access & VAF_SOFTWARE_LOCK)
+               {
+                    dfb_gfxcard_surface_leave( buffer );
+                    buffer->video.access &= ~VAF_SOFTWARE_LOCK;
+               }
           }
      }
 
@@ -1073,6 +1159,8 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
                              DFBSurfaceCapabilities  caps,
                              CorePalette            *palette )
 {
+     DFBResult ret;
+
      D_DEBUG_AT( Core_Surface, "dfb_surface_init( %p, %dx%d, %s, 0x%08x, %p )\n",
                  surface, width, height, dfb_pixelformat_name( format ), caps, palette );
 
@@ -1118,6 +1206,10 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
      }
 
      direct_serial_init( &surface->serial );
+
+     ret = fusion_ref_init( &surface->locks, "Surface Locks", dfb_core_world(core) );
+     if (ret)
+          return ret;
 
      surface->width  = width;
      surface->height = height;

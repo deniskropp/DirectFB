@@ -51,6 +51,7 @@
 #include <misc/util.h>
 #include <misc/conf.h>
 
+#include <direct/clock.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
@@ -6705,7 +6706,12 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      dfb_surfacemanager_lock( destination->manager );
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-          if (dfb_surface_software_lock( state->core, source, DSLF_READ, &gfxs->src_org[0],
+          DFBSurfaceLockFlags flags = DSLF_READ;
+
+          if (accel == DFXL_STRETCHBLIT)
+               flags |= CSLF_FORCE;
+
+          if (dfb_surface_software_lock( state->core, source, flags, &gfxs->src_org[0],
                                          &gfxs->src_pitch, true )) {
                dfb_surfacemanager_unlock( destination->manager );
                return false;
@@ -7921,10 +7927,64 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
      }
 }
 
+
+#define POINT_0               hfraq
+#define LINE_0                vfraq
+#define POINT_TO_RATIO(p,ps)  ( (((((p)) & 0x3ffff) ? : 0x40000) << 6) / (ps) )
+#define LINE_TO_RATIO(l,ls)   ( (((((l)) & 0x3ffff) ? : 0x40000) << 5) / (ls) )
+
+#define POINT_L(p,ps)  ( (((p)-1) >> 18) - 1 )
+#define POINT_R(p,ps)  ( (((p)-1) >> 18) )
+
+#define LINE_T(l,ls)  ( (((l)-1) >> 18) - 1 )
+#define LINE_B(l,ls)  ( (((l)-1) >> 18) )
+
+#define STRETCH_HVX_RGB16     stretch_hvx_rgb16_down
+
+#include "stretch_hvx_rgb16.h"
+
+#undef POINT_0
+#undef LINE_0
+#undef POINT_TO_RATIO
+#undef LINE_TO_RATIO
+#undef POINT_L
+#undef POINT_R
+#undef LINE_T
+#undef LINE_B
+#undef STRETCH_HVX_RGB16
+
+
+#define POINT_0               0
+#define LINE_0                0
+#define POINT_TO_RATIO(p,ps)  ( ((p) & 0x3ffff) >> 12 )
+#define LINE_TO_RATIO(l,ls)   ( ((l) & 0x3ffff) >> 13 )
+
+#define POINT_L(p,ps)  ( (((p)) >> 18) )
+#define POINT_R(p,ps)  ( (((p)) >> 18) + 1 )
+
+#define LINE_T(l,ls)  ( (((l)) >> 18) )
+#define LINE_B(l,ls)  ( (((l)) >> 18) + 1 )
+
+#define STRETCH_HVX_RGB16     stretch_hvx_rgb16_up
+
+#include "stretch_hvx_rgb16.h"
+
+#undef POINT_0
+#undef LINE_0
+#undef POINT_TO_RATIO
+#undef LINE_TO_RATIO
+#undef POINT_L
+#undef POINT_R
+#undef LINE_T
+#undef LINE_B
+#undef STRETCH_HVX_RGB16
+
+
 void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 {
-     GenefxState  *gfxs  = state->gfxs;
-     DFBRectangle  orect = *drect;
+     GenefxState  *gfxs   = state->gfxs;
+     DFBRectangle  orect  = *drect;
+     CoreSurface  *source = state->source;
 
      int fx, fy;
      int ix, iy;
@@ -7933,6 +7993,63 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      D_ASSERT( gfxs != NULL );
 
      CHECK_PIPELINE();
+
+     if (srect->x == 0 && srect->y == 0 &&
+         srect->w == source->width && srect->h == source->height &&
+         gfxs->src_format == DSPF_RGB16 && gfxs->dst_format == DSPF_RGB16 &&
+         !state->blittingflags)
+     {
+          if (srect->w < drect->w || srect->h < drect->h) {
+               if (state->render_options & DSRO_SMOOTH_UPSCALE) {
+                    DFBRegion clip = state->clip;
+
+                    if (!dfb_region_rectangle_intersect( &clip, drect ))
+                         return;
+
+                    dfb_region_translate( &clip, - drect->x, - drect->y );
+
+/*                  direct_log_printf( NULL, "  %dx%d -> %dx%d  -> %d,%d [%d,%d-%d,%d]\n",
+                                       srect->w, srect->h, drect->w, drect->h, drect->x, drect->y,
+                                       clip.x1, clip.y1, clip.x2, clip.y2 );
+*/
+                    stretch_hvx_rgb16_up( gfxs->dst_org[0] + drect->y * gfxs->dst_pitch
+                                          + DFB_BYTES_PER_LINE( gfxs->dst_format, drect->x ),
+                                          gfxs->dst_pitch, gfxs->src_org[0], gfxs->src_pitch,
+                                          source->width-1, source->height-1, drect->w, drect->h, &clip );
+
+                    return;
+               }
+          }
+          else if (state->render_options & DSRO_SMOOTH_DOWNSCALE) {
+               //long long t1, t2;
+
+               //t1 = direct_clock_get_millis();
+
+               DFBRegion clip = state->clip;
+
+               if (!dfb_region_rectangle_intersect( &clip, drect ))
+                    return;
+
+               dfb_region_translate( &clip, - drect->x, - drect->y );
+
+/*               direct_log_printf( NULL, "  %dx%d -> %dx%d  -> %d,%d [%d,%d-%d,%d]\n",
+                                  srect->w, srect->h, drect->w, drect->h, drect->x, drect->y,
+                                  clip.x1, clip.y1, clip.x2, clip.y2 );
+*/
+               stretch_hvx_rgb16_down( gfxs->dst_org[0] + drect->y * gfxs->dst_pitch
+                                       + DFB_BYTES_PER_LINE( gfxs->dst_format, drect->x ),
+                                       gfxs->dst_pitch, gfxs->src_org[0], gfxs->src_pitch,
+                                       source->width, source->height, drect->w, drect->h, &clip );
+
+               //t2 = direct_clock_get_millis();
+
+               /*direct_log_printf(NULL, "Stretching %dx%d to %dx%d took %lld.%03lld seconds.\n",
+                                 source->width, source->height, drect->w, drect->h,
+                                 (t2 - t1) / 1000, (t2 - t1) % 1000 );*/
+
+               return;
+          }
+     }
 
      /* Clip destination rectangle. */
      if (!dfb_rectangle_intersect_by_region( drect, &state->clip ))

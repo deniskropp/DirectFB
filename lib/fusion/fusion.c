@@ -315,22 +315,31 @@ init_once()
           return;
      }
 
-     switch (sscanf( uts.release, "%d.%d.%d.%d", &i, &j, &k, &l )) {
-          case 3:
-               l = 0;
-          case 4:
-               if (((i << 24) | (j << 16) | (k << 8) | l) >= 0x02061302)
-                    fusion_config->madv_remove = true;
-               break;
-
-          default:
-               D_WARN( "could not parse kernel version '%s'", uts.release );
+     if (fusion_config->madv_remove_force) {
+          if (fusion_config->madv_remove)
+               D_INFO( "Fusion/SHM: Using MADV_REMOVE (forced)\n" );
+          else
+               D_INFO( "Fusion/SHM: Not using MADV_REMOVE (forced)!\n" );
      }
+     else {
+          switch (sscanf( uts.release, "%d.%d.%d.%d", &i, &j, &k, &l )) {
+               case 3:
+                    l = 0;
+               case 4:
+                    if (((i << 24) | (j << 16) | (k << 8) | l) >= 0x02061302)
+                         fusion_config->madv_remove = true;
+                    break;
 
-     if (fusion_config->madv_remove)
-          D_INFO( "Fusion/SHM: Using MADV_REMOVE (%d.%d.%d.%d >= 2.6.19.2)\n", i, j, k, l );
-     else
-          D_INFO( "Fusion/SHM: Not using MADV_REMOVE (%d.%d.%d.%d < 2.6.19.2)!\n", i, j, k, l );
+               default:
+                    D_WARN( "could not parse kernel version '%s'", uts.release );
+          }
+
+          if (fusion_config->madv_remove)
+               D_INFO( "Fusion/SHM: Using MADV_REMOVE (%d.%d.%d.%d >= 2.6.19.2)\n", i, j, k, l );
+          else
+               D_INFO( "Fusion/SHM: NOT using MADV_REMOVE (%d.%d.%d.%d < 2.6.19.2)! [0x%08x]\n",
+                       i, j, k, l, (i << 24) | (j << 16) | (k << 8) | l );
+     }
 }
 
 /**********************************************************************************************************************/

@@ -61,7 +61,9 @@ typedef enum {
 
      SMF_INDEX_TRANSLATION = 0x00001000,
 
-     SMF_ALL               = 0x000013FF
+     SMF_RENDER_OPTIONS    = 0x00010000,
+
+     SMF_ALL               = 0x000113FF
 } StateModificationFlags;
 
 typedef enum {
@@ -124,6 +126,8 @@ struct _CardState {
      /* software driver */
 
      GenefxState             *gfxs;
+
+     DFBSurfaceRenderOptions  render_options;
 };
 
 int  dfb_state_init( CardState *state, CoreDFB *core );
@@ -206,6 +210,11 @@ do {                                                        \
 #define dfb_state_set_dst_colorkey(state,key)     _dfb_state_set_checked( dst_colorkey,   \
                                                                           DST_COLORKEY,   \
                                                                           state, key )
+
+
+#define dfb_state_set_render_options(state,opts)  _dfb_state_set_checked( render_options, \
+                                                                          RENDER_OPTIONS, \
+                                                                          state, opts )
 
 static inline void dfb_state_set_clip( CardState *state, const DFBRegion *clip )
 {

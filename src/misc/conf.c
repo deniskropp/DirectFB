@@ -84,7 +84,9 @@ static const char *config_usage =
      "  [no-]debug                     Enable debug output\n"
      "  [no-]debugmem                  Enable memory allocation tracking\n"
      "  [no-]debugshm                  Enable shared memory allocation tracking\n"
+     "  [no-]madv-remove               Enable usage of MADV_REMOVE (default = auto)\n"
      "  [no-]trace                     Enable stack trace support\n"
+     "  [no-]surface-sentinel          Enable surface sentinels at the end of chunks in video memory\n"
      "  log-file=<name>                Write all messages to a file\n"
      "  log-udp=<host>:<port>          Send all messages via UDP to host:port\n"
      "  fatal-level=<level>            Abort on NONE, ASSERT (default) or ASSUME (incl. assert)\n"
@@ -128,6 +130,8 @@ static const char *config_usage =
      "  layer-bg-image=<filename>      Use background image\n"
      "  layer-bg-tile=<filename>       Use tiled background image\n"
      "  layer-src-key=AARRGGBB         Enable color keying (hex)\n"
+     "  [no-]smooth-upscale            Enable/disable smooth upscaling per default\n"
+     "  [no-]smooth-downscale          Enable/disable smooth downscaling per default\n"
      "  [no-]translucent-windows       Allow translucent windows\n"
      "  [no-]decorations               Enable window decorations (if supported by wm)\n"
      "  videoram-limit=<amount>        Limit amount of Video RAM in kb\n"
@@ -655,11 +659,25 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "no-debugshm" ) == 0) {
           fusion_config->debugshm = false;
      } else
+     if (strcmp (name, "madv-remove" ) == 0) {
+          fusion_config->madv_remove       = true;
+          fusion_config->madv_remove_force = true;
+     } else
+     if (strcmp (name, "no-madv-remove" ) == 0) {
+          fusion_config->madv_remove       = false;
+          fusion_config->madv_remove_force = true;
+     } else
      if (strcmp (name, "trace" ) == 0) {
           direct_config->trace = true;
      } else
      if (strcmp (name, "no-trace" ) == 0) {
           direct_config->trace = false;
+     } else
+     if (strcmp (name, "surface-sentinel" ) == 0) {
+          dfb_config->surface_sentinel = true;
+     } else
+     if (strcmp (name, "no-surface-sentinel" ) == 0) {
+          dfb_config->surface_sentinel = false;
      } else
      if (strcmp (name, "log-file" ) == 0 || strcmp (name, "log-udp" ) == 0) {
           if (value) {
@@ -839,6 +857,18 @@ DFBResult dfb_config_set( const char *name, const char *value )
           dfb_config->mouse_gpm_source = false;
           D_FREE( dfb_config->mouse_source );
           dfb_config->mouse_source = D_STRDUP( DEV_NAME );
+     } else
+     if (strcmp (name, "smooth-upscale" ) == 0) {
+          dfb_config->render_options |= DSRO_SMOOTH_UPSCALE;
+     } else
+     if (strcmp (name, "no-smooth-upscale" ) == 0) {
+          dfb_config->render_options &= ~DSRO_SMOOTH_UPSCALE;
+     } else
+     if (strcmp (name, "smooth-downscale" ) == 0) {
+          dfb_config->render_options |= DSRO_SMOOTH_DOWNSCALE;
+     } else
+     if (strcmp (name, "no-smooth-downscale" ) == 0) {
+          dfb_config->render_options &= ~DSRO_SMOOTH_DOWNSCALE;
      } else
      if (strcmp (name, "translucent-windows" ) == 0) {
           dfb_config->translucent_windows = true;

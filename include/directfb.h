@@ -191,7 +191,8 @@ typedef enum {
      DFB_VERSIONMISMATCH,/* Some versions didn't match. */
      DFB_NOSHAREDMEMORY, /* There's not enough shared memory. */
      DFB_EOF,            /* Reached end of file. */
-     DFB_SUSPENDED       /* The requested object is suspended. */
+     DFB_SUSPENDED,      /* The requested object is suspended. */
+     DFB_INCOMPLETE      /* The operation has been executed, but not completely. */
 } DFBResult;
 
 /*
@@ -679,6 +680,18 @@ typedef enum {
 } DFBSurfaceBlittingFlags;
 
 /*
+ * Options for drawing and blitting operations. Not mandatory for acceleration.
+ */
+typedef enum {
+     DSRO_NONE                 = 0x00000000, /* None of these. */
+
+     DSRO_SMOOTH_UPSCALE       = 0x00000001, /* Use interpolation for upscale StretchBlit(). */
+     DSRO_SMOOTH_DOWNSCALE     = 0x00000002, /* Use interpolation for downscale StretchBlit(). */
+
+     DSRO_ALL                  = 0x00000003  /* All of these. */
+} DFBSurfaceRenderOptions;
+
+/*
  * Mask of accelerated functions.
  */
 typedef enum {
@@ -892,8 +905,9 @@ typedef enum {
      DFFA_NOKERNING      = 0x00000001,  /* don't use kerning */
      DFFA_NOHINTING      = 0x00000002,  /* don't use hinting */
      DFFA_MONOCHROME     = 0x00000004,  /* don't use anti-aliasing */
-     DFFA_NOCHARMAP      = 0x00000008   /* no char map, glyph indices are
+     DFFA_NOCHARMAP      = 0x00000008,  /* no char map, glyph indices are
                                            specified directly */
+     DFFA_FIXEDCLIP      = 0x00000010   /* width fixed advance, clip to it */
 } DFBFontAttributes;
 
 /*
@@ -3652,6 +3666,20 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           IDirectFBSurface         *thiz,
           const int                *indices,
           int                       num_indices
+     );
+
+
+   /** Rendering **/
+
+     /*
+      * Set options affecting the output of drawing and blitting operations.
+      *
+      * None of these is mandatory and therefore unsupported flags will not
+      * cause a software fallback.
+      */
+     DFBResult (*SetRenderOptions) (
+          IDirectFBSurface         *thiz,
+          DFBSurfaceRenderOptions   options
      );
 )
 
