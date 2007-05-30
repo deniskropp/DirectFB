@@ -70,6 +70,7 @@
 
 #include <core/wm_module.h>
 
+#include <sawman_config.h>
 #include <sawman_manager.h>
 
 #include "sawman_draw.h"
@@ -80,6 +81,7 @@ DFB_WINDOW_MANAGER( sawman )
 
 D_DEBUG_DOMAIN( SaWMan_WM,     "SaWMan/WM",     "SaWMan window manager module" );
 D_DEBUG_DOMAIN( SaWMan_Update, "SaWMan/Update", "SaWMan window manager updates" );
+D_DEBUG_DOMAIN( SaWMan_Auto,   "SaWMan/Auto",   "SaWMan auto configuration" );
 
 /**********************************************************************************************************************/
 
@@ -106,10 +108,6 @@ typedef struct {
 
      int                           cursor_dx;
      int                           cursor_dy;
-
-     unsigned int                  orig_width;
-     unsigned int                  orig_height;
-     DFBSurfacePixelFormat         orig_format;
 } StackData;
 
 /**********************************************************************************************************************/
@@ -416,7 +414,7 @@ update_region( SaWMan          *sawman,
           window = sawwin->window;
           D_ASSERT( window != NULL );
 
-          if (VISIBLE_WINDOW( window ) && (tier->classes & (1 << window->config.stacking))) {
+          if (SAWMAN_VISIBLE_WINDOW( window ) && (tier->classes & (1 << window->config.stacking))) {
                if (dfb_region_intersect( &region,
                                          DFB_REGION_VALS_FROM_RECTANGLE( &window->config.bounds )))
                     break;
@@ -636,8 +634,8 @@ get_single_window( SaWMan     *sawman,
           window = sawwin->window;
           D_ASSERT( window != NULL );
 
-          if (VISIBLE_WINDOW(window) && (tier->classes & (1 << window->config.stacking))) {
-               if (single)
+          if (SAWMAN_VISIBLE_WINDOW(window) && (tier->classes & (1 << window->config.stacking))) {
+               if (single || (window->caps & DWCAPS_INPUTONLY))
                     return NULL;
 
                single = sawwin;
@@ -657,6 +655,34 @@ get_single_window( SaWMan     *sawman,
      return single;
 }
 
+static bool
+get_border_only( SaWMan     *sawman,
+                 SaWManTier *tier )
+{
+     int           n;
+     SaWManWindow *sawwin;
+     bool          none = true;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( tier, SaWManTier );
+
+     fusion_vector_foreach_reverse (sawwin, n, sawman->layout) {
+          CoreWindow *window;
+
+          D_MAGIC_ASSERT( sawwin, SaWManWindow );
+
+          window = sawwin->window;
+          D_ASSERT( window != NULL );
+
+          none = false;
+
+          if (SAWMAN_VISIBLE_WINDOW(window) && !(window->caps & DWCAPS_INPUTONLY))
+               return false;
+     }
+
+     return !none;
+}
+
 static DFBResult
 process_updates( SaWMan              *sawman,
                  WMData              *wmdata,
@@ -673,6 +699,7 @@ process_updates( SaWMan              *sawman,
           int           total;
           int           bounding;
           bool          none = false;
+          bool          border_only;
           SaWManWindow *single;
 
           D_MAGIC_ASSERT( tier, SaWManTier );
@@ -693,12 +720,16 @@ process_updates( SaWMan              *sawman,
 
           if (none) {
                if (tier->active) {
+                    D_DEBUG_AT( SaWMan_Auto, "  -> Deactivating region...\n" );
+
                     tier->active = false;
 
                     dfb_layer_region_deactivate( tier->region );
                }
                continue;
           }
+
+          border_only = get_border_only( sawman, tier );
 
           if (single) {
                CoreWindow             *window;
@@ -727,6 +758,8 @@ process_updates( SaWMan              *sawman,
                {
                     DFBDisplayLayerConfig config;
 
+                    D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d single mode...\n", single->src.w, single->src.h );
+
                     tier->single          = single;
                     tier->single_width    = single->src.w;
                     tier->single_height   = single->src.h;
@@ -736,8 +769,10 @@ process_updates( SaWMan              *sawman,
 
                     tier->key = tier->context->primary.config.src_key;
 
-                    tier->active = false;
-                    dfb_layer_region_deactivate( tier->region );
+                    if (tier->active) {
+                         tier->active = false;
+                         dfb_layer_region_deactivate( tier->region );
+                    }
 
                     usleep( 10000 );
 
@@ -774,14 +809,18 @@ process_updates( SaWMan              *sawman,
                else if (!DFB_LOCATION_EQUAL( location, tier->single_location )) {
                     tier->single_location = location;
 
+                    D_DEBUG_AT( SaWMan_Auto, "  -> Changing single destination.\n" );
+
                     dfb_layer_context_set_screenlocation( tier->context, &location );
                }
 
                DFBRectangle src = single->src;
                dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
 
-               tier->active = true;
-               dfb_layer_region_activate( tier->region );
+               if (!tier->active) {
+                    tier->active = true;
+                    dfb_layer_region_activate( tier->region );
+               }
 
                dfb_layer_region_flip_update( tier->region, NULL, flags );
 
@@ -789,20 +828,38 @@ process_updates( SaWMan              *sawman,
                continue;
           }
           else if (tier->single) {
-               tier->active = false;
-               dfb_layer_region_deactivate( tier->region );
+               D_DEBUG_AT( SaWMan_Auto, "  -> Switching back from single mode...\n" );
 
-               dfb_layer_context_set_configuration( tier->context, &tier->config );
+               tier->border_only = !border_only;  /* enforce switch */
+
+               tier->single = NULL;
+          }
+
+          /* Switch border/default config? */
+          if (tier->border_only != border_only) {
+               tier->border_only = border_only;
+
+               D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %s mode.\n", border_only ? "border" : "standard" );
+
+               if (tier->active) {
+                    tier->active = false;
+                    dfb_layer_region_deactivate( tier->region );
+               }
+
+               if (border_only)
+                    dfb_layer_context_set_configuration( tier->context, &tier->border_config );
+               else
+                    dfb_layer_context_set_configuration( tier->context, &tier->config );
 
                DFBLocation location = { 0, 0, 1, 1 };
                dfb_layer_context_set_screenlocation( tier->context, &location );
 
                dfb_layer_context_set_src_colorkey( tier->context, tier->key.r, tier->key.g, tier->key.b );
-
-               tier->single = NULL;
           }
 
           if (!tier->active) {
+               D_DEBUG_AT( SaWMan_Auto, "  -> Activating region...\n" );
+
                tier->active = true;
 
                dfb_layer_region_activate( tier->region );
@@ -861,7 +918,7 @@ move_window( SaWMan       *sawman,
      bounds->x += dx;
      bounds->y += dy;
 
-     if (VISIBLE_WINDOW(window)) {
+     if (SAWMAN_VISIBLE_WINDOW(window)) {
           DFBRegion region = { 0, 0, bounds->w - 1, bounds->h - 1 };
 
           sawman_update_window( sawman, sawwin, &region, 0, false, false, false );
@@ -927,7 +984,7 @@ resize_window( SaWMan       *sawman,
 
      dfb_region_intersect( &window->config.opaque, 0, 0, width - 1, height - 1 );
 
-     if (VISIBLE_WINDOW (window)) {
+     if (SAWMAN_VISIBLE_WINDOW (window)) {
           if (ow > bounds->w) {
                DFBRegion region = { bounds->w, 0, ow - 1, MIN(bounds->h, oh) - 1 };
 
@@ -1013,7 +1070,7 @@ set_window_bounds( SaWMan       *sawman,
           window->config.opaque = new_region;
 
      /* Update exposed area. */
-     if (VISIBLE_WINDOW( window )) {
+     if (SAWMAN_VISIBLE_WINDOW( window )) {
           if (dfb_region_region_intersect( &new_region, &old_region )) {
                /* left */
                if (new_region.x1 > old_region.x1) {
@@ -1096,8 +1153,8 @@ restack_window( SaWMan                 *sawman,
           sawwin->priority = sawman_window_priority( sawwin );
      }
 
-     /* Make sure window is inserted. */
-     if (!(sawwin->flags & SWMWF_INSERTED))
+     /* Make sure window is inserted and not kept above/under parent. */
+     if (!(sawwin->flags & SWMWF_INSERTED) && !(window->config.options & (DWOP_KEEP_ABOVE|DWOP_KEEP_UNDER)))
           return DFB_OK;
 
      /* Get the (new) priority. */
@@ -1656,6 +1713,8 @@ wm_initialize( CoreDFB *core, void *wm_data, void *shared_data )
      data->world  = dfb_core_world( core );
      data->sawman = sawman;
 
+     sawman_config_init( NULL, NULL );
+
      return sawman_initialize( sawman, data->world, &data->process );
 }
 
@@ -1668,6 +1727,8 @@ wm_join( CoreDFB *core, void *wm_data, void *shared_data )
      data->core   = core;
      data->world  = dfb_core_world( core );
      data->sawman = sawman;
+
+     sawman_config_init( NULL, NULL );
 
      return sawman_join( sawman, data->world, &data->process );
 }
@@ -1715,6 +1776,7 @@ wm_init_stack( CoreWindowStack *stack,
      SaWMan           *sawman;
      SaWManTier       *tier;
      CoreLayerContext *context;
+     const SaWManBorderInit *border;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
@@ -1737,10 +1799,6 @@ wm_init_stack( CoreWindowStack *stack,
      data->stack  = stack;
      data->sawman = sawman;
 
-     data->orig_width  = context->config.width;
-     data->orig_height = context->config.height;
-     data->orig_format = context->config.pixelformat;
-
      D_MAGIC_SET( data, StackData );
 
      if (!sawman_tier_by_layer( sawman, context->layer_id, &tier ) || tier->stack) {
@@ -1753,6 +1811,25 @@ wm_init_stack( CoreWindowStack *stack,
      tier->size.w  = stack->width;
      tier->size.h  = stack->height;
      tier->active  = true;
+
+     border = &sawman_config->borders[(tier->classes & SWMSC_LOWER)  ? 0 :
+                                      (tier->classes & SWMSC_MIDDLE) ? 1 : 2];
+
+     if (border->resolution.w && border->resolution.h) {
+          tier->border_config.flags |= DLCONF_WIDTH | DLCONF_HEIGHT;
+
+          tier->border_config.width  = border->resolution.w;
+          tier->border_config.height = border->resolution.h;
+     }
+
+     if (border->format) {
+          tier->border_config.flags |= DLCONF_PIXELFORMAT;
+
+          tier->border_config.pixelformat = border->format;
+     }
+
+     tier->border_config.flags   |= DLCONF_OPTIONS;
+     tier->border_config.options  = DLOP_SRC_COLORKEY;
 
      ret = dfb_layer_context_get_primary_region( context, true, &tier->region );
      if (ret) {
@@ -2241,10 +2318,11 @@ wm_preconfigure_window( CoreWindowStack *stack,
                         CoreWindow      *window,
                         void            *window_data )
 {
-     DFBResult    ret;
-     WMData      *wmdata = wm_data;
-     SaWMan      *sawman;
-     SaWManTier  *tier;
+     DFBResult     ret;
+     WMData       *wmdata = wm_data;
+     SaWMan       *sawman;
+     SaWManTier   *tier;
+     SaWManWindow *sawwin = window_data;
 
      D_ASSERT( window != NULL );
      D_ASSERT( wm_data != NULL );
@@ -2263,6 +2341,26 @@ wm_preconfigure_window( CoreWindowStack *stack,
      if (!sawman_tier_by_stack( sawman, stack, &tier )) {
           sawman_unlock( sawman );
           return DFB_OK;
+     }
+
+     if (window->parent_id) {
+          SaWManWindow *parent = NULL;
+
+          direct_list_foreach (parent, sawman->windows) {
+               D_MAGIC_ASSERT( parent, SaWManWindow );
+               D_ASSERT( parent->window != NULL );
+
+               if (parent->id == window->parent_id)
+                    break;
+          }
+
+          if (!parent) {
+               D_ERROR( "SampleAppMan: Can't find parent window with ID %d!\n", window->parent_id );
+               sawman_unlock( sawman );
+               return DFB_IDNOTFOUND;
+          }
+
+          sawwin->parent = parent;
      }
 
      switch (ret = sawman_call( sawman, SWMCID_WINDOW_PRECONFIG, window )) {
@@ -2400,9 +2498,32 @@ wm_add_window( CoreWindowStack *stack,
      sawwin->stack      = stack;
      sawwin->stack_data = stack_data;
 
-     fusion_vector_init( &sawwin->children, 2, sawwin->shmpool );
-
      D_MAGIC_SET( sawwin, SaWManWindow );
+
+     if (window->config.options & (DWOP_KEEP_ABOVE | DWOP_KEEP_UNDER)) {
+          if (!sawwin->parent) {
+               D_MAGIC_CLEAR( sawwin );
+               sawman_unlock( sawman );
+               return DFB_UNSUPPORTED;
+          }
+
+          if (window->config.options & DWOP_KEEP_ABOVE) {
+               if (sawman_window_priority(sawwin->parent) > sawman_window_priority(sawwin)) {
+                    D_MAGIC_CLEAR( sawwin );
+                    sawman_unlock( sawman );
+                    return DFB_INVARG;
+               }
+          }
+          else {
+               if (sawman_window_priority(sawwin->parent) < sawman_window_priority(sawwin)) {
+                    D_MAGIC_CLEAR( sawwin );
+                    sawman_unlock( sawman );
+                    return DFB_INVARG;
+               }
+          }
+     }
+
+     fusion_vector_init( &sawwin->children, 2, sawwin->shmpool );
 
      sawwin->priority   = sawman_window_priority( sawwin );
 
@@ -2529,6 +2650,20 @@ wm_set_window_config( CoreWindow             *window,
      stack = sawwin->stack;
      D_ASSERT( stack != NULL );
 
+     if ((flags & CWCF_OPTIONS) && (updated->options & (DWOP_KEEP_ABOVE | DWOP_KEEP_UNDER))) {
+          if (!sawwin->parent)
+               return DFB_UNSUPPORTED;
+
+          if (updated->options & DWOP_KEEP_ABOVE) {
+               if (sawman_window_priority(sawwin->parent) > sawman_window_priority(sawwin))
+                    return DFB_INVARG;
+          }
+          else {
+               if (sawman_window_priority(sawwin->parent) < sawman_window_priority(sawwin))
+                    return DFB_INVARG;
+          }
+     }
+
      /* Lock SaWMan. */
      ret = sawman_lock( sawman );
      if (ret)
@@ -2614,6 +2749,23 @@ wm_set_window_config( CoreWindow             *window,
                          return ret;
                     }
                }
+          }
+
+          if (config->options & (DWOP_KEEP_ABOVE | DWOP_KEEP_UNDER)) {
+               D_ASSERT( sawwin->parent );
+
+               if (config->options & DWOP_KEEP_ABOVE) {
+                    D_ASSERT( sawman_window_priority(sawwin->parent) < sawman_window_priority(sawwin) );
+
+                    sawman_insert_window( sawman, sawwin, sawwin->parent, true );
+               }
+               else {
+                    D_ASSERT( sawman_window_priority(sawwin->parent) > sawman_window_priority(sawwin) );
+
+                    sawman_insert_window( sawman, sawwin, sawwin->parent, false );
+               }
+
+               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, true, false, false );
           }
 
           window->config.options = config->options;

@@ -223,6 +223,9 @@ struct __SaWMan_SaWManTier {
      DFBSurfacePixelFormat   single_format;
      DFBDisplayLayerOptions  single_options;
      DFBLocation             single_location;
+
+     bool                    border_only;
+     DFBDisplayLayerConfig   border_config;
 };
 
 
@@ -358,29 +361,6 @@ sawman_unlock( SaWMan *sawman )
 }
 
 static inline int
-sawman_window_border( const SaWManWindow *sawwin )
-{
-     const CoreWindow      *window;
-     const CoreWindowStack *stack;
-
-     D_MAGIC_ASSERT( sawwin, SaWManWindow );
-
-     if (sawwin->caps & DWCAPS_NODECORATION)
-          return 0;
-
-     window = sawwin->window;
-     stack  = sawwin->stack;
-
-     D_ASSERT( window != NULL );
-     D_ASSERT( stack != NULL );
-
-     if (window->config.bounds.w != stack->width || window->config.bounds.h != stack->height) 
-          return sawwin->border_normal;
-
-     return sawwin->border_fullscreen;
-}
-
-static inline int
 sawman_window_priority( const SaWManWindow *sawwin )
 {
      const CoreWindow *window;
@@ -485,6 +465,12 @@ sawman_tier_by_layer( SaWMan             *sawman,
 
      return false;
 }
+
+int sawman_window_border( const SaWManWindow *sawwin );
+
+#define SAWMAN_VISIBLE_WINDOW(w)     ((!((w)->caps & (DWCAPS_INPUTONLY)) ||\
+                                       !((w)->caps & (DWCAPS_NODECORATION))) && \
+                                      (w)->config.opacity > 0 && !DFB_WINDOW_DESTROYED((w)))
 
 #ifdef __cplusplus
 }

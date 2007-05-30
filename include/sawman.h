@@ -46,7 +46,10 @@ DECLARE_INTERFACE( ISaWMan )
 DECLARE_INTERFACE( ISaWManManager )
 
 
-DirectResult SaWManCreate( ISaWMan **ret_sawman );
+DirectResult SaWManInit  ( int       *argc,
+                           char    ***argv );
+
+DirectResult SaWManCreate( ISaWMan  **ret_sawman );
 
 
 /***********

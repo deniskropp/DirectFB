@@ -40,6 +40,8 @@
 #include <sawman.h>
 #include <sawman_manager.h>
 
+#include "sawman_config.h"
+
 #include "isawman.h"
 
 /* FIXME: avoid globals */
@@ -51,7 +53,6 @@ static FusionWorld   *m_world;
 
 static void wind_of_change ( SaWMan              *sawman,
                              SaWManTier          *tier,
-                             CoreLayerRegion     *region,
                              DFBRegion           *update,
                              DFBSurfaceFlipFlags  flags,
                              int                  current,
@@ -65,6 +66,13 @@ static void wind_of_showing( SaWMan              *sawman,
                              bool                *ret_showing );
 
 /**********************************************************************************************************************/
+
+DirectResult
+SaWManInit( int    *argc,
+            char ***argv )
+{
+     return sawman_config_init( argc, argv );
+}
 
 DirectResult
 SaWManCreate( ISaWMan **ret_sawman )
@@ -838,7 +846,7 @@ sawman_update_window( SaWMan              *sawman,
      D_ASSERT( stack != NULL );
      D_ASSERT( window != NULL );
 
-     if (!VISIBLE_WINDOW(window) && !force_invisible)
+     if (!SAWMAN_VISIBLE_WINDOW(window) && !force_invisible)
           return DFB_OK;
 
      while (sawwin->parent)
@@ -902,8 +910,7 @@ sawman_update_window( SaWMan              *sawman,
      if (force_complete || sawwin->children.count)
           dfb_updates_add( &tier->updates, &area );
      else
-          wind_of_change( sawman, tier,
-                          window->primary_region, &area, flags,
+          wind_of_change( sawman, tier, &area, flags,
                           fusion_vector_size( &sawman->layout ) - 1,
                           sawman_window_index( sawman, sawwin ) );
 
@@ -934,7 +941,7 @@ sawman_showing_window( SaWMan       *sawman,
 
      *ret_showing = false;
 
-     if (!VISIBLE_WINDOW(window))
+     if (!SAWMAN_VISIBLE_WINDOW(window))
           return DFB_OK;
 
      while (sawwin->parent)
@@ -970,14 +977,25 @@ sawman_insert_window( SaWMan       *sawman,
      DirectResult  ret;
      int           index = 0;
      SaWManWindow *other;
+     CoreWindow   *window;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
      D_MAGIC_ASSERT_IF( relative, SaWManWindow );
 
-     if (relative) {
+     window = sawwin->window;
+     D_ASSERT( window != NULL );
+
+     if (sawwin->parent && (window->config.options & (DWOP_KEEP_ABOVE|DWOP_KEEP_UNDER))) {
+          D_MAGIC_ASSERT( sawwin->parent, SaWManWindow );
+
+          relative = sawwin->parent;
+          top      = (window->config.options & DWOP_KEEP_ABOVE) ? true : false;
+     }
+     else if (relative)
           D_ASSUME( relative->priority == sawwin->priority );
 
+     if (relative) {
           index = sawman_window_index( sawman, relative );
           D_ASSERT( index >= 0 );
           D_ASSERT( index < sawman->layout.count );
@@ -1155,7 +1173,7 @@ sawman_withdraw_window( SaWMan       *sawman,
      }
 
      /* Hide window. */
-     if (VISIBLE_WINDOW(window) && window->config.opacity > 0) {
+     if (SAWMAN_VISIBLE_WINDOW(window) && window->config.opacity > 0) {
           window->config.opacity = 0;
 
           sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, false, true, false );
@@ -1267,6 +1285,42 @@ sawman_update_geometry( SaWManWindow *sawwin )
      return DFB_OK;
 }
 
+int
+sawman_window_border( const SaWManWindow *sawwin )
+{
+     const CoreWindow       *window;
+     const SaWManTier       *tier;
+     const SaWManBorderInit *border;
+     int                     thickness = 0;
+
+     D_MAGIC_ASSERT( sawwin, SaWManWindow );
+
+     if (sawwin->caps & DWCAPS_NODECORATION)
+          return 0;
+
+     window = sawwin->window;
+     D_ASSERT( window != NULL );
+
+     tier = sawman_tier_by_class( sawwin->sawman, window->config.stacking );
+     D_MAGIC_ASSERT( tier, SaWManTier );
+
+     D_ASSERT( sawman_config != NULL );
+
+     border = &sawman_config->borders[sawman_window_priority(sawwin)];
+
+     thickness = border->thickness;
+     if (thickness && border->resolution.w && border->resolution.h) {
+          if (border->resolution.w != tier->size.w && border->resolution.h != tier->size.h) {
+               int tw = thickness * tier->size.w / border->resolution.w;
+               int th = thickness * tier->size.h / border->resolution.h;
+
+               thickness = (tw + th + 1) / 2;
+          }
+     }
+
+     return thickness;
+}
+
 /**********************************************************************************************************************/
 
 /*
@@ -1277,7 +1331,6 @@ sawman_update_geometry( SaWManWindow *sawwin )
 static void
 wind_of_change( SaWMan              *sawman,
                 SaWManTier          *tier,
-                CoreLayerRegion     *region,
                 DFBRegion           *update,
                 DFBSurfaceFlipFlags  flags,
                 int                  current,
@@ -1288,7 +1341,6 @@ wind_of_change( SaWMan              *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( tier, SaWManTier );
-     D_ASSERT( region != NULL );
      D_ASSERT( update != NULL );
 
      D_ASSERT( changed >= 0 );
@@ -1337,29 +1389,29 @@ wind_of_change( SaWMan              *sawman,
                /* left */
                if (opaque.x1 != update->x1) {
                     DFBRegion left = { update->x1, opaque.y1, opaque.x1-1, opaque.y2};
-                    wind_of_change( sawman, tier, region, &left, flags, current-1, changed );
+                    wind_of_change( sawman, tier, &left, flags, current-1, changed );
                }
                /* upper */
                if (opaque.y1 != update->y1) {
                     DFBRegion upper = { update->x1, update->y1, update->x2, opaque.y1-1};
-                    wind_of_change( sawman, tier, region, &upper, flags, current-1, changed );
+                    wind_of_change( sawman, tier, &upper, flags, current-1, changed );
                }
                /* right */
                if (opaque.x2 != update->x2) {
                     DFBRegion right = { opaque.x2+1, opaque.y1, update->x2, opaque.y2};
-                    wind_of_change( sawman, tier, region, &right, flags, current-1, changed );
+                    wind_of_change( sawman, tier, &right, flags, current-1, changed );
                }
                /* lower */
                if (opaque.y2 != update->y2) {
                     DFBRegion lower = { update->x1, opaque.y2+1, update->x2, update->y2};
-                    wind_of_change( sawman, tier, region, &lower, flags, current-1, changed );
+                    wind_of_change( sawman, tier, &lower, flags, current-1, changed );
                }
           }
           /*
                pass through
           */
           else
-               wind_of_change( sawman, tier, region, update, flags, current-1, changed );
+               wind_of_change( sawman, tier, update, flags, current-1, changed );
      }
 }
 

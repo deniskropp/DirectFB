@@ -47,6 +47,7 @@
 
 #include <misc/util.h>
 
+#include <sawman_config.h>
 #include <sawman_manager.h>
 
 #include "stretch_algos.h"
@@ -327,27 +328,25 @@ sawman_draw_cursor( CoreWindowStack *stack, CardState *state, DFBRegion *region 
 }
 
 static void
-draw_border( CoreWindowStack *stack,
-             CoreWindow      *window,
+draw_border( SaWManWindow    *sawwin,
              CardState       *state,
              const DFBRegion *region,
              int              thickness )
 {
-     int          i;
-     DFBRegion    clip;
-     DFBRectangle rects[thickness];
+     int                     i;
+     DFBRegion               clip;
+     DFBRectangle            rects[thickness];
+     CoreWindow             *window;
+     const SaWManBorderInit *border;
 
-     static const DFBColor focused_colors[]   = { { 0xf0, 0xd0, 0xd0, 0x40 },
-                                                  { 0xff, 0xc0, 0xa0, 0x20 },
-                                                  { 0xff, 0xb0, 0x90, 0x20 },
-                                                  { 0xff, 0xa0, 0x80, 0x20 } };
+     window = sawwin->window;
+     D_ASSERT( window != NULL );
 
-     static const DFBColor unfocused_colors[] = { { 0xf0, 0xb0, 0xb0, 0xa0 },
-                                                  { 0xff, 0x90, 0x90, 0x90 },
-                                                  { 0xff, 0x80, 0x80, 0x80 },
-                                                  { 0xff, 0x70, 0x70, 0x70 } };
+     if (thickness > window->config.bounds.w / 2)
+          thickness = window->config.bounds.w / 2;
 
-     const DFBColor *colors = (window->flags & CWF_FOCUSED) ? focused_colors : unfocused_colors;
+     if (thickness > window->config.bounds.h / 2)
+          thickness = window->config.bounds.h / 2;
 
      /* Check thickness. */
      if (thickness < 1)
@@ -369,10 +368,20 @@ draw_border( CoreWindowStack *stack,
      /* Change clipping region. */
      dfb_state_set_clip( state, region );
 
+     border = &sawman_config->borders[sawman_window_priority(sawwin)];
+
      /* Draw border rectangles. */
-     for (i=0; i<thickness; i++) {
-          dfb_state_set_color( state, &colors[i*4/thickness] );
-          dfb_gfxcard_drawrectangle( &rects[i], state );
+     if (window->flags & CWF_FOCUSED) {
+          for (i=0; i<thickness; i++) {
+               dfb_state_set_color( state, &border->focused[i*D_ARRAY_SIZE(border->focused)/thickness] );
+               dfb_gfxcard_drawrectangle( &rects[i], state );
+          }
+     }
+     else {
+          for (i=0; i<thickness; i++) {
+               dfb_state_set_color( state, &border->unfocused[i*D_ARRAY_SIZE(border->unfocused)/thickness] );
+               dfb_gfxcard_drawrectangle( &rects[i], state );
+          }
      }
 
      /* Restore clipping region. */
@@ -401,6 +410,7 @@ draw_window_and_children( SaWManWindow     *sawwin,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( window != NULL );
+     D_ASSERT( window->surface != NULL );
 
      /* Use per pixel alpha blending. */
      if (alpha_channel && (window->config.options & DWOP_ALPHACHANNEL))
@@ -577,7 +587,10 @@ sawman_draw_window( SaWManWindow *sawwin,
 
      border = sawman_window_border( sawwin );
 
-     if (dfb_region_intersect( region,
+
+
+     if (window->surface &&
+         dfb_region_intersect( region,
                                window->config.bounds.x + border,
                                window->config.bounds.y + border,
                                window->config.bounds.x + window->config.bounds.w - border - 1,
@@ -586,7 +599,7 @@ sawman_draw_window( SaWManWindow *sawwin,
 
 
      if (border)
-          draw_border( stack, window, state, pregion, border );
+          draw_border( sawwin, state, pregion, border );
 
      /* Reset blitting source. */
      state->source    = NULL;
