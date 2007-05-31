@@ -58,6 +58,9 @@ static DFBResult wm_suspend        ( void                   *wm_data,
 static DFBResult wm_resume         ( void                   *wm_data,
                                      void                   *shared_data );
 
+static DFBResult wm_post_init      ( void                   *wm_data,
+                                     void                   *shared_data );
+
 
 /** Stack **/
 
@@ -109,8 +112,6 @@ static DFBResult wm_enum_windows   ( CoreWindowStack        *stack,
                                      void                   *callback_ctx );
 
 /** Window **/
-static DFBResult wm_start_desktop  ( CoreWindowStack        *stack );
-
 static DFBResult wm_get_insets     ( CoreWindowStack        *stack,
                                      CoreWindow             *window,
                                      DFBInsets              *insets );
@@ -214,6 +215,7 @@ static CoreWMFuncs wm_funcs = {
      Leave:               wm_leave,
      Suspend:             wm_suspend,
      Resume:              wm_resume,
+     PostInit:            wm_post_init,
 
      InitStack:           wm_init_stack,
      CloseStack:          wm_close_stack,
@@ -225,7 +227,6 @@ static CoreWMFuncs wm_funcs = {
      WindowLookup:        wm_window_lookup,
      EnumWindows:         wm_enum_windows,
 
-     StartDesktop:        wm_start_desktop,
      GetInsets:           wm_get_insets,
      PreConfigureWindow:  wm_preconfigure_window,
      SetWindowProperty:   wm_set_window_property,

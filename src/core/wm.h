@@ -126,6 +126,9 @@ typedef struct {
      DFBResult (*Resume)            ( void                   *wm_data,
                                       void                   *shared_data );
 
+     DFBResult (*PostInit)          ( void                   *wm_data,
+                                      void                   *shared_data );
+
 
    /** Stack **/
 
@@ -175,8 +178,6 @@ typedef struct {
                                       void                   *stack_data,
                                       CoreWMWindowCallback    callback,
                                       void                   *callback_ctx );
-
-     DFBResult (*StartDesktop)      ( CoreWindowStack        *stack );
 
 
    /** Window **/
@@ -278,6 +279,7 @@ typedef struct {
 
 void dfb_wm_get_info( CoreWMInfo *info );
 
+DFBResult dfb_wm_post_init          ( CoreDFB                *core );
 
 DFBResult dfb_wm_init_stack         ( CoreWindowStack        *stack );
                                     
@@ -309,8 +311,6 @@ DFBResult dfb_wm_enum_windows       ( CoreWindowStack        *stack,
                                       CoreWMWindowCallback    callback,
                                       void                   *callback_ctx );
                                     
-DFBResult dfb_wm_start_desktop      ( CoreWindowStack        *stack);
-
 DFBResult dfb_wm_get_insets         ( CoreWindowStack        *stack,
                                       CoreWindow             *window,
                                       DFBInsets              *insets );

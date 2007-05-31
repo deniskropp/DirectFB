@@ -2803,6 +2803,12 @@ wm_resume( void *wm_data, void *shared_data )
      return DFB_OK;
 }
 
+static DFBResult
+wm_post_init( void *wm_data, void *shared_data )
+{
+     return DFB_OK;
+}
+
 /**************************************************************************************************/
 
 static DFBResult
@@ -3082,12 +3088,6 @@ wm_enum_windows( CoreWindowStack      *stack,
 }
 
 /**************************************************************************************************/
-
-static DFBResult
-wm_start_desktop( CoreWindowStack *stack)
-{
-     return DFB_OK;
-}
 
 static DFBResult
 wm_get_insets( CoreWindowStack *stack,

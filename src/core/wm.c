@@ -367,6 +367,17 @@ dfb_wm_get_info( CoreWMInfo *info )
      *info = wm_shared->info;
 }
 
+DFBResult
+dfb_wm_post_init( CoreDFB *core )
+{
+     D_ASSERT( wm_local != NULL );
+     D_ASSERT( wm_local->funcs != NULL );
+     D_ASSERT( wm_local->funcs->Resume != NULL );
+     D_ASSERT( wm_shared != NULL );
+
+     return wm_local->funcs->PostInit( wm_local->data, wm_shared->data );
+}
+
 /**************************************************************************************************/
 
 DFBResult
@@ -532,22 +543,6 @@ dfb_wm_enum_windows( CoreWindowStack      *stack,
 
      return wm_local->funcs->EnumWindows( stack, wm_local->data,
                                           stack->stack_data, callback, callback_ctx );
-}
-
-/**
- * Give the wm a chance to start any advanced features
- * that require directfb to be fully initialized
- */
-DFBResult
-dfb_wm_start_desktop( CoreWindowStack  *stack)
-{
-     D_ASSERT( wm_local != NULL );
-     D_ASSERT( wm_local->funcs != NULL );
-     D_ASSERT( wm_local->funcs->StartDesktop != NULL );
-     
-     D_ASSERT( stack != NULL );
-     
-     return wm_local->funcs->StartDesktop( stack );
 }
 
 /**

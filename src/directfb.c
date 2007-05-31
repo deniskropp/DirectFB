@@ -200,31 +200,10 @@ DirectFBCreate( IDirectFB **interface )
      }
 
      if (dfb_core_is_master( core_dfb )) {
-          CoreLayer                  *layer;
-          CoreLayerContext           *context;
-          CoreWindowStack            *stack;
-
-          /* the primary layer */
-          layer = dfb_layer_at_translated( DLID_PRIMARY );
-
-          /* get the default (shared) context */
-          ret = dfb_layer_get_primary_context( layer, false, &context );
-          if (ret) {
-               D_ERROR( "DirectFB/DirectFBCreate: "
-                        "Could not get default context of primary layer!\n" );
-               dfb->Release( dfb );
-               return ret;
-          }
-
-          stack = dfb_layer_context_windowstack( context );
-          D_ASSERT( stack != NULL );
-         
           /* not fatal */
-          ret = dfb_wm_start_desktop( stack );
+          ret = dfb_wm_post_init( core_dfb );
           if (ret)
-               D_ERROR( "DirectFB/DirectFBCreate: Could not start desktop!\n" );
-
-          dfb_layer_context_unref( context );
+               D_DERROR( ret, "DirectFBCreate: Post initialization of WM failed!\n" );
      }
 
      *interface = idirectfb_singleton = dfb;
