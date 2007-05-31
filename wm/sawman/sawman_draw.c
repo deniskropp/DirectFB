@@ -223,6 +223,9 @@ sawman_draw_cursor( CoreWindowStack *stack, CardState *state, DFBRegion *region 
 
      D_ASSUME( stack->cursor.opacity > 0 );
 
+     D_DEBUG_AT( SaWMan_Draw, "%s( %p, %d,%d-%dx%d )\n", __FUNCTION__,
+                 stack, DFB_RECTANGLE_VALS_FROM_REGION( region ) );
+
      /* Initialize source rectangle. */
      src.x = region->x1 - stack->cursor.x + stack->cursor.hot.x;
      src.y = region->y1 - stack->cursor.y + stack->cursor.hot.y;
@@ -342,6 +345,9 @@ draw_border( SaWManWindow    *sawwin,
      window = sawwin->window;
      D_ASSERT( window != NULL );
 
+     D_DEBUG_AT( SaWMan_Draw, "%s( %p, %p, %d,%d-%dx%d, %d )\n", __FUNCTION__,
+                 sawwin, state, DFB_RECTANGLE_VALS_FROM_REGION( region ), thickness );
+
      if (thickness > window->config.bounds.w / 2)
           thickness = window->config.bounds.w / 2;
 
@@ -389,16 +395,13 @@ draw_border( SaWManWindow    *sawwin,
 }
 
 static void
-draw_window_and_children( SaWManWindow     *sawwin,
-                          CardState        *state,
-                          DFBRegion        *region,
-                          bool              alpha_channel,
-                          CoreWindowConfig *window_config )
+draw_window( SaWManWindow *sawwin,
+             CardState    *state,
+             DFBRegion    *region,
+             bool          alpha_channel )
 {
-     int                      i;
      SaWMan                  *sawman;
      CoreWindow              *window;
-     SaWManWindow            *child;
      DFBSurfaceBlittingFlags  flags = DSBLIT_NOFX;
 
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
@@ -411,6 +414,9 @@ draw_window_and_children( SaWManWindow     *sawwin,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( window != NULL );
      D_ASSERT( window->surface != NULL );
+
+     D_DEBUG_AT( SaWMan_Draw, "%s( %p, %d,%d-%dx%d )\n", __FUNCTION__,
+                 sawwin, DFB_RECTANGLE_VALS_FROM_REGION( region ) );
 
      /* Use per pixel alpha blending. */
      if (alpha_channel && (window->config.options & DWOP_ALPHACHANNEL))
@@ -521,9 +527,9 @@ draw_window_and_children( SaWManWindow     *sawwin,
          /*(window_config->bounds.w != window->surface->width  ||
           window_config->bounds.h != window->surface->height || sawman->color_keyed)*/)
      {
-          DFBResult    ret  = DFB_UNSUPPORTED;
-          DFBRectangle dst  = sawwin->dst;
-          DFBRectangle src  = sawwin->src;
+          DFBResult    ret = DFB_UNSUPPORTED;
+          DFBRectangle dst = sawwin->dst;
+          DFBRectangle src = sawwin->src;
 
           /* Scale window to the screen clipped by the region being updated. */
           if (sawman->scaling_mode == SWMSM_SMOOTH_SW) {
@@ -552,15 +558,6 @@ draw_window_and_children( SaWManWindow     *sawwin,
 
      /* Restore clipping region. */
      dfb_state_set_clip( state, &clip );
-
-     /* Iterate through child vector. */
-     fusion_vector_foreach (child, i, sawwin->children) {
-          D_MAGIC_ASSERT( child, SaWManWindow );
-          D_ASSERT( child->parent == sawwin );
-
-          /* Draw child and its children. */
-//          draw_window_and_children( child, state, region, alpha_channel, window_config );
-     }
 }
 
 void
@@ -585,9 +582,10 @@ sawman_draw_window( SaWManWindow *sawwin,
      D_ASSERT( window != NULL );
      D_ASSERT( stack != NULL );
 
+     D_DEBUG_AT( SaWMan_Draw, "%s( %p, %d,%d-%dx%d )\n", __FUNCTION__,
+                 sawwin, DFB_RECTANGLE_VALS_FROM_REGION( pregion ) );
+
      border = sawman_window_border( sawwin );
-
-
 
      if (window->surface &&
          dfb_region_intersect( region,
@@ -595,7 +593,7 @@ sawman_draw_window( SaWManWindow *sawwin,
                                window->config.bounds.y + border,
                                window->config.bounds.x + window->config.bounds.w - border - 1,
                                window->config.bounds.y + window->config.bounds.h - border - 1 ))
-          draw_window_and_children( sawwin, state, region, alpha_channel, &window->config );
+          draw_window( sawwin, state, region, alpha_channel );
 
 
      if (border)
@@ -616,7 +614,7 @@ sawman_draw_background( SaWManTier *tier, CardState *state, DFBRegion *region )
      D_MAGIC_ASSERT( state, CardState );
      DFB_REGION_ASSERT( region );
 
-     D_DEBUG_AT( SaWMan_Draw, "%s( %p, %p, %d,%d-%dx%d )\n", __FUNCTION__, tier, state,
+     D_DEBUG_AT( SaWMan_Draw, "%s( %p, %d,%d-%dx%d )\n", __FUNCTION__, tier,
                  DFB_RECTANGLE_VALS_FROM_REGION( region ) );
 
      stack = tier->stack;
