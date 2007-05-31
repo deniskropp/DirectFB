@@ -704,7 +704,8 @@ process_updates( SaWMan              *sawman,
 
           D_MAGIC_ASSERT( tier, SaWManTier );
 
-//          D_DEBUG_AT( SaWMan_Update, "            %p -> %p\n", tier, tier->stack );
+          D_DEBUG_AT( SaWMan_Update, "            %p -> %p (%d updates)\n",
+                      tier, tier->stack, tier->updates.num_regions );
 
           if (!tier->updates.num_regions)
                continue;
@@ -726,6 +727,7 @@ process_updates( SaWMan              *sawman,
 
                     dfb_layer_region_deactivate( tier->region );
                }
+               dfb_updates_reset( &tier->updates );
                continue;
           }
 
@@ -2864,10 +2866,8 @@ wm_set_window_config( CoreWindow             *window,
           window->config.dst_geometry = config->dst_geometry;
 
      /* Update geometry? */
-     if (flags & (CWCF_POSITION | CWCF_SIZE | CWCF_SRC_GEOMETRY | CWCF_DST_GEOMETRY)) {
+     if (flags & (CWCF_POSITION | CWCF_SIZE | CWCF_SRC_GEOMETRY | CWCF_DST_GEOMETRY))
           sawman_update_geometry( sawwin );
-
-     }
 
      process_updates( sawman, wm_data, DSFLIP_NONE );
 

@@ -44,6 +44,10 @@
 
 #include "isawman.h"
 
+
+D_DEBUG_DOMAIN( SaWMan_Update, "SaWMan/Update", "SaWMan window manager updates" );
+
+
 /* FIXME: avoid globals */
 static SaWMan        *m_sawman;
 static SaWManProcess *m_process;
@@ -846,11 +850,10 @@ sawman_update_window( SaWMan              *sawman,
      D_ASSERT( stack != NULL );
      D_ASSERT( window != NULL );
 
+     D_DEBUG_AT( SaWMan_Update, "%s( %p, %p )\n", __FUNCTION__, sawwin, region );
+
      if (!SAWMAN_VISIBLE_WINDOW(window) && !force_invisible)
           return DFB_OK;
-
-     while (sawwin->parent)
-          sawwin = sawwin->parent;
 
      /* Make sure window is inserted. */
      if (!(sawwin->flags & SWMWF_INSERTED))
@@ -907,7 +910,7 @@ sawman_update_window( SaWMan              *sawman,
      if (!dfb_unsafe_region_intersect( &area, 0, 0, tier->size.w - 1, tier->size.h - 1 ))
           return DFB_OK;
 
-     if (force_complete || sawwin->children.count)
+     if (force_complete/* || sawwin->children.count*/)
           dfb_updates_add( &tier->updates, &area );
      else
           wind_of_change( sawman, tier, &area, flags,
@@ -1235,11 +1238,21 @@ sawman_update_geometry( SaWManWindow *sawwin )
 {
      int           i;
      CoreWindow   *window;
+     SaWMan       *sawman;
      SaWManWindow *parent;
      SaWManWindow *child;
      DFBRegion     clip;
+     DFBRectangle  src;
+     DFBRectangle  dst;
+     bool          src_updated = false;
+     bool          dst_updated = false;
 
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
+
+     D_DEBUG_AT( SaWMan_Update, "%s( %p )\n", __FUNCTION__, sawwin );
+
+     sawman = sawwin->sawman;
+     D_MAGIC_ASSERT_IF( sawman, SaWMan );
 
      window = sawwin->window;
      D_ASSERT( window != NULL );
@@ -1247,7 +1260,7 @@ sawman_update_geometry( SaWManWindow *sawwin )
      parent = sawwin->parent;
      D_MAGIC_ASSERT_IF( parent, SaWManWindow );
 
-
+     /* Update source geometry. */
      clip.x1 = 0;
      clip.y1 = 0;
 
@@ -1264,21 +1277,38 @@ sawman_update_geometry( SaWManWindow *sawwin )
      }
 
      apply_geometry( &window->config.src_geometry, &clip,
-                     parent ? &parent->src : NULL, &sawwin->src );
+                     parent ? &parent->src : NULL, &src );
 
+     if (!DFB_RECTANGLE_EQUAL( src, sawwin->src )) {
+          sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, false, false, false );
 
+          sawwin->src = src;
+          src_updated = true;
+     }
+
+     /* Update destination geometry. */
      clip = DFB_REGION_INIT_FROM_RECTANGLE( &window->config.bounds );
 
      apply_geometry( &window->config.dst_geometry, &clip,
-                     parent ? &parent->dst : NULL, &sawwin->dst );
+                     parent ? &parent->dst : NULL, &dst );
+
+     if (!DFB_RECTANGLE_EQUAL( dst, sawwin->dst )) {
+          if (!src_updated)
+               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, false, false, false );
+
+          sawwin->dst = dst;
+          dst_updated = true;
+
+          sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, false, false, false );
+     }
 
 
      fusion_vector_foreach (child, i, sawwin->children) {
           window = child->window;
           D_ASSERT( window != NULL );
 
-          if (window->config.src_geometry.mode == DWGM_FOLLOW ||
-              window->config.dst_geometry.mode == DWGM_FOLLOW)
+          if ((window->config.src_geometry.mode == DWGM_FOLLOW && src_updated) ||
+              (window->config.dst_geometry.mode == DWGM_FOLLOW && dst_updated))
                sawman_update_geometry( child );
      }
 
@@ -1353,10 +1383,16 @@ wind_of_change( SaWMan              *sawman,
      window = sawwin->window;
      D_ASSERT( window != NULL );
 
+     D_DEBUG_AT( SaWMan_Update, "%s( %p, %d,%d-%dx%d, %d, %d )\n", __FUNCTION__,
+                 tier, DFB_RECTANGLE_VALS_FROM_REGION( update ), current, changed );
+
      /*
           got to the window that changed, redraw.
      */
      if (current == changed) {
+          D_DEBUG_AT( SaWMan_Update, "  -> adding update %d,%d-%dx%d\n",
+                      DFB_RECTANGLE_VALS_FROM_REGION( update ) );
+
           dfb_updates_add( &tier->updates, update );
      }
      else {
