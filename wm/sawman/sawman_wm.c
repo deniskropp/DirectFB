@@ -570,9 +570,6 @@ repaint_tier( SaWMan              *sawman,
           D_DEBUG_AT( SaWMan_Update, "  -> %d, %d - %dx%d  (%d)\n",
                       DFB_RECTANGLE_VALS_FROM_REGION( update ), i );
 
-//          direct_log_printf( NULL, "         -> REPAINT    %4d,%4d-%4dx%4d  (%d)\n",
-//                             DFB_RECTANGLE_VALS_FROM_REGION( update ), i );
-
           /* Set clipping region. */
           dfb_state_set_clip( state, update );
 
@@ -833,8 +830,6 @@ process_updates( SaWMan              *sawman,
                D_DEBUG_AT( SaWMan_Auto, "  -> Switching back from single mode...\n" );
 
                tier->border_only = !border_only;  /* enforce switch */
-
-               tier->single = NULL;
           }
 
           /* Switch border/default config? */
@@ -846,7 +841,11 @@ process_updates( SaWMan              *sawman,
                if (tier->active) {
                     tier->active = false;
                     dfb_layer_region_deactivate( tier->region );
+                    dfb_updates_reset( &tier->updates );
                }
+
+//               DFBRegion region = { 0, 0, 9999, 9999 };
+ //              dfb_updates_add( &tier->updates, &region );
 
                if (border_only)
                     dfb_layer_context_set_configuration( tier->context, &tier->border_config );
@@ -866,11 +865,11 @@ process_updates( SaWMan              *sawman,
 
                dfb_layer_region_activate( tier->region );
 
-               dfb_layer_context_set_src_colorkey( tier->context, tier->key.r, tier->key.g, tier->key.b );
-
                DFBRegion region = { 0, 0, tier->size.w - 1, tier->size.h - 1 };
                dfb_updates_add( &tier->updates, &region );
           }
+
+          tier->single = NULL;
 
           if (!tier->updates.num_regions)
                continue;
@@ -1765,6 +1764,39 @@ wm_resume( void *wm_data, void *shared_data )
      return DFB_OK;
 }
 
+static DFBResult
+wm_post_init( void *wm_data, void *shared_data )
+{
+     DFBResult   ret;
+     SaWMan     *sawman = shared_data;
+     SaWManTier *tier;
+
+     D_ASSERT( wm_data != NULL );
+     D_MAGIC_ASSERT( sawman, SaWMan );
+
+     /* Lock SaWMan. */
+     ret = sawman_lock( sawman );
+     if (ret)
+          return ret;
+
+     direct_list_foreach (tier, sawman->tiers) {
+          D_MAGIC_ASSERT( tier, SaWManTier );
+
+          ret = dfb_layer_context_get_configuration( tier->context, &tier->config );
+          if (ret)
+               D_DERROR( ret, "SaWMan/PostInit: Could not get configuration of layer context!\n" );
+
+          direct_log_printf( NULL, "Layer %d:  %dx%d, %s, options: %x\n",
+                             tier->layer_id, tier->config.width, tier->config.height,
+                             dfb_pixelformat_name( tier->config.pixelformat ), tier->config.options );
+     }
+
+     /* Unlock SaWMan. */
+     sawman_unlock( sawman );
+
+     return DFB_OK;
+}
+
 /**********************************************************************************************************************/
 
 static DFBResult
@@ -1978,8 +2010,6 @@ wm_resize_stack( CoreWindowStack *stack,
 
      tier->size.w = width;
      tier->size.h = height;
-
-     dfb_layer_context_get_configuration( tier->context, &tier->config );
 
      sawman_call( sawman, SWMCID_STACK_RESIZED, &tier->size );
 
@@ -2292,12 +2322,6 @@ wm_enum_windows( CoreWindowStack      *stack,
 }
 
 /**********************************************************************************************************************/
-
-static DFBResult
-wm_start_desktop( CoreWindowStack *stack)
-{
-     return DFB_OK;
-}
 
 static DFBResult
 wm_get_insets( CoreWindowStack *stack,
