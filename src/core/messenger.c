@@ -51,7 +51,7 @@ static const ReactionFunc fd_messenger_globals[] = {
 };
 
 static void
-messenger_destructor( FusionObject *object, bool zombie )
+messenger_destructor( FusionObject *object, bool zombie, void *ctx )
 {
      CoreMessenger *messenger = (CoreMessenger*) object;
 
@@ -75,7 +75,7 @@ fd_messenger_pool_create( const FusionWorld *world )
 {
      return fusion_object_pool_create( "Messenger", sizeof(CoreMessenger),
                                        sizeof(CoreMessengerNotification),
-                                       messenger_destructor, world );
+                                       messenger_destructor, NULL, world );
 }
 
 /**********************************************************************************************************************/

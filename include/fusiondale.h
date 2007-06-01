@@ -59,6 +59,16 @@ DECLARE_INTERFACE( IFusionDale )
 DECLARE_INTERFACE( IFusionDaleMessenger )
 
 /*
+ * Component manager.
+ */
+DECLARE_INTERFACE( IComa )
+
+/*
+ * Component.
+ */
+DECLARE_INTERFACE( IComaComponent )
+
+/*
  * Parses the command-line and initializes some variables. You absolutely need to
  * call this before doing anything else. Removes all options used by FusionDale from argv.
  */
@@ -127,7 +137,7 @@ DEFINE_INTERFACE( IFusionDale,
       */
      DFBResult (*CreateMessenger) (
           IFusionDale           *thiz,
-          IFusionDaleMessenger **ret_interface
+          IFusionDaleMessenger **ret_messenger
      );
 
      /*
@@ -135,7 +145,22 @@ DEFINE_INTERFACE( IFusionDale,
       */
      DFBResult (*GetMessenger) (
           IFusionDale           *thiz,
-          IFusionDaleMessenger **ret_interface
+          IFusionDaleMessenger **ret_messenger
+     );
+
+
+   /** Component Manager **/
+
+     /*
+      * Get an interface to a component manager.
+      *
+      * The <b>name</b> is a unique identifier.
+      * The component manager will be created if it doesn't exist.
+      */
+     DFBResult (*EnterComa) (
+          IFusionDale           *thiz,
+          const char            *name,
+          IComa                **ret_coma
      );
 )
 
@@ -221,6 +246,150 @@ DEFINE_INTERFACE( IFusionDaleMessenger,
      );
 )
 
+
+
+typedef unsigned long ComaMethodID;
+typedef unsigned long ComaNotificationID;
+
+typedef void (*ComaMethodFunc)  ( void               *ctx,
+                                  ComaMethodID        method,
+                                  void               *arg,
+                                  unsigned int        magic );
+
+typedef void (*ComaNotifyFunc)  ( void               *ctx,
+                                  ComaNotificationID  notification,
+                                  void               *arg );
+
+typedef void (*ComaListenerFunc)( void               *ctx,
+                                  void               *arg );
+
+typedef struct {
+     ComaNotificationID  id;
+     ComaNotifyFunc      func;
+     void               *ctx;
+} ComaNotificationInit;
+
+typedef struct {
+     ComaNotificationID  id;
+     ComaListenerFunc    func;
+     void               *ctx;
+} ComaListenerInit;
+
+
+/*
+ * <i><b>IComa</b></i> is a component manager.
+ */
+DEFINE_INTERFACE( IComa,
+
+   /** Components **/
+
+     DFBResult (*CreateComponent) (
+          IComa                    *thiz,
+          const char               *name,
+          ComaMethodFunc            func,
+          int                       num_notifications,
+          void                     *ctx,
+          IComaComponent          **ret_component
+     );
+
+     DFBResult (*GetComponent) (
+          IComa                    *thiz,
+          const char               *name,
+          unsigned int              timeout,
+          IComaComponent          **ret_component
+     );
+
+
+   /** Shared memory **/
+
+     DFBResult (*Allocate) (
+          IComa                    *thiz,
+          unsigned int              bytes,
+          void                    **ret_ptr
+     );
+
+     DFBResult (*Deallocate) (
+          IComa                    *thiz,
+          void                     *ptr
+     );
+
+
+   /** Thread local SHM **/
+
+     DFBResult (*GetLocal) (
+          IComa                    *thiz,
+          unsigned int              bytes,
+          void                    **ret_ptr
+     );
+
+     DFBResult (*FreeLocal) (
+          IComa                    *thiz
+     );
+)
+
+/*
+ * <i><b>IComaComponent</b></i> is a component.
+ */
+DEFINE_INTERFACE( IComaComponent,
+
+   /** Initialization **/
+
+     DFBResult (*InitNotification) (
+          IComaComponent           *thiz,
+          ComaNotificationID        id,
+          ComaNotifyFunc            func,
+          void                     *ctx
+     );
+
+     DFBResult (*InitNotifications) (
+          IComaComponent           *thiz,
+          ComaNotificationInit     *inits,
+          int                       num_inits
+     );
+
+
+   /** Methods **/
+
+     DFBResult (*Call) (
+          IComaComponent           *thiz,
+          ComaMethodID              method,
+          void                     *arg,
+          int                      *ret_val
+     );
+
+     DFBResult (*Return) (
+          IComaComponent           *thiz,
+          int                       val,
+          unsigned int              magic
+     );
+
+
+   /** Notifications **/
+
+     DFBResult (*Notify) (
+          IComaComponent           *thiz,
+          ComaNotificationID        id,
+          void                     *arg
+     );
+
+     DFBResult (*Listen) (
+          IComaComponent           *thiz,
+          ComaNotificationID        id,
+          ComaListenerFunc          func,
+          void                     *ctx
+     );
+
+     DFBResult (*InitListeners) (
+          IComaComponent           *thiz,
+          ComaListenerInit         *inits,
+          int                       num_inits
+     );
+
+     DFBResult (*Unlisten) (
+          IComaComponent           *thiz,
+          ComaNotificationID        id
+     );
+)
 
 #ifdef __cplusplus
 }

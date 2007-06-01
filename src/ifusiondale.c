@@ -37,6 +37,9 @@
 
 #include <messenger/ifusiondalemessenger.h>
 
+#include <coma/coma.h>
+#include <coma/icoma.h>
+
 #include "ifusiondale.h"
 
 
@@ -162,6 +165,37 @@ IFusionDale_GetMessenger( IFusionDale           *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IFusionDale_EnterComa( IFusionDale  *thiz,
+                       const char   *name,
+                       IComa       **ret_interface )
+{
+     DirectResult  ret;
+     Coma         *coma;
+     IComa        *interface;
+
+     DIRECT_INTERFACE_GET_DATA(IFusionDale)
+
+     /* Check arguments */
+     if (!name || !ret_interface)
+          return DFB_INVARG;
+
+     /* Enter the specified Coma. */
+     ret = coma_enter( fd_core_world( data->core ), name, &coma );
+     if (ret)
+          return ret;
+
+     DIRECT_ALLOCATE_INTERFACE( interface, IComa );
+
+     ret = IComa_Construct( interface, coma );
+     if (ret)
+          return ret;
+
+     *ret_interface = interface;
+
+     return DFB_OK;
+}
+
 DFBResult
 IFusionDale_Construct( IFusionDale *thiz )
 {
@@ -188,6 +222,7 @@ IFusionDale_Construct( IFusionDale *thiz )
      thiz->Release         = IFusionDale_Release;
      thiz->CreateMessenger = IFusionDale_CreateMessenger;
      thiz->GetMessenger    = IFusionDale_GetMessenger;
+     thiz->EnterComa       = IFusionDale_EnterComa;
 
      return DFB_OK;
 }

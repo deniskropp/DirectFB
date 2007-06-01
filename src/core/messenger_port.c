@@ -190,7 +190,7 @@ node_iterator( FusionHash *hash,
 }
 
 static void
-messenger_port_destructor( FusionObject *object, bool zombie )
+messenger_port_destructor( FusionObject *object, bool zombie, void *ctx )
 {
      CoreMessengerPort *port = (CoreMessengerPort*) object;
      CoreMessenger     *messenger;
@@ -228,7 +228,7 @@ fd_messenger_port_pool_create( const FusionWorld *world )
 {
      return fusion_object_pool_create( "Messenger Port", sizeof(CoreMessengerPort),
                                        sizeof(CoreMessengerPortNotification),
-                                       messenger_port_destructor, world );
+                                       messenger_port_destructor, NULL, world );
 }
 
 /**********************************************************************************************************************/

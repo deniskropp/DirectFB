@@ -155,6 +155,12 @@ fd_config_set( const char *name, const char *value )
      else if (!strcmp( name, "no-debugshm" )) {
           fusion_config->debugshm = false;
      }
+     else if (!strcmp( name, "debugmem" )) {
+          direct_config->debugmem = true;
+     }
+     else if (!strcmp( name, "no-debugmem" )) {
+          direct_config->debugmem = false;
+     }
      else
           return DFB_UNSUPPORTED;
 

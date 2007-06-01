@@ -110,9 +110,6 @@ DirectResult fd_messenger_port_send_event  ( CoreMessengerPort  *port,
                                              void               *data_ptr,
                                              unsigned int        data_size );
 
-DirectResult fd_messenger_port_remove_event( CoreMessengerPort  *port,
-                                             FDMessengerEventID  event_id );
-
 /*
  * Listeners
  */
