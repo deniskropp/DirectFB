@@ -1229,8 +1229,11 @@ apply_geometry( const DFBWindowGeometry *geometry,
                return;
      }
 
-     if (!dfb_rectangle_intersect_by_region( ret_rect, clip ))
+     if (!dfb_rectangle_intersect_by_region( ret_rect, clip )) {
           D_WARN( "invalid geometry" );
+          ret_rect->w = 1;
+          ret_rect->h = 1;
+     }
 }
                 
 DirectResult

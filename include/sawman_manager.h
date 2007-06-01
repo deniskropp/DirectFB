@@ -207,6 +207,8 @@ struct __SaWMan_SaWManTier {
      CoreLayerContext       *context;
      CoreLayerRegion        *region;
 
+     FusionSkirmish          context_lock;
+
      DFBDisplayLayerConfig   config;
      DFBColor                key;
 
@@ -471,6 +473,10 @@ int sawman_window_border( const SaWManWindow *sawwin );
 #define SAWMAN_VISIBLE_WINDOW(w)     ((!((w)->caps & (DWCAPS_INPUTONLY)) ||\
                                        !((w)->caps & (DWCAPS_NODECORATION))) && \
                                       (w)->config.opacity > 0 && !DFB_WINDOW_DESTROYED((w)))
+
+#define SAWMAN_TRANSLUCENT_WINDOW(w) ((w)->config.opacity < 0xff || \
+                                      (w)->config.options & (DWOP_ALPHACHANNEL | DWOP_COLORKEYING) ||\
+                                      (w)->config.dst_geometry.mode != DWGM_DEFAULT)
 
 #ifdef __cplusplus
 }

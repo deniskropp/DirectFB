@@ -490,7 +490,7 @@ update_region( SaWMan          *sawman,
                }
           }
           else {
-               if (TRANSLUCENT_WINDOW( window )) {
+               if (SAWMAN_TRANSLUCENT_WINDOW( window )) {
                     /* draw everything below */
                     update_region( sawman, tier, state, i-1, x1, y1, x2, y2 );
                }
@@ -714,6 +714,9 @@ process_updates( SaWMan              *sawman,
                       tier->updates.bounding.x2 - tier->updates.bounding.x1 + 1,
                       tier->updates.bounding.y2 - tier->updates.bounding.y1 + 1 );
 
+          if (!tier->config.width || !tier->config.height)
+               continue;
+
           single = get_single_window( sawman, tier, &none );
 
           if (none) {
@@ -771,6 +774,7 @@ process_updates( SaWMan              *sawman,
                     if (tier->active) {
                          tier->active = false;
                          dfb_layer_region_deactivate( tier->region );
+                         dfb_updates_reset( &tier->updates );
                     }
 
                     usleep( 10000 );
@@ -843,9 +847,6 @@ process_updates( SaWMan              *sawman,
                     dfb_layer_region_deactivate( tier->region );
                     dfb_updates_reset( &tier->updates );
                }
-
-//               DFBRegion region = { 0, 0, 9999, 9999 };
- //              dfb_updates_add( &tier->updates, &region );
 
                if (border_only)
                     dfb_layer_context_set_configuration( tier->context, &tier->border_config );
@@ -1786,10 +1787,15 @@ wm_post_init( void *wm_data, void *shared_data )
           if (ret)
                D_DERROR( ret, "SaWMan/PostInit: Could not get configuration of layer context!\n" );
 
+          tier->context_lock  = tier->context->lock;
+          tier->context->lock = sawman->lock;
+
           direct_log_printf( NULL, "Layer %d:  %dx%d, %s, options: %x\n",
                              tier->layer_id, tier->config.width, tier->config.height,
                              dfb_pixelformat_name( tier->config.pixelformat ), tier->config.options );
      }
+
+     process_updates( sawman, wm_data, DSFLIP_NONE );
 
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
@@ -1909,6 +1915,10 @@ wm_close_stack( CoreWindowStack *stack,
           sawman_unlock( sawman );
           return DFB_OK;
      }
+
+     D_ASSERT( tier->context != NULL );
+
+     tier->context->lock = tier->context_lock;
 
      tier->stack   = NULL;
      tier->context = NULL;
@@ -2031,6 +2041,7 @@ wm_process_input( CoreWindowStack     *stack,
      SaWManTier  *tier;
 
      D_ASSERT( stack != NULL );
+     D_ASSERT( stack->context != NULL );
      D_ASSERT( wm_data != NULL );
      D_ASSERT( stack_data != NULL );
      D_ASSERT( event != NULL );
@@ -2043,6 +2054,9 @@ wm_process_input( CoreWindowStack     *stack,
 
      D_DEBUG_AT( SaWMan_WM, "Processing input event (device %d, type 0x%08x, flags 0x%08x)...\n",
                    event->device_id, event->type, event->flags );
+
+     if (stack->context->layer_id != DLID_PRIMARY)
+          return DFB_OK;
 
      /* Lock SaWMan. */
      ret = sawman_lock( sawman );
