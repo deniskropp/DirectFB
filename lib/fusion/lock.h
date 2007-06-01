@@ -86,7 +86,8 @@ DirectResult fusion_skirmish_destroy( FusionSkirmish    *skirmish );
  *
  * Must be locked!
  */
-DirectResult fusion_skirmish_wait   ( FusionSkirmish    *skirmish );
+DirectResult fusion_skirmish_wait   ( FusionSkirmish    *skirmish,
+                                      unsigned int       timeout );
 DirectResult fusion_skirmish_notify ( FusionSkirmish    *skirmish );
 
 #endif

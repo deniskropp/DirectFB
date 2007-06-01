@@ -212,14 +212,22 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
 }
 
 DirectResult
-fusion_skirmish_wait( FusionSkirmish *skirmish )
+fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
 {
+     FusionSkirmishWait wait;
+
      D_ASSERT( skirmish != NULL );
 
-     while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_WAIT, &skirmish->multi.id)) {
+     wait.id      = skirmish->multi.id;
+     wait.timeout = timeout;
+
+     while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_WAIT, &wait)) {
           switch (errno) {
                case EINTR:
                     continue;
+
+               case ETIMEDOUT:
+                    return DFB_TIMEOUT;
 
                case EINVAL:
                     D_ERROR ("Fusion/Lock: invalid skirmish\n");
