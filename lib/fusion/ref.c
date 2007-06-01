@@ -405,8 +405,9 @@ fusion_ref_down (FusionRef *ref, bool global)
           FusionCall *call = ref->single.call;
 
           if (call->handler) {
+               int ret;
                pthread_mutex_unlock (&ref->single.lock);
-               call->handler( 0, ref->single.call_arg, NULL, call->ctx );
+               call->handler( 0, ref->single.call_arg, NULL, call->ctx, 0, &ret );
                return DFB_OK;
           }
      }

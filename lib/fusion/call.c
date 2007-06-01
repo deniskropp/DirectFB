@@ -283,17 +283,20 @@ fusion_call_execute (FusionCall          *call,
                      void                *call_ptr,
                      int                 *ret_val)
 {
-     int ret;
+     FusionCallHandlerResult ret;
+     int                     val = 0;
 
      D_ASSERT( call != NULL );
 
      if (!call->handler)
           return DFB_DESTROYED;
 
-     ret = call->handler( 1, call_arg, call_ptr, call->ctx );
+     ret = call->handler( 1, call_arg, call_ptr, call->ctx, 0, &val );
+     if (ret != FCHR_RETURN)
+          D_WARN( "only FCHR_RETURN supported in single app core at the moment" );
 
      if (ret_val)
-          *ret_val = ret;
+          *ret_val = val;
 
      return DFB_OK;
 }
