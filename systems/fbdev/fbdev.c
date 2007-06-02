@@ -1723,10 +1723,14 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
 
           switch (config->buffermode) {
                case DLBM_TRIPLE:
+                    if (shared->fix.ypanstep == 0 && shared->fix.ywrapstep == 0)
+                         return DFB_UNSUPPORTED;
                     vyres *= 3;
                     break;
 
                case DLBM_BACKVIDEO:
+                    if (shared->fix.ypanstep == 0 && shared->fix.ywrapstep == 0)
+                         return DFB_UNSUPPORTED;
                     vyres *= 2;
                     break;
 
