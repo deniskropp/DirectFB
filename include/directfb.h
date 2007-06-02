@@ -296,6 +296,16 @@ typedef struct {
 } DFBColor;
 
 /*
+ * A color defined by channels with 8bit each.
+ */
+typedef struct {
+     u8             a;   /* alpha channel */
+     u8             y;   /* luma channel */
+     u8             u;   /* chroma channel */
+     u8             v;   /* chroma channel */
+} DFBColorYUV;
+
+/*
  * Macro to compare two rectangles.
  */
 #define DFB_RECTANGLE_EQUAL(a,b)  ((a).x == (b).x &&  \
@@ -3767,6 +3777,49 @@ DEFINE_INTERFACE(   IDirectFBPalette,
      DFBResult (*CreateCopy) (
           IDirectFBPalette         *thiz,
           IDirectFBPalette        **ret_interface
+     );
+
+
+   /** YUV Palette **/
+
+     /*
+      * Write entries to the palette.
+      *
+      * Writes the specified number of entries to the palette at the
+      * specified offset.
+      */
+     DFBResult (*SetEntriesYUV) (
+          IDirectFBPalette         *thiz,
+          const DFBColorYUV        *entries,
+          unsigned int              num_entries,
+          unsigned int              offset
+     );
+
+     /*
+      * Read entries from the palette.
+      *
+      * Reads the specified number of entries from the palette at the
+      * specified offset.
+      */
+     DFBResult (*GetEntriesYUV) (
+          IDirectFBPalette         *thiz,
+          DFBColorYUV              *ret_entries,
+          unsigned int              num_entries,
+          unsigned int              offset
+     );
+
+     /*
+      * Find the best matching entry.
+      *
+      * Searches the map for an entry which best matches the specified color.
+      */
+     DFBResult (*FindBestMatchYUV) (
+          IDirectFBPalette         *thiz,
+          u8                        y,
+          u8                        u,
+          u8                        v,
+          u8                        a,
+          unsigned int             *ret_index
      );
 )
 

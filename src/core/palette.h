@@ -38,6 +38,7 @@ struct _CorePalette {
 
      unsigned int  num_entries;
      DFBColor     *entries;
+     DFBColorYUV  *entries_yuv;
 
      struct {
           int      index;

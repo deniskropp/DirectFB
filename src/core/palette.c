@@ -41,6 +41,8 @@
 #include <core/palette.h>
 #include <core/colorhash.h>
 
+#include <gfx/convert.h>
+
 #include <misc/util.h>
 
 static const u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
@@ -59,6 +61,9 @@ static void palette_destructor( FusionObject *object, bool zombie, void *ctx )
      D_DEBUG("DirectFB/core/palette: destroying %p (%d)%s\n", palette,
               palette->num_entries, zombie ? " (ZOMBIE)" : "");
 
+     D_ASSERT( palette->entries != NULL );
+     D_ASSERT( palette->entries_yuv != NULL );
+
      notification.flags   = CPNF_DESTROY;
      notification.palette = palette;
 
@@ -69,6 +74,7 @@ static void palette_destructor( FusionObject *object, bool zombie, void *ctx )
           dfb_colorhash_detach( palette );
      }
 
+     SHFREE( palette->shmpool, palette->entries_yuv );
      SHFREE( palette->shmpool, palette->entries );
 
      fusion_object_destroy( object );
@@ -110,6 +116,13 @@ dfb_palette_create( CoreDFB       *core,
                fusion_object_destroy( &palette->object );
                return D_OOSHM();
           }
+
+          palette->entries_yuv = SHCALLOC( palette->shmpool, size, sizeof(DFBColorYUV) );
+          if (!palette->entries_yuv) {
+               SHFREE( palette->shmpool, palette->entries );
+               fusion_object_destroy( &palette->object );
+               return D_OOSHM();
+          }
      }
 
      palette->num_entries = size;
@@ -141,6 +154,11 @@ dfb_palette_generate_rgb332_map( CorePalette *palette )
           palette->entries[i].r = lookup3to8[ (i & 0xE0) >> 5 ];
           palette->entries[i].g = lookup3to8[ (i & 0x1C) >> 2 ];
           palette->entries[i].b = lookup2to8[ (i & 0x03) ];
+
+          palette->entries_yuv[i].a = palette->entries[i].a;
+
+          RGB_TO_YCBCR( palette->entries[i].r, palette->entries[i].g, palette->entries[i].b,
+                        palette->entries_yuv[i].y, palette->entries_yuv[i].u, palette->entries_yuv[i].v );
      }
 
      dfb_palette_update( palette, 0, palette->num_entries - 1 );
@@ -161,6 +179,11 @@ dfb_palette_generate_rgb121_map( CorePalette *palette )
           palette->entries[i].r = (i & 0x8) ? 0xff : 0x00;
           palette->entries[i].g = lookup2to8[ (i & 0x6) >> 1 ];
           palette->entries[i].b = (i & 0x1) ? 0xff : 0x00;
+
+          palette->entries_yuv[i].a = palette->entries[i].a;
+
+          RGB_TO_YCBCR( palette->entries[i].r, palette->entries[i].g, palette->entries[i].b,
+                        palette->entries_yuv[i].y, palette->entries_yuv[i].u, palette->entries_yuv[i].v );
      }
 
      dfb_palette_update( palette, 0, palette->num_entries - 1 );
