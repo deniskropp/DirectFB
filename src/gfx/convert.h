@@ -162,6 +162,11 @@
                                       (((pixel) & 0x001E) >> 1) )
 
 
+#define ARGB4444_TO_RGB32(pixel)  ( (((pixel) & 0x0F00) << 12) | \
+                                    (((pixel) & 0x00F0) <<  8) | \
+                                    (((pixel) & 0x000F) <<  4) )
+
+
 #define RGB16_TO_RGB332(pixel) ( (((pixel) & 0xE000) >> 8) | \
                                  (((pixel) & 0x0700) >> 6) | \
                                  (((pixel) & 0x0018) >> 3) )
