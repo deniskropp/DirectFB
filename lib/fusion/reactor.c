@@ -735,18 +735,19 @@ _fusion_reactor_process_message( FusionWorld *world,
                continue;
 
           if (reaction->func( msg_data, reaction->ctx ) == RS_REMOVE) {
+               FusionReactorDetach detach;
+
+               detach.reactor_id = reactor_id;
+               detach.channel    = channel;
+
                D_DEBUG_AT( Fusion_Reactor, "    -> removing %p, func %p, ctx %p\n",
                            reaction, reaction->func, reaction->ctx );
-
-               /* FIXME: we can't do that when the underlying struct was freed before RS_REMOVE
-                  is returned, but this is not really required anyways, just for protection. */
-               //reaction->node_link = NULL;
 
                link->reaction = NULL;
 
                /* We can't remove the link as we only have read lock, to avoid dead locks. */
 
-               while (ioctl( world->fusion_fd, FUSION_REACTOR_DETACH, &reactor_id )) {
+               while (ioctl( world->fusion_fd, FUSION_REACTOR_DETACH, &detach )) {
                     switch (errno) {
                          case EINTR:
                               continue;
