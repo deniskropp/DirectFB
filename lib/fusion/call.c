@@ -59,7 +59,6 @@ fusion_call_init (FusionCall        *call,
      FusionCallNew call_new;
 
      D_ASSERT( call != NULL );
-     D_ASSERT( call->handler == NULL );
      D_ASSERT( handler != NULL );
      D_MAGIC_ASSERT( world, FusionWorld );
      D_MAGIC_ASSERT( world->shared, FusionWorldShared );
