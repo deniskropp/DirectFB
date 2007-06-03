@@ -9,7 +9,8 @@ INCLUDES = \
 
 AM_CPPFLAGS = \
 	-DMODULEDIR=\"@MODULEDIR@\"	\
-	-DSOPATH=\"@SOPATH@\"
+	-DSOPATH=\"@SOPATH@\"           \
+	-DSYSCONFDIR=\"@sysconfdir@\"
 
 internalincludedir = $(INTERNALINCLUDEDIR)/misc
 

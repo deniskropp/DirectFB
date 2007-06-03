@@ -1374,7 +1374,7 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
      config_allocate();
 
      /* Read system settings. */
-     ret = dfb_config_read( "/etc/directfbrc" );
+     ret = dfb_config_read( SYSCONFDIR"/directfbrc" );
      if (ret  &&  ret != DFB_IO)
           return ret;
 
@@ -1402,10 +1402,10 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
 
      /* Read global application settings. */
      if (prog && prog[0]) {
-          int  len = strlen("/etc/directfbrc.") + strlen(prog) + 1;
+          int  len = strlen( SYSCONFDIR"/directfbrc." ) + strlen(prog) + 1;
           char buf[len];
 
-          snprintf( buf, len, "/etc/directfbrc.%s", prog );
+          snprintf( buf, len, SYSCONFDIR"/directfbrc.%s", prog );
 
           ret = dfb_config_read( buf );
           if (ret  &&  ret != DFB_IO)
