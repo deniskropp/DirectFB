@@ -466,6 +466,33 @@ dfb_gfxcard_holdup()
 }
 
 /*
+ * Signal beginning of a sequence of operations using this state.
+ * Any number of states can be 'drawing'.
+ */
+void
+dfb_gfxcard_start_drawing( CoreGraphicsDevice *device, CardState *state )
+{
+     D_ASSERT( device != NULL );
+     D_MAGIC_ASSERT( state, CardState );
+
+     if (device->funcs.StartDrawing)
+          device->funcs.StartDrawing( device->driver_data, device->device_data, state );
+}
+
+/*
+ * Signal end of sequence, i.e. destination surface is consistent again.
+ */
+void
+dfb_gfxcard_stop_drawing( CoreGraphicsDevice *device, CardState *state )
+{
+     D_ASSERT( device != NULL );
+     D_MAGIC_ASSERT( state, CardState );
+
+     if (device->funcs.StopDrawing)
+          device->funcs.StopDrawing( device->driver_data, device->device_data, state );
+}
+
+/*
  * This function returns non zero if acceleration is available
  * for the specific function using the given state.
  */
@@ -762,6 +789,9 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
 
+     /* Signal beginning of sequence of operations if not already done. */
+     dfb_state_start_drawing( state, card );
+
      while (num > 0) {
           if (dfb_rectangle_region_intersects( rects, &state->clip ))
                break;
@@ -897,7 +927,11 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
      D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( rect != NULL );
 
+     /* The state is locked during graphics operations. */
      dfb_state_lock( state );
+
+     /* Signal beginning of sequence of operations if not already done. */
+     dfb_state_start_drawing( state, card );
 
      if (!dfb_rectangle_region_intersects( rect, &state->clip )) {
           dfb_state_unlock( state );
@@ -959,7 +993,11 @@ void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
      D_ASSERT( lines != NULL );
      D_ASSERT( num_lines > 0 );
 
+     /* The state is locked during graphics operations. */
      dfb_state_lock( state );
+
+     /* Signal beginning of sequence of operations if not already done. */
+     dfb_state_start_drawing( state, card );
 
      if (dfb_gfxcard_state_check( state, DFXL_DRAWLINE ) &&
          dfb_gfxcard_state_acquire( state, DFXL_DRAWLINE ))
@@ -1002,7 +1040,11 @@ void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *sta
      D_ASSERT( spans != NULL );
      D_ASSERT( num_spans > 0 );
 
+     /* The state is locked during graphics operations. */
      dfb_state_lock( state );
+
+     /* Signal beginning of sequence of operations if not already done. */
+     dfb_state_start_drawing( state, card );
 
      if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
          dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
@@ -1160,7 +1202,11 @@ void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
      D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( tri != NULL );
 
+     /* The state is locked during graphics operations. */
      dfb_state_lock( state );
+
+     /* Signal beginning of sequence of operations if not already done. */
+     dfb_state_start_drawing( state, card );
 
      /* if hardware has clipping try directly accelerated triangle filling */
      if ((card->caps.flags & CCF_CLIPPING) &&
@@ -1216,7 +1262,11 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      D_ASSERT( rect->x + rect->w - 1 < state->source->width );
      D_ASSERT( rect->y + rect->h - 1 < state->source->height );
 
+     /* The state is locked during graphics operations. */
      dfb_state_lock( state );
+
+     /* Signal beginning of sequence of operations if not already done. */
+     dfb_state_start_drawing( state, card );
 
      if (!dfb_clip_blit_precheck( &state->clip, rect->w, rect->h, dx, dy )) {
           /* no work at all */
@@ -1259,7 +1309,11 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
      D_ASSERT( points != NULL );
      D_ASSERT( num > 0 );
 
+     /* The state is locked during graphics operations. */
      dfb_state_lock( state );
+
+     /* Signal beginning of sequence of operations if not already done. */
+     dfb_state_start_drawing( state, card );
 
      if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
          dfb_gfxcard_state_acquire( state, DFXL_BLIT ))
@@ -1321,7 +1375,11 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
      D_ASSERT( rect->w >= 1 );
      D_ASSERT( rect->h >= 1 );
 
+     /* The state is locked during graphics operations. */
      dfb_state_lock( state );
+
+     /* Signal beginning of sequence of operations if not already done. */
+     dfb_state_start_drawing( state, card );
 
      clip = &state->clip;
 
@@ -1428,7 +1486,11 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
           return;
      }
 
+     /* The state is locked during graphics operations. */
      dfb_state_lock( state );
+
+     /* Signal beginning of sequence of operations if not already done. */
+     dfb_state_start_drawing( state, card );
 
      if (!dfb_clip_blit_precheck( &state->clip, drect->w, drect->h,
                                   drect->x, drect->y ))
@@ -1472,7 +1534,11 @@ void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
      D_ASSERT( num >= 3 );
      D_MAGIC_ASSERT( state, CardState );
 
+     /* The state is locked during graphics operations. */
      dfb_state_lock( state );
+
+     /* Signal beginning of sequence of operations if not already done. */
+     dfb_state_start_drawing( state, card );
 
      if ((card->caps.flags & CCF_CLIPPING) &&
          dfb_gfxcard_state_check( state, DFXL_TEXTRIANGLES ) &&
@@ -1591,6 +1657,13 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
           return;
      }
 
+     /* The state is locked during graphics operations. */
+     dfb_state_lock( state );
+
+     /* Signal beginning of sequence of operations if not already done. */
+     dfb_state_start_drawing( state, card );
+
+
      dfb_font_lock( font );
 
      /* Decode string to character indices. */
@@ -1698,6 +1771,8 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
      }
 
      dfb_font_unlock( font );
+
+     dfb_state_unlock( state );
 }
 
 void dfb_gfxcard_drawglyph( unsigned int index, int x, int y,
@@ -1716,6 +1791,12 @@ void dfb_gfxcard_drawglyph( unsigned int index, int x, int y,
      D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( font != NULL );
 
+     /* The state is locked during graphics operations. */
+     dfb_state_lock( state );
+
+     /* Signal beginning of sequence of operations if not already done. */
+     dfb_state_start_drawing( state, card );
+
      dfb_font_lock( font );
 
      ret = dfb_font_get_glyph_data (font, index, &data);
@@ -1723,22 +1804,16 @@ void dfb_gfxcard_drawglyph( unsigned int index, int x, int y,
           D_DEBUG_AT( Core_Graphics, "  -> dfb_font_get_glyph_data() failed! [%s]\n",
                       DirectFBErrorString( ret ) );
 
-     if (ret || !data->width) {
-          dfb_font_unlock( font );
-          return;
-     }
+     if (ret || !data->width)
+          goto out;
 
      x += data->left;
      y += data->top;
 
-     if (! dfb_clip_blit_precheck( &state->clip,
-                                   data->width, data->height, x, y )) {
-          dfb_font_unlock( font );
-          return;
-     }
+     if (! dfb_clip_blit_precheck( &state->clip, data->width, data->height, x, y ))
+          goto out;
 
      setup_font_state( font, state );
-
 
      /* set blitting source */
      dfb_state_set_source( &font->state, data->surface );
@@ -1766,7 +1841,10 @@ void dfb_gfxcard_drawglyph( unsigned int index, int x, int y,
           }
      }
 
+out:
      dfb_font_unlock( font );
+
+     dfb_state_unlock( state );
 }
 
 void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )

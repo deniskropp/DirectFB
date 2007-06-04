@@ -138,6 +138,21 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
           return DFB_INVAREA;
 
 
+     IDirectFBSurface_StopAll( &data->base );
+
+     if (data->base.parent) {
+          IDirectFBSurface_data *parent_data;
+
+          DIRECT_INTERFACE_GET_DATA_FROM( data->base.parent, parent_data, IDirectFBSurface );
+
+          /* Signal end of sequence of operations. */
+          dfb_state_lock( &parent_data->state );
+          dfb_state_stop_drawing( &parent_data->state );
+          dfb_state_unlock( &parent_data->state );
+     }
+
+
+
      dfb_region_from_rectangle( &reg, &data->base.area.current );
 
      if (region) {
@@ -229,13 +244,13 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
           dfb_rectangle_intersect( &granted, &data->base.area.granted );
           
           /* Construct */
-          ret = IDirectFBSurface_Window_Construct( *surface, &wanted, &granted,
+          ret = IDirectFBSurface_Window_Construct( *surface, thiz, &wanted, &granted,
                                                    data->window, data->base.caps |
                                                    DSCAPS_SUBSURFACE, data->base.core );
      }
      else {
           /* Construct */
-          ret = IDirectFBSurface_Window_Construct( *surface, NULL, NULL,
+          ret = IDirectFBSurface_Window_Construct( *surface, thiz, NULL, NULL,
                                                    data->window, data->base.caps |
                                                    DSCAPS_SUBSURFACE, data->base.core );
      }
@@ -245,6 +260,7 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
 
 DFBResult
 IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
+                                   IDirectFBSurface       *parent,
                                    DFBRectangle           *wanted,
                                    DFBRectangle           *granted,
                                    CoreWindow             *window,
@@ -260,7 +276,7 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      
      dfb_wm_get_insets( window->stack, window, &insets );
      
-     ret = IDirectFBSurface_Construct( thiz, wanted, granted, &insets,
+     ret = IDirectFBSurface_Construct( thiz, parent, wanted, granted, &insets,
                                        window->surface, caps, core );
      if (ret)
           return ret;

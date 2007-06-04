@@ -111,6 +111,9 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *re
           dfb_surfacemanager_unlock( source->manager );
      }
 
+     /* Signal end of sequence. */
+     dfb_state_stop_drawing( &copy_state );
+
      pthread_mutex_unlock( &copy_lock );
 }
 
@@ -161,6 +164,9 @@ dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region )
 
      dfb_surfacemanager_unlock( surface->manager );
 
+     /* Signal end of sequence. */
+     dfb_state_stop_drawing( &btf_state );
+
      pthread_mutex_unlock( &btf_lock );
 }
 
@@ -201,6 +207,9 @@ dfb_clear_depth( CoreSurface *surface, const DFBRegion *region )
      surface->back_buffer = tmp;
 
      dfb_surfacemanager_unlock( surface->manager );
+
+     /* Signal end of sequence. */
+     dfb_state_stop_drawing( &cd_state );
 
      pthread_mutex_unlock( &cd_lock );
 }

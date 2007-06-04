@@ -326,7 +326,7 @@ IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
 
           DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
-          ret = IDirectFBSurface_Window_Construct( *surface,
+          ret = IDirectFBSurface_Window_Construct( *surface, NULL,
                                                    NULL, NULL, data->window,
                                                    DSCAPS_DOUBLE, data->core );
           if (ret)

@@ -38,6 +38,7 @@
  * reallocates private data and overloads functions of the interface
  */
 DFBResult IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
+                                             IDirectFBSurface       *parent,
                                              DFBRectangle           *req_rect,
                                              DFBRectangle           *clip_rect,
                                              CoreWindow             *window,

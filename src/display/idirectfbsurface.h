@@ -43,6 +43,8 @@
  * private data struct of IDirectFBSurface
  */
 typedef struct {
+     DirectLink             link;
+
      int                    ref;             /* reference counter */
 
      DFBSurfaceCapabilities caps;            /* capabilities */
@@ -88,12 +90,17 @@ typedef struct {
      Reaction               reaction;
 
      CoreDFB               *core;
+
+     IDirectFBSurface      *parent;
+     DirectLink            *children_data;
+     pthread_mutex_t        children_lock;
 } IDirectFBSurface_data;
 
 /*
  * initializes interface struct and private data
  */
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface *thiz,
+                                      IDirectFBSurface *parent,
                                       DFBRectangle *req_rect,
                                       DFBRectangle *clip_rect,
                                       DFBInsets    *insets,
@@ -106,5 +113,9 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface *thiz,
  */
 void IDirectFBSurface_Destruct( IDirectFBSurface *thiz );
 
+/*
+ * internal
+ */
+void IDirectFBSurface_StopAll( IDirectFBSurface_data *data );
 
 #endif
