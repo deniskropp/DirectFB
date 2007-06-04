@@ -226,7 +226,7 @@ fd_config_init( int *argc, char **argv[] )
      config_allocate();
      
      /* Read system settings. */
-     ret = fd_config_read( "/etc/fusiondalerc" );
+     ret = fd_config_read( SYSCONFDIR"/fusiondalerc" );
      if (ret  &&  ret != DFB_IO)
           return ret;
           
@@ -254,10 +254,10 @@ fd_config_init( int *argc, char **argv[] )
 
      /* Read global application settings. */
      if (prog && prog[0]) {
-          int  len = sizeof("/etc/fusiondalerc.") + strlen(prog);
+          int  len = sizeof(SYSCONFDIR"/fusiondalerc.") + strlen(prog);
           char buf[len];
 
-          snprintf( buf, len, "/etc/fusiondalerc.%s", prog );
+          snprintf( buf, len, SYSCONFDIR"/fusiondalerc.%s", prog );
 
           ret = fd_config_read( buf );
           if (ret  &&  ret != DFB_IO)
