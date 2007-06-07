@@ -75,7 +75,14 @@ component_destructor( FusionObject *object, bool zombie, void *ctx )
      fusion_call_destroy( &component->method_call );
      fusion_call_destroy( &component->notify_call );
 
-     SHFREE( component->shmpool, component->notifications );
+     if (component->notifications) {
+          D_ASSERT( component->num_notifications > 0 );
+
+          SHFREE( component->shmpool, component->notifications );
+     }
+     else
+          D_ASSERT( component->num_notifications == 0 );
+
      SHFREE( component->shmpool, component->name );
 
      D_MAGIC_CLEAR( component );
@@ -175,13 +182,15 @@ coma_component_init( ComaComponent   *component,
      }
 
      /* Create notification table. */
-     component->notifications = SHCALLOC( component->shmpool, num_notifications, sizeof(ComaNotification) );
-     if (!component->notifications) {
-          ret = D_OOSHM();
-          goto error;
-     }
+     if (num_notifications) {
+          component->notifications = SHCALLOC( component->shmpool, num_notifications, sizeof(ComaNotification) );
+          if (!component->notifications) {
+               ret = D_OOSHM();
+               goto error;
+          }
 
-     component->num_notifications = num_notifications;
+          component->num_notifications = num_notifications;
+     }
 
      /* Remember creator. */
      component->provider = fusion_id( world );
