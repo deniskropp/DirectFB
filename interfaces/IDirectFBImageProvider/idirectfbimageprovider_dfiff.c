@@ -48,14 +48,12 @@
 
 #include <direct/debug.h>
 #include <direct/interface.h>
-#include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
-#include <core/surfaces.h>
+#include <idirectfb.h>
 
 #include <misc/gfx_util.h>
-
-#include <display/idirectfbsurface.h>
 
 #include <media/idirectfbdatabuffer.h>
 #include <media/idirectfbimageprovider.h>
@@ -131,73 +129,53 @@ IDirectFBImageProvider_DFIFF_RenderTo( IDirectFBImageProvider *thiz,
                                        const DFBRectangle     *dest_rect )
 {
      DFBResult              ret;
-     IDirectFBSurface_data *dst_data;
-     CoreSurface           *dst_surface;
-     DFBRectangle           rect;
+     IDirectFBSurface      *source;
+     DFBSurfaceDescription  desc;
+     DFBSurfaceCapabilities caps;
      const DFIFFHeader     *header;
 
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_DFIFF)
 
-     dst_data = (IDirectFBSurface_data*) destination->priv;
-     if (!dst_data)
-          return DFB_DEAD;
-
-     dst_surface = dst_data->surface;
-     if (!dst_surface)
-          return DFB_DESTROYED;
-
-     header = data->ptr;
-
-     if (dst_surface->format != header->format)
-          return DFB_UNSUPPORTED;
-
+     if (!destination)
+          return DFB_INVARG;
+          
      if (dest_rect) {
           if (dest_rect->w < 1 || dest_rect->h < 1)
                return DFB_INVARG;
-          rect = *dest_rect;
-          rect.x += dst_data->area.wanted.x;
-          rect.y += dst_data->area.wanted.y;
-     }
-     else {
-          rect = dst_data->area.wanted;
      }
 
-     /* actual rendering */
-     if (dfb_rectangle_intersect( &rect, &dst_data->area.current )) {
-          void *dptr, *dst, *src;
-          int   dpitch, spitch;
-          int   y;
-
-          if (rect.w != header->width || rect.h != header->height)
-               return DFB_UNSUPPORTED;
-
-          ret = dfb_surface_soft_lock( data->core, dst_surface, DSLF_WRITE, &dptr, &dpitch, 0 );
-          if (ret)
-               return ret;
-
-          dst = dptr + rect.y * dpitch + DFB_BYTES_PER_LINE( header->format, rect.x );
-          src = data->ptr + sizeof(DFIFFHeader);
-
-          spitch = header->pitch;
-
-          if (spitch == dpitch) {
-               direct_memcpy( dst, src, dpitch * rect.h );
-          }
-          else {
-               for (y=0; y<rect.h; y++) {
-                    direct_memcpy( dst, src, spitch );
-
-                    dst += dpitch;
-                    src += spitch;
-               }
-          }
-
-          dfb_surface_unlock( dst_surface, 0 );
-
-          if (data->render_callback)
-               data->render_callback( &rect, data->render_callback_context );
+     header = data->ptr;
+     
+     thiz->GetSurfaceDescription( thiz, &desc );
+     
+     desc.flags |= DSDESC_PREALLOCATED;   
+     desc.preallocated[0].data  = data->ptr + sizeof(DFIFFHeader);
+     desc.preallocated[0].pitch = header->pitch;
+     
+     ret = idirectfb_singleton->CreateSurface( idirectfb_singleton, &desc, &source );
+     if (ret)
+          return ret;
+          
+     destination->GetCapabilities( destination, &caps );
+     
+     if (caps & DSCAPS_PREMULTIPLIED && DFB_PIXELFORMAT_HAS_ALPHA(desc.pixelformat))
+          destination->SetBlittingFlags( destination, DSBLIT_SRC_PREMULTIPLY );
+     else
+          destination->SetBlittingFlags( destination, DSBLIT_NOFX );
+     
+     destination->StretchBlit( destination, source, NULL, dest_rect );
+     
+     destination->SetBlittingFlags( destination, DSBLIT_NOFX );
+     
+     destination->ReleaseSource( destination );
+     
+     if (data->render_callback) {
+          DFBRectangle rect = { 0, 0, desc.width, desc.height };
+          data->render_callback( &rect, data->render_callback_context );
      }
-
+     
+     source->Release( source );
+     
      return DFB_OK;
 }
 
