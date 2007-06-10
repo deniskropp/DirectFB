@@ -182,7 +182,7 @@ typedef struct {
 
 #define MAX_QUEUE_LEN        3 /* in seconds */
 
-#define GAP_TOLERANCE    15000 /* in microseconds */
+#define GAP_TOLERANCE    17000 /* in microseconds */
 
 #define GAP_THRESHOLD   500000 /* in microseconds */
 
@@ -569,7 +569,7 @@ FFmpegVideo( DirectThread *self, void *arg )
 
      while (data->status != DVSTATE_STOP) {
           AVPacket        pkt;
-          struct timespec time;
+          struct timespec time, now;
           int             done = 0;
           
           getclock( &time );
@@ -619,7 +619,9 @@ FFmpegVideo( DirectThread *self, void *arg )
                
                if (framecnt)
                     duration = (data->video.pts - firtspts) / framecnt;
-               length = (double)duration / data->speed;
+               length = duration;
+               if (data->speed != 1.0)
+                    length = (double)length / data->speed;
                
                delay = data->video.pts - get_stream_clock(data);
                if (delay > -GAP_THRESHOLD && delay < +GAP_THRESHOLD)
@@ -631,10 +633,18 @@ FFmpegVideo( DirectThread *self, void *arg )
                time.tv_sec  += (time.tv_nsec/1000000000);
                time.tv_nsec %= 1000000000;
                
-               pthread_cond_timedwait( &data->video.cond,
-                                       &data->video.lock, &time );
-                                       
-               drop = (delay <= -GAP_THRESHOLD);
+               getclock( &now );
+               if (time.tv_sec > now.tv_sec ||
+                  (time.tv_sec == now.tv_sec && time.tv_nsec > now.tv_nsec)) {
+                    pthread_cond_timedwait( &data->video.cond,
+                                            &data->video.lock, &time );
+                    drop = false;
+               }
+               else {
+                    delay = (now.tv_sec  - time.tv_sec ) * 1000000 +
+                            (now.tv_nsec - time.tv_nsec) / 1000;
+                    drop = (delay >= duration);
+               }
           }
 
           pthread_mutex_unlock( &data->video.lock );
@@ -698,7 +708,7 @@ FFmpegAudio( DirectThread *self, void *arg )
                data->audio.pts = av_rescale_q( pkt.pts,
                                                st->time_base, AV_TIME_BASE_Q ); 
           }
-          else if (size) {
+          else if (size && data->audio.pts != -1) {
                data->audio.pts += (s64)size * AV_TIME_BASE / data->audio.sample_rate;
           }
                
@@ -1459,7 +1469,7 @@ Construct( IDirectFBVideoProvider *thiz,
                          data->video.st = data->context->streams[i];
                     break;
                case CODEC_TYPE_AUDIO:
-                    if (!data->audio.st || 
+                    if (!data->audio.st ||
                          data->audio.st->codec->bit_rate <
                          data->context->streams[i]->codec->bit_rate)
                          data->audio.st = data->context->streams[i];
