@@ -1099,8 +1099,7 @@ Construct( IDirectFBVideoProvider *thiz,
      if (!data->ao) {
           D_ERROR( "DirectFB/VideoProvider_Xine: "
                    "failed to load audio driver.\n" );
-          IDirectFBVideoProvider_Xine_Destruct( thiz );
-          return DFB_FAILURE;
+          data->ao = xine_open_audio_driver( data->xine, "none", NULL );
      }
      
      /* create a new stream */
