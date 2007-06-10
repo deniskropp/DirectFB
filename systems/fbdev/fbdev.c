@@ -2457,7 +2457,9 @@ fbdev_ioctl_call_handler( int           caller,
           }
      }
 
-     return ret;
+     *ret_val = ret;
+
+     return FCHR_RETURN;
 }
 
 static int
