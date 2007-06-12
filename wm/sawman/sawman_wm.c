@@ -734,7 +734,7 @@ process_updates( SaWMan              *sawman,
 
           border_only = get_border_only( sawman, tier );
 
-          if (single) {
+          if (single && !border_only) {
                CoreWindow             *window;
                CoreSurface            *surface;
                DFBDisplayLayerOptions  options;
@@ -2629,9 +2629,9 @@ wm_add_window( CoreWindowStack *stack,
                return ret;
 
           window->config.bounds = parent->window->config.bounds;
-
-          sawman_update_geometry( sawwin );
      }
+
+     sawman_update_geometry( sawwin );
 
      process_updates( wmdata->sawman, wm_data, DSFLIP_NONE );
 

@@ -602,7 +602,9 @@ sawman_draw_window( SaWManWindow *sawwin,
                                window->config.bounds.x + border,
                                window->config.bounds.y + border,
                                window->config.bounds.x + window->config.bounds.w - border - 1,
-                               window->config.bounds.y + window->config.bounds.h - border - 1 ))
+                               window->config.bounds.y + window->config.bounds.h - border - 1 ) &&
+         dfb_region_rectangle_intersect( region, &sawwin->dst )
+         )
           draw_window( sawwin, state, region, alpha_channel );
 
 
