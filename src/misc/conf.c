@@ -210,7 +210,7 @@ static const FormatString format_strings[] = {
      { "YV12",     DSPF_YV12     },
 };
 
-#define NUM_FORMAT_STRINGS (sizeof(format_strings) / sizeof(FormatString))
+#define NUM_FORMAT_STRINGS D_ARRAY_SIZE(format_strings)
 
 static const FormatString font_format_strings[] = {
      { "A1",       DSPF_A1       },
@@ -224,7 +224,7 @@ static const FormatString font_format_strings[] = {
      { "LUT2",     DSPF_LUT2     }
 };
 
-#define NUM_FONT_FORMAT_STRINGS (sizeof(font_format_strings) / sizeof(FormatString))
+#define NUM_FONT_FORMAT_STRINGS D_ARRAY_SIZE(font_format_strings)
 
 /* serial mouse device names */
 #define DEV_NAME     "/dev/mouse"
