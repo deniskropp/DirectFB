@@ -130,6 +130,7 @@ static const char *config_usage =
      "  layer-bg-image=<filename>      Use background image\n"
      "  layer-bg-tile=<filename>       Use tiled background image\n"
      "  layer-src-key=AARRGGBB         Enable color keying (hex)\n"
+     "  layer-palette-<index>=AARRGGBB Set palette entry at index (hex)\n"
      "  [no-]smooth-upscale            Enable/disable smooth upscaling per default\n"
      "  [no-]smooth-downscale          Enable/disable smooth downscaling per default\n"
      "  [no-]translucent-windows       Allow translucent windows\n"
@@ -228,6 +229,9 @@ static const FormatString font_format_strings[] = {
 /* serial mouse device names */
 #define DEV_NAME     "/dev/mouse"
 #define DEV_NAME_GPM "/dev/gpmdata"
+
+static const u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
+static const u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff };
 
 static int
 format_string_compare (const void *key,
@@ -339,7 +343,7 @@ static void config_cleanup()
  */
 static void config_allocate()
 {
-     int i;
+     int i, n;
 
      if (dfb_config)
           return;
@@ -352,6 +356,15 @@ static void config_allocate()
           dfb_config->layers[i].background.color.g = 0;
           dfb_config->layers[i].background.color.b = 0;
           dfb_config->layers[i].background.mode    = DLBM_COLOR;
+
+          D_ASSERT( D_ARRAY_SIZE(dfb_config->layers[i].palette) == 256 );
+
+          for (n=0; n<256; n++) {
+               dfb_config->layers[i].palette[n].a = i ? 0xff : 0x00;
+               dfb_config->layers[i].palette[n].r = lookup3to8[ (i & 0xE0) >> 5 ];
+               dfb_config->layers[i].palette[n].g = lookup3to8[ (i & 0x1C) >> 2 ];
+               dfb_config->layers[i].palette[n].b = lookup2to8[ (i & 0x03) ];
+          }
      }
 
      dfb_config->layers[0].init               = true;
@@ -1192,6 +1205,46 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR( "DirectFB/Config '%s': Missing value!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strncmp (name, "layer-palette-", 14 ) == 0) {
+          int             index;
+          char           *error;
+          DFBConfigLayer *conf = dfb_config->config_layer;
+
+          index = strtoul( name + 14, &error, 10 );
+
+          if (*error) {
+               D_ERROR( "DirectFB/Config '%s': Error in index '%s'!\n", name, error );
+               return DFB_INVARG;
+          }
+
+          if (index < 0 || index > D_ARRAY_SIZE(conf->palette)) {
+               D_ERROR("DirectFB/Config '%s': Index %d out of bounds!\n", name, index);
+               return DFB_INVARG;
+          }
+
+          if (value) {
+               char *error;
+               u32   argb;
+
+               argb = strtoul( value, &error, 16 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in color '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               conf->palette[index].a = (argb & 0xFF000000) >> 24;
+               conf->palette[index].r = (argb & 0xFF0000) >> 16;
+               conf->palette[index].g = (argb & 0xFF00) >> 8;
+               conf->palette[index].b = (argb & 0xFF);
+
+               conf->palette_set = true;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No color specified!\n", name );
                return DFB_INVARG;
           }
      } else

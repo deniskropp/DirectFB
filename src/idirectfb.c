@@ -179,8 +179,14 @@ IDirectFB_Destruct( IDirectFB *thiz )
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
 
      for (i=0; i<MAX_LAYERS; i++) {
-          if (data->layers[i].context)
+          if (data->layers[i].context) {
+               if (data->layers[i].palette)
+                    dfb_palette_unref( data->layers[i].palette );
+
+               dfb_surface_unref( data->layers[i].surface );
+               dfb_layer_region_unref( data->layers[i].region );
                dfb_layer_context_unref( data->layers[i].context );
+          }
      }
 
      if (data->primary.context)
@@ -1414,6 +1420,35 @@ LoadBackgroundImage( IDirectFB       *dfb,
 }
 
 static DFBResult
+InitLayerPalette( IDirectFB_data    *data,
+                  DFBConfigLayer    *conf,
+                  CoreSurface       *surface,
+                  CorePalette      **ret_palette )
+{
+     DFBResult    ret;
+     CorePalette *palette;
+
+     ret = dfb_palette_create( data->core, 256, &palette );
+     if (ret) {
+          D_DERROR( ret, "InitLayerPalette: Could not create palette!\n" );
+          return ret;
+     }
+
+     direct_memcpy( palette->entries, conf->palette, sizeof(DFBColor) * 256 );
+
+     ret = dfb_surface_set_palette( surface, palette );
+     if (ret) {
+          D_DERROR( ret, "InitLayerPalette: Could not set palette!\n" );
+          dfb_palette_unref( palette );
+          return ret;
+     }
+
+     *ret_palette = palette;
+
+     return DFB_OK;
+}
+
+static DFBResult
 InitLayers( IDirectFB      *dfb,
             IDirectFB_data *data )
 {
@@ -1497,6 +1532,24 @@ InitLayers( IDirectFB      *dfb,
                ret = dfb_layer_context_get_configuration( context, &conf->config );
                D_ASSERT( ret == DFB_OK );
 
+               ret = dfb_layer_context_get_primary_region( context, true, &data->layers[i].region );
+               if (ret) {
+                    D_DERROR( ret, "InitLayers: Could not get primary region of layer %d!\n", i );
+                    dfb_layer_context_unref( context );
+                    goto error;
+               }
+
+               ret = dfb_layer_region_get_surface( data->layers[i].region, &data->layers[i].surface );
+               if (ret) {
+                    D_DERROR( ret, "InitLayers: Could not get surface of primary region of layer %d!\n", i );
+                    dfb_layer_region_unref( data->layers[i].region );
+                    dfb_layer_context_unref( context );
+                    goto error;
+               }
+
+               if (conf->palette_set)
+                    InitLayerPalette( data, conf, data->layers[i].surface, &data->layers[i].palette );
+
                dfb_layer_context_set_src_colorkey( context, conf->src_key.r, conf->src_key.g, conf->src_key.b );
 
                switch (conf->background.mode) {
@@ -1531,7 +1584,13 @@ InitLayers( IDirectFB      *dfb,
 error:
      for (i=num-1; i>=0; i--) {
           if (data->layers[i].context) {
+               if (data->layers[i].palette)
+                    dfb_palette_unref( data->layers[i].palette );
+
+               dfb_surface_unref( data->layers[i].surface );
+               dfb_layer_region_unref( data->layers[i].region );
                dfb_layer_context_unref( data->layers[i].context );
+
                data->layers[i].context = NULL;
           }
      }

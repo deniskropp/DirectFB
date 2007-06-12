@@ -50,6 +50,9 @@ typedef struct {
      } background;
 
      DFBWindowStackingClass              stacking;
+
+     DFBColor                            palette[256];
+     bool                                palette_set;
 } DFBConfigLayer;
 
 typedef struct

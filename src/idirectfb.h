@@ -66,6 +66,9 @@ typedef struct {
      struct {
           CoreLayer             *layer;
           CoreLayerContext      *context;
+          CoreLayerRegion       *region;
+          CoreSurface           *surface;
+          CorePalette           *palette;
      } layers[MAX_LAYERS];
 } IDirectFB_data;
 
