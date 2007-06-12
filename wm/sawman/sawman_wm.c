@@ -55,6 +55,7 @@
 #include <core/layer_context.h>
 #include <core/layer_region.h>
 #include <core/layers_internal.h>
+#include <core/screen.h>
 #include <core/surfaces.h>
 #include <core/palette.h>
 #include <core/windows.h>
@@ -738,6 +739,32 @@ process_updates( SaWMan              *sawman,
                CoreSurface            *surface;
                DFBDisplayLayerOptions  options;
                DFBLocation             location;
+               CoreLayer              *layer;
+               int                     screen_width;
+               int                     screen_height;
+               DFBRectangle            rect;
+
+               layer = dfb_layer_at( tier->layer_id );
+
+               dfb_screen_get_screen_size( layer->screen, &screen_width, &screen_height );
+
+               if (tier->size.w == screen_width && tier->size.h == screen_height)
+                    rect = single->dst;
+               else {
+                    rect.x = single->dst.x * screen_width  / tier->size.w;
+                    rect.y = single->dst.y * screen_height / tier->size.h;
+                    rect.w = single->dst.w * screen_width  / tier->size.w;
+                    rect.h = single->dst.h * screen_height / tier->size.h;
+               }
+
+               if (rect.w < single->src.w)
+                    goto no_single;
+
+               location.x = (float) single->dst.x / (float) tier->size.w;
+               location.y = (float) single->dst.y / (float) tier->size.h;
+               location.w = (float) single->dst.w / (float) tier->size.w;
+               location.h = (float) single->dst.h / (float) tier->size.h;
+
 
                window = single->window;
                D_ASSERT( window != NULL );
@@ -747,20 +774,16 @@ process_updates( SaWMan              *sawman,
 
                options = (window->config.options & DWOP_COLORKEYING) ? DLOP_SRC_COLORKEY : DLOP_NONE;
 
-               location.x = (float) single->dst.x / (float) tier->size.w;
-               location.y = (float) single->dst.y / (float) tier->size.h;
-               location.w = (float) single->dst.w / (float) tier->size.w;
-               location.h = (float) single->dst.h / (float) tier->size.h;
-
                if (tier->single         == NULL ||
                    tier->single_width   != single->src.w ||
                    tier->single_height  != single->src.h ||
                    tier->single_format  != surface->format ||
                    tier->single_options != options)
                {
-                    DFBDisplayLayerConfig config;
+                    DFBDisplayLayerConfig  config;
 
-                    D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d single mode...\n", single->src.w, single->src.h );
+                    D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d %s single mode...\n",
+                                single->src.w, single->src.h, dfb_pixelformat_name( surface->format ) );
 
                     tier->single          = single;
                     tier->single_width    = single->src.w;
@@ -777,8 +800,6 @@ process_updates( SaWMan              *sawman,
                          dfb_updates_reset( &tier->updates );
                     }
 
-                    usleep( 10000 );
-
                     config.flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_OPTIONS | DLCONF_BUFFERMODE;
                     config.width       = single->src.w;
                     config.height      = single->src.h;
@@ -788,7 +809,7 @@ process_updates( SaWMan              *sawman,
 
                     dfb_layer_context_set_configuration( tier->context, &config );
 
-                    dfb_layer_context_set_screenlocation( tier->context, &location );
+                    dfb_layer_context_set_screenrectangle( tier->context, &rect );
 
                     if (options & DLOP_SRC_COLORKEY)
                          dfb_layer_context_set_src_colorkey( tier->context,
@@ -814,7 +835,7 @@ process_updates( SaWMan              *sawman,
 
                     D_DEBUG_AT( SaWMan_Auto, "  -> Changing single destination.\n" );
 
-                    dfb_layer_context_set_screenlocation( tier->context, &location );
+                    dfb_layer_context_set_screenrectangle( tier->context, &rect );
                }
 
                DFBRectangle src = single->src;
@@ -830,7 +851,10 @@ process_updates( SaWMan              *sawman,
                dfb_updates_reset( &tier->updates );
                continue;
           }
-          else if (tier->single) {
+
+no_single:
+
+          if (tier->single) {
                D_DEBUG_AT( SaWMan_Auto, "  -> Switching back from single mode...\n" );
 
                tier->border_only = !border_only;  /* enforce switch */
@@ -838,9 +862,17 @@ process_updates( SaWMan              *sawman,
 
           /* Switch border/default config? */
           if (tier->border_only != border_only) {
+               const DFBDisplayLayerConfig *config;
+
                tier->border_only = border_only;
 
-               D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %s mode.\n", border_only ? "border" : "standard" );
+               if (border_only)
+                    config = &tier->border_config;
+               else
+                    config = &tier->config;
+
+               D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d %s %s mode.\n", config->width, config->height,
+                           dfb_pixelformat_name( config->pixelformat ), border_only ? "border" : "standard" );
 
                if (tier->active) {
                     tier->active = false;
@@ -848,10 +880,10 @@ process_updates( SaWMan              *sawman,
                     dfb_updates_reset( &tier->updates );
                }
 
-               if (border_only)
-                    dfb_layer_context_set_configuration( tier->context, &tier->border_config );
-               else
-                    dfb_layer_context_set_configuration( tier->context, &tier->config );
+               dfb_layer_context_set_configuration( tier->context, config );
+
+               tier->size.w = config->width;
+               tier->size.h = config->height;
 
                DFBLocation location = { 0, 0, 1, 1 };
                dfb_layer_context_set_screenlocation( tier->context, &location );
@@ -1781,6 +1813,8 @@ wm_post_init( void *wm_data, void *shared_data )
           return ret;
 
      direct_list_foreach (tier, sawman->tiers) {
+          const SaWManBorderInit *border;
+
           D_MAGIC_ASSERT( tier, SaWManTier );
 
           ret = dfb_layer_context_get_configuration( tier->context, &tier->config );
@@ -1790,9 +1824,29 @@ wm_post_init( void *wm_data, void *shared_data )
           tier->context_lock  = tier->context->lock;
           tier->context->lock = sawman->lock;
 
-          direct_log_printf( NULL, "Layer %d:  %dx%d, %s, options: %x\n",
+          direct_log_printf( NULL, "Layer  %d:  %dx%d, %s, options: %x\n",
                              tier->layer_id, tier->config.width, tier->config.height,
                              dfb_pixelformat_name( tier->config.pixelformat ), tier->config.options );
+
+
+          border = &sawman_config->borders[(tier->classes & SWMSC_LOWER)  ? 0 :
+                                           (tier->classes & SWMSC_MIDDLE) ? 1 : 2];
+
+          tier->border_config = tier->config;
+
+          if (border->resolution.w && border->resolution.h) {
+               tier->border_config.width  = border->resolution.w;
+               tier->border_config.height = border->resolution.h;
+          }
+
+          if (border->format)
+               tier->border_config.pixelformat = border->format;
+
+          tier->border_config.options = DLOP_SRC_COLORKEY;
+
+          direct_log_printf( NULL, "Border %d:  %dx%d, %s, options: %x\n",
+                             tier->layer_id, tier->border_config.width, tier->border_config.height,
+                             dfb_pixelformat_name( tier->border_config.pixelformat ), tier->border_config.options );
      }
 
      process_updates( sawman, wm_data, DSFLIP_NONE );
@@ -1816,7 +1870,6 @@ wm_init_stack( CoreWindowStack *stack,
      SaWMan           *sawman;
      SaWManTier       *tier;
      CoreLayerContext *context;
-     const SaWManBorderInit *border;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
@@ -1851,25 +1904,6 @@ wm_init_stack( CoreWindowStack *stack,
      tier->size.w  = stack->width;
      tier->size.h  = stack->height;
      tier->active  = true;
-
-     border = &sawman_config->borders[(tier->classes & SWMSC_LOWER)  ? 0 :
-                                      (tier->classes & SWMSC_MIDDLE) ? 1 : 2];
-
-     if (border->resolution.w && border->resolution.h) {
-          tier->border_config.flags |= DLCONF_WIDTH | DLCONF_HEIGHT;
-
-          tier->border_config.width  = border->resolution.w;
-          tier->border_config.height = border->resolution.h;
-     }
-
-     if (border->format) {
-          tier->border_config.flags |= DLCONF_PIXELFORMAT;
-
-          tier->border_config.pixelformat = border->format;
-     }
-
-     tier->border_config.flags   |= DLCONF_OPTIONS;
-     tier->border_config.options  = DLOP_SRC_COLORKEY;
 
      ret = dfb_layer_context_get_primary_region( context, true, &tier->region );
      if (ret) {
@@ -2583,7 +2617,21 @@ wm_add_window( CoreWindowStack *stack,
                break;
      }
 
-     sawman_update_geometry( sawwin );
+     if (ret == DFB_OK && sawwin->parent) {
+          SaWManWindow *parent = sawwin->parent;
+
+          D_MAGIC_ASSERT( parent, SaWManWindow );
+          D_ASSERT( parent->window != NULL );
+          D_ASSERT( parent->id == window->parent_id );
+
+          ret = fusion_vector_add( &parent->children, sawwin );
+          if (ret)
+               return ret;
+
+          window->config.bounds = parent->window->config.bounds;
+
+          sawman_update_geometry( sawwin );
+     }
 
      process_updates( wmdata->sawman, wm_data, DSFLIP_NONE );
 
@@ -2637,11 +2685,23 @@ wm_remove_window( CoreWindowStack *stack,
                ret = DFB_OK;
 
           case DFB_OK:
+               D_ASSERT( sawwin->children.count == 0 );
+
                /* Actually remove the window from the stack. */
                if (sawwin->flags & SWMWF_INSERTED)
                     sawman_remove_window( sawman, sawwin );
                else
                     sawman_withdraw_window( sawman, sawwin );
+
+               /* Remove from parent window. */
+               if (sawwin->parent) {
+                    SaWManWindow *parent = sawwin->parent;
+
+                    D_MAGIC_ASSERT( parent, SaWManWindow );
+
+                    fusion_vector_remove( &parent->children, fusion_vector_index_of( &parent->children, sawwin ) );
+                    sawwin->parent = NULL;
+               }
 
                D_MAGIC_CLEAR( sawwin );
                break;
@@ -2795,12 +2855,12 @@ wm_set_window_config( CoreWindow             *window,
                D_ASSERT( sawwin->parent );
 
                if (config->options & DWOP_KEEP_ABOVE) {
-                    D_ASSERT( sawman_window_priority(sawwin->parent) < sawman_window_priority(sawwin) );
+                    D_ASSERT( sawman_window_priority(sawwin->parent) <= sawman_window_priority(sawwin) );
 
                     sawman_insert_window( sawman, sawwin, sawwin->parent, true );
                }
                else {
-                    D_ASSERT( sawman_window_priority(sawwin->parent) > sawman_window_priority(sawwin) );
+                    D_ASSERT( sawman_window_priority(sawwin->parent) >= sawman_window_priority(sawwin) );
 
                     sawman_insert_window( sawman, sawwin, sawwin->parent, false );
                }

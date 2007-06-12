@@ -45,7 +45,8 @@
 #include "isawman.h"
 
 
-D_DEBUG_DOMAIN( SaWMan_Update, "SaWMan/Update", "SaWMan window manager updates" );
+D_DEBUG_DOMAIN( SaWMan_Update,   "SaWMan/Update",   "SaWMan window manager updates" );
+D_DEBUG_DOMAIN( SaWMan_Geometry, "SaWMan/Geometry", "SaWMan window manager geometry" );
 
 
 /* FIXME: avoid globals */
@@ -777,7 +778,7 @@ sawman_switch_focus( SaWMan       *sawman,
      }
 
      if (to) {
-          CoreWindow *window = to->window;
+/*          CoreWindow *window = to->window;
 
           D_ASSERT( window != NULL );
 
@@ -793,7 +794,7 @@ sawman_switch_focus( SaWMan       *sawman,
                     dfb_surface_unref( surface );
                }
           }
-
+*/
           evt.type = DWET_GOTFOCUS;
 
           sawman_post_event( sawman, to, &evt );
@@ -1203,21 +1204,30 @@ apply_geometry( const DFBWindowGeometry *geometry,
 
      switch (geometry->mode) {
           case DWGM_DEFAULT:
+               D_DEBUG_AT( SaWMan_Geometry, " -- default\n" );
                *ret_rect = DFB_RECTANGLE_INIT_FROM_REGION( clip );
+               D_DEBUG_AT( SaWMan_Geometry, " => %d,%d-%dx%d\n", DFB_RECTANGLE_VALS( ret_rect ) );
                return;
 
           case DWGM_FOLLOW:
+               D_DEBUG_AT( SaWMan_Geometry, " -- FOLLOW [%d,%d-%dx%d]\n",
+                           DFB_RECTANGLE_VALS( parent ) );
                D_ASSERT( parent != NULL );
                *ret_rect = *parent;
                break;
 
           case DWGM_RECTANGLE:
+               D_DEBUG_AT( SaWMan_Geometry, " -- RECTANGLE [%d,%d-%dx%d]\n",
+                           DFB_RECTANGLE_VALS( &geometry->rectangle ) );
                *ret_rect = geometry->rectangle;
                ret_rect->x += clip->x1;
                ret_rect->y += clip->y1;
                break;
 
           case DWGM_LOCATION:
+               D_DEBUG_AT( SaWMan_Geometry, " -- LOCATION [%.3f,%.3f-%.3fx%.3f]\n",
+                           geometry->location.x, geometry->location.y,
+                           geometry->location.w, geometry->location.h );
                ret_rect->x = (int)(geometry->location.x * width  + 0.5f) + clip->x1;
                ret_rect->y = (int)(geometry->location.y * height + 0.5f) + clip->y1;
                ret_rect->w = (int)(geometry->location.w * width  + 0.5f);
@@ -1229,11 +1239,16 @@ apply_geometry( const DFBWindowGeometry *geometry,
                return;
      }
 
+     D_DEBUG_AT( SaWMan_Geometry, " -> %d,%d-%dx%d / clip [%d,%d-%dx%d]\n",
+                 DFB_RECTANGLE_VALS( ret_rect ),
+                 DFB_RECTANGLE_VALS_FROM_REGION( clip ) );
+
      if (!dfb_rectangle_intersect_by_region( ret_rect, clip )) {
           D_WARN( "invalid geometry" );
-          ret_rect->w = 1;
-          ret_rect->h = 1;
+          dfb_rectangle_from_region( ret_rect, clip );
      }
+
+     D_DEBUG_AT( SaWMan_Geometry, " => %d,%d-%dx%d\n", DFB_RECTANGLE_VALS( ret_rect ) );
 }
                 
 DirectResult
@@ -1252,7 +1267,7 @@ sawman_update_geometry( SaWManWindow *sawwin )
 
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
-     D_DEBUG_AT( SaWMan_Update, "%s( %p )\n", __FUNCTION__, sawwin );
+     D_DEBUG_AT( SaWMan_Geometry, "%s( %p )\n", __FUNCTION__, sawwin );
 
      sawman = sawwin->sawman;
      D_MAGIC_ASSERT_IF( sawman, SaWMan );
@@ -1279,6 +1294,8 @@ sawman_update_geometry( SaWManWindow *sawwin )
           clip.y2 = surface->height - 1;
      }
 
+     D_DEBUG_AT( SaWMan_Geometry, "  -> Applying source geometry...\n" );
+
      apply_geometry( &window->config.src_geometry, &clip,
                      parent ? &parent->src : NULL, &src );
 
@@ -1291,6 +1308,8 @@ sawman_update_geometry( SaWManWindow *sawwin )
 
      /* Update destination geometry. */
      clip = DFB_REGION_INIT_FROM_RECTANGLE( &window->config.bounds );
+
+     D_DEBUG_AT( SaWMan_Geometry, "  -> Applying destination geometry...\n" );
 
      apply_geometry( &window->config.dst_geometry, &clip,
                      parent ? &parent->dst : NULL, &dst );
@@ -1305,6 +1324,7 @@ sawman_update_geometry( SaWManWindow *sawwin )
           sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, false, false, false );
      }
 
+     D_DEBUG_AT( SaWMan_Geometry, "  -> Updating children...\n" );
 
      fusion_vector_foreach (child, i, sawwin->children) {
           window = child->window;
@@ -1410,9 +1430,9 @@ wind_of_change( SaWMan              *sawman,
               (window->config.opacity == 0xff) &&
               !(options & (DWOP_COLORKEYING | DWOP_ALPHACHANNEL)) &&
               (opaque=*update,dfb_region_intersect( &opaque,
-                                                    window->config.bounds.x, window->config.bounds.y,
-                                                    window->config.bounds.x + window->config.bounds.w - 1,
-                                                    window->config.bounds.y + window->config.bounds.h - 1 ) )
+                                                    sawwin->dst.x, sawwin->dst.y,
+                                                    sawwin->dst.x + sawwin->dst.w - 1,
+                                                    sawwin->dst.y + sawwin->dst.h - 1 ) )
               )||(
                  //can skip opaque region?
                  (options & DWOP_ALPHACHANNEL) &&
@@ -1420,10 +1440,10 @@ wind_of_change( SaWMan              *sawman,
                  (window->config.opacity == 0xff) &&
                  !(options & DWOP_COLORKEYING) &&
                  (opaque=*update,dfb_region_intersect( &opaque,  /* FIXME: Scaling */
-                                                       window->config.bounds.x + window->config.opaque.x1,
-                                                       window->config.bounds.y + window->config.opaque.y1,
-                                                       window->config.bounds.x + window->config.opaque.x2,
-                                                       window->config.bounds.y + window->config.opaque.y2 ))
+                                                       sawwin->dst.x + window->config.opaque.x1,
+                                                       sawwin->dst.y + window->config.opaque.y1,
+                                                       sawwin->dst.x + window->config.opaque.x2,
+                                                       sawwin->dst.y + window->config.opaque.y2 ))
                  )  )) {
                /* left */
                if (opaque.x1 != update->x1) {
@@ -1498,9 +1518,9 @@ wind_of_showing( SaWMan     *sawman,
               (window->config.opacity == 0xff) &&
               !(options & (DWOP_COLORKEYING | DWOP_ALPHACHANNEL)) &&
               (opaque=*update,dfb_region_intersect( &opaque,
-                                                    window->config.bounds.x, window->config.bounds.y,
-                                                    window->config.bounds.x + window->config.bounds.w - 1,
-                                                    window->config.bounds.y + window->config.bounds.h - 1 ) )
+                                                    sawwin->dst.x, sawwin->dst.y,
+                                                    sawwin->dst.x + sawwin->dst.w - 1,
+                                                    sawwin->dst.y + sawwin->dst.h - 1 ) )
               )||(
                  //can skip opaque region?
                  (options & DWOP_ALPHACHANNEL) &&
@@ -1508,10 +1528,10 @@ wind_of_showing( SaWMan     *sawman,
                  (window->config.opacity == 0xff) &&
                  !(options & DWOP_COLORKEYING) &&
                  (opaque=*update,dfb_region_intersect( &opaque,  /* FIXME: Scaling */
-                                                       window->config.bounds.x + window->config.opaque.x1,
-                                                       window->config.bounds.y + window->config.opaque.y1,
-                                                       window->config.bounds.x + window->config.opaque.x2,
-                                                       window->config.bounds.y + window->config.opaque.y2 ))
+                                                       sawwin->dst.x + window->config.opaque.x1,
+                                                       sawwin->dst.y + window->config.opaque.y1,
+                                                       sawwin->dst.x + window->config.opaque.x2,
+                                                       sawwin->dst.y + window->config.opaque.y2 ))
                  )  )) {
                /* left */
                if (opaque.x1 != update->x1) {

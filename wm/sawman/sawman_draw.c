@@ -341,6 +341,8 @@ draw_border( SaWManWindow    *sawwin,
      DFBRectangle            rects[thickness];
      CoreWindow             *window;
      const SaWManBorderInit *border;
+     const DFBColor         *colors;
+     unsigned int            num;
 
      window = sawwin->window;
      D_ASSERT( window != NULL );
@@ -376,18 +378,26 @@ draw_border( SaWManWindow    *sawwin,
 
      border = &sawman_config->borders[sawman_window_priority(sawwin)];
 
-     /* Draw border rectangles. */
      if (window->flags & CWF_FOCUSED) {
-          for (i=0; i<thickness; i++) {
-               dfb_state_set_color( state, &border->focused[i*D_ARRAY_SIZE(border->focused)/thickness] );
-               dfb_gfxcard_drawrectangle( &rects[i], state );
-          }
+          colors = border->focused;
+          num    = D_ARRAY_SIZE(border->focused);
      }
      else {
-          for (i=0; i<thickness; i++) {
-               dfb_state_set_color( state, &border->unfocused[i*D_ARRAY_SIZE(border->unfocused)/thickness] );
-               dfb_gfxcard_drawrectangle( &rects[i], state );
-          }
+          colors = border->unfocused;
+          num    = D_ARRAY_SIZE(border->unfocused);
+     }
+
+     /* Draw border rectangles. */
+     for (i=0; i<thickness; i++) {
+          const DFBColor *color = &colors[i*num/thickness];
+
+          dfb_state_set_color( state, color );
+
+          if (DFB_PIXELFORMAT_IS_INDEXED( state->destination->format ))
+               dfb_state_set_color_index( state, dfb_palette_search( state->destination->palette,
+                                                                     color->r, color->g, color->b, color->a ) );
+
+          dfb_gfxcard_drawrectangle( &rects[i], state );
      }
 
      /* Restore clipping region. */
