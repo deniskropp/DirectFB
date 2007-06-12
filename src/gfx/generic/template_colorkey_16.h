@@ -135,16 +135,16 @@ static void Bop_PFI_OP_Aop_PFI(Kto)( GenefxState *gfxs )
                     *(u32 *) D = s;
                } else {
 #ifdef WORDS_BIGENDIAN
-                    D[0] = (u16) s;
-#else
                     D[1] = (u16) s;
+#else
+                    D[0] = (u16) s;
 #endif
                }
           } else if (MASK_RGB_H( s ) != SkeyH) {
 #ifdef WORDS_BIGENDIAN
-               D[1] = (u16) (s >> 16);
-#else
                D[0] = (u16) (s >> 16);
+#else
+               D[1] = (u16) (s >> 16);
 #endif
           }
 
