@@ -7994,6 +7994,7 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
      CHECK_PIPELINE();
 
+#ifndef WORDS_BIGENDIAN
      if (srect->x == 0 && srect->y == 0 &&
          srect->w == source->width && srect->h == source->height &&
          gfxs->src_format == DSPF_RGB16 && gfxs->dst_format == DSPF_RGB16 &&
@@ -8050,6 +8051,7 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
                return;
           }
      }
+#endif
 
      /* Clip destination rectangle. */
      if (!dfb_rectangle_intersect_by_region( drect, &state->clip ))
