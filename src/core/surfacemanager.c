@@ -154,9 +154,9 @@ dfb_surfacemanager_create( CoreDFB         *core,
           return NULL;
 
      manager->shmpool          = pool;
-     manager->byteoffset_align = limits->surface_byteoffset_alignment;
+     manager->byteoffset_align = limits->surface_byteoffset_alignment ? : 8;
      manager->pixelpitch_align = limits->surface_pixelpitch_alignment;
-     manager->bytepitch_align  = limits->surface_bytepitch_alignment;
+     manager->bytepitch_align  = limits->surface_bytepitch_alignment ? : 8;
      manager->max_power_of_two_pixelpitch = limits->surface_max_power_of_two_pixelpitch;
      manager->max_power_of_two_bytepitch  = limits->surface_max_power_of_two_bytepitch;
      manager->max_power_of_two_height     = limits->surface_max_power_of_two_height;
