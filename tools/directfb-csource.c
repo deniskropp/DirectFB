@@ -37,6 +37,9 @@
 #include <errno.h>
 #include <assert.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include <png.h>
 
 #include <directfb.h>
@@ -75,6 +78,9 @@ static DFBResult  merge_images    (DFBSurfaceDescription  *images,
                                    int                     num_images,
                                    DFBSurfaceDescription  *dest,
                                    DFBRectangle           *rectangles);
+static DFBResult  dump_raw_data   (const char             *name,
+                                   const unsigned char    *data,
+                                   unsigned int            len);
 static DFBResult  dump_image      (const char             *name,
                                    DFBSurfaceDescription  *desc,
                                    DFBColor               *palette,
@@ -100,6 +106,7 @@ int main (int         argc,
      int         palette_size   = 0;
      int         num_images     = 0;
      int         i, n;
+     int         rawmode        = 0;
 
      /*  parse command line  */
 
@@ -116,6 +123,10 @@ int main (int         argc,
                     fprintf (stderr, "directfb-csource version %s\n",
                              DIRECTFB_VERSION);
                     return EXIT_SUCCESS;
+               }
+               if (strcmp (arg, "raw") == 0) {
+                    rawmode = 1;
+                    continue;
                }
                if (strncmp (arg, "format=", 7) == 0 && !format) {
                     for (i = 0; i < n_pixelformats && !format; i++)
@@ -151,6 +162,12 @@ int main (int         argc,
           return EXIT_FAILURE;
      }
 
+     if (num_images > 1 && rawmode) {
+          fprintf (stderr,
+                   "Multiple input files not allowed in raw mode.\n");
+          return EXIT_FAILURE;
+     }
+
      if (num_images > 1 && !name) {
           fprintf (stderr,
                    "You must specify a variable name when using multiple images.\n");
@@ -159,19 +176,41 @@ int main (int         argc,
 
      /*  load the first image  */
 
-     if (format) {
-          desc.flags = DSDESC_PIXELFORMAT;
-          desc.pixelformat = format;
+     if (rawmode) {
+
+          struct stat statbuf; 
+          if (0 == stat(filename[0], &statbuf))
+          {
+               unsigned char *data = alloca(statbuf.st_size);
+               memset(data, 0, statbuf.st_size);
+
+               FILE *f = fopen(filename[0], "r");
+               if (f)
+               {
+                    fread(data, statbuf.st_size, 1, f);
+                    fclose(f);
+               }
+
+               return dump_raw_data(name ? : strrchr (filename[0], '/') ? : filename[0],
+                                    data, statbuf.st_size);
+          }
+          
      }
+     else {
+          if (format) {
+               desc.flags = DSDESC_PIXELFORMAT;
+               desc.pixelformat = format;
+          }
 
-     if (load_image (filename[0], &desc, palette, &palette_size, rgbformat) != DFB_OK)
-          return EXIT_FAILURE;
+          if (load_image (filename[0], &desc, palette, &palette_size, rgbformat) != DFB_OK)
+               return EXIT_FAILURE;
 
-     /*  dump it and quit if this is the only image on the command line  */
-
-     if (num_images == 1)
-          return dump_image (name ? : strrchr (filename[0], '/') ? : filename[0],
-                             &desc, palette, palette_size);
+          /*  dump it and quit if this is the only image on the command line  */
+          
+          if (num_images == 1)
+               return dump_image (name ? : strrchr (filename[0], '/') ? : filename[0],
+                                  &desc, palette, palette_size);
+     }
 
      /*  merge multiple images into one surface  */
      {
@@ -211,6 +250,7 @@ static void print_usage (const char *prg_name)
      fprintf (stderr, "   --format=<identifer>    specifies surface format\n");
      fprintf (stderr, "   --rgbformat=<identifer> specifies format for non-alpha images\n");
      fprintf (stderr, "   --multi                 multiple images\n");
+     fprintf (stderr, "   --raw                   dump a single file directly to header\n");
      fprintf (stderr, "   --help                  show this help message\n");
      fprintf (stderr, "   --version               print version information\n");
      fprintf (stderr, "\n");
@@ -587,6 +627,45 @@ static inline void save_uchar (CSourceData   *csource,
      return;
 }
 
+static DFBResult dump_data(CSourceData         *csource,
+                           const char          *name,
+                           const unsigned char *data,
+                           unsigned int        len)
+{
+     fprintf (csource->fp,
+              "static const unsigned char %s_data[] =\n", name);
+     fprintf (csource->fp, "  \"");
+     
+     csource->pos = 3;
+     do
+          save_uchar (csource, *data++);
+     while (--len);
+
+     fprintf (csource->fp, "\";\n\n");
+}
+
+static DFBResult dump_raw_data(const char            *name,
+                               const unsigned char   *data,
+                               unsigned int           len)
+{
+     CSourceData    csource = { stdout, 0, 0 };
+     char          *vname   = variable_name (name);
+
+     if (!data || !len)
+          return DFB_INVARG;
+
+     fprintf (csource.fp,
+              "/* DirectFB raw data dump created by directfb-csource %s */\n\n",
+              DIRECTFB_VERSION);
+
+     dump_data(&csource, vname, data, len);
+
+     free (vname);
+
+     return DFB_OK;
+}
+
+
 static DFBResult dump_image (const char            *name,
                              DFBSurfaceDescription *desc,
                              DFBColor              *palette,
@@ -599,7 +678,8 @@ static DFBResult dump_image (const char            *name,
      unsigned long  len;
      int            i;
 
-     if (desc->flags != (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT |
+     if (desc &&
+         desc->flags != (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT |
                          DSDESC_PREALLOCATED))
           return DFB_INVARG;
 
@@ -622,16 +702,7 @@ static DFBResult dump_image (const char            *name,
               DIRECTFB_VERSION);
 
      /* dump data */
-     fprintf (csource.fp,
-              "static const unsigned char %s_data[] =\n", vname);
-     fprintf (csource.fp, "  \"");
-
-     csource.pos = 3;
-     do
-          save_uchar (&csource, *data++);
-     while (--len);
-
-     fprintf (csource.fp, "\";\n\n");
+     dump_data(&csource, vname, data, len);
 
      /* dump palette */
      if (palette_size > 0) {
