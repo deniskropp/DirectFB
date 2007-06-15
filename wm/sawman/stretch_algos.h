@@ -34,7 +34,8 @@ typedef void (*StretchFunc)( void        *dst,
                              int          height,
                              int          dst_width,
                              int          dst_height,
-                             DFBRegion   *clip );
+                             DFBRegion   *clip,
+                             u16          key );
 
 typedef void (*StretchFuncKeyed)( void        *dst,
                                   int          dpitch,
@@ -45,7 +46,8 @@ typedef void (*StretchFuncKeyed)( void        *dst,
                                   int          dst_width,
                                   int          dst_height,
                                   DFBRegion   *clip,
-                                  u16          src_key );
+                                  u16          key,
+                                  u16          srckey );
 
 typedef void (*StretchIndexedFunc)( void           *dst,
                                     int             dpitch,

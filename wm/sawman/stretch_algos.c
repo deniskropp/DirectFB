@@ -39,8 +39,6 @@
 
 #include "stretch_algos.h"
 
-#define COLOR_KEY_PROTECT
-
 #define PIXEL_RGB32TO16(p)      ((((p) >> 8) & 0xf800) | (((p) >> 5) & 0x07e0) | (((p) >> 3) & 0x001f))
 
 /**********************************************************************************************************************/
@@ -53,7 +51,8 @@ static void stretch_simple_rgb16( void        *dst,
                                   int          height,
                                   int          dst_width,
                                   int          dst_height,
-                                  DFBRegion   *clip )
+                                  DFBRegion   *clip,
+                                  u16          key )
 {
     int x;
     int h      = (clip->y2 - clip->y1 + 1);
@@ -74,8 +73,8 @@ static void stretch_simple_rgb16( void        *dst,
          const u16 *src16 = src + spitch * (line >> 20);
 
          for (x=0; x<w2; x++) {
-              dst32[x] = ((src16[point>>20] == 0x20) ? 0x40 : src16[point>>20]) |
-                         (((src16[(point+hfraq)>>20] == 0x20) ? 0x40 : src16[(point+hfraq)>>20]) << 16);
+              dst32[x] = ((src16[point>>20] == (key)) ? (key^1) : src16[point>>20]) |
+                         (((src16[(point+hfraq)>>20] == (key)) ? (key^1) : src16[(point+hfraq)>>20]) << 16);
 
               point += hfraq2;
          }
@@ -94,6 +93,7 @@ static void stretch_simple_rgb16_keyed( void        *dst,
                                         int          dst_width,
                                         int          dst_height,
                                         DFBRegion   *clip,
+                                        u16          key,
                                         u16          src_key )
 {
     int x;
@@ -120,12 +120,12 @@ static void stretch_simple_rgb16_keyed( void        *dst,
 
               if (l != src_key) {
                    if (r != src_key)
-                        dst32[x] = (((r == 0x20) ? 0x40 : r) << 16) | ((l == 0x20) ? 0x40 : l);
+                        dst32[x] = (((r == (key)) ? (key^1) : r) << 16) | ((l == (key)) ? (key^1) : l);
                    else
-                        *(__u16*)(&dst32[x]) = (l == 0x20) ? 0x40 : l;
+                        *(__u16*)(&dst32[x]) = (l == (key)) ? (key^1) : l;
               }
               else if (r != src_key)
-                   *(((__u16*)(&dst32[x]))+1) = (r == 0x20) ? 0x40 : r;
+                   *(((__u16*)(&dst32[x]))+1) = (r == (key)) ? (key^1) : r;
 
               point += hfraq2;
          }
@@ -145,7 +145,8 @@ static void stretch_down2_rgb16_from32( void         *dst,
                                         int           height,
                                         int           dst_width,
                                         int           dst_height,
-                                        DFBRegion    *clip )
+                                        DFBRegion    *clip,
+                                        u16           key )
 {
      int x, y;
      int w2 = dst_width / 2;
@@ -272,7 +273,8 @@ static void stretch_down2_argb4444( void         *dst,
                                     int           height,
                                     int           dst_width,
                                     int           dst_height,
-                                    DFBRegion    *clip )
+                                    DFBRegion    *clip,
+                                    u16           key )
 {
      int x, y;
      int w2 = dst_width / 2;
@@ -336,7 +338,8 @@ static void stretch_hv4_rgb16_from32( void         *dst,
                                       int           height,
                                       int           dst_width,
                                       int           dst_height,
-                                      DFBRegion    *clip )
+                                      DFBRegion    *clip,
+                                      u16           key )
 {
     int x, y;
     int w2 = dst_width / 2;
@@ -551,7 +554,8 @@ static void stretch_hv4_argb4444( void         *dst,
                                   int           height,
                                   int           dst_width,
                                   int           dst_height,
-                                  DFBRegion    *clip )
+                                  DFBRegion    *clip,
+                                  u16           key )
 {
     int x, y;
     int w2 = dst_width / 2;
@@ -650,6 +654,13 @@ static void stretch_hv4_argb4444( void         *dst,
 
 /**********************************************************************************************************************/
 
+#define COLOR_KEY_PROTECT
+
+#define KEY_PROTECT (key)
+#define KEY_REPLACE (key^1)
+
+/**********************************************************************************************************************/
+
 #define POINT_0               hfraq
 #define LINE_0                vfraq
 #define POINT_TO_RATIO(p,ps)  ( (((((p)) & 0x3ffff) ? : 0x40000) << 6) / (ps) )
@@ -669,12 +680,11 @@ static void stretch_hvx_rgb16_down( void       *dst,
                                     int         height,
                                     int         dst_width,
                                     int         dst_height,
-                                    DFBRegion  *clip )
+                                    DFBRegion  *clip,
+                                    u16         key )
 {
 #include "stretch_hvx_rgb16.h"
 }
-
-#define COLOR_KEY key
 
 static void stretch_hvx_rgb16_down_keyed( void       *dst,
                                           int         dpitch,
@@ -685,9 +695,12 @@ static void stretch_hvx_rgb16_down_keyed( void       *dst,
                                           int         dst_width,
                                           int         dst_height,
                                           DFBRegion  *clip,
-                                          u16         key )
+                                          u16         key,
+                                          u16         srckey )
 {
+#define COLOR_KEY srckey
 #include "stretch_hvx_rgb16.h"
+#undef COLOR_KEY
 }
 
 #undef POINT_0
@@ -698,8 +711,8 @@ static void stretch_hvx_rgb16_down_keyed( void       *dst,
 #undef POINT_R
 #undef LINE_T
 #undef LINE_B
-#undef COLOR_KEY
 
+/**********************************************************************************************************************/
 
 #define POINT_0               0
 #define LINE_0                0
@@ -720,12 +733,11 @@ static void stretch_hvx_rgb16_up( void       *dst,
                                   int         height,
                                   int         dst_width,
                                   int         dst_height,
-                                  DFBRegion  *clip )
+                                  DFBRegion  *clip,
+                                  u16         key )
 {
 #include "stretch_hvx_rgb16.h"
 }
-
-#define COLOR_KEY key
 
 static void stretch_hvx_rgb16_up_keyed( void       *dst,
                                         int         dpitch,
@@ -736,9 +748,12 @@ static void stretch_hvx_rgb16_up_keyed( void       *dst,
                                         int         dst_width,
                                         int         dst_height,
                                         DFBRegion  *clip,
-                                        u16         key )
+                                        u16         key,
+                                        u16         srckey )
 {
+#define COLOR_KEY srckey
 #include "stretch_hvx_rgb16.h"
+#undef COLOR_KEY
 }
 
 #undef POINT_0
@@ -749,7 +764,6 @@ static void stretch_hvx_rgb16_up_keyed( void       *dst,
 #undef POINT_R
 #undef LINE_T
 #undef LINE_B
-#undef COLOR_KEY
 
 /**********************************************************************************************************************/
 

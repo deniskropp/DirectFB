@@ -92,7 +92,7 @@ static void STRETCH_HVX_RGB16( void       *dst,
                if (l_ != (COLOR_KEY))
 #endif
                     /* Write to destination with color key protection */
-                    dst16[0] = (l_ == 0x20) ? 0x40 : l_;
+                    dst16[0] = (l_ == KEY_PROTECT) ? KEY_REPLACE : l_;
 #else
                /* Write to destination without color key protection */
                dst16[0] = ((((((dpB & 0xf81f) - (dpT & 0xf81f))*X) >> 5) + (dpT & 0xf81f)) & 0xf81f) +
@@ -228,24 +228,24 @@ static void STRETCH_HVX_RGB16( void       *dst,
                if (l_ != (COLOR_KEY)) {
                     if (h_ != (COLOR_KEY)) {
                          /* Write to destination with color key protection */
-                         dst32[x] = (((h_ == 0x20) ? 0x40 : h_) << 16) | ((l_ == 0x20) ? 0x40 : l_);
+                         dst32[x] = (((h_ == KEY_PROTECT) ? KEY_REPLACE : h_) << 16) | ((l_ == KEY_PROTECT) ? KEY_REPLACE : l_);
                     }
                     else {
                          u16 *_dst16 = (u16*) &dst32[x];
 
                          /* Write to destination with color key protection */
-                         *_dst16 = ((l_ == 0x20) ? 0x40 : l_);
+                         *_dst16 = ((l_ == KEY_PROTECT) ? KEY_REPLACE : l_);
                     }
                }
                else if (h_ != (COLOR_KEY)) {
                     u16 *_dst16 = ((u16*) &dst32[x]) + 1;
 
                     /* Write to destination with color key protection */
-                    *_dst16 = ((h_ == 0x20) ? 0x40 : h_);
+                    *_dst16 = ((h_ == KEY_PROTECT) ? KEY_REPLACE : h_);
                }
 #else
                /* Write to destination with color key protection */
-               dst32[x] = (((h_ == 0x20) ? 0x40 : h_) << 16) | ((l_ == 0x20) ? 0x40 : l_);
+               dst32[x] = (((h_ == KEY_PROTECT) ? KEY_REPLACE : h_) << 16) | ((l_ == KEY_PROTECT) ? KEY_REPLACE : l_);
 #endif
 #else
                /* Write to destination without color key protection */
@@ -301,7 +301,7 @@ static void STRETCH_HVX_RGB16( void       *dst,
                if (l_ != (COLOR_KEY))
 #endif
                     /* Write to destination with color key protection */
-                    dst16[0] = (l_ == 0x20) ? 0x40 : l_;
+                    dst16[0] = (l_ == KEY_PROTECT) ? KEY_REPLACE : l_;
 #else
                /* Write to destination without color key protection */
                dst16[0] = ((((((dpB & 0xf81f) - (dpT & 0xf81f))*X) >> 5) + (dpT & 0xf81f)) & 0xf81f) +

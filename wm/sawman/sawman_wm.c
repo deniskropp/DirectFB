@@ -571,6 +571,11 @@ repaint_tier( SaWMan              *sawman,
           D_DEBUG_AT( SaWMan_Update, "  -> %d, %d - %dx%d  (%d)\n",
                       DFB_RECTANGLE_VALS_FROM_REGION( update ), i );
 
+          dfb_state_set_dst_colorkey( state, dfb_color_to_pixel( region->config.format,
+                                                                 region->config.src_key.r,
+                                                                 region->config.src_key.g,
+                                                                 region->config.src_key.b ) );
+
           /* Set clipping region. */
           dfb_state_set_clip( state, update );
 

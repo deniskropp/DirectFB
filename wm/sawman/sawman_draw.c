@@ -165,9 +165,9 @@ smooth_stretchblit( CardState          *state,
                     case DSPF_RGB16:
                          if (state->blittingflags & DSBLIT_SRC_COLORKEY)
                               algo->func_rgb16_keyed( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, &clip,
-                                                      state->src_colorkey );
+                                                      state->dst_colorkey, state->src_colorkey );
                          else
-                              algo->func_rgb16( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, &clip );
+                              algo->func_rgb16( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, &clip, state->dst_colorkey );
                          break;
 
                     case DSPF_LUT8:
@@ -176,7 +176,7 @@ smooth_stretchblit( CardState          *state,
                          break;
 
                     case DSPF_RGB32:
-                         algo->func_rgb16_from32( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, &clip );
+                         algo->func_rgb16_from32( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, &clip, state->dst_colorkey );
                          break;
 
                     default:
@@ -187,7 +187,7 @@ smooth_stretchblit( CardState          *state,
           case DSPF_ARGB4444:
                switch (source->format) {
                     case DSPF_ARGB4444:
-                         algo->func_argb4444( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, &clip );
+                         algo->func_argb4444( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, &clip, state->dst_colorkey );
                          break;
 
                     default:
