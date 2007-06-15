@@ -203,6 +203,42 @@ IDirectFBVideoProvider_GetVolume( IDirectFBVideoProvider *thiz,
      return DFB_UNIMPLEMENTED;
 }
 
+
+static DFBResult
+IDirectFBVideoProvider_CreateEventBuffer( IDirectFBVideoProvider  *thiz,
+                                          IDirectFBEventBuffer    **buffer )
+{
+    return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_AttachEventBuffer( IDirectFBVideoProvider  *thiz,
+                                          IDirectFBEventBuffer    *buffer )
+{
+    return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_EnableEvents(IDirectFBVideoProvider         *thiz,
+                                    DFBVideoProviderEventType      mask )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_DisableEvents(IDirectFBVideoProvider         *thiz,
+                                     DFBVideoProviderEventType      mask )
+{
+    return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_DetachEventBuffer( IDirectFBVideoProvider  *thiz,
+                                          IDirectFBEventBuffer    *buffer )
+{
+    return DFB_UNIMPLEMENTED;
+}
+
 static void
 IDirectFBVideoProvider_Construct( IDirectFBVideoProvider *thiz )
 {
@@ -225,6 +261,11 @@ IDirectFBVideoProvider_Construct( IDirectFBVideoProvider *thiz )
      thiz->GetSpeed              = IDirectFBVideoProvider_GetSpeed;
      thiz->SetVolume             = IDirectFBVideoProvider_SetVolume;
      thiz->GetVolume             = IDirectFBVideoProvider_GetVolume;
+     thiz->CreateEventBuffer     = IDirectFBVideoProvider_CreateEventBuffer;
+     thiz->AttachEventBuffer     = IDirectFBVideoProvider_AttachEventBuffer;
+     thiz->EnableEvents          = IDirectFBVideoProvider_EnableEvents;
+     thiz->DisableEvents         = IDirectFBVideoProvider_DisableEvents;
+     thiz->DetachEventBuffer     = IDirectFBVideoProvider_DetachEventBuffer;
 }
 
 
