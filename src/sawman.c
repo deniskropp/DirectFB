@@ -906,7 +906,7 @@ sawman_update_window( SaWMan              *sawman,
                area = DFB_REGION_INIT_TRANSLATED( region, sawwin->dst.x, sawwin->dst.y );
      }
      else
-          area = DFB_REGION_INIT_FROM_RECTANGLE( &sawwin->dst );
+          area = DFB_REGION_INIT_FROM_RECTANGLE( &window->config.bounds );
 
      if (!dfb_unsafe_region_intersect( &area, 0, 0, tier->size.w - 1, tier->size.h - 1 ))
           return DFB_OK;
