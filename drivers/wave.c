@@ -245,6 +245,18 @@ device_get_output_delay( void *device_data, int *delay )
      *delay = 0;
 }
 
+static DFBResult
+device_get_volume( void *device_data, float *level )
+{
+     return DFB_UNSUPPORTED;
+}
+
+static DFBResult
+device_set_volume( void *device_data, float level )
+{
+     return DFB_UNSUPPORTED;
+}
+
 static void
 device_close( void *device_data )
 {

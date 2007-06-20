@@ -163,6 +163,9 @@ device_open( void                  *device_data,
 
           snd_ctl_close( ctl );
      }
+     
+     /* device capabilities */
+     device_info->caps = DCF_VOLUME;
 
      snd_config_update_free_global();
 
@@ -232,8 +235,7 @@ device_open( void                  *device_data,
           return DFB_UNSUPPORTED;
      }
 
-     /* Workaround for ALSA >= 1.0.9 always returning the maximum supported buffersize.
-        Actually FusionSound doesn't work fine with buffers larger than 250ms. */
+     /* Workaround for ALSA >= 1.0.9 always returning the maximum supported buffersize. */
      if (buffertime > time) {
           config->buffersize = ((long long)time * config->rate / 1000000ll);
      }
@@ -288,6 +290,75 @@ device_get_output_delay( void *device_data, int *delay )
 
      snd_pcm_delay( data->handle, &odelay );
      *delay = odelay;
+}
+
+static DFBResult
+alsa_getset_volume( float *get, float *set )
+{
+     DFBResult             ret = DFB_OK;
+     snd_mixer_t          *mixer;
+     snd_mixer_selem_id_t *sid;
+     snd_mixer_elem_t     *elem;
+     long                  vol, min, max;
+     
+     if (snd_mixer_open( &mixer, 0 ) < 0)
+          return DFB_IO;
+          
+     if (snd_mixer_attach( mixer, fs_config->device ? : "default" ) < 0) {
+          snd_mixer_close( mixer );
+          return DFB_FAILURE;
+     }
+     
+     if (snd_mixer_selem_register( mixer, NULL, NULL ) < 0) {
+          snd_mixer_close( mixer );
+          return DFB_FAILURE;
+     }
+     
+     if (snd_mixer_load( mixer ) < 0) {
+          snd_mixer_close( mixer );
+          return DFB_FAILURE;
+     }
+     
+     snd_mixer_selem_id_malloc( &sid );
+     snd_mixer_selem_id_set_name( sid, "PCM" );
+     
+     elem = snd_mixer_find_selem( mixer, sid );
+     if (!elem) {
+          snd_mixer_close( mixer );
+          return DFB_UNSUPPORTED;
+     }
+     
+     snd_mixer_selem_get_playback_volume_range( elem, &min, &max );
+     
+     if (set) {
+          vol = *set * (float)(max - min) + min;
+          
+          if (snd_mixer_selem_set_playback_volume_all( elem, vol ) < 0)
+               ret = DFB_UNSUPPORTED;
+     }
+     else {
+          /* Assume equal level for all channels */
+          if (snd_mixer_selem_get_playback_volume( elem, 0, &vol ) < 0)
+               ret = DFB_UNSUPPORTED;
+          else
+               *get = (float)(vol - min) / (float)(max - min);
+     }
+     
+     snd_mixer_close( mixer );
+     
+     return ret;
+}
+
+static DFBResult
+device_get_volume( void *device_data, float *level )
+{
+     return alsa_getset_volume( level, NULL );
+}
+
+static DFBResult
+device_set_volume( void *device_data, float level )
+{
+     return alsa_getset_volume( NULL, &level );
 }
 
 static void

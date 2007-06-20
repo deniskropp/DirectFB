@@ -1,6 +1,6 @@
 /*
-   (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002-2003  convergence GmbH.
+   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
 
@@ -468,7 +468,7 @@ DEFINE_INTERFACE( IFusionSound,
       * This requires a <b>desc</b> with at least the length being set.
       *
       * Default values for sample rate, sample format and number of channels
-      * are 44kHz, 16 bit (FSSF_S16) with two channels.
+      * depend on device configuration.
       */
      DFBResult (*CreateBuffer) (
           IFusionSound               *thiz,
@@ -480,8 +480,9 @@ DEFINE_INTERFACE( IFusionSound,
       * Create a streaming sound buffer.
       *
       * If <b>desc</b> is NULL, all default values will be used.
-      * Defaults are 44kHz, stereo, 16 bit (FSSF_S16) with a ring buffer
-      * size that holds enough samples for one second of playback.
+      *
+      * Default values for sample rate, sample format and number of channels
+      * depend on device configuration, while ring buffer length defaults to 1/5 seconds.
       */
      DFBResult (*CreateStream) (
           IFusionSound               *thiz,
@@ -497,6 +498,36 @@ DEFINE_INTERFACE( IFusionSound,
           const char                 *filename,
           IFusionSoundMusicProvider **interface
      );
+     
+     
+   /** Control **/
+     
+     /*
+      * Get master volume level.
+      *
+      * Get the master volume level (i.e. that applies to all playbacks).
+      *
+      * See also <i>SetMasterVolume()</i>.
+      */
+     DFBResult (*GetMasterVolume) (
+          IFusionSound               *thiz,
+          float                      *level
+     );
+     
+     /*
+      * Set master volume level.
+      *
+      * Set the master volume level (i.e. that applies to all playbacks).
+      * The <b>level</b> is a linear factor ranging from 0.0f to 1.0f.
+      *
+      * See also <i>GetMasterVolume()</i>.
+      */
+     DFBResult (*SetMasterVolume) (
+          IFusionSound               *thiz,
+          float                       level
+     );
+    
+     
 )
 
 /*

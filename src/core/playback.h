@@ -115,6 +115,7 @@ DFBResult fs_playback_mixto       ( CorePlayback        *playback,
                                     __fsf               *dest,
                                     int                  dest_rate,
                                     int                  max_frames,
+                                    __fsf                volume,
                                     int                 *ret_samples );
 
 

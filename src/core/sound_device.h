@@ -40,7 +40,7 @@ DECLARE_MODULE_DIRECTORY( fs_sound_drivers );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define FS_SOUND_DRIVER_ABI_VERSION  2
+#define FS_SOUND_DRIVER_ABI_VERSION  3
 
 
 typedef struct {
@@ -70,9 +70,10 @@ typedef struct {
 
 
 typedef enum {
-     DCF_WRITEBLOCKS = 0x00000001  /* This device write blocks instead of frames,
+     DCF_WRITEBLOCKS = 0x00000001, /* This device write blocks instead of frames,
                                       therefore the amount of frames to write must
                                       be multiple of buffersize */
+     DCF_VOLUME      = 0x00000002  /* This device supports adjusting volume level */
 } DeviceCapabilities;
 
 typedef struct {
@@ -113,6 +114,14 @@ typedef struct {
      /* Get output delay in frames. */                             
      void      (*GetOutputDelay)   ( void                  *device_data,
                                      int                   *delay );
+                                     
+     /* Get volume level */
+     DFBResult (*GetVolume)        ( void                  *device_data,
+                                     float                 *level );
+                                     
+     /* Set volume level */
+     DFBResult (*SetVolume)        ( void                  *device_data,
+                                     float                  level );
      
      /* Close device. */
      void      (*CloseDevice)      ( void                  *device_data );
@@ -125,8 +134,8 @@ void      fs_device_shutdown  ( CoreSoundDevice *device );
 void      fs_device_get_description( CoreSoundDevice     *device,
                                      FSDeviceDescription *desc );
 
-void      fs_device_get_capabilities( CoreSoundDevice    *device,
-                                      DeviceCapabilities *caps );
+DeviceCapabilities 
+          fs_device_get_capabilities( CoreSoundDevice *device );
 
 void      fs_device_get_configuration( CoreSoundDevice       *device, 
                                        CoreSoundDeviceConfig *config );
@@ -136,5 +145,9 @@ void      fs_device_write( CoreSoundDevice *device,
                            unsigned int     count );
                            
 void      fs_device_get_output_delay( CoreSoundDevice *device, int *delay );
+
+DFBResult fs_device_get_volume( CoreSoundDevice *device, float *level );
+
+DFBResult fs_device_set_volume( CoreSoundDevice *device, float  level );
                    
 #endif                                   

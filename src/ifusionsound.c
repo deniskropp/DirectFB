@@ -350,6 +350,33 @@ IFusionSound_CreateMusicProvider( IFusionSound               *thiz,
      return IFusionSoundMusicProvider_Create( filename, interface );
 }
 
+static DFBResult
+IFusionSound_GetMasterVolume( IFusionSound *thiz, 
+                              float        *level )
+{
+     DIRECT_INTERFACE_GET_DATA(IFusionSound)
+     
+     /* Check arguments */
+     if (!level)
+          return DFB_INVARG;
+          
+     return fs_core_get_master_volume( data->core, level );
+}
+
+static DFBResult
+IFusionSound_SetMasterVolume( IFusionSound *thiz,
+                              float         level )
+{
+     DIRECT_INTERFACE_GET_DATA(IFusionSound)
+     
+     /* Check arguments */
+     if (level < 0.0f || level > 1.0f)
+          return DFB_INVARG;
+          
+     return fs_core_set_master_volume( data->core, level );
+}
+     
+
 DFBResult
 IFusionSound_Construct( IFusionSound *thiz )
 {
@@ -378,6 +405,8 @@ IFusionSound_Construct( IFusionSound *thiz )
      thiz->CreateBuffer         = IFusionSound_CreateBuffer;
      thiz->CreateStream         = IFusionSound_CreateStream;
      thiz->CreateMusicProvider  = IFusionSound_CreateMusicProvider;
+     thiz->GetMasterVolume      = IFusionSound_GetMasterVolume;
+     thiz->SetMasterVolume      = IFusionSound_SetMasterVolume;
 
      return DFB_OK;
 }

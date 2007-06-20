@@ -26,6 +26,8 @@
 
 #include <config.h>
 
+#include <stdlib.h>
+
 #include <direct/debug.h>
 #include <direct/messages.h>
 #include <direct/util.h>
@@ -427,11 +429,14 @@ fs_playback_mixto( CorePlayback *playback,
                    __fsf        *dest,
                    int           dest_rate,
                    int           max_frames,
+                   __fsf         volume,
                    int          *ret_samples)
 {
      DFBResult ret;
      int       pos;
      int       num;
+     __fsf    *levels;
+     int       i;
 
      D_ASSERT( playback != NULL );
      D_ASSERT( playback->buffer != NULL );
@@ -441,10 +446,20 @@ fs_playback_mixto( CorePlayback *playback,
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
           return DFB_FUSION;
+          
+     if (volume != FSF_ONE) {
+          levels = alloca( 6 * sizeof(__fsf) );
+          
+          for (i = 0; i < 6; i++)
+               levels[i] = fsf_mul( playback->levels[i], volume );
+     } 
+     else {
+          levels = playback->levels;
+     }        
 
      /* Mix samples... */
      ret = fs_buffer_mixto( playback->buffer, dest, dest_rate, max_frames,
-                            playback->position, playback->stop, playback->levels,
+                            playback->position, playback->stop, levels,
                             playback->pitch, &pos, &num, ret_samples );
      if (ret)
           playback->running = false;

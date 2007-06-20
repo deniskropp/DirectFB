@@ -50,8 +50,13 @@ device_write( void         *device_data,
               unsigned int  size );
 
 static void
-device_get_output_delay( void *device_data,
-                         int  *delay );
+device_get_output_delay( void *device_data, int  *delay );
+
+static DFBResult
+device_get_volume( void *device_data, float *level );
+
+static DFBResult
+device_set_volume( void *device_data, float level );
 
 static void
 device_close( void *device_data );
@@ -63,6 +68,8 @@ static const SoundDriverFuncs driver_funcs = {
      OpenDevice:         device_open,
      Write:              device_write,
      GetOutputDelay:     device_get_output_delay,
+     GetVolume:          device_get_volume,
+     SetVolume:          device_set_volume,
      CloseDevice:        device_close,
 };
 

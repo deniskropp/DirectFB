@@ -64,6 +64,11 @@
 #include <misc/sound_conf.h>
 
 
+typedef enum {
+     CSCID_GET_VOLUME,
+     CSCID_SET_VOLUME,
+} CoreSoundCommandID;
+
 typedef struct {
      DirectLink           link;
 
@@ -86,6 +91,11 @@ struct __FS_CoreSoundShared {
      CoreSoundDeviceConfig  config;
 
      int                    output_delay;      /* output delay in ms */
+     
+     __fsf                  soft_volume;       /* software volume level */
+     
+     FusionCall             call;              /* master calls */
+     float                  call_arg;          /* call argument */
 };
 
 struct __FS_CoreSound {
@@ -269,12 +279,13 @@ fs_core_destroy( CoreSound *core, bool emergency )
 
      /* Clear the singleton. */
      core_sound = NULL;
+     
+     /* Quit if this is a forked master. */
+     if (core->detached)
+          _exit( 0 );
 
      /* Unlock the core singleton mutex. */
      pthread_mutex_unlock( &core_sound_lock );
-     
-     if (core->detached)
-          _exit( 0 );
 
      return DFB_OK;
 }
@@ -450,6 +461,32 @@ fs_core_device_config( CoreSound *core )
      D_ASSERT( core->shared != NULL );
      
      return &(core->shared->config);
+}
+
+DFBResult
+fs_core_get_master_volume( CoreSound *core, float *level )
+{
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+     
+     return fusion_call_execute( &core->shared->call, FCEF_NONE,
+                                 CSCID_GET_VOLUME, NULL, (int*)level );
+}
+
+DFBResult
+fs_core_set_master_volume( CoreSound *core, float level )
+{
+     CoreSoundShared *shared;
+     
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+     
+     shared = core->shared;
+     
+     shared->call_arg = level;
+     
+     return fusion_call_execute( &core->shared->call, FCEF_NONE,
+                                 CSCID_SET_VOLUME, &shared->call_arg, NULL );
 }
 
 /******************************************************************************/
@@ -664,7 +701,7 @@ sound_thread( DirectThread *thread, void *arg )
      
      fsf_dither_profiles(dither,FS_MAX_CHANNELS);
      
-     fs_device_get_capabilities( core->device, &caps );
+     caps = fs_device_get_capabilities( core->device );
      
      while (true) {
           int         delay;
@@ -674,7 +711,7 @@ sound_thread( DirectThread *thread, void *arg )
           direct_thread_testcancel( thread );
 
           fs_device_get_output_delay( core->device, &delay );
-          shared->output_delay = (delay + mixed) * 1000 / shared->config.rate;
+          shared->output_delay = (delay + mixed) * 1000 / shared->config.rate;                   
           
           if (!shared->playlist.entries) {
                if (!mixed || delay > 0) {
@@ -699,8 +736,8 @@ sound_thread( DirectThread *thread, void *arg )
                CorePlayback      *playback = entry->playback;
                int                num;
 
-               ret = fs_playback_mixto( playback, mixing+mixed,
-                                        shared->config.rate, frames-mixed, &num );
+               ret = fs_playback_mixto( playback, mixing+mixed, shared->config.rate,
+                                        frames-mixed, shared->soft_volume, &num );
                if (ret) {
                     direct_list_remove( &shared->playlist.entries, l );
 
@@ -788,6 +825,38 @@ sound_thread( DirectThread *thread, void *arg )
 
 /******************************************************************************/
 
+static FusionCallHandlerResult
+core_call_handler( int caller, int call_arg, void *call_ptr,
+                   void *ctx, unsigned int serial, int *ret_val )
+{
+     CoreSound       *core   = ctx;
+     CoreSoundShared *shared = core->shared;
+     float            volume;
+       
+     switch (call_arg) {
+          case CSCID_GET_VOLUME:
+               if (!(fs_device_get_capabilities( core->device ) & DCF_VOLUME) ||
+                   fs_device_get_volume( core->device, &volume ) != DFB_OK)
+                    volume = fsf_to_float( shared->soft_volume ); 
+               
+               *((float*)ret_val) = volume;
+               break;
+               
+          case CSCID_SET_VOLUME:
+               volume = *((float*)call_ptr);
+               if (!(fs_device_get_capabilities( core->device ) & DCF_VOLUME) ||
+                   fs_device_set_volume( core->device, volume ) != DFB_OK)
+                    shared->soft_volume = fsf_from_float( volume );
+               break;
+              
+          default:
+               D_BUG( "unexpected call" );
+               break;
+     }
+     
+     return FCHR_RETURN;
+}
+
 static DFBResult
 fs_core_initialize( CoreSound *core )
 {
@@ -814,6 +883,9 @@ fs_core_initialize( CoreSound *core )
      /* create a pool for playback objects */
      shared->playback_pool = fs_playback_pool_create( core->world );
      
+     /* initialize call */
+     fusion_call_init( &shared->call, core_call_handler, core, core->world );
+     
      /* allocate mixing buffer */
      core->mixing_buffer = D_MALLOC( shared->config.buffersize * 
                                      FS_MAX_CHANNELS * sizeof(__fsf) );
@@ -826,6 +898,9 @@ fs_core_initialize( CoreSound *core )
                                      FS_BYTES_PER_SAMPLE(shared->config.format) );
      if (!core->output_buffer)
           return D_OOM();
+          
+     /* initialize volume levels */
+     shared->soft_volume = FSF_ONE;
 
      /* create sound thread */
      core->sound_thread = direct_thread_create( DTT_OUTPUT, sound_thread, core, "Sound Mixer" );
@@ -882,6 +957,9 @@ fs_core_shutdown( CoreSound *core, bool local )
 
                SHFREE( shared->shmpool, entry );
           }
+          
+          /* destroy call handler */
+          fusion_call_destroy( &shared->call );
 
           /* destroy playback object pool */
           fusion_object_pool_destroy( shared->playback_pool, core->world );

@@ -187,6 +187,7 @@ device_open( void                  *device_data,
 #if defined(SNDCTL_DSP_PROFILE) && defined(APF_NORMAL)
      int            prof       = APF_NORMAL;
 #endif
+     int            mixer_fd;
      
      if (fmt == -1)
           return DFB_UNSUPPORTED;
@@ -213,7 +214,6 @@ device_open( void                  *device_data,
      
      /* device capabilities */
      device_info->caps = DCF_WRITEBLOCKS;
-
      
      /* set application profile */
 #if defined(SNDCTL_DSP_PROFILE) && defined(APF_NORMAL)
@@ -263,6 +263,18 @@ device_open( void                  *device_data,
      config->rate = rate;
      config->buffersize = buffersize;
 
+     /* check whether hardware volume is supported */
+     mixer_fd = direct_try_open( "/dev/mixer", "/dev/sound/mixer", O_RDONLY, true );
+     if (mixer_fd > 0) {
+          int mask = 0;
+          
+          ioctl( mixer_fd, SOUND_MIXER_READ_DEVMASK, &mask );
+          if (mask & SOUND_MASK_PCM) {
+               device_info->caps |= DCF_VOLUME;
+          } 
+          close( mixer_fd );
+     }
+
      return DFB_OK;
 }
 
@@ -290,12 +302,59 @@ device_get_output_delay( void *device_data, int *delay )
      *delay = (info.fragsize * info.fragstotal - info.bytes) / data->bytes_per_frame;
 }
 
+static DFBResult
+device_get_volume( void *device_data, float *level )
+{
+     int fd;
+     int vol;
+
+     fd = direct_try_open( "/dev/mixer", "/dev/sound/mixer", O_RDONLY, false );
+     if (fd < 0)
+          return DFB_IO;
+
+     if (ioctl( fd, SOUND_MIXER_READ_PCM, &vol ) < 0) {
+          D_PERROR( "FusionSound/Device/OSS: couldn't get volume level!\n" );
+          close( fd );
+          return DFB_FAILURE;
+     }
+     
+     close( fd );
+
+     *level = (float)((vol & 0xff) + ((vol >> 8) & 0xff)) / 200.0f;
+
+     return DFB_OK;
+}
+
+static DFBResult
+device_set_volume( void *device_data, float level )
+{
+     int fd;
+     int vol;
+
+     fd = direct_try_open( "/dev/mixer", "/dev/sound/mixer", O_RDONLY, false );
+     if (fd < 0)
+          return DFB_IO;
+
+     vol  = level * 100.0f;
+     vol |= vol << 8;
+     if (ioctl( fd, SOUND_MIXER_WRITE_PCM, &vol ) < 0) {
+          D_PERROR( "FusionSound/Device/OSS: couldn't set volume level!\n" );
+          close( fd );
+          return DFB_FAILURE;
+     }
+     
+     close( fd );
+
+     return DFB_OK;
+}     
+
 static void
 device_close( void *device_data )
 {
      OSSDeviceData *data = device_data;
      
      ioctl( data->fd, SNDCTL_DSP_RESET, 0 );
+     
      close( data->fd );
 }
 

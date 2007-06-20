@@ -171,14 +171,12 @@ fs_device_get_description( CoreSoundDevice     *device,
      memcpy( &desc->driver, &device->info, sizeof(FSSoundDriverInfo) );
 } 
 
-void
-fs_device_get_capabilities( CoreSoundDevice    *device,
-                            DeviceCapabilities *caps )
+DeviceCapabilities
+fs_device_get_capabilities( CoreSoundDevice *device )
 {
      D_ASSERT( device != NULL );
-     D_ASSERT( caps != NULL );
      
-     *caps = device->device_info.caps;
+     return device->device_info.caps;
 }
 
 void
@@ -204,8 +202,7 @@ fs_device_write( CoreSoundDevice *device,
 }
 
 void
-fs_device_get_output_delay( CoreSoundDevice *device,
-                            int             *delay )
+fs_device_get_output_delay( CoreSoundDevice *device, int *delay )
 {
      D_ASSERT( device != NULL );
      D_ASSERT( delay != NULL );
@@ -214,6 +211,29 @@ fs_device_get_output_delay( CoreSoundDevice *device,
           device->funcs->GetOutputDelay( device->device_data, delay );
      else
           *delay = 0;
+}
+
+DFBResult
+fs_device_get_volume( CoreSoundDevice *device, float *level )
+{
+     D_ASSERT( device != NULL );
+     D_ASSERT( level != NULL );
+     
+     if (device->funcs)
+          return device->funcs->GetVolume( device, level );
+     
+     return DFB_UNSUPPORTED;
+}
+
+DFBResult
+fs_device_set_volume( CoreSoundDevice *device, float level )
+{
+     D_ASSERT( device != NULL );
+     
+     if (device->funcs)
+          return device->funcs->SetVolume( device, level );
+          
+     return DFB_UNSUPPORTED;
 }
 
 void
