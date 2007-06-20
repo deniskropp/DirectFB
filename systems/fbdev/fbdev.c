@@ -1636,7 +1636,10 @@ static DFBResult dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
           return DFB_BUG;
      }
 
-     var->xoffset = xoffset - (xoffset % dfb_fbdev->shared->fix.xpanstep);
+     if (dfb_fbdev->shared->fix.xpanstep)
+          var->xoffset = xoffset - (xoffset % dfb_fbdev->shared->fix.xpanstep);
+     else
+          var->xoffset = 0;
 
      if (dfb_fbdev->shared->fix.ywrapstep) {
           var->yoffset = yoffset - (yoffset % dfb_fbdev->shared->fix.ywrapstep);
