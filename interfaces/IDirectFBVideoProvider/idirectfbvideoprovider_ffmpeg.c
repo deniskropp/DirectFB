@@ -182,9 +182,9 @@ typedef struct {
 
 #define MAX_QUEUE_LEN        3 /* in seconds */
 
-#define GAP_TOLERANCE    17000 /* in microseconds */
+#define GAP_TOLERANCE    15000 /* in microseconds */
 
-#define GAP_THRESHOLD   500000 /* in microseconds */
+#define GAP_THRESHOLD   250000 /* in microseconds */
 
 /*****************************************************************************/
 
