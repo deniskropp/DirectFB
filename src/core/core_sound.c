@@ -847,6 +847,8 @@ core_call_handler( int caller, int call_arg, void *call_ptr,
                if (!(fs_device_get_capabilities( core->device ) & DCF_VOLUME) ||
                    fs_device_set_volume( core->device, volume ) != DFB_OK)
                     shared->soft_volume = fsf_from_float( volume );
+               else
+                    shared->soft_volume = FSF_ONE;
                break;
               
           default:
