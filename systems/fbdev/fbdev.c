@@ -1644,9 +1644,11 @@ static DFBResult dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
      if (dfb_fbdev->shared->fix.ywrapstep) {
           var->yoffset = yoffset - (yoffset % dfb_fbdev->shared->fix.ywrapstep);
           var->vmode |= FB_VMODE_YWRAP;
-     } else {
+     } else if (dfb_fbdev->shared->fix.ypanstep) {
           var->yoffset = yoffset - (yoffset % dfb_fbdev->shared->fix.ypanstep);
           var->vmode &= ~FB_VMODE_YWRAP;
+     } else {
+          var->yoffset = 0;
      }
 
      var->activate = onsync ? FB_ACTIVATE_VBL : FB_ACTIVATE_NOW;
