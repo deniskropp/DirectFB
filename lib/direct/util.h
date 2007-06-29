@@ -29,10 +29,17 @@
 #ifndef __DIRECT__UTIL_H__
 #define __DIRECT__UTIL_H__
 
+#include <unistd.h>
+
+#ifdef _POSIX_PRIORITY_SCHEDULING
+#include <sched.h>
+#endif
+
+#include <pthread.h>
+
 #include <direct/debug.h>
 #include <direct/messages.h>
 
-#include <pthread.h>
 
 #ifndef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
@@ -81,6 +88,15 @@
 #define D_CONST_FUNC
 #endif
 
+
+/*
+ * portable sched_yield() implementation
+ */
+#ifdef _POSIX_PRIORITY_SCHEDULING
+#define direct_sched_yield()  sched_yield()
+#else
+#define direct_sched_yield()  usleep(0)
+#endif
 
 /*
  * translates errno to DirectResult
@@ -186,7 +202,8 @@ int direct_util_recursive_pthread_mutex_init( pthread_mutex_t *mutex );
  This floor operation is done by "(iround(f + .5) + iround(f - .5)) >> 1",
  but uses some IEEE specific tricks for better speed.
 */
-static __inline__ int D_IFLOOR(float f)
+static __inline__ int
+D_IFLOOR(float f)
 {
         int ai, bi;
         double af, bf;
@@ -220,7 +237,8 @@ static __inline__ int D_IFLOOR(float f)
  This ceil operation is done by "(iround(f + .5) + iround(f - .5) + 1) >> 1",
  but uses some IEEE specific tricks for better speed.
 */
-static __inline__ int D_ICEIL(float f)
+static __inline__ int
+D_ICEIL(float f)
 {
         int ai, bi;
         double af, bf;
@@ -245,7 +263,8 @@ static __inline__ int D_ICEIL(float f)
         return (ai - bi + 1) >> 1;
 }
 
-static __inline__ int direct_log2( int val )
+static __inline__ int
+direct_log2( int val )
 {
      register int ret = 0;
 
@@ -256,5 +275,6 @@ static __inline__ int direct_log2( int val )
 
      return ret;
 }
+
 
 #endif
