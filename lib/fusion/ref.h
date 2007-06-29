@@ -33,6 +33,7 @@
 
 #include <fusion/types.h>
 #include <fusion/call.h>
+#include <fusion/lock.h>
 
 typedef union {
      /* multi app */
@@ -40,8 +41,17 @@ typedef union {
           int                      id;
           const FusionWorldShared *shared;
           FusionID                 creator;
+          /* builtin impl */
+          struct {
+               int                 local;
+               int                 global;
+               FusionSkirmish      lock; 
+          
+               FusionCall         *call;
+               int                 call_arg;
+          } builtin;
      } multi;
-
+     
      /* single app */
      struct {
           int                      refs;

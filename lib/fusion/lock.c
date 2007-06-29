@@ -33,11 +33,6 @@
 #include <errno.h>
 #include <signal.h>
 
-#if FUSION_BUILD_MULTI
-#include <sys/ioctl.h>
-#include <linux/fusion.h>
-#endif
-
 #include <direct/debug.h>
 #include <direct/messages.h>
 #include <direct/util.h>
@@ -53,6 +48,8 @@
 
 D_DEBUG_DOMAIN( Fusion_Skirmish, "Fusion/Skirmish", "Fusion's Skirmish (Mutex)" );
 
+
+#if FUSION_BUILD_KERNEL
 
 DirectResult
 fusion_skirmish_init( FusionSkirmish    *skirmish,
@@ -262,6 +259,222 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
 
      return DFB_OK;
 }
+
+#else /* FUSION_BUILD_KERNEL */
+
+#include <direct/clock.h>
+
+
+DirectResult
+fusion_skirmish_init( FusionSkirmish    *skirmish,
+                      const char        *name,
+                      const FusionWorld *world )
+{
+     D_ASSERT( skirmish != NULL );
+     //D_ASSERT( name != NULL );
+     D_MAGIC_ASSERT( world, FusionWorld );
+     
+     D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_init( %p, '%s' )\n", 
+                 skirmish, name ? : "" );
+     
+     skirmish->multi.id = ++world->shared->lock_ids;
+     
+     /* Set state to unlocked. */
+     skirmish->multi.builtin.locked = 0;
+     skirmish->multi.builtin.owner  = 0;
+    
+     skirmish->multi.builtin.waiting = false;
+    
+     skirmish->multi.builtin.destroyed = false;
+     
+     /* Keep back pointer to shared world data. */
+     skirmish->multi.shared = world->shared;
+
+     return DFB_OK;
+}
+
+DirectResult
+fusion_skirmish_prevail( FusionSkirmish *skirmish )
+{
+     D_ASSERT( skirmish != NULL );
+     
+     if (skirmish->multi.builtin.destroyed)
+          return DFB_DESTROYED;
+
+     if (skirmish->multi.builtin.locked &&
+         skirmish->multi.builtin.owner != getpid())
+     {
+          int count = 0;
+          
+          while (skirmish->multi.builtin.locked) {
+               /* Check whether owner exited without unlocking. */
+               if (kill( skirmish->multi.builtin.owner, 0 ) < 0 && errno == ESRCH) { 
+                    skirmish->multi.builtin.locked  = 0;
+                    skirmish->multi.builtin.waiting = false; 
+                    break;
+               }
+
+               skirmish->multi.builtin.waiting = true;
+               
+               if (++count > 1000) {
+                    usleep( 0 );
+                    count = 0;
+               }
+               else {
+                    direct_sched_yield();
+               }
+               
+               if (skirmish->multi.builtin.destroyed)
+                    return DFB_DESTROYED;
+          }
+     }
+     
+     skirmish->multi.builtin.locked++;
+     skirmish->multi.builtin.owner = getpid();
+
+     return DFB_OK;
+}
+
+DirectResult
+fusion_skirmish_swoop( FusionSkirmish *skirmish )
+{
+     D_ASSERT( skirmish != NULL );
+     
+     if (skirmish->multi.builtin.destroyed)
+          return DFB_DESTROYED;
+          
+     if (skirmish->multi.builtin.locked &&
+         skirmish->multi.builtin.owner != getpid()) {
+          /* Check whether owner exited without unlocking. */
+          if (kill( skirmish->multi.builtin.owner, 0 ) < 0 && errno == ESRCH) { 
+               skirmish->multi.builtin.locked  = 0;
+               skirmish->multi.builtin.waiting = false;
+          }
+          else
+               return DFB_BUSY;
+     }
+          
+     skirmish->multi.builtin.locked++;
+     skirmish->multi.builtin.owner = getpid();
+
+     return DFB_OK;
+}
+
+DirectResult
+fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
+{
+     D_ASSERT( skirmish != NULL );
+     
+     if (skirmish->multi.builtin.destroyed) {
+          *lock_count = 0;
+          return DFB_DESTROYED;
+     }
+
+     *lock_count = skirmish->multi.builtin.locked;
+     
+     return DFB_OK;
+}
+
+DirectResult
+fusion_skirmish_dismiss (FusionSkirmish *skirmish)
+{
+     D_ASSERT( skirmish != NULL );
+     
+     if (skirmish->multi.builtin.destroyed)
+          return DFB_DESTROYED;
+
+     if (skirmish->multi.builtin.locked) {
+          if (skirmish->multi.builtin.owner != getpid()) {
+               D_ERROR( "Fusion/Skirmish: "
+                        "Tried to dismiss a skirmish not owned by current process!\n" );
+               return DFB_ACCESSDENIED;
+          }
+          
+          if (--skirmish->multi.builtin.locked == 0) {
+               skirmish->multi.builtin.owner = 0;
+
+               if (skirmish->multi.builtin.waiting) {
+                    skirmish->multi.builtin.waiting = false;
+                    direct_sched_yield();
+               }
+          }
+     }
+
+     return DFB_OK;
+}
+
+DirectResult
+fusion_skirmish_destroy (FusionSkirmish *skirmish)
+{
+     D_ASSERT( skirmish != NULL );
+
+     D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_destroy( %p )\n", skirmish );
+     
+     if (skirmish->multi.builtin.destroyed)
+          return DFB_DESTROYED;
+          
+     skirmish->multi.builtin.destroyed = true;
+
+     return DFB_OK;
+}
+
+DirectResult
+fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
+{    
+     D_ASSERT( skirmish != NULL );
+     
+     if (skirmish->multi.builtin.destroyed)
+          return DFB_DESTROYED;
+     
+     /* FIXME: Is timeout in milliseconds? It's not documented... */
+     
+     if (skirmish->multi.builtin.locked &&
+         skirmish->multi.builtin.owner != getpid()) {
+          long long stop  = direct_clock_get_micros() + timeout*1000;
+          int       count = 0;
+         
+          while (skirmish->multi.builtin.locked) {
+               /* Check whether owner exited without unlocking. */
+               if (kill( skirmish->multi.builtin.owner, 0 ) < 0 && errno == ESRCH) {
+                    skirmish->multi.builtin.locked  = 0;
+                    skirmish->multi.builtin.owner   = 0;
+                    skirmish->multi.builtin.waiting = false;
+                    break;
+               }
+
+               if (direct_clock_get_micros() >= stop)
+                    return DFB_TIMEOUT;
+              
+               if (++count > 1000) {
+                    usleep( 0 );
+                    count = 0;
+               }
+               else {
+                    direct_sched_yield();
+               }
+
+               if (skirmish->multi.builtin.destroyed)
+                    return DFB_DESTROYED; 
+          }
+     }
+     
+     return DFB_OK;
+}
+
+DirectResult
+fusion_skirmish_notify( FusionSkirmish *skirmish )
+{
+     D_ASSERT( skirmish != NULL );
+     
+     if (skirmish->multi.builtin.destroyed)
+          return DFB_DESTROYED;
+
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
+#endif /* FUSION_BUILD_KERNEL */
 
 #else  /* FUSION_BUILD_MULTI */
 

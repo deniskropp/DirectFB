@@ -33,13 +33,9 @@
 #include <errno.h>
 #include <signal.h>
 
-#include <fusion/build.h>
-
-#if FUSION_BUILD_MULTI
 #include <sys/types.h>
-#include <sys/ioctl.h>
-#include <linux/fusion.h>
-#endif
+
+#include <fusion/build.h>
 
 #include <direct/debug.h>
 #include <direct/messages.h>
@@ -52,6 +48,8 @@
 
 
 #if FUSION_BUILD_MULTI
+
+#if FUSION_BUILD_KERNEL
 
 DirectResult
 fusion_property_init (FusionProperty *property, const FusionWorld *world)
@@ -202,7 +200,155 @@ fusion_property_destroy (FusionProperty *property)
      return DFB_OK;
 }
 
-#else
+#else /* FUSION_BUILD_KERNEL */
+
+#define FUSION_PROPERTY_YIELD_COUNT 100
+
+DirectResult
+fusion_property_init (FusionProperty *property, const FusionWorld *world)
+{
+     D_ASSERT( property != NULL );
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     /* Set state to available. */
+     property->multi.builtin.state = FUSION_PROPERTY_AVAILABLE;
+     property->multi.builtin.owner = 0;
+
+     property->multi.builtin.waiting = false;
+     
+     property->multi.builtin.destroyed = false;
+
+     /* Keep back pointer to shared world data. */
+     property->multi.shared = world->shared;
+
+     return DFB_OK;
+}
+
+DirectResult
+fusion_property_lease (FusionProperty *property)
+{
+     D_ASSERT( property != NULL );
+
+     if (property->multi.builtin.destroyed)
+          return DFB_DESTROYED;
+
+     D_ASSUME( property->multi.builtin.owner != getpid() );
+     
+     while (property->multi.builtin.state == FUSION_PROPERTY_LEASED) {
+          property->multi.builtin.waiting = true;
+          
+          direct_sched_yield();
+               
+          if (property->multi.builtin.destroyed)
+               return DFB_DESTROYED;
+     }
+
+     if (property->multi.builtin.state == FUSION_PROPERTY_PURCHASED)
+          return DFB_BUSY;
+     
+     property->multi.builtin.state = FUSION_PROPERTY_LEASED;
+     property->multi.builtin.owner = getpid();
+
+     return DFB_OK;
+}
+
+DirectResult
+fusion_property_purchase (FusionProperty *property)
+{
+     D_ASSERT( property != NULL );
+
+     if (property->multi.builtin.destroyed)
+          return DFB_DESTROYED;
+
+     D_ASSUME( property->multi.builtin.owner != getpid() ); 
+          
+     while (property->multi.builtin.state == FUSION_PROPERTY_LEASED) {
+          property->multi.builtin.waiting = true;
+          
+          direct_sched_yield();
+               
+          if (property->multi.builtin.destroyed)
+               return DFB_DESTROYED;
+     }
+     
+     if (property->multi.builtin.state == FUSION_PROPERTY_PURCHASED)
+          return DFB_BUSY;
+     
+     property->multi.builtin.state = FUSION_PROPERTY_PURCHASED;
+     property->multi.builtin.owner = getpid();
+
+     return DFB_OK;
+}
+
+DirectResult
+fusion_property_cede (FusionProperty *property)
+{
+     D_ASSERT( property != NULL );
+     
+     if (property->multi.builtin.destroyed)
+          return DFB_DESTROYED;
+
+     D_ASSUME( property->multi.builtin.state != FUSION_PROPERTY_AVAILABLE );
+     D_ASSUME( property->multi.builtin.owner == getpid() );
+
+     property->multi.builtin.state = FUSION_PROPERTY_AVAILABLE;
+     property->multi.builtin.owner = 0;
+
+     if (property->multi.builtin.waiting) {
+          property->multi.builtin.waiting = false;
+          direct_sched_yield();
+     }
+
+     return DFB_OK;
+}
+
+DirectResult
+fusion_property_holdup (FusionProperty *property)
+{
+     D_ASSERT( property != NULL );
+
+     if (property->multi.builtin.destroyed)
+          return DFB_DESTROYED;
+
+     if (property->multi.builtin.state == FUSION_PROPERTY_PURCHASED &&
+         property->multi.builtin.owner != getpid()) {
+          pid_t pid = property->multi.builtin.owner;
+          
+          if (kill( pid, SIGKILL ) < 0 && errno != ESRCH)
+               return DFB_UNSUPPORTED;
+
+          /* Wait process termination. */
+          while (kill( pid, 0 ) == 0) {
+               if (property->multi.builtin.destroyed)
+                    return DFB_DESTROYED;
+               
+               direct_sched_yield();
+          }
+          
+          property->multi.builtin.state   = FUSION_PROPERTY_AVAILABLE;
+          property->multi.builtin.owner   = 0;
+          property->multi.builtin.waiting = false;
+     }          
+
+     return DFB_OK;
+}
+
+DirectResult
+fusion_property_destroy (FusionProperty *property)
+{
+     D_ASSERT( property != NULL );
+
+     if (property->multi.builtin.destroyed)
+          return DFB_DESTROYED;
+     
+     property->multi.builtin.destroyed = true;
+
+     return DFB_OK;
+}
+
+#endif /* FUSION_BUILD_KERNEL */
+
+#else /* FUSION_BUILD_MULTI */
 
 #include <pthread.h>
 

@@ -39,11 +39,16 @@
 #include <fusion/build.h>
 #include <fusion/fusion.h>
 #include <fusion/lock.h>
+#include <fusion/ref.h>
 #include <fusion/shm/shm_internal.h>
 
 #if FUSION_BUILD_MULTI
-#include <sys/ioctl.h>
-#include <linux/fusion.h>
+# if FUSION_BUILD_KERNEL
+#  include <sys/ioctl.h>
+#  include <linux/fusion.h>
+# else
+#  include <fusion/protocol.h>
+# endif
 #endif
 
 #define FUSION_MAX_WORLDS     8
@@ -69,6 +74,17 @@ struct __Fusion_FusionWorldShared {
      FusionSHMShared      shm;
 
      FusionSHMPoolShared *main_pool;
+     
+     DirectLink          *fusionees; /* Connected fusionees */
+     FusionSkirmish       fusionees_lock;
+    
+     unsigned int         call_ids;    /* Generate call ids */
+     unsigned int         lock_ids;    /* Generate locks ids */
+     unsigned int         ref_ids;     /* Generate refs ids */
+     unsigned int         reactor_ids; /* Generate reactors ids */
+     unsigned int         pool_ids;    /* Generate pools ids */
+
+     void                *pool_base;   /* SHM pool allocation base */ 
 };
 
 struct __Fusion_FusionWorld {
@@ -93,6 +109,8 @@ struct __Fusion_FusionWorld {
 
      FusionForkAction     fork_action;
      bool                 forked;
+
+     void                *fusionee;
 };
 
 /*******************************************
@@ -113,23 +131,43 @@ void _fusion_reactor_process_message( FusionWorld   *world,
                                       int            channel,
                                       const void    *msg_data );
 
+
+#if FUSION_BUILD_MULTI
 /*
  * from call.c
  */
-#if FUSION_BUILD_MULTI
 void _fusion_call_process( FusionWorld       *world,
                            int                call_id,
                            FusionCallMessage *call );
-#endif
 
+#if FUSION_BUILD_KERNEL
 /*
  * from shm.c
  */
-#if FUSION_BUILD_MULTI
 void _fusion_shmpool_process( FusionWorld          *world,
                               int                   pool_id,
                               FusionSHMPoolMessage *msg );
-#endif
+#else
+/*
+ * form fusion.c
+ */ 
+void _fusion_add_local( FusionWorld *world,
+                        FusionRef   *ref,
+                        int          add );
+
+void _fusion_remove_all_locals( FusionWorld     *world,
+                                const FusionRef *ref );
+                               
+DirectResult _fusion_send_message( int                  fd, 
+                                   const void          *msg, 
+                                   size_t               msg_size,
+                                   struct sockaddr_un  *addr );                                   
+DirectResult _fusion_recv_message( int                  fd, 
+                                   void                *msg,
+                                   size_t               msg_size,
+                                   struct sockaddr_un  *addr );
+                                   
+#endif /* FUSION_BUILD_KERNEL */
+#endif /* FUSION_BUILD_MULTI */
 
 #endif
-

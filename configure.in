@@ -445,20 +445,24 @@ AC_ARG_ENABLE(multi,
 if test "$enable_multi" = "yes"; then
   dnl Test for Fusion Kernel Device
   linux_fusion=yes
-  AC_CHECK_HEADER( [linux/fusion.h],,
-    AC_MSG_ERROR([
-
-*** Multi application core requires Fusion Kernel Device (see README).])
-
-  )
+  AC_CHECK_HEADER( [linux/fusion.h],, linux_fusion=no)
+  if test "$linux_fusion" = "yes"; then
+     FUSION_BUILD_KERNEL=1
+  else
+     AC_MSG_WARN([
+*** Linux-Fusion header not found. Using EXPERIMENTAL Builtin Multi application core.])
+     FUSION_BUILD_KERNEL=0
+  fi
   FUSION_BUILD_MULTI=1
 else
   FUSION_BUILD_MULTI=0
+  FUSION_BUILD_KERNEL=0
 fi
 
 AM_CONDITIONAL(ENABLE_MULTI, test "$enable_multi" = "yes")
 
 AC_SUBST(FUSION_BUILD_MULTI)
+AC_SUBST(FUSION_BUILD_KERNEL)
 
 
 AC_ARG_ENABLE(voodoo,

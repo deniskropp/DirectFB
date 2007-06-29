@@ -67,10 +67,15 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
      FusionObject     *object;
      FusionObjectPool *pool = ctx;
 
+     D_DEBUG_AT( Fusion_Object, "%s( %d, %d, %p, %p, %u, %p )",
+                 __FUNCTION__, caller, call_arg, call_ptr, ctx, serial, ret_val );
+
+#if FUSION_BUILD_KERNEL
      if (caller) {
           D_BUG( "Call not from Fusion/Kernel (caller %d)", caller );
           return FCHR_RETURN;
      }
+#endif
 
      D_MAGIC_ASSERT( pool, FusionObjectPool );
 

@@ -46,7 +46,7 @@ typedef FusionCallHandlerResult (*FusionCallHandler) (int           caller,   /*
 typedef struct {
      FusionWorldShared *shared;
      int                call_id;
-     int                fusion_id;
+     FusionID           fusion_id;
      FusionCallHandler  handler;
      void              *ctx;
 } FusionCall;

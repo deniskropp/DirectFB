@@ -34,6 +34,7 @@
 #include <fusion/types.h>
 
 #include <direct/messages.h>
+#include <direct/util.h>
 
 
 typedef union {
@@ -41,8 +42,15 @@ typedef union {
      struct {
           int                      id;
           const FusionWorldShared *shared;
+          /* builtin impl */
+          struct {
+               unsigned int        locked;
+               pid_t               owner;
+               bool                waiting;
+               bool                destroyed;
+          } builtin;
      } multi;
-
+     
      /* single app */
      struct {
           pthread_mutex_t          lock;
