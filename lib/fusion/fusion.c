@@ -1389,7 +1389,8 @@ fusion_enter( int               world_index,
                     /* Auto generate slave id */
                     for (id = FUSION_ID_MASTER+1; id < (FusionID)-1; id++) {
                          snprintf( addr.sun_path+len, sizeof(addr.sun_path)-len, "%lx", id );
-                         if (bind( fd, (struct sockaddr*)&addr, sizeof(addr) ) == 0)
+                         err = bind( fd, (struct sockaddr*)&addr, sizeof(addr) );
+                         if (err == 0)
                               break;
                     }
                }
@@ -1509,7 +1510,7 @@ fusion_enter( int               world_index,
           shared->world_index = world_index;
 
           /* Set pool allocation base. */
-          shared->pool_base = (void*)0x20000000 + 0x2000 * FUSION_MAX_WORLDS;
+          shared->pool_base = (void*)0x20000000 + 0x2000 * FUSION_MAX_WORLDS + 0x8000000 * world_index;
 
           /* Set start time of world clock. */
           gettimeofday( &shared->start_time, NULL );
