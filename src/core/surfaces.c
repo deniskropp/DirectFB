@@ -363,7 +363,8 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
      DFBSurfacePixelFormat old_format;
      SurfaceBuffer	*front;
      SurfaceBuffer	*back;
-     DFBResult ret;
+     int             loop;
+     DFBResult       ret;
 
      D_DEBUG_AT( Core_Surface, "dfb_surface_reformat( %p, %dx%d, %s )\n",
                  surface, width, height, dfb_pixelformat_name( format ) );
@@ -383,13 +384,19 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
      dfb_surfacemanager_lock( surface->manager );
 
      front = surface->front_buffer;
-     back = surface->back_buffer;
+     back  = surface->back_buffer;
+     loop  = 0;
 
-     if (front->system.locked || front->video.locked ||
-         back->system.locked  || back->video.locked)
+     while (front->system.locked || front->video.locked ||
+            back->system.locked  || back->video.locked)
      {
           dfb_surfacemanager_unlock( surface->manager );
-          return DFB_LOCKED;
+          
+          if (++loop > 3)
+               return DFB_LOCKED;
+          direct_sched_yield();
+          
+          dfb_surfacemanager_lock( surface->manager );
      }
     
      old_width  = surface->width;
