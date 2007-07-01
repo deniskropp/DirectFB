@@ -285,7 +285,7 @@ parse_args( const char *args )
                *next++ = '\0';
 
           if (strcmp (buf, "help") == 0) {
-               direct_log_printf( NULL, config_usage );
+               fprintf( stderr, config_usage );
                exit(1);
           }
 
@@ -1502,7 +1502,7 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
           for (i = 1; i < *argc; i++) {
 
                if (strcmp ((*argv)[i], "--dfb-help") == 0) {
-                    direct_log_printf( NULL, config_usage );
+                    fprintf( stderr, config_usage );
                     exit(1);
                }
 
