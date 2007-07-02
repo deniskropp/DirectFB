@@ -67,7 +67,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
      FusionObject     *object;
      FusionObjectPool *pool = ctx;
 
-     D_DEBUG_AT( Fusion_Object, "%s( %d, %d, %p, %p, %u, %p )",
+     D_DEBUG_AT( Fusion_Object, "%s( %d, %d, %p, %p, %u, %p )\n",
                  __FUNCTION__, caller, call_arg, call_ptr, ctx, serial, ret_val );
 
 #if FUSION_BUILD_KERNEL
