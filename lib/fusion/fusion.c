@@ -1080,11 +1080,11 @@ _fusion_remove_fusionee( FusionWorld *world, FusionID fusion_id )
           fusion_skirmish_dismiss( &shared->fusionees_lock );
           return;
      }
-     
+
      direct_list_remove( &shared->fusionees, &fusionee->link );
 
      fusion_skirmish_dismiss( &shared->fusionees_lock );
-
+     
      direct_list_foreach_safe (fusionee_ref, temp, fusionee->refs) {
           direct_list_remove( &fusionee->refs, &fusionee_ref->link );
         
@@ -1098,10 +1098,6 @@ _fusion_remove_fusionee( FusionWorld *world, FusionID fusion_id )
      }
 
      SHFREE( shared->main_pool, fusionee );
-
-     /* Clear local pointer. */
-     if (world->fusionee == fusionee)
-          world->fusionee = NULL;
 }
 
 /**********************************************************************************************************************/
@@ -1723,7 +1719,7 @@ fusion_exit( FusionWorld *world,
           pthread_mutex_unlock( &fusion_worlds_lock );
           return DFB_OK;
      }
-     
+ 
      if (!emergency) {
           FusionMessageType msg = FMT_SEND;
           
@@ -1738,8 +1734,22 @@ fusion_exit( FusionWorld *world,
      direct_thread_destroy( world->dispatch_loop );
 
      /* Remove ourselves from list. */
-     if (!emergency || fusion_master( world ))
+     if (!emergency || fusion_master( world )) {
           _fusion_remove_fusionee( world, world->fusion_id );
+     }
+     else {
+          struct sockaddr_un addr;
+          FusionLeave        leave;
+
+          addr.sun_family = AF_UNIX;
+          snprintf( addr.sun_path, sizeof(addr.sun_path), 
+                    "/tmp/fusion.%d/%lx", fusion_world_index( world ), FUSION_ID_MASTER );
+
+          leave.type      = FMT_LEAVE;
+          leave.fusion_id = world->fusion_id;
+
+          _fusion_send_message( world->fusion_fd, &leave, sizeof(leave), &addr );
+     }
 
      /* Master has to deinitialize shared data. */
      if (fusion_master( world ) && !world->forked) {
@@ -1846,9 +1856,6 @@ fusion_kill( FusionWorld *world,
                };
                
                fusion_skirmish_prevail( &shared->fusionees_lock );
-
-               /* Remove the fusionee here to prevent deadlocks. */
-               _fusion_remove_fusionee( world, fusionee->id );
           }
           else if (result < 0) {
                if (errno == ESRCH) {
@@ -1883,8 +1890,6 @@ fusion_dispatch_loop( DirectThread *self, void *arg )
      while (true) {
           int result;
           
-          direct_thread_testcancel( self );
-
           D_MAGIC_ASSERT( world, FusionWorld );
 
           FD_ZERO( &set );
@@ -1906,7 +1911,9 @@ fusion_dispatch_loop( DirectThread *self, void *arg )
 
           if (FD_ISSET( world->fusion_fd, &set ) && 
               recvfrom( world->fusion_fd, buf, sizeof(buf), 0, (struct sockaddr*)&addr, &len ) > 0) {
-               FusionMessage *msg = (FusionMessage*)buf;
+               FusionMessage *msg = (FusionMessage*)buf;               
+
+               pthread_setcancelstate( PTHREAD_CANCEL_DISABLE, NULL );
 
                D_DEBUG_AT( Fusion_Main_Dispatch, " -> message from '%s'...\n", addr.sun_path );
                
@@ -1929,7 +1936,21 @@ fusion_dispatch_loop( DirectThread *self, void *arg )
                               D_ERROR( "Fusion/Dispatch: Received ENTER request from myself!\n" );
                               break;
                          }
+                         /* Nothing to do here. Send back message. */
                          _fusion_send_message( world->fusion_fd, msg, sizeof(FusionEnter), &addr );
+                         break;
+
+                    case FMT_LEAVE:
+                         D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_LEAVE...\n" );
+                         if (!fusion_master( world )) {
+                              D_ERROR( "Fusion/Dispatch: Got LEAVE request, but I'm not master!\n" );
+                              break;
+                         }
+                         if (msg->leave.fusion_id == world->fusion_id) {
+                              D_ERROR( "Fusion/Dispatch: Received LEAVE request from myself!\n" );
+                              break;
+                         }
+                         _fusion_remove_fusionee( world, msg->leave.fusion_id );
                          break;
                           
                     case FMT_CALL:
@@ -1949,6 +1970,8 @@ fusion_dispatch_loop( DirectThread *self, void *arg )
                }
 
                D_DEBUG_AT( Fusion_Main_Dispatch, " ...done\n" );
+
+               pthread_setcancelstate( PTHREAD_CANCEL_ENABLE, NULL );
           }
      }
 

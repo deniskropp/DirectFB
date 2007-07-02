@@ -42,6 +42,7 @@
 typedef enum {
      FMT_SEND,
      FMT_ENTER,
+     FMT_LEAVE,
      FMT_CALL,
      FMT_CALLRET,
      FMT_REACTOR
@@ -55,6 +56,15 @@ typedef struct {
      
      FusionID             fusion_id;
 } FusionEnter;
+
+/*
+ * Leave the world (slave).
+ */
+typedef struct {
+     FusionMessageType    type;
+     
+     FusionID             fusion_id;
+} FusionLeave;
 
 /*
  * Execute a call.
@@ -99,6 +109,7 @@ typedef union {
      FusionMessageType    type;
      
      FusionEnter          enter;
+     FusionLeave          leave;
      FusionCallMessage    call;
      FusionCallReturn     callret;
      FusionReactorMessage reactor;
