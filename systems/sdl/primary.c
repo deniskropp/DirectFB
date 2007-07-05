@@ -422,12 +422,14 @@ DisplayLayerFuncs sdlPrimaryLayerFuncs = {
 static DFBResult
 update_screen( int x, int y, int w, int h )
 {
-     int          i;
+     int          i, n;
      void        *dst;
      void        *src;
      int          pitch;
      DFBResult    ret;
      CoreSurface *surface;
+     u16         *src16, *dst16;
+     u8          *src8;
 
      D_DEBUG_AT( SDL_Updates, "%s( %d, %d, %d, %d )\n", __FUNCTION__, x, y, w, h );
 
@@ -474,7 +476,43 @@ update_screen( int x, int y, int w, int h )
      D_DEBUG_AT( SDL_Updates, "  -> copying pixels...\n" );
 
      for (i=0; i<h; ++i) {
-          direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->format, w ) );
+          switch (screen->format->BitsPerPixel) {
+               case 16:
+                    switch (surface->format) {
+                         case DSPF_RGB16:
+                              direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->format, w ) );
+                              break;
+
+                         case DSPF_NV16:
+                              src8  = src;
+                              src16 = src + surface->height * pitch;
+                              dst16 = dst;
+
+                              for (n=0; n<w; n++) {
+                                   int r, g, b;
+
+                                   YCBCR_TO_RGB( src8[n], src16[n>>1] & 0xff, src16[n>>1] >> 8, r, g, b );
+
+                                   dst16[n] = PIXEL_RGB16( r, g, b );
+                              }
+                              break;
+
+                         case DSPF_RGB444:
+                         case DSPF_ARGB4444:
+                              src16 = src;
+                              dst16 = dst;
+
+                              for (n=0; n<w; n++)
+                                   dst16[n] = PIXEL_RGB16( ((src16[n] & 0x0F00) >> 4) | ((src16[n] & 0x0F00) >> 8),
+                                                           ((src16[n] & 0x00F0)     ) | ((src16[n] & 0x00F0) >> 4),
+                                                           ((src16[n] & 0x000F) << 4) | ((src16[n] & 0x000F)     ) );
+                              break;
+                    }
+                    break;
+
+               default:
+                    direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->format, w ) );
+          }
 
           src += pitch;
           dst += screen->pitch;
@@ -543,24 +581,37 @@ typedef enum {
      SDL_SET_PALETTE
 } DFBSDLCall;
 
+static inline int
+get_pixelformat_target_depth( DFBSurfacePixelFormat format )
+{
+     switch (format) {
+          case DSPF_NV16:
+               return 16;
+
+          default:
+               break;
+     }
+
+     return DFB_BITS_PER_PIXEL( format );
+}
+
 static DFBResult
 dfb_sdl_set_video_mode_handler( CoreLayerRegionConfig *config )
 {
+     int depth = get_pixelformat_target_depth( config->format );
+
      fusion_skirmish_prevail( &dfb_sdl->lock );
 
      /* Set video mode */
-     if ( (screen=SDL_SetVideoMode(config->width, config->height,
-                                   DFB_BITS_PER_PIXEL(config->format),
-                                   SDL_HWSURFACE)) == NULL )
-     {
-             D_ERROR( "DirectFB/SDL: Couldn't set %dx%dx%d video mode: %s\n",
-                      config->width, config->height,
-                      DFB_COLOR_BITS_PER_PIXEL(config->format), SDL_GetError());
+     if ((screen=SDL_SetVideoMode(config->width, config->height, depth, SDL_HWSURFACE)) == NULL) {
+          D_ERROR( "DirectFB/SDL: Couldn't set %dx%dx%d video mode: %s\n",
+                   config->width, config->height, depth, SDL_GetError());
 
-             fusion_skirmish_dismiss( &dfb_sdl->lock );
+          fusion_skirmish_dismiss( &dfb_sdl->lock );
 
-             return DFB_FAILURE;
+          return DFB_FAILURE;
      }
+
      /* Hide SDL's cursor */
      SDL_ShowCursor(SDL_DISABLE);
 
