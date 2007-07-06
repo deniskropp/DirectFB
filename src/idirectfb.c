@@ -1555,6 +1555,7 @@ InitLayers( IDirectFB      *dfb,
                switch (conf->background.mode) {
                     case DLBM_COLOR:
                          dfb_windowstack_set_background_color( stack, &conf->background.color );
+                         dfb_windowstack_set_background_color_index( stack, conf->background.color_index );
                          break;
 
                     case DLBM_IMAGE:

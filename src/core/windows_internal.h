@@ -141,6 +141,7 @@ struct __DFB_CoreWindowStack {
                                            don't care, solid color or image */
 
           DFBColor            color;    /* color for solid background mode */
+          int                 color_index;
 
 
           CoreSurface        *image;    /* surface for background image mode */

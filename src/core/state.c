@@ -40,6 +40,7 @@
 #include <core/core.h>
 #include <core/coretypes.h>
 
+#include <core/palette.h>
 #include <core/state.h>
 #include <core/surfaces.h>
 
@@ -287,5 +288,42 @@ dfb_state_set_index_translation( CardState *state,
      dfb_state_unlock( state );
 
      return DFB_OK;
+}
+
+void
+dfb_state_set_color_or_index( CardState      *state,
+                              const DFBColor *color,
+                              int             index )
+{
+     CoreSurface *destination;
+     CorePalette *palette = NULL;
+
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( color != NULL );
+
+     destination = state->destination;
+     if (destination)
+          palette = destination->palette;
+
+     if (index < 0) {
+          D_ASSERT( color != NULL );
+
+          if (palette)
+               dfb_state_set_color_index( state, dfb_palette_search( palette,
+                                                                     color->r, color->g,
+                                                                     color->b, color->a ) );
+
+          dfb_state_set_color( state, color );
+     }
+     else {
+          dfb_state_set_color_index( state, index );
+
+          if (palette) {
+               D_ASSERT( palette->num_entries > 0 );
+               D_ASSUME( palette->num_entries > index );
+
+               dfb_state_set_color( state, &palette->entries[index % palette->num_entries] );
+          }
+     }
 }
 

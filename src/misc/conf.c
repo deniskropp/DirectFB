@@ -127,6 +127,7 @@ static const char *config_usage =
      "  layer-buffer-mode=(auto|triple|backvideo|backsystem|frontonly|windows)\n"
      "  layer-bg-none                  Disable background clear\n"
      "  layer-bg-color=AARRGGBB        Use background color (hex)\n"
+     "  layer-bg-color-index=<index>   Use background color index (decimal)\n"
      "  layer-bg-image=<filename>      Use background image\n"
      "  layer-bg-tile=<filename>       Use tiled background image\n"
      "  layer-src-key=AARRGGBB         Enable color keying (hex)\n"
@@ -352,11 +353,12 @@ static void config_allocate()
      dfb_config = (DFBConfig*) calloc( 1, sizeof(DFBConfig) );
 
      for (i=0; i<D_ARRAY_SIZE(dfb_config->layers); i++) {
-          dfb_config->layers[i].background.color.a = 0;
-          dfb_config->layers[i].background.color.r = 0;
-          dfb_config->layers[i].background.color.g = 0;
-          dfb_config->layers[i].background.color.b = 0;
-          dfb_config->layers[i].background.mode    = DLBM_COLOR;
+          dfb_config->layers[i].background.color.a     = 0;
+          dfb_config->layers[i].background.color.r     = 0;
+          dfb_config->layers[i].background.color.g     = 0;
+          dfb_config->layers[i].background.color.b     = 0;
+          dfb_config->layers[i].background.color_index = -1;
+          dfb_config->layers[i].background.mode        = DLBM_COLOR;
 
           D_ASSERT( D_ARRAY_SIZE(dfb_config->layers[i].palette) == 256 );
 
@@ -1179,10 +1181,33 @@ DFBResult dfb_config_set( const char *name, const char *value )
                argb >>= 8;
                conf->background.color.a = argb & 0xFF;
 
-               conf->background.mode = DLBM_COLOR;
+               conf->background.color_index = -1;
+               conf->background.mode        = DLBM_COLOR;
           }
           else {
                D_ERROR( "DirectFB/Config '%s': No color specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "layer-bg-color-index" ) == 0) {
+          DFBConfigLayer *conf = dfb_config->config_layer;
+
+          if (value) {
+               char *error;
+               u32   index;
+
+               index = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in index '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               conf->background.color_index = index;
+               conf->background.mode        = DLBM_COLOR;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No index specified!\n", name );
                return DFB_INVARG;
           }
      } else

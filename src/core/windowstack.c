@@ -357,7 +357,7 @@ dfb_windowstack_set_background_image( CoreWindowStack *stack,
 
 DFBResult
 dfb_windowstack_set_background_color( CoreWindowStack *stack,
-                                      DFBColor        *color )
+                                      const DFBColor  *color )
 {
      D_ASSERT( stack != NULL );
      D_ASSERT( color != NULL );
@@ -373,6 +373,34 @@ dfb_windowstack_set_background_color( CoreWindowStack *stack,
      if (!DFB_COLOR_EQUAL( stack->bg.color, *color )) {
           /* set new color */
           stack->bg.color = *color;
+
+          /* force an update of the window stack */
+          if (stack->bg.mode == DLBM_COLOR)
+               dfb_windowstack_repaint_all( stack );
+     }
+
+     /* Unlock the window stack. */
+     dfb_windowstack_unlock( stack );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_windowstack_set_background_color_index( CoreWindowStack *stack,
+                                            int              index )
+{
+     D_ASSERT( stack != NULL );
+
+     D_DEBUG_AT( Core_WindowStack, "%s( %p, %d )\n", __FUNCTION__, stack, index );
+
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack ))
+          return DFB_FUSION;
+
+     /* do nothing if color didn't change */
+     if (stack->bg.color_index == index) {
+          /* set new color index */
+          stack->bg.color_index = index;
 
           /* force an update of the window stack */
           if (stack->bg.mode == DLBM_COLOR)
