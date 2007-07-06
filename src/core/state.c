@@ -118,6 +118,8 @@ dfb_state_destroy( CardState *state )
 {
      D_MAGIC_ASSERT( state, CardState );
 
+     D_ASSUME( !(state->flags & CSF_DRAWING) );
+
      D_ASSUME( state->destination == NULL );
      D_ASSUME( state->source == NULL );
 
@@ -152,6 +154,8 @@ dfb_state_set_destination( CardState *state, CoreSurface *destination )
      D_MAGIC_ASSERT( state, CardState );
 
      dfb_state_lock( state );
+
+     D_ASSUME( !(state->flags & CSF_DRAWING) );
 
      if (state->destination != destination) {
           if (destination) {

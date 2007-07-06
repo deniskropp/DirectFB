@@ -38,6 +38,7 @@
  * overloads functions of the interface
  */
 DFBResult IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
+                                            IDirectFBSurface       *parent,
                                             DFBRectangle           *req_rect,
                                             DFBRectangle           *clip_rect,
                                             CoreLayerRegion        *region,

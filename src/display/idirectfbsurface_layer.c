@@ -108,6 +108,20 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
           return DFB_INVAREA;
 
 
+     IDirectFBSurface_StopAll( &data->base );
+
+     if (data->base.parent) {
+          IDirectFBSurface_data *parent_data;
+
+          DIRECT_INTERFACE_GET_DATA_FROM( data->base.parent, parent_data, IDirectFBSurface );
+
+          /* Signal end of sequence of operations. */
+          dfb_state_lock( &parent_data->state );
+          dfb_state_stop_drawing( &parent_data->state );
+          dfb_state_unlock( &parent_data->state );
+     }
+
+
      dfb_region_from_rectangle( &reg, &data->base.area.current );
 
      if (region) {
@@ -166,13 +180,13 @@ IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface    *thiz,
           dfb_rectangle_intersect( &granted, &data->base.area.granted );
           
           /* Construct */
-          ret = IDirectFBSurface_Layer_Construct( *surface, &wanted, &granted,
+          ret = IDirectFBSurface_Layer_Construct( *surface, thiz, &wanted, &granted,
                                                   data->region, data->base.caps |
                                                   DSCAPS_SUBSURFACE, data->base.core );
      }
      else {
           /* Construct */
-          ret = IDirectFBSurface_Layer_Construct( *surface, NULL, NULL,
+          ret = IDirectFBSurface_Layer_Construct( *surface, thiz, NULL, NULL,
                                                   data->region, data->base.caps |
                                                   DSCAPS_SUBSURFACE, data->base.core );
      }
@@ -182,6 +196,7 @@ IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface    *thiz,
 
 DFBResult
 IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
+                                  IDirectFBSurface       *parent,
                                   DFBRectangle           *wanted,
                                   DFBRectangle           *granted,
                                   CoreLayerRegion        *region,
@@ -203,7 +218,7 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
           return ret;
      }
 
-     ret = IDirectFBSurface_Construct( thiz, wanted, granted, NULL,
+     ret = IDirectFBSurface_Construct( thiz, parent, wanted, granted, NULL,
                                        surface, surface->caps | caps, core );
      if (ret) {
           dfb_surface_unref( surface );

@@ -179,7 +179,7 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
 
      DIRECT_ALLOCATE_INTERFACE( surface, IDirectFBSurface );
 
-     ret = IDirectFBSurface_Layer_Construct( surface, NULL, NULL,
+     ret = IDirectFBSurface_Layer_Construct( surface, NULL, NULL, NULL,
                                              region, DSCAPS_NONE, data->core );
 
      *interface = ret ? NULL : surface;

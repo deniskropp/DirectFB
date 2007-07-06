@@ -3110,6 +3110,9 @@ wm_preconfigure_window( CoreWindowStack *stack,
                CoreWindow      *window,
                void            *window_data )
 {
+     if (window->parent_id)
+          return DFB_UNIMPLEMENTED;
+
      return DFB_OK;
 }
 

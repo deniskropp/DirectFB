@@ -401,6 +401,8 @@ fusion_shm_pool_deallocate( FusionSHMPoolShared *pool,
 
 /**********************************************************************************************************************/
 
+#if FUSION_BUILD_KERNEL
+
 static DirectResult
 init_pool( FusionSHM           *shm,
            FusionSHMPool       *pool,
@@ -687,8 +689,218 @@ shutdown_pool( FusionSHM           *shm,
      D_MAGIC_CLEAR( shared );
 }
 
+#else /* FUSION_BUILD_KERNEL */
+
+static DirectResult
+init_pool( FusionSHM           *shm,
+           FusionSHMPool       *pool,
+           FusionSHMPoolShared *shared,
+           const char          *name,
+           unsigned int         max_size,
+           bool                 debug )
+{
+     DirectResult   ret;
+     int            fd;
+     int            size;
+     long           page_size;
+     int            pool_id;
+     unsigned int   pool_max_size;
+     void          *pool_addr_base = NULL;
+     FusionWorld   *world;
+     char           buf[FUSION_SHM_TMPFS_PATH_NAME_LEN + 32];
+
+     D_DEBUG_AT( Fusion_SHMPool, "%s( %p, %p, %p, '%s', %d, %sdebug )\n",
+                 __FUNCTION__, shm, pool, shared, name, max_size, debug ? "" : "non-" );
+
+     D_MAGIC_ASSERT( shm, FusionSHM );
+     D_MAGIC_ASSERT( shm->shared, FusionSHMShared );
+     D_ASSERT( name != NULL );
+     D_ASSERT( max_size > sizeof(shmalloc_heap) );
+
+     world = shm->world;
+
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     D_ASSERT( pool != NULL );
+     D_ASSERT( shared != NULL );
+
+     page_size = direct_pagesize();
+
+     pool_id = ++world->shared->pool_ids;
+
+     pool_max_size = max_size + BLOCKALIGN(sizeof(shmalloc_heap)) +
+                                BLOCKALIGN( (max_size + BLOCKSIZE-1) / BLOCKSIZE * sizeof(shmalloc_info) );
+
+     pool_addr_base = world->shared->pool_base;
+     world->shared->pool_base += ((pool_max_size + page_size - 1) & ~(page_size - 1)) + page_size;
+
+     /* Generate filename. */
+     snprintf( buf, sizeof(buf), "%s/fusion.%d.%d", shm->shared->tmpfs,
+               fusion_world_index( world ), pool_id );
+
+     /* Initialize the heap. */
+     ret = __shmalloc_init_heap( shm, buf, pool_addr_base, max_size, &fd, &size );
+     if (ret)
+          return ret;
+
+     /* Initialize local data. */
+     pool->attached = true;
+     pool->shm      = shm;
+     pool->shared   = shared;
+     pool->pool_id  = pool_id;
+     pool->fd       = fd;
+     pool->filename = D_STRDUP( buf );
+
+     /* Initialize shared data. */
+     shared->active     = true;
+     shared->debug      = debug;
+     shared->shm        = shm->shared;
+     shared->max_size   = pool_max_size;
+     shared->pool_id    = pool_id;
+     shared->addr_base  = pool_addr_base;
+     shared->heap       = pool_addr_base;
+     shared->heap->pool = shared;
+
+     fusion_skirmish_init( &shared->lock, name, world );
+
+
+     D_MAGIC_SET( pool, FusionSHMPool );
+     D_MAGIC_SET( shared, FusionSHMPoolShared );
+
+
+     shared->name = SHSTRDUP( shared, name );
+
+     return DFB_OK;
+}
+
+static DirectResult
+join_pool( FusionSHM           *shm,
+           FusionSHMPool       *pool,
+           FusionSHMPoolShared *shared )
+{
+     DirectResult  ret;
+     int           fd;
+     FusionWorld  *world;
+     char          buf[FUSION_SHM_TMPFS_PATH_NAME_LEN + 32];
+
+     D_DEBUG_AT( Fusion_SHMPool, "%s( %p, %p, %p )\n", __FUNCTION__, shm, pool, shared );
+
+     D_MAGIC_ASSERT( shm, FusionSHM );
+     D_MAGIC_ASSERT( shm->shared, FusionSHMShared );
+     D_MAGIC_ASSERT( shared, FusionSHMPoolShared );
+
+#if !DIRECT_BUILD_DEBUGS
+     if (shared->debug) {
+          D_ERROR( "Fusion/SHM: Can't join debug enabled pool with pure-release library!\n" );
+          return DFB_UNSUPPORTED;
+     }
+#endif
+
+     world = shm->world;
+
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     /* Generate filename. */
+     snprintf( buf, sizeof(buf), "%s/fusion.%d.%d", shm->shared->tmpfs,
+               fusion_world_index( shm->world ), shared->pool_id );
+
+     /* Join the heap. */
+     ret = __shmalloc_join_heap( shm, buf, shared->addr_base, shared->max_size, &fd );
+     if (ret)
+          return ret;
+
+     /* Initialize local data. */
+     pool->attached = true;
+     pool->shm      = shm;
+     pool->shared   = shared;
+     pool->pool_id  = shared->pool_id;
+     pool->fd       = fd;
+     pool->filename = D_STRDUP( buf );
+
+
+     D_MAGIC_SET( pool, FusionSHMPool );
+
+     return DFB_OK;
+}
+
+static void
+leave_pool( FusionSHM           *shm,
+            FusionSHMPool       *pool,
+            FusionSHMPoolShared *shared )
+{
+     FusionWorld *world;
+
+     D_DEBUG_AT( Fusion_SHMPool, "%s( %p, %p, %p )\n", __FUNCTION__, shm, pool, shared );
+
+     D_MAGIC_ASSERT( shm, FusionSHM );
+     D_MAGIC_ASSERT( pool, FusionSHMPool );
+     D_MAGIC_ASSERT( shared, FusionSHMPoolShared );
+
+     world = shm->world;
+
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     if (munmap( shared->addr_base, shared->max_size ))
+          D_PERROR( "Fusion/SHM: Could not munmap shared memory file '%s'!\n", pool->filename );
+
+     if (pool->fd != -1 && close( pool->fd ))
+          D_PERROR( "Fusion/SHM: Could not close shared memory file '%s'!\n", pool->filename );
+
+     pool->attached = false;
+
+     D_FREE( pool->filename );
+
+     D_MAGIC_CLEAR( pool );
+}
+
+static void
+shutdown_pool( FusionSHM           *shm,
+               FusionSHMPool       *pool,
+               FusionSHMPoolShared *shared )
+{
+     FusionWorld *world;
+
+     D_DEBUG_AT( Fusion_SHMPool, "%s( %p, %p, %p )\n", __FUNCTION__, shm, pool, shared );
+
+     D_MAGIC_ASSERT( shm, FusionSHM );
+     D_MAGIC_ASSERT( pool, FusionSHMPool );
+     D_MAGIC_ASSERT( shared, FusionSHMPoolShared );
+
+     world = shm->world;
+
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     SHFREE( shared, shared->name );
+
+     fusion_dbg_print_memleaks( shared );
+
+     if (munmap( shared->addr_base, shared->max_size ))
+          D_PERROR( "Fusion/SHM: Could not munmap shared memory file '%s'!\n", pool->filename );
+
+     if (pool->fd != -1 && close( pool->fd ))
+          D_PERROR( "Fusion/SHM: Could not close shared memory file '%s'!\n", pool->filename );
+
+     if (unlink( pool->filename ))
+          D_PERROR( "Fusion/SHM: Could not unlink shared memory file '%s'!\n", pool->filename );
+
+     shared->active = false;
+
+     pool->attached = false;
+
+     D_FREE( pool->filename );
+
+     D_MAGIC_CLEAR( pool );
+
+     fusion_skirmish_destroy( &shared->lock );
+
+     D_MAGIC_CLEAR( shared );
+}
+
+#endif /* FUSION_BUILD_KERNEL */
+
 /**********************************************************************************************************************/
 
+#if FUSION_BUILD_KERNEL
 void
 _fusion_shmpool_process( FusionWorld          *world,
                          int                   pool_id,
@@ -736,4 +948,4 @@ _fusion_shmpool_process( FusionWorld          *world,
 
      fusion_skirmish_dismiss( &shared->lock );
 }
-
+#endif /* FUSION_BUILD_KERNEL */

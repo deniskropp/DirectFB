@@ -253,6 +253,17 @@ typedef struct _GraphicsDeviceFuncs {
      bool (*TextureTriangles)( void *driver_data, void *device_data,
                                DFBVertex *vertices, int num,
                                DFBTriangleFormation formation );
+
+     /*
+      * Signal beginning of a sequence of operations using this state.
+      * Any number of states can be 'drawing'.
+      */
+     void (*StartDrawing)( void *driver_data, void *device_data, CardState *state );
+
+     /*
+      * Signal end of sequence, i.e. destination surface is consistent again.
+      */
+     void (*StopDrawing)( void *driver_data, void *device_data, CardState *state );
 } GraphicsDeviceFuncs;
 
 typedef struct {
@@ -292,44 +303,85 @@ void dfb_gfxcard_unlock( void );
 void dfb_gfxcard_holdup( void );
 
 bool dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel );
-//bool dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel );
-//void dfb_gfxcard_state_release( CardState *state );
+
+/*
+ * Signal beginning of a sequence of operations using this state.
+ * Any number of states can be 'drawing'.
+ */
+void dfb_gfxcard_start_drawing( CoreGraphicsDevice *device,
+                                CardState          *state );
+
+/*
+ * Signal end of sequence, i.e. destination surface is consistent again.
+ */
+void dfb_gfxcard_stop_drawing ( CoreGraphicsDevice *device,
+                                CardState          *state );
 
 /*
  * drawing functions, lock source and destination surfaces,
  * handle clipping and drawing method (hardware/software)
  */
-void dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state );
+void dfb_gfxcard_fillrectangles         ( const DFBRectangle   *rects,
+                                          int                   num,
+                                          CardState            *state );
 
-void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state );
+void dfb_gfxcard_drawrectangle          ( DFBRectangle         *rect,
+                                          CardState            *state );
 
-void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state );
+void dfb_gfxcard_drawlines              ( DFBRegion            *lines,
+                                          int                   num_lines,
+                                          CardState            *state );
 
-void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *state );
+void dfb_gfxcard_fillspans              ( int                   y,
+                                          DFBSpan              *spans,
+                                          int                   num_spans,
+                                          CardState            *state );
 
-void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state );
+void dfb_gfxcard_filltriangle           ( DFBTriangle          *triangle,
+                                          CardState            *state );
 
-void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state );
+void dfb_gfxcard_blit                   ( DFBRectangle         *rect,
+                                          int                   dx,
+                                          int                   dy,
+                                          CardState            *state );
 
-void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
-                            int num, CardState *state );
+void dfb_gfxcard_batchblit              ( DFBRectangle         *rects,
+                                          DFBPoint             *points,
+                                          int                   num,
+                                          CardState            *state );
 
-void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy2,
-                           CardState *state );
+void dfb_gfxcard_tileblit               ( DFBRectangle         *rect,
+                                          int                   dx1,
+                                          int                   dy1,
+                                          int                   dx2,
+                                          int                   dy2,
+                                          CardState            *state );
 
-void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
-                              CardState *state );
+void dfb_gfxcard_stretchblit            ( DFBRectangle         *srect,
+                                          DFBRectangle         *drect,
+                                          CardState            *state );
 
-void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
-                                    DFBTriangleFormation formation,
-                                    CardState *state );
+void dfb_gfxcard_texture_triangles      ( DFBVertex            *vertices,
+                                          int                   num,
+                                          DFBTriangleFormation  formation,
+                                          CardState            *state );
 
-void dfb_gfxcard_drawstring( const u8 *text, int bytes,
-                             DFBTextEncodingID encoding, int x, int y,
-                             CoreFont *font, CardState *state );
-void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state );
-void dfb_gfxcard_drawglyph( unsigned int index, int x, int y,
-                            CoreFont *font, CardState *state );
+void dfb_gfxcard_drawstring             ( const __u8           *text,
+                                          int                   bytes,
+                                          DFBTextEncodingID     encoding,
+                                          int                   x,
+                                          int                   y,
+                                          CoreFont             *font,
+                                          CardState            *state );
+
+void dfb_gfxcard_drawglyph              ( unsigned int          index,
+                                          int                   x,
+                                          int                   y,
+                                          CoreFont             *font,
+                                          CardState            *state );
+
+void dfb_gfxcard_drawstring_check_state ( CoreFont             *font,
+                                          CardState            *state );
 
 DFBResult dfb_gfxcard_sync( void );
 void dfb_gfxcard_invalidate_state( void );

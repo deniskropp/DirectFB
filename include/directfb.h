@@ -4012,7 +4012,8 @@ typedef enum {
      DFEC_INPUT          = 0x01,   /* raw input event */
      DFEC_WINDOW         = 0x02,   /* windowing event */
      DFEC_USER           = 0x03,   /* custom event for the user of this library */
-     DFEC_UNIVERSAL      = 0x04    /* universal event for custom usage with variable size */
+     DFEC_UNIVERSAL      = 0x04,   /* universal event for custom usage with variable size */
+     DFEC_VIDEOPROVIDER  = 0x05    /* video provider event */
 } DFBEventClass;
 
 /*
@@ -4161,6 +4162,19 @@ typedef enum {
 } DFBWindowEventFlags;
 
 /*
+ * Video Provider Event Types - can also be used as flags for event filters.
+ */
+typedef enum {
+     DVPET_NONE           = 0x00000000,
+     DVPET_STARTED        = 0x00000001,  /* The video provider has started the playback     */
+     DVPET_STOPPED        = 0x00000002,  /* The video provider has stopped the playback     */
+     DVPET_SPEEDCHANGE    = 0x00000004,  /* A speed change has occured                      */
+     DVPET_STREAMCHANGE   = 0x00000008,  /* A stream description change has occured         */
+     DVPET_FATALERROR     = 0x00000010,  /* A fatal error has occured: restart must be done */
+     DVPET_ALL            = 0x0000001F   /* all event types */
+} DFBVideoProviderEventType;
+
+/*
  * Event from the windowing system.
  */
 typedef struct {
@@ -4216,6 +4230,15 @@ typedef struct {
 } DFBWindowEvent;
 
 /*
+ * Event from the video provider
+ */
+typedef struct {
+     DFBEventClass                   clazz;      /* clazz of event */
+
+     DFBVideoProviderEventType       type;       /* type of event */
+} DFBVideoProviderEvent;
+
+/*
  * Event for usage by the user of this library.
  */
 typedef struct {
@@ -4241,11 +4264,12 @@ typedef struct {
  * General container for a DirectFB Event.
  */
 typedef union {
-     DFBEventClass                   clazz;       /* clazz of event */
-     DFBInputEvent                   input;       /* field for input events */
-     DFBWindowEvent                  window;      /* field for window events */
-     DFBUserEvent                    user;        /* field for user-defined events */
-     DFBUniversalEvent               universal;   /* field for universal events */
+     DFBEventClass                   clazz;         /* clazz of event */
+     DFBInputEvent                   input;         /* field for input events */
+     DFBWindowEvent                  window;        /* field for window events */
+     DFBUserEvent                    user;          /* field for user-defined events */
+     DFBUniversalEvent               universal;     /* field for universal events */
+     DFBVideoProviderEvent           videoprovider; /* field for video provider */
 } DFBEvent;
 
 #define DFB_EVENT(e)          ((DFBEvent *) (e))
@@ -4260,6 +4284,7 @@ typedef struct {
      unsigned int   DFEC_WINDOW;             /* Number of window events. */
      unsigned int   DFEC_USER;               /* Number of user events. */
      unsigned int   DFEC_UNIVERSAL;          /* Number of universal events. */
+     unsigned int   DFEC_VIDEOPROVIDER;      /* Number of universal events. */
 
      unsigned int   DIET_KEYPRESS;
      unsigned int   DIET_KEYRELEASE;
@@ -4282,6 +4307,12 @@ typedef struct {
      unsigned int   DWET_LEAVE;
      unsigned int   DWET_WHEEL;
      unsigned int   DWET_POSITION_SIZE;
+
+     unsigned int   DVPET_STARTED;
+     unsigned int   DVPET_STOPPED;
+     unsigned int   DVPET_SPEEDCHANGE;
+     unsigned int   DVPET_STREAMCHANGE;
+     unsigned int   DVPET_FATALERROR;
 } DFBEventBufferStats;
 
 
@@ -5521,6 +5552,55 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
      DFBResult (*GetVolume) (
           IDirectFBVideoProvider   *thiz,
           float                    *ret_level
+     );
+
+     /** Event buffers **/
+     /*
+      * Create an event buffer for this video provider and attach it.
+      */
+     DFBResult (*CreateEventBuffer) (
+          IDirectFBVideoProvider       *thiz,
+          IDirectFBEventBuffer         **ret_buffer
+     );
+
+     /*
+      * Attach an existing event buffer to this video provider.
+      *
+      * NOTE: Attaching multiple times generates multiple events.
+      */
+     DFBResult (*AttachEventBuffer) (
+          IDirectFBVideoProvider       *thiz,
+          IDirectFBEventBuffer          *buffer
+     );
+
+     /*
+      * Enable specific events to be sent from the video provider.
+      *
+      * The argument is a mask of events that will be set in the
+      * videoproviders's event mask. The default event mask is DVPET_ALL.
+      */
+     DFBResult (*EnableEvents) (
+          IDirectFBVideoProvider         *thiz,
+          DFBVideoProviderEventType      mask
+     );
+
+     /*
+      * Disable specific events from being sent from the video provider
+      *
+      * The argument is a mask of events that will be cleared in
+      * the video providers's event mask. The default event mask is DWET_ALL.
+      */
+     DFBResult (*DisableEvents) (
+          IDirectFBVideoProvider         *thiz,
+          DFBVideoProviderEventType      mask
+     );
+
+     /*
+      * Detach an event buffer from this video provider.
+      */
+     DFBResult (*DetachEventBuffer) (
+          IDirectFBVideoProvider       *thiz,
+          IDirectFBEventBuffer          *buffer
      );
 )
 

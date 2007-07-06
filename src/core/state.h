@@ -43,6 +43,7 @@
 
 #include <gfx/generic/generic.h>
 
+#include <misc/conf.h>
 #include <misc/util.h>
 
 
@@ -74,13 +75,17 @@ typedef enum {
 
      CSF_SOURCE_LOCKED   = 0x00000010,  /* source surface is locked */
 
-     CSF_ALL             = 0x00000013
+     CSF_DRAWING         = 0x00010000,  /* something has been rendered with this state,
+                                           this is cleared by flushing the state, e.g. upon flip */
+
+     CSF_ALL             = 0x00010013
 } CardStateFlags;
 
 struct _CardState {
      int                      magic;
 
      CoreDFB                 *core;
+     CoreGraphicsDevice      *device;
      FusionID                 fusion_id;
 
      pthread_mutex_t          lock;          /* lock for state handling */
@@ -159,6 +164,45 @@ dfb_state_lock( CardState *state )
      DFB_REGION_ASSERT( &state->clip );
 
      pthread_mutex_lock( &state->lock );
+}
+
+static inline void
+dfb_state_start_drawing( CardState *state, CoreGraphicsDevice *device )
+{
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( device != NULL );
+     D_ASSERT( state->destination != NULL );
+
+     if (dfb_config->startstop) {
+          if (state->flags & CSF_DRAWING)
+               D_ASSERT( state->device == device );
+          else {
+               dfb_gfxcard_start_drawing( device, state );
+
+               state->flags |= CSF_DRAWING;
+               state->device = device;
+          }
+     }
+}
+
+static inline void
+dfb_state_stop_drawing( CardState *state )
+{
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( state->destination != NULL );
+
+     if (dfb_config->startstop) {
+          if (state->flags & CSF_DRAWING) {
+               D_ASSERT( state->device != NULL );
+     
+               dfb_gfxcard_stop_drawing( state->device, state );
+     
+               state->flags &= ~CSF_DRAWING;
+               state->device = NULL;
+          }
+          else
+               D_ASSERT( state->device == NULL );
+     }
 }
 
 static inline void

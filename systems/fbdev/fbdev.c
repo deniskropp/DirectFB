@@ -1636,14 +1636,19 @@ static DFBResult dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
           return DFB_BUG;
      }
 
-     var->xoffset = xoffset - (xoffset % dfb_fbdev->shared->fix.xpanstep);
+     if (dfb_fbdev->shared->fix.xpanstep)
+          var->xoffset = xoffset - (xoffset % dfb_fbdev->shared->fix.xpanstep);
+     else
+          var->xoffset = 0;
 
      if (dfb_fbdev->shared->fix.ywrapstep) {
           var->yoffset = yoffset - (yoffset % dfb_fbdev->shared->fix.ywrapstep);
           var->vmode |= FB_VMODE_YWRAP;
-     } else {
+     } else if (dfb_fbdev->shared->fix.ypanstep) {
           var->yoffset = yoffset - (yoffset % dfb_fbdev->shared->fix.ypanstep);
           var->vmode &= ~FB_VMODE_YWRAP;
+     } else {
+          var->yoffset = 0;
      }
 
      var->activate = onsync ? FB_ACTIVATE_VBL : FB_ACTIVATE_NOW;

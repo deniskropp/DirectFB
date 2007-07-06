@@ -57,6 +57,7 @@
 
 #include <misc/util.h>
 
+#include <direct/debug.h>
 #include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
@@ -79,6 +80,7 @@ void
 IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 {
      IDirectFBSurface_data *data;
+     IDirectFBSurface      *parent;
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
 
@@ -86,8 +88,29 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 
      data = thiz->priv;
 
+     D_ASSERT( data != NULL );
+     D_ASSERT( data->children_data == NULL );
+
+     parent = data->parent;
+     if (parent) {
+          IDirectFBSurface_data *parent_data;
+
+          D_MAGIC_ASSERT( (IAny*) parent, DirectInterface );
+
+          parent_data = parent->priv;
+          D_ASSERT( parent_data != NULL );
+
+          pthread_mutex_lock( &parent_data->children_lock );
+
+          direct_list_remove( &parent_data->children_data, &data->link );
+
+          pthread_mutex_unlock( &parent_data->children_lock );
+     }
+
      if (data->surface)
           dfb_surface_detach( data->surface, &data->reaction );
+
+     dfb_state_stop_drawing( &data->state );
 
      dfb_state_set_destination( &data->state, NULL );
      dfb_state_set_source( &data->state, NULL );
@@ -115,7 +138,12 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
           dfb_surface_unref( data->surface );
      }
 
+     pthread_mutex_destroy( &data->children_lock );
+
      DIRECT_DEALLOCATE_INTERFACE( thiz );
+
+     if (parent)
+          parent->Release( parent );
 }
 
 static DFBResult
@@ -486,6 +514,19 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
          (region && (region->x1 > region->x2 || region->y1 > region->y2)))
           return DFB_INVAREA;
 
+     IDirectFBSurface_StopAll( data );
+
+     /* FIXME: This is a temporary workaround for LiTE. */
+     if (data->parent) {
+          IDirectFBSurface_data *parent_data;
+
+          DIRECT_INTERFACE_GET_DATA_FROM( data->parent, parent_data, IDirectFBSurface );
+
+          /* Signal end of sequence of operations. */
+          dfb_state_lock( &parent_data->state );
+          dfb_state_stop_drawing( &parent_data->state );
+          dfb_state_unlock( &parent_data->state );
+     }
 
      dfb_region_from_rectangle( &reg, &data->area.current );
 
@@ -2036,14 +2077,14 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
           dfb_rectangle_intersect( &granted, &data->area.granted );
           
           /* Construct */
-          ret = IDirectFBSurface_Construct( *surface, 
+          ret = IDirectFBSurface_Construct( *surface, thiz,
                                             &wanted, &granted, &data->area.insets,
                                             data->surface,
                                             data->caps | DSCAPS_SUBSURFACE, data->core );
      }
      else {
           /* Construct */
-          ret = IDirectFBSurface_Construct( *surface, 
+          ret = IDirectFBSurface_Construct( *surface, thiz,
                                             NULL, NULL, &data->area.insets,
                                             data->surface, 
                                             data->caps | DSCAPS_SUBSURFACE, data->core );
@@ -2161,6 +2202,7 @@ IDirectFBSurface_SetRenderOptions( IDirectFBSurface        *thiz,
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
+                                      IDirectFBSurface       *parent,
                                       DFBRectangle           *wanted,
                                       DFBRectangle           *granted,
                                       DFBInsets              *insets,
@@ -2182,6 +2224,28 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
           DIRECT_DEALLOCATE_INTERFACE(thiz);
           return DFB_FAILURE;
      }
+
+     if (parent) {
+          IDirectFBSurface_data *parent_data;
+
+          if (parent->AddRef( parent )) {
+               dfb_surface_unref( surface );
+               DIRECT_DEALLOCATE_INTERFACE(thiz);
+               return DFB_FAILURE;
+          }
+
+          DIRECT_INTERFACE_GET_DATA_FROM( parent, parent_data, IDirectFBSurface );
+
+          pthread_mutex_lock( &parent_data->children_lock );
+
+          direct_list_append( &parent_data->children_data, &data->link );
+
+          pthread_mutex_unlock( &parent_data->children_lock );
+
+          data->parent = parent;
+     }
+
+     pthread_mutex_init( &data->children_lock, NULL );
 
      /* The area insets */
      if (insets) {
@@ -2335,5 +2399,25 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
      }
 
      return RS_OK;
+}
+
+void
+IDirectFBSurface_StopAll( IDirectFBSurface_data *data )
+{
+     if (data->children_data) {
+          IDirectFBSurface_data *child;
+
+          pthread_mutex_lock( &data->children_lock );
+
+          direct_list_foreach (child, data->children_data)
+               IDirectFBSurface_StopAll( child );
+
+          pthread_mutex_unlock( &data->children_lock );
+     }
+
+     /* Signal end of sequence of operations. */
+     dfb_state_lock( &data->state );
+     dfb_state_stop_drawing( &data->state );
+     dfb_state_unlock( &data->state );
 }
 

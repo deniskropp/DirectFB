@@ -36,6 +36,7 @@ include_HEADERS = \
 	lock.h			\
 	object.h		\
 	property.h		\
+	protocol.h		\
 	reactor.h		\
 	ref.h			\
 	shmalloc.h		\

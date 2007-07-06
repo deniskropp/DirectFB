@@ -135,6 +135,7 @@ static const char *config_usage =
      "  [no-]smooth-downscale          Enable/disable smooth downscaling per default\n"
      "  [no-]translucent-windows       Allow translucent windows\n"
      "  [no-]decorations               Enable window decorations (if supported by wm)\n"
+     "  [no-]startstop                 Issue StartDrawing/StopDrawing to driver\n"
      "  videoram-limit=<amount>        Limit amount of Video RAM in kb\n"
      "  agpmem-limit=<amount>          Limit amount of AGP memory in kb\n"
      "  screenshot-dir=<directory>     Dump screen content on <Print> key presses\n"
@@ -284,7 +285,7 @@ parse_args( const char *args )
                *next++ = '\0';
 
           if (strcmp (buf, "help") == 0) {
-               direct_log_printf( NULL, config_usage );
+               fprintf( stderr, config_usage );
                exit(1);
           }
 
@@ -898,6 +899,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "no-decorations" ) == 0) {
           dfb_config->decorations = false;
      } else
+     if (strcmp (name, "startstop" ) == 0) {
+          dfb_config->startstop = true;
+     } else
+     if (strcmp (name, "no-startstop" ) == 0) {
+          dfb_config->startstop = false;
+     } else
      if (strcmp (name, "vsync-none" ) == 0) {
           dfb_config->pollvsync_none = true;
      } else
@@ -1498,7 +1505,7 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
           for (i = 1; i < *argc; i++) {
 
                if (strcmp ((*argv)[i], "--dfb-help") == 0) {
-                    direct_log_printf( NULL, config_usage );
+                    fprintf( stderr, config_usage );
                     exit(1);
                }
 

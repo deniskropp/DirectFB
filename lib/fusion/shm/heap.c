@@ -607,8 +607,8 @@ __shmalloc_init_heap( FusionSHM  *shm,
      shmalloc_heap   *heap     = NULL;
      struct group    *pGroupInfo;
 
-     D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, '%s', %p, %p )\n",
-                 __FUNCTION__, shm, filename, addr_base, ret_fd );
+     D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, '%s', %p, %d, %p, %p )\n",
+                 __FUNCTION__, shm, filename, addr_base, space, ret_fd, ret_size );
 
      D_MAGIC_ASSERT( shm, FusionSHM );
      D_ASSERT( filename != NULL );
@@ -658,9 +658,6 @@ __shmalloc_init_heap( FusionSHM  *shm,
           D_PERROR( "Fusion/SHM: Could not mmap shared memory file '%s'!\n", filename );
           goto error;
      }
-
-     close( fd );
-     fd = -1;
 
      if (heap != addr_base) {
           D_ERROR( "Fusion/SHM: mmap() returned address (%p) differs from requested (%p)\n", heap, addr_base );
@@ -741,9 +738,6 @@ __shmalloc_join_heap( FusionSHM  *shm,
           goto error;
      }
 
-     close( fd );
-     fd = -1;
-
      if (heap != addr_base) {
           D_ERROR( "Fusion/SHM: mmap() returned address (%p) differs from requested (%p)\n", heap, addr_base );
           ret = DFB_FUSION;
@@ -797,15 +791,13 @@ __shmalloc_brk( shmalloc_heap *heap, int increment )
           int new_size = heap->size + increment;
 
           if (new_size > shared->max_size) {
-               D_WARN( "maximum shared memory file size (%dk) exceeded (%dk by %dk) in '%s'!",
-                       shared->max_size >> 10, new_size >> 10, increment >> 10, pool->filename );
+               D_WARN( "maximum shared memory size exceeded!" );
                fusion_dbg_print_memleaks( shared );
                return NULL;
           }
 
-          if (truncate( pool->filename, new_size ) < 0) {
-               D_PERROR( "Fusion/SHM: truncating shared memory file '%s' from %dkb to %dkb failed!\n",
-                         pool->filename, heap->size >> 10, new_size >> 10 );
+          if (ftruncate( pool->fd, new_size ) < 0) {
+               D_PERROR( "Fusion/SHM: ftruncating shared memory file failed!\n" );
                return NULL;
           }
 

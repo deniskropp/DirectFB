@@ -45,8 +45,15 @@ typedef union {
      struct {
           int                      id;
           const FusionWorldShared *shared;
+          /* builtin impl */
+          struct {
+               FusionPropertyState state;
+               pid_t               owner;
+               bool                waiting;
+               bool                destroyed;
+          } builtin;
      } multi;
-
+     
      /* single app */
      struct {
           pthread_mutex_t          lock;

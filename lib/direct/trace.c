@@ -229,29 +229,29 @@ load_symbols( const char *filename )
      int          command_len;
      char        *command;
      const char  *full_path = filename;
+     char        *tmp;
 
      if (filename) {
-       if (access( filename, R_OK ) < 0 && errno == ENOENT) {
-          int   len;
-          char *tmp;
+          if (access( filename, R_OK ) < 0 && errno == ENOENT) {
+               int len;
 
-          if ((len = readlink( "/proc/self/exe", file, sizeof(file) - 1 )) < 0) {
-               D_PERROR( "Direct/Trace: readlink( \"/proc/self/exe\" ) failed!\n" );
-               return NULL;
+               if ((len = readlink( "/proc/self/exe", file, sizeof(file) - 1 )) < 0) {
+                    D_PERROR( "Direct/Trace: readlink( \"/proc/self/exe\" ) failed!\n" );
+                    return NULL;
+               }
+
+               file[len] = 0;
+
+
+               tmp = strrchr( file, '/' );
+               if (!tmp)
+                    return NULL;
+
+               if (strcmp( filename, tmp + 1 ))
+                    return NULL;
+
+               full_path = file;
           }
-
-          file[len] = 0;
-
-          
-          tmp = strrchr( file, '/' ) + 1;
-          if (!tmp)
-               return NULL;
-
-          if (strcmp( filename, tmp ))
-               return NULL;
-
-          full_path = file;
-       }
      }
      else {
           int   len;
@@ -269,8 +269,14 @@ load_symbols( const char *filename )
      command_len = strlen( full_path ) + 32;
      command     = alloca( command_len );
 
-     /* First check if there's an ".nm" file. */
-     snprintf( command, command_len, "%s.nm", full_path );
+     /* First check if there's an "nm-n" file. */
+     tmp = strrchr( full_path, '/' );
+     if (!tmp)
+          return NULL;
+
+     *tmp = 0;
+     snprintf( command, command_len, "%s/nm-n.%s", full_path, tmp + 1 );
+     *tmp = '/';
 
      if (access( command, R_OK ) == 0) {
           fp = fopen( command, "r" );
@@ -302,19 +308,20 @@ load_symbols( const char *filename )
 
      while (fgets( line, sizeof(line), fp )) {
           int  n;
+          int  digits = sizeof(long) * 2;
           long offset = 0;
           int  length = strlen(line);
 
-          if (length < 13 || line[length-1] != '\n')
+          if (line[0] == ' ' || length < (digits + 5) || line[length-1] != '\n')
                continue;
 
-          if (line[9] != 't' && line[9] != 'T' && line[9] != 'W')
+          if (line[digits + 1] != 't' && line[digits + 1] != 'T' && line[digits + 1] != 'W')
                continue;
 
-          if (line[8] != ' ' || line[10] != ' ' || line[11] == '.')
+          if (line[digits] != ' ' || line[digits + 2] != ' ' || line[digits + 3] == '.')
                continue;
 
-          for (n=0; n<8; n++) {
+          for (n=0; n<digits; n++) {
                char c = line[n];
 
                offset <<= 4;
@@ -327,7 +334,7 @@ load_symbols( const char *filename )
 
           line[length-1] = 0;
 
-          add_symbol( table, offset, line + 11 );
+          add_symbol( table, offset, line + digits + 3 );
      }
 
 out:
@@ -439,8 +446,6 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
      for (i=level-1; i>=0; i--) {
           void *fn = buffer->trace[i].addr;
 
-          direct_log_printf( NULL, "  #%-2d 0x%08lx in ", level - i - 1, (unsigned long) fn );
-
 #ifdef DYNAMIC_LINKING
           if (dladdr( fn, &info )) {
                if (info.dli_fname) {
@@ -459,19 +464,23 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
                          }
                     }
 
-                    direct_log_printf( NULL, "%s () from %s [%p]\n", symbol, info.dli_fname, info.dli_fbase );
+                    direct_log_printf( NULL, "  #%-2d 0x%08lx in %s () from %s [%p]\n",
+                                       level - i - 1, (unsigned long) fn, symbol, info.dli_fname, info.dli_fbase );
                }
                else if (info.dli_sname) {
-                    direct_log_printf( NULL, "%s ()\n", info.dli_sname );
+                    direct_log_printf( NULL, "  #%-2d 0x%08lx in %s ()\n",
+                                       level - i - 1, (unsigned long) fn, info.dli_sname );
                }
                else
-                    direct_log_printf( NULL, "?? ()\n" );
+                    direct_log_printf( NULL, "  #%-2d 0x%08lx in ?? ()\n",
+                                       level - i - 1, (unsigned long) fn );
           }
           else
 #endif
           {
                const char *symbol = lookup_symbol(NULL, (long)(fn));
-               direct_log_printf( NULL, "%s ()\n", symbol ? symbol : "??" );
+               direct_log_printf( NULL, "  #%-2d 0x%08lx in %s ()\n",
+                                  level - i - 1, (unsigned long) fn, symbol ? symbol : "??" );
           }
      }
 

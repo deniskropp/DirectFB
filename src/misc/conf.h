@@ -182,6 +182,8 @@ typedef struct
      DFBConfigLayer *config_layer;
 
      DFBSurfaceRenderOptions  render_options;     /* default render options */
+
+     bool       startstop;                        /* Issue StartDrawing/StopDrawing to driver */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

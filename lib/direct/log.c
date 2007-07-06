@@ -148,6 +148,7 @@ direct_log_printf( DirectLog  *log,
      /* Write to stderr as a fallback if default is invalid, too. */
      if (!log || log->magic != D_MAGIC("DirectLog")) {
           vfprintf( stderr, format, args );
+          fflush( stderr );
      }
      else {
           int  len;
@@ -190,7 +191,7 @@ init_file( DirectLog  *log,
      DirectResult ret;
      int          fd;
 
-     fd = open( filename, O_WRONLY | O_CREAT | O_APPEND, 0644 );
+     fd = open( filename, O_WRONLY | O_CREAT | O_APPEND, 0664 );
      if (fd < 0) {
           ret = errno2result( errno );
           D_PERROR( "Direct/Log: Could not open '%s' for writing!\n", filename );

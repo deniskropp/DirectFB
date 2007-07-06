@@ -32,10 +32,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <errno.h>
-
-#ifdef USE_SYSFS
-#include <sysfs/libsysfs.h>
-#endif
+#include <dirent.h>
 
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
@@ -53,6 +50,7 @@
 #include "mmio.h"
 #include "matrox_maven.h"
 
+#define SYS_CLASS_I2C_DEV "/sys/class/i2c-dev"
 
 static void
 maven_write_byte( MatroxMavenData  *mav,
@@ -413,49 +411,52 @@ DFBResult maven_init( MatroxMavenData  *mav,
      int   fd;
      FILE *file;
      bool  found = false;
+     DIR  *dir;
 
      /* Locate G400 maven /dev/i2c file */
-#ifdef USE_SYSFS
+
      /* Try sysfs */
-     if (!mdev->g450_matrox && !sysfs_get_mnt_path( line, 512 )) {
-          struct sysfs_class *class;
-          struct dlist *class_devices;
-          struct sysfs_class_device *class_device;
-          struct sysfs_device *device;
-          struct sysfs_attribute *attr;
+     if (!mdev->g450_matrox && (dir = opendir( SYS_CLASS_I2C_DEV )) != NULL) {
+          char path[PATH_MAX];
+          struct dirent *ent;
 
-          class = sysfs_open_class( "i2c-dev" );
-          if (!class) {
-               D_PERROR( "DirectFB/Matrox/Maven: "
-                          "Error opening sysfs class `i2c-dev'!\n" );
-               return errno2result( errno );
-          }
+          while ((ent = readdir( dir )) != NULL) {
+               if (!strcmp( ent->d_name, "." ))
+                    continue;
+               if (!strcmp( ent->d_name, ".." ))
+                    continue;
 
-          class_devices = sysfs_get_class_devices( class );
-          if (!class_devices) {
-               D_PERROR( "DirectFB/Matrox/Maven: "
-                          "Error reading sysfs class devices!\n" );
-               sysfs_close_class( class );
-               return errno2result( errno );
-          }
-          dlist_for_each_data( class_devices, class_device,
-                               struct sysfs_class_device ) {
-               device = sysfs_get_classdev_device( class_device );
-               if (device) {
-                    attr = sysfs_get_device_attr( device, "name" );
-                    if (attr) {
-                         if (strstr( attr->value, "MAVEN" )) {
-                              direct_snputs( mav->dev, "/dev/", 6 );
-                              strncat( mav->dev, class_device->name, 250 );
-                              found = true;
-                              break;
-                         }
-                    }
+               snprintf( path, sizeof(path), "%s/%s/name", SYS_CLASS_I2C_DEV, ent->d_name );
+
+               FILE *fp = fopen( path, "r" );
+               if (!fp) {
+                    D_PERROR( "DirectFB/Matrox/Maven: Error opening `%s'!\n", path );
+                    continue;
                }
+
+               memset( line, 0, 6 );
+
+               fread( line, 1, 5, fp );
+               if (ferror( fp )) {
+                    D_PERROR( "DirectFB/Matrox/Maven: Error reading `%s'!\n", path );
+                    fclose( fp );
+                    continue;
+               }
+
+               fclose( fp );
+
+               if (strcmp( line, "MAVEN" ))
+                    continue;
+
+               snprintf( mav->dev, sizeof(mav->dev), "/dev/%s", ent->d_name );
+               found = true;
+               break;
           }
-          sysfs_close_class( class );
+          if (!ent && errno)
+               D_PERROR( "DirectFB/Matrox/Maven: Error reading `%s'!\n", SYS_CLASS_I2C_DEV );
+
+          closedir( dir );
      }
-#endif
 
      /* Try /proc/bus/i2c */
      if (!mdev->g450_matrox && !found) {
