@@ -598,6 +598,9 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "force-slave" ) == 0) {
           fusion_config->force_slave = true;
      } else
+     if (strcmp (name, "no-force-slave" ) == 0) {
+          fusion_config->force_slave = false;
+     } else
      if (strcmp (name, "remote" ) == 0) {
           if (value) {
                char host[128];
