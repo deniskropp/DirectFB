@@ -7927,58 +7927,258 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
      }
 }
 
+/**********************************************************************************************************************/
+/*** 16 bit RGB 565 scalers *******************************************************************************************/
+/**********************************************************************************************************************/
 
-#define POINT_0               hfraq
-#define LINE_0                vfraq
-#define POINT_TO_RATIO(p,ps)  ( (((((p)) & 0x3ffff) ? : 0x40000) << 6) / (ps) )
-#define LINE_TO_RATIO(l,ls)   ( (((((l)) & 0x3ffff) ? : 0x40000) << 5) / (ls) )
+#define FUNC_NAME(UPDOWN) stretch_hvx_rgb16_ ## UPDOWN
+#define SHIFT_R5          5
+#define SHIFT_R6          6
+#define X_F81F            0xf81f
+#define X_07E0            0x07e0
 
-#define POINT_L(p,ps)  ( (((p)-1) >> 18) - 1 )
-#define POINT_R(p,ps)  ( (((p)-1) >> 18) )
+#include "stretch_up_down_16.h"
 
-#define LINE_T(l,ls)  ( (((l)-1) >> 18) - 1 )
-#define LINE_B(l,ls)  ( (((l)-1) >> 18) )
+#undef FUNC_NAME
+#undef SHIFT_R5
+#undef SHIFT_R6
+#undef X_F81F
+#undef X_07E0
 
-#define STRETCH_HVX_RGB16     stretch_hvx_rgb16_down
+/**********************************************************************************************************************/
+/*** 16 bit ARGB 4444 scalers *****************************************************************************************/
+/**********************************************************************************************************************/
 
-#include "stretch_hvx_rgb16.h"
+#define FUNC_NAME(UPDOWN) stretch_hvx_argb4444_ ## UPDOWN
+#define SHIFT_R5          4
+#define SHIFT_R6          4
+#define X_F81F            0x0f0f
+#define X_07E0            0xf0f0
 
-#undef POINT_0
-#undef LINE_0
-#undef POINT_TO_RATIO
-#undef LINE_TO_RATIO
-#undef POINT_L
-#undef POINT_R
-#undef LINE_T
-#undef LINE_B
-#undef STRETCH_HVX_RGB16
+// needs more defines   #include "stretch_up_down.h"
 
+#undef FUNC_NAME
+#undef SHIFT_R5
+#undef SHIFT_R6
+#undef X_F81F
+#undef X_07E0
 
-#define POINT_0               0
-#define LINE_0                0
-#define POINT_TO_RATIO(p,ps)  ( ((p) & 0x3ffff) >> 12 )
-#define LINE_TO_RATIO(l,ls)   ( ((l) & 0x3ffff) >> 13 )
+/**********************************************************************************************************************/
+/*** 16 bit RGB 444 scalers *******************************************************************************************/
+/**********************************************************************************************************************/
 
-#define POINT_L(p,ps)  ( (((p)) >> 18) )
-#define POINT_R(p,ps)  ( (((p)) >> 18) + 1 )
+#define FUNC_NAME(UPDOWN) stretch_hvx_rgb444_ ## UPDOWN
+#define SHIFT_R5          4
+#define SHIFT_R6          4
+#define X_F81F            0x0f0f
+#define X_07E0            0x00f0
 
-#define LINE_T(l,ls)  ( (((l)) >> 18) )
-#define LINE_B(l,ls)  ( (((l)) >> 18) + 1 )
+#include "stretch_up_down_16.h"
 
-#define STRETCH_HVX_RGB16     stretch_hvx_rgb16_up
+#undef FUNC_NAME
+#undef SHIFT_R5
+#undef SHIFT_R6
+#undef X_F81F
+#undef X_07E0
 
-#include "stretch_hvx_rgb16.h"
+/**********************************************************************************************************************/
+/*** 32 bit ARGB 8888 scalers *****************************************************************************************/
+/**********************************************************************************************************************/
 
-#undef POINT_0
-#undef LINE_0
-#undef POINT_TO_RATIO
-#undef LINE_TO_RATIO
-#undef POINT_L
-#undef POINT_R
-#undef LINE_T
-#undef LINE_B
-#undef STRETCH_HVX_RGB16
+#define SHIFT_R8          8
+#define SHIFT_L8          8
+#define X_00FF00FF        0x00ff00ff
+#define X_FF00FF00        0xff00ff00
 
+#define FUNC_NAME(UPDOWN) stretch_hvx_argb_ ## UPDOWN
+
+#include "stretch_up_down_32.h"
+
+#undef FUNC_NAME
+
+/**********************************************************************************************************************/
+
+#define FUNC_NAME(UPDOWN) stretch_hvx_argb_ ## UPDOWN ## _indexed
+
+#include "stretch_up_down_32_indexed.h"
+
+#undef FUNC_NAME
+
+#undef SHIFT_R8
+#undef SHIFT_L8
+#undef X_00FF00FF
+#undef X_FF00FF00
+
+/**********************************************************************************************************************/
+/*** 16 bit YUV 422 scalers *******************************************************************************************/
+/**********************************************************************************************************************/
+
+#define FUNC_NAME(UPDOWN) stretch_hvx_nv16_ ## UPDOWN
+
+#include "stretch_up_down_8.h"
+
+#undef FUNC_NAME
+
+/**********************************************************************************************************************/
+
+#define FUNC_NAME(UPDOWN) stretch_hvx_nv16_uv_ ## UPDOWN
+
+#include "stretch_up_down_88.h"
+
+#undef FUNC_NAME
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+typedef void (*StretchHVx)( void       *dst,
+                            int         dpitch,
+                            const void *src,
+                            int         spitch,
+                            int         width,
+                            int         height,
+                            int         dst_width,
+                            int         dst_height,
+                            DFBRegion  *clip );
+
+static StretchHVx stretch_hvx_down[DFB_NUM_PIXELFORMATS] = {
+     NULL,                         /* DSPF_ARGB1555 */
+     stretch_hvx_rgb16_down,       /* DSPF_RGB16 */
+     NULL,                         /* DSPF_RGB24 */
+     NULL,                         /* DSPF_RGB32 */
+     stretch_hvx_argb_down,        /* DSPF_ARGB */
+     NULL,                         /* DSPF_A8 */
+     NULL,                         /* DSPF_YUY2 */
+     NULL,                         /* DSPF_RGB332 */
+     NULL,                         /* DSPF_UYVY */
+     NULL,                         /* DSPF_I420 */
+     NULL,                         /* DSPF_YV12 */
+     NULL,                         /* DSPF_LUT8 */
+     NULL,                         /* DSPF_ALUT44 */
+     NULL,                         /* DSPF_AiRGB */
+     NULL,                         /* DSPF_A1 */
+     NULL,                         /* DSPF_NV12 */
+     stretch_hvx_nv16_down,        /* DSPF_NV16 */
+     NULL,                         /* DSPF_ARGB2554 */
+     NULL,/*stretch_hvx_argb4444_down,*/    /* DSPF_ARGB4444 */
+     NULL,                         /* DSPF_NV21 */
+     NULL,                         /* DSPF_AYUV */
+     NULL,                         /* DSPF_A4 */
+     NULL,                         /* DSPF_ARGB1666 */
+     NULL,                         /* DSPF_ARGB6666 */
+     NULL,                         /* DSPF_RGB18 */
+     NULL,                         /* DSPF_LUT2 */
+     stretch_hvx_rgb444_down,      /* DSPF_RGB444 */
+     NULL,                         /* DSPF_RGB555 */
+};
+
+static StretchHVx stretch_hvx_up[DFB_NUM_PIXELFORMATS] = {
+     NULL,                         /* DSPF_ARGB1555 */
+     stretch_hvx_rgb16_up,         /* DSPF_RGB16 */
+     NULL,                         /* DSPF_RGB24 */
+     NULL,                         /* DSPF_RGB32 */
+     stretch_hvx_argb_up,          /* DSPF_ARGB */
+     NULL,                         /* DSPF_A8 */
+     NULL,                         /* DSPF_YUY2 */
+     NULL,                         /* DSPF_RGB332 */
+     NULL,                         /* DSPF_UYVY */
+     NULL,                         /* DSPF_I420 */
+     NULL,                         /* DSPF_YV12 */
+     NULL,                         /* DSPF_LUT8 */
+     NULL,                         /* DSPF_ALUT44 */
+     NULL,                         /* DSPF_AiRGB */
+     NULL,                         /* DSPF_A1 */
+     NULL,                         /* DSPF_NV12 */
+     stretch_hvx_nv16_up,          /* DSPF_NV16 */
+     NULL,                         /* DSPF_ARGB2554 */
+     NULL,/*stretch_hvx_argb4444_up,*/      /* DSPF_ARGB4444 */
+     NULL,                         /* DSPF_NV21 */
+     NULL,                         /* DSPF_AYUV */
+     NULL,                         /* DSPF_A4 */
+     NULL,                         /* DSPF_ARGB1666 */
+     NULL,                         /* DSPF_ARGB6666 */
+     NULL,                         /* DSPF_RGB18 */
+     NULL,                         /* DSPF_LUT2 */
+     stretch_hvx_rgb444_up,        /* DSPF_RGB444 */
+     NULL,                         /* DSPF_RGB555 */
+};
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+typedef void (*StretchHVxIndexed)( void       *dst,
+                                   int         dpitch,
+                                   const void *src,
+                                   int         spitch,
+                                   int         width,
+                                   int         height,
+                                   int         dst_width,
+                                   int         dst_height,
+                                   DFBRegion  *clip,
+                                   const u32  *colors );
+
+static StretchHVxIndexed stretch_hvx_down_indexed[DFB_NUM_PIXELFORMATS] = {
+     NULL,                         /* DSPF_ARGB1555 */
+     NULL,                         /* DSPF_RGB16 */
+     NULL,                         /* DSPF_RGB24 */
+     NULL,                         /* DSPF_RGB32 */
+     stretch_hvx_argb_down_indexed,/* DSPF_ARGB */
+     NULL,                         /* DSPF_A8 */
+     NULL,                         /* DSPF_YUY2 */
+     NULL,                         /* DSPF_RGB332 */
+     NULL,                         /* DSPF_UYVY */
+     NULL,                         /* DSPF_I420 */
+     NULL,                         /* DSPF_YV12 */
+     NULL,                         /* DSPF_LUT8 */
+     NULL,                         /* DSPF_ALUT44 */
+     NULL,                         /* DSPF_AiRGB */
+     NULL,                         /* DSPF_A1 */
+     NULL,                         /* DSPF_NV12 */
+     NULL,                         /* DSPF_NV16 */
+     NULL,                         /* DSPF_ARGB2554 */
+     NULL,                         /* DSPF_ARGB4444 */
+     NULL,                         /* DSPF_NV21 */
+     NULL,                         /* DSPF_AYUV */
+     NULL,                         /* DSPF_A4 */
+     NULL,                         /* DSPF_ARGB1666 */
+     NULL,                         /* DSPF_ARGB6666 */
+     NULL,                         /* DSPF_RGB18 */
+     NULL,                         /* DSPF_LUT2 */
+     NULL,                         /* DSPF_RGB444 */
+     NULL,                         /* DSPF_RGB555 */
+};
+
+static StretchHVxIndexed stretch_hvx_up_indexed[DFB_NUM_PIXELFORMATS] = {
+     NULL,                         /* DSPF_ARGB1555 */
+     NULL,                         /* DSPF_RGB16 */
+     NULL,                         /* DSPF_RGB24 */
+     NULL,                         /* DSPF_RGB32 */
+     stretch_hvx_argb_up_indexed,  /* DSPF_ARGB */
+     NULL,                         /* DSPF_A8 */
+     NULL,                         /* DSPF_YUY2 */
+     NULL,                         /* DSPF_RGB332 */
+     NULL,                         /* DSPF_UYVY */
+     NULL,                         /* DSPF_I420 */
+     NULL,                         /* DSPF_YV12 */
+     NULL,                         /* DSPF_LUT8 */
+     NULL,                         /* DSPF_ALUT44 */
+     NULL,                         /* DSPF_AiRGB */
+     NULL,                         /* DSPF_A1 */
+     NULL,                         /* DSPF_NV12 */
+     NULL,                         /* DSPF_NV16 */
+     NULL,                         /* DSPF_ARGB2554 */
+     NULL,                         /* DSPF_ARGB4444 */
+     NULL,                         /* DSPF_NV21 */
+     NULL,                         /* DSPF_AYUV */
+     NULL,                         /* DSPF_A4 */
+     NULL,                         /* DSPF_ARGB1666 */
+     NULL,                         /* DSPF_ARGB6666 */
+     NULL,                         /* DSPF_RGB18 */
+     NULL,                         /* DSPF_LUT2 */
+     NULL,                         /* DSPF_RGB444 */
+     NULL,                         /* DSPF_RGB555 */
+};
+
+/**********************************************************************************************************************/
 
 void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 {
@@ -7994,14 +8194,33 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
      CHECK_PIPELINE();
 
-#ifndef WORDS_BIGENDIAN
-     if (srect->x == 0 && srect->y == 0 &&
-         srect->w == source->width && srect->h == source->height &&
-         gfxs->src_format == DSPF_RGB16 && gfxs->dst_format == DSPF_RGB16 &&
-         !state->blittingflags)
+     if (state->render_options & (DSRO_SMOOTH_UPSCALE | DSRO_SMOOTH_DOWNSCALE) &&
+         srect->x == 0 && srect->y == 0 && !state->blittingflags)
      {
-          if (srect->w < drect->w || srect->h < drect->h) {
-               if (state->render_options & DSRO_SMOOTH_UPSCALE) {
+          int sw = srect->w;
+          int sh = srect->h;
+
+          if (gfxs->src_format == gfxs->dst_format) {
+               StretchHVx stretch = NULL;
+
+               if (sw < drect->w || sh < drect->h) {
+                    if ((state->render_options & DSRO_SMOOTH_UPSCALE) &&
+                        (DFB_PIXELFORMAT_INDEX(gfxs->dst_format) < D_ARRAY_SIZE(stretch_hvx_up)))
+                    {
+                         stretch = stretch_hvx_up[DFB_PIXELFORMAT_INDEX(gfxs->dst_format)];
+                         sw--;
+                         sh--;
+                    }
+               }
+               else {
+                    if ((state->render_options & DSRO_SMOOTH_DOWNSCALE) &&
+                        (DFB_PIXELFORMAT_INDEX(gfxs->dst_format) < D_ARRAY_SIZE(stretch_hvx_down)))
+                    {
+                         stretch = stretch_hvx_down[DFB_PIXELFORMAT_INDEX(gfxs->dst_format)];
+                    }
+               }
+
+               if (stretch) {
                     DFBRegion clip = state->clip;
 
                     if (!dfb_region_rectangle_intersect( &clip, drect ))
@@ -8009,49 +8228,79 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
                     dfb_region_translate( &clip, - drect->x, - drect->y );
 
-/*                  direct_log_printf( NULL, "  %dx%d -> %dx%d  -> %d,%d [%d,%d-%d,%d]\n",
-                                       srect->w, srect->h, drect->w, drect->h, drect->x, drect->y,
-                                       clip.x1, clip.y1, clip.x2, clip.y2 );
-*/
-                    stretch_hvx_rgb16_up( gfxs->dst_org[0] + drect->y * gfxs->dst_pitch
-                                          + DFB_BYTES_PER_LINE( gfxs->dst_format, drect->x ),
-                                          gfxs->dst_pitch, gfxs->src_org[0], gfxs->src_pitch,
-                                          source->width-1, source->height-1, drect->w, drect->h, &clip );
+                    stretch( gfxs->dst_org[0] + drect->y * gfxs->dst_pitch
+                             + DFB_BYTES_PER_LINE( gfxs->dst_format, drect->x ),
+                             gfxs->dst_pitch, gfxs->src_org[0], gfxs->src_pitch,
+                             sw, sh, drect->w, drect->h, &clip );
+
+                    switch (gfxs->dst_format) {
+                         case DSPF_NV16:
+                              clip.x1 /= 2;
+                              clip.x2 /= 2;
+                              if (sw < drect->w || sh < drect->h) {
+                                   stretch_hvx_nv16_uv_up( gfxs->dst_org[1] + drect->y * gfxs->dst_pitch
+                                                           + DFB_BYTES_PER_LINE( gfxs->dst_format, drect->x&~1 ),
+                                                           gfxs->dst_pitch, gfxs->src_org[1], gfxs->src_pitch,
+                                                           sw/2, sh, drect->w/2, drect->h, &clip );
+                              }
+                              else {
+                                   stretch_hvx_nv16_uv_down( gfxs->dst_org[1] + drect->y * gfxs->dst_pitch
+                                                             + DFB_BYTES_PER_LINE( gfxs->dst_format, drect->x&~1 ),
+                                                             gfxs->dst_pitch, gfxs->src_org[1], gfxs->src_pitch,
+                                                             sw/2, sh, drect->w/2, drect->h, &clip );
+                              }
+                              break;
+
+                         default:
+                              break;
+                    }
 
                     return;
                }
           }
-          else if (state->render_options & DSRO_SMOOTH_DOWNSCALE) {
-               //long long t1, t2;
+          else if (gfxs->src_format == DSPF_LUT8) {
+               StretchHVxIndexed stretch_indexed = NULL;
 
-               //t1 = direct_clock_get_millis();
+               if (sw < drect->w || sh < drect->h) {
+                    if ((state->render_options & DSRO_SMOOTH_UPSCALE) &&
+                        (DFB_PIXELFORMAT_INDEX(gfxs->dst_format) < D_ARRAY_SIZE(stretch_hvx_up_indexed)))
+                    {
+                         stretch_indexed = stretch_hvx_up_indexed[DFB_PIXELFORMAT_INDEX(gfxs->dst_format)];
+                         sw--;
+                         sh--;
+                    }
+               }
+               else {
+                    if ((state->render_options & DSRO_SMOOTH_DOWNSCALE) &&
+                        (DFB_PIXELFORMAT_INDEX(gfxs->dst_format) < D_ARRAY_SIZE(stretch_hvx_down_indexed)))
+                    {
+                         stretch_indexed = stretch_hvx_down_indexed[DFB_PIXELFORMAT_INDEX(gfxs->dst_format)];
+                    }
+               }
 
-               DFBRegion clip = state->clip;
+               if (stretch_indexed) {
+                    int             i;
+                    u32             colors[256];
+                    const DFBColor *entries = gfxs->Blut->entries;
+                    DFBRegion       clip    = state->clip;
 
-               if (!dfb_region_rectangle_intersect( &clip, drect ))
+                    if (!dfb_region_rectangle_intersect( &clip, drect ))
+                         return;
+
+                    dfb_region_translate( &clip, - drect->x, - drect->y );
+
+                    for (i=0; i<gfxs->Blut->num_entries; i++)
+                         colors[i] = PIXEL_ARGB( entries[i].a, entries[i].r, entries[i].g, entries[i].b );
+
+                    stretch_indexed( gfxs->dst_org[0] + drect->y * gfxs->dst_pitch
+                                     + DFB_BYTES_PER_LINE( gfxs->dst_format, drect->x ),
+                                     gfxs->dst_pitch, gfxs->src_org[0], gfxs->src_pitch,
+                                     sw, sh, drect->w, drect->h, &clip, colors );
+
                     return;
-
-               dfb_region_translate( &clip, - drect->x, - drect->y );
-
-/*               direct_log_printf( NULL, "  %dx%d -> %dx%d  -> %d,%d [%d,%d-%d,%d]\n",
-                                  srect->w, srect->h, drect->w, drect->h, drect->x, drect->y,
-                                  clip.x1, clip.y1, clip.x2, clip.y2 );
-*/
-               stretch_hvx_rgb16_down( gfxs->dst_org[0] + drect->y * gfxs->dst_pitch
-                                       + DFB_BYTES_PER_LINE( gfxs->dst_format, drect->x ),
-                                       gfxs->dst_pitch, gfxs->src_org[0], gfxs->src_pitch,
-                                       source->width, source->height, drect->w, drect->h, &clip );
-
-               //t2 = direct_clock_get_millis();
-
-               /*direct_log_printf(NULL, "Stretching %dx%d to %dx%d took %lld.%03lld seconds.\n",
-                                 source->width, source->height, drect->w, drect->h,
-                                 (t2 - t1) / 1000, (t2 - t1) % 1000 );*/
-
-               return;
+               }
           }
      }
-#endif
 
      /* Clip destination rectangle. */
      if (!dfb_rectangle_intersect_by_region( drect, &state->clip ))
