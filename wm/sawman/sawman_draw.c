@@ -342,7 +342,9 @@ draw_border( SaWManWindow    *sawwin,
      CoreWindow             *window;
      const SaWManBorderInit *border;
      const DFBColor         *colors;
-     unsigned int            num;
+     const int              *indices;
+     unsigned int            num_colors;
+     unsigned int            num_indices;
 
      window = sawwin->window;
      D_ASSERT( window != NULL );
@@ -379,23 +381,23 @@ draw_border( SaWManWindow    *sawwin,
      border = &sawman_config->borders[sawman_window_priority(sawwin)];
 
      if (window->flags & CWF_FOCUSED) {
-          colors = border->focused;
-          num    = D_ARRAY_SIZE(border->focused);
+          colors      = border->focused;
+          indices     = border->focused_index;
+          num_colors  = D_ARRAY_SIZE(border->focused);
+          num_indices = D_ARRAY_SIZE(border->focused_index);
      }
      else {
-          colors = border->unfocused;
-          num    = D_ARRAY_SIZE(border->unfocused);
+          colors      = border->unfocused;
+          indices     = border->unfocused_index;
+          num_colors  = D_ARRAY_SIZE(border->unfocused);
+          num_indices = D_ARRAY_SIZE(border->unfocused_index);
      }
 
      /* Draw border rectangles. */
      for (i=0; i<thickness; i++) {
-          const DFBColor *color = &colors[i*num/thickness];
-
-          dfb_state_set_color( state, color );
-
-          if (DFB_PIXELFORMAT_IS_INDEXED( state->destination->format ))
-               dfb_state_set_color_index( state, dfb_palette_search( state->destination->palette,
-                                                                     color->r, color->g, color->b, color->a ) );
+          dfb_state_set_color_or_index( state,
+                                        &colors[i*num_colors/thickness],
+                                        indices[i*num_indices/thickness] );
 
           dfb_gfxcard_drawrectangle( &rects[i], state );
      }
@@ -640,16 +642,8 @@ sawman_draw_background( SaWManTier *tier, CardState *state, DFBRegion *region )
 
      switch (stack->bg.mode) {
           case DLBM_COLOR: {
-               CoreSurface *dest  = state->destination;
-               DFBColor    *color = &stack->bg.color;
-
                /* Set the background color. */
-               if (DFB_PIXELFORMAT_IS_INDEXED( dest->format ))
-                    dfb_state_set_color_index( state,  /* FIXME: don't search every time */
-                                               dfb_palette_search( dest->palette, color->r,
-                                                                   color->g, color->b, color->a ) );
-               else
-                    dfb_state_set_color( state, color );
+               dfb_state_set_color_or_index( state, &stack->bg.color, stack->bg.color_index );
 
                /* Simply fill the background. */
                dfb_gfxcard_fillrectangles( &dst, 1, state );

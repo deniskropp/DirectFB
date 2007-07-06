@@ -190,7 +190,7 @@ sawman_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
-     if (strncmp (name, "border-focused-color", 20 ) == 0 || strncmp (name, "border-unfocused-color", 20 ) == 0) {
+     if (strncmp (name, "border-focused-color", 20 ) == 0 || strncmp (name, "border-unfocused-color", 22 ) == 0) {
           SaWManBorderInit *border = sawman_config->border;
           int               cindex = (name[7] == 'f') ? (name[20] - '0') : (name[22] - '0');
 
@@ -215,16 +215,48 @@ sawman_config_set( const char *name, const char *value )
                     border->focused[cindex].r = (argb & 0xFF0000) >> 16;
                     border->focused[cindex].g = (argb & 0xFF00) >> 8;
                     border->focused[cindex].b = (argb & 0xFF);
+                    border->focused_index[cindex] = -1;
                }
                else {
                     border->unfocused[cindex].a = (argb & 0xFF000000) >> 24;
                     border->unfocused[cindex].r = (argb & 0xFF0000) >> 16;
                     border->unfocused[cindex].g = (argb & 0xFF00) >> 8;
                     border->unfocused[cindex].b = (argb & 0xFF);
+                    border->unfocused_index[cindex] = -1;
                }
           }
           else {
                D_ERROR( "SaWMan/Config '%s': No color specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strncmp (name, "border-focused-color-index", 26 ) == 0 || strncmp (name, "border-unfocused-color-index", 28 ) == 0) {
+          SaWManBorderInit *border = sawman_config->border;
+          int               cindex = (name[7] == 'f') ? (name[26] - '0') : (name[28] - '0');
+
+          if (cindex < 0 || cindex > D_ARRAY_SIZE(border->focused)) {
+               D_ERROR("SaWMan/Config '%s': Value %d out of bounds!\n", name, cindex);
+               return DFB_INVARG;
+          }
+
+          if (value) {
+               char *error;
+               u32   index;
+
+               index = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "SaWMan/Config '%s': Error in index '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               if (strncmp (name, "border-focused-color-index", 26 ) == 0)
+                    border->focused_index[cindex] = index;
+               else
+                    border->unfocused_index[cindex] = index;
+          }
+          else {
+               D_ERROR( "SaWMan/Config '%s': No index specified!\n", name );
                return DFB_INVARG;
           }
      } else

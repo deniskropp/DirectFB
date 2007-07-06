@@ -33,6 +33,8 @@ typedef struct {
      DFBSurfacePixelFormat format;
      DFBColor              focused[4];
      DFBColor              unfocused[4];
+     int                   focused_index[4];
+     int                   unfocused_index[4];
 } SaWManBorderInit;
 
 typedef struct {
