@@ -61,10 +61,13 @@ DFBResult dfb_windowstack_set_background_mode ( CoreWindowStack               *s
                                                 DFBDisplayLayerBackgroundMode  mode );
 
 DFBResult dfb_windowstack_set_background_image( CoreWindowStack               *stack,
-                                                CoreSurface                   *image);
+                                                CoreSurface                   *image );
 
 DFBResult dfb_windowstack_set_background_color( CoreWindowStack               *stack,
-                                                DFBColor                      *color);
+                                                const DFBColor                *color );
+
+DFBResult dfb_windowstack_set_background_color_index( CoreWindowStack         *stack,
+                                                      int                      index );
 
 
 /*

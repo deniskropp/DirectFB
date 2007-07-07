@@ -46,6 +46,7 @@ typedef struct {
      struct {
           DFBDisplayLayerBackgroundMode  mode;
           DFBColor                       color;
+          int                            color_index;
           char                          *filename;
      } background;
 

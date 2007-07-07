@@ -282,5 +282,17 @@ static inline void dfb_state_set_color( CardState *state, const DFBColor *color 
      }
 }
 
+/*
+ * Multifunctional color configuration function.
+ *
+ * Always tries to set both color and index.
+ *
+ * If color index is -1, color is used and searched in palette of destination surface if present.
+ * If color index is valid the color is looked up in palette if present.
+ */
+void dfb_state_set_color_or_index( CardState      *state,
+                                   const DFBColor *color,
+                                   int             index );
+
 #endif
 
