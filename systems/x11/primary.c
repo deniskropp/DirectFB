@@ -434,7 +434,21 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
      src += DFB_BYTES_PER_LINE( surface->format, x ) + y * pitch;
      dst += x * xw->bpp + y * xw->ximage->bytes_per_line;
 
-     dfb_convert_to_rgb16( surface->format, src, pitch, surface->height, dst, xw->ximage->bytes_per_line, w, h );
+     switch (xw->depth) {
+          case 16:
+               dfb_convert_to_rgb16( surface->format, src, pitch,
+                                     surface->height, dst, xw->ximage->bytes_per_line, w, h );
+               break;
+
+          case 24:
+               if (xw->ximage->bits_per_pixel == 32)
+                    dfb_convert_to_rgb32( surface->format, src, pitch,
+                                          surface->height, dst, xw->ximage->bytes_per_line, w, h );
+               break;
+
+          default:
+               D_ONCE( "unsupported depth %d", xw->depth );
+     }
 
      dfb_surface_unlock( surface, true );
 

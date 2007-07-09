@@ -480,6 +480,10 @@ update_screen( int x, int y, int w, int h )
                dfb_convert_to_rgb16( surface->format, src, pitch, surface->height, dst, screen->pitch, w, h );
                break;
 
+          case 32:
+               dfb_convert_to_rgb32( surface->format, src, pitch, surface->height, dst, screen->pitch, w, h );
+               break;
+
           default:
                for (i=0; i<h; ++i) {
                     direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->format, w ) );
