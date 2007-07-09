@@ -103,7 +103,10 @@ DFBResult dfb_layer_context_set_screenposition ( CoreLayerContext            *co
                                                  int                          y );
 
 DFBResult dfb_layer_context_set_opacity        ( CoreLayerContext            *context,
-                                                 u8                           opacity);
+                                                 u8                           opacity );
+
+DFBResult dfb_layer_context_set_rotation       ( CoreLayerContext            *context,
+                                                 int                          rotation );
 
 DFBResult dfb_layer_context_set_coloradjustment( CoreLayerContext            *context,
                                                  const DFBColorAdjustment    *adjustment );

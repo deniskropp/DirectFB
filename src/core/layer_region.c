@@ -508,7 +508,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                D_DEBUG_AT( Core_Layers, "  -> Copying content from back to front buffer...\n" );
 
                /* ...or copy updated contents from back to front buffer. */
-               if (dfb_config->layers[dfb_layer_id_translated(layer)].rotate == 180)
+               if (context->rotation == 180)
                     dfb_back_to_front_copy_180( surface, update );
                else
                     dfb_back_to_front_copy( surface, update );

@@ -110,6 +110,7 @@ struct __DFB_CoreLayerContext {
      bool                        active;     /* Is this the active context? */
 
      DFBDisplayLayerConfig       config;     /* Current layer configuration. */
+     int                         rotation;
 
      FusionVector                regions;    /* All regions created within
                                                 this context. */
