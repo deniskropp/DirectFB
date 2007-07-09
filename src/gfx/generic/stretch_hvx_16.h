@@ -21,6 +21,9 @@
 #define X_07E0F81F  ((X_07E0<<16) | X_F81F)
 #define X_F81F07E0  ((X_F81F<<16) | X_07E0)
 
+#define X_F81FF81F  ((X_F81F<<16) | X_F81F)
+#define X_07E007E0  ((X_07E0<<16) | X_07E0)
+
 #define X_07C0F83F  (X_F81F07E0>>SHIFT_R5)
 
 
@@ -249,8 +252,13 @@
           u32 X = LINE_TO_RATIO( line, vfraq );
 
           for (x=0; x<w2; x++) {
+#ifdef HAS_ALPHA
+               dst32[x] = ((((((lbB[x] & X_F81FF81F) - (lbT[x] & X_F81FF81F))*X) >> SHIFT_R5) + (lbT[x] & X_F81FF81F)) & X_F81FF81F) +
+                          ((((((lbB[x]>>SHIFT_R5) & X_F81FF81F) - ((lbT[x]>>SHIFT_R5) & X_F81FF81F))*X) + (lbT[x] & X_07E007E0)) & X_07E007E0);
+#else
                dst32[x] = ((((((lbB[x] & X_07E0F81F) - (lbT[x] & X_07E0F81F))*X) >> SHIFT_R5) + (lbT[x] & X_07E0F81F)) & X_07E0F81F) +
                           ((((((lbB[x]>>SHIFT_R5) & X_07C0F83F) - ((lbT[x]>>SHIFT_R5) & X_07C0F83F))*X) + (lbT[x] & X_F81F07E0)) & X_F81F07E0);
+#endif
           }
 
           dst32 += dp4;

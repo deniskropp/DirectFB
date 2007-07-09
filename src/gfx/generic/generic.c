@@ -7954,9 +7954,11 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 #define SHIFT_R6          4
 #define X_F81F            0x0f0f
 #define X_07E0            0xf0f0
+#define HAS_ALPHA
 
-// needs more defines   #include "stretch_up_down.h"
+#include "stretch_up_down_16.h"
 
+#undef HAS_ALPHA
 #undef FUNC_NAME
 #undef SHIFT_R5
 #undef SHIFT_R6
@@ -8059,7 +8061,7 @@ static StretchHVx stretch_hvx_down[DFB_NUM_PIXELFORMATS] = {
      NULL,                         /* DSPF_NV12 */
      stretch_hvx_nv16_down,        /* DSPF_NV16 */
      NULL,                         /* DSPF_ARGB2554 */
-     NULL,/*stretch_hvx_argb4444_down,*/    /* DSPF_ARGB4444 */
+     stretch_hvx_argb4444_down,    /* DSPF_ARGB4444 */
      NULL,                         /* DSPF_NV21 */
      NULL,                         /* DSPF_AYUV */
      NULL,                         /* DSPF_A4 */
@@ -8090,7 +8092,7 @@ static StretchHVx stretch_hvx_up[DFB_NUM_PIXELFORMATS] = {
      NULL,                         /* DSPF_NV12 */
      stretch_hvx_nv16_up,          /* DSPF_NV16 */
      NULL,                         /* DSPF_ARGB2554 */
-     NULL,/*stretch_hvx_argb4444_up,*/      /* DSPF_ARGB4444 */
+     stretch_hvx_argb4444_up,      /* DSPF_ARGB4444 */
      NULL,                         /* DSPF_NV21 */
      NULL,                         /* DSPF_AYUV */
      NULL,                         /* DSPF_A4 */
