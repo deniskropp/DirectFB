@@ -48,9 +48,9 @@ typedef struct
 	Visual*				visual;
 	GC 					gc;
 	XImage*				ximage;
+    int                 ximage_offset;
 	Colormap 			colormap;
 
-	Pixmap 				pixmap;
 	XShmSegmentInfo*	shmseginfo;
 	unsigned char*		videomemory;
 
@@ -61,12 +61,11 @@ typedef struct
 	int 				height;
 	int 				depth;
     int 				bpp;
-	int 				screensize;
-	/* (Null) cursor stuff*/
+
+    /* (Null) cursor stuff*/
 	Pixmap  			pixmp1;
 	Pixmap  			pixmp2;
 	Cursor 				NullCursor;
-	
 } XWindow;
 
 Bool dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight);

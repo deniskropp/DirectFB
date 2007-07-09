@@ -50,7 +50,7 @@ const char null_cursor_bits[] = {
 Bool
 dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight)
 {
-    XWindow* xw = (XWindow *)malloc(sizeof(XWindow));
+    XWindow* xw = (XWindow *)calloc(1, sizeof(XWindow));
 
 	/* We set the structure as needed for our window */
 	xw->width	= iWidth;
@@ -132,7 +132,7 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
 	memset(xw->shmseginfo,0, sizeof(XShmSegmentInfo));
 
 	xw->ximage=XShmCreateImage(xw->display, xw->visual, xw->depth, ZPixmap,
-							   NULL,xw->shmseginfo, xw->width, xw->height);
+							   NULL,xw->shmseginfo, xw->width, xw->height * 2);
 	if(!xw->ximage) {
 		printf("X11: Error creating shared image (XShmCreateImage) \n");
         free(xw->shmseginfo);
@@ -146,7 +146,7 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
     /* we firstly create our shared memory segment with the size we need, and
 	correct permissions for the owner, the group and the world --> 0777 */
 	xw->shmseginfo->shmid=shmget(IPC_PRIVATE, 
-								 xw->ximage->bytes_per_line * xw->ximage->height,
+								 xw->ximage->bytes_per_line * xw->ximage->height * 2,
 								 IPC_CREAT|0777);
 
 	if(xw->shmseginfo->shmid<0) {
@@ -198,6 +198,7 @@ void dfb_x11_close_window(XWindow* xw)
      shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
      XDestroyImage(xw->ximage);
      free(xw->shmseginfo);
+
      XFreeGC(xw->display,xw->gc);
      XDestroyWindow(xw->display,xw->window);
      free(xw);
