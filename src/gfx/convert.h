@@ -416,6 +416,7 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
      int  dp2 = dpitch / 2;
      u8  *src8;
      u16 *src16;
+     u32 *src32;
 
      switch (format) {
           case DSPF_RGB16:
@@ -467,6 +468,21 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
 
                     for (x=0; x<width; x++)
                          dst[x] = ((src16[x] & 0x7c00) << 1) | ((src16[x] & 0x03e0) << 1) | (src16[x] & 0x003f);
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               while (height--) {
+                    src32 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB16( ((src32[x] & 0xff0000) >> 16),
+                                               ((src32[x] & 0x00ff00) >>  8),
+                                               ((src32[x] & 0x0000ff)      ) );
 
                     src += spitch;
                     dst += dp2;
