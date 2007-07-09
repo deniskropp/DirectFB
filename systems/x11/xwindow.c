@@ -47,110 +47,31 @@ const char null_cursor_bits[] = {
 
 
 
-void xw_reset(XWindow* xw)
+Bool
+dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight)
 {
-	memset( xw, 0, sizeof(XWindow) );
-}
-
-
-Bool xw_setPixelSize(XWindow* xw)
-{
-	if(xw->depth!=DefaultDepth(xw->display,DefaultScreen(xw->display)))
-	{
-		fprintf(stderr,"X11: Error! Please, I need a %d bits display\n",xw->depth);
-		exit(1);
-	}
-
-    /*
-	* a very dirty way to know the pixelsize. It's better to use XVisualInfo.
-	* I'll search informations for this critical and important part.
-	*/
-	switch(xw->depth)
-	{
-		case 8:
-			xw->pixelsize=1;
-			break;
-		case 16:
-			xw->pixelsize=2;
-			break;
-		case 24:
-			xw->pixelsize=4;
-			break;
-		case 32:
-			xw->pixelsize=4;
-			break;
-		default:
-			xw->pixelsize=1;
-	}
-	return True;
-}
-
-
-
-void xw_clearScreen(XWindow* xw)
-{
-	memset(xw->virtualscreen, 127, xw->width*xw->height*xw->pixelsize);
-}
-
-void xw_setPixel(XWindow* xw, int iXPos, int iYPos, int iColor)
-{
-	//	xw->virtualscreen[(iYPos*xw->width+iXPos)<<1] = (int)iColor;   /* (y*width+x)*pixelsize */
-	int* pRGBBuf = (int*)xw->virtualscreen;
-	pRGBBuf[(iYPos*xw->width+iXPos)] = iColor;
-	// xw->virtualscreen[(iYPos*xw->width*xw->pixelsize+iXPos)<<1] = iColor;   /* (y*width+x)*pixelsize */
-}
-
-
-/** Closes and deallocates an allready opened window. Use fx. &pXWindow where pXWindow is declared as 
-	'XWindow* pXWindow'. Ie. call like: 'xw_closeWindow(&pXWindow) */
-void xw_closeWindow(XWindow** ppXW)
-{
-	if ( *ppXW )
-	{
-		XWindow* xw	= (*ppXW);
-		XShmDetach(xw->display, xw->shmseginfo);
-		if ( xw->ximage ) XDestroyImage(xw->ximage);
-		shmdt(xw->shmseginfo->shmaddr);
-		shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
-		free(xw->shmseginfo);
-		XFreeGC(xw->display,xw->gc);
-		XDestroyWindow(xw->display,xw->window);
-		free(xw);
-	}
-}
-
-
-
-
-/** Creates and open a window. Use fx. &pXWindow where pXWindow is declared as 
-	'XWindow* pXWindow'. Ie. call like: 'xw_closeWindow(&pXWindow). */
-Bool xw_openWindow(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight, int iDepth)
-{
-    XWindow* xw;
-   (*ppXW) = (XWindow *)malloc(sizeof(XWindow));
-	xw	= (*ppXW);
-    if( !dfb_x11->xw ) {
-	    dfb_x11->xw = xw;
-	    xw_reset(xw);
-    }
+    XWindow* xw = (XWindow *)malloc(sizeof(XWindow));
 
 	/* We set the structure as needed for our window */
 	xw->width	= iWidth;
 	xw->height	= iHeight;
-	xw->depth	= iDepth;
-	xw->display = dfb_x11->display;
-	xw_setPixelSize(xw);
+    xw->display = dfb_x11->display;
 
 	xw->screenptr	= DefaultScreenOfDisplay(xw->display);
 	xw->screennum	= DefaultScreen(xw->display);
 	xw->visual		= DefaultVisualOfScreen(xw->screenptr);
+    xw->depth       = DefaultDepth( xw->display, xw->screennum );
+    xw->bpp         = (xw->depth + 7) / 8;
 
 	xw->window=XCreateWindow(xw->display,
 							 RootWindowOfScreen(xw->screenptr),
-							 iXPos, iYPos, iWidth, iHeight, 0, iDepth, InputOutput,
+							 iXPos, iYPos, iWidth, iHeight, 0, xw->depth, InputOutput,
 							 xw->visual, 0, NULL); 
 							 
-	if(!xw->window) return False;
+	if (!xw->window) {
+         free( xw );
+         return False;
+    }
 
 
 	XSizeHints Hints;
@@ -201,7 +122,12 @@ Bool xw_openWindow(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight
 	
 	// Shared memory 	
 	xw->shmseginfo=(XShmSegmentInfo *)malloc(sizeof(XShmSegmentInfo));
-	if(!xw->shmseginfo) return False;
+	if(!xw->shmseginfo) {
+         XFreeGC(xw->display,xw->gc);
+         XDestroyWindow(xw->display,xw->window);
+         free( xw );
+         return False;
+    }
 
 	memset(xw->shmseginfo,0, sizeof(XShmSegmentInfo));
 
@@ -209,7 +135,11 @@ Bool xw_openWindow(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight
 							   NULL,xw->shmseginfo, xw->width, xw->height);
 	if(!xw->ximage) {
 		printf("X11: Error creating shared image (XShmCreateImage) \n");
-		return False;
+        free(xw->shmseginfo);
+        XFreeGC(xw->display,xw->gc);
+        XDestroyWindow(xw->display,xw->window);
+        free( xw );
+        return False;
 	}
 	
 	
@@ -219,23 +149,57 @@ Bool xw_openWindow(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight
 								 xw->ximage->bytes_per_line * xw->ximage->height,
 								 IPC_CREAT|0777);
 
-	if(xw->shmseginfo->shmid<0) return False;
+	if(xw->shmseginfo->shmid<0) {
+         XDestroyImage(xw->ximage);
+         free(xw->shmseginfo);
+         XFreeGC(xw->display,xw->gc);
+         XDestroyWindow(xw->display,xw->window);
+         free( xw );
+         return False;
+    }
 
     /* Then, we have to attach the segment to our process, and we let the
 	function search the correct memory place --> NULL. It's safest ! */
 	xw->shmseginfo->shmaddr = shmat( xw->shmseginfo->shmid, NULL, 0 );
-	if(!xw->shmseginfo->shmaddr)  return False;
+	if(!xw->shmseginfo->shmaddr) {
+         shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
+         XDestroyImage(xw->ximage);
+         free(xw->shmseginfo);
+         XFreeGC(xw->display,xw->gc);
+         XDestroyWindow(xw->display,xw->window);
+         free( xw );
+         return False;
+    }
 
 	/* We set the buffer in Read and Write mode */
 	xw->shmseginfo->readOnly=False;
 
 	xw->virtualscreen= (unsigned char *) (xw->ximage->data = xw->shmseginfo->shmaddr );
-	if(!XShmAttach(xw->display,xw->shmseginfo))  return False;
+	if(!XShmAttach(xw->display,xw->shmseginfo)) {
+         shmdt(xw->shmseginfo->shmaddr);
+         shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
+         XDestroyImage(xw->ximage);
+         free(xw->shmseginfo);
+         XFreeGC(xw->display,xw->gc);
+         XDestroyWindow(xw->display,xw->window);
+         free( xw );
+         return False;
+    }
 	
-	return True;
+    (*ppXW) = xw;
+
+    return True;
 }
 
-
-
-
+void dfb_x11_close_window(XWindow* xw)
+{
+     XShmDetach(xw->display, xw->shmseginfo);
+     shmdt(xw->shmseginfo->shmaddr);
+     shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
+     XDestroyImage(xw->ximage);
+     free(xw->shmseginfo);
+     XFreeGC(xw->display,xw->gc);
+     XDestroyWindow(xw->display,xw->window);
+     free(xw);
+}
 

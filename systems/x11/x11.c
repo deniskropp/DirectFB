@@ -152,10 +152,12 @@ system_shutdown( bool emergency )
     fusion_call_destroy( &dfb_x11->call );
     
 	fusion_skirmish_prevail( &dfb_x11->lock );
-    if( dfb_x11->display) {
-	    xw_closeWindow(&xw);
-	    XCloseDisplay(dfb_x11->display);
-    }
+    if (dfb_x11->xw)
+	    dfb_x11_close_window( dfb_x11->xw );
+
+    if (dfb_x11->display)
+        XCloseDisplay( dfb_x11->display );
+
     fusion_skirmish_destroy( &dfb_x11->lock );
 
     SHFREE( dfb_core_shmpool(dfb_x11_core), dfb_x11 );
