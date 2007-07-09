@@ -467,7 +467,7 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
                     src16 = src;
 
                     for (x=0; x<width; x++)
-                         dst[x] = ((src16[x] & 0x7c00) << 1) | ((src16[x] & 0x03e0) << 1) | (src16[x] & 0x003f);
+                         dst[x] = ((src16[x] & 0x7fe0) << 1) | (src16[x] & 0x003f);
 
                     src += spitch;
                     dst += dp2;
