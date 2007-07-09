@@ -54,6 +54,8 @@ typedef struct {
 
      DFBColor                            palette[256];
      bool                                palette_set;
+
+     int                                 rotate;
 } DFBConfigLayer;
 
 typedef struct

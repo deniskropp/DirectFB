@@ -156,7 +156,67 @@ dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region )
      surface->front_buffer = surface->back_buffer;
      surface->back_buffer = tmp;
 
+     dfb_state_set_blitting_flags( &btf_state, DSBLIT_NOFX );
+
      dfb_gfxcard_blit( &rect, rect.x, rect.y, &btf_state );
+
+     tmp = surface->front_buffer;
+     surface->front_buffer = surface->back_buffer;
+     surface->back_buffer = tmp;
+
+     dfb_surfacemanager_unlock( surface->manager );
+
+     /* Signal end of sequence. */
+     dfb_state_stop_drawing( &btf_state );
+
+     pthread_mutex_unlock( &btf_lock );
+}
+
+void
+dfb_back_to_front_copy_180( CoreSurface *surface, const DFBRegion *region )
+{
+     SurfaceBuffer *tmp;
+     DFBRectangle   rect;
+
+     if (region) {
+          rect.x = region->x1;
+          rect.y = region->y1;
+          rect.w = region->x2 - region->x1 + 1;
+          rect.h = region->y2 - region->y1 + 1;
+     }
+     else {
+          rect.x = 0;
+          rect.y = 0;
+          rect.w = surface->width;
+          rect.h = surface->height;
+     }
+
+     pthread_mutex_lock( &btf_lock );
+
+     if (!btf_state_inited) {
+          dfb_state_init( &btf_state, NULL );
+          btf_state_inited = true;
+     }
+
+     btf_state.modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION;
+
+     btf_state.clip.x2     = surface->width - 1;
+     btf_state.clip.y2     = surface->height - 1;
+     btf_state.source      = surface;
+     btf_state.destination = surface;
+
+     dfb_surfacemanager_lock( surface->manager );
+
+     tmp = surface->front_buffer;
+     surface->front_buffer = surface->back_buffer;
+     surface->back_buffer = tmp;
+
+     dfb_state_set_blitting_flags( &btf_state, DSBLIT_ROTATE180 );
+
+     dfb_gfxcard_blit( &rect,
+                       surface->width  - region->x2 - 1,
+                       surface->height - region->y2 - 1,
+                       &btf_state );
 
      tmp = surface->front_buffer;
      surface->front_buffer = surface->back_buffer;
