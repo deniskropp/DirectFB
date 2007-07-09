@@ -61,7 +61,6 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
 	xw->screennum	= DefaultScreen(xw->display);
 	xw->visual		= DefaultVisualOfScreen(xw->screenptr);
     xw->depth       = DefaultDepth( xw->display, xw->screennum );
-    xw->bpp         = (xw->depth + 7) / 8;
 
 	xw->window=XCreateWindow(xw->display,
 							 RootWindowOfScreen(xw->screenptr),
@@ -142,6 +141,7 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
         return False;
 	}
 	
+    xw->bpp = (xw->ximage->bits_per_pixel + 7) / 8;
 	
     /* we firstly create our shared memory segment with the size we need, and
 	correct permissions for the owner, the group and the world --> 0777 */

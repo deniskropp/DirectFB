@@ -438,7 +438,7 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
                break;
 
           case 24:
-               if (xw->ximage->bits_per_pixel == 32)
+               if (xw->bpp == 4)
                     dfb_convert_to_rgb32( surface->format, src, pitch,
                                           surface->height, dst, xw->ximage->bytes_per_line, w, h );
                break;
