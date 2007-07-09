@@ -687,6 +687,7 @@ typedef enum {
                                                 source pixels after premultiplication */
      DSBLIT_INDEX_TRANSLATION  = 0x00000800, /* do fast indexed to indexed translation,
                                                 this flag is mutual exclusive with all others */
+     DSBLIT_ROTATE180          = 0x00001000, /* rotate the image by 180 degree */
 } DFBSurfaceBlittingFlags;
 
 /*

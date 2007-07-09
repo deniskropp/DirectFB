@@ -7835,7 +7835,7 @@ void gDrawLine( CardState *state, DFBRegion *line )
 void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 {
      GenefxState *gfxs = state->gfxs;
-     int          h;
+     int          x, h;
 
      D_ASSERT( gfxs != NULL );
 
@@ -7849,7 +7849,7 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
      if (!ABacc_prepare( gfxs, rect->w ))
           return;
 
-     if (gfxs->src_org[0] == gfxs->dst_org[0] && dx > rect->x)
+     if (gfxs->src_org[0] == gfxs->dst_org[0] && dy == rect->y && dx > rect->x)
           /* we must blit from right to left */
           gfxs->Ostep = -1;
      else
@@ -7877,7 +7877,57 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
      }               
 
      gfxs->length = rect->w;
-     
+
+     if (state->blittingflags == DSBLIT_ROTATE180 && gfxs->src_format == gfxs->dst_format) {
+          Aop_xy( gfxs, dx, dy );
+          Bop_xy( gfxs, rect->x + rect->w - 1, rect->y + rect->h - 1 );
+
+          switch (DFB_BYTES_PER_PIXEL(gfxs->dst_format)) {
+               case 4: {
+                    for (h = rect->h; h; h--) {
+                         u32 *src = gfxs->Bop[0];
+                         u32 *dst = gfxs->Aop[0];
+
+                         for (x=0; x<rect->w; x++)
+                              dst[x] = src[-x];
+
+                         Aop_next( gfxs );
+                         Bop_prev( gfxs );
+                    }
+                    return;
+               }
+               case 2: {
+                    for (h = rect->h; h; h--) {
+                         u16 *src = gfxs->Bop[0];
+                         u16 *dst = gfxs->Aop[0];
+
+                         for (x=0; x<rect->w; x++)
+                              dst[x] = src[-x];
+
+                         Aop_next( gfxs );
+                         Bop_prev( gfxs );
+                    }
+                    return;
+               }
+               case 1: {
+                    for (h = rect->h; h; h--) {
+                         u8 *src = gfxs->Bop[0];
+                         u8 *dst = gfxs->Aop[0];
+
+                         for (x=0; x<rect->w; x++)
+                              dst[x] = src[-x];
+
+                         Aop_next( gfxs );
+                         Bop_prev( gfxs );
+                    }
+                    return;
+               }
+
+               default:
+                    break;
+          }
+     }
+
      if (gfxs->src_org[0] == gfxs->dst_org[0] && dy > rect->y &&
          !(state->blittingflags & DSBLIT_DEINTERLACE)) {
           /* we must blit from bottom to top */
