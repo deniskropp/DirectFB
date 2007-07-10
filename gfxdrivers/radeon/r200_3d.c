@@ -424,9 +424,16 @@ r200DoBlit3D( RadeonDriverData *rdrv, RadeonDeviceData *rdev,
                                      VF_PRIM_WALK_DATA           |
                                      (3 << VF_NUM_VERTICES_SHIFT) );
      
-     out_vertex2d2( mmio, dr->x      , dr->y      , sr->x      , sr->y       );
-     out_vertex2d2( mmio, dr->x+dr->w, dr->y      , sr->x+sr->w, sr->y       );
-     out_vertex2d2( mmio, dr->x+dr->w, dr->y+dr->h, sr->x+sr->w, sr->y+sr->h );
+     if (rdev->blittingflags & DSBLIT_ROTATE180) {
+          out_vertex2d2( mmio, dr->x      , dr->y      , sr->x+sr->w, sr->y+sr->h );
+          out_vertex2d2( mmio, dr->x+dr->w, dr->y      , sr->x      , sr->y+sr->h );
+          out_vertex2d2( mmio, dr->x+dr->w, dr->y+dr->h, sr->x      , sr->y       );
+     }
+     else {
+          out_vertex2d2( mmio, dr->x      , dr->y      , sr->x      , sr->y       );
+          out_vertex2d2( mmio, dr->x+dr->w, dr->y      , sr->x+sr->w, sr->y       );
+          out_vertex2d2( mmio, dr->x+dr->w, dr->y+dr->h, sr->x+sr->w, sr->y+sr->h );
+     }
 }
 
 bool r200Blit3D( void *drv, void *dev, DFBRectangle *sr, int dx, int dy )
