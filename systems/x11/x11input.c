@@ -83,20 +83,26 @@ static DFBInputEvent motionY = {
 };
 
 static void
-motion_compress( int x, int y )
+motion_compress( int x, int y, const XEvent *xEvent )
 {
      if (motionX.axisabs != x) {
           motionX.type    = DIET_AXISMOTION;
-          motionX.flags   = DIEF_AXISABS;
+          motionX.flags   = DIEF_AXISABS | DIEF_TIMESTAMP;
           motionX.axis    = DIAI_X;
           motionX.axisabs = x;
+
+          motionX.timestamp.tv_sec  =  xEvent->xmotion.time / 1000;
+          motionX.timestamp.tv_usec = (xEvent->xmotion.time % 1000) * 1000;
      }
 
      if (motionY.axisabs != y) {
           motionY.type    = DIET_AXISMOTION;
-          motionY.flags   = DIEF_AXISABS;
+          motionY.flags   = DIEF_AXISABS | DIEF_TIMESTAMP;
           motionY.axis    = DIAI_Y;
           motionY.axisabs = y;
+
+          motionY.timestamp.tv_sec  =  xEvent->xmotion.time / 1000;
+          motionY.timestamp.tv_usec = (xEvent->xmotion.time % 1000) * 1000;
      }
 }
 
@@ -104,14 +110,17 @@ static void
 motion_realize( X11InputData *data )
 {
      if (motionX.type != DIET_UNKNOWN) {
+          if (motionY.type != DIET_UNKNOWN)
+               motionX.flags |= DIEF_FOLLOW;
+
           dfb_input_dispatch( data->device, &motionX );
 
           motionX.type = DIET_UNKNOWN;
      }
 
      if (motionY.type != DIET_UNKNOWN) {
-
           dfb_input_dispatch( data->device, &motionY );
+
           motionY.type = DIET_UNKNOWN;
      }
 }
@@ -373,7 +382,7 @@ static void handleMouseEvent(XEvent* pXEvent, X11InputData* pData)
      static int          iMouseEventCount = 0;
      DFBInputEvent  dfbEvent;
      if (pXEvent->type == MotionNotify) {
-          motion_compress( pXEvent->xmotion.x, pXEvent->xmotion.y );
+          motion_compress( pXEvent->xmotion.x, pXEvent->xmotion.y, pXEvent );
           ++iMouseEventCount;
      }
 
@@ -383,7 +392,7 @@ static void handleMouseEvent(XEvent* pXEvent, X11InputData* pData)
           else
                dfbEvent.type = DIET_BUTTONRELEASE;
 
-          dfbEvent.flags = DIEF_NONE;
+          dfbEvent.flags = DIEF_TIMESTAMP;
 
           /* Get pressed button */
           switch ( pXEvent->xbutton.button ) {
@@ -430,6 +439,9 @@ static void handleMouseEvent(XEvent* pXEvent, X11InputData* pData)
                     break;
           }
 
+          dfbEvent.timestamp.tv_sec  =  pXEvent->xbutton.time / 1000;
+          dfbEvent.timestamp.tv_usec = (pXEvent->xbutton.time % 1000) * 1000;
+
           dfb_input_dispatch( pData->device, &dfbEvent );
           ++iMouseEventCount;
      }
@@ -467,9 +479,12 @@ x11EventThread( DirectThread *thread, void *driver_data )
                     case KeyRelease: {
                          motion_realize( data );
 
-                         dfbEvent.type      = (xEvent.type == KeyPress) ? DIET_KEYPRESS : DIET_KEYRELEASE;
-                         dfbEvent.flags     = DIEF_KEYCODE;
-                         dfbEvent.key_code  = xEvent.xkey.keycode;
+                         dfbEvent.type     = (xEvent.type == KeyPress) ? DIET_KEYPRESS : DIET_KEYRELEASE;
+                         dfbEvent.flags    = DIEF_KEYCODE | DIEF_TIMESTAMP;
+                         dfbEvent.key_code = xEvent.xkey.keycode;
+
+                         dfbEvent.timestamp.tv_sec  =  xEvent.xkey.time / 1000;
+                         dfbEvent.timestamp.tv_usec = (xEvent.xkey.time % 1000) * 1000;
 
                          dfb_input_dispatch( data->device, &dfbEvent );
                          break;
@@ -495,9 +510,12 @@ x11EventThread( DirectThread *thread, void *driver_data )
                     case KeyRelease: {
                          motion_realize( data );
 
-                         dfbEvent.type      = (xEvent.type == KeyPress) ? DIET_KEYPRESS : DIET_KEYRELEASE;
-                         dfbEvent.flags     = DIEF_KEYCODE;
-                         dfbEvent.key_code  = xEvent.xkey.keycode;
+                         dfbEvent.type     = (xEvent.type == KeyPress) ? DIET_KEYPRESS : DIET_KEYRELEASE;
+                         dfbEvent.flags    = DIEF_KEYCODE | DIEF_TIMESTAMP;
+                         dfbEvent.key_code = xEvent.xkey.keycode;
+
+                         dfbEvent.timestamp.tv_sec  =  xEvent.xkey.time / 1000;
+                         dfbEvent.timestamp.tv_usec = (xEvent.xkey.time % 1000) * 1000;
 
                          dfb_input_dispatch( data->device, &dfbEvent );
                          break;
