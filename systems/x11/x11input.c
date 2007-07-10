@@ -449,6 +449,9 @@ x11EventThread( DirectThread *thread, void *driver_data )
           XEvent xEvent; 
           DFBInputEvent dfbEvent;
 
+          /* FIXME: Detect key repeats, we're receiving KeyPress, KeyRelease, KeyPress, KeyRelease... !!?? */
+
+#ifdef ___HELP___WHY_DOES_THIS_ALWAYS_BLOCK_THE_LAST_EVENT___HELP___
           XNextEvent( dfb_x11->display, &xEvent );
 
           do {
@@ -476,7 +479,35 @@ x11EventThread( DirectThread *thread, void *driver_data )
                          break;
                }
           } while (XCheckMaskEvent( dfb_x11->display, ~0, &xEvent ));
+#else
+          usleep(10000);
 
+          while (XCheckMaskEvent( dfb_x11->display, ~0, &xEvent )) {
+               switch (xEvent.type) {
+                    case ButtonPress:
+                    case ButtonRelease:
+                         motion_realize( data );
+                    case MotionNotify:
+                         handleMouseEvent( &xEvent, data ); // crash ???
+                         break;
+
+                    case KeyPress:
+                    case KeyRelease: {
+                         motion_realize( data );
+
+                         dfbEvent.type      = (xEvent.type == KeyPress) ? DIET_KEYPRESS : DIET_KEYRELEASE;
+                         dfbEvent.flags     = DIEF_KEYCODE;
+                         dfbEvent.key_code  = xEvent.xkey.keycode;
+
+                         dfb_input_dispatch( data->device, &dfbEvent );
+                         break;
+                    }
+
+                    default:
+                         break;
+               }
+          }
+#endif
           motion_realize( data );
 
           direct_thread_testcancel( thread );
