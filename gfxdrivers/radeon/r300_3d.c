@@ -274,10 +274,18 @@ r300DoBlit3D( RadeonDriverData *rdrv, RadeonDeviceData *rdev,
                                      VF_PRIM_WALK_DATA      |
                                      (4 << VF_NUM_VERTICES_SHIFT) );
      
-     out_vertex2d2( mmio, dr->x      , dr->y      , sl->x      , sl->y       );
-     out_vertex2d2( mmio, dr->x+dr->w, dr->y      , sl->x+sl->w, sl->y       );
-     out_vertex2d2( mmio, dr->x+dr->w, dr->y+dr->h, sl->x+sl->w, sl->y+sl->h );
-     out_vertex2d2( mmio, dr->x      , dr->y+dr->h, sl->x      , sl->y+sl->h );
+     if (rdev->blittingflags & DSBLIT_ROTATE180) {
+          out_vertex2d2( mmio, dr->x      , dr->y      , sl->x+sl->w, sl->y+sl->h );
+          out_vertex2d2( mmio, dr->x+dr->w, dr->y      , sl->x      , sl->y+sl->h );
+          out_vertex2d2( mmio, dr->x+dr->w, dr->y+dr->h, sl->x      , sl->y       );
+          out_vertex2d2( mmio, dr->x      , dr->y+dr->h, sl->x+sl->w, sl->y       );
+     }
+     else {
+          out_vertex2d2( mmio, dr->x      , dr->y      , sl->x      , sl->y       );
+          out_vertex2d2( mmio, dr->x+dr->w, dr->y      , sl->x+sl->w, sl->y       );
+          out_vertex2d2( mmio, dr->x+dr->w, dr->y+dr->h, sl->x+sl->w, sl->y+sl->h );
+          out_vertex2d2( mmio, dr->x      , dr->y+dr->h, sl->x      , sl->y+sl->h );
+     }
 }
 
 bool r300Blit3D( void *drv, void *dev, DFBRectangle *sr, int dx, int dy )
