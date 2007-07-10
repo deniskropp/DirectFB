@@ -1332,8 +1332,6 @@ fusion_enter( int               world_index,
      if (fcntl( fd, F_SETFD, FD_CLOEXEC ) < 0)
           D_PERROR( "Fusion/Init: Couldn't set close-on-exec flag!\n" );
 
-     fchmod( fd, 0660 );
-
      pthread_mutex_lock( &fusion_worlds_lock );
      
      addr.sun_family = AF_UNIX;
@@ -1352,13 +1350,15 @@ fusion_enter( int               world_index,
 
                len = snprintf( addr.sun_path, sizeof(addr.sun_path), "/tmp/fusion.%d/", world_index );
                /* Make socket directory if it doesn't exits */
-               mkdir( addr.sun_path, 0775 );
+               if (mkdir( addr.sun_path, 0775 ) == 0)
+                    chmod( addr.sun_path, 0775 );
                
                snprintf( addr.sun_path+len, sizeof(addr.sun_path)-len, "%lx", FUSION_ID_MASTER );
                
                /* Bind to address */
                err = bind( fd, (struct sockaddr*)&addr, sizeof(addr) );
                if (err == 0) {
+                    chmod( addr.sun_path, 0660 );
                     id = FUSION_ID_MASTER;
                     break;
                }
@@ -1369,7 +1369,8 @@ fusion_enter( int               world_index,
           if (!world) {
                len = snprintf( addr.sun_path, sizeof(addr.sun_path), "/tmp/fusion.%d/", world_index );
                /* Make socket directory if it doesn't exits */
-               mkdir( addr.sun_path, 0775 );
+               if (mkdir( addr.sun_path, 0775 ) == 0)
+                    chmod( addr.sun_path, 0775 );
                
                /* Check wether we are master */
                snprintf( addr.sun_path+len, sizeof(addr.sun_path)-len, "%lx", FUSION_ID_MASTER );
@@ -1386,11 +1387,14 @@ fusion_enter( int               world_index,
                     for (id = FUSION_ID_MASTER+1; id < (FusionID)-1; id++) {
                          snprintf( addr.sun_path+len, sizeof(addr.sun_path)-len, "%lx", id );
                          err = bind( fd, (struct sockaddr*)&addr, sizeof(addr) );
-                         if (err == 0)
+                         if (err == 0) {
+                              chmod( addr.sun_path, 0660 );
                               break;
+                         }
                     }
                }
                else if (err == 0 && role != FER_SLAVE) {
+                    chmod( addr.sun_path, 0660 );
                     id = FUSION_ID_MASTER;
                }
           }

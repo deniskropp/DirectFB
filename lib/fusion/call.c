@@ -331,8 +331,6 @@ fusion_call_execute (FusionCall          *call,
 
           fcntl( fd, F_SETFD, FD_CLOEXEC );
 
-          fchmod( fd, 0660 );
-
           addr.sun_family = AF_UNIX;
           len = snprintf( addr.sun_path, sizeof(addr.sun_path), 
                           "/tmp/fusion.%d/call.%x.", fusion_world_index( world ), call->call_id ); 
@@ -341,8 +339,10 @@ fusion_call_execute (FusionCall          *call,
           for (msg.serial = 0; msg.serial <= 0xffffff; msg.serial++) {
                snprintf( addr.sun_path+len, sizeof(addr.sun_path)-len, "%x", msg.serial );
                err = bind( fd, (struct sockaddr*)&addr, sizeof(addr) );
-               if (err == 0)
+               if (err == 0) {
+                    chmod( addr.sun_path, 0660 );
                     break;
+               }
           }
           
           if (err < 0) {
