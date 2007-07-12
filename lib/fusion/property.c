@@ -214,8 +214,7 @@ fusion_property_init (FusionProperty *property, const FusionWorld *world)
      property->multi.builtin.state = FUSION_PROPERTY_AVAILABLE;
      property->multi.builtin.owner = 0;
 
-     property->multi.builtin.waiting = false;
-     
+     property->multi.builtin.requested = false;
      property->multi.builtin.destroyed = false;
 
      /* Keep back pointer to shared world data. */
@@ -235,7 +234,14 @@ fusion_property_lease (FusionProperty *property)
      D_ASSUME( property->multi.builtin.owner != getpid() );
      
      while (property->multi.builtin.state == FUSION_PROPERTY_LEASED) {
-          property->multi.builtin.waiting = true;
+          /* Check whether owner exited without releasing. */
+          if (kill( property->multi.builtin.owner, 0 ) < 0 && errno == ESRCH) {
+               property->multi.builtin.state = FUSION_PROPERTY_AVAILABLE;
+               property->multi.builtin.requested = false;
+               break;
+          }
+          
+          property->multi.builtin.requested = true;
           
           direct_sched_yield();
                
@@ -263,7 +269,14 @@ fusion_property_purchase (FusionProperty *property)
      D_ASSUME( property->multi.builtin.owner != getpid() ); 
           
      while (property->multi.builtin.state == FUSION_PROPERTY_LEASED) {
-          property->multi.builtin.waiting = true;
+          /* Check whether owner exited without releasing. */
+          if (kill( property->multi.builtin.owner, 0 ) < 0 && errno == ESRCH) {
+               property->multi.builtin.state = FUSION_PROPERTY_AVAILABLE;
+               property->multi.builtin.requested = false;
+               break;
+          }
+          
+          property->multi.builtin.requested = true;
           
           direct_sched_yield();
                
@@ -294,8 +307,8 @@ fusion_property_cede (FusionProperty *property)
      property->multi.builtin.state = FUSION_PROPERTY_AVAILABLE;
      property->multi.builtin.owner = 0;
 
-     if (property->multi.builtin.waiting) {
-          property->multi.builtin.waiting = false;
+     if (property->multi.builtin.requested) {
+          property->multi.builtin.requested = false;
           direct_sched_yield();
      }
 
@@ -325,9 +338,9 @@ fusion_property_holdup (FusionProperty *property)
                direct_sched_yield();
           }
           
-          property->multi.builtin.state   = FUSION_PROPERTY_AVAILABLE;
-          property->multi.builtin.owner   = 0;
-          property->multi.builtin.waiting = false;
+          property->multi.builtin.state = FUSION_PROPERTY_AVAILABLE;
+          property->multi.builtin.owner = 0;
+          property->multi.builtin.requested = false;
      }          
 
      return DFB_OK;

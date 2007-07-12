@@ -282,9 +282,10 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
      /* Set state to unlocked. */
      skirmish->multi.builtin.locked = 0;
      skirmish->multi.builtin.owner  = 0;
+
+     skirmish->multi.builtin.waiting = 0;
     
-     skirmish->multi.builtin.waiting = false;
-    
+     skirmish->multi.builtin.requested = false;
      skirmish->multi.builtin.destroyed = false;
      
      /* Keep back pointer to shared world data. */
@@ -309,12 +310,12 @@ fusion_skirmish_prevail( FusionSkirmish *skirmish )
           while (skirmish->multi.builtin.locked) {
                /* Check whether owner exited without unlocking. */
                if (kill( skirmish->multi.builtin.owner, 0 ) < 0 && errno == ESRCH) { 
-                    skirmish->multi.builtin.locked  = 0;
-                    skirmish->multi.builtin.waiting = false; 
+                    skirmish->multi.builtin.locked = 0;
+                    skirmish->multi.builtin.requested = false; 
                     break;
                }
 
-               skirmish->multi.builtin.waiting = true;
+               skirmish->multi.builtin.requested = true;
                
                if (++count > 1000) {
                     usleep( 0 );
@@ -347,8 +348,8 @@ fusion_skirmish_swoop( FusionSkirmish *skirmish )
          skirmish->multi.builtin.owner != getpid()) {
           /* Check whether owner exited without unlocking. */
           if (kill( skirmish->multi.builtin.owner, 0 ) < 0 && errno == ESRCH) { 
-               skirmish->multi.builtin.locked  = 0;
-               skirmish->multi.builtin.waiting = false;
+               skirmish->multi.builtin.locked = 0;
+               skirmish->multi.builtin.requested = false;
           }
           else
                return DFB_BUSY;
@@ -393,8 +394,8 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
           if (--skirmish->multi.builtin.locked == 0) {
                skirmish->multi.builtin.owner = 0;
 
-               if (skirmish->multi.builtin.waiting) {
-                    skirmish->multi.builtin.waiting = false;
+               if (skirmish->multi.builtin.requested) {
+                    skirmish->multi.builtin.requested = false;
                     direct_sched_yield();
                }
           }
@@ -414,64 +415,44 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
           return DFB_DESTROYED;
           
      skirmish->multi.builtin.destroyed = true;
+     skirmish->multi.builtin.waiting = 0;
 
      return DFB_OK;
 }
 
 DirectResult
 fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
-{    
+{
+     long long start;
+     
      D_ASSERT( skirmish != NULL );
      
      if (skirmish->multi.builtin.destroyed)
           return DFB_DESTROYED;
-     
-     /* FIXME: Is timeout in milliseconds? It's not documented... */
-     
-     if (skirmish->multi.builtin.locked &&
-         skirmish->multi.builtin.owner != getpid()) {
-          long long stop  = direct_clock_get_micros() + timeout*1000;
-          int       count = 0;
-         
-          while (skirmish->multi.builtin.locked) {
-               /* Check whether owner exited without unlocking. */
-               if (kill( skirmish->multi.builtin.owner, 0 ) < 0 && errno == ESRCH) {
-                    skirmish->multi.builtin.locked  = 0;
-                    skirmish->multi.builtin.owner   = 0;
-                    skirmish->multi.builtin.waiting = false;
-                    break;
-               }
 
-               if (direct_clock_get_micros() >= stop)
-                    return DFB_TIMEOUT;
-              
-               if (++count > 1000) {
-                    usleep( 0 );
-                    count = 0;
-               }
-               else {
-                    direct_sched_yield();
-               }
+     skirmish->multi.builtin.waiting++;
 
-               if (skirmish->multi.builtin.destroyed)
-                    return DFB_DESTROYED; 
-          }
+     fusion_skirmish_dismiss( skirmish );
+
+     start = direct_clock_get_millis();
+     while (skirmish->multi.builtin.waiting) {
+          usleep(0);
+
+          if (timeout && direct_clock_get_millis() >= start+timeout)
+               return DFB_TIMEOUT;
      }
-     
-     return DFB_OK;
+
+     return fusion_skirmish_prevail( skirmish );
 }
 
 DirectResult
 fusion_skirmish_notify( FusionSkirmish *skirmish )
 {
      D_ASSERT( skirmish != NULL );
-     
-     if (skirmish->multi.builtin.destroyed)
-          return DFB_DESTROYED;
 
-     D_UNIMPLEMENTED();
+     skirmish->multi.builtin.waiting = 0;
 
-     return DFB_UNIMPLEMENTED;
+     return DFB_OK;
 }
 
 #endif /* FUSION_BUILD_KERNEL */
@@ -486,6 +467,7 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
      D_ASSERT( skirmish != NULL );
 
      direct_util_recursive_pthread_mutex_init( &skirmish->single.lock );
+     pthread_cond_init( &skirmish->single.cond, NULL );
 
      return DFB_OK;
 }
@@ -518,8 +500,46 @@ DirectResult
 fusion_skirmish_destroy (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
+     
+     pthread_cond_broadcast( &skirmish->single.cond );
+     pthread_cond_destroy( &skirmish->single.cond );
 
      return pthread_mutex_destroy( &skirmish->single.lock );
+}
+
+DirectResult
+fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
+{
+     D_ASSERT( skirmish != NULL );
+     
+     if (timeout) {
+          struct timespec ts;
+          struct timeval  tv;
+          int             ret;
+          
+          gettimeofday( &tv, NULL );
+          
+          ts.tv_nsec = tv.tv_usec*1000 + (timeout%1000)*1000;
+          ts.tv_sec  = tv.tv_sec + timeout/1000 + ts.tv_nsec/1000000000;
+          ts.tv_nsec = ts.tv_nsec % 1000000000;
+          
+          ret = pthread_cond_timedwait( &skirmish->single.cond, 
+                                        &skirmish->single.lock, &ts );
+                                        
+          return (ret == ETIMEDOUT) ? DFB_TIMEOUT : DFB_OK;
+     }
+
+     return pthread_cond_wait( &skirmish->single.cond, &skirmish->single.lock );
+}
+
+DirectResult
+fusion_skirmish_notify( FusionSkirmish *skirmish )
+{
+     D_ASSERT( skirmish != NULL );
+
+     pthread_cond_broadcast( &skirmish->single.cond );
+
+     return DFB_OK;
 }
 
 #endif
