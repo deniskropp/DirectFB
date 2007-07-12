@@ -108,7 +108,7 @@ fetch_data( IDirectFBDataBuffer *buffer, void *ptr, int len )
 }
 
 static DFBResult
-bmp_deocde_header( IDirectFBImageProvider_BMP_data *data )
+bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
 {
      DFBResult ret;
      __u8      buf[54];
@@ -181,6 +181,7 @@ bmp_deocde_header( IDirectFBImageProvider_BMP_data *data )
                data->indexed = true;
           case 16:
           case 24:
+          case 32:
                break;
           default:
                D_ERROR( "IDirectFBImageProvider_BMP: "
@@ -308,12 +309,20 @@ bmp_decode_rgb_row( IDirectFBImageProvider_BMP_data *data, int row )
                break;
           case 24:
                for (i = 0; i < data->width; i++) {
-                    dst[i] = (buf[i*3+3]    ) | 
+                    dst[i] = (buf[i*3+2]    ) | 
                              (buf[i*3+1]<< 8) |
                              (buf[i*3+0]<<16) |
                              0xff000000;
                }
                break;
+          case 32:
+               for (i = 0; i < data->width; i++) {
+                    dst[i] = (buf[i*4+2]    ) | 
+                             (buf[i*4+1]<< 8) |
+                             (buf[i*4+0]<<16) |
+                             (buf[i*4+3]<<24);
+               }
+               break; 
           default:
                break;
      }
@@ -550,7 +559,7 @@ Construct( IDirectFBImageProvider *thiz,
 
      buffer->AddRef( buffer );
 
-     ret = bmp_deocde_header( data );
+     ret = bmp_decode_header( data );
      if (ret) {
           IDirectFBImageProvider_BMP_Destruct( thiz );
           return ret;
