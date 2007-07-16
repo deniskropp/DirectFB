@@ -65,10 +65,10 @@ DFB_INPUT_DRIVER( x11input )
  * declaration of private data
  */
 typedef struct {
-     CoreInputDevice*	device;
-     DirectThread*		thread;
-     DFBX11*			dfb_x11;
-     int              	stop;
+     CoreInputDevice*    device;
+     DirectThread*       thread;
+     DFBX11*             dfb_x11;
+     int                 stop;
 } X11InputData;
 
 
@@ -83,257 +83,368 @@ static DFBInputEvent motionY = {
 };
 
 static void
-motion_compress( int x, int y )
+motion_compress( int x, int y, const XEvent *xEvent )
 {
-	if (motionX.axisabs != x) {
+     if (motionX.axisabs != x) {
           motionX.type    = DIET_AXISMOTION;
-          motionX.flags   = DIEF_AXISABS;
+          motionX.flags   = DIEF_AXISABS | DIEF_TIMESTAMP;
           motionX.axis    = DIAI_X;
           motionX.axisabs = x;
+
+          motionX.timestamp.tv_sec  =  xEvent->xmotion.time / 1000;
+          motionX.timestamp.tv_usec = (xEvent->xmotion.time % 1000) * 1000;
      }
 
      if (motionY.axisabs != y) {
           motionY.type    = DIET_AXISMOTION;
-          motionY.flags   = DIEF_AXISABS;
+          motionY.flags   = DIEF_AXISABS | DIEF_TIMESTAMP;
           motionY.axis    = DIAI_Y;
           motionY.axisabs = y;
+
+          motionY.timestamp.tv_sec  =  xEvent->xmotion.time / 1000;
+          motionY.timestamp.tv_usec = (xEvent->xmotion.time % 1000) * 1000;
      }
 }
 
 static void
 motion_realize( X11InputData *data )
 {
-	if (motionX.type != DIET_UNKNOWN) {
-		dfb_input_dispatch( data->device, &motionX );
+     if (motionX.type != DIET_UNKNOWN) {
+          if (motionY.type != DIET_UNKNOWN)
+               motionX.flags |= DIEF_FOLLOW;
 
-		motionX.type = DIET_UNKNOWN;
-    }
+          dfb_input_dispatch( data->device, &motionX );
 
-	if (motionY.type != DIET_UNKNOWN) {
-		
-		dfb_input_dispatch( data->device, &motionY );
-		motionY.type = DIET_UNKNOWN;
-	}
+          motionX.type = DIET_UNKNOWN;
+     }
+
+     if (motionY.type != DIET_UNKNOWN) {
+          dfb_input_dispatch( data->device, &motionY );
+
+          motionY.type = DIET_UNKNOWN;
+     }
 }
 
-static bool
-translate_key( KeySym xKeySymbol, DFBInputEvent* pDFBEvent)
+static DFBInputDeviceKeyIdentifier
+xsymbol_to_id( KeySym xKeySymbol )
 {
-	pDFBEvent->flags  			= DIEF_KEYID;
-	switch (xKeySymbol)
-	{
-		case XK_a 			: pDFBEvent->key_id	= DIKI_A; 		return true; break;
-		case XK_b 			: pDFBEvent->key_id	= DIKI_B; 		return true; break;
-		case XK_c 			: pDFBEvent->key_id	= DIKI_C; 		return true; break;
-		case XK_d 			: pDFBEvent->key_id	= DIKI_D; 		return true; break;
-		case XK_e 			: pDFBEvent->key_id	= DIKI_E; 		return true; break;
-		case XK_f 			: pDFBEvent->key_id	= DIKI_F; 		return true; break;
-		case XK_g 			: pDFBEvent->key_id	= DIKI_G; 		return true; break;
-		case XK_h 			: pDFBEvent->key_id	= DIKI_H; 		return true; break;
-		case XK_i 			: pDFBEvent->key_id	= DIKI_I; 		return true; break;
-		case XK_j 			: pDFBEvent->key_id	= DIKI_J; 		return true; break;
-		case XK_k 			: pDFBEvent->key_id	= DIKI_K; 		return true; break;
-		case XK_l 			: pDFBEvent->key_id	= DIKI_L; 		return true; break;
-		case XK_m 			: pDFBEvent->key_id	= DIKI_M; 		return true; break;
-		case XK_n 			: pDFBEvent->key_id	= DIKI_N; 		return true; break;
-		case XK_o 			: pDFBEvent->key_id	= DIKI_O; 		return true; break;
-		case XK_p 			: pDFBEvent->key_id	= DIKI_P; 		return true; break;
-		case XK_q 			: pDFBEvent->key_id	= DIKI_Q; 		return true; break;
-		case XK_r 			: pDFBEvent->key_id	= DIKI_R; 		return true; break;
-		case XK_s 			: pDFBEvent->key_id	= DIKI_S; 		return true; break;
-		case XK_t 			: pDFBEvent->key_id	= DIKI_T; 		return true; break;
-		case XK_u 			: pDFBEvent->key_id	= DIKI_U; 		return true; break;
-		case XK_v 			: pDFBEvent->key_id	= DIKI_V; 		return true; break;
-		case XK_w 			: pDFBEvent->key_id	= DIKI_W; 		return true; break;
-		case XK_x 			: pDFBEvent->key_id	= DIKI_X; 		return true; break;
-		case XK_y 			: pDFBEvent->key_id	= DIKI_Y; 		return true; break;
-		case XK_z 			: pDFBEvent->key_id	= DIKI_Z; 		return true; break;
-		case XK_0 			: pDFBEvent->key_id	= DIKI_0; 		return true; break;
-		case XK_1 			: pDFBEvent->key_id	= DIKI_1; 		return true; break;
-		case XK_2 			: pDFBEvent->key_id	= DIKI_2; 		return true; break;
-		case XK_3 			: pDFBEvent->key_id	= DIKI_3; 		return true; break;
-		case XK_4 			: pDFBEvent->key_id	= DIKI_4; 		return true; break;
-		case XK_5 			: pDFBEvent->key_id	= DIKI_5; 		return true; break;
-		case XK_6 			: pDFBEvent->key_id	= DIKI_6; 		return true; break;
-		case XK_7 			: pDFBEvent->key_id	= DIKI_7; 		return true; break;
-		case XK_8 			: pDFBEvent->key_id	= DIKI_8; 		return true; break;
-		case XK_9 			: pDFBEvent->key_id	= DIKI_9; 		return true; break;
-		case XK_F1 			: pDFBEvent->key_id	= DIKI_F1; 		return true; break;
-		case XK_F2 			: pDFBEvent->key_id	= DIKI_F2; 		return true; break;
-		case XK_F3 			: pDFBEvent->key_id	= DIKI_F3; 		return true; break;
-		case XK_F4 			: pDFBEvent->key_id	= DIKI_F4; 		return true; break;
-		case XK_F5 			: pDFBEvent->key_id	= DIKI_F5; 		return true; break;
-		case XK_F6 			: pDFBEvent->key_id	= DIKI_F6; 		return true; break;
-		case XK_F7 			: pDFBEvent->key_id	= DIKI_F7; 		return true; break;
-		case XK_F8 			: pDFBEvent->key_id	= DIKI_F8; 		return true; break;
-		case XK_F9 			: pDFBEvent->key_id	= DIKI_F9; 		return true; break;
-		case XK_F10			: pDFBEvent->key_id	= DIKI_F10; 	return true; break;
-		case XK_F11			: pDFBEvent->key_id	= DIKI_F11; 	return true; break;
-		case XK_F12			: pDFBEvent->key_id	= DIKI_F12; 	return true; break;
-		
+     switch (xKeySymbol) {
+          case XK_a                : return DIKI_A;     
+          case XK_b                : return DIKI_B;     
+          case XK_c                : return DIKI_C;     
+          case XK_d                : return DIKI_D;     
+          case XK_e                : return DIKI_E;     
+          case XK_f                : return DIKI_F;     
+          case XK_g                : return DIKI_G;     
+          case XK_h                : return DIKI_H;     
+          case XK_i                : return DIKI_I;     
+          case XK_j                : return DIKI_J;     
+          case XK_k                : return DIKI_K;     
+          case XK_l                : return DIKI_L;     
+          case XK_m                : return DIKI_M;     
+          case XK_n                : return DIKI_N;     
+          case XK_o                : return DIKI_O;     
+          case XK_p                : return DIKI_P;     
+          case XK_q                : return DIKI_Q;     
+          case XK_r                : return DIKI_R;     
+          case XK_s                : return DIKI_S;     
+          case XK_t                : return DIKI_T;     
+          case XK_u                : return DIKI_U;     
+          case XK_v                : return DIKI_V;     
+          case XK_w                : return DIKI_W;     
+          case XK_x                : return DIKI_X;     
+          case XK_y                : return DIKI_Y;     
+          case XK_z                : return DIKI_Z;     
+          case XK_0                : return DIKI_0;     
+          case XK_1                : return DIKI_1;     
+          case XK_2                : return DIKI_2;     
+          case XK_3                : return DIKI_3;     
+          case XK_4                : return DIKI_4;     
+          case XK_5                : return DIKI_5;     
+          case XK_6                : return DIKI_6;     
+          case XK_7                : return DIKI_7;     
+          case XK_8                : return DIKI_8;     
+          case XK_9                : return DIKI_9;     
+          case XK_F1               : return DIKI_F1;    
+          case XK_F2               : return DIKI_F2;    
+          case XK_F3               : return DIKI_F3;    
+          case XK_F4               : return DIKI_F4;    
+          case XK_F5               : return DIKI_F5;    
+          case XK_F6               : return DIKI_F6;    
+          case XK_F7               : return DIKI_F7;    
+          case XK_F8               : return DIKI_F8;    
+          case XK_F9               : return DIKI_F9;    
+          case XK_F10              : return DIKI_F10;   
+          case XK_F11              : return DIKI_F11;   
+          case XK_F12              : return DIKI_F12;   
 
-		case XK_Shift_L		: pDFBEvent->key_id	= DIKI_SHIFT_L; 	return true; break;
-		case XK_Shift_R		: pDFBEvent->key_id	= DIKI_SHIFT_R; 	return true; break;
-		case XK_Control_L	: pDFBEvent->key_id	= DIKI_CONTROL_L; 	return true; break;
-		case XK_Control_R	: pDFBEvent->key_id	= DIKI_CONTROL_R; 	return true; break;
-		case XK_Alt_L		: pDFBEvent->key_id	= DIKI_ALT_L; 		return true; break;
-		case XK_Alt_R		: pDFBEvent->key_id	= DIKI_ALT_R; 		return true; break;
-//		case XK_Alt_??		: pDFBEvent->key_id	= DIKI_ALTGR; 	return true; break;
-		case XK_Meta_L		: pDFBEvent->key_id	= DIKI_META_L; 		return true; break;
-		case XK_Meta_R		: pDFBEvent->key_id	= DIKI_META_R; 		return true; break;
-		case XK_Super_L		: pDFBEvent->key_id	= DIKI_SUPER_L; 	return true; break;
-		case XK_Super_R		: pDFBEvent->key_id	= DIKI_SUPER_R; 	return true; break;
-		case XK_Hyper_L		: pDFBEvent->key_id	= DIKI_HYPER_L; 	return true; break;
-		case XK_Hyper_R		: pDFBEvent->key_id	= DIKI_HYPER_R; 	return true; break;
+          case XK_Shift_L          : return DIKI_SHIFT_L;     
+          case XK_Shift_R          : return DIKI_SHIFT_R;     
+          case XK_Control_L        : return DIKI_CONTROL_L;   
+          case XK_Control_R        : return DIKI_CONTROL_R;   
+          case XK_Alt_L            : return DIKI_ALT_L;       
+          case XK_Alt_R            : return DIKI_ALT_R;       
+          case XK_Meta_L           : return DIKI_META_L;      
+          case XK_Meta_R           : return DIKI_META_R;      
+          case XK_Super_L          : return DIKI_SUPER_L;     
+          case XK_Super_R          : return DIKI_SUPER_R;     
+          case XK_Hyper_L          : return DIKI_HYPER_L;     
+          case XK_Hyper_R          : return DIKI_HYPER_R;     
+          case XK_Mode_switch      : return DIKI_ALT_R;
 
-		case XK_Caps_Lock	: pDFBEvent->key_id	= DIKI_CAPS_LOCK; 	return true; break;
-		case XK_Num_Lock	: pDFBEvent->key_id	= DIKI_NUM_LOCK; 	return true; break;
-		case XK_Scroll_Lock	: pDFBEvent->key_id	= DIKI_SCROLL_LOCK; return true; break;
+          case XK_Caps_Lock        : return DIKI_CAPS_LOCK;   
+          case XK_Num_Lock         : return DIKI_NUM_LOCK;    
+          case XK_Scroll_Lock      : return DIKI_SCROLL_LOCK; 
 
-		case XK_Escape 		: pDFBEvent->key_id	= DIKI_ESCAPE; 		return true; break;
-		case XK_Left 		: pDFBEvent->key_id	= DIKI_LEFT; 		return true; break;
-		case XK_Right 		: pDFBEvent->key_id	= DIKI_RIGHT; 		return true; break;
-		case XK_Up 			: pDFBEvent->key_id	= DIKI_UP; 			return true; break;
-		case XK_Down 		: pDFBEvent->key_id	= DIKI_DOWN; 		return true; break;
-		
-		case XK_Tab			: pDFBEvent->key_id	= DIKI_TAB; 		return true; break;
-		case XK_Return		: pDFBEvent->key_id	= DIKI_ENTER; 		return true; break;
-		case XK_space		: pDFBEvent->key_id	= DIKI_SPACE; 		return true; break;
-		case XK_BackSpace	: pDFBEvent->key_id	= DIKI_BACKSPACE; 	return true; break;
-		case XK_Insert		: pDFBEvent->key_id	= DIKI_INSERT; 		return true; break;
-		case XK_Delete		: pDFBEvent->key_id	= DIKI_DELETE; 		return true; break;
-		case XK_Home		: pDFBEvent->key_id	= DIKI_HOME; 		return true; break;
-		case XK_End			: pDFBEvent->key_id	= DIKI_END; 		return true; break;
-		case XK_Page_Up		: pDFBEvent->key_id	= DIKI_PAGE_UP; 	return true; break;
-		case XK_Page_Down	: pDFBEvent->key_id	= DIKI_PAGE_DOWN; 	return true; break;
-// ML: Not working		case XK_Print		: pDFBEvent->key_id	= DIKI_PRINT; 		return true; break;
-		case XK_Pause		: pDFBEvent->key_id	= DIKI_PAUSE; 		return true; break;
+          case XK_Escape           : return DIKI_ESCAPE;      
+          case XK_Left             : return DIKI_LEFT;        
+          case XK_Right            : return DIKI_RIGHT;       
+          case XK_Up               : return DIKI_UP;          
+          case XK_Down             : return DIKI_DOWN;        
 
-		/*  The labels on these keys depend on the type of keyboard.
-			*  We've choosen the names from a US keyboard layout. The
-			*  comments refer to the ISO 9995 terminology.
-		*/
-		case XK_quoteleft	: pDFBEvent->key_id	= DIKI_QUOTE_LEFT; 	return true; break; /*  TLDE  */
-		case XK_minus		: pDFBEvent->key_id	= DIKI_MINUS_SIGN; 	return true; break; /*  AE11  */
-		case XK_equal		: pDFBEvent->key_id	= DIKI_EQUALS_SIGN; return true; break; /*  AE12  */
-		case XK_bracketleft	: pDFBEvent->key_id	= DIKI_BRACKET_LEFT;return true; break; /*  AD11  */
-		case XK_bracketright: pDFBEvent->key_id	= DIKI_BRACKET_RIGHT;return true; break;/*  AD12  */
-		case XK_backslash	: pDFBEvent->key_id	= DIKI_BACKSLASH; 	return true; break; /*  BKSL  */
-		case XK_semicolon	: pDFBEvent->key_id	= DIKI_SEMICOLON; 	return true; break; /*  AC10  */
-		case XK_quoteright	: pDFBEvent->key_id	= DIKI_QUOTE_RIGHT; return true; break; /*  AC11  */
-		case XK_comma		: pDFBEvent->key_id	= DIKI_COMMA; 		return true; break; /*  AB08  */
-		case XK_period		: pDFBEvent->key_id	= DIKI_PERIOD; 		return true; break; /*  AB09  */
-		case XK_slash		: pDFBEvent->key_id	= DIKI_SLASH; 		return true; break; /*  AB10  */
-		case XK_less		: pDFBEvent->key_id	= DIKI_LESS_SIGN; 	return true; break; /*  103rd  */
+          case XK_Tab              : return DIKI_TAB;
+          case XK_ISO_Left_Tab     : return DIKI_TAB;
+          case XK_Return           : return DIKI_ENTER;       
+          case XK_space            : return DIKI_SPACE;       
+          case XK_BackSpace        : return DIKI_BACKSPACE;   
+          case XK_Insert           : return DIKI_INSERT;      
+          case XK_Delete           : return DIKI_DELETE;      
+          case XK_Home             : return DIKI_HOME;       
+          case XK_End              : return DIKI_END;        
+          case XK_Page_Up          : return DIKI_PAGE_UP;    
+          case XK_Page_Down        : return DIKI_PAGE_DOWN;  
+          case XK_Print            : return DIKI_PRINT;
+          case XK_Pause            : return DIKI_PAUSE;       
 
-		case XK_KP_Divide	: pDFBEvent->key_id	= DIKI_KP_DIV; 		return true; break;
-		case XK_KP_Multiply	: pDFBEvent->key_id	= DIKI_KP_MULT; 	return true; break;
-		case XK_KP_Subtract	: pDFBEvent->key_id	= DIKI_KP_MINUS; 	return true; break;
-		case XK_KP_Add		: pDFBEvent->key_id	= DIKI_KP_PLUS; 	return true; break;
-		case XK_KP_Enter	: pDFBEvent->key_id	= DIKI_KP_ENTER; 	return true; break;
-		case XK_KP_Space	: pDFBEvent->key_id	= DIKI_KP_SPACE; 	return true; break;
-		case XK_KP_Tab		: pDFBEvent->key_id	= DIKI_KP_TAB; 		return true; break;
-		case XK_KP_F1		: pDFBEvent->key_id	= DIKI_KP_F1; 		return true; break;
-		case XK_KP_F2		: pDFBEvent->key_id	= DIKI_KP_F2; 		return true; break;
-		case XK_KP_F3		: pDFBEvent->key_id	= DIKI_KP_F3; 		return true; break;
-		case XK_KP_F4		: pDFBEvent->key_id	= DIKI_KP_F4; 		return true; break;
-		case XK_KP_Equal	: pDFBEvent->key_id	= DIKI_KP_EQUAL; 	return true; break;
-		case XK_KP_Separator: pDFBEvent->key_id	= DIKI_KP_SEPARATOR;return true; break;
+          /*  The labels on these keys depend on the type of keyboard.
+           *  We've choosen the names from a US keyboard layout. The
+           *  comments refer to the ISO 9995 terminology.
+           */
+          case XK_quoteleft        : return DIKI_QUOTE_LEFT;   /*  TLDE  */
+          case XK_minus            : return DIKI_MINUS_SIGN;   /*  AE11  */
+          case XK_equal            : return DIKI_EQUALS_SIGN;  /*  AE12  */
+          case XK_bracketleft      : return DIKI_BRACKET_LEFT; /*  AD11  */
+          case XK_bracketright     : return DIKI_BRACKET_RIGHT;/*  AD12  */
+          case XK_backslash        : return DIKI_BACKSLASH;    /*  BKSL  */
+          case XK_semicolon        : return DIKI_SEMICOLON;    /*  AC10  */
+          case XK_quoteright       : return DIKI_QUOTE_RIGHT;  /*  AC11  */
+          case XK_comma            : return DIKI_COMMA;        /*  AB08  */
+          case XK_period           : return DIKI_PERIOD;       /*  AB09  */
+          case XK_slash            : return DIKI_SLASH;        /*  AB10  */
+          case XK_less             : return DIKI_LESS_SIGN;    /*  103rd  */
 
-		// \note ML: I'm not quite sure about this, but it works for me. But the real problem I guess
-		// is that the codes I get from X might be symbols and not IDs. Someone please help out :-)
-		// Actually this is true for this whole switch ... I need some verification from someone more
-		// fluent in X ...
-		case XK_KP_Delete	: pDFBEvent->key_id	= DIKI_KP_DECIMAL; 	return true; break;
-		case XK_KP_Insert	: pDFBEvent->key_id	= DIKI_KP_0; 		return true; break;
-		case XK_KP_End		: pDFBEvent->key_id	= DIKI_KP_1; 		return true; break;
-		case XK_KP_Down		: pDFBEvent->key_id	= DIKI_KP_2; 		return true; break;
-		case XK_KP_Page_Down: pDFBEvent->key_id	= DIKI_KP_3; 		return true; break;
-		case XK_KP_Left		: pDFBEvent->key_id	= DIKI_KP_4; 		return true; break;
-		case XK_KP_Begin	: pDFBEvent->key_id	= DIKI_KP_5; 		return true; break;
-		case XK_KP_Right	: pDFBEvent->key_id	= DIKI_KP_6; 		return true; break;
-		case XK_KP_Home		: pDFBEvent->key_id	= DIKI_KP_7; 		return true; break;
-		case XK_KP_Up		: pDFBEvent->key_id	= DIKI_KP_8; 		return true; break;
-		case XK_KP_Page_Up	: pDFBEvent->key_id	= DIKI_KP_9; 		return true; break;
-		default:
-			printf("X11: Unknown key pressed\n");
-	}	
-	
-	pDFBEvent->flags    = DIEF_NONE;
-	return false;
+          case XK_KP_Divide        : return DIKI_KP_DIV;      
+          case XK_KP_Multiply      : return DIKI_KP_MULT;     
+          case XK_KP_Subtract      : return DIKI_KP_MINUS;    
+          case XK_KP_Add           : return DIKI_KP_PLUS;     
+          case XK_KP_Enter         : return DIKI_KP_ENTER;    
+          case XK_KP_Space         : return DIKI_KP_SPACE;    
+          case XK_KP_Tab           : return DIKI_KP_TAB;      
+          case XK_KP_F1            : return DIKI_KP_F1;       
+          case XK_KP_F2            : return DIKI_KP_F2;       
+          case XK_KP_F3            : return DIKI_KP_F3;       
+          case XK_KP_F4            : return DIKI_KP_F4;       
+          case XK_KP_Equal         : return DIKI_KP_EQUAL;    
+          case XK_KP_Separator     : return DIKI_KP_SEPARATOR;
+                                   
+          case XK_KP_Delete        : return DIKI_KP_DECIMAL;
+          case XK_KP_Insert        : return DIKI_KP_0;      
+          case XK_KP_End           : return DIKI_KP_1;      
+          case XK_KP_Down          : return DIKI_KP_2;      
+          case XK_KP_Page_Down     : return DIKI_KP_3;      
+          case XK_KP_Left          : return DIKI_KP_4;      
+          case XK_KP_Begin         : return DIKI_KP_5;      
+          case XK_KP_Right         : return DIKI_KP_6;      
+          case XK_KP_Home          : return DIKI_KP_7;      
+          case XK_KP_Up            : return DIKI_KP_8;      
+          case XK_KP_Page_Up       : return DIKI_KP_9;
+
+          case XK_KP_Decimal       : return DIKI_KP_DECIMAL;
+          case XK_KP_0             : return DIKI_KP_0;      
+          case XK_KP_1             : return DIKI_KP_1;      
+          case XK_KP_2             : return DIKI_KP_2;      
+          case XK_KP_3             : return DIKI_KP_3;      
+          case XK_KP_4             : return DIKI_KP_4;      
+          case XK_KP_5             : return DIKI_KP_5;      
+          case XK_KP_6             : return DIKI_KP_6;      
+          case XK_KP_7             : return DIKI_KP_7;      
+          case XK_KP_8             : return DIKI_KP_8;      
+          case XK_KP_9             : return DIKI_KP_9;
+
+          case 0                   : break;
+
+          default:
+               printf("X11: Unknown key symbol 0x%x\n", xKeySymbol);
+     }    
+
+     return DIKI_UNKNOWN;
+}
+
+static DFBInputDeviceKeySymbol
+xsymbol_to_symbol( KeySym xKeySymbol )
+{
+     if (xKeySymbol >= 0x20 && xKeySymbol <= 0xff)
+          return xKeySymbol;
+
+     if (xKeySymbol >= XK_F1 && xKeySymbol <= XK_F35)
+          return DFB_FUNCTION_KEY( xKeySymbol - XK_F1 + 1 );
+
+     switch (xKeySymbol) {
+          case XK_Shift_L          : return DIKS_SHIFT;
+          case XK_Shift_R          : return DIKS_SHIFT;     
+          case XK_Control_L        : return DIKS_CONTROL;   
+          case XK_Control_R        : return DIKS_CONTROL;   
+          case XK_Alt_L            : return DIKS_ALT;       
+          case XK_Alt_R            : return DIKS_ALT;       
+          case XK_Meta_L           : return DIKS_META;      
+          case XK_Meta_R           : return DIKS_META;      
+          case XK_Super_L          : return DIKS_SUPER;     
+          case XK_Super_R          : return DIKS_SUPER;     
+          case XK_Hyper_L          : return DIKS_HYPER;     
+          case XK_Hyper_R          : return DIKS_HYPER;     
+          case XK_Mode_switch      : return DIKS_ALTGR;
+
+          case XK_Caps_Lock        : return DIKS_CAPS_LOCK;   
+          case XK_Num_Lock         : return DIKS_NUM_LOCK;    
+          case XK_Scroll_Lock      : return DIKS_SCROLL_LOCK; 
+
+          case XK_Escape           : return DIKS_ESCAPE;      
+          case XK_Left             : return DIKS_CURSOR_LEFT;
+          case XK_Right            : return DIKS_CURSOR_RIGHT;       
+          case XK_Up               : return DIKS_CURSOR_UP;          
+          case XK_Down             : return DIKS_CURSOR_DOWN;        
+
+          case XK_Tab              : return DIKS_TAB;
+          case XK_ISO_Left_Tab     : return DIKS_TAB;
+          case XK_Return           : return DIKS_ENTER;       
+          case XK_space            : return DIKS_SPACE;       
+          case XK_BackSpace        : return DIKS_BACKSPACE;   
+          case XK_Insert           : return DIKS_INSERT;      
+          case XK_Delete           : return DIKS_DELETE;      
+          case XK_Home             : return DIKS_HOME;       
+          case XK_End              : return DIKS_END;        
+          case XK_Page_Up          : return DIKS_PAGE_UP;    
+          case XK_Page_Down        : return DIKS_PAGE_DOWN;  
+          case XK_Print            : return DIKS_PRINT;
+          case XK_Pause            : return DIKS_PAUSE;       
+
+          case XK_KP_Divide        : return DIKS_SLASH;
+          case XK_KP_Multiply      : return DIKS_ASTERISK;     
+          case XK_KP_Subtract      : return DIKS_MINUS_SIGN;    
+          case XK_KP_Add           : return DIKS_PLUS_SIGN;     
+          case XK_KP_Enter         : return DIKS_ENTER;    
+          case XK_KP_Space         : return DIKS_SPACE;    
+          case XK_KP_Tab           : return DIKS_TAB;      
+          case XK_KP_F1            : return DIKS_F1;       
+          case XK_KP_F2            : return DIKS_F2;       
+          case XK_KP_F3            : return DIKS_F3;       
+          case XK_KP_F4            : return DIKS_F4;       
+          case XK_KP_Equal         : return DIKS_EQUALS_SIGN;    
+          case XK_KP_Separator     : return DIKS_COLON; /* FIXME: what is a separator */
+                                   
+          case XK_KP_Delete        : return DIKS_DELETE;
+          case XK_KP_Insert        : return DIKS_INSERT;      
+          case XK_KP_End           : return DIKS_END;      
+          case XK_KP_Down          : return DIKS_CURSOR_DOWN;      
+          case XK_KP_Page_Down     : return DIKS_PAGE_DOWN;      
+          case XK_KP_Left          : return DIKS_CURSOR_LEFT;      
+          case XK_KP_Begin         : return DIKS_BEGIN;      
+          case XK_KP_Right         : return DIKS_CURSOR_RIGHT;      
+          case XK_KP_Home          : return DIKS_HOME;      
+          case XK_KP_Up            : return DIKS_CURSOR_UP;      
+          case XK_KP_Page_Up       : return DIKS_PAGE_UP;
+
+          case XK_KP_Decimal       : return DIKS_PERIOD;
+          case XK_KP_0             : return DIKS_0;      
+          case XK_KP_1             : return DIKS_1;      
+          case XK_KP_2             : return DIKS_2;      
+          case XK_KP_3             : return DIKS_3;      
+          case XK_KP_4             : return DIKS_4;      
+          case XK_KP_5             : return DIKS_5;      
+          case XK_KP_6             : return DIKS_6;      
+          case XK_KP_7             : return DIKS_7;      
+          case XK_KP_8             : return DIKS_8;      
+          case XK_KP_9             : return DIKS_9;
+
+          case 0                   : break;
+
+          default:
+               printf("X11: Unknown key symbol 0x%x\n", xKeySymbol);
+     }    
+
+     return DIKS_NULL;
 }
 
 
 
-static void handleMouseEvent(XEvent* pXEvent, X11InputData*	pData)
+static void handleMouseEvent(XEvent* pXEvent, X11InputData* pData)
 {
-	static int 		iMouseEventCount = 0;
-	DFBInputEvent 	dfbEvent;
-	if (pXEvent->type == MotionNotify) 
-	{
-		motion_compress( pXEvent->xmotion.x, pXEvent->xmotion.y );
-		++iMouseEventCount;
-	}
-	
-	if ( pXEvent->type == ButtonPress || pXEvent->type == ButtonRelease )
-	{
-        motion_realize( pData );
+     static int          iMouseEventCount = 0;
+     DFBInputEvent  dfbEvent;
+     if (pXEvent->type == MotionNotify) {
+          motion_compress( pXEvent->xmotion.x, pXEvent->xmotion.y, pXEvent );
+          ++iMouseEventCount;
+     }
 
-        if ( pXEvent->type == ButtonPress ) 	
-		dfbEvent.type = DIET_BUTTONPRESS;
-	else
-		dfbEvent.type = DIET_BUTTONRELEASE;
+     if ( pXEvent->type == ButtonPress || pXEvent->type == ButtonRelease ) {
+          if ( pXEvent->type == ButtonPress )
+               dfbEvent.type = DIET_BUTTONPRESS;
+          else
+               dfbEvent.type = DIET_BUTTONRELEASE;
 
-		dfbEvent.flags = DIEF_NONE;
-				
-		/* Get pressed button */
-		switch( pXEvent->xbutton.button ) {
-			case 1:
-				dfbEvent.button = DIBI_LEFT;
-			break;
-			case 2:
-				dfbEvent.button = DIBI_MIDDLE;
-			break;
-			case 3:
-				dfbEvent.button = DIBI_RIGHT;
-			break;
-			//Wheel events
-			case 4: /*up*/
-			case 5: /*down*/
-			case 6: /*left*/
-			case 7: /*right*/
-			{
-				dfbEvent.type = DIET_AXISMOTION;
-				dfbEvent.flags = DIEF_AXISREL;
-				dfbEvent.axis = DIAI_Z;
-				/*SCROLL UP*/
-				if( pXEvent->xbutton.button == 4 ) {
-					dfbEvent.axisrel = -1;
-				}
-				/*SCROLL DOWN */
-				else if (pXEvent->xbutton.button == 5) {
-					dfbEvent.axisrel = 1;
-				}
-				/*SCROLL LEFT*/
-          			else if (pXEvent->xbutton.button == 6) {
-					dfbEvent.axis = DIAI_X;
-					dfbEvent.axisrel = -1;
-				}
-				/*SCROLL RIGHT*/
-          			else if (pXEvent->xbutton.button == 7 ){
-					dfbEvent.axis = DIAI_X;
-					dfbEvent.axisrel = 1;
-				}
-					
-			}
-			break;
-			default:
-			break;
-		}
+          dfbEvent.flags = DIEF_TIMESTAMP;
 
-		dfb_input_dispatch( pData->device, &dfbEvent );
-		++iMouseEventCount;
-	} 
+          /* Get pressed button */
+          switch ( pXEvent->xbutton.button ) {
+               case 1:
+                    dfbEvent.button = DIBI_LEFT;
+                    break;
+               case 2:
+                    dfbEvent.button = DIBI_MIDDLE;
+                    break;
+               case 3:
+                    dfbEvent.button = DIBI_RIGHT;
+                    break;
+                    //Wheel events
+               case 4: /*up*/
+               case 5: /*down*/
+               case 6: /*left*/
+               case 7: /*right*/
+                    {
+                         dfbEvent.type = DIET_AXISMOTION;
+                         dfbEvent.flags = DIEF_AXISREL;
+                         dfbEvent.axis = DIAI_Z;
+                         /*SCROLL UP*/
+                         if ( pXEvent->xbutton.button == 4 ) {
+                              dfbEvent.axisrel = -1;
+                         }
+                         /*SCROLL DOWN */
+                         else if (pXEvent->xbutton.button == 5) {
+                              dfbEvent.axisrel = 1;
+                         }
+                         /*SCROLL LEFT*/
+                         else if (pXEvent->xbutton.button == 6) {
+                              dfbEvent.axis = DIAI_X;
+                              dfbEvent.axisrel = -1;
+                         }
+                         /*SCROLL RIGHT*/
+                         else if (pXEvent->xbutton.button == 7 ) {
+                              dfbEvent.axis = DIAI_X;
+                              dfbEvent.axisrel = 1;
+                         }
+
+                    }
+                    break;
+               default:
+                    break;
+          }
+
+          dfbEvent.timestamp.tv_sec  =  pXEvent->xbutton.time / 1000;
+          dfbEvent.timestamp.tv_usec = (pXEvent->xbutton.time % 1000) * 1000;
+
+          dfb_input_dispatch( pData->device, &dfbEvent );
+          ++iMouseEventCount;
+     }
 }
 
 /*
@@ -343,65 +454,82 @@ static void handleMouseEvent(XEvent* pXEvent, X11InputData*	pData)
 static void*
 x11EventThread( DirectThread *thread, void *driver_data )
 {
-	X11InputData*	data    = (X11InputData*) driver_data;
-	DFBX11*			dfb_x11 = data->dfb_x11;
-	/* X11 event masks for mouse and keyboard */
-	const long iKeyPressMask 	= KeyPressMask;
-	const long iKeyReleaseMask 	= KeyReleaseMask;
-	const long iMouseEventMask 	= ButtonPressMask | ButtonReleaseMask | PointerMotionMask;	// ExposureMask
+     X11InputData *data    = driver_data;
+     DFBX11       *dfb_x11 = data->dfb_x11;
 
-	while (!data->stop) 
-	{
-		XEvent xEvent; 
-		DFBInputEvent dfbEvent;
-        bool hasEvent;
-		
-        usleep(10000);
+     while (!data->stop) {
+          XEvent xEvent; 
+          DFBInputEvent dfbEvent;
 
-//        fusion_skirmish_prevail( &dfb_x11->lock );
+          /* FIXME: Detect key repeats, we're receiving KeyPress, KeyRelease, KeyPress, KeyRelease... !!?? */
 
-		// --- Mouse events ---
-        do {
-             hasEvent = false;
+#ifdef ___HELP___WHY_DOES_THIS_ALWAYS_BLOCK_THE_LAST_EVENT___HELP___
+          XNextEvent( dfb_x11->display, &xEvent );
 
-             if (XCheckMaskEvent(dfb_x11->display, iMouseEventMask, &xEvent)) 
-             {
-                 hasEvent = true;
-                 handleMouseEvent(&xEvent, data); // crash ???
-             }
+          do {
+               switch (xEvent.type) {
+                    case ButtonPress:
+                    case ButtonRelease:
+                         motion_realize( data );
+                    case MotionNotify:
+                         handleMouseEvent( &xEvent, data ); // crash ???
+                         break;
 
+                    case KeyPress:
+                    case KeyRelease: {
+                         motion_realize( data );
 
-             if (XCheckMaskEvent(dfb_x11->display, iKeyPressMask, &xEvent)) 
-             {
-                 KeySym xKeySymbol = XKeycodeToKeysym(dfb_x11->display, xEvent.xkey.keycode, 0);
-                 hasEvent = true;
-                 if (translate_key( xKeySymbol, &dfbEvent )) {
-                     dfbEvent.type		= DIET_KEYPRESS;
-                     dfbEvent.key_code	= dfbEvent.key_id;
-                     motion_realize( data );
-                     dfb_input_dispatch( data->device, &dfbEvent );
-                 }
-             }
-             else if (XCheckMaskEvent(dfb_x11->display, iKeyReleaseMask, &xEvent)) 
-             {
-                 KeySym xKeySymbol = XKeycodeToKeysym(dfb_x11->display, xEvent.xkey.keycode, 0);
-                 hasEvent = true;
-                 if (translate_key( xKeySymbol, &dfbEvent )) {
-                     dfbEvent.type		= DIET_KEYRELEASE;
-                     dfbEvent.key_code	= dfbEvent.key_id;
-                     motion_realize( data );
-                     dfb_input_dispatch( data->device, &dfbEvent );
-                 }
-             }
-        } while ( hasEvent );
-						
+                         dfbEvent.type     = (xEvent.type == KeyPress) ? DIET_KEYPRESS : DIET_KEYRELEASE;
+                         dfbEvent.flags    = DIEF_KEYCODE | DIEF_TIMESTAMP;
+                         dfbEvent.key_code = xEvent.xkey.keycode;
 
-//          fusion_skirmish_dismiss( &dfb_x11->lock );
+                         dfbEvent.timestamp.tv_sec  =  xEvent.xkey.time / 1000;
+                         dfbEvent.timestamp.tv_usec = (xEvent.xkey.time % 1000) * 1000;
 
+                         dfb_input_dispatch( data->device, &dfbEvent );
+                         break;
+                    }
+
+                    default:
+                         break;
+               }
+          } while (XCheckMaskEvent( dfb_x11->display, ~0, &xEvent ));
+#else
+          usleep(10000);
+
+          while (XCheckMaskEvent( dfb_x11->display, ~0, &xEvent )) {
+               switch (xEvent.type) {
+                    case ButtonPress:
+                    case ButtonRelease:
+                         motion_realize( data );
+                    case MotionNotify:
+                         handleMouseEvent( &xEvent, data ); // crash ???
+                         break;
+
+                    case KeyPress:
+                    case KeyRelease: {
+                         motion_realize( data );
+
+                         dfbEvent.type     = (xEvent.type == KeyPress) ? DIET_KEYPRESS : DIET_KEYRELEASE;
+                         dfbEvent.flags    = DIEF_KEYCODE | DIEF_TIMESTAMP;
+                         dfbEvent.key_code = xEvent.xkey.keycode;
+
+                         dfbEvent.timestamp.tv_sec  =  xEvent.xkey.time / 1000;
+                         dfbEvent.timestamp.tv_usec = (xEvent.xkey.time % 1000) * 1000;
+
+                         dfb_input_dispatch( data->device, &dfbEvent );
+                         break;
+                    }
+
+                    default:
+                         break;
+               }
+          }
+#endif
           motion_realize( data );
 
           direct_thread_testcancel( thread );
-    }
+     }
 
      return NULL;
 }
@@ -415,10 +543,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
 static int
 driver_get_available()
 {
-	if (dfb_system_type() == CORE_X11) {
-		return 1;
-	}
-    return 0;
+     return dfb_system_type() == CORE_X11;
 }
 
 /*
@@ -428,11 +553,9 @@ driver_get_available()
 static void
 driver_get_info( InputDriverInfo *info )
 {
-	/* fill driver info structure */
-     snprintf ( info->name,
-                DFB_INPUT_DRIVER_INFO_NAME_LENGTH, "X11 Input Driver" );
-     snprintf ( info->vendor,
-                DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH, "Martin Lutken" );
+     /* fill driver info structure */
+     snprintf ( info->name,   DFB_INPUT_DRIVER_INFO_NAME_LENGTH, "X11 Input Driver" );
+     snprintf ( info->vendor, DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH, "directfb.org" );
 
      info->version.major = 0;
      info->version.minor = 1;
@@ -456,13 +579,9 @@ driver_open_device( CoreInputDevice  *device,
 
      fusion_skirmish_dismiss( &dfb_x11->lock );
 
-     /* set device name */
-     snprintf( info->desc.name,
-               DFB_INPUT_DEVICE_DESC_NAME_LENGTH, "X11 Input" );
-
-     /* set device vendor */
-     snprintf( info->desc.vendor,
-               DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "X11" );
+     /* set device vendor and name */
+     snprintf( info->desc.vendor, DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "X11" );
+     snprintf( info->desc.name,   DFB_INPUT_DEVICE_DESC_NAME_LENGTH, "Input" );
 
      /* set one of the primary input device IDs */
      info->prefered_id = DIDID_KEYBOARD;
@@ -472,10 +591,10 @@ driver_open_device( CoreInputDevice  *device,
 
      /* set capabilities */
      info->desc.caps   = DICAPS_ALL;
+
      /* enable translation of fake raw hardware keycodes */
-     info->desc.min_keycode = DIKI_A;
-     info->desc.max_keycode = DIKI_KP_9;
- 
+     info->desc.min_keycode = 8;
+     info->desc.max_keycode = 255;
 
 
      /* allocate and fill private data */
@@ -490,234 +609,9 @@ driver_open_device( CoreInputDevice  *device,
      /* set private data pointer */
      *driver_data = data;
 
-     
-     XInitThreads();
-     
      return DFB_OK;
 }
 
-
-static DFBInputDeviceKeySymbol
-id_to_symbol( DFBInputDeviceKeyIdentifier id,
-              DFBInputDeviceModifierMask  modifiers)
-{
-	bool shift = (modifiers & DIMM_SHIFT);
-
-     if (id >= DIKI_A && id <= DIKI_Z)
-          return (shift ? DIKS_CAPITAL_A : DIKS_SMALL_A) + id - DIKI_A;
-
-     if (id >= DIKI_KP_0 && id <= DIKI_KP_9)
-          return DIKS_0 + id - DIKI_KP_0;
-
-     if (id >= DIKI_F1 && id <= DIKI_F12)
-          return DIKS_F1 + id - DIKI_F1;
-
-     switch (id) {
-          case DIKI_0:
-               return shift ? DIKS_PARENTHESIS_RIGHT : DIKS_0;
-          case DIKI_1:
-               return shift ? DIKS_EXCLAMATION_MARK : DIKS_1;
-          case DIKI_2:
-               return shift ? DIKS_AT : DIKS_2;
-          case DIKI_3:
-               return shift ? DIKS_NUMBER_SIGN : DIKS_3;
-          case DIKI_4:
-               return shift ? DIKS_DOLLAR_SIGN : DIKS_4;
-          case DIKI_5:
-               return shift ? DIKS_PERCENT_SIGN : DIKS_5;
-          case DIKI_6:
-               return shift ? DIKS_CIRCUMFLEX_ACCENT : DIKS_6;
-          case DIKI_7:
-               return shift ? DIKS_AMPERSAND : DIKS_7;
-          case DIKI_8:
-               return shift ? DIKS_ASTERISK : DIKS_8;
-          case DIKI_9:
-               return shift ? DIKS_PARENTHESIS_LEFT : DIKS_9;
-
-          case DIKI_ESCAPE:
-               return DIKS_ESCAPE;
-
-          case DIKI_LEFT:
-               return DIKS_CURSOR_LEFT;
-
-          case DIKI_RIGHT:
-               return DIKS_CURSOR_RIGHT;
-
-          case DIKI_UP:
-               return DIKS_CURSOR_UP;
-
-          case DIKI_DOWN:
-               return DIKS_CURSOR_DOWN;
-
-          case DIKI_CONTROL_L:
-          case DIKI_CONTROL_R:
-               return DIKS_CONTROL;
-
-          case DIKI_SHIFT_L:
-          case DIKI_SHIFT_R:
-               return DIKS_SHIFT;
-
-          case DIKI_ALT_L:
-          case DIKI_ALT_R:
-               return DIKS_ALT;
-
-          case DIKI_META_L:
-          case DIKI_META_R:
-               return DIKS_META;
-
-          case DIKI_SUPER_L:
-          case DIKI_SUPER_R:
-               return DIKS_SUPER;
-
-          case DIKI_HYPER_L:
-          case DIKI_HYPER_R:
-               return DIKS_HYPER;
-
-          case DIKI_TAB:
-               return DIKS_TAB;
-
-          case DIKI_ENTER:
-               return DIKS_ENTER;
-
-          case DIKI_SPACE:
-               return DIKS_SPACE;
-
-          case DIKI_BACKSPACE:
-               return DIKS_BACKSPACE;
-
-          case DIKI_INSERT:
-               return DIKS_INSERT;
-
-          case DIKI_DELETE:
-               return DIKS_DELETE;
-
-          case DIKI_HOME:
-               return DIKS_HOME;
-
-          case DIKI_END:
-               return DIKS_END;
-
-          case DIKI_PAGE_UP:
-               return DIKS_PAGE_UP;
-
-          case DIKI_PAGE_DOWN:
-               return DIKS_PAGE_DOWN;
-
-          case DIKI_CAPS_LOCK:
-               return DIKS_CAPS_LOCK;
-
-          case DIKI_NUM_LOCK:
-               return DIKS_NUM_LOCK;
-
-          case DIKI_SCROLL_LOCK:
-               return DIKS_SCROLL_LOCK;
-
-          case DIKI_PRINT:
-               return DIKS_PRINT;
-
-          case DIKI_PAUSE:
-               return DIKS_PAUSE;
-
-          case DIKI_KP_DIV:
-               return DIKS_SLASH;
-
-          case DIKI_KP_MULT:
-               return DIKS_ASTERISK;
-
-          case DIKI_KP_MINUS:
-               return DIKS_MINUS_SIGN;
-
-          case DIKI_KP_PLUS:
-               return DIKS_PLUS_SIGN;
-
-          case DIKI_KP_ENTER:
-               return DIKS_ENTER;
-
-          case DIKI_KP_SPACE:
-               return DIKS_SPACE;
-
-          case DIKI_KP_TAB:
-               return DIKS_TAB;
-
-          case DIKI_KP_EQUAL:
-               return DIKS_EQUALS_SIGN;
-
-          case DIKI_KP_DECIMAL:
-               return DIKS_PERIOD;
-
-          case DIKI_KP_SEPARATOR:
-                  return DIKS_COMMA;
-
-          case DIKI_BACKSLASH:
-                if( shift )
-                  return DIKS_VERTICAL_BAR;
-                else
-                  return DIKS_BACKSLASH;
-
-          case DIKI_EQUALS_SIGN:
-                if( shift )
-                  return DIKS_PLUS_SIGN;
-                else
-                  return DIKS_EQUALS_SIGN;
-
-          case DIKI_LESS_SIGN:
-               return shift ? DIKS_GREATER_THAN_SIGN : DIKS_LESS_THAN_SIGN;
-
-          case DIKI_MINUS_SIGN:
-                if( shift )
-                  return DIKS_UNDERSCORE;
-                else
-                  return DIKS_MINUS_SIGN;
-           case DIKI_COMMA:
-                if( shift )
-                  return DIKS_LESS_THAN_SIGN;
-                else
-                  return DIKS_COMMA;
-
-          case DIKI_PERIOD:
-                if( shift )
-                  return DIKS_GREATER_THAN_SIGN;
-                else
-                  return DIKS_PERIOD;
-
-           case DIKI_BRACKET_LEFT:
-                if( shift )
-                  return DIKS_CURLY_BRACKET_LEFT;
-                else
-                  return DIKS_SQUARE_BRACKET_LEFT;
-
-           case DIKI_BRACKET_RIGHT:
-                if( shift )
-                  return DIKS_CURLY_BRACKET_RIGHT;
-                else
-                  return DIKS_SQUARE_BRACKET_RIGHT;
-          case DIKI_QUOTE_LEFT:
-                if( shift )
-                  return DIKS_TILDE;
-                else
-                  return DIKS_GRAVE_ACCENT;
-          case DIKI_QUOTE_RIGHT:
-                if( shift )
-                  return DIKS_QUOTATION;
-                else
-                  return DIKS_APOSTROPHE;
-          case DIKI_SEMICOLON:
-                if( shift )
-                  return DIKS_COLON;
-                else
-                  return DIKS_SEMICOLON;
-          case DIKI_SLASH:
-                if( shift )
-                  return DIKS_QUESTION_MARK;
-                else
-                  return DIKS_SLASH;
-
-          default:
-               ;
-     }
-
-     return DIKS_NULL;
-}
 /*
  * Fetch one entry from the device's keymap if supported.
  * this does a fake mapping based on the orginal DFB code
@@ -727,23 +621,28 @@ driver_get_keymap_entry( CoreInputDevice           *device,
                          void                      *driver_data,
                          DFBInputDeviceKeymapEntry *entry )
 {
-	int  code = entry->code;
-    entry->identifier=code;
+     int           i;
+     X11InputData *data    = driver_data;
+     DFBX11       *dfb_x11 = data->dfb_x11;
+
+     for (i=0; i<4; i++) {
+          KeySym xSymbol = XKeycodeToKeysym( dfb_x11->display, entry->code, i );
+
+          if (i == 0)
+               entry->identifier = xsymbol_to_id( xSymbol );
+
+          entry->symbols[i] = xsymbol_to_symbol( xSymbol );
+     }
 
      /* is CapsLock effective? */
-     if (code >= DIKI_A && code <= DIKI_Z)
-		entry->locks |= DILS_CAPS;
+     if (entry->identifier >= DIKI_A && entry->identifier <= DIKI_Z)
+          entry->locks |= DILS_CAPS;
 
      /* is NumLock effective? */
      if (entry->identifier >= DIKI_KP_DECIMAL && entry->identifier <= DIKI_KP_9)
           entry->locks |= DILS_NUM;
 
-     entry->symbols[DIKSI_BASE]=id_to_symbol(entry->identifier,0);
-     entry->symbols[DIKSI_BASE_SHIFT]=id_to_symbol(entry->identifier,DIMM_SHIFT);
-     entry->symbols[DIKSI_ALT]=entry->symbols[DIKSI_BASE];
-     entry->symbols[DIKSI_ALT_SHIFT]=entry->symbols[DIKSI_BASE_SHIFT];
      return DFB_OK;
-    
 }
 
 /*
@@ -752,7 +651,7 @@ driver_get_keymap_entry( CoreInputDevice           *device,
 static void
 driver_close_device( void *driver_data )
 {
-	X11InputData *data = (X11InputData*) driver_data;
+     X11InputData *data = driver_data;
 
      /* stop input thread */
      data->stop = 1;

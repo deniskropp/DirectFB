@@ -34,6 +34,7 @@
 void dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect );
 void dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect, int x, int y, bool from_back );
 void dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region );
+void dfb_back_to_front_copy_180( CoreSurface *surface, const DFBRegion *region );
 void dfb_clear_depth( CoreSurface *surface, const DFBRegion *region );
 
 void dfb_sort_triangle( DFBTriangle *tri );

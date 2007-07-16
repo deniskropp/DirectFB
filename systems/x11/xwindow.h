@@ -48,9 +48,9 @@ typedef struct
 	Visual*				visual;
 	GC 					gc;
 	XImage*				ximage;
+    int                 ximage_offset;
 	Colormap 			colormap;
 
-	Pixmap 				pixmap;
 	XShmSegmentInfo*	shmseginfo;
 	unsigned char*		videomemory;
 
@@ -60,21 +60,16 @@ typedef struct
 	int 				width;
 	int 				height;
 	int 				depth;
-	int 				pixelsize;
-	int 				screensize;
-	/* (Null) cursor stuff*/
+    int 				bpp;
+
+    /* (Null) cursor stuff*/
 	Pixmap  			pixmp1;
 	Pixmap  			pixmp2;
 	Cursor 				NullCursor;
-	
 } XWindow;
 
-void 	xw_reset(XWindow* xw);
-Bool 	xw_setPixelSize(XWindow* xw);
-void 	xw_clearScreen(XWindow* xw);
-void 	xw_setPixel(XWindow* xw, int iXPos, int iYPos, int iColor);
-void 	xw_closeWindow(XWindow** ppXW);
-Bool 	xw_openWindow(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight, int iDepth);
+Bool dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight);
+void dfb_x11_close_window(XWindow* pXW);
 
 
 

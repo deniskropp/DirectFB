@@ -31,6 +31,7 @@
 
 #include <directfb.h>
 
+#include <direct/memcpy.h>
 #include <direct/util.h>
 
 
@@ -399,6 +400,191 @@ dfb_argb_to_a8( u32 *src, u8 *dst, int len )
 
      for (i=0; i<len; i++)
           dst[i] = src[i] >> 24;
+}
+
+static inline void
+dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
+                      void                  *src,
+                      int                    spitch,
+                      int                    surface_height,
+                      u16                   *dst,
+                      int                    dpitch,
+                      int                    width,
+                      int                    height )
+{
+     int  x;
+     int  dp2 = dpitch / 2;
+     u8  *src8;
+     u16 *src16;
+     u32 *src32;
+
+     switch (format) {
+          case DSPF_RGB16:
+               while (height--) {
+                    direct_memcpy( dst, src, width * 2 );
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+          case DSPF_NV16:
+               while (height--) {
+                    src8  = src;
+                    src16 = src + surface_height * spitch;
+     
+                    for (x=0; x<width; x++) {
+                         int r, g, b;
+     
+                         YCBCR_TO_RGB( src8[x], src16[x>>1] & 0xff, src16[x>>1] >> 8, r, g, b );
+     
+                         dst[x] = PIXEL_RGB16( r, g, b );
+                    }
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+          case DSPF_RGB444:
+          case DSPF_ARGB4444:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB16( ((src16[x] & 0x0f00) >> 4) | ((src16[x] & 0x0f00) >> 8),
+                                               ((src16[x] & 0x00f0)     ) | ((src16[x] & 0x00f0) >> 4),
+                                               ((src16[x] & 0x000f) << 4) | ((src16[x] & 0x000f)     ) );
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+          case DSPF_RGB555:
+          case DSPF_ARGB1555:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = ((src16[x] & 0x7fe0) << 1) | (src16[x] & 0x003f);
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               while (height--) {
+                    src32 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB16( ((src32[x] & 0xff0000) >> 16),
+                                               ((src32[x] & 0x00ff00) >>  8),
+                                               ((src32[x] & 0x0000ff)      ) );
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+          default:
+               D_ONCE( "unsupported format" );
+     }
+}
+
+static inline void
+dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
+                      void                  *src,
+                      int                    spitch,
+                      int                    surface_height,
+                      u32                   *dst,
+                      int                    dpitch,
+                      int                    width,
+                      int                    height )
+{
+     int  x;
+     int  dp4 = dpitch / 4;
+     u8  *src8;
+     u16 *src16;
+
+     switch (format) {
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               while (height--) {
+                    direct_memcpy( dst, src, width * 4 );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          case DSPF_NV16:
+               while (height--) {
+                    src8  = src;
+                    src16 = src + surface_height * spitch;
+     
+                    for (x=0; x<width; x++) {
+                         int r, g, b;
+     
+                         YCBCR_TO_RGB( src8[x], src16[x>>1] & 0xff, src16[x>>1] >> 8, r, g, b );
+     
+                         dst[x] = PIXEL_RGB32( r, g, b );
+                    }
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          case DSPF_RGB444:
+          case DSPF_ARGB4444:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB32( ((src16[x] & 0x0f00) >> 4) | ((src16[x] & 0x0f00) >> 8),
+                                               ((src16[x] & 0x00f0)     ) | ((src16[x] & 0x00f0) >> 4),
+                                               ((src16[x] & 0x000f) << 4) | ((src16[x] & 0x000f)     ) );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          case DSPF_RGB555:
+          case DSPF_ARGB1555:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB32( ((src16[x] & 0x7c00) >> 7) | ((src16[x] & 0x7000) >> 12),
+                                               ((src16[x] & 0x03e0) >> 2) | ((src16[x] & 0x0380) >> 7),
+                                               ((src16[x] & 0x001f) << 3) | ((src16[x] & 0x001c) >> 2) );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          case DSPF_RGB16:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB32( ((src16[x] & 0xf800) >> 8) | ((src16[x] & 0xe000) >> 13),
+                                               ((src16[x] & 0x07e0) >> 3) | ((src16[x] & 0x0300) >> 8),
+                                               ((src16[x] & 0x001f) << 3) | ((src16[x] & 0x001c) >> 2) );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          default:
+               D_ONCE( "unsupported format" );
+     }
 }
 
 #endif

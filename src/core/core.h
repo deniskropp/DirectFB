@@ -39,7 +39,7 @@
 #include "coredefs.h"
 
 
-#define DIRECTFB_CORE_ABI     35
+#define DIRECTFB_CORE_ABI     36
 
 
 /*

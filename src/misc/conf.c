@@ -132,6 +132,7 @@ static const char *config_usage =
      "  layer-bg-tile=<filename>       Use tiled background image\n"
      "  layer-src-key=AARRGGBB         Enable color keying (hex)\n"
      "  layer-palette-<index>=AARRGGBB Set palette entry at index (hex)\n"
+     "  layer-rotate=<degree>          Set the layer rotation for double buffer mode (0/180)\n"
      "  [no-]smooth-upscale            Enable/disable smooth upscaling per default\n"
      "  [no-]smooth-downscale          Enable/disable smooth downscaling per default\n"
      "  [no-]translucent-windows       Allow translucent windows\n"
@@ -1280,6 +1281,29 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR( "DirectFB/Config '%s': No color specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "layer-rotate" ) == 0) {
+          DFBConfigLayer *conf = dfb_config->config_layer;
+
+          if (value) {
+               int rotate;
+
+               if (sscanf( value, "%d", &rotate ) < 1) {
+                    D_ERROR("DirectFB/Config '%s': Could not parse value!\n", name);
+                    return DFB_INVARG;
+               }
+
+               if (rotate != 0 && rotate != 180) {
+                    D_ERROR("DirectFB/Config '%s': Only 0 and 180 supported yet!\n", name);
+                    return DFB_UNSUPPORTED;
+               }
+
+               conf->rotate = rotate;
+          }
+          else {
+               D_ERROR("DirectFB/Config '%s': No value specified!\n", name);
                return DFB_INVARG;
           }
      } else

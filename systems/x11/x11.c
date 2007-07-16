@@ -82,7 +82,6 @@ system_get_info( CoreSystemInfo *info )
 static DFBResult
 system_initialize( CoreDFB *core, void **data )
 {
-     char       *driver;
      CoreScreen *screen;
 
      D_ASSERT( dfb_x11 == NULL );
@@ -91,12 +90,6 @@ system_initialize( CoreDFB *core, void **data )
      if (!dfb_x11) {
           D_ERROR( "DirectFB/X11: Couldn't allocate shared memory!\n" );
           return D_OOSHM();
-     }
-
-     driver = getenv( "X11_VIDEODRIVER" );
-     if (driver && !strcasecmp( driver, "directfb" )) {
-          D_INFO( "DirectFB/X11: X11_VIDEODRIVER is 'directfb', unsetting it.\n" );
-          unsetenv( "X11_VIDEODRIVER" );
      }
 
      dfb_x11_core = core;
@@ -114,7 +107,8 @@ system_initialize( CoreDFB *core, void **data )
      *data = dfb_x11;
 
      XInitThreads();
-	 dfb_x11->display = XOpenDisplay(NULL);
+
+     dfb_x11->display = XOpenDisplay(NULL);
      if(!dfb_x11->display){
 		D_ERROR("X11: Error opening X_Display\n");
         return DFB_INIT;
@@ -152,10 +146,12 @@ system_shutdown( bool emergency )
     fusion_call_destroy( &dfb_x11->call );
     
 	fusion_skirmish_prevail( &dfb_x11->lock );
-    if( dfb_x11->display) {
-	    xw_closeWindow(&xw);
-	    XCloseDisplay(dfb_x11->display);
-    }
+    if (dfb_x11->xw)
+	    dfb_x11_close_window( dfb_x11->xw );
+
+    if (dfb_x11->display)
+        XCloseDisplay( dfb_x11->display );
+
     fusion_skirmish_destroy( &dfb_x11->lock );
 
     SHFREE( dfb_core_shmpool(dfb_x11_core), dfb_x11 );

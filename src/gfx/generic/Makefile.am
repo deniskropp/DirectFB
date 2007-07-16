@@ -20,15 +20,24 @@ internalinclude_HEADERS = \
 noinst_LTLIBRARIES = libdirectfb_generic.la
 
 libdirectfb_generic_la_SOURCES = \
-	duffs_device.h		\
-	generic.c		\
-	generic.h		\
-	generic_mmx.h	\
-	generic_64.h	\
-	template_acc_16.h	\
-	template_acc_32.h	\
-	template_colorkey_16.h	\
-	template_colorkey_32.h	\
+	duffs_device.h			\
+	generic.c			\
+	generic.h			\
+	generic_mmx.h			\
+	generic_64.h			\
+	stretch_hvx_16.h		\
+	stretch_hvx_32.h		\
+	stretch_hvx_8.h			\
+	stretch_hvx_88.h		\
+	stretch_up_down_16.h		\
+	stretch_up_down_32.h		\
+	stretch_up_down_32_indexed.h	\
+	stretch_up_down_8.h		\
+	stretch_up_down_88.h		\
+	template_acc_16.h		\
+	template_acc_32.h		\
+	template_colorkey_16.h		\
+	template_colorkey_32.h		\
 	yuvtbl.h
 
 generic.c: yuvtbl.h
@@ -41,3 +50,4 @@ yuvtbl-gen: yuvtbl-gen.c
 
 clean-local:
 	rm -f yuvtbl-gen
+

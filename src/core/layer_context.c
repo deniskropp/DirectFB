@@ -175,6 +175,7 @@ dfb_layer_context_create( CoreLayer         *layer,
      context->layer_id   = shared->layer_id;
      context->config     = shared->default_config;
      context->adjustment = shared->default_adjustment;
+     context->rotation   = dfb_config->layers[dfb_layer_id_translated(layer)].rotate;
 
      /* Initialize screen location. */
      context->screen.location.x = 0.0f;
@@ -1021,6 +1022,32 @@ dfb_layer_context_set_opacity( CoreLayerContext *context,
      dfb_layer_context_unlock( context );
 
      return ret;
+}
+
+DFBResult
+dfb_layer_context_set_rotation( CoreLayerContext *context,
+                                int               rotation )
+{
+     DFBResult             ret;
+     CoreLayerRegionConfig config;
+
+     D_ASSERT( context != NULL );
+
+     /* Lock the context. */
+     if (dfb_layer_context_lock( context ))
+          return DFB_FUSION;
+
+     /* Do nothing if the rotation didn't change. */
+     if (context->rotation != rotation) {
+          context->rotation = rotation;
+
+          dfb_windowstack_repaint_all( context->stack );
+     }
+
+     /* Unlock the context. */
+     dfb_layer_context_unlock( context );
+
+     return DFB_OK;
 }
 
 DFBResult

@@ -68,12 +68,6 @@
 extern DFBX11  *dfb_x11;
 extern CoreDFB *dfb_x11_core;
 
-
-int 	g_pixelFormatRequested; /* Pixelformat requested by DFB, see dfb_x11_set_video_mode_handler in primary.c  */
-
-XWindow* xw; 
-
-
 /******************************************************************************/
 
 static DFBResult dfb_x11_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config );
@@ -131,8 +125,8 @@ primaryGetScreenSize( CoreScreen *screen,
 }
 
 ScreenFuncs x11PrimaryScreenFuncs = {
-     .InitScreen    = primaryInitScreen,
-     .GetScreenSize = primaryGetScreenSize
+     InitScreen:    primaryInitScreen,
+     GetScreenSize: primaryGetScreenSize
 };
 
 /******************************************************************************/
@@ -184,27 +178,23 @@ primaryInitLayer( CoreLayer                  *layer,
           config->pixelformat = dfb_config->mode.format;
      else if (dfb_config->mode.depth > 0)
           config->pixelformat = dfb_pixelformat_for_depth( dfb_config->mode.depth );
-     else { 
-		  Display *display =XOpenDisplay(NULL);
-		  int depth=DefaultDepth(display,DefaultScreen(display));
-		   XCloseDisplay(display);
-		  switch(depth) {
-			case 16:
-          	config->pixelformat = DSPF_RGB16;
-			break;
-			case 24:
-          	/*config->pixelformat = DSPF_RGB24;
-			break;
-			*/
-			case 32:
-          	config->pixelformat = DSPF_RGB32;
-			break;
-			default:
-			printf(" Unsupported X11 screen depth %d \n",depth);
-			exit(-1);
-			break;
-		  }
-	}
+     else {
+          Display *display =XOpenDisplay(NULL);
+          int depth=DefaultDepth(display,DefaultScreen(display));
+          XCloseDisplay(display);
+          switch (depth) {
+               case 16:
+                    config->pixelformat = DSPF_RGB16;
+                    break;
+               case 24:
+                    config->pixelformat = DSPF_RGB32;
+                    break;
+               default:
+                    printf(" Unsupported X11 screen depth %d \n",depth);
+                    exit(-1);
+                    break;
+          }
+     }
 
      return DFB_OK;
 }
@@ -399,19 +389,19 @@ primaryReallocateSurface( CoreLayer             *layer,
 }
 
 DisplayLayerFuncs x11PrimaryLayerFuncs = {
-     .LayerDataSize     = primaryLayerDataSize,
-     .RegionDataSize    = primaryRegionDataSize,
-     .InitLayer         = primaryInitLayer,
+     LayerDataSize:     primaryLayerDataSize,
+     RegionDataSize:    primaryRegionDataSize,
+     InitLayer:         primaryInitLayer,
 
-     .TestRegion        = primaryTestRegion,
-     .AddRegion         = primaryAddRegion,
-     .SetRegion         = primarySetRegion,
-     .RemoveRegion      = primaryRemoveRegion,
-     .FlipRegion        = primaryFlipRegion,
-     .UpdateRegion      = primaryUpdateRegion,
+     TestRegion:        primaryTestRegion,
+     AddRegion:         primaryAddRegion,
+     SetRegion:         primarySetRegion,
+     RemoveRegion:      primaryRemoveRegion,
+     FlipRegion:        primaryFlipRegion,
+     UpdateRegion:      primaryUpdateRegion,
 
-     .AllocateSurface   = primaryAllocateSurface,
-     .ReallocateSurface = primaryReallocateSurface
+     AllocateSurface:   primaryAllocateSurface,
+     ReallocateSurface: primaryReallocateSurface
 };
 
 /******************************************************************************/
@@ -419,50 +409,50 @@ DisplayLayerFuncs x11PrimaryLayerFuncs = {
 static DFBResult
 update_screen( CoreSurface *surface, int x, int y, int w, int h )
 {
+     int          i;
+     void        *dst;
+     void        *src;
+     int          pitch;
+     DFBResult    ret;
+     XWindow     *xw = dfb_x11->xw;
 
+     D_ASSERT( surface != NULL );
+     ret = dfb_surface_soft_lock( dfb_x11_core, surface, DSLF_READ, &src, &pitch, true );
+     if (ret) {
+          D_ERROR( "DirectFB/X11: Couldn't lock layer surface: %s\n",
+                   DirectFBErrorString( ret ) );
+          return ret;
+     }
 
+     xw->ximage_offset = xw->ximage_offset ? 0 : (xw->ximage->height / 2);
 
-//     printf("UpdateScreen (%d, %d)\n", surface->width, surface->height);
-//	 printf("x, y, w, h; %d, %d, %d, %d \n", x , y, w, h);
-//	 printf("DFB_BYTES_PER_LINE: %d\n", DFB_BYTES_PER_LINE( surface->format, w ));
+     dst = xw->virtualscreen + xw->ximage_offset * xw->ximage->bytes_per_line;
 
-    int          i;
-    void        *dst;
-	void        *src;
-	int          pitch;
-	DFBResult    ret;
+     src += DFB_BYTES_PER_LINE( surface->format, x ) + y * pitch;
+     dst += x * xw->bpp + y * xw->ximage->bytes_per_line;
 
-	D_ASSERT( surface != NULL );
-	ret = dfb_surface_soft_lock( dfb_x11_core, surface, DSLF_READ, &src, &pitch, true );
-	if (ret) {
-		D_ERROR( "DirectFB/X11: Couldn't lock layer surface: %s\n",
-				  DirectFBErrorString( ret ) );
-		return ret;
-	}
+     switch (xw->depth) {
+          case 16:
+               dfb_convert_to_rgb16( surface->format, src, pitch,
+                                     surface->height, dst, xw->ximage->bytes_per_line, w, h );
+               break;
 
-		
-	dst = xw->virtualscreen;
+          case 24:
+               if (xw->bpp == 4)
+                    dfb_convert_to_rgb32( surface->format, src, pitch,
+                                          surface->height, dst, xw->ximage->bytes_per_line, w, h );
+               break;
 
-	src += DFB_BYTES_PER_LINE( surface->format, x ) + y * pitch;
-	dst += DFB_BYTES_PER_LINE( surface->format, x ) + y * xw->ximage->bytes_per_line;
+          default:
+               D_ONCE( "unsupported depth %d", xw->depth );
+     }
 
-	for (i=0; i<h; ++i) {
-		direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->format, w ) );
+     dfb_surface_unlock( surface, true );
 
-		src += pitch;
-		dst += xw->ximage->bytes_per_line;
-	}
-	
-	dfb_surface_unlock( surface, true );
+     XSync(xw->display, False);
 
-	XShmPutImage(xw->display, xw->window, xw->gc, xw->ximage,
-				 0, 0, 0, 0, xw->width, xw->height, False);
-	XFlush(xw->display);        /* flush the ouput buffer*/
-	
-
-	
-
-
+     XShmPutImage(xw->display, xw->window, xw->gc, xw->ximage,
+                  x, xw->ximage_offset + y, x, y, w, h, False);
 
      return DFB_OK;
 }
@@ -478,70 +468,38 @@ typedef enum {
 static DFBResult
 dfb_x11_set_video_mode_handler( CoreLayerRegionConfig *config )
 {
-    fusion_skirmish_prevail( &dfb_x11->lock );
+     XWindow *xw = dfb_x11->xw;
 
-	if( xw != NULL ) {
-		xw_closeWindow(&xw);
-		xw=NULL;
-	}
-	
-	// Match DFB requested pixelformat (if possible )	
-	
-// 	printf("Match DFB requested pixelformat (if possible )	\n");
-// 	switch (config->format)
-// 	{
-// 		case DSPF_ARGB1555 :	
-// 			/* 16 bit  ARGB (2 byte, alpha 1@15, red 5@10, green 5@5, blue 5@0) */
-// 			g_pixelFormatRequested	= MWPF_TRUECOLOR555;
-// 			break;
-// 		case DSPF_RGB16 :	
-// 			/* 16 bit   RGB (2 byte, red 5@11, green 6@5, blue 5@0) */
-// 			g_pixelFormatRequested	= MWPF_TRUECOLOR565;
-// 			break;
-// 		case DSPF_RGB24 :	
-// 			/* 24 bit   RGB (3 byte, red 8@16, green 8@8, blue 8@0) */
-// 			g_pixelFormatRequested	= MWPF_TRUECOLOR888;
-// 			break;
-// 		case DSPF_RGB32 :	
-// 			/* 24 bit   RGB (4 byte, nothing@24, red 8@16, green 8@8, blue 8@0) */
-// 			g_pixelFormatRequested	= MWPF_TRUECOLOR0888;
-// 			break;
-// 		case DSPF_ARGB :	
-// 			/* 32 bit  ARGB (4 byte, alpha 8@24, red 8@16, green 8@8, blue 8@0) */
-// 			g_pixelFormatRequested	= MWPF_TRUECOLOR0888;
-// 			break;
-// 		default:
-// 			/* 8 bit palette */
-// 			g_pixelFormatRequested	= MWPF_PALETTE;
-// 	}
-	bool bSucces =	xw_openWindow(&xw, 0, 0, config->width, config->height, 
-	                              DFB_COLOR_BITS_PER_PIXEL(config->format));
-	
-	/* Set video mode */
-	if ( !bSucces )
-	 {
-		 D_ERROR( "ML: DirectFB/X11: Couldn't set %dx%dx%d video mode: %s\n",
-				  config->width, config->height,
-				  DFB_COLOR_BITS_PER_PIXEL(config->format), "X11 error!");
+     if (xw != NULL) {
+          if (xw->width == config->width && xw->height == config->height)
+               return DFB_OK;
 
-		 fusion_skirmish_dismiss( &dfb_x11->lock );
+          dfb_x11_close_window( xw );
+          dfb_x11->xw = NULL;
+     }
 
-		 return DFB_FAILURE;
-	 }
-	 fusion_skirmish_dismiss( &dfb_x11->lock );
-	     
-     
+     bool bSucces = dfb_x11_open_window(&xw, 0, 0, config->width, config->height);
+
+     /* Set video mode */
+     if ( !bSucces ) {
+          D_ERROR( "ML: DirectFB/X11: Couldn't open %dx%d window: %s\n",
+                   config->width, config->height, "X11 error!");
+
+          fusion_skirmish_dismiss( &dfb_x11->lock );
+          return DFB_FAILURE;
+     }
+     else
+          dfb_x11->xw = xw;
+
      return DFB_OK;
 }
- 
+
 static DFBResult
 dfb_x11_update_screen_handler( const DFBRegion *region )
 {
      DFBResult    ret;
      CoreSurface *surface = dfb_x11->primary;
- 
-     fusion_skirmish_prevail( &dfb_x11->lock );
- 
+
      if (!region)
           ret = update_screen( surface, 0, 0, surface->width, surface->height );
      else
@@ -549,8 +507,6 @@ dfb_x11_update_screen_handler( const DFBRegion *region )
                                region->x1,  region->y1,
                                region->x2 - region->x1 + 1,
                                region->y2 - region->y1 + 1 );
-
-     fusion_skirmish_dismiss( &dfb_x11->lock );
 
      return DFB_OK;
 }
@@ -596,7 +552,7 @@ dfb_x11_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
 {
      int                    ret;
      CoreLayerRegionConfig *tmp = NULL;
-     
+
 
      D_ASSERT( config != NULL );
 
@@ -611,7 +567,7 @@ dfb_x11_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
           direct_memcpy( tmp, config, sizeof(CoreLayerRegionConfig) );
      }
 
-     fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_SET_VIDEO_MODE,
+     fusion_call_execute( &dfb_x11->call, FCEF_NODIRECT, X11_SET_VIDEO_MODE,
                           tmp ? tmp : config, &ret );
 
      if (tmp)
@@ -625,7 +581,6 @@ dfb_x11_update_screen( CoreDFB *core, DFBRegion *region )
 {
      int        ret;
      DFBRegion *tmp = NULL;
-//     printf("dfb_x11_update_screen\n");
 
      if (dfb_core_is_master( core ))
           return dfb_x11_update_screen_handler( region );
@@ -653,9 +608,8 @@ static DFBResult
 dfb_x11_set_palette( CorePalette *palette )
 {
      int ret;
-     printf("dfb_x11_set_palette\n");
 
-     fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_SET_PALETTE,
+     fusion_call_execute( &dfb_x11->call, FCEF_NODIRECT, X11_SET_PALETTE,
                           palette, &ret );
 
      return ret;

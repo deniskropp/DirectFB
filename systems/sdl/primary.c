@@ -422,12 +422,14 @@ DisplayLayerFuncs sdlPrimaryLayerFuncs = {
 static DFBResult
 update_screen( int x, int y, int w, int h )
 {
-     int          i;
+     int          i, n;
      void        *dst;
      void        *src;
      int          pitch;
      DFBResult    ret;
      CoreSurface *surface;
+     u16         *src16, *dst16;
+     u8          *src8;
 
      D_DEBUG_AT( SDL_Updates, "%s( %d, %d, %d, %d )\n", __FUNCTION__, x, y, w, h );
 
@@ -473,11 +475,22 @@ update_screen( int x, int y, int w, int h )
 
      D_DEBUG_AT( SDL_Updates, "  -> copying pixels...\n" );
 
-     for (i=0; i<h; ++i) {
-          direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->format, w ) );
+     switch (screen->format->BitsPerPixel) {
+          case 16:
+               dfb_convert_to_rgb16( surface->format, src, pitch, surface->height, dst, screen->pitch, w, h );
+               break;
 
-          src += pitch;
-          dst += screen->pitch;
+          case 32:
+               dfb_convert_to_rgb32( surface->format, src, pitch, surface->height, dst, screen->pitch, w, h );
+               break;
+
+          default:
+               for (i=0; i<h; ++i) {
+                    direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->format, w ) );
+     
+                    src += pitch;
+                    dst += screen->pitch;
+               }
      }
 
      D_DEBUG_AT( SDL_Updates, "  -> unlocking dfb surface...\n" );
@@ -543,24 +556,37 @@ typedef enum {
      SDL_SET_PALETTE
 } DFBSDLCall;
 
+static inline int
+get_pixelformat_target_depth( DFBSurfacePixelFormat format )
+{
+     switch (format) {
+          case DSPF_NV16:
+               return 16;
+
+          default:
+               break;
+     }
+
+     return DFB_BITS_PER_PIXEL( format );
+}
+
 static DFBResult
 dfb_sdl_set_video_mode_handler( CoreLayerRegionConfig *config )
 {
+     int depth = get_pixelformat_target_depth( config->format );
+
      fusion_skirmish_prevail( &dfb_sdl->lock );
 
      /* Set video mode */
-     if ( (screen=SDL_SetVideoMode(config->width, config->height,
-                                   DFB_BITS_PER_PIXEL(config->format),
-                                   SDL_HWSURFACE)) == NULL )
-     {
-             D_ERROR( "DirectFB/SDL: Couldn't set %dx%dx%d video mode: %s\n",
-                      config->width, config->height,
-                      DFB_COLOR_BITS_PER_PIXEL(config->format), SDL_GetError());
+     if ((screen=SDL_SetVideoMode(config->width, config->height, depth, SDL_HWSURFACE)) == NULL) {
+          D_ERROR( "DirectFB/SDL: Couldn't set %dx%dx%d video mode: %s\n",
+                   config->width, config->height, depth, SDL_GetError());
 
-             fusion_skirmish_dismiss( &dfb_sdl->lock );
+          fusion_skirmish_dismiss( &dfb_sdl->lock );
 
-             return DFB_FAILURE;
+          return DFB_FAILURE;
      }
+
      /* Hide SDL's cursor */
      SDL_ShowCursor(SDL_DISABLE);
 

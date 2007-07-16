@@ -53,6 +53,7 @@ static const DirectFBScreenEncoderTypeNames(encoder_type);
 static const DirectFBScreenEncoderTVStandardsNames(tv_standards);
 static const DirectFBScreenOutputCapabilitiesNames(output_caps);
 static const DirectFBScreenOutputConnectorsNames(connectors);
+static const DirectFBScreenOutputResolutionNames(resolutions);
 static const DirectFBScreenOutputSignalsNames(signals);
 static const DirectFBScreenMixerCapabilitiesNames(mixer_caps);
 
@@ -406,6 +407,18 @@ dump_encoders( IDirectFBScreen *screen,
 
                printf( "\n" );
           }
+          
+          /* Output Resolutions */
+          if (descs[i].caps & DSECAPS_RESOLUTION) {
+               printf( "     Output Resolutions: " );
+
+               for (n=0; resolutions[n].resolution; n++) {
+                    if (descs[i].all_resolutions & resolutions[n].resolution)
+                         printf( "%s ", resolutions[n].name );
+               }
+
+               printf( "\n" );
+          }
 
           /* Output connectors */
           if (descs[i].caps & DSECAPS_CONNECTORS) {
@@ -453,17 +466,29 @@ dump_outputs( IDirectFBScreen *screen,
 
           printf( "\n" );
 
+	  /* Connectors */
+          if (descs[i].caps & DSOCAPS_CONNECTORS) {
+              printf( "     Connectors: " );
 
-          /* Connectors */
-          printf( "     Connectors: " );
+              for (n=0; connectors[n].connector; n++) {
+                   if (descs[i].all_connectors & connectors[n].connector)
+                        printf( "%s ", connectors[n].name );
+              }
 
-          for (n=0; connectors[n].connector; n++) {
-               if (descs[i].all_connectors & connectors[n].connector)
-                    printf( "%s ", connectors[n].name );
+              printf( "\n" );
           }
 
-          printf( "\n" );
+          /* Output Resolutions */
+          if (descs[i].caps & DSOCAPS_RESOLUTION) {
+               printf( "     Resolutions: " );
 
+               for (n=0; resolutions[n].resolution; n++) {
+                    if (descs[i].all_resolutions & resolutions[n].resolution)
+                         printf( "%s ", resolutions[n].name );
+               }
+
+               printf( "\n" );
+          }
 
           /* Signals */
           printf( "     Signals:    " );

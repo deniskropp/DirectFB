@@ -508,7 +508,10 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                D_DEBUG_AT( Core_Layers, "  -> Copying content from back to front buffer...\n" );
 
                /* ...or copy updated contents from back to front buffer. */
-               dfb_back_to_front_copy( surface, update );
+               if (context->rotation == 180)
+                    dfb_back_to_front_copy_180( surface, update );
+               else
+                    dfb_back_to_front_copy( surface, update );
 
                if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAIT) {
                     D_DEBUG_AT( Core_Layers, "  -> Waiting for VSync...\n" );

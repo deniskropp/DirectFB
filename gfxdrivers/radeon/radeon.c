@@ -94,7 +94,7 @@ DFB_GRAPHICS_DRIVER( radeon )
      ( RADEON_SUPPORTED_2D_BLITTINGFLAGS                   | \
        DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | \
        DSBLIT_COLORIZE           | DSBLIT_SRC_PREMULTCOLOR | \
-       DSBLIT_DEINTERLACE )
+       DSBLIT_DEINTERLACE        | DSBLIT_ROTATE180 )
 
 #define R100_SUPPORTED_BLITTINGFUNCS \
      ( RADEON_SUPPORTED_2D_BLITTINGFUNCS | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES )
@@ -110,7 +110,7 @@ DFB_GRAPHICS_DRIVER( radeon )
      ( RADEON_SUPPORTED_2D_BLITTINGFLAGS                   | \
        DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | \
        DSBLIT_COLORIZE           | DSBLIT_SRC_PREMULTCOLOR | \
-       DSBLIT_DEINTERLACE )
+       DSBLIT_DEINTERLACE        | DSBLIT_ROTATE180 )
 
 #define R200_SUPPORTED_BLITTINGFUNCS \
      ( RADEON_SUPPORTED_2D_BLITTINGFUNCS | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES )
@@ -124,7 +124,7 @@ DFB_GRAPHICS_DRIVER( radeon )
 
 #define R300_SUPPORTED_BLITTINGFLAGS \
      ( RADEON_SUPPORTED_2D_BLITTINGFLAGS              | \
-       DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_DEINTERLACE )
+       DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_DEINTERLACE | DSBLIT_ROTATE180 )
      
 #define R300_SUPPORTED_BLITTINGFUNCS \
      ( RADEON_SUPPORTED_2D_BLITTINGFUNCS | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES )
@@ -550,6 +550,9 @@ static void r100CheckState( void *drv, void *dev,
                supported_blittingfuncs  = DFXL_BLIT;
                supported_blittingflags &= DSBLIT_SRC_COLORKEY | DSBLIT_XOR;
           }
+          
+          if (state->blittingflags & DSBLIT_ROTATE180)
+               supported_blittingfuncs &= ~DFXL_TEXTRIANGLES;
                
           if (accel & ~supported_blittingfuncs ||
               state->blittingflags & ~supported_blittingflags)
@@ -711,6 +714,9 @@ static void r200CheckState( void *drv, void *dev,
                supported_blittingfuncs  = DFXL_BLIT;
                supported_blittingflags &= DSBLIT_SRC_COLORKEY | DSBLIT_XOR;
           }
+          
+          if (state->blittingflags & DSBLIT_ROTATE180)
+               supported_blittingfuncs &= ~DFXL_TEXTRIANGLES;
                
           if (accel & ~supported_blittingfuncs ||
               state->blittingflags & ~supported_blittingflags)
@@ -869,6 +875,9 @@ static void r300CheckState( void *drv, void *dev,
                supported_blittingfuncs  = DFXL_BLIT;
                supported_blittingflags &= DSBLIT_SRC_COLORKEY | DSBLIT_XOR;
           }
+          
+          if (state->blittingflags & DSBLIT_ROTATE180)
+               supported_blittingfuncs &= ~DFXL_TEXTRIANGLES;
           
           if (accel & ~supported_blittingfuncs ||
               state->blittingflags & ~supported_blittingflags)

@@ -861,6 +861,18 @@ IDirectFBDisplayLayer_SwitchContext( IDirectFBDisplayLayer *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBDisplayLayer_SetRotation( IDirectFBDisplayLayer *thiz,
+                                   int                    rotation )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (data->level == DLSCL_SHARED)
+          return DFB_ACCESSDENIED;
+
+     return dfb_layer_context_set_rotation( data->context, rotation );
+}
+
 DFBResult
 IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
                                  CoreLayer             *layer,
@@ -934,6 +946,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->SetScreenPosition     = IDirectFBDisplayLayer_SetScreenPosition;
      thiz->SetScreenRectangle    = IDirectFBDisplayLayer_SetScreenRectangle;
      thiz->SwitchContext         = IDirectFBDisplayLayer_SwitchContext;
+     thiz->SetRotation           = IDirectFBDisplayLayer_SetRotation;
 
      return DFB_OK;
 }

@@ -52,14 +52,16 @@ static DFBDisplayLayerDescription  desc;
 
 /*****************************************************************************/
 
-static DFBDisplayLayerID         id         = DLID_PRIMARY;
-static int                       width      = 0;
-static int                       height     = 0;
-static DFBSurfacePixelFormat     format     = DSPF_UNKNOWN;
-static DFBDisplayLayerBufferMode buffermode = -1;
-static int                       opacity    = -1;
-static int                       level      = 0;
-static DFBBoolean                set_level  = DFB_FALSE;
+static DFBDisplayLayerID         id           = DLID_PRIMARY;
+static int                       width        = 0;
+static int                       height       = 0;
+static DFBSurfacePixelFormat     format       = DSPF_UNKNOWN;
+static DFBDisplayLayerBufferMode buffermode   = -1;
+static int                       opacity      = -1;
+static int                       level        = 0;
+static DFBBoolean                set_level    = DFB_FALSE;
+static int                       rotation     = 0;
+static DFBBoolean                set_rotation = DFB_FALSE;
 
 /*****************************************************************************/
 
@@ -148,6 +150,7 @@ print_usage (const char *prg_name)
      fprintf (stderr, "   -b, --buffer  <buffermode>      Change the buffer mode (single/video/system)\n");
      fprintf (stderr, "   -o, --opacity <opacity>         Change the layer's opacity (0-255)\n");
      fprintf (stderr, "   -L, --level   <level>           Change the layer's level\n");
+     fprintf (stderr, "   -R, --rotate  <degree>          Change the layer rotation\n");
      fprintf (stderr, "   -h, --help                      Show this help message\n");
      fprintf (stderr, "   -v, --version                   Print version information\n");
      fprintf (stderr, "\n");
@@ -286,6 +289,20 @@ parse_level( const char *arg )
 }
 
 static DFBBoolean
+parse_rotation( const char *arg )
+{
+     if (sscanf( arg, "%d", &rotation ) != 1) {
+          fprintf (stderr, "\nInvalid rotation specified!\n\n");
+
+          return DFB_FALSE;
+     }
+
+     set_rotation = DFB_TRUE;
+
+     return DFB_TRUE;
+}
+
+static DFBBoolean
 parse_command_line( int argc, char *argv[] )
 {
      int n;
@@ -375,6 +392,18 @@ parse_command_line( int argc, char *argv[] )
                continue;
           }
 
+          if (strcmp (arg, "-R") == 0 || strcmp (arg, "--rotate") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return DFB_FALSE;
+               }
+
+               if (!parse_rotation( argv[n] ))
+                    return DFB_FALSE;
+
+               continue;
+          }
+
           print_usage (argv[0]);
 
           return DFB_FALSE;
@@ -453,6 +482,15 @@ set_configuration()
                fprintf( stderr, "Level (%d) not supported!\n\n", level );
           else if (ret)
                DirectFBError( "IDirectFBDisplayLayer::SetLevel() failed", ret );
+     }
+
+     /* Set the rotation if requested. */
+     if (set_rotation) {
+          ret = layer->SetRotation( layer, rotation );
+          if (ret == DFB_UNSUPPORTED)
+               fprintf( stderr, "Rotation (%d) not supported!\n\n", level );
+          else if (ret)
+               DirectFBError( "IDirectFBDisplayLayer::SetRotation() failed", ret );
      }
 
 
