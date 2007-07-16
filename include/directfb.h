@@ -2170,7 +2170,7 @@ typedef enum {
      DSET_UNKNOWN         = 0x00000000, /* Unknown type */
 
      DSET_CRTC            = 0x00000001, /* Encoder is a CRTC. */
-     DSET_TV              = 0x00000002  /* TV output encoder. */
+     DSET_TV              = 0x00000002, /* TV output encoder. */
      DSET_DIGITAL         = 0x00000004  /* Support signals other than SD TV standards. */
 } DFBScreenEncoderType;
 
@@ -2183,7 +2183,7 @@ typedef enum {
      DSETV_PAL            = 0x00000001, /* PAL */
      DSETV_NTSC           = 0x00000002, /* NTSC */
      DSETV_SECAM          = 0x00000004, /* SECAM */
-     DSETV_PAL_60         = 0x00000008  /* PAL-60 */
+     DSETV_PAL_60         = 0x00000008, /* PAL-60 */
      DSETV_PAL_BG         = 0x00000010, /* PAL BG support (specific) */
      DSETV_PAL_I          = 0x00000020, /* PAL I support (specific) */
      DSETV_PAL_M          = 0x00000040, /* PAL M support (specific) */
