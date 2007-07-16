@@ -2025,7 +2025,8 @@ typedef enum {
      DSOCAPS_SIGNAL_SEL    = 0x00000020, /* Signal(s) can be selected. */
      DSOCAPS_CONNECTOR_SEL = 0x00000040, /* Connector(s) can be selected. */
      DSOCAPS_SLOW_BLANKING = 0x00000080, /* Slow Blanking on outputs is supported. */
-     DSOCAPS_ALL           = 0x000000F1
+     DSOCAPS_RESOLUTION    = 0x00000100, /* Output Resolution can be changed. (global screen size)*/
+     DSOCAPS_ALL           = 0x000001F1
 } DFBScreenOutputCapabilities;
 
 /*
@@ -2070,6 +2071,29 @@ typedef enum {
      DSOSB_MONITOR       = 0x00000008  /* Monitor */
 } DFBScreenOutputSlowBlankingSignals;
 
+/**
+ * Resolutions.  TV Standards implies too many things:
+ *               resolution / encoding / frequency.
+ */
+typedef enum {
+    DSOR_UNKNOWN   = 0x00000000, /* Unknown Resolution */
+    DSOR_640_480   = 0x00000001, /* 640x480 Resolution */
+    DSOR_720_480   = 0x00000002, /* 720x480 Resolution */
+    DSOR_720_576   = 0x00000004, /* 720x576 Resolution */
+    DSOR_800_600   = 0x00000008, /* 800x600 Resolution */
+    DSOR_1024_768  = 0x00000010, /* 1024x768 Resolution */
+    DSOR_1152_864  = 0x00000020, /* 1152x864 Resolution */
+    DSOR_1280_720  = 0x00000040, /* 1280x720 Resolution */
+    DSOR_1280_768  = 0x00000080, /* 1280x768 Resolution */
+    DSOR_1280_960  = 0x00000100, /* 1280x960 Resolution */
+    DSOR_1280_1024 = 0x00000200, /* 1280x1024 Resolution */
+    DSOR_1400_1050 = 0x00000400, /* 1400x1050 Resolution */
+    DSOR_1600_1200 = 0x00000800, /* 1600x1200 Resolution */
+    DSOR_1920_1080 = 0x00001000, /* 1920x1080 Resolution */
+    DSOR_ALL       = 0x00001FFF  /* All Resolution */
+} DFBScreenOutputResolution;
+
+
 #define DFB_SCREEN_OUTPUT_DESC_NAME_LENGTH    24
 
 /*
@@ -2080,6 +2104,7 @@ typedef struct {
 
      DFBScreenOutputConnectors     all_connectors;   /* Output connectors. */
      DFBScreenOutputSignals        all_signals;      /* Output signals. */
+     DFBScreenOutputResolution     all_resolutions;  /* Output Resolutions */
 
      char name[DFB_SCREEN_OUTPUT_DESC_NAME_LENGTH];  /* Output name */
 } DFBScreenOutputDescription;
@@ -2094,8 +2119,9 @@ typedef enum {
      DSOCONF_SIGNALS      = 0x00000002, /* Select signal(s) from encoder. */
      DSOCONF_CONNECTORS   = 0x00000004, /* Select output connector(s). */
      DSOCONF_SLOW_BLANKING= 0x00000008, /* Can select slow blanking support. */
-
-     DSOCONF_ALL          = 0x0000000F
+     DSOCONF_RESOLUTION   = 0x00000010, /* Can change output resolution */
+     
+     DSOCONF_ALL          = 0x0000001F
 } DFBScreenOutputConfigFlags;
 
 /*
@@ -2108,6 +2134,7 @@ typedef struct {
      DFBScreenOutputSignals      out_signals;    /* Selected encoder signal(s). */
      DFBScreenOutputConnectors   out_connectors; /* Selected output connector(s). */
      DFBScreenOutputSlowBlankingSignals     slow_blanking;/* Slow Blanking signals. */
+     DFBScreenOutputResolution   resolution;     /* Output Resolution */
 } DFBScreenOutputConfig;
 
 
@@ -2122,6 +2149,7 @@ typedef enum {
      DSECAPS_MIXER_SEL    = 0x00000004, /* Mixer can be selected. */
      DSECAPS_OUT_SIGNALS  = 0x00000008, /* Different output signals are supported. */
      DSECAPS_SCANMODE     = 0x00000010, /* Can switch between interlaced and progressive output. */
+     DSECAPS_FREQUENCY    = 0x00000020, /* Can switch between different frequencies. */
 
      DSECAPS_BRIGHTNESS   = 0x00000100, /* Adjustment of brightness is supported. */
      DSECAPS_CONTRAST     = 0x00000200, /* Adjustment of contrast is supported. */
@@ -2130,8 +2158,9 @@ typedef enum {
 
      DSECAPS_CONNECTORS   = 0x00001000, /* Select output connector(s). */
      DSECAPS_SLOW_BLANKING = 0x00002000, /* Slow Blanking on outputs is supported. */
+     DSECAPS_RESOLUTION   = 0x00004000, /* Different encoder resolutions supported */
 
-     DSECAPS_ALL          = 0x00003f3f
+     DSECAPS_ALL          = 0x00007f3f
 } DFBScreenEncoderCapabilities;
 
 /*
@@ -2142,6 +2171,7 @@ typedef enum {
 
      DSET_CRTC            = 0x00000001, /* Encoder is a CRTC. */
      DSET_TV              = 0x00000002  /* TV output encoder. */
+     DSET_DIGITAL         = 0x00000004  /* Support signals other than SD TV standards. */
 } DFBScreenEncoderType;
 
 /*
@@ -2154,6 +2184,14 @@ typedef enum {
      DSETV_NTSC           = 0x00000002, /* NTSC */
      DSETV_SECAM          = 0x00000004, /* SECAM */
      DSETV_PAL_60         = 0x00000008  /* PAL-60 */
+     DSETV_PAL_BG         = 0x00000010, /* PAL BG support (specific) */
+     DSETV_PAL_I          = 0x00000020, /* PAL I support (specific) */
+     DSETV_PAL_M          = 0x00000040, /* PAL M support (specific) */
+     DSETV_PAL_N          = 0x00000080, /* PAL N support (specific) */
+     DSETV_PAL_NC         = 0x00000100, /* PAL NC support (specific) */
+     DSETV_NTSC_M_JPN     = 0x00000200, /* NTSC_JPN support */
+     DSETV_DIGITAL        = 0x00000400, /* TV standards from the digital domain.  specify resolution, scantype, frequency.*/
+     DSETV_ALL            = 0x000007FF  /* All TV Standards*/
 } DFBScreenEncoderTVStandards;
 
 /*
@@ -2166,6 +2204,19 @@ typedef enum {
      DSESM_PROGRESSIVE    = 0x00000002  /* Progressive scan mode */
 } DFBScreenEncoderScanMode;
 
+/*
+ * Frequency of output signal.
+ */
+typedef enum {
+     DSEF_UNKNOWN        = 0x00000000, /* Unknown Frequency */
+
+     DSEF_25HZ           = 0x00000001, /* 25 Hz Output. */
+     DSEF_29_97HZ        = 0x00000002, /* 29.97 Hz Output. */
+     DSEF_50HZ           = 0x00000004, /* 50 Hz Output. */
+     DSEF_59_94HZ        = 0x00000008, /* 59.94 Hz Output. */
+     DSEF_60HZ           = 0x00000010, /* 60 Hz Output. */
+     DSEF_75HZ           = 0x00000020, /* 75 Hz Output. */
+} DFBScreenEncoderFrequency;
 
 #define DFB_SCREEN_ENCODER_DESC_NAME_LENGTH    24
 
@@ -2179,6 +2230,7 @@ typedef struct {
      DFBScreenEncoderTVStandards   tv_standards;       /* Supported TV standards. */
      DFBScreenOutputSignals        out_signals;        /* Supported output signals. */
      DFBScreenOutputConnectors     all_connectors;     /* Supported output connectors */
+     DFBScreenOutputResolution     all_resolutions;    /* Supported Resolutions*/
 
      char name[DFB_SCREEN_ENCODER_DESC_NAME_LENGTH];   /* Encoder name */
 } DFBScreenEncoderDescription;
@@ -2196,11 +2248,13 @@ typedef enum {
      DSECONF_SCANMODE     = 0x00000010, /* Select interlaced or progressive output. */
      DSECONF_TEST_COLOR   = 0x00000020, /* Set color for DSETP_SINGLE. */
      DSECONF_ADJUSTMENT   = 0x00000040, /* Set color adjustment. */
+     DSECONF_FREQUENCY    = 0x00000080, /* Set Output Frequency*/
 
      DSECONF_CONNECTORS   = 0x00000100, /* Select output connector(s). */
      DSECONF_SLOW_BLANKING = 0x00000200, /* Can select slow blanking support. */
-
-     DSECONF_ALL          = 0x000003FF
+     DSECONF_RESOLUTION    = 0x00000400, /* Can change resolution of the encoder.*/
+     
+     DSECONF_ALL          = 0x000007FF
 } DFBScreenEncoderConfigFlags;
 
 /*
@@ -2240,6 +2294,9 @@ typedef struct {
      DFBColor                      test_color;    /* Color for DSETP_SINGLE. */
 
      DFBColorAdjustment            adjustment;    /* Color adjustment. */
+
+     DFBScreenEncoderFrequency     frequency;     /* Selected Output Frequency*/
+     DFBScreenOutputResolution     resolution;    /* Selected Output resolution*/
 } DFBScreenEncoderConfig;
 
 

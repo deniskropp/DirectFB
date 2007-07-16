@@ -604,9 +604,50 @@ PatchEncoderConfig( DFBScreenEncoderConfig       *patched,
      if (patch->flags & ~patched->flags)
           return DFB_UNSUPPORTED;
 
-     if (patch->flags & DSECONF_TV_STANDARD)
-          patched->tv_standard = patch->tv_standard;
+     if (patch->flags & DSECONF_RESOLUTION)
+          patched->resolution = patch->resolution;
 
+     if (patch->flags & DSECONF_FREQUENCY)
+          patched->frequency = patch->frequency;
+
+     /**
+      * Need to be backwards compatible with these so that
+      * they specify resolution and frequency as well.
+      * If you have set a TV_STANDARD
+      * (and set the flag) it will override the resolution and
+      * frequency chosen above.*/
+     if (patch->flags & DSECONF_TV_STANDARD)
+     {
+          patched->tv_standard = patch->tv_standard;
+          switch(patched->tv_standard)
+          {
+              case DSETV_PAL:
+              case DSETV_PAL_BG:
+              case DSETV_PAL_I:
+              case DSETV_PAL_N:
+              case DSETV_PAL_NC:
+                  patched->resolution = DSOR_720_576;
+                  patched->frequency = DSEF_50HZ;
+                  break;
+
+              case DSETV_PAL_60:
+              case DSETV_PAL_M:
+                  patched->resolution = DSOR_720_480;
+                  patched->frequency = DSEF_60HZ;
+                  break;
+
+              case DSETV_SECAM:
+                  patched->resolution = DSOR_720_576;
+                  patched->frequency = DSEF_50HZ;
+                  break;
+
+              case DSETV_NTSC:
+              case DSETV_NTSC_M_JPN:
+                  patched->resolution = DSOR_720_480;
+                  patched->frequency = DSEF_60HZ;
+                  break;
+          }
+     }
      if (patch->flags & DSECONF_TEST_PICTURE)
           patched->test_picture = patch->test_picture;
 
@@ -639,6 +680,9 @@ PatchOutputConfig( DFBScreenOutputConfig       *patched,
      if (patch->flags & ~patched->flags)
           return DFB_UNSUPPORTED;
 
+     if(patch->flags & DSOCONF_RESOLUTION)
+         patched->resolution = patch->resolution;
+ 
      if (patch->flags & DSOCONF_ENCODER)
           patched->encoder = patch->encoder;
 
