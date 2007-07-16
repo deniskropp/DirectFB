@@ -1384,6 +1384,9 @@ typedef enum {
      DVCAPS_SATURATION  = 0x00000080,  /* supports Saturation adjustment   */
      DVCAPS_INTERACTIVE = 0x00000100,  /* supports SendEvent               */
      DVCAPS_VOLUME      = 0x00000200,  /* supports Volume adjustment       */
+     DVCAPS_EVENT       = 0x00000400,  /* supports the sending of events as video/audio data changes.*/
+     DVCAPS_ATTRIBUTES  = 0x00000800,  /* supports dynamic changing of atrributes.*/
+     DVCAPS_AUDIO_SEL   = 0x00001000,  /* Supportes chosing audio outputs.*/
 } DFBVideoProviderCapabilities;
 
 /*
@@ -1408,6 +1411,18 @@ typedef enum {
                                          playback when end-of-stream
                                          is reached (gapless).     */
 } DFBVideoProviderPlaybackFlags;
+
+/*
+ * Flags to allow Audio Unit selection.
+ */
+typedef enum {
+     DVAUDIOUNIT_NONE   = 0x00000000, /* No Audio Unit            */
+     DVAUDIOUNIT_ONE    = 0x00000001, /* Audio Unit One           */
+     DVAUDIOUNIT_TWO    = 0x00000002, /* Audio Unit Two           */
+     DVAUDIOUNIT_THREE  = 0x00000004, /* Audio Unit Three         */
+     DVAUDIOUNIT_FOUR   = 0x00000008, /* Audio Unit Four          */
+     DVAUDIOUNIT_ALL    = 0x0000000F, /* Audio Unit One           */
+} DFBVideoProviderAudioUnits;
 
 
 /*
@@ -5360,7 +5375,10 @@ typedef struct {
           double            framerate;    /* number of frames per second        */
           double            aspect;       /* frame aspect ratio                 */
           int               bitrate;      /* amount of bits per second          */
-     }
+    	  int               afd;          /* Active Format Descriptor              */
+    	  int               width;        /* Width as reported by Sequence Header  */
+    	  int               height;       /* Height as reported by Sequence Header */
+     } 
       video;
 
      struct {
@@ -5379,6 +5397,32 @@ typedef struct {
      char                   genre[DFB_STREAM_DESC_GENRE_LENGTH];     /* genre   */
      char                   comment[DFB_STREAM_DESC_COMMENT_LENGTH]; /* comment */
 } DFBStreamDescription;
+
+/*
+ * Type of an audio stream.
+ */
+typedef enum {
+     DSF_ES         = 0x00000000, /* ES.  */
+     DSF_PES        = 0x00000001, /* PES. */
+} DFBStreamFormat;
+
+/*
+ * Stream attributes for a audio/video stream.
+ */
+typedef struct {
+     struct {
+          char            encoding[DFB_STREAM_DESC_ENCODING_LENGTH]; /*
+                                             encoding (e.g. "MPEG4")            */
+          DFBStreamFormat format;   /* format of the video stream      */
+          
+     } video;
+     
+     struct {
+          char            encoding[DFB_STREAM_DESC_ENCODING_LENGTH]; /*
+                                             encoding (e.g. "AAC")              */
+          DFBStreamFormat format;   /* format of the audio stream      */
+     } audio;
+} DFBStreamAttributes;
 
 /*
  * Called for each written frame.
@@ -5422,7 +5466,6 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
           IDirectFBVideoProvider   *thiz,
           DFBStreamDescription     *ret_dsc
      );
-
 
    /** Playback **/
 
@@ -5570,6 +5613,34 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
      DFBResult (*GetVolume) (
           IDirectFBVideoProvider   *thiz,
           float                    *ret_level
+     );
+
+     /*
+      * Set the stream attributes.
+      * May have a wrapper with different media types types encapsulated.
+      * Can use this method to indicate the content type.
+      */
+     DFBResult (*SetStreamAttributes) (
+          IDirectFBVideoProvider   *thiz,
+          DFBStreamDescription      attr
+     );
+
+     /*
+      * Set the audio units that are being used for output.
+      * May have multiple audio outputs and need to configure them on/off
+      * dynamically. 
+      */
+     DFBResult (*SetAudioOutputs) (
+          IDirectFBVideoProvider         *thiz,
+          DFBVideoProviderAudioUnits*    audioUnits
+     );
+
+     /*
+      * Get the audio units that are being used for output.
+      */
+     DFBResult (*GetAudioOutputs) (
+          IDirectFBVideoProvider         *thiz,
+          DFBVideoProviderAudioUnits*    audioUnits
      );
 
      /** Event buffers **/
