@@ -211,9 +211,14 @@ direct_list_check_link( const DirectLink *link )
 
 
 #define direct_list_foreach(elem, list)                     \
-     for (elem = (__typeof__(elem))(list);                      \
+     for (elem = (__typeof__(elem))(list);                  \
           direct_list_check_link( (DirectLink*)(elem) );    \
           elem = (__typeof__(elem))(((DirectLink*)(elem))->next))
+
+#define direct_list_foreach_reverse(elem, list)                    \
+     for (elem = (__typeof__(elem))((list) ? (list)->prev : NULL); \
+          direct_list_check_link( (DirectLink*)(elem) );           \
+          elem = (__typeof__(elem))((((DirectLink*)(elem))->prev->next) ? ((DirectLink*)(elem))->prev : NULL))
 
 #define direct_list_foreach_safe(elem, temp, list)                                             \
      for (elem = (__typeof__(elem))(list), temp = ((__typeof__(temp))(elem) ? (__typeof__(temp))(((DirectLink*)(elem))->next) : NULL); \
