@@ -46,10 +46,10 @@ typedef union {
           int                      id;
           const FusionWorldShared *shared;
           /* builtin impl */
-          struct {
+          volatile struct {
                FusionPropertyState state;
                pid_t               owner;
-               bool                waiting;
+               bool                requested;
                bool                destroyed;
           } builtin;
      } multi;

@@ -43,10 +43,11 @@ typedef union {
           int                      id;
           const FusionWorldShared *shared;
           /* builtin impl */
-          struct {
+          volatile struct {
                unsigned int        locked;
                pid_t               owner;
-               bool                waiting;
+               unsigned int        waiting;
+               bool                requested;
                bool                destroyed;
           } builtin;
      } multi;
@@ -54,6 +55,7 @@ typedef union {
      /* single app */
      struct {
           pthread_mutex_t          lock;
+          pthread_cond_t           cond;
      } single;
 } FusionSkirmish;
 
