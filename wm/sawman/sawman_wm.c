@@ -822,9 +822,20 @@ process_updates( SaWMan              *sawman,
                                                              (window->config.color_key & 0x07E0) >> 3,
                                                              (window->config.color_key & 0x001F) << 3 );
 
+                    if (DFB_PIXELFORMAT_IS_INDEXED( surface->format )) {
+                         CoreSurface *region_surface;
+
+                         D_ASSERT( surface->palette != NULL );
+
+                         if (dfb_layer_region_get_surface( tier->region, &region_surface ) == DFB_OK) {
+                              dfb_surface_set_palette( region_surface, surface->palette );
+
+                              dfb_surface_unref( region_surface );
+                         }
+                    }
+
                     DFBRectangle src = single->src;
                     dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
-
 
                     tier->active = true;
                     dfb_layer_region_activate( tier->region );
