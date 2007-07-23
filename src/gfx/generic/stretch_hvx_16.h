@@ -52,6 +52,11 @@
      u32 *dst32;
      u32  ratios[cw];
 
+#if defined (COLOR_KEY) || defined (COLOR_KEY_PROTECT)
+     u32  dt;
+     u16  l_, h_;
+#endif
+
      u32  _lbT[w2+8];
      u32  _lbB[w2+8];
 
@@ -102,8 +107,24 @@
                /*
                 * Vertical interpolation
                 */
+#if defined (COLOR_KEY) || defined (COLOR_KEY_PROTECT)
+               l_ = ((((((dpB & X_F81F) - (dpT & X_F81F))*X) >> SHIFT_R5) + (dpT & X_F81F)) & X_F81F) +
+                    ((((((dpB>>SHIFT_R5) & X_003F) - ((dpT>>SHIFT_R5) & X_003F))*X) + (dpT & X_07E0)) & X_07E0);
+#ifdef COLOR_KEY
+               if (l_ != (COLOR_KEY))
+#endif
+#ifdef COLOR_KEY_PROTECT
+                    /* Write to destination with color key protection */
+                    dst16[0] = (l_ == KEY_PROTECT) ? KEY_REPLACE : l_;
+#else
+                    /* Write to destination without color key protection */
+                    dst16[0] = l_;
+#endif
+#else
+               /* Write to destination without color key protection */
                dst16[0] = ((((((dpB & X_F81F) - (dpT & X_F81F))*X) >> SHIFT_R5) + (dpT & X_F81F)) & X_F81F) +
                           ((((((dpB>>SHIFT_R5) & X_003F) - ((dpT>>SHIFT_R5) & X_003F))*X) + (dpT & X_07E0)) & X_07E0);
+#endif
 
                dst16 += dpitch / 2;
                line  += vfraq;
@@ -252,12 +273,65 @@
           u32 X = LINE_TO_RATIO( line, vfraq );
 
           for (x=0; x<w2; x++) {
+#if defined (COLOR_KEY) || defined (COLOR_KEY_PROTECT)
+#ifdef HAS_ALPHA
+               dt = ((((((lbB[x] & X_F81FF81F) - (lbT[x] & X_F81FF81F))*X) >> SHIFT_R5) + (lbT[x] & X_F81FF81F)) & X_F81FF81F) +
+                    ((((((lbB[x]>>SHIFT_R5) & X_F81FF81F) - ((lbT[x]>>SHIFT_R5) & X_F81FF81F))*X) + (lbT[x] & X_07E007E0)) & X_07E007E0);
+#else
+               dt = ((((((lbB[x] & X_07E0F81F) - (lbT[x] & X_07E0F81F))*X) >> SHIFT_R5) + (lbT[x] & X_07E0F81F)) & X_07E0F81F) +
+                    ((((((lbB[x]>>SHIFT_R5) & X_07C0F83F) - ((lbT[x]>>SHIFT_R5) & X_07C0F83F))*X) + (lbT[x] & X_F81F07E0)) & X_F81F07E0);
+#endif
+
+               /* Get two new pixels. */
+               l_ = dt;
+               h_ = dt >> 16;
+
+#ifdef COLOR_KEY
+               if (l_ != (COLOR_KEY)) {
+                    if (h_ != (COLOR_KEY)) {
+#ifdef COLOR_KEY_PROTECT
+                         /* Write to destination with color key protection */
+                         dst32[x] = (((h_ == KEY_PROTECT) ? KEY_REPLACE : h_) << 16) | ((l_ == KEY_PROTECT) ? KEY_REPLACE : l_);
+#else
+                         /* Write to destination without color key protection */
+                         dst32[x] = dt;
+#endif
+                    }
+                    else {
+                         u16 *_dst16 = (u16*) &dst32[x];
+
+#ifdef COLOR_KEY_PROTECT
+                         /* Write to destination with color key protection */
+                         *_dst16 = ((l_ == KEY_PROTECT) ? KEY_REPLACE : l_);
+#else
+                         /* Write to destination without color key protection */
+                         *_dst16 = l_;
+#endif
+                    }
+               }
+               else if (h_ != (COLOR_KEY)) {
+                    u16 *_dst16 = ((u16*) &dst32[x]) + 1;
+
+#ifdef COLOR_KEY_PROTECT
+                    /* Write to destination with color key protection */
+                    *_dst16 = ((h_ == KEY_PROTECT) ? KEY_REPLACE : h_);
+#else
+                    /* Write to destination without color key protection */
+                    *_dst16 = h_;
+#endif
+               }
+#else
+               /* Write to destination with color key protection */
+               dst32[x] = (((h_ == KEY_PROTECT) ? KEY_REPLACE : h_) << 16) | ((l_ == KEY_PROTECT) ? KEY_REPLACE : l_);
+#endif
+#else
 #ifdef HAS_ALPHA
                dst32[x] = ((((((lbB[x] & X_F81FF81F) - (lbT[x] & X_F81FF81F))*X) >> SHIFT_R5) + (lbT[x] & X_F81FF81F)) & X_F81FF81F) +
                           ((((((lbB[x]>>SHIFT_R5) & X_F81FF81F) - ((lbT[x]>>SHIFT_R5) & X_F81FF81F))*X) + (lbT[x] & X_07E007E0)) & X_07E007E0);
 #else
                dst32[x] = ((((((lbB[x] & X_07E0F81F) - (lbT[x] & X_07E0F81F))*X) >> SHIFT_R5) + (lbT[x] & X_07E0F81F)) & X_07E0F81F) +
                           ((((((lbB[x]>>SHIFT_R5) & X_07C0F83F) - ((lbT[x]>>SHIFT_R5) & X_07C0F83F))*X) + (lbT[x] & X_F81F07E0)) & X_F81F07E0);
+#endif
 #endif
           }
 
@@ -297,8 +371,25 @@
                /*
                 * Vertical interpolation
                 */
+#if defined (COLOR_KEY) || defined (COLOR_KEY_PROTECT)
+               l_ = ((((((dpB & X_F81F) - (dpT & X_F81F))*X) >> SHIFT_R5) + (dpT & X_F81F)) & X_F81F) +
+                    ((((((dpB>>SHIFT_R5) & X_003F) - ((dpT>>SHIFT_R5) & X_003F))*X) + (dpT & X_07E0)) & X_07E0);
+
+#ifdef COLOR_KEY
+               if (l_ != (COLOR_KEY))
+#endif
+#ifdef COLOR_KEY_PROTECT
+                    /* Write to destination with color key protection */
+                    dst16[0] = (l_ == KEY_PROTECT) ? KEY_REPLACE : l_;
+#else
+                    /* Write to destination without color key protection */
+                    dst16[0] = l_;
+#endif
+#else
+               /* Write to destination without color key protection */
                dst16[0] = ((((((dpB & X_F81F) - (dpT & X_F81F))*X) >> SHIFT_R5) + (dpT & X_F81F)) & X_F81F) +
                           ((((((dpB>>SHIFT_R5) & X_003F) - ((dpT>>SHIFT_R5) & X_003F))*X) + (dpT & X_07E0)) & X_07E0);
+#endif
 
                dst16 += dpitch / 2;
                line  += vfraq;
