@@ -1028,9 +1028,6 @@ DFBResult
 dfb_layer_context_set_rotation( CoreLayerContext *context,
                                 int               rotation )
 {
-     DFBResult             ret;
-     CoreLayerRegionConfig config;
-
      D_ASSERT( context != NULL );
 
      /* Lock the context. */
