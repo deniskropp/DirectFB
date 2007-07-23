@@ -57,6 +57,8 @@ typedef void (*StretchIndexedFunc)( void           *dst,
                                     int             height,
                                     int             dst_width,
                                     int             dst_height,
+                                    DFBRegion      *clip,
+                                    u16             key,
                                     const DFBColor *palette );
 
 typedef struct {

@@ -54,33 +54,82 @@ static void stretch_simple_rgb16( void        *dst,
                                   DFBRegion   *clip,
                                   u16          key )
 {
-    int x;
-    int h      = (clip->y2 - clip->y1 + 1);
-    int w2     = (clip->x2 - clip->x1 + 1) / 2;
-    int hfraq  = (width  << 20) / dst_width;
-    int vfraq  = (height << 20) / dst_height;
-    int point0 = clip->x1 * hfraq;
-    int line   = clip->y1 * vfraq;
-    int hfraq2 = hfraq << 1;
+    int  x, y;
+    int  head   = ((((unsigned long) dst) & 2) >> 1) ^ (clip->x1 & 1);
+    int  cw     = clip->x2 - clip->x1 + 1;
+    int  ch     = clip->y2 - clip->y1 + 1;
+    int  tail   = (cw - head) & 1;
+    int  w2     = (cw - head) / 2;
+    int  hfraq  = (width  << 18) / dst_width;
+    int  vfraq  = (height << 18) / dst_height;
+    int  point0 = clip->x1 * hfraq;
+    int  line   = clip->y1 * vfraq;
+    int  hfraq2 = hfraq << 1;
+    int  point  = point0;
+    u32 *dst32;
 
-    u32 *dst32 = dst + clip->y1 * dpitch + clip->x1 * 2;
+    dst += clip->x1 * 2 + clip->y1 * dpitch;
 
-    D_ASSUME( !(clip->x1 & 1) );
-    D_ASSUME( clip->x2 & 1 );
+    dst32 = dst;
 
-    while (h--) {
-         int        point = point0;
-         const u16 *src16 = src + spitch * (line >> 20);
+    if (head) {
+         u16 *dst16 = dst;
+
+         for (y=0; y<ch; y++) {
+              const u16 *src16 = src + spitch * (line >> 18);
+
+#ifdef COLOR_KEY
+              if (src16[point>>18] != (COLOR_KEY))
+#endif
+                   /* Write to destination with color key protection */
+                   dst16[0] = (src16[point>>18] == (key)) ? (key^1) : src16[point>>18];
+
+              dst16 += dpitch / 2;
+              line  += vfraq;
+         }
+
+         /* Adjust */
+         point0 += hfraq;
+         dst32   = dst + 2;
+
+         /* Reset */
+         line = clip->y1 * vfraq;
+    }
+
+    for (y=0; y<ch; y++) {
+         const u16 *src16 = src + spitch * (line >> 18);
+
+         point = point0;
 
          for (x=0; x<w2; x++) {
-              dst32[x] = ((src16[point>>20] == (key)) ? (key^1) : src16[point>>20]) |
-                         (((src16[(point+hfraq)>>20] == (key)) ? (key^1) : src16[(point+hfraq)>>20]) << 16);
+              dst32[x] = ((src16[point>>18] == (key)) ? (key^1) : src16[point>>18]) |
+                         (((src16[(point+hfraq)>>18] == (key)) ? (key^1) : src16[(point+hfraq)>>18]) << 16);
 
               point += hfraq2;
          }
 
          line  += vfraq;
          dst32 += dpitch/4;
+    }
+
+    if (tail) {
+         u16 *dst16 = dst + cw * 2 - 2;
+
+         /* Reset */
+         line = clip->y1 * vfraq;
+
+         for (y=0; y<ch; y++) {
+              const u16 *src16 = src + spitch * (line >> 18);
+
+#ifdef COLOR_KEY
+              if (src16[point>>18] != (COLOR_KEY))
+#endif
+                   /* Write to destination with color key protection */
+                   dst16[0] = (src16[point>>18] == (key)) ? (key^1) : src16[point>>18];
+
+              dst16 += dpitch / 2;
+              line  += vfraq;
+         }
     }
 }
 
@@ -96,43 +145,89 @@ static void stretch_simple_rgb16_keyed( void        *dst,
                                         u16          key,
                                         u16          src_key )
 {
-    int x;
-    int h      = (clip->y2 - clip->y1 + 1);
-    int w2     = (clip->x2 - clip->x1 + 1) / 2;
-    int hfraq  = (width  << 20) / dst_width;
-    int vfraq  = (height << 20) / dst_height;
-    int point0 = clip->x1 * hfraq;
-    int line   = clip->y1 * vfraq;
-    int hfraq2 = hfraq << 1;
+     int  x, y;
+     int  head   = ((((unsigned long) dst) & 2) >> 1) ^ (clip->x1 & 1);
+     int  cw     = clip->x2 - clip->x1 + 1;
+     int  ch     = clip->y2 - clip->y1 + 1;
+     int  tail   = (cw - head) & 1;
+     int  w2     = (cw - head) / 2;
+     int  hfraq  = (width  << 18) / dst_width;
+     int  vfraq  = (height << 18) / dst_height;
+     int  point0 = clip->x1 * hfraq;
+     int  line   = clip->y1 * vfraq;
+     int  hfraq2 = hfraq << 1;
+     int  point  = point0;
+     u32 *dst32;
 
-    u32 *dst32 = dst + clip->y1 * dpitch + clip->x1 * 2;
+     dst += clip->x1 * 2 + clip->y1 * dpitch;
 
-    D_ASSUME( !(clip->x1 & 1) );
-    D_ASSUME( clip->x2 & 1 );
+     dst32 = dst;
 
-    while (h--) {
-         int        point = point0;
-         const u16 *src16 = src + spitch * (line >> 20);
+     if (head) {
+          u16 *dst16 = dst;
 
-         for (x=0; x<w2; x++) {
-              u32 l = src16[point>>20];
-              u32 r = src16[(point+hfraq)>>20];
+          for (y=0; y<ch; y++) {
+               const u16 *src16 = src + spitch * (line >> 18);
 
-              if (l != src_key) {
-                   if (r != src_key)
-                        dst32[x] = (((r == (key)) ? (key^1) : r) << 16) | ((l == (key)) ? (key^1) : l);
-                   else
-                        *(__u16*)(&dst32[x]) = (l == (key)) ? (key^1) : l;
-              }
-              else if (r != src_key)
-                   *(((__u16*)(&dst32[x]))+1) = (r == (key)) ? (key^1) : r;
+               /* Write to destination with color key protection */
+               if (src16[point>>18] != src_key)
+                    dst16[0] = (src16[point>>18] == (key)) ? (key^1) : src16[point>>18];
 
-              point += hfraq2;
-         }
+               dst16 += dpitch / 2;
+               line  += vfraq;
+          }
 
-         line  += vfraq;
-         dst32 += dpitch/4;
-    }
+          /* Adjust */
+          point0 += hfraq;
+          dst32   = dst + 2;
+
+          /* Reset */
+          line = clip->y1 * vfraq;
+     }
+
+     for (y=0; y<ch; y++) {
+          const u16 *src16 = src + spitch * (line >> 18);
+
+          point = point0;
+
+          for (x=0; x<w2; x++) {
+               u32 l = src16[point>>18];
+               u32 r = src16[(point+hfraq)>>18];
+
+               /* Write to destination with color key protection */
+               if (l != src_key) {
+                    if (r != src_key)
+                         dst32[x] = (((r == (key)) ? (key^1) : r) << 16) | ((l == (key)) ? (key^1) : l);
+                    else
+                         *(__u16*)(&dst32[x]) = (l == (key)) ? (key^1) : l;
+               }
+               else if (r != src_key)
+                    *(((__u16*)(&dst32[x]))+1) = (r == (key)) ? (key^1) : r;
+
+               point += hfraq2;
+          }
+
+          line  += vfraq;
+          dst32 += dpitch/4;
+     }
+
+     if (tail) {
+          u16 *dst16 = dst + cw * 2 - 2;
+
+          /* Reset */
+          line = clip->y1 * vfraq;
+
+          for (y=0; y<ch; y++) {
+               const u16 *src16 = src + spitch * (line >> 18);
+
+               /* Write to destination with color key protection */
+               if (src16[point>>18] != src_key)
+                    dst16[0] = (src16[point>>18] == (key)) ? (key^1) : src16[point>>18];
+
+               dst16 += dpitch / 2;
+               line  += vfraq;
+          }
+     }
 }
 
 /**********************************************************************************************************************/
@@ -150,8 +245,8 @@ static void stretch_down2_rgb16_from32( void         *dst,
 {
      int x, y;
      int w2 = dst_width / 2;
-     int hfraq = (width  << 20) / dst_width;
-     int vfraq = (height << 20) / dst_height;
+     int hfraq = (width  << 18) / dst_width;
+     int vfraq = (height << 18) / dst_height;
      int line  = vfraq * (dst_height - 1);
      int sp4   = spitch / 4;
 
@@ -165,27 +260,27 @@ static void stretch_down2_rgb16_from32( void         *dst,
           __u32 d1;
           __u32 d2;
 
-          int sy = ((line >> 20) > height - 2) ? height - 2 : (line >> 20);
+          int sy = ((line >> 18) > height - 2) ? height - 2 : (line >> 18);
 
           __u32       *dst32 = dst + dpitch * y;
           const __u16 *src32 = src + spitch * sy;
 
 
           for (x=0; x<w2; x++) {
-               s1 = src32[point>>20];
-               s2 = src32[(point>>20) + 1];
-               s3 = src32[(point>>20) + sp4];
-               s4 = src32[(point>>20) + sp4 + 1];
+               s1 = src32[point>>18];
+               s2 = src32[(point>>18) + 1];
+               s3 = src32[(point>>18) + sp4];
+               s4 = src32[(point>>18) + sp4 + 1];
 
                point += hfraq;
 
                d1 = ((s1 & 0xfcfcfc) + (s2 & 0xfcfcfc) + (s3 & 0xfcfcfc) + (s4 & 0xfcfcfc)) >> 2;
 
 
-               s1 = src32[point>>20];
-               s2 = src32[(point>>20) + 1];
-               s3 = src32[(point>>20) + sp4];
-               s4 = src32[(point>>20) + sp4 + 1];
+               s1 = src32[point>>18];
+               s2 = src32[(point>>18) + 1];
+               s3 = src32[(point>>18) + sp4];
+               s4 = src32[(point>>18) + sp4 + 1];
 
                point += hfraq;
 
@@ -193,135 +288,6 @@ static void stretch_down2_rgb16_from32( void         *dst,
 
 
                dst32[x] = PIXEL_RGB32TO16(d1) | (PIXEL_RGB32TO16(d2) << 16);
-          }
-
-          line -= vfraq;
-     }
-}
-
-static void stretch_down2_rgb16_indexed( void           *dst,
-                                         int             dpitch,
-                                         const void     *src,
-                                         int             spitch,
-                                         int             width,
-                                         int             height,
-                                         int             dst_width,
-                                         int             dst_height,
-                                         const DFBColor *palette )
-{
-     int x, y;
-     int w2 = dst_width / 2;
-     int hfraq = (width  << 20) / dst_width;
-     int vfraq = (height << 20) / dst_height;
-     int line  = vfraq * (dst_height - 1);
-
-     __u16 lookup[256];
-
-     for (x=0; x<256; x++)
-          lookup[x] = PIXEL_RGB16( palette[x].r, palette[x].g, palette[x].b );
-
-     for (y=dst_height-1; y>=0; y--) {
-          int point = 0;
-
-          __u16 s1;
-          __u16 s2;
-          __u16 s3;
-          __u16 s4;
-          __u32 dp;
-
-          int sy = ((line >> 20) > height - 2) ? height - 2 : (line >> 20);
-
-          __u32       *dst32 = dst + dpitch * y;
-          const __u16 *src8  = src + spitch * sy;
-
-
-          for (x=0; x<w2; x++) {
-               s1 = lookup[ src8[point>>20] ];
-               s2 = lookup[ src8[(point>>20) + 1] ];
-               s3 = lookup[ src8[(point>>20) + spitch] ];
-               s4 = lookup[ src8[(point>>20) + spitch + 1] ];
-
-               point += hfraq;
-
-               dp = ((((s1 & 0xf81f) + (s2 & 0xf81f) + (s3 & 0xf81f) + (s4 & 0xf81f)) >> 2) & 0xf81f) |
-                    ((((s1 & 0x07e0) + (s2 & 0x07e0) + (s3 & 0x07e0) + (s4 & 0x07e0)) >> 2) & 0x07e0);
-
-
-               s1 = lookup[ src8[point>>20] ];
-               s2 = lookup[ src8[(point>>20) + 1] ];
-               s3 = lookup[ src8[(point>>20) + spitch] ];
-               s4 = lookup[ src8[(point>>20) + spitch + 1] ];
-
-               point += hfraq;
-
-               dp |= (((((s1 & 0xf81f) + (s2 & 0xf81f) + (s3 & 0xf81f) + (s4 & 0xf81f)) << 14) & 0xf81f0000) |
-                      ((((s1 & 0x07e0) + (s2 & 0x07e0) + (s3 & 0x07e0) + (s4 & 0x07e0)) << 14) & 0x07e00000));
-
-
-               dst32[x] = dp;
-          }
-
-          line -= vfraq;
-     }
-}
-
-static void stretch_down2_argb4444( void         *dst,
-                                    int           dpitch,
-                                    const void   *src,
-                                    int           spitch,
-                                    int           width,
-                                    int           height,
-                                    int           dst_width,
-                                    int           dst_height,
-                                    DFBRegion    *clip,
-                                    u16           key )
-{
-     int x, y;
-     int w2 = dst_width / 2;
-     int hfraq = (width  << 20) / dst_width;
-     int vfraq = (height << 20) / dst_height;
-     int line  = vfraq * (dst_height - 1);
-     int sp2   = spitch / 2;
-
-     for (y=dst_height-1; y>=0; y--) {
-          int point = 0;
-
-          __u16 s1;
-          __u16 s2;
-          __u16 s3;
-          __u16 s4;
-          __u32 dp;
-
-          int sy = ((line >> 20) > height - 2) ? height - 2 : (line >> 20);
-
-          __u32       *dst32 = dst + dpitch * y;
-          const __u16 *src16 = src + spitch * sy;
-
-
-          for (x=0; x<w2; x++) {
-               s1 = src16[point>>20];
-               s2 = src16[(point>>20) + 1];
-               s3 = src16[(point>>20) + sp2];
-               s4 = src16[(point>>20) + sp2 + 1];
-
-               point += hfraq;
-
-               dp = ((((s1 & 0xf0f0) + (s2 & 0xf0f0) + (s3 & 0xf0f0) + (s4 & 0xf0f0)) >> 2) & 0xf0f0) |
-                    ((((s1 & 0x0f0f) + (s2 & 0x0f0f) + (s3 & 0x0f0f) + (s4 & 0x0f0f)) >> 2) & 0x0f0f);
-
-
-               s1 = src16[point>>20];
-               s2 = src16[(point>>20) + 1];
-               s3 = src16[(point>>20) + sp2];
-               s4 = src16[(point>>20) + sp2 + 1];
-
-               point += hfraq;
-
-               dp |= (((((s1 & 0xf0f0) + (s2 & 0xf0f0) + (s3 & 0xf0f0) + (s4 & 0xf0f0)) << 14) & 0xf0f00000) |
-                      ((((s1 & 0x0f0f) + (s2 & 0x0f0f) + (s3 & 0x0f0f) + (s4 & 0x0f0f)) << 14) & 0x0f0f0000));
-
-
-               dst32[x] = dp;
           }
 
           line -= vfraq;
@@ -343,8 +309,8 @@ static void stretch_hv4_rgb16_from32( void         *dst,
 {
     int x, y;
     int w2 = dst_width / 2;
-    int hfraq = (width  << 20) / dst_width;
-    int vfraq = (height << 20) / dst_height;
+    int hfraq = (width  << 18) / dst_width;
+    int vfraq = (height << 18) / dst_height;
     int line  = vfraq * (dst_height - 1);
 
     __u32 linecache[dst_width/2];
@@ -359,14 +325,14 @@ static void stretch_hv4_rgb16_from32( void         *dst,
          __u32 dp;
 
          __u32       *dst32 = dst + dpitch * y;
-         const __u32 *src32 = src + spitch * (line >> 20);
+         const __u32 *src32 = src + spitch * (line >> 18);
 
 
          for (x=0; x<w2; x++) {
-              s1 = src32[point>>20];
-              s2 = src32[(point>>20) + 1];
+              s1 = src32[point>>18];
+              s2 = src32[(point>>18) + 1];
 
-              switch ((point >> 18) & 0x3) {
+              switch ((point >> 16) & 0x3) {
                    case 0:
                         d1 = s1;
                         break;
@@ -383,12 +349,12 @@ static void stretch_hv4_rgb16_from32( void         *dst,
 
               point += hfraq;
 
-              s1 = src32[point>>20];
-              s2 = src32[(point>>20) + 1];
+              s1 = src32[point>>18];
+              s2 = src32[(point>>18) + 1];
 
               dp = PIXEL_RGB32TO16(d1);
 
-              switch ((point >> 18) & 0x3) {
+              switch ((point >> 16) & 0x3) {
                    case 0:
                         d2 = s1;
                         break;
@@ -411,7 +377,7 @@ static void stretch_hv4_rgb16_from32( void         *dst,
               if (y == dst_height - 1)
                    dst32[x] = dp;
               else {
-                   switch ((line >> 18) & 0x3) {
+                   switch ((line >> 16) & 0x3) {
                         case 0:
                              dst32[x] = dp;
                              break;
@@ -426,221 +392,6 @@ static void stretch_hv4_rgb16_from32( void         *dst,
                         case 3:
                              dst32[x] = (((((linecache[x] & 0x07e0f81f) + (linecache[x] & 0x07e0f81f) + (linecache[x] & 0x07e0f81f) + (dp & 0x07e0f81f)) >> 2) & 0x07e0f81f) |
                                          (((((linecache[x] >> 4) & 0x0f81f07e) + ((linecache[x] >> 4) & 0x0f81f07e) + ((linecache[x] >> 4) & 0x0f81f07e) + ((dp >> 4) & 0x0f81f07e)) << 2) & 0xf81f07e0));
-                             break;
-                   }
-              }
-
-              linecache[x] = dp;
-         }
-
-         line -= vfraq;
-    }
-}
-
-static void stretch_hv4_rgb16_indexed( void           *dst,
-                                       int             dpitch,
-                                       const void     *src,
-                                       int             spitch,
-                                       int             width,
-                                       int             height,
-                                       int             dst_width,
-                                       int             dst_height,
-                                       const DFBColor *palette )
-{
-    int x, y;
-    int w2 = dst_width / 2;
-    int hfraq = (width  << 20) / dst_width;
-    int vfraq = (height << 20) / dst_height;
-    int line  = vfraq * (dst_height - 1);
-
-    __u16 lookup[256];
-    __u32 linecache[dst_width/2];
-
-    for (x=0; x<256; x++)
-         lookup[x] = PIXEL_RGB16( palette[x].r, palette[x].g, palette[x].b );
-
-    for (y=dst_height-1; y>=0; y--) {
-         int point = 0;
-
-         __u16 s1;
-         __u16 s2;
-         __u32 dp = 0;
-
-         __u32      *dst32 = dst + dpitch * y;
-         const __u8 *src8  = src + spitch * (line >> 20);
-
-
-         for (x=0; x<w2; x++) {
-              s1 = lookup[ src8[point>>20] ];
-              s2 = lookup[ src8[(point>>20) + 1] ];
-
-              switch ((point >> 18) & 0x3) {
-                   case 0:
-                        dp = s1;
-                        break;
-                   case 1:
-                        dp = ((((s2 & 0xf81f) + (s1 & 0xf81f) + (s1 & 0xf81f) + (s1 & 0xf81f)) >> 2) & 0xf81f) |
-                             ((((s2 & 0x07e0) + (s1 & 0x07e0) + (s1 & 0x07e0) + (s1 & 0x07e0)) >> 2) & 0x07e0);
-                        break;
-                   case 2:
-                        dp = ((((s2 & 0xf81f) + (s2 & 0xf81f) + (s2 & 0xf81f) + (s1 & 0xf81f)) >> 2) & 0xf81f) |
-                             ((((s2 & 0x07e0) + (s2 & 0x07e0) + (s2 & 0x07e0) + (s1 & 0x07e0)) >> 2) & 0x07e0);
-                        break;
-                   case 3:
-                        dp = s2;
-                        break;
-              }
-
-              point += hfraq;
-
-
-              s1 = lookup[ src8[point>>20] ];
-              s2 = lookup[ src8[(point>>20) + 1] ];
-
-              switch ((point >> 18) & 0x3) {
-                   case 0:
-                        dp |= (s1 << 16);
-                        break;
-                   case 1:
-                        dp |= (((((s2 & 0xf81f) + (s1 & 0xf81f) + (s1 & 0xf81f) + (s1 & 0xf81f)) << 14) & 0xf81f0000) |
-                               ((((s2 & 0x07e0) + (s1 & 0x07e0) + (s1 & 0x07e0) + (s1 & 0x07e0)) << 14) & 0x07e00000));
-                        break;
-                   case 2:
-                        dp |= (((((s2 & 0xf81f) + (s2 & 0xf81f) + (s2 & 0xf81f) + (s1 & 0xf81f)) << 14) & 0xf81f0000) |
-                               ((((s2 & 0x07e0) + (s2 & 0x07e0) + (s2 & 0x07e0) + (s1 & 0x07e0)) << 14) & 0x07e00000));
-                        break;
-                   case 3:
-                        dp |= (s2 << 16);
-                        break;
-              }
-
-              point += hfraq;
-
-
-              if (y == dst_height - 1)
-                   dst32[x] = dp;
-              else {
-                   switch ((line >> 18) & 0x3) {
-                        case 0:
-                             dst32[x] = dp;
-                             break;
-                        case 1:
-                             dst32[x] = (((((linecache[x] & 0x07e0f81f) + (dp & 0x07e0f81f) + (dp & 0x07e0f81f) + (dp & 0x07e0f81f)) >> 2) & 0x07e0f81f) |
-                                         (((((linecache[x] >> 4) & 0x0f81f07e) + ((dp >> 4) & 0x0f81f07e) + ((dp >> 4) & 0x0f81f07e) + ((dp >> 4) & 0x0f81f07e)) << 2) & 0xf81f07e0));
-                             break;
-                        case 2:
-                             dst32[x] = (((((linecache[x] & 0x07e0f81f) + (dp & 0x07e0f81f)) >> 1) & 0x07e0f81f) |
-                                         (((((linecache[x] >> 4) & 0x0f81f07e) + ((dp >> 4) & 0x0f81f07e)) << 3) & 0xf81f07e0));
-                             break;
-                        case 3:
-                             dst32[x] = (((((linecache[x] & 0x07e0f81f) + (linecache[x] & 0x07e0f81f) + (linecache[x] & 0x07e0f81f) + (dp & 0x07e0f81f)) >> 2) & 0x07e0f81f) |
-                                         (((((linecache[x] >> 4) & 0x0f81f07e) + ((linecache[x] >> 4) & 0x0f81f07e) + ((linecache[x] >> 4) & 0x0f81f07e) + ((dp >> 4) & 0x0f81f07e)) << 2) & 0xf81f07e0));
-                             break;
-                   }
-              }
-
-              linecache[x] = dp;
-         }
-
-         line -= vfraq;
-    }
-}
-
-static void stretch_hv4_argb4444( void         *dst,
-                                  int           dpitch,
-                                  const void   *src,
-                                  int           spitch,
-                                  int           width,
-                                  int           height,
-                                  int           dst_width,
-                                  int           dst_height,
-                                  DFBRegion    *clip,
-                                  u16           key )
-{
-    int x, y;
-    int w2 = dst_width / 2;
-    int hfraq = (width  << 20) / dst_width;
-    int vfraq = (height << 20) / dst_height;
-    int line  = vfraq * (dst_height - 1);
-
-    __u32 linecache[dst_width/2];
-
-    for (y=dst_height-1; y>=0; y--) {
-         int point = 0;
-
-         __u16 s1;
-         __u16 s2;
-         __u32 dp = 0;
-
-         __u32       *dst32 = dst + dpitch * y;
-         const __u16 *src16 = src + spitch * (line >> 20);
-
-
-         for (x=0; x<w2; x++) {
-              s1 = src16[point>>20];
-              s2 = src16[(point>>20) + 1];
-
-              switch ((point >> 18) & 0x3) {
-                   case 0:
-                        dp = s1;
-                        break;
-                   case 1:
-                        dp = ((((s2 & 0x0f0f) + (s1 & 0x0f0f) + (s1 & 0x0f0f) + (s1 & 0x0f0f)) >> 2) & 0x0f0f) |
-                             ((((s2 & 0xf0f0) + (s1 & 0xf0f0) + (s1 & 0xf0f0) + (s1 & 0xf0f0)) >> 2) & 0xf0f0);
-                        break;
-                   case 2:
-                        dp = ((((s2 & 0x0f0f) + (s2 & 0x0f0f) + (s2 & 0x0f0f) + (s1 & 0x0f0f)) >> 2) & 0x0f0f) |
-                             ((((s2 & 0xf0f0) + (s2 & 0xf0f0) + (s2 & 0xf0f0) + (s1 & 0xf0f0)) >> 2) & 0xf0f0);
-                        break;
-                   case 3:
-                        dp = s2;
-                        break;
-              }
-
-              point += hfraq;
-
-
-              s1 = src16[point>>20];
-              s2 = src16[(point>>20) + 1];
-
-              switch ((point >> 18) & 0x3) {
-                   case 0:
-                        dp |= (s1 << 16);
-                        break;
-                   case 1:
-                        dp |= (((((s2 & 0x0f0f) + (s1 & 0x0f0f) + (s1 & 0x0f0f) + (s1 & 0x0f0f)) << 14) & 0x0f0f0000) |
-                               ((((s2 & 0xf0f0) + (s1 & 0xf0f0) + (s1 & 0xf0f0) + (s1 & 0xf0f0)) << 14) & 0xf0f00000));
-                        break;
-                   case 2:
-                        dp |= (((((s2 & 0x0f0f) + (s2 & 0x0f0f) + (s2 & 0x0f0f) + (s1 & 0x0f0f)) << 14) & 0x0f0f0000) |
-                               ((((s2 & 0xf0f0) + (s2 & 0xf0f0) + (s2 & 0xf0f0) + (s1 & 0xf0f0)) << 14) & 0xf0f00000));
-                        break;
-                   case 3:
-                        dp |= (s2 << 16);
-                        break;
-              }
-
-              point += hfraq;
-
-
-              if (y == dst_height - 1)
-                   dst32[x] = dp;
-              else {
-                   switch ((line >> 18) & 0x3) {
-                        case 0:
-                             dst32[x] = dp;
-                             break;
-                        case 1:
-                             dst32[x] = (((((linecache[x] & 0x0f0f0f0f) + (dp & 0x0f0f0f0f) + (dp & 0x0f0f0f0f) + (dp & 0x0f0f0f0f)) >> 2) & 0x0f0f0f0f) |
-                                         (((((linecache[x] >> 4) & 0x0f0f0f0f) + ((dp >> 4) & 0x0f0f0f0f) + ((dp >> 4) & 0x0f0f0f0f) + ((dp >> 4) & 0x0f0f0f0f)) << 2) & 0xf0f0f0f0));
-                             break;
-                        case 2:
-                             dst32[x] = (((((linecache[x] & 0x0f0f0f0f) + (dp & 0x0f0f0f0f)) >> 1) & 0x0f0f0f0f) |
-                                         (((((linecache[x] >> 4) & 0x0f0f0f0f) + ((dp >> 4) & 0x0f0f0f0f)) << 3) & 0xf0f0f0f0));
-                             break;
-                        case 3:
-                             dst32[x] = (((((linecache[x] & 0x0f0f0f0f) + (linecache[x] & 0x0f0f0f0f) + (linecache[x] & 0x0f0f0f0f) + (dp & 0x0f0f0f0f)) >> 2) & 0x0f0f0f0f) |
-                                         (((((linecache[x] >> 4) & 0x0f0f0f0f) + ((linecache[x] >> 4) & 0x0f0f0f0f) + ((linecache[x] >> 4) & 0x0f0f0f0f) + ((dp >> 4) & 0x0f0f0f0f)) << 2) & 0xf0f0f0f0));
                              break;
                    }
               }
@@ -658,6 +409,15 @@ static void stretch_hv4_argb4444( void         *dst,
 
 #define KEY_PROTECT (key)
 #define KEY_REPLACE (key^1)
+
+/**********************************************************************************************************************/
+/*** 16 bit RGB 565 scalers *******************************************************************************************/
+/**********************************************************************************************************************/
+
+#define SHIFT_R5          5
+#define SHIFT_R6          6
+#define X_F81F            0xf81f
+#define X_07E0            0x07e0
 
 /**********************************************************************************************************************/
 
@@ -683,7 +443,7 @@ static void stretch_hvx_rgb16_down( void       *dst,
                                     DFBRegion  *clip,
                                     u16         key )
 {
-#include "stretch_hvx_rgb16.h"
+#include <gfx/generic/stretch_hvx_16.h>
 }
 
 static void stretch_hvx_rgb16_down_keyed( void       *dst,
@@ -699,8 +459,33 @@ static void stretch_hvx_rgb16_down_keyed( void       *dst,
                                           u16         srckey )
 {
 #define COLOR_KEY srckey
-#include "stretch_hvx_rgb16.h"
+#include <gfx/generic/stretch_hvx_16.h>
 #undef COLOR_KEY
+}
+
+static void stretch_hvx_rgb16_down_index( void           *dst,
+                                          int             dpitch,
+                                          const void     *src,
+                                          int             spitch,
+                                          int             width,
+                                          int             height,
+                                          int             dst_width,
+                                          int             dst_height,
+                                          DFBRegion      *clip,
+                                          u16             key,
+                                          const DFBColor *palette )
+{
+     int pn;
+     u16 lookup[256];
+
+     for (pn=0; pn<256; pn++)
+          lookup[pn] = PIXEL_RGB16( palette[pn].r, palette[pn].g, palette[pn].b );
+
+#define SOURCE_LOOKUP(x) lookup[x]
+#define SOURCE_TYPE      u8
+#include <gfx/generic/stretch_hvx_16.h>
+#undef SOURCE_LOOKUP
+#undef SOURCE_TYPE
 }
 
 #undef POINT_0
@@ -736,7 +521,7 @@ static void stretch_hvx_rgb16_up( void       *dst,
                                   DFBRegion  *clip,
                                   u16         key )
 {
-#include "stretch_hvx_rgb16.h"
+#include <gfx/generic/stretch_hvx_16.h>
 }
 
 static void stretch_hvx_rgb16_up_keyed( void       *dst,
@@ -752,8 +537,33 @@ static void stretch_hvx_rgb16_up_keyed( void       *dst,
                                         u16         srckey )
 {
 #define COLOR_KEY srckey
-#include "stretch_hvx_rgb16.h"
+#include <gfx/generic/stretch_hvx_16.h>
 #undef COLOR_KEY
+}
+
+static void stretch_hvx_rgb16_up_index( void           *dst,
+                                        int             dpitch,
+                                        const void     *src,
+                                        int             spitch,
+                                        int             width,
+                                        int             height,
+                                        int             dst_width,
+                                        int             dst_height,
+                                        DFBRegion      *clip,
+                                        u16             key,
+                                        const DFBColor *palette )
+{
+     int pn;
+     u16 lookup[256];
+
+     for (pn=0; pn<256; pn++)
+          lookup[pn] = PIXEL_RGB16( palette[pn].r, palette[pn].g, palette[pn].b );
+
+#define SOURCE_LOOKUP(x) lookup[x]
+#define SOURCE_TYPE      u8
+#include <gfx/generic/stretch_hvx_16.h>
+#undef SOURCE_LOOKUP
+#undef SOURCE_TYPE
 }
 
 #undef POINT_0
@@ -767,6 +577,188 @@ static void stretch_hvx_rgb16_up_keyed( void       *dst,
 
 /**********************************************************************************************************************/
 
+#undef SHIFT_R5
+#undef SHIFT_R6
+#undef X_F81F
+#undef X_07E0
+
+/**********************************************************************************************************************/
+/*** 16 bit ARGB 4444 scalers *****************************************************************************************/
+/**********************************************************************************************************************/
+
+#define SHIFT_R5          4
+#define SHIFT_R6          4
+#define X_F81F            0x0f0f
+#define X_07E0            0xf0f0
+#define HAS_ALPHA
+
+/**********************************************************************************************************************/
+
+#define POINT_0               hfraq
+#define LINE_0                vfraq
+#define POINT_TO_RATIO(p,ps)  ( (((((p)) & 0x3ffff) ? : 0x40000) << 6) / (ps) )
+#define LINE_TO_RATIO(l,ls)   ( (((((l)) & 0x3ffff) ? : 0x40000) << 5) / (ls) )
+
+#define POINT_L(p,ps)  ( (((p)-1) >> 18) - 1 )
+#define POINT_R(p,ps)  ( (((p)-1) >> 18) )
+
+#define LINE_T(l,ls)  ( (((l)-1) >> 18) - 1 )
+#define LINE_B(l,ls)  ( (((l)-1) >> 18) )
+
+static void stretch_hvx_argb4444_down( void       *dst,
+                                       int         dpitch,
+                                       const void *src,
+                                       int         spitch,
+                                       int         width,
+                                       int         height,
+                                       int         dst_width,
+                                       int         dst_height,
+                                       DFBRegion  *clip,
+                                       u16         key )
+{
+#include <gfx/generic/stretch_hvx_16.h>
+}
+
+static void stretch_hvx_argb4444_down_keyed( void       *dst,
+                                             int         dpitch,
+                                             const void *src,
+                                             int         spitch,
+                                             int         width,
+                                             int         height,
+                                             int         dst_width,
+                                             int         dst_height,
+                                             DFBRegion  *clip,
+                                             u16         key,
+                                             u16         srckey )
+{
+#define COLOR_KEY srckey
+#include <gfx/generic/stretch_hvx_16.h>
+#undef COLOR_KEY
+}
+
+static void stretch_hvx_argb4444_down_index( void           *dst,
+                                             int             dpitch,
+                                             const void     *src,
+                                             int             spitch,
+                                             int             width,
+                                             int             height,
+                                             int             dst_width,
+                                             int             dst_height,
+                                             DFBRegion      *clip,
+                                             u16             key,
+                                             const DFBColor *palette )
+{
+     int pn;
+     u16 lookup[256];
+
+     for (pn=0; pn<256; pn++)
+          lookup[pn] = PIXEL_ARGB4444( palette[pn].a, palette[pn].r, palette[pn].g, palette[pn].b );
+
+#define SOURCE_LOOKUP(x) lookup[x]
+#define SOURCE_TYPE      u8
+#include <gfx/generic/stretch_hvx_16.h>
+#undef SOURCE_LOOKUP
+#undef SOURCE_TYPE
+}
+
+#undef POINT_0
+#undef LINE_0
+#undef POINT_TO_RATIO
+#undef LINE_TO_RATIO
+#undef POINT_L
+#undef POINT_R
+#undef LINE_T
+#undef LINE_B
+
+/**********************************************************************************************************************/
+
+#define POINT_0               0
+#define LINE_0                0
+#define POINT_TO_RATIO(p,ps)  ( ((p) & 0x3ffff) >> 12 )
+#define LINE_TO_RATIO(l,ls)   ( ((l) & 0x3ffff) >> 13 )
+
+#define POINT_L(p,ps)  ( (((p)) >> 18) )
+#define POINT_R(p,ps)  ( (((p)) >> 18) + 1 )
+
+#define LINE_T(l,ls)  ( (((l)) >> 18) )
+#define LINE_B(l,ls)  ( (((l)) >> 18) + 1 )
+
+static void stretch_hvx_argb4444_up( void       *dst,
+                                     int         dpitch,
+                                     const void *src,
+                                     int         spitch,
+                                     int         width,
+                                     int         height,
+                                     int         dst_width,
+                                     int         dst_height,
+                                     DFBRegion  *clip,
+                                     u16         key )
+{
+#include <gfx/generic/stretch_hvx_16.h>
+}
+
+static void stretch_hvx_argb4444_up_keyed( void       *dst,
+                                           int         dpitch,
+                                           const void *src,
+                                           int         spitch,
+                                           int         width,
+                                           int         height,
+                                           int         dst_width,
+                                           int         dst_height,
+                                           DFBRegion  *clip,
+                                           u16         key,
+                                           u16         srckey )
+{
+#define COLOR_KEY srckey
+#include <gfx/generic/stretch_hvx_16.h>
+#undef COLOR_KEY
+}
+
+static void stretch_hvx_argb4444_up_index( void           *dst,
+                                           int             dpitch,
+                                           const void     *src,
+                                           int             spitch,
+                                           int             width,
+                                           int             height,
+                                           int             dst_width,
+                                           int             dst_height,
+                                           DFBRegion      *clip,
+                                           u16             key,
+                                           const DFBColor *palette )
+{
+     int pn;
+     u16 lookup[256];
+
+     for (pn=0; pn<256; pn++)
+          lookup[pn] = PIXEL_ARGB4444( palette[pn].a, palette[pn].r, palette[pn].g, palette[pn].b );
+
+#define SOURCE_LOOKUP(x) lookup[x]
+#define SOURCE_TYPE      u8
+#include <gfx/generic/stretch_hvx_16.h>
+#undef SOURCE_LOOKUP
+#undef SOURCE_TYPE
+}
+
+#undef POINT_0
+#undef LINE_0
+#undef POINT_TO_RATIO
+#undef LINE_TO_RATIO
+#undef POINT_L
+#undef POINT_R
+#undef LINE_T
+#undef LINE_B
+
+/**********************************************************************************************************************/
+
+#undef HAS_ALPHA
+#undef SHIFT_R5
+#undef SHIFT_R6
+#undef X_F81F
+#undef X_07E0
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
 const StretchAlgo wm_stretch_simple =
      { "simple", "Simple Scaler",                           stretch_simple_rgb16,
                                                             stretch_simple_rgb16_keyed,
@@ -777,14 +769,14 @@ const StretchAlgo wm_stretch_simple =
 const StretchAlgo wm_stretch_down =
      { "down2",  "2x2 Down Scaler",                         stretch_hvx_rgb16_down,
                                                             stretch_hvx_rgb16_down_keyed,
-                                                            stretch_down2_argb4444,
-                                                            stretch_down2_rgb16_indexed,
+                                                            stretch_hvx_argb4444_down,
+                                                            stretch_hvx_rgb16_down_index,
                                                             stretch_down2_rgb16_from32 };
 
 const StretchAlgo wm_stretch_up =
      { "hv4",    "Horizontal/vertical interpolation",       stretch_hvx_rgb16_up,
                                                             stretch_hvx_rgb16_up_keyed,
-                                                            stretch_hv4_argb4444,
-                                                            stretch_hv4_rgb16_indexed,
+                                                            stretch_hvx_argb4444_up,
+                                                            stretch_hvx_rgb16_up_index,
                                                             stretch_hv4_rgb16_from32 };
 

@@ -172,7 +172,7 @@ smooth_stretchblit( CardState          *state,
 
                     case DSPF_LUT8:
                          D_ASSERT( source->palette != NULL );
-                         algo->func_rgb16_indexed( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, source->palette->entries );
+                         algo->func_rgb16_indexed( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, &clip, state->dst_colorkey, source->palette->entries );
                          break;
 
                     case DSPF_RGB32:
