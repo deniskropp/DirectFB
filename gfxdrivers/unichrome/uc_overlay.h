@@ -79,7 +79,7 @@ void uc_ovl_map_v1_control(DFBSurfacePixelFormat format, int sw,
                            u32* control, u32* fifo);
 u32 uc_ovl_map_fifo(u8 depth, u8 pre_thr, u8 thr);
 void uc_ovl_map_adjustment(DFBColorAdjustment* adj, u32* a1, u32* a2);
-u32 uc_ovl_map_colorkey(DFBColor* c);
+u32 uc_ovl_map_colorkey(DFBColorKey* c);
 
 // Video engine - setting functions (uc_ovl_hwset.c)
 

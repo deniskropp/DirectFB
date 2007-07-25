@@ -210,7 +210,7 @@ parse_int( const AnyOption *option, const char *arg )
      int   ret;
      char *end;
 
-     ret = strtoul( arg, &end, option->data ? (int) option->data : 10 );
+     ret = strtoul( arg, &end, option->data ? (unsigned long) option->data : 10 );
 
      if (*end || ret < 0) {
           fprintf( stderr, "\nInvalid argument to '%s' or '%s' specified!\n\n",

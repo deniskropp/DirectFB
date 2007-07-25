@@ -154,7 +154,7 @@ fusion_hash_lookup_node (FusionHash *hash,
     node = &hash->nodes[h % hash->size];
   }
   else
-    node = &hash->nodes[((unsigned int)key) % hash->size];
+    node = &hash->nodes[((unsigned long)key) % hash->size];
 
     /* Hash table lookup needs to be fast.
      *  We therefore remove the extra conditional of testing

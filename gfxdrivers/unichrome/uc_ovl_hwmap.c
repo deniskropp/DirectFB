@@ -573,7 +573,7 @@ void uc_ovl_map_adjustment(DFBColorAdjustment* adj, u32* a1, u32* a2)
         fmt(B3, 2, 0, 0xf, 10) | fmt(C3, 2, 3, 0xf,  2);
 }
 
-u32 uc_ovl_map_colorkey(DFBColor* c)
+u32 uc_ovl_map_colorkey(DFBColorKey* c)
 {
     u32 color;
     DFBSurfacePixelFormat fmt;

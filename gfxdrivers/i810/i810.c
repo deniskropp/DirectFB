@@ -551,7 +551,7 @@ i810Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 	PUT_LRING(i810dev->srcpitch);
 	PUT_LRING(src);
 	PUT_LRING(i810dev->colorkey);
-	PUT_LRING((u32) i810drv->pattern_base);
+	PUT_LRING((u32)(unsigned long) i810drv->pattern_base);
 
 	END_LRING(i810drv);
 	

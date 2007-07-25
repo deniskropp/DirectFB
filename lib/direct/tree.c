@@ -85,8 +85,8 @@ direct_tree_insert( DirectTree *tree,
                     void       *key,
                     void       *value )
 {
-     int          inserted = 0;
-     unsigned int fast_key = (unsigned int) key;
+     int           inserted = 0;
+     unsigned long fast_key = (unsigned long) key;
 
      if (fast_key < 128)
           tree->fast_keys[fast_key] = value;
@@ -98,8 +98,8 @@ void *
 direct_tree_lookup( DirectTree *tree,
                     void       *key )
 {
-     DirectNode   *node;
-     unsigned int  fast_key = (unsigned int) key;
+     DirectNode    *node;
+     unsigned long  fast_key = (unsigned long) key;
 
      if (fast_key < 128)
           return tree->fast_keys[fast_key];

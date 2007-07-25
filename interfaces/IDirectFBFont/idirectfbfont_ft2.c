@@ -258,7 +258,7 @@ render_glyph( CoreFont      *thiz,
 
      face = data->face;
 
-     load_flags = (FT_Int) face->generic.data;
+     load_flags = (unsigned long) face->generic.data;
      load_flags |= FT_LOAD_RENDER;
 
      if ((err = FT_Load_Glyph( face, index, load_flags ))) {
@@ -447,7 +447,7 @@ get_glyph_info( CoreFont      *thiz,
 
      face = data->face;
 
-     load_flags = (FT_Int) face->generic.data;
+     load_flags = (unsigned long) face->generic.data;
 
      if ((err = FT_Load_Glyph( face, index, load_flags ))) {
           D_HEAVYDEBUG( "DirectB/FontFT2: "
@@ -819,7 +819,7 @@ Construct( IDirectFBFont      *thiz,
           }
      }
 
-     face->generic.data = (void *) load_flags;
+     face->generic.data = (void *)(unsigned long) load_flags;
      face->generic.finalizer = NULL;
 
      ret = dfb_font_create( core, &font );

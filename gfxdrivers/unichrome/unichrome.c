@@ -476,7 +476,7 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
           ucdrv->file = fd;
 
           ucdrv->hwregs = mmap(NULL, 0x1000000, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-          if ((int) ucdrv->hwregs == -1)
+          if (ucdrv->hwregs == MAP_FAILED)
                return DFB_IO;
      }
 

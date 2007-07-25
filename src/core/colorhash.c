@@ -187,7 +187,7 @@ dfb_colorhash_lookup( CorePalette *palette,
 {
      Colorhash    *hash;
      unsigned int  pixel = PIXEL_ARGB(a, r, g, b);
-     unsigned int  index = (pixel ^ (unsigned int) palette) % HASH_SIZE;
+     unsigned int  index = (pixel ^ (unsigned long) palette) % HASH_SIZE;
 
      D_ASSERT( hash_field != NULL );
      D_ASSERT( hash_field->hash != NULL );

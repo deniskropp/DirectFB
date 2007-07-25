@@ -794,7 +794,7 @@ system_map_mmio( unsigned int    offset,
 
      addr = mmap( NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED,
                   dfb_fbdev->fd, dfb_fbdev->shared->fix.smem_len + offset );
-     if ((int)(addr) == -1) {
+     if (addr == MAP_FAILED) {
           D_PERROR( "DirectFB/FBDev: Could not mmap MMIO region "
                      "(offset %d, length %d)!\n", offset, length );
           return NULL;

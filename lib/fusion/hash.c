@@ -509,7 +509,7 @@ fusion_hash_resize (FusionHash *hash)
                     hash_val = h % new_size;
                }
                else
-                    hash_val = ((unsigned int)node->key) % new_size;
+                    hash_val = ((unsigned long)node->key) % new_size;
 
                node->next = new_nodes[hash_val];
                new_nodes[hash_val] = node;
