@@ -210,7 +210,7 @@ struct __SaWMan_SaWManTier {
      FusionSkirmish          context_lock;
 
      DFBDisplayLayerConfig   config;
-     DFBColor                key;
+     DFBColorKey             key;
 
      DFBDimension            size;
 

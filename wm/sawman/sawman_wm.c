@@ -820,7 +820,8 @@ process_updates( SaWMan              *sawman,
                          dfb_layer_context_set_src_colorkey( tier->context,
                                                              (window->config.color_key & 0xF800) >> 8,
                                                              (window->config.color_key & 0x07E0) >> 3,
-                                                             (window->config.color_key & 0x001F) << 3 );
+                                                             (window->config.color_key & 0x001F) << 3,
+                                                             window->config.color_key );
 
                     if (DFB_PIXELFORMAT_IS_INDEXED( surface->format )) {
                          CoreSurface *region_surface;
@@ -904,7 +905,7 @@ no_single:
                DFBLocation location = { 0, 0, 1, 1 };
                dfb_layer_context_set_screenlocation( tier->context, &location );
 
-               dfb_layer_context_set_src_colorkey( tier->context, tier->key.r, tier->key.g, tier->key.b );
+               dfb_layer_context_set_src_colorkey( tier->context, tier->key.r, tier->key.g, tier->key.b, tier->key.index );
           }
 
           if (!tier->active) {
