@@ -763,7 +763,7 @@ update_primary_region_config( CoreLayerContext           *context,
 
 DFBResult
 dfb_layer_context_set_src_colorkey( CoreLayerContext *context,
-                                    u8 r, u8 g, u8 b )
+                                    u8 r, u8 g, u8 b, int index )
 {
      DFBResult             ret;
      CoreLayerRegionConfig config;
@@ -782,6 +782,9 @@ dfb_layer_context_set_src_colorkey( CoreLayerContext *context,
      config.src_key.g = g;
      config.src_key.b = b;
 
+     if (index >= 0)
+          config.src_key.index = index & 0xff;
+
      /* Try to set the new configuration. */
      ret = update_primary_region_config( context, &config, CLRCF_SRCKEY );
 
@@ -793,7 +796,7 @@ dfb_layer_context_set_src_colorkey( CoreLayerContext *context,
 
 DFBResult
 dfb_layer_context_set_dst_colorkey( CoreLayerContext *context,
-                                    u8 r, u8 g, u8 b )
+                                    u8 r, u8 g, u8 b, int index )
 {
      DFBResult             ret;
      CoreLayerRegionConfig config;
@@ -811,6 +814,9 @@ dfb_layer_context_set_dst_colorkey( CoreLayerContext *context,
      config.dst_key.r = r;
      config.dst_key.g = g;
      config.dst_key.b = b;
+
+     if (index >= 0)
+          config.dst_key.index = index & 0xff;
 
      /* Try to set the new configuration. */
      ret = update_primary_region_config( context, &config, CLRCF_DSTKEY );

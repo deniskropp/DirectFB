@@ -49,8 +49,8 @@ struct __DFB_CoreLayerRegionConfig {
 
      u8                         opacity;          /* global region alpha */
 
-     DFBColor                   src_key;          /* source color key */
-     DFBColor                   dst_key;          /* destination color key */
+     DFBColorKey                src_key;          /* source color key */
+     DFBColorKey                dst_key;          /* destination color key */
 
      int                        parity;           /* field parity (for interlaced) */
 

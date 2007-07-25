@@ -354,6 +354,8 @@ static void config_allocate()
      dfb_config = (DFBConfig*) calloc( 1, sizeof(DFBConfig) );
 
      for (i=0; i<D_ARRAY_SIZE(dfb_config->layers); i++) {
+          dfb_config->layers[i].src_key_index          = -1;
+
           dfb_config->layers[i].background.color.a     = 0;
           dfb_config->layers[i].background.color.r     = 0;
           dfb_config->layers[i].background.color.g     = 0;
@@ -1135,6 +1137,27 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR( "DirectFB/Config '%s': No color specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "layer-src-key-index" ) == 0) {
+          DFBConfigLayer *conf = dfb_config->config_layer;
+
+          if (value) {
+               char *error;
+               u32   index;
+
+               index = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in index '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               conf->src_key_index = index;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No index specified!\n", name );
                return DFB_INVARG;
           }
      } else
