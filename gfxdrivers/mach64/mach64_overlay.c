@@ -685,26 +685,20 @@ static void ov_calc_colorkey( Mach64DriverData       *mdrv,
                                                                   config->dst_key.b );
                break;
           case DSPF_ARGB1555:
-               mov->regs.overlay_GRAPHICS_KEY_CLR = PIXEL_ARGB1555( config->dst_key.a,
-                                                                    config->dst_key.r,
-                                                                    config->dst_key.g,
-                                                                    config->dst_key.b );
+               mov->regs.overlay_GRAPHICS_KEY_CLR = PIXEL_RGB555( config->dst_key.r,
+                                                                  config->dst_key.g,
+                                                                  config->dst_key.b );
                break;
           case DSPF_RGB16:
                mov->regs.overlay_GRAPHICS_KEY_CLR = PIXEL_RGB16( config->dst_key.r,
                                                                  config->dst_key.g,
                                                                  config->dst_key.b );
                break;
+          case DSPF_ARGB:
           case DSPF_RGB32:
                mov->regs.overlay_GRAPHICS_KEY_CLR = PIXEL_RGB32( config->dst_key.r,
                                                                  config->dst_key.g,
                                                                  config->dst_key.b );
-               break;
-          case DSPF_ARGB:
-               mov->regs.overlay_GRAPHICS_KEY_CLR = PIXEL_ARGB( config->dst_key.a,
-                                                                config->dst_key.r,
-                                                                config->dst_key.g,
-                                                                config->dst_key.b );
                break;
           default:
                D_BUG( "unexpected pixelformat" );

@@ -275,7 +275,7 @@ besSetRegion( CoreLayer                  *layer,
 
      /* set color key */
      if (updated & CLRCF_DSTKEY) {
-          DFBColor key = config->dst_key;
+          DFBColorKey key = config->dst_key;
 
           switch (dfb_primary_layer_pixelformat()) {
                case DSPF_RGB555:

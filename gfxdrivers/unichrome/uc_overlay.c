@@ -92,7 +92,7 @@ uc_ovl_init_layer( CoreLayer                   *layer,
     ucovl->v1.cfg = *config;
     ucovl->v1.ox = 0;
     ucovl->v1.oy = 0;
-    ucovl->v1.dst_key.a = 0;
+    ucovl->v1.dst_key.index = 0;
     ucovl->v1.dst_key.r = 0;
     ucovl->v1.dst_key.g = 0;
     ucovl->v1.dst_key.b = 0;

@@ -31,7 +31,7 @@ struct uc_ovl_vinfo {
     int level;                      // Position in the DirectFB layer stack
                                     // < 0 = underlay mode, > 0 = overlay mode
     DFBColorAdjustment adj;         // Color adjustment (brightness etc)
-    DFBColor dst_key;               // Destination color key
+    DFBColorKey dst_key;            // Destination color key
     bool dstkey_enabled;            // Destination color key is enabled
 };
 
