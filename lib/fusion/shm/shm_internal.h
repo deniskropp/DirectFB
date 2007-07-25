@@ -37,7 +37,7 @@
 #include <fusion/lock.h>
 
 
-#define FUSION_SHM_MAX_POOLS                  4
+#define FUSION_SHM_MAX_POOLS                 16
 #define FUSION_SHM_TMPFS_PATH_NAME_LEN       64
 
 

@@ -428,7 +428,7 @@ IDirectFBDisplayLayer_SetSrcColorKey( IDirectFBDisplayLayer *thiz,
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
-     return dfb_layer_context_set_src_colorkey( data->context, r, g, b );
+     return dfb_layer_context_set_src_colorkey( data->context, r, g, b, -1 );
 }
 
 static DFBResult
@@ -442,7 +442,7 @@ IDirectFBDisplayLayer_SetDstColorKey( IDirectFBDisplayLayer *thiz,
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
-     return dfb_layer_context_set_dst_colorkey( data->context, r, g, b );
+     return dfb_layer_context_set_dst_colorkey( data->context, r, g, b, -1 );
 }
 
 static DFBResult

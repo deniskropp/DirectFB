@@ -1040,8 +1040,10 @@ driver_get_available()
 {
      int i;
 
+#ifdef LINUX_INPUT_USE_FBDEV
      if (dfb_system_type() != CORE_FBDEV)
           return 0;
+#endif
 
      for (i=0; i<MAX_LINUX_INPUT_DEVICES; i++) {
           int  fd;

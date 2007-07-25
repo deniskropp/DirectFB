@@ -211,7 +211,7 @@ direct_list_check_link( const DirectLink *link )
 
 
 #define direct_list_foreach(elem, list)                     \
-     for (elem = (__typeof__(elem))(list);                      \
+     for (elem = (__typeof__(elem))(list);                  \
           direct_list_check_link( (DirectLink*)(elem) );    \
           elem = (__typeof__(elem))(((DirectLink*)(elem))->next))
 

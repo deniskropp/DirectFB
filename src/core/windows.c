@@ -64,6 +64,7 @@
 #include <direct/trace.h>
 #include <direct/util.h>
 
+#include <gfx/convert.h>
 #include <gfx/util.h>
 
 #include <core/layers_internal.h>
@@ -249,6 +250,8 @@ dfb_window_create( CoreWindowStack             *stack,
      DFBSurfaceCapabilities  surface_caps;
      DFBSurfacePixelFormat   pixelformat;
 
+     D_DEBUG_AT( Core_Windows, "%s( %p )\n", __FUNCTION__, stack );
+
      D_ASSERT( stack != NULL );
      D_ASSERT( stack->context != NULL );
      D_ASSERT( desc != NULL );
@@ -414,6 +417,15 @@ dfb_window_create( CoreWindowStack             *stack,
                dfb_layer_region_link( &window->primary_region, region );
                dfb_layer_region_unref( region );
 
+               D_DEBUG_AT( Core_Windows, "  -> %dx%d %s %s\n",
+                           window->config.bounds.w, window->config.bounds.h,
+                           dfb_pixelformat_name(pixelformat),
+                           (surface_policy == CSP_VIDEOONLY) ?
+                              "VIDEOONLY" :
+                              ((surface_policy == CSP_SYSTEMONLY) ?
+                                   "SYSTEM ONLY" :
+                                   "AUTO VIDEO") );
+
                /* Give the WM a chance to provide its own surface. */
                if (!window->surface) {
                     /* Create the surface for the window. */
@@ -435,6 +447,11 @@ dfb_window_create( CoreWindowStack             *stack,
                }
           }
      }
+     else
+          D_DEBUG_AT( Core_Windows, "  -> %dx%d - INPUT ONLY!\n",
+                      window->config.bounds.w, window->config.bounds.h );
+
+     D_DEBUG_AT( Core_Windows, "  -> %p\n", window );
 
      /* Pass the new window to the window manager. */
      ret = dfb_wm_add_window( stack, window );

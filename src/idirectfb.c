@@ -1550,7 +1550,15 @@ InitLayers( IDirectFB      *dfb,
                if (conf->palette_set)
                     InitLayerPalette( data, conf, data->layers[i].surface, &data->layers[i].palette );
 
-               dfb_layer_context_set_src_colorkey( context, conf->src_key.r, conf->src_key.g, conf->src_key.b );
+               if (conf->src_key_index >= 0 && conf->src_key_index < D_ARRAY_SIZE(conf->palette)) {
+                    dfb_layer_context_set_src_colorkey( context,
+                                                        conf->palette[conf->src_key_index].r,
+                                                        conf->palette[conf->src_key_index].g,
+                                                        conf->palette[conf->src_key_index].b,
+                                                        conf->src_key_index );
+               }
+               else
+                    dfb_layer_context_set_src_colorkey( context, conf->src_key.r, conf->src_key.g, conf->src_key.b, -1 );
 
                switch (conf->background.mode) {
                     case DLBM_COLOR:

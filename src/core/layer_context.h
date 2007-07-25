@@ -82,12 +82,14 @@ DFBResult dfb_layer_context_get_configuration  ( CoreLayerContext            *co
 DFBResult dfb_layer_context_set_src_colorkey   ( CoreLayerContext            *context,
                                                  u8                           r,
                                                  u8                           g,
-                                                 u8                           b );
+                                                 u8                           b,
+                                                 int                          index );
 
 DFBResult dfb_layer_context_set_dst_colorkey   ( CoreLayerContext            *context,
                                                  u8                           r,
                                                  u8                           g,
-                                                 u8                           b );
+                                                 u8                           b,
+                                                 int                          index );
 
 DFBResult dfb_layer_context_set_sourcerectangle( CoreLayerContext            *context,
                                                  const DFBRectangle          *source );

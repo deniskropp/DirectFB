@@ -296,6 +296,16 @@ typedef struct {
 } DFBColor;
 
 /*
+ * A color key defined by R,G,B and eventually a color index.
+ */
+typedef struct {
+     u8             index;    /* color index */
+     u8             r;        /* red channel */
+     u8             g;        /* green channel */
+     u8             b;        /* blue channel */
+} DFBColorKey;
+
+/*
  * A color defined by channels with 8bit each.
  */
 typedef struct {

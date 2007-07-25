@@ -42,6 +42,7 @@ typedef struct {
 
      DFBDisplayLayerConfig               config;
      DFBColor                            src_key;
+     int                                 src_key_index;
 
      struct {
           DFBDisplayLayerBackgroundMode  mode;
