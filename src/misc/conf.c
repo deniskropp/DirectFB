@@ -142,6 +142,11 @@ static const char *config_usage =
      "  agpmem-limit=<amount>          Limit amount of AGP memory in kb\n"
      "  screenshot-dir=<directory>     Dump screen content on <Print> key presses\n"
      "  disable-module=<module_name>   suppress loading this module\n"
+     "  video-phys=<hexaddress>        Physical start of video memory (devmem system)\n"
+     "  video-length=<bytes>           Length of video memory (devmem system)\n"
+     "  mmio-phys=<hexaddress>         Physical start of MMIO area (devmem system)\n"
+     "  mmio-length=<bytes>            Length of MMIO area (devmem system)\n"
+     "  accelerator=<id>               Accelerator ID selecting graphics driver (devmem system)\n"
      "\n"
      "  [no-]matrox-sgram              Use Matrox SGRAM features\n"
      "  [no-]matrox-crtc2              Experimental Matrox CRTC2 support\n"
@@ -1359,6 +1364,101 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR( "DirectFB/Config: Missing value for dont-catch!\n" );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "video-phys" ) == 0) {
+          if (value) {
+               char *error;
+               ulong phys;
+
+               phys = strtoul( value, &error, 16 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in hex value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->video_phys = phys;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "video-length" ) == 0) {
+          if (value) {
+               char *error;
+               ulong length;
+
+               length = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->video_length = length;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "mmio-phys" ) == 0) {
+          if (value) {
+               char *error;
+               ulong phys;
+
+               phys = strtoul( value, &error, 16 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in hex value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->mmio_phys = phys;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "mmio-length" ) == 0) {
+          if (value) {
+               char *error;
+               ulong length;
+
+               length = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->mmio_length = length;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "accelerator" ) == 0) {
+          if (value) {
+               char *error;
+               ulong accel;
+
+               accel = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->accelerator = accel;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
                return DFB_INVARG;
           }
      } else

@@ -188,6 +188,12 @@ typedef struct
      DFBSurfaceRenderOptions  render_options;     /* default render options */
 
      bool       startstop;                        /* Issue StartDrawing/StopDrawing to driver */
+
+     unsigned long video_phys;                    /* Physical base address of video memory */
+     unsigned int  video_length;                  /* Size of video memory */
+     unsigned long mmio_phys;                     /* Physical base address of MMIO area */
+     unsigned int  mmio_length;                   /* Size of MMIO area */
+     int           accelerator;                   /* Accelerator ID */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;
