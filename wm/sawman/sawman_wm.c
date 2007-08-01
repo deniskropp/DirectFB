@@ -3116,10 +3116,11 @@ wm_grab( CoreWindow *window,
 
           case CWMGT_UNSELECTED_KEYS:
                if (sawman->unselkeys_window)
-                    return DFB_LOCKED;
+                    ret = DFB_LOCKED;
+               else
+                    sawman->unselkeys_window = sawwin;
 
-               sawman->unselkeys_window = sawwin;
-               return DFB_OK;
+               break;
 
           default:
                D_BUG( "unknown grab target" );
