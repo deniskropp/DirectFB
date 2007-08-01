@@ -1625,12 +1625,16 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
      data->core  = core;
      data->level = DFSCL_NORMAL;
 
+     if (dfb_layer_num() < 1) {
+          D_ERROR( "%s: No layers available! Missing driver?\n", __FUNCTION__ );
+          return DFB_UNSUPPORTED;
+     }
+
      data->layer = dfb_layer_at_translated( DLID_PRIMARY );
 
      ret = dfb_layer_get_primary_context( data->layer, true, &data->context );
      if (ret) {
-          D_ERROR( "IDirectFB_Construct: "
-                    "Could not get default context of primary layer!\n" );
+          D_ERROR( "%s: Could not get default context of primary layer!\n", __FUNCTION__ );
           DIRECT_DEALLOCATE_INTERFACE(thiz);
           return ret;
      }
