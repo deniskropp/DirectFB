@@ -26,6 +26,11 @@
 
 #define X_07C0F83F  (X_F81F07E0>>SHIFT_R5)
 
+#if 0
+#define HVX_DEBUG(x...)  direct_log_printf( NULL, x )
+#else
+#define HVX_DEBUG(x...)  do {} while (0)
+#endif
 
 /*static void STRETCH_HVX_RGB16( void       *dst,
                                int         dpitch,
@@ -37,40 +42,42 @@
                                int         dst_height,
                                DFBRegion  *clip )*/
 {
-     int  x, y, r = 0;
-     int  head    = ((((unsigned long) dst) & 2) >> 1) ^ (clip->x1 & 1);
-     int  cw      = clip->x2 - clip->x1 + 1;
-     int  ch      = clip->y2 - clip->y1 + 1;
-     int  tail    = (cw - head) & 1;
-     int  w2      = (cw - head) / 2;
-     u32  hfraq   = ((u32)width  << 18) / (u32)dst_width;
-     u32  vfraq   = ((u32)height << 18) / (u32)dst_height;
-     int  dp4     = dpitch / 4;
-     u32  point0  = POINT_0 + clip->x1 * hfraq;
-     u32  point   = point0;
-     u32  line    = LINE_0 + clip->y1 * vfraq;
-     u32 *dst32;
-     u32  ratios[cw];
+     long  x, y, r = 0;
+     long  head    = ((((ulong) dst) & 2) >> 1) ^ (clip->x1 & 1);
+     long  cw      = clip->x2 - clip->x1 + 1;
+     long  ch      = clip->y2 - clip->y1 + 1;
+     long  tail    = (cw - head) & 1;
+     long  w2      = (cw - head) / 2;
+     long  hfraq   = ((long)(width  - (POINT_0 ? 0 : 1) ) << 18) / (long)(dst_width);
+     long  vfraq   = ((long)(height - (LINE_0  ? 0 : 1) ) << 18) / (long)(dst_height);
+     long  dp4     = dpitch / 4;
+     long  point0  = POINT_0 + clip->x1 * hfraq;
+     long  point   = point0;
+     long  line    = LINE_0 + clip->y1 * vfraq;
+     long  ratios[cw];
+     u32  *dst32;
 
 #if defined (COLOR_KEY) || defined (COLOR_KEY_PROTECT)
-     u32  dt;
-     u16  l_, h_;
+     u32   dt;
+     u16   l_, h_;
 #endif
 
-     u32  _lbT[w2+8];
-     u32  _lbB[w2+8];
+     u32   _lbT[w2+8];
+     u32   _lbB[w2+8];
 
-     u32 *lbX;
-     u32 *lbT = (u32*)((((ulong)(&_lbT[0])) + 31) & ~31);
-     u32 *lbB = (u32*)((((ulong)(&_lbB[0])) + 31) & ~31);
+     u32  *lbX;
+     u32  *lbT = (u32*)((((ulong)(&_lbT[0])) + 31) & ~31);
+     u32  *lbB = (u32*)((((ulong)(&_lbB[0])) + 31) & ~31);
 
-     int  lineT = -2000;
+     long  lineT = -2000;
 
      for (x=0; x<cw; x++) {
           ratios[x] = POINT_TO_RATIO( point, hfraq );
 
           point += hfraq;
      }
+
+     HVX_DEBUG("%dx%d -> %dx%d  (0x%x, 0x%x)\n", width, height, dst_width, dst_height, hfraq, vfraq );
 
      dst += clip->x1 * 2 + clip->y1 * dpitch;
 
@@ -84,7 +91,7 @@
           point = point0;
 
           for (y=0; y<ch; y++) {
-               u32 X = LINE_TO_RATIO( line, vfraq );
+               long X = LINE_TO_RATIO( line, vfraq );
 
                const SOURCE_TYPE *srcT = src + spitch * LINE_T( line, vfraq );
                const SOURCE_TYPE *srcB = src + spitch * LINE_B( line, vfraq );
@@ -92,14 +99,19 @@
                /*
                 * Horizontal interpolation
                 */
-               L = SOURCE_LOOKUP(srcT[POINT_L( point, hfraq )]);
-               R = SOURCE_LOOKUP(srcT[POINT_R( point, hfraq )]);
+               long pl = POINT_L( point, hfraq );
+               HVX_DEBUG("h,%ld %lu  (%lu/%lu)   0x%x  0x%x\n", y, pl,
+                         POINT_L( point, hfraq ), POINT_R( point, hfraq ), point, ratios[r] );
+               D_ASSERT( pl >= 0 );
+               D_ASSERT( pl < width-1 );
+               L = SOURCE_LOOKUP(srcT[pl]);
+               R = SOURCE_LOOKUP(srcT[pl+1]);
 
                dpT = (((((R & X_F81F)-(L & X_F81F))*ratios[r] + ((L & X_F81F)<<SHIFT_L6)) & X_003E07C0) + 
                       ((((R & X_07E0)-(L & X_07E0))*ratios[r] + ((L & X_07E0)<<SHIFT_L6)) & X_0001F800)) >> SHIFT_R6;
 
-               L = SOURCE_LOOKUP(srcB[POINT_L( point, hfraq )]);
-               R = SOURCE_LOOKUP(srcB[POINT_R( point, hfraq )]);
+               L = SOURCE_LOOKUP(srcB[pl]);
+               R = SOURCE_LOOKUP(srcB[pl+1]);
 
                dpB = (((((R & X_F81F)-(L & X_F81F))*ratios[r] + ((L & X_F81F)<<SHIFT_L6)) & X_003E07C0) + 
                       ((((R & X_07E0)-(L & X_07E0))*ratios[r] + ((L & X_07E0)<<SHIFT_L6)) & X_0001F800)) >> SHIFT_R6;
@@ -142,7 +154,10 @@
       * Scale line by line.
       */
      for (y=0; y<ch; y++) {
-          int nlT = LINE_T( line, vfraq );
+          long nlT = LINE_T( line, vfraq );
+
+          D_ASSERT( nlT >= 0 );
+          D_ASSERT( nlT < height-1 );
 
           /*
            * Fill line buffer(s) ?
@@ -151,7 +166,7 @@
                u32 L, R, dpT, dpB;
                const SOURCE_TYPE *srcT = src + spitch * nlT;
                const SOURCE_TYPE *srcB = src + spitch * (nlT + 1);
-               int                diff = nlT - lineT;
+               long               diff = nlT - lineT;
 
                if (diff > 1) {
                     /*
@@ -161,8 +176,13 @@
                          /*
                           * Horizontal interpolation
                           */
-                         L = SOURCE_LOOKUP(srcT[POINT_L( point, hfraq )]);
-                         R = SOURCE_LOOKUP(srcT[POINT_R( point, hfraq )]);
+                         long pl = POINT_L( point, hfraq );
+                         HVX_DEBUG("%ld,%ld %lu  (%lu/%lu)   0x%x  0x%x\n", x, y, pl,
+                                   POINT_L( point, hfraq ), POINT_R( point, hfraq ), point, ratios[r] );
+                         D_ASSERT( pl >= 0 );
+                         D_ASSERT( pl < width-1 );
+                         L = SOURCE_LOOKUP(srcT[pl]);
+                         R = SOURCE_LOOKUP(srcT[pl+1]);
 
                          dpT = (((((R & X_F81F)-(L & X_F81F))*ratios[r] + ((L & X_F81F)<<SHIFT_L6)) & X_003E07C0) + 
                                 ((((R & X_07E0)-(L & X_07E0))*ratios[r] + ((L & X_07E0)<<SHIFT_L6)) & X_0001F800))
@@ -172,8 +192,8 @@
                               >> SHIFT_R6;
 #endif
 
-                         L = SOURCE_LOOKUP(srcB[POINT_L( point, hfraq )]);
-                         R = SOURCE_LOOKUP(srcB[POINT_R( point, hfraq )]);
+                         L = SOURCE_LOOKUP(srcB[pl]);
+                         R = SOURCE_LOOKUP(srcB[pl+1]);
 
                          dpB = (((((R & X_F81F)-(L & X_F81F))*ratios[r] + ((L & X_F81F)<<SHIFT_L6)) & X_003E07C0) + 
                                 ((((R & X_07E0)-(L & X_07E0))*ratios[r] + ((L & X_07E0)<<SHIFT_L6)) & X_0001F800))
@@ -187,8 +207,14 @@
                          r++;
 
 
-                         L = SOURCE_LOOKUP(srcT[POINT_L( point, hfraq )]);
-                         R = SOURCE_LOOKUP(srcT[POINT_R( point, hfraq )]);
+                         pl = POINT_L( point, hfraq );
+                         HVX_DEBUG("%ld,%ld %lu  (%lu/%lu)   0x%x  0x%x\n", x, y, pl,
+                                   POINT_L( point, hfraq ), POINT_R( point, hfraq ), point, ratios[r] );
+                         D_ASSERT( pl >= 0 );
+                         D_ASSERT( pl < width-1 );
+
+                         L = SOURCE_LOOKUP(srcT[pl]);
+                         R = SOURCE_LOOKUP(srcT[pl+1]);
 
                          dpT |= (((((R & X_F81F)-(L & X_F81F))*ratios[r] + ((L & X_F81F)<<SHIFT_L6)) & X_003E07C0) + 
                                  ((((R & X_07E0)-(L & X_07E0))*ratios[r] + ((L & X_07E0)<<SHIFT_L6)) & X_0001F800))
@@ -198,8 +224,8 @@
                               << SHIFT_L10;
 #endif
 
-                         L = SOURCE_LOOKUP(srcB[POINT_L( point, hfraq )]);
-                         R = SOURCE_LOOKUP(srcB[POINT_R( point, hfraq )]);
+                         L = SOURCE_LOOKUP(srcB[pl]);
+                         R = SOURCE_LOOKUP(srcB[pl+1]);
 
                          dpB |= (((((R & X_F81F)-(L & X_F81F))*ratios[r] + ((L & X_F81F)<<SHIFT_L6)) & X_003E07C0) + 
                                  ((((R & X_07E0)-(L & X_07E0))*ratios[r] + ((L & X_07E0)<<SHIFT_L6)) & X_0001F800))
@@ -230,8 +256,13 @@
                          /*
                           * Horizontal interpolation
                           */
-                         L = SOURCE_LOOKUP(srcB[POINT_L( point, hfraq )]);
-                         R = SOURCE_LOOKUP(srcB[POINT_R( point, hfraq )]);
+                         long pl = POINT_L( point, hfraq );
+                         HVX_DEBUG("%ld,%ld %lu  (%lu/%lu)   0x%x  0x%x\n", x, y, pl,
+                                   POINT_L( point, hfraq ), POINT_R( point, hfraq ), point, ratios[r] );
+                         D_ASSERT( pl >= 0 );
+                         D_ASSERT( pl < width-1 );
+                         L = SOURCE_LOOKUP(srcB[pl]);
+                         R = SOURCE_LOOKUP(srcB[pl+1]);
 
                          dpB = (((((R & X_F81F)-(L & X_F81F))*ratios[r] + ((L & X_F81F)<<SHIFT_L6)) & X_003E07C0) + 
                                 ((((R & X_07E0)-(L & X_07E0))*ratios[r] + ((L & X_07E0)<<SHIFT_L6)) & X_0001F800))
@@ -245,8 +276,14 @@
                          r++;
 
 
-                         L = SOURCE_LOOKUP(srcB[POINT_L( point, hfraq )]);
-                         R = SOURCE_LOOKUP(srcB[POINT_R( point, hfraq )]);
+                         pl = POINT_L( point, hfraq );
+                         HVX_DEBUG("%ld,%ld %lu  (%lu/%lu)   0x%x  0x%x\n", x, y, pl,
+                                   POINT_L( point, hfraq ), POINT_R( point, hfraq ), point, ratios[r] );
+                         D_ASSERT( pl >= 0 );
+                         D_ASSERT( pl < width-1 );
+
+                         L = SOURCE_LOOKUP(srcB[pl]);
+                         R = SOURCE_LOOKUP(srcB[pl+1]);
 
                          dpB |= (((((R & X_F81F)-(L & X_F81F))*ratios[r] + ((L & X_F81F)<<SHIFT_L6)) & X_003E07C0) + 
                                  ((((R & X_07E0)-(L & X_07E0))*ratios[r] + ((L & X_07E0)<<SHIFT_L6)) & X_0001F800))
@@ -270,7 +307,7 @@
           /*
            * Vertical interpolation
            */
-          u32 X = LINE_TO_RATIO( line, vfraq );
+          long X = LINE_TO_RATIO( line, vfraq );
 
           for (x=0; x<w2; x++) {
 #if defined (COLOR_KEY) || defined (COLOR_KEY_PROTECT)
@@ -348,7 +385,7 @@
           line = LINE_0 + clip->y1 * vfraq;
 
           for (y=0; y<ch; y++) {
-               u32 X = LINE_TO_RATIO( line, vfraq );
+               long X = LINE_TO_RATIO( line, vfraq );
 
                const SOURCE_TYPE *srcT = src + spitch * LINE_T( line, vfraq );
                const SOURCE_TYPE *srcB = src + spitch * LINE_B( line, vfraq );
@@ -356,14 +393,19 @@
                /*
                 * Horizontal interpolation
                 */
-               L = SOURCE_LOOKUP(srcT[POINT_L( point, hfraq )]);
-               R = SOURCE_LOOKUP(srcT[POINT_R( point, hfraq )]);
+               long pl = POINT_L( point, hfraq );
+               HVX_DEBUG("t,%ld %lu  (%lu/%lu)   0x%x  0x%x\n", y, pl,
+                         POINT_L( point, hfraq ), POINT_R( point, hfraq ), point, ratios[r] );
+               D_ASSERT( pl >= 0 );
+               D_ASSERT( pl < width-1 );
+               L = SOURCE_LOOKUP(srcT[pl]);
+               R = SOURCE_LOOKUP(srcT[pl+1]);
 
                dpT = (((((R & X_F81F)-(L & X_F81F))*ratios[r] + ((L & X_F81F)<<SHIFT_L6)) & X_003E07C0) + 
                       ((((R & X_07E0)-(L & X_07E0))*ratios[r] + ((L & X_07E0)<<SHIFT_L6)) & X_0001F800)) >> SHIFT_R6;
 
-               L = SOURCE_LOOKUP(srcB[POINT_L( point, hfraq )]);
-               R = SOURCE_LOOKUP(srcB[POINT_R( point, hfraq )]);
+               L = SOURCE_LOOKUP(srcB[pl]);
+               R = SOURCE_LOOKUP(srcB[pl+1]);
 
                dpB = (((((R & X_F81F)-(L & X_F81F))*ratios[r] + ((L & X_F81F)<<SHIFT_L6)) & X_003E07C0) + 
                       ((((R & X_07E0)-(L & X_07E0))*ratios[r] + ((L & X_07E0)<<SHIFT_L6)) & X_0001F800)) >> SHIFT_R6;
