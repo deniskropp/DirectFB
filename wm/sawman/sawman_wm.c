@@ -816,12 +816,32 @@ process_updates( SaWMan              *sawman,
 
                     dfb_layer_context_set_screenrectangle( tier->context, &rect );
 
-                    if (options & DLOP_SRC_COLORKEY)
-                         dfb_layer_context_set_src_colorkey( tier->context,
-                                                             (window->config.color_key & 0xF800) >> 8,
-                                                             (window->config.color_key & 0x07E0) >> 3,
-                                                             (window->config.color_key & 0x001F) << 3,
-                                                             window->config.color_key );
+                    if (options & DLOP_SRC_COLORKEY) {
+                         if (DFB_PIXELFORMAT_IS_INDEXED( surface->format )) {
+                              int          index;
+                              CorePalette *palette = surface->palette;
+
+                              D_ASSERT( palette != NULL );
+                              D_ASSERT( palette->num_entries > 0 );
+
+                              index = window->config.color_key % palette->num_entries;
+
+                              dfb_layer_context_set_src_colorkey( tier->context,
+                                                                  palette->entries[index].r,
+                                                                  palette->entries[index].g,
+                                                                  palette->entries[index].b,
+                                                                  index );
+                         }
+                         else {
+                              DFBColor color;
+
+                              dfb_pixel_to_color( surface->format, window->config.color_key, &color );
+
+                              dfb_layer_context_set_src_colorkey( tier->context,
+                                                                  color.r, color.g, color.b,
+                                                                  window->config.color_key );
+                         }
+                    }
 
                     if (DFB_PIXELFORMAT_IS_INDEXED( surface->format )) {
                          CoreSurface *region_surface;
