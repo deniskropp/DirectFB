@@ -619,6 +619,7 @@ static void stretch_hvx_argb4444_down( void       *dst,
 #include <gfx/generic/stretch_hvx_16.h>
 }
 
+#if 0
 static void stretch_hvx_argb4444_down_keyed( void       *dst,
                                              int         dpitch,
                                              const void *src,
@@ -660,6 +661,7 @@ static void stretch_hvx_argb4444_down_index( void           *dst,
 #undef SOURCE_LOOKUP
 #undef SOURCE_TYPE
 }
+#endif
 
 #undef POINT_0
 #undef LINE_0
@@ -697,6 +699,7 @@ static void stretch_hvx_argb4444_up( void       *dst,
 #include <gfx/generic/stretch_hvx_16.h>
 }
 
+#if 0
 static void stretch_hvx_argb4444_up_keyed( void       *dst,
                                            int         dpitch,
                                            const void *src,
@@ -738,6 +741,7 @@ static void stretch_hvx_argb4444_up_index( void           *dst,
 #undef SOURCE_LOOKUP
 #undef SOURCE_TYPE
 }
+#endif
 
 #undef POINT_0
 #undef LINE_0
