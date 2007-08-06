@@ -283,6 +283,14 @@ load_symbols( const char *filename )
           if (!fp)
                D_PERROR( "Direct/Trace: fopen( \"%s\", \"r\" ) failed!\n", command );
      }
+     else {
+          snprintf( command, command_len, "%s.nm", full_path );
+          if (access( command, R_OK ) == 0) {
+               fp = fopen( command, "r" );
+               if (!fp)
+                    D_PERROR( "Direct/Trace: fopen( \"%s\", \"r\" ) failed!\n", command );
+          }
+     }
 
      /* Fallback to live mode. */
      if (!fp) {

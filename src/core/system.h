@@ -43,7 +43,8 @@ typedef enum {
      CORE_X11,
      CORE_OSX,
      CORE_SDL,
-     CORE_VNC
+     CORE_VNC,
+     CORE_DEVMEM
 } CoreSystemType;
 
 typedef enum {

@@ -32,6 +32,18 @@
 
 #include "convert.h"
 
+/* lookup tables for 2/3bit to 8bit color conversion */
+static const u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff};
+static const u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff};
+
+#define EXPAND_1to8(v)   ((v) ? 0xff : 0x00)
+#define EXPAND_2to8(v)   (lookup2to8[v])
+#define EXPAND_3to8(v)   (lookup3to8[v])
+#define EXPAND_4to8(v)   (((v) << 4) | ((v)     ))
+#define EXPAND_5to8(v)   (((v) << 3) | ((v) >> 2))
+#define EXPAND_6to8(v)   (((v) << 2) | ((v) >> 4))
+#define EXPAND_7to8(v)   (((v) << 1) | ((v) >> 6))
+
 
 DFBSurfacePixelFormat
 dfb_pixelformat_for_depth( int depth )
@@ -122,6 +134,72 @@ dfb_color_to_pixel( DFBSurfacePixelFormat format,
      }
 
      return pixel;
+}
+
+void
+dfb_pixel_to_color( DFBSurfacePixelFormat  format,
+                    unsigned long          pixel,
+                    DFBColor              *ret_color )
+{
+     ret_color->a = 0xff;
+
+     switch (format) {
+          case DSPF_RGB332:
+               ret_color->r = EXPAND_3to8( (pixel & 0xe0) >> 5 );
+               ret_color->g = EXPAND_3to8( (pixel & 0x1c) >> 2 );
+               ret_color->b = EXPAND_2to8( (pixel & 0x03)      );
+               break;
+
+          case DSPF_ARGB1555:
+               ret_color->a = EXPAND_1to8(  pixel >> 15 );
+          case DSPF_RGB555:
+               ret_color->r = EXPAND_5to8( (pixel & 0x7c00) >> 10 );
+               ret_color->g = EXPAND_5to8( (pixel & 0x03e0) >>  5 );
+               ret_color->b = EXPAND_5to8( (pixel & 0x001f)       );
+               break;
+
+          case DSPF_ARGB2554:
+               ret_color->a = EXPAND_2to8(  pixel >> 14 );
+               ret_color->r = EXPAND_5to8( (pixel & 0x3e00) >>  9 );
+               ret_color->g = EXPAND_5to8( (pixel & 0x01f0) >>  4 );
+               ret_color->b = EXPAND_4to8( (pixel & 0x000f)       );
+               break;
+
+          case DSPF_ARGB4444:
+               ret_color->a = EXPAND_4to8(  pixel >> 12 );
+          case DSPF_RGB444:
+               ret_color->r = EXPAND_4to8( (pixel & 0x0f00) >>  8 );
+               ret_color->g = EXPAND_4to8( (pixel & 0x00f0) >>  4 );
+               ret_color->b = EXPAND_4to8( (pixel & 0x000f)       );
+               break;
+
+          case DSPF_RGB16:
+               ret_color->r = EXPAND_5to8( (pixel & 0xf800) >> 11 );
+               ret_color->g = EXPAND_6to8( (pixel & 0x07e0) >>  5 );
+               ret_color->b = EXPAND_5to8( (pixel & 0x001f)       );
+               break;
+
+          case DSPF_ARGB:
+               ret_color->a = pixel >> 24;
+          case DSPF_RGB24:
+          case DSPF_RGB32:
+               ret_color->r = (pixel & 0xff0000) >> 16;
+               ret_color->g = (pixel & 0x00ff00) >>  8;
+               ret_color->b = (pixel & 0x0000ff);
+               break;
+
+          case DSPF_AiRGB:
+               ret_color->a = (pixel >> 24) ^ 0xff;
+               ret_color->r = (pixel & 0xff0000) >> 16;
+               ret_color->g = (pixel & 0x00ff00) >>  8;
+               ret_color->b = (pixel & 0x0000ff);
+               break;
+
+          default:
+               ret_color->r = 0;
+               ret_color->g = 0;
+               ret_color->b = 0;
+     }
 }
 
 const char *
