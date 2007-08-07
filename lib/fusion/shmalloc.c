@@ -72,7 +72,7 @@ fusion_dbg_print_memleaks( FusionSHMPoolShared *pool )
                              direct_list_count_elements_EXPENSIVE( pool->allocs ), pool->name );
 
           direct_list_foreach (desc, pool->allocs) {
-               direct_log_printf( NULL, " %9d bytes at %p [%8lu] in %-30s [%3lx] (%s: %u)\n",
+               direct_log_printf( NULL, " %9zu bytes at %p [%8lu] in %-30s [%3lx] (%s: %u)\n",
                                   desc->bytes, desc->mem, (ulong)desc->mem - (ulong)pool->heap,
                                   desc->func, desc->fid, desc->file, desc->line );
 
@@ -132,7 +132,7 @@ fusion_dbg_shmalloc( FusionSHMPoolShared *pool,
      /* Allocate memory from the pool. */
      ret = fusion_shm_pool_allocate( pool, __size + sizeof(SHMemDesc), false, false, &data );
      if (ret) {
-          D_DERROR( ret, "Fusion/SHM: Could not allocate %d bytes from pool!\n", __size + sizeof(SHMemDesc) );
+          D_DERROR( ret, "Fusion/SHM: Could not allocate %zu bytes from pool!\n", __size + sizeof(SHMemDesc) );
           fusion_skirmish_dismiss( &pool->lock );
           return NULL;
      }
@@ -140,7 +140,7 @@ fusion_dbg_shmalloc( FusionSHMPoolShared *pool,
      /* Fill description. */
      desc = fill_shmem_desc( data, __size, func, file, line, _fusion_id(pool->shm->world) );
 
-     D_DEBUG_AT( Fusion_SHM, "allocating %9d bytes at %p [%8lu] in %-30s [%3lx] (%s: %u)\n",
+     D_DEBUG_AT( Fusion_SHM, "allocating %9zu bytes at %p [%8lu] in %-30s [%3lx] (%s: %u)\n",
                  desc->bytes, desc->mem, (ulong)desc->mem - (ulong)pool->heap,
                  desc->func, desc->fid, desc->file, desc->line );
 
@@ -183,7 +183,7 @@ fusion_dbg_shcalloc( FusionSHMPoolShared *pool,
      /* Allocate memory from the pool. */
      ret = fusion_shm_pool_allocate( pool, __nmemb * __size + sizeof(SHMemDesc), true, false, &data );
      if (ret) {
-          D_DERROR( ret, "Fusion/SHM: Could not allocate %d bytes from pool!\n", __nmemb * __size + sizeof(SHMemDesc) );
+          D_DERROR( ret, "Fusion/SHM: Could not allocate %zu bytes from pool!\n", __nmemb * __size + sizeof(SHMemDesc) );
           fusion_skirmish_dismiss( &pool->lock );
           return NULL;
      }
@@ -191,7 +191,7 @@ fusion_dbg_shcalloc( FusionSHMPoolShared *pool,
      /* Fill description. */
      desc = fill_shmem_desc( data, __nmemb * __size, func, file, line, _fusion_id(pool->shm->world) );
 
-     D_DEBUG_AT( Fusion_SHM, "allocating %9d bytes at %p [%8lu] in %-30s [%3lx] (%s: %u)\n",
+     D_DEBUG_AT( Fusion_SHM, "allocating %9zu bytes at %p [%8lu] in %-30s [%3lx] (%s: %u)\n",
                  desc->bytes, desc->mem, (ulong)desc->mem - (ulong)pool->heap,
                  desc->func, desc->fid, desc->file, desc->line );
 
@@ -259,7 +259,7 @@ fusion_dbg_shrealloc( FusionSHMPoolShared *pool,
      /* Reallocate the memory block. */
      ret = fusion_shm_pool_reallocate( pool, __ptr - sizeof(SHMemDesc), __size + sizeof(SHMemDesc), false, &data );
      if (ret) {
-          D_DERROR( ret, "Fusion/SHM: Could not reallocate from %d to %d bytes!\n",
+          D_DERROR( ret, "Fusion/SHM: Could not reallocate from %zu to %zu bytes!\n",
                     desc->bytes + sizeof(SHMemDesc), __size + sizeof(SHMemDesc) );
           fusion_skirmish_dismiss( &pool->lock );
           return NULL;
@@ -268,7 +268,7 @@ fusion_dbg_shrealloc( FusionSHMPoolShared *pool,
      /* Fill description. */
      desc = fill_shmem_desc( data, __size, func, file, line, _fusion_id(pool->shm->world) );
 
-     D_DEBUG_AT( Fusion_SHM, "reallocating %9d bytes at %p [%8lu] in %-30s [%3lx] (%s: %u) '%s'\n",
+     D_DEBUG_AT( Fusion_SHM, "reallocating %9zu bytes at %p [%8lu] in %-30s [%3lx] (%s: %u) '%s'\n",
                  desc->bytes, desc->mem, (ulong)desc->mem - (ulong)pool->heap,
                  desc->func, desc->fid, desc->file, desc->line, what );
 
@@ -320,7 +320,7 @@ fusion_dbg_shfree( FusionSHMPoolShared *pool,
           return; /* shouldn't happen due to the break */
      }
 
-     D_DEBUG_AT( Fusion_SHM, "freeing %9d bytes at %p [%8lu] in %-30s [%3lx] (%s: %u) '%s'\n",
+     D_DEBUG_AT( Fusion_SHM, "freeing %9zu bytes at %p [%8lu] in %-30s [%3lx] (%s: %u) '%s'\n",
                  desc->bytes, desc->mem, (ulong)desc->mem - (ulong)pool->heap,
                  desc->func, desc->fid, desc->file, desc->line, what );
 
@@ -366,7 +366,7 @@ fusion_dbg_shstrdup( FusionSHMPoolShared *pool,
      /* Allocate memory from the pool. */
      ret = fusion_shm_pool_allocate( pool, length + sizeof(SHMemDesc), false, false, &data );
      if (ret) {
-          D_DERROR( ret, "Fusion/SHM: Could not allocate %d bytes from pool!\n", length + sizeof(SHMemDesc) );
+          D_DERROR( ret, "Fusion/SHM: Could not allocate %zu bytes from pool!\n", length + sizeof(SHMemDesc) );
           fusion_skirmish_dismiss( &pool->lock );
           return NULL;
      }
@@ -374,7 +374,7 @@ fusion_dbg_shstrdup( FusionSHMPoolShared *pool,
      /* Fill description. */
      desc = fill_shmem_desc( data, length, func, file, line, _fusion_id(pool->shm->world) );
 
-     D_DEBUG_AT( Fusion_SHM, "allocating %9d bytes at %p [%8lu] in %-30s [%3lx] (%s: %u) <- \"%s\"\n",
+     D_DEBUG_AT( Fusion_SHM, "allocating %9zu bytes at %p [%8lu] in %-30s [%3lx] (%s: %u) <- \"%s\"\n",
                  desc->bytes, desc->mem, (ulong)desc->mem - (ulong)pool->heap,
                  desc->func, desc->fid, desc->file, desc->line, string );
 

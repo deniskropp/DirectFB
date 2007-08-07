@@ -84,7 +84,7 @@ align( shmalloc_heap *heap, size_t size )
      void          *result;
      unsigned long  adj;
 
-     D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, %d )\n", __FUNCTION__, heap, size );
+     D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, %zu )\n", __FUNCTION__, heap, size );
 
      D_MAGIC_ASSERT( heap, shmalloc_heap );
 
@@ -109,7 +109,7 @@ morecore( shmalloc_heap *heap, size_t size )
      shmalloc_info *newinfo, *oldinfo;
      size_t newsize;
 
-     D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, %d )\n", __FUNCTION__, heap, size );
+     D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, %zu )\n", __FUNCTION__, heap, size );
 
      D_MAGIC_ASSERT( heap, shmalloc_heap );
 
@@ -164,7 +164,7 @@ _fusion_shmalloc( shmalloc_heap *heap, size_t size )
      register size_t i;
      struct list *next;
 
-     D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, %d )\n", __FUNCTION__, heap, size );
+     D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, %zu )\n", __FUNCTION__, heap, size );
 
      D_MAGIC_ASSERT( heap, shmalloc_heap );
 
@@ -330,7 +330,7 @@ _fusion_shrealloc( shmalloc_heap *heap, void *ptr, size_t size )
      int    type;
      size_t block, blocks, oldlimit;
 
-     D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, %p, %d )\n", __FUNCTION__, heap, ptr, size );
+     D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, %p, %zu )\n", __FUNCTION__, heap, ptr, size );
 
      D_MAGIC_ASSERT( heap, shmalloc_heap );
 
