@@ -43,7 +43,7 @@ typedef union {
           int                      id;
           const FusionWorldShared *shared;
           /* builtin impl */
-          volatile struct {
+          struct {
                unsigned int        locked;
                pid_t               owner;
                unsigned int        waiting;

@@ -202,8 +202,6 @@ fusion_property_destroy (FusionProperty *property)
 
 #else /* FUSION_BUILD_KERNEL */
 
-#define FUSION_PROPERTY_YIELD_COUNT 100
-
 DirectResult
 fusion_property_init (FusionProperty *property, const FusionWorld *world)
 {
@@ -233,6 +231,8 @@ fusion_property_lease (FusionProperty *property)
 
      D_ASSUME( property->multi.builtin.owner != getpid() );
      
+     asm( "" ::: "memory" );
+     
      while (property->multi.builtin.state == FUSION_PROPERTY_LEASED) {
           /* Check whether owner exited without releasing. */
           if (kill( property->multi.builtin.owner, 0 ) < 0 && errno == ESRCH) {
@@ -242,6 +242,8 @@ fusion_property_lease (FusionProperty *property)
           }
           
           property->multi.builtin.requested = true;
+          
+          asm( "" ::: "memory" );
           
           direct_sched_yield();
                
@@ -254,6 +256,8 @@ fusion_property_lease (FusionProperty *property)
      
      property->multi.builtin.state = FUSION_PROPERTY_LEASED;
      property->multi.builtin.owner = getpid();
+     
+     asm( "" ::: "memory" );
 
      return DFB_OK;
 }
@@ -266,7 +270,9 @@ fusion_property_purchase (FusionProperty *property)
      if (property->multi.builtin.destroyed)
           return DFB_DESTROYED;
 
-     D_ASSUME( property->multi.builtin.owner != getpid() ); 
+     D_ASSUME( property->multi.builtin.owner != getpid() );
+     
+     asm( "" ::: "memory" );
           
      while (property->multi.builtin.state == FUSION_PROPERTY_LEASED) {
           /* Check whether owner exited without releasing. */
@@ -277,6 +283,8 @@ fusion_property_purchase (FusionProperty *property)
           }
           
           property->multi.builtin.requested = true;
+          
+          asm( "" ::: "memory" );
           
           direct_sched_yield();
                
@@ -289,6 +297,8 @@ fusion_property_purchase (FusionProperty *property)
      
      property->multi.builtin.state = FUSION_PROPERTY_PURCHASED;
      property->multi.builtin.owner = getpid();
+     
+     asm( "" ::: "memory" );
 
      return DFB_OK;
 }
@@ -306,9 +316,12 @@ fusion_property_cede (FusionProperty *property)
 
      property->multi.builtin.state = FUSION_PROPERTY_AVAILABLE;
      property->multi.builtin.owner = 0;
+     
+     asm( "" ::: "memory" );
 
      if (property->multi.builtin.requested) {
           property->multi.builtin.requested = false;
+          asm( "" ::: "memory" );
           direct_sched_yield();
      }
 
