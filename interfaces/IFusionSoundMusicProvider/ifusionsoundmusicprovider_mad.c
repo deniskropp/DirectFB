@@ -521,7 +521,7 @@ IFusionSoundMusicProvider_Mad_GetStreamDescription( IFusionSoundMusicProvider *t
      desc->samplerate   = data->samplerate;
      desc->channels     = data->channels;
      desc->sampleformat = FSSF_S32;
-     desc->buffersize   = 1152*2;
+     desc->buffersize   = data->samplerate/10;
 
      return DFB_OK;
 }
@@ -540,7 +540,7 @@ IFusionSoundMusicProvider_Mad_GetBufferDescription( IFusionSoundMusicProvider *t
      desc->samplerate   = data->samplerate;
      desc->channels     = data->channels;
      desc->sampleformat = FSSF_S32;
-     desc->length       = 1152*2;
+     desc->length       = data->samplerate/10;
 
      return DFB_OK;
 }
@@ -556,8 +556,8 @@ MadStreamThread( DirectThread *thread, void *ctx )
      direct_stream_wait( data->s, data->read_size, NULL );
 
      while (data->playing && !data->finished) {
-          DFBResult      ret;
-          unsigned int   len    = 0;
+          DFBResult      ret    = DFB_OK;
+          unsigned int   len    = data->read_size;
           int            offset = 0;
           struct timeval tv     = { 0, 500 };
 
@@ -579,11 +579,13 @@ MadStreamThread( DirectThread *thread, void *ctx )
                                data->stream.next_frame, offset );
           }
 
-          ret = direct_stream_wait( data->s, data->read_size, &tv );
-          if (ret != DFB_TIMEOUT) {
-               ret = direct_stream_read( data->s,
-                                         data->read_size-offset,
-                                         data->read_buffer+offset, &len );
+          if (offset < data->read_size) {
+               ret = direct_stream_wait( data->s, data->read_size, &tv );
+               if (ret != DFB_TIMEOUT) {
+                    ret = direct_stream_read( data->s,
+                                              data->read_size-offset,
+                                              data->read_buffer+offset, &len );
+               }
           }
 
           if (ret) {
@@ -717,8 +719,8 @@ MadBufferThread( DirectThread *thread, void *ctx )
      direct_stream_wait( data->s, data->read_size, NULL );
 
      while (data->playing && !data->finished) {
-          DFBResult      ret;
-          unsigned int   len    = 0;
+          DFBResult      ret    = DFB_OK;
+          unsigned int   len    = data->read_size;
           int            offset = 0;
           struct timeval tv     = { 0, 500 };
           int            size;
@@ -738,11 +740,13 @@ MadBufferThread( DirectThread *thread, void *ctx )
                                data->stream.next_frame, offset );
           }
 
-          ret = direct_stream_wait( data->s, data->read_size, &tv );
-          if (ret != DFB_TIMEOUT) {
-               ret = direct_stream_read( data->s,
-                                         data->read_size-offset,
-                                         data->read_buffer+offset, &len );
+          if (offset < data->read_size) {
+               ret = direct_stream_wait( data->s, data->read_size, &tv );
+               if (ret != DFB_TIMEOUT) {
+                    ret = direct_stream_read( data->s,
+                                              data->read_size-offset,
+                                              data->read_buffer+offset, &len );
+               }
           }
 
           if (ret) {
@@ -1073,13 +1077,15 @@ Construct( IFusionSoundMusicProvider *thiz,
 {
      DFBResult          ret;
      char               buf[16384];
+     unsigned int       pos = 0;
      unsigned int       len;
      unsigned int       size;
      struct mad_header  header;
-     unsigned long      frames  = 0;
+     unsigned long      frames = 0;
+     int                error  = 1;
      const char        *version;
      struct id3_tag     id3;
-     int                i, error;
+     int                i;
 
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSoundMusicProvider_Mad )
 
@@ -1088,23 +1094,28 @@ Construct( IFusionSoundMusicProvider *thiz,
 
      size = direct_stream_length( data->s );
 
-     direct_stream_wait( data->s, sizeof(buf), NULL );
-
-     ret = direct_stream_peek( data->s, sizeof(buf), 0, buf, &len );
-     if (ret) {
-          IFusionSoundMusicProvider_Mad_Destruct( thiz );
-          return ret;
-     }
-
      mad_stream_init( &data->stream );
      mad_frame_init( &data->frame );
      mad_synth_init( &data->synth );
      mad_stream_options( &data->stream, MAD_OPTION_IGNORECRC );
 
-     mad_stream_buffer( &data->stream, buf, len );
-
      /* find first valid frame */
      for (i = 0; i < 100; i++) {
+          if (data->stream.error == MAD_ERROR_BUFLEN ||
+              data->stream.error == MAD_ERROR_BUFPTR || i == 0)
+          {
+               direct_stream_wait( data->s, sizeof(buf), NULL );
+               
+               ret = direct_stream_peek( data->s, sizeof(buf), pos, buf, &len );
+               if (ret) {
+                    IFusionSoundMusicProvider_Mad_Destruct( thiz );
+                    return ret;
+               }
+               pos += len;
+               
+               mad_stream_buffer( &data->stream, buf, len );
+          }
+          
           error = mad_frame_decode( &data->frame, &data->stream );
           if (!error) {
                /* get number of frames from Xing headers */
@@ -1117,14 +1128,10 @@ Construct( IFusionSoundMusicProvider *thiz,
                }
                break;
           }
-          else {
-               if (!MAD_RECOVERABLE(data->stream.error))
-                    break;
-          }
      }
 
      if (error) {
-          D_DEBUG( "IFusionSoundMusicProvider_Mad: Couldn't find a valid frame!\n" );
+          D_ERROR( "IFusionSoundMusicProvider_Mad: Couldn't find a valid frame!\n" );
           IFusionSoundMusicProvider_Mad_Destruct( thiz );
           return DFB_FAILURE;
      }
