@@ -61,10 +61,10 @@ D_DEBUG_DOMAIN( Core_FontSurfaces, "Core/Font/Surf", "DirectFB Core Font Surface
 
 /**********************************************************************************************************************/
 
-static bool free_glyphs( DirectHash *hash,
-                         u32         key,
-                         void       *value,
-                         void       *ctx );
+static bool free_glyphs( DirectHash    *hash,
+                         unsigned long  key,
+                         void          *value,
+                         void          *ctx );
 
 /**********************************************************************************************************************/
 
@@ -628,10 +628,10 @@ dfb_font_decode_character( CoreFont          *font,
 /**********************************************************************************************************************/
 
 static bool
-free_glyphs( DirectHash *hash,
-             u32         key,
-             void       *value,
-             void       *ctx )
+free_glyphs( DirectHash    *hash,
+             unsigned long  key,
+             void          *value,
+             void          *ctx )
 {
      CoreGlyphData *data = value;
 

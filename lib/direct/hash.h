@@ -32,26 +32,26 @@
 #include <direct/types.h>
 
 
-typedef bool (*DirectHashIteratorFunc)( DirectHash *hash,
-                                        u32         key,
-                                        void       *value,
-                                        void       *ctx );
+typedef bool (*DirectHashIteratorFunc)( DirectHash    *hash,
+                                        unsigned long  key,
+                                        void          *value,
+                                        void          *ctx );
 
 
-DirectResult  direct_hash_create ( int          size,
-                                   DirectHash **ret_hash );
+DirectResult  direct_hash_create ( int            size,
+                                   DirectHash   **ret_hash );
 
-void          direct_hash_destroy( DirectHash  *hash );
+void          direct_hash_destroy( DirectHash    *hash );
 
-DirectResult  direct_hash_insert ( DirectHash  *hash,
-                                   u32          key,
-                                   void        *value );
+DirectResult  direct_hash_insert ( DirectHash    *hash,
+                                   unsigned long  key,
+                                   void          *value );
 
-void          direct_hash_remove ( DirectHash  *hash,
-                                   u32          key );
+void          direct_hash_remove ( DirectHash    *hash,
+                                   unsigned long  key );
 
-void         *direct_hash_lookup ( DirectHash  *hash,
-                                   u32          key );
+void         *direct_hash_lookup ( DirectHash    *hash,
+                                   unsigned long  key );
 
 void          direct_hash_iterate( DirectHash             *hash,
                                    DirectHashIteratorFunc  func,

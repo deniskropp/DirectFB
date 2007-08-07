@@ -42,7 +42,7 @@ typedef union {
           const FusionWorldShared *shared;
           FusionID                 creator;
           /* builtin impl */
-          volatile struct {
+          struct {
                int                 local;
                int                 global;
                FusionSkirmish      lock; 

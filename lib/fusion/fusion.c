@@ -529,7 +529,7 @@ fusion_enter( int               world_index,
           goto error;
      }
 
-     D_DEBUG_AT( Fusion_Main, "  -> shared area at %p, size %d\n", shared, sizeof(FusionWorldShared) );
+     D_DEBUG_AT( Fusion_Main, "  -> shared area at %p, size %zu\n", shared, sizeof(FusionWorldShared) );
 
      /* Initialize shared data. */
      if (enter.fusion_id == FUSION_ID_MASTER) {

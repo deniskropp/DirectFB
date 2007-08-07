@@ -75,7 +75,7 @@ direct_print_memleaks()
           for (i=0; i<alloc_count; i++) {
                MemDesc *desc = &alloc_list[i];
 
-               direct_log_printf( NULL, "%7d bytes at %p allocated in %s (%s: %u)\n",
+               direct_log_printf( NULL, "%7zu bytes at %p allocated in %s (%s: %u)\n",
                                   desc->bytes, desc->mem, desc->func, desc->file, desc->line );
 
                if (desc->trace)

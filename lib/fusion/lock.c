@@ -301,6 +301,8 @@ fusion_skirmish_prevail( FusionSkirmish *skirmish )
      
      if (skirmish->multi.builtin.destroyed)
           return DFB_DESTROYED;
+          
+     asm( "" ::: "memory" );
 
      if (skirmish->multi.builtin.locked &&
          skirmish->multi.builtin.owner != getpid())
@@ -317,6 +319,8 @@ fusion_skirmish_prevail( FusionSkirmish *skirmish )
 
                skirmish->multi.builtin.requested = true;
                
+               asm( "" ::: "memory" );
+               
                if (++count > 1000) {
                     usleep( 0 );
                     count = 0;
@@ -332,6 +336,8 @@ fusion_skirmish_prevail( FusionSkirmish *skirmish )
      
      skirmish->multi.builtin.locked++;
      skirmish->multi.builtin.owner = getpid();
+     
+     asm( "" ::: "memory" );
 
      return DFB_OK;
 }
@@ -343,6 +349,8 @@ fusion_skirmish_swoop( FusionSkirmish *skirmish )
      
      if (skirmish->multi.builtin.destroyed)
           return DFB_DESTROYED;
+          
+     asm( "" ::: "memory" );
           
      if (skirmish->multi.builtin.locked &&
          skirmish->multi.builtin.owner != getpid()) {
@@ -357,6 +365,8 @@ fusion_skirmish_swoop( FusionSkirmish *skirmish )
           
      skirmish->multi.builtin.locked++;
      skirmish->multi.builtin.owner = getpid();
+     
+     asm( "" ::: "memory" );
 
      return DFB_OK;
 }
@@ -383,6 +393,8 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
      
      if (skirmish->multi.builtin.destroyed)
           return DFB_DESTROYED;
+          
+     asm( "" ::: "memory" );
 
      if (skirmish->multi.builtin.locked) {
           if (skirmish->multi.builtin.owner != getpid()) {
@@ -400,7 +412,9 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
                }
           }
      }
-
+     
+     asm( "" ::: "memory" );
+     
      return DFB_OK;
 }
 

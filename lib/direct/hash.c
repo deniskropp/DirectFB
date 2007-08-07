@@ -42,8 +42,8 @@ D_DEBUG_DOMAIN( Direct_Hash, "Direct/Hash", "Hash table implementation" );
 #define REMOVED  ((void *) -1)
 
 typedef struct {
-     u32       key;
-     void     *value;
+     unsigned long  key;
+     void          *value;
 } Element;
 
 struct __D_DirectHash {
@@ -60,7 +60,7 @@ struct __D_DirectHash {
 /**************************************************************************************************/
 
 static inline int
-locate_key( const DirectHash *hash, u32 key )
+locate_key( const DirectHash *hash, unsigned long key )
 {
      int            pos;
      const Element *element;
@@ -129,9 +129,9 @@ direct_hash_destroy( DirectHash *hash )
 }
 
 DirectResult
-direct_hash_insert( DirectHash *hash,
-                    u32         key,
-                    void       *value )
+direct_hash_insert( DirectHash    *hash,
+                    unsigned long  key,
+                    void          *value )
 {
      int      pos;
      Element *element;
@@ -180,7 +180,7 @@ direct_hash_insert( DirectHash *hash,
 
      pos = key % hash->size;
 
-     D_DEBUG_AT( Direct_Hash, "Attempting to insert key 0x%08x at position %d...\n", key, pos );
+     D_DEBUG_AT( Direct_Hash, "Attempting to insert key 0x%08lx at position %d...\n", key, pos );
 
      element = &hash->elements[pos];
 
@@ -204,15 +204,15 @@ direct_hash_insert( DirectHash *hash,
 
      hash->count++;
 
-     D_DEBUG_AT( Direct_Hash, "...inserted at %d, new count = %d, removed = %d, size = %d, key = 0x%08x.\n",
+     D_DEBUG_AT( Direct_Hash, "...inserted at %d, new count = %d, removed = %d, size = %d, key = 0x%08lx.\n",
                  pos, hash->count, hash->removed, hash->size, key );
 
      return DFB_OK;
 }
 
 void
-direct_hash_remove( DirectHash  *hash,
-                    u32          key )
+direct_hash_remove( DirectHash    *hash,
+                    unsigned long  key )
 {
      int pos;
 
@@ -229,13 +229,13 @@ direct_hash_remove( DirectHash  *hash,
      hash->count--;
      hash->removed++;
 
-     D_DEBUG_AT( Direct_Hash, "Removed key 0x%08x at %d, new count = %d, removed = %d, size = %d.\n",
+     D_DEBUG_AT( Direct_Hash, "Removed key 0x%08lx at %d, new count = %d, removed = %d, size = %d.\n",
                  key, pos, hash->count, hash->removed, hash->size );
 }
 
 void *
-direct_hash_lookup( DirectHash *hash,
-                    u32         key )
+direct_hash_lookup( DirectHash    *hash,
+                    unsigned long  key )
 {
      int pos;
 

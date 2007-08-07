@@ -46,7 +46,7 @@ typedef union {
           int                      id;
           const FusionWorldShared *shared;
           /* builtin impl */
-          volatile struct {
+          struct {
                FusionPropertyState state;
                pid_t               owner;
                bool                requested;

@@ -76,6 +76,22 @@ direct_serial_copy( DirectSerial *serial, const DirectSerial *source )
 }
 
 static __inline__ bool
+direct_serial_check( DirectSerial *serial, const DirectSerial *source )
+{
+     D_MAGIC_ASSERT( serial, DirectSerial );
+     D_MAGIC_ASSERT( source, DirectSerial );
+
+     if (serial->overflow < source->overflow)
+          return false;
+     else if (serial->overflow == source->overflow && serial->value < source->value)
+          return false;
+
+     D_ASSUME( serial->value == source->value );
+
+     return true;
+}
+
+static __inline__ bool
 direct_serial_update( DirectSerial *serial, const DirectSerial *source )
 {
      D_MAGIC_ASSERT( serial, DirectSerial );
