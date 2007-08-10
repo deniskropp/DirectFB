@@ -177,13 +177,13 @@ fusion_shm_pool_destroy( FusionWorld         *world,
 
      D_ASSERT( shared == pool->shm );
 
-     ret = fusion_skirmish_prevail( &pool->lock );
+     ret = fusion_skirmish_prevail( &shared->lock );
      if (ret)
           return ret;
 
-     ret = fusion_skirmish_prevail( &shared->lock );
+     ret = fusion_skirmish_prevail( &pool->lock );
      if (ret) {
-          fusion_skirmish_dismiss( &pool->lock );
+          fusion_skirmish_dismiss( &shared->lock );
           return ret;
      }
 
