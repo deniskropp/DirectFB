@@ -55,8 +55,8 @@ FusionObjectPool *dfb_layer_context_pool_create( const FusionWorld *world );
 FUSION_OBJECT_METHODS( CoreLayerContext, dfb_layer_context )
 
 
-DFBResult dfb_layer_context_create( CoreLayer         *layer,
-                                    CoreLayerContext **ret_context );
+DFBResult dfb_layer_context_init( CoreLayerContext *context,
+                                  CoreLayer        *layer );
 
 DFBResult dfb_layer_context_get_primary_region( CoreLayerContext  *context,
                                                 bool               create,

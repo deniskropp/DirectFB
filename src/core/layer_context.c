@@ -141,22 +141,16 @@ dfb_layer_context_pool_create( const FusionWorld *world )
 /**********************************************************************************************************************/
 
 DFBResult
-dfb_layer_context_create( CoreLayer         *layer,
-                          CoreLayerContext **ret_context )
+dfb_layer_context_init( CoreLayerContext *context,
+                        CoreLayer        *layer )
 {
      CoreLayerShared  *shared;
-     CoreLayerContext *context;
 
+     D_ASSERT( context != NULL );
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->shared != NULL );
-     D_ASSERT( ret_context != NULL );
 
      shared = layer->shared;
-
-     /* Create the object. */
-     context = dfb_core_create_layer_context( layer->core );
-     if (!context)
-          return DFB_FUSION;
 
      D_DEBUG_AT( Core_Layers, "%s -> %p\n", __FUNCTION__, context );
 
@@ -209,9 +203,6 @@ dfb_layer_context_create( CoreLayer         *layer,
      dfb_windowstack_resize( context->stack,
                              context->config.width,
                              context->config.height );
-
-     /* Return the new context. */
-     *ret_context = context;
 
      return DFB_OK;
 }

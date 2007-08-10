@@ -181,14 +181,21 @@ dfb_layer_create_context( CoreLayer         *layer,
      shared   = layer->shared;
      contexts = &shared->contexts;
 
-     /* Lock the layer. */
-     if (fusion_skirmish_prevail( &shared->lock ))
-          return DFB_FUSION;
-
      D_DEBUG_AT( Core_Layers, "%s (%s)\n", __FUNCTION__, shared->description.name );
 
-     /* Create a new context. */
-     ret = dfb_layer_context_create( layer, &context );
+     /* Create the object. */
+     context = dfb_core_create_layer_context( layer->core );
+     if (!context)
+          return DFB_FUSION;
+
+     /* Lock the layer. */
+     if (fusion_skirmish_prevail( &shared->lock )) {
+          fusion_object_destroy( &context->object );
+          return DFB_FUSION;
+     }
+
+     /* Initialize the new context. */
+     ret = dfb_layer_context_init( context, layer );
      if (ret) {
           fusion_skirmish_dismiss( &shared->lock );
           return ret;
@@ -288,12 +295,35 @@ dfb_layer_get_primary_context( CoreLayer         *layer,
           }
      }
      else {
+          CoreLayerContext *primary;
+
+          /* Unlock the layer. */
+          fusion_skirmish_dismiss( &shared->lock );
+
           /* Create the primary (shared) context. */
-          ret = dfb_layer_create_context( layer, &contexts->primary );
-          if (ret) {
-               fusion_skirmish_dismiss( &shared->lock );
+          ret = dfb_layer_create_context( layer, &primary );
+          if (ret)
                return ret;
+
+          /* Lock the layer again. */
+          if (fusion_skirmish_prevail( &shared->lock )) {
+               dfb_layer_context_unref( primary );
+               return DFB_FUSION;
           }
+
+          /* Check if there was a race. */
+          if (contexts->primary) {
+               /* Throw away ours, the other was faster. */
+               dfb_layer_context_unref( primary );
+
+               /* Increase the context's reference counter. */
+               if (dfb_layer_context_ref( contexts->primary )) {
+                    fusion_skirmish_dismiss( &shared->lock );
+                    return DFB_FUSION;
+               }
+          }
+          else
+               contexts->primary = primary;
      }
 
      /* Activate if no context is active? */
