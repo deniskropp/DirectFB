@@ -1049,6 +1049,24 @@ fusion_reactor_set_lock( FusionReactor  *reactor,
 }
 
 DirectResult
+fusion_reactor_set_lock_only( FusionReactor  *reactor,
+                              FusionSkirmish *lock )
+{
+     D_MAGIC_ASSERT( reactor, FusionReactor );
+     D_ASSERT( lock != NULL );
+
+     D_DEBUG_AT( Fusion_Reactor, "fusion_reactor_set_lock_only( %p [%d], lock %p [%d] ) <- old %p [%d]\n",
+                 reactor, reactor->id, lock, lock->multi.id, reactor->globals_lock, reactor->globals_lock->multi.id );
+
+     D_ASSUME( reactor->globals_lock != lock );
+
+     /* Set the lock replacement. */
+     reactor->globals_lock = lock;
+
+     return DFB_OK;
+}
+
+DirectResult
 fusion_reactor_attach (FusionReactor *reactor,
                        ReactionFunc   func,
                        void          *ctx,
@@ -1511,6 +1529,16 @@ fusion_reactor_set_lock( FusionReactor  *reactor,
      D_ASSERT( lock != NULL );
 
 //     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
+DirectResult
+fusion_reactor_set_lock_only( FusionReactor  *reactor,
+                              FusionSkirmish *lock )
+{
+     D_MAGIC_ASSERT( reactor, FusionReactor );
+     D_ASSERT( lock != NULL );
 
      return DFB_UNIMPLEMENTED;
 }

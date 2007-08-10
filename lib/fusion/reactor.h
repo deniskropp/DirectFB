@@ -89,6 +89,9 @@ DirectResult   fusion_reactor_free         ( FusionReactor      *reactor );
 DirectResult   fusion_reactor_set_lock     ( FusionReactor      *reactor,
                                              FusionSkirmish     *skirmish );
 
+DirectResult   fusion_reactor_set_lock_only( FusionReactor      *reactor,
+                                             FusionSkirmish     *lock );
+
 /*
  * Attach a local reaction to the reactor (channel 0).
  */

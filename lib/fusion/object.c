@@ -432,7 +432,7 @@ fusion_object_set_lock( FusionObject   *object,
 
      D_ASSUME( object->state == FOS_INIT );
 
-     return fusion_reactor_set_lock( object->reactor, lock );
+     return fusion_reactor_set_lock_only( object->reactor, lock );
 }
 
 DirectResult
