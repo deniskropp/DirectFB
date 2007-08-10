@@ -379,6 +379,7 @@ dfb_layer_context_get_primary_region( CoreLayerContext  *context,
      if (dfb_layer_context_lock( context ))
           return DFB_FUSION;
 
+restart:
      while (context->primary.region) {
          /* Increase the primary region's reference counter. */
          ret = dfb_layer_region_ref( context->primary.region );
@@ -402,12 +403,26 @@ dfb_layer_context_get_primary_region( CoreLayerContext  *context,
           if (create) {
               CoreLayerRegion *region;
 
+              /* Unlock the context. */
+              dfb_layer_context_unlock( context );
+
               /* Create the primary region. */
               ret = dfb_layer_region_create( context, &region );
               if (ret) {
                    D_ERROR( "DirectFB/core/layers: Could not create primary region!\n" );
-                   dfb_layer_context_unlock( context );
                    return ret;
+              }
+
+              /* Lock the context again. */
+              if (dfb_layer_context_lock( context )) {
+                   dfb_layer_region_unref( region );
+                   return DFB_FUSION;
+              }
+
+              /* Check for race. */
+              if (context->primary.region) {
+                   dfb_layer_region_unref( region );
+                   goto restart;
               }
 
               /* Set the region configuration. */
