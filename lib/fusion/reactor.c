@@ -1620,6 +1620,35 @@ fusion_reactor_detach_global (FusionReactor  *reactor,
 }
 
 DirectResult
+fusion_reactor_attach_channel( FusionReactor *reactor,
+                               int            channel,
+                               ReactionFunc   func,
+                               void          *ctx,
+                               Reaction      *reaction )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+DirectResult
+fusion_reactor_dispatch_channel( FusionReactor      *reactor,
+                                 int                 channel,
+                                 const void         *msg_data,
+                                 int                 msg_size,
+                                 bool                self,
+                                 const ReactionFunc *globals )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+DirectResult
+fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
+                                      FusionCall     *call,
+                                      void           *call_ptr )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+DirectResult
 fusion_reactor_dispatch (FusionReactor      *reactor,
                          const void         *msg_data,
                          bool                self,

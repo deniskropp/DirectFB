@@ -502,6 +502,14 @@ fusion_call_execute (FusionCall          *call,
 }
 
 DirectResult
+fusion_call_return( FusionCall   *call,
+                    unsigned int  serial,
+                    int           val )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+DirectResult
 fusion_call_destroy (FusionCall *call)
 {
      D_ASSERT( call != NULL );
