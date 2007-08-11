@@ -122,7 +122,7 @@ load_sample (IFusionSound *sound, const char *filename)
                     return NULL;
                }
 
-               if (read (fd, &fmt, len) < len) {
+               if (read (fd, &fmt, sizeof(fmtChunk)) < sizeof(fmtChunk)) {
                     fprintf (stderr, "Could not read format chunk!\n");
                     close (fd);
                     return NULL;
