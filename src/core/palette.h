@@ -35,6 +35,7 @@
 
 struct _CorePalette {
      FusionObject  object;
+     int           magic;
 
      unsigned int  num_entries;
      DFBColor     *entries;

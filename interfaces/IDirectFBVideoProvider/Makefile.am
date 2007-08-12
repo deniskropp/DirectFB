@@ -25,8 +25,9 @@ INCLUDES = \
 
 
 idirectfbvideoprovider_LTLIBRARIES =	\
-	$(V4L_PROVIDER_LTLIB)	\
 	$(GIF_PROVIDER_LTLIB)
+
+#	$(V4L_PROVIDER_LTLIB)	
 
 if BUILD_STATIC
 idirectfbvideoprovider_DATA = $(idirectfbvideoprovider_LTLIBRARIES:.la=.o)

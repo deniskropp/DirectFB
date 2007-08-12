@@ -31,7 +31,7 @@
 #include <math.h>
 
 #include <core/coredefs.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/gfxcard.h>
 
 #include <core/layers.h>
@@ -508,12 +508,12 @@ ov0FlipRegion ( CoreLayer           *layer,
      
      dfb_surface_flip_buffers( nvov0->videoSurface, false );
 
-     if (DFB_PLANAR_PIXELFORMAT( surface->format )) {  
+     if (DFB_PLANAR_PIXELFORMAT( surface->config.format )) {  
           SurfaceBuffer *data_buffer;
           SurfaceBuffer *video_buffer;
           u32 srcPitch, srcPitch2, dstPitch, s2offset, s3offset, tmp;
-          u32 width  = surface->width;
-          u32 height = surface->height;
+          u32 width  = surface->config.size.w;
+          u32 height = surface->config.size.h;
           u8 *dstStart;
           u8 *buf;
           
@@ -561,12 +561,12 @@ ov0UpdateRegion ( CoreLayer           *layer,
      NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
 
-     if (DFB_PLANAR_PIXELFORMAT( surface->format )) {  
+     if (DFB_PLANAR_PIXELFORMAT( surface->config.format )) {  
           SurfaceBuffer *data_buffer;
           SurfaceBuffer *video_buffer;
           u32 srcPitch, srcPitch2, dstPitch, s2offset, s3offset, tmp;
-          u32 width  = surface->width;
-          u32 height = surface->height;
+          u32 width  = surface->config.size.w;
+          u32 height = surface->config.size.h;
           u8 *dstStart;
           u8 *buf;
           

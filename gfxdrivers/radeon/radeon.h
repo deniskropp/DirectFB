@@ -72,6 +72,7 @@ typedef struct {
      /* mask of currently supported blitting functions */
      DFBAccelerationMask     blitting_mask;
 
+     unsigned long           fb_phys;
      u32                     fb_offset;
      u32                     fb_size;
      u32                     agp_offset;

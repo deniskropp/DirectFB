@@ -47,7 +47,7 @@
 #include <core/layer_control.h>
 #include <core/layer_region.h>
 #include <core/screen.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/system.h>
 #include <core/windows.h>
 #include <core/windowstack.h>
@@ -628,9 +628,15 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                if (surface) {
                     flags |= CLRCF_SURFACE | CLRCF_PALETTE;
 
-                    if (region->surface)
-                         ret = reallocate_surface( layer, region, &region_config,
-                                                   &context->config );
+                    if (region->surface) {
+                         if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
+                              D_ASSERT( region->surface_lock.buffer != NULL );
+
+                              dfb_surface_unlock_buffer( region->surface, &region->surface_lock );
+                         }
+
+                         ret = reallocate_surface( layer, region, &region_config, &context->config );
+                    }
                     else
                          ret = allocate_surface( layer, region, &region_config );
 
@@ -1450,6 +1456,8 @@ allocate_surface( CoreLayer             *layer,
      DisplayLayerFuncs      *funcs;
      CoreSurface            *surface = NULL;
      DFBSurfaceCapabilities  caps    = DSCAPS_VIDEOONLY;
+     CoreSurfaceTypeFlags    type    = CSTF_LAYER;
+     CoreSurfaceConfig       scon;
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );
@@ -1480,15 +1488,13 @@ allocate_surface( CoreLayer             *layer,
                case DLBM_FRONTONLY:
                     break;
 
-               case DLBM_TRIPLE:
-                    caps |= DSCAPS_TRIPLE;
-                    break;
-
                case DLBM_BACKVIDEO:
+               case DLBM_BACKSYSTEM:
                     caps |= DSCAPS_DOUBLE;
                     break;
 
-               case DLBM_BACKSYSTEM:
+               case DLBM_TRIPLE:
+                    caps |= DSCAPS_TRIPLE;
                     break;
 
                default:
@@ -1505,25 +1511,27 @@ allocate_surface( CoreLayer             *layer,
                                           DSCAPS_SEPARATED  |
                                           DSCAPS_PREMULTIPLIED);
 
+          scon.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
+          scon.size.w = config->width;
+          scon.size.h = config->height;
+          scon.format = config->format;
+          scon.caps   = caps;
+
+          if (layer->shared->contexts.primary == region->context)
+               type |= CSTF_SHARED;
+
           /* Use the default surface creation. */
-          ret = dfb_surface_create( layer->core,
-                                    config->width, config->height,
-                                    config->format, CSP_VIDEOONLY,
-                                    caps, NULL, &surface );
+          ret = dfb_surface_create( layer->core, &scon, type, NULL, &surface );
           if (ret) {
                D_DERROR( ret, "Core/layers: Surface creation failed!\n" );
                return ret;
           }
 
-          if (config->buffermode == DLBM_BACKSYSTEM) {
-               surface->caps |= DSCAPS_DOUBLE;
-               ret = dfb_surface_reconfig( surface, CSP_VIDEOONLY, CSP_SYSTEMONLY );
-               if (ret)
-                    D_DERROR( ret, "Core/layers: Surface reconfiguration failed!\n" );
-          }
+          if (config->buffermode == DLBM_BACKSYSTEM)
+               surface->buffers[1]->policy = CSP_SYSTEMONLY;
      }
 
-     /* Tell the region about it's new surface (adds a global reference). */
+     /* Tell the region about its new surface (adds a global reference). */
      ret = dfb_layer_region_set_surface( region, surface );
 
      /* Remove local reference of dfb_surface_create(). */
@@ -1538,9 +1546,10 @@ reallocate_surface( CoreLayer             *layer,
                     CoreLayerRegionConfig *config,
                     DFBDisplayLayerConfig *previous )
 {
-     DFBResult          ret;
-     DisplayLayerFuncs *funcs;
-     CoreSurface       *surface;
+     DFBResult               ret;
+     DisplayLayerFuncs      *funcs;
+     CoreSurface            *surface;
+     CoreSurfaceConfig       sconfig;
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );
@@ -1560,66 +1569,47 @@ reallocate_surface( CoreLayer             *layer,
                                            region->region_data,
                                            config, surface );
 
-     /* FIXME: write surface management functions
-               for easier configuration changes */
+     sconfig.flags = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
 
-     if (previous->buffermode != config->buffermode) {
-          DFBSurfaceCapabilities old_caps = surface->caps;
+     sconfig.caps = surface->config.caps & ~(DSCAPS_FLIPPING  | DSCAPS_INTERLACED |
+                                             DSCAPS_SEPARATED | DSCAPS_PREMULTIPLIED);
 
-          switch (config->buffermode) {
-               case DLBM_TRIPLE:
-                    surface->caps |=  DSCAPS_TRIPLE;
-                    surface->caps &= ~DSCAPS_DOUBLE;
-                    ret = dfb_surface_reconfig( surface,
-                                                CSP_VIDEOONLY, CSP_VIDEOONLY );
-                    break;
-               case DLBM_BACKVIDEO:
-                    surface->caps |=  DSCAPS_DOUBLE;
-                    surface->caps &= ~DSCAPS_TRIPLE;
-                    ret = dfb_surface_reconfig( surface,
-                                                CSP_VIDEOONLY, CSP_VIDEOONLY );
-                    break;
-               case DLBM_BACKSYSTEM:
-                    surface->caps |=  DSCAPS_DOUBLE;
-                    surface->caps &= ~DSCAPS_TRIPLE;
-                    ret = dfb_surface_reconfig( surface,
-                                                CSP_VIDEOONLY, CSP_SYSTEMONLY );
-                    break;
-               case DLBM_FRONTONLY:
-                    surface->caps &= ~DSCAPS_FLIPPING;
-                    ret = dfb_surface_reconfig( surface,
-                                                CSP_VIDEOONLY, CSP_VIDEOONLY );
-                    break;
+     switch (config->buffermode) {
+          case DLBM_TRIPLE:
+               sconfig.caps |= DSCAPS_TRIPLE;
+               break;
 
-               default:
-                    D_BUG("unknown buffermode");
-                    return DFB_BUG;
-          }
+          case DLBM_BACKVIDEO:
+          case DLBM_BACKSYSTEM:
+               sconfig.caps |= DSCAPS_DOUBLE;
+               break;
 
-          if (ret) {
-               surface->caps = old_caps;
-               return ret;
-          }
-     }
+          case DLBM_FRONTONLY:
+               break;
 
-     if (config->width  != previous->width  ||
-         config->height != previous->height ||
-         config->format != previous->pixelformat)
-     {
-          ret = dfb_surface_reformat( layer->core, surface, config->width,
-                                      config->height, config->format );
-          if (ret)
-               return ret;
+          default:
+               D_BUG("unknown buffermode");
+               return DFB_BUG;
      }
 
      /* Add available surface capabilities. */
-     surface->caps &= ~(DSCAPS_INTERLACED | DSCAPS_SEPARATED | DSCAPS_PREMULTIPLIED);
-     surface->caps |= config->surface_caps & (DSCAPS_INTERLACED |
-                                              DSCAPS_SEPARATED  |
-                                              DSCAPS_PREMULTIPLIED); 
-     /* FIXME: remove this? */
+     sconfig.caps |= config->surface_caps & (DSCAPS_INTERLACED |
+                                             DSCAPS_SEPARATED  |
+                                             DSCAPS_PREMULTIPLIED); 
+
      if (config->options & DLOP_DEINTERLACING)
-          surface->caps |= DSCAPS_INTERLACED;
+          sconfig.caps |= DSCAPS_INTERLACED;
+
+     sconfig.size.w = config->width;
+     sconfig.size.h = config->height;
+     sconfig.format = config->format;
+
+     ret = dfb_surface_reconfig( surface, &sconfig );
+     if (ret)
+          return ret;
+
+     if (config->buffermode == DLBM_BACKSYSTEM)
+          surface->buffers[1]->policy = CSP_SYSTEMONLY;
      
      return DFB_OK;
 }

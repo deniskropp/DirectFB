@@ -40,8 +40,8 @@
 
 #include <core/fonts.h>
 #include <core/gfxcard.h>
-#include <core/surfaces.h>
-#include <core/surfacemanager.h>
+#include <core/surface.h>
+#include <core/surface_buffer.h>
 
 #include <gfx/convert.h>
 
@@ -248,11 +248,10 @@ render_glyph( CoreFont      *thiz,
      FT_Face      face;
      FT_Int       load_flags;
      u8          *src;
-     void        *dst;
      int          y;
-     int          pitch;
      FT2ImplData *data    = thiz->impl_data;
      CoreSurface *surface = info->surface;
+     CoreSurfaceBufferLock  lock;
 
      pthread_mutex_lock ( &library_mutex );
 
@@ -270,19 +269,19 @@ render_glyph( CoreFont      *thiz,
 
      pthread_mutex_unlock ( &library_mutex );
 
-     err = dfb_surface_soft_lock( thiz->core, surface, DSLF_WRITE, &dst, &pitch, 0 );
+     err = dfb_surface_lock_buffer( surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
      if (err) {
           D_ERROR( "DirectB/FontFT2: Unable to lock surface!\n" );
           return err;
      }
 
      info->width = face->glyph->bitmap.width;
-     if (info->width + info->start > surface->width)
-          info->width = surface->width - info->start;
+     if (info->width + info->start > surface->config.size.w)
+          info->width = surface->config.size.w - info->start;
 
      info->height = face->glyph->bitmap.rows;
-     if (info->height > surface->height)
-          info->height = surface->height;
+     if (info->height > surface->config.size.h)
+          info->height = surface->config.size.h;
 
      info->left = face->glyph->bitmap_left;
      info->top  = thiz->ascender - face->glyph->bitmap_top;
@@ -299,17 +298,17 @@ render_glyph( CoreFont      *thiz,
      }
 
      src = face->glyph->bitmap.buffer;
-     dst += DFB_BYTES_PER_LINE(surface->format, info->start);
+     lock.addr += DFB_BYTES_PER_LINE(surface->config.format, info->start);
 
      for (y=0; y < info->height; y++) {
-          int    i, j, n;
-          u8    *dst8  = dst;
-          u16   *dst16 = dst;
-          u32   *dst32 = dst;
+          int  i, j, n;
+          u8  *dst8  = lock.addr;
+          u16 *dst16 = lock.addr;
+          u32 *dst32 = lock.addr;
 
           switch (face->glyph->bitmap.pixel_mode) {
                case ft_pixel_mode_grays:
-                    switch (surface->format) {
+                    switch (surface->config.format) {
                          case DSPF_ARGB:
                               if (thiz->surface_caps & DSCAPS_PREMULTIPLIED) {
                                    for (i=0; i<info->width; i++)
@@ -338,7 +337,7 @@ render_glyph( CoreFont      *thiz,
                                    dst16[i] = (src[i] << 8) | 0x7FFF;
                               break;
                          case DSPF_A8:
-                              direct_memcpy( dst, src, info->width );
+                              direct_memcpy( lock.addr, src, info->width );
                               break;
                          case DSPF_A4:
                               for (i=0, j=0; i<info->width; i+=2, j++)
@@ -371,7 +370,7 @@ render_glyph( CoreFont      *thiz,
                     break;
 
                case ft_pixel_mode_mono:
-                    switch (surface->format) {
+                    switch (surface->config.format) {
                          case DSPF_ARGB:
                               for (i=0; i<info->width; i++)
                                    dst32[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
@@ -410,7 +409,7 @@ render_glyph( CoreFont      *thiz,
                                               (1<<(7-((i+1)%8)))) ? 0x0F : 0x00);
                               break;
                          case DSPF_A1:
-                              direct_memcpy( dst, src, DFB_BYTES_PER_LINE(DSPF_A1, info->width) );
+                              direct_memcpy( lock.addr, src, DFB_BYTES_PER_LINE(DSPF_A1, info->width) );
                               break;
                          default:
                               D_UNIMPLEMENTED();
@@ -424,10 +423,11 @@ render_glyph( CoreFont      *thiz,
           }
 
           src += face->glyph->bitmap.pitch;
-          dst += pitch;
+
+          lock.addr += lock.pitch;
      }
 
-     dfb_surface_unlock( surface, 0 );
+     dfb_surface_unlock_buffer( surface, &lock );
 
      return DFB_OK;
 }

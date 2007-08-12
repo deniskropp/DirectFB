@@ -34,7 +34,7 @@
 
 #include <core/coredefs.h>
 #include <core/layers.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/system.h>
 
 #include <gfx/convert.h>
@@ -507,7 +507,7 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
      SurfaceBuffer    *buffer = surface->front_buffer;
      VideoMode        *mode   = dfb_system_current_mode();
      int               yres   = mode->yres;
-     int               pitch  = buffer->video.pitch / DFB_BYTES_PER_PIXEL( surface->format );
+     int               pitch  = buffer->video.pitch / DFB_BYTES_PER_PIXEL( surface->config.format );
      DFBRectangle      source = config->source;
      DFBRectangle      dest   = config->dest;
 
@@ -551,7 +551,7 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
      else
           v_inc = (source.h << 12) / dest.h;
 
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_RGB555:
           case DSPF_ARGB1555:
                mov->regs.video_FORMAT = SCALER_IN_RGB15;
@@ -612,13 +612,13 @@ static void ov_calc_buffer( Mach64DriverData       *mdrv,
      if (config->dest.y < 0)
           croptop  += -config->dest.y * source.h / config->dest.h;
 
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_I420:
                cropleft &= ~15;
                croptop  &= ~1;
 
-               offset_u  = buffer->video.offset + surface->height * buffer->video.pitch;
-               offset_v  = offset_u + surface->height/2 * buffer->video.pitch/2;
+               offset_u  = buffer->video.offset + surface->config.size.h * buffer->video.pitch;
+               offset_v  = offset_u + surface->config.size.h/2 * buffer->video.pitch/2;
                offset_u += croptop/2 * pitch/2 + cropleft/2;
                offset_v += croptop/2 * pitch/2 + cropleft/2;
                break;
@@ -627,8 +627,8 @@ static void ov_calc_buffer( Mach64DriverData       *mdrv,
                cropleft &= ~15;
                croptop  &= ~1;
 
-               offset_v  = buffer->video.offset + surface->height * buffer->video.pitch;
-               offset_u  = offset_v + surface->height/2 * buffer->video.pitch/2;
+               offset_v  = buffer->video.offset + surface->config.size.h * buffer->video.pitch;
+               offset_u  = offset_v + surface->config.size.h/2 * buffer->video.pitch/2;
                offset_v += croptop/2 * pitch/2 + cropleft/2;
                offset_u += croptop/2 * pitch/2 + cropleft/2;
                break;
@@ -640,7 +640,7 @@ static void ov_calc_buffer( Mach64DriverData       *mdrv,
      }
 
      offset  = buffer->video.offset;
-     offset += croptop * pitch + cropleft * DFB_BYTES_PER_PIXEL( surface->format );
+     offset += croptop * pitch + cropleft * DFB_BYTES_PER_PIXEL( surface->config.format );
 
      mov->regs.scaler_BUF0_OFFSET   = offset;
      mov->regs.scaler_BUF0_OFFSET_U = offset_u;

@@ -44,7 +44,6 @@
 
 #include <core/gfxcard.h>
 #include <core/state.h>
-#include <core/surfacemanager.h>
 #include <core/palette.h>
 
 #include <misc/gfx_util.h>
@@ -6460,6 +6459,7 @@ Bop_rgb24_to_Aop_rgb16_LE( GenefxState *gfxs )
 
 bool gAcquire( CardState *state, DFBAccelerationMask accel )
 {
+     DFBResult    ret;
      GenefxState *gfxs;
      GenefxFunc  *funcs;
      int          dst_pfi;
@@ -6470,17 +6470,20 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      bool         src_ycbcr   = false;
      bool         dst_ycbcr   = false;
 
-     DFBSurfaceLockFlags lock_flags;
+     CoreSurfaceBuffer *dst_buffer = NULL;
+     CoreSurfaceBuffer *src_buffer = NULL;
+
+     CoreSurfaceAccessFlags access = CSAF_CPU_WRITE;
 
      if (dfb_config->hardware_only) {
          if (DFB_BLITTING_FUNCTION( accel ))
              D_WARN( "Ignoring blit (%x) from %s to %s, flags 0x%08x", accel,
-                     source ? dfb_pixelformat_name(source->format) : "NULL SOURCE",
-                     destination ? dfb_pixelformat_name(destination->format) : "NULL DESTINATION",
+                     source ? dfb_pixelformat_name(source->config.format) : "NULL SOURCE",
+                     destination ? dfb_pixelformat_name(destination->config.format) : "NULL DESTINATION",
                      state->blittingflags );
          else
              D_WARN( "Ignoring draw (%x) to %s, flags 0x%08x", accel,
-                     destination ? dfb_pixelformat_name(destination->format) : "NULL DESTINATION",
+                     destination ? dfb_pixelformat_name(destination->config.format) : "NULL DESTINATION",
                      state->drawingflags );
          return false;
      }
@@ -6506,30 +6509,125 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      if (DFB_BLITTING_FUNCTION( accel ) && !source)
           return false;
 
+     /*
+      * Destination setup
+      */
 
-     gfxs->dst_caps   = destination->caps;
-     gfxs->dst_height = destination->height;
-     gfxs->dst_format = destination->back_buffer->format;
+     if (dfb_surface_lock( destination ))
+          return false;
+
+     dst_buffer = dfb_surface_get_buffer( destination, state->to );
+     D_MAGIC_ASSERT( dst_buffer, CoreSurfaceBuffer );
+
+     gfxs->dst_caps   = destination->config.caps;
+     gfxs->dst_height = destination->config.size.h;
+     gfxs->dst_format = dst_buffer->format;
      gfxs->dst_bpp    = DFB_BYTES_PER_PIXEL( gfxs->dst_format );
      dst_pfi          = DFB_PIXELFORMAT_INDEX( gfxs->dst_format );
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-          gfxs->src_caps   = source->caps;
-          gfxs->src_height = source->height;
-          gfxs->src_format = source->front_buffer->format;
+          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
+                                      DSBLIT_BLEND_COLORALPHA   |
+                                      DSBLIT_DST_COLORKEY))
+               access |= CSAF_CPU_READ;
+     }
+     else if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_DST_COLORKEY))
+          access |= CSAF_CPU_READ;
+
+     ret = dfb_surface_buffer_lock( dst_buffer, access, &state->dst );
+
+     dfb_surface_unlock( destination );
+
+     if (ret) {
+          D_DERROR( ret, "DirectFB/Genefx: Could not lock destination!\n" );
+          return false;
+     }
+
+     gfxs->dst_org[0] = state->dst.addr;
+     gfxs->dst_pitch  = state->dst.pitch;
+
+     switch (gfxs->dst_format) {
+          case DSPF_I420:
+               gfxs->dst_org[1] = gfxs->dst_org[0] + gfxs->dst_height * gfxs->dst_pitch;
+               gfxs->dst_org[2] = gfxs->dst_org[1] + gfxs->dst_height/2 * gfxs->dst_pitch/2;
+               break;
+          case DSPF_YV12:
+               gfxs->dst_org[2] = gfxs->dst_org[0] + gfxs->dst_height * gfxs->dst_pitch;
+               gfxs->dst_org[1] = gfxs->dst_org[2] + gfxs->dst_height/2 * gfxs->dst_pitch/2;
+               break;
+          case DSPF_NV12:
+          case DSPF_NV21:
+          case DSPF_NV16:
+               gfxs->dst_org[1] = gfxs->dst_org[0] + gfxs->dst_height * gfxs->dst_pitch;
+               break;
+          default:
+               break;
+     }
+
+     gfxs->dst_field_offset = gfxs->dst_height/2 * gfxs->dst_pitch;
+
+
+     /*
+      * Source setup
+      */
+
+     if (DFB_BLITTING_FUNCTION( accel )) {
+#if FIXME_SC_3
+          DFBSurfaceLockFlags flags = DSLF_READ;
+
+          if (accel == DFXL_STRETCHBLIT)
+               flags |= CSLF_FORCE;
+#endif
+
+          if (dfb_surface_lock( source )) {
+               dfb_surface_unlock_buffer( destination, &state->dst );
+               return false;
+          }
+
+          src_buffer = dfb_surface_get_buffer( source, state->from );
+          D_MAGIC_ASSERT( src_buffer, CoreSurfaceBuffer );
+
+          gfxs->src_caps   = source->config.caps;
+          gfxs->src_height = source->config.size.h;
+          gfxs->src_format = src_buffer->format;
           gfxs->src_bpp    = DFB_BYTES_PER_PIXEL( gfxs->src_format );
           src_pfi          = DFB_PIXELFORMAT_INDEX( gfxs->src_format );
 
-          lock_flags = state->blittingflags & ( DSBLIT_BLEND_ALPHACHANNEL |
-                                                DSBLIT_BLEND_COLORALPHA   |
-                                                DSBLIT_DST_COLORKEY ) ?
-                       DSLF_READ | DSLF_WRITE : DSLF_WRITE;
-     }
-     else
-          lock_flags = state->drawingflags & ( DSDRAW_BLEND |
-                                               DSDRAW_DST_COLORKEY ) ?
-                       DSLF_READ | DSLF_WRITE : DSLF_WRITE;
+          ret = dfb_surface_buffer_lock( src_buffer, CSAF_CPU_READ, &state->src );
 
+          dfb_surface_unlock( source );
+
+          if (ret) {
+               D_DERROR( ret, "DirectFB/Genefx: Could not lock source!\n" );
+               dfb_surface_unlock_buffer( destination, &state->dst );
+               return false;
+          }
+
+          gfxs->src_org[0] = state->src.addr;
+          gfxs->src_pitch  = state->src.pitch;
+
+          switch (gfxs->src_format) {
+               case DSPF_I420:
+                    gfxs->src_org[1] = gfxs->src_org[0] + gfxs->src_height * gfxs->src_pitch;
+                    gfxs->src_org[2] = gfxs->src_org[1] + gfxs->src_height/2 * gfxs->src_pitch/2;
+                    break;
+               case DSPF_YV12:
+                    gfxs->src_org[2] = gfxs->src_org[0] + gfxs->src_height * gfxs->src_pitch;
+                    gfxs->src_org[1] = gfxs->src_org[2] + gfxs->src_height/2 * gfxs->src_pitch/2;
+                    break;
+               case DSPF_NV12:
+               case DSPF_NV21:
+               case DSPF_NV16:
+                    gfxs->src_org[1] = gfxs->src_org[0] + gfxs->src_height * gfxs->src_pitch;
+                    break;
+               default:
+                    break;
+          }
+
+          gfxs->src_field_offset = gfxs->src_height/2 * gfxs->src_pitch;
+
+          state->flags |= CSF_SOURCE_LOCKED;
+     }
 
 
      /* premultiply source (color) */
@@ -6689,7 +6787,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          if (state->blittingflags & (DSBLIT_COLORIZE     |
                                                      DSBLIT_SRC_PREMULTCOLOR))
                               return false;
-                         
+
                          if (DFB_PLANAR_PIXELFORMAT(gfxs->dst_format) &&
                              state->blittingflags & DSBLIT_DST_COLORKEY)
                               return false;
@@ -6701,76 +6799,6 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     return false;
           }
      }
-
-
-     dfb_surfacemanager_lock( destination->manager );
-
-     if (DFB_BLITTING_FUNCTION( accel )) {
-          DFBSurfaceLockFlags flags = DSLF_READ;
-
-          if (accel == DFXL_STRETCHBLIT)
-               flags |= CSLF_FORCE;
-
-          if (dfb_surface_software_lock( state->core, source, flags, &gfxs->src_org[0],
-                                         &gfxs->src_pitch, true )) {
-               dfb_surfacemanager_unlock( destination->manager );
-               return false;
-          }
-          switch (gfxs->src_format) {
-               case DSPF_I420:
-                    gfxs->src_org[1] = gfxs->src_org[0] + gfxs->src_height * gfxs->src_pitch;
-                    gfxs->src_org[2] = gfxs->src_org[1] + gfxs->src_height/2 * gfxs->src_pitch/2;
-                    break;
-               case DSPF_YV12:
-                    gfxs->src_org[2] = gfxs->src_org[0] + gfxs->src_height * gfxs->src_pitch;
-                    gfxs->src_org[1] = gfxs->src_org[2] + gfxs->src_height/2 * gfxs->src_pitch/2;
-                    break;
-               case DSPF_NV12:
-               case DSPF_NV21:
-               case DSPF_NV16:
-                    gfxs->src_org[1] = gfxs->src_org[0] + gfxs->src_height * gfxs->src_pitch;
-                    break;
-               default:
-                    break;
-          }
-
-          gfxs->src_field_offset = gfxs->src_height/2 * gfxs->src_pitch;
-
-          state->flags |= CSF_SOURCE_LOCKED;
-     }
-
-     if (dfb_surface_software_lock( state->core, state->destination, lock_flags,
-                                    &gfxs->dst_org[0], &gfxs->dst_pitch, false ))
-     {
-          if (state->flags & CSF_SOURCE_LOCKED) {
-               dfb_surface_unlock( source, true );
-               state->flags &= ~CSF_SOURCE_LOCKED;
-          }
-
-          dfb_surfacemanager_unlock( destination->manager );
-          return false;
-     }
-     switch (gfxs->dst_format) {
-          case DSPF_I420:
-               gfxs->dst_org[1] = gfxs->dst_org[0] + gfxs->dst_height * gfxs->dst_pitch;
-               gfxs->dst_org[2] = gfxs->dst_org[1] + gfxs->dst_height/2 * gfxs->dst_pitch/2;
-               break;
-          case DSPF_YV12:
-               gfxs->dst_org[2] = gfxs->dst_org[0] + gfxs->dst_height * gfxs->dst_pitch;
-               gfxs->dst_org[1] = gfxs->dst_org[2] + gfxs->dst_height/2 * gfxs->dst_pitch/2;
-               break;
-          case DSPF_NV12:
-          case DSPF_NV21:
-          case DSPF_NV16:
-               gfxs->dst_org[1] = gfxs->dst_org[0] + gfxs->dst_height * gfxs->dst_pitch;
-               break;
-          default:
-               break;
-     }
-
-     gfxs->dst_field_offset = gfxs->dst_height/2 * gfxs->dst_pitch;
-
-     dfb_surfacemanager_unlock( destination->manager );
 
      gfxs->need_accumulator = true;
 
@@ -6988,9 +7016,9 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     }
                }
 #ifndef WORDS_BIGENDIAN
-               if (state->blittingflags == DSBLIT_NOFX &&
-                   source->format      == DSPF_RGB24 &&
-                   destination->format == DSPF_RGB16)
+               if (state->blittingflags       == DSBLIT_NOFX &&
+                   source->config.format      == DSPF_RGB24 &&
+                   destination->config.format == DSPF_RGB16)
                {
                     *funcs++ = Bop_rgb24_to_Aop_rgb16_LE;
                     break;
@@ -7310,10 +7338,10 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
 void gRelease( CardState *state )
 {
-     dfb_surface_unlock( state->destination, 0 );
+     dfb_surface_unlock_buffer( state->destination, &state->dst );
 
      if (state->flags & CSF_SOURCE_LOCKED) {
-          dfb_surface_unlock( state->source, true );
+          dfb_surface_unlock_buffer( state->source, &state->src );
           state->flags &= ~CSF_SOURCE_LOCKED;
      }
 }
@@ -8262,9 +8290,8 @@ static StretchHVxIndexed stretch_hvx_up_indexed[DFB_NUM_PIXELFORMATS] = {
 
 void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 {
-     GenefxState  *gfxs   = state->gfxs;
-     DFBRectangle  orect  = *drect;
-     CoreSurface  *source = state->source;
+     GenefxState  *gfxs  = state->gfxs;
+     DFBRectangle  orect = *drect;
 
      int fx, fy;
      int ix, iy;
@@ -8389,8 +8416,8 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      srect->w = ((drect->w * fx + ix) + 0xFFFF) >> 16;
      srect->h = ((drect->h * fy + iy) + 0xFFFF) >> 16;
 
-     D_ASSERT( srect->x + srect->w <= state->source->width );
-     D_ASSERT( srect->y + srect->h <= state->source->height );
+     D_ASSERT( srect->x + srect->w <= state->source->config.size.w );
+     D_ASSERT( srect->y + srect->h <= state->source->config.size.h );
      D_ASSERT( drect->x + drect->w <= state->clip.x2 + 1 );
      D_ASSERT( drect->y + drect->h <= state->clip.y2 + 1 );
 

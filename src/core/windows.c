@@ -147,6 +147,7 @@ create_region( CoreDFB                 *core,
      CoreLayerRegionConfig  config;
      CoreLayerRegion       *region;
      CoreSurface           *surface;
+     CoreSurfaceConfig      scon;
 
      D_ASSERT( core != NULL );
      D_ASSERT( context != NULL );
@@ -205,9 +206,13 @@ create_region( CoreDFB                 *core,
           }
      } while (ret);
 
+     scon.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
+     scon.size.w = config.width;
+     scon.size.h = config.height;
+     scon.format = format;
+     scon.caps   = surface_caps | DSCAPS_VIDEOONLY;
 
-     ret = dfb_surface_create( core, config.width, config.height, format,
-                               CSP_VIDEOONLY, surface_caps, NULL, &surface );
+     ret = dfb_surface_create( core, &scon, CSTF_SHARED | CSTF_LAYER, NULL, &surface );
      if (ret) {
           dfb_layer_region_unref( region );
           return ret;
@@ -429,11 +434,11 @@ dfb_window_create( CoreWindowStack             *stack,
                /* Give the WM a chance to provide its own surface. */
                if (!window->surface) {
                     /* Create the surface for the window. */
-                    ret = dfb_surface_create( layer->core,
-                                              config.bounds.w, config.bounds.h, pixelformat,
-                                              surface_policy, surface_caps,
-                                              region->surface ?
-                                              region->surface->palette : NULL, &surface );
+                    ret = dfb_surface_create_simple( layer->core,
+                                                     config.bounds.w, config.bounds.h, pixelformat,
+                                                     surface_caps, CSTF_SHARED | CSTF_WINDOW,
+                                                     region->surface ?
+                                                     region->surface->palette : NULL, &surface );
                     if (ret) {
                          dfb_layer_region_unlink( &window->primary_region );
                          fusion_object_destroy( &window->object );

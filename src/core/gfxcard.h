@@ -38,6 +38,7 @@
 #include <directfb.h>
 #include <core/coretypes.h>
 
+
 typedef enum {
      CCF_CLIPPING   = 0x00000001,
      CCF_NOTRIEMU   = 0x00000002,
@@ -182,12 +183,12 @@ typedef struct _GraphicsDeviceFuncs {
       * Called before a software access to a video surface buffer.
       */
      void (*SurfaceEnter)( void *driver_data, void *device_data,
-                           SurfaceBuffer *buffer, DFBSurfaceLockFlags flags );
+                           CoreSurfaceBuffer *buffer, DFBSurfaceLockFlags flags );
 
      /*
       * Called after a software access to a video surface buffer.
       */
-     void (*SurfaceLeave)( void *driver_data, void *device_data, SurfaceBuffer *buffer );
+     void (*SurfaceLeave)( void *driver_data, void *device_data, CoreSurfaceBuffer *buffer );
 
      /*
       * Return the serial of the last (queued) operation.
@@ -267,25 +268,25 @@ typedef struct _GraphicsDeviceFuncs {
 } GraphicsDeviceFuncs;
 
 typedef struct {
-     int       (*Probe)          (GraphicsDevice      *device);
-     void      (*GetDriverInfo)  (GraphicsDevice      *device,
+     int       (*Probe)          (CoreGraphicsDevice  *device);
+     void      (*GetDriverInfo)  (CoreGraphicsDevice  *device,
                                   GraphicsDriverInfo  *driver_info);
 
-     DFBResult (*InitDriver)     (GraphicsDevice      *device,
+     DFBResult (*InitDriver)     (CoreGraphicsDevice  *device,
                                   GraphicsDeviceFuncs *funcs,
                                   void                *driver_data,
                                   void                *device_data,
                                   CoreDFB             *core);
 
-     DFBResult (*InitDevice)     (GraphicsDevice      *device,
+     DFBResult (*InitDevice)     (CoreGraphicsDevice  *device,
                                   GraphicsDeviceInfo  *device_info,
                                   void                *driver_data,
                                   void                *device_data);
 
-     void      (*CloseDevice)    (GraphicsDevice      *device,
+     void      (*CloseDevice)    (CoreGraphicsDevice  *device,
                                   void                *driver_data,
                                   void                *device_data);
-     void      (*CloseDriver)    (GraphicsDevice      *device,
+     void      (*CloseDriver)    (CoreGraphicsDevice  *device,
                                   void                *driver_data);
 } GraphicsDriverFuncs;
 
@@ -389,19 +390,18 @@ DFBResult dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial );
 void dfb_gfxcard_flush_texture_cache( void );
 void dfb_gfxcard_flush_read_cache( void );
 void dfb_gfxcard_after_set_var( void );
-void dfb_gfxcard_surface_enter( SurfaceBuffer *buffer, DFBSurfaceLockFlags flags );
-void dfb_gfxcard_surface_leave( SurfaceBuffer *buffer );
+void dfb_gfxcard_surface_enter( CoreSurfaceBuffer *buffer, DFBSurfaceLockFlags flags );
+void dfb_gfxcard_surface_leave( CoreSurfaceBuffer *buffer );
 
 DFBResult dfb_gfxcard_adjust_heap_offset( int offset );
 
-SurfaceManager *dfb_gfxcard_surface_manager   ( void );
 void            dfb_gfxcard_get_capabilities  ( CardCapabilities   *ret_caps );
 void            dfb_gfxcard_get_device_info   ( GraphicsDeviceInfo *ret_info );
 void            dfb_gfxcard_get_driver_info   ( GraphicsDriverInfo *ret_info );
 
-int             dfb_gfxcard_reserve_memory    ( GraphicsDevice      *device,
+int             dfb_gfxcard_reserve_memory    ( CoreGraphicsDevice  *device,
                                                 unsigned int         size );
-int             dfb_gfxcard_reserve_auxmemory ( GraphicsDevice      *device,
+int             dfb_gfxcard_reserve_auxmemory ( CoreGraphicsDevice  *device,
                                                 unsigned int         size );
 
 unsigned int    dfb_gfxcard_memory_length     ( void );
@@ -418,9 +418,9 @@ void           *dfb_gfxcard_get_device_data   ( void );
  *
  * Returns the virtual address or NULL if mapping failed.
  */
-volatile void *dfb_gfxcard_map_mmio( GraphicsDevice *device,
-                                     unsigned int    offset,
-                                     int             length );
+volatile void *dfb_gfxcard_map_mmio( CoreGraphicsDevice *device,
+                                     unsigned int        offset,
+                                     int                 length );
 
 /*
  * Graphics drivers call this function to unmap MMIO regions.
@@ -428,21 +428,29 @@ volatile void *dfb_gfxcard_map_mmio( GraphicsDevice *device,
  * addr:   Virtual address returned by gfxcard_map_mmio
  * length: Length of mapped region (-1 uses default length)
  */
-void dfb_gfxcard_unmap_mmio( GraphicsDevice *device,
-                             volatile void  *addr,
-                             int             length );
+void dfb_gfxcard_unmap_mmio( CoreGraphicsDevice *device,
+                             volatile void      *addr,
+                             int                 length );
 
-int dfb_gfxcard_get_accelerator( GraphicsDevice *device );
+int dfb_gfxcard_get_accelerator( CoreGraphicsDevice *device );
 
-unsigned long  dfb_gfxcard_memory_physical( GraphicsDevice *device,
-                                            unsigned int    offset );
-void          *dfb_gfxcard_memory_virtual ( GraphicsDevice *device,
-                                            unsigned int    offset );
+void dfb_gfxcard_get_limits( CoreGraphicsDevice *device,
+                             CardLimitations    *ret_limits );
 
-unsigned long  dfb_gfxcard_auxmemory_physical( GraphicsDevice *device,
-                                               unsigned int    offset );
-void          *dfb_gfxcard_auxmemory_virtual ( GraphicsDevice *device,
-                                               unsigned int    offset );
+void dfb_gfxcard_calc_buffer_size( CoreGraphicsDevice *device,
+                                   CoreSurfaceBuffer  *buffer,
+                                   int                *ret_pitch,
+                                   int                *ret_length );
+
+unsigned long  dfb_gfxcard_memory_physical   ( CoreGraphicsDevice *device,
+                                               unsigned int        offset );
+void          *dfb_gfxcard_memory_virtual    ( CoreGraphicsDevice *device,
+                                               unsigned int        offset );
+
+unsigned long  dfb_gfxcard_auxmemory_physical( CoreGraphicsDevice *device,
+                                               unsigned int        offset );
+void          *dfb_gfxcard_auxmemory_virtual ( CoreGraphicsDevice *device,
+                                               unsigned int        offset );
 
 
 /* Hook for registering additional screen(s) and layer(s) in app or lib initializing DirectFB. */

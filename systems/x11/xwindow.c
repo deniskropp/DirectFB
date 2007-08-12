@@ -34,8 +34,6 @@
 
 #include "x11.h"
 
-extern DFBX11  *dfb_x11;
-extern CoreDFB *dfb_x11_core;
 
 //
 // Data to create an invisible cursor
@@ -55,15 +53,11 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
 	/* We set the structure as needed for our window */
 	xw->width	= iWidth;
 	xw->height	= iHeight;
-    xw->display = dfb_x11->display;
+	xw->visual  = DefaultVisualOfScreen(dfb_x11->screenptr);
+    xw->depth   = DefaultDepth( dfb_x11->display, dfb_x11->screennum );
 
-	xw->screenptr	= DefaultScreenOfDisplay(xw->display);
-	xw->screennum	= DefaultScreen(xw->display);
-	xw->visual		= DefaultVisualOfScreen(xw->screenptr);
-    xw->depth       = DefaultDepth( xw->display, xw->screennum );
-
-	xw->window=XCreateWindow(xw->display,
-							 RootWindowOfScreen(xw->screenptr),
+	xw->window = XCreateWindow(dfb_x11->display,
+							 RootWindowOfScreen(dfb_x11->screenptr),
 							 iXPos, iYPos, iWidth, iHeight, 0, xw->depth, InputOutput,
 							 xw->visual, 0, NULL); 
 							 
@@ -91,52 +85,52 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
 	Hints.min_height	=	Hints.max_height	=	Hints.base_height	=	xw->height;
 
 	/* Now we can set the size hints for the specified window */
-	XSetWMNormalHints(xw->display,xw->window,&Hints);
+	XSetWMNormalHints(dfb_x11->display,xw->window,&Hints);
 
 	/* We change the title of the window (default:Untitled) */
-	XStoreName(xw->display,xw->window,"DFB X11 system window");
+	XStoreName(dfb_x11->display,xw->window,"DFB X11 system window");
 
 
 
-	XSelectInput(xw->display, xw->window,
+	XSelectInput(dfb_x11->display, xw->window,
 				 ExposureMask|KeyPressMask|KeyReleaseMask|PointerMotionMask|ButtonPressMask|ButtonReleaseMask);
 
 
-	xw->gc=XCreateGC(xw->display, xw->window, 0, NULL);
+	xw->gc=XCreateGC(dfb_x11->display, xw->window, 0, NULL);
 
 
 	
 	// Create a null cursor
 	XColor  fore;
 	XColor  back;
-	xw->pixmp1 = XCreateBitmapFromData(	xw->display, xw->window, null_cursor_bits, 16, 16);
-	xw->pixmp2 = XCreateBitmapFromData(	xw->display, xw->window, null_cursor_bits, 16, 16);
-	xw->NullCursor = XCreatePixmapCursor(xw->display,xw->pixmp1,xw->pixmp2,&fore,&back,0,0);
-	XDefineCursor(xw->display, xw->window, xw->NullCursor);
+	xw->pixmp1 = XCreateBitmapFromData(	dfb_x11->display, xw->window, null_cursor_bits, 16, 16);
+	xw->pixmp2 = XCreateBitmapFromData(	dfb_x11->display, xw->window, null_cursor_bits, 16, 16);
+	xw->NullCursor = XCreatePixmapCursor(dfb_x11->display,xw->pixmp1,xw->pixmp2,&fore,&back,0,0);
+	XDefineCursor(dfb_x11->display, xw->window, xw->NullCursor);
 	
 	
 	/* maps the window and raises it to the top of the stack */
-	XMapRaised(xw->display, xw->window);
+	XMapRaised(dfb_x11->display, xw->window);
 
 	
 	// Shared memory 	
 	xw->shmseginfo=(XShmSegmentInfo *)malloc(sizeof(XShmSegmentInfo));
 	if(!xw->shmseginfo) {
-         XFreeGC(xw->display,xw->gc);
-         XDestroyWindow(xw->display,xw->window);
+         XFreeGC(dfb_x11->display,xw->gc);
+         XDestroyWindow(dfb_x11->display,xw->window);
          free( xw );
          return False;
     }
 
 	memset(xw->shmseginfo,0, sizeof(XShmSegmentInfo));
 
-	xw->ximage=XShmCreateImage(xw->display, xw->visual, xw->depth, ZPixmap,
+	xw->ximage=XShmCreateImage(dfb_x11->display, xw->visual, xw->depth, ZPixmap,
 							   NULL,xw->shmseginfo, xw->width, xw->height * 2);
 	if(!xw->ximage) {
 		printf("X11: Error creating shared image (XShmCreateImage) \n");
         free(xw->shmseginfo);
-        XFreeGC(xw->display,xw->gc);
-        XDestroyWindow(xw->display,xw->window);
+        XFreeGC(dfb_x11->display,xw->gc);
+        XDestroyWindow(dfb_x11->display,xw->window);
         free( xw );
         return False;
 	}
@@ -152,8 +146,8 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
 	if(xw->shmseginfo->shmid<0) {
          XDestroyImage(xw->ximage);
          free(xw->shmseginfo);
-         XFreeGC(xw->display,xw->gc);
-         XDestroyWindow(xw->display,xw->window);
+         XFreeGC(dfb_x11->display,xw->gc);
+         XDestroyWindow(dfb_x11->display,xw->window);
          free( xw );
          return False;
     }
@@ -165,8 +159,8 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
          shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
          XDestroyImage(xw->ximage);
          free(xw->shmseginfo);
-         XFreeGC(xw->display,xw->gc);
-         XDestroyWindow(xw->display,xw->window);
+         XFreeGC(dfb_x11->display,xw->gc);
+         XDestroyWindow(dfb_x11->display,xw->window);
          free( xw );
          return False;
     }
@@ -175,13 +169,13 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
 	xw->shmseginfo->readOnly=False;
 
 	xw->virtualscreen= (unsigned char *) (xw->ximage->data = xw->shmseginfo->shmaddr );
-	if(!XShmAttach(xw->display,xw->shmseginfo)) {
+	if(!XShmAttach(dfb_x11->display,xw->shmseginfo)) {
          shmdt(xw->shmseginfo->shmaddr);
          shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
          XDestroyImage(xw->ximage);
          free(xw->shmseginfo);
-         XFreeGC(xw->display,xw->gc);
-         XDestroyWindow(xw->display,xw->window);
+         XFreeGC(dfb_x11->display,xw->gc);
+         XDestroyWindow(dfb_x11->display,xw->window);
          free( xw );
          return False;
     }
@@ -193,14 +187,14 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
 
 void dfb_x11_close_window(XWindow* xw)
 {
-     XShmDetach(xw->display, xw->shmseginfo);
+     XShmDetach(dfb_x11->display, xw->shmseginfo);
      shmdt(xw->shmseginfo->shmaddr);
      shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
      XDestroyImage(xw->ximage);
      free(xw->shmseginfo);
 
-     XFreeGC(xw->display,xw->gc);
-     XDestroyWindow(xw->display,xw->window);
+     XFreeGC(dfb_x11->display,xw->gc);
+     XDestroyWindow(dfb_x11->display,xw->window);
      free(xw);
 }
 

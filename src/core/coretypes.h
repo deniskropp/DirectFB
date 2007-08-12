@@ -31,41 +31,54 @@
 
 #include <dfb_types.h>
 
-typedef struct __DFB_CoreDFB               CoreDFB;
-typedef struct __DFB_CoreDFBShared         CoreDFBShared;
-
-typedef struct _CoreCleanup                CoreCleanup;
-
-typedef struct _CoreFont                   CoreFont;
-typedef struct _CorePalette                CorePalette;
-typedef struct _CoreSurface                CoreSurface;
-
-typedef struct _SurfaceBuffer              SurfaceBuffer;
-typedef struct _SurfaceManager             SurfaceManager;
-
-typedef struct _CardState                  CardState;
-
-typedef struct _Chunk                      Chunk;
+typedef struct __DFB_CoreDFB                 CoreDFB;
+typedef struct __DFB_CoreDFBShared           CoreDFBShared;
 
 
-typedef struct _GraphicsDevice             GraphicsDevice;
-typedef struct _GraphicsDevice             CoreGraphicsDevice;
+typedef struct __DFB_DFBClipboardCore        DFBClipboardCore;
+typedef struct __DFB_DFBColorHashCore        DFBColorHashCore;
+typedef struct __DFB_DFBGraphicsCore         DFBGraphicsCore;
+typedef struct __DFB_DFBInputCore            DFBInputCore;
+typedef struct __DFB_DFBLayerCore            DFBLayerCore;
+typedef struct __DFB_DFBScreenCore           DFBScreenCore;
+typedef struct __DFB_DFBSystemCore           DFBSystemCore;
+typedef struct __DFB_DFBWMCore               DFBWMCore;
 
 
-typedef struct __DFB_CoreGraphicsSerial    CoreGraphicsSerial;
+typedef struct __DFB_DFBGraphicsCore         CoreGraphicsDevice; /* FIXME */
 
-typedef struct __DFB_CoreScreen            CoreScreen;
 
-typedef struct __DFB_CoreInputDevice       CoreInputDevice;
+typedef struct _CoreCleanup                  CoreCleanup;
 
-typedef struct __DFB_CoreLayer             CoreLayer;
-typedef struct __DFB_CoreLayerContext      CoreLayerContext;
-typedef struct __DFB_CoreLayerRegion       CoreLayerRegion;
-typedef struct __DFB_CoreLayerRegionConfig CoreLayerRegionConfig;
+typedef struct _CoreFont                     CoreFont;
+typedef struct _CorePalette                  CorePalette;
 
-typedef struct __DFB_CoreWindow            CoreWindow;
-typedef struct __DFB_CoreWindowConfig      CoreWindowConfig;
-typedef struct __DFB_CoreWindowStack       CoreWindowStack;
+typedef struct _CardState                    CardState;
+
+
+typedef struct __DFB_CoreGraphicsSerial      CoreGraphicsSerial;
+
+typedef struct __DFB_CoreScreen              CoreScreen;
+
+typedef struct __DFB_CoreInputDevice         CoreInputDevice;
+
+typedef struct __DFB_CoreLayer               CoreLayer;
+typedef struct __DFB_CoreLayerContext        CoreLayerContext;
+typedef struct __DFB_CoreLayerRegion         CoreLayerRegion;
+typedef struct __DFB_CoreLayerRegionConfig   CoreLayerRegionConfig;
+
+typedef struct __DFB_CoreSurface             CoreSurface;
+typedef struct __DFB_CoreSurfaceAllocation   CoreSurfaceAllocation;
+typedef struct __DFB_CoreSurfaceBuffer       CoreSurfaceBuffer;
+typedef struct __DFB_CoreSurfaceBufferLock   CoreSurfaceBufferLock;
+typedef struct __DFB_CoreSurfacePool         CoreSurfacePool;
+
+typedef struct __DFB_CoreWindow              CoreWindow;
+typedef struct __DFB_CoreWindowConfig        CoreWindowConfig;
+typedef struct __DFB_CoreWindowStack         CoreWindowStack;
+
+
+typedef unsigned int CoreSurfacePoolID;
 
 #endif
 

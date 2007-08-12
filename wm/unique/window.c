@@ -38,7 +38,7 @@
 
 #include <core/coretypes.h>
 #include <core/layers_internal.h>      /* FIXME */
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/windows.h>
 #include <core/windows_internal.h>     /* FIXME */
 #include <core/windowstack.h>
@@ -1050,7 +1050,7 @@ resize_window( UniqueWindow *window,
 
      if (window->surface) {
           ret = dfb_surface_reformat( NULL, window->surface,
-                                      width, height, window->surface->format );
+                                      width, height, window->surface->config.format );
           if (ret)
                return ret;
      }

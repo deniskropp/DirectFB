@@ -286,6 +286,7 @@ fusion_object_pool_enum( FusionObjectPool     *pool,
      FusionObject *object;
 
      D_MAGIC_ASSERT( pool, FusionObjectPool );
+     D_ASSERT( callback != NULL );
 
      /* Lock the pool. */
      if (fusion_skirmish_prevail( &pool->lock ))

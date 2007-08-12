@@ -51,7 +51,7 @@
 #include <core/layer_context.h>
 #include <core/layer_region.h>
 #include <core/palette.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/system.h>
 #include <core/windows.h>
 
@@ -74,14 +74,68 @@
 
 D_DEBUG_DOMAIN( DirectFB_Core, "DirectFB/Core", "DirectFB Core" );
 
-extern CorePart dfb_core_clipboard;
-extern CorePart dfb_core_colorhash;
-extern CorePart dfb_core_gfxcard;
-extern CorePart dfb_core_input;
-extern CorePart dfb_core_layers;
-extern CorePart dfb_core_screens;
-extern CorePart dfb_core_system;
-extern CorePart dfb_core_wm;
+/******************************************************************************/
+
+extern CorePart dfb_clipboard_core;
+extern CorePart dfb_colorhash_core;
+extern CorePart dfb_graphics_core;
+extern CorePart dfb_input_core;
+extern CorePart dfb_layer_core;
+extern CorePart dfb_screen_core;
+extern CorePart dfb_surface_core;
+extern CorePart dfb_system_core;
+extern CorePart dfb_wm_core;
+
+static CorePart *core_parts[] = {
+     &dfb_clipboard_core,
+     &dfb_colorhash_core,
+     &dfb_system_core,
+     &dfb_input_core,
+     &dfb_graphics_core,
+     &dfb_surface_core,
+     &dfb_screen_core,
+     &dfb_layer_core,
+     &dfb_wm_core
+};
+
+void *
+dfb_core_get_part( CoreDFB        *core,
+                   DFBCorePartID   part_id )
+{
+     switch (part_id) {
+          case DFCP_CLIPBOARD:
+               return dfb_clipboard_core.data_local;
+
+          case DFCP_COLORHASH:
+               return dfb_colorhash_core.data_local;
+
+          case DFCP_GRAPHICS:
+               return dfb_graphics_core.data_local;
+
+          case DFCP_INPUT:
+               return dfb_input_core.data_local;
+
+          case DFCP_LAYER:
+               return dfb_layer_core.data_local;
+
+          case DFCP_SCREEN:
+               return dfb_screen_core.data_local;
+
+          case DFCP_SURFACE:
+               return dfb_surface_core.data_local;
+
+          case DFCP_SYSTEM:
+               return dfb_system_core.data_local;
+
+          case DFCP_WM:
+               return dfb_wm_core.data_local;
+
+          default:
+               D_BUG( "unknown core part" );
+     }
+
+     return NULL;
+}
 
 /******************************************************************************/
 
@@ -96,6 +150,8 @@ struct _CoreCleanup {
      bool             emergency;   /* if true, cleanup is also done during
                                       emergency shutdown (from signal hadler) */
 };
+
+/******************************************************************************/
 
 struct __DFB_CoreDFBShared {
      int                  magic;
@@ -161,19 +217,6 @@ static int dfb_core_arena_leave     ( FusionArena *arena,
                                       bool         emergency );
 
 /******************************************************************************/
-
-static CorePart *core_parts[] = {
-     &dfb_core_clipboard,
-     &dfb_core_colorhash,
-     &dfb_core_system,
-     &dfb_core_input,
-     &dfb_core_gfxcard,
-     &dfb_core_screens,
-     &dfb_core_layers,
-     &dfb_core_wm
-};
-
-#define NUM_CORE_PARTS ((int)(sizeof(core_parts)/sizeof(CorePart*)))
 
 #if defined(DFB_DYNAMIC_LINKING) && defined(SOPATH)
 /*
@@ -279,11 +322,11 @@ dfb_core_create( CoreDFB **ret_core )
 #endif
 
      if (dfb_config->sync) {
-          D_INFO( "DirectFB/Core: doing sync()...\n" );
+          D_INFO( "DirectFB/Core: calling sync()...\n" );
           sync();
      }
 
-     direct_signal_handler_add( -1, dfb_core_signal_handler, core, &core->signal_handler );
+     direct_signal_handler_add( DIRECT_SIGNAL_ANY, dfb_core_signal_handler, core, &core->signal_handler );
 
      if (fusion_arena_enter( core->world, "DirectFB/Core",
                              dfb_core_arena_initialize, dfb_core_arena_join,
@@ -646,32 +689,32 @@ dfb_core_suspend( CoreDFB *core )
      if (core->suspended)
           return DFB_BUSY;
 
-     ret = dfb_core_input.Suspend( core );
+     ret = dfb_input_core.Suspend( core );
      if (ret)
           goto error_input;
 
-     ret = dfb_core_layers.Suspend( core );
+     ret = dfb_layer_core.Suspend( core );
      if (ret)
           goto error_layers;
 
-     ret = dfb_core_screens.Suspend( core );
+     ret = dfb_screen_core.Suspend( core );
      if (ret)
           goto error_screens;
 
-     ret = dfb_core_gfxcard.Suspend( core );
+     ret = dfb_graphics_core.Suspend( core );
      if (ret)
-          goto error_gfxcard;
+          goto error_graphics;
 
      core->suspended = true;
 
      return DFB_OK;
 
-error_gfxcard:
-     dfb_core_screens.Resume( core );
+error_graphics:
+     dfb_screen_core.Resume( core );
 error_screens:
-     dfb_core_layers.Resume( core );
+     dfb_layer_core.Resume( core );
 error_layers:
-     dfb_core_input.Resume( core );
+     dfb_input_core.Resume( core );
 error_input:
      return ret;
 }
@@ -694,19 +737,19 @@ dfb_core_resume( CoreDFB *core )
      if (!core->suspended)
           return DFB_BUSY;
 
-     ret = dfb_core_gfxcard.Resume( core );
+     ret = dfb_graphics_core.Resume( core );
      if (ret)
-          goto error_gfxcard;
+          goto error_graphics;
 
-     ret = dfb_core_screens.Resume( core );
+     ret = dfb_screen_core.Resume( core );
      if (ret)
           goto error_screens;
 
-     ret = dfb_core_layers.Resume( core );
+     ret = dfb_layer_core.Resume( core );
      if (ret)
           goto error_layers;
 
-     ret = dfb_core_input.Resume( core );
+     ret = dfb_input_core.Resume( core );
      if (ret)
           goto error_input;
 
@@ -715,12 +758,12 @@ dfb_core_resume( CoreDFB *core )
      return DFB_OK;
 
 error_input:
-     dfb_core_layers.Suspend( core );
+     dfb_layer_core.Suspend( core );
 error_layers:
-     dfb_core_screens.Suspend( core );
+     dfb_screen_core.Suspend( core );
 error_screens:
-     dfb_core_gfxcard.Suspend( core );
-error_gfxcard:
+     dfb_graphics_core.Suspend( core );
+error_graphics:
      return ret;
 }
 
@@ -836,25 +879,26 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      fusion_object_pool_destroy( shared->layer_context_pool, core->world );
 
      /* Shutdown WM core. */
-     dfb_core_part_shutdown( core, &dfb_core_wm, emergency );
+     dfb_core_part_shutdown( core, &dfb_wm_core, emergency );
 
      /* Destroy window objects. */
      fusion_object_pool_destroy( shared->window_pool, core->world );
 
      /* Shutdown layer core. */
-     dfb_core_part_shutdown( core, &dfb_core_layers, emergency );
-     dfb_core_part_shutdown( core, &dfb_core_screens, emergency );
+     dfb_core_part_shutdown( core, &dfb_layer_core, emergency );
+     dfb_core_part_shutdown( core, &dfb_screen_core, emergency );
 
      /* Destroy surface and palette objects. */
      fusion_object_pool_destroy( shared->surface_pool, core->world );
      fusion_object_pool_destroy( shared->palette_pool, core->world );
 
      /* Destroy remaining core parts. */
-     dfb_core_part_shutdown( core, &dfb_core_gfxcard, emergency );
-     dfb_core_part_shutdown( core, &dfb_core_input, emergency );
-     dfb_core_part_shutdown( core, &dfb_core_system, emergency );
-     dfb_core_part_shutdown( core, &dfb_core_colorhash, emergency );
-     dfb_core_part_shutdown( core, &dfb_core_clipboard, emergency );
+     dfb_core_part_shutdown( core, &dfb_graphics_core, emergency );
+     dfb_core_part_shutdown( core, &dfb_surface_core, emergency );
+     dfb_core_part_shutdown( core, &dfb_input_core, emergency );
+     dfb_core_part_shutdown( core, &dfb_system_core, emergency );
+     dfb_core_part_shutdown( core, &dfb_colorhash_core, emergency );
+     dfb_core_part_shutdown( core, &dfb_clipboard_core, emergency );
 
      /* Destroy shared memory pool for surface data. */
      fusion_shm_pool_destroy( core->world, shared->shmpool_data );
@@ -875,7 +919,7 @@ dfb_core_initialize( CoreDFB *core )
 
      D_MAGIC_ASSERT( shared, CoreDFBShared );
 
-     ret = fusion_shm_pool_create( core->world, "DirectFB Surface Pool", 0x8000000,
+     ret = fusion_shm_pool_create( core->world, "DirectFB Data Pool", 0x1000000,
                                    fusion_config->debugshm, &shared->shmpool_data );
      if (ret)
           return ret;
@@ -886,7 +930,7 @@ dfb_core_initialize( CoreDFB *core )
      shared->surface_pool       = dfb_surface_pool_create( core->world );
      shared->window_pool        = dfb_window_pool_create( core->world );
 
-     for (i=0; i<NUM_CORE_PARTS; i++) {
+     for (i=0; i<D_ARRAY_SIZE(core_parts); i++) {
           DFBResult ret;
 
           if ((ret = dfb_core_part_initialize( core, core_parts[i] ))) {
@@ -905,7 +949,7 @@ dfb_core_leave( CoreDFB *core, bool emergency )
 
      D_MAGIC_ASSERT( core, CoreDFB );
 
-     for (i=NUM_CORE_PARTS-1; i>=0; i--)
+     for (i=D_ARRAY_SIZE(core_parts)-1; i>=0; i--)
           dfb_core_part_leave( core, core_parts[i], emergency );
 
      return DFB_OK;
@@ -918,7 +962,7 @@ dfb_core_join( CoreDFB *core )
 
      D_MAGIC_ASSERT( core, CoreDFB );
 
-     for (i=0; i<NUM_CORE_PARTS; i++) {
+     for (i=0; i<D_ARRAY_SIZE(core_parts); i++) {
           DFBResult ret;
 
           if ((ret = dfb_core_part_join( core, core_parts[i] ))) {

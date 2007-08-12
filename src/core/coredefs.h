@@ -26,19 +26,22 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __COREDEFS_H__
-#define __COREDEFS_H__
+#ifndef __CORE__COREDEFS_H__
+#define __CORE__COREDEFS_H__
 
 
 #ifdef PIC
 #define DFB_DYNAMIC_LINKING
 #endif
 
-#define MAX_INPUTDEVICES 32
-#define MAX_LAYERS       24
-#define MAX_SCREENS      16
+#define MAX_INPUTDEVICES     16
+#define MAX_LAYERS           16
+#define MAX_SCREENS           4
 
-#define MAX_INPUT_GLOBALS 8
+#define MAX_INPUT_GLOBALS     8
+
+#define MAX_SURFACE_BUFFERS   6
+#define MAX_SURFACE_POOLS     6
 
 #endif
 

@@ -48,7 +48,7 @@
 
 #include <core/state.h>
 #include <core/gfxcard.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 /* need fb handle to get accel, MMIO programming in the i830 is useless */
 #include <fbdev/fbdev.h>

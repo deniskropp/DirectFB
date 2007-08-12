@@ -29,7 +29,7 @@
 #ifndef __GFX__UTIL_H__
 #define __GFX__UTIL_H__
 
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 void dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect );
 void dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect, int x, int y, bool from_back );

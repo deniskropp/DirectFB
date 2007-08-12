@@ -274,7 +274,7 @@ xsymbol_to_id( KeySym xKeySymbol )
           case 0                   : break;
 
           default:
-               printf("X11: Unknown key symbol 0x%x\n", xKeySymbol);
+               D_DEBUG("X11: Unknown key symbol 0x%lx\n", xKeySymbol);
      }    
 
      return DIKI_UNKNOWN;
@@ -369,7 +369,7 @@ xsymbol_to_symbol( KeySym xKeySymbol )
           case 0                   : break;
 
           default:
-               printf("X11: Unknown key symbol 0x%x\n", xKeySymbol);
+               D_DEBUG("X11: Unknown key symbol 0x%lx\n", xKeySymbol);
      }    
 
      return DIKS_NULL;
@@ -580,8 +580,8 @@ driver_open_device( CoreInputDevice  *device,
      fusion_skirmish_dismiss( &dfb_x11->lock );
 
      /* set device vendor and name */
-     snprintf( info->desc.vendor, DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "X11" );
-     snprintf( info->desc.name,   DFB_INPUT_DEVICE_DESC_NAME_LENGTH, "Input" );
+     snprintf( info->desc.vendor, DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "XServer" );
+     snprintf( info->desc.name,   DFB_INPUT_DEVICE_DESC_NAME_LENGTH, "X11 Input" );
 
      /* set one of the primary input device IDs */
      info->prefered_id = DIDID_KEYBOARD;

@@ -33,11 +33,15 @@ libdirectfb_x11_la_LDFLAGS = \
 	-module
 
 libdirectfb_x11_la_SOURCES = \
-	primary.c	\
-	primary.h	\
-	x11.c		\
-	x11.h		\
-	xwindow.h	\
+	primary.c		\
+	primary.h		\
+	x11.c			\
+	x11.h			\
+	x11image.c		\
+	x11image.h		\
+	x11_surface_pool.c	\
+	x11_surface_pool.h	\
+	xwindow.h		\
 	xwindow.c
 
 libdirectfb_x11_la_LIBADD = \

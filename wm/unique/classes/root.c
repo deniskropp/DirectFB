@@ -37,7 +37,7 @@
 #include <core/gfxcard.h>
 #include <core/palette.h>
 #include <core/state.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/windows_internal.h>
 
 #include <misc/util.h>
@@ -97,7 +97,7 @@ root_update( StretRegion     *region,
                DFBRectangle rects[num];
 
                /* Set the background color. */
-               if (DFB_PIXELFORMAT_IS_INDEXED( dest->format ))
+               if (DFB_PIXELFORMAT_IS_INDEXED( dest->config.format ))
                     dfb_state_set_color_index( state,
                                                dfb_palette_search( dest->palette, color->r,
                                                                    color->g, color->b, color->a ) );
@@ -124,7 +124,7 @@ root_update( StretRegion     *region,
                dfb_state_set_blitting_flags( state, DSBLIT_NOFX );
 
                /* Check the size of the background image. */
-               if (bg->width == stack->width && bg->height == stack->height) {
+               if (bg->config.size.w == stack->width && bg->config.size.h == stack->height) {
                     for (i=0; i<num; i++) {
                          DFBRectangle dst = DFB_RECTANGLE_INIT_FROM_REGION( &updates[i] );
 
@@ -136,7 +136,7 @@ root_update( StretRegion     *region,
                     DFBRegion clip = state->clip;
 
                     for (i=0; i<num; i++) {
-                         DFBRectangle src = { 0, 0, bg->width, bg->height };
+                         DFBRectangle src = { 0, 0, bg->config.size.w, bg->config.size.h };
                          DFBRectangle dst = { 0, 0, stack->width, stack->height };
 
                          /* Change clipping region. */
@@ -169,7 +169,7 @@ root_update( StretRegion     *region,
                dfb_state_set_blitting_flags( state, DSBLIT_NOFX );
 
                for (i=0; i<num; i++) {
-                    DFBRectangle src = { 0, 0, bg->width, bg->height };
+                    DFBRectangle src = { 0, 0, bg->config.size.w, bg->config.size.h };
 
                     /* Change clipping region. */
                     dfb_state_set_clip( state, &updates[i] );

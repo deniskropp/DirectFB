@@ -55,7 +55,7 @@
 #include <core/layer_context.h>
 #include <core/layer_region.h>
 #include <core/layers_internal.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/palette.h>
 #include <core/windows.h>
 #include <core/windows_internal.h>

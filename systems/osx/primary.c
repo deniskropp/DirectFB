@@ -40,7 +40,7 @@
 #include <core/coretypes.h>
 #include <core/layers.h>
 #include <core/palette.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/system.h>
 
 #include <gfx/convert.h>
@@ -436,11 +436,11 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
 
      dst = CGDisplayBaseAddress( screen );
      dst_pitch = CGDisplayBytesPerRow( screen );
-     src += DFB_BYTES_PER_LINE( surface->format, x ) + y * pitch;
-     dst += DFB_BYTES_PER_LINE( surface->format, x ) + y * dst_pitch;
+     src += DFB_BYTES_PER_LINE( surface->config.format, x ) + y * pitch;
+     dst += DFB_BYTES_PER_LINE( surface->config.format, x ) + y * dst_pitch;
 
      for (i=0; i<h; ++i) {
-          direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->format, w ) );
+          direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->config.format, w ) );
 
           src += pitch;
           dst += dst_pitch;
@@ -501,7 +501,7 @@ dfb_osx_update_screen_handler( DFBRegion *region )
      fusion_skirmish_prevail( &dfb_osx->lock );
 
      if (!region)
-          ret = update_screen( surface, 0, 0, surface->width, surface->height );
+          ret = update_screen( surface, 0, 0, surface->config.size.w, surface->config.size.h );
      else
           ret = update_screen( surface,
                                region->x1,  region->y1,

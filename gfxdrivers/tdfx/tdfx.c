@@ -49,7 +49,7 @@
 
 #include <core/state.h>
 #include <core/gfxcard.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>

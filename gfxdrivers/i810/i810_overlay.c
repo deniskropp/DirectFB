@@ -35,7 +35,7 @@
 
 #include <core/coredefs.h>
 #include <core/layers.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/screens.h>
 #include <core/screen.h>
 
@@ -397,8 +397,8 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 
 	drw_w = config->dest.w;
 	drw_h = config->dest.h;
-	src_w = surface->width;
-	src_h = surface->height;
+	src_w = surface->config.size.w;
+	src_h = surface->config.size.h;
 
 	if (config->options & DLOP_DEINTERLACING)
 		src_h >>= 1;
@@ -407,7 +407,7 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 	i810drv->oregs->ov0cmd &= 7;
 
 	/* Set source dimension in bytes */
-	switch (surface->format) {
+	switch (surface->config.format) {
 	case DSPF_I420:
 	case DSPF_YV12:
 		swidth = (src_w + 7) & ~7;
@@ -438,14 +438,14 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 	/* Set buffer pointers */
 	y_offset = (dfb_gfxcard_memory_physical(NULL, front_buffer->video.offset));
 
-	switch (surface->format) {
+	switch (surface->config.format) {
 	case DSPF_I420:
-		u_offset = y_offset + surface->height * front_buffer->video.pitch;
-		v_offset = u_offset + ((surface->height >> 1) * (front_buffer->video.pitch >> 1));
+		u_offset = y_offset + surface->config.size.h * front_buffer->video.pitch;
+		v_offset = u_offset + ((surface->config.size.h >> 1) * (front_buffer->video.pitch >> 1));
 		break;
 	case DSPF_YV12:
-		v_offset = y_offset + surface->height * front_buffer->video.pitch;
-		u_offset = v_offset + ((surface->height >> 1) * (front_buffer->video.pitch >> 1));
+		v_offset = y_offset + surface->config.size.h * front_buffer->video.pitch;
+		u_offset = v_offset + ((surface->config.size.h >> 1) * (front_buffer->video.pitch >> 1));
 		break;
 	default:
 		break;
@@ -548,7 +548,7 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 	                   ((yscaleFractUV & 0xFFF) << 20);
 	}
 	
-	switch(surface->format) {
+	switch(surface->config.format) {
 	case DSPF_YV12:
 	case DSPF_I420:
 		/* set UV vertical phase to -0.25 */
@@ -566,7 +566,7 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 		i810drv->oregs->ov0cmd &= ~SOURCE_FORMAT;
 		i810drv->oregs->ov0cmd |= YUV_422;
 		i810drv->oregs->ov0cmd &= ~OV_BYTE_ORDER;
-		if (surface->format == DSPF_UYVY)
+		if (surface->config.format == DSPF_UYVY)
 			i810drv->oregs->ov0cmd |= Y_SWAP;
 		break;
 	default:

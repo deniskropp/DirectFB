@@ -64,7 +64,7 @@
 #include <core/gfxcard.h>
 #include <core/layers.h>
 #include <core/layer_control.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/surfacemanager.h>
 
 #include <display/idirectfbsurface.h>
@@ -742,7 +742,7 @@ static void* GrabThread( DirectThread *thread, void *ctx )
 
      D_DEBUG( "DirectFB/Video4Linux: %s started.\n", __FUNCTION__ );
 
-     src_pitch = DFB_BYTES_PER_LINE( surface->format, surface->width );
+     src_pitch = DFB_BYTES_PER_LINE( surface->config.format, surface->config.size.w );
 
      while (frame < data->vmbuf.frames) {
           data->vmmap.frame = frame;
@@ -762,7 +762,7 @@ static void* GrabThread( DirectThread *thread, void *ctx )
           if (!data->running)
                break;
 
-          h = surface->height;
+          h = surface->config.size.h;
           src = data->buffer + data->vmbuf.offsets[frame];
           dfb_surface_soft_lock( data->core, surface, DSLF_WRITE, &dst, &dst_pitch, 0 );
           while (h--) {
@@ -770,23 +770,23 @@ static void* GrabThread( DirectThread *thread, void *ctx )
                dst += dst_pitch;
                src += src_pitch;
           }
-          if (surface->format == DSPF_I420) {
-               h = surface->height;
+          if (surface->config.format == DSPF_I420) {
+               h = surface->config.size.h;
                while (h--) {
                     direct_memcpy( dst, src, src_pitch >> 1 );
                     dst += dst_pitch >> 1;
                     src += src_pitch >> 1;
                }
           }
-          else if (surface->format == DSPF_YV12) {
-               h = surface->height >> 1;
+          else if (surface->config.format == DSPF_YV12) {
+               h = surface->config.size.h >> 1;
                src += h * (src_pitch >> 1);
                while (h--) {
                     direct_memcpy( dst, src, src_pitch >> 1 );
                     dst += dst_pitch >> 1;
                     src += src_pitch >> 1;
                }
-               h = surface->height >> 1;
+               h = surface->config.size.h >> 1;
                src -=  2 * h * (src_pitch >> 1);
                while (h--) {
                     direct_memcpy( dst, src, src_pitch >> 1 );
@@ -886,7 +886,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
      if (surface->caps & DSCAPS_SYSTEMONLY)
           return DFB_UNSUPPORTED;
 
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_YUY2:
                bpp = 16;
                palette = VIDEO_PALETTE_YUYV;
@@ -926,7 +926,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
 
           b.base = (void*)dfb_gfxcard_memory_physical( NULL, buffer->video.offset );
           b.width = buffer->video.pitch / ((bpp + 7) / 8);
-          b.height = surface->height;
+          b.height = surface->config.size.h;
           b.depth = bpp;
           b.bytesperline = buffer->video.pitch;
 
@@ -1015,7 +1015,7 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
      if (!data->vmbuf.frames)
           return DFB_UNSUPPORTED;
 
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_YUY2:
                palette = VIDEO_PALETTE_YUYV;
                break;
@@ -1044,8 +1044,8 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
                return DFB_UNSUPPORTED;
      }
 
-     data->vmmap.width = surface->width;
-     data->vmmap.height = surface->height;
+     data->vmmap.width = surface->config.size.w;
+     data->vmmap.height = surface->config.size.h;
      data->vmmap.format = palette;
      data->vmmap.frame = 0;
      if (ioctl(data->fd, VIDIOCMCAPTURE, &data->vmmap) < 0) {
@@ -1224,7 +1224,7 @@ static void *V4L2_Thread(DirectThread * thread, void *ctx)
 
      D_DEBUG("DirectFB/Video4Linux2: %s started.\n", __FUNCTION__);
 
-     src_pitch = DFB_BYTES_PER_LINE(surface->format, surface->width);
+     src_pitch = DFB_BYTES_PER_LINE(surface->config.format, surface->config.size.w);
 
      /* Queue all buffers */
      for (i = 0; i < data->req.count; i++) {
@@ -1259,7 +1259,7 @@ static void *V4L2_Thread(DirectThread * thread, void *ctx)
 
                D_HEAVYDEBUG("DirectFB/Video4Linux2: index:%d, to system memory.\n", cur.index);
 
-               h = surface->height;
+               h = surface->config.size.h;
                src = data->ptr[cur.index];
                dfb_surface_soft_lock(data->core, surface, DSLF_WRITE, &dst, &dst_pitch, 0);
                while (h--) {
@@ -1267,23 +1267,23 @@ static void *V4L2_Thread(DirectThread * thread, void *ctx)
                     dst += dst_pitch;
                     src += src_pitch;
                }
-               if (surface->format == DSPF_I420) {
-                    h = surface->height;
+               if (surface->config.format == DSPF_I420) {
+                    h = surface->config.size.h;
                     while (h--) {
                          direct_memcpy(dst, src, src_pitch >> 1);
                          dst += dst_pitch >> 1;
                          src += src_pitch >> 1;
                     }
                }
-               else if (surface->format == DSPF_YV12) {
-                    h = surface->height >> 1;
+               else if (surface->config.format == DSPF_YV12) {
+                    h = surface->config.size.h >> 1;
                     src += h * (src_pitch >> 1);
                     while (h--) {
                          direct_memcpy(dst, src, src_pitch >> 1);
                          dst += dst_pitch >> 1;
                          src += src_pitch >> 1;
                     }
-                    h = surface->height >> 1;
+                    h = surface->config.size.h >> 1;
                     src -= 2 * h * (src_pitch >> 1);
                     while (h--) {
                          direct_memcpy(dst, src, src_pitch >> 1);
@@ -1291,9 +1291,9 @@ static void *V4L2_Thread(DirectThread * thread, void *ctx)
                          src += src_pitch >> 1;
                     }
                }
-               else if (surface->format == DSPF_NV12 ||
-                        surface->format == DSPF_NV21) {
-                    h = surface->height >> 1;
+               else if (surface->config.format == DSPF_NV12 ||
+                        surface->config.format == DSPF_NV21) {
+                    h = surface->config.size.h >> 1;
                     while (h--) {
                          direct_memcpy(dst, src, src_pitch);
                          dst += dst_pitch;
@@ -1328,7 +1328,7 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
 
      D_DEBUG("DirectFB/Video4Linux2: %s...\n", __FUNCTION__);
 
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_YUY2:
                palette = V4L2_PIX_FMT_YUYV;
                break;
@@ -1369,13 +1369,13 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
      }
 
      data->fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-     data->fmt.fmt.pix.width = surface->width;
-     data->fmt.fmt.pix.height = surface->height;
+     data->fmt.fmt.pix.width = surface->config.size.w;
+     data->fmt.fmt.pix.height = surface->config.size.h;
      data->fmt.fmt.pix.pixelformat = palette;
      data->fmt.fmt.pix.bytesperline = buffer->video.pitch;
      data->fmt.fmt.pix.field = V4L2_FIELD_INTERLACED; /* fixme: we can do field based capture, too */
 
-     D_DEBUG("DirectFB/Video4Linux2: surface->width:%d, surface->height:%d.\n", surface->width, surface->height);
+     D_DEBUG("DirectFB/Video4Linux2: surface->config.size.w:%d, surface->config.size.h:%d.\n", surface->config.size.w, surface->config.size.h);
 
      err = ioctl(data->fd, VIDIOC_S_FMT, &data->fmt);
      if (err) {
@@ -1383,7 +1383,7 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
           return err;
      }
 
-     if (data->fmt.fmt.pix.width != surface->width || data->fmt.fmt.pix.height != surface->height) {
+     if (data->fmt.fmt.pix.width != surface->config.size.w || data->fmt.fmt.pix.height != surface->config.size.h) {
           D_PERROR("DirectFB/Video4Linux2: driver cannot fulfill application request.\n");
           return DFB_UNSUPPORTED;  /* fixme */
      }
@@ -1412,8 +1412,8 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
           data->req.memory = V4L2_MEMORY_OVERLAY;
 
           fb.base = (void *) dfb_gfxcard_memory_physical(NULL, 0);
-          fb.fmt.width = surface->width;
-          fb.fmt.height = surface->height;
+          fb.fmt.width = surface->config.size.w;
+          fb.fmt.height = surface->config.size.h;
           fb.fmt.pixelformat = palette;
 
           D_DEBUG("w:%d, h:%d, bpl:%d, base:0x%08lx\n",fb.fmt.width, fb.fmt.height, fb.fmt.bytesperline, (unsigned long)fb.base);

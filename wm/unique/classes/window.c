@@ -36,7 +36,7 @@
 
 #include <core/gfxcard.h>
 #include <core/state.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/windows_internal.h>
 
 #include <misc/util.h>
@@ -136,7 +136,7 @@ window_update( StretRegion     *region,
      }
 
      /* Use automatic deinterlacing. */
-     if (window->surface->caps & DSCAPS_INTERLACED)
+     if (window->surface->config.caps & DSCAPS_INTERLACED)
           flags |= DSBLIT_DEINTERLACE;
 
      /* Set blitting flags. */

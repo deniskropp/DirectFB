@@ -90,6 +90,12 @@ else
 UNICHROME_DIR =
 endif
 
+if GFX_VMWARE
+VMWARE_DIR = vmware
+else
+VMWARE_DIR =
+endif
+
 SUBDIRS = \
 	$(ATI_DIR)	\
 	$(RADEON_DIR)	\
@@ -105,4 +111,5 @@ SUBDIRS = \
 	$(I830_DIR)	\
 	$(CLE266_DIR)	\
 	$(UNICHROME_DIR) \
-	$(GEODE_DIR)
+	$(GEODE_DIR)	\
+	$(VMWARE_DIR)

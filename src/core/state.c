@@ -42,7 +42,7 @@
 
 #include <core/palette.h>
 #include <core/state.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <direct/mem.h>
 #include <direct/memcpy.h>
@@ -103,6 +103,9 @@ dfb_state_init( CardState *state, CoreDFB *core )
      state->src_blend      = DSBF_SRCALPHA;
      state->dst_blend      = DSBF_INVSRCALPHA;
      state->render_options = dfb_config->render_options;
+
+     state->from      = CSBR_FRONT;
+     state->to        = CSBR_BACK;
 
      direct_util_recursive_pthread_mutex_init( &state->lock );
 
@@ -165,7 +168,7 @@ dfb_state_set_destination( CardState *state, CoreSurface *destination )
                     return;
                }
 
-               validate_clip( state, destination->width - 1, destination->height - 1, false );
+               validate_clip( state, destination->config.size.w - 1, destination->config.size.h - 1, false );
           }
 
           if (state->destination) {
@@ -236,13 +239,13 @@ dfb_state_update( CardState *state, bool update_source )
           D_ASSERT( destination != NULL );
 
           if (direct_serial_update( &state->dst_serial, &destination->serial )) {
-               validate_clip( state, destination->width - 1, destination->height - 1, true );
+               validate_clip( state, destination->config.size.w - 1, destination->config.size.h - 1, true );
 
                state->modified |= SMF_DESTINATION;
           }
      }
      else if (destination)
-          validate_clip( state, destination->width - 1, destination->height - 1, true );
+          validate_clip( state, destination->config.size.w - 1, destination->config.size.h - 1, true );
 
      if (update_source && D_FLAGS_IS_SET( state->flags, CSF_SOURCE )) {
           CoreSurface *source = state->source;

@@ -47,7 +47,7 @@
 #include <core/coretypes.h>
 
 #include <core/state.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/gfxcard.h>
 
 #include <gfx/convert.h>

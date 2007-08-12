@@ -41,10 +41,7 @@
 
 typedef struct 
 {
-	Display*			display;
 	Window 				window;
-	Screen*				screenptr;
-	int 				screennum;
 	Visual*				visual;
 	GC 					gc;
 	XImage*				ximage;

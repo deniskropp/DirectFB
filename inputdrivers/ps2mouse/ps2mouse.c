@@ -297,7 +297,7 @@ ps2Write( int fd, const unsigned char *data, size_t len, bool verbose)
      for ( i = 0; i < len; i++ ) {
           if ( ps2WriteChar(fd, data[i], verbose) < 0 ) {
                if ( verbose )
-                    D_ERROR( "DirectFB/PS2Mouse: error @byte %i\n", i );
+                    D_ERROR( "DirectFB/PS2Mouse: error @byte %zu\n", i );
                error++;
           }
      }

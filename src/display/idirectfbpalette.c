@@ -38,7 +38,7 @@
 
 #include <directfb.h>
 
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/palette.h>
 
 #include <direct/interface.h>

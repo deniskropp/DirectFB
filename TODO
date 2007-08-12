@@ -1,11 +1,26 @@
 Incomplete (roughly sorted by priority)
 ---------------------------------------
 
-Finish surface manager.
- - Add kicking out a few smaller surfaces for a bigger one.
- - Defragment free space.
+New Surface Core
+- Revive DSCAPS_STATIC_ALLOC.
+- Revive depth buffers.
+- Revive CSLF_FORCE for locking buffers in(to) INTERNAL memory.
+- Revive surface setinels.
+- Finish FBDev surface pool using the old surface manager code.
+  - Fix pool/gfxcard init order (using workaround at the moment).
+  - Revive kicking out buffers.
+  - Add kicking out a few smaller surfaces for a bigger one.
+  - Defragment free space.
+  - Readd auxiliary memory pool using its own instance of the manager.
+- Get other system modules working again.
+- Get graphics drivers working again.
+- Probably more modules and tools need updates...
+  - dgiff font loader
+  - v4l video provider
+- Make use of Read/Write if locks for CPU are not possible and
+  implement an OpenGL based system module with OpenGL acceleration.
 
-Support rotated screens.
+Support rotated screens (180 is implemented).
 
 Support vga16, i.e. add DSPF_LUT4.
 

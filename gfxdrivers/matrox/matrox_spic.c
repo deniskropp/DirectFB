@@ -36,7 +36,7 @@
 #include <core/coretypes.h>
 #include <core/layers.h>
 #include <core/palette.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <gfx/convert.h>
 
@@ -296,7 +296,7 @@ static void spic_calc_buffer( MatroxDriverData    *mdrv,
      mspic->regs.c2SPICSTARTADD0 = buffer->video.offset;
 
      if (surface->caps & DSCAPS_SEPARATED)
-          field_offset *= surface->height / 2;
+          field_offset *= surface->config.size.h / 2;
 
      if (surface->caps & DSCAPS_INTERLACED)
           mspic->regs.c2SPICSTARTADD0 += field_offset;

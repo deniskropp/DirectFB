@@ -38,7 +38,7 @@
 #include <core/coretypes.h>
 #include <core/layers.h>
 #include <core/screen.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <misc/conf.h>
 
@@ -443,7 +443,7 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
      /* c2maxhipri */
      mcrtc2->regs.c2CTL |= 1 << 8;
 
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
@@ -459,7 +459,7 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
           mcrtc2->regs.c2DATACTL |= C2NTSCEN;
 
      /* pixel format settings */
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_I420:
           case DSPF_YV12:
                mcrtc2->regs.c2CTL |= C2DEPTH_YCBCR420;
@@ -538,7 +538,7 @@ static void crtc2_calc_buffer( MatroxDriverData     *mdrv,
      int            field_offset = buffer->video.pitch;
 
      if (surface->caps & DSCAPS_SEPARATED)
-          field_offset *= surface->height / 2;
+          field_offset *= surface->config.size.h / 2;
 
      mcrtc2->regs.c2STARTADD1 = buffer->video.offset;
      mcrtc2->regs.c2STARTADD0 = mcrtc2->regs.c2STARTADD1 + field_offset;
@@ -549,21 +549,21 @@ static void crtc2_calc_buffer( MatroxDriverData     *mdrv,
           field_offset = 0;
 
      if (surface->caps & DSCAPS_SEPARATED)
-          field_offset *= surface->height / 4;
+          field_offset *= surface->config.size.h / 4;
 
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_I420:
-               mcrtc2->regs.c2PL2STARTADD1 = mcrtc2->regs.c2STARTADD1 + surface->height * buffer->video.pitch;
+               mcrtc2->regs.c2PL2STARTADD1 = mcrtc2->regs.c2STARTADD1 + surface->config.size.h * buffer->video.pitch;
                mcrtc2->regs.c2PL2STARTADD0 = mcrtc2->regs.c2PL2STARTADD1 + field_offset;
 
-               mcrtc2->regs.c2PL3STARTADD1 = mcrtc2->regs.c2PL2STARTADD1 + surface->height/2 * buffer->video.pitch/2;
+               mcrtc2->regs.c2PL3STARTADD1 = mcrtc2->regs.c2PL2STARTADD1 + surface->config.size.h/2 * buffer->video.pitch/2;
                mcrtc2->regs.c2PL3STARTADD0 = mcrtc2->regs.c2PL3STARTADD1 + field_offset;
                break;
           case DSPF_YV12:
-               mcrtc2->regs.c2PL3STARTADD1 = mcrtc2->regs.c2STARTADD1 + surface->height * buffer->video.pitch;
+               mcrtc2->regs.c2PL3STARTADD1 = mcrtc2->regs.c2STARTADD1 + surface->config.size.h * buffer->video.pitch;
                mcrtc2->regs.c2PL3STARTADD0 = mcrtc2->regs.c2PL3STARTADD1 + field_offset;
 
-               mcrtc2->regs.c2PL2STARTADD1 = mcrtc2->regs.c2PL3STARTADD1 + surface->height/2 * buffer->video.pitch/2;
+               mcrtc2->regs.c2PL2STARTADD1 = mcrtc2->regs.c2PL3STARTADD1 + surface->config.size.h/2 * buffer->video.pitch/2;
                mcrtc2->regs.c2PL2STARTADD0 = mcrtc2->regs.c2PL2STARTADD1 + field_offset;
                break;
           default:

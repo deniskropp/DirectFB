@@ -124,10 +124,10 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
 
      D_ASSERT(surface);
 
-     sw = surface->width;
-     sh = surface->height;
+     sw = surface->config.size.w;
+     sh = surface->config.size.h;
      sp = surface->front_buffer->video.pitch;
-     sfmt = surface->format;
+     sfmt = surface->config.format;
 
      if (ucovl->deinterlace) {
           /*if (ucovl->field)
@@ -190,7 +190,7 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
           }
 
           uc_ovl_map_buffer(sfmt, offset,
-                            ucovl->v1.ox, ucovl->v1.oy, sw, surface->height, sp, 0/*field*/, &y_start,
+                            ucovl->v1.ox, ucovl->v1.oy, sw, surface->config.size.h, sp, 0/*field*/, &y_start,
                             &u_start, &v_start);
 
           if (field) {

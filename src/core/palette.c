@@ -36,7 +36,7 @@
 #include <core/coretypes.h>
 
 #include <core/core.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/gfxcard.h>
 #include <core/palette.h>
 #include <core/colorhash.h>
@@ -64,6 +64,8 @@ static void palette_destructor( FusionObject *object, bool zombie, void *ctx )
      CorePaletteNotification  notification;
      CorePalette             *palette = (CorePalette*) object;
 
+     D_MAGIC_ASSERT( palette, CorePalette );
+
      D_DEBUG_AT( Core_Palette, "destroying %p (%d)%s\n", palette,
                  palette->num_entries, zombie ? " (ZOMBIE)" : "");
 
@@ -76,12 +78,14 @@ static void palette_destructor( FusionObject *object, bool zombie, void *ctx )
      dfb_palette_dispatch( palette, &notification, dfb_palette_globals );
 
      if (palette->hash_attached) {
-          dfb_colorhash_invalidate( palette );
-          dfb_colorhash_detach( palette );
+          dfb_colorhash_invalidate( NULL, palette );
+          dfb_colorhash_detach( NULL, palette );
      }
 
      SHFREE( palette->shmpool, palette->entries_yuv );
      SHFREE( palette->shmpool, palette->entries );
+
+     D_MAGIC_CLEAR( palette );
 
      fusion_object_destroy( object );
 }
@@ -138,6 +142,8 @@ dfb_palette_create( CoreDFB       *core,
      /* reset cache */
      palette->search_cache.index = -1;
 
+     D_MAGIC_SET( palette, CorePalette );
+
      /* activate object */
      fusion_object_activate( &palette->object );
 
@@ -156,7 +162,7 @@ dfb_palette_generate_rgb332_map( CorePalette *palette )
 
      D_DEBUG_AT( Core_Palette, "%s( %p )\n", __FUNCTION__, palette );
 
-     D_ASSERT( palette != NULL );
+     D_MAGIC_ASSERT( palette, CorePalette );
 
      if (!palette->num_entries)
           return;
@@ -183,7 +189,7 @@ dfb_palette_generate_rgb121_map( CorePalette *palette )
 
      D_DEBUG_AT( Core_Palette, "%s( %p )\n", __FUNCTION__, palette );
 
-     D_ASSERT( palette != NULL );
+     D_MAGIC_ASSERT( palette, CorePalette );
 
      if (!palette->num_entries)
           return;
@@ -212,7 +218,7 @@ dfb_palette_search( CorePalette *palette,
 {
      unsigned int index;
 
-     D_ASSERT( palette != NULL );
+     D_MAGIC_ASSERT( palette, CorePalette );
 
      /* check local cache first */
      if (palette->search_cache.index != -1 &&
@@ -224,11 +230,11 @@ dfb_palette_search( CorePalette *palette,
 
      /* check the global color hash table, returns the closest match */
      if (!palette->hash_attached) {
-          dfb_colorhash_attach( palette );
+          dfb_colorhash_attach( NULL, palette );
           palette->hash_attached = true;
      }
 
-     index = dfb_colorhash_lookup( palette, r, g, b, a );
+     index = dfb_colorhash_lookup( NULL, palette, r, g, b, a );
 
      /* write into local cache */
      palette->search_cache.index = index;
@@ -247,7 +253,7 @@ dfb_palette_update( CorePalette *palette, int first, int last )
 
      D_DEBUG_AT( Core_Palette, "%s( %p, %d, %d )\n", __FUNCTION__, palette, first, last );
 
-     D_ASSERT( palette != NULL );
+     D_MAGIC_ASSERT( palette, CorePalette );
      D_ASSERT( first >= 0 );
      D_ASSERT( first < palette->num_entries );
      D_ASSERT( last >= 0 );
@@ -266,7 +272,7 @@ dfb_palette_update( CorePalette *palette, int first, int last )
 
      /* invalidate entries in colorhash */
      if (palette->hash_attached)
-          dfb_colorhash_invalidate( palette );
+          dfb_colorhash_invalidate( NULL, palette );
 
      /* post message about palette update */
      dfb_palette_dispatch( palette, &notification, dfb_palette_globals );

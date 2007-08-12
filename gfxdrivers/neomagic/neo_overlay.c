@@ -33,7 +33,7 @@
 
 #include <core/coredefs.h>
 #include <core/layers.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include "neomagic.h"
 
@@ -341,7 +341,7 @@ static void ovl_calc_regs( NeoDriverData         *ndrv,
      novl->regs.OFFSET = front_buffer->video.offset;
      novl->regs.PITCH  = front_buffer->video.pitch;
 
-     novl->regs.HSCALE = (surface->width  << 12) / (config->dest.w + 1);
-     novl->regs.VSCALE = (surface->height << 12) / (config->dest.h + 1);
+     novl->regs.HSCALE = (surface->config.size.w  << 12) / (config->dest.w + 1);
+     novl->regs.VSCALE = (surface->config.size.h << 12) / (config->dest.h + 1);
 }
 

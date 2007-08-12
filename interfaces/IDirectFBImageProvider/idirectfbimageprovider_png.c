@@ -47,7 +47,7 @@
 
 #include <core/layers.h>
 #include <core/palette.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <misc/gfx_util.h>
 #include <misc/util.h>
@@ -349,16 +349,15 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
 
      /* actual rendering */
      if (dfb_rectangle_region_intersects( &rect, &clip )) {
-          void *dst;
-          int   pitch;
+          CoreSurfaceBufferLock lock;
 
-          ret = dfb_surface_soft_lock( data->core, dst_surface, DSLF_WRITE, &dst, &pitch, false );
+          ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
           if (ret)
                return ret;
 
           switch (data->color_type) {
                case PNG_COLOR_TYPE_PALETTE:
-                    if (dst_surface->format == DSPF_LUT8 && data->info_ptr->bit_depth == 8) {
+                    if (dst_surface->config.format == DSPF_LUT8 && data->info_ptr->bit_depth == 8) {
                          /*
                           * Special indexed PNG to LUT8 loading.
                           */
@@ -366,13 +365,13 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                          /* FIXME: Limitation for LUT8 is to load complete surface only. */
                          dfb_clip_rectangle( &clip, &rect );
                          if (rect.x == 0 && rect.y == 0 &&
-                             rect.w == dst_surface->width  &&
-                             rect.h == dst_surface->height &&
+                             rect.w == dst_surface->config.size.w  &&
+                             rect.h == dst_surface->config.size.h &&
                              rect.w == data->width         &&
                              rect.h == data->height)
                          {
                               for (y=0; y<data->height; y++)
-                                   direct_memcpy( dst + pitch * y,
+                                   direct_memcpy( lock.addr + lock.pitch * y,
                                                   data->image + data->pitch * y,
                                                   data->width );
 
@@ -469,7 +468,7 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                          }
 
                          dfb_scale_linear_32( image_argb, data->width, data->height,
-                                              dst, pitch, &rect, dst_surface, &clip );
+                                              lock.addr, lock.pitch, &rect, dst_surface, &clip );
  
                          D_FREE( image_argb );
                     }
@@ -480,11 +479,11 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                      * Generic loading code.
                      */
                     dfb_scale_linear_32( data->image, data->width, data->height,
-                                         dst, pitch, &rect, dst_surface, &clip );
+                                         lock.addr, lock.pitch, &rect, dst_surface, &clip );
                     break;
           }
 
-          dfb_surface_unlock( dst_surface, false );
+          dfb_surface_unlock_buffer( dst_surface, &lock );
      }
 
      if (data->stage != STAGE_END)

@@ -130,8 +130,8 @@ fusion_call_execute (FusionCall          *call,
                     case EINTR:
                          continue;
                     case EINVAL:
-                         D_ERROR ("Fusion/Call: invalid call\n");
-                         /* fall through */
+//                         D_ERROR ("Fusion/Call: invalid call\n");
+                         return DFB_INVARG;
                     case EIDRM:
                          return DFB_DESTROYED;
                     default:

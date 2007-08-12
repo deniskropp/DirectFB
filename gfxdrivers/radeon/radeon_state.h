@@ -23,7 +23,7 @@
 #ifndef __RADEON_STATE_H__
 #define __RADEON_STATE_H__
 
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 /* R100 state funcs */
 void r100_restore           ( RadeonDriverData *rdrv,
@@ -133,19 +133,12 @@ void r300_set_blittingflags ( RadeonDriverData *rdrv,
      
      
 static inline u32
-radeon_buffer_offset( RadeonDeviceData *rdev, SurfaceBuffer *buffer )
+radeon_buffer_offset( RadeonDeviceData *rdev, CoreSurfaceBufferLock *lock )
 {
-     switch (buffer->storage) {
-          case CSS_VIDEO:
-               return buffer->video.offset + rdev->fb_offset;
-          case CSS_AUXILIARY:
-               return buffer->video.offset + rdev->agp_offset;
-          default:
-               D_BUG( "unknown buffer storage" );
-               break;
-     }
-     
-     return 0;
+     if (lock->phys - lock->offset == rdev->fb_phys)
+          return lock->offset + rdev->fb_offset;
+
+     return lock->offset + rdev->agp_offset;
 }
 
                                                         

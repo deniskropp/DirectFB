@@ -37,6 +37,7 @@
 #include <core/coretypes.h>
 #include <core/coredefs.h>
 
+
 typedef DFBResult (*CoreInitialize)( CoreDFB *core,
                                      void    *data_local,
                                      void    *data_shared );
@@ -55,16 +56,12 @@ typedef DFBResult (*CoreSuspend)   ( CoreDFB *core );
 
 typedef DFBResult (*CoreResume)    ( CoreDFB *core );
 
+
 typedef struct {
      const char     *name;
 
      int             size_local;
      int             size_shared;
-
-     void           *data_local;
-     void           *data_shared;
-
-     bool            initialized;
 
      CoreInitialize  Initialize;
      CoreJoin        Join;
@@ -72,7 +69,13 @@ typedef struct {
      CoreLeave       Leave;
      CoreSuspend     Suspend;
      CoreResume      Resume;
+
+     void           *data_local;
+     void           *data_shared;
+
+     bool            initialized;
 } CorePart;
+
 
 DFBResult dfb_core_part_initialize( CoreDFB  *core,
                                     CorePart *core_part );
@@ -89,37 +92,39 @@ DFBResult dfb_core_part_leave     ( CoreDFB  *core,
                                     bool      emergency );
 
 
-#define DFB_CORE_PART(part,sl,ss)                                              \
+#define DFB_CORE_PART(part,Type)                                               \
                                                                                \
-static DFBResult dfb_##part##_initialize( CoreDFB  *core,                      \
-                                          void     *data_local,                \
-                                          void     *data_shared );             \
+static DFBResult dfb_##part##_initialize( CoreDFB           *core,             \
+                                          DFB##Type         *data,             \
+                                          DFB##Type##Shared *shared );         \
                                                                                \
-static DFBResult dfb_##part##_join      ( CoreDFB  *core,                      \
-                                          void     *data_local,                \
-                                          void     *data_shared );             \
+static DFBResult dfb_##part##_join      ( CoreDFB           *core,             \
+                                          DFB##Type         *data,             \
+                                          DFB##Type##Shared *shared );         \
                                                                                \
-static DFBResult dfb_##part##_shutdown  ( CoreDFB  *core,                      \
-                                          bool      emergency );               \
+static DFBResult dfb_##part##_shutdown  ( DFB##Type         *data,             \
+                                          bool               emergency );      \
                                                                                \
-static DFBResult dfb_##part##_leave     ( CoreDFB  *core,                      \
-                                          bool      emergency );               \
+static DFBResult dfb_##part##_leave     ( DFB##Type         *local,            \
+                                          bool               emergency );      \
                                                                                \
-static DFBResult dfb_##part##_suspend   ( CoreDFB  *core );                    \
+static DFBResult dfb_##part##_suspend   ( DFB##Type         *local );          \
                                                                                \
-static DFBResult dfb_##part##_resume    ( CoreDFB  *core );                    \
+static DFBResult dfb_##part##_resume    ( DFB##Type         *local );          \
                                                                                \
-CorePart dfb_core_##part = {                                                   \
+CorePart dfb_##part = {                                                        \
      #part,                                                                    \
-     sl, ss, NULL, NULL, false,                                                \
                                                                                \
-     dfb_##part##_initialize,                                                  \
-     dfb_##part##_join,                                                        \
-     dfb_##part##_shutdown,                                                    \
-     dfb_##part##_leave,                                                       \
-     dfb_##part##_suspend,                                                     \
-     dfb_##part##_resume                                                       \
-};
+     sizeof(DFB##Type),                                                        \
+     sizeof(DFB##Type##Shared),                                                \
+                                                                               \
+     (void*)dfb_##part##_initialize,                                           \
+     (void*)dfb_##part##_join,                                                 \
+     (void*)dfb_##part##_shutdown,                                             \
+     (void*)dfb_##part##_leave,                                                \
+     (void*)dfb_##part##_suspend,                                              \
+     (void*)dfb_##part##_resume                                                \
+}
 
 
 #endif

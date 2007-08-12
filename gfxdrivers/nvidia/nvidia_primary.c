@@ -26,7 +26,7 @@
 #include <directfb.h>
 
 #include <core/coredefs.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/gfxcard.h>
 #include <core/system.h>
 #include <core/screen.h>

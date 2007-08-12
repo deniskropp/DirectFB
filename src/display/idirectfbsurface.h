@@ -65,9 +65,11 @@ typedef struct {
                                                 intersected by wanted area,
                                                 only valid if clip_set != 0 */
 
-     int                    locked;          /* which buffer is locked? */
-     CoreSurface            *surface;        /* buffer to show */
-     IDirectFBFont          *font;           /* font to use */
+     CoreSurface           *surface;         /* buffer to show */
+     bool                   locked;          /* which buffer is locked? */
+     CoreSurfaceBufferLock  lock;
+
+     IDirectFBFont         *font;            /* font to use */
      CardState              state;           /* render state to use */
      DFBTextEncodingID      encoding;        /* text encoding */
 

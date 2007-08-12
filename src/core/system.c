@@ -40,7 +40,7 @@
 #include <core/core_parts.h>
 #include <core/layers.h>
 #include <core/palette.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/system.h>
 
 #include <gfx/convert.h>
@@ -51,22 +51,219 @@
 #include <direct/messages.h>
 #include <direct/modules.h>
 
-DEFINE_MODULE_DIRECTORY( dfb_core_systems, "systems",
-                         DFB_CORE_SYSTEM_ABI_VERSION );
+DEFINE_MODULE_DIRECTORY( dfb_core_systems, "systems", DFB_CORE_SYSTEM_ABI_VERSION );
+
+
+D_DEBUG_DOMAIN( Core_System, "Core/System", "DirectFB System Core" );
+
+/**********************************************************************************************************************/
 
 typedef struct {
-     CoreSystemInfo system_info;
-} CoreSystemField;
+     int                  magic;
 
-DFB_CORE_PART( system, 0, sizeof(CoreSystemField) )
+     CoreSystemInfo       system_info;
+} DFBSystemCoreShared;
 
-static CoreSystemField       *system_field  = NULL;
+struct __DFB_DFBSystemCore {
+     int                  magic;
 
-static DirectModuleEntry     *system_module = NULL;
-static const CoreSystemFuncs *system_funcs  = NULL;
-static CoreSystemInfo         system_info;
-static void                  *system_data   = NULL;
+     CoreDFB             *core;
 
+     DFBSystemCoreShared *shared;
+};
+
+
+DFB_CORE_PART( system_core, SystemCore );
+
+/**********************************************************************************************************************/
+
+static DFBSystemCoreShared   *system_field  = NULL;    /* FIXME */
+
+static DirectModuleEntry     *system_module = NULL;    /* FIXME */
+static const CoreSystemFuncs *system_funcs  = NULL;    /* FIXME */
+static CoreSystemInfo         system_info;             /* FIXME */
+static void                  *system_data   = NULL;    /* FIXME */
+
+/**********************************************************************************************************************/
+
+static DFBResult
+dfb_system_core_initialize( CoreDFB             *core,
+                            DFBSystemCore       *data,
+                            DFBSystemCoreShared *shared )
+{
+     DFBResult ret;
+
+     D_DEBUG_AT( Core_System, "dfb_system_core_initialize( %p, %p, %p )\n", core, data, shared );
+
+     D_ASSERT( data != NULL );
+     D_ASSERT( shared != NULL );
+
+     data->core   = core;
+     data->shared = shared;
+
+
+     system_field = shared;    /* FIXME */
+
+     system_field->system_info = system_info;
+
+     ret = system_funcs->Initialize( core, &system_data );
+     if (ret)
+          return ret;
+
+
+     D_MAGIC_SET( data, DFBSystemCore );
+     D_MAGIC_SET( shared, DFBSystemCoreShared );
+
+     return DFB_OK;
+}
+
+static DFBResult
+dfb_system_core_join( CoreDFB             *core,
+                      DFBSystemCore       *data,
+                      DFBSystemCoreShared *shared )
+{
+     DFBResult ret;
+
+     D_DEBUG_AT( Core_System, "dfb_system_core_join( %p, %p, %p )\n", core, data, shared );
+
+     D_ASSERT( data != NULL );
+     D_MAGIC_ASSERT( shared, DFBSystemCoreShared );
+
+     data->core   = core;
+     data->shared = shared;
+
+
+     system_field = shared;    /* FIXME */
+
+     if (system_field->system_info.type != system_info.type ||
+         strcmp( system_field->system_info.name, system_info.name ))
+     {
+          D_ERROR( "DirectFB/core/system: "
+                    "running system '%s' doesn't match system '%s'!\n",
+                    system_field->system_info.name, system_info.name );
+
+          system_field = NULL;
+
+          return DFB_UNSUPPORTED;
+     }
+
+     if (system_field->system_info.version.major != system_info.version.major ||
+         system_field->system_info.version.minor != system_info.version.minor)
+     {
+          D_ERROR( "DirectFB/core/system: running system version '%d.%d' "
+                    "doesn't match version '%d.%d'!\n",
+                    system_field->system_info.version.major,
+                    system_field->system_info.version.minor,
+                    system_info.version.major,
+                    system_info.version.minor );
+
+          system_field = NULL;
+
+          return DFB_UNSUPPORTED;
+     }
+
+     ret = system_funcs->Join( core, &system_data );
+     if (ret)
+          return ret;
+
+
+     D_MAGIC_SET( data, DFBSystemCore );
+
+     return DFB_OK;
+}
+
+static DFBResult
+dfb_system_core_shutdown( DFBSystemCore *data,
+                          bool           emergency )
+{
+     DFBResult         ret;
+     DFBSystemCoreShared *shared;
+
+     D_DEBUG_AT( Core_System, "dfb_system_core_shutdown( %p, %semergency )\n", data, emergency ? "" : "no " );
+
+     D_MAGIC_ASSERT( data, DFBSystemCore );
+     D_MAGIC_ASSERT( data->shared, DFBSystemCoreShared );
+
+     shared = data->shared;
+
+
+     ret = system_funcs->Shutdown( emergency );
+
+     direct_module_unref( system_module );
+
+     system_module = NULL;
+     system_funcs  = NULL;
+     system_field  = NULL;
+     system_data   = NULL;
+
+
+     D_MAGIC_CLEAR( data );
+     D_MAGIC_CLEAR( shared );
+
+     return ret;
+}
+
+static DFBResult
+dfb_system_core_leave( DFBSystemCore *data,
+                       bool           emergency )
+{
+     DFBResult         ret;
+     DFBSystemCoreShared *shared;
+
+     D_DEBUG_AT( Core_System, "dfb_system_core_leave( %p, %semergency )\n", data, emergency ? "" : "no " );
+
+     D_MAGIC_ASSERT( data, DFBSystemCore );
+     D_MAGIC_ASSERT( data->shared, DFBSystemCoreShared );
+
+     shared = data->shared;
+
+
+     ret = system_funcs->Leave( emergency );
+
+     direct_module_unref( system_module );
+
+     system_module = NULL;
+     system_funcs  = NULL;
+     system_field  = NULL;
+     system_data   = NULL;
+
+
+     D_MAGIC_CLEAR( data );
+
+     return ret;
+}
+
+static DFBResult
+dfb_system_core_suspend( DFBSystemCore *data )
+{
+     DFBSystemCoreShared *shared;
+
+     D_DEBUG_AT( Core_System, "dfb_system_core_suspend( %p )\n", data );
+
+     D_MAGIC_ASSERT( data, DFBSystemCore );
+     D_MAGIC_ASSERT( data->shared, DFBSystemCoreShared );
+
+     shared = data->shared;
+
+     return system_funcs->Suspend();
+}
+
+static DFBResult
+dfb_system_core_resume( DFBSystemCore *data )
+{
+     DFBSystemCoreShared *shared;
+
+     D_DEBUG_AT( Core_System, "dfb_system_core_resume( %p )\n", data );
+
+     D_MAGIC_ASSERT( data, DFBSystemCore );
+     D_MAGIC_ASSERT( data->shared, DFBSystemCoreShared );
+
+     shared = data->shared;
+
+     return system_funcs->Resume();
+}
+
+/**********************************************************************************************************************/
 
 DFBResult
 dfb_system_lookup()
@@ -105,115 +302,6 @@ dfb_system_lookup()
      }
 
      return DFB_OK;
-}
-
-static DFBResult
-dfb_system_initialize( CoreDFB *core, void *data_local, void *data_shared )
-{
-     D_ASSERT( system_funcs != NULL );
-     D_ASSERT( system_field == NULL );
-
-     system_field = data_shared;
-
-     system_field->system_info = system_info;
-
-     return system_funcs->Initialize( core, &system_data );
-}
-
-static DFBResult
-dfb_system_join( CoreDFB *core, void *data_local, void *data_shared )
-{
-     D_ASSERT( system_funcs != NULL );
-     D_ASSERT( system_field == NULL );
-
-     system_field = data_shared;
-
-     if (system_field->system_info.type != system_info.type ||
-         strcmp( system_field->system_info.name, system_info.name ))
-     {
-          D_ERROR( "DirectFB/core/system: "
-                    "running system '%s' doesn't match system '%s'!\n",
-                    system_field->system_info.name, system_info.name );
-
-          system_field = NULL;
-
-          return DFB_UNSUPPORTED;
-     }
-
-     if (system_field->system_info.version.major != system_info.version.major ||
-         system_field->system_info.version.minor != system_info.version.minor)
-     {
-          D_ERROR( "DirectFB/core/system: running system version '%d.%d' "
-                    "doesn't match version '%d.%d'!\n",
-                    system_field->system_info.version.major,
-                    system_field->system_info.version.minor,
-                    system_info.version.major,
-                    system_info.version.minor );
-
-          system_field = NULL;
-
-          return DFB_UNSUPPORTED;
-     }
-
-     return system_funcs->Join( core, &system_data );
-}
-
-static DFBResult
-dfb_system_shutdown( CoreDFB *core, bool emergency )
-{
-     DFBResult ret;
-
-     D_ASSERT( system_field != NULL );
-     D_ASSERT( system_module != NULL );
-
-     ret = system_funcs->Shutdown( emergency );
-
-     direct_module_unref( system_module );
-
-     system_module = NULL;
-     system_funcs  = NULL;
-     system_field  = NULL;
-     system_data   = NULL;
-
-     return ret;
-}
-
-static DFBResult
-dfb_system_leave( CoreDFB *core, bool emergency )
-{
-     DFBResult ret;
-
-     D_ASSERT( system_field != NULL );
-     D_ASSERT( system_module != NULL );
-
-     ret = system_funcs->Leave( emergency );
-
-     direct_module_unref( system_module );
-
-     system_module = NULL;
-     system_funcs  = NULL;
-     system_field  = NULL;
-     system_data   = NULL;
-
-     return ret;
-}
-
-static DFBResult
-dfb_system_suspend( CoreDFB *core )
-{
-     D_ASSERT( system_funcs != NULL );
-     D_ASSERT( system_field != NULL );
-
-     return system_funcs->Suspend();
-}
-
-static DFBResult
-dfb_system_resume( CoreDFB *core )
-{
-     D_ASSERT( system_funcs != NULL );
-     D_ASSERT( system_field != NULL );
-
-     return system_funcs->Resume();
 }
 
 CoreSystemType

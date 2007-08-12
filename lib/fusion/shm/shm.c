@@ -269,7 +269,6 @@ fusion_shm_attach_unattached( FusionWorld *world )
      if (ret)
           return ret;
 
-
      for (i=0; i<FUSION_SHM_MAX_POOLS; i++) {
           if (!shared->pools[i].active)
                continue;
@@ -285,6 +284,50 @@ fusion_shm_attach_unattached( FusionWorld *world )
                D_MAGIC_ASSERT( &shm->pools[i], FusionSHMPool );
      }
 
+     fusion_skirmish_dismiss( &shared->lock );
+
+     return DFB_OK;
+}
+
+DirectResult
+fusion_shm_enum_pools( FusionWorld           *world,
+                       FusionSHMPoolCallback  callback,
+                       void                  *ctx )
+{
+     int              i;
+     DirectResult     ret;
+     FusionSHM       *shm;
+     FusionSHMShared *shared;
+
+     D_MAGIC_ASSERT( world, FusionWorld );
+     D_MAGIC_ASSERT( world->shared, FusionWorldShared );
+     D_ASSERT( callback != NULL );
+
+     shm    = &world->shm;
+     shared = &world->shared->shm;
+
+     D_MAGIC_ASSERT( shm, FusionSHM );
+     D_MAGIC_ASSERT( shared, FusionSHMShared );
+
+     ret = fusion_skirmish_prevail( &shared->lock );
+     if (ret)
+          return ret;
+
+     for (i=0; i<FUSION_SHM_MAX_POOLS; i++) {
+          if (!shared->pools[i].active)
+               continue;
+
+          if (!shm->pools[i].attached) {
+               D_BUG( "not attached to pool" );
+               continue;
+          }
+
+          D_MAGIC_ASSERT( &shm->pools[i], FusionSHMPool );
+          D_MAGIC_ASSERT( &shared->pools[i], FusionSHMPoolShared );
+
+          if (callback( &shm->pools[i], ctx ) == DFENUM_CANCEL)
+               break;
+     }
 
      fusion_skirmish_dismiss( &shared->lock );
 

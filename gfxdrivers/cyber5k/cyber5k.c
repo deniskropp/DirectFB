@@ -50,7 +50,7 @@
 #include <core/windows.h>
 #include <core/layers.h>
 #include <core/screens.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <gfx/convert.h>
 

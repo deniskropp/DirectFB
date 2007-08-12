@@ -28,6 +28,9 @@
 
 #include <config.h>
 
+#include <direct/debug.h>
+#include <direct/memcpy.h>
+
 #include <fusion/arena.h>
 #include <fusion/shmalloc.h>
 
@@ -39,6 +42,10 @@
 #include <misc/util.h>
 #include <gfx/convert.h>
 
+
+D_DEBUG_DOMAIN( Core_ColorHash, "Core/ColorHash", "DirectFB ColorHash Core" );
+
+
 #define HASH_SIZE 823
 
 typedef struct {
@@ -47,159 +54,243 @@ typedef struct {
      CorePalette  *palette;
 } Colorhash;
 
+/**********************************************************************************************************************/
+
 typedef struct {
-     Colorhash             *hash;
-     unsigned int           hash_users;
-     FusionSkirmish         hash_lock;
-     FusionSHMPoolShared   *shmpool;
-} ColorhashField;
+     int                     magic;
 
-static ColorhashField *hash_field = NULL;
+     Colorhash              *hash;
+     unsigned int            hash_users;
+     FusionSkirmish          hash_lock;
 
+     FusionSHMPoolShared    *shmpool;
+} DFBColorHashCoreShared;
 
-DFB_CORE_PART( colorhash, 0, sizeof(ColorhashField) )
+struct __DFB_DFBColorHashCore {
+     int                     magic;
+
+     CoreDFB                *core;
+
+     DFBColorHashCoreShared *shared;
+};
+
+DFB_CORE_PART( colorhash_core, ColorHashCore );
+
+/**********************************************************************************************************************/
+
+static DFBColorHashCore *core_colorhash; /* FIXME */
 
 
 static DFBResult
-dfb_colorhash_initialize( CoreDFB *core, void *data_local, void *data_shared )
+dfb_colorhash_core_initialize( CoreDFB                *core,
+                               DFBColorHashCore       *data,
+                               DFBColorHashCoreShared *shared )
 {
-     D_ASSERT( hash_field == NULL );
+     D_DEBUG_AT( Core_ColorHash, "dfb_colorhash_core_initialize( %p, %p, %p )\n", core, data, shared );
 
-     hash_field = data_shared;
+     D_ASSERT( data != NULL );
+     D_ASSERT( shared != NULL );
 
-     hash_field->shmpool = dfb_core_shmpool( core );
+     core_colorhash = data; /* FIXME */
 
-     fusion_skirmish_init( &hash_field->hash_lock, "Colorhash Core", dfb_core_world(core) );
+     data->core   = core;
+     data->shared = shared;
+
+     shared->shmpool = dfb_core_shmpool( core );
+
+     fusion_skirmish_init( &shared->hash_lock, "Colorhash Core", dfb_core_world(core) );
+
+     D_MAGIC_SET( data, DFBColorHashCore );
+     D_MAGIC_SET( shared, DFBColorHashCoreShared );
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_colorhash_join( CoreDFB *core, void *data_local, void *data_shared )
+dfb_colorhash_core_join( CoreDFB                *core,
+                         DFBColorHashCore       *data,
+                         DFBColorHashCoreShared *shared )
 {
-     D_ASSERT( hash_field == NULL );
+     D_DEBUG_AT( Core_ColorHash, "dfb_colorhash_core_join( %p, %p, %p )\n", core, data, shared );
 
-     hash_field = data_shared;
+     D_ASSERT( data != NULL );
+     D_MAGIC_ASSERT( shared, DFBColorHashCoreShared );
+
+     core_colorhash = data; /* FIXME */
+
+     data->core   = core;
+     data->shared = shared;
+
+     D_MAGIC_SET( data, DFBColorHashCore );
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_colorhash_shutdown( CoreDFB *core, bool emergency )
+dfb_colorhash_core_shutdown( DFBColorHashCore *data,
+                             bool              emergency )
 {
-     D_ASSERT( hash_field != NULL );
+     DFBColorHashCoreShared *shared;
 
-     fusion_skirmish_destroy( &hash_field->hash_lock );
+     D_DEBUG_AT( Core_ColorHash, "dfb_colorhash_core_shutdown( %p, %semergency )\n", data, emergency ? "" : "no " );
 
-     hash_field = NULL;
+     D_MAGIC_ASSERT( data, DFBColorHashCore );
+     D_MAGIC_ASSERT( data->shared, DFBColorHashCoreShared );
+
+     shared = data->shared;
+
+     fusion_skirmish_destroy( &shared->hash_lock );
+
+     D_MAGIC_CLEAR( data );
+     D_MAGIC_CLEAR( shared );
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_colorhash_leave( CoreDFB *core, bool emergency )
+dfb_colorhash_core_leave( DFBColorHashCore *data,
+                          bool              emergency )
 {
-     D_ASSERT( hash_field != NULL );
+     DFBColorHashCoreShared *shared;
 
-     hash_field = NULL;
+     D_DEBUG_AT( Core_ColorHash, "dfb_colorhash_core_leave( %p, %semergency )\n", data, emergency ? "" : "no " );
+
+     D_MAGIC_ASSERT( data, DFBColorHashCore );
+     D_MAGIC_ASSERT( data->shared, DFBColorHashCoreShared );
+
+     shared = data->shared;
+
+     D_MAGIC_CLEAR( data );
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_colorhash_suspend( CoreDFB *core )
+dfb_colorhash_core_suspend( DFBColorHashCore *data )
 {
-     D_ASSERT( hash_field != NULL );
+     DFBColorHashCoreShared *shared;
+
+     D_DEBUG_AT( Core_ColorHash, "dfb_colorhash_core_suspend( %p )\n", data );
+
+     D_MAGIC_ASSERT( data, DFBColorHashCore );
+     D_MAGIC_ASSERT( data->shared, DFBColorHashCoreShared );
+
+     shared = data->shared;
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_colorhash_resume( CoreDFB *core )
+dfb_colorhash_core_resume( DFBColorHashCore *data )
 {
-     D_ASSERT( hash_field != NULL );
+     DFBColorHashCoreShared *shared;
+
+     D_DEBUG_AT( Core_ColorHash, "dfb_colorhash_core_resume( %p )\n", data );
+
+     D_MAGIC_ASSERT( data, DFBColorHashCore );
+     D_MAGIC_ASSERT( data->shared, DFBColorHashCoreShared );
+
+     shared = data->shared;
 
      return DFB_OK;
 }
 
-
-static inline void
-colorhash_lock( void )
-{
-     D_ASSERT( hash_field != NULL );
-
-     fusion_skirmish_prevail( &hash_field->hash_lock );
-}
-
-static inline void
-colorhash_unlock( void )
-{
-     D_ASSERT( hash_field != NULL );
-
-     fusion_skirmish_dismiss( &hash_field->hash_lock );
-}
+/**********************************************************************************************************************/
 
 void
-dfb_colorhash_attach( CorePalette *palette )
+dfb_colorhash_attach( DFBColorHashCore *core,
+                      CorePalette      *palette )
 {
-     D_ASSERT( hash_field != NULL );
+     DFBColorHashCoreShared *shared;
 
-     colorhash_lock();
+     D_ASSUME( core != NULL );
 
-     if (!hash_field->hash) {
-          D_ASSERT( !hash_field->hash_users );
+     if (core) {
+          D_MAGIC_ASSERT( core, DFBColorHashCore );
+          D_MAGIC_ASSERT( core->shared, DFBColorHashCoreShared );
+     }
+     else
+          core = core_colorhash;
 
-          hash_field->hash = SHCALLOC( hash_field->shmpool, HASH_SIZE, sizeof (Colorhash) );
+     shared = core->shared;
+
+     fusion_skirmish_prevail( &shared->hash_lock );
+
+     if (!shared->hash) {
+          D_ASSERT( shared->hash_users == 0 );
+
+          shared->hash = SHCALLOC( shared->shmpool, HASH_SIZE, sizeof (Colorhash) );
      }
 
-     hash_field->hash_users++;
+     shared->hash_users++;
 
-     colorhash_unlock();
+     fusion_skirmish_dismiss( &shared->hash_lock );
 }
 
 void
-dfb_colorhash_detach( CorePalette *palette )
+dfb_colorhash_detach( DFBColorHashCore *core,
+                      CorePalette      *palette )
 {
-     D_ASSERT( hash_field != NULL );
+     DFBColorHashCoreShared *shared;
 
-     colorhash_lock();
+     D_ASSUME( core != NULL );
 
-     D_ASSERT( hash_field->hash_users > 0 );
-     D_ASSERT( hash_field->hash != NULL );
+     if (core) {
+          D_MAGIC_ASSERT( core, DFBColorHashCore );
+          D_MAGIC_ASSERT( core->shared, DFBColorHashCoreShared );
+     }
+     else
+          core = core_colorhash;
 
-     hash_field->hash_users--;
+     shared = core->shared;
 
-     if (!hash_field->hash_users) {
+     D_ASSERT( shared->hash_users > 0 );
+     D_ASSERT( shared->hash != NULL );
+
+     fusion_skirmish_prevail( &shared->hash_lock );
+
+     shared->hash_users--;
+
+     if (!shared->hash_users) {
           /* no more users, free allocated resources */
-          SHFREE( hash_field->shmpool, hash_field->hash );
-          hash_field->hash = NULL;
+          SHFREE( shared->shmpool, shared->hash );
+          shared->hash = NULL;
      }
 
-     colorhash_unlock();
+     fusion_skirmish_dismiss( &shared->hash_lock );
 }
 
 unsigned int
-dfb_colorhash_lookup( CorePalette *palette,
-                      u8           r,
-                      u8           g,
-                      u8           b,
-                      u8           a )
+dfb_colorhash_lookup( DFBColorHashCore *core,
+                      CorePalette      *palette,
+                      __u8              r,
+                      __u8              g,
+                      __u8              b,
+                      __u8              a )
 {
-     Colorhash    *hash;
-     unsigned int  pixel = PIXEL_ARGB(a, r, g, b);
-     unsigned int  index = (pixel ^ (unsigned long) palette) % HASH_SIZE;
+     unsigned int            pixel = PIXEL_ARGB(a, r, g, b);
+     unsigned int            index = (pixel ^ (unsigned long) palette) % HASH_SIZE;
+     DFBColorHashCoreShared *shared;
 
-     D_ASSERT( hash_field != NULL );
-     D_ASSERT( hash_field->hash != NULL );
+     D_ASSUME( core != NULL );
 
-     colorhash_lock();
+     if (core) {
+          D_MAGIC_ASSERT( core, DFBColorHashCore );
+          D_MAGIC_ASSERT( core->shared, DFBColorHashCoreShared );
+     }
+     else
+          core = core_colorhash;
 
-     hash = hash_field->hash;
+     shared = core->shared;
+
+     D_ASSERT( shared->hash != NULL );
+
+     fusion_skirmish_prevail( &shared->hash_lock );
 
      /* try a lookup in the hash table */
-     if (hash[index].palette == palette && hash[index].pixel == pixel) {
+     if (shared->hash[index].palette == palette && shared->hash[index].pixel == pixel) {
           /* set the return value */
-          index = hash[index].index;
+          index = shared->hash[index].index;
      } else { /* look for the closest match */
           DFBColor *entries = palette->entries;
           int min_diff = 0;
@@ -231,38 +322,47 @@ dfb_colorhash_lookup( CorePalette *palette,
           }
 
           /* store the matching entry in the hash table */
-          hash[index].pixel   = pixel;
-          hash[index].index   = min_index;
-          hash[index].palette = palette;
+          shared->hash[index].pixel   = pixel;
+          shared->hash[index].index   = min_index;
+          shared->hash[index].palette = palette;
 
           /* set the return value */
           index = min_index;
      }
 
-     colorhash_unlock();
+     fusion_skirmish_dismiss( &shared->hash_lock );
 
      return index;
 }
 
 void
-dfb_colorhash_invalidate( CorePalette *palette )
+dfb_colorhash_invalidate( DFBColorHashCore *core,
+                          CorePalette      *palette )
 {
-     Colorhash    *hash;
-     unsigned int  index = HASH_SIZE - 1;
+     unsigned int            index = HASH_SIZE - 1;
+     DFBColorHashCoreShared *shared;
 
-     D_ASSERT( hash_field != NULL );
-     D_ASSERT( hash_field->hash != NULL );
+     D_ASSUME( core != NULL );
 
-     hash = hash_field->hash;
+     if (core) {
+          D_MAGIC_ASSERT( core, DFBColorHashCore );
+          D_MAGIC_ASSERT( core->shared, DFBColorHashCoreShared );
+     }
+     else
+          core = core_colorhash;
 
-     colorhash_lock();
+     shared = core->shared;
+
+     D_ASSERT( shared->hash != NULL );
+
+     fusion_skirmish_prevail( &shared->hash_lock );
 
      /* invalidate all entries owned by this palette */
      do {
-          if (hash[index].palette == palette)
-               hash[index].palette = NULL;
+          if (shared->hash[index].palette == palette)
+               shared->hash[index].palette = NULL;
      } while (index--);
 
-     colorhash_unlock();
+     fusion_skirmish_dismiss( &shared->hash_lock );
 }
 

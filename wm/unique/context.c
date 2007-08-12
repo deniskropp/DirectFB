@@ -44,7 +44,7 @@
 #include <core/layers.h>
 #include <core/layers_internal.h>      /* FIXME */
 #include <core/state.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/windowstack.h>
 #include <core/windows_internal.h>     /* FIXME */
 

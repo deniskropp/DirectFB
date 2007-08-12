@@ -33,6 +33,10 @@
 
 #include <core/coretypes.h>
 
+#include <core/gfxcard.h>
+#include <core/surface_buffer.h>
+
+
 struct __DFB_CoreLayerRegionConfig {
      int                        width;            /* width of the source in pixels */
      int                        height;           /* height of the source in pixels */
@@ -195,7 +199,8 @@ typedef struct {
                                  CoreLayerRegionConfig      *config,
                                  CoreLayerRegionConfigFlags  updated,
                                  CoreSurface                *surface,
-                                 CorePalette                *palette );
+                                 CorePalette                *palette,
+                                 CoreSurfaceBufferLock      *lock );
 
      /*
       * Remove a region from the layer.
@@ -213,7 +218,8 @@ typedef struct {
                                  void                       *layer_data,
                                  void                       *region_data,
                                  CoreSurface                *surface,
-                                 DFBSurfaceFlipFlags         flags );
+                                 DFBSurfaceFlipFlags         flags,
+                                 CoreSurfaceBufferLock      *lock );
 
      /*
       * Indicate updates to the front buffer content.
@@ -223,7 +229,8 @@ typedef struct {
                                  void                       *layer_data,
                                  void                       *region_data,
                                  CoreSurface                *surface,
-                                 const DFBRegion            *update );
+                                 const DFBRegion            *update,
+                                 CoreSurfaceBufferLock      *lock );
 
      /*
       * Control hardware deinterlacing.
@@ -284,7 +291,7 @@ CoreLayer *dfb_layers_register( CoreScreen        *screen,
  * The original function table is written to 'primary_funcs' before to allow
  * drivers to use existing functionality from the original implementation.
  */
-CoreLayer *dfb_layers_hook_primary( GraphicsDevice     *device,
+CoreLayer *dfb_layers_hook_primary( CoreGraphicsDevice *device,
                                     void               *driver_data,
                                     DisplayLayerFuncs  *funcs,
                                     DisplayLayerFuncs  *primary_funcs,
@@ -294,7 +301,7 @@ CoreLayer *dfb_layers_hook_primary( GraphicsDevice     *device,
  * Replace functions of the primary layer implementation completely by passing
  * an alternative driver function table.
  */
-CoreLayer *dfb_layers_replace_primary( GraphicsDevice     *device,
+CoreLayer *dfb_layers_replace_primary( CoreGraphicsDevice *device,
                                        void               *driver_data,
                                        DisplayLayerFuncs  *funcs );
 

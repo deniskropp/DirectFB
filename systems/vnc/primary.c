@@ -42,7 +42,7 @@
 #include <core/coretypes.h>
 #include <core/layers.h>
 #include <core/palette.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/system.h>
 #include <core/input.h>
 
@@ -99,7 +99,7 @@ static CoreInputDevice *vncInputDevice;
 
 static DFBResult
 primaryInitScreen( CoreScreen           *screen,
-                   GraphicsDevice       *device,
+                   CoreGraphicsDevice   *device,
                    void                 *driver_data,
                    void                 *screen_data,
                    DFBScreenDescription *description )
@@ -124,8 +124,8 @@ primaryGetScreenSize( CoreScreen *screen,
      D_ASSERT( dfb_vnc != NULL );
 
      if (dfb_vnc->primary) {
-          *ret_width  = dfb_vnc->primary->width;
-          *ret_height = dfb_vnc->primary->height;
+          *ret_width  = dfb_vnc->primary->config.size.w;
+          *ret_height = dfb_vnc->primary->config.size.h;
      }
      else {
           if (dfb_config->mode.width)
@@ -143,7 +143,7 @@ primaryGetScreenSize( CoreScreen *screen,
 }
 
 ScreenFuncs vncPrimaryScreenFuncs = {
-     .InitScreen   = primaryInitScreen,
+     .InitScreen    = primaryInitScreen,
      .GetScreenSize = primaryGetScreenSize
 };
 
@@ -294,7 +294,7 @@ primaryFlipRegion( CoreLayer           *layer,
                    CoreSurface         *surface,
                    DFBSurfaceFlipFlags  flags )
 {
-     dfb_surface_flip_buffers( surface, false );
+     dfb_surface_flip( surface, false );
 
      return dfb_vnc_update_screen( dfb_vnc_core, NULL );
 }
@@ -324,14 +324,18 @@ primaryAllocateSurface( CoreLayer              *layer,
                         CoreLayerRegionConfig  *config,
                         CoreSurface           **ret_surface )
 {
-     DFBSurfaceCapabilities caps = DSCAPS_SYSTEMONLY;
+     CoreSurfaceConfig conf;
+
+     conf.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
+     conf.size.w = config->width;
+     conf.size.h = config->height;
+     conf.format = config->format;
+     conf.caps   = DSCAPS_SYSTEMONLY;
 
      if (config->buffermode != DLBM_FRONTONLY)
-          caps |= DSCAPS_DOUBLE;
+          conf.caps |= DSCAPS_DOUBLE;
 
-     return dfb_surface_create( dfb_vnc->core, config->width, config->height,
-                                config->format, CSP_SYSTEMONLY,
-                                caps, NULL, ret_surface );
+     return dfb_surface_create( dfb_vnc_core, &conf, NULL, ret_surface );
 }
 
 static DFBResult
@@ -342,22 +346,22 @@ primaryReallocateSurface( CoreLayer             *layer,
                           CoreLayerRegionConfig *config,
                           CoreSurface           *surface )
 {
-     DFBResult ret;
+//     DFBResult ret;
 
      /* FIXME: write surface management functions
                for easier configuration changes */
 
-     switch (config->buffermode) {
+/*     switch (config->buffermode) {
           case DLBM_BACKVIDEO:
           case DLBM_BACKSYSTEM:
-               surface->caps |= DSCAPS_DOUBLE;
+               surface->config.caps |= DSCAPS_DOUBLE;
 
                ret = dfb_surface_reconfig( surface,
                                            CSP_SYSTEMONLY, CSP_SYSTEMONLY );
                break;
 
           case DLBM_FRONTONLY:
-               surface->caps &= ~DSCAPS_DOUBLE;
+               surface->config.caps &= ~DSCAPS_DOUBLE;
 
                ret = dfb_surface_reconfig( surface,
                                            CSP_SYSTEMONLY, CSP_SYSTEMONLY );
@@ -374,7 +378,7 @@ primaryReallocateSurface( CoreLayer             *layer,
                                  config->height, config->format );
      if (ret)
           return ret;
-
+*/
 
      if (DFB_PIXELFORMAT_IS_INDEXED(config->format) && !surface->palette) {
           DFBResult    ret;
@@ -437,20 +441,20 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
 
      dst = rfb_screen->frameBuffer;
      
-     src += DFB_BYTES_PER_LINE( surface->format, x ) + y * pitch;
+     src += DFB_BYTES_PER_LINE( surface->config.format, x ) + y * pitch;
      dst += x * rfb_screen->depth/8 + y * rfb_screen->width * rfb_screen->depth/8;
 
      for (i=0; i<h; ++i) {
-          /*direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->format, w ) );*/
+          /*direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->config.format, w ) );*/
       for(j=0, p=src, q=dst; j<w; j++, 
-                    p += DFB_BYTES_PER_PIXEL(surface->format),
+                    p += DFB_BYTES_PER_PIXEL(surface->config.format),
                     q += rfb_screen->depth/8){
-         /*direct_memcpy( q, p, DFB_BYTES_PER_PIXEL(surface->format));*/
+         /*direct_memcpy( q, p, DFB_BYTES_PER_PIXEL(surface->config.format));*/
          /**(char*) q = *(char*) (p+2);
          *(char*) (q+1) = *(char*) (p+1);
          *(char*) (q+2) = *(char*) p;*/
-         for(k=0; k<DFB_BYTES_PER_PIXEL(surface->format); k++)
-        *(char*) (q+k) = *(char*) (p+DFB_BYTES_PER_PIXEL(surface->format)-1-k);
+         for(k=0; k<DFB_BYTES_PER_PIXEL(surface->config.format); k++)
+        *(char*) (q+k) = *(char*) (p+DFB_BYTES_PER_PIXEL(surface->config.format)-1-k);
           }
       
           src += pitch;
@@ -606,7 +610,7 @@ dfb_vnc_update_screen_handler( DFBRegion *region )
      fusion_skirmish_prevail( &dfb_vnc->lock );
 
      if (!region)
-          ret = update_screen( surface, 0, 0, surface->width, surface->height );
+          ret = update_screen( surface, 0, 0, surface->config.size.w, surface->config.size.h );
      else
           ret = update_screen( surface,
                                region->x1,  region->y1,

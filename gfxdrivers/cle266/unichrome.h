@@ -11,7 +11,7 @@
 #define __UNICHROME_H__
 
 #include <core/coredefs.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/layers.h>
 #include <core/layer_control.h>
 

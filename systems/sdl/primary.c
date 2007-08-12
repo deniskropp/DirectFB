@@ -40,7 +40,8 @@
 #include <core/coretypes.h>
 #include <core/layers.h>
 #include <core/palette.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
+#include <core/surface_buffer.h>
 #include <core/system.h>
 
 #include <gfx/convert.h>
@@ -78,7 +79,7 @@ static SDL_Surface *screen = NULL;
 
 static DFBResult
 primaryInitScreen( CoreScreen           *screen,
-                   GraphicsDevice       *device,
+                   CoreGraphicsDevice   *device,
                    void                 *driver_data,
                    void                 *screen_data,
                    DFBScreenDescription *description )
@@ -103,8 +104,8 @@ primaryGetScreenSize( CoreScreen *screen,
      D_ASSERT( dfb_sdl != NULL );
 
      if (dfb_sdl->primary) {
-          *ret_width  = dfb_sdl->primary->width;
-          *ret_height = dfb_sdl->primary->height;
+          *ret_width  = dfb_sdl->primary->config.size.w;
+          *ret_height = dfb_sdl->primary->config.size.w;
      }
      else {
           if (dfb_config->mode.width)
@@ -244,7 +245,8 @@ primarySetRegion( CoreLayer                  *layer,
                   CoreLayerRegionConfig      *config,
                   CoreLayerRegionConfigFlags  updated,
                   CoreSurface                *surface,
-                  CorePalette                *palette )
+                  CorePalette                *palette,
+                  CoreSurfaceBufferLock      *lock )
 {
      DFBResult ret;
 
@@ -291,25 +293,27 @@ primaryRemoveRegion( CoreLayer             *layer,
 }
 
 static DFBResult
-primaryFlipRegion( CoreLayer           *layer,
-                   void                *driver_data,
-                   void                *layer_data,
-                   void                *region_data,
-                   CoreSurface         *surface,
-                   DFBSurfaceFlipFlags  flags )
+primaryFlipRegion( CoreLayer             *layer,
+                   void                  *driver_data,
+                   void                  *layer_data,
+                   void                  *region_data,
+                   CoreSurface           *surface,
+                   DFBSurfaceFlipFlags    flags,
+                   CoreSurfaceBufferLock *lock )
 {
-     dfb_surface_flip_buffers( surface, false );
+     dfb_surface_flip( surface, false );
 
      return dfb_sdl_update_screen( dfb_sdl_core, NULL );
 }
 
 static DFBResult
-primaryUpdateRegion( CoreLayer           *layer,
-                     void                *driver_data,
-                     void                *layer_data,
-                     void                *region_data,
-                     CoreSurface         *surface,
-                     const DFBRegion     *update )
+primaryUpdateRegion( CoreLayer             *layer,
+                     void                  *driver_data,
+                     void                  *layer_data,
+                     void                  *region_data,
+                     CoreSurface           *surface,
+                     const DFBRegion       *update,
+                     CoreSurfaceBufferLock *lock )
 {
      if (update) {
           DFBRegion region = *update;
@@ -318,87 +322,6 @@ primaryUpdateRegion( CoreLayer           *layer,
      }
 
      return dfb_sdl_update_screen( dfb_sdl_core, NULL );
-}
-
-static DFBResult
-primaryAllocateSurface( CoreLayer              *layer,
-                        void                   *driver_data,
-                        void                   *layer_data,
-                        void                   *region_data,
-                        CoreLayerRegionConfig  *config,
-                        CoreSurface           **ret_surface )
-{
-     DFBSurfaceCapabilities caps = DSCAPS_SYSTEMONLY;
-
-     if (config->buffermode != DLBM_FRONTONLY)
-          caps |= DSCAPS_DOUBLE;
-
-     return dfb_surface_create( dfb_sdl_core, config->width, config->height,
-                                config->format, CSP_SYSTEMONLY,
-                                caps, NULL, ret_surface );
-}
-
-static DFBResult
-primaryReallocateSurface( CoreLayer             *layer,
-                          void                  *driver_data,
-                          void                  *layer_data,
-                          void                  *region_data,
-                          CoreLayerRegionConfig *config,
-                          CoreSurface           *surface )
-{
-     DFBResult ret;
-
-     /* FIXME: write surface management functions
-               for easier configuration changes */
-
-     switch (config->buffermode) {
-          case DLBM_BACKVIDEO:
-          case DLBM_BACKSYSTEM:
-               surface->caps |= DSCAPS_DOUBLE;
-
-               ret = dfb_surface_reconfig( surface,
-                                           CSP_SYSTEMONLY, CSP_SYSTEMONLY );
-               break;
-
-          case DLBM_FRONTONLY:
-               surface->caps &= ~DSCAPS_DOUBLE;
-
-               ret = dfb_surface_reconfig( surface,
-                                           CSP_SYSTEMONLY, CSP_SYSTEMONLY );
-               break;
-
-          default:
-               D_BUG("unknown buffermode");
-               return DFB_BUG;
-     }
-     if (ret)
-          return ret;
-
-     ret = dfb_surface_reformat( dfb_sdl_core, surface, config->width,
-                                 config->height, config->format );
-     if (ret)
-          return ret;
-
-
-     if (DFB_PIXELFORMAT_IS_INDEXED(config->format) && !surface->palette) {
-          DFBResult    ret;
-          CorePalette *palette;
-
-          ret = dfb_palette_create( dfb_sdl_core,
-                                    1 << DFB_COLOR_BITS_PER_PIXEL( config->format ),
-                                    &palette );
-          if (ret)
-               return ret;
-
-          if (config->format == DSPF_LUT8)
-               dfb_palette_generate_rgb332_map( palette );
-
-          dfb_surface_set_palette( surface, palette );
-
-          dfb_palette_unref( palette );
-     }
-
-     return DFB_OK;
 }
 
 DisplayLayerFuncs sdlPrimaryLayerFuncs = {
@@ -412,9 +335,6 @@ DisplayLayerFuncs sdlPrimaryLayerFuncs = {
      .RemoveRegion      = primaryRemoveRegion,
      .FlipRegion        = primaryFlipRegion,
      .UpdateRegion      = primaryUpdateRegion,
-
-     .AllocateSurface   = primaryAllocateSurface,
-     .ReallocateSurface = primaryReallocateSurface
 };
 
 /******************************************************************************/
@@ -422,22 +342,26 @@ DisplayLayerFuncs sdlPrimaryLayerFuncs = {
 static DFBResult
 update_screen( int x, int y, int w, int h )
 {
-     int          i, n;
-     void        *dst;
-     void        *src;
-     int          pitch;
-     DFBResult    ret;
-     CoreSurface *surface;
-     u16         *src16, *dst16;
-     u8          *src8;
+#if 0
+     int                    i, n;
+     void                  *dst;
+     void                  *src;
+     DFBResult              ret;
+     CoreSurface           *surface;
+     CoreSurfaceBuffer     *buffer;
+     CoreSurfaceBufferLock  lock;
+     u16                   *src16, *dst16;
+     u8                    *src8;
+#endif
 
      D_DEBUG_AT( SDL_Updates, "%s( %d, %d, %d, %d )\n", __FUNCTION__, x, y, w, h );
 
      D_DEBUG_AT( SDL_Updates, "  -> locking sdl lock...\n" );
 
      fusion_skirmish_prevail( &dfb_sdl->lock );
-
+#if 0
      surface = dfb_sdl->primary;
+     D_MAGIC_ASSERT_IF( surface, CoreSurface );
 
      D_DEBUG_AT( SDL_Updates, "  -> primary is %p\n", surface );
 
@@ -447,6 +371,10 @@ update_screen( int x, int y, int w, int h )
           D_DEBUG_AT( SDL_Updates, "  -> done.\n" );
           return DFB_OK;
      }
+
+     buffer = dfb_surface_get_buffer( surface, CSBR_FRONT );
+
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      D_DEBUG_AT( SDL_Updates, "  -> locking sdl surface...\n" );
 
@@ -459,7 +387,7 @@ update_screen( int x, int y, int w, int h )
 
      D_DEBUG_AT( SDL_Updates, "  -> locking dfb surface...\n" );
 
-     ret = dfb_surface_soft_lock( dfb_sdl_core, surface, DSLF_READ, &src, &pitch, true );
+     ret = dfb_surface_buffer_lock( buffer, CSAF_CPU_READ, &lock );
      if (ret) {
           D_ERROR( "DirectFB/SDL: Couldn't lock layer surface: %s\n",
                    DirectFBErrorString( ret ) );
@@ -468,39 +396,65 @@ update_screen( int x, int y, int w, int h )
           return ret;
      }
 
+     src = lock.addr;
      dst = screen->pixels;
 
-     src += DFB_BYTES_PER_LINE( surface->format, x ) + y * pitch;
-     dst += DFB_BYTES_PER_LINE( surface->format, x ) + y * screen->pitch;
+     src += DFB_BYTES_PER_LINE( surface->config.format, x ) + y * lock.pitch;
+     dst += DFB_BYTES_PER_LINE( surface->config.format, x ) + y * screen->pitch;
 
      D_DEBUG_AT( SDL_Updates, "  -> copying pixels...\n" );
 
-     switch (screen->format->BitsPerPixel) {
-          case 16:
-               dfb_convert_to_rgb16( surface->format, src, pitch, surface->height, dst, screen->pitch, w, h );
-               break;
+     for (i=0; i<h; ++i) {
+          switch (screen->format->BitsPerPixel) {
+               case 16:
+                    switch (surface->config.format) {
+                         case DSPF_RGB16:
+                              direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->config.format, w ) );
+                              break;
 
-          case 32:
-               dfb_convert_to_rgb32( surface->format, src, pitch, surface->height, dst, screen->pitch, w, h );
-               break;
+                         case DSPF_NV16:
+                              src8  = src;
+                              src16 = src + surface->config.size.h * lock.pitch;
+                              dst16 = dst;
 
-          default:
-               for (i=0; i<h; ++i) {
-                    direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->format, w ) );
-     
-                    src += pitch;
-                    dst += screen->pitch;
-               }
+                              for (n=0; n<w; n++) {
+                                   int r, g, b;
+
+                                   YCBCR_TO_RGB( src8[n], src16[n>>1] & 0xff, src16[n>>1] >> 8, r, g, b );
+
+                                   dst16[n] = PIXEL_RGB16( r, g, b );
+                              }
+                              break;
+
+                         case DSPF_RGB444:
+                         case DSPF_ARGB4444:
+                              src16 = src;
+                              dst16 = dst;
+
+                              for (n=0; n<w; n++)
+                                   dst16[n] = PIXEL_RGB16( ((src16[n] & 0x0F00) >> 4) | ((src16[n] & 0x0F00) >> 8),
+                                                           ((src16[n] & 0x00F0)     ) | ((src16[n] & 0x00F0) >> 4),
+                                                           ((src16[n] & 0x000F) << 4) | ((src16[n] & 0x000F)     ) );
+                              break;
+                    }
+                    break;
+
+               default:
+                    direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->config.format, w ) );
+          }
+
+          src += lock.pitch;
+          dst += screen->pitch;
      }
 
      D_DEBUG_AT( SDL_Updates, "  -> unlocking dfb surface...\n" );
 
-     dfb_surface_unlock( surface, true );
+     dfb_surface_buffer_unlock( &lock );
 
      D_DEBUG_AT( SDL_Updates, "  -> unlocking sdl surface...\n" );
 
      SDL_UnlockSurface( screen );
-
+#endif
      D_DEBUG_AT( SDL_Updates, "  -> calling SDL_UpdateRect()...\n" );
 
      SDL_UpdateRect( screen, x, y, w, h );
@@ -608,11 +562,11 @@ dfb_sdl_update_screen_handler( const DFBRegion *region )
      else {
           update.x1 = 0;
           update.y1 = 0;
-          update.x2 = surface->width - 1;
-          update.y2 = surface->height - 1;
+          update.x2 = surface->config.size.w - 1;
+          update.y2 = surface->config.size.h - 1;
      }
 
-
+#if 0
      pthread_mutex_lock( &dfb_sdl->update.lock );
 
      if (dfb_sdl->update.pending)
@@ -625,6 +579,12 @@ dfb_sdl_update_screen_handler( const DFBRegion *region )
      pthread_cond_signal( &dfb_sdl->update.cond );
 
      pthread_mutex_unlock( &dfb_sdl->update.lock );
+#else
+     if (surface->config.caps & DSCAPS_FLIPPING)
+          SDL_Flip( screen );
+     else
+          SDL_UpdateRect( screen, DFB_RECTANGLE_VALS_FROM_REGION(&update) );
+#endif
 
      return DFB_OK;
 }

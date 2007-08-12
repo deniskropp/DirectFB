@@ -37,7 +37,7 @@
 #include <core/layer_region.h>
 #include <core/layer_control.h>
 #include <core/layers_internal.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/system.h>
 
 #include <misc/conf.h>
@@ -146,14 +146,15 @@ crtc1SetRegion( CoreLayer                  *layer,
                 CoreLayerRegionConfig      *config,
                 CoreLayerRegionConfigFlags  updated,
                 CoreSurface                *surface,
-                CorePalette                *palette )
+                CorePalette                *palette,
+                CoreSurfaceBufferLock      *lock )
 {
      
      if (updated & ~CLRCF_OPTIONS) {
           return OldPrimaryLayerFuncs.SetRegion( layer,
                                                  OldPrimaryLayerDriverData,
                                                  layer_data, region_data,
-                                                 config, updated, surface, palette );
+                                                 config, updated, surface, palette, lock );
      }
 
      return DFB_OK;

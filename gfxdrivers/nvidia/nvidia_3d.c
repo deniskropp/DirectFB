@@ -33,7 +33,7 @@
 #include <core/coretypes.h>
 
 #include <core/gfxcard.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <gfx/convert.h>
 
@@ -436,7 +436,7 @@ static void nv_load_texture( NVidiaDriverData *nvdrv,
                                                    buffer->video.offset );
           src_pitch  = buffer->video.pitch;
           
-          src_buffer = D_MALLOC( src_pitch * surface->height );
+          src_buffer = D_MALLOC( src_pitch * surface->config.size.h );
           if (!src_buffer) {
                D_OOM();
                return;
@@ -445,7 +445,7 @@ static void nv_load_texture( NVidiaDriverData *nvdrv,
           nv_waitidle( nvdrv, nvdev );
           
           direct_memcpy( src_buffer, src_origin,
-                         src_pitch * surface->height );
+                         src_pitch * surface->config.size.h );
           
           nvdev->set |= SMF_SOURCE_TEXTURE;
           buffer->video.access &= ~VAF_HARDWARE_WRITE;

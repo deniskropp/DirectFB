@@ -39,8 +39,9 @@ internalinclude_HEADERS = \
 	screens.h		\
 	screens_internal.h	\
 	state.h			\
-	surfaces.h		\
-	surfacemanager.h	\
+	surface.h		\
+	surface_buffer.h	\
+	surface_pool.h		\
 	system.h		\
 	windows.h		\
 	windows_internal.h	\
@@ -64,12 +65,17 @@ libdirectfb_core_la_SOURCES = \
 	layer_control.c		\
 	layer_region.c		\
 	layers.c		\
+	local_surface_pool.c	\
 	palette.c		\
+	prealloc_surface_pool.c	\
 	screen.c		\
 	screens.c		\
+	shared_surface_pool.c	\
 	state.c			\
-	surfaces.c		\
-	surfacemanager.c	\
+	surface.c		\
+	surface_buffer.c	\
+	surface_core.c		\
+	surface_pool.c		\
 	system.c		\
 	windows.c		\
 	windowstack.c		\

@@ -41,7 +41,7 @@
 #include <core/state.h>
 #include <core/system.h>
 #include <core/gfxcard.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
@@ -306,8 +306,8 @@ void nv_set_source( NVidiaDriverData *nvdrv,
           nvdev->src_system = false;
      }
 
-     nvdev->src_width  = surface->width;
-     nvdev->src_height = surface->height;
+     nvdev->src_width  = surface->config.size.w;
+     nvdev->src_height = surface->config.size.h;
 
      if (state->blittingflags & DSBLIT_DEINTERLACE) {
           nvdev->src_height /= 2;
@@ -328,8 +328,8 @@ void nv_set_source( NVidiaDriverData *nvdrv,
           nvdev->src_interlaced = false;
      
      if (nvdev->enabled_3d) {
-          u32 size_u = direct_log2( surface->width  ) & 0xF;
-          u32 size_v = direct_log2( surface->height ) & 0xF;
+          u32 size_u = direct_log2( surface->config.size.w  ) & 0xF;
+          u32 size_v = direct_log2( surface->config.size.h ) & 0xF;
 
           nvdev->state3d[1].offset  = nvdev->fb_offset + nvdev->buf_offset[1];
           nvdev->state3d[1].format &= 0xFF00FFFF;

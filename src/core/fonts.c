@@ -41,7 +41,7 @@
 
 #include <core/fonts.h>
 #include <core/gfxcard.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <direct/debug.h>
 #include <direct/hash.h>
@@ -317,8 +317,8 @@ dfb_font_get_glyph_data( CoreFont        *font,
                     D_MAGIC_ASSERT( row, CoreFontCacheRow );
 
                     D_DEBUG_AT( Core_FontSurfaces, "  -> using trailing space of row %d - %dx%d %s\n",
-                                font->active_row, row->surface->width, row->surface->height,
-                                dfb_pixelformat_name(row->surface->format) );
+                                font->active_row, row->surface->config.size.w, row->surface->config.size.h,
+                                dfb_pixelformat_name(row->surface->config.format) );
                }
                else {
                     CoreGlyphData *d, *n;
@@ -346,8 +346,8 @@ dfb_font_get_glyph_data( CoreFont        *font,
                     D_MAGIC_ASSERT( row, CoreFontCacheRow );
 
                     D_DEBUG_AT( Core_FontSurfaces, "  -> reusing row %d - %dx%d %s\n",
-                                font->active_row, row->surface->width, row->surface->height,
-                                dfb_pixelformat_name(row->surface->format) );
+                                font->active_row, row->surface->config.size.w, row->surface->config.size.h,
+                                dfb_pixelformat_name(row->surface->config.format) );
 
                     /* Kick out all glyphs. */
                     direct_list_foreach_safe (d, n, row->glyphs) {
@@ -377,11 +377,11 @@ dfb_font_get_glyph_data( CoreFont        *font,
                }
 
                /* Create a new font surface. */
-               ret = dfb_surface_create( font->core,
-                                         font->row_width,
-                                         MAX( font->height + 1, 8 ),
-                                         font->pixel_format,
-                                         CSP_VIDEOLOW, font->surface_caps, NULL, &row->surface );
+               ret = dfb_surface_create_simple( font->core,
+                                                font->row_width,
+                                                MAX( font->height + 1, 8 ),
+                                                font->pixel_format,
+                                                font->surface_caps, CSTF_FONT, NULL, &row->surface );
                if (ret) {
                     D_DERROR( ret, "Core/Font: Could not create font surface!\n" );
                     D_FREE( row );
@@ -389,8 +389,8 @@ dfb_font_get_glyph_data( CoreFont        *font,
                }
 
                D_DEBUG_AT( Core_FontSurfaces, "  -> new row %d - %dx%d %s\n", font->num_rows,
-                           row->surface->width, row->surface->height,
-                           dfb_pixelformat_name(row->surface->format) );
+                           row->surface->config.size.w, row->surface->config.size.h,
+                           dfb_pixelformat_name(row->surface->config.format) );
 
                D_MAGIC_SET( row, CoreFontCacheRow );
 

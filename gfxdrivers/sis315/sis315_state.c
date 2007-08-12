@@ -27,7 +27,7 @@
 #include <direct/messages.h>
 
 #include <core/state.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <gfx/convert.h>
 

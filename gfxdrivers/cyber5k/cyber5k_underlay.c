@@ -32,7 +32,7 @@
 
 #include <core/coretypes.h>
 #include <core/layers.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include "cyber5k.h"
 #include "cyber5k_alpha.h"
@@ -224,7 +224,7 @@ static void udl_set_all( CyberDriverData        *cdrv,
      SurfaceBuffer *front = surface->front_buffer;
 
      /* set the pixel format */
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_RGB332:
                cyber_set_overlay_format (OVERLAY_RGB8);
                break;
@@ -259,7 +259,7 @@ static void udl_set_all( CyberDriverData        *cdrv,
 
      /* set address */
      cyber_set_overlay_srcaddr( front->video.offset, 0, 0,
-                                surface->width, front->video.pitch );
+                                surface->config.size.w, front->video.pitch );
 
      /* set location and scaling */
      udl_set_location( cdrv, cudl, config, surface );
@@ -291,9 +291,9 @@ static void udl_set_location( CyberDriverData        *cdrv,
                                config->dest.y + config->dest.h - 1 );
 
      /* set scaling */
-     cyber_set_overlay_scale( surface->height == 576 ? /* HACK: support interlaced video */
+     cyber_set_overlay_scale( surface->config.size.h == 576 ? /* HACK: support interlaced video */
                               OVERLAY_BOBMODE : OVERLAY_WEAVEMODE,
-                              surface->width, config->dest.w,
-                              surface->height, config->dest.h );
+                              surface->config.size.w, config->dest.w,
+                              surface->config.size.h, config->dest.h );
 }
 

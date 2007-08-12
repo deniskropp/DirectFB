@@ -30,6 +30,11 @@
 
 #include <directfb.h>
 
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
+#include <direct/messages.h>
+
 #include <fusion/shmalloc.h>
 
 #include <core/core.h>
@@ -43,60 +48,78 @@
 
 #include <misc/conf.h>
 
-#include <direct/debug.h>
-#include <direct/mem.h>
-#include <direct/memcpy.h>
-#include <direct/messages.h>
 
+D_DEBUG_DOMAIN( Core_Screen, "Core/Screen", "DirectFB Screen Core" );
+
+/**********************************************************************************************************************/
 
 typedef struct {
-     int               num;
-     CoreScreenShared *screens[MAX_SCREENS];
-} CoreScreens;
-
-static CoreScreens *core_screens = NULL;
+     int                  magic;
 
 
-DFB_CORE_PART( screens, 0, sizeof(CoreScreens) )
+     int                  num;
+     CoreScreenShared    *screens[MAX_SCREENS];
+} DFBScreenCoreShared;
+
+struct __DFB_DFBScreenCore {
+     int                  magic;
+
+     CoreDFB             *core;
+
+     DFBScreenCoreShared *shared;
+};
 
 
-static int         num_screens          = 0;
-static CoreScreen *screens[MAX_SCREENS] = { NULL };
+DFB_CORE_PART( screen_core, ScreenCore );
+
+/**********************************************************************************************************************/
+
+static DFBScreenCoreShared *core_screens = NULL;       /* FIXME */
+
+static int          num_screens          = 0;          /* FIXME */
+static CoreScreen  *screens[MAX_SCREENS] = { NULL };   /* FIXME */
 
 
 static DFBResult
-dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
+dfb_screen_core_initialize( CoreDFB             *core,
+                            DFBScreenCore       *data,
+                            DFBScreenCoreShared *shared )
 {
      int                  i;
      DFBResult            ret;
      FusionSHMPoolShared *pool;
 
-     D_ASSERT( core_screens == NULL );
-     D_ASSERT( data_shared  != NULL );
+     D_DEBUG_AT( Core_Screen, "dfb_screen_core_initialize( %p, %p, %p )\n", core, data, shared );
 
-     core_screens = data_shared;
+     D_ASSERT( data != NULL );
+     D_ASSERT( shared != NULL );
+
+     data->core   = core;
+     data->shared = shared;
+
+     core_screens = shared;   /* FIXME */
 
      pool = dfb_core_shmpool( core );
 
      /* Initialize all registered screens. */
      for (i=0; i<num_screens; i++) {
           char                  buf[24];
-          CoreScreenShared     *shared;
+          CoreScreenShared     *sshared;
           CoreScreen           *screen = screens[i];
           ScreenFuncs          *funcs  = screen->funcs;
           DFBScreenDescription  desc   = { 0 };
 
           /* Allocate shared data. */
-          shared = SHCALLOC( pool, 1, sizeof(CoreScreenShared) );
+          sshared = SHCALLOC( pool, 1, sizeof(CoreScreenShared) );
 
           /* Assign ID (zero based index). */
-          shared->screen_id = i;
+          sshared->screen_id = i;
 
           snprintf( buf, sizeof(buf), "Screen %d", i );
 
           /* Initialize the lock. */
-          if (fusion_skirmish_init( &shared->lock, buf, dfb_core_world(core) )) {
-               SHFREE( pool, shared );
+          if (fusion_skirmish_init( &sshared->lock, buf, dfb_core_world(core) )) {
+               SHFREE( pool, sshared );
                return DFB_FUSION;
           }
 
@@ -105,10 +128,10 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                int size = funcs->ScreenDataSize();
 
                if (size > 0) {
-                    shared->screen_data = SHCALLOC( pool, 1, size );
-                    if (!shared->screen_data) {
-                         fusion_skirmish_destroy( &shared->lock );
-                         SHFREE( pool, shared );
+                    sshared->screen_data = SHCALLOC( pool, 1, size );
+                    if (!sshared->screen_data) {
+                         fusion_skirmish_destroy( &sshared->lock );
+                         SHFREE( pool, sshared );
                          return D_OOSHM();
                     }
                }
@@ -118,18 +141,18 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
           ret = funcs->InitScreen( screen,
                                    screen->device,
                                    screen->driver_data,
-                                   shared->screen_data,
+                                   sshared->screen_data,
                                    &desc );
           if (ret) {
                D_ERROR("DirectFB/Core/screens: "
-                        "Failed to initialize screen %d!\n", shared->screen_id);
+                        "Failed to initialize screen %d!\n", sshared->screen_id);
 
-               fusion_skirmish_destroy( &shared->lock );
+               fusion_skirmish_destroy( &sshared->lock );
 
-               if (shared->screen_data)
-                    SHFREE( pool, shared->screen_data );
+               if (sshared->screen_data)
+                    SHFREE( pool, sshared->screen_data );
 
-               SHFREE( pool, shared );
+               SHFREE( pool, sshared );
 
                return ret;
           }
@@ -150,98 +173,109 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
           D_ASSERT( desc.outputs >= 0 );
           D_ASSERT( desc.outputs <= 32 );
 
-          /* Store description in shared memory. */
-          shared->description = desc;
+          /* Store description in sshared memory. */
+          sshared->description = desc;
 
           /* Initialize mixers. */
-          if (shared->description.mixers) {
+          if (sshared->description.mixers) {
                int i;
 
                D_ASSERT( funcs->InitMixer != NULL );
                D_ASSERT( funcs->SetMixerConfig != NULL );
 
-               shared->mixers = SHCALLOC( pool, shared->description.mixers,
-                                          sizeof(CoreScreenMixer) );
-               for (i=0; i<shared->description.mixers; i++) {
+               sshared->mixers = SHCALLOC( pool, sshared->description.mixers,
+                                           sizeof(CoreScreenMixer) );
+               for (i=0; i<sshared->description.mixers; i++) {
                     funcs->InitMixer( screen,
                                       screen->driver_data,
-                                      shared->screen_data, i,
-                                      &shared->mixers[i].description,
-                                      &shared->mixers[i].configuration );
+                                      sshared->screen_data, i,
+                                      &sshared->mixers[i].description,
+                                      &sshared->mixers[i].configuration );
                     funcs->SetMixerConfig( screen,
                                            screen->driver_data,
-                                           shared->screen_data, i,
-                                           &shared->mixers[i].configuration );
+                                           sshared->screen_data, i,
+                                           &sshared->mixers[i].configuration );
                }
           }
 
           /* Initialize encoders. */
-          if (shared->description.encoders) {
+          if (sshared->description.encoders) {
                int i;
 
                D_ASSERT( funcs->InitEncoder != NULL );
                D_ASSERT( funcs->SetEncoderConfig != NULL );
 
-               shared->encoders = SHCALLOC( pool, shared->description.encoders,
-                                            sizeof(CoreScreenEncoder) );
-               for (i=0; i<shared->description.encoders; i++) {
+               sshared->encoders = SHCALLOC( pool, sshared->description.encoders,
+                                             sizeof(CoreScreenEncoder) );
+               for (i=0; i<sshared->description.encoders; i++) {
                     funcs->InitEncoder( screen,
                                         screen->driver_data,
-                                        shared->screen_data, i,
-                                        &shared->encoders[i].description,
-                                        &shared->encoders[i].configuration );
+                                        sshared->screen_data, i,
+                                        &sshared->encoders[i].description,
+                                        &sshared->encoders[i].configuration );
                     funcs->SetEncoderConfig( screen,
                                              screen->driver_data,
-                                             shared->screen_data, i,
-                                             &shared->encoders[i].configuration );
+                                             sshared->screen_data, i,
+                                             &sshared->encoders[i].configuration );
                }
           }
 
           /* Initialize outputs. */
-          if (shared->description.outputs) {
+          if (sshared->description.outputs) {
                int i;
 
                D_ASSERT( funcs->InitOutput != NULL );
                D_ASSERT( funcs->SetOutputConfig != NULL );
 
-               shared->outputs = SHCALLOC( pool, shared->description.outputs,
-                                           sizeof(CoreScreenOutput) );
-               for (i=0; i<shared->description.outputs; i++) {
+               sshared->outputs = SHCALLOC( pool, sshared->description.outputs,
+                                            sizeof(CoreScreenOutput) );
+               for (i=0; i<sshared->description.outputs; i++) {
                     funcs->InitOutput( screen,
                                        screen->driver_data,
-                                       shared->screen_data, i,
-                                       &shared->outputs[i].description,
-                                       &shared->outputs[i].configuration );
+                                       sshared->screen_data, i,
+                                       &sshared->outputs[i].description,
+                                       &sshared->outputs[i].configuration );
                     funcs->SetOutputConfig( screen,
                                             screen->driver_data,
-                                            shared->screen_data, i,
-                                            &shared->outputs[i].configuration );
+                                            sshared->screen_data, i,
+                                            &sshared->outputs[i].configuration );
                }
           }
 
           /* Make a copy for faster access. */
-          screen->screen_data = shared->screen_data;
+          screen->screen_data = sshared->screen_data;
 
-          /* Store pointer to shared data and core. */
-          screen->shared = shared;
+          /* Store pointer to sshared data and core. */
+          screen->shared = sshared;
           screen->core   = core;
 
-          /* Add the screen to the shared list. */
-          core_screens->screens[ core_screens->num++ ] = shared;
+          /* Add the screen to the sshared list. */
+          core_screens->screens[ core_screens->num++ ] = sshared;
      }
+
+
+     D_MAGIC_SET( data, DFBScreenCore );
+     D_MAGIC_SET( shared, DFBScreenCoreShared );
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_screens_join( CoreDFB *core, void *data_local, void *data_shared )
+dfb_screen_core_join( CoreDFB             *core,
+                      DFBScreenCore       *data,
+                      DFBScreenCoreShared *shared )
 {
      int i;
 
-     D_ASSERT( core_screens == NULL );
-     D_ASSERT( data_shared  != NULL );
+     D_DEBUG_AT( Core_Screen, "dfb_screen_core_join( %p, %p, %p )\n", core, data, shared );
 
-     core_screens = data_shared;
+     D_ASSERT( data != NULL );
+     D_MAGIC_ASSERT( shared, DFBScreenCoreShared );
+
+     data->core   = core;
+     data->shared = shared;
+
+     core_screens = shared;   /* FIXME */
 
      if (num_screens != core_screens->num) {
           D_ERROR("DirectFB/core/screens: Number of screens does not match!\n");
@@ -260,18 +294,28 @@ dfb_screens_join( CoreDFB *core, void *data_local, void *data_shared )
           screen->core   = core;
      }
 
+
+     D_MAGIC_SET( data, DFBScreenCore );
+
      return DFB_OK;
 }
 
 static DFBResult
-dfb_screens_shutdown( CoreDFB *core, bool emergency )
+dfb_screen_core_shutdown( DFBScreenCore *data,
+                          bool           emergency )
 {
      int                  i;
      FusionSHMPoolShared *pool;
+     DFBScreenCoreShared *shared;
 
-     D_ASSERT( core_screens != NULL );
+     D_DEBUG_AT( Core_Screen, "dfb_screen_core_shutdown( %p, %semergency )\n", data, emergency ? "" : "no " );
 
-     pool = dfb_core_shmpool( core );
+     D_MAGIC_ASSERT( data, DFBScreenCore );
+     D_MAGIC_ASSERT( data->shared, DFBScreenCoreShared );
+
+     shared = data->shared;
+
+     pool = dfb_core_shmpool( data->core );
 
      /* Begin with the most recently added screen. */
      for (i=num_screens-1; i>=0; i--) {
@@ -307,15 +351,27 @@ dfb_screens_shutdown( CoreDFB *core, bool emergency )
      core_screens = NULL;
      num_screens  = 0;
 
+
+     D_MAGIC_CLEAR( data );
+     D_MAGIC_CLEAR( shared );
+
      return DFB_OK;
 }
 
 static DFBResult
-dfb_screens_leave( CoreDFB *core, bool emergency )
+dfb_screen_core_leave( DFBScreenCore *data,
+                       bool           emergency )
 {
-     int i;
+     int                  i;
+     DFBScreenCoreShared *shared;
 
-     D_ASSERT( core_screens != NULL );
+     D_DEBUG_AT( Core_Screen, "dfb_screen_core_leave( %p, %semergency )\n", data, emergency ? "" : "no " );
+
+     D_MAGIC_ASSERT( data, DFBScreenCore );
+     D_MAGIC_ASSERT( data->shared, DFBScreenCoreShared );
+
+     shared = data->shared;
+
 
      /* Deinitialize all local stuff only. */
      for (i=0; i<num_screens; i++) {
@@ -328,47 +384,56 @@ dfb_screens_leave( CoreDFB *core, bool emergency )
      core_screens = NULL;
      num_screens  = 0;
 
+
+     D_MAGIC_CLEAR( data );
+
      return DFB_OK;
 }
 
 static DFBResult
-dfb_screens_suspend( CoreDFB *core )
+dfb_screen_core_suspend( DFBScreenCore *data )
 {
-     int i;
+     int                  i;
+     DFBScreenCoreShared *shared;
 
-     D_ASSERT( core_screens != NULL );
+     D_DEBUG_AT( Core_Screen, "dfb_screen_core_suspend( %p )\n", data );
 
-     D_DEBUG( "DirectFB/core/screens: suspending...\n" );
+     D_MAGIC_ASSERT( data, DFBScreenCore );
+     D_MAGIC_ASSERT( data->shared, DFBScreenCoreShared );
+
+     shared = data->shared;
 
      for (i=num_screens-1; i>=0; i--)
           dfb_screen_suspend( screens[i] );
 
-     D_DEBUG( "DirectFB/core/screens: suspended.\n" );
-
      return DFB_OK;
 }
 
 static DFBResult
-dfb_screens_resume( CoreDFB *core )
+dfb_screen_core_resume( DFBScreenCore *data )
 {
-     int i;
+     int                  i;
+     DFBScreenCoreShared *shared;
 
-     D_ASSERT( core_screens != NULL );
+     D_DEBUG_AT( Core_Screen, "dfb_screen_core_resume( %p )\n", data );
 
-     D_DEBUG( "DirectFB/core/screens: resuming...\n" );
+     D_MAGIC_ASSERT( data, DFBScreenCore );
+     D_MAGIC_ASSERT( data->shared, DFBScreenCoreShared );
+
+     shared = data->shared;
 
      for (i=0; i<num_screens; i++)
           dfb_screen_resume( screens[i] );
 
-     D_DEBUG( "DirectFB/core/screens: resumed.\n" );
-
      return DFB_OK;
 }
 
+/**********************************************************************************************************************/
+
 CoreScreen *
-dfb_screens_register( GraphicsDevice *device,
-                      void           *driver_data,
-                      ScreenFuncs    *funcs )
+dfb_screens_register( CoreGraphicsDevice *device,
+                      void               *driver_data,
+                      ScreenFuncs        *funcs )
 {
      CoreScreen *screen;
 
@@ -397,11 +462,11 @@ dfb_screens_register( GraphicsDevice *device,
 typedef void (*AnyFunc)();
 
 CoreScreen *
-dfb_screens_hook_primary( GraphicsDevice  *device,
-                          void            *driver_data,
-                          ScreenFuncs     *funcs,
-                          ScreenFuncs     *primary_funcs,
-                          void           **primary_driver_data )
+dfb_screens_hook_primary( CoreGraphicsDevice  *device,
+                          void                *driver_data,
+                          ScreenFuncs         *funcs,
+                          ScreenFuncs         *primary_funcs,
+                          void               **primary_driver_data )
 {
      int         i;
      int         entries;
@@ -437,9 +502,9 @@ dfb_screens_hook_primary( GraphicsDevice  *device,
 }
 
 CoreScreen *
-dfb_screens_register_primary( GraphicsDevice *device,
-                              void           *driver_data,
-                              ScreenFuncs    *funcs )
+dfb_screens_register_primary( CoreGraphicsDevice *device,
+                              void               *driver_data,
+                              ScreenFuncs        *funcs )
 {
      CoreScreen *primary = screens[0];
 

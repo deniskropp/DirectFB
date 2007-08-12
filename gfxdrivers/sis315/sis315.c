@@ -35,7 +35,7 @@
 #include <core/gfxcard.h>
 #include <core/graphics_driver.h>
 #include <core/state.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <fbdev/fbdev.h>
 

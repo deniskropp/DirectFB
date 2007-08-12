@@ -342,7 +342,7 @@ dfb_agp_initialize( void )
      dfb_agp_info( &shared->info );
 
      D_DEBUG( "DirectFB/FBDev/agp: "
-              "AGP aperture at 0x%x (%d MB)\n",
+              "AGP aperture at 0x%x (%zu MB)\n",
               (unsigned int)shared->info.aper_base, shared->info.aper_size );
 
      agp_avail = (shared->info.pg_total - shared->info.pg_used) * PAGE_SIZE;

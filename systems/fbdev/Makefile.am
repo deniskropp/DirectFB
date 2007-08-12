@@ -13,10 +13,11 @@ AM_CPPFLAGS = -D_XOPEN_SOURCE=500
 internalincludedir = $(INTERNALINCLUDEDIR)/fbdev
 
 internalinclude_HEADERS = \
-	fbdev.h		\
-	fb.h		\
-	vt.h			\
-	agp.h
+	agp.h			\
+	fb.h			\
+	fbdev.h			\
+	surfacemanager.h	\
+	vt.h
 
 
 systemsdir = $(MODULEDIR)/systems
@@ -32,9 +33,11 @@ libdirectfb_fbdev_la_LDFLAGS = \
 	$(SYSFS_LIBS)
 
 libdirectfb_fbdev_la_SOURCES = \
-	fbdev.c		\
-	vt.c			\
-	agp.c
+	agp.c			\
+	fbdev.c			\
+	fbdev_surface_pool.c	\
+	surfacemanager.c	\
+	vt.c
 
 libdirectfb_fbdev_la_LIBADD = \
 	$(top_builddir)/lib/direct/libdirect.la \

@@ -56,7 +56,7 @@
 
 #include <core/coredefs.h>
 #include <core/layers.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/screens.h>
 #include <core/screen.h>
 

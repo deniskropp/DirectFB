@@ -80,6 +80,11 @@ int fusion_world_index( const FusionWorld *world );
 FusionID fusion_id( const FusionWorld *world );
 
 /*
+ * Return if the world is a multi application world.
+ */
+bool fusion_is_multi( const FusionWorld *world );
+
+/*
  * Return the thread ID of the Fusion Dispatcher within the specified world.
  */
 pid_t fusion_dispatcher_tid( const FusionWorld *world );

@@ -77,20 +77,20 @@ typedef struct {
 } CoreLayerShared;
 
 struct __DFB_CoreLayer {
-     CoreLayerShared   *shared;
+     CoreLayerShared    *shared;
 
-     CoreDFB           *core;
+     CoreDFB            *core;
 
-     GraphicsDevice    *device;
+     CoreGraphicsDevice *device;
 
-     CoreScreen        *screen;
+     CoreScreen         *screen;
 
-     void              *driver_data;
-     void              *layer_data;   /* copy of shared->layer_data */
+     void               *driver_data;
+     void               *layer_data;   /* copy of shared->layer_data */
 
-     DisplayLayerFuncs *funcs;
+     DisplayLayerFuncs  *funcs;
 
-     CardState          state;
+     CardState           state;
 };
 
 typedef enum {
@@ -161,6 +161,7 @@ struct __DFB_CoreLayerRegion {
      CoreLayerRegionConfig       config;
 
      CoreSurface                *surface;
+     CoreSurfaceBufferLock       surface_lock;
      GlobalReaction              surface_reaction;
 
      void                       *region_data;

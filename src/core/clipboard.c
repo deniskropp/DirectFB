@@ -28,8 +28,10 @@
 
 #include <config.h>
 
-#include <stdlib.h>
-#include <string.h>
+#include <directfb.h>
+
+#include <direct/debug.h>
+#include <direct/memcpy.h>
 
 #include <fusion/shmalloc.h>
 
@@ -37,187 +39,259 @@
 #include <core/core_parts.h>
 #include <core/clipboard.h>
 
-#include <direct/memcpy.h>
 
+D_DEBUG_DOMAIN( Core_Clipboard, "Core/Clipboard", "DirectFB Clipboard Core" );
+
+/**********************************************************************************************************************/
 
 typedef struct {
-     FusionSkirmish       lock;
-     char                *mime_type;
-     void                *data;
-     unsigned int         size;
-     struct timeval       timestamp;
-     FusionSHMPoolShared *shmpool;
-} CoreClip;
+     int                     magic;
 
-static CoreClip *core_clip = NULL;
+     FusionSkirmish          lock;
+     char                   *mime_type;
+     void                   *data;
+     unsigned int            size;
+     struct timeval          timestamp;
+
+     FusionSHMPoolShared    *shmpool;
+} DFBClipboardCoreShared;
+
+struct __DFB_DFBClipboardCore {
+     int                     magic;
+
+     CoreDFB                *core;
+
+     DFBClipboardCoreShared *shared;
+};
 
 
-DFB_CORE_PART( clipboard, 0, sizeof(CoreClip) )
+DFB_CORE_PART( clipboard_core, ClipboardCore );
 
+/**********************************************************************************************************************/
 
 static DFBResult
-dfb_clipboard_initialize( CoreDFB *core, void *data_local, void *data_shared )
+dfb_clipboard_core_initialize( CoreDFB                *core,
+                               DFBClipboardCore       *data,
+                               DFBClipboardCoreShared *shared )
 {
-     D_ASSERT( core_clip == NULL );
+     D_DEBUG_AT( Core_Clipboard, "dfb_clipboard_core_initialize( %p, %p, %p )\n", core, data, shared );
 
-     core_clip = data_shared;
+     D_ASSERT( data != NULL );
+     D_ASSERT( shared != NULL );
 
-     core_clip->shmpool = dfb_core_shmpool( core );
+     data->core   = core;
+     data->shared = shared;
 
-     fusion_skirmish_init( &core_clip->lock, "Clipboard Core", dfb_core_world(core) );
+     shared->shmpool = dfb_core_shmpool( core );
+
+     fusion_skirmish_init( &shared->lock, "Clipboard Core", dfb_core_world(core) );
+
+     D_MAGIC_SET( data, DFBClipboardCore );
+     D_MAGIC_SET( shared, DFBClipboardCoreShared );
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_clipboard_join( CoreDFB *core, void *data_local, void *data_shared )
+dfb_clipboard_core_join( CoreDFB                *core,
+                         DFBClipboardCore       *data,
+                         DFBClipboardCoreShared *shared )
 {
-     D_ASSERT( core_clip == NULL );
+     D_DEBUG_AT( Core_Clipboard, "dfb_clipboard_core_join( %p, %p, %p )\n", core, data, shared );
 
-     core_clip = data_shared;
+     D_ASSERT( data != NULL );
+     D_MAGIC_ASSERT( shared, DFBClipboardCoreShared );
+
+     data->core   = core;
+     data->shared = shared;
+
+     D_MAGIC_SET( data, DFBClipboardCore );
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_clipboard_shutdown( CoreDFB *core, bool emergency )
+dfb_clipboard_core_shutdown( DFBClipboardCore *data,
+                             bool              emergency )
 {
-     D_ASSERT( core_clip != NULL );
+     DFBClipboardCoreShared *shared;
 
-     fusion_skirmish_destroy( &core_clip->lock );
+     D_DEBUG_AT( Core_Clipboard, "dfb_clipboard_core_shutdown( %p, %semergency )\n", data, emergency ? "" : "no " );
 
-     if (core_clip->data)
-          SHFREE( core_clip->shmpool, core_clip->data );
+     D_MAGIC_ASSERT( data, DFBClipboardCore );
 
-     if (core_clip->mime_type)
-          SHFREE( core_clip->shmpool, core_clip->mime_type );
+     shared = data->shared;
 
-     core_clip = NULL;
+     D_MAGIC_ASSERT( shared, DFBClipboardCoreShared );
+
+     fusion_skirmish_destroy( &shared->lock );
+
+     if (shared->data)
+          SHFREE( shared->shmpool, shared->data );
+
+     if (shared->mime_type)
+          SHFREE( shared->shmpool, shared->mime_type );
+
+     D_MAGIC_CLEAR( data );
+     D_MAGIC_CLEAR( shared );
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_clipboard_leave( CoreDFB *core, bool emergency )
+dfb_clipboard_core_leave( DFBClipboardCore *data,
+                          bool              emergency )
 {
-     D_ASSERT( core_clip != NULL );
+     D_DEBUG_AT( Core_Clipboard, "dfb_clipboard_core_leave( %p, %semergency )\n", data, emergency ? "" : "no " );
 
-     core_clip = NULL;
+     D_MAGIC_ASSERT( data, DFBClipboardCore );
+     D_MAGIC_ASSERT( data->shared, DFBClipboardCoreShared );
+
+     D_MAGIC_CLEAR( data );
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_clipboard_suspend( CoreDFB *core )
+dfb_clipboard_core_suspend( DFBClipboardCore *data )
 {
-     D_ASSERT( core_clip != NULL );
+     D_DEBUG_AT( Core_Clipboard, "dfb_clipboard_core_suspend( %p )\n", data );
+
+     D_MAGIC_ASSERT( data, DFBClipboardCore );
+     D_MAGIC_ASSERT( data->shared, DFBClipboardCoreShared );
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_clipboard_resume( CoreDFB *core )
+dfb_clipboard_core_resume( DFBClipboardCore *data )
 {
-     D_ASSERT( core_clip != NULL );
+     D_DEBUG_AT( Core_Clipboard, "dfb_clipboard_core_resume( %p )\n", data );
+
+     D_MAGIC_ASSERT( data, DFBClipboardCore );
+     D_MAGIC_ASSERT( data->shared, DFBClipboardCoreShared );
 
      return DFB_OK;
 }
 
+/**********************************************************************************************************************/
 
 DFBResult
-dfb_clipboard_set( const char     *mime_type,
-                   const void     *data,
-                   unsigned int    size,
-                   struct timeval *timestamp )
+dfb_clipboard_set( DFBClipboardCore *core,
+                   const char       *mime_type,
+                   const void       *data,
+                   unsigned int      size,
+                   struct timeval   *timestamp )
 {
+     DFBClipboardCoreShared *shared;
+
      char *new_mime;
      void *new_data;
 
-     D_ASSERT( core_clip != NULL );
-
+     D_MAGIC_ASSERT( core, DFBClipboardCore );
      D_ASSERT( mime_type != NULL );
      D_ASSERT( data != NULL );
      D_ASSERT( size > 0 );
 
-     new_mime = SHSTRDUP( core_clip->shmpool, mime_type );
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, DFBClipboardCoreShared );
+
+     new_mime = SHSTRDUP( shared->shmpool, mime_type );
      if (!new_mime)
           return D_OOSHM();
 
-     new_data = SHMALLOC( core_clip->shmpool, size );
+     new_data = SHMALLOC( shared->shmpool, size );
      if (!new_data) {
-          SHFREE( core_clip->shmpool, new_mime );
+          SHFREE( shared->shmpool, new_mime );
           return D_OOSHM();
      }
 
      direct_memcpy( new_data, data, size );
 
-     if (fusion_skirmish_prevail( &core_clip->lock )) {
-          SHFREE( core_clip->shmpool, new_data );
-          SHFREE( core_clip->shmpool, new_mime );
+     if (fusion_skirmish_prevail( &shared->lock )) {
+          SHFREE( shared->shmpool, new_data );
+          SHFREE( shared->shmpool, new_mime );
           return DFB_FUSION;
      }
 
-     if (core_clip->data)
-          SHFREE( core_clip->shmpool, core_clip->data );
+     if (shared->data)
+          SHFREE( shared->shmpool, shared->data );
 
-     if (core_clip->mime_type)
-          SHFREE( core_clip->shmpool, core_clip->mime_type );
+     if (shared->mime_type)
+          SHFREE( shared->shmpool, shared->mime_type );
 
-     core_clip->mime_type = new_mime;
-     core_clip->data      = new_data;
-     core_clip->size      = size;
+     shared->mime_type = new_mime;
+     shared->data      = new_data;
+     shared->size      = size;
 
-     gettimeofday( &core_clip->timestamp, NULL );
+     gettimeofday( &shared->timestamp, NULL );
 
      if (timestamp)
-          *timestamp = core_clip->timestamp;
+          *timestamp = shared->timestamp;
 
-     fusion_skirmish_dismiss( &core_clip->lock );
+     fusion_skirmish_dismiss( &shared->lock );
 
      return DFB_OK;
 }
 
 DFBResult
-dfb_clipboard_get( char **mime_type, void **data, unsigned int *size )
+dfb_clipboard_get( DFBClipboardCore  *core,
+                   char             **mime_type,
+                   void             **data,
+                   unsigned int      *size )
 {
-     D_ASSERT( core_clip != NULL );
+     DFBClipboardCoreShared *shared;
 
-     if (fusion_skirmish_prevail( &core_clip->lock ))
+     D_MAGIC_ASSERT( core, DFBClipboardCore );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, DFBClipboardCoreShared );
+
+     if (fusion_skirmish_prevail( &shared->lock ))
           return DFB_FUSION;
 
-     if (!core_clip->mime_type || !core_clip->data) {
-          fusion_skirmish_dismiss( &core_clip->lock );
+     if (!shared->mime_type || !shared->data) {
+          fusion_skirmish_dismiss( &shared->lock );
           return DFB_BUFFEREMPTY;
      }
 
      if (mime_type)
-          *mime_type = strdup( core_clip->mime_type );
+          *mime_type = strdup( shared->mime_type );
 
      if (data) {
-          *data = malloc( core_clip->size );
-          direct_memcpy( *data, core_clip->data, core_clip->size );
+          *data = malloc( shared->size );
+          direct_memcpy( *data, shared->data, shared->size );
      }
 
      if (size)
-          *size = core_clip->size;
+          *size = shared->size;
 
-     fusion_skirmish_dismiss( &core_clip->lock );
+     fusion_skirmish_dismiss( &shared->lock );
 
      return DFB_OK;
 }
 
 DFBResult
-dfb_clipboard_get_timestamp( struct timeval *timestamp )
+dfb_clipboard_get_timestamp( DFBClipboardCore *core,
+                             struct timeval   *timestamp )
 {
-     D_ASSERT( core_clip != NULL );
+     DFBClipboardCoreShared *shared;
+
+     D_MAGIC_ASSERT( core, DFBClipboardCore );
      D_ASSERT( timestamp != NULL );
 
-     if (fusion_skirmish_prevail( &core_clip->lock ))
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, DFBClipboardCoreShared );
+
+     if (fusion_skirmish_prevail( &shared->lock ))
           return DFB_FUSION;
 
-     *timestamp = core_clip->timestamp;
+     *timestamp = shared->timestamp;
 
-     fusion_skirmish_dismiss( &core_clip->lock );
+     fusion_skirmish_dismiss( &shared->lock );
 
      return DFB_OK;
 }

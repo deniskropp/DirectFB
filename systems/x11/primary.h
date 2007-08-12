@@ -29,21 +29,11 @@
 #ifndef __X11__PRIMARY_H__
 #define __X11__PRIMARY_H__
 
-#include <fusion/call.h>
-
 #include <core/layers.h>
 #include <core/screens.h>
 
 extern ScreenFuncs       x11PrimaryScreenFuncs;
 extern DisplayLayerFuncs x11PrimaryLayerFuncs;
-
-FusionCallHandlerResult
-dfb_x11_call_handler( int           caller,
-                      int           call_arg,
-                      void         *call_ptr,
-                      void         *ctx,
-                      unsigned int  serial,
-                      int          *ret_val );
 
 #endif // __X11__PRIMARY_H__
 

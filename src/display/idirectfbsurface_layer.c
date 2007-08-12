@@ -43,7 +43,7 @@
 #include <core/state.h>
 #include <core/layers.h>
 #include <core/layer_region.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/system.h>
 
 #include "idirectfbsurface.h"
@@ -219,7 +219,7 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
      }
 
      ret = IDirectFBSurface_Construct( thiz, parent, wanted, granted, NULL,
-                                       surface, surface->caps | caps, core );
+                                       surface, surface->config.caps | caps, core );
      if (ret) {
           dfb_surface_unref( surface );
           dfb_layer_region_unref( region );

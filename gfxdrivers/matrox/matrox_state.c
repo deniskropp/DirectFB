@@ -37,7 +37,7 @@
 
 #include <core/state.h>
 #include <core/gfxcard.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/palette.h>
 
 #include <gfx/convert.h>
@@ -56,7 +56,7 @@ static void matrox_calc_offsets( MatroxDeviceData *mdev,
                                  bool              unit_pixel,
                                  int               offset[2][3] )
 {
-     int bytes_per_pixel = DFB_BYTES_PER_PIXEL( surface->format );
+     int bytes_per_pixel = DFB_BYTES_PER_PIXEL( surface->config.format );
      int pitch;
 
      if (unit_pixel) {
@@ -67,19 +67,19 @@ static void matrox_calc_offsets( MatroxDeviceData *mdev,
           pitch        = buffer->video.pitch;
      }
 
-     switch (surface->format) {
+     switch (surface->config.format) {
      case DSPF_NV12:
      case DSPF_NV21:
-          offset[0][1] = offset[0][0] + surface->height * pitch;
+          offset[0][1] = offset[0][0] + surface->config.size.h * pitch;
           offset[0][2] = 0;
           break;
      case DSPF_I420:
-          offset[0][1] = offset[0][0] + surface->height * pitch;
-          offset[0][2] = offset[0][1] + surface->height/2 * pitch/2;
+          offset[0][1] = offset[0][0] + surface->config.size.h * pitch;
+          offset[0][2] = offset[0][1] + surface->config.size.h/2 * pitch/2;
           break;
      case DSPF_YV12:
-          offset[0][2] = offset[0][0] + surface->height * pitch;
-          offset[0][1] = offset[0][2] + surface->height/2 * pitch/2;
+          offset[0][2] = offset[0][0] + surface->config.size.h * pitch;
+          offset[0][1] = offset[0][2] + surface->config.size.h/2 * pitch/2;
           break;
      default:
           offset[0][1] = 0;
@@ -92,17 +92,17 @@ static void matrox_calc_offsets( MatroxDeviceData *mdev,
 
      if (mdev->blit_fields || mdev->blit_deinterlace) {
           if (surface->caps & DSCAPS_SEPARATED) {
-               offset[1][0] = offset[0][0] + surface->height/2 * pitch;
-               switch (surface->format) {
+               offset[1][0] = offset[0][0] + surface->config.size.h/2 * pitch;
+               switch (surface->config.format) {
                case DSPF_NV12:
                case DSPF_NV21:
-                    offset[1][1] = offset[0][1] + surface->height/4 * pitch;
+                    offset[1][1] = offset[0][1] + surface->config.size.h/4 * pitch;
                     offset[1][2] = 0;
                     break;
                case DSPF_I420:
                case DSPF_YV12:
-                    offset[1][1] = offset[0][1] + surface->height/4 * pitch/2;
-                    offset[1][2] = offset[0][2] + surface->height/4 * pitch/2;
+                    offset[1][1] = offset[0][1] + surface->config.size.h/4 * pitch/2;
+                    offset[1][2] = offset[0][2] + surface->config.size.h/4 * pitch/2;
                     break;
                default:
                     offset[1][1] = 0;
@@ -110,7 +110,7 @@ static void matrox_calc_offsets( MatroxDeviceData *mdev,
                }
           } else {
                offset[1][0] = offset[0][0] + pitch;
-               switch (surface->format) {
+               switch (surface->config.format) {
                case DSPF_NV12:
                case DSPF_NV21:
                     offset[1][1] = offset[0][1] + pitch;
@@ -598,7 +598,7 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
      volatile u8   *mmio            = mdrv->mmio_base;
      CoreSurface   *surface         = state->source;
      SurfaceBuffer *buffer          = surface->front_buffer;
-     int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(surface->format);
+     int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(surface->config.format);
      u32            texctl = 0, texctl2 = 0;
 
      if (MGA_IS_VALID( m_Source ))
@@ -606,8 +606,8 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
 
      mdev->src_pitch = buffer->video.pitch / bytes_per_pixel;
      mdev->field     = surface->field;
-     mdev->w         = surface->width;
-     mdev->h         = surface->height;
+     mdev->w         = surface->config.size.w;
+     mdev->h         = surface->config.size.h;
 
      if (state->destination->format == DSPF_YUY2 || state->destination->format == DSPF_UYVY) {
           mdev->w /= 2;
@@ -638,7 +638,7 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
      else
           texctl = TAKEY;
 
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_YUY2:
                texctl |= (state->destination->format == DSPF_YUY2) ? TW32 : TW422;
                break;
@@ -695,7 +695,7 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
      else
           texctl2 |= CKSTRANSDIS;
 
-     if (surface->format == DSPF_A8)
+     if (surface->config.format == DSPF_A8)
           texctl2 |= IDECAL | DECALDIS;
 
      mdev->texctl = texctl;
@@ -724,7 +724,7 @@ void matrox_validate_source( MatroxDriverData *mdrv,
      volatile u8   *mmio            = mdrv->mmio_base;
      CoreSurface   *surface         = state->source;
      SurfaceBuffer *buffer          = surface->front_buffer;
-     int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(surface->format);
+     int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(surface->config.format);
 
      if (MGA_IS_VALID( m_source ))
           return;
@@ -762,7 +762,7 @@ void matrox_validate_SrcKey( MatroxDriverData *mdrv,
           return;
 
      if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
-          mask = MGA_KEYMASK(surface->format);
+          mask = MGA_KEYMASK(surface->config.format);
           key  = state->src_colorkey & mask;
      } else {
           mask = 0;
@@ -789,7 +789,7 @@ void matrox_validate_srckey( MatroxDriverData *mdrv,
      if (MGA_IS_VALID( m_srckey ))
           return;
 
-     mask = MGA_KEYMASK(surface->format);
+     mask = MGA_KEYMASK(surface->config.format);
      key  = state->src_colorkey & mask;
 
      switch (DFB_BYTES_PER_PIXEL(state->source->format)) {

@@ -41,7 +41,7 @@
 #include <core/coretypes.h>
 
 #include <core/gfxcard.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include "nvidia.h"
 #include "nvidia_regs.h"

@@ -45,7 +45,7 @@
 #include <core/coretypes.h>
 #include <core/layers.h>
 #include <core/palette.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/system.h>
 
 #include <gfx/convert.h>
@@ -55,33 +55,56 @@
 #include <direct/messages.h>
 
 
+#include "primary.h"
 #include "xwindow.h"
 #include "x11.h"
-#include "primary.h"
+#include "x11_surface_pool.h"
 
 #include <core/core_system.h>
 
 
 DFB_CORE_SYSTEM( x11 )
 
-/* Global pointer to screen device 
-   Global values for pixelformat ans screen size. */
-extern  XWindow* 	xw; 
-DFBX11*		dfb_x11      = NULL;
-CoreDFB*	dfb_x11_core = NULL;
+DFBX11*   dfb_x11      = NULL;
+CoreDFB*  dfb_x11_core = NULL;
 
+static VideoMode modes[] = {
+     {  320,  200 },
+     {  320,  240 },
+     {  512,  384 },
+     {  640,  480 },
+     {  768,  576 },
+     { 1024,  600 },
+     { 1024,  768 },
+     { 1280, 1024 },
+     { 1600, 1200 },
+
+     { 0, 0 }
+};
+
+/**********************************************************************************************************************/
+
+static FusionCallHandlerResult call_handler( int           caller,
+                                             int           call_arg,
+                                             void         *call_ptr,
+                                             void         *ctx,
+                                             unsigned int  serial,
+                                             int          *ret_val );
+
+/**********************************************************************************************************************/
 
 static void
 system_get_info( CoreSystemInfo *info )
 {
-	info->type = CORE_X11;	
+     info->type = CORE_X11;   
 
-    snprintf( info->name, DFB_CORE_SYSTEM_INFO_NAME_LENGTH, "X11" );
+     snprintf( info->name, DFB_CORE_SYSTEM_INFO_NAME_LENGTH, "X11" );
 }
 
 static DFBResult
 system_initialize( CoreDFB *core, void **data )
 {
+     int         i, n;
      CoreScreen *screen;
 
      D_ASSERT( dfb_x11 == NULL );
@@ -96,7 +119,9 @@ system_initialize( CoreDFB *core, void **data )
 
      fusion_skirmish_init( &dfb_x11->lock, "X11 System", dfb_core_world(core) );
 
-     fusion_call_init( &dfb_x11->call, dfb_x11_call_handler, NULL, dfb_core_world(core) );
+     fusion_call_init( &dfb_x11->call, call_handler, NULL, dfb_core_world(core) );
+
+     dfb_surface_pool_initialize( core, &x11SurfacePoolFuncs, &dfb_x11->surface_pool );
 
      screen = dfb_screens_register( NULL, NULL, &x11PrimaryScreenFuncs );
 
@@ -109,10 +134,38 @@ system_initialize( CoreDFB *core, void **data )
      XInitThreads();
 
      dfb_x11->display = XOpenDisplay(NULL);
-     if(!dfb_x11->display){
-		D_ERROR("X11: Error opening X_Display\n");
-        return DFB_INIT;
+     if (!dfb_x11->display) {
+          D_ERROR("X11: Error opening X_Display\n");
+          return DFB_INIT;
      }
+
+     dfb_x11->screenptr = DefaultScreenOfDisplay(dfb_x11->display);
+     dfb_x11->screennum = DefaultScreen(dfb_x11->display);
+
+     for (i=0; i<dfb_x11->screenptr->ndepths; i++) {
+          const Depth *depth = &dfb_x11->screenptr->depths[i];
+
+          D_INFO( "X11/Display: Depth %d\n", depth->depth );
+
+          for (n=0; n<depth->nvisuals; n++) {
+               Visual *visual = &depth->visuals[n];
+
+               D_INFO( "X11/Display:     Visual (%02lu) 0x%08lx, 0x%08lx, 0x%08lx, %d bits, %d entries\n", visual->visualid,
+                       visual->red_mask, visual->green_mask, visual->blue_mask, visual->bits_per_rgb, visual->map_entries );
+
+               switch (depth->depth) {
+                    case 24:
+                         if (visual->red_mask   == 0xff0000 &&
+                             visual->green_mask == 0x00ff00 &&
+                             visual->blue_mask  == 0x0000ff) {
+                              dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)] = visual;
+                              dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]  = visual;
+                         }
+                         break;
+               }
+          }
+     }
+
      return DFB_OK;
 }
 
@@ -129,6 +182,8 @@ system_join( CoreDFB *core, void **data )
      dfb_x11 = ret;
      dfb_x11_core = core;
 
+     dfb_surface_pool_join( core, dfb_x11->surface_pool, &x11SurfacePoolFuncs );
+
      screen = dfb_screens_register( NULL, NULL, &x11PrimaryScreenFuncs );
 
      dfb_layers_register( screen, NULL, &x11PrimaryLayerFuncs );
@@ -141,30 +196,32 @@ system_join( CoreDFB *core, void **data )
 static DFBResult
 system_shutdown( bool emergency )
 {
-	D_ASSERT( dfb_x11 != NULL );
+     D_ASSERT( dfb_x11 != NULL );
 
-    fusion_call_destroy( &dfb_x11->call );
-    
-	fusion_skirmish_prevail( &dfb_x11->lock );
-    if (dfb_x11->xw)
-	    dfb_x11_close_window( dfb_x11->xw );
+     dfb_surface_pool_destroy( dfb_x11->surface_pool );
 
-    if (dfb_x11->display)
-        XCloseDisplay( dfb_x11->display );
+     fusion_call_destroy( &dfb_x11->call );
 
-    fusion_skirmish_destroy( &dfb_x11->lock );
+     fusion_skirmish_prevail( &dfb_x11->lock );
+     if (dfb_x11->xw)
+         dfb_x11_close_window( dfb_x11->xw );
 
-    SHFREE( dfb_core_shmpool(dfb_x11_core), dfb_x11 );
-    dfb_x11 = NULL;
-    dfb_x11_core = NULL;
+     if (dfb_x11->display)
+         XCloseDisplay( dfb_x11->display );
 
-    return DFB_OK;
+     fusion_skirmish_destroy( &dfb_x11->lock );
+
+     SHFREE( dfb_core_shmpool(dfb_x11_core), dfb_x11 );
+     dfb_x11 = NULL;
+     dfb_x11_core = NULL;
+
+     return DFB_OK;
 }
 
 static DFBResult
 system_leave( bool emergency )
 {
-	D_ASSERT( dfb_x11 != NULL );
+     D_ASSERT( dfb_x11 != NULL );
 
      dfb_x11 = NULL;
      dfb_x11_core = NULL;
@@ -175,20 +232,20 @@ system_leave( bool emergency )
 static DFBResult
 system_suspend()
 {
-	return DFB_UNIMPLEMENTED;
+     return DFB_UNIMPLEMENTED;
 }
 
 static DFBResult
 system_resume()
 {
-	return DFB_UNIMPLEMENTED;
+     return DFB_UNIMPLEMENTED;
 }
 
 static volatile void *
 system_map_mmio( unsigned int    offset,
                  int             length )
 {
-    return NULL;
+     return NULL;
 }
 
 static void
@@ -206,13 +263,13 @@ system_get_accelerator()
 static VideoMode *
 system_get_modes()
 {
-     return NULL;
+     return modes;
 }
 
 static VideoMode *
 system_get_current_mode()
 {
-     return NULL;
+     return &modes[0];   /* FIXME */
 }
 
 static DFBResult
@@ -275,5 +332,43 @@ system_get_deviceid( unsigned int *ret_vendor_id,
                      unsigned int *ret_device_id )
 {
      return;
+}
+
+static FusionCallHandlerResult
+call_handler( int           caller,
+              int           call_arg,
+              void         *call_ptr,
+              void         *ctx,
+              unsigned int  serial,
+              int          *ret_val )
+{
+     switch (call_arg) {
+          case X11_SET_VIDEO_MODE:
+               *ret_val = dfb_x11_set_video_mode_handler( call_ptr );
+               break;
+
+          case X11_UPDATE_SCREEN:
+               *ret_val = dfb_x11_update_screen_handler( call_ptr );
+               break;
+
+          case X11_SET_PALETTE:
+               *ret_val = dfb_x11_set_palette_handler( call_ptr );
+               break;
+
+          case X11_IMAGE_INIT:
+               *ret_val = dfb_x11_image_init_handler( call_ptr );
+               break;
+
+          case X11_IMAGE_DESTROY:
+               *ret_val = dfb_x11_image_destroy_handler( call_ptr );
+               break;
+
+          default:
+               D_BUG( "unknown call" );
+               *ret_val = DFB_BUG;
+               break;
+     }
+
+     return FCHR_RETURN;
 }
 

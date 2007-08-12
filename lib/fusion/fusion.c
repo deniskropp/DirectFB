@@ -2082,6 +2082,17 @@ fusion_id( const FusionWorld *world )
 }
 
 /*
+ * Return if the world is a multi application world.
+ */
+bool
+fusion_is_multi( const FusionWorld *world )
+{
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     return true;
+}
+
+/*
  * Return the thread ID of the Fusion Dispatcher within the specified world.
  */
 pid_t
@@ -2303,6 +2314,17 @@ fusion_id( const FusionWorld *world )
      D_MAGIC_ASSERT( world, FusionWorld );
 
      return 1;
+}
+
+/*
+ * Return if the world is a multi application world.
+ */
+bool
+fusion_is_multi( const FusionWorld *world )
+{
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     return false;
 }
 
 /*

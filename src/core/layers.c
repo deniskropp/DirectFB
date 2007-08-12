@@ -33,11 +33,16 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <directfb.h>
+
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
+#include <direct/messages.h>
+
 #include <fusion/shmalloc.h>
 #include <fusion/arena.h>
 #include <fusion/property.h>
-
-#include <directfb.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
@@ -54,16 +59,10 @@
 #include <core/state.h>
 #include <core/palette.h>
 #include <core/system.h>
-#include <core/surfacemanager.h>
 #include <core/windows.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
-
-#include <direct/debug.h>
-#include <direct/mem.h>
-#include <direct/memcpy.h>
-#include <direct/messages.h>
 
 #include <misc/conf.h>
 #include <misc/util.h>
@@ -71,59 +70,74 @@
 #include <core/layers_internal.h>
 #include <core/screens_internal.h>
 
-D_DEBUG_DOMAIN( Core_Layers, "Core/Layers", "DirectFB Display Layer Core" );
 
+D_DEBUG_DOMAIN( Core_Layer, "Core/Layer", "DirectFB Display Layer Core" );
+
+/**********************************************************************************************************************/
 
 typedef struct {
-     int              num;
-     CoreLayerShared *layers[MAX_LAYERS];
-} CoreLayersField;
+     int               magic;
 
-static CoreLayersField *layersfield = NULL;
+     int               num;
+     CoreLayerShared  *layers[MAX_LAYERS];
+} DFBLayerCoreShared;
 
-static int        dfb_num_layers = 0;
-static CoreLayer *dfb_layers[MAX_LAYERS] = { NULL };
+struct __DFB_DFBLayerCore {
+     int                 magic;
+
+     CoreDFB            *core;
+
+     DFBLayerCoreShared *shared;
+};
 
 
-DFB_CORE_PART( layers, 0, sizeof(CoreLayersField) )
+DFB_CORE_PART( layer_core, LayerCore );
 
+/**********************************************************************************************************************/
 
-/** public **/
+static int           dfb_num_layers;
+static CoreLayer    *dfb_layers[MAX_LAYERS];
 
 /** FIXME: Add proper error paths! **/
 
 static DFBResult
-dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
+dfb_layer_core_initialize( CoreDFB            *core,
+                           DFBLayerCore       *data,
+                           DFBLayerCoreShared *shared )
 {
      int                  i;
      DFBResult            ret;
      FusionSHMPoolShared *pool;
 
-     D_ASSERT( layersfield == NULL );
-     D_ASSERT( data_shared != NULL );
+     D_DEBUG_AT( Core_Layer, "dfb_layer_core_initialize( %p, %p, %p )\n", core, data, shared );
 
-     layersfield = data_shared;
+     D_ASSERT( data != NULL );
+     D_ASSERT( shared != NULL );
+
+     data->core   = core;
+     data->shared = shared;
+
 
      pool = dfb_core_shmpool( core );
 
      /* Initialize all registered layers. */
      for (i=0; i<dfb_num_layers; i++) {
           char               buf[24];
-          CoreLayerShared   *shared;
+          CoreLayerShared   *lshared;
           CoreLayer         *layer = dfb_layers[i];
           DisplayLayerFuncs *funcs = layer->funcs;
 
           /* Allocate shared data. */
-          shared = SHCALLOC( pool, 1, sizeof(CoreLayerShared) );
+          lshared = SHCALLOC( pool, 1, sizeof(CoreLayerShared) );
 
           /* Assign ID (zero based index). */
-          shared->layer_id = i;
-          shared->shmpool  = pool;
+          lshared->layer_id = i;
+          lshared->shmpool  = pool;
 
           snprintf( buf, sizeof(buf), "Display Layer %d", i );
 
           /* Initialize the lock. */
-          ret = fusion_skirmish_init( &shared->lock, buf, dfb_core_world(core) );
+          ret = fusion_skirmish_init( &lshared->lock, buf, dfb_core_world(core) );
           if (ret)
                return ret;
 
@@ -132,8 +146,8 @@ dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
                int size = funcs->LayerDataSize();
 
                if (size > 0) {
-                    shared->layer_data = SHCALLOC( pool, 1, size );
-                    if (!shared->layer_data)
+                    lshared->layer_data = SHCALLOC( pool, 1, size );
+                    if (!lshared->layer_data)
                          return D_OOSHM();
                }
           }
@@ -142,105 +156,126 @@ dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
              the default configuration and default color adjustment. */
           ret = funcs->InitLayer( layer,
                                   layer->driver_data,
-                                  shared->layer_data,
-                                  &shared->description,
-                                  &shared->default_config,
-                                  &shared->default_adjustment );
+                                  lshared->layer_data,
+                                  &lshared->description,
+                                  &lshared->default_config,
+                                  &lshared->default_adjustment );
           if (ret) {
                D_DERROR( ret, "DirectFB/Core/layers: "
-                         "Failed to initialize layer %d!\n", shared->layer_id );
+                         "Failed to initialize layer %d!\n", lshared->layer_id );
                return ret;
           }
 
-          if (shared->description.caps & DLCAPS_SOURCES) {
+          if (lshared->description.caps & DLCAPS_SOURCES) {
                int n;
 
-               shared->sources = SHCALLOC( pool, shared->description.sources, sizeof(CoreLayerSource) );
-               if (!shared->sources)
+               lshared->sources = SHCALLOC( pool, lshared->description.sources, sizeof(CoreLayerSource) );
+               if (!lshared->sources)
                     return D_OOSHM();
 
-               for (n=0; n<shared->description.sources; n++) {
-                    CoreLayerSource *source = &shared->sources[n];
+               for (n=0; n<lshared->description.sources; n++) {
+                    CoreLayerSource *source = &lshared->sources[n];
 
                     source->index = n;
 
                     ret = funcs->InitSource( layer, layer->driver_data,
-                                             shared->layer_data, n, &source->description );
+                                             lshared->layer_data, n, &source->description );
                     if (ret) {
                          D_DERROR( ret, "DirectFB/Core/layers: Failed to initialize source %d "
-                                   "of layer %d!\n", n, shared->layer_id );
+                                   "of layer %d!\n", n, lshared->layer_id );
                          return ret;
                     }
                }
           }
 
-          if (D_FLAGS_IS_SET( shared->description.caps, DLCAPS_SCREEN_LOCATION ))
-               D_FLAGS_SET( shared->description.caps, DLCAPS_SCREEN_POSITION | DLCAPS_SCREEN_SIZE );
+          if (D_FLAGS_IS_SET( lshared->description.caps, DLCAPS_SCREEN_LOCATION ))
+               D_FLAGS_SET( lshared->description.caps, DLCAPS_SCREEN_POSITION | DLCAPS_SCREEN_SIZE );
 
-          if (D_FLAGS_ARE_SET( shared->description.caps,
+          if (D_FLAGS_ARE_SET( lshared->description.caps,
                                DLCAPS_SCREEN_POSITION | DLCAPS_SCREEN_SIZE ))
-               D_FLAGS_SET( shared->description.caps, DLCAPS_SCREEN_LOCATION );
+               D_FLAGS_SET( lshared->description.caps, DLCAPS_SCREEN_LOCATION );
 
           /* Initialize the vector for the contexts. */
-          fusion_vector_init( &shared->contexts.stack, 4, pool );
+          fusion_vector_init( &lshared->contexts.stack, 4, pool );
 
           /* Initialize the vector for realized (added) regions. */
-          fusion_vector_init( &shared->added_regions, 4, pool );
+          fusion_vector_init( &lshared->added_regions, 4, pool );
 
           /* No active context by default. */
-          shared->contexts.active = -1;
+          lshared->contexts.active = -1;
 
           /* Store layer data. */
-          layer->layer_data = shared->layer_data;
+          layer->layer_data = lshared->layer_data;
 
           /* Store pointer to shared data and core. */
-          layer->shared = shared;
+          layer->shared = lshared;
           layer->core   = core;
 
           /* Add the layer to the shared list. */
-          layersfield->layers[ layersfield->num++ ] = shared;
+          shared->layers[ shared->num++ ] = lshared;
      }
+
+
+     D_MAGIC_SET( data, DFBLayerCore );
+     D_MAGIC_SET( shared, DFBLayerCoreShared );
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_layers_join( CoreDFB *core, void *data_local, void *data_shared )
+dfb_layer_core_join( CoreDFB            *core,
+                     DFBLayerCore       *data,
+                     DFBLayerCoreShared *shared )
 {
      int i;
 
-     D_ASSERT( layersfield == NULL );
-     D_ASSERT( data_shared != NULL );
+     D_DEBUG_AT( Core_Layer, "dfb_layer_core_join( %p, %p, %p )\n", core, data, shared );
 
-     layersfield = data_shared;
+     D_ASSERT( data != NULL );
+     D_MAGIC_ASSERT( shared, DFBLayerCoreShared );
 
-     if (dfb_num_layers != layersfield->num) {
+     data->core   = core;
+     data->shared = shared;
+
+
+     if (dfb_num_layers != shared->num) {
           D_ERROR("DirectFB/core/layers: Number of layers does not match!\n");
           return DFB_BUG;
      }
 
      for (i=0; i<dfb_num_layers; i++) {
-          CoreLayer       *layer  = dfb_layers[i];
-          CoreLayerShared *shared = layersfield->layers[i];
+          CoreLayer       *layer   = dfb_layers[i];
+          CoreLayerShared *lshared = shared->layers[i];
 
           /* make a copy for faster access */
-          layer->layer_data = shared->layer_data;
+          layer->layer_data = lshared->layer_data;
 
           /* store pointer to shared data and core */
-          layer->shared = shared;
+          layer->shared = lshared;
           layer->core   = core;
      }
+
+
+     D_MAGIC_SET( data, DFBLayerCore );
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_layers_shutdown( CoreDFB *core, bool emergency )
+dfb_layer_core_shutdown( DFBLayerCore *data,
+                         bool          emergency )
 {
-     int       i;
-     DFBResult ret;
+     int                 i;
+     DFBResult           ret;
+     DFBLayerCoreShared *shared;
 
-     D_ASSERT( layersfield != NULL );
+     D_DEBUG_AT( Core_Layer, "dfb_layer_core_shutdown( %p, %semergency )\n", data, emergency ? "" : "no " );
+
+     D_MAGIC_ASSERT( data, DFBLayerCore );
+     D_MAGIC_ASSERT( data->shared, DFBLayerCoreShared );
+
+     shared = data->shared;
+
 
      /* Begin with the most recently added layer. */
      for (i=dfb_num_layers-1; i>=0; i--) {
@@ -256,7 +291,7 @@ dfb_layers_shutdown( CoreDFB *core, bool emergency )
                CoreLayerRegion *region;
 
                fusion_vector_foreach( region, n, shared->added_regions ) {
-                   D_DEBUG_AT( Core_Layers, "Removing region (%d, %d - %dx%d) from '%s'.\n",
+                   D_DEBUG_AT( Core_Layer, "Removing region (%d, %d - %dx%d) from '%s'.\n",
                                DFB_RECTANGLE_VALS( &region->config.dest ),
                                shared->description.name );
 
@@ -290,19 +325,29 @@ dfb_layers_shutdown( CoreDFB *core, bool emergency )
           D_FREE( layer );
      }
 
-     layersfield = NULL;
-
      dfb_num_layers = 0;
+
+
+     D_MAGIC_CLEAR( data );
+     D_MAGIC_CLEAR( shared );
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_layers_leave( CoreDFB *core, bool emergency )
+dfb_layer_core_leave( DFBLayerCore *data,
+                      bool          emergency )
 {
-     int i;
+     int                 i;
+     DFBLayerCoreShared *shared;
 
-     D_ASSERT( layersfield != NULL );
+     D_DEBUG_AT( Core_Layer, "dfb_layer_core_leave( %p, %semergency )\n", data, emergency ? "" : "no " );
+
+     D_MAGIC_ASSERT( data, DFBLayerCore );
+     D_MAGIC_ASSERT( data->shared, DFBLayerCoreShared );
+
+     shared = data->shared;
+
 
      /* Deinitialize all local stuff. */
      for (i=0; i<dfb_num_layers; i++) {
@@ -315,46 +360,53 @@ dfb_layers_leave( CoreDFB *core, bool emergency )
           D_FREE( layer );
      }
 
-     layersfield = NULL;
-
      dfb_num_layers = 0;
+
+
+     D_MAGIC_CLEAR( data );
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_layers_suspend( CoreDFB *core )
+dfb_layer_core_suspend( DFBLayerCore *data )
 {
-     int i;
+     int                 i;
+     DFBLayerCoreShared *shared;
 
-     D_ASSERT( layersfield != NULL );
+     D_DEBUG_AT( Core_Layer, "dfb_layer_core_suspend( %p )\n", data );
 
-     D_DEBUG( "DirectFB/core/layers: suspending...\n" );
+     D_MAGIC_ASSERT( data, DFBLayerCore );
+     D_MAGIC_ASSERT( data->shared, DFBLayerCoreShared );
+
+     shared = data->shared;
 
      for (i=dfb_num_layers-1; i>=0; i--)
           dfb_layer_suspend( dfb_layers[i] );
 
-     D_DEBUG( "DirectFB/core/layers: suspended.\n" );
-
      return DFB_OK;
 }
 
 static DFBResult
-dfb_layers_resume( CoreDFB *core )
+dfb_layer_core_resume( DFBLayerCore *data )
 {
-     int i;
+     int                 i;
+     DFBLayerCoreShared *shared;
 
-     D_ASSERT( layersfield != NULL );
+     D_DEBUG_AT( Core_Layer, "dfb_layer_core_resume( %p )\n", data );
 
-     D_DEBUG( "DirectFB/core/layers: resuming...\n" );
+     D_MAGIC_ASSERT( data, DFBLayerCore );
+     D_MAGIC_ASSERT( data->shared, DFBLayerCoreShared );
+
+     shared = data->shared;
 
      for (i=0; i<dfb_num_layers; i++)
           dfb_layer_resume( dfb_layers[i] );
 
-     D_DEBUG( "DirectFB/core/layers: resumed.\n" );
-
      return DFB_OK;
 }
+
+/**********************************************************************************************************************/
 
 CoreLayer *
 dfb_layers_register( CoreScreen        *screen,
@@ -393,7 +445,7 @@ dfb_layers_register( CoreScreen        *screen,
 typedef void (*AnyFunc)();
 
 CoreLayer *
-dfb_layers_hook_primary( GraphicsDevice     *device,
+dfb_layers_hook_primary( CoreGraphicsDevice *device,
                          void               *driver_data,
                          DisplayLayerFuncs  *funcs,
                          DisplayLayerFuncs  *primary_funcs,
@@ -433,7 +485,7 @@ dfb_layers_hook_primary( GraphicsDevice     *device,
 }
 
 CoreLayer *
-dfb_layers_replace_primary( GraphicsDevice     *device,
+dfb_layers_replace_primary( CoreGraphicsDevice *device,
                             void               *driver_data,
                             DisplayLayerFuncs  *funcs )
 {
@@ -457,7 +509,6 @@ dfb_layers_enumerate( DisplayLayerCallback  callback,
 {
      int i;
 
-     D_ASSERT( layersfield != NULL );
      D_ASSERT( callback != NULL );
 
      for (i=0; i<dfb_num_layers; i++) {
@@ -469,15 +520,12 @@ dfb_layers_enumerate( DisplayLayerCallback  callback,
 int
 dfb_layer_num()
 {
-     D_ASSERT( layersfield != NULL );
-
      return dfb_num_layers;
 }
 
 CoreLayer *
 dfb_layer_at( DFBDisplayLayerID id )
 {
-     D_ASSERT( layersfield != NULL );
      D_ASSERT( id >= 0);
      D_ASSERT( id < dfb_num_layers);
 
@@ -487,7 +535,6 @@ dfb_layer_at( DFBDisplayLayerID id )
 CoreLayer *
 dfb_layer_at_translated( DFBDisplayLayerID id )
 {
-     D_ASSERT( layersfield != NULL );
      D_ASSERT( id >= 0);
      D_ASSERT( id < dfb_num_layers);
      D_ASSERT( dfb_config != NULL );
@@ -546,7 +593,6 @@ dfb_layer_id_translated( const CoreLayer *layer )
 {
      CoreLayerShared *shared;
 
-     D_ASSERT( layersfield != NULL );
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->shared != NULL );
      D_ASSERT( dfb_config != NULL );

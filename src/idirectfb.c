@@ -55,8 +55,7 @@
 #include <core/palette.h>
 #include <core/screen.h>
 #include <core/screens.h>
-#include <core/surfaces.h>
-#include <core/surfacemanager.h>
+#include <core/surface.h>
 #include <core/system.h>
 #include <core/windows.h>
 #include <core/windows_internal.h> /* FIXME */
@@ -426,7 +425,6 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
      DFBResult ret;
      int width = 256;
      int height = 256;
-     int policy = CSP_VIDEOLOW;
      DFBSurfacePixelFormat format;
      DFBSurfaceCapabilities caps = DSCAPS_NONE;
      DFBDisplayLayerConfig  config;
@@ -546,17 +544,14 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          if ((caps & DSCAPS_FLIPPING) == DSCAPS_FLIPPING)
                               caps &= ~DSCAPS_TRIPLE;
 
-                         if (caps & DSCAPS_VIDEOONLY)
-                              policy = CSP_VIDEOONLY;
-                         else if (caps & DSCAPS_SYSTEMONLY)
-                              policy = CSP_SYSTEMONLY;
-
-                         ret = dfb_surface_create( data->core,
-                                                   width, height,
-                                                   format, policy, caps, NULL,
-                                                   &surface );
+                         ret = dfb_surface_create_simple( data->core,
+                                                          width, height,
+                                                          format, caps, CSTF_SHARED, NULL,
+                                                          &surface );
                          if (ret)
                               return ret;
+
+                         surface->notifications |= CSNF_FLIP;
 
                          init_palette( surface, desc );
 
@@ -707,7 +702,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          return ret;
                     }
 
-                    if ((caps & DSCAPS_DEPTH) && !(surface->caps & DSCAPS_DEPTH)) {
+/* FIXME_SC_3                    if ((caps & DSCAPS_DEPTH) && !(surface->config.caps & DSCAPS_DEPTH)) {
                          ret = dfb_surface_allocate_depth( surface );
                          if (ret) {
                               dfb_surface_unref( surface );
@@ -715,9 +710,10 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                               return ret;
                          }
                     }
-                    else if (!(caps & DSCAPS_DEPTH) && (surface->caps & DSCAPS_DEPTH)) {
+                    else if (!(caps & DSCAPS_DEPTH) && (surface->config.caps & DSCAPS_DEPTH)) {
                          dfb_surface_deallocate_depth( surface );
                     }
+*/
 
                     init_palette( surface, desc );
 
@@ -744,15 +740,11 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
      if (caps & DSCAPS_TRIPLE)
           return DFB_UNSUPPORTED;
 
-     if (caps & DSCAPS_VIDEOONLY)
-          policy = CSP_VIDEOONLY;
-     else if (caps & DSCAPS_SYSTEMONLY)
-          policy = CSP_SYSTEMONLY;
-
      if (desc->flags & DSDESC_PREALLOCATED) {
           int min_pitch;
+          CoreSurfaceConfig config;
 
-          if (policy == CSP_VIDEOONLY)
+          if (caps & DSCAPS_VIDEOONLY)
                return DFB_INVARG;
 
           min_pitch = DFB_BYTES_PER_LINE(format, width);
@@ -770,21 +762,32 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                return DFB_INVARG;
           }
 
-          ret = dfb_surface_create_preallocated( data->core,
-                                                 width, height,
-                                                 format, policy, caps, NULL,
-                                                 desc->preallocated[0].data,
-                                                 desc->preallocated[1].data,
-                                                 desc->preallocated[0].pitch,
-                                                 desc->preallocated[1].pitch,
-                                                 &surface );
+          config.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS | CSCONF_PREALLOCATED;
+          config.size.w = width;
+          config.size.h = height;
+          config.format = format;
+          config.caps   = caps;
+
+          config.preallocated[0].addr  = desc->preallocated[0].data;
+          config.preallocated[0].pitch = desc->preallocated[0].pitch;
+
+          config.preallocated[1].addr  = desc->preallocated[1].data;
+          config.preallocated[1].pitch = desc->preallocated[1].pitch;
+
+          ret = dfb_surface_create( data->core, &config, CSTF_PREALLOCATED, NULL, &surface );
           if (ret)
                return ret;
      }
      else {
-          ret = dfb_surface_create( data->core,
-                                    width, height, format,
-                                    policy, caps, NULL, &surface );
+          CoreSurfaceConfig config;
+
+          config.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
+          config.size.w = width;
+          config.size.h = height;
+          config.format = format;
+          config.caps   = caps;
+
+          ret = dfb_surface_create( data->core, &config, CSTF_NONE, NULL, &surface );
           if (ret)
                return ret;
      }
@@ -1244,42 +1247,66 @@ IDirectFB_CreateDataBuffer( IDirectFB                       *thiz,
 static DFBResult
 IDirectFB_SetClipboardData( IDirectFB      *thiz,
                             const char     *mime_type,
-                            const void     *data,
+                            const void     *clip_data,
                             unsigned int    size,
                             struct timeval *timestamp )
 {
+     DFBClipboardCore *clip_core;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
+
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
 
      if (!mime_type || !data || !size)
           return DFB_INVARG;
 
-     return dfb_clipboard_set( mime_type, data, size, timestamp );
+     clip_core = DFB_CORE( data->core, CLIPBOARD );
+     if (!clip_core)
+          return DFB_NOCORE;
+
+     return dfb_clipboard_set( clip_core, mime_type, clip_data, size, timestamp );
 }
 
 static DFBResult
 IDirectFB_GetClipboardData( IDirectFB     *thiz,
                             char         **mime_type,
-                            void         **data,
+                            void         **clip_data,
                             unsigned int  *size )
 {
+     DFBClipboardCore *clip_core;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
+
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
 
      if (!mime_type && !data && !size)
           return DFB_INVARG;
 
-     return dfb_clipboard_get( mime_type, data, size );
+     clip_core = DFB_CORE( data->core, CLIPBOARD );
+     if (!clip_core)
+          return DFB_NOCORE;
+
+     return dfb_clipboard_get( clip_core, mime_type, clip_data, size );
 }
 
 static DFBResult
 IDirectFB_GetClipboardTimeStamp( IDirectFB      *thiz,
                                  struct timeval *timestamp )
 {
+     DFBClipboardCore *clip_core;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
+
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
 
      if (!timestamp)
           return DFB_INVARG;
 
-     return dfb_clipboard_get_timestamp( timestamp );
+     clip_core = DFB_CORE( data->core, CLIPBOARD );
+     if (!clip_core)
+          return DFB_NOCORE;
+
+     return dfb_clipboard_get_timestamp( clip_core, timestamp );
 }
 
 static DFBResult

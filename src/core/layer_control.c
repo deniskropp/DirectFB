@@ -55,7 +55,6 @@
 #include <core/state.h>
 #include <core/palette.h>
 #include <core/system.h>
-#include <core/surfacemanager.h>
 #include <core/windows.h>
 
 #include <gfx/convert.h>

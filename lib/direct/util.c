@@ -149,6 +149,8 @@ DirectResultString( DirectResult result )
                return "Object is suspended!";
           case DFB_INCOMPLETE:
                return "Operation incomplete!";
+          case DFB_NOCORE:
+               return "No core (loaded)!";
      }
 
      return "UNKNOWN RESULT CODE!";

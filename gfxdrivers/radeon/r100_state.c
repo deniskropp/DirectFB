@@ -34,7 +34,7 @@
 
 #include <core/state.h>
 #include <core/gfxcard.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <gfx/convert.h>
 
@@ -106,20 +106,20 @@ void r100_set_destination( RadeonDriverData *rdrv,
                            RadeonDeviceData *rdev,
                            CardState        *state )
 {
-     CoreSurface   *surface = state->destination;
-     SurfaceBuffer *buffer  = surface->back_buffer;
-     volatile u8   *mmio    = rdrv->mmio_base;
-     u32            offset;
-     u32            pitch;
+     CoreSurface       *surface = state->destination;
+     CoreSurfaceBuffer *buffer  = state->dst.buffer;
+     volatile u8       *mmio    = rdrv->mmio_base;
+     u32                offset;
+     u32                pitch;
     
      if (RADEON_IS_SET( DESTINATION ))
           return;
 
-     D_ASSERT( (buffer->video.offset % 32) == 0 );
-     D_ASSERT( (buffer->video.pitch % 32) == 0 );
+     D_ASSERT( (state->dst.offset % 32) == 0 );
+     D_ASSERT( (state->dst.pitch % 32) == 0 );
 
-     offset = radeon_buffer_offset( rdev, buffer );
-     pitch  = buffer->video.pitch;
+     offset = radeon_buffer_offset( rdev, &state->dst );
+     pitch  = state->dst.pitch;
     
      if (rdev->dst_offset != offset        ||
          rdev->dst_pitch  != pitch         ||
@@ -176,16 +176,16 @@ void r100_set_destination( RadeonDriverData *rdrv,
                case DSPF_I420:
                     rdev->gui_master_cntl = GMC_DST_8BPP;
                     rdev->rb3d_cntl = COLOR_FORMAT_RGB8;
-                    rdev->dst_offset_cb = offset + pitch * surface->height;
+                    rdev->dst_offset_cb = offset + pitch * surface->config.size.h;
                     rdev->dst_offset_cr = rdev->dst_offset_cb + 
-                                          pitch/2 * surface->height/2;
+                                          pitch/2 * surface->config.size.h/2;
                     break;
                case DSPF_YV12:
                     rdev->gui_master_cntl = GMC_DST_8BPP;
                     rdev->rb3d_cntl = COLOR_FORMAT_RGB8;
-                    rdev->dst_offset_cr = offset + pitch * surface->height;
+                    rdev->dst_offset_cr = offset + pitch * surface->config.size.h;
                     rdev->dst_offset_cb = rdev->dst_offset_cr +
-                                          pitch/2 * surface->height/2;
+                                          pitch/2 * surface->config.size.h/2;
                     break;
                default:
                     D_BUG( "unexpected pixelformat" );
@@ -228,14 +228,14 @@ void r100_set_source( RadeonDriverData *rdrv,
                       RadeonDeviceData *rdev,
                       CardState        *state )
 {
-     CoreSurface   *surface  = state->source;
-     SurfaceBuffer *buffer   = surface->front_buffer;
-     volatile u8   *mmio     = rdrv->mmio_base;
-     u32            txformat = TXFORMAT_NON_POWER2;
-     u32            txfilter = MAG_FILTER_LINEAR  |
-                               MIN_FILTER_LINEAR  |
-                               CLAMP_S_CLAMP_LAST |
-                               CLAMP_T_CLAMP_LAST;
+     CoreSurface       *surface  = state->source;
+     CoreSurfaceBuffer *buffer   = state->src.buffer;
+     volatile u8       *mmio     = rdrv->mmio_base;
+     u32                txformat = TXFORMAT_NON_POWER2;
+     u32                txfilter = MAG_FILTER_LINEAR  |
+                                   MIN_FILTER_LINEAR  |
+                                   CLAMP_S_CLAMP_LAST |
+                                   CLAMP_T_CLAMP_LAST;
 
      if (RADEON_IS_SET( SOURCE )) {
           if ((state->blittingflags & DSBLIT_DEINTERLACE) ==
@@ -243,13 +243,13 @@ void r100_set_source( RadeonDriverData *rdrv,
                return;
      }
 
-     D_ASSERT( (buffer->video.offset % 32) == 0 );
-     D_ASSERT( (buffer->video.pitch % 32) == 0 );
+     D_ASSERT( (state->src.offset % 32) == 0 );
+     D_ASSERT( (state->src.pitch % 32) == 0 );
      
-     rdev->src_offset = radeon_buffer_offset( rdev, buffer );
-     rdev->src_pitch  = buffer->video.pitch;
-     rdev->src_width  = surface->width;
-     rdev->src_height = surface->height;
+     rdev->src_offset = radeon_buffer_offset( rdev, &state->src );
+     rdev->src_pitch  = state->src.pitch;
+     rdev->src_width  = surface->config.size.w;
+     rdev->src_height = surface->config.size.h;
      
      switch (buffer->format) {
           case DSPF_LUT8:
@@ -347,7 +347,7 @@ void r100_set_source( RadeonDriverData *rdrv,
 
      if (state->blittingflags & DSBLIT_DEINTERLACE) { 
           rdev->src_height /= 2;
-          if (surface->caps & DSCAPS_SEPARATED) {
+          if (surface->config.caps & DSCAPS_SEPARATED) {
                if (surface->field) {
                     rdev->src_offset    += rdev->src_height * rdev->src_pitch;
                     rdev->src_offset_cr += rdev->src_height * rdev->src_pitch/4;

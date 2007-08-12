@@ -35,33 +35,33 @@
 
 
 static int
-driver_probe( GraphicsDevice *device );
+driver_probe( CoreGraphicsDevice *device );
 
 static void
-driver_get_info( GraphicsDevice     *device,
+driver_get_info( CoreGraphicsDevice *device,
                  GraphicsDriverInfo *info );
 
 static DFBResult
-driver_init_driver( GraphicsDevice      *device,
+driver_init_driver( CoreGraphicsDevice  *device,
                     GraphicsDeviceFuncs *funcs,
                     void                *driver_data,
                     void                *device_data,
                     CoreDFB             *core );
 
 static DFBResult
-driver_init_device( GraphicsDevice     *device,
+driver_init_device( CoreGraphicsDevice *device,
                     GraphicsDeviceInfo *device_info,
                     void               *driver_data,
                     void               *device_data );
 
 static void
-driver_close_device( GraphicsDevice *device,
-                     void           *driver_data,
-                     void           *device_data );
+driver_close_device( CoreGraphicsDevice *device,
+                     void               *driver_data,
+                     void               *device_data );
 
 static void
-driver_close_driver( GraphicsDevice *device,
-                     void           *driver_data );
+driver_close_driver( CoreGraphicsDevice *device,
+                     void               *driver_data );
 
 static GraphicsDriverFuncs driver_funcs = {
      Probe:              driver_probe,

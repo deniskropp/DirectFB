@@ -32,11 +32,15 @@
 #include <fusion/call.h>
 #include <fusion/lock.h>
 
-typedef struct {
-     FusionSkirmish  lock;
-     FusionCall      call;
+#include <core/surface_pool.h>
+#include <core/system.h>
 
-     CoreSurface    *primary;
+typedef struct {
+     FusionSkirmish   lock;
+     FusionCall       call;
+
+     CoreSurface     *primary;
+     CoreSurfacePool *sdl_pool;
 
      struct {
           pthread_mutex_t  lock;

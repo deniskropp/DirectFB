@@ -51,7 +51,7 @@
 #include <core/layers.h>
 #include <core/palette.h>
 #include <core/state.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/windows.h>
 #include <core/wm.h>
 #include <core/windowstack.h>
@@ -454,10 +454,10 @@ IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
 
      surface = data->window->surface;
 
-     if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+     if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format ))
           key = dfb_palette_search( surface->palette, r, g, b, 0x80 );
      else
-          key = dfb_color_to_pixel( surface->format, r, g, b );
+          key = dfb_color_to_pixel( surface->config.format, r, g, b );
 
      return dfb_window_set_colorkey( data->window, key );
 }
@@ -894,8 +894,7 @@ IDirectFBWindow_ResizeSurface( IDirectFBWindow *thiz,
      if (width < 1 || width > 4096 || height < 1 || height > 4096)
           return DFB_INVARG;
 
-     return dfb_surface_reformat( data->core, data->window->surface,
-                                  width, height, data->window->surface->format );
+     return dfb_surface_reformat( data->window->surface, width, height, data->window->surface->config.format );
 }
 
 static DFBResult

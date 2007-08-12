@@ -33,8 +33,8 @@
 
 #include <core/fonts.h>
 #include <core/gfxcard.h>
-#include <core/surfaces.h>
-#include <core/surfacemanager.h>
+#include <core/surface.h>
+#include <core/surface_buffer.h>
 
 #include <gfx/convert.h>
 
@@ -84,14 +84,13 @@ Construct( IDirectFBFont      *thiz,
      CoreFont         *font;
      CoreSurface      *surface;
      CoreFontCacheRow *row;
-     void             *dst;
      u8               *pixels;
-     int               pitch;
      int               i;
 
      CoreDFB *core;
      char *filename;
      DFBFontDescription *desc;
+     CoreSurfaceConfig  config;
 
      va_list tag;
      va_start(tag, thiz);
@@ -129,9 +128,16 @@ Construct( IDirectFBFont      *thiz,
           return DFB_NOSYSTEMMEMORY;
      }
 
-     dfb_surface_create( core,
-                         font_desc.width, font_desc.height, font->pixel_format,
-                         CSP_VIDEOHIGH, DSCAPS_NONE, NULL, &surface );
+     config.flags  = CSCONF_SIZE | CSCONF_FORMAT;
+     config.size.w = font_desc.width;
+     config.size.h = font_desc.height;
+     config.format = font->pixel_format;
+
+     ret = dfb_surface_create( core, &config, CSTF_FONT, NULL, &surface );
+     if (ret) {
+          dfb_font_destroy( font );
+          return ret;
+     }
 
      font->num_rows  = 1;
      font->row_width = font_desc.width;
@@ -215,61 +221,69 @@ Construct( IDirectFBFont      *thiz,
           direct_hash_insert( font->glyph_hash, key, data );
      }
 
-     dfb_surface_soft_lock( core, surface, DSLF_WRITE, &dst, &pitch, 0 );
+     {
+          CoreSurfaceBufferLock lock;
 
-     for (i = 1; i < font_desc.height; i++) {
-          int    j, n;
-          u8    *dst8  = dst;
-          u16   *dst16 = dst;
-          u32   *dst32 = dst;
-
-          pixels += font_desc.preallocated[0].pitch;
-          switch (surface->format) {
-               case DSPF_ARGB:
-                    for (n=0; n<font_desc.width; n++)
-                         dst32[n] = (pixels[n] << 24) | 0xFFFFFF;
-                    break;
-               case DSPF_AiRGB:
-                    for (n=0; n<font_desc.width; n++)
-                         dst32[n] = ((pixels[n] ^ 0xFF) << 24) | 0xFFFFFF;
-                    break;
-               case DSPF_ARGB4444:
-                    for (n=0; n<font_desc.width; n++)
-                         dst16[n] = (pixels[n] << 8) | 0xFFF;
-                    break;
-               case DSPF_ARGB2554:
-                    for (n=0; n<font_desc.width; n++)
-                         dst16[n] = (pixels[n] << 8) | 0x3FFF;
-                    break;
-               case DSPF_ARGB1555:
-                    for (n=0; n<font_desc.width; n++)
-                         dst16[n] = (pixels[n] << 8) | 0x7FFF;
-                    break;
-               case DSPF_A8:
-                    direct_memcpy(dst, pixels, font_desc.width);
-                    break;
-               case DSPF_A4:
-                    for (n=0, j=0; j < font_desc.width; n++, j+=2)
-                         dst8[n] = (pixels[j] & 0xF0) | (pixels[j+1] >> 4);
-                    break;
-               case DSPF_A1:
-                    for (i=0, j=0; i < font_desc.width; ++j) {
-                         register u8 p = 0;
-
-                         for (n=0; n<8 && i<font_desc.width; ++i, ++n)
-                              p |= (pixels[i] & 0x80) >> n;
-
-                         dst8[j] = p;
-                    }
-                    break;
-               default:
-                    break;
+          ret = dfb_surface_lock_buffer( surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
+          if (ret) {
+               D_DERROR( ret, "IDirectFBFont_Default: Could not lock surface buffer!\n" );
           }
+          else {
+               for (i = 1; i < font_desc.height; i++) {
+                    int    i, j, n;
+                    __u8  *dst8  = lock.addr;
+                    __u16 *dst16 = lock.addr;
+                    __u32 *dst32 = lock.addr;
 
-          dst += pitch;
+                    pixels += font_desc.preallocated[0].pitch;
+                    switch (surface->config.format) {
+                         case DSPF_ARGB:
+                              for (n=0; n<font_desc.width; n++)
+                                   dst32[n] = (pixels[n] << 24) | 0xFFFFFF;
+                              break;
+                         case DSPF_AiRGB:
+                              for (n=0; n<font_desc.width; n++)
+                                   dst32[n] = ((pixels[n] ^ 0xFF) << 24) | 0xFFFFFF;
+                              break;
+                         case DSPF_ARGB4444:
+                              for (n=0; n<font_desc.width; n++)
+                                   dst16[n] = (pixels[n] << 8) | 0xFFF;
+                              break;
+                         case DSPF_ARGB2554:
+                              for (n=0; n<font_desc.width; n++)
+                                   dst16[n] = (pixels[n] << 8) | 0x3FFF;
+                              break;
+                         case DSPF_ARGB1555:
+                              for (n=0; n<font_desc.width; n++)
+                                   dst16[n] = (pixels[n] << 8) | 0x7FFF;
+                              break;
+                         case DSPF_A8:
+                              direct_memcpy(lock.addr, pixels, font_desc.width);
+                              break;
+                         case DSPF_A4:
+                              for (n=0, j=0; j < font_desc.width; n++, j+=2)
+                                   dst8[n] = (pixels[j] & 0xF0) | (pixels[j+1] >> 4);
+                              break;
+                         case DSPF_A1:
+                              for (i=0, j=0; i < font_desc.width; ++j) {
+                                   register u8 p = 0;
+
+                                   for (n=0; n<8 && i<font_desc.width; ++i, ++n)
+                                        p |= (pixels[i] & 0x80) >> n;
+
+                                   dst8[j] = p;
+                              }
+                              break;
+                         default:
+                              break;
+                    }
+
+                    lock.addr += lock.pitch;
+               }
+
+               dfb_surface_unlock_buffer( surface, &lock );
+          }
      }
-
-     dfb_surface_unlock( surface, 0 );
 
      return IDirectFBFont_Construct (thiz, font);
 }

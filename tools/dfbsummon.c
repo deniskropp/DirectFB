@@ -43,7 +43,7 @@
 #include <directfb.h>
 
 #include <core/gfxcard.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/surfacemanager.h>
 
 #include <direct/util.h>

@@ -31,12 +31,18 @@
 
 #include <fusion/types.h>
 
+typedef DFBEnumerationResult (*FusionSHMPoolCallback)( FusionSHMPool *pool,
+                                                       void          *ctx );
 
 DirectResult fusion_shm_init  ( FusionWorld *world );
 
 DirectResult fusion_shm_deinit( FusionWorld *world );
 
 DirectResult fusion_shm_attach_unattached( FusionWorld *world );
+
+DirectResult fusion_shm_enum_pools( FusionWorld           *world,
+                                    FusionSHMPoolCallback  callback,
+                                    void                  *ctx );
 
 #endif
 

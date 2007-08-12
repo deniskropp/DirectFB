@@ -290,9 +290,9 @@ uc_ovl_flip_region( CoreLayer           *layer,
             flip.field = ucovl->config.parity;
             flip.count = 0; // until we implement this
 
-            uc_ovl_map_buffer(surface->format,
+            uc_ovl_map_buffer(surface->config.format,
                 surface->front_buffer->video.offset,
-                ucovl->v1.ox, ucovl->v1.oy, surface->width, surface->height,
+                ucovl->v1.ox, ucovl->v1.oy, surface->config.size.w, surface->config.size.h,
                 surface->front_buffer->video.pitch, 0,
                 &flip.offset[0], &flip.offset[1], &flip.offset[2]);
 

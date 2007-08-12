@@ -46,7 +46,7 @@
 #include <core/coretypes.h>
 
 #include <core/state.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/gfxcard.h>
 #include <core/layers.h>
 #include <core/windows.h>
@@ -660,23 +660,23 @@ secondary_calc_regs(SavageDriverData         *sdrv,
      CoreSurface * surface = dfb_layer_surface(layer);
      SurfaceBuffer * front_buffer = surface->front_buffer;
      /* source size */
-     const int src_w = surface->width;
-     const int src_h = surface->height;
+     const int src_w = surface->config.size.w;
+     const int src_h = surface->config.size.h;
      /* destination size */
      const int drw_w = slay->dest.w;
      const int drw_h = slay->dest.h;
 
      SVGDBG("secondary_calc_regs x:%i y:%i w:%i h:%i\n",
             slay->dest.x, slay->dest.y, slay->dest.w, slay->dest.h);
-     SVGDBG("w:%i h:%i pitch:%i video.offset:%x\n", surface->width,
-            surface->height, front_buffer->video.pitch,
+     SVGDBG("w:%i h:%i pitch:%i video.offset:%x\n", surface->config.size.w,
+            surface->config.size.h, front_buffer->video.pitch,
             front_buffer->video.offset);
 
      slay->video_pitch = 1;
      slay->regs.SSTREAM_FB_SIZE = (((front_buffer->video.pitch *
-                                     surface->height) / 8) - 1) & 0x003fffff;
+                                     surface->config.size.h) / 8) - 1) & 0x003fffff;
 
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_ARGB1555:
                SVGDBG("secondary set to DSPF_ARGB1555\n");
                slay->regs.SSTREAM_FB_SIZE |= 0x00400000;
@@ -710,9 +710,9 @@ secondary_calc_regs(SavageDriverData         *sdrv,
                slay->video_pitch = 2;
                slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_YCbCr420;
                slay->regs.SSTREAM_FB_CB_ADDR = front_buffer->video.offset +
-                                               (surface->height * front_buffer->video.pitch);
+                                               (surface->config.size.h * front_buffer->video.pitch);
                slay->regs.SSTREAM_FB_CR_ADDR = slay->regs.SSTREAM_FB_CB_ADDR +
-                                               ((surface->height * front_buffer->video.pitch)/4);
+                                               ((surface->config.size.h * front_buffer->video.pitch)/4);
                slay->regs.SSTREAM_CBCR_STRIDE = ((front_buffer->video.pitch/2)
                                                  & 0x00001fff);
                break;
@@ -721,9 +721,9 @@ secondary_calc_regs(SavageDriverData         *sdrv,
                slay->video_pitch = 2;
                slay->regs.SSTREAM_CTRL = SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_YCbCr420;
                slay->regs.SSTREAM_FB_CR_ADDR = front_buffer->video.offset +
-                                               surface->height * front_buffer->video.pitch;
+                                               surface->config.size.h * front_buffer->video.pitch;
                slay->regs.SSTREAM_FB_CB_ADDR = slay->regs.SSTREAM_FB_CR_ADDR +
-                                               (surface->height * front_buffer->video.pitch)/4;
+                                               (surface->config.size.h * front_buffer->video.pitch)/4;
                slay->regs.SSTREAM_CBCR_STRIDE = ((front_buffer->video.pitch/2)
                                                  & 0x00001fff);
                break;
@@ -989,10 +989,10 @@ primary_calc_regs(SavageDriverData       *sdrv,
      SurfaceBuffer * front_buffer = surface->front_buffer;
 
      SVGDBG("primary_calc_regs w:%i h:%i pitch:%i video.offset:%x\n",
-            surface->width, surface->height, front_buffer->video.pitch,
+            surface->config.size.w, surface->config.size.h, front_buffer->video.pitch,
             front_buffer->video.offset);
 
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_ARGB1555:
                SVGDBG("primary set to DSPF_ARGB1555\n");
                play->regs.PSTREAM_CTRL = SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_KRGB16;
@@ -1026,8 +1026,8 @@ primary_calc_regs(SavageDriverData       *sdrv,
      play->regs.PSTREAM_FB_ADDR1 = 0;
      play->regs.PSTREAM_STRIDE = front_buffer->video.pitch & 0x00001fff;
      play->regs.PSTREAM_WIN_START = OS_XY(play->dx, play->dy);
-     play->regs.PSTREAM_WIN_SIZE = OS_WH(surface->width, surface->height);
+     play->regs.PSTREAM_WIN_SIZE = OS_WH(surface->config.size.w, surface->config.size.h);
      play->regs.PSTREAM_FB_SIZE = (((front_buffer->video.pitch *
-                                     surface->height) / 8) - 1) & 0x003fffff;
+                                     surface->config.size.h) / 8) - 1) & 0x003fffff;
 }
 /* end of code */

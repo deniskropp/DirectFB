@@ -46,7 +46,7 @@
 #include <core/fonts.h>
 #include <core/state.h>
 #include <core/palette.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/surfacemanager.h>
 
 #include <media/idirectfbfont.h>

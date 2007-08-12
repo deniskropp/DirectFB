@@ -47,8 +47,8 @@
 #include <core/fonts.h>
 #include <core/state.h>
 #include <core/palette.h>
-#include <core/surfaces.h>
-#include <core/surfacemanager.h>
+#include <core/surface.h>
+#include <core/surface_buffer.h>
 
 #include <media/idirectfbfont.h>
 
@@ -133,7 +133,7 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 
      if (data->surface) {
           if (data->locked)
-               dfb_surface_unlock( data->surface, data->locked - 1 );
+               dfb_surface_unlock_buffer( data->surface, &data->lock );
 
           dfb_surface_unref( data->surface );
      }
@@ -186,7 +186,7 @@ IDirectFBSurface_GetPixelFormat( IDirectFBSurface      *thiz,
      if (!format)
           return DFB_INVARG;
 
-     *format = data->surface->format;
+     *format = data->surface->config.format;
 
      return DFB_OK;
 }
@@ -359,7 +359,7 @@ IDirectFBSurface_SetPalette( IDirectFBSurface *thiz,
      if (!palette)
           return DFB_INVARG;
 
-     if (! DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+     if (! DFB_PIXELFORMAT_IS_INDEXED( surface->config.format ))
           return DFB_UNSUPPORTED;
 
      palette_data = (IDirectFBPalette_data*) palette->priv;
@@ -398,10 +398,9 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
                        DFBSurfaceLockFlags flags,
                        void **ret_ptr, int *ret_pitch )
 {
-     DFBResult  ret;
-     int        front;
-     int        pitch;
-     void      *ptr;
+     DFBResult              ret;
+     CoreSurfaceBufferRole  role   = CSBR_FRONT;
+     CoreSurfaceAccessFlags access = CSAF_NONE;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -419,19 +418,23 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
      if (!data->area.current.w || !data->area.current.h)
           return DFB_INVAREA;
 
-     front = (flags & DSLF_WRITE) ? 0 : 1;
+     if (flags & DSLF_READ)
+          access |= CSAF_CPU_READ;
 
-     ret = dfb_surface_soft_lock( data->core, data->surface, flags, &ptr, &pitch, front );
+     if (flags & DSLF_WRITE) {
+          access |= CSAF_CPU_WRITE;
+          role = CSBR_BACK;
+     }
+
+     ret = dfb_surface_lock_buffer( data->surface, role, access, &data->lock );
      if (ret)
           return ret;
 
-     ptr += pitch * data->area.current.y +
-            DFB_BYTES_PER_LINE( data->surface->format, data->area.current.x );
+     data->locked = true;
 
-     data->locked = front + 1;
-
-     *ret_ptr   = ptr;
-     *ret_pitch = pitch;
+     *ret_ptr   = data->lock.addr + data->lock.pitch * data->area.current.y +
+                  DFB_BYTES_PER_LINE( data->surface->config.format, data->area.current.x );
+     *ret_pitch = data->lock.pitch;
 
      return DFB_OK;
 }
@@ -440,9 +443,6 @@ static DFBResult
 IDirectFBSurface_GetFramebufferOffset( IDirectFBSurface *thiz,
                                        int *offset )
 {
-     int            front;
-     SurfaceBuffer *buffer;
-
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (!data->surface)
@@ -454,22 +454,13 @@ IDirectFBSurface_GetFramebufferOffset( IDirectFBSurface *thiz,
      if (!data->locked)
           return DFB_ACCESSDENIED;
 
-     front = data->locked - 1; /* As set by Lock(). */
-
-     if (front)
-          buffer = data->surface->front_buffer;
-     else
-          buffer = data->surface->back_buffer;
-
-     if (!buffer)
-          return DFB_BUG;
-
-     if (!buffer->video.locked) {
+     if (!(data->lock.access & (CSAF_GPU_READ | CSAF_GPU_WRITE))) {
           /* The surface is probably in a system buffer if video is unlocked. */
           return DFB_UNSUPPORTED;
      }
 
-     *offset = buffer->video.offset;
+     *offset = data->lock.offset;
+
      return DFB_OK;
 }
 
@@ -480,10 +471,14 @@ IDirectFBSurface_Unlock( IDirectFBSurface *thiz )
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
 
-     if (data->locked)
-          dfb_surface_unlock( data->surface, data->locked - 1 );
+     if (!data->surface)
+          return DFB_DESTROYED;
 
-     data->locked = 0;
+     if (data->locked) {
+          dfb_surface_unlock_buffer( data->surface, &data->lock );
+
+          data->locked = false;
+     }
 
      return DFB_OK;
 }
@@ -493,6 +488,7 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
                        const DFBRegion     *region,
                        DFBSurfaceFlipFlags  flags )
 {
+     DFBResult    ret;
      DFBRegion    reg;
      CoreSurface *surface;
 
@@ -507,7 +503,7 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
      if (data->locked)
           return DFB_LOCKED;
 
-     if (!(surface->caps & DSCAPS_FLIPPING))
+     if (!(surface->config.caps & DSCAPS_FLIPPING))
           return DFB_UNSUPPORTED;
 
      if (!data->area.current.w || !data->area.current.h ||
@@ -542,8 +538,16 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
      D_DEBUG_AT( Surface, "  -> %d, %d - %dx%d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
 
      if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
-         reg.x2 == surface->width - 1 && reg.y2 == surface->height - 1)
-          dfb_surface_flip_buffers( data->surface, false );
+         reg.x2 == surface->config.size.w - 1 && reg.y2 == surface->config.size.h - 1)
+     {
+          ret = dfb_surface_lock( data->surface );
+          if (ret)
+               return ret;
+
+          dfb_surface_flip( data->surface, false );
+
+          dfb_surface_unlock( data->surface );
+     }
      else
           dfb_back_to_front_copy( data->surface, &reg );
 
@@ -561,7 +565,7 @@ IDirectFBSurface_SetField( IDirectFBSurface    *thiz,
      if (!data->surface)
           return DFB_DESTROYED;
 
-     if (!(data->surface->caps & DSCAPS_INTERLACED))
+     if (!(data->surface->config.caps & DSCAPS_INTERLACED))
           return DFB_UNSUPPORTED;
 
      if (field < 0 || field > 1)
@@ -605,7 +609,7 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
      dfb_state_set_drawing_flags( &data->state, DSDRAW_NOFX );
 
      /* set color */
-     if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+     if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format ))
           dfb_state_set_color_index( &data->state,
                                      dfb_palette_search( surface->palette, r, g, b, a ) );
 
@@ -622,7 +626,7 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
      dfb_state_set_drawing_flags( &data->state, old_flags );
 
      /* restore color */
-     if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+     if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format ))
           dfb_state_set_color_index( &data->state, old_index );
 
      dfb_state_set_color( &data->state, &old_color );
@@ -701,7 +705,7 @@ IDirectFBSurface_SetColor( IDirectFBSurface *thiz,
 
      dfb_state_set_color( &data->state, &color );
 
-     if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+     if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format ))
           dfb_state_set_color_index( &data->state,
                                      dfb_palette_search( surface->palette, r, g, b, a ) );
 
@@ -723,7 +727,7 @@ IDirectFBSurface_SetColorIndex( IDirectFBSurface *thiz,
      if (!surface)
           return DFB_DESTROYED;
 
-     if (! DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+     if (! DFB_PIXELFORMAT_IS_INDEXED( surface->config.format ))
           return DFB_UNSUPPORTED;
 
      palette = surface->palette;
@@ -889,11 +893,11 @@ IDirectFBSurface_SetSrcColorKey( IDirectFBSurface *thiz,
      data->src_key.g = g;
      data->src_key.b = b;
 
-     if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+     if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format ))
           data->src_key.value = dfb_palette_search( surface->palette,
                                                     r, g, b, 0x80 );
      else
-          data->src_key.value = dfb_color_to_pixel( surface->format, r, g, b );
+          data->src_key.value = dfb_color_to_pixel( surface->config.format, r, g, b );
 
      /* The new key won't be applied to this surface's state.
         The key will be taken by the destination surface to apply it
@@ -917,7 +921,7 @@ IDirectFBSurface_SetSrcColorKeyIndex( IDirectFBSurface *thiz,
      if (!surface)
           return DFB_DESTROYED;
 
-     if (! DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+     if (! DFB_PIXELFORMAT_IS_INDEXED( surface->config.format ))
           return DFB_UNSUPPORTED;
 
      palette = surface->palette;
@@ -960,11 +964,11 @@ IDirectFBSurface_SetDstColorKey( IDirectFBSurface *thiz,
      data->dst_key.g = g;
      data->dst_key.b = b;
 
-     if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+     if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format ))
           data->dst_key.value = dfb_palette_search( surface->palette,
                                                     r, g, b, 0x80 );
      else
-          data->dst_key.value = dfb_color_to_pixel( surface->format, r, g, b );
+          data->dst_key.value = dfb_color_to_pixel( surface->config.format, r, g, b );
 
      dfb_state_set_dst_colorkey( &data->state, data->dst_key.value );
 
@@ -986,7 +990,7 @@ IDirectFBSurface_SetDstColorKeyIndex( IDirectFBSurface *thiz,
      if (!surface)
           return DFB_DESTROYED;
 
-     if (! DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+     if (! DFB_PIXELFORMAT_IS_INDEXED( surface->config.format ))
           return DFB_UNSUPPORTED;
 
      palette = surface->palette;
@@ -1020,7 +1024,7 @@ IDirectFBSurface_SetIndexTranslation( IDirectFBSurface *thiz,
      if (!surface)
           return DFB_DESTROYED;
 
-     if (! DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+     if (! DFB_PIXELFORMAT_IS_INDEXED( surface->config.format ))
           return DFB_UNSUPPORTED;
 
      if (!indices && num_indices > 0)
@@ -1796,8 +1800,8 @@ IDirectFBSurface_TextureTriangles( IDirectFBSurface     *thiz,
 
      /* TODO: pass indices through to driver */
      if (src_sub) {
-          float oowidth  = 1.0f / src_data->surface->width;
-          float ooheight = 1.0f / src_data->surface->height;
+          float oowidth  = 1.0f / src_data->surface->config.size.w;
+          float ooheight = 1.0f / src_data->surface->config.size.h;
 
           float s0 = src_data->area.wanted.x * oowidth;
           float t0 = src_data->area.wanted.y * ooheight;
@@ -2134,7 +2138,9 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
                        const char         *directory,
                        const char         *prefix )
 {
-     CoreSurface *surface;
+     DFBResult          ret;
+     CoreSurface       *surface;
+     CoreSurfaceBuffer *buffer;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -2155,7 +2161,17 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
      if (!surface)
           return DFB_DESTROYED;
 
-     return dfb_surface_dump( data->core, surface, directory, prefix );
+     if (dfb_surface_lock( surface ))
+          return DFB_FUSION;
+
+     buffer = dfb_surface_get_buffer( surface, CSBR_FRONT );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     ret = dfb_surface_buffer_dump( buffer, directory, prefix );
+
+     dfb_surface_unlock( surface );
+
+     return ret;
 }
 
 static DFBResult
@@ -2210,14 +2226,14 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
                                       DFBSurfaceCapabilities  caps,
                                       CoreDFB                *core )
 {
-     DFBRectangle rect = { 0, 0, surface->width, surface->height };
+     DFBRectangle rect = { 0, 0, surface->config.size.w, surface->config.size.h };
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface)
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
 
      data->ref = 1;
-     data->caps = caps | surface->caps;
+     data->caps = caps | surface->config.caps;
      data->core = core;
 
      if (dfb_surface_ref( surface )) {
@@ -2379,7 +2395,7 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
      }
 
      if (notification->flags & CSNF_SIZEFORMAT) {
-          DFBRectangle rect = { 0, 0, surface->width, surface->height };
+          DFBRectangle rect = { 0, 0, surface->config.size.w, surface->config.size.h };
           
           dfb_rectangle_subtract( &rect, &data->area.insets );
 

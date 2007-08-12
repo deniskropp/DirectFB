@@ -31,12 +31,15 @@
 #include <limits.h>
 #include <string.h>
 
+#include <directfb.h>
+
+#include <direct/debug.h>
+#include <direct/memcpy.h>
+
 #include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
 #include <fusion/arena.h>
 #include <fusion/property.h>
-
-#include <directfb.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
@@ -47,8 +50,9 @@
 #include <core/fonts.h>
 #include <core/state.h>
 #include <core/palette.h>
-#include <core/surfaces.h>
-#include <core/surfacemanager.h>
+#include <core/surface.h>
+#include <core/surface_buffer.h>
+#include <core/surface_pool.h>
 #include <core/system.h>
 
 #include <gfx/generic/generic.h>
@@ -65,15 +69,22 @@
 #include <misc/conf.h>
 #include <misc/util.h>
 
-DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers", DFB_GRAPHICS_DRIVER_ABI_VERSION );
-
 
 D_DEBUG_DOMAIN( Core_Graphics, "Core/Graphics", "DirectFB Graphics Core" );
 
-/*
- * struct for graphics cards
- */
+
+DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers", DFB_GRAPHICS_DRIVER_ABI_VERSION );
+
+/**********************************************************************************************************************/
+
+static void dfb_gfxcard_find_driver( CoreDFB *core );
+static void dfb_gfxcard_load_driver();
+
+/**********************************************************************************************************************/
+
 typedef struct {
+     int                      magic;
+
      /* amount of usable memory */
      unsigned int             videoram_length;
      unsigned int             auxram_length;
@@ -88,17 +99,19 @@ typedef struct {
      FusionProperty           lock;
      GraphicsDeviceLockFlags  lock_flags;
 
-     SurfaceManager          *surface_manager;
-
      /*
       * Points to the current state of the graphics card.
       */
      CardState               *state;
      FusionID                 holder; /* Fusion ID of state owner. */
-} GraphicsDeviceShared;
+} DFBGraphicsCoreShared;
 
-struct _GraphicsDevice {
-     GraphicsDeviceShared      *shared;
+struct __DFB_DFBGraphicsCore {
+     int                        magic;
+
+     CoreDFB                   *core;
+
+     DFBGraphicsCoreShared     *shared;
 
      DirectModuleEntry         *module;
      const GraphicsDriverFuncs *driver_funcs;
@@ -113,36 +126,40 @@ struct _GraphicsDevice {
 };
 
 
-static GraphicsDevice *card = NULL;
+DFB_CORE_PART( graphics_core, GraphicsCore );
+
+/**********************************************************************************************************************/
+
+static CoreGraphicsDevice *card;   /* FIXME */
 
 /* Hook for registering additional screen(s) and layer(s) in app or lib initializing DirectFB. */
 void (*__DFB_CoreRegisterHook)( CoreDFB *core, CoreGraphicsDevice *device, void *ctx ) = NULL;
 void  *__DFB_CoreRegisterHookCtx = NULL;
 
 
-static void dfb_gfxcard_find_driver( CoreDFB *core );
-static void dfb_gfxcard_load_driver();
-
-DFB_CORE_PART( gfxcard, sizeof(GraphicsDevice), sizeof(GraphicsDeviceShared) )
-
-
 /** public **/
 
 static DFBResult
-dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
+dfb_graphics_core_initialize( CoreDFB               *core,
+                              DFBGraphicsCore       *data,
+                              DFBGraphicsCoreShared *shared )
 {
-     DFBResult             ret;
-     int                   videoram_length;
-     int                   auxram_length;
-     GraphicsDeviceShared *shared;
-     FusionSHMPoolShared  *pool = dfb_core_shmpool( core );
+     DFBResult            ret;
+     int                  videoram_length;
+     int                  auxram_length;
+     FusionSHMPoolShared *pool = dfb_core_shmpool( core );
 
-     D_ASSERT( card == NULL );
+     D_DEBUG_AT( Core_Graphics, "dfb_graphics_core_initialize( %p, %p, %p )\n", core, data, shared );
 
-     card         = data_local;
-     card->shared = data_shared;
+     D_ASSERT( data != NULL );
+     D_ASSERT( shared != NULL );
 
-     shared = card->shared;
+
+     card = data;   /* FIXME */
+
+     data->core   = core;
+     data->shared = shared;
+
 
      /* fill generic driver info */
      gGetDriverInfo( &shared->driver_info );
@@ -183,10 +200,10 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
      if (dfb_system_caps() & CSCAPS_ACCELERATION)
           dfb_gfxcard_find_driver( core );
 
-     if (card->driver_funcs) {
-          const GraphicsDriverFuncs *funcs = card->driver_funcs;
+     if (data->driver_funcs) {
+          const GraphicsDriverFuncs *funcs = data->driver_funcs;
 
-          card->driver_data = D_CALLOC( 1, shared->driver_info.driver_data_size );
+          data->driver_data = D_CALLOC( 1, shared->driver_info.driver_data_size );
 
           card->device_data   =
           shared->device_data = SHCALLOC( pool, 1, shared->driver_info.device_data_size );
@@ -201,8 +218,8 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
                return ret;
           }
 
-          ret = funcs->InitDevice( card, &shared->device_info,
-                                   card->driver_data, card->device_data );
+          ret = funcs->InitDevice( data, &shared->device_info,
+                                   data->driver_data, data->device_data );
           if (ret) {
                funcs->CloseDriver( card, card->driver_data );
                SHFREE( pool, shared->device_data );
@@ -212,8 +229,8 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
                return ret;
           }
 
-          if (card->funcs.EngineReset)
-               card->funcs.EngineReset( card->driver_data, card->device_data );
+          if (data->funcs.EngineReset)
+               data->funcs.EngineReset( data->driver_data, data->device_data );
      }
 
      D_INFO( "DirectFB/Graphics: %s %s %d.%d (%s)\n",
@@ -222,28 +239,15 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
              shared->driver_info.version.minor, shared->driver_info.vendor );
 
      if (dfb_config->software_only) {
-          if (card->funcs.CheckState) {
-               card->funcs.CheckState = NULL;
+          if (data->funcs.CheckState) {
+               data->funcs.CheckState = NULL;
 
                D_INFO( "DirectFB/Graphics: Acceleration disabled (by 'no-hardware')\n" );
           }
      }
      else {
-          card->caps   = shared->device_info.caps;
-          card->limits = shared->device_info.limits;
-     }
-
-     shared->surface_manager = dfb_surfacemanager_create( core,
-                                                          &shared->device_info.limits );
-
-     ret = dfb_surfacemanager_add_heap( shared->surface_manager,
-                                        CSS_VIDEO, 0, shared->videoram_length );
-     /* FIXME: what to do in case of failure? */
-
-     if (shared->auxram_length && card->caps.flags & CCF_AUXMEMORY) {
-          ret = dfb_surfacemanager_add_heap( shared->surface_manager, CSS_AUXILIARY,
-                                             shared->auxram_offset, shared->auxram_length );
-          /* FIXME: what to do in case of failure? */
+          data->caps   = shared->device_info.caps;
+          data->limits = shared->device_info.limits;
      }
 
      fusion_property_init( &shared->lock, dfb_core_world(core) );
@@ -251,22 +255,29 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
      if (__DFB_CoreRegisterHook)
          __DFB_CoreRegisterHook( core, card, __DFB_CoreRegisterHookCtx );
 
+     D_MAGIC_SET( data, DFBGraphicsCore );
+     D_MAGIC_SET( shared, DFBGraphicsCoreShared );
+
      return DFB_OK;
 }
 
 static DFBResult
-dfb_gfxcard_join( CoreDFB *core, void *data_local, void *data_shared )
+dfb_graphics_core_join( CoreDFB               *core,
+                        DFBGraphicsCore       *data,
+                        DFBGraphicsCoreShared *shared )
 {
-     DFBResult             ret;
-     GraphicsDeviceShared *shared;
-     GraphicsDriverInfo    driver_info;
+     DFBResult          ret;
+     GraphicsDriverInfo driver_info;
 
-     D_ASSERT( card == NULL );
+     D_DEBUG_AT( Core_Graphics, "dfb_graphics_core_join( %p, %p, %p )\n", core, data, shared );
 
-     card         = data_local;
-     card->shared = data_shared;
+     D_ASSERT( data != NULL );
+     D_MAGIC_ASSERT( shared, DFBGraphicsCoreShared );
 
-     shared = card->shared;
+     card = data;   /* FIXME */
+
+     data->core   = core;
+     data->shared = shared;
 
      /* Initialize software rasterizer. */
      gGetDriverInfo( &driver_info );
@@ -278,24 +289,24 @@ dfb_gfxcard_join( CoreDFB *core, void *data_local, void *data_shared )
      if (dfb_system_caps() & CSCAPS_ACCELERATION)
           dfb_gfxcard_load_driver();
 
-     if (card->driver_funcs) {
-          const GraphicsDriverFuncs *funcs = card->driver_funcs;
+     if (data->driver_funcs) {
+          const GraphicsDriverFuncs *funcs = data->driver_funcs;
 
-          card->driver_data = D_CALLOC( 1, shared->driver_info.driver_data_size );
+          data->driver_data = D_CALLOC( 1, shared->driver_info.driver_data_size );
 
-          card->device_data = shared->device_data;
+          data->device_data = shared->device_data;
 
           ret = funcs->InitDriver( card, &card->funcs,
                                    card->driver_data, card->device_data, core );
           if (ret) {
-               D_FREE( card->driver_data );
-               card = NULL;
+               D_FREE( data->driver_data );
+               data = NULL;
                return ret;
           }
      }
      else if (shared->module_name) {
           D_ERROR( "DirectFB/Graphics: Could not load driver used by the running session!\n" );
-          card = NULL;
+          data = NULL;
           return DFB_UNSUPPORTED;
      }
 
@@ -306,107 +317,135 @@ dfb_gfxcard_join( CoreDFB *core, void *data_local, void *data_shared )
              shared->driver_info.version.minor, shared->driver_info.vendor );
 
      if (dfb_config->software_only) {
-          if (card->funcs.CheckState) {
-               card->funcs.CheckState = NULL;
+          if (data->funcs.CheckState) {
+               data->funcs.CheckState = NULL;
 
                D_INFO( "DirectFB/Graphics: Acceleration disabled (by 'no-hardware')\n" );
           }
      }
      else {
-          card->caps   = shared->device_info.caps;
-          card->limits = shared->device_info.limits;
+          data->caps   = shared->device_info.caps;
+          data->limits = shared->device_info.limits;
      }
+
+     D_MAGIC_SET( data, DFBGraphicsCore );
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_gfxcard_shutdown( CoreDFB *core, bool emergency )
+dfb_graphics_core_shutdown( DFBGraphicsCore *data,
+                            bool             emergency )
 {
-     GraphicsDeviceShared *shared;
-     FusionSHMPoolShared  *pool = dfb_core_shmpool( core );
+     DFBGraphicsCoreShared *shared;
+     FusionSHMPoolShared   *pool = dfb_core_shmpool( data->core );
 
-     D_ASSERT( card != NULL );
-     D_ASSERT( card->shared != NULL );
+     D_DEBUG_AT( Core_Graphics, "dfb_graphics_core_shutdown( %p, %semergency )\n", data, emergency ? "" : "no " );
 
-     shared = card->shared;
+     D_MAGIC_ASSERT( data, DFBGraphicsCore );
+     D_MAGIC_ASSERT( data->shared, DFBGraphicsCoreShared );
 
-     D_ASSERT( shared->surface_manager != NULL );
+     shared = data->shared;
+
 
      dfb_gfxcard_lock( GDLF_SYNC );
 
-     if (card->driver_funcs) {
-          const GraphicsDriverFuncs *funcs = card->driver_funcs;
+     if (data->driver_funcs) {
+          const GraphicsDriverFuncs *funcs = data->driver_funcs;
 
-          funcs->CloseDevice( card, card->driver_data, card->device_data );
-          funcs->CloseDriver( card, card->driver_data );
+          funcs->CloseDevice( data, data->driver_data, data->device_data );
+          funcs->CloseDriver( data, data->driver_data );
 
-          direct_module_unref( card->module );
+          direct_module_unref( data->module );
 
           SHFREE( pool, card->device_data );
           D_FREE( card->driver_data );
      }
-
-     dfb_surfacemanager_destroy( shared->surface_manager );
 
      fusion_property_destroy( &shared->lock );
 
      if (shared->module_name)
           SHFREE( pool, shared->module_name );
 
-     card = NULL;
+
+     D_MAGIC_CLEAR( data );
+     D_MAGIC_CLEAR( shared );
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_gfxcard_leave( CoreDFB *core, bool emergency )
+dfb_graphics_core_leave( DFBGraphicsCore *data,
+                         bool             emergency )
 {
-     D_ASSERT( card != NULL );
+     DFBGraphicsCoreShared *shared;
+
+     D_DEBUG_AT( Core_Graphics, "dfb_graphics_core_leave( %p, %semergency )\n", data, emergency ? "" : "no " );
+
+     D_MAGIC_ASSERT( data, DFBGraphicsCore );
+     D_MAGIC_ASSERT( data->shared, DFBGraphicsCoreShared );
+
+     shared = data->shared;
+
 
      dfb_gfxcard_sync();
 
-     if (card->driver_funcs) {
-          card->driver_funcs->CloseDriver( card, card->driver_data );
+     if (data->driver_funcs) {
+          data->driver_funcs->CloseDriver( data, data->driver_data );
 
-          direct_module_unref( card->module );
+          direct_module_unref( data->module );
 
-          D_FREE( card->driver_data );
+          D_FREE( data->driver_data );
      }
 
-     card = NULL;
+
+     D_MAGIC_CLEAR( data );
 
      return DFB_OK;
 }
 
 static DFBResult
-dfb_gfxcard_suspend( CoreDFB *core )
+dfb_graphics_core_suspend( DFBGraphicsCore *data )
 {
-     D_ASSERT( card != NULL );
-     D_ASSERT( card->shared != NULL );
+     DFBGraphicsCoreShared *shared;
+
+     D_DEBUG_AT( Core_Graphics, "dfb_graphics_core_suspend( %p )\n", data );
+
+     D_MAGIC_ASSERT( data, DFBGraphicsCore );
+     D_MAGIC_ASSERT( data->shared, DFBGraphicsCoreShared );
+
+     shared = data->shared;
 
      dfb_gfxcard_lock( GDLF_WAIT | GDLF_SYNC | GDLF_RESET | GDLF_INVALIDATE );
 
-     return dfb_surfacemanager_suspend( card->shared->surface_manager );
+     return DFB_OK;
 }
 
 static DFBResult
-dfb_gfxcard_resume( CoreDFB *core )
+dfb_graphics_core_resume( DFBGraphicsCore *data )
 {
-     D_ASSERT( card != NULL );
-     D_ASSERT( card->shared != NULL );
+     DFBGraphicsCoreShared *shared;
+
+     D_DEBUG_AT( Core_Graphics, "dfb_graphics_core_resume( %p )\n", data );
+
+     D_MAGIC_ASSERT( data, DFBGraphicsCore );
+     D_MAGIC_ASSERT( data->shared, DFBGraphicsCoreShared );
+
+     shared = data->shared;
 
      dfb_gfxcard_unlock();
 
-     return dfb_surfacemanager_resume( card->shared->surface_manager );
+     return DFB_OK;
 }
+
+/**********************************************************************************************************************/
 
 DFBResult
 dfb_gfxcard_lock( GraphicsDeviceLockFlags flags )
 {
-     DFBResult             ret;
-     GraphicsDeviceShared *shared;
-     GraphicsDeviceFuncs  *funcs;
+     DFBResult              ret;
+     DFBGraphicsCoreShared *shared;
+     GraphicsDeviceFuncs   *funcs;
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -499,10 +538,17 @@ dfb_gfxcard_stop_drawing( CoreGraphicsDevice *device, CardState *state )
 bool
 dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
 {
+     CoreSurface       *dst;
+     CoreSurface       *src;
+     CoreSurfaceBuffer *dst_buffer;
+     CoreSurfaceBuffer *src_buffer;
+
      int cx2, cy2;
 
      D_ASSERT( card != NULL );
      D_MAGIC_ASSERT( state, CardState );
+     D_MAGIC_ASSERT_IF( state->destination, CoreSurface );
+     D_MAGIC_ASSERT_IF( state->source, CoreSurface );
 
      D_ASSERT( state->clip.x2 >= state->clip.x1 );
      D_ASSERT( state->clip.y2 >= state->clip.y1 );
@@ -519,17 +565,22 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           state->modified |= SMF_CLIP;
      }
 
+     dst = state->destination;
+
      /* Destination may have been destroyed. */
-     if (!state->destination) {
+     if (!dst) {
           D_BUG( "no destination" );
           return false;
      }
 
-     D_ASSUME( state->clip.x2 < state->destination->width );
-     D_ASSUME( state->clip.y2 < state->destination->height );
+     dst_buffer = dfb_surface_get_buffer( dst, state->to );
+     D_MAGIC_ASSERT( dst_buffer, CoreSurfaceBuffer );
 
-     cx2 = state->destination->width  - 1;
-     cy2 = state->destination->height - 1;
+     D_ASSUME( state->clip.x2 < dst->config.size.w );
+     D_ASSUME( state->clip.y2 < dst->config.size.h );
+
+     cx2 = state->destination->config.size.w  - 1;
+     cy2 = state->destination->config.size.h - 1;
 
      if (state->clip.x2 > cx2) {
           state->clip.x2 = cx2;
@@ -549,8 +600,10 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           state->modified |= SMF_CLIP;
      }
 
+     src = state->source;
+
      /* Source may have been destroyed. */
-     if (DFB_BLITTING_FUNCTION( accel ) && !state->source) {
+     if (DFB_BLITTING_FUNCTION( accel ) && !src) {
           D_BUG( "no source" );
           return false;
      }
@@ -566,35 +619,6 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
       */
      if (state->disabled & accel)
           return false;
-
-     /*
-      * If back_buffer policy is 'system only' there's no acceleration
-      * available.
-      */
-     if (state->destination->back_buffer->policy == CSP_SYSTEMONLY) {
-          /* Clear 'accelerated functions'. */
-          state->accel   = 0;
-          state->checked = DFXL_ALL;
-
-          /* Return immediately. */
-          return false;
-     }
-
-     /*
-      * If the front buffer policy of the source is 'system only'
-      * no accelerated blitting is available.
-      */
-     if (!(card->caps.flags & CCF_READSYSMEM) && state->source &&
-         state->source->front_buffer->policy == CSP_SYSTEMONLY)
-     {
-          /* Clear 'accelerated blitting functions'. */
-          state->accel   &= 0x0000FFFF;
-          state->checked |= 0xFFFF0000;
-
-          /* Return if a blitting function was requested. */
-          if (DFB_BLITTING_FUNCTION( accel ))
-               return false;
-     }
 
      /* If destination or blend functions have been changed... */
      if (state->modified & (SMF_DESTINATION | SMF_SRC_BLEND | SMF_DST_BLEND)) {
@@ -630,6 +654,41 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           state->checked |= state->accel;
      }
 
+     /* Move modification flags to the set for drivers. */
+     state->mod_hw   |= state->modified;
+     state->modified  = 0;
+
+     /*
+      * If back_buffer policy is 'system only' there's no acceleration
+      * available.
+      */
+     if (dst_buffer->policy == CSP_SYSTEMONLY) {
+          /* Clear 'accelerated functions'. */
+          state->accel   = 0;
+          state->checked = DFXL_ALL;
+
+          /* Return immediately. */
+          return false;
+     }
+
+     /*
+      * If the front buffer policy of the source is 'system only'
+      * no accelerated blitting is available.
+      */
+     if (DFB_BLITTING_FUNCTION( accel )) {
+          src_buffer = dfb_surface_get_buffer( src, state->from );
+
+          D_MAGIC_ASSERT( src_buffer, CoreSurfaceBuffer );
+
+          if (src_buffer->policy == CSP_SYSTEMONLY && !(card->caps.flags & CCF_READSYSMEM)) {
+               /* Clear 'accelerated blitting functions'. */
+               state->accel   &= 0x0000FFFF;
+               state->checked |= 0xFFFF0000;
+     
+               return false;
+          }
+     }
+
      /* Return whether the function bit is set. */
      return !!(state->accel & accel);
 }
@@ -641,61 +700,54 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
 static bool
 dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 {
-     GraphicsDeviceShared *shared;
-     DFBSurfaceLockFlags   lock_flags;
+     DFBResult               ret;
+     CoreSurface            *dst;
+     CoreSurface            *src;
+     DFBGraphicsCoreShared  *shared;
+     CoreSurfaceAccessFlags  access = CSAF_GPU_WRITE;
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
+
      D_MAGIC_ASSERT( state, CardState );
+     D_MAGIC_ASSERT_IF( state->destination, CoreSurface );
+     D_MAGIC_ASSERT_IF( state->source, CoreSurface );
 
-     /* Destination may have been destroyed. */
-     if (!state->destination)
-          return false;
-
-     /* Source may have been destroyed. */
-     if (DFB_BLITTING_FUNCTION( accel ) && !state->source)
-          return false;
-
-     /* find locking flags */
-     if (DFB_BLITTING_FUNCTION( accel ))
-          lock_flags = (state->blittingflags & ( DSBLIT_BLEND_ALPHACHANNEL |
-                                                 DSBLIT_BLEND_COLORALPHA   |
-                                                 DSBLIT_DST_COLORKEY ) ?
-                        DSLF_READ | DSLF_WRITE : DSLF_WRITE) | CSLF_FORCE;
-     else
-          lock_flags = (state->drawingflags & ( DSDRAW_BLEND |
-                                               DSDRAW_DST_COLORKEY ) ?
-                        DSLF_READ | DSLF_WRITE : DSLF_WRITE) | CSLF_FORCE;
-
+     dst    = state->destination;
+     src    = state->source;
      shared = card->shared;
 
-     /* lock surface manager */
-     dfb_surfacemanager_lock( shared->surface_manager );
+     /* find locking flags */
+     if (DFB_BLITTING_FUNCTION( accel )) {
+          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
+                                      DSBLIT_BLEND_COLORALPHA   |
+                                      DSBLIT_DST_COLORKEY))
+               access |= CSAF_GPU_READ;
+     }
+     else if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_DST_COLORKEY))
+          access |= CSAF_GPU_READ;
+
+     /* lock destination */
+     ret = dfb_surface_lock_buffer( dst, state->to, access, &state->dst );
+     if (ret) {
+          if (ret != DFB_NOVIDEOMEMORY)
+               D_DERROR( ret, "Core/Graphics: Could not lock destination for GPU access!\n" );
+          return false;
+     }
 
      /* if blitting... */
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* ...lock source for reading */
-          if (dfb_surface_hardware_lock( state->core, state->source, DSLF_READ, true )) {
-               dfb_surfacemanager_unlock( shared->surface_manager );
+          ret = dfb_surface_lock_buffer( src, state->from, CSAF_GPU_READ, &state->src );
+          if (ret) {
+               if (ret != DFB_NOVIDEOMEMORY)
+                    D_DERROR( ret, "Core/Graphics: Could not lock source for GPU access!\n" );
+               dfb_surface_unlock_buffer( dst, &state->dst );
                return false;
           }
 
           state->flags |= CSF_SOURCE_LOCKED;
      }
-
-     /* lock destination */
-     if (dfb_surface_hardware_lock( state->core, state->destination, lock_flags, false )) {
-          if (state->flags & CSF_SOURCE_LOCKED) {
-               dfb_surface_unlock( state->source, true );
-               state->flags &= ~CSF_SOURCE_LOCKED;
-          }
-
-          dfb_surfacemanager_unlock( shared->surface_manager );
-          return false;
-     }
-
-     /* unlock surface manager */
-     dfb_surfacemanager_unlock( shared->surface_manager );
 
      /*
       * Make sure that state setting with subsequent command execution
@@ -705,10 +757,12 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
       * the first argument being true (e.g. DRI).
       */
      if (dfb_gfxcard_lock( GDLF_NONE )) {
-          dfb_surface_unlock( state->destination, false );
+          D_DERROR( ret, "Core/Graphics: Could not lock GPU!\n" );
+
+          dfb_surface_unlock_buffer( dst, &state->dst );
 
           if (state->flags & CSF_SOURCE_LOCKED) {
-               dfb_surface_unlock( state->source, true );
+               dfb_surface_unlock_buffer( src, &state->src );
                state->flags &= ~CSF_SOURCE_LOCKED;
           }
 
@@ -718,8 +772,8 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      /* if we are switching to another state... */
      if (state != shared->state || state->fusion_id != shared->holder) {
           /* ...set all modification bits and clear 'set functions' */
-          state->modified |= SMF_ALL;
-          state->set       = 0;
+          state->mod_hw |= SMF_ALL;
+          state->set     = 0;
 
           shared->state  = state;
           shared->holder = state->fusion_id;
@@ -727,11 +781,13 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 
      dfb_state_update( state, state->flags & CSF_SOURCE_LOCKED );
 
+     state->mod_hw |= state->modified;
+
      /*
       * If function hasn't been set or state is modified,
       * call the driver function to propagate the state changes.
       */
-     if (state->modified || !(state->set & accel))
+     if (state->mod_hw || !(state->set & accel))
           card->funcs.SetState( card->driver_data, card->device_data,
                                 &card->funcs, state, accel );
 
@@ -748,28 +804,29 @@ dfb_gfxcard_state_release( CardState *state )
      D_ASSERT( card->shared != NULL );
      D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( state->destination != NULL );
-     D_ASSERT( state->destination->back_buffer != NULL );
 
      /* start command processing if not already running */
      if (card->funcs.EmitCommands)
           card->funcs.EmitCommands( card->driver_data, card->device_data );
 
      /* Store the serial of the operation. */
+#if FIXME_SC_2
      if (card->funcs.GetSerial) {
           card->funcs.GetSerial( card->driver_data, card->device_data, &state->serial );
 
           state->destination->back_buffer->video.serial = state->serial;
      }
+#endif
 
      /* allow others to use the hardware */
      dfb_gfxcard_unlock();
 
      /* destination always gets locked during acquisition */
-     dfb_surface_unlock( state->destination, false );
+     dfb_surface_unlock_buffer( state->destination, &state->dst );
 
      /* if source got locked this value is true */
      if (state->flags & CSF_SOURCE_LOCKED) {
-          dfb_surface_unlock( state->source, true );
+          dfb_surface_unlock_buffer( state->source, &state->src );
 
           state->flags &= ~CSF_SOURCE_LOCKED;
      }
@@ -1138,7 +1195,7 @@ static void
 fill_tri( DFBTriangle *tri, CardState *state, bool accelerated )
 {
      int y, yend;
-     DDA dda1, dda2;
+     DDA dda1 = {0}, dda2 = {0};
      int clip_x1 = state->clip.x1;
      int clip_x2 = state->clip.x2;
 
@@ -1257,10 +1314,10 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      D_ASSERT( rect != NULL );
      D_ASSERT( rect->x >= 0 );
      D_ASSERT( rect->y >= 0 );
-     D_ASSERT( rect->x < state->source->width );
-     D_ASSERT( rect->y < state->source->height );
-     D_ASSERT( rect->x + rect->w - 1 < state->source->width );
-     D_ASSERT( rect->y + rect->h - 1 < state->source->height );
+     D_ASSERT( rect->x < state->source->config.size.w );
+     D_ASSERT( rect->y < state->source->config.size.h );
+     D_ASSERT( rect->x + rect->w - 1 < state->source->config.size.w );
+     D_ASSERT( rect->y + rect->h - 1 < state->source->config.size.h );
 
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
@@ -1583,7 +1640,7 @@ setup_font_state( CoreFont *font, CardState *state )
      }
      else {
           /* set color */
-          if (DFB_PIXELFORMAT_IS_INDEXED( state->destination->format ))
+          if (DFB_PIXELFORMAT_IS_INDEXED( state->destination->config.format ))
                dfb_state_set_color_index( &font->state, state->color_index );
 
           dfb_state_set_color( &font->state, &state->color );
@@ -1601,8 +1658,8 @@ setup_font_state( CoreFont *font, CardState *state )
                flags |= DSBLIT_XOR;
 
           /* Porter/Duff SRC_OVER composition */
-          if ((DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format )
-               && (state->destination->caps & DSCAPS_PREMULTIPLIED))
+          if ((DFB_PIXELFORMAT_HAS_ALPHA( state->destination->config.format )
+               && (state->destination->config.caps & DSCAPS_PREMULTIPLIED))
               ||
               (font->surface_caps & DSCAPS_PREMULTIPLIED))
           {
@@ -1925,9 +1982,9 @@ DFBResult dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial )
      if (ret)
           return ret;
 
-     if (card->funcs.WaitSerial)
+/* FIXME_SC_2     if (card->funcs.WaitSerial)
           ret = card->funcs.WaitSerial( card->driver_data, card->device_data, serial );
-     else if (card->funcs.EngineSync)
+     else*/ if (card->funcs.EngineSync)
           ret = card->funcs.EngineSync( card->driver_data, card->device_data );
 
      if (ret) {
@@ -1966,7 +2023,7 @@ void dfb_gfxcard_after_set_var()
           card->funcs.AfterSetVar( card->driver_data, card->device_data );
 }
 
-void dfb_gfxcard_surface_enter( SurfaceBuffer *buffer, DFBSurfaceLockFlags flags )
+void dfb_gfxcard_surface_enter( CoreSurfaceBuffer *buffer, DFBSurfaceLockFlags flags )
 {
      D_ASSUME( card != NULL );
 
@@ -1974,7 +2031,7 @@ void dfb_gfxcard_surface_enter( SurfaceBuffer *buffer, DFBSurfaceLockFlags flags
           card->funcs.SurfaceEnter( card->driver_data, card->device_data, buffer, flags );
 }
 
-void dfb_gfxcard_surface_leave( SurfaceBuffer *buffer )
+void dfb_gfxcard_surface_leave( CoreSurfaceBuffer *buffer )
 {
      D_ASSUME( card != NULL );
 
@@ -1988,16 +2045,8 @@ dfb_gfxcard_adjust_heap_offset( int offset )
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
 
-     return dfb_surfacemanager_adjust_heap_offset( card->shared->surface_manager, offset );
-}
-
-SurfaceManager *
-dfb_gfxcard_surface_manager()
-{
-     D_ASSERT( card != NULL );
-     D_ASSERT( card->shared != NULL );
-
-     return card->shared->surface_manager;
+//FIXME_SMAN     return dfb_surfacemanager_adjust_heap_offset( card->shared->surface_manager, offset );
+     return DFB_OK;
 }
 
 void
@@ -2034,9 +2083,9 @@ dfb_gfxcard_get_driver_info( GraphicsDriverInfo *ret_info )
 
 
 int
-dfb_gfxcard_reserve_memory( GraphicsDevice *device, unsigned int size )
+dfb_gfxcard_reserve_memory( CoreGraphicsDevice *device, unsigned int size )
 {
-     GraphicsDeviceShared *shared;
+     DFBGraphicsCoreShared *shared;
 
      D_ASSERT( device != NULL );
      D_ASSERT( device->shared != NULL );
@@ -2050,11 +2099,6 @@ dfb_gfxcard_reserve_memory( GraphicsDevice *device, unsigned int size )
      else
           D_WARN( "no alignment specified yet?" );
 
-     if (shared->surface_manager) {
-          D_WARN( "too late" );
-          return -1;
-     }
-
      if (shared->videoram_length < size) {
           D_WARN( "not enough video memory (%u < %u)", shared->videoram_length, size );
           return -1;
@@ -2066,18 +2110,15 @@ dfb_gfxcard_reserve_memory( GraphicsDevice *device, unsigned int size )
 }
 
 int
-dfb_gfxcard_reserve_auxmemory( GraphicsDevice *device, unsigned int size )
+dfb_gfxcard_reserve_auxmemory( CoreGraphicsDevice *device, unsigned int size )
 {
-     GraphicsDeviceShared *shared;
-     int                   offset;
+     DFBGraphicsCoreShared *shared;
+     int                    offset;
 
      D_ASSERT( device != NULL );
      D_ASSERT( device->shared != NULL );
 
      shared = device->shared;
-
-     if (shared->surface_manager)
-          return -1;
 
      /* Reserve memory at the beginning of the aperture
       * to prevent overflows on DMA buffers. */
@@ -2111,51 +2152,121 @@ dfb_gfxcard_auxmemory_length()
 }
 
 volatile void *
-dfb_gfxcard_map_mmio( GraphicsDevice *device,
-                      unsigned int    offset,
-                      int             length )
+dfb_gfxcard_map_mmio( CoreGraphicsDevice *device,
+                      unsigned int        offset,
+                      int                 length )
 {
      return dfb_system_map_mmio( offset, length );
 }
 
 void
-dfb_gfxcard_unmap_mmio( GraphicsDevice *device,
-                        volatile void  *addr,
-                        int             length )
+dfb_gfxcard_unmap_mmio( CoreGraphicsDevice *device,
+                        volatile void      *addr,
+                        int                 length )
 {
      dfb_system_unmap_mmio( addr, length );
 }
 
 int
-dfb_gfxcard_get_accelerator( GraphicsDevice *device )
+dfb_gfxcard_get_accelerator( CoreGraphicsDevice *device )
 {
      return dfb_system_get_accelerator();
 }
 
+void
+dfb_gfxcard_get_limits( CoreGraphicsDevice *device,
+                        CardLimitations    *ret_limits )
+{
+     D_ASSERT( device != NULL );
+     D_ASSERT( ret_limits != NULL );
+
+     if (!device)
+          device = card;
+
+     *ret_limits = device->limits;
+}
+
+void
+dfb_gfxcard_calc_buffer_size( CoreGraphicsDevice *device,
+                              CoreSurfaceBuffer  *buffer,
+                              int                *ret_pitch,
+                              int                *ret_length )
+{
+     int          pitch;
+     int          length;
+     CoreSurface *surface;
+
+     D_ASSERT( device != NULL );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     surface = buffer->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     /* calculate the required length depending on limitations */
+     pitch = MAX( surface->config.size.w, surface->config.min_size.w );
+
+     if (pitch < device->limits.surface_max_power_of_two_pixelpitch &&
+         surface->config.size.h < device->limits.surface_max_power_of_two_height)
+          pitch = 1 << direct_log2( pitch );
+
+     if (device->limits.surface_pixelpitch_alignment > 1) {
+          pitch += device->limits.surface_pixelpitch_alignment - 1;
+          pitch -= pitch % device->limits.surface_pixelpitch_alignment;
+     }
+
+     pitch = DFB_BYTES_PER_LINE( buffer->format, pitch );
+
+     if (pitch < device->limits.surface_max_power_of_two_bytepitch &&
+         surface->config.size.h < device->limits.surface_max_power_of_two_height)
+          pitch = 1 << direct_log2( pitch );
+
+     if (device->limits.surface_bytepitch_alignment > 1) {
+          pitch += device->limits.surface_bytepitch_alignment - 1;
+          pitch -= pitch % device->limits.surface_bytepitch_alignment;
+     }
+
+     length = DFB_PLANE_MULTIPLY( buffer->format,
+                                  MAX( surface->config.size.h, surface->config.min_size.h ) * pitch );
+
+     /* Add extra space for optimized routines which are now allowed to overrun, e.g. prefetching. */
+     length += 16;
+
+     if (device->limits.surface_byteoffset_alignment > 1) {
+          length += device->limits.surface_byteoffset_alignment - 1;
+          length -= length % device->limits.surface_byteoffset_alignment;
+     }
+
+     if (ret_pitch)
+          *ret_pitch = pitch;
+
+     if (ret_length)
+          *ret_length = length;
+}
+
 unsigned long
-dfb_gfxcard_memory_physical( GraphicsDevice *device,
-                             unsigned int    offset )
+dfb_gfxcard_memory_physical( CoreGraphicsDevice *device,
+                             unsigned int        offset )
 {
      return dfb_system_video_memory_physical( offset );
 }
 
 void *
-dfb_gfxcard_memory_virtual( GraphicsDevice *device,
-                            unsigned int    offset )
+dfb_gfxcard_memory_virtual( CoreGraphicsDevice *device,
+                            unsigned int        offset )
 {
      return dfb_system_video_memory_virtual( offset );
 }
 
 unsigned long
-dfb_gfxcard_auxmemory_physical( GraphicsDevice *device,
-                                unsigned int    offset )
+dfb_gfxcard_auxmemory_physical( CoreGraphicsDevice *device,
+                                unsigned int        offset )
 {
      return dfb_system_aux_memory_physical( offset );
 }
 
 void *
-dfb_gfxcard_auxmemory_virtual( GraphicsDevice *device,
-                               unsigned int    offset )
+dfb_gfxcard_auxmemory_virtual( CoreGraphicsDevice *device,
+                               unsigned int        offset )
 {
      return dfb_system_aux_memory_virtual( offset );
 }

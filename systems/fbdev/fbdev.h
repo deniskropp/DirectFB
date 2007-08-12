@@ -40,9 +40,10 @@
 #include <fusion/call.h>
 #include <fusion/reactor.h>
 
-#include "fb.h"
-#include "vt.h"
 #include "agp.h"
+#include "fb.h"
+#include "surfacemanager.h"
+#include "vt.h"
 
 #ifndef FBIO_WAITFORVSYNC
 #define FBIO_WAITFORVSYNC	_IOW('F', 0x20, u_int32_t)
@@ -75,6 +76,8 @@ typedef struct {
      FusionCall               fbdev_ioctl;   /* ioctl rpc */
 
      unsigned long            page_mask;     /* PAGE_SIZE - 1 */
+
+     CoreSurfacePool          *pool;
      
      struct {
           int                 bus;
@@ -93,6 +96,11 @@ typedef struct {
      FusionSHMPoolShared     *shmpool_data;
 
      CoreLayerRegionConfig    config;
+
+     VideoMode               *test_mode;
+     CoreLayerRegionConfig    test_config;
+
+     SurfaceManager          *manager;
 } FBDevShared;
 
 typedef struct {
@@ -122,5 +130,9 @@ DFBResult dfb_fbdev_join();
  */
 DFBResult dfb_fbdev_shutdown( bool emergency );
 DFBResult dfb_fbdev_leave( bool emergency );
+
+DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
+                              VideoMode             *mode,
+                              CoreLayerRegionConfig *config );
 
 #endif

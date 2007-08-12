@@ -35,7 +35,6 @@
 
 #include <directfb.h>
 
-
 #include <direct/conf.h>
 #include <direct/log.h>
 #include <direct/mem.h>
@@ -46,7 +45,7 @@
 #include <fusion/conf.h>
 
 #include <core/coretypes.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/layers.h>
 
 #include <gfx/convert.h>

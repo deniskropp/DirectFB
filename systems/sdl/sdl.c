@@ -46,7 +46,7 @@
 #include <core/coretypes.h>
 #include <core/layers.h>
 #include <core/palette.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/system.h>
 
 #include <gfx/convert.h>
@@ -66,6 +66,7 @@ DFB_CORE_SYSTEM( sdl )
 DFBSDL  *dfb_sdl      = NULL;
 CoreDFB *dfb_sdl_core = NULL;
 
+extern const SurfacePoolFuncs sdlSurfacePoolFuncs;
 
 static DFBResult dfb_fbdev_read_modes();
 
@@ -74,6 +75,7 @@ static void
 system_get_info( CoreSystemInfo *info )
 {
      info->type = CORE_SDL;
+     info->caps = CSCAPS_ACCELERATION;
 
      snprintf( info->name, DFB_CORE_SYSTEM_INFO_NAME_LENGTH, "SDL" );
 }
@@ -122,6 +124,8 @@ system_initialize( CoreDFB *core, void **data )
 
      fusion_arena_add_shared_field( dfb_core_arena( core ), "sdl", dfb_sdl );
 
+     dfb_surface_pool_initialize( core, &sdlSurfacePoolFuncs, &dfb_sdl->sdl_pool );
+
      *data = dfb_sdl;
 
      return DFB_OK;
@@ -143,6 +147,8 @@ system_join( CoreDFB *core, void **data )
      screen = dfb_screens_register( NULL, NULL, &sdlPrimaryScreenFuncs );
 
      dfb_layers_register( screen, NULL, &sdlPrimaryLayerFuncs );
+
+     dfb_surface_pool_join( core, dfb_sdl->sdl_pool, &sdlSurfacePoolFuncs );
 
      *data = dfb_sdl;
 
@@ -169,6 +175,7 @@ system_shutdown( bool emergency )
           direct_thread_destroy( dfb_sdl->update.thread );
      }
 
+     dfb_surface_pool_destroy( dfb_sdl->sdl_pool );
 
      fusion_call_destroy( &dfb_sdl->call );
 

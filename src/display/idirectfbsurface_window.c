@@ -34,28 +34,28 @@
 
 #include <string.h>
 
-#include "directfb.h"
+#include <directfb.h>
 
-#include "core/core.h"
-#include "core/coretypes.h"
+#include <core/core.h>
+#include <core/coretypes.h>
 
-#include "core/fonts.h"
-#include "core/gfxcard.h"
-#include "core/layer_region.h"
-#include "core/state.h"
-#include "core/surfaces.h"
-#include "core/windows.h"
-#include "core/wm.h"
-#include "core/windows_internal.h" /* FIXME */
+#include <core/fonts.h>
+#include <core/gfxcard.h>
+#include <core/layer_region.h>
+#include <core/state.h>
+#include <core/surface.h>
+#include <core/windows.h>
+#include <core/windows_internal.h> /* FIXME */
+#include <core/wm.h>
 
-#include "idirectfbsurface.h"
-#include "idirectfbsurface_window.h"
+#include <display/idirectfbsurface.h>
+#include <display/idirectfbsurface_window.h>
 
 #include <direct/interface.h>
 #include <direct/mem.h>
-#include "misc/util.h"
+#include <misc/util.h>
 
-#include "gfx/util.h"
+#include <gfx/util.h>
 
 
 D_DEBUG_DOMAIN( Surface, "IDirectFBSurfaceW", "IDirectFBSurface_Window Interface" );
@@ -121,6 +121,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
                               const DFBRegion     *region,
                               DFBSurfaceFlipFlags  flags )
 {
+     DFBResult ret;
      DFBRegion reg;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
@@ -180,11 +181,19 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
           dfb_layer_region_flip_update( data->window->region, &reg, flags );
      }
      else {
-          if (data->base.surface->caps & DSCAPS_FLIPPING) {
+          if (data->base.surface->config.caps & DSCAPS_FLIPPING) {
                if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
-                   reg.x2 == data->base.surface->width  - 1 &&
-                   reg.y2 == data->base.surface->height - 1)
-                    dfb_surface_flip_buffers( data->base.surface, false );
+                   reg.x2 == data->base.surface->config.size.w  - 1 &&
+                   reg.y2 == data->base.surface->config.size.h - 1)
+               {
+                    ret = dfb_surface_lock( data->base.surface );
+                    if (ret)
+                         return ret;
+
+                    dfb_surface_flip( data->base.surface, false );
+
+                    dfb_surface_unlock( data->base.surface );
+               }
                else
                     dfb_back_to_front_copy( data->base.surface, &reg );
           }

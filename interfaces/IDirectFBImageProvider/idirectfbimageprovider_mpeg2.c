@@ -46,7 +46,7 @@
 
 #include <core/layers.h>
 #include <core/palette.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <misc/gfx_util.h>
 #include <direct/interface.h>
@@ -280,17 +280,16 @@ IDirectFBImageProvider_MPEG2_RenderTo( IDirectFBImageProvider *thiz,
 
      /* actual rendering */
      if (dfb_rectangle_region_intersects( &rect, &clip )) {
-          void *dst;
-          int   pitch;
+          CoreSurfaceBufferLock lock;
 
-          ret = dfb_surface_soft_lock( data->core, dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
+          ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
           if (ret)
                return ret;
 
           dfb_scale_linear_32( data->image, data->width, data->height,
-                               dst, pitch, &rect, dst_surface, &clip );
+                               lock.addr, lock.pitch, &rect, dst_surface, &clip );
 
-          dfb_surface_unlock( dst_surface, 0 );
+          dfb_surface_unlock_buffer( dst_surface, &lock );
      }
 
      return DFB_OK;

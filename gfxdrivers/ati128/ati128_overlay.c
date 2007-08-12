@@ -34,7 +34,7 @@
 
 #include <core/coredefs.h>
 #include <core/layers.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include "regs.h"
 #include "mmio.h"
@@ -361,8 +361,8 @@ static void ov0_calc_regs( ATI128DriverData      *adrv,
 
 
      /* calculate incrementors */
-     h_inc   = (surface->width  << 12) / dst_w;
-     v_inc   = (surface->height << 20) / dst_h;
+     h_inc   = (surface->config.size.w  << 12) / dst_w;
+     v_inc   = (surface->config.size.h << 20) / dst_h;
      step_by = 1;
 
      while (h_inc >= (2 << 12)) {
@@ -385,7 +385,7 @@ static void ov0_calc_regs( ATI128DriverData      *adrv,
      p23_v_accum_init = ((tmp << 4) & 0x01ff8000) | 0x00000001;
 
      /* choose pixel format and calculate buffer offsets for planar modes */
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_UYVY:
                aov0->regs.SCALE_CNTL = R128_SCALER_SOURCE_YVYU422;
                break;
@@ -398,18 +398,18 @@ static void ov0_calc_regs( ATI128DriverData      *adrv,
                aov0->regs.SCALE_CNTL = R128_SCALER_SOURCE_YUV12;
 
                offset_u = front_buffer->video.offset +
-                          surface->height * front_buffer->video.pitch;
+                          surface->config.size.h * front_buffer->video.pitch;
                offset_v = offset_u +
-                          (surface->height >> 1) * (front_buffer->video.pitch >> 1);
+                          (surface->config.size.h >> 1) * (front_buffer->video.pitch >> 1);
                break;
 
           case DSPF_YV12:
                aov0->regs.SCALE_CNTL = R128_SCALER_SOURCE_YUV12;
 
                offset_v = front_buffer->video.offset +
-                          surface->height * front_buffer->video.pitch;
+                          surface->config.size.h * front_buffer->video.pitch;
                offset_u = offset_v +
-                          (surface->height >> 1) * (front_buffer->video.pitch >> 1);
+                          (surface->config.size.h >> 1) * (front_buffer->video.pitch >> 1);
                break;
 
           default:
@@ -428,13 +428,13 @@ static void ov0_calc_regs( ATI128DriverData      *adrv,
      aov0->regs.STEP_BY                = step_by | (step_by << 8);
      aov0->regs.Y_X_START              = dstBox.x1 | (dstBox.y1 << 16);
      aov0->regs.Y_X_END                = dstBox.x2 | (dstBox.y2 << 16);
-     aov0->regs.P1_BLANK_LINES_AT_TOP  = 0x00000fff | ((surface->height - 1) << 16);
-     aov0->regs.P23_BLANK_LINES_AT_TOP = 0x000007ff | ((((surface->height + 1) >> 1) - 1) << 16);
+     aov0->regs.P1_BLANK_LINES_AT_TOP  = 0x00000fff | ((surface->config.size.h - 1) << 16);
+     aov0->regs.P23_BLANK_LINES_AT_TOP = 0x000007ff | ((((surface->config.size.h + 1) >> 1) - 1) << 16);
      aov0->regs.VID_BUF_PITCH0_VALUE   = front_buffer->video.pitch;
      aov0->regs.VID_BUF_PITCH1_VALUE   = front_buffer->video.pitch >> 1;
-     aov0->regs.P1_X_START_END         = surface->width - 1;
-     aov0->regs.P2_X_START_END         = (surface->width >> 1) - 1;
-     aov0->regs.P3_X_START_END         = (surface->width >> 1) - 1;
+     aov0->regs.P1_X_START_END         = surface->config.size.w - 1;
+     aov0->regs.P2_X_START_END         = (surface->config.size.w >> 1) - 1;
+     aov0->regs.P3_X_START_END         = (surface->config.size.w >> 1) - 1;
      aov0->regs.VID_BUF0_BASE_ADRS     = front_buffer->video.offset & 0x03fffff0;
      aov0->regs.VID_BUF1_BASE_ADRS     = (offset_u & 0x03fffff0) | 1;
      aov0->regs.VID_BUF2_BASE_ADRS     = (offset_v & 0x03fffff0) | 1;

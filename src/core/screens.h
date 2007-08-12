@@ -33,6 +33,7 @@
 
 #include <core/coretypes.h>
 
+
 typedef DFBEnumerationResult (*CoreScreenCallback) (CoreScreen *screen,
                                                     void       *ctx);
 
@@ -49,7 +50,7 @@ typedef struct {
       * Driver has to fill the screen description.
       */
      DFBResult (*InitScreen)    ( CoreScreen                   *screen,
-                                  GraphicsDevice               *device,
+                                  CoreGraphicsDevice           *device,
                                   void                         *driver_data,
                                   void                         *screen_data,
                                   DFBScreenDescription         *description );
@@ -194,7 +195,7 @@ typedef struct {
  * Add a screen to a graphics device by pointing to a table containing
  * driver functions. The driver data will be passed to these functions.
  */
-CoreScreen *dfb_screens_register( GraphicsDevice     *device,
+CoreScreen *dfb_screens_register( CoreGraphicsDevice *device,
                                   void               *driver_data,
                                   ScreenFuncs        *funcs );
 
@@ -205,18 +206,18 @@ CoreScreen *dfb_screens_register( GraphicsDevice     *device,
  * The original function table is written to 'primary_funcs' before to allow
  * drivers to use existing functionality from the original implementation.
  */
-CoreScreen *dfb_screens_hook_primary( GraphicsDevice  *device,
-                                      void            *driver_data,
-                                      ScreenFuncs     *funcs,
-                                      ScreenFuncs     *primary_funcs,
-                                      void           **primary_driver_data );
+CoreScreen *dfb_screens_hook_primary( CoreGraphicsDevice  *device,
+                                      void                *driver_data,
+                                      ScreenFuncs         *funcs,
+                                      ScreenFuncs         *primary_funcs,
+                                      void               **primary_driver_data );
 
 /*
  * Replace the default implementation for the primary screen.
  */
-CoreScreen *dfb_screens_register_primary( GraphicsDevice *device,
-                                          void           *driver_data,
-                                          ScreenFuncs    *funcs );
+CoreScreen *dfb_screens_register_primary( CoreGraphicsDevice *device,
+                                          void               *driver_data,
+                                          ScreenFuncs        *funcs );
 
 /*
  * Enumerate all registered screens by invoking the callback for each screen.

@@ -35,7 +35,8 @@
 #include <core/coretypes.h>
 
 #include <core/gfxcard.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
+#include <core/surface_buffer.h>
 #include <core/windows.h>
 
 #include <direct/list.h>

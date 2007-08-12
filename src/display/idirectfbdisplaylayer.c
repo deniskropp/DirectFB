@@ -40,7 +40,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/gfxcard.h>
 #include <core/layers.h>
 #include <core/layer_context.h>
@@ -59,10 +59,10 @@
 #include <direct/mem.h>
 #include <direct/messages.h>
 
-#include "idirectfbdisplaylayer.h"
-#include "idirectfbscreen.h"
-#include "idirectfbsurface.h"
-#include "idirectfbsurface_layer.h"
+#include <display/idirectfbdisplaylayer.h>
+#include <display/idirectfbscreen.h>
+#include <display/idirectfbsurface.h>
+#include <display/idirectfbsurface_layer.h>
 
 
 D_DEBUG_DOMAIN( Layer, "IDirectFBDisplayLayer", "Display Layer Interface" );
@@ -756,8 +756,8 @@ IDirectFBDisplayLayer_SetCursorShape( IDirectFBDisplayLayer *thiz,
 
      if (hot_x < 0  ||
          hot_y < 0  ||
-         hot_x >= shape_data->surface->width  ||
-         hot_y >= shape_data->surface->height)
+         hot_x >= shape_data->surface->config.size.w  ||
+         hot_y >= shape_data->surface->config.size.h)
           return DFB_INVARG;
 
      return dfb_windowstack_cursor_set_shape( data->stack,

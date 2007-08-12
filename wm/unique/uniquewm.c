@@ -35,7 +35,7 @@
 #include <direct/messages.h>
 
 #include <core/input.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <unique/context.h>
 #include <unique/decoration.h>

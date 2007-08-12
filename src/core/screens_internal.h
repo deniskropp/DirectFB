@@ -69,7 +69,7 @@ struct __DFB_CoreScreen {
      CoreScreenShared     *shared;
 
      CoreDFB              *core;
-     GraphicsDevice       *device;
+     CoreGraphicsDevice   *device;
 
      ScreenFuncs          *funcs;
 

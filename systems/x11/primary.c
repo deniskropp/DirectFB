@@ -35,6 +35,7 @@
 #include <stdio.h>
 
 #include <directfb.h>
+#include <directfb_util.h>
 
 #include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
@@ -44,7 +45,8 @@
 #include <core/coretypes.h>
 #include <core/layers.h>
 #include <core/palette.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
+#include <core/surface_buffer.h>
 #include <core/system.h>
 
 #include <gfx/convert.h>
@@ -63,25 +65,58 @@
 #include "primary.h"
 
 
+/**********************************************************************************************************************/
 
+static DFBResult
+dfb_x11_set_video_mode( const CoreLayerRegionConfig *config )
+{
+     int ret;
 
-extern DFBX11  *dfb_x11;
-extern CoreDFB *dfb_x11_core;
+     D_ASSERT( config != NULL );
 
-/******************************************************************************/
+     dfb_x11->setmode.config = *config;
 
-static DFBResult dfb_x11_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config );
-static DFBResult dfb_x11_update_screen( CoreDFB *core, DFBRegion *region );
-static DFBResult dfb_x11_set_palette( CorePalette *palette );
+     if (fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_SET_VIDEO_MODE, &dfb_x11->setmode, &ret ))
+          return DFB_FUSION;
 
-static DFBResult update_screen( CoreSurface *surface,
-                                int x, int y, int w, int h );
+     return ret;
+}
 
+static DFBResult
+dfb_x11_update_screen( const DFBRegion *region, CoreSurfaceBufferLock *lock )
+{
+     int ret;
 
+     DFB_REGION_ASSERT( region );
+     D_ASSERT( lock != NULL );
+
+     dfb_x11->update.region = *region;
+     dfb_x11->update.lock   = lock;
+
+     if (fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_UPDATE_SCREEN, &dfb_x11->update, &ret ))
+          return DFB_FUSION;
+
+     return ret;
+}
+
+static DFBResult
+dfb_x11_set_palette( CorePalette *palette )
+{
+     int ret;
+
+     D_ASSERT( palette != NULL );
+
+     if (fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_SET_PALETTE, palette, &ret ))
+          return DFB_FUSION;
+
+     return ret;
+}
+
+/**********************************************************************************************************************/
 
 static DFBResult
 primaryInitScreen( CoreScreen           *screen,
-                   GraphicsDevice       *device,
+                   CoreGraphicsDevice   *device,
                    void                 *driver_data,
                    void                 *screen_data,
                    DFBScreenDescription *description )
@@ -106,8 +141,8 @@ primaryGetScreenSize( CoreScreen *screen,
      D_ASSERT( dfb_x11 != NULL );
 
      if (dfb_x11->primary) {
-          *ret_width  = dfb_x11->primary->width;
-          *ret_height = dfb_x11->primary->height;
+          *ret_width  = dfb_x11->primary->config.size.w;
+          *ret_height = dfb_x11->primary->config.size.h;
      }
      else {
           if (dfb_config->mode.width)
@@ -187,6 +222,10 @@ primaryInitLayer( CoreLayer                  *layer,
                     config->pixelformat = DSPF_RGB16;
                     break;
                case 24:
+                    /*config->pixelformat = DSPF_RGB24;
+                    break;
+                    */
+               case 32:
                     config->pixelformat = DSPF_RGB32;
                     break;
                default:
@@ -212,6 +251,7 @@ primaryTestRegion( CoreLayer                  *layer,
           case DLBM_FRONTONLY:
           case DLBM_BACKSYSTEM:
           case DLBM_BACKVIDEO:
+          case DLBM_TRIPLE:
                break;
 
           default:
@@ -249,11 +289,12 @@ primarySetRegion( CoreLayer                  *layer,
                   CoreLayerRegionConfig      *config,
                   CoreLayerRegionConfigFlags  updated,
                   CoreSurface                *surface,
-                  CorePalette                *palette )
+                  CorePalette                *palette,
+                  CoreSurfaceBufferLock      *lock )
 {
      DFBResult ret;
 
-     ret = dfb_x11_set_video_mode( dfb_x11_core, config );
+     ret = dfb_x11_set_video_mode( config );
      if (ret)
           return ret;
 
@@ -278,114 +319,33 @@ primaryRemoveRegion( CoreLayer             *layer,
 }
 
 static DFBResult
-primaryFlipRegion( CoreLayer           *layer,
-                   void                *driver_data,
-                   void                *layer_data,
-                   void                *region_data,
-                   CoreSurface         *surface,
-                   DFBSurfaceFlipFlags  flags )
+primaryFlipRegion( CoreLayer             *layer,
+                   void                  *driver_data,
+                   void                  *layer_data,
+                   void                  *region_data,
+                   CoreSurface           *surface,
+                   DFBSurfaceFlipFlags    flags,
+                   CoreSurfaceBufferLock *lock )
 {
-     dfb_surface_flip_buffers( surface, false );
+     DFBRegion region = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
 
-     return dfb_x11_update_screen( dfb_x11_core, NULL );
+     dfb_surface_flip( surface, false );
+
+     return dfb_x11_update_screen( &region, lock );
 }
 
 static DFBResult
-primaryUpdateRegion( CoreLayer           *layer,
-                     void                *driver_data,
-                     void                *layer_data,
-                     void                *region_data,
-                     CoreSurface         *surface,
-                     const DFBRegion     *update )
+primaryUpdateRegion( CoreLayer             *layer,
+                     void                  *driver_data,
+                     void                  *layer_data,
+                     void                  *region_data,
+                     CoreSurface           *surface,
+                     const DFBRegion       *update,
+                     CoreSurfaceBufferLock *lock )
 {
-     if (update) {
-          DFBRegion region = *update;
+     DFBRegion region = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
 
-          return dfb_x11_update_screen( dfb_x11_core, &region );
-     }
-
-     return dfb_x11_update_screen( dfb_x11_core, NULL );
-}
-
-static DFBResult
-primaryAllocateSurface( CoreLayer              *layer,
-                        void                   *driver_data,
-                        void                   *layer_data,
-                        void                   *region_data,
-                        CoreLayerRegionConfig  *config,
-                        CoreSurface           **ret_surface )
-{
-     DFBSurfaceCapabilities caps = DSCAPS_SYSTEMONLY;
-
-     if (config->buffermode != DLBM_FRONTONLY)
-          caps |= DSCAPS_DOUBLE;
-
-     return dfb_surface_create( NULL, config->width, config->height,
-                                config->format, CSP_SYSTEMONLY,
-                                caps, NULL, ret_surface );
-}
-
-static DFBResult
-primaryReallocateSurface( CoreLayer             *layer,
-                          void                  *driver_data,
-                          void                  *layer_data,
-                          void                  *region_data,
-                          CoreLayerRegionConfig *config,
-                          CoreSurface           *surface )
-{
-     DFBResult ret;
-
-     /* FIXME: write surface management functions
-               for easier configuration changes */
-
-     switch (config->buffermode) {
-          case DLBM_BACKVIDEO:
-          case DLBM_BACKSYSTEM:
-               surface->caps |= DSCAPS_DOUBLE;
-
-               ret = dfb_surface_reconfig( surface,
-                                           CSP_SYSTEMONLY, CSP_SYSTEMONLY );
-               break;
-
-          case DLBM_FRONTONLY:
-               surface->caps &= ~DSCAPS_DOUBLE;
-
-               ret = dfb_surface_reconfig( surface,
-                                           CSP_SYSTEMONLY, CSP_SYSTEMONLY );
-               break;
-
-          default:
-               D_BUG("unknown buffermode");
-               return DFB_BUG;
-     }
-     if (ret)
-          return ret;
-
-     ret = dfb_surface_reformat( NULL, surface, config->width,
-                                 config->height, config->format );
-     if (ret)
-          return ret;
-
-
-     if (DFB_PIXELFORMAT_IS_INDEXED(config->format) && !surface->palette) {
-          DFBResult    ret;
-          CorePalette *palette;
-
-          ret = dfb_palette_create( NULL,    /* FIXME */
-                                    1 << DFB_COLOR_BITS_PER_PIXEL( config->format ),
-                                    &palette );
-          if (ret)
-               return ret;
-
-          if (config->format == DSPF_LUT8)
-               dfb_palette_generate_rgb332_map( palette );
-
-          dfb_surface_set_palette( surface, palette );
-
-          dfb_palette_unref( palette );
-     }
-
-     return DFB_OK;
+     return dfb_x11_update_screen( update ? : &region, lock );
 }
 
 DisplayLayerFuncs x11PrimaryLayerFuncs = {
@@ -399,16 +359,14 @@ DisplayLayerFuncs x11PrimaryLayerFuncs = {
      RemoveRegion:      primaryRemoveRegion,
      FlipRegion:        primaryFlipRegion,
      UpdateRegion:      primaryUpdateRegion,
-
-     AllocateSurface:   primaryAllocateSurface,
-     ReallocateSurface: primaryReallocateSurface
 };
 
 /******************************************************************************/
 
 static DFBResult
-update_screen( CoreSurface *surface, int x, int y, int w, int h )
+update_screen( CoreSurface *surface, int x, int y, int w, int h, CoreSurfaceBufferLock *lock )
 {
+#if 0
      int          i;
      void        *dst;
      void        *src;
@@ -417,55 +375,55 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
      XWindow     *xw = dfb_x11->xw;
 
      D_ASSERT( surface != NULL );
-     ret = dfb_surface_soft_lock( dfb_x11_core, surface, DSLF_READ, &src, &pitch, true );
-     if (ret) {
-          D_ERROR( "DirectFB/X11: Couldn't lock layer surface: %s\n",
-                   DirectFBErrorString( ret ) );
-          return ret;
-     }
+     D_ASSERT( lock != NULL );
+
+     src = lock->addr;
+     pitch = lock->pitch;
 
      xw->ximage_offset = xw->ximage_offset ? 0 : (xw->ximage->height / 2);
 
      dst = xw->virtualscreen + xw->ximage_offset * xw->ximage->bytes_per_line;
 
-     src += DFB_BYTES_PER_LINE( surface->format, x ) + y * pitch;
+     src += DFB_BYTES_PER_LINE( surface->config.format, x ) + y * pitch;
      dst += x * xw->bpp + y * xw->ximage->bytes_per_line;
 
      switch (xw->depth) {
           case 16:
-               dfb_convert_to_rgb16( surface->format, src, pitch,
-                                     surface->height, dst, xw->ximage->bytes_per_line, w, h );
+               dfb_convert_to_rgb16( surface->config.format, src, pitch,
+                                     surface->config.size.h, dst, xw->ximage->bytes_per_line, w, h );
                break;
 
           case 24:
                if (xw->bpp == 4)
-                    dfb_convert_to_rgb32( surface->format, src, pitch,
-                                          surface->height, dst, xw->ximage->bytes_per_line, w, h );
+                    dfb_convert_to_rgb32( surface->config.format, src, pitch,
+                                          surface->config.size.h, dst, xw->ximage->bytes_per_line, w, h );
                break;
 
           default:
                D_ONCE( "unsupported depth %d", xw->depth );
      }
 
-     dfb_surface_unlock( surface, true );
+     XSync(dfb_x11->display, False);
 
-     XSync(xw->display, False);
-
-     XShmPutImage(xw->display, xw->window, xw->gc, xw->ximage,
+     XShmPutImage(dfb_x11->display, xw->window, xw->gc, xw->ximage,
                   x, xw->ximage_offset + y, x, y, w, h, False);
+#else
+     XWindow *xw     = dfb_x11->xw;
+     XImage  *ximage = lock->handle;
 
+     XSync( dfb_x11->display, False );
+
+     XShmPutImage( dfb_x11->display, xw->window, xw->gc, ximage,
+                   x, y, x, y, w, h, False );
+
+     XFlush( dfb_x11->display );
+#endif
      return DFB_OK;
 }
 
 /******************************************************************************/
 
-typedef enum {
-     X11_SET_VIDEO_MODE,
-     X11_UPDATE_SCREEN,
-     X11_SET_PALETTE
-} DFBX11Call;
-
-static DFBResult
+DFBResult
 dfb_x11_set_video_mode_handler( CoreLayerRegionConfig *config )
 {
      XWindow *xw = dfb_x11->xw;
@@ -494,124 +452,18 @@ dfb_x11_set_video_mode_handler( CoreLayerRegionConfig *config )
      return DFB_OK;
 }
 
-static DFBResult
-dfb_x11_update_screen_handler( const DFBRegion *region )
+DFBResult
+dfb_x11_update_screen_handler( UpdateScreenData *data )
 {
-     DFBResult    ret;
-     CoreSurface *surface = dfb_x11->primary;
-
-     if (!region)
-          ret = update_screen( surface, 0, 0, surface->width, surface->height );
-     else
-          ret = update_screen( surface,
-                               region->x1,  region->y1,
-                               region->x2 - region->x1 + 1,
-                               region->y2 - region->y1 + 1 );
-
-     return DFB_OK;
+     return update_screen( dfb_x11->primary,
+                           data->region.x1,  data->region.y1,
+                           data->region.x2 - data->region.x1 + 1,
+                           data->region.y2 - data->region.y1 + 1, data->lock );
 }
 
-static DFBResult
+DFBResult
 dfb_x11_set_palette_handler( CorePalette *palette )
 {
      return DFB_OK;
-}
-
-FusionCallHandlerResult
-dfb_x11_call_handler( int           caller,
-                      int           call_arg,
-                      void         *call_ptr,
-                      void         *ctx,
-                      unsigned int  serial,
-                      int          *ret_val )
-{
-     switch (call_arg) {
-          case X11_SET_VIDEO_MODE:
-               *ret_val = dfb_x11_set_video_mode_handler( call_ptr );
-               break;
-
-          case X11_UPDATE_SCREEN:
-               *ret_val = dfb_x11_update_screen_handler( call_ptr );
-               break;
-
-          case X11_SET_PALETTE:
-               *ret_val = dfb_x11_set_palette_handler( call_ptr );
-               break;
-
-          default:
-               D_BUG( "unknown call" );
-               *ret_val = DFB_BUG;
-               break;
-     }
-
-     return FCHR_RETURN;
-}
-
-static DFBResult
-dfb_x11_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
-{
-     int                    ret;
-     CoreLayerRegionConfig *tmp = NULL;
-
-
-     D_ASSERT( config != NULL );
-
-     if (dfb_core_is_master( core ))
-          return dfb_x11_set_video_mode_handler( config );
-
-     if (!fusion_is_shared( dfb_core_world(core), config )) {
-          tmp = SHMALLOC( dfb_core_shmpool(core), sizeof(CoreLayerRegionConfig) );
-          if (!tmp)
-               return D_OOSHM();
-
-          direct_memcpy( tmp, config, sizeof(CoreLayerRegionConfig) );
-     }
-
-     fusion_call_execute( &dfb_x11->call, FCEF_NODIRECT, X11_SET_VIDEO_MODE,
-                          tmp ? tmp : config, &ret );
-
-     if (tmp)
-          SHFREE( dfb_core_shmpool(core), tmp );
-
-     return ret;
-}
-
-static DFBResult
-dfb_x11_update_screen( CoreDFB *core, DFBRegion *region )
-{
-     int        ret;
-     DFBRegion *tmp = NULL;
-
-     if (dfb_core_is_master( core ))
-          return dfb_x11_update_screen_handler( region );
-
-     if (region) {
-          if (!fusion_is_shared( dfb_core_world(core), region )) {
-               tmp = SHMALLOC( dfb_core_shmpool(core), sizeof(DFBRegion) );
-               if (!tmp)
-                    return D_OOSHM();
-
-               direct_memcpy( tmp, region, sizeof(DFBRegion) );
-          }
-     }
-
-     fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_UPDATE_SCREEN,
-                          tmp ? tmp : region, &ret );
-
-     if (tmp)
-          SHFREE( dfb_core_shmpool(core), tmp );
-
-     return DFB_OK;
-}
-
-static DFBResult
-dfb_x11_set_palette( CorePalette *palette )
-{
-     int ret;
-
-     fusion_call_execute( &dfb_x11->call, FCEF_NODIRECT, X11_SET_PALETTE,
-                          palette, &ret );
-
-     return ret;
 }
 

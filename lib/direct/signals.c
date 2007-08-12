@@ -318,6 +318,9 @@ signal_handler( int num, siginfo_t *info, void *foo )
      int         pid    = direct_gettid();
      long long   millis = direct_clock_get_millis();
 
+     fflush(stdout);
+     fflush(stderr);
+
      direct_log_printf( NULL, "(!) [%5d: %4lld.%03lld] --> Caught signal %d",
                         pid, millis/1000, millis%1000, num );
 

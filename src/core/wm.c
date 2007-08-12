@@ -33,7 +33,11 @@
 
 #include <directfb.h>
 
+#include <direct/debug.h>
 #include <direct/list.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
+#include <direct/modules.h>
 
 #include <fusion/shmalloc.h>
 
@@ -47,88 +51,70 @@
 #include <misc/conf.h>
 #include <misc/util.h>
 
-#include <direct/debug.h>
-#include <direct/mem.h>
-#include <direct/messages.h>
-#include <direct/modules.h>
 
 DEFINE_MODULE_DIRECTORY( dfb_core_wm_modules, "wm", DFB_CORE_WM_ABI_VERSION );
 
+
+D_DEBUG_DOMAIN( Core_WM, "Core/WM", "DirectFB WM Core" );
+
+/**********************************************************************************************************************/
+
 typedef struct {
+     int                  magic;
+
+     int                  abi;
+
+     char                *name;
+     CoreWMInfo           info;
+     void                *data;
+
+     FusionSHMPoolShared *shmpool;
+} DFBWMCoreShared;
+
+struct __DFB_DFBWMCore {
+     int                magic;
+
+     CoreDFB           *core;
+
+     DFBWMCoreShared   *shared;
+
+
      DirectModuleEntry *module;
      const CoreWMFuncs *funcs;
      void              *data;
-} CoreWMLocal;
+};
 
-typedef struct {
-     int         abi;
 
-     char       *name;
-     CoreWMInfo  info;
-     void       *data;
+DFB_CORE_PART( wm_core, WMCore );
 
-     FusionSHMPoolShared *shmpool;
-} CoreWMShared;
+/**********************************************************************************************************************/
 
-DFB_CORE_PART( wm, sizeof(CoreWMLocal), sizeof(CoreWMShared) )
+static DFBResult load_module( const char *name );
 
-static CoreWMLocal  *wm_local  = NULL;
-static CoreWMShared *wm_shared = NULL;
+/**********************************************************************************************************************/
 
-/**************************************************************************************************/
+static DFBWMCore       *wm_local  = NULL;  /* FIXME */
+static DFBWMCoreShared *wm_shared = NULL;  /* FIXME */
+
 
 static DFBResult
-load_module( const char *name )
-{
-     DirectLink *l;
-
-     D_ASSERT( wm_local != NULL );
-
-     direct_modules_explore_directory( &dfb_core_wm_modules );
-
-     direct_list_foreach( l, dfb_core_wm_modules.entries ) {
-          DirectModuleEntry *module = (DirectModuleEntry*) l;
-          const CoreWMFuncs *funcs;
-
-          funcs = direct_module_ref( module );
-          if (!funcs)
-               continue;
-
-          if (!name || !strcasecmp( name, module->name )) {
-               if (wm_local->module)
-                    direct_module_unref( wm_local->module );
-
-               wm_local->module = module;
-               wm_local->funcs  = funcs;
-          }
-          else
-               direct_module_unref( module );
-     }
-
-     if (!wm_local->module) {
-          if (name)
-               D_ERROR( "DirectFB/WM: Window manager module '%s' not found!\n", name );
-          else
-               D_ERROR( "DirectFB/WM: No window manager module found!\n" );
-
-          return DFB_NOIMPL;
-     }
-
-     return DFB_OK;
-}
-
-/**************************************************************************************************/
-
-static DFBResult
-dfb_wm_initialize( CoreDFB *core, void *data_local, void *data_shared )
+dfb_wm_core_initialize( CoreDFB         *core,
+                        DFBWMCore       *data,
+                        DFBWMCoreShared *shared )
 {
      DFBResult ret;
 
-     D_ASSERT( wm_local == NULL );
-     D_ASSERT( wm_shared == NULL );
+     D_DEBUG_AT( Core_WM, "dfb_wm_core_initialize( %p, %p, %p )\n", core, data, shared );
 
-     wm_local  = data_local;
-     wm_shared = data_shared;
+     D_ASSERT( data != NULL );
+     D_ASSERT( shared != NULL );
+
+     data->core   = core;
+     data->shared = shared;
+
+
+     wm_local  = data;   /* FIXME */
+     wm_shared = shared; /* FIXME */
 
      wm_shared->shmpool = dfb_core_shmpool( core );
 
@@ -156,7 +142,7 @@ dfb_wm_initialize( CoreDFB *core, void *data_local, void *data_shared )
      /* Store module name in shared memory. */
      wm_shared->name = SHSTRDUP( wm_shared->shmpool, wm_local->module->name );
      if (!wm_shared->name) {
-          D_WARN( "out of (shared) memory" );
+          D_OOSHM();
           goto error;
      }
 
@@ -164,7 +150,7 @@ dfb_wm_initialize( CoreDFB *core, void *data_local, void *data_shared )
      if (wm_shared->info.wm_shared_size) {
           wm_shared->data = SHCALLOC( wm_shared->shmpool, 1, wm_shared->info.wm_shared_size );
           if (!wm_shared->data) {
-               D_WARN( "out of (shared) memory" );
+               D_OOSHM();
                goto error;
           }
      }
@@ -175,7 +161,7 @@ dfb_wm_initialize( CoreDFB *core, void *data_local, void *data_shared )
      if (wm_shared->info.wm_data_size) {
           wm_local->data = D_CALLOC( 1, wm_shared->info.wm_data_size );
           if (!wm_local->data) {
-               D_WARN( "out of memory" );
+               D_OOM();
                goto error;
           }
      }
@@ -186,6 +172,9 @@ dfb_wm_initialize( CoreDFB *core, void *data_local, void *data_shared )
           D_DERROR( ret, "DirectFB/Core/WM: Could not initialize window manager!\n" );
           goto error;
      }
+
+     D_MAGIC_SET( data, DFBWMCore );
+     D_MAGIC_SET( shared, DFBWMCoreShared );
 
      return DFB_OK;
 
@@ -206,16 +195,24 @@ error:
 }
 
 static DFBResult
-dfb_wm_join( CoreDFB *core, void *data_local, void *data_shared )
+dfb_wm_core_join( CoreDFB         *core,
+                  DFBWMCore       *data,
+                  DFBWMCoreShared *shared )
 {
      DFBResult  ret;
      CoreWMInfo info;
 
-     D_ASSERT( wm_local == NULL );
-     D_ASSERT( wm_shared == NULL );
+     D_DEBUG_AT( Core_WM, "dfb_wm_core_join( %p, %p, %p )\n", core, data, shared );
 
-     wm_local  = data_local;
-     wm_shared = data_shared;
+     D_ASSERT( data != NULL );
+     D_MAGIC_ASSERT( shared, DFBWMCoreShared );
+
+     data->core   = core;
+     data->shared = shared;
+
+
+     wm_local  = data;   /* FIXME */
+     wm_shared = shared; /* FIXME */
 
      /* Check binary version numbers. */
      if (wm_shared->abi != DFB_CORE_WM_ABI_VERSION) {
@@ -262,6 +259,8 @@ dfb_wm_join( CoreDFB *core, void *data_local, void *data_shared )
           goto error;
      }
 
+     D_MAGIC_SET( data, DFBWMCore );
+
      return DFB_OK;
 
 error:
@@ -275,9 +274,19 @@ error:
 }
 
 static DFBResult
-dfb_wm_shutdown( CoreDFB *core, bool emergency )
+dfb_wm_core_shutdown( DFBWMCore *data,
+                      bool       emergency )
 {
-     DFBResult ret;
+     DFBResult        ret;
+     DFBWMCoreShared *shared;
+
+     D_DEBUG_AT( Core_WM, "dfb_wm_core_shutdown( %p, %semergency )\n", data, emergency ? "" : "no " );
+
+     D_MAGIC_ASSERT( data, DFBWMCore );
+     D_MAGIC_ASSERT( data->shared, DFBWMCoreShared );
+
+     shared = data->shared;
+
 
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
@@ -304,13 +313,27 @@ dfb_wm_shutdown( CoreDFB *core, bool emergency )
      wm_local = NULL;
      wm_shared = NULL;
 
+
+     D_MAGIC_CLEAR( data );
+     D_MAGIC_CLEAR( shared );
+
      return ret;
 }
 
 static DFBResult
-dfb_wm_leave( CoreDFB *core, bool emergency )
+dfb_wm_core_leave( DFBWMCore *data,
+                    bool        emergency )
 {
-     DFBResult ret;
+     DFBResult         ret;
+     DFBWMCoreShared *shared;
+
+     D_DEBUG_AT( Core_WM, "dfb_wm_core_leave( %p, %semergency )\n", data, emergency ? "" : "no " );
+
+     D_MAGIC_ASSERT( data, DFBWMCore );
+     D_MAGIC_ASSERT( data->shared, DFBWMCoreShared );
+
+     shared = data->shared;
+
 
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
@@ -330,12 +353,24 @@ dfb_wm_leave( CoreDFB *core, bool emergency )
      wm_local = NULL;
      wm_shared = NULL;
 
+
+     D_MAGIC_CLEAR( data );
+
      return ret;
 }
 
 static DFBResult
-dfb_wm_suspend( CoreDFB *core )
+dfb_wm_core_suspend( DFBWMCore *data )
 {
+     DFBWMCoreShared *shared;
+
+     D_DEBUG_AT( Core_WM, "dfb_wm_core_suspend( %p )\n", data );
+
+     D_MAGIC_ASSERT( data, DFBWMCore );
+     D_MAGIC_ASSERT( data->shared, DFBWMCoreShared );
+
+     shared = data->shared;
+
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->Suspend != NULL );
@@ -345,14 +380,65 @@ dfb_wm_suspend( CoreDFB *core )
 }
 
 static DFBResult
-dfb_wm_resume( CoreDFB *core )
+dfb_wm_core_resume( DFBWMCore *data )
 {
+     DFBWMCoreShared *shared;
+
+     D_DEBUG_AT( Core_WM, "dfb_wm_core_resume( %p )\n", data );
+
+     D_MAGIC_ASSERT( data, DFBWMCore );
+     D_MAGIC_ASSERT( data->shared, DFBWMCoreShared );
+
+     shared = data->shared;
+
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->Resume != NULL );
      D_ASSERT( wm_shared != NULL );
 
      return wm_local->funcs->Resume( wm_local->data, wm_shared->data );
+}
+
+/**************************************************************************************************/
+
+static DFBResult
+load_module( const char *name )
+{
+     DirectLink *l;
+
+     D_ASSERT( wm_local != NULL );
+
+     direct_modules_explore_directory( &dfb_core_wm_modules );
+
+     direct_list_foreach( l, dfb_core_wm_modules.entries ) {
+          DirectModuleEntry *module = (DirectModuleEntry*) l;
+          const CoreWMFuncs *funcs;
+
+          funcs = direct_module_ref( module );
+          if (!funcs)
+               continue;
+
+          if (!name || !strcasecmp( name, module->name )) {
+               if (wm_local->module)
+                    direct_module_unref( wm_local->module );
+
+               wm_local->module = module;
+               wm_local->funcs  = funcs;
+          }
+          else
+               direct_module_unref( module );
+     }
+
+     if (!wm_local->module) {
+          if (name)
+               D_ERROR( "DirectFB/WM: Window manager module '%s' not found!\n", name );
+          else
+               D_ERROR( "DirectFB/WM: No window manager module found!\n" );
+
+          return DFB_NOIMPL;
+     }
+
+     return DFB_OK;
 }
 
 /**************************************************************************************************/

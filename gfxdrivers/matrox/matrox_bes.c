@@ -40,7 +40,7 @@
 #include <core/coretypes.h>
 #include <core/layers.h>
 #include <core/screen.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/system.h>
 
 #include <misc/util.h>
@@ -470,12 +470,12 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      source = config->source;
      dest   = config->dest;
 
-     if (!mdev->g450_matrox && (surface->format == DSPF_RGB32 || surface->format == DSPF_ARGB))
+     if (!mdev->g450_matrox && (surface->config.format == DSPF_RGB32 || surface->config.format == DSPF_ARGB))
           dest.w = source.w;
 
      pitch = buffer->video.pitch;
 
-     field_height = surface->height;
+     field_height = surface->config.size.h;
 
      if (config->options & DLOP_DEINTERLACING) {
           field_height /= 2;
@@ -531,7 +531,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      mbes->regs.besCTL = (config->opacity && visible) ? BESEN : 0;
 
      /* pixel format settings */
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_YV12:
                mbes->regs.besGLOBCTL |= BESCORDER;
                /* fall through */
@@ -578,33 +578,33 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
                return;
      }
 
-     if (surface->width > 1024)
+     if (surface->config.size.w > 1024)
           mbes->regs.besCTL &= ~BESVFEN;
 
      mbes->regs.besGLOBCTL |= 3*hzoom | (mode->yres & 0xFFF) << 16;
 
-     mbes->regs.besPITCH = pitch / DFB_BYTES_PER_PIXEL(surface->format);
+     mbes->regs.besPITCH = pitch / DFB_BYTES_PER_PIXEL(surface->config.format);
 
      /* buffer offsets */
 
      field_offset = buffer->video.pitch;
      if (surface->caps & DSCAPS_SEPARATED)
-          field_offset *= surface->height / 2;
+          field_offset *= surface->config.size.h / 2;
 
      mbes->regs.besA1ORG = buffer->video.offset +
                            pitch * (source.y + (croptop >> 16));
      mbes->regs.besA2ORG = mbes->regs.besA1ORG +
                            field_offset;
 
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_NV12:
           case DSPF_NV21:
                field_offset = buffer->video.pitch;
                if (surface->caps & DSCAPS_SEPARATED)
-                    field_offset *= surface->height / 4;
+                    field_offset *= surface->config.size.h / 4;
 
                mbes->regs.besA1CORG  = buffer->video.offset +
-                                       surface->height * buffer->video.pitch +
+                                       surface->config.size.h * buffer->video.pitch +
                                        pitch * (source.y/2 + (croptop_uv >> 16));
                mbes->regs.besA2CORG  = mbes->regs.besA1CORG +
                                        field_offset;
@@ -614,16 +614,16 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
           case DSPF_YV12:
                field_offset = buffer->video.pitch / 2;
                if (surface->caps & DSCAPS_SEPARATED)
-                    field_offset *= surface->height / 4;
+                    field_offset *= surface->config.size.h / 4;
 
                mbes->regs.besA1CORG  = buffer->video.offset +
-                                       surface->height * buffer->video.pitch +
+                                       surface->config.size.h * buffer->video.pitch +
                                        pitch/2 * (source.y/2 + (croptop_uv >> 16));
                mbes->regs.besA2CORG  = mbes->regs.besA1CORG +
                                        field_offset;
 
                mbes->regs.besA1C3ORG = mbes->regs.besA1CORG +
-                                       surface->height/2 * buffer->video.pitch/2;
+                                       surface->config.size.h/2 * buffer->video.pitch/2;
                mbes->regs.besA2C3ORG = mbes->regs.besA1C3ORG +
                                        field_offset;
                break;
@@ -637,7 +637,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
 
      mbes->regs.besHSRCST   = (source.x << 16) + cropleft;
      mbes->regs.besHSRCEND  = ((source.x + source.w - 1) << 16) - cropright;
-     mbes->regs.besHSRCLST  = (surface->width - 1) << 16;
+     mbes->regs.besHSRCLST  = (surface->config.size.w - 1) << 16;
 
      /* vertical starting weights */
      tmp = croptop & 0xfffc;
@@ -661,7 +661,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
           field_height - 1 - source.y - (croptop >> 16);
 
      /* horizontal scaling */
-     if (!mdev->g450_matrox && (surface->format == DSPF_RGB32 || surface->format == DSPF_ARGB)) {
+     if (!mdev->g450_matrox && (surface->config.format == DSPF_RGB32 || surface->config.format == DSPF_ARGB)) {
           mbes->regs.besHISCAL   = 0x20000 << hzoom;
           mbes->regs.besHSRCST  *= 2;
           mbes->regs.besHSRCEND *= 2;

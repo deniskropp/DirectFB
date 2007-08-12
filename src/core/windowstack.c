@@ -42,7 +42,7 @@
 #include <core/input.h>
 #include <core/layer_context.h>
 #include <core/layers_internal.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/windows_internal.h>
 #include <core/windowstack.h>
 #include <core/wm.h>
@@ -496,7 +496,8 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
      CoreCursorUpdateFlags  flags = CCUF_SHAPE;
 
      D_DEBUG_AT( Core_WindowStack, "%s( %p, %p, hot %d, %d ) <- size %dx%d\n",
-                 __FUNCTION__, stack, shape, hot_x, hot_y, shape->width, shape->height );
+                 __FUNCTION__, stack, shape, hot_x, hot_y,
+                 shape->config.size.w, shape->config.size.h );
 
      D_ASSERT( stack != NULL );
      D_ASSERT( shape != NULL );
@@ -513,7 +514,7 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
           D_ASSUME( !stack->cursor.enabled );
 
           /* Create the a surface for the shape. */
-          ret = create_cursor_surface( stack, shape->width, shape->height );
+          ret = create_cursor_surface( stack, shape->config.size.w, shape->config.size.h );
           if (ret) {
                dfb_windowstack_unlock( stack );
                return ret;
@@ -521,11 +522,11 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
 
           cursor = stack->cursor.surface;
      }
-     else if (stack->cursor.size.w != shape->width || stack->cursor.size.h != shape->height) {
-          dfb_surface_reformat( NULL, cursor, shape->width, shape->height, DSPF_ARGB );
+     else if (stack->cursor.size.w != shape->config.size.w || stack->cursor.size.h != shape->config.size.h) {
+          dfb_surface_reformat( cursor, shape->config.size.w, shape->config.size.h, DSPF_ARGB );
 
-          stack->cursor.size.w = shape->width;
-          stack->cursor.size.h = shape->height;
+          stack->cursor.size.w = shape->config.size.w;
+          stack->cursor.size.h = shape->config.size.h;
 
           /* Notify about new size. */
           flags |= CCUF_SIZE;
@@ -542,7 +543,7 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
      /* Copy the content of the new shape. */
      dfb_gfx_copy( shape, cursor, NULL );
 
-     cursor->caps = ((cursor->caps & ~DSCAPS_PREMULTIPLIED) | (shape->caps & DSCAPS_PREMULTIPLIED));
+     cursor->config.caps = ((cursor->config.caps & ~DSCAPS_PREMULTIPLIED) | (shape->config.caps & DSCAPS_PREMULTIPLIED));
 
      /* Notify the WM. */
      if (stack->cursor.enabled)
@@ -739,11 +740,11 @@ stack_attach_devices( CoreInputDevice *device,
 static DFBResult
 load_default_cursor( CoreDFB *core, CoreWindowStack *stack )
 {
-     DFBResult ret;
-     int       i;
-     int       pitch;
-     void     *data;
-     FILE     *f;
+     DFBResult              ret;
+     int                    i;
+     FILE                  *f;
+     CoreSurfaceBufferLock  lock;
+     void                  *data;
 
      D_DEBUG_AT( Core_WindowStack, "%s( %p )\n", __FUNCTION__, stack );
 
@@ -761,15 +762,17 @@ load_default_cursor( CoreDFB *core, CoreWindowStack *stack )
           stack->cursor.size.h = 40;
      }
 
-     /* lock the surface of the window */
-     ret = dfb_surface_soft_lock( core, stack->cursor.surface, DSLF_WRITE, &data, &pitch, false );
+     /* lock the cursor surface */
+     ret = dfb_surface_lock_buffer( stack->cursor.surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
      if (ret) {
-          D_ERROR( "Core/WindowStack: cannot lock the surface for cursor window data!\n" );
+          D_ERROR( "Core/WindowStack: cannot lock the cursor surface!\n" );
           return ret;
      }
 
+     data = lock.addr;
+
      /* initialize as empty cursor */
-     memset( data, 0, 40 * pitch );
+     memset( data, 0, 40 * lock.pitch );
 
      /* open the file containing the cursors image data */
      f = fopen( CURSORFILE, "rb" );
@@ -787,7 +790,7 @@ load_default_cursor( CoreDFB *core, CoreWindowStack *stack )
 
      /* read from file directly into the cursor window surface */
      for (i=0; i<40; i++) {
-          if (fread( data, MIN (40*4, pitch), 1, f ) != 1) {
+          if (fread( data, MIN (40*4, lock.pitch), 1, f ) != 1) {
                ret = errno2result( errno );
 
                D_ERROR( "Core/WindowStack: unexpected end or read error of cursor data!\n" );
@@ -796,7 +799,7 @@ load_default_cursor( CoreDFB *core, CoreWindowStack *stack )
           }
 #ifdef WORDS_BIGENDIAN
           {
-               int i = MIN (40, pitch/4);
+               int i = MIN (40, lock.pitch/4);
                u32 *tmp_data = data;
 
                while (i--) {
@@ -808,14 +811,14 @@ load_default_cursor( CoreDFB *core, CoreWindowStack *stack )
                }
           }
 #endif
-          data += pitch;
+          data += lock.pitch;
      }
 
 finish:
      if (f)
           fclose( f );
 
-     dfb_surface_unlock( stack->cursor.surface, false );
+     dfb_surface_unlock_buffer( stack->cursor.surface, &lock );
 
      return ret;
 }
@@ -825,10 +828,11 @@ create_cursor_surface( CoreWindowStack *stack,
                        int              width,
                        int              height )
 {
-     DFBResult          ret;
-     CoreSurface       *surface;
-     CoreLayer         *layer;
-     CoreLayerContext  *context;
+     DFBResult               ret;
+     CoreSurface            *surface;
+     CoreLayer              *layer;
+     CoreLayerContext       *context;
+     DFBSurfaceCapabilities  surface_caps = DSCAPS_NONE;
 
      D_DEBUG_AT( Core_WindowStack, "%s( %p, %dx%d )\n", __FUNCTION__, stack, width, height );
 
@@ -843,8 +847,8 @@ create_cursor_surface( CoreWindowStack *stack,
 
      D_ASSERT( layer != NULL );
 
-     stack->cursor.x   = stack->width  / 2;
-     stack->cursor.y   = stack->height / 2;
+     stack->cursor.x       = stack->width  / 2;
+     stack->cursor.y       = stack->height / 2;
      stack->cursor.hot.x   = 0;
      stack->cursor.hot.y   = 0;
      stack->cursor.size.w  = width;
@@ -854,9 +858,11 @@ create_cursor_surface( CoreWindowStack *stack,
      if (context->config.buffermode == DLBM_WINDOWS)
           D_WARN( "cursor not yet visible with DLBM_WINDOWS" );
 
+     dfb_surface_caps_apply_policy( stack->cursor.policy, &surface_caps );
+
      /* Create the cursor surface. */
-     ret = dfb_surface_create( layer->core, width, height, DSPF_ARGB,
-                               stack->cursor.policy, DSCAPS_NONE, NULL, &surface );
+     ret = dfb_surface_create_simple( layer->core, width, height, DSPF_ARGB,
+                                      surface_caps, CSTF_SHARED | CSTF_CURSOR, NULL, &surface );
      if (ret) {
           D_ERROR( "Core/WindowStack: Failed creating a surface for software cursor!\n" );
           return ret;

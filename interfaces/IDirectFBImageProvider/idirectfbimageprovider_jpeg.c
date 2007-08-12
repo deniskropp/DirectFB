@@ -45,7 +45,7 @@
 #include <core/coretypes.h>
 
 #include <core/layers.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <misc/gfx_util.h>
 #include <misc/util.h>
@@ -360,15 +360,14 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                                       IDirectFBSurface       *destination,
                                       const DFBRectangle     *dest_rect )
 {
-     int                    err;
-     void                  *dst;
-     int                    pitch;
+     DFBResult              ret;
      int                    direct = 0;
      DFBRegion              clip;
      DFBRectangle           rect;
      DFBSurfacePixelFormat  format;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
+     CoreSurfaceBufferLock  lock;
      DIRenderCallbackResult cb_result = DIRCR_OK;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
@@ -381,9 +380,9 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      if (!dst_surface)
           return DFB_DESTROYED;
 
-     err = destination->GetPixelFormat( destination, &format );
-     if (err)
-          return err;
+     ret = destination->GetPixelFormat( destination, &format );
+     if (ret)
+          return ret;
 
      dfb_region_from_rectangle( &clip, &dst_data->area.current );
 
@@ -402,9 +401,9 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           rect = dst_data->area.wanted;
      }
 
-     err = dfb_surface_soft_lock( data->core, dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
-     if (err)
-          return err;
+     ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
+     if (ret)
+          return ret;
 
      /* actual loading and rendering */
      if (!data->image) {
@@ -425,8 +424,8 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
 
                if (data->image) {
                     dfb_scale_linear_32( data->image, data->width, data->height,
-                                         dst, pitch, &rect, dst_surface, &clip );
-                    dfb_surface_unlock( dst_surface, 0 );
+                                         lock.addr, lock.pitch, &rect, dst_surface, &clip );
+                    dfb_surface_unlock_buffer( dst_surface, &lock );
                     if (data->render_callback) {
                          DFBRectangle r = { 0, 0, data->width, data->height };
 
@@ -437,7 +436,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                     return DFB_INCOMPLETE;
                }
                else
-                    dfb_surface_unlock( dst_surface, 0 );
+                    dfb_surface_unlock_buffer( dst_surface, &lock );
 
                return DFB_FAILURE;
           }
@@ -459,8 +458,10 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                                               JPOOL_IMAGE, row_stride, 1);
 
           data->image = D_CALLOC( data->height, data->width * 4 );
-          if (!data->image)
+          if (!data->image) {
+               dfb_surface_unlock_buffer( dst_surface, &lock );
                return D_OOM();
+          }
           row_ptr = data->image;
 
           direct = (rect.w == data->width && rect.h == data->height);
@@ -471,7 +472,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                
                if (direct) {
                     DFBRectangle r = { rect.x, rect.y+y, rect.w, 1 };
-                    dfb_copy_buffer_32( row_ptr, dst, pitch,
+                    dfb_copy_buffer_32( row_ptr, lock.addr, lock.pitch,
                                         &r, dst_surface, &clip );
                     if (data->render_callback) {
                          r = (DFBRectangle){ 0, y, data->width, 1 };
@@ -486,7 +487,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
 
           if (!direct) {
                dfb_scale_linear_32( data->image, data->width, data->height,
-                                    dst, pitch, &rect, dst_surface, &clip );
+                                    lock.addr, lock.pitch, &rect, dst_surface, &clip );
                if (data->render_callback) {
                     DFBRectangle r = { 0, 0, data->width, data->height };
                     cb_result = data->render_callback( &r, data->render_callback_context );
@@ -505,14 +506,14 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      }
      else {
           dfb_scale_linear_32( data->image, data->width, data->height,
-                               dst, pitch, &rect, dst_surface, &clip );
+                               lock.addr, lock.pitch, &rect, dst_surface, &clip );
           if (data->render_callback) {
                DFBRectangle r = { 0, 0, data->width, data->height };
                data->render_callback( &r, data->render_callback_context );
           }
      }
      
-     dfb_surface_unlock( dst_surface, 0 );
+     dfb_surface_unlock_buffer( dst_surface, &lock );
 
      if (cb_result != DIRCR_OK)
          return DFB_INTERRUPTED;

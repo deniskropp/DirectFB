@@ -153,7 +153,7 @@ dfb_core_part_shutdown( CoreDFB  *core,
 
      D_DEBUG_AT( Core_Parts, "Going to shutdown '%s' core...\n", core_part->name );
 
-     ret = core_part->Shutdown( core, emergency );
+     ret = core_part->Shutdown( core_part->data_local, emergency );
      if (ret)
           D_ERROR( "DirectFB/Core: Could not shutdown '%s' core!\n"
                     "    --> %s\n", core_part->name,
@@ -184,7 +184,7 @@ dfb_core_part_leave( CoreDFB  *core,
 
      D_DEBUG_AT( Core_Parts, "Going to leave '%s' core...\n", core_part->name );
 
-     ret = core_part->Leave( core, emergency );
+     ret = core_part->Leave( core_part->data_local, emergency );
      if (ret)
           D_ERROR( "DirectFB/Core: Could not leave '%s' core!\n"
                     "    --> %s\n", core_part->name,

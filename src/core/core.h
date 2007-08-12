@@ -39,7 +39,22 @@
 #include "coredefs.h"
 
 
-#define DIRECTFB_CORE_ABI     36
+#define DIRECTFB_CORE_ABI     40
+
+
+typedef enum {
+     DFCP_CLIPBOARD,
+     DFCP_COLORHASH,
+     DFCP_GRAPHICS,
+     DFCP_INPUT,
+     DFCP_LAYER,
+     DFCP_SCREEN,
+     DFCP_SURFACE,
+     DFCP_SYSTEM,
+     DFCP_WM,
+
+     _DFCP_NUM
+} DFBCorePartID;
 
 
 /*
@@ -52,10 +67,17 @@ typedef void (*CoreCleanupFunc)(void *data, int emergency);
 /*
  * Core initialization and deinitialization
  */
-DFBResult dfb_core_create ( CoreDFB **ret_core );
+DFBResult  dfb_core_create  ( CoreDFB       **ret_core );
 
-DFBResult dfb_core_destroy( CoreDFB  *core,
-                            bool      emergency );
+DFBResult  dfb_core_destroy ( CoreDFB        *core,
+                              bool            emergency );
+
+void      *dfb_core_get_part( CoreDFB        *core,
+                              DFBCorePartID   part_id );
+
+
+#define DFB_CORE(core,PART)   dfb_core_get_part( core, DFCP_##PART )
+
 
 /*
  * Object creation

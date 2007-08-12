@@ -39,7 +39,7 @@
 #include <core/layer_control.h>
 #include <core/layers_internal.h>
 #include <core/palette.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/system.h>
 
 #include <misc/conf.h>
@@ -111,7 +111,8 @@ static VideoMode*  crtc2_find_mode    ( RadeonDriverData     *drv,
 static bool        crtc2_calc_regs    ( RadeonDriverData      *rdrv, 
                                         RadeonCrtc2LayerData  *rcrtc2,
                                         CoreLayerRegionConfig *config,
-                                        CoreSurface           *surface );
+                                        CoreSurface           *surface,
+                                        CoreSurfaceBufferLock *lock );
 static void        crtc2_set_regs     ( RadeonDriverData      *rdrv,
                                         RadeonCrtc2LayerData  *rcrtc2 );
 static void        crtc2_calc_palette ( RadeonDriverData      *rdrv,
@@ -126,7 +127,7 @@ static void        crtc2_set_palette  ( RadeonDriverData      *rdrv,
 
 static DFBResult
 crtc2InitScreen( CoreScreen           *screen,
-                 GraphicsDevice       *device,
+                 CoreGraphicsDevice   *device,
                  void                 *driver_data,
                  void                 *screen_data,
                  DFBScreenDescription *description )
@@ -406,7 +407,8 @@ crtc2SetRegion( CoreLayer                  *layer,
                 CoreLayerRegionConfig      *config,
                 CoreLayerRegionConfigFlags  updated,
                 CoreSurface                *surface,
-                CorePalette                *palette )
+                CorePalette                *palette,
+                CoreSurfaceBufferLock      *lock )
 {
      RadeonDriverData     *rdrv   = (RadeonDriverData*) driver_data;
      RadeonCrtc2LayerData *rcrtc2 = (RadeonCrtc2LayerData*) layer_data;
@@ -418,7 +420,7 @@ crtc2SetRegion( CoreLayer                  *layer,
                 CLRCF_FORMAT | CLRCF_SURFACE | CLRCF_PALETTE;
                 
      if (updated & ~CLRCF_PALETTE) {
-          if (!crtc2_calc_regs( rdrv, rcrtc2, &rcrtc2->config, surface ))
+          if (!crtc2_calc_regs( rdrv, rcrtc2, &rcrtc2->config, surface, lock ))
                return DFB_UNSUPPORTED;
           
           crtc2_set_regs( rdrv, rcrtc2 );
@@ -457,39 +459,32 @@ crtc2RemoveRegion( CoreLayer *layer,
 }
 
 static DFBResult
-crtc2FlipRegion( CoreLayer           *layer,
-                 void                *driver_data,
-                 void                *layer_data,
-                 void                *region_data,
-                 CoreSurface         *surface,
-                 DFBSurfaceFlipFlags  flags )
+crtc2FlipRegion( CoreLayer             *layer,
+                 void                  *driver_data,
+                 void                  *layer_data,
+                 void                  *region_data,
+                 CoreSurface           *surface,
+                 DFBSurfaceFlipFlags    flags,
+                 CoreSurfaceBufferLock *lock )
 {
      RadeonDriverData     *rdrv   = (RadeonDriverData*) driver_data;
      RadeonDeviceData     *rdev   = rdrv->device_data;
      RadeonCrtc2LayerData *rcrtc2 = (RadeonCrtc2LayerData*) layer_data;
      volatile u8          *mmio   = rdrv->mmio_base;
-     SurfaceBuffer        *buffer = surface->back_buffer;
      
-     switch (buffer->storage) {
-          case CSS_VIDEO:
-               rcrtc2->regs.rCRTC2_BASE_ADDR = rdev->fb_offset;
-               break;
-          case CSS_AUXILIARY:
-               rcrtc2->regs.rCRTC2_BASE_ADDR = rdev->agp_offset;
-               break;
-          default:
-               D_BUG( "unknown buffer storage" );
-               return DFB_BUG;
-     }
+     if (lock->phys - lock->offset == rdev->fb_phys)
+          rcrtc2->regs.rCRTC2_BASE_ADDR = rdev->fb_offset;
+     else
+          rcrtc2->regs.rCRTC2_BASE_ADDR = rdev->agp_offset;
      
-     rcrtc2->regs.rCRTC2_OFFSET = buffer->video.offset;
+     rcrtc2->regs.rCRTC2_OFFSET = lock->offset;
      
      radeon_waitidle( rdrv, rdrv->device_data );
      
      radeon_out32( mmio, CRTC2_BASE_ADDR, rcrtc2->regs.rCRTC2_BASE_ADDR );
      radeon_out32( mmio, CRTC2_OFFSET, rcrtc2->regs.rCRTC2_OFFSET );
      
-     dfb_surface_flip_buffers( surface, false );
+     dfb_surface_flip( surface, false );
      
      if (flags & DSFLIP_WAIT)
           dfb_layer_wait_vsync( layer );
@@ -622,12 +617,12 @@ static bool
 crtc2_calc_regs( RadeonDriverData      *rdrv, 
                  RadeonCrtc2LayerData  *rcrtc2,
                  CoreLayerRegionConfig *config,
-                 CoreSurface           *surface )
+                 CoreSurface           *surface,
+                 CoreSurfaceBufferLock *lock )
 {
-     RadeonDeviceData *rdev   = rdrv->device_data;
-     SurfaceBuffer    *buffer = surface->front_buffer;
-     VideoMode        *mode; 
-     u32               format = 0;
+     RadeonDeviceData  *rdev   = rdrv->device_data;
+     VideoMode         *mode; 
+     u32                format = 0;
     
      int   h_total, h_sync_start, h_sync_end, h_sync_wid;
      int   v_total, v_sync_start, v_sync_end, v_sync_wid;
@@ -734,26 +729,19 @@ crtc2_calc_regs( RadeonDriverData      *rdrv,
      if (!mode->vsync_high)
           rcrtc2->regs.rCRTC2_V_SYNC_STRT_WID |= CRTC2_V_SYNC_POL;
           
-     switch (buffer->storage) {
-          case CSS_VIDEO:
-               rcrtc2->regs.rCRTC2_BASE_ADDR = rdev->fb_offset;
-               break;
-          case CSS_AUXILIARY:
-               rcrtc2->regs.rCRTC2_BASE_ADDR = rdev->agp_offset;
-               break;
-          default:
-               D_BUG( "unknown buffer storage" );
-               return false;
-     }
+     if (lock->phys - lock->offset == rdev->fb_phys)
+          rcrtc2->regs.rCRTC2_BASE_ADDR = rdev->fb_offset;
+     else
+          rcrtc2->regs.rCRTC2_BASE_ADDR = rdev->agp_offset;
      
-     rcrtc2->regs.rCRTC2_OFFSET = buffer->video.offset;
+     rcrtc2->regs.rCRTC2_OFFSET = lock->offset;
      
      rcrtc2->regs.rCRTC2_OFFSET_CNTL = rcrtc2->save.rCRTC2_OFFSET_CNTL;
      rcrtc2->regs.rCRTC2_OFFSET_CNTL &= ~CRTC_TILE_EN;
      rcrtc2->regs.rCRTC2_OFFSET_CNTL |= CRTC_HSYNC_EN;
      
-     rcrtc2->regs.rCRTC2_PITCH  = (buffer->video.pitch / 
-                                   DFB_BYTES_PER_PIXEL(surface->format)) >> 3;
+     rcrtc2->regs.rCRTC2_PITCH  = (lock->pitch / 
+                                   DFB_BYTES_PER_PIXEL(surface->config.format)) >> 3;
      rcrtc2->regs.rCRTC2_PITCH |= rcrtc2->regs.rCRTC2_PITCH << 16;
 
      if (rdev->monitor2 == MT_DFP) {

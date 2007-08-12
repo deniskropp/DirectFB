@@ -41,7 +41,7 @@
 #include <core/state.h>
 #include <core/gfxcard.h>
 #include <core/screens.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/palette.h>
 #include <core/system.h>
 
@@ -478,10 +478,10 @@ static void r100CheckState( void *drv, void *dev,
      int supported_blittingfuncs = R100_SUPPORTED_BLITTINGFUNCS;
      int supported_blittingflags = R100_SUPPORTED_BLITTINGFLAGS;
    
-     if (!radeon_compatible_format( drv, destination->format ))
+     if (!radeon_compatible_format( drv, destination->config.format ))
           return;
 
-     switch (destination->format) {               
+     switch (destination->config.format) {               
           case DSPF_A8:
           case DSPF_RGB332:
           case DSPF_RGB444:
@@ -496,7 +496,7 @@ static void r100CheckState( void *drv, void *dev,
           case DSPF_LUT8:
           case DSPF_ALUT44:
                if (DFB_BLITTING_FUNCTION( accel ) &&
-                   source->format != destination->format)
+                   source->config.format != destination->config.format)
                     return;
                supported_drawingflags   =  DSDRAW_NOFX;
                supported_blittingfuncs &= ~DFXL_TEXTRIANGLES;
@@ -505,7 +505,7 @@ static void r100CheckState( void *drv, void *dev,
 
           case DSPF_ARGB2554:
                if (DFB_BLITTING_FUNCTION( accel ) &&
-                   source->format != destination->format)
+                   source->config.format != destination->config.format)
                     return;
                supported_drawingfuncs  &= ~DFXL_FILLTRIANGLE;
                supported_drawingflags   =  DSDRAW_XOR;
@@ -521,19 +521,19 @@ static void r100CheckState( void *drv, void *dev,
           case DSPF_I420:
           case DSPF_YV12:
                if (DFB_BLITTING_FUNCTION( accel ) &&
-                   source->format != DSPF_A8      &&
-                   source->format != DSPF_I420    &&
-                   source->format != DSPF_YV12)
+                   source->config.format != DSPF_A8      &&
+                   source->config.format != DSPF_I420    &&
+                   source->config.format != DSPF_YV12)
                     return;
           case DSPF_YUY2:
           case DSPF_UYVY:
-               if (source && source->format != DSPF_A8)
+               if (source && source->config.format != DSPF_A8)
                     supported_blittingflags &= ~(DSBLIT_COLORIZE | DSBLIT_SRC_COLORKEY);
                break;
 
           case DSPF_AYUV:
-               if (DFB_BLITTING_FUNCTION( accel ) && source->format != DSPF_A8) {
-                    if (source->format != DSPF_AYUV)
+               if (DFB_BLITTING_FUNCTION( accel ) && source->config.format != DSPF_A8) {
+                    if (source->config.format != DSPF_AYUV)
                          return;
                     supported_blittingflags &= ~DSBLIT_COLORIZE;
                }
@@ -545,7 +545,7 @@ static void r100CheckState( void *drv, void *dev,
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
-               if (destination->format != source->format)
+               if (destination->config.format != source->config.format)
                     return;
                supported_blittingfuncs  = DFXL_BLIT;
                supported_blittingflags &= DSBLIT_SRC_COLORKEY | DSBLIT_XOR;
@@ -558,17 +558,17 @@ static void r100CheckState( void *drv, void *dev,
               state->blittingflags & ~supported_blittingflags)
                return;
           
-          if (source->width > 2048 || source->height > 2048)
+          if (source->config.size.w > 2048 || source->config.size.h > 2048)
                return;
 
           if (state->blittingflags & DSBLIT_MODULATE_ALPHA &&
               state->dst_blend == DSBF_SRCALPHASAT)
                return;
                
-          if (!radeon_compatible_format( drv, source->format ))
+          if (!radeon_compatible_format( drv, source->config.format ))
                return;
 
-          switch (source->format) {           
+          switch (source->config.format) {           
                case DSPF_RGB332:
                case DSPF_RGB444:
                case DSPF_ARGB4444:
@@ -578,8 +578,8 @@ static void r100CheckState( void *drv, void *dev,
                case DSPF_RGB32:
                case DSPF_ARGB:
                case DSPF_AiRGB:
-                    if (destination->format == DSPF_UYVY ||
-                        destination->format == DSPF_YUY2)
+                    if (destination->config.format == DSPF_UYVY ||
+                        destination->config.format == DSPF_YUY2)
                          return;
                case DSPF_A8:
                case DSPF_YUY2:
@@ -588,7 +588,7 @@ static void r100CheckState( void *drv, void *dev,
                
                case DSPF_LUT8:
                case DSPF_ALUT44:
-                    if (destination->format != source->format ||
+                    if (destination->config.format != source->config.format ||
                         !dfb_palette_equal( source->palette,
                                             destination->palette ))
                          return;
@@ -596,16 +596,16 @@ static void r100CheckState( void *drv, void *dev,
                         
                case DSPF_ARGB2554:
                case DSPF_AYUV:
-                    if (destination->format != source->format)
+                    if (destination->config.format != source->config.format)
                          return;
                     break;
 
                case DSPF_I420:
                case DSPF_YV12:
-                    if (source->width < 2 || source->height < 2)
+                    if (source->config.size.w < 2 || source->config.size.h < 2)
                          return;
-                    if (destination->format != DSPF_I420 &&
-                        destination->format != DSPF_YV12)
+                    if (destination->config.format != DSPF_I420 &&
+                        destination->config.format != DSPF_YV12)
                          return;
                     break;
                
@@ -642,10 +642,10 @@ static void r200CheckState( void *drv, void *dev,
      int supported_blittingfuncs = R200_SUPPORTED_BLITTINGFUNCS;
      int supported_blittingflags = R200_SUPPORTED_BLITTINGFLAGS;
      
-     if (!radeon_compatible_format( drv, destination->format ))
+     if (!radeon_compatible_format( drv, destination->config.format ))
           return;
      
-     switch (destination->format) {               
+     switch (destination->config.format) {               
           case DSPF_A8:
           case DSPF_RGB332:
           case DSPF_RGB444:
@@ -660,7 +660,7 @@ static void r200CheckState( void *drv, void *dev,
           case DSPF_LUT8:
           case DSPF_ALUT44:
                if (DFB_BLITTING_FUNCTION( accel ) &&
-                   source->format != destination->format)
+                   source->config.format != destination->config.format)
                     return;
                supported_drawingflags   =  DSDRAW_NOFX;
                supported_blittingfuncs &= ~DFXL_TEXTRIANGLES;
@@ -669,7 +669,7 @@ static void r200CheckState( void *drv, void *dev,
 
           case DSPF_ARGB2554:
                if (DFB_BLITTING_FUNCTION( accel ) &&
-                   source->format != destination->format)
+                   source->config.format != destination->config.format)
                     return;
                supported_drawingfuncs  &= ~DFXL_FILLTRIANGLE;
                supported_drawingflags   =  DSDRAW_XOR;
@@ -685,19 +685,19 @@ static void r200CheckState( void *drv, void *dev,
           case DSPF_I420:
           case DSPF_YV12:
                if (DFB_BLITTING_FUNCTION( accel ) &&
-                   source->format != DSPF_A8      &&
-                   source->format != DSPF_I420    &&
-                   source->format != DSPF_YV12)
+                   source->config.format != DSPF_A8      &&
+                   source->config.format != DSPF_I420    &&
+                   source->config.format != DSPF_YV12)
                     return;
           case DSPF_YUY2:
           case DSPF_UYVY:
-               if (source && source->format != DSPF_A8)
+               if (source && source->config.format != DSPF_A8)
                     supported_blittingflags &= ~(DSBLIT_COLORIZE | DSBLIT_SRC_COLORKEY);
                break;
                
           case DSPF_AYUV:
-               if (DFB_BLITTING_FUNCTION( accel ) && source->format != DSPF_A8) {
-                    if (source->format != DSPF_AYUV)
+               if (DFB_BLITTING_FUNCTION( accel ) && source->config.format != DSPF_A8) {
+                    if (source->config.format != DSPF_AYUV)
                          return;
                     supported_blittingflags &= ~DSBLIT_COLORIZE;
                }
@@ -709,7 +709,7 @@ static void r200CheckState( void *drv, void *dev,
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
-               if (destination->format != source->format)
+               if (destination->config.format != source->config.format)
                     return;
                supported_blittingfuncs  = DFXL_BLIT;
                supported_blittingflags &= DSBLIT_SRC_COLORKEY | DSBLIT_XOR;
@@ -722,17 +722,17 @@ static void r200CheckState( void *drv, void *dev,
               state->blittingflags & ~supported_blittingflags)
                return;
           
-          if (source->width > 2048 || source->height > 2048)
+          if (source->config.size.w > 2048 || source->config.size.h > 2048)
                return;
 
           if (state->blittingflags & DSBLIT_MODULATE_ALPHA &&
               state->dst_blend == DSBF_SRCALPHASAT)
                return;
          
-          if (!radeon_compatible_format( drv, source->format ))
+          if (!radeon_compatible_format( drv, source->config.format ))
                return;
          
-          switch (source->format) {                    
+          switch (source->config.format) {                    
                case DSPF_RGB332:
                case DSPF_RGB444:
                case DSPF_ARGB4444:
@@ -742,15 +742,15 @@ static void r200CheckState( void *drv, void *dev,
                case DSPF_RGB32:
                case DSPF_ARGB:
                case DSPF_AiRGB:
-                    if (destination->format == DSPF_UYVY ||
-                        destination->format == DSPF_YUY2)
+                    if (destination->config.format == DSPF_UYVY ||
+                        destination->config.format == DSPF_YUY2)
                          return;
                case DSPF_A8:
                     break;
                
                case DSPF_LUT8:
                case DSPF_ALUT44:
-                    if (destination->format != source->format ||
+                    if (destination->config.format != source->config.format ||
                         !dfb_palette_equal( source->palette,
                                             destination->palette ))
                          return;
@@ -758,24 +758,24 @@ static void r200CheckState( void *drv, void *dev,
                
                case DSPF_ARGB2554:
                case DSPF_AYUV:
-                    if (destination->format != source->format)
+                    if (destination->config.format != source->config.format)
                          return;
                     break;
                     
                case DSPF_YUY2:
                case DSPF_UYVY:
                     if (rdev->chipset == CHIP_RV250      &&
-                        destination->format != DSPF_YUY2 &&
-                        destination->format != DSPF_UYVY)
+                        destination->config.format != DSPF_YUY2 &&
+                        destination->config.format != DSPF_UYVY)
                          return;
                     break;
 
                case DSPF_I420:
                case DSPF_YV12:
-                    if (source->width < 2 || source->height < 2)
+                    if (source->config.size.w < 2 || source->config.size.h < 2)
                          return;
-                    if (destination->format != DSPF_I420 &&
-                        destination->format != DSPF_YV12)
+                    if (destination->config.format != DSPF_I420 &&
+                        destination->config.format != DSPF_YV12)
                          return;
                     break;
                
@@ -821,10 +821,10 @@ static void r300CheckState( void *drv, void *dev,
           can_convert = false;
      }
 
-     if (!radeon_compatible_format( drv, destination->format ))
+     if (!radeon_compatible_format( drv, destination->config.format ))
           return;
      
-     switch (destination->format) {
+     switch (destination->config.format) {
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
@@ -844,7 +844,7 @@ static void r300CheckState( void *drv, void *dev,
           case DSPF_YUY2:
           case DSPF_UYVY:
                if (DFB_BLITTING_FUNCTION( accel )) {
-                    if (source->format != destination->format)
+                    if (source->config.format != destination->config.format)
                          return;
                }
                supported_drawingfuncs  &= ~DFXL_FILLTRIANGLE;
@@ -856,8 +856,8 @@ static void r300CheckState( void *drv, void *dev,
           case DSPF_I420:
           case DSPF_YV12:
                if (DFB_BLITTING_FUNCTION( accel )) {
-                    if (source->format != DSPF_I420 &&
-                        source->format != DSPF_YV12)
+                    if (source->config.format != DSPF_I420 &&
+                        source->config.format != DSPF_YV12)
                          return;
                }
                supported_drawingfuncs  &= ~DFXL_FILLTRIANGLE;
@@ -883,17 +883,17 @@ static void r300CheckState( void *drv, void *dev,
               state->blittingflags & ~supported_blittingflags)
                return;
           
-          if (source->width > 2048 || source->height > 2048)
+          if (source->config.size.w > 2048 || source->config.size.h > 2048)
                return;
 
           if (state->blittingflags & DSBLIT_MODULATE_ALPHA &&
               state->dst_blend == DSBF_SRCALPHASAT)
                return;
                
-          if (!radeon_compatible_format( drv, source->format ))
+          if (!radeon_compatible_format( drv, source->config.format ))
                return;
                
-          switch (source->format) {
+          switch (source->config.format) {
                case DSPF_A8:                   
                case DSPF_RGB332:
                case DSPF_RGB444:
@@ -904,13 +904,13 @@ static void r300CheckState( void *drv, void *dev,
                case DSPF_RGB32:
                case DSPF_ARGB:
                     if (!can_convert &&
-                        destination->format != source->format)
+                        destination->config.format != source->config.format)
                          return;
                     break;
                
                case DSPF_LUT8:
                case DSPF_ALUT44:
-                    if (destination->format != source->format ||
+                    if (destination->config.format != source->config.format ||
                         !dfb_palette_equal( source->palette,
                                             destination->palette ))
                          return;
@@ -921,16 +921,16 @@ static void r300CheckState( void *drv, void *dev,
                case DSPF_AYUV:
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    if (destination->format != source->format)
+                    if (destination->config.format != source->config.format)
                          return;
                     break;
                     
                case DSPF_I420:
                case DSPF_YV12:
-                    if (source->width < 2 || source->height < 2)
+                    if (source->config.size.w < 2 || source->config.size.h < 2)
                          return;
-                    if (destination->format != DSPF_I420 &&
-                        destination->format != DSPF_YV12)
+                    if (destination->config.format != DSPF_I420 &&
+                        destination->config.format != DSPF_YV12)
                          return;
                     break;
                
@@ -967,7 +967,7 @@ static void r100SetState( void *drv, void *dev,
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
  
-     rdev->set &= ~state->modified;
+     rdev->set &= ~state->mod_hw;
      if (DFB_BLITTING_FUNCTION( accel )) {
           if ((rdev->accel ^ accel) & DFXL_TEXTRIANGLES)
                rdev->set &= ~SMF_BLITTING_FLAGS;
@@ -1040,7 +1040,7 @@ static void r100SetState( void *drv, void *dev,
                break;
      }
      
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 static void r200SetState( void *drv, void *dev,
@@ -1050,7 +1050,7 @@ static void r200SetState( void *drv, void *dev,
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
  
-     rdev->set &= ~state->modified;
+     rdev->set &= ~state->mod_hw;
      if (DFB_BLITTING_FUNCTION( accel )) {
           if ((rdev->accel ^ accel) & DFXL_TEXTRIANGLES)
                rdev->set &= ~SMF_BLITTING_FLAGS;
@@ -1123,7 +1123,7 @@ static void r200SetState( void *drv, void *dev,
                break;
      }
      
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 static void r300SetState( void *drv, void *dev,
@@ -1133,7 +1133,7 @@ static void r300SetState( void *drv, void *dev,
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
  
-     rdev->set &= ~state->modified;
+     rdev->set &= ~state->mod_hw;
      if (DFB_BLITTING_FUNCTION( accel )) {
           if ((rdev->accel ^ accel) & DFXL_TEXTRIANGLES)
                rdev->set &= ~SMF_BLITTING_FLAGS;
@@ -1210,7 +1210,7 @@ static void r300SetState( void *drv, void *dev,
                break;
      }
      
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 
@@ -1248,7 +1248,7 @@ radeon_find_chipset( RadeonDriverData *rdrv, int *ret_devid, int *ret_index )
 /* exported symbols */
 
 static int
-driver_probe( GraphicsDevice *device )
+driver_probe( CoreGraphicsDevice *device )
 {
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_ATI_RADEON:
@@ -1261,7 +1261,7 @@ driver_probe( GraphicsDevice *device )
 }
 
 static void
-driver_get_info( GraphicsDevice     *device,
+driver_get_info( CoreGraphicsDevice *device,
                  GraphicsDriverInfo *info )
 {
      /* fill driver info structure */
@@ -1289,7 +1289,7 @@ driver_get_info( GraphicsDevice     *device,
 }
 
 static DFBResult
-driver_init_driver( GraphicsDevice      *device,
+driver_init_driver( CoreGraphicsDevice  *device,
                     GraphicsDeviceFuncs *funcs,
                     void                *driver_data,
                     void                *device_data,
@@ -1387,7 +1387,7 @@ driver_init_driver( GraphicsDevice      *device,
 }
 
 static DFBResult
-driver_init_device( GraphicsDevice     *device,
+driver_init_device( CoreGraphicsDevice *device,
                     GraphicsDeviceInfo *device_info,
                     void               *driver_data,
                     void               *device_data )
@@ -1463,6 +1463,8 @@ driver_init_device( GraphicsDevice     *device,
                    "couldn't reserve 128 bytes of video memory!\n" );
           return DFB_NOVIDEOMEMORY;
      }
+
+     rdev->fb_phys = dfb_gfxcard_memory_physical( device, 0 );
 
      radeon_waitidle( rdrv, rdev );
      
@@ -1548,9 +1550,9 @@ driver_init_device( GraphicsDevice     *device,
 }
 
 static void
-driver_close_device( GraphicsDevice *device,
-                     void           *driver_data,
-                     void           *device_data )
+driver_close_device( CoreGraphicsDevice *device,
+                     void               *driver_data,
+                     void               *device_data )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) driver_data;
      RadeonDeviceData *rdev = (RadeonDeviceData*) device_data;
@@ -1600,8 +1602,8 @@ driver_close_device( GraphicsDevice *device,
 }
 
 static void
-driver_close_driver( GraphicsDevice *device,
-                     void           *driver_data )
+driver_close_driver( CoreGraphicsDevice *device,
+                     void               *driver_data )
 {
     RadeonDriverData *rdrv = (RadeonDriverData*) driver_data;
 
