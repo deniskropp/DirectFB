@@ -29,8 +29,9 @@
 #ifndef __DIRECT__THREAD_H__
 #define __DIRECT__THREAD_H__
 
-#include <direct/types.h>
+#include <sys/types.h>
 
+#include <direct/types.h>
 
 typedef enum {
      DTT_DEFAULT    =   0,
