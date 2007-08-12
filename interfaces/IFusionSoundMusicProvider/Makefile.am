@@ -46,7 +46,7 @@ ifusionsoundmusicprovider_LTLIBRARIES =	\
 
 libifusionsoundmusicprovider_timidity_la_SOURCES = ifusionsoundmusicprovider_timidity.c
 
-libifusionsoundmusicprovider_timidity_la_LIBADD = timidity/libtimidity.la
+libifusionsoundmusicprovider_timidity_la_LIBADD = timidity/libtimidity.la -lm
 
 libifusionsoundmusicprovider_timidity_la_LDFLAGS = -avoid-version -module
 
