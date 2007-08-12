@@ -171,8 +171,10 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
           D_MAGIC_ASSERT( alloc, CoreSurfaceAllocation );
 
           if (D_FLAGS_ARE_SET( alloc->access, access )) {
-               allocation = alloc;
-               break;
+               /* Take last up to date or first available. */
+               if (!allocation || direct_serial_check( &alloc->serial, &buffer->serial ))
+                    allocation = alloc;
+               //break;
           }
      }
 
@@ -603,17 +605,18 @@ transfer_buffer( CoreSurfaceBuffer *buffer,
      int          i;
      CoreSurface *surface;
 
-     D_DEBUG_AT( Core_SurfBuffer, "%s( %p, %p [%d] -> %p [%d] )\n",
-                 __FUNCTION__, buffer, src, srcpitch, dst, dstpitch );
-
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     surface = buffer->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     D_DEBUG_AT( Core_SurfBuffer, "%s( %p, %p [%d] -> %p [%d] ) * %d\n",
+                 __FUNCTION__, buffer, src, srcpitch, dst, dstpitch, surface->config.size.h );
+
      D_ASSERT( src != NULL );
      D_ASSERT( dst != NULL );
      D_ASSERT( srcpitch > 0 );
      D_ASSERT( dstpitch > 0 );
-
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
 
      D_ASSERT( srcpitch >= DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w ) );
      D_ASSERT( dstpitch >= DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w ) );

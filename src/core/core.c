@@ -689,19 +689,19 @@ dfb_core_suspend( CoreDFB *core )
      if (core->suspended)
           return DFB_BUSY;
 
-     ret = dfb_input_core.Suspend( core );
+     ret = dfb_input_core.Suspend( dfb_input_core.data_local );
      if (ret)
           goto error_input;
 
-     ret = dfb_layer_core.Suspend( core );
+     ret = dfb_layer_core.Suspend( dfb_layer_core.data_local );
      if (ret)
           goto error_layers;
 
-     ret = dfb_screen_core.Suspend( core );
+     ret = dfb_screen_core.Suspend( dfb_screen_core.data_local );
      if (ret)
           goto error_screens;
 
-     ret = dfb_graphics_core.Suspend( core );
+     ret = dfb_graphics_core.Suspend( dfb_graphics_core.data_local );
      if (ret)
           goto error_graphics;
 
@@ -710,11 +710,11 @@ dfb_core_suspend( CoreDFB *core )
      return DFB_OK;
 
 error_graphics:
-     dfb_screen_core.Resume( core );
+     dfb_screen_core.Resume( dfb_screen_core.data_local );
 error_screens:
-     dfb_layer_core.Resume( core );
+     dfb_layer_core.Resume( dfb_layer_core.data_local );
 error_layers:
-     dfb_input_core.Resume( core );
+     dfb_input_core.Resume( dfb_input_core.data_local );
 error_input:
      return ret;
 }
@@ -737,19 +737,19 @@ dfb_core_resume( CoreDFB *core )
      if (!core->suspended)
           return DFB_BUSY;
 
-     ret = dfb_graphics_core.Resume( core );
+     ret = dfb_graphics_core.Resume( dfb_graphics_core.data_local );
      if (ret)
           goto error_graphics;
 
-     ret = dfb_screen_core.Resume( core );
+     ret = dfb_screen_core.Resume( dfb_screen_core.data_local );
      if (ret)
           goto error_screens;
 
-     ret = dfb_layer_core.Resume( core );
+     ret = dfb_layer_core.Resume( dfb_layer_core.data_local );
      if (ret)
           goto error_layers;
 
-     ret = dfb_input_core.Resume( core );
+     ret = dfb_input_core.Resume( dfb_input_core.data_local );
      if (ret)
           goto error_input;
 
@@ -758,11 +758,11 @@ dfb_core_resume( CoreDFB *core )
      return DFB_OK;
 
 error_input:
-     dfb_layer_core.Suspend( core );
+     dfb_layer_core.Suspend( dfb_layer_core.data_local );
 error_layers:
-     dfb_screen_core.Suspend( core );
+     dfb_screen_core.Suspend( dfb_screen_core.data_local );
 error_screens:
-     dfb_graphics_core.Suspend( core );
+     dfb_graphics_core.Suspend( dfb_graphics_core.data_local );
 error_graphics:
      return ret;
 }

@@ -88,6 +88,8 @@ dfb_surfacemanager_create( CoreDFB         *core,
      SurfaceManager      *manager;
      Chunk               *chunk;
 
+     D_DEBUG_AT( SurfMan, "%s( %p, %d )\n", __FUNCTION__, core, length );
+
      D_ASSERT( core != NULL );
      D_ASSERT( ret_manager != NULL );
 
@@ -117,6 +119,8 @@ dfb_surfacemanager_create( CoreDFB         *core,
 
      D_MAGIC_SET( chunk, Chunk );
 
+     D_DEBUG_AT( SurfMan, "  -> %p\n", manager );
+
      *ret_manager = manager;
 
      return DFB_OK;
@@ -127,6 +131,8 @@ dfb_surfacemanager_destroy( SurfaceManager *manager )
 {
      Chunk *chunk;
      void  *next;
+
+     D_DEBUG_AT( SurfMan, "%s( %p )\n", __FUNCTION__, manager );
 
      D_MAGIC_ASSERT( manager, SurfaceManager );
 
@@ -153,6 +159,8 @@ DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
 {
      D_MAGIC_ASSERT( manager, SurfaceManager );
      D_ASSERT( offset >= 0 );
+
+     D_DEBUG_AT( SurfMan, "%s( %p, %d )\n", __FUNCTION__, manager, offset );
 
 /*FIXME_SC_2     if (manager->limits.surface_byteoffset_alignment > 1) {
           offset += manager->limits.surface_byteoffset_alignment - 1;
@@ -278,6 +286,8 @@ DFBResult dfb_surfacemanager_allocate( CoreDFB            *core,
 
      /* if we found a place */
      if (best_free) {
+          D_DEBUG_AT( SurfMan, "  -> found free (%d)\n", best_free->length );
+
           /* NULL means check only. */
           if (ret_chunk)
                *ret_chunk = occupy_chunk( manager, best_free, buffer, length, pitch );
@@ -310,7 +320,7 @@ DFBResult dfb_surfacemanager_allocate( CoreDFB            *core,
           return DFB_OK;
      }
 */
-     D_DEBUG_AT( SurfMan, "Couldn't allocate enough heap space for video memory surface!\n" );
+     D_DEBUG_AT( SurfMan, "  -> failed (%d/%d avail)\n", manager->avail, manager->length );
 
      /* no luck */
      return DFB_NOVIDEOMEMORY;
@@ -336,20 +346,6 @@ DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
 
      return DFB_OK;
 }
-
-/*
-static void
-set_sentinel( CoreSurface *surface, CoreSurfaceBuffer *buffer )
-{
-     int   i;
-     void *start    = dfb_system_video_memory_virtual( buffer->video.offset );
-     char *sentinel = start + buffer->video.pitch * DFB_PLANE_MULTIPLY( buffer->format,
-                                                                        surface->config.size.h );
- 
-     for (i=0; i<16; i++)
-          sentinel[i] = i;
-}
-*/
 
 /** internal functions NOT locking the surfacemanager **/
 
@@ -458,8 +454,6 @@ occupy_chunk( SurfaceManager *manager, Chunk *chunk, CoreSurfaceBuffer *buffer, 
      chunk->pitch  = pitch;
 
      manager->min_toleration++;
-
-//     set_sentinel( buffer->surface, buffer );
 
      return chunk;
 }
