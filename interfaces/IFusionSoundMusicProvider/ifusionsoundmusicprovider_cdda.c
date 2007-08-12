@@ -26,6 +26,11 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <limits.h>
+
+#if defined(__linux__)
+#include <asm/types.h>
+#endif
 
 #ifdef HAVE_CDDB
 # include <cddb/cddb.h>
