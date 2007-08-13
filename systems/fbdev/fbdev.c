@@ -1571,12 +1571,16 @@ static DFBResult dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
 
      var->activate = onsync ? FB_ACTIVATE_VBL : FB_ACTIVATE_NOW;
 
+#if 0
      ret = fusion_call_execute( &shared->fbdev_ioctl, FCEF_NONE, FBIOPAN_DISPLAY, var, &result );
      if (ret)
           return DFB_FUSION;
 
      if (result) {
           errno = result;
+#else
+     if (ioctl( dfb_fbdev->fd, FBIOPAN_DISPLAY, var )) {
+#endif
           D_PERROR( "DirectFB/FBDev: Panning display failed (x=%u y=%u ywrap=%d vbl=%d)!\n",
                     var->xoffset, var->yoffset,
                     (var->vmode & FB_VMODE_YWRAP) ? 1 : 0,
