@@ -55,11 +55,10 @@ void mach64_set_destination( Mach64DriverData *mdrv,
 {
      volatile u8 *mmio          = mdrv->mmio_base;
      CoreSurface   *destination = state->destination;
-     SurfaceBuffer *buffer      = destination->back_buffer;
-     int            pitch       = buffer->video.pitch / DFB_BYTES_PER_PIXEL( destination->format );
+     unsigned int   pitch       = state->dst.pitch / DFB_BYTES_PER_PIXEL( destination->config.format );
 
      mdev->pix_width &= ~DST_PIX_WIDTH;
-     switch (destination->format) {
+     switch (destination->config.format) {
           case DSPF_RGB332:
                mdev->pix_width |= DST_PIX_WIDTH_8BPP;
                break;
@@ -80,20 +79,19 @@ void mach64_set_destination( Mach64DriverData *mdrv,
      }
 
      mach64_waitfifo( mdrv, mdev, 1 );
-     mach64_out32( mmio, DST_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
+     mach64_out32( mmio, DST_OFF_PITCH, (state->dst.offset/8) | ((pitch/8) << 22) );
 }
 
 void mach64gt_set_destination( Mach64DriverData *mdrv,
                                Mach64DeviceData *mdev,
                                CardState        *state )
 {
-     volatile u8 *mmio          = mdrv->mmio_base;
-     CoreSurface   *destination = state->destination;
-     SurfaceBuffer *buffer      = destination->back_buffer;
-     int            pitch       = buffer->video.pitch / DFB_BYTES_PER_PIXEL( destination->format );
+     volatile u8 *mmio         = mdrv->mmio_base;
+     CoreSurface  *destination = state->destination;
+     unsigned int  pitch       = state->dst.pitch / DFB_BYTES_PER_PIXEL( destination->config.format );
 
      mdev->pix_width &= ~DST_PIX_WIDTH;
-     switch (destination->format) {
+     switch (destination->config.format) {
           case DSPF_RGB332:
                mdev->pix_width |= DST_PIX_WIDTH_RGB332;
                break;
@@ -119,13 +117,13 @@ void mach64gt_set_destination( Mach64DriverData *mdrv,
 
      mdev->draw_blend &= ~DITHER_EN;
      mdev->blit_blend &= ~DITHER_EN;
-     if (DFB_COLOR_BITS_PER_PIXEL( destination->format ) < 24) {
+     if (DFB_COLOR_BITS_PER_PIXEL( destination->config.format ) < 24) {
           mdev->draw_blend |= DITHER_EN;
           mdev->blit_blend |= DITHER_EN;
      }
 
      mach64_waitfifo( mdrv, mdev, 1 );
-     mach64_out32( mmio, DST_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
+     mach64_out32( mmio, DST_OFF_PITCH, (state->dst.offset/8) | ((pitch/8) << 22) );
 }
 
 void mach64_set_source( Mach64DriverData *mdrv,
@@ -134,14 +132,13 @@ void mach64_set_source( Mach64DriverData *mdrv,
 {
      volatile u8 *mmio     = mdrv->mmio_base;
      CoreSurface   *source = state->source;
-     SurfaceBuffer *buffer = source->front_buffer;
-     int            pitch  = buffer->video.pitch / DFB_BYTES_PER_PIXEL( source->format );
+     unsigned int   pitch  = state->src.pitch / DFB_BYTES_PER_PIXEL( source->config.format );
 
      if (MACH64_IS_VALID( m_source ))
           return;
 
      mdev->pix_width &= ~SRC_PIX_WIDTH;
-     switch (source->format) {
+     switch (source->config.format) {
           case DSPF_RGB332:
                mdev->pix_width |= SRC_PIX_WIDTH_8BPP;
                break;
@@ -162,7 +159,7 @@ void mach64_set_source( Mach64DriverData *mdrv,
      }
 
      mach64_waitfifo( mdrv, mdev, 1 );
-     mach64_out32( mmio, SRC_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
+     mach64_out32( mmio, SRC_OFF_PITCH, (state->src.offset/8) | ((pitch/8) << 22) );
 
      MACH64_VALIDATE( m_source );
 }
@@ -173,14 +170,13 @@ void mach64gt_set_source( Mach64DriverData *mdrv,
 {
      volatile u8 *mmio     = mdrv->mmio_base;
      CoreSurface   *source = state->source;
-     SurfaceBuffer *buffer = source->front_buffer;
-     int            pitch  = buffer->video.pitch / DFB_BYTES_PER_PIXEL( source->format );
+     unsigned int   pitch  = state->src.pitch / DFB_BYTES_PER_PIXEL( source->config.format );
 
      if (MACH64_IS_VALID( m_source ))
           return;
 
      mdev->pix_width &= ~SRC_PIX_WIDTH;
-     switch (source->format) {
+     switch (source->config.format) {
           case DSPF_RGB332:
                mdev->pix_width |= SRC_PIX_WIDTH_RGB332;
                break;
@@ -205,7 +201,7 @@ void mach64gt_set_source( Mach64DriverData *mdrv,
      }
 
      mach64_waitfifo( mdrv, mdev, 1 );
-     mach64_out32( mmio, SRC_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
+     mach64_out32( mmio, SRC_OFF_PITCH, (state->src.offset/8) | ((pitch/8) << 22) );
 
      MACH64_VALIDATE( m_source );
 }
@@ -216,16 +212,15 @@ void mach64gt_set_source_scale( Mach64DriverData *mdrv,
 {
      volatile u8 *mmio     = mdrv->mmio_base;
      CoreSurface   *source = state->source;
-     SurfaceBuffer *buffer = source->front_buffer;
-     int            offset = buffer->video.offset;
-     int            pitch  = buffer->video.pitch;
-     int            height = source->height;
+     unsigned int   offset = state->src.offset;
+     unsigned int   pitch  = state->src.pitch;
+     int            height = source->config.size.h;
 
      if (MACH64_IS_VALID( m_source_scale ))
           return;
 
      mdev->pix_width &= ~SCALE_PIX_WIDTH;
-     switch (source->format) {
+     switch (source->config.format) {
           case DSPF_RGB332:
                mdev->pix_width |= SCALE_PIX_WIDTH_RGB332;
                break;
@@ -250,13 +245,13 @@ void mach64gt_set_source_scale( Mach64DriverData *mdrv,
      }
 
      mdev->blit_blend &= ~SCALE_PIX_EXPAND;
-     if (DFB_COLOR_BITS_PER_PIXEL( source->format ) < 24)
+     if (DFB_COLOR_BITS_PER_PIXEL( source->config.format ) < 24)
           mdev->blit_blend |= SCALE_PIX_EXPAND;
 
      mdev->field = source->field;
      if (mdev->blit_deinterlace) {
           if (mdev->field) {
-               if (source->caps & DSCAPS_SEPARATED) {
+               if (source->config.caps & DSCAPS_SEPARATED) {
                     offset += height/2 * pitch;
                } else {
                     offset += pitch;
@@ -270,9 +265,9 @@ void mach64gt_set_source_scale( Mach64DriverData *mdrv,
 
      mdev->scale_offset = offset;
      mdev->scale_pitch  = pitch;
-     
+
      mdev->tex_offset = offset;
-     mdev->tex_pitch  = direct_log2( pitch / DFB_BYTES_PER_PIXEL( source->format ) );
+     mdev->tex_pitch  = direct_log2( pitch / DFB_BYTES_PER_PIXEL( source->config.format ) );
      mdev->tex_height = direct_log2( height );
      mdev->tex_size   = MAX( mdev->tex_pitch, mdev->tex_height );
 
@@ -317,7 +312,7 @@ void mach64_set_color( Mach64DriverData *mdrv,
           color.b = (color.b * (color.a + 1)) >> 8;
      }
 
-     switch (state->destination->format) {
+     switch (state->destination->config.format) {
           case DSPF_RGB332:
                clr = PIXEL_RGB332( color.r,
                                    color.g,
@@ -447,7 +442,7 @@ void mach64_set_src_colorkey( Mach64DriverData *mdrv,
 
      mach64_waitfifo( mdrv, mdev, 3 );
      mach64_out32( mmio, CLR_CMP_MSK,
-                   (1 << DFB_COLOR_BITS_PER_PIXEL( state->source->format )) - 1 );
+                   (1 << DFB_COLOR_BITS_PER_PIXEL( state->source->config.format )) - 1 );
      mach64_out32( mmio, CLR_CMP_CLR, state->src_colorkey );
      mach64_out32( mmio, CLR_CMP_CNTL, CLR_CMP_FN_EQUAL | CLR_CMP_SRC_2D );
 
@@ -466,7 +461,7 @@ void mach64_set_src_colorkey_scale( Mach64DriverData *mdrv,
           return;
 
      if (mdev->chip < CHIP_3D_RAGE_PRO) {
-          switch (state->source->format) {
+          switch (state->source->config.format) {
                case DSPF_RGB332:
                     clr = ((state->src_colorkey & 0xE0) << 16) |
                           ((state->src_colorkey & 0x1C) << 11) |
@@ -504,7 +499,7 @@ void mach64_set_src_colorkey_scale( Mach64DriverData *mdrv,
           }
      } else {
           clr = state->src_colorkey;
-          msk = (1 << DFB_COLOR_BITS_PER_PIXEL( state->source->format )) - 1;
+          msk = (1 << DFB_COLOR_BITS_PER_PIXEL( state->source->config.format )) - 1;
      }
 
      mach64_waitfifo( mdrv, mdev, 3 );
@@ -527,7 +522,7 @@ void mach64_set_dst_colorkey( Mach64DriverData *mdrv,
 
      mach64_waitfifo( mdrv, mdev, 3 );
      mach64_out32( mmio, CLR_CMP_MSK,
-                   (1 << DFB_COLOR_BITS_PER_PIXEL( state->destination->format )) - 1 );
+                   (1 << DFB_COLOR_BITS_PER_PIXEL( state->destination->config.format )) - 1 );
      mach64_out32( mmio, CLR_CMP_CLR, state->dst_colorkey );
      mach64_out32( mmio, CLR_CMP_CNTL, CLR_CMP_FN_NOT_EQUAL | CLR_CMP_SRC_DEST );
 
@@ -616,7 +611,7 @@ void mach64_set_blit_blend( Mach64DriverData *mdrv,
           /* Disable dithering because it is applied even when
            * the source pixels are completely transparent.
            */
-          if (DFB_PIXELFORMAT_HAS_ALPHA( state->source->format ))
+          if (DFB_PIXELFORMAT_HAS_ALPHA( state->source->config.format ))
                mdev->blit_blend &= ~DITHER_EN;
 
           mdev->blit_blend |= ALPHA_FOG_EN_ALPHA |
@@ -624,7 +619,7 @@ void mach64_set_blit_blend( Mach64DriverData *mdrv,
                               mach64DestBlend  [state->dst_blend - 1];
 
           if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) {
-               if (DFB_PIXELFORMAT_HAS_ALPHA( state->source->format )) {
+               if (DFB_PIXELFORMAT_HAS_ALPHA( state->source->config.format )) {
                     mdev->blit_blend |= TEX_MAP_AEN;
                } else {
                     mach64_waitfifo( mdrv, mdev, 1 );
@@ -642,7 +637,7 @@ void mach64_set_blit_blend( Mach64DriverData *mdrv,
           /* This needs to be set even without alpha blending.
            * Otherwise alpha channel won't get copied.
            */
-          if (DFB_PIXELFORMAT_HAS_ALPHA( state->source->format ))
+          if (DFB_PIXELFORMAT_HAS_ALPHA( state->source->config.format ))
                mdev->blit_blend |= TEX_MAP_AEN;
 
           if (mdev->chip >= CHIP_3D_RAGE_PRO) {
