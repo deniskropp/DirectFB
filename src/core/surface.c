@@ -182,10 +182,8 @@ dfb_surface_create( CoreDFB                  *core,
      surface->alpha_ramp[3] = 0xff;
 
 
-/* FIXME_SC_3    if (surface->config.caps & DSCAPS_STATIC_ALLOC) {
-          surface->min_width  = width;
-          surface->min_height = height;
-     }*/
+     if (surface->config.caps & DSCAPS_STATIC_ALLOC)
+          surface->config.min_size = surface->config.size;
 
      surface->shmpool = dfb_core_shmpool( core );
 
@@ -365,6 +363,7 @@ dfb_surface_reconfig( CoreSurface             *surface,
      DFBResult ret;
 
      D_MAGIC_ASSERT( surface, CoreSurface );
+     D_ASSERT( config != NULL );
 
      if (surface->type & CSTF_PREALLOCATED)
           return DFB_UNSUPPORTED;
@@ -374,6 +373,17 @@ dfb_surface_reconfig( CoreSurface             *surface,
 
      if (fusion_skirmish_prevail( &surface->lock ))
           return DFB_FUSION;
+
+     if (  (config->flags == CSCONF_SIZE ||
+          ((config->flags == (CSCONF_SIZE | CSCONF_FORMAT)) && (config->format == surface->config.format)))  &&
+         config->size.w <= surface->config.min_size.w &&
+         config->size.h <= surface->config.min_size.h)
+     {
+          surface->config.size = config->size;
+
+          fusion_skirmish_dismiss( &surface->lock );
+          return DFB_OK;
+     }
 
      /* Destroy the Surface Buffers. */
      for (i=0; i<surface->num_buffers; i++) {

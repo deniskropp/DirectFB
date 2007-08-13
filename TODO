@@ -2,7 +2,7 @@ Incomplete (roughly sorted by priority)
 ---------------------------------------
 
 New Surface Core
-- Revive DSCAPS_STATIC_ALLOC.
+- Test DSCAPS_STATIC_ALLOC.
 - Revive depth buffers.
 - Revive CSLF_FORCE for locking buffers in(to) INTERNAL memory.
 - Revive surface setinels.
