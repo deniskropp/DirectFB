@@ -57,7 +57,7 @@ static void Bop_rgb32_Kto_Aop_64( GenefxState *gfxs )
      u64    DSkey = ((u64)Skey << 32) | Skey;
      
      if ((long)D & 4) {
-          if (*S != Skey)
+          if ((*S & 0x00ffffff) != Skey)
                *D = *S;
           D++;
           S++;
@@ -67,7 +67,7 @@ static void Bop_rgb32_Kto_Aop_64( GenefxState *gfxs )
      for (w = l >> 1; w; w--) {
           u64 s = *((u64*)S);
 
-          if (s != DSkey) {
+          if ((s & 0x00ffffff00ffffffull) != DSkey) {
                if ((s & 0x00ffffff00000000ull) != 
                     (DSkey & 0x00ffffff00000000ull)) {
                     if ((s & 0x0000000000ffffffull) != 
@@ -95,7 +95,7 @@ static void Bop_rgb32_Kto_Aop_64( GenefxState *gfxs )
      }
      
      if (l & 1) {                 /* do the last potential pixel */
-          if (*S != Skey)
+          if ((*S & 0x00ffffff) != Skey)
                *D = *S;
      }
 }
@@ -109,7 +109,7 @@ static void Bop_rgb32_toK_Aop_64( GenefxState *gfxs )
      u64    DDkey = ((u64)Dkey << 32) | Dkey;
      
      if ((long)D & 4) {
-          if (*D == Dkey)
+          if ((*D & 0x00ffffff) == Dkey)
                *D = *S;
           D++;
           S++;
@@ -119,7 +119,7 @@ static void Bop_rgb32_toK_Aop_64( GenefxState *gfxs )
      for (w = l >> 1; w; w--) {
           u64 d = *((u64*)D);
 
-          if (d != DDkey) {
+          if ((d & 0x00ffffff00ffffffull) != DDkey) {
                if ((d & 0x00ffffff00000000ull) ==
                     (DDkey & 0x00ffffff00000000ull)) {
                     if ((d & 0x0000000000ffffffull) ==
@@ -147,7 +147,7 @@ static void Bop_rgb32_toK_Aop_64( GenefxState *gfxs )
      }
      
      if (l & 1) {                 /* do the last potential pixel */
-          if (*D == Dkey)
+          if ((*D & 0x00ffffff) == Dkey)
                *D = *S;
      }
 }
