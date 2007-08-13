@@ -106,6 +106,7 @@ DFBResult
 dfb_surface_create( CoreDFB                  *core,
                     const CoreSurfaceConfig  *config,
                     CoreSurfaceTypeFlags      type,
+                    unsigned long             resource_id,
                     CorePalette              *palette,
                     CoreSurface             **ret_surface )
 {
@@ -166,6 +167,8 @@ dfb_surface_create( CoreDFB                  *core,
           surface->type = (type & ~CSTF_INTERNAL) | CSTF_EXTERNAL;
      else
           surface->type = type & ~(CSTF_INTERNAL | CSTF_EXTERNAL);
+
+     surface->resource_id = resource_id;
 
      if (surface->config.caps & DSCAPS_TRIPLE)
           buffers = 3;
@@ -283,6 +286,7 @@ dfb_surface_create_simple ( CoreDFB                 *core,
                             DFBSurfacePixelFormat    format,
                             DFBSurfaceCapabilities   caps,
                             CoreSurfaceTypeFlags     type,
+                            unsigned long            resource_id,
                             CorePalette             *palette,
                             CoreSurface            **ret_surface )
 {
@@ -300,7 +304,7 @@ dfb_surface_create_simple ( CoreDFB                 *core,
      config.format = format;
      config.caps   = caps;
 
-     return dfb_surface_create( core, &config, type, palette, ret_surface );
+     return dfb_surface_create( core, &config, type, resource_id, palette, ret_surface );
 }
 
 DFBResult

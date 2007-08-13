@@ -429,6 +429,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
      DFBSurfaceCapabilities caps = DSCAPS_NONE;
      DFBDisplayLayerConfig  config;
      CoreSurface *surface = NULL;
+     unsigned long resource_id = 0;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
@@ -465,6 +466,9 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
      if (desc->flags & DSDESC_PIXELFORMAT)
           format = desc->pixelformat;
+
+     if (desc->flags & DSDESC_RESOURCE_ID)
+          resource_id = desc->resource_id;
 
      switch (format) {
           case DSPF_A1:
@@ -546,8 +550,9 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                          ret = dfb_surface_create_simple( data->core,
                                                           width, height,
-                                                          format, caps, CSTF_SHARED, NULL,
-                                                          &surface );
+                                                          format, caps,
+                                                          CSTF_SHARED, resource_id,
+                                                          NULL, &surface );
                          if (ret)
                               return ret;
 
@@ -774,7 +779,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           config.preallocated[1].addr  = desc->preallocated[1].data;
           config.preallocated[1].pitch = desc->preallocated[1].pitch;
 
-          ret = dfb_surface_create( data->core, &config, CSTF_PREALLOCATED, NULL, &surface );
+          ret = dfb_surface_create( data->core, &config, CSTF_PREALLOCATED, resource_id, NULL, &surface );
           if (ret)
                return ret;
      }
@@ -787,7 +792,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           config.format = format;
           config.caps   = caps;
 
-          ret = dfb_surface_create( data->core, &config, CSTF_NONE, NULL, &surface );
+          ret = dfb_surface_create( data->core, &config, CSTF_NONE, resource_id, NULL, &surface );
           if (ret)
                return ret;
      }

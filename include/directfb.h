@@ -592,7 +592,11 @@ typedef enum {
                                            with the entries specified in the
                                            description. */
 
-     DSDESC_ALL          = 0x0000003F   /* all of these */
+     DSDESC_RESOURCE_ID  = 0x00000100,  /* user defined resource id for general purpose
+                                           surfaces is specified, or resource id of window,
+                                           layer, user is returned */
+
+     DSDESC_ALL          = 0x0000013F   /* all of these */
 } DFBSurfaceDescriptionFlags;
 
 /*
@@ -1155,6 +1159,9 @@ typedef struct {
           const DFBColor               *entries;
           unsigned int                  size;
      } palette;                                      /* initial palette */
+
+     unsigned long                      resource_id;   /* universal resource id, either user specified for general
+                                                          purpose surfaces or id of layer or window */
 } DFBSurfaceDescription;
 
 /*

@@ -267,14 +267,14 @@ alloc_callback( CoreSurfaceAllocation *alloc,
 
      index = dfb_surface_buffer_index( alloc->buffer );
 
-     printf( " %-5s",
+     printf( " %-5s ",
              (dfb_surface_get_buffer( surface, CSBR_FRONT ) == buffer) ? "front" :
              (dfb_surface_get_buffer( surface, CSBR_BACK  ) == buffer) ? "back"  :
              (dfb_surface_get_buffer( surface, CSBR_IDLE  ) == buffer) ? "idle"  : "" );
 
      printf( direct_serial_check(&alloc->serial, &buffer->serial) ? " * " : "   " );
 
-     printf( "%d  ", buffer->allocs.count );
+     printf( "%d  %2lu  ", buffer->allocs.count, surface->resource_id );
 
      if (surface->type & CSTF_SHARED)
           printf( "SHARED  " );
@@ -334,7 +334,7 @@ surface_pool_callback( CoreSurfacePool *pool,
 
      printf( "\n" );
      printf( "--------------------[ Surface Buffer Allocations in %s ]-------------------%n\n", pool->desc.name, &length );
-     printf( "Offset    Length   Width Height     Format  Role  U C  Usage   Type / Storage / Caps\n" );
+     printf( "Offset    Length   Width Height     Format  Role  Up nA ID  Usage   Type / Storage / Caps\n" );
 
      while (length--)
           putc( '-', stdout );

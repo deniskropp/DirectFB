@@ -259,7 +259,7 @@ fbdevAllocateBuffer( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     if (surface->type & CSTF_LAYER) {
+     if ((surface->type & CSTF_LAYER) && surface->resource_id == DLID_PRIMARY) {
           int i, index = dfb_surface_buffer_index( buffer );
 
           /* HACK FIXME_SC_2 ALLOCATE/SETMODE TWIST */

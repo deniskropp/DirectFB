@@ -381,7 +381,9 @@ dfb_font_get_glyph_data( CoreFont        *font,
                                                 font->row_width,
                                                 MAX( font->height + 1, 8 ),
                                                 font->pixel_format,
-                                                font->surface_caps, CSTF_FONT, NULL, &row->surface );
+                                                font->surface_caps, CSTF_FONT,
+                                                0 /* FIXME: no shared fonts, no font id */,
+                                                NULL, &row->surface );
                if (ret) {
                     D_DERROR( ret, "Core/Font: Could not create font surface!\n" );
                     D_FREE( row );

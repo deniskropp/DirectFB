@@ -158,6 +158,7 @@ struct __DFB_CoreSurface
 
      CoreSurfaceConfig        config;
      CoreSurfaceTypeFlags     type;
+     unsigned long            resource_id;   /* layer id, window id, or user specified */
 
      CoreSurfaceNotificationFlags notifications;
 
@@ -194,6 +195,7 @@ FUSION_OBJECT_METHODS( CoreSurface, dfb_surface )
 DFBResult dfb_surface_create        ( CoreDFB                      *core,
                                       const CoreSurfaceConfig      *config,
                                       CoreSurfaceTypeFlags          type,
+                                      unsigned long                 resource_id,
                                       CorePalette                  *palette,
                                       CoreSurface                 **ret_surface );
 
@@ -203,6 +205,7 @@ DFBResult dfb_surface_create_simple ( CoreDFB                      *core,
                                       DFBSurfacePixelFormat         format,
                                       DFBSurfaceCapabilities        caps,
                                       CoreSurfaceTypeFlags          type,
+                                      unsigned long                 resource_id,
                                       CorePalette                  *palette,
                                       CoreSurface                 **ret_surface );
 

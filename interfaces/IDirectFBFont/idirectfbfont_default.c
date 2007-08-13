@@ -133,7 +133,7 @@ Construct( IDirectFBFont      *thiz,
      config.size.h = font_desc.height;
      config.format = font->pixel_format;
 
-     ret = dfb_surface_create( core, &config, CSTF_FONT, NULL, &surface );
+     ret = dfb_surface_create( core, &config, CSTF_FONT, 0, NULL, &surface );
      if (ret) {
           dfb_font_destroy( font );
           return ret;
