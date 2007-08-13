@@ -170,9 +170,15 @@ void
 direct_debug_at( DirectDebugDomain *domain,
                  const char        *format, ... )
 {
+     bool enabled;
+
      pthread_mutex_lock( &domains_lock );
 
-     if (check_domain( domain )) {
+     enabled = check_domain( domain );
+
+     pthread_mutex_unlock( &domains_lock );
+
+     if (enabled) {
           int         len;
           char        dom[48];
           char        fmt[64];
@@ -202,21 +208,25 @@ direct_debug_at( DirectDebugDomain *domain,
           direct_log_printf( NULL, fmt, name ? name : "  NO NAME  ",
                              millis / 1000LL, millis % 1000LL, direct_gettid(), dom, buf );
      }
-
-     pthread_mutex_unlock( &domains_lock );
 }
 
 __attribute__((no_instrument_function))
 void
 direct_debug_enter( DirectDebugDomain *domain,
-	      	    const char *func,
+                    const char *func,
                     const char *file,
                     int         line,
                     const char *format, ... )
 {
+     bool enabled;
+
      pthread_mutex_lock( &domains_lock );
 
-     if (check_domain( domain )) {
+     enabled = check_domain( domain );
+
+     pthread_mutex_unlock( &domains_lock );
+
+     if (enabled) {
           int         len;
           char        dom[48];
           char        fmt[128];
@@ -247,21 +257,25 @@ direct_debug_enter( DirectDebugDomain *domain,
                              millis / 1000LL, millis % 1000LL, direct_gettid(), dom,
 			     func, buf, file, line );
      }
-
-     pthread_mutex_unlock( &domains_lock );
 }
 
 __attribute__((no_instrument_function))
 void
 direct_debug_exit( DirectDebugDomain *domain,
-	      	    const char *func,
-                    const char *file,
-                    int         line,
-                    const char *format, ... )
+                   const char *func,
+                   const char *file,
+                   int         line,
+                   const char *format, ... )
 {
+     bool enabled;
+
      pthread_mutex_lock( &domains_lock );
 
-     if (check_domain( domain )) {
+     enabled = check_domain( domain );
+
+     pthread_mutex_unlock( &domains_lock );
+
+     if (enabled) {
           int         len;
           char        dom[48];
           char        fmt[128];
@@ -292,8 +306,6 @@ direct_debug_exit( DirectDebugDomain *domain,
                              millis / 1000LL, millis % 1000LL, direct_gettid(), dom,
 			     func, buf, file, line );
      }
-
-     pthread_mutex_unlock( &domains_lock );
 }
 
 __attribute__((no_instrument_function))
