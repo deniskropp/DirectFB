@@ -218,14 +218,13 @@ primaryInitLayer( CoreLayer                  *layer,
           int depth=DefaultDepth(display,DefaultScreen(display));
           XCloseDisplay(display);
           switch (depth) {
+               case 15:
+                    config->pixelformat = DSPF_RGB555;
+                    break;
                case 16:
                     config->pixelformat = DSPF_RGB16;
                     break;
                case 24:
-                    /*config->pixelformat = DSPF_RGB24;
-                    break;
-                    */
-               case 32:
                     config->pixelformat = DSPF_RGB32;
                     break;
                default:

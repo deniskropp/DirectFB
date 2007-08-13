@@ -162,6 +162,20 @@ system_initialize( CoreDFB *core, void **data )
                               dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]  = visual;
                          }
                          break;
+
+                    case 16:
+                         if (visual->red_mask   == 0xf800 &&
+                             visual->green_mask == 0x07e0 &&
+                             visual->blue_mask  == 0x001f)
+                              dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB16)] = visual;
+                         break;
+
+                    case 15:
+                         if (visual->red_mask   == 0x7c00 &&
+                             visual->green_mask == 0x03e0 &&
+                             visual->blue_mask  == 0x001f)
+                              dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB555)] = visual;
+                         break;
                }
           }
      }
