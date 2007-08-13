@@ -1533,9 +1533,12 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
  */
 static DFBResult dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
 {
+     DFBResult                 ret;
+     int                       result;
      struct fb_var_screeninfo *var;
+     FBDevShared              *shared = dfb_fbdev->shared;
 
-     var = &dfb_fbdev->shared->current_var;
+     var = &shared->current_var;
 
      if (var->xres_virtual < xoffset + var->xres) {
           D_ERROR( "DirectFB/FBDev: xres %d, vxres %d, xoffset %d\n",
@@ -1568,15 +1571,18 @@ static DFBResult dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
 
      var->activate = onsync ? FB_ACTIVATE_VBL : FB_ACTIVATE_NOW;
 
-     if (FBDEV_IOCTL( FBIOPAN_DISPLAY, var ) < 0) {
-          int erno = errno;
+     ret = fusion_call_execute( &shared->fbdev_ioctl, FCEF_NONE, FBIOPAN_DISPLAY, var, &result );
+     if (ret)
+          return DFB_FUSION;
 
+     if (result) {
+          errno = result;
           D_PERROR( "DirectFB/FBDev: Panning display failed (x=%u y=%u ywrap=%d vbl=%d)!\n",
                     var->xoffset, var->yoffset,
                     (var->vmode & FB_VMODE_YWRAP) ? 1 : 0,
                     (var->activate & FB_ACTIVATE_VBL) ? 1 : 0);
 
-          return errno2result( erno );
+          return errno2result(result);
      }
 
      return DFB_OK;
@@ -2230,6 +2236,8 @@ fbdev_ioctl_call_handler( int           caller,
      }
 
      ret = ioctl( dfb_fbdev->fd, call_arg, call_ptr );
+     if (ret)
+          ret = errno;
 
      if (dfb_config->vt) {
           if (call_arg == FBIOPUT_VSCREENINFO) {
