@@ -830,7 +830,7 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
                continue;
           }
 
-          readlen = read( data->fd, levt, sizeof(levt) ) / sizeof(levt[0]);
+          readlen = read( data->fd, levt, sizeof(levt) );
 
           if (readlen < 0 && errno != EINTR)
                break;
@@ -840,7 +840,7 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
           if (readlen <= 0)
                continue;
 
-          for (i=0; i<readlen; i++) {
+          for (i=0; i<readlen / sizeof(levt[0]); i++) {
                DFBInputEvent devt;
 
                if (data->touchpad) {
