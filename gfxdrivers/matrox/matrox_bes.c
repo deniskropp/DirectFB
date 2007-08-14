@@ -149,6 +149,8 @@ besInitLayer( CoreLayer                  *layer,
           mga_out32( mmio, 0x80, BESLUMACTL );
      }
 
+     /* make sure BES registers get updated (besvcnt) */
+     mga_out32( mmio, 0, BESGLOBCTL );
      /* disable backend scaler */
      mga_out32( mmio, 0, BESCTL );
 
@@ -311,9 +313,12 @@ besRemoveRegion( CoreLayer *layer,
                  void      *region_data )
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
+     volatile u8        *mmio = mdrv->mmio_base;
 
+     /* make sure BES registers get updated (besvcnt) */
+     mga_out32( mmio, 0, BESGLOBCTL );
      /* disable backend scaler */
-     mga_out32( mdrv->mmio_base, 0, BESCTL );
+     mga_out32( mmio, 0, BESCTL );
 
      return DFB_OK;
 }
