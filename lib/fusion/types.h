@@ -35,11 +35,11 @@
 
 #include <linux/fusion.h>
 
-#if FUSION_API_MAJOR != 6
-#error Need major API version 6!
+#if FUSION_API_MAJOR != 7
+#error Need major API version 7!
 #else
 #if FUSION_API_MINOR < 0
-#error Insufficient minor API version, need 6.0 at least!
+#error Insufficient minor API version, need 7.0 at least!
 #endif
 #endif
 
