@@ -80,12 +80,13 @@ static void crtc2_set_regs           ( MatroxDriverData      *mdrv,
 static void crtc2_calc_regs          ( MatroxDriverData      *mdrv,
                                        MatroxCrtc2LayerData  *mcrtc2,
                                        CoreLayerRegionConfig *config,
-                                       CoreSurface           *surface );
+                                       CoreSurface           *surface,
+                                       CoreSurfaceBufferLock *lock );
 
 static void crtc2_calc_buffer        ( MatroxDriverData      *mdrv,
                                        MatroxCrtc2LayerData  *mcrtc2,
                                        CoreSurface           *surface,
-                                       bool                   front );
+                                       CoreSurfaceBufferLock *lock );
 
 static void crtc2_set_buffer         ( MatroxDriverData      *mdrv,
                                        MatroxCrtc2LayerData  *mcrtc2 );
@@ -258,7 +259,8 @@ crtc2SetRegion( CoreLayer                  *layer,
                 CoreLayerRegionConfig      *config,
                 CoreLayerRegionConfigFlags  updated,
                 CoreSurface                *surface,
-                CorePalette                *palette )
+                CorePalette                *palette,
+                CoreSurfaceBufferLock      *lock )
 {
      DFBResult             ret;
      MatroxDriverData     *mdrv   = (MatroxDriverData*) driver_data;
@@ -273,14 +275,14 @@ crtc2SetRegion( CoreLayer                  *layer,
 
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT |
                     CLRCF_SURFACE_CAPS | CLRCF_ALPHA_RAMP | CLRCF_SURFACE)) {
-          crtc2_calc_regs( mdrv, mcrtc2, config, surface );
-          crtc2_calc_buffer( mdrv, mcrtc2, surface, true );
+          crtc2_calc_regs( mdrv, mcrtc2, config, surface, lock );
+          crtc2_calc_buffer( mdrv, mcrtc2, surface, lock );
 
           ret = crtc2_enable_output( mdrv, mcrtc2 );
           if (ret)
                return ret;
 
-          mdev->crtc2_separated = !!(surface->caps & DSCAPS_SEPARATED);
+          mdev->crtc2_separated = !!(surface->config.caps & DSCAPS_SEPARATED);
      }
 
      return DFB_OK;
@@ -301,18 +303,19 @@ crtc2RemoveRegion( CoreLayer *layer,
 }
 
 static DFBResult
-crtc2FlipRegion( CoreLayer           *layer,
-                 void                *driver_data,
-                 void                *layer_data,
-                 void                *region_data,
-                 CoreSurface         *surface,
-                 DFBSurfaceFlipFlags  flags )
+crtc2FlipRegion( CoreLayer             *layer,
+                 void                  *driver_data,
+                 void                  *layer_data,
+                 void                  *region_data,
+                 CoreSurface           *surface,
+                 DFBSurfaceFlipFlags    flags,
+                 CoreSurfaceBufferLock *lock )
 {
      MatroxDriverData     *mdrv    = (MatroxDriverData*) driver_data;
      MatroxCrtc2LayerData *mcrtc2  = (MatroxCrtc2LayerData*) layer_data;
      volatile u8          *mmio    = mdrv->mmio_base;
 
-     crtc2_calc_buffer( mdrv, mcrtc2, surface, false );
+     crtc2_calc_buffer( mdrv, mcrtc2, surface, lock );
 
      if (mcrtc2->config.options & DLOP_FIELD_PARITY) {
           int field = (mga_in32( mmio, C2VCOUNT ) & C2FIELD) ? 1 : 0;
@@ -325,7 +328,7 @@ crtc2FlipRegion( CoreLayer           *layer,
      }
      crtc2_set_buffer( mdrv, mcrtc2 );
 
-     dfb_surface_flip_buffers( surface, false );
+     dfb_surface_flip( surface, false );
 
      if (flags & DSFLIP_WAIT)
           dfb_screen_wait_vsync( mdrv->secondary );
@@ -418,7 +421,8 @@ static void crtc2_set_regs( MatroxDriverData     *mdrv,
 static void crtc2_calc_regs( MatroxDriverData      *mdrv,
                              MatroxCrtc2LayerData  *mcrtc2,
                              CoreLayerRegionConfig *config,
-                             CoreSurface           *surface )
+                             CoreSurface           *surface,
+                             CoreSurfaceBufferLock *lock )
 {
      MatroxDeviceData *mdev = mdrv->device_data;
 
@@ -492,11 +496,11 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
                return;
      }
 
-     if (!(surface->caps & DSCAPS_INTERLACED))
+     if (!(surface->config.caps & DSCAPS_INTERLACED))
           mcrtc2->regs.c2CTL |= C2VCBCRSINGLE;
 
-     mcrtc2->regs.c2OFFSET = surface->front_buffer->video.pitch;
-     if (!(surface->caps & DSCAPS_SEPARATED))
+     mcrtc2->regs.c2OFFSET = lock->pitch;
+     if (!(surface->config.caps & DSCAPS_SEPARATED))
           mcrtc2->regs.c2OFFSET *= 2;
 
      {
@@ -529,41 +533,40 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
      mcrtc2->regs.c2DATACTL |= config->alpha_ramp[0] << 16;
 }
 
-static void crtc2_calc_buffer( MatroxDriverData     *mdrv,
-                               MatroxCrtc2LayerData *mcrtc2,
-                               CoreSurface          *surface,
-                               bool                  front )
+static void crtc2_calc_buffer( MatroxDriverData      *mdrv,
+                               MatroxCrtc2LayerData  *mcrtc2,
+                               CoreSurface           *surface,
+                               CoreSurfaceBufferLock *lock )
 {
-     SurfaceBuffer *buffer       = front ? surface->front_buffer : surface->back_buffer;
-     int            field_offset = buffer->video.pitch;
+     unsigned int field_offset = lock->pitch;
 
-     if (surface->caps & DSCAPS_SEPARATED)
+     if (surface->config.caps & DSCAPS_SEPARATED)
           field_offset *= surface->config.size.h / 2;
 
-     mcrtc2->regs.c2STARTADD1 = buffer->video.offset;
+     mcrtc2->regs.c2STARTADD1 = lock->offset;
      mcrtc2->regs.c2STARTADD0 = mcrtc2->regs.c2STARTADD1 + field_offset;
 
-     if (surface->caps & DSCAPS_INTERLACED)
-          field_offset = buffer->video.pitch / 2;
+     if (surface->config.caps & DSCAPS_INTERLACED)
+          field_offset = lock->pitch / 2;
      else
           field_offset = 0;
 
-     if (surface->caps & DSCAPS_SEPARATED)
+     if (surface->config.caps & DSCAPS_SEPARATED)
           field_offset *= surface->config.size.h / 4;
 
      switch (surface->config.format) {
           case DSPF_I420:
-               mcrtc2->regs.c2PL2STARTADD1 = mcrtc2->regs.c2STARTADD1 + surface->config.size.h * buffer->video.pitch;
+               mcrtc2->regs.c2PL2STARTADD1 = mcrtc2->regs.c2STARTADD1 + surface->config.size.h * lock->pitch;
                mcrtc2->regs.c2PL2STARTADD0 = mcrtc2->regs.c2PL2STARTADD1 + field_offset;
 
-               mcrtc2->regs.c2PL3STARTADD1 = mcrtc2->regs.c2PL2STARTADD1 + surface->config.size.h/2 * buffer->video.pitch/2;
+               mcrtc2->regs.c2PL3STARTADD1 = mcrtc2->regs.c2PL2STARTADD1 + surface->config.size.h/2 * lock->pitch/2;
                mcrtc2->regs.c2PL3STARTADD0 = mcrtc2->regs.c2PL3STARTADD1 + field_offset;
                break;
           case DSPF_YV12:
-               mcrtc2->regs.c2PL3STARTADD1 = mcrtc2->regs.c2STARTADD1 + surface->config.size.h * buffer->video.pitch;
+               mcrtc2->regs.c2PL3STARTADD1 = mcrtc2->regs.c2STARTADD1 + surface->config.size.h * lock->pitch;
                mcrtc2->regs.c2PL3STARTADD0 = mcrtc2->regs.c2PL3STARTADD1 + field_offset;
 
-               mcrtc2->regs.c2PL2STARTADD1 = mcrtc2->regs.c2PL3STARTADD1 + surface->config.size.h/2 * buffer->video.pitch/2;
+               mcrtc2->regs.c2PL2STARTADD1 = mcrtc2->regs.c2PL3STARTADD1 + surface->config.size.h/2 * lock->pitch/2;
                mcrtc2->regs.c2PL2STARTADD0 = mcrtc2->regs.c2PL2STARTADD1 + field_offset;
                break;
           default:

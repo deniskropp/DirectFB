@@ -67,7 +67,7 @@ crtc2ScreenDataSize()
 
 static DFBResult
 crtc2InitScreen( CoreScreen           *screen,
-                 GraphicsDevice       *device,
+                 CoreGraphicsDevice   *device,
                  void                 *driver_data,
                  void                 *screen_data,
                  DFBScreenDescription *description )

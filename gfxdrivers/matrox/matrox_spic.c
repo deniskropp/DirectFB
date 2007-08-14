@@ -60,10 +60,11 @@ typedef struct {
      } regs;
 } MatroxSpicLayerData;
 
-static void spic_calc_buffer( MatroxDriverData    *mdrv,
-                              MatroxSpicLayerData *mspic,
-                              CoreSurface         *surface,
-                              bool                 front );
+static void spic_calc_buffer( MatroxDriverData      *mdrv,
+                              MatroxSpicLayerData   *mspic,
+                              CoreSurface           *surface,
+                              CoreSurfaceBufferLock *lock );
+
 static void spic_set_buffer( MatroxDriverData    *mdrv,
                              MatroxSpicLayerData *mspic );
 
@@ -177,7 +178,8 @@ spicSetRegion( CoreLayer                  *layer,
                CoreLayerRegionConfig      *config,
                CoreLayerRegionConfigFlags  updated,
                CoreSurface                *surface,
-               CorePalette                *palette )
+               CorePalette                *palette,
+               CoreSurfaceBufferLock      *lock )
 {
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
@@ -204,12 +206,12 @@ spicSetRegion( CoreLayer                  *layer,
 
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_SURFACE_CAPS |
                     CLRCF_OPTIONS | CLRCF_OPACITY | CLRCF_SURFACE)) {
-          spic_calc_buffer( mdrv, mspic, surface, true );
+          spic_calc_buffer( mdrv, mspic, surface, lock );
           spic_set_buffer( mdrv, mspic );
 
           mspic->regs.c2DATACTL = mga_in32( mmio, C2DATACTL );
 
-          if (surface->caps & DSCAPS_INTERLACED || mdev->crtc2_separated)
+          if (surface->config.caps & DSCAPS_INTERLACED || mdev->crtc2_separated)
                mspic->regs.c2DATACTL &= ~C2OFFSETDIVEN;
           else
                mspic->regs.c2DATACTL |= C2OFFSETDIVEN;
@@ -253,20 +255,21 @@ spicRemoveRegion( CoreLayer *layer,
 }
 
 static DFBResult
-spicFlipRegion( CoreLayer           *layer,
-                void                *driver_data,
-                void                *layer_data,
-                void                *region_data,
-                CoreSurface         *surface,
-                DFBSurfaceFlipFlags  flags )
+spicFlipRegion( CoreLayer             *layer,
+                void                  *driver_data,
+                void                  *layer_data,
+                void                  *region_data,
+                CoreSurface           *surface,
+                DFBSurfaceFlipFlags    flags,
+                CoreSurfaceBufferLock *lock )
 {
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
 
-     spic_calc_buffer( mdrv, mspic, surface, false );
+     spic_calc_buffer( mdrv, mspic, surface, lock );
      spic_set_buffer( mdrv, mspic );
 
-     dfb_surface_flip_buffers( surface, false );
+     dfb_surface_flip( surface, false );
 
      return DFB_OK;
 }
@@ -284,21 +287,20 @@ DisplayLayerFuncs matroxSpicFuncs = {
 
 /* internal */
 
-static void spic_calc_buffer( MatroxDriverData    *mdrv,
-                              MatroxSpicLayerData *mspic,
-                              CoreSurface         *surface,
-                              bool                 front )
+static void spic_calc_buffer( MatroxDriverData      *mdrv,
+                              MatroxSpicLayerData   *mspic,
+                              CoreSurface           *surface,
+                              CoreSurfaceBufferLock *lock )
 {
-     SurfaceBuffer *buffer       = front ? surface->front_buffer : surface->back_buffer;
-     int            field_offset = buffer->video.pitch;
+     unsigned int field_offset = lock->pitch;
 
-     mspic->regs.c2SPICSTARTADD1 = buffer->video.offset;
-     mspic->regs.c2SPICSTARTADD0 = buffer->video.offset;
+     mspic->regs.c2SPICSTARTADD1 = lock->offset;
+     mspic->regs.c2SPICSTARTADD0 = lock->offset;
 
-     if (surface->caps & DSCAPS_SEPARATED)
+     if (surface->config.caps & DSCAPS_SEPARATED)
           field_offset *= surface->config.size.h / 2;
 
-     if (surface->caps & DSCAPS_INTERLACED)
+     if (surface->config.caps & DSCAPS_INTERLACED)
           mspic->regs.c2SPICSTARTADD0 += field_offset;
 }
 
