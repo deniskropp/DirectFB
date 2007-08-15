@@ -423,6 +423,7 @@ static void stretch_hv4_rgb16_from32( void         *dst,
 
 #define POINT_0               hfraq
 #define LINE_0                vfraq
+#define MINUS_1               0
 #define POINT_TO_RATIO(p,ps)  ( (((((p)) & 0x3ffff) ? : 0x40000) << 6) / (ps) )
 #define LINE_TO_RATIO(l,ls)   ( (((((l)) & 0x3ffff) ? : 0x40000) << 5) / (ls) )
 
@@ -490,6 +491,7 @@ static void stretch_hvx_rgb16_down_index( void           *dst,
 
 #undef POINT_0
 #undef LINE_0
+#undef MINUS_1
 #undef POINT_TO_RATIO
 #undef LINE_TO_RATIO
 #undef POINT_L
@@ -501,6 +503,7 @@ static void stretch_hvx_rgb16_down_index( void           *dst,
 
 #define POINT_0               0
 #define LINE_0                0
+#define MINUS_1               1
 #define POINT_TO_RATIO(p,ps)  ( ((p) & 0x3ffff) >> 12 )
 #define LINE_TO_RATIO(l,ls)   ( ((l) & 0x3ffff) >> 13 )
 
@@ -568,6 +571,7 @@ static void stretch_hvx_rgb16_up_index( void           *dst,
 
 #undef POINT_0
 #undef LINE_0
+#undef MINUS_1
 #undef POINT_TO_RATIO
 #undef LINE_TO_RATIO
 #undef POINT_L
@@ -596,6 +600,7 @@ static void stretch_hvx_rgb16_up_index( void           *dst,
 
 #define POINT_0               hfraq
 #define LINE_0                vfraq
+#define MINUS_1               0
 #define POINT_TO_RATIO(p,ps)  ( (((((p)) & 0x3ffff) ? : 0x40000) << 6) / (ps) )
 #define LINE_TO_RATIO(l,ls)   ( (((((l)) & 0x3ffff) ? : 0x40000) << 5) / (ls) )
 
@@ -665,6 +670,7 @@ static void stretch_hvx_argb4444_down_index( void           *dst,
 
 #undef POINT_0
 #undef LINE_0
+#undef MINUS_1
 #undef POINT_TO_RATIO
 #undef LINE_TO_RATIO
 #undef POINT_L
@@ -676,6 +682,7 @@ static void stretch_hvx_argb4444_down_index( void           *dst,
 
 #define POINT_0               0
 #define LINE_0                0
+#define MINUS_1               1
 #define POINT_TO_RATIO(p,ps)  ( ((p) & 0x3ffff) >> 12 )
 #define LINE_TO_RATIO(l,ls)   ( ((l) & 0x3ffff) >> 13 )
 
@@ -745,6 +752,7 @@ static void stretch_hvx_argb4444_up_index( void           *dst,
 
 #undef POINT_0
 #undef LINE_0
+#undef MINUS_1
 #undef POINT_TO_RATIO
 #undef LINE_TO_RATIO
 #undef POINT_L

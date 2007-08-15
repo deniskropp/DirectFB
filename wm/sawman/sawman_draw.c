@@ -37,8 +37,8 @@
 #include <core/gfxcard.h>
 #include <core/palette.h>
 #include <core/state.h>
-#include <core/surfacemanager.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
+#include <core/surface_buffer.h>
 #include <core/windows.h>
 #include <core/windows_internal.h>
 #include <core/windowstack.h>
@@ -62,23 +62,21 @@ smooth_stretchblit( CardState          *state,
                     const DFBRectangle *dr,
                     const StretchAlgo  *algo )
 {
-     DFBResult    ret;
-     void        *src;
-     int          spitch;
-     void        *dst;
-     int          dpitch;
-     CoreSurface *source;
-     CoreSurface *destination;
-     DFBRegion    clip;
+     DFBResult              ret;
+     void                  *src;
+     void                  *dst;
+     CoreSurfaceBuffer     *source;
+     CoreSurfaceBuffer     *destination;
+     DFBRegion              clip;
+     CoreSurfaceBufferLock  slock;
+     CoreSurfaceBufferLock  dlock;
 
      D_ASSERT( state != NULL );
      D_ASSERT( state->source != NULL );
-     D_ASSERT( state->source->manager != NULL );
      D_ASSERT( state->destination != NULL );
-     D_ASSERT( state->source->manager == state->destination->manager );
 
-     source      = state->source;
-     destination = state->destination;
+     source      = dfb_surface_get_buffer( state->source, CSBR_FRONT );
+     destination = dfb_surface_get_buffer( state->destination, CSBR_BACK );
      clip        = state->clip;
 
      switch (destination->format) {
@@ -95,7 +93,7 @@ smooth_stretchblit( CardState          *state,
                          break;
 
                     case DSPF_LUT8:
-                         D_ASSERT( source->palette != NULL );
+                         D_ASSERT( state->source->palette != NULL );
 
                          if (!algo->func_rgb16_indexed)
                               return DFB_UNSUPPORTED;
@@ -130,32 +128,22 @@ smooth_stretchblit( CardState          *state,
                return DFB_UNSUPPORTED;
      }
 
-     dfb_state_lock( state );
 
-     dfb_surfacemanager_lock( source->manager );
-
-     ret = dfb_surface_software_lock( state->core, source, DSLF_READ, &src, &spitch, true );
+     ret = dfb_surface_buffer_lock( source, CSAF_CPU_READ, &slock );
      if (ret) {
-          D_DERROR( ret, "IDirectFBSurface::Lock() on source failed!\n" );
-          dfb_surfacemanager_unlock( state->source->manager );
-          dfb_state_unlock( state );
+          D_DERROR( ret, "SaWMan/Draw: %s(): Could not lock source buffer!\n", __FUNCTION__ );
           return ret;
      }
 
-     ret = dfb_surface_software_lock( state->core, state->destination, DSLF_WRITE, &dst, &dpitch, false );
+     ret = dfb_surface_buffer_lock( destination, CSAF_CPU_WRITE, &dlock );
      if (ret) {
-          D_DERROR( ret, "IDirectFBSurface::Lock() on destination failed!\n" );
-          dfb_surface_unlock( source, true );
-          dfb_surfacemanager_unlock( source->manager );
-          dfb_state_unlock( state );
+          D_DERROR( ret, "SaWMan/Draw: %s(): Could not lock source buffer!\n", __FUNCTION__ );
+          dfb_surface_buffer_unlock( &slock );
           return ret;
      }
 
-     dfb_surfacemanager_unlock( source->manager );
-
-
-     src += DFB_BYTES_PER_LINE( source->format, sr->x ) + sr->y * spitch;
-     dst += DFB_BYTES_PER_LINE( destination->format, dr->x ) + dr->y * dpitch;
+     src = slock.addr + DFB_BYTES_PER_LINE( source->format, sr->x ) + sr->y * slock.pitch;
+     dst = dlock.addr + DFB_BYTES_PER_LINE( destination->format, dr->x ) + dr->y * dlock.pitch;
 
      dfb_region_translate( &clip, - dr->x, - dr->y );
 
@@ -164,19 +152,20 @@ smooth_stretchblit( CardState          *state,
                switch (source->format) {
                     case DSPF_RGB16:
                          if (state->blittingflags & DSBLIT_SRC_COLORKEY)
-                              algo->func_rgb16_keyed( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, &clip,
+                              algo->func_rgb16_keyed( dst, dlock.pitch, src, slock.pitch, sr->w, sr->h, dr->w, dr->h, &clip,
                                                       state->dst_colorkey, state->src_colorkey );
                          else
-                              algo->func_rgb16( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, &clip, state->dst_colorkey );
+                              algo->func_rgb16( dst, dlock.pitch, src, slock.pitch, sr->w, sr->h, dr->w, dr->h, &clip, state->dst_colorkey );
                          break;
 
                     case DSPF_LUT8:
-                         D_ASSERT( source->palette != NULL );
-                         algo->func_rgb16_indexed( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, &clip, state->dst_colorkey, source->palette->entries );
+                         D_ASSERT( state->source->palette != NULL );
+                         algo->func_rgb16_indexed( dst, dlock.pitch, src, slock.pitch, sr->w, sr->h, dr->w, dr->h, &clip, state->dst_colorkey,
+                                                   state->source->palette->entries );
                          break;
 
                     case DSPF_RGB32:
-                         algo->func_rgb16_from32( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, &clip, state->dst_colorkey );
+                         algo->func_rgb16_from32( dst, dlock.pitch, src, slock.pitch, sr->w, sr->h, dr->w, dr->h, &clip, state->dst_colorkey );
                          break;
 
                     default:
@@ -187,7 +176,7 @@ smooth_stretchblit( CardState          *state,
           case DSPF_ARGB4444:
                switch (source->format) {
                     case DSPF_ARGB4444:
-                         algo->func_argb4444( dst, dpitch, src, spitch, sr->w, sr->h, dr->w, dr->h, &clip, state->dst_colorkey );
+                         algo->func_argb4444( dst, dlock.pitch, src, slock.pitch, sr->w, sr->h, dr->w, dr->h, &clip, state->dst_colorkey );
                          break;
 
                     default:
@@ -199,11 +188,8 @@ smooth_stretchblit( CardState          *state,
                D_BUG( "unsupported destination format %s", dfb_pixelformat_name(destination->format) );
      }
 
-
-     dfb_surface_unlock( source, true );
-     dfb_surface_unlock( destination, false );
-
-     dfb_state_unlock( state );
+     dfb_surface_buffer_unlock( &dlock );
+     dfb_surface_buffer_unlock( &slock );
 
      return DFB_OK;
 }
@@ -234,8 +220,8 @@ sawman_draw_cursor( CoreWindowStack *stack, CardState *state, DFBRegion *region 
 
      /* Initialize source clipping rectangle */
      clip.x = clip.y = 0;
-     clip.w = stack->cursor.surface->width;
-     clip.h = stack->cursor.surface->height;
+     clip.w = stack->cursor.surface->config.size.w;
+     clip.h = stack->cursor.surface->config.size.h;
 
      /* Intersect rectangles */
      if (!dfb_rectangle_intersect( &src, &clip ))
@@ -254,7 +240,7 @@ sawman_draw_cursor( CoreWindowStack *stack, CardState *state, DFBRegion *region 
 
      /* Different compositing methods depending on destination format. */
      if (flags & DSBLIT_BLEND_ALPHACHANNEL) {
-          if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format )) {
+          if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->config.format )) {
                /*
                 * Always use compliant Porter/Duff SRC_OVER,
                 * if the destination has an alpha channel.
@@ -278,7 +264,7 @@ sawman_draw_cursor( CoreWindowStack *stack, CardState *state, DFBRegion *region 
                dfb_state_set_src_blend( state, DSBF_ONE );
 
                /* Need to premultiply source with As*Ac or only with Ac? */
-               if (! (stack->cursor.surface->caps & DSCAPS_PREMULTIPLIED))
+               if (! (stack->cursor.surface->config.caps & DSCAPS_PREMULTIPLIED))
                     flags |= DSBLIT_SRC_PREMULTIPLY;
                else if (flags & DSBLIT_BLEND_COLORALPHA)
                     flags |= DSBLIT_SRC_PREMULTCOLOR;
@@ -303,7 +289,7 @@ sawman_draw_cursor( CoreWindowStack *stack, CardState *state, DFBRegion *region 
                 * cx = Cd * (1-As*Ac) + Cs*As * Ac  (still same effect as above)
                 * ax = Ad * (1-As*Ac) + As*As * Ac  (wrong, but discarded anyways)
                 */
-               if (stack->cursor.surface->caps & DSCAPS_PREMULTIPLIED) {
+               if (stack->cursor.surface->config.caps & DSCAPS_PREMULTIPLIED) {
                     /* Need to premultiply source with Ac? */
                     if (flags & DSBLIT_BLEND_COLORALPHA)
                          flags |= DSBLIT_SRC_PREMULTCOLOR;
@@ -454,12 +440,12 @@ draw_window( SaWManWindow *sawwin,
      }
 
      /* Use automatic deinterlacing. */
-     if (window->surface->caps & DSCAPS_INTERLACED)
+     if (window->surface->config.caps & DSCAPS_INTERLACED)
           flags |= DSBLIT_DEINTERLACE;
 
      /* Different compositing methods depending on destination format. */
      if (flags & DSBLIT_BLEND_ALPHACHANNEL) {
-          if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format )) {
+          if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->config.format )) {
                /*
                 * Always use compliant Porter/Duff SRC_OVER,
                 * if the destination has an alpha channel.
@@ -483,7 +469,7 @@ draw_window( SaWManWindow *sawwin,
                dfb_state_set_src_blend( state, DSBF_ONE );
 
                /* Need to premultiply source with As*Ac or only with Ac? */
-               if (! (window->surface->caps & DSCAPS_PREMULTIPLIED))
+               if (! (window->surface->config.caps & DSCAPS_PREMULTIPLIED))
                     flags |= DSBLIT_SRC_PREMULTIPLY;
                else if (flags & DSBLIT_BLEND_COLORALPHA)
                     flags |= DSBLIT_SRC_PREMULTCOLOR;
@@ -508,7 +494,7 @@ draw_window( SaWManWindow *sawwin,
                 * cx = Cd * (1-As*Ac) + Cs*As * Ac  (still same effect as above)
                 * ax = Ad * (1-As*Ac) + As*As * Ac  (wrong, but discarded anyways)
                 */
-               if (window->surface->caps & DSCAPS_PREMULTIPLIED) {
+               if (window->surface->config.caps & DSCAPS_PREMULTIPLIED) {
                     /* Need to premultiply source with Ac? */
                     if (flags & DSBLIT_BLEND_COLORALPHA)
                          flags |= DSBLIT_SRC_PREMULTCOLOR;
@@ -536,8 +522,8 @@ draw_window( SaWManWindow *sawwin,
      dfb_state_set_clip( state, &new_clip );
 
      if (!sawman->fast_mode && (window->config.options & DWOP_SCALE)
-         /*(window_config->bounds.w != window->surface->width  ||
-          window_config->bounds.h != window->surface->height || sawman->color_keyed)*/)
+         /*(window_config->bounds.w != window->surface->config.size.w  ||
+          window_config->bounds.h != window->surface->config.size.h || sawman->color_keyed)*/)
      {
           DFBResult    ret = DFB_UNSUPPORTED;
           DFBRectangle dst = sawwin->dst;
@@ -547,7 +533,7 @@ draw_window( SaWManWindow *sawwin,
           if (sawman->scaling_mode == SWMSM_SMOOTH_SW) {
                if (dst.w == src.w && dst.h == src.h)
                     ret = smooth_stretchblit( state, &src, &dst, &wm_stretch_simple );
-               else if (dst.w < window->surface->width && dst.h < window->surface->height)
+               else if (dst.w < window->surface->config.size.w && dst.h < window->surface->config.size.h)
                     ret = smooth_stretchblit( state, &src, &dst, &wm_stretch_down );
                else {
                     src.w--;
@@ -662,13 +648,13 @@ sawman_draw_background( SaWManTier *tier, CardState *state, DFBRegion *region )
                dfb_state_set_blitting_flags( state, DSBLIT_NOFX );
 
                /* Check the size of the background image. */
-               if (bg->width == stack->width && bg->height == stack->height) {
+               if (bg->config.size.w == stack->width && bg->config.size.h == stack->height) {
                     /* Simple blit for 100% fitting background image. */
                     dfb_gfxcard_blit( &dst, dst.x, dst.y, state );
                }
                else {
                     DFBRegion    clip = state->clip;
-                    DFBRectangle src  = { 0, 0, bg->width, bg->height };
+                    DFBRectangle src  = { 0, 0, bg->config.size.w, bg->config.size.h };
 
                     /* Change clipping region. */
                     dfb_state_set_clip( state, region );
@@ -699,7 +685,7 @@ sawman_draw_background( SaWManTier *tier, CardState *state, DFBRegion *region )
           case DLBM_TILE: {
                CoreSurface  *bg   = stack->bg.image;
                DFBRegion     clip = state->clip;
-               DFBRectangle  src  = { 0, 0, bg->width, bg->height };
+               DFBRectangle  src  = { 0, 0, bg->config.size.w, bg->config.size.h };
 
                /* Set blitting source. */
                state->source    = bg;

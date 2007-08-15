@@ -56,7 +56,8 @@
 #include <core/layer_region.h>
 #include <core/layers_internal.h>
 #include <core/screen.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
+#include <core/surface_buffer.h>
 #include <core/palette.h>
 #include <core/windows.h>
 #include <core/windows_internal.h>
@@ -164,8 +165,8 @@ send_button_event( SaWMan              *sawman,
      we.button = event->button;
 
      if (window->config.options & DWOP_SCALE) {
-          we.x = we.x * window->surface->width  / window->config.bounds.w;
-          we.y = we.y * window->surface->height / window->config.bounds.h;
+          we.x = we.x * window->surface->config.size.w  / window->config.bounds.w;
+          we.y = we.y * window->surface->config.size.h / window->config.bounds.h;
      }
 
      sawman_post_event( sawman, sawwin, &we );
@@ -782,18 +783,18 @@ process_updates( SaWMan              *sawman,
                if (tier->single         == NULL ||
                    tier->single_width   != single->src.w ||
                    tier->single_height  != single->src.h ||
-                   tier->single_format  != surface->format ||
+                   tier->single_format  != surface->config.format ||
                    tier->single_options != options)
                {
                     DFBDisplayLayerConfig  config;
 
                     D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d %s single mode...\n",
-                                single->src.w, single->src.h, dfb_pixelformat_name( surface->format ) );
+                                single->src.w, single->src.h, dfb_pixelformat_name( surface->config.format ) );
 
                     tier->single          = single;
                     tier->single_width    = single->src.w;
                     tier->single_height   = single->src.h;
-                    tier->single_format   = surface->format;
+                    tier->single_format   = surface->config.format;
                     tier->single_options  = options;
                     tier->single_location = location;
 
@@ -808,7 +809,7 @@ process_updates( SaWMan              *sawman,
                     config.flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_OPTIONS | DLCONF_BUFFERMODE;
                     config.width       = single->src.w;
                     config.height      = single->src.h;
-                    config.pixelformat = surface->format;
+                    config.pixelformat = surface->config.format;
                     config.options     = options;
                     config.buffermode  = DLBM_FRONTONLY;
 
@@ -817,7 +818,7 @@ process_updates( SaWMan              *sawman,
                     dfb_layer_context_set_screenrectangle( tier->context, &rect );
 
                     if (options & DLOP_SRC_COLORKEY) {
-                         if (DFB_PIXELFORMAT_IS_INDEXED( surface->format )) {
+                         if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format )) {
                               int          index;
                               CorePalette *palette = surface->palette;
 
@@ -835,7 +836,7 @@ process_updates( SaWMan              *sawman,
                          else {
                               DFBColor color;
 
-                              dfb_pixel_to_color( surface->format, window->config.color_key, &color );
+                              dfb_pixel_to_color( surface->config.format, window->config.color_key, &color );
 
                               dfb_layer_context_set_src_colorkey( tier->context,
                                                                   color.r, color.g, color.b,
@@ -843,7 +844,7 @@ process_updates( SaWMan              *sawman,
                          }
                     }
 
-                    if (DFB_PIXELFORMAT_IS_INDEXED( surface->format )) {
+                    if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format )) {
                          CoreSurface *region_surface;
 
                          D_ASSERT( surface->palette != NULL );
@@ -1040,8 +1041,8 @@ resize_window( SaWMan       *sawman,
 
      /* Resize the surface? */
      if (window->surface && !(window->config.options & DWOP_SCALE)) {
-          ret = dfb_surface_reformat( wm_data->core, window->surface,
-                                      width, height, window->surface->format );
+          ret = dfb_surface_reformat( window->surface,
+                                      width, height, window->surface->config.format );
           if (ret)
                return ret;
      }
@@ -1114,8 +1115,8 @@ set_window_bounds( SaWMan       *sawman,
 
      /* Resize the surface? */
      if (window->surface && !(window->config.options & DWOP_SCALE)) {
-          ret = dfb_surface_reformat( wm_data->core, window->surface,
-                                      width, height, window->surface->format );
+          ret = dfb_surface_reformat( window->surface,
+                                      width, height, window->surface->config.format );
           if (ret)
                return ret;
      }
@@ -1183,8 +1184,8 @@ set_window_bounds( SaWMan       *sawman,
      evt.type = DWET_POSITION_SIZE;
      evt.x    = bounds->x;
      evt.y    = bounds->y;
-     evt.w    = window->surface->width;
-     evt.h    = window->surface->height;
+     evt.w    = window->surface->config.size.w;
+     evt.h    = window->surface->config.size.h;
 
      sawman_post_event( sawman, sawwin, &evt );
 
@@ -2868,18 +2869,18 @@ wm_set_window_config( CoreWindow             *window,
 
      if (flags & CWCF_OPTIONS) {
           if ((window->config.options & DWOP_SCALE) && !(config->options & DWOP_SCALE)) {
-               if (window->config.bounds.w != window->surface->width ||
-                   window->config.bounds.h != window->surface->height)
+               if (window->config.bounds.w != window->surface->config.size.w ||
+                   window->config.bounds.h != window->surface->config.size.h)
                {
-                    ret = dfb_surface_reformat( wmdata->core, window->surface,
+                    ret = dfb_surface_reformat( window->surface,
                                                 window->config.bounds.w,
                                                 window->config.bounds.h,
-                                                window->surface->format );
+                                                window->surface->config.format );
                     if (ret) {
                          D_DERROR( ret, "WM/Default: Could not resize surface "
                                         "(%dx%d -> %dx%d) to remove DWOP_SCALE!\n",
-                                   window->surface->width,
-                                   window->surface->height,
+                                   window->surface->config.size.w,
+                                   window->surface->config.size.h,
                                    window->config.bounds.w,
                                    window->config.bounds.h );
                          sawman_unlock( sawman );
@@ -3456,9 +3457,9 @@ wm_update_cursor( CoreWindowStack       *stack,
           D_ASSUME( flags & CCUF_ENABLE );
 
           /* Create the cursor backing store surface. */
-          ret = dfb_surface_create( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
-                                    context->config.pixelformat, stack->cursor.policy, DSCAPS_NONE,
-                                    NULL, &cursor_bs );
+          ret = dfb_surface_create_simple( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
+                                           context->config.pixelformat, DSCAPS_NONE,
+                                           CSTF_SHARED | CSTF_CURSOR, 0, NULL, &cursor_bs );
           if (ret) {
                D_ERROR( "WM/Default: Failed creating backing store for cursor!\n" );
                return ret;
@@ -3512,12 +3513,12 @@ wm_update_cursor( CoreWindowStack       *stack,
      }
 
      if (flags & CCUF_SIZE) {
-          ret = dfb_surface_reformat( wmdata->core, data->cursor_bs,
+          ret = dfb_surface_reformat( data->cursor_bs,
                                       stack->cursor.size.w, stack->cursor.size.h,
-                                      data->cursor_bs->format );
+                                      data->cursor_bs->config.format );
           if (ret)
                D_DERROR( ret, "WM/Default: Failed resizing backing store for cursor from %dx%d to %dx%d!\n",
-                         data->cursor_bs->width, data->cursor_bs->height, stack->cursor.size.w, stack->cursor.size.h );
+                         data->cursor_bs->config.size.w, data->cursor_bs->config.size.h, stack->cursor.size.w, stack->cursor.size.h );
      }
 
      if (flags & CCUF_DISABLE) {

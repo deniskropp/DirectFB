@@ -1290,8 +1290,8 @@ sawman_update_geometry( SaWManWindow *sawwin )
           CoreSurface *surface = window->surface;
           D_ASSERT( surface != NULL );
 
-          clip.x2 = surface->width - 1;
-          clip.y2 = surface->height - 1;
+          clip.x2 = surface->config.size.w - 1;
+          clip.y2 = surface->config.size.h - 1;
      }
 
      D_DEBUG_AT( SaWMan_Geometry, "  -> Applying source geometry...\n" );
