@@ -79,6 +79,7 @@ esac
 
 
 AC_PROG_CC
+AM_PROG_CC_C_O
 ifdef([AM_PROG_AS],[AM_PROG_AS],[])
 AM_PROG_LIBTOOL
 AM_SANITY_CHECK
@@ -885,8 +886,8 @@ if test "$gfxdrivers" = "all"; then
   checkfor_cle266=no
   checkfor_i810=no
   checkfor_i830=no
-  checkfor_mach64=no
-  checkfor_matrox=no
+  checkfor_mach64=yes
+  checkfor_matrox=yes
   checkfor_neomagic=no
   checkfor_nsc=no
   checkfor_nvidia=no

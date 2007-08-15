@@ -184,7 +184,7 @@ static bool mach64_use_scaler( Mach64DeviceData *mdev,
                                CardState *state, DFBAccelerationMask accel )
 {
      if (accel & DFXL_STRETCHBLIT ||
-         state->source->format != state->destination->format ||
+         state->source->config.format != state->destination->config.format ||
          state->blittingflags & (DSBLIT_BLEND_COLORALPHA | DSBLIT_DEINTERLACE))
           return true;
 
@@ -218,7 +218,7 @@ static bool mach64_use_scaler_3d( Mach64DeviceData *mdev,
                return true;
      } else {
           if (accel & DFXL_STRETCHBLIT ||
-              state->source->format != state->destination->format ||
+              state->source->config.format != state->destination->config.format ||
               state->blittingflags & (DSBLIT_BLEND_COLORALPHA | DSBLIT_DEINTERLACE |
                                       DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE |
                                       DSBLIT_SRC_PREMULTCOLOR))
@@ -262,7 +262,7 @@ static bool mach64_check_blend( Mach64DeviceData *mdev, CardState *state )
 static void mach64CheckState( void *drv, void *dev,
                               CardState *state, DFBAccelerationMask accel )
 {
-     switch (state->destination->format) {
+     switch (state->destination->config.format) {
           case DSPF_RGB332:
           case DSPF_RGB555:
           case DSPF_ARGB1555:
@@ -280,7 +280,7 @@ static void mach64CheckState( void *drv, void *dev,
 
           state->accel |= MACH64_SUPPORTED_DRAWINGFUNCTIONS;
      } else {
-          if (state->source->format != state->destination->format)
+          if (state->source->config.format != state->destination->config.format)
                return;
 
           if (state->blittingflags & ~MACH64_SUPPORTED_BLITTINGFLAGS)
@@ -300,7 +300,7 @@ static void mach64GTCheckState( void *drv, void *dev,
 {
      Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
 
-     switch (state->destination->format) {
+     switch (state->destination->config.format) {
           case DSPF_RGB444:
           case DSPF_ARGB4444:
                /* Not supported. */
@@ -339,7 +339,7 @@ static void mach64GTCheckState( void *drv, void *dev,
      } else {
           CoreSurface *source = state->source;
 
-          switch (source->format) {
+          switch (source->config.format) {
                case DSPF_RGB332:
                case DSPF_RGB555:
                case DSPF_ARGB1555:
@@ -377,7 +377,7 @@ static void mach64GTCheckState( void *drv, void *dev,
 
           if (mach64_use_tex( mdev, state, accel )) {
                /* Max texture size is 1024x1024. */
-               if (source->width > 1024 || source->height > 1024)
+               if (source->config.size.w > 1024 || source->config.size.h > 1024)
                     return;
 
                state->accel |= MACH64GT_SUPPORTED_BLITTINGFUNCTIONS;
@@ -385,11 +385,11 @@ static void mach64GTCheckState( void *drv, void *dev,
                /* Max scaler source size depends on the chip type. */
                if (mdev->chip < CHIP_3D_RAGE_PRO) {
                     /* Tested on 3D Rage II+ and IIC. */
-                    if (source->width > 4095 || source->height > 4095)
+                    if (source->config.size.w > 4095 || source->config.size.h > 4095)
                          return;
                } else {
                     /* Tested on 3D Rage LT Pro, XL and Mobility. */
-                    if (source->width > 4096 || source->height > 16384)
+                    if (source->config.size.w > 4096 || source->config.size.h > 16384)
                          return;
                }
 
@@ -407,32 +407,32 @@ static void mach64SetState( void *drv, void *dev,
      Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
      volatile u8      *mmio = mdrv->mmio_base;
 
-     if (state->modified == SMF_ALL) {
+     if (state->mod_hw == SMF_ALL) {
           mdev->valid = 0;
-     } else if (state->modified) {
-          if (state->modified & SMF_SOURCE)
+     } else if (state->mod_hw) {
+          if (state->mod_hw & SMF_SOURCE)
                MACH64_INVALIDATE( m_source | m_srckey );
 
-          if (state->modified & SMF_SRC_COLORKEY)
+          if (state->mod_hw & SMF_SRC_COLORKEY)
                MACH64_INVALIDATE( m_srckey );
 
-          if (state->modified & SMF_DESTINATION)
+          if (state->mod_hw & SMF_DESTINATION)
                MACH64_INVALIDATE( m_color | m_dstkey );
 
-          if (state->modified & SMF_COLOR)
+          if (state->mod_hw & SMF_COLOR)
                MACH64_INVALIDATE( m_color );
 
-          if (state->modified & SMF_DST_COLORKEY)
+          if (state->mod_hw & SMF_DST_COLORKEY)
                MACH64_INVALIDATE( m_dstkey );
 
-          if (state->modified & SMF_BLITTING_FLAGS)
+          if (state->mod_hw & SMF_BLITTING_FLAGS)
                MACH64_INVALIDATE( m_srckey | m_dstkey | m_disable_key );
 
-          if (state->modified & SMF_DRAWING_FLAGS)
+          if (state->mod_hw & SMF_DRAWING_FLAGS)
                MACH64_INVALIDATE( m_color | m_dstkey | m_disable_key );
      }
 
-     if (state->modified & SMF_DESTINATION)
+     if (state->mod_hw & SMF_DESTINATION)
           mach64_set_destination( mdrv, mdev, state );
 
      switch (accel) {
@@ -477,12 +477,12 @@ static void mach64SetState( void *drv, void *dev,
           break;
      }
 
-     if (state->modified & SMF_CLIP) {
+     if (state->mod_hw & SMF_CLIP) {
           mach64_set_clip( mdrv, mdev, state );
           mdev->clip = state->clip;
      }
 
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 static void mach64GTSetState( void *drv, void *dev,
@@ -495,31 +495,31 @@ static void mach64GTSetState( void *drv, void *dev,
 
      bool use_scaler_3d;
 
-     if (state->modified == SMF_ALL) {
+     if (state->mod_hw == SMF_ALL) {
           mdev->valid = 0;
-     } else if (state->modified) {
-          if (state->modified & SMF_SOURCE)
+     } else if (state->mod_hw) {
+          if (state->mod_hw & SMF_SOURCE)
                MACH64_INVALIDATE( m_source | m_source_scale | m_srckey | m_srckey_scale | m_blit_blend );
 
-          if (state->modified & SMF_SRC_COLORKEY)
+          if (state->mod_hw & SMF_SRC_COLORKEY)
                MACH64_INVALIDATE( m_srckey | m_srckey_scale );
 
-          if (state->modified & SMF_DESTINATION)
+          if (state->mod_hw & SMF_DESTINATION)
                MACH64_INVALIDATE( m_color | m_dstkey );
 
-          if (state->modified & SMF_COLOR)
+          if (state->mod_hw & SMF_COLOR)
                MACH64_INVALIDATE( m_color | m_color_3d | m_color_tex );
 
-          if (state->modified & SMF_DST_COLORKEY)
+          if (state->mod_hw & SMF_DST_COLORKEY)
                MACH64_INVALIDATE( m_dstkey );
 
-          if (state->modified & SMF_BLITTING_FLAGS)
+          if (state->mod_hw & SMF_BLITTING_FLAGS)
                MACH64_INVALIDATE( m_color_tex | m_source_scale | m_srckey | m_srckey_scale | m_dstkey | m_disable_key | m_blit_blend );
 
-          if (state->modified & SMF_DRAWING_FLAGS)
+          if (state->mod_hw & SMF_DRAWING_FLAGS)
                MACH64_INVALIDATE( m_color | m_color_3d | m_dstkey | m_disable_key | m_draw_blend );
 
-          if (state->modified & (SMF_SRC_BLEND | SMF_DST_BLEND))
+          if (state->mod_hw & (SMF_SRC_BLEND | SMF_DST_BLEND))
                MACH64_INVALIDATE( m_draw_blend | m_blit_blend );
      }
 
@@ -531,7 +531,7 @@ static void mach64GTSetState( void *drv, void *dev,
 
      mdev->use_scaler_3d = use_scaler_3d;
 
-     if (state->modified & SMF_DESTINATION)
+     if (state->mod_hw & SMF_DESTINATION)
           mach64gt_set_destination( mdrv, mdev, state );
 
      switch (accel) {
@@ -648,12 +648,12 @@ static void mach64GTSetState( void *drv, void *dev,
           break;
      }
 
-     if (state->modified & SMF_CLIP) {
+     if (state->mod_hw & SMF_CLIP) {
           mach64_set_clip( mdrv, mdev, state );
           mdev->clip = state->clip;
      }
 
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 /* */
@@ -943,13 +943,13 @@ static void mach64DoBlitScaleOld( Mach64DriverData *mdrv,
      mach64_out32( mmio, SCALE_3D_CNTL, scale_3d_cntl );
      mach64_out32( mmio, SCALE_Y_OFF, mdev->scale_offset +
                    (srect->y >> 16) * mdev->scale_pitch +
-                   (srect->x >> 16) * DFB_BYTES_PER_PIXEL( source->format ) );
+                   (srect->x >> 16) * DFB_BYTES_PER_PIXEL( source->config.format ) );
 
 
      mach64_out32( mmio, SCALE_WIDTH, (srect->w + hacc) >> 16 );
      mach64_out32( mmio, SCALE_HEIGHT, (srect->h + vacc) >> 16 );
 
-     mach64_out32( mmio, SCALE_Y_PITCH, mdev->scale_pitch / DFB_BYTES_PER_PIXEL( source->format ) );
+     mach64_out32( mmio, SCALE_Y_PITCH, mdev->scale_pitch / DFB_BYTES_PER_PIXEL( source->config.format ) );
 
      mach64_out32( mmio, SCALE_X_INC, srect->w / drect->w );
      mach64_out32( mmio, SCALE_Y_INC, srect->h / drect->h );
@@ -1020,12 +1020,12 @@ static void mach64DoBlitScale( Mach64DriverData *mdrv,
      mach64_out32( mmio, SCALE_3D_CNTL, scale_3d_cntl );
      mach64_out32( mmio, SCALE_OFF, mdev->scale_offset +
                    (srect->y >> 16) * mdev->scale_pitch +
-                   (srect->x >> 16) * DFB_BYTES_PER_PIXEL( source->format ) );
+                   (srect->x >> 16) * DFB_BYTES_PER_PIXEL( source->config.format ) );
 
      mach64_out32( mmio, SCALE_WIDTH, (srect->w + hacc) >> 16 );
      mach64_out32( mmio, SCALE_HEIGHT, (srect->h + vacc) >> 16 );
 
-     mach64_out32( mmio, SCALE_PITCH, mdev->scale_pitch / DFB_BYTES_PER_PIXEL( source->format ) );
+     mach64_out32( mmio, SCALE_PITCH, mdev->scale_pitch / DFB_BYTES_PER_PIXEL( source->config.format ) );
 
      mach64_out32( mmio, SCALE_X_INC, srect->w / drect->w );
      mach64_out32( mmio, SCALE_Y_INC, srect->h / drect->h );
@@ -1420,7 +1420,7 @@ mach64_chip_type_gt( Mach64DriverData   *mdrv,
 /* exported symbols */
 
 static int
-driver_probe( GraphicsDevice *device )
+driver_probe( CoreGraphicsDevice *device )
 {
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_ATI_MACH64GX:
@@ -1434,7 +1434,7 @@ driver_probe( GraphicsDevice *device )
 }
 
 static void
-driver_get_info( GraphicsDevice     *device,
+driver_get_info( CoreGraphicsDevice *device,
                  GraphicsDriverInfo *info )
 {
      /* fill driver info structure */
@@ -1454,7 +1454,7 @@ driver_get_info( GraphicsDevice     *device,
 }
 
 static DFBResult
-driver_init_driver( GraphicsDevice      *device,
+driver_init_driver( CoreGraphicsDevice  *device,
                     GraphicsDeviceFuncs *funcs,
                     void                *driver_data,
                     void                *device_data,
@@ -1499,7 +1499,7 @@ driver_init_driver( GraphicsDevice      *device,
 }
 
 static DFBResult
-driver_init_device( GraphicsDevice     *device,
+driver_init_device( CoreGraphicsDevice *device,
                     GraphicsDeviceInfo *device_info,
                     void               *driver_data,
                     void               *device_data )
@@ -1577,9 +1577,9 @@ driver_init_device( GraphicsDevice     *device,
 }
 
 static void
-driver_close_device( GraphicsDevice *device,
-                     void           *driver_data,
-                     void           *device_data )
+driver_close_device( CoreGraphicsDevice *device,
+                     void               *driver_data,
+                     void               *device_data )
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) driver_data;
      Mach64DeviceData *mdev = (Mach64DeviceData*) device_data;
@@ -1624,8 +1624,8 @@ driver_close_device( GraphicsDevice *device,
 }
 
 static void
-driver_close_driver( GraphicsDevice *device,
-                     void           *driver_data )
+driver_close_driver( CoreGraphicsDevice *device,
+                     void               *driver_data )
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) driver_data;
 

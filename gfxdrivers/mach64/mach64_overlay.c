@@ -76,10 +76,12 @@ typedef struct {
 static void ov_reset( Mach64DriverData *mdrv );
 static void ov_set_regs( Mach64DriverData *mdrv, Mach64OverlayLayerData *mov );
 static void ov_calc_regs( Mach64DriverData *mdrv, Mach64OverlayLayerData *mov,
-                          CoreLayerRegionConfig *config, CoreSurface *surface );
+                          CoreLayerRegionConfig *config, CoreSurface *surface,
+                          CoreSurfaceBufferLock  *lock );
 static void ov_set_buffer( Mach64DriverData *mdrv, Mach64OverlayLayerData *mov );
 static void ov_calc_buffer( Mach64DriverData *mdrv, Mach64OverlayLayerData *mov,
-                            CoreLayerRegionConfig *config, CoreSurface *surface );
+                            CoreLayerRegionConfig *config, CoreSurface *surface,
+                            CoreSurfaceBufferLock  *lock );
 static void ov_set_colorkey( Mach64DriverData *mdrv, Mach64OverlayLayerData *mov );
 static void ov_calc_colorkey( Mach64DriverData *mdrv, Mach64OverlayLayerData *mov,
                               CoreLayerRegionConfig *config );
@@ -254,7 +256,8 @@ ovSetRegion( CoreLayer                  *layer,
              CoreLayerRegionConfig      *config,
              CoreLayerRegionConfigFlags  updated,
              CoreSurface                *surface,
-             CorePalette                *palette )
+             CorePalette                *palette,
+             CoreSurfaceBufferLock      *lock )
 {
      Mach64DriverData       *mdrv = (Mach64DriverData*) driver_data;
      Mach64OverlayLayerData *mov  = (Mach64OverlayLayerData*) layer_data;
@@ -266,8 +269,8 @@ ovSetRegion( CoreLayer                  *layer,
           ov_reset( mdrv );
 
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_SOURCE | CLRCF_DEST | CLRCF_OPTIONS)) {
-          ov_calc_buffer( mdrv, mov, config, surface );
-          ov_calc_regs( mdrv, mov, config, surface );
+          ov_calc_buffer( mdrv, mov, config, surface, lock );
+          ov_calc_regs( mdrv, mov, config, surface, lock );
           ov_set_buffer( mdrv, mov );
           ov_set_regs( mdrv, mov );
      }
@@ -313,20 +316,21 @@ ovRemoveRegion( CoreLayer *layer,
 }
 
 static DFBResult
-ovFlipRegion( CoreLayer           *layer,
-              void                *driver_data,
-              void                *layer_data,
-              void                *region_data,
-              CoreSurface         *surface,
-              DFBSurfaceFlipFlags  flags )
+ovFlipRegion( CoreLayer             *layer,
+              void                  *driver_data,
+              void                  *layer_data,
+              void                  *region_data,
+              CoreSurface           *surface,
+              DFBSurfaceFlipFlags    flags,
+              CoreSurfaceBufferLock *lock )
 {
      Mach64DriverData       *mdrv = (Mach64DriverData*) driver_data;
      Mach64OverlayLayerData *mov  = (Mach64OverlayLayerData*) layer_data;
 
-     dfb_surface_flip_buffers( surface, false );
-
-     ov_calc_buffer( mdrv, mov, &mov->config, surface );
+     ov_calc_buffer( mdrv, mov, &mov->config, surface, lock );
      ov_set_buffer( mdrv, mov );
+
+     dfb_surface_flip( surface, false );
 
      return DFB_OK;
 }
@@ -500,14 +504,14 @@ static void ov_set_field( Mach64DriverData       *mdrv,
 static void ov_calc_regs( Mach64DriverData       *mdrv,
                           Mach64OverlayLayerData *mov,
                           CoreLayerRegionConfig  *config,
-                          CoreSurface            *surface )
+                          CoreSurface            *surface,
+                          CoreSurfaceBufferLock  *lock )
 {
      Mach64DeviceData *mdev   = mdrv->device_data;
      volatile u8      *mmio   = mdrv->mmio_base;
-     SurfaceBuffer    *buffer = surface->front_buffer;
      VideoMode        *mode   = dfb_system_current_mode();
      int               yres   = mode->yres;
-     int               pitch  = buffer->video.pitch / DFB_BYTES_PER_PIXEL( surface->config.format );
+     unsigned int      pitch  = lock->pitch / DFB_BYTES_PER_PIXEL( surface->config.format );
      DFBRectangle      source = config->source;
      DFBRectangle      dest   = config->dest;
 
@@ -587,10 +591,10 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
 static void ov_calc_buffer( Mach64DriverData       *mdrv,
                             Mach64OverlayLayerData *mov,
                             CoreLayerRegionConfig  *config,
-                            CoreSurface            *surface )
+                            CoreSurface            *surface,
+                            CoreSurfaceBufferLock  *lock )
 {
-     SurfaceBuffer *buffer = surface->front_buffer;
-     int            pitch  = buffer->video.pitch;
+     unsigned int   pitch  = lock->pitch;
      DFBRectangle   source = config->source;
 
      u32 offset, offset_u, offset_v;
@@ -617,8 +621,8 @@ static void ov_calc_buffer( Mach64DriverData       *mdrv,
                cropleft &= ~15;
                croptop  &= ~1;
 
-               offset_u  = buffer->video.offset + surface->config.size.h * buffer->video.pitch;
-               offset_v  = offset_u + surface->config.size.h/2 * buffer->video.pitch/2;
+               offset_u  = lock->offset + surface->config.size.h * lock->pitch;
+               offset_v  = offset_u + surface->config.size.h/2 * lock->pitch/2;
                offset_u += croptop/2 * pitch/2 + cropleft/2;
                offset_v += croptop/2 * pitch/2 + cropleft/2;
                break;
@@ -627,8 +631,8 @@ static void ov_calc_buffer( Mach64DriverData       *mdrv,
                cropleft &= ~15;
                croptop  &= ~1;
 
-               offset_v  = buffer->video.offset + surface->config.size.h * buffer->video.pitch;
-               offset_u  = offset_v + surface->config.size.h/2 * buffer->video.pitch/2;
+               offset_v  = lock->offset + surface->config.size.h * lock->pitch;
+               offset_u  = offset_v + surface->config.size.h/2 * lock->pitch/2;
                offset_v += croptop/2 * pitch/2 + cropleft/2;
                offset_u += croptop/2 * pitch/2 + cropleft/2;
                break;
@@ -639,16 +643,16 @@ static void ov_calc_buffer( Mach64DriverData       *mdrv,
                break;
      }
 
-     offset  = buffer->video.offset;
+     offset  = lock->offset;
      offset += croptop * pitch + cropleft * DFB_BYTES_PER_PIXEL( surface->config.format );
 
      mov->regs.scaler_BUF0_OFFSET   = offset;
      mov->regs.scaler_BUF0_OFFSET_U = offset_u;
      mov->regs.scaler_BUF0_OFFSET_V = offset_v;
 
-     mov->regs.scaler_BUF1_OFFSET   = offset   + buffer->video.pitch;
-     mov->regs.scaler_BUF1_OFFSET_U = offset_u + buffer->video.pitch/2;
-     mov->regs.scaler_BUF1_OFFSET_V = offset_v + buffer->video.pitch/2;
+     mov->regs.scaler_BUF1_OFFSET   = offset   + lock->pitch;
+     mov->regs.scaler_BUF1_OFFSET_U = offset_u + lock->pitch/2;
+     mov->regs.scaler_BUF1_OFFSET_V = offset_v + lock->pitch/2;
 }
 
 static u32 ovColorKey[] = {

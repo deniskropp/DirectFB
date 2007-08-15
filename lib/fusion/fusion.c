@@ -860,6 +860,7 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                     void              *data   = buf_p + sizeof(FusionReadMessage);
 
                     D_MAGIC_ASSERT( world, FusionWorld );
+                    D_ASSERT( (buf + len - buf_p) >= sizeof(FusionReadMessage) );
 
                     switch (header->msg_type) {
                          case FMT_SEND:
@@ -887,7 +888,7 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                               break;
                     }
 
-                    buf_p = data + header->msg_size;
+                    buf_p = data + ((header->msg_size + 3) & ~3);
                }
           }
      }

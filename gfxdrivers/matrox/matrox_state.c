@@ -50,21 +50,21 @@
 
 #define MGA_KEYMASK(format)   ((1 << DFB_COLOR_BITS_PER_PIXEL(format)) - 1)
 
-static void matrox_calc_offsets( MatroxDeviceData *mdev,
-                                 CoreSurface      *surface,
-                                 SurfaceBuffer    *buffer,
-                                 bool              unit_pixel,
-                                 int               offset[2][3] )
+static void matrox_calc_offsets( MatroxDeviceData      *mdev,
+                                 CoreSurface           *surface,
+                                 CoreSurfaceBufferLock *lock,
+                                 bool                   unit_pixel,
+                                 int                    offset[2][3] )
 {
      int bytes_per_pixel = DFB_BYTES_PER_PIXEL( surface->config.format );
      int pitch;
 
      if (unit_pixel) {
-          offset[0][0] = buffer->video.offset / bytes_per_pixel;
-          pitch        = buffer->video.pitch / bytes_per_pixel;
+          offset[0][0] = lock->offset / bytes_per_pixel;
+          pitch        = lock->pitch / bytes_per_pixel;
      } else {
-          offset[0][0] = mdev->fb.offset + buffer->video.offset;
-          pitch        = buffer->video.pitch;
+          offset[0][0] = mdev->fb.offset + lock->offset;
+          pitch        = lock->pitch;
      }
 
      switch (surface->config.format) {
@@ -91,7 +91,7 @@ static void matrox_calc_offsets( MatroxDeviceData *mdev,
      D_ASSERT( offset[0][2] % 64 == 0 );
 
      if (mdev->blit_fields || mdev->blit_deinterlace) {
-          if (surface->caps & DSCAPS_SEPARATED) {
+          if (surface->config.caps & DSCAPS_SEPARATED) {
                offset[1][0] = offset[0][0] + surface->config.size.h/2 * pitch;
                switch (surface->config.format) {
                case DSPF_NV12:
@@ -139,36 +139,37 @@ void matrox_validate_destination( MatroxDriverData *mdrv,
 {
      volatile u8   *mmio            = mdrv->mmio_base;
      CoreSurface   *destination     = state->destination;
-     SurfaceBuffer *buffer          = destination->back_buffer;
-     SurfaceBuffer *depth_buffer    = destination->depth_buffer;
-     int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(buffer->format);
+     CoreSurfaceBuffer *depth_buffer    = NULL;//destination->depth_buffer;
+     int            bytes_per_pixel = DFB_BYTES_PER_PIXEL( destination->config.format );
 
      if (MGA_IS_VALID( m_destination ))
           return;
 
-     mdev->dst_pitch = buffer->video.pitch / bytes_per_pixel;
+     mdev->dst_pitch = state->dst.pitch / bytes_per_pixel;
 
      mdev->depth_buffer = depth_buffer != NULL;
 
-     if (destination->format == DSPF_YUY2 || destination->format == DSPF_UYVY)
+     if (destination->config.format == DSPF_YUY2 || destination->config.format == DSPF_UYVY)
           mdev->dst_pitch /= 2;
 
-     if (mdev->blit_fields && !(destination->caps & DSCAPS_SEPARATED))
+     if (mdev->blit_fields && !(destination->config.caps & DSCAPS_SEPARATED))
           mdev->dst_pitch *= 2;
 
      D_ASSERT( mdev->dst_pitch % 32 == 0 );
 
-     matrox_calc_offsets( mdev, destination, buffer, mdev->old_matrox, mdev->dst_offset );
+     matrox_calc_offsets( mdev, destination, &state->dst, mdev->old_matrox, mdev->dst_offset );
 
      mga_waitfifo( mdrv, mdev, depth_buffer ? 4 : 3 );
 
      mga_out32( mmio, mdev->dst_offset[0][0], mdev->old_matrox ? YDSTORG : DSTORG );
      mga_out32( mmio, mdev->dst_pitch, PITCH );
 
+#if 0
      if (depth_buffer)
           mga_out32( mmio, depth_buffer->video.offset, ZORG );
+#endif
 
-     switch (buffer->format) {
+     switch (destination->config.format) {
           case DSPF_A8:
           case DSPF_ALUT44:
           case DSPF_LUT8:
@@ -314,7 +315,7 @@ void matrox_validate_color( MatroxDriverData *mdrv,
           color.b = (color.b * (color.a + 1)) >> 8;
      }
 
-     switch (state->destination->format) {
+     switch (state->destination->config.format) {
           case DSPF_ALUT44:
                fcol = (color.a & 0xF0) | state->color_index;
                fcol |= fcol << 8;
@@ -525,7 +526,7 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
                            matroxDestBlend  [state->dst_blend - 1] |
                            ALPHACHANNEL;
 
-          if (state->source->format == DSPF_RGB32) {
+          if (state->source->config.format == DSPF_RGB32) {
                alphactrl |= DIFFUSEDALPHA;
 
                if (! (state->blittingflags & DSBLIT_BLEND_COLORALPHA)) {
@@ -539,7 +540,7 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
      else {
           alphactrl = SRC_ONE | DST_ZERO | ALPHACHANNEL;
 
-          if (state->source->format == DSPF_RGB32) {
+          if (state->source->config.format == DSPF_RGB32) {
                alphactrl |= DIFFUSEDALPHA;
 
                mga_out32( mmio, U8_TO_F0915(0xff), ALPHASTART );
@@ -560,7 +561,7 @@ static void matrox_tlutload( MatroxDriverData *mdrv,
 {
      volatile u8  *mmio = mdrv->mmio_base;
      volatile u16 *dst  = dfb_gfxcard_memory_virtual( NULL, mdev->tlut_offset );
-     int             i;
+     unsigned int  i;
 
      for (i = 0; i < palette->num_entries; i++)
           *dst++ = PIXEL_RGB16( palette->entries[i].r,
@@ -597,32 +598,31 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
 {
      volatile u8   *mmio            = mdrv->mmio_base;
      CoreSurface   *surface         = state->source;
-     SurfaceBuffer *buffer          = surface->front_buffer;
      int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(surface->config.format);
      u32            texctl = 0, texctl2 = 0;
 
      if (MGA_IS_VALID( m_Source ))
           return;
 
-     mdev->src_pitch = buffer->video.pitch / bytes_per_pixel;
+     mdev->src_pitch = state->src.pitch / bytes_per_pixel;
      mdev->field     = surface->field;
      mdev->w         = surface->config.size.w;
      mdev->h         = surface->config.size.h;
 
-     if (state->destination->format == DSPF_YUY2 || state->destination->format == DSPF_UYVY) {
+     if (state->destination->config.format == DSPF_YUY2 || state->destination->config.format == DSPF_UYVY) {
           mdev->w /= 2;
           mdev->src_pitch /= 2;
      }
 
      if (mdev->blit_deinterlace || mdev->blit_fields) {
           mdev->h /= 2;
-          if (!(surface->caps & DSCAPS_SEPARATED))
+          if (!(surface->config.caps & DSCAPS_SEPARATED))
                mdev->src_pitch *= 2;
      }
 
      D_ASSERT( mdev->src_pitch % 32 == 0 );
 
-     matrox_calc_offsets( mdev, surface, buffer, false, mdev->src_offset );
+     matrox_calc_offsets( mdev, surface, &state->src, false, mdev->src_offset );
 
      if (mdev->blit_deinterlace && mdev->field) {
           mdev->src_offset[0][0] = mdev->src_offset[1][0];
@@ -640,10 +640,10 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
 
      switch (surface->config.format) {
           case DSPF_YUY2:
-               texctl |= (state->destination->format == DSPF_YUY2) ? TW32 : TW422;
+               texctl |= (state->destination->config.format == DSPF_YUY2) ? TW32 : TW422;
                break;
           case DSPF_UYVY:
-               texctl |= (state->destination->format == DSPF_UYVY) ? TW32 : TW422UYVY;
+               texctl |= (state->destination->config.format == DSPF_UYVY) ? TW32 : TW422UYVY;
                break;
           case DSPF_I420:
           case DSPF_YV12:
@@ -723,23 +723,22 @@ void matrox_validate_source( MatroxDriverData *mdrv,
 {
      volatile u8   *mmio            = mdrv->mmio_base;
      CoreSurface   *surface         = state->source;
-     SurfaceBuffer *buffer          = surface->front_buffer;
      int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(surface->config.format);
 
      if (MGA_IS_VALID( m_source ))
           return;
 
-     mdev->src_pitch = buffer->video.pitch / bytes_per_pixel;
+     mdev->src_pitch = state->src.pitch / bytes_per_pixel;
 
-     if (state->destination->format == DSPF_YUY2 || state->destination->format == DSPF_UYVY)
+     if (state->destination->config.format == DSPF_YUY2 || state->destination->config.format == DSPF_UYVY)
           mdev->src_pitch /= 2;
 
-     if (mdev->blit_fields && !(surface->caps & DSCAPS_SEPARATED))
+     if (mdev->blit_fields && !(surface->config.caps & DSCAPS_SEPARATED))
           mdev->src_pitch *= 2;
 
      D_ASSERT( mdev->src_pitch % 32 == 0 );
 
-     matrox_calc_offsets( mdev, surface, buffer, mdev->old_matrox, mdev->src_offset );
+     matrox_calc_offsets( mdev, surface, &state->src, mdev->old_matrox, mdev->src_offset );
 
      if (!mdev->old_matrox) {
           mga_waitfifo( mdrv, mdev, 1 );
@@ -792,7 +791,7 @@ void matrox_validate_srckey( MatroxDriverData *mdrv,
      mask = MGA_KEYMASK(surface->config.format);
      key  = state->src_colorkey & mask;
 
-     switch (DFB_BYTES_PER_PIXEL(state->source->format)) {
+     switch (DFB_BYTES_PER_PIXEL(state->source->config.format)) {
           case 1:
                mask |= mask << 8;
                key  |= key  << 8;

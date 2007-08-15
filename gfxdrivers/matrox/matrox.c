@@ -201,9 +201,9 @@ static bool matroxStretchBlit_422_F( void *drv, void *dev,
                                 DSBLIT_DEINTERLACE        |              \
                                 DSBLIT_SRC_PREMULTIPLY    |              \
                                 DSBLIT_SRC_PREMULTCOLOR)       ||        \
-      ((state)->destination->format != (state)->source->format &&        \
-       (state)->destination->format != DSPF_I420               &&        \
-       (state)->destination->format != DSPF_YV12)              ||        \
+      ((state)->destination->config.format != (state)->source->config.format && \
+       (state)->destination->config.format != DSPF_I420                      && \
+       (state)->destination->config.format != DSPF_YV12)       ||               \
       (accel) & (DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES))
 
 #define MATROX_USE_3D(state, accel)                                                     \
@@ -310,7 +310,7 @@ matrox2064WCheckState( void *drv, void *dev,
                        CardState *state, DFBAccelerationMask accel )
 {
      /* FIXME: 24bit support */
-     switch (state->destination->format) {
+     switch (state->destination->config.format) {
           case DSPF_LUT8:
                if (DFB_BLITTING_FUNCTION( accel ))
                     return;
@@ -335,7 +335,7 @@ matrox2064WCheckState( void *drv, void *dev,
           state->accel |= MATROX_2064W_DRAWING_FUNCTIONS;
      }
      else {
-          if (state->source->format != state->destination->format)
+          if (state->source->config.format != state->destination->config.format)
                return;
 
           if (state->blittingflags & ~MATROX_2064W_BLITTING_FLAGS)
@@ -350,7 +350,7 @@ matroxOldCheckState( void *drv, void *dev,
                      CardState *state, DFBAccelerationMask accel )
 {
      /* FIXME: 24bit support */
-     switch (state->destination->format) {
+     switch (state->destination->config.format) {
           case DSPF_LUT8:
                if (DFB_BLITTING_FUNCTION( accel ))
                     return;
@@ -375,7 +375,7 @@ matroxOldCheckState( void *drv, void *dev,
           state->accel |= MATROX_OLD_DRAWING_FUNCTIONS;
      }
      else {
-          if (state->source->format != state->destination->format)
+          if (state->source->config.format != state->destination->config.format)
                return;
 
           if (state->blittingflags & ~MATROX_OLD_BLITTING_FLAGS)
@@ -390,7 +390,7 @@ matroxG100CheckState( void *drv, void *dev,
                       CardState *state, DFBAccelerationMask accel )
 {
      /* FIXME: 24bit support */
-     switch (state->destination->format) {
+     switch (state->destination->config.format) {
           case DSPF_LUT8:
                if (DFB_BLITTING_FUNCTION( accel ))
                     return;
@@ -425,7 +425,7 @@ matroxG100CheckState( void *drv, void *dev,
                int max_width = 2048;
 
                /* TMU has no 32bit support */
-               switch (state->source->format) {
+               switch (state->source->config.format) {
                     case DSPF_LUT8:
                     case DSPF_RGB332:
                     case DSPF_RGB444:
@@ -439,17 +439,17 @@ matroxG100CheckState( void *drv, void *dev,
                }
 
                /* Interleaved source -> pitch must be doubled */
-               if ((state->source->caps & (DSCAPS_INTERLACED |
-                                           DSCAPS_SEPARATED)) == DSCAPS_INTERLACED &&
-                   (state->destination->caps & DSCAPS_INTERLACED ||
+               if ((state->source->config.caps & (DSCAPS_INTERLACED |
+                                                  DSCAPS_SEPARATED)) == DSCAPS_INTERLACED &&
+                   (state->destination->config.caps & DSCAPS_INTERLACED ||
                     state->blittingflags & DSBLIT_DEINTERLACE))
                     max_width = 1024;
 
                /* TMU limits */
-               if (state->source->width < 8 ||
-                   state->source->height < 8 ||
-                   state->source->width > max_width ||
-                   state->source->height > 2048)
+               if (state->source->config.size.w < 8 ||
+                   state->source->config.size.h < 8 ||
+                   state->source->config.size.w > max_width ||
+                   state->source->config.size.h > 2048)
                     return;
 
                state->accel |= MATROX_G100_BLITTING_FUNCTIONS;
@@ -468,19 +468,19 @@ matroxG200CheckState( void *drv, void *dev,
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
 
      /* FIXME: 24bit support */
-     switch (state->destination->format) {
+     switch (state->destination->config.format) {
           case DSPF_NV12:
           case DSPF_NV21:
                if ((accel & DFXL_FILLRECTANGLE && !state->drawingflags) ||
                    (accel & DFXL_BLIT && !state->blittingflags &&
-                    state->source->format == state->destination->format))
+                    state->source->config.format == state->destination->config.format))
                     break;
                return;
           case DSPF_YUY2:
                if ((accel & DFXL_FILLRECTANGLE && !state->drawingflags) ||
                    (accel & (DFXL_BLIT | DFXL_STRETCHBLIT) &&
                     !(state->blittingflags & ~DSBLIT_DEINTERLACE) &&
-                    state->source->format == state->destination->format))
+                    state->source->config.format == state->destination->config.format))
                     break;
                return;
           case DSPF_LUT8:
@@ -515,10 +515,10 @@ matroxG200CheckState( void *drv, void *dev,
      else {
           bool use_tmu = MATROX_USE_TMU( state, accel );
 
-          switch (state->source->format) {
+          switch (state->source->config.format) {
                case DSPF_NV12:
                case DSPF_NV21:
-                    if (state->destination->format != state->source->format)
+                    if (state->destination->config.format != state->source->config.format)
                          return;
                     break;
                case DSPF_A8:
@@ -560,17 +560,17 @@ matroxG200CheckState( void *drv, void *dev,
                int max_width = 2048;
 
                /* Interleaved source -> pitch must be doubled */
-               if ((state->source->caps & (DSCAPS_INTERLACED |
-                                           DSCAPS_SEPARATED)) == DSCAPS_INTERLACED &&
-                   (state->destination->caps & DSCAPS_INTERLACED ||
+               if ((state->source->config.caps & (DSCAPS_INTERLACED |
+                                                  DSCAPS_SEPARATED)) == DSCAPS_INTERLACED &&
+                   (state->destination->config.caps & DSCAPS_INTERLACED ||
                     state->blittingflags & DSBLIT_DEINTERLACE) &&
-                   state->destination->format != DSPF_YUY2)
+                   state->destination->config.format != DSPF_YUY2)
                     max_width = 1024;
 
-               if (state->source->width < 8 ||
-                   state->source->height < 8 ||
-                   state->source->width > max_width ||
-                   state->source->height > 2048)
+               if (state->source->config.size.w < 8 ||
+                   state->source->config.size.h < 8 ||
+                   state->source->config.size.w > max_width ||
+                   state->source->config.size.h > 2048)
                     return;
 
                state->accel |= MATROX_G200G400_BLITTING_FUNCTIONS;
@@ -589,13 +589,14 @@ matroxG400CheckState( void *drv, void *dev,
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
 
      /* FIXME: 24bit support */
-     switch (state->destination->format) {
+     switch (state->destination->config.format) {
           case DSPF_I420:
           case DSPF_YV12:
                if ((accel & DFXL_FILLRECTANGLE && !state->drawingflags) ||
                    (accel & (DFXL_BLIT | DFXL_STRETCHBLIT) &&
                     !(state->blittingflags & ~DSBLIT_DEINTERLACE) &&
-                    (state->source->format == DSPF_I420 || state->source->format == DSPF_YV12)))
+                    (state->source->config.format == DSPF_I420 ||
+                     state->source->config.format == DSPF_YV12)))
                     break;
                return;
           case DSPF_NV12:
@@ -605,7 +606,7 @@ matroxG400CheckState( void *drv, void *dev,
                if ((accel & DFXL_FILLRECTANGLE && !state->drawingflags) ||
                    (accel & (DFXL_BLIT | DFXL_STRETCHBLIT) &&
                     !(state->blittingflags & ~DSBLIT_DEINTERLACE) &&
-                    state->source->format == state->destination->format))
+                    state->source->config.format == state->destination->config.format))
                     break;
                return;
           case DSPF_LUT8:
@@ -641,16 +642,16 @@ matroxG400CheckState( void *drv, void *dev,
      else {
           bool use_tmu = MATROX_USE_TMU( state, accel );
 
-          switch (state->source->format) {
+          switch (state->source->config.format) {
                case DSPF_I420:
                case DSPF_YV12:
-                    if (state->destination->format != DSPF_I420 &&
-                        state->destination->format != DSPF_YV12)
+                    if (state->destination->config.format != DSPF_I420 &&
+                        state->destination->config.format != DSPF_YV12)
                          return;
                     break;
                case DSPF_NV12:
                case DSPF_NV21:
-                    if (state->destination->format != state->source->format)
+                    if (state->destination->config.format != state->source->config.format)
                          return;
                     break;
                case DSPF_RGB332:
@@ -692,18 +693,18 @@ matroxG400CheckState( void *drv, void *dev,
                int max_width = 2048;
 
                /* Interleaved source -> pitch must be doubled */
-               if ((state->source->caps & (DSCAPS_INTERLACED |
-                                           DSCAPS_SEPARATED)) == DSCAPS_INTERLACED &&
-                   (state->destination->caps & DSCAPS_INTERLACED ||
+               if ((state->source->config.caps & (DSCAPS_INTERLACED |
+                                                  DSCAPS_SEPARATED)) == DSCAPS_INTERLACED &&
+                   (state->destination->config.caps & DSCAPS_INTERLACED ||
                     state->blittingflags & DSBLIT_DEINTERLACE) &&
-                   state->destination->format != DSPF_YUY2 &&
-                   state->destination->format != DSPF_UYVY)
+                   state->destination->config.format != DSPF_YUY2 &&
+                   state->destination->config.format != DSPF_UYVY)
                     max_width = 1024;
 
-               if (state->source->width < 8 ||
-                   state->source->height < 8 ||
-                   state->source->width > max_width ||
-                   state->source->height > 2048)
+               if (state->source->config.size.w < 8 ||
+                   state->source->config.size.h < 8 ||
+                   state->source->config.size.w > max_width ||
+                   state->source->config.size.h > 2048)
                     return;
 
                state->accel |= MATROX_G200G400_BLITTING_FUNCTIONS;
@@ -724,7 +725,7 @@ matroxSetState( void *drv, void *dev,
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
      bool              prev_blit_fields = mdev->blit_fields;
 
-     if (state->modified == SMF_ALL) {
+     if (state->mod_hw == SMF_ALL) {
           mdev->valid = 0;
 
           /*
@@ -735,28 +736,28 @@ matroxSetState( void *drv, void *dev,
           if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG200)
                mga_waitidle( mdrv, mdev );
      }
-     else if (state->modified) {
-          if (state->modified & SMF_COLOR)
+     else if (state->mod_hw) {
+          if (state->mod_hw & SMF_COLOR)
                MGA_INVALIDATE( m_drawColor | m_blitColor | m_color );
 
-          if (state->modified & SMF_CLIP)
+          if (state->mod_hw & SMF_CLIP)
                MGA_INVALIDATE( m_clip );
 
-          if (state->modified & SMF_DESTINATION)
+          if (state->mod_hw & SMF_DESTINATION)
                MGA_INVALIDATE( m_destination | m_clip | m_color | m_Source | m_source );
 
-          if (state->modified & SMF_SOURCE)
+          if (state->mod_hw & SMF_SOURCE)
                MGA_INVALIDATE( m_Source | m_source | m_SrcKey | m_srckey | m_blitBlend );
-          else if (state->modified & SMF_SRC_COLORKEY)
+          else if (state->mod_hw & SMF_SRC_COLORKEY)
                MGA_INVALIDATE( m_SrcKey | m_srckey );
 
-          if (state->modified & SMF_DRAWING_FLAGS)
+          if (state->mod_hw & SMF_DRAWING_FLAGS)
                MGA_INVALIDATE( m_drawColor | m_color );
 
-          if (state->modified & SMF_BLITTING_FLAGS)
+          if (state->mod_hw & SMF_BLITTING_FLAGS)
                MGA_INVALIDATE( m_Source | m_SrcKey | m_blitBlend | m_blitColor );
 
-          if (state->modified & (SMF_DST_BLEND | SMF_SRC_BLEND))
+          if (state->mod_hw & (SMF_DST_BLEND | SMF_SRC_BLEND))
                MGA_INVALIDATE( m_blitBlend | m_drawBlend );
      }
 
@@ -764,16 +765,16 @@ matroxSetState( void *drv, void *dev,
           case DFXL_BLIT:
                mdev->blit_deinterlace = state->blittingflags & DSBLIT_DEINTERLACE;
                mdev->blit_fields      = !mdev->blit_deinterlace &&
-                                        state->source->caps & DSCAPS_INTERLACED &&
-                                        state->destination->caps & DSCAPS_INTERLACED &&
-                                        (state->source->caps & DSCAPS_SEPARATED ||
-                                         state->destination->caps & DSCAPS_SEPARATED);
+                                        state->source->config.caps & DSCAPS_INTERLACED &&
+                                        state->destination->config.caps & DSCAPS_INTERLACED &&
+                                        (state->source->config.caps & DSCAPS_SEPARATED ||
+                                         state->destination->config.caps & DSCAPS_SEPARATED);
                break;
           case DFXL_STRETCHBLIT:
                mdev->blit_deinterlace = state->blittingflags & DSBLIT_DEINTERLACE;
                mdev->blit_fields      = !mdev->blit_deinterlace &&
-                                        state->source->caps & DSCAPS_INTERLACED &&
-                                        state->destination->caps & DSCAPS_INTERLACED;
+                                        state->source->config.caps & DSCAPS_INTERLACED &&
+                                        state->destination->config.caps & DSCAPS_INTERLACED;
                break;
           default:
                mdev->blit_deinterlace = 0;
@@ -798,7 +799,7 @@ matroxSetState( void *drv, void *dev,
                     matrox_validate_color( mdrv, mdev, state );
                }
 
-               switch (state->destination->format) {
+               switch (state->destination->config.format) {
                     case DSPF_YUY2:
                     case DSPF_UYVY:
                          funcs->FillRectangle = matroxFillRectangle_422;
@@ -831,7 +832,7 @@ matroxSetState( void *drv, void *dev,
                                                 DSBLIT_SRC_PREMULTCOLOR))
                          matrox_validate_blitColor( mdrv, mdev, state );
 
-                    switch (state->destination->format) {
+                    switch (state->destination->config.format) {
                          case DSPF_YUY2:
                          case DSPF_UYVY:
                               if (mdev->blit_fields) {
@@ -882,7 +883,7 @@ matroxSetState( void *drv, void *dev,
                     matrox_validate_SrcKey( mdrv, mdev, state );
                }
                else {
-                    switch (state->destination->format) {
+                    switch (state->destination->config.format) {
                          case DSPF_YUY2:
                          case DSPF_UYVY:
                               funcs->Blit = mdev->blit_fields ?
@@ -924,7 +925,8 @@ matroxSetState( void *drv, void *dev,
 
      if (!MGA_IS_VALID( m_clip )) {
           mdev->clip = state->clip;
-          if (state->destination->format == DSPF_YUY2 || state->destination->format == DSPF_UYVY) {
+          if (state->destination->config.format == DSPF_YUY2 ||
+              state->destination->config.format == DSPF_UYVY) {
                mdev->clip.x1 /= 2;
                mdev->clip.x2 /= 2;
           }
@@ -936,7 +938,7 @@ matroxSetState( void *drv, void *dev,
           MGA_VALIDATE( m_clip );
      }
 
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 /******************************************************************************/
@@ -2601,7 +2603,7 @@ static DFBResult matrox_find_pci_device( MatroxDeviceData *mdev,
 /* exported symbols */
 
 static int
-driver_probe( GraphicsDevice *device )
+driver_probe( CoreGraphicsDevice *device )
 {
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_MATROX_MGA2064W:     /* Matrox 2064W (Millennium)       */
@@ -2618,7 +2620,7 @@ driver_probe( GraphicsDevice *device )
 }
 
 static void
-driver_get_info( GraphicsDevice     *device,
+driver_get_info( CoreGraphicsDevice *device,
                  GraphicsDriverInfo *info )
 {
      /* fill driver info structure */
@@ -2638,7 +2640,7 @@ driver_get_info( GraphicsDevice     *device,
 }
 
 static DFBResult
-driver_init_driver( GraphicsDevice      *device,
+driver_init_driver( CoreGraphicsDevice  *device,
                     GraphicsDeviceFuncs *funcs,
                     void                *driver_data,
                     void                *device_data,
@@ -2716,7 +2718,7 @@ driver_init_driver( GraphicsDevice      *device,
 }
 
 static DFBResult
-driver_init_device( GraphicsDevice     *device,
+driver_init_device( CoreGraphicsDevice *device,
                     GraphicsDeviceInfo *device_info,
                     void               *driver_data,
                     void               *device_data )
@@ -2877,9 +2879,9 @@ driver_init_device( GraphicsDevice     *device,
 }
 
 static void
-driver_close_device( GraphicsDevice *device,
-                     void           *driver_data,
-                     void           *device_data )
+driver_close_device( CoreGraphicsDevice *device,
+                     void               *driver_data,
+                     void               *device_data )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
      MatroxDeviceData *mdev = (MatroxDeviceData*) device_data;
@@ -2891,6 +2893,8 @@ driver_close_device( GraphicsDevice *device,
      mga_waitfifo( mdrv, mdev, 1 );
      mga_out32( mdrv->mmio_base, 0, DSTORG );
 
+     /* make sure BES registers get updated (besvcnt) */
+     mga_out32( mdrv->mmio_base, 0, BESGLOBCTL );
      /* make sure overlay is off */
      mga_out32( mdrv->mmio_base, 0, BESCTL );
 
@@ -2916,8 +2920,8 @@ driver_close_device( GraphicsDevice *device,
 }
 
 static void
-driver_close_driver( GraphicsDevice *device,
-                     void           *driver_data )
+driver_close_driver( CoreGraphicsDevice *device,
+                     void               *driver_data )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
 
