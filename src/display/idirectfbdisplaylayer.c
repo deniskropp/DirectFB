@@ -619,6 +619,8 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
      wd.posx   = (desc->flags & DWDESC_POSX)   ? desc->posx   : 100;
      wd.posy   = (desc->flags & DWDESC_POSY)   ? desc->posy   : 100;
 
+     D_DEBUG_AT( Layer, "CreateWindow() <- %d,%d - %dx%d )\n", wd.posx, wd.posy, wd.width, wd.height );
+
      if (desc->flags & DWDESC_CAPS)
           wd.caps = desc->caps;
 

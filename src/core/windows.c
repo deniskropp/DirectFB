@@ -440,6 +440,7 @@ dfb_window_create( CoreWindowStack             *stack,
                                                      region->surface ?
                                                      region->surface->palette : NULL, &surface );
                     if (ret) {
+                         D_DERROR( ret, "Core/Windows: Failed to create window surface!\n" );
                          dfb_layer_region_unlink( &window->primary_region );
                          fusion_object_destroy( &window->object );
                          dfb_windowstack_unlock( stack );
@@ -461,9 +462,10 @@ dfb_window_create( CoreWindowStack             *stack,
      /* Pass the new window to the window manager. */
      ret = dfb_wm_add_window( stack, window );
      if (ret) {
-          if (window->surface) {
+          D_DERROR( ret, "Core/Windows: Failed to add window to manager!\n" );
+
+          if (window->surface)
                dfb_surface_unlink( &window->surface );
-          }
 
           if (window->primary_region)
                dfb_layer_region_unlink( &window->primary_region );

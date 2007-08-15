@@ -1215,6 +1215,8 @@ dfb_layer_context_create_window( CoreDFB                     *core,
      CoreWindowStack *stack;
      CoreLayer       *layer;
 
+     D_DEBUG_AT( Core_Layers, "%s()\n", __FUNCTION__ );
+
      D_ASSERT( context != NULL );
      D_ASSERT( context->stack != NULL );
      D_ASSERT( desc != NULL );
