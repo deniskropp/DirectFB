@@ -21,6 +21,8 @@ New Surface Core
 - Make use of Read/Write if locks for CPU are not possible and
   implement an OpenGL based system module with OpenGL acceleration.
 
+IDirectFBSurface::Flip() with multiple regions.
+
 Support rotated screens (180 is implemented).
 
 Support vga16, i.e. add DSPF_LUT4.
