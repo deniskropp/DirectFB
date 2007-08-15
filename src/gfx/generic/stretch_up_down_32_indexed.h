@@ -4,6 +4,7 @@
 
 #define POINT_0               hfraq
 #define LINE_0                vfraq
+#define MINUS_1               0
 #define POINT_TO_RATIO(p,ps)  ( (((((p)) & 0x3ffff) ? : 0x40000) << SHIFT_L8) / (ps) )
 #define LINE_TO_RATIO(l,ls)   ( (((((l)) & 0x3ffff) ? : 0x40000) << SHIFT_L8) / (ls) )
 
@@ -29,6 +30,7 @@ static void FUNC_NAME(down)( void       *dst,
 
 #undef POINT_0
 #undef LINE_0
+#undef MINUS_1
 #undef POINT_TO_RATIO
 #undef LINE_TO_RATIO
 #undef POINT_L
@@ -40,6 +42,7 @@ static void FUNC_NAME(down)( void       *dst,
 
 #define POINT_0               0
 #define LINE_0                0
+#define MINUS_1               1
 #define POINT_TO_RATIO(p,ps)  ( ((p) & 0x3ffff) >> (18-SHIFT_L8) )
 #define LINE_TO_RATIO(l,ls)   ( ((l) & 0x3ffff) >> (18-SHIFT_L8) )
 
@@ -65,6 +68,7 @@ static void FUNC_NAME(up)( void       *dst,
 
 #undef POINT_0
 #undef LINE_0
+#undef MINUS_1
 #undef POINT_TO_RATIO
 #undef LINE_TO_RATIO
 #undef POINT_L

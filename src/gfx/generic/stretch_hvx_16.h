@@ -48,8 +48,8 @@
      long  ch      = clip->y2 - clip->y1 + 1;
      long  tail    = (cw - head) & 1;
      long  w2      = (cw - head) / 2;
-     long  hfraq   = ((long)(width  - (POINT_0 ? 0 : 1) ) << 18) / (long)(dst_width);
-     long  vfraq   = ((long)(height - (LINE_0  ? 0 : 1) ) << 18) / (long)(dst_height);
+     long  hfraq   = ((long)(width  - MINUS_1) << 18) / (long)(dst_width);
+     long  vfraq   = ((long)(height - MINUS_1) << 18) / (long)(dst_height);
      long  dp4     = dpitch / 4;
      long  point0  = POINT_0 + clip->x1 * hfraq;
      long  point   = point0;
