@@ -1,7 +1,7 @@
 if BUILD_SHARED
 if ENABLE_TRACE
 
-LIBTONM = $(LTLIBRARIES:.la=-$(LT_RELEASE).so.$(LT_CURRENT))
+LIBTONM = $(LTLIBRARIES:.la=-$(LT_RELEASE).so.$(LT_BINARY))
 
 install-data-local:
 	mkdir -p -- "$(DESTDIR)$(libdir)"
