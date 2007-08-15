@@ -779,7 +779,9 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 
      dfb_state_update( state, state->flags & CSF_SOURCE_LOCKED );
 
-     state->mod_hw |= state->modified;
+     /* Move modification flags to the set for drivers. */
+     state->mod_hw   |= state->modified;
+     state->modified  = SMF_ALL;
 
      /*
       * If function hasn't been set or state is modified,
@@ -788,6 +790,11 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      if (state->mod_hw || !(state->set & accel))
           card->funcs.SetState( card->driver_data, card->device_data,
                                 &card->funcs, state, accel );
+
+     if (state->modified != SMF_ALL)
+          D_ONCE( "USING OLD DRIVER! *** Use 'state->mod_hw' NOT 'modified'." );
+
+     state->modified = 0;
 
      return true;
 }
