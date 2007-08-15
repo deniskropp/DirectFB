@@ -565,20 +565,20 @@ allocate_buffer( CoreSurfaceBuffer       *buffer,
 
      D_DEBUG_AT( Core_SurfBuffer, "%s( %p, 0x%x )\n", __FUNCTION__, buffer, access );
 
+     D_DEBUG_AT( Core_SurfBuffer, " -> %dx%d %s - %s%s%s%s%s%s%s\n",
+                 surface->config.size.w, surface->config.size.h,
+                 dfb_pixelformat_name( surface->config.format ),
+                 (surface->type & CSTF_SHARED)   ? "SHARED "  : "PRIVATE ",
+                 (surface->type & CSTF_LAYER)    ? "LAYER "   : "",
+                 (surface->type & CSTF_WINDOW)   ? "WINDOW "  : "",
+                 (surface->type & CSTF_CURSOR)   ? "CURSOR "  : "",
+                 (surface->type & CSTF_FONT)     ? "FONT "    : "",
+                 (surface->type & CSTF_INTERNAL) ? "INTERNAL" : "",
+                 (surface->type & CSTF_EXTERNAL) ? "EXTERNAL" : "" );
+
      ret = dfb_surface_pools_negotiate( buffer, access, &pool );
      if (ret) {
-          if (ret != DFB_NOVIDEOMEMORY)
-               D_DERROR( ret, "Core/SurfBuffer: Surface pool negotiation failed! %dx%d %s - %s%s%s%s%s%s%s\n",
-                         surface->config.size.w, surface->config.size.h,
-                         dfb_pixelformat_name( surface->config.format ),
-                         (surface->type & CSTF_SHARED)   ? "SHARED "  : "PRIVATE ",
-                         (surface->type & CSTF_LAYER)    ? "LAYER "   : "",
-                         (surface->type & CSTF_WINDOW)   ? "WINDOW "  : "",
-                         (surface->type & CSTF_CURSOR)   ? "CURSOR "  : "",
-                         (surface->type & CSTF_FONT)     ? "FONT "    : "",
-                         (surface->type & CSTF_INTERNAL) ? "INTERNAL" : "",
-                         (surface->type & CSTF_EXTERNAL) ? "EXTERNAL" : "" );
-
+          D_DEBUG_AT( Core_SurfBuffer, " -> failed! (%s)\n", DirectFBErrorString( ret ) );
           return ret;
      }
 

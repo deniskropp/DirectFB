@@ -730,8 +730,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      /* lock destination */
      ret = dfb_surface_lock_buffer( dst, state->to, access, &state->dst );
      if (ret) {
-          if (ret != DFB_NOVIDEOMEMORY)
-               D_DERROR( ret, "Core/Graphics: Could not lock destination for GPU access!\n" );
+          D_DEBUG_AT( Core_Graphics, "Could not lock destination for GPU access!\n" );
           return false;
      }
 
@@ -740,8 +739,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           /* ...lock source for reading */
           ret = dfb_surface_lock_buffer( src, state->from, CSAF_GPU_READ, &state->src );
           if (ret) {
-               if (ret != DFB_NOVIDEOMEMORY)
-                    D_DERROR( ret, "Core/Graphics: Could not lock source for GPU access!\n" );
+               D_DEBUG_AT( Core_Graphics, "Could not lock source for GPU access!\n" );
                dfb_surface_unlock_buffer( dst, &state->dst );
                return false;
           }

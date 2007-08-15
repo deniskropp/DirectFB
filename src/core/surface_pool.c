@@ -326,10 +326,13 @@ dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
                break;
      }
 
+     D_DEBUG_AT( Core_SurfacePool, "  -> 0x%02x 0x%02x required\n", access, type );
+
      for (i=0; i<pool_count; i++) {
           CoreSurfacePool *pool = pools[i];
 
-          D_DEBUG_AT( Core_SurfacePool, "  -> 0x%02x [%s]\n", pool->desc.access, pool->desc.name );
+          D_DEBUG_AT( Core_SurfacePool, "  -> 0x%02x 0x%02x [%s]\n",
+                      pool->desc.access, pool->desc.types, pool->desc.name );
 
           if (D_FLAGS_ARE_SET( pool->desc.access, access ) &&
               D_FLAGS_ARE_SET( pool->desc.types,  type ))
@@ -368,6 +371,8 @@ dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
 
           return DFB_OK;
      }
+
+     D_DEBUG_AT( Core_SurfacePool, "  => %s\n", oovm ? "OUT OF MEMORY!" : "UNSUPPORTED!" );
 
      return oovm ? DFB_NOVIDEOMEMORY : DFB_UNSUPPORTED;
 }

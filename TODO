@@ -6,6 +6,7 @@ New Surface Core
 - Revive depth buffers.
 - Revive CSLF_FORCE for locking buffers in(to) INTERNAL memory.
 - Revive surface setinels.
+- Fix preallocated surface acceleration.
 - Finish FBDev surface pool using the old surface manager code.
   - Fix pool/gfxcard init order (using workaround at the moment).
   - Revive kicking out buffers.
