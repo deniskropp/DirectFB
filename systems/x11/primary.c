@@ -366,7 +366,6 @@ static DFBResult
 update_screen( CoreSurface *surface, int x, int y, int w, int h, CoreSurfaceBufferLock *lock )
 {
 #if 0
-     int          i;
      void        *dst;
      void        *src;
      int          pitch;

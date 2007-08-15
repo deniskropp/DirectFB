@@ -129,7 +129,7 @@ Probe( IDirectFBFont_ProbeContext *ctx )
      /* Read the header. */
      if (read( fd, &header, sizeof(header) ) != sizeof(header)) {
           ret = errno2result( errno );
-          D_PERROR( "Font/DGIFF: Failure reading %d bytes from '%s'!\n", sizeof(header), ctx->filename );
+          D_PERROR( "Font/DGIFF: Failure reading %zu bytes from '%s'!\n", sizeof(header), ctx->filename );
           goto out;
      }
 
