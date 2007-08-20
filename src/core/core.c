@@ -156,6 +156,9 @@ struct _CoreCleanup {
 struct __DFB_CoreDFBShared {
      int                  magic;
 
+     FusionSkirmish       lock;
+     bool                 active;
+
      FusionObjectPool    *layer_context_pool;
      FusionObjectPool    *layer_region_pool;
      FusionObjectPool    *palette_pool;
@@ -239,7 +242,8 @@ dfb_core_create( CoreDFB **ret_core )
 #if FUSION_BUILD_MULTI
      char     buf[16];
 #endif
-     CoreDFB *core = NULL;
+     CoreDFB       *core   = NULL;
+     CoreDFBShared *shared = NULL;
 
      D_ASSERT( ret_core != NULL );
      D_ASSERT( dfb_config != NULL );
@@ -336,12 +340,24 @@ dfb_core_create( CoreDFB **ret_core )
           goto error;
      }
 
+     shared = core->shared;
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
 
      if (dfb_config->block_all_signals)
           direct_signals_block_all();
 
      if (dfb_config->deinit_check)
           atexit( dfb_core_deinit_check );
+
+
+     fusion_skirmish_prevail( &shared->lock );
+
+     if (core->fusion_id != FUSION_ID_MASTER) {
+          while (!shared->active)
+               fusion_skirmish_wait( &shared->lock, 0 );
+     }
+
+     fusion_skirmish_dismiss( &shared->lock );
 
 
      *ret_core = core;
@@ -605,6 +621,25 @@ dfb_core_is_master( CoreDFB *core )
      D_MAGIC_ASSERT( core, CoreDFB );
 
      return core->master;
+}
+
+void
+dfb_core_activate( CoreDFB *core )
+{
+     CoreDFBShared *shared;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+
+     fusion_skirmish_prevail( &shared->lock );
+
+     shared->active = true;
+
+     fusion_skirmish_notify( &shared->lock );
+
+     fusion_skirmish_dismiss( &shared->lock );
 }
 
 FusionWorld *
@@ -1018,6 +1053,8 @@ dfb_core_arena_initialize( FusionArena *arena,
           return ret;
      }
 
+     fusion_skirmish_init( &shared->lock, "DirectFB Core", core->world );
+
      /* Register shared data. */
      fusion_arena_add_shared_field( arena, "Core/Shared", shared );
 
@@ -1051,8 +1088,8 @@ dfb_core_arena_shutdown( FusionArena *arena,
 
      /* Shutdown. */
      ret = dfb_core_shutdown( core, emergency );
-     if (ret)
-          return ret;
+
+     fusion_skirmish_destroy( &shared->lock );
 
      D_MAGIC_CLEAR( shared );
 
@@ -1060,7 +1097,7 @@ dfb_core_arena_shutdown( FusionArena *arena,
 
      fusion_shm_pool_destroy( core->world, pool );
 
-     return DFB_OK;
+     return ret;
 }
 
 static int

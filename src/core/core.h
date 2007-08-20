@@ -39,7 +39,7 @@
 #include "coredefs.h"
 
 
-#define DIRECTFB_CORE_ABI     41
+#define DIRECTFB_CORE_ABI     42
 
 
 typedef enum {
@@ -107,6 +107,11 @@ DirectResult dfb_core_enum_layer_regions ( CoreDFB               *core,
  * i.e. handles input drivers running their threads.
  */
 bool         dfb_core_is_master( CoreDFB *core );
+
+/*
+ * Allows other (blocking) Fusionees to enter the DirectFB session.
+ */
+void         dfb_core_activate( CoreDFB *core );
 
 /*
  * Returns the core's fusion world.
