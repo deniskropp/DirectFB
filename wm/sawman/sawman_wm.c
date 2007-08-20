@@ -1937,6 +1937,9 @@ wm_init_stack( CoreWindowStack *stack,
           return DFB_OK;
      }
 
+     D_INFO( "SaWMan: Initializing stack %p for tier %p, %dx%d, layer %d, context %p [%d]...\n",
+             stack, tier, stack->width, stack->height, context->layer_id, context, context->object.ref.multi.id );
+
      tier->stack   = stack;
      tier->context = context;
      tier->size.w  = stack->width;
@@ -2596,6 +2599,7 @@ wm_add_window( CoreWindowStack *stack,
 
      /* Retrieve corresponding SaWManTier. */
      if (!sawman_tier_by_stack( sawman, stack, &tier )) {
+          D_ERROR( "SaWMan/WM: Cannot add window to unknown stack!\n" );
           sawman_unlock( sawman );
           return DFB_UNSUPPORTED;
      }
@@ -2614,6 +2618,7 @@ wm_add_window( CoreWindowStack *stack,
 
      if (window->config.options & (DWOP_KEEP_ABOVE | DWOP_KEEP_UNDER)) {
           if (!sawwin->parent) {
+               D_ERROR( "SaWMan/WM: Cannot use KEEP_ABOVE/UNDER without a parent!\n" );
                D_MAGIC_CLEAR( sawwin );
                sawman_unlock( sawman );
                return DFB_UNSUPPORTED;
