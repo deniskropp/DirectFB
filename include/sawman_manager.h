@@ -219,7 +219,8 @@ struct __SaWMan_SaWManTier {
 
      bool                    active;
 
-     SaWManWindow           *single;
+     bool                    single_mode;
+     SaWManWindow           *single_window;
      int                     single_width;
      int                     single_height;
      DFBSurfacePixelFormat   single_format;

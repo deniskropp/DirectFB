@@ -780,7 +780,7 @@ process_updates( SaWMan              *sawman,
 
                options = (window->config.options & DWOP_COLORKEYING) ? DLOP_SRC_COLORKEY : DLOP_NONE;
 
-               if (tier->single         == NULL ||
+               if (tier->single_window  == NULL ||
                    tier->single_width   != single->src.w ||
                    tier->single_height  != single->src.h ||
                    tier->single_format  != surface->config.format ||
@@ -788,10 +788,12 @@ process_updates( SaWMan              *sawman,
                {
                     DFBDisplayLayerConfig  config;
 
-                    D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d %s single mode...\n",
-                                single->src.w, single->src.h, dfb_pixelformat_name( surface->config.format ) );
+                    D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d %s single mode for %p on %p...\n",
+                                single->src.w, single->src.h, dfb_pixelformat_name( surface->config.format ),
+                                single, tier );
 
-                    tier->single          = single;
+                    tier->single_mode     = true;
+                    tier->single_window   = single;
                     tier->single_width    = single->src.w;
                     tier->single_height   = single->src.h;
                     tier->single_format   = surface->config.format;
@@ -892,7 +894,7 @@ process_updates( SaWMan              *sawman,
 
 no_single:
 
-          if (tier->single) {
+          if (tier->single_mode) {
                D_DEBUG_AT( SaWMan_Auto, "  -> Switching back from single mode...\n" );
 
                tier->border_only = !border_only;  /* enforce switch */
@@ -940,7 +942,8 @@ no_single:
                dfb_updates_add( &tier->updates, &region );
           }
 
-          tier->single = NULL;
+          tier->single_mode   = false;
+          tier->single_window = NULL;
 
           if (!tier->updates.num_regions)
                continue;
@@ -1862,9 +1865,9 @@ wm_post_init( void *wm_data, void *shared_data )
           tier->context_lock  = tier->context->lock;
           tier->context->lock = sawman->lock;
 
-          direct_log_printf( NULL, "Layer  %d:  %dx%d, %s, options: %x\n",
-                             tier->layer_id, tier->config.width, tier->config.height,
-                             dfb_pixelformat_name( tier->config.pixelformat ), tier->config.options );
+          D_INFO( "SaWMan/Init: Layer  %d:  %dx%d, %s, options: %x\n",
+                  tier->layer_id, tier->config.width, tier->config.height,
+                  dfb_pixelformat_name( tier->config.pixelformat ), tier->config.options );
 
 
           border = &sawman_config->borders[(tier->classes & SWMSC_LOWER)  ? 0 :
@@ -1882,9 +1885,9 @@ wm_post_init( void *wm_data, void *shared_data )
 
           tier->border_config.options = DLOP_SRC_COLORKEY;
 
-          direct_log_printf( NULL, "Border %d:  %dx%d, %s, options: %x\n",
-                             tier->layer_id, tier->border_config.width, tier->border_config.height,
-                             dfb_pixelformat_name( tier->border_config.pixelformat ), tier->border_config.options );
+          D_INFO( "SaWMan/Init: Border %d:  %dx%d, %s, options: %x\n",
+                  tier->layer_id, tier->border_config.width, tier->border_config.height,
+                  dfb_pixelformat_name( tier->border_config.pixelformat ), tier->border_config.options );
      }
 
      process_updates( sawman, wm_data, DSFLIP_NONE );
@@ -2088,7 +2091,7 @@ wm_resize_stack( CoreWindowStack *stack,
           return ret;
 
      /* Retrieve corresponding SaWManTier. */
-     if (!sawman_tier_by_stack( sawman, stack, &tier ) || tier->single) {
+     if (!sawman_tier_by_stack( sawman, stack, &tier ) || tier->single_mode) {
           sawman_unlock( sawman );
           return DFB_OK;
      }
@@ -2754,6 +2757,9 @@ wm_remove_window( CoreWindowStack *stack,
                break;
      }
 
+     if (tier->single_window == sawwin)
+          tier->single_window = NULL;
+
      process_updates( sdata->sawman, wm_data, DSFLIP_NONE );
 
      /* Unlock SaWMan. */
@@ -3309,7 +3315,7 @@ wm_update_stack( CoreWindowStack     *stack,
           return DFB_UNSUPPORTED;
      }
 
-     if (!tier->single) {
+     if (!tier->single_mode) {
           dfb_updates_add( &tier->updates, region );
 
           ret = process_updates( sawman, wm_data, flags );
@@ -3363,14 +3369,15 @@ wm_update_window( CoreWindow          *window,
      /* Retrieve corresponding SaWManTier. */
      tier = sawman_tier_by_class( sawman, window->config.stacking );
      if (!tier) {
+          D_ERROR( "SaWMan/WM: Cannot update window on unknown stack!\n" );
           sawman_unlock( sawman );
           return DFB_BUG;
      }
 
-     if (tier->single) {
+     if (tier->single_mode) {
           D_ASSERT( tier->region != NULL );
 
-          if (tier->single == sawwin) {
+          if (tier->single_window == sawwin) {
                DFBRectangle tmp = sawwin->src;
 
                if (!region || dfb_rectangle_intersect_by_region( &tmp, region )) {
