@@ -2718,10 +2718,18 @@ wm_remove_window( CoreWindowStack *stack,
      if (ret)
           return ret;
 
-     /* Retrieve corresponding SaWManTier. */
+     /* Check for valid stack. */
      if (!sawman_tier_by_stack( sawman, stack, &tier )) {
+          D_ERROR( "SaWMan/WM: Cannot remove window from unknown stack!\n" );
           sawman_unlock( sawman );
           return DFB_UNSUPPORTED;
+     }
+
+     /* Retrieve corresponding SaWManTier. */
+     tier = sawman_tier_by_class( sawman, window->config.stacking );
+     if (!tier) {
+          sawman_unlock( sawman );
+          return DFB_BUG;
      }
 
      direct_list_remove( &sawman->windows, &sawwin->link );
@@ -3374,7 +3382,7 @@ wm_update_window( CoreWindow          *window,
           return DFB_BUG;
      }
 
-     if (tier->single_mode) {
+     if (tier->single_mode && tier->single_window != NULL) {
           D_ASSERT( tier->region != NULL );
 
           if (tier->single_window == sawwin) {
