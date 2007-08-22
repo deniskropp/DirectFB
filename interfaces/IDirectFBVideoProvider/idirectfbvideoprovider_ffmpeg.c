@@ -389,7 +389,7 @@ FFmpegInput( DirectThread *self, void *arg )
                     flush_packets( &data->video.queue );
                     flush_packets( &data->audio.queue );
                     if (!data->input.buffering &&
-                        url_is_streamed( &data->context->pb )) {
+                         url_is_streamed( &data->context->pb )) {
                          pthread_mutex_lock( &data->video.queue.lock );
                          pthread_mutex_lock( &data->audio.queue.lock );
                          data->input.buffering = true;
@@ -1430,7 +1430,7 @@ Construct( IDirectFBVideoProvider *thiz,
           return D_OOM();
      }
           
-     if (init_put_byte( &pb, data->iobuf, IO_BUFFER_SIZE, 0, 
+     if (init_put_byte( &pb, data->iobuf, IO_BUFFER_SIZE * 1024, 0, 
                         (void*)data, av_read_callback, NULL,
                         data->seekable ? av_seek_callback : NULL ) < 0) {
           D_ERROR( "IDirectFBVideoProvider_FFmpeg: "
