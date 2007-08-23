@@ -7,7 +7,8 @@ INCLUDES = \
 	-I$(top_srcdir)/src 	\
 	$(DFB_CFLAGS)			\
 	$(VORBISFILE_CFLAGS)	\
-	$(CDDB_CFLAGS)
+	$(CDDB_CFLAGS) 		\
+	$(FFMPEG_CFLAGS)
 
 
 if BUILD_TIMIDITY
@@ -35,13 +36,18 @@ if BUILD_PLAYLIST
 PLAYLIST_PROVIDER_LTLIB = libifusionsoundmusicprovider_playlist.la
 endif
 
+if BUILD_FFMPEG
+FFMPEG_PROVIDER_LTLIBS = libifusionsoundmusicprovider_ffmpeg.la
+endif
+
 ifusionsoundmusicprovider_LTLIBRARIES =	\
 	$(TIMIDITY_PROVIDER_LTLIB)	\
 	$(WAVE_PROVIDER_LTLIB)		\
 	$(VORBIS_PROVIDER_LTLIB)		\
 	$(MAD_PROVIDER_LTLIB)		\
 	$(CDDA_PROVIDER_LTLIB)		\
-	$(PLAYLIST_PROVIDER_LTLIB)
+	$(PLAYLIST_PROVIDER_LTLIB)	\
+	$(FFMPEG_PROVIDER_LTLIBS)
 
 
 libifusionsoundmusicprovider_timidity_la_SOURCES = ifusionsoundmusicprovider_timidity.c
@@ -82,4 +88,11 @@ libifusionsoundmusicprovider_cdda_la_LDFLAGS = -avoid-version -module
 libifusionsoundmusicprovider_playlist_la_SOURCES = ifusionsoundmusicprovider_playlist.c
 
 libifusionsoundmusicprovider_playlist_la_LDFLAGS = -avoid-version -module
+
+
+libifusionsoundmusicprovider_ffmpeg_la_SOURCES = ifusionsoundmusicprovider_ffmpeg.c
+
+libifusionsoundmusicprovider_ffmpeg_la_LIBADD = $(FFMPEG_LIBS)
+
+libifusionsoundmusicprovider_ffmpeg_la_LDFLAGS = -avoid-version -module
 
