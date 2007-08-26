@@ -852,6 +852,7 @@ fi
 
 dnl check which gfxdrivers to build
 ati=no
+cle266=no
 cyber5k=no
 i810=no
 i830=no
@@ -859,13 +860,12 @@ mach64=no
 matrox=no
 neomagic=no
 nsc=no
-cle266=no
-unichrome=no
 nvidia=no
 radeon=no
-tdfx=no
 savage=no
 sis315=no
+tdfx=no
+unichrome=no
 vmware=no
 
 if test "$have_linux" = "yes"; then
@@ -882,8 +882,8 @@ AC_ARG_WITH(gfxdrivers,
 
 if test "$gfxdrivers" = "all"; then
   checkfor_ati128=no
-  checkfor_cyber5k=no
   checkfor_cle266=no
+  checkfor_cyber5k=no
   checkfor_i810=no
   checkfor_i830=no
   checkfor_mach64=yes
@@ -907,11 +907,11 @@ else
           ati128)
                   checkfor_ati128=yes
                   ;;
-          cyber5k)
-                  checkfor_cyber5k=yes
-                  ;;
           cle266)
                   checkfor_cle266=yes
+                  ;;
+          cyber5k)
+                  checkfor_cyber5k=yes
                   ;;
           i810)
                   checkfor_i810=yes
@@ -966,40 +966,12 @@ if test "$checkfor_ati128" = "yes"; then
   ati=yes
 fi
 
-if test "$checkfor_radeon" = "yes"; then
-  radeon=yes
-fi
-
-if test "$checkfor_mach64" = "yes"; then
-  mach64=yes
-fi
-
-if test "$checkfor_matrox" = "yes"; then
-  matrox=yes
-fi
-
-if test "$checkfor_tdfx" = "yes"; then
-  tdfx=yes
+if test "$checkfor_cle266" = "yes" && test "$have_sysio" = "yes"; then
+  cle266=yes
 fi
 
 if test "$checkfor_cyber5k" = "yes"; then
   cyber5k=yes
-fi
-
-if test "$checkfor_nvidia" = "yes"; then
-  nvidia=yes
-fi
-
-if test "$checkfor_savage" = "yes" && test "$have_sysio" = "yes"; then
-  savage=yes
-fi
-
-if test "$checkfor_sis315" = "yes"; then
-  sis315=yes
-fi
-
-if test "$checkfor_neomagic" = "yes" && test "$have_sysio" = "yes"; then
-  neomagic=yes
 fi
 
 if test "$checkfor_i810" = "yes" && test "$have_sysio" = "yes"; then
@@ -1010,12 +982,40 @@ if test "$checkfor_i830" = "yes" && test "$have_sysio" = "yes"; then
   i830=yes
 fi
 
+if test "$checkfor_mach64" = "yes"; then
+  mach64=yes
+fi
+
+if test "$checkfor_matrox" = "yes"; then
+  matrox=yes
+fi
+
+if test "$checkfor_neomagic" = "yes" && test "$have_sysio" = "yes"; then
+  neomagic=yes
+fi
+
 if test "$checkfor_nsc" = "yes"; then
   nsc=yes
 fi
 
-if test "$checkfor_cle266" = "yes" && test "$have_sysio" = "yes"; then
-  cle266=yes
+if test "$checkfor_nvidia" = "yes"; then
+  nvidia=yes
+fi
+
+if test "$checkfor_radeon" = "yes"; then
+  radeon=yes
+fi
+
+if test "$checkfor_savage" = "yes" && test "$have_sysio" = "yes"; then
+  savage=yes
+fi
+
+if test "$checkfor_sis315" = "yes"; then
+  sis315=yes
+fi
+
+if test "$checkfor_tdfx" = "yes"; then
+  tdfx=yes
 fi
 
 if test "$checkfor_unichrome" = "yes" && test "$have_sysio" = "yes"; then
@@ -1311,8 +1311,8 @@ fi
 
 
 AM_CONDITIONAL(GFX_ATI, test "$ati" = "yes")
-AM_CONDITIONAL(GFX_CYBER5K, test "$cyber5k" = "yes")
 AM_CONDITIONAL(GFX_CLE266, test "$cle266" = "yes")
+AM_CONDITIONAL(GFX_CYBER5K, test "$cyber5k" = "yes")
 AM_CONDITIONAL(GFX_I810, test "$i810" = "yes")
 AM_CONDITIONAL(GFX_I830, test "$i830" = "yes")
 AM_CONDITIONAL(GFX_MACH64, test "$mach64" = "yes")

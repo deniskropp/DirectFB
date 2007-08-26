@@ -6,58 +6,10 @@ else
 ATI_DIR =
 endif
 
-if GFX_RADEON
-RADEON_DIR = radeon
+if GFX_CLE266
+CLE266_DIR = cle266
 else
-RADEON_DIR =
-endif
-
-if GFX_MACH64
-MACH64_DIR = mach64
-else
-MACH64_DIR =
-endif
-
-if GFX_MATROX
-MATROX_DIR = matrox
-else
-MATROX_DIR =
-endif
-
-if GFX_TDFX
-TDFX_DIR = tdfx
-else
-TDFX_DIR =
-endif
-
-if GFX_NVIDIA
-NVIDIA_DIR = nvidia
-else
-NVIDIA_DIR =
-endif
-
-if GFX_NEOMAGIC
-NEOMAGIC_DIR = neomagic
-else
-NEOMAGIC_DIR =
-endif
-
-if GFX_NSC
-GEODE_DIR = nsc
-else
-GEODE_DIR =
-endif
-
-if GFX_SAVAGE
-SAVAGE_DIR = savage
-else
-SAVAGE_DIR =
-endif
-
-if GFX_SIS315
-SIS315_DIR = sis315
-else
-SIS315_DIR =
+CLE266_DIR =
 endif
 
 if GFX_CYBER5K
@@ -78,10 +30,58 @@ else
 I830_DIR =
 endif
 
-if GFX_CLE266
-CLE266_DIR = cle266
+if GFX_MACH64
+MACH64_DIR = mach64
 else
-CLE266_DIR =
+MACH64_DIR =
+endif
+
+if GFX_MATROX
+MATROX_DIR = matrox
+else
+MATROX_DIR =
+endif
+
+if GFX_NEOMAGIC
+NEOMAGIC_DIR = neomagic
+else
+NEOMAGIC_DIR =
+endif
+
+if GFX_NSC
+NSC_DIR = nsc
+else
+NSC_DIR =
+endif
+
+if GFX_NVIDIA
+NVIDIA_DIR = nvidia
+else
+NVIDIA_DIR =
+endif
+
+if GFX_RADEON
+RADEON_DIR = radeon
+else
+RADEON_DIR =
+endif
+
+if GFX_SAVAGE
+SAVAGE_DIR = savage
+else
+SAVAGE_DIR =
+endif
+
+if GFX_SIS315
+SIS315_DIR = sis315
+else
+SIS315_DIR =
+endif
+
+if GFX_TDFX
+TDFX_DIR = tdfx
+else
+TDFX_DIR =
 endif
 
 if GFX_UNICHROME
@@ -98,18 +98,18 @@ endif
 
 SUBDIRS = \
 	$(ATI_DIR)	\
-	$(RADEON_DIR)	\
+	$(CLE266_DIR)	\
 	$(CYBER5K_DIR)	\
-	$(MACH64_DIR)	\
-	$(MATROX_DIR)	\
-	$(TDFX_DIR)	\
-	$(NVIDIA_DIR)	\
-	$(NEOMAGIC_DIR)	\
-	$(SAVAGE_DIR)	\
-	$(SIS315_DIR)	\
 	$(I810_DIR)	\
 	$(I830_DIR)	\
-	$(CLE266_DIR)	\
+	$(MACH64_DIR)	\
+	$(MATROX_DIR)	\
+	$(NEOMAGIC_DIR)	\
+	$(NSC_DIR)	\
+	$(NVIDIA_DIR)	\
+	$(RADEON_DIR)	\
+	$(SAVAGE_DIR)	\
+	$(SIS315_DIR)	\
+	$(TDFX_DIR)	\
 	$(UNICHROME_DIR) \
-	$(GEODE_DIR)	\
 	$(VMWARE_DIR)
