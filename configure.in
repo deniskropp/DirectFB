@@ -1054,9 +1054,9 @@ AC_ARG_WITH(inputdrivers,
 [                             inputdrivers may be comma separated ]
 [                             'all' builds all drivers (default), 'none' builds none ]
 [                             Possible inputdrivers are: ]
-[                             dbox2remote, dynapro, elo-input, gunze, h3600_ts, joystick, keyboard, ]
-[                             dreamboxremote, linuxinput, lirc, mutouch, penmount, ps2mouse, ]
-[                             serialmouse, sonypijogdial, tslib, wm97xx], inputdrivers="$withval",[inputdrivers="all"])
+[                             dbox2remote, dreamboxremote, dynapro, elo-input, gunze, h3600_ts, ]
+[                             joystick, keyboard, linuxinput, lirc, mutouch, penmount, ps2mouse, ]
+[                             serialmouse, sonypijogdial, tslib, ucb1x00, wm97xx], inputdrivers="$withval",[inputdrivers="all"])
 
 if test "$inputdrivers" = "all"; then
   checkfor_dbox2remote=yes
@@ -1343,9 +1343,8 @@ AM_CONDITIONAL(PS2MOUSE_INPUT, test "$enable_ps2mouse" = "yes")
 AM_CONDITIONAL(SERIAL_MOUSE_INPUT, test "$enable_serial_mouse" = "yes")
 AM_CONDITIONAL(SONYPI, test "$enable_sonypi_jogdial" = "yes")
 AM_CONDITIONAL(TSLIB, test "$enable_tslib" = "yes")
-AM_CONDITIONAL(WM97XX_TS, test "$enable_wm97xx_ts" = "yes")
-
 AM_CONDITIONAL(UCB1X00_TS, test "$enable_ucb1x00_ts" = "yes")
+AM_CONDITIONAL(WM97XX_TS, test "$enable_wm97xx_ts" = "yes")
 
 AM_CONDITIONAL(BUILD_TESTS, test "$with_tests" = "yes")
 AM_CONDITIONAL(BUILD_TOOLS, test "$with_tools" = "yes")
