@@ -352,7 +352,7 @@ dfb_core_create( CoreDFB **ret_core )
 
      fusion_skirmish_prevail( &shared->lock );
 
-     if (core->fusion_id != FUSION_ID_MASTER) {
+     if (!core->master) {
           while (!shared->active)
                fusion_skirmish_wait( &shared->lock, 0 );
      }

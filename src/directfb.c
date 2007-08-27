@@ -204,6 +204,8 @@ DirectFBCreate( IDirectFB **interface )
           ret = dfb_wm_post_init( core_dfb );
           if (ret)
                D_DERROR( ret, "DirectFBCreate: Post initialization of WM failed!\n" );
+
+          dfb_core_activate( core_dfb );
      }
 
      *interface = idirectfb_singleton = dfb;
