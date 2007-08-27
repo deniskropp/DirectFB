@@ -404,7 +404,7 @@ static void radeonFlushTextureCache( void *drv, void *dev )
 
 #ifdef WORDS_BIGENDIAN
 static void radeonSurfaceEnter( void *drv, void *dev, 
-                                SurfaceBuffer *buffer, DFBSurfaceLockFlags flags )
+                                CoreSurfaceBuffer *buffer, DFBSurfaceLockFlags flags )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
@@ -415,45 +415,27 @@ static void radeonSurfaceEnter( void *drv, void *dev,
           return;
 
      rdev->surface_cntl_p = radeon_in32( mmio, SURFACE_CNTL );
+     
      tmp = rdev->surface_cntl_p & ~SURF_TRANSLATION_DIS;
-
-     switch (buffer->storage) {
-          case CSS_VIDEO:
-               tmp &= ~(NONSURF_AP0_SWP_16BPP | NONSURF_AP0_SWP_32BPP);
-               switch (DFB_BITS_PER_PIXEL( buffer->format )) {
-                    case 16:
-                         tmp |= NONSURF_AP0_SWP_16BPP;
-                         break;
-                    case 32:
-                         tmp |= NONSURF_AP0_SWP_32BPP;
-                         break;
-                    default:
-                         break;
-               }
+     tmp &= ~(NONSURF_AP0_SWP_16BPP | NONSURF_AP1_SWP_16BPP |
+              NONSURF_AP0_SWP_32BPP | NONSURF_AP1_SWP_32BPP);
+              
+     switch (DFB_BITS_PER_PIXEL( buffer->format )) {
+          case 16:
+               tmp |= NONSURF_AP0_SWP_16BPP | NONSURF_AP1_SWP_16BPP;
                break;
-          case CSS_AUXILIARY:
-               tmp &= ~(NONSURF_AP1_SWP_16BPP | NONSURF_AP1_SWP_32BPP);
-               switch (DFB_BITS_PER_PIXEL( buffer->format )) {
-                    case 16:
-                         tmp |= NONSURF_AP1_SWP_16BPP;
-                         break;
-                    case 32:
-                         tmp |= NONSURF_AP1_SWP_32BPP;
-                         break;
-                   default:
-                         break;
-               }
+          case 32:
+               tmp |= NONSURF_AP0_SWP_32BPP | NONSURF_AP1_SWP_32BPP;
                break;
           default:
-               D_BUG( "unknown buffer storage" );
-               return;
+               break;
      }
 
      radeon_out32( mmio, SURFACE_CNTL, tmp );
      rdev->surface_cntl_c = tmp;
 }
 
-static void radeonSurfaceLeave( void *drv, void *dev, SurfaceBuffer *buffer )
+static void radeonSurfaceLeave( void *drv, void *dev, CoreSurfaceBuffer *buffer )
 { 
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
