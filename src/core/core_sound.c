@@ -565,20 +565,20 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
                     int            c;                               \
                     if (FS_MODE_HAS_CENTER(mode)) {                 \
                          c = 0;                                     \
-                         s = src[c];                                \
+                         s = src[c] + src[3];                       \
                          BODY                                       \
                          c = 2;                                     \
                          s = src[c];                                \
                          BODY                                       \
                          c = 1;                                     \
-                         s = src[c];                                \
+                         s = src[c] + src[4];                       \
                          BODY                                       \
                     } else {                                        \
                          c = 0;                                     \
-                         s = src[c] + src[2];                       \
+                         s = src[c] + src[2] + src[3];              \
                          BODY                                       \
                          c = 1;                                     \
-                         s = src[c] + src[2];                       \
+                         s = src[c] + src[2] + src[4];              \
                          BODY                                       \
                     }                                               \
                     if (FS_MODE_HAS_LFE(mode)) {                    \
