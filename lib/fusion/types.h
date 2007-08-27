@@ -46,6 +46,8 @@
 #else
 typedef unsigned long FusionID;
 
+#define FUSION_ID_MASTER 1L
+
 typedef enum {
      FCEF_NONE     = 0x00000000,
      FCEF_ONEWAY   = 0x00000001,

@@ -36,9 +36,6 @@
 #include <direct/types.h>
 
 
-#define FUSION_ID_MASTER 1L
-
-
 typedef enum {
      FMT_SEND,
      FMT_ENTER,
