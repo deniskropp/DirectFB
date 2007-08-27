@@ -545,7 +545,6 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
                }                                                    \
                break;                                               \
           case FSCM_STEREO:                                         \
-          case FSCM_STEREO21:                                       \
                for (n = mixed; n; n--) {                            \
                     register __fsf s;                               \
                     int            c;                               \
@@ -555,28 +554,33 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
                     c = 1;                                          \
                     s = src[c] + src[2] + src[4];                   \
                     BODY                                            \
-                    if (FS_MODE_HAS_LFE(mode)) {                    \
-                         c = 5;                                     \
-                         s = src[c];                                \
-                         BODY;                                      \
-                    }                                               \
                     src += FS_MAX_CHANNELS;                         \
                }                                                    \
                break;                                               \
+          case FSCM_STEREO21:                                       \
           case FSCM_STEREO30:                                       \
           case FSCM_STEREO31:                                       \
                for (n = mixed; n; n--) {                            \
                     register __fsf s;                               \
                     int            c;                               \
-                    c = 0;                                          \
-                    s = src[c] + src[3];                            \
-                    BODY                                            \
-                    c = 2;                                          \
-                    s = src[c];                                     \
-                    BODY                                            \
-                    c = 1;                                          \
-                    s = src[c] + src[4];                            \
-                    BODY                                            \
+                    if (FS_MODE_HAS_CENTER(mode)) {                 \
+                         c = 0;                                     \
+                         s = src[c];                                \
+                         BODY                                       \
+                         c = 2;                                     \
+                         s = src[c];                                \
+                         BODY                                       \
+                         c = 1;                                     \
+                         s = src[c];                                \
+                         BODY                                       \
+                    } else {                                        \
+                         c = 0;                                     \
+                         s = src[c] + src[2];                       \
+                         BODY                                       \
+                         c = 1;                                     \
+                         s = src[c] + src[2];                       \
+                         BODY                                       \
+                    }                                               \
                     if (FS_MODE_HAS_LFE(mode)) {                    \
                          c = 5;                                     \
                          s = src[c];                                \
@@ -699,7 +703,7 @@ sound_thread( DirectThread *thread, void *arg )
      
      FSChannelMode       mode    = shared->config.mode;
      
-     fsf_dither_profiles(dither,FS_MAX_CHANNELS);
+     fsf_dither_profiles(dither, FS_MAX_CHANNELS);
      
      caps = fs_device_get_capabilities( core->device );
      
@@ -760,14 +764,16 @@ sound_thread( DirectThread *thread, void *arg )
           switch (shared->config.format) {
                case FSSF_U8:
                     FS_MIX_OUTPUT_LOOP(
-                         s = fsf_dither( s, 8, dither[c] );
+                         if (fs_config->dither)
+                              s = fsf_dither( s, 8, dither[c] );
                          s = fsf_clip( s );                              
                          *dst++ = fsf_to_u8( s );
                     )
                     break;
                case FSSF_S16:
                     FS_MIX_OUTPUT_LOOP(
-                         s = fsf_dither( s, 16, dither[c] );
+                         if (fs_config->dither)
+                              s = fsf_dither( s, 16, dither[c] );
                          s = fsf_clip( s );                              
                          *((u16*)dst) = fsf_to_s16( s );
                          dst += 2;

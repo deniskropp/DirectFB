@@ -43,6 +43,7 @@ typedef struct {
 
      bool            banner;       /* startup banner */
      bool            wait;         /* wait slaves on exit */
+     bool            dither;       /* enable dithering */
 } FSConfig;
 
 extern FSConfig *fs_config;

@@ -69,7 +69,8 @@ static const char *config_usage =
      "  [no-]banner                    Show FusionSound banner on startup\n"
      "  [no-]debug                     Enable debug output\n"
      "  [no-]trace                     Enable stack trace support\n"
-     "  [no-]wait                      Wait slaves before quitting\n" 
+     "  [no-]wait                      Wait slaves before quitting\n"
+     "  [no-]dither                    Enable dithering\n"
      "\n";
      
 typedef struct {
@@ -387,6 +388,12 @@ fs_config_set( const char *name, const char *value )
      } 
      else if (!strcmp( name, "no-trace" )) {
           direct_config->trace = false;
+     }
+     else if (!strcmp( name, "dither" )) {
+          fs_config->dither = true;
+     }
+     else if (!strcmp( name, "no-dither" )) {
+          fs_config->dither = false;
      }
      else
           return DFB_UNSUPPORTED;

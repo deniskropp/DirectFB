@@ -80,14 +80,13 @@ typedef float __fsf;
 #define fsf_from_s32( x )            ((__fsf)(x)/2147483648.0f)
 #define fsf_to_s32( x )              ((x)*2147483648.0f)
 
-
-#ifdef FS_ENABLE_DITHERING
 /*
  * Triangular Dithering.
  */
-# define fsf_dither_profiles( p, n ) \
+#define fsf_dither_profiles( p, n ) \
      struct { unsigned int r; } p[n] = { [0 ... (n-1)] = { 0 } }
-# define fsf_dither( s, b, p ) ( \
+
+#define fsf_dither( s, b, p ) ( \
  __extension__({ \
      register int _r; \
      _r    = -((p).r >> (b)); \
@@ -95,11 +94,7 @@ typedef float __fsf;
      _r   += (p).r >> (b); \
      (s) + (float)_r / 2147483648.0f; \
  }) \
-) 
-#else
-# define fsf_dither_profiles( p, n )
-# define fsf_dither( s, b, p )  ((s) + (1.0f / (float)(1 << (b))))
-#endif
+)
 
 #else /* !FS_USE_IEEE_FLOATS (Fixed Point) */
 
@@ -178,8 +173,6 @@ typedef signed int __fsf;
 # define fsf_to_s32( x )             ((x) << (31 - FSF_DECIBITS))
 #endif
 
-
-#ifdef FS_ENABLE_DITHERING
 /* 
  * Noise Shaped Dithering.
  *
@@ -189,9 +182,10 @@ typedef signed int __fsf;
  *   Stanley P. Lipshitz, John Vanderkooy, and Robert A. Wannamaker,
  *   "Minimally Audible Noise Shaping", J. Audio Eng. Soc., Vol.39, No.11, 1991.
  */
-# define fsf_dither_profiles( p, n ) \
+#define fsf_dither_profiles( p, n ) \
      struct { int e[5]; unsigned int r; } p[n] = { [0 ... (n-1)] = { {0, 0, 0, 0, 0}, 0 } }
-# define fsf_dither( s, b, p ) ( \
+
+#define fsf_dither( s, b, p ) ( \
  __extension__({ \
      const int      _m = (1 << (FSF_DECIBITS+1-(b))) - 1; \
      register __fsf _s, _o; \
@@ -208,10 +202,6 @@ typedef signed int __fsf;
      _o; \
    }) \
 )
-#else
-# define fsf_dither_profiles( p, n )
-# define fsf_dither( s, b, p )  ((s) + (1 << (FSF_DECIBITS-(b))))
-#endif
 
 #endif /* FS_USE_IEEE_FLOATS */
 
