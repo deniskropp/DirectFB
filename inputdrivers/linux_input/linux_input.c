@@ -774,7 +774,8 @@ static void*
 linux_input_EventThread( DirectThread *thread, void *driver_data )
 {
      LinuxInputData    *data = (LinuxInputData*) driver_data;
-     int                readlen, status, i;
+     int                readlen, status;
+     unsigned int       i;
      struct input_event levt[64];
      fd_set             set;
      struct touchpad_fsm_state fsm_state;
