@@ -45,7 +45,7 @@
 
 static DFBResult
 crtc1InitScreen( CoreScreen           *screen,
-                 GraphicsDevice       *device,
+                 CoreGraphicsDevice   *device,
                  void                 *driver_data,
                  void                 *screen_data,
                  DFBScreenDescription *description )
@@ -157,27 +157,25 @@ void        *OldPrimaryScreenDriverData;
 /*************************** Primary Layer hooks ******************************/
 
 static DFBResult
-fb0FlipRegion( CoreLayer           *layer,
-               void                *driver_data,
-               void                *layer_data,
-               void                *region_data,
-               CoreSurface         *surface,
-               DFBSurfaceFlipFlags  flags )
+fb0FlipRegion( CoreLayer             *layer,
+               void                  *driver_data,
+               void                  *layer_data,
+               void                  *region_data,
+               CoreSurface           *surface,
+               DFBSurfaceFlipFlags    flags,
+               CoreSurfaceBufferLock *lock )
 {
      NVidiaDriverData *nvdrv  = (NVidiaDriverData*) driver_data;
      NVidiaDeviceData *nvdev  = nvdrv->device_data;
-     SurfaceBuffer    *buffer = surface->back_buffer;
      u32               offset;
 
-     dfb_gfxcard_sync();
+     dfb_surface_flip( surface, false );
      
-     offset = (buffer->video.offset + nvdev->fb_offset) & ~3;
+     offset = (lock->offset + nvdev->fb_offset) & ~3;
      nv_out32( nvdrv->mmio_base, PCRTC_START, offset );
 
      if (flags & DSFLIP_WAIT)
           dfb_layer_wait_vsync( layer );
-
-     dfb_surface_flip_buffers( surface, false );
 
      return DFB_OK;
 }

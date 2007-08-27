@@ -65,38 +65,26 @@ void nv_set_destination( NVidiaDriverData *nvdrv,
                          NVidiaDeviceData *nvdev,
                          CardState        *state )
 {
-     CoreSurface   *surface     = state->destination;
-     SurfaceBuffer *buffer      = surface->back_buffer;
-     volatile u8   *mmio        = nvdrv->mmio_base;
+     CoreSurface   *surface = state->destination;
+     volatile u8   *mmio    = nvdrv->mmio_base;
      u32            dst_offset;
      u32            dst_pitch;
      u32            src_pitch;
-     u32            depth_offset;
-     u32            depth_pitch;
      
      if (NVIDIA_IS_SET( DESTINATION ))
           return;
           
-     dst_offset = (buffer->video.offset + nvdev->fb_offset) & ~63;
-     dst_pitch  = buffer->video.pitch & ~31;
+     dst_offset = (state->dst.offset + nvdev->fb_offset) & ~63;
+     dst_pitch  = state->dst.pitch & ~31;
      src_pitch  = (nvdev->src_pitch & ~31) ? : 32; // align to 32, maybe system buffer pitch
-     
-     if (surface->caps & DSCAPS_DEPTH) {
-          depth_offset = surface->depth_buffer->video.offset;
-          depth_offset = (depth_offset + nvdev->fb_offset) & ~63;
-          depth_pitch  = surface->depth_buffer->video.pitch & ~63;
-     } else {
-          depth_offset = 0;
-          depth_pitch  = 64;
-     }
 
-     if (nvdev->dst_format != buffer->format) {
+     if (nvdev->dst_format != surface->config.format) {
           u32   sformat2D = 0;
           u32   sformat3D = 0;
           u32   cformat   = 0;
           bool  dst_422 = false;
 
-          switch (buffer->format) {
+          switch (surface->config.format) {
                case DSPF_A8:
                case DSPF_LUT8:
                case DSPF_ALUT44:
@@ -182,25 +170,11 @@ void nv_set_destination( NVidiaDriverData *nvdrv,
                nv_assign_object( nvdrv, nvdev, 
                                  SUBC_SURFACES3D, OBJ_SURFACES3D, false );
                
-               if (surface->caps & DSCAPS_DEPTH) {
-                    nv_begin( SUBC_SURFACES3D, SURFACES3D_FORMAT, 1 );
-                    nv_outr( sformat3D | SURFACES3D_FORMAT_TYPE_PITCH );
-                    nv_begin( SUBC_SURFACES3D, SURFACES3D_PITCH, 3 );
-                    nv_outr( (depth_pitch << 16) | (dst_pitch & 0xFFFF) );
-                    nv_outr( dst_offset );
-                    nv_outr( depth_offset );
-                    
-                    nvdev->state3d[1].control |= TXTRI_CONTROL_Z_ENABLE;
-               } 
-               else {
-                    nv_begin( SUBC_SURFACES3D, SURFACES3D_FORMAT, 1 );
-                    nv_outr( sformat3D | SURFACES3D_FORMAT_TYPE_PITCH );
-                    nv_begin( SUBC_SURFACES3D, SURFACES3D_PITCH, 2 );
-                    nv_outr( (depth_pitch << 16) | (dst_pitch & 0xFFFF) );
-                    nv_outr( dst_offset );
-                    
-                    nvdev->state3d[1].control &= ~TXTRI_CONTROL_Z_ENABLE;
-               }
+               nv_begin( SUBC_SURFACES3D, SURFACES3D_FORMAT, 1 );
+               nv_outr( sformat3D | SURFACES3D_FORMAT_TYPE_PITCH );
+               nv_begin( SUBC_SURFACES3D, SURFACES3D_PITCH, 2 );
+               nv_outr( (64 << 16) | (dst_pitch & 0xFFFF) );
+               nv_outr( dst_offset );
           }
           
           if (nvdev->dst_422 != dst_422) {
@@ -226,25 +200,13 @@ void nv_set_destination( NVidiaDriverData *nvdrv,
                nv_assign_object( nvdrv, nvdev,
                                  SUBC_SURFACES3D, OBJ_SURFACES3D, false );
                
-               if (surface->caps & DSCAPS_DEPTH) {     
-                    nv_begin( SUBC_SURFACES3D, SURFACES3D_PITCH, 3 );
-                    nv_outr( (depth_pitch << 16) | (dst_pitch & 0xFFFF) );
-                    nv_outr( dst_offset );
-                    nv_outr( depth_offset );
-                    
-                    nvdev->state3d[1].control |= TXTRI_CONTROL_Z_ENABLE;
-               }
-               else {
-                    nv_begin( SUBC_SURFACES3D, SURFACES3D_PITCH, 2 );
-                    nv_outr( (depth_pitch << 16) | (dst_pitch & 0xFFFF) );
-                    nv_outr( dst_offset );
-                    
-                    nvdev->state3d[1].control &= ~TXTRI_CONTROL_Z_ENABLE;
-               }
+               nv_begin( SUBC_SURFACES3D, SURFACES3D_PITCH, 2 );
+               nv_outr( (64 << 16) | (dst_pitch & 0xFFFF) );
+               nv_outr( dst_offset );
           }
      }
      
-     nvdev->dst_format = buffer->format;
+     nvdev->dst_format = surface->config.format;
      nvdev->dst_offset = dst_offset;
      nvdev->dst_pitch  = dst_pitch;
      
@@ -255,16 +217,15 @@ void nv_set_source( NVidiaDriverData *nvdrv,
                     NVidiaDeviceData *nvdev,
                     CardState        *state )
 {
-     CoreSurface   *surface = state->source;
-     SurfaceBuffer *buffer  = surface->front_buffer;
-          
+     CoreSurface *surface = state->source;
+     
      if (NVIDIA_IS_SET( SOURCE )) {
           if ((state->blittingflags & DSBLIT_DEINTERLACE) ==
               (nvdev->blittingflags & DSBLIT_DEINTERLACE))
                return;
      }
           
-     if (buffer->policy == CSP_SYSTEMONLY) { 
+     if (state->src.buffer->policy == CSP_SYSTEMONLY) { 
           if (!nvdev->src_system) {
                nv_assign_object( nvdrv, nvdev,
                                  SUBC_IMAGEBLT, OBJ_IMAGEBLT, false );
@@ -274,13 +235,13 @@ void nv_set_source( NVidiaDriverData *nvdrv,
                NVIDIA_UNSET( BLITTING_FLAGS );
           }
 
-          nvdev->src_address = buffer->system.addr;
-          nvdev->src_pitch   = buffer->system.pitch;
+          nvdev->src_address = state->src.addr;
+          nvdev->src_pitch   = state->src.pitch;
           nvdev->src_system  = true;
      }
      else {
-          u32 src_offset = (buffer->video.offset + nvdev->fb_offset) & ~63;
-          u32 src_pitch  = buffer->video.pitch & ~31;
+          u32 src_offset = (state->src.offset + nvdev->fb_offset) & ~63;
+          u32 src_pitch  = state->src.pitch & ~31;
 
           if (nvdev->src_offset != src_offset ||
               nvdev->src_pitch  != src_pitch) {
@@ -311,7 +272,7 @@ void nv_set_source( NVidiaDriverData *nvdrv,
 
      if (state->blittingflags & DSBLIT_DEINTERLACE) {
           nvdev->src_height /= 2;
-          if (surface->caps & DSCAPS_SEPARATED) {
+          if (surface->config.caps & DSCAPS_SEPARATED) {
                if (surface->field) {
                     nvdev->src_address += nvdev->src_height * nvdev->src_pitch;
                     nvdev->src_offset  += nvdev->src_height * nvdev->src_pitch;
@@ -328,19 +289,19 @@ void nv_set_source( NVidiaDriverData *nvdrv,
           nvdev->src_interlaced = false;
      
      if (nvdev->enabled_3d) {
-          u32 size_u = direct_log2( surface->config.size.w  ) & 0xF;
-          u32 size_v = direct_log2( surface->config.size.h ) & 0xF;
+          u32 size_u = direct_log2(surface->config.size.w) & 0xF;
+          u32 size_v = direct_log2(surface->config.size.h) & 0xF;
 
           nvdev->state3d[1].offset  = nvdev->fb_offset + nvdev->buf_offset[1];
           nvdev->state3d[1].format &= 0xFF00FFFF;
           nvdev->state3d[1].format |= (size_u << 16) | (size_v << 20);
      }
 
-     if (nvdev->src_format != buffer->format) {
+     if (nvdev->src_format != surface->config.format) {
           NVIDIA_UNSET( SRC_BLEND );
           NVIDIA_UNSET( BLITTING_FLAGS );
+          nvdev->src_format = surface->config.format;
      }
-     nvdev->src_format = buffer->format;
      
      NVIDIA_SET( SOURCE );
 }

@@ -414,49 +414,18 @@ argb_to_tex( u32 *dst, u8 *src, int pitch, int width, int height )
 static void nv_load_texture( NVidiaDriverData *nvdrv,
                              NVidiaDeviceData *nvdev )
 {
-     SurfaceBuffer *buffer       = nvdev->src_texture;
-     CoreSurface   *surface      = buffer->surface;
-     u32           *tex_origin;
-     u8            *src_buffer;
-     u32            src_pitch;
-     u32            field_offset = 0;
-
-     tex_origin = dfb_gfxcard_memory_virtual( nvdrv->device,
-                                              nvdev->buf_offset[1] );
-
-     if (buffer->policy != CSP_SYSTEMONLY) {
-          u8 *src_origin;
-          
-          /* check if source texture was modified */
-          if (nvdev->set & SMF_SOURCE_TEXTURE &&
-              !(buffer->video.access & VAF_HARDWARE_WRITE))
-               return;
-          
-          src_origin = dfb_gfxcard_memory_virtual( nvdrv->device,
-                                                   buffer->video.offset );
-          src_pitch  = buffer->video.pitch;
-          
-          src_buffer = D_MALLOC( src_pitch * surface->config.size.h );
-          if (!src_buffer) {
-               D_OOM();
-               return;
-          }
+     CoreSurfaceBuffer      *buffer  = nvdev->src_texture;
+     CoreSurfaceBufferLock   lock;
+     u32                    *dst;
      
-          nv_waitidle( nvdrv, nvdev );
-          
-          direct_memcpy( src_buffer, src_origin,
-                         src_pitch * surface->config.size.h );
-          
-          nvdev->set |= SMF_SOURCE_TEXTURE;
-          buffer->video.access &= ~VAF_HARDWARE_WRITE;
+     if (dfb_surface_buffer_lock( buffer, CSAF_GPU_READ | CSAF_CPU_READ, &lock )) {
+          D_WARN( "dfb_surface_buffer_lock()" );
+          return;
      }
-     else {
-          src_buffer = buffer->system.addr;
-          src_pitch  = buffer->system.pitch;
-
-          nv_waitidle( nvdrv, nvdev );
-     }
-
+     
+     dst = dfb_gfxcard_memory_virtual( nvdrv->device, nvdev->buf_offset[1] );
+     
+#if 0
      if (nvdev->src_interlaced) {
           if (surface->caps & DSCAPS_SEPARATED) {
                if (surface->field)
@@ -467,31 +436,31 @@ static void nv_load_texture( NVidiaDriverData *nvdrv,
                src_pitch *= 2;
           }
      }
- 
+#endif
+
      switch (buffer->format) {
           case DSPF_A8:
-               a8_to_tex( tex_origin, src_buffer + field_offset, src_pitch,
+               a8_to_tex( dst, lock.addr, lock.pitch,
                           nvdev->src_width, nvdev->src_height );
                break;
           case DSPF_ARGB1555:
           case DSPF_RGB16:
-               rgb16_to_tex( tex_origin, src_buffer + field_offset, src_pitch,
+               rgb16_to_tex( dst, lock.addr, lock.pitch,
                              nvdev->src_width, nvdev->src_height );
                break;
           case DSPF_RGB32:
-               rgb32_to_tex( tex_origin, src_buffer + field_offset, src_pitch,
+               rgb32_to_tex( dst, lock.addr, lock.pitch,
                              nvdev->src_width, nvdev->src_height );
                break;
           case DSPF_ARGB:
-               argb_to_tex( tex_origin, src_buffer + field_offset, src_pitch,
+               argb_to_tex( dst, lock.addr, lock.pitch,
                             nvdev->src_width, nvdev->src_height );
                break;
           default:
                D_BUG( "unexpected pixelformat" );
                break;
      }
-
-     if (buffer->policy != CSP_SYSTEMONLY)
-          D_FREE( src_buffer );
+          
+     dfb_surface_buffer_unlock( &lock );
 }
 

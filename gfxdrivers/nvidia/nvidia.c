@@ -432,14 +432,14 @@ static void nv4CheckState( void *drv, void *dev,
      CoreSurface      *destination = state->destination;
      CoreSurface      *source      = state->source;
 
-     switch (destination->format) { 
+     switch (destination->config.format) { 
           case DSPF_A8:
           case DSPF_LUT8:
           case DSPF_ALUT44:
           case DSPF_RGB332:
                if (DFB_BLITTING_FUNCTION( accel )) {
                     if (accel != DFXL_BLIT || state->blittingflags ||
-                        source->format != destination->format)
+                        source->config.format != destination->config.format)
                          return;
                } else {
                     if (state->drawingflags != DSDRAW_NOFX)
@@ -459,7 +459,7 @@ static void nv4CheckState( void *drv, void *dev,
                if (DFB_BLITTING_FUNCTION( accel )) {
                     if (accel & ~(DFXL_BLIT | DFXL_STRETCHBLIT) ||
                         state->blittingflags != DSBLIT_NOFX     ||
-                        source->format != destination->format)
+                        source->config.format != destination->config.format)
                          return;
                } else {
                     if (accel & (DFXL_FILLTRIANGLE | DFXL_DRAWLINE) ||
@@ -478,8 +478,8 @@ static void nv4CheckState( void *drv, void *dev,
                return;
 
           if (accel == DFXL_TEXTRIANGLES) {
-               u32 size = 1 << (direct_log2( source->width  ) +
-                                direct_log2( source->height ));
+               u32 size = 1 << (direct_log2(source->config.size.w) +
+                                direct_log2(source->config.size.h));
                
                if (size > nvdev->max_texture_size)
                     return;
@@ -490,10 +490,10 @@ static void nv4CheckState( void *drv, void *dev,
                     return;
           }
 
-          switch (source->format) { 
+          switch (source->config.format) { 
                case DSPF_LUT8:
                case DSPF_ALUT44:
-                    if (destination->format != source->format ||
+                    if (destination->config.format != source->config.format ||
                         !dfb_palette_equal( source->palette,
                                             destination->palette ))
                          return;
@@ -501,7 +501,7 @@ static void nv4CheckState( void *drv, void *dev,
                     
                case DSPF_A8:
                case DSPF_RGB332:
-                    if (destination->format != source->format)
+                    if (destination->config.format != source->config.format)
                          return;
                     break;
                
@@ -515,7 +515,7 @@ static void nv4CheckState( void *drv, void *dev,
                     switch (accel) {
                          case DFXL_BLIT:
                               if (state->blittingflags != DSBLIT_NOFX ||
-                                  destination->format  != DSPF_RGB16)
+                                  destination->config.format  != DSPF_RGB16)
                                    return;
                               break;
                          case DFXL_STRETCHBLIT:
@@ -553,14 +553,14 @@ static void nv5CheckState( void *drv, void *dev,
      CoreSurface      *destination = state->destination;
      CoreSurface      *source      = state->source;
 
-     switch (destination->format) {
+     switch (destination->config.format) {
           case DSPF_A8:
           case DSPF_LUT8:
           case DSPF_ALUT44:
           case DSPF_RGB332:
                if (DFB_BLITTING_FUNCTION( accel )) {
                     if (accel != DFXL_BLIT || state->blittingflags ||
-                        source->format != destination->format)
+                        source->config.format != destination->config.format)
                          return;
                } else {
                     if (state->drawingflags != DSDRAW_NOFX)
@@ -580,7 +580,7 @@ static void nv5CheckState( void *drv, void *dev,
                if (DFB_BLITTING_FUNCTION( accel )) {
                     if (accel & ~(DFXL_BLIT | DFXL_STRETCHBLIT) ||
                         state->blittingflags != DSBLIT_NOFX     ||
-                        source->format != destination->format)
+                        source->config.format != destination->config.format)
                          return;
                } else {
                     if (accel & (DFXL_FILLTRIANGLE | DFXL_DRAWLINE) ||
@@ -599,8 +599,8 @@ static void nv5CheckState( void *drv, void *dev,
                return;
 
           if (accel == DFXL_TEXTRIANGLES) {
-               u32 size = 1 << (direct_log2( source->width  ) +
-                                direct_log2( source->height ));
+               u32 size = 1 << (direct_log2(source->config.size.w) +
+                                direct_log2(source->config.size.h));
                
                if (size > nvdev->max_texture_size)
                     return;
@@ -617,11 +617,11 @@ static void nv5CheckState( void *drv, void *dev,
                }
           }
 
-          switch (source->format) {
+          switch (source->config.format) {
                case DSPF_LUT8:
                case DSPF_ALUT44:
-                    if (destination->format != source->format          ||
-                        source->front_buffer->policy == CSP_SYSTEMONLY ||
+                    if (destination->config.format != source->config.format ||
+                        state->src.buffer->policy == CSP_SYSTEMONLY ||
                         !dfb_palette_equal( source->palette,
                                             destination->palette ))
                          return;
@@ -629,8 +629,8 @@ static void nv5CheckState( void *drv, void *dev,
                     
                case DSPF_A8:
                case DSPF_RGB332:
-                    if (destination->format != source->format ||
-                        source->front_buffer->policy == CSP_SYSTEMONLY)
+                    if (destination->config.format != source->config.format ||
+                        state->src.buffer->policy == CSP_SYSTEMONLY)
                          return;
                     break;
 
@@ -640,16 +640,16 @@ static void nv5CheckState( void *drv, void *dev,
                case DSPF_RGB32:
                case DSPF_ARGB:
                     /* disable host-to-video blit for simple blits */
-                    if (source->front_buffer->policy == CSP_SYSTEMONLY &&
-                        accel == DFXL_BLIT && !state->blittingflags    &&
-                        source->format == destination->format)
+                    if (state->src.buffer->policy == CSP_SYSTEMONLY &&
+                        accel == DFXL_BLIT && !state->blittingflags &&
+                        source->config.format == destination->config.format)
                          return;
                     break;
 
                case DSPF_YUY2:
                case DSPF_UYVY:
                     if (accel & ~(DFXL_BLIT | DFXL_STRETCHBLIT) ||
-                        source->front_buffer->policy == CSP_SYSTEMONLY)
+                        state->src.buffer->policy == CSP_SYSTEMONLY)
                          return;
                     break;
 
@@ -675,14 +675,14 @@ static void nv10CheckState( void *drv, void *dev,
      CoreSurface      *destination = state->destination;
      CoreSurface      *source      = state->source;
 
-     switch (destination->format) {
+     switch (destination->config.format) {
           case DSPF_A8:
           case DSPF_LUT8:
           case DSPF_ALUT44:
           case DSPF_RGB332:
                if (DFB_BLITTING_FUNCTION( accel )) {
                     if (accel != DFXL_BLIT || state->blittingflags ||
-                        source->format != destination->format)
+                        source->config.format != destination->config.format)
                          return;
                } else {
                     if (state->drawingflags != DSDRAW_NOFX)
@@ -702,7 +702,7 @@ static void nv10CheckState( void *drv, void *dev,
                if (DFB_BLITTING_FUNCTION( accel )) {
                     if (accel & ~(DFXL_BLIT | DFXL_STRETCHBLIT) ||
                         state->blittingflags != DSBLIT_NOFX     ||
-                        source->format != destination->format)
+                        source->config.format != destination->config.format)
                          return;
                } else {
                     if (accel & (DFXL_FILLTRIANGLE | DFXL_DRAWLINE) ||
@@ -721,15 +721,15 @@ static void nv10CheckState( void *drv, void *dev,
                return;
 
           if (accel == DFXL_TEXTRIANGLES) {
-               u32 size = 1 << (direct_log2( source->width  ) + 
-                                direct_log2( source->height ));
+               u32 size = 1 << (direct_log2(source->config.size.w) + 
+                                direct_log2(source->config.size.h));
                
                if (size > nvdev->max_texture_size)
                     return;
           } 
           else if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) {
                if (state->blittingflags & DSBLIT_MODULATE_COLOR) {
-                    if (source->format == DSPF_ARGB && state->src_blend != DSBF_ONE)
+                    if (source->config.format == DSPF_ARGB && state->src_blend != DSBF_ONE)
                          return;
                }
 
@@ -741,25 +741,25 @@ static void nv10CheckState( void *drv, void *dev,
                     return;
           }
 
-          switch (source->format) {
+          switch (source->config.format) {
                case DSPF_A8:
-                    if (DFB_BYTES_PER_PIXEL(destination->format) != 4 ||
-                        source->front_buffer->policy == CSP_SYSTEMONLY)
+                    if (DFB_BYTES_PER_PIXEL(destination->config.format) != 4 ||
+                        state->src.buffer->policy == CSP_SYSTEMONLY)
                          return;
                     break;
 
                case DSPF_LUT8:
                case DSPF_ALUT44:
-                    if (destination->format != source->format          ||
-                        source->front_buffer->policy == CSP_SYSTEMONLY ||
+                    if (destination->config.format != source->config.format ||
+                        state->src.buffer->policy == CSP_SYSTEMONLY ||
                         !dfb_palette_equal( source->palette,
                                             destination->palette ))
                          return;
                     break;
                     
                case DSPF_RGB332:
-                    if (destination->format != source->format ||
-                        source->front_buffer->policy == CSP_SYSTEMONLY)
+                    if (destination->config.format != source->config.format ||
+                        state->src.buffer->policy == CSP_SYSTEMONLY)
                          return;
                     break;
 
@@ -769,16 +769,16 @@ static void nv10CheckState( void *drv, void *dev,
                case DSPF_RGB32:
                case DSPF_ARGB:
                     /* disable host-to-video blit for simple blits */
-                    if (source->front_buffer->policy == CSP_SYSTEMONLY &&
-                        accel == DFXL_BLIT && !state->blittingflags    &&
-                        source->format == destination->format)
+                    if (state->src.buffer->policy == CSP_SYSTEMONLY &&
+                        accel == DFXL_BLIT && !state->blittingflags &&
+                        source->config.format == destination->config.format)
                          return;
                     break;
 
                case DSPF_YUY2:
                case DSPF_UYVY:
                     if (accel & ~(DFXL_BLIT | DFXL_STRETCHBLIT) ||
-                        source->front_buffer->policy == CSP_SYSTEMONLY)
+                        state->src.buffer->policy == CSP_SYSTEMONLY)
                          return;
                     break;
 
@@ -803,14 +803,14 @@ static void nv20CheckState( void *drv, void *dev,
      CoreSurface *destination = state->destination;
      CoreSurface *source      = state->source;
 
-     switch (destination->format) {
+     switch (destination->config.format) {
           case DSPF_A8:
           case DSPF_LUT8:
           case DSPF_ALUT44:
           case DSPF_RGB332:
                if (DFB_BLITTING_FUNCTION( accel )) {
                     if (state->blittingflags != DSBLIT_NOFX  ||
-                        source->format != destination->format)
+                        source->config.format != destination->config.format)
                          return;
                } else {
                     if (state->drawingflags != DSDRAW_NOFX)
@@ -830,7 +830,7 @@ static void nv20CheckState( void *drv, void *dev,
                if (DFB_BLITTING_FUNCTION( accel )) {
                     if (accel & ~(DFXL_BLIT | DFXL_STRETCHBLIT) ||
                         state->blittingflags != DSBLIT_NOFX     ||
-                        source->format != destination->format)
+                        source->config.format != destination->config.format)
                          return;
                } else {
                     if (accel & (DFXL_FILLTRIANGLE | DFXL_DRAWLINE) ||
@@ -851,7 +851,7 @@ static void nv20CheckState( void *drv, void *dev,
 
           if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) { 
                if (state->blittingflags & DSBLIT_MODULATE_COLOR) {
-                    if (source->format == DSPF_ARGB && state->src_blend != DSBF_ONE)
+                    if (source->config.format == DSPF_ARGB && state->src_blend != DSBF_ONE)
                          return;
                }
 
@@ -863,24 +863,24 @@ static void nv20CheckState( void *drv, void *dev,
                     return;
           }
 
-          switch (source->format) {
+          switch (source->config.format) {
                case DSPF_A8:
-                    if (source->front_buffer->policy == CSP_SYSTEMONLY)
+                    if (state->src.buffer->policy == CSP_SYSTEMONLY)
                          return;
                     break;
 
                case DSPF_LUT8:
                case DSPF_ALUT44:
-                    if (destination->format != source->format          ||
-                        source->front_buffer->policy == CSP_SYSTEMONLY ||
+                    if (destination->config.format != source->config.format ||
+                        state->src.buffer->policy == CSP_SYSTEMONLY ||
                         !dfb_palette_equal( source->palette,
                                             destination->palette ))
                          return;
                     break;
                     
                case DSPF_RGB332:
-                    if (destination->format != source->format ||
-                        source->front_buffer->policy == CSP_SYSTEMONLY)
+                    if (destination->config.format != source->config.format ||
+                        state->src.buffer->policy == CSP_SYSTEMONLY)
                          return;
                     break;
 
@@ -890,15 +890,15 @@ static void nv20CheckState( void *drv, void *dev,
                case DSPF_RGB32:
                case DSPF_ARGB:
                     /* disable host-to-video blit for simple blits */
-                    if (source->front_buffer->policy == CSP_SYSTEMONLY &&
-                        accel == DFXL_BLIT && !state->blittingflags    &&
-                        source->format == destination->format)
+                    if (state->src.buffer->policy == CSP_SYSTEMONLY &&
+                        accel == DFXL_BLIT && !state->blittingflags &&
+                        source->config.format == destination->config.format)
                          return;
                     break;
 
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    if (source->front_buffer->policy == CSP_SYSTEMONLY)
+                    if (state->src.buffer->policy == CSP_SYSTEMONLY)
                          return;
                     break;
 
@@ -928,7 +928,7 @@ static void nv30CheckState( void *drv, void *dev,
      CoreSurface *destination = state->destination;
      CoreSurface *source      = state->source;
 
-     switch (destination->format) {
+     switch (destination->config.format) {
           case DSPF_A8:
           case DSPF_LUT8:
           case DSPF_ALUT44:
@@ -962,7 +962,7 @@ static void nv30CheckState( void *drv, void *dev,
               (state->blittingflags & ~NV30_SUPPORTED_BLITTINGFLAGS))
                return;
 
-          switch (source->format) {
+          switch (source->config.format) {
                case DSPF_LUT8:
                case DSPF_ALUT44:
                     if (!dfb_palette_equal( source->palette,
@@ -977,8 +977,8 @@ static void nv30CheckState( void *drv, void *dev,
                case DSPF_ARGB:
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    if (source->front_buffer->policy == CSP_SYSTEMONLY ||
-                        source->format != destination->format)
+                    if (state->src.buffer->policy == CSP_SYSTEMONLY ||
+                        source->config.format != destination->config.format)
                          return;
                     break;
 
@@ -1059,10 +1059,10 @@ static void nv4SetState( void *drv, void *dev,
                nv_set_blittingflags( nvdrv, nvdev, state );
                
                if (accel == DFXL_TEXTRIANGLES) {
-                    if (nvdev->src_texture != state->source->front_buffer)
+                    if (nvdev->src_texture != state->src.buffer)
                          nvdev->set &= ~SMF_SOURCE_TEXTURE;
                     
-                    nvdev->src_texture = state->source->front_buffer; 
+                    nvdev->src_texture = state->src.buffer; 
                     nvdev->state3d[1].modified = true;
                     
                     state->set = DFXL_TEXTRIANGLES;
@@ -1135,10 +1135,10 @@ static void nv5SetState( void *drv, void *dev,
                nv_set_blittingflags( nvdrv, nvdev, state );
                
                if (accel == DFXL_TEXTRIANGLES) {
-                    if (nvdev->src_texture != state->source->front_buffer)
+                    if (nvdev->src_texture != state->src.buffer)
                          nvdev->set &= ~SMF_SOURCE_TEXTURE;
                     
-                    nvdev->src_texture = state->source->front_buffer; 
+                    nvdev->src_texture = state->src.buffer; 
                     nvdev->state3d[1].modified = true;
                     
                     state->set = DFXL_TEXTRIANGLES;
@@ -1220,10 +1220,10 @@ static void nv10SetState( void *drv, void *dev,
                nv_set_blittingflags( nvdrv, nvdev, state );
                
                if (accel == DFXL_TEXTRIANGLES) { 
-                    if (nvdev->src_texture != state->source->front_buffer)
+                    if (nvdev->src_texture != state->src.buffer)
                          nvdev->set &= ~SMF_SOURCE_TEXTURE;
                     
-                    nvdev->src_texture = state->source->front_buffer; 
+                    nvdev->src_texture = state->src.buffer; 
                     nvdev->state3d[1].modified = true;
                     
                     state->set = DFXL_TEXTRIANGLES;
@@ -1363,7 +1363,7 @@ static void nv30SetState( void *drv, void *dev,
 /* exported symbols */
 
 static int
-driver_probe( GraphicsDevice *device )
+driver_probe( CoreGraphicsDevice *device )
 {
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_NV4:
@@ -1379,7 +1379,7 @@ driver_probe( GraphicsDevice *device )
 }
 
 static void
-driver_get_info( GraphicsDevice     *device,
+driver_get_info( CoreGraphicsDevice *device,
                  GraphicsDriverInfo *info )
 {
      /* fill driver info structure */
@@ -1461,7 +1461,7 @@ nv_find_architecture( NVidiaDriverData *nvdrv, u32 *ret_chip, u32 *ret_arch )
 }
 
 static DFBResult
-driver_init_driver( GraphicsDevice      *device,
+driver_init_driver( CoreGraphicsDevice  *device,
                     GraphicsDeviceFuncs *funcs,
                     void                *driver_data,
                     void                *device_data,
@@ -1551,7 +1551,7 @@ driver_init_driver( GraphicsDevice      *device,
 }
 
 static DFBResult
-driver_init_device( GraphicsDevice     *device,
+driver_init_device( CoreGraphicsDevice *device,
                     GraphicsDeviceInfo *device_info,
                     void               *driver_data,
                     void               *device_data )
@@ -1929,9 +1929,9 @@ driver_init_device( GraphicsDevice     *device,
 }
 
 static void
-driver_close_device( GraphicsDevice *device,
-                     void           *driver_data,
-                     void           *device_data )
+driver_close_device( CoreGraphicsDevice *device,
+                     void               *driver_data,
+                     void               *device_data )
 {
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) device_data;
 
@@ -1963,8 +1963,8 @@ driver_close_device( GraphicsDevice *device,
 }
 
 static void
-driver_close_driver( GraphicsDevice *device,
-                     void           *driver_data )
+driver_close_driver( CoreGraphicsDevice *device,
+                     void               *driver_data )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
 

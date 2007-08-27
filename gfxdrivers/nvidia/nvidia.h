@@ -152,7 +152,7 @@ typedef struct {
      /* 3D stuff */
      bool                    enabled_3d;       // 3d engine enabled
      u32                     buf_offset[2];    // reserved buffers
-     SurfaceBuffer          *src_texture;      // current source for TextureTriangles
+     CoreSurfaceBuffer      *src_texture;      // current source for TextureTriangles
      u32                     max_texture_size;
      
      struct {
@@ -211,7 +211,7 @@ enum {
 };
 
 typedef struct {
-     GraphicsDevice         *device;
+     CoreGraphicsDevice     *device;
      NVidiaDeviceData       *device_data;
 
      volatile void          *fb_base;
