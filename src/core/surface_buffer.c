@@ -235,14 +235,12 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
                allocation->accessed &= ~CSAF_GPU_WRITE;
           }
 
-          /* Software read access... */
-          if (access & CSAF_CPU_READ) {
+          /* Software write access... */
+          if (access & CSAF_CPU_WRITE) {
                /* ...if hardware has (to) read... */
                if (allocation->accessed & CSAF_GPU_READ) {
                     /* ...wait for the operation to finish. */
                     dfb_gfxcard_sync(); /* TODO: wait for serial instead */
-
-                    dfb_gfxcard_flush_texture_cache();
 
                     /* ...clear hardware read access. */
                     allocation->accessed &= ~CSAF_GPU_READ;
