@@ -1,3 +1,120 @@
+commit 434fab3f9c28b0873148259a02d64684dd57dd49
+Author: Denis Oliver Kropp <dok@shizo.zion.home>
+Date:   Mon Aug 27 13:06:58 2007 +0200
+
+    Fixed single app core built.
+
+
+ core.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+
+
+commit 1c7e7614fa1ac1d5702afd794d5905f65ba67b7e
+Author: Denis Oliver Kropp <dok@shizo.zion.home>
+Date:   Mon Aug 27 11:36:08 2007 +0200
+
+    Moved call to dfb_core_activate() after call to dfb_wm_post_init().
+    
+    Consistent with 1.0 branch now.
+
+
+ directfb.c  |    2 ++
+ idirectfb.c |    2 --
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+
+
+commit c41515f07dc5e448672cebd4bac6e4599dabfde6
+Author: Denis Oliver Kropp <dok@shizo.zion.home>
+Date:   Mon Aug 27 11:18:08 2007 +0200
+
+    Updated for 1.1.0
+
+
+ ChangeLog |109228 +++++++++++++++++++++++++++++++++++++-------------------------
+ NEWS      |  294 
+ 2 files changed, 66106 insertions(+), 43416 deletions(-)
+
+
+
+commit 5d3daaf93f240abe1433bf976251a9e27b40b890
+Author: Denis Oliver Kropp <dok@shizo.zion.home>
+Date:   Mon Aug 20 10:19:10 2007 +0200
+
+    Use a Skirmish to synchronize slaves with the master's post core initialization.
+    
+    The new function dfb_core_activate() will allow other processes to join.
+
+
+ core/core.c |   45 +++++++++++++++++++++++++++++++++++++++++----
+ core/core.h |    7 ++++++-
+ idirectfb.c |    2 ++
+ 3 files changed, 49 insertions(+), 5 deletions(-)
+
+
+
+commit 2c863355342f471cfdc44c051cab3bf1de4a3491
+Author: Denis Oliver Kropp <dok@shizo.zion.home>
+Date:   Wed Aug 15 19:56:33 2007 +0200
+
+    Debug and error messages for window creation.
+
+
+ core/layer_context.c            |    2 ++
+ core/windows.c                  |    6 ++++--
+ core/wm.c                       |    1 +
+ display/idirectfbdisplaylayer.c |    2 ++
+ 4 files changed, 9 insertions(+), 2 deletions(-)
+
+
+
+commit 9871bba44cfea47ba1fac4e2bb9322746f482b80
+Author: Denis Oliver Kropp <dok@shizo.zion.home>
+Date:   Wed Aug 15 19:56:05 2007 +0200
+
+    Compatibility and warning for drivers still using state->modified.
+    
+    Every SetState() call will be made with modified = SMF_ALL. Afterwards
+    the value is checked (warn if changed) and reset to 0.
+
+
+ gfxcard.c |    9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+
+
+commit d5a01a4ca067b75dfbc5f153e998ca12faa1036a
+Author: Denis Oliver Kropp <dok@shizo.zion.home>
+Date:   Wed Aug 15 19:54:27 2007 +0200
+
+    Idea is to have a Flip() with multiple regions passed in.
+
+
+ TODO |    2 ++
+ 1 file changed, 2 insertions(+)
+
+
+
+commit 4d65f87a41b2a4a3b7ac2ce42a13dd3cf017290b
+Author: Denis Oliver Kropp <dok@shizo.zion.home>
+Date:   Wed Aug 15 16:15:20 2007 +0200
+
+    Don't print any error at all if pool negotiation fails.
+    
+    Enhanced debug messages.
+    
+    Added TODO about preallocated surfaces.
+
+
+ TODO                      |    1 +
+ src/core/gfxcard.c        |    6 ++----
+ src/core/surface_buffer.c |   24 ++++++++++++------------
+ src/core/surface_pool.c   |    7 ++++++-
+ 4 files changed, 21 insertions(+), 17 deletions(-)
+
+
+
 commit db9161c5edf9d6bd494d902f35c744b39c066910
 Author: Denis Oliver Kropp <dok@shizo.zion.home>
 Date:   Wed Aug 15 13:57:23 2007 +0200
