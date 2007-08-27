@@ -1,3 +1,296 @@
+1.1.0
+-----
+
+API
+- Extend list of custom key definitions: DIKS_CUSTOM<0-99>
+
+API | IDirectFB
+- Fix code that controls single/double buffer window creation for primary surfaces in windowed mode. If
+  DSCAPS_FLIPPING is set, it uses one buffer which already requires a Flip due to the window. Only if
+  DOUBLE is set explicitly, create two buffers.
+
+API | IDirectFBDisplayLayer
+- Added IDirectFBDisplayLayer::SetRotation().
+
+API | IDirectFBFont
+- Added DFFA_FIXEDCLIP that can be used in addition to fixed advance
+  and cuts off glyphs if they are wider than that.
+
+API | IDirectFBImageProvider
+- Added DFB_INCOMPLETE and return it from image providers
+  if rendering has been aborted by the render callback.
+
+API | IDirectFBPalette
+- Added IDirectFBPalette::SetEntriesYUV(), GetEntriesYUV() and FindBestMatchYUV().
+
+API | IDirectFBScreen
+- HD extensions, thanks to Daniel J Laird!
+
+API | IDirectFBSurface
+- Added IDirectFBSurface::SetRenderOptions() as a new state element, but not
+  mandatory for graphics drivers. At the moment it's used by the software
+  driver to choose smooth or standard scaling.
+- Made DisableAcceleration( DFXL_DRAWSTRING ) work.
+- Each sub surface interface has a reference to its parent and a list of its children.
+- Added DSBLIT_ROTATE180 with a basic software implementation.
+- Added universal resource id (unsigned long) that belongs to each surface,
+  e.g. the layer id or window id. General purpose surfaces can be given an
+  id by using the new flag DSDESC_RESOURCE_ID and setting the resource_id field.
+
+API | IDirectFBVideoProvider
+- Thanks to Daniel J Laird for Video Provider Events!
+- Extended video provider capabilities, thanks to Daniel J Laird!
+
+API | IDirectFBWindow
+- Added IDirectFBWindow::Bind()/Unbind().
+- Added DWDESC_OPTIONS and DWDESC_STACKING to give initial values in the
+  DFBWindowDescription using the new fields 'options' and 'stacking'.
+- Added DWDESC_PARENT to DFBWindowDescriptionFlags and 'parent_id' to
+  DFBWindowDescription. This can be used to associate a window to another,
+  but it's up to the WM to implement it.
+- Added IDirectFBWindow::SetKeySelection() that selects a mode for filtering
+  keys while being focused. The selection defines whether all, none or a
+  specific set (list) of keys is selected.
+- Added DFBWindowKeySelection featuring DWKS_ALL, DWKS_NONE and DWKS_LIST.
+- Added IDirectFBWindow::GrabUnselectedKeys() and UngrabUnselectedKeys()
+  to have a key collector window receiving all keys that the focused
+  window did not select.
+- Added DFBWindowEventFlags featuring DWEF_RETURNED so far, which means that
+  the event has been returned, i.e. has not been consumed by the original
+  recipient. The DFBWindowEvent field 'flags' has also been added.
+- Added advanced window geometry for positioning and scaling of windows
+  relative to their own bounds, with ability derive from parent geometry.
+- DFBWindowGeometryMode: DWGM_DEFAULT, DWGM_FOLLOW, DWGM_RECTANGLE, DWGM_LOCATION.
+  DFBWindowGeometry: mode, rectangle, location.
+- IDirectFBWindow::SetSrcGeometry() and IDirectFBWindow::SetDstGeometry().
+- Added generic dfb_window_set_config() for simplifying core code and moving
+  config handling into interfaces.
+- Added DWOP_KEEP_ABOVE and DWOP_KEEP_UNDER.
+
+Runtime Options
+- Achtung! DirectFB is using sysconfdir now! E.g. use /usr/local/etc/directfbrc.
+- New layer configuration system, staying compatible with older options:
+- init-layer=<id> chooses layer with ID to configure (following layer- options apply)
+- layer-size=<width>x<height> sets the pixel resolution
+- layer-format=<pixelformat> sets the pixel format
+- layer-depth=<pixeldepth> sets the pixel depth
+- layer-buffer-mode=(auto|triple|backvideo|backsystem|frontonly|windows)
+- layer-bg-none disables background clear
+- layer-bg-color=AARRGGBB sets a background color (hex)
+- layer-bg-image=<filename> sets a background image
+- layer-bg-tile=<filename> sets a tiled background image
+- layer-src-key=AARRGGBB enables color keying (hex)
+- New option "surface-sentinel" to enable surface sentinels at the end of chunks in video memory.
+- Added "smooth-upscale" and "smooth-downscale" options to enable smooth scaling by default.
+- Added "[no-]madv-remove" to get around the auto detection.
+- Added layer palette initialization via "layer-palette-<n> = <hexcolor>" option.
+- Added option "layer-bg-color-index = n".
+- Added option "layer-rotate = <degree>" with 0 and 180 supported.
+- Added option "layer-src-key-index".
+
+Pixel formats
+- Added DSPF_RGB444 and DSPF_RGB555, thanks to Daniel J Laird!
+
+Core
+- Use a Skirmish to synchronize slaves with the master's post core initialization.
+  The new function dfb_core_activate() will allow other processes to join.
+- Explicit shutdown order of core parts and pools.
+
+Graphics Core
+- API break! Drivers must use "state->mod_hw" instead of "state->modified"!
+- Validate clip in dfb_state_update() also if destination
+  was just set manually, not via dfb_state_set_destination().
+- Added YUV palette support. CorePalette has a second array for YUV entries.
+  Both arrays are kept synchronized. Drivers can choose.
+- Implemented StartDrawing/StopDrawing() for states. When a surface is being rendered to, its graphics
+  state is set to DRAWING. Upon Flip() the state is flushed. The new mechanism needs to be enabled via
+  "startstop" option. StartDrawing/StopDrawing() can be implemented by the graphics driver. e.g. to keep
+  track dirty surfaces and defer flipping if it would reveal other's drawing.
+- Added multifunctional color configuration function dfb_state_set_color_or_index().
+  Always tries to set both color and index. If color index is -1, color is used and
+  searched in palette of destination surface if present. If color index is valid the
+  color is looked up in palette if present.
+- Added dfb_gfx_back_to_front_copy_180().
+- Added DFBColorKey which is binary compatible with DFBColor for RGB, but
+  has an 8 bit color index instead of the alpha value.
+
+Layer Core
+- Use DFBColorKey instead of DFBColor in the CoreLayerRegionConfig.
+- Fix potential dead lock in layer context initialization.
+- Fix potential dead lock in dfb_layer_context_get_primary_region().
+
+Surface Core
+- NEW SURFACE CORE WORK IN PROGRESS (really usable, but not everything supported yet). Check TODO!
+- dfb_surface_reformat() no longer fails immediatly if the surface is locked,
+  instead it waits for 3 loops before doing it.
+- If no alignment is specified (0), default to 8 bytes offset and pitch alignment.
+  To disable alignment, simply set to 1.
+
+Window Core
+- API break! Replaced dfb_wm_start_desktop() by dfb_wm_post_init(). Removed StartDesktop which had no
+  context pointers from WM API and added PostInit with proper context pointers.
+- Simplified internal dfb_layer_context_create_window() and dfb_window_create()
+  and replaced dfb_window_*grab*() by dfb_window_change_grab().
+
+libdirect
+- API break! Changed DirectHash's u32 key to be unsigned long. This allows to use pointers.
+- Added direct_thread_detach() and direct_thread_is_detached().
+- Use pthread cleanup to free the DirectThread structure etc.
+- Added direct_thread_get_tid().
+- Avoid "unused warning" if debug domains are declared, but not used.
+- Fix 64 bit symbol address parsing in trace code.
+- Fix missing target directory for nm-n files.
+- Readded "%.nm" as an alternative to "nm-n.%".
+- Added direct_sched_yield().
+- Open log file with mode 0664. Automatically flush stderr.
+- Added direct_list_foreach_reverse().
+- Added direct_serial_check() returning true if the target serial is not higher.
+- Flush stdout and stderr before showing the signal handler message.
+- Rearrange locks in debug message code to avoid dead locks in certain circumstances.
+
+libfusion
+- API break! Changed call handler function type. The return value defines the library's behaviour
+  after exiting from the handler. To return a value immediately, write to *ret_val and return FCHR_RETURN.
+  If you want to make a call later on to fusion_call_return() yourself, use FCHR_RETAIN.
+- The new serial value allows to have more than one call pending while calls can
+  be returned in any order. The caller is still blocked on its single call, of course.
+- API break! Added "ctx" argument to fusion_object_pool_create() and FusionObjectDestructor.
+- Close file descriptor of shared memory files and be happy with just the
+  static mmap() and the filename for using truncate() instead of ftruncate().
+- Reinitialize entries in static pool array properly.
+- Added fusion_hash_set_autofree() to enable/disable automatic freeing of values and/or keys.
+- Use FusionHash for arena fields.
+- Fix general dead lock problem with reactors by using read/write locks.
+- Fix zero FusionID in forked process by entering the world after reopening it.
+- Added fusion_dispatcher_tid().
+- Fix lock order in fusion_shm_pool_destroy().
+- Added fusion_reactor_set_lock_only() which does not lock and use it in fusion_object_set_lock()
+  as this is called during object initialization.
+- Added FUSION_SKIRMISH_ASSERT macro for debug mode
+  failing if the skirmish is not locked by the current thread.
+- Added fusion_reactor_set_dispatch_callback() with a test.
+- Added fusion_reactor_attach/dispatch_channel() with the older calls using channel zero.
+- Added fusion_skirmish_wait() and fusion_skirmish_notify(). When you hold the lock you can wait until
+  you get notified, where others can get the lock while you're waiting. At the moment it requires the
+  notifier to acquire the lock.
+- Added timeout to fusion_skirmish_wait(), 0 means unlimited.
+- Added a new Fusion/IPC implementation using standard system calls:
+- Skirmish gets implemented by using sched_yield()+usleep, exactly like linuxthreads does with pthread mutexes,
+  but it's also capable of automatically unlocking whether the owner process died without doing it.
+- Property works like Skirmish, but it doesn't sleep and it doesn't check for a dead owner.
+- Dispatching and co. make use of raw unix sockets: there is a local address specific to each fusionee
+  (/tmp/fusion.@WORLD_INDEX@/@HEX_FUSION_ID@) and each call (/tmp/fusion.@WORLD_INDEX@/call.@HEX_CALL_ID@.@HEX_CALL_SERIAL@),
+  and messages are sent directly from the generator to the socket of the listeners.
+  From a network point of view, this is similar to UDP Multicast (e.g. conference or meeting).
+- The new implementation gets build when --enable-bulti is specified but no usable linux/fusion.h was found
+  (however you can edit fusion/build.h to force building it).
+- Raise max number of shm pools to 16.
+
+Software Rendering
+- Fixed RGB24 to RGB16 conversion.
+- Fix ARGB on RGB16 blending. Use Duff's Device and optimize for 0% and 100% opaque.
+- Fix hi/lo mixup for big/little endian in 32 bit wise 16 bit color keying code.
+- Added smooth up/down scaling for different formats.
+- Fix 64bit implementations of RGB32 source and destination color keying.
+
+DFIFF Image provider
+- Use a preallocated surface to render the image
+  (this should fix support for destinations that are premultiplied, separated, and co.).
+
+PNG Image provider
+- Avoid abort() caused by libpng and return an error instead.
+- Plug a memory leak in the PNG image provider. Thanks to Eugene Everson.
+- Fixes for grayscale PNGs.
+
+Mach64 driver
+- Ported to new surface core.
+- Added RGB444 and RGB555 support.
+
+Matrox driver
+- Ported to new surface core.
+- Added RGB444 and RGB555 support.
+- Eliminate libsysfs dependency from i2c detection.
+- Reset besvcnt to 0 prior to disabling the backend scaler.
+- Sometimes the BES would not turn off with just BESCTL. It seems besvcnt
+  not being programmed to zero has something to do with it since resetting
+  BESGLOBCTL before BESCTL seems to help.
+
+nVidia driver
+- Added support for RGB555.
+- Fixed support for premultiplied surfaces.
+- Dropped down blits from system memory on the NV20 (crashes on Xbox).
+- Optimizations and cleanup.
+
+Radeon driver
+- Ported to new surface core.
+- Support RGB555 and RGB444.
+- RGB555 support on Overlay and CRTC2.
+- Removed limit of 8x8 surfaces:
+  apparently it comes from the Rage128 driver but it doesn't apply to Radeon(s).
+- Implemented DSBLIT_ROTATE180.
+
+Unichrome driver
+- Fix blitting of planar surfaces (YV12/I420) when a source rectangle is used
+  or the source and destination surfaces are different sizes.
+
+Linux Input driver
+- Fix evdev ioctl() parameters.
+- Only use FBDev system module data in linux input driver if system is built.
+- Don't bail out with other system modules if LINUX_INPUT_USE_FBDEV is not set.
+
+FBDev System module
+- Add source rectangle support to fbdev layer.
+- Check fbdev pan/wrap capabilities for double/triple buffering.
+- Fix fbdev_ioctl_call_handler() return value.
+- Fix transfer of errno from master to slaves when doing ioctls.
+- Do FBIOPAN_DISPLAY ioctls directly.
+
+DevMem System module
+- Added generic /dev/mem based system module.
+- There's no screen or layer registered, a graphics driver is required.
+- Added some new runtime options for the new system module.
+- video-phys=<hexaddress> sets the physical start of video memory.
+- video-length=<bytes> sets the length of video memory.
+- mmio-phys=<hexaddress> sets the physical start of MMIO area.
+- mmio-length=<bytes> sets the length of MMIO area.
+- accelerator=<id> sets the accelerator ID for selecting the graphics driver.
+
+SDL System module
+- Support different DirectFB formats on 32 and 16 bit displays.
+- Disable SDL backend by default.
+
+X11 System module
+- Support different DirectFB formats on 32 and 16 bit displays.
+- Use an ShmImage with twice the height of the output. Alternate between bottom and top image and
+  do XSync() BEFORE doing the next XShmPutImage(). Only call XShmPutImage() for the updated region.
+- Takes advantage of SMP now.
+- Added true keymap support to X11 input driver. Read the X11 keymap entries properly and translate to
+  identifier and symbols. Only send key code in events. X KeySym to DFBInputDeviceKeySymbol translation
+  might not be complete for everyone.
+- Provide the original timestamps from the X events.
+- Use DIEF_FOLLOW for x/y motion.
+- Added call to XFlush() after XShmPutImage() boosting df_andi from 100 to 130 FPS
+  and making window stack updates really smooth and no longer distorted.
+- Use preallocated shared memory for calls, the layer context lock allows this.
+- Support non-SHM connections.
+- Fall back to non-shm if XShmAttach() or XShmPutImage() fail after XShmQuesryExtension() returned success.
+- Handle expose events.
+- Enable X11 System Module by default.
+
+Default WM module
+- Pan the layer to follow the mouse cursor (aka. virtual resolution).
+- Actually fail if a parent window for the newly created one was specified (not supported).
+
+dfbdump tool
+- List buffers in video memory if "-s" is passed.
+
+dfblayer tool
+- Added option "-R <degree>".
+
+directfb-csource tool
+-  Add --raw option to directfb-csource to allow encoding data files in headers
+
+
 1.0.0
 -----
 
@@ -50,6 +343,7 @@ Keyboard (TTY)
 
 Linux Input
 - Added keypad equal support.
+- Fixed segfault in event thread.
 
 H3600 Touchscreen
 - Thanks to Philip Jägenstedt :philipj 0pera c0m: for fixing the H3600 check!
