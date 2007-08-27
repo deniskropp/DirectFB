@@ -341,9 +341,9 @@ touchpad_fsm( struct touchpad_fsm_state *state,
               struct input_event        *levt,
               DFBInputEvent             *devt );
 
-static int
+static bool
 timeout_passed( struct timeval *timeout, struct timeval *current );
-static int
+static bool
 timeout_is_set( struct timeval *timeout );
 static void
 timeout_sub( struct timeval *timeout, struct timeval *sub );
@@ -578,7 +578,7 @@ keyboard_read_value( LinuxInputData *data,
 /*
  * Translates key and button events.
  */
-static int
+static bool
 key_event( struct input_event *levt,
            DFBInputEvent      *devt )
 {
@@ -589,7 +589,7 @@ key_event( struct input_event *levt,
      if ((levt->code >= BTN_MOUSE && levt->code < BTN_JOYSTICK) || levt->code == BTN_TOUCH) {
           /* ignore repeat events for buttons */
           if (levt->value == 2)
-               return 0;
+               return false;
 
           devt->type   = levt->value ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
           /* don't set DIEF_BUTTONS, it will be set by the input core */
@@ -599,7 +599,7 @@ key_event( struct input_event *levt,
           int key = translate_key( levt->code );
 
           if (key == DIKI_UNKNOWN)
-               return 0;
+               return false;
 
           devt->type = levt->value ? DIET_KEYPRESS : DIET_KEYRELEASE;
 
@@ -619,13 +619,13 @@ key_event( struct input_event *levt,
      if (levt->value == 2)
           devt->flags |= DIEF_REPEAT;
 
-     return 1;
+     return true;
 }
 
 /*
  * Translates relative axis events.
  */
-static int
+static bool
 rel_event( struct input_event *levt,
            DFBInputEvent      *devt )
 {
@@ -648,7 +648,7 @@ rel_event( struct input_event *levt,
 
           default:
                if (levt->code > REL_MAX || levt->code > DIAI_LAST)
-                    return 0;
+                    return false;
                devt->axis = levt->code;
                devt->axisrel = levt->value;
      }
@@ -656,13 +656,13 @@ rel_event( struct input_event *levt,
      devt->type    = DIET_AXISMOTION;
      devt->flags  |= DIEF_AXISREL;
 
-     return 1;
+     return true;
 }
 
 /*
  * Translates absolute axis events.
  */
-static int
+static bool
 abs_event( struct input_event *levt,
            DFBInputEvent      *devt )
 {
@@ -682,7 +682,7 @@ abs_event( struct input_event *levt,
 
           default:
                if (levt->code >= ABS_PRESSURE || levt->code > DIAI_LAST)
-                    return 0;
+                    return false;
                devt->axis = levt->code;
      }
 
@@ -690,13 +690,13 @@ abs_event( struct input_event *levt,
      devt->flags  |= DIEF_AXISABS;
      devt->axisabs = levt->value;
 
-     return 1;
+     return true;
 }
 
 /*
  * Translates a Linux input event into a DirectFB input event.
  */
-static int
+static bool
 translate_event( struct input_event *levt,
                  DFBInputEvent      *devt )
 {
@@ -717,7 +717,7 @@ translate_event( struct input_event *levt,
                ;
      }
 
-     return 0;
+     return false;
 }
 
 static void
@@ -1284,19 +1284,17 @@ driver_close_device( void *driver_data )
      D_FREE( data );
 }
 
-static int
+static bool
 timeout_is_set( struct timeval *timeout )
 {
      return timeout->tv_sec || timeout->tv_usec;
 }
 
-static int
+static bool
 timeout_passed( struct timeval *timeout, struct timeval *current )
 {
-     if (!timeout_is_set( timeout ))
-          return 1;
-
-     return current->tv_sec > timeout->tv_sec ||
+     return !timeout_is_set( timeout ) ||
+          current->tv_sec > timeout->tv_sec ||
           (current->tv_sec == timeout->tv_sec && current->tv_usec > timeout->tv_usec);
 }
 
@@ -1389,19 +1387,19 @@ touchpad_translate( struct touchpad_fsm_state *state,
      return 1;
 }
 
-static int
+static bool
 touchpad_finger_landing( const struct input_event *levt )
 {
      return levt->type == EV_KEY && levt->code == BTN_TOUCH && levt->value == 1;
 }
 
-static int
+static bool
 touchpad_finger_leaving( const struct input_event *levt )
 {
      return levt->type == EV_KEY && levt->code == BTN_TOUCH && levt->value == 0;
 }
 
-static int
+static bool
 touchpad_finger_moving( const struct input_event *levt )
 {
      return levt->type == EV_ABS && (levt->code == ABS_X || levt->code == ABS_Y);
