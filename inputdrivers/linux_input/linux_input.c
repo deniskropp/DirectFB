@@ -154,7 +154,7 @@ static int num_devices = 0;
 static int device_nums[MAX_LINUX_INPUT_DEVICES];
 
 
-static
+static const
 int basic_keycodes [] = {
      DIKI_UNKNOWN, DIKI_ESCAPE, DIKI_1, DIKI_2, DIKI_3, DIKI_4, DIKI_5,
      DIKI_6, DIKI_7, DIKI_8, DIKI_9, DIKI_0, DIKI_MINUS_SIGN,
@@ -299,7 +299,7 @@ int basic_keycodes [] = {
      /* KEY_MEDIA          */  DIKI_UNKNOWN,
 };
 
-static
+static const
 int ext_keycodes [] = {
      DIKS_OK, DIKS_SELECT, DIKS_GOTO, DIKS_CLEAR, DIKS_POWER2, DIKS_OPTION,
      DIKS_INFO, DIKS_TIME, DIKS_VENDOR, DIKS_ARCHIVE, DIKS_PROGRAM,
@@ -338,15 +338,15 @@ static void
 touchpad_fsm_init( struct touchpad_fsm_state *state );
 static int
 touchpad_fsm( struct touchpad_fsm_state *state,
-              struct input_event        *levt,
+              const struct input_event  *levt,
               DFBInputEvent             *devt );
 
 static bool
-timeout_passed( struct timeval *timeout, struct timeval *current );
+timeout_passed( const struct timeval *timeout, const struct timeval *current );
 static bool
-timeout_is_set( struct timeval *timeout );
+timeout_is_set( const struct timeval *timeout );
 static void
-timeout_sub( struct timeval *timeout, struct timeval *sub );
+timeout_sub( struct timeval *timeout, const struct timeval *sub );
 
 /*
  * Translates a Linux input keycode into a DirectFB keycode.
@@ -556,7 +556,7 @@ keyboard_get_identifier( int code, unsigned short value )
 }
 
 static unsigned short
-keyboard_read_value( LinuxInputData *data,
+keyboard_read_value( const LinuxInputData *data,
                      unsigned char table, unsigned char index )
 {
      struct kbentry entry;
@@ -579,24 +579,26 @@ keyboard_read_value( LinuxInputData *data,
  * Translates key and button events.
  */
 static bool
-key_event( struct input_event *levt,
-           DFBInputEvent      *devt )
+key_event( const struct input_event *levt,
+           DFBInputEvent            *devt )
 {
-     /* map touchscreen and smartpad events to button mouse */
-     if (levt->code == BTN_TOUCH || levt->code == BTN_TOOL_FINGER)
-          levt->code = BTN_MOUSE;
+     int code = levt->code;
 
-     if ((levt->code >= BTN_MOUSE && levt->code < BTN_JOYSTICK) || levt->code == BTN_TOUCH) {
+     /* map touchscreen and smartpad events to button mouse */
+     if (code == BTN_TOUCH || code == BTN_TOOL_FINGER)
+          code = BTN_MOUSE;
+
+     if ((code >= BTN_MOUSE && code < BTN_JOYSTICK) || code == BTN_TOUCH) {
           /* ignore repeat events for buttons */
           if (levt->value == 2)
                return false;
 
           devt->type   = levt->value ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
           /* don't set DIEF_BUTTONS, it will be set by the input core */
-          devt->button = DIBI_FIRST + levt->code - BTN_MOUSE;
+          devt->button = DIBI_FIRST + code - BTN_MOUSE;
      }
      else {
-          int key = translate_key( levt->code );
+          int key = translate_key( code );
 
           if (key == DIKI_UNKNOWN)
                return false;
@@ -613,7 +615,7 @@ key_event( struct input_event *levt,
           }
 
           devt->flags |= DIEF_KEYCODE;
-          devt->key_code = levt->code;
+          devt->key_code = code;
      }
 
      if (levt->value == 2)
@@ -626,8 +628,8 @@ key_event( struct input_event *levt,
  * Translates relative axis events.
  */
 static bool
-rel_event( struct input_event *levt,
-           DFBInputEvent      *devt )
+rel_event( const struct input_event *levt,
+           DFBInputEvent            *devt )
 {
      switch (levt->code) {
           case REL_X:
@@ -663,8 +665,8 @@ rel_event( struct input_event *levt,
  * Translates absolute axis events.
  */
 static bool
-abs_event( struct input_event *levt,
-           DFBInputEvent      *devt )
+abs_event( const struct input_event *levt,
+           DFBInputEvent            *devt )
 {
      switch (levt->code) {
           case ABS_X:
@@ -697,8 +699,8 @@ abs_event( struct input_event *levt,
  * Translates a Linux input event into a DirectFB input event.
  */
 static bool
-translate_event( struct input_event *levt,
-                 DFBInputEvent      *devt )
+translate_event( const struct input_event *levt,
+                 DFBInputEvent            *devt )
 {
      devt->flags     = DIEF_TIMESTAMP;
      devt->timestamp = levt->time;
@@ -721,7 +723,7 @@ translate_event( struct input_event *levt,
 }
 
 static void
-set_led( LinuxInputData *data, int led, int state )
+set_led( const LinuxInputData *data, int led, int state )
 {
      struct input_event levt;
 
@@ -1285,13 +1287,13 @@ driver_close_device( void *driver_data )
 }
 
 static bool
-timeout_is_set( struct timeval *timeout )
+timeout_is_set( const struct timeval *timeout )
 {
      return timeout->tv_sec || timeout->tv_usec;
 }
 
 static bool
-timeout_passed( struct timeval *timeout, struct timeval *current )
+timeout_passed( const struct timeval *timeout, const struct timeval *current )
 {
      return !timeout_is_set( timeout ) ||
           current->tv_sec > timeout->tv_sec ||
@@ -1306,7 +1308,7 @@ timeout_clear( struct timeval *timeout )
 }
 
 static void
-timeout_add( struct timeval *timeout, struct timeval *add )
+timeout_add( struct timeval *timeout, const struct timeval *add )
 {
      timeout->tv_sec += add->tv_sec;
      timeout->tv_usec += add->tv_usec;
@@ -1317,7 +1319,7 @@ timeout_add( struct timeval *timeout, struct timeval *add )
 }
 
 static void
-timeout_sub( struct timeval *timeout, struct timeval *sub )
+timeout_sub( struct timeval *timeout, const struct timeval *sub )
 {
      timeout->tv_sec -= sub->tv_sec;
      timeout->tv_usec -= sub->tv_usec;
@@ -1337,14 +1339,14 @@ touchpad_fsm_init( struct touchpad_fsm_state *state )
 }
 
 static int
-touchpad_normalize( struct touchpad_axis *axis, int value )
+touchpad_normalize( const struct touchpad_axis *axis, int value )
 {
      return ((value - axis->min) << 9) / (axis->max - axis->min);
 }
 
 static int
 touchpad_translate( struct touchpad_fsm_state *state,
-                    struct input_event        *levt,
+                    const struct input_event  *levt,
                     DFBInputEvent             *devt )
 {
      struct touchpad_axis *axis = NULL;
@@ -1411,7 +1413,7 @@ touchpad_finger_moving( const struct input_event *levt )
  */
 static int
 touchpad_fsm( struct touchpad_fsm_state *state,
-              struct input_event        *levt,
+              const struct input_event  *levt,
               DFBInputEvent             *devt )
 {
      struct timeval timeout = { 0, 125000 };
