@@ -8,12 +8,12 @@ INCLUDES = \
 	-I$(top_srcdir)/src
 
 
-atidir = $(MODULEDIR)/gfxdrivers
+ati128dir = $(MODULEDIR)/gfxdrivers
 
-ati_LTLIBRARIES = libdirectfb_ati128.la
+ati128_LTLIBRARIES = libdirectfb_ati128.la
 
 if BUILD_STATIC
-ati_DATA = $(ati_LTLIBRARIES:.la=.o)
+ati128_DATA = $(ati128_LTLIBRARIES:.la=.o)
 endif
 
 

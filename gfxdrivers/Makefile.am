@@ -1,9 +1,9 @@
 ## Makefile.am for DirectFB/gfxdrivers
 
-if GFX_ATI
-ATI_DIR = ati128
+if GFX_ATI128
+ATI128_DIR = ati128
 else
-ATI_DIR =
+ATI128_DIR =
 endif
 
 if GFX_CLE266
@@ -97,7 +97,7 @@ VMWARE_DIR =
 endif
 
 SUBDIRS = \
-	$(ATI_DIR)	\
+	$(ATI128_DIR)	\
 	$(CLE266_DIR)	\
 	$(CYBER5K_DIR)	\
 	$(I810_DIR)	\

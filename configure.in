@@ -851,7 +851,7 @@ fi
 
 
 dnl check which gfxdrivers to build
-ati=no
+ati128=no
 cle266=no
 cyber5k=no
 i810=no
@@ -963,7 +963,7 @@ else
 fi
 
 if test "$checkfor_ati128" = "yes"; then
-  ati=yes
+  ati128=yes
 fi
 
 if test "$checkfor_cle266" = "yes" && test "$have_sysio" = "yes"; then
@@ -1310,7 +1310,7 @@ if test "$enable_unique" = "yes"; then
 fi
 
 
-AM_CONDITIONAL(GFX_ATI, test "$ati" = "yes")
+AM_CONDITIONAL(GFX_ATI128, test "$ati128" = "yes")
 AM_CONDITIONAL(GFX_CLE266, test "$cle266" = "yes")
 AM_CONDITIONAL(GFX_CYBER5K, test "$cyber5k" = "yes")
 AM_CONDITIONAL(GFX_I810, test "$i810" = "yes")
@@ -1591,7 +1591,7 @@ AC_MSG_RESULT([
 Building Graphics Drivers:
   3Dfx Voodoo               $tdfx
   ATI Mach64                $mach64 
-  ATI Rage 128              $ati
+  ATI Rage 128              $ati128
   ATI Radeon                $radeon
   Intel i810                $i810
   Intel i830                $i830
