@@ -233,6 +233,8 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
 
                /* ...clear hardware write access. */
                allocation->accessed &= ~CSAF_GPU_WRITE;
+               /* ...clear hardware read access (to avoid syncing twice). */
+               allocation->accessed &= ~CSAF_GPU_READ;
           }
 
           /* Software write access... */
