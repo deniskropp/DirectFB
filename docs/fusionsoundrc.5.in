@@ -109,6 +109,16 @@ If there are still slaves playing, the option will cause the master
 to fork and wait until all playbacks are finished before releasing
 resources.
 
+.TP
+.BI [no-]deinit-check
+By default FusionSound checks if the application has released all allocated
+resources on exit. If it didn't, it will clean up after the application.
+This option allows to switch this feature on or off.
+
+.TP
+.BI [no-]dither
+Enable dithered samples conversion. 
+
 
 .SH EXAMPLES
 
