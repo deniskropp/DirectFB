@@ -62,6 +62,7 @@ typedef u8 bool;
 
 typedef u32 unichar;
 
+typedef struct __D_DirectCleanupHandler      DirectCleanupHandler;
 typedef struct __D_DirectConfig              DirectConfig;
 typedef struct __D_DirectHash                DirectHash;
 typedef struct __D_DirectLink                DirectLink;

@@ -189,6 +189,8 @@ struct __DFB_CoreDFB {
      DirectThreadInitHandler *init_handler;
 
      DirectSignalHandler     *signal_handler;
+     
+     DirectCleanupHandler    *cleanup_handler;
 };
 
 /******************************************************************************/
@@ -196,7 +198,7 @@ struct __DFB_CoreDFB {
 /*
  * ckecks if stack is clean, otherwise prints warning, then calls core_deinit()
  */
-static void dfb_core_deinit_check();
+static void dfb_core_deinit_check( void *ctx );
 
 static void dfb_core_thread_init_handler( DirectThread *thread, void *arg );
 
@@ -347,7 +349,7 @@ dfb_core_create( CoreDFB **ret_core )
           direct_signals_block_all();
 
      if (dfb_config->deinit_check)
-          atexit( dfb_core_deinit_check );
+          direct_cleanup_handler_add( dfb_core_deinit_check, NULL, &core->cleanup_handler );
 
 
      fusion_skirmish_prevail( &shared->lock );
@@ -412,6 +414,9 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
      }
 
      direct_signal_handler_remove( core->signal_handler );
+     
+     if (core->cleanup_handler)
+          direct_cleanup_handler_remove( core->cleanup_handler );
 
      if (core->master) {
           if (emergency) {
@@ -847,16 +852,12 @@ dfb_core_cleanup_remove( CoreDFB     *core,
 /******************************************************************************/
 
 static void
-dfb_core_deinit_check()
+dfb_core_deinit_check( void *ctx )
 {
      if (core_dfb && core_dfb->refs) {
           D_WARN( "Application exited without deinitialization of DirectFB!" );
           dfb_core_destroy( core_dfb, true );
      }
-
-     direct_print_memleaks();
-
-     direct_print_interface_leaks();
 }
 
 static void

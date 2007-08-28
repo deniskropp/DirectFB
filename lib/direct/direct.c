@@ -28,10 +28,15 @@
 
 #include <config.h>
 
+#include <stdlib.h>
+
 #include <pthread.h>
 
 #include <direct/debug.h>
 #include <direct/direct.h>
+#include <direct/interface.h>
+#include <direct/list.h>
+#include <direct/mem.h>
 #include <direct/signals.h>
 #include <direct/thread.h>
 #include <direct/util.h>
@@ -40,21 +45,119 @@ D_DEBUG_DOMAIN( Direct_Main, "Direct/Main", "Initialization and shutdown of libd
 
 /**************************************************************************************************/
 
-static int             refs      = 0;
-static pthread_mutex_t refs_lock = PTHREAD_MUTEX_INITIALIZER;
+struct __D_DirectCleanupHandler {
+     DirectLink                link;
+     
+     int                       magic;
+     
+     DirectCleanupHandlerFunc  func;
+     void                     *ctx;
+};
 
 /**************************************************************************************************/
+
+static int              refs      = 0;
+static DirectLink      *handlers  = NULL; 
+static pthread_mutex_t  main_lock = PTHREAD_MUTEX_INITIALIZER;
+
+/**************************************************************************************************/
+
+static void
+direct_cleanup( void )
+{
+     DirectCleanupHandler *handler, *temp;
+     
+     if (!refs)
+          return;
+          
+     direct_list_foreach_safe (handler, temp, handlers) {
+          D_DEBUG_AT( Direct_Main, "Calling cleanup func %p...\n", handler->func );
+
+          handler->func( handler->ctx );
+          
+          /*direct_list_remove( &handlers, &handler->link );
+
+          D_MAGIC_CLEAR( handler );
+
+          D_FREE( handler );*/
+     }
+     
+     direct_print_memleaks();
+
+     direct_print_interface_leaks();
+}
+
+/**************************************************************************************************/
+
+DirectResult 
+direct_cleanup_handler_add( DirectCleanupHandlerFunc   func,
+                            void                      *ctx,
+                            DirectCleanupHandler     **ret_handler )
+{
+     DirectCleanupHandler *handler;
+     
+     D_ASSERT( func != NULL );
+     D_ASSERT( ret_handler != NULL );
+     
+     D_DEBUG_AT( Direct_Main,
+                 "Adding cleanup handler %p with context %p...\n", func, ctx );
+     
+     handler = D_CALLOC( 1, sizeof(DirectCleanupHandler) );
+     if (!handler) {
+          D_WARN( "out of memory" );
+          return DFB_NOSYSTEMMEMORY;
+     }
+     
+     handler->func = func;
+     handler->ctx  = ctx;
+     
+     D_MAGIC_SET( handler, DirectCleanupHandler );
+
+     pthread_mutex_lock( &main_lock );
+     
+     if (handlers == NULL)
+          atexit( direct_cleanup );
+     
+     direct_list_append( &handlers, &handler->link );
+     
+     pthread_mutex_unlock( &main_lock );
+     
+     *ret_handler = handler;
+     
+     return DFB_OK;
+}
+
+DirectResult
+direct_cleanup_handler_remove( DirectCleanupHandler *handler )
+{
+     D_ASSERT( handler != NULL );
+     
+     D_MAGIC_ASSERT( handler, DirectCleanupHandler );
+
+     D_DEBUG_AT( Direct_Main, "Removing cleanup handler %p with context %p...\n", 
+                 handler->func, handler->ctx );
+
+     pthread_mutex_lock( &main_lock );
+     direct_list_remove( &handlers, &handler->link );
+     pthread_mutex_unlock( &main_lock );
+
+     D_MAGIC_CLEAR( handler );
+
+     D_FREE( handler );
+
+     return DFB_OK;
+}
 
 DirectResult
 direct_initialize()
 {
-     pthread_mutex_lock( &refs_lock );
+     pthread_mutex_lock( &main_lock );
 
      D_DEBUG_AT( Direct_Main, "direct_initialize() called...\n" );
 
      if (refs++) {
           D_DEBUG_AT( Direct_Main, "...%d references now.\n", refs );
-          pthread_mutex_unlock( &refs_lock );
+          pthread_mutex_unlock( &main_lock );
           return DFB_OK;
      }
      else if (!direct_thread_self_name())
@@ -64,7 +167,7 @@ direct_initialize()
 
      direct_signals_initialize();
 
-     pthread_mutex_unlock( &refs_lock );
+     pthread_mutex_unlock( &main_lock );
 
      return DFB_OK;
 }
@@ -72,13 +175,13 @@ direct_initialize()
 DirectResult
 direct_shutdown()
 {
-     pthread_mutex_lock( &refs_lock );
+     pthread_mutex_lock( &main_lock );
 
      D_DEBUG_AT( Direct_Main, "direct_shutdown() called...\n" );
 
      if (--refs) {
           D_DEBUG_AT( Direct_Main, "...%d references left.\n", refs );
-          pthread_mutex_unlock( &refs_lock );
+          pthread_mutex_unlock( &main_lock );
           return DFB_OK;
      }
 
@@ -86,7 +189,7 @@ direct_shutdown()
 
      direct_signals_shutdown();
 
-     pthread_mutex_unlock( &refs_lock );
+     pthread_mutex_unlock( &main_lock );
 
      return DFB_OK;
 }
