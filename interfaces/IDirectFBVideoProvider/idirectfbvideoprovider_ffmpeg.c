@@ -51,7 +51,7 @@
 #include <media/idirectfbdatabuffer.h>
 #include <media/idirectfbvideoprovider.h>
 
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/layers.h>
 
 #include <display/idirectfbsurface.h>
@@ -988,7 +988,7 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
           
      dest_data = dest->priv;
      
-     if (!dfb2dvc_pixelformat( dest_data->surface->format ))
+     if (!dfb2dvc_pixelformat( dest_data->surface->config.format ))
           return DFB_UNSUPPORTED;
            
      if (dest_rect) {

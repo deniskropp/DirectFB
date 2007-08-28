@@ -45,7 +45,7 @@
 
 #include <media/idirectfbvideoprovider.h>
 
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <display/idirectfbsurface.h>
 
@@ -364,21 +364,20 @@ SwfInput( DirectThread *self, void *arg )
 }
 
 static void
-SwfPutImage( CoreDFB      *core,
-             CoreSurface  *surface,
+SwfPutImage( CoreSurface  *surface,
              DFBRectangle *current,
              DFBRectangle *rect,
              SwfdecBuffer *source )
 {
-     DFBRegion     clip;
-     DFBRectangle  srect;
-     u8           *D;
-     u32          *S;
-     u8           *dst, *src;
-     int           pitch;
-     int           sw  = source->length & 0xffff;
-     int           sh  = source->length >> 16;
-     int           w, h, n;
+     DFBRegion              clip;
+     DFBRectangle           srect;
+     CoreSurfaceBufferLock  lock;
+     u8                    *D;
+     u32                   *S;
+     u8                    *dst, *src;
+     int                    sw  = source->length & 0xffff;
+     int                    sh  = source->length >> 16;
+     int                    w, h, n;
 
      dfb_region_from_rectangle( &clip, current );
      
@@ -387,12 +386,11 @@ SwfPutImage( CoreDFB      *core,
      if (srect.w < 1 || srect.h < 1)
           return;
      
-     if (dfb_surface_soft_lock( core, surface, DSLF_WRITE,
-                                (void*)&dst, &pitch, 0 ) != DFB_OK)
+     if (dfb_surface_lock_buffer( surface, CSBR_BACK, CSAF_CPU_WRITE, &lock ) != DFB_OK)
           return;
    
-     dst += pitch * rect->y +
-            DFB_BYTES_PER_LINE( surface->format, rect->x );
+     dst = lock.addr + lock.pitch * rect->y +
+            DFB_BYTES_PER_LINE( surface->config.format, rect->x );
      src  = source->data + srect.y * sw * 4 + srect.x * 4;
      
      for (h = srect.h; h; h--) {
@@ -400,7 +398,7 @@ SwfPutImage( CoreDFB      *core,
           S = (u32*) src;
           w = srect.w;
           
-          switch (surface->format) {
+          switch (surface->config.format) {
                case DSPF_RGB332:
                     while (w--) {
                          *D++ = RGB32_TO_RGB332( *S );
@@ -515,11 +513,11 @@ SwfPutImage( CoreDFB      *core,
                     break;
           }
           
-          dst += pitch;
+          dst += lock.pitch;
           src += sw << 2;
      }
      
-     dfb_surface_unlock( surface, 0 );
+     dfb_surface_unlock_buffer( surface, &lock );
 }
 
 static inline s64
@@ -564,7 +562,7 @@ SwfVideo( DirectThread *self, void *arg )
                     DFBRectangle rect = (data->rect.w == 0)
                                         ? data->dest_data->area.wanted : data->rect;
                
-                    SwfPutImage( data->dest_data->core, data->dest_data->surface, 
+                    SwfPutImage( data->dest_data->surface, 
                                 &data->dest_data->area.current, &rect, buffer );
                                    
                     if (data->callback)
@@ -824,7 +822,7 @@ IDirectFBVideoProvider_Swfdec_PlayTo( IDirectFBVideoProvider *thiz,
           
      dest_data = dest->priv;
      
-     switch (dest_data->surface->format) {
+     switch (dest_data->surface->config.format) {
           case DSPF_RGB332:
           case DSPF_RGB444:
           case DSPF_ARGB4444:

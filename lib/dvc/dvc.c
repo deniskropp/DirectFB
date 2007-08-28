@@ -35,7 +35,7 @@
 #include <direct/util.h>
 
 #include <core/palette.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <display/idirectfbsurface.h>
 
@@ -1926,6 +1926,7 @@ dvc_scale_to_surface( const DVCPicture   *source,
                       const DVCColormap  *colormap )
 {
      IDirectFBSurface_data *dst_data;
+     CoreSurfaceBufferLock  lock;
      DVCPicture             picture;
      DFBRectangle           srect;
      DFBRectangle           drect;
@@ -1959,18 +1960,20 @@ dvc_scale_to_surface( const DVCPicture   *source,
           dfb_clip_stretchblit( &clip, &srect, &drect );
      }
      
-     picture.format = dfb2dvc_pixelformat( dst_data->surface->format );
+     picture.format = dfb2dvc_pixelformat( dst_data->surface->config.format );
      if (!picture.format)
           return DFB_UNSUPPORTED;
-     picture.width  = dst_data->surface->width;
-     picture.height = dst_data->surface->height; 
+     picture.width  = dst_data->surface->config.size.w;
+     picture.height = dst_data->surface->config.size.h; 
      
-     ret = dfb_surface_soft_lock( dst_data->core, dst_data->surface, DSLF_WRITE,
-                                  &picture.base[0], &picture.pitch[0], 0 );
+     ret = dfb_surface_lock_buffer( dst_data->surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
      if (ret)
           return ret;
+
+     picture.base[0] = lock.addr;
+     picture.pitch[0] = lock.pitch;
                           
-     switch (dst_data->surface->format) {
+     switch (dst_data->surface->config.format) {
           case DSPF_LUT8:
           case DSPF_ALUT44:
                picture.palette = dst_data->surface->palette->entries;
@@ -2002,7 +2005,7 @@ dvc_scale_to_surface( const DVCPicture   *source,
      
      dvc_scale( source, &picture, &srect, &drect, colormap );
      
-     dfb_surface_unlock( dst_data->surface, 0 );
+     dfb_surface_unlock_buffer( dst_data->surface, &lock );
      
      return DFB_OK;
 }
