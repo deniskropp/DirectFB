@@ -70,6 +70,7 @@ static const char *config_usage =
      "  [no-]debug                     Enable debug output\n"
      "  [no-]trace                     Enable stack trace support\n"
      "  [no-]wait                      Wait slaves before quitting\n"
+     "  [no-]deinit-check              Enable deinit check at exit\n"
      "  [no-]dither                    Enable dithering\n"
      "\n";
      
@@ -194,8 +195,9 @@ config_allocate()
      if (fs_config->session >= 0)
           fs_config->session++;
 
-     fs_config->banner   = dfb_config->banner;
-     fs_config->wait     = true;
+     fs_config->banner       = dfb_config->banner;
+     fs_config->wait         = true;
+     fs_config->deinit_check = true;
 }
 
 const char*
@@ -371,6 +373,18 @@ fs_config_set( const char *name, const char *value )
      else if (!strcmp( name, "no-wait" )) {
           fs_config->wait = false;
      }
+     else if (!strcmp( name, "deinit-check" )) {
+          fs_config->deinit_check = true;
+     }
+     else if (!strcmp( name, "no-deinit-check" )) {
+          fs_config->deinit_check = false;
+     }
+     else if (!strcmp( name, "dither" )) {
+          fs_config->dither = true;
+     }
+     else if (!strcmp( name, "no-dither" )) {
+          fs_config->dither = false;
+     }
      else if (!strcmp( name, "debug" )) {
           if (value)
                direct_debug_config_domain( value, true );
@@ -388,12 +402,6 @@ fs_config_set( const char *name, const char *value )
      } 
      else if (!strcmp( name, "no-trace" )) {
           direct_config->trace = false;
-     }
-     else if (!strcmp( name, "dither" )) {
-          fs_config->dither = true;
-     }
-     else if (!strcmp( name, "no-dither" )) {
-          fs_config->dither = false;
      }
      else
           return DFB_UNSUPPORTED;

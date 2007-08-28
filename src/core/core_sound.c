@@ -33,6 +33,7 @@
 
 #include <pthread.h>
 
+#include <direct/direct.h>
 #include <direct/build.h>
 #include <direct/list.h>
 #include <direct/mem.h>
@@ -99,28 +100,32 @@ struct __FS_CoreSoundShared {
 };
 
 struct __FS_CoreSound {
-     int                  refs;
+     int                   refs;
 
-     int                  fusion_id;
+     int                   fusion_id;
 
-     FusionWorld         *world;
-     FusionArena         *arena;
+     FusionWorld          *world;
+     FusionArena          *arena;
 
-     CoreSoundShared     *shared;
+     CoreSoundShared      *shared;
 
-     bool                 master;
-     CoreSoundDevice     *device;
-     DirectThread        *sound_thread;
+     bool                  master;
+     CoreSoundDevice      *device;
+     DirectThread         *sound_thread;
      
-     void                *mixing_buffer;
-     void                *output_buffer;
+     void                 *mixing_buffer;
+     void                 *output_buffer;
 
-     DirectSignalHandler *signal_handler;
+     DirectSignalHandler  *signal_handler;
      
-     bool                 detached;
+     DirectCleanupHandler *cleanup_handler;
+     
+     bool                  detached;
 };
 
 /******************************************************************************/
+
+static void fs_core_deinit_check( void *ctx );
 
 static DirectSignalHandlerResult fs_core_signal_handler( int   num,
                                                          void *addr,
@@ -214,6 +219,9 @@ fs_core_create( CoreSound **ret_core )
           pthread_mutex_unlock( &core_sound_lock );
           return ret ? ret : DFB_FUSION;
      }
+     
+     if (fs_config->deinit_check)
+          direct_cleanup_handler_add( fs_core_deinit_check, core, &core->cleanup_handler );
 
      /* Return the core and store the singleton. */
      *ret_core = core_sound = core;
@@ -244,6 +252,9 @@ fs_core_destroy( CoreSound *core, bool emergency )
      }
 
      direct_signal_handler_remove( core->signal_handler );
+     
+     if (core->cleanup_handler)
+          direct_cleanup_handler_remove( core->cleanup_handler ); 
      
      /* Exit the FusionSound core arena. */
      if (fusion_arena_exit( core->arena, fs_core_arena_shutdown,
@@ -490,6 +501,19 @@ fs_core_set_master_volume( CoreSound *core, float level )
 }
 
 /******************************************************************************/
+
+static void
+fs_core_deinit_check( void *ctx )
+{
+     CoreSound *core = (CoreSound*) ctx;
+     
+     D_ASSERT( core != NULL );
+     D_ASSERT( core == core_sound );
+     
+     D_WARN( "Application exited without deinitialization of FusionSound!" );
+
+     fs_core_destroy( core, true );
+}
 
 static DirectSignalHandlerResult
 fs_core_signal_handler( int num, void *addr, void *ctx )
