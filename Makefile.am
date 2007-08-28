@@ -1,5 +1,7 @@
 ## Makefile.am for DirectFB
 
+ACLOCAL_AMFLAGS = -I m4
+
 if HAVE_LINUX
 LINUXONLY_DIRS = inputdrivers gfxdrivers
 endif

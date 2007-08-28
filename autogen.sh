@@ -124,7 +124,7 @@ esac
 echo
 echo
 echo Running aclocal ...
-aclocal $ACLOCAL_FLAGS
+aclocal -I m4 $ACLOCAL_FLAGS
 
 echo Running libtoolize ...
 libtoolize --automake

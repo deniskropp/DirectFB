@@ -14,14 +14,14 @@ The
 .B directfbrc
 file is a configuration file read by all DirectFB applications on startup.
 There are two of these: a system-wide one stored in
-.I /etc/directfbrc
+.I @SYSCONFDIR@/directfbrc
 and a per-user
 .I
 \fB$HOME\fP/.directfbrc
 which may override system settings.
 
 Further customization is available per executable (basename of argv[0]):
-.I /etc/directfbrc.$0
+.I @SYSCONFDIR@/directfbrc.$0
 and a per-user
 .I
 \fB$HOME\fP/.directfbrc.$0
@@ -546,7 +546,7 @@ version of the DirectFB library as well as a number of applications.
 .SH FILES
 
 .TP
-.I /etc/directfbrc
+.I @SYSCONFDIR@/directfbrc
 system-wide DirectFB configuration file
 .TP
 .I $HOME/.directfbrc
