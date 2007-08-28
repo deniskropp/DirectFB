@@ -155,6 +155,12 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
                pthread_cleanup_push( (void (*)(void *))pthread_mutex_unlock, &data->lock );
                pthread_cond_wait( &data->wait, &data->lock );
                pthread_cleanup_pop( 0 );
+               
+               /* Drop could have been called while waiting */
+               if (!data->pending) {
+                    pthread_mutex_unlock( &data->lock );
+                    return DFB_OK;
+               }
           }
 
           /* Calculate number of free samples in the buffer. */
@@ -286,8 +292,15 @@ IFusionSoundStream_Drop( IFusionSoundStream *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSoundStream)
 
+     pthread_mutex_lock( &data->lock );
+
      /* Discard pending data. */
      data->pending = 0;
+
+     /* Wake up any write threads that may be pending. */
+     pthread_cond_broadcast( &data->wait );
+
+     pthread_mutex_unlock( &data->lock );
 
      return DFB_OK;
 }
