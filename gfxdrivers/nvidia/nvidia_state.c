@@ -218,7 +218,9 @@ void nv_set_source( NVidiaDriverData *nvdrv,
                     CardState        *state )
 {
      CoreSurface *surface = state->source;
-     
+    
+     nvdev->src_lock = &state->src;
+    
      if (NVIDIA_IS_SET( SOURCE )) {
           if ((state->blittingflags & DSBLIT_DEINTERLACE) ==
               (nvdev->blittingflags & DSBLIT_DEINTERLACE))
@@ -685,7 +687,7 @@ void nv_set_blittingflags( NVidiaDriverData *nvdrv,
                                            : SCALER_COLOR_FORMAT_YB8V8YA8U8;
                     break;
                default:
-                    D_BUG( "unexpected pixelformat" );
+                    D_BUG( "unexpected pixelformat 0x%08x", nvdev->src_format );
                     break;
           }
           

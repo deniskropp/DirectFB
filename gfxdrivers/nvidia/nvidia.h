@@ -122,6 +122,7 @@ typedef struct {
      u32                     src_height;
      bool                    src_system;
      bool                    src_interlaced;
+     CoreSurfaceBufferLock  *src_lock;
 
      DFBRectangle            clip;
 

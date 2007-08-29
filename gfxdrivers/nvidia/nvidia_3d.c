@@ -414,14 +414,8 @@ argb_to_tex( u32 *dst, u8 *src, int pitch, int width, int height )
 static void nv_load_texture( NVidiaDriverData *nvdrv,
                              NVidiaDeviceData *nvdev )
 {
-     CoreSurfaceBuffer      *buffer  = nvdev->src_texture;
-     CoreSurfaceBufferLock   lock;
-     u32                    *dst;
-     
-     if (dfb_surface_buffer_lock( buffer, CSAF_GPU_READ | CSAF_CPU_READ, &lock )) {
-          D_WARN( "dfb_surface_buffer_lock()" );
-          return;
-     }
+     CoreSurfaceBuffer *buffer = nvdev->src_texture;
+     u32               *dst;
      
      dst = dfb_gfxcard_memory_virtual( nvdrv->device, nvdev->buf_offset[1] );
      
@@ -440,27 +434,25 @@ static void nv_load_texture( NVidiaDriverData *nvdrv,
 
      switch (buffer->format) {
           case DSPF_A8:
-               a8_to_tex( dst, lock.addr, lock.pitch,
+               a8_to_tex( dst, nvdev->src_lock->addr, nvdev->src_lock->pitch,
                           nvdev->src_width, nvdev->src_height );
                break;
           case DSPF_ARGB1555:
           case DSPF_RGB16:
-               rgb16_to_tex( dst, lock.addr, lock.pitch,
+               rgb16_to_tex( dst, nvdev->src_lock->addr, nvdev->src_lock->pitch,
                              nvdev->src_width, nvdev->src_height );
                break;
           case DSPF_RGB32:
-               rgb32_to_tex( dst, lock.addr, lock.pitch,
+               rgb32_to_tex( dst, nvdev->src_lock->addr, nvdev->src_lock->pitch,
                              nvdev->src_width, nvdev->src_height );
                break;
           case DSPF_ARGB:
-               argb_to_tex( dst, lock.addr, lock.pitch,
+               argb_to_tex( dst, nvdev->src_lock->addr, nvdev->src_lock->pitch,
                             nvdev->src_width, nvdev->src_height );
                break;
           default:
                D_BUG( "unexpected pixelformat" );
                break;
      }
-          
-     dfb_surface_buffer_unlock( &lock );
 }
 

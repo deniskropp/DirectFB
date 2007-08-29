@@ -192,15 +192,24 @@ ov0TestRegion(CoreLayer                  *layer,
           fail |= CLRCF_OPTIONS;
 
      /* check buffermode */
-     if (config->buffermode == DLBM_WINDOWS)
-          fail |= CLRCF_BUFFERMODE;
+     switch (config->buffermode) {
+          case DLBM_FRONTONLY:
+          case DLBM_BACKSYSTEM:
+          case DLBM_BACKVIDEO:
+          case DLBM_TRIPLE:
+               break;
+
+          default:
+               fail |= CLRCF_BUFFERMODE;
+               break;
+     }
 
      /* check pixel format */
      switch (config->format) {
           case DSPF_YUY2:
           case DSPF_UYVY:
-          case DSPF_I420:
-          case DSPF_YV12:
+          //case DSPF_I420:
+          //case DSPF_YV12:
                break;
 
           default:
@@ -243,6 +252,8 @@ ov0SetRegion( CoreLayer                  *layer,
      
      /* remember configuration */
      nvov0->config = *config;
+     
+     nvov0->videoSurface = surface;
      nvov0->lock = lock;
 
      /* set configuration */
@@ -260,6 +271,7 @@ ov0SetRegion( CoreLayer                  *layer,
      return DFB_OK;
 }
 
+#if 0
 static DFBResult
 ov0AllocateSurface( CoreLayer              *layer,
                     void                   *driver_data,
@@ -449,8 +461,10 @@ ov0DeallocateSurface( CoreLayer   *layer,
 {
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
      
-     if (nvov0->videoSurface)
+     if (nvov0->videoSurface) {
           dfb_surface_unref( nvov0->videoSurface );
+          nvov0->videoSurface = NULL;
+     }
      dfb_surface_unref( surface );
      
      return DFB_OK;
@@ -514,6 +528,7 @@ ov0CopyData420
           }
      }
 }
+#endif /* 0 */
 
 static DFBResult
 ov0FlipRegion ( CoreLayer             *layer,
@@ -524,6 +539,63 @@ ov0FlipRegion ( CoreLayer             *layer,
                 DFBSurfaceFlipFlags    flags,
                 CoreSurfaceBufferLock *lock )
 {
+     NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
+     NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
+
+#if 0
+     if (DFB_PLANAR_PIXELFORMAT( surface->config.format )) {
+          CoreSurfaceBufferLock l;
+          void *src, *src1, *src2, *tmp;
+          u32   srcPitch, srcPitch2;
+          u32   width  = surface->config.size.w;
+          u32   height = surface->config.size.h;
+          
+          if (dfb_surface_lock_buffer( nvov0->videoSurface, CSBR_BACK, CSAF_CPU_WRITE, &l ))
+               return DFB_FAILURE;
+
+          src = lock->addr;
+          srcPitch = lock->pitch;
+          
+          srcPitch2 = lock->pitch >> 1;
+          src1 = src + srcPitch * height;
+          src2 = src1 + srcPitch2 * (height >> 1);
+
+          if (nvov0->config.format == DSPF_I420) {
+               tmp  = src1;
+               src1 = src2;
+               src2 = tmp;
+          }
+          
+          ov0CopyData420( src, src1, src2, l.addr, 
+                          srcPitch, srcPitch2, l.pitch,
+                          height, width );
+     }
+#endif
+     
+     nvov0->videoSurface = surface;
+     nvov0->lock = lock;
+
+     dfb_surface_flip( nvov0->videoSurface, false );
+
+     ov0_calc_regs( nvdrv, nvov0, &nvov0->config, CLRCF_SURFACE );
+     ov0_set_regs( nvdrv, nvov0, CLRCF_SURFACE );
+
+     if (flags & DSFLIP_WAIT)
+          dfb_layer_wait_vsync( layer );
+     
+     return DFB_OK;
+}
+
+static DFBResult
+ov0UpdateRegion ( CoreLayer             *layer,
+                  void                  *driver_data,
+                  void                  *layer_data,
+                  void                  *region_data,
+                  CoreSurface           *surface,
+                  const DFBRegion       *update,
+                  CoreSurfaceBufferLock *lock )
+{
+#if 0
      NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
 
@@ -554,58 +626,7 @@ ov0FlipRegion ( CoreLayer             *layer,
                           srcPitch, srcPitch2, l.pitch,
                           height, width );
      }
-     
-     dfb_surface_flip( nvov0->videoSurface, false );
-
-     ov0_calc_regs( nvdrv, nvov0, &nvov0->config, CLRCF_SURFACE );
-     ov0_set_regs( nvdrv, nvov0, CLRCF_SURFACE );
-
-     if (flags & DSFLIP_WAIT)
-          dfb_layer_wait_vsync( layer );
-     
-     return DFB_OK;
-}
-
-static DFBResult
-ov0UpdateRegion ( CoreLayer             *layer,
-                  void                  *driver_data,
-                  void                  *layer_data,
-                  void                  *region_data,
-                  CoreSurface           *surface,
-                  const DFBRegion       *update,
-                  CoreSurfaceBufferLock *lock )
-{ 
-     //NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
-     NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
-
-     if (DFB_PLANAR_PIXELFORMAT( surface->config.format )) {
-          CoreSurfaceBufferLock l;
-          void *src, *src1, *src2, *tmp;
-          u32   srcPitch, srcPitch2;
-          u32   width  = surface->config.size.w;
-          u32   height = surface->config.size.h;
-          
-          if (dfb_surface_lock_buffer( nvov0->videoSurface, CSBR_BACK, CSAF_CPU_WRITE, &l ))
-               return DFB_FAILURE;
-
-          src = lock->addr;
-          srcPitch = lock->pitch;
-          
-          srcPitch2 = lock->pitch >> 1;
-          src1 = src + srcPitch * height;
-          src2 = src1 + srcPitch2 * (height >> 1);
-
-          if (nvov0->config.format == DSPF_I420) {
-               tmp  = src1;
-               src1 = src2;
-               src2 = tmp;
-          }
-          
-          ov0CopyData420( src, src1, src2, l.addr, 
-                          srcPitch, srcPitch2, l.pitch,
-                          height, width );
-     }
-     
+#endif     
      return DFB_OK;
 }
 
@@ -671,9 +692,11 @@ DisplayLayerFuncs nvidiaOverlayFuncs = {
      .UpdateRegion       = ov0UpdateRegion,
      .SetColorAdjustment = ov0SetColorAdjustment,
      .SetInputField      = ov0SetInputField,
+#if 0
      .AllocateSurface    = ov0AllocateSurface,
      .DeallocateSurface  = ov0DeallocateSurface,
      .ReallocateSurface  = ov0ReallocateSurface
+#endif
 };
 
 

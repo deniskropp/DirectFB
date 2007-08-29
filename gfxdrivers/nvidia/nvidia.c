@@ -474,7 +474,8 @@ static void nv4CheckState( void *drv, void *dev,
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* check unsupported blitting flags */
-          if (state->blittingflags & ~NV4_SUPPORTED_BLITTINGFLAGS)
+          if (accel & ~NV4_SUPPORTED_BLITTINGFUNCTIONS ||
+              state->blittingflags & ~NV4_SUPPORTED_BLITTINGFLAGS)
                return;
 
           if (accel == DFXL_TEXTRIANGLES) {
@@ -539,7 +540,8 @@ static void nv4CheckState( void *drv, void *dev,
      }
      else {
           /* check unsupported drawing flags */
-          if (state->drawingflags & ~NV4_SUPPORTED_DRAWINGFLAGS)
+          if (accel & ~NV4_SUPPORTED_DRAWINGFUNCTIONS ||
+              state->drawingflags & ~NV4_SUPPORTED_DRAWINGFLAGS)
                return;
 
           state->accel |= NV4_SUPPORTED_DRAWINGFUNCTIONS;
@@ -595,7 +597,8 @@ static void nv5CheckState( void *drv, void *dev,
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* check unsupported blitting flags */
-          if (state->blittingflags & ~NV5_SUPPORTED_BLITTINGFLAGS)
+          if (accel & ~NV5_SUPPORTED_BLITTINGFUNCTIONS ||
+              state->blittingflags & ~NV5_SUPPORTED_BLITTINGFLAGS)
                return;
 
           if (accel == DFXL_TEXTRIANGLES) {
@@ -621,7 +624,7 @@ static void nv5CheckState( void *drv, void *dev,
                case DSPF_LUT8:
                case DSPF_ALUT44:
                     if (destination->config.format != source->config.format ||
-                        state->src.buffer->policy == CSP_SYSTEMONLY ||
+                        /*state->src.buffer->policy == CSP_SYSTEMONLY ||*/
                         !dfb_palette_equal( source->palette,
                                             destination->palette ))
                          return;
@@ -629,8 +632,8 @@ static void nv5CheckState( void *drv, void *dev,
                     
                case DSPF_A8:
                case DSPF_RGB332:
-                    if (destination->config.format != source->config.format ||
-                        state->src.buffer->policy == CSP_SYSTEMONLY)
+                    if (destination->config.format != source->config.format /*||
+                        state->src.buffer->policy == CSP_SYSTEMONLY*/)
                          return;
                     break;
 
@@ -640,16 +643,16 @@ static void nv5CheckState( void *drv, void *dev,
                case DSPF_RGB32:
                case DSPF_ARGB:
                     /* disable host-to-video blit for simple blits */
-                    if (state->src.buffer->policy == CSP_SYSTEMONLY &&
+                    /*if (state->src.buffer->policy == CSP_SYSTEMONLY &&
                         accel == DFXL_BLIT && !state->blittingflags &&
                         source->config.format == destination->config.format)
-                         return;
+                         return;*/
                     break;
 
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    if (accel & ~(DFXL_BLIT | DFXL_STRETCHBLIT) ||
-                        state->src.buffer->policy == CSP_SYSTEMONLY)
+                    if (accel & ~(DFXL_BLIT | DFXL_STRETCHBLIT) /*||
+                        state->src.buffer->policy == CSP_SYSTEMONLY*/)
                          return;
                     break;
 
@@ -661,7 +664,8 @@ static void nv5CheckState( void *drv, void *dev,
      }
      else {
           /* check unsupported drawing flags */
-          if (state->drawingflags & ~NV5_SUPPORTED_DRAWINGFLAGS)
+          if (accel & ~NV5_SUPPORTED_DRAWINGFUNCTIONS ||
+              state->drawingflags & ~NV5_SUPPORTED_DRAWINGFLAGS)
                return;
 
           state->accel |= NV5_SUPPORTED_DRAWINGFUNCTIONS;
@@ -717,7 +721,8 @@ static void nv10CheckState( void *drv, void *dev,
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* check unsupported blitting flags */
-          if (state->blittingflags & ~NV10_SUPPORTED_BLITTINGFLAGS)
+          if (accel & ~NV10_SUPPORTED_BLITTINGFUNCTIONS ||
+              state->blittingflags & ~NV10_SUPPORTED_BLITTINGFLAGS)
                return;
 
           if (accel == DFXL_TEXTRIANGLES) {
@@ -743,23 +748,23 @@ static void nv10CheckState( void *drv, void *dev,
 
           switch (source->config.format) {
                case DSPF_A8:
-                    if (DFB_BYTES_PER_PIXEL(destination->config.format) != 4 ||
-                        state->src.buffer->policy == CSP_SYSTEMONLY)
+                    if (DFB_BYTES_PER_PIXEL(destination->config.format) != 4 /*||
+                        state->src.buffer->policy == CSP_SYSTEMONLY*/)
                          return;
                     break;
 
                case DSPF_LUT8:
                case DSPF_ALUT44:
                     if (destination->config.format != source->config.format ||
-                        state->src.buffer->policy == CSP_SYSTEMONLY ||
+                        /*state->src.buffer->policy == CSP_SYSTEMONLY ||*/
                         !dfb_palette_equal( source->palette,
                                             destination->palette ))
                          return;
                     break;
                     
                case DSPF_RGB332:
-                    if (destination->config.format != source->config.format ||
-                        state->src.buffer->policy == CSP_SYSTEMONLY)
+                    if (destination->config.format != source->config.format /*||
+                        state->src.buffer->policy == CSP_SYSTEMONLY*/)
                          return;
                     break;
 
@@ -769,16 +774,16 @@ static void nv10CheckState( void *drv, void *dev,
                case DSPF_RGB32:
                case DSPF_ARGB:
                     /* disable host-to-video blit for simple blits */
-                    if (state->src.buffer->policy == CSP_SYSTEMONLY &&
+                    /*if (state->src.buffer->policy == CSP_SYSTEMONLY &&
                         accel == DFXL_BLIT && !state->blittingflags &&
                         source->config.format == destination->config.format)
-                         return;
+                         return;*/
                     break;
 
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    if (accel & ~(DFXL_BLIT | DFXL_STRETCHBLIT) ||
-                        state->src.buffer->policy == CSP_SYSTEMONLY)
+                    if (accel & ~(DFXL_BLIT | DFXL_STRETCHBLIT) /*||
+                        state->src.buffer->policy == CSP_SYSTEMONLY*/)
                          return;
                     break;
 
@@ -790,7 +795,8 @@ static void nv10CheckState( void *drv, void *dev,
      }
      else {
           /* check unsupported drawing flags */
-          if (state->drawingflags & ~NV10_SUPPORTED_DRAWINGFLAGS)
+          if (accel & ~NV10_SUPPORTED_DRAWINGFUNCTIONS ||
+              state->drawingflags & ~NV10_SUPPORTED_DRAWINGFLAGS)
                return;
 
           state->accel |= NV10_SUPPORTED_DRAWINGFUNCTIONS;
@@ -845,8 +851,8 @@ static void nv20CheckState( void *drv, void *dev,
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* check unsupported blitting functions/flags */
-          if ((accel & ~NV20_SUPPORTED_BLITTINGFUNCTIONS) ||
-              (state->blittingflags & ~NV20_SUPPORTED_BLITTINGFLAGS))
+          if (accel & ~NV20_SUPPORTED_BLITTINGFUNCTIONS ||
+              state->blittingflags & ~NV20_SUPPORTED_BLITTINGFLAGS)
                return;
 
           if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) { 
@@ -865,22 +871,22 @@ static void nv20CheckState( void *drv, void *dev,
 
           switch (source->config.format) {
                case DSPF_A8:
-                    if (state->src.buffer->policy == CSP_SYSTEMONLY)
-                         return;
+                    /*if (state->src.buffer->policy == CSP_SYSTEMONLY)
+                         return;*/
                     break;
 
                case DSPF_LUT8:
                case DSPF_ALUT44:
                     if (destination->config.format != source->config.format ||
-                        state->src.buffer->policy == CSP_SYSTEMONLY ||
+                        /*state->src.buffer->policy == CSP_SYSTEMONLY ||*/
                         !dfb_palette_equal( source->palette,
                                             destination->palette ))
                          return;
                     break;
                     
                case DSPF_RGB332:
-                    if (destination->config.format != source->config.format ||
-                        state->src.buffer->policy == CSP_SYSTEMONLY)
+                    if (destination->config.format != source->config.format /*||
+                        state->src.buffer->policy == CSP_SYSTEMONLY*/)
                          return;
                     break;
 
@@ -890,16 +896,16 @@ static void nv20CheckState( void *drv, void *dev,
                case DSPF_RGB32:
                case DSPF_ARGB:
                     /* disable host-to-video blit for simple blits */
-                    if (state->src.buffer->policy == CSP_SYSTEMONLY &&
+                    /*if (state->src.buffer->policy == CSP_SYSTEMONLY &&
                         accel == DFXL_BLIT && !state->blittingflags &&
                         source->config.format == destination->config.format)
-                         return;
+                         return;*/
                     break;
 
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    if (state->src.buffer->policy == CSP_SYSTEMONLY)
-                         return;
+                    /*if (state->src.buffer->policy == CSP_SYSTEMONLY)
+                         return;*/
                     break;
 
                default:
@@ -910,7 +916,8 @@ static void nv20CheckState( void *drv, void *dev,
      }
      else {
           /* check unsupported drawing flags */
-          if (state->drawingflags & ~NV20_SUPPORTED_DRAWINGFLAGS)
+          if (accel & ~NV20_SUPPORTED_DRAWINGFUNCTIONS ||
+              state->drawingflags & ~NV20_SUPPORTED_DRAWINGFLAGS)
                return;
 
           if (state->drawingflags & DSDRAW_BLEND &&
@@ -958,8 +965,8 @@ static void nv30CheckState( void *drv, void *dev,
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* check unsupported blitting functions/flags */
-          if ((accel & ~NV30_SUPPORTED_BLITTINGFUNCTIONS) ||
-              (state->blittingflags & ~NV30_SUPPORTED_BLITTINGFLAGS))
+          if (accel & ~NV30_SUPPORTED_BLITTINGFUNCTIONS ||
+              state->blittingflags & ~NV30_SUPPORTED_BLITTINGFLAGS)
                return;
 
           switch (source->config.format) {
@@ -977,7 +984,7 @@ static void nv30CheckState( void *drv, void *dev,
                case DSPF_ARGB:
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    if (state->src.buffer->policy == CSP_SYSTEMONLY ||
+                    if (/*state->src.buffer->policy == CSP_SYSTEMONLY ||*/
                         source->config.format != destination->config.format)
                          return;
                     break;
@@ -990,7 +997,8 @@ static void nv30CheckState( void *drv, void *dev,
      }
      else {
           /* check unsupported drawing flags */
-          if (state->drawingflags & ~NV30_SUPPORTED_DRAWINGFLAGS)
+          if (accel & ~NV30_SUPPORTED_DRAWINGFUNCTIONS ||
+              state->drawingflags & ~NV30_SUPPORTED_DRAWINGFLAGS)
                return;
 
           if (state->drawingflags & DSDRAW_BLEND &&
@@ -1010,8 +1018,8 @@ static void nv4SetState( void *drv, void *dev,
      NVidiaDriverData *nvdrv  = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev  = (NVidiaDeviceData*) dev;
 
-     nvdev->set &= ~state->modified;
-     if (state->modified & SMF_COLOR)
+     nvdev->set &= ~state->mod_hw;
+     if (state->mod_hw & SMF_COLOR)
           nvdev->set &= ~(SMF_DRAWING_COLOR | SMF_BLITTING_COLOR);
 
      nv_set_destination( nvdrv, nvdev, state );
@@ -1066,9 +1074,10 @@ static void nv4SetState( void *drv, void *dev,
                     nvdev->state3d[1].modified = true;
                     
                     state->set = DFXL_TEXTRIANGLES;
-               } else
+               } else {
                     state->set = DFXL_BLIT |
                                  DFXL_STRETCHBLIT;
+               }
                break;
 
           default:
@@ -1076,7 +1085,7 @@ static void nv4SetState( void *drv, void *dev,
                break;
      }
 
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 static void nv5SetState( void *drv, void *dev,
@@ -1086,8 +1095,8 @@ static void nv5SetState( void *drv, void *dev,
      NVidiaDriverData *nvdrv  = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev  = (NVidiaDeviceData*) dev;
      
-     nvdev->set &= ~state->modified;
-     if (state->modified & SMF_COLOR)
+     nvdev->set &= ~state->mod_hw;
+     if (state->mod_hw & SMF_COLOR)
           nvdev->set &= ~(SMF_DRAWING_COLOR | SMF_BLITTING_COLOR);
 
      nv_set_destination( nvdrv, nvdev, state );
@@ -1161,7 +1170,7 @@ static void nv5SetState( void *drv, void *dev,
                break;
      }
 
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 static void nv10SetState( void *drv, void *dev,
@@ -1171,8 +1180,8 @@ static void nv10SetState( void *drv, void *dev,
      NVidiaDriverData *nvdrv  = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev  = (NVidiaDeviceData*) dev;
 
-     nvdev->set &= ~state->modified;
-     if (state->modified & SMF_COLOR)
+     nvdev->set &= ~state->mod_hw;
+     if (state->mod_hw & SMF_COLOR)
           nvdev->set &= ~(SMF_DRAWING_COLOR | SMF_BLITTING_COLOR);
 
      nv_set_destination( nvdrv, nvdev, state );
@@ -1246,7 +1255,7 @@ static void nv10SetState( void *drv, void *dev,
                break;
      }
 
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 static void nv20SetState( void *drv, void *dev,
@@ -1256,8 +1265,8 @@ static void nv20SetState( void *drv, void *dev,
      NVidiaDriverData *nvdrv  = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev  = (NVidiaDeviceData*) dev;
 
-     nvdev->set &= ~state->modified;
-     if (state->modified & SMF_COLOR)
+     nvdev->set &= ~state->mod_hw;
+     if (state->mod_hw & SMF_COLOR)
           nvdev->set &= ~(SMF_DRAWING_COLOR | SMF_BLITTING_COLOR);
 
      nv_set_destination( nvdrv, nvdev, state );
@@ -1314,7 +1323,7 @@ static void nv20SetState( void *drv, void *dev,
                break;
      }
 
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 static void nv30SetState( void *drv, void *dev,
@@ -1324,8 +1333,8 @@ static void nv30SetState( void *drv, void *dev,
      NVidiaDriverData *nvdrv  = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev  = (NVidiaDeviceData*) dev;
 
-     nvdev->set &= ~state->modified;
-     if (!nvdev->set & SMF_COLOR)
+     nvdev->set &= ~state->mod_hw;
+     if (state->mod_hw & SMF_COLOR)
           nvdev->set &= ~(SMF_DRAWING_COLOR | SMF_BLITTING_COLOR);
 
      nv_set_destination( nvdrv, nvdev, state );
@@ -1356,7 +1365,7 @@ static void nv30SetState( void *drv, void *dev,
                break;
      }
 
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 
@@ -1579,14 +1588,14 @@ driver_init_device( CoreGraphicsDevice *device,
                device_info->caps.blitting = NV4_SUPPORTED_BLITTINGFLAGS;
                break;
           case NV_ARCH_05:
-               device_info->caps.flags    = CCF_CLIPPING | CCF_READSYSMEM;
+               device_info->caps.flags    = CCF_CLIPPING /*| CCF_READSYSMEM*/;
                device_info->caps.accel    = NV5_SUPPORTED_DRAWINGFUNCTIONS |
                                             NV5_SUPPORTED_BLITTINGFUNCTIONS;
                device_info->caps.drawing  = NV5_SUPPORTED_DRAWINGFLAGS;
                device_info->caps.blitting = NV5_SUPPORTED_BLITTINGFLAGS;
                break;
           case NV_ARCH_10:
-               device_info->caps.flags    = CCF_CLIPPING | CCF_READSYSMEM;
+               device_info->caps.flags    = CCF_CLIPPING /*| CCF_READSYSMEM*/;
                device_info->caps.accel    = NV10_SUPPORTED_DRAWINGFUNCTIONS |
                                             NV10_SUPPORTED_BLITTINGFUNCTIONS;
                device_info->caps.drawing  = NV10_SUPPORTED_DRAWINGFLAGS;
