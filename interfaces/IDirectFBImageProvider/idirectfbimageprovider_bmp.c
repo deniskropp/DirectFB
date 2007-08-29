@@ -30,7 +30,7 @@
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <gfx/convert.h>
 
@@ -76,7 +76,7 @@ typedef struct {
      
      DFBColor              *palette;
      
-     __u32                 *image;
+     u32                 *image;
      
      DIRenderCallback       render_callback;
      void                  *render_callback_ctx;
@@ -111,9 +111,9 @@ static DFBResult
 bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
 {
      DFBResult ret;
-     __u8      buf[54];
-     __u32     tmp;
-     __u32     bihsize;
+     u8        buf[54];
+     u32       tmp;
+     u32       bihsize;
      
      memset( buf, 0, sizeof(buf) );
      
@@ -220,7 +220,7 @@ bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
      if (bihsize > 40) {
           bihsize -= 40;
           while (bihsize--) {
-               __u8 b; 
+               u8 b; 
                ret = fetch_data( data->buffer, &b, 1 );
                if (ret)
                     return ret;
@@ -244,9 +244,9 @@ bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
                DFBColor c;
                
                c.a = 0xff;
-               c.r = ((__u8*)src)[i*4+2];
-               c.g = ((__u8*)src)[i*4+1];
-               c.b = ((__u8*)src)[i*4+0];
+               c.r = ((u8*)src)[i*4+2];
+               c.g = ((u8*)src)[i*4+1];
+               c.b = ((u8*)src)[i*4+0];
                
                data->palette[i] = c;
           }
@@ -260,8 +260,8 @@ bmp_decode_rgb_row( IDirectFBImageProvider_BMP_data *data, int row )
 {
      DFBResult  ret;
      int        pitch = (((data->width*data->depth + 7) >> 3) + 3) & ~3;
-     __u8       buf[pitch];
-     __u32     *dst;
+     u8         buf[pitch];
+     u32       *dst;
      int        i;
      
      ret = fetch_data( data->buffer, buf, pitch );
@@ -293,8 +293,8 @@ bmp_decode_rgb_row( IDirectFBImageProvider_BMP_data *data, int row )
                break;
           case 16:
                for (i = 0; i < data->width; i++) {
-                    __u32 r, g, b;
-                    __u16 c;
+                    u32 r, g, b;
+                    u16 c;
                     
                     c = buf[i*2+0] | (buf[i*2+1]<<8);
                     r = (c >> 10) & 0x1f;
@@ -377,10 +377,9 @@ IDirectFBImageProvider_BMP_RenderTo( IDirectFBImageProvider *thiz,
 {
      IDirectFBSurface_data  *dst_data;
      CoreSurface            *dst_surface;
+     CoreSurfaceBufferLock   lock;
      DFBRectangle            rect;
      DFBRegion               clip;
-     void                   *dst;
-     int                     pitch;
      DIRenderCallbackResult  cb_result = DIRCR_OK;
      DFBResult               ret       = DFB_OK;
      
@@ -410,7 +409,7 @@ IDirectFBImageProvider_BMP_RenderTo( IDirectFBImageProvider *thiz,
      if (!dfb_rectangle_region_intersects( &rect, &clip ))
           return DFB_OK;
 
-     ret = dfb_surface_soft_lock( dst_data->core, dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
+     ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
      if (ret)
           return ret;
      
@@ -420,12 +419,14 @@ IDirectFBImageProvider_BMP_RenderTo( IDirectFBImageProvider *thiz,
                          data->render_callback);
           int  y;
 
-          if (data->indexed && dst_surface->format == DSPF_LUT8) {
+          if (data->indexed && dst_surface->config.format == DSPF_LUT8) {
                IDirectFBPalette *palette;
                
                ret = destination->GetPalette( destination, &palette );
-               if (ret)
+               if (ret) {
+                    dfb_surface_unlock_buffer( dst_surface, &lock );
                     return ret;
+               }
 
                palette->SetEntries( palette, data->palette, data->num_colors, 0 );
                palette->Release( palette );
@@ -433,7 +434,7 @@ IDirectFBImageProvider_BMP_RenderTo( IDirectFBImageProvider *thiz,
           
           data->image = D_MALLOC( data->width*data->height*4 );
           if (!data->image) {
-               dfb_surface_unlock( dst_surface, 0 );
+               dfb_surface_unlock_buffer( dst_surface, &lock );
                return D_OOM();
           }
           
@@ -448,7 +449,7 @@ IDirectFBImageProvider_BMP_RenderTo( IDirectFBImageProvider *thiz,
                     DFBRectangle r = { rect.x, rect.y+y, data->width, 1 };
                     
                     dfb_copy_buffer_32( data->image+y*data->width,
-                                        dst, pitch, &r, dst_surface, &clip );
+                                        lock.addr, lock.pitch, &r, dst_surface, &clip );
                                         
                     if (data->render_callback) {
                          r = (DFBRectangle) { 0, y, data->width, 1 };
@@ -460,7 +461,7 @@ IDirectFBImageProvider_BMP_RenderTo( IDirectFBImageProvider *thiz,
           
           if (!direct) {
                dfb_scale_linear_32( data->image, data->width, data->height,
-                                    dst, pitch, &rect, dst_surface, &clip );
+                                    lock.addr, lock.pitch, &rect, dst_surface, &clip );
 
                if (data->render_callback) {
                     DFBRectangle r = { 0, 0, data->width, data->height };
@@ -480,13 +481,15 @@ IDirectFBImageProvider_BMP_RenderTo( IDirectFBImageProvider *thiz,
      }
      else {
           dfb_scale_linear_32( data->image, data->width, data->height,
-                               dst, pitch, &rect, dst_surface, &clip );
+                               lock.addr, lock.pitch, &rect, dst_surface, &clip );
           
           if (data->render_callback) {
                DFBRectangle r = {0, 0, data->width, data->height};
                data->render_callback( &r, data->render_callback_ctx );
           }
      }
+     
+     dfb_surface_unlock_buffer( dst_surface, &lock );
      
      return ret;
 }

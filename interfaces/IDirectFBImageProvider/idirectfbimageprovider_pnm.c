@@ -32,7 +32,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/layers.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/gfxcard.h>
 
 #include <direct/types.h>
@@ -107,7 +107,7 @@ typedef enum {
 
 
 typedef DFBResult (*PRowCallback) ( IDirectFBImageProvider_PNM_data *data,
-                                    __u8                            *dest );
+                                    u8                            *dest );
 
 
 typedef struct {
@@ -124,13 +124,13 @@ struct __IDirectFBImageProvider_PNM_data {
      PImgType               type;
      unsigned int           img_offset;
      
-     __u8                  *img;
+     u8                  *img;
      int                    width;
      int                    height;
      int                    colors;
 
      PRowCallback           getrow;
-     __u8                  *rowbuf;     /* buffer for ascii images */
+     u8                  *rowbuf;     /* buffer for ascii images */
      int                    bufp;       /* current position in buffer */
      int                    chunksize;  /* maximum size of each sample */
 
@@ -184,13 +184,13 @@ struct __IDirectFBImageProvider_PNM_data {
 
 static DFBResult
 __rawpbm_getrow( IDirectFBImageProvider_PNM_data *data,
-                 __u8                            *dest )
+                 u8                            *dest )
 {
      DFBResult  err;
      int        len;
      int        i, j;
-     __u8      *s    = dest;
-     __u32     *d    = (__u32*) dest;
+     u8      *s    = dest;
+     u32     *d    = (u32*) dest;
 
      P_GET( dest, data->width / 8 );
 
@@ -209,12 +209,12 @@ __rawpbm_getrow( IDirectFBImageProvider_PNM_data *data,
 
 static DFBResult
 __rawpgm_getrow( IDirectFBImageProvider_PNM_data *data,
-                 __u8                            *dest )
+                 u8                            *dest )
 {
      DFBResult  err;
      int        len;
-     __u8      *s   = dest;
-     __u32     *d   = (__u32*) dest;
+     u8      *s   = dest;
+     u32     *d   = (u32*) dest;
 
      P_GET( dest, data->width );
 
@@ -227,13 +227,13 @@ __rawpgm_getrow( IDirectFBImageProvider_PNM_data *data,
 
 static DFBResult
 __rawppm_getrow( IDirectFBImageProvider_PNM_data *data,
-                 __u8                            *dest )
+                 u8                            *dest )
 {
      DFBResult  err;
      int        len;
      int        i;
-     __u8      *s   = dest;
-     __u32     *d   = (__u32*) dest;
+     u8      *s   = dest;
+     u32     *d   = (u32*) dest;
 
      P_GET( dest, data->width * 3 );
 
@@ -247,14 +247,14 @@ __rawppm_getrow( IDirectFBImageProvider_PNM_data *data,
 
 static DFBResult
 __plainpbm_getrow( IDirectFBImageProvider_PNM_data *data,
-                   __u8                            *dest )
+                   u8                            *dest )
 {
      DFBResult  err;
      int        len;
      int        i;
      int        w    = data->width;
-     __u8      *buf  = data->rowbuf;
-     __u32     *d    = (__u32*) dest;
+     u8      *buf  = data->rowbuf;
+     u32     *d    = (u32*) dest;
 
      P_LOADBUF();
 
@@ -286,14 +286,14 @@ __plainpbm_getrow( IDirectFBImageProvider_PNM_data *data,
 
 static DFBResult
 __plainpgm_getrow( IDirectFBImageProvider_PNM_data *data,
-                   __u8                            *dest )
+                   u8                            *dest )
 {
      DFBResult  err;
      int        len;
      int        i, n;
      int        w    = data->width;
-     __u8      *buf  = data->rowbuf;
-     __u32     *d    = (__u32*) dest;
+     u8      *buf  = data->rowbuf;
+     u32     *d    = (u32*) dest;
 
      P_LOADBUF();
 
@@ -326,15 +326,15 @@ __plainpgm_getrow( IDirectFBImageProvider_PNM_data *data,
 
 static DFBResult
 __plainppm_getrow( IDirectFBImageProvider_PNM_data *data,
-                   __u8                            *dest )
+                   u8                            *dest )
 {
      DFBResult  err;
      int        len;
      int        i, n;
      int        j    = 16;
      int        w    = data->width;
-     __u8      *buf  = data->rowbuf;
-     __u32     *d    = (__u32*) dest;
+     u8      *buf  = data->rowbuf;
+     u32     *d    = (u32*) dest;
 
      P_LOADBUF();
 
@@ -553,12 +553,11 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
      DIRenderCallbackResult cb_result = DIRCR_OK;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
+     CoreSurfaceBufferLock  lock;
      DFBRectangle           rect;
      DFBRegion              clip;
-     __u8                  *img       = NULL;
+     u8                    *img       = NULL;
      int                    img_p;
-     __u8                  *dst;
-     int                    dst_p;
 
      DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider_PNM )
 
@@ -583,7 +582,7 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
           rect = dst_data->area.wanted;
      }
 
-     err = dfb_surface_soft_lock( dst_data->core, dst_surface, DSLF_WRITE, (void*)&dst, &dst_p, 0 );
+     err = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
      if (err)
           return err;
 
@@ -594,25 +593,25 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
           bool cpy = (rect.w == data->width && rect.h == data->height);
           int  y;
 
-          data->img = img = (__u8*) D_MALLOC( img_p * data->height );
+          data->img = img = (u8*) D_MALLOC( img_p * data->height );
           
           if (!img) {
                D_ERROR( "DirectFB/ImageProvider_PNM: "
                         "couldn't allocate %i bytes for image.\n",
                         img_p * data->height );
-               dfb_surface_unlock( dst_surface, 0 );
+               dfb_surface_unlock_buffer( dst_surface, &lock );
                return DFB_NOSYSTEMMEMORY;
           }
 
           if (data->chunksize) {
                int size = (data->chunksize * data->width) + 1;
                
-               data->rowbuf = (__u8*) D_MALLOC( size );
+               data->rowbuf = (u8*) D_MALLOC( size );
                if (!data->rowbuf) {
                     D_ERROR( "DirectFB/ImageProvider_PNM: "
                              "couldn't allocate %i bytes for buffering.\n",
                              size );
-                    dfb_surface_unlock( dst_surface, 0 );
+                    dfb_surface_unlock_buffer( dst_surface, &lock );
                     return DFB_NOSYSTEMMEMORY;
                }
           }
@@ -630,7 +629,7 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
                if (cpy) {
                     DFBRectangle r = { rect.x, rect.y+y, data->width, 1 };
                     
-                    dfb_copy_buffer_32( (__u32*)img, dst, dst_p,
+                    dfb_copy_buffer_32( (u32*)img, lock.addr, lock.pitch,
                                         &r, dst_surface, &clip );
 
                     if (data->render_callback) {
@@ -644,8 +643,8 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
           }
 
           if (!cpy) {
-               dfb_scale_linear_32( (__u32*)data->img, data->width, data->height,
-                                    dst, dst_p, &rect, dst_surface, &clip );
+               dfb_scale_linear_32( (u32*)data->img, data->width, data->height,
+                                    lock.addr, lock.pitch, &rect, dst_surface, &clip );
 
                if (data->render_callback) {
                     DFBRectangle r = { 0, 0, data->width, data->height };
@@ -669,8 +668,8 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
      
      } /* image already in buffer */ 
      else {
-          dfb_scale_linear_32( (__u32*)img, data->width, data->height,
-                               dst, dst_p, &rect, dst_surface, &clip );
+          dfb_scale_linear_32( (u32*)img, data->width, data->height,
+                               lock.addr, lock.pitch, &rect, dst_surface, &clip );
           
           if (data->render_callback) {
                DFBRectangle r = {0, 0, data->width, data->height};
@@ -678,7 +677,7 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
           }
      }
 
-     dfb_surface_unlock( dst_surface, 0 );
+     dfb_surface_unlock_buffer( dst_surface, &lock );
 
      return (cb_result == DIRCR_OK) ? err : DFB_INTERRUPTED;
 }
