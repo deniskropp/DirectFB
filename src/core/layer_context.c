@@ -1391,7 +1391,7 @@ build_updated_config( CoreLayer                   *layer,
 
           switch (context->screen.mode) {
                case CLLM_CENTER:
-                    dfb_screen_get_screen_size( layer->screen, &width, &height );
+                    dfb_screen_get_layer_dimension( layer->screen, layer, &width, &height );
 
                     ret_config->dest.x = (width  - ret_config->width)  / 2;
                     ret_config->dest.y = (height - ret_config->height) / 2;
@@ -1671,9 +1671,9 @@ screen_rectangle( CoreLayerContext  *context,
 
      D_ASSERT( layer->screen != NULL );
 
-     ret = dfb_screen_get_screen_size( layer->screen, &width, &height );
+     ret = dfb_screen_get_layer_dimension( layer->screen, layer, &width, &height );
      if (ret) {
-          D_WARN( "could not determine screen size" );
+          D_WARN( "could not determine mixer/screen dimension of layer %d", context->layer_id );
 
           rect->x = location->x * 720;
           rect->y = location->y * 576;

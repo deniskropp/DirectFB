@@ -32,6 +32,7 @@
 
 #include <direct/debug.h>
 
+#include <core/layers.h>
 #include <core/screen.h>
 #include <core/screens_internal.h>
 
@@ -457,9 +458,62 @@ dfb_screen_get_screen_size( CoreScreen *screen,
      D_ASSERT( ret_width != NULL );
      D_ASSERT( ret_height != NULL );
 
-     /* Test the mixer configuration. */
      return screen->funcs->GetScreenSize( screen,
                                           screen->driver_data, screen->screen_data,
                                           ret_width, ret_height );
+}
+
+DFBResult
+dfb_screen_get_layer_dimension( CoreScreen *screen,
+                                CoreLayer  *layer,
+                                int        *ret_width,
+                                int        *ret_height )
+{
+     int               i;
+     DFBResult         ret = DFB_UNSUPPORTED;
+     CoreScreenShared *shared;
+     ScreenFuncs      *funcs;
+
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->shared != NULL );
+     D_ASSERT( screen->funcs != NULL );
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->shared != NULL );
+     D_ASSERT( ret_width != NULL );
+     D_ASSERT( ret_height != NULL );
+
+     shared = screen->shared;
+     funcs  = screen->funcs;
+
+     if (funcs->GetMixerState) {
+          for (i=0; i<shared->description.mixers; i++) {
+               const DFBScreenMixerConfig *config = &shared->mixers[i].configuration;
+
+               if ((config->flags & DSMCONF_LAYERS) &&
+                   DFB_DISPLAYLAYER_IDS_HAVE( config->layers, dfb_layer_id(layer) ))
+               {
+                    CoreMixerState state;
+
+                    ret = funcs->GetMixerState( screen, screen->driver_data, screen->screen_data, i, &state );
+                    if (ret == DFB_OK) {
+                         if (state.flags & CMSF_DIMENSION) {
+                              *ret_width  = state.dimension.w;
+                              *ret_height = state.dimension.h;
+
+                              return DFB_OK;
+                         }
+
+                         ret = DFB_UNSUPPORTED;
+                    }
+               }
+          }
+     }
+
+     if (funcs->GetScreenSize)
+          ret = funcs->GetScreenSize( screen,
+                                      screen->driver_data, screen->screen_data,
+                                      ret_width, ret_height );
+
+     return ret;
 }
 

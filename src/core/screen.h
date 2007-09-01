@@ -109,9 +109,14 @@ DFBResult dfb_screen_set_output_config ( CoreScreen                  *screen,
 
 /* Screen configuration */
 
-DFBResult dfb_screen_get_screen_size   ( CoreScreen                  *screen,
-                                         int                         *ret_width,
-                                         int                         *ret_height );
+DFBResult dfb_screen_get_screen_size    ( CoreScreen                 *screen,
+                                          int                        *ret_width,
+                                          int                        *ret_height );
+
+DFBResult dfb_screen_get_layer_dimension( CoreScreen                 *screen,
+                                          CoreLayer                  *layer,
+                                          int                        *ret_width,
+                                          int                        *ret_height );
 
 #endif
 

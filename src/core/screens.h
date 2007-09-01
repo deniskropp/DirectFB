@@ -37,6 +37,20 @@
 typedef DFBEnumerationResult (*CoreScreenCallback) (CoreScreen *screen,
                                                     void       *ctx);
 
+typedef enum {
+     CMSF_NONE      = 0x00000000,  /* none of these */
+
+     CMSF_DIMENSION = 0x00000001,  /* dimension is set */
+
+     CMSF_ALL       = 0x00000001,  /* all of these */
+} CoreMixerStateFlags;
+
+typedef struct {
+     CoreMixerStateFlags flags;
+
+     DFBDimension        dimension;
+} CoreMixerState;
+
 typedef struct {
    /** Driver Control **/
 
@@ -188,6 +202,15 @@ typedef struct {
                                     void                        *screen_data,
                                     int                         *ret_width,
                                     int                         *ret_height );
+
+
+   /** States **/
+
+     DFBResult (*GetMixerState)   ( CoreScreen                  *screen,
+                                    void                        *driver_data,
+                                    void                        *screen_data,
+                                    int                          mixer,
+                                    CoreMixerState              *ret_state );
 } ScreenFuncs;
 
 
