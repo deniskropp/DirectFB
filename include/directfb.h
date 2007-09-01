@@ -1197,6 +1197,16 @@ typedef struct {
      int                                clip_regions;  /* Number of clipping regions. */
 } DFBDisplayLayerDescription;
 
+/*
+ * Capabilities of a display layer source.
+ */
+typedef enum {
+     DDLSCAPS_NONE       = 0x00000000,  /* none of these */
+
+     DDLSCAPS_SURFACE    = 0x00000001,  /* source has an accessable surface */
+
+     DDLSCAPS_ALL        = 0x00000001   /* all of these */
+} DFBDisplayLayerSourceCaps;
 
 #define DFB_DISPLAY_LAYER_SOURCE_DESC_NAME_LENGTH    24
 
@@ -1207,6 +1217,8 @@ typedef struct {
      DFBDisplayLayerSourceID            source_id;          /* ID of the source. */
 
      char name[DFB_DISPLAY_LAYER_SOURCE_DESC_NAME_LENGTH];  /* Name of the source. */
+
+     DFBDisplayLayerSourceCaps          caps;               /* Capabilites of the source. */
 } DFBDisplayLayerSourceDescription;
 
 

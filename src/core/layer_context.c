@@ -554,6 +554,7 @@ DFBResult
 dfb_layer_context_set_configuration( CoreLayerContext            *context,
                                      const DFBDisplayLayerConfig *config )
 {
+     int                         i;
      DFBResult                   ret;
      CoreLayer                  *layer;
      CoreLayerShared            *shared;
@@ -619,8 +620,16 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                bool                      surface    = shared->description.caps & DLCAPS_SURFACE;
                CoreLayerRegionStateFlags configured = region->state & CLRSF_CONFIGURED;
 
-               if (shared->description.caps & DLCAPS_SOURCES)
-                    surface = (region_config.source_id == DLSID_SURFACE);
+               if (shared->description.caps & DLCAPS_SOURCES) {
+                    for (i=0; i<shared->description.sources; i++) {
+                         if (shared->sources[i].description.source_id == region_config.source_id)
+                              break;
+                    }
+
+                    D_ASSERT( i < shared->description.sources );
+
+                    surface = shared->sources[i].description.caps & DDLSCAPS_SURFACE;
+               }
 
                D_FLAGS_CLEAR( region->state, CLRSF_CONFIGURED );
 
