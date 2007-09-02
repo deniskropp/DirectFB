@@ -46,7 +46,7 @@ typedef union {
           struct {
                unsigned int        locked;
                pid_t               owner;
-               unsigned int        waiting;
+               DirectLink         *waiting;
                bool                requested;
                bool                destroyed;
           } builtin;

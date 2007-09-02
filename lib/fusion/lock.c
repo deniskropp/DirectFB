@@ -40,6 +40,7 @@
 #include <fusion/build.h>
 #include <fusion/types.h>
 #include <fusion/lock.h>
+#include <fusion/shmalloc.h>
 
 #include "fusion_internal.h"
 
@@ -263,6 +264,14 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
 #else /* FUSION_BUILD_KERNEL */
 
 #include <direct/clock.h>
+#include <direct/list.h>
+
+typedef struct {
+     DirectLink  link;
+     
+     pid_t       pid;
+     bool        notified;
+} WaitNode;
 
 
 DirectResult
@@ -283,7 +292,7 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
      skirmish->multi.builtin.locked = 0;
      skirmish->multi.builtin.owner  = 0;
 
-     skirmish->multi.builtin.waiting = 0;
+     skirmish->multi.builtin.waiting = NULL;
     
      skirmish->multi.builtin.requested = false;
      skirmish->multi.builtin.destroyed = false;
@@ -428,43 +437,112 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
      if (skirmish->multi.builtin.destroyed)
           return DFB_DESTROYED;
           
+     if (skirmish->multi.builtin.waiting)
+          fusion_skirmish_notify( skirmish );
+          
      skirmish->multi.builtin.destroyed = true;
-     skirmish->multi.builtin.waiting = 0;
 
      return DFB_OK;
 }
 
+#ifdef SIGRTMAX
+# define SIGRESTART (SIGRTMAX-1)
+#else
+# define SIGRESTART  SIGCONT
+#endif
+
+static void restart_handler( int s ) {}
+
 DirectResult
 fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
 {
-     long long start;
+     WaitNode         *node;
+     long long         start;
+     struct sigaction  act, oldact;
+     sigset_t          mask;
+     DirectResult      ret = DFB_OK;
      
      D_ASSERT( skirmish != NULL );
      
      if (skirmish->multi.builtin.destroyed)
           return DFB_DESTROYED;
-
-     skirmish->multi.builtin.waiting++;
+      
+     /* Add ourself to the list of waiting processes. */    
+     node = SHCALLOC( skirmish->multi.shared->main_pool, 1, sizeof(WaitNode) );
+     if (!node)
+          return D_OOSHM();
+     
+     node->pid = getpid();
+     
+     direct_list_append( &skirmish->multi.builtin.waiting, &node->link );
+     
+     /* Start counting time. */
+     start = direct_clock_get_millis();
+     
+     /* Install a (fake) signal handler for SIGRESTART. */
+     act.sa_handler = restart_handler;
+     act.sa_flags   = SA_RESETHAND | SA_RESTART | SA_NOMASK;
+     
+     sigaction( SIGRESTART, &act, &oldact );
+     
+     /* Unblock SIGRESTART. */
+     sigprocmask( SIG_SETMASK, NULL, &mask );
+     sigdelset( &mask, SIGRESTART );
 
      fusion_skirmish_dismiss( skirmish );
 
-     start = direct_clock_get_millis();
-     while (skirmish->multi.builtin.waiting) {
-          usleep(0);
-
-          if (timeout && direct_clock_get_millis() >= start+timeout)
-               return DFB_TIMEOUT;
+     while (!node->notified) {
+          if (timeout) {
+               sigset_t oldmask;
+               
+               sigprocmask( SIG_SETMASK, &mask, &oldmask );
+               usleep(0);
+               sigprocmask( SIG_SETMASK, &oldmask, NULL );
+                     
+               if (direct_clock_get_millis() >= start+timeout) {
+                    ret = DFB_TIMEOUT;
+                    break;
+               }
+          }
+          else {
+               sigsuspend( &mask );
+          }
      }
+     
+     if (fusion_skirmish_prevail( skirmish )) {
+          sigaction( SIGRESTART, &oldact, NULL );
+          return DFB_DESTROYED;
+     }
+     
+     direct_list_remove( &skirmish->multi.builtin.waiting, &node->link );
 
-     return fusion_skirmish_prevail( skirmish );
+     SHFREE( skirmish->multi.shared->main_pool, node );
+     
+     sigaction( SIGRESTART, &oldact, NULL );
+
+     return ret;
 }
 
 DirectResult
 fusion_skirmish_notify( FusionSkirmish *skirmish )
 {
+     WaitNode *node, *temp;
+     
      D_ASSERT( skirmish != NULL );
 
-     skirmish->multi.builtin.waiting = 0;
+     direct_list_foreach_safe (node, temp, skirmish->multi.builtin.waiting) {
+          if (node->notified)
+               continue;
+
+          node->notified = true;
+          
+          if (kill( node->pid, SIGRESTART ) < 0 && errno == ESRCH) {
+               /* Removed dead process. */
+               direct_list_remove( &skirmish->multi.builtin.waiting, &node->link );
+                
+               SHFREE( skirmish->multi.shared->main_pool, node );
+          }
+     }
 
      return DFB_OK;
 }
