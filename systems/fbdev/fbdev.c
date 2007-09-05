@@ -1330,6 +1330,10 @@ primarySetRegion( CoreLayer                  *layer,
 
      switch (updated & (CLRCF_BUFFERMODE | CLRCF_FORMAT | CLRCF_HEIGHT |
                         CLRCF_SURFACE | CLRCF_WIDTH |  CLRCF_SOURCE)) {
+     case CLRCF_NONE:
+          /* No Flags - Clear pass through */
+          break;
+
      case CLRCF_SOURCE:
           if (config->source.w == shared->current_mode.xres &&
               config->source.h == shared->current_mode.yres) {
