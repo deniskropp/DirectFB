@@ -1537,7 +1537,7 @@ DirectResult
 fusion_reactor_set_lock_only( FusionReactor  *reactor,
                               FusionSkirmish *lock )
 {
-     D_MAGIC_ASSERT( reactor, FusionReactor );
+     D_ASSERT( reactor != NULL );
      D_ASSERT( lock != NULL );
 
      return DFB_UNIMPLEMENTED;

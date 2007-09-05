@@ -478,7 +478,6 @@ dfb_screen_get_layer_dimension( CoreScreen *screen,
      D_ASSERT( screen->shared != NULL );
      D_ASSERT( screen->funcs != NULL );
      D_ASSERT( layer != NULL );
-     D_ASSERT( layer->shared != NULL );
      D_ASSERT( ret_width != NULL );
      D_ASSERT( ret_height != NULL );
 

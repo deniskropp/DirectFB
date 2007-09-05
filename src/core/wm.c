@@ -706,8 +706,6 @@ dfb_wm_add_window( CoreWindowStack *stack,
 
      D_ASSERT( window != NULL );
 
-     D_DEBUG_AT( Core_WM, "%s( %dx%d )\n", __FUNCTION__, window->config.bounds.w, window->config.bounds.h );
-
      /* Tell window manager about the new window. */
      ret = wm_local->funcs->AddWindow( stack, wm_local->data,
                                        stack->stack_data, window, window->window_data );
