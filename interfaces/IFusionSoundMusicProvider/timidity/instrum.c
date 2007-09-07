@@ -198,9 +198,9 @@ static Instrument *load_instrument(char *name, int percussion,
 	{
 	  if (strlen(name)+strlen(patch_ext[i])<1024)
 	    {
-	      strcpy(tmp, name);
-	      strcat(tmp, patch_ext[i]);
-	      if ((fp=open_file(tmp, 1, OF_NORMAL)))
+	      strcpy((char*)tmp, name);
+	      strcat((char*)tmp, patch_ext[i]);
+	      if ((fp=open_file((char*)tmp, 1, OF_NORMAL)))
 		{
 		  noluck=0;
 		  break;

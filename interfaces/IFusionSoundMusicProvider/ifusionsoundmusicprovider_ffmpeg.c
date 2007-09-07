@@ -945,7 +945,7 @@ Construct( IFusionSoundMusicProvider *thiz,
      AVCodec       *c;
      ByteIOContext  pb;
      unsigned char  buf[64];
-     int            i, len = 0;
+     unsigned int   i, len = 0;
       
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSoundMusicProvider_FFmpeg )
      

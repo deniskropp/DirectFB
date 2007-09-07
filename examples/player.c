@@ -73,7 +73,7 @@ destroy_playback()
 static void
 slider_update( LiteSlider *slider, float pos, void *ctx )
 {
-     int i = (int) ctx;
+     long i = (long) ctx;
 
      values[i] = pos;
 
@@ -178,7 +178,7 @@ main (int argc, char *argv[])
 
           lite_set_slider_pos( slider[i], values[i] );
 
-          lite_on_slider_update( slider[i], slider_update, (void*) i );
+          lite_on_slider_update( slider[i], slider_update, (void*) (long)i );
      }
 
      /* setup the play/pause button */

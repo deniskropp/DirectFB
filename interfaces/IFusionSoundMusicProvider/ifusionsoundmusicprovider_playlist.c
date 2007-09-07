@@ -764,7 +764,7 @@ IFusionSoundMusicProvider_Playlist_SetPlaybackFlags( IFusionSoundMusicProvider  
 static DFBResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
-     if (get_playlist_type( ctx->mimetype, ctx->filename, ctx->header ))
+     if (get_playlist_type( ctx->mimetype, ctx->filename, (char*)ctx->header ))
           return DFB_OK;
           
      return DFB_UNSUPPORTED;

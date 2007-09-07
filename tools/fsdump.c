@@ -222,7 +222,7 @@ main( int argc, char *argv[] )
                        direct_list_count_elements_EXPENSIVE( pool->allocs ) );
      
                direct_list_foreach (desc, pool->allocs) {
-                    printf( " %9d bytes at %p allocated in %-30s (%s: %u)\n",
+                    printf( " %9zu bytes at %p allocated in %-30s (%s: %u)\n",
                          desc->bytes, desc->mem, desc->func, desc->file, desc->line );
 
                     total += desc->bytes;

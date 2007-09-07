@@ -145,7 +145,7 @@ putsamp( u8 **dst, FSSampleFormat f, int s )
      switch (f) {
           case FSSF_U8:
                *((u8*)*dst) = (s >> 22) ^ 0x80;
-               *dst++;
+               dst++;
                break;
           case FSSF_S16:
                *((s16*)*dst) = s >> 14;
@@ -418,7 +418,7 @@ WaveStreamThread( DirectThread *thread, void *ctx )
 
      while (data->playing && !data->finished) {
           DFBResult      ret;
-          int            len = 0;
+          unsigned int   len = 0;
           struct timeval tv  = { 0, 1000 };
 
           pthread_mutex_lock( &data->lock );
@@ -577,7 +577,7 @@ WaveBufferThread( DirectThread *thread, void *ctx )
      while (data->playing && !data->finished) {
           DFBResult       ret;
           void           *dst;
-          unsigned int    size;
+          int             size;
           unsigned int    len  = 0;
           struct timeval  tv   = { 0, 1000 };
           
@@ -909,7 +909,7 @@ parse_headers( DirectStream *stream, u32 *ret_samplerate,
      } fmt;
 
 #define wave_read( buf, count ) {\
-     int len = 0; \
+     unsigned int len = 0; \
      direct_stream_wait( stream, count, NULL ); \
      if (direct_stream_read( stream, count, buf, &len ) || len < (count)) \
           return DFB_UNSUPPORTED;\
@@ -942,7 +942,7 @@ parse_headers( DirectStream *stream, u32 *ret_samplerate,
 #endif
      if (fmt_len < sizeof(fmt)) {
           D_DEBUG( "IFusionSoundMusicProvider_Wave: "
-                   "fmt chunk expected to be at least %d bytes (got %d).\n",
+                   "fmt chunk expected to be at least %zu bytes (got %d).\n",
                    sizeof(fmt), fmt_len );
           return DFB_UNSUPPORTED;
      }

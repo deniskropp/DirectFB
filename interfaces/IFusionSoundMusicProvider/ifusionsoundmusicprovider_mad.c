@@ -1076,7 +1076,7 @@ Construct( IFusionSoundMusicProvider *thiz,
            DirectStream              *stream )
 {
      DFBResult          ret;
-     char               buf[16384];
+     u8                 buf[16384];
      unsigned int       pos = 0;
      unsigned int       len;
      unsigned int       size;
@@ -1146,16 +1146,16 @@ Construct( IFusionSoundMusicProvider *thiz,
                               direct_stream_length( data->s ) - sizeof(id3),
                               &id3, NULL );
 
-          if (!strncmp( id3.tag, "TAG", 3 )) {
+          if (!strncmp( (char*)id3.tag, "TAG", 3 )) {
                size -= sizeof(id3);
 
-               strncpy( data->desc.artist, id3.artist,
+               strncpy( data->desc.artist, (char*)id3.artist,
                         MIN( FS_TRACK_DESC_ARTIST_LENGTH-1, sizeof(id3.artist) ) );
-               strncpy( data->desc.title, id3.title,
+               strncpy( data->desc.title, (char*)id3.title,
                         MIN( FS_TRACK_DESC_TITLE_LENGTH-1, sizeof(id3.title) ) );
-               strncpy( data->desc.album, id3.album,
+               strncpy( data->desc.album, (char*)id3.album,
                         MIN( FS_TRACK_DESC_ALBUM_LENGTH-1, sizeof(id3.album) ) );
-               data->desc.year = strtol( id3.year, NULL, 10 );
+               data->desc.year = strtol( (char*)id3.year, NULL, 10 );
 
                if (id3.genre < D_ARRAY_SIZE( id3_genres )) {
                     const char *genre = id3_genres[(int)id3.genre];

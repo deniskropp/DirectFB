@@ -135,7 +135,8 @@ device_open( void                  *device_data,
      snd_ctl_card_info_t *info;
      unsigned int         buffertime, time;
      snd_pcm_uframes_t    buffersize;
-     int                  periods, dir;
+     unsigned int         periods;
+     int                  dir;
 
      buffertime = time = ((long long)config->buffersize * 1000000ll / config->rate);
 

@@ -76,7 +76,7 @@ read_chunk_header (int fd, char *magic)
           return -1;
      }
 
-     strncpy (magic, buf, 4);
+     strncpy (magic, (char*)buf, 4);
 
      return buf[4] | (buf[5] << 8) | (buf[6] << 16) | (buf[7] << 24);
 
@@ -116,7 +116,7 @@ load_sample (IFusionSound *sound, const char *filename)
 
           if (magic[0] == 'f' || magic[1] == 'm' || magic[2] == 't') {
                if (len < sizeof(fmtChunk)) {
-                    fprintf (stderr, "Format chunk has invalid size (%d/%d)!\n",
+                    fprintf (stderr, "Format chunk has invalid size (%d/%zu)!\n",
                              len, sizeof(fmtChunk));
                     close (fd);
                     return NULL;
