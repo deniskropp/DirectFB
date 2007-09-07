@@ -186,11 +186,11 @@ static DFBResult
 __rawpbm_getrow( IDirectFBImageProvider_PNM_data *data,
                  u8                            *dest )
 {
-     DFBResult  err;
-     int        len;
-     int        i, j;
-     u8      *s    = dest;
-     u32     *d    = (u32*) dest;
+     DFBResult     err;
+     unsigned int  len;
+     int           i, j;
+     u8           *s    = dest;
+     u32          *d    = (u32*) dest;
 
      P_GET( dest, data->width / 8 );
 
@@ -211,10 +211,10 @@ static DFBResult
 __rawpgm_getrow( IDirectFBImageProvider_PNM_data *data,
                  u8                            *dest )
 {
-     DFBResult  err;
-     int        len;
-     u8      *s   = dest;
-     u32     *d   = (u32*) dest;
+     DFBResult     err;
+     unsigned int  len;
+     u8           *s   = dest;
+     u32          *d   = (u32*) dest;
 
      P_GET( dest, data->width );
 
@@ -229,11 +229,11 @@ static DFBResult
 __rawppm_getrow( IDirectFBImageProvider_PNM_data *data,
                  u8                            *dest )
 {
-     DFBResult  err;
-     int        len;
-     int        i;
-     u8      *s   = dest;
-     u32     *d   = (u32*) dest;
+     DFBResult     err;
+     unsigned int  len;
+     int           i;
+     u8           *s   = dest;
+     u32          *d   = (u32*) dest;
 
      P_GET( dest, data->width * 3 );
 
@@ -249,12 +249,12 @@ static DFBResult
 __plainpbm_getrow( IDirectFBImageProvider_PNM_data *data,
                    u8                            *dest )
 {
-     DFBResult  err;
-     int        len;
-     int        i;
-     int        w    = data->width;
-     u8      *buf  = data->rowbuf;
-     u32     *d    = (u32*) dest;
+     DFBResult     err;
+     unsigned int  len;
+     int           i;
+     int           w    = data->width;
+     u8           *buf  = data->rowbuf;
+     u32          *d    = (u32*) dest;
 
      P_LOADBUF();
 
@@ -288,12 +288,12 @@ static DFBResult
 __plainpgm_getrow( IDirectFBImageProvider_PNM_data *data,
                    u8                            *dest )
 {
-     DFBResult  err;
-     int        len;
-     int        i, n;
-     int        w    = data->width;
-     u8      *buf  = data->rowbuf;
-     u32     *d    = (u32*) dest;
+     DFBResult     err;
+     unsigned int  len;
+     int           i, n;
+     int           w    = data->width;
+     u8           *buf  = data->rowbuf;
+     u32          *d    = (u32*) dest;
 
      P_LOADBUF();
 
@@ -328,13 +328,13 @@ static DFBResult
 __plainppm_getrow( IDirectFBImageProvider_PNM_data *data,
                    u8                            *dest )
 {
-     DFBResult  err;
-     int        len;
-     int        i, n;
-     int        j    = 16;
-     int        w    = data->width;
-     u8      *buf  = data->rowbuf;
-     u32     *d    = (u32*) dest;
+     DFBResult     err;
+     unsigned int  len;
+     int           i, n;
+     int           j    = 16;
+     int           w    = data->width;
+     u8           *buf  = data->rowbuf;
+     u32          *d    = (u32*) dest;
 
      P_LOADBUF();
 
@@ -384,8 +384,8 @@ p_getheader( IDirectFBImageProvider_PNM_data *data,
              char                            *to,
              int                              size )
 {
-     DFBResult err;
-     int       len;
+     DFBResult    err;
+     unsigned int len;
 
      while (size--) {
           P_GET( to, 1 );
@@ -617,7 +617,7 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
           }
           
           for (y = 0; y < data->height && cb_result == DIRCR_OK; y++) {
-               err = data->getrow( data, (char*) img );
+               err = data->getrow( data, (unsigned char*) img );
                
                if (err != DFB_OK ) {
                     D_ERROR( "DirectFB/ImageProvider_PNM: "
