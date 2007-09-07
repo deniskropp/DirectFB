@@ -228,10 +228,10 @@ unique_window_create( CoreDFB                 *core,
 
      bounds = config->bounds;
 
-     if (bounds.x == 0 && bounds.y == 0) {
+     /*if (bounds.x == 0 && bounds.y == 0) {
           bounds.x = (context->width  - bounds.w) / 2;
           bounds.y = (context->height - bounds.h) / 2;
-     }
+     }*/
 
      /* Initialize window data. */
      uniwin->shared    = context->shared;
