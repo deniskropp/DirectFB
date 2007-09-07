@@ -150,7 +150,7 @@ wheel_process_event( UniqueDevice        *device,
                          evt.wheel.device_id = event->device_id;
 
                          if (event->flags & DIEF_AXISREL)
-                              evt.wheel.value = event->axisrel;
+                              evt.wheel.value = -event->axisrel;
                          else if (event->flags & DIEF_AXISABS)
                               evt.wheel.value = event->axisabs;
                          else
