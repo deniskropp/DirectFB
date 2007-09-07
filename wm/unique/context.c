@@ -394,7 +394,7 @@ unique_draw_cursor( CoreWindowStack *stack, UniqueContext *context, CardState *s
 
      /* Different compositing methods depending on destination format. */
      if (flags & DSBLIT_BLEND_ALPHACHANNEL) {
-          if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format )) {
+          if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->config.format )) {
                /*
                 * Always use compliant Porter/Duff SRC_OVER,
                 * if the destination has an alpha channel.
@@ -418,7 +418,7 @@ unique_draw_cursor( CoreWindowStack *stack, UniqueContext *context, CardState *s
                dfb_state_set_src_blend( state, DSBF_ONE );
 
                /* Need to premultiply source with As*Ac or only with Ac? */
-               if (! (stack->cursor.surface->caps & DSCAPS_PREMULTIPLIED))
+               if (! (stack->cursor.surface->config.caps & DSCAPS_PREMULTIPLIED))
                     flags |= DSBLIT_SRC_PREMULTIPLY;
                else if (flags & DSBLIT_BLEND_COLORALPHA)
                     flags |= DSBLIT_SRC_PREMULTCOLOR;
@@ -443,7 +443,7 @@ unique_draw_cursor( CoreWindowStack *stack, UniqueContext *context, CardState *s
                 * cx = Cd * (1-As*Ac) + Cs*As * Ac  (still same effect as above)
                 * ax = Ad * (1-As*Ac) + As*As * Ac  (wrong, but discarded anyways)
                 */
-               if (stack->cursor.surface->caps & DSCAPS_PREMULTIPLIED) {
+               if (stack->cursor.surface->config.caps & DSCAPS_PREMULTIPLIED) {
                     /* Need to premultiply source with Ac? */
                     if (flags & DSBLIT_BLEND_COLORALPHA)
                          flags |= DSBLIT_SRC_PREMULTCOLOR;

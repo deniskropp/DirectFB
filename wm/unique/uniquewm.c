@@ -36,6 +36,7 @@
 
 #include <core/input.h>
 #include <core/surface.h>
+#include <core/surface_buffer.h>
 
 #include <unique/context.h>
 #include <unique/decoration.h>
@@ -85,24 +86,23 @@ static DFBResult unregister_device_classes( WMShared *shared );
 static DFBResult
 load_foo( CoreDFB *core, WMShared *shared )
 {
-     int        i;
-     DFBResult  ret;
-     void      *data;
-     int        pitch;
+     int                   i;
+     DFBResult             ret;
+     CoreSurfaceBufferLock lock;
 
      D_ASSERT( core != NULL );
 
      D_MAGIC_ASSERT( shared, WMShared );
 
-     ret = dfb_surface_create( core, foo_desc.width, foo_desc.height, foo_desc.pixelformat,
-                               CSP_VIDEOHIGH, DSCAPS_NONE, NULL, &shared->foo_surface );
+     ret = dfb_surface_create_simple( core, foo_desc.width, foo_desc.height, foo_desc.pixelformat,
+                                      DSCAPS_NONE, CSTF_SHARED, 0, NULL, &shared->foo_surface );
      if (ret) {
           D_DERROR( ret, "UniQuE/WM: Could not create %dx%d surface for border tiles!\n",
                     foo_desc.width, foo_desc.height );
           return ret;
      }
 
-     ret = dfb_surface_soft_lock( core, shared->foo_surface, DSLF_WRITE, &data, &pitch, false );
+     ret = dfb_surface_lock_buffer( shared->foo_surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
      if (ret) {
           D_DERROR( ret, "UniQuE/WM: Could not lock surface for border tiles!\n" );
           dfb_surface_unref( shared->foo_surface );
@@ -110,12 +110,12 @@ load_foo( CoreDFB *core, WMShared *shared )
      }
 
      for (i=0; i<foo_desc.height; i++) {
-          direct_memcpy( dfb_surface_data_offset( shared->foo_surface, data, pitch, 0, i ),
+          direct_memcpy( dfb_surface_data_offset( shared->foo_surface, lock.addr, lock.pitch, 0, i ),
                          foo_data + i * foo_desc.preallocated[0].pitch,
                          DFB_BYTES_PER_LINE( foo_desc.pixelformat, foo_desc.width ) );
      }
 
-     dfb_surface_unlock( shared->foo_surface, false );
+     dfb_surface_unlock_buffer( shared->foo_surface, &lock );
 
      dfb_surface_globalize( shared->foo_surface );
 

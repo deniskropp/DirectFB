@@ -1049,8 +1049,7 @@ resize_window( UniqueWindow *window,
           return DFB_LIMITEXCEEDED;
 
      if (window->surface) {
-          ret = dfb_surface_reformat( NULL, window->surface,
-                                      width, height, window->surface->config.format );
+          ret = dfb_surface_reformat( window->surface, width, height, window->surface->config.format );
           if (ret)
                return ret;
      }

@@ -924,13 +924,18 @@ wm_update_cursor( CoreWindowStack       *stack,
      D_ASSERT( surface != NULL );
 
      if (flags & CCUF_ENABLE) {
-          CoreSurface *cursor_bs;
+          CoreSurface            *cursor_bs;
+          DFBSurfaceCapabilities  caps = DSCAPS_NONE;
+
+          dfb_surface_caps_apply_policy( stack->cursor.policy, &caps );
 
           D_ASSERT( context->cursor_bs == NULL );
 
           /* Create the cursor backing store surface. */
-          ret = dfb_surface_create( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
-                                    DSPF_RGB16, stack->cursor.policy, DSCAPS_NONE, NULL, &cursor_bs );
+          ret = dfb_surface_create_simple( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
+                                           region->config.format, caps, CSTF_SHARED | CSTF_CURSOR,
+                                           0, /* FIXME: no shared cursor objects, no cursor id */
+                                           NULL, &cursor_bs );
           if (ret) {
                D_ERROR( "WM/Default: Failed creating backing store for cursor!\n" );
                return ret;
@@ -976,9 +981,9 @@ wm_update_cursor( CoreWindowStack       *stack,
           }
 
           if (flags & CCUF_SIZE) {
-               ret = dfb_surface_reformat( wmdata->core, context->cursor_bs,
+               ret = dfb_surface_reformat( context->cursor_bs,
                                            stack->cursor.size.w, stack->cursor.size.h,
-                                           context->cursor_bs->format );
+                                           context->cursor_bs->config.format );
                if (ret) {
                     D_ERROR( "WM/Default: Failed resizing backing store for cursor!\n" );
                     return ret;
