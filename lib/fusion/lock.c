@@ -446,7 +446,7 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
 }
 
 #ifdef SIGRTMAX
-# define SIGRESTART (SIGRTMAX-1)
+# define SIGRESTART  SIGRTMAX
 #else
 # define SIGRESTART  SIGCONT
 #endif
@@ -509,10 +509,8 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
           }
      }
      
-     if (fusion_skirmish_prevail( skirmish )) {
-          sigaction( SIGRESTART, &oldact, NULL );
-          return DFB_DESTROYED;
-     }
+     if (fusion_skirmish_prevail( skirmish ))
+          ret = DFB_DESTROYED;
      
      direct_list_remove( &skirmish->multi.builtin.waiting, &node->link );
 
