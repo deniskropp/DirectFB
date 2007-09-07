@@ -282,10 +282,10 @@ voodoo_manager_quit( VoodooManager *manager )
 }
 
 static bool
-instance_iterator( DirectHash *hash,
-                   u32         key,
-                   void       *value,
-                   void       *ctx )
+instance_iterator( DirectHash    *hash,
+                   unsigned long  key,
+                   void          *value,
+                   void          *ctx )
 {
      bool            super    = (unsigned long) ctx;
      VoodooInstance *instance = value;
@@ -300,7 +300,7 @@ instance_iterator( DirectHash *hash,
      }
 
 
-     D_DEBUG( "Voodoo/Manager: Releasing dispatcher interface %p %s(instance %u)...\n",
+     D_DEBUG( "Voodoo/Manager: Releasing dispatcher interface %p %s(instance %lu)...\n",
               instance->proxy, instance->super ? "[super] " : "", key );
 
      D_ASSERT( instance->proxy != NULL );
@@ -309,7 +309,7 @@ instance_iterator( DirectHash *hash,
      instance->proxy->Release( instance->proxy );
 
 
-     D_DEBUG( "Voodoo/Manager: Releasing real interface %p %s(instance %u)...\n",
+     D_DEBUG( "Voodoo/Manager: Releasing real interface %p %s(instance %lu)...\n",
               instance->real, instance->super ? "[super] " : "", key );
 
      D_ASSERT( instance->real != NULL );
