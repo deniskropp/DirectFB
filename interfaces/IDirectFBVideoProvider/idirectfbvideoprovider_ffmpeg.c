@@ -1344,7 +1344,7 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
      AVProbeData          pd;
      AVInputFormat       *format;
      unsigned char        buf[2048];
-     int                  len = 0;
+     unsigned int         len = 0;
      DFBResult            ret;
 
      ret = buffer->WaitForData( buffer, sizeof(buf) );
@@ -1395,7 +1395,8 @@ Construct( IDirectFBVideoProvider *thiz,
      AVInputFormat *fmt;
      ByteIOContext  pb;
      unsigned char  buf[2048];
-     int            i, len = 0;
+     unsigned int   len = 0;
+     int            i;
       
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBVideoProvider_FFmpeg )
      
