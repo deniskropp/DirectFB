@@ -159,6 +159,11 @@ init_once()
           D_PERROR( "Fusion/Init: uname() failed!\n" );
           return;
      }
+     
+#if !FUSION_BUILD_KERNEL
+     D_INFO( "Fusion/Init: "
+             "Builtin Implementation is still experimental! Crash/Deadlocks might occur!\n" );
+#endif
 
      if (fusion_config->madv_remove_force) {
           if (fusion_config->madv_remove)
