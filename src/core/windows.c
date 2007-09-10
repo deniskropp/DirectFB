@@ -435,8 +435,9 @@ dfb_window_create( CoreWindowStack             *stack,
                if (!window->surface) {
                     /* Create the surface for the window. */
                     ret = dfb_surface_create_simple( layer->core, config.bounds.w, config.bounds.h,
-                                                     pixelformat, surface_caps,
-                                                     CSTF_SHARED | CSTF_WINDOW, window->id,
+                                                     pixelformat, surface_caps, CSTF_SHARED | CSTF_WINDOW,
+                                                     (desc->flags & DWDESC_RESOURCE_ID) ?
+                                                     desc->resource_id : window->id,
                                                      region->surface ?
                                                      region->surface->palette : NULL, &surface );
                     if (ret) {

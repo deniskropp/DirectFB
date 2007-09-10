@@ -835,6 +835,8 @@ typedef enum {
      DWDESC_PARENT       = 0x00000080,  /* This window has a parent according to parent_id field. */
      DWDESC_OPTIONS      = 0x00000100,  /* Initial window options have been set. */
      DWDESC_STACKING     = 0x00000200,  /* Initial stacking class has been set. */
+
+     DWDESC_RESOURCE_ID  = 0x00001000,  /* Resource id for window surface creation has been set. */
 } DFBWindowDescriptionFlags;
 
 /*
@@ -1323,6 +1325,8 @@ typedef struct {
      DFBWindowID                        parent_id;    /* window id of parent window */
      DFBWindowOptions                   options;      /* initial window options */
      DFBWindowStackingClass             stacking;     /* initial stacking class */
+
+     unsigned long                      resource_id;  /* resource id used to create the window surface */
 } DFBWindowDescription;
 
 /*
