@@ -218,6 +218,8 @@ DFBResult dfb_surface_flip          ( CoreSurface                  *surface,
 DFBResult dfb_surface_reconfig      ( CoreSurface                  *surface,
                                       const CoreSurfaceConfig      *config );
 
+DFBResult dfb_surface_destroy_buffers( CoreSurface                 *surface );
+
 DFBResult dfb_surface_lock_buffer   ( CoreSurface                  *surface,
                                       CoreSurfaceBufferRole         role,
                                       CoreSurfaceAccessFlags        access,

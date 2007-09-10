@@ -1025,6 +1025,7 @@ unrealize_region( CoreLayerRegion *region )
           D_ASSERT( region->surface_lock.buffer != NULL );
 
           dfb_surface_unlock_buffer( region->surface, &region->surface_lock );
+          dfb_surface_destroy_buffers( region->surface );
      }
 
      return DFB_OK;

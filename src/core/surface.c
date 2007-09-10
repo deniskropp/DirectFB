@@ -456,6 +456,31 @@ error:
      return ret;
 }
 
+DFBResult
+dfb_surface_destroy_buffers( CoreSurface *surface )
+{
+     int i;
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     if (surface->type & CSTF_PREALLOCATED)
+          return DFB_UNSUPPORTED;
+
+     if (fusion_skirmish_prevail( &surface->lock ))
+          return DFB_FUSION;
+
+     /* Destroy the Surface Buffers. */
+     for (i=0; i<surface->num_buffers; i++) {
+          dfb_surface_buffer_destroy( surface->buffers[i] );
+          surface->buffers[i] = NULL;
+     }
+
+     surface->num_buffers = 0;
+
+     fusion_skirmish_dismiss( &surface->lock );
+
+     return DFB_OK;
+}
 
 DFBResult
 dfb_surface_lock_buffer( CoreSurface            *surface,
