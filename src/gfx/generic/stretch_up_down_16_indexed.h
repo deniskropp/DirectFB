@@ -1,12 +1,12 @@
-#define SOURCE_LOOKUP(x) (((u32*)colors)[x])
+#define SOURCE_LOOKUP(x) (((u16*)colors)[x])
 #define SOURCE_TYPE      u8
 
 
 #define POINT_0               hfraq
 #define LINE_0                vfraq
 #define MINUS_1               0
-#define POINT_TO_RATIO(p,ps)  ( (((((p)) & 0x3ffff) ? : 0x40000) << SHIFT_L8) / (ps) )
-#define LINE_TO_RATIO(l,ls)   ( (((((l)) & 0x3ffff) ? : 0x40000) << SHIFT_L8) / (ls) )
+#define POINT_TO_RATIO(p,ps)  ( (((((p)) & 0x3ffff) ? : 0x40000) << SHIFT_L6) / (ps) )
+#define LINE_TO_RATIO(l,ls)   ( (((((l)) & 0x3ffff) ? : 0x40000) << SHIFT_L5) / (ls) )
 
 #define POINT_L(p,ps)  ( (((p)-1) >> 18) - 1 )
 #define POINT_R(p,ps)  ( (((p)-1) >> 18) )
@@ -25,7 +25,7 @@ static void FUNC_NAME(down)( void       *dst,
                              DFBRegion  *clip,
                              const void *colors )
 {
-#include "stretch_hvx_32.h"
+#include "stretch_hvx_16.h"
 }
 
 #undef POINT_0
@@ -43,8 +43,8 @@ static void FUNC_NAME(down)( void       *dst,
 #define POINT_0               0
 #define LINE_0                0
 #define MINUS_1               1
-#define POINT_TO_RATIO(p,ps)  ( ((p) & 0x3ffff) >> (18-SHIFT_L8) )
-#define LINE_TO_RATIO(l,ls)   ( ((l) & 0x3ffff) >> (18-SHIFT_L8) )
+#define POINT_TO_RATIO(p,ps)  ( ((p) & 0x3ffff) >> (18-SHIFT_L6) )
+#define LINE_TO_RATIO(l,ls)   ( ((l) & 0x3ffff) >> (18-SHIFT_L5) )
 
 #define POINT_L(p,ps)  ( (((p)) >> 18) )
 #define POINT_R(p,ps)  ( (((p)) >> 18) + 1 )
@@ -63,7 +63,7 @@ static void FUNC_NAME(up)( void       *dst,
                            DFBRegion  *clip,
                            const void *colors )
 {
-#include "stretch_hvx_32.h"
+#include "stretch_hvx_16.h"
 }
 
 #undef POINT_0

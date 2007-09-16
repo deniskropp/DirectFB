@@ -8036,8 +8036,17 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
 #include "stretch_up_down_16.h"
 
-#undef HAS_ALPHA
 #undef FUNC_NAME
+
+/**********************************************************************************************************************/
+
+#define FUNC_NAME(UPDOWN) stretch_hvx_argb4444_ ## UPDOWN ## _indexed
+
+#include "stretch_up_down_16_indexed.h"
+
+#undef FUNC_NAME
+
+#undef HAS_ALPHA
 #undef SHIFT_R5
 #undef SHIFT_R6
 #undef X_F81F
@@ -8222,7 +8231,7 @@ typedef void (*StretchHVxIndexed)( void       *dst,
                                    int         dst_width,
                                    int         dst_height,
                                    DFBRegion  *clip,
-                                   const u32  *colors );
+                                   const void *colors );
 
 static StretchHVxIndexed stretch_hvx_down_indexed[DFB_NUM_PIXELFORMATS] = {
      NULL,                              /* DSPF_ARGB1555 */
@@ -8243,7 +8252,7 @@ static StretchHVxIndexed stretch_hvx_down_indexed[DFB_NUM_PIXELFORMATS] = {
      NULL,                              /* DSPF_NV12 */
      NULL,                              /* DSPF_NV16 */
      NULL,                              /* DSPF_ARGB2554 */
-     NULL,                              /* DSPF_ARGB4444 */
+     stretch_hvx_argb4444_down_indexed, /* DSPF_ARGB4444 */
      NULL,                              /* DSPF_NV21 */
      NULL,                              /* DSPF_AYUV */
      NULL,                              /* DSPF_A4 */
@@ -8274,7 +8283,7 @@ static StretchHVxIndexed stretch_hvx_up_indexed[DFB_NUM_PIXELFORMATS] = {
      NULL,                         /* DSPF_NV12 */
      NULL,                         /* DSPF_NV16 */
      NULL,                         /* DSPF_ARGB2554 */
-     NULL,                         /* DSPF_ARGB4444 */
+     stretch_hvx_argb4444_up_indexed, /* DSPF_ARGB4444 */
      NULL,                         /* DSPF_NV21 */
      NULL,                         /* DSPF_AYUV */
      NULL,                         /* DSPF_A4 */
@@ -8373,16 +8382,35 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
                if (stretch_indexed) {
                     int             i;
                     u32             colors[256];
-                    const DFBColor *entries = gfxs->Blut->entries;
-                    DFBRegion       clip    = state->clip;
+                    u16            *colors16 = (u16*) colors;
+                    const DFBColor *entries  = gfxs->Blut->entries;
+                    DFBRegion       clip     = state->clip;
 
                     if (!dfb_region_rectangle_intersect( &clip, drect ))
                          return;
 
                     dfb_region_translate( &clip, - drect->x, - drect->y );
 
-                    for (i=0; i<gfxs->Blut->num_entries; i++)
-                         colors[i] = PIXEL_ARGB( entries[i].a, entries[i].r, entries[i].g, entries[i].b );
+                    switch (gfxs->dst_format) {
+                         case DSPF_ARGB:
+                              for (i=0; i<gfxs->Blut->num_entries; i++)
+                                   colors[i] = PIXEL_ARGB( entries[i].a, entries[i].r, entries[i].g, entries[i].b );
+                              break;
+
+                         case DSPF_RGB32:
+                              for (i=0; i<gfxs->Blut->num_entries; i++)
+                                   colors[i] = PIXEL_RGB32( entries[i].r, entries[i].g, entries[i].b );
+                              break;
+
+                         case DSPF_ARGB4444:
+                              for (i=0; i<gfxs->Blut->num_entries; i++)
+                                   colors16[i] = PIXEL_ARGB4444( entries[i].a, entries[i].r, entries[i].g, entries[i].b );
+                              break;
+
+                         default:
+                              D_BUG( "unsupported destination for LUT scaling" );
+                              break;
+                    }
 
                     stretch_indexed( gfxs->dst_org[0] + drect->y * gfxs->dst_pitch
                                      + DFB_BYTES_PER_LINE( gfxs->dst_format, drect->x ),
