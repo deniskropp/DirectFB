@@ -147,6 +147,8 @@ system_initialize( CoreDFB *core, void **ret_data )
           return D_OOSHM();
      }
 
+     shared->shmpool = pool;
+
      data->shared = shared;
 
      ret = MapMemAndReg( data,
