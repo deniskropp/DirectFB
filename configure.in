@@ -870,6 +870,7 @@ matrox=no
 neomagic=no
 nsc=no
 nvidia=no
+omap=no
 radeon=no
 savage=no
 sis315=no
@@ -886,7 +887,7 @@ AC_ARG_WITH(gfxdrivers,
 [                            'all' builds all drivers (default), 'none' builds none ]
 [                            Possible gfxdrivers are: ]
 [                            ati128, cle266, cyber5k, i810, i830, mach64, matrox,]
-[                            neomagic, nsc, nvidia, radeon, savage,]
+[                            neomagic, nsc, nvidia, omap, radeon, savage,]
 [                            sis315, tdfx, unichrome, vmware], gfxdrivers="$withval",[gfxdrivers="all"])
 
 if test "$gfxdrivers" = "all"; then
@@ -900,6 +901,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_neomagic=no
   checkfor_nsc=no
   checkfor_nvidia=no
+  checkfor_omap="$have_arm"
   checkfor_radeon=yes
   checkfor_savage=no
   checkfor_sis315=no
@@ -942,6 +944,9 @@ else
                   ;;
           nvidia)
                   checkfor_nvidia=yes
+                  ;;
+          omap)
+                  checkfor_omap=yes
                   ;;
           radeon)
                   checkfor_radeon=yes
@@ -1009,6 +1014,10 @@ fi
 
 if test "$checkfor_nvidia" = "yes"; then
   nvidia=yes
+fi
+
+if test "$checkfor_omap" = "yes"; then
+  omap=yes
 fi
 
 if test "$checkfor_radeon" = "yes"; then
@@ -1329,6 +1338,7 @@ AM_CONDITIONAL(GFX_MATROX, test "$matrox" = "yes")
 AM_CONDITIONAL(GFX_NEOMAGIC, test "$neomagic" = "yes")
 AM_CONDITIONAL(GFX_NSC, test "$nsc" = "yes")
 AM_CONDITIONAL(GFX_NVIDIA, test "$nvidia" = "yes")
+AM_CONDITIONAL(GFX_OMAP, test "$omap" = "yes")
 AM_CONDITIONAL(GFX_RADEON, test "$radeon" = "yes")
 AM_CONDITIONAL(GFX_SAVAGE, test "$savage" = "yes")
 AM_CONDITIONAL(GFX_SIS315, test "$sis315" = "yes")
@@ -1496,6 +1506,7 @@ gfxdrivers/neomagic/Makefile
 gfxdrivers/nsc/Makefile
 gfxdrivers/nsc/include/Makefile
 gfxdrivers/nvidia/Makefile
+gfxdrivers/omap/Makefile
 gfxdrivers/radeon/Makefile
 gfxdrivers/savage/Makefile
 gfxdrivers/sis315/Makefile
@@ -1613,6 +1624,7 @@ Building Graphics Drivers:
   nVidia                    $nvidia
   S3 Savage                 $savage
   SiS 315                   $sis315
+  TI OMAP                   $omap
   TVIA CyberPro             $cyber5k
   VIA CLE266                $cle266
   VIA UniChrome             $unichrome

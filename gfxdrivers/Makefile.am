@@ -60,6 +60,12 @@ else
 NVIDIA_DIR =
 endif
 
+if GFX_OMAP
+OMAP_DIR = omap
+else
+OMAP_DIR =
+endif
+
 if GFX_RADEON
 RADEON_DIR = radeon
 else
@@ -107,6 +113,7 @@ SUBDIRS = \
 	$(NEOMAGIC_DIR)	\
 	$(NSC_DIR)	\
 	$(NVIDIA_DIR)	\
+	$(OMAP_DIR)	\
 	$(RADEON_DIR)	\
 	$(SAVAGE_DIR)	\
 	$(SIS315_DIR)	\
