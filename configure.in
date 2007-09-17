@@ -543,6 +543,15 @@ fi
 AM_CONDITIONAL(BUILDMMX, test "$enable_mmx" = "yes")
 
 
+dnl Test for DevMem system
+AC_ARG_ENABLE(devmem,
+  [  --enable-devmem           build with generic /dev/mem support [[default=yes]]],,
+  enable_devmem=yes)
+
+AM_CONDITIONAL(DEVMEM_CORE, test "$enable_devmem" = "yes")
+
+
+
 dnl Test for Linux frame buffer device
 AC_ARG_ENABLE(fbdev,
   [  --enable-fbdev            build with linux fbdev support [[default=auto]]],,
@@ -1461,6 +1470,7 @@ src/misc/Makefile
 src/windows/Makefile
 
 systems/Makefile
+systems/devmem/Makefile
 systems/fbdev/Makefile
 systems/x11/Makefile
 systems/osx/Makefile
@@ -1561,6 +1571,7 @@ Misc options:
 
 Building Core Systems:
   Linux FBDev support       $enable_fbdev
+  Generic /dev/mem support  $enable_devmem
   X11 support               $enable_x11
   OSX support               $enable_osx
   SDL support               $enable_sdl

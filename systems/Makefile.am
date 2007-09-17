@@ -18,6 +18,12 @@ else
 X11_DIR =
 endif
 
+if DEVMEM_CORE
+DEVMEM_DIR = devmem
+else
+DEVMEM_DIR =
+endif
+
 if FBDEV_CORE
 FBDEV_DIR = fbdev
 else
@@ -31,4 +37,4 @@ VNC_DIR =
 endif
   
 
-SUBDIRS = $(FBDEV_DIR) $(X11_DIR) $(SDL_DIR) $(OSX_DIR) $(VNC_DIR)
+SUBDIRS = $(DEVMEM_DIR) $(FBDEV_DIR) $(X11_DIR) $(SDL_DIR) $(OSX_DIR) $(VNC_DIR)

@@ -33,26 +33,36 @@
 
 #include <directfb.h>
 
+#include <direct/mem.h>
+
+#include <fusion/arena.h>
+#include <fusion/shmalloc.h>
+
+#include <core/core.h>
+#include <core/surface_pool.h>
+
 #include <misc/conf.h>
+
+#include "devmem.h"
+#include "surfacemanager.h"
+
 
 #include <core/core_system.h>
 
 DFB_CORE_SYSTEM( devmem )
 
-#define DEV_MEM     "/dev/mem"
-
 /**********************************************************************************************************************/
 
-static void          *m_mem;
-static volatile void *m_reg;
+static DevMemData *m_data;    /* FIXME: Fix Core System API to pass data in all functions. */
 
 /**********************************************************************************************************************/
 
 static DFBResult
-MapMemAndReg( unsigned long mem_phys,
-              unsigned int  mem_length,
-              unsigned long reg_phys,
-              unsigned int  reg_length )
+MapMemAndReg( DevMemData    *data,
+              unsigned long  mem_phys,
+              unsigned int   mem_length,
+              unsigned long  reg_phys,
+              unsigned int   reg_length )
 {
      int fd;
 
@@ -62,17 +72,17 @@ MapMemAndReg( unsigned long mem_phys,
           return DFB_INIT;
      }
 
-     m_mem = mmap( NULL, mem_length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, mem_phys );
-     if (m_mem == MAP_FAILED) {
+     data->mem = mmap( NULL, mem_length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, mem_phys );
+     if (data->mem == MAP_FAILED) {
           D_PERROR( "System/DevMem: Mapping %d bytes at 0x%08lx via '%s' failed!\n", mem_length, mem_phys, DEV_MEM );
           return DFB_INIT;
      }
 
      if (reg_phys && reg_length) {
-          m_reg = mmap( NULL, reg_length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, reg_phys );
-          if (m_reg == MAP_FAILED) {
+          data->reg = mmap( NULL, reg_length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, reg_phys );
+          if (data->reg == MAP_FAILED) {
                D_PERROR( "System/DevMem: Mapping %d bytes at 0x%08lx via '%s' failed!\n", reg_length, reg_phys, DEV_MEM );
-               munmap( m_mem, mem_length );
+               munmap( data->mem, mem_length );
                close( fd );
                return DFB_INIT;
           }
@@ -84,13 +94,14 @@ MapMemAndReg( unsigned long mem_phys,
 }
 
 static void
-UnmapMemAndReg( unsigned int mem_length,
-                unsigned int reg_length )
+UnmapMemAndReg( DevMemData   *data,
+                unsigned int  mem_length,
+                unsigned int  reg_length )
 {
-     munmap( m_mem, mem_length );
+     munmap( data->mem, mem_length );
 
      if (reg_length)
-          munmap( (void*) m_reg, reg_length );
+          munmap( (void*) data->reg, reg_length );
 }
 
 /**********************************************************************************************************************/
@@ -105,8 +116,15 @@ system_get_info( CoreSystemInfo *info )
 }
 
 static DFBResult
-system_initialize( CoreDFB *core, void **data )
+system_initialize( CoreDFB *core, void **ret_data )
 {
+     DFBResult            ret;
+     DevMemData          *data;
+     DevMemDataShared    *shared;
+     FusionSHMPoolShared *pool;
+
+     D_ASSERT( m_data == NULL );
+
      if (!dfb_config->video_phys || !dfb_config->video_length) {
           D_ERROR( "System/DevMem: Please supply 'video-phys = 0xXXXXXXXX' and 'video-length = XXXX' options!\n" );
           return DFB_INVARG;
@@ -117,20 +135,104 @@ system_initialize( CoreDFB *core, void **data )
           return DFB_INVARG;
      }
 
-     return MapMemAndReg( dfb_config->video_phys, dfb_config->video_length,
-                          dfb_config->mmio_phys,  dfb_config->mmio_length );
+     data = D_CALLOC( 1, sizeof(DevMemData) );
+     if (!data)
+          return D_OOM();
+
+     pool = dfb_core_shmpool( core );
+
+     shared = SHCALLOC( pool, 1, sizeof(DevMemDataShared) );
+     if (!shared) {
+          D_FREE( data );
+          return D_OOSHM();
+     }
+
+     data->shared = shared;
+
+     ret = MapMemAndReg( data,
+                         dfb_config->video_phys, dfb_config->video_length,
+                         dfb_config->mmio_phys,  dfb_config->mmio_length );
+     if (ret) {
+          SHFREE( pool, shared );
+          D_FREE( data );
+          return ret;
+     }
+
+
+     *ret_data = m_data = data;
+
+     dfb_surface_pool_initialize( core, &devmemSurfacePoolFuncs, &shared->pool );
+
+     fusion_arena_add_shared_field( dfb_core_arena( core ), "devmem", shared );
+
+     return DFB_OK;
 }
 
 static DFBResult
-system_join( CoreDFB *core, void **data )
+system_join( CoreDFB *core, void **ret_data )
 {
-     return system_initialize( core, data );
+     DFBResult         ret;
+     void             *tmp;
+     DevMemData       *data;
+     DevMemDataShared *shared;
+
+     D_ASSERT( m_data == NULL );
+
+     if (!dfb_config->video_phys || !dfb_config->video_length) {
+          D_ERROR( "System/DevMem: Please supply 'video-phys = 0xXXXXXXXX' and 'video-length = XXXX' options!\n" );
+          return DFB_INVARG;
+     }
+
+     if (dfb_config->mmio_phys && !dfb_config->mmio_length) {
+          D_ERROR( "System/DevMem: Please supply both 'mmio-phys = 0xXXXXXXXX' and 'mmio-length = XXXX' options or none!\n" );
+          return DFB_INVARG;
+     }
+
+     data = D_CALLOC( 1, sizeof(DevMemData) );
+     if (!data)
+          return D_OOM();
+
+     ret = fusion_arena_get_shared_field( dfb_core_arena( core ), "devmem", &tmp );
+     if (ret) {
+          D_FREE( data );
+          return ret;
+     }
+
+     data->shared = shared = tmp;
+
+     ret = MapMemAndReg( data,
+                         dfb_config->video_phys, dfb_config->video_length,
+                         dfb_config->mmio_phys,  dfb_config->mmio_length );
+     if (ret) {
+          D_FREE( data );
+          return ret;
+     }
+
+     *ret_data = m_data = data;
+
+     dfb_surface_pool_join( core, shared->pool, &devmemSurfacePoolFuncs );
+
+     return DFB_OK;
 }
 
 static DFBResult
 system_shutdown( bool emergency )
 {
-     UnmapMemAndReg( dfb_config->video_length, dfb_config->mmio_length );
+     DevMemDataShared *shared;
+
+     D_ASSERT( m_data != NULL );
+
+     shared = m_data->shared;
+     D_ASSERT( shared != NULL );
+
+     dfb_surface_pool_destroy( shared->pool );
+
+     UnmapMemAndReg( m_data, dfb_config->video_length, dfb_config->mmio_length );
+
+     SHFREE( shared->shmpool, shared );
+
+     D_FREE( m_data );
+     m_data = NULL;
 
      return DFB_OK;
 }
@@ -138,18 +240,36 @@ system_shutdown( bool emergency )
 static DFBResult
 system_leave( bool emergency )
 {
-     return system_shutdown( emergency );
+     DevMemDataShared *shared;
+
+     D_ASSERT( m_data != NULL );
+
+     shared = m_data->shared;
+     D_ASSERT( shared != NULL );
+
+     dfb_surface_pool_leave( shared->pool );
+
+     UnmapMemAndReg( m_data, dfb_config->video_length, dfb_config->mmio_length );
+
+     D_FREE( m_data );
+     m_data = NULL;
+
+     return DFB_OK;
 }
 
 static DFBResult
 system_suspend()
 {
+     D_ASSERT( m_data != NULL );
+
      return DFB_OK;
 }
 
 static DFBResult
 system_resume()
 {
+     D_ASSERT( m_data != NULL );
+
      return DFB_OK;
 }
 
@@ -157,7 +277,9 @@ static volatile void *
 system_map_mmio( unsigned int    offset,
                  int             length )
 {
-    return m_reg + offset;
+     D_ASSERT( m_data != NULL );
+
+     return m_data->reg + offset;
 }
 
 static void
@@ -206,7 +328,9 @@ system_video_memory_physical( unsigned int offset )
 static void *
 system_video_memory_virtual( unsigned int offset )
 {
-     return m_mem + offset;
+     D_ASSERT( m_data != NULL );
+
+     return m_data->mem + offset;
 }
 
 static unsigned int
