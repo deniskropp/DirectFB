@@ -241,8 +241,7 @@ IDirectFBImageProvider_JPEG2000_RenderTo( IDirectFBImageProvider *thiz,
 #define GET_SAMPLE( n, x, y ) ({ \
      int _s; \
      _s = jas_image_readcmptsample(data->image, cmptlut[n], x, y); \
-     if (jas_image_cmptprec(data->image, cmptlut[n]) > 8) \
-          _s >>= jas_image_cmptprec(data->image, cmptlut[n]) - 8; \
+     _s >>= jas_image_cmptprec(data->image, cmptlut[n]) - 8; \
      if (_s > 255) \
           _s = 255; \
      else if (_s < 0) \
@@ -252,25 +251,31 @@ IDirectFBImageProvider_JPEG2000_RenderTo( IDirectFBImageProvider *thiz,
             
           for (i = 0; i < height; i++) {
                u32 *dst = data->buf + i * width;
+               int  x, y;
                
-               for (j = 0; j < width; j++) {
-                    int x = (j - tlx) / hs;
-                    int y = (i - tly) / vs;
-                    if (x >= 0 && x < width && y >= 0 && y < height) {
-                         unsigned int r, g, b;
-                         if (mono) {
-                              r = g = b = GET_SAMPLE(0, x, y);
+               y = (i - tly) / vs;
+               if (y >= 0 && y < height) {     
+                    for (j = 0; j < width; j++) {
+                         x = (j - tlx) / hs;
+                         if (x >= 0 && x < width) {
+                              unsigned int r, g, b;
+                              if (mono) {
+                                   r = g = b = GET_SAMPLE(0, x, y);
+                              }
+                              else {
+                                   r = GET_SAMPLE(0, x, y);
+                                   g = GET_SAMPLE(1, x, y);
+                                   b = GET_SAMPLE(2, x, y);
+                              }
+                              *dst++ = 0xff000000 | (r << 16) | (g << 8) | b;
                          }
                          else {
-                              r = GET_SAMPLE(0, x, y);
-                              g = GET_SAMPLE(1, x, y);
-                              b = GET_SAMPLE(2, x, y);
+                              *dst++ = 0;
                          }
-                         *dst++ = 0xff000000 | (r << 16) | (g << 8) | b;
                     }
-                    else {
-                         *dst++ = 0;
-                    }
+               }
+               else {
+                    memset( dst, 0, width*4 );
                }
                
                if (direct) {
