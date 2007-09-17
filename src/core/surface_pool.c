@@ -460,7 +460,7 @@ dfb_surface_pool_allocate( CoreSurfacePool        *pool,
           for (i=0; i<surface->num_buffers; i++) {
                buffer = surface->buffers[i];
 
-               D_ASSUME( buffer->allocs.elements == 0 );
+               D_ASSUME( fusion_vector_is_empty( &buffer->allocs ) );
 
                D_DEBUG_AT( Core_SurfacePool, "  -> %p (%d)\n", allocation, i );
                fusion_vector_add( &buffer->allocs, allocation );

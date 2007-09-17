@@ -264,7 +264,7 @@ fbdevAllocateBuffer( CoreSurfacePool       *pool,
 
           /* HACK FIXME_SC_2 ALLOCATE/SETMODE TWIST */
           for (i=0; i<surface->num_buffers; i++) {
-               if (surface->buffers[i]->allocs.elements)
+               if (fusion_vector_has_elements( &surface->buffers[i]->allocs ))
                     break;
           }
 

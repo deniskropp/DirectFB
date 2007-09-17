@@ -389,7 +389,7 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
                  dfb_pixelformat_name( format ) );
 
      /* If no allocations exists, simply clear the destination. */
-     if (!buffer->allocs.elements) {
+     if (fusion_vector_is_empty( &buffer->allocs )) {
           for (y=0; y<rect.h; y++) {
                memset( destination, 0, bytes );
 
@@ -495,7 +495,7 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
                  dfb_pixelformat_name( format ) );
 
      /* If no allocations exists, create one. */
-     if (!buffer->allocs.elements) {
+     if (fusion_vector_is_empty( &buffer->allocs )) {
           ret = allocate_buffer( buffer, CSAF_CPU_WRITE, &allocation );
           if (ret) {
                D_DERROR( ret, "Core/SurfBuffer: Buffer allocation failed!\n" );

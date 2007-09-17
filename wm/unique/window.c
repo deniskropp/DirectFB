@@ -1194,11 +1194,11 @@ restack_window( UniqueWindow           *window,
 
           if (index < 0)
                index = 0;
-          else if (index > context->windows.count - 1)
-               index = context->windows.count - 1;
+          else if (index > fusion_vector_size( &context->windows ) - 1)
+               index = fusion_vector_size( &context->windows ) - 1;
      }
      else if (relation)
-          index = context->windows.count - 1;
+          index = fusion_vector_size( &context->windows ) - 1;
      else
           index = 0;
 
@@ -1216,7 +1216,7 @@ restack_window( UniqueWindow           *window,
      }
 
      /* Assure window won't be below any window with a lower priority. */
-     while (index < context->windows.count - 1) {
+     while (index < fusion_vector_size( &context->windows ) - 1) {
           int           above = (old > index) ? index : index + 1;
           UniqueWindow *other = fusion_vector_at( &context->windows, above );
 
