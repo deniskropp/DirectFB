@@ -217,12 +217,8 @@ device_open( void                  *device_data,
      
      /* set application profile */
 #if defined(SNDCTL_DSP_PROFILE) && defined(APF_NORMAL)
-     if (ioctl( data->fd, SNDCTL_DSP_PROFILE, &prof ) < 0) {
-          D_ERROR( "FusionSound/Device/OSS: "
-                   "Unable to set application profile!\n" );
-          close( data->fd );
-          return DFB_FAILURE;
-     }
+     if (ioctl( data->fd, SNDCTL_DSP_PROFILE, &prof ) < 0)
+          D_WARN( "Unable to set application profile!" );
 #endif
          
      /* set output format */
