@@ -506,6 +506,28 @@ dfb_screen_get_layer_dimension( CoreScreen *screen,
                     }
                }
           }
+
+          for (i=0; i<shared->description.mixers; i++) {
+               const DFBScreenMixerDescription *desc = &shared->mixers[i].description;
+
+               if ((desc->caps & DSMCAPS_SUB_LAYERS) &&
+                   DFB_DISPLAYLAYER_IDS_HAVE( desc->sub_layers, dfb_layer_id(layer) ))
+               {
+                    CoreMixerState state;
+
+                    ret = funcs->GetMixerState( screen, screen->driver_data, screen->screen_data, i, &state );
+                    if (ret == DFB_OK) {
+                         if (state.flags & CMSF_DIMENSION) {
+                              *ret_width  = state.dimension.w;
+                              *ret_height = state.dimension.h;
+
+                              return DFB_OK;
+                         }
+
+                         ret = DFB_UNSUPPORTED;
+                    }
+               }
+          }
      }
 
      if (funcs->GetScreenSize)
