@@ -477,7 +477,8 @@ int sawman_window_border( const SaWManWindow *sawwin );
 
 #define SAWMAN_TRANSLUCENT_WINDOW(w) ((w)->config.opacity < 0xff || \
                                       (w)->config.options & (DWOP_ALPHACHANNEL | DWOP_COLORKEYING) ||\
-                                      (w)->config.dst_geometry.mode != DWGM_DEFAULT)
+                                      (w)->config.dst_geometry.mode != DWGM_DEFAULT ||\
+                                      ((w)->caps & (DWCAPS_INPUTONLY)))
 
 #ifdef __cplusplus
 }
