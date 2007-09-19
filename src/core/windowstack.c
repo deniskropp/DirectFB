@@ -138,7 +138,8 @@ dfb_windowstack_create( CoreLayerContext *context )
      stack->cursor.policy = policy;
 
      /* Set default background mode. */
-     stack->bg.mode = DLBM_COLOR;
+     stack->bg.mode        = DLBM_COLOR;
+     stack->bg.color_index = -1;
 
      dfb_wm_init_stack( stack );
 
@@ -398,7 +399,7 @@ dfb_windowstack_set_background_color_index( CoreWindowStack *stack,
           return DFB_FUSION;
 
      /* do nothing if color didn't change */
-     if (stack->bg.color_index == index) {
+     if (stack->bg.color_index != index) {
           /* set new color index */
           stack->bg.color_index = index;
 
