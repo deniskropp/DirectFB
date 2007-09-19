@@ -791,6 +791,8 @@ dfb_layer_context_set_src_colorkey( CoreLayerContext *context,
 
      D_ASSERT( context != NULL );
 
+     D_DEBUG_AT( Core_Layers, "%s (%02x %02x %02x - %d)\n", __FUNCTION__, r, g, b, index );
+
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
           return DFB_FUSION;
