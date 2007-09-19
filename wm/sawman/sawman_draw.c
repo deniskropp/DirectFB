@@ -435,6 +435,8 @@ draw_window( SaWManWindow *sawwin,
      if (window->config.options & DWOP_COLORKEYING) {
           flags |= DSBLIT_SRC_COLORKEY;
 
+          D_DEBUG_AT( SaWMan_Draw, "  -> key 0x%08x\n", window->config.color_key );
+
           /* Set window color key. */
           dfb_state_set_src_colorkey( state, window->config.color_key );
      }
@@ -630,6 +632,19 @@ sawman_draw_background( SaWManTier *tier, CardState *state, DFBRegion *region )
           case DLBM_COLOR: {
                /* Set the background color. */
                dfb_state_set_color_or_index( state, &stack->bg.color, stack->bg.color_index );
+
+               if (stack->bg.color_index < 0 || !state->destination->palette)
+                    D_DEBUG_AT( SaWMan_Draw, "  -> fill %02x %02x %02x %02x [%d]\n",
+                                stack->bg.color.a, stack->bg.color.r, stack->bg.color.g, stack->bg.color.b,
+                                stack->bg.color_index );
+               else
+                    D_DEBUG_AT( SaWMan_Draw, "  -> fill %02x %02x %02x %02x [%d] -> %02x %02x %02x %02x\n",
+                                stack->bg.color.a, stack->bg.color.r, stack->bg.color.g, stack->bg.color.b,
+                                stack->bg.color_index,
+                                state->destination->palette->entries[stack->bg.color_index].a,
+                                state->destination->palette->entries[stack->bg.color_index].r,
+                                state->destination->palette->entries[stack->bg.color_index].g,
+                                state->destination->palette->entries[stack->bg.color_index].b );
 
                /* Simply fill the background. */
                dfb_gfxcard_fillrectangles( &dst, 1, state );
