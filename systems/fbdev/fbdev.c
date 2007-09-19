@@ -1346,10 +1346,9 @@ primarySetRegion( CoreLayer                  *layer,
           }
           /* fall through */
      default:
-          /* HACK FIXME_SC_2 ALLOCATE/SETMODE TWIST */
-          //ret = dfb_fbdev_set_mode( surface, highest, config );
-          //if (ret)
-          //     return ret;
+          ret = dfb_fbdev_set_mode( surface, highest, config );
+          if (ret)
+               return ret;
           ;
      }
 
