@@ -763,8 +763,10 @@ process_updates( SaWMan              *sawman,
                     rect.h = single->dst.h * screen_height / tier->size.h;
                }
 
+#ifdef SAWMAN_NO_LAYER_DOWNSCALE
                if (rect.w < single->src.w)
                     goto no_single;
+#endif
 
                location.x = (float) single->dst.x / (float) tier->size.w;
                location.y = (float) single->dst.y / (float) tier->size.h;
@@ -792,6 +794,16 @@ process_updates( SaWMan              *sawman,
                                 single->src.w, single->src.h, dfb_pixelformat_name( surface->config.format ),
                                 single, tier );
 
+                    config.flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_OPTIONS | DLCONF_BUFFERMODE;
+                    config.width       = single->src.w;
+                    config.height      = single->src.h;
+                    config.pixelformat = surface->config.format;
+                    config.options     = options;
+                    config.buffermode  = DLBM_FRONTONLY;
+
+                    if (dfb_layer_context_test_configuration( tier->context, &config, NULL ) != DFB_OK)
+                         goto no_single;
+
                     tier->single_mode     = true;
                     tier->single_window   = single;
                     tier->single_width    = single->src.w;
@@ -807,13 +819,6 @@ process_updates( SaWMan              *sawman,
                          dfb_layer_region_deactivate( tier->region );
                          dfb_updates_reset( &tier->updates );
                     }
-
-                    config.flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_OPTIONS | DLCONF_BUFFERMODE;
-                    config.width       = single->src.w;
-                    config.height      = single->src.h;
-                    config.pixelformat = surface->config.format;
-                    config.options     = options;
-                    config.buffermode  = DLBM_FRONTONLY;
 
                     dfb_layer_context_set_configuration( tier->context, &config );
 
