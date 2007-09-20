@@ -6,3 +6,4 @@ Makefile.in
 *.la
 yuvtbl-gen
 yuvtbl.h
+*.o

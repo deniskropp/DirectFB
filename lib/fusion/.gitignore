@@ -6,3 +6,4 @@ Makefile.in
 *.la
 build.h
 fusion.pc
+*.o
