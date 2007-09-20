@@ -96,7 +96,7 @@ struct __DFB_CoreWindow {
      CoreGraphicsSerial      serial1;
      CoreGraphicsSerial      serial2;
 
-     BoundWindow            *bound_windows;  /* list of bound windows */
+     DirectLink             *bound_windows;  /* list of bound windows */
 
      CoreWindow             *boundto;        /* window to which this window is bound */
 
