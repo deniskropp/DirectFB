@@ -32,6 +32,7 @@
 #include <direct/mem.h>
 #include <direct/messages.h>
 
+#include <fusion/shm/shm.h>
 #include <fusion/shm/pool.h>
 
 #include <fusion/shm/shm_internal.h>
@@ -149,6 +150,14 @@ fusion_shm_pool_deallocate( FusionSHMPoolShared *pool,
 
      D_FREE( data );
 
+     return DFB_OK;
+}
+
+DirectResult
+fusion_shm_enum_pools( FusionWorld           *world,
+                       FusionSHMPoolCallback  callback,
+                       void                  *ctx )
+{
      return DFB_OK;
 }
 
