@@ -32,8 +32,10 @@ To run the driver you need the DevMem system module using the directfbrc.sh7722
 file (renamed to directfbrc in $prefix/etc).
 
 
-Performance (as of 2007-09-20, multi app)
------------------------------------------
+Performance (as of 2007-09-21, multi app, 127.79 BogoMIPS)
+----------------------------------------------------------
+
+Only 14% CPU load with df_andi running 800x480 at 28.1 fps :)
 
 Benchmarking with 256x256 in 16bit mode... (16bit)
                                                                                 CPU load
