@@ -66,3 +66,11 @@ direct_pagesize()
      return PAGE_SIZE;
 }
 
+unsigned long
+direct_page_align( unsigned long value )
+{
+     unsigned long mask = PAGE_SIZE - 1;
+
+     return (value + mask) & ~mask;
+}
+

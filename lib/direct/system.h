@@ -34,5 +34,7 @@
 pid_t direct_gettid( void );
 long  direct_pagesize( void );
 
+unsigned long direct_page_align( unsigned long value );
+
 #endif
 
