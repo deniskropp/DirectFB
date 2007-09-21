@@ -1159,6 +1159,8 @@ DFBResult dfb_config_set( const char *name, const char *value )
                }
 
                conf->src_key_index = index;
+               conf->config.options |= DLOP_SRC_COLORKEY;
+               conf->config.flags   |= DLCONF_OPTIONS;
           }
           else {
                D_ERROR( "DirectFB/Config '%s': No index specified!\n", name );

@@ -30,6 +30,11 @@
 
 #include <string.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 #include <directfb_util.h>
 
 #include <direct/debug.h>
@@ -38,11 +43,15 @@
 #include <fusion/shmalloc.h>
 
 #include <core/gfxcard.h>
+#include <core/palette.h>
 #include <core/surface.h>
 #include <core/surface_buffer.h>
 #include <core/surface_pool.h>
 
 #include <gfx/convert.h>
+
+static const u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
+static const u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff };
 
 
 D_DEBUG_DOMAIN( Core_SurfBuffer, "Core/SurfBuffer", "DirectFB Core Surface Buffer" );
@@ -537,9 +546,403 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
                          const char        *directory,
                          const char        *prefix )
 {
-     D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_dump( %p, %p, %p )\n", buffer, directory, prefix );
+     DFBResult              ret;
+     int                    num  = -1;
+     int                    fd_p = -1;
+     int                    fd_g = -1;
+     int                    i, n;
+     int                    len = strlen(directory) + strlen(prefix) + 40;
+     char                   filename[len];
+     char                   head[30];
+     bool                   rgb   = false;
+     bool                   alpha = false;
+#ifdef USE_ZLIB
+     gzFile                 gz_p = NULL, gz_g = NULL;
+     static const char     *gz_ext = ".gz";
+#else
+     static const char     *gz_ext = "";
+#endif
+     CoreSurface           *surface;
+     CorePalette           *palette = NULL;
+     CoreSurfaceBufferLock  lock;
 
-     D_UNIMPLEMENTED();
+     D_DEBUG_AT( Core_SurfBuffer, "%s( %p, %p, %p )\n", __FUNCTION__, buffer, directory, prefix );
+
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     D_ASSERT( directory != NULL );
+     D_ASSERT( prefix != NULL );
+
+     surface = buffer->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
+
+     /* Check pixel format. */
+     switch (buffer->format) {
+          case DSPF_LUT8:
+               palette = surface->palette;
+
+               if (!palette) {
+                    D_BUG( "no palette" );
+                    return DFB_BUG;
+               }
+
+               if (dfb_palette_ref( palette ))
+                    return DFB_FUSION;
+
+               rgb = true;
+
+               /* fall through */
+
+          case DSPF_A8:
+               alpha = true;
+               break;
+
+          case DSPF_ARGB:
+          case DSPF_ARGB1555:
+          case DSPF_ARGB2554:
+          case DSPF_ARGB4444:
+          case DSPF_AiRGB:
+               alpha = true;
+
+               /* fall through */
+
+          case DSPF_RGB332:
+          case DSPF_RGB16:
+          case DSPF_RGB24:
+          case DSPF_RGB32:
+          case DSPF_YUY2:
+          case DSPF_UYVY:
+          case DSPF_RGB444:
+          case DSPF_RGB555:
+               rgb   = true;
+               break;
+
+          default:
+               D_ERROR( "DirectFB/core/surfaces: surface dump for format "
+                         "'%s' is not implemented!\n",
+                        dfb_pixelformat_name( buffer->format ) );
+               return DFB_UNSUPPORTED;
+     }
+
+     /* Lock the surface buffer, get the data pointer and pitch. */
+     ret = dfb_surface_buffer_lock( buffer, CSAF_CPU_READ, &lock );
+     if (ret) {
+          if (palette)
+               dfb_palette_unref( palette );
+          return ret;
+     }
+
+     /* Find the lowest unused index. */
+     while (++num < 10000) {
+          snprintf( filename, len, "%s/%s_%04d.ppm%s",
+                    directory, prefix, num, gz_ext );
+
+          if (access( filename, F_OK ) != 0) {
+               snprintf( filename, len, "%s/%s_%04d.pgm%s",
+                         directory, prefix, num, gz_ext );
+
+               if (access( filename, F_OK ) != 0)
+                    break;
+          }
+     }
+
+     if (num == 10000) {
+          D_ERROR( "DirectFB/core/surfaces: "
+                   "couldn't find an unused index for surface dump!\n" );
+          dfb_surface_buffer_unlock( &lock );
+          if (palette)
+               dfb_palette_unref( palette );
+          return DFB_FAILURE;
+     }
+
+     /* Create a file with the found index. */
+     if (rgb) {
+          snprintf( filename, len, "%s/%s_%04d.ppm%s",
+                    directory, prefix, num, gz_ext );
+
+          fd_p = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
+          if (fd_p < 0) {
+               D_PERROR("DirectFB/core/surfaces: "
+                        "could not open %s!\n", filename);
+               dfb_surface_buffer_unlock( &lock );
+               if (palette)
+                    dfb_palette_unref( palette );
+               return DFB_IO;
+          }
+     }
+
+     /* Create a graymap for the alpha channel using the found index. */
+     if (alpha) {
+          snprintf( filename, len, "%s/%s_%04d.pgm%s",
+                    directory, prefix, num, gz_ext );
+
+          fd_g = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
+          if (fd_g < 0) {
+               D_PERROR("DirectFB/core/surfaces: "
+                         "could not open %s!\n", filename);
+
+               dfb_surface_buffer_unlock( &lock );
+               if (palette)
+                    dfb_palette_unref( palette );
+
+               if (rgb) {
+                    close( fd_p );
+                    snprintf( filename, len, "%s/%s_%04d.ppm%s",
+                              directory, prefix, num, gz_ext );
+                    unlink( filename );
+               }
+
+               return DFB_IO;
+          }
+     }
+
+#ifdef USE_ZLIB
+     if (rgb)
+          gz_p = gzdopen( fd_p, "wb" );
+
+     if (alpha)
+          gz_g = gzdopen( fd_g, "wb" );
+#endif
+
+     if (rgb) {
+          /* Write the pixmap header. */
+          snprintf( head, 30,
+                    "P6\n%d %d\n255\n", surface->config.size.w, surface->config.size.h );
+#ifdef USE_ZLIB
+          gzwrite( gz_p, head, strlen(head) );
+#else
+          write( fd_p, head, strlen(head) );
+#endif
+     }
+
+     /* Write the graymap header. */
+     if (alpha) {
+          snprintf( head, 30,
+                    "P5\n%d %d\n255\n", surface->config.size.w, surface->config.size.h );
+#ifdef USE_ZLIB
+          gzwrite( gz_g, head, strlen(head) );
+#else
+          write( fd_g, head, strlen(head) );
+#endif
+     }
+
+     /* Write the pixmap (and graymap) data. */
+     for (i=0; i<surface->config.size.h; i++) {
+          int    n3;
+          u8    *data8;
+          u16 *data16;
+          u32 *data32;
+
+          u8 buf_p[surface->config.size.w * 3];
+          u8 buf_g[surface->config.size.w];
+
+          /* Prepare one row. */
+          data8  = dfb_surface_data_offset( surface, lock.addr, lock.pitch, 0, i );
+          data16 = (u16*) data8;
+          data32 = (u32*) data8;
+
+          switch (buffer->format) {
+               case DSPF_LUT8:
+                    if (i==10) {
+                         direct_log_printf(NULL,"%d\n", data8[10]);
+
+                         for (n=0; n<6; n++)
+                              direct_log_printf(NULL,"  %d: 0x%08x\n", n,
+                                                PIXEL_ARGB( palette->entries[n].a,
+                                                            palette->entries[n].r,
+                                                            palette->entries[n].g,
+                                                            palette->entries[n].b ));
+                    }
+                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
+                         buf_p[n3+0] = palette->entries[data8[n]].r;
+                         buf_p[n3+1] = palette->entries[data8[n]].g;
+                         buf_p[n3+2] = palette->entries[data8[n]].b;
+
+                         buf_g[n] = palette->entries[data8[n]].a;
+                    }
+                    break;
+               case DSPF_A8:
+                    direct_memcpy( &buf_g[0], data8, surface->config.size.w );
+                    break;
+               case DSPF_AiRGB:
+                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
+                         buf_p[n3+0] = (data32[n] & 0xFF0000) >> 16;
+                         buf_p[n3+1] = (data32[n] & 0x00FF00) >>  8;
+                         buf_p[n3+2] = (data32[n] & 0x0000FF);
+
+                         buf_g[n] = ~(data32[n] >> 24);
+                    }
+                    break;
+               case DSPF_ARGB:
+                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
+                         buf_p[n3+0] = (data32[n] & 0xFF0000) >> 16;
+                         buf_p[n3+1] = (data32[n] & 0x00FF00) >>  8;
+                         buf_p[n3+2] = (data32[n] & 0x0000FF);
+
+                         buf_g[n] = data32[n] >> 24;
+                    }
+                    break;
+               case DSPF_ARGB1555:
+                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
+                         buf_p[n3+0] = (data16[n] & 0x7C00) >> 7;
+                         buf_p[n3+1] = (data16[n] & 0x03E0) >> 2;
+                         buf_p[n3+2] = (data16[n] & 0x001F) << 3;
+
+                         buf_g[n] = (data16[n] & 0x8000) ? 0xff : 0x00;
+                    }
+                    break;
+               case DSPF_RGB555:
+                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
+                         buf_p[n3+0] = (data16[n] & 0x7C00) >> 7;
+                         buf_p[n3+1] = (data16[n] & 0x03E0) >> 2;
+                         buf_p[n3+2] = (data16[n] & 0x001F) << 3;
+                    }
+                    break;
+
+               case DSPF_ARGB2554:
+                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
+                         buf_p[n3+0] = (data16[n] & 0x3E00) >> 6;
+                         buf_p[n3+1] = (data16[n] & 0x01F0) >> 1;
+                         buf_p[n3+2] = (data16[n] & 0x000F) << 4;
+
+                         switch (data16[n] >> 14) {
+                              case 0:
+                                   buf_g[n] = 0x00;
+                                   break;
+                              case 1:
+                                   buf_g[n] = 0x55;
+                                   break;
+                              case 2:
+                                   buf_g[n] = 0xAA;
+                                   break;
+                              case 3:
+                                   buf_g[n] = 0xFF;
+                                   break;
+                         }
+                    }
+                    break;
+               case DSPF_ARGB4444:
+                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
+                         buf_p[n3+0] = (data16[n] & 0x0F00) >> 4;
+                         buf_p[n3+1] = (data16[n] & 0x00F0);
+                         buf_p[n3+2] = (data16[n] & 0x000F) << 4;
+
+                         buf_g[n]  = (data16[n] >> 12);
+                         buf_g[n] |= buf_g[n] << 4;
+                    }
+                    break;
+              case DSPF_RGB444:
+                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
+                         buf_p[n3+0] = (data16[n] & 0x0F00) >> 4;
+                         buf_p[n3+1] = (data16[n] & 0x00F0);
+                         buf_p[n3+2] = (data16[n] & 0x000F) << 4;
+                    }
+                    break;
+               case DSPF_RGB332:
+                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
+                         buf_p[n3+0] = lookup3to8[ (data8[n] >> 5)        ];
+                         buf_p[n3+1] = lookup3to8[ (data8[n] >> 2) & 0x07 ];
+                         buf_p[n3+2] = lookup2to8[ (data8[n]     ) & 0x03 ];
+                    }
+                    break;
+               case DSPF_RGB16:
+                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
+                         buf_p[n3+0] = (data16[n] & 0xF800) >> 8;
+                         buf_p[n3+1] = (data16[n] & 0x07E0) >> 3;
+                         buf_p[n3+2] = (data16[n] & 0x001F) << 3;
+                    }
+                    break;
+               case DSPF_RGB24:
+                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
+#ifdef WORDS_BIGENDIAN
+                         buf_p[n3+0] = data8[n3+0];
+                         buf_p[n3+1] = data8[n3+1];
+                         buf_p[n3+2] = data8[n3+2];
+#else
+                         buf_p[n3+0] = data8[n3+2];
+                         buf_p[n3+1] = data8[n3+1];
+                         buf_p[n3+2] = data8[n3+0];
+#endif
+                    }
+                    break;
+               case DSPF_RGB32:
+                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
+                         buf_p[n3+0] = (data32[n] & 0xFF0000) >> 16;
+                         buf_p[n3+1] = (data32[n] & 0x00FF00) >>  8;
+                         buf_p[n3+2] = (data32[n] & 0x0000FF);
+                    }
+                    break;
+               case DSPF_YUY2:
+                    for (n=0, n3=0; n<surface->config.size.w/2; n++, n3+=6) {
+                         register u32 y0, cb, y1, cr;
+                         y0 = (data32[n] & 0x000000FF);
+                         cb = (data32[n] & 0x0000FF00) >>  8;
+                         y1 = (data32[n] & 0x00FF0000) >> 16;
+                         cr = (data32[n] & 0xFF000000) >> 24;
+                         YCBCR_TO_RGB( y0, cb, cr,
+                                       buf_p[n3+0], buf_p[n3+1], buf_p[n3+2] );
+                         YCBCR_TO_RGB( y1, cb, cr,
+                                       buf_p[n3+3], buf_p[n3+4], buf_p[n3+5] );
+                    }
+                    break;
+               case DSPF_UYVY:
+                    for (n=0, n3=0; n<surface->config.size.w/2; n++, n3+=6) {
+                         register u32 y0, cb, y1, cr;
+                         cb = (data32[n] & 0x000000FF);
+                         y0 = (data32[n] & 0x0000FF00) >>  8;
+                         cr = (data32[n] & 0x00FF0000) >> 16;
+                         y1 = (data32[n] & 0xFF000000) >> 24;
+                         YCBCR_TO_RGB( y0, cb, cr,
+                                       buf_p[n3+0], buf_p[n3+1], buf_p[n3+2] );
+                         YCBCR_TO_RGB( y1, cb, cr,
+                                       buf_p[n3+3], buf_p[n3+4], buf_p[n3+5] );
+                    }
+                    break;
+               default:
+                    D_BUG( "unexpected pixelformat" );
+                    break;
+          }
+
+          /* Write color buffer to pixmap file. */
+          if (rgb)
+#ifdef USE_ZLIB
+               gzwrite( gz_p, buf_p, surface->config.size.w * 3 );
+#else
+               write( fd_p, buf_p, surface->config.size.w * 3 );
+#endif
+
+          /* Write alpha buffer to graymap file. */
+          if (alpha)
+#ifdef USE_ZLIB
+               gzwrite( gz_g, buf_g, surface->config.size.w );
+#else
+               write( fd_g, buf_g, surface->config.size.w );
+#endif
+     }
+
+     /* Unlock the surface buffer. */
+     dfb_surface_buffer_unlock( &lock );
+
+     /* Release the palette. */
+     if (palette)
+          dfb_palette_unref( palette );
+
+#ifdef USE_ZLIB
+     if (rgb)
+          gzclose( gz_p );
+
+     if (alpha)
+          gzclose( gz_g );
+#endif
+
+     /* Close pixmap file. */
+     if (rgb)
+          close( fd_p );
+
+     /* Close graymap file. */
+     if (alpha)
+          close( fd_g );
 
      return DFB_OK;
 }
