@@ -157,7 +157,9 @@ direct_thread_create( DirectThreadType      thread_type,
                       void                 *arg,
                       const char           *name )
 {
-     DirectThread *thread;
+     DirectThread       *thread;
+     pthread_attr_t      attr;
+     struct sched_param  param;
 
      D_ASSERT( thread_main != NULL );
      D_ASSERT( name != NULL );
@@ -193,8 +195,31 @@ direct_thread_create( DirectThreadType      thread_type,
 
      D_MAGIC_SET( thread, DirectThread );
 
+     /* Adjust scheduling priority. */
+     switch (thread->type) {
+          case DTT_CLEANUP:
+          case DTT_INPUT:
+          case DTT_OUTPUT:
+          case DTT_MESSAGING:
+          case DTT_CRITICAL:
+               param.sched_priority = thread->type;
+               break;
+
+          default:
+               param.sched_priority = 0;
+               break;
+     }
+
+     pthread_attr_init( &attr );
+
+     pthread_attr_setinheritsched( &attr, PTHREAD_EXPLICIT_SCHED );
+     pthread_attr_setschedpolicy( &attr, SCHED_OTHER );
+     pthread_attr_setschedparam( &attr, &param );
+
      /* Create and run the thread. */
-     pthread_create( &thread->thread, NULL, direct_thread_main, thread );
+     pthread_create( &thread->thread, &attr, direct_thread_main, thread );
+
+     pthread_attr_destroy( &attr );
 
 #ifdef DIRECT_THREAD_WAIT_INIT
      D_HEAVYDEBUG( "Direct/Thread: Waiting for thread to run...\n" );
@@ -508,20 +533,6 @@ direct_thread_main( void *arg )
 
      /* Have all signals handled by the main thread. */
      direct_signals_block_all();
-
-     /* Adjust scheduling priority. */
-     switch (thread->type) {
-          case DTT_CLEANUP:
-          case DTT_INPUT:
-          case DTT_OUTPUT:
-          case DTT_MESSAGING:
-          case DTT_CRITICAL:
-               setpriority( PRIO_PROCESS, 0, thread->type );
-               break;
-
-          default:
-               break;
-     }
 
 #ifdef DIRECT_THREAD_WAIT_INIT
      /* Indicate that our initialization has completed. */
