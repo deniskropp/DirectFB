@@ -1,0 +1,132 @@
+Renesas SH7722 graphics driver
+==============================
+
+This driver supports the SH7722 SoC from Renesas Solutions Corp. controlling
+- LCDC (LCD Controller) for display
+- BEU (Blit Engine Unit) for blending of planes
+- TDG (2D Graphics) for accelerated operations
+
+It's using a kernel device called sh7722gfx which mainly does interrupt handling.
+
+The 2D Graphics unit supports display lists in RAM and reads them via DMA. These
+lists consist of double word entries, first word designates a register, second
+word contains the data to write. Once a list has been completely processed, the
+hardware generates an interrupt to start the next list.
+
+The kernel module allocates a ring buffer for usage as a display list. The user
+space prepares a block of commands and puts it into the ring buffer. If the hardware
+is idle, it's started directly from user space. When a DMA completion interrupt
+is received, the next block of commands is started from kernel space. If the
+hardware is still running the previous block, new commands are appended to the
+next one. The driver is designed to run without any locking or system calls. Only
+a few interrupts happen over time depending on the operations. The hardware is not
+getting idle, while commands are being sent to keep it busy. There's just a minimal
+gap which is the interrupt handler setting the new start address and kicking the
+hardware again.
+
+To build the kernel module use "make -f Makefile.kernel". You might want to set
+the variables KERNEL_SOURCE, KERNEL_BUILD (if != KERNEL_SOURCE), KERNEL_VERSION
+and DESTDIR.
+
+To run the driver you need the DevMem system module using the directfbrc.sh7722
+file (renamed to directfbrc in $prefix/etc).
+
+
+Performance (as of 2007-09-20, multi app)
+-----------------------------------------
+
+Benchmarking with 256x256 in 16bit mode... (16bit)
+                                                                                CPU load
+Anti-aliased Text                              3.020 secs (   41.721 KChars/sec) [100%]
+Anti-aliased Text (blend)                      3.328 secs (   10.817 KChars/sec) [100%]
+Fill Rectangle                                 5.549 secs (*  69.681 MPixel/sec) [  3%]
+Fill Rectangle (blend)                        11.873 secs (*  22.079 MPixel/sec) [  1%]
+Fill Rectangles [10]                           9.384 secs (*  69.838 MPixel/sec) [  0%]
+Fill Rectangles [10] (blend)                  14.836 secs (*  22.086 MPixel/sec) [  0%]
+Fill Triangles                                 3.024 secs (+  50.929 MPixel/sec) [ 40%]
+Fill Triangles (blend)                         3.064 secs (+  20.319 MPixel/sec) [  8%]
+Draw Rectangle                                 3.284 secs (*   6.942 KRects/sec) [ 26%]
+Draw Rectangle (blend)                         3.302 secs (*   6.268 KRects/sec) [ 25%]
+Draw Lines [10]                                3.238 secs (*  28.103 KLines/sec) [ 20%]
+Draw Lines [10] (blend)                        3.198 secs (*  27.829 KLines/sec) [ 19%]
+Fill Spans                                     3.092 secs (*  61.466 MPixel/sec) [ 33%]
+Fill Spans (blend)                             3.094 secs (*  21.181 MPixel/sec) [ 11%]
+Blit                                          10.436 secs (*  30.143 MPixel/sec) [  2%]
+Blit colorkeyed                                9.333 secs (*  32.301 MPixel/sec) [  2%]
+Blit destination colorkeyed                    3.763 secs (    6.966 MPixel/sec) [ 99%]
+Blit with format conversion                   13.369 secs (*  22.549 MPixel/sec) [  1%]
+Blit with colorizing                           4.419 secs (    2.966 MPixel/sec) [100%]
+Blit from 32bit (blend)                       21.973 secs (*  13.123 MPixel/sec) [  1%]
+Blit from 32bit (blend) with colorizing        5.129 secs (    1.277 MPixel/sec) [100%]
+Stretch Blit                                  10.271 secs (*  33.463 MPixel/sec) [  3%]
+Stretch Blit colorkeyed                        7.895 secs (*  35.159 MPixel/sec) [  3%]
+
+(*) SH7722/BLT: 940 starts, 940 done, 940 interrupts, 43 wait_idle, 780 wait_next, 89 idle
+(*) SH7722/BLT: 24700744 words, 26277 words/start, 277536 words/idle, 10 starts/idle
+
+* = accelerated
++ = half way accelerated
+
+
+Statistics
+----------
+
+The statistics at the end are more valuable when looking at one case at a time:
+
+Fill Rectangle                                 5.834 secs (*  69.647 MPixel/sec) [  4%]
+
+(*) SH7722/BLT: 16 starts, 16 done, 16 interrupts, 4 wait_idle, 2 wait_next, 11 idle
+(*) SH7722/BLT: 74840 words, 4677 words/start, 6803 words/idle, 1 starts/idle
+
+This means that while the FillRectangle() benchmark was running, the hardware
+didn't get idle, which is obvious when running the benchmark for just 10 ms:
+
+Benchmarking with 256x256 in 16bit mode... (16bit)
+
+Fill Rectangle                                 0.191 secs (*  68.624 MPixel/sec) [ 10%]
+
+(*) SH7722/BLT: 13 starts, 13 done, 13 interrupts, 4 wait_idle, 0 wait_next, 11 idle
+(*) SH7722/BLT: 2840 words, 218 words/start, 258 words/idle, 1 starts/idle
+
+See? The same number of times becoming idle, but a few less interrupts. Don't
+worry about the 191 ms the benchmark needed to complete, after 10 ms of stuffing
+the display list, we need to wait until the hardware is done before measuring
+the time it took and calculating the result.
+
+Here's FillSpans() which as opposed to FillRectangle() does a lot of small commands:
+
+Fill Spans                                     3.028 secs (*  61.467 MPixel/sec) [ 34%]
+
+(*) SH7722/BLT: 245 starts, 245 done, 245 interrupts, 3 wait_idle, 185 wait_next, 22 idle
+(*) SH7722/BLT: 5828128 words, 23788 words/start, 264914 words/idle, 11 starts/idle
+
+
+Example kernel log (debug mode)
+-------------------------------
+
+0.549.014 - sh7722_reset     : Resetting hardware...
+0.549.046 - sh7722_reset     : Initializing shared area...
+0.549.748 - sh7722_reset     : Clearing interrupts...
+0.549.770 - sh7722_reset     : Ready        (   idle, hw     0-    0, next     0-    0, invalid, HC 0000000, INT 000000)
+0.568.700 - sh7722_wait      : Waiting..... (running, hw     0-   54, next    56-   56, invalid, HC 1010111, INT 000000)
+0.573.339 - sh7722_tdg_irq   : -Interrupt   (running, hw     0-   54, next    56-   56, invalid, HC 0000000, INT 100100)
+0.573.397 - sh7722_tdg_irq   :  '-> Idle.   (running, hw     0-   54, next    56-   56, invalid, HC 0000000, INT 000000)
+0.573.480 - sh7722_wait      : ........done (   idle, hw     0-   54, next    56-   56, invalid, HC 0000000, INT 000000)
+0.583.575 - sh7722_wait      : Waiting..... (running, hw    56-   78, next    80-   80, invalid, HC 1010111, INT 000000)
+0.588.414 - sh7722_tdg_irq   : -Interrupt   (running, hw    56-   78, next    80-   80, invalid, HC 0000000, INT 100100)
+0.588.470 - sh7722_tdg_irq   :  '-> Idle.   (running, hw    56-   78, next    80-   80, invalid, HC 0000000, INT 000000)
+0.588.544 - sh7722_wait      : ........done (   idle, hw    56-   78, next    80-   80, invalid, HC 0000000, INT 000000)
+0.601.336 - sh7722_tdg_irq   : -Interrupt   (running, hw    80-  102, next   104-  104, invalid, HC 0000000, INT 100100)
+0.601.420 - sh7722_tdg_irq   :  '-> Idle.   (running, hw    80-  102, next   104-  104, invalid, HC 0000000, INT 000000)
+0.700.117 - sh7722_tdg_irq   : -Interrupt   (running, hw   104-  124, next   128-  128, invalid, HC 0000000, INT 100100)
+0.700.205 - sh7722_tdg_irq   :  '-> Idle.   (running, hw   104-  124, next   128-  128, invalid, HC 0000000, INT 000000)
+3.115.419 - sh7722_tdg_irq   : -Interrupt   (running, hw   128-  220, next   224-  224, invalid, HC 0000000, INT 100100)
+3.115.506 - sh7722_tdg_irq   :  '-> Idle.   (running, hw   128-  220, next   224-  224, invalid, HC 0000000, INT 000000)
+3.151.700 - sh7722_tdg_irq   : -Interrupt   (running, hw   224-  324, next   328-  328, invalid, HC 0000000, INT 100100)
+3.151.788 - sh7722_tdg_irq   :  '-> Idle.   (running, hw   224-  324, next   328-  328, invalid, HC 0000000, INT 000000)
+3.159.160 - sh7722_wait      : Waiting..... (running, hw   328-  444, next   448-12994,   valid, HC 1010111, INT 000100)
+3.161.783 - sh7722_tdg_irq   : -Interrupt   (running, hw   328-  444, next   448-12994,   valid, HC 0000000, INT 100100)
+3.161.839 - sh7722_tdg_irq   :  '-> Start!  (running, hw   448-12994, next 12996-12996, invalid, HC 0000000, INT 000000)
+4.316.367 - sh7722_tdg_irq   : -Interrupt   (running, hw   448-12994, next 12996-12996, invalid, HC 0000000, INT 100100)
+4.316.434 - sh7722_tdg_irq   :  '-> Idle.   (running, hw   448-12994, next 12996-12996, invalid, HC 0000000, INT 000000)
+4.316.505 - sh7722_wait      : ........done (   idle, hw   448-12994, next 12996-12996, invalid, HC 0000000, INT 000000)

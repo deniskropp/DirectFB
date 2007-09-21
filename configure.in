@@ -873,6 +873,7 @@ nvidia=no
 omap=no
 radeon=no
 savage=no
+sh7722=no
 sis315=no
 tdfx=no
 unichrome=no
@@ -887,7 +888,7 @@ AC_ARG_WITH(gfxdrivers,
 [                            'all' builds all drivers (default), 'none' builds none ]
 [                            Possible gfxdrivers are: ]
 [                            ati128, cle266, cyber5k, i810, i830, mach64, matrox,]
-[                            neomagic, nsc, nvidia, omap, radeon, savage,]
+[                            neomagic, nsc, nvidia, omap, radeon, savage, sh7722,]
 [                            sis315, tdfx, unichrome, vmware], gfxdrivers="$withval",[gfxdrivers="all"])
 
 if test "$gfxdrivers" = "all"; then
@@ -904,6 +905,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_omap="$have_arm"
   checkfor_radeon=yes
   checkfor_savage=no
+  checkfor_sh7722=yes
   checkfor_sis315=no
   checkfor_tdfx=no
   checkfor_unichrome=no
@@ -953,6 +955,9 @@ else
                   ;;
           savage)
                   checkfor_savage=yes
+                  ;;
+          sh7722)
+                  checkfor_sh7722=yes
                   ;;
           sis315)
                   checkfor_sis315=yes
@@ -1026,6 +1031,10 @@ fi
 
 if test "$checkfor_savage" = "yes" && test "$have_sysio" = "yes"; then
   savage=yes
+fi
+
+if test "$checkfor_sh7722" = "yes"; then
+  sh7722=yes
 fi
 
 if test "$checkfor_sis315" = "yes"; then
@@ -1341,6 +1350,7 @@ AM_CONDITIONAL(GFX_NVIDIA, test "$nvidia" = "yes")
 AM_CONDITIONAL(GFX_OMAP, test "$omap" = "yes")
 AM_CONDITIONAL(GFX_RADEON, test "$radeon" = "yes")
 AM_CONDITIONAL(GFX_SAVAGE, test "$savage" = "yes")
+AM_CONDITIONAL(GFX_SH7722, test "$sh7722" = "yes")
 AM_CONDITIONAL(GFX_SIS315, test "$sis315" = "yes")
 AM_CONDITIONAL(GFX_TDFX, test "$tdfx" = "yes")
 AM_CONDITIONAL(GFX_UNICHROME, test "$unichrome" = "yes")
@@ -1509,6 +1519,7 @@ gfxdrivers/nvidia/Makefile
 gfxdrivers/omap/Makefile
 gfxdrivers/radeon/Makefile
 gfxdrivers/savage/Makefile
+gfxdrivers/sh7722/Makefile
 gfxdrivers/sis315/Makefile
 gfxdrivers/tdfx/Makefile
 gfxdrivers/unichrome/Makefile
@@ -1622,6 +1633,7 @@ Building Graphics Drivers:
   NeoMagic                  $neomagic
   NSC Geode                 $nsc
   nVidia                    $nvidia
+  Renesas SH7722            $sh7722
   S3 Savage                 $savage
   SiS 315                   $sis315
   TI OMAP                   $omap
