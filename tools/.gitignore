@@ -21,3 +21,4 @@ raw16toraw24
 raw32toraw24
 *.o
 *.o
+*.nm
