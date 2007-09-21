@@ -1,0 +1,30 @@
+KERNEL_SOURCE  = /home/taki/AP325/linux-2.6.21.1
+KERNEL_BUILD   = $(KERNEL_SOURCE)
+KERNEL_VERSION = 2.6.21.1
+
+DESTDIR = /export/nfs/ap325/rootfs
+
+
+ifeq ($(shell test -e $(KERNEL_BUILD)/include/linux/autoconf.h && echo yes),yes)
+  AUTOCONF_H = -include $(KERNEL_BUILD)/include/linux/autoconf.h
+endif
+  
+ifeq ($(shell test -e $(KERNEL_BUILD)/include/linux/config.h && echo yes),yes)
+  CPPFLAGS += -DHAVE_LINUX_CONFIG_H
+endif
+    
+
+all:
+	make -C $(KERNEL_SOURCE) \
+		CPPFLAGS="$(CPPFLAGS) -D__KERNEL__ -I`pwd`/kernel-module -I$(KERNEL_BUILD)/include -I$(KERNEL_SOURCE)/include $(AUTOCONF_H)" \
+		SUBDIRS="`pwd`/kernel-module" modules
+
+clean:
+	rm -rf kernel-module/*.*o kernel-module/.*.*o* kernel-module/*.mod.c kernel-module/.tmp_versions
+
+install: all
+	install -v -m 0755 -d $(DESTDIR)/lib/modules/$(KERNEL_VERSION)/renesas
+	install -v -m 0644 kernel-module/sh7722gfx.ko $(DESTDIR)/lib/modules/$(KERNEL_VERSION)/renesas/
+
+
+.PHONY: all clean

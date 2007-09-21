@@ -8,3 +8,4 @@ dtest
 build.h
 direct.pc
 *.o
+*.o

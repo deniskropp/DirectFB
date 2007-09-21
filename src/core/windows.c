@@ -504,7 +504,7 @@ dfb_window_destroy( CoreWindow *window )
 {
      DFBWindowEvent   evt;
      CoreWindowStack *stack;
-     BoundWindow     *bound;
+     BoundWindow     *bound, *next;
 
      D_ASSERT( window != NULL );
      D_ASSERT( DFB_WINDOW_INITIALIZED( window ) );
@@ -530,17 +530,12 @@ dfb_window_destroy( CoreWindow *window )
      }
 
      /* Unbind bound windows. */
-     bound = window->bound_windows;
-     while (bound) {
-          BoundWindow *next = (BoundWindow*)bound->link.next;
-
-          direct_list_remove( (DirectLink**)&window->bound_windows, &bound->link );
+     direct_list_foreach_safe (bound, next, window->bound_windows) {
+          direct_list_remove( &window->bound_windows, &bound->link );
 
           bound->window->boundto = NULL;
 
           SHFREE( stack->shmpool, bound );
-
-          bound = next;
      }
 
      /* Unbind this window. */
@@ -1054,7 +1049,7 @@ dfb_window_bind( CoreWindow *window,
      bound->x      = x;
      bound->y      = y;
 
-     direct_list_append( (DirectLink**)&window->bound_windows, &bound->link );
+     direct_list_append( &window->bound_windows, &bound->link );
 
      source->boundto = window;
 
@@ -1092,7 +1087,7 @@ dfb_window_unbind( CoreWindow *window,
 
      direct_list_foreach (bound, window->bound_windows) {
           if (bound->window == source) {
-               direct_list_remove( (DirectLink**)&window->bound_windows, &bound->link );
+               direct_list_remove( &window->bound_windows, &bound->link );
 
                bound->window->boundto = NULL;
 

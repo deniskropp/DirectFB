@@ -1244,7 +1244,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
 
           if (value) {
                char *stackings = D_STRDUP( value );
-               char *p, *r, *s = stackings;
+               char *p = NULL, *r, *s = stackings;
 
                while ((r = strtok_r( s, ",", &p ))) {
                     direct_trim( &r );
@@ -1337,7 +1337,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "dont-catch" ) == 0) {
           if (value) {
                char *signals   = D_STRDUP( value );
-               char *p, *r, *s = signals;
+               char *p = NULL, *r, *s = signals;
 
                while ((r = strtok_r( s, ",", &p ))) {
                     char          *error;

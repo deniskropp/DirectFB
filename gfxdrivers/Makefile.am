@@ -78,6 +78,12 @@ else
 SAVAGE_DIR =
 endif
 
+if GFX_SH7722
+SH7722_DIR = sh7722
+else
+SH7722_DIR =
+endif
+
 if GFX_SIS315
 SIS315_DIR = sis315
 else
@@ -116,6 +122,7 @@ SUBDIRS = \
 	$(OMAP_DIR)	\
 	$(RADEON_DIR)	\
 	$(SAVAGE_DIR)	\
+	$(SH7722_DIR)	\
 	$(SIS315_DIR)	\
 	$(TDFX_DIR)	\
 	$(UNICHROME_DIR) \

@@ -8382,7 +8382,7 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
                if (stretch_indexed) {
                     int             i;
                     u32             colors[256];
-                    u16            *colors16 = (u16*) colors;
+                    u16            *colors16 = (u16*) (void*)colors;
                     const DFBColor *entries  = gfxs->Blut->entries;
                     DFBRegion       clip     = state->clip;
 

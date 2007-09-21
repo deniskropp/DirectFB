@@ -1,0 +1,9 @@
+system = devmem
+
+video-phys   = f800000
+video-length = 8388608
+
+mmio-phys    = fd000000
+mmio-length  = 33554432
+
+accelerator  = 11591

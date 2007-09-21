@@ -36,10 +36,11 @@
 
 #if HAVE_ASM_PAGE_H
 #include <asm/page.h>
-#else
-#define PAGE_SIZE   sysconf( _SC_PAGESIZE )
 #endif
 
+#ifndef PAGE_SIZE
+#define PAGE_SIZE   sysconf( _SC_PAGESIZE )
+#endif
 
 #if DIRECT_BUILD_GETTID && defined(HAVE_LINUX_UNISTD_H)
 #include <linux/unistd.h>
@@ -63,5 +64,13 @@ long
 direct_pagesize()
 {
      return PAGE_SIZE;
+}
+
+unsigned long
+direct_page_align( unsigned long value )
+{
+     unsigned long mask = PAGE_SIZE - 1;
+
+     return (value + mask) & ~mask;
 }
 
