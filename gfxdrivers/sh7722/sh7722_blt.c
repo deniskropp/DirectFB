@@ -1028,8 +1028,8 @@ sh7722DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      prep[7] = WR_CTRL_LINE;
 
      if (rect->h > 1 && rect->w > 1) {
-          prep[8] = BEM_WR_V2;
-          prep[9] = (y2 << 16) | x2;
+          prep[8]  = BEM_WR_V2;
+          prep[9]  = (y2 << 16) | x2;
           prep[10] = BEM_WR_CTRL;
           prep[11] = WR_CTRL_POLYLINE;
 
@@ -1046,6 +1046,7 @@ sh7722DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
           submit_buffer( sdrv, 20 );
      }
      else {
+          prep[3]  = (y2 << 16) | x2;
           prep[7] |= WR_CTRL_ENDPOINT;
 
           submit_buffer( sdrv, 8 );
