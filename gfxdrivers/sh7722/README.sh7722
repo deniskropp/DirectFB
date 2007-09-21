@@ -83,8 +83,6 @@ Fill Rectangle                                 5.834 secs (*  69.647 MPixel/sec)
 This means that while the FillRectangle() benchmark was running, the hardware
 didn't get idle, which is obvious when running the benchmark for just 10 ms:
 
-Benchmarking with 256x256 in 16bit mode... (16bit)
-
 Fill Rectangle                                 0.191 secs (*  68.624 MPixel/sec) [ 10%]
 
 (*) SH7722/BLT: 13 starts, 13 done, 13 interrupts, 4 wait_idle, 0 wait_next, 11 idle
