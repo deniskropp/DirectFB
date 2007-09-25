@@ -73,6 +73,9 @@ Stretch Blit colorkeyed                        7.895 secs (*  35.159 MPixel/sec)
 Performance (as of 2007-09-25, multi app, 127.79 BogoMIPS)
 ----------------------------------------------------------
 
+Only 13% CPU load with df_andi running 800x480 at 28.8 fps :)
+Only 46% CPU load with ClanBomber2 running 800x600 at 48 fps :)
+
 Benchmarking with 256x256 in 16bit mode... (16bit)
                                                                                 CPU load
 Anti-aliased Text                              3.057 secs (*  98.920 KChars/sec) [ 47%] !
