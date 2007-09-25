@@ -196,6 +196,12 @@ driver_init_device( CoreGraphicsDevice *device,
      device_info->caps.drawing  = SH7722_SUPPORTED_DRAWINGFLAGS;
      device_info->caps.blitting = SH7722_SUPPORTED_BLITTINGFLAGS;
 
+     /* Change font format for acceleration. */
+     if (!dfb_config->software_only) {
+          dfb_config->font_format  = DSPF_ARGB;
+          dfb_config->font_premult = false;
+     }
+
      /* Reset the drawing engine. */
      sh7722EngineReset( sdrv, sdev );
 

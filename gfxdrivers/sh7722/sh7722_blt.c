@@ -48,20 +48,21 @@ D_DEBUG_DOMAIN( SH7722_StartStop, "SH7722/StartStop", "Renesas SH7722 Drawing St
  * There's no prefix because of the macros below.
  */
 enum {
-     DEST       = 0x00000001,
-     CLIP       = 0x00000002,
-     SOURCE     = 0x00000004,
+     DEST         = 0x00000001,
+     CLIP         = 0x00000002,
+     SOURCE       = 0x00000004,
 
-     COLOR1     = 0x00000010,
+     COLOR1       = 0x00000010,
 
-     FGC        = 0x00000100,
-     COLOR_KEY  = 0x00000200,
+     FGC          = 0x00000100,
+     COLOR_KEY    = 0x00000200,
+     COLOR_CHANGE = 0x00000400,
 
-     BLEND_SRCF = 0x00001000,
-     BLEND_DSTF = 0x00002000,
-     FIXEDALPHA = 0x00004000,
+     BLEND_SRCF   = 0x00001000,
+     BLEND_DSTF   = 0x00002000,
+     FIXEDALPHA   = 0x00004000,
 
-     ALL        = 0x00007317
+     ALL          = 0x00007717
 };
 
 /*
@@ -502,6 +503,31 @@ sh7722_validate_COLOR_KEY( SH7722DriverData *sdrv,
 }
 
 static inline void
+sh7722_validate_COLOR_CHANGE( SH7722DriverData *sdrv,
+                              SH7722DeviceData *sdev,
+                              CardState        *state )
+{
+     __u32 *prep = start_buffer( sdrv, 6 );
+
+     prep[0] = BEM_PE_COLORCHANGE;
+     prep[1] = COLORCHANGE_COMPARE_FIRST | COLORCHANGE_EXCLUDE_UNUSED;
+
+     prep[2] = BEM_PE_COLORCHANGE_0;
+     prep[3] = 0xffffff;
+
+     prep[4] = BEM_PE_COLORCHANGE_1;
+     prep[5] = PIXEL_ARGB( state->color.a,
+                           state->color.r,
+                           state->color.g,
+                           state->color.b );
+
+     submit_buffer( sdrv, 6 );
+
+     /* Set the flag. */
+     SH7722_VALIDATE( COLOR_CHANGE );
+}
+
+static inline void
 sh7722_validate_FIXEDALPHA( SH7722DriverData *sdrv,
                             SH7722DeviceData *sdev,
                             CardState        *state )
@@ -627,6 +653,21 @@ invalidate_ckey( SH7722DriverData *sdrv, SH7722DeviceData *sdev )
      sdev->ckey_b_enabled = false;
 
      SH7722_INVALIDATE( COLOR_KEY );
+}
+
+static void
+invalidate_color_change( SH7722DriverData *sdrv, SH7722DeviceData *sdev )
+{
+     __u32 *prep = start_buffer( sdrv, 2 );
+
+     prep[0] = BEM_PE_COLORCHANGE;
+     prep[1] = COLORCHANGE_DISABLE;
+
+     submit_buffer( sdrv, 2 );
+
+     sdev->color_change_enabled = false;
+
+     SH7722_INVALIDATE( COLOR_CHANGE );
 }
 
 /**********************************************************************************************************************/
@@ -876,7 +917,7 @@ sh7722SetState( void                *drv,
 
           /* Invalidate color register. */
           if (modified & SMF_COLOR)
-               SH7722_INVALIDATE( COLOR1 | FGC | FIXEDALPHA );
+               SH7722_INVALIDATE( COLOR1 | FGC | FIXEDALPHA | COLOR_CHANGE );
 
           /* Invalidate blend functions. */
           if (modified & SMF_SRC_BLEND)
@@ -953,6 +994,17 @@ sh7722SetState( void                *drv,
                /* Disable color keying? */
                else if (sdev->ckey_b_enabled)
                     invalidate_ckey( sdrv, sdev );
+
+               /* Use color change? */
+               if (state->blittingflags & DSBLIT_COLORIZE) {
+                    /* Need valid color change settings (enabling). */
+                    SH7722_CHECK_VALIDATE( COLOR_CHANGE );
+
+                    sdev->color_change_enabled = true;
+               }
+               /* Disable color change? */
+               else if (sdev->color_change_enabled)
+                    invalidate_color_change( sdrv, sdev );
 
                /*
                 * 3) Tell which functions can be called without further validation, i.e. SetState()

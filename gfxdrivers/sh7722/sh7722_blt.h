@@ -16,7 +16,8 @@
 
 #define SH7722_SUPPORTED_BLITTINGFLAGS     (DSBLIT_BLEND_ALPHACHANNEL | \
                                             DSBLIT_SRC_COLORKEY       | \
-                                            DSBLIT_ROTATE180)
+                                            DSBLIT_ROTATE180          | \
+                                            DSBLIT_COLORIZE)
 
 #define SH7722_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT | \
                                             DFXL_STRETCHBLIT)
@@ -83,6 +84,8 @@ bool sh7722StretchBlit      ( void *drv, void *dev, DFBRectangle *srect, DFBRect
 #define	BEM_PE_CKEY_A              (0x01048)
 #define	BEM_PE_COLORCHANGE         (0x01050)
 #define	BEM_PE_ALPHA               (0x01058)
+#define	BEM_PE_COLORCHANGE_0       (0x01060)
+#define	BEM_PE_COLORCHANGE_1       (0x01064)
 #define	BEM_PE_OPERATION           (0x01080)
 #define	BEM_PE_FIXEDALPHA		   (0x01084)
 #define	BEM_PE_CACHE               (0x010B0)
@@ -152,6 +155,13 @@ bool sh7722StretchBlit      ( void *drv, void *dev, DFBRectangle *srect, DFBRect
 #define CKEY_EXCLUDE_ALPHA         0x00010000
 #define CKEY_A_ENABLE              0x00000100
 #define CKEY_B_ENABLE              0x00000001
+
+/*
+ * BEM_PE_COLORCHANGE
+ */
+#define COLORCHANGE_DISABLE        0x00000000
+#define COLORCHANGE_COMPARE_FIRST  0x0000000b
+#define COLORCHANGE_EXCLUDE_UNUSED 0x00010000
 
 /*
  * BEM_WR_CTRL
