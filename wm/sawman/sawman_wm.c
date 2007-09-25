@@ -804,6 +804,9 @@ process_updates( SaWMan              *sawman,
                     if (dfb_layer_context_test_configuration( tier->context, &config, NULL ) != DFB_OK)
                          goto no_single;
 
+                    if (!tier->single_mode)
+                         tier->key = tier->context->primary.config.src_key;
+
                     tier->single_mode     = true;
                     tier->single_window   = single;
                     tier->single_width    = single->src.w;
@@ -811,8 +814,6 @@ process_updates( SaWMan              *sawman,
                     tier->single_format   = surface->config.format;
                     tier->single_options  = options;
                     tier->single_location = location;
-
-                    tier->key = tier->context->primary.config.src_key;
 
                     if (tier->active) {
                          tier->active = false;
@@ -824,15 +825,16 @@ process_updates( SaWMan              *sawman,
 
                     dfb_layer_context_set_screenrectangle( tier->context, &rect );
 
-                    if (options & DLOP_SRC_COLORKEY) {
-                         if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format )) {
-                              int          index;
-                              CorePalette *palette = surface->palette;
+                    if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format )) {
+                         CorePalette *palette = surface->palette;
 
-                              D_ASSERT( palette != NULL );
-                              D_ASSERT( palette->num_entries > 0 );
+                         D_ASSERT( palette != NULL );
+                         D_ASSERT( palette->num_entries > 0 );
 
-                              index = window->config.color_key % palette->num_entries;
+                         dfb_surface_set_palette( tier->region->surface, surface->palette );
+
+                         if (options & DLOP_SRC_COLORKEY) {
+                              int index = window->config.color_key % palette->num_entries;
 
                               dfb_layer_context_set_src_colorkey( tier->context,
                                                                   palette->entries[index].r,
@@ -840,27 +842,15 @@ process_updates( SaWMan              *sawman,
                                                                   palette->entries[index].b,
                                                                   index );
                          }
-                         else {
-                              DFBColor color;
-
-                              dfb_pixel_to_color( surface->config.format, window->config.color_key, &color );
-
-                              dfb_layer_context_set_src_colorkey( tier->context,
-                                                                  color.r, color.g, color.b,
-                                                                  window->config.color_key );
-                         }
                     }
+                    else {
+                         DFBColor color;
 
-                    if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format )) {
-                         CoreSurface *region_surface;
+                         dfb_pixel_to_color( surface->config.format, window->config.color_key, &color );
 
-                         D_ASSERT( surface->palette != NULL );
-
-                         if (dfb_layer_region_get_surface( tier->region, &region_surface ) == DFB_OK) {
-                              dfb_surface_set_palette( region_surface, surface->palette );
-
-                              dfb_surface_unref( region_surface );
-                         }
+                         dfb_layer_context_set_src_colorkey( tier->context,
+                                                             color.r, color.g, color.b,
+                                                             window->config.color_key );
                     }
 
                     DFBRectangle src = single->src;
@@ -933,7 +923,31 @@ no_single:
                DFBLocation location = { 0, 0, 1, 1 };
                dfb_layer_context_set_screenlocation( tier->context, &location );
 
-               dfb_layer_context_set_src_colorkey( tier->context, tier->key.r, tier->key.g, tier->key.b, tier->key.index );
+               if (config->options & DLOP_SRC_COLORKEY) {
+                    if (DFB_PIXELFORMAT_IS_INDEXED( config->pixelformat )) {
+                         int          index;
+                         CoreSurface *surface;
+                         CorePalette *palette;
+
+                         surface = tier->region->surface;
+                         D_MAGIC_ASSERT( surface, CoreSurface );
+
+                         palette = surface->palette;
+                         D_ASSERT( palette != NULL );
+                         D_ASSERT( palette->num_entries > 0 );
+
+                         index = tier->key.index % palette->num_entries;
+
+                         dfb_layer_context_set_src_colorkey( tier->context,
+                                                             palette->entries[index].r,
+                                                             palette->entries[index].g,
+                                                             palette->entries[index].b,
+                                                             index );
+                    }
+                    else
+                         dfb_layer_context_set_src_colorkey( tier->context,
+                                                             tier->key.r, tier->key.g, tier->key.b, tier->key.index );
+               }
           }
 
           if (!tier->active) {
