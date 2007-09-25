@@ -75,9 +75,21 @@ smooth_stretchblit( CardState          *state,
      D_ASSERT( state->source != NULL );
      D_ASSERT( state->destination != NULL );
 
+     ret = dfb_surface_lock( state->source );
+     if (ret)
+          return ret;
+
+     ret = dfb_surface_lock( state->destination );
+     if (ret) {
+          dfb_surface_unlock( state->source );
+          return ret;
+     }
+
      source      = dfb_surface_get_buffer( state->source, CSBR_FRONT );
      destination = dfb_surface_get_buffer( state->destination, CSBR_BACK );
      clip        = state->clip;
+
+     ret = DFB_UNSUPPORTED;
 
      switch (destination->format) {
           case DSPF_RGB16:
@@ -85,29 +97,32 @@ smooth_stretchblit( CardState          *state,
                     case DSPF_RGB16:
                          if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                               if (!algo->func_rgb16_keyed)
-                                   return DFB_UNSUPPORTED;
+                                   goto error;
                          }
                          else if (!algo->func_rgb16)
-                              return DFB_UNSUPPORTED;
+                              goto error;
 
                          break;
 
                     case DSPF_LUT8:
                          D_ASSERT( state->source->palette != NULL );
 
+                         if (state->blittingflags & DSBLIT_SRC_COLORKEY)
+                              goto error;
+
                          if (!algo->func_rgb16_indexed)
-                              return DFB_UNSUPPORTED;
+                              goto error;
 
                          break;
 
                     case DSPF_RGB32:
                          if (!algo->func_rgb16_from32)
-                              return DFB_UNSUPPORTED;
+                              goto error;
 
                          break;
 
                     default:
-                         return DFB_UNSUPPORTED;
+                         goto error;
                }
                break;
 
@@ -115,31 +130,31 @@ smooth_stretchblit( CardState          *state,
                switch (source->format) {
                     case DSPF_ARGB4444:
                          if (!algo->func_argb4444)
-                              return DFB_UNSUPPORTED;
+                              goto error;
 
                          break;
 
                     default:
-                         return DFB_UNSUPPORTED;
+                         goto error;
                }
                break;
 
           default:
-               return DFB_UNSUPPORTED;
+               goto error;
      }
 
 
      ret = dfb_surface_buffer_lock( source, CSAF_CPU_READ, &slock );
      if (ret) {
           D_DERROR( ret, "SaWMan/Draw: %s(): Could not lock source buffer!\n", __FUNCTION__ );
-          return ret;
+          goto error;
      }
 
      ret = dfb_surface_buffer_lock( destination, CSAF_CPU_WRITE, &dlock );
      if (ret) {
           D_DERROR( ret, "SaWMan/Draw: %s(): Could not lock source buffer!\n", __FUNCTION__ );
           dfb_surface_buffer_unlock( &slock );
-          return ret;
+          goto error;
      }
 
      src = slock.addr + DFB_BYTES_PER_LINE( source->format, sr->x ) + sr->y * slock.pitch;
@@ -191,7 +206,17 @@ smooth_stretchblit( CardState          *state,
      dfb_surface_buffer_unlock( &dlock );
      dfb_surface_buffer_unlock( &slock );
 
+     dfb_surface_unlock( state->destination );
+     dfb_surface_unlock( state->source );
+
      return DFB_OK;
+
+
+error:
+     dfb_surface_unlock( state->destination );
+     dfb_surface_unlock( state->source );
+
+     return ret;
 }
 
 /**********************************************************************************************************************/
