@@ -10,6 +10,7 @@
 #define SH7722_SUPPORTED_DRAWINGFLAGS      (DSDRAW_BLEND)
 
 #define SH7722_SUPPORTED_DRAWINGFUNCTIONS  (DFXL_FILLRECTANGLE | \
+                                            DFXL_FILLTRIANGLE  | \
                                             DFXL_DRAWRECTANGLE | \
                                             DFXL_DRAWLINE)
 
@@ -35,6 +36,7 @@ void sh7722SetState         ( void *drv, void *dev,
                               CardState *state, DFBAccelerationMask accel );
 
 bool sh7722FillRectangle    ( void *drv, void *dev, DFBRectangle *rect );
+bool sh7722FillTriangle     ( void *drv, void *dev, DFBTriangle *tri );
 bool sh7722DrawRectangle    ( void *drv, void *dev, DFBRectangle *rect );
 bool sh7722DrawLine         ( void *drv, void *dev, DFBRegion *line );
 bool sh7722Blit             ( void *drv, void *dev, DFBRectangle *rect, int x, int y );
@@ -98,6 +100,7 @@ bool sh7722StretchBlit      ( void *drv, void *dev, DFBRectangle *srect, DFBRect
 #define BE_CTRL_BLTDIR_AUTOMATIC   0x00000200
 
 #define BE_CTRL_TEXTURE            0x00000020
+#define BE_CTRL_QUADRANGLE         0x00000002
 #define BE_CTRL_RECTANGLE          0x00000001
 
 /*

@@ -134,6 +134,7 @@ driver_init_driver( CoreGraphicsDevice  *device,
      funcs->CheckState        = sh7722CheckState;
      funcs->SetState          = sh7722SetState;
      funcs->FillRectangle     = sh7722FillRectangle;
+     funcs->FillTriangle      = sh7722FillTriangle;
      funcs->DrawRectangle     = sh7722DrawRectangle;
      funcs->DrawLine          = sh7722DrawLine;
      funcs->Blit              = sh7722Blit;
@@ -166,8 +167,8 @@ driver_init_device( CoreGraphicsDevice *device,
      D_DEBUG_AT( SH7722_Driver, "%s()\n", __FUNCTION__ );
 
      /* Setup LCD buffer. */
-     sdev->lcd_width  = SH7722_LCD_WIDTH; //800;
-     sdev->lcd_height = SH7722_LCD_HEIGHT; //480;
+     sdev->lcd_width  = SH7722_LCD_WIDTH;
+     sdev->lcd_height = SH7722_LCD_HEIGHT;
      sdev->lcd_pitch  = sdev->lcd_width * 2;
      sdev->lcd_offset = dfb_gfxcard_reserve_memory( device, sdev->lcd_pitch * sdev->lcd_height );
 
@@ -189,7 +190,7 @@ driver_init_device( CoreGraphicsDevice *device,
      device_info->limits.surface_bytepitch_alignment  = 8;
 
      /* Set device capabilities. */
-     device_info->caps.flags    = 0;
+     device_info->caps.flags    = CCF_CLIPPING;
      device_info->caps.accel    = SH7722_SUPPORTED_DRAWINGFUNCTIONS |
                                   SH7722_SUPPORTED_BLITTINGFUNCTIONS;
      device_info->caps.drawing  = SH7722_SUPPORTED_DRAWINGFLAGS;

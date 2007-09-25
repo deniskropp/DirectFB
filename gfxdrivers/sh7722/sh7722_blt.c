@@ -728,6 +728,25 @@ sh7722EmitCommands( void *drv, void *dev )
      flush_prepared( drv );
 }
 
+void
+sh7722FlushTextureCache( void *drv, void *dev )
+{
+     SH7722DriverData *sdrv = drv;
+     __u32            *prep = start_buffer( sdrv, 4 );
+
+     D_DEBUG_AT( SH7722_BLT, "%s()\n", __FUNCTION__ );
+
+     DUMP_INFO();
+
+     prep[0] = BEM_PE_CACHE;
+     prep[1] = 3;
+
+     prep[2] = BEM_TE_INVALID;
+     prep[3] = 1;
+
+     submit_buffer( sdrv, 4 );
+}
+
 /**********************************************************************************************************************/
 
 void
@@ -879,10 +898,11 @@ sh7722SetState( void                *drv,
      /* Depending on the function... */
      switch (accel) {
           case DFXL_FILLRECTANGLE:
+          case DFXL_FILLTRIANGLE:
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
                /* ...require valid color. */
-               if (accel == DFXL_FILLRECTANGLE)
+               if (accel == DFXL_FILLRECTANGLE || accel == DFXL_FILLTRIANGLE)
                     SH7722_CHECK_VALIDATE( COLOR1 );
                else
                     SH7722_CHECK_VALIDATE( FGC );
@@ -996,6 +1016,49 @@ sh7722FillRectangle( void *drv, void *dev, DFBRectangle *rect )
      return true;
 }
 
+/*
+ * Render a filled triangle using the current hardware state.
+ */
+bool
+sh7722FillTriangle( void *drv, void *dev, DFBTriangle *tri )
+{
+     SH7722DriverData *sdrv = drv;
+     SH7722DeviceData *sdev = dev;
+     __u32            *prep = start_buffer( sdrv, 12 );
+
+     D_DEBUG_AT( SH7722_BLT, "%s( %d,%d - %d,%d - %d,%d )\n", __FUNCTION__,
+                 tri->x1, tri->y1, tri->x2, tri->y2, tri->x3, tri->y3 );
+     DUMP_INFO();
+
+     prep[0] = BEM_BE_V1;
+     prep[1] = (tri->y1 << 16) | tri->x1;
+
+     prep[2] = BEM_BE_V2;
+     prep[3] = (tri->y2 << 16) | tri->x2;
+
+     prep[4] = BEM_BE_V3;
+     prep[5] = (tri->y3 << 16) | tri->x3;
+
+     prep[6] = BEM_BE_V4;
+     prep[7] = (tri->y3 << 16) | tri->x3;
+
+     prep[8] = BEM_PE_OPERATION;
+     prep[9] = (sdev->dflags & DSDRAW_BLEND) ? (BLE_FUNC_AxB_plus_CxD |
+                                                sdev->ble_srcf |
+                                                BLE_SRCA_FIXED |
+                                                sdev->ble_dstf) : BLE_FUNC_NONE;
+
+     prep[10] = BEM_BE_CTRL;
+     prep[11] = BE_CTRL_QUADRANGLE | BE_CTRL_SCANMODE_LINE;
+
+     submit_buffer( sdrv, 12 );
+
+     return true;
+}
+
+/*
+ * Render rectangle outlines using the current hardware state.
+ */
 bool
 sh7722DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
@@ -1055,6 +1118,9 @@ sh7722DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      return true;
 }
 
+/*
+ * Render a line using the current hardware state.
+ */
 bool
 sh7722DrawLine( void *drv, void *dev, DFBRegion *line )
 {
@@ -1125,6 +1191,9 @@ sh7722DoBlit( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
      return true;
 }
 
+/*
+ * Blit a rectangle using the current hardware state.
+ */
 bool
 sh7722Blit( void *drv, void *dev, DFBRectangle *rect, int x, int y )
 {
@@ -1137,6 +1206,9 @@ sh7722Blit( void *drv, void *dev, DFBRectangle *rect, int x, int y )
      return sh7722DoBlit( sdrv, sdev, rect, x, y, rect->w, rect->h );
 }
 
+/*
+ * StretchBlit a rectangle using the current hardware state.
+ */
 bool
 sh7722StretchBlit( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *drect )
 {
@@ -1147,24 +1219,5 @@ sh7722StretchBlit( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *drec
                  __FUNCTION__, DFB_RECTANGLE_VALS( srect ), DFB_RECTANGLE_VALS( drect ) );
 
      return sh7722DoBlit( sdrv, sdev, srect, drect->x, drect->y, drect->w, drect->h );
-}
-
-void
-sh7722FlushTextureCache( void *drv, void *dev )
-{
-     SH7722DriverData *sdrv = drv;
-     __u32            *prep = start_buffer( sdrv, 4 );
-
-     D_DEBUG_AT( SH7722_BLT, "%s()\n", __FUNCTION__ );
-
-     DUMP_INFO();
-
-     prep[0] = BEM_PE_CACHE;
-     prep[1] = 3;
-
-     prep[2] = BEM_TE_INVALID;
-     prep[3] = 1;
-
-     submit_buffer( sdrv, 4 );
 }
 
