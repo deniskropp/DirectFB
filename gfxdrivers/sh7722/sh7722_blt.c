@@ -867,6 +867,10 @@ sh7722CheckState( void                *drv,
                     return;
           }
 
+          /* Return if colorizing for non-font surfaces is requested. */
+          if ((state->blittingflags & DSBLIT_COLORIZE) && !(state->source->type & CSTF_FONT))
+               return;
+
           /* Enable acceleration of blitting functions. */
           state->accel |= SH7722_SUPPORTED_BLITTINGFUNCTIONS;
      }
