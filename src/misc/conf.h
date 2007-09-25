@@ -194,6 +194,8 @@ typedef struct
      unsigned long mmio_phys;                     /* Physical base address of MMIO area */
      unsigned int  mmio_length;                   /* Size of MMIO area */
      int           accelerator;                   /* Accelerator ID */
+
+     bool          font_premult;                  /* Use premultiplied data in case of ARGB glyph images */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

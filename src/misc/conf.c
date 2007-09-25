@@ -101,6 +101,7 @@ static const char *config_usage =
      "  [no-]agp[=<mode>]              Enable AGP support\n"
      "  [no-]thrifty-surface-buffers   Free sysmem instance on xfer to video memory\n"
      "  font-format=<pixelformat>      Set the preferred font format\n"
+     "  [no-]font-premult              Enable/disable premultiplied glyph images in ARGB format\n"
      "  dont-catch=<num>[[,<num>]...]  Don't catch these signals\n"
      "  [no-]sighandler                Enable signal handler\n"
      "  [no-]deinit-check              Enable deinit check at exit\n"
@@ -397,6 +398,7 @@ static void config_allocate()
      dfb_config->vt_switching             = true;
      dfb_config->kd_graphics              = true;
      dfb_config->translucent_windows      = true;
+     dfb_config->font_premult             = true;
      dfb_config->mouse_motion_compression = true;
      dfb_config->mouse_gpm_source         = false;
      dfb_config->mouse_source             = D_STRDUP( DEV_NAME );
@@ -588,6 +590,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
                D_ERROR("DirectFB/Config 'font-format': No format specified!\n");
                return DFB_INVARG;
           }
+     } else
+     if (strcmp (name, "font-premult" ) == 0) {
+          dfb_config->font_premult = true;
+     } else
+     if (strcmp (name, "no-font-premult" ) == 0) {
+          dfb_config->font_premult = false;
      } else
      if (strcmp (name, "session" ) == 0) {
           if (value) {
