@@ -1183,7 +1183,9 @@ sh7722DoBlit( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
      prep[10] = BEM_BE_CTRL;
      prep[11] = BE_CTRL_RECTANGLE | BE_CTRL_TEXTURE | BE_CTRL_SCANMODE_4x4;
 
-     if (rect->w == w && rect->h == h)
+     if (sdev->bflags & DSBLIT_ROTATE180)
+          prep[11] |= BE_FLIP_BOTH;
+     else if (rect->w == w && rect->h == h)
           prep[11] |= BE_CTRL_BLTDIR_AUTOMATIC;
 
      submit_buffer( sdrv, 12 );

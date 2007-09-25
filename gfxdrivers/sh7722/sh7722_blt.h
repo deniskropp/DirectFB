@@ -15,7 +15,8 @@
                                             DFXL_DRAWLINE)
 
 #define SH7722_SUPPORTED_BLITTINGFLAGS     (DSBLIT_BLEND_ALPHACHANNEL | \
-                                            DSBLIT_SRC_COLORKEY)
+                                            DSBLIT_SRC_COLORKEY       | \
+                                            DSBLIT_ROTATE180)
 
 #define SH7722_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT | \
                                             DFXL_STRETCHBLIT)
@@ -89,6 +90,11 @@ bool sh7722StretchBlit      ( void *drv, void *dev, DFBRectangle *srect, DFBRect
 /*
  * BEM_BE_CTRL
  */
+#define BE_FLIP_NONE               0x00000000
+#define BE_FLIP_HORIZONTAL         0x01000000
+#define BE_FLIP_VERTICAL           0x02000000
+#define BE_FLIP_BOTH               0x03000000
+
 #define BE_CTRL_CLIP               0x00080000
 
 #define BE_CTRL_SCANMODE_LINE      0x00000000
