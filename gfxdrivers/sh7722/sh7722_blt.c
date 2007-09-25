@@ -871,6 +871,10 @@ sh7722CheckState( void                *drv,
           if ((state->blittingflags & DSBLIT_COLORIZE) && !(state->source->type & CSTF_FONT))
                return;
 
+          /* Return if blending with both alpha channel and value is requested. */
+          if (D_FLAGS_ARE_SET( state->blittingflags, DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA))
+               return;
+
           /* Enable acceleration of blitting functions. */
           state->accel |= SH7722_SUPPORTED_BLITTINGFUNCTIONS;
      }
@@ -986,6 +990,12 @@ sh7722SetState( void                *drv,
                     /* need valid source and destination blend factors */
                     SH7722_CHECK_VALIDATE( BLEND_SRCF );
                     SH7722_CHECK_VALIDATE( BLEND_DSTF );
+               }
+
+               /* Use alpha value from color? */
+               if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
+                    /* need valid fixed alpha */
+                    SH7722_CHECK_VALIDATE( FIXEDALPHA );
                }
 
                /* Use color keying? */
@@ -1231,10 +1241,25 @@ sh7722DoBlit( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
      prep[7] = (h << 16) | w;
 
      prep[8] = BEM_PE_OPERATION;
-     prep[9] = (sdev->bflags & DSBLIT_BLEND_ALPHACHANNEL) ? (BLE_FUNC_AxB_plus_CxD |
-                                                             sdev->ble_srcf |
-                                                             BLE_SRCA_SOURCE_ALPHA |
-                                                             sdev->ble_dstf) : BLE_FUNC_NONE;
+     prep[9] = BLE_FUNC_NONE;
+
+     if (sdev->bflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
+          prep[9] |= BLE_FUNC_AxB_plus_CxD | sdev->ble_srcf | sdev->ble_dstf;
+
+          switch (sdev->bflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
+               case DSBLIT_BLEND_ALPHACHANNEL:
+                    prep[9] |= BLE_SRCA_SOURCE_ALPHA;
+                    break;
+
+               case DSBLIT_BLEND_COLORALPHA:
+                    prep[9] |= BLE_SRCA_FIXED;
+                    break;
+
+               case DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA:
+                    prep[9] |= BLE_SRCA_ALPHA_CHANNEL;      /* does not work */
+                    break;
+          }
+     }
 
      prep[10] = BEM_BE_CTRL;
      prep[11] = BE_CTRL_RECTANGLE | BE_CTRL_TEXTURE | BE_CTRL_SCANMODE_4x4;

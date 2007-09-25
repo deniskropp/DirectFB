@@ -15,6 +15,7 @@
                                             DFXL_DRAWLINE)
 
 #define SH7722_SUPPORTED_BLITTINGFLAGS     (DSBLIT_BLEND_ALPHACHANNEL | \
+                                            DSBLIT_BLEND_COLORALPHA   | \
                                             DSBLIT_SRC_COLORKEY       | \
                                             DSBLIT_ROTATE180          | \
                                             DSBLIT_COLORIZE)
@@ -70,6 +71,8 @@ bool sh7722StretchBlit      ( void *drv, void *dev, DFBRectangle *srect, DFBRect
 #define	BEM_TE_SRC_BASE            (0x00C04)
 #define	BEM_TE_SRC_SIZE            (0x00C08)
 #define	BEM_TE_SRC_CNV             (0x00C0C)
+#define	BEM_TE_MASK                (0x00C10)
+#define	BEM_TE_ALPHA               (0x00C28)
 #define	BEM_TE_FILTER              (0x00C30)
 #define	BEM_TE_INVALID             (0x00C40)
 
@@ -87,7 +90,8 @@ bool sh7722StretchBlit      ( void *drv, void *dev, DFBRectangle *srect, DFBRect
 #define	BEM_PE_COLORCHANGE_0       (0x01060)
 #define	BEM_PE_COLORCHANGE_1       (0x01064)
 #define	BEM_PE_OPERATION           (0x01080)
-#define	BEM_PE_FIXEDALPHA		   (0x01084)
+#define	BEM_PE_FIXEDALPHA          (0x01084)
+#define	BEM_PE_OFFSET              (0x01088)
 #define	BEM_PE_CACHE               (0x010B0)
 
 /*
