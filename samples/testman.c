@@ -289,6 +289,8 @@ MosaicRelayout( TestManager *tm,
           D_ASSERT( corewindow != NULL );
 
           corewindow->config.bounds = bounds[i];
+
+          sawman_update_geometry( window );
      }
 
      manager->QueueUpdate( manager, DWSC_MIDDLE, NULL );
