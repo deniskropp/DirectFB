@@ -148,6 +148,7 @@ typedef struct
                                                      the primary surface. */
 
      bool      linux_input_ir_only;               /* Ignore non-IR devices. */
+     bool      linux_input_grab;                  /* Grab input devices. */
 
      struct {
           char *host;                             /* Remote host to connect to. */

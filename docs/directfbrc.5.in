@@ -347,6 +347,11 @@ without a Meta key on the keyboard (e.g. Window key).
 Ignore all non-IR Linux Input devices.
 
 .TP
+.BI [no-]linux-input-grab
+Grab Linux Input devices. When a device is grabbed only DirectFB
+will receive events from it. The default is to grab.
+
+.TP
 .BI [no-]cursor
 By default DirectFB shows a mouse cursor when an application makes use
 of windows. This option allows to switch the cursor off permanently.

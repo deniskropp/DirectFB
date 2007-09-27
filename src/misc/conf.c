@@ -118,6 +118,7 @@ static const char *config_usage =
      "  [no-]lefty                     Swap left and right mouse buttons\n"
      "  [no-]capslock-meta             Map the CapsLock key to Meta\n"
      "  linux-input-ir-only            Ignore all non-IR Linux Input devices\n"
+     "  [no-]linux-input-grab          Grab Linux Input devices?\n"
      "  [no-]cursor                    Never create a cursor\n"
      "  wm=<wm>                        Window manager module ('default' or 'unique')\n"
      "  init-layer=<id>                Initialize layer with ID (following layer- options apply)\n"
@@ -402,6 +403,7 @@ static void config_allocate()
      dfb_config->mouse_motion_compression = true;
      dfb_config->mouse_gpm_source         = false;
      dfb_config->mouse_source             = D_STRDUP( DEV_NAME );
+     dfb_config->linux_input_grab         = true;
      dfb_config->window_policy            = -1;
      dfb_config->buffer_mode              = -1;
      dfb_config->wm                       = D_STRDUP( "default" );
@@ -856,6 +858,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "linux-input-ir-only" ) == 0) {
           dfb_config->linux_input_ir_only = true;
+     } else
+     if (strcmp (name, "linux-input-grab" ) == 0) {
+          dfb_config->linux_input_grab = true;
+     } else
+     if (strcmp (name, "no-linux-input-grab" ) == 0) {
+          dfb_config->linux_input_grab = false;
      } else
      if (strcmp (name, "motion-compression" ) == 0) {
           dfb_config->mouse_motion_compression = true;

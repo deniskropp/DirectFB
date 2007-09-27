@@ -1065,17 +1065,20 @@ driver_get_available()
                bool touchpad;
 
                /* try to grab the device */
-               /* 2.4 kernels don't have EVIOCGRAB so ignore EINVAL */
-               if (ioctl( fd, EVIOCGRAB, 1 ) && errno != EINVAL) {
-                    close( fd );
-                    continue;
+               if (dfb_config->linux_input_grab) {
+                    /* 2.4 kernels don't have EVIOCGRAB so ignore EINVAL */
+                    if (ioctl( fd, EVIOCGRAB, 1 ) && errno != EINVAL) {
+                         close( fd );
+                         continue;
+                    }
                }
 
                memset( &info, 0, sizeof(InputDeviceInfo) );
 
                get_device_info( fd, &info, &touchpad );
 
-               ioctl( fd, EVIOCGRAB, 0 );
+               if (dfb_config->linux_input_grab)
+                    ioctl( fd, EVIOCGRAB, 0 );
                close( fd );
 
                if (!dfb_config->linux_input_ir_only ||
@@ -1134,12 +1137,14 @@ driver_open_device( CoreInputDevice  *device,
      }
 
      /* grab device */
-     ret = ioctl( fd, EVIOCGRAB, 1 );
-     /* 2.4 kernels don't have EVIOCGRAB so ignore EINVAL */
-     if (ret && errno != EINVAL) {
-          D_PERROR( "DirectFB/linux_input: could not grab device" );
-          close( fd );
-          return DFB_INIT;
+     if (dfb_config->linux_input_grab) {
+          ret = ioctl( fd, EVIOCGRAB, 1 );
+          /* 2.4 kernels don't have EVIOCGRAB so ignore EINVAL */
+          if (ret && errno != EINVAL) {
+               D_PERROR( "Direc      tFB/linux_input: could not grab device" );
+               close( fd );
+               return DFB_INIT;
+          }
      }
 
      /* fill device info structure */
@@ -1169,7 +1174,8 @@ driver_open_device( CoreInputDevice  *device,
           ret = ioctl( fd, EVIOCGLED(sizeof(data->led_state)), data->led_state );
           if (ret < 0) {
                D_PERROR( "DirectFB/linux_input: could not get LED state" );
-               ioctl( fd, EVIOCGRAB, 0 );
+               if (dfb_config->linux_input_grab)
+                    ioctl( fd, EVIOCGRAB, 0 );
                close( fd );
                D_FREE( data );
                return DFB_INIT;
@@ -1278,7 +1284,8 @@ driver_close_device( void *driver_data )
      }
 
      /* release device */
-     ioctl( data->fd, EVIOCGRAB, 0 );
+     if (dfb_config->linux_input_grab)
+          ioctl( data->fd, EVIOCGRAB, 0 );
 
      /* close file */
      close( data->fd );
