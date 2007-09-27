@@ -140,8 +140,9 @@ devmemJoinPool( CoreDFB                    *core,
                void                       *pool_local,
                void                       *system_data )
 {
-     DevMemPoolData      *data  = pool_data;
-     DevMemPoolLocalData *local = pool_local;
+     DevMemPoolData      *data   = pool_data;
+     DevMemPoolLocalData *local  = pool_local;
+     DevMemData          *devmem = system_data;
 
      D_DEBUG_AT( DevMem_Surfaces, "%s()\n", __FUNCTION__ );
 
@@ -149,10 +150,13 @@ devmemJoinPool( CoreDFB                    *core,
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( data, DevMemPoolData );
      D_ASSERT( local != NULL );
+     D_ASSERT( devmem != NULL );
+     D_ASSERT( devmem->shared != NULL );
 
      (void) data;
 
      local->core = core;
+     local->mem  = devmem->mem;
 
      D_MAGIC_SET( local, DevMemPoolLocalData );
 
