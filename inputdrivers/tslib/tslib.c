@@ -48,6 +48,8 @@
 
 #include <core/input_driver.h>
 
+#include <misc/conf.h>
+
 DFB_INPUT_DRIVER( tslib )
 
 typedef struct {
@@ -59,7 +61,7 @@ typedef struct {
 #define MAX_TSLIB_DEVICES 16
 
 static int num_devices = 0;
-static int device_nums[MAX_TSLIB_DEVICES];
+static char *device_names[MAX_TSLIB_DEVICES];
 
 static void *
 tslibEventThread( DirectThread *thread, void *driver_data )
@@ -120,6 +122,25 @@ tslibEventThread( DirectThread *thread, void *driver_data )
      return NULL;
 }
 
+static bool
+check_device( const char *device )
+{
+     struct tsdev *ts;
+
+     ts = ts_open( device, 0 );
+     if (!ts)
+          return false;
+
+     if (ts_config( ts )) {
+          ts_close( ts );
+          return false;
+     }
+
+     ts_close( ts );
+
+     return true;
+}
+
 /* exported symbols */
 
 static int
@@ -127,24 +148,26 @@ driver_get_available(void)
 {
      int i;
 
+     /* Use the devices specified in the configuration. */
+     if (fusion_vector_has_elements( &dfb_config->tslib_devices )) {
+          const char *device;
+
+          fusion_vector_foreach (device, i, dfb_config->tslib_devices) {
+               if (check_device( device ))
+                    device_names[num_devices++] = D_STRDUP( device );
+          }
+
+          return num_devices;
+     }
+
+     /* No devices specified. Try to guess some. */
      for (i = 0; i < MAX_TSLIB_DEVICES; i++) {
-          struct tsdev *ts;
           char buf[32];
 
           snprintf( buf, 32, "/dev/input/tslib%d", i );
 
-          ts = ts_open( buf, 0 );
-          if (!ts)
-               continue;
-
-          if (ts_config( ts )) {
-               ts_close( ts );
-               continue;
-          }
-
-          ts_close( ts );
-
-          device_nums[num_devices++] = i;
+          if (check_device( buf ))
+               device_names[num_devices++] = D_STRDUP( buf );
      }
 
      return num_devices;
@@ -173,22 +196,19 @@ driver_open_device( CoreInputDevice  *device,
                     InputDeviceInfo  *info,
                     void            **driver_data )
 {
-     char buf[32];
      tslibData *data;
      struct tsdev *ts;
 
-     snprintf( buf, 32, "/dev/input/tslib%d", device_nums[number] );
-
      /* open device */
-     ts = ts_open( buf, 0 );
+     ts = ts_open( device_names[number], 0 );
      if (!ts) {
-          D_ERROR( "DirectFB/tslib: Error opening `%s'!\n", buf );
+          D_ERROR( "DirectFB/tslib: Error opening `%s'!\n", device_names[number] );
           return DFB_INIT;
      }
 
      /* configure device */
      if (ts_config( ts )) {
-          D_ERROR( "DirectFB/tslib: Error configuring `%s'!\n", buf );
+          D_ERROR( "DirectFB/tslib: Error configuring `%s'!\n", device_names[number] );
           ts_close( ts );
           return DFB_INIT;
      }

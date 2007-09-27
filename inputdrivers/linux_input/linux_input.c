@@ -151,7 +151,7 @@ typedef struct {
 #define MAX_LINUX_INPUT_DEVICES 16
 
 static int num_devices = 0;
-static int device_nums[MAX_LINUX_INPUT_DEVICES];
+static char *device_names[MAX_LINUX_INPUT_DEVICES];
 
 
 static const
@@ -1032,6 +1032,45 @@ get_device_info( int              fd,
           info->prefered_id = DIDID_ANY;
 }
 
+static bool
+check_device( const char *device )
+{
+     int  fd;
+
+     /* Check if we are able to open the device */
+     fd = open( device, O_RDWR );
+     if (fd < 0) {
+          return false;
+     }
+     else {
+          InputDeviceInfo info;
+          bool touchpad;
+
+          /* try to grab the device */
+          if (dfb_config->linux_input_grab) {
+               /* 2.4 kernels don't have EVIOCGRAB so ignore EINVAL */
+               if (ioctl( fd, EVIOCGRAB, 1 ) && errno != EINVAL) {
+                    close( fd );
+                    return false;
+               }
+          }
+
+          memset( &info, 0, sizeof(InputDeviceInfo) );
+
+          get_device_info( fd, &info, &touchpad );
+
+          if (dfb_config->linux_input_grab)
+               ioctl( fd, EVIOCGRAB, 0 );
+          close( fd );
+
+          if (!dfb_config->linux_input_ir_only ||
+              (info.desc.type & DIDTF_REMOTE))
+               return true;
+     }
+
+     return false;
+}
+
 /* exported symbols */
 
 /*
@@ -1048,43 +1087,26 @@ driver_get_available()
           return 0;
 #endif
 
+     /* Use the devices specified in the configuration. */
+     if (fusion_vector_has_elements( &dfb_config->linux_input_devices )) {
+          const char *device;
+
+          fusion_vector_foreach (device, i, dfb_config->linux_input_devices) {
+               if (check_device( device ))
+                    device_names[num_devices++] = D_STRDUP( device );
+          }
+
+          return num_devices;
+     }
+
+     /* No devices specified. Try to guess some. */
      for (i=0; i<MAX_LINUX_INPUT_DEVICES; i++) {
-          int  fd;
           char buf[32];
 
           snprintf( buf, 32, "/dev/input/event%d", i );
 
-          /* Check if we are able to open the device */
-          fd = open( buf, O_RDWR );
-          if (fd < 0) {
-             if (errno == ENODEV)
-                  break;
-          }
-          else {
-               InputDeviceInfo info;
-               bool touchpad;
-
-               /* try to grab the device */
-               if (dfb_config->linux_input_grab) {
-                    /* 2.4 kernels don't have EVIOCGRAB so ignore EINVAL */
-                    if (ioctl( fd, EVIOCGRAB, 1 ) && errno != EINVAL) {
-                         close( fd );
-                         continue;
-                    }
-               }
-
-               memset( &info, 0, sizeof(InputDeviceInfo) );
-
-               get_device_info( fd, &info, &touchpad );
-
-               if (dfb_config->linux_input_grab)
-                    ioctl( fd, EVIOCGRAB, 0 );
-               close( fd );
-
-               if (!dfb_config->linux_input_ir_only ||
-                   (info.desc.type & DIDTF_REMOTE))
-                    device_nums[num_devices++] = i;
-          }
+          if (check_device( buf ))
+               device_names[num_devices++] = D_STRDUP( buf );
      }
 
      return num_devices;
@@ -1119,7 +1141,6 @@ driver_open_device( CoreInputDevice  *device,
                     void            **driver_data )
 {
      int              fd, ret;
-     char             buf[32];
      unsigned long    ledbit[NBITS(LED_MAX)];
      LinuxInputData  *data;
 #ifdef LINUX_INPUT_USE_FBDEV
@@ -1127,10 +1148,8 @@ driver_open_device( CoreInputDevice  *device,
 #endif
      bool             touchpad;
 
-     snprintf( buf, 32, "/dev/input/event%d", device_nums[number] );
-
      /* open device */
-     fd = open( buf, O_RDWR );
+     fd = open( device_names[number], O_RDWR );
      if (fd < 0) {
           D_PERROR( "DirectFB/linux_input: could not open device" );
           return DFB_INIT;

@@ -43,6 +43,7 @@
 #include <direct/util.h>
 
 #include <fusion/conf.h>
+#include <fusion/vector.h>
 
 #include <core/coretypes.h>
 #include <core/surface.h>
@@ -158,6 +159,10 @@ static const char *config_usage =
      "  h3600-device=<device>          Use this device for the H3600 TS driver\n"
      "  mut-device=<device>            Use this device for the MuTouch driver\n"
      "  penmount-device=<device>       Use this device for the PenMount driver\n"
+     "  linux-input-devices=<device>[[,<device>]...]\n"
+     "                                 Use these devices for the Linux Input driver\n"
+     "  tslib-devices=<device>[[,<device>]...]\n"
+     "                                 Use these devices for the tslib driver\n"
      "  unichrome-revision=<rev>       Override unichrome hardware revision\n"
      "  i8xx_overlay_pipe_b            Redirect videolayer to pixelpipe B\n"
      "\n"
@@ -322,6 +327,34 @@ parse_args( const char *args )
      return DFB_OK;
 }
 
+static void config_values_parse( FusionVector *vector, const char *arg )
+{
+     char *values    = D_STRDUP( arg );
+     char *p, *r, *s = values;
+
+     while ((r = strtok_r( s, ",", &p ))) {
+          direct_trim( &r );
+
+          fusion_vector_add( vector, D_STRDUP( r ) );
+
+          s = NULL;
+     }
+
+     D_FREE( values );
+}
+
+static void config_values_free( FusionVector *vector )
+{
+     char *value;
+     int   i;
+
+     fusion_vector_foreach (value, i, *vector)
+          D_FREE( value );
+
+     fusion_vector_destroy( vector );
+     fusion_vector_init( vector, 2, NULL );
+}
+
 /*
  * The following function isn't used because the configuration should
  * only go away if the application is completely terminated. In that case
@@ -420,6 +453,9 @@ static void config_allocate()
      /* default to no-vt-switch if we don't have root privileges */
      if (geteuid())
           dfb_config->vt_switch = false;
+
+     fusion_vector_init( &dfb_config->linux_input_devices, 2, NULL );
+     fusion_vector_init( &dfb_config->tslib_devices, 2, NULL );
 }
 
 const char *dfb_config_usage( void )
@@ -1583,6 +1619,26 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR( "DirectFB/Config: No PenMount device specified!\n" );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "linux-input-devices" ) == 0) {
+          if (value) {
+               config_values_free( &dfb_config->linux_input_devices );
+               config_values_parse( &dfb_config->linux_input_devices, value );
+          }
+          else {
+               D_ERROR( "DirectFB/Config: Missing value for linux-input-devices!\n" );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "tslib-devices" ) == 0) {
+          if (value) {
+               config_values_free( &dfb_config->tslib_devices );
+               config_values_parse( &dfb_config->tslib_devices, value );
+          }
+          else {
+               D_ERROR( "DirectFB/Config: Missing value for tslib-devices!\n" );
                return DFB_INVARG;
           }
      } else

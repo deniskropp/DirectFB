@@ -451,6 +451,14 @@ Use this device for the MuTouch driver.
 Use this device for the PenMount driver.
 
 .TP
+.BI linux-input-devices=<device>[[,<device>]...]
+Use these devices for the Linux Input driver.
+
+.TP
+.BI tslib-devices=<device>[[,<device>]...]
+Use these devices for the tslib driver.
+
+.TP
 .BI unichrome-revision=<revision>
 Override the hardware revision number used by the Unichrome driver.
 
