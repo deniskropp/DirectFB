@@ -730,7 +730,8 @@ process_updates( SaWMan              *sawman,
                if (tier->active) {
                     D_DEBUG_AT( SaWMan_Auto, "  -> Deactivating region...\n" );
 
-                    tier->active = false;
+                    tier->active        = false;
+                    tier->single_window = NULL;
 
                     dfb_layer_region_deactivate( tier->region );
                }
