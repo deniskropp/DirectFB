@@ -687,6 +687,7 @@ get_border_only( SaWMan     *sawman,
      return !none;
 }
 
+/* FIXME: Split up in smaller functions and clean up things like forcing reconfiguration. */
 static DFBResult
 process_updates( SaWMan              *sawman,
                  WMData              *wmdata,
@@ -731,7 +732,7 @@ process_updates( SaWMan              *sawman,
                     D_DEBUG_AT( SaWMan_Auto, "  -> Deactivating region...\n" );
 
                     tier->active        = false;
-                    tier->single_window = NULL;
+                    tier->single_window = NULL;  /* enforce configuration to reallocate buffers */
 
                     dfb_layer_region_deactivate( tier->region );
                }
@@ -740,6 +741,18 @@ process_updates( SaWMan              *sawman,
           }
 
           border_only = get_border_only( sawman, tier );
+
+          /* Remember color key before single mode is activated. */
+          if (!tier->single_mode)
+               tier->key = tier->context->primary.config.src_key;
+
+
+          /* If the first mode after turning off the layer is not single, then we need
+             this to force a reconfiguration to reallocate the buffers. */
+          if (!tier->active) {
+               tier->single_mode = true;               /* avoid endless loop */
+               tier->border_only = !border_only;       /* enforce configuration to reallocate buffers */
+          }
 
           if (single && !border_only) {
                CoreWindow             *window;
@@ -766,6 +779,11 @@ process_updates( SaWMan              *sawman,
 
 #ifdef SAWMAN_NO_LAYER_DOWNSCALE
                if (rect.w < single->src.w)
+                    goto no_single;
+#endif
+
+#ifdef SAWMAN_NO_LAYER_DST_WINDOW
+               if (rect.x != 0 || rect.y != 0 || rect.w != screen_width || rect.h != screen_height)
                     goto no_single;
 #endif
 
@@ -808,9 +826,6 @@ process_updates( SaWMan              *sawman,
                     if (!(layer->shared->description.caps & DLCAPS_SCREEN_SIZE) &&
                         (single->dst.w != single->src.w || single->dst.h != single->src.h))
                          goto no_single;
-
-                    if (!tier->single_mode)
-                         tier->key = tier->context->primary.config.src_key;
 
                     tier->single_mode     = true;
                     tier->single_window   = single;
@@ -897,7 +912,7 @@ no_single:
           if (tier->single_mode) {
                D_DEBUG_AT( SaWMan_Auto, "  -> Switching back from single mode...\n" );
 
-               tier->border_only = !border_only;  /* enforce switch */
+               tier->border_only = !border_only;       /* enforce switch */
           }
 
           /* Switch border/default config? */
