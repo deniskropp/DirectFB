@@ -978,8 +978,11 @@ no_single:
           n = tier->updates.max_regions - tier->updates.num_regions + 1;
           d = n + 1;
 
-          /* FIXME: depend on buffer mode, hw accel etc. */
-          if (total > tier->size.w * tier->size.h * 3 / 5) {
+          /* Try to optimize updates. In buffer swapping modes we can save the copy by updating everything. */
+          if ((total > tier->size.w * tier->size.h) ||
+              (total > tier->size.w * tier->size.h * 3 / 5 && (tier->context->config.buffermode == DLBM_BACKVIDEO ||
+                                                               tier->context->config.buffermode == DLBM_TRIPLE)))
+          {
                DFBRegion region = { 0, 0, tier->size.w - 1, tier->size.h - 1 };
 
                repaint_tier( sawman, tier, &region, 1, flags );
