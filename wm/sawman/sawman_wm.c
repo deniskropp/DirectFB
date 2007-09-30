@@ -804,6 +804,10 @@ process_updates( SaWMan              *sawman,
                     if (dfb_layer_context_test_configuration( tier->context, &config, NULL ) != DFB_OK)
                          goto no_single;
 
+                    if (!(layer->shared->description.caps & DLCAPS_SCREEN_SIZE) &&
+                        (single->dst.w != single->src.w || single->dst.h != single->src.h))
+                         goto no_single;
+
                     if (!tier->single_mode)
                          tier->key = tier->context->primary.config.src_key;
 
