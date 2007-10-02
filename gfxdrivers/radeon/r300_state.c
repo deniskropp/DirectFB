@@ -754,13 +754,6 @@ void r300_set_blitting_color( RadeonDriverData *rdrv,
      if (RADEON_IS_SET( COLOR ) && RADEON_IS_SET( BLITTING_FLAGS ))
           return;
 
-     if (state->blittingflags & DSBLIT_COLORIZE &&
-         state->blittingflags & DSBLIT_SRC_PREMULTCOLOR) {
-          color.r = ((long) color.r * color.a / 255L);
-          color.g = ((long) color.g * color.a / 255L);
-          color.b = ((long) color.b * color.a / 255L);
-     }
-
      switch (rdev->dst_format) {
           case DSPF_A8:
                color.r = color.g = color.b = 0xff;
@@ -786,10 +779,30 @@ void r300_set_blitting_color( RadeonDriverData *rdrv,
                break;
      }
      
-     rdev->color[0] = (float)color.r/255.0;
+     /*rdev->color[0] = (float)color.r/255.0;
      rdev->color[1] = (float)color.g/255.0;
      rdev->color[2] = (float)color.b/255.0;
-     rdev->color[3] = (float)color.a/255.0;
+     rdev->color[3] = (float)color.a/255.0;*/
+
+     if (R300_HAS_3DREGS()) {
+          u32 argb;
+
+          argb = (state->blittingflags & DSBLIT_BLEND_COLORALPHA) ? (color.a << 24) : 0xff000000;
+          if (state->blittingflags & DSBLIT_COLORIZE &&
+              state->blittingflags & (DSBLIT_SRC_PREMULTCOLOR | DSBLIT_BLEND_COLORALPHA)) {
+               argb |= PIXEL_RGB32( (long)color.r * color.a / 255L,
+                                    (long)color.g * color.a / 255L,
+                                    (long)color.b * color.a / 255L );
+          }
+          else {
+               argb |= (state->blittingflags & DSBLIT_COLORIZE)
+                       ? PIXEL_RGB32( color.r, color.g, color.b )
+                       : PIXEL_RGB32( color.a, color.a, color.a );
+          }
+
+          radeon_waitfifo( rdrv, rdev, 1 );
+          radeon_out32( rdrv->mmio_base, R300_RB3D_BLENDCOLOR, argb );
+     }     
      
      RADEON_SET( COLOR );
 }
@@ -963,16 +976,30 @@ void r300_set_blittingflags( RadeonDriverData *rdrv,
      
      if (RADEON_IS_SET( BLITTING_FLAGS ))
           return;
-      
-     if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
-                                 DSBLIT_BLEND_ALPHACHANNEL)) {
-          rb3d_blend = R300_BLEND_ENABLE      | R300_BLEND_UNKNOWN |
-                       R300_BLEND_NO_SEPARATE | rdev->rb3d_blend;
+     
+     if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | 
+                                 DSBLIT_COLORIZE           | DSBLIT_SRC_PREMULTCOLOR)) {
+          rb3d_blend = R300_BLEND_ENABLE | R300_BLEND_UNKNOWN | R300_BLEND_NO_SEPARATE;
+          
+          if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
+               rb3d_blend |= rdev->rb3d_blend;
+          else
+               rb3d_blend |= R300_SRC_BLEND_GL_ONE | R300_DST_BLEND_GL_ZERO;
+
+          if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
+               rb3d_blend &= ~(R300_SRC_BLEND_MASK | R300_DST_BLEND_MASK);
+               rb3d_blend |= R300_SRC_BLEND_GL_CONST_ALPHA |
+                             R300_DST_BLEND_GL_ONE_MINUS_CONST_ALPHA;
+          }
+          if (state->blittingflags & (DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR)) {
+               rb3d_blend &= ~R300_SRC_BLEND_MASK;
+               rb3d_blend |= R300_SRC_BLEND_GL_CONST_COLOR;
+          }
      }
      else {
           rb3d_blend = R300_SRC_BLEND_GL_ONE | R300_DST_BLEND_GL_ZERO;
      }
-
+     
      if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
           txfilter1 |= R300_CHROMA_KEY_FORCE;
           cmp_cntl   = SRC_CMP_EQ_COLOR | CLR_CMP_SRC_SOURCE;

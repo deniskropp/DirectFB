@@ -138,6 +138,12 @@ typedef struct {
      /* faked texture for YUV422 drawing functions */
      u32                     yuv422_buffer;
      
+     /* vertex buffer */
+     u32                     vb[1024];
+     u32                     vb_size;
+     u32                     vb_count;
+     u32                     vb_type;
+     
      /* for fifo/performance monitoring */
      unsigned int            fifo_space;
      
@@ -177,13 +183,17 @@ extern DisplayLayerFuncs  RadeonCrtc2LayerFuncs;
 /* utility function */
 static __inline__ u32 f2d( float f )
 {
-     union {
-          float f;
-          u32 d;
-     } tmp;
+     union { float f; u32 d; } tmp;
      tmp.f = f;
      return tmp.d;
-}     
+}
+
+static __inline__ float d2f( u32 d )
+{
+     union { float f; u32 d; } tmp;
+     tmp.d = d;
+     return tmp.f;
+}
 
 
 #endif /* __RADEON_H__ */

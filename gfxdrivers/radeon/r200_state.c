@@ -626,7 +626,7 @@ void r200_set_blend_function( RadeonDriverData *rdrv,
           else if (dblend == DST_BLEND_GL_ONE_MINUS_DST_ALPHA)
                dblend = DST_BLEND_GL_ZERO;
      }
-
+     
      radeon_waitfifo( rdrv, rdev, 1 ); 
      radeon_out32( mmio, RB3D_BLENDCNTL, sblend | dblend );
      
