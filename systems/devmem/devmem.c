@@ -66,7 +66,7 @@ MapMemAndReg( DevMemData    *data,
 {
      int fd;
 
-     fd = open( "/dev/mem", O_RDWR | O_SYNC );
+     fd = open( DEV_MEM, O_RDWR | O_SYNC );
      if (fd < 0) {
           D_PERROR( "System/DevMem: Opening '%s' failed!\n", DEV_MEM );
           return DFB_INIT;
