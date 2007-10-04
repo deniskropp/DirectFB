@@ -131,6 +131,18 @@ sh7722TestRegion( CoreLayer                  *layer,
      if (config->height < 32 || config->height > 1024)
           fail |= CLRCF_HEIGHT;
 
+     if (config->dest.x >= SH7722_LCD_WIDTH || config->dest.y >= SH7722_LCD_HEIGHT)
+          fail |= CLRCF_DEST;
+
+     if (config->dest.x < 0) {
+          config->dest.x = 0;
+//          fail |= CLRCF_DEST;
+     }
+
+     if (config->dest.y < 0) {
+          config->dest.y = 0;
+//          fail |= CLRCF_DEST;
+     }
 
      if (failed)
           *failed = fail;
@@ -204,8 +216,17 @@ sh7722SetRegion( CoreLayer                  *layer,
 
      /* Update size? */
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT)) {
+          int cw = config->width;
+          int ch = config->height;
+
+          if (config->dest.x + cw > SH7722_LCD_WIDTH)
+               cw = SH7722_LCD_WIDTH - config->dest.x;
+
+          if (config->dest.y + ch > SH7722_LCD_HEIGHT)
+               ch = SH7722_LCD_HEIGHT - config->dest.y;
+
           /* Set width and height. */
-          SH7722_SETREG32( sdrv, BSSZR(n), (config->height << 16) | config->width );
+          SH7722_SETREG32( sdrv, BSSZR(n), (ch << 16) | cw );
      }
 
      /* Update surface? */

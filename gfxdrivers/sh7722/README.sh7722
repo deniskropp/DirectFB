@@ -70,6 +70,46 @@ Stretch Blit colorkeyed                        7.895 secs (*  35.159 MPixel/sec)
 + = half way accelerated
 
 
+Performance (as of 2007-09-25, multi app, 127.79 BogoMIPS)
+----------------------------------------------------------
+
+Only 13% CPU load with df_andi running 800x480 at 28.8 fps :)
+Only 46% CPU load with ClanBomber2 running 800x600 at 48 fps :)
+
+Benchmarking with 256x256 in 16bit mode... (16bit)
+                                                                                CPU load
+Anti-aliased Text                              3.057 secs (*  98.920 KChars/sec) [ 47%] !
+Anti-aliased Text (blend)                      3.298 secs (   10.915 KChars/sec) [100%] 
+Fill Rectangle                                 5.732 secs (*  69.743 MPixel/sec) [  3%] 
+Fill Rectangle (blend)                        11.571 secs (*  22.088 MPixel/sec) [  1%] 
+Fill Rectangles [10]                           9.384 secs (*  69.838 MPixel/sec) [  0%] 
+Fill Rectangles [10] (blend)                  14.836 secs (*  22.086 MPixel/sec) [  0%] 
+Fill Triangles                                 4.176 secs (*  61.989 MPixel/sec) [  6%] !
+Fill Triangles (blend)                         8.132 secs (*  21.759 MPixel/sec) [  2%] !
+Draw Rectangle                                 3.216 secs (*   6.965 KRects/sec) [ 26%]  
+Draw Rectangle (blend)                         3.290 secs (*   6.322 KRects/sec) [ 22%]  
+Draw Lines [10]                                3.216 secs (*  28.296 KLines/sec) [ 14%]  
+Draw Lines [10] (blend)                        3.196 secs (*  28.160 KLines/sec) [ 14%]  
+Fill Spans                                     3.086 secs (*  61.586 MPixel/sec) [ 25%]  
+Fill Spans (blend)                             3.092 secs (*  21.195 MPixel/sec) [  7%]  
+Blit                                           8.692 secs (*  30.159 MPixel/sec) [  2%]  
+Blit 180                                       4.783 secs (*  30.144 MPixel/sec) [  2%] !
+Blit colorkeyed                               11.965 secs (*  32.316 MPixel/sec) [  2%]  
+Blit destination colorkeyed                    3.795 secs (    6.907 MPixel/sec) [ 99%]   
+Blit with format conversion                    9.039 secs (*  22.476 MPixel/sec) [  1%]  
+Blit with colorizing                           4.414 secs (    2.969 MPixel/sec) [100%]  
+Blit from 32bit (blend)                       23.375 secs (*  13.177 MPixel/sec) [  1%]  
+Blit from 32bit (blend) with colorizing        5.137 secs (    1.275 MPixel/sec) [100%]  
+Stretch Blit                                   8.976 secs (*  33.495 MPixel/sec) [  2%]  
+Stretch Blit colorkeyed                        9.728 secs (*  35.226 MPixel/sec) [  2%]  
+
+(*) SH7722/BLT: 521 starts, 521 done, 521 interrupts, 45 wait_idle, 363 wait_next, 90 idle
+(*) SH7722/BLT: 11511104 words, 22094 words/start, 127901 words/idle, 5 starts/idle
+
+* = accelerated
+! = updated
+
+
 Statistics
 ----------
 

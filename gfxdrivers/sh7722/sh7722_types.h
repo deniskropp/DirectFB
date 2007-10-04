@@ -73,6 +73,7 @@ typedef struct {
      DFBSurfaceBlittingFlags  bflags;
 
      bool                     ckey_b_enabled;
+     bool                     color_change_enabled;
 
      unsigned int             input_mask;
 } SH7722DeviceData;

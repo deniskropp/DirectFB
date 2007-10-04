@@ -453,7 +453,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
           case DLBM_TRIPLE:
           case DLBM_BACKVIDEO:
                /* Check if simply swapping the buffers is possible... */
-               if (!(flags & DSFLIP_BLIT) &&
+               if (!(flags & DSFLIP_BLIT) && !context->rotation &&
                    (!update || (update->x1 == 0 &&
                                 update->y1 == 0 &&
                                 update->x2 == surface->config.size.w - 1 &&

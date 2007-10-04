@@ -43,6 +43,7 @@
 #include <direct/util.h>
 
 #include <fusion/conf.h>
+#include <fusion/vector.h>
 
 #include <core/coretypes.h>
 #include <core/surface.h>
@@ -101,6 +102,7 @@ static const char *config_usage =
      "  [no-]agp[=<mode>]              Enable AGP support\n"
      "  [no-]thrifty-surface-buffers   Free sysmem instance on xfer to video memory\n"
      "  font-format=<pixelformat>      Set the preferred font format\n"
+     "  [no-]font-premult              Enable/disable premultiplied glyph images in ARGB format\n"
      "  dont-catch=<num>[[,<num>]...]  Don't catch these signals\n"
      "  [no-]sighandler                Enable signal handler\n"
      "  [no-]deinit-check              Enable deinit check at exit\n"
@@ -117,6 +119,7 @@ static const char *config_usage =
      "  [no-]lefty                     Swap left and right mouse buttons\n"
      "  [no-]capslock-meta             Map the CapsLock key to Meta\n"
      "  linux-input-ir-only            Ignore all non-IR Linux Input devices\n"
+     "  [no-]linux-input-grab          Grab Linux Input devices?\n"
      "  [no-]cursor                    Never create a cursor\n"
      "  wm=<wm>                        Window manager module ('default' or 'unique')\n"
      "  init-layer=<id>                Initialize layer with ID (following layer- options apply)\n"
@@ -156,6 +159,10 @@ static const char *config_usage =
      "  h3600-device=<device>          Use this device for the H3600 TS driver\n"
      "  mut-device=<device>            Use this device for the MuTouch driver\n"
      "  penmount-device=<device>       Use this device for the PenMount driver\n"
+     "  linux-input-devices=<device>[[,<device>]...]\n"
+     "                                 Use these devices for the Linux Input driver\n"
+     "  tslib-devices=<device>[[,<device>]...]\n"
+     "                                 Use these devices for the tslib driver\n"
      "  unichrome-revision=<rev>       Override unichrome hardware revision\n"
      "  i8xx_overlay_pipe_b            Redirect videolayer to pixelpipe B\n"
      "\n"
@@ -320,6 +327,34 @@ parse_args( const char *args )
      return DFB_OK;
 }
 
+static void config_values_parse( FusionVector *vector, const char *arg )
+{
+     char *values    = D_STRDUP( arg );
+     char *p, *r, *s = values;
+
+     while ((r = strtok_r( s, ",", &p ))) {
+          direct_trim( &r );
+
+          fusion_vector_add( vector, D_STRDUP( r ) );
+
+          s = NULL;
+     }
+
+     D_FREE( values );
+}
+
+static void config_values_free( FusionVector *vector )
+{
+     char *value;
+     int   i;
+
+     fusion_vector_foreach (value, i, *vector)
+          D_FREE( value );
+
+     fusion_vector_destroy( vector );
+     fusion_vector_init( vector, 2, NULL );
+}
+
 /*
  * The following function isn't used because the configuration should
  * only go away if the application is completely terminated. In that case
@@ -397,9 +432,11 @@ static void config_allocate()
      dfb_config->vt_switching             = true;
      dfb_config->kd_graphics              = true;
      dfb_config->translucent_windows      = true;
+     dfb_config->font_premult             = true;
      dfb_config->mouse_motion_compression = true;
      dfb_config->mouse_gpm_source         = false;
      dfb_config->mouse_source             = D_STRDUP( DEV_NAME );
+     dfb_config->linux_input_grab         = true;
      dfb_config->window_policy            = -1;
      dfb_config->buffer_mode              = -1;
      dfb_config->wm                       = D_STRDUP( "default" );
@@ -416,6 +453,9 @@ static void config_allocate()
      /* default to no-vt-switch if we don't have root privileges */
      if (geteuid())
           dfb_config->vt_switch = false;
+
+     fusion_vector_init( &dfb_config->linux_input_devices, 2, NULL );
+     fusion_vector_init( &dfb_config->tslib_devices, 2, NULL );
 }
 
 const char *dfb_config_usage( void )
@@ -588,6 +628,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
                D_ERROR("DirectFB/Config 'font-format': No format specified!\n");
                return DFB_INVARG;
           }
+     } else
+     if (strcmp (name, "font-premult" ) == 0) {
+          dfb_config->font_premult = true;
+     } else
+     if (strcmp (name, "no-font-premult" ) == 0) {
+          dfb_config->font_premult = false;
      } else
      if (strcmp (name, "session" ) == 0) {
           if (value) {
@@ -848,6 +894,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "linux-input-ir-only" ) == 0) {
           dfb_config->linux_input_ir_only = true;
+     } else
+     if (strcmp (name, "linux-input-grab" ) == 0) {
+          dfb_config->linux_input_grab = true;
+     } else
+     if (strcmp (name, "no-linux-input-grab" ) == 0) {
+          dfb_config->linux_input_grab = false;
      } else
      if (strcmp (name, "motion-compression" ) == 0) {
           dfb_config->mouse_motion_compression = true;
@@ -1567,6 +1619,26 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR( "DirectFB/Config: No PenMount device specified!\n" );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "linux-input-devices" ) == 0) {
+          if (value) {
+               config_values_free( &dfb_config->linux_input_devices );
+               config_values_parse( &dfb_config->linux_input_devices, value );
+          }
+          else {
+               D_ERROR( "DirectFB/Config: Missing value for linux-input-devices!\n" );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "tslib-devices" ) == 0) {
+          if (value) {
+               config_values_free( &dfb_config->tslib_devices );
+               config_values_parse( &dfb_config->tslib_devices, value );
+          }
+          else {
+               D_ERROR( "DirectFB/Config: Missing value for tslib-devices!\n" );
                return DFB_INVARG;
           }
      } else

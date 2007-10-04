@@ -50,9 +50,6 @@ D_DEBUG_DOMAIN( Direct_Thread, "Direct/Thread", "Thread management" );
 /* FIXME: DIRECT_THREAD_WAIT_INIT is required, but should be optional. */
 #define DIRECT_THREAD_WAIT_INIT
 
-/* FIXME: DIRECT_THREAD_WAIT_CREATE is required, but should be optional. */
-#define DIRECT_THREAD_WAIT_CREATE
-
 
 struct __D_DirectThread {
      int                   magic;
@@ -74,6 +71,9 @@ struct __D_DirectThread {
 #ifdef DIRECT_THREAD_WAIT_INIT
      bool                  init;     /* Set to true before calling the main routine. */
 #endif
+
+     pthread_mutex_t       lock;
+     pthread_cond_t        cond;
 };
 
 struct __D_DirectThreadInitHandler {
@@ -191,7 +191,14 @@ direct_thread_create( DirectThreadType      thread_type,
      thread->thread = (pthread_t) -1;
      thread->tid    = (pid_t) -1;
 
+     /* Initialize mutex and condition. */
+     direct_util_recursive_pthread_mutex_init( &thread->lock );
+     pthread_cond_init( &thread->cond, NULL );
+
      D_MAGIC_SET( thread, DirectThread );
+
+     /* Lock the thread mutex. */
+     pthread_mutex_lock( &thread->lock );
 
      /* Create and run the thread. */
      pthread_create( &thread->thread, NULL, direct_thread_main, thread );
@@ -201,10 +208,13 @@ direct_thread_create( DirectThreadType      thread_type,
 
      /* Wait for completion of the thread's initialization. */
      while (!thread->init)
-          sched_yield();
+          pthread_cond_wait( &thread->cond, &thread->lock );
 
      D_HEAVYDEBUG( "Direct/Thread: ...thread is running.\n" );
 #endif
+
+     /* Unlock the thread mutex. */
+     pthread_mutex_unlock( &thread->lock );
 
      D_INFO( "Direct/Thread: Running '%s' (%s, %d)...\n",
              name, thread_type_name(thread_type), thread->tid );
@@ -523,33 +533,25 @@ direct_thread_main( void *arg )
                break;
      }
 
-#ifdef DIRECT_THREAD_WAIT_INIT
+     /* Lock the thread mutex. */
+     pthread_mutex_lock( &thread->lock );
+
      /* Indicate that our initialization has completed. */
      thread->init = true;
 
      D_HEAVYDEBUG( "Direct/Thread:   (thread) Initialization done.\n" );
 
-     sched_yield();
+#ifdef DIRECT_THREAD_WAIT_INIT
+     pthread_cond_signal( &thread->cond );
 #endif
 
-     D_MAGIC_ASSERT( thread, DirectThread );
+     /* Unlock the thread mutex. */
+     pthread_mutex_unlock( &thread->lock );
 
      if (thread->joining) {
           D_HEAVYDEBUG( "Direct/Thread:   (thread) Being joined before entering main routine.\n" );
           return NULL;
      }
-
-#ifdef DIRECT_THREAD_WAIT_CREATE
-     if (thread->thread == -1) {
-          D_HEAVYDEBUG( "Direct/Thread:   (thread) Waiting for pthread_create()...\n" );
-
-          /* Wait for completion of pthread_create(). */
-          while ((int) thread->thread == -1)
-               sched_yield();
-
-          D_HEAVYDEBUG( "Direct/Thread:   (thread) ...pthread_create() finished.\n" );
-     }
-#endif
 
      D_MAGIC_ASSERT( thread, DirectThread );
 

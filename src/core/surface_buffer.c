@@ -35,6 +35,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#ifdef USE_ZLIB
+#include <zlib.h>
+#endif
+
 #include <directfb_util.h>
 
 #include <direct/debug.h>

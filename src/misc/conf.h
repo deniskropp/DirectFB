@@ -33,6 +33,7 @@
 
 #include <directfb.h>
 #include <fusion/types.h>
+#include <fusion/vector.h>
 
 #include <core/coredefs.h>
 
@@ -148,6 +149,7 @@ typedef struct
                                                      the primary surface. */
 
      bool      linux_input_ir_only;               /* Ignore non-IR devices. */
+     bool      linux_input_grab;                  /* Grab input devices. */
 
      struct {
           char *host;                             /* Remote host to connect to. */
@@ -194,6 +196,11 @@ typedef struct
      unsigned long mmio_phys;                     /* Physical base address of MMIO area */
      unsigned int  mmio_length;                   /* Size of MMIO area */
      int           accelerator;                   /* Accelerator ID */
+
+     bool          font_premult;                  /* Use premultiplied data in case of ARGB glyph images */
+
+     FusionVector  linux_input_devices;
+     FusionVector  tslib_devices;
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

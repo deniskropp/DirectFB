@@ -123,8 +123,10 @@ DFB_GRAPHICS_DRIVER( radeon )
      ( RADEON_SUPPORTED_2D_DRAWINGFUNCS | DFXL_FILLTRIANGLE )
 
 #define R300_SUPPORTED_BLITTINGFLAGS \
-     ( RADEON_SUPPORTED_2D_BLITTINGFLAGS              | \
-       DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_DEINTERLACE | DSBLIT_ROTATE180 )
+     ( RADEON_SUPPORTED_2D_BLITTINGFLAGS                   | \
+       DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | \
+       DSBLIT_COLORIZE           | DSBLIT_SRC_PREMULTCOLOR | \
+       DSBLIT_DEINTERLACE        | DSBLIT_ROTATE180 )
      
 #define R300_SUPPORTED_BLITTINGFUNCS \
      ( RADEON_SUPPORTED_2D_BLITTINGFUNCS | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES )
@@ -311,7 +313,7 @@ static void radeonAfterSetVar( void *drv, void *dev )
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
      volatile u8      *mmio = rdrv->mmio_base;
-     
+    
      rdev->surface_cntl   =
      rdev->surface_cntl_c =
      rdev->surface_cntl_p = radeon_in32( mmio, SURFACE_CNTL );
@@ -465,6 +467,17 @@ static void r100CheckState( void *drv, void *dev,
 
      switch (destination->config.format) {               
           case DSPF_A8:
+               if (DFB_DRAWING_FUNCTION(accel) ? 
+                  (state->drawingflags & DSDRAW_BLEND) :
+                  (state->blittingflags & DSBLIT_MODULATE_ALPHA)) {     
+                    if (state->src_blend == DSBF_DESTALPHA    || 
+                        state->src_blend == DSBF_INVDESTALPHA ||
+                        state->dst_blend == DSBF_DESTALPHA    ||
+                        state->dst_blend == DSBF_INVDESTALPHA)
+                         return;
+               }
+               break;
+               
           case DSPF_RGB332:
           case DSPF_RGB444:
           case DSPF_ARGB4444:
@@ -629,6 +642,17 @@ static void r200CheckState( void *drv, void *dev,
      
      switch (destination->config.format) {               
           case DSPF_A8:
+               if (DFB_DRAWING_FUNCTION(accel) ? 
+                  (state->drawingflags & DSDRAW_BLEND) :
+                  (state->blittingflags & DSBLIT_MODULATE_ALPHA)) {     
+                    if (state->src_blend == DSBF_DESTALPHA    || 
+                        state->src_blend == DSBF_INVDESTALPHA ||
+                        state->dst_blend == DSBF_DESTALPHA    ||
+                        state->dst_blend == DSBF_INVDESTALPHA)
+                         return;
+               }
+               break;
+                   
           case DSPF_RGB332:
           case DSPF_RGB444:
           case DSPF_ARGB4444:
@@ -858,6 +882,15 @@ static void r300CheckState( void *drv, void *dev,
                supported_blittingflags &= DSBLIT_SRC_COLORKEY | DSBLIT_XOR;
           }
           
+          if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) {
+               if (state->blittingflags & DSBLIT_BLEND_COLORALPHA)
+                    return;
+               if (state->blittingflags & (DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR)) {
+                    if (state->src_blend != DSBF_ONE)
+                         return;
+               }
+          }
+          
           if (state->blittingflags & DSBLIT_ROTATE180)
                supported_blittingfuncs &= ~DFXL_TEXTRIANGLES;
           
@@ -973,15 +1006,17 @@ static void r100SetState( void *drv, void *dev,
                r100_set_drawingflags( rdrv, rdev, state );
 
                if (RADEON_DRAW_3D()) {
-                    funcs->FillRectangle = RADEON_FUNC(r100FillRectangle3D);
-                    funcs->FillTriangle  = RADEON_FUNC(r100FillTriangle);
-                    funcs->DrawRectangle = RADEON_FUNC(r100DrawRectangle3D);
-                    funcs->DrawLine      = RADEON_FUNC(r100DrawLine3D);
+                    funcs->FillRectangle = r100FillRectangle3D;
+                    funcs->FillTriangle  = r100FillTriangle;
+                    funcs->DrawRectangle = r100DrawRectangle3D;
+                    funcs->DrawLine      = r100DrawLine3D;
+                    funcs->EmitCommands  = r100EmitCommands3D;
                } else {
                     funcs->FillRectangle = RADEON_FUNC(radeonFillRectangle2D);
                     funcs->FillTriangle  = NULL;
                     funcs->DrawRectangle = RADEON_FUNC(radeonDrawRectangle2D);
                     funcs->DrawLine      = RADEON_FUNC(radeonDrawLine2D);
+                    funcs->EmitCommands  = NULL;
                }
 
                state->set = rdev->drawing_mask;
@@ -1004,13 +1039,15 @@ static void r100SetState( void *drv, void *dev,
                r100_set_blittingflags( rdrv, rdev, state );
 
                if (RADEON_BLIT_3D()) {
-                    funcs->Blit             = RADEON_FUNC(r100Blit3D);
-                    funcs->StretchBlit      = RADEON_FUNC(r100StretchBlit);
-                    funcs->TextureTriangles = RADEON_FUNC(r100TextureTriangles);
+                    funcs->Blit             = r100Blit3D;
+                    funcs->StretchBlit      = r100StretchBlit;
+                    funcs->TextureTriangles = r100TextureTriangles;
+                    funcs->EmitCommands     = r100EmitCommands3D;
                } else {
                     funcs->Blit             = RADEON_FUNC(radeonBlit2D);
                     funcs->StretchBlit      = NULL;
                     funcs->TextureTriangles = NULL;
+                    funcs->EmitCommands     = NULL;
                }
                
                state->set = (accel & DFXL_TEXTRIANGLES) 
@@ -1056,15 +1093,17 @@ static void r200SetState( void *drv, void *dev,
                r200_set_drawingflags( rdrv, rdev, state );
 
                if (RADEON_DRAW_3D()) {
-                    funcs->FillRectangle = RADEON_FUNC(r200FillRectangle3D);
-                    funcs->FillTriangle  = RADEON_FUNC(r200FillTriangle);
-                    funcs->DrawRectangle = RADEON_FUNC(r200DrawRectangle3D);
-                    funcs->DrawLine      = RADEON_FUNC(r200DrawLine3D);
+                    funcs->FillRectangle = r200FillRectangle3D;
+                    funcs->FillTriangle  = r200FillTriangle;
+                    funcs->DrawRectangle = r200DrawRectangle3D;
+                    funcs->DrawLine      = r200DrawLine3D;
+                    funcs->EmitCommands  = r200EmitCommands3D;
                } else {
                     funcs->FillRectangle = RADEON_FUNC(radeonFillRectangle2D);
                     funcs->FillTriangle  = NULL;
                     funcs->DrawRectangle = RADEON_FUNC(radeonDrawRectangle2D);
                     funcs->DrawLine      = RADEON_FUNC(radeonDrawLine2D);
+                    funcs->EmitCommands  = NULL;
                }
 
                state->set = rdev->drawing_mask;
@@ -1087,13 +1126,15 @@ static void r200SetState( void *drv, void *dev,
                r200_set_blittingflags( rdrv, rdev, state );
                
                if (RADEON_BLIT_3D()) {
-                    funcs->Blit             = RADEON_FUNC(r200Blit3D);
-                    funcs->StretchBlit      = RADEON_FUNC(r200StretchBlit);
-                    funcs->TextureTriangles = RADEON_FUNC(r200TextureTriangles);
+                    funcs->Blit             = r200Blit3D;
+                    funcs->StretchBlit      = r200StretchBlit;
+                    funcs->TextureTriangles = r200TextureTriangles;
+                    funcs->EmitCommands     = r200EmitCommands3D;
                } else {
                     funcs->Blit             = RADEON_FUNC(radeonBlit2D);
                     funcs->StretchBlit      = NULL;
                     funcs->TextureTriangles = NULL;
+                    funcs->EmitCommands     = NULL;
                }
                
                state->set = (accel & DFXL_TEXTRIANGLES) 
@@ -1139,10 +1180,10 @@ static void r300SetState( void *drv, void *dev,
                r300_set_drawingflags( rdrv, rdev, state );
 
                if (RADEON_DRAW_3D()) {  
-                    funcs->FillRectangle = RADEON_FUNC(r300FillRectangle3D);
-                    funcs->FillTriangle  = RADEON_FUNC(r300FillTriangle);
-                    funcs->DrawRectangle = RADEON_FUNC(r300DrawRectangle3D);
-                    funcs->DrawLine      = RADEON_FUNC(r300DrawLine3D);
+                    funcs->FillRectangle = r300FillRectangle3D;
+                    funcs->FillTriangle  = r300FillTriangle;
+                    funcs->DrawRectangle = r300DrawRectangle3D;
+                    funcs->DrawLine      = r300DrawLine3D;
                     funcs->EmitCommands  = r300EmitCommands3D;
                } else {
                     funcs->FillRectangle = RADEON_FUNC(radeonFillRectangle2D);
@@ -1172,9 +1213,9 @@ static void r300SetState( void *drv, void *dev,
                r300_set_blittingflags( rdrv, rdev, state );
 
                if (RADEON_BLIT_3D()) {
-                    funcs->Blit             = RADEON_FUNC(r300Blit3D);
-                    funcs->StretchBlit      = RADEON_FUNC(r300StretchBlit);
-                    funcs->TextureTriangles = RADEON_FUNC(r300TextureTriangles);
+                    funcs->Blit             = r300Blit3D;
+                    funcs->StretchBlit      = r300StretchBlit;
+                    funcs->TextureTriangles = r300TextureTriangles;
                     funcs->EmitCommands     = r300EmitCommands3D;
                } else { 
                     funcs->Blit             = RADEON_FUNC(radeonBlit2D);
@@ -1264,7 +1305,7 @@ driver_get_info( CoreGraphicsDevice *device,
                "http://www.directfb.org" );
 
      info->version.major = 1;
-     info->version.minor = 0;
+     info->version.minor = 1;
 
      info->driver_data_size = sizeof(RadeonDriverData);
      info->device_data_size = sizeof(RadeonDeviceData);

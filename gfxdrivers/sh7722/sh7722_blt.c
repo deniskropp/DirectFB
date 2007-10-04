@@ -48,20 +48,21 @@ D_DEBUG_DOMAIN( SH7722_StartStop, "SH7722/StartStop", "Renesas SH7722 Drawing St
  * There's no prefix because of the macros below.
  */
 enum {
-     DEST       = 0x00000001,
-     CLIP       = 0x00000002,
-     SOURCE     = 0x00000004,
+     DEST         = 0x00000001,
+     CLIP         = 0x00000002,
+     SOURCE       = 0x00000004,
 
-     COLOR1     = 0x00000010,
+     COLOR1       = 0x00000010,
 
-     FGC        = 0x00000100,
-     COLOR_KEY  = 0x00000200,
+     FGC          = 0x00000100,
+     COLOR_KEY    = 0x00000200,
+     COLOR_CHANGE = 0x00000400,
 
-     BLEND_SRCF = 0x00001000,
-     BLEND_DSTF = 0x00002000,
-     FIXEDALPHA = 0x00004000,
+     BLEND_SRCF   = 0x00001000,
+     BLEND_DSTF   = 0x00002000,
+     FIXEDALPHA   = 0x00004000,
 
-     ALL        = 0x00007317
+     ALL          = 0x00007717
 };
 
 /*
@@ -502,6 +503,31 @@ sh7722_validate_COLOR_KEY( SH7722DriverData *sdrv,
 }
 
 static inline void
+sh7722_validate_COLOR_CHANGE( SH7722DriverData *sdrv,
+                              SH7722DeviceData *sdev,
+                              CardState        *state )
+{
+     __u32 *prep = start_buffer( sdrv, 6 );
+
+     prep[0] = BEM_PE_COLORCHANGE;
+     prep[1] = COLORCHANGE_COMPARE_FIRST | COLORCHANGE_EXCLUDE_UNUSED;
+
+     prep[2] = BEM_PE_COLORCHANGE_0;
+     prep[3] = 0xffffff;
+
+     prep[4] = BEM_PE_COLORCHANGE_1;
+     prep[5] = PIXEL_ARGB( state->color.a,
+                           state->color.r,
+                           state->color.g,
+                           state->color.b );
+
+     submit_buffer( sdrv, 6 );
+
+     /* Set the flag. */
+     SH7722_VALIDATE( COLOR_CHANGE );
+}
+
+static inline void
 sh7722_validate_FIXEDALPHA( SH7722DriverData *sdrv,
                             SH7722DeviceData *sdev,
                             CardState        *state )
@@ -629,6 +655,21 @@ invalidate_ckey( SH7722DriverData *sdrv, SH7722DeviceData *sdev )
      SH7722_INVALIDATE( COLOR_KEY );
 }
 
+static void
+invalidate_color_change( SH7722DriverData *sdrv, SH7722DeviceData *sdev )
+{
+     __u32 *prep = start_buffer( sdrv, 2 );
+
+     prep[0] = BEM_PE_COLORCHANGE;
+     prep[1] = COLORCHANGE_DISABLE;
+
+     submit_buffer( sdrv, 2 );
+
+     sdev->color_change_enabled = false;
+
+     SH7722_INVALIDATE( COLOR_CHANGE );
+}
+
 /**********************************************************************************************************************/
 
 DFBResult
@@ -728,6 +769,25 @@ sh7722EmitCommands( void *drv, void *dev )
      flush_prepared( drv );
 }
 
+void
+sh7722FlushTextureCache( void *drv, void *dev )
+{
+     SH7722DriverData *sdrv = drv;
+     __u32            *prep = start_buffer( sdrv, 4 );
+
+     D_DEBUG_AT( SH7722_BLT, "%s()\n", __FUNCTION__ );
+
+     DUMP_INFO();
+
+     prep[0] = BEM_PE_CACHE;
+     prep[1] = 3;
+
+     prep[2] = BEM_TE_INVALID;
+     prep[3] = 1;
+
+     submit_buffer( sdrv, 4 );
+}
+
 /**********************************************************************************************************************/
 
 void
@@ -807,6 +867,14 @@ sh7722CheckState( void                *drv,
                     return;
           }
 
+          /* Return if colorizing for non-font surfaces is requested. */
+          if ((state->blittingflags & DSBLIT_COLORIZE) && !(state->source->type & CSTF_FONT))
+               return;
+
+          /* Return if blending with both alpha channel and value is requested. */
+          if (D_FLAGS_ARE_SET( state->blittingflags, DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA))
+               return;
+
           /* Enable acceleration of blitting functions. */
           state->accel |= SH7722_SUPPORTED_BLITTINGFUNCTIONS;
      }
@@ -857,7 +925,7 @@ sh7722SetState( void                *drv,
 
           /* Invalidate color register. */
           if (modified & SMF_COLOR)
-               SH7722_INVALIDATE( COLOR1 | FGC | FIXEDALPHA );
+               SH7722_INVALIDATE( COLOR1 | FGC | FIXEDALPHA | COLOR_CHANGE );
 
           /* Invalidate blend functions. */
           if (modified & SMF_SRC_BLEND)
@@ -879,10 +947,11 @@ sh7722SetState( void                *drv,
      /* Depending on the function... */
      switch (accel) {
           case DFXL_FILLRECTANGLE:
+          case DFXL_FILLTRIANGLE:
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
                /* ...require valid color. */
-               if (accel == DFXL_FILLRECTANGLE)
+               if (accel == DFXL_FILLRECTANGLE || accel == DFXL_FILLTRIANGLE)
                     SH7722_CHECK_VALIDATE( COLOR1 );
                else
                     SH7722_CHECK_VALIDATE( FGC );
@@ -923,6 +992,12 @@ sh7722SetState( void                *drv,
                     SH7722_CHECK_VALIDATE( BLEND_DSTF );
                }
 
+               /* Use alpha value from color? */
+               if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
+                    /* need valid fixed alpha */
+                    SH7722_CHECK_VALIDATE( FIXEDALPHA );
+               }
+
                /* Use color keying? */
                if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                     /* Need valid color key settings (enabling). */
@@ -933,6 +1008,17 @@ sh7722SetState( void                *drv,
                /* Disable color keying? */
                else if (sdev->ckey_b_enabled)
                     invalidate_ckey( sdrv, sdev );
+
+               /* Use color change? */
+               if (state->blittingflags & DSBLIT_COLORIZE) {
+                    /* Need valid color change settings (enabling). */
+                    SH7722_CHECK_VALIDATE( COLOR_CHANGE );
+
+                    sdev->color_change_enabled = true;
+               }
+               /* Disable color change? */
+               else if (sdev->color_change_enabled)
+                    invalidate_color_change( sdrv, sdev );
 
                /*
                 * 3) Tell which functions can be called without further validation, i.e. SetState()
@@ -996,6 +1082,49 @@ sh7722FillRectangle( void *drv, void *dev, DFBRectangle *rect )
      return true;
 }
 
+/*
+ * Render a filled triangle using the current hardware state.
+ */
+bool
+sh7722FillTriangle( void *drv, void *dev, DFBTriangle *tri )
+{
+     SH7722DriverData *sdrv = drv;
+     SH7722DeviceData *sdev = dev;
+     __u32            *prep = start_buffer( sdrv, 12 );
+
+     D_DEBUG_AT( SH7722_BLT, "%s( %d,%d - %d,%d - %d,%d )\n", __FUNCTION__,
+                 tri->x1, tri->y1, tri->x2, tri->y2, tri->x3, tri->y3 );
+     DUMP_INFO();
+
+     prep[0] = BEM_BE_V1;
+     prep[1] = (tri->y1 << 16) | tri->x1;
+
+     prep[2] = BEM_BE_V2;
+     prep[3] = (tri->y2 << 16) | tri->x2;
+
+     prep[4] = BEM_BE_V3;
+     prep[5] = (tri->y3 << 16) | tri->x3;
+
+     prep[6] = BEM_BE_V4;
+     prep[7] = (tri->y3 << 16) | tri->x3;
+
+     prep[8] = BEM_PE_OPERATION;
+     prep[9] = (sdev->dflags & DSDRAW_BLEND) ? (BLE_FUNC_AxB_plus_CxD |
+                                                sdev->ble_srcf |
+                                                BLE_SRCA_FIXED |
+                                                sdev->ble_dstf) : BLE_FUNC_NONE;
+
+     prep[10] = BEM_BE_CTRL;
+     prep[11] = BE_CTRL_QUADRANGLE | BE_CTRL_SCANMODE_LINE;
+
+     submit_buffer( sdrv, 12 );
+
+     return true;
+}
+
+/*
+ * Render rectangle outlines using the current hardware state.
+ */
 bool
 sh7722DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
@@ -1055,6 +1184,9 @@ sh7722DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      return true;
 }
 
+/*
+ * Render a line using the current hardware state.
+ */
 bool
 sh7722DrawLine( void *drv, void *dev, DFBRegion *line )
 {
@@ -1109,15 +1241,32 @@ sh7722DoBlit( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
      prep[7] = (h << 16) | w;
 
      prep[8] = BEM_PE_OPERATION;
-     prep[9] = (sdev->bflags & DSBLIT_BLEND_ALPHACHANNEL) ? (BLE_FUNC_AxB_plus_CxD |
-                                                             sdev->ble_srcf |
-                                                             BLE_SRCA_SOURCE_ALPHA |
-                                                             sdev->ble_dstf) : BLE_FUNC_NONE;
+     prep[9] = BLE_FUNC_NONE;
+
+     if (sdev->bflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
+          prep[9] |= BLE_FUNC_AxB_plus_CxD | sdev->ble_srcf | sdev->ble_dstf;
+
+          switch (sdev->bflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
+               case DSBLIT_BLEND_ALPHACHANNEL:
+                    prep[9] |= BLE_SRCA_SOURCE_ALPHA;
+                    break;
+
+               case DSBLIT_BLEND_COLORALPHA:
+                    prep[9] |= BLE_SRCA_FIXED;
+                    break;
+
+               case DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA:
+                    prep[9] |= BLE_SRCA_ALPHA_CHANNEL;      /* does not work */
+                    break;
+          }
+     }
 
      prep[10] = BEM_BE_CTRL;
      prep[11] = BE_CTRL_RECTANGLE | BE_CTRL_TEXTURE | BE_CTRL_SCANMODE_4x4;
 
-     if (rect->w == w && rect->h == h)
+     if (sdev->bflags & DSBLIT_ROTATE180)
+          prep[11] |= BE_FLIP_BOTH;
+     else if (rect->w == w && rect->h == h)
           prep[11] |= BE_CTRL_BLTDIR_AUTOMATIC;
 
      submit_buffer( sdrv, 12 );
@@ -1125,6 +1274,9 @@ sh7722DoBlit( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
      return true;
 }
 
+/*
+ * Blit a rectangle using the current hardware state.
+ */
 bool
 sh7722Blit( void *drv, void *dev, DFBRectangle *rect, int x, int y )
 {
@@ -1137,6 +1289,9 @@ sh7722Blit( void *drv, void *dev, DFBRectangle *rect, int x, int y )
      return sh7722DoBlit( sdrv, sdev, rect, x, y, rect->w, rect->h );
 }
 
+/*
+ * StretchBlit a rectangle using the current hardware state.
+ */
 bool
 sh7722StretchBlit( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *drect )
 {
@@ -1147,24 +1302,5 @@ sh7722StretchBlit( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *drec
                  __FUNCTION__, DFB_RECTANGLE_VALS( srect ), DFB_RECTANGLE_VALS( drect ) );
 
      return sh7722DoBlit( sdrv, sdev, srect, drect->x, drect->y, drect->w, drect->h );
-}
-
-void
-sh7722FlushTextureCache( void *drv, void *dev )
-{
-     SH7722DriverData *sdrv = drv;
-     __u32            *prep = start_buffer( sdrv, 4 );
-
-     D_DEBUG_AT( SH7722_BLT, "%s()\n", __FUNCTION__ );
-
-     DUMP_INFO();
-
-     prep[0] = BEM_PE_CACHE;
-     prep[1] = 3;
-
-     prep[2] = BEM_TE_INVALID;
-     prep[3] = 1;
-
-     submit_buffer( sdrv, 4 );
 }
 
