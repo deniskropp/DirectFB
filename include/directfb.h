@@ -644,7 +644,9 @@ typedef enum {
 
      DSCAPS_DEPTH         = 0x00010000,  /* A depth buffer is allocated. */
 
-     DSCAPS_ALL           = 0x000113F7,  /* All of these. */
+     DSCAPS_SHARED        = 0x00100000,  /* The surface will be accessible among processes. */
+
+     DSCAPS_ALL           = 0x001113F7,  /* All of these. */
 
 
      DSCAPS_FLIPPING      = DSCAPS_DOUBLE | DSCAPS_TRIPLE /* Surface needs Flip() calls to make

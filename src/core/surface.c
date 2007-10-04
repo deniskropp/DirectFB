@@ -168,6 +168,9 @@ dfb_surface_create( CoreDFB                  *core,
      else
           surface->type = type & ~(CSTF_INTERNAL | CSTF_EXTERNAL);
 
+     if (surface->config.caps & DSCAPS_SHARED)
+          surface->type |= CSTF_SHARED;
+
      surface->resource_id = resource_id;
 
      if (surface->config.caps & DSCAPS_TRIPLE)
