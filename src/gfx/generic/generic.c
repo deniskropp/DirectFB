@@ -8310,9 +8310,10 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
      CHECK_PIPELINE();
 
-     if (state->render_options & (DSRO_SMOOTH_UPSCALE | DSRO_SMOOTH_DOWNSCALE) &&
-         srect->x == 0 && srect->y == 0 && !state->blittingflags)
-     {
+     if (state->render_options & (DSRO_SMOOTH_UPSCALE | DSRO_SMOOTH_DOWNSCALE) && !state->blittingflags) {
+          void *dst = gfxs->dst_org[0] + drect->y * gfxs->dst_pitch + DFB_BYTES_PER_LINE( gfxs->dst_format, drect->x );
+          void *src = gfxs->src_org[0] + srect->y * gfxs->src_pitch + DFB_BYTES_PER_LINE( gfxs->src_format, srect->x );
+
           if (gfxs->src_format == gfxs->dst_format) {
                StretchHVx stretch = NULL;
 
@@ -8335,9 +8336,7 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
                     dfb_region_translate( &clip, - drect->x, - drect->y );
 
-                    stretch( gfxs->dst_org[0] + drect->y * gfxs->dst_pitch
-                             + DFB_BYTES_PER_LINE( gfxs->dst_format, drect->x ),
-                             gfxs->dst_pitch, gfxs->src_org[0], gfxs->src_pitch,
+                    stretch( dst, gfxs->dst_pitch, src, gfxs->src_pitch,
                              srect->w, srect->h, drect->w, drect->h, &clip );
 
                     switch (gfxs->dst_format) {
@@ -8345,15 +8344,11 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
                               clip.x1 /= 2;
                               clip.x2 /= 2;
                               if (srect->w < drect->w || srect->h < drect->h) {
-                                   stretch_hvx_nv16_uv_up( gfxs->dst_org[1] + drect->y * gfxs->dst_pitch
-                                                           + DFB_BYTES_PER_LINE( gfxs->dst_format, drect->x&~1 ),
-                                                           gfxs->dst_pitch, gfxs->src_org[1], gfxs->src_pitch,
+                                   stretch_hvx_nv16_uv_up( dst, gfxs->dst_pitch, src, gfxs->src_pitch,
                                                            srect->w/2, srect->h, drect->w/2, drect->h, &clip );
                               }
                               else {
-                                   stretch_hvx_nv16_uv_down( gfxs->dst_org[1] + drect->y * gfxs->dst_pitch
-                                                             + DFB_BYTES_PER_LINE( gfxs->dst_format, drect->x&~1 ),
-                                                             gfxs->dst_pitch, gfxs->src_org[1], gfxs->src_pitch,
+                                   stretch_hvx_nv16_uv_down( dst, gfxs->dst_pitch, src, gfxs->src_pitch,
                                                              srect->w/2, srect->h, drect->w/2, drect->h, &clip );
                               }
                               break;
@@ -8412,9 +8407,7 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
                               break;
                     }
 
-                    stretch_indexed( gfxs->dst_org[0] + drect->y * gfxs->dst_pitch
-                                     + DFB_BYTES_PER_LINE( gfxs->dst_format, drect->x ),
-                                     gfxs->dst_pitch, gfxs->src_org[0], gfxs->src_pitch,
+                    stretch_indexed( dst, gfxs->dst_pitch, src, gfxs->src_pitch,
                                      srect->w, srect->h, drect->w, drect->h, &clip, colors );
 
                     return;
