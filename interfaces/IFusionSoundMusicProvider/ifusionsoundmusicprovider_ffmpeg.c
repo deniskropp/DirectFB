@@ -440,9 +440,13 @@ FFmpegStreamThread( DirectThread *thread, void *ctx )
           }
           
           for (pkt_data = pkt.data, pkt_size = pkt.size; pkt_size > 0;) {
-               int decoded = avcodec_decode_audio( data->codec,
-                                                  (s16*)&data->buf[size], &len, 
-                                                   pkt_data, pkt_size );
+               int decoded;
+
+               len = AVCODEC_MAX_AUDIO_FRAME_SIZE - size;
+
+               decoded = avcodec_decode_audio2( data->codec,
+                                                (s16*)&data->buf[size], &len, 
+                                                pkt_data, pkt_size );
                if (decoded < 0)
                     break;
                        
@@ -614,9 +618,13 @@ FFmpegBufferThread( DirectThread *thread, void *ctx )
           }
           
           for (pkt_data = pkt.data, pkt_size = pkt.size; pkt_size > 0;) {
-               int decoded = avcodec_decode_audio( data->codec,
-                                                  (s16*)&data->buf[size], &len, 
-                                                   pkt_data, pkt_size );
+               int decoded;
+
+               len = AVCODEC_MAX_AUDIO_FRAME_SIZE - size;
+
+               decoded = avcodec_decode_audio2( data->codec,
+                                                (s16*)&data->buf[size], &len, 
+                                                pkt_data, pkt_size );
                if (decoded < 0)
                     break;
                        
