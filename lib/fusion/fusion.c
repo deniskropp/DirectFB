@@ -35,6 +35,7 @@
 #include <time.h>
 #include <fcntl.h>
 
+#include <sys/param.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/stat.h>

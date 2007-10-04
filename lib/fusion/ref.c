@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <sys/param.h>
 #include <sys/types.h>
 
 #include <fusion/build.h>

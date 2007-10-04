@@ -33,6 +33,8 @@
 #include <errno.h>
 #include <signal.h>
 
+#include <sys/param.h>
+
 #include <direct/debug.h>
 #include <direct/messages.h>
 #include <direct/util.h>
