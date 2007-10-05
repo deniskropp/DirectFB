@@ -122,10 +122,10 @@ dfb_layer_core_initialize( CoreDFB            *core,
 
      /* Initialize all registered layers. */
      for (i=0; i<dfb_num_layers; i++) {
-          char               buf[24];
-          CoreLayerShared   *lshared;
-          CoreLayer         *layer = dfb_layers[i];
-          DisplayLayerFuncs *funcs = layer->funcs;
+          char                     buf[24];
+          CoreLayerShared         *lshared;
+          CoreLayer               *layer = dfb_layers[i];
+          const DisplayLayerFuncs *funcs = layer->funcs;
 
           /* Allocate shared data. */
           lshared = SHCALLOC( pool, 1, sizeof(CoreLayerShared) );
@@ -279,9 +279,9 @@ dfb_layer_core_shutdown( DFBLayerCore *data,
 
      /* Begin with the most recently added layer. */
      for (i=dfb_num_layers-1; i>=0; i--) {
-          CoreLayer         *layer  = dfb_layers[i];
-          CoreLayerShared   *shared = layer->shared;
-          DisplayLayerFuncs *funcs  = layer->funcs;
+          CoreLayer               *layer  = dfb_layers[i];
+          CoreLayerShared         *shared = layer->shared;
+          const DisplayLayerFuncs *funcs  = layer->funcs;
 
           D_ASSUME( emergency || fusion_vector_is_empty( &shared->added_regions ) );
 
@@ -409,9 +409,9 @@ dfb_layer_core_resume( DFBLayerCore *data )
 /**********************************************************************************************************************/
 
 CoreLayer *
-dfb_layers_register( CoreScreen        *screen,
-                     void              *driver_data,
-                     DisplayLayerFuncs *funcs )
+dfb_layers_register( CoreScreen              *screen,
+                     void                    *driver_data,
+                     const DisplayLayerFuncs *funcs )
 {
      CoreLayer *layer;
 
