@@ -607,7 +607,7 @@ dfb_convert_to_a4( DFBSurfacePixelFormat  format,
      u16 *src16;
      u32 *src32;
 
-     D_ASSUME( width & 1 == 0 );
+     D_ASSUME( (width & 1) == 0 );
 
      switch (format) {
           case DSPF_A8:
@@ -661,6 +661,60 @@ dfb_convert_to_a4( DFBSurfacePixelFormat  format,
           default:
                if (DFB_PIXELFORMAT_HAS_ALPHA( format ))
                     D_ONCE( "unsupported format" );
+     }
+}
+
+static inline void
+dfb_convert_to_yuy2( DFBSurfacePixelFormat  format,
+                     void                  *src,
+                     int                    spitch,
+                     int                    surface_height,
+                     u32                   *dst,
+                     int                    dpitch,
+                     int                    width,
+                     int                    height )
+{
+     int dp4 = dpitch / 4;
+
+     switch (format) {
+          case DSPF_YUY2:
+               while (height--) {
+                    direct_memcpy( dst, src, width * 2 );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          default:
+               D_ONCE( "unsupported format" );
+     }
+}
+
+static inline void
+dfb_convert_to_uyvy( DFBSurfacePixelFormat  format,
+                     void                  *src,
+                     int                    spitch,
+                     int                    surface_height,
+                     u32                   *dst,
+                     int                    dpitch,
+                     int                    width,
+                     int                    height )
+{
+     int dp4 = dpitch / 4;
+
+     switch (format) {
+          case DSPF_UYVY:
+               while (height--) {
+                    direct_memcpy( dst, src, width * 2 );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          default:
+               D_ONCE( "unsupported format" );
      }
 }
 
