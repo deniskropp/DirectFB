@@ -349,6 +349,14 @@ typedef struct {
                                (x).b == (y).b)
 
 /*
+ * Macro to compare two color keys.
+ */
+#define DFB_COLORKEY_EQUAL(x,y) ((x).index == (y).index &&  \
+                                 (x).r == (y).r &&  \
+                                 (x).g == (y).g &&  \
+                                 (x).b == (y).b)
+
+/*
  * Print a description of the result code along with an
  * optional message that is put in front with a colon.
  */
@@ -705,6 +713,7 @@ typedef enum {
      DSBLIT_INDEX_TRANSLATION  = 0x00000800, /* do fast indexed to indexed translation,
                                                 this flag is mutual exclusive with all others */
      DSBLIT_ROTATE180          = 0x00001000, /* rotate the image by 180 degree */
+     DSBLIT_COLORKEY_PROTECT   = 0x00010000, /* make sure written pixels don't match color key (internal only ATM) */
 } DFBSurfaceBlittingFlags;
 
 /*
