@@ -2715,8 +2715,6 @@ wm_add_window( CoreWindowStack *stack,
           ret = fusion_vector_add( &parent->children, sawwin );
           if (ret)
                return ret;
-
-          window->config.bounds = parent->window->config.bounds;
      }
 
      sawman_update_geometry( sawwin );
