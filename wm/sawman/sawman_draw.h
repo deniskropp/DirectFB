@@ -39,7 +39,8 @@ void sawman_draw_cursor    ( CoreWindowStack *stack,
                              CardState       *state,
                              DFBRegion       *region );
 
-void sawman_draw_window    ( SaWManWindow    *sawwin,
+void sawman_draw_window    ( SaWManTier      *tier,
+                             SaWManWindow    *sawwin,
                              CardState       *state,
                              DFBRegion       *pregion,
                              bool             alpha_channel );

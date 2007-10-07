@@ -50,174 +50,7 @@
 #include <sawman_config.h>
 #include <sawman_manager.h>
 
-#include "stretch_algos.h"
-
 D_DEBUG_DOMAIN( SaWMan_Draw, "SaWMan/Draw", "SaWMan window manager drawing" );
-
-/**********************************************************************************************************************/
-
-static DFBResult
-smooth_stretchblit( CardState          *state,
-                    const DFBRectangle *sr,
-                    const DFBRectangle *dr,
-                    const StretchAlgo  *algo )
-{
-     DFBResult              ret;
-     void                  *src;
-     void                  *dst;
-     CoreSurfaceBuffer     *source;
-     CoreSurfaceBuffer     *destination;
-     DFBRegion              clip;
-     CoreSurfaceBufferLock  slock;
-     CoreSurfaceBufferLock  dlock;
-
-     D_ASSERT( state != NULL );
-     D_ASSERT( state->source != NULL );
-     D_ASSERT( state->destination != NULL );
-
-     ret = dfb_surface_lock( state->source );
-     if (ret)
-          return ret;
-
-     ret = dfb_surface_lock( state->destination );
-     if (ret) {
-          dfb_surface_unlock( state->source );
-          return ret;
-     }
-
-     source      = dfb_surface_get_buffer( state->source, CSBR_FRONT );
-     destination = dfb_surface_get_buffer( state->destination, CSBR_BACK );
-     clip        = state->clip;
-
-     ret = DFB_UNSUPPORTED;
-
-     switch (destination->format) {
-          case DSPF_RGB16:
-               switch (source->format) {
-                    case DSPF_RGB16:
-                         if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
-                              if (!algo->func_rgb16_keyed)
-                                   goto error;
-                         }
-                         else if (!algo->func_rgb16)
-                              goto error;
-
-                         break;
-
-                    case DSPF_LUT8:
-                         D_ASSERT( state->source->palette != NULL );
-
-                         if (state->blittingflags & DSBLIT_SRC_COLORKEY)
-                              goto error;
-
-                         if (!algo->func_rgb16_indexed)
-                              goto error;
-
-                         break;
-
-                    case DSPF_RGB32:
-                         if (!algo->func_rgb16_from32)
-                              goto error;
-
-                         break;
-
-                    default:
-                         goto error;
-               }
-               break;
-
-          case DSPF_ARGB4444:
-               switch (source->format) {
-                    case DSPF_ARGB4444:
-                         if (!algo->func_argb4444)
-                              goto error;
-
-                         break;
-
-                    default:
-                         goto error;
-               }
-               break;
-
-          default:
-               goto error;
-     }
-
-
-     ret = dfb_surface_buffer_lock( source, CSAF_CPU_READ, &slock );
-     if (ret) {
-          D_DERROR( ret, "SaWMan/Draw: %s(): Could not lock source buffer!\n", __FUNCTION__ );
-          goto error;
-     }
-
-     ret = dfb_surface_buffer_lock( destination, CSAF_CPU_WRITE, &dlock );
-     if (ret) {
-          D_DERROR( ret, "SaWMan/Draw: %s(): Could not lock source buffer!\n", __FUNCTION__ );
-          dfb_surface_buffer_unlock( &slock );
-          goto error;
-     }
-
-     src = slock.addr + DFB_BYTES_PER_LINE( source->format, sr->x ) + sr->y * slock.pitch;
-     dst = dlock.addr + DFB_BYTES_PER_LINE( destination->format, dr->x ) + dr->y * dlock.pitch;
-
-     dfb_region_translate( &clip, - dr->x, - dr->y );
-
-     switch (destination->format) {
-          case DSPF_RGB16:
-               switch (source->format) {
-                    case DSPF_RGB16:
-                         if (state->blittingflags & DSBLIT_SRC_COLORKEY)
-                              algo->func_rgb16_keyed( dst, dlock.pitch, src, slock.pitch, sr->w, sr->h, dr->w, dr->h, &clip,
-                                                      state->dst_colorkey, state->src_colorkey );
-                         else
-                              algo->func_rgb16( dst, dlock.pitch, src, slock.pitch, sr->w, sr->h, dr->w, dr->h, &clip, state->dst_colorkey );
-                         break;
-
-                    case DSPF_LUT8:
-                         D_ASSERT( state->source->palette != NULL );
-                         algo->func_rgb16_indexed( dst, dlock.pitch, src, slock.pitch, sr->w, sr->h, dr->w, dr->h, &clip, state->dst_colorkey,
-                                                   state->source->palette->entries );
-                         break;
-
-                    case DSPF_RGB32:
-                         algo->func_rgb16_from32( dst, dlock.pitch, src, slock.pitch, sr->w, sr->h, dr->w, dr->h, &clip, state->dst_colorkey );
-                         break;
-
-                    default:
-                         D_BUG( "unsupported source format %s", dfb_pixelformat_name(source->format) );
-               }
-               break;
-
-          case DSPF_ARGB4444:
-               switch (source->format) {
-                    case DSPF_ARGB4444:
-                         algo->func_argb4444( dst, dlock.pitch, src, slock.pitch, sr->w, sr->h, dr->w, dr->h, &clip, state->dst_colorkey );
-                         break;
-
-                    default:
-                         D_BUG( "unsupported source format %s", dfb_pixelformat_name(source->format) );
-               }
-               break;
-
-          default:
-               D_BUG( "unsupported destination format %s", dfb_pixelformat_name(destination->format) );
-     }
-
-     dfb_surface_buffer_unlock( &dlock );
-     dfb_surface_buffer_unlock( &slock );
-
-     dfb_surface_unlock( state->destination );
-     dfb_surface_unlock( state->source );
-
-     return DFB_OK;
-
-
-error:
-     dfb_surface_unlock( state->destination );
-     dfb_surface_unlock( state->source );
-
-     return ret;
-}
 
 /**********************************************************************************************************************/
 
@@ -418,14 +251,20 @@ draw_border( SaWManWindow    *sawwin,
 }
 
 static void
-draw_window( SaWManWindow *sawwin,
+draw_window( SaWManTier   *tier,
+             SaWManWindow *sawwin,
              CardState    *state,
              DFBRegion    *region,
              bool          alpha_channel )
 {
      SaWMan                  *sawman;
      CoreWindow              *window;
+     CoreWindowStack         *stack;
      DFBSurfaceBlittingFlags  flags = DSBLIT_NOFX;
+     DFBRectangle             dst;
+     DFBRectangle             src;
+     DFBRegion                clip;
+     DFBRegion                old_clip;
 
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
      D_MAGIC_ASSERT( state, CardState );
@@ -433,13 +272,27 @@ draw_window( SaWManWindow *sawwin,
 
      sawman = sawwin->sawman;
      window = sawwin->window;
+     stack  = sawwin->stack;
+     dst    = sawwin->dst;
+     src    = sawwin->src;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( window != NULL );
      D_ASSERT( window->surface != NULL );
+     D_ASSERT( stack != NULL );
+     D_ASSERT( stack->context != NULL );
 
      D_DEBUG_AT( SaWMan_Draw, "%s( %p, %d,%d-%dx%d )\n", __FUNCTION__,
                  sawwin, DFB_RECTANGLE_VALS_FROM_REGION( region ) );
+
+     /* Setup clipping region. */
+     clip = *region;
+
+     if (!dfb_region_rectangle_intersect( &clip, &dst ))
+          return;
+
+     /* Backup clipping region. */
+     old_clip = state->clip;
 
      /* Use per pixel alpha blending. */
      if (alpha_channel && (window->config.options & DWOP_ALPHACHANNEL))
@@ -533,60 +386,39 @@ draw_window( SaWManWindow *sawwin,
           }
      }
 
+     /* Use color (key) protection if layer is keyed. */
+     if (tier->context->config.options & DLOP_SRC_COLORKEY) {
+          flags |= DSBLIT_COLORKEY_PROTECT;
+
+          dfb_state_set_colorkey( state, &tier->key );
+     }
+
      /* Set blitting flags. */
      dfb_state_set_blitting_flags( state, flags );
+
+     /* Set render options. */
+     if (sawman->scaling_mode == SWMSM_SMOOTH_SW)
+          dfb_state_set_render_options( state, DSRO_SMOOTH_DOWNSCALE | DSRO_SMOOTH_UPSCALE );
+     else
+          dfb_state_set_render_options( state, DSRO_NONE );
 
      /* Set blitting source. */
      state->source    = window->surface;
      state->modified |= SMF_SOURCE;
 
-     DFBRegion clip = state->clip;
-     DFBRegion new_clip = *region;
-
-     dfb_region_rectangle_intersect( &new_clip, &sawwin->dst );
-
      /* Change clipping region. */
-     dfb_state_set_clip( state, &new_clip );
+     dfb_state_set_clip( state, &clip );
 
-     if (!sawman->fast_mode && (window->config.options & DWOP_SCALE)
-         /*(window_config->bounds.w != window->surface->config.size.w  ||
-          window_config->bounds.h != window->surface->config.size.h || sawman->color_keyed)*/)
-     {
-          DFBResult    ret = DFB_UNSUPPORTED;
-          DFBRectangle dst = sawwin->dst;
-          DFBRectangle src = sawwin->src;
-
-          /* Scale window to the screen clipped by the region being updated. */
-          if (sawman->scaling_mode == SWMSM_SMOOTH_SW) {
-               if (dst.w == src.w && dst.h == src.h)
-                    ret = smooth_stretchblit( state, &src, &dst, &wm_stretch_simple );
-               else if (dst.w < window->surface->config.size.w && dst.h < window->surface->config.size.h)
-                    ret = smooth_stretchblit( state, &src, &dst, &wm_stretch_down );
-               else {
-                    src.w--;
-                    src.h--;
-
-                    ret = smooth_stretchblit( state, &src, &dst, &wm_stretch_up );
-               }
-          }
-
-          /* Standard scaling selected or fallback for smooth scaling required. */
-          if (ret)
-               dfb_gfxcard_stretchblit( &src, &dst, state );
-     }
-     else {
-          DFBRectangle src = sawwin->src;
-
-          /* Blit from the window to the region being updated. */
-          dfb_gfxcard_blit( &src, sawwin->dst.x, sawwin->dst.y, state );
-     }
+     /* Scale window to the screen clipped by the region being updated. */
+     dfb_gfxcard_stretchblit( &src, &dst, state );
 
      /* Restore clipping region. */
      dfb_state_set_clip( state, &clip );
 }
 
 void
-sawman_draw_window( SaWManWindow *sawwin,
+sawman_draw_window( SaWManTier   *tier,
+                    SaWManWindow *sawwin,
                     CardState    *state,
                     DFBRegion    *pregion,
                     bool          alpha_channel )
@@ -620,7 +452,7 @@ sawman_draw_window( SaWManWindow *sawwin,
                                window->config.bounds.y + window->config.bounds.h - border - 1 ) &&
          dfb_region_rectangle_intersect( region, &sawwin->dst )
          )
-          draw_window( sawwin, state, region, alpha_channel );
+          draw_window( tier, sawwin, state, region, alpha_channel );
 
 
      if (border)

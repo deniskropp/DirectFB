@@ -438,7 +438,7 @@ update_region( SaWMan          *sawman,
                if (!dfb_region_region_intersect( &opaque, &region )) {
                     update_region( sawman, tier, state, i-1, x1, y1, x2, y2 );
 
-                    sawman_draw_window( sawwin, state, &region, true );
+                    sawman_draw_window( tier, sawwin, state, &region, true );
                }
                else {
                     if ((window->config.opacity < 0xff) || (window->config.options & DWOP_COLORKEYING)) {
@@ -466,29 +466,29 @@ update_region( SaWMan          *sawman,
                     /* left */
                     if (opaque.x1 != region.x1) {
                          DFBRegion r = { region.x1, opaque.y1, opaque.x1 - 1, opaque.y2 };
-                         sawman_draw_window( sawwin, state, &r, true );
+                         sawman_draw_window( tier, sawwin, state, &r, true );
                     }
 
                     /* upper */
                     if (opaque.y1 != region.y1) {
                          DFBRegion r = { region.x1, region.y1, region.x2, opaque.y1 - 1 };
-                         sawman_draw_window( sawwin, state, &r, true );
+                         sawman_draw_window( tier, sawwin, state, &r, true );
                     }
 
                     /* right */
                     if (opaque.x2 != region.x2) {
                          DFBRegion r = { opaque.x2 + 1, opaque.y1, region.x2, opaque.y2 };
-                         sawman_draw_window( sawwin, state, &r, true );
+                         sawman_draw_window( tier, sawwin, state, &r, true );
                     }
 
                     /* lower */
                     if (opaque.y2 != region.y2) {
                          DFBRegion r = { region.x1, opaque.y2 + 1, region.x2, region.y2 };
-                         sawman_draw_window( sawwin, state, &r, true );
+                         sawman_draw_window( tier, sawwin, state, &r, true );
                     }
 
                     /* inner */
-                    sawman_draw_window( sawwin, state, &opaque, false );
+                    sawman_draw_window( tier, sawwin, state, &opaque, false );
                }
           }
           else {
@@ -514,7 +514,7 @@ update_region( SaWMan          *sawman,
                          update_region( sawman, tier, state, i-1, x1, region.y2+1, x2, y2 );
                }
 
-               sawman_draw_window( sawwin, state, &region, true );
+               sawman_draw_window( tier, sawwin, state, &region, true );
           }
      }
      else
