@@ -120,6 +120,27 @@ ISaWManManager_QueueUpdate( ISaWManManager         *thiz,
 }
 
 static DirectResult
+ISaWManManager_ProcessUpdates( ISaWManManager      *thiz,
+                               DFBSurfaceFlipFlags  flags )
+{
+     SaWMan *sawman;
+
+     DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     sawman = data->sawman;
+     D_MAGIC_ASSERT( sawman, SaWMan );
+
+     if (sawman_lock( sawman ))
+          return DFB_FUSION;
+
+     sawman_process_updates( sawman, flags );
+
+     sawman_unlock( sawman );
+
+     return DFB_OK;
+}
+
+static DirectResult
 ISaWManManager_CloseWindow( ISaWManManager *thiz,
                             SaWManWindow   *window )
 {
@@ -357,6 +378,7 @@ ISaWManManager_Construct( ISaWManManager *thiz,
      thiz->AddRef          = ISaWManManager_AddRef;
      thiz->Release         = ISaWManManager_Release;
      thiz->QueueUpdate     = ISaWManManager_QueueUpdate;
+     thiz->ProcessUpdates  = ISaWManManager_ProcessUpdates;
      thiz->CloseWindow     = ISaWManManager_CloseWindow;
      thiz->SetVisible      = ISaWManManager_SetVisible;
      thiz->SwitchFocus     = ISaWManManager_SwitchFocus;

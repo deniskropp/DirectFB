@@ -229,6 +229,14 @@ struct __SaWMan_SaWManTier {
 
      bool                    border_only;
      DFBDisplayLayerConfig   border_config;
+
+     CoreSurface            *cursor_bs;          /* backing store for region under cursor */
+     bool                    cursor_bs_valid;
+     DFBRegion               cursor_region;
+     bool                    cursor_drawn;
+
+     int                     cursor_dx;
+     int                     cursor_dy;
 };
 
 
@@ -346,6 +354,9 @@ DirectResult sawman_withdraw_window( SaWMan                *sawman,
                                      SaWManWindow          *sawwin );
 
 DirectResult sawman_update_geometry( SaWManWindow          *sawwin );
+
+DirectResult sawman_process_updates( SaWMan                *sawman,
+                                     DFBSurfaceFlipFlags    flags );
 
 static inline DirectResult
 sawman_lock( SaWMan *sawman )

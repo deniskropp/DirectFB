@@ -135,6 +135,14 @@ DEFINE_INTERFACE(   ISaWManManager,
           const DFBRegion          *region
      );
 
+     /*
+      * Process queued updates.
+      */
+     DirectResult (*ProcessUpdates) (
+          ISaWManManager           *thiz,
+          DFBSurfaceFlipFlags       flags
+     );
+
 
    /** Windows **/
 

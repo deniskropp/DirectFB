@@ -22,11 +22,7 @@ libdirectfbwm_sawman_la_LDFLAGS = \
 	-module
 
 libdirectfbwm_sawman_la_SOURCES = \
-	sawman_draw.c		\
-	sawman_draw.h		\
-	sawman_wm.c		\
-	stretch_algos.c		\
-	stretch_algos.h
+	sawman_wm.c
 
 libdirectfbwm_sawman_la_LIBADD = \
 	../../src/libsawman.la	\

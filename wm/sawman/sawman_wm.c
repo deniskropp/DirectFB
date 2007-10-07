@@ -102,14 +102,6 @@ typedef struct {
      SaWMan                       *sawman;
 
      CoreWindowStack              *stack;
-
-     CoreSurface                  *cursor_bs;          /* backing store for region under cursor */
-     bool                          cursor_bs_valid;
-     DFBRegion                     cursor_region;
-     bool                          cursor_drawn;
-
-     int                           cursor_dx;
-     int                           cursor_dy;
 } StackData;
 
 /**********************************************************************************************************************/
@@ -382,635 +374,6 @@ update_focus( SaWMan          *sawman,
      }
 
      return false;
-}
-
-/**********************************************************************************************************************/
-
-static void
-update_region( SaWMan          *sawman,
-               SaWManTier      *tier,
-               CardState       *state,
-               int              start,
-               int              x1,
-               int              y1,
-               int              x2,
-               int              y2 )
-{
-     int           i      = start;
-     DFBRegion     region = { x1, y1, x2, y2 };
-     CoreWindow   *window = NULL;
-     SaWManWindow *sawwin = NULL;
-
-     D_MAGIC_ASSERT( sawman, SaWMan );
-     D_MAGIC_ASSERT( tier, SaWManTier );
-     D_MAGIC_ASSERT( state, CardState );
-     D_ASSERT( start < fusion_vector_size( &sawman->layout ) );
-     D_ASSERT( x1 <= x2 );
-     D_ASSERT( y1 <= y2 );
-
-     /* Find next intersecting window. */
-     while (i >= 0) {
-          sawwin = fusion_vector_at( &sawman->layout, i );
-          D_MAGIC_ASSERT( sawwin, SaWManWindow );
-
-          window = sawwin->window;
-          D_ASSERT( window != NULL );
-
-          if (SAWMAN_VISIBLE_WINDOW( window ) && (tier->classes & (1 << window->config.stacking))) {
-               if (dfb_region_intersect( &region,
-                                         DFB_REGION_VALS_FROM_RECTANGLE( &window->config.bounds )))
-                    break;
-          }
-
-          i--;
-     }
-
-     /* Intersecting window found? */
-     if (i >= 0) {
-          D_MAGIC_ASSERT( sawwin, SaWManWindow );
-          D_ASSERT( window != NULL );
-
-          if (D_FLAGS_ARE_SET( window->config.options, DWOP_ALPHACHANNEL | DWOP_OPAQUE_REGION )) {
-               DFBRegion opaque = DFB_REGION_INIT_TRANSLATED( &window->config.opaque,
-                                                              window->config.bounds.x,
-                                                              window->config.bounds.y );
-
-               if (!dfb_region_region_intersect( &opaque, &region )) {
-                    update_region( sawman, tier, state, i-1, x1, y1, x2, y2 );
-
-                    sawman_draw_window( tier, sawwin, state, &region, true );
-               }
-               else {
-                    if ((window->config.opacity < 0xff) || (window->config.options & DWOP_COLORKEYING)) {
-                         /* draw everything below */
-                         update_region( sawman, tier, state, i-1, x1, y1, x2, y2 );
-                    }
-                    else {
-                         /* left */
-                         if (opaque.x1 != x1)
-                              update_region( sawman, tier, state, i-1, x1, opaque.y1, opaque.x1-1, opaque.y2 );
-
-                         /* upper */
-                         if (opaque.y1 != y1)
-                              update_region( sawman, tier, state, i-1, x1, y1, x2, opaque.y1-1 );
-
-                         /* right */
-                         if (opaque.x2 != x2)
-                              update_region( sawman, tier, state, i-1, opaque.x2+1, opaque.y1, x2, opaque.y2 );
-
-                         /* lower */
-                         if (opaque.y2 != y2)
-                              update_region( sawman, tier, state, i-1, x1, opaque.y2+1, x2, y2 );
-                    }
-
-                    /* left */
-                    if (opaque.x1 != region.x1) {
-                         DFBRegion r = { region.x1, opaque.y1, opaque.x1 - 1, opaque.y2 };
-                         sawman_draw_window( tier, sawwin, state, &r, true );
-                    }
-
-                    /* upper */
-                    if (opaque.y1 != region.y1) {
-                         DFBRegion r = { region.x1, region.y1, region.x2, opaque.y1 - 1 };
-                         sawman_draw_window( tier, sawwin, state, &r, true );
-                    }
-
-                    /* right */
-                    if (opaque.x2 != region.x2) {
-                         DFBRegion r = { opaque.x2 + 1, opaque.y1, region.x2, opaque.y2 };
-                         sawman_draw_window( tier, sawwin, state, &r, true );
-                    }
-
-                    /* lower */
-                    if (opaque.y2 != region.y2) {
-                         DFBRegion r = { region.x1, opaque.y2 + 1, region.x2, region.y2 };
-                         sawman_draw_window( tier, sawwin, state, &r, true );
-                    }
-
-                    /* inner */
-                    sawman_draw_window( tier, sawwin, state, &opaque, false );
-               }
-          }
-          else {
-               if (SAWMAN_TRANSLUCENT_WINDOW( window )) {
-                    /* draw everything below */
-                    update_region( sawman, tier, state, i-1, x1, y1, x2, y2 );
-               }
-               else {
-                    /* left */
-                    if (region.x1 != x1)
-                         update_region( sawman, tier, state, i-1, x1, region.y1, region.x1-1, region.y2 );
-
-                    /* upper */
-                    if (region.y1 != y1)
-                         update_region( sawman, tier, state, i-1, x1, y1, x2, region.y1-1 );
-
-                    /* right */
-                    if (region.x2 != x2)
-                         update_region( sawman, tier, state, i-1, region.x2+1, region.y1, x2, region.y2 );
-
-                    /* lower */
-                    if (region.y2 != y2)
-                         update_region( sawman, tier, state, i-1, x1, region.y2+1, x2, y2 );
-               }
-
-               sawman_draw_window( tier, sawwin, state, &region, true );
-          }
-     }
-     else
-          sawman_draw_background( tier, state, &region );
-}
-
-static void
-repaint_tier( SaWMan              *sawman,
-              SaWManTier          *tier,
-              const DFBRegion     *updates,
-              int                  num_updates,
-              DFBSurfaceFlipFlags  flags )
-{
-     int              i;
-     CoreLayer       *layer;
-     CoreLayerRegion *region;
-     CardState       *state;
-     CoreSurface     *surface;
-     DFBRegion        cursor_inter;
-     CoreWindowStack *stack;
-     StackData       *data;
-
-     D_MAGIC_ASSERT( sawman, SaWMan );
-     D_MAGIC_ASSERT( tier, SaWManTier );
-     D_ASSERT( updates != NULL );
-     D_ASSERT( num_updates > 0 );
-
-     stack = tier->stack;
-     D_ASSERT( stack != NULL );
-
-     data = stack->stack_data;
-     D_ASSERT( data != NULL );
-
-     region = tier->region;
-     D_ASSERT( region != NULL );
-
-     layer   = dfb_layer_at( tier->layer_id );
-     state   = &layer->state;
-     surface = region->surface;
-
-     if (/*!data->active ||*/ !surface)
-          return;
-
-     D_DEBUG_AT( SaWMan_Update, "%s( %p, %p )\n", __FUNCTION__, sawman, tier );
-
-     /* Set destination. */
-     state->destination  = surface;
-     state->modified    |= SMF_DESTINATION;
-
-     for (i=0; i<num_updates; i++) {
-          const DFBRegion *update = &updates[i];
-
-          DFB_REGION_ASSERT( update );
-
-          D_DEBUG_AT( SaWMan_Update, "  -> %d, %d - %dx%d  (%d)\n",
-                      DFB_RECTANGLE_VALS_FROM_REGION( update ), i );
-
-          dfb_state_set_dst_colorkey( state, dfb_color_to_pixel( region->config.format,
-                                                                 region->config.src_key.r,
-                                                                 region->config.src_key.g,
-                                                                 region->config.src_key.b ) );
-
-          /* Set clipping region. */
-          dfb_state_set_clip( state, update );
-
-          /* Compose updated region. */
-          update_region( sawman, tier, state,
-                         fusion_vector_size( &sawman->layout ) - 1,
-                         update->x1, update->y1, update->x2, update->y2 );
-
-          /* Update cursor? */
-          cursor_inter = data->cursor_region;
-          if (data->cursor_drawn && dfb_region_region_intersect( &cursor_inter, update )) {
-               DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &cursor_inter );
-
-               D_ASSUME( data->cursor_bs_valid );
-
-               dfb_gfx_copy_to( surface, data->cursor_bs, &rect,
-                                rect.x - data->cursor_region.x1,
-                                rect.y - data->cursor_region.y1, true );
-
-               sawman_draw_cursor( stack, state, &cursor_inter );
-          }
-     }
-
-     /* Reset destination. */
-     state->destination  = NULL;
-     state->modified    |= SMF_DESTINATION;
-
-     /* Software cursor code relies on a valid back buffer. */
-     if (stack->cursor.enabled)
-          flags |= DSFLIP_BLIT;
-
-     for (i=0; i<num_updates; i++) {
-          const DFBRegion *update = &updates[i];
-
-          DFB_REGION_ASSERT( update );
-
-          /* Flip the updated region .*/
-          dfb_layer_region_flip_update( region, update, flags );
-     }
-}
-
-static SaWManWindow *
-get_single_window( SaWMan     *sawman,
-                   SaWManTier *tier,
-                   bool       *ret_none )
-{
-     int           n;
-     SaWManWindow *sawwin;
-     SaWManWindow *single = NULL;
-
-     D_MAGIC_ASSERT( sawman, SaWMan );
-     D_MAGIC_ASSERT( tier, SaWManTier );
-
-     fusion_vector_foreach_reverse (sawwin, n, sawman->layout) {
-          CoreWindow *window;
-
-          D_MAGIC_ASSERT( sawwin, SaWManWindow );
-
-          window = sawwin->window;
-          D_ASSERT( window != NULL );
-
-          if (SAWMAN_VISIBLE_WINDOW(window) && (tier->classes & (1 << window->config.stacking))) {
-               if (single || (window->caps & DWCAPS_INPUTONLY))
-                    return NULL;
-
-               single = sawwin;
-
-               if (single->dst.x == 0 &&
-                   single->dst.y == 0 &&
-                   single->dst.w == tier->size.w &&
-                   single->dst.h == tier->size.h &&
-                   !(window->config.options & DWOP_COLORKEYING))
-                    break;
-          }
-     }
-
-     if (ret_none && !single)
-          *ret_none = true;
-
-     return single;
-}
-
-static bool
-get_border_only( SaWMan     *sawman,
-                 SaWManTier *tier )
-{
-     int           n;
-     SaWManWindow *sawwin;
-     bool          none = true;
-
-     D_MAGIC_ASSERT( sawman, SaWMan );
-     D_MAGIC_ASSERT( tier, SaWManTier );
-
-     fusion_vector_foreach_reverse (sawwin, n, sawman->layout) {
-          CoreWindow *window;
-
-          D_MAGIC_ASSERT( sawwin, SaWManWindow );
-
-          window = sawwin->window;
-          D_ASSERT( window != NULL );
-
-          none = false;
-
-          if (SAWMAN_VISIBLE_WINDOW(window) && !(window->caps & DWCAPS_INPUTONLY))
-               return false;
-     }
-
-     return !none;
-}
-
-/* FIXME: Split up in smaller functions and clean up things like forcing reconfiguration. */
-static DFBResult
-process_updates( SaWMan              *sawman,
-                 WMData              *wmdata,
-                 DFBSurfaceFlipFlags  flags )
-{
-     SaWManTier *tier;
-
-     D_MAGIC_ASSERT( sawman, SaWMan );
-
-     D_DEBUG_AT( SaWMan_Update, "%s( %p, %p )\n", __FUNCTION__, sawman, wmdata );
-
-     direct_list_foreach (tier, sawman->tiers) {
-          int           n, d;
-          int           total;
-          int           bounding;
-          bool          none = false;
-          bool          border_only;
-          SaWManWindow *single;
-
-          D_MAGIC_ASSERT( tier, SaWManTier );
-
-          D_DEBUG_AT( SaWMan_Update, "            %p -> %p (%d updates)\n",
-                      tier, tier->stack, tier->updates.num_regions );
-
-          if (!tier->updates.num_regions)
-               continue;
-
-          D_ASSERT( tier->region != NULL );
-
-          D_DEBUG_AT( SaWMan_Update, "  -> [%d] %d updates, bounding %dx%d\n",
-                      tier->layer_id, tier->updates.num_regions,
-                      tier->updates.bounding.x2 - tier->updates.bounding.x1 + 1,
-                      tier->updates.bounding.y2 - tier->updates.bounding.y1 + 1 );
-
-          if (!tier->config.width || !tier->config.height)
-               continue;
-
-          single = get_single_window( sawman, tier, &none );
-
-          if (none) {
-               if (tier->active) {
-                    D_DEBUG_AT( SaWMan_Auto, "  -> Deactivating region...\n" );
-
-                    tier->active        = false;
-                    tier->single_window = NULL;  /* enforce configuration to reallocate buffers */
-
-                    dfb_layer_region_deactivate( tier->region );
-               }
-               dfb_updates_reset( &tier->updates );
-               continue;
-          }
-
-          border_only = get_border_only( sawman, tier );
-
-          /* Remember color key before single mode is activated. */
-          if (!tier->single_mode)
-               tier->key = tier->context->primary.config.src_key;
-
-
-          /* If the first mode after turning off the layer is not single, then we need
-             this to force a reconfiguration to reallocate the buffers. */
-          if (!tier->active) {
-               tier->single_mode = true;               /* avoid endless loop */
-               tier->border_only = !border_only;       /* enforce configuration to reallocate buffers */
-          }
-
-          if (single && !border_only) {
-               CoreWindow             *window;
-               CoreSurface            *surface;
-               DFBDisplayLayerOptions  options;
-               DFBLocation             location;
-               CoreLayer              *layer;
-               int                     screen_width;
-               int                     screen_height;
-               DFBRectangle            rect;
-
-               layer = dfb_layer_at( tier->layer_id );
-
-               dfb_screen_get_screen_size( layer->screen, &screen_width, &screen_height );
-
-               if (tier->size.w == screen_width && tier->size.h == screen_height)
-                    rect = single->dst;
-               else {
-                    rect.x = single->dst.x * screen_width  / tier->size.w;
-                    rect.y = single->dst.y * screen_height / tier->size.h;
-                    rect.w = single->dst.w * screen_width  / tier->size.w;
-                    rect.h = single->dst.h * screen_height / tier->size.h;
-               }
-
-#ifdef SAWMAN_NO_LAYER_DOWNSCALE
-               if (rect.w < single->src.w)
-                    goto no_single;
-#endif
-
-#ifdef SAWMAN_NO_LAYER_DST_WINDOW
-               if (rect.x != 0 || rect.y != 0 || rect.w != screen_width || rect.h != screen_height)
-                    goto no_single;
-#endif
-
-               location.x = (float) single->dst.x / (float) tier->size.w;
-               location.y = (float) single->dst.y / (float) tier->size.h;
-               location.w = (float) single->dst.w / (float) tier->size.w;
-               location.h = (float) single->dst.h / (float) tier->size.h;
-
-
-               window = single->window;
-               D_ASSERT( window != NULL );
-
-               surface = window->surface;
-               D_ASSERT( surface != NULL );
-
-               options = (window->config.options & DWOP_COLORKEYING) ? DLOP_SRC_COLORKEY : DLOP_NONE;
-
-               if (tier->single_window  == NULL ||
-                   tier->single_width   != single->src.w ||
-                   tier->single_height  != single->src.h ||
-                   tier->single_format  != surface->config.format ||
-                   tier->single_options != options)
-               {
-                    DFBDisplayLayerConfig  config;
-
-                    D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d %s single mode for %p on %p...\n",
-                                single->src.w, single->src.h, dfb_pixelformat_name( surface->config.format ),
-                                single, tier );
-
-                    config.flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_OPTIONS | DLCONF_BUFFERMODE;
-                    config.width       = single->src.w;
-                    config.height      = single->src.h;
-                    config.pixelformat = surface->config.format;
-                    config.options     = options;
-                    config.buffermode  = DLBM_FRONTONLY;
-
-                    if (dfb_layer_context_test_configuration( tier->context, &config, NULL ) != DFB_OK)
-                         goto no_single;
-
-                    if (!(layer->shared->description.caps & DLCAPS_SCREEN_SIZE) &&
-                        (single->dst.w != single->src.w || single->dst.h != single->src.h))
-                         goto no_single;
-
-                    tier->single_mode     = true;
-                    tier->single_window   = single;
-                    tier->single_width    = single->src.w;
-                    tier->single_height   = single->src.h;
-                    tier->single_format   = surface->config.format;
-                    tier->single_options  = options;
-                    tier->single_location = location;
-
-                    if (tier->active) {
-                         tier->active = false;
-                         dfb_layer_region_deactivate( tier->region );
-                         dfb_updates_reset( &tier->updates );
-                    }
-
-                    dfb_layer_context_set_configuration( tier->context, &config );
-
-                    dfb_layer_context_set_screenrectangle( tier->context, &rect );
-
-                    if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format )) {
-                         CorePalette *palette = surface->palette;
-
-                         D_ASSERT( palette != NULL );
-                         D_ASSERT( palette->num_entries > 0 );
-
-                         dfb_surface_set_palette( tier->region->surface, surface->palette );
-
-                         if (options & DLOP_SRC_COLORKEY) {
-                              int index = window->config.color_key % palette->num_entries;
-
-                              dfb_layer_context_set_src_colorkey( tier->context,
-                                                                  palette->entries[index].r,
-                                                                  palette->entries[index].g,
-                                                                  palette->entries[index].b,
-                                                                  index );
-                         }
-                    }
-                    else {
-                         DFBColor color;
-
-                         dfb_pixel_to_color( surface->config.format, window->config.color_key, &color );
-
-                         dfb_layer_context_set_src_colorkey( tier->context,
-                                                             color.r, color.g, color.b,
-                                                             window->config.color_key );
-                    }
-
-                    DFBRectangle src = single->src;
-                    dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
-
-                    tier->active = true;
-                    dfb_layer_region_activate( tier->region );
-
-                    dfb_layer_region_flip_update( tier->region, NULL, flags );
-
-
-                    dfb_updates_reset( &tier->updates );
-                    continue;
-               }
-               else if (!DFB_LOCATION_EQUAL( location, tier->single_location )) {
-                    tier->single_location = location;
-
-                    D_DEBUG_AT( SaWMan_Auto, "  -> Changing single destination.\n" );
-
-                    dfb_layer_context_set_screenrectangle( tier->context, &rect );
-               }
-
-               DFBRectangle src = single->src;
-               dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
-
-               if (!tier->active) {
-                    tier->active = true;
-                    dfb_layer_region_activate( tier->region );
-               }
-
-               dfb_layer_region_flip_update( tier->region, NULL, flags );
-
-               dfb_updates_reset( &tier->updates );
-               continue;
-          }
-
-no_single:
-
-          if (tier->single_mode) {
-               D_DEBUG_AT( SaWMan_Auto, "  -> Switching back from single mode...\n" );
-
-               tier->border_only = !border_only;       /* enforce switch */
-          }
-
-          /* Switch border/default config? */
-          if (tier->border_only != border_only) {
-               const DFBDisplayLayerConfig *config;
-
-               tier->border_only = border_only;
-
-               if (border_only)
-                    config = &tier->border_config;
-               else
-                    config = &tier->config;
-
-               D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d %s %s mode.\n", config->width, config->height,
-                           dfb_pixelformat_name( config->pixelformat ), border_only ? "border" : "standard" );
-
-               if (tier->active) {
-                    tier->active = false;
-                    dfb_layer_region_deactivate( tier->region );
-                    dfb_updates_reset( &tier->updates );
-               }
-
-               dfb_layer_context_set_configuration( tier->context, config );
-
-               tier->size.w = config->width;
-               tier->size.h = config->height;
-
-               DFBLocation location = { 0, 0, 1, 1 };
-               dfb_layer_context_set_screenlocation( tier->context, &location );
-
-               if (config->options & DLOP_SRC_COLORKEY) {
-                    if (DFB_PIXELFORMAT_IS_INDEXED( config->pixelformat )) {
-                         int          index;
-                         CoreSurface *surface;
-                         CorePalette *palette;
-
-                         surface = tier->region->surface;
-                         D_MAGIC_ASSERT( surface, CoreSurface );
-
-                         palette = surface->palette;
-                         D_ASSERT( palette != NULL );
-                         D_ASSERT( palette->num_entries > 0 );
-
-                         index = tier->key.index % palette->num_entries;
-
-                         dfb_layer_context_set_src_colorkey( tier->context,
-                                                             palette->entries[index].r,
-                                                             palette->entries[index].g,
-                                                             palette->entries[index].b,
-                                                             index );
-                    }
-                    else
-                         dfb_layer_context_set_src_colorkey( tier->context,
-                                                             tier->key.r, tier->key.g, tier->key.b, tier->key.index );
-               }
-          }
-
-          if (!tier->active) {
-               D_DEBUG_AT( SaWMan_Auto, "  -> Activating region...\n" );
-
-               tier->active = true;
-
-               dfb_layer_region_activate( tier->region );
-
-               DFBRegion region = { 0, 0, tier->size.w - 1, tier->size.h - 1 };
-               dfb_updates_add( &tier->updates, &region );
-          }
-
-          tier->single_mode   = false;
-          tier->single_window = NULL;
-
-          if (!tier->updates.num_regions)
-               continue;
-
-
-          dfb_updates_stat( &tier->updates, &total, &bounding );
-
-          n = tier->updates.max_regions - tier->updates.num_regions + 1;
-          d = n + 1;
-
-          /* Try to optimize updates. In buffer swapping modes we can save the copy by updating everything. */
-          if ((total > tier->size.w * tier->size.h) ||
-              (total > tier->size.w * tier->size.h * 3 / 5 && (tier->context->config.buffermode == DLBM_BACKVIDEO ||
-                                                               tier->context->config.buffermode == DLBM_TRIPLE)))
-          {
-               DFBRegion region = { 0, 0, tier->size.w - 1, tier->size.h - 1 };
-
-               repaint_tier( sawman, tier, &region, 1, flags );
-          }
-          else if (tier->updates.num_regions < 2 || total < bounding * n / d)
-               repaint_tier( sawman, tier, tier->updates.regions, tier->updates.num_regions, flags );
-          else
-               repaint_tier( sawman, tier, &tier->updates.bounding, 1, flags );
-
-          dfb_updates_reset( &tier->updates );
-     }
-
-     return DFB_OK;
 }
 
 /**********************************************************************************************************************/
@@ -1647,19 +1010,15 @@ handle_button_release( CoreWindowStack     *stack,
 
 static void
 handle_motion( CoreWindowStack *stack,
-               StackData       *data,
+               SaWMan          *sawman,
                int              dx,
                int              dy )
 {
-     int             old_cx, old_cy;
-     DFBWindowEvent  we;
-     SaWMan         *sawman;
+     int            old_cx, old_cy;
+     DFBWindowEvent we;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( data != NULL );
-
-     sawman = data->sawman;
-     D_MAGIC_ASSERT( sawman, SaWMan );
 
      if (!stack->cursor.enabled)
           return;
@@ -1689,7 +1048,7 @@ handle_motion( CoreWindowStack *stack,
 
           sawman_post_event( sawman, sawwin, &we );
      }
-     else if (!update_focus( data->sawman, stack ) && sawman->entered_window) {
+     else if (!update_focus( sawman, stack ) && sawman->entered_window) {
           SaWManWindow *sawwin = sawman->entered_window;
 
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
@@ -1705,18 +1064,14 @@ handle_motion( CoreWindowStack *stack,
 
 static void
 handle_wheel( CoreWindowStack *stack,
-              StackData       *data,
+              SaWMan          *sawman,
               int              dz )
 {
      DFBWindowEvent  we;
-     SaWMan         *sawman;
      SaWManWindow   *sawwin;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( data != NULL );
-
-     sawman = data->sawman;
-     D_MAGIC_ASSERT( sawman, SaWMan );
 
      if (!stack->cursor.enabled)
           return;
@@ -1738,11 +1093,13 @@ handle_wheel( CoreWindowStack *stack,
 
 static DFBResult
 handle_axis_motion( CoreWindowStack     *stack,
-                    StackData           *data,
+                    SaWMan              *sawman,
+                    SaWManTier          *tier,
                     const DFBInputEvent *event )
 {
      D_ASSERT( stack != NULL );
-     D_ASSERT( data != NULL );
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( tier, SaWManTier );
      D_ASSERT( event != NULL );
      D_ASSERT( event->type == DIET_AXISMOTION );
 
@@ -1761,15 +1118,15 @@ handle_axis_motion( CoreWindowStack     *stack,
 
           switch (event->axis) {
                case DIAI_X:
-                    data->cursor_dx += rel;
+                    tier->cursor_dx += rel;
                     break;
 
                case DIAI_Y:
-                    data->cursor_dy += rel;
+                    tier->cursor_dy += rel;
                     break;
 
                case DIAI_Z:
-                    handle_wheel( stack, data, - event->axisrel );
+                    handle_wheel( stack, sawman, - event->axisrel );
                     break;
 
                default:
@@ -1779,11 +1136,11 @@ handle_axis_motion( CoreWindowStack     *stack,
      else if (event->flags & DIEF_AXISABS) {
           switch (event->axis) {
                case DIAI_X:
-                    data->cursor_dx = event->axisabs - stack->cursor.x;
+                    tier->cursor_dx = event->axisabs - stack->cursor.x;
                     break;
 
                case DIAI_Y:
-                    data->cursor_dy = event->axisabs - stack->cursor.y;
+                    tier->cursor_dy = event->axisabs - stack->cursor.y;
                     break;
 
                default:
@@ -1791,11 +1148,11 @@ handle_axis_motion( CoreWindowStack     *stack,
           }
      }
 
-     if (!(event->flags & DIEF_FOLLOW) && (data->cursor_dx || data->cursor_dy)) {
-          handle_motion( stack, data, data->cursor_dx, data->cursor_dy );
+     if (!(event->flags & DIEF_FOLLOW) && (tier->cursor_dx || tier->cursor_dy)) {
+          handle_motion( stack, sawman, tier->cursor_dx, tier->cursor_dy );
 
-          data->cursor_dx = 0;
-          data->cursor_dy = 0;
+          tier->cursor_dx = 0;
+          tier->cursor_dy = 0;
      }
 
      return DFB_OK;
@@ -1932,7 +1289,7 @@ wm_post_init( void *wm_data, void *shared_data )
                   dfb_pixelformat_name( tier->border_config.pixelformat ), tier->border_config.options );
      }
 
-     process_updates( sawman, wm_data, DSFLIP_NONE );
+     sawman_process_updates( sawman, DSFLIP_NONE );
 
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
@@ -2050,8 +1407,8 @@ wm_close_stack( CoreWindowStack *stack,
      D_MAGIC_CLEAR( tier );
 
      /* Destroy backing store of software cursor. */
-     if (data->cursor_bs)
-          dfb_surface_unlink( &data->cursor_bs );
+     if (tier->cursor_bs)
+          dfb_surface_unlink( &tier->cursor_bs );
 
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
@@ -2206,7 +1563,7 @@ wm_process_input( CoreWindowStack     *stack,
      /* Call application manager executable. */
      ret = sawman_call( sawman, SWMCID_INPUT_FILTER, &sawman->manager.event );
 
-     process_updates( sawman, wm_data, DSFLIP_NONE );
+     sawman_process_updates( sawman, DSFLIP_NONE );
 
      switch (ret) {
           case DFB_OK:
@@ -2243,7 +1600,7 @@ wm_process_input( CoreWindowStack     *stack,
                break;
 
           case DIET_AXISMOTION:
-               ret = handle_axis_motion( stack, data, event );
+               ret = handle_axis_motion( stack, sawman, tier, event );
                break;
 
           default:
@@ -2535,7 +1892,7 @@ wm_preconfigure_window( CoreWindowStack *stack,
                break;
      }
 
-     process_updates( wmdata->sawman, wm_data, DSFLIP_NONE );
+     sawman_process_updates( wmdata->sawman, DSFLIP_NONE );
 
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
@@ -2719,7 +2076,7 @@ wm_add_window( CoreWindowStack *stack,
 
      sawman_update_geometry( sawwin );
 
-     process_updates( wmdata->sawman, wm_data, DSFLIP_NONE );
+     sawman_process_updates( wmdata->sawman, DSFLIP_NONE );
 
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
@@ -2808,7 +2165,7 @@ wm_remove_window( CoreWindowStack *stack,
      if (tier->single_window == sawwin)
           tier->single_window = NULL;
 
-     process_updates( sdata->sawman, wm_data, DSFLIP_NONE );
+     sawman_process_updates( sdata->sawman, DSFLIP_NONE );
 
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
@@ -3064,7 +2421,7 @@ wm_set_window_config( CoreWindow             *window,
      if (flags & (CWCF_POSITION | CWCF_SIZE | CWCF_SRC_GEOMETRY | CWCF_DST_GEOMETRY))
           sawman_update_geometry( sawwin );
 
-     process_updates( sawman, wm_data, DSFLIP_NONE );
+     sawman_process_updates( sawman, DSFLIP_NONE );
 
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
@@ -3135,7 +2492,7 @@ wm_restack_window( CoreWindow             *window,
      /* Possibly switch focus to window now under the cursor */
      update_focus( sawman, stack );
 
-     process_updates( data->sawman, wm_data, DSFLIP_NONE );
+     sawman_process_updates( data->sawman, DSFLIP_NONE );
 
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
@@ -3207,7 +2564,7 @@ wm_grab( CoreWindow *window,
                ret = DFB_BUG;
      }
 
-     process_updates( wmdata->sawman, wm_data, DSFLIP_NONE );
+     sawman_process_updates( wmdata->sawman, DSFLIP_NONE );
 
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
@@ -3273,7 +2630,7 @@ wm_ungrab( CoreWindow *window,
                ret = DFB_BUG;
      }
 
-     process_updates( wmdata->sawman, wm_data, DSFLIP_NONE );
+     sawman_process_updates( wmdata->sawman, DSFLIP_NONE );
 
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
@@ -3317,7 +2674,7 @@ wm_request_focus( CoreWindow *window,
 
      ret = request_focus( wmdata->sawman, window_data );
 
-     process_updates( wmdata->sawman, wm_data, DSFLIP_NONE );
+     sawman_process_updates( wmdata->sawman, DSFLIP_NONE );
 
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
@@ -3366,7 +2723,7 @@ wm_update_stack( CoreWindowStack     *stack,
      if (!tier->single_mode) {
           dfb_updates_add( &tier->updates, region );
 
-          ret = process_updates( sawman, wm_data, flags );
+          ret = sawman_process_updates( sawman, flags );
      }
 
      /* Unlock SaWMan. */
@@ -3447,7 +2804,7 @@ wm_update_window( CoreWindow          *window,
                                 sawwin->parent ? NULL : region, /* FIXME? */
                                 flags, false, false, true );
 
-          process_updates( sawman, wmdata, flags );
+          sawman_process_updates( sawman, flags );
      }
 
      /* Unlock SaWMan. */
@@ -3465,7 +2822,6 @@ wm_update_cursor( CoreWindowStack       *stack,
      DFBResult         ret;
      DFBRegion         old_region;
      WMData           *wmdata   = wm_data;
-     StackData        *data     = stack_data;
      bool              restored = false;
      CoreLayerContext *context;
      CoreLayerRegion  *primary;
@@ -3488,17 +2844,17 @@ wm_update_cursor( CoreWindowStack       *stack,
           return DFB_UNSUPPORTED;
      }
 
-     old_region = data->cursor_region;
+     old_region = tier->cursor_region;
 
      if (flags & (CCUF_ENABLE | CCUF_POSITION | CCUF_SIZE)) {
-          data->cursor_bs_valid  = false;
+          tier->cursor_bs_valid  = false;
 
-          data->cursor_region.x1 = stack->cursor.x - stack->cursor.hot.x;
-          data->cursor_region.y1 = stack->cursor.y - stack->cursor.hot.y;
-          data->cursor_region.x2 = data->cursor_region.x1 + stack->cursor.size.w - 1;
-          data->cursor_region.y2 = data->cursor_region.y1 + stack->cursor.size.h - 1;
+          tier->cursor_region.x1 = stack->cursor.x - stack->cursor.hot.x;
+          tier->cursor_region.y1 = stack->cursor.y - stack->cursor.hot.y;
+          tier->cursor_region.x2 = tier->cursor_region.x1 + stack->cursor.size.w - 1;
+          tier->cursor_region.y2 = tier->cursor_region.y1 + stack->cursor.size.h - 1;
 
-          if (!dfb_region_intersect( &data->cursor_region, 0, 0, stack->width - 1, stack->height - 1 )) {
+          if (!dfb_region_intersect( &tier->cursor_region, 0, 0, stack->width - 1, stack->height - 1 )) {
                D_BUG( "invalid cursor region" );
                return DFB_BUG;
           }
@@ -3511,7 +2867,7 @@ wm_update_cursor( CoreWindowStack       *stack,
      context = stack->context;
      D_ASSERT( context != NULL );
 
-     if (!data->cursor_bs) {
+     if (!tier->cursor_bs) {
           CoreSurface *cursor_bs;
 
           D_ASSUME( flags & CCUF_ENABLE );
@@ -3528,10 +2884,10 @@ wm_update_cursor( CoreWindowStack       *stack,
           ret = dfb_surface_globalize( cursor_bs );
           D_ASSERT( ret == DFB_OK );
 
-          data->cursor_bs = cursor_bs;
+          tier->cursor_bs = cursor_bs;
      }
 
-     D_ASSERT( data->cursor_bs != NULL );
+     D_ASSERT( tier->cursor_bs != NULL );
 
      /* Get the primary region. */
      ret = dfb_layer_context_get_primary_region( context, false, &primary );
@@ -3558,48 +2914,48 @@ wm_update_cursor( CoreWindowStack       *stack,
      }
 
      /* restore region under cursor */
-     if (data->cursor_drawn) {
+     if (tier->cursor_drawn) {
           DFBRectangle rect = { 0, 0,
                                 old_region.x2 - old_region.x1 + 1,
                                 old_region.y2 - old_region.y1 + 1 };
 
           D_ASSERT( stack->cursor.opacity || (flags & CCUF_OPACITY) );
 
-          dfb_gfx_copy_to( data->cursor_bs, surface, &rect, old_region.x1, old_region.y1, false );
+          dfb_gfx_copy_to( tier->cursor_bs, surface, &rect, old_region.x1, old_region.y1, false );
 
-          data->cursor_drawn = false;
+          tier->cursor_drawn = false;
 
           restored = true;
      }
 
      if (flags & CCUF_SIZE) {
-          ret = dfb_surface_reformat( data->cursor_bs,
+          ret = dfb_surface_reformat( tier->cursor_bs,
                                       stack->cursor.size.w, stack->cursor.size.h,
-                                      data->cursor_bs->config.format );
+                                      tier->cursor_bs->config.format );
           if (ret)
                D_DERROR( ret, "WM/Default: Failed resizing backing store for cursor from %dx%d to %dx%d!\n",
-                         data->cursor_bs->config.size.w, data->cursor_bs->config.size.h, stack->cursor.size.w, stack->cursor.size.h );
+                         tier->cursor_bs->config.size.w, tier->cursor_bs->config.size.h, stack->cursor.size.w, stack->cursor.size.h );
      }
 
      if (flags & CCUF_DISABLE) {
-          dfb_surface_unlink( &data->cursor_bs );
+          dfb_surface_unlink( &tier->cursor_bs );
      }
      else if (stack->cursor.opacity) {
           CoreLayer *layer = dfb_layer_at( context->layer_id );
           CardState *state = &layer->state;
 
           /* backup region under cursor */
-          if (!data->cursor_bs_valid) {
-               DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &data->cursor_region );
+          if (!tier->cursor_bs_valid) {
+               DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &tier->cursor_region );
 
-               D_ASSERT( !data->cursor_drawn );
+               D_ASSERT( !tier->cursor_drawn );
 
                /* FIXME: this requires using blitted flipping all the time,
                   but fixing it seems impossible, for now DSFLIP_BLIT is forced
                   in repaint_stack() when the cursor is enabled. */
-               dfb_gfx_copy_to( surface, data->cursor_bs, &rect, 0, 0, true );
+               dfb_gfx_copy_to( surface, tier->cursor_bs, &rect, 0, 0, true );
 
-               data->cursor_bs_valid = true;
+               tier->cursor_bs_valid = true;
           }
 
           /* Set destination. */
@@ -3607,27 +2963,27 @@ wm_update_cursor( CoreWindowStack       *stack,
           state->modified    |= SMF_DESTINATION;
 
           /* Set clipping region. */
-          dfb_state_set_clip( state, &data->cursor_region );
+          dfb_state_set_clip( state, &tier->cursor_region );
 
           /* draw cursor */
-          sawman_draw_cursor( stack, state, &data->cursor_region );
+          sawman_draw_cursor( stack, state, &tier->cursor_region );
 
           /* Reset destination. */
           state->destination  = NULL;
           state->modified    |= SMF_DESTINATION;
 
-          data->cursor_drawn = true;
+          tier->cursor_drawn = true;
 
           if (restored) {
-               if (dfb_region_region_intersects( &old_region, &data->cursor_region ))
-                    dfb_region_region_union( &old_region, &data->cursor_region );
+               if (dfb_region_region_intersects( &old_region, &tier->cursor_region ))
+                    dfb_region_region_union( &old_region, &tier->cursor_region );
                else
-                    dfb_layer_region_flip_update( primary, &data->cursor_region, DSFLIP_BLIT );
+                    dfb_layer_region_flip_update( primary, &tier->cursor_region, DSFLIP_BLIT );
 
                dfb_layer_region_flip_update( primary, &old_region, DSFLIP_BLIT );
           }
           else
-               dfb_layer_region_flip_update( primary, &data->cursor_region, DSFLIP_BLIT );
+               dfb_layer_region_flip_update( primary, &tier->cursor_region, DSFLIP_BLIT );
      }
      else if (restored)
           dfb_layer_region_flip_update( primary, &old_region, DSFLIP_BLIT );
