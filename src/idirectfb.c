@@ -1242,6 +1242,8 @@ IDirectFB_CreateDataBuffer( IDirectFB                       *thiz,
                                                       desc->memory.length,
                                                       data->core );
      }
+     else
+          return DFB_INVARG;
 
      if (!ret)
           *interface = iface;
