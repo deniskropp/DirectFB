@@ -52,6 +52,7 @@
 #include "isawman.h"
 
 
+D_DEBUG_DOMAIN( SaWMan_Auto,     "SaWMan/Auto",     "SaWMan auto configuration" );
 D_DEBUG_DOMAIN( SaWMan_Update,   "SaWMan/Update",   "SaWMan window manager updates" );
 D_DEBUG_DOMAIN( SaWMan_Geometry, "SaWMan/Geometry", "SaWMan window manager geometry" );
 
@@ -1875,7 +1876,7 @@ sawman_process_updates( SaWMan              *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     D_DEBUG_AT( SaWMan_Update, "%s( %p, %p )\n", __FUNCTION__, sawman );
+     D_DEBUG_AT( SaWMan_Update, "%s( %p, 0x%08x )\n", __FUNCTION__, sawman, flags );
 
      direct_list_foreach (tier, sawman->tiers) {
           int           n, d;

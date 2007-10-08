@@ -81,9 +81,7 @@
 DFB_WINDOW_MANAGER( sawman )
 
 
-D_DEBUG_DOMAIN( SaWMan_WM,     "SaWMan/WM",     "SaWMan window manager module" );
-D_DEBUG_DOMAIN( SaWMan_Update, "SaWMan/Update", "SaWMan window manager updates" );
-D_DEBUG_DOMAIN( SaWMan_Auto,   "SaWMan/Auto",   "SaWMan auto configuration" );
+D_DEBUG_DOMAIN( SaWMan_WM, "SaWMan/WM", "SaWMan window manager module" );
 
 /**********************************************************************************************************************/
 
@@ -1018,7 +1016,7 @@ handle_motion( CoreWindowStack *stack,
      DFBWindowEvent we;
 
      D_ASSERT( stack != NULL );
-     D_ASSERT( data != NULL );
+     D_MAGIC_ASSERT( sawman, SaWMan );
 
      if (!stack->cursor.enabled)
           return;
@@ -1071,7 +1069,7 @@ handle_wheel( CoreWindowStack *stack,
      SaWManWindow   *sawwin;
 
      D_ASSERT( stack != NULL );
-     D_ASSERT( data != NULL );
+     D_MAGIC_ASSERT( sawman, SaWMan );
 
      if (!stack->cursor.enabled)
           return;
@@ -2832,8 +2830,6 @@ wm_update_cursor( CoreWindowStack       *stack,
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
      D_ASSERT( stack_data != NULL );
-
-     D_MAGIC_ASSERT( data, StackData );
 
      sawman = wmdata->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
