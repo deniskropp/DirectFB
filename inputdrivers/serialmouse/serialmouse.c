@@ -405,7 +405,7 @@ driver_get_available()
      /* open device to read from */
      fd = open( dfb_config->mouse_source, flags );
      if (fd < 0) {
-	  D_INFO( "DirectFB/SerialMouse: could not open device '%s'!\n", dfb_config->mouse_source );
+          D_INFO( "DirectFB/SerialMouse: could not open device '%s'!\n", dfb_config->mouse_source );
           return 0;
      }
 
@@ -417,51 +417,52 @@ driver_get_available()
 
           goto success;
 
-     } else {
-
-     if (ioctl( fd, TIOCGSERIAL, &serial_info ))
-          goto error;
-
-     /*  test if there's a mouse connected by lowering and raising RTS  */
-     if (ioctl( fd, TIOCMGET, &lines ))
-          goto error;
-
-     lines ^= TIOCM_RTS;
-     if (ioctl( fd, TIOCMSET, &lines ))
-          goto error;
-     usleep (1000);
-     lines |= TIOCM_RTS;
-     if (ioctl( fd, TIOCMSET, &lines ))
-          goto error;
-
-     /*  wait for the mouse to send 0x4D  */
-     FD_ZERO (&set);
-     FD_SET (fd, &set);
-     timeout.tv_sec  = 0;
-     timeout.tv_usec = 50000;
-
-     while (select (fd+1, &set, NULL, NULL, &timeout) < 0 && errno == EINTR);
-     if (FD_ISSET (fd, &set) && (readlen = read (fd, buf, 8) > 0)) {
-          int i;
-
-          for (i=0; i<readlen; i++) {
-               if (buf[i] == 0x4D)
-                    break;
-          }
-          if (i < readlen)
-               goto success;
      }
-    }
+     else {
+          if (ioctl( fd, TIOCGSERIAL, &serial_info ))
+               goto error;
 
- success:
-     D_INFO("DirectFB/SerialMouse: OK\n");
-     close (fd);
-     return 1;
+          /*  test if there's a mouse connected by lowering and raising RTS  */
+          if (ioctl( fd, TIOCMGET, &lines ))
+               goto error;
 
- error:
+          lines ^= TIOCM_RTS;
+          if (ioctl( fd, TIOCMSET, &lines ))
+               goto error;
+          usleep (1000);
+          lines |= TIOCM_RTS;
+          if (ioctl( fd, TIOCMSET, &lines ))
+               goto error;
+
+          /*  wait for the mouse to send 0x4D  */
+          FD_ZERO (&set);
+          FD_SET (fd, &set);
+          timeout.tv_sec  = 0;
+          timeout.tv_usec = 50000;
+
+          while (select (fd+1, &set, NULL, NULL, &timeout) < 0 && errno == EINTR);
+
+          if (FD_ISSET (fd, &set) && (readlen = read (fd, buf, 8) > 0)) {
+               int i;
+
+               for (i=0; i<readlen; i++) {
+                    if (buf[i] == 0x4D)
+                         break;
+               }
+               if (i < readlen)
+                    goto success;
+          }
+     }
+
+error:
      D_INFO("DirectFB/SerialMouse: Failed\n");
      close (fd);
      return 0;
+
+success:
+     D_INFO("DirectFB/SerialMouse: OK\n");
+     close (fd);
+     return 1;
 }
 
 static void
