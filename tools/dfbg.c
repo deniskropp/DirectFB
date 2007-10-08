@@ -231,6 +231,9 @@ set_background_image()
           return;
      }
 
+     desc.flags |= DSDESC_CAPS;
+     desc.caps   = DSCAPS_SHARED;
+
      if (!tiled) {
           DFBDisplayLayerConfig   config;
 

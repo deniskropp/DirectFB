@@ -28,6 +28,8 @@
 
 #include <config.h>
 
+#include <sys/param.h>
+
 #include <pthread.h>
 
 #include <direct/debug.h>

@@ -281,6 +281,8 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
      /* Collect... */
      allocation->accessed |= access;
 
+     buffer->locked++;
+
      return DFB_OK;
 }
 
@@ -309,6 +311,8 @@ dfb_surface_buffer_unlock( CoreSurfaceBufferLock *lock )
           D_DERROR( ret, "Core/SurfBuffer: Unlocking allocation failed! [%s]\n", pool->desc.name );
           return ret;
      }
+
+     lock->buffer->locked--;
 
      lock->buffer     = NULL;
      lock->allocation = NULL;

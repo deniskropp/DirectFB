@@ -526,7 +526,7 @@ dfb_layer_get_current_output_field( CoreLayer *layer, int *field )
 DFBResult
 dfb_layer_get_level( CoreLayer *layer, int *ret_level )
 {
-     DisplayLayerFuncs *funcs;
+     const DisplayLayerFuncs *funcs;
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );
@@ -544,7 +544,7 @@ dfb_layer_get_level( CoreLayer *layer, int *ret_level )
 DFBResult
 dfb_layer_set_level( CoreLayer *layer, int level )
 {
-     DisplayLayerFuncs *funcs;
+     const DisplayLayerFuncs *funcs;
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );

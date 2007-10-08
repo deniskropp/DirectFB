@@ -420,6 +420,7 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
      int  dp2 = dpitch / 2;
      u8  *src8;
      u16 *src16;
+     u32 *src32;
 
      switch (format) {
           case DSPF_RGB16:
@@ -471,6 +472,21 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
 
                     for (x=0; x<width; x++)
                          dst[x] = ((src16[x] & 0x7c00) << 1) | ((src16[x] & 0x03e0) << 1) | (src16[x] & 0x003f);
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               while (height--) {
+                    src32 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB16( (src32[x] & 0xff0000) >> 16,
+                                               (src32[x] & 0x00ff00) >>  8,
+                                               (src32[x] & 0x0000ff) );
 
                     src += spitch;
                     dst += dp2;
@@ -564,6 +580,133 @@ dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
                          dst[x] = PIXEL_RGB32( ((src16[x] & 0xf800) >> 8) | ((src16[x] & 0xe000) >> 13),
                                                ((src16[x] & 0x07e0) >> 3) | ((src16[x] & 0x0300) >> 8),
                                                ((src16[x] & 0x001f) << 3) | ((src16[x] & 0x001c) >> 2) );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          default:
+               D_ONCE( "unsupported format" );
+     }
+}
+
+static inline void
+dfb_convert_to_a4( DFBSurfacePixelFormat  format,
+                   void                  *src,
+                   int                    spitch,
+                   int                    surface_height,
+                   u8                    *dst,
+                   int                    dpitch,
+                   int                    width,
+                   int                    height )
+{
+     int  x, n;
+     int  w2 = width / 2;
+     u8  *src8;
+     u16 *src16;
+     u32 *src32;
+
+     D_ASSUME( (width & 1) == 0 );
+
+     switch (format) {
+          case DSPF_A8:
+               while (height--) {
+                    src8 = src;
+
+                    for (x=0, n=0; x<w2; x++, n+=2)
+                         dst[x] = (src8[n] & 0xf0) | ((src8[n+1] & 0xf0) >> 4);
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+
+          case DSPF_ARGB4444:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0, n=0; x<w2; x++, n+=2)
+                         dst[x] = ((src16[n] & 0xf000) >> 8) | (src16[n+1] >> 12);
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+
+          case DSPF_ARGB1555:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0, n=0; x<w2; x++, n+=2)
+                         dst[x] = ((src16[n] & 0x8000) ? 0xf0 : 0) | ((src16[n+1] & 0x8000) ? 0x0f : 0);
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+
+          case DSPF_ARGB:
+               while (height--) {
+                    src32 = src;
+
+                    for (x=0, n=0; x<w2; x++, n+=2)
+                         dst[x] = ((src32[n] & 0xf0000000) >> 24) | ((src32[n+1] & 0xf0000000) >> 28);
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+
+          default:
+               if (DFB_PIXELFORMAT_HAS_ALPHA( format ))
+                    D_ONCE( "unsupported format" );
+     }
+}
+
+static inline void
+dfb_convert_to_yuy2( DFBSurfacePixelFormat  format,
+                     void                  *src,
+                     int                    spitch,
+                     int                    surface_height,
+                     u32                   *dst,
+                     int                    dpitch,
+                     int                    width,
+                     int                    height )
+{
+     int dp4 = dpitch / 4;
+
+     switch (format) {
+          case DSPF_YUY2:
+               while (height--) {
+                    direct_memcpy( dst, src, width * 2 );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          default:
+               D_ONCE( "unsupported format" );
+     }
+}
+
+static inline void
+dfb_convert_to_uyvy( DFBSurfacePixelFormat  format,
+                     void                  *src,
+                     int                    spitch,
+                     int                    surface_height,
+                     u32                   *dst,
+                     int                    dpitch,
+                     int                    width,
+                     int                    height )
+{
+     int dp4 = dpitch / 4;
+
+     switch (format) {
+          case DSPF_UYVY:
+               while (height--) {
+                    direct_memcpy( dst, src, width * 2 );
 
                     src += spitch;
                     dst += dp4;

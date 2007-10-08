@@ -409,11 +409,11 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                               const DFBRegion     *update,
                               DFBSurfaceFlipFlags  flags )
 {
-     DFBResult          ret = DFB_OK;
-     CoreLayer         *layer;
-     CoreLayerContext  *context;
-     CoreSurface       *surface;
-     DisplayLayerFuncs *funcs;
+     DFBResult                ret = DFB_OK;
+     CoreLayer               *layer;
+     CoreLayerContext        *context;
+     CoreSurface             *surface;
+     const DisplayLayerFuncs *funcs;
 
      if (update)
           D_DEBUG_AT( Core_Layers,
@@ -578,10 +578,10 @@ dfb_layer_region_set_configuration( CoreLayerRegion            *region,
                                     CoreLayerRegionConfig      *config,
                                     CoreLayerRegionConfigFlags  flags )
 {
-     DFBResult              ret;
-     CoreLayer             *layer;
-     DisplayLayerFuncs     *funcs;
-     CoreLayerRegionConfig  new_config;
+     DFBResult                ret;
+     CoreLayer               *layer;
+     const DisplayLayerFuncs *funcs;
+     CoreLayerRegionConfig    new_config;
 
      D_ASSERT( region != NULL );
      D_ASSERT( region->context != NULL );
@@ -745,7 +745,7 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
      CoreSurface                   *surface;
      CoreLayer                     *layer;
      CoreLayerShared               *shared;
-     DisplayLayerFuncs             *funcs;
+     const DisplayLayerFuncs       *funcs;
      const CoreSurfaceNotification *notification = msg_data;
      CoreLayerRegion               *region       = ctx;
 
@@ -827,9 +827,9 @@ set_region( CoreLayerRegion            *region,
             CoreLayerRegionConfigFlags  flags,
             CoreSurface                *surface )
 {
-     DFBResult          ret = DFB_OK;
-     CoreLayer         *layer;
-     DisplayLayerFuncs *funcs;
+     DFBResult                ret = DFB_OK;
+     CoreLayer               *layer;
+     const DisplayLayerFuncs *funcs;
 
      D_ASSERT( region != NULL );
      D_ASSERT( region->context != NULL );
@@ -902,10 +902,10 @@ set_region( CoreLayerRegion            *region,
 static DFBResult
 realize_region( CoreLayerRegion *region )
 {
-     DFBResult          ret;
-     CoreLayer         *layer;
-     CoreLayerShared   *shared;
-     DisplayLayerFuncs *funcs;
+     DFBResult                ret;
+     CoreLayer               *layer;
+     CoreLayerShared         *shared;
+     const DisplayLayerFuncs *funcs;
 
      D_ASSERT( region != NULL );
      D_ASSERT( region->context != NULL );
@@ -973,11 +973,11 @@ realize_region( CoreLayerRegion *region )
 static DFBResult
 unrealize_region( CoreLayerRegion *region )
 {
-     DFBResult          ret;
-     int                index;
-     CoreLayer         *layer;
-     CoreLayerShared   *shared;
-     DisplayLayerFuncs *funcs;
+     DFBResult                ret;
+     int                      index;
+     CoreLayer               *layer;
+     CoreLayerShared         *shared;
+     const DisplayLayerFuncs *funcs;
 
      D_ASSERT( region != NULL );
      D_ASSERT( region->context != NULL );

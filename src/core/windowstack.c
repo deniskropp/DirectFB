@@ -323,6 +323,9 @@ dfb_windowstack_set_background_image( CoreWindowStack *stack,
      D_ASSERT( stack != NULL );
      D_ASSERT( image != NULL );
 
+     if (!(image->type & CSTF_SHARED))
+          return DFB_INVARG;
+
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;

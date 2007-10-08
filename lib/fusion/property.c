@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <signal.h>
 
+#include <sys/param.h>
 #include <sys/types.h>
 
 #include <fusion/build.h>

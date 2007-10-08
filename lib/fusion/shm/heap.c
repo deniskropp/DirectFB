@@ -52,6 +52,7 @@ Cambridge, MA 02139, USA.
 
 #include <unistd.h>
 
+#include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>

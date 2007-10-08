@@ -54,9 +54,12 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
-#include <jpeglib.h>
 #include <setjmp.h>
 #include <math.h>
+
+#undef HAVE_STDLIB_H
+#include <jpeglib.h>
+
 
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx );

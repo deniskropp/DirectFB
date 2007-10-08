@@ -478,7 +478,7 @@ dfb_layer_context_test_configuration( CoreLayerContext            *context,
      CoreLayer                  *layer;
      CoreLayerRegionConfig       region_config;
      CoreLayerRegionConfigFlags  failed;
-     DisplayLayerFuncs          *funcs;
+     const DisplayLayerFuncs    *funcs;
 
      D_ASSERT( context != NULL );
      D_ASSERT( config != NULL );
@@ -560,7 +560,7 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
      CoreLayerShared            *shared;
      CoreLayerRegionConfig       region_config;
      CoreLayerRegionConfigFlags  flags;
-     DisplayLayerFuncs          *funcs;
+     const DisplayLayerFuncs    *funcs;
 
      D_ASSERT( context != NULL );
      D_ASSERT( config != NULL );
@@ -1465,12 +1465,12 @@ allocate_surface( CoreLayer             *layer,
                   CoreLayerRegion       *region,
                   CoreLayerRegionConfig *config )
 {
-     DFBResult               ret;
-     DisplayLayerFuncs      *funcs;
-     CoreSurface            *surface = NULL;
-     DFBSurfaceCapabilities  caps    = DSCAPS_VIDEOONLY;
-     CoreSurfaceTypeFlags    type    = CSTF_LAYER;
-     CoreSurfaceConfig       scon;
+     DFBResult                ret;
+     const DisplayLayerFuncs *funcs;
+     CoreSurface             *surface = NULL;
+     DFBSurfaceCapabilities   caps    = DSCAPS_VIDEOONLY;
+     CoreSurfaceTypeFlags     type    = CSTF_LAYER;
+     CoreSurfaceConfig        scon;
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->shared != NULL );
@@ -1562,10 +1562,10 @@ reallocate_surface( CoreLayer             *layer,
                     CoreLayerRegionConfig *config,
                     DFBDisplayLayerConfig *previous )
 {
-     DFBResult               ret;
-     DisplayLayerFuncs      *funcs;
-     CoreSurface            *surface;
-     CoreSurfaceConfig       sconfig;
+     DFBResult                ret;
+     const DisplayLayerFuncs *funcs;
+     CoreSurface             *surface;
+     CoreSurfaceConfig        sconfig;
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );
@@ -1633,9 +1633,9 @@ reallocate_surface( CoreLayer             *layer,
 static DFBResult
 deallocate_surface( CoreLayer *layer, CoreLayerRegion *region )
 {
-     DFBResult          ret;
-     DisplayLayerFuncs *funcs;
-     CoreSurface       *surface;
+     DFBResult                ret;
+     const DisplayLayerFuncs *funcs;
+     CoreSurface             *surface;
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );

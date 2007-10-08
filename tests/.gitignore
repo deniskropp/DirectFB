@@ -6,3 +6,4 @@ fusion_fork
 fusion_reactor
 fusion_stream
 *.o
+*.nm

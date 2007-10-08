@@ -120,7 +120,7 @@ devmemInitPool( CoreDFB                    *core,
      ret_desc->types    = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
      ret_desc->priority = CSPP_DEFAULT;
 
-     snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "Frame Buffer Memory" );
+     snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "/dev/mem" );
 
      local->core = core;
      local->mem  = devmem->mem;

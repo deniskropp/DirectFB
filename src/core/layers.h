@@ -280,9 +280,9 @@ typedef struct {
  * containing driver functions. The supplied driver data
  * will be passed to these functions.
  */
-CoreLayer *dfb_layers_register( CoreScreen        *screen,
-                                void              *driver_data,
-                                DisplayLayerFuncs *funcs );
+CoreLayer *dfb_layers_register( CoreScreen              *screen,
+                                void                    *driver_data,
+                                const DisplayLayerFuncs *funcs );
 
 /*
  * Replace functions of the primary layer implementation by passing

@@ -168,6 +168,9 @@ dfb_surface_create( CoreDFB                  *core,
      else
           surface->type = type & ~(CSTF_INTERNAL | CSTF_EXTERNAL);
 
+     if (surface->config.caps & DSCAPS_SHARED)
+          surface->type |= CSTF_SHARED;
+
      surface->resource_id = resource_id;
 
      if (surface->config.caps & DSCAPS_TRIPLE)
@@ -387,6 +390,14 @@ dfb_surface_reconfig( CoreSurface             *surface,
 
           fusion_skirmish_dismiss( &surface->lock );
           return DFB_OK;
+     }
+
+     /* Precheck the Surface Buffers. */
+     for (i=0; i<surface->num_buffers; i++) {
+          if (surface->buffers[i]->locked) {
+               fusion_skirmish_dismiss( &surface->lock );
+               return DFB_LOCKED;
+          }
      }
 
      /* Destroy the Surface Buffers. */

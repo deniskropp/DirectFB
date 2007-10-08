@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <sys/param.h>
 #include <sys/types.h>
 
 #include <fusion/build.h>
@@ -469,6 +470,9 @@ fusion_ref_zero_lock (FusionRef *ref)
      else {
           while (ref->multi.builtin.local+ref->multi.builtin.global) {
                FusionSkirmish *skirmish = &ref->multi.builtin.lock;
+
+               if (ref->multi.builtin.local)
+                    _fusion_check_locals( _fusion_world(ref->multi.shared), ref );
               
                fusion_skirmish_dismiss( skirmish );
                
@@ -501,6 +505,9 @@ fusion_ref_zero_trylock (FusionRef *ref)
      ret = fusion_skirmish_prevail( &ref->multi.builtin.lock );
      if (ret)
           return ret;
+
+     if (ref->multi.builtin.local)
+          _fusion_check_locals( _fusion_world(ref->multi.shared), ref );
 
      if (ref->multi.builtin.local+ref->multi.builtin.global)
           ret = DFB_BUSY;
