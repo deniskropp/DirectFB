@@ -114,6 +114,8 @@ struct __DFB_CoreSurfaceBuffer {
      DFBSurfacePixelFormat    format;        /* Pixel format of buffer data. */
 
      FusionVector             allocs;        /* Allocations within Surface Pools. */
+
+     unsigned int             locked;        /* Lock count. */
 };
 
 
