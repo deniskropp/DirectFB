@@ -442,15 +442,15 @@ driver_get_available()
 
      while (select (fd+1, &set, NULL, NULL, &timeout) < 0 && errno == EINTR);
      if (FD_ISSET (fd, &set) && (readlen = read (fd, buf, 8) > 0)) {
-          while (readlen--) {
-               if (buf[8-readlen] == 0x4D)
+          int i;
+
+          for (i=0; i<readlen; i++) {
+               if (buf[i] == 0x4D)
                     break;
           }
-          if (readlen) {
-                    goto success;
-          }
+          if (i < readlen)
+               goto success;
      }
-
     }
 
  success:
