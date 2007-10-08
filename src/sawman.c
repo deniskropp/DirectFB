@@ -1827,7 +1827,7 @@ get_single_window( SaWMan     *sawman,
                    single->dst.y == 0 &&
                    single->dst.w == tier->size.w &&
                    single->dst.h == tier->size.h &&
-                   !(window->config.options & DWOP_COLORKEYING))
+                   !SAWMAN_TRANSLUCENT_WINDOW(window))
                     break;
           }
      }
