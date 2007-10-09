@@ -370,6 +370,7 @@ static inline DirectResult
 sawman_unlock( SaWMan *sawman )
 {
      D_MAGIC_ASSERT( sawman, SaWMan );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      return fusion_skirmish_dismiss( &sawman->lock );
 }
@@ -408,6 +409,7 @@ sawman_window_index( const SaWMan       *sawman,
 {
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      D_ASSERT( fusion_vector_contains( &sawman->layout, sawwin ) );
 
@@ -422,6 +424,7 @@ sawman_tier_by_class( SaWMan                 *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( (stacking & ~3) == 0 );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      direct_list_foreach (tier, sawman->tiers) {
           D_MAGIC_ASSERT( tier, SaWManTier );
@@ -445,6 +448,7 @@ sawman_tier_by_stack( SaWMan           *sawman,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( stack != NULL );
      D_ASSERT( ret_tier != NULL );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      direct_list_foreach (tier, sawman->tiers) {
           D_MAGIC_ASSERT( tier, SaWManTier );
@@ -467,6 +471,7 @@ sawman_tier_by_layer( SaWMan             *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( ret_tier != NULL );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      direct_list_foreach (tier, sawman->tiers) {
           D_MAGIC_ASSERT( tier, SaWManTier );

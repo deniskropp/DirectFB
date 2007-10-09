@@ -229,6 +229,23 @@ DEFINE_INTERFACE(   ISaWManManager,
           const DFBWindowEvent     *event,
           DFBWindowID               window_id
      );
+
+
+   /** Locking **/
+
+     /*
+      * Lock SaWMan for calls to this interface and access to data structures.
+      */
+     DirectResult (*Lock) (
+          ISaWManManager           *thiz
+     );
+
+     /*
+      * Unlock SaWMan.
+      */
+     DirectResult (*Unlock) (
+          ISaWManManager           *thiz
+     );
 )
 
 

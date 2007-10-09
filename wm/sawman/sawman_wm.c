@@ -2834,6 +2834,11 @@ wm_update_cursor( CoreWindowStack       *stack,
      sawman = wmdata->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
+     /* Lock SaWMan. */
+     ret = sawman_lock( sawman );
+     if (ret)
+          return ret;
+
      /* Retrieve corresponding SaWManTier. */
      if (!sawman_tier_by_stack( sawman, stack, &tier )) {
           sawman_unlock( sawman );
@@ -2852,13 +2857,16 @@ wm_update_cursor( CoreWindowStack       *stack,
 
           if (!dfb_region_intersect( &tier->cursor_region, 0, 0, stack->width - 1, stack->height - 1 )) {
                D_BUG( "invalid cursor region" );
+               sawman_unlock( sawman );
                return DFB_BUG;
           }
      }
 
      /* Optimize case of invisible cursor moving. */
-     if (!(flags & ~(CCUF_POSITION | CCUF_SHAPE)) && (!stack->cursor.opacity || !stack->cursor.enabled))
+     if (!(flags & ~(CCUF_POSITION | CCUF_SHAPE)) && (!stack->cursor.opacity || !stack->cursor.enabled)) {
+          sawman_unlock( sawman );
           return DFB_OK;
+     }
 
      context = stack->context;
      D_ASSERT( context != NULL );
@@ -2874,6 +2882,7 @@ wm_update_cursor( CoreWindowStack       *stack,
                                            CSTF_SHARED | CSTF_CURSOR, 0, NULL, &cursor_bs );
           if (ret) {
                D_ERROR( "WM/Default: Failed creating backing store for cursor!\n" );
+               sawman_unlock( sawman );
                return ret;
           }
 
@@ -2887,8 +2896,10 @@ wm_update_cursor( CoreWindowStack       *stack,
 
      /* Get the primary region. */
      ret = dfb_layer_context_get_primary_region( context, false, &primary );
-     if (ret)
+     if (ret) {
+          sawman_unlock( sawman );
           return ret;
+     }
 
      surface = primary->surface;
 
@@ -2986,6 +2997,8 @@ wm_update_cursor( CoreWindowStack       *stack,
 
      /* Unref primary region. */
      dfb_layer_region_unref( primary );
+
+     sawman_unlock( sawman );
 
      return DFB_OK;
 }

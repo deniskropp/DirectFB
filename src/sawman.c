@@ -126,6 +126,7 @@ register_process( SaWMan             *sawman,
      SaWManProcess *process;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      /* Allocate process data. */
      process = SHCALLOC( sawman->shmpool, 1, sizeof(SaWManProcess) );
@@ -187,6 +188,7 @@ unregister_process( SaWMan        *sawman,
 {
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( process, SaWManProcess );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      /* Destroy reference counter. */
      fusion_ref_destroy( &process->ref );
@@ -230,6 +232,7 @@ process_watcher( int           caller,
                  unsigned int  serial,
                  int          *ret_val )
 {
+     DFBResult      ret;
      SaWMan        *sawman  = ctx;
      SaWManProcess *process;
 
@@ -252,7 +255,14 @@ process_watcher( int           caller,
      D_INFO( "SaWMan/Watcher: Process %d [%lu] has exited%s\n", process->pid,
              process->fusion_id, (process->flags & SWMPF_EXITING) ? "." : " ABNORMALLY!" );
 
-     unregister_process( sawman, process );
+     ret = sawman_lock( sawman );
+     if (ret)
+          D_DERROR( ret, "SaWMan/%s(): sawman_lock() failed!\n", __FUNCTION__ );
+     else {
+          unregister_process( sawman, process );
+
+          sawman_unlock( sawman );
+     }
 
      return FCHR_RETURN;
 }
@@ -361,6 +371,7 @@ add_tier( SaWMan                *sawman,
      D_ASSERT( layer_id < MAX_LAYERS );
      D_ASSERT( (classes &  7) != 0 );
      D_ASSERT( (classes & ~7) == 0 );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      direct_list_foreach (tier, sawman->tiers) {
           D_MAGIC_ASSERT( tier, SaWManTier );
@@ -433,6 +444,8 @@ sawman_initialize( SaWMan         *sawman,
 
      D_MAGIC_SET( sawman, SaWMan );
 
+     sawman_lock( sawman );
+
      /* Initialize tiers. */
      for (i=0; i<D_ARRAY_SIZE(dfb_config->layers); i++) {
           if (!dfb_config->layers[i].stacking)
@@ -440,6 +453,7 @@ sawman_initialize( SaWMan         *sawman,
 
           ret = add_tier( sawman, i, dfb_config->layers[i].stacking );
           if (ret) {
+               sawman_unlock( sawman );
                D_MAGIC_CLEAR( sawman );
                goto error;
           }
@@ -452,9 +466,12 @@ sawman_initialize( SaWMan         *sawman,
      /* Register ourself as a new process. */
      ret = register_process( sawman, SWMPF_MASTER, world );
      if (ret) {
+          sawman_unlock( sawman );
           D_MAGIC_CLEAR( sawman );
           goto error;
      }
+
+     sawman_unlock( sawman );
 
      if (ret_process)
           *ret_process = m_process;
@@ -635,6 +652,7 @@ sawman_call( SaWMan       *sawman,
      int ret = DFB_FUSION;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      D_ASSERT( m_sawman == sawman );
 
@@ -723,6 +741,7 @@ sawman_register( SaWMan                *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( callbacks != NULL );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      D_ASSERT( m_sawman == sawman );
      D_ASSERT( m_world != NULL );
@@ -763,6 +782,8 @@ sawman_switch_focus( SaWMan       *sawman,
 
      from = sawman->focused_window;
      D_MAGIC_ASSERT_IF( from, SaWManWindow );
+
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      if (from == to)
           return DFB_OK;
@@ -825,6 +846,7 @@ sawman_post_event( SaWMan         *sawman,
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
      D_ASSERT( sawwin->window != NULL );
      D_ASSERT( event != NULL );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      event->buttons   = sawman->buttons;
      event->modifiers = sawman->modifiers;
@@ -852,6 +874,7 @@ sawman_update_window( SaWMan              *sawman,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
      DFB_REGION_ASSERT_IF( region );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      stack  = sawwin->stack;
      window = sawwin->window;
@@ -941,6 +964,7 @@ sawman_showing_window( SaWMan       *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      stack  = sawwin->stack;
      window = sawwin->window;
@@ -994,6 +1018,7 @@ sawman_insert_window( SaWMan       *sawman,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
      D_MAGIC_ASSERT_IF( relative, SaWManWindow );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      window = sawwin->window;
      D_ASSERT( window != NULL );
@@ -1077,6 +1102,7 @@ sawman_remove_window( SaWMan       *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      if (!(sawwin->flags & SWMWF_INSERTED)) {
           D_BUG( "window not inserted" );
@@ -1128,6 +1154,7 @@ sawman_withdraw_window( SaWMan       *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      window = sawwin->window;
      D_ASSERT( window != NULL );
@@ -1280,6 +1307,9 @@ sawman_update_geometry( SaWManWindow *sawwin )
      sawman = sawwin->sawman;
      D_MAGIC_ASSERT_IF( sawman, SaWMan );
 
+     if (sawman)
+          FUSION_SKIRMISH_ASSERT( &sawman->lock );
+
      window = sawwin->window;
      D_ASSERT( window != NULL );
 
@@ -1350,11 +1380,16 @@ int
 sawman_window_border( const SaWManWindow *sawwin )
 {
      const CoreWindow       *window;
+     const SaWMan           *sawman;
      const SaWManTier       *tier;
      const SaWManBorderInit *border;
      int                     thickness = 0;
 
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
+
+     sawman = sawwin->sawman;
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      if (sawwin->caps & DWCAPS_NODECORATION)
           return 0;
@@ -1724,6 +1759,7 @@ repaint_tier( SaWMan              *sawman,
      D_MAGIC_ASSERT( tier, SaWManTier );
      D_ASSERT( updates != NULL );
      D_ASSERT( num_updates > 0 );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      stack = tier->stack;
      D_ASSERT( stack != NULL );
@@ -1809,6 +1845,7 @@ get_single_window( SaWMan     *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( tier, SaWManTier );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      fusion_vector_foreach_reverse (sawwin, n, sawman->layout) {
           CoreWindow *window;
@@ -1849,6 +1886,7 @@ get_border_only( SaWMan     *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( tier, SaWManTier );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      fusion_vector_foreach_reverse (sawwin, n, sawman->layout) {
           CoreWindow *window;
@@ -1875,6 +1913,7 @@ sawman_process_updates( SaWMan              *sawman,
      SaWManTier *tier;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      D_DEBUG_AT( SaWMan_Update, "%s( %p, 0x%08x )\n", __FUNCTION__, sawman, flags );
 

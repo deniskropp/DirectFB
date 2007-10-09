@@ -99,20 +99,14 @@ ISaWManManager_QueueUpdate( ISaWManManager         *thiz,
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     /* FIXME: locking? */
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      tier = sawman_tier_by_class( sawman, stacking );
 
      update = DFB_REGION_INIT_FROM_DIMENSION( &tier->size );
 
-//     direct_log_printf( NULL, "Queue %d,%d-%dx%d\n",
-//                        DFB_RECTANGLE_VALS_FROM_REGION(&update) );
-
      if (region && !dfb_region_region_intersect( &update, region ))
           return DFB_OK;
-
-//     direct_log_printf( NULL, "   -> %d,%d-%dx%d\n",
-//                        DFB_RECTANGLE_VALS_FROM_REGION(&update) );
 
      dfb_updates_add( &tier->updates, &update );
 
@@ -130,14 +124,9 @@ ISaWManManager_ProcessUpdates( ISaWManManager      *thiz,
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     if (sawman_lock( sawman ))
-          return DFB_FUSION;
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
-     sawman_process_updates( sawman, flags );
-
-     sawman_unlock( sawman );
-
-     return DFB_OK;
+     return sawman_process_updates( sawman, flags );
 }
 
 static DirectResult
@@ -156,8 +145,6 @@ ISaWManManager_CloseWindow( ISaWManManager *thiz,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
-
-     /* FIXME: locking? */
 
      event.type = DWET_CLOSE;
 
@@ -183,7 +170,7 @@ ISaWManManager_SetVisible( ISaWManManager *thiz,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
 
-     /* FIXME: locking? */
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      D_UNIMPLEMENTED();
 
@@ -206,7 +193,7 @@ ISaWManManager_SwitchFocus( ISaWManManager *thiz,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
 
-     /* FIXME: locking? */
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      return sawman_switch_focus( sawman, window );
 }
@@ -237,7 +224,7 @@ ISaWManManager_GetSize( ISaWManManager         *thiz,
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     /* FIXME: locking? */
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      tier = sawman_tier_by_class( sawman, stacking );
 
@@ -265,7 +252,7 @@ ISaWManManager_InsertWindow( ISaWManManager *thiz,
      D_MAGIC_ASSERT( window, SaWManWindow );
      D_MAGIC_ASSERT_IF( relative, SaWManWindow );
 
-     /* FIXME: locking? */
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      return sawman_insert_window( sawman, window, relative, top );
 }
@@ -286,7 +273,7 @@ ISaWManManager_RemoveWindow( ISaWManManager *thiz,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
 
-     /* FIXME: locking? */
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      return sawman_remove_window( sawman, window );
 }
@@ -305,7 +292,7 @@ ISaWManManager_SetScalingMode( ISaWManManager    *thiz,
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     /* FIXME: locking? */
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      if (sawman->scaling_mode != mode) {
           SaWManTier *tier;
@@ -347,7 +334,7 @@ ISaWManManager_SendWindowEvent( ISaWManManager       *thiz,
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     /* FIXME: locking? */
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      direct_list_foreach (window, sawman->windows) {
           D_MAGIC_ASSERT( window, SaWManWindow );
@@ -362,6 +349,34 @@ ISaWManManager_SendWindowEvent( ISaWManManager       *thiz,
      sawman_post_event( sawman, window, &evt );
 
      return DFB_OK;
+}
+
+static DirectResult
+ISaWManManager_Lock( ISaWManManager *thiz )
+{
+     SaWMan *sawman;
+
+     DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     sawman = data->sawman;
+     D_MAGIC_ASSERT( sawman, SaWMan );
+
+     return sawman_lock( sawman );
+}
+
+static DirectResult
+ISaWManManager_Unlock( ISaWManManager *thiz )
+{
+     SaWMan *sawman;
+
+     DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     sawman = data->sawman;
+     D_MAGIC_ASSERT( sawman, SaWMan );
+
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+
+     return sawman_unlock( sawman );
 }
 
 DirectResult
@@ -387,6 +402,8 @@ ISaWManManager_Construct( ISaWManManager *thiz,
      thiz->RemoveWindow    = ISaWManManager_RemoveWindow;
      thiz->SetScalingMode  = ISaWManManager_SetScalingMode;
      thiz->SendWindowEvent = ISaWManManager_SendWindowEvent;
+     thiz->Lock            = ISaWManManager_Lock;
+     thiz->Unlock          = ISaWManManager_Unlock;
 
      return DFB_OK;
 }
