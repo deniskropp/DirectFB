@@ -138,7 +138,7 @@ fusion_skirmish_swoop( FusionSkirmish *skirmish )
 }
 
 DirectResult
-fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
+fusion_skirmish_lock_count( const FusionSkirmish *skirmish, int *lock_count )
 {
      int data[2];
 
@@ -383,7 +383,7 @@ fusion_skirmish_swoop( FusionSkirmish *skirmish )
 }
 
 DirectResult
-fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
+fusion_skirmish_lock_count( const FusionSkirmish *skirmish, int *lock_count )
 {
      D_ASSERT( skirmish != NULL );
      
@@ -578,6 +578,18 @@ fusion_skirmish_swoop (FusionSkirmish *skirmish)
      D_ASSERT( skirmish != NULL );
 
      return pthread_mutex_trylock( &skirmish->single.lock );
+}
+
+DirectResult
+fusion_skirmish_lock_count( const FusionSkirmish *skirmish, int *lock_count )
+{
+     D_ASSERT( skirmish != NULL );
+     
+     D_UNIMPLEMENTED();
+
+     *lock_count = 0;
+
+     return DFB_UNIMPLEMENTED;
 }
 
 DirectResult

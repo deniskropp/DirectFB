@@ -79,7 +79,7 @@ DirectResult fusion_skirmish_swoop  ( FusionSkirmish    *skirmish );
 /*
  * Find out how many times current thread has acquired lock. 
  */
-DirectResult fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count );
+DirectResult fusion_skirmish_lock_count( const FusionSkirmish *skirmish, int *lock_count );
 
 /*
  * Unlock.
