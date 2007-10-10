@@ -1870,7 +1870,7 @@ wm_preconfigure_window( CoreWindowStack *stack,
           }
 
           if (!parent) {
-               D_ERROR( "SampleAppMan: Can't find parent window with ID %d!\n", window->parent_id );
+               D_ERROR( "SaWMan/WM: Can't find parent window with ID %d!\n", window->parent_id );
                sawman_unlock( sawman );
                return DFB_IDNOTFOUND;
           }
@@ -2046,6 +2046,8 @@ wm_add_window( CoreWindowStack *stack,
 
      direct_list_append( &sawman->windows, &sawwin->link );
 
+     fusion_ref_up( &sawwin->process->ref, true );
+
      switch (ret = sawman_call( sawman, SWMCID_WINDOW_ADDED, sawwin )) {
           case DFB_OK:
                break;
@@ -2067,9 +2069,19 @@ wm_add_window( CoreWindowStack *stack,
           D_ASSERT( parent->window != NULL );
           D_ASSERT( parent->id == window->parent_id );
 
-          ret = fusion_vector_add( &parent->children, sawwin );
-          if (ret)
+          ret = dfb_window_link( &sawwin->parent_window, parent->window );
+          if (ret) {
+               D_DERROR( ret, "SaWMan/WM: Can't link parent window with ID %d!\n", window->parent_id );
+               sawman_unlock( sawman );
                return ret;
+          }
+
+          ret = fusion_vector_add( &parent->children, sawwin );
+          if (ret) {
+               dfb_window_unlink( &sawwin->parent_window );
+               sawman_unlock( sawman );
+               return ret;
+          }
      }
 
      sawman_update_geometry( sawwin );
@@ -2150,7 +2162,11 @@ wm_remove_window( CoreWindowStack *stack,
 
                     fusion_vector_remove( &parent->children, fusion_vector_index_of( &parent->children, sawwin ) );
                     sawwin->parent = NULL;
+
+                    dfb_window_unlink( &sawwin->parent_window );
                }
+
+               fusion_ref_down( &sawwin->process->ref, true );
 
                D_MAGIC_CLEAR( sawwin );
                break;

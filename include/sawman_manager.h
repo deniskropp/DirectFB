@@ -261,6 +261,7 @@ struct __SaWMan_SaWManWindow {
      FusionSHMPoolShared   *shmpool;
 
      SaWManWindow          *parent;
+     CoreWindow            *parent_window;
      FusionVector           children;
 
      DFBRectangle           src;
