@@ -1627,6 +1627,8 @@ update_region( SaWMan          *sawman,
      D_ASSERT( x1 <= x2 );
      D_ASSERT( y1 <= y2 );
 
+     D_DEBUG_AT( SaWMan_Update, "%s( %p, %d, %d,%d - %d,%d )\n", __FUNCTION__, tier, start, x1, y1, x2, y2 );
+
      /* Find next intersecting window. */
      while (i >= 0) {
           sawwin = fusion_vector_at( &sawman->layout, i );
@@ -1832,6 +1834,25 @@ repaint_tier( SaWMan              *sawman,
           /* Flip the updated region .*/
           dfb_layer_region_flip_update( region, update, flags );
      }
+
+#ifdef SAWMAN_DUMP_TIER_FRAMES
+     {
+          DFBResult          ret;
+          CoreSurfaceBuffer *buffer;
+     
+          D_MAGIC_ASSERT( surface, CoreSurface );
+     
+          if (fusion_skirmish_prevail( &surface->lock ))
+               return;
+     
+          buffer = dfb_surface_get_buffer( surface, CSBR_FRONT );
+          D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     
+          ret = dfb_surface_buffer_dump( buffer, "/", "tier" );
+     
+          fusion_skirmish_dismiss( &surface->lock );
+     }
+#endif
 }
 
 static SaWManWindow *
