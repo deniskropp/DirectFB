@@ -230,8 +230,8 @@ dfb_layer_region_deactivate( CoreLayerRegion *region )
           return DFB_OK;
      }
 
-     /* Unrealize the region if it's enabled. */
-     if (D_FLAGS_IS_SET( region->state, CLRSF_ENABLED )) {
+     /* Unrealize the region? */
+     if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
           ret = unrealize_region( region );
           if (ret)
                return ret;
@@ -301,8 +301,8 @@ dfb_layer_region_disable( CoreLayerRegion *region )
           return DFB_OK;
      }
 
-     /* Unrealize the region if it's active. */
-     if (D_FLAGS_IS_SET( region->state, CLRSF_ACTIVE )) {
+     /* Unrealize the region? */
+     if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
           ret = unrealize_region( region );
           if (ret)
                return ret;
