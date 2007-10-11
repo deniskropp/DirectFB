@@ -1043,12 +1043,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
                int id;
 
                if (sscanf( value, "%d", &id ) < 1) {
-                    D_ERROR("DirectFB/Config 'init-layer': Could not parse id!\n");
+                    D_ERROR("DirectFB/Config '%s': Could not parse id!\n", name);
                     return DFB_INVARG;
                }
 
                if (id < 0 || id > D_ARRAY_SIZE(dfb_config->layers)) {
-                    D_ERROR("DirectFB/Config 'init-layer': ID %d out of bounds!\n", id);
+                    D_ERROR("DirectFB/Config '%s': ID %d out of bounds!\n", name, id);
                     return DFB_INVARG;
                }
 
@@ -1057,9 +1057,30 @@ DFBResult dfb_config_set( const char *name, const char *value )
                dfb_config->config_layer = &dfb_config->layers[id];
           }
           else {
-               D_ERROR("DirectFB/Config 'init-layer': No id specified!\n");
+               D_ERROR("DirectFB/Config '%s': No id specified!\n", name);
                return DFB_INVARG;
           }
+     } else
+     if (strcmp (name, "no-init-layer" ) == 0) {
+          if (value) {
+               int id;
+
+               if (sscanf( value, "%d", &id ) < 1) {
+                    D_ERROR("DirectFB/Config '%s': Could not parse id!\n", name);
+                    return DFB_INVARG;
+               }
+
+               if (id < 0 || id > D_ARRAY_SIZE(dfb_config->layers)) {
+                    D_ERROR("DirectFB/Config '%s': ID %d out of bounds!\n", name, id);
+                    return DFB_INVARG;
+               }
+
+               dfb_config->layers[id].init = false;
+
+               dfb_config->config_layer = &dfb_config->layers[id];
+          }
+          else
+               dfb_config->layers[0].init = false;
      } else
      if (strcmp (name, "mode" ) == 0 || strcmp (name, "layer-size" ) == 0) {
           DFBConfigLayer *conf = dfb_config->config_layer;
@@ -1068,7 +1089,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
                int width, height;
 
                if (sscanf( value, "%dx%d", &width, &height ) < 2) {
-                    D_ERROR("DirectFB/Config 'mode': Could not parse mode!\n");
+                    D_ERROR("DirectFB/Config '%s': Could not parse width and height!\n", name);
                     return DFB_INVARG;
                }
 
@@ -1094,7 +1115,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
                int depth;
 
                if (sscanf( value, "%d", &depth ) < 1) {
-                    D_ERROR("DirectFB/Config 'depth': Could not parse value!\n");
+                    D_ERROR("DirectFB/Config '%s': Could not parse value!\n", name);
                     return DFB_INVARG;
                }
 
@@ -1118,7 +1139,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
 
                format = dfb_config_parse_pixelformat( value );
                if (format == DSPF_UNKNOWN) {
-                    D_ERROR("DirectFB/Config 'pixelformat': Could not parse format!\n");
+                    D_ERROR("DirectFB/Config '%s': Could not parse format!\n", name);
                     return DFB_INVARG;
                }
 
