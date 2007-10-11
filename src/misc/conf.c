@@ -417,6 +417,9 @@ static void config_allocate()
      dfb_config->layers[0].background.color.r = 0xc0;
      dfb_config->layers[0].background.color.g = 0xb0;
      dfb_config->layers[0].background.color.b = 0x90;
+     dfb_config->layers[0].stacking           = (1 << DWSC_UPPER)  |
+                                                (1 << DWSC_MIDDLE) |
+                                                (1 << DWSC_LOWER);
 
 
      dfb_config->pci.bus                  = 1;
