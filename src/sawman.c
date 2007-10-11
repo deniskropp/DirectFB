@@ -1968,12 +1968,12 @@ sawman_process_updates( SaWMan              *sawman,
 
           if (none) {
                if (tier->active) {
-                    D_DEBUG_AT( SaWMan_Auto, "  -> Deactivating region...\n" );
+                    D_DEBUG_AT( SaWMan_Auto, "  -> Disabling region...\n" );
 
                     tier->active        = false;
                     tier->single_window = NULL;  /* enforce configuration to reallocate buffers */
 
-                    dfb_layer_region_deactivate( tier->region );
+                    dfb_layer_region_disable( tier->region );
                }
                dfb_updates_reset( &tier->updates );
                continue;
@@ -2070,11 +2070,10 @@ sawman_process_updates( SaWMan              *sawman,
                     tier->single_options  = options;
                     tier->single_location = location;
 
-                    if (tier->active) {
-                         tier->active = false;
-                         dfb_layer_region_deactivate( tier->region );
-                         dfb_updates_reset( &tier->updates );
-                    }
+                    tier->active          = false;
+                    tier->region->state  |= CLRSF_FROZEN;
+
+                    dfb_updates_reset( &tier->updates );
 
                     dfb_layer_context_set_configuration( tier->context, &config );
 
@@ -2112,10 +2111,8 @@ sawman_process_updates( SaWMan              *sawman,
                     dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
 
                     tier->active = true;
-                    dfb_layer_region_activate( tier->region );
 
                     dfb_layer_region_flip_update( tier->region, NULL, flags );
-
 
                     dfb_updates_reset( &tier->updates );
                     continue;
@@ -2131,10 +2128,7 @@ sawman_process_updates( SaWMan              *sawman,
                DFBRectangle src = single->src;
                dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
 
-               if (!tier->active) {
-                    tier->active = true;
-                    dfb_layer_region_activate( tier->region );
-               }
+               tier->active = true;
 
                dfb_layer_region_flip_update( tier->region, NULL, flags );
 
@@ -2164,11 +2158,10 @@ no_single:
                D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d %s %s mode.\n", config->width, config->height,
                            dfb_pixelformat_name( config->pixelformat ), border_only ? "border" : "standard" );
 
-               if (tier->active) {
-                    tier->active = false;
-                    dfb_layer_region_deactivate( tier->region );
-                    dfb_updates_reset( &tier->updates );
-               }
+               tier->active         = false;
+               tier->region->state |= CLRSF_FROZEN;
+
+               dfb_updates_reset( &tier->updates );
 
                dfb_layer_context_set_configuration( tier->context, config );
 
@@ -2206,11 +2199,9 @@ no_single:
           }
 
           if (!tier->active) {
-               D_DEBUG_AT( SaWMan_Auto, "  -> Activating region...\n" );
+               D_DEBUG_AT( SaWMan_Auto, "  -> Activating tier...\n" );
 
                tier->active = true;
-
-               dfb_layer_region_activate( tier->region );
 
                DFBRegion region = { 0, 0, tier->size.w - 1, tier->size.h - 1 };
                dfb_updates_add( &tier->updates, &region );

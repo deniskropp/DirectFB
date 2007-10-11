@@ -1344,7 +1344,6 @@ wm_init_stack( CoreWindowStack *stack,
      tier->context = context;
      tier->size.w  = stack->width;
      tier->size.h  = stack->height;
-     tier->active  = true;
 
      ret = dfb_layer_context_get_primary_region( context, true, &tier->region );
      if (ret) {
