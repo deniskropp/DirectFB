@@ -322,7 +322,8 @@ dfb_layer_context_add_region( CoreLayerContext *context,
      }
 
      /* Inherit state from context. */
-     region->state = context->active ? CLRSF_ACTIVE : CLRSF_NONE;
+     if (context->active)
+          region->state |= CLRSF_ACTIVE;
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );

@@ -146,7 +146,9 @@ typedef enum {
      CLRSF_ACTIVE     = 0x00000004,
      CLRSF_REALIZED   = 0x00000008,
 
-     CLRSF_ALL        = 0x0000000F
+     CLRSF_FROZEN     = 0x00000010,
+
+     CLRSF_ALL        = 0x0000001F
 } CoreLayerRegionStateFlags;
 
 struct __DFB_CoreLayerRegion {

@@ -162,6 +162,8 @@ dfb_layer_region_create( CoreLayerContext  *context,
      /* Change global reaction lock. */
      fusion_object_set_lock( &region->object, &region->lock );
 
+     region->state = CLRSF_FROZEN;
+
      /* Activate the object. */
      fusion_object_activate( &region->object );
 
@@ -447,6 +449,27 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
      D_ASSERT( layer->funcs != NULL );
 
      funcs = layer->funcs;
+
+     /* Unfreeze region? */
+     if (D_FLAGS_IS_SET( region->state, CLRSF_FROZEN )) {
+          D_FLAGS_CLEAR( region->state, CLRSF_FROZEN );
+
+          if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
+               ret = set_region( region, &region->config, CLRCF_ALL, surface );
+               if (ret)
+                    D_DERROR( ret, "Core/LayerRegion: set_region() in dfb_layer_region_flip_update() failed!\n" );
+          }
+          else if (D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE )) {
+               ret = realize_region( region );
+               if (ret)
+                    D_DERROR( ret, "Core/LayerRegion: realize_region() in dfb_layer_region_flip_update() failed!\n" );
+          }
+
+          if (ret) {
+               dfb_layer_region_unlock( region );
+               return ret;
+          }
+     }
 
      /* Depending on the buffer mode... */
      switch (region->config.buffermode) {
@@ -785,7 +808,9 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
      if (dfb_layer_region_lock( region ))
           return RS_OK;
 
-     if (D_FLAGS_ARE_SET( region->state, CLRSF_REALIZED | CLRSF_CONFIGURED )) {
+     if (D_FLAGS_ARE_SET( region->state, CLRSF_REALIZED | CLRSF_CONFIGURED ) &&
+         !D_FLAGS_IS_SET( region->state, CLRSF_FROZEN ))
+     {
           if (D_FLAGS_IS_SET( flags, CSNF_PALETTE_CHANGE | CSNF_PALETTE_UPDATE )) {
                if (surface->palette)
                     funcs->SetRegion( layer,
@@ -843,6 +868,9 @@ set_region( CoreLayerRegion            *region,
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );
      D_ASSERT( layer->funcs->SetRegion != NULL );
+
+     if (region->state & CLRSF_FROZEN)
+          return DFB_OK;
 
      funcs = layer->funcs;
 
@@ -922,6 +950,9 @@ realize_region( CoreLayerRegion *region )
      funcs  = layer->funcs;
 
      D_ASSERT( ! fusion_vector_contains( &shared->added_regions, region ) );
+
+     if (region->state & CLRSF_FROZEN)
+          return DFB_OK;
 
      /* Allocate the driver's region data. */
      if (funcs->RegionDataSize) {
@@ -1020,6 +1051,7 @@ unrealize_region( CoreLayerRegion *region )
 
      /* Update the region's state. */
      D_FLAGS_CLEAR( region->state, CLRSF_REALIZED );
+     D_FLAGS_SET( region->state, CLRSF_FROZEN );
 
      if (region->surface) {
           D_ASSERT( region->surface_lock.buffer != NULL );
