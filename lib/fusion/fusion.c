@@ -1024,6 +1024,47 @@ _fusion_add_local( FusionWorld *world, FusionRef *ref, int add )
 }
 
 void
+_fusion_check_locals( FusionWorld *world, FusionRef *ref )
+{
+     FusionWorldShared *shared;
+     __Fusionee        *fusionee;
+     __FusioneeRef     *fusionee_ref;
+
+     D_DEBUG_AT( Fusion_Main, "%s( %p, %p )\n", __FUNCTION__, world, ref );
+
+     D_ASSERT( ref != NULL );
+
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     shared = world->shared;
+
+     D_MAGIC_ASSERT( shared, FusionWorldShared );
+
+     if (fusion_skirmish_prevail( &shared->fusionees_lock ))
+          return;
+
+     direct_list_foreach (fusionee, shared->fusionees) { 
+          if (fusionee->id == world->fusion_id)
+               continue;
+          
+          direct_list_foreach (fusionee_ref, fusionee->refs) {    
+               if (fusionee_ref->ref == ref) {
+                    if (kill( fusionee->pid, 0 ) < 0 && errno == ESRCH) {
+                         ref->multi.builtin.local -= fusionee_ref->refs;
+                    
+                         direct_list_remove( &fusionee->refs, &fusionee_ref->link );
+                         
+                         SHFREE( shared->main_pool, fusionee_ref );
+                    }
+                    break;
+               }
+          }
+     }
+
+     fusion_skirmish_dismiss( &shared->fusionees_lock );
+}
+
+void
 _fusion_remove_all_locals( FusionWorld *world, const FusionRef *ref )
 {
      FusionWorldShared *shared;

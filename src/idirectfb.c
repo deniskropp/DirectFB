@@ -1242,6 +1242,8 @@ IDirectFB_CreateDataBuffer( IDirectFB                       *thiz,
                                                       desc->memory.length,
                                                       data->core );
      }
+     else
+          return DFB_INVARG;
 
      if (!ret)
           *interface = iface;
@@ -1424,7 +1426,8 @@ LoadBackgroundImage( IDirectFB       *dfb,
           provider->GetSurfaceDescription( provider, &desc );
      }
 
-     desc.flags |= DSDESC_PIXELFORMAT;
+     desc.flags |= DSDESC_CAPS | DSDESC_PIXELFORMAT;
+     desc.caps = DSCAPS_SHARED;
      desc.pixelformat = conf->config.pixelformat;
 
      ret = dfb->CreateSurface( dfb, &desc, &image );

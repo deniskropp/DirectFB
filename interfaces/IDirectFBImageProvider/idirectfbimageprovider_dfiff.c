@@ -53,6 +53,8 @@
 
 #include <idirectfb.h>
 
+#include <display/idirectfbsurface.h>
+
 #include <misc/gfx_util.h>
 
 #include <media/idirectfbdatabuffer.h>
@@ -129,52 +131,93 @@ IDirectFBImageProvider_DFIFF_RenderTo( IDirectFBImageProvider *thiz,
                                        const DFBRectangle     *dest_rect )
 {
      DFBResult              ret;
-     IDirectFBSurface      *source;
-     DFBSurfaceDescription  desc;
-     DFBSurfaceCapabilities caps;
+     IDirectFBSurface_data *dst_data;
+     CoreSurface           *dst_surface;
      const DFIFFHeader     *header;
+     DFBRectangle           rect;
+     DFBRectangle           clipped;
 
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_DFIFF)
 
      if (!destination)
           return DFB_INVARG;
-          
+
+     DIRECT_INTERFACE_GET_DATA_FROM (destination, dst_data, IDirectFBSurface);
+
+     dst_surface = dst_data->surface;
+     if (!dst_surface)
+          return DFB_DEAD;
+
      if (dest_rect) {
-          if (dest_rect->w < 1 || dest_rect->h < 1)
-               return DFB_INVARG;
+          rect.x = dest_rect->x + dst_data->area.wanted.x;
+          rect.y = dest_rect->y + dst_data->area.wanted.y;
+          rect.w = dest_rect->w;
+          rect.h = dest_rect->h;
      }
+     else
+          rect = dst_data->area.wanted;
+
+     if (rect.w < 1 || rect.h < 1)
+          return DFB_INVAREA;
+
+     clipped = rect;
+
+     if (!dfb_rectangle_intersect( &clipped, &dst_data->area.current ))
+          return DFB_INVAREA;
 
      header = data->ptr;
-     
-     thiz->GetSurfaceDescription( thiz, &desc );
-     
-     desc.flags |= DSDESC_PREALLOCATED;   
-     desc.preallocated[0].data  = data->ptr + sizeof(DFIFFHeader);
-     desc.preallocated[0].pitch = header->pitch;
-     
-     ret = idirectfb_singleton->CreateSurface( idirectfb_singleton, &desc, &source );
-     if (ret)
-          return ret;
-          
-     destination->GetCapabilities( destination, &caps );
-     
-     if (caps & DSCAPS_PREMULTIPLIED && DFB_PIXELFORMAT_HAS_ALPHA(desc.pixelformat))
-          destination->SetBlittingFlags( destination, DSBLIT_SRC_PREMULTIPLY );
-     else
+
+     if (DFB_RECTANGLE_EQUAL( rect, clipped ) &&
+         rect.w == header->width && rect.h == header->height &&
+         dst_surface->config.format == header->format)
+     {
+          ret = dfb_surface_write_buffer( dst_surface, CSBR_BACK,
+                                          data->ptr + sizeof(DFIFFHeader), header->pitch, &rect );
+          if (ret)
+               return ret;
+     }
+     else {
+          IDirectFBSurface      *source;
+          DFBSurfaceDescription  desc;
+          DFBSurfaceCapabilities caps;
+          DFBRegion              clip = DFB_REGION_INIT_FROM_RECTANGLE( &clipped );
+          DFBRegion              old_clip;
+
+          thiz->GetSurfaceDescription( thiz, &desc );
+
+          desc.flags |= DSDESC_PREALLOCATED;   
+          desc.preallocated[0].data  = data->ptr + sizeof(DFIFFHeader);
+          desc.preallocated[0].pitch = header->pitch;
+
+          ret = idirectfb_singleton->CreateSurface( idirectfb_singleton, &desc, &source );
+          if (ret)
+               return ret;
+
+          destination->GetCapabilities( destination, &caps );
+
+          if (caps & DSCAPS_PREMULTIPLIED && DFB_PIXELFORMAT_HAS_ALPHA(desc.pixelformat))
+               destination->SetBlittingFlags( destination, DSBLIT_SRC_PREMULTIPLY );
+          else
+               destination->SetBlittingFlags( destination, DSBLIT_NOFX );
+
+          destination->GetClip( destination, &old_clip );
+          destination->SetClip( destination, &clip );
+
+          destination->StretchBlit( destination, source, NULL, &rect );
+
+          destination->SetClip( destination, &old_clip );
+
           destination->SetBlittingFlags( destination, DSBLIT_NOFX );
-     
-     destination->StretchBlit( destination, source, NULL, dest_rect );
-     
-     destination->SetBlittingFlags( destination, DSBLIT_NOFX );
-     
-     destination->ReleaseSource( destination );
-     
-     if (data->render_callback) {
-          DFBRectangle rect = { 0, 0, desc.width, desc.height };
-          data->render_callback( &rect, data->render_callback_context );
+
+          destination->ReleaseSource( destination );
+
+          source->Release( source );
      }
      
-     source->Release( source );
+     if (data->render_callback) {
+          DFBRectangle rect = { 0, 0, clipped.w, clipped.h };
+          data->render_callback( &rect, data->render_callback_context );
+     }
      
      return DFB_OK;
 }

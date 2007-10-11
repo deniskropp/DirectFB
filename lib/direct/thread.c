@@ -44,7 +44,8 @@
 #include <direct/thread.h>
 #include <direct/util.h>
 
-D_DEBUG_DOMAIN( Direct_Thread, "Direct/Thread", "Thread management" );
+D_DEBUG_DOMAIN( Direct_Thread,     "Direct/Thread",      "Thread management" );
+D_DEBUG_DOMAIN( Direct_ThreadInit, "Direct/Thread/Init", "Thread initialization" );
 
 
 /* FIXME: DIRECT_THREAD_WAIT_INIT is required, but should be optional. */
@@ -162,9 +163,8 @@ direct_thread_create( DirectThreadType      thread_type,
      D_ASSERT( thread_main != NULL );
      D_ASSERT( name != NULL );
 
-     D_HEAVYDEBUG( "Direct/Thread: Creating '%s' (type %d)...\n", name, thread_type );
-
-     (void) thread_type_name;
+     D_DEBUG_AT( Direct_Thread, "%s( %s, %p(%p), '%s' )\n", __FUNCTION__,
+                 thread_type_name(thread_type), thread_main, arg, name );
 
      /* Create the key for the TSD (thread specific data). */
      pthread_mutex_lock( &key_lock );
@@ -198,26 +198,31 @@ direct_thread_create( DirectThreadType      thread_type,
      D_MAGIC_SET( thread, DirectThread );
 
      /* Lock the thread mutex. */
+     D_DEBUG_AT( Direct_ThreadInit, "  -> locking...\n" );
      pthread_mutex_lock( &thread->lock );
 
      /* Create and run the thread. */
+     D_DEBUG_AT( Direct_ThreadInit, "  -> creating...\n" );
      pthread_create( &thread->thread, NULL, direct_thread_main, thread );
 
 #ifdef DIRECT_THREAD_WAIT_INIT
-     D_HEAVYDEBUG( "Direct/Thread: Waiting for thread to run...\n" );
-
      /* Wait for completion of the thread's initialization. */
-     while (!thread->init)
+     while (!thread->init) {
+          D_DEBUG_AT( Direct_ThreadInit, "  -> waiting...\n" );
           pthread_cond_wait( &thread->cond, &thread->lock );
+     }
 
-     D_HEAVYDEBUG( "Direct/Thread: ...thread is running.\n" );
+     D_DEBUG_AT( Direct_ThreadInit, "  -> ...thread is running.\n" );
 #endif
 
      /* Unlock the thread mutex. */
+     D_DEBUG_AT( Direct_ThreadInit, "  -> unlocking...\n" );
      pthread_mutex_unlock( &thread->lock );
 
      D_INFO( "Direct/Thread: Running '%s' (%s, %d)...\n",
              name, thread_type_name(thread_type), thread->tid );
+
+     D_DEBUG_AT( Direct_ThreadInit, "  -> returning %p\n", thread );
 
      return thread;
 }
@@ -496,6 +501,13 @@ direct_thread_main( void *arg )
      void                    *ret;
      DirectThread            *thread = arg;
      DirectThreadInitHandler *handler;
+     pid_t                    tid;
+
+     tid = direct_gettid();
+
+     D_DEBUG_AT( Direct_ThreadInit, "%s( %p ) <- tid %d\n", __FUNCTION__, arg, tid );
+
+     D_DEBUG_AT( Direct_ThreadInit, "  -> starting...\n" );
 
      D_MAGIC_ASSERT( thread, DirectThread );
 
@@ -504,7 +516,7 @@ direct_thread_main( void *arg )
 
      pthread_setspecific( thread_key, thread );
 
-     thread->tid = direct_gettid();
+     thread->tid = tid;
 
 
      /* Call all init handlers. */
@@ -526,6 +538,7 @@ direct_thread_main( void *arg )
           case DTT_OUTPUT:
           case DTT_MESSAGING:
           case DTT_CRITICAL:
+               D_DEBUG_AT( Direct_ThreadInit, "  -> setpriority( %d )...\n", thread->type );
                setpriority( PRIO_PROCESS, 0, thread->type );
                break;
 
@@ -534,31 +547,33 @@ direct_thread_main( void *arg )
      }
 
      /* Lock the thread mutex. */
+     D_DEBUG_AT( Direct_ThreadInit, "  -> locking...\n" );
      pthread_mutex_lock( &thread->lock );
 
      /* Indicate that our initialization has completed. */
      thread->init = true;
 
-     D_HEAVYDEBUG( "Direct/Thread:   (thread) Initialization done.\n" );
-
 #ifdef DIRECT_THREAD_WAIT_INIT
+     D_DEBUG_AT( Direct_ThreadInit, "  -> signalling...\n" );
      pthread_cond_signal( &thread->cond );
 #endif
 
      /* Unlock the thread mutex. */
+     D_DEBUG_AT( Direct_ThreadInit, "  -> unlocking...\n" );
      pthread_mutex_unlock( &thread->lock );
 
      if (thread->joining) {
-          D_HEAVYDEBUG( "Direct/Thread:   (thread) Being joined before entering main routine.\n" );
+          D_DEBUG_AT( Direct_Thread, "  -> Being joined before entering main routine!\n" );
           return NULL;
      }
 
      D_MAGIC_ASSERT( thread, DirectThread );
 
      /* Call main routine. */
+     D_DEBUG_AT( Direct_ThreadInit, "  -> running...\n" );
      ret = thread->main( thread, thread->arg );
 
-     D_DEBUG_AT( Direct_Thread, "Returning %p from '%s' (%s, %d)...\n",
+     D_DEBUG_AT( Direct_Thread, "  -> Returning %p from '%s' (%s, %d)...\n",
                  ret, thread->name, thread_type_name(thread->type), thread->tid );
 
      D_MAGIC_ASSERT( thread, DirectThread );

@@ -14,27 +14,31 @@
 #define HVX_DEBUG(x...)  do {} while (0)
 #endif
 
-/*static void STRETCH_HVX_ARGB32( void       *dst,
-                               int         dpitch,
-                               const void *src,
-                               int         spitch,
-                               int         width,
-                               int         height,
-                               int         dst_width,
-                               int         dst_height,
-                               DFBRegion  *clip )*/
+/* stretch_hvx_up/down_32_KPI */( void             *dst,
+                                  int               dpitch,
+                                  const void       *src,
+                                  int               spitch,
+                                  int               width,
+                                  int               height,
+                                  int               dst_width,
+                                  int               dst_height,
+                                  const StretchCtx *ctx )
 {
      long  x, y   = 0;
-     long  cw     = clip->x2 - clip->x1 + 1;
-     long  ch     = clip->y2 - clip->y1 + 1;
+     long  cw     = ctx->clip.x2 - ctx->clip.x1 + 1;
+     long  ch     = ctx->clip.y2 - ctx->clip.y1 + 1;
      long  hfraq  = ((long)(width  - MINUS_1) << 18) / (long)(dst_width);
      long  vfraq  = ((long)(height - MINUS_1) << 18) / (long)(dst_height);
      long  dp4    = dpitch / 4;
-     long  point0 = POINT_0 + clip->x1 * hfraq;
+     long  point0 = POINT_0 + ctx->clip.x1 * hfraq;
      long  point  = point0;
-     long  line   = LINE_0 + clip->y1 * vfraq;
+     long  line   = LINE_0 + ctx->clip.y1 * vfraq;
      long  ratios[cw];
      u32  *dst32;
+
+#if defined (COLOR_KEY) || defined (KEY_PROTECT)
+     u32   dt;
+#endif
 
      u32   _lbT[cw+8];
      u32   _lbB[cw+8];
@@ -53,7 +57,7 @@
 
      HVX_DEBUG("%dx%d -> %dx%d  (0x%x, 0x%x)\n", width, height, dst_width, dst_height, hfraq, vfraq );
 
-     dst += clip->x1 * 4 + clip->y1 * dpitch;
+     dst += ctx->clip.x1 * 4 + ctx->clip.y1 * dpitch;
 
      dst32 = dst;
 
@@ -132,8 +136,24 @@
           long X = LINE_TO_RATIO( line, vfraq );
 
           for (x=0; x<cw; x++) {
+#if defined (COLOR_KEY) || defined (KEY_PROTECT)
+               dt = ((((((lbB[x] & X_00FF00FF) - (lbT[x] & X_00FF00FF))*X) >> SHIFT_R8) + (lbT[x] & X_00FF00FF)) & X_00FF00FF) +
+                    ((((((lbB[x]>>SHIFT_R8) & X_00FF00FF) - ((lbT[x]>>SHIFT_R8) & X_00FF00FF))*X) + (lbT[x] & X_FF00FF00)) & X_FF00FF00);
+#ifdef COLOR_KEY
+               if (dt != (COLOR_KEY))
+#endif
+#ifdef KEY_PROTECT
+                    /* Write to destination with color key protection */
+                    dst32[x] = ((dt & MASK_RGB) == KEY_PROTECT) ? dt^1 : dt;
+#else
+                    /* Write to destination without color key protection */
+                    dst32[x] = dt;
+#endif
+#else
+               /* Write to destination without color key protection */
                dst32[x] = ((((((lbB[x] & X_00FF00FF) - (lbT[x] & X_00FF00FF))*X) >> SHIFT_R8) + (lbT[x] & X_00FF00FF)) & X_00FF00FF) +
                           ((((((lbB[x]>>SHIFT_R8) & X_00FF00FF) - ((lbT[x]>>SHIFT_R8) & X_00FF00FF))*X) + (lbT[x] & X_FF00FF00)) & X_FF00FF00);
+#endif
           }
 
           dst32 += dp4;

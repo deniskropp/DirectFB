@@ -228,6 +228,18 @@ DFBResult dfb_surface_lock_buffer   ( CoreSurface                  *surface,
 DFBResult dfb_surface_unlock_buffer ( CoreSurface                  *surface,
                                       CoreSurfaceBufferLock        *lock );
 
+DFBResult dfb_surface_read_buffer   ( CoreSurface                  *surface,
+                                      CoreSurfaceBufferRole         role,
+                                      void                         *destination,
+                                      int                           pitch,
+                                      const DFBRectangle           *rect );
+
+DFBResult dfb_surface_write_buffer  ( CoreSurface                  *surface,
+                                      CoreSurfaceBufferRole         role,
+                                      const void                   *source,
+                                      int                           pitch,
+                                      const DFBRectangle           *rect );
+
 DFBResult dfb_surface_set_palette   ( CoreSurface                  *surface,
                                       CorePalette                  *palette );
 

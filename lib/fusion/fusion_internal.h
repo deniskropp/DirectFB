@@ -155,6 +155,9 @@ void _fusion_add_local( FusionWorld *world,
                         FusionRef   *ref,
                         int          add );
 
+void _fusion_check_locals( FusionWorld *world,
+                           FusionRef   *ref );
+
 void _fusion_remove_all_locals( FusionWorld     *world,
                                 const FusionRef *ref );
                                

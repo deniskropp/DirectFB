@@ -32,32 +32,32 @@
 #define HVX_DEBUG(x...)  do {} while (0)
 #endif
 
-/*static void STRETCH_HVX_RGB16( void       *dst,
-                               int         dpitch,
-                               const void *src,
-                               int         spitch,
-                               int         width,
-                               int         height,
-                               int         dst_width,
-                               int         dst_height,
-                               DFBRegion  *clip )*/
+/* stretch_hvx_up/down_16_KPI */( void             *dst,
+                                  int               dpitch,
+                                  const void       *src,
+                                  int               spitch,
+                                  int               width,
+                                  int               height,
+                                  int               dst_width,
+                                  int               dst_height,
+                                  const StretchCtx *ctx )
 {
      long  x, y, r = 0;
-     long  head    = ((((ulong) dst) & 2) >> 1) ^ (clip->x1 & 1);
-     long  cw      = clip->x2 - clip->x1 + 1;
-     long  ch      = clip->y2 - clip->y1 + 1;
+     long  head    = ((((ulong) dst) & 2) >> 1) ^ (ctx->clip.x1 & 1);
+     long  cw      = ctx->clip.x2 - ctx->clip.x1 + 1;
+     long  ch      = ctx->clip.y2 - ctx->clip.y1 + 1;
      long  tail    = (cw - head) & 1;
      long  w2      = (cw - head) / 2;
      long  hfraq   = ((long)(width  - MINUS_1) << 18) / (long)(dst_width);
      long  vfraq   = ((long)(height - MINUS_1) << 18) / (long)(dst_height);
      long  dp4     = dpitch / 4;
-     long  point0  = POINT_0 + clip->x1 * hfraq;
+     long  point0  = POINT_0 + ctx->clip.x1 * hfraq;
      long  point   = point0;
-     long  line    = LINE_0 + clip->y1 * vfraq;
+     long  line    = LINE_0 + ctx->clip.y1 * vfraq;
      long  ratios[cw];
      u32  *dst32;
 
-#if defined (COLOR_KEY) || defined (COLOR_KEY_PROTECT)
+#if defined (COLOR_KEY) || defined (KEY_PROTECT)
      u32   dt;
      u16   l_, h_;
 #endif
@@ -77,9 +77,10 @@
           point += hfraq;
      }
 
-     HVX_DEBUG("%dx%d -> %dx%d  (0x%x, 0x%x)\n", width, height, dst_width, dst_height, hfraq, vfraq );
+     HVX_DEBUG(" %s  %dx%d -> %dx%d  (0x%lx, 0x%lx) prot %lx, key %lx\n",
+               __FUNCTION__, width, height, dst_width, dst_height, hfraq, vfraq, ctx->protect, ctx->key );
 
-     dst += clip->x1 * 2 + clip->y1 * dpitch;
+     dst += ctx->clip.x1 * 2 + ctx->clip.y1 * dpitch;
 
      dst32 = dst;
 
@@ -119,15 +120,15 @@
                /*
                 * Vertical interpolation
                 */
-#if defined (COLOR_KEY) || defined (COLOR_KEY_PROTECT)
+#if defined (COLOR_KEY) || defined (KEY_PROTECT)
                l_ = ((((((dpB & X_F81F) - (dpT & X_F81F))*X) >> SHIFT_R5) + (dpT & X_F81F)) & X_F81F) +
                     ((((((dpB>>SHIFT_R5) & X_003F) - ((dpT>>SHIFT_R5) & X_003F))*X) + (dpT & X_07E0)) & X_07E0);
 #ifdef COLOR_KEY
-               if (l_ != (COLOR_KEY))
+               if ((l_ & MASK_RGB) != (COLOR_KEY))
 #endif
-#ifdef COLOR_KEY_PROTECT
+#ifdef KEY_PROTECT
                     /* Write to destination with color key protection */
-                    dst16[0] = (l_ == KEY_PROTECT) ? KEY_REPLACE : l_;
+                    dst16[0] = ((l_ & MASK_RGB) == KEY_PROTECT) ? l_^1 : l_;
 #else
                     /* Write to destination without color key protection */
                     dst16[0] = l_;
@@ -147,7 +148,7 @@
           dst32   = dst + 2;
 
           /* Reset */
-          line = LINE_0 + clip->y1 * vfraq;
+          line = LINE_0 + ctx->clip.y1 * vfraq;
      }
 
      /*
@@ -310,7 +311,7 @@
           long X = LINE_TO_RATIO( line, vfraq );
 
           for (x=0; x<w2; x++) {
-#if defined (COLOR_KEY) || defined (COLOR_KEY_PROTECT)
+#if defined (COLOR_KEY) || defined (KEY_PROTECT)
 #ifdef HAS_ALPHA
                dt = ((((((lbB[x] & X_F81FF81F) - (lbT[x] & X_F81FF81F))*X) >> SHIFT_R5) + (lbT[x] & X_F81FF81F)) & X_F81FF81F) +
                     ((((((lbB[x]>>SHIFT_R5) & X_F81FF81F) - ((lbT[x]>>SHIFT_R5) & X_F81FF81F))*X) + (lbT[x] & X_07E007E0)) & X_07E007E0);
@@ -324,11 +325,11 @@
                h_ = dt >> 16;
 
 #ifdef COLOR_KEY
-               if (l_ != (COLOR_KEY)) {
-                    if (h_ != (COLOR_KEY)) {
-#ifdef COLOR_KEY_PROTECT
+               if ((l_ & MASK_RGB) != (COLOR_KEY)) {
+                    if ((h_ & MASK_RGB) != (COLOR_KEY)) {
+#ifdef KEY_PROTECT
                          /* Write to destination with color key protection */
-                         dst32[x] = (((h_ == KEY_PROTECT) ? KEY_REPLACE : h_) << 16) | ((l_ == KEY_PROTECT) ? KEY_REPLACE : l_);
+                         dst32[x] = ((((h_ & MASK_RGB) == KEY_PROTECT) ? h_^1 : h_) << 16) | (((l_ & MASK_RGB) == KEY_PROTECT) ? l_^1 : l_);
 #else
                          /* Write to destination without color key protection */
                          dst32[x] = dt;
@@ -337,21 +338,21 @@
                     else {
                          u16 *_dst16 = (u16*) &dst32[x];
 
-#ifdef COLOR_KEY_PROTECT
+#ifdef KEY_PROTECT
                          /* Write to destination with color key protection */
-                         *_dst16 = ((l_ == KEY_PROTECT) ? KEY_REPLACE : l_);
+                         *_dst16 = (((l_ & MASK_RGB) == KEY_PROTECT) ? l_^1 : l_);
 #else
                          /* Write to destination without color key protection */
                          *_dst16 = l_;
 #endif
                     }
                }
-               else if (h_ != (COLOR_KEY)) {
+               else if ((h_ & MASK_RGB) != (COLOR_KEY)) {
                     u16 *_dst16 = ((u16*) &dst32[x]) + 1;
 
-#ifdef COLOR_KEY_PROTECT
+#ifdef KEY_PROTECT
                     /* Write to destination with color key protection */
-                    *_dst16 = ((h_ == KEY_PROTECT) ? KEY_REPLACE : h_);
+                    *_dst16 = (((h_ & MASK_RGB) == KEY_PROTECT) ? h_^1 : h_);
 #else
                     /* Write to destination without color key protection */
                     *_dst16 = h_;
@@ -359,7 +360,7 @@
                }
 #else
                /* Write to destination with color key protection */
-               dst32[x] = (((h_ == KEY_PROTECT) ? KEY_REPLACE : h_) << 16) | ((l_ == KEY_PROTECT) ? KEY_REPLACE : l_);
+               dst32[x] = ((((h_ & MASK_RGB) == KEY_PROTECT) ? h_^1 : h_) << 16) | (((l_ & MASK_RGB) == KEY_PROTECT) ? l_^1 : l_);
 #endif
 #else
 #ifdef HAS_ALPHA
@@ -382,7 +383,7 @@
           u16 *dst16 = dst + cw * 2 - 2;
 
           /* Reset */
-          line = LINE_0 + clip->y1 * vfraq;
+          line = LINE_0 + ctx->clip.y1 * vfraq;
 
           for (y=0; y<ch; y++) {
                long X = LINE_TO_RATIO( line, vfraq );
@@ -413,16 +414,16 @@
                /*
                 * Vertical interpolation
                 */
-#if defined (COLOR_KEY) || defined (COLOR_KEY_PROTECT)
+#if defined (COLOR_KEY) || defined (KEY_PROTECT)
                l_ = ((((((dpB & X_F81F) - (dpT & X_F81F))*X) >> SHIFT_R5) + (dpT & X_F81F)) & X_F81F) +
                     ((((((dpB>>SHIFT_R5) & X_003F) - ((dpT>>SHIFT_R5) & X_003F))*X) + (dpT & X_07E0)) & X_07E0);
 
 #ifdef COLOR_KEY
-               if (l_ != (COLOR_KEY))
+               if ((l_ & MASK_RGB) != (COLOR_KEY))
 #endif
-#ifdef COLOR_KEY_PROTECT
+#ifdef KEY_PROTECT
                     /* Write to destination with color key protection */
-                    dst16[0] = (l_ == KEY_PROTECT) ? KEY_REPLACE : l_;
+                    dst16[0] = ((l_ & MASK_RGB) == KEY_PROTECT) ? l_^1 : l_;
 #else
                     /* Write to destination without color key protection */
                     dst16[0] = l_;

@@ -62,10 +62,11 @@ typedef enum {
      SMF_SOURCE            = 0x00000200,
 
      SMF_INDEX_TRANSLATION = 0x00001000,
+     SMF_COLORKEY          = 0x00002000,
 
      SMF_RENDER_OPTIONS    = 0x00010000,
 
-     SMF_ALL               = 0x000113FF
+     SMF_ALL               = 0x000133FF
 } StateModificationFlags;
 
 typedef enum {
@@ -120,7 +121,6 @@ struct _CardState {
      int                     *index_translation;
      int                      num_translation;
 
-
      /* hardware abstraction and state handling helpers */
 
      DFBAccelerationMask      accel;         /* remember checked commands if they are accelerated */
@@ -145,6 +145,8 @@ struct _CardState {
      GenefxState             *gfxs;
 
      DFBSurfaceRenderOptions  render_options;
+
+     DFBColorKey              colorkey;      /* key for color key protection */
 };
 
 int  dfb_state_init( CardState *state, CoreDFB *core );
@@ -267,7 +269,6 @@ do {                                                        \
                                                                           DST_COLORKEY,   \
                                                                           state, key )
 
-
 #define dfb_state_set_render_options(state,opts)  _dfb_state_set_checked( render_options, \
                                                                           RENDER_OPTIONS, \
                                                                           state, opts )
@@ -290,6 +291,17 @@ static inline void dfb_state_set_color( CardState *state, const DFBColor *color 
 
      if (! DFB_COLOR_EQUAL( state->color, *color )) {
           state->color    = *color;
+          state->modified = (StateModificationFlags)( state->modified | SMF_COLOR );
+     }
+}
+
+static inline void dfb_state_set_colorkey( CardState *state, const DFBColorKey *key )
+{
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( key != NULL );
+
+     if (! DFB_COLORKEY_EQUAL( state->colorkey, *key )) {
+          state->colorkey = *key;
           state->modified = (StateModificationFlags)( state->modified | SMF_COLOR );
      }
 }
