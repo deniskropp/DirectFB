@@ -546,7 +546,7 @@ dfb_surface_read_buffer( CoreSurface            *surface,
      CoreSurfaceBuffer *buffer;
 
      D_MAGIC_ASSERT( surface, CoreSurface );
-     D_ASSERT( source != NULL );
+     D_ASSERT( destination != NULL );
      D_ASSERT( pitch > 0 );
      DFB_RECTANGLE_ASSERT_IF( rect );
 
