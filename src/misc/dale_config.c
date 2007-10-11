@@ -144,10 +144,16 @@ fd_config_set( const char *name, const char *value )
           fusiondale_config->banner = false;
      }
      else if (!strcmp( name, "debug" )) {
-          direct_config->debug = true;
+          if (value)
+               direct_debug_config_domain( value, true );
+          else
+               direct_config->debug = true;
      }
      else if (!strcmp( name, "no-debug" )) {
-          direct_config->debug = false;
+          if (value)
+               direct_debug_config_domain( value, false );
+          else
+               direct_config->debug = false;
      }
      else if (!strcmp( name, "debugshm" )) {
           fusion_config->debugshm = true;
