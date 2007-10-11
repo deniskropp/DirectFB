@@ -2285,6 +2285,14 @@ dfb_gfxcard_get_device_data()
      return card->shared->device_data;
 }
 
+void *
+dfb_gfxcard_get_driver_data()
+{
+     D_ASSERT( card != NULL );
+
+     return card->driver_data;
+}
+
 /** internal **/
 
 /*

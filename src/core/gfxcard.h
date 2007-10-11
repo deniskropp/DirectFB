@@ -408,6 +408,7 @@ unsigned int    dfb_gfxcard_memory_length     ( void );
 unsigned int    dfb_gfxcard_auxmemory_length  ( void );
 
 void           *dfb_gfxcard_get_device_data   ( void );
+void           *dfb_gfxcard_get_driver_data   ( void );
 
 /*
  * Graphics drivers call this function to get access to MMIO regions.
