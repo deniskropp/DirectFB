@@ -223,9 +223,10 @@ struct __SaWMan_SaWManTier {
      SaWManWindow           *single_window;
      int                     single_width;
      int                     single_height;
+     DFBRectangle            single_src;
+     DFBRectangle            single_dst;
      DFBSurfacePixelFormat   single_format;
      DFBDisplayLayerOptions  single_options;
-     DFBLocation             single_location;
 
      bool                    border_only;
      DFBDisplayLayerConfig   border_config;

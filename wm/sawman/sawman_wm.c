@@ -2798,17 +2798,18 @@ wm_update_window( CoreWindow          *window,
           D_ASSERT( tier->region != NULL );
 
           if (tier->single_window == sawwin) {
-               DFBRectangle tmp = sawwin->src;
+               DFBRectangle tmp = tier->single_src;
 
                if (!region || dfb_rectangle_intersect_by_region( &tmp, region )) {
+                    DFBRegion    reg;
                     DFBRectangle src = tmp;
 
-                    tmp.x -= sawwin->src.x;
-                    tmp.y -= sawwin->src.y;
-
-                    DFBRegion reg = DFB_REGION_INIT_FROM_RECTANGLE( &tmp );
+                    tmp.x -= tier->single_src.x;
+                    tmp.y -= tier->single_src.y;
 
                     dfb_gfx_copy_to( window->surface, tier->region->surface, &src, tmp.x, tmp.y, false );
+
+                    dfb_region_from_rectangle( &reg, &tmp );
 
                     dfb_layer_region_flip_update( tier->region, &reg, flags );
                }

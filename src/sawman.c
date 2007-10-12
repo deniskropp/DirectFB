@@ -1947,6 +1947,8 @@ sawman_process_updates( SaWMan              *sawman,
           SaWManWindow    *single;
           CoreLayer       *layer;
           CoreLayerShared *shared;
+          int              screen_width;
+          int              screen_height;
 
           D_MAGIC_ASSERT( tier, SaWManTier );
 
@@ -1971,6 +1973,8 @@ sawman_process_updates( SaWMan              *sawman,
 
           if (!tier->config.width || !tier->config.height)
                continue;
+
+          dfb_screen_get_screen_size( layer->screen, &screen_width, &screen_height );
 
           single = get_single_window( sawman, tier, &none );
 
@@ -2005,36 +2009,42 @@ sawman_process_updates( SaWMan              *sawman,
                CoreWindow             *window;
                CoreSurface            *surface;
                DFBDisplayLayerOptions  options = DLOP_NONE;
-               DFBLocation             location;
-               int                     screen_width;
-               int                     screen_height;
-               DFBRectangle            rect;
+               DFBRectangle            dst  = single->dst;
+               DFBRectangle            src  = single->src;
+               DFBRegion               clip = DFB_REGION_INIT_FROM_DIMENSION( &tier->size );
 
-               dfb_screen_get_screen_size( layer->screen, &screen_width, &screen_height );
-
-               if (tier->size.w == screen_width && tier->size.h == screen_height)
-                    rect = single->dst;
+               if (shared->description.caps & DLCAPS_SCREEN_LOCATION) {
+                    dst.x = dst.x * screen_width  / tier->size.w;
+                    dst.y = dst.y * screen_height / tier->size.h;
+                    dst.w = dst.w * screen_width  / tier->size.w;
+                    dst.h = dst.h * screen_height / tier->size.h;
+               }
                else {
-                    rect.x = single->dst.x * screen_width  / tier->size.w;
-                    rect.y = single->dst.y * screen_height / tier->size.h;
-                    rect.w = single->dst.w * screen_width  / tier->size.w;
-                    rect.h = single->dst.h * screen_height / tier->size.h;
+                    if (dst.w != src.w || dst.h != src.h)
+                         goto no_single;
+
+                    if (shared->description.caps & DLCAPS_SCREEN_POSITION) {
+                         dfb_rectangle_intersect_by_region( &dst, &clip );
+
+                         src.x += dst.x - single->dst.x;
+                         src.y += dst.y - single->dst.y;
+                         src.w  = dst.w;
+                         src.h  = dst.h;
+
+                         dst.x += (screen_width  - tier->size.w) / 2;
+                         dst.y += (screen_height - tier->size.h) / 2;
+                    }
                }
 
 #ifdef SAWMAN_NO_LAYER_DOWNSCALE
-               if (rect.w < single->src.w)
+               if (rect.w < src.w)
                     goto no_single;
 #endif
 
 #ifdef SAWMAN_NO_LAYER_DST_WINDOW
-               if (rect.x != 0 || rect.y != 0 || rect.w != screen_width || rect.h != screen_height)
+               if (dst.x != 0 || dst.y != 0 || dst.w != screen_width || dst.h != screen_height)
                     goto no_single;
 #endif
-
-               location.x = (float) single->dst.x / (float) tier->size.w;
-               location.y = (float) single->dst.y / (float) tier->size.h;
-               location.w = (float) single->dst.w / (float) tier->size.w;
-               location.h = (float) single->dst.h / (float) tier->size.h;
 
 
                window = single->window;
@@ -2050,20 +2060,19 @@ sawman_process_updates( SaWMan              *sawman,
                     options |= DLOP_SRC_COLORKEY;
 
                if (tier->single_window  == NULL ||
-                   tier->single_width   != single->src.w ||
-                   tier->single_height  != single->src.h ||
+                   !DFB_RECTANGLE_EQUAL( tier->single_src, src ) ||
                    tier->single_format  != surface->config.format ||
                    tier->single_options != options)
                {
                     DFBDisplayLayerConfig  config;
 
-                    D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d %s single mode for %p on %p...\n",
-                                single->src.w, single->src.h, dfb_pixelformat_name( surface->config.format ),
-                                single, tier );
+                    D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d [%dx%d] %s single mode for %p on %p...\n",
+                                single->src.w, single->src.h, src.w, src.h,
+                                dfb_pixelformat_name( surface->config.format ), single, tier );
 
                     config.flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_OPTIONS | DLCONF_BUFFERMODE;
-                    config.width       = single->src.w;
-                    config.height      = single->src.h;
+                    config.width       = src.w;
+                    config.height      = src.h;
                     config.pixelformat = surface->config.format;
                     config.options     = options;
                     config.buffermode  = DLBM_FRONTONLY;
@@ -2073,11 +2082,12 @@ sawman_process_updates( SaWMan              *sawman,
 
                     tier->single_mode     = true;
                     tier->single_window   = single;
-                    tier->single_width    = single->src.w;
-                    tier->single_height   = single->src.h;
+                    tier->single_width    = src.w;
+                    tier->single_height   = src.h;
+                    tier->single_src      = src;
+                    tier->single_dst      = dst;
                     tier->single_format   = surface->config.format;
                     tier->single_options  = options;
-                    tier->single_location = location;
 
                     tier->active          = false;
                     tier->region->state  |= CLRSF_FROZEN;
@@ -2086,7 +2096,10 @@ sawman_process_updates( SaWMan              *sawman,
 
                     dfb_layer_context_set_configuration( tier->context, &config );
 
-                    dfb_layer_context_set_screenrectangle( tier->context, &rect );
+                    if (shared->description.caps & DLCAPS_SCREEN_LOCATION)
+                         dfb_layer_context_set_screenrectangle( tier->context, &dst );
+                    else if (shared->description.caps & DLCAPS_SCREEN_POSITION)
+                         dfb_layer_context_set_screenposition( tier->context, dst.x, dst.y );
 
                     if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format )) {
                          CorePalette *palette = surface->palette;
@@ -2116,7 +2129,6 @@ sawman_process_updates( SaWMan              *sawman,
                                                              window->config.color_key );
                     }
 
-                    DFBRectangle src = single->src;
                     dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
 
                     tier->active = true;
@@ -2126,15 +2138,15 @@ sawman_process_updates( SaWMan              *sawman,
                     dfb_updates_reset( &tier->updates );
                     continue;
                }
-               else if (!DFB_LOCATION_EQUAL( location, tier->single_location )) {
-                    tier->single_location = location;
+               else if (!DFB_RECTANGLE_EQUAL( tier->single_dst, dst )) {
+                    tier->single_dst = dst;
 
-                    D_DEBUG_AT( SaWMan_Auto, "  -> Changing single destination.\n" );
+                    D_DEBUG_AT( SaWMan_Auto, "  -> Changing single destination to %d,%d-%dx%d.\n",
+                                DFB_RECTANGLE_VALS(&dst) );
 
-                    dfb_layer_context_set_screenrectangle( tier->context, &rect );
+                    dfb_layer_context_set_screenrectangle( tier->context, &dst );
                }
 
-               DFBRectangle src = single->src;
                dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
 
                tier->active = true;
@@ -2178,15 +2190,11 @@ no_single:
                tier->size.h = config->height;
 
                if (shared->description.caps & DLCAPS_SCREEN_LOCATION) {
-                    DFBLocation location = { 0, 0, 1, 1 };
-                    dfb_layer_context_set_screenlocation( tier->context, &location );
+                    DFBRectangle full = { 0, 0, screen_width, screen_height };
+
+                    dfb_layer_context_set_screenrectangle( tier->context, &full );
                }
                else if (shared->description.caps & DLCAPS_SCREEN_POSITION) {
-                    int screen_width;
-                    int screen_height;
-
-                    dfb_screen_get_screen_size( layer->screen, &screen_width, &screen_height );
-
                     dfb_layer_context_set_screenposition( tier->context,
                                                           (screen_width  - config->width)  / 2,
                                                           (screen_height - config->height) / 2 );
