@@ -43,6 +43,7 @@
 #include <core/surface.h>
 #include <core/gfxcard.h>
 #include <core/layers.h>
+#include <core/layers_internal.h>
 #include <core/layer_context.h>
 #include <core/layer_control.h>
 #include <core/layer_region.h>
@@ -181,6 +182,11 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
 
      ret = IDirectFBSurface_Layer_Construct( surface, NULL, NULL, NULL,
                                              region, DSCAPS_NONE, data->core );
+
+     if (region->config.buffermode == DLBM_FRONTONLY && data->level == DLSCL_EXCLUSIVE) {
+          surface->Clear( surface, 0, 0, 0, 0 );
+          dfb_layer_region_flip_update( region, NULL, DSFLIP_NONE );
+     }
 
      *interface = ret ? NULL : surface;
 
