@@ -2004,7 +2004,7 @@ sawman_process_updates( SaWMan              *sawman,
           if (single && !border_only) {
                CoreWindow             *window;
                CoreSurface            *surface;
-               DFBDisplayLayerOptions  options;
+               DFBDisplayLayerOptions  options = DLOP_NONE;
                DFBLocation             location;
                int                     screen_width;
                int                     screen_height;
@@ -2043,7 +2043,11 @@ sawman_process_updates( SaWMan              *sawman,
                surface = window->surface;
                D_ASSERT( surface != NULL );
 
-               options = (window->config.options & DWOP_COLORKEYING) ? DLOP_SRC_COLORKEY : DLOP_NONE;
+               if (window->config.options & DWOP_ALPHACHANNEL)
+                    options |= DLOP_ALPHACHANNEL;
+
+               if (window->config.options & DWOP_COLORKEYING)
+                    options |= DLOP_SRC_COLORKEY;
 
                if (tier->single_window  == NULL ||
                    tier->single_width   != single->src.w ||
