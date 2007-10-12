@@ -40,6 +40,8 @@ typedef struct {
 typedef struct {
      SaWManBorderInit     *border;
      SaWManBorderInit      borders[3];
+
+     bool                  show_empty;  /* Don't hide layer when no window is visible. */
 } SaWManConfig;
 
 

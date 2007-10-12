@@ -1453,7 +1453,9 @@ wm_set_active( CoreWindowStack *stack,
      sawman_unlock( sawman );
 
      if (active)
-          return DFB_OK;//dfb_windowstack_repaint_all( stack );
+          return dfb_windowstack_repaint_all( stack );
+     else
+          tier->active = false;
 
      /* Force release of all pressed keys. */
      return wm_flush_keys( stack, wm_data, stack_data );

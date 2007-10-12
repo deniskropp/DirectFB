@@ -97,15 +97,29 @@ parse_args( const char *args )
      return DFB_OK;
 }
 
-static void 
+static DFBResult
 config_allocate()
 {
      if (sawman_config)
-          return;
+          return DFB_OK;
           
      sawman_config = D_CALLOC( 1, sizeof(SaWManConfig) );
+     if (!sawman_config)
+          return D_OOM();
 
      sawman_config->border = &sawman_config->borders[0];
+
+     sawman_config->borders[0].thickness    = 4;
+     sawman_config->borders[0].focused[0]   = (DFBColor){ 0xff, 0xc0, 0x00, 0x00 };
+     sawman_config->borders[0].focused[1]   = (DFBColor){ 0xff, 0xb0, 0x00, 0x00 };
+     sawman_config->borders[0].focused[2]   = (DFBColor){ 0xff, 0xa0, 0x00, 0x00 };
+     sawman_config->borders[0].focused[3]   = (DFBColor){ 0xff, 0x90, 0x00, 0x00 };
+     sawman_config->borders[0].unfocused[0] = (DFBColor){ 0xff, 0x80, 0x80, 0x80 };
+     sawman_config->borders[0].unfocused[1] = (DFBColor){ 0xff, 0x70, 0x70, 0x70 };
+     sawman_config->borders[0].unfocused[2] = (DFBColor){ 0xff, 0x60, 0x60, 0x60 };
+     sawman_config->borders[0].unfocused[3] = (DFBColor){ 0xff, 0x50, 0x50, 0x50 };
+
+     return DFB_OK;
 }
 
 const char*
@@ -260,6 +274,12 @@ sawman_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
+     if (strcmp (name, "show-empty") == 0) {
+          sawman_config->show_empty = true;
+     } else
+     if (strcmp (name, "no-show-empty") == 0) {
+          sawman_config->show_empty = false;
+     } else
           return DFB_UNSUPPORTED;
 
      return DFB_OK;
@@ -313,73 +333,75 @@ sawman_config_read( const char *filename )
 DFBResult 
 sawman_config_init( int *argc, char **argv[] )
 {
-     DFBResult  ret;
-     char      *home   = getenv( "HOME" );
-     char      *prog   = NULL;
-     char      *swargs;
+     DFBResult ret;
      
-     if (sawman_config)
-          return DFB_OK;
-          
-     config_allocate();
-     
-     /* Read system settings. */
-     ret = sawman_config_read( SYSCONFDIR"/sawmanrc" );
-     if (ret  &&  ret != DFB_IO)
-          return ret;
-          
-     /* Read user settings. */
-     if (home) {
-          int  len = strlen(home) + sizeof("/.sawmanrc");
-          char buf[len];
+     if (!sawman_config) {
+          char *home = getenv( "HOME" );
+          char *prog = NULL;
+          char *swargs;
 
-          snprintf( buf, len, "%s/.sawmanrc", home );
-
-          ret = sawman_config_read( buf );
-          if (ret  &&  ret != DFB_IO)
-               return ret;
-     }
-     
-     /* Get application name. */
-     if (argc && *argc && argv && *argv) {
-          prog = strrchr( (*argv)[0], '/' );
-
-          if (prog)
-               prog++;
-          else
-               prog = (*argv)[0];
-     }
-
-     /* Read global application settings. */
-     if (prog && prog[0]) {
-          int  len = sizeof(SYSCONFDIR"/sawmanrc.") + strlen(prog);
-          char buf[len];
-
-          snprintf( buf, len, SYSCONFDIR"/sawmanrc.%s", prog );
-
-          ret = sawman_config_read( buf );
-          if (ret  &&  ret != DFB_IO)
-               return ret;
-     }
-     
-     /* Read user application settings. */
-     if (home && prog && prog[0]) {
-          int  len = strlen(home) + sizeof("/.sawmanrc.") + strlen(prog);
-          char buf[len];
-
-          snprintf( buf, len, "%s/.sawmanrc.%s", home, prog );
-
-          ret = sawman_config_read( buf );
-          if (ret  &&  ret != DFB_IO)
-               return ret;
-     }
-     
-     /* Read settings from environment variable. */
-     swargs = getenv( "SAWMANARGS" );
-     if (swargs) {
-          ret = parse_args( swargs );
+          ret = config_allocate();
           if (ret)
                return ret;
+     
+          /* Read system settings. */
+          ret = sawman_config_read( SYSCONFDIR"/sawmanrc" );
+          if (ret  &&  ret != DFB_IO)
+               return ret;
+               
+          /* Read user settings. */
+          if (home) {
+               int  len = strlen(home) + sizeof("/.sawmanrc");
+               char buf[len];
+     
+               snprintf( buf, len, "%s/.sawmanrc", home );
+     
+               ret = sawman_config_read( buf );
+               if (ret  &&  ret != DFB_IO)
+                    return ret;
+          }
+          
+          /* Get application name. */
+          if (argc && *argc && argv && *argv) {
+               prog = strrchr( (*argv)[0], '/' );
+     
+               if (prog)
+                    prog++;
+               else
+                    prog = (*argv)[0];
+          }
+     
+          /* Read global application settings. */
+          if (prog && prog[0]) {
+               int  len = sizeof(SYSCONFDIR"/sawmanrc.") + strlen(prog);
+               char buf[len];
+     
+               snprintf( buf, len, SYSCONFDIR"/sawmanrc.%s", prog );
+     
+               ret = sawman_config_read( buf );
+               if (ret  &&  ret != DFB_IO)
+                    return ret;
+          }
+          
+          /* Read user application settings. */
+          if (home && prog && prog[0]) {
+               int  len = strlen(home) + sizeof("/.sawmanrc.") + strlen(prog);
+               char buf[len];
+     
+               snprintf( buf, len, "%s/.sawmanrc.%s", home, prog );
+     
+               ret = sawman_config_read( buf );
+               if (ret  &&  ret != DFB_IO)
+                    return ret;
+          }
+          
+          /* Read settings from environment variable. */
+          swargs = getenv( "SAWMANARGS" );
+          if (swargs) {
+               ret = parse_args( swargs );
+               if (ret)
+                    return ret;
+          }
      }
      
      /* Read settings from command line. */

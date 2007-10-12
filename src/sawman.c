@@ -1939,17 +1939,25 @@ sawman_process_updates( SaWMan              *sawman,
      D_DEBUG_AT( SaWMan_Update, "%s( %p, 0x%08x )\n", __FUNCTION__, sawman, flags );
 
      direct_list_foreach (tier, sawman->tiers) {
-          int           n, d;
-          int           total;
-          int           bounding;
-          bool          none = false;
-          bool          border_only;
-          SaWManWindow *single;
+          int              n, d;
+          int              total;
+          int              bounding;
+          bool             none = false;
+          bool             border_only;
+          SaWManWindow    *single;
+          CoreLayer       *layer;
+          CoreLayerShared *shared;
 
           D_MAGIC_ASSERT( tier, SaWManTier );
 
-          D_DEBUG_AT( SaWMan_Update, "            %p -> %p (%d updates)\n",
-                      tier, tier->stack, tier->updates.num_regions );
+          layer = dfb_layer_at( tier->layer_id );
+          D_ASSERT( layer != NULL );
+
+          shared = layer->shared;
+          D_ASSERT( shared != NULL );
+
+          D_DEBUG_AT( SaWMan_Update, "            %p -> %p (%s, %d updates)\n",
+                      tier, tier->stack, shared->description.name, tier->updates.num_regions );
 
           if (!tier->updates.num_regions)
                continue;
@@ -1966,7 +1974,7 @@ sawman_process_updates( SaWMan              *sawman,
 
           single = get_single_window( sawman, tier, &none );
 
-          if (none) {
+          if (none && !sawman_config->show_empty) {
                if (tier->active) {
                     D_DEBUG_AT( SaWMan_Auto, "  -> Disabling region...\n" );
 
@@ -1998,12 +2006,9 @@ sawman_process_updates( SaWMan              *sawman,
                CoreSurface            *surface;
                DFBDisplayLayerOptions  options;
                DFBLocation             location;
-               CoreLayer              *layer;
                int                     screen_width;
                int                     screen_height;
                DFBRectangle            rect;
-
-               layer = dfb_layer_at( tier->layer_id );
 
                dfb_screen_get_screen_size( layer->screen, &screen_width, &screen_height );
 
@@ -2168,8 +2173,20 @@ no_single:
                tier->size.w = config->width;
                tier->size.h = config->height;
 
-               DFBLocation location = { 0, 0, 1, 1 };
-               dfb_layer_context_set_screenlocation( tier->context, &location );
+               if (shared->description.caps & DLCAPS_SCREEN_LOCATION) {
+                    DFBLocation location = { 0, 0, 1, 1 };
+                    dfb_layer_context_set_screenlocation( tier->context, &location );
+               }
+               else if (shared->description.caps & DLCAPS_SCREEN_POSITION) {
+                    int screen_width;
+                    int screen_height;
+
+                    dfb_screen_get_screen_size( layer->screen, &screen_width, &screen_height );
+
+                    dfb_layer_context_set_screenposition( tier->context,
+                                                          (screen_width  - config->width)  / 2,
+                                                          (screen_height - config->height) / 2 );
+               }
 
                if (config->options & DLOP_SRC_COLORKEY) {
                     if (DFB_PIXELFORMAT_IS_INDEXED( config->pixelformat )) {
