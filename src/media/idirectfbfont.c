@@ -177,11 +177,13 @@ IDirectFBFont_GetMaxAdvance( IDirectFBFont *thiz, int *maxadvance )
  */
 static DFBResult
 IDirectFBFont_GetKerning( IDirectFBFont *thiz,
-                          unsigned int prev_index, unsigned int current_index,
+                          unsigned int prev, unsigned int current,
                           int *kern_x, int *kern_y)
 {
-     CoreFont *font;
-     int x, y;
+     DFBResult     ret;
+     CoreFont     *font;
+     int           x = 0, y = 0;
+     unsigned int  prev_index, current_index;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
 
@@ -194,18 +196,34 @@ IDirectFBFont_GetKerning( IDirectFBFont *thiz,
 
      dfb_font_lock( font );
 
-     if (! font->GetKerning ||
-         font->GetKerning (font, prev_index, current_index, &x, &y) != DFB_OK)
-          x = y = 0;
+     if (font->GetKerning) {
+          ret = dfb_font_decode_character( font, data->encoding, prev, &prev_index );
+          if (ret)
+               goto error;
+
+          ret = dfb_font_decode_character( font, data->encoding, current, &current_index );
+          if (ret)
+               goto error;
+
+          ret = font->GetKerning (font, prev_index, current_index, &x, &y);
+          if (ret)
+               goto error;
+     }
+
+     dfb_font_unlock( font );
 
      if (kern_x)
           *kern_x = x;
      if (kern_y)
           *kern_y = y;
 
+     return DFB_OK;
+
+
+error:
      dfb_font_unlock( font );
 
-     return DFB_OK;
+     return ret;
 }
 
 /*
