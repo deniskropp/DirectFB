@@ -610,6 +610,7 @@ fd_messenger_event_dispatch( CoreMessengerEvent *event,
      CoreMessenger         *messenger;
      CoreMessengerDispatch *dispatch;
      EventNode             *node;
+     bool                   dispatched = false;
 
      D_MAGIC_ASSERT( event, CoreMessengerEvent );
      D_ASSERT( event->id != FDM_EVENT_ID_NONE );
@@ -661,6 +662,8 @@ fd_messenger_event_dispatch( CoreMessengerEvent *event,
 
                /* Dispatch event to reaction in the port's process. */
                fd_messenger_port_notify( node->port, CMPNF_EVENT, dispatch );
+
+               dispatched = true;
           }
 
           /* Unlock port. */
@@ -669,7 +672,7 @@ fd_messenger_event_dispatch( CoreMessengerEvent *event,
 
 
 
-     if (!dispatch->count) {
+     if (!dispatched) {
           direct_list_remove( &event->dispatches, &dispatch->link );
 
           D_MAGIC_CLEAR( dispatch );
