@@ -342,9 +342,10 @@ DEFINE_INTERFACE( IComaComponent,
      );
 
      DFBResult (*InitNotifications) (
-          IComaComponent           *thiz,
-          ComaNotificationInit     *inits,
-          int                       num_inits
+          IComaComponent                *thiz,
+          const ComaNotificationInit    *inits,
+          int                            num_inits,
+          void                          *ctx
      );
 
 
@@ -381,8 +382,9 @@ DEFINE_INTERFACE( IComaComponent,
 
      DFBResult (*InitListeners) (
           IComaComponent           *thiz,
-          ComaListenerInit         *inits,
-          int                       num_inits
+          const ComaListenerInit   *inits,
+          int                       num_inits,
+          void                     *ctx
      );
 
      DFBResult (*Unlisten) (

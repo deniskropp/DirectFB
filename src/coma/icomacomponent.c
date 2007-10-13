@@ -101,9 +101,10 @@ IComaComponent_InitNotification( IComaComponent     *thiz,
 }
 
 static DFBResult
-IComaComponent_InitNotifications( IComaComponent       *thiz,
-                                  ComaNotificationInit *inits,
-                                  int                   num_inits )
+IComaComponent_InitNotifications( IComaComponent             *thiz,
+                                  const ComaNotificationInit *inits,
+                                  int                         num_inits,
+                                  void                       *ctx )
 {
      int          i;
      DirectResult ret = DFB_INVARG;
@@ -117,7 +118,7 @@ IComaComponent_InitNotifications( IComaComponent       *thiz,
 
      for (i=0; i<num_inits; i++) {
           ret = coma_component_init_notification( data->component, inits[i].id,
-                                                  inits[i].func, inits[i].ctx );
+                                                  inits[i].func, inits[i].ctx ? : ctx );
           if (ret)
                break;
      }
@@ -193,9 +194,10 @@ IComaComponent_Listen( IComaComponent     *thiz,
 }
 
 static DFBResult
-IComaComponent_InitListeners( IComaComponent   *thiz,
-                              ComaListenerInit *inits,
-                              int               num_inits )
+IComaComponent_InitListeners( IComaComponent         *thiz,
+                              const ComaListenerInit *inits,
+                              int                     num_inits,
+                              void                   *ctx )
 {
      int           i;
      DirectResult  ret;
@@ -222,7 +224,7 @@ IComaComponent_InitListeners( IComaComponent   *thiz,
                return ret;
 
           listener->func = inits[i].func;
-          listener->ctx  = inits[i].ctx;
+          listener->ctx  = inits[i].ctx ? : ctx;
      }
 
      return DFB_OK;
