@@ -333,7 +333,7 @@ fusion_skirmish_prevail( FusionSkirmish *skirmish )
                asm( "" ::: "memory" );
                
                if (++count > 1000) {
-                    usleep( 0 );
+                    usleep(1);
                     count = 0;
                }
                else {

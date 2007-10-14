@@ -95,7 +95,7 @@
 #ifdef _POSIX_PRIORITY_SCHEDULING
 #define direct_sched_yield()  sched_yield()
 #else
-#define direct_sched_yield()  usleep(0)
+#define direct_sched_yield()  usleep(1)
 #endif
 
 /*
