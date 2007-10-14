@@ -57,6 +57,7 @@
 #include <gfx/convert.h>
 
 #include <direct/conf.h>
+#include <direct/direct.h>
 #include <direct/interface.h>
 #include <direct/log.h>
 #include <direct/mem.h>
@@ -173,6 +174,8 @@ DirectFBCreate( IDirectFB **interface )
           *interface = idirectfb_singleton;
           return DFB_OK;
      }
+
+     direct_initialize();
 
      if (!direct_config->quiet && dfb_config->banner) {
           direct_log_printf( NULL,
