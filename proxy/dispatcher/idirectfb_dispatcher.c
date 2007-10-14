@@ -49,6 +49,8 @@
 #include <direct/thread.h>
 #include <direct/util.h>
 
+#include <core/coredefs.h>
+
 #include <voodoo/interface.h>
 #include <voodoo/manager.h>
 #include <voodoo/message.h>
@@ -564,6 +566,56 @@ Dispatch_SetVideoMode( IDirectFB *thiz, IDirectFB *real,
                                     VMBT_NONE );
 }
 
+#define MAX_MODES 128
+
+typedef struct {
+     int                                      num;
+     IDirectFB_Dispatcher_EnumVideoModes_Item items[MAX_MODES];
+} EnumVideoModes_Context;
+
+static DFBEnumerationResult
+EnumVideoModes_Callback( int   width,
+                         int   height,
+                         int   bpp,
+                         void *callbackdata )
+{
+     int                     index;
+     EnumVideoModes_Context *context = callbackdata;
+
+     if (context->num == MAX_MODES) {
+          D_WARN( "maximum number of %d modes reached", MAX_MODES );
+          return DFENUM_CANCEL;
+     }
+
+     index = context->num++;
+
+     context->items[index].width  = width;
+     context->items[index].height = height;
+     context->items[index].bpp    = bpp;
+
+     return DFENUM_OK;
+}
+
+static DirectResult
+Dispatch_EnumVideoModes( IDirectFB *thiz, IDirectFB *real,
+                         VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult           ret;
+     EnumVideoModes_Context context = { 0 };
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
+
+     ret = real->EnumVideoModes( real, EnumVideoModes_Callback, &context );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_INT, context.num,
+                                    VMBT_DATA, context.num * sizeof(IDirectFB_Dispatcher_EnumVideoModes_Item), context.items,
+                                    VMBT_NONE );
+}
+
 static DirectResult
 Dispatch_CreateEventBuffer( IDirectFB *thiz, IDirectFB *real,
                             VoodooManager *manager, VoodooRequestMessage *msg )
@@ -701,8 +753,6 @@ Dispatch_CreateSurface( IDirectFB *thiz, IDirectFB *real,
                                     DFB_OK, instance,
                                     VMBT_NONE );
 }
-
-#define MAX_SCREENS 32
 
 typedef struct {
      int                                   num;
@@ -997,6 +1047,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFB_METHOD_ID_SetVideoMode:
                return Dispatch_SetVideoMode( dispatcher, real, manager, msg );
+
+          case IDIRECTFB_METHOD_ID_EnumVideoModes:
+               return Dispatch_EnumVideoModes( dispatcher, real, manager, msg );
 
           case IDIRECTFB_METHOD_ID_CreateSurface:
                return Dispatch_CreateSurface( dispatcher, real, manager, msg );

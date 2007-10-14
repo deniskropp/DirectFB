@@ -165,14 +165,42 @@ IDirectFB_Requestor_EnumVideoModes( IDirectFB            *thiz,
                                     DFBVideoModeCallback  callbackfunc,
                                     void                 *callbackdata )
 {
+     DirectResult                              ret;
+     VoodooResponseMessage                    *response;
+     VoodooMessageParser                       parser;
+     int                                       i, num;
+     IDirectFB_Dispatcher_EnumVideoModes_Item *items;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
      if (!callbackfunc)
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFB_METHOD_ID_EnumVideoModes, VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
 
-     return DFB_UNIMPLEMENTED;
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_INT( parser, num );
+     VOODOO_PARSER_COPY_DATA( parser, items );
+     VOODOO_PARSER_END( parser );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     for (i=0; i<num; i++) {
+          if (callbackfunc( items[i].width, items[i].height, items[i].bpp, callbackdata ) == DFENUM_CANCEL)
+               return DFB_OK;
+     }
+
+     return DFB_OK;
 }
 
 static DFBResult

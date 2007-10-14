@@ -91,13 +91,39 @@ IDirectFBDisplayLayer_Requestor_Release( IDirectFBDisplayLayer *thiz )
 
 static DFBResult
 IDirectFBDisplayLayer_Requestor_GetID( IDirectFBDisplayLayer *thiz,
-                                       DFBDisplayLayerID     *id )
+                                       DFBDisplayLayerID     *ret_id )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+     DFBDisplayLayerID      id;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Requestor)
 
-     D_UNIMPLEMENTED();
+     if (!ret_id)
+          return DFB_INVARG;
 
-     return DFB_UNIMPLEMENTED;
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBDISPLAYLAYER_METHOD_ID_GetID, VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_ID( parser, id );
+     VOODOO_PARSER_END( parser );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     *ret_id = id;
+
+     return ret;
 }
 
 static DFBResult
@@ -124,24 +150,56 @@ IDirectFBDisplayLayer_Requestor_GetSurface( IDirectFBDisplayLayer  *thiz,
 
 static DFBResult
 IDirectFBDisplayLayer_Requestor_GetScreen( IDirectFBDisplayLayer  *thiz,
-                                           IDirectFBScreen       **interface )
+                                           IDirectFBScreen       **ret_interface )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     void                  *interface = NULL;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Requestor)
 
-     D_UNIMPLEMENTED();
+     if (!ret_interface)
+          return DFB_INVARG;
 
-     return DFB_UNIMPLEMENTED;
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBDISPLAYLAYER_METHOD_ID_GetScreen, VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret == DFB_OK)
+          ret = voodoo_construct_requestor( data->manager, "IDirectFBScreen",
+                                            response->instance, NULL, &interface );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     *ret_interface = interface;
+
+     return ret;
 }
 
 static DFBResult
 IDirectFBDisplayLayer_Requestor_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz,
                                                      DFBDisplayLayerCooperativeLevel  level )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Requestor)
 
-     D_UNIMPLEMENTED();
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBDISPLAYLAYER_METHOD_ID_SetCooperativeLevel, VREQ_RESPOND, &response,
+                                   VMBT_UINT, level,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
 
-     return DFB_UNIMPLEMENTED;
+     ret = response->result;
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return ret;
 }
 
 static DFBResult

@@ -386,6 +386,52 @@ Dispatch_GetSize( IDirectFBScreen *thiz, IDirectFBScreen *real,
                                     VMBT_NONE );
 }
 
+typedef struct {
+     int                                               num;
+     IDirectFBScreen_Dispatcher_EnumDisplayLayers_Item items[MAX_LAYERS];
+} EnumDisplayLayers_Context;
+
+static DFBEnumerationResult
+EnumDisplayLayers_Callback( DFBDisplayLayerID           layer_id,
+                            DFBDisplayLayerDescription  desc,
+                            void                       *callbackdata )
+{
+     int                        index;
+     EnumDisplayLayers_Context *context = callbackdata;
+
+     if (context->num == MAX_LAYERS) {
+          D_WARN( "maximum number of %d layers reached", MAX_LAYERS );
+          return DFENUM_CANCEL;
+     }
+
+     index = context->num++;
+
+     context->items[index].layer_id = layer_id;
+     context->items[index].desc     = desc;
+
+     return DFENUM_OK;
+}
+
+static DirectResult
+Dispatch_EnumDisplayLayers( IDirectFBScreen *thiz, IDirectFBScreen *real,
+                            VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult              ret;
+     EnumDisplayLayers_Context context = { 0 };
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen_Dispatcher)
+
+     ret = real->EnumDisplayLayers( real, EnumDisplayLayers_Callback, &context );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_INT, context.num,
+                                    VMBT_DATA, context.num * sizeof(IDirectFBScreen_Dispatcher_EnumDisplayLayers_Item), context.items,
+                                    VMBT_NONE );
+}
+
 static DirectResult
 Dispatch_SetPowerMode( IDirectFBScreen *thiz, IDirectFBScreen *real,
                        VoodooManager *manager, VoodooRequestMessage *msg )
@@ -434,6 +480,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
                
           case IDIRECTFBSCREEN_METHOD_ID_GetSize:
                return Dispatch_GetSize( dispatcher, real, manager, msg );
+
+          case IDIRECTFBSCREEN_METHOD_ID_EnumDisplayLayers:
+               return Dispatch_EnumDisplayLayers( dispatcher, real, manager, msg );
                
           case IDIRECTFBSCREEN_METHOD_ID_SetPowerMode:
                return Dispatch_SetPowerMode( dispatcher, real, manager, msg );

@@ -219,17 +219,45 @@ IDirectFBScreen_Requestor_GetSize( IDirectFBScreen *thiz,
 
 static DFBResult
 IDirectFBScreen_Requestor_EnumDisplayLayers( IDirectFBScreen         *thiz,
-                                   DFBDisplayLayerCallback  callbackfunc,
-                                   void                    *callbackdata )
+                                             DFBDisplayLayerCallback  callbackfunc,
+                                             void                    *callbackdata )
 {
+     DirectResult                                       ret;
+     VoodooResponseMessage                             *response;
+     VoodooMessageParser                                parser;
+     int                                                i, num;
+     IDirectFBScreen_Dispatcher_EnumDisplayLayers_Item *items;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBScreen_Requestor)
 
      if (!callbackfunc)
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBSCREEN_METHOD_ID_EnumDisplayLayers, VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
 
-     return DFB_UNIMPLEMENTED;
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_INT( parser, num );
+     VOODOO_PARSER_COPY_DATA( parser, items );
+     VOODOO_PARSER_END( parser );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     for (i=0; i<num; i++) {
+          if (callbackfunc( items[i].layer_id, items[i].desc, callbackdata ) == DFENUM_CANCEL)
+               return DFB_OK;
+     }
+
+     return DFB_OK;
 }
 
 static DFBResult

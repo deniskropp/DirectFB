@@ -50,4 +50,9 @@
 #define IDIRECTFBSCREEN_METHOD_ID_TestOutputConfiguration   19
 #define IDIRECTFBSCREEN_METHOD_ID_SetOutputConfiguration    20
 
+typedef struct {
+     DFBDisplayLayerID          layer_id;
+     DFBDisplayLayerDescription desc;
+} IDirectFBScreen_Dispatcher_EnumDisplayLayers_Item;
+
 #endif
