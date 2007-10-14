@@ -33,9 +33,6 @@
 #include <unistd.h>
 #include <stdarg.h>
 
-#include <ft2build.h>
-#include FT_GLYPH_H
-
 #include <directfb.h>
 
 #include <core/fonts.h>
@@ -55,6 +52,10 @@
 
 #include <misc/conf.h>
 #include <misc/util.h>
+
+#undef SIZEOF_LONG
+#include <ft2build.h>
+#include FT_GLYPH_H
 
 #ifndef FT_LOAD_TARGET_MONO
     /* FT_LOAD_TARGET_MONO was added in FreeType-2.1.3, we have to use (less good)
