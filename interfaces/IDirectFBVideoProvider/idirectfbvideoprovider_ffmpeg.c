@@ -580,7 +580,7 @@ FFmpegVideo( DirectThread *self, void *arg )
    
           if (!get_packet( &data->video.queue, &pkt )) {
                pthread_mutex_unlock( &data->video.lock );
-               usleep( 0 );
+               usleep( 1 );
                continue;
           }
           
@@ -679,7 +679,7 @@ FFmpegAudio( DirectThread *self, void *arg )
           
           if (!data->speed || !get_packet( &data->audio.queue, &pkt )) {
                pthread_mutex_unlock( &data->audio.lock );
-               usleep( 0 );
+               usleep( 1 );
                continue;
           }
           
@@ -719,7 +719,7 @@ FFmpegAudio( DirectThread *self, void *arg )
           if (size)
                data->audio.stream->Write( data->audio.stream, buf, size ); 
           else
-               usleep( 0 );
+               usleep( 1 );
      }
 
      return (void*)0;
