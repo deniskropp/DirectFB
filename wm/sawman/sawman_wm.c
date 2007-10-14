@@ -1454,8 +1454,11 @@ wm_set_active( CoreWindowStack *stack,
 
      if (active)
           return dfb_windowstack_repaint_all( stack );
-     else
-          tier->active = false;
+     else {
+          tier->active        = false;
+          tier->single_mode   = false;
+          tier->single_window = NULL;
+     }
 
      /* Force release of all pressed keys. */
      return wm_flush_keys( stack, wm_data, stack_data );
