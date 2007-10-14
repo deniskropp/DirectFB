@@ -200,8 +200,8 @@ IDirectFBDataBuffer_File_WaitForDataWithTimeout( IDirectFBDataBuffer *thiz,
           }
      }
          
-     pthread_mutex_lock( &data->mutex ); 
      ret = direct_stream_wait( data->stream, length, &tv );
+     
      pthread_mutex_unlock( &data->mutex );
 
      return ret;
