@@ -373,23 +373,43 @@ fusion_ref_init (FusionRef         *ref,
 }
 
 DirectResult
-fusion_ref_up (FusionRef *ref, bool global)
+_fusion_ref_change (FusionRef *ref, int add, bool global)
 {
      DirectResult ret;
-     
+
      D_ASSERT( ref != NULL );
-          
+     D_ASSERT( add != 0 );
+     
      ret = fusion_skirmish_prevail( &ref->multi.builtin.lock );
      if (ret)
           return ret;
      
      if (global) {
-          ref->multi.builtin.global++;
-     }
-     else {
-          ref->multi.builtin.local++;
+          if (ref->multi.builtin.global+add < 0) {
+               D_BUG( "ref has no global references" );
+               fusion_skirmish_dismiss( &ref->multi.builtin.lock );
+               return DFB_BUG;
+          }
 
-          _fusion_add_local( _fusion_world(ref->multi.shared), ref, +1 );
+          ref->multi.builtin.global += add;
+     }
+     else {          
+          if (ref->multi.builtin.local+add < 0) {
+               D_BUG( "ref has no local references" );
+               fusion_skirmish_dismiss( &ref->multi.builtin.lock );
+               return DFB_BUG;
+          }
+
+          ref->multi.builtin.local += add;
+          
+          _fusion_add_local( _fusion_world(ref->multi.shared), ref, add ); 
+     }
+
+     if (ref->multi.builtin.call &&
+         ref->multi.builtin.local+ref->multi.builtin.global == 0) {
+          fusion_skirmish_dismiss( &ref->multi.builtin.lock );
+          return fusion_call_execute( ref->multi.builtin.call, 0, 
+                                      ref->multi.builtin.call_arg, NULL, NULL );
      }
      
      fusion_skirmish_dismiss( &ref->multi.builtin.lock );
@@ -398,48 +418,15 @@ fusion_ref_up (FusionRef *ref, bool global)
 }
 
 DirectResult
+fusion_ref_up (FusionRef *ref, bool global)
+{
+     return _fusion_ref_change( ref, +1, global );
+}
+
+DirectResult
 fusion_ref_down (FusionRef *ref, bool global)
 {
-     DirectResult ret;
-     
-     D_ASSERT( ref != NULL );
-          
-     ret = fusion_skirmish_prevail( &ref->multi.builtin.lock );
-     if (ret)
-          return ret;
-     
-     if (global) {
-          if (!ref->multi.builtin.global) {
-               D_BUG( "ref has no global references" );
-               fusion_skirmish_dismiss( &ref->multi.builtin.lock );
-               return DFB_BUG;
-          }
-               
-          ref->multi.builtin.global--;
-     }
-     else {
-          if (!ref->multi.builtin.local) {
-               D_BUG( "ref has no local references" );
-               fusion_skirmish_dismiss( &ref->multi.builtin.lock );
-               return DFB_BUG;
-          }
-               
-          ref->multi.builtin.local--;
-
-          _fusion_add_local( _fusion_world(ref->multi.shared), ref, -1 );
-     } 
-
-     if (ref->multi.builtin.local+ref->multi.builtin.global == 0) {
-          if (ref->multi.builtin.call) {
-               fusion_skirmish_dismiss( &ref->multi.builtin.lock );
-               return fusion_call_execute( ref->multi.builtin.call, 0, 
-                                           ref->multi.builtin.call_arg, NULL, NULL );
-          }
-     }
-     
-     fusion_skirmish_dismiss( &ref->multi.builtin.lock );
-
-     return DFB_OK;
+     return _fusion_ref_change( ref, -1, global );
 }
 
 DirectResult

@@ -61,6 +61,12 @@
 #define IDIRECTFB_METHOD_ID_GetInterface              28
 
 typedef struct {
+     int  width;
+     int  height;
+     int  bpp;
+} IDirectFB_Dispatcher_EnumVideoModes_Item;
+
+typedef struct {
      DFBScreenID          screen_id;
      DFBScreenDescription desc;
 } IDirectFB_Dispatcher_EnumScreens_Item;

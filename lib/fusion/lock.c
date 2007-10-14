@@ -333,7 +333,7 @@ fusion_skirmish_prevail( FusionSkirmish *skirmish )
                asm( "" ::: "memory" );
                
                if (++count > 1000) {
-                    usleep( 0 );
+                    usleep(1);
                     count = 0;
                }
                else {
@@ -459,7 +459,7 @@ DirectResult
 fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
 {
      WaitNode         *node;
-     long long         start;
+     long long         stop;
      struct sigaction  act, oldact;
      sigset_t          mask;
      DirectResult      ret = DFB_OK;
@@ -468,19 +468,20 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
      
      if (skirmish->multi.builtin.destroyed)
           return DFB_DESTROYED;
+ 
+     /* Set timeout. */
+     stop = direct_clock_get_micros() + timeout * 1000ll;
       
      /* Add ourself to the list of waiting processes. */    
-     node = SHCALLOC( skirmish->multi.shared->main_pool, 1, sizeof(WaitNode) );
+     node = SHMALLOC( skirmish->multi.shared->main_pool, sizeof(WaitNode) );
      if (!node)
           return D_OOSHM();
      
-     node->pid = getpid();
+     node->pid      = getpid();
+     node->notified = false;
      
      direct_list_append( &skirmish->multi.builtin.waiting, &node->link );
-     
-     /* Start counting time. */
-     start = direct_clock_get_millis();
-     
+      
      /* Install a (fake) signal handler for SIGRESTART. */
      act.sa_handler = restart_handler;
      act.sa_flags   = SA_RESETHAND | SA_RESTART | SA_NOMASK;
@@ -495,16 +496,17 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
 
      while (!node->notified) {
           if (timeout) {
-               sigset_t oldmask;
-               
-               sigprocmask( SIG_SETMASK, &mask, &oldmask );
-               usleep(0);
-               sigprocmask( SIG_SETMASK, &oldmask, NULL );
-                     
-               if (direct_clock_get_millis() >= start+timeout) {
+               long long now = direct_clock_get_micros();
+               sigset_t  oldmask;
+
+               if (now >= stop) {
                     ret = DFB_TIMEOUT;
                     break;
                }
+               
+               sigprocmask( SIG_SETMASK, &mask, &oldmask );
+               usleep( stop - now );
+               sigprocmask( SIG_SETMASK, &oldmask, NULL );           
           }
           else {
                sigsuspend( &mask );
@@ -537,7 +539,7 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
           node->notified = true;
           
           if (kill( node->pid, SIGRESTART ) < 0 && errno == ESRCH) {
-               /* Removed dead process. */
+               /* Remove dead process. */
                direct_list_remove( &skirmish->multi.builtin.waiting, &node->link );
                 
                SHFREE( skirmish->multi.shared->main_pool, node );

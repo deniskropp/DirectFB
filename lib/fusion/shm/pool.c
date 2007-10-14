@@ -733,6 +733,9 @@ init_pool( FusionSHM           *shm,
 
      pool_addr_base = world->shared->pool_base;
      world->shared->pool_base += ((pool_max_size + page_size - 1) & ~(page_size - 1)) + page_size;
+     /* Exceeded limit? */
+     if (world->shared->pool_base > world->shared->pool_max)
+          return DFB_NOSHAREDMEMORY;
 
      /* Generate filename. */
      snprintf( buf, sizeof(buf), "%s/fusion.%d.%d", shm->shared->tmpfs,
