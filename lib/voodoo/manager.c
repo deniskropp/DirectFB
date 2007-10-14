@@ -523,7 +523,7 @@ calc_blocks( VoodooMessageBlockType type, va_list args )
                     D_BREAK( "unknown message block type" );
           }
 
-          size += len + 8; /* for type and length */
+          size += 8 + VOODOO_MSG_ALIGN(len);
 
           type = va_arg( args, VoodooMessageBlockType );
      }
@@ -534,9 +534,11 @@ calc_blocks( VoodooMessageBlockType type, va_list args )
 static inline void
 write_blocks( void *dst, VoodooMessageBlockType type, va_list args )
 {
+     u32 *d32 = dst;
+
      while (type != VMBT_NONE) {
-          u32 arg = 0;
-          int   len = 0;
+          u32   arg = 0;
+          u32   len = 0;
           void *ptr = NULL;
 
           switch (type) {
@@ -565,24 +567,27 @@ write_blocks( void *dst, VoodooMessageBlockType type, va_list args )
           }
 
           /* Write block type and length. */
-          *(u32*) (dst + 0) = type;
-          *(s32*) (dst + 4) = len;
+          d32[0] = type;
+          d32[1] = len;
 
           /* Write block content. */
           if (ptr)
-               direct_memcpy( dst + 8, ptr, len );
-          else if (len)
-               *(u32*) (dst + 8) = arg;
+               direct_memcpy( &d32[2], ptr, len );
+          else if (len) {
+               D_ASSERT( len == 4 );
+
+               d32[2] = arg;
+          }
 
           /* Advance message data pointer. */
-          dst += len + 8;
+          d32 += 2 + (VOODOO_MSG_ALIGN(len) >> 2);
 
           /* Fetch next message block type. */
           type = va_arg( args, VoodooMessageBlockType );
      }
 
      /* Write terminator. */
-     *(u32*) dst = VMBT_NONE;
+     d32[0] = VMBT_NONE;
 }
 
 DirectResult
@@ -1387,7 +1392,7 @@ manager_lock_response( VoodooManager          *manager,
                        VoodooMessageSerial     request,
                        VoodooResponseMessage **ret_response )
 {
-     VoodooResponseMessage *response;
+     VoodooResponseMessage *response = NULL;
 
      D_MAGIC_ASSERT( manager, VoodooManager );
      D_ASSERT( ret_response != NULL );

@@ -120,7 +120,7 @@ typedef struct {
 
 #define __VOODOO_PARSER_EPILOG( parser )                    \
      /* Advance message data pointer. */                    \
-     (parser).ptr += _vp_length + 8
+     (parser).ptr += 8 + VOODOO_MSG_ALIGN(_vp_length)
 
 
 #define VOODOO_PARSER_BEGIN( parser, message )                                                 \
