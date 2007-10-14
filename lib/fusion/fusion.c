@@ -915,7 +915,7 @@ typedef struct {
 
      FusionRef   *ref;
 
-     int          refs;
+     int          count;
 } __FusioneeRef;
 
 typedef struct {
@@ -995,11 +995,11 @@ _fusion_add_local( FusionWorld *world, FusionRef *ref, int add )
      }
 
      if (fusionee_ref) { 
-          fusionee_ref->refs += add;
+          fusionee_ref->count += add;
 
-          //D_DEBUG_AT( Fusion_Main, " -> refs = %d\n", fusionee_ref->refs );
+          //D_DEBUG_AT( Fusion_Main, " -> refs = %d\n", fusionee_ref->count );
           
-          if (fusionee_ref->refs == 0) {
+          if (fusionee_ref->count == 0) {
                direct_list_remove( &fusionee->refs, &fusionee_ref->link );
                SHFREE( shared->main_pool, fusionee_ref );
           }
@@ -1016,8 +1016,8 @@ _fusion_add_local( FusionWorld *world, FusionRef *ref, int add )
                return;
           }
 
-          fusionee_ref->ref  = ref;
-          fusionee_ref->refs = add;
+          fusionee_ref->ref   = ref;
+          fusionee_ref->count = add;
 
           direct_list_prepend( &fusionee->refs, &fusionee_ref->link );
      }
@@ -1049,10 +1049,10 @@ _fusion_check_locals( FusionWorld *world, FusionRef *ref )
           
           direct_list_foreach (fusionee_ref, fusionee->refs) {    
                if (fusionee_ref->ref == ref) {
-                    if (kill( fusionee->pid, 0 ) < 0 && errno == ESRCH) {
-                         ref->multi.builtin.local -= fusionee_ref->refs;
-                    
+                    if (kill( fusionee->pid, 0 ) < 0 && errno == ESRCH) { 
                          direct_list_remove( &fusionee->refs, &fusionee_ref->link );
+
+                         _fusion_ref_change( ref, -fusionee_ref->count, false );
                          
                          SHFREE( shared->main_pool, fusionee_ref );
                     }
@@ -1135,12 +1135,8 @@ _fusion_remove_fusionee( FusionWorld *world, FusionID fusion_id )
      
      direct_list_foreach_safe (fusionee_ref, temp, fusionee->refs) {
           direct_list_remove( &fusionee->refs, &fusionee_ref->link );
-        
-          while (fusionee_ref->refs > 0) {
-               if (fusion_ref_down( fusionee_ref->ref, false ))
-                    break;
-               fusionee_ref->refs--;
-          }
+       
+          _fusion_ref_change( fusionee_ref->ref, -fusionee_ref->count, false );
           
           SHFREE( shared->main_pool, fusionee_ref );
      }
@@ -1298,21 +1294,21 @@ fusion_fork_handler_child()
                     D_DEBUG_AT( Fusion_Main, "  -> duplicating local refs...\n" );
                     
                     direct_list_foreach (fusionee_ref, fusionee->refs) {
-                         __FusioneeRef *new;
+                         __FusioneeRef *new_ref;
 
-                         new = SHCALLOC( shared->main_pool, 1, sizeof(__FusioneeRef) );
-                         if (!new) {  
+                         new_ref = SHCALLOC( shared->main_pool, 1, sizeof(__FusioneeRef) );
+                         if (!new_ref) {  
                               D_OOSHM();
                               fusion_skirmish_dismiss( &shared->fusionees_lock );
                               raise( SIGTRAP );
                          }
 
-                         new->ref  = fusionee_ref->ref;
-                         new->refs = fusionee_ref->refs;
+                         new_ref->ref   = fusionee_ref->ref;
+                         new_ref->count = fusionee_ref->count;
                          /* Avoid locking. */ 
-                         new->ref->multi.builtin.local += new->refs;
+                         new_ref->ref->multi.builtin.local += new_ref->count;
 
-                         direct_list_append( &((__Fusionee*)world->fusionee)->refs, &new->link );
+                         direct_list_append( &((__Fusionee*)world->fusionee)->refs, &new_ref->link );
                     }
 
                     fusion_skirmish_dismiss( &shared->fusionees_lock );
@@ -1557,8 +1553,9 @@ fusion_enter( int               world_index,
           /* Set the world index. */
           shared->world_index = world_index;
 
-          /* Set pool allocation base. */
+          /* Set pool allocation base/max. */
           shared->pool_base = (void*)0x20000000 + 0x2000 * FUSION_MAX_WORLDS + 0x8000000 * world_index;
+          shared->pool_max  = shared->pool_base + 0x8000000 - 1;
 
           /* Set start time of world clock. */
           gettimeofday( &shared->start_time, NULL );
@@ -1838,7 +1835,7 @@ fusion_exit( FusionWorld *world,
                unlink( addr.sun_path );
           }
      }
-     
+ 
      /* Close socket. */     
      close( world->fusion_fd );
 

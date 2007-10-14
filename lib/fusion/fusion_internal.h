@@ -75,7 +75,7 @@ struct __Fusion_FusionWorldShared {
 
      FusionSHMPoolShared *main_pool;
      
-     DirectLink          *fusionees; /* Connected fusionees */
+     DirectLink          *fusionees;   /* Connected fusionees */
      FusionSkirmish       fusionees_lock;
     
      unsigned int         call_ids;    /* Generate call ids */
@@ -85,6 +85,7 @@ struct __Fusion_FusionWorldShared {
      unsigned int         pool_ids;    /* Generate pools ids */
 
      void                *pool_base;   /* SHM pool allocation base */ 
+     void                *pool_max;    /* SHM pool max address */
 };
 
 struct __Fusion_FusionWorld {
@@ -169,6 +170,11 @@ DirectResult _fusion_recv_message( int                  fd,
                                    void                *msg,
                                    size_t               msg_size,
                                    struct sockaddr_un  *addr );
+
+/*
+ * from ref.c
+ */
+DirectResult _fusion_ref_change( FusionRef *ref, int add, bool global );
                                    
 #endif /* FUSION_BUILD_KERNEL */
 #endif /* FUSION_BUILD_MULTI */
