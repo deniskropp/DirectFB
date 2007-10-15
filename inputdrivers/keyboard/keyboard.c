@@ -312,6 +312,9 @@ keyboardEventThread( DirectThread *thread, void *driver_data )
 
                keyboard_set_lights( data, evt.locks );
           }
+
+          if (readlen <= 0)
+               usleep( 2000 );
      }
 
      if (readlen <= 0 && errno != EINTR)
