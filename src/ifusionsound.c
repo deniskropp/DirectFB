@@ -244,7 +244,7 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
           if (flags & ~FSSDF_ALL)
                return DFB_INVARG;
 
-          if (flags & FSBDF_CHANNELMODE) {
+          if (flags & FSSDF_CHANNELMODE) {
                switch (desc->channelmode) {
                     case FSCM_MONO:
                     case FSCM_STEREO:
