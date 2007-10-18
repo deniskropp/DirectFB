@@ -369,6 +369,13 @@ dfb_surface_reconfig( CoreSurface             *surface,
      int i, buffers;
      DFBResult ret;
 
+     D_DEBUG_AT( Core_Surface, "%s( %p, %dx%d %s -> %dx%d %s )\n", __FUNCTION__, surface,
+                 surface->config.size.w, surface->config.size.h, dfb_pixelformat_name( surface->config.format ),
+                 (config->flags & CSCONF_SIZE) ? config->size.w : surface->config.size.w,
+                 (config->flags & CSCONF_SIZE) ? config->size.h : surface->config.size.h,
+                 (config->flags & CSCONF_FORMAT) ? dfb_pixelformat_name( config->format ) :
+                                                   dfb_pixelformat_name( surface->config.format ) );
+
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT( config != NULL );
 
