@@ -1931,6 +1931,7 @@ DFBResult
 sawman_process_updates( SaWMan              *sawman,
                         DFBSurfaceFlipFlags  flags )
 {
+     DFBResult   ret;
      SaWManTier *tier;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
@@ -2184,7 +2185,14 @@ no_single:
 
                dfb_updates_reset( &tier->updates );
 
-               dfb_layer_context_set_configuration( tier->context, config );
+               /* Temporarily to avoid configuration errors. */
+               dfb_layer_context_set_screenposition( tier->context, 0, 0 );
+
+               ret = dfb_layer_context_set_configuration( tier->context, config );
+               if (ret) {
+                    D_DERROR( ret, "SaWMan/Auto: Switching to standard mode failed!\n" );
+                    /* fixme */
+               }
 
                tier->size.w = config->width;
                tier->size.h = config->height;
