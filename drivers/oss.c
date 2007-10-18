@@ -188,6 +188,7 @@ device_open( void                  *device_data,
      int            prof       = APF_NORMAL;
 #endif
      int            mixer_fd;
+     audio_buf_info info;
      
      if (fmt == -1)
           return DFB_UNSUPPORTED;
@@ -258,6 +259,14 @@ device_open( void                  *device_data,
 
      config->rate = rate;
      config->buffersize = buffersize;
+
+     /* query output space */
+     if (ioctl( data->fd, SNDCTL_DSP_GETOSPACE, &info ) < 0)
+          D_WARN( "ioctl SNDCTL_DSP_GETOSPACE failed" );
+     else
+          D_INFO( "FusionSound/OSS: Max output delay is %d.%d ms.\n",
+                  (info.bytes / data->bytes_per_frame) * 1000 / config->rate,
+                  ((info.bytes / data->bytes_per_frame) * 10000 / config->rate) % 10 );
 
      /* check whether hardware volume is supported */
      mixer_fd = direct_try_open( "/dev/mixer", "/dev/sound/mixer", O_RDONLY, true );
