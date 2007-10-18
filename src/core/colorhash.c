@@ -272,7 +272,7 @@ dfb_colorhash_lookup( DFBColorHashCore *core,
      unsigned int            index = (pixel ^ (unsigned long) palette) % HASH_SIZE;
      DFBColorHashCoreShared *shared;
 
-     D_ASSUME( core != NULL );
+//     D_ASSUME( core != NULL );
 
      if (core) {
           D_MAGIC_ASSERT( core, DFBColorHashCore );
@@ -299,18 +299,16 @@ dfb_colorhash_lookup( DFBColorHashCore *core,
           for (i = 0; i < palette->num_entries; i++) {
                int diff;
 
-               if (a) {
-                    int r_diff = (int) entries[i].r - (int) r;
-                    int g_diff = (int) entries[i].g - (int) g;
-                    int b_diff = (int) entries[i].b - (int) b;
-                    int a_diff = (int) entries[i].a - (int) a;
+               int r_diff = (int) entries[i].r - (int) r;
+               int g_diff = (int) entries[i].g - (int) g;
+               int b_diff = (int) entries[i].b - (int) b;
+               int a_diff = (int) entries[i].a - (int) a;
 
+               if (a)
                     diff = (r_diff * r_diff + g_diff * g_diff +
                             b_diff * b_diff + ((a_diff * a_diff) >> 6));
-               }
                else
-                    diff = entries[i].a;
-
+                    diff = (r_diff + g_diff + b_diff + (a_diff * a_diff));
 
                if (i == 0 || diff < min_diff) {
                     min_diff = diff;
