@@ -66,6 +66,7 @@
 
 
 typedef enum {
+     CSCID_START,
      CSCID_GET_VOLUME,
      CSCID_SET_VOLUME,
 } CoreSoundCommandID;
@@ -475,6 +476,16 @@ fs_core_device_config( CoreSound *core )
 }
 
 DFBResult
+fs_core_start( CoreSound *core )
+{
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+     
+     return fusion_call_execute( &core->shared->call, FCEF_NONE, 
+                                 CSCID_START, NULL, NULL );
+}  
+
+DFBResult
 fs_core_get_master_volume( CoreSound *core, float *level )
 {
      D_ASSERT( core != NULL );
@@ -862,8 +873,16 @@ core_call_handler( int caller, int call_arg, void *call_ptr,
      CoreSound       *core   = ctx;
      CoreSoundShared *shared = core->shared;
      float            volume;
+     
+     pthread_mutex_lock( &core_sound_lock );
        
      switch (call_arg) {
+          case CSCID_START:
+               if (!core->sound_thread)
+                    core->sound_thread = direct_thread_create( DTT_OUTPUT, sound_thread,
+                                                               core, "Sound Mixer" );
+               break;
+               
           case CSCID_GET_VOLUME:
                if (!(fs_device_get_capabilities( core->device ) & DCF_VOLUME) ||
                    fs_device_get_volume( core->device, &volume ) != DFB_OK)
@@ -885,6 +904,8 @@ core_call_handler( int caller, int call_arg, void *call_ptr,
                D_BUG( "unexpected call" );
                break;
      }
+     
+     pthread_mutex_unlock( &core_sound_lock );
      
      return FCHR_RETURN;
 }
@@ -934,9 +955,6 @@ fs_core_initialize( CoreSound *core )
      /* initialize volume levels */
      shared->soft_volume = FSF_ONE;
 
-     /* create sound thread */
-     core->sound_thread = direct_thread_create( DTT_OUTPUT, sound_thread, core, "Sound Mixer" );
-
      return DFB_OK;
 }
 
@@ -971,9 +989,11 @@ fs_core_shutdown( CoreSound *core, bool local )
      D_ASSERT( shared->playback_pool != NULL );
 
      /* stop sound thread */
-     direct_thread_cancel( core->sound_thread );
-     direct_thread_join( core->sound_thread );
-     direct_thread_destroy( core->sound_thread );
+     if (core->sound_thread) {
+          direct_thread_cancel( core->sound_thread );
+          direct_thread_join( core->sound_thread );
+          direct_thread_destroy( core->sound_thread );
+     }
 
      if (!local) {
           /* close output device */

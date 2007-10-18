@@ -94,6 +94,11 @@ FSDeviceDescription *fs_core_device_description( CoreSound *core );
 CoreSoundDeviceConfig *fs_core_device_config( CoreSound *core );
 
 /*
+ * Start playback.
+ */
+DFBResult fs_core_start( CoreSound *core );
+
+/*
  * Returns master volume.
  */
 DFBResult fs_core_get_master_volume( CoreSound *core, float *level );

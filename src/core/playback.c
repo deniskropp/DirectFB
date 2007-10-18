@@ -140,6 +140,9 @@ fs_playback_create( CoreSound        *core,
 
      /* Activate playback object. */
      fusion_object_activate( &playback->object );
+     
+     /* Start global playback. */
+     fs_core_start( core ); 
 
      /* Return playback object. */
      *ret_playback = playback;
