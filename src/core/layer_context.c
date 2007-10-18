@@ -573,6 +573,8 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
 
      D_DEBUG_AT( Core_Layers, "%s (%p, %p)\n", __FUNCTION__, context, config );
 
+     D_DEBUG_AT( Core_Layers, "%s (%p, %p)\n", __FUNCTION__, context, config );
+
      D_ASSERT( context != NULL );
      D_ASSERT( config != NULL );
 
