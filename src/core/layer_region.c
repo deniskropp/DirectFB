@@ -1053,9 +1053,7 @@ unrealize_region( CoreLayerRegion *region )
      D_FLAGS_CLEAR( region->state, CLRSF_REALIZED );
      D_FLAGS_SET( region->state, CLRSF_FROZEN );
 
-     if (region->surface) {
-          D_ASSERT( region->surface_lock.buffer != NULL );
-
+     if (region->surface && region->surface_lock.buffer) {
           dfb_surface_unlock_buffer( region->surface, &region->surface_lock );
           dfb_surface_destroy_buffers( region->surface );
      }
