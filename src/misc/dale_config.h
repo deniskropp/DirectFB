@@ -30,6 +30,8 @@ typedef struct {
      int             session;      /* select multi app world */
 
      bool            banner;       /* startup banner */
+
+     bool            force_slave;
 } FusionDaleConfig;
 
 extern FusionDaleConfig *fusiondale_config;

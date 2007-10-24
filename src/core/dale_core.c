@@ -137,7 +137,8 @@ fd_core_create( CoreDale **ret_core )
           goto error;
      }
 
-     ret = fusion_enter( fusiondale_config->session, FUSIONDALE_CORE_ABI, FER_ANY, &core->world );
+     ret = fusion_enter( fusiondale_config->session, FUSIONDALE_CORE_ABI,
+                         fusiondale_config->force_slave ? FER_SLAVE : FER_ANY, &core->world );
      if (ret)
           goto error;
 

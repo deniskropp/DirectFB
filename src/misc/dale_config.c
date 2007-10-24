@@ -167,6 +167,18 @@ fd_config_set( const char *name, const char *value )
      else if (!strcmp( name, "no-debugmem" )) {
           direct_config->debugmem = false;
      }
+     else if (strcmp ( name, "sighandler" ) == 0) {
+          direct_config->sighandler = true;
+     }
+     else if (strcmp ( name, "no-sighandler" ) == 0) {
+          direct_config->sighandler = false;
+     }
+     else if (strcmp ( name, "force-slave" ) == 0) {
+          fusiondale_config->force_slave = true;
+     }
+     else if (strcmp ( name, "no-force-slave" ) == 0) {
+          fusiondale_config->force_slave = false;
+     }
      else
           return DFB_UNSUPPORTED;
 
