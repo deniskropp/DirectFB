@@ -79,8 +79,7 @@ static DFBResult allocate_surface    ( CoreLayer                   *layer,
 
 static DFBResult reallocate_surface  ( CoreLayer                   *layer,
                                        CoreLayerRegion             *region,
-                                       CoreLayerRegionConfig       *config,
-                                       DFBDisplayLayerConfig       *previous );
+                                       CoreLayerRegionConfig       *config );
 
 static DFBResult deallocate_surface  ( CoreLayer                   *layer,
                                        CoreLayerRegion             *region );
@@ -210,6 +209,7 @@ dfb_layer_context_init( CoreLayerContext *context,
 DFBResult
 dfb_layer_context_activate( CoreLayerContext *context )
 {
+     DFBResult        ret;
      int              index;
      CoreLayer       *layer;
      CoreLayerRegion *region;
@@ -239,6 +239,14 @@ dfb_layer_context_activate( CoreLayerContext *context )
           /* Activate each region. */
           if (dfb_layer_region_activate( region ))
                D_WARN( "could not activate region!" );
+
+          if (region->surface) {
+               D_ASSERT( region->surface_lock.buffer == NULL );
+
+               ret = reallocate_surface( layer, region, &region->config );
+               if (ret)
+                    D_DERROR( ret, "Core/Layers: Reallocation of layer surface failed!\n" );
+          }
      }
 
      context->active = true;
@@ -647,7 +655,7 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                               dfb_surface_unlock_buffer( region->surface, &region->surface_lock );
                          }
 
-                         ret = reallocate_surface( layer, region, &region_config, &context->config );
+                         ret = reallocate_surface( layer, region, &region_config );
                          if (ret)
                               D_DERROR( ret, "Core/Layers: Reallocation of layer surface failed!\n" );
                     }
@@ -1567,8 +1575,7 @@ allocate_surface( CoreLayer             *layer,
 static DFBResult
 reallocate_surface( CoreLayer             *layer,
                     CoreLayerRegion       *region,
-                    CoreLayerRegionConfig *config,
-                    DFBDisplayLayerConfig *previous )
+                    CoreLayerRegionConfig *config )
 {
      DFBResult                ret;
      const DisplayLayerFuncs *funcs;
@@ -1581,8 +1588,6 @@ reallocate_surface( CoreLayer             *layer,
      D_ASSERT( region->surface != NULL );
      D_ASSERT( config != NULL );
      D_ASSERT( config->buffermode != DLBM_WINDOWS );
-     D_ASSERT( previous != NULL );
-     D_ASSERT( previous->buffermode != DLBM_WINDOWS );
 
      funcs   = layer->funcs;
      surface = region->surface;
