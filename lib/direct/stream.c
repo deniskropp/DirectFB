@@ -404,11 +404,45 @@ net_connect( struct addrinfo *addr, int sock, int proto, int *ret_fd )
 
           D_DEBUG_AT( Direct_Stream, 
                       "connecting to %s...\n", tmp->ai_canonname );
- 
-          err = connect( fd, tmp->ai_addr, tmp->ai_addrlen );
+
+          if (proto == IPPROTO_UDP)
+               err = bind( fd, tmp->ai_addr, tmp->ai_addrlen );
+          else
+               err = connect( fd, tmp->ai_addr, tmp->ai_addrlen );
+
           if (err == 0 || errno == EINPROGRESS) {
                struct timeval t = { NET_TIMEOUT, 0 };
                fd_set         s;
+
+               /* Join multicast group? */
+               if (tmp->ai_addr->sa_family == AF_INET) {
+                    in_addr_t inaddr = ((u8)tmp->ai_addr->sa_data[2] << 24) |
+                                       ((u8)tmp->ai_addr->sa_data[3] << 16) |
+                                       ((u8)tmp->ai_addr->sa_data[4] <<  8) |
+                                       ((u8)tmp->ai_addr->sa_data[5]);
+
+                    if (IN_MULTICAST( inaddr )) {
+                         struct ip_mreq req;
+
+                         D_DEBUG_AT( Direct_Stream, 
+                                     "joining multicast group (%u.%u.%u.%u)...\n",
+                                     (u8)tmp->ai_addr->sa_data[2], (u8)tmp->ai_addr->sa_data[3],
+                                     (u8)tmp->ai_addr->sa_data[4], (u8)tmp->ai_addr->sa_data[5] );
+
+                         req.imr_multiaddr.s_addr = htonl( inaddr );
+                         req.imr_interface.s_addr = 0;
+
+                         err = setsockopt( fd, SOL_IP, IP_ADD_MEMBERSHIP, &req, sizeof(req) );
+                         if (err < 0) {
+                              ret = errno2result( errno );
+                              D_PERROR( "Direct/Stream: Could not join multicast group (%u.%u.%u.%u)!\n",
+                                        (u8)tmp->ai_addr->sa_data[2], (u8)tmp->ai_addr->sa_data[3],
+                                        (u8)tmp->ai_addr->sa_data[4], (u8)tmp->ai_addr->sa_data[5] );
+                              close( fd );
+                              continue;
+                         }
+                    }
+               }
 
                FD_ZERO( &s );
                FD_SET( fd, &s );
