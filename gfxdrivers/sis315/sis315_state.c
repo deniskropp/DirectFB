@@ -67,7 +67,7 @@ void sis_validate_color(SiSDriverData *drv, SiSDeviceData *dev, CardState *state
 	if (dev->v_color)
 		return;
 
-	switch (state->destination->format) {
+	switch (state->destination->config.format) {
 	case DSPF_LUT8:
 		color = state->color_index;
 		break;
@@ -106,15 +106,14 @@ void sis_validate_color(SiSDriverData *drv, SiSDeviceData *dev, CardState *state
 void sis_validate_dst(SiSDriverData *drv, SiSDeviceData *dev, CardState *state)
 {
 	CoreSurface *dst = state->destination;
-	SurfaceBuffer *buf = dst->back_buffer;
 
 	if (dev->v_destination)
 		return;
 
-	dev->cmd_bpp = dspfToCmdBpp(dst->format);
+	dev->cmd_bpp = dspfToCmdBpp(dst->config.format);
 
-	sis_wl(drv->mmio_base, SIS315_2D_DST_ADDR, buf->video.offset);
-	sis_wl(drv->mmio_base, SIS315_2D_DST_PITCH, (0xffff << 16) | buf->video.pitch);
+	sis_wl(drv->mmio_base, SIS315_2D_DST_ADDR, state->dst.offset);
+	sis_wl(drv->mmio_base, SIS315_2D_DST_PITCH, (0xffff << 16) | state->dst.pitch);
 
 	dev->v_destination = 1;
 }
@@ -122,13 +121,12 @@ void sis_validate_dst(SiSDriverData *drv, SiSDeviceData *dev, CardState *state)
 void sis_validate_src(SiSDriverData *drv, SiSDeviceData *dev, CardState *state)
 {
 	CoreSurface *src = state->source;
-	SurfaceBuffer *buf = src->front_buffer;
 
 	if (dev->v_source)
 		return;
 
-	sis_wl(drv->mmio_base, SIS315_2D_SRC_ADDR, buf->video.offset);
-	sis_wl(drv->mmio_base, SIS315_2D_SRC_PITCH, (dspfToSrcColor(src->format) << 16) | buf->video.pitch);
+	sis_wl(drv->mmio_base, SIS315_2D_SRC_ADDR, state->src.offset);
+	sis_wl(drv->mmio_base, SIS315_2D_SRC_PITCH, (dspfToSrcColor(src->config.format) << 16) | state->src.pitch);
 
 	dev->v_source = 1;
 }
