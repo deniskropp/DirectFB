@@ -70,7 +70,8 @@ typedef struct {
 
 static void ov0_set_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0 );
 static void ov0_calc_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0,
-                           CoreLayerRegionConfig *config, CoreSurface *surface );
+                           CoreLayerRegionConfig *config, CoreSurface *surface,
+                           CoreSurfaceBufferLock *lock );
 
 #define OV0_SUPPORTED_OPTIONS   (DLOP_NONE)
 
@@ -195,7 +196,8 @@ ov0SetRegion( CoreLayer                  *layer,
               CoreLayerRegionConfig      *config,
               CoreLayerRegionConfigFlags  updated,
               CoreSurface                *surface,
-              CorePalette                *palette )
+              CorePalette                *palette,
+              CoreSurfaceBufferLock      *lock )
 {
      ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
      ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
@@ -203,7 +205,7 @@ ov0SetRegion( CoreLayer                  *layer,
      /* remember configuration */
      aov0->config = *config;
 
-     ov0_calc_regs( adrv, aov0, config, surface );
+     ov0_calc_regs( adrv, aov0, config, surface, lock );
      ov0_set_regs( adrv, aov0 );
 
      /* enable overlay */
@@ -228,19 +230,20 @@ ov0RemoveRegion( CoreLayer *layer,
 }
 
 static DFBResult
-ov0FlipRegion( CoreLayer           *layer,
-               void                *driver_data,
-               void                *layer_data,
-               void                *region_data,
-               CoreSurface         *surface,
-               DFBSurfaceFlipFlags  flags )
+ov0FlipRegion( CoreLayer             *layer,
+               void                  *driver_data,
+               void                  *layer_data,
+               void                  *region_data,
+               CoreSurface           *surface,
+               DFBSurfaceFlipFlags    flags,
+               CoreSurfaceBufferLock *lock )
 {
      ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
      ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
 
-     dfb_surface_flip_buffers( surface, false );
+     dfb_surface_flip( surface, false );
 
-     ov0_calc_regs( adrv, aov0, &aov0->config, surface );
+     ov0_calc_regs( adrv, aov0, &aov0->config, surface, lock );
      ov0_set_regs( adrv, aov0 );
 
      return DFB_OK;
@@ -332,7 +335,8 @@ static void ov0_set_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0 )
 static void ov0_calc_regs( ATI128DriverData      *adrv,
                            ATIOverlayLayerData   *aov0,
                            CoreLayerRegionConfig *config,
-                           CoreSurface           *surface )
+                           CoreSurface           *surface,
+                           CoreSurfaceBufferLock *lock )
 {
      int h_inc, v_inc, step_by, tmp;
      int p1_h_accum_init, p23_h_accum_init;
@@ -342,9 +346,6 @@ static void ov0_calc_regs( ATI128DriverData      *adrv,
      int            dst_w;
      int            dst_h;
      u32            offset_u = 0, offset_v = 0;
-
-     SurfaceBuffer *front_buffer = surface->front_buffer;
-
 
      /* destination box */
      dstBox.x1 = config->dest.x;
@@ -397,19 +398,19 @@ static void ov0_calc_regs( ATI128DriverData      *adrv,
           case DSPF_I420:
                aov0->regs.SCALE_CNTL = R128_SCALER_SOURCE_YUV12;
 
-               offset_u = front_buffer->video.offset +
-                          surface->config.size.h * front_buffer->video.pitch;
+               offset_u = lock->offset +
+                          surface->config.size.h * lock->pitch;
                offset_v = offset_u +
-                          (surface->config.size.h >> 1) * (front_buffer->video.pitch >> 1);
+                          (surface->config.size.h >> 1) * (lock->pitch >> 1);
                break;
 
           case DSPF_YV12:
                aov0->regs.SCALE_CNTL = R128_SCALER_SOURCE_YUV12;
 
-               offset_v = front_buffer->video.offset +
-                          surface->config.size.h * front_buffer->video.pitch;
+               offset_v = lock->offset +
+                          surface->config.size.h * lock->pitch;
                offset_u = offset_v +
-                          (surface->config.size.h >> 1) * (front_buffer->video.pitch >> 1);
+                          (surface->config.size.h >> 1) * (lock->pitch >> 1);
                break;
 
           default:
@@ -430,12 +431,12 @@ static void ov0_calc_regs( ATI128DriverData      *adrv,
      aov0->regs.Y_X_END                = dstBox.x2 | (dstBox.y2 << 16);
      aov0->regs.P1_BLANK_LINES_AT_TOP  = 0x00000fff | ((surface->config.size.h - 1) << 16);
      aov0->regs.P23_BLANK_LINES_AT_TOP = 0x000007ff | ((((surface->config.size.h + 1) >> 1) - 1) << 16);
-     aov0->regs.VID_BUF_PITCH0_VALUE   = front_buffer->video.pitch;
-     aov0->regs.VID_BUF_PITCH1_VALUE   = front_buffer->video.pitch >> 1;
+     aov0->regs.VID_BUF_PITCH0_VALUE   = lock->pitch;
+     aov0->regs.VID_BUF_PITCH1_VALUE   = lock->pitch >> 1;
      aov0->regs.P1_X_START_END         = surface->config.size.w - 1;
      aov0->regs.P2_X_START_END         = (surface->config.size.w >> 1) - 1;
      aov0->regs.P3_X_START_END         = (surface->config.size.w >> 1) - 1;
-     aov0->regs.VID_BUF0_BASE_ADRS     = front_buffer->video.offset & 0x03fffff0;
+     aov0->regs.VID_BUF0_BASE_ADRS     = lock->offset & 0x03fffff0;
      aov0->regs.VID_BUF1_BASE_ADRS     = (offset_u & 0x03fffff0) | 1;
      aov0->regs.VID_BUF2_BASE_ADRS     = (offset_v & 0x03fffff0) | 1;
      aov0->regs.P1_H_ACCUM_INIT        = p1_h_accum_init;

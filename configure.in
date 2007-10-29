@@ -892,7 +892,7 @@ AC_ARG_WITH(gfxdrivers,
 [                            sis315, tdfx, unichrome, vmware], gfxdrivers="$withval",[gfxdrivers="all"])
 
 if test "$gfxdrivers" = "all"; then
-  checkfor_ati128=no
+  checkfor_ati128=yes
   checkfor_cle266=no
   checkfor_cyber5k=no
   checkfor_i810=no

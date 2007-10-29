@@ -40,6 +40,7 @@ typedef struct {
 typedef struct {
      CoreSurface *source;
      CoreSurface *destination;
+     CoreSurfaceBufferLock *src;
      DFBSurfaceBlittingFlags blittingflags;
 
      /* store some ATI register values in native format */
