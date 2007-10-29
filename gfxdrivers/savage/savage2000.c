@@ -129,7 +129,7 @@ static bool savage2000StretchBlit( void *drv, void *dev,
 /* exported symbols */
 
 void
-savage2000_get_info( GraphicsDevice     *device,
+savage2000_get_info( CoreGraphicsDevice *device,
                      GraphicsDriverInfo *info )
 {
      info->version.major = 0;
@@ -140,7 +140,7 @@ savage2000_get_info( GraphicsDevice     *device,
 }
 
 DFBResult
-savage2000_init_driver( GraphicsDevice      *device,
+savage2000_init_driver( CoreGraphicsDevice  *device,
                         GraphicsDeviceFuncs *funcs,
                         void                *driver_data )
 {
@@ -159,7 +159,7 @@ savage2000_init_driver( GraphicsDevice      *device,
 }
 
 DFBResult
-savage2000_init_device( GraphicsDevice     *device,
+savage2000_init_device( CoreGraphicsDevice *device,
                         GraphicsDeviceInfo *device_info,
                         void               *driver_data,
                         void               *device_data )
@@ -185,15 +185,15 @@ savage2000_init_device( GraphicsDevice     *device,
 }
 
 void
-savage2000_close_device( GraphicsDevice *device,
-                         void           *driver_data,
-                         void           *device_data )
+savage2000_close_device( CoreGraphicsDevice *device,
+                         void               *driver_data,
+                         void               *device_data )
 {
 }
 
 void
-savage2000_close_driver( GraphicsDevice *device,
-                         void           *driver_data )
+savage2000_close_driver( CoreGraphicsDevice *device,
+                         void               *driver_data )
 {
 }
 

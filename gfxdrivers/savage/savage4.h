@@ -53,28 +53,28 @@ typedef struct {
 
 
 void
-savage4_get_info( GraphicsDevice     *device,
+savage4_get_info( CoreGraphicsDevice *device,
                   GraphicsDriverInfo *info );
 
 DFBResult
-savage4_init_driver( GraphicsDevice      *device,
+savage4_init_driver( CoreGraphicsDevice  *device,
                      GraphicsDeviceFuncs *funcs,
                      void                *driver_data );
 
 DFBResult
-savage4_init_device( GraphicsDevice     *device,
+savage4_init_device( CoreGraphicsDevice *device,
                      GraphicsDeviceInfo *device_info,
                      void               *driver_data,
                      void               *device_data );
 
 void
-savage4_close_device( GraphicsDevice *device,
-                      void           *driver_data,
-                      void           *device_data );
+savage4_close_device( CoreGraphicsDevice *device,
+                      void               *driver_data,
+                      void               *device_data );
 
 void
-savage4_close_driver( GraphicsDevice *device,
-                      void           *driver_data );
+savage4_close_driver( CoreGraphicsDevice *device,
+                      void               *driver_data );
 
 
 #define CR_MEMCONF                              0x31
