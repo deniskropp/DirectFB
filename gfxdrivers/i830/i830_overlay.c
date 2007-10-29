@@ -76,7 +76,8 @@ static void ovl_calc_regs( I830DriverData        *idrv,
                            CoreLayer             *layer,
                            CoreSurface           *surface,
                            CoreLayerRegionConfig *config,
-                           bool                   buffers_only );
+                           bool                   buffers_only,
+                           CoreSurfaceBufferLock *lock );
 
 
 /*
@@ -261,7 +262,8 @@ ovlSetRegion( CoreLayer                  *layer,
               CoreLayerRegionConfig      *config,
               CoreLayerRegionConfigFlags  updated,
               CoreSurface                *surface,
-              CorePalette                *palette )
+              CorePalette                *palette,
+              CoreSurfaceBufferLock      *lock )
 {
      I830DriverData       *idrv = driver_data;
      I830DeviceData       *idev = idrv->idev;
@@ -269,7 +271,7 @@ ovlSetRegion( CoreLayer                  *layer,
 
      iovl->config = *config;
 
-     ovl_calc_regs ( idrv, idev, iovl, layer, surface, config, false );
+     ovl_calc_regs ( idrv, idev, iovl, layer, surface, config, false, lock );
 
      i830ovlOnOff( idrv, idev, true );
 
@@ -292,20 +294,21 @@ ovlRemoveRegion( CoreLayer *layer,
 }
 
 static DFBResult
-ovlFlipRegion(  CoreLayer           *layer,
-                void                *driver_data,
-                void                *layer_data,
-                void                *region_data,
-                CoreSurface         *surface,
-                DFBSurfaceFlipFlags  flags )
+ovlFlipRegion(  CoreLayer             *layer,
+                void                  *driver_data,
+                void                  *layer_data,
+                void                  *region_data,
+                CoreSurface           *surface,
+                DFBSurfaceFlipFlags    flags,
+                CoreSurfaceBufferLock *lock )
 {
      I830DriverData       *idrv = driver_data;
      I830DeviceData       *idev = idrv->idev;
      I830OverlayLayerData *iovl = layer_data;
 
-     dfb_surface_flip_buffers( surface, false );
+     dfb_surface_flip( surface, false );
 
-     ovl_calc_regs ( idrv, idev, iovl, layer, surface, &iovl->config, true );
+     ovl_calc_regs ( idrv, idev, iovl, layer, surface, &iovl->config, true, lock );
 
      update_overlay( idrv, idev );
 
@@ -520,10 +523,10 @@ ovl_calc_regs( I830DriverData        *idrv,
                CoreLayer             *layer,
                CoreSurface           *surface,
                CoreLayerRegionConfig *config,
-               bool                   buffers_only )
+               bool                   buffers_only,
+               CoreSurfaceBufferLock *lock )
 {
      I830OverlayRegs *regs   = idrv->oregs;
-     SurfaceBuffer   *front  = surface->front_buffer;
      int              width  = config->width;
      int              height = config->height;
 
@@ -533,17 +536,17 @@ ovl_calc_regs( I830DriverData        *idrv,
 
 
      /* Set buffer pointers */
-     y_offset = dfb_gfxcard_memory_physical( NULL, front->video.offset );
+     y_offset = dfb_gfxcard_memory_physical( NULL, lock->offset );
 
      switch (config->format) {
           case DSPF_I420:
-               u_offset = y_offset + height * front->video.pitch;
-               v_offset = u_offset + ((height >> 1) * (front->video.pitch >> 1));
+               u_offset = y_offset + height * lock->pitch;
+               v_offset = u_offset + ((height >> 1) * (lock->pitch >> 1));
                break;
 
           case DSPF_YV12:
-               v_offset = y_offset + height * front->video.pitch;
-               u_offset = v_offset + ((height >> 1) * (front->video.pitch >> 1));
+               v_offset = y_offset + height * lock->pitch;
+               u_offset = v_offset + ((height >> 1) * (lock->pitch >> 1));
                break;
 
           case DSPF_UYVY:
@@ -743,7 +746,7 @@ ovl_calc_regs( I830DriverData        *idrv,
                regs->UV_VPH = 0x30003000;
 #endif
 
-               regs->OSTRIDE = front->video.pitch | (front->video.pitch << 15);
+               regs->OSTRIDE = lock->pitch | (lock->pitch << 15);
                regs->OCMD |= YUV_420;
                break;
 
@@ -751,7 +754,7 @@ ovl_calc_regs( I830DriverData        *idrv,
           case DSPF_YUY2:
                //D_INFO("YUV422\n");
 
-               regs->OSTRIDE = front->video.pitch;
+               regs->OSTRIDE = lock->pitch;
                regs->OCMD |= YUV_422;
 
                if (config->format == DSPF_UYVY)
