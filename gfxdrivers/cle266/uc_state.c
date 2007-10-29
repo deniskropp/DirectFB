@@ -78,7 +78,7 @@ uc_select_blittype( CardState* state,
                     DFBAccelerationMask accel )
 {
      if (!(state->blittingflags & ~UC_BLITTING_FLAGS_2D)) {
-          if ((state->source->format == state->destination->format) &&
+          if ((state->source->config.format == state->destination->config.format) &&
               !((state->blittingflags & DSBLIT_SRC_COLORKEY) &&
                 (state->blittingflags & DSBLIT_DST_COLORKEY)) &&
               !(accel & (DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES)))
@@ -86,7 +86,7 @@ uc_select_blittype( CardState* state,
      }
 
      if (!(state->blittingflags & ~UC_BLITTING_FLAGS_3D)) {
-          if (uc_has_src_format_3d( state->source->format ))
+          if (uc_has_src_format_3d( state->source->config.format ))
                return UC_TYPE_3D;
      }
 
@@ -99,7 +99,7 @@ void uc_check_state(void *drv, void *dev,
                     CardState *state, DFBAccelerationMask accel)
 {
      /* Check destination format. */
-     if (!uc_has_dst_format( state->destination->format ))
+     if (!uc_has_dst_format( state->destination->config.format ))
           return;
 
      if (DFB_DRAWING_FUNCTION(accel)) {
@@ -140,7 +140,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
      u32 rop3d     = HC_HROP_P;
      u32 regEnable = HC_HenCW_MASK | HC_HenAW_MASK;
 
-     StateModificationFlags modified = state->modified;
+     StateModificationFlags modified = state->mod_hw;
 
      // Check modified states and update hw
 
@@ -264,6 +264,6 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
 
      UC_FIFO_CHECK(fifo);
 
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 

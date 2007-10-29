@@ -46,6 +46,7 @@ typedef struct _UcOverlayData {
 
     CoreSurface        *surface;
 
+    CoreSurfaceBufferLock *lock;
 } UcOverlayData;
 
 
@@ -74,7 +75,8 @@ void uc_ovl_setup_fifo(UcOverlayData* ucovl, int scrwidth);
 void uc_ovl_vcmd_wait(volatile u8* vio);
 DFBResult uc_ovl_update(UcDriverData* ucdrv,
                         UcOverlayData* ucovl, int action,
-                        CoreSurface* surface);
+                        CoreSurface* surface,
+                        CoreSurfaceBufferLock* lock);
 DFBResult uc_ovl_set_adjustment(CoreLayer *layer,
                                 void *driver_data,
                                 void *layer_data,

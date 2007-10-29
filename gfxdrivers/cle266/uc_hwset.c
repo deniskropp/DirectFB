@@ -45,7 +45,7 @@ uc_set_blending_fn( UcDriverData *ucdrv,
           return;
 
      uc_map_blending_fn( hwalpha, state->src_blend, state->dst_blend,
-                         state->destination->format );
+                         state->destination->config.format );
 
      UC_FIFO_PREPARE( fifo, 14 );
      UC_FIFO_ADD_HDR( fifo, HC_ParaType_NotTex << 16 );
@@ -81,7 +81,7 @@ uc_set_texenv( UcDriverData *ucdrv,
      if (UC_IS_VALID( uc_texenv ))
           return;
 
-     uc_map_blitflags( hwtex, state->blittingflags, state->source->format );
+     uc_map_blitflags( hwtex, state->blittingflags, state->source->config.format );
 
      // Texture mapping method
      hwtex->regHTXnTB   = HC_HTXnFLSs_Linear | HC_HTXnFLTs_Linear |
@@ -152,11 +152,10 @@ uc_set_destination( UcDriverData *ucdrv,
      struct uc_fifo        *fifo        = ucdrv->fifo;
 
      CoreSurface           *destination = state->destination;
-     SurfaceBuffer         *buffer      = destination->back_buffer;
 
-     DFBSurfacePixelFormat  dst_format  = destination->format;
-     int                    dst_offset  = buffer->video.offset;
-     int                    dst_pitch   = buffer->video.pitch;
+     DFBSurfacePixelFormat  dst_format  = destination->config.format;
+     int                    dst_offset  = state->dst.offset;
+     int                    dst_pitch   = state->dst.pitch;
      int                    dst_bpp     = DFB_BYTES_PER_PIXEL( dst_format );
 
 
@@ -204,18 +203,17 @@ uc_set_source_2d( UcDriverData *ucdrv,
                   CardState    *state )
 {
      struct uc_fifo *fifo   = ucdrv->fifo;
-     SurfaceBuffer  *buffer = state->source->front_buffer;
 
      if (UC_IS_VALID( uc_source2d ))
           return;
 
      ucdev->pitch &= 0x7fff0000;
-     ucdev->pitch |= (buffer->video.pitch >> 3) & 0x7fff;
+     ucdev->pitch |= (state->src.pitch >> 3) & 0x7fff;
 
      UC_FIFO_PREPARE( fifo, 6 );
      UC_FIFO_ADD_HDR( fifo, HC_ParaType_NotTex << 16 );
 
-     UC_FIFO_ADD_2D ( fifo, VIA_REG_SRCBASE, buffer->video.offset >> 3 );
+     UC_FIFO_ADD_2D ( fifo, VIA_REG_SRCBASE, state->src.offset >> 3 );
      UC_FIFO_ADD_2D ( fifo, VIA_REG_PITCH,   VIA_PITCH_ENABLE | ucdev->pitch );
 
      UC_FIFO_CHECK( fifo );
@@ -233,16 +231,15 @@ uc_set_source_3d( UcDriverData *ucdrv,
      struct uc_hw_texture *hwtex  = &ucdev->hwtex;
 
      CoreSurface          *source = state->source;
-     SurfaceBuffer        *buffer = source->front_buffer;
 
      int src_height, src_offset, src_pitch;
 
      if (UC_IS_VALID( uc_source3d ))
           return;
 
-     src_height = source->height;
-     src_offset = buffer->video.offset;
-     src_pitch  = buffer->video.pitch;
+     src_height = source->config.size.h;
+     src_offset = state->src.offset;
+     src_pitch  = state->src.pitch;
 
      /*
       * TODO: Check if we can set the odd/even field as L1/L2 texture and select
@@ -262,9 +259,9 @@ uc_set_source_3d( UcDriverData *ucdrv,
      // Round texture size up to nearest
      // value evenly divisible by 2^n
 
-     ILOG2(source->width, hwtex->we);
+     ILOG2(source->config.size.w, hwtex->we);
      hwtex->l2w = 1 << hwtex->we;
-     if (hwtex->l2w < source->width) {
+     if (hwtex->l2w < source->config.size.w) {
           hwtex->we++;
           hwtex->l2w <<= 1;
      }
@@ -276,7 +273,7 @@ uc_set_source_3d( UcDriverData *ucdrv,
           hwtex->l2h <<= 1;
      }
 
-     hwtex->format = uc_map_src_format_3d( source->format );
+     hwtex->format = uc_map_src_format_3d( source->config.format );
 
      UC_FIFO_PREPARE( fifo, 10);
 
@@ -338,7 +335,7 @@ uc_set_color_2d( UcDriverData *ucdrv,
      if (UC_IS_VALID( uc_color2d ))
           return;
 
-     switch (state->destination->format) {
+     switch (state->destination->config.format) {
           case DSPF_ARGB1555:
                color = PIXEL_ARGB1555( state->color.a,
                                        state->color.r,

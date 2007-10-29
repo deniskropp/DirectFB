@@ -104,7 +104,8 @@ uc_ovl_set_region( CoreLayer                  *layer,
                    CoreLayerRegionConfig      *config,
                    CoreLayerRegionConfigFlags  updated,
                    CoreSurface                *surface,
-                   CorePalette                *palette )
+                   CorePalette                *palette,
+                   CoreSurfaceBufferLock      *lock )
 {
     UcDriverData*  ucdrv = (UcDriverData*) driver_data;
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
@@ -127,8 +128,9 @@ uc_ovl_set_region( CoreLayer                  *layer,
 
     ucovl->deinterlace = config->options & DLOP_DEINTERLACING;
     ucovl->surface     = surface;
+    ucovl->lock        = lock;
 
-    return uc_ovl_update(ucdrv, ucovl, UC_OVL_CHANGE, surface);
+    return uc_ovl_update(ucdrv, ucovl, UC_OVL_CHANGE, surface, lock);
 }
 
 
@@ -220,12 +222,13 @@ uc_ovl_test_region(CoreLayer                  *layer,
 
 
 static DFBResult
-uc_ovl_flip_region( CoreLayer           *layer,
-                    void                *driver_data,
-                    void                *layer_data,
-                    void                *region_data,
-                    CoreSurface         *surface,
-                    DFBSurfaceFlipFlags  flags )
+uc_ovl_flip_region( CoreLayer             *layer,
+                    void                  *driver_data,
+                    void                  *layer_data,
+                    void                  *region_data,
+                    CoreSurface           *surface,
+                    DFBSurfaceFlipFlags    flags,
+                    CoreSurfaceBufferLock *lock)
 {
     //printf("Entering %s ... \n", __PRETTY_FUNCTION__);
 
@@ -237,11 +240,12 @@ uc_ovl_flip_region( CoreLayer           *layer,
         !dfb_config->pollvsync_after)
         dfb_layer_wait_vsync( layer );
 
-    dfb_surface_flip_buffers(surface, false);
+    dfb_surface_flip(surface, false);
 
     ucovl->field = 0;
+    ucovl->lock = lock;
 
-    ret = uc_ovl_update(ucdrv, ucovl, UC_OVL_FLIP, surface);
+    ret = uc_ovl_update(ucdrv, ucovl, UC_OVL_FLIP, surface, lock);
     if (ret)
         return ret;
 
@@ -299,7 +303,7 @@ uc_ovl_set_input_field( CoreLayer *layer,
 
      ucovl->field = field;
 
-     return uc_ovl_update(ucdrv, ucovl, UC_OVL_FIELD, ucovl->surface);
+     return uc_ovl_update(ucdrv, ucovl, UC_OVL_FIELD, ucovl->surface, ucovl->lock);
 }
 
 DisplayLayerFuncs ucOverlayFuncs = {

@@ -83,7 +83,8 @@ void uc_ovl_vcmd_wait(volatile u8* vio)
 DFBResult uc_ovl_update(UcDriverData* ucdrv,
                         UcOverlayData* ucovl,
                         int action,
-                        CoreSurface* surface)
+                        CoreSurface* surface,
+                        CoreSurfaceBufferLock* lock)
 {
      int sw, sh, sp, sfmt;   // Source width, height, pitch and format
      int dx, dy;             // Destination position
@@ -102,7 +103,7 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
      u32 y_start, u_start, v_start;
      u32 v_ctrl, fifo_ctrl;
 
-     int offset = surface->front_buffer->video.offset;
+     int offset = lock->offset;
 
 
      if (!ucovl->v1.isenabled) return DFB_OK;
@@ -126,7 +127,7 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
 
      sw = surface->config.size.w;
      sh = surface->config.size.h;
-     sp = surface->front_buffer->video.pitch;
+     sp = lock->pitch;
      sfmt = surface->config.format;
 
      if (ucovl->deinterlace) {
