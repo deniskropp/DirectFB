@@ -907,7 +907,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_savage=yes
   checkfor_sh7722=yes
   checkfor_sis315=yes
-  checkfor_tdfx=no
+  checkfor_tdfx=yes
   checkfor_unichrome=no
   checkfor_vmware=yes
   AC_MSG_RESULT(all)
