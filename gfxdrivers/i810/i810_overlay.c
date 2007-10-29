@@ -114,7 +114,8 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
                            I810OverlayLayerData  *i810ovl,
                            CoreLayer             *layer,
                            CoreSurface           *surface,
-                           CoreLayerRegionConfig *config );
+                           CoreLayerRegionConfig *config,
+                           CoreSurfaceBufferLock *lock );
 
 static void update_overlay(I810DriverData       *i810drv,
                            I810DeviceData       *i810dev)
@@ -274,14 +275,15 @@ ovlSetRegion( CoreLayer                  *layer,
               CoreLayerRegionConfig      *config,
               CoreLayerRegionConfigFlags  updated,
               CoreSurface                *surface,
-              CorePalette                *palette )
+              CorePalette                *palette,
+              CoreSurfaceBufferLock      *lock)
 {
 	I810DriverData       *i810drv = (I810DriverData *) driver_data;
 	I810OverlayLayerData *i810ovl = (I810OverlayLayerData *) layer_data;
 
 	i810ovl->config = *config;
 
-	ovl_calc_regs (i810drv, i810ovl, layer, surface, config);
+	ovl_calc_regs (i810drv, i810ovl, layer, surface, config, lock);
 	update_overlay(i810drv, i810drv->idev);
 
 	i810ovlOnOff(i810drv, i810drv->idev, 1);
@@ -304,18 +306,19 @@ ovlRemoveRegion( CoreLayer *layer,
 }
 
 static DFBResult
-ovlFlipRegion(  CoreLayer           *layer,
-                void                *driver_data,
-                void                *layer_data,
-                void                *region_data,
-                CoreSurface         *surface,
-                DFBSurfaceFlipFlags  flags )
+ovlFlipRegion(  CoreLayer             *layer,
+                void                  *driver_data,
+                void                  *layer_data,
+                void                  *region_data,
+                CoreSurface           *surface,
+                DFBSurfaceFlipFlags    flags,
+                CoreSurfaceBufferLock *lock )
 {
 	I810DriverData       *i810drv = (I810DriverData *) driver_data;
 	I810OverlayLayerData *i810ovl = (I810OverlayLayerData *) layer_data;
 	u32 current_buffer;
 
-	dfb_surface_flip_buffers( surface, false );
+	dfb_surface_flip( surface, false );
 
 	/* select buffer */
 	current_buffer =  (i810drv->oregs->ov0cmd & 4) >> 2;
@@ -327,7 +330,7 @@ ovlFlipRegion(  CoreLayer           *layer,
 		i810drv->oregs->ov0cmd |= 4;
 	}
 
-	ovl_calc_regs (i810drv, i810ovl, layer, surface, &i810ovl->config);
+	ovl_calc_regs (i810drv, i810ovl, layer, surface, &i810ovl->config, lock);
 	update_overlay(i810drv, i810drv->idev);
 	
 	if (flags & DSFLIP_WAIT)
@@ -385,13 +388,12 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 			   I810OverlayLayerData  *i810ovl,
 			   CoreLayer             *layer,
 			   CoreSurface           *surface,
-			   CoreLayerRegionConfig *config )
+			   CoreLayerRegionConfig *config,
+			   CoreSurfaceBufferLock *lock )
 {
 	u32 swidth = 0, y_offset, v_offset = 0, u_offset = 0;
 	u32 drw_w, src_w, drw_h, src_h, xscaleInt, xscaleFract, yscaleInt;
 	u32 xscaleFractUV = 0, xscaleIntUV, yscaleIntUV = 0, yscaleFract, yscaleFractUV = 0;
-
-	SurfaceBuffer *front_buffer = surface->front_buffer;
 
         DFBSurfacePixelFormat primary_format;
 
@@ -436,16 +438,16 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 	i810drv->oregs->dwinsz = (drw_h << 16) | drw_w;
 
 	/* Set buffer pointers */
-	y_offset = (dfb_gfxcard_memory_physical(NULL, front_buffer->video.offset));
+	y_offset = (dfb_gfxcard_memory_physical(NULL, lock->offset));
 
 	switch (surface->config.format) {
 	case DSPF_I420:
-		u_offset = y_offset + surface->config.size.h * front_buffer->video.pitch;
-		v_offset = u_offset + ((surface->config.size.h >> 1) * (front_buffer->video.pitch >> 1));
+		u_offset = y_offset + surface->config.size.h * lock->pitch;
+		v_offset = u_offset + ((surface->config.size.h >> 1) * (lock->pitch >> 1));
 		break;
 	case DSPF_YV12:
-		v_offset = y_offset + surface->config.size.h * front_buffer->video.pitch;
-		u_offset = v_offset + ((surface->config.size.h >> 1) * (front_buffer->video.pitch >> 1));
+		v_offset = y_offset + surface->config.size.h * lock->pitch;
+		u_offset = v_offset + ((surface->config.size.h >> 1) * (lock->pitch >> 1));
 		break;
 	default:
 		break;
@@ -554,7 +556,7 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 		/* set UV vertical phase to -0.25 */
 		i810drv->oregs->uv_vph = 0x30003000;
 		i810drv->oregs->init_ph = UV_VERT_BUF0 | UV_VERT_BUF1;
-		i810drv->oregs->ov0stride = (front_buffer->video.pitch) | (front_buffer->video.pitch << 15);
+		i810drv->oregs->ov0stride = (lock->pitch) | (lock->pitch << 15);
 		i810drv->oregs->ov0cmd &= ~SOURCE_FORMAT;
 		i810drv->oregs->ov0cmd |= YUV_420;
 		break;
@@ -562,7 +564,7 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 	case DSPF_YUY2:
 		i810drv->oregs->uv_vph = 0;
 		i810drv->oregs->init_ph = 0;
-		i810drv->oregs->ov0stride = front_buffer->video.pitch;
+		i810drv->oregs->ov0stride = lock->pitch;
 		i810drv->oregs->ov0cmd &= ~SOURCE_FORMAT;
 		i810drv->oregs->ov0cmd |= YUV_422;
 		i810drv->oregs->ov0cmd &= ~OV_BYTE_ORDER;
