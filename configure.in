@@ -894,7 +894,7 @@ AC_ARG_WITH(gfxdrivers,
 if test "$gfxdrivers" = "all"; then
   checkfor_ati128=yes
   checkfor_cle266=no
-  checkfor_cyber5k=no
+  checkfor_cyber5k=yes
   checkfor_i810=no
   checkfor_i830=no
   checkfor_mach64=yes
