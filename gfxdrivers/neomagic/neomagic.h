@@ -50,28 +50,28 @@ typedef struct {
 extern DisplayLayerFuncs neoOverlayFuncs;
 
 void
-neo2200_get_info( GraphicsDevice     *device,
+neo2200_get_info( CoreGraphicsDevice *device,
                   GraphicsDriverInfo *info );
 
 DFBResult
-neo2200_init_driver( GraphicsDevice      *device,
+neo2200_init_driver( CoreGraphicsDevice  *device,
                      GraphicsDeviceFuncs *funcs,
                      void                *driver_data );
 
 DFBResult
-neo2200_init_device( GraphicsDevice     *device,
+neo2200_init_device( CoreGraphicsDevice *device,
                      GraphicsDeviceInfo *device_info,
                      void               *driver_data,
                      void               *device_data );
 
 void
-neo2200_close_device( GraphicsDevice *device,
-                      void           *driver_data,
-                      void           *device_data );
+neo2200_close_device( CoreGraphicsDevice *device,
+                      void               *driver_data,
+                      void               *device_data );
 
 void
-neo2200_close_driver( GraphicsDevice *device,
-                      void           *driver_data );
+neo2200_close_driver( CoreGraphicsDevice *device,
+                      void               *driver_data );
 
 
 #define NEO_BS0_BLT_BUSY        0x00000001
