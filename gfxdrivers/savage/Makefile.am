@@ -27,6 +27,7 @@ libdirectfb_savage_la_SOURCES = \
 	savage2000.c		\
 	savage2000.h		\
 	savage_bci.h		\
+	savage_streams_old.c	\
 	savage_streams_old.h
 
 libdirectfb_savage_la_LDFLAGS = \
@@ -35,6 +36,7 @@ libdirectfb_savage_la_LDFLAGS = \
 	$(DFB_LDFLAGS)
 
 libdirectfb_savage_la_LIBADD = \
+	-lm \
 	$(top_builddir)/lib/direct/libdirect.la \
 	$(top_builddir)/src/libdirectfb.la
 
