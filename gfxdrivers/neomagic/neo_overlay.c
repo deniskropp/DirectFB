@@ -59,7 +59,8 @@ static void ovl_set_regs ( NeoDriverData         *ndrv,
 static void ovl_calc_regs( NeoDriverData         *ndrv,
                            NeoOverlayLayerData   *novl,
                            CoreLayerRegionConfig *config,
-                           CoreSurface           *surface );
+                           CoreSurface           *surface,
+                           CoreSurfaceBufferLock *lock );
 
 #define NEO_OVERLAY_SUPPORTED_OPTIONS   (DLOP_NONE)
 
@@ -200,7 +201,8 @@ ovlSetRegion( CoreLayer                  *layer,
               CoreLayerRegionConfig      *config,
               CoreLayerRegionConfigFlags  updated,
               CoreSurface                *surface,
-              CorePalette                *palette )
+              CorePalette                *palette,
+              CoreSurfaceBufferLock      *lock )
 {
      NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
      NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
@@ -208,7 +210,7 @@ ovlSetRegion( CoreLayer                  *layer,
      /* remember configuration */
      novl->config = *config;
 
-     ovl_calc_regs( ndrv, novl, config, surface );
+     ovl_calc_regs( ndrv, novl, config, surface, lock );
      ovl_set_regs( ndrv, novl );
 
      /* enable overlay */
@@ -233,12 +235,13 @@ ovlRemoveRegion( CoreLayer *layer,
 }
 
 static DFBResult
-ovlFlipRegion(  CoreLayer           *layer,
-                void                *driver_data,
-                void                *layer_data,
-                void                *region_data,
-                CoreSurface         *surface,
-                DFBSurfaceFlipFlags  flags )
+ovlFlipRegion(  CoreLayer             *layer,
+                void                  *driver_data,
+                void                  *layer_data,
+                void                  *region_data,
+                CoreSurface           *surface,
+                DFBSurfaceFlipFlags    flags,
+                CoreSurfaceBufferLock *lock )
 {
      NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
      NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
@@ -249,9 +252,9 @@ ovlFlipRegion(  CoreLayer           *layer,
           dfb_fbdev_wait_vsync();
 #endif
 
-     dfb_surface_flip_buffers( surface, false );
+     dfb_surface_flip( surface, false );
 
-     ovl_calc_regs( ndrv, novl, &novl->config, surface );
+     ovl_calc_regs( ndrv, novl, &novl->config, surface, lock );
      ovl_set_regs( ndrv, novl );
 
      return DFB_OK;
@@ -327,10 +330,9 @@ static void ovl_set_regs( NeoDriverData *ndrv, NeoOverlayLayerData *novl )
 static void ovl_calc_regs( NeoDriverData         *ndrv,
                            NeoOverlayLayerData   *novl,
                            CoreLayerRegionConfig *config,
-                           CoreSurface           *surface )
+                           CoreSurface           *surface,
+                           CoreSurfaceBufferLock *lock )
 {
-     SurfaceBuffer *front_buffer = surface->front_buffer;
-
      /* fill register struct */
      novl->regs.X1     = config->dest.x;
      novl->regs.X2     = config->dest.x + config->dest.w - 1;
@@ -338,8 +340,8 @@ static void ovl_calc_regs( NeoDriverData         *ndrv,
      novl->regs.Y1     = config->dest.y;
      novl->regs.Y2     = config->dest.y + config->dest.h - 1;
 
-     novl->regs.OFFSET = front_buffer->video.offset;
-     novl->regs.PITCH  = front_buffer->video.pitch;
+     novl->regs.OFFSET = lock->offset;
+     novl->regs.PITCH  = lock->pitch;
 
      novl->regs.HSCALE = (surface->config.size.w  << 12) / (config->dest.w + 1);
      novl->regs.VSCALE = (surface->config.size.h << 12) / (config->dest.h + 1);

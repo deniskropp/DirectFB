@@ -122,7 +122,8 @@ uc_ovl_set_region( CoreLayer                  *layer,
                    CoreLayerRegionConfig      *config,
                    CoreLayerRegionConfigFlags  updated,
                    CoreSurface                *surface,
-                   CorePalette                *palette )
+                   CorePalette                *palette,
+                   CoreSurfaceBufferLock      *lock )
 {
     UcDriverData*  ucdrv = (UcDriverData*) driver_data;
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
@@ -159,6 +160,7 @@ uc_ovl_set_region( CoreLayer                  *layer,
 
     ucovl->deinterlace = config->options & DLOP_DEINTERLACING;
     ucovl->surface     = surface;
+    ucovl->lock        = lock;
 
     if (ucdrv->canfliponvsync) {
         FBDev *dfb_fbdev = dfb_system_data();
@@ -166,7 +168,7 @@ uc_ovl_set_region( CoreLayer                  *layer,
         ioctl(dfb_fbdev->fd, FBIO_WAITFORVSYNC, &field_option);
     }
 
-    return uc_ovl_update(ucdrv, ucovl, UC_OVL_CHANGE, surface);
+    return uc_ovl_update(ucdrv, ucovl, UC_OVL_CHANGE, surface, lock);
 }
 
 
@@ -258,12 +260,13 @@ uc_ovl_test_region(CoreLayer                  *layer,
 
 
 static DFBResult
-uc_ovl_flip_region( CoreLayer           *layer,
-                    void                *driver_data,
-                    void                *layer_data,
-                    void                *region_data,
-                    CoreSurface         *surface,
-                    DFBSurfaceFlipFlags  flags )
+uc_ovl_flip_region( CoreLayer             *layer,
+                    void                  *driver_data,
+                    void                  *layer_data,
+                    void                  *region_data,
+                    CoreSurface           *surface,
+                    DFBSurfaceFlipFlags    flags,
+                    CoreSurfaceBufferLock *lock )
 {
     //printf("Entering %s ... \n", __PRETTY_FUNCTION__);
 
@@ -272,9 +275,10 @@ uc_ovl_flip_region( CoreLayer           *layer,
     DFBResult    ret;
     FBDev *dfb_fbdev = dfb_system_data();
 
-    dfb_surface_flip_buffers(surface, false);
+    dfb_surface_flip(surface, false);
 
     ucovl->field = 0;
+    ucovl->lock = lock;
 
     if (ucdrv->canfliponvsync)
     {
@@ -291,16 +295,16 @@ uc_ovl_flip_region( CoreLayer           *layer,
             flip.count = 0; // until we implement this
 
             uc_ovl_map_buffer(surface->config.format,
-                surface->front_buffer->video.offset,
+                lock->offset,
                 ucovl->v1.ox, ucovl->v1.oy, surface->config.size.w, surface->config.size.h,
-                surface->front_buffer->video.pitch, 0,
+                lock->pitch, 0,
                 &flip.offset[0], &flip.offset[1], &flip.offset[2]);
 
             ioctl(dfb_fbdev->fd, FBIO_FLIPONVSYNC, &flip);
         }
         else
         {
-            ret = uc_ovl_update(ucdrv, ucovl, UC_OVL_FLIP, surface);
+            ret = uc_ovl_update(ucdrv, ucovl, UC_OVL_FLIP, surface, lock);
             if (ret)
                 return ret;
         }
@@ -322,7 +326,7 @@ uc_ovl_flip_region( CoreLayer           *layer,
             usleep(2500);
         }
     
-        ret = uc_ovl_update(ucdrv, ucovl, UC_OVL_FLIP, surface);
+        ret = uc_ovl_update(ucdrv, ucovl, UC_OVL_FLIP, surface, lock);
         if (ret)
             return ret;
     }
@@ -384,7 +388,7 @@ uc_ovl_set_input_field( CoreLayer *layer,
 
      ucovl->field = field;
 
-     return uc_ovl_update(ucdrv, ucovl, UC_OVL_FIELD, ucovl->surface);
+     return uc_ovl_update(ucdrv, ucovl, UC_OVL_FIELD, ucovl->surface, ucovl->lock);
 }
 
 DisplayLayerFuncs ucOverlayFuncs = {

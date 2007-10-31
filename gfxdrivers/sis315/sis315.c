@@ -74,7 +74,7 @@ static void sis_check_state(void *driver_data, void *device_data,
 	(void)driver_data;
 	(void)device_data;
 
-	switch (state->destination->format) {
+	switch (state->destination->config.format) {
 	case DSPF_LUT8:
 	case DSPF_ARGB1555:
 	case DSPF_RGB16:
@@ -99,7 +99,7 @@ static void sis_check_state(void *driver_data, void *device_data,
 		if (state->blittingflags & ~SIS_SUPPORTED_BLITTING_FLAGS)
 			return;
 
-		switch (state->source->format) {
+		switch (state->source->config.format) {
 		case DSPF_LUT8:
 		case DSPF_RGB16:
 			break;
@@ -107,7 +107,7 @@ static void sis_check_state(void *driver_data, void *device_data,
 			return;
 		}
 
-		if (state->source->format != state->destination->format)
+		if (state->source->config.format != state->destination->config.format)
 			return;
 
 		state->accel |= SIS_SUPPORTED_BLITTING_FUNCTIONS;
@@ -123,19 +123,19 @@ static void sis_set_state(void *driver_data, void *device_data,
 
 	(void)funcs;
 
-	if (state->modified) {
-		if (state->modified & SMF_SOURCE)
+	if (state->mod_hw) {
+		if (state->mod_hw & SMF_SOURCE)
 			dev->v_source = 0;
 
-		if (state->modified & SMF_DESTINATION)
+		if (state->mod_hw & SMF_DESTINATION)
 			dev->v_color = dev->v_destination = 0;
-		else if (state->modified & SMF_COLOR)
+		else if (state->mod_hw & SMF_COLOR)
 			dev->v_color = 0;
 
-		if (state->modified & SMF_SRC_COLORKEY)
+		if (state->mod_hw & SMF_SRC_COLORKEY)
 			dev->v_src_colorkey = 0;
 
-		if (state->modified & SMF_BLITTING_FLAGS)
+		if (state->mod_hw & SMF_BLITTING_FLAGS)
 			dev->v_blittingflags = 0;
 	}
 
@@ -162,10 +162,10 @@ static void sis_set_state(void *driver_data, void *device_data,
 		break;
 	}
 
-	if (state->modified & SMF_CLIP)
+	if (state->mod_hw & SMF_CLIP)
 		sis_set_clip(drv, &state->clip);
 
-	state->modified = 0;
+	state->mod_hw = 0;
 }
 
 static void check_sisfb_version(SiSDriverData *drv, const struct sisfb_info *i)
@@ -188,7 +188,7 @@ static void check_sisfb_version(SiSDriverData *drv, const struct sisfb_info *i)
  * exported symbols...
  */
 
-static int driver_probe(GraphicsDevice *device)
+static int driver_probe(CoreGraphicsDevice *device)
 {
 	switch (dfb_gfxcard_get_accelerator(device)) {
 	case FB_ACCEL_SIS_GLAMOUR_2:
@@ -199,7 +199,7 @@ static int driver_probe(GraphicsDevice *device)
 	}
 }
 
-static void driver_get_info(GraphicsDevice *device,
+static void driver_get_info(CoreGraphicsDevice *device,
 			    GraphicsDriverInfo *info)
 {
 	(void)device;
@@ -216,7 +216,7 @@ static void driver_get_info(GraphicsDevice *device,
 	info->device_data_size = sizeof(SiSDeviceData);
 }
 
-static DFBResult driver_init_driver(GraphicsDevice *device,
+static DFBResult driver_init_driver(CoreGraphicsDevice *device,
 				    GraphicsDeviceFuncs *funcs,
 				    void *driver_data,
 				    void *device_data,
@@ -292,7 +292,7 @@ static DFBResult driver_init_driver(GraphicsDevice *device,
 	return DFB_OK;
 }
 
-static DFBResult driver_init_device(GraphicsDevice *device,
+static DFBResult driver_init_device(CoreGraphicsDevice *device,
 				    GraphicsDeviceInfo *device_info,
 				    void *driver_data,
 				    void *device_data)
@@ -318,7 +318,7 @@ static DFBResult driver_init_device(GraphicsDevice *device,
 	return DFB_OK;
 }
 
-static void driver_close_device(GraphicsDevice *device,
+static void driver_close_device(CoreGraphicsDevice *device,
 				void *driver_data,
 				void *device_data)
 {
@@ -327,7 +327,7 @@ static void driver_close_device(GraphicsDevice *device,
 	(void)device_data;
 }
 
-static void driver_close_driver(GraphicsDevice *device,
+static void driver_close_driver(CoreGraphicsDevice *device,
 				void *driver_data)
 {
 	SiSDriverData *drv = (SiSDriverData *)driver_data;

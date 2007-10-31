@@ -147,17 +147,17 @@ static inline void neo2200_waitfifo( Neo2200DriverData *ndrv,
 
 
 
-static inline void neo2200_validate_bltMode_dst( Neo2200DriverData *ndrv,
-                                                 Neo2200DeviceData *ndev,
-                                                 CoreSurface       *dst )
+static inline void neo2200_validate_bltMode_dst( Neo2200DriverData     *ndrv,
+                                                 Neo2200DeviceData     *ndev,
+                                                 CoreSurface           *dst,
+                                                 CoreSurfaceBufferLock *lock )
 {
   int bltMode = 0;
-  SurfaceBuffer *buffer = dst->back_buffer;
 
   if (ndev->n_bltMode_dst)
     return;
 
-  switch (dst->format)
+  switch (dst->config.format)
     {
     case DSPF_A8:
     case DSPF_LUT8:
@@ -174,9 +174,9 @@ static inline void neo2200_validate_bltMode_dst( Neo2200DriverData *ndrv,
       break;
     }
 
-  ndev->dstOrg = buffer->video.offset;
-  ndev->dstPitch = buffer->video.pitch;
-  ndev->dstPixelWidth = DFB_BYTES_PER_PIXEL(dst->format);
+  ndev->dstOrg = lock->offset;
+  ndev->dstPitch = lock->pitch;
+  ndev->dstPixelWidth = DFB_BYTES_PER_PIXEL(dst->config.format);
 
 
   neo2200_waitfifo( ndrv, ndev, 2 );
@@ -188,18 +188,17 @@ static inline void neo2200_validate_bltMode_dst( Neo2200DriverData *ndrv,
   ndev->n_bltMode_dst = 1;
 }
 
-static inline void neo2200_validate_src( Neo2200DriverData *ndrv,
-                                         Neo2200DeviceData *ndev,
-                                         CoreSurface       *src )
+static inline void neo2200_validate_src( Neo2200DriverData     *ndrv,
+                                         Neo2200DeviceData     *ndev,
+                                         CoreSurface           *src,
+                                         CoreSurfaceBufferLock *lock )
 {
-  SurfaceBuffer *buffer = src->front_buffer;
-
   if (ndev->n_src)
     return;
 
-  ndev->srcOrg = buffer->video.offset;
-  ndev->srcPitch = buffer->video.pitch;
-  ndev->srcPixelWidth = DFB_BYTES_PER_PIXEL(src->format);
+  ndev->srcOrg = lock->offset;
+  ndev->srcPitch = lock->pitch;
+  ndev->srcPixelWidth = DFB_BYTES_PER_PIXEL(src->config.format);
 
   neo2200_waitfifo( ndrv, ndev, 1 );
   ndrv->neo2200->pitch = (ndev->dstPitch << 16) | (ndev->srcPitch & 0xffff);
@@ -216,7 +215,7 @@ static inline void neo2200_validate_fgColor( Neo2200DriverData *ndrv,
 
   neo2200_waitfifo( ndrv, ndev, 1 );
 
-  switch (state->destination->format)
+  switch (state->destination->config.format)
     {
     case DSPF_A8:
       ndrv->neo2200->fgColor = state->color.a;
@@ -290,7 +289,7 @@ static DFBResult neo2200EngineSync( void *drv, void *dev )
 static void neo2200CheckState( void *drv, void *dev,
                                CardState *state, DFBAccelerationMask accel )
 {
-  switch (state->destination->format)
+  switch (state->destination->config.format)
     {
     case DSPF_A8:
     case DSPF_LUT8:
@@ -321,7 +320,7 @@ static void neo2200CheckState( void *drv, void *dev,
          are different due to a blitting bug */
       if (!(accel & ~NEO_SUPPORTED_BLITTINGFUNCTIONS)             &&
           !(state->blittingflags & ~NEO_SUPPORTED_BLITTINGFLAGS)  &&
-          state->source->format == state->destination->format)
+          state->source->config.format == state->destination->config.format)
         state->accel |= accel;
     }
 }
@@ -333,25 +332,25 @@ static void neo2200SetState( void *drv, void *dev,
      Neo2200DriverData *ndrv = (Neo2200DriverData*) drv;
      Neo2200DeviceData *ndev = (Neo2200DeviceData*) dev;
 
-     if (state->modified & SMF_DESTINATION)
+     if (state->mod_hw & SMF_DESTINATION)
           ndev->n_fgColor = ndev->n_bltMode_dst = 0;
-     else if (state->modified & SMF_COLOR)
+     else if (state->mod_hw & SMF_COLOR)
           ndev->n_fgColor = 0;
 
-     if (state->modified & SMF_SOURCE)
+     if (state->mod_hw & SMF_SOURCE)
           ndev->n_src = 0;
 
-     if (state->modified & SMF_SRC_COLORKEY)
+     if (state->mod_hw & SMF_SRC_COLORKEY)
           ndev->n_xpColor = 0;
 
-     neo2200_validate_bltMode_dst( ndrv, ndev, state->destination );
+     neo2200_validate_bltMode_dst( ndrv, ndev, state->destination, &state->dst );
 
      switch (accel) {
           case DFXL_BLIT:
-               neo2200_validate_src( ndrv, ndev, state->source );
+               neo2200_validate_src( ndrv, ndev, state->source, &state->src );
 
-               ndev->src_dst_equal = (state->source->front_buffer ==
-                                      state->destination->back_buffer);
+               ndev->src_dst_equal = (state->src.buffer ==
+                                      state->dst.buffer);
 
                if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                     ndev->bltCntl = NEO_BC0_SRC_TRANS;
@@ -375,7 +374,7 @@ static void neo2200SetState( void *drv, void *dev,
                break;
      }
 
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 static bool neo2200FillRectangle( void *drv, void *dev, DFBRectangle *rect )
@@ -495,7 +494,7 @@ static bool neo2200Blit( void *drv, void *dev,
 
 
 void
-neo2200_get_info( GraphicsDevice     *device,
+neo2200_get_info( CoreGraphicsDevice *device,
                   GraphicsDriverInfo *info )
 {
      info->version.major = 0;
@@ -506,7 +505,7 @@ neo2200_get_info( GraphicsDevice     *device,
 }
 
 DFBResult
-neo2200_init_driver( GraphicsDevice      *device,
+neo2200_init_driver( CoreGraphicsDevice  *device,
                      GraphicsDeviceFuncs *funcs,
                      void                *driver_data )
 {
@@ -531,7 +530,7 @@ neo2200_init_driver( GraphicsDevice      *device,
 }
 
 DFBResult
-neo2200_init_device( GraphicsDevice     *device,
+neo2200_init_device( CoreGraphicsDevice *device,
                      GraphicsDeviceInfo *device_info,
                      void               *driver_data,
                      void               *device_data )
@@ -557,15 +556,15 @@ neo2200_init_device( GraphicsDevice     *device,
 }
 
 void
-neo2200_close_device( GraphicsDevice *device,
-                      void           *driver_data,
-                      void           *device_data )
+neo2200_close_device( CoreGraphicsDevice *device,
+                      void               *driver_data,
+                      void               *device_data )
 {
 }
 
 void
-neo2200_close_driver( GraphicsDevice *device,
-                      void           *driver_data )
+neo2200_close_driver( CoreGraphicsDevice *device,
+                      void               *driver_data )
 {
 }
 

@@ -163,7 +163,6 @@ static inline void tdfx_validate_source2D( TDFXDriverData *tdrv,
                                            CardState      *state )
 {
      CoreSurface   *source   = state->source;
-     SurfaceBuffer *buffer   = source->front_buffer;
      Voodoo2D      *voodoo2D = tdrv->voodoo2D;
 
      if (tdev->v_source2D)
@@ -171,9 +170,9 @@ static inline void tdfx_validate_source2D( TDFXDriverData *tdrv,
 
      tdfx_waitfifo( tdrv, tdev, 2 );
 
-     voodoo2D->srcBaseAddr = buffer->video.offset & 0xFFFFFF;
-     voodoo2D->srcFormat   = (buffer->video.pitch & 0x3FFF) |
-                             (blitFormat[DFB_PIXELFORMAT_INDEX(source->format)] << 16);
+     voodoo2D->srcBaseAddr = state->src.offset & 0xFFFFFF;
+     voodoo2D->srcFormat   = (state->src.pitch & 0x3FFF) |
+                             (blitFormat[DFB_PIXELFORMAT_INDEX(source->config.format)] << 16);
 
      tdev->v_source2D = 1;
 }
@@ -183,7 +182,6 @@ static inline void tdfx_validate_destination2D( TDFXDriverData *tdrv,
                                                 CardState      *state )
 {
      CoreSurface   *destination = state->destination;
-     SurfaceBuffer *buffer      = destination->back_buffer;
      Voodoo2D      *voodoo2D    = tdrv->voodoo2D;
 
      if (tdev->v_destination2D)
@@ -191,9 +189,9 @@ static inline void tdfx_validate_destination2D( TDFXDriverData *tdrv,
 
      tdfx_waitfifo( tdrv, tdev, 2 );
 
-     voodoo2D->dstBaseAddr = buffer->video.offset;
-     voodoo2D->dstFormat   = (buffer->video.pitch & 0x3FFF) |
-                             (blitFormat[DFB_PIXELFORMAT_INDEX(destination->format)] << 16);
+     voodoo2D->dstBaseAddr = state->dst.offset;
+     voodoo2D->dstFormat   = (state->dst.pitch & 0x3FFF) |
+                             (blitFormat[DFB_PIXELFORMAT_INDEX(destination->config.format)] << 16);
 
      tdev->v_destination2D = 1;
 }
@@ -203,7 +201,6 @@ static inline void tdfx_validate_destination3D( TDFXDriverData *tdrv,
                                                 CardState      *state )
 {
      CoreSurface   *destination = state->destination;
-     SurfaceBuffer *buffer      = destination->back_buffer;
      Voodoo3D      *voodoo3D    = tdrv->voodoo3D;
 
      u32 lfbmode = TDFX_LFBMODE_PIXEL_PIPELINE_ENABLE;
@@ -212,7 +209,7 @@ static inline void tdfx_validate_destination3D( TDFXDriverData *tdrv,
      if (tdev->v_destination3D)
           return;
 
-     switch (destination->format) {
+     switch (destination->config.format) {
           case DSPF_ARGB1555:
                lfbmode |= TDFX_LFBMODE_RGB555;
                break;
@@ -235,8 +232,8 @@ static inline void tdfx_validate_destination3D( TDFXDriverData *tdrv,
 
      voodoo3D->lfbMode = lfbmode;
      voodoo3D->fbzMode = fbzMode;
-     voodoo3D->colBufferAddr = buffer->video.offset;
-     voodoo3D->colBufferStride = buffer->video.pitch;
+     voodoo3D->colBufferAddr = state->dst.offset;
+     voodoo3D->colBufferStride = state->dst.pitch;
 
      tdev->v_destination3D = 1;
 }
@@ -267,7 +264,7 @@ static inline void tdfx_validate_colorFore( TDFXDriverData *tdrv,
 
      tdfx_waitfifo( tdrv, tdev, 1 );
 
-     switch (state->destination->format) {
+     switch (state->destination->config.format) {
           case DSPF_A8:
                tdrv->voodoo2D->colorFore = state->color.a;
                break;
@@ -435,7 +432,7 @@ static void tdfxCheckState( void *drv, void *dev,
      /* if there are no other blitting flags than the supported
         and the source and destination formats are the same */
      if (!(state->blittingflags & ~TDFX_SUPPORTED_BLITTINGFLAGS)  &&
-         state->source  &&  state->source->format != DSPF_RGB24)
+         state->source  &&  state->source->config.format != DSPF_RGB24)
           state->accel |= TDFX_SUPPORTED_BLITTINGFUNCTIONS;
 }
 
@@ -446,22 +443,22 @@ static void tdfxSetState( void *drv, void *dev,
      TDFXDriverData *tdrv = (TDFXDriverData*) drv;
      TDFXDeviceData *tdev = (TDFXDeviceData*) dev;
 
-     if (state->modified & SMF_DESTINATION)
+     if (state->mod_hw & SMF_DESTINATION)
           tdev->v_destination2D = tdev->v_destination3D = tdev->v_colorFore = 0;
 
-     if (state->modified & SMF_SOURCE)
+     if (state->mod_hw & SMF_SOURCE)
           tdev->v_source2D = 0;
 
-     if (state->modified & (SMF_DST_BLEND | SMF_SRC_BLEND))
+     if (state->mod_hw & (SMF_DST_BLEND | SMF_SRC_BLEND))
           tdev->v_alphaMode = 0;
 
-     if (state->modified & SMF_COLOR)
+     if (state->mod_hw & SMF_COLOR)
           tdev->v_color1 = tdev->v_colorFore = 0;
 
-     if (state->modified & SMF_SRC_COLORKEY)
+     if (state->mod_hw & SMF_SRC_COLORKEY)
           tdev->v_srcColorkey = 0;
 
-     if (state->modified & SMF_BLITTING_FLAGS)
+     if (state->mod_hw & SMF_BLITTING_FLAGS)
           tdev->v_commandExtra = 0;
 
      switch (accel) {
@@ -503,10 +500,10 @@ static void tdfxSetState( void *drv, void *dev,
                break;
      }
 
-     if (state->modified & SMF_CLIP)
+     if (state->mod_hw & SMF_CLIP)
           tdfx_set_clip( tdrv, tdev, &state->clip );
 
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 static bool tdfxFillRectangle2D( void *drv, void *dev, DFBRectangle *rect )
@@ -724,7 +721,7 @@ static bool tdfxStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangl
 /* exported symbols */
 
 static int
-driver_probe( GraphicsDevice *device )
+driver_probe( CoreGraphicsDevice *device )
 {
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_3DFX_BANSHEE:          /* Banshee/Voodoo3 */
@@ -735,7 +732,7 @@ driver_probe( GraphicsDevice *device )
 }
 
 static void
-driver_get_info( GraphicsDevice     *device,
+driver_get_info( CoreGraphicsDevice *device,
                  GraphicsDriverInfo *info )
 {
      /* fill driver info structure */
@@ -755,7 +752,7 @@ driver_get_info( GraphicsDevice     *device,
 }
 
 static DFBResult
-driver_init_driver( GraphicsDevice      *device,
+driver_init_driver( CoreGraphicsDevice  *device,
                     GraphicsDeviceFuncs *funcs,
                     void                *driver_data,
                     void                *device_data,
@@ -784,7 +781,7 @@ driver_init_driver( GraphicsDevice      *device,
 
 
 static DFBResult
-driver_init_device( GraphicsDevice     *device,
+driver_init_device( CoreGraphicsDevice *device,
                     GraphicsDeviceInfo *device_info,
                     void               *driver_data,
                     void               *device_data )
@@ -840,9 +837,9 @@ driver_init_device( GraphicsDevice     *device,
 }
 
 static void
-driver_close_device( GraphicsDevice *device,
-                     void           *driver_data,
-                     void           *device_data )
+driver_close_device( CoreGraphicsDevice *device,
+                     void               *driver_data,
+                     void               *device_data )
 {
      TDFXDeviceData *tdev = (TDFXDeviceData*) device_data;
      TDFXDriverData *tdrv = (TDFXDriverData*) driver_data;
@@ -877,8 +874,8 @@ driver_close_device( GraphicsDevice *device,
 }
 
 static void
-driver_close_driver( GraphicsDevice *device,
-                     void           *driver_data )
+driver_close_driver( CoreGraphicsDevice *device,
+                     void               *driver_data )
 {
      TDFXDriverData *tdrv = (TDFXDriverData*) driver_data;
 

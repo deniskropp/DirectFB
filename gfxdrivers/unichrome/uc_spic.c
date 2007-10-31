@@ -51,14 +51,14 @@ static void uc_spic_enable( volatile u8 *hwregs, bool enable )
 }
 
 static void
-uc_spic_set_buffer( volatile u8 *hwregs, CoreSurface *surface )
+uc_spic_set_buffer( volatile u8 *hwregs, CoreSurfaceBufferLock *lock )
 {
-    if (surface) {
+    if (lock) {
         VIDEO_OUT(hwregs, SUBP_STARTADDR,
-            surface->front_buffer->video.offset);
+            lock->offset);
         VIDEO_OUT(hwregs, SUBP_CONTROL_STRIDE,
             (VIDEO_IN(hwregs, SUBP_CONTROL_STRIDE) & ~SUBP_STRIDE_MASK) |
-            (surface->front_buffer->video.pitch & SUBP_STRIDE_MASK) |
+            (lock->pitch & SUBP_STRIDE_MASK) |
             SUBP_AI44 );
     }
 }
@@ -142,12 +142,13 @@ uc_spic_set_region( CoreLayer                  *layer,
                     CoreLayerRegionConfig      *config,
                     CoreLayerRegionConfigFlags  updated,
                     CoreSurface                *surface,
-                    CorePalette                *palette )
+                    CorePalette                *palette,
+                    CoreSurfaceBufferLock      *lock )
 {
     UcDriverData*  ucdrv = (UcDriverData*) driver_data;
 
     uc_spic_set_palette(ucdrv->hwregs, palette);
-    uc_spic_set_buffer(ucdrv->hwregs, surface);
+    uc_spic_set_buffer(ucdrv->hwregs, lock);
     uc_spic_enable(ucdrv->hwregs, (config->opacity > 0));
 
     return DFB_OK;
@@ -166,17 +167,18 @@ uc_spic_remove( CoreLayer *layer,
 }
 
 static DFBResult
-uc_spic_flip_region( CoreLayer           *layer,
-                     void                *driver_data,
-                     void                *layer_data,
-                     void                *region_data,
-                     CoreSurface         *surface,
-                     DFBSurfaceFlipFlags  flags )
+uc_spic_flip_region( CoreLayer             *layer,
+                     void                  *driver_data,
+                     void                  *layer_data,
+                     void                  *region_data,
+                     CoreSurface           *surface,
+                     DFBSurfaceFlipFlags    flags,
+                     CoreSurfaceBufferLock *lock )
 {
     UcDriverData*  ucdrv = (UcDriverData*) driver_data;
 
-    dfb_surface_flip_buffers(surface, false);
-    uc_spic_set_buffer(ucdrv->hwregs, surface);
+    dfb_surface_flip(surface, false);
+    uc_spic_set_buffer(ucdrv->hwregs, lock);
 
     return DFB_OK;
 }

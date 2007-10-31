@@ -105,7 +105,7 @@ static void cyber5kCheckState( void *drv, void *dev,
                                CardState *state, DFBAccelerationMask accel )
 {
      /* check destination format first */
-     switch (state->destination->format) {
+     switch (state->destination->config.format) {
           case DSPF_RGB16:
           case DSPF_RGB24:
           case DSPF_RGB32:
@@ -123,7 +123,7 @@ static void cyber5kCheckState( void *drv, void *dev,
           state->accel |= CYBER5K_DRAWING_FUNCTIONS;
 
           /* no line drawing in 24bit mode */
-          if (state->destination->format == DSPF_RGB24)
+          if (state->destination->config.format == DSPF_RGB24)
                state->accel &= ~DFXL_DRAWLINE;
      }
      else {
@@ -131,7 +131,7 @@ static void cyber5kCheckState( void *drv, void *dev,
              and the source and destination formats are the same */
           if (state->blittingflags & ~CYBER5K_BLITTING_FLAGS)
                return;
-          if (state->source->format != state->destination->format)
+          if (state->source->config.format != state->destination->config.format)
                return;
 
           state->accel |= CYBER5K_BLITTING_FUNCTIONS;
@@ -143,17 +143,16 @@ cyber5k_validate_dst( CyberDriverData *cdrv, CyberDeviceData *cdev,
                       CardState *state, GraphicsDeviceFuncs *funcs )
 {
      CoreSurface   *dest   = state->destination;
-     SurfaceBuffer *buffer = dest->back_buffer;
 
      if (cdev->v_dst)
           return;
 
-     cdev->dst_pixeloffset = buffer->video.offset /
-                             DFB_BYTES_PER_PIXEL(dest->format);
-     cdev->dst_pixelpitch  = buffer->video.pitch /
-                             DFB_BYTES_PER_PIXEL(dest->format);
+     cdev->dst_pixeloffset = state->dst.offset /
+                             DFB_BYTES_PER_PIXEL(dest->config.format);
+     cdev->dst_pixelpitch  = state->dst.pitch /
+                             DFB_BYTES_PER_PIXEL(dest->config.format);
 
-     switch (dest->format) {
+     switch (dest->config.format) {
           case DSPF_RGB16:
                funcs->FillRectangle = cyber5kFillRectangle;
                funcs->DrawRectangle = cyber5kDrawRectangle;
@@ -189,18 +188,17 @@ cyber5k_validate_src( CyberDriverData *cdrv,
                       CyberDeviceData *cdev, CardState *state )
 {
      CoreSurface   *source = state->source;
-     SurfaceBuffer *buffer = source->front_buffer;
 
      if (cdev->v_src)
           return;
 
-     cdev->src_pixeloffset = buffer->video.offset /
-                             DFB_BYTES_PER_PIXEL(source->format);
-     cdev->src_pixelpitch  = buffer->video.pitch /
-                             DFB_BYTES_PER_PIXEL(source->format);
+     cdev->src_pixeloffset = state->src.offset /
+                             DFB_BYTES_PER_PIXEL(source->config.format);
+     cdev->src_pixelpitch  = state->src.pitch /
+                             DFB_BYTES_PER_PIXEL(source->config.format);
 
      cyber_out16( cdrv->mmio_base, SRC1WIDTH,
-                  buffer->video.pitch /DFB_BYTES_PER_PIXEL(source->format) - 1);
+                  state->src.pitch /DFB_BYTES_PER_PIXEL(source->config.format) - 1);
 
      cdev->v_src = 1;
 }
@@ -214,7 +212,7 @@ cyber5k_validate_color( CyberDriverData *cdrv,
      if (cdev->v_color)
           return;
 
-     switch (state->destination->format) {
+     switch (state->destination->config.format) {
           case DSPF_RGB16:
                fill_color = PIXEL_RGB16( state->color.r,
                                          state->color.g,
@@ -280,18 +278,18 @@ static void cyber5kSetState( void *drv, void *dev, GraphicsDeviceFuncs *funcs,
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
 
-     if (state->modified) {
-          if (state->modified & SMF_DESTINATION)
+     if (state->mod_hw) {
+          if (state->mod_hw & SMF_DESTINATION)
                cdev->v_dst = cdev->v_color = 0;
-          else if (state->modified & SMF_COLOR)
+          else if (state->mod_hw & SMF_COLOR)
                cdev->v_color = 0;
 
-          if (state->modified & SMF_SOURCE)
+          if (state->mod_hw & SMF_SOURCE)
                cdev->v_src = cdev->v_src_colorkey = 0;
-          else if (state->modified & SMF_SRC_COLORKEY)
+          else if (state->mod_hw & SMF_SRC_COLORKEY)
                cdev->v_src_colorkey = 0;
 
-          if (state->modified & SMF_BLITTING_FLAGS)
+          if (state->mod_hw & SMF_BLITTING_FLAGS)
                cdev->v_blitting_cmd = 0;
      }
 
@@ -321,7 +319,7 @@ static void cyber5kSetState( void *drv, void *dev, GraphicsDeviceFuncs *funcs,
                break;
      }
 
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 static bool cyber5kFillRectangle( void *drv, void *dev, DFBRectangle *rect )
@@ -637,7 +635,8 @@ osdSetRegion( CoreLayer                  *layer,
               CoreLayerRegionConfig      *config,
               CoreLayerRegionConfigFlags  updated,
               CoreSurface                *surface,
-              CorePalette                *palette )
+              CorePalette                *palette,
+              CoreSurfaceBufferLock      *lock )
 {
      DFBResult ret;
 
@@ -645,7 +644,7 @@ osdSetRegion( CoreLayer                  *layer,
      ret = oldPrimaryFuncs.SetRegion( layer, oldPrimaryDriverData,
                                       layer_data, region_data,
                                       config, updated, surface,
-                                      palette );
+                                      palette, lock );
      if (ret)
           return ret;
 
@@ -681,7 +680,7 @@ DisplayLayerFuncs newPrimaryFuncs = {
 /* exported symbols */
 
 static int
-driver_probe( GraphicsDevice *device )
+driver_probe( CoreGraphicsDevice *device )
 {
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_IGS_CYBER2000:
@@ -697,7 +696,7 @@ driver_probe( GraphicsDevice *device )
 }
 
 static void
-driver_get_info( GraphicsDevice     *device,
+driver_get_info( CoreGraphicsDevice *device,
                  GraphicsDriverInfo *info )
 {
      /* fill driver info structure */
@@ -717,7 +716,7 @@ driver_get_info( GraphicsDevice     *device,
 }
 
 static DFBResult
-driver_init_driver( GraphicsDevice      *device,
+driver_init_driver( CoreGraphicsDevice  *device,
                     GraphicsDeviceFuncs *funcs,
                     void                *driver_data,
                     void                *device_data,
@@ -761,7 +760,7 @@ driver_init_driver( GraphicsDevice      *device,
 }
 
 static DFBResult
-driver_init_device( GraphicsDevice     *device,
+driver_init_device( CoreGraphicsDevice *device,
                     GraphicsDeviceInfo *device_info,
                     void               *driver_data,
                     void               *device_data )
@@ -808,15 +807,15 @@ driver_init_device( GraphicsDevice     *device,
 }
 
 static void
-driver_close_device( GraphicsDevice *device,
-                     void           *driver_data,
-                     void           *device_data )
+driver_close_device( CoreGraphicsDevice *device,
+                     void               *driver_data,
+                     void               *device_data )
 {
 }
 
 static void
-driver_close_driver( GraphicsDevice *device,
-                     void           *driver_data )
+driver_close_driver( CoreGraphicsDevice *device,
+                     void               *driver_data )
 {
      CyberDriverData *cdrv = (CyberDriverData*) driver_data;
 

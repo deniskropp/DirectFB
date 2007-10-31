@@ -120,7 +120,7 @@ static bool ati128_check_blend( CardState *state )
 static void ati128CheckState( void *drv, void *dev,
                               CardState *state, DFBAccelerationMask accel )
 {
-     switch (state->destination->format) {
+     switch (state->destination->config.format) {
           case DSPF_RGB332:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
@@ -152,14 +152,14 @@ static void ati128CheckState( void *drv, void *dev,
      if (!(accel & ~ATI128_SUPPORTED_BLITTINGFUNCTIONS) &&
          !(state->blittingflags & ~ATI128_SUPPORTED_BLITTINGFLAGS)  &&
          state->source &&
-         state->source->width  >= 8 &&
-         state->source->height >= 8 )
+         state->source->config.size.w >= 8 &&
+         state->source->config.size.h >= 8 )
      {
           if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL &&
               !ati128_check_blend( state ))
                return;
 
-          switch (state->source->format) {
+          switch (state->source->config.format) {
                case DSPF_RGB332:
                case DSPF_ARGB1555:
                case DSPF_RGB16:
@@ -181,22 +181,22 @@ static void ati128SetState( void *drv, void *dev,
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
 
-     if (state->modified & SMF_SOURCE)
+     if (state->mod_hw & SMF_SOURCE)
          adev->v_source = 0;
 
-     if (state->modified & SMF_DESTINATION)
+     if (state->mod_hw & SMF_DESTINATION)
           adev->v_destination = adev->v_color = 0;
 
-     if (state->modified & SMF_COLOR)
+     if (state->mod_hw & SMF_COLOR)
           adev->v_color = 0;
 
-     if (state->modified & SMF_SRC_COLORKEY)
+     if (state->mod_hw & SMF_SRC_COLORKEY)
           adev->v_src_colorkey = 0;
 
-     if (state->modified & SMF_BLITTING_FLAGS)
+     if (state->mod_hw & SMF_BLITTING_FLAGS)
           adev->v_blittingflags = 0;
 
-     if (state->modified & (SMF_SRC_BLEND | SMF_DST_BLEND))
+     if (state->mod_hw & (SMF_SRC_BLEND | SMF_DST_BLEND))
           adev->v_blending_function = 0;
 
      ati128_set_destination( adrv, adev, state);
@@ -234,10 +234,10 @@ static void ati128SetState( void *drv, void *dev,
                break;
      }
 
-     if (state->modified & SMF_CLIP)
+     if (state->mod_hw & SMF_CLIP)
           ati128_set_clip( adrv, adev, state);
 
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 static bool ati128FillRectangle( void *drv, void *dev, DFBRectangle *rect )
@@ -471,16 +471,16 @@ static bool ati128StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectan
 
      ati128_out32( mmio, CLR_CMP_CNTL, adev->ATI_color_compare );
 
-     switch (adev->source->format) {
+     switch (adev->source->config.format) {
           case DSPF_RGB332:
                ati128_out32( mmio, SCALE_3D_DATATYPE, DST_8BPP_RGB332 );
 
                ati128_out32( mmio, SCALE_PITCH,
-                             adev->source->front_buffer->video.pitch >>3);
+                             adev->src->pitch >>3);
 
-               src = adev->source->front_buffer->video.offset +
+               src = adev->src->offset +
                      sr->y *
-                     adev->source->front_buffer->video.pitch + sr->x;
+                     adev->src->pitch + sr->x;
 
                ati128_out32( mmio, TEX_CNTL, 0);
 
@@ -489,11 +489,11 @@ static bool ati128StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectan
                ati128_out32( mmio, SCALE_3D_DATATYPE, DST_15BPP );
 
                ati128_out32( mmio, SCALE_PITCH,
-                             adev->source->front_buffer->video.pitch >>4);
+                             adev->src->pitch >>4);
 
-               src = adev->source->front_buffer->video.offset +
+               src = adev->src->offset +
                      sr->y *
-                     adev->source->front_buffer->video.pitch + sr->x*2;
+                     adev->src->pitch + sr->x*2;
 
                ati128_out32( mmio, TEX_CNTL, 0);
 
@@ -502,11 +502,11 @@ static bool ati128StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectan
                ati128_out32( mmio, SCALE_3D_DATATYPE, DST_16BPP );
 
                ati128_out32( mmio, SCALE_PITCH,
-                             adev->source->front_buffer->video.pitch >>4);
+                             adev->src->pitch >>4);
 
-               src = adev->source->front_buffer->video.offset +
+               src = adev->src->offset +
                      sr->y *
-                     adev->source->front_buffer->video.pitch + sr->x*2;
+                     adev->src->pitch + sr->x*2;
 
                ati128_out32( mmio, TEX_CNTL, 0);
 
@@ -515,11 +515,11 @@ static bool ati128StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectan
                ati128_out32( mmio, SCALE_3D_DATATYPE, DST_24BPP );
 
                ati128_out32( mmio, SCALE_PITCH,
-                             adev->source->front_buffer->video.pitch >>3);
+                             adev->src->pitch >>3);
 
-               src = adev->source->front_buffer->video.offset +
+               src = adev->src->offset +
                      sr->y *
-                     adev->source->front_buffer->video.pitch + sr->x*3;
+                     adev->src->pitch + sr->x*3;
 
                ati128_out32( mmio, TEX_CNTL, 0);
 
@@ -528,11 +528,11 @@ static bool ati128StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectan
                ati128_out32( mmio, SCALE_3D_DATATYPE, DST_32BPP );
 
                ati128_out32( mmio, SCALE_PITCH,
-                             adev->source->front_buffer->video.pitch >>5);
+                             adev->src->pitch >>5);
 
-               src = adev->source->front_buffer->video.offset +
+               src = adev->src->offset +
                      sr->y *
-                     adev->source->front_buffer->video.pitch + sr->x*4;
+                     adev->src->pitch + sr->x*4;
 
                ati128_out32( mmio, TEX_CNTL, 0);
 
@@ -541,11 +541,11 @@ static bool ati128StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectan
                ati128_out32( mmio, SCALE_3D_DATATYPE, DST_32BPP );
 
                ati128_out32( mmio, SCALE_PITCH,
-                             adev->source->front_buffer->video.pitch >>5);
+                             adev->src->pitch >>5);
 
-               src = adev->source->front_buffer->video.offset +
+               src = adev->src->offset +
                      sr->y *
-                     adev->source->front_buffer->video.pitch + sr->x*4;
+                     adev->src->pitch + sr->x*4;
 
                if (adev->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
                     ati128_out32( mmio, TEX_CNTL, TEX_CNTL_ALPHA_EN_ON );
@@ -602,7 +602,7 @@ static bool ati128Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy
 
      u32 dir_cmd = 0;
 
-     if ((adev->source->format != adev->destination->format) ||
+     if ((adev->source->config.format != adev->destination->config.format) ||
          (adev->blittingflags & DSBLIT_BLEND_ALPHACHANNEL))
      {
           DFBRectangle sr = { rect->x, rect->y, rect->w, rect->h };
@@ -659,7 +659,7 @@ static bool ati128Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy
 /* exported symbols */
 
 static int
-driver_probe( GraphicsDevice *device )
+driver_probe( CoreGraphicsDevice *device )
 {
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_ATI_RAGE128:          /* ATI Rage 128 */
@@ -671,7 +671,7 @@ driver_probe( GraphicsDevice *device )
 
 
 static void
-driver_get_info( GraphicsDevice     *device,
+driver_get_info( CoreGraphicsDevice *device,
                  GraphicsDriverInfo *info )
 {
      /* fill driver info structure */
@@ -691,7 +691,7 @@ driver_get_info( GraphicsDevice     *device,
 }
 
 static DFBResult
-driver_init_driver( GraphicsDevice      *device,
+driver_init_driver( CoreGraphicsDevice  *device,
                     GraphicsDeviceFuncs *funcs,
                     void                *driver_data,
                     void                *device_data,
@@ -722,7 +722,7 @@ driver_init_driver( GraphicsDevice      *device,
 
 
 static DFBResult
-driver_init_device( GraphicsDevice     *device,
+driver_init_device( CoreGraphicsDevice *device,
                     GraphicsDeviceInfo *device_info,
                     void               *driver_data,
                     void               *device_data )
@@ -778,9 +778,9 @@ driver_init_device( GraphicsDevice     *device,
 }
 
 static void
-driver_close_device( GraphicsDevice *device,
-                     void           *driver_data,
-                     void           *device_data )
+driver_close_device( CoreGraphicsDevice *device,
+                     void               *driver_data,
+                     void               *device_data )
 {
      ATI128DeviceData *adev = (ATI128DeviceData*) device_data;
      ATI128DriverData *adrv = (ATI128DriverData*) driver_data;
@@ -833,8 +833,8 @@ driver_close_device( GraphicsDevice *device,
 }
 
 static void
-driver_close_driver( GraphicsDevice *device,
-                     void           *driver_data )
+driver_close_driver( CoreGraphicsDevice *device,
+                     void               *driver_data )
 {
      ATI128DriverData *adrv = (ATI128DriverData*) driver_data;
 

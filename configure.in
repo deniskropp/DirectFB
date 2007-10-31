@@ -892,23 +892,23 @@ AC_ARG_WITH(gfxdrivers,
 [                            sis315, tdfx, unichrome, vmware], gfxdrivers="$withval",[gfxdrivers="all"])
 
 if test "$gfxdrivers" = "all"; then
-  checkfor_ati128=no
+  checkfor_ati128=yes
   checkfor_cle266=no
-  checkfor_cyber5k=no
-  checkfor_i810=no
-  checkfor_i830=no
+  checkfor_cyber5k=yes
+  checkfor_i810=yes
+  checkfor_i830=yes
   checkfor_mach64=yes
   checkfor_matrox=yes
-  checkfor_neomagic=no
-  checkfor_nsc=no
-  checkfor_nvidia=no
+  checkfor_neomagic=yes
+  checkfor_nsc=yes
+  checkfor_nvidia=yes
   checkfor_omap="$have_arm"
   checkfor_radeon=yes
-  checkfor_savage=no
+  checkfor_savage=yes
   checkfor_sh7722=yes
-  checkfor_sis315=no
-  checkfor_tdfx=no
-  checkfor_unichrome=no
+  checkfor_sis315=yes
+  checkfor_tdfx=yes
+  checkfor_unichrome=yes
   checkfor_vmware=yes
   AC_MSG_RESULT(all)
 else 
