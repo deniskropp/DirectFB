@@ -101,6 +101,8 @@ typedef struct {
 typedef struct {
      int                            ref;
      
+     pthread_mutex_t                lock;
+
      char                          *mrl;
      int                            mrl_changed;
      
@@ -134,6 +136,8 @@ typedef struct {
      
      IDirectFBDataBuffer           *buffer;
      DirectThread                  *buffer_thread;
+
+     IDirectFBEventBuffer          *events;
 } IDirectFBVideoProvider_Xine_data;
 
 
@@ -147,7 +151,11 @@ frame_output( void *cdata, int width, int height, double ratio,
               DFBSurfacePixelFormat format, DFBRectangle *dest_rect );
 
 static void
-event_listner( void *cdata, const xine_event_t *event );
+send_videoprovider_event( IDirectFBVideoProvider_Xine_data *data,
+                          DFBVideoProviderEventType         type );
+
+static void
+event_listener( void *cdata, const xine_event_t *event );
 
 static DFBResult
 make_pipe( char **ret_path );
@@ -192,9 +200,7 @@ BufferThread( DirectThread *self, void *arg )
 static void
 IDirectFBVideoProvider_Xine_Destruct( IDirectFBVideoProvider *thiz )
 {
-     IDirectFBVideoProvider_Xine_data *data;
-
-     data = (IDirectFBVideoProvider_Xine_data*) thiz->priv;
+     IDirectFBVideoProvider_Xine_data *data = thiz->priv;
 
      if (data->xine) {
           if (data->stream) {              
@@ -238,8 +244,14 @@ IDirectFBVideoProvider_Xine_Destruct( IDirectFBVideoProvider *thiz )
           unlink( data->pipe );
           D_FREE( data->pipe );
      }
-     
+
+     if (data->events)
+          data->events->Release( data->events );
+
      D_FREE( data->mrl );
+
+     pthread_mutex_destroy( &data->lock );
+     
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -248,7 +260,11 @@ IDirectFBVideoProvider_Xine_AddRef( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
 
+     pthread_mutex_lock( &data->lock );
+
      data->ref++;
+
+     pthread_mutex_unlock( &data->lock );
 
      return DFB_OK;
 }
@@ -258,8 +274,63 @@ IDirectFBVideoProvider_Xine_Release( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
 
+     pthread_mutex_lock( &data->lock );
+
      if (--data->ref == 0)
           IDirectFBVideoProvider_Xine_Destruct( thiz );
+     else
+          pthread_mutex_unlock( &data->lock );
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBVideoProvider_Xine_AttachEventBuffer( IDirectFBVideoProvider *thiz,
+                                               IDirectFBEventBuffer   *events )
+{
+     DFBResult ret;
+
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
+
+     pthread_mutex_lock( &data->lock );
+
+     if (data->events) {
+          pthread_mutex_unlock( &data->lock );
+          return DFB_BUSY;
+     }
+
+     ret = events->AddRef( events );
+     if (ret == DFB_OK)
+          data->events = events;
+
+     pthread_mutex_unlock( &data->lock );
+
+     return ret;
+}
+
+static DFBResult
+IDirectFBVideoProvider_Xine_DetachEventBuffer( IDirectFBVideoProvider *thiz,
+                                               IDirectFBEventBuffer   *events )
+{
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
+
+     pthread_mutex_lock( &data->lock );
+
+     if (!data->events) {
+          pthread_mutex_unlock( &data->lock );
+          return DFB_BUFFEREMPTY;
+     }
+
+     if (data->events != events) {
+          pthread_mutex_unlock( &data->lock );
+          return DFB_INVARG;
+     }
+
+     data->events = NULL;
+
+     events->Release( events );
+
+     pthread_mutex_unlock( &data->lock );
 
      return DFB_OK;
 }
@@ -275,10 +346,14 @@ IDirectFBVideoProvider_Xine_GetCapabilities( IDirectFBVideoProvider       *thiz,
 
      *caps = DVCAPS_BASIC       | DVCAPS_SCALE    | DVCAPS_SPEED      |
              DVCAPS_BRIGHTNESS  | DVCAPS_CONTRAST | DVCAPS_SATURATION |
-             DVCAPS_INTERACTIVE | DVCAPS_VOLUME;
+             DVCAPS_INTERACTIVE | DVCAPS_VOLUME   | DVCAPS_EVENT;
+
+     pthread_mutex_lock( &data->lock );
 
      if (xine_get_stream_info( data->stream, XINE_STREAM_INFO_SEEKABLE ))
           *caps |= DVCAPS_SEEK;
+
+     pthread_mutex_unlock( &data->lock );
 
      return DFB_OK;
 }
@@ -293,6 +368,8 @@ IDirectFBVideoProvider_Xine_GetSurfaceDescription( IDirectFBVideoProvider *thiz,
      if (!desc)
           return DFB_INVARG;
      
+     pthread_mutex_lock( &data->lock );
+
      if (!data->width || !data->height) {
           data->width  = xine_get_stream_info( data->stream,
                                                XINE_STREAM_INFO_VIDEO_WIDTH );
@@ -310,6 +387,8 @@ IDirectFBVideoProvider_Xine_GetSurfaceDescription( IDirectFBVideoProvider *thiz,
      desc->height      = data->height;
      desc->pixelformat = data->format;
 
+     pthread_mutex_unlock( &data->lock );
+
      return DFB_OK;
 }
 
@@ -323,6 +402,8 @@ IDirectFBVideoProvider_Xine_GetStreamDescription( IDirectFBVideoProvider *thiz,
           return DFB_INVARG;
 
      desc->caps = DVSCAPS_NONE;
+
+     pthread_mutex_lock( &data->lock );
 
      if (xine_get_stream_info( data->stream, XINE_STREAM_INFO_HAS_VIDEO )) {
           desc->caps |= DVSCAPS_VIDEO;
@@ -371,6 +452,8 @@ IDirectFBVideoProvider_Xine_GetStreamDescription( IDirectFBVideoProvider *thiz,
                xine_get_meta_info( data->stream, XINE_META_INFO_COMMENT ) ?:"" );
      desc->year = atoi( xine_get_meta_info( data->stream, XINE_META_INFO_YEAR ) ?:"" );
 
+     pthread_mutex_unlock( &data->lock );
+
      return DFB_OK;
 }
 
@@ -389,11 +472,15 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
      if (!dest->priv)
           return DFB_DESTROYED;
      
+     pthread_mutex_lock( &data->lock );
+
      memset( &data->dest_rect, 0, sizeof( DFBRectangle ) );
 
      if (dest_rect) {
-          if (dest_rect->w < 1 || dest_rect->h < 1)
+          if (dest_rect->w < 1 || dest_rect->h < 1) {
+               pthread_mutex_unlock( &data->lock );
                return DFB_INVARG;
+          }
 
           data->dest_rect = *dest_rect;
           data->full_area = false;
@@ -405,15 +492,24 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
      data->visual.destination = dest;
      data->visual.frame_cb    = callback;
      data->visual.frame_cdata = ctx;
+
      /* notify visual changes */
      if (!xine_port_send_gui_data( data->vo, 
                                    XINE_GUI_SEND_SELECT_VISUAL,
                                    (void*) &data->visual ))
+     {
+          pthread_mutex_unlock( &data->lock );
           return DFB_UNSUPPORTED;
-     
+     }
+
      if (data->status != DVSTATE_PLAY) {
+          pthread_mutex_unlock( &data->lock );
+
+          /* Holding lock here causes lock failures (avoided dead lock) in callbacks. */
           if (!xine_play( data->stream, 0, data->start_time ))
                return get_stream_error( data );
+
+          pthread_mutex_lock( &data->lock );
 
           xine_set_param( data->stream, XINE_PARAM_SPEED, data->speed );
           usleep( 100 );
@@ -422,8 +518,12 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
                                NULL, NULL, &data->length );
                                
           data->status = DVSTATE_PLAY;
+
+          send_videoprovider_event( data, DVPET_STARTED );
      }
      
+     pthread_mutex_unlock( &data->lock );
+
      return DFB_OK;
 }
 
@@ -432,14 +532,27 @@ IDirectFBVideoProvider_Xine_Stop( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
 
+     pthread_mutex_lock( &data->lock );
+
+     if (data->status == DVSTATE_STOP) {
+          pthread_mutex_unlock( &data->lock );
+          return DFB_OK;
+     }
+
      if (data->status == DVSTATE_PLAY) {
           data->speed = xine_get_param( data->stream, XINE_PARAM_SPEED );
+
           xine_get_pos_length( data->stream, NULL, &data->start_time, NULL );
           xine_stop( data->stream );
+
           usleep( 50 );
      }
 
      data->status = DVSTATE_STOP;
+
+     send_videoprovider_event( data, DVPET_STOPPED );
+
+     pthread_mutex_unlock( &data->lock );
 
      return DFB_OK;
 }
@@ -469,24 +582,37 @@ IDirectFBVideoProvider_Xine_SeekTo( IDirectFBVideoProvider *thiz,
      if (seconds < 0.0)
           return DFB_INVARG;
           
-     if (!xine_get_stream_info( data->stream,
-                                XINE_STREAM_INFO_SEEKABLE ))
+     pthread_mutex_lock( &data->lock );
+
+     if (!xine_get_stream_info( data->stream, XINE_STREAM_INFO_SEEKABLE )) {
+          pthread_mutex_unlock( &data->lock );
           return DFB_UNSUPPORTED;
+     }
 
      offset = (int) (seconds * 1000.0);
-     if (data->length > 0 && offset > data->length)
+     if (data->length > 0 && offset > data->length) {
+          pthread_mutex_unlock( &data->lock );
           return DFB_OK;
+     }
 
      if (data->status == DVSTATE_PLAY) {
           data->speed = xine_get_param( data->stream, XINE_PARAM_SPEED );
+
+          pthread_mutex_unlock( &data->lock );
+
           if (!xine_play( data->stream, 0, offset ))
                return get_stream_error( data );
 
+          pthread_mutex_lock( &data->lock );
+
           xine_set_param( data->stream, XINE_PARAM_SPEED, data->speed );
+
           usleep( 100 );
      }
      
      data->start_time = offset;
+
+     pthread_mutex_unlock( &data->lock );
 
      return DFB_OK;
 }
@@ -503,6 +629,8 @@ IDirectFBVideoProvider_Xine_GetPos( IDirectFBVideoProvider *thiz,
      if (!seconds)
           return DFB_INVARG;
 
+     pthread_mutex_lock( &data->lock );
+
      for (i = 5; i--;) {
           if (xine_get_pos_length( data->stream, NULL, &pos, NULL ))
                break;
@@ -512,6 +640,8 @@ IDirectFBVideoProvider_Xine_GetPos( IDirectFBVideoProvider *thiz,
 
      *seconds = (double)pos / 1000.0;
           
+     pthread_mutex_unlock( &data->lock );
+
      return DFB_OK;
 }
 
@@ -524,10 +654,14 @@ IDirectFBVideoProvider_Xine_GetLength( IDirectFBVideoProvider *thiz,
      if (!seconds)
           return DFB_INVARG;
 
+     pthread_mutex_lock( &data->lock );
+
      xine_get_pos_length( data->stream, NULL, NULL, &data->length );
           
      *seconds = (double)data->length / 1000.0;
           
+     pthread_mutex_unlock( &data->lock );
+
      return DFB_OK;
 }
 
@@ -540,6 +674,8 @@ IDirectFBVideoProvider_Xine_GetColorAdjustment( IDirectFBVideoProvider *thiz,
      if (!adj)
           return DFB_INVARG;
 
+     pthread_mutex_lock( &data->lock );
+
      adj->flags      = (DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_SATURATION);
      adj->brightness = xine_get_param( data->stream,
                                        XINE_PARAM_VO_BRIGHTNESS );
@@ -547,6 +683,8 @@ IDirectFBVideoProvider_Xine_GetColorAdjustment( IDirectFBVideoProvider *thiz,
                                        XINE_PARAM_VO_CONTRAST );
      adj->saturation = xine_get_param( data->stream,
                                        XINE_PARAM_VO_SATURATION );
+
+     pthread_mutex_unlock( &data->lock );
 
      return DFB_OK;
 }
@@ -559,6 +697,8 @@ IDirectFBVideoProvider_Xine_SetColorAdjustment( IDirectFBVideoProvider   *thiz,
 
      if (!adj)
           return DFB_INVARG;
+
+     pthread_mutex_lock( &data->lock );
 
      if (adj->flags & DCAF_BRIGHTNESS)
           xine_set_param( data->stream,
@@ -574,6 +714,8 @@ IDirectFBVideoProvider_Xine_SetColorAdjustment( IDirectFBVideoProvider   *thiz,
           xine_set_param( data->stream,
                           XINE_PARAM_VO_SATURATION,
                           adj->saturation );
+
+     pthread_mutex_unlock( &data->lock );
 
      return DFB_OK;
 }
@@ -658,8 +800,12 @@ IDirectFBVideoProvider_Xine_SendEvent( IDirectFBVideoProvider *thiz,
      if (!evt)
           return DFB_INVARG;
 
-     if (data->status == DVSTATE_FINISHED)
+     pthread_mutex_lock( &data->lock );
+
+     if (data->status == DVSTATE_FINISHED) {
+          pthread_mutex_unlock( &data->lock );
           return DFB_OK;
+     }
 
      if (data->full_area) {
           IDirectFBSurface *s = data->visual.destination;
@@ -780,6 +926,8 @@ IDirectFBVideoProvider_Xine_SendEvent( IDirectFBVideoProvider *thiz,
           xine_event_send( data->stream, e );
      }
 
+     pthread_mutex_unlock( &data->lock );
+
      return DFB_OK;
 }
 
@@ -809,9 +957,13 @@ IDirectFBVideoProvider_Xine_SetSpeed( IDirectFBVideoProvider *thiz,
      if (multiplier > 32.0)
           return DFB_UNSUPPORTED;
      
+     pthread_mutex_lock( &data->lock );
+
      xine_set_param( data->stream, XINE_PARAM_SPEED,
                      (multiplier*XINE_SPEED_NORMAL+.5) );
                      
+     pthread_mutex_unlock( &data->lock );
+
      return DFB_OK;
 }
 
@@ -826,9 +978,14 @@ IDirectFBVideoProvider_Xine_GetSpeed( IDirectFBVideoProvider *thiz,
      if (!ret_multiplier)
           return DFB_INVARG;
           
+     pthread_mutex_lock( &data->lock );
+
      speed = xine_get_param( data->stream, XINE_PARAM_SPEED );
+
+     pthread_mutex_unlock( &data->lock );
+
      *ret_multiplier = (double)speed / (double)XINE_SPEED_NORMAL;
-     
+
      return DFB_OK;
 }
 
@@ -855,9 +1012,13 @@ IDirectFBVideoProvider_Xine_SetVolume( IDirectFBVideoProvider *thiz,
           amp = 100;
      }          
           
+     pthread_mutex_lock( &data->lock );
+
      xine_set_param( data->stream, XINE_PARAM_AUDIO_VOLUME, vol );
      xine_set_param( data->stream, XINE_PARAM_AUDIO_AMP_LEVEL, amp );
      
+     pthread_mutex_unlock( &data->lock );
+
      return DFB_OK;
 }
 
@@ -872,8 +1033,13 @@ IDirectFBVideoProvider_Xine_GetVolume( IDirectFBVideoProvider *thiz,
      if (!ret_level)
           return DFB_INVARG;
           
+     pthread_mutex_lock( &data->lock );
+
      vol = xine_get_param( data->stream, XINE_PARAM_AUDIO_VOLUME );
      amp = xine_get_param( data->stream, XINE_PARAM_AUDIO_AMP_LEVEL );
+
+     pthread_mutex_unlock( &data->lock );
+
      *ret_level = (float)vol/100.0 * (float)amp/100.0;
      
      return DFB_OK;
@@ -968,7 +1134,7 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
      }
           
      result = xine_open( stream, mrl ) ? DFB_OK : DFB_UNSUPPORTED;
-     
+
      xine_close( stream );
      xine_dispose( stream );
      xine_close_video_driver( xine, vo );
@@ -1118,15 +1284,21 @@ Construct( IDirectFBVideoProvider *thiz,
                      XINE_PARAM_AUDIO_CHANNEL_LOGICAL,
                      -1 );
 
+     direct_util_recursive_pthread_mutex_init( &data->lock );
+
+     pthread_mutex_lock( &data->lock );
+
      /* create a event queue for end-of-playback notification */
      data->queue = xine_event_new_queue( data->stream );
      if (data->queue)
           xine_event_create_listener_thread( data->queue,
-                                             event_listner, (void*) data );
+                                             event_listener, (void*) data );
 
      /* open the MRL */
      if (!xine_open( data->stream, data->mrl )) {
           DFBResult ret = get_stream_error( data );
+          pthread_mutex_unlock( &data->lock );
+          pthread_mutex_destroy( &data->lock );
           IDirectFBVideoProvider_Xine_Destruct( thiz );
           return ret;
      }
@@ -1157,8 +1329,12 @@ Construct( IDirectFBVideoProvider *thiz,
           }
      }
 
+     pthread_mutex_unlock( &data->lock );
+
      thiz->AddRef                = IDirectFBVideoProvider_Xine_AddRef;
      thiz->Release               = IDirectFBVideoProvider_Xine_Release;
+     thiz->AttachEventBuffer     = IDirectFBVideoProvider_Xine_AttachEventBuffer;
+     thiz->DetachEventBuffer     = IDirectFBVideoProvider_Xine_DetachEventBuffer;
      thiz->GetCapabilities       = IDirectFBVideoProvider_Xine_GetCapabilities;
      thiz->GetSurfaceDescription = IDirectFBVideoProvider_Xine_GetSurfaceDescription;
      thiz->GetStreamDescription  = IDirectFBVideoProvider_Xine_GetStreamDescription;
@@ -1235,10 +1411,8 @@ static void
 frame_output( void *cdata, int width, int height, double ratio,
               DFBSurfacePixelFormat format, DFBRectangle *dest_rect )
 {
-     IDirectFBVideoProvider_Xine_data *data;
+     IDirectFBVideoProvider_Xine_data *data = cdata;
      IDirectFBSurface                 *surface;
-
-     data = (IDirectFBVideoProvider_Xine_data*) cdata;
 
      if (!data)
           return;
@@ -1257,14 +1431,41 @@ frame_output( void *cdata, int width, int height, double ratio,
 }
 
 static void
-event_listner( void *cdata, const xine_event_t *event )
+send_videoprovider_event( IDirectFBVideoProvider_Xine_data *data,
+                          DFBVideoProviderEventType         type )
 {
-     IDirectFBVideoProvider_Xine_data *data;
+     DFBEvent event = { videoprovider: { DFEC_VIDEOPROVIDER, type } };
 
-     data = (IDirectFBVideoProvider_Xine_data*) cdata;
+     if (data->events)
+          data->events->PostEvent( data->events, &event );
+}
+
+static void
+event_listener( void *cdata, const xine_event_t *event )
+{
+     int                               lock = 10;
+     IDirectFBVideoProvider_Xine_data *data = cdata;
 
      if (!data)
           return;
+
+     switch (event->type) {
+          case XINE_EVENT_MRL_REFERENCE:
+          case XINE_EVENT_UI_PLAYBACK_FINISHED:
+               break;
+
+          default:
+               return;
+     }
+
+     while (pthread_mutex_trylock( &data->lock )) {
+          if (!--lock) {
+               D_WARN( "could not lock provider data" );
+               break;
+          }
+
+          usleep( 1000 );
+     }
 
      switch (event->type) {
           case XINE_EVENT_MRL_REFERENCE:
@@ -1279,19 +1480,36 @@ event_listner( void *cdata, const xine_event_t *event )
                
           case XINE_EVENT_UI_PLAYBACK_FINISHED:
                data->speed = xine_get_param( data->stream, XINE_PARAM_SPEED );
+
                if (data->mrl_changed) {
                     data->mrl_changed = 0;
+
+                    send_videoprovider_event( data, DVPET_STREAMCHANGE );
+
                     if (!xine_open( data->stream, data->mrl )) {
                          data->status = DVSTATE_FINISHED;
+
+                         send_videoprovider_event( data, DVPET_FATALERROR );
                          break;
                     }
                     if (data->status == DVSTATE_PLAY) {
+                         pthread_mutex_unlock( &data->lock );
+
                          if (!xine_play( data->stream, 0, data->start_time )) {
+                              pthread_mutex_lock( &data->lock );
+
                               data->status = DVSTATE_STOP;
+
+                              send_videoprovider_event( data, DVPET_FATALERROR );
                               break;
                          }
+
+                         pthread_mutex_lock( &data->lock );
+
                          xine_set_param( data->stream, 
                                          XINE_PARAM_SPEED, data->speed );
+
+                         send_videoprovider_event( data, DVPET_STARTED );
                     }
                }
                else {
@@ -1299,10 +1517,14 @@ event_listner( void *cdata, const xine_event_t *event )
                          xine_play( data->stream, 0, 0 );
                          xine_set_param( data->stream, 
                                          XINE_PARAM_SPEED, data->speed );
+
+                         send_videoprovider_event( data, DVPET_STARTED );
                     }
                     else {
                          xine_stop( data->stream );
                          data->status = DVSTATE_FINISHED;
+
+                         send_videoprovider_event( data, DVPET_STOPPED );
                     }
                     data->start_time = 0;
                }
@@ -1311,5 +1533,8 @@ event_listner( void *cdata, const xine_event_t *event )
           default:
                break;
      }
+
+     if (lock)
+          pthread_mutex_unlock( &data->lock );
 }
 
