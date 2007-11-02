@@ -863,6 +863,7 @@ dnl check which gfxdrivers to build
 ati128=no
 cle266=no
 cyber5k=no
+davinci=no
 i810=no
 i830=no
 mach64=no
@@ -887,7 +888,7 @@ AC_ARG_WITH(gfxdrivers,
 [                            gfxdrivers may be comma separated ]
 [                            'all' builds all drivers (default), 'none' builds none ]
 [                            Possible gfxdrivers are: ]
-[                            ati128, cle266, cyber5k, i810, i830, mach64, matrox,]
+[                            ati128, cle266, cyber5k, davinci, i810, i830, mach64, matrox,]
 [                            neomagic, nsc, nvidia, omap, radeon, savage, sh7722,]
 [                            sis315, tdfx, unichrome, vmware], gfxdrivers="$withval",[gfxdrivers="all"])
 
@@ -895,6 +896,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_ati128=yes
   checkfor_cle266=no
   checkfor_cyber5k=yes
+  checkfor_davinci="$have_arm"
   checkfor_i810=yes
   checkfor_i830=yes
   checkfor_mach64=yes
@@ -925,6 +927,9 @@ else
                   ;;
           cyber5k)
                   checkfor_cyber5k=yes
+                  ;;
+          davinci)
+                  checkfor_davinci=yes
                   ;;
           i810)
                   checkfor_i810=yes
@@ -991,6 +996,10 @@ fi
 
 if test "$checkfor_cyber5k" = "yes"; then
   cyber5k=yes
+fi
+
+if test "$checkfor_davinci" = "yes"; then
+  davinci=yes
 fi
 
 if test "$checkfor_i810" = "yes" && test "$have_sysio" = "yes"; then
@@ -1340,6 +1349,7 @@ fi
 AM_CONDITIONAL(GFX_ATI128, test "$ati128" = "yes")
 AM_CONDITIONAL(GFX_CLE266, test "$cle266" = "yes")
 AM_CONDITIONAL(GFX_CYBER5K, test "$cyber5k" = "yes")
+AM_CONDITIONAL(GFX_DAVINCI, test "$davinci" = "yes")
 AM_CONDITIONAL(GFX_I810, test "$i810" = "yes")
 AM_CONDITIONAL(GFX_I830, test "$i830" = "yes")
 AM_CONDITIONAL(GFX_MACH64, test "$mach64" = "yes")
@@ -1508,6 +1518,7 @@ gfxdrivers/Makefile
 gfxdrivers/ati128/Makefile
 gfxdrivers/cle266/Makefile
 gfxdrivers/cyber5k/Makefile
+gfxdrivers/davinci/Makefile
 gfxdrivers/i810/Makefile
 gfxdrivers/i830/Makefile
 gfxdrivers/mach64/Makefile
@@ -1636,6 +1647,7 @@ Building Graphics Drivers:
   Renesas SH7722            $sh7722
   S3 Savage                 $savage
   SiS 315                   $sis315
+  TI Davinci                $davinci
   TI OMAP                   $omap
   TVIA CyberPro             $cyber5k
   VIA CLE266                $cle266
