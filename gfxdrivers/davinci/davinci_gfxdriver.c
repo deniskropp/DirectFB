@@ -185,7 +185,7 @@ driver_get_info( CoreGraphicsDevice *device,
 
      snprintf( info->vendor,
                DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
-               "Denis Oliver Kropp" );
+               "Telio AG" );
 
      info->version.major = 0;
      info->version.minor = 3;
