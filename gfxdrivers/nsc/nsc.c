@@ -234,19 +234,19 @@ gxCheckState(void *drv,
    NSCDriverData *gxdrv = (NSCDriverData *) drv;
    NSCDeviceData *gxdev = (NSCDeviceData *) dev;
 
-   if(state->destination->format != DSPF_RGB16)
+   if(state->destination->config.format != DSPF_RGB16)
       return;
 
    if (DFB_BLITTING_FUNCTION(accel)) {
 
-	   if(state->source->format != DSPF_RGB16)
+	   if(state->source->config.format != DSPF_RGB16)
 		  return;
       if (gxdrv->cpu) {
          /* GU2 - if there are no other blitting flags than the supported
           * and the source and destination formats are the same 
           */
          if (!(state->blittingflags & ~GX_SUPPORTED_BLITTINGFLAGS) &&
-             state->source && state->source->format != DSPF_RGB24) {
+             state->source && state->source->config.format != DSPF_RGB24) {
             state->accel |= GX_SUPPORTED_BLITTINGFUNCTIONS;
          }
       } else{
@@ -257,12 +257,12 @@ gxCheckState(void *drv,
             int dst_pitch = 0;
 
             if(state->source) {
-               src_pitch = state->source->width * DFB_BYTES_PER_PIXEL(state->source->format);
+               src_pitch = state->source->config.size.w * DFB_BYTES_PER_PIXEL(state->source->config.format);
             }
 
             if (state->modified & SMF_DESTINATION) {
-               if(state->destination && state->destination->front_buffer)
-                  dst_pitch = state->destination->back_buffer->video.pitch;
+               if(state->destination && state->dst.buffer)
+                  dst_pitch = state->dst.pitch;
             }
             if(dst_pitch == 0) {
                dst_pitch = gxdev->dst_pitch;
@@ -290,7 +290,7 @@ gxSetState(void *drv, void *dev,
    NSCDriverData *gxdrv = (NSCDriverData *) drv;
    NSCDeviceData *gxdev = (NSCDeviceData *) dev;
 
-   if (state->modified & SMF_SRC_COLORKEY)
+   if (state->mod_hw & SMF_SRC_COLORKEY)
       gxdev->v_srcColorkey = 0;
 
    switch (accel) {
@@ -311,22 +311,22 @@ gxSetState(void *drv, void *dev,
       break;
    }
 
-   if (state->modified & SMF_DESTINATION) {
+   if (state->mod_hw & SMF_DESTINATION) {
 
       /* set offset & pitch */
 
-      gxdev->dst_offset = state->destination->back_buffer->video.offset;
-      gxdev->dst_pitch = state->destination->back_buffer->video.pitch;
+      gxdev->dst_offset = state->dst.offset;
+      gxdev->dst_pitch = state->dst.pitch;
    }
 
-   if (state->modified & SMF_SOURCE && state->source) {
+   if (state->mod_hw & SMF_SOURCE && state->source) {
 
-      gxdev->src_offset = state->source->front_buffer->video.offset;
-      gxdev->src_pitch = state->source->front_buffer->video.pitch;
+      gxdev->src_offset = state->src.offset;
+      gxdev->src_pitch = state->src.pitch;
    }
 
-   if (state->modified & (SMF_DESTINATION | SMF_COLOR)) {
-      switch (state->destination->format) {
+   if (state->mod_hw & (SMF_DESTINATION | SMF_COLOR)) {
+      switch (state->destination->config.format) {
       case DSPF_A8:
          gxdev->Color = state->color.a;
          break;
@@ -346,7 +346,7 @@ gxSetState(void *drv, void *dev,
       }
    }
 
-   state->modified = 0;
+   state->mod_hw = 0;
 }
 
 static bool
@@ -496,7 +496,7 @@ nscBlitGu1(void *drv, void *dev, DFBRectangle * rect, int dx, int dy)
 /* exported symbols */
 
 static int
-driver_probe(GraphicsDevice *device)
+driver_probe(CoreGraphicsDevice *device)
 {
    Gal_initialize_interface();
    if(!Gal_get_adapter_info(&sAdapterInfo))
@@ -506,7 +506,7 @@ driver_probe(GraphicsDevice *device)
 }
 
 static void
-driver_get_info(GraphicsDevice *device, GraphicsDriverInfo *info)
+driver_get_info(CoreGraphicsDevice *device, GraphicsDriverInfo *info)
 {
    /* fill driver info structure */
    snprintf(info->name,
@@ -520,7 +520,7 @@ driver_get_info(GraphicsDevice *device, GraphicsDriverInfo *info)
 }
 
 static DFBResult
-driver_init_driver(GraphicsDevice      *device,
+driver_init_driver(CoreGraphicsDevice  *device,
                    GraphicsDeviceFuncs *funcs,
                    void                *driver_data,
                    void                *device_data,
@@ -558,7 +558,7 @@ driver_init_driver(GraphicsDevice      *device,
 }
 
 static DFBResult
-driver_init_device(GraphicsDevice *device,
+driver_init_device(CoreGraphicsDevice *device,
                    GraphicsDeviceInfo *device_info,
                    void *driver_data, void *device_data)
 {
@@ -576,7 +576,7 @@ driver_init_device(GraphicsDevice *device,
 }
 
 static void
-driver_close_device(GraphicsDevice * device,
+driver_close_device(CoreGraphicsDevice * device,
                     void *driver_data, void *device_data)
 {
    NSCDeviceData *gxdev = (NSCDeviceData *) device_data;
@@ -586,7 +586,7 @@ driver_close_device(GraphicsDevice * device,
 }
 
 static void
-driver_close_driver(GraphicsDevice *device, void *driver_data)
+driver_close_driver(CoreGraphicsDevice *device, void *driver_data)
 {
    D_DEBUG("DirectFB/nsc: 6");
 }

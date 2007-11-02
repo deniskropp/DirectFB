@@ -137,7 +137,8 @@ osdSetRegion( CoreLayer                  *layer,
               CoreLayerRegionConfig      *config,
               CoreLayerRegionConfigFlags  updated,
               CoreSurface                *surface,
-              CorePalette                *palette )
+              CorePalette                *palette,
+              CoreSurfaceBufferLock      *lock )
 {
      DFBResult     ret;
      UcDriverData *ucdrv = (UcDriverData*) driver_data;
@@ -146,7 +147,7 @@ osdSetRegion( CoreLayer                  *layer,
      ret = ucOldPrimaryFuncs.SetRegion( layer, ucOldPrimaryDriverData,
                                         layer_data, region_data,
                                         config, updated, surface,
-                                        palette );
+                                        palette, lock );
      if (ret)
           return ret;
 

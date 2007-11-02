@@ -20,9 +20,9 @@
 #include <fusion/shmalloc.h>
 
 #include <core/coretypes.h>
+#include <core/core.h>
 #include <core/gfxcard.h>
 #include <core/graphics_driver.h>
-#include <core/surfacemanager.h>
 #include <core/system.h>
 #include <core/screens.h>
 
@@ -173,7 +173,7 @@ static void uc_dump_vq(UcDeviceData *ucdev)
 
 /** Allocate memory for the virtual queue. */
 
-static DFBResult uc_alloc_vq(GraphicsDevice *device, UcDeviceData *ucdev)
+static DFBResult uc_alloc_vq(CoreGraphicsDevice *device, UcDeviceData *ucdev)
 {
      if (ucdev->vq_start) return DFB_OK;
 
@@ -199,7 +199,7 @@ static DFBResult uc_alloc_vq(GraphicsDevice *device, UcDeviceData *ucdev)
  * @param enable    enable VQ if true (else disable it.)
  */
 
-DFBResult uc_init_2d_engine(GraphicsDevice *device, UcDeviceData *ucdev, UcDriverData *ucdrv, bool enable)
+DFBResult uc_init_2d_engine(CoreGraphicsDevice *device, UcDeviceData *ucdev, UcDriverData *ucdrv, bool enable)
 {
      DFBResult result = DFB_OK;
      volatile u8* hwregs = ucdrv->hwregs;
@@ -398,7 +398,7 @@ static DFBResult uc_engine_sync(void* drv, void* dev)
 
 // DirectFB interfacing functions --------------------------------------------
 
-static int driver_probe(GraphicsDevice *device)
+static int driver_probe(CoreGraphicsDevice *device)
 {
      struct stat s;
 
@@ -410,7 +410,7 @@ static int driver_probe(GraphicsDevice *device)
      return stat(UNICHROME_DEVICE, &s) + 1;
 }
 
-static void driver_get_info(GraphicsDevice* device,
+static void driver_get_info(CoreGraphicsDevice* device,
                             GraphicsDriverInfo* info)
 {
      // Fill in driver info structure.
@@ -449,7 +449,7 @@ static void uc_probe_fbdev(UcDriverData *ucdrv)
           ucdrv->canfliponvsync = false;
 }
 
-static DFBResult driver_init_driver(GraphicsDevice* device,
+static DFBResult driver_init_driver(CoreGraphicsDevice* device,
                                     GraphicsDeviceFuncs* funcs,
                                     void* driver_data,
                                     void* device_data,
@@ -524,7 +524,7 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
      return DFB_OK;
 }
 
-static DFBResult driver_init_device(GraphicsDevice* device,
+static DFBResult driver_init_device(CoreGraphicsDevice* device,
                                     GraphicsDeviceInfo* device_info,
                                     void* driver_data,
                                     void* device_data)
@@ -572,7 +572,7 @@ static DFBResult driver_init_device(GraphicsDevice* device,
      return DFB_OK;
 }
 
-static void driver_close_device(GraphicsDevice *device,
+static void driver_close_device(CoreGraphicsDevice *device,
                                 void *driver_data, void *device_data)
 {
      UcDriverData* ucdrv = (UcDriverData*) driver_data;
@@ -584,7 +584,7 @@ static void driver_close_device(GraphicsDevice *device,
      uc_init_2d_engine(device, ucdev, ucdrv, false);
 }
 
-static void driver_close_driver(GraphicsDevice* device, void* driver_data)
+static void driver_close_driver(CoreGraphicsDevice* device, void* driver_data)
 {
      UcDriverData* ucdrv = (UcDriverData*) driver_data;
 

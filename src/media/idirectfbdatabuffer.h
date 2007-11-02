@@ -44,6 +44,16 @@ typedef struct {
 } IDirectFBDataBuffer_data;
 
 /*
+ * private data struct of IDirectFBDataBuffer_File
+ */
+typedef struct {
+     IDirectFBDataBuffer_data base;
+
+     DirectStream    *stream;
+     pthread_mutex_t  mutex;
+} IDirectFBDataBuffer_File_data;
+
+/*
  * private data struct of IDirectFBDataBuffer_Memory
  */
 typedef struct {

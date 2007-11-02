@@ -199,13 +199,12 @@ i810_set_src(I810DriverData *i810drv,
 	     CardState      *state)
 {
 	CoreSurface   *source = state->source;
-	SurfaceBuffer *buffer = source->front_buffer;
 
 	if (i810dev->i_src)
 		return;
-	i810dev->srcaddr = dfb_gfxcard_memory_physical((GraphicsDevice *) i810dev,
-						       buffer->video.offset);
-	i810dev->srcpitch = buffer->video.pitch;
+	i810dev->srcaddr = dfb_gfxcard_memory_physical((CoreGraphicsDevice *) i810dev,
+						       state->src.offset);
+	i810dev->srcpitch = state->src.pitch;
 
 	i810dev->i_src = 1;
 }
@@ -216,15 +215,14 @@ i810_set_dest(I810DriverData *i810drv,
 	      CardState      *state)
 {
 	CoreSurface   *destination = state->destination;
-	SurfaceBuffer *buffer      = destination->back_buffer;
 	
 	if (i810dev->i_dst)
 		return;
-	i810dev->destaddr = dfb_gfxcard_memory_physical((GraphicsDevice *) i810dev,
-							buffer->video.offset);
-	i810dev->destpitch = buffer->video.pitch;
+	i810dev->destaddr = dfb_gfxcard_memory_physical((CoreGraphicsDevice *) i810dev,
+							state->dst.offset);
+	i810dev->destpitch = state->dst.pitch;
 	
-	switch (destination->format) {
+	switch (destination->config.format) {
 	case DSPF_LUT8:
 		i810dev->pixeldepth = 1;
 		i810dev->blit_color = BPP8;
@@ -276,7 +274,7 @@ i810_set_color(I810DriverData *i810drv,
 	if (i810dev->i_color)
 		return;
 
-	switch (state->destination->format) {
+	switch (state->destination->config.format) {
 	case DSPF_LUT8:
 		i810dev->color_value = state->color_index;
 		break;
@@ -322,7 +320,7 @@ static void
 i810CheckState(void *drv, void *dev,
 	       CardState *state, DFBAccelerationMask accel )
 {
-	switch (state->destination->format) {
+	switch (state->destination->config.format) {
 	case DSPF_LUT8:
 	case DSPF_ARGB1555:
 	case DSPF_RGB16:
@@ -338,7 +336,7 @@ i810CheckState(void *drv, void *dev,
 	
 	if (!(accel & ~I810_SUPPORTED_BLITTINGFUNCTIONS) &&
 	    !(state->blittingflags & ~I810_SUPPORTED_BLITTINGFLAGS)) {
-		if (state->source->format == state->destination->format)
+		if (state->source->config.format == state->destination->config.format)
 			state->accel |= I810_SUPPORTED_BLITTINGFUNCTIONS;
 	}
 }
@@ -351,17 +349,17 @@ i810SetState( void *drv, void *dev,
 	I810DriverData *i810drv = (I810DriverData *) drv;
 	I810DeviceData *i810dev = (I810DeviceData *) dev;
 
-	if (state->modified) {
-		if ((state->modified & SMF_SOURCE) && state->source)
+	if (state->mod_hw) {
+		if ((state->mod_hw & SMF_SOURCE) && state->source)
 			i810dev->i_src = 0;
-		if (state->modified & SMF_DESTINATION)
+		if (state->mod_hw & SMF_DESTINATION)
 			i810dev->i_dst = 0;
-		if (state->modified & SMF_COLOR)
+		if (state->mod_hw & SMF_COLOR)
 			i810dev->i_color = 0;
-		if (state->modified & SMF_CLIP)
+		if (state->mod_hw & SMF_CLIP)
 			i810dev->i_clip = 0;
-		if (state->modified & SMF_SRC_COLORKEY ||
-		    state->modified & SMF_DST_COLORKEY) {
+		if (state->mod_hw & SMF_SRC_COLORKEY ||
+		    state->mod_hw & SMF_DST_COLORKEY) {
 			i810dev->i_colorkey = 0;
 		}
 	}
@@ -388,7 +386,7 @@ i810SetState( void *drv, void *dev,
 	default:
 		D_BUG("unexpected drawing/blitting function");
 	}
-	state->modified = 0;
+	state->mod_hw = 0;
 }
 
 static bool
@@ -698,7 +696,7 @@ i810FillTriangle( void *drv, void *dev, DFBTriangle *tri)
 }
 
 static int
-driver_probe( GraphicsDevice *device )
+driver_probe( CoreGraphicsDevice *device )
 {
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_I810:          /* Intel 810 */
@@ -709,7 +707,7 @@ driver_probe( GraphicsDevice *device )
 
 
 static void
-driver_get_info( GraphicsDevice     *device,
+driver_get_info( CoreGraphicsDevice *device,
                  GraphicsDriverInfo *info )
 {
      /* fill driver info structure */
@@ -781,7 +779,7 @@ i810_release_resource( I810DriverData *idrv, I810DeviceData *idev )
 }
 
 static DFBResult
-i810_agp_setup( GraphicsDevice *device,
+i810_agp_setup( CoreGraphicsDevice *device,
                 I810DriverData *idrv,
                 I810DeviceData *idev )
 {
@@ -899,7 +897,7 @@ i810_agp_setup( GraphicsDevice *device,
 }
 
 static DFBResult
-driver_init_driver( GraphicsDevice      *device,
+driver_init_driver( CoreGraphicsDevice  *device,
                     GraphicsDeviceFuncs *funcs,
                     void                *driver_data,
                     void                *device_data,
@@ -940,7 +938,7 @@ driver_init_driver( GraphicsDevice      *device,
 }
 
 static DFBResult
-driver_init_device( GraphicsDevice     *device,
+driver_init_device( CoreGraphicsDevice *device,
                     GraphicsDeviceInfo *device_info,
                     void               *driver_data,
                     void               *device_data )
@@ -972,9 +970,9 @@ driver_init_device( GraphicsDevice     *device,
 }
 
 static void
-driver_close_device( GraphicsDevice *device,
-		     void           *driver_data,
-		     void           *device_data )
+driver_close_device( CoreGraphicsDevice *device,
+		     void               *driver_data,
+		     void               *device_data )
 {
 	I810DeviceData *i810dev = (I810DeviceData *) device_data;
 	I810DriverData *i810drv = (I810DriverData *) driver_data;
@@ -1023,8 +1021,8 @@ driver_close_device( GraphicsDevice *device,
 }
 
 static void
-driver_close_driver( GraphicsDevice *device,
-                     void           *driver_data )
+driver_close_driver( CoreGraphicsDevice *device,
+                     void               *driver_data )
 {
 	I810DriverData *idrv = (I810DriverData *) driver_data;
 

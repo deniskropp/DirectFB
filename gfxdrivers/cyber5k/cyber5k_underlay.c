@@ -45,7 +45,8 @@ typedef struct {
 static void udl_set_all     ( CyberDriverData        *cdrv,
                               CyberUnderlayLayerData *cudl,
                               CoreLayerRegionConfig  *config,
-                              CoreSurface            *surface );
+                              CoreSurface            *surface,
+                              CoreSurfaceBufferLock  *lock );
 static void udl_set_location( CyberDriverData        *cdrv,
                               CyberUnderlayLayerData *cudl,
                               CoreLayerRegionConfig  *config,
@@ -156,7 +157,8 @@ udlSetRegion( CoreLayer                  *layer,
               CoreLayerRegionConfig      *config,
               CoreLayerRegionConfigFlags  updated,
               CoreSurface                *surface,
-              CorePalette                *palette )
+              CorePalette                *palette,
+              CoreSurfaceBufferLock      *lock )
 {
      CyberDriverData        *cdrv = (CyberDriverData*) driver_data;
      CyberUnderlayLayerData *cudl = (CyberUnderlayLayerData*) layer_data;
@@ -165,7 +167,7 @@ udlSetRegion( CoreLayer                  *layer,
      cudl->config = *config;
 
      /* set up layer */
-     udl_set_all( cdrv, cudl, config, surface );
+     udl_set_all( cdrv, cudl, config, surface, lock );
 
      return DFB_OK;
 }
@@ -185,19 +187,20 @@ udlRemoveRegion( CoreLayer *layer,
 }
 
 static DFBResult
-udlFlipRegion( CoreLayer           *layer,
-               void                *driver_data,
-               void                *layer_data,
-               void                *region_data,
-               CoreSurface         *surface,
-               DFBSurfaceFlipFlags  flags )
+udlFlipRegion( CoreLayer             *layer,
+               void                  *driver_data,
+               void                  *layer_data,
+               void                  *region_data,
+               CoreSurface           *surface,
+               DFBSurfaceFlipFlags    flags,
+               CoreSurfaceBufferLock *lock )
 {
      CyberDriverData        *cdrv = (CyberDriverData*) driver_data;
      CyberUnderlayLayerData *cudl = (CyberUnderlayLayerData*) layer_data;
 
-     dfb_surface_flip_buffers( surface, false );
+     dfb_surface_flip( surface, false );
 
-     udl_set_all( cdrv, cudl, &cudl->config, surface );
+     udl_set_all( cdrv, cudl, &cudl->config, surface, lock );
 
      return DFB_OK;
 }
@@ -219,10 +222,9 @@ DisplayLayerFuncs cyberUnderlayFuncs = {
 static void udl_set_all( CyberDriverData        *cdrv,
                          CyberUnderlayLayerData *cudl,
                          CoreLayerRegionConfig  *config,
-                         CoreSurface            *surface )
+                         CoreSurface            *surface,
+                         CoreSurfaceBufferLock  *lock )
 {
-     SurfaceBuffer *front = surface->front_buffer;
-
      /* set the pixel format */
      switch (surface->config.format) {
           case DSPF_RGB332:
@@ -258,8 +260,8 @@ static void udl_set_all( CyberDriverData        *cdrv,
      cyber_set_overlay_mode( OVERLAY_WINDOWKEY );
 
      /* set address */
-     cyber_set_overlay_srcaddr( front->video.offset, 0, 0,
-                                surface->config.size.w, front->video.pitch );
+     cyber_set_overlay_srcaddr( lock->offset, 0, 0,
+                                surface->config.size.w, lock->pitch );
 
      /* set location and scaling */
      udl_set_location( cdrv, cudl, config, surface );

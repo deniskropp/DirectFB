@@ -53,6 +53,7 @@ typedef struct _UcOverlayData {
     int                 field;
 
     CoreSurface        *surface;
+    CoreSurfaceBufferLock *lock;
     
     int                 opacity_primary; // overlay opacity if primary is logically
                                          // above or -1 if primary has alpha channel
@@ -87,7 +88,8 @@ void uc_ovl_setup_fifo(UcOverlayData* ucovl, int scrwidth);
 void uc_ovl_vcmd_wait(volatile u8* vio);
 DFBResult uc_ovl_update(UcDriverData* ucdrv,
                         UcOverlayData* ucovl, int action,
-                        CoreSurface* surface);
+                        CoreSurface* surface,
+                        CoreSurfaceBufferLock* lock);
 DFBResult uc_ovl_set_adjustment(CoreLayer *layer,
                                 void *driver_data,
                                 void *layer_data,

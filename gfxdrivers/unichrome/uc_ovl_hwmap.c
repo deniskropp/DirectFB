@@ -323,8 +323,8 @@ void uc_ovl_map_window(int scrw, int scrh, DFBRectangle* win, int sw, int sh,
         *pfetch = sw - *ox - (x+dw-scrw)*sw/dw;
     }
 
-    if (pfetch < 0)
-        pfetch = 0;
+    if (*pfetch < 0)
+        *pfetch = 0;
 
     *win_start = (x1 << 16) | y1;
     *win_end = (x2 << 16) | y2;

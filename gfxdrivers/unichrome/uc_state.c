@@ -139,7 +139,7 @@ uc_select_blittype( CardState* state,
                     DFBAccelerationMask accel )
 {
      if (!(state->blittingflags & ~UC_BLITTING_FLAGS_2D)) {
-          if ((state->source->format == state->destination->format) &&
+          if ((state->source->config.format == state->destination->config.format) &&
               !((state->blittingflags & DSBLIT_SRC_COLORKEY) &&
                 (state->blittingflags & DSBLIT_DST_COLORKEY)) &&
               !(accel & (DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES)))
@@ -147,20 +147,20 @@ uc_select_blittype( CardState* state,
      }
 
      if (!(state->blittingflags & ~UC_BLITTING_FLAGS_3D)) {
-          if (uc_has_src_format_3d( state->source->format ))
+          if (uc_has_src_format_3d( state->source->config.format ))
                return UC_TYPE_3D;
      }
      
      if (!(state->blittingflags & ~UC_BLITTING_FLAGS_3D_INV)) {
-          if (uc_has_inv_src_format_3d( state->source->format ))
+          if (uc_has_inv_src_format_3d( state->source->config.format ))
                return UC_TYPE_3D;
      }
      
      /* Special case for an inverted destination alpha channel.  This
       * can only be done if no blending is requested at the same time. */
      if (state->blittingflags == DSBLIT_NOFX) {
-          if (DFB_PIXELFORMAT_INV_ALPHA(state->destination->format) &&
-              !DFB_PIXELFORMAT_INV_ALPHA(state->source->format))
+          if (DFB_PIXELFORMAT_INV_ALPHA(state->destination->config.format) &&
+              !DFB_PIXELFORMAT_INV_ALPHA(state->source->config.format))
                return UC_TYPE_3D;
      }
 
@@ -176,12 +176,12 @@ void uc_check_state(void *drv, void *dev,
           /* Check drawing parameters. */
           switch (uc_select_drawtype(state, accel)) {
                case UC_TYPE_2D:
-                    if (uc_has_dst_format( state->destination->format ) ||
-                         uc_additional_draw_2d( state->destination->format ))
+                    if (uc_has_dst_format( state->destination->config.format ) ||
+                         uc_additional_draw_2d( state->destination->config.format ))
                          state->accel |= UC_DRAWING_FUNCTIONS_2D;
                     break;
                case UC_TYPE_3D:
-                    if (uc_has_dst_format( state->destination->format ))
+                    if (uc_has_dst_format( state->destination->config.format ))
                          state->accel |= UC_DRAWING_FUNCTIONS_3D;
                     break;
                default:
@@ -192,13 +192,13 @@ void uc_check_state(void *drv, void *dev,
           /* Check blitting parameters. */
           switch (uc_select_blittype(state, accel)) {
                case UC_TYPE_2D:
-                    if (uc_has_dst_format( state->destination->format ) ||
-                         uc_additional_blit_2d( state->destination->format ))
+                    if (uc_has_dst_format( state->destination->config.format ) ||
+                         uc_additional_blit_2d( state->destination->config.format ))
                          state->accel |= UC_BLITTING_FUNCTIONS_2D;
                     break;
                case UC_TYPE_3D:
-                    if (uc_has_dst_format( state->destination->format ) ||
-                         uc_has_inv_dst_format_3d( state->destination->format ))
+                    if (uc_has_dst_format( state->destination->config.format ) ||
+                         uc_has_inv_dst_format_3d( state->destination->config.format ))
                          state->accel |= UC_BLITTING_FUNCTIONS_3D;
                     break;
                default:
@@ -217,7 +217,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
      u32 rop3d     = HC_HROP_P;
      u32 regEnable = HC_HenCW_MASK | HC_HenAW_MASK;
 
-     StateModificationFlags modified = state->modified;
+     StateModificationFlags modified = state->mod_hw;
 
      // Check modified states and update hw
 
@@ -344,6 +344,6 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
 
      UC_FIFO_CHECK(fifo);
 
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 

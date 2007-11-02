@@ -54,28 +54,28 @@ typedef struct {
 
 
 void
-savage3d_get_info( GraphicsDevice     *device,
+savage3d_get_info( CoreGraphicsDevice *device,
                    GraphicsDriverInfo *info );
 
 DFBResult
-savage3d_init_driver( GraphicsDevice      *device,
+savage3d_init_driver( CoreGraphicsDevice  *device,
                       GraphicsDeviceFuncs *funcs,
                       void                *driver_data );
 
 DFBResult
-savage3d_init_device( GraphicsDevice     *device,
+savage3d_init_device( CoreGraphicsDevice *device,
                       GraphicsDeviceInfo *device_info,
                       void               *driver_data,
                       void               *device_data );
 
 void
-savage3d_close_device( GraphicsDevice *device,
-                       void           *driver_data,
-                       void           *device_data );
+savage3d_close_device( CoreGraphicsDevice *device,
+                       void               *driver_data,
+                       void               *device_data );
 
 void
-savage3d_close_driver( GraphicsDevice *device,
-                       void           *driver_data );
+savage3d_close_driver( CoreGraphicsDevice *device,
+                       void               *driver_data );
 
 
 #define FIFOSTATUS      0x48C00

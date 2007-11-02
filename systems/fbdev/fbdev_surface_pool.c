@@ -296,7 +296,7 @@ fbdevAllocateBuffer( CoreSurfacePool       *pool,
 
           alloc->offset = chunk->offset;
           alloc->pitch  = chunk->pitch;
-          alloc->size   = surface->config.size.h * alloc->pitch;
+          alloc->size   = chunk->length;// DFB_PLANE_MULTIPLY( buffer->format, surface->config.size.h ) * alloc->pitch;
 
           alloc->chunk  = chunk;
      }

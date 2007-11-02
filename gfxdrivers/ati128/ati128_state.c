@@ -87,40 +87,40 @@ void ati128_set_destination( ATI128DriverData *adrv,
 
      ati128_waitfifo( adrv, adev, 1 );
 
-     switch (destination->format) {
-          case DSPF_RGB332:		
+     switch (destination->config.format) {
+          case DSPF_RGB332:
                ati128_out32( adrv->mmio_base, DST_PITCH_OFFSET,
-                             ((destination->back_buffer->video.pitch >> 3) << 21) |
-                             (destination->back_buffer->video.offset >> 5));
+                             ((state->dst.pitch >> 3) << 21) |
+                             (state->dst.offset >> 5));
 
                adev->ATI_dst_bpp = DST_8BPP_RGB332;
                break;
-          case DSPF_ARGB1555:		
+          case DSPF_ARGB1555:
                ati128_out32( adrv->mmio_base, DST_PITCH_OFFSET,
-                             ((destination->back_buffer->video.pitch >> 4) << 21) |
-                             (destination->back_buffer->video.offset >> 5));
+                             ((state->dst.pitch >> 4) << 21) |
+                             (state->dst.offset >> 5));
 
                adev->ATI_dst_bpp = DST_15BPP;
                break;
           case DSPF_RGB16:
                ati128_out32( adrv->mmio_base, DST_PITCH_OFFSET,
-                             ((destination->back_buffer->video.pitch >> 4) << 21) |
-                             (destination->back_buffer->video.offset >> 5));
+                             ((state->dst.pitch >> 4) << 21) |
+                             (state->dst.offset >> 5));
 
                adev->ATI_dst_bpp = DST_16BPP;
                break;
           case DSPF_RGB24:
                ati128_out32( adrv->mmio_base, DST_PITCH_OFFSET,
-                             ((destination->back_buffer->video.pitch >> 3) << 21) |
-                             (destination->back_buffer->video.offset >> 5));
+                             ((state->dst.pitch >> 3) << 21) |
+                             (state->dst.offset >> 5));
 
                adev->ATI_dst_bpp = DST_24BPP;
                break;
           case DSPF_RGB32:
           case DSPF_ARGB:
                ati128_out32( adrv->mmio_base, DST_PITCH_OFFSET,
-                             ((destination->back_buffer->video.pitch >> 5) << 21) |
-                             (destination->back_buffer->video.offset >> 5));
+                             ((state->dst.pitch >> 5) << 21) |
+                             (state->dst.offset >> 5));
 
                adev->ATI_dst_bpp = DST_32BPP;
                break;
@@ -143,35 +143,35 @@ void ati128_set_source( ATI128DriverData *adrv,
 
      ati128_waitfifo( adrv, adev, 3 );
 
-     switch (state->source->format) {
+     switch (state->source->config.format) {
           case DSPF_RGB332:
                ati128_out32( adrv->mmio_base, SRC_PITCH,
-                             state->source->front_buffer->video.pitch >>3);
+                             state->src.pitch >> 3);
 
                ati128_out32( adrv->mmio_base, CLR_CMP_MASK, 0x000000FF );
                break;
           case DSPF_ARGB1555:
                ati128_out32( adrv->mmio_base, SRC_PITCH,
-                             state->source->front_buffer->video.pitch >>4);
+                             state->src.pitch >> 4);
 
                ati128_out32( adrv->mmio_base, CLR_CMP_MASK, 0x00007FFF );
                break;
           case DSPF_RGB16:
                ati128_out32( adrv->mmio_base, SRC_PITCH,
-                             state->source->front_buffer->video.pitch >>4);
+                             state->src.pitch >> 4);
 
                ati128_out32( adrv->mmio_base, CLR_CMP_MASK, 0x0000FFFF );
                break;
           case DSPF_RGB24:
                ati128_out32( adrv->mmio_base, SRC_PITCH,
-                             state->source->front_buffer->video.pitch >>3);
+                             state->src.pitch >> 3);
 
                ati128_out32( adrv->mmio_base, CLR_CMP_MASK, 0x00FFFFFF );
                break;
           case DSPF_RGB32:
           case DSPF_ARGB:
                ati128_out32( adrv->mmio_base, SRC_PITCH,
-                             state->source->front_buffer->video.pitch >>5);
+                             state->src.pitch >> 5);
 
                ati128_out32( adrv->mmio_base, CLR_CMP_MASK, 0x00FFFFFF );
                break;
@@ -181,9 +181,10 @@ void ati128_set_source( ATI128DriverData *adrv,
      }
 
      ati128_out32( adrv->mmio_base, SRC_OFFSET,
-                   state->source->front_buffer->video.offset );
+                   state->src.offset );
 
      adev->source = state->source;
+     adev->src = &state->src;
      adev->v_source = 1;
 }
 
@@ -195,7 +196,7 @@ void ati128_set_clip( ATI128DriverData *adrv,
      ati128_waitfifo( adrv, adev, 2 );
 
      /* 24bpp needs special treatment */
-     if (state->destination->format == DSPF_RGB24) {
+     if (state->destination->config.format == DSPF_RGB24) {
           ati128_out32( adrv->mmio_base, SC_TOP_LEFT,
                         (state->clip.y1 << 16) | (state->clip.x1*3) );
 
@@ -220,7 +221,7 @@ void ati128_set_color( ATI128DriverData *adrv,
      if (adev->v_color)
           return;
 
-     switch (state->destination->format) {
+     switch (state->destination->config.format) {
           case DSPF_RGB332:
                fill_color = PIXEL_RGB332( state->color.r,
                                           state->color.g,

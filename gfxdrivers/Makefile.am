@@ -18,6 +18,12 @@ else
 CYBER5K_DIR =
 endif
 
+if GFX_DAVINCI
+DAVINCI_DIR = davinci
+else
+DAVINCI_DIR =
+endif
+
 if GFX_I810
 I810_DIR = i810
 else
@@ -112,6 +118,7 @@ SUBDIRS = \
 	$(ATI128_DIR)	\
 	$(CLE266_DIR)	\
 	$(CYBER5K_DIR)	\
+	$(DAVINCI_DIR)	\
 	$(I810_DIR)	\
 	$(I830_DIR)	\
 	$(MACH64_DIR)	\

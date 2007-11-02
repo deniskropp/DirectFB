@@ -95,7 +95,6 @@ static inline void savage3D_validate_gbd( Savage3DDriverData *sdrv,
 {
      u32 BitmapDescriptor;
      CoreSurface *destination;
-     SurfaceBuffer *buffer;
      int bpp;
 
 
@@ -103,12 +102,11 @@ static inline void savage3D_validate_gbd( Savage3DDriverData *sdrv,
           return;
 
      destination = state->destination;
-     buffer = destination->back_buffer;
-     bpp = DFB_BYTES_PER_PIXEL(destination->format);
+     bpp = DFB_BYTES_PER_PIXEL(destination->config.format);
      
      BitmapDescriptor = BCI_BD_BW_DISABLE | 8 | 1;
      BCI_BD_SET_BPP( BitmapDescriptor, bpp * 8 );
-     BCI_BD_SET_STRIDE( BitmapDescriptor, buffer->video.pitch / bpp );
+     BCI_BD_SET_STRIDE( BitmapDescriptor, state->dst.pitch / bpp );
 
      /* strange effects if we don't wait here for the Savage3D being idle */
      savage3D_waitidle( sdrv, sdev );
@@ -116,7 +114,7 @@ static inline void savage3D_validate_gbd( Savage3DDriverData *sdrv,
      savage3D_waitfifo( sdrv, sdev, 4 );
 
      BCI_SEND( BCI_CMD_SETREG | (1 << 16) | BCI_GBD1 );
-     BCI_SEND( buffer->video.offset );
+     BCI_SEND( state->dst.offset );
 
      BCI_SEND( BCI_CMD_SETREG | (1 << 16) | BCI_GBD2 );
      BCI_SEND( BitmapDescriptor );
@@ -130,7 +128,6 @@ static inline void savage3D_validate_pbd( Savage3DDriverData *sdrv,
 {
      u32 BitmapDescriptor;
      CoreSurface *source;
-     SurfaceBuffer *buffer;
      int bpp;
 
 
@@ -138,18 +135,17 @@ static inline void savage3D_validate_pbd( Savage3DDriverData *sdrv,
           return;
 
      source = state->source;
-     buffer = source->front_buffer;
-     bpp = DFB_BYTES_PER_PIXEL(source->format);
+     bpp = DFB_BYTES_PER_PIXEL(source->config.format);
      
      BitmapDescriptor = BCI_BD_BW_DISABLE;
      BCI_BD_SET_BPP( BitmapDescriptor, bpp * 8 );
-     BCI_BD_SET_STRIDE( BitmapDescriptor, buffer->video.pitch / bpp );
+     BCI_BD_SET_STRIDE( BitmapDescriptor, state->src.pitch / bpp );
 
      
      savage3D_waitfifo( sdrv, sdev, 4 );
 
      BCI_SEND( BCI_CMD_SETREG | (1 << 16) | BCI_PBD1 );
-     BCI_SEND( buffer->video.offset );
+     BCI_SEND( state->src.offset );
 
      BCI_SEND( BCI_CMD_SETREG | (1 << 16) | BCI_PBD2 );
      BCI_SEND( BitmapDescriptor );
@@ -168,7 +164,7 @@ static inline void savage3D_validate_color( Savage3DDriverData *sdrv,
 
      BCI_SEND( BCI_CMD_NOP | BCI_CMD_SEND_COLOR );
      
-     switch (state->destination->format) {
+     switch (state->destination->config.format) {
           case DSPF_A8:
                BCI_SEND( state->color.a );
                break;
@@ -217,7 +213,7 @@ static inline void savage3D_set_clip( Savage3DDriverData *sdrv,
 static void savage3DCheckState( void *drv, void *dev,
                                 CardState *state, DFBAccelerationMask accel )
 {
-     switch (state->destination->format) {
+     switch (state->destination->config.format) {
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -234,7 +230,7 @@ static void savage3DCheckState( void *drv, void *dev,
           state->accel |= SAVAGE3D_DRAWING_FUNCTIONS;
      }
      else {
-          if (state->source->format != state->destination->format)
+          if (state->source->config.format != state->destination->config.format)
                return;
 
           if (state->blittingflags & ~SAVAGE3D_BLITTING_FLAGS)
@@ -252,13 +248,13 @@ static void savage3DSetState( void *drv, void *dev,
      Savage3DDriverData *sdrv = (Savage3DDriverData*) drv;
      Savage3DDeviceData *sdev = (Savage3DDeviceData*) dev;
      
-     if (state->modified) {
-          if (state->modified & SMF_DESTINATION)
+     if (state->mod_hw) {
+          if (state->mod_hw & SMF_DESTINATION)
                sdev->v_gbd = sdev->v_color = 0;
-          else if (state->modified & SMF_COLOR)
+          else if (state->mod_hw & SMF_COLOR)
                sdev->v_color = 0;
 
-          if (state->modified & SMF_SOURCE)
+          if (state->mod_hw & SMF_SOURCE)
                sdev->v_pbd = 0;
      }
           
@@ -286,7 +282,7 @@ static void savage3DSetState( void *drv, void *dev,
                return;
      }
 
-     if (state->modified & SMF_BLITTING_FLAGS) {
+     if (state->mod_hw & SMF_BLITTING_FLAGS) {
           if (state->blittingflags & DSBLIT_SRC_COLORKEY)
                sdev->Cmd_Src_Transparent = BCI_CMD_SRC_TRANSPARENT |
                                            BCI_CMD_SEND_COLOR;
@@ -294,13 +290,13 @@ static void savage3DSetState( void *drv, void *dev,
                sdev->Cmd_Src_Transparent = 0;
      }
 
-     if (state->modified & SMF_CLIP)
+     if (state->mod_hw & SMF_CLIP)
           savage3D_set_clip( sdrv, sdev, &state->clip );
 
-     if (state->modified & SMF_SRC_COLORKEY)
+     if (state->mod_hw & SMF_SRC_COLORKEY)
           sdev->src_colorkey = state->src_colorkey;
      
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 static bool savage3DFillRectangle( void *drv, void *dev, DFBRectangle *rect )
@@ -465,7 +461,7 @@ static void savage3DAfterSetVar( void *drv, void *dev )
 /* exported symbols */
 
 void
-savage3d_get_info( GraphicsDevice     *device,
+savage3d_get_info( CoreGraphicsDevice *device,
                    GraphicsDriverInfo *info )
 {
      info->version.major = 0;
@@ -476,7 +472,7 @@ savage3d_get_info( GraphicsDevice     *device,
 }
 
 DFBResult
-savage3d_init_driver( GraphicsDevice      *device,
+savage3d_init_driver( CoreGraphicsDevice  *device,
                       GraphicsDeviceFuncs *funcs,
                       void                *driver_data )
 {
@@ -496,7 +492,7 @@ savage3d_init_driver( GraphicsDevice      *device,
 }
 
 DFBResult
-savage3d_init_device( GraphicsDevice     *device,
+savage3d_init_device( CoreGraphicsDevice *device,
                       GraphicsDeviceInfo *device_info,
                       void               *driver_data,
                       void               *device_data )
@@ -551,15 +547,15 @@ savage3d_init_device( GraphicsDevice     *device,
 }
 
 void
-savage3d_close_device( GraphicsDevice *device,
-                       void           *driver_data,
-                       void           *device_data )
+savage3d_close_device( CoreGraphicsDevice *device,
+                       void               *driver_data,
+                       void               *device_data )
 {
 }
 
 void
-savage3d_close_driver( GraphicsDevice *device,
-                       void           *driver_data )
+savage3d_close_driver( CoreGraphicsDevice *device,
+                       void               *driver_data )
 {
 }
 
