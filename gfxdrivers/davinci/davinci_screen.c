@@ -66,7 +66,7 @@ davinciInitScreen( CoreScreen           *screen,
      D_DEBUG_AT( Davinci_Screen, "%s()\n", __FUNCTION__ );
 
      /* Set the screen capabilities. */
-     description->caps = DSCCAPS_NONE;
+     description->caps = DSCCAPS_VSYNC;
 
      /* Set the screen name. */
      snprintf( description->name, DFB_SCREEN_DESC_NAME_LENGTH, "TI Davinci Screen" );
