@@ -340,9 +340,9 @@ IDirectFBEventBuffer_GetEvent( IDirectFBEventBuffer *thiz,
                event->user = item->evt.user;
                break;
 
-         case DFEC_VIDEOPROVIDER:
-              event->videoprovider = item->evt.videoprovider;
-              break;
+          case DFEC_VIDEOPROVIDER:
+               event->videoprovider = item->evt.videoprovider;
+               break;
 
           case DFEC_UNIVERSAL:
                direct_memcpy( event, &item->evt, item->evt.universal.size );
@@ -398,8 +398,8 @@ IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
                break;
 
           case DFEC_VIDEOPROVIDER:
-              event->videoprovider = item->evt.videoprovider;
-              break;
+               event->videoprovider = item->evt.videoprovider;
+               break;
 
           case DFEC_UNIVERSAL:
                direct_memcpy( event, &item->evt, item->evt.universal.size );
@@ -973,6 +973,14 @@ CollectEventStatistics( DFBEventBufferStats *stats,
 
                     case DVPET_FATALERROR:
                          stats->DVPET_FATALERROR += incdec;
+                         break;
+                    
+                    case DVPET_FINISHED:
+                         stats->DVPET_FINISHED += incdec;
+                         break;
+                         
+                    case DVPET_SURFACECHANGE:
+                         stats->DVPET_SURFACECHANGE += incdec;
                          break;
 
                     default:

@@ -4306,7 +4306,9 @@ typedef enum {
      DVPET_SPEEDCHANGE    = 0x00000004,  /* A speed change has occured                      */
      DVPET_STREAMCHANGE   = 0x00000008,  /* A stream description change has occured         */
      DVPET_FATALERROR     = 0x00000010,  /* A fatal error has occured: restart must be done */
-     DVPET_ALL            = 0x0000001F   /* all event types */
+     DVPET_FINISHED       = 0x00000020,  /* The video provider has finished the playback    */
+     DVPET_SURFACECHANGE  = 0x00000040,  /* A surface description change has occured        */
+     DVPET_ALL            = 0x0000007F   /* all event types */
 } DFBVideoProviderEventType;
 
 /*
@@ -4448,6 +4450,8 @@ typedef struct {
      unsigned int   DVPET_SPEEDCHANGE;
      unsigned int   DVPET_STREAMCHANGE;
      unsigned int   DVPET_FATALERROR;
+     unsigned int   DVPET_FINISHED;
+     unsigned int   DVPET_SURFACECHANGE;
 } DFBEventBufferStats;
 
 
@@ -5733,16 +5737,16 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
       * dynamically. 
       */
      DFBResult (*SetAudioOutputs) (
-          IDirectFBVideoProvider         *thiz,
-          DFBVideoProviderAudioUnits*    audioUnits
+          IDirectFBVideoProvider     *thiz,
+          DFBVideoProviderAudioUnits *audioUnits
      );
 
      /*
       * Get the audio units that are being used for output.
       */
      DFBResult (*GetAudioOutputs) (
-          IDirectFBVideoProvider         *thiz,
-          DFBVideoProviderAudioUnits*    audioUnits
+          IDirectFBVideoProvider     *thiz,
+          DFBVideoProviderAudioUnits *audioUnits
      );
 
      /** Event buffers **/
@@ -5750,8 +5754,8 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
       * Create an event buffer for this video provider and attach it.
       */
      DFBResult (*CreateEventBuffer) (
-          IDirectFBVideoProvider       *thiz,
-          IDirectFBEventBuffer         **ret_buffer
+          IDirectFBVideoProvider     *thiz,
+          IDirectFBEventBuffer      **ret_buffer
      );
 
      /*
@@ -5760,8 +5764,8 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
       * NOTE: Attaching multiple times generates multiple events.
       */
      DFBResult (*AttachEventBuffer) (
-          IDirectFBVideoProvider       *thiz,
-          IDirectFBEventBuffer          *buffer
+          IDirectFBVideoProvider     *thiz,
+          IDirectFBEventBuffer       *buffer
      );
 
      /*
@@ -5771,8 +5775,8 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
       * videoproviders's event mask. The default event mask is DVPET_ALL.
       */
      DFBResult (*EnableEvents) (
-          IDirectFBVideoProvider         *thiz,
-          DFBVideoProviderEventType      mask
+          IDirectFBVideoProvider     *thiz,
+          DFBVideoProviderEventType   mask
      );
 
      /*
@@ -5782,16 +5786,16 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
       * the video providers's event mask. The default event mask is DWET_ALL.
       */
      DFBResult (*DisableEvents) (
-          IDirectFBVideoProvider         *thiz,
-          DFBVideoProviderEventType      mask
+          IDirectFBVideoProvider     *thiz,
+          DFBVideoProviderEventType   mask
      );
 
      /*
       * Detach an event buffer from this video provider.
       */
      DFBResult (*DetachEventBuffer) (
-          IDirectFBVideoProvider       *thiz,
-          IDirectFBEventBuffer          *buffer
+          IDirectFBVideoProvider     *thiz,
+          IDirectFBEventBuffer       *buffer
      );
 )
 
