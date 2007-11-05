@@ -158,6 +158,7 @@ typedef struct {
      struct {
           DirectThread             *thread;
           pthread_mutex_t           lock;
+          pthread_cond_t            cond;
 
           AVStream                 *st;
           AVCodecContext           *ctx;
@@ -464,7 +465,7 @@ FFmpegInput( DirectThread *self, void *arg )
                     data->input.buffering = false;
                }
                pthread_mutex_unlock( &data->input.lock );
-               usleep( 500 );
+               usleep( 20000 );
                continue;
           }
           else if (data->video.queue.size == 0 || 
@@ -522,8 +523,6 @@ FFmpegInput( DirectThread *self, void *arg )
           pthread_mutex_unlock( &data->video.queue.lock );
           data->input.buffering = false;
      }
-     
-     dispatch_event( data, DVPET_STOPPED );
      
      return (void*)0;
 }
@@ -630,7 +629,7 @@ FFmpegVideo( DirectThread *self, void *arg )
           if (data->input.buffering ||
               !get_packet( &data->video.queue, &pkt )) {
                pthread_mutex_unlock( &data->video.lock );
-               usleep(1);
+               usleep( 100 );
                continue;
           }
           
@@ -727,10 +726,16 @@ FFmpegAudio( DirectThread *self, void *arg )
          
           pthread_mutex_lock( &data->audio.lock );
           
-          if (data->input.buffering || !data->speed ||
+          if (!data->speed) {
+               pthread_cond_wait( &data->audio.cond, &data->audio.lock );
+               pthread_mutex_unlock( &data->audio.lock );
+               continue;
+          }
+          
+          if (data->input.buffering ||
               !get_packet( &data->audio.queue, &pkt )) {
                pthread_mutex_unlock( &data->audio.lock );
-               usleep(1);
+               usleep( 100 );
                continue;
           }
           
@@ -770,7 +775,7 @@ FFmpegAudio( DirectThread *self, void *arg )
           if (size)
                data->audio.stream->Write( data->audio.stream, buf, size ); 
           else
-               usleep(1);
+               usleep( 1000 );
      }
 
      return (void*)0;
@@ -850,6 +855,7 @@ IDirectFBVideoProvider_FFmpeg_Destruct( IDirectFBVideoProvider *thiz )
      flush_packets( &data->video.queue );
      flush_packets( &data->audio.queue );
 
+     pthread_cond_destroy ( &data->audio.cond );
      pthread_cond_destroy ( &data->video.cond );
      pthread_mutex_destroy( &data->audio.queue.lock );
      pthread_mutex_destroy( &data->video.queue.lock );
@@ -1125,6 +1131,9 @@ IDirectFBVideoProvider_FFmpeg_Stop( IDirectFBVideoProvider *thiz )
      }
      
      if (data->audio.thread) {
+          pthread_mutex_lock( &data->audio.lock );
+          pthread_cond_signal( &data->audio.cond );
+          pthread_mutex_unlock( &data->audio.lock );
           direct_thread_join( data->audio.thread );
           direct_thread_destroy( data->audio.thread );
           data->audio.thread = NULL;
@@ -1134,6 +1143,8 @@ IDirectFBVideoProvider_FFmpeg_Stop( IDirectFBVideoProvider *thiz )
           data->video.dest->Release( data->video.dest );
           data->video.dest = NULL;
      }
+     
+     dispatch_event( data, DVPET_STOPPED );
      
      pthread_mutex_unlock( &data->input.lock );
      
@@ -1319,16 +1330,18 @@ IDirectFBVideoProvider_FFmpeg_SetSpeed( IDirectFBVideoProvider *thiz,
      pthread_mutex_lock( &data->video.lock );
      pthread_mutex_lock( &data->audio.lock );
      
-     if (multiplier)
+     if (multiplier) {
           multiplier = MAX( multiplier, 0.01 );
-          
-     if (multiplier > data->speed)
-          pthread_cond_signal( &data->video.cond );
-     
 #ifdef HAVE_FUSIONSOUND
-     if (data->audio.playback)
-          data->audio.playback->SetPitch( data->audio.playback, multiplier );
+          if (data->audio.playback)
+               data->audio.playback->SetPitch( data->audio.playback, multiplier );
 #endif
+     }
+
+     if (multiplier > data->speed) {
+          pthread_cond_signal( &data->video.cond );
+          pthread_cond_signal( &data->audio.cond );
+     }
      
      data->speed = multiplier;
      
@@ -1762,7 +1775,8 @@ Construct( IDirectFBVideoProvider *thiz,
      direct_util_recursive_pthread_mutex_init( &data->video.queue.lock );
      direct_util_recursive_pthread_mutex_init( &data->audio.queue.lock );  
      direct_util_recursive_pthread_mutex_init( &data->events_lock );
-     pthread_cond_init ( &data->video.cond, NULL );
+     pthread_cond_init( &data->video.cond, NULL );
+     pthread_cond_init( &data->audio.cond, NULL );
      
      
      thiz->AddRef                = IDirectFBVideoProvider_FFmpeg_AddRef;
