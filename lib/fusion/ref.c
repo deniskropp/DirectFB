@@ -405,11 +405,14 @@ _fusion_ref_change (FusionRef *ref, int add, bool global)
           _fusion_add_local( _fusion_world(ref->multi.shared), ref, add ); 
      }
 
-     if (ref->multi.builtin.call &&
-         ref->multi.builtin.local+ref->multi.builtin.global == 0) {
-          fusion_skirmish_dismiss( &ref->multi.builtin.lock );
-          return fusion_call_execute( ref->multi.builtin.call, 0, 
-                                      ref->multi.builtin.call_arg, NULL, NULL );
+     if (ref->multi.builtin.local+ref->multi.builtin.global == 0) {
+          fusion_skirmish_notify( &ref->multi.builtin.lock );
+
+          if (ref->multi.builtin.call) {
+               fusion_skirmish_dismiss( &ref->multi.builtin.lock );
+               return fusion_call_execute( ref->multi.builtin.call, 0, 
+                                           ref->multi.builtin.call_arg, NULL, NULL );
+          }
      }
      
      fusion_skirmish_dismiss( &ref->multi.builtin.lock );
@@ -456,17 +459,11 @@ fusion_ref_zero_lock (FusionRef *ref)
      }
      else {
           while (ref->multi.builtin.local+ref->multi.builtin.global) {
-               FusionSkirmish *skirmish = &ref->multi.builtin.lock;
-
                if (ref->multi.builtin.local)
                     _fusion_check_locals( _fusion_world(ref->multi.shared), ref );
               
-               fusion_skirmish_dismiss( skirmish );
-               
-               usleep( 10000 );
-               
-               ret = fusion_skirmish_prevail( skirmish );
-               if (ret);
+               ret = fusion_skirmish_wait( &ref->multi.builtin.lock, 1000 ); /* 1 second */
+               if (ret && ret != DFB_TIMEOUT);
                     return ret;
                
                if (ref->multi.builtin.call) {
@@ -537,6 +534,7 @@ fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
      else {
           ref->multi.builtin.call = call;
           ref->multi.builtin.call_arg = call_arg;
+          fusion_skirmish_notify( &ref->multi.builtin.lock );
      }
      
      fusion_skirmish_dismiss( &ref->multi.builtin.lock );
