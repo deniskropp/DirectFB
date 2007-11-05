@@ -391,9 +391,15 @@ fs_core_add_playback( CoreSound    *core,
           SHFREE( shared->shmpool, entry );
           return DFB_FUSION;
      }
-
+     
      /* Add it to the playback list. */
+     fusion_skirmish_prevail( &shared->playlist.lock );
+     
      direct_list_prepend( &shared->playlist.entries, &entry->link );
+     
+     fusion_skirmish_notify( &shared->playlist.lock );
+     
+     fusion_skirmish_dismiss( &shared->playlist.lock );
 
      return DFB_OK;
 }
@@ -414,6 +420,8 @@ fs_core_remove_playback( CoreSound    *core,
      shared = core->shared;
 
      /* Lookup playback in the list. */
+     fusion_skirmish_prevail( &shared->playlist.lock );
+     
      direct_list_foreach_safe (l, next, shared->playlist.entries) {
           CorePlaylistEntry *entry = (CorePlaylistEntry*) l;
 
@@ -426,6 +434,8 @@ fs_core_remove_playback( CoreSound    *core,
                SHFREE( shared->shmpool, entry );
           }
      }
+     
+     fusion_skirmish_dismiss( &shared->playlist.lock );
 
      return DFB_OK;
 }
@@ -569,7 +579,7 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
      int    n;                                                      \
      switch (mode) {                                                \
           case FSCM_MONO:                                           \
-               for (n = mixed; n; n--) {                            \
+               for (n = length; n; n--) {                           \
                     register __fsf s;                               \
                     const int      c = 0;                           \
                     s = src[c] + src[1] + src[2] +                  \
@@ -580,7 +590,7 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
                }                                                    \
                break;                                               \
           case FSCM_STEREO:                                         \
-               for (n = mixed; n; n--) {                            \
+               for (n = length; n; n--) {                           \
                     register __fsf s;                               \
                     int            c;                               \
                     c = 0;                                          \
@@ -595,7 +605,7 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
           case FSCM_STEREO21:                                       \
           case FSCM_STEREO30:                                       \
           case FSCM_STEREO31:                                       \
-               for (n = mixed; n; n--) {                            \
+               for (n = length; n; n--) {                           \
                     register __fsf s;                               \
                     int            c;                               \
                     if (FS_MODE_HAS_CENTER(mode)) {                 \
@@ -631,7 +641,7 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
           case FSCM_SURROUND40_3F1R:                                \
           case FSCM_SURROUND41_3F1R:                                \
           case FSCM_SURROUND50:                                     \
-               for (n = mixed; n; n--) {                            \
+               for (n = length; n; n--) {                           \
                     register __fsf s;                               \
                     int            c;                               \
                     if (FS_MODE_HAS_CENTER(mode)) {                 \
@@ -673,7 +683,7 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
                }                                                    \
                break;                                               \
           case FSCM_SURROUND51:                                     \
-               for (n = mixed; n; n--) {                            \
+               for (n = length; n; n--) {                           \
                     int c;                                          \
                     for (c = 0; c < 6; c++) {                       \
                          register __fsf s;                          \
@@ -699,7 +709,7 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
      u8    *dst = output;                                           \
      int    n;                                                      \
      if (mode == FSCM_MONO) {                                       \
-          for (n = mixed; n; n--) {                                 \
+          for (n = length; n; n--) {                                \
                register __fsf s;                                    \
                const int      c = 0;                                \
                s = fsf_shr( src[c] + src[c+1], 1 );                 \
@@ -708,7 +718,7 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
           }                                                         \
      }                                                              \
      else {                                                         \
-          for (n = mixed; n; n--) {                                 \
+          for (n = length; n; n--) {                                \
                register __fsf s;                                    \
                int            c;                                    \
                c = 0;                                               \
@@ -734,8 +744,6 @@ sound_thread( DirectThread *thread, void *arg )
      u8                 *output  = core->output_buffer;
      __fsf              *mixing  = core->mixing_buffer;
      int                 frames  = shared->config.buffersize;
-     int                 mixed   = 0;
-     
      FSChannelMode       mode    = shared->config.mode;
      
      fsf_dither_profiles(dither, FS_MAX_CHANNELS);
@@ -750,24 +758,20 @@ sound_thread( DirectThread *thread, void *arg )
           direct_thread_testcancel( thread );
 
           fs_device_get_output_delay( core->device, &delay );
-          shared->output_delay = (delay + mixed) * 1000 / shared->config.rate;                   
-          
-          if (!shared->playlist.entries) {
-               if (!mixed || delay > 0) {
-                    usleep( 1000 );
-                    continue;
-               }
-               /* Flush remaining frames. */
-               mixed = frames;
-          }
+          shared->output_delay = delay * 1000 / shared->config.rate;                   
 
-          if (mixed == 0) {
-               /* Clear mixing buffer. */
-               memset( mixing, 0, frames * FS_MAX_CHANNELS * sizeof(__fsf) );
-          }
+          /* Clear mixing buffer. */
+          memset( mixing, 0, frames * FS_MAX_CHANNELS * sizeof(__fsf) );
 
           /* Iterate through running playbacks, mixing them together. */
           fusion_skirmish_prevail( &shared->playlist.lock );
+          
+          if (!shared->playlist.entries) {
+               if (fusion_skirmish_wait( &shared->playlist.lock, delay ? 1 : 0 )) {
+                    fusion_skirmish_dismiss( &shared->playlist.lock );
+                    continue;
+               }
+          }
 
           direct_list_foreach_safe (l, next, shared->playlist.entries) {
                DFBResult          ret;
@@ -775,8 +779,8 @@ sound_thread( DirectThread *thread, void *arg )
                CorePlayback      *playback = entry->playback;
                int                num;
 
-               ret = fs_playback_mixto( playback, mixing+mixed, shared->config.rate,
-                                        frames-mixed, shared->soft_volume, &num );
+               ret = fs_playback_mixto( playback, mixing, shared->config.rate,
+                                        frames, shared->soft_volume, &num );
                if (ret) {
                     direct_list_remove( &shared->playlist.entries, l );
 
@@ -790,10 +794,6 @@ sound_thread( DirectThread *thread, void *arg )
           }
 
           fusion_skirmish_dismiss( &shared->playlist.lock );
-          
-          mixed += length;
-          if (caps & DCF_WRITEBLOCKS && mixed < frames)
-               continue;
 
           /* Convert mixing buffer to output format, clipping each sample. */
           switch (shared->config.format) {
@@ -856,9 +856,7 @@ sound_thread( DirectThread *thread, void *arg )
                     break;
           }
 
-          fs_device_write( core->device, output, mixed );
-          
-          mixed = 0;
+          fs_device_write( core->device, output, length );
      }
 
      return NULL;
