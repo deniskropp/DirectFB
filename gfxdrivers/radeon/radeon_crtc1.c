@@ -66,7 +66,7 @@ crtc1WaitVSync( CoreScreen *screen,
           (radeon_in32( mmio, GEN_INT_STATUS ) & ~VSYNC_INT) | VSYNC_INT_AK );
      
      for (i = 0; i < 2000000; i++) {
-          struct timespec t = { 0, 0 };     
+          struct timespec t = { 0, 10000 };     
           
           if (radeon_in32( mmio, GEN_INT_STATUS ) & VSYNC_INT)
                break;
