@@ -458,10 +458,10 @@ fusion_ref_zero_lock (FusionRef *ref)
           ret = DFB_ACCESSDENIED;
      }
      else {
-          while (ref->multi.builtin.local+ref->multi.builtin.global) {
-               if (ref->multi.builtin.local)
-                    _fusion_check_locals( _fusion_world(ref->multi.shared), ref );
-              
+          if (ref->multi.builtin.local)
+               _fusion_check_locals( _fusion_world(ref->multi.shared), ref );
+          
+          while (ref->multi.builtin.local+ref->multi.builtin.global) {    
                ret = fusion_skirmish_wait( &ref->multi.builtin.lock, 1000 ); /* 1 second */
                if (ret && ret != DFB_TIMEOUT);
                     return ret;
@@ -470,6 +470,9 @@ fusion_ref_zero_lock (FusionRef *ref)
                     ret = DFB_ACCESSDENIED;
                     break;
                }
+
+               if (ref->multi.builtin.local)
+                    _fusion_check_locals( _fusion_world(ref->multi.shared), ref );
           }
      }
           
