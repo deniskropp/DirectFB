@@ -208,33 +208,9 @@ dfb_surface_create( CoreDFB                  *core,
           dfb_surface_set_palette( surface, palette );
      }
      else if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format )) {
-          DFBResult    ret;
-          CorePalette *palette;
-
-          ret = dfb_palette_create( core,
-                                    1 << DFB_COLOR_BITS_PER_PIXEL( surface->config.format ),
-                                    &palette );
-          if (ret) {
-               D_DERROR( ret, "Core/Surface: Error creating palette!\n" );
+          ret = dfb_surface_init_palette( core, surface );
+          if (ret)
                goto error;
-          }
-
-          switch (surface->config.format) {
-               case DSPF_LUT8:
-                    dfb_palette_generate_rgb332_map( palette );
-                    break;
-
-               case DSPF_ALUT44:
-                    dfb_palette_generate_rgb121_map( palette );
-                    break;
-
-               default:
-                    break;
-          }
-
-          dfb_surface_set_palette( surface, palette );
-
-          dfb_palette_unref( palette );
      }
 
      /* Create the Surface Buffers. */
@@ -309,6 +285,42 @@ dfb_surface_create_simple ( CoreDFB                 *core,
 
      return dfb_surface_create( core, &config, type, resource_id, palette, ret_surface );
 }
+
+DFBResult
+dfb_surface_init_palette( CoreDFB     *core,
+                          CoreSurface *surface )
+{
+     DFBResult    ret;
+     CorePalette *palette;
+
+     ret = dfb_palette_create( core,
+                               1 << DFB_COLOR_BITS_PER_PIXEL( surface->config.format ),
+                               &palette );
+     if (ret) {
+          D_DERROR( ret, "Core/Surface: Error creating palette!\n" );
+          return ret;
+     }
+
+     switch (surface->config.format) {
+          case DSPF_LUT8:
+               dfb_palette_generate_rgb332_map( palette );
+               break;
+
+          case DSPF_ALUT44:
+               dfb_palette_generate_rgb121_map( palette );
+               break;
+
+          default:
+               break;
+     }
+
+     dfb_surface_set_palette( surface, palette );
+
+     dfb_palette_unref( palette );
+
+     return DFB_OK;
+}
+
 
 DFBResult
 dfb_surface_notify( CoreSurface                  *surface,
