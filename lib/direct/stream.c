@@ -1952,12 +1952,12 @@ file_seek( DirectStream *stream, unsigned int offset )
 }
 
 static DirectResult
-file_open( DirectStream *stream, const char *filename )
+file_open( DirectStream *stream, const char *filename, int fileno )
 {
      if (filename)
           stream->fd = open( filename, O_RDONLY | O_NONBLOCK );
      else
-          stream->fd = dup( fileno( stdin ) );
+          stream->fd = dup( fileno );
      
      if (stream->fd < 0)
           return errno2result( errno );
@@ -2008,10 +2008,14 @@ direct_stream_create( const char    *filename,
      stream->fd  = -1;
 
      if (!strncmp( filename, "stdin:/", 7 )) {
-          ret = file_open( stream, NULL );
+          ret = file_open( stream, NULL, STDIN_FILENO );
      }
      else if (!strncmp( filename, "file:/", 6 )) {
-          ret = file_open( stream, filename+6 );
+          ret = file_open( stream, filename+6, -1 );
+     }
+     else if (!strncmp( filename, "fd:/", 4 )) {
+          ret = (filename[4] >= '0' && filename[4] <= '9')
+                ? file_open( stream, NULL, atoi(filename+4) ) : DFB_INVARG;
      }
 #if DIRECT_BUILD_NETWORK
      else if (!strncmp( filename, "http://", 7 ) ||
@@ -2032,7 +2036,7 @@ direct_stream_create( const char    *filename,
      }
 #endif
      else {
-          ret = file_open( stream, filename );
+          ret = file_open( stream, filename, -1 );
      }
 
      if (ret) {
@@ -2257,10 +2261,8 @@ direct_stream_close( DirectStream *stream )
      }
 
      if (stream->fd >= 0) {
-          if (stream->fd == STDIN_FILENO) {
-               fcntl( stream->fd, F_SETFL, 
+          fcntl( stream->fd, F_SETFL, 
                     fcntl( stream->fd, F_GETFL ) & ~O_NONBLOCK );
-          }
           close( stream->fd );
           stream->fd = -1;
      }
