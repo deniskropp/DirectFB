@@ -202,6 +202,9 @@ coma_component_init( ComaComponent   *component,
      /* Setup notification dispatch callback. */
      fusion_reactor_set_dispatch_callback( component->object.reactor, &component->notify_call, NULL );
 
+     /* Change name of the reactor to something more specific than just "Component" from object pool. */
+     fusion_reactor_set_name( component->object.reactor, name );
+
      /* Setup method invocation handler. */
      component->method_func = func;
      component->method_ctx  = ctx;
