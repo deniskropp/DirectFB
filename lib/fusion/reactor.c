@@ -480,6 +480,41 @@ fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
      return DFB_OK;
 }
 
+DirectResult
+fusion_reactor_set_name( FusionReactor *reactor,
+                         const char    *name )
+{
+     FusionEntryInfo info;
+
+     D_MAGIC_ASSERT( reactor, FusionReactor );
+     D_ASSERT( name != NULL );
+
+     D_DEBUG_AT( Fusion_Reactor, "%s( %p, '%s' )\n", reactor, name );
+
+     /* Initialize reactor info. */
+     info.type = FT_REACTOR;
+     info.id   = reactor->id;
+
+     /* Put reactor name into info. */
+     direct_snputs( info.name, name, sizeof(info.name) );
+
+     /* Set the reactor info. */
+     while (ioctl( _fusion_fd( reactor->shared ), FUSION_ENTRY_SET_INFO, &info )) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+
+               case EINVAL:
+                    D_ERROR( "Fusion/Reactor: invalid reactor\n" );
+                    return DFB_IDNOTFOUND;
+          }
+
+          D_PERROR( "FUSION_ENTRY_SET_INFO( reactor 0x%08x, '%s' )\n", reactor->id, name );
+          return DFB_FUSION;
+     }
+
+     return DFB_OK;
+}
 
 void
 _fusion_reactor_process_message( FusionWorld *world,
@@ -938,6 +973,15 @@ fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
      if (reactor->destroyed)
           return DFB_DESTROYED;
 
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
+DirectResult
+fusion_reactor_set_name( FusionReactor *reactor,
+                         const char    *name )
+{
      D_UNIMPLEMENTED();
 
      return DFB_UNIMPLEMENTED;
@@ -1628,6 +1672,8 @@ fusion_reactor_attach_channel( FusionReactor *reactor,
                                void          *ctx,
                                Reaction      *reaction )
 {
+     D_UNIMPLEMENTED();
+
      return DFB_UNIMPLEMENTED;
 }
 
@@ -1639,6 +1685,8 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
                                  bool                self,
                                  const ReactionFunc *globals )
 {
+     D_UNIMPLEMENTED();
+
      return DFB_UNIMPLEMENTED;
 }
 
@@ -1647,6 +1695,17 @@ fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
                                       FusionCall     *call,
                                       void           *call_ptr )
 {
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
+DirectResult
+fusion_reactor_set_name( FusionReactor *reactor,
+                         const char    *name )
+{
+     D_UNIMPLEMENTED();
+
      return DFB_UNIMPLEMENTED;
 }
 

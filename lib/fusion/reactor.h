@@ -180,7 +180,13 @@ DirectResult   fusion_reactor_dispatch_channel( FusionReactor      *reactor,
 DirectResult   fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
                                                      FusionCall     *call,
                                                      void           *call_ptr );
-                                              
+
+/*
+ * Change the name of the reactor (debug).
+ */
+DirectResult   fusion_reactor_set_name             ( FusionReactor  *reactor,
+                                                     const char     *name );
+
 /*
  * Specify whether local message handlers (reactions) should be called directly.
  */
