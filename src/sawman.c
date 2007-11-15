@@ -2197,6 +2197,10 @@ no_single:
                tier->size.w = config->width;
                tier->size.h = config->height;
 
+               /* Notify application manager about new tier size if previous mode was single. */
+               if (tier->single_mode)
+                    sawman_call( sawman, SWMCID_STACK_RESIZED, &tier->size );
+
                if (shared->description.caps & DLCAPS_SCREEN_LOCATION) {
                     DFBRectangle full = { 0, 0, screen_width, screen_height };
 
