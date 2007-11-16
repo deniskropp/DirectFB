@@ -396,7 +396,7 @@ move_window( SaWMan       *sawman,
      bounds->x += dx;
      bounds->y += dy;
 
-     if (SAWMAN_VISIBLE_WINDOW(window)) {
+     if (SAWMAN_VISIBLE_WINDOW(window) && (sawwin->flags & SWMWF_INSERTED)) {
           DFBRegion region = { 0, 0, bounds->w - 1, bounds->h - 1 };
 
           sawman_update_window( sawman, sawwin, &region, 0, false, false, false );
@@ -462,7 +462,7 @@ resize_window( SaWMan       *sawman,
 
      dfb_region_intersect( &window->config.opaque, 0, 0, width - 1, height - 1 );
 
-     if (SAWMAN_VISIBLE_WINDOW (window)) {
+     if (SAWMAN_VISIBLE_WINDOW (window) && (sawwin->flags & SWMWF_INSERTED)) {
           if (ow > bounds->w) {
                DFBRegion region = { bounds->w, 0, ow - 1, MIN(bounds->h, oh) - 1 };
 
@@ -548,7 +548,7 @@ set_window_bounds( SaWMan       *sawman,
           window->config.opaque = new_region;
 
      /* Update exposed area. */
-     if (SAWMAN_VISIBLE_WINDOW( window )) {
+     if (SAWMAN_VISIBLE_WINDOW( window ) && (sawwin->flags & SWMWF_INSERTED)) {
           if (dfb_region_region_intersect( &new_region, &old_region )) {
                /* left */
                if (new_region.x1 > old_region.x1) {
@@ -731,15 +731,17 @@ set_opacity( SaWMan       *sawman,
      if (old != opacity) {
           window->config.opacity = opacity;
 
-          sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, false, true, false );
+          if (sawwin->flags & SWMWF_INSERTED) {
+               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, false, true, false );
 
-          /* Ungrab pointer/keyboard, pass focus... */
-          if (old && !opacity) {
-               /* Possibly switch focus to window now under the cursor */
-               if (sawman->focused_window == sawwin)
-                    update_focus( data->sawman, data->stack );
+               /* Ungrab pointer/keyboard, pass focus... */
+               if (old && !opacity) {
+                    /* Possibly switch focus to window now under the cursor */
+                    if (sawman->focused_window == sawwin)
+                         update_focus( data->sawman, data->stack );
 
-               sawman_withdraw_window( sawman, sawwin );
+                    sawman_withdraw_window( sawman, sawwin );
+               }
           }
      }
 }
@@ -1862,6 +1864,10 @@ wm_preconfigure_window( CoreWindowStack *stack,
           return DFB_OK;
      }
 
+     /* Override with our own ID which is unique among all tiers, not only each layer context. */
+     window->id = ++sawman->window_ids;
+
+     /* Lookup parent window. */
      if (window->parent_id) {
           SaWManWindow *parent = NULL;
 
@@ -2155,8 +2161,6 @@ wm_remove_window( CoreWindowStack *stack,
                /* Actually remove the window from the stack. */
                if (sawwin->flags & SWMWF_INSERTED)
                     sawman_remove_window( sawman, sawwin );
-               else
-                    sawman_withdraw_window( sawman, sawwin );
 
                /* Remove from parent window. */
                if (sawwin->parent) {
@@ -2784,10 +2788,20 @@ wm_update_window( CoreWindow          *window,
           D_DEBUG_AT( SaWMan_WM, "%s( %p, %p, %p, <0,0-%dx%d> )\n", __FUNCTION__,
                       window, wm_data, window_data, window->config.bounds.w, window->config.bounds.h );
 
+     if (!SAWMAN_VISIBLE_WINDOW(window))
+          return DFB_OK;
+
      /* Lock SaWMan. */
      ret = sawman_lock( sawman );
      if (ret)
           return ret;
+
+     /* Check for window being inserted. */
+     if (!(sawwin->flags & SWMWF_INSERTED)) {
+          D_DEBUG_AT( SaWMan_WM, "  -> window %d not inserted!\n", window->id );
+          sawman_unlock( sawman );
+          return DFB_OK;
+     }
 
      /* Retrieve corresponding SaWManTier. */
      tier = sawman_tier_by_class( sawman, window->config.stacking );

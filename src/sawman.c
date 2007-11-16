@@ -21,6 +21,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include <unistd.h>
@@ -887,9 +889,13 @@ sawman_update_window( SaWMan              *sawman,
      if (!SAWMAN_VISIBLE_WINDOW(window) && !force_invisible)
           return DFB_OK;
 
+     D_ASSUME( sawwin->flags & SWMWF_INSERTED );
+
      /* Make sure window is inserted. */
-     if (!(sawwin->flags & SWMWF_INSERTED))
+     if (!(sawwin->flags & SWMWF_INSERTED)) {
+          D_DEBUG_AT( SaWMan_Update, "  -> window %d not inserted!\n", window->id );
           return DFB_OK;
+     }
 
      window = sawwin->window;
      D_ASSERT( window != NULL );
@@ -979,9 +985,6 @@ sawman_showing_window( SaWMan       *sawman,
 
      if (!SAWMAN_VISIBLE_WINDOW(window))
           return DFB_OK;
-
-     while (sawwin->parent)
-          sawwin = sawwin->parent;
 
      /* Make sure window is inserted. */
      if (!(sawwin->flags & SWMWF_INSERTED))
@@ -1104,13 +1107,13 @@ sawman_remove_window( SaWMan       *sawman,
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
      FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
-     if (!(sawwin->flags & SWMWF_INSERTED)) {
-          D_BUG( "window not inserted" );
-          return DFB_BUG;
-     }
-
      window = sawwin->window;
      D_ASSERT( window != NULL );
+
+     if (!(sawwin->flags & SWMWF_INSERTED)) {
+          D_BUG( "window %d not inserted", window->id );
+          return DFB_BUG;
+     }
 
      sawman_withdraw_window( sawman, sawwin );
 
@@ -1158,6 +1161,12 @@ sawman_withdraw_window( SaWMan       *sawman,
 
      window = sawwin->window;
      D_ASSERT( window != NULL );
+
+     /* Make sure window is inserted. */
+     if (!(sawwin->flags & SWMWF_INSERTED)) {
+          D_BUG( "window %d not inserted", window->id );
+          return DFB_BUG;
+     }
 
      /* No longer be the 'entered window'. */
      if (sawman->entered_window == sawwin)
@@ -1212,7 +1221,7 @@ sawman_withdraw_window( SaWMan       *sawman,
      }
 
      /* Hide window. */
-     if (SAWMAN_VISIBLE_WINDOW(window) && window->config.opacity > 0) {
+     if (SAWMAN_VISIBLE_WINDOW(window)) {
           window->config.opacity = 0;
 
           sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, false, true, false );
@@ -1510,7 +1519,7 @@ wind_of_change( SaWMan              *sawman,
                }
           }
           /*
-               pass through
+               pass through   --- FIXME: use loop instead of recursion in this case
           */
           else
                wind_of_change( sawman, tier, update, flags, current-1, changed );
@@ -1598,7 +1607,7 @@ wind_of_showing( SaWMan     *sawman,
                }
           }
           /*
-               pass through
+               pass through   --- FIXME: use loop instead of recursion in this case
           */
           else
                wind_of_showing( sawman, tier, update, current-1, changed, ret_showing );
@@ -1932,6 +1941,7 @@ sawman_process_updates( SaWMan              *sawman,
                         DFBSurfaceFlipFlags  flags )
 {
      DFBResult   ret;
+     int         idx = -1;
      SaWManTier *tier;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
@@ -1951,7 +1961,7 @@ sawman_process_updates( SaWMan              *sawman,
           int              screen_width;
           int              screen_height;
 
-          D_MAGIC_ASSERT( tier, SaWManTier );
+          idx++;
 
           layer = dfb_layer_at( tier->layer_id );
           D_ASSERT( layer != NULL );
@@ -1959,11 +1969,13 @@ sawman_process_updates( SaWMan              *sawman,
           shared = layer->shared;
           D_ASSERT( shared != NULL );
 
-          D_DEBUG_AT( SaWMan_Update, "            %p -> %p (%s, %d updates)\n",
-                      tier, tier->stack, shared->description.name, tier->updates.num_regions );
+          D_MAGIC_ASSERT( tier, SaWManTier );
 
           if (!tier->updates.num_regions)
                continue;
+
+          D_DEBUG_AT( SaWMan_Update, "  -> %d updates (tier %d, layer %d)\n",
+                      tier->updates.num_regions, idx, tier->layer_id );
 
           D_ASSERT( tier->region != NULL );
 
