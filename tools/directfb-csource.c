@@ -642,8 +642,6 @@ static void dump_data(CSourceData         *csource,
      while (--len);
 
      fprintf (csource->fp, "\";\n\n");
-
-     return DFB_OK;
 }
 
 static DFBResult dump_raw_data(const char            *name,

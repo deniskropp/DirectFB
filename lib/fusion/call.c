@@ -318,7 +318,7 @@ fusion_call_execute (FusionCall          *call,
           int                 fd;
           struct sockaddr_un  addr;
           FusionCallMessage   msg;
-          int                 len;
+          socklen_t           len;
           int                 err;
 
           /* TODO: Find a better way to receive the call result. */
