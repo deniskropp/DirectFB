@@ -529,7 +529,8 @@ direct_thread_main( void *arg )
 
 
      /* Have all signals handled by the main thread. */
-     direct_signals_block_all();
+     if (direct_config->thread_block_signals)
+          direct_signals_block_all();
 
      /* Adjust scheduling priority. */
      switch (thread->type) {

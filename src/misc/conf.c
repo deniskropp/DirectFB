@@ -72,24 +72,11 @@ static const char *config_usage =
      "  depth=<pixeldepth>             Set the default pixel depth\n"
      "  pixelformat=<pixelformat>      Set the default pixel format\n"
      "  session=<num>                  Select multi app world (zero based, -1 = new)\n"
-     "  force-slave                    Always enter as a slave, waiting for the master, if not there\n"
      "  remote=<host>[:<session>]      Select remote session to connect to\n"
-     "  tmpfs=<directory>              Location of shared memory file\n"
-     "  shmfile-group=<groupname>      Group that owns shared memory files\n"
-     "  memcpy=<method>                Skip memcpy() probing (help = show list)\n"
      "  primary-layer=<id>             Select an alternative primary layer\n"
      "  primary-only                   Tell application only about the primary layer\n"
-     "  quiet                          No text output except debugging\n"
      "  [no-]banner                    Show DirectFB Banner on startup\n"
-     "  [no-]debug                     Enable debug output\n"
-     "  [no-]debugmem                  Enable memory allocation tracking\n"
-     "  [no-]debugshm                  Enable shared memory allocation tracking\n"
-     "  [no-]madv-remove               Enable usage of MADV_REMOVE (default = auto)\n"
-     "  [no-]trace                     Enable stack trace support\n"
      "  [no-]surface-sentinel          Enable surface sentinels at the end of chunks in video memory\n"
-     "  log-file=<name>                Write all messages to a file\n"
-     "  log-udp=<host>:<port>          Send all messages via UDP to host:port\n"
-     "  fatal-level=<level>            Abort on NONE, ASSERT (default) or ASSUME (incl. assert)\n"
      "  force-windowed                 Primary surface always is a window\n"
      "  force-desktop                  Primary surface is the desktop background\n"
      "  [no-]hardware                  Hardware acceleration\n"
@@ -103,8 +90,6 @@ static const char *config_usage =
      "  [no-]thrifty-surface-buffers   Free sysmem instance on xfer to video memory\n"
      "  font-format=<pixelformat>      Set the preferred font format\n"
      "  [no-]font-premult              Enable/disable premultiplied glyph images in ARGB format\n"
-     "  dont-catch=<num>[[,<num>]...]  Don't catch these signals\n"
-     "  [no-]sighandler                Enable signal handler\n"
      "  [no-]deinit-check              Enable deinit check at exit\n"
      "  block-all-signals              Block all signals\n"
      "  [no-]vt-switch                 Allocate/switch to a new VT\n"
@@ -143,7 +128,6 @@ static const char *config_usage =
      "  videoram-limit=<amount>        Limit amount of Video RAM in kb\n"
      "  agpmem-limit=<amount>          Limit amount of AGP memory in kb\n"
      "  screenshot-dir=<directory>     Dump screen content on <Print> key presses\n"
-     "  disable-module=<module_name>   suppress loading this module\n"
      "  video-phys=<hexaddress>        Physical start of video memory (devmem system)\n"
      "  video-length=<bytes>           Length of video memory (devmem system)\n"
      "  mmio-phys=<hexaddress>         Physical start of MMIO area (devmem system)\n"
@@ -282,6 +266,12 @@ parse_font_format( const char *format )
      return format_string->format;
 }
 
+static void
+print_config_usage( void )
+{
+     fprintf( stderr, "%s%s%s", config_usage, fusion_config_usage, direct_config_usage );
+}
+
 static DFBResult
 parse_args( const char *args )
 {
@@ -298,7 +288,7 @@ parse_args( const char *args )
                *next++ = '\0';
 
           if (strcmp (buf, "help") == 0) {
-               fprintf( stderr, config_usage );
+               print_config_usage();
                exit(1);
           }
 
@@ -468,25 +458,6 @@ const char *dfb_config_usage( void )
 
 DFBResult dfb_config_set( const char *name, const char *value )
 {
-     if (strcmp (name, "disable-module" ) == 0) {
-          if (value) {
-	       int n = 0;
-
-	       while (direct_config->disable_module &&
-		      direct_config->disable_module[n])
-		    n++;
-
-	       direct_config->disable_module = D_REALLOC( direct_config->disable_module,
-                                                          sizeof(char*) * (n + 2) );
-
-	       direct_config->disable_module[n] = D_STRDUP( value );
-               direct_config->disable_module[n+1] = NULL;
-          }
-          else {
-               D_ERROR("DirectFB/Config 'disable_module': No module name specified!\n");
-               return DFB_INVARG;
-          }
-     } else
      if (strcmp (name, "system" ) == 0) {
           if (value) {
                if (dfb_config->system)
@@ -532,40 +503,6 @@ DFBResult dfb_config_set( const char *name, const char *value )
                dfb_config->pci.bus  = bus;
                dfb_config->pci.dev  = dev;
                dfb_config->pci.func = func;
-          }
-     } else
-     if (strcmp (name, "tmpfs" ) == 0) {
-          if (value) {
-               if (fusion_config->tmpfs)
-                    D_FREE( fusion_config->tmpfs );
-               fusion_config->tmpfs = D_STRDUP( value );
-          }
-          else {
-               D_ERROR("DirectFB/Config 'tmpfs': No directory specified!\n");
-               return DFB_INVARG;
-          }
-     } else
-     if (strcmp (name, "shmfile-group" ) == 0) {
-          if (value) {
-               if (fusion_config->shmfile_group)
-                    D_FREE( fusion_config->shmfile_group );
-
-               fusion_config->shmfile_group = D_STRDUP( value );
-          }
-          else {
-               D_ERROR("DirectFB/Config 'shmfile-group': No file group name specified!\n");
-               return DFB_INVARG;
-          }
-     } else
-     if (strcmp (name, "memcpy" ) == 0) {
-          if (value) {
-               if (direct_config->memcpy)
-                    D_FREE( direct_config->memcpy );
-               direct_config->memcpy = D_STRDUP( value );
-          }
-          else {
-               D_ERROR("DirectFB/Config 'memcpy': No method specified!\n");
-               return DFB_INVARG;
           }
      } else
      if (strcmp (name, "screenshot-dir" ) == 0) {
@@ -654,12 +591,6 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
-     if (strcmp (name, "force-slave" ) == 0) {
-          fusion_config->force_slave = true;
-     } else
-     if (strcmp (name, "no-force-slave" ) == 0) {
-          fusion_config->force_slave = false;
-     } else
      if (strcmp (name, "remote" ) == 0) {
           if (value) {
                char host[128];
@@ -701,97 +632,17 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
-     if (strcmp (name, "quiet" ) == 0) {
-          direct_config->quiet = true;
-     } else
      if (strcmp (name, "banner" ) == 0) {
           dfb_config->banner = true;
      } else
      if (strcmp (name, "no-banner" ) == 0) {
           dfb_config->banner = false;
      } else
-     if (strcmp (name, "debug" ) == 0) {
-          if (value)
-               direct_debug_config_domain( value, true );
-          else
-               direct_config->debug = true;
-     } else
-     if (strcmp (name, "no-debug" ) == 0) {
-          if (value)
-               direct_debug_config_domain( value, false );
-          else
-               direct_config->debug = false;
-     } else
-     if (strcmp (name, "debugmem" ) == 0) {
-          direct_config->debugmem = true;
-     } else
-     if (strcmp (name, "no-debugmem" ) == 0) {
-          direct_config->debugmem = false;
-     } else
-     if (strcmp (name, "debugshm" ) == 0) {
-          fusion_config->debugshm = true;
-     } else
-     if (strcmp (name, "no-debugshm" ) == 0) {
-          fusion_config->debugshm = false;
-     } else
-     if (strcmp (name, "madv-remove" ) == 0) {
-          fusion_config->madv_remove       = true;
-          fusion_config->madv_remove_force = true;
-     } else
-     if (strcmp (name, "no-madv-remove" ) == 0) {
-          fusion_config->madv_remove       = false;
-          fusion_config->madv_remove_force = true;
-     } else
-     if (strcmp (name, "trace" ) == 0) {
-          direct_config->trace = true;
-     } else
-     if (strcmp (name, "no-trace" ) == 0) {
-          direct_config->trace = false;
-     } else
      if (strcmp (name, "surface-sentinel" ) == 0) {
           dfb_config->surface_sentinel = true;
      } else
      if (strcmp (name, "no-surface-sentinel" ) == 0) {
           dfb_config->surface_sentinel = false;
-     } else
-     if (strcmp (name, "log-file" ) == 0 || strcmp (name, "log-udp" ) == 0) {
-          if (value) {
-               DirectResult  ret;
-               DirectLog    *log;
-
-               ret = direct_log_create( strcmp(name,"log-udp") ? DLT_FILE : DLT_UDP, value, &log );
-               if (ret)
-                    return ret;
-
-               if (direct_config->log)
-                    direct_log_destroy( direct_config->log );
-
-               direct_config->log = log;
-
-               direct_log_set_default( log );
-          }
-          else {
-               if (strcmp(name,"log-udp"))
-                    D_ERROR("DirectFB/Config 'log-file': No file name specified!\n");
-               else
-                    D_ERROR("DirectFB/Config 'log-udp': No host and port specified!\n");
-               return DFB_INVARG;
-          }
-     } else
-     if (strcmp (name, "fatal-level" ) == 0) {
-          if (strcasecmp (value, "none" ) == 0) {
-               direct_config->fatal = DCFL_NONE;
-          } else
-          if (strcasecmp (value, "assert" ) == 0) {
-               direct_config->fatal = DCFL_ASSERT;
-          } else
-          if (strcasecmp (value, "assume" ) == 0) {
-               direct_config->fatal = DCFL_ASSUME;
-          }
-          else {
-               D_ERROR("DirectFB/Config 'fatal-level': Unknown level specified (use 'none', 'assert', 'assume')!\n");
-               return DFB_INVARG;
-          }
      } else
      if (strcmp (name, "force-windowed" ) == 0) {
           dfb_config->force_windowed = true;
@@ -873,12 +724,6 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-vt" ) == 0) {
           dfb_config->vt = false;
-     } else
-     if (strcmp (name, "sighandler" ) == 0) {
-          direct_config->sighandler = true;
-     } else
-     if (strcmp (name, "no-sighandler" ) == 0) {
-          direct_config->sighandler = false;
      } else
      if (strcmp (name, "block-all-signals" ) == 0) {
           dfb_config->block_all_signals = true;
@@ -1414,38 +1259,6 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
-     if (strcmp (name, "dont-catch" ) == 0) {
-          if (value) {
-               char *signals   = D_STRDUP( value );
-               char *p = NULL, *r, *s = signals;
-
-               while ((r = strtok_r( s, ",", &p ))) {
-                    char          *error;
-                    unsigned long  signum;
-
-                    direct_trim( &r );
-
-                    signum = strtoul( r, &error, 10 );
-
-                    if (*error) {
-                         D_ERROR( "DirectFB/Config: Error in dont-catch: "
-                                  "'%s'!\n", error );
-                         D_FREE( signals );
-                         return DFB_INVARG;
-                    }
-
-                    sigaddset( &direct_config->dont_catch, signum );
-
-                    s = NULL;
-               }
-
-               D_FREE( signals );
-          }
-          else {
-               D_ERROR( "DirectFB/Config: Missing value for dont-catch!\n" );
-               return DFB_INVARG;
-          }
-     } else
      if (strcmp (name, "video-phys" ) == 0) {
           if (value) {
                char *error;
@@ -1686,8 +1499,8 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "i8xx_overlay_pipe_b") == 0) {
           dfb_config->i8xx_overlay_pipe_b = true;
-     }
-     else
+     } else
+     if (fusion_config_set( name, value ) && direct_config_set( name, value ))
           return DFB_UNSUPPORTED;
 
      return DFB_OK;
@@ -1776,7 +1589,7 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
           for (i = 1; i < *argc; i++) {
 
                if (strcmp ((*argv)[i], "--dfb-help") == 0) {
-                    fprintf( stderr, config_usage );
+                    print_config_usage();
                     exit(1);
                }
 

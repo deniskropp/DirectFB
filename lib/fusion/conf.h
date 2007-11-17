@@ -45,6 +45,11 @@ struct __Fusion_FusionConfig {
 
 extern FusionConfig *fusion_config;
 
+extern const char   *fusion_config_usage;
+
+
+DirectResult fusion_config_set( const char *name, const char *value );
+
 
 #endif
 

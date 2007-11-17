@@ -201,6 +201,8 @@ typedef struct
 
      FusionVector  linux_input_devices;
      FusionVector  tslib_devices;
+
+     bool          thread_block_signals;          /* Call direct_signals_block_all() in direct_thread_main() startup. */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

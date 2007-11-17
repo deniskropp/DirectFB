@@ -43,26 +43,33 @@ typedef enum {
 } DirectConfigFatalLevel;
 
 struct __D_DirectConfig {
-     bool       quiet;
-     bool       debug;
-     bool       trace;
+     bool                     quiet;
+     bool                     debug;
+     bool                     trace;
 
-     char      *memcpy;            /* Don't probe for memcpy routines to save a lot of
-                                      startup time. Use this one instead if it's set. */
+     char                    *memcpy;               /* Don't probe for memcpy routines to save a lot of
+                                                       startup time. Use this one instead if it's set. */
 
-     char     **disable_module;    /* Never load these modules. */
+     char                   **disable_module;       /* Never load these modules. */
 
-     bool       sighandler;
-     sigset_t   dont_catch;        /* don't catch these signals */
+     bool                     sighandler;
+     sigset_t                 dont_catch;           /* don't catch these signals */
 
-     DirectLog *log;
+     DirectLog               *log;
 
-     DirectConfigFatalLevel fatal;
+     DirectConfigFatalLevel   fatal;
      
-     bool                   debugmem;
+     bool                     debugmem;
+
+     bool                     thread_block_signals;
 };
 
 extern DirectConfig *direct_config;
+
+extern const char   *direct_config_usage;
+
+
+DirectResult direct_config_set( const char *name, const char *value );
 
 
 #endif
