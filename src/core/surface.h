@@ -209,6 +209,9 @@ DFBResult dfb_surface_create_simple ( CoreDFB                      *core,
                                       CorePalette                  *palette,
                                       CoreSurface                 **ret_surface );
 
+DFBResult dfb_surface_init_palette  ( CoreDFB                      *core,
+                                      CoreSurface                  *surface );
+
 DFBResult dfb_surface_notify        ( CoreSurface                  *surface,
                                       CoreSurfaceNotificationFlags  flags);
 

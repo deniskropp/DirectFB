@@ -573,6 +573,10 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
 
      D_DEBUG_AT( Core_Layers, "%s (%p, %p)\n", __FUNCTION__, context, config );
 
+     D_DEBUG_AT( Core_Layers, "%s (%p, %p)\n", __FUNCTION__, context, config );
+
+     D_DEBUG_AT( Core_Layers, "%s (%p, %p)\n", __FUNCTION__, context, config );
+
      D_ASSERT( context != NULL );
      D_ASSERT( config != NULL );
 
@@ -650,9 +654,11 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
 
                     if (region->surface) {
                          if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
-                              D_ASSERT( region->surface_lock.buffer != NULL );
+                              if (!D_FLAGS_IS_SET( region->state, CLRSF_FROZEN ))
+                                   D_ASSUME( region->surface_lock.buffer != NULL );
 
-                              dfb_surface_unlock_buffer( region->surface, &region->surface_lock );
+                              if (region->surface_lock.buffer)
+                                   dfb_surface_unlock_buffer( region->surface, &region->surface_lock );
                          }
 
                          ret = reallocate_surface( layer, region, &region_config );
@@ -1633,12 +1639,26 @@ reallocate_surface( CoreLayer             *layer,
      sconfig.size.h = config->height;
      sconfig.format = config->format;
 
-     ret = dfb_surface_reconfig( surface, &sconfig );
+     ret = dfb_surface_lock( surface );
      if (ret)
           return ret;
 
+     ret = dfb_surface_reconfig( surface, &sconfig );
+     if (ret) {
+          dfb_surface_unlock( surface );
+          return ret;
+     }
+
+     if (DFB_PIXELFORMAT_IS_INDEXED(surface->config.format) && !surface->palette) {
+          ret = dfb_surface_init_palette( layer->core, surface );
+          if (ret)
+               D_DERROR( ret, "Core/Layers: Could not initialize palette while switching to indexed mode!\n" );
+     }
+
      if (config->buffermode == DLBM_BACKSYSTEM)
           surface->buffers[1]->policy = CSP_SYSTEMONLY;
+
+     dfb_surface_unlock( surface );
      
      return DFB_OK;
 }
