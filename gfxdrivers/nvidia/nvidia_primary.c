@@ -98,7 +98,7 @@ crtc1WaitVSync( CoreScreen *screen,
                
                i++;
                if ((i % 2000) == 0) {
-                    struct timespec ts = {0,0}; 
+                    struct timespec ts = { 0, 10000 }; 
                     nanosleep( &ts, NULL );
                }
           }

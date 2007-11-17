@@ -252,8 +252,11 @@ fusion_property_lease (FusionProperty *property)
                return DFB_DESTROYED;
      }
 
-     if (property->multi.builtin.state == FUSION_PROPERTY_PURCHASED)
-          return DFB_BUSY;
+     if (property->multi.builtin.state == FUSION_PROPERTY_PURCHASED) {
+          /* Check whether owner exited without releasing. */
+          if (!(kill( property->multi.builtin.owner, 0 ) < 0 && errno == ESRCH))
+               return DFB_BUSY;
+     }
      
      property->multi.builtin.state = FUSION_PROPERTY_LEASED;
      property->multi.builtin.owner = getpid();
@@ -293,8 +296,11 @@ fusion_property_purchase (FusionProperty *property)
                return DFB_DESTROYED;
      }
      
-     if (property->multi.builtin.state == FUSION_PROPERTY_PURCHASED)
-          return DFB_BUSY;
+     if (property->multi.builtin.state == FUSION_PROPERTY_PURCHASED) {
+          /* Check whether owner exited without releasing. */
+          if (!(kill( property->multi.builtin.owner, 0 ) < 0 && errno == ESRCH))
+               return DFB_BUSY;
+     }
      
      property->multi.builtin.state = FUSION_PROPERTY_PURCHASED;
      property->multi.builtin.owner = getpid();
@@ -355,7 +361,7 @@ fusion_property_holdup (FusionProperty *property)
           property->multi.builtin.state = FUSION_PROPERTY_AVAILABLE;
           property->multi.builtin.owner = 0;
           property->multi.builtin.requested = false;
-     }          
+     } 
 
      return DFB_OK;
 }

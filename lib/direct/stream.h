@@ -45,6 +45,7 @@
  *   tcp://<host>:<port>
  *   udp://<host>:<port>
  *   file:/<path>
+ *   fd:/<fileno>
  *   stdin:/
  */
 DirectResult  direct_stream_create  ( const char     *filename,
