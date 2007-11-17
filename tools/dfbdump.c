@@ -85,6 +85,7 @@ static MemoryUsage mem = { 0, 0 };
 static bool show_shm;
 static bool show_pools;
 static bool show_allocs;
+static bool dump_layer;
 
 /**********************************************************************************************************************/
 
@@ -451,8 +452,10 @@ context_callback( FusionObjectPool *pool,
      int                i;
      int                refs;
      int                level;
-     CoreLayerContext  *context = (CoreLayerContext*) object;
      CoreLayer         *layer   = (CoreLayer*) ctx;
+     CoreLayerContext  *context = (CoreLayerContext*) object;
+     CoreLayerRegion   *region  = NULL;
+     CoreSurface       *surface = NULL;
 
      if (object->state != FOS_ACTIVE)
           return true;
@@ -464,6 +467,23 @@ context_callback( FusionObjectPool *pool,
      if (ret) {
           printf( "Fusion error %d!\n", ret );
           return false;
+     }
+
+     if (dump_layer) {
+          if (dfb_layer_context_get_primary_region( context, false, &region ) == DFB_OK) {
+               if (dfb_layer_region_get_surface( region, &surface ) == DFB_OK) {
+                    char buf[32];
+
+#if FUSION_BUILD_MULTI
+                    snprintf( buf, sizeof(buf), "dfb_layer_context_0x%08x", object->ref.multi.id );
+#else
+                    snprintf( buf, sizeof(buf), "dfb_layer_context_0x%08x", object->ref.multi.id );
+#endif
+
+                    if (surface->num_buffers)
+                         dfb_surface_dump_buffer( surface, CSBR_FRONT, ".", buf );
+               }
+          }
      }
 
 #if FUSION_BUILD_MULTI
@@ -806,11 +826,12 @@ print_usage (const char *prg_name)
      fprintf (stderr, "\nDirectFB Dump (version %s)\n\n", DIRECTFB_VERSION);
      fprintf (stderr, "Usage: %s [options]\n\n", prg_name);
      fprintf (stderr, "Options:\n");
-     fprintf (stderr, "   -s, --shm      Show shared memory pool content (if debug enabled)\n");
-     fprintf (stderr, "   -p, --pools    Show information about surface pools\n");
-     fprintf (stderr, "   -a, --allocs   Show surface buffer allocations in surface pools\n");
-     fprintf (stderr, "   -h, --help     Show this help message\n");
-     fprintf (stderr, "   -v, --version  Print version information\n");
+     fprintf (stderr, "   -s,  --shm        Show shared memory pool content (if debug enabled)\n");
+     fprintf (stderr, "   -p,  --pools      Show information about surface pools\n");
+     fprintf (stderr, "   -a,  --allocs     Show surface buffer allocations in surface pools\n");
+     fprintf (stderr, "   -dl, --dumplayer  Dump surfaces of layer contexts into files (dfb_layer_context_ID...)\n");
+     fprintf (stderr, "   -h,  --help       Show this help message\n");
+     fprintf (stderr, "   -v,  --version    Print version information\n");
      fprintf (stderr, "\n");
 }
 
@@ -844,6 +865,11 @@ parse_command_line( int argc, char *argv[] )
 
           if (strcmp (arg, "-a") == 0 || strcmp (arg, "--allocs") == 0) {
                show_allocs = true;
+               continue;
+          }
+
+          if (strcmp (arg, "-dl") == 0 || strcmp (arg, "--dumplayer") == 0) {
+               dump_layer = true;
                continue;
           }
 
