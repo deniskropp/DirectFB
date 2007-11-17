@@ -416,12 +416,9 @@ net_connect( struct addrinfo *addr, int sock, int proto, int *ret_fd )
 
                /* Join multicast group? */
                if (tmp->ai_addr->sa_family == AF_INET) {
-                    in_addr_t inaddr = ((u8)tmp->ai_addr->sa_data[2] << 24) |
-                                       ((u8)tmp->ai_addr->sa_data[3] << 16) |
-                                       ((u8)tmp->ai_addr->sa_data[4] <<  8) |
-                                       ((u8)tmp->ai_addr->sa_data[5]);
+                    struct sockaddr_in *saddr = (struct sockaddr_in *) tmp->ai_addr;
 
-                    if (IN_MULTICAST( inaddr )) {
+                    if (IN_MULTICAST( ntohl(saddr->sin_addr.s_addr) )) {
                          struct ip_mreq req;
 
                          D_DEBUG_AT( Direct_Stream, 
@@ -429,7 +426,7 @@ net_connect( struct addrinfo *addr, int sock, int proto, int *ret_fd )
                                      (u8)tmp->ai_addr->sa_data[2], (u8)tmp->ai_addr->sa_data[3],
                                      (u8)tmp->ai_addr->sa_data[4], (u8)tmp->ai_addr->sa_data[5] );
 
-                         req.imr_multiaddr.s_addr = htonl( inaddr );
+                         req.imr_multiaddr.s_addr = saddr->sin_addr.s_addr;
                          req.imr_interface.s_addr = 0;
 
                          err = setsockopt( fd, SOL_IP, IP_ADD_MEMBERSHIP, &req, sizeof(req) );
@@ -441,6 +438,8 @@ net_connect( struct addrinfo *addr, int sock, int proto, int *ret_fd )
                               close( fd );
                               continue;
                          }
+
+                         setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, saddr, sizeof(*saddr) );
                     }
                }
 
