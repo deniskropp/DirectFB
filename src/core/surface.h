@@ -243,6 +243,11 @@ DFBResult dfb_surface_write_buffer  ( CoreSurface                  *surface,
                                       int                           pitch,
                                       const DFBRectangle           *rect );
 
+DFBResult dfb_surface_dump_buffer   ( CoreSurface                  *surface,
+                                      CoreSurfaceBufferRole         role,
+                                      const char                   *path,
+                                      const char                   *prefix );
+
 DFBResult dfb_surface_set_palette   ( CoreSurface                  *surface,
                                       CorePalette                  *palette );
 

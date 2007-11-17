@@ -611,6 +611,32 @@ dfb_surface_write_buffer( CoreSurface            *surface,
 }
 
 DFBResult
+dfb_surface_dump_buffer( CoreSurface           *surface,
+                         CoreSurfaceBufferRole  role,
+                         const char            *path,
+                         const char            *prefix )
+{
+     DFBResult          ret;
+     CoreSurfaceBuffer *buffer;
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     D_ASSERT( path != NULL );
+     D_ASSERT( prefix != NULL );
+
+     if (fusion_skirmish_prevail( &surface->lock ))
+          return DFB_FUSION;
+
+     buffer = dfb_surface_get_buffer( surface, role );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     ret = dfb_surface_buffer_dump( buffer, path, prefix );
+
+     fusion_skirmish_dismiss( &surface->lock );
+
+     return ret;
+}
+
+DFBResult
 dfb_surface_set_palette( CoreSurface *surface,
                          CorePalette *palette )
 {
