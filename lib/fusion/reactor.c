@@ -489,7 +489,7 @@ fusion_reactor_set_name( FusionReactor *reactor,
      D_MAGIC_ASSERT( reactor, FusionReactor );
      D_ASSERT( name != NULL );
 
-     D_DEBUG_AT( Fusion_Reactor, "%s( %p, '%s' )\n", reactor, name );
+     D_DEBUG_AT( Fusion_Reactor, "%s( %p, '%s' )\n", __FUNCTION__, reactor, name );
 
      /* Initialize reactor info. */
      info.type = FT_REACTOR;
