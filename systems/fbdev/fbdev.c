@@ -28,6 +28,8 @@
 
 #include <config.h>
 
+#include <asm/types.h>    /* Needs to be included before dfb_types.h */
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,8 +49,6 @@
 #ifdef USE_SYSFS
 # include <sysfs/libsysfs.h>
 #endif
-
-#include <asm/types.h>    /* Needs to be included before dfb_types.h */
 
 #include <fusion/arena.h>
 #include <fusion/fusion.h>
