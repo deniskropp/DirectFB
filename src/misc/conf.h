@@ -149,7 +149,6 @@ typedef struct
                                                      the primary surface. */
 
      bool      linux_input_ir_only;               /* Ignore non-IR devices. */
-     bool      linux_input_grab;                  /* Grab input devices. */
 
      struct {
           char *host;                             /* Remote host to connect to. */
@@ -203,6 +202,8 @@ typedef struct
      FusionVector  tslib_devices;
 
      bool          thread_block_signals;          /* Call direct_signals_block_all() in direct_thread_main() startup. */
+
+     bool          linux_input_grab;              /* Grab input devices. */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;
