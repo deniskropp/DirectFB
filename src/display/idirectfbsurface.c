@@ -426,6 +426,9 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
           role = CSBR_BACK;
      }
 
+     if (data->caps & DSCAPS_VIDEOONLY)
+          access |= CSAF_GPU_READ;
+
      ret = dfb_surface_lock_buffer( data->surface, role, access, &data->lock );
      if (ret)
           return ret;
