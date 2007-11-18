@@ -417,18 +417,38 @@ main( int argc, char *argv[] )
      DFBColor  result;
 
      /* Initialize sample source and destination values. */
-     DFBColor  src = { 0x93, 0x38, 0x70, 0xe3 };
+     //DFBColor  src = { 0x93, 0x93, 0x93, 0x93 };
      DFBColor  dst = { 0xf0, 0xe0, 0xe0, 0xe0 };
+
+#define DRAWSTRING_PREMULT_FONT 1
+
+     /* Initialize default rendering state. */
+#if DRAWSTRING_PREMULT_FONT
+     /* Initialize sample source and destination values. */
+     DFBColor  src = { 0x93, 0x93, 0x93, 0x93 };
+
+     state.blittingflags = DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE;
+     state.src_blend     = DSBF_ONE;
+     state.dst_blend     = DSBF_INVSRCALPHA;
+     state.color.a       = 0x81;
+     state.color.r       = 0xff;
+     state.color.g       = 0x80;
+     state.color.b       = 0x23;
+#elif DRAWSTRING_NONPREMULT_ALPHADROP
+     /* Initialize sample source and destination values. */
+     DFBColor  src = { 0x93, 0xff, 0xff, 0xff };
+
+     state.blittingflags = DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE;
+     state.src_blend     = DSBF_SRCALPHA;
+     state.dst_blend     = DSBF_INVSRCALPHA;
+     state.color.a       = 0x81;
+     state.color.r       = 0xff;
+     state.color.g       = 0x80;
+     state.color.b       = 0x23;
+#endif
 
      /* Startup the blitting FX demonstrator. */
      printf( "\ndfbfx v" DIRECTFB_VERSION "\n\n" );
-
-     /* Initialize default rendering state. */
-     state.blittingflags = DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | DSBLIT_SRC_PREMULTCOLOR;
-     state.src_blend     = DSBF_ONE;
-     state.dst_blend     = DSBF_INVSRCALPHA;
-     state.color.a       = 0x80;
-
 
      /* Parse command line arguments. */
      for (i=1; i<argc; i++) {
