@@ -96,3 +96,5 @@ libifusionsoundmusicprovider_ffmpeg_la_LIBADD = $(FFMPEG_LIBS)
 
 libifusionsoundmusicprovider_ffmpeg_la_LDFLAGS = -avoid-version -module
 
+libifusionsoundmusicprovider_ffmpeg_la_CFLAGS = -Dattribute_deprecated=\;
+
