@@ -112,7 +112,7 @@ fusion_call_execute (FusionCall          *call,
           result = call->handler( _fusion_id( call->shared ), call_arg, call_ptr, call->ctx, 0, &ret );
 
           if (result != FCHR_RETURN)
-               D_WARN( "local call handler returned FCHR_RETURN, need FCEF_NODIRECT" );
+               D_WARN( "local call handler returned FCHR_RETAIN, need FCEF_NODIRECT" );
 
           if (ret_val)
                *ret_val = ret;
@@ -308,7 +308,7 @@ fusion_call_execute (FusionCall          *call,
           result = call->handler( _fusion_id( call->shared ), call_arg, call_ptr, call->ctx, 0, &ret );
 
           if (result != FCHR_RETURN)
-               D_WARN( "local call handler returned FCHR_RETURN, need FCEF_NODIRECT" );
+               D_WARN( "local call handler returned FCHR_RETAIN, need FCEF_NODIRECT" );
 
           if (ret_val)
                *ret_val = ret;
@@ -365,7 +365,7 @@ fusion_call_execute (FusionCall          *call,
                     "/tmp/fusion.%d/%lx", call->shared->world_index, call->fusion_id );
           
           ret = _fusion_send_message( fd, &msg, sizeof(msg), &addr );
-          if (ret == DFB_OK) {
+          if (ret == DFB_OK && !(flags & FCEF_ONEWAY)) {
                FusionCallReturn callret;
                /* Wait for reply. */
                ret = _fusion_recv_message( fd, &callret, sizeof(callret), NULL );
@@ -433,18 +433,19 @@ _fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg )
      callret.val  = 0;
 
      result = call_handler( msg->caller, msg->call_arg, msg->call_ptr, msg->ctx, msg->serial, &callret.val );
-
      switch (result) {
-          case FCHR_RETURN: {
-               struct sockaddr_un addr;
+          case FCHR_RETURN:
+               if (!(msg->flags & FCEF_ONEWAY)) {
+                    struct sockaddr_un addr;
 
-               addr.sun_family = AF_UNIX;
-               snprintf( addr.sun_path, sizeof(addr.sun_path), 
-                         "/tmp/fusion.%d/call.%x.%x", fusion_world_index( world ), call_id, msg->serial );
+                    addr.sun_family = AF_UNIX;
+                    snprintf( addr.sun_path, sizeof(addr.sun_path), 
+                              "/tmp/fusion.%d/call.%x.%x", fusion_world_index( world ), call_id, msg->serial );
                
-               if (_fusion_send_message( world->fusion_fd, &callret, sizeof(callret), &addr ))
-                    D_ERROR( "Fusion/Call: Couldn't send call return (serial: 0x%08x)!\n", msg->serial );
-          }    break;
+                    if (_fusion_send_message( world->fusion_fd, &callret, sizeof(callret), &addr ))
+                         D_ERROR( "Fusion/Call: Couldn't send call return (serial: 0x%08x)!\n", msg->serial );
+               }
+               break;
 
           case FCHR_RETAIN:
                break;

@@ -410,7 +410,7 @@ _fusion_ref_change (FusionRef *ref, int add, bool global)
 
           if (ref->multi.builtin.call) {
                fusion_skirmish_dismiss( &ref->multi.builtin.lock );
-               return fusion_call_execute( ref->multi.builtin.call, 0, 
+               return fusion_call_execute( ref->multi.builtin.call, FCEF_ONEWAY, 
                                            ref->multi.builtin.call_arg, NULL, NULL );
           }
      }
