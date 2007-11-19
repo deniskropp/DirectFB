@@ -8269,7 +8269,7 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      if (DFB_PIXELFORMAT_IS_INDEXED( gfxs->src_format )) {
           int             i;
           const DFBColor *entries;
-          u16            *colors16 = (u16*) colors;
+          u16            *colors16 = (void*) colors;
 
           D_ASSERT( gfxs->Blut != NULL );
 
