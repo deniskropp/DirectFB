@@ -627,10 +627,10 @@ static inline void save_uchar (CSourceData   *csource,
      return;
 }
 
-static DFBResult dump_data(CSourceData         *csource,
-                           const char          *name,
-                           const unsigned char *data,
-                           unsigned int        len)
+static void dump_data(CSourceData         *csource,
+                      const char          *name,
+                      const unsigned char *data,
+                      unsigned int         len)
 {
      fprintf (csource->fp,
               "static const unsigned char %s_data[] =\n", name);
@@ -642,8 +642,6 @@ static DFBResult dump_data(CSourceData         *csource,
      while (--len);
 
      fprintf (csource->fp, "\";\n\n");
-
-     return DFB_OK;
 }
 
 static DFBResult dump_raw_data(const char            *name,

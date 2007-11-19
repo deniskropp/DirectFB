@@ -36,9 +36,9 @@ if FREETYPE_PROVIDER
 FREETYPE_PROGS = mkdgiff
 endif
 
-bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbg dfbinfo dfbinput dfblayer dfbscreen dfbpenmount $(PNG_PROGS) $(FREETYPE_PROGS) $(VOODOO_PROGS)
+bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbfx dfbg dfbinfo dfbinput dfblayer dfbscreen dfbpenmount $(PNG_PROGS) $(FREETYPE_PROGS) $(VOODOO_PROGS)
 
-noinst_PROGRAMS = $(LINUXONLY_TOOLS) fx
+noinst_PROGRAMS = $(LINUXONLY_TOOLS)
 
 dfbdump_SOURCES = dfbdump.c
 dfbdump_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
@@ -76,8 +76,8 @@ mkdgiff_LDADD   = $(FREETYPE_LIBS) ../lib/direct/libdirect.la
 fusion_bench_SOURCES = fusion_bench.c
 fusion_bench_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
 
-fx_SOURCES = fx.c
-fx_LDADD   = ../lib/direct/libdirect.la
+dfbfx_SOURCES = dfbfx.c
+dfbfx_LDADD   = ../lib/direct/libdirect.la
 
 raw15toraw24_SOURCES = raw15toraw24.c
 

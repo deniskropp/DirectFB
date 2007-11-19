@@ -1545,7 +1545,7 @@ fusion_enter( int               world_index,
           
           close( shared_fd );
           
-          D_DEBUG_AT( Fusion_Main, "  -> shared area at %p, size %d\n", shared, sizeof(FusionWorldShared) );
+          D_DEBUG_AT( Fusion_Main, "  -> shared area at %p, size %zu\n", shared, sizeof(FusionWorldShared) );
           
           /* Set ABI version. */
           shared->world_abi = abi_version;
@@ -1611,7 +1611,7 @@ fusion_enter( int               world_index,
           
           close( shared_fd );
           
-          D_DEBUG_AT( Fusion_Main, "  -> shared area at %p, size %d\n", shared, sizeof(FusionWorldShared) );
+          D_DEBUG_AT( Fusion_Main, "  -> shared area at %p, size %zu\n", shared, sizeof(FusionWorldShared) );
           
           D_MAGIC_ASSERT( shared, FusionWorldShared );
 
@@ -1727,7 +1727,7 @@ error:
 
      if (fd != -1) {
           /* Unbind. */
-          len = sizeof(addr);
+          socklen_t len = sizeof(addr);
           if (getsockname( fd, (struct sockaddr*)&addr, &len ) == 0)
                unlink( addr.sun_path );
                

@@ -39,9 +39,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <ft2build.h>
-#include FT_GLYPH_H
-
 #include <directfb.h>
 #include <directfb_strings.h>
 
@@ -53,6 +50,10 @@
 #include <gfx/convert.h>
 
 #include <dgiff.h>
+
+#undef SIZEOF_LONG
+#include <ft2build.h>
+#include FT_GLYPH_H
 
 #define MAX_SIZE_COUNT    256
 #define MAX_ROW_WIDTH    2047

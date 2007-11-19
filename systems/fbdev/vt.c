@@ -28,6 +28,8 @@
 
 #include <config.h>
 
+#include <asm/types.h>    /* Needs to be included before dfb_types.h */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -41,8 +43,6 @@
 #include <sys/kd.h>
 #include <errno.h>
 #include <pthread.h>
-
-#include <asm/types.h>    /* Needs to be included before dfb_types.h */
 
 #include <directfb.h>
 

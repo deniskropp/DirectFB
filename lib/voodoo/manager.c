@@ -418,7 +418,7 @@ voodoo_manager_super( VoodooManager    *manager,
      /* Append the name of the super interface to create. */
      direct_memcpy( msg + 1, name, len );
 
-     D_DEBUG( "Voodoo/Manager: Sending SUPER message %zu for '%s' (%d bytes).\n", serial, name, size );
+     D_DEBUG( "Voodoo/Manager: Sending SUPER message %llu for '%s' (%d bytes).\n", (unsigned long long)serial, name, size );
 
      /* Unlock the output buffer. */
      manager_unlock_output( manager, true );
@@ -432,9 +432,9 @@ voodoo_manager_super( VoodooManager    *manager,
           return ret;
      }
 
-     D_DEBUG( "Voodoo/Manager: Got response %zu (%s) with instance %u for request %zu "
-              "(%d bytes).\n", response->header.serial, DirectResultString( ret ),
-              response->instance, response->request, response->header.size );
+     D_DEBUG( "Voodoo/Manager: Got response %llu (%s) with instance %u for request %llu "
+              "(%d bytes).\n", (unsigned long long)response->header.serial, DirectResultString( ret ),
+              response->instance, (unsigned long long)response->request, response->header.size );
 
      ret = response->result;
      if (ret) {
@@ -646,8 +646,8 @@ voodoo_manager_request( VoodooManager           *manager,
      va_end( args );
 
 
-     D_DEBUG( "Voodoo/Manager: Sending REQUEST message %zu to %u::%u %s(%d bytes).\n",
-              serial, instance, method, (flags & VREQ_RESPOND) ? "[RESPONDING] " : "", size );
+     D_DEBUG( "Voodoo/Manager: Sending REQUEST message %llu to %u::%u %s(%d bytes).\n",
+              (unsigned long long)serial, instance, method, (flags & VREQ_RESPOND) ? "[RESPONDING] " : "", size );
 
      /* Unlock the output buffer. */
      manager_unlock_output( manager, !(flags & VREQ_QUEUE) );
@@ -664,9 +664,9 @@ voodoo_manager_request( VoodooManager           *manager,
                return ret;
           }
 
-          D_DEBUG( "Voodoo/Manager: Got response %zu (%s) with instance %u for request %zu "
-                   "(%d bytes).\n", response->header.serial, DirectResultString( response->result ),
-                   response->instance, response->request, response->header.size );
+          D_DEBUG( "Voodoo/Manager: Got response %llu (%s) with instance %u for request %llu "
+                   "(%d bytes).\n", (unsigned long long)response->header.serial, DirectResultString( response->result ),
+                   response->instance, (unsigned long long)response->request, response->header.size );
 
           *ret_response = response;
      }
@@ -702,7 +702,7 @@ voodoo_manager_respond( VoodooManager          *manager,
      D_MAGIC_ASSERT( manager, VoodooManager );
 
      D_DEBUG( "Voodoo/Response: "
-              "Request %zu, result %d, instance %u...\n", request, result, instance );
+              "Request %llu, result %d, instance %u...\n", (unsigned long long)request, result, instance );
 
      /* Calculate the total message size. */
      va_start( args, block_type );
@@ -738,8 +738,8 @@ voodoo_manager_respond( VoodooManager          *manager,
 
 
      D_DEBUG( "Voodoo/Manager: "
-              "Sending RESPONSE message %zu (%s) with instance %u for request %zu (%d bytes).\n",
-              serial, DirectResultString( result ), instance, request, size );
+              "Sending RESPONSE message %llu (%s) with instance %u for request %llu (%d bytes).\n",
+              (unsigned long long)serial, DirectResultString( result ), instance, (unsigned long long)request, size );
 
      /* Unlock the output buffer. */
      manager_unlock_output( manager, true );
@@ -930,8 +930,8 @@ handle_super( VoodooManager      *manager,
 
      name = (const char *) (super + 1);
 
-     D_DEBUG( "Voodoo/Dispatch: Handling SUPER message %zu for '%s' (%d bytes).\n",
-              super->header.serial, name, super->header.size );
+     D_DEBUG( "Voodoo/Dispatch: Handling SUPER message %llu for '%s' (%d bytes).\n",
+              (unsigned long long)super->header.serial, name, super->header.size );
 
      if (manager->server) {
           VoodooInstanceID instance;
@@ -995,8 +995,8 @@ handle_request( VoodooManager        *manager,
      D_ASSERT( request->header.size >= sizeof(VoodooRequestMessage) );
      D_ASSERT( request->header.type == VMSG_REQUEST );
 
-     D_DEBUG( "Voodoo/Dispatch: Handling REQUEST message %zu to %u::%u %s%s(%d bytes).\n",
-              request->header.serial, request->instance, request->method,
+     D_DEBUG( "Voodoo/Dispatch: Handling REQUEST message %llu to %u::%u %s%s(%d bytes).\n",
+              (unsigned long long)request->header.serial, request->instance, request->method,
               (request->flags & VREQ_RESPOND) ? "[RESPONDING] " : "",
               (request->flags & VREQ_ASYNC) ? "[ASYNC] " : "",
               request->header.size );
@@ -1060,9 +1060,9 @@ handle_response( VoodooManager         *manager,
      D_ASSERT( response->header.type == VMSG_RESPONSE );
      D_ASSERT( response->request < manager->msg_serial );
 
-     D_DEBUG( "Voodoo/Dispatch: Handling RESPONSE message %zu (%s) with instance %u for request "
-              "%zu (%d bytes).\n", response->header.serial, DirectResultString( response->result ),
-              response->instance, response->request, response->header.size );
+     D_DEBUG( "Voodoo/Dispatch: Handling RESPONSE message %llu (%s) with instance %u for request "
+              "%llu (%d bytes).\n", (unsigned long long)response->header.serial, DirectResultString( response->result ),
+              response->instance, (unsigned long long)response->request, response->header.size );
 
      pthread_mutex_lock( &manager->response.lock );
 
@@ -1397,7 +1397,7 @@ manager_lock_response( VoodooManager          *manager,
      D_MAGIC_ASSERT( manager, VoodooManager );
      D_ASSERT( ret_response != NULL );
 
-     D_DEBUG( "Voodoo/Manager: Locking response to request %zu...\n", request );
+     D_DEBUG( "Voodoo/Manager: Locking response to request %llu...\n", (unsigned long long)request );
 
      pthread_mutex_lock( &manager->response.lock );
 
@@ -1407,9 +1407,9 @@ manager_lock_response( VoodooManager          *manager,
                break;
 
           if (response)
-               D_DEBUG( "Voodoo/Manager: ...current response is for request %zu...\n", response->request );
+               D_DEBUG( "Voodoo/Manager: ...current response is for request %llu...\n", (unsigned long long)response->request );
 
-          D_DEBUG( "Voodoo/Manager: ...(still) waiting for response to request %zu...\n", request );
+          D_DEBUG( "Voodoo/Manager: ...(still) waiting for response to request %llu...\n", (unsigned long long)request );
 
           pthread_cond_wait( &manager->response.wait, &manager->response.lock );
      }
@@ -1419,8 +1419,8 @@ manager_lock_response( VoodooManager          *manager,
           return DFB_DESTROYED;
      }
 
-     D_DEBUG( "Voodoo/Manager: ...locked response %zu to request %zu (%d bytes).\n",
-              response->header.serial, request, response->header.size );
+     D_DEBUG( "Voodoo/Manager: ...locked response %llu to request %llu (%d bytes).\n",
+              (unsigned long long)response->header.serial, (unsigned long long)request, response->header.size );
 
      *ret_response = response;
 
@@ -1435,8 +1435,8 @@ manager_unlock_response( VoodooManager         *manager,
      D_ASSERT( response != NULL );
      D_ASSERT( response == manager->response.current );
 
-     D_DEBUG( "Voodoo/Manager: Unlocking response %zu to request %zu (%d bytes)...\n",
-              response->header.serial, response->request, response->header.size );
+     D_DEBUG( "Voodoo/Manager: Unlocking response %llu to request %llu (%d bytes)...\n",
+              (unsigned long long)response->header.serial, (unsigned long long)response->request, response->header.size );
 
      manager->response.current = NULL;
 

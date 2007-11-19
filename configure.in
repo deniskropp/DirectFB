@@ -16,9 +16,9 @@ AC_PREREQ(2.52)
 #
 DIRECTFB_MAJOR_VERSION=1
 DIRECTFB_MINOR_VERSION=1
-DIRECTFB_MICRO_VERSION=0
+DIRECTFB_MICRO_VERSION=1
 DIRECTFB_INTERFACE_AGE=0
-DIRECTFB_BINARY_AGE=0
+DIRECTFB_BINARY_AGE=1
 DIRECTFB_VERSION=$DIRECTFB_MAJOR_VERSION.$DIRECTFB_MINOR_VERSION.$DIRECTFB_MICRO_VERSION
 
 AC_SUBST(DIRECTFB_MAJOR_VERSION)
@@ -442,6 +442,7 @@ AC_CHECK_HEADER(stdbool.h, DIRECT_BUILD_STDBOOL=1, DIRECT_BUILD_STDBOOL=0)
 AC_SUBST(DIRECT_BUILD_STDBOOL)
 
 
+linux_fusion="N/A"
 AC_ARG_ENABLE(multi,
   [  --enable-multi            enable multi application core [[default=no]]],,
   enable_multi=no)
@@ -452,8 +453,9 @@ if test "$enable_multi" = "yes"; then
   if test "$linux_fusion" = "yes"; then
      FUSION_BUILD_KERNEL=1
   else
-     AC_MSG_WARN([
-*** Linux-Fusion header not found. Using EXPERIMENTAL Builtin Multi application core.])
+     fusion_warning="
+Linux-Fusion header not found. Using EXPERIMENTAL Builtin Multi application core!"
+     AC_MSG_WARN([*** $fusion_warning *** ])
      FUSION_BUILD_KERNEL=0
   fi
   FUSION_BUILD_MULTI=1
@@ -1591,6 +1593,7 @@ Build options:
 
 Misc options:
   Multi Application Core    $enable_multi
+  Fusion Kernel Device      $linux_fusion
   Fusion message size       $with_message_size
   Voodoo (network support)  $enable_voodoo
   Debug supported           $enable_debug_support
@@ -1674,5 +1677,5 @@ Building Input Drivers:
   WM97xx Touchscreen        $enable_wm97xx_ts]);
 fi
 
-AC_MSG_RESULT([$png_warning $jpeg_warning $freetype_warning
+AC_MSG_RESULT([$fusion_warning $png_warning $jpeg_warning $freetype_warning
 ]);

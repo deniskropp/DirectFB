@@ -198,8 +198,6 @@ i810_set_src(I810DriverData *i810drv,
 	     I810DeviceData *i810dev,
 	     CardState      *state)
 {
-	CoreSurface   *source = state->source;
-
 	if (i810dev->i_src)
 		return;
 	i810dev->srcaddr = dfb_gfxcard_memory_physical((CoreGraphicsDevice *) i810dev,

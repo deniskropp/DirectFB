@@ -28,6 +28,8 @@
 
 #include <config.h>
 
+#include <asm/types.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

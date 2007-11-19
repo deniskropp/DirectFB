@@ -36,6 +36,7 @@
 
 #include <directfb.h>
 
+#include <core/coredefs.h>
 #include <core/layers.h>
 #include <core/screen.h>
 
