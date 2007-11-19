@@ -1028,7 +1028,8 @@ _fusion_check_locals( FusionWorld *world, FusionRef *ref )
 {
      FusionWorldShared *shared;
      __Fusionee        *fusionee;
-     __FusioneeRef     *fusionee_ref;
+     __FusioneeRef     *fusionee_ref, *temp;
+     DirectLink        *list = NULL;
 
      D_DEBUG_AT( Fusion_Main, "%s( %p, %p )\n", __FUNCTION__, world, ref );
 
@@ -1051,10 +1052,7 @@ _fusion_check_locals( FusionWorld *world, FusionRef *ref )
                if (fusionee_ref->ref == ref) {
                     if (kill( fusionee->pid, 0 ) < 0 && errno == ESRCH) { 
                          direct_list_remove( &fusionee->refs, &fusionee_ref->link );
-
-                         _fusion_ref_change( ref, -fusionee_ref->count, false );
-                         
-                         SHFREE( shared->main_pool, fusionee_ref );
+                         direct_list_append( &list, &fusionee_ref->link );
                     }
                     break;
                }
@@ -1062,6 +1060,12 @@ _fusion_check_locals( FusionWorld *world, FusionRef *ref )
      }
 
      fusion_skirmish_dismiss( &shared->fusionees_lock );
+
+     direct_list_foreach_safe (fusionee_ref, temp, list) {
+          _fusion_ref_change( ref, -fusionee_ref->count, false );
+          
+          SHFREE( shared->main_pool, fusionee_ref );
+     }
 }
 
 void
@@ -1088,6 +1092,7 @@ _fusion_remove_all_locals( FusionWorld *world, const FusionRef *ref )
           direct_list_foreach_safe (fusionee_ref, temp, fusionee->refs) {
                if (fusionee_ref->ref == ref) {
                     direct_list_remove( &fusionee->refs, &fusionee_ref->link );
+                    
                     SHFREE( shared->main_pool, fusionee_ref );
                }
           }
@@ -1135,7 +1140,7 @@ _fusion_remove_fusionee( FusionWorld *world, FusionID fusion_id )
      
      direct_list_foreach_safe (fusionee_ref, temp, fusionee->refs) {
           direct_list_remove( &fusionee->refs, &fusionee_ref->link );
-       
+               
           _fusion_ref_change( fusionee_ref->ref, -fusionee_ref->count, false );
           
           SHFREE( shared->main_pool, fusionee_ref );
@@ -1574,9 +1579,9 @@ fusion_enter( int               world_index,
                     "/tmp/fusion.%d/%lx", world_index, FUSION_ID_MASTER );
           
           /* Send enter message (used to sync with the master) */
-          ret = _fusion_send_message( fd, &enter, sizeof(enter), &addr );
+          ret = _fusion_send_message( fd, &enter, sizeof(FusionEnter), &addr );
           if (ret == DFB_OK) {
-               ret = _fusion_recv_message( fd, &enter, sizeof(enter), NULL );
+               ret = _fusion_recv_message( fd, &enter, sizeof(FusionEnter), NULL );
                if (ret == DFB_OK && enter.type != FMT_ENTER) {
                     D_ERROR( "Fusion/Init: Expected message ENTER, got '%d'!\n", enter.type );
                     ret = DFB_FUSION;
@@ -1930,7 +1935,7 @@ fusion_dispatch_loop( DirectThread *self, void *arg )
 {
      FusionWorld        *world = arg;
      struct sockaddr_un  addr;
-     socklen_t           len   = sizeof(addr); 
+     socklen_t           addr_len = sizeof(addr); 
      fd_set              set;
      char                buf[FUSION_MESSAGE_SIZE];
 
@@ -1959,7 +1964,7 @@ fusion_dispatch_loop( DirectThread *self, void *arg )
           D_MAGIC_ASSERT( world, FusionWorld );
 
           if (FD_ISSET( world->fusion_fd, &set ) && 
-              recvfrom( world->fusion_fd, buf, sizeof(buf), 0, (struct sockaddr*)&addr, &len ) > 0) {
+              recvfrom( world->fusion_fd, buf, sizeof(buf), 0, (struct sockaddr*)&addr, &addr_len ) > 0) {
                FusionMessage *msg = (FusionMessage*)buf;               
 
                pthread_setcancelstate( PTHREAD_CANCEL_DISABLE, NULL );
@@ -1976,7 +1981,7 @@ fusion_dispatch_loop( DirectThread *self, void *arg )
                          break;
 
                     case FMT_ENTER:
-                         D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_ENTER...\n" );
+                         D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_ENTER...\n" ); 
                          if (!fusion_master( world )) {
                               D_ERROR( "Fusion/Dispatch: Got ENTER request, but I'm not master!\n" );
                               break;
