@@ -44,7 +44,7 @@
 
 
 DECLARE_INTERFACE( IAny )
-DEFINE_INTERFACE( IAny )
+DEFINE_INTERFACE( IAny, )
 
 typedef DirectResult (*DirectInterfaceGenericProbeFunc)( void *ctx, ... );
 typedef DirectResult (*DirectInterfaceGenericConstructFunc)( void *interface, ... );
