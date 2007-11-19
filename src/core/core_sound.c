@@ -491,8 +491,8 @@ fs_core_start( CoreSound *core )
      D_ASSERT( core != NULL );
      D_ASSERT( core->shared != NULL );
      
-     return fusion_call_execute( &core->shared->call, FCEF_NONE, 
-                                 CSCID_START, NULL, NULL );
+     return fusion_call_execute( &core->shared->call,
+                                 FCEF_ONEWAY, CSCID_START, NULL, NULL );
 }  
 
 DFBResult
@@ -501,8 +501,8 @@ fs_core_get_master_volume( CoreSound *core, float *level )
      D_ASSERT( core != NULL );
      D_ASSERT( core->shared != NULL );
      
-     return fusion_call_execute( &core->shared->call, FCEF_NONE,
-                                 CSCID_GET_VOLUME, NULL, (int*)level );
+     return fusion_call_execute( &core->shared->call, 
+                                 FCEF_NONE, CSCID_GET_VOLUME, NULL, (int*)level );
 }
 
 DFBResult
@@ -517,8 +517,8 @@ fs_core_set_master_volume( CoreSound *core, float level )
      
      shared->call_arg = level;
      
-     return fusion_call_execute( &core->shared->call, FCEF_NONE,
-                                 CSCID_SET_VOLUME, &shared->call_arg, NULL );
+     return fusion_call_execute( &core->shared->call,
+                                 FCEF_NONE, CSCID_SET_VOLUME, &shared->call_arg, NULL );
 }
 
 /******************************************************************************/
