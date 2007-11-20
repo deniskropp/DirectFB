@@ -87,4 +87,5 @@ raw32toraw24_SOURCES = raw32toraw24.c
 
 EXTRA_DIST = \
 	README			\
-	gendoc.pl
+	gendoc.pl		\
+	mknames.sh

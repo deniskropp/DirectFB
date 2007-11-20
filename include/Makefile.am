@@ -2,8 +2,6 @@
 
 includedir = @INCLUDEDIR@
 
-EXTRA_DIST = mknames.sh
-
 include_HEADERS = \
 	directfb.h		\
 	directfb_keyboard.h	\
@@ -16,13 +14,13 @@ include_HEADERS = \
 	dfiff.h			\
 	dgiff.h
 
-MKNAMES = $(top_srcdir)/include/mknames.sh
-INCP = $(top_srcdir)/include
+MKNAMES = $(top_srcdir)/tools/mknames.sh
+INCP = $(srcdir)
 
 distclean-local:
 	rm -f directfb_keynames.h directfb_strings.h
 
-directfb_keynames.h: directfb_keyboard.h mknames.sh Makefile
+directfb_keynames.h: directfb_keyboard.h $(MKNAMES) Makefile
 	@echo '#ifndef __DIRECTFB_KEYNAMES_H__' > $@
 	@echo '#define __DIRECTFB_KEYNAMES_H__' >> $@
 
@@ -36,7 +34,7 @@ directfb_keynames.h: directfb_keyboard.h mknames.sh Makefile
 	@echo '#endif' >> $@
 
 
-directfb_strings.h: directfb.h mknames.sh Makefile
+directfb_strings.h: directfb.h $(MKNAMES) Makefile
 	@echo '#ifndef __DIRECTFB_STRINGS_H__' > $@
 	@echo '#define __DIRECTFB_STRINGS_H__' >> $@
 
@@ -50,6 +48,9 @@ directfb_strings.h: directfb.h mknames.sh Makefile
 
 	$(MKNAMES) DFBSurfaceBlittingFlags DSBLIT NOFX SurfaceBlittingFlags flag $(INCP)/directfb.h \
 	   | grep -v DSBLIT_ALL >> $@
+
+	$(MKNAMES) DFBSurfaceBlendFunction DSBF FIXME_no_null_value SurfaceBlendFunction function $(INCP)/directfb.h \
+	   >> $@
 
 	@echo FIXME: Use DIMCAPS prefix for DFBImageCapabilities
 	$(MKNAMES) DFBInputDeviceCapabilities DICAPS NONE InputDeviceCapabilities capability $(INCP)/directfb.h \
