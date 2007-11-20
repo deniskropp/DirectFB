@@ -25,6 +25,6 @@ EOF
 egrep "^ +${PREFIX}_[0-9A-Za-z_]+[ ,]" $HEADER | grep -v ${PREFIX}_${NULL} | perl -p -e "s/^\\s*(${PREFIX}_)([\\w_]+)[ ,].*/     \\{ \\1\\2, \\\"\\2\\\" \\}, \\\\/"
 
 cat << EOF
-     { ${PREFIX}_${NULL}, "${NULL}" } \\
+     { 0, "${NULL}" } \\
 };
 EOF
