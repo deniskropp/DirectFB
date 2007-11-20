@@ -99,6 +99,8 @@ typedef struct {
      
      int                  id;
      int                  channel;
+     
+     FusionRef           *ref;
 } FusionReactorMessage;
 
 
