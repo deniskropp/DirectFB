@@ -319,13 +319,23 @@ parse_args( const char *args )
 
 static void config_values_parse( FusionVector *vector, const char *arg )
 {
-     char *values    = D_STRDUP( arg );
-     char *p, *r, *s = values;
+     char *values = D_STRDUP( arg );
+     char *s      = values;
+     char *r, *p  = NULL;
+
+     if (!values) {
+          D_OOM();
+          return;
+     }
 
      while ((r = strtok_r( s, ",", &p ))) {
           direct_trim( &r );
 
-          fusion_vector_add( vector, D_STRDUP( r ) );
+          r = D_STRDUP( r );
+          if (!r)
+               D_OOM();
+          else
+               fusion_vector_add( vector, r );
 
           s = NULL;
      }
