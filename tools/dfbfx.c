@@ -46,6 +46,7 @@
 
 
 static DirectFBSurfaceBlittingFlagsNames( m_bflags );
+static DirectFBSurfaceBlendFunctionNames( m_bfuncs );
 
 #define MODULATE(a,b)    do { (a) = (((int)(a) * ((int)(b) + 1)) >> 8); } while (0)
 
@@ -334,46 +335,22 @@ blit_pixel( CardState *state, DFBColor src, DFBColor dst )
      return x;
 }
 
+/**********************************************************************************************************************/
+
 static const char *
 blend_to_string( DFBSurfaceBlendFunction func )
 {
-     switch (func) {
-          case DSBF_ZERO:
-               return "ZERO";
+     int i;
 
-          case DSBF_ONE:
-               return "ONE";
-
-          case DSBF_SRCCOLOR:
-               return "SRCCOLOR";
-
-          case DSBF_INVSRCCOLOR:
-               return "INVSRCCOLOR";
-
-          case DSBF_SRCALPHA:
-               return "SRCALPHA";
-
-          case DSBF_INVSRCALPHA:
-               return "INVSRCALPHA";
-
-          case DSBF_DESTALPHA:
-               return "DESTALPHA";
-
-          case DSBF_INVDESTALPHA:
-               return "INVDESTALPHA";
-
-          case DSBF_DESTCOLOR:
-               return "DESTCOLOR";
-
-          case DSBF_INVDESTCOLOR:
-               return "INVDESTCOLOR";
-
-          case DSBF_SRCALPHASAT:
-               return "SRCALPHASAT";
+     for (i=0; i<D_ARRAY_SIZE(m_bfuncs); i++) {
+          if (m_bfuncs[i].function == func)
+               return m_bfuncs[i].name;
      }
 
      return "<unknown>";
 }
+
+/**********************************************************************************************************************/
 
 static void
 parse_flags( const char *arg, DFBSurfaceBlittingFlags *ret_flags )
@@ -388,26 +365,180 @@ parse_flags( const char *arg, DFBSurfaceBlittingFlags *ret_flags )
      }
 }
 
+static bool
+parse_color( const char *arg, DFBColor *ret_color )
+{
+     char *error;
+     u32   argb;
+
+     if (arg[0] == '#')
+          arg++;
+
+     if (arg[0] == '0' && arg[1] == 'x')
+          arg+=2;
+
+     argb = strtoul( arg, &error, 16 );
+
+     if (*error) {
+          fprintf( stderr, "Invalid characters in color string: '%s'\n", error );
+          return false;
+     }
+
+     ret_color->a =  argb >> 24;
+     ret_color->r = (argb & 0xFF0000) >> 16;
+     ret_color->g = (argb & 0xFF00)   >> 8;
+     ret_color->b =  argb & 0xFF;
+
+     return true;
+}
+
+static bool
+parse_blend_func( const char *arg, DFBSurfaceBlendFunction *ret_func )
+{
+     int i;
+
+     for (i=0; i<D_ARRAY_SIZE(m_bfuncs); i++) {
+          if (!strcasecmp( arg, m_bfuncs[i].name )) {
+               *ret_func = m_bfuncs[i].function;
+               return true;
+          }
+     }
+
+     fprintf( stderr, "Unknown blend function: '%s'\n", arg );
+
+     return false;
+}
+
 static void
 print_usage (const char *prg_name)
 {
      int i;
 
-     fprintf (stderr, "\n"
+     fprintf( stderr, "\n"
                       "DirectFB Blitting FX Demonstrator (version %s)\n"
                       "\n"
                       "Usage: %s [options]\n"
                       "\n"
                       "Options:\n"
-                      "   -b, --blittingflags   [<flag>[,<flag>]]     Use the specified blitting flags\n"
+                      "   -b, --blittingflags   <flag>[,<flag>]     Set blitting flags\n"
+                      "   -D, --destination     <0xAARRGGBB>        Set destination value (ARGB32 in hex)\n"
+                      "   -S, --source          <0xAARRGGBB>        Set source value (ARGB32 in hex)\n"
+                      "   -c, --color           <0xAARRGGBB>        Set color (ARGB32 in hex)\n"
+                      "   -s, --srcblend        <func>              Set source blend function\n"
+                      "   -d, --dstblend        <func>              Set destination blend function\n"
                       "\n"
-                      "Blitting flags:\n", DIRECTFB_VERSION, prg_name);
+                      "Blitting flags:\n", DIRECTFB_VERSION, prg_name );
 
-     for (i=0; i<D_ARRAY_SIZE(m_bflags); i++)
-          fprintf (stderr, "   %-20s\n", m_bflags[i].name);
+     for (i=0; i<D_ARRAY_SIZE(m_bflags)-1; i++) {
+          fprintf( stderr, "  %-20s", m_bflags[i].name );
 
-     fprintf (stderr, "\n\n");
+          if (i % 4 == 3)
+               fprintf( stderr, "\n" );
+     }
+
+     fprintf( stderr, "(any other value means NOFX)\n"
+                      "\n"
+                      "Blend functions:" );
+
+     for (i=0; i<D_ARRAY_SIZE(m_bfuncs)-1; i++) {
+          if (i % 4 == 0)
+               fprintf( stderr, "\n" );
+
+          fprintf( stderr, "  %-20s", m_bfuncs[i].name );
+     }
+
+     fprintf( stderr, "\n" );
 }
+
+static DFBBoolean
+parse_command_line( int argc, char *argv[], CardState *state, DFBColor *dest, DFBColor *source )
+{
+     int i;
+
+     /* Parse command line arguments. */
+     for (i=1; i<argc; i++) {
+          const char *arg = argv[i];
+
+          if (strcmp (arg, "-h") == 0 || strcmp (arg, "--help") == 0) {
+               print_usage (argv[0]);
+               return DFB_FALSE;
+          }
+
+          if (strcmp (arg, "-v") == 0 || strcmp (arg, "--version") == 0) {
+               fprintf (stderr, "dfbfx version %s\n", DIRECTFB_VERSION);
+               return DFB_FALSE;
+          }
+
+          if (strcmp (arg, "-b") == 0 || strcmp (arg, "--blittingflags") == 0) {
+               if (++i == argc) {
+                    print_usage (argv[0]);
+                    return DFB_FALSE;
+               }
+
+               parse_flags( argv[i], &state->blittingflags );
+
+               continue;
+          }
+
+          if (strcmp (arg, "-D") == 0 || strcmp (arg, "--destination") == 0) {
+               if (++i == argc) {
+                    print_usage (argv[0]);
+                    return DFB_FALSE;
+               }
+
+               if (parse_color( argv[i], dest ))
+                    continue;
+          }
+
+          if (strcmp (arg, "-S") == 0 || strcmp (arg, "--source") == 0) {
+               if (++i == argc) {
+                    print_usage (argv[0]);
+                    return DFB_FALSE;
+               }
+
+               if (parse_color( argv[i], source ))
+                    continue;
+          }
+
+          if (strcmp (arg, "-c") == 0 || strcmp (arg, "--color") == 0) {
+               if (++i == argc) {
+                    print_usage (argv[0]);
+                    return DFB_FALSE;
+               }
+
+               if (parse_color( argv[i], &state->color ))
+                    continue;
+          }
+
+          if (strcmp (arg, "-s") == 0 || strcmp (arg, "--srcblend") == 0) {
+               if (++i == argc) {
+                    print_usage (argv[0]);
+                    return DFB_FALSE;
+               }
+
+               if (parse_blend_func( argv[i], &state->src_blend ))
+                    continue;
+          }
+
+          if (strcmp (arg, "-d") == 0 || strcmp (arg, "--dstblend") == 0) {
+               if (++i == argc) {
+                    print_usage (argv[0]);
+                    return DFB_FALSE;
+               }
+
+               if (parse_blend_func( argv[i], &state->dst_blend ))
+                    continue;
+          }
+
+          print_usage (argv[0]);
+
+          return DFB_FALSE;
+     }
+
+     return DFB_TRUE;
+}
+
+/**********************************************************************************************************************/
 
 int
 main( int argc, char *argv[] )
@@ -450,36 +581,8 @@ main( int argc, char *argv[] )
      /* Startup the blitting FX demonstrator. */
      printf( "\ndfbfx v" DIRECTFB_VERSION "\n\n" );
 
-     /* Parse command line arguments. */
-     for (i=1; i<argc; i++) {
-          const char *arg = argv[i];
-
-          if (strcmp (arg, "-h") == 0 || strcmp (arg, "--help") == 0) {
-               print_usage (argv[0]);
-               return DFB_FALSE;
-          }
-
-          if (strcmp (arg, "-v") == 0 || strcmp (arg, "--version") == 0) {
-               fprintf (stderr, "dfbfx version %s\n", DIRECTFB_VERSION);
-               return DFB_FALSE;
-          }
-
-          if (strcmp (arg, "-b") == 0 || strcmp (arg, "--blittingflags") == 0) {
-               if (++i == argc) {
-                    print_usage (argv[0]);
-                    return DFB_FALSE;
-               }
-
-               parse_flags( argv[i], &state.blittingflags );
-
-               continue;
-          }
-
-          print_usage (argv[0]);
-
-          return DFB_FALSE;
-     }
-
+     if (!parse_command_line( argc, argv, &state, &dst, &src ))
+          return -1;
 
      /* Show blitting flags being used. */
      printf( "  blit_flags: " );
