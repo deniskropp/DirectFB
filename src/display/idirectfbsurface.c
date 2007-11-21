@@ -769,6 +769,9 @@ IDirectFBSurface_SetSrcBlendFunction( IDirectFBSurface        *thiz,
           case DSBF_SRCALPHASAT:
                dfb_state_set_src_blend( &data->state, src );
                return DFB_OK;
+
+          default:
+               break;
      }
 
      return DFB_INVARG;
@@ -796,6 +799,9 @@ IDirectFBSurface_SetDstBlendFunction( IDirectFBSurface        *thiz,
           case DSBF_SRCALPHASAT:
                dfb_state_set_dst_blend( &data->state, dst );
                return DFB_OK;
+
+          default:
+               break;
      }
 
      return DFB_INVARG;
