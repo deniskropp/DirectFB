@@ -49,7 +49,7 @@ directfb_strings.h: directfb.h $(MKNAMES) Makefile
 	$(MKNAMES) DFBSurfaceBlittingFlags DSBLIT NOFX SurfaceBlittingFlags flag $(INCP)/directfb.h \
 	   | grep -v DSBLIT_ALL >> $@
 
-	$(MKNAMES) DFBSurfaceBlendFunction DSBF FIXME_no_null_value SurfaceBlendFunction function $(INCP)/directfb.h \
+	$(MKNAMES) DFBSurfaceBlendFunction DSBF UNKNOWN SurfaceBlendFunction function $(INCP)/directfb.h \
 	   >> $@
 
 	@echo FIXME: Use DIMCAPS prefix for DFBImageCapabilities
