@@ -1802,7 +1802,7 @@ fusion_exit( FusionWorld *world,
           leave.type      = FMT_LEAVE;
           leave.fusion_id = world->fusion_id;
 
-          _fusion_send_message( world->fusion_fd, &leave, sizeof(leave), &addr );
+          _fusion_send_message( world->fusion_fd, &leave, sizeof(FusionLeave), &addr );
      }
 
      /* Master has to deinitialize shared data. */
@@ -2016,6 +2016,13 @@ fusion_dispatch_loop( DirectThread *self, void *arg )
                          D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_REACTOR...\n" );
                          _fusion_reactor_process_message( world, msg->reactor.id, msg->reactor.channel, 
                                                           &buf[sizeof(FusionReactorMessage)] );
+                         if (msg->reactor.ref) {
+                              fusion_ref_down( msg->reactor.ref, true );
+                              if (fusion_ref_zero_trylock( msg->reactor.ref ) == DFB_OK) {
+                                   fusion_ref_destroy( msg->reactor.ref );
+                                   SHFREE( world->shared->main_pool, msg->reactor.ref );
+                              }
+                         }
                          break;                    
                          
                     default:
