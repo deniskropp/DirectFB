@@ -651,6 +651,11 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
           wd.stacking  = desc->stacking;
      }
 
+     if (desc->flags & DWDESC_RESOURCE_ID) {
+          wd.flags       |= DWDESC_RESOURCE_ID;
+          wd.resource_id  = desc->resource_id;
+     }
+
 
      if ((wd.caps & ~DWCAPS_ALL) || !window)
           return DFB_INVARG;
