@@ -36,6 +36,7 @@
 #include <direct/direct.h>
 #include <direct/interface.h>
 #include <direct/list.h>
+#include <direct/log.h>
 #include <direct/mem.h>
 #include <direct/signals.h>
 #include <direct/thread.h>
@@ -59,6 +60,8 @@ struct __D_DirectCleanupHandler {
 static int              refs      = 0;
 static DirectLink      *handlers  = NULL; 
 static pthread_mutex_t  main_lock = PTHREAD_MUTEX_INITIALIZER;
+
+static DirectLog       *default_log;
 
 /**************************************************************************************************/
 
@@ -153,6 +156,9 @@ direct_initialize()
 {
      pthread_mutex_lock( &main_lock );
 
+     direct_log_create( DLT_STDERR, NULL, &default_log );
+     direct_log_set_default( default_log );
+
      D_DEBUG_AT( Direct_Main, "direct_initialize() called...\n" );
 
      if (refs++) {
@@ -188,6 +194,8 @@ direct_shutdown()
      D_DEBUG_AT( Direct_Main, "...shutting down now.\n" );
 
      direct_signals_shutdown();
+
+     direct_log_destroy( default_log );
 
      pthread_mutex_unlock( &main_lock );
 
