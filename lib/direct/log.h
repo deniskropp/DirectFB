@@ -71,5 +71,15 @@ DirectResult direct_log_printf     ( DirectLog        *log,
  */
 DirectResult direct_log_set_default( DirectLog        *log );
 
+/*
+ * Locks a logging facility for non-intermixed output of multiple calls in multiple threads. Not mandatory.
+ */
+void         direct_log_lock       ( DirectLog        *log );
+
+/*
+ * Unlocks a logging facility.
+ */
+void         direct_log_unlock     ( DirectLog        *log );
+
 
 #endif
