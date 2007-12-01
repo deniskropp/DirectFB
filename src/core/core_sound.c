@@ -392,14 +392,11 @@ fs_core_add_playback( CoreSound    *core,
           return DFB_FUSION;
      }
      
-     /* Add it to the playback list. */
-     fusion_skirmish_prevail( &shared->playlist.lock );
-     
+     /* Add it to the playback list. */     
      direct_list_prepend( &shared->playlist.entries, &entry->link );
      
+     /* Notify new playlist entry to the sound thread. */
      fusion_skirmish_notify( &shared->playlist.lock );
-     
-     fusion_skirmish_dismiss( &shared->playlist.lock );
 
      return DFB_OK;
 }
@@ -419,9 +416,7 @@ fs_core_remove_playback( CoreSound    *core,
 
      shared = core->shared;
 
-     /* Lookup playback in the list. */
-     fusion_skirmish_prevail( &shared->playlist.lock );
-     
+     /* Lookup playback in the list. */     
      direct_list_foreach_safe (l, next, shared->playlist.entries) {
           CorePlaylistEntry *entry = (CorePlaylistEntry*) l;
 
@@ -434,8 +429,6 @@ fs_core_remove_playback( CoreSound    *core,
                SHFREE( shared->shmpool, entry );
           }
      }
-     
-     fusion_skirmish_dismiss( &shared->playlist.lock );
 
      return DFB_OK;
 }
