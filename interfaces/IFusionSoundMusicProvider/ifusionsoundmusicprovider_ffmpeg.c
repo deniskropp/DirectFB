@@ -504,6 +504,9 @@ IFusionSoundMusicProvider_FFmpeg_PlayToStream( IFusionSoundMusicProvider *thiz,
      if (!destination)
           return DFB_INVARG;
           
+     if (data->dest.stream == destination)
+          return DFB_OK;
+          
      destination->GetDescription( destination, &desc );
      
      /* check whether destination samplerate is supported */
@@ -686,6 +689,9 @@ IFusionSoundMusicProvider_FFmpeg_PlayToBuffer( IFusionSoundMusicProvider *thiz,
 
      if (!destination)
           return DFB_INVARG;
+          
+     if (data->dest.buffer == destination)
+          return DFB_OK;
           
      destination->GetDescription( destination, &desc );
      

@@ -769,6 +769,9 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
 
      if (!destination)
           return DFB_INVARG;
+          
+     if (data->dest.stream == destination)
+          return DFB_OK;
 
      destination->GetDescription( destination, &desc );
 
@@ -958,6 +961,9 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
 
      if (!destination)
           return DFB_INVARG;
+          
+     if (data->dest.buffer == destination)
+          return DFB_OK;
 
      destination->GetDescription( destination, &desc );
 

@@ -859,18 +859,21 @@ IFusionSoundMusicProvider_CDDA_PlayToStream( IFusionSoundMusicProvider *thiz,
 
      if (!destination)
           return DFB_INVARG;
+          
+     if (data->dest.stream == destination)
+          return DFB_OK;
 
      destination->GetDescription( destination, &desc );
 
-     /* check if destination samplerate is supported */
+     /* check whether destination samplerate is supported */
      if (desc.samplerate != 44100)
           return DFB_UNSUPPORTED;
 
-     /* check if number of channels is supported */
+     /* check whether number of channels is supported */
      if (desc.channels > 2)
           return DFB_UNSUPPORTED;
 
-     /* check if destination format is supported */
+     /* check whether destination format is supported */
      switch (desc.sampleformat) {
           case FSSF_U8:
           case FSSF_S16:
@@ -1022,18 +1025,21 @@ IFusionSoundMusicProvider_CDDA_PlayToBuffer( IFusionSoundMusicProvider *thiz,
 
      if (!destination)
           return DFB_INVARG;
+          
+     if (data->dest.buffer == destination)
+          return DFB_OK;
 
      destination->GetDescription( destination, &desc );
 
-     /* check if destination samplerate is supported */
+     /* check whether destination samplerate is supported */
      if (desc.samplerate != 44100)
           return DFB_UNSUPPORTED;
 
-     /* check if number of channels is supported */
+     /* check whether number of channels is supported */
      if (desc.channels > 2)
           return DFB_UNSUPPORTED;
 
-     /* check if destination format is supported */
+     /* check whether destination format is supported */
      switch (desc.sampleformat) {
           case FSSF_U8:
           case FSSF_S16:
