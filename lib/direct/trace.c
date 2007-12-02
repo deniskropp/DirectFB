@@ -445,6 +445,7 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
           return;
      }
 
+     direct_log_lock( NULL );
 
      if (buffer->name)
           direct_log_printf( NULL, "(-) [%5d: -STACK- '%s']\n", buffer->tid, buffer->name );
@@ -493,6 +494,7 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
      }
 
      direct_log_printf( NULL, "\n" );
+     direct_log_unlock( NULL );
 
      buffer->in_trace = false;
 }

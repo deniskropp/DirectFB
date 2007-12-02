@@ -75,6 +75,8 @@ struct __Fusion_FusionReactor {
 #if !FUSION_BUILD_KERNEL
      DirectLink        *listeners;  /* list of attached listeners */
      FusionSkirmish     listeners_lock;
+
+     FusionCall        *call;
 #endif
 };
 
@@ -880,6 +882,7 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
 {
      FusionWorld           *world;
      __Listener            *listener, *temp; 
+     FusionRef             *ref = NULL;
      FusionReactorMessage  *msg;
      struct sockaddr_un     addr;
      int                    len;
@@ -900,6 +903,18 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
           return DFB_UNSUPPORTED;
      }
 
+     world = _fusion_world( reactor->shared );
+
+     if (reactor->call) {
+          ref = SHMALLOC( world->shared->main_pool, sizeof(FusionRef) );
+          if (!ref)
+               return D_OOSHM();
+
+          fusion_ref_init( ref, "Dispatch Ref", world ); 
+          fusion_ref_up( ref, true );
+          fusion_ref_watch( ref, reactor->call, 0 ); 
+     }
+
      /* Handle global reactions first. */
      if (reactor->globals) {
           if (globals)
@@ -915,19 +930,18 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
           self = false;
      }
      
-     world = _fusion_world( reactor->shared );
-
      msg = alloca( sizeof(FusionReactorMessage) + msg_size );
      
      msg->type    = FMT_REACTOR;
      msg->id      = reactor->id;
      msg->channel = channel;
+     msg->ref     = ref;
      
      memcpy( (void*)msg + sizeof(FusionReactorMessage), msg_data, msg_size );
 
      addr.sun_family = AF_UNIX;
      len = snprintf( addr.sun_path, sizeof(addr.sun_path), 
-                     "/tmp/fusion.%d/", fusion_world_index( world ) );
+                     "/tmp/.fusion-%d/", fusion_world_index( world ) );
      
      fusion_skirmish_prevail( &reactor->listeners_lock );
      
@@ -938,6 +952,9 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
                if (!self && listener->fusion_id == world->fusion_id)
                     continue;
 
+               if (ref)
+                    fusion_ref_up( ref, true );
+
                snprintf( addr.sun_path+len, sizeof(addr.sun_path)-len, "%lx", listener->fusion_id );
 
                D_DEBUG_AT( Fusion_Reactor, " -> sending to '%s'\n", addr.sun_path );
@@ -945,13 +962,26 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
                ret = _fusion_send_message( world->fusion_fd, msg, sizeof(FusionReactorMessage)+msg_size, &addr );
                if (ret == DFB_DEAD) {
                     D_DEBUG_AT( Fusion_Reactor, " -> removing dead listener %lu\n", listener->fusion_id );
+                    
+                    if (ref)
+                         fusion_ref_down( ref, true );
+                    
                     direct_list_remove( &reactor->listeners, &listener->link ); 
+                    
                     SHFREE( reactor->shared->main_pool, listener );
                }
           }
      }
      
      fusion_skirmish_dismiss( &reactor->listeners_lock );
+
+     if (ref) {
+          fusion_ref_down( ref, true );
+          if (fusion_ref_zero_trylock( ref ) == DFB_OK) {
+               fusion_ref_destroy( ref );
+               SHFREE( world->shared->main_pool, ref );
+          }
+     }
 
      D_DEBUG_AT( Fusion_Reactor, "fusion_reactor_dispatch( %p ) done.\n", reactor );
 
@@ -973,9 +1003,12 @@ fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
      if (reactor->destroyed)
           return DFB_DESTROYED;
 
-     D_UNIMPLEMENTED();
+     if (call_ptr)
+          return DFB_UNIMPLEMENTED;
 
-     return DFB_UNIMPLEMENTED;
+     reactor->call = call;
+
+     return DFB_OK;
 }
 
 DirectResult

@@ -6926,12 +6926,20 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                    *funcs++ = Xacc_blend[state->src_blend - 1];
 
                                    break;
+
+                              default:
+                                   D_BUG( "unknown src_blend %d", state->src_blend );
                          }
+
 
                          /* destination blending */
                          *funcs++ = Sacc_is_NULL;
                          *funcs++ = Xacc_is_Aacc;
-                         *funcs++ = Xacc_blend[state->dst_blend - 1];
+
+                         if (state->dst_blend > D_ARRAY_SIZE(Xacc_blend) || state->dst_blend < 1)
+                              D_BUG( "unknown dst_blend %d", state->dst_blend );
+                         else
+                              *funcs++ = Xacc_blend[state->dst_blend - 1];
 
                          /* add source to destination accumulator */
                          switch (state->src_blend) {
@@ -6954,6 +6962,9 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                    *funcs++ = Sacc_is_Bacc;
                                    *funcs++ = Sacc_add_to_Dacc;
                                    break;
+
+                              default:
+                                   D_BUG( "unknown src_blend %d", state->src_blend );
                          }
                     }
 

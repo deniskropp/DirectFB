@@ -30,6 +30,7 @@
 
 #include <stddef.h>
 #include <string.h>
+#include <grp.h>
 
 #include <direct/conf.h>
 #include <direct/mem.h>
@@ -39,7 +40,8 @@
 
 
 static FusionConfig config = {
-     tmpfs:    NULL
+     tmpfs:       NULL,
+     shmfile_gid: -1
 };
 
 FusionConfig *fusion_config       = &config;
@@ -64,19 +66,22 @@ fusion_config_set( const char *name, const char *value )
                fusion_config->tmpfs = D_STRDUP( value );
           }
           else {
-               D_ERROR("DirectFB/Config 'tmpfs': No directory specified!\n");
+               D_ERROR("Fusion/Config 'tmpfs': No directory specified!\n");
                return DFB_INVARG;
           }
      } else
      if (strcmp (name, "shmfile-group" ) == 0) {
           if (value) {
-               if (fusion_config->shmfile_group)
-                    D_FREE( fusion_config->shmfile_group );
-
-               fusion_config->shmfile_group = D_STRDUP( value );
+               struct group *group_info;
+               
+               group_info = getgrnam( value );
+               if (group_info)
+                    fusion_config->shmfile_gid = group_info->gr_gid;
+               else
+                    D_PERROR("Fusion/Config 'shmfile-group': Group '%s' not found!\n", value);
           }
           else {
-               D_ERROR("DirectFB/Config 'shmfile-group': No file group name specified!\n");
+               D_ERROR("Fusion/Config 'shmfile-group': No file group name specified!\n");
                return DFB_INVARG;
           }
      } else

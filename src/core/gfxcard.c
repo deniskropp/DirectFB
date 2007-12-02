@@ -627,18 +627,21 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
      /* If destination or blend functions have been changed... */
      if (state->modified & (SMF_DESTINATION | SMF_SRC_BLEND | SMF_DST_BLEND)) {
           /* ...force rechecking for all functions. */
+          state->accel   = 0;
           state->checked = 0;
      }
      else {
           /* If source or blitting flags have been changed... */
           if (state->modified & (SMF_SOURCE | SMF_BLITTING_FLAGS)) {
                /* ...force rechecking for all blitting functions. */
+               state->accel   &= 0x0000FFFF;
                state->checked &= 0x0000FFFF;
           }
 
           /* If drawing flags have been changed... */
           if (state->modified & SMF_DRAWING_FLAGS) {
                /* ...force rechecking for all drawing functions. */
+               state->accel   &= 0xFFFF0000;
                state->checked &= 0xFFFF0000;
           }
      }
