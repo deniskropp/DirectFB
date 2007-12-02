@@ -1399,8 +1399,11 @@ fusion_enter( int               world_index,
 
                len = snprintf( addr.sun_path, sizeof(addr.sun_path), "/tmp/.fusion-%d/", world_index );
                /* Make socket directory if it doesn't exits. */
-               if (mkdir( addr.sun_path, 0775 ) == 0)
+               if (mkdir( addr.sun_path, 0775 ) == 0) {
                     chmod( addr.sun_path, 0775 );
+                    if (fusion_config->shmfile_gid != (gid_t)-1)
+                         chown( addr.sun_path, -1, fusion_config->shmfile_gid );
+               }
                
                snprintf( addr.sun_path+len, sizeof(addr.sun_path)-len, "%lx", FUSION_ID_MASTER );
                
@@ -1421,8 +1424,11 @@ fusion_enter( int               world_index,
           if (!world) {
                len = snprintf( addr.sun_path, sizeof(addr.sun_path), "/tmp/.fusion-%d/", world_index );
                /* Make socket directory if it doesn't exits. */
-               if (mkdir( addr.sun_path, 0775 ) == 0)
+               if (mkdir( addr.sun_path, 0775 ) == 0) {
                     chmod( addr.sun_path, 0775 );
+                    if (fusion_config->shmfile_gid != (gid_t)-1)
+                         chown( addr.sun_path, -1, fusion_config->shmfile_gid );
+               }
                
                /* Check wether we are master. */
                snprintf( addr.sun_path+len, sizeof(addr.sun_path)-len, "%lx", FUSION_ID_MASTER );
