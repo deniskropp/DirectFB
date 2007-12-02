@@ -275,6 +275,7 @@ Using the builtin "window manager"
        useful in conjunction with 'X'.
      - Press Escape to return from fullscreen mode to the desktop.
        (currently not advisable if the fullscreen app is still flipping)
+     - Press F12 to redraw the whole window stack.
 
    You might want to use the "capslock-meta" option (see directfbrc(5))
    if you don't have a <Meta> key.
