@@ -586,6 +586,7 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
      DFBColor                old_color;
      unsigned int            old_index;
      DFBSurfaceDrawingFlags  old_flags;
+     DFBSurfaceRenderOptions old_options;
      CoreSurface            *surface;
      DFBColor                color = { a, r, g, b };
 
@@ -604,12 +605,16 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
           return DFB_LOCKED;
 
      /* save current color and drawing flags */
-     old_color = data->state.color;
-     old_index = data->state.color_index;
-     old_flags = data->state.drawingflags;
+     old_color   = data->state.color;
+     old_index   = data->state.color_index;
+     old_flags   = data->state.drawingflags;
+     old_options = data->state.render_options;
 
      /* set drawing flags */
      dfb_state_set_drawing_flags( &data->state, DSDRAW_NOFX );
+
+     /* set render options */
+     dfb_state_set_render_options( &data->state, DSRO_NONE );
 
      /* set color */
      if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format ))
@@ -627,6 +632,9 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
 
      /* restore drawing flags */
      dfb_state_set_drawing_flags( &data->state, old_flags );
+
+     /* restore render options */
+     dfb_state_set_render_options( &data->state, old_options );
 
      /* restore color */
      if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format ))
