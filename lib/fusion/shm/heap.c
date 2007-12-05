@@ -605,7 +605,6 @@ __shmalloc_init_heap( FusionSHM  *shm,
      int              heapsize = (space + BLOCKSIZE-1) / BLOCKSIZE;
      int              fd       = -1;
      shmalloc_heap   *heap     = NULL;
-     struct group    *pGroupInfo;
 
      D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, '%s', %p, %d, %p, %p )\n",
                  __FUNCTION__, shm, filename, addr_base, space, ret_fd, ret_size );
