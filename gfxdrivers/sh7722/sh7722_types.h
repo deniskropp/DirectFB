@@ -71,6 +71,7 @@ typedef struct {
 
      DFBSurfaceDrawingFlags   dflags;
      DFBSurfaceBlittingFlags  bflags;
+     DFBSurfaceRenderOptions  render_options;
 
      bool                     ckey_b_enabled;
      bool                     color_change_enabled;

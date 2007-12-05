@@ -62,7 +62,9 @@ enum {
      BLEND_DSTF   = 0x00002000,
      FIXEDALPHA   = 0x00004000,
 
-     ALL          = 0x00007717
+     MATRIX       = 0x00010000,
+
+     ALL          = 0x00017717
 };
 
 /*
@@ -84,6 +86,11 @@ enum {
                                             sdrv->gfx_shared->next_start,                           \
                                             sdrv->gfx_shared->next_end,                             \
                                             sdrv->gfx_shared->next_valid ? "" : "not " );
+
+/**********************************************************************************************************************/
+
+bool sh7722FillRectangle      ( void *drv, void *dev, DFBRectangle *rect );
+bool sh7722FillRectangleMatrix( void *drv, void *dev, DFBRectangle *rect );
 
 /**********************************************************************************************************************/
 
@@ -341,7 +348,7 @@ sh7722_validate_DEST( SH7722DriverData *sdrv,
      prep[3] = sdev->dst_offset;
 
      prep[4] = BEM_PE_DST_SIZE;
-     prep[5] = (sdev->dst_pitch / sdev->dst_bpp) | (surface->config.size.h << 16);
+     prep[5] = SH7722_XY( sdev->dst_pitch / sdev->dst_bpp, surface->config.size.h );
 
      submit_buffer( sdrv, 6 );
 
@@ -358,10 +365,10 @@ sh7722_validate_CLIP( SH7722DriverData *sdrv,
 
      /* Set clip. */
      prep[0] = BEM_PE_SC0_MIN;
-     prep[1] = (state->clip.y1 << 16) | state->clip.x1;
+     prep[1] = SH7722_XY( state->clip.x1, state->clip.y1 );
 
      prep[2] = BEM_PE_SC0_MAX;
-     prep[3] = (state->clip.y2 << 16) | state->clip.x2;
+     prep[3] = SH7722_XY( state->clip.x2, state->clip.y2 );
 
      submit_buffer( sdrv, 4 );
 
@@ -413,7 +420,7 @@ sh7722_validate_SOURCE( SH7722DriverData *sdrv,
      prep[3] = sdev->src_offset;
 
      prep[4] = BEM_TE_SRC_SIZE;
-     prep[5] = (sdev->src_pitch / sdev->src_bpp) | (surface->config.size.h << 16);
+     prep[5] = SH7722_XY( sdev->src_pitch / sdev->src_bpp, surface->config.size.h );
 
      submit_buffer( sdrv, 6 );
 
@@ -635,6 +642,37 @@ sh7722_validate_BLEND_DSTF( SH7722DriverData *sdrv,
      SH7722_VALIDATE( BLEND_DSTF );
 }
 
+static inline void
+sh7722_validate_MATRIX( SH7722DriverData *sdrv,
+                        SH7722DeviceData *sdev,
+                        CardState        *state )
+{
+     __u32 *prep = start_buffer( sdrv, 12 );
+
+     prep[0]  = BEM_BE_MATRIX_A;
+     prep[1]  = state->matrix[0];
+              
+     prep[2]  = BEM_BE_MATRIX_B;
+     prep[3]  = state->matrix[1];
+              
+     prep[4]  = BEM_BE_MATRIX_C;
+     prep[5]  = state->matrix[2];
+              
+     prep[6]  = BEM_BE_MATRIX_D;
+     prep[7]  = state->matrix[3];
+              
+     prep[8]  = BEM_BE_MATRIX_E;
+     prep[9]  = state->matrix[4];
+
+     prep[10] = BEM_BE_MATRIX_F;
+     prep[11] = state->matrix[5];
+
+     submit_buffer( sdrv, 12 );
+
+     /* Set the flag. */
+     SH7722_VALIDATE( MATRIX );
+}
+
 /**********************************************************************************************************************/
 
 static void
@@ -683,6 +721,14 @@ sh7722EngineSync( void *drv, void *dev )
 
      DUMP_INFO();
 
+/*     printf( "  -> %srunning, hw %d-%d, next %d-%d - %svalid\n",     \
+                        sdrv->gfx_shared->hw_running ? "" : "not ",             \
+                        sdrv->gfx_shared->hw_start,                             \
+                        sdrv->gfx_shared->hw_end,                               \
+                        sdrv->gfx_shared->next_start,                           \
+                        sdrv->gfx_shared->next_end,                             \
+                        sdrv->gfx_shared->next_valid ? "" : "not " );
+*/
      while (shared->hw_running && ioctl( sdrv->gfx_fd, SH7722GFX_IOCTL_WAIT_IDLE ) < 0) {
           if (errno == EINTR)
                continue;
@@ -701,6 +747,14 @@ sh7722EngineSync( void *drv, void *dev )
           break;
      }
 
+/*     printf( "   -> %srunning, hw %d-%d, next %d-%d - %svalid\n",     \
+                        sdrv->gfx_shared->hw_running ? "" : "not ",             \
+                        sdrv->gfx_shared->hw_start,                             \
+                        sdrv->gfx_shared->hw_end,                               \
+                        sdrv->gfx_shared->next_start,                           \
+                        sdrv->gfx_shared->next_end,                             \
+                        sdrv->gfx_shared->next_valid ? "" : "not " );
+*/
      if (ret == DFB_OK) {
           D_ASSERT( !shared->hw_running );
           D_ASSERT( !shared->next_valid );
@@ -722,7 +776,7 @@ sh7722EngineReset( void *drv, void *dev )
 
      ioctl( sdrv->gfx_fd, SH7722GFX_IOCTL_RESET );
 
-     prep = start_buffer( sdrv, 16 );
+     prep = start_buffer( sdrv, 18 );
 
      prep[0] = BEM_PE_OPERATION;
      prep[1] = 0x00000000;
@@ -748,7 +802,10 @@ sh7722EngineReset( void *drv, void *dev )
      prep[14] = BEM_PE_SC;
      prep[15] = 0x00000001;   /* enable clipping */
 
-     submit_buffer( sdrv, 16 );
+     prep[16] = BEM_BE_ORIGIN;
+     prep[17] = SH7722_XY( 0, 0 );
+
+     submit_buffer( sdrv, 18 );
 
      sdev->ckey_b_enabled = false;
 }
@@ -757,16 +814,10 @@ void
 sh7722EmitCommands( void *drv, void *dev )
 {
      SH7722DriverData *sdrv = drv;
-     __u32            *prep = start_buffer( sdrv, 2 );
 
      D_DEBUG_AT( SH7722_BLT, "%s()\n", __FUNCTION__ );
 
-     prep[0] = BEM_PE_CACHE;
-     prep[1] = 3;
-
-     submit_buffer( sdrv, 2 );
-
-     flush_prepared( drv );
+     flush_prepared( sdrv );
 }
 
 void
@@ -780,7 +831,7 @@ sh7722FlushTextureCache( void *drv, void *dev )
      DUMP_INFO();
 
      prep[0] = BEM_PE_CACHE;
-     prep[1] = 3;
+     prep[1] = 2;
 
      prep[2] = BEM_TE_INVALID;
      prep[3] = 1;
@@ -932,6 +983,10 @@ sh7722SetState( void                *drv,
                SH7722_INVALIDATE( BLEND_SRCF );
           if (modified & SMF_DST_BLEND)
                SH7722_INVALIDATE( BLEND_DSTF );
+
+          /* Invalidate matrix registers. */
+          if (modified & SMF_MATRIX)
+               SH7722_INVALIDATE( MATRIX );
      }
 
      /*
@@ -943,6 +998,10 @@ sh7722SetState( void                *drv,
      /* Always requiring valid destination and clip. */
      SH7722_CHECK_VALIDATE( DEST );
      SH7722_CHECK_VALIDATE( CLIP );
+
+     /* Use transformation matrix? */
+     if (state->render_options & DSRO_MATRIX)
+          SH7722_CHECK_VALIDATE( MATRIX );
 
      /* Depending on the function... */
      switch (accel) {
@@ -971,6 +1030,12 @@ sh7722SetState( void                *drv,
                     /* Force SetState() to be called before the next blitting operation. */
                     state->set &= ~SH7722_SUPPORTED_BLITTINGFUNCTIONS;
                }
+
+               /* Choose function. */
+               if (state->render_options & DSRO_MATRIX)
+                    funcs->FillRectangle = sh7722FillRectangleMatrix;
+               else
+                    funcs->FillRectangle = sh7722FillRectangle;
 
                /*
                 * 3) Tell which functions can be called without further validation, i.e. SetState()
@@ -1033,8 +1098,9 @@ sh7722SetState( void                *drv,
                break;
      }
 
-     sdev->dflags = state->drawingflags;
-     sdev->bflags = state->blittingflags;
+     sdev->dflags         = state->drawingflags;
+     sdev->bflags         = state->blittingflags;
+     sdev->render_options = state->render_options;
 
      /*
       * 4) Clear modification flags
@@ -1063,10 +1129,10 @@ sh7722FillRectangle( void *drv, void *dev, DFBRectangle *rect )
      DUMP_INFO();
 
      prep[0] = BEM_BE_V1;
-     prep[1] = (rect->y << 16) | rect->x;
+     prep[1] = SH7722_XY( rect->x, rect->y );
 
      prep[2] = BEM_BE_V2;
-     prep[3] = (rect->h << 16) | rect->w;
+     prep[3] = SH7722_XY( rect->w, rect->h );
 
      prep[4] = BEM_PE_OPERATION;
      prep[5] = (sdev->dflags & DSDRAW_BLEND) ? (BLE_FUNC_AxB_plus_CxD |
@@ -1078,6 +1144,47 @@ sh7722FillRectangle( void *drv, void *dev, DFBRectangle *rect )
      prep[7] = BE_CTRL_RECTANGLE | BE_CTRL_SCANMODE_4x4;
 
      submit_buffer( sdrv, 8 );
+
+     return true;
+}
+
+/*
+ * This version sends a quadrangle to have all four edges transformed.
+ */
+bool
+sh7722FillRectangleMatrix( void *drv, void *dev, DFBRectangle *rect )
+{
+     SH7722DriverData *sdrv = drv;
+     SH7722DeviceData *sdev = dev;
+     __u32            *prep = start_buffer( sdrv, 12 );
+
+     D_DEBUG_AT( SH7722_BLT, "%s( %d, %d - %dx%d )\n", __FUNCTION__,
+                 DFB_RECTANGLE_VALS( rect ) );
+     DUMP_INFO();
+
+     prep[0] = BEM_BE_V1;
+     prep[1] = SH7722_XY( rect->x, rect->y );
+
+     prep[2] = BEM_BE_V2;
+     prep[3] = SH7722_XY( rect->x, rect->y + rect->h );
+
+     prep[4] = BEM_BE_V3;
+     prep[5] = SH7722_XY( rect->x + rect->w, rect->y );
+
+     prep[6] = BEM_BE_V4;
+     prep[7] = SH7722_XY( rect->x + rect->w, rect->y + rect->h );
+
+     prep[8] = BEM_PE_OPERATION;
+     prep[9] = (sdev->dflags & DSDRAW_BLEND) ? (BLE_FUNC_AxB_plus_CxD |
+                                                sdev->ble_srcf |
+                                                BLE_SRCA_FIXED |
+                                                sdev->ble_dstf) : BLE_FUNC_NONE;
+
+     prep[10] = BEM_BE_CTRL;
+     prep[11] = BE_CTRL_QUADRANGLE | BE_CTRL_SCANMODE_4x4 |
+                BE_CTRL_MATRIX | BE_CTRL_FIXMODE_16_16;// | BE_CTRL_ORIGIN;
+
+     submit_buffer( sdrv, 12 );
 
      return true;
 }
@@ -1097,16 +1204,16 @@ sh7722FillTriangle( void *drv, void *dev, DFBTriangle *tri )
      DUMP_INFO();
 
      prep[0] = BEM_BE_V1;
-     prep[1] = (tri->y1 << 16) | tri->x1;
+     prep[1] = SH7722_XY( tri->x1, tri->y1 );
 
      prep[2] = BEM_BE_V2;
-     prep[3] = (tri->y2 << 16) | tri->x2;
+     prep[3] = SH7722_XY( tri->x2, tri->y2 );
 
      prep[4] = BEM_BE_V3;
-     prep[5] = (tri->y3 << 16) | tri->x3;
+     prep[5] = SH7722_XY( tri->x3, tri->y3 );
 
      prep[6] = BEM_BE_V4;
-     prep[7] = (tri->y3 << 16) | tri->x3;
+     prep[7] = SH7722_XY( tri->x3, tri->y3 );
 
      prep[8] = BEM_PE_OPERATION;
      prep[9] = (sdev->dflags & DSDRAW_BLEND) ? (BLE_FUNC_AxB_plus_CxD |
@@ -1116,6 +1223,9 @@ sh7722FillTriangle( void *drv, void *dev, DFBTriangle *tri )
 
      prep[10] = BEM_BE_CTRL;
      prep[11] = BE_CTRL_QUADRANGLE | BE_CTRL_SCANMODE_LINE;
+
+     if (sdev->render_options & DSRO_MATRIX)
+          prep[11] |= BE_CTRL_MATRIX | BE_CTRL_FIXMODE_16_16;// | BE_CTRL_ORIGIN;
 
      submit_buffer( sdrv, 12 );
 
@@ -1142,10 +1252,10 @@ sh7722DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      DUMP_INFO();
 
      prep[0] = BEM_WR_V1;
-     prep[1] = (y1 << 16) | x1;
+     prep[1] = SH7722_XY( x1, y1 );
 
      prep[2] = BEM_WR_V2;
-     prep[3] = (y1 << 16) | x2;
+     prep[3] = SH7722_XY( x2, y1 );
 
      prep[4] = BEM_PE_OPERATION;
      prep[5] = (sdev->dflags & DSDRAW_BLEND) ? (BLE_FUNC_AxB_plus_CxD |
@@ -1158,24 +1268,24 @@ sh7722DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      if (rect->h > 1 && rect->w > 1) {
           prep[8]  = BEM_WR_V2;
-          prep[9]  = (y2 << 16) | x2;
+          prep[9]  = SH7722_XY( x2, y2 );
           prep[10] = BEM_WR_CTRL;
           prep[11] = WR_CTRL_POLYLINE;
 
           prep[12] = BEM_WR_V2;
-          prep[13] = (y2 << 16) | x1;
+          prep[13] = SH7722_XY( x1, y2 );
           prep[14] = BEM_WR_CTRL;
           prep[15] = WR_CTRL_POLYLINE;
 
           prep[16] = BEM_WR_V2;
-          prep[17] = (y1 << 16) | x1;
+          prep[17] = SH7722_XY( x1, y1 );
           prep[18] = BEM_WR_CTRL;
           prep[19] = WR_CTRL_POLYLINE;
 
           submit_buffer( sdrv, 20 );
      }
      else {
-          prep[3]  = (y2 << 16) | x2;
+          prep[3]  = SH7722_XY( x2, y2 );
           prep[7] |= WR_CTRL_ENDPOINT;
 
           submit_buffer( sdrv, 8 );
@@ -1199,10 +1309,10 @@ sh7722DrawLine( void *drv, void *dev, DFBRegion *line )
      DUMP_INFO();
 
      prep[0] = BEM_WR_V1;
-     prep[1] = (line->y1 << 16) | line->x1;
+     prep[1] = SH7722_XY( line->x1, line->y1 );
 
      prep[2] = BEM_WR_V2;
-     prep[3] = (line->y2 << 16) | line->x2;
+     prep[3] = SH7722_XY( line->x2, line->y2 );
 
      prep[4] = BEM_PE_OPERATION;
      prep[5] = (sdev->dflags & DSDRAW_BLEND) ? (BLE_FUNC_AxB_plus_CxD |
@@ -1218,6 +1328,9 @@ sh7722DrawLine( void *drv, void *dev, DFBRegion *line )
      return true;
 }
 
+/*
+ * Common implementation for Blit() and StretchBlit().
+ */
 static inline bool
 sh7722DoBlit( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
               DFBRectangle *rect, int x, int y, int w, int h )
@@ -1229,16 +1342,16 @@ sh7722DoBlit( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
      DUMP_INFO();
 
      prep[0] = BEM_BE_SRC_LOC;
-     prep[1] = (rect->y << 16) | rect->x;
+     prep[1] = SH7722_XY( rect->x, rect->y );
 
      prep[2] = BEM_BE_SRC_SIZE;
-     prep[3] = (rect->h << 16) | rect->w;
+     prep[3] = SH7722_XY( rect->w, rect->h );
 
      prep[4] = BEM_BE_V1;
-     prep[5] = (y << 16) | x;
+     prep[5] = SH7722_XY( x, y );
 
      prep[6] = BEM_BE_V2;
-     prep[7] = (h << 16) | w;
+     prep[7] = SH7722_XY( w, h );
 
      prep[8] = BEM_PE_OPERATION;
      prep[9] = BLE_FUNC_NONE;
@@ -1266,10 +1379,74 @@ sh7722DoBlit( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
 
      if (sdev->bflags & DSBLIT_ROTATE180)
           prep[11] |= BE_FLIP_BOTH;
-     else if (rect->w == w && rect->h == h)
+     else if (rect->w == w && rect->h == h)  /* No blit direction handling for StretchBlit(). */
           prep[11] |= BE_CTRL_BLTDIR_AUTOMATIC;
 
      submit_buffer( sdrv, 12 );
+
+     return true;
+}
+
+/*
+ * This version sends a quadrangle to have all four edges transformed.
+ */
+static inline bool
+sh7722DoBlitM( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
+               DFBRectangle *rect, int x1, int y1, int x2, int y2 )
+{
+     __u32 *prep = start_buffer( sdrv, 16 );
+
+     D_DEBUG_AT( SH7722_BLT, "%s( %d, %d - %dx%d  -> %d, %d )\n", __FUNCTION__,
+                 DFB_RECTANGLE_VALS( rect ), x, y );
+     DUMP_INFO();
+
+     prep[0]  = BEM_BE_SRC_LOC;
+     prep[1]  = SH7722_XY( rect->x, rect->y );
+             
+     prep[2]  = BEM_BE_SRC_SIZE;
+     prep[3]  = SH7722_XY( rect->w, rect->h );
+             
+     prep[4]  = BEM_BE_V1;
+     prep[5]  = SH7722_XY( x1, y1 );
+             
+     prep[6]  = BEM_BE_V2;
+     prep[7]  = SH7722_XY( x1, y2 );
+             
+     prep[8]  = BEM_BE_V3;
+     prep[9]  = SH7722_XY( x2, y1 );
+
+     prep[10] = BEM_BE_V4;
+     prep[11] = SH7722_XY( x2, y2 );
+
+     prep[12] = BEM_PE_OPERATION;
+     prep[13] = BLE_FUNC_NONE;
+
+     if (sdev->bflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
+          prep[13] |= BLE_FUNC_AxB_plus_CxD | sdev->ble_srcf | sdev->ble_dstf;
+
+          switch (sdev->bflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
+               case DSBLIT_BLEND_ALPHACHANNEL:
+                    prep[13] |= BLE_SRCA_SOURCE_ALPHA;
+                    break;
+
+               case DSBLIT_BLEND_COLORALPHA:
+                    prep[13] |= BLE_SRCA_FIXED;
+                    break;
+
+               case DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA:
+                    prep[13] |= BLE_SRCA_ALPHA_CHANNEL;      /* does not work */
+                    break;
+          }
+     }
+
+     prep[14] = BEM_BE_CTRL;
+     prep[15] = BE_CTRL_QUADRANGLE | BE_CTRL_TEXTURE | BE_CTRL_SCANMODE_4x4 |
+                BE_CTRL_MATRIX | BE_CTRL_FIXMODE_16_16;// | BE_CTRL_ORIGIN;
+
+     if (sdev->bflags & DSBLIT_ROTATE180)
+          prep[15] |= BE_FLIP_BOTH;
+
+     submit_buffer( sdrv, 16 );
 
      return true;
 }
@@ -1286,6 +1463,9 @@ sh7722Blit( void *drv, void *dev, DFBRectangle *rect, int x, int y )
      D_DEBUG_AT( SH7722_BLT, "%s( %d, %d - %dx%d  -> %d, %d )\n",
                  __FUNCTION__, DFB_RECTANGLE_VALS( rect ), x, y );
 
+     if (sdev->render_options & DSRO_MATRIX)
+          return sh7722DoBlitM( sdrv, sdev, rect, DFB_REGION_VALS_FROM_RECTANGLE_VALS( x, y, rect->w, rect->h ) );
+
      return sh7722DoBlit( sdrv, sdev, rect, x, y, rect->w, rect->h );
 }
 
@@ -1300,6 +1480,9 @@ sh7722StretchBlit( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *drec
 
      D_DEBUG_AT( SH7722_BLT, "%s( %d, %d - %dx%d  -> %d, %d - %dx%d )\n",
                  __FUNCTION__, DFB_RECTANGLE_VALS( srect ), DFB_RECTANGLE_VALS( drect ) );
+
+     if (sdev->render_options & DSRO_MATRIX)
+          return sh7722DoBlitM( sdrv, sdev, srect, DFB_REGION_VALS_FROM_RECTANGLE( drect ) );
 
      return sh7722DoBlit( sdrv, sdev, srect, drect->x, drect->y, drect->w, drect->h );
 }
