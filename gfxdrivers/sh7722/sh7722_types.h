@@ -77,6 +77,8 @@ typedef struct {
      bool                     color_change_enabled;
 
      unsigned int             input_mask;
+
+     s32                      matrix[6];
 } SH7722DeviceData;
 
 

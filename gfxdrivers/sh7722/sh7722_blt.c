@@ -669,6 +669,8 @@ sh7722_validate_MATRIX( SH7722DriverData *sdrv,
 
      submit_buffer( sdrv, 12 );
 
+     direct_memcpy( sdev->matrix, state->matrix, sizeof(s32) * 6 );
+
      /* Set the flag. */
      SH7722_VALIDATE( MATRIX );
 }
@@ -1245,17 +1247,49 @@ sh7722DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      int x1 = rect->x;
      int y1 = rect->y;
      int x2 = rect->x + rect->w - 1;
-     int y2 = rect->y + rect->h - 1;
+     int y2 = rect->y;
+     int x3 = rect->x + rect->w - 1;
+     int y3 = rect->y + rect->h - 1;
+     int x4 = rect->x;
+     int y4 = rect->y + rect->h - 1;
 
      D_DEBUG_AT( SH7722_BLT, "%s( %d, %d - %dx%d )\n", __FUNCTION__,
                  DFB_RECTANGLE_VALS( rect ) );
      DUMP_INFO();
 
+     if (sdev->render_options & DSRO_MATRIX) {
+          int t;
+
+          t  = ((x1 * sdev->matrix[0]) +
+                (y1 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
+          y1 = ((x1 * sdev->matrix[3]) +
+                (y1 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
+          x1 = t;
+
+          t  = ((x2 * sdev->matrix[0]) +
+                (y2 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
+          y2 = ((x2 * sdev->matrix[3]) +
+                (y2 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
+          x2 = t;
+
+          t  = ((x3 * sdev->matrix[0]) +
+                (y3 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
+          y3 = ((x3 * sdev->matrix[3]) +
+                (y3 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
+          x3 = t;
+
+          t  = ((x4 * sdev->matrix[0]) +
+                (y4 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
+          y4 = ((x4 * sdev->matrix[3]) +
+                (y4 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
+          x4 = t;
+     }
+
      prep[0] = BEM_WR_V1;
      prep[1] = SH7722_XY( x1, y1 );
 
      prep[2] = BEM_WR_V2;
-     prep[3] = SH7722_XY( x2, y1 );
+     prep[3] = SH7722_XY( x2, y2 );
 
      prep[4] = BEM_PE_OPERATION;
      prep[5] = (sdev->dflags & DSDRAW_BLEND) ? (BLE_FUNC_AxB_plus_CxD |
@@ -1268,12 +1302,12 @@ sh7722DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      if (rect->h > 1 && rect->w > 1) {
           prep[8]  = BEM_WR_V2;
-          prep[9]  = SH7722_XY( x2, y2 );
+          prep[9]  = SH7722_XY( x3, y3 );
           prep[10] = BEM_WR_CTRL;
           prep[11] = WR_CTRL_POLYLINE;
 
           prep[12] = BEM_WR_V2;
-          prep[13] = SH7722_XY( x1, y2 );
+          prep[13] = SH7722_XY( x4, y4 );
           prep[14] = BEM_WR_CTRL;
           prep[15] = WR_CTRL_POLYLINE;
 
@@ -1285,7 +1319,7 @@ sh7722DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
           submit_buffer( sdrv, 20 );
      }
      else {
-          prep[3]  = SH7722_XY( x2, y2 );
+          prep[3]  = SH7722_XY( x3, y3 );
           prep[7] |= WR_CTRL_ENDPOINT;
 
           submit_buffer( sdrv, 8 );
@@ -1307,6 +1341,20 @@ sh7722DrawLine( void *drv, void *dev, DFBRegion *line )
      D_DEBUG_AT( SH7722_BLT, "%s( %d, %d -> %d, %d )\n", __FUNCTION__,
                  DFB_REGION_VALS( line ) );
      DUMP_INFO();
+
+     if (sdev->render_options & DSRO_MATRIX) {
+          int   x1 = ((line->x1 * sdev->matrix[0]) +
+                      (line->y1 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
+          line->y1 = ((line->x1 * sdev->matrix[3]) +
+                      (line->y1 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
+          line->x1 = x1;
+
+          int   x2 = ((line->x2 * sdev->matrix[0]) +
+                      (line->y2 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
+          line->y2 = ((line->x2 * sdev->matrix[3]) +
+                      (line->y2 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
+          line->x2 = x2;
+     }
 
      prep[0] = BEM_WR_V1;
      prep[1] = SH7722_XY( line->x1, line->y1 );
