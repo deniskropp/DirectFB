@@ -3853,7 +3853,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*SetMatrix) (
           IDirectFBSurface         *thiz,
-          const u32                *matrix
+          const s32                *matrix
      );
 )
 

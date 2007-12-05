@@ -149,7 +149,7 @@ struct _CardState {
 
      DFBColorKey              colorkey;      /* key for color key protection */
 
-     u32                      matrix[6];     /* transformation matrix for DSRO_MATRIX (fixed 16.16) */
+     s32                      matrix[6];     /* transformation matrix for DSRO_MATRIX (fixed 16.16) */
 };
 
 int  dfb_state_init( CardState *state, CoreDFB *core );
@@ -165,7 +165,7 @@ DFBResult dfb_state_set_index_translation( CardState *state,
                                            int        num_indices );
 
 void dfb_state_set_matrix( CardState *state,
-                           const u32 *matrix );
+                           const s32 *matrix );
 
 static inline void
 dfb_state_get_serial( const CardState *state, CoreGraphicsSerial *ret_serial )

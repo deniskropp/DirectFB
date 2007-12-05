@@ -302,7 +302,7 @@ dfb_state_set_index_translation( CardState *state,
 
 void
 dfb_state_set_matrix( CardState *state,
-                      const u32 *matrix )
+                      const s32 *matrix )
 {
      D_MAGIC_ASSERT( state, CardState );
 

@@ -2234,7 +2234,7 @@ IDirectFBSurface_SetRenderOptions( IDirectFBSurface        *thiz,
 
 static DFBResult
 IDirectFBSurface_SetMatrix( IDirectFBSurface *thiz,
-                            const u32        *matrix )
+                            const s32        *matrix )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
