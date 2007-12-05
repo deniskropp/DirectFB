@@ -50,11 +50,13 @@
 
 
 struct __D_DirectLog {
-     int            magic;
+     int             magic;
 
-     DirectLogType  type;
+     DirectLogType   type;
 
-     int            fd;
+     int             fd;
+
+     pthread_mutex_t lock;
 };
 
 static DirectLog *default_log;
@@ -102,6 +104,8 @@ direct_log_create( DirectLogType   type,
      if (ret)
           D_FREE( log );
      else {
+          direct_util_recursive_pthread_mutex_init( &log->lock );
+
           D_MAGIC_SET( log, DirectLog );
 
           *ret_log = log;
@@ -156,7 +160,11 @@ direct_log_printf( DirectLog  *log,
 
           len = vsnprintf( buf, sizeof(buf), format, args );
 
+          pthread_mutex_lock( &log->lock );
+
           write( log->fd, buf, len );
+
+          pthread_mutex_unlock( &log->lock );
      }
 
      va_end( args );
@@ -172,6 +180,38 @@ direct_log_set_default( DirectLog *log )
      default_log = log;
 
      return DFB_OK;
+}
+
+__attribute__((no_instrument_function))
+void
+direct_log_lock( DirectLog *log )
+{
+     if (log) {
+          D_MAGIC_ASSERT( log, DirectLog );
+
+          pthread_mutex_lock( &log->lock );
+     }
+     else if (default_log) {
+          D_MAGIC_ASSERT( default_log, DirectLog );
+
+          pthread_mutex_lock( &default_log->lock );
+     }
+}
+
+__attribute__((no_instrument_function))
+void
+direct_log_unlock( DirectLog *log )
+{
+     if (log) {
+          D_MAGIC_ASSERT( log, DirectLog );
+
+          pthread_mutex_unlock( &log->lock );
+     }
+     else if (default_log) {
+          D_MAGIC_ASSERT( default_log, DirectLog );
+
+          pthread_mutex_unlock( &default_log->lock );
+     }
 }
 
 /**********************************************************************************************************************/

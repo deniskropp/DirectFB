@@ -3108,6 +3108,7 @@ typedef enum {
  * Blend functions to use for source and destination blending
  */
 typedef enum {
+     DSBF_UNKNOWN            = 0,  /* */
      DSBF_ZERO               = 1,  /* */
      DSBF_ONE                = 2,  /* */
      DSBF_SRCCOLOR           = 3,  /* */

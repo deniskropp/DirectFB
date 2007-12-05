@@ -333,7 +333,7 @@ fusion_skirmish_prevail( FusionSkirmish *skirmish )
                asm( "" ::: "memory" );
                
                if (++count > 1000) {
-                    usleep(1);
+                    usleep( 10000 );
                     count = 0;
                }
                else {
@@ -531,6 +531,9 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
      WaitNode *node, *temp;
      
      D_ASSERT( skirmish != NULL );
+
+     if (skirmish->multi.builtin.destroyed)
+          return DFB_DESTROYED;
 
      direct_list_foreach_safe (node, temp, skirmish->multi.builtin.waiting) {
           if (node->notified)

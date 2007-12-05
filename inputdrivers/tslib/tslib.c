@@ -146,7 +146,8 @@ check_device( const char *device )
 static int
 driver_get_available(void)
 {
-     int i;
+     int   i;
+     char *tsdev;
 
      /* Use the devices specified in the configuration. */
      if (fusion_vector_has_elements( &dfb_config->tslib_devices )) {
@@ -160,11 +161,20 @@ driver_get_available(void)
           return num_devices;
      }
 
-     /* No devices specified. Try to guess some. */
+     /* Check for environment variable. */
+     tsdev = getenv( "TSLIB_TSDEVICE" );
+     if (tsdev && check_device( tsdev ))
+          device_names[num_devices++] = D_STRDUP( tsdev );
+
+     /* Try to guess some (more) devices. */
      for (i = 0; i < MAX_TSLIB_DEVICES; i++) {
           char buf[32];
 
           snprintf( buf, 32, "/dev/input/tslib%d", i );
+
+          /* Already handled above. */
+          if (tsdev && !strcmp( tsdev, buf ))
+               continue;
 
           if (check_device( buf ))
                device_names[num_devices++] = D_STRDUP( buf );

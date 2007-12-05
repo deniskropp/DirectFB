@@ -57,7 +57,6 @@ Cambridge, MA 02139, USA.
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-#include <grp.h>
 
 #include <direct/debug.h>
 #include <direct/list.h>
@@ -635,16 +634,10 @@ __shmalloc_init_heap( FusionSHM  *shm,
           goto error;
      }
 
-
-
-     if (fusion_config->shmfile_group) {
-          // obtain the group id #
-          pGroupInfo = getgrnam(fusion_config->shmfile_group);
-
-          // chgrp the SH_FILE dev entry
-          if (fchown(fd, -1, pGroupInfo->gr_gid) != 0) {
-               D_WARN("Fusion/SHM: changing permissions on /dev/shm/fusion.# failed... continuing on.");
-          }
+     if (fusion_config->shmfile_gid != (gid_t)-1) {
+          /* chgrp the SH_FILE dev entry */
+          if (fchown( fd, -1, fusion_config->shmfile_gid ) != 0)
+               D_WARN( "Fusion/SHM: Changing owner on %s failed... continuing on.", filename );
      }
 
      fchmod( fd, 0660 );

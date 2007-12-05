@@ -1377,7 +1377,7 @@ fusion_enter( int               world_index,
           return DFB_IO;
      }
           
-     /* Set close on exec flag. */
+     /* Set close-on-exec flag. */
      if (fcntl( fd, F_SETFD, FD_CLOEXEC ) < 0)
           D_PERROR( "Fusion/Init: Couldn't set close-on-exec flag!\n" );
 
@@ -1397,17 +1397,23 @@ fusion_enter( int               world_index,
                if (fusion_worlds[world_index])
                     continue;
 
-               len = snprintf( addr.sun_path, sizeof(addr.sun_path), "/tmp/fusion.%d/", world_index );
-               /* Make socket directory if it doesn't exits */
-               if (mkdir( addr.sun_path, 0775 ) == 0)
+               len = snprintf( addr.sun_path, sizeof(addr.sun_path), "/tmp/.fusion-%d/", world_index );
+               /* Make socket directory if it doesn't exits. */
+               if (mkdir( addr.sun_path, 0775 ) == 0) {
                     chmod( addr.sun_path, 0775 );
+                    if (fusion_config->shmfile_gid != (gid_t)-1)
+                         chown( addr.sun_path, -1, fusion_config->shmfile_gid );
+               }
                
                snprintf( addr.sun_path+len, sizeof(addr.sun_path)-len, "%lx", FUSION_ID_MASTER );
                
-               /* Bind to address */
+               /* Bind to address. */
                err = bind( fd, (struct sockaddr*)&addr, sizeof(addr) );
                if (err == 0) {
                     chmod( addr.sun_path, 0660 );
+                    /* Change group, if requested. */
+                    if (fusion_config->shmfile_gid != (gid_t)-1)
+                         chown( addr.sun_path, -1, fusion_config->shmfile_gid );
                     id = FUSION_ID_MASTER;
                     break;
                }
@@ -1416,12 +1422,15 @@ fusion_enter( int               world_index,
      else {
           world = fusion_worlds[world_index];
           if (!world) {
-               len = snprintf( addr.sun_path, sizeof(addr.sun_path), "/tmp/fusion.%d/", world_index );
-               /* Make socket directory if it doesn't exits */
-               if (mkdir( addr.sun_path, 0775 ) == 0)
+               len = snprintf( addr.sun_path, sizeof(addr.sun_path), "/tmp/.fusion-%d/", world_index );
+               /* Make socket directory if it doesn't exits. */
+               if (mkdir( addr.sun_path, 0775 ) == 0) {
                     chmod( addr.sun_path, 0775 );
+                    if (fusion_config->shmfile_gid != (gid_t)-1)
+                         chown( addr.sun_path, -1, fusion_config->shmfile_gid );
+               }
                
-               /* Check wether we are master */
+               /* Check wether we are master. */
                snprintf( addr.sun_path+len, sizeof(addr.sun_path)-len, "%lx", FUSION_ID_MASTER );
                
                err = bind( fd, (struct sockaddr*)&addr, sizeof(addr) );
@@ -1432,18 +1441,24 @@ fusion_enter( int               world_index,
                          goto error;
                     }
                     
-                    /* Auto generate slave id */
+                    /* Auto generate slave id. */
                     for (id = FUSION_ID_MASTER+1; id < (FusionID)-1; id++) {
                          snprintf( addr.sun_path+len, sizeof(addr.sun_path)-len, "%lx", id );
                          err = bind( fd, (struct sockaddr*)&addr, sizeof(addr) );
                          if (err == 0) {
                               chmod( addr.sun_path, 0660 );
+                               /* Change group, if requested. */
+                              if (fusion_config->shmfile_gid != (gid_t)-1)
+                                   chown( addr.sun_path, -1, fusion_config->shmfile_gid );
                               break;
                          }
                     }
                }
-               else if (err == 0 && role != FER_SLAVE) {
+               else if (err == 0 && role != FER_SLAVE) { 
                     chmod( addr.sun_path, 0660 );
+                    /* Change group, if requested. */
+                    if (fusion_config->shmfile_gid != (gid_t)-1)
+                         chown( addr.sun_path, -1, fusion_config->shmfile_gid ); 
                     id = FUSION_ID_MASTER;
                }
           }
@@ -1526,13 +1541,9 @@ fusion_enter( int               world_index,
                goto error;
           }
 
-          if (fusion_config->shmfile_group) {
-               // obtain the group id #
-               struct group *pGroupInfo = getgrnam( fusion_config->shmfile_group );
-
-               // chgrp the SH_FILE dev entry
-               if (fchown( shared_fd, -1, pGroupInfo->gr_gid ) != 0)
-                    D_INFO( "Fusion/Main: Changing permissions on %s failed... continuing on.\n", buf );
+          if (fusion_config->shmfile_gid != (gid_t)-1) {
+               if (fchown( shared_fd, -1, fusion_config->shmfile_gid ) != 0)
+                    D_INFO( "Fusion/Init: Changing owner on %s failed... continuing on.\n", buf );
           }
          
           fchmod( shared_fd, 0660 );
@@ -1576,7 +1587,7 @@ fusion_enter( int               world_index,
           enter.fusion_id = id;
           
           snprintf( addr.sun_path, sizeof(addr.sun_path),
-                    "/tmp/fusion.%d/%lx", world_index, FUSION_ID_MASTER );
+                    "/tmp/.fusion-%d/%lx", world_index, FUSION_ID_MASTER );
           
           /* Send enter message (used to sync with the master) */
           ret = _fusion_send_message( fd, &enter, sizeof(FusionEnter), &addr );
@@ -1797,12 +1808,12 @@ fusion_exit( FusionWorld *world,
 
           addr.sun_family = AF_UNIX;
           snprintf( addr.sun_path, sizeof(addr.sun_path), 
-                    "/tmp/fusion.%d/%lx", fusion_world_index( world ), FUSION_ID_MASTER );
+                    "/tmp/.fusion-%d/%lx", fusion_world_index( world ), FUSION_ID_MASTER );
 
           leave.type      = FMT_LEAVE;
           leave.fusion_id = world->fusion_id;
 
-          _fusion_send_message( world->fusion_fd, &leave, sizeof(leave), &addr );
+          _fusion_send_message( world->fusion_fd, &leave, sizeof(FusionLeave), &addr );
      }
 
      /* Master has to deinitialize shared data. */
@@ -2016,6 +2027,13 @@ fusion_dispatch_loop( DirectThread *self, void *arg )
                          D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_REACTOR...\n" );
                          _fusion_reactor_process_message( world, msg->reactor.id, msg->reactor.channel, 
                                                           &buf[sizeof(FusionReactorMessage)] );
+                         if (msg->reactor.ref) {
+                              fusion_ref_down( msg->reactor.ref, true );
+                              if (fusion_ref_zero_trylock( msg->reactor.ref ) == DFB_OK) {
+                                   fusion_ref_destroy( msg->reactor.ref );
+                                   SHFREE( world->shared->main_pool, msg->reactor.ref );
+                              }
+                         }
                          break;                    
                          
                     default:

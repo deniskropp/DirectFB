@@ -6455,6 +6455,42 @@ Bop_rgb24_to_Aop_rgb16_LE( GenefxState *gfxs )
           S += 3;
      }
 }
+
+/*
+ * Fast RGB32 to RGB16 conversion.
+ */
+static void
+Bop_rgb32_to_Aop_rgb16_LE( GenefxState *gfxs )
+{
+     int  w = gfxs->length;
+     u32 *S = gfxs->Bop[0];
+     u32 *D = gfxs->Aop[0];
+
+     if ((unsigned long)D & 2) {
+          u16 *d = (u16*)D;
+
+          d[0] = RGB32_TO_RGB16( S[0] );
+
+          w--;
+          S++;
+
+          D = (u32*)(d+1);
+     }
+
+     while (w > 1) {
+          D[0] = RGB32_TO_RGB16( S[0] ) | (RGB32_TO_RGB16( S[1] ) << 16);
+
+          w -= 2;
+          S += 2;
+          D += 1;
+     }
+
+     if (w > 0) {
+          u16 *d = (u16*)D;
+
+          d[0] = RGB32_TO_RGB16( S[0] );
+     }
+}
 #endif  /* #ifndef WORDS_BIGENDIAN */
 
 bool gAcquire( CardState *state, DFBAccelerationMask accel )
@@ -6926,12 +6962,20 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                    *funcs++ = Xacc_blend[state->src_blend - 1];
 
                                    break;
+
+                              default:
+                                   D_BUG( "unknown src_blend %d", state->src_blend );
                          }
+
 
                          /* destination blending */
                          *funcs++ = Sacc_is_NULL;
                          *funcs++ = Xacc_is_Aacc;
-                         *funcs++ = Xacc_blend[state->dst_blend - 1];
+
+                         if (state->dst_blend > D_ARRAY_SIZE(Xacc_blend) || state->dst_blend < 1)
+                              D_BUG( "unknown dst_blend %d", state->dst_blend );
+                         else
+                              *funcs++ = Xacc_blend[state->dst_blend - 1];
 
                          /* add source to destination accumulator */
                          switch (state->src_blend) {
@@ -6954,6 +6998,9 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                    *funcs++ = Sacc_is_Bacc;
                                    *funcs++ = Sacc_add_to_Dacc;
                                    break;
+
+                              default:
+                                   D_BUG( "unknown src_blend %d", state->src_blend );
                          }
                     }
 
@@ -7021,6 +7068,13 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                    destination->config.format == DSPF_RGB16)
                {
                     *funcs++ = Bop_rgb24_to_Aop_rgb16_LE;
+                    break;
+               }
+               if (state->blittingflags == DSBLIT_NOFX &&
+                   (source->config.format == DSPF_RGB32 || source->config.format == DSPF_ARGB) &&
+                   destination->config.format == DSPF_RGB16)
+               {
+                    *funcs++ = Bop_rgb32_to_Aop_rgb16_LE;
                     break;
                }
 #endif
