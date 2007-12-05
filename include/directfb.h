@@ -724,8 +724,9 @@ typedef enum {
 
      DSRO_SMOOTH_UPSCALE       = 0x00000001, /* Use interpolation for upscale StretchBlit(). */
      DSRO_SMOOTH_DOWNSCALE     = 0x00000002, /* Use interpolation for downscale StretchBlit(). */
+     DSRO_MATRIX               = 0x00000004, /* Use the transformation matrix set via IDirectFBSurface::SetMatrix(). */
 
-     DSRO_ALL                  = 0x00000003  /* All of these. */
+     DSRO_ALL                  = 0x00000007  /* All of these. */
 } DFBSurfaceRenderOptions;
 
 /*
@@ -3829,6 +3830,29 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*SetRenderOptions) (
           IDirectFBSurface         *thiz,
           DFBSurfaceRenderOptions   options
+     );
+
+
+   /** Drawing/blitting control **/
+
+     /*
+      * Set the transformation matrix.
+      *
+      * Enable usage of this matrix by setting DSRO_MATRIX via IDirectFBSurface::SetRenderOptions().
+      *
+      * The matrix consists of 3x2 fixed point 16.16 values.
+      * The order in the array is from left to right and from top to bottom.
+      *
+      * All drawing and blitting will be transformed:
+      *
+      * <pre>
+      * X' = X * v0 + Y * v1 + v2
+      * Y' = X * v3 + Y * v4 + v5
+      * </pre>
+      */
+     DFBResult (*SetMatrix) (
+          IDirectFBSurface         *thiz,
+          const u32                *matrix
      );
 )
 

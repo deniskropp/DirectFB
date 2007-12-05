@@ -65,8 +65,9 @@ typedef enum {
      SMF_COLORKEY          = 0x00002000,
 
      SMF_RENDER_OPTIONS    = 0x00010000,
+     SMF_MATRIX            = 0x00020000,
 
-     SMF_ALL               = 0x000133FF
+     SMF_ALL               = 0x000333FF
 } StateModificationFlags;
 
 typedef enum {
@@ -147,6 +148,8 @@ struct _CardState {
      DFBSurfaceRenderOptions  render_options;
 
      DFBColorKey              colorkey;      /* key for color key protection */
+
+     u32                      matrix[6];     /* transformation matrix for DSRO_MATRIX (fixed 16.16) */
 };
 
 int  dfb_state_init( CardState *state, CoreDFB *core );
@@ -160,6 +163,9 @@ void dfb_state_update( CardState *state, bool update_source );
 DFBResult dfb_state_set_index_translation( CardState *state,
                                            const int *indices,
                                            int        num_indices );
+
+void dfb_state_set_matrix( CardState *state,
+                           const u32 *matrix );
 
 static inline void
 dfb_state_get_serial( const CardState *state, CoreGraphicsSerial *ret_serial )

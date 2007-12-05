@@ -104,6 +104,13 @@ dfb_state_init( CardState *state, CoreDFB *core )
      state->dst_blend      = DSBF_INVSRCALPHA;
      state->render_options = dfb_config->render_options;
 
+     state->matrix[0] = 0x10000;
+     state->matrix[1] = 0x00000;
+     state->matrix[2] = 0x00000;
+     state->matrix[3] = 0x00000;
+     state->matrix[4] = 0x10000;
+     state->matrix[5] = 0x00000;
+
      state->from      = CSBR_FRONT;
      state->to        = CSBR_BACK;
 
@@ -291,6 +298,21 @@ dfb_state_set_index_translation( CardState *state,
      dfb_state_unlock( state );
 
      return DFB_OK;
+}
+
+void
+dfb_state_set_matrix( CardState *state,
+                      const u32 *matrix )
+{
+     D_MAGIC_ASSERT( state, CardState );
+
+     D_ASSERT( matrix != NULL );
+
+     if (memcmp( state->matrix, matrix, sizeof(state->matrix) )) {
+          direct_memcpy( state->matrix, matrix, sizeof(state->matrix) );
+
+          state->modified |= SMF_MATRIX;
+     }
 }
 
 void

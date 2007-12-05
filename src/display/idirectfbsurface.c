@@ -2218,6 +2218,22 @@ IDirectFBSurface_SetRenderOptions( IDirectFBSurface        *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBSurface_SetMatrix( IDirectFBSurface *thiz,
+                            const u32        *matrix )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p, %p )\n", __FUNCTION__, thiz, matrix );
+
+     if (!matrix)
+          return DFB_INVARG;
+
+     dfb_state_set_matrix( &data->state, matrix );
+
+     return DFB_OK;
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -2368,6 +2384,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->ReleaseSource = IDirectFBSurface_ReleaseSource;
 
      thiz->SetRenderOptions = IDirectFBSurface_SetRenderOptions;
+     thiz->SetMatrix        = IDirectFBSurface_SetMatrix;
 
 
      dfb_surface_attach( surface,

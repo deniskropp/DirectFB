@@ -1717,6 +1717,12 @@ setup_font_state( CoreFont *font, CardState *state )
      /* set blitting flags */
      dfb_state_set_blitting_flags( &font->state, flags );
 
+     /* set render options */
+     dfb_state_set_render_options( &font->state, state->render_options );
+
+     /* set matrix? */
+     if (state->render_options & DSRO_MATRIX)
+          dfb_state_set_matrix( &font->state, state->matrix );
 
      /* set disabled functions */
      if (state->disabled & DFXL_DRAWSTRING)
