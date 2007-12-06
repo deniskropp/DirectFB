@@ -725,8 +725,9 @@ typedef enum {
      DSRO_SMOOTH_UPSCALE       = 0x00000001, /* Use interpolation for upscale StretchBlit(). */
      DSRO_SMOOTH_DOWNSCALE     = 0x00000002, /* Use interpolation for downscale StretchBlit(). */
      DSRO_MATRIX               = 0x00000004, /* Use the transformation matrix set via IDirectFBSurface::SetMatrix(). */
+     DSRO_ANTIALIAS            = 0x00000008, /* Enable anti-aliasing for edges. */
 
-     DSRO_ALL                  = 0x00000007  /* All of these. */
+     DSRO_ALL                  = 0x0000000F  /* All of these. */
 } DFBSurfaceRenderOptions;
 
 /*
