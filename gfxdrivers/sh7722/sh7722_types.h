@@ -79,6 +79,7 @@ typedef struct {
      unsigned int             input_mask;
 
      s32                      matrix[6];
+     DFBColor                 color;
 } SH7722DeviceData;
 
 

@@ -87,10 +87,19 @@ enum {
                                             sdrv->gfx_shared->next_end,                             \
                                             sdrv->gfx_shared->next_valid ? "" : "not " );
 
+#define AA_COEF     133
+
 /**********************************************************************************************************************/
 
-bool sh7722FillRectangle      ( void *drv, void *dev, DFBRectangle *rect );
-bool sh7722FillRectangleMatrix( void *drv, void *dev, DFBRectangle *rect );
+static bool sh7722FillRectangle        ( void *drv, void *dev, DFBRectangle *rect );
+static bool sh7722FillRectangleMatrixAA( void *drv, void *dev, DFBRectangle *rect );
+
+static bool sh7722DrawRectangle        ( void *drv, void *dev, DFBRectangle *rect );
+static bool sh7722DrawRectangleMatrixAA( void *drv, void *dev, DFBRectangle *rect );
+
+static bool sh7722DrawLine           ( void *drv, void *dev, DFBRegion *line );
+static bool sh7722DrawLineMatrix     ( void *drv, void *dev, DFBRegion *line );
+static bool sh7722DrawLineAA         ( void *drv, void *dev, DFBRegion *line );
 
 /**********************************************************************************************************************/
 
@@ -1034,10 +1043,33 @@ sh7722SetState( void                *drv,
                }
 
                /* Choose function. */
-               if (state->render_options & DSRO_MATRIX)
-                    funcs->FillRectangle = sh7722FillRectangleMatrix;
-               else
-                    funcs->FillRectangle = sh7722FillRectangle;
+               switch (accel) {
+                    case DFXL_FILLRECTANGLE:
+                         if (state->render_options & (DSRO_MATRIX | DSRO_ANTIALIAS))
+                              funcs->FillRectangle = sh7722FillRectangleMatrixAA;
+                         else
+                              funcs->FillRectangle = sh7722FillRectangle;
+                         break;
+
+                    case DFXL_DRAWRECTANGLE:
+                         if (state->render_options & (DSRO_MATRIX | DSRO_ANTIALIAS))
+                              funcs->DrawRectangle = sh7722DrawRectangleMatrixAA;
+                         else
+                              funcs->DrawRectangle = sh7722DrawRectangle;
+                         break;
+
+                    case DFXL_DRAWLINE:
+                         if (state->render_options & DSRO_ANTIALIAS)
+                              funcs->DrawLine = sh7722DrawLineAA;
+                         else if (state->render_options & DSRO_MATRIX)
+                              funcs->DrawLine = sh7722DrawLineMatrix;
+                         else
+                              funcs->DrawLine = sh7722DrawLine;
+                         break;
+
+                    default:
+                         break;
+               }
 
                /*
                 * 3) Tell which functions can be called without further validation, i.e. SetState()
@@ -1103,6 +1135,7 @@ sh7722SetState( void                *drv,
      sdev->dflags         = state->drawingflags;
      sdev->bflags         = state->blittingflags;
      sdev->render_options = state->render_options;
+     sdev->color          = state->color;
 
      /*
       * 4) Clear modification flags
@@ -1116,10 +1149,92 @@ sh7722SetState( void                *drv,
 
 /**********************************************************************************************************************/
 
+static inline void
+draw_rectangle( SH7722DriverData *sdrv,
+                SH7722DeviceData *sdev,
+                int x1, int y1,
+                int x2, int y2,
+                int x3, int y3,
+                int x4, int y4,
+                bool antialias,
+                bool full )
+{
+     u32  ctrl = antialias ? WR_CTRL_ANTIALIAS : 0;
+     u32 *prep = start_buffer( sdrv, full ? 24 : 12 );
+
+     if (antialias) {
+          prep[0] = BEM_WR_FGC;
+          prep[1] = PIXEL_ARGB( (sdev->color.a * AA_COEF) >> 8,
+                                (sdev->color.r * AA_COEF) >> 8,
+                                (sdev->color.g * AA_COEF) >> 8,
+                                (sdev->color.b * AA_COEF) >> 8 );
+
+          prep[2] = BEM_PE_FIXEDALPHA;
+          prep[3] = (sdev->color.a * AA_COEF) << 16;
+     }
+     else {
+          prep[0] = BEM_WR_FGC;
+          prep[1] = PIXEL_ARGB( sdev->color.a,
+                                sdev->color.r,
+                                sdev->color.g,
+                                sdev->color.b );
+
+          prep[2] = BEM_PE_FIXEDALPHA;
+          prep[3] = (sdev->color.a << 24) << (sdev->color.a << 16);
+     }
+
+     prep[4] = BEM_WR_V1;
+     prep[5] = SH7722_XY( x1, y1 );
+
+     prep[6] = BEM_WR_V2;
+     prep[7] = SH7722_XY( x2, y2 );
+
+     prep[8] = BEM_PE_OPERATION;
+     prep[9] = (sdev->dflags & DSDRAW_BLEND) ? (BLE_FUNC_AxB_plus_CxD |
+                                                sdev->ble_srcf |
+                                                BLE_SRCA_FIXED |
+                                                sdev->ble_dstf)
+                                             :
+                                              (antialias ? 
+                                               (BLE_FUNC_AxB_plus_CxD |
+                                                BLE_SRCF_ONE |
+                                                BLE_SRCA_FIXED |
+                                                BLE_DSTF_1_SRC_A) : BLE_FUNC_NONE
+                                              );
+
+     prep[10] = BEM_WR_CTRL;
+     prep[11] = WR_CTRL_LINE | ctrl;
+
+     if (full) {
+          prep[12] = BEM_WR_V2;
+          prep[13] = SH7722_XY( x3, y3 );
+          prep[14] = BEM_WR_CTRL;
+          prep[15] = WR_CTRL_POLYLINE | ctrl;
+
+          prep[16] = BEM_WR_V2;
+          prep[17] = SH7722_XY( x4, y4 );
+          prep[18] = BEM_WR_CTRL;
+          prep[19] = WR_CTRL_POLYLINE | ctrl;
+
+          prep[20] = BEM_WR_V2;
+          prep[21] = SH7722_XY( x1, y1 );
+          prep[22] = BEM_WR_CTRL;
+          prep[23] = WR_CTRL_POLYLINE | ctrl;
+
+          submit_buffer( sdrv, 24 );
+     }
+     else {
+          prep[7]   = SH7722_XY( x3, y3 );
+          prep[11] |= WR_CTRL_ENDPOINT;
+
+          submit_buffer( sdrv, 12 );
+     }
+}
+
 /*
  * Render a filled rectangle using the current hardware state.
  */
-bool
+static bool
 sh7722FillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      SH7722DriverData *sdrv = drv;
@@ -1143,7 +1258,7 @@ sh7722FillRectangle( void *drv, void *dev, DFBRectangle *rect )
                                                 sdev->ble_dstf) : BLE_FUNC_NONE;
 
      prep[6] = BEM_BE_CTRL;
-     prep[7] = BE_CTRL_RECTANGLE | BE_CTRL_SCANMODE_4x4;
+     prep[7] = BE_CTRL_RECTANGLE | BE_CTRL_SCANMODE_LINE;
 
      submit_buffer( sdrv, 8 );
 
@@ -1153,16 +1268,133 @@ sh7722FillRectangle( void *drv, void *dev, DFBRectangle *rect )
 /*
  * This version sends a quadrangle to have all four edges transformed.
  */
-bool
-sh7722FillRectangleMatrix( void *drv, void *dev, DFBRectangle *rect )
+static bool
+sh7722FillRectangleMatrixAA( void *drv, void *dev, DFBRectangle *rect )
 {
      SH7722DriverData *sdrv = drv;
      SH7722DeviceData *sdev = dev;
-     __u32            *prep = start_buffer( sdrv, 12 );
+     __u32            *prep;
 
      D_DEBUG_AT( SH7722_BLT, "%s( %d, %d - %dx%d )\n", __FUNCTION__,
                  DFB_RECTANGLE_VALS( rect ) );
      DUMP_INFO();
+
+
+     if (sdev->render_options & DSRO_ANTIALIAS) {
+          int x1 = rect->x;
+          int y1 = rect->y;
+          int x2 = rect->x + rect->w;
+          int y2 = rect->y;
+          int x3 = rect->x + rect->w;
+          int y3 = rect->y + rect->h;
+          int x4 = rect->x;
+          int y4 = rect->y + rect->h;
+
+          if (sdev->render_options & DSRO_MATRIX) {
+               int t;
+     
+               t  = ((x1 * sdev->matrix[0]) +
+                     (y1 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
+               y1 = ((x1 * sdev->matrix[3]) +
+                     (y1 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
+               x1 = t;
+     
+               t  = ((x2 * sdev->matrix[0]) +
+                     (y2 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
+               y2 = ((x2 * sdev->matrix[3]) +
+                     (y2 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
+               x2 = t;
+     
+               t  = ((x3 * sdev->matrix[0]) +
+                     (y3 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
+               y3 = ((x3 * sdev->matrix[3]) +
+                     (y3 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
+               x3 = t;
+     
+               t  = ((x4 * sdev->matrix[0]) +
+                     (y4 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
+               y4 = ((x4 * sdev->matrix[3]) +
+                     (y4 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
+               x4 = t;
+          }
+     
+          prep = start_buffer( sdrv, 28 );
+
+          prep[0] = BEM_WR_FGC;
+          prep[1] = PIXEL_ARGB( (sdev->color.a * AA_COEF) >> 8,
+                                (sdev->color.r * AA_COEF) >> 8,
+                                (sdev->color.g * AA_COEF) >> 8,
+                                (sdev->color.b * AA_COEF) >> 8 );
+
+          prep[2] = BEM_PE_FIXEDALPHA;
+          prep[3] = (sdev->color.a * AA_COEF) << 16;
+
+          prep[4] = BEM_WR_V1;
+          prep[5] = SH7722_XY( x1, y1 );
+
+          prep[6] = BEM_WR_V2;
+          prep[7] = SH7722_XY( x2, y2 );
+
+          prep[8] = BEM_PE_OPERATION;
+          prep[9] = (sdev->dflags & DSDRAW_BLEND) ? (BLE_FUNC_AxB_plus_CxD |
+                                                     sdev->ble_srcf |
+                                                     BLE_SRCA_FIXED |
+                                                     sdev->ble_dstf)
+                                                  :
+                                                    (BLE_FUNC_AxB_plus_CxD |
+                                                     BLE_SRCF_ONE |
+                                                     BLE_SRCA_FIXED |
+                                                     BLE_DSTF_1_SRC_A);
+
+          prep[10] = BEM_WR_CTRL;
+          prep[11] = WR_CTRL_LINE | WR_CTRL_ANTIALIAS;
+
+          if (rect->h > 1 && rect->w > 1) {
+               prep[12] = BEM_WR_V2;
+               prep[13] = SH7722_XY( x3, y3 );
+               prep[14] = BEM_WR_CTRL;
+               prep[15] = WR_CTRL_POLYLINE | WR_CTRL_ANTIALIAS;
+
+               prep[16] = BEM_WR_V2;
+               prep[17] = SH7722_XY( x4, y4 );
+               prep[18] = BEM_WR_CTRL;
+               prep[19] = WR_CTRL_POLYLINE | WR_CTRL_ANTIALIAS;
+
+               prep[20] = BEM_WR_V2;
+               prep[21] = SH7722_XY( x1, y1 );
+               prep[22] = BEM_WR_CTRL;
+               prep[23] = WR_CTRL_POLYLINE | WR_CTRL_ANTIALIAS;
+
+               prep[24] = BEM_WR_FGC;
+               prep[25] = PIXEL_ARGB( sdev->color.a,
+                                      sdev->color.r,
+                                      sdev->color.g,
+                                      sdev->color.b );
+
+               prep[26] = BEM_PE_FIXEDALPHA;
+               prep[27] = (sdev->color.a << 24) << (sdev->color.a << 16);
+
+               submit_buffer( sdrv, 28 );
+          }
+          else {
+               prep[7]   = SH7722_XY( x3, y3 );
+               prep[11] |= WR_CTRL_ENDPOINT;
+
+               prep[12] = BEM_WR_FGC;
+               prep[13] = PIXEL_ARGB( sdev->color.a,
+                                     sdev->color.r,
+                                     sdev->color.g,
+                                     sdev->color.b );
+
+               prep[14] = BEM_PE_FIXEDALPHA;
+               prep[15] = (sdev->color.a << 24) << (sdev->color.a << 16);
+
+               submit_buffer( sdrv, 16 );
+          }
+     }
+
+
+     prep = start_buffer( sdrv, 12 );
 
      prep[0] = BEM_BE_V1;
      prep[1] = SH7722_XY( rect->x, rect->y );
@@ -1183,8 +1415,12 @@ sh7722FillRectangleMatrix( void *drv, void *dev, DFBRectangle *rect )
                                                 sdev->ble_dstf) : BLE_FUNC_NONE;
 
      prep[10] = BEM_BE_CTRL;
-     prep[11] = BE_CTRL_QUADRANGLE | BE_CTRL_SCANMODE_4x4 |
-                BE_CTRL_MATRIX | BE_CTRL_FIXMODE_16_16;// | BE_CTRL_ORIGIN;
+
+     if (sdev->render_options & DSRO_MATRIX)
+          prep[11] = BE_CTRL_QUADRANGLE | BE_CTRL_SCANMODE_4x4 |
+                     BE_CTRL_MATRIX | BE_CTRL_FIXMODE_16_16;// | BE_CTRL_ORIGIN;
+     else
+          prep[11] = BE_CTRL_QUADRANGLE | BE_CTRL_SCANMODE_LINE;
 
      submit_buffer( sdrv, 12 );
 
@@ -1199,11 +1435,98 @@ sh7722FillTriangle( void *drv, void *dev, DFBTriangle *tri )
 {
      SH7722DriverData *sdrv = drv;
      SH7722DeviceData *sdev = dev;
-     __u32            *prep = start_buffer( sdrv, 12 );
+     __u32            *prep;
 
      D_DEBUG_AT( SH7722_BLT, "%s( %d,%d - %d,%d - %d,%d )\n", __FUNCTION__,
                  tri->x1, tri->y1, tri->x2, tri->y2, tri->x3, tri->y3 );
      DUMP_INFO();
+
+
+     if (sdev->render_options & DSRO_ANTIALIAS) {
+          int x1, y1;
+          int x2, y2;
+          int x3, y3;
+
+          if (sdev->render_options & DSRO_MATRIX) {
+               x1 = ((tri->x1 * sdev->matrix[0]) +
+                     (tri->y1 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
+               y1 = ((tri->x1 * sdev->matrix[3]) +
+                     (tri->y1 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
+
+               x2 = ((tri->x2 * sdev->matrix[0]) +
+                     (tri->y2 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
+               y2 = ((tri->x2 * sdev->matrix[3]) +
+                     (tri->y2 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
+
+               x3 = ((tri->x3 * sdev->matrix[0]) +
+                     (tri->y3 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
+               y3 = ((tri->x3 * sdev->matrix[3]) +
+                     (tri->y3 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
+          }
+          else {
+               x1 = tri->x1;
+               y1 = tri->y1;
+               x2 = tri->x2;
+               y2 = tri->y2;
+               x3 = tri->x3;
+               y3 = tri->y3;
+          }
+
+          prep = start_buffer( sdrv, 24 );
+
+          prep[0] = BEM_WR_FGC;
+          prep[1] = PIXEL_ARGB( (sdev->color.a * AA_COEF) >> 8,
+                                (sdev->color.r * AA_COEF) >> 8,
+                                (sdev->color.g * AA_COEF) >> 8,
+                                (sdev->color.b * AA_COEF) >> 8 );
+
+          prep[2] = BEM_PE_FIXEDALPHA;
+          prep[3] = (sdev->color.a * AA_COEF) << 16;
+
+          prep[4] = BEM_WR_V1;
+          prep[5] = SH7722_XY( x1, y1 );
+
+          prep[6] = BEM_WR_V2;
+          prep[7] = SH7722_XY( x2, y2 );
+
+          prep[8] = BEM_PE_OPERATION;
+          prep[9] = (sdev->dflags & DSDRAW_BLEND) ? (BLE_FUNC_AxB_plus_CxD |
+                                                     sdev->ble_srcf |
+                                                     BLE_SRCA_FIXED |
+                                                     sdev->ble_dstf)
+                                                  :
+                                                    (BLE_FUNC_AxB_plus_CxD |
+                                                     BLE_SRCF_ONE |
+                                                     BLE_SRCA_FIXED |
+                                                     BLE_DSTF_1_SRC_A);
+
+          prep[10] = BEM_WR_CTRL;
+          prep[11] = WR_CTRL_LINE | WR_CTRL_ANTIALIAS;
+
+          prep[12] = BEM_WR_V2;
+          prep[13] = SH7722_XY( x3, y3 );
+          prep[14] = BEM_WR_CTRL;
+          prep[15] = WR_CTRL_POLYLINE | WR_CTRL_ANTIALIAS;
+
+          prep[16] = BEM_WR_V2;
+          prep[17] = SH7722_XY( x1, y1 );
+          prep[18] = BEM_WR_CTRL;
+          prep[19] = WR_CTRL_POLYLINE | WR_CTRL_ANTIALIAS;
+
+          prep[20] = BEM_WR_FGC;
+          prep[21] = PIXEL_ARGB( sdev->color.a,
+                                 sdev->color.r,
+                                 sdev->color.g,
+                                 sdev->color.b );
+
+          prep[22] = BEM_PE_FIXEDALPHA;
+          prep[23] = (sdev->color.a << 24) << (sdev->color.a << 16);
+
+          submit_buffer( sdrv, 24 );
+     }
+
+
+     prep = start_buffer( sdrv, 12 );
 
      prep[0] = BEM_BE_V1;
      prep[1] = SH7722_XY( tri->x1, tri->y1 );
@@ -1237,7 +1560,7 @@ sh7722FillTriangle( void *drv, void *dev, DFBTriangle *tri )
 /*
  * Render rectangle outlines using the current hardware state.
  */
-bool
+static bool
 sh7722DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      SH7722DriverData *sdrv = drv;
@@ -1246,12 +1569,70 @@ sh7722DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      int x1 = rect->x;
      int y1 = rect->y;
-     int x2 = rect->x + rect->w - 1;
+     int x2 = rect->x + rect->w;
+     int y2 = rect->y + rect->h;
+
+     D_DEBUG_AT( SH7722_BLT, "%s( %d, %d - %dx%d )\n", __FUNCTION__,
+                 DFB_RECTANGLE_VALS( rect ) );
+     DUMP_INFO();
+
+     prep[0] = BEM_WR_V1;
+     prep[1] = (y1 << 16) | x1;
+
+     prep[2] = BEM_WR_V2;
+     prep[3] = (y1 << 16) | x2;
+
+     prep[4] = BEM_PE_OPERATION;
+     prep[5] = (sdev->dflags & DSDRAW_BLEND) ? (BLE_FUNC_AxB_plus_CxD |
+                                                sdev->ble_srcf |
+                                                BLE_SRCA_FIXED |
+                                                sdev->ble_dstf) : BLE_FUNC_NONE;
+
+     prep[6] = BEM_WR_CTRL;
+     prep[7] = WR_CTRL_LINE;
+
+     if (rect->h > 1 && rect->w > 1) {
+          prep[8]  = BEM_WR_V2;
+          prep[9]  = (y2 << 16) | x2;
+          prep[10] = BEM_WR_CTRL;
+          prep[11] = WR_CTRL_POLYLINE;
+
+          prep[12] = BEM_WR_V2;
+          prep[13] = (y2 << 16) | x1;
+          prep[14] = BEM_WR_CTRL;
+          prep[15] = WR_CTRL_POLYLINE;
+
+          prep[16] = BEM_WR_V2;
+          prep[17] = (y1 << 16) | x1;
+          prep[18] = BEM_WR_CTRL;
+          prep[19] = WR_CTRL_POLYLINE;
+
+          submit_buffer( sdrv, 20 );
+     }
+     else {
+          prep[3]  = (y2 << 16) | x2;
+          prep[7] |= WR_CTRL_ENDPOINT;
+
+          submit_buffer( sdrv, 8 );
+     }
+
+     return true;
+}
+
+static bool
+sh7722DrawRectangleMatrixAA( void *drv, void *dev, DFBRectangle *rect )
+{
+     SH7722DriverData *sdrv = drv;
+     SH7722DeviceData *sdev = dev;
+
+     int x1 = rect->x;
+     int y1 = rect->y;
+     int x2 = rect->x + rect->w;
      int y2 = rect->y;
-     int x3 = rect->x + rect->w - 1;
-     int y3 = rect->y + rect->h - 1;
+     int x3 = rect->x + rect->w;
+     int y3 = rect->y + rect->h;
      int x4 = rect->x;
-     int y4 = rect->y + rect->h - 1;
+     int y4 = rect->y + rect->h;
 
      D_DEBUG_AT( SH7722_BLT, "%s( %d, %d - %dx%d )\n", __FUNCTION__,
                  DFB_RECTANGLE_VALS( rect ) );
@@ -1285,45 +1666,10 @@ sh7722DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
           x4 = t;
      }
 
-     prep[0] = BEM_WR_V1;
-     prep[1] = SH7722_XY( x1, y1 );
+     if (sdev->render_options & DSRO_ANTIALIAS)
+          draw_rectangle( sdrv, sdev, x1, y1, x2, y2, x3, y3, x4, y4, true,  rect->h > 1 && rect->w > 1 );
 
-     prep[2] = BEM_WR_V2;
-     prep[3] = SH7722_XY( x2, y2 );
-
-     prep[4] = BEM_PE_OPERATION;
-     prep[5] = (sdev->dflags & DSDRAW_BLEND) ? (BLE_FUNC_AxB_plus_CxD |
-                                                sdev->ble_srcf |
-                                                BLE_SRCA_FIXED |
-                                                sdev->ble_dstf) : BLE_FUNC_NONE;
-
-     prep[6] = BEM_WR_CTRL;
-     prep[7] = WR_CTRL_LINE;
-
-     if (rect->h > 1 && rect->w > 1) {
-          prep[8]  = BEM_WR_V2;
-          prep[9]  = SH7722_XY( x3, y3 );
-          prep[10] = BEM_WR_CTRL;
-          prep[11] = WR_CTRL_POLYLINE;
-
-          prep[12] = BEM_WR_V2;
-          prep[13] = SH7722_XY( x4, y4 );
-          prep[14] = BEM_WR_CTRL;
-          prep[15] = WR_CTRL_POLYLINE;
-
-          prep[16] = BEM_WR_V2;
-          prep[17] = SH7722_XY( x1, y1 );
-          prep[18] = BEM_WR_CTRL;
-          prep[19] = WR_CTRL_POLYLINE;
-
-          submit_buffer( sdrv, 20 );
-     }
-     else {
-          prep[3]  = SH7722_XY( x3, y3 );
-          prep[7] |= WR_CTRL_ENDPOINT;
-
-          submit_buffer( sdrv, 8 );
-     }
+     draw_rectangle( sdrv, sdev, x1, y1, x2, y2, x3, y3, x4, y4, false, rect->h > 1 && rect->w > 1 );
 
      return true;
 }
@@ -1331,7 +1677,7 @@ sh7722DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 /*
  * Render a line using the current hardware state.
  */
-bool
+static bool
 sh7722DrawLine( void *drv, void *dev, DFBRegion *line )
 {
      SH7722DriverData *sdrv = drv;
@@ -1341,20 +1687,6 @@ sh7722DrawLine( void *drv, void *dev, DFBRegion *line )
      D_DEBUG_AT( SH7722_BLT, "%s( %d, %d -> %d, %d )\n", __FUNCTION__,
                  DFB_REGION_VALS( line ) );
      DUMP_INFO();
-
-     if (sdev->render_options & DSRO_MATRIX) {
-          int   x1 = ((line->x1 * sdev->matrix[0]) +
-                      (line->y1 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
-          line->y1 = ((line->x1 * sdev->matrix[3]) +
-                      (line->y1 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
-          line->x1 = x1;
-
-          int   x2 = ((line->x2 * sdev->matrix[0]) +
-                      (line->y2 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
-          line->y2 = ((line->x2 * sdev->matrix[3]) +
-                      (line->y2 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
-          line->x2 = x2;
-     }
 
      prep[0] = BEM_WR_V1;
      prep[1] = SH7722_XY( line->x1, line->y1 );
@@ -1372,6 +1704,139 @@ sh7722DrawLine( void *drv, void *dev, DFBRegion *line )
      prep[7] = WR_CTRL_LINE | WR_CTRL_ENDPOINT;
 
      submit_buffer( sdrv, 8 );
+
+     return true;
+}
+
+static bool
+sh7722DrawLineMatrix( void *drv, void *dev, DFBRegion *line )
+{
+     SH7722DriverData *sdrv = drv;
+     SH7722DeviceData *sdev = dev;
+     __u32            *prep = start_buffer( sdrv, 8 );
+
+     D_DEBUG_AT( SH7722_BLT, "%s( %d, %d -> %d, %d )\n", __FUNCTION__,
+                 DFB_REGION_VALS( line ) );
+     DUMP_INFO();
+
+     int x1 = ((line->x1 * sdev->matrix[0]) +
+               (line->y1 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
+     int y1 = ((line->x1 * sdev->matrix[3]) +
+               (line->y1 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
+
+     int x2 = ((line->x2 * sdev->matrix[0]) +
+               (line->y2 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
+     int y2 = ((line->x2 * sdev->matrix[3]) +
+               (line->y2 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
+
+     prep[0] = BEM_WR_V1;
+     prep[1] = SH7722_XY( x1, y1 );
+
+     prep[2] = BEM_WR_V2;
+     prep[3] = SH7722_XY( x2, y2 );
+
+     prep[4] = BEM_PE_OPERATION;
+     prep[5] = (sdev->dflags & DSDRAW_BLEND) ? (BLE_FUNC_AxB_plus_CxD |
+                                                sdev->ble_srcf |
+                                                BLE_SRCA_FIXED |
+                                                sdev->ble_dstf) : BLE_FUNC_NONE;
+
+     prep[6] = BEM_WR_CTRL;
+     prep[7] = WR_CTRL_LINE | WR_CTRL_ENDPOINT;
+
+     submit_buffer( sdrv, 8 );
+
+     return true;
+}
+
+static bool
+sh7722DrawLineAA( void *drv, void *dev, DFBRegion *line )
+{
+     SH7722DriverData *sdrv = drv;
+     SH7722DeviceData *sdev = dev;
+     __u32            *prep = start_buffer( sdrv, 24 );
+     int               x1, y1;
+     int               x2, y2;
+
+     D_DEBUG_AT( SH7722_BLT, "%s( %d, %d -> %d, %d )\n", __FUNCTION_s_,
+                 DFB_REGION_VALS( line ) );
+     DUMP_INFO();
+
+     if (sdev->render_options & DSRO_MATRIX) {
+          x1 = ((line->x1 * sdev->matrix[0]) +
+                (line->y1 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
+          y1 = ((line->x1 * sdev->matrix[3]) +
+                (line->y1 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
+
+          x2 = ((line->x2 * sdev->matrix[0]) +
+                (line->y2 * sdev->matrix[1]) + sdev->matrix[2]) >> 16;
+          y2 = ((line->x2 * sdev->matrix[3]) +
+                (line->y2 * sdev->matrix[4]) + sdev->matrix[5]) >> 16;
+     }
+     else {
+          x1 = line->x1;
+          y1 = line->y1;
+          x2 = line->x2;
+          y2 = line->y2;
+     }
+
+     prep[0] = BEM_WR_FGC;
+     prep[1] = PIXEL_ARGB( (sdev->color.a * AA_COEF) >> 8,
+                           (sdev->color.r * AA_COEF) >> 8,
+                           (sdev->color.g * AA_COEF) >> 8,
+                           (sdev->color.b * AA_COEF) >> 8 );
+
+     prep[2] = BEM_PE_FIXEDALPHA;
+     prep[3] = (sdev->color.a * AA_COEF) << 16;
+
+     prep[4] = BEM_WR_V1;
+     prep[5] = SH7722_XY( x1, y1 );
+
+     prep[6] = BEM_WR_V2;
+     prep[7] = SH7722_XY( x2, y2 );
+
+     prep[8] = BEM_PE_OPERATION;
+     prep[9] = (sdev->dflags & DSDRAW_BLEND) ? (BLE_FUNC_AxB_plus_CxD |
+                                                sdev->ble_srcf |
+                                                BLE_SRCA_FIXED |
+                                                sdev->ble_dstf)
+                                             :
+                                               (BLE_FUNC_AxB_plus_CxD |
+                                                BLE_SRCF_ONE |
+                                                BLE_SRCA_FIXED |
+                                                BLE_DSTF_1_SRC_A);
+
+     prep[10] = BEM_WR_CTRL;
+     prep[11] = WR_CTRL_LINE | WR_CTRL_ENDPOINT | WR_CTRL_ANTIALIAS;
+
+
+
+     prep[12] = BEM_WR_FGC;
+     prep[13] = PIXEL_ARGB( sdev->color.a,
+                            sdev->color.r,
+                            sdev->color.g,
+                            sdev->color.b );
+
+     prep[14] = BEM_PE_FIXEDALPHA;
+     prep[15] = (sdev->color.a << 24) | (sdev->color.a << 16);
+
+     prep[16] = BEM_WR_V1;
+     prep[17] = SH7722_XY( x1, y1 );
+
+     prep[18] = BEM_WR_V2;
+     prep[19] = SH7722_XY( x2, y2 );
+
+     prep[20] = BEM_PE_OPERATION;
+     prep[21] = (sdev->dflags & DSDRAW_BLEND) ? (BLE_FUNC_AxB_plus_CxD |
+                                                 sdev->ble_srcf |
+                                                 BLE_SRCA_FIXED |
+                                                 sdev->ble_dstf) : BLE_FUNC_NONE;
+
+     prep[22] = BEM_WR_CTRL;
+     prep[23] = WR_CTRL_LINE | WR_CTRL_ENDPOINT;
+
+
+     submit_buffer( sdrv, 24 );
 
      return true;
 }

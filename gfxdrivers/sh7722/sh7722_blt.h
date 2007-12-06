@@ -38,10 +38,7 @@ void sh7722SetState         ( void *drv, void *dev,
                               GraphicsDeviceFuncs *funcs,
                               CardState *state, DFBAccelerationMask accel );
 
-bool sh7722FillRectangle    ( void *drv, void *dev, DFBRectangle *rect );
 bool sh7722FillTriangle     ( void *drv, void *dev, DFBTriangle *tri );
-bool sh7722DrawRectangle    ( void *drv, void *dev, DFBRectangle *rect );
-bool sh7722DrawLine         ( void *drv, void *dev, DFBRegion *line );
 bool sh7722Blit             ( void *drv, void *dev, DFBRectangle *rect, int x, int y );
 bool sh7722StretchBlit      ( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *drect );
 
@@ -189,6 +186,7 @@ bool sh7722StretchBlit      ( void *drv, void *dev, DFBRectangle *srect, DFBRect
  */
 #define WR_CTRL_LINE               0x00000002
 #define WR_CTRL_POLYLINE           0x00000003
+#define WR_CTRL_ANTIALIAS          0x00020100
 #define WR_CTRL_ENDPOINT           0x00001000
 
 #endif
