@@ -863,12 +863,14 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     while (num > 0) {
-          if (dfb_rectangle_region_intersects( rects, &state->clip ))
-               break;
+     if (!(state->render_options & DSRO_MATRIX)) {
+          while (num > 0) {
+               if (dfb_rectangle_region_intersects( rects, &state->clip ))
+                    break;
 
-          rects++;
-          num--;
+               rects++;
+               num--;
+          }
      }
 
      if (num > 0) {
@@ -884,7 +886,8 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
                 * FillRectangle driver function.
                 */
                for (; i<num; i++) {
-                    if (!dfb_rectangle_region_intersects( &rects[i], &state->clip ))
+                    if (!(state->render_options & DSRO_MATRIX) &&
+                        !dfb_rectangle_region_intersects( &rects[i], &state->clip ))
                          continue;
 
                     rect = rects[i];
