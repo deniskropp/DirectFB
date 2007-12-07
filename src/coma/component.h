@@ -83,7 +83,8 @@ DirectResult coma_component_unlock           ( ComaComponent                  *c
 DirectResult coma_component_init_notification( ComaComponent                  *component,
                                                ComaNotificationID              id,
                                                ComaNotifyFunc                  func,
-                                               void                           *ctx );
+                                               void                           *ctx,
+                                               ComaNotificationFlags           flags );
 
 DirectResult coma_component_call             ( ComaComponent                  *component,
                                                ComaMethodID                    method,

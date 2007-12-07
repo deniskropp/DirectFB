@@ -263,16 +263,22 @@ typedef void (*ComaNotifyFunc)  ( void               *ctx,
 typedef void (*ComaListenerFunc)( void               *ctx,
                                   void               *arg );
 
+typedef enum {
+     CNF_NONE        = 0x00000000,
+     CNF_DEALLOC_ARG = 0x00000001  /* Deallocate 'arg' after notification is dispatched. */
+} ComaNotificationFlags;
+
 typedef struct {
-     ComaNotificationID  id;
-     ComaNotifyFunc      func;
-     void               *ctx;
+     ComaNotificationID     id;
+     ComaNotifyFunc         func;
+     void                  *ctx;
+     ComaNotificationFlags  flags;
 } ComaNotificationInit;
 
 typedef struct {
-     ComaNotificationID  id;
-     ComaListenerFunc    func;
-     void               *ctx;
+     ComaNotificationID     id;
+     ComaListenerFunc       func;
+     void                  *ctx;
 } ComaListenerInit;
 
 
@@ -338,7 +344,8 @@ DEFINE_INTERFACE( IComaComponent,
           IComaComponent           *thiz,
           ComaNotificationID        id,
           ComaNotifyFunc            func,
-          void                     *ctx
+          void                     *ctx,
+          ComaNotificationFlags     flags
      );
 
      DFBResult (*InitNotifications) (

@@ -82,10 +82,11 @@ IComaComponent_Release( IComaComponent *thiz )
 }
 
 static DFBResult
-IComaComponent_InitNotification( IComaComponent     *thiz,
-                                 ComaNotificationID  id,
-                                 ComaNotifyFunc      func,
-                                 void               *ctx )
+IComaComponent_InitNotification( IComaComponent        *thiz,
+                                 ComaNotificationID     id,
+                                 ComaNotifyFunc         func,
+                                 void                  *ctx,
+                                 ComaNotificationFlags  flags )
 {
      DirectResult ret;
 
@@ -93,7 +94,7 @@ IComaComponent_InitNotification( IComaComponent     *thiz,
 
      coma_component_lock( data->component );
 
-     ret = coma_component_init_notification( data->component, id, func, ctx );
+     ret = coma_component_init_notification( data->component, id, func, ctx, flags );
 
      coma_component_unlock( data->component );
 
@@ -118,7 +119,8 @@ IComaComponent_InitNotifications( IComaComponent             *thiz,
 
      for (i=0; i<num_inits; i++) {
           ret = coma_component_init_notification( data->component, inits[i].id,
-                                                  inits[i].func, inits[i].ctx ? : ctx );
+                                                  inits[i].func, inits[i].ctx ? : ctx,
+                                                  inits[i].flags );
           if (ret)
                break;
      }

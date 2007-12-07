@@ -42,14 +42,15 @@ D_DEBUG_DOMAIN( Coma_Component, "Coma/Component", "Coma Component" );
 /**********************************************************************************************************************/
 
 struct __COMA_ComaNotification {
-     int                  magic;
+     int                     magic;
 
-     ComaNotificationID   id;
+     ComaNotificationID     id;
+     ComaNotificationFlags  flags;
 
-     ComaComponent       *component;
+     ComaComponent         *component;
 
-     ComaNotifyFunc       notify_func;
-     void                *notify_ctx;
+     ComaNotifyFunc         notify_func;
+     void                  *notify_ctx;
 };
 
 /**********************************************************************************************************************/
@@ -139,6 +140,9 @@ notify_call_handler( int           caller,
 
      if (notification->notify_func)
           notification->notify_func( notification->notify_ctx, call_arg, call_ptr );
+
+     if (call_ptr && (notification->flags & CNF_DEALLOC_ARG))
+          SHFREE( component->shmpool, call_ptr );
 
      return FCHR_RETURN;
 }
@@ -243,10 +247,11 @@ coma_component_unlock( ComaComponent *component )
 }
 
 DirectResult
-coma_component_init_notification( ComaComponent      *component,
-                                  ComaNotificationID  id,
-                                  ComaNotifyFunc      func,
-                                  void               *ctx )
+coma_component_init_notification( ComaComponent         *component,
+                                  ComaNotificationID     id,
+                                  ComaNotifyFunc         func,
+                                  void                  *ctx,
+                                  ComaNotificationFlags  flags )
 {
      ComaNotification *notification;
 
@@ -264,6 +269,7 @@ coma_component_init_notification( ComaComponent      *component,
      }
 
      notification->id          = id;
+     notification->flags       = flags;
      notification->component   = component;
      notification->notify_func = func;
      notification->notify_ctx  = ctx;
