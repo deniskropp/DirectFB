@@ -148,7 +148,7 @@ extern "C"
           D_ASSERT( component != NULL );                                                       \
           D_ASSERT( data != NULL );                                                            \
                                                                                                \
-          COMA_GENCALL_PREPARE( coma, sizeof(MediaPlayerCallInfo) );                           \
+          COMA_GENCALL_PREPARE( coma, sizeof(*data) );                                         \
                                                                                                \
           COMA_GENCALL_EXECUTE_TO( component, METHOD_ID, data );                               \
                                                                                                \
