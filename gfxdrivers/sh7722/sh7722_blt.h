@@ -38,13 +38,15 @@ void sh7722SetState         ( void *drv, void *dev,
                               GraphicsDeviceFuncs *funcs,
                               CardState *state, DFBAccelerationMask accel );
 
-bool sh7722FillRectangle    ( void *drv, void *dev, DFBRectangle *rect );
 bool sh7722FillTriangle     ( void *drv, void *dev, DFBTriangle *tri );
-bool sh7722DrawRectangle    ( void *drv, void *dev, DFBRectangle *rect );
-bool sh7722DrawLine         ( void *drv, void *dev, DFBRegion *line );
 bool sh7722Blit             ( void *drv, void *dev, DFBRectangle *rect, int x, int y );
 bool sh7722StretchBlit      ( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *drect );
 
+
+
+#define SH7722_S16S16(h,l)         ((u32)((((u16)(h)) << 16) | ((u16)(l))))
+
+#define SH7722_XY(x,y)             SH7722_S16S16(y,x)
 
 #define	SH7722_TDG_BASE            0xFD000000
 
@@ -64,6 +66,13 @@ bool sh7722StretchBlit      ( void *drv, void *dev, DFBRectangle *srect, DFBRect
 #define	BEM_BE_COLOR1              (0x00820)
 #define	BEM_BE_SRC_LOC             (0x00830)
 #define	BEM_BE_SRC_SIZE            (0x00834)
+#define	BEM_BE_MATRIX_A            (0x00850)
+#define	BEM_BE_MATRIX_B            (0x00854)
+#define	BEM_BE_MATRIX_C            (0x00858)
+#define	BEM_BE_MATRIX_D            (0x0085C)
+#define	BEM_BE_MATRIX_E            (0x00860)
+#define	BEM_BE_MATRIX_F            (0x00864)
+#define	BEM_BE_ORIGIN              (0x00870)
 #define	BEM_BE_SC_MIN              (0x00880)
 #define	BEM_BE_SC_MAX              (0x00884)
 
@@ -102,7 +111,12 @@ bool sh7722StretchBlit      ( void *drv, void *dev, DFBRectangle *srect, DFBRect
 #define BE_FLIP_VERTICAL           0x02000000
 #define BE_FLIP_BOTH               0x03000000
 
+#define BE_CTRL_FIXMODE_20_12      0x00000000
+#define BE_CTRL_FIXMODE_16_16      0x00100000
 #define BE_CTRL_CLIP               0x00080000
+#define BE_CTRL_ORIGIN             0x00040000
+#define BE_CTRL_ZOOM               0x00020000
+#define BE_CTRL_MATRIX             0x00010000
 
 #define BE_CTRL_SCANMODE_LINE      0x00000000
 #define BE_CTRL_SCANMODE_4x4       0x00001000
@@ -172,6 +186,7 @@ bool sh7722StretchBlit      ( void *drv, void *dev, DFBRectangle *srect, DFBRect
  */
 #define WR_CTRL_LINE               0x00000002
 #define WR_CTRL_POLYLINE           0x00000003
+#define WR_CTRL_ANTIALIAS          0x00020100
 #define WR_CTRL_ENDPOINT           0x00001000
 
 #endif

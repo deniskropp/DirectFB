@@ -40,7 +40,7 @@ struct __Fusion_FusionConfig {
      bool  madv_remove_force;
      bool  force_slave;
 
-     char *shmfile_group;     /* group that owns shm file */
+     gid_t shmfile_gid;       /* group that owns shm file */     
 };
 
 extern FusionConfig *fusion_config;

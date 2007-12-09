@@ -225,6 +225,8 @@ fusion_property_init (FusionProperty *property, const FusionWorld *world)
 DirectResult
 fusion_property_lease (FusionProperty *property)
 {
+     int count = 0;
+     
      D_ASSERT( property != NULL );
 
      if (property->multi.builtin.destroyed)
@@ -246,7 +248,13 @@ fusion_property_lease (FusionProperty *property)
           
           asm( "" ::: "memory" );
           
-          direct_sched_yield();
+          if (++count > 1000) {
+               usleep( 10000 );
+               count = 0;
+          }
+          else {          
+               direct_sched_yield();
+          }
                
           if (property->multi.builtin.destroyed)
                return DFB_DESTROYED;
@@ -269,6 +277,8 @@ fusion_property_lease (FusionProperty *property)
 DirectResult
 fusion_property_purchase (FusionProperty *property)
 {
+     int count = 0;
+     
      D_ASSERT( property != NULL );
 
      if (property->multi.builtin.destroyed)
@@ -290,7 +300,13 @@ fusion_property_purchase (FusionProperty *property)
           
           asm( "" ::: "memory" );
           
-          direct_sched_yield();
+          if (++count > 1000) {
+               usleep( 10000 );
+               count = 0;
+          }
+          else {          
+               direct_sched_yield();
+          }
                
           if (property->multi.builtin.destroyed)
                return DFB_DESTROYED;

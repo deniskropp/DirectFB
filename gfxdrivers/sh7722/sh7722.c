@@ -133,10 +133,7 @@ driver_init_driver( CoreGraphicsDevice  *device,
      funcs->EmitCommands      = sh7722EmitCommands;
      funcs->CheckState        = sh7722CheckState;
      funcs->SetState          = sh7722SetState;
-     funcs->FillRectangle     = sh7722FillRectangle;
      funcs->FillTriangle      = sh7722FillTriangle;
-     funcs->DrawRectangle     = sh7722DrawRectangle;
-     funcs->DrawLine          = sh7722DrawLine;
      funcs->Blit              = sh7722Blit;
      funcs->StretchBlit       = sh7722StretchBlit;
      funcs->FlushTextureCache = sh7722FlushTextureCache;

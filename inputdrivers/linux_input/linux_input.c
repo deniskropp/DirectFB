@@ -1080,7 +1080,8 @@ check_device( const char *device )
 static int
 driver_get_available()
 {
-     int i;
+     int   i;
+     char *tsdev;
 
 #ifdef LINUX_INPUT_USE_FBDEV
      if (dfb_system_type() != CORE_FBDEV)
@@ -1099,11 +1100,18 @@ driver_get_available()
           return num_devices;
      }
 
+     /* Check for tslib device being used. */
+     tsdev = getenv( "TSLIB_TSDEVICE" );
+
      /* No devices specified. Try to guess some. */
      for (i=0; i<MAX_LINUX_INPUT_DEVICES; i++) {
           char buf[32];
 
           snprintf( buf, 32, "/dev/input/event%d", i );
+
+          /* Let tslib driver handle its device. */
+          if (tsdev && !strcmp( tsdev, buf ))
+               continue;
 
           if (check_device( buf ))
                device_names[num_devices++] = D_STRDUP( buf );

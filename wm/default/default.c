@@ -2244,6 +2244,7 @@ handle_wm_key( CoreWindowStack     *stack,
      CoreWindow *entered;
      CoreWindow *focused;
      CoreWindow *window;
+     DFBRegion   region;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( data != NULL );
@@ -2365,6 +2366,16 @@ handle_wm_key( CoreWindowStack     *stack,
 
                     dfb_surface_unlock( focused->surface );
                }
+               break;
+
+          case DIKS_F12:
+               region.x1 = 0;
+               region.y1 = 0;
+               region.x2 = stack->width;
+               region.y2 = stack->height;
+
+               dfb_updates_reset( &data->updates );
+               dfb_updates_add( &data->updates, &region );
                break;
 
           default:

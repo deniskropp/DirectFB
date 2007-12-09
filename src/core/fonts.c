@@ -97,7 +97,7 @@ dfb_font_create( CoreDFB *core, CoreFont **ret_font )
      /* the proposed pixel_format, may be changed by the font provider */
      font->pixel_format = dfb_config->font_format ? : DSPF_A8;
 
-     if (font->pixel_format == DSPF_ARGB || font->pixel_format == DSPF_ARGB4444)
+     if ((font->pixel_format == DSPF_ARGB || font->pixel_format == DSPF_ARGB4444) && dfb_config->font_premult)
           font->surface_caps = DSCAPS_PREMULTIPLIED;
 
      /* the state used to blit the glyphs, may be changed by the font provider */

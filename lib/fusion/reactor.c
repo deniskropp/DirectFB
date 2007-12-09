@@ -941,7 +941,7 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
 
      addr.sun_family = AF_UNIX;
      len = snprintf( addr.sun_path, sizeof(addr.sun_path), 
-                     "/tmp/fusion.%d/", fusion_world_index( world ) );
+                     "/tmp/.fusion-%d/", fusion_world_index( world ) );
      
      fusion_skirmish_prevail( &reactor->listeners_lock );
      

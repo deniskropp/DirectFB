@@ -39,6 +39,7 @@
 
 #include <fusion/types.h>
 #include <fusion/call.h>
+#include <fusion/conf.h>
 
 #include "fusion_internal.h"
 
@@ -294,7 +295,10 @@ fusion_call_execute (FusionCall          *call,
                      void                *call_ptr,
                      int                 *ret_val)
 {
-     DirectResult ret = DFB_OK;
+     DirectResult        ret = DFB_OK;
+     FusionWorld        *world;
+     FusionCallMessage   msg;
+     struct sockaddr_un  addr;
      
      D_ASSERT( call != NULL );
 
@@ -312,16 +316,36 @@ fusion_call_execute (FusionCall          *call,
 
           if (ret_val)
                *ret_val = ret;
+               
+          return DFB_OK;
+     }
+     
+     world = _fusion_world( call->shared );
+     
+     msg.type     = FMT_CALL;  
+     msg.caller   = world->fusion_id;
+     msg.call_id  = call->call_id;
+     msg.call_arg = call_arg;
+     msg.call_ptr = call_ptr; 
+     msg.handler  = call->handler;
+     msg.ctx      = call->ctx;
+     msg.flags    = flags;
+     
+     if (flags & FCEF_ONEWAY) {
+          /* Invalidate serial. */
+          msg.serial = -1;
+          
+          /* Send message. */
+          addr.sun_family = AF_UNIX;
+          snprintf( addr.sun_path, sizeof(addr.sun_path), 
+                    "/tmp/.fusion-%d/%lx", call->shared->world_index, call->fusion_id );
+         
+          ret = _fusion_send_message( world->fusion_fd, &msg, sizeof(msg), &addr );
      }
      else {
-          FusionWorld        *world = _fusion_world( call->shared ); 
-          int                 fd;
-          struct sockaddr_un  addr;
-          FusionCallMessage   msg;
-          socklen_t           len;
-          int                 err;
-
-          /* TODO: Find a better way to receive the call result. */
+          int       fd;
+          socklen_t len;
+          int       err;
 
           fd = socket( PF_LOCAL, SOCK_RAW, 0 );
           if (fd < 0) {
@@ -329,11 +353,12 @@ fusion_call_execute (FusionCall          *call,
                return DFB_IO;
           }
 
+          /* Set close-on-exec flag. */
           fcntl( fd, F_SETFD, FD_CLOEXEC );
-
+          
           addr.sun_family = AF_UNIX;
           len = snprintf( addr.sun_path, sizeof(addr.sun_path), 
-                          "/tmp/fusion.%d/call.%x.", fusion_world_index( world ), call->call_id ); 
+                          "/tmp/.fusion-%d/call.%x.", fusion_world_index( world ), call->call_id ); 
           
           /* Generate call serial (socket address is based on it). */
           for (msg.serial = 0; msg.serial <= 0xffffff; msg.serial++) {
@@ -341,6 +366,9 @@ fusion_call_execute (FusionCall          *call,
                err = bind( fd, (struct sockaddr*)&addr, sizeof(addr) );
                if (err == 0) {
                     chmod( addr.sun_path, 0660 );
+                    /* Change group, if requested. */
+                    if (fusion_config->shmfile_gid != (gid_t)-1)
+                         chown( addr.sun_path, -1, fusion_config->shmfile_gid );
                     break;
                }
           }
@@ -350,22 +378,13 @@ fusion_call_execute (FusionCall          *call,
                close( fd );
                return DFB_IO;
           }
-          
-          msg.type     = FMT_CALL;  
-          msg.caller   = world->fusion_id;
-          msg.call_id  = call->call_id;
-          msg.call_arg = call_arg;
-          msg.call_ptr = call_ptr; 
-          msg.handler  = call->handler;
-          msg.ctx      = call->ctx;
-          msg.flags    = flags;
 
           /* Send message. */
           snprintf( addr.sun_path, sizeof(addr.sun_path), 
-                    "/tmp/fusion.%d/%lx", call->shared->world_index, call->fusion_id );
+                    "/tmp/.fusion-%d/%lx", call->shared->world_index, call->fusion_id );
           
           ret = _fusion_send_message( fd, &msg, sizeof(msg), &addr );
-          if (ret == DFB_OK && !(flags & FCEF_ONEWAY)) {
+          if (ret == DFB_OK) {
                FusionCallReturn callret;
                /* Wait for reply. */
                ret = _fusion_recv_message( fd, &callret, sizeof(callret), NULL );
@@ -396,7 +415,7 @@ fusion_call_return( FusionCall   *call,
 
      addr.sun_family = AF_UNIX;
      snprintf( addr.sun_path, sizeof(addr.sun_path), 
-               "/tmp/fusion.%d/call.%x.%x", call->shared->world_index, call->call_id, serial );
+               "/tmp/.fusion-%d/call.%x.%x", call->shared->world_index, call->call_id, serial );
                
      callret.type = FMT_CALLRET;
      callret.val  = val;
@@ -440,7 +459,7 @@ _fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg )
 
                     addr.sun_family = AF_UNIX;
                     snprintf( addr.sun_path, sizeof(addr.sun_path), 
-                              "/tmp/fusion.%d/call.%x.%x", fusion_world_index( world ), call_id, msg->serial );
+                              "/tmp/.fusion-%d/call.%x.%x", fusion_world_index( world ), call_id, msg->serial );
                
                     if (_fusion_send_message( world->fusion_fd, &callret, sizeof(callret), &addr ))
                          D_ERROR( "Fusion/Call: Couldn't send call return (serial: 0x%08x)!\n", msg->serial );

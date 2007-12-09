@@ -45,6 +45,7 @@
 #define	BEM_HC_DMA_ADR			BEM_REG(0x00040)
 #define	BEM_HC_DMA_START		BEM_REG(0x00044)
 #define	BEM_HC_DMA_STOP			BEM_REG(0x00048)
+#define	BEM_PE_CACHE			BEM_REG(0x010B0)
 
 #define BEVTR                   BEU_REG(0x018C)
 
@@ -124,6 +125,8 @@ sh7722_reset( SH7722GfxSharedArea *shared )
 
      BEM_HC_INT_CLEAR = 0x111111;
      BEM_HC_INT_MASK  = 0x110011;
+
+     BEM_HC_CACHE_FLUSH = 0;
 
      QDUMP( "Ready" );
 
@@ -269,6 +272,8 @@ sh7722_tdg_irq( int irq, void *ctx )
                shared->num_idle++;
 
                QDUMP( " '-> Idle." );
+
+               BEM_PE_CACHE = 1;
 
                shared->hw_running = 0;
 
