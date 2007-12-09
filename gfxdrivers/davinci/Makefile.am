@@ -53,8 +53,3 @@ libdirectfb_davinci_la_LIBADD = \
 
 
 include $(top_srcdir)/rules/libobject.make
-	
-kernel-module/c64x/Makefile
-kernel-module/c64x/c64x.c
-kernel-module/Makefile
-kernel-module/include/linux/c64x.h
