@@ -1758,7 +1758,7 @@ sh7722DrawLineAA( void *drv, void *dev, DFBRegion *line )
      int               x1, y1;
      int               x2, y2;
 
-     D_DEBUG_AT( SH7722_BLT, "%s( %d, %d -> %d, %d )\n", __FUNCTION_s_,
+     D_DEBUG_AT( SH7722_BLT, "%s( %d, %d -> %d, %d )\n", __FUNCTION__,
                  DFB_REGION_VALS( line ) );
      DUMP_INFO();
 
@@ -1850,8 +1850,8 @@ sh7722DoBlit( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
 {
      __u32 *prep = start_buffer( sdrv, 12 );
 
-     D_DEBUG_AT( SH7722_BLT, "%s( %d, %d - %dx%d  -> %d, %d )\n", __FUNCTION__,
-                 DFB_RECTANGLE_VALS( rect ), x, y );
+     D_DEBUG_AT( SH7722_BLT, "%s( %d, %d - %dx%d  ->  %d, %d - %dx%d )\n", __FUNCTION__,
+                 DFB_RECTANGLE_VALS( rect ), x, y, w, h );
      DUMP_INFO();
 
      prep[0] = BEM_BE_SRC_LOC;
@@ -1909,8 +1909,8 @@ sh7722DoBlitM( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
 {
      __u32 *prep = start_buffer( sdrv, 16 );
 
-     D_DEBUG_AT( SH7722_BLT, "%s( %d, %d - %dx%d  -> %d, %d )\n", __FUNCTION__,
-                 DFB_RECTANGLE_VALS( rect ), x, y );
+     D_DEBUG_AT( SH7722_BLT, "%s( %d, %d - %dx%d  ->  %d, %d - %d, %d )\n", __FUNCTION__,
+                 DFB_RECTANGLE_VALS( rect ), x1, y1, x2, y2 );
      DUMP_INFO();
 
      prep[0]  = BEM_BE_SRC_LOC;
