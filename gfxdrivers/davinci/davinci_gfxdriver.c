@@ -161,7 +161,7 @@ driver_probe( CoreGraphicsDevice *device )
      close( fd );
 
      if (ret) {
-          D_ERROR( "Davinci/Driver: FBIO_GET_TIMING returned %d!\n", ret );
+          D_PERROR( "Davinci/Driver: FBIO_GET_TIMING failed!\n" );
           return 0;
      }
 
