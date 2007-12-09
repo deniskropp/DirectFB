@@ -40,43 +40,48 @@ typedef struct zoom_params {
 	u_int32_t zoom_v;
 } zoom_params_t;
 
+#ifdef _IOC_TYPECHECK
+#undef _IOC_TYPECHECK
+#define _IOC_TYPECHECK(x)     (sizeof(x))
+#endif
+
 #define	RAM_CLUT_SIZE	256*3
 #define FBIO_ENABLE_DISABLE_WIN		\
 	_IOW('F', 0x30, unsigned char)
 #define FBIO_SET_BITMAP_BLEND_FACTOR	\
-	_IOW('F', 0x31, vpbe_bitmap_blend_params_t)
+	_IOW('F', 0x31, sizeof(vpbe_bitmap_blend_params_t))
 #define FBIO_SET_BITMAP_WIN_RAM_CLUT    \
-	_IOW('F', 0x32, unsigned char)*RAM_CLUT_SIZE)
+	_IOW('F', 0x32, sizeof(unsigned char)*RAM_CLUT_SIZE)
 #define FBIO_ENABLE_DISABLE_ATTRIBUTE_WIN \
 	_IOW('F', 0x33, unsigned int)
 #define FBIO_GET_BLINK_INTERVAL		\
-	_IOR('F', 0x34, vpbe_blink_option_t)
+	_IOR('F', 0x34, sizeof(vpbe_blink_option_t))
 #define FBIO_SET_BLINK_INTERVAL         \
-	_IOW('F', 0x35, vpbe_blink_option_t)
+	_IOW('F', 0x35, sizeof(vpbe_blink_option_t))
 #define FBIO_GET_VIDEO_CONFIG_PARAMS    \
-	_IOR('F', 0x36, vpbe_video_config_params_t)
+	_IOR('F', 0x36, sizeof(vpbe_video_config_params_t))
 #define FBIO_SET_VIDEO_CONFIG_PARAMS    \
-	_IOW('F', 0x37, vpbe_video_config_params_t)
+	_IOW('F', 0x37, sizeof(vpbe_video_config_params_t))
 #define FBIO_GET_BITMAP_CONFIG_PARAMS   \
-	_IOR('F', 0x38, vpbe_bitmap_config_params_t)
+	_IOR('F', 0x38, sizeof(vpbe_bitmap_config_params_t))
 #define FBIO_SET_BITMAP_CONFIG_PARAMS   \
-	_IOW('F', 0x39, vpbe_bitmap_config_params_t)
+	_IOW('F', 0x39, sizeof(vpbe_bitmap_config_params_t))
 #define FBIO_SET_DCLK                   \
-	_IOW('F', 0x40, vpbe_dclk_t)
+	_IOW('F', 0x40, sizeof(vpbe_dclk_t))
 #define FBIO_SET_INTERFACE		\
 	_IOW('F', 0x41, unsigned char)
 #define FBIO_GET_INTERFACE		\
 	_IOR('F', 0x42, unsigned char)
 #define FBIO_QUERY_TIMING		\
-	_IOWR('F', 0x43, struct vpbe_mode_info)
+	_IOWR('F', 0x43, sizeof(struct vpbe_mode_info))
 #define FBIO_SET_TIMING			\
-	_IOW('F', 0x44, struct vpbe_fb_videomode)
+	_IOW('F', 0x44, sizeof(struct vpbe_fb_videomode))
 #define FBIO_GET_TIMING                 \
-	_IOR('F', 0x45, struct vpbe_fb_videomode)
+	_IOR('F', 0x45, sizeof(struct vpbe_fb_videomode))
 #define FBIO_SET_VENC_CLK_SOURCE	\
 	_IOW('F', 0x46, unsigned char)
 #define FBIO_SET_BACKG_COLOR            \
-	_IOW('F', 0x47, vpbe_backg_color_t)
+	_IOW('F', 0x47, sizeof(vpbe_backg_color_t))
 #define FBIO_ENABLE_DISPLAY		\
 	_IOW('F', 0x48, unsigned char)
 #define FBIO_SETPOS            		\
