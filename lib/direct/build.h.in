@@ -36,5 +36,13 @@
 #define DIRECT_BUILD_NETWORK (@DIRECT_BUILD_NETWORK@)
 #define DIRECT_BUILD_STDBOOL (@DIRECT_BUILD_STDBOOL@)
 
-#endif
 
+#if !DIRECT_BUILD_DEBUGS
+#undef DIRECT_ENABLE_DEBUG
+#ifdef DIRECT_FORCE_DEBUG
+#warning DIRECT_FORCE_DEBUG used with 'pure release' library headers.
+#undef DIRECT_FORCE_DEBUG
+#endif
+#endif
+ 
+#endif
