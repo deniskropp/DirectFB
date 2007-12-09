@@ -260,9 +260,6 @@ driver_init_driver( CoreGraphicsDevice  *device,
 
      return DFB_OK;
 
-error_c64x:
-     close_fb( &ddrv->fb[VID1] );
-
 error_fb3:
      close_fb( &ddrv->fb[OSD1] );
 
