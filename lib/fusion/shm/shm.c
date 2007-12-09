@@ -74,7 +74,8 @@ find_tmpfs( char *name, int len )
           mount_fs = strsep( &pointer, " " );
 
           if (mount_fs && mount_point && (!strcmp( mount_fs, "tmpfs" ) ||
-                                          !strcmp( mount_fs, "shmfs" )))
+                                          !strcmp( mount_fs, "shmfs" ) ||
+                                          !strcmp( mount_fs, "ramfs" )))
           {
                struct statfs stat;
                int           bytes;
