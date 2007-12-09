@@ -121,8 +121,9 @@ preallocAllocateBuffer( CoreSurfacePool       *pool,
      alloc->addr  = surface->config.preallocated[index].addr;
      alloc->pitch = surface->config.preallocated[index].pitch;
 
-     allocation->size = surface->config.preallocated[index].pitch *
-                        DFB_PLANE_MULTIPLY( surface->config.format, surface->config.size.h );
+     allocation->flags = CSALF_PREALLOCATED | CSALF_VOLATILE;
+     allocation->size  = surface->config.preallocated[index].pitch *
+                         DFB_PLANE_MULTIPLY( surface->config.format, surface->config.size.h );
 
      return DFB_OK;
 }

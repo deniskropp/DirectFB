@@ -148,7 +148,8 @@ sharedAllocateBuffer( CoreSurfacePool       *pool,
      if (!alloc->addr)
           return D_OOSHM();
 
-     allocation->size = alloc->size;
+     allocation->flags = CSALF_VOLATILE;
+     allocation->size  = alloc->size;
 
      return DFB_OK;
 }

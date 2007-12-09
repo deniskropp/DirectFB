@@ -52,6 +52,8 @@
 #include <core/surface_buffer.h>
 #include <core/surface_pool.h>
 
+#include <misc/conf.h>
+
 #include <gfx/convert.h>
 
 static const u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
@@ -1078,8 +1080,10 @@ static DFBResult
 update_allocation( CoreSurfaceAllocation  *allocation,
                    CoreSurfaceAccessFlags  access )
 {
-     DFBResult          ret;
-     CoreSurfaceBuffer *buffer;
+     DFBResult              ret;
+     int                    i;
+     CoreSurfaceAllocation *alloc;
+     CoreSurfaceBuffer     *buffer;
 
      D_DEBUG_AT( Core_SurfBuffer, "%s()\n", __FUNCTION__ );
 
@@ -1146,6 +1150,29 @@ update_allocation( CoreSurfaceAllocation  *allocation,
           direct_serial_copy( &allocation->serial, &buffer->serial );
 
           buffer->written = allocation;
+
+          /* Zap volatile allocations (freed when no longer up to date). */
+          fusion_vector_foreach (alloc, i, buffer->allocs) {
+               D_MAGIC_ASSERT( alloc, CoreSurfaceAllocation );
+
+               if (alloc != allocation && (alloc->flags & CSALF_VOLATILE)) {
+                    dfb_surface_pool_deallocate( alloc->pool, alloc );
+                    i--;
+               }
+          }
+     }
+
+     /* Zap all other allocations? */
+     if (dfb_config->thrifty_surface_buffers) {
+          fusion_vector_foreach (alloc, i, buffer->allocs) {
+               D_MAGIC_ASSERT( alloc, CoreSurfaceAllocation );
+
+               /* Don't zap preallocated which would not really free up memory, but just loose the handle. */
+               if (alloc != allocation && !(alloc->flags & CSALF_PREALLOCATED)) {
+                    dfb_surface_pool_deallocate( alloc->pool, alloc );
+                    i--;
+               }
+          }
      }
 
      return DFB_OK;

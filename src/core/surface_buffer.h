@@ -52,11 +52,13 @@ typedef enum {
  * Configuration and State flags of a Surface Buffer Allocation
  */
 typedef enum {
-     CSALF_NONE      = 0x00000000,  /* None of these. */
+     CSALF_NONE          = 0x00000000,  /* None of these. */
 
-     CSALF_ONEFORALL = 0x00000001,  /* Only one allocation in pool for all buffers. */
+     CSALF_ONEFORALL     = 0x00000001,  /* Only one allocation in pool for all buffers. */
+     CSALF_VOLATILE      = 0x00000002,  /* Allocation should be freed when no longer up to date. */
+     CSALF_PREALLOCATED  = 0x00000004,  /* Preallocated memory, don't zap when "thrifty-surface-buffers" is active. */
 
-     CSALF_ALL       = 0x00000001   /* All of these. */
+     CSALF_ALL           = 0x00000007   /* All of these. */
 } CoreSurfaceAllocationFlags;
 
 /*

@@ -187,7 +187,8 @@ localAllocateBuffer( CoreSurfacePool       *pool,
 
      D_MAGIC_SET( alloc, LocalAllocationData );
 
-     allocation->size = alloc->size;
+     allocation->flags = CSALF_VOLATILE;
+     allocation->size  = alloc->size;
 
      return DFB_OK;
 }
