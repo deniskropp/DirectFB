@@ -1,5 +1,5 @@
 /*
-   TI Davinci driver
+   TI Davinci driver - VID1 FB Memory for direct UYVY mode
 
    (c) Copyright 2007  Telio AG
 

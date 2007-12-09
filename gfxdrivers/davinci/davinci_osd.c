@@ -1,5 +1,5 @@
 /*
-   TI Davinci driver
+   TI Davinci driver - Graphics Layer
 
    (c) Copyright 2007  Telio AG
 
@@ -112,7 +112,7 @@ osdInitLayer( CoreLayer                  *layer,
                            DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE | DLCONF_OPTIONS;
      config->width       = 640;
      config->height      = 480;
-     config->pixelformat = DSPF_RGB16;
+     config->pixelformat = DSPF_ARGB;
      config->buffermode  = DLBM_FRONTONLY;
      config->options     = DLOP_ALPHACHANNEL;
 
@@ -309,15 +309,8 @@ osdSetRegion( CoreLayer                  *layer,
                D_PERROR( "Davinci/OSD: FBIO_SETPOS (fb%d - %d,%d) failed!\n", OSD1, config->dest.x, config->dest.y );
      }
 
-     if (config->format == DSPF_RGB16)
-          dosd->var0.yoffset = lock->offset / lock->pitch;
-     else
-          dosd->var0.yoffset = 0;
-
-     ret = ioctl( ddrv->fb[OSD0].fd, FBIOPAN_DISPLAY, &dosd->var0 );
-     if (ret)
-          D_PERROR( "Davinci/Video: FBIOPAN_DISPLAY (fb%d - %d,%d) failed!\n",
-                    OSD0, dosd->var0.xoffset, dosd->var0.yoffset );
+     davincifb_pan_display( &ddrv->fb[OSD0], &dosd->var0,
+                            (config->format == DSPF_RGB16) ? lock : NULL, DSFLIP_NONE );
 
      ret = ioctl( ddrv->fb[OSD0].fd, FBIOGET_FSCREENINFO, &ddev->fix[OSD0] );
      if (ret)
@@ -399,101 +392,112 @@ update_buffers( DavinciDriverData     *ddrv,
           rect.h = surface->config.size.h;
      }
 
-     u32  *src32 = lock->addr + rect.y * lock->pitch + DFB_BYTES_PER_LINE( buffer->format, rect.x );
-     int   sp4   = lock->pitch / 4;
-     u32  *dst32 = ddrv->fb[OSD0].mem + rect.y * ddev->fix[OSD0].line_length + rect.x * 2;
-     int   dp4   = ddev->fix[OSD0].line_length / 4;
-     u8   *dst8  = ddrv->fb[OSD1].mem + rect.y * ddev->fix[OSD1].line_length + rect.x / 2;
-     int   dp    = ddev->fix[OSD1].line_length;
-     int   w2    = rect.w / 2;
-     u32   z     = 0;
+     if (ddrv->c64x_present) {
+          unsigned long rgb   = ddev->fix[OSD0].smem_start + rect.x * 2 + rect.y * ddev->fix[OSD0].line_length;
+          unsigned long alpha = ddev->fix[OSD1].smem_start + rect.x / 2 + rect.y * ddev->fix[OSD1].line_length;
+          unsigned long src   = lock->phys                 + rect.x * 4 + rect.y * lock->pitch;
 
-     switch (buffer->format) {
-          case DSPF_ARGB4444:
-               while (rect.h--) {
-                    int x;
+          D_ASSUME( ddev->fix[OSD0].line_length == ddev->fix[OSD1].line_length );
 
-                    for (x=0; x<w2; x++) {
-                         dst32[x] = ((src32[x] & 0x0f000f00) << 4) | ((src32[x] & 0x08000800)     ) |
-                                    ((src32[x] & 0x00f000f0) << 3) | ((src32[x] & 0x00c000c0) >> 1) |
-                                    ((src32[x] & 0x000f000f) << 1) | ((src32[x] & 0x00080008) >> 3);
+          davinci_c64x_dither_argb( &ddrv->c64x, rgb, alpha, ddev->fix[OSD0].line_length, src, lock->pitch, rect.w, rect.h );
+     }
+     else {
+          u32  *src32 = lock->addr + rect.y * lock->pitch + DFB_BYTES_PER_LINE( buffer->format, rect.x );
+          int   sp4   = lock->pitch / 4;
+          u32  *dst32 = ddrv->fb[OSD0].mem + rect.y * ddev->fix[OSD0].line_length + rect.x * 2;
+          int   dp4   = ddev->fix[OSD0].line_length / 4;
+          u8   *dst8  = ddrv->fb[OSD1].mem + rect.y * ddev->fix[OSD1].line_length + rect.x / 2;
+          int   dp    = ddev->fix[OSD1].line_length;
+          int   w2    = rect.w / 2;
+          u32   z     = 0;
 
-                         dst8[x] = ((src32[x] & 0xe0000000) >> 29) | ((src32[x] & 0x0000e000) >> 9);
+          switch (buffer->format) {
+               case DSPF_ARGB4444:
+                    while (rect.h--) {
+                         int x;
+
+                         for (x=0; x<w2; x++) {
+                              dst32[x] = ((src32[x] & 0x0f000f00) << 4) | ((src32[x] & 0x08000800)     ) |
+                                         ((src32[x] & 0x00f000f0) << 3) | ((src32[x] & 0x00c000c0) >> 1) |
+                                         ((src32[x] & 0x000f000f) << 1) | ((src32[x] & 0x00080008) >> 3);
+
+                              dst8[x] = ((src32[x] & 0xe0000000) >> 29) | ((src32[x] & 0x0000e000) >> 9);
+                         }
+
+                         src32 += sp4;
+                         dst32 += dp4;
+                         dst8  += dp;
                     }
+                    break;
 
-                    src32 += sp4;
-                    dst32 += dp4;
-                    dst8  += dp;
-               }
-               break;
+               case DSPF_ARGB1555:
+                    while (rect.h--) {
+                         int x;
 
-          case DSPF_ARGB1555:
-               while (rect.h--) {
-                    int x;
+                         for (x=0; x<w2; x++) {
+                              dst32[x] = ((src32[x] & 0x7c007c00) << 1) |
+                                         ((src32[x] & 0x03e003e0) << 1) |
+                                          (src32[x] & 0x003f003f);
 
-                    for (x=0; x<w2; x++) {
-                         dst32[x] = ((src32[x] & 0x7c007c00) << 1) |
-                                    ((src32[x] & 0x03e003e0) << 1) |
-                                     (src32[x] & 0x003f003f);
+                              dst8[x] = ((src32[x] & 0x80000000) ? 0x70 : 0x00) |
+                                        ((src32[x] & 0x00008000) ? 0x07 : 0x00);
+                         }
 
-                         dst8[x] = ((src32[x] & 0x80000000) ? 0x70 : 0x00) |
-                                   ((src32[x] & 0x00008000) ? 0x07 : 0x00);
+                         src32 += sp4;
+                         dst32 += dp4;
+                         dst8  += dp;
                     }
+                    break;
 
-                    src32 += sp4;
-                    dst32 += dp4;
-                    dst8  += dp;
-               }
-               break;
+               case DSPF_ARGB:
+                    while (rect.h--) {
+                         int x;
 
-          case DSPF_ARGB:
-               while (rect.h--) {
-                    int x;
+                         for (x=0; x<w2; x++) {
+                              register u32 s0 = src32[(x<<1)+0];
+                              register u32 s1 = src32[(x<<1)+1];
 
-                    for (x=0; x<w2; x++) {
-                         register u32 s0 = src32[(x<<1)+0];
-                         register u32 s1 = src32[(x<<1)+1];
-
-                         dst32[x] = ((s0 & 0x00f80000) >>  8) |
-                                    ((s0 & 0x0000fc00) >>  5) |
-                                    ((s0 & 0x000000f8) >>  3) |
-                                    ((s1 & 0x00f80000) <<  8) |
-                                    ((s1 & 0x0000fc00) << 11) |
-                                    ((s1 & 0x000000f8) << 13) ;
+                              dst32[x] = ((s0 & 0x00f80000) >>  8) |
+                                         ((s0 & 0x0000fc00) >>  5) |
+                                         ((s0 & 0x000000f8) >>  3) |
+                                         ((s1 & 0x00f80000) <<  8) |
+                                         ((s1 & 0x0000fc00) << 11) |
+                                         ((s1 & 0x000000f8) << 13) ;
 
 #ifndef DAVINCI_NO_DITHER
-                         if ((s0 & s1) >> 24 == 0xff)
-                              dst8[x] = 0x77;
-                         else {
-                              register int pt, da;
+                              if ((s0 & s1) >> 24 == 0xff)
+                                   dst8[x] = 0x77;
+                              else {
+                                   register int pt, da;
 
-                              z ^= ((z << 7) | (z >> 25));
-                              z += 0x87654321;
-                              pt = s0 - ((s0 & 0xf8000000) >> 3);
-                              da = (((pt >> 29) & 0x07)  + ( ((z&0x1f) - ((pt >> 24) & 0x1f))>>31 )) << 4;
+                                   z ^= ((z << 13) | (z >> 19));
+                                   z += 0x87654321;
+                                   pt = s0 - ((s0 & 0xf8000000) >> 3);
+                                   da = (((pt >> 29) & 0x07)  + ( ((z&0x1f) - ((pt >> 24) & 0x1f))>>31 )) << 4;
 
-                              z ^= ((z << 7) | (z >> 25));
-                              z += 0x87654321;
-                              pt = s1 - ((s1 & 0xf8000000) >> 3);
-                              da |= (((pt >> 29) & 0x07) + ( ((z&0x1f) - ((pt >> 24) & 0x1f))>>31 ));
+                                   z ^= ((z << 13) | (z >> 19));
+                                   z += 0x87654321;
+                                   pt = s1 - ((s1 & 0xf8000000) >> 3);
+                                   da |= (((pt >> 29) & 0x07) + ( ((z&0x1f) - ((pt >> 24) & 0x1f))>>31 ));
 
-     
-                              dst8[x] = da;
-                         }
+
+                                   dst8[x] = da;
+                              }
 #else
-                         dst8[x] = ((s0 & 0xe0000000) >> 25) |
-                                   ((s1 & 0xe0000000) >> 29) ;
+                              dst8[x] = ((s0 & 0xe0000000) >> 25) |
+                                        ((s1 & 0xe0000000) >> 29) ;
 #endif
+                         }
+
+                         src32 += sp4;
+                         dst32 += dp4;
+                         dst8  += dp;
                     }
+                    break;
 
-                    src32 += sp4;
-                    dst32 += dp4;
-                    dst8  += dp;
-               }
-               break;
-
-          default:
-               D_ONCE( "unsupported format" );
+               default:
+                    D_ONCE( "unsupported format" );
+          }
      }
 }
 
@@ -564,7 +568,6 @@ osdFlipRegion( CoreLayer             *layer,
                DFBSurfaceFlipFlags    flags,
                CoreSurfaceBufferLock *lock )
 {
-     DFBResult            ret;
      CoreSurfaceBuffer   *buffer;
      DavinciDriverData   *ddrv = driver_data;
      DavinciDeviceData   *ddev = ddrv->ddev;
@@ -586,18 +589,8 @@ osdFlipRegion( CoreLayer             *layer,
           else
                update_rgb( ddrv, ddev, surface, lock, NULL );
      }
-     else {
-          dosd->var0.yoffset  = lock->offset / lock->pitch;
-          dosd->var0.activate = /*(flags & DSFLIP_ONSYNC) ? FB_ACTIVATE_VBL :*/ FB_ACTIVATE_NOW;
-
-          ret = ioctl( ddrv->fb[OSD0].fd, FBIOPAN_DISPLAY, &dosd->var0 );
-          if (ret)
-               D_PERROR( "Davinci/Video: FBIOPAN_DISPLAY (fb%d - %d,%d) failed!\n",
-                         OSD0, dosd->var0.xoffset, dosd->var0.yoffset );
-
-          if (flags & DSFLIP_WAIT)
-               ioctl( ddrv->fb[OSD0].fd, FBIO_WAITFORVSYNC );
-     }
+     else
+          davincifb_pan_display( &ddrv->fb[OSD0], &dosd->var0, lock, flags );
 
      dfb_surface_flip( surface, false );
 

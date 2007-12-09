@@ -1,5 +1,5 @@
 /*
-   TI Davinci driver
+   TI Davinci driver - OSD0 FB Memory for direct RGB16 mode
 
    (c) Copyright 2007  Telio AG
 

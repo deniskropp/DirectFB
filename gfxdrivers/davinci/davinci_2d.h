@@ -1,5 +1,5 @@
 /*
-   TI Davinci driver
+   TI Davinci driver - 2D Acceleration
 
    (c) Copyright 2007  Telio AG
 
@@ -34,42 +34,36 @@
 
 #define DAVINCI_SUPPORTED_DRAWINGFLAGS      (DSDRAW_NOFX)
 
-#define DAVINCI_SUPPORTED_DRAWINGFUNCTIONS  (DFXL_NONE)
+#define DAVINCI_SUPPORTED_DRAWINGFUNCTIONS  (DFXL_FILLRECTANGLE)
 
-#define DAVINCI_SUPPORTED_BLITTINGFLAGS     (DSBLIT_NOFX)
+#define DAVINCI_SUPPORTED_BLITTINGFLAGS     (DSBLIT_BLEND_ALPHACHANNEL |\
+                                             DSBLIT_BLEND_COLORALPHA   |\
+                                             DSBLIT_SRC_COLORKEY       |\
+                                             DSBLIT_SRC_PREMULTIPLY    |\
+                                             DSBLIT_SRC_PREMULTCOLOR)
 
-#define DAVINCI_SUPPORTED_BLITTINGFUNCTIONS (DFXL_NONE)
+#define DAVINCI_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT)
 
 
-DFBResult davinciEngineSync   ( void                *drv,
-                                void                *dev );
+DFBResult davinciEngineSync  ( void                *drv,
+                               void                *dev );
 
-void      davinciEngineReset  ( void                *drv,
-                                void                *dev );
+void      davinciEngineReset ( void                *drv,
+                               void                *dev );
 
-void      davinciEmitCommands ( void                *drv,
-                                void                *dev );
+void      davinciEmitCommands( void                *drv,
+                               void                *dev );
 
-void      davinciCheckState   ( void                *drv,
-                                void                *dev,
-                                CardState           *state,
-                                DFBAccelerationMask  accel );
+void      davinciCheckState  ( void                *drv,
+                               void                *dev,
+                               CardState           *state,
+                               DFBAccelerationMask  accel );
 
-void      davinciSetState     ( void                *drv,
-                                void                *dev,
-                                GraphicsDeviceFuncs *funcs,
-                                CardState           *state,
-                                DFBAccelerationMask  accel );
-
-bool      davinciFillRectangle( void                *drv,
-                                void                *dev,
-                                DFBRectangle        *rect );
-
-bool      davinciBlit         ( void                *drv,
-                                void                *dev,
-                                DFBRectangle        *srect,
-                                int                  dx,
-                                int                  dy );
+void      davinciSetState    ( void                *drv,
+                               void                *dev,
+                               GraphicsDeviceFuncs *funcs,
+                               CardState           *state,
+                               DFBAccelerationMask  accel );
 
 #endif
 

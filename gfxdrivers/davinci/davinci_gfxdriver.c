@@ -1,5 +1,5 @@
 /*
-   TI Davinci driver
+   TI Davinci driver - Graphics Driver
 
    (c) Copyright 2007  Telio AG
 
@@ -52,6 +52,8 @@
 #include <core/surface_pool.h>
 #include <core/system.h>
 
+#include <misc/conf.h>
+
 #include "davincifb.h"
 
 #include "davinci_2d.h"
@@ -86,6 +88,8 @@ open_fb( DavinciDriverData *ddrv,
      D_ASSERT( fbnum < D_ARRAY_SIZE(ddev->fix) );
 
      fb = &ddrv->fb[fbnum];
+
+     fb->num = fbnum;
 
      snprintf( buf1, sizeof(buf1), "/dev/fb%u", fbnum );
      snprintf( buf2, sizeof(buf2), "/dev/fb/%u", fbnum );
@@ -166,7 +170,7 @@ driver_probe( CoreGraphicsDevice *device )
           return 0;
      }
 
-     if (strncmp( videomode.name, "PAL", 3 ) && strncmp( videomode.name, "NTSC", 4 )) {
+     if (strncmp( (char*)videomode.name, "PAL", 3 ) && strncmp( (char*)videomode.name, "NTSC", 4 )) {
           D_ERROR( "Davinci/Driver: Unknown mode name '%s'!\n", videomode.name );
           return 0;
      }
@@ -188,7 +192,7 @@ driver_get_info( CoreGraphicsDevice *device,
                "Telio AG" );
 
      info->version.major = 0;
-     info->version.minor = 3;
+     info->version.minor = 4;
 
      info->driver_data_size = sizeof(DavinciDriverData);
      info->device_data_size = sizeof(DavinciDeviceData);
@@ -202,8 +206,9 @@ driver_init_driver( CoreGraphicsDevice  *device,
                     CoreDFB             *core )
 {
      DFBResult          ret;
-     DavinciDriverData *ddrv = driver_data;
-     DavinciDeviceData *ddev = device_data;
+     DavinciDriverData *ddrv   = driver_data;
+     DavinciDeviceData *ddev   = device_data;
+     bool               master = dfb_core_is_master( core );
 
      ddrv->ddev = ddev;
      ddrv->core = core;
@@ -224,27 +229,39 @@ driver_init_driver( CoreGraphicsDevice  *device,
      if (ret)
           goto error_fb3;
 
-     /* initialize function pointers */
-     funcs->EngineSync    = davinciEngineSync;
-     funcs->EngineReset   = davinciEngineReset;
-     funcs->EmitCommands  = davinciEmitCommands;
-     funcs->CheckState    = davinciCheckState;
-     funcs->SetState      = davinciSetState;
-     funcs->FillRectangle = davinciFillRectangle;
-     funcs->Blit          = davinciBlit;
+     ret = davinci_c64x_open( &ddrv->c64x );
+     if (ret)
+          D_WARN( "running without DSP acceleration" );
+     else {
+          ddrv->c64x_present = true;
+
+          /* initialize function pointers */
+          funcs->EngineSync   = davinciEngineSync;
+          funcs->EngineReset  = davinciEngineReset;
+          funcs->EmitCommands = davinciEmitCommands;
+          funcs->CheckState   = davinciCheckState;
+          funcs->SetState     = davinciSetState;
+     }
 
      ddrv->screen = dfb_screens_register( device, driver_data, &davinciScreenFuncs );
 
      ddrv->osd   = dfb_layers_register( ddrv->screen, driver_data, &davinciOSDLayerFuncs );
      ddrv->video = dfb_layers_register( ddrv->screen, driver_data, &davinciVideoLayerFuncs );
 
-     if (!dfb_core_is_master( core )) {
+     if (!master) {
           dfb_surface_pool_join( core, ddev->osd_pool, &davinciOSDSurfacePoolFuncs );
           dfb_surface_pool_join( core, ddev->video_pool, &davinciVideoSurfacePoolFuncs );
      }
 
+     if (!dfb_config->software_only) {
+          dfb_config->font_format  = DSPF_ARGB;
+          dfb_config->font_premult = true;
+     }
+
      return DFB_OK;
 
+error_c64x:
+     close_fb( &ddrv->fb[VID1] );
 
 error_fb3:
      close_fb( &ddrv->fb[OSD1] );
@@ -272,14 +289,16 @@ driver_init_device( CoreGraphicsDevice *device,
      snprintf( device_info->name,   DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH,   "Davinci" );
 
      /* device limitations */
-     device_info->limits.surface_byteoffset_alignment = 8;
-     device_info->limits.surface_bytepitch_alignment  = 8;
+     device_info->limits.surface_byteoffset_alignment = 64;
+     device_info->limits.surface_bytepitch_alignment  = 32;
 
-     device_info->caps.flags    = 0;
-     device_info->caps.accel    = DAVINCI_SUPPORTED_DRAWINGFUNCTIONS |
-                                  DAVINCI_SUPPORTED_BLITTINGFUNCTIONS;
-     device_info->caps.drawing  = DAVINCI_SUPPORTED_DRAWINGFLAGS;
-     device_info->caps.blitting = DAVINCI_SUPPORTED_BLITTINGFLAGS;
+     if (ddrv->c64x_present) {
+          device_info->caps.flags    = 0;
+          device_info->caps.accel    = DAVINCI_SUPPORTED_DRAWINGFUNCTIONS |
+                                       DAVINCI_SUPPORTED_BLITTINGFUNCTIONS;
+          device_info->caps.drawing  = DAVINCI_SUPPORTED_DRAWINGFLAGS;
+          device_info->caps.blitting = DAVINCI_SUPPORTED_BLITTINGFLAGS;
+     }
 
      dfb_surface_pool_initialize( ddrv->core, &davinciOSDSurfacePoolFuncs, &ddev->osd_pool );
      dfb_surface_pool_initialize( ddrv->core, &davinciVideoSurfacePoolFuncs, &ddev->video_pool );
@@ -299,6 +318,9 @@ driver_close_driver( CoreGraphicsDevice *device,
                      void               *driver_data )
 {
      DavinciDriverData *ddrv = driver_data;
+
+     if (ddrv->c64x_present)
+          davinci_c64x_close( &ddrv->c64x );
 
      close_fb( &ddrv->fb[VID1] );
      close_fb( &ddrv->fb[OSD1] );

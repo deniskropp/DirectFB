@@ -1,0 +1,5 @@
+KERNEL_SOURCE = ...set-to-kernel-source-dir
+KERNEL_BUILD  = $(KERNEL_SOURCE)
+
+all:
+	$(MAKE) -C linux KERNEL_SOURCE=$(KERNEL_SOURCE) KERNEL_BUILD=$(KERNEL_BUILD)

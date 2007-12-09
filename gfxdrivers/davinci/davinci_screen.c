@@ -1,5 +1,5 @@
 /*
-   TI Davinci driver
+   TI Davinci driver - Primary Screen
 
    (c) Copyright 2007  Telio AG
 

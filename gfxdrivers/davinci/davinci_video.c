@@ -1,5 +1,5 @@
 /*
-   TI Davinci driver
+   TI Davinci driver - Video Layer
 
    (c) Copyright 2007  Telio AG
 
@@ -249,12 +249,7 @@ videoSetRegion( CoreLayer                  *layer,
                          VID1, params.cb_cr_order ? "CrCb" : "CbCr" );
      }
 
-     dvid->var.yoffset = lock->offset / lock->pitch;
-
-     ret = ioctl( ddrv->fb[VID1].fd, FBIOPAN_DISPLAY, &dvid->var );
-     if (ret)
-          D_PERROR( "Davinci/Video: FBIOPAN_DISPLAY (fb%d - %d,%d) failed!\n",
-                    VID1, dvid->var.xoffset, dvid->var.yoffset );
+     davincifb_pan_display( &ddrv->fb[VID1], &dvid->var, lock, DSFLIP_NONE );
 
      ret = ioctl( ddrv->fb[VID1].fd, FBIOGET_FSCREENINFO, &ddev->fix[VID1] );
      if (ret)
@@ -312,7 +307,6 @@ videoFlipRegion( CoreLayer             *layer,
                  DFBSurfaceFlipFlags    flags,
                  CoreSurfaceBufferLock *lock )
 {
-     DFBResult              ret;
      DavinciDriverData     *ddrv = driver_data;
      DavinciVideoLayerData *dvid = layer_data;
 
@@ -323,16 +317,7 @@ videoFlipRegion( CoreLayer             *layer,
      D_ASSERT( ddrv != NULL );
      D_ASSERT( dvid != NULL );
 
-     dvid->var.yoffset  = lock->offset / lock->pitch;
-     dvid->var.activate = (flags & DSFLIP_ONSYNC) ? FB_ACTIVATE_VBL : FB_ACTIVATE_NOW;
-
-     ret = ioctl( ddrv->fb[VID1].fd, FBIOPAN_DISPLAY, &dvid->var );
-     if (ret)
-          D_PERROR( "Davinci/Video: FBIOPAN_DISPLAY (fb%d - %d,%d) failed!\n",
-                    VID1, dvid->var.xoffset, dvid->var.yoffset );
-
-     if (flags & DSFLIP_WAIT)
-          ioctl( ddrv->fb[VID1].fd, FBIO_WAITFORVSYNC );
+     davincifb_pan_display( &ddrv->fb[VID1], &dvid->var, lock, flags );
 
      dfb_surface_flip( surface, false );
 

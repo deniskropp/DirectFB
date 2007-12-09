@@ -1,5 +1,5 @@
 /*
-   TI Davinci driver
+   TI Davinci driver - Video Layer
 
    (c) Copyright 2007  Telio AG
 
