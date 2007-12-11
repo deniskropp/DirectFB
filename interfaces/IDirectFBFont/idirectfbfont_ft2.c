@@ -313,9 +313,7 @@ render_glyph( CoreFont      *thiz,
                          case DSPF_ARGB:
                               if (thiz->surface_caps & DSCAPS_PREMULTIPLIED) {
                                    for (i=0; i<info->width; i++)
-                                        dst32[i] = ((src[i] << 24) |
-                                                    (src[i] << 16) |
-                                                    (src[i] <<  8) | src[i]);
+                                        dst32[i] = src[i] * 0x01010101;
                               }
                               else
                                    for (i=0; i<info->width; i++)
@@ -328,10 +326,7 @@ render_glyph( CoreFont      *thiz,
                          case DSPF_ARGB4444:
                               if (thiz->surface_caps & DSCAPS_PREMULTIPLIED) {
                                    for (i=0; i<info->width; i++)
-                                        dst16[i] = ((src[i] << 8) & 0xF000) |
-                                                   ((src[i] << 4) & 0x0F00) |
-                                                   ((src[i]     ) & 0x00F0) |
-                                                   ((src[i] >> 4));
+                                        dst16[i] = (src[i] >> 4) * 0x1111;
                               }
                               else {
                                    for (i=0; i<info->width; i++)
