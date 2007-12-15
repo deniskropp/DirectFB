@@ -1323,7 +1323,7 @@ AM_CONDITIONAL(SOFTWARE_RENDERING, test "$with_software" != "no")
 
 AC_ARG_WITH(smooth-scaling,
   [  --with-smooth-scaling      build with smooth software scaling code (can increase binary size by >100k)])
-if test "$with_smooth_scaling" != "yes"; then
+if test "$with_smooth_scaling" != "yes" -o "$with_software" != "yes"; then
   with_smooth_scaling=no
 else
   AC_DEFINE(DFB_SMOOTH_SCALING,1,[Define to 1 if smooth scaling code should be built.])
