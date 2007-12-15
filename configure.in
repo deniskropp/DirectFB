@@ -886,13 +886,13 @@ if test "$have_linux" = "yes"; then
 
 AC_MSG_CHECKING(which gfxdrivers should be built)
 AC_ARG_WITH(gfxdrivers,
-[  --with-gfxdrivers=<list>  compile gfxdrivers in <list> ]
-[                            gfxdrivers may be comma separated ]
-[                            'all' builds all drivers (default), 'none' builds none ]
-[                            Possible gfxdrivers are: ]
-[                            ati128, cle266, cyber5k, davinci, i810, i830, mach64, matrox,]
-[                            neomagic, nsc, nvidia, omap, radeon, savage, sh7722,]
-[                            sis315, tdfx, unichrome, vmware], gfxdrivers="$withval",[gfxdrivers="all"])
+[  --with-gfxdrivers=<list>   compile gfxdrivers in <list> ]
+[                               gfxdrivers may be comma separated ]
+[                               'all' builds all drivers (default), 'none' builds none ]
+[                               Possible gfxdrivers are: ]
+[                               ati128, cle266, cyber5k, davinci, i810, i830, mach64, matrox,]
+[                               neomagic, nsc, nvidia, omap, radeon, savage, sh7722,]
+[                               sis315, tdfx, unichrome, vmware], gfxdrivers="$withval",[gfxdrivers="all"])
 
 if test "$gfxdrivers" = "all"; then
   checkfor_ati128=yes
@@ -1089,12 +1089,12 @@ checkfor_wm97xx=no
 AC_MSG_CHECKING(which inputdrivers should be built)
 AC_ARG_WITH(inputdrivers,
 [  --with-inputdrivers=<list> compile inputdrivers in <list> ]
-[                             inputdrivers may be comma separated ]
-[                             'all' builds all drivers (default), 'none' builds none ]
-[                             Possible inputdrivers are: ]
-[                             dbox2remote, dreamboxremote, dynapro, elo-input, gunze, h3600_ts, ]
-[                             joystick, keyboard, linuxinput, lirc, mutouch, penmount, ps2mouse, ]
-[                             serialmouse, sonypijogdial, tslib, ucb1x00, wm97xx], inputdrivers="$withval",[inputdrivers="all"])
+[                               inputdrivers may be comma separated ]
+[                               'all' builds all drivers (default), 'none' builds none ]
+[                               Possible inputdrivers are: ]
+[                               dbox2remote, dreamboxremote, dynapro, elo-input, gunze, h3600_ts, ]
+[                               joystick, keyboard, linuxinput, lirc, mutouch, penmount, ps2mouse, ]
+[                               serialmouse, sonypijogdial, tslib, ucb1x00, wm97xx], inputdrivers="$withval",[inputdrivers="all"])
 
 if test "$inputdrivers" = "all"; then
   checkfor_dbox2remote=yes
@@ -1312,8 +1312,19 @@ fi
 fi
 
 
+AC_ARG_WITH(smooth-scaling,
+  [  --with-smooth-scaling      build with smooth software scaling code (can increase binary size by >100k)])
+if test "$with_smooth_scaling" != "yes"; then
+  with_smooth_scaling=no
+else
+  AC_DEFINE(DFB_SMOOTH_SCALING,1,[Define to 1 if smooth scaling code should be built.])
+fi
+
+AC_SUBST(DFB_SMOOTH_SCALING)
+
+
 AC_ARG_WITH(tests,
-  [  --with-tests              build test programs])
+  [  --with-tests               build test programs])
 if test "$with_tests" != "yes"; then
   with_tests=no
 fi
@@ -1321,19 +1332,28 @@ fi
 
 # How big of a buffer fusion uses to read messages from the fusion device
 AC_ARG_WITH(message-size,
-[  --with-message-size=SIZE allow fusion messages up to SIZE bytes [[default=1024]]],
+[  --with-message-size=SIZE   allow fusion messages up to SIZE bytes [[default=1024]]],
 [ ], [with_message_size=no])
 test x"$with_message_size" = x"no" && with_message_size=1024
 FUSION_MESSAGE_SIZE=$with_message_size
 AC_SUBST(FUSION_MESSAGE_SIZE)
 
 
-
+# Build tools?
 AC_ARG_WITH(tools,
-  [  --without-tools           do not build any tools])
+  [  --without-tools            do not build any tools])
 if test "$with_tools" != "no"; then
   with_tools=yes
 fi
+
+
+# Sysroot used for runtime module loading, etc.
+AC_ARG_WITH(sysroot,
+[  --with-sysroot=DIR         search for lib/share et al within DIR at runtime]
+[                               (e.g. when loading modules)],
+[ RUNTIME_SYSROOT="$withval" ], [ RUNTIME_SYSROOT= ] )
+test x"$RUNTIME_SYSROOT" = x"no" && RUNTIME_SYSROOT=
+AC_SUBST(RUNTIME_SYSROOT)
 
 
 dnl *** Look for directfb-csource in PATH if we are cross-compiling ***
@@ -1403,13 +1423,6 @@ ACLOCAL="$ACLOCAL $ACLOCAL_FLAGS"
 AM_CONDITIONAL(BUILD_SHARED, test "$enable_shared" = "yes")
 AM_CONDITIONAL(BUILD_STATIC, test "$enable_static" = "yes")
 
-# Sysroot used for runtime module loading, etc.
-AC_ARG_WITH(sysroot,
-[  --with-sysroot=DIR      search for lib/share et al within DIR at runtime]
-[                            (e.g. when loading modules)],
-[ RUNTIME_SYSROOT="$withval" ], [ RUNTIME_SYSROOT= ] )
-test x"$RUNTIME_SYSROOT" = x"no" && RUNTIME_SYSROOT=
-AC_SUBST(RUNTIME_SYSROOT)
 
 # Change the module directory only for builds that don't *support* debug
 if test "$enable_debug_support" = "no"; then
@@ -1604,8 +1617,12 @@ Misc options:
   Network support           $enable_network
   zlib compression          $use_zlib
   sysfs support             $use_sysfs
+  Smooth SW Scaling         $with_smooth_scaling
 
-Building Core Systems:
+Building Tests              $with_tests
+Building Tools              $with_tools
+
+Building System Modules:
   Linux FBDev support       $enable_fbdev
   Generic /dev/mem support  $enable_devmem
   X11 support               $enable_x11
@@ -1613,24 +1630,21 @@ Building Core Systems:
   SDL support               $enable_sdl
   VNC support               $enable_vnc
 
-Building WM Modules:
+Building Window Manager Modules:
   Default                   yes
   UniQuE                    $enable_unique
 
-Building Tests              $with_tests
-Building Tools              $with_tools
-
-Building Image Providers:
+Building Image Provider Modules:
   GIF                       $enable_gif 
   JPEG                      $JPEG
   MPEG2 I-Frame             yes
   PNG                       $PNG
 
-Building Video Providers:
+Building Video Provider Modules:
   GIF                       $enable_gif
   Video4Linux               $V4L (v2: $V4L2)
 
-Building Font implementations:
+Building Font Modules:
   FreeType2                 $FREETYPE
   Default font              yes]);
 

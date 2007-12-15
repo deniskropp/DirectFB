@@ -8065,6 +8065,8 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 /*********           **************************************************************************************************/
 /**********************************************************************************************************************/
 
+#if DFB_SMOOTH_SCALING
+
 typedef struct {
      DFBRegion   clip;
      const void *colors;
@@ -8395,7 +8397,7 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      stretch( dst, gfxs->dst_pitch, src, gfxs->src_pitch,
               srect->w, srect->h, drect->w, drect->h, &ctx );
 
-#if 0
+#if 0     /* FIXME: repair */
      switch (gfxs->dst_format) {
           case DSPF_NV16:
                ctx.clip.x1 /= 2;
@@ -8417,6 +8419,7 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
      return true;
 }
+#endif /* DFB_SMOOTH_SCALING */
 
 void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 {
@@ -8431,9 +8434,11 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
      CHECK_PIPELINE();
 
+#if DFB_SMOOTH_SCALING
      if (state->render_options & (DSRO_SMOOTH_UPSCALE | DSRO_SMOOTH_DOWNSCALE) &&
          stretch_hvx( state, srect, drect ))
           return;
+#endif
 
      /* Clip destination rectangle. */
      if (!dfb_rectangle_intersect_by_region( drect, &state->clip ))
