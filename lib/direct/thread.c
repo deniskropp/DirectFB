@@ -94,7 +94,9 @@ struct __D_DirectThreadInitHandler {
  */
 static void *direct_thread_main( void *arg );
 
+#if DIRECT_BUILD_TEXT
 static const char *thread_type_name( DirectThreadType type )  D_CONST_FUNC;
+#endif
 
 /******************************************************************************/
 
@@ -450,6 +452,7 @@ direct_thread_destroy( DirectThread *thread )
 
 /******************************************************************************/
 
+#if DIRECT_BUILD_TEXT
 static const char *
 thread_type_name( DirectThreadType type )
 {
@@ -475,6 +478,7 @@ thread_type_name( DirectThreadType type )
 
      return "unknown type!";
 }
+#endif
 
 /******************************************************************************/
 

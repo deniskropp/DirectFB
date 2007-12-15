@@ -151,7 +151,7 @@ void direct_messages_warn         ( const char *func,
      #define D_UNIMPLEMENTED()     do { } while (0)
      #define D_BUG(x...)           do { } while (0)
      #define D_WARN(x...)          do { } while (0)
-     #define D_OOM()               (DFB_NOSYSTEMMEMORY)
+     #define D_OOM()               (printf("out of memory\n"), DFB_NOSYSTEMMEMORY)
 #endif
 
 
