@@ -63,8 +63,8 @@ D_DEBUG_DOMAIN( Direct_Memcpy, "Direct/Memcpy", "Direct's Memcpy Routines" );
 
 static void * generic64_memcpy( void * to, const void * from, size_t len )
 {
-     register u8 *d = (__u8*)to;
-     register u8 *s = (__u8*)from;
+     register u8 *d = (u8*)to;
+     register u8 *s = (u8*)from;
      size_t       n;
 
      if (len >= 128) {

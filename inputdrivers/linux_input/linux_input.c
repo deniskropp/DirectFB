@@ -115,11 +115,11 @@ DFB_INPUT_DRIVER( linux_input )
 /* compat for 2.4.x kernel - just a compile fix */
 #ifndef HAVE_INPUT_ABSINFO
 struct input_absinfo {
-        __s32 value;
-        __s32 minimum;
-        __s32 maximum;
-        __s32 fuzz;
-        __s32 flat;
+        s32 value;
+        s32 minimum;
+        s32 maximum;
+        s32 fuzz;
+        s32 flat;
 };
 #endif
 
