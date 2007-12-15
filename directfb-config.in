@@ -300,10 +300,10 @@ if test "$echo_libs" = "yes"; then
       libs=-L@libdir@
 
       if test "$lib_directfb" = "yes"; then
-	 libs="$libs -ldirectfb -lfusion -ldirect @THREADLIB@ @ZLIB_LIBS@"
+	 libs="$libs -ldirectfb -lfusion -ldirect @THREADLIB@"
 
-	 if test -z "$echo_static"; then
-	    libs="$libs @DYNLIB@"
+	 if test -n "$echo_static"; then
+	    libs="$libs @DYNLIB@ @ZLIB_LIBS@"
 	 fi
       fi
 
