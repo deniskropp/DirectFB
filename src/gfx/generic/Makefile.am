@@ -19,9 +19,15 @@ internalinclude_HEADERS = \
 
 noinst_LTLIBRARIES = libdirectfb_generic.la
 
+if SOFTWARE_RENDERING
+GENERIC_C = generic.c
+else
+GENERIC_C = generic_dummy.c
+endif
+
 libdirectfb_generic_la_SOURCES = \
 	duffs_device.h			\
-	generic.c			\
+	$(GENERIC_C)			\
 	generic.h			\
 	generic_mmx.h			\
 	generic_64.h			\
@@ -43,6 +49,7 @@ libdirectfb_generic_la_SOURCES = \
 	yuvtbl.h
 
 generic.c: yuvtbl.h
+generic_dummy.c: yuvtbl.h
 
 yuvtbl-gen: yuvtbl-gen.c
 	$(CC) -O2 yuvtbl-gen.c -o yuvtbl-gen

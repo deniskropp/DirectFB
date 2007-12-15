@@ -1312,6 +1312,15 @@ fi
 fi
 
 
+AC_ARG_WITH(software,
+  [  --without-software         build without software rendering (can decrease binary size by >100k)])
+if test "$with_software" != "no"; then
+  with_software=yes
+fi
+
+AM_CONDITIONAL(SOFTWARE_RENDERING, test "$with_software" != "no")
+
+
 AC_ARG_WITH(smooth-scaling,
   [  --with-smooth-scaling      build with smooth software scaling code (can increase binary size by >100k)])
 if test "$with_smooth_scaling" != "yes"; then
@@ -1617,6 +1626,7 @@ Misc options:
   Network support           $enable_network
   zlib compression          $use_zlib
   sysfs support             $use_sysfs
+  Software Rendering        $with_software
   Smooth SW Scaling         $with_smooth_scaling
 
 Building Tests              $with_tests
