@@ -25,6 +25,7 @@ libdirectfb_generic_la_SOURCES = \
 	generic.h			\
 	generic_mmx.h			\
 	generic_64.h			\
+	stretch_hvx_N.h			\
 	stretch_hvx_16.h		\
 	stretch_hvx_32.h		\
 	stretch_hvx_8.h			\
@@ -34,6 +35,7 @@ libdirectfb_generic_la_SOURCES = \
 	stretch_up_down_32_indexed.h	\
 	stretch_up_down_8.h		\
 	stretch_up_down_88.h		\
+	stretch_up_down_table.h		\
 	template_acc_16.h		\
 	template_acc_32.h		\
 	template_colorkey_16.h		\
