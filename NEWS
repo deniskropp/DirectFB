@@ -1,3 +1,247 @@
+1.1.1
+-----
+
+API
+- Added 3x2 transformation for all drawing and blitting.
+- Added render option DSRO_MATRIX and IDirectFBSurface::SetMatrix().
+  The matrix consists of 3x2 fixed point 16.16 values. The order in the array is from left to right and from top to bottom.
+  All drawing and blitting will be transformed:
+  X' = X * v0 + Y * v1 + v2
+  Y' = X * v3 + Y * v4 + v5
+- Added DSRO_ANTIALIAS to enable anti-aliasing for edges, lines...
+
+API | IDirectFB
+- Added DSCAPS_SHARED for creating shared surfaces, not using local (malloced) memory pool.
+
+API | IDirectFBDisplayLayer
+- Added DFBDisplayLayerSourceCaps featuring DDLSCAPS_SURFACE.
+- Added resource_id to DFBWindowDescription and DWDESC_RESOURCE_ID to
+  specify the resource id to use for window surface creation, rather
+  than using the window id for that.
+
+API | IDirectFBFont
+- Fixed missing translation of characters to indices in GetKerning().
+
+API | IDirectFBSurface
+- Added DSBLIT_COLORKEY_PROTECT to prohibit writing the color that the destination surface uses as a source color key.
+- Fixed GetFramebufferOffset() by adding CSAF_GPU_READ when Lock() is called on a DSCAPS_VIDEOONLY surface.
+
+API | IDirectFBVideoProvider
+- Added DVPET_FINISHED, sent when playback is finished.
+- Added DVPET_SURFACECHANGE, sent when size/format change.
+
+Runtime Options
+- Added "[no-]autoflip-window" to automatically flip non-flipping windowed primary surfaces.
+  Previously, the default was to automatically Flip() in a thread. Now it's not.
+- Added "[no-]font-premult" for premultiplication in case of ARGB glyph images. Default is enabled.
+- Added "[no-]linux-input-grab" that will control whether linux_input will grab the devices. This is
+  useful in cases where multiple processes want to receive input events.
+- Added "linux-input-devices" and "tslib-devices" options.
+- Added "no-init-layer [= <id>]" option to disable initialization of layers.
+  Primary layer is initialized by default, use this option to avoid that.
+- Added "[no-]thread-block-signals".
+- Fix background color index support.
+- Fixed missing color key flags when only index is set via config file.
+- Reimplemented "thrifty-surface-buffers".
+
+Build Options
+- Added "--with-smooth-scaling", turned off by default to avoid 100k+ binary size increase.
+
+Display Core
+- Implemented defered region realization by adding CLRSF_FROZEN which is set initially on every region that is created.
+- As long as CLRSF_FROZEN is set, all SetRegion() calls to the driver (and buffer allocations due to it) are simply discarded.
+- Only when dfb_layer_region_flip_update() is called and the region is enabled and active, the flag is removed and the region
+  is either realized or the config is just set if it was already/still realized.
+- Added GetMixerState() to screen driver API and dfb_screen_get_layer_dimension() to be used
+  instead of the deprecated dfb_screen_get_screen_size().
+- Added capabilities for display layer sources. Check source capabilities if present when determining
+  whether to allocate a surface for a layer region. This allows to add layer sources in addition to DLSID_SURFACE
+  that have a surface without using DLCAPS_SURFACE which enables surfaces for all sources.
+- Deallocate layer region surface buffers if the region is being unrealized.
+- Made DisplayLayerFuncs const when being passed or used.
+- When switching to an indexed layer format, use dfb_surface_init_palette() if no palette exists already.
+
+Graphics Core
+- Added dfb_gfxcard_get_driver_data().
+- If alpha is zero, still check for RGB when looking up the best match in a palette.
+- When resetting the 'checked' flags also reset the same in 'accel' flags. Fixes accidental hw usage.
+- Skip prechecking clip in FillRectangles() if DSRO_MATRIX is used. Other functions are also affected, but not fixed yet.
+
+Surface Core
+- Fixes to CPU/GPU read/write access interlock management.
+- Added dfb_surface_buffer_dump() implementation.
+- Fixed lock+reconfig bug: fail when trying to reconfig a locked surface.
+- Added convenience functions dfb_surface_read/write_buffer() and dfb_surface_dump_buffer().
+- Moved surface palette creation from dfb_surface_create() into new dfb_surface_init_palette().
+- Added CSALF_PREALLOCATED. The "thrifty-surface-buffers" option is implemented by iterating through all allocations
+  at the end of an update_allocation() and deallocate all other allocations, unless they have the CSALF_PREALLOCATED flag.
+  In the latter case it would not be a benefit, but the disadvantage of losing an allocation that is still up to date and
+  would probably be faster (CPU read) than others. The 'preallocated' surface pool sets CSALF_PREALLOCATED upon allocation.
+- Another flag CSALF_VOLATILE has been introduced. In case of a write access to one allocation, any other
+  allocation is deallocated if it has the flag. This is independent of the "thrifty-surface-buffers" option.
+  The 'local', 'shared' and 'preallocated' surface pools set CSALF_VOLATILE upon allocation.
+
+Window Core
+- Refuse to set non-shared surfaces as a background image for a window stack.
+
+Software Render
+- Added LUT8 -> ARGB4444 smooth scaling.
+- Made smooth scaling support source rectangles not starting at 0,0.
+- Fast RGB32/ARGB to RGB16 conversion (little endian).
+
+Utilities
+- Added dfb_convert_to_a4() and added RGB32/ARGB support to dfb_convert_to_rgb16().
+- Added dfb_convert_to_uyvy() and dfb_convert_to_yuy2(), only copy supported yet.
+
+libdirect
+- Added direct_cleanup_handler_{add/remove} to install a cleanup handler called upon exit.
+- Added direct_page_align().
+- Added mutex and condition for thread initialization to eliminate sched_yield()s.
+- Improved debug messages in thread code. Added "Direct/Thread/Init" domain to watch creation, wait,
+  startup, initialization, notification ...
+- Initialize libdirect in DirectFBCreate() already.
+- Added new URI fd:/<fileno>. Used to create a DirectStream from an already opened file descriptor.
+- Added direct_log_lock()/unlock() for ensuring multiple prints are not mixed with others.
+- Use direct_log_lock()/unlock() to ensure stack traces are one contiguous block.
+- Added sanity checks in build header if debug support is disabled.
+  If DIRECT_ENABLE_DEBUG is defined, silently undefine it.
+  If DIRECT_FORCE_DEBUG is define, show a warning and undefine it.
+- Do not use PAGE_SIZE at all on Linux, thanks to Guillem Jover.
+- Do not leak private labraries for dynamic linking, thanks to Guillem Jover.
+
+libdirect (network support)
+- Join multicast group if family is AF_INET and IN_MULTICAST is true.
+- Use bind() instead of connect() for receiving UDP data.
+- Use SO_REUSEADDR in case of multicast.
+
+libfusion
+- Print an alert message when using builtin implementation of fusion.
+- Moved FUSION_ID_MASTER definition to types.h.
+- Fix missing fusion_shm_enum_pools() for single app core.
+- Added fusion_reactor_set_name() to change the name of a reactor after its creation.
+- Implemented fusion_reactor_set_dispatch_callback().
+- (Pre)Parse shmfile group in fusion_config_set().
+- Added "ramfs" to possible types during mount point probing.
+
+libfusion (builtin multi)
+- Provide a REAL implementation of fusion_skirmish_wait/notify().
+- Always free resources allocated in builtin implementation of fusion_skirmish_wait(), either if the skirmish was destroyed.
+- Check for dead local references in fusion_ref_zero_lock()/trylock().
+- Return DFB_NOSHAREDMEMORY if requested allocation exceeds the maximum address of the shm pool.
+- When fusion_skirmish_wait() gets called with a timeout value, check whether the timeout expired *before* sleeping.
+- Use fusion_skirmish_wait() instead of usleep() in fusion_ref_zerolock().
+- In fusion_ref_zerolock(): check local references before entering the loop.
+- Check for dead property purchaser.
+- Honor FCEF_ONEWAY in fusion_call_execute(). Execute ref watcher with the FCEF_ONEWAY flag.
+- Fail in fusion_skirmish_notify() if skirmish was destroyed. Sleep for at least 10ms in fusion_skirmish_prevail().
+- Enable sleeping in fusion_property_lease()/purchase().
+- Moved socket directory from "/tmp/fusion.#" to "/tmp/.fusion-#".
+- Change socket ownership according to shmfile group.
+- Speed up fusion_call_execute(FCEF_ONEWAY) by not creating a new socket.
+- chown() the sockets directory according to "shmfile-group".
+
+Voodoo
+- Implemented some more requestor/dispatcher methods.
+- Fixed alignment issues by applying VOODOO_MSG_ALIGN() on each message block.
+
+Graphics drivers
+- Port ati128, cle266, cyber5k, i810, i830, neomagic, nsc, savage, sis315, tdfx, unichrome to the new surface core. Only compile tested.
+
+Radeon driver
+- Instead of emitting vertices instantly, store them in a buffer that is submitted on EmitCommands() (this way DrawString() is about 45% faster with my 9200SE).
+- R100/R200: Dropped some blend functions when destination format is A8 ((INV)DEST alpha never worked because A8 isn't really supported as dest format).
+- R300: Implemented BLEND_COLORALPHA, COLORIZE, PREMULTCOLOR with some limitations (source must be premultiplied and COLORALPHA+ALPHABLEND isn't supported at all).
+- Sleep for 10 usec in WaitVSync loop.
+
+nVidia driver
+- Fixed texture uploading: use the current surface lock instead of locking again.
+- Replaced state->modified by state->mod_hw.
+- Disabled some features not working with the new surface core.
+- Sleep for 10 usec in WaitVSync loop.
+
+Renesas SH7722 driver
+- Added driver for SH7722 SoC from Renesas Solutions Corp.
+- Supports DrawString(), FillRectangle(), DrawRectangle(), FillTriangle(), DrawLine(), FillSpans(), Blit() and StretchBlit().
+- Supports DSDRAW_BLEND, DSBLIT_BLEND_ALPHACHANNEL, DSBLIT_BLEND_COLORALPHA, DSBLIT_SRC_COLORKEY, DSBLIT_ROTATE180 and DSBLIT_COLORIZE.
+- Use hardware 3x2 matrix to implement DSRO_MATRIX for all blitting and most drawing.
+- Transform coordinates in driver for DrawLine() and DrawRectangle().
+- Implemented DSRO_ANTIALIAS for all drawing operations.
+- The hardware provides "anti-aliased" lines by drawing a line with doubled pixel width (minor axis). This should be drawn with
+  a transparency factor. Finally the original line is drawn on top of this.
+- For filled rectangles and triangles, only the double width line is drawn and then the shape is filled.
+
+TI Davinci
+- Added TI Davinci driver.
+- Supports OSD and Video with positioning, color key, opacity, alpha channel and vsync.
+- The driver uses the devmem system and opens all frame buffer devices itself.
+  This is required for extended ioctls like setting the OSD position, but also to
+  support alpha channels which are stored in a different frame buffer device. In
+  case of ARGB for the OSD, the alpha channel (3 bit!) is dithered during conversion.
+- Implemented surface pools for OSD and Video layer. This enables direct usage
+  of the frame buffers in case of RGB16 for OSD and UYVY for Video.
+- Added patch for davincifb to support triple buffering on OSD.
+- Hardware acceleration using the DSP with a special firmware and kernel module.
+- Driver still runs without DSP module, but unaccelerated.
+- Supports DrawString(), FillRectangle(), FillSpans() and Blit().
+- Supports DSBLIT_BLEND_ALPHACHANNEL, DSBLIT_BLEND_COLORALPHA, DSBLIT_SRC_COLORKEY, DSBLIT_SRC_PREMULTIPLY and DSBLIT_SRC_PREMULTCOLOR.
+- Supports RGB16, RGB32 and UYVY for simple filling and blitting with color keying.
+- Supports ARGB for blending and premultiplication.
+- No support for different source and destination formats.
+- No support for color keying in conjunction with blending.
+- DrawString() is not colorized yet, but enabled for testing (all text is white).
+
+TI OMAP driver
+- Added TI OMAP gfxdriver.
+- No video layer or other fancy stuff yet. Enough to run XDirectFB on the Nokia N800 though.
+
+Unichrome driver
+- Fix a pointer buglet. The pfetch pointer was compared/set instead of the value to which it pointed.
+
+Keyboard (TTY) input driver
+- Sleep 2ms when read returns 0, to avoid CPU hogging. Thanks to Luis Mondesi lemsx1 gmail.
+
+Serial input driver
+- Fixed illness in processing read data in serial driver and fixed error path.
+
+Default WM
+- Added WM key combo <Meta>-<F12> to redraw the whole window stack.
+
+Unique WM
+- Fixed wheel direction.
+- Commented out auto center.
+
+DFIFF image provider
+- Make DFIFF fast for the standard case again (60->483 MPixel/sec).
+- Added support for sub surfaces with proper clipping/offset.
+- Check for unscaled and unclipped loading without format conversion and just use dfb_surface_write_buffer().
+
+FT2 font module
+- Optimized pixel premultiplication.
+
+FBDev system module
+- Fixed SetMode / Panning Bug, thanks to Kieran Bingham!
+- Fixed allocation size for planar formats in FBDev Surface Pool.
+- Add missing libsysfs when statically linking, thanks to Guillem Jover.
+
+DevMem system module
+- Implement surface pool using surface manager.
+- Added local/shared system data.
+- Added configure.in and Makefile.am parts.
+
+Linux Input driver
+- Ignore input devices matching the TSLIB_TSDEVICE environment variable.
+
+tslib driver
+- Check the device in $TSLIB_TSDEVICE when guessing (no option given).
+
+dfbdump tool
+- Added "-dl" or "--dumplayer" for dumping the front buffer of each active contexts' primary region.
+
+dfbfx tool
+- Based on "fx", with command line options, documented code...
+- Simulates blitting flags given a source and destination ARGB pixel.
+
+
 1.1.0
 -----
 
