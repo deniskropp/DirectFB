@@ -303,8 +303,12 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
       * requested a (primary) surface that doesn't need to be flipped.
       * Window surfaces even need to be flipped when they are single buffered.
       */
-     if (!(caps & DSCAPS_FLIPPING) && !(caps & DSCAPS_SUBSURFACE))
-          pthread_create( &data->flip_thread, NULL, Flipping_Thread, thiz );
+     if (!(caps & DSCAPS_FLIPPING) && !(caps & DSCAPS_SUBSURFACE)) {
+          if (dfb_config->autoflip_window)
+               pthread_create( &data->flip_thread, NULL, Flipping_Thread, thiz );
+          else
+               D_WARN( "Non-flipping window surface and no 'autoflip-window' option used" );
+     }
 
      thiz->Release = IDirectFBSurface_Window_Release;
      thiz->Flip = IDirectFBSurface_Window_Flip;

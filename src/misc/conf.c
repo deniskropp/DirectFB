@@ -125,6 +125,7 @@ static const char *config_usage =
      "  [no-]translucent-windows       Allow translucent windows\n"
      "  [no-]decorations               Enable window decorations (if supported by wm)\n"
      "  [no-]startstop                 Issue StartDrawing/StopDrawing to driver\n"
+     "  [no-]autoflip-window           Auto flip non-flipping windowed primary surfaces\n"
      "  videoram-limit=<amount>        Limit amount of Video RAM in kb\n"
      "  agpmem-limit=<amount>          Limit amount of AGP memory in kb\n"
      "  screenshot-dir=<directory>     Dump screen content on <Print> key presses\n"
@@ -823,6 +824,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-startstop" ) == 0) {
           dfb_config->startstop = false;
+     } else
+     if (strcmp (name, "autoflip-window" ) == 0) {
+          dfb_config->autoflip_window = true;
+     } else
+     if (strcmp (name, "no-autoflip-window" ) == 0) {
+          dfb_config->autoflip_window = false;
      } else
      if (strcmp (name, "vsync-none" ) == 0) {
           dfb_config->pollvsync_none = true;

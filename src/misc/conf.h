@@ -204,6 +204,8 @@ typedef struct
      bool          thread_block_signals;          /* Call direct_signals_block_all() in direct_thread_main() startup. */
 
      bool          linux_input_grab;              /* Grab input devices. */
+
+     bool          autoflip_window;               /* If primary surface is non-flipping, but windowed, flip automatically. */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;
