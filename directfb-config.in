@@ -126,6 +126,9 @@ while test $# -gt 0; do
       for i in `echo $optarg | sed 's/,/ /g'`; do
         echo_system="$echo_system $moduledir/systems/libdirectfb_$i.o"
         case $i in
+          fbdev)
+            echo_system="$echo_system @SYSFS_LIBS@"
+            ;;
           sdl)
             echo_system="$echo_system @SDL_LIBS@"
             ;;
@@ -233,7 +236,7 @@ if test -n "$echo_static"; then
 	echo -static
 
 	if test -z "$echo_system"; then
-		echo $moduledir/systems/libdirectfb_fbdev.o
+		echo $moduledir/systems/libdirectfb_fbdev.o @SYSFS_LIBS@
 	fi
 
 	if test -z "$echo_wm"; then
