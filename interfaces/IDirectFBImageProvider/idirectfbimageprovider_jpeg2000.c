@@ -217,7 +217,7 @@ IDirectFBImageProvider_JPEG2000_RenderTo( IDirectFBImageProvider *thiz,
                mono = false;
           }
           else {
-               cmptlut[0] = 0;
+               cmptlut[0] = cmptlut[1] = cmptlut[2] = 0;
                mono = true;
           }
      
@@ -392,7 +392,7 @@ Construct( IDirectFBImageProvider *thiz,
 {
      IDirectFBDataBuffer_data *buffer_data = buffer->priv;
      jas_stream_t             *stream      = NULL;
-     unsigned char            *chunk       = NULL;
+     char                     *chunk       = NULL;
 
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBImageProvider_JPEG2000 )
      
@@ -411,7 +411,7 @@ Construct( IDirectFBImageProvider *thiz,
           unsigned int size = 0;
           
           while (1) {
-               int len = 0;
+               unsigned int len = 0;
                
                chunk = D_REALLOC( chunk, size+4096 );
                if (!chunk) {
