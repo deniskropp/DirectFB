@@ -63,7 +63,7 @@ load_sample( IFusionSound *sound, const char *file )
      
      /* Wait until buffer is full. */
      do {
-          usleep( 0 );
+          usleep( 1 );
           ret = provider->GetStatus( provider, &status );
           if (ret) {
                FusionSoundError( "IFusionSoundMusicProvider::GetStatus()", ret );
