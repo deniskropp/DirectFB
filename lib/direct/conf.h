@@ -62,6 +62,8 @@ struct __D_DirectConfig {
      bool                     debugmem;
 
      bool                     thread_block_signals;
+
+     bool                     fatal_break;          /* Should D_BREAK() cause a trap? */
 };
 
 extern DirectConfig *direct_config;
