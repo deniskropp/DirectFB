@@ -33,8 +33,6 @@
 
 #include <media/ifusionsoundmusicprovider.h>
 
-#include <core/coredefs.h>
-
 #include <direct/mem.h>
 #include <direct/thread.h>
 #include <direct/util.h>

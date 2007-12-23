@@ -33,14 +33,14 @@ feed_stream (IFusionSoundStream *stream)
            */
           ret = stream->Wait (stream, 16384);
           if (ret) {
-               DirectFBError ("IFusionSoundStream::Write", ret);
+               FusionSoundError ("IFusionSoundStream::Write", ret);
                return;
           }
 
           /* This write won't block anymore. */
           ret = stream->Write (stream, buf, 16384);
           if (ret) {
-               DirectFBError ("IFusionSoundStream::Write", ret);
+               FusionSoundError ("IFusionSoundStream::Write", ret);
                return;
           }
      }
@@ -56,12 +56,12 @@ main (int argc, char *argv[])
 
      ret = FusionSoundInit (&argc, &argv);
      if (ret)
-          DirectFBErrorFatal ("FusionSoundInit", ret);
+          FusionSoundErrorFatal ("FusionSoundInit", ret);
 
      /* Retrieve the main sound interface. */
      ret = FusionSoundCreate (&sound);
      if (ret)
-          DirectFBErrorFatal ("FusionSoundCreate", ret);
+          FusionSoundErrorFatal ("FusionSoundCreate", ret);
 
      /* Fill stream description. */
      desc.flags        = FSSDF_SAMPLERATE | FSSDF_BUFFERSIZE |
@@ -74,7 +74,7 @@ main (int argc, char *argv[])
      /* Create the sound stream and feed it. */
      ret = sound->CreateStream (sound, &desc, &stream);
      if (ret) {
-          DirectFBError ("IFusionSound::CreateStream", ret);
+          FusionSoundError ("IFusionSound::CreateStream", ret);
      }
      else {
           /* Fill the ring buffer with our generated data. */

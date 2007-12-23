@@ -46,6 +46,11 @@ typedef struct {
      bool            deinit_check; /* enable deinit check at exit */
      
      bool            dither;       /* enable dithering */
+
+     struct {
+          char      *host;         /* Remote host in case of Voodoo Sound. */
+          int        session;      /* Remote session number. */
+     } remote;
 } FSConfig;
 
 extern FSConfig *fs_config;

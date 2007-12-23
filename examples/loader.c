@@ -195,7 +195,7 @@ load_sample (IFusionSound *sound, const char *filename)
 
      ret = sound->CreateBuffer (sound, &desc, &buffer);
      if (ret) {
-          DirectFBError ("IFusionSound::CreateBuffer", ret);
+          FusionSoundError ("IFusionSound::CreateBuffer", ret);
           close (fd);
           return NULL;
      }

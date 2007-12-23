@@ -33,7 +33,7 @@ create_playback( const char *filename )
 
      ret = FusionSoundCreate( &sound );
      if (ret) {
-          DirectFBError( "FusionSoundCreate() failed", ret );
+          FusionSoundError( "FusionSoundCreate() failed", ret );
           return ret;
      }
 
@@ -47,7 +47,7 @@ create_playback( const char *filename )
 
           ret = buffer->CreatePlayback( buffer, &playback );
           if (ret) {
-               DirectFBError( "CreatePlayback() failed", ret );
+               FusionSoundError( "CreatePlayback() failed", ret );
 
                buffer->Release( buffer );
           }
@@ -132,7 +132,7 @@ main (int argc, char *argv[])
 
      ret = FusionSoundInit( &argc, &argv );
      if (ret)
-          DirectFBErrorFatal( "FusionSoundInit() failed", ret );
+          FusionSoundErrorFatal( "FusionSoundInit() failed", ret );
 
      if (argc != 2) {
           fprintf (stderr, "\nUsage: %s <filename>\n", argv[0]);

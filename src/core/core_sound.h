@@ -34,6 +34,9 @@
 #include <core/types_sound.h>
 #include <core/sound_device.h>
 
+#define FUSIONSOUND_CORE_ABI     0x4653000
+
+
 /*
  * Core initialization and deinitialization
  */

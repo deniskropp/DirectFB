@@ -22,7 +22,7 @@ prepare_test( IFusionSoundBuffer *buffer,
 
      ret = buffer->CreatePlayback (buffer, &playback);
      if (ret) {
-          DirectFBError ("IFusionSoundBuffer::GetPlayback", ret);
+          FusionSoundError ("IFusionSoundBuffer::GetPlayback", ret);
           return NULL;
      }
 
@@ -51,7 +51,7 @@ prepare_test( IFusionSoundBuffer *buffer,
           DFBResult ret = (x);                                        \
           if (ret) {                                                  \
                fprintf( stderr, "FAILED!\n\n" );                      \
-               DirectFBError (#x, ret);                               \
+               FusionSoundError (#x, ret);                               \
                playback->Release (playback);                          \
                return;                                                \
           }                                                           \
@@ -197,7 +197,7 @@ int main (int argc, char *argv[])
 
      ret = FusionSoundInit (&argc, &argv);
      if (ret)
-          DirectFBErrorFatal ("FusionSoundInit", ret);
+          FusionSoundErrorFatal ("FusionSoundInit", ret);
 
      if (argc != 2) {
           fprintf (stderr, "\nUsage: %s <filename>\n", argv[0]);
@@ -206,7 +206,7 @@ int main (int argc, char *argv[])
 
      ret = FusionSoundCreate (&sound);
      if (ret)
-          DirectFBErrorFatal ("FusionSoundCreate", ret);
+          FusionSoundErrorFatal ("FusionSoundCreate", ret);
 
      buffer = load_sample (sound, argv[1]);
      if (buffer) {

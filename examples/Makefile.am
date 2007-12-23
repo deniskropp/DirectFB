@@ -1,8 +1,8 @@
 ## Makefile.am for FusionSound/examples
 
-INCLUDES = -I$(top_srcdir)/include $(DFB_CFLAGS) $(LITE_CFLAGS)
+INCLUDES = -I$(top_srcdir)/include $(FUSION_CFLAGS) $(LITE_CFLAGS)
 
-LIBADDS = $(DFB_LIBS) -lm $(top_builddir)/src/libfusionsound.la
+LIBADDS = $(FUSION_LIBS) -lm $(top_builddir)/src/libfusionsound.la
 
 EXTRA_DIST = \
 	test.wav	\

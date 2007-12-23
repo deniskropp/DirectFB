@@ -35,13 +35,14 @@
 #include <fusionsound.h>
 #include <fusionsound_limits.h>
 
+#include <direct/conf.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/debug.h>
 #include <direct/util.h>
 
-#include <misc/conf.h>
+#include <fusion/conf.h>
 
 #include "sound_conf.h"
 #include "sound_util.h"
@@ -64,7 +65,8 @@ static const char *config_usage =
      "  sampleformat=<sampleformat>    Set the default sample format\n"
      "  samplerate=<samplerate>        Set the default sample rate\n"
      "  buffertime=<millisec>          Set the default buffer time\n"
-     "  session=<num>                  Select multi app world (-1 = new)\n"
+     "  session=<num>                  Select local multi app world (-1 = new)\n"
+     "  remote=<host>[:<session>]      Select remote session for Voodoo Sound\n"
      "  quiet                          No text output except debugging\n"
      "  [no-]banner                    Show FusionSound banner on startup\n"
      "  [no-]debug                     Enable debug output\n"
@@ -154,7 +156,7 @@ parse_args( const char *args )
                *next++ = '\0';
 
           if (strcmp (buf, "help") == 0) {
-               fprintf( stderr, config_usage );
+               fprintf( stderr, "%s%s%s", config_usage, fusion_config_usage, direct_config_usage );
                exit(1);
           }
 
@@ -190,12 +192,8 @@ config_allocate()
      fs_config->channelmode  = FSCM_STEREO;
      fs_config->samplerate   = 48000;
      fs_config->buffertime   = 25;
-    
-     fs_config->session  = dfb_config->session;
-     if (fs_config->session >= 0)
-          fs_config->session++;
-
-     fs_config->banner       = dfb_config->banner;
+     fs_config->session      = 2;
+     fs_config->banner       = true;
      fs_config->wait         = true;
      fs_config->deinit_check = true;
 }
@@ -358,8 +356,27 @@ fs_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      }
-     else if (!strcmp( name, "quiet" )) {
-          direct_config->quiet = true;
+     else if (strcmp (name, "remote" ) == 0) {
+          if (value) {
+               char host[128];
+               int  session = 0;
+
+               if (sscanf( value, "%127s:%d", host, &session ) < 1) {
+                    D_ERROR("FusionSound/Config '%s': "
+                            "Could not parse value (format is <host>[:<session>])!\n", name);
+                    return DFB_INVARG;
+               }
+
+               if (fs_config->remote.host)
+                    D_FREE( fs_config->remote.host );
+
+               fs_config->remote.host    = D_STRDUP( host );
+               fs_config->remote.session = session;
+          }
+          else {
+               D_ERROR("FusionSound/Config '%s': No value specified!\n", name);
+               return DFB_INVARG;
+          }
      }
      else if (!strcmp( name, "banner" )) {
           fs_config->banner = true;
@@ -385,25 +402,7 @@ fs_config_set( const char *name, const char *value )
      else if (!strcmp( name, "no-dither" )) {
           fs_config->dither = false;
      }
-     else if (!strcmp( name, "debug" )) {
-          if (value)
-               direct_debug_config_domain( value, true );
-          else
-               direct_config->debug = true;
-     } 
-     else if (!strcmp( name, "no-debug" )) {
-          if (value)
-               direct_debug_config_domain( value, false );
-          else
-               direct_config->debug = false;
-     }
-     else if (!strcmp( name, "trace" )) {
-          direct_config->trace = true;
-     } 
-     else if (!strcmp( name, "no-trace" )) {
-          direct_config->trace = false;
-     }
-     else
+     else if (fusion_config_set( name, value ) && direct_config_set( name, value ))
           return DFB_UNSUPPORTED;
 
      return DFB_OK;
@@ -468,7 +467,7 @@ fs_config_init( int *argc, char **argv[] )
      config_allocate();
      
      /* Read system settings. */
-     ret = fs_config_read( "/etc/fusionsoundrc" );
+     ret = fs_config_read( SYSCONFDIR"/fusionsoundrc" );
      if (ret  &&  ret != DFB_IO)
           return ret;
           
@@ -496,10 +495,10 @@ fs_config_init( int *argc, char **argv[] )
 
      /* Read global application settings. */
      if (prog && prog[0]) {
-          int  len = sizeof("/etc/fusionsoundrc.") + strlen(prog);
+          int  len = sizeof(SYSCONFDIR"/fusionsoundrc.") + strlen(prog);
           char buf[len];
 
-          snprintf( buf, len, "/etc/fusionsoundrc.%s", prog );
+          snprintf( buf, len, SYSCONFDIR"/fusionsoundrc.%s", prog );
 
           ret = fs_config_read( buf );
           if (ret  &&  ret != DFB_IO)
@@ -533,7 +532,7 @@ fs_config_init( int *argc, char **argv[] )
           for (i = 1; i < *argc; i++) {
 
                if (!strcmp( (*argv)[i], "--fs-help" )) {
-                    fprintf( stderr, config_usage );
+                    fprintf( stderr, "%s%s%s", config_usage, fusion_config_usage, direct_config_usage );
                     exit(1);
                }
 

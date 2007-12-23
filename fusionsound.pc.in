@@ -4,7 +4,7 @@ libdir=@libdir@
 includedir=@includedir@
 
 Name: FusionSound
-Requires: directfb
+Requires: fusion direct
 Description: Multi application sound streaming and mixing
 Version: @VERSION@
 Libs: -L${libdir} -lfusionsound

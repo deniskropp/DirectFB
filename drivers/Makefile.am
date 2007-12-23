@@ -2,8 +2,8 @@
 
 INCLUDES = \
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/src	    \
-	$(DFB_CFLAGS)	\
+	-I$(top_srcdir)/src	\
+	$(FUSION_CFLAGS)	\
 	$(ALSA_CFLAGS)
 
 driversdir = $(MODULEDIR)/snddrivers

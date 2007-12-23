@@ -5,7 +5,7 @@ ifusionsoundmusicproviderdir = $(MODULEDIR)/interfaces/IFusionSoundMusicProvider
 INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src 	\
-	$(DFB_CFLAGS)			\
+	$(FUSION_CFLAGS)	\
 	$(VORBISFILE_CFLAGS)	\
 	$(CDDB_CFLAGS) 		\
 	$(FFMPEG_CFLAGS)

@@ -88,13 +88,13 @@ create_playback( const char *filename )
 
      err = FusionSoundCreate( &sound );
      if (err != DFB_OK) {
-          DirectFBError( "FusionSoundCreate() failed", err );
+          FusionSoundError( "FusionSoundCreate() failed", err );
           return err;
      }
 
      err = sound->CreateMusicProvider( sound, filename, &provider );
      if (err != DFB_OK) {
-          DirectFBError( "CreateMusicProvider() failed", err );
+          FusionSoundError( "CreateMusicProvider() failed", err );
           return err;
      }
 
@@ -112,20 +112,20 @@ create_playback( const char *filename )
 
      err = sound->CreateStream( sound, &s_desc, &stream );
      if (err != DFB_OK) {
-          DirectFBError( "CreateStream() failed", err );
+          FusionSoundError( "CreateStream() failed", err );
           return err;
      }
 
      err = sound->CreateBuffer( sound, &b_desc, &buffer );
      if (err != DFB_OK) {
-          DirectFBError( "CreateBuffer() failed", err );
+          FusionSoundError( "CreateBuffer() failed", err );
           return err;
      }
 
      err = provider->PlayToBuffer( provider, buffer,
                                    buffer_callback, NULL );
      if (err != DFB_OK) {
-          DirectFBError( "PlayToBuffer() failed", err );
+          FusionSoundError( "PlayToBuffer() failed", err );
           return err;
      }
 
@@ -162,7 +162,7 @@ main( int argc, char **argv )
 
      err = FusionSoundInit( &argc, &argv );
      if (err != DFB_OK)
-          DirectFBErrorFatal( "FusionSoundInit() failed", err );
+          FusionSoundErrorFatal( "FusionSoundInit() failed", err );
 
      /* initialize LiTE */
      if (lite_open( &argc, &argv ))

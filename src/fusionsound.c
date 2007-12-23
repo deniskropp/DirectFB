@@ -42,8 +42,6 @@
 
 #include <ifusionsound.h>
 
-#include <misc/conf.h>
-
 #include <misc/sound_conf.h>
 
 
@@ -96,13 +94,7 @@ FusionSoundUsageString( void )
 DFBResult
 FusionSoundInit( int *argc, char **argv[] )
 {
-     DFBResult ret;
-     
-     ret = dfb_config_init( argc, argv );
-     if (ret == DFB_OK)
-          ret = fs_config_init( argc, argv );
-          
-     return ret;
+     return fs_config_init( argc, argv );
 }
 
 DFBResult
@@ -154,8 +146,8 @@ FusionSoundCreate( IFusionSound **ret_interface )
                FUSIONSOUND_MAJOR_VERSION, FUSIONSOUND_MINOR_VERSION, FUSIONSOUND_MICRO_VERSION );
      }
 
-     if (dfb_config->remote.host)
-          return CreateRemote( dfb_config->remote.host, dfb_config->remote.session, ret_interface );
+     if (fs_config->remote.host)
+          return CreateRemote( fs_config->remote.host, fs_config->remote.session, ret_interface );
           
      DIRECT_ALLOCATE_INTERFACE( ifusionsound_singleton, IFusionSound );
      

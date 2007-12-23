@@ -18,7 +18,7 @@ int main (int argc, char *argv[])
 
      ret = FusionSoundInit (&argc, &argv);
      if (ret)
-          DirectFBErrorFatal ("FusionSoundInit", ret);
+          FusionSoundErrorFatal ("FusionSoundInit", ret);
 
      if (argc != 2) {
           fprintf (stderr, "\nUsage: %s <filename>\n", argv[0]);
@@ -27,7 +27,7 @@ int main (int argc, char *argv[])
 
      ret = FusionSoundCreate (&sound);
      if (ret)
-          DirectFBErrorFatal ("FusionSoundCreate", ret);
+          FusionSoundErrorFatal ("FusionSoundCreate", ret);
 
      buffer = load_sample (sound, argv[1]);
      if (buffer) {

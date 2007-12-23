@@ -47,11 +47,11 @@ main( int argc, char *argv[] )
 
      ret = FusionSoundInit( &argc, &argv );
      if (ret)
-          DirectFBErrorFatal( "FusionSoundInit", ret );
+          FusionSoundErrorFatal( "FusionSoundInit", ret );
 
      ret = FusionSoundCreate( &sound );
      if (ret)
-          DirectFBErrorFatal( "FusionSoundCreate", ret );
+          FusionSoundErrorFatal( "FusionSoundCreate", ret );
 
      pause();
 

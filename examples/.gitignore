@@ -1,13 +1,10 @@
-Makefile
-Makefile.in
-.deps
-.libs
 gmon.out
 advanced
 fsmaster
 music
+music_loader
 player
 scope
 simple
 stream
-*.o
+

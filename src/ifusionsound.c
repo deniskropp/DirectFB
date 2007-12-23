@@ -391,7 +391,7 @@ IFusionSound_Construct( IFusionSound *thiz )
      /* Create the core instance. */
      ret = fs_core_create( &data->core );
      if (ret) {
-          DirectFBError( "FusionSound: fs_core_create() failed", ret );
+          D_DERROR( ret, "FusionSound: fs_core_create() failed!\n" );
 
           DIRECT_DEALLOCATE_INTERFACE( thiz );
 
