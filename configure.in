@@ -1606,6 +1606,7 @@ AC_MSG_RESULT([
 Build options:
   Version                   $VERSION
   Install prefix            $prefix
+  Config files in           $SYSCONFDIR
   Build shared libs         $enable_shared
   Build static libs         $enable_static
   Module directory          $MODULEDIR
