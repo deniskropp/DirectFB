@@ -71,6 +71,7 @@ SH7722_SETREG32( SH7722DriverData *sdrv,
 #endif
 
 
+#define VEU_REG_BASE     0xFE920000
 #define SH7722_BEU_BASE  0xFE930000
 #define LCDC_REG_BASE    0xFE940000
 #define JPEG_REG_BASE    0xFEA00000
@@ -355,12 +356,49 @@ SH7722_SETREG32( SH7722DriverData *sdrv,
 /* BPKFR */
 #define WPCK_RGB12       2
 #define WPCK_RGB16       6
+#define WPCK_RGB18       17
 #define WPCK_RGB32       19
 #define WPCK_RGB24       21
-#define WPCK_RGB18       23
+
+#define CHDS_YCBCR444    0x000
+#define CHDS_YCBCR422    0x100
+#define CHDS_YCBCR420    0x200
 
 /* BBLCR0 */
 #define LAY_123          0x05000000
+
+
+
+/********
+ * VEU
+ */
+
+#define VEU_VESTR             (VEU_REG_BASE + 0x0000)
+#define VEU_VESWR             (VEU_REG_BASE + 0x0010)
+#define VEU_VESSR             (VEU_REG_BASE + 0x0014)
+#define VEU_VSAYR             (VEU_REG_BASE + 0x0018)
+#define VEU_VSACR             (VEU_REG_BASE + 0x001c)
+#define VEU_VBSSR             (VEU_REG_BASE + 0x0020)
+#define VEU_VEDWR             (VEU_REG_BASE + 0x0030)
+#define VEU_VDAYR             (VEU_REG_BASE + 0x0034)
+#define VEU_VDACR             (VEU_REG_BASE + 0x0038)
+#define VEU_VTRCR             (VEU_REG_BASE + 0x0050)
+#define VEU_VRFCR             (VEU_REG_BASE + 0x0054)
+#define VEU_VRFSR             (VEU_REG_BASE + 0x0058)
+#define VEU_VENHR             (VEU_REG_BASE + 0x005c)
+#define VEU_VFMCR             (VEU_REG_BASE + 0x0070)
+#define VEU_VVTCR             (VEU_REG_BASE + 0x0074)
+#define VEU_VHTCR             (VEU_REG_BASE + 0x0078)
+#define VEU_VAPCR             (VEU_REG_BASE + 0x0080)
+#define VEU_VECCR             (VEU_REG_BASE + 0x0084)
+#define VEU_VAFXR             (VEU_REG_BASE + 0x0090)
+#define VEU_VSWPR             (VEU_REG_BASE + 0x0094)
+#define VEU_VEIER             (VEU_REG_BASE + 0x00a0)
+#define VEU_VEVTR             (VEU_REG_BASE + 0x00a4)
+#define VEU_VSTAR             (VEU_REG_BASE + 0x00b0)
+#define VEU_VBSRR             (VEU_REG_BASE + 0x00b4)
+
+
 
 /********
  * LCD
@@ -564,16 +602,47 @@ SH7722_SETREG32( SH7722DriverData *sdrv,
 
 
 #define JCCMD_START           0x00000001
+#define JCCMD_RESTART         0x00000002
+#define JCCMD_END             0x00000004
 #define JCCMD_RESET           0x00000080
+#define JCCMD_READ_RESTART    0x00000400
+#define JCMOD_DSP_ENCODE      0x00000000
 #define JCMOD_DSP_DECODE      0x00000008
-#define JIFCNT_VJSEL_JPU      0x00000008
+#define JCMOD_INPUT_CTRL      0x00000080  // must always be set
+#define JIFCNT_VJSEL_JPU      0x00000000
+#define JIFCNT_VJSEL_VPU      0x00000002
 #define JIFECNT_SWAP_1234     0x00000000
+#define JIFECNT_SWAP_2143     0x00000010
+#define JIFECNT_SWAP_3412     0x00000020
+#define JIFECNT_SWAP_4321     0x00000030
 #define JIFDCNT_SWAP_1234     0x00000000
+#define JIFDCNT_SWAP_2143     0x00000002
+#define JIFDCNT_SWAP_3412     0x00000004
+#define JIFDCNT_SWAP_4321     0x00000006
 #define JIFDCNT_RELOAD_ENABLE 0x00000008
 
 #define JINTS_MASK            0x00007C68
 #define JINTS_INS14_RELOAD    0x00004000
-#define JINTS_INS5_ERROR      0x00000020
 #define JINTS_INS3_HEADER     0x00000008
+#define JINTS_INS5_ERROR      0x00000020
+#define JINTS_INS6_DONE       0x00000040
+#define JINTS_INS7_ERROR      0x00000080
+#define JINTS_INS10_    0x00000400
+#define JINTS_INS11_    0x00000800
+#define JINTS_INS12_    0x00001000
+#define JINTS_INS13_    0x00002000
+#define JINTS_INS14_RELOAD    0x00004000
+
+#define JINT3           (1 <<  3)
+#define JINT5           (1 <<  5)
+#define JINT6           (1 <<  6)
+#define JINT7           (1 <<  7)
+#define JINT10          (1 << 10)
+#define JINT11          (1 << 11)
+#define JINT12          (1 << 12)
+#define JINT13          (1 << 13)
+#define JINT14          (1 << 14)
+#define JINT_MASK       (JINT3 | JINT5 | JINT6 | JINT7 | JINT10 | \
+                 JINT11 | JINT12 | JINT13 | JINT14)
 
 #endif

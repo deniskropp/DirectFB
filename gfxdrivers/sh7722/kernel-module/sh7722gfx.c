@@ -29,11 +29,13 @@
 
 /**********************************************************************************************************************/
 
-#define	ENGINE_REG_TOP   0xfd000000
+#define	ENGINE_REG_TOP   0xFD000000
 #define SH7722_BEU_BASE  0xFE930000
+#define SH7722_JPU_BASE  0xFEA00000
 
 #define BEM_REG(x)       (*(volatile u32*)((x)+ENGINE_REG_TOP))
 #define BEU_REG(x)       (*(volatile u32*)((x)+SH7722_BEU_BASE))
+#define JPU_REG(x)       (*(volatile u32*)((x)+SH7722_JPU_BASE))
 
 #define	BEM_HC_STATUS			BEM_REG(0x00000)
 #define	BEM_HC_RESET			BEM_REG(0x00004)
@@ -48,6 +50,11 @@
 #define	BEM_PE_CACHE			BEM_REG(0x010B0)
 
 #define BEVTR                   BEU_REG(0x018C)
+
+#define JPU_JCCMD               JPU_REG(0x0004)
+#define JPU_JCSTS               JPU_REG(0x0008)
+#define JPU_JINTE               JPU_REG(0x0038)
+#define JPU_JINTS               JPU_REG(0x003c)
 
 /**********************************************************************************************************************/
 
@@ -79,6 +86,7 @@
 
 static DECLARE_WAIT_QUEUE_HEAD( wait_idle );
 static DECLARE_WAIT_QUEUE_HEAD( wait_next );
+static DECLARE_WAIT_QUEUE_HEAD( wait_jpeg );
 
 static SH7722GfxSharedArea *shared;
 
@@ -190,6 +198,19 @@ sh7722_wait_next( SH7722GfxSharedArea *shared )
      }
 
      QDUMP( "........done" );
+
+     return (ret > 0) ? 0 : (ret < 0) ? ret : -ETIMEDOUT;
+}
+
+static int
+sh7722_wait_jpeg( SH7722GfxSharedArea *shared )
+{
+     int ret;
+
+     ret = wait_event_interruptible_timeout( wait_jpeg, shared->jpeg_ints, HZ );
+     if (!ret) {
+          printk( KERN_ERR "%s: TIMEOUT! (status 0x%08x, ints 0x%08x)\n", __FUNCTION__, JPU_JCSTS, JPU_JINTS );
+     }
 
      return (ret > 0) ? 0 : (ret < 0) ? ret : -ETIMEDOUT;
 }
@@ -308,6 +329,52 @@ sh7722_tdg_irq_poller( void *arg )
 }
 #endif
 
+
+#define JINT3           (1 <<  3)
+#define JINT5           (1 <<  5)
+#define JINT6           (1 <<  6)
+#define JINT7           (1 <<  7)
+#define JINT10          (1 << 10)
+#define JINT11          (1 << 11)
+#define JINT12          (1 << 12)
+#define JINT13          (1 << 13)
+#define JINT14          (1 << 14)
+#define JINT_MASK       (JINT3 | JINT5 | JINT6 | JINT7 | JINT10 | \
+                 JINT11 | JINT12 | JINT13 | JINT14)
+
+#define JCCMD_JSRT      (1 <<  0)
+#define JCCMD_JRST      (1 <<  1)
+#define JCCMD_JEND      (1 <<  2)
+#define JCCMD_BRST      (1 <<  7)
+#define JCCMD_LCMD2     (1 <<  8)
+#define JCCMD_LCMD1     (1 <<  9)
+#define JCCMD_RRCMD     (1 << 10)
+#define JCCMD_RWCMD     (1 << 11)
+
+static irqreturn_t
+sh7722_jpu_irq( int irq, void *ctx )
+{
+     u32                  ints;
+     SH7722GfxSharedArea *shared = ctx;
+
+//     printk( "%s( %d, %p )\n", __FUNCTION__, irq, ctx );
+
+     ints = JPU_JINTS;
+
+//     printk( "  -> ints 0x%08x (0x%08x)\n", ints, shared->jpeg_ints );
+
+     JPU_JINTS = ~ints & JINT_MASK;
+     JPU_JCCMD = JCCMD_JEND;
+
+     if (ints) {
+          shared->jpeg_ints |= ints;
+
+          wake_up_all( &wait_jpeg );
+     }
+
+     return IRQ_HANDLED;
+}
+
 /**********************************************************************************************************************/
 
 static int
@@ -354,6 +421,9 @@ sh7722gfx_ioctl( struct inode  *inode,
                     return -EFAULT;
 
                return 0;
+
+          case SH7722GFX_IOCTL_WAIT_JPEG:
+               return sh7722_wait_jpeg( shared );
      }
 
      return -ENOSYS;
@@ -465,15 +535,26 @@ sh7722gfx_module_init( void )
      }
 #endif
 
+     /* Register the JPU interrupt handler. */
+     ret = request_irq( JPU_IRQ, sh7722_jpu_irq, IRQF_DISABLED, "JPU", (void*) shared );
+     if (ret) {
+          printk( KERN_ERR "%s: request_irq() for interrupt %d failed! (error %d)\n",
+                  __FUNCTION__, JPU_IRQ, ret );
+          goto error_jpu;
+     }
+
      sh7722_reset( shared );
 
      return 0;
 
 
+error_jpu:
 #ifndef SH7722GFX_IRQ_POLLER
+     free_irq( TDG_IRQ, (void*) shared );
+
 error_tdg:
-     free_irq( BEU_IRQ, (void*) shared );
 #endif
+     free_irq( BEU_IRQ, (void*) shared );
 
 error_beu:
 #ifndef SHARED_AREA_PHYS
@@ -499,6 +580,8 @@ sh7722gfx_module_exit( void )
      int i;
 #endif
 
+
+     free_irq( JPU_IRQ, (void*) shared );
 
 #ifdef SH7722GFX_IRQ_POLLER
      stop_poller = 1;

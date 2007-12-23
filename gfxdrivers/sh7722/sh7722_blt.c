@@ -886,10 +886,6 @@ sh7722CheckState( void                *drv,
 
           /* Return if blending with unsupported blend functions is requested. */
           if (state->drawingflags & DSDRAW_BLEND) {
-               /* No blending for LUT8 */
-               if (state->destination->config.format == DSPF_LUT8)
-                    return;
-
                /* Check blend functions. */
                if (!check_blend_functions( state ))
                     return;
@@ -920,10 +916,6 @@ sh7722CheckState( void                *drv,
 
           /* Return if blending with unsupported blend functions is requested. */
           if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
-               /* No blending for LUT8 */
-               if (state->destination->config.format == DSPF_LUT8)
-                    return;
-
                /* Check blend functions. */
                if (!check_blend_functions( state ))
                     return;

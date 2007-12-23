@@ -76,7 +76,7 @@ sh7722InitLayer( CoreLayer                  *layer,
                            DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE | DLCONF_OPTIONS;
      config->width       = SH7722_LCD_WIDTH;
      config->height      = SH7722_LCD_HEIGHT;
-     config->pixelformat = DSPF_RGB16;
+     config->pixelformat = DSPF_NV16;
      config->buffermode  = DLBM_FRONTONLY;
      config->options     = DLOP_NONE;
 
@@ -100,10 +100,10 @@ sh7722TestRegion( CoreLayer                  *layer,
      switch (config->format) {
           case DSPF_NV12:
           case DSPF_NV16:
-          case DSPF_ARGB:
+          /*case DSPF_ARGB:
           case DSPF_RGB32:
           case DSPF_RGB24:
-          case DSPF_RGB16:
+          case DSPF_RGB16:*/
                break;
 
           default:
@@ -171,11 +171,14 @@ sh7722SetRegion( CoreLayer                  *layer,
 {
      int                    n;
      SH7722DriverData      *sdrv = driver_data;
+     SH7722DeviceData      *sdev = sdrv->dev;
      SH7722MultiRegionData *sreg = region_data;
 
      D_DEBUG_AT( SH7722_Layer, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( sreg, SH7722MultiRegionData );
+
+     fusion_skirmish_prevail( &sdev->beu_lock );
 
      /* Wait for idle BEU. */
      while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
@@ -261,6 +264,8 @@ sh7722SetRegion( CoreLayer                  *layer,
 
      SH7722_SETREG32( sdrv, BMWCR0, SH7722_GETREG32( sdrv, BMWCR0 ) | (1 << n) );
 
+     fusion_skirmish_dismiss( &sdev->beu_lock );
+
      return DFB_OK;
 }
 
@@ -284,26 +289,30 @@ sh7722RemoveRegion( CoreLayer             *layer,
      D_ASSERT( n >= 0 );
      D_ASSERT( n <= 3 );
 
-     /* Disable multi window. */
-     SH7722_SETREG32( sdrv, BMWCR0, SH7722_GETREG32( sdrv, BMWCR0 ) & ~(1 << n) );
+     fusion_skirmish_prevail( &sdev->beu_lock );
 
      /* Wait for idle BEU. */
      while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
 
+     /* Disable multi window. */
+     SH7722_SETREG32( sdrv, BMWCR0, SH7722_GETREG32( sdrv, BMWCR0 ) & ~(1 << n) );
+
      /* Start operation! */
      SH7722_SETREG32( sdrv, BESTR, (sdev->input_mask << 8) | 1 );
+
+     fusion_skirmish_dismiss( &sdev->beu_lock );
 
      return DFB_OK;
 }
 
 static DFBResult
-sh7722FlipRegion( CoreLayer           *layer,
-                  void                *driver_data,
-                  void                *layer_data,
-                  void                *region_data,
-                  CoreSurface         *surface,
-                  DFBSurfaceFlipFlags  flags,
-                  CoreSurfaceBufferLock      *lock )
+sh7722FlipRegion( CoreLayer             *layer,
+                  void                  *driver_data,
+                  void                  *layer_data,
+                  void                  *region_data,
+                  CoreSurface           *surface,
+                  DFBSurfaceFlipFlags    flags,
+                  CoreSurfaceBufferLock *lock )
 {
      int                    n;
      CoreSurfaceBuffer     *buffer;
@@ -326,6 +335,8 @@ sh7722FlipRegion( CoreLayer           *layer,
      buffer = lock->buffer;
      D_ASSERT( buffer != NULL );
 
+     fusion_skirmish_prevail( &sdev->beu_lock );
+
      /* Wait for idle BEU. */
      while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
 
@@ -345,19 +356,26 @@ sh7722FlipRegion( CoreLayer           *layer,
      /* Start operation! */
      SH7722_SETREG32( sdrv, BESTR, (sdev->input_mask << 8) | 1 );
 
+     if (flags & DSFLIP_WAIT) {
+          /* Wait for idle BEU. */
+          while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
+     }
+
+     fusion_skirmish_dismiss( &sdev->beu_lock );
+
      dfb_surface_flip( surface, false );
 
      return DFB_OK;
 }
 
 static DFBResult
-sh7722UpdateRegion( CoreLayer       *layer,
-                    void            *driver_data,
-                    void            *layer_data,
-                    void            *region_data,
-                    CoreSurface     *surface,
-                    const DFBRegion *update,
-                  CoreSurfaceBufferLock      *lock )
+sh7722UpdateRegion( CoreLayer             *layer,
+                    void                  *driver_data,
+                    void                  *layer_data,
+                    void                  *region_data,
+                    CoreSurface           *surface,
+                    const DFBRegion       *update,
+                    CoreSurfaceBufferLock *lock )
 {
      SH7722DriverData *sdrv = driver_data;
      SH7722DeviceData *sdev = sdrv->dev;
@@ -368,11 +386,15 @@ sh7722UpdateRegion( CoreLayer       *layer,
      D_ASSERT( sdrv != NULL );
      D_ASSERT( sdev != NULL );
 
+     fusion_skirmish_prevail( &sdev->beu_lock );
+
      /* Wait for idle BEU. */
      while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
 
      /* Start operation! */
      SH7722_SETREG32( sdrv, BESTR, (sdev->input_mask << 8) | 1 );
+
+     fusion_skirmish_dismiss( &sdev->beu_lock );
 
      return DFB_OK;
 }
