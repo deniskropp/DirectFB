@@ -311,7 +311,11 @@ show_any( const siginfo_t *info )
 }
 
 static void
+#ifdef SA_SIGINFO
 signal_handler( int num, siginfo_t *info, void *foo )
+#else
+signal_handler( int num )
+#endif
 {
      DirectLink *l, *n;
      void       *addr   = NULL;
@@ -324,6 +328,7 @@ signal_handler( int num, siginfo_t *info, void *foo )
      direct_log_printf( NULL, "(!) [%5d: %4lld.%03lld] --> Caught signal %d",
                         pid, millis/1000, millis%1000, num );
 
+#ifdef SA_SIGINFO
      if (info && info > (siginfo_t*) 0x100) {
           bool shown = false;
 
@@ -361,6 +366,7 @@ signal_handler( int num, siginfo_t *info, void *foo )
                direct_log_printf( NULL, " (unknown origin) <--\n" );
      }
      else
+#endif
           direct_log_printf( NULL, ", no siginfo available <--\n" );
 
      direct_trace_print_stacks();
@@ -425,9 +431,14 @@ install_handlers()
                struct sigaction action;
                int              signum = sigs_to_handle[i];
 
+#ifdef SA_SIGINFO
                action.sa_sigaction = signal_handler;
                action.sa_flags     = SA_SIGINFO;
-                
+#else
+               action.sa_handler   = signal_handler;
+               action.sa_flags     = 0;
+#endif
+
                if (signum != SIGSEGV)
                     action.sa_flags |= SA_NODEFER;
 

@@ -42,6 +42,7 @@ static DirectConfig config = {
      sighandler:              true,
 
      fatal:                   DCFL_ASSERT,
+     fatal_break:             true,
      thread_block_signals:    true
 };
 
@@ -56,6 +57,7 @@ const char   *direct_config_usage =
      "  log-file=<name>                Write all messages to a file\n"
      "  log-udp=<host>:<port>          Send all messages via UDP to host:port\n"
      "  fatal-level=<level>            Abort on NONE, ASSERT (default) or ASSUME (incl. assert)\n"
+     "  [no-]fatal-break               Abort on BREAK (default)\n"
      "  dont-catch=<num>[[,<num>]...]  Don't catch these signals\n"
      "  [no-]sighandler                Enable signal handler\n"
      "  [no-]thread-block-signals      Block all signals in new threads?\n"
@@ -178,6 +180,14 @@ direct_config_set( const char *name, const char *value )
                D_ERROR("Direct/Config '%s': Unknown level specified (use 'none', 'assert', 'assume')!\n", name);
                return DFB_INVARG;
           }
+     }
+     else
+          if (strcmp (name, "fatal-break" ) == 0) {
+          direct_config->fatal_break = true;
+     }
+     else
+          if (strcmp (name, "no-fatal-break" ) == 0) {
+          direct_config->fatal_break = false;
      }
      else
           if (strcmp (name, "sighandler" ) == 0) {

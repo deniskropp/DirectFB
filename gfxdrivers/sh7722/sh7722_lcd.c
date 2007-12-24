@@ -20,12 +20,13 @@ D_DEBUG_DOMAIN( SH7722_LCD, "SH7722/LCD", "Renesas SH7722 LCD" );
 
 
 void
-sh7722_lcd_setup( void *drv,
-                  int width,
-                  int height,
-                  ulong phys,
-                  int pitch,
-                  int bpp )
+sh7722_lcd_setup( void                  *drv,
+                  int                    width,
+                  int                    height,
+                  ulong                  phys,
+                  int                    pitch,
+                  DFBSurfacePixelFormat  format,
+                  bool                   swap )
 {
      u32 MLDDFR = 0;
      u32 LDDDSR = 0;
@@ -41,26 +42,61 @@ sh7722_lcd_setup( void *drv,
      D_ASSERT( pitch < 0x10000 );
      D_ASSERT( (pitch & 3) == 0 );
 
-     switch (bpp) {
-          case 12:
-               MLDDFR = 0x8;
-               LDDDSR = 0x6;
+     /* Choose input format. */
+     switch (format) {
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               MLDDFR = 0;
                break;
 
-          case 16:
-               MLDDFR = 0x3;
-               LDDDSR = 0x6;
+          case DSPF_RGB16:
+               MLDDFR = 3;
                break;
 
-          case 18:
-               MLDDFR = 0x9;
-               LDDDSR = 0x4;
+          case DSPF_RGB444:
+          case DSPF_ARGB4444:
+               MLDDFR = 8;
                break;
 
-          case 24:
-               MLDDFR = 0xb;
-               LDDDSR = 0x5;
+          case DSPF_RGB24:
+               MLDDFR = 11;
                break;
+
+          case DSPF_NV12:
+               MLDDFR = 0x10000;
+               break;
+
+          case DSPF_NV16:
+               MLDDFR = 0x10100;
+               break;
+
+          default:
+               D_BUG( "invalid format" );
+               return;
+     }
+
+     /* Setup swapping. */
+     switch (format) {
+          case DSPF_NV12:     /* 1 byte */
+          case DSPF_NV16:
+          case DSPF_RGB24:
+               LDDDSR = 7;
+               break;
+
+          case DSPF_RGB16:    /* 2 byte */
+          case DSPF_RGB444:
+          case DSPF_ARGB4444:
+               LDDDSR = 6;
+               break;
+
+          case DSPF_RGB32:    /* 4 byte */
+          case DSPF_ARGB:
+               LDDDSR = 4;
+               break;
+
+          default:
+               D_BUG( "invalid format" );
+               return;
      }
 
      SH7722_SETREG32( drv, LCDC_MLDDCKPAT1R,  0x05555555 );
@@ -72,7 +108,7 @@ sh7722_lcd_setup( void *drv,
      SH7722_SETREG32( drv, LCDC_MLDSM1R,      0x00000000 );
      SH7722_SETREG32( drv, LCDC_MLDSM2R,      0x00000000 );
      SH7722_SETREG32( drv, LCDC_MLDSA1R,	  phys );
-     SH7722_SETREG32( drv, LCDC_MLDSA2R,      0x00000000 );
+     SH7722_SETREG32( drv, LCDC_MLDSA2R,	  phys + pitch * height );
      SH7722_SETREG32( drv, LCDC_MLDMLSR,      pitch );
      SH7722_SETREG32( drv, LCDC_MLDWBCNTR,    0x00000000 );
      SH7722_SETREG32( drv, LCDC_MLDWBAR,      0x00000000 );
@@ -107,7 +143,7 @@ sh7722_lcd_setup( void *drv,
 #endif
      SH7722_SETREG32( drv, LCDC_LDINTR,       0x00000000 );
      SH7722_SETREG32( drv, LCDC_LDRCNTR,      0x00000000 );
-     SH7722_SETREG32( drv, LCDC_LDDDSR,       LDDDSR );
+     SH7722_SETREG32( drv, LCDC_LDDDSR,       swap ? LDDDSR : 0 );
      SH7722_SETREG32( drv, LCDC_LDRCR,        0x00000000 );
      SH7722_SETREG32( drv, LCDC_LDPALCR,      0x00000000 );
      SH7722_SETREG32( drv, LCDC_LDCNT1R,      0x00000001 );

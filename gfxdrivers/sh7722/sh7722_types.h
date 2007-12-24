@@ -7,6 +7,7 @@
 
 
 #define SH7722GFX_MAX_PREPARE      8192
+#define SH7722GFX_JPEG_RELOAD_SIZE (32*1024)
 
 
 typedef enum {
@@ -52,6 +53,8 @@ typedef struct {
      int                      lcd_height;
      int                      lcd_offset;
      int                      lcd_pitch;
+     int                      lcd_size;
+     unsigned long            lcd_phys;
 
      /* state validation */
      int                      v_flags;
@@ -80,6 +83,14 @@ typedef struct {
 
      s32                      matrix[6];
      DFBColor                 color;
+
+     /* locking */
+     FusionSkirmish           beu_lock;
+
+     /* JPEG */
+     int                      jpeg_offset;
+     int                      jpeg_size;
+     unsigned long            jpeg_phys;
 } SH7722DeviceData;
 
 
@@ -105,6 +116,10 @@ typedef struct {
      volatile void           *mmio_base;
 
      int                      num_inputs;
+
+     volatile void           *lcd_virt;
+
+     volatile void           *jpeg_virt;
 } SH7722DriverData;
 
 #endif

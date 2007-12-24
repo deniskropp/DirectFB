@@ -84,9 +84,9 @@ sh7722InitLayer( CoreLayer                  *layer,
                            DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE | DLCONF_OPTIONS;
      config->width       = SH7722_LCD_WIDTH;
      config->height      = SH7722_LCD_HEIGHT;
-     config->pixelformat = DSPF_RGB16;
+     config->pixelformat = (data->layer == SH7722_LAYER_INPUT1) ? DSPF_RGB16 : DSPF_NV12;
      config->buffermode  = DLBM_FRONTONLY;
-     config->options     = DLOP_NONE;
+     config->options     = DLOP_ALPHACHANNEL;
 
      return DFB_OK;
 }
@@ -98,6 +98,8 @@ sh7722TestRegion( CoreLayer                  *layer,
                   CoreLayerRegionConfig      *config,
                   CoreLayerRegionConfigFlags *failed )
 {
+     SH7722DriverData           *sdrv = driver_data;
+     SH7722DeviceData           *sdev = sdrv->dev;
      SH7722LayerData            *slay = layer_data;
      CoreLayerRegionConfigFlags  fail = 0;
 
@@ -107,11 +109,9 @@ sh7722TestRegion( CoreLayer                  *layer,
           fail |= CLRCF_OPTIONS;
 
      switch (config->format) {
-          /* TODO: LUT8 on OSD  (Input 3) */
-          case DSPF_NV12:
-          case DSPF_NV16:
-               /* YUV only for first input */
-               if (slay->layer != SH7722_LAYER_INPUT1)
+          case DSPF_LUT8:
+               /* Indexed only for third input */
+               if (slay->layer != SH7722_LAYER_INPUT3)
                     fail |= CLRCF_FORMAT;
                break;
 
@@ -119,28 +119,37 @@ sh7722TestRegion( CoreLayer                  *layer,
           case DSPF_RGB32:
           case DSPF_RGB24:
           case DSPF_RGB16:
+               /* RGB only for first input */
+               if (slay->layer != SH7722_LAYER_INPUT1)
+                    fail |= CLRCF_FORMAT;
+               break;
+
+          case DSPF_NV12:
+          case DSPF_NV16:
                break;
 
           default:
                fail |= CLRCF_FORMAT;
      }
 
-     if (config->width  < 32 || config->width  > 1280)
+     if (config->width  < 32 || config->width  > sdev->lcd_width)
           fail |= CLRCF_WIDTH;
 
-     if (config->height < 32 || config->height > 1024)
+     if (config->height < 32 || config->height > sdev->lcd_height)
           fail |= CLRCF_HEIGHT;
 
-     if (config->dest.x >= SH7722_LCD_WIDTH || config->dest.y >= SH7722_LCD_HEIGHT)
+     if (config->dest.x >= sdev->lcd_width || config->dest.y >= sdev->lcd_height)
           fail |= CLRCF_DEST;
 
      if (config->dest.x < 0) {
           config->dest.x = 0;
+// FIXME
 //          fail |= CLRCF_DEST;
      }
 
      if (config->dest.y < 0) {
           config->dest.y = 0;
+// FIXME
 //          fail |= CLRCF_DEST;
      }
 
@@ -182,7 +191,7 @@ sh7722SetRegion( CoreLayer                  *layer,
                  CorePalette                *palette,
                  CoreSurfaceBufferLock      *lock )
 {
-     int               n;
+     int               i, n;
      SH7722DriverData *sdrv = driver_data;
      SH7722DeviceData *sdev = sdrv->dev;
      SH7722RegionData *sreg = region_data;
@@ -192,21 +201,15 @@ sh7722SetRegion( CoreLayer                  *layer,
 
      D_MAGIC_ASSERT( sreg, SH7722RegionData );
 
-
-     /* Wait for idle BEU. */
-     while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
-
-
-     /* FIXME: Support CLUT. */
-     for (n=0; n<256; n++) {
-          SH7722_SETREG32( sdrv, BCLUT(n), 0xffffffff );
-     }
-
-
      n = slay->layer - SH7722_LAYER_INPUT1;
 
      D_ASSERT( n >= 0 );
      D_ASSERT( n <= 2 );
+
+     fusion_skirmish_prevail( &sdev->beu_lock );
+
+     /* Wait for idle BEU. */
+     while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
 
      /* Update position? */
      if (updated & CLRCF_DEST) {
@@ -227,6 +230,7 @@ sh7722SetRegion( CoreLayer                  *layer,
 
           /* Set width and height. */
           SH7722_SETREG32( sdrv, BSSZR(n), (ch << 16) | cw );
+          SH7722_SETREG32( sdrv, BTPSR, (ch << 16) | cw );
      }
 
      /* Update surface? */
@@ -252,44 +256,70 @@ sh7722SetRegion( CoreLayer                  *layer,
      /* Update format? */
      if (updated & CLRCF_FORMAT) {
           unsigned long tBSIFR = 0;
+          unsigned long tBSWPR = 0x80000000 | (SH7722_GETREG32( sdrv, BSWPR ) & ~(7 << (n*8)));
 
           /* Set pixel format. */
           switch (config->format) {
                case DSPF_NV12:
-                    tBSIFR |= CHRR_YCBCR_420 | 0x1000;
+                    tBSIFR |= CHRR_YCBCR_420;
                     break;
 
                case DSPF_NV16:
-                    tBSIFR |= CHRR_YCBCR_422 | 0x1000;
+                    tBSIFR |= CHRR_YCBCR_422;
                     break;
 
                case DSPF_ARGB:
-                    tBSIFR |= RPKF_ARGB;
+                    tBSIFR |= RPKF_ARGB | 0x1000;
                     break;
 
                case DSPF_RGB32:
-                    tBSIFR |= RPKF_RGB32;
+                    tBSIFR |= RPKF_RGB32 | 0x1000;
                     break;
 
                case DSPF_RGB24:
-                    tBSIFR |= RPKF_RGB24;
+                    tBSIFR |= RPKF_RGB24 | 0x1000;
                     break;
 
                case DSPF_RGB16:
-                    tBSIFR |= RPKF_RGB16;
+                    tBSIFR |= RPKF_RGB16 | 0x1000;
+                    break;
+ 
+               case DSPF_LUT8:
+                    tBSIFR |= 0x3000;
                     break;
 
                default:
                     break;
           }
 
-          /* TODO: OSD mode       (Input 3) */
+          /* Set swapping. */
+          switch (config->format) {
+               case DSPF_LUT8:
+               case DSPF_NV12:
+               case DSPF_NV16:
+                    tBSWPR |= 7 << (n*8);
+                    break;
+
+               case DSPF_RGB16:
+                    tBSWPR |= 6 << (n*8);
+                    break;
+
+               case DSPF_ARGB:
+               case DSPF_RGB32:
+               case DSPF_RGB24:
+                    tBSWPR |= 4 << (n*8);
+                    break;
+
+               default:
+                    break;
+          }
 
           SH7722_SETREG32( sdrv, BSIFR(n), tBSIFR );
+          SH7722_SETREG32( sdrv, BSWPR, tBSWPR );
      }
 
      /* Update options or opacity? */
-     if (updated & (CLRCF_OPTIONS | CLRCF_OPACITY)) {
+     if (updated & (CLRCF_OPTIONS | CLRCF_OPACITY | CLRCF_FORMAT)) {
           unsigned long tBBLCR0 = LAY_123;
 
           /* Set opacity value. */
@@ -297,7 +327,7 @@ sh7722SetRegion( CoreLayer                  *layer,
           tBBLCR0 |= ((config->options & CLRCF_OPACITY) ? config->opacity : 0xff) << (n*8);
 
           /* Enable/disable alpha channel. */
-          if (config->options & DLOP_ALPHACHANNEL)
+          if ((config->options & DLOP_ALPHACHANNEL) && DFB_PIXELFORMAT_HAS_ALPHA(config->format))
                tBBLCR0 |= (0x10000000 << n);
           else
                tBBLCR0 &= ~(0x10000000 << n);
@@ -305,11 +335,35 @@ sh7722SetRegion( CoreLayer                  *layer,
           SH7722_SETREG32( sdrv, BBLCR0, tBBLCR0 );
      }
 
+     /* Update CLUT? */
+     if (updated & CLRCF_PALETTE && palette) {
+          const DFBColor *entries = palette->entries;
+
+          for (i=0; i<256; i++) {
+               SH7722_SETREG32( sdrv, BCLUT(i), PIXEL_ARGB( entries[i].a,
+                                                            entries[i].r,
+                                                            entries[i].g,
+                                                            entries[i].b ) );
+          }
+     }
+
      /* Enable or disable input. */
      if ((config->options & DLOP_OPACITY) && !config->opacity)
           sdev->input_mask &= ~(1 << n);
      else
           sdev->input_mask |= (1 << n);
+
+     /* Choose parent input. */
+     if (sdev->input_mask) {
+          if (sdev->input_mask & 1)
+               SH7722_SETREG32( sdrv, BBLCR1, SH7722_GETREG32( sdrv, BBLCR1 ) & ~0x03000000 );
+          else if (sdev->input_mask & 2)
+               SH7722_SETREG32( sdrv, BBLCR1, (SH7722_GETREG32( sdrv, BBLCR1 ) & ~0x03000000) | 0x01000000 );
+          else
+               SH7722_SETREG32( sdrv, BBLCR1, (SH7722_GETREG32( sdrv, BBLCR1 ) & ~0x03000000) | 0x02000000 );
+     }
+
+     fusion_skirmish_dismiss( &sdev->beu_lock );
 
      sreg->config = *config;
 
@@ -337,13 +391,27 @@ sh7722RemoveRegion( CoreLayer *layer,
      D_ASSERT( n >= 0 );
      D_ASSERT( n <= 2 );
 
-     sdev->input_mask &= ~(1 << n);
+     fusion_skirmish_prevail( &sdev->beu_lock );
 
      /* Wait for idle BEU. */
      while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
 
+     sdev->input_mask &= ~(1 << n);
+
+     /* Choose parent input. */
+     if (sdev->input_mask) {
+          if (sdev->input_mask & 1)
+               SH7722_SETREG32( sdrv, BBLCR1, SH7722_GETREG32( sdrv, BBLCR1 ) & ~0x03000000 );
+          else if (sdev->input_mask & 2)
+               SH7722_SETREG32( sdrv, BBLCR1, (SH7722_GETREG32( sdrv, BBLCR1 ) & ~0x03000000) | 0x01000000 );
+          else
+               SH7722_SETREG32( sdrv, BBLCR1, (SH7722_GETREG32( sdrv, BBLCR1 ) & ~0x03000000) | 0x02000000 );
+     }
+
      /* Start operation! */
      SH7722_SETREG32( sdrv, BESTR, (sdev->input_mask << 8) | 1 );
+
+     fusion_skirmish_dismiss( &sdev->beu_lock );
 
      return DFB_OK;
 }
@@ -378,6 +446,8 @@ sh7722FlipRegion( CoreLayer             *layer,
      buffer = lock->buffer;
      D_ASSERT( buffer != NULL );
 
+     fusion_skirmish_prevail( &sdev->beu_lock );
+
      /* Wait for idle BEU. */
      while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
 
@@ -398,6 +468,8 @@ sh7722FlipRegion( CoreLayer             *layer,
           /* Wait for idle BEU. */
           while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
      }
+
+     fusion_skirmish_dismiss( &sdev->beu_lock );
 
      dfb_surface_flip( surface, false );
 
@@ -422,14 +494,15 @@ sh7722UpdateRegion( CoreLayer             *layer,
      D_ASSERT( sdrv != NULL );
      D_ASSERT( sdev != NULL );
 
+     fusion_skirmish_prevail( &sdev->beu_lock );
+
      /* Wait for idle BEU. */
      while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
 
      /* Start operation! */
      SH7722_SETREG32( sdrv, BESTR, (sdev->input_mask << 8) | 1 );
 
-     /* Wait for idle BEU. */
-     while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
+     fusion_skirmish_dismiss( &sdev->beu_lock );
 
      return DFB_OK;
 }

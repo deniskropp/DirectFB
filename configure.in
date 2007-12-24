@@ -83,6 +83,7 @@ AM_PROG_CC_C_O
 ifdef([AM_PROG_AS],[AM_PROG_AS],[])
 AM_PROG_LIBTOOL
 AM_SANITY_CHECK
+AC_SUBST(LD)
 AC_ISC_POSIX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
@@ -1605,6 +1606,7 @@ AC_MSG_RESULT([
 Build options:
   Version                   $VERSION
   Install prefix            $prefix
+  Config files in           $SYSCONFDIR
   Build shared libs         $enable_shared
   Build static libs         $enable_static
   Module directory          $MODULEDIR

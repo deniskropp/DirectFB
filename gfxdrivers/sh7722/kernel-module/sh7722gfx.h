@@ -34,6 +34,8 @@ typedef volatile struct {
      unsigned int   num_wait_next;
      unsigned int   num_idle;
 
+     __u32          jpeg_ints;
+
      __u32          magic;
 } SH7722GfxSharedArea;
 
@@ -49,6 +51,8 @@ typedef struct {
 #define SH7722GFX_IOCTL_RESET      _IO ( 'G', 0 )
 #define SH7722GFX_IOCTL_WAIT_IDLE  _IO ( 'G', 1 )
 #define SH7722GFX_IOCTL_WAIT_NEXT  _IO ( 'G', 2 )
+
+#define SH7722GFX_IOCTL_WAIT_JPEG  _IO ( 'J', 0 )
 
 
 /* Access limited to BEU, LCDC, VOU and JPU. */

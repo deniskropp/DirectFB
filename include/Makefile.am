@@ -2,6 +2,8 @@
 
 includedir = @INCLUDEDIR@
 
+DISTCLEANFILES = directfb_keynames.h directfb_strings.h
+
 include_HEADERS = \
 	directfb.h		\
 	directfb_keyboard.h	\

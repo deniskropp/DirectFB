@@ -1,6 +1,8 @@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 libdir=@libdir@
+moduledir=@MODULEDIR@
+moduledirname=@MODULEDIRNAME@
 includedir=@includedir@
 
 Name: Direct
