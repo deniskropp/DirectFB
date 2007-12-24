@@ -314,8 +314,6 @@ void dfb_pixel_to_color( DFBSurfacePixelFormat  format,
                          unsigned long          pixel,
                          DFBColor              *ret_color );
 
-const char *dfb_pixelformat_name( DFBSurfacePixelFormat format );
-
 static inline u32
 dfb_color_to_argb( const DFBColor *color )
 {

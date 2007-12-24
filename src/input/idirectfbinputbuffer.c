@@ -42,6 +42,7 @@
 
 #include <directfb.h>
 
+#include <direct/debug.h>
 #include <direct/interface.h>
 #include <direct/list.h>
 #include <direct/mem.h>
@@ -61,6 +62,10 @@
 #include <misc/util.h>
 
 #include "idirectfbinputbuffer.h"
+
+
+D_DEBUG_DOMAIN( IDFBEvBuf, "IDFBEventBuffer", "IDirectFBEventBuffer Interface" );
+
 
 typedef struct {
      DirectLink   link;
@@ -137,6 +142,8 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
      EventBufferItem           *item;
      DirectLink                *n;
 
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p )\n", __FUNCTION__, thiz );
+
      pthread_mutex_lock( &data->events_mutex );
 
      if (data->pipe) {
@@ -184,6 +191,8 @@ IDirectFBEventBuffer_AddRef( IDirectFBEventBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p )\n", __FUNCTION__, thiz );
+
      data->ref++;
 
      return DFB_OK;
@@ -193,6 +202,8 @@ static DFBResult
 IDirectFBEventBuffer_Release( IDirectFBEventBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p )\n", __FUNCTION__, thiz );
 
      if (--data->ref == 0)
           IDirectFBEventBuffer_Destruct( thiz );
@@ -207,6 +218,8 @@ IDirectFBEventBuffer_Reset( IDirectFBEventBuffer *thiz )
      DirectLink      *n;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p )\n", __FUNCTION__, thiz );
 
      if (data->pipe)
           return DFB_UNSUPPORTED;
@@ -229,6 +242,8 @@ IDirectFBEventBuffer_WaitForEvent( IDirectFBEventBuffer *thiz )
      DFBResult ret = DFB_OK;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p )\n", __FUNCTION__, thiz );
 
      if (data->pipe)
           return DFB_UNSUPPORTED;
@@ -257,6 +272,8 @@ IDirectFBEventBuffer_WaitForEventWithTimeout( IDirectFBEventBuffer *thiz,
      long int        nano_seconds = milli_seconds * 1000000;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %u, %u )\n", __FUNCTION__, thiz, seconds, milli_seconds );
 
      if (data->pipe)
           return DFB_UNSUPPORTED;
@@ -299,6 +316,8 @@ IDirectFBEventBuffer_WakeUp( IDirectFBEventBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p )\n", __FUNCTION__, thiz );
+
      if (data->pipe)
           return DFB_UNSUPPORTED;
 
@@ -314,6 +333,8 @@ IDirectFBEventBuffer_GetEvent( IDirectFBEventBuffer *thiz,
      EventBufferItem *item;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p )\n", __FUNCTION__, thiz, event );
 
      if (data->pipe)
           return DFB_UNSUPPORTED;
@@ -361,6 +382,8 @@ IDirectFBEventBuffer_GetEvent( IDirectFBEventBuffer *thiz,
 
      pthread_mutex_unlock( &data->events_mutex );
 
+     D_DEBUG_AT( IDFBEvBuf, "  -> class %d, type/size %d, data/id %p", event->clazz, event->user.type, event->user.data );
+
      return DFB_OK;
 }
 
@@ -371,6 +394,8 @@ IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
      EventBufferItem *item;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p )\n", __FUNCTION__, thiz, event );
 
      if (data->pipe)
           return DFB_UNSUPPORTED;
@@ -411,6 +436,8 @@ IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
 
      pthread_mutex_unlock( &data->events_mutex );
 
+     D_DEBUG_AT( IDFBEvBuf, "  -> class %d, type/size %d, data/id %p", event->clazz, event->user.type, event->user.data );
+
      return DFB_OK;
 }
 
@@ -418,6 +445,8 @@ static DFBResult
 IDirectFBEventBuffer_HasEvent( IDirectFBEventBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p ) <- events: %p, pipe: %d\n", __FUNCTION__, thiz, data->events, data->pipe );
 
      if (data->pipe)
           return DFB_UNSUPPORTED;
@@ -433,6 +462,9 @@ IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
      int              size;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p [class %d, type/size %d, data/id %p] )\n", __FUNCTION__,
+                 thiz, event, event->clazz, event->user.type, event->user.data );
 
      switch (event->clazz) {
           case DFEC_INPUT:
@@ -493,6 +525,8 @@ IDirectFBEventBuffer_CreateFileDescriptor( IDirectFBEventBuffer *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p )\n", __FUNCTION__, thiz );
+
      /* Check arguments. */
      if (!ret_fd)
           return DFB_INVARG;
@@ -508,9 +542,12 @@ IDirectFBEventBuffer_CreateFileDescriptor( IDirectFBEventBuffer *thiz,
 
      /* Create the file descriptor(s). */
      if (socketpair( PF_LOCAL, SOCK_STREAM, 0, data->pipe_fds )) {
+          D_PERROR( "%s(): socketpair( PF_LOCAL, SOCK_STREAM, 0, fds ) failed!\n", __FUNCTION__ );
           pthread_mutex_unlock( &data->events_mutex );
           return errno2result( errno );
      }
+
+     D_DEBUG_AT( IDFBEvBuf, "  -> entering pipe mode\n" );
 
      /* Enter pipe mode. */
      data->pipe = true;
@@ -529,6 +566,8 @@ IDirectFBEventBuffer_CreateFileDescriptor( IDirectFBEventBuffer *thiz,
      /* Return the file descriptor for reading. */
      *ret_fd = data->pipe_fds[0];
 
+     D_DEBUG_AT( IDFBEvBuf, "  -> fd %d/%d\n", data->pipe_fds[0], data->pipe_fds[1] );
+
      return DFB_OK;
 }
 
@@ -537,6 +576,8 @@ IDirectFBEventBuffer_EnableStatistics( IDirectFBEventBuffer *thiz,
                                        DFBBoolean            enable )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %sable )\n", __FUNCTION__, thiz, enable ? "en" : "dis" );
 
      /* Lock the event queue. */
      pthread_mutex_lock( &data->events_mutex );
@@ -574,6 +615,8 @@ IDirectFBEventBuffer_GetStatistics( IDirectFBEventBuffer *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p )\n", __FUNCTION__, thiz, ret_stats );
+
      if (!ret_stats)
           return DFB_INVARG;
 
@@ -602,6 +645,8 @@ IDirectFBEventBuffer_Construct( IDirectFBEventBuffer      *thiz,
 {
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBEventBuffer)
 
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, filter %p, ctx %p )\n", __FUNCTION__, thiz, filter, filter_ctx );
+
      data->ref        = 1;
      data->filter     = filter;
      data->filter_ctx = filter_ctx;
@@ -623,6 +668,8 @@ IDirectFBEventBuffer_Construct( IDirectFBEventBuffer      *thiz,
      thiz->EnableStatistics        = IDirectFBEventBuffer_EnableStatistics;
      thiz->GetStatistics           = IDirectFBEventBuffer_GetStatistics;
 
+     D_DEBUG_AT( IDFBEvBuf, "  -> %p [%p]\n", thiz, thiz->priv );
+
      return DFB_OK;
 }
 
@@ -636,6 +683,10 @@ DFBResult IDirectFBEventBuffer_AttachInputDevice( IDirectFBEventBuffer *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      D_ASSERT( device != NULL );
+     D_ASSERT( device->shared != NULL );
+
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p [%02lu - %s] )\n", __FUNCTION__, thiz, device,
+                 device->shared->id, device->shared->device_info.desc.name );
 
      attached = D_CALLOC( 1, sizeof(AttachedDevice) );
      attached->device = device;
@@ -657,6 +708,10 @@ DFBResult IDirectFBEventBuffer_DetachInputDevice( IDirectFBEventBuffer *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      D_ASSERT( device != NULL );
+     D_ASSERT( device->shared != NULL );
+
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p [%02lu - %s] )\n", __FUNCTION__, thiz, device,
+                 device->shared->id, device->shared->device_info.desc.name );
      
      direct_list_foreach_safe (attached, link, data->devices) {
           if (attached->device == device) {
@@ -682,6 +737,10 @@ DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
 
      D_ASSERT( window != NULL );
 
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p [%02lu - %d,%d-%dx%d] )\n", __FUNCTION__, thiz,
+                 window, window->id, window->config.bounds.x, window->config.bounds.y,
+                 window->config.bounds.w, window->config.bounds.h );
+
      attached = D_CALLOC( 1, sizeof(AttachedWindow) );
      attached->window = window;
 
@@ -705,6 +764,10 @@ DFBResult IDirectFBEventBuffer_DetachWindow( IDirectFBEventBuffer *thiz,
 
      D_ASSERT( window != NULL );
      
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p [%02lu - %d,%d-%dx%d] )\n", __FUNCTION__, thiz,
+                 window, window->id, window->config.bounds.x, window->config.bounds.y,
+                 window->config.bounds.w, window->config.bounds.h );
+
      direct_list_foreach_safe (attached, link, data->windows) {
           if (!attached->window || attached->window == window) {
                direct_list_remove( &data->windows, &attached->link );
@@ -767,6 +830,8 @@ static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
      IDirectFBEventBuffer_data *data = ctx;
      EventBufferItem           *item;
 
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p ) <- type %06x\n", __FUNCTION__, thiz, evt->type );
+
      item = D_CALLOC( 1, sizeof(EventBufferItem) );
 
      item->evt.window = *evt;
@@ -819,13 +884,13 @@ IDirectFBEventBuffer_Feed( DirectThread *thread, void *arg )
 
                pthread_mutex_unlock( &data->events_mutex );
 
-               D_HEAVYDEBUG( "DirectFB/EventBuffer: Going to write %d bytes to file descriptor %d...\n",
-                             sizeof(DFBEvent), data->pipe_fds[1] );
+               D_DEBUG_AT( IDFBEvBuf, "Going to write %d bytes to file descriptor %d...\n",
+                           sizeof(DFBEvent), data->pipe_fds[1] );
 
                ret = write( data->pipe_fds[1], &item->evt, sizeof(DFBEvent) );
 
-               D_HEAVYDEBUG( "DirectFB/EventBuffer: ...wrote %d bytes to file descriptor %d.\n",
-                             ret, data->pipe_fds[1] );
+               D_DEBUG_AT( IDFBEvBuf, "...wrote %d bytes to file descriptor %d.\n",
+                           ret, data->pipe_fds[1] );
 
                D_FREE( item );
 

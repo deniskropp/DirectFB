@@ -2966,8 +2966,8 @@ wm_process_input( CoreWindowStack     *stack,
 
      D_MAGIC_ASSERT( data, StackData );
 
-     D_HEAVYDEBUG( "WM/Default: Processing input event (device %d, type 0x%08x, flags 0x%08x)...\n",
-                   event->device_id, event->type, event->flags );
+     D_DEBUG_AT( WM_Default, "Processing input event (device %d, type 0x%08x, flags 0x%08x)...\n",
+                 event->device_id, event->type, event->flags );
 
      /* FIXME: handle multiple devices */
      if (event->flags & DIEF_BUTTONS)

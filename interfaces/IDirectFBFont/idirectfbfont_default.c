@@ -99,7 +99,7 @@ Construct( IDirectFBFont      *thiz,
      desc = va_arg(tag, DFBFontDescription *);
      va_end( tag );
 
-     D_HEAVYDEBUG( "DirectFB/FontDefault: Construct default font");
+     D_DEBUG( "DirectFB/FontDefault: Construct default font");
 
      ret = dfb_font_create( core, &font );
      if (ret) {
@@ -188,7 +188,7 @@ Construct( IDirectFBFont      *thiz,
                                          desc->fixed_advance :
                                          data->width + 1);
 
-                         D_HEAVYDEBUG( "DirectFB/core/fonts: "
+                         D_DEBUG( "DirectFB/core/fonts: "
                                        "glyph '%c' at %d, width %d\n",
                                        glyphs[index], start, i-start );
 

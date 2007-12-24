@@ -150,11 +150,13 @@ direct_modules_explore_directory( DirectModuleDir *directory )
      D_ASSERT( directory != NULL );
      D_ASSERT( directory->path != NULL );
 
+     D_DEBUG_AT( Direct_Modules, "%s( '%s' )\n", __FUNCTION__, directory->path );
+
      dir_len = strlen( directory->path );
      dir     = opendir( directory->path );
 
      if (!dir) {
-          D_PERROR( "Direct/Modules: Could not open module directory `%s'!\n", directory->path );
+          D_DEBUG_AT( Direct_Modules, "  -> ERROR opening directory: %s!\n", strerror(errno) );
           return 0;
      }
 

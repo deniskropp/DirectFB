@@ -1257,7 +1257,7 @@ static void *V4L2_Thread(DirectThread * thread, void *ctx)
 
           if (0 != data->framebuffer_or_system) {
 
-               D_HEAVYDEBUG("DirectFB/Video4Linux2: index:%d, to system memory.\n", cur.index);
+               D_DEBUG("DirectFB/Video4Linux2: index:%d, to system memory.\n", cur.index);
 
                h = surface->config.size.h;
                src = data->ptr[cur.index];
@@ -1303,7 +1303,7 @@ static void *V4L2_Thread(DirectThread * thread, void *ctx)
                dfb_surface_unlock(surface, 0);
           }
           else {
-               D_HEAVYDEBUG("DirectFB/Video4Linux2: index:%d, to overlay surface\n", cur.index);
+               D_DEBUG("DirectFB/Video4Linux2: index:%d, to overlay surface\n", cur.index);
           }
 
           if (data->callback)

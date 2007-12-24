@@ -34,10 +34,13 @@
 #include <stdio.h>
 #include <errno.h>
 
+#include <direct/clock.h>
 #include <direct/conf.h>
 #include <direct/log.h>
 #include <direct/messages.h>
 #include <direct/system.h>
+#include <direct/thread.h>
+#include <direct/trace.h>
 #include <direct/types.h>
 
 
@@ -97,31 +100,12 @@ void direct_assumption( const char *exp,
             = { 0, false, false, name, description, sizeof(name) - 1 }
 
 #define d_debug_at( domain, x... )      direct_debug_at_always( &domain, x )
-#else
-#define d_debug_at( domain, x... )      do {} while (0)
-#define D_DEBUG_DOMAIN(i,n,d)
-#endif    /* DIRECT_BUILD_TEXT */
 
 
 
-#if DIRECT_BUILD_TEXT && (DIRECT_BUILD_DEBUG || defined(DIRECT_ENABLE_DEBUG) || defined(DIRECT_FORCE_DEBUG))
-
-#if !DIRECT_BUILD_DEBUGS
-#warning Building with debug, but library headers suggest that debug is not supported.
-#endif
-
+#if DIRECT_BUILD_DEBUG || defined(DIRECT_ENABLE_DEBUG) || defined(DIRECT_FORCE_DEBUG)
 
 #define D_DEBUG_ENABLED  (1)
-
-#ifdef HEAVYDEBUG
-     #define D_HEAVYDEBUG(x...)    if (!direct_config || direct_config->debug) {     \
-                                        direct_log_printf( NULL, "(=) "x );          \
-                                   }
-#else
-     #define D_HEAVYDEBUG(x...)
-#endif
-
-
 
 #define D_DEBUG(x...)                                                                \
      do {                                                                            \
@@ -164,21 +148,91 @@ void direct_assumption( const char *exp,
           direct_break( __FUNCTION__, __FILE__, __LINE__, x );                       \
      } while (0)
 
-#else
+#elif defined(DIRECT_MINI_DEBUG)
 
+/*
+ * Mini debug mode, only D_DEBUG_AT, no domain filters, simple assertion
+ */
+
+#define D_DEBUG_ENABLED  (2)
+
+#define D_DEBUG_AT(d,x...)                                                           \
+     do {                                                                            \
+          if (direct_config->debug) direct_debug_at_always( &d, x );                 \
+     } while (0)
+
+#define D_CHECK(exp, aa)                                                             \
+     do {                                                                            \
+          if (!(exp)) {                                                              \
+               long long   millis = direct_clock_get_millis();                       \
+               const char *name   = direct_thread_self_name();                       \
+                                                                                     \
+               direct_log_printf( NULL,                                              \
+                                  "(!) [%-15s %3lld.%03lld] (%5d) *** " #aa " [%s] failed *** [%s:%d in %s()]\n",  \
+                                  name ? name : "  NO NAME  ", millis / 1000LL, millis % 1000LL,                   \
+                                  direct_gettid(), #exp, __FILE__, __LINE__, __FUNCTION__ );                       \
+                                                                                     \
+               direct_trace_print_stack( NULL );                                     \
+          }                                                                          \
+     } while (0)
+
+#define D_ASSERT(exp)    D_CHECK(exp, Assertion)
+#define D_ASSUME(exp)    D_CHECK(exp, Assumption)
+
+#endif    /* MINI_DEBUG  / DIRECT_BUILD_DEBUG || DIRECT_ENABLE_DEBUG || DIRECT_FORCE_DEBUG */
+
+#endif    /* DIRECT_BUILD_TEXT */
+
+
+/*
+ * Fallback definitions, e.g. without DIRECT_BUILD_TEXT or DIRECT_ENABLE_DEBUG
+ */
+
+#ifndef D_DEBUG_ENABLED
 #define D_DEBUG_ENABLED  (0)
+#endif
 
-#define D_HEAVYDEBUG(x...)         do {} while (0)
+#ifndef D_DEBUG
 #define D_DEBUG(x...)              do {} while (0)
+#endif
+
+#ifndef D_DEBUG_AT
 #define D_DEBUG_AT(d,x...)         do {} while (0)
+#endif
+
+#ifndef D_DEBUG_ENTER
 #define D_DEBUG_ENTER(d,x...)      do {} while (0)
+#endif
+
+#ifndef D_DEBUG_EXIT
 #define D_DEBUG_EXIT(d,x...)       do {} while (0)
+#endif
+
+#ifndef D_ASSERT
 #define D_ASSERT(exp)              do {} while (0)
+#endif
+
+#ifndef D_ASSUME
 #define D_ASSUME(exp)              do {} while (0)
+#endif
+
+#ifndef D_BREAK
 #define D_BREAK(x...)              do {} while (0)
+#endif
 
-#endif    /* DIRECT_BUILD_TEXT && (DIRECT_BUILD_DEBUG || DIRECT_ENABLE_DEBUG || DIRECT_FORCE_DEBUG) || ) */
+#ifndef d_debug_at
+#define d_debug_at( domain, x... ) do {} while (0)
+#endif
 
+#ifndef D_DEBUG_DOMAIN
+#define D_DEBUG_DOMAIN(i,n,d)
+#endif
+
+
+
+/*
+ * Magic Assertions & Utilities
+ */
 
 #define D_MAGIC(spell)             ( (((spell)[sizeof(spell)*8/9] << 24) | \
                                       ((spell)[sizeof(spell)*7/9] << 16) | \

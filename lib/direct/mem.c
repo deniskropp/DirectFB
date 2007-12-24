@@ -124,7 +124,7 @@ direct_malloc( const char* file, int line, const char *func, size_t bytes )
      void    *mem;
      MemDesc *desc;
 
-     D_HEAVYDEBUG( "Direct/Mem: allocating %7d bytes in %s (%s: %u)\n", bytes, func, file, line );
+     D_DEBUG( "Direct/Mem: allocating %7d bytes in %s (%s: %u)\n", bytes, func, file, line );
 
      mem = malloc( bytes );
      if (!mem)
@@ -148,7 +148,7 @@ direct_calloc( const char* file, int line, const char *func, size_t count, size_
      void    *mem;
      MemDesc *desc;
 
-     D_HEAVYDEBUG( "Direct/Mem: allocating %7d bytes in %s (%s: %u)\n",
+     D_DEBUG( "Direct/Mem: allocating %7d bytes in %s (%s: %u)\n",
                    count * bytes, func, file, line );
 
      mem = calloc( count, bytes );
@@ -256,7 +256,7 @@ direct_strdup( const char* file, int line, const char *func, const char *string 
      MemDesc *desc;
      int      length = strlen( string ) + 1;
 
-     D_HEAVYDEBUG( "Direct/Mem: allocating %7d bytes in %s (%s: %u)\n",
+     D_DEBUG( "Direct/Mem: allocating %7d bytes in %s (%s: %u)\n",
                    length, func, file, line );
 
      mem = malloc( length );

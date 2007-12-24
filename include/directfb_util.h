@@ -338,6 +338,7 @@ static inline void dfb_rectangle_subtract( DFBRectangle    *rect,
 
 
 
+const char *dfb_pixelformat_name( DFBSurfacePixelFormat format );
 
 
 

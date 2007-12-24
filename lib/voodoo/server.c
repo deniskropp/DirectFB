@@ -264,7 +264,7 @@ voodoo_server_run( VoodooServer *server )
                     break;
 
                case 0:
-                    D_HEAVYDEBUG( "Voodoo/Server: Timeout during poll()\n" );
+                    D_DEBUG( "Voodoo/Server: Timeout during poll()\n" );
                     break;
 
                case -1:

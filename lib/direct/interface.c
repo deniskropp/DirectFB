@@ -210,8 +210,6 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                     continue;
                }
 
-               D_HEAVYDEBUG( "Direct/Interface: Found `%s_%s'.\n", impl->type, impl->implementation );
-
                /*
                 * Keep filename and module handle.
                 */

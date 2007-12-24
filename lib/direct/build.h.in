@@ -38,6 +38,9 @@
 
 
 #if !DIRECT_BUILD_DEBUGS
+#if defined(DIRECT_ENABLE_DEBUG) || defined(DIRECT_FORCE_DEBUG)
+#define DIRECT_MINI_DEBUG
+#endif
 #undef DIRECT_ENABLE_DEBUG
 #ifdef DIRECT_FORCE_DEBUG
 #warning DIRECT_FORCE_DEBUG used with 'pure release' library headers.

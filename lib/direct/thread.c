@@ -392,13 +392,13 @@ direct_thread_join( DirectThread *thread )
      if (!thread->joining && !pthread_equal( thread->thread, pthread_self() )) {
           thread->joining = true;
 
-          D_HEAVYDEBUG( "Direct/Thread: Joining %d...\n", thread->tid );
+          D_DEBUG_AT( Direct_Thread, "Joining %d...\n", thread->tid );
 
           pthread_join( thread->thread, NULL );
 
           thread->joined = true;
 
-          D_HEAVYDEBUG( "Direct/Thread: ...joined %d.\n", thread->tid );
+          D_DEBUG_AT( Direct_Thread, "...joined %d.\n", thread->tid );
      }
 }
 

@@ -262,8 +262,7 @@ render_glyph( CoreFont      *thiz,
      load_flags |= FT_LOAD_RENDER;
 
      if ((err = FT_Load_Glyph( face, index, load_flags ))) {
-          D_HEAVYDEBUG( "DirectFB/FontFT2: "
-                         "Could not render glyph for character index #%d!\n", index );
+          D_DEBUG( "DirectFB/FontFT2: Could not render glyph for character index #%d!\n", index );
           pthread_mutex_unlock ( &library_mutex );
           return DFB_FAILURE;
      }
@@ -272,7 +271,7 @@ render_glyph( CoreFont      *thiz,
 
      err = dfb_surface_lock_buffer( surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
      if (err) {
-          D_ERROR( "DirectB/FontFT2: Unable to lock surface!\n" );
+          D_DERROR( err, "DirectFB/FontFT2: Unable to lock surface!\n" );
           return err;
      }
 
@@ -455,8 +454,7 @@ get_glyph_info( CoreFont      *thiz,
      load_flags = (unsigned long) face->generic.data;
 
      if ((err = FT_Load_Glyph( face, index, load_flags ))) {
-          D_HEAVYDEBUG( "DirectB/FontFT2: "
-                         "Could not load glyph for character index #%d!\n", index );
+          D_DEBUG( "DirectFB/FontFT2: Could not load glyph for character index #%d!\n", index );
 
           pthread_mutex_unlock ( &library_mutex );
 
@@ -467,8 +465,7 @@ get_glyph_info( CoreFont      *thiz,
           err = FT_Render_Glyph( face->glyph,
                                  (load_flags & FT_LOAD_TARGET_MONO) ? ft_render_mode_mono : ft_render_mode_normal );
           if (err) {
-               D_ERROR( "DirectFB/FontFT2: Could not "
-                         "render glyph for character index #%d!\n", index );
+               D_ERROR( "DirectFB/FontFT2: Could not render glyph for character index #%d!\n", index );
 
                pthread_mutex_unlock ( &library_mutex );
 
@@ -570,8 +567,7 @@ init_freetype( void )
      pthread_mutex_lock ( &library_mutex );
 
      if (!library) {
-          D_HEAVYDEBUG( "DirectFB/FontFT2: "
-                         "Initializing the FreeType2 library.\n" );
+          D_DEBUG( "DirectFB/FontFT2: Initializing the FreeType2 library.\n" );
           err = FT_Init_FreeType( &library );
           if (err) {
                D_ERROR( "DirectFB/FontFT2: "
@@ -595,8 +591,7 @@ release_freetype( void )
      pthread_mutex_lock( &library_mutex );
 
      if (library && --library_ref_count == 0) {
-          D_HEAVYDEBUG( "DirectFB/FontFT2: "
-                         "Releasing the FreeType2 library.\n" );
+          D_DEBUG( "DirectFB/FontFT2: Releasing the FreeType2 library.\n" );
           FT_Done_FreeType( library );
           library = NULL;
      }
@@ -647,7 +642,7 @@ Probe( IDirectFBFont_ProbeContext *ctx )
      FT_Error err;
      FT_Face  face;
 
-     D_HEAVYDEBUG( "DirectFB/FontFT2: Probe font `%s'.\n", ctx->filename );
+     D_DEBUG( "DirectFB/FontFT2: Probe font `%s'.\n", ctx->filename );
 
      if (!ctx->filename)
           return DFB_UNSUPPORTED;
@@ -700,12 +695,12 @@ Construct( IDirectFBFont      *thiz,
      desc = va_arg(tag, DFBFontDescription *);
      va_end( tag );
 
-     D_HEAVYDEBUG( "DirectFB/FontFT2: "
-                    "Construct font from file `%s' (index %d) at pixel size %d x %d.\n",
-                    filename,
-                    (desc->flags & DFDESC_INDEX)  ? desc->index  : 0,
-                    (desc->flags & DFDESC_WIDTH)  ? desc->width  : 0,
-                    (desc->flags & DFDESC_HEIGHT) ? desc->height : 0 );
+     D_DEBUG( "DirectFB/FontFT2: "
+              "Construct font from file `%s' (index %d) at pixel size %d x %d.\n",
+              filename,
+              (desc->flags & DFDESC_INDEX)  ? desc->index  : 0,
+              (desc->flags & DFDESC_WIDTH)  ? desc->width  : 0,
+              (desc->flags & DFDESC_HEIGHT) ? desc->height : 0 );
 
      if (init_freetype() != DFB_OK) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
@@ -760,18 +755,18 @@ Construct( IDirectFBFont      *thiz,
 
           /* ft_encoding_latin_1 has been introduced in freetype-2.1 */
           if (err) {
-               D_HEAVYDEBUG( "DirectFB/FontFT2: "
-                              "Couldn't select Unicode encoding, "
-                              "falling back to Latin1.\n");
+               D_DEBUG( "DirectFB/FontFT2: "
+                        "Couldn't select Unicode encoding, "
+                        "falling back to Latin1.\n");
                pthread_mutex_lock ( &library_mutex );
                err = FT_Select_Charmap( face, ft_encoding_latin_1 );
                pthread_mutex_unlock ( &library_mutex );
           }
 #endif
           if (err) {
-               D_HEAVYDEBUG( "DirectFB/FontFT2: "
-                              "Couldn't select Unicode/Latin1 encoding, "
-                              "trying Symbol.\n");
+               D_DEBUG( "DirectFB/FontFT2: "
+                        "Couldn't select Unicode/Latin1 encoding, "
+                        "trying Symbol.\n");
                pthread_mutex_lock ( &library_mutex );
                err = FT_Select_Charmap( face, ft_encoding_symbol );
                pthread_mutex_unlock ( &library_mutex );
@@ -850,9 +845,8 @@ Construct( IDirectFBFont      *thiz,
      font->height     = font->ascender + ABS(font->descender) + 1;
      font->maxadvance = face->size->metrics.max_advance >> 6;
 
-     D_HEAVYDEBUG( "DirectFB/FontFT2: font->height = %d\n", font->height );
-     D_HEAVYDEBUG( "DirectFB/FontFT2: font->ascender = %d\n", font->ascender );
-     D_HEAVYDEBUG( "DirectFB/FontFT2: font->descender = %d\n",font->descender );
+     D_DEBUG( "DirectFB/FontFT2: height = %d, ascender = %d, descender = %d, maxadvance = %d\n",
+              font->height, font->ascender, font->descender, font->maxadvance );
 
      font->GetGlyphData = get_glyph_info;
      font->RenderGlyph  = render_glyph;
