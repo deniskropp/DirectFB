@@ -28,11 +28,6 @@
 
 #include <config.h>
 
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <fcntl.h>
-
 
 #include <linux/version.h>
 
@@ -65,6 +60,14 @@ typedef unsigned long kernel_ulong_t;
 #define EVIOCGRAB _IOW('E', 0x90, int)
 #endif
 
+#include <linux/keyboard.h>
+
+
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <fcntl.h>
+
 #include <dfb_types.h>
 
 #include <sys/types.h>
@@ -73,8 +76,6 @@ typedef unsigned long kernel_ulong_t;
 #include <sys/kd.h>
 #include <stdlib.h>
 
-
-#include <linux/keyboard.h>
 
 #include <directfb.h>
 #include <directfb_keyboard.h>
