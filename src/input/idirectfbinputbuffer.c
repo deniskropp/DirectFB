@@ -813,6 +813,8 @@ static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
      IDirectFBEventBuffer_data *data = ctx;
      EventBufferItem           *item;
 
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p ) <- type %06x\n", __FUNCTION__, thiz, evt->type );
+
      item = D_CALLOC( 1, sizeof(EventBufferItem) );
 
      item->evt.input = *evt;
