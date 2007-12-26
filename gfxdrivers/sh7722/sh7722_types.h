@@ -7,7 +7,7 @@
 
 
 #define SH7722GFX_MAX_PREPARE      8192
-#define SH7722GFX_JPEG_RELOAD_SIZE (32*1024)
+#define SH7722GFX_JPEG_RELOAD_SIZE (64*1024)
 
 
 typedef enum {
@@ -88,6 +88,7 @@ typedef struct {
      FusionSkirmish           beu_lock;
 
      /* JPEG */
+     FusionSkirmish           jpeg_lock;
      int                      jpeg_offset;
      int                      jpeg_size;
      unsigned long            jpeg_phys;

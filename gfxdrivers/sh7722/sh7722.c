@@ -281,6 +281,9 @@ driver_init_device( CoreGraphicsDevice *device,
      /* Initialize BEU lock. */
      fusion_skirmish_init( &sdev->beu_lock, "BEU", dfb_core_world(sdrv->core) );
 
+     /* Initialize JPEG lock. */
+     fusion_skirmish_init( &sdev->jpeg_lock, "JPEG", dfb_core_world(sdrv->core) );
+
      return DFB_OK;
 }
 
@@ -292,6 +295,9 @@ driver_close_device( CoreGraphicsDevice *device,
      SH7722DeviceData *sdev = device_data;
 
      D_DEBUG_AT( SH7722_Driver, "%s()\n", __FUNCTION__ );
+
+     /* Destroy JPEG lock. */
+     fusion_skirmish_destroy( &sdev->jpeg_lock );
 
      /* Destroy BEU lock. */
      fusion_skirmish_destroy( &sdev->beu_lock );
