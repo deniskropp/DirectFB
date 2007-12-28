@@ -58,6 +58,7 @@
 
 #include <core/input.h>
 #include <core/windows.h>
+#include <core/windows_internal.h>
 
 #include <misc/util.h>
 
@@ -77,6 +78,8 @@ typedef struct {
 
      CoreInputDevice *device;       /* pointer to input core device struct */
      Reaction         reaction;
+     
+     DFBInputDeviceDescription desc;
 } AttachedDevice;
 
 typedef struct {
@@ -678,18 +681,21 @@ IDirectFBEventBuffer_Construct( IDirectFBEventBuffer      *thiz,
 DFBResult IDirectFBEventBuffer_AttachInputDevice( IDirectFBEventBuffer *thiz,
                                                   CoreInputDevice      *device )
 {
-     AttachedDevice *attached;
+     AttachedDevice            *attached;
+     DFBInputDeviceDescription  desc;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      D_ASSERT( device != NULL );
-     D_ASSERT( device->shared != NULL );
 
-     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p [%02lu - %s] )\n", __FUNCTION__, thiz, device,
-                 device->shared->id, device->shared->device_info.desc.name );
+     dfb_input_device_description( device, &desc );
+
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p [%02u - %s] )\n", __FUNCTION__, thiz, device,
+                 dfb_input_device_id(device), desc.name );
 
      attached = D_CALLOC( 1, sizeof(AttachedDevice) );
      attached->device = device;
+     attached->desc   = desc;
 
      direct_list_prepend( &data->devices, &attached->link );
 
@@ -708,10 +714,9 @@ DFBResult IDirectFBEventBuffer_DetachInputDevice( IDirectFBEventBuffer *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      D_ASSERT( device != NULL );
-     D_ASSERT( device->shared != NULL );
 
-     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p [%02lu - %s] )\n", __FUNCTION__, thiz, device,
-                 device->shared->id, device->shared->device_info.desc.name );
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p [%02u] )\n", __FUNCTION__, thiz, device,
+                 dfb_input_device_id(device) );
      
      direct_list_foreach_safe (attached, link, data->devices) {
           if (attached->device == device) {
@@ -737,7 +742,7 @@ DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
 
      D_ASSERT( window != NULL );
 
-     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p [%02lu - %d,%d-%dx%d] )\n", __FUNCTION__, thiz,
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p [%02u - %d,%d-%dx%d] )\n", __FUNCTION__, thiz,
                  window, window->id, window->config.bounds.x, window->config.bounds.y,
                  window->config.bounds.w, window->config.bounds.h );
 
@@ -764,7 +769,7 @@ DFBResult IDirectFBEventBuffer_DetachWindow( IDirectFBEventBuffer *thiz,
 
      D_ASSERT( window != NULL );
      
-     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p [%02lu - %d,%d-%dx%d] )\n", __FUNCTION__, thiz,
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p [%02u - %d,%d-%dx%d] )\n", __FUNCTION__, thiz,
                  window, window->id, window->config.bounds.x, window->config.bounds.y,
                  window->config.bounds.w, window->config.bounds.h );
 
@@ -813,7 +818,7 @@ static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
      IDirectFBEventBuffer_data *data = ctx;
      EventBufferItem           *item;
 
-     D_DEBUG_AT( IDFBEvBuf, "%s( %p ) <- type %06x\n", __FUNCTION__, thiz, evt->type );
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p ) <- type %06x\n", __FUNCTION__, evt, data, evt->type );
 
      item = D_CALLOC( 1, sizeof(EventBufferItem) );
 
@@ -832,7 +837,7 @@ static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
      IDirectFBEventBuffer_data *data = ctx;
      EventBufferItem           *item;
 
-     D_DEBUG_AT( IDFBEvBuf, "%s( %p ) <- type %06x\n", __FUNCTION__, thiz, evt->type );
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p ) <- type %06x\n", __FUNCTION__, evt, data, evt->type );
 
      item = D_CALLOC( 1, sizeof(EventBufferItem) );
 
@@ -886,7 +891,7 @@ IDirectFBEventBuffer_Feed( DirectThread *thread, void *arg )
 
                pthread_mutex_unlock( &data->events_mutex );
 
-               D_DEBUG_AT( IDFBEvBuf, "Going to write %d bytes to file descriptor %d...\n",
+               D_DEBUG_AT( IDFBEvBuf, "Going to write %zu bytes to file descriptor %d...\n",
                            sizeof(DFBEvent), data->pipe_fds[1] );
 
                ret = write( data->pipe_fds[1], &item->evt, sizeof(DFBEvent) );
