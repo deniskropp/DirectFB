@@ -112,7 +112,7 @@ extern "C"
                                                                                                \
           COMA_GENCALL_EXECUTE( component, METHOD_ID );                                        \
                                                                                                \
-          return result;                                                                       \
+          return (DirectResult)result;                                                         \
      }
 
 #define COMA_GENCALL_DEFINE_I_( NAME, METHOD, METHOD_ID )                                      \
@@ -132,7 +132,7 @@ extern "C"
                                                                                                \
           COMA_GENCALL_EXECUTE( component, METHOD_ID );                                        \
                                                                                                \
-          return result;                                                                       \
+          return (DirectResult)result;                                                         \
      }
 
 #define COMA_GENCALL_DEFINE__O( NAME, METHOD, METHOD_ID )                                      \
@@ -152,7 +152,7 @@ extern "C"
                                                                                                \
           COMA_GENCALL_EXECUTE_TO( component, METHOD_ID, data );                               \
                                                                                                \
-          return result;                                                                       \
+          return (DirectResult)result;                                                         \
      }
 
 #define COMA_GENCALL_DEFINE_IO( NAME, METHOD, METHOD_ID )                                      \
@@ -172,7 +172,7 @@ extern "C"
                                                                                                \
           COMA_GENCALL_EXECUTE_TO( component, METHOD_ID, data );                               \
                                                                                                \
-          return result;                                                                       \
+          return (DirectResult)result;                                                         \
      }
 
 
