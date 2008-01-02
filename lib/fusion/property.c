@@ -203,6 +203,8 @@ fusion_property_destroy (FusionProperty *property)
 
 #else /* FUSION_BUILD_KERNEL */
 
+#include <direct/system.h>
+
 DirectResult
 fusion_property_init (FusionProperty *property, const FusionWorld *world)
 {
@@ -232,7 +234,7 @@ fusion_property_lease (FusionProperty *property)
      if (property->multi.builtin.destroyed)
           return DFB_DESTROYED;
 
-     D_ASSUME( property->multi.builtin.owner != getpid() );
+     D_ASSUME( property->multi.builtin.owner != direct_gettid() );
      
      asm( "" ::: "memory" );
      
@@ -267,7 +269,7 @@ fusion_property_lease (FusionProperty *property)
      }
      
      property->multi.builtin.state = FUSION_PROPERTY_LEASED;
-     property->multi.builtin.owner = getpid();
+     property->multi.builtin.owner = direct_gettid();
      
      asm( "" ::: "memory" );
 
@@ -284,7 +286,7 @@ fusion_property_purchase (FusionProperty *property)
      if (property->multi.builtin.destroyed)
           return DFB_DESTROYED;
 
-     D_ASSUME( property->multi.builtin.owner != getpid() );
+     D_ASSUME( property->multi.builtin.owner != direct_gettid() );
      
      asm( "" ::: "memory" );
           
@@ -319,7 +321,7 @@ fusion_property_purchase (FusionProperty *property)
      }
      
      property->multi.builtin.state = FUSION_PROPERTY_PURCHASED;
-     property->multi.builtin.owner = getpid();
+     property->multi.builtin.owner = direct_gettid();
      
      asm( "" ::: "memory" );
 
@@ -335,7 +337,7 @@ fusion_property_cede (FusionProperty *property)
           return DFB_DESTROYED;
 
      D_ASSUME( property->multi.builtin.state != FUSION_PROPERTY_AVAILABLE );
-     D_ASSUME( property->multi.builtin.owner == getpid() );
+     D_ASSUME( property->multi.builtin.owner == direct_gettid() );
 
      property->multi.builtin.state = FUSION_PROPERTY_AVAILABLE;
      property->multi.builtin.owner = 0;
@@ -360,7 +362,7 @@ fusion_property_holdup (FusionProperty *property)
           return DFB_DESTROYED;
 
      if (property->multi.builtin.state == FUSION_PROPERTY_PURCHASED &&
-         property->multi.builtin.owner != getpid()) {
+         property->multi.builtin.owner != direct_gettid()) {
           pid_t pid = property->multi.builtin.owner;
           
           if (kill( pid, SIGKILL ) < 0 && errno != ESRCH)

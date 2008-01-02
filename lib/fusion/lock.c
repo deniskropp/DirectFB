@@ -267,6 +267,7 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
 
 #include <direct/clock.h>
 #include <direct/list.h>
+#include <direct/system.h>
 
 typedef struct {
      DirectLink  link;
@@ -316,7 +317,7 @@ fusion_skirmish_prevail( FusionSkirmish *skirmish )
      asm( "" ::: "memory" );
 
      if (skirmish->multi.builtin.locked &&
-         skirmish->multi.builtin.owner != getpid())
+         skirmish->multi.builtin.owner != direct_gettid())
      {
           int count = 0;
           
@@ -346,7 +347,7 @@ fusion_skirmish_prevail( FusionSkirmish *skirmish )
      }
      
      skirmish->multi.builtin.locked++;
-     skirmish->multi.builtin.owner = getpid();
+     skirmish->multi.builtin.owner = direct_gettid();
      
      asm( "" ::: "memory" );
 
@@ -364,7 +365,7 @@ fusion_skirmish_swoop( FusionSkirmish *skirmish )
      asm( "" ::: "memory" );
           
      if (skirmish->multi.builtin.locked &&
-         skirmish->multi.builtin.owner != getpid()) {
+         skirmish->multi.builtin.owner != direct_gettid()) {
           /* Check whether owner exited without unlocking. */
           if (kill( skirmish->multi.builtin.owner, 0 ) < 0 && errno == ESRCH) { 
                skirmish->multi.builtin.locked = 0;
@@ -375,7 +376,7 @@ fusion_skirmish_swoop( FusionSkirmish *skirmish )
      }
           
      skirmish->multi.builtin.locked++;
-     skirmish->multi.builtin.owner = getpid();
+     skirmish->multi.builtin.owner = direct_gettid();
      
      asm( "" ::: "memory" );
 
@@ -408,7 +409,7 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
      asm( "" ::: "memory" );
 
      if (skirmish->multi.builtin.locked) {
-          if (skirmish->multi.builtin.owner != getpid()) {
+          if (skirmish->multi.builtin.owner != direct_gettid()) {
                D_ERROR( "Fusion/Skirmish: "
                         "Tried to dismiss a skirmish not owned by current process!\n" );
                return DFB_ACCESSDENIED;
@@ -477,7 +478,7 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
      if (!node)
           return D_OOSHM();
      
-     node->pid      = getpid();
+     node->pid      = direct_gettid();
      node->notified = false;
      
      direct_list_append( &skirmish->multi.builtin.waiting, &node->link );
@@ -540,12 +541,16 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
                continue;
 
           node->notified = true;
-          
-          if (kill( node->pid, SIGRESTART ) < 0 && errno == ESRCH) {
-               /* Remove dead process. */
-               direct_list_remove( &skirmish->multi.builtin.waiting, &node->link );
-                
-               SHFREE( skirmish->multi.shared->main_pool, node );
+
+          if (kill( node->pid, SIGRESTART ) < 0) {
+               if (errno == ESRCH) {
+                    /* Remove dead process. */
+                    direct_list_remove( &skirmish->multi.builtin.waiting, &node->link );
+                    SHFREE( skirmish->multi.shared->main_pool, node );
+               }
+               else {
+                    D_PERROR( "Fusion/Skirmish: Couldn't send notification signal!\n" );
+               }
           }
      }
 
