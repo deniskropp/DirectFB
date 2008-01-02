@@ -2,6 +2,7 @@
 
 INCLUDES = $(DFB_CFLAGS)
 
+AM_CFLAGS = -fomit-frame-pointer
 
 noinst_LTLIBRARIES = libdvc.la
 
