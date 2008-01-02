@@ -61,6 +61,8 @@ static IFusionSoundPlayback      *playback = NULL;
 static DirectLink                *playlist = NULL;
 static struct termios             term;
 
+static int                        quit     = 0;
+static int                        quiet    = 0;
 static float                      volume   = 1.0;
 static int                        flags    = FMPLAY_NOFX;
 static int                        repeat   = 0;
@@ -76,6 +78,7 @@ usage( const char *progname )
      fprintf( stderr, "\nOptions:\n" );
      fprintf( stderr, "  -h, --help      Show this help\n" );
      fprintf( stderr, "  -v, --version   Print version and quit\n" );
+     fprintf( stderr, "  -q, --quiet     Suppress messages\n" );
      fprintf( stderr, "  -r, --repeat    Repeat entire playlist\n" );
      fprintf( stderr, "  -g, --gain <n>  Select replay gain (0:none, 1:track, 2:album)\n" );
      fprintf( stderr, "\nPlayback Control:\n" );
@@ -107,10 +110,13 @@ parse_options( int argc, char **argv )
                puts( FUSIONSOUND_VERSION );
                exit( 0 );
           }
-          else if (!strcmp( opt, "-r" ) || !strcmp( opt, "-repeat" )) {
+          else if (!strcmp( opt, "-q" ) || !strcmp( opt, "--quiet" )) {
+               quiet = 1;
+          }
+          else if (!strcmp( opt, "-r" ) || !strcmp( opt, "--repeat" )) {
                repeat = 1;
           }
-          else if (!strcmp( opt, "-g" ) || !strcmp( opt, "-gain" )) {
+          else if (!strcmp( opt, "-g" ) || !strcmp( opt, "--gain" )) {
                if (++i < argc)
                     gain = atoi( argv[i] );
           }               
@@ -129,9 +135,10 @@ parse_options( int argc, char **argv )
 }                   
  
 static void
-quit( void )
+do_quit( void )
 {
-     fprintf( stderr, "\nQuit.\n" );
+     if (!quiet)
+          fprintf( stderr, "\nQuit.\n" );
      
      if (provider)
           provider->Release( provider );
@@ -144,6 +151,12 @@ quit( void )
      
      if (isatty( STDIN_FILENO ))
           tcsetattr( STDIN_FILENO, TCSADRAIN, &term );
+}
+
+static void
+handle_sig( int s )
+{
+     quit = 1;
 }
 
 static DFBEnumerationResult
@@ -230,7 +243,8 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
      provider->GetTrackDescription( provider, &desc );
           
      /* Print some informations about the track. */
-     fprintf( stderr,
+     if (!quiet) {
+          fprintf( stderr,
               "\nTrack %d:\n"
               "  Artist:     %s\n"
               "  Title:      %s\n"
@@ -246,27 +260,30 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
               desc.replaygain, desc.replaygain_album,
               s_dsc.samplerate, s_dsc.channels,
               FS_BITS_PER_SAMPLE(s_dsc.sampleformat) );
-     fflush( stderr );
+          fflush( stderr );
+     }
 
      do {
-          int    filled = 0;
-          int    total  = 0;
-          double pos    = 0;
+          double pos = 0;
           
-          /* Query ring buffer status. */
-          stream->GetStatus( stream, &filled, &total, NULL, NULL, NULL );
-          /* Query elapsed seconds. */
-          provider->GetPos( provider, &pos );
-          /* Query playback status. */
-          provider->GetStatus( provider, &status );
+          if (!quiet) {
+               int filled = 0, total = 0;
+    
+               /* Query ring buffer status. */
+               stream->GetStatus( stream, &filled, &total, NULL, NULL, NULL );
+               /* Query elapsed seconds. */
+               provider->GetPos( provider, &pos );
+               /* Query playback status. */
+               provider->GetStatus( provider, &status );
 
-          /* Print playback status. */
-          fprintf( stderr, 
+               /* Print playback status. */
+               fprintf( stderr, 
                    "\rTime: %02d:%02d,%02d of %02d:%02d,%02d  Ring Buffer: %02d%%",
                    (int)pos/60, (int)pos%60, (int)(pos*100.0)%100,
                    (int)len/60, (int)len%60, (int)(len*100.0)%100,
                    filled * 100 / total );
-          fflush( stderr );
+               fflush( stderr );
+          }
 
           if (isatty( STDIN_FILENO )) {
                int c;
@@ -320,10 +337,11 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
                }
           }
                
-          usleep( 25000 );
-     } while (status != FMSTATE_FINISHED);
+          usleep( 30000 );
+     } while (status != FMSTATE_FINISHED && !quit);
      
-     fprintf( stderr, "\n" );
+     if (!quiet)
+          fprintf( stderr, "\n" );
      
      return DFENUM_OK;
 }     
@@ -346,9 +364,9 @@ main( int argc, char **argv )
           FusionSoundErrorFatal( "FusionSoundCreate", ret );
 
      /* Register clean-up handlers. */
-     atexit( quit );
-     signal( SIGINT, exit );
-     signal( SIGTERM, exit );
+     atexit( do_quit );
+     signal( SIGINT, handle_sig );
+     signal( SIGTERM, handle_sig );
      
      if (isatty( STDIN_FILENO )) {
           struct termios cur;
@@ -364,16 +382,22 @@ main( int argc, char **argv )
      
      do {
           direct_list_foreach (media, playlist) {
+               if (quit)
+                    break;
+
                /* Create a music provider for the specified file. */
                ret = sound->CreateMusicProvider( sound, media->url, &provider );
                if (ret) {
                     FusionSoundError( "IFusionSound::CreateMusicProvider", ret );
                     continue;
                }
+               
                /* Show contents. */
-               fprintf( stderr, "\n%s:\n", media->url );
-               provider->EnumTracks( provider, track_display_callback, NULL );
-               fprintf( stderr, "\n" );
+               if (!quiet) {
+                    fprintf( stderr, "\n%s:\n", media->url );
+                    provider->EnumTracks( provider, track_display_callback, NULL );
+                    fprintf( stderr, "\n" );
+               }
      
                /* Play tracks. */
                provider->EnumTracks( provider, track_playback_callback, NULL );
@@ -381,7 +405,7 @@ main( int argc, char **argv )
                provider->Release( provider );
                provider = NULL;
           }
-     } while (repeat);
+     } while (repeat && !quit);
 
      return 0;
 }
