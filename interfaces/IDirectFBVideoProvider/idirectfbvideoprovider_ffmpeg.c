@@ -115,6 +115,7 @@ typedef struct {
      bool                           seekable;
      void                          *iobuf;
  
+     ByteIOContext                  pb;
      AVFormatContext               *context;
      
      s64                            start_time;
@@ -410,7 +411,7 @@ FFmpegInput( DirectThread *self, void *arg )
 {
      IDirectFBVideoProvider_FFmpeg_data *data = arg;
 
-     if (url_is_streamed( &data->context->pb )) {
+     if (url_is_streamed( data->context->pb )) {
           data->input.buffering = true;
           pthread_mutex_lock( &data->video.queue.lock );
           pthread_mutex_lock( &data->audio.queue.lock );
@@ -436,7 +437,7 @@ FFmpegInput( DirectThread *self, void *arg )
                     flush_packets( &data->video.queue );
                     flush_packets( &data->audio.queue );
                     if (!data->input.buffering &&
-                        url_is_streamed( &data->context->pb )) {
+                        url_is_streamed( data->context->pb )) {
                          data->input.buffering = true;
                          pthread_mutex_lock( &data->video.queue.lock );
                          pthread_mutex_lock( &data->audio.queue.lock );
@@ -471,7 +472,7 @@ FFmpegInput( DirectThread *self, void *arg )
           else if (data->video.queue.size == 0 || 
                    data->audio.queue.size == 0) {
                if (!data->input.buffering &&
-                   url_is_streamed( &data->context->pb )) {
+                   url_is_streamed( data->context->pb )) {
                     data->input.buffering = true;
                     pthread_mutex_lock( &data->video.queue.lock );
                     pthread_mutex_lock( &data->audio.queue.lock );
@@ -479,7 +480,7 @@ FFmpegInput( DirectThread *self, void *arg )
           }
           
           if (av_read_frame( data->context, &packet ) < 0) {
-               if (url_feof( &data->context->pb )) {
+               if (url_feof( data->context->pb )) {
                     if (data->input.buffering) {
                          pthread_mutex_unlock( &data->audio.queue.lock ); 
                          pthread_mutex_unlock( &data->video.queue.lock );
@@ -1575,7 +1576,6 @@ Construct( IDirectFBVideoProvider *thiz,
 {
      AVProbeData    pd;
      AVInputFormat *fmt;
-     ByteIOContext  pb;
      unsigned char  buf[2048];
      unsigned int   len = 0;
      int            i;
@@ -1615,7 +1615,7 @@ Construct( IDirectFBVideoProvider *thiz,
           return D_OOM();
      }
           
-     if (init_put_byte( &pb, data->iobuf, IO_BUFFER_SIZE * 1024, 0, 
+     if (init_put_byte( &data->pb, data->iobuf, IO_BUFFER_SIZE * 1024, 0, 
                         (void*)data, av_read_callback, NULL,
                         data->seekable ? av_seek_callback : NULL ) < 0) {
           D_ERROR( "IDirectFBVideoProvider_FFmpeg: "
@@ -1624,14 +1624,14 @@ Construct( IDirectFBVideoProvider *thiz,
           return DFB_INIT;
      }
      
-     pb.is_streamed = (!data->seekable                       ||
-                       !strncmp( pd.filename, "http://", 7 ) || 
-                       !strncmp( pd.filename, "unsv://", 7 ) ||
-                       !strncmp( pd.filename, "ftp://",  6 ) || 
-                       !strncmp( pd.filename, "rtsp://", 7 ));
+     data->pb.is_streamed = (!data->seekable                       ||
+                             !strncmp( pd.filename, "http://", 7 ) || 
+                             !strncmp( pd.filename, "unsv://", 7 ) ||
+                             !strncmp( pd.filename, "ftp://",  6 ) || 
+                             !strncmp( pd.filename, "rtsp://", 7 ));
      
      if (av_open_input_stream( &data->context, 
-                               &pb, pd.filename, fmt, NULL ) < 0) {
+                               &data->pb, pd.filename, fmt, NULL ) < 0) {
           D_ERROR( "IDirectFBVideoProvider_FFmpeg: "
                    "av_open_input_stream() failed!\n" );
           IDirectFBVideoProvider_FFmpeg_Destruct( thiz );
