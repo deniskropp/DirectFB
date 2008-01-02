@@ -315,7 +315,6 @@ static void ScaleH_Up_Proc_MMX( DVCContext *ctx )
 
      __asm__ __volatile__(
           "pxor       %%mm7, %%mm7\n\t"
-          "push          %1\n\t"
           "shr           $1,    %1\n\t"
           "jz            2f\n\t"
           ".align 16\n"
@@ -324,7 +323,11 @@ static void ScaleH_Up_Proc_MMX( DVCContext *ctx )
           "movd          %2, %%mm4\n\t"
           "shr          $16, %%eax\n\t"
           "punpcklwd  %%mm4, %%mm4\n\t"
+#ifdef ARCH_X86_64
+          "movq (%3,%%rax,4), %%mm0\n\t"
+#else
           "movq (%3,%%eax,4), %%mm0\n\t"
+#endif
           "punpckldq  %%mm4, %%mm4\n\t"
           "movq       %%mm0, %%mm1\n\t"
           "sub           %4,    %2\n\t"
@@ -333,7 +336,11 @@ static void ScaleH_Up_Proc_MMX( DVCContext *ctx )
           "movd          %2, %%mm5\n\t"
           "shr          $16, %%eax\n\t"
           "punpcklwd  %%mm5, %%mm5\n\t"
+#ifdef ARCH_X86_64
+          "movq (%3,%%rax,4), %%mm2\n\t"
+#else
           "movq (%3,%%eax,4), %%mm2\n\t"
+#endif
           "punpckldq  %%mm5, %%mm5\n\t"
           "movq       %%mm2, %%mm3\n\t"
           "psrlw         $1, %%mm5\n\t"
@@ -357,13 +364,16 @@ static void ScaleH_Up_Proc_MMX( DVCContext *ctx )
           "jnz           1b\n\t"
           ".align 8\n"
           "2:\n\t"
-          "pop           %1\n\t"
-          "testb         $1,   %b1\n\t"
+          "testb         $1,    %5\n\t"
           "jz            3f\n\t"
           "movd          %2, %%mm4\n\t"
           "shr          $16,    %2\n\t"
           "punpcklwd  %%mm4, %%mm4\n\t"
+#ifdef ARCH_X86_64
+          "movq   (%3,%q2,4), %%mm0\n\t"
+#else
           "movq   (%3,%2,4), %%mm0\n\t"
+#endif
           "punpckldq  %%mm4, %%mm4\n\t"
           "movq       %%mm0, %%mm1\n\t" 
           "psrlw         $1, %%mm4\n\t"     
@@ -378,8 +388,8 @@ static void ScaleH_Up_Proc_MMX( DVCContext *ctx )
           "3:\n\t"
           "emms"
           : "=&D" (D), "=&r" (n), "=&r" (i)
-          : "S" (S), "rm" (ctx->h_scale), "0" (D), "1" (n), "2" (i)
-          : "eax", "st" );
+          : "S" (S), "rm" (ctx->h_scale), "m" (n), "0" (D), "1" (n), "2" (i)
+          : "eax", "memory" );
 }
 
 static void ScaleV_Up_Proc_MMX( DVCContext *ctx )
@@ -393,7 +403,6 @@ static void ScaleV_Up_Proc_MMX( DVCContext *ctx )
                "pxor       %%mm7, %%mm7\n\t"
                "punpcklwd  %%mm4, %%mm4\n\t"
                "punpckldq  %%mm4, %%mm4\n\t"
-               "push          %2\n\t"
                "shr           $1,    %2\n\t"
                "jz            2f\n\t"
                ".align 16\n"
@@ -422,8 +431,7 @@ static void ScaleV_Up_Proc_MMX( DVCContext *ctx )
                "jnz           1b\n\t"
                ".align 8\n"
                "2:\n\t"
-               "pop           %2\n\t"
-               "testb         $1,   %b2\n\t"
+               "testb         $1,    %4\n\t"
                "jz            3f\n\t"
                "movd        (%0), %%mm0\n\t"
                "movd        (%1), %%mm1\n\t"
@@ -438,8 +446,8 @@ static void ScaleV_Up_Proc_MMX( DVCContext *ctx )
                "3:\n\t" 
                "emms"
                : "=&D" (D), "=&S" (S)
-               : "c" (ctx->dw), "r" ((ctx->s_v & 0xffff)>>1), "0" (D), "1" (S)
-               : "memory", "st" );
+               : "c" (ctx->dw), "q" ((ctx->s_v & 0xffff)>>1), "m" (ctx->dw), "0" (D), "1" (S)
+               : "memory" );
      }
 }
 
