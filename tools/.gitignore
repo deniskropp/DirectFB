@@ -4,6 +4,7 @@ Makefile
 Makefile.in
 dfbg
 dfbdump
+dfbfx
 dfbinfo
 dfbinput
 dfblayer
@@ -13,7 +14,6 @@ dfbscreen
 dfbsummon
 directfb-csource
 fusion_bench
-fx
 mkdfiff
 mkdgiff
 raw15toraw24
