@@ -31,6 +31,7 @@
 #include <fusion/shmalloc.h>
 
 #include <directfb.h>
+#include <directfb_util.h>
 
 #include <core/core.h>
 

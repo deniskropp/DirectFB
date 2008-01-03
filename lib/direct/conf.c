@@ -230,6 +230,14 @@ direct_config_set( const char *name, const char *value )
           }
      }
      else
+          if (strcmp (name, "thread_block_signals") == 0) {
+          direct_config->thread_block_signals = true;
+     }
+     else
+          if (strcmp (name, "no-thread_block_signals") == 0) {
+          direct_config->thread_block_signals = false;
+     }
+     else
           return DFB_UNSUPPORTED;
 
      return DFB_OK;

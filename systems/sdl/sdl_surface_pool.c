@@ -37,6 +37,8 @@
 
 #include <gfx/convert.h>
 
+#include <directfb_util.h>
+
 #include "sdl.h"
 
 D_DEBUG_DOMAIN( SDL_Pool, "SDL/Pool", "SDL Surface Pool" );

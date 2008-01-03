@@ -908,7 +908,7 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
 
 #else /* FUSION_BUILD_KERNEL */
 
-#include <grp.h>
+#include <direct/system.h>
 
 typedef struct {
      DirectLink   link;
@@ -950,7 +950,7 @@ _fusion_add_fusionee( FusionWorld *world, FusionID fusion_id )
           return D_OOSHM();
      
      fusionee->id  = fusion_id;
-     fusionee->pid = getpid();
+     fusionee->pid = direct_gettid();
      
      ret = fusion_skirmish_prevail( &shared->fusionees_lock );
      if (ret) {
