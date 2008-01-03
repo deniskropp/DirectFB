@@ -60,13 +60,25 @@ void direct_debug_config_domain( const char *name, bool enable );
 
 #if DIRECT_BUILD_TEXT
 
+#define D_DEBUG_DOMAIN(identifier,name,description)                                  \
+     static DirectDebugDomain identifier __attribute__((unused))                     \
+            = { 0, false, false, name, description, sizeof(name) - 1 }
+
+void direct_debug_at_always( DirectDebugDomain *domain,
+                             const char        *format, ... )  D_FORMAT_PRINTF(2);
+
+#define d_debug_at( domain, x... )      direct_debug_at_always( &domain, x )
+
+
+
+#if DIRECT_BUILD_DEBUG || defined(DIRECT_ENABLE_DEBUG) || defined(DIRECT_FORCE_DEBUG)
+
+#define D_DEBUG_ENABLED  (1)
+
 void direct_debug( const char *format, ... )  D_FORMAT_PRINTF(1);
 
 void direct_debug_at( DirectDebugDomain *domain,
                       const char        *format, ... )  D_FORMAT_PRINTF(2);
-
-void direct_debug_at_always( DirectDebugDomain *domain,
-                             const char        *format, ... )  D_FORMAT_PRINTF(2);
 
 void direct_debug_enter( DirectDebugDomain *domain,
 	      	         const char *func,
@@ -94,18 +106,6 @@ void direct_assumption( const char *exp,
                         const char *func,
                         const char *file,
                         int         line );
-
-#define D_DEBUG_DOMAIN(identifier,name,description)                                  \
-     static DirectDebugDomain identifier __attribute__((unused))                     \
-            = { 0, false, false, name, description, sizeof(name) - 1 }
-
-#define d_debug_at( domain, x... )      direct_debug_at_always( &domain, x )
-
-
-
-#if DIRECT_BUILD_DEBUG || defined(DIRECT_ENABLE_DEBUG) || defined(DIRECT_FORCE_DEBUG)
-
-#define D_DEBUG_ENABLED  (1)
 
 #define D_DEBUG(x...)                                                                \
      do {                                                                            \
