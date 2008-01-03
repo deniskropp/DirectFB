@@ -695,6 +695,7 @@ open_plugin( video_driver_class_t *vo_class,
      return &this->vo_driver;
 }
 
+#if VIDEO_OUT_DRIVER_IFACE_VERSION < 22
 static char*
 get_identifier( video_driver_class_t *vo_class )
 {
@@ -706,6 +707,7 @@ get_description( video_driver_class_t *vo_class)
 {
      return "generic DirectFB video output driver";
 }
+#endif
 
 static void
 dispose_class( video_driver_class_t *vo_class )
@@ -735,8 +737,13 @@ init_class( xine_t *xine,
      }
 
      class->vo_class.open_plugin     = open_plugin;
+#if VIDEO_OUT_DRIVER_IFACE_VERSION >= 22
+     class->vo_class.identifier      = "DFB";
+     class->vo_class.description     = "generic DirectFB video output driver";
+#else
      class->vo_class.get_identifier  = get_identifier;
      class->vo_class.get_description = get_description;
+#endif
      class->vo_class.dispose         = dispose_class;
      class->xine                     = xine;
 
