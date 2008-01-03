@@ -72,10 +72,10 @@ DecodeHW( IDirectFBImageProvider_SH7722_JPEG_data *data,
      CoreSurfaceBufferLock  lock;
      unsigned long          phys;
      unsigned int           len;
-     unsigned int           reload = 0;
      SH7722DriverData      *drv    = dfb_gfxcard_get_driver_data();
      SH7722DeviceData      *dev    = drv->dev;
      SH7722GfxSharedArea   *shared = drv->gfx_shared;
+     SH7722JPEG             jpeg;
 
      D_ASSERT( data != NULL );
      D_MAGIC_ASSERT( destination, CoreSurface );
@@ -90,18 +90,17 @@ DecodeHW( IDirectFBImageProvider_SH7722_JPEG_data *data,
                  DFB_RECTANGLE_VALS( rect ), DFB_RECTANGLE_VALS_FROM_REGION( clip ) );
 
      /*
-      * FIRST WORKING VERSION [tm]
+      * Kernel based state machine
       *
-      * Almost user space based only. To NOT USE usleep() & friends and loose throughput (sleep) or
-      * CPU resources (busyloop), I added an ioctl that waits for the next interrupt to occur.
-      *
-      * With a 128x128 image (23k coded data) being loaded in a loop, this temporary mechanism is
-      * achieving almost the same throughput as a busyloop, but with only half the CPU load.
+      * Execution enters the kernel and only returns to user space for
+      *  - end of decoding
+      *  - error in decoding
+      *  - reload requested
       *
       * TODO
-      * - add a state machine used by Construct(), GetSurfaceDescription() and RenderTo() to avoid redundancy
+      * - modify state machine to be used by Construct(), GetSurfaceDescription() and RenderTo() to avoid redundancy
       * - implement clipping, scaling and format conversion via VEU (needs line buffer mode)
-      * - move more code into the kernel module for better performance, e.g. INT14_RELOAD handling
+      * - check return code and length from GetData()
       */
 
 
@@ -119,8 +118,8 @@ DecodeHW( IDirectFBImageProvider_SH7722_JPEG_data *data,
 
      D_DEBUG_AT( SH7722_JPEG, "  -> loading...\n" );
 
-     /* Prefill both reload buffers. */
-     if (data->buffer->GetData( data->buffer, SH7722GFX_JPEG_RELOAD_SIZE * 2, (void*) drv->jpeg_virt, &len )) {
+     /* First first reload buffers. */
+     if (data->buffer->GetData( data->buffer, SH7722GFX_JPEG_RELOAD_SIZE, (void*) drv->jpeg_virt, &len )) {
           fusion_skirmish_dismiss( &dev->jpeg_lock );
           dfb_surface_unlock_buffer( destination, &lock );
           return DFB_IO;
@@ -147,66 +146,40 @@ DecodeHW( IDirectFBImageProvider_SH7722_JPEG_data *data,
      /* Clear interrupts in shared flags. */
      shared->jpeg_ints = 0;
 
-     /* Start decoder and begin reading from first reload buffer. */
-     SH7722_SETREG32( drv, JCCMD, JCCMD_START );
-     SH7722_SETREG32( drv, JCCMD, JCCMD_READ_RESTART );
+     /* Initialize JPEG state. */
+     jpeg.state   = SH7722_JPEG_START;
+     jpeg.buffers = 1;
 
-     /* Stall machine. */
+     /* State machine. */
      while (true) {
-          /* Check for new interrupts in shared flags... */
-          u32 ints = shared->jpeg_ints;
-          if (ints) {
-               /* ...and clear them (FIXME: race condition in case of multiple IRQs per command!). */
-               shared->jpeg_ints &= ~ints;
+          /* Run the state machine. */
+          if (ioctl( drv->gfx_fd, SH7722GFX_IOCTL_RUN_JPEG, &jpeg ) < 0) {
+               ret = errno2result( errno );
 
-               D_DEBUG_AT( SH7722_JPEG, "  -> JCSTS 0x%08x, JINTS 0x%08x\n", SH7722_GETREG32( drv, JCSTS ), ints );
+               D_PERROR( "SH7722/JPEG: SH7722GFX_IOCTL_RUN_JPEG failed!\n" );
+               break;
+          }
 
-               /* Check for errors! */
-               if (ints & JINTS_INS5_ERROR) {
-                    D_ERROR( "SH7722/JPEG: ERROR 0x%x!\n", SH7722_GETREG32( drv, JCDERR ) );
+          D_ASSERT( jpeg.state != SH7722_JPEG_START );
+
+          /* Handle end (or error). */
+          if (jpeg.state == SH7722_JPEG_END) {
+               if (jpeg.error) {
+                    D_ERROR( "SH7722/JPEG: ERROR 0x%x!\n", jpeg.error );
                     ret = DFB_IO;
-                    break;
                }
 
-               /* Done processing all data? */
-               if (ints & JINTS_INS6_DONE) {
-                    D_DEBUG_AT( SH7722_JPEG, "  -> DONE :)\n" );
-                    break;
-               }
-
-               /* Check for header interception... */
-               if (ints & JINTS_INS3_HEADER) {
-                    /* ...and start decoding the actual image data... */
-                    SH7722_SETREG32( drv, JCCMD, JCCMD_RESTART | JCCMD_END );
-               }
-
-               /* Check for reload interception... */
-               if (ints & JINTS_INS14_RELOAD) {
-                    D_DEBUG_AT( SH7722_JPEG, "  -> reloading...\n" );
-
-                    /* ...continue reading the image data from the pending buffer... */
-                    SH7722_SETREG32( drv, JCCMD, JCCMD_READ_RESTART );
-
-                    /* ...fill previously read buffer to have it pending for next reload... */
-                    data->buffer->GetData( data->buffer, SH7722GFX_JPEG_RELOAD_SIZE,
-                                           (void*) drv->jpeg_virt + (SH7722GFX_JPEG_RELOAD_SIZE & reload), &len );
-
-                    /* Swap reload buffers. */
-                    reload = ~reload;
-               }
+               break;
           }
-          else {
-               D_DEBUG_AT( SH7722_JPEG, "  -> waiting...\n" );
 
-               /* ...otherwise wait for the arrival of new interrupt(s). */
-               if (ioctl( drv->gfx_fd, SH7722GFX_IOCTL_WAIT_JPEG ) < 0) {
-                    ret = errno2result( errno );
+          /* Check for reload requests. */
+          if (jpeg.buffers & 1)
+               data->buffer->GetData( data->buffer, SH7722GFX_JPEG_RELOAD_SIZE,
+                                      (void*) drv->jpeg_virt, &len );
 
-                    D_PERROR( "SH7722/JPEG: Waiting for IRQ failed! (ints: 0x%x - JINTS 0x%x, JCSTS 0x%x)\n",
-                              ints, SH7722_GETREG32( drv, JINTS ), SH7722_GETREG32( drv, JCSTS ) );
-                    break;
-               }
-          }
+          if (jpeg.buffers & 2)
+               data->buffer->GetData( data->buffer, SH7722GFX_JPEG_RELOAD_SIZE,
+                                      (void*) drv->jpeg_virt + SH7722GFX_JPEG_RELOAD_SIZE, &len );
      }
 
      fusion_skirmish_dismiss( &dev->jpeg_lock );

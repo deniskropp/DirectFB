@@ -621,28 +621,13 @@ SH7722_SETREG32( SH7722DriverData *sdrv,
 #define JIFDCNT_SWAP_4321     0x00000006
 #define JIFDCNT_RELOAD_ENABLE 0x00000008
 
-#define JINTS_MASK            0x00007C68
-#define JINTS_INS14_RELOAD    0x00004000
+#define JINTS_MASK            0x00005C68
 #define JINTS_INS3_HEADER     0x00000008
 #define JINTS_INS5_ERROR      0x00000020
 #define JINTS_INS6_DONE       0x00000040
-#define JINTS_INS7_ERROR      0x00000080
-#define JINTS_INS10_    0x00000400
-#define JINTS_INS11_    0x00000800
-#define JINTS_INS12_    0x00001000
-#define JINTS_INS13_    0x00002000
+#define JINTS_INS10_XFER_DONE 0x00000400
+#define JINTS_INS11_LINEBUF1  0x00000800
+#define JINTS_INS12_LINEBUF2  0x00001000
 #define JINTS_INS14_RELOAD    0x00004000
-
-#define JINT3           (1 <<  3)
-#define JINT5           (1 <<  5)
-#define JINT6           (1 <<  6)
-#define JINT7           (1 <<  7)
-#define JINT10          (1 << 10)
-#define JINT11          (1 << 11)
-#define JINT12          (1 << 12)
-#define JINT13          (1 << 13)
-#define JINT14          (1 << 14)
-#define JINT_MASK       (JINT3 | JINT5 | JINT6 | JINT7 | JINT10 | \
-                 JINT11 | JINT12 | JINT13 | JINT14)
 
 #endif

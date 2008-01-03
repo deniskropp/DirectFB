@@ -7,7 +7,7 @@
 
 
 #define SH7722GFX_MAX_PREPARE      8192
-#define SH7722GFX_JPEG_RELOAD_SIZE (64*1024)
+#define SH7722GFX_JPEG_RELOAD_SIZE (384*1024)
 
 
 typedef enum {

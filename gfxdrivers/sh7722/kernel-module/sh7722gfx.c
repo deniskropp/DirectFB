@@ -37,28 +37,46 @@
 #define BEU_REG(x)       (*(volatile u32*)((x)+SH7722_BEU_BASE))
 #define JPU_REG(x)       (*(volatile u32*)((x)+SH7722_JPU_BASE))
 
-#define	BEM_HC_STATUS			BEM_REG(0x00000)
-#define	BEM_HC_RESET			BEM_REG(0x00004)
-#define	BEM_HC_CLOCK			BEM_REG(0x00008)
-#define	BEM_HC_INT_STATUS		BEM_REG(0x00020)
-#define	BEM_HC_INT_MASK			BEM_REG(0x00024)
-#define	BEM_HC_INT_CLEAR		BEM_REG(0x00028)
-#define	BEM_HC_CACHE_FLUSH		BEM_REG(0x0002C)
-#define	BEM_HC_DMA_ADR			BEM_REG(0x00040)
-#define	BEM_HC_DMA_START		BEM_REG(0x00044)
-#define	BEM_HC_DMA_STOP			BEM_REG(0x00048)
-#define	BEM_PE_CACHE			BEM_REG(0x010B0)
+#define	BEM_HC_STATUS			   BEM_REG(0x00000)
+#define	BEM_HC_RESET			   BEM_REG(0x00004)
+#define	BEM_HC_CLOCK			   BEM_REG(0x00008)
+#define	BEM_HC_INT_STATUS		   BEM_REG(0x00020)
+#define	BEM_HC_INT_MASK			   BEM_REG(0x00024)
+#define	BEM_HC_INT_CLEAR		   BEM_REG(0x00028)
+#define	BEM_HC_CACHE_FLUSH		   BEM_REG(0x0002C)
+#define	BEM_HC_DMA_ADR			   BEM_REG(0x00040)
+#define	BEM_HC_DMA_START		   BEM_REG(0x00044)
+#define	BEM_HC_DMA_STOP			   BEM_REG(0x00048)
+#define	BEM_PE_CACHE			   BEM_REG(0x010B0)
 
-#define BEVTR                   BEU_REG(0x018C)
+#define BEVTR                      BEU_REG(0x018C)
 
-#define JPU_JCCMD               JPU_REG(0x0004)
-#define JPU_JCSTS               JPU_REG(0x0008)
-#define JPU_JINTE               JPU_REG(0x0038)
-#define JPU_JINTS               JPU_REG(0x003c)
+#define JPU_JCCMD                  JPU_REG(0x0004)
+#define JPU_JCSTS                  JPU_REG(0x0008)
+#define JPU_JINTE                  JPU_REG(0x0038)
+#define JPU_JINTS                  JPU_REG(0x003c)
+#define JPU_JCDERR                 JPU_REG(0x0040)
+#define JPU_JIFDDVSZ               JPU_REG(0x00B4)
+#define JPU_JIFDDHSZ               JPU_REG(0x00B8)
+
+#define JINTS_MASK                 0x00005C68
+#define JINTS_INS3_HEADER          0x00000008
+#define JINTS_INS5_ERROR           0x00000020
+#define JINTS_INS6_DONE            0x00000040
+#define JINTS_INS10_XFER_DONE      0x00000400
+#define JINTS_INS11_LINEBUF1       0x00000800
+#define JINTS_INS12_LINEBUF2       0x00001000
+#define JINTS_INS14_RELOAD         0x00004000
+
+#define JCCMD_START                0x00000001
+#define JCCMD_RESTART              0x00000002
+#define JCCMD_END                  0x00000004
+#define JCCMD_RESET                0x00000080
+#define JCCMD_READ_RESTART         0x00000400
 
 /**********************************************************************************************************************/
 
-#ifdef SH7722GFX_DEBUG
+#ifdef SH7722GFX_DEBUG_2DG
 #define QPRINT(x...)     do {                                                        \
      char buf[128];                                                                  \
      struct timeval tv;                                                              \
@@ -84,6 +102,22 @@
 
 /**********************************************************************************************************************/
 
+#ifdef SH7722GFX_DEBUG_JPU
+#define JPRINT(x...)     do {                                                        \
+     char buf[128];                                                                  \
+     struct timeval tv;                                                              \
+     do_gettimeofday( &tv );                                                         \
+     snprintf( buf, sizeof(buf), x );                                                \
+     printk( KERN_DEBUG "%ld.%03ld.%03ld - %-17s: %s\n",                             \
+             tv.tv_sec - base_time.tv_sec,                                           \
+             tv.tv_usec / 1000, tv.tv_usec % 1000, __FUNCTION__, buf );              \
+} while (0)
+#else
+#define JPRINT(x...)     do {} while (0)
+#endif
+
+/**********************************************************************************************************************/
+
 static DECLARE_WAIT_QUEUE_HEAD( wait_idle );
 static DECLARE_WAIT_QUEUE_HEAD( wait_next );
 static DECLARE_WAIT_QUEUE_HEAD( wait_jpeg );
@@ -100,6 +134,12 @@ static unsigned int         shared_order;
 #ifdef SH7722GFX_IRQ_POLLER
 static int                  stop_poller;
 #endif
+
+static u32                  jpeg_buffers;
+static int                  jpeg_buffer;
+static u32                  jpeg_error;
+static int                  jpeg_reading;
+static int                  jpeg_end;
 
 /**********************************************************************************************************************/
 
@@ -213,6 +253,139 @@ sh7722_wait_jpeg( SH7722GfxSharedArea *shared )
      }
 
      return (ret > 0) ? 0 : (ret < 0) ? ret : -ETIMEDOUT;
+}
+
+static int
+sh7722_run_jpeg( SH7722GfxSharedArea *shared,
+                 SH7722JPEG          *jpeg )
+{
+     int ret;
+
+     switch (jpeg->state) {
+          case SH7722_JPEG_START:
+               JPRINT( "START (buffers: %d)", jpeg->buffers );
+
+               jpeg_end     = 0;
+               jpeg_error   = 0;
+               jpeg_reading = 0;
+               jpeg_buffer  = 0;
+               jpeg_buffers = jpeg->buffers;
+
+               jpeg->state  = SH7722_JPEG_RUN;
+               jpeg->error  = 0;
+
+               JPU_JCCMD = JCCMD_START;
+               break;
+
+          case SH7722_JPEG_RUN:
+               JPRINT( "RUN (buffers: %d)", jpeg->buffers );
+
+               /* Validate loaded buffers. */
+               jpeg_buffers |= jpeg->buffers;
+               break;
+
+          default:
+               printk( KERN_ERR "%s: INVALID STATE %d! (status 0x%08x, ints 0x%08x)\n",
+                       __FUNCTION__, jpeg->state, JPU_JCSTS, JPU_JINTS );
+               return -EINVAL;
+     }
+
+     if (jpeg_buffers && !jpeg_reading) {
+          JPRINT( " '-> read start (buffers: %d)", jpeg_buffers );
+
+          jpeg_reading = 1;
+          JPU_JCCMD = JCCMD_READ_RESTART;
+     }
+
+     ret = wait_event_interruptible_timeout( wait_jpeg, jpeg_error || jpeg_buffers != 3 || jpeg_end, HZ );
+     if (!ret) {
+          printk( KERN_ERR "%s: TIMEOUT! (status 0x%08x, ints 0x%08x)\n", __FUNCTION__, JPU_JCSTS, JPU_JINTS );
+     }
+     else {
+          if (jpeg_error) {
+               /* Return error. */
+               jpeg->state = SH7722_JPEG_END;
+               jpeg->error = jpeg_error;
+
+               JPRINT( " '-> ERROR (0x%x)", jpeg->error );
+          }
+          else if (jpeg_end) {
+               /* Return end. */
+               jpeg->state = SH7722_JPEG_END;
+
+               JPRINT( " '-> END" );
+          }
+          else {
+               /* Return buffers to reload. */
+               jpeg->buffers = jpeg_buffers ^ 3;
+
+               JPRINT( " '-> RELOAD (%d)", jpeg->buffers );
+          }
+     }
+
+     return (ret > 0) ? 0 : (ret < 0) ? ret : -ETIMEDOUT;
+}
+
+/**********************************************************************************************************************/
+
+static irqreturn_t
+sh7722_jpu_irq( int irq, void *ctx )
+{
+     u32                  ints;
+     SH7722GfxSharedArea *shared = ctx;
+
+     ints = JPU_JINTS;
+
+     JPU_JINTS = ~ints & JINTS_MASK;
+     JPU_JCCMD = JCCMD_END;
+
+     JPRINT( " ... interrupt 0x%08x (0x%08x)", ints, shared->jpeg_ints );
+
+     if (ints) {
+          shared->jpeg_ints |= ints;
+
+          wake_up_all( &wait_jpeg );
+
+          /* Header */
+          if (ints & JINTS_INS3_HEADER) {
+               JPU_JCCMD = JCCMD_RESTART;
+
+               JPRINT( "         -> HEADER (%dx%d)", JPU_JIFDDHSZ, JPU_JIFDDVSZ );
+          }
+
+          /* Error */
+          if (ints & JINTS_INS5_ERROR) {
+               jpeg_error = JPU_JCDERR;
+
+               JPRINT( "         -> ERROR 0x%08x!", jpeg_error );
+          }
+
+          /* Done */
+          if (ints & JINTS_INS6_DONE) {
+               jpeg_end = 1;
+
+               JPRINT( "         -> DONE" );
+          }
+
+          /* Reload */
+          if (ints & JINTS_INS14_RELOAD) {
+               JPRINT( "         -> RELOAD %d", jpeg_buffer );
+
+               jpeg_buffers &= ~(1 << jpeg_buffer);
+
+               jpeg_buffer = jpeg_buffer ? 0 : 1;
+
+               if (jpeg_buffers) {
+                    jpeg_reading = 1;   /* should still be one */
+
+                    JPU_JCCMD = JCCMD_READ_RESTART;
+               }
+               else
+                    jpeg_reading = 0;
+          }
+     }
+
+     return IRQ_HANDLED;
 }
 
 /**********************************************************************************************************************/
@@ -329,52 +502,6 @@ sh7722_tdg_irq_poller( void *arg )
 }
 #endif
 
-
-#define JINT3           (1 <<  3)
-#define JINT5           (1 <<  5)
-#define JINT6           (1 <<  6)
-#define JINT7           (1 <<  7)
-#define JINT10          (1 << 10)
-#define JINT11          (1 << 11)
-#define JINT12          (1 << 12)
-#define JINT13          (1 << 13)
-#define JINT14          (1 << 14)
-#define JINT_MASK       (JINT3 | JINT5 | JINT6 | JINT7 | JINT10 | \
-                 JINT11 | JINT12 | JINT13 | JINT14)
-
-#define JCCMD_JSRT      (1 <<  0)
-#define JCCMD_JRST      (1 <<  1)
-#define JCCMD_JEND      (1 <<  2)
-#define JCCMD_BRST      (1 <<  7)
-#define JCCMD_LCMD2     (1 <<  8)
-#define JCCMD_LCMD1     (1 <<  9)
-#define JCCMD_RRCMD     (1 << 10)
-#define JCCMD_RWCMD     (1 << 11)
-
-static irqreturn_t
-sh7722_jpu_irq( int irq, void *ctx )
-{
-     u32                  ints;
-     SH7722GfxSharedArea *shared = ctx;
-
-//     printk( "%s( %d, %p )\n", __FUNCTION__, irq, ctx );
-
-     ints = JPU_JINTS;
-
-//     printk( "  -> ints 0x%08x (0x%08x)\n", ints, shared->jpeg_ints );
-
-     JPU_JINTS = ~ints & JINT_MASK;
-     JPU_JCCMD = JCCMD_JEND;
-
-     if (ints) {
-          shared->jpeg_ints |= ints;
-
-          wake_up_all( &wait_jpeg );
-     }
-
-     return IRQ_HANDLED;
-}
-
 /**********************************************************************************************************************/
 
 static int
@@ -383,7 +510,9 @@ sh7722gfx_ioctl( struct inode  *inode,
                  unsigned int   cmd,
                  unsigned long  arg )
 {
+     int            ret;
      SH7722Register reg;
+     SH7722JPEG     jpeg;
 
      switch (cmd) {
           case SH7722GFX_IOCTL_RESET:
@@ -424,6 +553,19 @@ sh7722gfx_ioctl( struct inode  *inode,
 
           case SH7722GFX_IOCTL_WAIT_JPEG:
                return sh7722_wait_jpeg( shared );
+
+          case SH7722GFX_IOCTL_RUN_JPEG:
+               if (copy_from_user( &jpeg, arg, sizeof(SH7722JPEG) ))
+                    return -EFAULT;
+
+               ret = sh7722_run_jpeg( shared, &jpeg );
+               if (ret)
+                    return ret;
+
+               if (copy_to_user( arg, &jpeg, sizeof(SH7722JPEG) ))
+                    return -EFAULT;
+
+               return 0;
      }
 
      return -ENOSYS;

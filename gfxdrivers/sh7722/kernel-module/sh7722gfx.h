@@ -9,7 +9,7 @@
 
 
 typedef volatile struct {
-     __u32          buffer[SH7722GFX_BUFFER_WORDS];
+     u32            buffer[SH7722GFX_BUFFER_WORDS];
 
 
      int            hw_start;
@@ -34,28 +34,44 @@ typedef volatile struct {
      unsigned int   num_wait_next;
      unsigned int   num_idle;
 
-     __u32          jpeg_ints;
+     u32            jpeg_ints;
 
-     __u32          magic;
+     u32            magic;
 } SH7722GfxSharedArea;
 
 
 typedef struct {
-     __u32          address;  /* in */
-     __u32          value;    /* in/out */
+     u32            address;  /* in */
+     u32            value;    /* in/out */
 } SH7722Register;
+
+
+typedef enum {
+     SH7722_JPEG_START,
+     SH7722_JPEG_RUN,
+     SH7722_JPEG_END
+} SH7722JPEGState;
+
+typedef struct {
+     SH7722JPEGState state;
+
+     u32             buffers; /* input = loaded buffers, output = buffers to reload */
+     u32             error;   /* valid in END state, non-zero means error */
+} SH7722JPEG;
 
 
 /* Just initialization and synchronization.
  * Hardware is started from user space via MMIO to DMA registers. */
-#define SH7722GFX_IOCTL_RESET      _IO ( 'G', 0 )
-#define SH7722GFX_IOCTL_WAIT_IDLE  _IO ( 'G', 1 )
-#define SH7722GFX_IOCTL_WAIT_NEXT  _IO ( 'G', 2 )
+#define SH7722GFX_IOCTL_RESET      _IO( 'G', 0 )
+#define SH7722GFX_IOCTL_WAIT_IDLE  _IO( 'G', 1 )
+#define SH7722GFX_IOCTL_WAIT_NEXT  _IO( 'G', 2 )
 
-#define SH7722GFX_IOCTL_WAIT_JPEG  _IO ( 'J', 0 )
+/* JPEG processing, requires programming from user space. */
+#define SH7722GFX_IOCTL_WAIT_JPEG  _IO  ( 'J', 0 )
+#define SH7722GFX_IOCTL_RUN_JPEG   _IOWR( 'J', 1, SH7722JPEG )
 
 
-/* Access limited to BEU, LCDC, VOU and JPU. */
+/* Register access limited to BEU, LCDC, VOU and JPU. */
 #define SH7722GFX_IOCTL_SETREG32   _IOW( 'g', 0, SH7722Register )
 #define SH7722GFX_IOCTL_GETREG32   _IOR( 'g', 1, SH7722Register )
 

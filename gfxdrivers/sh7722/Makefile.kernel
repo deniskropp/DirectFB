@@ -4,6 +4,13 @@ KERNEL_VERSION = 2.6.21.1
 
 DESTDIR = /export/nfs/ap325/rootfs
 
+ifeq ($(DEBUG_2DG),yes)
+  CPPFLAGS += -DSH7722GFX_DEBUG_2DG
+endif
+
+ifeq ($(DEBUG_JPU),yes)
+  CPPFLAGS += -DSH7722GFX_DEBUG_JPU
+endif
 
 ifeq ($(shell test -e $(KERNEL_BUILD)/include/linux/autoconf.h && echo yes),yes)
   AUTOCONF_H = -include $(KERNEL_BUILD)/include/linux/autoconf.h
