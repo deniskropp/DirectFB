@@ -1584,7 +1584,6 @@ inputdrivers/wm97xx_ts/Makefile
 interfaces/Makefile
 interfaces/IDirectFBFont/Makefile
 interfaces/IDirectFBImageProvider/Makefile
-interfaces/IDirectFBImageProvider/mpeg2/Makefile
 interfaces/IDirectFBVideoProvider/Makefile
 
 data/Makefile
@@ -1649,7 +1648,6 @@ Building Window Manager Modules:
 Building Image Provider Modules:
   GIF                       $enable_gif 
   JPEG                      $JPEG
-  MPEG2 I-Frame             yes
   PNG                       $PNG
 
 Building Video Provider Modules:

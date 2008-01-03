@@ -172,9 +172,6 @@ while test $# -gt 0; do
             ;;
           gif)
             ;;
-          mpeg2)
-            echo_imageprovider="$echo_imageprovider -lm"
-            ;;
         esac
       done
 
