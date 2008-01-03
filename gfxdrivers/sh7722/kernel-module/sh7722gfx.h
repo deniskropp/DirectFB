@@ -52,8 +52,14 @@ typedef enum {
      SH7722_JPEG_END
 } SH7722JPEGState;
 
+typedef enum {
+     SH7722_JPEG_FLAG_RELOAD  = 0x00000001,  /* enable reload mode */
+     SH7722_JPEG_FLAG_CONVERT = 0x00000002   /* enable conversion through VEU */
+} SH7722JPEGFlags;
+
 typedef struct {
-     SH7722JPEGState state;
+     SH7722JPEGState state;   /* starting, running or ended (done/error) */
+     SH7722JPEGFlags flags;   /* control decoding options */
 
      u32             buffers; /* input = loaded buffers, output = buffers to reload */
      u32             error;   /* valid in END state, non-zero means error */

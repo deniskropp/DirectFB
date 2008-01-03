@@ -1,4 +1,6 @@
-//#define DIRECT_ENABLE_DEBUG
+#ifdef SH7722_DEBUG_JPEG
+#define DIRECT_ENABLE_DEBUG
+#endif
 
 #include <config.h>
 
@@ -72,15 +74,23 @@ DecodeHW( IDirectFBImageProvider_SH7722_JPEG_data *data,
      CoreSurfaceBufferLock  lock;
      unsigned long          phys;
      unsigned int           len;
+     int                    i;
+     int                    cw, ch;
+     bool                   reload = false;
      SH7722DriverData      *drv    = dfb_gfxcard_get_driver_data();
      SH7722DeviceData      *dev    = drv->dev;
      SH7722GfxSharedArea   *shared = drv->gfx_shared;
      SH7722JPEG             jpeg;
+     u32                    vtrcr   = 0;
+     u32                    vswpout = 0;
 
      D_ASSERT( data != NULL );
      D_MAGIC_ASSERT( destination, CoreSurface );
      DFB_RECTANGLE_ASSERT( rect );
      DFB_REGION_ASSERT( clip );
+
+     cw = clip->x2 - clip->x1 + 1;
+     ch = clip->y2 - clip->y1 + 1;
 
      D_DEBUG_AT( SH7722_JPEG, "%s( %p, %p [%dx%d %s] )\n", __FUNCTION__,
                  data, destination, destination->config.size.w, destination->config.size.h,
@@ -98,11 +108,50 @@ DecodeHW( IDirectFBImageProvider_SH7722_JPEG_data *data,
       *  - reload requested
       *
       * TODO
+      * - finish clipping (maybe not all is possible without tricky code)
       * - modify state machine to be used by Construct(), GetSurfaceDescription() and RenderTo() to avoid redundancy
-      * - implement clipping, scaling and format conversion via VEU (needs line buffer mode)
       * - check return code and length from GetData()
       */
 
+     /* No cropping of top or left edge :( */
+     if (clip->x1 > rect->x || clip->y1 > rect->y) {
+          D_UNIMPLEMENTED();
+          return DFB_UNIMPLEMENTED;
+     }
+
+     /* Init VEU transformation control (format conversion). */
+     if (!data->mode420)
+          vtrcr |= (1 << 14);
+
+     switch (destination->config.format) {
+          case DSPF_NV12:
+               vswpout = 0x70;
+               break;
+
+          case DSPF_NV16:
+               vswpout = 0x70;
+               vtrcr  |= (1 << 22);
+               break;
+
+          case DSPF_RGB16:
+               vswpout = 0x60;
+               vtrcr  |= (6 << 16) | 2;
+               break;
+
+          case DSPF_RGB32:
+               vswpout = 0x40;
+               vtrcr  |= (19 << 16) | 2;
+               break;
+
+          case DSPF_RGB24:
+               vswpout = 0x70;
+               vtrcr  |= (21 << 16) | 2;
+               break;
+
+          default:
+               D_BUG( "unexpected format %s", dfb_pixelformat_name(destination->config.format) );
+               return DFB_BUG;
+     }
 
      /* Lock destination surface. */
      ret = dfb_surface_lock_buffer( destination, CSBR_BACK, CSAF_GPU_WRITE, &lock );
@@ -118,8 +167,10 @@ DecodeHW( IDirectFBImageProvider_SH7722_JPEG_data *data,
 
      D_DEBUG_AT( SH7722_JPEG, "  -> loading...\n" );
 
-     /* First first reload buffers. */
-     if (data->buffer->GetData( data->buffer, SH7722GFX_JPEG_RELOAD_SIZE, (void*) drv->jpeg_virt, &len )) {
+     /* Fill first reload buffers. */
+     ret = data->buffer->GetData( data->buffer, SH7722GFX_JPEG_RELOAD_SIZE, (void*) drv->jpeg_virt, &len );
+     if (ret) {
+          D_DERROR( ret, "SH7722/JPEG: Could not fill first reload buffer!\n" );
           fusion_skirmish_dismiss( &dev->jpeg_lock );
           dfb_surface_unlock_buffer( destination, &lock );
           return DFB_IO;
@@ -127,28 +178,82 @@ DecodeHW( IDirectFBImageProvider_SH7722_JPEG_data *data,
 
      D_DEBUG_AT( SH7722_JPEG, "  -> setting...\n" );
 
+     /* Initialize JPEG state. */
+     jpeg.state   = SH7722_JPEG_START;
+     jpeg.flags   = 0;
+     jpeg.buffers = 1;
+
+     /* Enable reload if buffer was filled completely (coded data length >= one reload buffer). */
+     if (len == SH7722GFX_JPEG_RELOAD_SIZE) {
+          jpeg.flags |= SH7722_JPEG_FLAG_RELOAD;
+
+          reload = true;
+     }
+
      /* Program JPU from RESET. */
      SH7722_SETREG32( drv, JCCMD,    JCCMD_RESET );
      SH7722_SETREG32( drv, JCMOD,    JCMOD_INPUT_CTRL | JCMOD_DSP_DECODE );
-     SH7722_SETREG32( drv, JINTE,    JINTS_INS5_ERROR | JINTS_INS6_DONE | JINTS_INS14_RELOAD );
      SH7722_SETREG32( drv, JIFCNT,   JIFCNT_VJSEL_JPU );
      SH7722_SETREG32( drv, JIFECNT,  JIFECNT_SWAP_4321 );
-     SH7722_SETREG32( drv, JIFDCNT,  JIFDCNT_RELOAD_ENABLE | JIFDCNT_SWAP_4321 );
      SH7722_SETREG32( drv, JIFDSA1,  dev->jpeg_phys );
      SH7722_SETREG32( drv, JIFDSA2,  dev->jpeg_phys + SH7722GFX_JPEG_RELOAD_SIZE );
-     SH7722_SETREG32( drv, JIFDDRSZ, SH7722GFX_JPEG_RELOAD_SIZE );
-     SH7722_SETREG32( drv, JIFDDMW,  lock.pitch );
-     SH7722_SETREG32( drv, JIFDDYA1, phys );
-     SH7722_SETREG32( drv, JIFDDCA1, phys + lock.pitch * destination->config.size.h );
+     SH7722_SETREG32( drv, JIFDDRSZ, len );
+
+     if (data->width == cw && data->height == ch && rect->w == cw && rect->h == ch &&
+         (( data->mode420 && destination->config.format == DSPF_NV12) ||
+          (!data->mode420 && destination->config.format == DSPF_NV16)))
+     {
+          /* Setup JPU for decoding in frame mode (directly to surface). */
+          SH7722_SETREG32( drv, JINTE,    JINTS_INS5_ERROR | JINTS_INS6_DONE |
+                                          (reload ? JINTS_INS14_RELOAD : 0) );
+          SH7722_SETREG32( drv, JIFDCNT,  JIFDCNT_SWAP_4321 | (reload ? JIFDCNT_RELOAD_ENABLE : 0) );
+
+          SH7722_SETREG32( drv, JIFDDYA1, phys );
+          SH7722_SETREG32( drv, JIFDDCA1, phys + lock.pitch * destination->config.size.h );
+          SH7722_SETREG32( drv, JIFDDMW,  lock.pitch );
+     }
+     else {
+          jpeg.flags |= SH7722_JPEG_FLAG_CONVERT;
+
+          /* Setup JPU for decoding in line buffer mode. */
+          SH7722_SETREG32( drv, JINTE,    JINTS_INS5_ERROR | JINTS_INS6_DONE |
+                                          JINTS_INS11_LINEBUF0 | JINTS_INS12_LINEBUF1 |
+                                          (reload ? JINTS_INS14_RELOAD : 0) );
+          SH7722_SETREG32( drv, JIFDCNT,  JIFDCNT_LINEBUF_MODE | (SH7722GFX_JPEG_LINEBUFFER_HEIGHT << 16) |
+                                          JIFDCNT_SWAP_4321 | (reload ? JIFDCNT_RELOAD_ENABLE : 0) );
+
+          SH7722_SETREG32( drv, JIFDDYA1, dev->jpeg_lb1 );
+          SH7722_SETREG32( drv, JIFDDCA1, dev->jpeg_lb1 + SH7722GFX_JPEG_LINEBUFFER_SIZE_Y );
+          SH7722_SETREG32( drv, JIFDDYA2, dev->jpeg_lb2 );
+          SH7722_SETREG32( drv, JIFDDCA2, dev->jpeg_lb2 + SH7722GFX_JPEG_LINEBUFFER_SIZE_Y );
+          SH7722_SETREG32( drv, JIFDDMW,  SH7722GFX_JPEG_LINEBUFFER_PITCH );
+
+          /* Setup VEU for conversion/scaling (from line buffer to surface). */
+          SH7722_SETREG32( drv, VEU_VBSRR, 0x00000100 );
+          SH7722_SETREG32( drv, VEU_VESTR, 0x00000000 );
+          SH7722_SETREG32( drv, VEU_VESWR, SH7722GFX_JPEG_LINEBUFFER_PITCH );
+          SH7722_SETREG32( drv, VEU_VESSR, (data->height << 16) | data->width );
+          SH7722_SETREG32( drv, VEU_VBSSR, 16 );
+          SH7722_SETREG32( drv, VEU_VEDWR, lock.pitch );
+          SH7722_SETREG32( drv, VEU_VDAYR, phys );
+          SH7722_SETREG32( drv, VEU_VDACR, phys + lock.pitch * destination->config.size.h );
+          SH7722_SETREG32( drv, VEU_VTRCR, vtrcr );
+
+          SH7722_SETREG32( drv, VEU_VRFCR, (((data->height << 12) / rect->h) << 16) |
+                                            ((data->width  << 12) / rect->w) );
+          SH7722_SETREG32( drv, VEU_VRFSR, (ch << 16) | cw );
+          
+          SH7722_SETREG32( drv, VEU_VENHR, 0x00000000 );
+          SH7722_SETREG32( drv, VEU_VFMCR, 0x00000000 );
+          SH7722_SETREG32( drv, VEU_VAPCR, 0x00000000 );
+          SH7722_SETREG32( drv, VEU_VSWPR, 0x00000007 | vswpout );
+          SH7722_SETREG32( drv, VEU_VEIER, 0x00000101 );
+     }
 
      D_DEBUG_AT( SH7722_JPEG, "  -> starting...\n" );
 
      /* Clear interrupts in shared flags. */
      shared->jpeg_ints = 0;
-
-     /* Initialize JPEG state. */
-     jpeg.state   = SH7722_JPEG_START;
-     jpeg.buffers = 1;
 
      /* State machine. */
      while (true) {
@@ -173,13 +278,27 @@ DecodeHW( IDirectFBImageProvider_SH7722_JPEG_data *data,
           }
 
           /* Check for reload requests. */
-          if (jpeg.buffers & 1)
-               data->buffer->GetData( data->buffer, SH7722GFX_JPEG_RELOAD_SIZE,
-                                      (void*) drv->jpeg_virt, &len );
+          for (i=1; i<=2; i++) {
+               if (jpeg.buffers & i) {
+                    if (jpeg.flags & SH7722_JPEG_FLAG_RELOAD) {
+                         D_ASSERT( reload );
 
-          if (jpeg.buffers & 2)
-               data->buffer->GetData( data->buffer, SH7722GFX_JPEG_RELOAD_SIZE,
-                                      (void*) drv->jpeg_virt + SH7722GFX_JPEG_RELOAD_SIZE, &len );
+                         ret = data->buffer->GetData( data->buffer, SH7722GFX_JPEG_RELOAD_SIZE,
+                                                      (void*) drv->jpeg_virt +
+                                                      SH7722GFX_JPEG_RELOAD_SIZE * (i-1), &len );
+                         if (ret) {
+                              D_DERROR( ret, "SH7722/JPEG: Could not refill %s reload buffer!\n",
+                                        i == 1 ? "first" : "second" );
+                              jpeg.buffers &= ~i;
+                              jpeg.flags   &= ~SH7722_JPEG_FLAG_RELOAD;
+                         }
+                         else if (len < SH7722GFX_JPEG_RELOAD_SIZE)
+                              jpeg.flags &= ~SH7722_JPEG_FLAG_RELOAD;
+                    }
+                    else
+                         jpeg.buffers &= ~i;
+               }
+          }
      }
 
      fusion_skirmish_dismiss( &dev->jpeg_lock );
@@ -352,8 +471,19 @@ IDirectFBImageProvider_SH7722_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      if (ret)
           return ret;
 
-     if (format != (data->mode420 ? DSPF_NV12 : DSPF_NV16))
-          return DFB_UNSUPPORTED;
+     switch (dst_surface->config.format) {
+          case DSPF_NV12:
+          case DSPF_NV16:
+          case DSPF_RGB16:
+          case DSPF_RGB32:
+          case DSPF_RGB24:
+               break;
+
+          default:
+               /* FIXME: implement fallback */
+               D_UNIMPLEMENTED();
+               return DFB_UNIMPLEMENTED;
+     }
 
      dfb_region_from_rectangle( &clip, &dst_data->area.current );
 

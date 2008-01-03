@@ -30,10 +30,12 @@
 /**********************************************************************************************************************/
 
 #define	ENGINE_REG_TOP   0xFD000000
+#define SH7722_VEU_BASE  0xFE920000
 #define SH7722_BEU_BASE  0xFE930000
 #define SH7722_JPU_BASE  0xFEA00000
 
 #define BEM_REG(x)       (*(volatile u32*)((x)+ENGINE_REG_TOP))
+#define VEU_REG(x)       (*(volatile u32*)((x)+SH7722_VEU_BASE))
 #define BEU_REG(x)       (*(volatile u32*)((x)+SH7722_BEU_BASE))
 #define JPU_REG(x)       (*(volatile u32*)((x)+SH7722_JPU_BASE))
 
@@ -49,29 +51,40 @@
 #define	BEM_HC_DMA_STOP			   BEM_REG(0x00048)
 #define	BEM_PE_CACHE			   BEM_REG(0x010B0)
 
-#define BEVTR                      BEU_REG(0x018C)
+#define BEVTR                      BEU_REG(0x0018C)
 
-#define JPU_JCCMD                  JPU_REG(0x0004)
-#define JPU_JCSTS                  JPU_REG(0x0008)
-#define JPU_JINTE                  JPU_REG(0x0038)
-#define JPU_JINTS                  JPU_REG(0x003c)
-#define JPU_JCDERR                 JPU_REG(0x0040)
-#define JPU_JIFDDVSZ               JPU_REG(0x00B4)
-#define JPU_JIFDDHSZ               JPU_REG(0x00B8)
+#define JPU_JCCMD                  JPU_REG(0x00004)
+#define JPU_JCSTS                  JPU_REG(0x00008)
+#define JPU_JINTE                  JPU_REG(0x00038)
+#define JPU_JINTS                  JPU_REG(0x0003C)
+#define JPU_JCDERR                 JPU_REG(0x00040)
+#define JPU_JIFDDVSZ               JPU_REG(0x000B4)
+#define JPU_JIFDDHSZ               JPU_REG(0x000B8)
+#define JPU_JIFDDYA1               JPU_REG(0x000BC)
+#define JPU_JIFDDCA1               JPU_REG(0x000C0)
+#define JPU_JIFDDYA2               JPU_REG(0x000C4)
+#define JPU_JIFDDCA2               JPU_REG(0x000C8)
+                                              
+#define VEU_VESTR                  VEU_REG(0x00000)
+#define VEU_VSAYR                  VEU_REG(0x00018)
+#define VEU_VSACR                  VEU_REG(0x0001c)
+#define VEU_VEVTR                  VEU_REG(0x000A4)
 
 #define JINTS_MASK                 0x00005C68
 #define JINTS_INS3_HEADER          0x00000008
 #define JINTS_INS5_ERROR           0x00000020
 #define JINTS_INS6_DONE            0x00000040
 #define JINTS_INS10_XFER_DONE      0x00000400
-#define JINTS_INS11_LINEBUF1       0x00000800
-#define JINTS_INS12_LINEBUF2       0x00001000
+#define JINTS_INS11_LINEBUF0       0x00000800
+#define JINTS_INS12_LINEBUF1       0x00001000
 #define JINTS_INS14_RELOAD         0x00004000
 
 #define JCCMD_START                0x00000001
 #define JCCMD_RESTART              0x00000002
 #define JCCMD_END                  0x00000004
 #define JCCMD_RESET                0x00000080
+#define JCCMD_LCMD2                0x00000100
+#define JCCMD_LCMD1                0x00000200
 #define JCCMD_READ_RESTART         0x00000400
 
 /**********************************************************************************************************************/
@@ -120,7 +133,8 @@
 
 static DECLARE_WAIT_QUEUE_HEAD( wait_idle );
 static DECLARE_WAIT_QUEUE_HEAD( wait_next );
-static DECLARE_WAIT_QUEUE_HEAD( wait_jpeg );
+static DECLARE_WAIT_QUEUE_HEAD( wait_jpeg_irq );
+static DECLARE_WAIT_QUEUE_HEAD( wait_jpeg_run );
 
 static SH7722GfxSharedArea *shared;
 
@@ -139,7 +153,13 @@ static u32                  jpeg_buffers;
 static int                  jpeg_buffer;
 static u32                  jpeg_error;
 static int                  jpeg_reading;
+static int                  jpeg_writing;
 static int                  jpeg_end;
+static u32                  jpeg_linebufs;
+static int                  jpeg_linebuf;
+static int                  jpeg_line;
+static int                  veu_linebuf;
+static int                  veu_running;
 
 /**********************************************************************************************************************/
 
@@ -247,7 +267,7 @@ sh7722_wait_jpeg( SH7722GfxSharedArea *shared )
 {
      int ret;
 
-     ret = wait_event_interruptible_timeout( wait_jpeg, shared->jpeg_ints, HZ );
+     ret = wait_event_interruptible_timeout( wait_jpeg_irq, shared->jpeg_ints, HZ );
      if (!ret) {
           printk( KERN_ERR "%s: TIMEOUT! (status 0x%08x, ints 0x%08x)\n", __FUNCTION__, JPU_JCSTS, JPU_JINTS );
      }
@@ -263,13 +283,19 @@ sh7722_run_jpeg( SH7722GfxSharedArea *shared,
 
      switch (jpeg->state) {
           case SH7722_JPEG_START:
-               JPRINT( "START (buffers: %d)", jpeg->buffers );
+               JPRINT( "START (buffers: %d, flags: 0x%x)", jpeg->buffers, jpeg->flags );
 
-               jpeg_end     = 0;
-               jpeg_error   = 0;
-               jpeg_reading = 0;
-               jpeg_buffer  = 0;
-               jpeg_buffers = jpeg->buffers;
+               jpeg_line     = 0;
+               jpeg_end      = 0;
+               jpeg_error    = 0;
+               jpeg_reading  = 0;
+               jpeg_writing  = 1;
+               jpeg_linebuf  = 0;
+               jpeg_linebufs = 0;
+               jpeg_buffer   = 0;
+               jpeg_buffers  = jpeg->buffers;
+               veu_linebuf   = 0;
+               veu_running   = 0;
 
                jpeg->state  = SH7722_JPEG_RUN;
                jpeg->error  = 0;
@@ -297,7 +323,9 @@ sh7722_run_jpeg( SH7722GfxSharedArea *shared,
           JPU_JCCMD = JCCMD_READ_RESTART;
      }
 
-     ret = wait_event_interruptible_timeout( wait_jpeg, jpeg_error || jpeg_buffers != 3 || jpeg_end, HZ );
+     ret = wait_event_interruptible_timeout( wait_jpeg_run,
+                                             (jpeg_end && !jpeg_linebufs) || jpeg_error ||
+                                             (jpeg_buffers != 3 && (jpeg->flags & SH7722_JPEG_FLAG_RELOAD)), HZ );
      if (!ret) {
           printk( KERN_ERR "%s: TIMEOUT! (status 0x%08x, ints 0x%08x)\n", __FUNCTION__, JPU_JCSTS, JPU_JINTS );
      }
@@ -337,19 +365,20 @@ sh7722_jpu_irq( int irq, void *ctx )
      ints = JPU_JINTS;
 
      JPU_JINTS = ~ints & JINTS_MASK;
-     JPU_JCCMD = JCCMD_END;
 
-     JPRINT( " ... interrupt 0x%08x (0x%08x)", ints, shared->jpeg_ints );
+     if (ints & (JINTS_INS3_HEADER | JINTS_INS5_ERROR | JINTS_INS6_DONE))
+          JPU_JCCMD = JCCMD_END;
+
+     JPRINT( " ... JPU interrupt 0x%08x (veu_linebuf: %d, jpeg_linebuf: %d, jpeg_linebufs: %d, jpeg_line: %d)",
+             ints, veu_linebuf, jpeg_linebuf, jpeg_linebufs, jpeg_line );
 
      if (ints) {
           shared->jpeg_ints |= ints;
 
-          wake_up_all( &wait_jpeg );
+          wake_up_all( &wait_jpeg_irq );
 
           /* Header */
           if (ints & JINTS_INS3_HEADER) {
-               JPU_JCCMD = JCCMD_RESTART;
-
                JPRINT( "         -> HEADER (%dx%d)", JPU_JIFDDHSZ, JPU_JIFDDVSZ );
           }
 
@@ -358,6 +387,8 @@ sh7722_jpu_irq( int irq, void *ctx )
                jpeg_error = JPU_JCDERR;
 
                JPRINT( "         -> ERROR 0x%08x!", jpeg_error );
+
+               wake_up_all( &wait_jpeg_run );
           }
 
           /* Done */
@@ -365,6 +396,39 @@ sh7722_jpu_irq( int irq, void *ctx )
                jpeg_end = 1;
 
                JPRINT( "         -> DONE" );
+
+               wake_up_all( &wait_jpeg_run );
+          }
+
+          /* Line buffer ready? */
+          if (ints & (JINTS_INS11_LINEBUF0 | JINTS_INS12_LINEBUF1)) {
+               JPRINT( "         -> LINEBUF %d", jpeg_linebuf );
+
+               jpeg_linebufs |= (1 << jpeg_linebuf);
+
+               jpeg_linebuf = jpeg_linebuf ? 0 : 1;
+
+               if (jpeg_linebufs != 3) {
+                    jpeg_writing = 1;   /* should still be one */
+
+                    if (jpeg_line > 0)
+                         JPU_JCCMD = JCCMD_LCMD1 | JCCMD_LCMD2;
+               }
+               else {
+                    jpeg_writing = 0;
+               }
+
+               jpeg_line += 16;
+
+               if (!veu_running) {
+                    JPRINT( "         -> CONVERT %d", veu_linebuf );
+
+                    veu_running = 1;
+
+                    VEU_VSAYR = veu_linebuf ? JPU_JIFDDYA2 : JPU_JIFDDYA1;
+                    VEU_VSACR = veu_linebuf ? JPU_JIFDDCA2 : JPU_JIFDDCA1;
+                    VEU_VESTR = 0x101;
+               }
           }
 
           /* Reload */
@@ -382,7 +446,54 @@ sh7722_jpu_irq( int irq, void *ctx )
                }
                else
                     jpeg_reading = 0;
+
+               wake_up_all( &wait_jpeg_run );
           }
+     }
+
+     return IRQ_HANDLED;
+}
+
+/**********************************************************************************************************************/
+
+static irqreturn_t
+sh7722_veu_irq( int irq, void *ctx )
+{
+     u32 events = VEU_VEVTR;
+
+     VEU_VEVTR = ~events & 0x101;
+
+     JPRINT( " ... VEU interrupt 0x%08x (veu_linebuf: %d, jpeg_linebuf: %d, jpeg_linebufs: %d, jpeg_line: %d)",
+             events, veu_linebuf, jpeg_linebuf, jpeg_linebufs, jpeg_line );
+
+     /* Release line buffer. */
+     jpeg_linebufs &= ~(1 << veu_linebuf);
+
+     /* Resume decoding if it was blocked. */
+     if (!jpeg_writing && !jpeg_end && !jpeg_error && jpeg_buffers) {
+          JPRINT( "         -> RESUME %d", jpeg_linebuf );
+
+          jpeg_writing = 1;
+
+          JPU_JCCMD = JCCMD_LCMD1 | JCCMD_LCMD2;
+     }
+
+     veu_linebuf = veu_linebuf ? 0 : 1;
+
+     if (jpeg_linebufs) {
+          JPRINT( "         -> CONVERT %d", veu_linebuf );
+
+          veu_running = 1;   /* should still be one */
+
+          VEU_VSAYR = veu_linebuf ? JPU_JIFDDYA2 : JPU_JIFDDYA1;
+          VEU_VSACR = veu_linebuf ? JPU_JIFDDCA2 : JPU_JIFDDCA1;
+          VEU_VESTR = 0x101;
+     }
+     else {
+          if (jpeg_end)
+               wake_up_all( &wait_jpeg_run );
+
+          veu_running = 0;
      }
 
      return IRQ_HANDLED;
@@ -685,10 +796,21 @@ sh7722gfx_module_init( void )
           goto error_jpu;
      }
 
+     /* Register the VEU interrupt handler. */
+     ret = request_irq( VEU_IRQ, sh7722_veu_irq, IRQF_DISABLED, "VEU", (void*) shared );
+     if (ret) {
+          printk( KERN_ERR "%s: request_irq() for interrupt %d failed! (error %d)\n",
+                  __FUNCTION__, VEU_IRQ, ret );
+          goto error_veu;
+     }
+
      sh7722_reset( shared );
 
      return 0;
 
+
+error_veu:
+     free_irq( JPU_IRQ, (void*) shared );
 
 error_jpu:
 #ifndef SH7722GFX_IRQ_POLLER
@@ -723,6 +845,7 @@ sh7722gfx_module_exit( void )
 #endif
 
 
+     free_irq( VEU_IRQ, (void*) shared );
      free_irq( JPU_IRQ, (void*) shared );
 
 #ifdef SH7722GFX_IRQ_POLLER

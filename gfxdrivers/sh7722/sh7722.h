@@ -9,6 +9,11 @@
 
 extern SH7722GfxSharedArea *sh7722gfx_shared;
 
+
+/******************************************************************************
+ * Platform specific values (FIXME: add runtime config)
+ */
+
 #define ALGO_AP325
 #undef  SH7722_ALGO_PANEL
 
@@ -24,7 +29,17 @@ extern SH7722GfxSharedArea *sh7722gfx_shared;
 #  define	SH7722_LCD_HEIGHT	480
 #endif
 
-#if 0
+
+/******************************************************************************
+ * Register access
+ */
+
+#define VEU_REG_BASE     0xFE920000
+#define SH7722_BEU_BASE  0xFE930000
+#define LCDC_REG_BASE    0xFE940000
+#define JPEG_REG_BASE    0xFEA00000
+
+#ifdef SH7722_REG_USE_IOCTLS
 static inline u32
 SH7722_GETREG32( SH7722DriverData *sdrv,
                  u32               address )
@@ -71,12 +86,7 @@ SH7722_SETREG32( SH7722DriverData *sdrv,
 #endif
 
 
-#define VEU_REG_BASE     0xFE920000
-#define SH7722_BEU_BASE  0xFE930000
-#define LCDC_REG_BASE    0xFE940000
-#define JPEG_REG_BASE    0xFEA00000
-
-/********
+/******************************************************************************
  * BEU
  */
 
@@ -368,8 +378,7 @@ SH7722_SETREG32( SH7722DriverData *sdrv,
 #define LAY_123          0x05000000
 
 
-
-/********
+/******************************************************************************
  * VEU
  */
 
@@ -399,8 +408,7 @@ SH7722_SETREG32( SH7722DriverData *sdrv,
 #define VEU_VBSRR             (VEU_REG_BASE + 0x00b4)
 
 
-
-/********
+/******************************************************************************
  * LCD
  */
 
@@ -439,6 +447,10 @@ SH7722_SETREG32( SH7722DriverData *sdrv,
 #define LCDC_LDDDSR           (LCDC_REG_BASE + 0x047c)
 #define LCDC_LDRCR            (LCDC_REG_BASE + 0x0484)
 
+
+/******************************************************************************
+ * JPEG
+ */
 
 /* JPEG code mode register */
 #define JCMOD                 (JPEG_REG_BASE + 0x0000)
@@ -615,6 +627,7 @@ SH7722_SETREG32( SH7722DriverData *sdrv,
 #define JIFECNT_SWAP_2143     0x00000010
 #define JIFECNT_SWAP_3412     0x00000020
 #define JIFECNT_SWAP_4321     0x00000030
+#define JIFDCNT_LINEBUF_MODE  0x00000001
 #define JIFDCNT_SWAP_1234     0x00000000
 #define JIFDCNT_SWAP_2143     0x00000002
 #define JIFDCNT_SWAP_3412     0x00000004
@@ -626,8 +639,8 @@ SH7722_SETREG32( SH7722DriverData *sdrv,
 #define JINTS_INS5_ERROR      0x00000020
 #define JINTS_INS6_DONE       0x00000040
 #define JINTS_INS10_XFER_DONE 0x00000400
-#define JINTS_INS11_LINEBUF1  0x00000800
-#define JINTS_INS12_LINEBUF2  0x00001000
+#define JINTS_INS11_LINEBUF0  0x00000800
+#define JINTS_INS12_LINEBUF1  0x00001000
 #define JINTS_INS14_RELOAD    0x00004000
 
 #endif

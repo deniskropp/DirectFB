@@ -1,5 +1,5 @@
-#ifdef SH7722_DEBUG
-#define DIRECT_FORCE_DEBUG
+#ifdef SH7722_DEBUG_DRIVER
+#define DIRECT_ENABLE_DEBUG
 #endif
 
 
@@ -202,21 +202,23 @@ driver_init_device( CoreGraphicsDevice *device,
      /*
       * Setup JPEG reload buffers.
       */
-     sdev->jpeg_size   = SH7722GFX_JPEG_RELOAD_SIZE * 2;
+     sdev->jpeg_size   = SH7722GFX_JPEG_RELOAD_SIZE * 2 + SH7722GFX_JPEG_LINEBUFFER_SIZE * 2;
      sdev->jpeg_offset = dfb_gfxcard_reserve_memory( device, sdev->jpeg_size );
 
      if (sdev->jpeg_offset < 0) {
-          D_ERROR( "SH7722/Driver: Allocating %d bytes for the JPEG buffer failed!\n", sdev->jpeg_size );
+          D_ERROR( "SH7722/Driver: Allocating %d bytes for the JPEG reload and line buffers failed!\n", sdev->jpeg_size );
           return DFB_FAILURE;
      }
 
      sdev->jpeg_phys = dfb_gfxcard_memory_physical( device, sdev->jpeg_offset );
+     sdev->jpeg_lb1  = sdev->jpeg_phys + SH7722GFX_JPEG_RELOAD_SIZE * 2;
+     sdev->jpeg_lb2  = sdev->jpeg_lb1  + SH7722GFX_JPEG_LINEBUFFER_SIZE;
 
      /* Get virtual addresses for JPEG reload buffers in master here,
         slaves do it in driver_init_driver(). */
      sdrv->jpeg_virt = dfb_gfxcard_memory_virtual( device, sdev->jpeg_offset );
 
-     D_INFO( "SH7722/JPEG: Allocated reload buffers (%d bytes) at 0x%08lx (%p)\n",
+     D_INFO( "SH7722/JPEG: Allocated reload and line buffers (%d bytes) at 0x%08lx (%p)\n",
              sdev->jpeg_size, sdev->jpeg_phys, sdrv->jpeg_virt );
 
      D_ASSERT( ! (sdev->jpeg_size & 0xff) );
@@ -309,6 +311,8 @@ driver_close_driver( CoreGraphicsDevice *device,
 {
      SH7722DriverData    *sdrv   = driver_data;
      SH7722GfxSharedArea *shared = sdrv->gfx_shared;
+
+     (void) shared;
 
      D_DEBUG_AT( SH7722_Driver, "%s()\n", __FUNCTION__ );
 

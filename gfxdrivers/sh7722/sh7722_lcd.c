@@ -1,5 +1,5 @@
-#ifdef SH7722_DEBUG
-#define DIRECT_FORCE_DEBUG
+#ifdef SH7722_DEBUG_LCD
+#define DIRECT_ENABLE_DEBUG
 #endif
 
 
