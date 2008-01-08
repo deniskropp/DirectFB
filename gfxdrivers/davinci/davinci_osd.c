@@ -400,6 +400,7 @@ update_buffers( DavinciDriverData     *ddrv,
           D_ASSUME( ddev->fix[OSD0].line_length == ddev->fix[OSD1].line_length );
 
           davinci_c64x_dither_argb( &ddrv->c64x, rgb, alpha, ddev->fix[OSD0].line_length, src, lock->pitch, rect.w, rect.h );
+          davinci_c64x_write_back_all( &ddrv->c64x );
      }
      else {
           u32  *src32 = lock->addr + rect.y * lock->pitch + DFB_BYTES_PER_LINE( buffer->format, rect.x );
