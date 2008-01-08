@@ -214,6 +214,14 @@ direct_log_unlock( DirectLog *log )
      }
 }
 
+const DirectLog *
+direct_log_default()
+{
+     D_MAGIC_ASSERT_IF( default_log, DirectLog );
+
+     return default_log;
+}
+
 /**********************************************************************************************************************/
 
 static DirectResult

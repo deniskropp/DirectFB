@@ -81,5 +81,9 @@ void         direct_log_lock       ( DirectLog        *log );
  */
 void         direct_log_unlock     ( DirectLog        *log );
 
+/*
+ * Returns the default log.
+ */
+const DirectLog *direct_log_default();
 
 #endif

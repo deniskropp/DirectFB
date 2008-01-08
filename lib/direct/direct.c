@@ -156,8 +156,11 @@ direct_initialize()
 {
      pthread_mutex_lock( &main_lock );
 
-     direct_log_create( DLT_STDERR, NULL, &default_log );
-     direct_log_set_default( default_log );
+     if (!direct_log_default()) {
+          direct_log_create( DLT_STDERR, NULL, &default_log );
+
+          direct_log_set_default( default_log );
+     }
 
      D_DEBUG_AT( Direct_Main, "direct_initialize() called...\n" );
 
@@ -195,7 +198,8 @@ direct_shutdown()
 
      direct_signals_shutdown();
 
-     direct_log_destroy( default_log );
+     if (default_log)
+          direct_log_destroy( default_log );
 
      pthread_mutex_unlock( &main_lock );
 
