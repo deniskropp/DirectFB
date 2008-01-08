@@ -6513,10 +6513,10 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
      if (dfb_config->hardware_only) {
          if (DFB_BLITTING_FUNCTION( accel ))
-             D_WARN( "Ignoring blit (%x) from %s to %s, flags 0x%08x", accel,
+             D_WARN( "Ignoring blit (%x) from %s to %s, flags 0x%08x, funcs %d %d", accel,
                      source ? dfb_pixelformat_name(source->config.format) : "NULL SOURCE",
                      destination ? dfb_pixelformat_name(destination->config.format) : "NULL DESTINATION",
-                     state->blittingflags );
+                     state->blittingflags, state->src_blend, state->dst_blend );
          else
              D_WARN( "Ignoring draw (%x) to %s, flags 0x%08x", accel,
                      destination ? dfb_pixelformat_name(destination->config.format) : "NULL DESTINATION",
