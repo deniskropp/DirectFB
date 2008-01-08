@@ -70,10 +70,7 @@ void direct_debug_at_always( DirectDebugDomain *domain,
 #define d_debug_at( domain, x... )      direct_debug_at_always( &domain, x )
 
 
-
-#if DIRECT_BUILD_DEBUG || defined(DIRECT_ENABLE_DEBUG) || defined(DIRECT_FORCE_DEBUG)
-
-#define D_DEBUG_ENABLED  (1)
+#if DIRECT_BUILD_DEBUGS
 
 void direct_debug( const char *format, ... )  D_FORMAT_PRINTF(1);
 
@@ -106,6 +103,11 @@ void direct_assumption( const char *exp,
                         const char *func,
                         const char *file,
                         int         line );
+#endif
+
+#if DIRECT_BUILD_DEBUG || defined(DIRECT_ENABLE_DEBUG) || defined(DIRECT_FORCE_DEBUG)
+
+#define D_DEBUG_ENABLED  (1)
 
 #define D_DEBUG(x...)                                                                \
      do {                                                                            \
