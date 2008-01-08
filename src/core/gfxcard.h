@@ -58,6 +58,7 @@ typedef struct {
      DFBAccelerationMask     accel;
      DFBSurfaceBlittingFlags blitting;
      DFBSurfaceDrawingFlags  drawing;
+     DFBAccelerationMask     clip;
 } CardCapabilities;
 
 typedef struct {
