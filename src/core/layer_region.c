@@ -567,7 +567,8 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                               D_DEBUG_AT( Core_Layers, "  -> Waiting for pending writes...\n" );
 
                               /* ...wait for the operation to finish. */
-                              dfb_gfxcard_sync(); /* TODO: wait for serial instead */
+                              if (!(flags & DSFLIP_PIPELINE))
+                                   dfb_gfxcard_sync(); /* TODO: wait for serial instead */
 
                               allocation->accessed &= ~CSAF_GPU_WRITE;
                          }
