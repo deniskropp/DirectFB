@@ -98,6 +98,14 @@ void c64x_copy_keyed_32(u32*dst, u32 pitches, u32*src, u32 width, u32 height, u3
 #define C64X_COPY_KEYED_32	       _C64XFUNC(9)
 
 /*
+void c64x_stretch_32(u32 *dst, u32 *src, u32 pitches, u32 dsize, u32 ssize, u32 clip2, u32 clip1);
+*/
+#define C64X_STRETCH_32_up         _C64XFUNC(10)
+#define C64X_STRETCH_32_down       _C64XFUNC(11)
+
+
+
+/*
 void c64x_write_back_all(void);
 */
 #define C64X_WRITE_BACK_ALL	       _C64XFUNC(15)
@@ -108,7 +116,7 @@ void c64x_dezigzag(u16*dst, u16*src);
 #define C64X_DEZIGZAG              _C64XFUNC(16)
 
 /*
-void c64x_put_uyvy_16x16(u16*dst, u32 pitch, u8*src);
+void c64x_put_uyvy_16x16(u16*dst, u32 pitch, u8*src, u32 flags);
 */
 #define C64X_PUT_UYVY_16x16        _C64XFUNC(18)
 
@@ -123,7 +131,7 @@ void mc_put_x_8  (u8*dst, u32 dstride, u8*ref_src, u8*ignored, u32 rstride, u32 
 void mc_put_y_8  (u8*dst, u32 dstride, u8*ref_src, u8*ignored, u32 rstride, u32 height);
 void mc_put_xy_8 (u8*dst, u32 dstride, u8*ref_src, u8*ignored, u32 rstride, u32 height);
 */
-#define C64X_MC_PUT_8  (avgX,avgY) _C64XFUNC(32+avgX+avgY+avgY)
+#define C64X_MC_PUT_8(avgX,avgY)   _C64XFUNC(32+(avgX)+(avgY)+(avgY))
 
 /*  USED INTERNALLY
 void mc_put_o_16 (u8*dst, u32 dstride, u8*ref_src, u8*ignored, u32 rstride, u32 height);
@@ -131,7 +139,7 @@ void mc_put_x_16 (u8*dst, u32 dstride, u8*ref_src, u8*ignored, u32 rstride, u32 
 void mc_put_y_16 (u8*dst, u32 dstride, u8*ref_src, u8*ignored, u32 rstride, u32 height);
 void mc_put_xy_16(u8*dst, u32 dstride, u8*ref_src, u8*ignored, u32 rstride, u32 height);
 */
-#define C64X_MC_PUT_16 (avgX,avgY) _C64XFUNC(36+avgX+avgY+avgY)
+#define C64X_MC_PUT_16(avgX,avgY)  _C64XFUNC(36+(avgX)+(avgY)+(avgY))
 
 /*  USED INTERNALLY
 void mc_avg_o_8  (u8*dst, u32 dstride, u8*ref_src, u8*ref_dst, u32 rstride, u32 height);
@@ -139,7 +147,7 @@ void mc_avg_x_8  (u8*dst, u32 dstride, u8*ref_src, u8*ref_dst, u32 rstride, u32 
 void mc_avg_y_8  (u8*dst, u32 dstride, u8*ref_src, u8*ref_dst, u32 rstride, u32 height);
 void mc_avg_xy_8 (u8*dst, u32 dstride, u8*ref_src, u8*ref_dst, u32 rstride, u32 height);
 */
-#define C64X_MC_AVG_8  (avgX,avgY) _C64XFUNC(40+avgX+avgY+avgY)
+#define C64X_MC_AVG_8(avgX,avgY)   _C64XFUNC(40+(avgX)+(avgY)+(avgY))
 
 /*  USED INTERNALLY
 void mc_avg_o_16 (u8*dst, u32 dstride, u8*ref_src, u8*ref_dst, u32 rstride, u32 height);
@@ -147,17 +155,60 @@ void mc_avg_x_16 (u8*dst, u32 dstride, u8*ref_src, u8*ref_dst, u32 rstride, u32 
 void mc_avg_y_16 (u8*dst, u32 dstride, u8*ref_src, u8*ref_dst, u32 rstride, u32 height);
 void mc_avg_xy_16(u8*dst, u32 dstride, u8*ref_src, u8*ref_dst, u32 rstride, u32 height);
 */
-#define C64X_MC_AVG_16 (avgX,avgY) _C64XFUNC(44+avgX+avgY+avgY)
+#define C64X_MC_AVG_16(avgX,avgY)  _C64XFUNC(44+(avgX)+(avgY)+(avgY))
 
 /*
 void c64x_load_block(s32*blockwords, u32 num_words, u32 cbp);
 */
 #define C64X_LOAD_BLOCK            _C64XFUNC(48)
 
-/*  USED INTERNALLY
-void c64x_saturate(u8*dest, u16 *source);
+/*
+void c64x_put_idct_uyvy_16x16(u16*dst, u32 pitch, u32 flags);
 */
-#define C64X_SATURATE              _C64XFUNC(49)
+#define C64X_PUT_IDCT_UYVY_16x16   _C64XFUNC(49)
+
+/*
+void c64x_put_mc_uyvy_16x16(u16*dst, u32 pitch, u32 flags);
+*/
+#define C64X_PUT_MC_UYVY_16x16     _C64XFUNC(50)
+
+/*
+void c64x_put_sum_uyvy_16x16(u16*dst, u32 pitch, u32 flags);
+*/
+#define C64X_PUT_SUM_UYVY_16x16    _C64XFUNC(51)
+
+
+
+/*
+ * INTERNAL - for testing
+ */
+#define C64X_FETCH_BUFFER_PITCH    32
+#define C64X_MC_BUFFER_PITCH       16
+#define C64X_TEMP_BUFFER_PITCH     32
+
+#define C64X_FETCH_BUFFER_Y(n)     (0xf05800 + ((n) << 10))
+#define C64X_FETCH_BUFFER_U(n)     (C64X_FETCH_BUFFER_Y(n) + 18*C64X_FETCH_BUFFER_PITCH)
+#define C64X_FETCH_BUFFER_V(n)     (C64X_FETCH_BUFFER_U(n) + 16)
+
+#define C64X_FETCH_BUFFER0_Y       C64X_FETCH_BUFFER_Y(0)
+#define C64X_FETCH_BUFFER0_U       C64X_FETCH_BUFFER_U(0)
+#define C64X_FETCH_BUFFER0_V       C64X_FETCH_BUFFER_V(0)
+
+#define C64X_FETCH_BUFFER1_Y       C64X_FETCH_BUFFER_Y(1)
+#define C64X_FETCH_BUFFER1_U       C64X_FETCH_BUFFER_U(1)
+#define C64X_FETCH_BUFFER1_V       C64X_FETCH_BUFFER_V(1)
+
+#define C64X_MC_BUFFER_Y           0xf06000
+#define C64X_MC_BUFFER_U           (C64X_MC_BUFFER_Y + 16*C64X_MC_BUFFER_PITCH)
+#define C64X_MC_BUFFER_V           (C64X_MC_BUFFER_U + 8)
+
+#define C64X_MC_BUFFER_Y_          (C64X_MC_BUFFER_Y + 8*C64X_MC_BUFFER_PITCH)
+#define C64X_MC_BUFFER_U_          (C64X_MC_BUFFER_U + 4*C64X_MC_BUFFER_PITCH)
+#define C64X_MC_BUFFER_V_          (C64X_MC_BUFFER_V + 4*C64X_MC_BUFFER_PITCH)
+
+#define C64X_TEMP_BUFFER_Y         0xf06200
+#define C64X_TEMP_BUFFER_U         (C64X_TEMP_BUFFER_Y + 16*C64X_TEMP_BUFFER_PITCH)
+#define C64X_TEMP_BUFFER_V         (C64X_TEMP_BUFFER_U + 8)
 
 
 #endif
