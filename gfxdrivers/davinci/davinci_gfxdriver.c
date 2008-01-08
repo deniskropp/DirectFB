@@ -170,7 +170,9 @@ driver_probe( CoreGraphicsDevice *device )
           return 0;
      }
 
-     if (strncmp( (char*)videomode.name, "PAL", 3 ) && strncmp( (char*)videomode.name, "NTSC", 4 )) {
+     if (strncmp( (char*)videomode.name, "PAL", 3 ) &&
+         strncmp( (char*)videomode.name, "NTSC", 4 ))
+     {
           D_ERROR( "Davinci/Driver: Unknown mode name '%s'!\n", videomode.name );
           return 0;
      }
@@ -295,6 +297,7 @@ driver_init_device( CoreGraphicsDevice *device,
                                        DAVINCI_SUPPORTED_BLITTINGFUNCTIONS;
           device_info->caps.drawing  = DAVINCI_SUPPORTED_DRAWINGFLAGS;
           device_info->caps.blitting = DAVINCI_SUPPORTED_BLITTINGFLAGS;
+          device_info->caps.clip     = DFXL_STRETCHBLIT;
      }
 
      dfb_surface_pool_initialize( ddrv->core, &davinciOSDSurfacePoolFuncs, &ddev->osd_pool );

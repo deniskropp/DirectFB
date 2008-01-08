@@ -112,6 +112,11 @@ void c64x_put_uyvy_16x16(u16*dst, u32 pitch, u8*src);
 */
 #define C64X_PUT_UYVY_16x16        _C64XFUNC(18)
 
+/*
+void c64x_fetch_uyvy(u8 *dst, u8 *src, u32 spitch, u32 height, u32 flags);
+*/
+#define C64X_FETCH_UYVY            _C64XFUNC(19)
+
 /*  USED INTERNALLY
 void mc_put_o_8  (u8*dst, u32 dstride, u8*ref_src, u8*ignored, u32 rstride, u32 height);
 void mc_put_x_8  (u8*dst, u32 dstride, u8*ref_src, u8*ignored, u32 rstride, u32 height);

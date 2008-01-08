@@ -57,12 +57,15 @@ typedef struct {
      unsigned long             src_bpp;
 
      DFBColor                  color;
+     u32                       color_argb;
      unsigned long             color_pixel;
 
      DFBSurfaceBlittingFlags   blitting_flags;
      u32                       colorkey;
 
      int                       blend_sub_function;
+
+     DFBRegion                 clip;
 
      /** Add shared data here... **/
      struct fb_fix_screeninfo  fix[4];

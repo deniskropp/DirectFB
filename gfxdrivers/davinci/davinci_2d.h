@@ -42,7 +42,7 @@
                                              DSBLIT_SRC_PREMULTIPLY    |\
                                              DSBLIT_SRC_PREMULTCOLOR)
 
-#define DAVINCI_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT)
+#define DAVINCI_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT | DFXL_STRETCHBLIT)
 
 
 DFBResult davinciEngineSync  ( void                *drv,

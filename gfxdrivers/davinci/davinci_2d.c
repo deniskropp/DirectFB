@@ -95,6 +95,12 @@ static bool davinciBlit16         ( void                *drv,
                                     int                  dx,
                                     int                  dy );
 
+static bool davinciBlit32to16     ( void                *drv,
+                                    void                *dev,
+                                    DFBRectangle        *srect,
+                                    int                  dx,
+                                    int                  dy );
+
 static bool davinciBlit32         ( void                *drv,
                                     void                *dev,
                                     DFBRectangle        *srect,
@@ -118,6 +124,11 @@ static bool davinciBlitBlend32    ( void                *drv,
                                     DFBRectangle        *srect,
                                     int                  dx,
                                     int                  dy );
+
+static bool davinciStretchBlit32  ( void                *drv,
+                                    void                *dev,
+                                    DFBRectangle        *srect,
+                                    DFBRectangle        *drect );
 
 /**************************************************************************************************/
 
@@ -207,11 +218,14 @@ davinci_validate_COLOR( DavinciDeviceData *ddev,
                                                 state->color.b );
                break;
 
-          case DSPF_UYVY:
-               ddev->color_pixel = PIXEL_UYVY( state->color.r,
-                                               state->color.g,
-                                               state->color.b );
+          case DSPF_UYVY: {
+               int y, u, v;
+
+               RGB_TO_YCBCR( state->color.r, state->color.g, state->color.b, y, u, v );
+
+               ddev->color_pixel = PIXEL_UYVY( y, u, v );
                break;
+          }
 
           default:
                D_BUG( "unexpected format %s", dfb_pixelformat_name(ddev->dst_format) );
@@ -287,8 +301,6 @@ davinciEngineSync( void *drv, void *dev )
      DavinciDeviceData *ddev = dev;
 
      if (!ddev->synced) {
-          davinci_c64x_write_back_all( &ddrv->c64x );
-
           ret = davinci_c64x_wait_low( &ddrv->c64x );
           if (ret)
                return ret;
@@ -318,7 +330,10 @@ davinciEngineReset( void *drv, void *dev )
 void
 davinciEmitCommands( void *drv, void *dev )
 {
+     DavinciDriverData *ddrv = drv;
      DavinciDeviceData *ddev = dev;
+
+     davinci_c64x_write_back_all( &ddrv->c64x );
 
      ddev->synced = false;
 }
@@ -363,10 +378,6 @@ davinciCheckState( void                *drv,
                return;
      }
      else {
-          /* No format conversion supported. */
-          if (state->source->config.format != state->destination->config.format)
-               return;
-
           /* Return if unsupported blitting flags are set. */
           if (state->blittingflags & ~DAVINCI_SUPPORTED_BLITTINGFLAGS)
                return;
@@ -379,20 +390,48 @@ davinciCheckState( void                *drv,
           switch (state->source->config.format) {
                case DSPF_UYVY:
                case DSPF_RGB16:
+                    /* Only color keying for these formats. */
+                    if (state->blittingflags & ~DSBLIT_SRC_COLORKEY)
+                         return;
+                    /* No format conversion supported. */
+                    if (state->source->config.format != state->destination->config.format)
+                         return;
+                    break;
+
                case DSPF_RGB32:
                     /* Only color keying for these formats. */
                     if (state->blittingflags & ~DSBLIT_SRC_COLORKEY)
                          return;
-                    break;
-
+                    /* fall through */
                case DSPF_ARGB:
                     /* Only few blending combinations are valid. */
                     if ((state->blittingflags & ~DSBLIT_SRC_COLORKEY) && get_blend_sub_function( state ) < 0)
+                         return;
+                    /* Only ARGB/RGB32 -> RGB16 conversion (without any flag). */
+                    if (state->source->config.format != state->destination->config.format &&
+                        (state->destination->config.format != DSPF_RGB16 || state->blittingflags))
                          return;
                     break;
 
                default:
                     return;
+          }
+
+          /* Checks per function. */
+          switch (accel) {
+               case DFXL_STRETCHBLIT:
+                    /* No flags supported with StretchBlit(). */
+                    if (state->blittingflags)
+                         return;
+
+                    /* Only (A)RGB at 32 bit supported. */
+                    if (state->source->config.format != DSPF_ARGB && state->source->config.format != DSPF_RGB32)
+                         return;
+
+                    break;
+
+               default:
+                    break;
           }
      }
 
@@ -492,6 +531,9 @@ davinciSetState( void                *drv,
                     case 2:
                          if (state->blittingflags & DSBLIT_SRC_COLORKEY)
                               funcs->Blit = davinciBlitKeyed16;
+                         else if (state->source->config.format == DSPF_ARGB ||
+                                  state->source->config.format == DSPF_RGB32)
+                              funcs->Blit = davinciBlit32to16;
                          else
                               funcs->Blit = davinciBlit16;
                          break;
@@ -516,7 +558,32 @@ davinciSetState( void                *drv,
                 *
                 * When the hw independent state is changed, this collection is reset.
                 */
-               state->set |= DAVINCI_SUPPORTED_BLITTINGFUNCTIONS;
+               state->set |= DFXL_BLIT;
+               break;
+
+          case DFXL_STRETCHBLIT:
+               /* ...require valid source. */
+               DAVINCI_CHECK_VALIDATE( SOURCE );
+
+               /* Choose function. */
+               switch (state->destination->config.format) {
+                    case DSPF_ARGB:
+                    case DSPF_RGB32:
+                         funcs->StretchBlit = davinciStretchBlit32;
+                         break;
+
+                    default:
+                         D_BUG( "unexpected destination format %s",
+                                dfb_pixelformat_name( state->destination->config.format ) );
+                         break;
+               }
+
+               /*
+                * 3) Tell which functions can be called without further validation, i.e. SetState()
+                *
+                * When the hw independent state is changed, this collection is reset.
+                */
+               state->set |= DFXL_STRETCHBLIT;
                break;
 
           default:
@@ -527,6 +594,11 @@ davinciSetState( void                *drv,
      ddev->blitting_flags = state->blittingflags;
      ddev->colorkey       = state->src_colorkey;
      ddev->color          = state->color;
+     ddev->color_argb     = PIXEL_ARGB( state->color.a,
+                                        state->color.r,
+                                        state->color.g,
+                                        state->color.b );
+     ddev->clip           = state->clip;
 
      /*
       * 4) Clear modification flags
@@ -608,6 +680,23 @@ davinciBlit16( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 }
 
 static bool
+davinciBlit32to16( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
+{
+     DavinciDriverData *ddrv = drv;
+     DavinciDeviceData *ddev = dev;
+
+     davinci_c64x_dither_argb( &ddrv->c64x,
+                               ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
+                               0x8e000000,
+                               ddev->dst_pitch,
+                               ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
+                               ddev->src_pitch,
+                               rect->w, rect->h );
+
+     return true;
+}
+
+static bool
 davinciBlit32( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
      DavinciDriverData *ddrv = drv;
@@ -672,7 +761,25 @@ davinciBlitBlend32( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
                                  ddev->src_pitch,
                                  rect->w, rect->h,
                                  ddev->blend_sub_function,
-                                 ddev->color.a );
+                                 ddev->color.a /* _argb */ );
+
+     return true;
+}
+
+static bool
+davinciStretchBlit32( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *drect )
+{
+     DavinciDriverData *ddrv = drv;
+     DavinciDeviceData *ddev = dev;
+
+     davinci_c64x_stretch_32( &ddrv->c64x,
+                              ddev->dst_phys + ddev->dst_pitch * drect->y + ddev->dst_bpp * drect->x,
+                              ddev->dst_pitch,
+                              ddev->src_phys + ddev->src_pitch * srect->y + ddev->src_bpp * srect->x,
+                              ddev->src_pitch,
+                              drect->w, drect->h,
+                              srect->w, srect->h,
+                              &ddev->clip );
 
      return true;
 }

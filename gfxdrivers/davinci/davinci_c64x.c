@@ -31,6 +31,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
@@ -124,7 +125,7 @@ bench_load_block( DavinciC64x *c64x )
      printf("\n");
      printf("\n");
 
-     memset( dst, 1, 0x100000 );
+     memset( dst, 0x55, 0x100000 );
 
      for (i=0; i<10; i++) {
           printf("0x%08x  (%d, %d, %d)\n", (u32)src[i], src[i] >> 16, (src[i] >> 1) & 0x3f, src[i] & 1);
@@ -146,8 +147,8 @@ bench_load_block( DavinciC64x *c64x )
           c64x_submit_task( c64x );
      }
 
-     davinci_c64x_blit_16( c64x, 0x8f000000, 0, 0xf05b60, 0, 384, 1 );
-     davinci_c64x_blit_16( c64x, 0x8f100000, 0, 0xf06160, 0, 384/2, 1 );
+     davinci_c64x_blit_16( c64x, 0x8f000000, 0, 0xf06180, 0, 384, 1 );
+     davinci_c64x_blit_16( c64x, 0x8f100000, 0, 0xf06480, 0, 384/2, 1 );
 
      davinci_c64x_put_uyvy_16x16( c64x, 0x8f300000, 32, 0xf06160, 0 );
 
@@ -251,67 +252,6 @@ bench_dezigzag( DavinciC64x *c64x )
              "de_zigzag()", total * 1000000ULL / dt );
 }
 
-static inline void
-bench_saturate( DavinciC64x *c64x )
-{
-     int       i, num;
-     long long t1, t2, dt, total;
-     //int       length = 0x10000;
-
-     num = 1;//0x200000;// / length;
-
-     u8    *dst = c64x->mem + 0x1000000;
-     short *src = c64x->mem + 0x1200000;
-
-     printf("\n");
-     printf("\n");
-
-     for (i=0; i<384; i++) {
-          src[i] = i;
-          printf("%5d ", src[i]);
-          if (i%8==7) {
-               printf("\n");
-          }
-     }
-
-     printf("\n");
-
-     memset( dst, 123, 0x100000 );
-
-     t1 = direct_clock_get_abs_micros();
-
-     for (i=0; i<num; i++) {
-          c64xTask *task = c64x_get_task( c64x );
-
-          task->c64x_function = C64X_SATURATE | C64X_FLAG_TODO;
-
-          task->c64x_arg[0] = 0x8f000000+0x000000;
-          task->c64x_arg[1] = 0x8f000000+0x200000;
-
-          c64x_submit_task( c64x );
-     }
-
-     davinci_c64x_write_back_all( c64x );
-     davinci_c64x_wait_low( c64x );
-
-     t2 = direct_clock_get_abs_micros();
-
-     printf("\n");
-
-     for (i=0; i<384; i++) {
-          printf("%3d ", dst[i]);
-          if (i%8==7) {
-               printf("\n");
-          }
-     }
-
-     dt    = t2 - t1;
-     total = num;// * length;
-
-     D_INFO( "Davinci/C64X: BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
-             "saturate()", total * 1000000ULL / dt );
-}
-
 #define DUMP_PIXELS 1
 
 static inline void
@@ -393,6 +333,440 @@ bench_blend_argb( DavinciC64x *c64x, int sub )
 
      D_INFO( "Davinci/C64X: BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
              "blend_32(8x8)", total * 1000000ULL / dt );
+}
+
+static inline void
+bench_fetch_uyvy( DavinciC64x *c64x, bool interleave, int xoff, int yoff )
+{
+     int       i, x, y, num;
+     long long t1, t2, dt, total;
+
+     num = 1;//0x20000;
+
+     u8 *yuv = c64x->mem + 0x1000000;
+     u8 *src = c64x->mem + 0x1200000;
+
+     printf("\n");
+     printf("\n\n.======================== Testing fetch_uyvy (inter %d, xoff %d, yoff %d) ========================.\n",
+            interleave, xoff, yoff);
+     printf("\n");
+     printf( "SOURCE (20x20)\n" );
+
+     for (y=0; y<20; y++) {
+          for (x=0; x<40; x++) {
+               int val = (x & 1) ? (x * 4 + y*0x10) : (x/4 + 0x40 + (x&2) * 0x10 + y*0x08);
+
+               src[y*1440 + x] = val;
+
+               printf("%02x ", val&0xff);
+          }
+
+          printf("\n");
+     }
+
+     printf("\n");
+
+     memset( yuv, 0x55, 0x100000 );
+
+
+     t1 = direct_clock_get_abs_micros();
+
+     for (i=0; i<num; i++) {
+          c64xTask *task = c64x_get_task( c64x );
+
+          task->c64x_function = (19 << 2) | C64X_FLAG_TODO;
+
+          task->c64x_arg[0] = 0x8f000000+0x000000;
+          task->c64x_arg[1] = 0x8f000000+0x200000 + yoff*1440 + xoff * 2;
+          task->c64x_arg[2] = 1440;
+          task->c64x_arg[3] = 16;
+          task->c64x_arg[4] = interleave ? 1 : 0;
+
+          c64x_submit_task( c64x );
+     }
+
+     davinci_c64x_write_back_all( c64x );
+     davinci_c64x_wait_low( c64x );
+
+     t2 = direct_clock_get_abs_micros();
+
+
+     printf( "\n\nDESTINATION (17x18 / [9x9 9x9])\n" );
+
+     for (y=0; y<18; y++) {
+          for (x=0; x<17; x++) {
+               printf("%02x ", yuv[y*32 + x]);
+          }
+
+          printf("\n");
+     }
+
+     printf("\n");
+
+     for (y=0; y<9; y++) {
+          for (x=0; x<9; x++) {
+               printf("%02x ", yuv[y*32 + x + 32*18]);
+          }
+
+          printf("\n");
+     }
+
+     printf("\n");
+
+     for (y=0; y<9; y++) {
+          for (x=0; x<9; x++) {
+               printf("%02x ", yuv[y*32 + x + 32*18+16]);
+          }
+
+          printf("\n");
+     }
+
+     printf("\n");
+
+     printf("\n\n");
+
+     dt    = t2 - t1;
+     total = num;
+
+     D_INFO( "Davinci/C64X: BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
+             "blend_fetch_uyvy(16x16)", total * 1000000ULL / dt );
+}
+
+static inline void
+bench_put_mc( DavinciC64x *c64x, bool interleave )
+{
+     int       x, y, i, num;
+     long long t1, t2, dt, total;
+
+     num = 1;//720/16*576/16;
+
+     u8 *dst = c64x->mem + 0x1000000;
+     u8 *src = c64x->mem + 0x1200000;
+
+     printf("\n");
+     printf("\n\n.======================== Testing put_mc (%d) ========================.\n", interleave);
+     printf("\n");
+     printf("SOURCE (16x16 / [8x8 8x8]\n");
+
+     for (y=0; y<16; y++) {
+          for (x=0; x<16; x++) {
+               u8 val = (x << 4) + y;
+               src[y*16 + x] = val;
+               printf("%02x ", val);
+          }
+
+          printf("\n");
+     }
+
+     printf("\n");
+
+     for (y=0; y<8; y++) {
+          for (x=0; x<8; x++) {
+               u8 val = (x << 4) + y*2;
+               src[y*16 + x + 16*16] = val;
+               printf("%02x ", val);
+          }
+
+          printf("\n");
+     }
+
+     printf("\n");
+
+     for (y=0; y<8; y++) {
+          for (x=0; x<8; x++) {
+               u8 val = (x << 4) + y*2;
+               src[y*16 + x + 16*16 + 8] = val;
+               printf("%02x ", val);
+          }
+
+          printf("\n");
+     }
+
+     printf("\n");
+
+     memset( dst, 0x55, 0x100000 );
+
+     davinci_c64x_blit_32( c64x, C64X_MC_BUFFER_Y, 16, 0x8e000000+0x1200000, 16, 4, 24 );
+     davinci_c64x_write_back_all( c64x );
+     davinci_c64x_wait_low( c64x );
+
+     t1 = direct_clock_get_abs_micros();
+
+     for (i=0; i<num; i++) {
+          c64xTask *task = c64x_get_task( c64x );
+
+          task->c64x_function = C64X_PUT_MC_UYVY_16x16 | C64X_FLAG_TODO;
+
+          task->c64x_arg[0] = 0x8e000000+0x1000000;
+          task->c64x_arg[1] = 1440;
+          task->c64x_arg[2] = interleave ? 1 : 0;
+
+          c64x_submit_task( c64x );
+     }
+
+     davinci_c64x_write_back_all( c64x );
+     davinci_c64x_wait_low( c64x );
+
+     t2 = direct_clock_get_abs_micros();
+
+
+     printf("\n");
+     printf("DESTINATION (16x16 UYVY)\n");
+
+     for (y=0; y<16; y++) {
+          for (x=0; x<32; x++)
+               printf("%02x ", dst[y*1440 + x]);
+
+          printf("\n");
+     }
+
+     printf("\n\n");
+
+     dt    = t2 - t1;
+     total = num;
+
+     D_INFO( "Davinci/C64X: BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
+             "put_mc_16x16()", total * 1000000ULL / dt );
+}
+
+static inline void
+bench_put_sum( DavinciC64x *c64x, bool interleave )
+{
+     int       x, y, i, num;
+     long long t1, t2, dt, total;
+
+     num = 1;//720/16*576/16;
+
+     u8  *dst   = c64x->mem + 0x1000000;
+     u8  *src   = c64x->mem + 0x1200000;
+     u32 *words = c64x->mem + 0x1100000;
+
+     printf("\n");
+     printf("\n\n.======================== Testing put_sum (%d) ========================.\n", interleave);
+     printf("\n");
+     printf("WORDS (6x IDCT with one value)\n");
+
+     words[0] = DVA_BLOCK_WORD(   0, 0, 1 );
+     words[1] = DVA_BLOCK_WORD(  50, 0, 1 );
+     words[2] = DVA_BLOCK_WORD( 100, 0, 1 );
+     words[3] = DVA_BLOCK_WORD( 150, 0, 1 );
+     words[4] = DVA_BLOCK_WORD( 200, 0, 1 );
+     words[5] = DVA_BLOCK_WORD( 250, 0, 1 );
+
+     printf("\n");
+     printf("\n");
+
+     memset( dst, 0x55, 0x100000 );
+
+     for (i=0; i<6; i++) {
+          printf("0x%08x  (%d, %d, %d)\n", (u32)words[i], words[i] >> 16, (words[i] >> 1) & 0x3f, words[i] & 1);
+     }
+
+     {
+          c64xTask *task = c64x_get_task( c64x );
+
+          task->c64x_function = C64X_LOAD_BLOCK | C64X_FLAG_TODO;
+
+          task->c64x_arg[0] = 0x8e000000+0x1100000;
+          task->c64x_arg[1] = 6;
+          task->c64x_arg[2] = 0x3f;
+
+          c64x_submit_task( c64x );
+     }
+
+     printf("\n");
+     printf("SOURCE (16x16 / [8x8 8x8]\n");
+
+     for (y=0; y<16; y++) {
+          for (x=0; x<16; x++) {
+               u8 val = (x << 4) + y;
+               src[y*16 + x] = val;
+               printf("%02x ", val);
+          }
+
+          printf("\n");
+     }
+
+     printf("\n");
+
+     for (y=0; y<8; y++) {
+          for (x=0; x<8; x++) {
+               u8 val = (x << 4) + y*2;
+               src[y*16 + x + 16*16] = val;
+               printf("%02x ", val);
+          }
+
+          printf("\n");
+     }
+
+     printf("\n");
+
+     for (y=0; y<8; y++) {
+          for (x=0; x<8; x++) {
+               u8 val = (x << 4) + y*2;
+               src[y*16 + x + 16*16 + 8] = val;
+               printf("%02x ", val);
+          }
+
+          printf("\n");
+     }
+
+     printf("\n");
+
+     memset( dst, 0x55, 0x100000 );
+
+     davinci_c64x_blit_32( c64x, C64X_MC_BUFFER_Y, 16, 0x8e000000+0x1200000, 16, 4, 24 );
+     davinci_c64x_write_back_all( c64x );
+     davinci_c64x_wait_low( c64x );
+
+     t1 = direct_clock_get_abs_micros();
+
+     for (i=0; i<num; i++) {
+          c64xTask *task = c64x_get_task( c64x );
+
+          task->c64x_function = C64X_PUT_SUM_UYVY_16x16 | C64X_FLAG_TODO;
+
+          task->c64x_arg[0] = 0x8e000000+0x1000000;
+          task->c64x_arg[1] = 1440;
+          task->c64x_arg[2] = interleave ? 1 : 0;
+
+          c64x_submit_task( c64x );
+     }
+
+     davinci_c64x_write_back_all( c64x );
+     davinci_c64x_wait_low( c64x );
+
+     t2 = direct_clock_get_abs_micros();
+
+
+     printf("\n");
+     printf("DESTINATION (16x16 UYVY)\n");
+
+     for (y=0; y<16; y++) {
+          for (x=0; x<32; x++)
+               printf("%02x ", dst[y*1440 + x]);
+
+          printf("\n");
+     }
+
+     printf("\n\n");
+
+     dt    = t2 - t1;
+     total = num;
+
+     D_INFO( "Davinci/C64X: BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
+             "put_sum_16x16()", total * 1000000ULL / dt );
+}
+
+static inline void
+bench_sat_mc( DavinciC64x *c64x )
+{
+     int       x, y, i, num;
+     long long t1, t2, dt, total;
+
+     num = 1;//720/16*576/16;
+
+     u8 *dst = c64x->mem + 0x1000000;
+     u8 *src = c64x->mem + 0x1200000;
+
+     printf("\n");
+     printf("\n\n.======================== Testing sat_mc ========================.\n");
+     printf("\n");
+     printf("SOURCE (16x16 / [8x8 8x8]\n");
+
+     for (y=0; y<16; y++) {
+          for (x=0; x<16; x++) {
+               u8 val = (x << 4) + y;
+               src[y*16 + x] = val;
+               printf("%02x ", val);
+          }
+
+          printf("\n");
+     }
+
+     printf("\n");
+
+     for (y=0; y<8; y++) {
+          for (x=0; x<8; x++) {
+               u8 val = (x << 4) + y*2;
+               src[y*16 + x + 16*16] = val;
+               printf("%02x ", val);
+          }
+
+          printf("\n");
+     }
+
+     printf("\n");
+
+     for (y=0; y<8; y++) {
+          for (x=0; x<8; x++) {
+               u8 val = (x << 4) + y*2;
+               src[y*16 + x + 16*16 + 8] = val;
+               printf("%02x ", val);
+          }
+
+          printf("\n");
+     }
+
+     printf("\n");
+
+     memset( dst, 0x55, 0x100000 );
+
+     t1 = direct_clock_get_abs_micros();
+
+     for (i=0; i<num; i++) {
+          c64xTask *task = c64x_get_task( c64x );
+
+          task->c64x_function = (57 << 2) | C64X_FLAG_TODO;
+
+          task->c64x_arg[0] = 0x8e000000+0x1000000;
+          task->c64x_arg[1] = 0x8e000000+0x1200000;
+          task->c64x_arg[2] = 16;
+
+          c64x_submit_task( c64x );
+     }
+
+     davinci_c64x_write_back_all( c64x );
+     davinci_c64x_wait_low( c64x );
+
+     t2 = direct_clock_get_abs_micros();
+
+
+     printf("\n");
+     printf("DESTINATION (16x16 / [8x8 8x8]\n");
+
+     for (y=0; y<16; y++) {
+          for (x=0; x<16; x++)
+               printf("%02x ", dst[y*16 + x]);
+
+          printf("\n");
+     }
+
+     printf("\n");
+
+     for (y=0; y<8; y++) {
+          for (x=0; x<8; x++)
+               printf("%02x ", dst[y*16 + x + 16*16]);
+
+          printf("\n");
+     }
+
+     printf("\n");
+
+     for (y=0; y<8; y++) {
+          for (x=0; x<8; x++)
+               printf("%02x ", dst[y*16 + x + 16*16 + 8]);
+
+          printf("\n");
+     }
+
+     printf("\n\n");
+
+     dt    = t2 - t1;
+     total = num;
+
+     D_INFO( "Davinci/C64X: BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
+             "sat_mc_16x16()", total * 1000000ULL / dt );
 }
 
 static inline void
@@ -679,8 +1053,8 @@ bench_mc( DavinciC64x *c64x, int func, int w, int h, bool avg, const char *name 
      printf("\n");
      printf("SRC REF\n");
 
-     for (y=0; y<h; y++) {
-          for (x=0; x<w; x++) {
+     for (y=0; y<h+1; y++) {
+          for (x=0; x<w+1; x++) {
                src[x+y*32] = x*y;
                printf("%-3d ", src[x+y*32]);
           }
@@ -747,6 +1121,26 @@ bench_mc( DavinciC64x *c64x, int func, int w, int h, bool avg, const char *name 
 }
 
 static inline void
+bench_div( DavinciC64x *c64x, u32 nom, u32 den )
+{
+     c64xTask *task = c64x_get_task( c64x );
+
+     printf("\n\n.============ Testing div ============.\n");
+     printf("\n");
+
+     task->c64x_function = (63 << 2) | C64X_FLAG_TODO;
+
+     task->c64x_arg[0] = nom;
+     task->c64x_arg[1] = den;
+
+     c64x_submit_task( c64x );
+
+     davinci_c64x_wait_low( c64x );
+
+     printf("%x / %x = %x\n\n\n", nom, den, task->c64x_return);
+}
+
+static inline void
 bench_dither_argb( DavinciC64x *c64x )
 {
      int       i, x, y, num, w = 8, h = 17;
@@ -777,8 +1171,8 @@ bench_dither_argb( DavinciC64x *c64x )
      printf("\n");
      printf("\n");
 
-     memset( dr, 0xff, 0x100000 );
-     memset( da, 0xff, 0x100000 );
+     memset( dr, 0x55, 0x100000 );
+     memset( da, 0x55, 0x100000 );
 
 
      t1 = direct_clock_get_abs_micros();
@@ -833,6 +1227,77 @@ bench_dither_argb( DavinciC64x *c64x )
 
      printf( "BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
              "dither_argb", total * 1000000ULL / dt );
+}
+
+static inline void
+bench_stretch_32_up( DavinciC64x *c64x )
+{
+     int       i, x, y, num;
+     long long t1, t2, dt, total;
+
+     num = 1;//0x10000;
+
+     u32 *dst = c64x->mem + 0x1200000;
+     u32 *src = c64x->mem + 0x1000000;
+
+     printf("\n\n.======================== Testing stretch_32_up ========================.\n");
+     printf("\n");
+     printf("SOURCE ARGB (10x5)\n");
+
+     for (y=0; y<5; y++) {
+          for (x=0; x<10; x++) {
+               src[x+y*64/4] = 0x10010203 * x + 0x04202020 * (y + 1);
+               printf("%08x ", src[x+y*64/4]);
+          }
+          printf("\n");
+     }
+
+     printf("\n");
+     printf("\n");
+
+     memset( dst, 0x55, 0x100000 );
+
+
+     t1 = direct_clock_get_abs_micros();
+
+     for (i=0; i<num; i++) {
+          c64xTask *task = c64x_get_task( c64x );
+
+          task->c64x_function = C64X_STRETCH_32_up | C64X_FLAG_TODO;
+
+          task->c64x_arg[0] = 0x8e000000 + 0x1200000;
+          task->c64x_arg[1] = 0x8e000000 + 0x1000000;
+          task->c64x_arg[2] = 128      | (64       << 16);
+          task->c64x_arg[3] = 20       | (6        << 16);
+          task->c64x_arg[4] = 10       | (5        << 16);
+          task->c64x_arg[5] = 19       | (5        << 16);
+          task->c64x_arg[6] = 0        | (0        << 16);
+
+          c64x_submit_task( c64x );
+     }
+
+     davinci_c64x_write_back_all( c64x );
+
+     davinci_c64x_wait_low( c64x );
+
+     t2 = direct_clock_get_abs_micros();
+
+
+     printf("-> DESTINATION (20x6)\n");
+
+     for (y=0; y<6; y++) {
+          for (x=0; x<20; x++) {
+               printf("%08x ", dst[x+y*128/4]);
+          }
+          printf("\n");
+     }
+
+     printf("\n");
+
+     dt    = t2 - t1;
+     total = num;
+
+     printf( "BENCHMARK on DSP - stretch_32_up   %lld Calls/sec\n", total * 1000000ULL / dt );
 }
 
 static inline void
@@ -894,8 +1359,9 @@ davinci_c64x_open( DavinciC64x *c64x )
 
      D_MAGIC_SET( c64x, DavinciC64x );
 
+if (getenv("C64X_TEST")) {
 //     bench_dsp( c64x );
-//     bench_load_block( c64x );
+     bench_load_block( c64x );
 //     bench_uyvy_1( c64x );
 //     bench_uyvy_2( c64x );
 //     bench_uyvy_3( c64x );
@@ -905,7 +1371,26 @@ davinci_c64x_open( DavinciC64x *c64x )
 //     bench_blend_argb( c64x, 3 );
 
 //     bench_dither_argb( c64x );
-//     bench_saturate( c64x );
+     bench_stretch_32_up( c64x );
+
+#if 0
+     bench_fetch_uyvy( c64x, false, 0, 0 );
+     bench_fetch_uyvy( c64x, false, 1, 0 );
+     bench_fetch_uyvy( c64x, false, 0, 1 );
+     bench_fetch_uyvy( c64x, false, 1, 1 );
+     bench_fetch_uyvy( c64x, true, 0, 0 );
+     bench_fetch_uyvy( c64x, true, 1, 0 );
+     bench_fetch_uyvy( c64x, true, 0, 1 );
+     bench_fetch_uyvy( c64x, true, 1, 1 );
+#endif
+
+//     bench_put_mc( c64x, false );
+//     bench_put_mc( c64x, true );
+
+     bench_put_sum( c64x, false );
+     bench_put_sum( c64x, true );
+
+//     bench_sat_mc( c64x );
 
 #if 0
      bench_mc( c64x, 32, 8, 8, false, "mc_put_o_8" );
@@ -928,6 +1413,22 @@ davinci_c64x_open( DavinciC64x *c64x )
      bench_mc( c64x, 46, 16, 16, true, "mc_avg_y_16" );
      bench_mc( c64x, 47, 16, 16, true, "mc_avg_xy_16" );
 #endif
+
+#if 0
+     bench_div( c64x, 1, 3 );
+     bench_div( c64x, 1000, 333 );
+     bench_div( c64x, 1000, 334 );
+     bench_div( c64x, 6666, 2222 );
+     bench_div( c64x, 1234, 1234 );
+     bench_div( c64x, 4000, 0 );
+     bench_div( c64x, 5000, 0 );
+     bench_div( c64x, 10000, 3 );
+     bench_div( c64x, 14, 3 );
+     bench_div( c64x, 0x10000, 0x1000 );
+     bench_div( c64x, 0x1000, 0x100 );
+     bench_div( c64x, 0x100000, 2 );
+#endif
+}
 
      return DFB_OK;
 
