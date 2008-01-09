@@ -437,7 +437,7 @@ static void config_allocate()
      dfb_config->kd_graphics              = true;
      dfb_config->translucent_windows      = true;
      dfb_config->font_premult             = true;
-     dfb_config->mouse_motion_compression = true;
+     dfb_config->mouse_motion_compression = false;
      dfb_config->mouse_gpm_source         = false;
      dfb_config->mouse_source             = D_STRDUP( DEV_NAME );
      dfb_config->linux_input_grab         = true;
