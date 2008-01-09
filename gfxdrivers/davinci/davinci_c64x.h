@@ -398,7 +398,7 @@ davinci_c64x_blit_blend_32( DavinciC64x   *c64x,
                             u32            width,
                             u32            height,
                             u32            sub_func,
-                            u8             alpha )
+                            u32            argb )
 {
      c64xTask *task = c64x_get_task( c64x );
 
@@ -410,7 +410,7 @@ davinci_c64x_blit_blend_32( DavinciC64x   *c64x,
      task->c64x_arg[3] = spitch;
      task->c64x_arg[4] = width;
      task->c64x_arg[5] = height;
-     task->c64x_arg[6] = alpha;
+     task->c64x_arg[6] = argb;
 
      c64x_submit_task( c64x );
 }
