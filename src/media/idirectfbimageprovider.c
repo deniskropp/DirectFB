@@ -121,6 +121,9 @@ IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
      if (!buffer_data)
           return DFB_DEAD;
 
+     /* Clear for safety, especially header data. */
+     memset( &ctx, 0, sizeof(ctx) );
+
      /* Provide a fallback for image providers without data buffer support. */
      ctx.filename = buffer_data->filename;
 
@@ -130,9 +133,7 @@ IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
           return ret;
 
      /* Read the first 32 bytes. */
-     ret = buffer->PeekData( buffer, 32, 0, ctx.header, NULL );
-     if (ret)
-          return ret;
+     buffer->PeekData( buffer, 32, 0, ctx.header, NULL );
 
      /* Find a suitable implementation. */
      ret = DirectGetInterface( &funcs, "IDirectFBImageProvider", NULL, DirectProbeInterface, &ctx );
