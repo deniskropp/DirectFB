@@ -750,6 +750,10 @@ davinciBlitBlend32( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
      DavinciDriverData *ddrv = drv;
      DavinciDeviceData *ddev = dev;
+     u32                argb = ddev->color_argb;
+
+     if (!(ddev->blitting_flags & DSBLIT_COLORIZE))
+          argb |= 0x00ffffff;
 
      davinci_c64x_blit_blend_32( &ddrv->c64x,
                                  ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
@@ -758,8 +762,7 @@ davinciBlitBlend32( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
                                  ddev->src_pitch,
                                  rect->w, rect->h,
                                  ddev->blend_sub_function,
-                                 (ddev->blitting_flags & DSBLIT_COLORIZE) ?
-                                   ddev->color_argb : (ddev->color_argb | 0xffffff) );
+                                 argb );
 
      return true;
 }
