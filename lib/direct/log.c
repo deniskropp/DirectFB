@@ -59,7 +59,8 @@ struct __D_DirectLog {
      pthread_mutex_t lock;
 };
 
-static DirectLog *default_log;
+static DirectLog *auto_log;
+static DirectLog *def_log;
 
 /**********************************************************************************************************************/
 
@@ -119,8 +120,11 @@ direct_log_destroy( DirectLog *log )
 {
      D_MAGIC_ASSERT( log, DirectLog );
 
-     if (default_log == log)
-          default_log = NULL;
+     if (auto_log == log)
+          auto_log = NULL;
+
+     if (def_log == log)
+          def_log = auto_log;
 
      close( log->fd );
 
@@ -147,7 +151,7 @@ direct_log_printf( DirectLog  *log,
 
      /* Use the default log if passed log is invalid. */
      if (!log || log->magic != D_MAGIC("DirectLog"))
-          log = default_log;
+          log = direct_log_default();
 
      /* Write to stderr as a fallback if default is invalid, too. */
      if (!log || log->magic != D_MAGIC("DirectLog")) {
@@ -177,7 +181,7 @@ direct_log_set_default( DirectLog *log )
 {
      D_MAGIC_ASSERT( log, DirectLog );
 
-     default_log = log;
+     def_log = log;
 
      return DFB_OK;
 }
@@ -186,40 +190,44 @@ __attribute__((no_instrument_function))
 void
 direct_log_lock( DirectLog *log )
 {
-     if (log) {
-          D_MAGIC_ASSERT( log, DirectLog );
+     D_MAGIC_ASSERT_IF( log, DirectLog );
 
-          pthread_mutex_lock( &log->lock );
-     }
-     else if (default_log) {
-          D_MAGIC_ASSERT( default_log, DirectLog );
+     if (!log)
+          log = direct_log_default();
 
-          pthread_mutex_lock( &default_log->lock );
-     }
+     D_MAGIC_ASSERT( log, DirectLog );
+
+     pthread_mutex_lock( &log->lock );
 }
 
 __attribute__((no_instrument_function))
 void
 direct_log_unlock( DirectLog *log )
 {
-     if (log) {
-          D_MAGIC_ASSERT( log, DirectLog );
+     D_MAGIC_ASSERT_IF( log, DirectLog );
 
-          pthread_mutex_unlock( &log->lock );
-     }
-     else if (default_log) {
-          D_MAGIC_ASSERT( default_log, DirectLog );
+     if (!log)
+          log = direct_log_default();
 
-          pthread_mutex_unlock( &default_log->lock );
-     }
+     D_MAGIC_ASSERT( log, DirectLog );
+
+     pthread_mutex_unlock( &log->lock );
 }
 
-const DirectLog *
+__attribute__((no_instrument_function))
+DirectLog *
 direct_log_default()
 {
-     D_MAGIC_ASSERT_IF( default_log, DirectLog );
+     if (!def_log) {
+          if (!auto_log)
+               direct_log_create( DLT_STDERR, NULL, &auto_log );
 
-     return default_log;
+          def_log = auto_log;
+     }
+
+     D_MAGIC_ASSERT( def_log, DirectLog );
+
+     return def_log;
 }
 
 /**********************************************************************************************************************/
