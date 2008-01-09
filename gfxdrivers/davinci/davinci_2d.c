@@ -135,15 +135,17 @@ static bool davinciStretchBlit32  ( void                *drv,
 static inline int
 get_blend_sub_function( const CardState *state )
 {
+     DFBSurfaceBlittingFlags flags = state->blittingflags & ~DSBLIT_COLORIZE;
+
      if (state->dst_blend == DSBF_INVSRCALPHA) {
           switch (state->src_blend) {
                case DSBF_SRCALPHA:
-                    if (state->blittingflags == DSBLIT_BLEND_ALPHACHANNEL)
+                    if (flags == DSBLIT_BLEND_ALPHACHANNEL)
                          return 2;
                     break;
 
                case DSBF_ONE:
-                    switch (state->blittingflags) {
+                    switch (flags) {
                          case DSBLIT_BLEND_ALPHACHANNEL:
                               return 1;
 
@@ -353,11 +355,6 @@ davinciCheckState( void                *drv,
      /* Return if the desired function is not supported at all. */
      if (accel & ~(DAVINCI_SUPPORTED_DRAWINGFUNCTIONS | DAVINCI_SUPPORTED_BLITTINGFUNCTIONS))
           return;
-
-     if (state->blittingflags & DSBLIT_COLORIZE) {
-          D_ONCE( "removing DSBLIT_COLORIZE for testing" );
-          state->blittingflags &= ~DSBLIT_COLORIZE;
-     }
 
      /* Return if the destination format is not supported. */
      switch (state->destination->config.format) {
@@ -761,7 +758,8 @@ davinciBlitBlend32( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
                                  ddev->src_pitch,
                                  rect->w, rect->h,
                                  ddev->blend_sub_function,
-                                 ddev->color.a /* _argb */ );
+                                 (ddev->blitting_flags & DSBLIT_COLORIZE) ?
+                                   ddev->color_argb : (ddev->color_argb | 0xffffff) );
 
      return true;
 }

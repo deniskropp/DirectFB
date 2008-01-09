@@ -38,6 +38,7 @@
 
 #define DAVINCI_SUPPORTED_BLITTINGFLAGS     (DSBLIT_BLEND_ALPHACHANNEL |\
                                              DSBLIT_BLEND_COLORALPHA   |\
+                                             DSBLIT_COLORIZE           |\
                                              DSBLIT_SRC_COLORKEY       |\
                                              DSBLIT_SRC_PREMULTIPLY    |\
                                              DSBLIT_SRC_PREMULTCOLOR)
