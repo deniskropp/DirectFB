@@ -36,6 +36,8 @@
 
 #include <core/surface_buffer.h>
 
+#include "davincifb.h"
+
 #include "davinci_c64x.h"
 
 
@@ -109,13 +111,33 @@ davincifb_pan_display( const DavinciFB             *fb,
      int ret;
 
      if (lock) {
-#if 1
-          var->xoffset = 0;
-          var->yoffset = lock->offset / lock->pitch;
-#else
-          var->xoffset = lock->phys;
-          var->yoffset = 666;
+#ifdef FBIO_SET_START
+          struct fb_set_start set_start;
+
+          set_start.offset   = -1;           /* physical mode */
+          set_start.physical = lock->phys;   /* life's so easy */
+          set_start.sync     = (flags & DSFLIP_ONSYNC) ? 1 : 0;
+
+          //direct_log_lock( NULL );
+          //direct_log_printf( NULL, "phys 0x%08lx, sync %llu -> ", set_start.physical, set_start.sync );
+
+          ret = ioctl( fb->fd, FBIO_SET_START, &set_start );
+          if (ret < 0)
+               D_DEBUG( "FBIO_SET_START (0x%08lx, sync %llu) failed!\n",
+                         set_start.physical, set_start.sync );
+
+          //direct_log_printf( NULL, "%llu (ret = %d)\n", set_start.sync, ret );
+          //direct_log_unlock( NULL );
+
+          if (ret == 0) {
+               if (flags & DSFLIP_WAIT)
+                    ioctl( fb->fd, FBIO_WAITFORVSYNC );
+
+               return DFB_OK;
+          }
 #endif
+          var->xoffset = 0;                  /* poor version */
+          var->yoffset = lock->offset / lock->pitch;
      }
      else {
           var->xoffset = 0;

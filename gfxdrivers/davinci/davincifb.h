@@ -40,6 +40,16 @@ typedef struct zoom_params {
 	u_int32_t zoom_v;
 } zoom_params_t;
 
+
+typedef struct fb_set_start {
+	int		offset;		/* offset from smem_start */
+	unsigned long	physical;	/* absolute physical address when offset < 0 */
+
+	u_int64_t	sync;		/* input:  target sync counter for change or 0 for no sync at all,
+					   output: sync counter of actual change or 0 if still pending */
+} fb_set_start_t;
+
+
 #ifdef _IOC_TYPECHECK
 #undef _IOC_TYPECHECK
 #define _IOC_TYPECHECK(x)     (sizeof(x))
@@ -88,6 +98,8 @@ typedef struct zoom_params {
 	_IOW('F', 0x49, u_int32_t)
 #define FBIO_SET_CURSOR         	\
 	_IOW('F', 0x50, struct fb_cursor)
+#define FBIO_SET_START     		\
+	_IOW('F', 0x66, struct fb_set_start)
 
 /* 
  * Defines and Constants

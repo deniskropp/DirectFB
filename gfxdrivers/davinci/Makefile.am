@@ -6,7 +6,8 @@ EXTRA_DIST = \
 	kernel-module/c64x/Makefile		\
 	kernel-module/c64x/c64x.c		\
 	kernel-module/Makefile			\
-	kernel-module/include/linux/c64x.h
+	kernel-module/include/linux/c64x.h	\
+	patches/ti-davinci-2.6.10-mvl401-fbio_set_start.patch
 
 INCLUDES = \
 	-I$(top_srcdir)/include	\
