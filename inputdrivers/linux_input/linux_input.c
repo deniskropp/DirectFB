@@ -736,7 +736,7 @@ set_led( const LinuxInputData *data, int led, int state )
 }
 
 static void
-flush_xy( LinuxInputData *data )
+flush_xy( LinuxInputData *data, bool last )
 {
      DFBInputEvent evt;
 
@@ -747,7 +747,7 @@ flush_xy( LinuxInputData *data )
           evt.axisrel = data->dx;
 
           /* Signal immediately following event. */
-          if (data->dy)
+          if (!last || data->dy)
                evt.flags |= DIEF_FOLLOW;
 
           dfb_input_dispatch( data->device, &evt );
@@ -760,6 +760,10 @@ flush_xy( LinuxInputData *data )
           evt.flags   = DIEF_AXISREL;
           evt.axis    = DIAI_Y;
           evt.axisrel = data->dy;
+
+          /* Signal immediately following event. */
+          if (!last)
+               evt.flags |= DIEF_FOLLOW;
 
           dfb_input_dispatch( data->device, &evt );
 
@@ -797,6 +801,8 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
      }
 
      while (1) {
+          DFBInputEvent devt = { type: DIET_UNKNOWN, flags: DIEF_NONE };
+          
           FD_ZERO( &set );
           FD_SET( data->fd, &set );
 
@@ -845,13 +851,13 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
                continue;
 
           for (i=0; i<readlen / sizeof(levt[0]); i++) {
-               DFBInputEvent devt;
-
+               DFBInputEvent temp;
+               
                if (data->touchpad) {
-                    status = touchpad_fsm( &fsm_state, &levt[i], &devt );
+                    status = touchpad_fsm( &fsm_state, &levt[i], &temp );
                     if (status < 0) {
                          /* Not handled. Try the direct approach. */
-                         if (!translate_event( &levt[i], &devt ))
+                         if (!translate_event( &levt[i], &temp ))
                               continue;
                     }
                     else if (status == 0) {
@@ -860,11 +866,28 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
                     }
                }
                else {
-                    if (!translate_event( &levt[i], &devt ))
+                    if (!translate_event( &levt[i], &temp ))
                          continue;
                }
 
-               if (devt.type == DIET_AXISMOTION && (devt.flags & DIEF_AXISREL)) {
+               /* Flush previous event with DIEF_FOLLOW? */
+               if (devt.type != DIET_UNKNOWN) {
+                    flush_xy( data, false );
+
+                    /* Signal immediately following event. */
+                    devt.flags |= DIEF_FOLLOW;
+
+                    dfb_input_dispatch( data->device, &devt );
+
+                    devt.type  = DIET_UNKNOWN;
+                    devt.flags = DIEF_NONE;
+               }
+               
+               devt = temp;
+
+               if (D_FLAGS_IS_SET( devt.flags, DIEF_AXISREL ) && devt.type == DIET_AXISMOTION &&
+                   dfb_config->mouse_motion_compression)
+               {
                     switch (devt.axis) {
                          case DIAI_X:
                               data->dx += devt.axisrel;
@@ -878,10 +901,8 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
                               break;
                     }
                }
-
-               flush_xy( data );
-
-               dfb_input_dispatch( data->device, &devt );
+               
+               /* Event is dispatched in next round of loop. */
 
                if (data->has_leds && (devt.locks != data->locks)) {
                     set_led( data, LED_SCROLLL, devt.locks & DILS_SCROLL );
@@ -891,7 +912,14 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
                }
           }
 
-          flush_xy( data );
+          /* Flush last event without DIEF_FOLLOW. */
+          if (devt.type != DIET_UNKNOWN) {
+               flush_xy( data, false );
+
+               dfb_input_dispatch( data->device, &devt );
+          }
+          else
+               flush_xy( data, true );
      }
 
      if (status <= 0)
