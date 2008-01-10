@@ -39,7 +39,7 @@
 #include "coredefs.h"
 
 
-#define DIRECTFB_CORE_ABI     42
+#define DIRECTFB_CORE_ABI     43
 
 
 typedef enum {
