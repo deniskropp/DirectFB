@@ -2566,11 +2566,11 @@ handle_button_release( CoreWindowStack     *stack,
 /**************************************************************************************************/
 
 static void
-handle_motion( CoreWindowStack *stack,
-               StackData       *data,
-               WMData          *wmdata,
-               int              dx,
-               int              dy )
+perform_motion( CoreWindowStack *stack,
+                StackData       *data,
+                WMData          *wmdata,
+                int              dx,
+                int              dy )
 {
      int               old_cx, old_cy;
      DFBWindowEvent    we;
@@ -2668,6 +2668,23 @@ handle_motion( CoreWindowStack *stack,
 }
 
 static void
+flush_motion( CoreWindowStack *stack,
+              StackData       *data,
+              WMData          *wmdata )
+{
+     D_ASSERT( stack != NULL );
+     D_ASSERT( data != NULL );
+     D_ASSERT( wmdata != NULL );
+
+     if (data->cursor_dx || data->cursor_dy) {
+          perform_motion( stack, data, wmdata, data->cursor_dx, data->cursor_dy );
+
+          data->cursor_dx = 0;
+          data->cursor_dy = 0;
+     }
+}
+
+static void
 handle_wheel( CoreWindowStack *stack,
               StackData       *data,
               int              dz )
@@ -2739,6 +2756,8 @@ handle_axis_motion( CoreWindowStack     *stack,
                     break;
 
                case DIAI_Z:
+                    flush_motion( stack, data, wmdata );
+
                     handle_wheel( stack, data, - event->axisrel );
                     break;
 
@@ -2759,13 +2778,6 @@ handle_axis_motion( CoreWindowStack     *stack,
                default:
                     ;
           }
-     }
-
-     if (!(event->flags & DIEF_FOLLOW) && (data->cursor_dx || data->cursor_dy)) {
-          handle_motion( stack, data, wmdata, data->cursor_dx, data->cursor_dy );
-
-          data->cursor_dx = 0;
-          data->cursor_dy = 0;
      }
 
      return DFB_OK;
@@ -2979,6 +2991,9 @@ wm_process_input( CoreWindowStack     *stack,
      if (event->flags & DIEF_LOCKS)
           data->locks = event->locks;
 
+     if (event->type != DIET_AXISMOTION)
+          flush_motion( stack, data, wm_data );
+
      switch (event->type) {
           case DIET_KEYPRESS:
                ret = handle_key_press( stack, data, wm_data, event );
@@ -3005,6 +3020,9 @@ wm_process_input( CoreWindowStack     *stack,
                ret = DFB_UNSUPPORTED;
                break;
      }
+
+     if (!D_FLAGS_IS_SET( event->flags, DIEF_FOLLOW ))
+          flush_motion( stack, data, wm_data );
 
      process_updates( data, wm_data, stack, NULL, DSFLIP_NONE );
 
