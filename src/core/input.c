@@ -80,11 +80,11 @@
 #include <gfx/convert.h>
 
 
-D_DEBUG_DOMAIN( Core_Input, "Core/Input", "DirectFB Input Core" );
+D_DEBUG_DOMAIN( Core_Input,    "Core/Input",     "DirectFB Input Core" );
+D_DEBUG_DOMAIN( Core_InputEvt, "Core/Input/Evt", "DirectFB Input Core Events & Dispatch" );
 
 
-DEFINE_MODULE_DIRECTORY( dfb_input_modules, "inputdrivers",
-                         DFB_INPUT_DRIVER_ABI_VERSION );
+DEFINE_MODULE_DIRECTORY( dfb_input_modules, "inputdrivers", DFB_INPUT_DRIVER_ABI_VERSION );
 
 /**********************************************************************************************************************/
 
@@ -665,6 +665,35 @@ dfb_input_detach_global( CoreInputDevice *device,
      return fusion_reactor_detach_global( device->shared->reactor, reaction );
 }
 
+const char *
+dfb_input_event_type_name( DFBInputEventType type )
+{
+     switch (type) {
+          case DIET_UNKNOWN:
+               return "UNKNOWN";
+
+          case DIET_KEYPRESS:
+               return "KEYPRESS";
+
+          case DIET_KEYRELEASE:
+               return "KEYRELEASE";
+
+          case DIET_BUTTONPRESS:
+               return "BUTTONPRESS";
+
+          case DIET_BUTTONRELEASE:
+               return "BUTTONRELEASE";
+
+          case DIET_AXISMOTION:
+               return "AXISMOTION";
+
+          default:
+               break;
+     }
+
+     return "<invalid>";
+}
+
 void
 dfb_input_dispatch( CoreInputDevice *device, DFBInputEvent *event )
 {
@@ -678,13 +707,54 @@ dfb_input_dispatch( CoreInputDevice *device, DFBInputEvent *event )
 
      D_ASSUME( device->shared != NULL );
 
-     if (!device->shared)
+     /*
+      * 0. Sanity checks & debugging...
+      */
+     if (!device->shared) {
+          D_DEBUG_AT( Core_Input, "  -> No shared data!\n" );
           return;
+     }
 
      D_ASSUME( device->shared->reactor != NULL );
 
-     if (!device->shared->reactor)
+     if (!device->shared->reactor) {
+          D_DEBUG_AT( Core_Input, "  -> No reactor!\n" );
           return;
+     }
+
+     D_DEBUG_AT( Core_InputEvt, "  -> (%02x) %s%s%s\n",
+                 dfb_input_event_type_name( event->type ),
+                 (event->flags & DIEF_FOLLOW) ? " [FOLLOW]" : "",
+                 (event->flags & DIEF_REPEAT) ? " [REPEAT]" : "" );
+
+#if D_DEBUG_ENABLED
+     if (event->flags & DIEF_TIMESTAMP)
+          D_DEBUG_AT( Core_InputEvt, "  -> TIMESTAMP  %lu.%06lu\n", event->timestamp.tv_sec, event->timestamp.tv_usec );
+     if (event->flags & DIEF_AXISABS)
+          D_DEBUG_AT( Core_InputEvt, "  -> AXISABS    %d at %d\n",  event->axis, event->axisabs );
+     if (event->flags & DIEF_AXISREL)
+          D_DEBUG_AT( Core_InputEvt, "  -> AXISREL    %d by %d\n",  event->axis, event->axisrel );
+     if (event->flags & DIEF_KEYCODE)
+          D_DEBUG_AT( Core_InputEvt, "  -> KEYCODE    %d\n",        event->key_code );
+     if (event->flags & DIEF_KEYID)
+          D_DEBUG_AT( Core_InputEvt, "  -> KEYID      0x%04x\n",    event->key_id );
+     if (event->flags & DIEF_KEYSYMBOL)
+          D_DEBUG_AT( Core_InputEvt, "  -> KEYSYMBOL  0x%04x\n",    event->key_symbol );
+     if (event->flags & DIEF_MODIFIERS)
+          D_DEBUG_AT( Core_InputEvt, "  -> MODIFIERS  0x%04x\n",    event->modifiers );
+     if (event->flags & DIEF_LOCKS)
+          D_DEBUG_AT( Core_InputEvt, "  -> LOCKS      0x%04x\n",    event->locks );
+     if (event->flags & DIEF_BUTTONS)
+          D_DEBUG_AT( Core_InputEvt, "  -> BUTTONS    0x%04x\n",    event->buttons );
+     if (event->flags & DIEF_GLOBAL)
+          D_DEBUG_AT( Core_InputEvt, "  -> GLOBAL\n" );
+#endif
+
+     /*
+      * 1. Fixup event...
+      */
+     event->clazz     = DFEC_INPUT;
+     event->device_id = device->shared->id;
 
      if (!(event->flags & DIEF_TIMESTAMP)) {
           gettimeofday( &event->timestamp, NULL );
@@ -694,11 +764,15 @@ dfb_input_dispatch( CoreInputDevice *device, DFBInputEvent *event )
      switch (event->type) {
           case DIET_BUTTONPRESS:
           case DIET_BUTTONRELEASE:
+               D_DEBUG_AT( Core_InputEvt, "  -> BUTTON     0x%04x\n", event->button );
+
                if (dfb_config->lefty) {
                     if (event->button == DIBI_LEFT)
                          event->button = DIBI_RIGHT;
                     else if (event->button == DIBI_RIGHT)
                          event->button = DIBI_LEFT;
+
+                    D_DEBUG_AT( Core_InputEvt, "  -> lefty!  => 0x%04x <=\n", event->button );
                }
                /* fallthru */
 
@@ -722,19 +796,38 @@ dfb_input_dispatch( CoreInputDevice *device, DFBInputEvent *event )
                }
 
                fixup_key_event( device, event );
-
-               D_DEBUG_AT( Core_Input, "  -> key code: %x, id: %x, symbol: %x\n",
-                           event->key_code, event->key_id, event->key_symbol );
                break;
 
           default:
                ;
      }
 
-     event->clazz     = DFEC_INPUT;
-     event->device_id = device->shared->id;
+#if D_DEBUG_ENABLED
+     if (event->flags & DIEF_TIMESTAMP)
+          D_DEBUG_AT( Core_InputEvt, "  => TIMESTAMP  %lu.%06lu\n", event->timestamp.tv_sec, event->timestamp.tv_usec );
+     if (event->flags & DIEF_AXISABS)
+          D_DEBUG_AT( Core_InputEvt, "  => AXISABS    %d at %d\n",  event->axis, event->axisabs );
+     if (event->flags & DIEF_AXISREL)
+          D_DEBUG_AT( Core_InputEvt, "  => AXISREL    %d by %d\n",  event->axis, event->axisrel );
+     if (event->flags & DIEF_KEYCODE)
+          D_DEBUG_AT( Core_InputEvt, "  => KEYCODE    %d\n",        event->key_code );
+     if (event->flags & DIEF_KEYID)
+          D_DEBUG_AT( Core_InputEvt, "  => KEYID      0x%04x\n",    event->key_id );
+     if (event->flags & DIEF_KEYSYMBOL)
+          D_DEBUG_AT( Core_InputEvt, "  => KEYSYMBOL  0x%04x\n",    event->key_symbol );
+     if (event->flags & DIEF_MODIFIERS)
+          D_DEBUG_AT( Core_InputEvt, "  => MODIFIERS  0x%04x\n",    event->modifiers );
+     if (event->flags & DIEF_LOCKS)
+          D_DEBUG_AT( Core_InputEvt, "  => LOCKS      0x%04x\n",    event->locks );
+     if (event->flags & DIEF_BUTTONS)
+          D_DEBUG_AT( Core_InputEvt, "  => BUTTONS    0x%04x\n",    event->buttons );
+     if (event->flags & DIEF_GLOBAL)
+          D_DEBUG_AT( Core_InputEvt, "  => GLOBAL\n" );
+#endif
 
-     if (!core_input_filter( device, event ))
+     if (core_input_filter( device, event ))
+          D_DEBUG_AT( Core_InputEvt, "  ****>> FILTERED\n" );
+     else
           fusion_reactor_dispatch( device->shared->reactor, event, true, dfb_input_globals );
 }
 
