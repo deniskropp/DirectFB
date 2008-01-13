@@ -16,6 +16,7 @@
 #include <asm/types.h>
 
 #include <directfb.h>
+#include <directfb_util.h>
 
 #include <direct/debug.h>
 #include <direct/messages.h>
@@ -169,16 +170,27 @@ driver_init_device( CoreGraphicsDevice *device,
      SH7722DriverData *sdrv = driver_data;
      SH7722DeviceData *sdev = device_data;
 
+     DFBSurfacePixelFormat lcd_format = DSPF_RGB16;
+
      D_DEBUG_AT( SH7722_Driver, "%s()\n", __FUNCTION__ );
 
+     /* Check format of LCD buffer. */
+     switch (lcd_format) {
+          case DSPF_RGB16:
+          case DSPF_NV16:
+               break;
+
+          default:
+               return DFB_UNSUPPORTED;
+     }
 
      /*
-      * Setup LCD buffer for YCbCr 4:2:2 (NV16).
+      * Setup LCD buffer.
       */
      sdev->lcd_width  = SH7722_LCD_WIDTH;
      sdev->lcd_height = SH7722_LCD_HEIGHT;
-     sdev->lcd_pitch  = (sdev->lcd_width + 0xf) & ~0xf;
-     sdev->lcd_size   = sdev->lcd_height * sdev->lcd_pitch * 2;
+     sdev->lcd_pitch  = (DFB_BYTES_PER_LINE( lcd_format, sdev->lcd_width ) + 0xf) & ~0xf;
+     sdev->lcd_size   = DFB_PLANE_MULTIPLY( lcd_format, sdev->lcd_height ) * sdev->lcd_pitch;
      sdev->lcd_offset = dfb_gfxcard_reserve_memory( device, sdev->lcd_size );
 
      if (sdev->lcd_offset < 0) {
@@ -192,8 +204,9 @@ driver_init_device( CoreGraphicsDevice *device,
         slaves do it in driver_init_driver(). */
      sdrv->lcd_virt = dfb_gfxcard_memory_virtual( device, sdev->lcd_offset );
 
-     D_INFO( "SH7722/LCD: Allocated %dx%d YCbCr 4:2:2 Buffer (%d bytes) at 0x%08lx (%p)\n",
-             sdev->lcd_width, sdev->lcd_height, sdev->lcd_size, sdev->lcd_phys, sdrv->lcd_virt );
+     D_INFO( "SH7722/LCD: Allocated %dx%d %s Buffer (%d bytes) at 0x%08lx (%p)\n",
+             sdev->lcd_width, sdev->lcd_height, dfb_pixelformat_name(lcd_format),
+             sdev->lcd_size, sdev->lcd_phys, sdrv->lcd_virt );
 
      D_ASSERT( ! (sdev->lcd_pitch & 0xf) );
      D_ASSERT( ! (sdev->lcd_phys & 0xf) );
@@ -263,22 +276,48 @@ driver_init_device( CoreGraphicsDevice *device,
      /* Disable all multi windows. */
      SH7722_SETREG32( sdrv, BMWCR0, SH7722_GETREG32( sdrv, BMWCR0 ) & ~0xf );
 
-     /* Set output pixel format of the BEU to NV16. */
-     SH7722_SETREG32( sdrv, BPKFR,  CHDS_YCBCR422 );
+     /* Clear LCD buffer. */
+     switch (lcd_format) {
+          case DSPF_RGB16:
+               memset( (void*) sdrv->lcd_virt, 0x00, sdev->lcd_height * sdev->lcd_pitch );
+               break;
+
+          case DSPF_NV16:
+               memset( (void*) sdrv->lcd_virt, 0x10, sdev->lcd_height * sdev->lcd_pitch );
+               memset( (void*) sdrv->lcd_virt + sdev->lcd_height * sdev->lcd_pitch, 0x80, sdev->lcd_height * sdev->lcd_pitch );
+               break;
+
+          default:
+               D_BUG( "unsupported format" );
+               return DFB_BUG;
+     }
+
+     /* Set output pixel format of the BEU. */
+     switch (lcd_format) {
+          case DSPF_RGB16:
+               SH7722_SETREG32( sdrv, BPKFR, WPCK_RGB16 | 0x400 );
+               break;
+
+          case DSPF_NV16:
+               SH7722_SETREG32( sdrv, BPKFR, CHDS_YCBCR422 );
+               SH7722_SETREG32( sdrv, BDACR, sdev->lcd_phys + sdev->lcd_height * sdev->lcd_pitch );
+               break;
+
+          default:
+               D_BUG( "unsupported format" );
+               return DFB_BUG;
+     }
+
      SH7722_SETREG32( sdrv, BPROCR, 0x00000000 );
 
      /* Have BEU render into LCD buffer. */
      SH7722_SETREG32( sdrv, BBLCR1, MT_MEMORY );
-     SH7722_SETREG32( sdrv, BDAYR, sdev->lcd_phys );
-     SH7722_SETREG32( sdrv, BDACR, sdev->lcd_phys + sdev->lcd_height * sdev->lcd_pitch );
-     SH7722_SETREG32( sdrv, BDMWR, sdev->lcd_pitch );
-
-     /* Clear LCD buffer. */
-     memset( (void*) sdrv->lcd_virt, 0x10, sdev->lcd_height * sdev->lcd_pitch );
-     memset( (void*) sdrv->lcd_virt + sdev->lcd_height * sdev->lcd_pitch, 0x80, sdev->lcd_height * sdev->lcd_pitch );
+     SH7722_SETREG32( sdrv, BDAYR, sdev->lcd_phys & 0xfffffffc );
+     SH7722_SETREG32( sdrv, BDMWR, sdev->lcd_pitch & 0x0003fffc );
 
      /* Setup LCD controller to show the buffer. */
-     sh7722_lcd_setup( sdrv, sdev->lcd_width, sdev->lcd_height, sdev->lcd_phys, sdev->lcd_pitch, DSPF_NV16, false );
+     sh7722_lcd_setup( sdrv, sdev->lcd_width, sdev->lcd_height,
+                       sdev->lcd_phys, sdev->lcd_pitch, lcd_format, false );
 
      /* Initialize BEU lock. */
      fusion_skirmish_init( &sdev->beu_lock, "BEU", dfb_core_world(sdrv->core) );

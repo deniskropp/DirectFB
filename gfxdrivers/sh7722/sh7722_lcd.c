@@ -107,8 +107,8 @@ sh7722_lcd_setup( void                  *drv,
      SH7722_SETREG32( drv, LCDC_MLDDFR,       MLDDFR );
      SH7722_SETREG32( drv, LCDC_MLDSM1R,      0x00000000 );
      SH7722_SETREG32( drv, LCDC_MLDSM2R,      0x00000000 );
-     SH7722_SETREG32( drv, LCDC_MLDSA1R,	  phys );
-     SH7722_SETREG32( drv, LCDC_MLDSA2R,	  phys + pitch * height );
+     SH7722_SETREG32( drv, LCDC_MLDSA1R,      phys );
+     SH7722_SETREG32( drv, LCDC_MLDSA2R,      DFB_PLANAR_PIXELFORMAT( format ) ? (phys + pitch * height) : 0 );
      SH7722_SETREG32( drv, LCDC_MLDMLSR,      pitch );
      SH7722_SETREG32( drv, LCDC_MLDWBCNTR,    0x00000000 );
      SH7722_SETREG32( drv, LCDC_MLDWBAR,      0x00000000 );
