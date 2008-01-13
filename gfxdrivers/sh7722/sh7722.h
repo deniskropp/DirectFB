@@ -344,6 +344,7 @@ SH7722_SETREG32( SH7722DriverData *sdrv,
 #define BMLOCR(n)   (SH7722_BEU_BASE + 0x0120 + (n) * 0x04)
 
 
+/* BSIFR1-3 */
 #define CHRR_YCBCR_444   0x000
 #define CHRR_YCBCR_422   0x100
 #define CHRR_YCBCR_420   0x200
@@ -356,26 +357,89 @@ SH7722_SETREG32( SH7722DriverData *sdrv,
 #define RPKF_RGB24       0x002
 #define RPKF_RGB16       0x003
 
-/* BBLCR1 */
-#define MT_MEMORY        0x10000
-#define MT_VOU           0x20000
-#define MT_MEMORY_VOU    0x30000
-#define MT_LCDC          0x40000
-#define MT_LCDC_MEMORY   0x50000
+/* BSIFR1 */
+#define BSIFR1_IN1TE_RGBYUV   0x1000
+
+/* BSIFR3 */
+#define BSIFR3_MOD0_OSD       0x1000
+#define BSIFR3_MOD1_LUT       0x2000
 
 /* BPKFR */
-#define WPCK_RGB12       2
-#define WPCK_RGB16       6
-#define WPCK_RGB18       17
-#define WPCK_RGB32       19
-#define WPCK_RGB24       21
+#define WPCK_RGB12            2
+#define WPCK_RGB16            6
+#define WPCK_RGB18            17
+#define WPCK_RGB32            19
+#define WPCK_RGB24            21
 
-#define CHDS_YCBCR444    0x000
-#define CHDS_YCBCR422    0x100
-#define CHDS_YCBCR420    0x200
+#define CHDS_YCBCR444         0x000
+#define CHDS_YCBCR422         0x100
+#define CHDS_YCBCR420         0x200
+
+#define BPKFR_RY_YUV          0x000
+#define BPKFR_RY_RGB          0x800
+#define BPKFR_TE_DISABLED     0x000
+#define BPKFR_TE_ENABLED      0x400
 
 /* BBLCR0 */
-#define LAY_123          0x05000000
+#define BBLCR0_LAY_123        0x05000000
+
+#define BBLCR0_AMUX_BLENDPIXEL(n)  (0x10000000 << (n))
+
+/* BBLCR1 */
+#define MT_MEMORY             0x10000
+#define MT_VOU                0x20000
+#define MT_MEMORY_VOU         0x30000
+#define MT_LCDC               0x40000
+#define MT_LCDC_MEMORY        0x50000
+
+#define BBLCR1_PWD_INPUT1     0x00000000
+#define BBLCR1_PWD_INPUT2     0x01000000
+#define BBLCR1_PWD_INPUT3     0x02000000
+#define BBLCR1_PWD_INPUT_MASK 0x03000000
+
+/* BSWPR */
+#define BSWPR_MODSEL_GLOBAL   0x00000000
+#define BSWPR_MODSEL_EACH     0x80000000
+
+#define BSWPR_INPUT_BYTESWAP  0x00000001
+#define BSWPR_INPUT_WORDSWAP  0x00000002
+#define BSWPR_INPUT_LONGSWAP  0x00000004
+
+#define BSWPR_OUTPUT_BYTESWAP 0x00000010
+#define BSWPR_OUTPUT_WORDSWAP 0x00000020
+#define BSWPR_OUTPUT_LONGSWAP 0x00000040
+
+#define BSWPR_INPUT2_BYTESWAP 0x00000100
+#define BSWPR_INPUT2_WORDSWAP 0x00000200
+#define BSWPR_INPUT2_LONGSWAP 0x00000400
+
+#define BSWPR_INPUT3_BYTESWAP 0x00010000
+#define BSWPR_INPUT3_WORDSWAP 0x00020000
+#define BSWPR_INPUT3_LONGSWAP 0x00040000
+
+#define BSWPR_MULWIN_BYTESWAP 0x01000000
+#define BSWPR_MULWIN_WORDSWAP 0x02000000
+#define BSWPR_MULWIN_LONGSWAP 0x04000000
+
+
+static inline void
+BEU_Start( SH7722DriverData *sdrv,
+           SH7722DeviceData *sdev )
+{
+     /* Wait for idle BEU. */
+     while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
+
+     /* Start operation! */
+     SH7722_SETREG32( sdrv, BESTR, (sdev->input_mask << 8) | 1 );
+}
+
+static inline void
+BEU_Wait( SH7722DriverData *sdrv,
+          SH7722DeviceData *sdev )
+{
+     /* Wait for idle BEU. */
+     while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
+}
 
 
 /******************************************************************************

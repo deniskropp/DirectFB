@@ -98,13 +98,17 @@ sh7722TestRegion( CoreLayer                  *layer,
           fail |= CLRCF_OPTIONS;
 
      switch (config->format) {
-          case DSPF_NV12:
-          case DSPF_NV16:
-          /*case DSPF_ARGB:
+          case DSPF_ARGB:
           case DSPF_RGB32:
           case DSPF_RGB24:
-          case DSPF_RGB16:*/
+          case DSPF_RGB16:
                break;
+
+#if FIXME_MAKE_CONFIGURABLE_
+          case DSPF_NV12:
+          case DSPF_NV16:
+               break;
+#endif
 
           default:
                fail |= CLRCF_FORMAT;
@@ -181,7 +185,7 @@ sh7722SetRegion( CoreLayer                  *layer,
      fusion_skirmish_prevail( &sdev->beu_lock );
 
      /* Wait for idle BEU. */
-     while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
+     BEU_Wait( sdrv, sdev );
 
      n = sreg->index;
 
@@ -292,13 +296,13 @@ sh7722RemoveRegion( CoreLayer             *layer,
      fusion_skirmish_prevail( &sdev->beu_lock );
 
      /* Wait for idle BEU. */
-     while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
+     BEU_Wait( sdrv, sdev );
 
      /* Disable multi window. */
      SH7722_SETREG32( sdrv, BMWCR0, SH7722_GETREG32( sdrv, BMWCR0 ) & ~(1 << n) );
 
      /* Start operation! */
-     SH7722_SETREG32( sdrv, BESTR, (sdev->input_mask << 8) | 1 );
+     BEU_Start( sdrv, sdev );
 
      fusion_skirmish_dismiss( &sdev->beu_lock );
 
@@ -338,7 +342,7 @@ sh7722FlipRegion( CoreLayer             *layer,
      fusion_skirmish_prevail( &sdev->beu_lock );
 
      /* Wait for idle BEU. */
-     while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
+     BEU_Wait( sdrv, sdev );
 
      /* Set buffer pitch. */
      SH7722_SETREG32( sdrv, BMSMWR(n), lock->pitch );
@@ -354,14 +358,13 @@ sh7722FlipRegion( CoreLayer             *layer,
      }
 
      /* Start operation! */
-     SH7722_SETREG32( sdrv, BESTR, (sdev->input_mask << 8) | 1 );
-
-     if (flags & DSFLIP_WAIT) {
-          /* Wait for idle BEU. */
-          while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
-     }
+     BEU_Start( sdrv, sdev );
 
      fusion_skirmish_dismiss( &sdev->beu_lock );
+
+     /* Wait for idle BEU? */
+     if (flags & DSFLIP_WAIT)
+          BEU_Wait( sdrv, sdev );
 
      dfb_surface_flip( surface, false );
 
@@ -386,15 +389,8 @@ sh7722UpdateRegion( CoreLayer             *layer,
      D_ASSERT( sdrv != NULL );
      D_ASSERT( sdev != NULL );
 
-     fusion_skirmish_prevail( &sdev->beu_lock );
-
-     /* Wait for idle BEU. */
-     while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
-
      /* Start operation! */
-     SH7722_SETREG32( sdrv, BESTR, (sdev->input_mask << 8) | 1 );
-
-     fusion_skirmish_dismiss( &sdev->beu_lock );
+     BEU_Start( sdrv, sdev );
 
      return DFB_OK;
 }

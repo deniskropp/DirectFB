@@ -60,6 +60,7 @@ typedef struct {
      int                      lcd_pitch;
      int                      lcd_size;
      unsigned long            lcd_phys;
+     DFBSurfacePixelFormat    lcd_format;
 
      /* state validation */
      int                      v_flags;
