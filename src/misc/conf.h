@@ -207,6 +207,9 @@ typedef struct
 
      bool          autoflip_window;               /* If primary surface is non-flipping, but windowed, flip automatically. */
      bool          software_warn;                 /* Show warnings when doing/dropping software operations. */
+
+     int           surface_shmpool_size;          /* Set the size of the shared memory pool used for
+                                                     shared system memory surfaces. */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;
