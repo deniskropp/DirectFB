@@ -89,6 +89,10 @@ static bool davinciFillRectangle32( void                *drv,
                                     void                *dev,
                                     DFBRectangle        *rect );
 
+static bool davinciFillRectangleBlend32( void                *drv,
+                                         void                *dev,
+                                         DFBRectangle        *rect );
+
 static bool davinciBlit16         ( void                *drv,
                                     void                *dev,
                                     DFBRectangle        *srect,
@@ -184,6 +188,7 @@ davinci_validate_DESTINATION( DavinciDeviceData *ddev,
      /* Remember destination parameters for usage in rendering functions. */
      ddev->dst_addr   = state->dst.addr;
      ddev->dst_phys   = state->dst.phys;
+     ddev->dst_size   = state->dst.allocation->size;
      ddev->dst_pitch  = state->dst.pitch;
      ddev->dst_format = state->dst.buffer->format;
      ddev->dst_bpp    = DFB_BYTES_PER_PIXEL( ddev->dst_format );
@@ -335,9 +340,25 @@ davinciEmitCommands( void *drv, void *dev )
      DavinciDriverData *ddrv = drv;
      DavinciDeviceData *ddev = dev;
 
-     davinci_c64x_write_back_all( &ddrv->c64x );
+     davinci_c64x_wb_inv_range( &ddrv->c64x, ddev->dst_phys, ddev->dst_size, 0 );
 
      ddev->synced = false;
+}
+
+/*
+ * Invalidate the DSP's read cache.
+ */
+void
+davinciFlushTextureCache( void *drv, void *dev )
+{
+     DavinciDriverData *ddrv = drv;
+     DavinciDeviceData *ddev = dev;
+
+     davinci_c64x_wb_inv_range( &ddrv->c64x, dfb_config->video_phys,
+                                             dfb_config->video_length, 2 );
+
+     davinci_c64x_wb_inv_range( &ddrv->c64x, ddev->fix[OSD0].smem_start,
+                                             ddev->fix[OSD0].smem_len, 2 );
 }
 
 /*
@@ -373,6 +394,15 @@ davinciCheckState( void                *drv,
           /* Return if unsupported drawing flags are set. */
           if (state->drawingflags & ~DAVINCI_SUPPORTED_DRAWINGFLAGS)
                return;
+
+          /* Limited blending support. */
+          if (state->drawingflags & DSDRAW_BLEND) {
+               if (state->destination->config.format != DSPF_ARGB)
+                    return;
+
+               if (state->src_blend != DSBF_SRCALPHA || state->dst_blend != DSBF_INVSRCALPHA)
+                    return;
+          }
      }
      else {
           /* Return if unsupported blitting flags are set. */
@@ -498,7 +528,10 @@ davinciSetState( void                *drv,
                          break;
 
                     case 4:
-                         funcs->FillRectangle = davinciFillRectangle32;
+                         if (state->drawingflags & DSDRAW_BLEND)
+                              funcs->FillRectangle = davinciFillRectangleBlend32;
+                         else
+                              funcs->FillRectangle = davinciFillRectangle32;
                          break;
 
                     default:
@@ -648,6 +681,24 @@ davinciFillRectangle32( void *drv, void *dev, DFBRectangle *rect )
      return true;
 }
 
+static bool
+davinciFillRectangleBlend32( void *drv, void *dev, DFBRectangle *rect )
+{
+     DavinciDriverData *ddrv = drv;
+     DavinciDeviceData *ddev = dev;
+
+     davinci_c64x_blit_blend_32( &ddrv->c64x,
+                                 ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
+                                 ddev->dst_pitch,
+                                 0,
+                                 0,
+                                 rect->w, rect->h,
+                                 3,//ddev->blend_sub_function,
+                                 ddev->color_argb );
+
+     return true;
+}
+
 /*
  * Blit a rectangle using the current hardware state.
  */
@@ -773,6 +824,23 @@ davinciStretchBlit32( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *d
      DavinciDriverData *ddrv = drv;
      DavinciDeviceData *ddev = dev;
 
+     DFBRegion clip = DFB_REGION_INIT_FROM_RECTANGLE( drect );
+
+     if (!dfb_region_region_intersect( &clip, &ddev->clip ))
+          return true;
+
+     dfb_region_translate( &clip, -drect->x, -drect->y );
+
+#if 0
+     if (drect->w < srect->w || drect->h < srect->h) {
+//          D_UNIMPLEMENTED();
+
+          return davinciBlit32( drv, dev, srect,
+                                drect->x + (srect->w - drect->w) / 2,
+                                drect->y + (srect->h - drect->h) / 2 );
+     }
+#endif
+
      davinci_c64x_stretch_32( &ddrv->c64x,
                               ddev->dst_phys + ddev->dst_pitch * drect->y + ddev->dst_bpp * drect->x,
                               ddev->dst_pitch,
@@ -780,7 +848,7 @@ davinciStretchBlit32( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *d
                               ddev->src_pitch,
                               drect->w, drect->h,
                               srect->w, srect->h,
-                              &ddev->clip );
+                              &clip );
 
      return true;
 }

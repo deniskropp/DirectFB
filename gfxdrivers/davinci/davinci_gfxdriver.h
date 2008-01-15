@@ -48,6 +48,7 @@ typedef struct {
      /* cached/computed values */
      void                     *dst_addr;
      unsigned long             dst_phys;
+     unsigned int              dst_size;
      unsigned long             dst_pitch;
      DFBSurfacePixelFormat     dst_format;
      unsigned long             dst_bpp;

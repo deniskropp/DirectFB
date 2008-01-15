@@ -106,6 +106,12 @@ void c64x_stretch_32(u32 *dst, u32 *src, u32 pitches, u32 dsize, u32 ssize, u32 
 
 
 /*
+void c64x_wb_inv_range(u32 *start, u32 len, u32 func);
+*/
+#define C64X_WB_INV_RANGE	       _C64XFUNC(14)
+
+
+/*
 void c64x_write_back_all(void);
 */
 #define C64X_WRITE_BACK_ALL	       _C64XFUNC(15)
@@ -121,7 +127,7 @@ void c64x_put_uyvy_16x16(u16*dst, u32 pitch, u8*src, u32 flags);
 #define C64X_PUT_UYVY_16x16        _C64XFUNC(18)
 
 /*
-void c64x_fetch_uyvy(u8 *dst, u8 *src, u32 spitch, u32 height, u32 flags);
+void c64x_fetch_uyvy(u8 *dst, u8 *src, u32 spitch, u32 height);
 */
 #define C64X_FETCH_UYVY            _C64XFUNC(19)
 
@@ -202,9 +208,9 @@ void c64x_put_sum_uyvy_16x16(u16*dst, u32 pitch, u32 flags);
 #define C64X_MC_BUFFER_U           (C64X_MC_BUFFER_Y + 16*C64X_MC_BUFFER_PITCH)
 #define C64X_MC_BUFFER_V           (C64X_MC_BUFFER_U + 8)
 
-#define C64X_MC_BUFFER_Y_          (C64X_MC_BUFFER_Y + 8*C64X_MC_BUFFER_PITCH)
-#define C64X_MC_BUFFER_U_          (C64X_MC_BUFFER_U + 4*C64X_MC_BUFFER_PITCH)
-#define C64X_MC_BUFFER_V_          (C64X_MC_BUFFER_V + 4*C64X_MC_BUFFER_PITCH)
+#define C64X_MC_BUFFER_Y_          (C64X_MC_BUFFER_Y + C64X_MC_BUFFER_PITCH)
+#define C64X_MC_BUFFER_U_          (C64X_MC_BUFFER_U + C64X_MC_BUFFER_PITCH)
+#define C64X_MC_BUFFER_V_          (C64X_MC_BUFFER_V + C64X_MC_BUFFER_PITCH)
 
 #define C64X_TEMP_BUFFER_Y         0xf06200
 #define C64X_TEMP_BUFFER_U         (C64X_TEMP_BUFFER_Y + 16*C64X_TEMP_BUFFER_PITCH)

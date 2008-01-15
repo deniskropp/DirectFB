@@ -32,7 +32,7 @@
 #define __DAVINCI_2D_H__
 
 
-#define DAVINCI_SUPPORTED_DRAWINGFLAGS      (DSDRAW_NOFX)
+#define DAVINCI_SUPPORTED_DRAWINGFLAGS      (DSDRAW_BLEND)
 
 #define DAVINCI_SUPPORTED_DRAWINGFUNCTIONS  (DFXL_FILLRECTANGLE)
 
@@ -46,25 +46,28 @@
 #define DAVINCI_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT | DFXL_STRETCHBLIT)
 
 
-DFBResult davinciEngineSync  ( void                *drv,
-                               void                *dev );
+DFBResult davinciEngineSync       ( void                *drv,
+                                    void                *dev );
+                                  
+void      davinciEngineReset      ( void                *drv,
+                                    void                *dev );
+                                  
+void      davinciEmitCommands     ( void                *drv,
+                                    void                *dev );
 
-void      davinciEngineReset ( void                *drv,
-                               void                *dev );
+void      davinciFlushTextureCache( void                *drv,
+                                    void                *dev );
 
-void      davinciEmitCommands( void                *drv,
-                               void                *dev );
-
-void      davinciCheckState  ( void                *drv,
-                               void                *dev,
-                               CardState           *state,
-                               DFBAccelerationMask  accel );
-
-void      davinciSetState    ( void                *drv,
-                               void                *dev,
-                               GraphicsDeviceFuncs *funcs,
-                               CardState           *state,
-                               DFBAccelerationMask  accel );
+void      davinciCheckState       ( void                *drv,
+                                    void                *dev,
+                                    CardState           *state,
+                                    DFBAccelerationMask  accel );
+                                  
+void      davinciSetState         ( void                *drv,
+                                    void                *dev,
+                                    GraphicsDeviceFuncs *funcs,
+                                    CardState           *state,
+                                    DFBAccelerationMask  accel );
 
 #endif
 

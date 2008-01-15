@@ -392,6 +392,7 @@ update_buffers( DavinciDriverData     *ddrv,
           rect.h = surface->config.size.h;
      }
 
+     /* Can we use the DSP? */
      if (ddrv->c64x_present) {
           unsigned long rgb   = ddev->fix[OSD0].smem_start + rect.x * 2 + rect.y * ddev->fix[OSD0].line_length;
           unsigned long alpha = ddev->fix[OSD1].smem_start + rect.x / 2 + rect.y * ddev->fix[OSD1].line_length;
@@ -399,8 +400,15 @@ update_buffers( DavinciDriverData     *ddrv,
 
           D_ASSUME( ddev->fix[OSD0].line_length == ddev->fix[OSD1].line_length );
 
+          /* Invalidate its read cache for the region in the ARGB buffer. */
+          davinci_c64x_wb_inv_range( &ddrv->c64x, src, rect.h * lock->pitch, 2 );
+
+          /* Dither ARGB to RGB16+A3 using the DSP. */
           davinci_c64x_dither_argb( &ddrv->c64x, rgb, alpha, ddev->fix[OSD0].line_length, src, lock->pitch, rect.w, rect.h );
-          davinci_c64x_write_back_all( &ddrv->c64x );
+
+          /* Flush the write cache for the regions in the RGB16 and A3 buffers. */
+          davinci_c64x_wb_inv_range( &ddrv->c64x, rgb,   rect.h * ddev->fix[OSD0].line_length, 0 );
+          davinci_c64x_wb_inv_range( &ddrv->c64x, alpha, rect.h * ddev->fix[OSD1].line_length, 0 );
      }
      else {
           u32  *src32 = lock->addr + rect.y * lock->pitch + DFB_BYTES_PER_LINE( buffer->format, rect.x );

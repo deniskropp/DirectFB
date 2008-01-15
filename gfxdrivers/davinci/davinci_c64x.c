@@ -38,8 +38,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <directfb_util.h>
+
 #include <direct/clock.h>
 #include <direct/debug.h>
+#include <direct/log.h>
 #include <direct/messages.h>
 #include <direct/util.h>
 
@@ -54,6 +57,13 @@
 /**********************************************************************************************************************/
 /*   Benchmarking or Testing                                                                                       */
 /**********************************************************************************************************************/
+
+#if 1
+#define BRINTF(x...)     do { direct_log_printf( NULL, x ); } while (0)
+#else
+#define BRINTF(x...)     printf( x )
+#endif
+
 
 static void
 bench_mem( const char *name,
@@ -98,18 +108,12 @@ bench_mem( const char *name,
 #define DVA_BLOCK_WORD( val, index, EOB )    (((val) << 16) | (((index)&0x3f) << 1) | ((EOB) ? 1 : 0))
 
 static inline void
-bench_load_block( DavinciC64x *c64x )
+test_load_block( DavinciC64x *c64x, bool dct_type_interlaced )
 {
-     int       i, num;
-     long long t1, t2, dt, total;
-     //int       length = 0x10000;
-
-     num = 0x10000;// / length;
-
+     int    i;
      short *dst = c64x->mem + 0x01000000;
-     u8    *duv = c64x->mem + 0x01100000;
-     u8    *duy = c64x->mem + 0x01300000;
      int   *src = c64x->mem + 0x01200000;
+
 
      src[0] = DVA_BLOCK_WORD( 100, 0, 1 );
      src[1] = DVA_BLOCK_WORD( 200, 0, 0 );
@@ -122,82 +126,47 @@ bench_load_block( DavinciC64x *c64x )
      src[8] = DVA_BLOCK_WORD( 510, 63, 1 );
      src[9] = DVA_BLOCK_WORD( 600, 63, 1 );
 
-     printf("\n");
-     printf("\n");
+
+     BRINTF("\n");
+     BRINTF("\n\n.======================== Testing load_block (dct_type_interlaced: %s) ========================.\n",
+            dct_type_interlaced ? "yes" : "no");
+     BRINTF("\n");
+     BRINTF( "SOURCE (DVABlockWords)\n" );
+     BRINTF("\n");
+
+     for (i=0; i<10; i++)
+          BRINTF("0x%08x  (%d, %d, %d)\n", (u32)src[i], src[i] >> 16, (src[i] >> 1) & 0x3f, src[i] & 1);
+
+     BRINTF("\n\n");
+
 
      memset( dst, 0x55, 0x100000 );
 
-     for (i=0; i<10; i++) {
-          printf("0x%08x  (%d, %d, %d)\n", (u32)src[i], src[i] >> 16, (src[i] >> 1) & 0x3f, src[i] & 1);
-     }
 
-     printf("\n");
+     // test routine
+     davinci_c64x_load_block( c64x, 0x8e000000+0x01200000, 10, dct_type_interlaced ? 0x40 : 0x3f );
 
-     t1 = direct_clock_get_abs_micros();
+     // copy idct buffer to memory where we can read it
+//     davinci_c64x_blit_16( c64x, 0x8f000000, 0, 0xf06180, 0, 32 * 24, 1 );
 
-     for (i=0; i<num; i++) {
-          c64xTask *task = c64x_get_task( c64x );
-
-          task->c64x_function = C64X_LOAD_BLOCK | C64X_FLAG_TODO;
-
-          task->c64x_arg[0] = 0x8e000000+0x1200000;
-          task->c64x_arg[1] = 10;
-          task->c64x_arg[2] = 0x3f;
-
-          c64x_submit_task( c64x );
-     }
-
-     davinci_c64x_blit_16( c64x, 0x8f000000, 0, 0xf06180, 0, 384, 1 );
-     davinci_c64x_blit_16( c64x, 0x8f100000, 0, 0xf06480, 0, 384/2, 1 );
-
-     davinci_c64x_put_uyvy_16x16( c64x, 0x8f300000, 32, 0xf06160, 0 );
-
-     davinci_c64x_write_back_all( c64x );
-     davinci_c64x_wait_low( c64x );
-
-     t2 = direct_clock_get_abs_micros();
+//     davinci_c64x_write_back_all( c64x );
+//     davinci_c64x_wait_low( c64x );
 
 
-     for (i=0; i<384; i++) {
-          printf("%5d ", dst[i] );
-          if (i%8==7) {
-               printf("\n");
+     BRINTF( "-> IDCT BUFFER (16x16 + [ 8x8 8x8 ] shorts)\n" );
+     BRINTF("\n");
+
+     for (i=0; i<16*24; i++) {
+          BRINTF("%5d ", dst[i] );
+          if ((i&15)==15) {
+               BRINTF("\n");
           }
-          if (i%64==63) {
-               printf("\n");
+          if ((i&255)==255) {
+               BRINTF("\n");
           }
      }
 
-     printf("\n\n");
-
-
-     for (i=0; i<384; i++) {
-          printf("%3d ", duv[i] );
-          if (i%8==7) {
-               printf("\n");
-          }
-          if (i%64==63) {
-               printf("\n");
-          }
-     }
-
-     printf("\n\n");
-
-     for (i=0; i<16*16*2; i++) {
-          printf("%02x ", duy[i]);
-
-          if (i%32==31) {
-               printf("\n");
-          }
-     }
-
-     printf("\n");
-
-     dt    = t2 - t1;
-     total = num;// * length;
-
-     D_INFO( "Davinci/C64X: BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
-             "block_load()", total * 1000000ULL / dt );
+     BRINTF("\n\n");
 }
 
 static inline void
@@ -213,9 +182,9 @@ bench_dezigzag( DavinciC64x *c64x )
 
      for (i=0; i<64; i++) {
           p[i] = i;
-          printf("%3d ", p[i]);
+          BRINTF("%3d ", p[i]);
           if (i%8==7) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
@@ -239,9 +208,9 @@ bench_dezigzag( DavinciC64x *c64x )
 
      p = c64x->mem + 0x1200000;
      for (i=0; i<64; i++) {
-          printf("%3d ", p[i]);
+          BRINTF("%3d ", p[i]);
           if (i%8==7) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
@@ -265,9 +234,9 @@ bench_blend_argb( DavinciC64x *c64x, int sub )
      u32 *src = c64x->mem + 0x1000000;
      u32 *dst = c64x->mem + 0x1200000;
 
-     printf( "\nTESTING BLEND_32 SUB %d\n", sub );
+     BRINTF( "\nTESTING BLEND_32 SUB %d\n", sub );
 
-     printf( "\nSOURCE               " );
+     BRINTF( "\nSOURCE               " );
 
      for (i=0; i<DUMP_PIXELS; i++) {
           src[i] = (i << 26) | ((i & 0x30) << 20) | (i * 0x010204 + 3);
@@ -275,13 +244,13 @@ bench_blend_argb( DavinciC64x *c64x, int sub )
           if (!i)
                src[i] = 0xc0c08001;
 
-          printf("%02x %02x %02x %02x  ", src[i] >> 24, (src[i] >> 16) & 0xff, (src[i] >> 8) & 0xff, src[i] & 0xff);
+          BRINTF("%02x %02x %02x %02x  ", src[i] >> 24, (src[i] >> 16) & 0xff, (src[i] >> 8) & 0xff, src[i] & 0xff);
           if (i%8==7) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
-     printf( "\nDESTINATION          " );
+     BRINTF( "\nDESTINATION          " );
 
      for (i=0; i<DUMP_PIXELS; i++) {
           dst[i] = i * 0x04040404;
@@ -289,9 +258,9 @@ bench_blend_argb( DavinciC64x *c64x, int sub )
           if (!i)
                dst[i] = 0xe0e0e0e0;
 
-          printf("%02x %02x %02x %02x  ", dst[i] >> 24, (dst[i] >> 16) & 0xff, (dst[i] >> 8) & 0xff, dst[i] & 0xff);
+          BRINTF("%02x %02x %02x %02x  ", dst[i] >> 24, (dst[i] >> 16) & 0xff, (dst[i] >> 8) & 0xff, dst[i] & 0xff);
           if (i%8==7) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
@@ -317,16 +286,16 @@ bench_blend_argb( DavinciC64x *c64x, int sub )
 
      t2 = direct_clock_get_abs_micros();
 
-     printf( "\n\nDESTINATION (AFTER)  " );
+     BRINTF( "\n\nDESTINATION (AFTER)  " );
 
      for (i=0; i<DUMP_PIXELS; i++) {
-          printf("%02x %02x %02x %02x  ", dst[i] >> 24, (dst[i] >> 16) & 0xff, (dst[i] >> 8) & 0xff, dst[i] & 0xff);
+          BRINTF("%02x %02x %02x %02x  ", dst[i] >> 24, (dst[i] >> 16) & 0xff, (dst[i] >> 8) & 0xff, dst[i] & 0xff);
           if (i%8==7) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
-     printf("\n\n");
+     BRINTF("\n\n");
 
      dt    = t2 - t1;
      total = num;
@@ -346,11 +315,11 @@ bench_fetch_uyvy( DavinciC64x *c64x, bool interleave, int xoff, int yoff )
      u8 *yuv = c64x->mem + 0x1000000;
      u8 *src = c64x->mem + 0x1200000;
 
-     printf("\n");
-     printf("\n\n.======================== Testing fetch_uyvy (inter %d, xoff %d, yoff %d) ========================.\n",
+     BRINTF("\n");
+     BRINTF("\n\n.======================== Testing fetch_uyvy (inter %d, xoff %d, yoff %d) ========================.\n",
             interleave, xoff, yoff);
-     printf("\n");
-     printf( "SOURCE (20x20)\n" );
+     BRINTF("\n");
+     BRINTF( "SOURCE (20x20)\n" );
 
      for (y=0; y<20; y++) {
           for (x=0; x<40; x++) {
@@ -358,13 +327,13 @@ bench_fetch_uyvy( DavinciC64x *c64x, bool interleave, int xoff, int yoff )
 
                src[y*1440 + x] = val;
 
-               printf("%02x ", val&0xff);
+               BRINTF("%02x ", val&0xff);
           }
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      memset( yuv, 0x55, 0x100000 );
 
@@ -391,39 +360,39 @@ bench_fetch_uyvy( DavinciC64x *c64x, bool interleave, int xoff, int yoff )
      t2 = direct_clock_get_abs_micros();
 
 
-     printf( "\n\nDESTINATION (17x18 / [9x9 9x9])\n" );
+     BRINTF( "\n\nDESTINATION (17x18 / [9x9 9x9])\n" );
 
      for (y=0; y<18; y++) {
           for (x=0; x<17; x++) {
-               printf("%02x ", yuv[y*32 + x]);
+               BRINTF("%02x ", yuv[y*32 + x]);
           }
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      for (y=0; y<9; y++) {
           for (x=0; x<9; x++) {
-               printf("%02x ", yuv[y*32 + x + 32*18]);
+               BRINTF("%02x ", yuv[y*32 + x + 32*18]);
           }
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      for (y=0; y<9; y++) {
           for (x=0; x<9; x++) {
-               printf("%02x ", yuv[y*32 + x + 32*18+16]);
+               BRINTF("%02x ", yuv[y*32 + x + 32*18+16]);
           }
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
-     printf("\n\n");
+     BRINTF("\n\n");
 
      dt    = t2 - t1;
      total = num;
@@ -431,6 +400,110 @@ bench_fetch_uyvy( DavinciC64x *c64x, bool interleave, int xoff, int yoff )
      D_INFO( "Davinci/C64X: BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
              "blend_fetch_uyvy(16x16)", total * 1000000ULL / dt );
 }
+
+#if 0
+static inline void
+bench_put_idct( DavinciC64x *c64x, int dct_type )
+{
+     int       i, num;
+     long long t1, t2, dt, total;
+     //int       length = 0x10000;
+
+     num = 0x10000;// / length;
+
+     u8  *dst = c64x->mem + 0x01000000;
+     int *src = c64x->mem + 0x01200000;
+
+     src[0] = DVA_BLOCK_WORD( 100, 0, 1 );
+     src[1] = DVA_BLOCK_WORD( 200, 0, 0 );
+     src[2] = DVA_BLOCK_WORD( 210, 1, 0 );
+     src[3] = DVA_BLOCK_WORD( 220, 2, 1 );
+     src[4] = DVA_BLOCK_WORD( 300, 0, 1 );
+     src[5] = DVA_BLOCK_WORD( 400, 0, 0 );
+     src[6] = DVA_BLOCK_WORD( 410, 1, 1 );
+     src[7] = DVA_BLOCK_WORD( 500, 0, 0 );
+     src[8] = DVA_BLOCK_WORD( 510, 63, 1 );
+     src[9] = DVA_BLOCK_WORD( 600, 63, 1 );
+
+     BRINTF("\n");
+     BRINTF("\n\n.======================== Testing put_idct (%d) ========================.\n", dct_type);
+     BRINTF("\n");
+
+     memset( dst, 0x55, 0x100000 );
+
+     for (i=0; i<10; i++) {
+          BRINTF("0x%08x  (%d, %d, %d)\n", (u32)src[i], src[i] >> 16, (src[i] >> 1) & 0x3f, src[i] & 1);
+     }
+
+     BRINTF("\n");
+
+     t1 = direct_clock_get_abs_micros();
+
+     {
+          c64xTask *task = c64x_get_task( c64x );
+
+          task->c64x_function = C64X_LOAD_BLOCK | C64X_FLAG_TODO;
+
+          task->c64x_arg[0] = 0x8e000000+0x1200000;
+          task->c64x_arg[1] = 10;
+          task->c64x_arg[2] = 0x3f;
+
+          c64x_submit_task( c64x );
+     }
+
+     davinci_c64x_blit_16( c64x, 0x8f000000, 0, 0xf06180, 0, 384, 1 );
+     davinci_c64x_blit_16( c64x, 0x8f100000, 0, 0xf06480, 0, 384/2, 1 );
+
+     davinci_c64x_put_uyvy_16x16( c64x, 0x8f300000, 32, 0xf06180, 0 );
+
+     davinci_c64x_write_back_all( c64x );
+     davinci_c64x_wait_low( c64x );
+
+     t2 = direct_clock_get_abs_micros();
+
+
+     for (i=0; i<384; i++) {
+          BRINTF("%5d ", dst[i] );
+          if (i%8==7) {
+               BRINTF("\n");
+          }
+          if (i%64==63) {
+               BRINTF("\n");
+          }
+     }
+
+     BRINTF("\n\n");
+
+
+     for (i=0; i<384; i++) {
+          BRINTF("%3d ", duv[i] );
+          if (i%8==7) {
+               BRINTF("\n");
+          }
+          if (i%64==63) {
+               BRINTF("\n");
+          }
+     }
+
+     BRINTF("\n\n");
+
+     for (i=0; i<16*16*2; i++) {
+          BRINTF("%02x ", duy[i]);
+
+          if (i%32==31) {
+               BRINTF("\n");
+          }
+     }
+
+     BRINTF("\n");
+
+     dt    = t2 - t1;
+     total = num;// * length;
+
+     D_INFO( "Davinci/C64X: BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
+             "block_load()", total * 1000000ULL / dt );
+}
+#endif
 
 static inline void
 bench_put_mc( DavinciC64x *c64x, bool interleave )
@@ -443,46 +516,46 @@ bench_put_mc( DavinciC64x *c64x, bool interleave )
      u8 *dst = c64x->mem + 0x1000000;
      u8 *src = c64x->mem + 0x1200000;
 
-     printf("\n");
-     printf("\n\n.======================== Testing put_mc (%d) ========================.\n", interleave);
-     printf("\n");
-     printf("SOURCE (16x16 / [8x8 8x8]\n");
+     BRINTF("\n");
+     BRINTF("\n\n.======================== Testing put_mc (%d) ========================.\n", interleave);
+     BRINTF("\n");
+     BRINTF("SOURCE (16x16 / [8x8 8x8]\n");
 
      for (y=0; y<16; y++) {
           for (x=0; x<16; x++) {
                u8 val = (x << 4) + y;
                src[y*16 + x] = val;
-               printf("%02x ", val);
+               BRINTF("%02x ", val);
           }
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      for (y=0; y<8; y++) {
           for (x=0; x<8; x++) {
                u8 val = (x << 4) + y*2;
                src[y*16 + x + 16*16] = val;
-               printf("%02x ", val);
+               BRINTF("%02x ", val);
           }
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      for (y=0; y<8; y++) {
           for (x=0; x<8; x++) {
                u8 val = (x << 4) + y*2;
                src[y*16 + x + 16*16 + 8] = val;
-               printf("%02x ", val);
+               BRINTF("%02x ", val);
           }
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      memset( dst, 0x55, 0x100000 );
 
@@ -510,17 +583,17 @@ bench_put_mc( DavinciC64x *c64x, bool interleave )
      t2 = direct_clock_get_abs_micros();
 
 
-     printf("\n");
-     printf("DESTINATION (16x16 UYVY)\n");
+     BRINTF("\n");
+     BRINTF("DESTINATION (16x16 UYVY)\n");
 
      for (y=0; y<16; y++) {
           for (x=0; x<32; x++)
-               printf("%02x ", dst[y*1440 + x]);
+               BRINTF("%02x ", dst[y*1440 + x]);
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n\n");
+     BRINTF("\n\n");
 
      dt    = t2 - t1;
      total = num;
@@ -541,10 +614,10 @@ bench_put_sum( DavinciC64x *c64x, bool interleave )
      u8  *src   = c64x->mem + 0x1200000;
      u32 *words = c64x->mem + 0x1100000;
 
-     printf("\n");
-     printf("\n\n.======================== Testing put_sum (%d) ========================.\n", interleave);
-     printf("\n");
-     printf("WORDS (6x IDCT with one value)\n");
+     BRINTF("\n");
+     BRINTF("\n\n.======================== Testing put_sum (%d) ========================.\n", interleave);
+     BRINTF("\n");
+     BRINTF("WORDS (6x IDCT with one value)\n");
 
      words[0] = DVA_BLOCK_WORD(   0, 0, 1 );
      words[1] = DVA_BLOCK_WORD(  50, 0, 1 );
@@ -553,13 +626,13 @@ bench_put_sum( DavinciC64x *c64x, bool interleave )
      words[4] = DVA_BLOCK_WORD( 200, 0, 1 );
      words[5] = DVA_BLOCK_WORD( 250, 0, 1 );
 
-     printf("\n");
-     printf("\n");
+     BRINTF("\n");
+     BRINTF("\n");
 
      memset( dst, 0x55, 0x100000 );
 
      for (i=0; i<6; i++) {
-          printf("0x%08x  (%d, %d, %d)\n", (u32)words[i], words[i] >> 16, (words[i] >> 1) & 0x3f, words[i] & 1);
+          BRINTF("0x%08x  (%d, %d, %d)\n", (u32)words[i], words[i] >> 16, (words[i] >> 1) & 0x3f, words[i] & 1);
      }
 
      {
@@ -574,44 +647,44 @@ bench_put_sum( DavinciC64x *c64x, bool interleave )
           c64x_submit_task( c64x );
      }
 
-     printf("\n");
-     printf("SOURCE (16x16 / [8x8 8x8]\n");
+     BRINTF("\n");
+     BRINTF("SOURCE (16x16 / [8x8 8x8]\n");
 
      for (y=0; y<16; y++) {
           for (x=0; x<16; x++) {
                u8 val = (x << 4) + y;
                src[y*16 + x] = val;
-               printf("%02x ", val);
+               BRINTF("%02x ", val);
           }
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      for (y=0; y<8; y++) {
           for (x=0; x<8; x++) {
                u8 val = (x << 4) + y*2;
                src[y*16 + x + 16*16] = val;
-               printf("%02x ", val);
+               BRINTF("%02x ", val);
           }
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      for (y=0; y<8; y++) {
           for (x=0; x<8; x++) {
                u8 val = (x << 4) + y*2;
                src[y*16 + x + 16*16 + 8] = val;
-               printf("%02x ", val);
+               BRINTF("%02x ", val);
           }
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      memset( dst, 0x55, 0x100000 );
 
@@ -639,17 +712,17 @@ bench_put_sum( DavinciC64x *c64x, bool interleave )
      t2 = direct_clock_get_abs_micros();
 
 
-     printf("\n");
-     printf("DESTINATION (16x16 UYVY)\n");
+     BRINTF("\n");
+     BRINTF("DESTINATION (16x16 UYVY)\n");
 
      for (y=0; y<16; y++) {
           for (x=0; x<32; x++)
-               printf("%02x ", dst[y*1440 + x]);
+               BRINTF("%02x ", dst[y*1440 + x]);
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n\n");
+     BRINTF("\n\n");
 
      dt    = t2 - t1;
      total = num;
@@ -669,46 +742,46 @@ bench_sat_mc( DavinciC64x *c64x )
      u8 *dst = c64x->mem + 0x1000000;
      u8 *src = c64x->mem + 0x1200000;
 
-     printf("\n");
-     printf("\n\n.======================== Testing sat_mc ========================.\n");
-     printf("\n");
-     printf("SOURCE (16x16 / [8x8 8x8]\n");
+     BRINTF("\n");
+     BRINTF("\n\n.======================== Testing sat_mc ========================.\n");
+     BRINTF("\n");
+     BRINTF("SOURCE (16x16 / [8x8 8x8]\n");
 
      for (y=0; y<16; y++) {
           for (x=0; x<16; x++) {
                u8 val = (x << 4) + y;
                src[y*16 + x] = val;
-               printf("%02x ", val);
+               BRINTF("%02x ", val);
           }
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      for (y=0; y<8; y++) {
           for (x=0; x<8; x++) {
                u8 val = (x << 4) + y*2;
                src[y*16 + x + 16*16] = val;
-               printf("%02x ", val);
+               BRINTF("%02x ", val);
           }
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      for (y=0; y<8; y++) {
           for (x=0; x<8; x++) {
                u8 val = (x << 4) + y*2;
                src[y*16 + x + 16*16 + 8] = val;
-               printf("%02x ", val);
+               BRINTF("%02x ", val);
           }
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      memset( dst, 0x55, 0x100000 );
 
@@ -732,35 +805,35 @@ bench_sat_mc( DavinciC64x *c64x )
      t2 = direct_clock_get_abs_micros();
 
 
-     printf("\n");
-     printf("DESTINATION (16x16 / [8x8 8x8]\n");
+     BRINTF("\n");
+     BRINTF("DESTINATION (16x16 / [8x8 8x8]\n");
 
      for (y=0; y<16; y++) {
           for (x=0; x<16; x++)
-               printf("%02x ", dst[y*16 + x]);
+               BRINTF("%02x ", dst[y*16 + x]);
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      for (y=0; y<8; y++) {
           for (x=0; x<8; x++)
-               printf("%02x ", dst[y*16 + x + 16*16]);
+               BRINTF("%02x ", dst[y*16 + x + 16*16]);
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      for (y=0; y<8; y++) {
           for (x=0; x<8; x++)
-               printf("%02x ", dst[y*16 + x + 16*16 + 8]);
+               BRINTF("%02x ", dst[y*16 + x + 16*16 + 8]);
 
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n\n");
+     BRINTF("\n\n");
 
      dt    = t2 - t1;
      total = num;
@@ -780,43 +853,43 @@ bench_uyvy_1( DavinciC64x *c64x )
      u8 *u = c64x->mem + 0x1200000;
      u8 *p = c64x->mem + 0x1000000;
 
-     printf("\n");
-     printf("\n");
+     BRINTF("\n");
+     BRINTF("\n");
 
      for (i=0; i<256; i++) {
           p[i] = i - 128;
-          printf("Y%-3d ", p[i]);
+          BRINTF("Y%-3d ", p[i]);
           if (i%8==7) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
      for (i=0; i<64; i++) {
           p[256+i] = i-32;
-          printf("U%-3d ", p[256+i]);
+          BRINTF("U%-3d ", p[256+i]);
           if (i%8==7) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
      for (i=0; i<64; i++) {
           p[320+i] = i-32;
-          printf("V%-3d ", p[320+i]);
+          BRINTF("V%-3d ", p[320+i]);
           if (i%8==7) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      for (i=0; i<384; i++) {
-          printf("%4d ", p[i]);
+          BRINTF("%4d ", p[i]);
           if (i%8==7) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      memset( u, 0x55, 720*576*2 );
 
@@ -835,21 +908,21 @@ bench_uyvy_1( DavinciC64x *c64x )
           c64x_submit_task( c64x );
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      davinci_c64x_wait_low( c64x );
 
      t2 = direct_clock_get_abs_micros();
 
      for (i=0; i<16*16*2; i++) {
-          printf("%02x ", u[i/32*720*2 + i%32]);
+          BRINTF("%02x ", u[i/32*720*2 + i%32]);
 
           if (i%32==31) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      dt    = t2 - t1;
      total = num;
@@ -869,43 +942,43 @@ bench_uyvy_2( DavinciC64x *c64x )
      u8 *u = c64x->mem + 0x0200000;
      u8 *p = c64x->mem + 0x0000000;
 
-     printf("\n");
-     printf("\n");
+     BRINTF("\n");
+     BRINTF("\n");
 
      for (i=0; i<256; i++) {
           p[i] = i/8;
-          printf("Y%-3d ", p[i]);
+          BRINTF("Y%-3d ", p[i]);
           if (i%8==7) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
      for (i=0; i<64; i++) {
           p[256+i] = i/8 + 128;
-          printf("U%-3d ", p[256+i]);
+          BRINTF("U%-3d ", p[256+i]);
           if (i%8==7) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
      for (i=0; i<64; i++) {
           p[320+i] = i/8 + 240;
-          printf("V%-3d ", p[320+i]);
+          BRINTF("V%-3d ", p[320+i]);
           if (i%8==7) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      for (i=0; i<384; i++) {
-          printf("%4d ", p[i]);
+          BRINTF("%4d ", p[i]);
           if (i%8==7) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      memset( u, 0x55, 720*576*2 );
 
@@ -924,7 +997,7 @@ bench_uyvy_2( DavinciC64x *c64x )
           c64x_submit_task( c64x );
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      davinci_c64x_write_back_all( c64x );
      davinci_c64x_wait_low( c64x );
@@ -932,14 +1005,14 @@ bench_uyvy_2( DavinciC64x *c64x )
      t2 = direct_clock_get_abs_micros();
 
      for (i=0; i<16*16*2; i++) {
-          printf("%02x ", u[i/32*720*2 + i%32]);
+          BRINTF("%02x ", u[i/32*720*2 + i%32]);
 
           if (i%32==31) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      dt    = t2 - t1;
      total = num;
@@ -959,43 +1032,43 @@ bench_uyvy_3( DavinciC64x *c64x )
      u8 *u = c64x->mem + 0x1200000;
      u8 *p = c64x->mem + 0x1000000;
 
-     printf("\n");
-     printf("\n");
+     BRINTF("\n");
+     BRINTF("\n");
 
      for (i=0; i<256; i++) {
           p[i] = i%8;
-          printf("Y%-3d ", p[i]);
+          BRINTF("Y%-3d ", p[i]);
           if (i%8==7) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
      for (i=0; i<64; i++) {
           p[256+i] = i%8 + 128;
-          printf("U%-3d ", p[256+i]);
+          BRINTF("U%-3d ", p[256+i]);
           if (i%8==7) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
      for (i=0; i<64; i++) {
           p[320+i] = i%8 + 240;
-          printf("V%-3d ", p[320+i]);
+          BRINTF("V%-3d ", p[320+i]);
           if (i%8==7) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      for (i=0; i<384; i++) {
-          printf("%4d ", p[i]);
+          BRINTF("%4d ", p[i]);
           if (i%8==7) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      memset( u, 0x55, 720*576*2 );
 
@@ -1014,21 +1087,21 @@ bench_uyvy_3( DavinciC64x *c64x )
           c64x_submit_task( c64x );
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      davinci_c64x_wait_low( c64x );
 
      t2 = direct_clock_get_abs_micros();
 
      for (i=0; i<16*16*2; i++) {
-          printf("%02x ", u[i/32*720*2 + i%32]);
+          BRINTF("%02x ", u[i/32*720*2 + i%32]);
 
           if (i%32==31) {
-               printf("\n");
+               BRINTF("\n");
           }
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      dt    = t2 - t1;
      total = num;
@@ -1049,31 +1122,31 @@ bench_mc( DavinciC64x *c64x, int func, int w, int h, bool avg, const char *name 
      u8 *dsr = c64x->mem + 0x1100000;
      u8 *src = c64x->mem + 0x1000000;
 
-     printf("\n\n.============ Testing %s ============.\n", name);
-     printf("\n");
-     printf("SRC REF\n");
+     BRINTF("\n\n.============ Testing %s ============.\n", name);
+     BRINTF("\n");
+     BRINTF("SRC REF\n");
 
      for (y=0; y<h+1; y++) {
           for (x=0; x<w+1; x++) {
                src[x+y*32] = x*y;
-               printf("%-3d ", src[x+y*32]);
+               BRINTF("%-3d ", src[x+y*32]);
           }
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
-     printf("DST REF\n");
+     BRINTF("DST REF\n");
 
      for (y=0; y<h; y++) {
           for (x=0; x<w; x++) {
                dsr[x+y*32] = w*h-1-x*y;
-               printf("%-3d ", dsr[x+y*32]);
+               BRINTF("%-3d ", dsr[x+y*32]);
           }
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
 
      for (i=0; i<0x100000; i++) {
@@ -1102,21 +1175,21 @@ bench_mc( DavinciC64x *c64x, int func, int w, int h, bool avg, const char *name 
 
      t2 = direct_clock_get_abs_micros();
 
-     printf("-> DST\n");
+     BRINTF("-> DST\n");
 
      for (y=0; y<h; y++) {
           for (x=0; x<w; x++) {
-               printf("%-3d ", dst[x+y*32]);
+               BRINTF("%-3d ", dst[x+y*32]);
           }
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      dt    = t2 - t1;
      total = num;
 
-     printf( "BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
+     BRINTF( "BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
              name, total * 1000000ULL / dt );
 }
 
@@ -1125,8 +1198,8 @@ bench_div( DavinciC64x *c64x, u32 nom, u32 den )
 {
      c64xTask *task = c64x_get_task( c64x );
 
-     printf("\n\n.============ Testing div ============.\n");
-     printf("\n");
+     BRINTF("\n\n.============ Testing div ============.\n");
+     BRINTF("\n");
 
      task->c64x_function = (63 << 2) | C64X_FLAG_TODO;
 
@@ -1137,7 +1210,7 @@ bench_div( DavinciC64x *c64x, u32 nom, u32 den )
 
      davinci_c64x_wait_low( c64x );
 
-     printf("%x / %x = %x\n\n\n", nom, den, task->c64x_return);
+     BRINTF("%x / %x = %x\n\n\n", nom, den, task->c64x_return);
 }
 
 static inline void
@@ -1152,24 +1225,24 @@ bench_dither_argb( DavinciC64x *c64x )
      u8  *da  = c64x->mem + 0x1100000;
      u32 *src = c64x->mem + 0x1000000;
 
-     printf("\n\n.======================== Testing dither_argb ========================.\n");
-     printf("\n");
-     printf("SOURCE ARGB\n");
+     BRINTF("\n\n.======================== Testing dither_argb ========================.\n");
+     BRINTF("\n");
+     BRINTF("SOURCE ARGB\n");
 
      for (y=0; y<h-1; y++) {
           for (x=0; x<w; x++) {
                src[x+y*32] = 0x10101010 * y + 0x888888 * x;
-               printf("%08x ", src[x+y*32]);
+               BRINTF("%08x ", src[x+y*32]);
           }
-          printf("\n");
+          BRINTF("\n");
      }
      for (x=0; x<w; x++) {
           src[x+(h-1)*32] = 0xffffffff;
-          printf("%08x ", src[x+y*32]);
+          BRINTF("%08x ", src[x+y*32]);
      }
 
-     printf("\n");
-     printf("\n");
+     BRINTF("\n");
+     BRINTF("\n");
 
      memset( dr, 0x55, 0x100000 );
      memset( da, 0x55, 0x100000 );
@@ -1197,65 +1270,149 @@ bench_dither_argb( DavinciC64x *c64x )
 
      t2 = direct_clock_get_abs_micros();
 
-     printf("-> DST RGB\n");
+     BRINTF("-> DST RGB\n");
 
      for (y=0; y<h; y++) {
           for (x=0; x<w; x++) {
-               printf("    %04x ", dr[x+y*32]);
+               BRINTF("    %04x ", dr[x+y*32]);
           }
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
-     printf("-> DST ALPHA\n");
+     BRINTF("-> DST ALPHA\n");
 
      for (y=0; y<h; y++) {
           for (x=0; x<w; x++) {
                if (x&1)
-                    printf(" %x       ", da[x/2+y*64] & 0xF);
+                    BRINTF(" %x       ", da[x/2+y*64] & 0xF);
                else
-                    printf(" %x       ", da[x/2+y*64] >> 4);
+                    BRINTF(" %x       ", da[x/2+y*64] >> 4);
           }
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
 
      dt    = t2 - t1;
      total = num;
 
-     printf( "BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
+     BRINTF( "BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
              "dither_argb", total * 1000000ULL / dt );
 }
 
+
+
+
+/**********************************************************************************************************************/
+/*** 32 bit scaler ****************************************************************************************************/
+/**********************************************************************************************************************/
+
+typedef struct {
+     DFBRegion   clip;
+     const void *colors;
+     ulong       protect;
+     ulong       key;
+} StretchCtx;
+
+typedef void (*StretchHVx)( void             *dst,
+                            int               dpitch,
+                            const void       *src,
+                            int               spitch,
+                            int               width,
+                            int               height,
+                            int               dst_width,
+                            int               dst_height,
+                            const StretchCtx *ctx );
+
+#define STRETCH_NONE           0
+#define STRETCH_SRCKEY         1
+#define STRETCH_PROTECT        2
+#define STRETCH_SRCKEY_PROTECT 3
+#define STRETCH_NUM            4
+
+typedef struct {
+     struct {
+          StretchHVx     up[STRETCH_NUM];
+          StretchHVx     down[STRETCH_NUM];
+     } f[DFB_NUM_PIXELFORMATS];
+} StretchFunctionTable;
+
+
+#define DST_FORMAT              DSPF_ARGB
+#define TABLE_NAME              stretch_32
+#define FUNC_NAME(UPDOWN,K,P,F) stretch_32_ ## UPDOWN ## _ ## K ## P ## _ ## F
+#define SHIFT_R8                8
+#define SHIFT_L8                8
+#define X_00FF00FF              0x00ff00ff
+#define X_FF00FF00              0xff00ff00
+#define MASK_RGB                0x00ffffff
+#define HAS_ALPHA
+
+#include <gfx/generic/stretch_up_down_32.h>
+
+#undef DST_FORMAT
+#undef TABLE_NAME
+#undef FUNC_NAME
+#undef SHIFT_R8
+#undef SHIFT_L8
+#undef X_00FF00FF
+#undef X_FF00FF00
+#undef MASK_RGB
+#undef HAS_ALPHA
+
+
 static inline void
-bench_stretch_32_up( DavinciC64x *c64x )
+bench_stretch_32( DavinciC64x *c64x, int sw, int sh, int dw, int dh )
 {
      int       i, x, y, num;
      long long t1, t2, dt, total;
+     bool      down = (dw < sw) && (dh < sh);
+
+#if 0
+     int SW = (sw + 5) & ~3;
+     int SH = (sh + 5) & ~3;
+     int DW = (dw + 5) & ~3;
+     int DH = (dh + 5) & ~3;
+#else
+     int SW = sw;
+     int SH = sh;
+     int DW = dw;
+     int DH = dh;
+#endif
 
      num = 1;//0x10000;
 
+     u32  cpu[DW * DH];
      u32 *dst = c64x->mem + 0x1200000;
      u32 *src = c64x->mem + 0x1000000;
 
-     printf("\n\n.======================== Testing stretch_32_up ========================.\n");
-     printf("\n");
-     printf("SOURCE ARGB (10x5)\n");
+     memset( src, 0x55, 0x100000 );
 
-     for (y=0; y<5; y++) {
-          for (x=0; x<10; x++) {
-               src[x+y*64/4] = 0x10010203 * x + 0x04202020 * (y + 1);
-               printf("%08x ", src[x+y*64/4]);
+     for (y=0; y<sh; y++) {
+          for (x=0; x<sw; x++) {
+               src[x + y*SW] = 0x10010203 * x + 0x04202020 * (y + 1);
           }
-          printf("\n");
      }
 
-     printf("\n");
-     printf("\n");
+
+     BRINTF("\n\n.======================== Testing stretch_32( %dx%d -> %dx%d ) ========================.\n", sw, sh, dw, dh);
+     BRINTF("\n");
+     BRINTF("SOURCE IMAGE (%dx%d) [%dx%d]\n", sw, sh, SW, SH);
+
+     for (y=0; y<SH; y++) {
+          for (x=0; x<SW; x++) {
+               BRINTF("%08x ", src[x + y*SW]);
+          }
+          BRINTF("\n");
+     }
+
+     BRINTF("\n");
+     BRINTF("\n");
 
      memset( dst, 0x55, 0x100000 );
+     memset( cpu, 0x55, sizeof(cpu) );
 
 
      t1 = direct_clock_get_abs_micros();
@@ -1263,14 +1420,16 @@ bench_stretch_32_up( DavinciC64x *c64x )
      for (i=0; i<num; i++) {
           c64xTask *task = c64x_get_task( c64x );
 
-          task->c64x_function = C64X_STRETCH_32_up | C64X_FLAG_TODO;
+          task->c64x_function = (down ?
+                                 C64X_STRETCH_32_down :
+                                 C64X_STRETCH_32_up ) | C64X_FLAG_TODO;
 
           task->c64x_arg[0] = 0x8e000000 + 0x1200000;
           task->c64x_arg[1] = 0x8e000000 + 0x1000000;
-          task->c64x_arg[2] = 128      | (64       << 16);
-          task->c64x_arg[3] = 20       | (6        << 16);
-          task->c64x_arg[4] = 10       | (5        << 16);
-          task->c64x_arg[5] = 19       | (5        << 16);
+          task->c64x_arg[2] = (DW * 4) | ((SW * 4) << 16);
+          task->c64x_arg[3] = dh       | (dw       << 16);
+          task->c64x_arg[4] = sh       | (sw       << 16);
+          task->c64x_arg[5] = (dw - 1) | ((dh - 1) << 16);
           task->c64x_arg[6] = 0        | (0        << 16);
 
           c64x_submit_task( c64x );
@@ -1283,21 +1442,42 @@ bench_stretch_32_up( DavinciC64x *c64x )
      t2 = direct_clock_get_abs_micros();
 
 
-     printf("-> DESTINATION (20x6)\n");
+     BRINTF("-> DSP RESULT (%dx%d) [%dx%d]\n", dw, dh, DW, DH);
 
-     for (y=0; y<6; y++) {
-          for (x=0; x<20; x++) {
-               printf("%08x ", dst[x+y*128/4]);
+     for (y=0; y<DH; y++) {
+          for (x=0; x<DW; x++) {
+               BRINTF("%08x ", dst[x + y*DW]);
           }
-          printf("\n");
+          BRINTF("\n");
      }
 
-     printf("\n");
+     BRINTF("\n");
+
+
+     {
+          StretchHVx func = (down ?
+                              stretch_32.f[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)].down[STRETCH_NONE] :
+                              stretch_32.f[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)].up[STRETCH_NONE]);
+          StretchCtx ctx  = { .clip = DFB_REGION_INIT_FROM_RECTANGLE_VALS( 0, 0, dw, dh ) };
+     
+          func( cpu, DW * 4, src, SW * 4, sw, sh, dw, dh, &ctx );
+     
+          BRINTF("-> CPU RESULT (%dx%d) [%dx%d]\n", dw, dh, DW, DH);
+     
+          for (y=0; y<DH; y++) {
+               for (x=0; x<DW; x++) {
+                    BRINTF("%08x ", cpu[x + y*DW]);
+               }
+               BRINTF("\n");
+          }
+     
+          BRINTF("\n");
+     }
 
      dt    = t2 - t1;
      total = num;
 
-     printf( "BENCHMARK on DSP - stretch_32_up   %lld Calls/sec\n", total * 1000000ULL / dt );
+     BRINTF( "BENCHMARK on DSP - stretch_32_up   %lld Calls/sec\n", total * 1000000ULL / dt );
 }
 
 static inline void
@@ -1361,17 +1541,33 @@ davinci_c64x_open( DavinciC64x *c64x )
 
 if (getenv("C64X_TEST")) {
 //     bench_dsp( c64x );
-     bench_load_block( c64x );
-//     bench_uyvy_1( c64x );
-//     bench_uyvy_2( c64x );
-//     bench_uyvy_3( c64x );
-//     bench_blend_argb( c64x, 0 );
-//     bench_blend_argb( c64x, 1 );
-//     bench_blend_argb( c64x, 2 );
-//     bench_blend_argb( c64x, 3 );
-
 //     bench_dither_argb( c64x );
-     bench_stretch_32_up( c64x );
+
+     test_load_block( c64x, false );
+     test_load_block( c64x, true );
+
+#if 0
+     bench_uyvy_1( c64x );
+     bench_uyvy_2( c64x );
+     bench_uyvy_3( c64x );
+#endif
+
+#if 0
+     bench_blend_argb( c64x, 0 );
+     bench_blend_argb( c64x, 1 );
+     bench_blend_argb( c64x, 2 );
+     bench_blend_argb( c64x, 3 );
+#endif
+
+#if 0
+     bench_stretch_32( c64x, 2, 1, 16, 1 );
+
+     bench_stretch_32( c64x, 2, 1,  3, 1 );
+     bench_stretch_32( c64x, 4, 1,  6, 1 );
+
+     bench_stretch_32( c64x, 3, 1,  2, 1 );
+     bench_stretch_32( c64x, 6, 1,  4, 1 );
+#endif
 
 #if 0
      bench_fetch_uyvy( c64x, false, 0, 0 );
@@ -1384,13 +1580,15 @@ if (getenv("C64X_TEST")) {
      bench_fetch_uyvy( c64x, true, 1, 1 );
 #endif
 
-//     bench_put_mc( c64x, false );
-//     bench_put_mc( c64x, true );
+#if 0
+     bench_put_mc( c64x, false );
+     bench_put_mc( c64x, true );
 
      bench_put_sum( c64x, false );
      bench_put_sum( c64x, true );
 
-//     bench_sat_mc( c64x );
+     bench_sat_mc( c64x );
+#endif
 
 #if 0
      bench_mc( c64x, 32, 8, 8, false, "mc_put_o_8" );

@@ -101,6 +101,22 @@ davinci_c64x_wait_low( DavinciC64x *c64x )
 }
 
 static inline void
+davinci_c64x_wb_inv_range( DavinciC64x   *c64x,
+                           unsigned long  start,
+                           u32            length,
+                           u32            func )
+{
+     c64xTask *task = c64x_get_task( c64x );
+
+     task->c64x_function = C64X_WB_INV_RANGE | C64X_FLAG_TODO;
+     task->c64x_arg[0]   = start;
+     task->c64x_arg[1]   = length;
+     task->c64x_arg[2]   = func;
+
+     c64x_submit_task( c64x );
+}
+
+static inline void
 davinci_c64x_write_back_all( DavinciC64x *c64x )
 {
      c64xTask *task = c64x_get_task( c64x );
