@@ -19,7 +19,6 @@ load_sample( IFusionSound *sound, const char *file )
      IFusionSoundMusicProvider *provider;
      IFusionSoundBuffer        *buffer;
      FSBufferDescription        dsc;
-     double                     length;
      void                      *data;
      int                        bytes;
      int                        frames = 0;
@@ -33,14 +32,8 @@ load_sample( IFusionSound *sound, const char *file )
      }
      
      provider->GetBufferDescription( provider, &dsc );
-     
-     provider->GetLength( provider, &length );
-     /* Limit to 10 seconds. */
-     if (length > 10.0)
-          length = 10.0;
-     
-     dsc.length = ((double)dsc.samplerate * length + .5);
-     
+  
+     dsc.channels = 6;
      ret = sound->CreateBuffer( sound, &dsc, &buffer );
      if (ret) {
           FusionSoundError( "IFusionSound::CreateBuffer()", ret );
