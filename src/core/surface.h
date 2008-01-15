@@ -311,7 +311,7 @@ dfb_surface_data_offset( const CoreSurface *surface,
           y >>= 1;
      }
 
-     return data + pitch * y + DFB_BYTES_PER_LINE( surface->config.format, x );
+     return (u8*)data + pitch * y + DFB_BYTES_PER_LINE( surface->config.format, x );
 }
 
 static inline void
@@ -388,7 +388,7 @@ dfb_surface_reformat( CoreSurface           *surface,
      D_ASSERT( width > 0 );
      D_ASSERT( height > 0 );
 
-     config.flags  = CSCONF_SIZE | CSCONF_FORMAT;
+     config.flags  = (CoreSurfaceConfigFlags)(CSCONF_SIZE | CSCONF_FORMAT);
      config.size.w = width;
      config.size.h = height;
      config.format = format;

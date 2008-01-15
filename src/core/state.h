@@ -199,7 +199,7 @@ dfb_state_start_drawing( CardState *state, CoreGraphicsDevice *device )
           else {
                dfb_gfxcard_start_drawing( device, state );
 
-               state->flags |= CSF_DRAWING;
+               state->flags  = (CardStateFlags)(state->flags | CSF_DRAWING);
                state->device = device;
           }
      }
@@ -217,7 +217,7 @@ dfb_state_stop_drawing( CardState *state )
      
                dfb_gfxcard_stop_drawing( state->device, state );
      
-               state->flags &= ~CSF_DRAWING;
+               state->flags  = (CardStateFlags)(state->flags & ~CSF_DRAWING);
                state->device = NULL;
           }
           else
