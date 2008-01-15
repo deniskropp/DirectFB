@@ -404,6 +404,7 @@ dfb_argb_to_a8( u32 *src, u8 *dst, int len )
           dst[i] = src[i] >> 24;
 }
 
+#ifndef __cplusplus
 static inline void
 dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
                       void                  *src,
@@ -715,5 +716,6 @@ dfb_convert_to_uyvy( DFBSurfacePixelFormat  format,
                D_ONCE( "unsupported format" );
      }
 }
+#endif
 
 #endif
