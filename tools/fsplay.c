@@ -66,10 +66,10 @@ static int                        quiet    = 0;
 static float                      volume   = 1.0;
 static int                        flags    = FMPLAY_NOFX;
 static int                        repeat   = 0;
+static FSSampleFormat             format   = FSSF_UNKNOWN;
 static int                        gain     = 0;
 #define RPGAIN_TRACK 1
 #define RPGAIN_ALBUM 2
-
 
 static void
 usage( const char *progname )
@@ -80,6 +80,7 @@ usage( const char *progname )
      fprintf( stderr, "  -v, --version   Print version and quit\n" );
      fprintf( stderr, "  -q, --quiet     Suppress messages\n" );
      fprintf( stderr, "  -r, --repeat    Repeat entire playlist\n" );
+     fprintf( stderr, "  -d, --depth <n> Force output bit depth (8, 16, 24, or 32)\n" );
      fprintf( stderr, "  -g, --gain <n>  Select replay gain (0:none, 1:track, 2:album)\n" );
      fprintf( stderr, "\nPlayback Control:\n" );
      fprintf( stderr, "  [p] start playback\n" );
@@ -116,9 +117,39 @@ parse_options( int argc, char **argv )
           else if (!strcmp( opt, "-r" ) || !strcmp( opt, "--repeat" )) {
                repeat = 1;
           }
+          else if (!strcmp( opt, "-d" ) || !strcmp( opt, "--depth" )) {
+               if (++i < argc) {
+                    switch (atoi( argv[i] )) {
+                         case 8:
+                              format = FSSF_U8;
+                              break;
+                         case 16:
+                              format = FSSF_S16;
+                              break;
+                         case 24:
+                              format = FSSF_S24;
+                              break;
+                         case 32:
+                              format = FSSF_S32;
+                              break;
+                         default:
+                              fprintf( stderr, "Unsupported bit depth!\n" );
+                              usage( argv[0] );
+                    }
+               }
+               else {
+                    fprintf( stderr, "No bit depth specified!\n" );
+                    usage( argv[0] );
+               }
+          }
           else if (!strcmp( opt, "-g" ) || !strcmp( opt, "--gain" )) {
-               if (++i < argc)
+               if (++i < argc) {
                     gain = atoi( argv[i] );
+               }
+               else {
+                    fprintf( stderr, "No gain specified!\n" );
+                    usage( argv[0] );
+               }
           }               
           else {
                Media *media;
@@ -185,10 +216,13 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
      }
      
      provider->GetStreamDescription( provider, &s_dsc );
+     if (format)
+          s_dsc.sampleformat = format;
+     
      if (stream) {
           FSStreamDescription dsc;
           /* Check whether stream format changed. */
-          stream->GetDescription( stream, &dsc );
+          stream->GetDescription( stream, &dsc ); 
           if (dsc.samplerate   != s_dsc.samplerate ||
               dsc.channels     != s_dsc.channels   ||
               dsc.sampleformat != s_dsc.sampleformat)
@@ -278,7 +312,7 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
 
                /* Print playback status. */
                fprintf( stderr, 
-                   "\rTime: %02d:%02d,%02d of %02d:%02d,%02d  Ring Buffer: %02d%%",
+                   "\rTime: %02d:%02d,%02d of %02d:%02d,%02d  Ring Buffer: %02d%% ",
                    (int)pos/60, (int)pos%60, (int)(pos*100.0)%100,
                    (int)len/60, (int)len%60, (int)(len*100.0)%100,
                    filled * 100 / total );
