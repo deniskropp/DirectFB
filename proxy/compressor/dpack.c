@@ -65,13 +65,13 @@
  *                         ENCODING: D(t) = (I(t) - O(t-1)) / 2
  *
  *                         DECODING: IF [Header:6]
- *                                      I(t) = (D(t) + O(t-1) + MD) * 2
+ *                                      O(t) = O(t-1) + (D(t) + MD) * 2
  *                                   ELSE
- *                                      I(t) = (D(t) + O(t-1)) * 2
+ *                                      O(t) = O(t-1) + D(t) * 2
  *                                   ENDIF
  *
  *                       where D(t) is the delta at t, I(t) is the input sample
- *                       at t, O(t-1) is the output sample at t-1 and MD is the
+ *                       at t, O(t) is the output sample at t and MD is the
  *                       minimum delta;
  *                       the amount of bits used to store the delta is given by
  *                       the Header, while the effective number of deltas is an
