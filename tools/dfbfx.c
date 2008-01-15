@@ -615,7 +615,7 @@ main( int argc, char *argv[] )
      printf( "  dst:        %02x %02x %02x %02x\n", dst.a, dst.r, dst.g, dst.b );
 
      /* Show destination color key. */
-     if (state.blittingflags & DSBLIT_SRC_COLORKEY)
+     if (state.blittingflags & DSBLIT_DST_COLORKEY)
           printf( "  dst_key:       %02x %02x %02x\n",
                   state.dst_colorkey >> 16, (state.dst_colorkey >> 8) & 0xff, state.dst_colorkey & 0xff );
 
