@@ -484,18 +484,30 @@ fs_core_device_config( CoreSound *core )
 DFBResult
 fs_core_get_master_volume( CoreSound *core, float *level )
 {
+     CoreSoundShared *shared;
+     DFBResult        ret, retval;
+     
      D_ASSERT( core != NULL );
      D_ASSERT( core->shared != NULL );
      D_ASSERT( level != NULL );
      
-     return fusion_call_execute( &core->shared->call, 
-                                 FCEF_NONE, CSCID_GET_VOLUME, NULL, (int*)level );
+     shared = core->shared;
+     
+     ret = fusion_call_execute( &core->shared->call, FCEF_NONE,
+                                CSCID_GET_VOLUME, &shared->call_arg, (int*)&retval );
+     if (ret)
+          return ret;
+          
+     *level = shared->call_arg;
+     
+     return retval;
 }
 
 DFBResult
 fs_core_set_master_volume( CoreSound *core, float level )
 {
      CoreSoundShared *shared;
+     DFBResult        ret, retval;
      
      D_ASSERT( core != NULL );
      D_ASSERT( core->shared != NULL );
@@ -504,8 +516,12 @@ fs_core_set_master_volume( CoreSound *core, float level )
      
      shared->call_arg = level;
      
-     return fusion_call_execute( &core->shared->call,
-                                 FCEF_NONE, CSCID_SET_VOLUME, &shared->call_arg, NULL );
+     ret = fusion_call_execute( &core->shared->call, FCEF_NONE,
+                                CSCID_SET_VOLUME, &shared->call_arg, (int*)&retval );
+     if (ret)
+          return ret;
+          
+     return retval;
 }
 
 DFBResult
@@ -962,20 +978,34 @@ core_call_handler( int caller, int call_arg, void *call_ptr,
        
      switch (call_arg) {               
           case CSCID_GET_VOLUME:
-               if (!(fs_device_get_capabilities( core->device ) & DCF_VOLUME) ||
-                   fs_device_get_volume( core->device, &volume ) != DFB_OK)
-                    volume = fsf_to_float( shared->soft_volume ); 
-               
-               *((float*)retval) = volume;
+               if (core->suspended) {
+                    *retval = DFB_SUSPENDED;
+               }
+               else {
+                    if (!(fs_device_get_capabilities( core->device ) & DCF_VOLUME) ||
+                        fs_device_get_volume( core->device, &volume ) != DFB_OK)
+                         volume = fsf_to_float( shared->soft_volume ); 
+
+                    *((float*)call_ptr) = volume;
+                    
+                    *retval = DFB_OK;
+               }
                break;
                
           case CSCID_SET_VOLUME:
-               volume = *((float*)call_ptr);
-               if (!(fs_device_get_capabilities( core->device ) & DCF_VOLUME) ||
-                   fs_device_set_volume( core->device, volume ) != DFB_OK)
-                    shared->soft_volume = fsf_from_float( volume );
-               else
-                    shared->soft_volume = FSF_ONE;
+               if (core->suspended) {
+                    *retval = DFB_SUSPENDED;
+               }
+               else {
+                    volume = *((float*)call_ptr);
+                    if (!(fs_device_get_capabilities( core->device ) & DCF_VOLUME) ||
+                        fs_device_set_volume( core->device, volume ) != DFB_OK)
+                         shared->soft_volume = fsf_from_float( volume );
+                    else
+                         shared->soft_volume = FSF_ONE;
+                         
+                    *retval = DFB_OK;
+               }
                break;
                
           case CSCID_SUSPEND:
