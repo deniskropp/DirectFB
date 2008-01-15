@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2006 Claudio Ciccani <klan@users.sf.net>
+ * Copyright (C) 2005-2008 Claudio Ciccani <klan@users.sf.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,6 +28,7 @@
 #include <unistd.h>
 
 #include <fusionsound.h>
+#include <fusionsound_limits.h>
 
 #include <direct/types.h>
 #include <direct/mem.h>
@@ -63,6 +64,7 @@ typedef struct {
      u32                           samplerate; /* frequency */
      int                           channels;   /* number of channels */
      FSSampleFormat                format;     /* sample format */
+     int                           framesize;  /* bytes per frame */
      u32                           headsize;   /* size of headers */
      u32                           datasize;   /* size of pcm data */
      double                        length;     /* in seconds */
@@ -76,13 +78,13 @@ typedef struct {
      bool                          seeked;
 
      void                         *src_buffer;
-     void                         *dst_buffer;
 
      struct {
           IFusionSoundStream      *stream;
           IFusionSoundBuffer      *buffer;
           FSSampleFormat           format;
           FSChannelMode            mode;
+          int                      framesize;
           int                      length;
      } dest;
 
@@ -139,35 +141,37 @@ getsamp( u8 *src, const int i, FSSampleFormat f )
      return 0;
 }
 
-static inline void
-putsamp( u8 **dst, FSSampleFormat f, int s )
+static inline u8*
+putsamp( u8 *dst, FSSampleFormat f, int s )
 {
      switch (f) {
           case FSSF_U8:
-               *((u8*)*dst) = (s >> 22) ^ 0x80;
+               *dst = (s >> 22) ^ 0x80;
                dst++;
                break;
           case FSSF_S16:
-               *((s16*)*dst) = s >> 14;
-               *dst += 2;
+               *((s16*)dst) = s >> 14;
+               dst += 2;
                break;
           case FSSF_S24:
-               ((s24*)*dst)->c = s >> 22;
-               ((s24*)*dst)->b = s >> 14;
-               ((s24*)*dst)->a = s >>  6;
-               *dst += 3;
+               ((s24*)dst)->c = s >> 22;
+               ((s24*)dst)->b = s >> 14;
+               ((s24*)dst)->a = s >>  6;
+               dst += 3;
                break;
           case FSSF_S32:
-               *((s32*)*dst) = s << 2;
-               *dst += 4;
+               *((s32*)dst) = s << 2;
+               dst += 4;
                break;
           case FSSF_FLOAT:
-               *((float*)*dst) = (float)s/(float)(1<<29);
-               *dst += 4;
+               *((float*)dst) = (float)s/(float)(1<<29);
+               dst += 4;
                break;
           default:
                break;
      }
+     
+     return dst;
 }
 
 static void
@@ -230,7 +234,7 @@ wave_mix_audio( u8 *src, u8 *dst, int len,
                     } else {
                          s >>= 1;
                     }
-                    putsamp( &dst, df, s );
+                    dst = putsamp( dst, df, s );
                     break;
                case FSCM_STEREO:
                case FSCM_STEREO21:
@@ -240,51 +244,57 @@ wave_mix_audio( u8 *src, u8 *dst, int len,
                          s += sum - (sum >> 2);
                          clip(s);
                     }
-                    putsamp( &dst, df, s );
+                    dst = putsamp( dst, df, s );
                     s = c[2];
                     if (sc > 2) {
                          int sum = c[1] + c[4];
                          s += sum - (sum >> 2);
                          clip(s);
                     }
-                    putsamp( &dst, df, s );
+                    dst = putsamp( dst, df, s );
                     if (FS_MODE_HAS_LFE(dm))
-                         putsamp( &dst, df, c[5] );
+                         dst = putsamp( dst, df, c[5] );
                     break;
                case FSCM_STEREO30:
                case FSCM_STEREO31:
-                    c[0] += c[3] - (c[3] >> 2);
-                    c[2] += c[4] - (c[4] >> 2);
-                    clip(c[0]);
-                    clip(c[2]);
-                    putsamp( &dst, df, c[0] );
-                    putsamp( &dst, df, c[1] );
-                    putsamp( &dst, df, c[2] );
+                    s = c[0] + (c[3] - (c[3] >> 2));
+                    clip(s);
+                    dst = putsamp( dst, df, s );
+                    if (sc == 2 || sc == 4)
+                         dst = putsamp( dst, df, (c[0]+c[2])>>1 );
+                    else
+                         dst = putsamp( dst, df, c[1] );
+                    s = c[2] + (c[4] - (c[4] >> 2));
+                    clip(s);
+                    dst = putsamp( dst, df, s );
                     if (FS_MODE_HAS_LFE(dm))
-                         putsamp( &dst, df, c[5] );               
+                         dst = putsamp( dst, df, c[5] );               
                     break;
                default:
                     if (FS_MODE_HAS_CENTER(dm)) {
-                         putsamp( &dst, df, c[0] );
-                         putsamp( &dst, df, c[1] );
-                         putsamp( &dst, df, c[2] );
+                         dst = putsamp( dst, df, c[0] );
+                         if (sc == 2 || sc == 4)
+                              dst = putsamp( dst, df, (c[0]+c[2])>>1 );
+                         else
+                              dst = putsamp( dst, df, c[1] );
+                         dst = putsamp( dst, df, c[2] );
                     } else {
                          c[0] += c[1] - (c[1] >> 2);
                          c[2] += c[1] - (c[1] >> 2);
                          clip(c[0]);
                          clip(c[2]);
-                         putsamp( &dst, df, c[0] );
-                         putsamp( &dst, df, c[2] );
+                         dst = putsamp( dst, df, c[0] );
+                         dst = putsamp( dst, df, c[2] );
                     }
                     if (FS_MODE_NUM_REARS(dm) == 1) {
                          s = (c[3] + c[4]) >> 1;
-                         putsamp( &dst, df, s );
+                         dst = putsamp( dst, df, s );
                     } else {     
-                         putsamp( &dst, df, c[3] );
-                         putsamp( &dst, df, c[4] );
+                         dst = putsamp( dst, df, c[3] );
+                         dst = putsamp( dst, df, c[4] );
                     }
                     if (FS_MODE_HAS_LFE(dm))
-                         putsamp( &dst, df, c[5] );
+                         dst = putsamp( dst, df, c[5] );
                     break;
           }
      }
@@ -399,7 +409,9 @@ IFusionSoundMusicProvider_Wave_GetBufferDescription( IFusionSoundMusicProvider *
      desc->samplerate   = data->samplerate;
      desc->channels     = data->channels;
      desc->sampleformat = data->format;
-     desc->length       = data->samplerate/10;
+     desc->length       = data->datasize / data->framesize;
+     if (desc->length > FS_MAX_FRAMES)
+          desc->length = FS_MAX_FRAMES;
 
      return DFB_OK;
 }
@@ -407,19 +419,18 @@ IFusionSoundMusicProvider_Wave_GetBufferDescription( IFusionSoundMusicProvider *
 static void*
 WaveStreamThread( DirectThread *thread, void *ctx )
 {
-     IFusionSoundMusicProvider_Wave_data *data =
-          (IFusionSoundMusicProvider_Wave_data*) ctx;
+     IFusionSoundMusicProvider_Wave_data *data = ctx;
 
-     size_t  count = data->dest.length * data->channels * FS_BYTES_PER_SAMPLE(data->format);
-     u8     *src   = data->src_buffer;
-     u8     *dst   = data->dst_buffer;
-
-     direct_stream_wait( data->stream, count, NULL );
+     int   count = data->dest.length * data->framesize;
+     void *src   = data->src_buffer;
 
      while (data->playing && !data->finished) {
           DFBResult      ret;
           unsigned int   len = 0;
+          unsigned int   pos = 0;
           struct timeval tv  = { 0, 1000 };
+          void          *dst;
+          int            num;
 
           pthread_mutex_lock( &data->lock );
 
@@ -432,10 +443,27 @@ WaveStreamThread( DirectThread *thread, void *ctx )
                data->dest.stream->Flush( data->dest.stream );
                data->seeked = false;
           }
+          
+          if (!data->src_buffer) {
+               /* direct copy */
+               if (data->dest.stream->Access( data->dest.stream, &dst, &num )) {
+                    pthread_mutex_unlock( &data->lock );
+                    continue;
+               }
+               src = dst;
+               count = num * data->framesize;
+          }       
 
           ret = direct_stream_wait( data->stream, count, &tv );
-          if (ret != DFB_TIMEOUT)
+          if (ret != DFB_TIMEOUT) {
                ret = direct_stream_read( data->stream, count, src, &len );
+               len /= data->framesize;
+          }
+               
+          if (!data->src_buffer) {
+               /* direct copy */
+               data->dest.stream->Commit( data->dest.stream, len );
+          }
 
           if (ret) {
                if (ret == DFB_EOF) {
@@ -449,18 +477,29 @@ WaveStreamThread( DirectThread *thread, void *ctx )
           }
 
           pthread_mutex_unlock( &data->lock );
-
-          len /= FS_BYTES_PER_SAMPLE(data->format) * data->channels;
-          if (len < 1)
-               continue;
-
-          if (src != dst) {
-               wave_mix_audio( src, dst, len,
-                               data->format, data->dest.format,
-                               data->channels, data->dest.mode );
+          
+          if (data->src_buffer) {
+               /* convert */
+               while (pos < len) {
+                    if (data->dest.stream->Access( data->dest.stream, &dst, &num ))
+                         break;
+                    
+                    if (num > len - pos)
+                         num = len - pos;
+                         
+                    wave_mix_audio( src + pos*data->framesize, dst, num,
+                                    data->format, data->dest.format,
+                                    data->channels, data->dest.mode );        
+                    
+                    data->dest.stream->Commit( data->dest.stream, num );
+                    
+                    pos += num;
+               }
           }
-
-          data->dest.stream->Write( data->dest.stream, dst, len );
+          else {
+               /* Avoid blocking while the mutex is locked. */
+               data->dest.stream->Wait( data->dest.stream, 1 );
+          }
      }
 
      return NULL;
@@ -470,10 +509,8 @@ static DFBResult
 IFusionSoundMusicProvider_Wave_PlayToStream( IFusionSoundMusicProvider *thiz,
                                              IFusionSoundStream        *destination )
 {
-     FSStreamDescription  desc;
-     int                  src_size = 0;
-     int                  dst_size = 0;
-     void                *buffer;
+     FSStreamDescription desc;
+     int                 src_size;
 
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Wave )
 
@@ -525,30 +562,25 @@ IFusionSoundMusicProvider_Wave_PlayToStream( IFusionSoundMusicProvider *thiz,
 
      pthread_mutex_lock( &data->lock );
 
-     /* allocate buffer(s) */
-     src_size = desc.buffersize * data->channels * FS_BYTES_PER_SAMPLE(data->format);
-     if (desc.sampleformat != data->format || 
-         desc.channelmode != fs_mode_for_channels(data->channels)) {
-          dst_size = desc.buffersize * 
-                     FS_CHANNELS_FOR_MODE(desc.channelmode) *
-                     FS_BYTES_PER_SAMPLE(desc.sampleformat);
+     if (desc.sampleformat != data->format ||
+         desc.channelmode  != fs_mode_for_channels(data->channels))
+     {
+          /* allocate buffer */
+          src_size = desc.buffersize * data->channels * FS_BYTES_PER_SAMPLE(data->format);
+          data->src_buffer = D_MALLOC( src_size );
+          if (!data->src_buffer) {
+               pthread_mutex_unlock( &data->lock );
+               return D_OOM();
+          }
      }
-
-     buffer = D_MALLOC( src_size + dst_size );
-     if (!buffer) {
-          pthread_mutex_unlock( &data->lock );
-          return D_OOM();
-     }
-
-     data->src_buffer = buffer;
-     data->dst_buffer = (dst_size) ? (buffer + src_size) : buffer;
 
      /* reference destination stream */
      destination->AddRef( destination );
-     data->dest.stream = destination;
-     data->dest.format = desc.sampleformat;
-     data->dest.mode   = desc.channelmode;
-     data->dest.length = desc.buffersize;
+     data->dest.stream    = destination;
+     data->dest.format    = desc.sampleformat;
+     data->dest.mode      = desc.channelmode;
+     data->dest.framesize = desc.channels * FS_BYTES_PER_SAMPLE(desc.sampleformat);
+     data->dest.length    = desc.buffersize;
 
      if (data->finished) {
           direct_stream_seek( data->stream, data->headsize );
@@ -572,10 +604,7 @@ WaveBufferThread( DirectThread *thread, void *ctx )
           (IFusionSoundMusicProvider_Wave_data*) ctx;
 
      IFusionSoundBuffer *buffer = data->dest.buffer;
-     size_t              count  = data->dest.length * data->channels *
-                                  FS_BYTES_PER_SAMPLE(data->format);
-
-     direct_stream_wait( data->stream, count, NULL );
+     size_t              count  = data->dest.length * data->framesize;
 
      while (data->playing && !data->finished) {
           DFBResult       ret;
@@ -623,7 +652,7 @@ WaveBufferThread( DirectThread *thread, void *ctx )
 
           pthread_mutex_unlock( &data->lock );
 
-          len /= FS_BYTES_PER_SAMPLE(data->format) * data->channels;
+          len /= data->framesize;
           if (len < 1)
                continue;
 
@@ -736,10 +765,11 @@ IFusionSoundMusicProvider_Wave_PlayToBuffer( IFusionSoundMusicProvider *thiz,
 
      /* reference destination stream */
      destination->AddRef( destination );
-     data->dest.buffer = destination;
-     data->dest.format = desc.sampleformat;
-     data->dest.mode   = desc.channelmode;
-     data->dest.length = desc.length;
+     data->dest.buffer    = destination;
+     data->dest.format    = desc.sampleformat;
+     data->dest.mode      = desc.channelmode;
+     data->dest.framesize = desc.channels * FS_BYTES_PER_SAMPLE(desc.sampleformat);
+     data->dest.length    = desc.length;
 
      data->callback    = callback;
      data->ctx         = ctx;
@@ -780,7 +810,6 @@ IFusionSoundMusicProvider_Wave_Stop( IFusionSoundMusicProvider *thiz )
      if (data->src_buffer) {
           D_FREE( data->src_buffer );
           data->src_buffer = NULL;
-          data->dst_buffer = NULL;
      }
 
      /* release previous destination stream */
@@ -835,7 +864,7 @@ IFusionSoundMusicProvider_Wave_SeekTo( IFusionSoundMusicProvider *thiz,
           return DFB_INVARG;
 
      offset  = (double)data->samplerate * seconds;
-     offset  = offset * data->channels * FS_BYTES_PER_SAMPLE(data->format);
+     offset  = offset * data->framesize;
      if (data->datasize && offset > data->datasize)
           return DFB_UNSUPPORTED;
      offset += data->headsize;
@@ -859,8 +888,7 @@ IFusionSoundMusicProvider_Wave_GetPos( IFusionSoundMusicProvider *thiz,
           return DFB_INVARG;
 
      *seconds = (double) direct_stream_offset( data->stream ) /
-                (double)(data->samplerate * data->channels *
-                         FS_BYTES_PER_SAMPLE(data->format));
+                (double)(data->samplerate * data->framesize);
 
      return DFB_OK;
 }
@@ -1084,10 +1112,12 @@ Construct( IFusionSoundMusicProvider *thiz,
                data->format = FSSF_S32;
                break;
           default:
-               D_BUG( "unxepected sample format" );
+               D_BUG( "unexpected sample format" );
                IFusionSoundMusicProvider_Wave_Destruct( thiz );
                return DFB_BUG;
      }
+     
+     data->framesize = data->channels * FS_BYTES_PER_SAMPLE(data->format);
 
      size = direct_stream_length( data->stream );
      if (size) {
@@ -1098,8 +1128,7 @@ Construct( IFusionSoundMusicProvider *thiz,
      }
 
      data->length = (double) data->datasize /
-                    (double)(data->samplerate * data->channels * 
-                             FS_BYTES_PER_SAMPLE(data->format));
+                    (double)(data->samplerate * data->framesize);
 
      direct_util_recursive_pthread_mutex_init( &data->lock );
 

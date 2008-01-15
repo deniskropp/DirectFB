@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2006 Claudio Ciccani <klan@users.sf.net>
+ * Copyright (C) 2005-2008 Claudio Ciccani <klan@users.sf.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -37,6 +37,7 @@
 #endif
 
 #include <fusionsound.h>
+#include <fusionsound_limits.h>
 
 #include <media/ifusionsoundmusicprovider.h>
 
@@ -91,8 +92,7 @@ typedef struct {
      bool                          seeked;
 
      int                           buffered_frames;
-     s16                          *src_buffer;
-     u8                           *dst_buffer;
+     void                         *buffer;
 
      struct {
           IFusionSoundStream      *stream;
@@ -759,17 +759,23 @@ static DFBResult
 IFusionSoundMusicProvider_CDDA_GetBufferDescription( IFusionSoundMusicProvider *thiz,
                                                      FSBufferDescription       *desc )
 {
+     struct cdda_track *track;
+     
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
 
      if (!desc)
           return DFB_INVARG;
+          
+     track = &data->tracks[data->current_track];
 
      desc->flags        = FSBDF_LENGTH       | FSBDF_CHANNELS  |
                           FSBDF_SAMPLEFORMAT | FSBDF_SAMPLERATE;
      desc->samplerate   = 44100;
      desc->channels     = 2;
      desc->sampleformat = FSSF_S16;
-     desc->length       = 4704;
+     desc->length       = track->length * CD_BYTES_PER_FRAME / 4;
+     if (desc->length > FS_MAX_FRAMES)
+          desc->length = FS_MAX_FRAMES;
 
      return DFB_OK;
 }
@@ -793,11 +799,11 @@ IFusionSoundMusicProvider_CDDA_SelectTrack( IFusionSoundMusicProvider *thiz,
 static void*
 CDDAStreamThread( DirectThread *thread, void *ctx )
 {
-     IFusionSoundMusicProvider_CDDA_data *data =
-          (IFusionSoundMusicProvider_CDDA_data*) ctx;
+     IFusionSoundMusicProvider_CDDA_data *data = ctx;
 
      while (data->playing && !data->finished) {
-          int len, pos;
+          void *src = data->buffer;
+          int   len, pos;
 
           pthread_mutex_lock( &data->lock );
 
@@ -816,8 +822,25 @@ CDDAStreamThread( DirectThread *thread, void *ctx )
                      data->tracks[data->current_track].length - pos );
           pos += data->tracks[data->current_track].start;
 
-          if (len > 0)
-               len = cdda_read_audio( data->fd, (u8*)data->src_buffer, pos, len );
+          if (len > 0) {
+               if (!data->buffer) {
+                    /* direct copy */
+                    int avail = 0;
+                    
+                    data->dest.stream->Access( data->dest.stream, &src, &avail );
+                    avail = (avail << 2) / CD_BYTES_PER_FRAME;
+                    if (len > avail)
+                         len = avail;
+               }
+               
+               len = cdda_read_audio( data->fd, src, pos, len );
+               len = len * CD_BYTES_PER_FRAME / 4;
+               
+               if (!data->buffer) {
+                    /* direct copy */
+                    data->dest.stream->Commit( data->dest.stream, MAX(len,0) );
+               }
+          }              
 
           if (len < 1) {
                if (data->flags & FMPLAY_LOOPING)
@@ -832,14 +855,28 @@ CDDAStreamThread( DirectThread *thread, void *ctx )
           data->finished = false;
 
           pthread_mutex_unlock( &data->lock );
+          
+          if (data->buffer) {
+               void *dst;
+               int   num;
+               
+               while (len) {
+                    if (data->dest.stream->Access( data->dest.stream, &dst, &num ))
+                         break;
 
-          len = len * CD_BYTES_PER_FRAME / 4;
+                    num = MIN( num, len );
+                    cdda_mix_audio( src, dst, num, data->dest.format, data->dest.channels);
 
-          cdda_mix_audio( data->src_buffer, data->dst_buffer, len,
-                          data->dest.format, data->dest.channels);
-
-          data->dest.stream->Write( data->dest.stream,
-                                    data->dst_buffer, len );
+                    data->dest.stream->Commit( data->dest.stream, num );
+                    
+                    len -= num;
+                    src += num << 2;
+               }
+          }
+          else {
+               /* Avoid blocking while the mutex is locked. */
+               data->dest.stream->Wait( data->dest.stream, 1 );
+          }
      }
 
      return NULL;
@@ -850,18 +887,12 @@ IFusionSoundMusicProvider_CDDA_PlayToStream( IFusionSoundMusicProvider *thiz,
                                              IFusionSoundStream        *destination )
 {
      FSStreamDescription  desc;
-     int                  src_size = 0;
-     int                  dst_size = 0;
-     void                *buffer;
      struct cdda_track   *track;
 
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
 
      if (!destination)
           return DFB_INVARG;
-          
-     if (data->dest.stream == destination)
-          return DFB_OK;
 
      destination->GetDescription( destination, &desc );
 
@@ -895,20 +926,13 @@ IFusionSoundMusicProvider_CDDA_PlayToStream( IFusionSoundMusicProvider *thiz,
 
      data->buffered_frames = (desc.buffersize << 2) / CD_BYTES_PER_FRAME;
 
-     src_size = data->buffered_frames * CD_BYTES_PER_FRAME;
      if (desc.sampleformat != FSSF_S16 || desc.channels != 2) {
-          dst_size = desc.buffersize * desc.channels *
-                     FS_BITS_PER_SAMPLE(desc.sampleformat) >> 3;
+          data->buffer = D_MALLOC( data->buffered_frames * CD_BYTES_PER_FRAME );
+          if (!data->buffer) {
+               pthread_mutex_unlock( &data->lock );
+               return D_OOM();
+          }
      }
-
-     buffer = D_MALLOC( src_size + dst_size );
-     if (!buffer) {
-          pthread_mutex_unlock( &data->lock );
-          return D_OOM();
-     }
-
-     data->src_buffer = buffer;
-     data->dst_buffer = (dst_size) ? (buffer + src_size) : buffer;
 
      /* reference destination stream */
      destination->AddRef( destination );
@@ -976,8 +1000,7 @@ CDDABufferThread( DirectThread *thread, void *ctx )
           }
 
           if (len > 0)
-               len = cdda_read_audio( data->fd,
-                                      (u8*)data->src_buffer ? : dst, pos, len );
+               len = cdda_read_audio( data->fd, data->buffer ? : dst, pos, len );
 
           if (len < 1) {
                if (data->flags & FMPLAY_LOOPING)
@@ -996,8 +1019,8 @@ CDDABufferThread( DirectThread *thread, void *ctx )
 
           len = len * CD_BYTES_PER_FRAME / 4;
 
-          if (data->src_buffer) {
-               cdda_mix_audio( data->src_buffer, dst, len,
+          if (data->buffer) {
+               cdda_mix_audio( data->buffer, dst, len,
                                data->dest.format, data->dest.channels );
           }
 
@@ -1025,9 +1048,6 @@ IFusionSoundMusicProvider_CDDA_PlayToBuffer( IFusionSoundMusicProvider *thiz,
 
      if (!destination)
           return DFB_INVARG;
-          
-     if (data->dest.buffer == destination)
-          return DFB_OK;
 
      destination->GetDescription( destination, &desc );
 
@@ -1062,8 +1082,8 @@ IFusionSoundMusicProvider_CDDA_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      data->buffered_frames = (desc.length << 2) / CD_BYTES_PER_FRAME;
 
      if (desc.sampleformat != FSSF_S16 || desc.channels != 2) {
-          data->src_buffer = D_MALLOC( data->buffered_frames * CD_BYTES_PER_FRAME );
-          if (!data->src_buffer) {
+          data->buffer = D_MALLOC( data->buffered_frames * CD_BYTES_PER_FRAME );
+          if (!data->buffer) {
                pthread_mutex_unlock( &data->lock );
                return D_OOM();
           }
@@ -1111,10 +1131,9 @@ IFusionSoundMusicProvider_CDDA_Stop( IFusionSoundMusicProvider *thiz )
      }
 
      /* release buffer */
-     if (data->src_buffer) {
-          D_FREE( data->src_buffer );
-          data->src_buffer = NULL;
-          data->dst_buffer = NULL;
+     if (data->buffer) {
+          D_FREE( data->buffer );
+          data->buffer = NULL;
      }
 
      /* release previous destination stream */

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007 Claudio Ciccani <klan@users.sf.net>
+ * Copyright (C) 2007-2008 Claudio Ciccani <klan@users.sf.net>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -27,6 +27,7 @@
 #include <math.h>
 
 #include <fusionsound.h>
+#include <fusionsound_limits.h>
 
 #include <direct/types.h>
 #include <direct/mem.h>
@@ -62,6 +63,7 @@ typedef struct {
 
      DirectStream                 *stream;
 
+     ByteIOContext                 pb;
      AVFormatContext              *ctx;
      AVStream                     *st;
      void                         *iobuf;
@@ -83,6 +85,7 @@ typedef struct {
           IFusionSoundBuffer      *buffer;
           FSSampleFormat           format;
           FSChannelMode            mode;
+          int                      framesize;
      } dest;
 
      FMBufferCallback              callback;
@@ -101,11 +104,17 @@ av_read_callback( void *opaque, uint8_t *buf, int size )
      if (!buf || size < 0)
           return -1;
      
-     if (size) {
+     while (size) {
+          unsigned int num = 0;
           direct_stream_wait( data->stream, size, NULL );
-          ret = direct_stream_read( data->stream, size, buf, &len );
-          if (ret && ret != DFB_EOF)
-               return -1;
+          ret = direct_stream_read( data->stream, size, buf, &num );
+          if (ret) {
+               if (!len)
+                    return -1;
+               break;
+          }
+          len += num;
+          size -= num;
      }
           
      return len;
@@ -163,7 +172,7 @@ typedef struct {
 #define FFMPEG_MIX_LOOP() \
  do { \
      int n; \
-     if (d_n == s_n) { \
+     if (fs_mode_for_channels(s_n) == dst_mode) { \
           if (sizeof(TYPE) == sizeof(s16)) { \
                direct_memcpy( dst, src, len*s_n*sizeof(s16) ); \
           } \
@@ -176,38 +185,116 @@ typedef struct {
           } \
           break; \
      } \
-     else if (d_n < s_n) { \
-          if (d_n == 1 && s_n == 2) { \
-               /* Downmix to stereo to mono */ \
-               TYPE *d = (TYPE *)dst; \
-               for (n = len; n; n--) { \
-                    *d++ = CONV((src[0]+src[1])>>1); \
-                    src += 2; \
-               } \
-               break; \
-          } \
-     } \
-     else if (d_n > s_n) { \
-          if (d_n == 2 && s_n == 1) { \
-               /* Upmix stereo to mono */ \
-               TYPE *d = (TYPE *)dst; \
-               for (n = len; n; n--) { \
-                    d[0] = d[1] = CONV(*src); \
-                    d += 2; \
-                    src++; \
-               } \
-               break; \
-          } \
-          memset( dst, 0, len * d_n * sizeof(TYPE) ); \
-     } \
-     for (i = 0; i < MIN(s_n,d_n); i++) { \
-          s16  *s = &src[i]; \
-          TYPE *d = &((TYPE *)dst)[i]; \
-          int   n; \
+     else { \
+          s16 c[6] = { 0, 0, 0, 0, 0, 0 }; \
+          TYPE *d  = (TYPE *)dst; \
           for (n = len; n; n--) { \
-               *d  = CONV(*s); \
-                d += d_n; \
-                s += s_n; \
+               int s; \
+               switch (s_n) { \
+                    case 1: \
+                         c[0] = c[2] = src[0]; \
+                         break; \
+                    case 2: \
+                         c[0] = src[0]; \
+                         c[2] = src[1]; \
+                         break; \
+                    case 3: \
+                         c[0] = src[0]; \
+                         c[1] = src[1]; \
+                         c[2] = src[2]; \
+                         break; \
+                    case 4: \
+                         c[0] = src[0]; \
+                         c[2] = src[1]; \
+                         c[3] = src[2]; \
+                         c[4] = src[4]; \
+                         break; \
+                    default: \
+                         c[0] = src[0]; \
+                         c[1] = src[1]; \
+                         c[2] = src[2]; \
+                         c[3] = src[3]; \
+                         c[4] = src[4]; \
+                         if (s_n > 5) \
+                              c[5] = src[5]; \
+                         break; \
+               } \
+               src += s_n; \
+               switch (dst_mode) { \
+                    case FSCM_MONO: \
+                         s = c[0] + c[2]; \
+                         if (s_n > 2) { \
+                              int sum = (c[1] << 1) + c[3] + c[4]; \
+                              s += sum - (sum >> 2); \
+                              s >>= 1; \
+                              s = CLAMP(s, -32768, 32767); \
+                         } else { \
+                              s >>= 1; \
+                         } \
+                         *d++ = CONV(s); \
+                         break; \
+                    case FSCM_STEREO: \
+                    case FSCM_STEREO21: \
+                         s = c[0]; \
+                         if (s_n > 2) { \
+                              int sum = c[1] + c[3]; \
+                              s += sum - (sum >> 2); \
+                              s = CLAMP(s, -32768, 32767); \
+                         } \
+                         *d++ = CONV(s); \
+                         s = c[2]; \
+                         if (s_n > 2) { \
+                              int sum = c[1] + c[4]; \
+                              s += sum - (sum >> 2); \
+                              s = CLAMP(s, -32768, 32767); \
+                         } \
+                         *d++ = CONV(s); \
+                         if (FS_MODE_HAS_LFE(dst_mode)) \
+                              *d++ = CONV(c[5]); \
+                         break; \
+                    case FSCM_STEREO30: \
+                    case FSCM_STEREO31: \
+                         s = c[0] + c[3] - (c[3] >> 2); \
+                         s = CLAMP(s, -32768, 32767); \
+                         *d++ = CONV(s); \
+                         if (s_n == 2 || s_n == 4) \
+                              c[1] = (c[0] + c[2]) >> 1; \
+                         *d++ = CONV(c[1]); \
+                         s = c[2] + c[4] - (c[4] >> 2); \
+                         s = CLAMP(s, -32768, 32767); \
+                         *d++ = CONV(s); \
+                         if (FS_MODE_HAS_LFE(dst_mode)) \
+                              *d++ = CONV(c[5]); \
+                         break; \
+                    default: \
+                         if (FS_MODE_HAS_CENTER(dst_mode)) { \
+                              *d++ = CONV(c[0]); \
+                              if (s_n == 2 || s_n == 4) { \
+                                   s = (c[0] + c[2]) >> 1; \
+                                   *d++ = CONV(s); \
+                              } else { \
+                                   *d++ = CONV(c[1]); \
+                              } \
+                              *d++ = CONV(c[2]); \
+                         } else { \
+                              s = c[0] + c[1] - (c[1] >> 2); \
+                              s = CLAMP(s, -32768, 32767); \
+                              *d++ = CONV(s); \
+                              s = c[2] + c[1] - (c[1] >> 2); \
+                              s = CLAMP(s, -32768, 32767); \
+                              *d++ = CONV(s); \
+                         } \
+                         if (FS_MODE_NUM_REARS(dst_mode) == 1) { \
+                              s = (c[3] + c[4]) >> 1; \
+                              *d++ = CONV(s); \
+                         } else { \
+                              *d++ = CONV(c[3]); \
+                              *d++ = CONV(c[4]); \
+                         } \
+                         if (FS_MODE_HAS_LFE(dst_mode)) \
+                              *d++ = CONV(c[5]); \
+                         break; \
+               } \
           } \
      } \
  } while (0)
@@ -218,8 +305,6 @@ ffmpeg_mix_audio( s16 *src, void *dst, int len,
                   FSSampleFormat format, int src_channels, FSChannelMode dst_mode )
 {
      int s_n = src_channels;
-     int d_n = FS_CHANNELS_FOR_MODE(dst_mode);
-     int i;
 
      switch (format) {
           case FSSF_U8:
@@ -240,7 +325,7 @@ ffmpeg_mix_audio( s16 *src, void *dst, int len,
 
           case FSSF_S24:
                #define TYPE s24
-               #define CONV(s) ({ s16 t=(s); (s24){a:0, b:t, c:t>>8}; })
+               #define CONV(s) ((s24){a:0, b:(s), c:(s)>>8})
                FFMPEG_MIX_LOOP();
                #undef TYPE
                #undef CONV
@@ -395,7 +480,10 @@ IFusionSoundMusicProvider_FFmpeg_GetBufferDescription( IFusionSoundMusicProvider
      desc->samplerate   = data->codec->sample_rate;
      desc->channels     = data->codec->channels;
      desc->sampleformat = FSSF_S16;
-     desc->length       = desc->samplerate/10;
+     if (data->st->nb_frames)
+          desc->length = MIN(data->st->nb_frames, FS_MAX_FRAMES);
+     else
+          desc->length = MIN((s64)data->ctx->duration*desc->samplerate/AV_TIME_BASE, FS_MAX_FRAMES);
      
      return DFB_OK;
 }
@@ -425,9 +513,8 @@ FFmpegStreamThread( DirectThread *thread, void *ctx )
           }
           
           if (av_read_frame( data->ctx, &pkt ) < 0) {
-               //if (url_feof( &data->ctx->pb )) {
-                    if (!(data->flags & FMPLAY_LOOPING) ||
-                        av_seek_frame( data->ctx, -1, 0, 0 ) < 0)
+               //if (url_feof( data->ctx->pb )) {
+                    if (!(data->flags & FMPLAY_LOOPING) || av_seek_frame( data->ctx, -1, 0, 0 ) < 0)
                          data->finished = true;
                //}
                pthread_mutex_unlock( &data->lock );
@@ -566,9 +653,10 @@ IFusionSoundMusicProvider_FFmpeg_PlayToStream( IFusionSoundMusicProvider *thiz,
      }
      
      destination->AddRef( destination );
-     data->dest.stream = destination;
-     data->dest.format = desc.sampleformat;
-     data->dest.mode   = desc.channelmode;
+     data->dest.stream    = destination;
+     data->dest.format    = desc.sampleformat;
+     data->dest.mode      = desc.channelmode;
+     data->dest.framesize = desc.channels * FS_BYTES_PER_SAMPLE(desc.sampleformat);
      
      /* start thread */
      data->playing = true;
@@ -584,6 +672,8 @@ static void*
 FFmpegBufferThread( DirectThread *thread, void *ctx )
 {
      IFusionSoundMusicProvider_FFmpeg_data *data = ctx;
+     
+     int pos = 0;
      
      while (data->playing && !data->finished) {
           AVPacket  pkt;
@@ -606,10 +696,14 @@ FFmpegBufferThread( DirectThread *thread, void *ctx )
           }
           
           if (av_read_frame( data->ctx, &pkt ) < 0) {
-               //if (url_feof( &data->ctx->pb )) {
-                    if (!(data->flags & FMPLAY_LOOPING) ||
-                        av_seek_frame( data->ctx, -1, 0, 0 ) < 0)
+               //if (url_feof( data->ctx->pb )) {
+                    if (!(data->flags & FMPLAY_LOOPING) || av_seek_frame( data->ctx, -1, 0, 0 ) < 0) {
                          data->finished = true;
+                         if (pos && data->callback) {
+                              if (data->callback( pos, data->callback_data ))
+                                   data->playing = false;
+                         }
+                    }
                //}
                pthread_mutex_unlock( &data->lock );
                continue;
@@ -646,12 +740,15 @@ FFmpegBufferThread( DirectThread *thread, void *ctx )
                
           av_free_packet( &pkt );
           
-          for (buf = (s16*)data->buf; size; ) {
+          buf = (s16*)data->buf;
+          while (size) {
                void *dst;
                int   num;
                
                if (data->dest.buffer->Lock( data->dest.buffer, &dst, &len, NULL ))
                     break;
+               dst += pos * data->dest.framesize;
+               len -= pos;
                 
                num = MIN( size, len );  
                ffmpeg_mix_audio( buf, dst, num, data->dest.format, 
@@ -659,15 +756,19 @@ FFmpegBufferThread( DirectThread *thread, void *ctx )
                size -= num;
                buf  += num * data->codec->channels;
                
+               pos += num;
+               len -= num;           
+               
                data->dest.buffer->Unlock( data->dest.buffer );
                
-               if (data->callback) {
-                    pthread_mutex_unlock( &data->lock );
-                    
-                    if (data->callback( num, data->callback_data ))
-                         data->playing = false;
-                    
-                    pthread_mutex_lock( &data->lock );
+               if (!len) {
+                    if (data->callback) {
+                         if (data->callback( pos, data->callback_data )) {
+                              data->playing = false;
+                              break;
+                         }
+                    }
+                    pos = 0;
                }
           }                                   
           
@@ -752,9 +853,10 @@ IFusionSoundMusicProvider_FFmpeg_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      }
      
      destination->AddRef( destination );
-     data->dest.buffer = destination;
-     data->dest.format = desc.sampleformat;
-     data->dest.mode   = desc.channelmode;
+     data->dest.buffer    = destination;
+     data->dest.format    = desc.sampleformat;
+     data->dest.mode      = desc.channelmode;
+     data->dest.framesize = desc.channels * FS_BYTES_PER_SAMPLE(desc.sampleformat);
      
      data->callback      = callback;
      data->callback_data = ctx;
@@ -957,7 +1059,6 @@ Construct( IFusionSoundMusicProvider *thiz,
      AVProbeData    pd;
      AVInputFormat *fmt;
      AVCodec       *c;
-     ByteIOContext  pb;
      unsigned char  buf[64];
      unsigned int   i, len = 0;
       
@@ -984,7 +1085,7 @@ Construct( IFusionSoundMusicProvider *thiz,
           return D_OOM();
      }
      
-     if (init_put_byte( &pb, data->iobuf, 4096, 0, 
+     if (init_put_byte( &data->pb, data->iobuf, 4096, 0, 
                         (void*)data, av_read_callback, NULL,
                         direct_stream_seekable( stream ) ? av_seek_callback : NULL ) < 0) {
           D_ERROR( "IFusionSoundMusicProvider_FFmpeg: init_put_byte() failed!\n" );
@@ -992,7 +1093,7 @@ Construct( IFusionSoundMusicProvider *thiz,
           return DFB_INIT;
      }
      
-     if (av_open_input_stream( &data->ctx, &pb, filename, fmt, NULL ) < 0) {
+     if (av_open_input_stream( &data->ctx, &data->pb, filename, fmt, NULL ) < 0) {
           D_ERROR( "IFusionSoundMusicProvider_FFmpeg: av_open_input_stream() failed!\n" );
           IFusionSoundMusicProvider_FFmpeg_Destruct( thiz );
           return DFB_FAILURE;

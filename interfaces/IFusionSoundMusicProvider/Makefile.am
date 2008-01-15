@@ -73,7 +73,7 @@ libifusionsoundmusicprovider_vorbis_la_LDFLAGS = -avoid-version -module
 
 libifusionsoundmusicprovider_mad_la_SOURCES = ifusionsoundmusicprovider_mad.c
 
-libifusionsoundmusicprovider_mad_la_LIBADD = $(MAD_LIBS)
+libifusionsoundmusicprovider_mad_la_LIBADD = $(MAD_LIBS) -lm
 
 libifusionsoundmusicprovider_mad_la_LDFLAGS = -avoid-version -module
 

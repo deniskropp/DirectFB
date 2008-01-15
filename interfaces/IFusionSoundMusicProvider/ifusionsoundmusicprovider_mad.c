@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2006 Claudio Ciccani <klan@users.sf.net>
+ * Copyright (C) 2005-2008 Claudio Ciccani <klan@users.sf.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,8 +26,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <math.h>
 
 #include <fusionsound.h>
+#include <fusionsound_limits.h>
 
 #include <media/ifusionsoundmusicprovider.h>
 
@@ -68,6 +70,7 @@ typedef struct {
      double                        length;
      int                           samplerate;
      int                           channels;
+     unsigned int                  frames;
      FSTrackDescription            desc;
 
      FSMusicProviderPlaybackFlags  flags;
@@ -79,15 +82,13 @@ typedef struct {
      bool                          seeked;
 
      void                         *read_buffer;
-     void                         *write_buffer;
      int                           read_size;
-     int                           write_size;
 
      struct {
           IFusionSoundStream      *stream;
           IFusionSoundBuffer      *buffer;
           FSSampleFormat           format;
-          int                      channels;
+          FSChannelMode            mode;
           int                      length;
      } dest;
 
@@ -141,8 +142,19 @@ static const char *id3_genres[] = {
 };
 
 
+typedef struct {
+#ifdef WORDS_BIGENDIAN
+     s8 c;
+     u8 b;
+     u8 a;
+#else
+     u8 a;
+     u8 b;
+     s8 c;
+#endif
+} __attribute__((packed)) s24;
 
-static inline int
+static inline u8
 FtoU8( mad_fixed_t sample )
 {
      /* round */
@@ -158,7 +170,7 @@ FtoU8( mad_fixed_t sample )
      return (sample >> (MAD_F_FRACBITS - 7)) + 128;
 }
 
-static inline int
+static inline s16
 FtoS16( mad_fixed_t sample )
 {
      /* round */
@@ -174,7 +186,7 @@ FtoS16( mad_fixed_t sample )
      return sample >> (MAD_F_FRACBITS - 15);
 }
 
-static inline int
+static inline s24
 FtoS24( mad_fixed_t sample )
 {
      /* round */
@@ -187,10 +199,12 @@ FtoS24( mad_fixed_t sample )
           sample = -MAD_F_ONE;
 
      /* quantize */
-     return sample >> (MAD_F_FRACBITS - 23);
+     sample >>= (MAD_F_FRACBITS - 23);
+     
+     return (s24){ a:sample, b:sample>>8, c:sample>>16 };
 }
 
-static inline int
+static inline s32
 FtoS32( mad_fixed_t sample )
 {
      /* clip */
@@ -204,7 +218,7 @@ FtoS32( mad_fixed_t sample )
 }
 
 static inline float
-FtoFloat( mad_fixed_t sample )
+FtoF32( mad_fixed_t sample )
 {
      /* clip */
      if (sample >= MAD_F_ONE)
@@ -216,220 +230,132 @@ FtoFloat( mad_fixed_t sample )
      return (float)sample/(float)MAD_F_ONE;
 }
 
+#define MAD_MIX_LOOP() \
+ do { \
+     TYPE *d = (TYPE *)dst; \
+     int   i; \
+     if (src_channels == 2) { \
+          switch (dst_mode) { \
+               case FSCM_MONO: \
+                    for (i = 0; i < len; i++) \
+                         d[i] = CONV((left[i]+right[i])>>1); \
+                    break; \
+               case FSCM_STEREO: \
+                    for (i = 0; i < len; i++) { \
+                         d[0] = CONV(left[i]); \
+                         d[1] = CONV(right[i]); \
+                         d += 2; \
+                    } \
+                    break; \
+               default: \
+                    for (i = 0; i < len; i++) { \
+                         *d++ = CONV(left[i]); \
+                         if (FS_MODE_HAS_CENTER(dst_mode)) \
+                              *d++ = CONV((left[i]+right[i])>>1); \
+                         *d++ = CONV(right[i]); \
+                         switch (FS_MODE_NUM_REARS(dst_mode)) { \
+                              case 2: \
+                                   *d++ = MUTE; \
+                              case 1: \
+                                   *d++ = MUTE; \
+                         } \
+                         if (FS_MODE_HAS_LFE(dst_mode)) \
+                              *d++ = MUTE; \
+                    } \
+                    break; \
+          } \
+     } \
+     else { \
+          switch (dst_mode) { \
+               case FSCM_MONO: \
+                    for (i = 0; i < len; i++) \
+                         d[i] = CONV(left[i]); \
+                    break; \
+               case FSCM_STEREO: \
+                    for (i = 0; i < len; i++) { \
+                         d[0] = d[1] = CONV(left[i]); \
+                         d += 2; \
+                    } \
+                    break; \
+               default: \
+                    for (i = 0; i < len; i++) { \
+                         if (FS_MODE_HAS_CENTER(dst_mode)) { \
+                              d[0] = d[1] = d[2] = CONV(left[i]); \
+                              d += 3; \
+                         } else { \
+                              d[0] = d[1] = CONV(left[i]); \
+                              d += 2; \
+                         } \
+                         switch (FS_MODE_NUM_REARS(dst_mode)) { \
+                              case 2: \
+                                   *d++ = MUTE; \
+                              case 1: \
+                                   *d++ = MUTE; \
+                         } \
+                         if (FS_MODE_HAS_LFE(dst_mode)) \
+                              *d++ = MUTE; \
+                    } \
+                    break; \
+          } \
+     } \
+ } while (0)
+
 static void
 mad_mix_audio( mad_fixed_t const *left, mad_fixed_t const *right,
                char *dst, int len, FSSampleFormat format,
-               int src_channels, int dst_channels )
+               int src_channels, FSChannelMode dst_mode )
 {
-     int s_n = src_channels;
-     int d_n = dst_channels;
-     int i;
-
      switch (format) {
           case FSSF_U8:
-               /* Copy/Interleave channels */
-               if (s_n == d_n) {
-                    u8 *d = (u8*)&dst[0];
-
-                    if (s_n == 2) {
-                         for (i = 0; i < len; i++) {
-                              d[i*2+0] = FtoU8(left[i]);
-                              d[i*2+1] = FtoU8(right[i]);
-                         }
-                    } else {
-                         for (i = 0; i < len; i++)
-                              d[i] = FtoU8(left[i]);
-                    }
-               }
-               /* Upmix mono to stereo */
-               else if (s_n < d_n) {
-                    u8 *d = (u8*)&dst[0];
-
-                    for (i = 0; i < len; i++)
-                         d[i*2+0] = d[i*2+1] = FtoU8(left[i]);
-               }
-               /* Downmix stereo to mono */
-               else if (s_n > d_n) {
-                    u8 *d  = (u8*)&dst[0];
-
-                    for (i = 0; i < len; i++)
-                         d[i] = FtoU8( mad_f_add( left[i], right[i] ) >> 1 );
-               }
+               #define TYPE u8
+               #define MUTE 128
+               #define CONV FtoU8
+               MAD_MIX_LOOP();
+               #undef CONV
+               #undef MUTE
+               #undef TYPE
                break;
-
+               
           case FSSF_S16:
-               /* Copy/Interleave channels */
-               if (s_n == d_n) {
-                    s16 *d = (s16*)&dst[0];
-
-                    if (s_n == 2) {
-                         for (i = 0; i < len; i++) {
-                              d[i*2+0] = FtoS16(left[i]);
-                              d[i*2+1] = FtoS16(right[i]);
-                         }
-                    } else {
-                         for (i = 0; i < len; i++)
-                              d[i] = FtoS16(left[i]);
-                    }
-               }
-               /* Upmix mono to stereo */
-               else if (s_n < d_n) {
-                    s16 *d = (s16*)&dst[0];
-
-                    for (i = 0; i < len; i++)
-                         d[i*2+0] = d[i*2+1] = FtoS16(left[i]);
-               }
-               /* Downmix stereo to mono */
-               else if (s_n > d_n) {
-                    s16 *d = (s16*)&dst[0];
-
-                    for (i = 0; i < len; i++)
-                         d[i] = FtoS16( mad_f_add( left[i], right[i] ) >> 1 );
-               }
+               #define TYPE s16
+               #define MUTE 0
+               #define CONV FtoS16
+               MAD_MIX_LOOP();
+               #undef CONV
+               #undef MUTE
+               #undef TYPE
                break;
-
+               
           case FSSF_S24:
-               /* Copy/Interleave channels */
-               if (s_n == d_n) {
-                    u8 *d = (u8*)&dst[0];
-
-                    if (s_n == 2) {
-                         for (i = 0; i < len; i++) {
-                              int l = FtoS24(left[i]);
-                              int r = FtoS24(right[i]);
-#ifdef WORDS_BIGENDIAN
-                              d[0] = l >> 16;
-                              d[1] = l >> 8;
-                              d[2] = l;
-                              d[3] = r >> 16;
-                              d[4] = r >> 8;
-                              d[5] = r;
-#else
-                              d[0] = l;
-                              d[1] = l >> 8;
-                              d[2] = l >> 16;
-                              d[3] = r;
-                              d[4] = r >> 8;
-                              d[5] = r >> 16;
-#endif
-                              d += 6;
-                         }
-                    } else {
-                         for (i = 0; i < len; i++) {
-                              int s = FtoS24(left[i]);
-#ifdef WORDS_BIGENDIAN
-                              d[0] = s >> 16;
-                              d[1] = s >> 8;
-                              d[2] = s;
-#else
-                              d[0] = s;
-                              d[1] = s >> 8;
-                              d[2] = s >> 16;
-#endif
-                              d += 3;
-                         }
-                    }
-               }
-               /* Upmix mono to stereo */
-               else if (s_n < d_n) {
-                    u8 *d = (u8*)&dst[0];
-
-                    for (i = 0; i < len; i++) {
-                         int s = FtoS24(left[i]);
-#ifdef WORDS_BIGENDIAN
-                         d[0] = d[3] = s >> 16;
-                         d[1] = d[4] = s >> 8;
-                         d[2] = d[5] = s;
-#else
-                         d[0] = d[3] = s;
-                         d[1] = d[4] = s >> 8;
-                         d[2] = d[5] = s >> 16;
-#endif
-                         d += 6;
-                    }
-               }
-               /* Downmix stereo to mono */
-               else if (s_n > d_n) {
-                    u8 *d = (u8*)&dst[0];
-
-                    for (i = 0; i < len; i++) {
-                         int s = FtoS24( mad_f_add( left[i], right[i] ) >> 1 );
-#ifdef WORDS_BIGENDIAN
-                         d[0] = s >> 16;
-                         d[1] = s >> 8;
-                         d[2] = s;
-#else
-                         d[0] = s;
-                         d[1] = s >> 8;
-                         d[2] = s >> 16;
-#endif
-                         d += 3;
-                    }
-               }
+               #define TYPE s24
+               #define MUTE (s24){ 0, 0, 0 }
+               #define CONV FtoS24
+               MAD_MIX_LOOP();
+               #undef CONV
+               #undef MUTE
+               #undef TYPE
                break;
-
+               
           case FSSF_S32:
-               /* Copy/Interleave channels */
-               if (s_n == d_n) {
-                    s32 *d = (s32*)&dst[0];
-
-                    if (s_n == 2) {
-                         for (i = 0; i < len; i++) {
-                              d[i*2+0] = FtoS32(left[i]);
-                              d[i*2+1] = FtoS32(right[i]);
-                         }
-                    } else {
-                         for (i = 0; i < len; i++)
-                              d[i] = FtoS32(left[i]);
-                    }
-               }
-               /* Upmix mono to stereo */
-               else if (s_n < d_n) {
-                    s32 *d = (s32*)&dst[0];
-
-                    for (i = 0; i < len; i++)
-                         d[i*2+0] = d[i*2+1] = FtoS32(left[i]);
-               }
-               /* Downmix stereo to mono */
-               else if (s_n > d_n) {
-                    s32 *d = (s32*)&dst[0];
-
-                    for (i = 0; i < len; i++)
-                         d[i] = FtoS32( mad_f_add( left[i], right[i] ) >> 1 );
-               }
+               #define TYPE s32
+               #define MUTE 0
+               #define CONV FtoS32
+               MAD_MIX_LOOP();
+               #undef CONV
+               #undef MUTE
+               #undef TYPE
                break;
-
+               
           case FSSF_FLOAT:
-               /* Copy/Interleave channels */
-               if (s_n == d_n) {
-                    float *d = (float*)&dst[0];
-
-                    if (s_n == 2) {
-                         for (i = 0; i < len; i++) {
-                              d[i*2+0] = FtoFloat(left[i]);
-                              d[i*2+1] = FtoFloat(right[i]);
-                         }
-                    } else {
-                         for (i = 0; i < len; i++)
-                              d[i] = FtoFloat(left[i]);
-                    }
-               }
-               /* Upmix mono to stereo */
-               else if (s_n < d_n) {
-                    float *d = (float*)&dst[0];
-
-                    for (i = 0; i < len; i++)
-                         d[i*2+0] = d[i*2+1] = FtoFloat(left[i]);
-               }
-               /* Downmix stereo to mono */
-               else if (s_n > d_n) {
-                    float *d = (float*)&dst[0];
-
-                    for (i = 0; i < len; i++)
-                         d[i] = FtoFloat( mad_f_add( left[i], right[i] ) >> 1 );
-               }
+               #define TYPE float
+               #define MUTE 0
+               #define CONV FtoF32
+               MAD_MIX_LOOP();
+               #undef CONV
+               #undef MUTE
+               #undef TYPE
                break;
-
+               
           default:
                D_BUG( "unexpected sample format" );
                break;
@@ -521,7 +447,7 @@ IFusionSoundMusicProvider_Mad_GetStreamDescription( IFusionSoundMusicProvider *t
      desc->samplerate   = data->samplerate;
      desc->channels     = data->channels;
      desc->sampleformat = FSSF_S32;
-     desc->buffersize   = data->samplerate/10;
+     desc->buffersize   = data->samplerate/8;
 
      return DFB_OK;
 }
@@ -540,7 +466,7 @@ IFusionSoundMusicProvider_Mad_GetBufferDescription( IFusionSoundMusicProvider *t
      desc->samplerate   = data->samplerate;
      desc->channels     = data->channels;
      desc->sampleformat = FSSF_S32;
-     desc->length       = data->samplerate/10;
+     desc->length       = MIN(data->frames, FS_MAX_FRAMES);
 
      return DFB_OK;
 }
@@ -605,6 +531,7 @@ MadStreamThread( DirectThread *thread, void *ctx )
 
           while (data->playing && !data->seeked) {
                struct mad_pcm *pcm = &data->synth.pcm;
+               int             pos = 0;
 
                if (mad_frame_decode( &data->frame, &data->stream ) == -1) {
                     if (!MAD_RECOVERABLE(data->stream.error))
@@ -613,13 +540,25 @@ MadStreamThread( DirectThread *thread, void *ctx )
                }
 
                mad_synth_frame( &data->synth, &data->frame );
+               
+               while (pos < pcm->length) {
+                    void *dst;
+                    int   len;
+                    
+                    if (stream->Access( stream, &dst, &len ))
+                         break;
+                         
+                    if (len > pcm->length - pos)
+                         len = pcm->length - pos;
 
-               mad_mix_audio( pcm->samples[0], pcm->samples[1],
-                              data->write_buffer, pcm->length,
-                              data->dest.format, pcm->channels,
-                              data->dest.channels );
-
-               stream->Write( stream, data->write_buffer, pcm->length );
+                    mad_mix_audio( pcm->samples[0]+pos, pcm->samples[1]+pos,
+                                   dst, len, data->dest.format, 
+                                   pcm->channels, data->dest.mode );
+                                   
+                    stream->Commit( stream, len );
+                    
+                    pos += len;
+               }
           }
      }
 
@@ -648,7 +587,7 @@ IFusionSoundMusicProvider_Mad_PlayToStream( IFusionSoundMusicProvider *thiz,
           return DFB_UNSUPPORTED;
 
      /* check whether number of channels is supported */
-     if (desc.channels > 2)
+     if (desc.channels > 6)
           return DFB_UNSUPPORTED;
 
      /* check whether destination format is supported */
@@ -673,23 +612,19 @@ IFusionSoundMusicProvider_Mad_PlayToStream( IFusionSoundMusicProvider *thiz,
      else
           mad_stream_options( &data->stream, MAD_OPTION_IGNORECRC );
 
-     /* allocate read/write buffers */
+     /* allocate read buffer */
      data->read_size = (data->desc.bitrate ? : 256000) * PREBUFFER_SIZE / 8;
-     data->write_size = 1152 * desc.channels *
-                        FS_BITS_PER_SAMPLE(desc.sampleformat) >> 3;
-
-     data->read_buffer = D_MALLOC( data->read_size + data->write_size );
+     data->read_buffer = D_MALLOC( data->read_size );
      if (!data->read_buffer) {
           pthread_mutex_unlock( &data->lock );
           return D_OOM();
      }
-     data->write_buffer = data->read_buffer + data->read_size;
 
      /* reference destination stream */
      destination->AddRef( destination );
      data->dest.stream   = destination;
      data->dest.format   = desc.sampleformat;
-     data->dest.channels = desc.channels;
+     data->dest.mode     = desc.channelmode;
      data->dest.length   = desc.buffersize;
 
      if (data->finished) {
@@ -713,8 +648,8 @@ MadBufferThread( DirectThread *thread, void *ctx )
      IFusionSoundMusicProvider_Mad_data *data   = ctx;
      IFusionSoundBuffer                 *buffer = data->dest.buffer;
 
-     int  blocksize = data->dest.channels *
-                      FS_BITS_PER_SAMPLE(data->dest.format) >> 3;
+     int  blocksize = FS_CHANNELS_FOR_MODE(data->dest.mode) *
+                      FS_BYTES_PER_SAMPLE(data->dest.format);
      int  written   = 0;
 
      data->stream.next_frame = NULL;
@@ -754,10 +689,16 @@ MadBufferThread( DirectThread *thread, void *ctx )
 
           if (ret) {
                if (ret == DFB_EOF) {
-                    if (data->flags & FMPLAY_LOOPING)
+                    if (data->flags & FMPLAY_LOOPING) {
                          direct_stream_seek( data->s, 0 );
-                    else
+                    }
+                    else {
                          data->finished = true;
+                         if (data->callback && written) {
+                              if (data->callback( written, data->ctx ))
+                                   data->playing = false;
+                         }
+                    }
                }
                pthread_mutex_unlock( &data->lock );
                continue;
@@ -782,10 +723,9 @@ MadBufferThread( DirectThread *thread, void *ctx )
 
                mad_synth_frame( &data->synth, &data->frame );
                len = pcm->length;
-
+               
                if (buffer->Lock( buffer, (void*)&dst, &size, 0 ) != DFB_OK) {
-                    D_ERROR( "IFusionSoundMusicProvider_Mad: "
-                             "Couldn't lock buffer!\n" );
+                    D_ERROR( "IFusionSoundMusicProvider_Mad: Couldn't lock buffer!\n" );
                     break;
                }
 
@@ -793,8 +733,7 @@ MadBufferThread( DirectThread *thread, void *ctx )
                     n = MIN( size-written, len );
 
                     mad_mix_audio( left, right, &dst[written*blocksize], n,
-                                   data->dest.format, pcm->channels,
-                                   data->dest.channels );
+                                   data->dest.format, pcm->channels, data->dest.mode );
                     left    += n;
                     right   += n;
                     len     -= n;
@@ -844,7 +783,7 @@ IFusionSoundMusicProvider_Mad_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           return DFB_UNSUPPORTED;
 
      /* check whether number of channels is supported */
-     if (desc.channels > 2)
+     if (desc.channels > 6)
           return DFB_UNSUPPORTED;
 
      /* check whether destination format is supported */
@@ -871,7 +810,6 @@ IFusionSoundMusicProvider_Mad_PlayToBuffer( IFusionSoundMusicProvider *thiz,
 
      /* allocate read buffer */
      data->read_size = (data->desc.bitrate ? : 256000) * PREBUFFER_SIZE / 8;
-
      data->read_buffer = D_MALLOC( data->read_size );
      if (!data->read_buffer) {
           pthread_mutex_unlock( &data->lock );
@@ -880,10 +818,10 @@ IFusionSoundMusicProvider_Mad_PlayToBuffer( IFusionSoundMusicProvider *thiz,
 
      /* reference destination stream */
      destination->AddRef( destination );
-     data->dest.buffer   = destination;
-     data->dest.format   = desc.sampleformat;
-     data->dest.channels = desc.channels;
-     data->dest.length   = desc.length;
+     data->dest.buffer = destination;
+     data->dest.format = desc.sampleformat;
+     data->dest.mode   = desc.channelmode;
+     data->dest.length = desc.length;
 
      /* register new callback */
      data->callback = callback;
@@ -921,11 +859,10 @@ IFusionSoundMusicProvider_Mad_Stop( IFusionSoundMusicProvider *thiz )
           data->thread = NULL;
      }
 
-     /* free buffers */
+     /* free read buffer */
      if (data->read_buffer) {
           D_FREE( data->read_buffer );
           data->read_buffer  = NULL;
-          data->write_buffer = NULL;
      }
 
      /* release previous destination stream */
@@ -1087,7 +1024,6 @@ Construct( IFusionSoundMusicProvider *thiz,
      unsigned int       len;
      unsigned int       size;
      struct mad_header  header;
-     unsigned long      frames = 0;
      int                error  = 1;
      const char        *version;
      struct id3_tag     id3;
@@ -1130,7 +1066,7 @@ Construct( IFusionSoundMusicProvider *thiz,
                {
                     D_DEBUG( "IFusionSoundMusicProvider_Mad: Found Xing header.\n" );
                     if (mad_bit_read( &data->stream.anc_ptr, 32 ) & 1)
-                         frames = mad_bit_read( &data->stream.anc_ptr, 32 );
+                         data->frames = mad_bit_read( &data->stream.anc_ptr, 32 );
                }
                break;
           }
@@ -1183,26 +1119,26 @@ Construct( IFusionSoundMusicProvider *thiz,
                break;
      }
 
-     if (frames) {
+     if (data->frames) {
           /* compute avarage bitrate for VBR stream */
           switch (header.layer) {
                case MAD_LAYER_I:
-                    frames *= 384;
+                    data->frames *= 384;
                     break;
                case MAD_LAYER_II:
-                    frames *= 1152;
+                    data->frames *= 1152;
                     break;
                case MAD_LAYER_III:
                default:
                     if (header.flags & (MAD_FLAG_LSF_EXT | MAD_FLAG_MPEG_2_5_EXT))
-                         frames *= 576;
+                         data->frames *= 576;
                     else
-                         frames *= 1152;
+                         data->frames *= 1152;
                     break;
           }
 
-          data->length = (double)frames / (double)header.samplerate;
-          data->desc.bitrate = (double)(size << 3) / data->length;
+          data->length = (double)data->frames / header.samplerate;
+          data->desc.bitrate = (double)size * 8 / data->length;
 
           snprintf( data->desc.encoding,
                     FS_TRACK_DESC_ENCODING_LENGTH,
@@ -1212,7 +1148,8 @@ Construct( IFusionSoundMusicProvider *thiz,
           if (header.bitrate < 8000)
                header.bitrate = 8000;
 
-          data->length = (double)size / (double)(header.bitrate >> 3);
+          data->length = (double)size * 8 / header.bitrate;
+          data->frames = ceil(data->length * header.samplerate);
           data->desc.bitrate = header.bitrate;
 
           snprintf( data->desc.encoding,
