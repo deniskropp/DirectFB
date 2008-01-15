@@ -6511,18 +6511,21 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
      CoreSurfaceAccessFlags access = CSAF_CPU_WRITE;
 
-     if (dfb_config->hardware_only) {
-         if (DFB_BLITTING_FUNCTION( accel ))
-             D_WARN( "Ignoring blit (%x) from %s to %s, flags 0x%08x, funcs %d %d", accel,
-                     source ? dfb_pixelformat_name(source->config.format) : "NULL SOURCE",
-                     destination ? dfb_pixelformat_name(destination->config.format) : "NULL DESTINATION",
-                     state->blittingflags, state->src_blend, state->dst_blend );
-         else
-             D_WARN( "Ignoring draw (%x) to %s, flags 0x%08x", accel,
-                     destination ? dfb_pixelformat_name(destination->config.format) : "NULL DESTINATION",
-                     state->drawingflags );
-         return false;
+     if (dfb_config->software_warn) {
+          if (DFB_BLITTING_FUNCTION( accel ))
+               D_WARN( "Ignoring blit (%x) from %s to %s, flags 0x%08x, funcs %d %d", accel,
+                       source ? dfb_pixelformat_name(source->config.format) : "NULL SOURCE",
+                       destination ? dfb_pixelformat_name(destination->config.format) : "NULL DESTINATION",
+                       state->blittingflags, state->src_blend, state->dst_blend );
+          else
+               D_WARN( "Ignoring draw (%x) to %s, flags 0x%08x", accel,
+                       destination ? dfb_pixelformat_name(destination->config.format) : "NULL DESTINATION",
+                       state->drawingflags );
+
      }
+
+     if (dfb_config->hardware_only)
+          return false;
 
      if (!state->gfxs) {
           gfxs = D_CALLOC( 1, sizeof(GenefxState) );

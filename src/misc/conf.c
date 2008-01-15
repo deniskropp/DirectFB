@@ -79,8 +79,9 @@ static const char *config_usage =
      "  [no-]surface-sentinel          Enable surface sentinels at the end of chunks in video memory\n"
      "  force-windowed                 Primary surface always is a window\n"
      "  force-desktop                  Primary surface is the desktop background\n"
-     "  [no-]hardware                  Hardware acceleration\n"
-     "  [no-]software                  Software fallbacks\n"
+     "  [no-]hardware                  Enable/disable hardware acceleration\n"
+     "  [no-]software                  Enable/disable software fallbacks\n"
+     "  [no-]software-warn             Show warnings when doing/dropping software operations\n"
      "  [no-]dma                       Enable DMA acceleration\n"
      "  [no-]sync                      Do `sync()' (default=no)\n"
 #ifdef USE_MMX
@@ -672,6 +673,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-software" ) == 0) {
           dfb_config->hardware_only = true;
+     } else
+     if (strcmp (name, "software-warn" ) == 0) {
+          dfb_config->software_warn = true;
+     } else
+     if (strcmp (name, "no-software-warn" ) == 0) {
+          dfb_config->software_warn = false;
      } else
      if (strcmp (name, "dma" ) == 0) {
           dfb_config->dma = true;
