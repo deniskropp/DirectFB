@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2006-2007 Claudio Ciccani <klan@users.sf.net>
+   Copyright (C) 2006-2008 Claudio Ciccani <klan@users.sf.net>
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -60,6 +60,7 @@
 
 #ifdef HAVE_FUSIONSOUND
 # include <fusionsound.h>
+# include <fusionsound_limits.h>
 #endif
 
 #include <avcodec.h>
@@ -1704,9 +1705,6 @@ Construct( IDirectFBVideoProvider *thiz,
                data->audio.ctx   = NULL;
                data->audio.codec = NULL;
           }
-          else if (data->audio.ctx->channels > 2) {
-               data->audio.ctx->channels = 2;
-          }
      }
      
 #ifdef HAVE_FUSIONSOUND      
@@ -1716,6 +1714,9 @@ Construct( IDirectFBVideoProvider *thiz,
      {          
           FSStreamDescription dsc;
           DFBResult           ret;
+
+          if (data->audio.ctx->channels > FS_MAX_CHANNELS)
+               data->audio.ctx->channels = FS_MAX_CHANNELS;
                
           dsc.flags        = FSSDF_BUFFERSIZE   | FSSDF_CHANNELS  |
                              FSSDF_SAMPLEFORMAT | FSSDF_SAMPLERATE;
