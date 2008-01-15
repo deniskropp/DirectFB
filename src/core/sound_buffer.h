@@ -93,6 +93,7 @@ DFBResult fs_buffer_unlock( CoreSoundBuffer  *buffer );
 DFBResult fs_buffer_mixto ( CoreSoundBuffer  *buffer,
                             __fsf            *dest,
                             int               dest_rate,
+                            FSChannelMode     dest_mode,
                             int               max_frames,
                             int               pos,
                             int               stop,

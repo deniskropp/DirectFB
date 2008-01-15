@@ -44,10 +44,14 @@ device_open( void                  *device_data,
              SoundDeviceInfo       *device_info,
              CoreSoundDeviceConfig *config );
 
-static void
-device_write( void         *device_data, 
-              void         *samples, 
-              unsigned int  size );
+static DFBResult
+device_get_buffer( void           *device_data, 
+                   u8            **addr, 
+                   unsigned int   *avail );
+                    
+static DFBResult
+device_commit_buffer( void         *device_data, 
+                      unsigned int  frames );
 
 static void
 device_get_output_delay( void *device_data, int  *delay );
@@ -58,6 +62,12 @@ device_get_volume( void *device_data, float *level );
 static DFBResult
 device_set_volume( void *device_data, float level );
 
+static DFBResult
+device_suspend( void *device_data );
+
+static DFBResult
+device_resume( void *device_data );
+
 static void
 device_close( void *device_data );
                   
@@ -66,10 +76,13 @@ static const SoundDriverFuncs driver_funcs = {
      Probe:              device_probe,
      GetDriverInfo:      device_get_driver_info,
      OpenDevice:         device_open,
-     Write:              device_write,
+     GetBuffer:          device_get_buffer,
+     CommitBuffer:       device_commit_buffer,
      GetOutputDelay:     device_get_output_delay,
      GetVolume:          device_get_volume,
      SetVolume:          device_set_volume,
+     Suspend:            device_suspend,
+     Resume:             device_resume,
      CloseDevice:        device_close,
 };
 

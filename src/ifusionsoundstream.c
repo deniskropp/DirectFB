@@ -355,6 +355,108 @@ IFusionSoundStream_GetPlayback( IFusionSoundStream    *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IFusionSoundStream_Access( IFusionSoundStream  *thiz,
+                           void               **ret_data,
+                           int                 *ret_avail )
+{
+     DFBResult ret;
+     int       num;
+     int       bytes;
+     
+     DIRECT_INTERFACE_GET_DATA(IFusionSoundStream)
+
+     if (!ret_data || !ret_avail)
+          return DFB_INVARG;
+
+     pthread_mutex_lock( &data->lock );
+     
+     D_DEBUG( "%s: read pos %d, write pos %d, filled %d/%d (%splaying)\n",
+              __FUNCTION__, data->pos_read, data->pos_write,
+              data->filled, data->size, data->playing ? "" : "not " );
+              
+     D_ASSERT( data->filled <= data->size );
+     
+     /* Wait for at least one free sample. */
+     while (data->filled == data->size) {
+          pthread_cleanup_push( (void (*)(void *))pthread_mutex_unlock, &data->lock );
+          pthread_cond_wait( &data->wait, &data->lock );
+          pthread_cleanup_pop( 0 );
+     }
+     
+     /* Calculate number of free samples in the buffer. */
+     num = data->size - data->filled;
+     if (num > data->size - data->pos_write)
+          num = data->size - data->pos_write;
+          
+     ret = fs_buffer_lock( data->buffer, data->pos_write, num, ret_data, &bytes );
+     
+     *ret_avail = (ret) ? 0 : num;
+     
+     pthread_mutex_unlock( &data->lock );
+     
+     return ret;
+}
+
+static DFBResult
+IFusionSoundStream_Commit( IFusionSoundStream  *thiz,
+                           int                  length )
+{
+     DFBResult ret;
+     
+     DIRECT_INTERFACE_GET_DATA(IFusionSoundStream)
+
+     if (length < 0)
+          return DFB_INVARG;
+
+     pthread_mutex_lock( &data->lock );
+     
+     if (length > data->size - data->filled) {
+          pthread_mutex_unlock( &data->lock );
+          return DFB_INVARG;
+     }
+     
+     D_DEBUG( "%s: length %d, filled %d/%d (%splaying)\n",
+              __FUNCTION__, length, data->filled, data->size, data->playing ? "" : "not " );
+     
+     /* Unlock buffer */
+     fs_buffer_unlock( data->buffer );
+  
+     if (length) {   
+          /* Update write position. */
+          data->pos_write += length;
+
+          /* Handle wrap around. */
+          if (data->pos_write == data->size)
+               data->pos_write = 0;
+
+          /* Set new stop position. */
+          ret = fs_playback_set_stop( data->playback, data->pos_write );
+          if (ret) {     
+               pthread_mutex_unlock( &data->lock );
+               return ret;
+          }
+
+          /* (Re)enable playback if buffer has been empty. */
+          fs_playback_enable( data->playback );
+
+          /* Update the fill level. */
+          data->filled += length;
+     
+          /* (Re)start if playback had stopped (buffer underrun). */
+          if (!data->playing && data->prebuffer >= 0 && data->filled >= data->prebuffer) {
+               D_DEBUG( "%s: starting playback now!\n", __FUNCTION__ );
+
+               fs_playback_start( data->playback, true );
+          }
+     }
+     
+     pthread_mutex_unlock( &data->lock );
+     
+     return DFB_OK;
+}
+
+
 /******/
 
 DFBResult
@@ -422,6 +524,9 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
      thiz->GetPresentationDelay = IFusionSoundStream_GetPresentationDelay;
 
      thiz->GetPlayback          = IFusionSoundStream_GetPlayback;
+     
+     thiz->Access               = IFusionSoundStream_Access;
+     thiz->Commit               = IFusionSoundStream_Commit;
 
      return DFB_OK;
 

@@ -52,6 +52,7 @@
 static int
 FUNC_NAME(FORMAT,mono,fw) ( CoreSoundBuffer *buffer,
                             __fsf           *dest,
+                            FSChannelMode    mode,
                             long             pos,
                             long             inc,
                             long             max,
@@ -73,7 +74,7 @@ FUNC_NAME(FORMAT,mono,fw) ( CoreSoundBuffer *buffer,
 
           for (; i < max; i += inc) {
                long  p = (i >> FS_PITCH_BITS) + pos;
-               __fsf s;
+               __fsf s, sl, sr;
           
                if (p >= buffer->length)
                     p %= buffer->length;
@@ -91,8 +92,13 @@ FUNC_NAME(FORMAT,mono,fw) ( CoreSoundBuffer *buffer,
                     s = FSF_INTERP( s, FSF_FROM_SRC( src, q ), w );
                }
                
-               dst[0] += (left  == FSF_ONE) ? s : fsf_mul( s, left  );
-               dst[1] += (right == FSF_ONE) ? s : fsf_mul( s, right );
+               sl = (left  == FSF_ONE) ? s : fsf_mul( s, left  );
+               sr = (right == FSF_ONE) ? s : fsf_mul( s, right );
+               
+               dst[0] += sl;
+               dst[1] += sr;
+               if (FS_MODE_HAS_CENTER(mode))
+                    dst[2] += fsf_shr( sl+sr, 1 );
                
                dst += FS_MAX_CHANNELS;
           }
@@ -104,15 +110,20 @@ FUNC_NAME(FORMAT,mono,fw) ( CoreSoundBuffer *buffer,
 
      for (; i < max; i += inc) {
           long  p = (i >> FS_PITCH_BITS) + pos;
-          __fsf s;
+          __fsf s, sl, sr;
           
           if (p >= buffer->length)
                p %= buffer->length;
                     
           s = FSF_FROM_SRC( src, p );
                
-          dst[0] += (left  == FSF_ONE) ? s : fsf_mul( s, left  );
-          dst[1] += (right == FSF_ONE) ? s : fsf_mul( s, right );
+          sl = (left  == FSF_ONE) ? s : fsf_mul( s, left  );
+          sr = (right == FSF_ONE) ? s : fsf_mul( s, right );
+               
+          dst[0] += sl;
+          dst[1] += sr;
+          if (FS_MODE_HAS_CENTER(mode))
+               dst[2] += fsf_shr( sl+sr, 1 );
                
           dst += FS_MAX_CHANNELS;
      }
@@ -123,6 +134,7 @@ FUNC_NAME(FORMAT,mono,fw) ( CoreSoundBuffer *buffer,
 static int
 FUNC_NAME(FORMAT,mono,rw) ( CoreSoundBuffer *buffer,
                             __fsf           *dest,
+                            FSChannelMode    mode,
                             long             pos,
                             long             inc,
                             long             max,
@@ -144,7 +156,7 @@ FUNC_NAME(FORMAT,mono,rw) ( CoreSoundBuffer *buffer,
 
           for (; i > max; i += inc) {
                long  p = (i >> FS_PITCH_BITS) + pos;
-               __fsf s;
+               __fsf s, sl, sr;
           
                if (p <= -buffer->length)
                     p %= buffer->length;
@@ -164,8 +176,13 @@ FUNC_NAME(FORMAT,mono,rw) ( CoreSoundBuffer *buffer,
                     s = FSF_INTERP( s, FSF_FROM_SRC( src, q ), w );
                }
                
-               dst[0] += (left  == FSF_ONE) ? s : fsf_mul( s, left  );
-               dst[1] += (right == FSF_ONE) ? s : fsf_mul( s, right );
+               sl = (left  == FSF_ONE) ? s : fsf_mul( s, left  );
+               sr = (right == FSF_ONE) ? s : fsf_mul( s, right );
+               
+               dst[0] += sl;
+               dst[1] += sr;
+               if (FS_MODE_HAS_CENTER(mode))
+                    dst[2] += fsf_shr( sl+sr, 1 );
                
                dst += FS_MAX_CHANNELS;
           }
@@ -177,7 +194,7 @@ FUNC_NAME(FORMAT,mono,rw) ( CoreSoundBuffer *buffer,
 
      for (; i > max; i += inc) {
           long  p = (i >> FS_PITCH_BITS) + pos;
-          __fsf s;
+          __fsf s, sl, sr;
           
           if (p <= -buffer->length)
                p %= buffer->length;
@@ -186,8 +203,13 @@ FUNC_NAME(FORMAT,mono,rw) ( CoreSoundBuffer *buffer,
                     
           s = FSF_FROM_SRC( src, p );
                
-          dst[0] += (left  == FSF_ONE) ? s : fsf_mul( s, left  );
-          dst[1] += (right == FSF_ONE) ? s : fsf_mul( s, right );
+          sl = (left  == FSF_ONE) ? s : fsf_mul( s, left  );
+          sr = (right == FSF_ONE) ? s : fsf_mul( s, right );
+               
+          dst[0] += sl;
+          dst[1] += sr;
+          if (FS_MODE_HAS_CENTER(mode))
+               dst[2] += fsf_shr( sl+sr, 1 );
                
           dst += FS_MAX_CHANNELS;
      }
@@ -199,6 +221,7 @@ FUNC_NAME(FORMAT,mono,rw) ( CoreSoundBuffer *buffer,
 static int
 FUNC_NAME(FORMAT,stereo,fw) ( CoreSoundBuffer *buffer,
                               __fsf           *dest,
+                              FSChannelMode    mode,
                               long             pos,
                               long             inc,
                               long             max,
@@ -256,6 +279,8 @@ FUNC_NAME(FORMAT,stereo,fw) ( CoreSoundBuffer *buffer,
                
                dst[0] += sl;
                dst[1] += sr;
+               if (FS_MODE_HAS_CENTER(mode))
+                    dst[2] += fsf_shr( sl+sr, 1 );
                
                dst += FS_MAX_CHANNELS;
           } 
@@ -266,18 +291,24 @@ FUNC_NAME(FORMAT,stereo,fw) ( CoreSoundBuffer *buffer,
 #endif /* FS_ENABLE_LINEAR_FILTER */
 
      for (; i < max; i += inc) {
-          long p = (i >> FS_PITCH_BITS) + pos;
+          long  p = (i >> FS_PITCH_BITS) + pos;
+          __fsf sl, sr;
 
           if (p >= buffer->length)
                p %= buffer->length;         
           p <<= 1;
           
-          dst[0] += (left == FSF_ONE)
-                    ? FSF_FROM_SRC( src, p+0 )
-                    : fsf_mul( FSF_FROM_SRC( src, p+0), left );
-          dst[1] += (right == FSF_ONE)
-                    ? FSF_FROM_SRC( src, p+1 )
-                    : fsf_mul( FSF_FROM_SRC( src, p+1 ), right );
+          sl = (left == FSF_ONE)
+               ? FSF_FROM_SRC( src, p+0 )
+               : fsf_mul( FSF_FROM_SRC( src, p+0), left );
+          sr = (right == FSF_ONE)
+               ? FSF_FROM_SRC( src, p+1 )
+               : fsf_mul( FSF_FROM_SRC( src, p+1 ), right );
+               
+          dst[0] += sl;
+          dst[1] += sr;
+          if (FS_MODE_HAS_CENTER(mode))
+               dst[2] += fsf_shr( sl+sr, 1 );
               
           dst += FS_MAX_CHANNELS;
      }     
@@ -288,6 +319,7 @@ FUNC_NAME(FORMAT,stereo,fw) ( CoreSoundBuffer *buffer,
 static int
 FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
                               __fsf           *dest,
+                              FSChannelMode    mode,
                               long             pos,
                               long             inc,
                               long             max,
@@ -347,6 +379,8 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
                
                dst[0] += sl;
                dst[1] += sr;
+               if (FS_MODE_HAS_CENTER(mode))
+                    dst[2] += fsf_shr( sl+sr, 1 );
                
                dst += FS_MAX_CHANNELS;
           } 
@@ -357,7 +391,8 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
 #endif /* FS_ENABLE_LINEAR_FILTER */
 
      for (; i > max; i += inc) {
-          long p = (i >> FS_PITCH_BITS) + pos;
+          long  p = (i >> FS_PITCH_BITS) + pos;
+          __fsf sl, sr;
 
           if (p <= -buffer->length)
                p %= buffer->length;
@@ -365,12 +400,17 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
                p += buffer->length;            
           p <<= 1;
           
-          dst[0] += (left == FSF_ONE)
-                    ? FSF_FROM_SRC( src, p+0 )
-                    : fsf_mul( FSF_FROM_SRC( src, p+0 ), left );
-          dst[1] += (right == FSF_ONE)
-                    ? FSF_FROM_SRC( src, p+1 )
-                    : fsf_mul( FSF_FROM_SRC( src, p+1 ), right );
+          sl = (left == FSF_ONE)
+               ? FSF_FROM_SRC( src, p+0 )
+               : fsf_mul( FSF_FROM_SRC( src, p+0 ), left );
+          sr = (right == FSF_ONE)
+               ? FSF_FROM_SRC( src, p+1 )
+               : fsf_mul( FSF_FROM_SRC( src, p+1 ), right );
+               
+          dst[0] += sl;
+          dst[1] += sr;
+          if (FS_MODE_HAS_CENTER(mode))
+               dst[2] += fsf_shr( sl+sr, 1 );
               
           dst += FS_MAX_CHANNELS;
      }     
@@ -382,6 +422,7 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
 static int
 FUNC_NAME(FORMAT,multi,fw) ( CoreSoundBuffer *buffer,
                              __fsf           *dest,
+                             FSChannelMode    mode,
                              long             pos,
                              long             inc,
                              long             max,
@@ -416,15 +457,37 @@ FUNC_NAME(FORMAT,multi,fw) ( CoreSoundBuffer *buffer,
                     
                     w = fsf_from_int_scaled( i & (FS_PITCH_ONE-1), FS_PITCH_BITS );
                     
-                    /* front left */
-                    s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
-                                    FSF_FROM_SRC( src, q ), w );
-                    if (levels[0] != FSF_ONE)
-                         s = fsf_mul( s, levels[0] );
-                    dst[0] += s;
-                    p++; q++;
+                    if (!FS_MODE_HAS_CENTER(buffer->mode)) {
+                         __fsf sl, sr;
+                         
+                         /* front left */
+                         sl = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                          FSF_FROM_SRC( src, q ), w );
+                         if (levels[0] != FSF_ONE)
+                              sl = fsf_mul( sl, levels[0] );
+                         p++; q++;
+                         
+                         /* front right */
+                         sr = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                          FSF_FROM_SRC( src, q ), w );
+                         if (levels[1] != FSF_ONE)
+                              sr = fsf_mul( sr, levels[1] );
+                         p++; q++;
+                         
+                         dst[0] += sl;
+                         dst[1] += sr;
+                         if (FS_MODE_HAS_CENTER(mode))
+                              dst[2] += fsf_shr( sl+sr, 1 );
+                    }
+                    else {
+                         /* front left */
+                         s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                         FSF_FROM_SRC( src, q ), w );
+                         if (levels[0] != FSF_ONE)
+                              s = fsf_mul( s, levels[0] );
+                         dst[0] += s;
+                         p++; q++;
                     
-                    if (FS_MODE_HAS_CENTER(buffer->mode)) {
                          /* front center */
                          s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
                                          FSF_FROM_SRC( src, q ), w );
@@ -432,15 +495,15 @@ FUNC_NAME(FORMAT,multi,fw) ( CoreSoundBuffer *buffer,
                               s = fsf_mul( s, levels[2] );
                          dst[2] += s;
                          p++; q++;
-                    }
                     
-                    /* front right */
-                    s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
-                                    FSF_FROM_SRC( src, q ), w );
-                    if (levels[1] != FSF_ONE)
-                         s = fsf_mul( s, levels[1] );
-                    dst[1] += s;
-                    p++; q++;
+                         /* front right */
+                         s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                         FSF_FROM_SRC( src, q ), w );
+                         if (levels[1] != FSF_ONE)
+                              s = fsf_mul( s, levels[1] );
+                         dst[1] += s;
+                         p++; q++;
+                    }
                     
                     if (FS_MODE_NUM_REARS(buffer->mode) == 1) {
                          /* rear */
@@ -483,22 +546,41 @@ FUNC_NAME(FORMAT,multi,fw) ( CoreSoundBuffer *buffer,
                else {
                     p *= channels;
                     
-                    dst[0] += (levels[0] == FSF_ONE)
+                    if (!FS_MODE_HAS_CENTER(buffer->mode)) {
+                         __fsf sl, sr;
+                         
+                         sl = (levels[0] == FSF_ONE)
                               ? FSF_FROM_SRC( src, p )
                               : fsf_mul( FSF_FROM_SRC( src, p ), levels[0] );
-                    p++;
+                         p++;
+                         
+                         sr = (levels[1] == FSF_ONE)
+                              ? FSF_FROM_SRC( src, p )
+                              : fsf_mul( FSF_FROM_SRC( src, p ), levels[1] );
+                         p++;
+                         
+                         dst[0] += sl;
+                         dst[1] += sr;
+                         if (FS_MODE_HAS_CENTER(mode))
+                              dst[2] += fsf_shr( sl+sr, 1 );
+                         
+                    }
+                    else {
+                         dst[0] += (levels[0] == FSF_ONE)
+                                   ? FSF_FROM_SRC( src, p )
+                                   : fsf_mul( FSF_FROM_SRC( src, p ), levels[0] );
+                         p++;
                     
-                    if (FS_MODE_HAS_CENTER(buffer->mode)) {
                          dst[2] += (levels[2] == FSF_ONE)
                                    ? FSF_FROM_SRC( src, p )
                                    : fsf_mul( FSF_FROM_SRC( src, p ), levels[2] );
                          p++;
-                    }
                     
-                    dst[1] += (levels[1] == FSF_ONE)
-                              ? FSF_FROM_SRC( src, p )
-                              : fsf_mul( FSF_FROM_SRC( src, p ), levels[1] );
-                    p++;
+                         dst[1] += (levels[1] == FSF_ONE)
+                                   ? FSF_FROM_SRC( src, p )
+                                   : fsf_mul( FSF_FROM_SRC( src, p ), levels[1] );
+                         p++;
+                    }
                     
                     if (FS_MODE_NUM_REARS(buffer->mode) == 1) {
                          __fsf s;
@@ -545,22 +627,40 @@ FUNC_NAME(FORMAT,multi,fw) ( CoreSoundBuffer *buffer,
                p %= buffer->length;         
           p *= channels;
           
-          dst[0] += (levels[0] == FSF_ONE)
+          if (!FS_MODE_HAS_CENTER(buffer->mode)) {
+               __fsf sl, sr;
+               
+               sl = (levels[0] == FSF_ONE)
                     ? FSF_FROM_SRC( src, p )
                     : fsf_mul( FSF_FROM_SRC( src, p ), levels[0] );
-          p++;
+               p++;
+               
+               sr = (levels[1] == FSF_ONE)
+                    ? FSF_FROM_SRC( src, p )
+                    : fsf_mul( FSF_FROM_SRC( src, p ), levels[1] );
+               p++;
+               
+               dst[0] += sl;
+               dst[1] += sr;
+               if (FS_MODE_HAS_CENTER(mode))
+                    dst[2] += fsf_shr( sl+sr, 1 );               
+          }
+          else {
+               dst[0] += (levels[0] == FSF_ONE)
+                         ? FSF_FROM_SRC( src, p )
+                         : fsf_mul( FSF_FROM_SRC( src, p ), levels[0] );
+               p++;
                     
-          if (FS_MODE_HAS_CENTER(buffer->mode)) {
                dst[2] += (levels[2] == FSF_ONE)
                          ? FSF_FROM_SRC( src, p )
                          : fsf_mul( FSF_FROM_SRC( src, p ), levels[2] );
                p++;
-          }
                     
-          dst[1] = (levels[1] == FSF_ONE)
-                   ? FSF_FROM_SRC( src, p )
-                   : fsf_mul( FSF_FROM_SRC( src, p ), levels[1] );
-          p++;
+               dst[1] += (levels[1] == FSF_ONE)
+                         ? FSF_FROM_SRC( src, p )
+                         : fsf_mul( FSF_FROM_SRC( src, p ), levels[1] );
+               p++;
+          }
           
           if (FS_MODE_NUM_REARS(buffer->mode) == 1) {
                __fsf s;
@@ -600,6 +700,7 @@ FUNC_NAME(FORMAT,multi,fw) ( CoreSoundBuffer *buffer,
 static int
 FUNC_NAME(FORMAT,multi,rw) ( CoreSoundBuffer *buffer,
                              __fsf           *dest,
+                             FSChannelMode    mode,
                              long             pos,
                              long             inc,
                              long             max,
@@ -636,15 +737,37 @@ FUNC_NAME(FORMAT,multi,rw) ( CoreSoundBuffer *buffer,
                     
                     w = fsf_from_int_scaled( -i & (FS_PITCH_ONE-1), FS_PITCH_BITS );
                     
-                    /* front left */
-                    s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
-                                    FSF_FROM_SRC( src, q ), w );
-                    if (levels[0] != FSF_ONE)
-                         s = fsf_mul( s, levels[0] );
-                    dst[0] += s;
-                    p++; q++;
+                    if (!FS_MODE_HAS_CENTER(buffer->mode)) {
+                         __fsf sl, sr;
+                         
+                         /* front left */
+                         sl = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                          FSF_FROM_SRC( src, q ), w );
+                         if (levels[0] != FSF_ONE)
+                              sl = fsf_mul( sl, levels[0] );
+                         p++; q++;
+                         
+                         /* front right */
+                         sr = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                          FSF_FROM_SRC( src, q ), w );
+                         if (levels[1] != FSF_ONE)
+                              sr = fsf_mul( sr, levels[1] );
+                         p++; q++;
+                         
+                         dst[0] += sl;
+                         dst[1] += sr;
+                         if (FS_MODE_HAS_CENTER(mode))
+                              dst[2] += fsf_shr( sl+sr, 1 );
+                    }
+                    else {
+                         /* front left */
+                         s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                         FSF_FROM_SRC( src, q ), w );
+                         if (levels[0] != FSF_ONE)
+                              s = fsf_mul( s, levels[0] );
+                         dst[0] += s;
+                         p++; q++;
                     
-                    if (FS_MODE_HAS_CENTER(buffer->mode)) {
                          /* front center */
                          s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
                                          FSF_FROM_SRC( src, q ), w );
@@ -652,15 +775,15 @@ FUNC_NAME(FORMAT,multi,rw) ( CoreSoundBuffer *buffer,
                               s = fsf_mul( s, levels[2] );
                          dst[2] += s;
                          p++; q++;
-                    }
                     
-                    /* front right */
-                    s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
-                                    FSF_FROM_SRC( src, q ), w );
-                    if (levels[1] != FSF_ONE)
-                         s = fsf_mul( s, levels[1] );
-                    dst[1] += s;
-                    p++; q++;
+                         /* front right */
+                         s = FSF_INTERP( FSF_FROM_SRC( src, p ), 
+                                         FSF_FROM_SRC( src, q ), w );
+                         if (levels[1] != FSF_ONE)
+                              s = fsf_mul( s, levels[1] );
+                         dst[1] += s;
+                         p++; q++;
+                    }
                     
                     if (FS_MODE_NUM_REARS(buffer->mode) == 1) {
                          /* rear */
@@ -703,22 +826,40 @@ FUNC_NAME(FORMAT,multi,rw) ( CoreSoundBuffer *buffer,
                else {
                     p *= channels;
                     
-                    dst[0] += (levels[0] == FSF_ONE)
+                    if (!FS_MODE_HAS_CENTER(buffer->mode)) {
+                         __fsf sl, sr;
+                         
+                         sl = (levels[0] == FSF_ONE)
                               ? FSF_FROM_SRC( src, p )
                               : fsf_mul( FSF_FROM_SRC( src, p ), levels[0] );
-                    p++;
+                         p++;
+                         
+                         sr = (levels[1] == FSF_ONE)
+                              ? FSF_FROM_SRC( src, p )
+                              : fsf_mul( FSF_FROM_SRC( src, p ), levels[1] );
+                         p++;
+                         
+                         dst[0] += sl;
+                         dst[1] += sr;
+                         if (FS_MODE_HAS_CENTER(mode))
+                              dst[2] += fsf_shr( sl+sr, 1 );                         
+                    }
+                    else {
+                         dst[0] += (levels[0] == FSF_ONE)
+                                   ? FSF_FROM_SRC( src, p )
+                                   : fsf_mul( FSF_FROM_SRC( src, p ), levels[0] );
+                         p++;
                     
-                    if (FS_MODE_HAS_CENTER(buffer->mode)) {
                          dst[2] += (levels[2] == FSF_ONE)
                                    ? FSF_FROM_SRC( src, p )
                                    : fsf_mul( FSF_FROM_SRC( src, p ), levels[2] );
                          p++;
-                    }
                     
-                    dst[1] += (levels[1] == FSF_ONE)
-                             ? FSF_FROM_SRC( src, p )
-                             : fsf_mul( FSF_FROM_SRC( src, p ), levels[1] );
-                    p++;
+                         dst[1] += (levels[1] == FSF_ONE)
+                                   ? FSF_FROM_SRC( src, p )
+                                   : fsf_mul( FSF_FROM_SRC( src, p ), levels[1] );
+                         p++;
+                    }
                     
                     if (FS_MODE_NUM_REARS(buffer->mode) == 1) {
                          __fsf s;
@@ -768,22 +909,40 @@ FUNC_NAME(FORMAT,multi,rw) ( CoreSoundBuffer *buffer,
                p += buffer->length;
           p *= channels;
           
-          dst[0] += (levels[0] == FSF_ONE)
+          if (!FS_MODE_HAS_CENTER(buffer->mode)) {
+               __fsf sl, sr;
+               
+               sl = (levels[0] == FSF_ONE)
                     ? FSF_FROM_SRC( src, p )
                     : fsf_mul( FSF_FROM_SRC( src, p ), levels[0] );
-          p++;
+               p++;
+               
+               sr = (levels[1] == FSF_ONE)
+                    ? FSF_FROM_SRC( src, p )
+                    : fsf_mul( FSF_FROM_SRC( src, p ), levels[1] );
+               p++;
+               
+               dst[0] += sl;
+               dst[1] += sr;
+               if (FS_MODE_HAS_CENTER(mode))
+                    dst[2] += fsf_shr( sl+sr, 1 );
+          }
+          else {
+               dst[0] += (levels[0] == FSF_ONE)
+                         ? FSF_FROM_SRC( src, p )
+                         : fsf_mul( FSF_FROM_SRC( src, p ), levels[0] );
+               p++;
                     
-          if (FS_MODE_HAS_CENTER(buffer->mode)) {
                dst[2] += (levels[2] == FSF_ONE)
                          ? FSF_FROM_SRC( src, p )
                         : fsf_mul( FSF_FROM_SRC( src, p ), levels[2] );
                p++;
-          }
                     
-          dst[1] = (levels[1] == FSF_ONE)
-                   ? FSF_FROM_SRC( src, p )
-                   : fsf_mul( FSF_FROM_SRC( src, p ), levels[1] );
-          p++;
+               dst[1] = (levels[1] == FSF_ONE)
+                        ? FSF_FROM_SRC( src, p )
+                        : fsf_mul( FSF_FROM_SRC( src, p ), levels[1] );
+               p++;
+          }
                    
           if (FS_MODE_NUM_REARS(buffer->mode) == 1) {
                __fsf s;

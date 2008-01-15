@@ -62,9 +62,10 @@
 
 
 typedef enum {
-     CSCID_START,
      CSCID_GET_VOLUME,
      CSCID_SET_VOLUME,
+     CSCID_SUSPEND,
+     CSCID_RESUME,
 } CoreSoundCommandID;
 
 typedef struct {
@@ -99,23 +100,27 @@ struct __FS_CoreSoundShared {
 struct __FS_CoreSound {
      int                   refs;
 
-     int                   fusion_id;
+     FusionID              fusion_id;
 
      FusionWorld          *world;
      FusionArena          *arena;
 
      CoreSoundShared      *shared;
 
-     bool                  master;
      CoreSoundDevice      *device;
      DirectThread         *sound_thread;
      
      void                 *mixing_buffer;
-     void                 *output_buffer;
 
      DirectSignalHandler  *signal_handler;
      
      DirectCleanupHandler *cleanup_handler;
+     
+     float                 volume;
+     
+     bool                  master;
+     
+     bool                  suspended;
      
      bool                  detached;
 };
@@ -193,10 +198,12 @@ fs_core_create( CoreSound **ret_core )
 
      core->fusion_id = fusion_id( core->world );
      
+     core->volume = 1.0f;
+     
      fs_config->session = fusion_world_index( core->world );
 
 #if FUSION_BUILD_MULTI
-     D_DEBUG( "FusionSound/Core: world %d, fusion id %d\n",
+     D_DEBUG( "FusionSound/Core: world %d, fusion id %ld\n",
               fs_config->session, core->fusion_id );
 #endif
 
@@ -471,24 +478,15 @@ fs_core_device_config( CoreSound *core )
      D_ASSERT( core != NULL );
      D_ASSERT( core->shared != NULL );
      
-     return &(core->shared->config);
+     return &core->shared->config;
 }
-
-DFBResult
-fs_core_start( CoreSound *core )
-{
-     D_ASSERT( core != NULL );
-     D_ASSERT( core->shared != NULL );
-     
-     return fusion_call_execute( &core->shared->call,
-                                 FCEF_ONEWAY, CSCID_START, NULL, NULL );
-}  
 
 DFBResult
 fs_core_get_master_volume( CoreSound *core, float *level )
 {
      D_ASSERT( core != NULL );
      D_ASSERT( core->shared != NULL );
+     D_ASSERT( level != NULL );
      
      return fusion_call_execute( &core->shared->call, 
                                  FCEF_NONE, CSCID_GET_VOLUME, NULL, (int*)level );
@@ -508,6 +506,85 @@ fs_core_set_master_volume( CoreSound *core, float level )
      
      return fusion_call_execute( &core->shared->call,
                                  FCEF_NONE, CSCID_SET_VOLUME, &shared->call_arg, NULL );
+}
+
+DFBResult
+fs_core_get_local_volume( CoreSound *core, float *level )
+{
+     D_ASSERT( core != NULL );
+     D_ASSERT( level != NULL );
+     
+     pthread_mutex_lock( &core_sound_lock );
+     
+     *level = core->volume;
+     
+     pthread_mutex_unlock( &core_sound_lock );
+     
+     return DFB_OK;
+}
+
+static bool
+volume_callback( FusionObjectPool *pool, FusionObject *object, void *ctx )
+{
+     CoreSound *core = ctx;
+     
+#if FUSION_BUILD_MULTI
+     if (object->ref.multi.creator != core->fusion_id)
+          return true;
+#endif
+     
+     fs_playback_set_local_volume( (CorePlayback*)object, core->volume );
+     
+     return true;
+}     
+
+DFBResult
+fs_core_set_local_volume( CoreSound *core, float level )
+{
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+     
+     pthread_mutex_lock( &core_sound_lock );
+     
+     core->volume = level;
+     
+     fusion_object_pool_enum( core->shared->playback_pool, volume_callback, core );
+     
+     pthread_mutex_unlock( &core_sound_lock );
+     
+     return DFB_OK;
+}
+
+DFBResult
+fs_core_suspend( CoreSound *core )
+{
+     DFBResult ret, retval;
+     
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+     
+     ret =  fusion_call_execute( &core->shared->call,
+                                 FCEF_NONE, CSCID_SUSPEND, NULL, (int*)&retval );
+     if (ret)
+          return ret;
+          
+     return retval;
+}
+
+DFBResult
+fs_core_resume( CoreSound *core )
+{
+     DFBResult ret, retval;
+     
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+     
+     ret =  fusion_call_execute( &core->shared->call,
+                                 FCEF_NONE, CSCID_RESUME, NULL, (int*)&retval );
+     if (ret)
+          return ret;
+          
+     return retval;
 }
 
 /******************************************************************************/
@@ -563,12 +640,10 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
 
 #if FS_MAX_CHANNELS >= 5
 # define FS_MIX_OUTPUT_LOOP( BODY ) {                               \
-     __fsf *src = mixing;                                           \
-     u8    *dst = output;                                           \
-     int    n;                                                      \
+     int n;                                                         \
      switch (mode) {                                                \
           case FSCM_MONO:                                           \
-               for (n = length; n; n--) {                           \
+               for (n = count; n; n--) {                            \
                     register __fsf s;                               \
                     const int      c = 0;                           \
                     s = src[c] + src[1] + src[2] +                  \
@@ -579,7 +654,7 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
                }                                                    \
                break;                                               \
           case FSCM_STEREO:                                         \
-               for (n = length; n; n--) {                           \
+               for (n = count; n; n--) {                            \
                     register __fsf s;                               \
                     int            c;                               \
                     c = 0;                                          \
@@ -594,7 +669,7 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
           case FSCM_STEREO21:                                       \
           case FSCM_STEREO30:                                       \
           case FSCM_STEREO31:                                       \
-               for (n = length; n; n--) {                           \
+               for (n = count; n; n--) {                            \
                     register __fsf s;                               \
                     int            c;                               \
                     if (FS_MODE_HAS_CENTER(mode)) {                 \
@@ -630,7 +705,7 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
           case FSCM_SURROUND40_3F1R:                                \
           case FSCM_SURROUND41_3F1R:                                \
           case FSCM_SURROUND50:                                     \
-               for (n = length; n; n--) {                           \
+               for (n = count; n; n--) {                            \
                     register __fsf s;                               \
                     int            c;                               \
                     if (FS_MODE_HAS_CENTER(mode)) {                 \
@@ -672,18 +747,27 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
                }                                                    \
                break;                                               \
           case FSCM_SURROUND51:                                     \
-               for (n = length; n; n--) {                           \
-                    int c;                                          \
-                    for (c = 0; c < 6; c++) {                       \
-                         register __fsf s;                          \
-                         if (c == 1)                                \
-                              s = src[2];                           \
-                         else if (c == 2)                           \
-                              s = src[1];                           \
-                         else                                       \
-                              s = src[c];                           \
-                         BODY                                       \
-                    }                                               \
+               for (n = count; n; n--) {                            \
+                    register __fsf s;                               \
+                    int            c;                               \
+                    c = 0;                                          \
+                    s = src[c];                                     \
+                    BODY                                            \
+                    c = 2;                                          \
+                    s = src[c];                                     \
+                    BODY                                            \
+                    c = 1;                                          \
+                    s = src[c];                                     \
+                    BODY                                            \
+                    c = 3;                                          \
+                    s = src[c];                                     \
+                    BODY                                            \
+                    c = 4;                                          \
+                    s = src[c];                                     \
+                    BODY                                            \
+                    c = 5;                                          \
+                    s = src[c];                                     \
+                    BODY                                            \
                     src += FS_MAX_CHANNELS;                         \
                }                                                    \
                break;                                               \
@@ -694,11 +778,8 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
 }
 #else /* FS_MAX_CHANNELS == 2 */
 # define FS_MIX_OUTPUT_LOOP( BODY ) {                               \
-     __fsf *src = mixing;                                           \
-     u8    *dst = output;                                           \
-     int    n;                                                      \
      if (mode == FSCM_MONO) {                                       \
-          for (n = length; n; n--) {                                \
+          for (n = count; n; n--) {                                 \
                register __fsf s;                                    \
                const int      c = 0;                                \
                s = fsf_shr( src[c] + src[c+1], 1 );                 \
@@ -707,7 +788,7 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
           }                                                         \
      }                                                              \
      else {                                                         \
-          for (n = length; n; n--) {                                \
+          for (n = count; n; n--) {                                 \
                register __fsf s;                                    \
                int            c;                                    \
                c = 0;                                               \
@@ -730,7 +811,6 @@ sound_thread( DirectThread *thread, void *arg )
      CoreSoundShared    *shared  = core->shared;
      DeviceCapabilities  caps;
      
-     u8                 *output  = core->output_buffer;
      __fsf              *mixing  = core->mixing_buffer;
      int                 frames  = shared->config.buffersize;
      FSChannelMode       mode    = shared->config.mode;
@@ -740,8 +820,9 @@ sound_thread( DirectThread *thread, void *arg )
      caps = fs_device_get_capabilities( core->device );
      
      while (true) {
-          int         delay;
+          __fsf      *src    = mixing;
           int         length = 0;
+          int         delay;
           DirectLink *next, *l;
           
           direct_thread_testcancel( thread );
@@ -768,7 +849,8 @@ sound_thread( DirectThread *thread, void *arg )
                CorePlayback      *playback = entry->playback;
                int                num;
 
-               ret = fs_playback_mixto( playback, mixing, shared->config.rate,
+               ret = fs_playback_mixto( playback, mixing, 
+                                        shared->config.rate, shared->config.mode,
                                         frames, shared->soft_volume, &num );
                if (ret) {
                     direct_list_remove( &shared->playlist.entries, l );
@@ -784,68 +866,84 @@ sound_thread( DirectThread *thread, void *arg )
 
           fusion_skirmish_dismiss( &shared->playlist.lock );
 
-          /* Convert mixing buffer to output format, clipping each sample. */
-          switch (shared->config.format) {
-               case FSSF_U8:
-                    FS_MIX_OUTPUT_LOOP(
-                         if (fs_config->dither)
-                              s = fsf_dither( s, 8, dither[c] );
-                         s = fsf_clip( s );                              
-                         *dst++ = fsf_to_u8( s );
-                    )
+          while (length) {
+               u8           *dst;
+               unsigned int  avail;
+               unsigned int  count;
+               
+               /* Get access to the output buffer. */
+               if (fs_device_get_buffer( core->device, &dst, &avail ))
                     break;
-               case FSSF_S16:
-                    FS_MIX_OUTPUT_LOOP(
-                         if (fs_config->dither)
-                              s = fsf_dither( s, 16, dither[c] );
-                         s = fsf_clip( s );                              
-                         *((u16*)dst) = fsf_to_s16( s );
-                         dst += 2;
-                    )
-                    break;
-               case FSSF_S24:
-#ifdef WORDS_BIGENDIAN
-                    FS_MIX_OUTPUT_LOOP({
-                         int d;
-                         s = fsf_clip( s );
-                         d = fsf_to_s24( s );
-                         dst[0] = d >> 16;
-                         dst[1] = d >>  8;
-                         dst[2] = d      ;
-                         dst += 3;
-                    })
-#else
-                    FS_MIX_OUTPUT_LOOP({
-                         int d;
-                         s = fsf_clip( s );
-                         d = fsf_to_s24( s );
-                         dst[0] = d      ;
-                         dst[1] = d >>  8;
-                         dst[2] = d >> 16;
-                         dst += 3;
-                    })           
-#endif
-                    break;
-               case FSSF_S32:
-                    FS_MIX_OUTPUT_LOOP(
-                         s = fsf_clip( s );
-                         *((u32*)dst) = fsf_to_s32( s );
-                         dst += 4;
-                    )    
-                    break;
-               case FSSF_FLOAT:
-                    FS_MIX_OUTPUT_LOOP(
-                         s = fsf_clip( s );
-                         *((float*)dst) = fsf_to_float( s );
-                         dst += 4;
-                    ) 
-                    break;
-               default:
-                    D_BUG( "unexpected sample format" );
-                    break;
-          }
+                    
+               count = MIN( avail, length );
 
-          fs_device_write( core->device, output, length );
+               /* Convert mixing buffer to output format, clipping each sample. */
+               switch (shared->config.format) {
+                    case FSSF_U8:
+                         FS_MIX_OUTPUT_LOOP(
+                              if (fs_config->dither)
+                                   s = fsf_dither( s, 8, dither[c] );
+                              s = fsf_clip( s );                              
+                              *dst++ = fsf_to_u8( s );
+                         )
+                         break;
+                    case FSSF_S16:
+                         FS_MIX_OUTPUT_LOOP(
+                              if (fs_config->dither)
+                                   s = fsf_dither( s, 16, dither[c] );
+                              s = fsf_clip( s );                              
+                              *((u16*)dst) = fsf_to_s16( s );
+                              dst += 2;
+                         )
+                         break;
+                    case FSSF_S24:
+#ifdef WORDS_BIGENDIAN
+                         FS_MIX_OUTPUT_LOOP({
+                              int d;
+                              s = fsf_clip( s );
+                              d = fsf_to_s24( s );
+                              dst[0] = d >> 16;
+                              dst[1] = d >>  8;
+                              dst[2] = d      ;
+                              dst += 3;
+                         })
+#else
+                         FS_MIX_OUTPUT_LOOP({
+                              int d;
+                              s = fsf_clip( s );
+                              d = fsf_to_s24( s );
+                              dst[0] = d      ;
+                              dst[1] = d >>  8;
+                              dst[2] = d >> 16;
+                              dst += 3;
+                         })           
+#endif
+                         break;
+                    case FSSF_S32:
+                         FS_MIX_OUTPUT_LOOP(
+                              s = fsf_clip( s );
+                              *((u32*)dst) = fsf_to_s32( s );
+                              dst += 4;
+                         )    
+                         break;
+                    case FSSF_FLOAT:
+                         FS_MIX_OUTPUT_LOOP(
+                              s = fsf_clip( s );
+                              *((float*)dst) = fsf_to_float( s );
+                              dst += 4;
+                         ) 
+                         break;
+                    default:
+                         D_BUG( "unexpected sample format" );
+                         break;
+               }
+               
+               /* Commit output buffer. */
+               fs_device_commit_buffer( core->device, count );
+               
+               /* Update parameters. */
+               length -= count;
+          }
      }
 
      return NULL;
@@ -855,27 +953,19 @@ sound_thread( DirectThread *thread, void *arg )
 
 static FusionCallHandlerResult
 core_call_handler( int caller, int call_arg, void *call_ptr,
-                   void *ctx, unsigned int serial, int *ret_val )
+                   void *ctx, unsigned int serial, int *retval )
 {
      CoreSound       *core   = ctx;
      CoreSoundShared *shared = core->shared;
      float            volume;
-     
-     pthread_mutex_lock( &core_sound_lock );
        
-     switch (call_arg) {
-          case CSCID_START:
-               if (!core->sound_thread)
-                    core->sound_thread = direct_thread_create( DTT_OUTPUT, sound_thread,
-                                                               core, "Sound Mixer" );
-               break;
-               
+     switch (call_arg) {               
           case CSCID_GET_VOLUME:
                if (!(fs_device_get_capabilities( core->device ) & DCF_VOLUME) ||
                    fs_device_get_volume( core->device, &volume ) != DFB_OK)
                     volume = fsf_to_float( shared->soft_volume ); 
                
-               *((float*)ret_val) = volume;
+               *((float*)retval) = volume;
                break;
                
           case CSCID_SET_VOLUME:
@@ -886,13 +976,58 @@ core_call_handler( int caller, int call_arg, void *call_ptr,
                else
                     shared->soft_volume = FSF_ONE;
                break;
-              
+               
+          case CSCID_SUSPEND:
+               if (core->suspended) {
+                    *retval = DFB_BUSY;
+               }
+               else {
+                    DFBResult ret;
+                    
+                    direct_thread_cancel( core->sound_thread );
+                    direct_thread_join( core->sound_thread );
+                    direct_thread_destroy( core->sound_thread );
+                    core->sound_thread = NULL;
+                    
+                    ret = fs_device_suspend( core->device );
+                    if (ret) {
+                         core->sound_thread = direct_thread_create( DTT_OUTPUT, 
+                                                                    sound_thread, core, "Sound Mixer" );
+                         *retval = ret;
+                         break;
+                    }
+                    
+                    core->suspended = true;
+                    
+                    *retval = DFB_OK;
+               }
+               break;
+               
+          case CSCID_RESUME:
+               if (!core->suspended) {
+                    *retval = DFB_BUSY;
+               }
+               else {
+                    DFBResult ret;
+                    
+                    ret = fs_device_resume( core->device );
+                    if (ret) {
+                         *retval = ret;
+                         break;
+                    }
+                    
+                    core->sound_thread = direct_thread_create( DTT_OUTPUT, sound_thread, core, "Sound Mixer" );
+                    
+                    core->suspended = false;
+                    
+                    *retval = DFB_OK;
+               }
+               break;
+               
           default:
                D_BUG( "unexpected call" );
                break;
      }
-     
-     pthread_mutex_unlock( &core_sound_lock );
      
      return FCHR_RETURN;
 }
@@ -903,44 +1038,46 @@ fs_core_initialize( CoreSound *core )
      CoreSoundShared *shared = core->shared;
      DFBResult        ret;
      
-     /* open output device */
-     ret = fs_device_initialize( core, &core->device );
+     /* Set default device configuration. */  
+     shared->config.mode       = fs_config->channelmode;
+     shared->config.format     = fs_config->sampleformat;
+     shared->config.rate       = fs_config->samplerate;
+     shared->config.buffersize = fs_config->samplerate * fs_config->buffertime / 1000;
+     /* No more than 65535 frames. */
+     if (shared->config.buffersize > 65535)
+          shared->config.buffersize = 65535;
+     
+     /* Open output device. */
+     ret = fs_device_initialize( core, &shared->config, &core->device );
      if (ret)
           return ret;
           
-     /* get device description */
+     /* Get device description. */
      fs_device_get_description( core->device, &shared->description );
-      
-     /* get device configuration */
-     fs_device_get_configuration( core->device, &shared->config );
      
-     /* initialize playback list lock */
+     /* Initialize playlist lock. */
      fusion_skirmish_init( &shared->playlist.lock, "FusionSound Playlist", core->world );
 
-     /* create a pool for sound buffer objects */
+     /* Create a pool for sound buffer objects. */
      shared->buffer_pool = fs_buffer_pool_create( core->world );
 
-     /* create a pool for playback objects */
+     /* Create a pool for playback objects. */
      shared->playback_pool = fs_playback_pool_create( core->world );
      
-     /* initialize call */
+     /* Initialize call. */
      fusion_call_init( &shared->call, core_call_handler, core, core->world );
      
-     /* allocate mixing buffer */
+     /* Allocate mixing buffer. */
      core->mixing_buffer = D_MALLOC( shared->config.buffersize * 
                                      FS_MAX_CHANNELS * sizeof(__fsf) );
      if (!core->mixing_buffer)
           return D_OOM();
           
-     /* allocate output buffer */
-     core->output_buffer = D_MALLOC( shared->config.buffersize *
-                                     FS_CHANNELS_FOR_MODE(shared->config.mode) *
-                                     FS_BYTES_PER_SAMPLE(shared->config.format) );
-     if (!core->output_buffer)
-          return D_OOM();
-          
-     /* initialize volume levels */
+     /* Initialize software volume level. */
      shared->soft_volume = FSF_ONE;
+     
+     /* Start sound mixer. */
+     core->sound_thread = direct_thread_create( DTT_OUTPUT, sound_thread, core, "Sound Mixer" );
 
      return DFB_OK;
 }
@@ -975,7 +1112,7 @@ fs_core_shutdown( CoreSound *core, bool local )
      D_ASSERT( shared->buffer_pool != NULL );
      D_ASSERT( shared->playback_pool != NULL );
 
-     /* stop sound thread */
+     /* Stop sound thread. */
      if (core->sound_thread) {
           direct_thread_cancel( core->sound_thread );
           direct_thread_join( core->sound_thread );
@@ -983,10 +1120,10 @@ fs_core_shutdown( CoreSound *core, bool local )
      }
 
      if (!local) {
-          /* close output device */
+          /* Close output device. */
           fs_device_shutdown( core->device );
           
-          /* clear playback list */
+          /* Clear playlist. */
           fusion_skirmish_prevail( &shared->playlist.lock );
 
           direct_list_foreach_safe (l, next, shared->playlist.entries) {
@@ -997,22 +1134,21 @@ fs_core_shutdown( CoreSound *core, bool local )
                SHFREE( shared->shmpool, entry );
           }
           
-          /* destroy call handler */
+          /* Destroy call handler. */
           fusion_call_destroy( &shared->call );
 
-          /* destroy playback object pool */
+          /* Destroy playback object pool. */
           fusion_object_pool_destroy( shared->playback_pool, core->world );
 
-          /* destroy buffer object pool */
+          /* Destroy buffer object pool. */
           fusion_object_pool_destroy( shared->buffer_pool, core->world );
 
-          /* destroy playlist lock */
+          /* Destroy playlist lock. */
           fusion_skirmish_destroy( &shared->playlist.lock );
      }
      
-     /* release buffers */
+     /* Release mixing buffer. */
      D_FREE( core->mixing_buffer );
-     D_FREE( core->output_buffer );
 
      return DFB_OK;
 }
@@ -1026,7 +1162,7 @@ fs_core_detach( CoreSound *core )
      
      D_ASSUME( !core->detached );
      
-     /* detach core from controlling process */
+     /* Detach core from the controlling process. */
      fusion_world_set_fork_action( core->world, FFA_FORK );
      ret = fork();
      fusion_world_set_fork_action( core->world, FFA_CLOSE );
@@ -1041,13 +1177,14 @@ fs_core_detach( CoreSound *core )
           case 0:
                D_DEBUG( "FusionSound/Core: ... detached.\n" ); 
                core->detached = true;
-               /* restart sound thread */
-               core->sound_thread = direct_thread_create( DTT_OUTPUT, sound_thread, core, "Sound Mixer" );
+               /* Restart sound thread. */
+               if (core->sound_thread)
+                    core->sound_thread = direct_thread_create( DTT_OUTPUT, sound_thread, core, "Sound Mixer" );
                break;
           
           default:
                core->master = false;
-               /* release local resources */
+               /* Release local resources. */
                fs_core_shutdown( core, true );
                break;
      }

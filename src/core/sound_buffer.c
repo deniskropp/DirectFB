@@ -171,6 +171,7 @@ typedef struct {
 
 typedef int (*SoundMXFunc) ( CoreSoundBuffer *buffer,
                              __fsf           *mixing,
+                             FSChannelMode    mode,
                              long             pos,
                              long             inc,
                              long             max,
@@ -302,6 +303,7 @@ DFBResult
 fs_buffer_mixto( CoreSoundBuffer *buffer,
                  __fsf           *dest,
                  int              dest_rate,
+                 FSChannelMode    dest_mode,
                  int              max_frames,
                  int              pos,
                  int              stop,
@@ -375,7 +377,7 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
           func = (pitch < 0)
                  ? MIX_RW[format_index][channel_index]
                  : MIX_FW[format_index][channel_index];
-          len  = func( buffer, dest, pos, inc, max, levels, last );
+          len  = func( buffer, dest, dest_mode, pos, inc, max, levels, last );
      }
      else {
           /* Produce silence. */

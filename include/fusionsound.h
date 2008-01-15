@@ -500,7 +500,7 @@ DEFINE_INTERFACE( IFusionSound,
      );
      
      
-   /** Control **/
+   /** Volume Control **/
      
      /*
       * Get master volume level.
@@ -517,7 +517,7 @@ DEFINE_INTERFACE( IFusionSound,
      /*
       * Set master volume level.
       *
-      * Set the master volume level (i.e. that applies to all playbacks).
+      * Set the master volume level (i.e. that applies to all playbacks).<br>
       * The <b>level</b> is a linear factor ranging from 0.0f to 1.0f.
       *
       * See also <i>GetMasterVolume()</i>.
@@ -526,8 +526,55 @@ DEFINE_INTERFACE( IFusionSound,
           IFusionSound               *thiz,
           float                       level
      );
-    
      
+     /*
+      * Get local volume level.
+      *
+      * Get the local volume level (i.e. that applies to the playbacks
+      * created by the current process).
+      *
+      * See also <i>SetLocalVolume()</i>.
+      */
+     DFBResult (*GetLocalVolume) (
+          IFusionSound               *thiz,
+          float                      *level
+     );
+     
+     /*
+      * Set local volume level.
+      *
+      * Set the local volume level (i.e. that applies to the playbacks
+      * created by the current process).<br>
+      * The <b>level</b> is a linear factor ranging from 0.0f to 1.0f.
+      *
+      * See also <i>GetLocalVolume()</i>.
+      */
+     DFBResult (*SetLocalVolume) (
+          IFusionSound               *thiz,
+          float                       level
+     );
+     
+     
+   /** Misc **/
+   
+     /*
+      * Suspend FusionSound.
+      *
+      * No other calls to FusionSound are allowed until <i>Resume()</i>
+      * has been called.
+      */
+     DFBResult (*Suspend) (
+          IFusionSound               *thiz
+     );
+     
+     /*
+      * Resume FusionSound.
+      *
+      * Only to be called after <i>Suspend()</i>.
+      */
+     DFBResult (*Resume) (
+          IFusionSound               *thiz
+     );
 )
 
 /*
@@ -801,6 +848,37 @@ DEFINE_INTERFACE( IFusionSoundStream,
           IFusionSoundStream       *thiz,
           IFusionSoundPlayback    **interface
      );
+
+
+   /** Direct memory access **/
+   
+     /*
+      * Access the ring buffer to fill it with data.
+      *
+      * The method returns a pointer to the current write position 
+      * and the amount of available space in frames.
+      *
+      * If the ring buffer is full, the method blocks until there is 
+      * space available.
+      *
+      * After filling the ring buffer, call <i>Commit()</i> to submit
+      * the samples to the stream.
+      */
+     DFBResult (*Access) (
+          IFusionSoundStream       *thiz,
+          void                    **ret_data,
+          int                      *ret_avail
+     );
+     
+     /*
+      * Commit written data to the stream.
+      *
+      * Commit <b>length</b> frames of data written upon previous <i>Access()</i>.
+      */
+     DFBResult (*Commit) (
+          IFusionSoundStream       *thiz,
+          int                       length
+     );
 )
 
 /*
@@ -1045,6 +1123,9 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
      /*
       * Get a buffer description that best matches the music
       * contained in the file.
+      *
+      * The music provider is responsible of returning a 
+      * buffer description suitable for holding the whole track.
       */
      DFBResult (*GetBufferDescription) (
           IFusionSoundMusicProvider *thiz,

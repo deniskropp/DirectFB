@@ -65,7 +65,7 @@ IFusionSound_Destruct( IFusionSound *thiz )
 static DFBResult
 IFusionSound_AddRef( IFusionSound *thiz )
 {
-     DIRECT_INTERFACE_GET_DATA (IFusionSound);
+     DIRECT_INTERFACE_GET_DATA(IFusionSound)
 
      data->ref++;
 
@@ -75,7 +75,7 @@ IFusionSound_AddRef( IFusionSound *thiz )
 static DFBResult
 IFusionSound_Release( IFusionSound *thiz )
 {
-     DIRECT_INTERFACE_GET_DATA (IFusionSound)
+     DIRECT_INTERFACE_GET_DATA(IFusionSound)
 
      if (--data->ref == 0)
           IFusionSound_Destruct( thiz );
@@ -87,7 +87,7 @@ static DFBResult
 IFusionSound_GetDeviceDescription( IFusionSound        *thiz,
                                    FSDeviceDescription *desc )
 {
-     DIRECT_INTERFACE_GET_DATA (IFusionSound);
+     DIRECT_INTERFACE_GET_DATA(IFusionSound)
      
      if (!desc)
           return DFB_INVARG;
@@ -112,7 +112,7 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
      CoreSoundBuffer          *buffer;
      IFusionSoundBuffer       *interface;
 
-     DIRECT_INTERFACE_GET_DATA (IFusionSound);
+     DIRECT_INTERFACE_GET_DATA(IFusionSound)
 
      if (!desc || !ret_interface)
           return DFB_INVARG;
@@ -226,7 +226,7 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
      CoreSoundBuffer          *buffer;
      IFusionSoundStream       *interface;
 
-     DIRECT_INTERFACE_GET_DATA (IFusionSound);
+     DIRECT_INTERFACE_GET_DATA(IFusionSound)
 
      if (!ret_interface)
           return DFB_INVARG;
@@ -339,15 +339,15 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
 static DFBResult
 IFusionSound_CreateMusicProvider( IFusionSound               *thiz,
                                   const char                 *filename,
-                                  IFusionSoundMusicProvider **interface )
+                                  IFusionSoundMusicProvider **ret_interface )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound)
 
      /* Check arguments */
-     if (!interface || !filename)
+     if (!ret_interface || !filename)
           return DFB_INVARG;
 
-     return IFusionSoundMusicProvider_Create( filename, interface );
+     return IFusionSoundMusicProvider_Create( filename, ret_interface );
 }
 
 static DFBResult
@@ -374,6 +374,48 @@ IFusionSound_SetMasterVolume( IFusionSound *thiz,
           return DFB_INVARG;
           
      return fs_core_set_master_volume( data->core, level );
+}
+
+static DFBResult
+IFusionSound_GetLocalVolume( IFusionSound *thiz, 
+                             float        *level )
+{
+     DIRECT_INTERFACE_GET_DATA(IFusionSound)
+     
+     /* Check arguments */
+     if (!level)
+          return DFB_INVARG;
+          
+     return fs_core_get_local_volume( data->core, level );
+}
+
+static DFBResult
+IFusionSound_SetLocalVolume( IFusionSound *thiz,
+                             float         level )
+{
+     DIRECT_INTERFACE_GET_DATA(IFusionSound)
+     
+     /* Check arguments */
+     if (level < 0.0f || level > 1.0f)
+          return DFB_INVARG;
+          
+     return fs_core_set_local_volume( data->core, level );
+}
+
+static DFBResult
+IFusionSound_Suspend( IFusionSound *thiz )
+{
+     DIRECT_INTERFACE_GET_DATA(IFusionSound)
+     
+     return fs_core_suspend( data->core );
+}
+
+static DFBResult
+IFusionSound_Resume( IFusionSound *thiz )
+{
+     DIRECT_INTERFACE_GET_DATA(IFusionSound)
+     
+     return fs_core_resume( data->core );
 }
      
 
@@ -407,6 +449,10 @@ IFusionSound_Construct( IFusionSound *thiz )
      thiz->CreateMusicProvider  = IFusionSound_CreateMusicProvider;
      thiz->GetMasterVolume      = IFusionSound_GetMasterVolume;
      thiz->SetMasterVolume      = IFusionSound_SetMasterVolume;
+     thiz->GetLocalVolume       = IFusionSound_GetLocalVolume;
+     thiz->SetLocalVolume       = IFusionSound_SetLocalVolume;
+     thiz->Suspend              = IFusionSound_Suspend;
+     thiz->Resume               = IFusionSound_Resume;
 
      return DFB_OK;
 }

@@ -60,6 +60,8 @@ struct __FS_CorePlayback {
      __fsf            rear;        /* downmixing level for rear channel */
      
      __fsf            levels[6];   /* multipliers for channels  */
+     
+     __fsf            volume;      /* local volume level */
 };
 
 #define DOWNMIX_LEVEL_3DB  0.70794578438413791
@@ -102,6 +104,7 @@ fs_playback_create( CoreSound        *core,
                     CorePlayback    **ret_playback )
 {
      CorePlayback *playback;
+     float         volume;
 
      D_ASSERT( buffer != NULL );
      D_ASSERT( ret_playback != NULL );
@@ -137,12 +140,13 @@ fs_playback_create( CoreSound        *core,
      playback->levels[3] = playback->rear;
      playback->levels[4] = playback->rear;
      playback->levels[5] = FSF_ONE;
+     
+     /* Get local volume level. */
+     fs_core_get_local_volume( core, &volume );
+     playback->volume = fsf_from_float( volume );
 
      /* Activate playback object. */
      fusion_object_activate( &playback->object );
-     
-     /* Start global playback. */
-     fs_core_start( core ); 
 
      /* Return playback object. */
      *ret_playback = playback;
@@ -370,6 +374,27 @@ fs_playback_set_volume( CorePlayback *playback,
 }
 
 DFBResult
+fs_playback_set_local_volume( CorePlayback *playback,
+                              float         level )
+{
+     D_ASSERT( playback != NULL );
+     D_ASSERT( level >= 0.0f );
+     D_ASSERT( level <= 1.0f );
+     
+     /* Lock playback. */
+     if (fusion_skirmish_prevail( &playback->lock ))
+          return DFB_FUSION;
+          
+     /* Set local volume level. */
+     playback->volume = fsf_from_float( level );
+     
+     /* Unlock playback. */
+     fusion_skirmish_dismiss( &playback->lock );
+
+     return DFB_OK;
+}    
+
+DFBResult
 fs_playback_set_pitch( CorePlayback *playback,
                        int           pitch )
 {
@@ -431,6 +456,7 @@ DFBResult
 fs_playback_mixto( CorePlayback *playback,
                    __fsf        *dest,
                    int           dest_rate,
+                   FSChannelMode dest_mode,
                    int           max_frames,
                    __fsf         volume,
                    int          *ret_samples)
@@ -450,9 +476,9 @@ fs_playback_mixto( CorePlayback *playback,
      if (fusion_skirmish_prevail( &playback->lock ))
           return DFB_FUSION;
           
-     if (volume != FSF_ONE) {
-          levels = alloca( 6 * sizeof(__fsf) );
-          
+     if (volume != FSF_ONE || playback->volume != FSF_ONE) {
+          levels = alloca( 6 * sizeof(__fsf) ); 
+          volume = fsf_mul( volume, playback->volume );    
           for (i = 0; i < 6; i++)
                levels[i] = fsf_mul( playback->levels[i], volume );
      } 
@@ -461,7 +487,7 @@ fs_playback_mixto( CorePlayback *playback,
      }        
 
      /* Mix samples... */
-     ret = fs_buffer_mixto( playback->buffer, dest, dest_rate, max_frames,
+     ret = fs_buffer_mixto( playback->buffer, dest, dest_rate, dest_mode, max_frames,
                             playback->position, playback->stop, levels,
                             playback->pitch, &pos, &num, ret_samples );
      if (ret)

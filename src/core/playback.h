@@ -100,6 +100,9 @@ DFBResult fs_playback_set_downmix ( CorePlayback        *playback,
 
 DFBResult fs_playback_set_volume  ( CorePlayback        *playback,
                                     float                levels[6] );
+                                    
+DFBResult fs_playback_set_local_volume( CorePlayback    *playback,
+                                        float            level );
 
 DFBResult fs_playback_set_pitch   ( CorePlayback        *playback,
                                     int                  pitch );
@@ -114,6 +117,7 @@ DFBResult fs_playback_get_status  ( CorePlayback        *playback,
 DFBResult fs_playback_mixto       ( CorePlayback        *playback,
                                     __fsf               *dest,
                                     int                  dest_rate,
+                                    FSChannelMode        dest_mode,
                                     int                  max_frames,
                                     __fsf                volume,
                                     int                 *ret_samples );

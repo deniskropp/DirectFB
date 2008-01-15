@@ -1,6 +1,6 @@
 /*
-   (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002-2006  convergence GmbH.
+   (c) Copyright 2001-2008  The DirectFB Organization (directfb.org)
+   (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
 
@@ -38,6 +38,7 @@
 
 #include <sys/soundcard.h>
 
+#include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/util.h>
 
@@ -54,8 +55,11 @@ FS_SOUND_DRIVER( oss )
 /******************************************************************************/
 
 typedef struct {
-     int fd;
-     int bytes_per_frame;
+     int                    fd;
+     
+     CoreSoundDeviceConfig *config;
+     int                    bytes_per_frame;
+     void                  *buffer;
 } OSSDeviceData;
 
 /******************************************************************************/
@@ -120,6 +124,61 @@ oss2fs_format( int format )
      return -1;
 }
 
+static DFBResult
+oss_device_set_configuration( int fd, CoreSoundDeviceConfig *config )
+{
+     int fmt;
+     int channels   = FS_CHANNELS_FOR_MODE(config->mode);
+     int rate       = config->rate;
+     int buffersize = 0;
+#if defined(SNDCTL_DSP_PROFILE) && defined(APF_NORMAL)
+     int prof       = APF_NORMAL;
+#endif
+
+     fmt = fs2oss_format( config->format );
+     if (fmt == -1)
+          return DFB_UNSUPPORTED;
+
+     /* set application profile */
+#if defined(SNDCTL_DSP_PROFILE) && defined(APF_NORMAL)
+     if (ioctl( fd, SNDCTL_DSP_PROFILE, &prof ) < 0)
+          D_WARN( "Unable to set application profile!" );
+#endif
+         
+     /* set output format */
+     if (ioctl( fd, SNDCTL_DSP_SETFMT, &fmt ) < 0 || 
+         oss2fs_format( fmt ) != config->format) {
+          D_ERROR( "FusionSound/Device/OSS: unsupported format!\n" );
+          return DFB_UNSUPPORTED;
+     }
+
+     /* set number of channels */
+     if (ioctl( fd, SNDCTL_DSP_CHANNELS, &channels ) < 0 || 
+         channels != FS_CHANNELS_FOR_MODE(config->mode)) {
+          D_ERROR( "FusionSound/Device/OSS: unsupported channels mode!\n" );
+          return DFB_UNSUPPORTED;
+     }
+     
+     /* set sample rate */
+     if (ioctl( fd, SNDCTL_DSP_SPEED, &rate ) < 0) {
+          D_ERROR( "FusionSound/Device/OSS: unable to set rate to '%d'!\n", config->rate );
+          return DFB_UNSUPPORTED;
+     }
+     
+     /* query block size */
+     ioctl( fd, SNDCTL_DSP_GETBLKSIZE, &buffersize );
+     buffersize /= channels * FS_BYTES_PER_SAMPLE(config->format);
+     if (buffersize < 1) {
+          D_ERROR( "FusionSound/Device/OSS: unable to query block size!\n" );
+          return DFB_UNSUPPORTED;
+     }
+
+     config->rate = rate;
+     config->buffersize = buffersize;
+     
+     return DFB_OK;
+}
+
 /******************************************************************************/
 
 static DFBResult
@@ -179,19 +238,10 @@ device_open( void                  *device_data,
              SoundDeviceInfo       *device_info,
              CoreSoundDeviceConfig *config )
 {
-     OSSDeviceData *data       = device_data;
-     int            fmt        = fs2oss_format( config->format );
-     int            channels   = FS_CHANNELS_FOR_MODE(config->mode);
-     int            rate       = config->rate;
-     int            buffersize = 0;
-#if defined(SNDCTL_DSP_PROFILE) && defined(APF_NORMAL)
-     int            prof       = APF_NORMAL;
-#endif
+     OSSDeviceData *data = device_data;
      int            mixer_fd;
      audio_buf_info info;
-     
-     if (fmt == -1)
-          return DFB_UNSUPPORTED;
+     DFBResult      ret;
      
      /* open sound device in non-blocking mode */
      if (fs_config->device) {
@@ -203,8 +253,7 @@ device_open( void                  *device_data,
      }
      
      if (data->fd < 0) {
-          D_ERROR( "FusionSound/Device/OSS: "
-                   "Couldn't open output device!\n" );
+          D_ERROR( "FusionSound/Device/OSS: Couldn't open output device!\n" );
           return DFB_IO;
      }
      
@@ -214,51 +263,22 @@ device_open( void                  *device_data,
      /* TODO: get device name */
      
      /* device capabilities */
-     device_info->caps = DCF_WRITEBLOCKS;
+     device_info->caps = DCF_NONE;
      
-     /* set application profile */
-#if defined(SNDCTL_DSP_PROFILE) && defined(APF_NORMAL)
-     if (ioctl( data->fd, SNDCTL_DSP_PROFILE, &prof ) < 0)
-          D_WARN( "Unable to set application profile!" );
-#endif
-         
-     /* set output format */
-     if (ioctl( data->fd, SNDCTL_DSP_SETFMT, &fmt ) < 0 || 
-         oss2fs_format( fmt ) != config->format) {
-          D_ERROR( "FusionSound/Device/OSS: unsupported format!\n" );
+     ret = oss_device_set_configuration( data->fd, config );
+     if (ret) {
           close( data->fd );
-          return DFB_UNSUPPORTED;
-     }
-
-     /* set number of channels */
-     if (ioctl( data->fd, SNDCTL_DSP_CHANNELS, &channels ) < 0 || 
-         channels != FS_CHANNELS_FOR_MODE(config->mode)) {
-          D_ERROR( "FusionSound/Device/OSS: unsupported channels mode!\n" );
-          close( data->fd );
-          return DFB_UNSUPPORTED;
+          return ret;
      }
      
-     data->bytes_per_frame = channels * FS_BYTES_PER_SAMPLE(config->format);
+     data->config = config;
+     data->bytes_per_frame = FS_CHANNELS_FOR_MODE(config->mode) * FS_BYTES_PER_SAMPLE(config->format);
      
-     /* set sample rate */
-     if (ioctl( data->fd, SNDCTL_DSP_SPEED, &rate ) < 0) {
-          D_ERROR( "FusionSound/Device/OSS: "
-                   "Unable to set rate to '%d'!\n", config->rate );
+     data->buffer = D_MALLOC( config->buffersize * data->bytes_per_frame );
+     if (!data->buffer) {
           close( data->fd );
-          return DFB_UNSUPPORTED;
+          return D_OOM();
      }
-     
-     /* query block size */
-     ioctl( data->fd, SNDCTL_DSP_GETBLKSIZE, &buffersize );
-     buffersize /= data->bytes_per_frame;
-     if (buffersize < 1) {
-          D_ERROR( "FusionSound/Device/OSS: Unable to query block size!\n" );
-          close( data->fd );
-          return DFB_UNSUPPORTED;
-     }
-
-     config->rate = rate;
-     config->buffersize = buffersize;
 
      /* query output space */
      if (ioctl( data->fd, SNDCTL_DSP_GETOSPACE, &info ) < 0)
@@ -283,13 +303,29 @@ device_open( void                  *device_data,
      return DFB_OK;
 }
 
-static void
-device_write( void *device_data, void *samples, unsigned count )
+static DFBResult
+device_get_buffer( void *device_data, u8 **addr, unsigned int *avail )
 {
      OSSDeviceData *data = device_data;
      
-     if (write( data->fd, samples, count*data->bytes_per_frame ) < 0)
-          D_PERROR( "FusionSound/Device/OSS: couldn't write %d frames!\n", count );
+     *addr = data->buffer;
+     *avail = data->config->buffersize;
+     
+     return DFB_OK;
+}
+
+static DFBResult
+device_commit_buffer( void *device_data, unsigned int frames )
+{
+     OSSDeviceData *data = device_data;
+     
+     if (write( data->fd, data->buffer, frames*data->bytes_per_frame ) < 0) {
+          DFBResult ret = errno2result( errno );
+          D_DERROR( ret, "FusionSound/Device/OSS: couldn't write %d frames!\n", frames );
+          return ret;
+     }
+     
+     return DFB_OK;         
 }
 
 static void
@@ -351,15 +387,51 @@ device_set_volume( void *device_data, float level )
      close( fd );
 
      return DFB_OK;
-}     
+}
+
+static DFBResult
+device_suspend( void *device_data )
+{
+     OSSDeviceData *data = device_data;
+     
+     ioctl( data->fd, SNDCTL_DSP_RESET, 0 );
+     close( data->fd );
+     data->fd = -1;
+     
+     return DFB_OK;
+}
+
+static DFBResult
+device_resume( void *device_data )
+{
+     OSSDeviceData *data = device_data;
+     DFBResult      ret;
+     
+     data->fd = (fs_config->device)
+                ? open( fs_config->device, O_WRONLY )
+                : direct_try_open( "/dev/dsp", "/dev/sound/dsp", O_WRONLY, false );
+     if (data->fd < 0) {
+          D_ERROR( "FusionSound/Device/OSS: Couldn't reopen output device!\n" );
+          return DFB_IO;
+     }
+     
+     ret = oss_device_set_configuration( data->fd, data->config );
+     if (ret) {
+          close( data->fd );
+          data->fd = -1;
+     }
+     
+     return ret;     
+}  
 
 static void
 device_close( void *device_data )
 {
      OSSDeviceData *data = device_data;
      
-     ioctl( data->fd, SNDCTL_DSP_RESET, 0 );
-     
-     close( data->fd );
+     if (data->fd > 0) {
+          ioctl( data->fd, SNDCTL_DSP_RESET, 0 );
+          close( data->fd );
+     }
 }
 

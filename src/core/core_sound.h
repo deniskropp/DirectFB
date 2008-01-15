@@ -97,19 +97,34 @@ FSDeviceDescription *fs_core_device_description( CoreSound *core );
 CoreSoundDeviceConfig *fs_core_device_config( CoreSound *core );
 
 /*
- * Start playback.
- */
-DFBResult fs_core_start( CoreSound *core );
-
-/*
- * Returns master volume.
+ * Returns the master volume.
  */
 DFBResult fs_core_get_master_volume( CoreSound *core, float *level );
 
 /*
- * Sets master volume.
+ * Sets the master volume.
  */
 DFBResult fs_core_set_master_volume( CoreSound *core, float level );
+
+/*
+ * Returns the local volume.
+ */
+DFBResult fs_core_get_local_volume( CoreSound *core, float *level );
+
+/*
+ * Sets the local volume.
+ */
+DFBResult fs_core_set_local_volume( CoreSound *core, float level );
+
+/*
+ * Suspends playback.
+ */
+DFBResult fs_core_suspend( CoreSound *core );
+
+/*
+ * Resumes playback.
+ */
+DFBResult fs_core_resume( CoreSound *core );
 
 
 #endif

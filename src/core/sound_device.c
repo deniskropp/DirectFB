@@ -51,13 +51,13 @@ struct __FS_CoreSoundDevice {
 
      void                   *device_data;
      SoundDeviceInfo         device_info;
-     
-     CoreSoundDeviceConfig   config;
 };
 
 
 DFBResult 
-fs_device_initialize( CoreSound *core, CoreSoundDevice **ret_device )
+fs_device_initialize( CoreSound               *core, 
+                      CoreSoundDeviceConfig   *config,
+                      CoreSoundDevice        **ret_device )
 {
      DFBResult        ret;
      CoreSoundDevice *device;
@@ -74,15 +74,6 @@ fs_device_initialize( CoreSound *core, CoreSoundDevice **ret_device )
                FS_SOUND_DRIVER_INFO_NAME_LENGTH, "none" );
      snprintf( device->info.vendor,
                FS_SOUND_DRIVER_INFO_VENDOR_LENGTH, "directfb.org" );
-     
-     /* Set default configuration. */    
-     device->config.mode       = fs_config->channelmode;
-     device->config.format     = fs_config->sampleformat;
-     device->config.rate       = fs_config->samplerate;
-     device->config.buffersize = fs_config->samplerate * fs_config->buffertime / 1000;
-     /* No more than 65535 frames. */
-     if (device->config.buffersize > 65535)
-          device->config.buffersize = 65535;
           
      if (!fs_config->driver || strcmp( fs_config->driver, "none" )) {
           /* Build a list of available drivers. */
@@ -134,8 +125,7 @@ fs_device_initialize( CoreSound *core, CoreSoundDevice **ret_device )
           }
          
           /* Open sound device. */
-          ret = device->funcs->OpenDevice( device->device_data, 
-                                          &device->device_info, &device->config );
+          ret = device->funcs->OpenDevice( device->device_data, &device->device_info, config );
           if (ret) {
                D_ERROR( "FusionSound/Device: could not open device!\n" );
                direct_module_unref( device->module );
@@ -150,10 +140,9 @@ fs_device_initialize( CoreSound *core, CoreSoundDevice **ret_device )
              device->info.vendor );
              
      D_INFO( "FusionSound/Device: %d Hz, %d channel(s), %d bits, %.1f ms.\n",
-             device->config.rate,
-             FS_CHANNELS_FOR_MODE(device->config.mode),
-             FS_BITS_PER_SAMPLE(device->config.format),
-             (float)device->config.buffersize/device->config.rate*1000.0f  );
+             config->rate, FS_CHANNELS_FOR_MODE(config->mode),
+             FS_BITS_PER_SAMPLE(config->format),
+             (float)config->buffersize/config->rate*1000.f  );
      
      *ret_device = device;
      
@@ -178,27 +167,31 @@ fs_device_get_capabilities( CoreSoundDevice *device )
      
      return device->device_info.caps;
 }
-
-void
-fs_device_get_configuration( CoreSoundDevice       *device, 
-                             CoreSoundDeviceConfig *config )
-{
-     D_ASSERT( device != NULL );
-     D_ASSERT( config != NULL );
-     
-     *config = device->config;
-}
    
-void 
-fs_device_write( CoreSoundDevice *device,
-                 void            *samples,
-                 unsigned int     count )
+DFBResult 
+fs_device_get_buffer( CoreSoundDevice  *device,
+                      u8              **addr,
+                      unsigned int     *avail )
 {
      D_ASSERT( device != NULL );
-     D_ASSERT( samples != NULL );
+     D_ASSERT( addr != NULL );
+     D_ASSERT( avail != NULL );
      
      if (device->funcs)
-          device->funcs->Write( device->device_data, samples, count );
+          return device->funcs->GetBuffer( device->device_data, addr, avail );
+          
+     return DFB_UNSUPPORTED;
+}
+
+DFBResult
+fs_device_commit_buffer( CoreSoundDevice *device, unsigned int frames )
+{
+     D_ASSERT( device != NULL );
+     
+     if (device->funcs)
+          return device->funcs->CommitBuffer( device->device_data, frames );
+          
+     return DFB_UNSUPPORTED;
 }
 
 void
@@ -220,7 +213,7 @@ fs_device_get_volume( CoreSoundDevice *device, float *level )
      D_ASSERT( level != NULL );
      
      if (device->funcs)
-          return device->funcs->GetVolume( device, level );
+          return device->funcs->GetVolume( device->device_data, level );
      
      return DFB_UNSUPPORTED;
 }
@@ -231,9 +224,31 @@ fs_device_set_volume( CoreSoundDevice *device, float level )
      D_ASSERT( device != NULL );
      
      if (device->funcs)
-          return device->funcs->SetVolume( device, level );
+          return device->funcs->SetVolume( device->device_data, level );
           
      return DFB_UNSUPPORTED;
+}
+
+DFBResult
+fs_device_suspend( CoreSoundDevice *device )
+{
+     D_ASSERT( device != NULL );
+     
+     if (device->funcs)
+          return device->funcs->Suspend( device->device_data );
+          
+     return DFB_OK;
+}
+
+DFBResult
+fs_device_resume( CoreSoundDevice *device )
+{
+     D_ASSERT( device != NULL );
+     
+     if (device->funcs)
+          return device->funcs->Resume( device->device_data );
+          
+     return DFB_OK;
 }
 
 void

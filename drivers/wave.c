@@ -1,6 +1,6 @@
 /*
-   (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002-2006  convergence GmbH.
+   (c) Copyright 2001-2008  The DirectFB Organization (directfb.org)
+   (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
 
@@ -33,6 +33,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/util.h>
 
@@ -49,9 +50,13 @@ FS_SOUND_DRIVER( wave )
 /******************************************************************************/
 
 typedef struct {
-     int fd;
-     int bits;
-     int channels;
+     int   fd;
+     
+     int   bits;
+     int   channels;
+     
+     void *buffer;
+     int   buffersize;
 } WaveDeviceData;
 
 /******************************************************************************/
@@ -163,6 +168,18 @@ device_open( void                  *device_data,
 
      /* device capabilities */
      device_info->caps = 0;
+     
+     /* allocate output buffer */
+     data->buffer = D_MALLOC( config->buffersize *
+                              FS_CHANNELS_FOR_MODE(config->mode) *
+                              FS_BYTES_PER_SAMPLE(config->format) );
+     if (!data->buffer) {
+          close( data->fd );
+          return D_OOM();
+     }
+     
+     data->buffersize = config->buffersize;
+
 
      header.ChunkID       = FCC('R','I','F','F');
      header.ChunkSize     = 0;
@@ -208,35 +225,50 @@ device_open( void                  *device_data,
      return DFB_OK;
 }
 
-static void
-device_write( void *device_data, void *samples, unsigned int count )
+static DFBResult
+device_get_buffer( void *device_data, u8 **addr, unsigned int *avail )
 {
      WaveDeviceData *data = device_data;
+     
+     *addr = data->buffer;
+     *avail = data->buffersize;
+     
+     return DFB_TRUE;
+}
+
+static DFBResult
+device_commit_buffer( void *device_data, unsigned int frames )
+{
+     WaveDeviceData *data = device_data;
+     void           *buf  = data->buffer;
+     
 #ifdef WORDS_BIGENDIAN
      unsigned int    i;
      
      switch (data->bits) {
           case 16:
-               for (i = 0; i < count*data->channels; i++)
-                    ((u16*)samples)[i] = BSWAP16(((u16*)samples)[i]);
+               for (i = 0; i < frames*data->channels; i++)
+                    ((u16*)buf)[i] = BSWAP16(((u16*)buf)[i]);
                break;
           case 24:
-               for (i = 0; i < count*data->channels; i++) {
-                    u8 tmp = ((u8*)samples)[i*3+0];
-                    ((u8*)samples)[i*3+0] = ((u8*)samples)[i*3+2];
-                    ((u8*)samples)[i*3+2] = tmp;
+               for (i = 0; i < frames*data->channels; i++) {
+                    u8 tmp = ((u8*)buf)[i*3+0];
+                    ((u8*)buf)[i*3+0] = ((u8*)buf)[i*3+2];
+                    ((u8*)buf)[i*3+2] = tmp;
                }
                break;
           case 32:
-               for (i = 0; i < count*data->channels; i++)
-                    ((u32*)samples)[i] = BSWAP32(((u32*)samples)[i]);
+               for (i = 0; i < frames*data->channels; i++)
+                    ((u32*)buf)[i] = BSWAP32(((u32*)buf)[i]);
                break;
           default:
                break;
      }
 #endif
 
-     write( data->fd, samples, count * data->channels * data->bits >> 3 );
+     write( data->fd, buf, frames * data->channels * data->bits >> 3 );
+     
+     return DFB_OK;
 }
 
 static void
@@ -257,28 +289,65 @@ device_set_volume( void *device_data, float level )
      return DFB_UNSUPPORTED;
 }
 
+static DFBResult
+device_suspend( void *device_data )
+{
+     WaveDeviceData *data = device_data;
+     
+     close( data->fd );
+     data->fd = -1;
+     
+     return DFB_OK;
+}
+
+static DFBResult
+device_resume( void *device_data )
+{
+     WaveDeviceData *data = device_data;
+     char            path[4096];
+     
+     if (fs_config->device) {
+          snprintf( path, sizeof(path), "%s", fs_config->device );
+     }
+     else {
+          snprintf( path, sizeof(path),
+                    "./fusionsound-%d.wav", fs_config->session );
+     }
+
+     data->fd = open( path, O_WRONLY | O_APPEND | O_NOCTTY );
+     if (data->fd < 0) {
+          D_ERROR( "FusionSound/Device/Wave: couldn't reopen '%s'!\n", path );
+          return DFB_IO;
+     }
+     
+     return DFB_OK;
+}
+
 static void
 device_close( void *device_data )
 {
      WaveDeviceData *data = device_data;
-     off_t           pos;
+     
+     if (data->buffer)
+          D_FREE( data->buffer);
 
-     pos = lseek( data->fd, 0, SEEK_CUR );
-     if (pos > 0) {
-          u32 ChunkSize     = pos - 8;
-          u32 Subchunk2Size = pos - sizeof(WaveHeader);
+     if (data->fd >= 0) {
+          off_t pos = lseek( data->fd, 0, SEEK_CUR );
+          if (pos > 0) {
+               u32 ChunkSize     = pos - 8;
+               u32 Subchunk2Size = pos - sizeof(WaveHeader);
           
 #ifdef WORDS_BIGENDIAN
-          ChunkSize     = BSWAP32(ChunkSize);
-          Subchunk2Size = BSWAP32(Subchunk2Size);
+               ChunkSize     = BSWAP32(ChunkSize);
+               Subchunk2Size = BSWAP32(Subchunk2Size);
 #endif
+               if (lseek( data->fd, 4, SEEK_SET ) == 4)
+                    write( data->fd, &ChunkSize, 4 );
 
-          if (lseek( data->fd, 4, SEEK_SET ) == 4)
-               write( data->fd, &ChunkSize, 4 );
+               if (lseek( data->fd, 40, SEEK_SET ) == 40)
+                    write( data->fd, &Subchunk2Size, 4 );
+          }
 
-          if (lseek( data->fd, 40, SEEK_SET ) == 40)
-               write( data->fd, &Subchunk2Size, 4 );
+          close( data->fd );
      }
-
-     close( data->fd );
 }
