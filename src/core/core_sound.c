@@ -778,6 +778,7 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
 }
 #else /* FS_MAX_CHANNELS == 2 */
 # define FS_MIX_OUTPUT_LOOP( BODY ) {                               \
+     int n;                                                         \
      if (mode == FSCM_MONO) {                                       \
           for (n = count; n; n--) {                                 \
                register __fsf s;                                    \
