@@ -960,7 +960,7 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
                D_DEBUG_AT( Fusion_Reactor, " -> sending to '%s'\n", addr.sun_path );
                
                ret = _fusion_send_message( world->fusion_fd, msg, sizeof(FusionReactorMessage)+msg_size, &addr );
-               if (ret == DFB_DEAD) {
+               if (ret == DFB_FUSION) {
                     D_DEBUG_AT( Fusion_Reactor, " -> removing dead listener %lu\n", listener->fusion_id );
                     
                     if (ref)

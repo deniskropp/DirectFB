@@ -908,6 +908,8 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
 
 #else /* FUSION_BUILD_KERNEL */
 
+#include <dirent.h>
+
 #include <direct/system.h>
 
 typedef struct {
@@ -1171,7 +1173,7 @@ _fusion_send_message( int                 fd,
                case EINTR:
                     continue;
                case ECONNREFUSED:
-                    return DFB_DEAD;
+                    return DFB_FUSION;
                default:
                     break;
           }
@@ -1199,7 +1201,7 @@ _fusion_recv_message( int                 fd,
                case EINTR:
                     continue;
                case ECONNREFUSED:
-                    return DFB_DEAD;
+                    return DFB_FUSION;
                default:
                     break;
           }
@@ -1352,7 +1354,7 @@ fusion_enter( int               world_index,
      FusionWorld        *world   = NULL;
      FusionWorldShared  *shared  = MAP_FAILED;
      struct sockaddr_un  addr;
-     char                buf[64];
+     char                buf[128];
      int                 len, err;
 
      D_DEBUG_AT( Fusion_Main, "%s( %d, %d, %p )\n", __FUNCTION__, world_index, abi_version, ret_world );
@@ -1767,6 +1769,7 @@ fusion_exit( FusionWorld *world,
              bool         emergency )
 {
      FusionWorldShared *shared;
+     int                world_index;
 
      D_DEBUG_AT( Fusion_Main, "%s( %p, %semergency )\n", __FUNCTION__, world, emergency ? "" : "no " );
 
@@ -1775,6 +1778,8 @@ fusion_exit( FusionWorld *world,
      shared = world->shared;
 
      D_MAGIC_ASSERT( shared, FusionWorldShared );
+     
+     world_index = shared->world_index;
 
      pthread_mutex_lock( &fusion_worlds_lock );
 
@@ -1808,7 +1813,7 @@ fusion_exit( FusionWorld *world,
 
           addr.sun_family = AF_UNIX;
           snprintf( addr.sun_path, sizeof(addr.sun_path), 
-                    "/tmp/.fusion-%d/%lx", fusion_world_index( world ), FUSION_ID_MASTER );
+                    "/tmp/.fusion-%d/%lx", world_index, FUSION_ID_MASTER );
 
           leave.type      = FMT_LEAVE;
           leave.fusion_id = world->fusion_id;
@@ -1838,23 +1843,48 @@ fusion_exit( FusionWorld *world,
      /* Unmap shared area. */
      if (fusion_master( world ) && !world->forked)
           D_MAGIC_CLEAR( shared );
-
      munmap( shared, sizeof(FusionWorldShared) );
-
-     /* Unbind Socket. */
-     if (fusion_master( world ) && !world->forked) {
-          struct sockaddr_un addr;
-          socklen_t          len = sizeof(addr);
-          
-          if (getsockname( world->fusion_fd, (struct sockaddr*)&addr, &len ) == 0) {
-               D_DEBUG_AT( Fusion_Main, "Removing socket '%s'.\n", addr.sun_path );
-               unlink( addr.sun_path );
-          }
-     }
- 
+     
      /* Close socket. */     
      close( world->fusion_fd );
 
+     if (fusion_master( world ) && !world->forked) {
+          DIR  *dir;
+          char  buf[128];
+          int   len;
+          
+          /* Remove core shmfile. */
+          snprintf( buf, sizeof(buf), "%s/fusion.%d.core", 
+                    fusion_config->tmpfs ? : "/dev/shm", world_index );
+          D_DEBUG_AT( Fusion_Main, "Removing shmfile %s.\n", buf );
+          unlink( buf );
+          
+          /* Cleanup socket directory. */
+          len = snprintf( buf, sizeof(buf), "/tmp/.fusion-%d/", world_index );
+          dir = opendir( buf );
+          if (dir) {
+               struct dirent *entry = NULL;
+               struct dirent  tmp;
+               
+               while (readdir_r( dir, &tmp, &entry ) == 0 && entry) {
+                    if (entry->d_name[0] != '.') {
+                         struct stat st;
+                         
+                         direct_snputs( buf+len, entry->d_name, sizeof(buf)-len );
+                         if (stat( buf, &st ) == 0 && S_ISSOCK(st.st_mode)) {
+                              D_DEBUG_AT( Fusion_Main, "Removing socket %s.\n", buf );
+                              unlink( buf );
+                         }
+                    }
+               }
+               
+               closedir( dir );
+          }
+          else {
+               D_PERROR( "Fusion/Main: Couldn't open socket directory %s", buf );
+          }
+     }
+     
      /* Free local world data. */
      D_MAGIC_CLEAR( world );
      D_FREE( world );
