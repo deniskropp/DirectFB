@@ -30,27 +30,36 @@
 
 #include <fusionsound.h>
 
+typedef enum {
+     FSRM_NONE = 0,
+     FSRM_DPACK,
+} FSRemoteCompression;
+
 typedef struct {
-     char           *driver;       /* Used driver, e.g. "oss" */
-     char           *device;       /* Used device, e.g. "/dev/dsp" */
+     char               *driver;       /* Used driver, e.g. "oss" */
+     char               *device;       /* Used device, e.g. "/dev/dsp" */
      
-     FSSampleFormat  sampleformat; /* default sampleformat */
-     FSChannelMode   channelmode;  /* default channelmode */
-     int             samplerate;   /* default samplerate */
-     int             buffertime;   /* default buffertime (in ms) */
+     FSSampleFormat      sampleformat; /* default sampleformat */
+     FSChannelMode       channelmode;  /* default channelmode */
+     int                 samplerate;   /* default samplerate */
+     int                 buffertime;   /* default buffertime (in ms) */
 
-     int             session;      /* select multi app world */
+     int                 session;      /* select multi app world */
 
-     bool            banner;       /* startup banner */
-     bool            wait;         /* wait slaves on exit */
-     bool            deinit_check; /* enable deinit check at exit */
+     bool                banner;       /* startup banner */
+     bool                wait;         /* wait slaves on exit */
+     bool                deinit_check; /* enable deinit check at exit */
      
-     bool            dither;       /* enable dithering */
+     bool                dither;       /* enable dithering */
+    
+     bool                dma;          /* use DMA */
 
      struct {
-          char      *host;         /* Remote host in case of Voodoo Sound. */
-          int        session;      /* Remote session number. */
+          char          *host;         /* Remote host in case of Voodoo Sound. */
+          int            session;      /* Remote session number. */
      } remote;
+     
+     FSRemoteCompression remote_compression;
 } FSConfig;
 
 extern FSConfig *fs_config;

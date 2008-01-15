@@ -53,27 +53,29 @@ FSConfig *fs_config = NULL;
 static const char *config_usage =
      "FusionSound version " FUSIONSOUND_VERSION "\n"
      "\n"
-     " --fs-help                       Output FusionSound usage information and exit\n"
-     " --fs:<option>[,<option>]...     Pass options to FusionSound (see below)\n"
+     " --fs-help                        Output FusionSound usage information and exit\n"
+     " --fs:<option>[,<option>]...      Pass options to FusionSound (see below)\n"
      "\n"
      "FusionSound options:\n"
      "\n"
-     "  driver=<driver>                Specify driver to use (e.g \"oss\")\n"
-     "  device=<device>                Specify driver ouput device (e.g \"/dev/dsp\")\n"
-     "  channels=<channels>            Set the default number of channels\n"
-     "  channelmode=<channelmode>      Set the default channel mode\n"
-     "  sampleformat=<sampleformat>    Set the default sample format\n"
-     "  samplerate=<samplerate>        Set the default sample rate\n"
-     "  buffertime=<millisec>          Set the default buffer time\n"
-     "  session=<num>                  Select local multi app world (-1 = new)\n"
-     "  remote=<host>[:<session>]      Select remote session for Voodoo Sound\n"
-     "  quiet                          No text output except debugging\n"
-     "  [no-]banner                    Show FusionSound banner on startup\n"
-     "  [no-]debug                     Enable debug output\n"
-     "  [no-]trace                     Enable stack trace support\n"
-     "  [no-]wait                      Wait slaves before quitting\n"
-     "  [no-]deinit-check              Enable deinit check at exit\n"
-     "  [no-]dither                    Enable dithering\n"
+     "  driver=<driver>                 Specify driver to use (e.g \"oss\")\n"
+     "  device=<device>                 Specify driver ouput device (e.g \"/dev/dsp\")\n"
+     "  channels=<channels>             Set the default number of channels\n"
+     "  channelmode=<channelmode>       Set the default channel mode\n"
+     "  sampleformat=<sampleformat>     Set the default sample format\n"
+     "  samplerate=<samplerate>         Set the default sample rate\n"
+     "  buffertime=<millisec>           Set the default buffer time\n"
+     "  session=<num>                   Select local multi app world (-1 = new)\n"
+     "  remote=<host>[:<session>]       Select remote session for Voodoo Sound\n"
+     "  remote-compression=(none|dpack) Select compression method for remote session\n"
+     "  quiet                           No text output except debugging\n"
+     "  [no-]banner                     Show FusionSound banner on startup\n"
+     "  [no-]debug                      Enable debug output\n"
+     "  [no-]trace                      Enable stack trace support\n"
+     "  [no-]wait                       Wait slaves before quitting\n"
+     "  [no-]deinit-check               Enable deinit check at exit\n"
+     "  [no-]dither                     Enable dithering\n"
+     "  [no-]dma                        Enable DMA\n"
      "\n";
      
 typedef struct {
@@ -214,8 +216,7 @@ fs_config_set( const char *name, const char *value )
                fs_config->driver = D_STRDUP( value );
           }
           else {
-               D_ERROR( "FusionSound/Config 'driver': "
-                        "No driver name specified!\n" );
+               D_ERROR( "FusionSound/Config '%s': No value specified!\n", name );
                return DFB_INVARG;
           } 
      }
@@ -226,8 +227,7 @@ fs_config_set( const char *name, const char *value )
                fs_config->device = D_STRDUP( value );
           }
           else {
-               D_ERROR( "FusionSound/Config 'device': "
-                        "No device name specified!\n" );
+               D_ERROR( "FusionSound/Config '%s': No value specified!\n", name );
                return DFB_INVARG;
           }
      }
@@ -236,21 +236,18 @@ fs_config_set( const char *name, const char *value )
                int channels;
 
                if (sscanf( value, "%d", &channels ) < 1) {
-                    D_ERROR( "FusionSound/Config 'channels': "
-                             "Could not parse value!\n" );
+                    D_ERROR( "FusionSound/Config '%s': Could not parse value!\n", name );
                     return DFB_INVARG;
                }
                else if (channels < 1 || channels > FS_MAX_CHANNELS) {
-                    D_ERROR( "FusionSound/Config 'channels': "
-                             "Unsupported value '%d'!\n", channels );
+                    D_ERROR( "FusionSound/Config '%s': Unsupported value '%d'!\n", name, channels );
                     return DFB_INVARG;
                }      
 
                fs_config->channelmode = fs_mode_for_channels( channels );
           }
           else {
-               D_ERROR( "FusionSound/Config 'channels': "
-                        "No value specified!\n" );
+               D_ERROR( "FusionSound/Config '%s': No value specified!\n", name );
                return DFB_INVARG;
           }
      }
@@ -260,16 +257,14 @@ fs_config_set( const char *name, const char *value )
 
                mode = parse_modestring( value );
                if (mode == FSCM_UNKNOWN) {
-                    D_ERROR( "FusionSound/Config 'channelmode': "
-                             "Could not parse mode!\n" );
+                    D_ERROR( "FusionSound/Config '%s': Could not parse value!\n", name );
                     return DFB_INVARG;
                }      
 
                fs_config->channelmode = mode;
           }
           else {
-               D_ERROR( "FusionSound/Config 'channelmode': "
-                        "No value specified!\n" );
+               D_ERROR( "FusionSound/Config '%s': No value specified!\n", name );
                return DFB_INVARG;
           }
      }
@@ -279,16 +274,14 @@ fs_config_set( const char *name, const char *value )
 
                format = parse_sampleformat( value );
                if (format == FSSF_UNKNOWN) {
-                    D_ERROR( "FusionSound/Config 'sampleformat': "
-                             "Could not parse format!\n" );
+                    D_ERROR( "FusionSound/Config '%s': Could not parse value!\n", name );
                     return DFB_INVARG;
                }
 
                fs_config->sampleformat = format;
           }
           else {
-               D_ERROR( "FusionSound/Config 'sampleformat': "
-                        "No format specified!\n" );
+               D_ERROR( "FusionSound/Config '%s': No format specified!\n", name );
                return DFB_INVARG;
           }
      }
@@ -302,16 +295,14 @@ fs_config_set( const char *name, const char *value )
                     return DFB_INVARG;
                }
                else if (rate < 1) {
-                    D_ERROR( "FusionSound/Config 'samplerate': "
-                             "Unsupported value '%d'!\n", rate );
+                    D_ERROR( "FusionSound/Config '%s': Unsupported value '%d'!\n", name, rate );
                     return DFB_INVARG;
                }      
 
                fs_config->samplerate = rate;
           }
           else {
-               D_ERROR( "FusionSound/Config 'samplerate': "
-                        "No value specified!\n" );
+               D_ERROR( "FusionSound/Config '%s': No value specified!\n", name );
                return DFB_INVARG;
           }
      }
@@ -325,16 +316,14 @@ fs_config_set( const char *name, const char *value )
                     return DFB_INVARG;
                }
                else if (time < 1 || time > 5000) {
-                    D_ERROR( "FusionSound/Config 'buffertime': "
-                             "Unsupported value '%d'!\n", time );
+                    D_ERROR( "FusionSound/Config '%s': Unsupported value '%d'!\n", name, time );
                     return DFB_INVARG;
                }      
 
                fs_config->buffertime = time;
           }
           else {
-               D_ERROR( "FusionSound/Config 'buffertime': "
-                        "No value specified!\n" );
+               D_ERROR( "FusionSound/Config '%s': No value specified!\n", name );
                return DFB_INVARG;
           }
      }
@@ -343,27 +332,25 @@ fs_config_set( const char *name, const char *value )
                int session;
 
                if (sscanf( value, "%d", &session ) < 1) {
-                    D_ERROR( "FusionSound/Config 'session': "
-                             "Could not parse value!\n");
+                    D_ERROR( "FusionSound/Config '%s': Could not parse value!\n", name );
                     return DFB_INVARG;
                }
 
                fs_config->session = session;
           }
           else {
-               D_ERROR( "FusionSound/Config 'session': "
-                        "No value specified!\n" );
+               D_ERROR( "FusionSound/Config '%s': No value specified!\n", name );
                return DFB_INVARG;
           }
      }
-     else if (strcmp (name, "remote" ) == 0) {
+     else if (!strcmp (name, "remote" )) {
           if (value) {
                char host[128];
                int  session = 0;
 
                if (sscanf( value, "%127s:%d", host, &session ) < 1) {
-                    D_ERROR("FusionSound/Config '%s': "
-                            "Could not parse value (format is <host>[:<session>])!\n", name);
+                    D_ERROR( "FusionSound/Config '%s': "
+                             "Could not parse value (format is <host>[:<session>])!\n", name );
                     return DFB_INVARG;
                }
 
@@ -374,10 +361,28 @@ fs_config_set( const char *name, const char *value )
                fs_config->remote.session = session;
           }
           else {
-               D_ERROR("FusionSound/Config '%s': No value specified!\n", name);
+               D_ERROR( "FusionSound/Config '%s': No value specified!\n", name );
                return DFB_INVARG;
           }
      }
+     else if (!strcmp( name, "remote-compression" )) {
+          if (value) {
+               if (!strcasecmp( value, "none" )) {
+                    fs_config->remote_compression = FSRM_NONE;
+               }
+               else if (!strcasecmp( value, "dpack" )) {
+                    fs_config->remote_compression = FSRM_DPACK;
+               }
+               else {
+                    D_ERROR( "FusionSound/Config '%s': Unsupported value '%s'!\n", name, value );
+                    return DFB_INVARG;
+               }
+          }
+          else {
+               D_ERROR( "FusionSound/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
+     } 
      else if (!strcmp( name, "banner" )) {
           fs_config->banner = true;
      }
@@ -401,6 +406,12 @@ fs_config_set( const char *name, const char *value )
      }
      else if (!strcmp( name, "no-dither" )) {
           fs_config->dither = false;
+     }
+     else if (!strcmp( name, "dma" )) {
+          fs_config->dma = true;
+     }
+     else if (!strcmp( name, "no-dma" )) {
+          fs_config->dma = false;
      }
      else if (fusion_config_set( name, value ) && direct_config_set( name, value ))
           return DFB_UNSUPPORTED;
