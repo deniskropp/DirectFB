@@ -1,0 +1,6 @@
+.c64x.ko.cmd
+.c64x.mod.o.cmd
+.c64x.o.cmd
+.tmp_versions
+c64x.ko
+c64x.mod.c

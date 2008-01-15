@@ -1,9 +1,2 @@
-Makefile
-Makefile.in
-.deps
-.libs
-*.lo
-*.la
 yuvtbl-gen
 yuvtbl.h
-*.o

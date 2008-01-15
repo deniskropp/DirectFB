@@ -1,7 +1,1 @@
-Makefile
-Makefile.in
-.deps
-.libs
-*.lo*
-*.la
 foo.h

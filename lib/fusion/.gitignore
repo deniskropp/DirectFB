@@ -1,9 +1,2 @@
-Makefile
-Makefile.in
-.deps
-.libs
-*.lo
-*.la
 build.h
 fusion.pc
-*.o
