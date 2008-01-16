@@ -105,16 +105,16 @@ av_read_callback( void *opaque, uint8_t *buf, int size )
           return -1;
      
      while (size) {
-          unsigned int num = 0;
+          unsigned int read = 0;
           direct_stream_wait( data->stream, size, NULL );
-          ret = direct_stream_read( data->stream, size, buf, &num );
+          ret = direct_stream_read( data->stream, size, buf+len, &read );
           if (ret) {
                if (!len)
-                    return -1;
+                    return (ret == DFB_EOF) ? 0 : -1;
                break;
           }
-          len += num;
-          size -= num;
+          len += read;
+          size -= read;
      }
           
      return len;
