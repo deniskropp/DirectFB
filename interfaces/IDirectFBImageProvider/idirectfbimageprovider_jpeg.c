@@ -234,16 +234,34 @@ jpeglib_panic(j_common_ptr cinfo)
      longjmp(myerr->setjmp_buffer, 1);
 }
 
-
-static void
-copy_line32( u32 *dst, u8 *src, int width)
+static inline void
+copy_line32( u32 *argb, const u8 *rgb, int width )
 {
-     u32 r, g , b;
      while (width--) {
-          r = (*src++) << 16;
-          g = (*src++) << 8;
-          b = (*src++);
-          *dst++ = (0xFF000000 |r|g|b);
+          *argb++ = 0xFF000000 | (rgb[0] << 16) | (rgb[1] << 8) | rgb[2];
+
+          rgb += 3;
+     }
+}
+
+static inline void
+copy_line_nv16( u16 *yy, u16 *cbcr, const u8 *src_ycbcr, int width )
+{
+     int x;
+
+     D_ASSUME( !(width & 1) );
+
+     for (x=0; x<width/2; x++) {
+#if WORDS_BIGENDIAN
+          yy[x] = (src_ycbcr[0] << 8) | src_ycbcr[3];
+#else
+          yy[x] = (src_ycbcr[3] << 8) | src_ycbcr[0];
+#endif
+
+          cbcr[x] = (((src_ycbcr[1] + src_ycbcr[4]) << 7) & 0xff00) |
+                     ((src_ycbcr[2] + src_ycbcr[5]) >> 1);
+
+          src_ycbcr += 6;
      }
 }
 
@@ -364,7 +382,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                                       const DFBRectangle     *dest_rect )
 {
      DFBResult              ret;
-     int                    direct = 0;
+     bool                   direct = false;
      DFBRegion              clip;
      DFBRectangle           rect;
      DFBSurfacePixelFormat  format;
@@ -416,6 +434,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           int row_stride;         /* physical row width in output buffer */
           u32 *row_ptr;
           int y = 0;
+          int uv_offset = 0;
 
           cinfo.err = jpeg_std_error(&jerr.pub);
           jerr.pub.error_exit = jpeglib_panic;
@@ -447,9 +466,31 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           jpeg_create_decompress(&cinfo);
           jpeg_buffer_src(&cinfo, data->buffer, 0);
           jpeg_read_header(&cinfo, TRUE);
+          jpeg_calc_output_dimensions(&cinfo);
 
-          cinfo.out_color_space = JCS_RGB;
+          if (cinfo.output_width == rect.w && cinfo.output_height == rect.h)
+               direct = true;
+
           cinfo.output_components = 3;
+
+          switch (dst_surface->format) {
+               case DSPF_NV16:
+                    uv_offset = dst_surface->height * pitch;
+
+                    if (direct && !rect.x && !rect.y) {
+                         D_INFO( "JPEG: Using YCbCr color space directly! (%dx%d)\n",
+                                 cinfo.output_width, cinfo.output_height );
+                         cinfo.out_color_space = JCS_YCbCr;
+                         break;
+                    }
+                    D_INFO( "JPEG: Going through RGB color space! (%dx%d -> %dx%d @%d,%d)\n",
+                            cinfo.output_width, cinfo.output_height, rect.w, rect.h, rect.x, rect.y );
+               
+               default:
+                    cinfo.out_color_space = JCS_RGB;
+                    break;
+          }
+
           jpeg_start_decompress(&cinfo);
 
           data->width = cinfo.output_width;
@@ -467,21 +508,39 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           }
           row_ptr = data->image;
 
-          direct = (rect.w == data->width && rect.h == data->height);
-
           while (cinfo.output_scanline < cinfo.output_height && cb_result == DIRCR_OK) {
                jpeg_read_scanlines(&cinfo, buffer, 1);
-               copy_line32( row_ptr, *buffer, data->width);
-               
-               if (direct) {
-                    DFBRectangle r = { rect.x, rect.y+y, rect.w, 1 };
-                    dfb_copy_buffer_32( row_ptr, lock.addr, lock.pitch,
-                                        &r, dst_surface, &clip );
-                    if (data->render_callback) {
-                         r = (DFBRectangle){ 0, y, data->width, 1 };
-                         cb_result = data->render_callback( &r, 
-                                             data->render_callback_context );
-                    }
+
+               switch (dst_surface->format) {
+                    case DSPF_NV16:
+                         if (direct) {
+                              copy_line_nv16( lock.addr, lock.addr + uv_offset, *buffer, rect.w );
+
+                              lock.addr += lock.pitch;
+
+                              if (data->render_callback) {
+                                   DFBRectangle r = { 0, y, data->width, 1 };
+
+                                   cb_result = data->render_callback( &r, 
+                                                                      data->render_callback_context );
+                              }
+                              break;
+                         }
+
+                    default:
+                         copy_line32( row_ptr, *buffer, data->width);
+
+                         if (direct) {
+                              DFBRectangle r = { rect.x, rect.y+y, rect.w, 1 };
+                              dfb_copy_buffer_32( row_ptr, lock.addr, lock.pitch,
+                                                  &r, dst_surface, &clip );
+                              if (data->render_callback) {
+                                   r = (DFBRectangle){ 0, y, data->width, 1 };
+                                   cb_result = data->render_callback( &r, 
+                                                                      data->render_callback_context );
+                              }
+                         }
+                         break;
                }
 
                row_ptr += data->width;

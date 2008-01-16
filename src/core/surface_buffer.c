@@ -623,6 +623,7 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
           case DSPF_RGB32:
           case DSPF_YUY2:
           case DSPF_UYVY:
+          case DSPF_NV16:
           case DSPF_RGB444:
           case DSPF_RGB555:
                rgb   = true;
@@ -909,6 +910,18 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
                                        buf_p[n3+3], buf_p[n3+4], buf_p[n3+5] );
                     }
                     break;
+               case DSPF_NV16: {
+                    u16 *cbcr = (u16*)(data8 + surface->config.size.h * lock.pitch);
+
+                    for (n=0, n3=0; n<surface->config.size.w/2; n++, n3+=6) {
+                         YCBCR_TO_RGB( data8[n*2+0], cbcr[n] >> 8, cbcr[n] & 0xff,
+                                       buf_p[n3+0], buf_p[n3+1], buf_p[n3+2] );
+
+                         YCBCR_TO_RGB( data8[n*2+1], cbcr[n] >> 8, cbcr[n] & 0xff,
+                                       buf_p[n3+3], buf_p[n3+4], buf_p[n3+5] );
+                    }
+                    break;
+               }
                default:
                     D_BUG( "unexpected pixelformat" );
                     break;
