@@ -119,6 +119,26 @@ This option allows to switch this feature on or off.
 .BI [no-]dither
 Enable dithered samples conversion. 
 
+.TP
+.BI [no]-dma
+Turn on DMA if supported by the output device. Actually this is only supported
+by the ALSA driver. Off by default.
+
+.TP 
+.BI remote=<host>[:<session>]
+Select the remote session to connect to.
+
+.TP
+.BI remote-compression=<method>
+Select compression method used for remote sessions. Supported values for
+<method> are:
+
+.BI none
+No compression at all.
+
+.BI dpack
+A fast and loseless compression method based on delta coding.
+
 
 .SH EXAMPLES
 
