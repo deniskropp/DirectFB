@@ -83,8 +83,6 @@
  *
  */
 
-#define DPACK_SCALE 1
-
 /**************************************************************************************************/
 
 struct bitio {
@@ -311,7 +309,13 @@ typedef struct {
 int 
 dpack_encode( const void *source, FSSampleFormat format, int channels, int length, u8 *dest )
 {
-     int size;
+     int frames = length;
+     int bytes  = channels * FS_BYTES_PER_SAMPLE(format);
+     int size   = 0;
+#if D_DEBUG_ENABLED
+     static unsigned long ctotal = 0;
+     static unsigned long rtotal = 0;
+#endif
      
      D_ASSERT( source != NULL );
      D_ASSERT( channels > 0 );
@@ -320,23 +324,48 @@ dpack_encode( const void *source, FSSampleFormat format, int channels, int lengt
      
      switch (format) {
           case FSSF_U8:
-               size = dpack_encode_u8( source, channels, length, dest );
+               while (frames) {
+                    int num = MIN(frames, DPACK_FRAMES);
+                    size   += dpack_encode_u8( source, channels, num, dest+size );
+                    source += num * bytes;
+                    frames -= num;
+               }                    
                break;
                
           case FSSF_S16:
-               size = dpack_encode_s16( source, channels, length, dest );
+               while (frames) {
+                    int num = MIN(frames, DPACK_FRAMES);
+                    size   += dpack_encode_s16( source, channels, num, dest+size );
+                    source += num * bytes;
+                    frames -= num;
+               }
                break;
                
           case FSSF_S24:
-               size = dpack_encode_s24( source, channels, length, dest );
+               while (frames) {
+                    int num = MIN(frames, DPACK_FRAMES);
+                    size   += dpack_encode_s24( source, channels, num, dest+size );
+                    source += num * bytes;
+                    frames -= num;
+               }
                break;
                
           case FSSF_S32:
-               size = dpack_encode_s32( source, channels, length, dest );
+               while (frames) {
+                    int num = MIN(frames, DPACK_FRAMES);
+                    size   += dpack_encode_s32( source, channels, num, dest+size );
+                    source += num * bytes;
+                    frames -= num;
+               }
                break;
                
           case FSSF_FLOAT:
-               size = dpack_encode_float( source, channels, length, dest );
+               while (frames) {
+                    int num = MIN(frames, DPACK_FRAMES);
+                    size   += dpack_encode_float( source, channels, num, dest+size );
+                    source += num * bytes;
+                    frames -= num;
+               }
                break;
                
           default:
@@ -344,9 +373,9 @@ dpack_encode( const void *source, FSSampleFormat format, int channels, int lengt
                return 0;
      }
      
-     D_DEBUG( "DPACK: raw=%d encoded=%d ratio=%02d%%\n",
-              length * channels * FS_BYTES_PER_SAMPLE(format), size,
-              size * 100 / (length * channels * FS_BYTES_PER_SAMPLE(format)) );
+     D_DEBUG( "DPACK: raw=%6d encoded=%6d ratio=%02d%% avg=%02d%%\n",
+              length * bytes, size, size * 100 / (length * bytes),
+              (int)({ctotal += size; rtotal += length * bytes; ctotal*100/rtotal;}) );
               
      return size;
 }
@@ -354,7 +383,9 @@ dpack_encode( const void *source, FSSampleFormat format, int channels, int lengt
 int 
 dpack_decode( const u8 *source, FSSampleFormat format, int channels, int length, void *dest )
 {
-     int size;
+     int frames = length;
+     int bytes  = channels * FS_BYTES_PER_SAMPLE(format);
+     int size   = 0;
      
      D_ASSERT( source != NULL );
      D_ASSERT( channels > 0 );
@@ -363,23 +394,48 @@ dpack_decode( const u8 *source, FSSampleFormat format, int channels, int length,
      
      switch (format) {
           case FSSF_U8:
-               size = dpack_decode_u8( source, channels, length, dest );
+               while (frames) {
+                    int num = MIN(frames, DPACK_FRAMES);
+                    size   += dpack_decode_u8( source+size, channels, num, dest );
+                    dest   += num * bytes;
+                    frames -= num;
+               }
                break;
                
           case FSSF_S16:
-               size = dpack_decode_s16( source, channels, length, dest );
+               while (frames) {
+                    int num = MIN(frames, DPACK_FRAMES);
+                    size   += dpack_decode_s16( source+size, channels, num, dest );
+                    dest   += num * bytes;
+                    frames -= num;
+               }
                break;
                
           case FSSF_S24:
-               size = dpack_decode_s24( source, channels, length, dest );
+               while (frames) {
+                    int num = MIN(frames, DPACK_FRAMES);
+                    size   += dpack_decode_s24( source+size, channels, num, dest );
+                    dest   += num * bytes;
+                    frames -= num;
+               }
                break;
                
           case FSSF_S32:
-               size = dpack_decode_s32( source, channels, length, dest );
+               while (frames) {
+                    int num = MIN(frames, DPACK_FRAMES);
+                    size   += dpack_decode_s32( source+size, channels, num, dest );
+                    dest   += num * bytes;
+                    frames -= num;
+               }
                break;
                
           case FSSF_FLOAT:
-               size = dpack_decode_float( source, channels, length, dest );
+               while (frames) {
+                    int num = MIN(frames, DPACK_FRAMES);
+                    size   += dpack_decode_float( source+size, channels, num, dest );
+                    dest   += num * bytes;
+                    frames -= num;
+               }
                break;
                
           default:

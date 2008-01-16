@@ -27,8 +27,11 @@
 
 #include <fusionsound.h>
 
+#define DPACK_SCALE   1
+#define DPACK_FRAMES  576
+
 #define DPACK_MAX_PACKET( length, channels, bytes_per_frames ) \
-     ((length) * (bytes_per_frames) + (channels))
+     ((length) * (bytes_per_frames) + (channels) * (((length) + DPACK_FRAMES - 1) / DPACK_FRAMES))
      
 int dpack_encode( const void *source, FSSampleFormat format, int channels, int length, u8 *dest );
 int dpack_decode( const u8 *source, FSSampleFormat format, int channels, int length, void *dest );
