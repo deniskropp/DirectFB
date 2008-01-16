@@ -333,7 +333,7 @@ ffmpeg_mix_audio( s16 *src, void *dst, int len,
 
           case FSSF_S32:
                #define TYPE s32
-               #define CONV(s) ((s)<<8)
+               #define CONV(s) ((s)<<16)
                FFMPEG_MIX_LOOP();
                #undef TYPE
                #undef CONV
