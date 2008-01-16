@@ -437,6 +437,7 @@ ov_read_callback( void *dst, size_t size, size_t nmemb, void *ctx )
           direct_stream_wait( stream, total-length, NULL );
           ret = direct_stream_read( stream, total-length, dst+length, &read );
           if (ret) {
+               memset( dst+length, 0, total-length );
                if (!length)
                     return (ret == DFB_EOF) ? 0 : -1;
                break;
