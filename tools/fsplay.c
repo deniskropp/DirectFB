@@ -64,6 +64,7 @@ static struct termios             term;
 static int                        quit     = 0;
 static int                        quiet    = 0;
 static float                      volume   = 1.0;
+static float                      pitch    = 1.0;
 static int                        flags    = FMPLAY_NOFX;
 static int                        repeat   = 0;
 static FSSampleFormat             format   = FSSF_UNKNOWN;
@@ -74,25 +75,32 @@ static int                        gain     = 0;
 static void
 usage( const char *progname )
 {
-     fprintf( stderr, "\nUsage: %s [options] <file1 file2 ...>\n", progname );
-     fprintf( stderr, "\nOptions:\n" );
-     fprintf( stderr, "  -h, --help      Show this help\n" );
-     fprintf( stderr, "  -v, --version   Print version and quit\n" );
-     fprintf( stderr, "  -q, --quiet     Suppress messages\n" );
-     fprintf( stderr, "  -r, --repeat    Repeat entire playlist\n" );
-     fprintf( stderr, "  -d, --depth <n> Force output bit depth (8, 16, 24, or 32)\n" );
-     fprintf( stderr, "  -g, --gain <n>  Select replay gain (0:none, 1:track, 2:album)\n" );
-     fprintf( stderr, "\nPlayback Control:\n" );
-     fprintf( stderr, "  [p] start playback\n" );
-     fprintf( stderr, "  [s] stop playback\n" );
-     fprintf( stderr, "  [f] seek forward (+15s)\n" );
-     fprintf( stderr, "  [b] seek backward (-15s)\n" );
-     fprintf( stderr, "  [ ] switch to next track\n" );
-     fprintf( stderr, "  [l] toggle track looping\n" );
-     fprintf( stderr, "  [r] toggle playlist repeating\n" );
-     fprintf( stderr, "  [-] decrease volume level\n" );
-     fprintf( stderr, "  [+] increase volume level\n" );
-     fprintf( stderr, "  [q] quit\n\n" );
+     fprintf( stderr, "fsplay v%s - FusionSound Player\n"
+                      "\n"
+                      "Usage: %s [options] <file1 file2 ...>\n"
+                      "\n"
+                      "Options:\n"
+                      "  -h, --help      Show this help\n"
+                      "  -v, --version   Print version and quit\n"
+                      "  -q, --quiet     Suppress messages\n"
+                      "  -r, --repeat    Repeat entire playlist\n"
+                      "  -d, --depth <n> Force output bit depth (8, 16, 24, or 32)\n"
+                      "  -g, --gain <n>  Select replay gain (0:none, 1:track, 2:album)\n"
+                      "\n"
+                      "Playback Control:\n"
+                      "  [p] start playback\n"
+                      "  [s] stop playback\n"
+                      "  [f] seek forward (+15s)\n"
+                      "  [b] seek backward (-15s)\n"
+                      "  [ ] switch to next track\n"
+                      "  [l] toggle track looping\n"
+                      "  [r] toggle playlist repeating\n"
+                      "  [-] decrease volume level\n"
+                      "  [+] increase volume level\n"
+                      "  [/] decrease playback speed\n"
+                      "  [*] increase playback speed\n"
+                      "  [q] quit\n"
+                      "\n", FUSIONSOUND_VERSION, progname );
      exit( 1 );
 }
 
@@ -262,7 +270,10 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
 
      /* Reset volume level. */
      playback->SetVolume( playback, volume );
-          
+     
+     /* Reset pitch. */
+     playback->SetPitch( playback, pitch );
+
      /* Query provider for track length. */
      provider->GetLength( provider, &len );
           
@@ -299,6 +310,9 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
 
      do {
           double pos = 0;
+
+          /* Query playback status. */
+          provider->GetStatus( provider, &status );
           
           if (!quiet) {
                int filled = 0, total = 0;
@@ -307,8 +321,6 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
                stream->GetStatus( stream, &filled, &total, NULL, NULL, NULL );
                /* Query elapsed seconds. */
                provider->GetPos( provider, &pos );
-               /* Query playback status. */
-               provider->GetStatus( provider, &status );
 
                /* Print playback status. */
                fprintf( stderr, 
@@ -320,15 +332,22 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
           }
 
           if (isatty( STDIN_FILENO )) {
-               int c;
+               struct timeval t = { 0, 40000 };
+               fd_set         s;
+               int            c;
+
+               FD_ZERO( &s );
+               FD_SET( STDIN_FILENO, &s );
+
+               select( STDIN_FILENO+1, &s, NULL, NULL, &t );
 
                while ((c = getc( stdin )) > 0) {
                     switch (c) {
-                         case 's':
-                              provider->Stop( provider );
-                              break;
                          case 'p':
                               provider->PlayToStream( provider, stream );
+                              break;
+                         case 's':
+                              provider->Stop( provider );
                               break;
                          case 'f':
                               provider->GetPos( provider, &pos );
@@ -361,6 +380,18 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
                                    volume = 64.0;
                               playback->SetVolume( playback, volume );
                               break;
+                         case '/':
+                              pitch -= 0.1;
+                              if (pitch < 0.0)
+                                   pitch = 0.0;
+                              playback->SetPitch( playback, pitch );
+                              break;
+                         case '*':
+                              pitch += 0.1;
+                              if (pitch > 64.0)
+                                   pitch = 64.0;
+                              playback->SetPitch( playback, pitch );
+                              break;
                          case 'q':
                          case 'Q':
                          case '\033': // Escape
@@ -370,8 +401,9 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
                     }
                }
           }
-               
-          usleep( 30000 );
+          else {
+               usleep( 40000 );
+          }
      } while (status != FMSTATE_FINISHED && !quit);
      
      if (!quiet)
