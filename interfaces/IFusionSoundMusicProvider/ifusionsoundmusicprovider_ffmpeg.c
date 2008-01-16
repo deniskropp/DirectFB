@@ -509,6 +509,10 @@ FFmpegStreamThread( DirectThread *thread, void *ctx )
           
           if (data->seeked) {
                data->dest.stream->Flush( data->dest.stream );
+               if (pkt_size > 0) {
+                    av_free_packet( &pkt );
+                    pkt_size = 0;
+               }
                avcodec_flush_buffers( data->codec );
                data->seeked = false;
           }
@@ -579,6 +583,9 @@ FFmpegStreamThread( DirectThread *thread, void *ctx )
                data->dest.stream->Write( data->dest.stream, data->buf, size );
           }
      }
+     
+     if (pkt_size > 0)
+          av_free_packet( &pkt );
      
      return (void*)0;
 }                             
@@ -693,7 +700,10 @@ FFmpegBufferThread( DirectThread *thread, void *ctx )
           }
           
           if (data->seeked) {
-               data->dest.stream->Flush( data->dest.stream );
+               if (pkt_size > 0) {
+                    av_free_packet( &pkt );
+                    pkt_size = 0;
+               }
                avcodec_flush_buffers( data->codec );
                data->seeked = false;
           }
@@ -780,6 +790,9 @@ FFmpegBufferThread( DirectThread *thread, void *ctx )
           
           pthread_mutex_unlock( &data->lock );
      }
+     
+     if (pkt_size > 0)
+          av_free_packet( &pkt );
      
      return (void*)0;
 }
