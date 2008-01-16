@@ -493,11 +493,12 @@ FFmpegStreamThread( DirectThread *thread, void *ctx )
 {
      IFusionSoundMusicProvider_FFmpeg_data *data = ctx;
      
+     AVPacket  pkt;
+     u8       *pkt_data = NULL;
+     int       pkt_size = 0;
+     
      while (data->playing && !data->finished) {
-          AVPacket  pkt;
-          u8       *pkt_data;
-          int       pkt_size;
-          int       len = 0, size = 0;
+          int len, decoded, size = 0;
           
           pthread_mutex_lock( &data->lock );
           
@@ -512,56 +513,58 @@ FFmpegStreamThread( DirectThread *thread, void *ctx )
                data->seeked = false;
           }
           
-          if (av_read_frame( data->ctx, &pkt ) < 0) {
-               //if (url_feof( data->ctx->pb )) {
-                    if (!(data->flags & FMPLAY_LOOPING) || av_seek_frame( data->ctx, -1, 0, 0 ) < 0)
-                         data->finished = true;
-               //}
-               pthread_mutex_unlock( &data->lock );
-               continue;
+          if (pkt_size <= 0) {
+               if (av_read_frame( data->ctx, &pkt ) < 0) {
+                    //if (url_feof( data->ctx->pb )) {
+                         if (!(data->flags & FMPLAY_LOOPING) ||
+                             av_seek_frame( data->ctx, -1, 0, 0 ) < 0)
+                              data->finished = true;
+                    //}
+                    pthread_mutex_unlock( &data->lock );
+                    continue;
+               }
+               
+               if (pkt.stream_index != data->st->index) {
+                    av_free_packet( &pkt );
+                    pthread_mutex_unlock( &data->lock );
+                    continue;
+               }
+               
+               pkt_data = pkt.data;
+               pkt_size = pkt.size;
+               
+               if (pkt.pts != AV_NOPTS_VALUE) {
+                    data->pts = av_rescale_q( pkt.pts-data->st->start_time,
+                                              data->st->time_base, AV_TIME_BASE_Q );
+               }
           }
           
-          if (pkt.stream_index != data->st->index) {
-               pthread_mutex_unlock( &data->lock );
-               continue;
+          len = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+          decoded = avcodec_decode_audio2( data->codec, 
+                                          (s16*)data->buf, &len, pkt_data, pkt_size );
+          if (decoded < 0) {
+               av_free_packet( &pkt );
+               pkt_size = 0;
           }
-          
-          for (pkt_data = pkt.data, pkt_size = pkt.size; pkt_size > 0;) {
-               int decoded;
-
-               len = AVCODEC_MAX_AUDIO_FRAME_SIZE - size;
-
-               decoded = avcodec_decode_audio2( data->codec,
-                                                (s16*)&data->buf[size], &len, 
-                                                pkt_data, pkt_size );
-               if (decoded < 0)
-                    break;
-                       
+          else {    
                pkt_data += decoded;
                pkt_size -= decoded;
+               if (pkt_size <= 0)
+                    av_free_packet( &pkt );
                if (len > 0)
-                    size += len;
+                    size = len / (data->codec->channels * 2);
           }
-          
-          size /= data->codec->channels * 2;
-          
-          if (pkt.pts != AV_NOPTS_VALUE)
-               data->pts = av_rescale_q( pkt.pts-data->st->start_time, data->st->time_base, AV_TIME_BASE_Q );
-          else if (size)
-               data->pts += (s64)size * AV_TIME_BASE / data->codec->sample_rate;
-               
-          av_free_packet( &pkt );
           
           pthread_mutex_unlock( &data->lock );
           
           if (data->dest.format != FSSF_S16 ||
               FS_CHANNELS_FOR_MODE(data->dest.mode) != data->codec->channels) {
                int  num = FS_BYTES_PER_SAMPLE(data->dest.format)*FS_CHANNELS_FOR_MODE(data->dest.mode);
-               u8   dst[1024*num];
+               u8   dst[1152*num];
                s16 *buf = (s16*)data->buf;
                
                while (size) {
-                    len = MIN( size, 1024 );
+                    len = MIN(size, 1152);
                     
                     ffmpeg_mix_audio( buf, dst, len, data->dest.format, 
                                       data->codec->channels, data->dest.mode );
@@ -673,14 +676,14 @@ FFmpegBufferThread( DirectThread *thread, void *ctx )
 {
      IFusionSoundMusicProvider_FFmpeg_data *data = ctx;
      
-     int pos = 0;
+     AVPacket  pkt;
+     u8       *pkt_data = NULL;
+     int       pkt_size = 0;
+     int       pos      = 0;
      
      while (data->playing && !data->finished) {
-          AVPacket  pkt;
-          u8       *pkt_data;
-          int       pkt_size;
-          s16      *buf;
-          int       len = 0, size = 0;
+          s16 *buf;
+          int  len, decoded, size = 0;
           
           pthread_mutex_lock( &data->lock );
           
@@ -695,50 +698,53 @@ FFmpegBufferThread( DirectThread *thread, void *ctx )
                data->seeked = false;
           }
           
-          if (av_read_frame( data->ctx, &pkt ) < 0) {
-               //if (url_feof( data->ctx->pb )) {
-                    if (!(data->flags & FMPLAY_LOOPING) || av_seek_frame( data->ctx, -1, 0, 0 ) < 0) {
-                         data->finished = true;
-                         if (pos && data->callback) {
-                              if (data->callback( pos, data->callback_data ))
-                                   data->playing = false;
+          if (pkt_size <= 0) {
+               if (av_read_frame( data->ctx, &pkt ) < 0) {
+                    //if (url_feof( data->ctx->pb )) {
+                         if (!(data->flags & FMPLAY_LOOPING) ||
+                             av_seek_frame( data->ctx, -1, 0, 0 ) < 0)
+                         {
+                              data->finished = true;
+                              if (pos && data->callback) {
+                                   if (data->callback( pos, data->callback_data ))
+                                        data->playing = false;
+                              }
                          }
-                    }
-               //}
-               pthread_mutex_unlock( &data->lock );
-               continue;
+                    //}
+                    pthread_mutex_unlock( &data->lock );
+                    continue;
+               }
+          
+               if (pkt.stream_index != data->st->index) {
+                    av_free_packet( &pkt );
+                    pthread_mutex_unlock( &data->lock );
+                    continue;
+               }
+               
+               pkt_data = pkt.data;
+               pkt_size = pkt.size;
+               
+               if (pkt.pts != AV_NOPTS_VALUE) {
+                    data->pts = av_rescale_q( pkt.pts-data->st->start_time,
+                                              data->st->time_base, AV_TIME_BASE_Q );
+               }
           }
           
-          if (pkt.stream_index != data->st->index) {
-               pthread_mutex_unlock( &data->lock );
-               continue;
+          len = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+          decoded = avcodec_decode_audio2( data->codec,
+                                          (s16*)data->buf, &len, pkt_data, pkt_size );
+          if (decoded < 0) {
+               av_free_packet( &pkt );
+               pkt_size = 0;
           }
-          
-          for (pkt_data = pkt.data, pkt_size = pkt.size; pkt_size > 0;) {
-               int decoded;
-
-               len = AVCODEC_MAX_AUDIO_FRAME_SIZE - size;
-
-               decoded = avcodec_decode_audio2( data->codec,
-                                                (s16*)&data->buf[size], &len, 
-                                                pkt_data, pkt_size );
-               if (decoded < 0)
-                    break;
-                       
+          else {    
                pkt_data += decoded;
                pkt_size -= decoded;
+               if (pkt_size <= 0)
+                    av_free_packet( &pkt );
                if (len > 0)
-                    size += len;
+                    size = len / (data->codec->channels * 2);
           }
-          
-          size /= data->codec->channels * 2;
-          
-          if (pkt.pts != AV_NOPTS_VALUE)
-               data->pts = av_rescale_q( pkt.pts-data->st->start_time, data->st->time_base, AV_TIME_BASE_Q );
-          else if (size)
-               data->pts += (s64)size * AV_TIME_BASE / data->codec->sample_rate;
-               
-          av_free_packet( &pkt );
           
           buf = (s16*)data->buf;
           while (size) {
@@ -956,7 +962,7 @@ IFusionSoundMusicProvider_FFmpeg_SeekTo( IFusionSoundMusicProvider *thiz,
      pthread_mutex_lock( &data->lock );
      
      if (av_seek_frame( data->ctx, -1, time, 
-                          (time < data->pts) ? AVSEEK_FLAG_BACKWARD : 0 ) >= 0) {
+                       (time < data->pts) ? AVSEEK_FLAG_BACKWARD : 0 ) >= 0) {
           data->seeked = true;
           ret = DFB_OK;
      }
