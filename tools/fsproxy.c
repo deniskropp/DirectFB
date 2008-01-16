@@ -32,6 +32,12 @@
    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#include <config.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include <fusionsound.h>
 
 #include <direct/debug.h>
@@ -45,6 +51,8 @@
 
 static DFBBoolean parse_command_line( int argc, char *argv[] );
 static DFBResult  server_run();
+
+static DFBBoolean keep_alive = DFB_FALSE;
 
 /*****************************************************************************/
 
@@ -106,9 +114,45 @@ ConstructDispatcher( VoodooServer     *server,
 
 /*****************************************************************************/
 
+static void
+usage( const char *progname )
+{
+     fprintf( stderr, 
+              "fsproxy v%s\n"
+              "\n"
+              "Usage: %s [options]\n"
+              "\n"
+              "Options:\n"
+              "   -h, --help        Show this help\n"
+              "   -v, --version     Print version and quit\n"
+              "   -k, --keep-alive  Keep listening for new connections\n"
+              "\n",
+              FUSIONSOUND_VERSION, progname );
+}
+
 static DFBBoolean
 parse_command_line( int argc, char *argv[] )
 {
+     int i;
+
+     for (i = 1; i < argc; i++) {
+          if (!strcmp( argv[i], "-h" ) || !strcmp( argv[i], "--help" )) {
+               usage( argv[0] );
+               return DFB_FALSE;
+          }
+          else if (!strcmp( argv[i], "-v" ) || !strcmp( argv[i], "--version" )) {
+               puts( FUSIONSOUND_VERSION );
+               exit( 0 );
+          }
+          else if (!strcmp( argv[i], "-k" ) || !strcmp( argv[i], "--keep-alive" )) {
+               keep_alive = DFB_TRUE;
+          }
+          else {
+               fprintf( stderr, "Unsupported option '%s'!\n", argv[i] );
+               return DFB_FALSE;
+          }
+     }
+     
      return DFB_TRUE;
 }
 
@@ -131,13 +175,13 @@ server_run()
           return ret;
      }
 
-     while (true) {
+     do {
           ret = voodoo_server_run( server );
           if (ret) {
                D_ERROR( "Voodoo/Proxy: Server exiting with error (%s)!\n", FusionSoundErrorString(ret) );
                break;
           }
-     }
+     } while (keep_alive);
 
      voodoo_server_destroy( server );
 
