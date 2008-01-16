@@ -95,6 +95,7 @@ struct __FS_CoreSoundShared {
      
      FusionCall             call;              /* master calls */
      float                  call_arg;          /* call argument */
+     FusionSkirmish         call_lock;
 };
 
 struct __FS_CoreSound {
@@ -485,7 +486,8 @@ DFBResult
 fs_core_get_master_volume( CoreSound *core, float *level )
 {
      CoreSoundShared *shared;
-     DFBResult        ret, retval;
+     DFBResult        ret;
+     int              retval;
      
      D_ASSERT( core != NULL );
      D_ASSERT( core->shared != NULL );
@@ -493,35 +495,48 @@ fs_core_get_master_volume( CoreSound *core, float *level )
      
      shared = core->shared;
      
-     ret = fusion_call_execute( &core->shared->call, FCEF_NONE,
-                                CSCID_GET_VOLUME, &shared->call_arg, (int*)&retval );
+     ret = fusion_skirmish_prevail( &shared->call_lock );
      if (ret)
           return ret;
+     
+     ret = fusion_call_execute( &core->shared->call, FCEF_NONE,
+                                CSCID_GET_VOLUME, &shared->call_arg, (int*)&retval );
+     if (!ret)
+          ret = retval;
           
      *level = shared->call_arg;
      
-     return retval;
+     fusion_skirmish_dismiss( &shared->call_lock );
+          
+     return ret;
 }
 
 DFBResult
 fs_core_set_master_volume( CoreSound *core, float level )
 {
      CoreSoundShared *shared;
-     DFBResult        ret, retval;
+     DFBResult        ret;
+     int              retval;
      
      D_ASSERT( core != NULL );
      D_ASSERT( core->shared != NULL );
      
      shared = core->shared;
      
+     ret = fusion_skirmish_prevail( &shared->call_lock );
+     if (ret)
+          return ret;
+     
      shared->call_arg = level;
      
      ret = fusion_call_execute( &core->shared->call, FCEF_NONE,
                                 CSCID_SET_VOLUME, &shared->call_arg, (int*)&retval );
-     if (ret)
-          return ret;
+     if (!ret)
+          ret = retval;
           
-     return retval;
+     fusion_skirmish_dismiss( &shared->call_lock );
+          
+     return ret;
 }
 
 DFBResult
@@ -574,33 +589,35 @@ fs_core_set_local_volume( CoreSound *core, float level )
 DFBResult
 fs_core_suspend( CoreSound *core )
 {
-     DFBResult ret, retval;
+     DFBResult ret;
+     int       retval;
      
      D_ASSERT( core != NULL );
      D_ASSERT( core->shared != NULL );
      
      ret =  fusion_call_execute( &core->shared->call,
                                  FCEF_NONE, CSCID_SUSPEND, NULL, (int*)&retval );
-     if (ret)
-          return ret;
+     if (!ret)
+          ret = retval;
           
-     return retval;
+     return ret;
 }
 
 DFBResult
 fs_core_resume( CoreSound *core )
 {
-     DFBResult ret, retval;
+     DFBResult ret;
+     int       retval;
      
      D_ASSERT( core != NULL );
      D_ASSERT( core->shared != NULL );
      
      ret =  fusion_call_execute( &core->shared->call,
                                  FCEF_NONE, CSCID_RESUME, NULL, (int*)&retval );
-     if (ret)
-          return ret;
+     if (!ret)
+          ret = retval;
           
-     return retval;
+     return ret;
 }
 
 /******************************************************************************/
@@ -1098,6 +1115,9 @@ fs_core_initialize( CoreSound *core )
      /* Initialize call. */
      fusion_call_init( &shared->call, core_call_handler, core, core->world );
      
+     /* Initializa call lock. */
+     fusion_skirmish_init( &shared->call_lock, "FusionSound Call", core->world );
+     
      /* Allocate mixing buffer. */
      core->mixing_buffer = D_MALLOC( shared->config.buffersize * 
                                      FS_MAX_CHANNELS * sizeof(__fsf) );
@@ -1164,6 +1184,9 @@ fs_core_shutdown( CoreSound *core, bool local )
 
                SHFREE( shared->shmpool, entry );
           }
+          
+          /* Destroy call lock. */
+          fusion_skirmish_destroy( &shared->call_lock );
           
           /* Destroy call handler. */
           fusion_call_destroy( &shared->call );
