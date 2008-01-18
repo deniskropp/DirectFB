@@ -38,13 +38,17 @@ typedef volatile struct {
 
 #define c64x_flags	c64x_function
 
-#define C64X_STATE_DONE		0
-#define C64X_STATE_ERROR	1
-#define C64X_STATE_TODO		2
-#define C64X_STATE_RUNNING	3
+typedef enum {
+     C64X_STATE_DONE     = 0,
+     C64X_STATE_ERROR    = 1,
+     C64X_STATE_TODO     = 2,
+     C64X_STATE_RUNNING  = 3
+} C64XTaskState;
 
-#define C64X_FLAG_RUN       1
-#define C64X_FLAG_TODO      2
+typedef enum {
+     C64X_FLAG_RUN       = 1,
+     C64X_FLAG_TODO      = 2
+} C64XTaskFlags;
 
 #define C64X_TASK_STATE(task) ((task)->c64x_flags & 3)
 
@@ -55,6 +59,16 @@ typedef volatile struct {
      uint32_t  QL_arm;
      uint32_t  idlecounter;
 } c64xTaskControl;
+
+
+
+typedef enum {
+     C64X_BLEND_SRC_INVSRC               = 2,  /* old school fader on all channels including alpha on itself */
+     C64X_BLEND_ONE_INVSRC               = 1,  /* SrcOver using premultiplied alpha channel */
+     C64X_BLEND_ONE_INVSRC_PREMULT_SRC   = 0,  /* SrcOver doing premultiplication of source S[rgb] with S[a] */
+     C64X_BLEND_ONE_INVSRC_PREMULT_ALPHA = 3,  /* SrcOver with Alpha using premultiplied alpha channel,
+                                                  but doing premultiplication of S[rgb] with Alpha */
+} C64XBlendSubFunction;
 
 
 /* function macro */
@@ -106,6 +120,12 @@ void c64x_stretch_32(u32 *dst, u32 *src, u32 pitches, u32 dsize, u32 ssize, u32 
 
 
 /*
+void c64x_wb_inv_range(u32 *start, u32 len, u32 func);
+*/
+#define C64X_WB_INV_RANGE	       _C64XFUNC(14)
+
+
+/*
 void c64x_write_back_all(void);
 */
 #define C64X_WRITE_BACK_ALL	       _C64XFUNC(15)
@@ -121,7 +141,7 @@ void c64x_put_uyvy_16x16(u16*dst, u32 pitch, u8*src, u32 flags);
 #define C64X_PUT_UYVY_16x16        _C64XFUNC(18)
 
 /*
-void c64x_fetch_uyvy(u8 *dst, u8 *src, u32 spitch, u32 height, u32 flags);
+void c64x_fetch_uyvy(u8 *dst, u8 *src, u32 spitch, u32 height);
 */
 #define C64X_FETCH_UYVY            _C64XFUNC(19)
 
@@ -177,6 +197,16 @@ void c64x_put_sum_uyvy_16x16(u16*dst, u32 pitch, u32 flags);
 */
 #define C64X_PUT_SUM_UYVY_16x16    _C64XFUNC(51)
 
+/*
+void c64x_dva_begin_frame(u32 pitch, u16 *current, u16 *past, u16 *future, u32 flags);
+*/
+#define C64X_DVA_BEGIN_FRAME       _C64XFUNC(52)
+
+/*
+void c64x_dva_motion(DVAMacroBlock *macroblock);
+*/
+#define C64X_DVA_MOTION_BLOCK      _C64XFUNC(53)
+
 
 
 /*
@@ -202,9 +232,9 @@ void c64x_put_sum_uyvy_16x16(u16*dst, u32 pitch, u32 flags);
 #define C64X_MC_BUFFER_U           (C64X_MC_BUFFER_Y + 16*C64X_MC_BUFFER_PITCH)
 #define C64X_MC_BUFFER_V           (C64X_MC_BUFFER_U + 8)
 
-#define C64X_MC_BUFFER_Y_          (C64X_MC_BUFFER_Y + 8*C64X_MC_BUFFER_PITCH)
-#define C64X_MC_BUFFER_U_          (C64X_MC_BUFFER_U + 4*C64X_MC_BUFFER_PITCH)
-#define C64X_MC_BUFFER_V_          (C64X_MC_BUFFER_V + 4*C64X_MC_BUFFER_PITCH)
+#define C64X_MC_BUFFER_Y_          (C64X_MC_BUFFER_Y + C64X_MC_BUFFER_PITCH)
+#define C64X_MC_BUFFER_U_          (C64X_MC_BUFFER_U + C64X_MC_BUFFER_PITCH)
+#define C64X_MC_BUFFER_V_          (C64X_MC_BUFFER_V + C64X_MC_BUFFER_PITCH)
 
 #define C64X_TEMP_BUFFER_Y         0xf06200
 #define C64X_TEMP_BUFFER_U         (C64X_TEMP_BUFFER_Y + 16*C64X_TEMP_BUFFER_PITCH)

@@ -473,9 +473,9 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
 
           cinfo.output_components = 3;
 
-          switch (dst_surface->format) {
+          switch (dst_surface->config.format) {
                case DSPF_NV16:
-                    uv_offset = dst_surface->height * pitch;
+                    uv_offset = dst_surface->config.size.h * lock.pitch;
 
                     if (direct && !rect.x && !rect.y) {
                          D_INFO( "JPEG: Using YCbCr color space directly! (%dx%d)\n",
@@ -511,7 +511,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           while (cinfo.output_scanline < cinfo.output_height && cb_result == DIRCR_OK) {
                jpeg_read_scanlines(&cinfo, buffer, 1);
 
-               switch (dst_surface->format) {
+               switch (dst_surface->config.format) {
                     case DSPF_NV16:
                          if (direct) {
                               copy_line_nv16( lock.addr, lock.addr + uv_offset, *buffer, rect.w );

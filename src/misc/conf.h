@@ -206,6 +206,7 @@ typedef struct
      bool          linux_input_grab;              /* Grab input devices. */
 
      bool          autoflip_window;               /* If primary surface is non-flipping, but windowed, flip automatically. */
+     bool          software_warn;                 /* Show warnings when doing/dropping software operations. */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

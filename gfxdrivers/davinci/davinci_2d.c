@@ -57,14 +57,16 @@ D_DEBUG_DOMAIN( Davinci_2D, "Davinci/2D", "Davinci 2D Acceleration" );
  * There's no prefix because of the macros below.
  */
 enum {
-     DESTINATION  = 0x00000001,
-     COLOR        = 0x00000002,
+     DESTINATION    = 0x00000001,
+     FILLCOLOR      = 0x00000002,
 
-     SOURCE       = 0x00000010,
+     SOURCE         = 0x00000010,
+     SOURCE_MULT    = 0x00000020,
 
-     BLEND_SUB    = 0x00010000,
+     BLIT_BLEND_SUB = 0x00010000,
+     DRAW_BLEND_SUB = 0x00020000,
 
-     ALL          = 0x00010013
+     ALL            = 0x00030033
 };
 
 /*
@@ -88,6 +90,10 @@ static bool davinciFillRectangle16( void                *drv,
 static bool davinciFillRectangle32( void                *drv,
                                     void                *dev,
                                     DFBRectangle        *rect );
+
+static bool davinciFillRectangleBlend32( void                *drv,
+                                         void                *dev,
+                                         DFBRectangle        *rect );
 
 static bool davinciBlit16         ( void                *drv,
                                     void                *dev,
@@ -133,7 +139,7 @@ static bool davinciStretchBlit32  ( void                *drv,
 /**************************************************************************************************/
 
 static inline int
-get_blend_sub_function( const CardState *state )
+get_blit_blend_sub_function( const CardState *state )
 {
      DFBSurfaceBlittingFlags flags = state->blittingflags & ~DSBLIT_COLORIZE;
 
@@ -141,22 +147,56 @@ get_blend_sub_function( const CardState *state )
           switch (state->src_blend) {
                case DSBF_SRCALPHA:
                     if (flags == DSBLIT_BLEND_ALPHACHANNEL)
-                         return 2;
+                         return C64X_BLEND_SRC_INVSRC;
                     break;
 
                case DSBF_ONE:
                     switch (flags) {
                          case DSBLIT_BLEND_ALPHACHANNEL:
-                              return 1;
+                              return C64X_BLEND_ONE_INVSRC;
 
                          case DSBLIT_BLEND_ALPHACHANNEL |
                               DSBLIT_SRC_PREMULTIPLY:
-                              return 0;
+                              return C64X_BLEND_ONE_INVSRC_PREMULT_SRC;
 
                          case DSBLIT_BLEND_ALPHACHANNEL |
                               DSBLIT_BLEND_COLORALPHA |
                               DSBLIT_SRC_PREMULTCOLOR:
-                              return 3;
+                              return C64X_BLEND_ONE_INVSRC_PREMULT_ALPHA;
+
+                         default:
+                              break;
+                    }
+                    break;
+
+               default:
+                    break;
+          }
+     }
+
+     return -1;
+}
+
+static inline int
+get_draw_blend_sub_function( const CardState *state )
+{
+     DFBSurfaceDrawingFlags flags = state->drawingflags;
+
+     if (state->dst_blend == DSBF_INVSRCALPHA) {
+          switch (state->src_blend) {
+               case DSBF_SRCALPHA:
+                    if (flags == DSDRAW_BLEND)
+                         return C64X_BLEND_SRC_INVSRC;
+                    break;
+
+               case DSBF_ONE:
+                    switch (flags) {
+                         case DSDRAW_BLEND:
+                              return C64X_BLEND_ONE_INVSRC;
+
+                         case DSDRAW_BLEND |
+                              DSDRAW_SRC_PREMULTIPLY:
+                              return C64X_BLEND_ONE_INVSRC_PREMULT_SRC;
 
                          default:
                               break;
@@ -184,6 +224,7 @@ davinci_validate_DESTINATION( DavinciDeviceData *ddev,
      /* Remember destination parameters for usage in rendering functions. */
      ddev->dst_addr   = state->dst.addr;
      ddev->dst_phys   = state->dst.phys;
+     ddev->dst_size   = state->dst.allocation->size;
      ddev->dst_pitch  = state->dst.pitch;
      ddev->dst_format = state->dst.buffer->format;
      ddev->dst_bpp    = DFB_BYTES_PER_PIXEL( ddev->dst_format );
@@ -197,27 +238,21 @@ davinci_validate_DESTINATION( DavinciDeviceData *ddev,
  * for execution of rendering functions.
  */
 static inline void
-davinci_validate_COLOR( DavinciDeviceData *ddev,
-                        CardState         *state )
+davinci_validate_FILLCOLOR( DavinciDeviceData *ddev,
+                            CardState         *state )
 {
      switch (ddev->dst_format) {
           case DSPF_ARGB:
-               ddev->color_pixel = PIXEL_ARGB( state->color.a,
-                                               state->color.r,
-                                               state->color.g,
-                                               state->color.b );
-               break;
-
           case DSPF_RGB32:
-               ddev->color_pixel = PIXEL_RGB32( state->color.r,
-                                                state->color.g,
-                                                state->color.b );
+               ddev->fillcolor = ddev->color_argb;
                break;
 
           case DSPF_RGB16:
-               ddev->color_pixel = PIXEL_RGB16( state->color.r,
-                                                state->color.g,
-                                                state->color.b );
+               ddev->fillcolor = PIXEL_RGB16( state->color.r,
+                                              state->color.g,
+                                              state->color.b );
+
+               ddev->fillcolor |= ddev->fillcolor << 16;
                break;
 
           case DSPF_UYVY: {
@@ -225,7 +260,7 @@ davinci_validate_COLOR( DavinciDeviceData *ddev,
 
                RGB_TO_YCBCR( state->color.r, state->color.g, state->color.b, y, u, v );
 
-               ddev->color_pixel = PIXEL_UYVY( y, u, v );
+               ddev->fillcolor = PIXEL_UYVY( y, u, v );
                break;
           }
 
@@ -234,14 +269,8 @@ davinci_validate_COLOR( DavinciDeviceData *ddev,
                return;
      }
 
-     if (DFB_BYTES_PER_PIXEL(ddev->dst_format) < 4)
-          ddev->color_pixel |= ddev->color_pixel << 16;
-
-     if (DFB_BYTES_PER_PIXEL(ddev->dst_format) < 2)
-          ddev->color_pixel |= ddev->color_pixel << 8;
-
      /* Set the flag. */
-     DAVINCI_VALIDATE( COLOR );
+     DAVINCI_VALIDATE( FILLCOLOR );
 }
 
 /*
@@ -264,14 +293,39 @@ davinci_validate_SOURCE( DavinciDeviceData *ddev,
 }
 
 /*
+ * Called by davinciSetState() to ensure that the source ARGB modulation is properly set
+ * for execution of blitting functions.
+ */
+static inline void
+davinci_validate_SOURCE_MULT( DavinciDeviceData *ddev,
+                              CardState         *state )
+{
+     switch (ddev->dst_format) {
+          case DSPF_ARGB:
+               if (state->blittingflags & DSBLIT_COLORIZE)
+                    ddev->source_mult = 0xff000000 | ddev->color_argb;
+               else
+                    ddev->source_mult = 0xffffffff;
+               break;
+
+          default:
+               D_BUG( "unexpected format %s", dfb_pixelformat_name(ddev->dst_format) );
+               return;
+     }
+
+     /* Set the flag. */
+     DAVINCI_VALIDATE( SOURCE_MULT );
+}
+
+/*
  * Called by davinciSetState() to ensure that the blend sub function index is valid
  * for execution of blitting functions.
  */
 static inline void
-davinci_validate_BLEND_SUB( DavinciDeviceData *ddev,
-                            CardState         *state )
+davinci_validate_BLIT_BLEND_SUB( DavinciDeviceData *ddev,
+                                 CardState         *state )
 {
-     int index = get_blend_sub_function( state );
+     int index = get_blit_blend_sub_function( state );
 
      if (index < 0) {
           D_BUG( "unexpected state" );
@@ -279,10 +333,32 @@ davinci_validate_BLEND_SUB( DavinciDeviceData *ddev,
      }
 
      /* Set blend sub function index. */
-     ddev->blend_sub_function = index;
+     ddev->blit_blend_sub_function = index;
 
      /* Set the flag. */
-     DAVINCI_VALIDATE( BLEND_SUB );
+     DAVINCI_VALIDATE( BLIT_BLEND_SUB );
+}
+
+/*
+ * Called by davinciSetState() to ensure that the blend sub function index is valid
+ * for execution of drawing functions.
+ */
+static inline void
+davinci_validate_DRAW_BLEND_SUB( DavinciDeviceData *ddev,
+                                 CardState         *state )
+{
+     int index = get_draw_blend_sub_function( state );
+
+     if (index < 0) {
+          D_BUG( "unexpected state" );
+          return;
+     }
+
+     /* Set blend sub function index. */
+     ddev->draw_blend_sub_function = index;
+
+     /* Set the flag. */
+     DAVINCI_VALIDATE( DRAW_BLEND_SUB );
 }
 
 /**************************************************************************************************/
@@ -303,6 +379,8 @@ davinciEngineSync( void *drv, void *dev )
      DavinciDeviceData *ddev = dev;
 
      if (!ddev->synced) {
+          davinci_c64x_write_back_all( &ddrv->c64x );
+          davinci_c64x_write_back_all( &ddrv->c64x );
           ret = davinci_c64x_wait_low( &ddrv->c64x );
           if (ret)
                return ret;
@@ -332,12 +410,25 @@ davinciEngineReset( void *drv, void *dev )
 void
 davinciEmitCommands( void *drv, void *dev )
 {
+     DavinciDeviceData *ddev = dev;
+
+     ddev->synced = false;
+}
+
+/*
+ * Invalidate the DSP's read cache.
+ */
+void
+davinciFlushTextureCache( void *drv, void *dev )
+{
      DavinciDriverData *ddrv = drv;
      DavinciDeviceData *ddev = dev;
 
-     davinci_c64x_write_back_all( &ddrv->c64x );
+     davinci_c64x_wb_inv_range( &ddrv->c64x, dfb_config->video_phys,
+                                             dfb_config->video_length, 2 );
 
-     ddev->synced = false;
+     davinci_c64x_wb_inv_range( &ddrv->c64x, ddev->fix[OSD0].smem_start,
+                                             ddev->fix[OSD0].smem_len, 2 );
 }
 
 /*
@@ -373,6 +464,15 @@ davinciCheckState( void                *drv,
           /* Return if unsupported drawing flags are set. */
           if (state->drawingflags & ~DAVINCI_SUPPORTED_DRAWINGFLAGS)
                return;
+
+          /* Limited blending support. */
+          if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_SRC_PREMULTIPLY)) {
+               if (state->destination->config.format != DSPF_ARGB)
+                    return;
+
+               if (get_draw_blend_sub_function( state ) < 0)
+                    return;
+          }
      }
      else {
           /* Return if unsupported blitting flags are set. */
@@ -402,7 +502,7 @@ davinciCheckState( void                *drv,
                     /* fall through */
                case DSPF_ARGB:
                     /* Only few blending combinations are valid. */
-                    if ((state->blittingflags & ~DSBLIT_SRC_COLORKEY) && get_blend_sub_function( state ) < 0)
+                    if ((state->blittingflags & ~DSBLIT_SRC_COLORKEY) && get_blit_blend_sub_function( state ) < 0)
                          return;
                     /* Only ARGB/RGB32 -> RGB16 conversion (without any flag). */
                     if (state->source->config.format != state->destination->config.format &&
@@ -463,18 +563,41 @@ davinciSetState( void                *drv,
           DAVINCI_INVALIDATE( ALL );
      }
      else if (modified) {
-          /* Invalidate destination registers. */
+          /* Invalidate destination settings. */
           if (modified & SMF_DESTINATION)
-               DAVINCI_INVALIDATE( DESTINATION | COLOR );
+               DAVINCI_INVALIDATE( DESTINATION | FILLCOLOR );
           else if (modified & SMF_COLOR)
-               DAVINCI_INVALIDATE( COLOR );
+               DAVINCI_INVALIDATE( FILLCOLOR );
 
+          /* Invalidate source settings. */
           if (modified & SMF_SOURCE)
                DAVINCI_INVALIDATE( SOURCE );
 
+          /* Invalidate source color(ize) settings. */
+          if (modified & (SMF_BLITTING_FLAGS | SMF_COLOR))
+               DAVINCI_INVALIDATE( SOURCE_MULT );
+
+          /* Invalidate blend function for blitting. */
           if (modified & (SMF_BLITTING_FLAGS | SMF_SRC_BLEND | SMF_DST_BLEND))
-               DAVINCI_INVALIDATE( BLEND_SUB );
+               DAVINCI_INVALIDATE( BLIT_BLEND_SUB );
+
+          /* Invalidate blend function for drawing. */
+          if (modified & (SMF_DRAWING_FLAGS | SMF_SRC_BLEND | SMF_DST_BLEND))
+               DAVINCI_INVALIDATE( DRAW_BLEND_SUB );
      }
+
+     /*
+      * Just keep these values, no computations needed here.
+      * Values used by state validation or rendering functions.
+      */
+     ddev->blitting_flags = state->blittingflags;
+     ddev->clip           = state->clip;
+     ddev->color          = state->color;
+     ddev->colorkey       = state->src_colorkey;
+     ddev->color_argb     = PIXEL_ARGB( state->color.a,
+                                        state->color.r,
+                                        state->color.g,
+                                        state->color.b );
 
      /*
       * 2) Validate hardware states
@@ -488,8 +611,12 @@ davinciSetState( void                *drv,
      /* Depending on the function... */
      switch (accel) {
           case DFXL_FILLRECTANGLE:
-               /* ...require valid drawing color. */
-               DAVINCI_CHECK_VALIDATE( COLOR );
+               /* Validate blend sub function index for drawing... */
+               if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_SRC_PREMULTIPLY))
+                    DAVINCI_CHECK_VALIDATE( DRAW_BLEND_SUB );
+               else
+                    /* ...or just validate fill color. */
+                    DAVINCI_CHECK_VALIDATE( FILLCOLOR );
 
                /* Choose function. */
                switch (DFB_BYTES_PER_PIXEL( state->destination->config.format )) {
@@ -498,7 +625,10 @@ davinciSetState( void                *drv,
                          break;
 
                     case 4:
-                         funcs->FillRectangle = davinciFillRectangle32;
+                         if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_SRC_PREMULTIPLY))
+                              funcs->FillRectangle = davinciFillRectangleBlend32;
+                         else
+                              funcs->FillRectangle = davinciFillRectangle32;
                          break;
 
                     default:
@@ -519,9 +649,13 @@ davinciSetState( void                *drv,
                /* ...require valid source. */
                DAVINCI_CHECK_VALIDATE( SOURCE );
 
-               /* Validate blend sub function index for blending. */
-               if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
-                    DAVINCI_CHECK_VALIDATE( BLEND_SUB );
+               /* Validate blend sub function index for blitting. */
+               if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) {
+                    DAVINCI_CHECK_VALIDATE( BLIT_BLEND_SUB );
+
+                    /* Validate ARGB source modulator. */
+                    DAVINCI_CHECK_VALIDATE( SOURCE_MULT );
+               }
 
                /* Choose function. */
                switch (DFB_BYTES_PER_PIXEL( state->destination->config.format )) {
@@ -588,15 +722,6 @@ davinciSetState( void                *drv,
                break;
      }
 
-     ddev->blitting_flags = state->blittingflags;
-     ddev->colorkey       = state->src_colorkey;
-     ddev->color          = state->color;
-     ddev->color_argb     = PIXEL_ARGB( state->color.a,
-                                        state->color.r,
-                                        state->color.g,
-                                        state->color.b );
-     ddev->clip           = state->clip;
-
      /*
       * 4) Clear modification flags
       *
@@ -606,6 +731,9 @@ davinciSetState( void                *drv,
       */
      state->mod_hw = 0;
 }
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
 
 /*
  * Render a filled rectangle using the current hardware state.
@@ -622,13 +750,13 @@ davinciFillRectangle16( void *drv, void *dev, DFBRectangle *rect )
                                 ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
                                 ddev->dst_pitch,
                                 rect->w, rect->h,
-                                ddev->color_pixel );
+                                ddev->fillcolor );
      else
           davinci_c64x_fill_32( &ddrv->c64x,
                                 ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
                                 ddev->dst_pitch,
                                 rect->w/2, rect->h,
-                                ddev->color_pixel );
+                                ddev->fillcolor );
 
      return true;
 }
@@ -643,10 +771,34 @@ davinciFillRectangle32( void *drv, void *dev, DFBRectangle *rect )
                            ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
                            ddev->dst_pitch,
                            rect->w, rect->h,
-                           ddev->color_pixel );
+                           ddev->fillcolor );
 
      return true;
 }
+
+/**********************************************************************************************************************/
+
+static bool
+davinciFillRectangleBlend32( void *drv, void *dev, DFBRectangle *rect )
+{
+     DavinciDriverData *ddrv = drv;
+     DavinciDeviceData *ddev = dev;
+
+     davinci_c64x_blit_blend_32( &ddrv->c64x,
+                                 ddev->draw_blend_sub_function,
+                                 ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
+                                 ddev->dst_pitch,
+                                 0,
+                                 0,
+                                 rect->w, rect->h,
+                                 ddev->color_argb,
+                                 0xff );
+
+     return true;
+}
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
 
 /*
  * Blit a rectangle using the current hardware state.
@@ -677,6 +829,24 @@ davinciBlit16( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 }
 
 static bool
+davinciBlit32( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
+{
+     DavinciDriverData *ddrv = drv;
+     DavinciDeviceData *ddev = dev;
+
+     davinci_c64x_blit_32( &ddrv->c64x,
+                           ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
+                           ddev->dst_pitch,
+                           ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
+                           ddev->src_pitch,
+                           rect->w, rect->h );
+
+     return true;
+}
+
+/**********************************************************************************************************************/
+
+static bool
 davinciBlit32to16( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
      DavinciDriverData *ddrv = drv;
@@ -693,21 +863,7 @@ davinciBlit32to16( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      return true;
 }
 
-static bool
-davinciBlit32( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
-{
-     DavinciDriverData *ddrv = drv;
-     DavinciDeviceData *ddev = dev;
-
-     davinci_c64x_blit_32( &ddrv->c64x,
-                           ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
-                           ddev->dst_pitch,
-                           ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
-                           ddev->src_pitch,
-                           rect->w, rect->h );
-
-     return true;
-}
+/**********************************************************************************************************************/
 
 static bool
 davinciBlitKeyed16( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
@@ -745,33 +901,52 @@ davinciBlitKeyed32( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      return true;
 }
 
+/**********************************************************************************************************************/
+
 static bool
 davinciBlitBlend32( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
      DavinciDriverData *ddrv = drv;
      DavinciDeviceData *ddev = dev;
-     u32                argb = ddev->color_argb;
-
-     if (!(ddev->blitting_flags & DSBLIT_COLORIZE))
-          argb |= 0x00ffffff;
 
      davinci_c64x_blit_blend_32( &ddrv->c64x,
+                                 ddev->blit_blend_sub_function,
                                  ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
                                  ddev->dst_pitch,
                                  ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
                                  ddev->src_pitch,
                                  rect->w, rect->h,
-                                 ddev->blend_sub_function,
-                                 argb );
+                                 ddev->source_mult,
+                                 ddev->color.a );
 
      return true;
 }
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
 
 static bool
 davinciStretchBlit32( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *drect )
 {
      DavinciDriverData *ddrv = drv;
      DavinciDeviceData *ddev = dev;
+
+     DFBRegion clip = DFB_REGION_INIT_FROM_RECTANGLE( drect );
+
+     if (!dfb_region_region_intersect( &clip, &ddev->clip ))
+          return true;
+
+     dfb_region_translate( &clip, -drect->x, -drect->y );
+
+#if 0
+     if (drect->w < srect->w || drect->h < srect->h) {
+//          D_UNIMPLEMENTED();
+
+          return davinciBlit32( drv, dev, srect,
+                                drect->x + (srect->w - drect->w) / 2,
+                                drect->y + (srect->h - drect->h) / 2 );
+     }
+#endif
 
      davinci_c64x_stretch_32( &ddrv->c64x,
                               ddev->dst_phys + ddev->dst_pitch * drect->y + ddev->dst_bpp * drect->x,
@@ -780,7 +955,7 @@ davinciStretchBlit32( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *d
                               ddev->src_pitch,
                               drect->w, drect->h,
                               srect->w, srect->h,
-                              &ddev->clip );
+                              &clip );
 
      return true;
 }

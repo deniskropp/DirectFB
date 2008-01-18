@@ -238,11 +238,12 @@ driver_init_driver( CoreGraphicsDevice  *device,
           ddrv->c64x_present = true;
 
           /* initialize function pointers */
-          funcs->EngineSync   = davinciEngineSync;
-          funcs->EngineReset  = davinciEngineReset;
-          funcs->EmitCommands = davinciEmitCommands;
-          funcs->CheckState   = davinciCheckState;
-          funcs->SetState     = davinciSetState;
+          funcs->EngineSync        = davinciEngineSync;
+          funcs->EngineReset       = davinciEngineReset;
+          funcs->EmitCommands      = davinciEmitCommands;
+          funcs->FlushTextureCache = davinciFlushTextureCache;
+          funcs->CheckState        = davinciCheckState;
+          funcs->SetState          = davinciSetState;
      }
 
      ddrv->screen = dfb_screens_register( device, driver_data, &davinciScreenFuncs );

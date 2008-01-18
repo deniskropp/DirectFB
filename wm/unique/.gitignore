@@ -1,11 +1,4 @@
-Makefile
-Makefile.in
-.deps
-.libs
-*.lo*
-*.la
 stret_test
 test_color
 test_foo
 uwmdump
-*.o

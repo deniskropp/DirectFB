@@ -392,6 +392,7 @@ update_buffers( DavinciDriverData     *ddrv,
           rect.h = surface->config.size.h;
      }
 
+     /* Can we use the DSP? */
      if (ddrv->c64x_present) {
           unsigned long rgb   = ddev->fix[OSD0].smem_start + rect.x * 2 + rect.y * ddev->fix[OSD0].line_length;
           unsigned long alpha = ddev->fix[OSD1].smem_start + rect.x / 2 + rect.y * ddev->fix[OSD1].line_length;
@@ -399,7 +400,10 @@ update_buffers( DavinciDriverData     *ddrv,
 
           D_ASSUME( ddev->fix[OSD0].line_length == ddev->fix[OSD1].line_length );
 
+          /* Dither ARGB to RGB16+A3 using the DSP. */
           davinci_c64x_dither_argb( &ddrv->c64x, rgb, alpha, ddev->fix[OSD0].line_length, src, lock->pitch, rect.w, rect.h );
+
+          /* Flush the write cache. */
           davinci_c64x_write_back_all( &ddrv->c64x );
      }
      else {

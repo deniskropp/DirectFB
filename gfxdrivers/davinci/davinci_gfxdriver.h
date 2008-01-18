@@ -48,6 +48,7 @@ typedef struct {
      /* cached/computed values */
      void                     *dst_addr;
      unsigned long             dst_phys;
+     unsigned int              dst_size;
      unsigned long             dst_pitch;
      DFBSurfacePixelFormat     dst_format;
      unsigned long             dst_bpp;
@@ -58,14 +59,18 @@ typedef struct {
      DFBSurfacePixelFormat     src_format;
      unsigned long             src_bpp;
 
+     u32                       source_mult;
+
+     unsigned long             fillcolor;
+
+     int                       blit_blend_sub_function;
+     int                       draw_blend_sub_function;
+
      DFBColor                  color;
      u32                       color_argb;
-     unsigned long             color_pixel;
-
-     DFBSurfaceBlittingFlags   blitting_flags;
      u32                       colorkey;
 
-     int                       blend_sub_function;
+     DFBSurfaceBlittingFlags   blitting_flags;
 
      DFBRegion                 clip;
 
