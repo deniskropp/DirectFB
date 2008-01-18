@@ -539,8 +539,9 @@ FFmpegStreamThread( DirectThread *thread, void *ctx )
                pkt_size = pkt.size;
                pkt_pts  = pkt.pts;
                if (pkt_pts != AV_NOPTS_VALUE) {
-                    data->pts = av_rescale_q( pkt_pts-data->st->start_time,
-                                              data->st->time_base, AV_TIME_BASE_Q );
+                    if (data->st->start_time != AV_NOPTS_VALUE)
+                         pkt_pts -= data->st->start_time;
+                    data->pts = av_rescale_q( pkt_pts, data->st->time_base, AV_TIME_BASE_Q );
                }
           }
           
@@ -559,8 +560,7 @@ FFmpegStreamThread( DirectThread *thread, void *ctx )
                
                if (len > 0) {
                     size = len / (data->codec->channels * 2);
-                    if (pkt_pts == AV_NOPTS_VALUE)
-                         data->pts += (s64)size * AV_TIME_BASE / data->codec->sample_rate;
+                    data->pts += (s64)size * AV_TIME_BASE / data->codec->sample_rate;
                }
           }
           
@@ -741,8 +741,9 @@ FFmpegBufferThread( DirectThread *thread, void *ctx )
                pkt_size = pkt.size;
                pkt_pts  = pkt.pts;
                if (pkt_pts != AV_NOPTS_VALUE) {
-                    data->pts = av_rescale_q( pkt_pts-data->st->start_time,
-                                              data->st->time_base, AV_TIME_BASE_Q );
+                    if (data->st->start_time != AV_NOPTS_VALUE)
+                         pkt_pts -= data->st->start_time;
+                    data->pts = av_rescale_q( pkt_pts, data->st->time_base, AV_TIME_BASE_Q );
                }
           }
           
@@ -761,8 +762,7 @@ FFmpegBufferThread( DirectThread *thread, void *ctx )
                
                if (len > 0) {
                     size = len / (data->codec->channels * 2);
-                    if (pkt_pts == AV_NOPTS_VALUE)
-                         data->pts += (s64)size * AV_TIME_BASE / data->codec->sample_rate;
+                    data->pts += (s64)size * AV_TIME_BASE / data->codec->sample_rate;
                }
           }
           
@@ -1010,7 +1010,7 @@ IFusionSoundMusicProvider_FFmpeg_GetPos( IFusionSoundMusicProvider *thiz,
      if (!seconds)
           return DFB_INVARG;
       
-     pos = data->pts;      
+     pos = data->pts;
      if (data->dest.stream) {
           int delay = 0;
           data->dest.stream->GetPresentationDelay( data->dest.stream, &delay );
@@ -1032,7 +1032,7 @@ IFusionSoundMusicProvider_FFmpeg_GetLength( IFusionSoundMusicProvider *thiz,
      if (!seconds)
           return DFB_INVARG;
           
-     if (data->ctx->duration != AV_NOPTS_VALUE) {      
+     if (data->ctx->duration > 0) {      
           *seconds = (double)data->ctx->duration / AV_TIME_BASE;
           return DFB_OK;
      }
@@ -1074,6 +1074,7 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
      if (format && format->name) {
           if (!strcmp( format->name, "asf" ) || // wma
               !strcmp( format->name, "rm" )  || // real audio
+              !strcmp( format->name, "ac3" ) ||
               !strcmp( format->name, "flac" ))
                return DFB_OK;
      }
