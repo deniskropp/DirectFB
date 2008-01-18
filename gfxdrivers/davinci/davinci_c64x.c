@@ -50,9 +50,10 @@
 
 /**********************************************************************************************************************/
 
-#define C64X_DEVICE "/dev/c64x"
-#define C64X_QLEN   direct_page_align( sizeof(c64xTaskControl) )
-#define C64X_MLEN   direct_page_align( 0x2000000 )
+#define C64X_DEVICE  "/dev/c64x"
+#define C64X_DEVICE0 "/dev/c64x0"
+#define C64X_QLEN    direct_page_align( sizeof(c64xTaskControl) )
+#define C64X_MLEN    direct_page_align( 0x2000000 )
 
 /**********************************************************************************************************************/
 /*   Benchmarking or Testing                                                                                       */
@@ -144,13 +145,13 @@ test_load_block( DavinciC64x *c64x, bool dct_type_interlaced )
 
 
      // test routine
-     davinci_c64x_load_block( c64x, 0x8e000000+0x01200000, 10, dct_type_interlaced ? 0x40 : 0x3f );
+     davinci_c64x_load_block( c64x, 0x8e000000+0x01200000, 10, dct_type_interlaced ? 0x7f : 0x3f );
 
      // copy idct buffer to memory where we can read it
-//     davinci_c64x_blit_16( c64x, 0x8f000000, 0, 0xf06180, 0, 32 * 24, 1 );
+     davinci_c64x_blit_16( c64x, 0x8f000000, 0, 0xf065c0, 0, 16 * 24, 1 );
 
-//     davinci_c64x_write_back_all( c64x );
-//     davinci_c64x_wait_low( c64x );
+     davinci_c64x_write_back_all( c64x );
+     davinci_c64x_wait_low( c64x );
 
 
      BRINTF( "-> IDCT BUFFER (16x16 + [ 8x8 8x8 ] shorts)\n" );
@@ -1392,7 +1393,7 @@ bench_stretch_32( DavinciC64x *c64x, int sw, int sh, int dw, int dh )
 
      for (y=0; y<sh; y++) {
           for (x=0; x<sw; x++) {
-               src[x + y*SW] = 0x10010203 * x + 0x04202020 * (y + 1);
+               src[x + y*SW] = 0xffffffff * x;//  0x10010203 * x + 0x04202020 * (y + 1);
           }
      }
 
@@ -1504,7 +1505,7 @@ davinci_c64x_open( DavinciC64x *c64x )
 
      mknod( C64X_DEVICE, 0666 | S_IFCHR, makedev( 400, 0 ) );
 
-     fd = open( C64X_DEVICE, O_RDWR );
+     fd = direct_try_open( C64X_DEVICE, C64X_DEVICE0, O_RDWR, true );
      if (fd < 0) {
           ret = errno2result( errno );
           D_PERROR( "Davinci/C64X: Opening '%s' failed!\n", C64X_DEVICE );
@@ -1540,11 +1541,10 @@ davinci_c64x_open( DavinciC64x *c64x )
      D_MAGIC_SET( c64x, DavinciC64x );
 
 if (getenv("C64X_TEST")) {
-//     bench_dsp( c64x );
-//     bench_dither_argb( c64x );
-
      test_load_block( c64x, false );
      test_load_block( c64x, true );
+
+     bench_dither_argb( c64x );
 
 #if 0
      bench_uyvy_1( c64x );
@@ -1559,8 +1559,9 @@ if (getenv("C64X_TEST")) {
      bench_blend_argb( c64x, 3 );
 #endif
 
-#if 0
+#if 1
      bench_stretch_32( c64x, 2, 1, 16, 1 );
+     bench_stretch_32( c64x, 2, 2, 16, 2 );
 
      bench_stretch_32( c64x, 2, 1,  3, 1 );
      bench_stretch_32( c64x, 4, 1,  6, 1 );
@@ -1569,7 +1570,7 @@ if (getenv("C64X_TEST")) {
      bench_stretch_32( c64x, 6, 1,  4, 1 );
 #endif
 
-#if 0
+#if 1
      bench_fetch_uyvy( c64x, false, 0, 0 );
      bench_fetch_uyvy( c64x, false, 1, 0 );
      bench_fetch_uyvy( c64x, false, 0, 1 );

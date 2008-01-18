@@ -146,6 +146,51 @@ davinci_c64x_load_block( DavinciC64x   *c64x,
 }
 
 static inline void
+davinci_c64x_fetch_uyvy( DavinciC64x   *c64x,
+                         unsigned long  dest,
+                         unsigned long  source,
+                         u32            pitch,
+                         u32            height,
+                         u32            flags )
+{
+     c64xTask *task = c64x_get_task( c64x );
+
+     task->c64x_function = C64X_FETCH_UYVY | C64X_FLAG_TODO;
+
+     task->c64x_arg[0] = dest;
+     task->c64x_arg[1] = source;
+     task->c64x_arg[2] = pitch;
+     task->c64x_arg[3] = height;
+     task->c64x_arg[4] = flags;
+
+     c64x_submit_task( c64x );
+}
+
+static inline void
+davinci_c64x_mc( DavinciC64x   *c64x,
+                 unsigned long  dest,
+                 u32            dpitch,
+                 unsigned long  source0,
+                 unsigned long  source1,
+                 u32            spitch,
+                 u32            height,
+                 int            func )
+{
+     c64xTask *task = c64x_get_task( c64x );
+
+     task->c64x_function = func | C64X_FLAG_TODO;
+
+     task->c64x_arg[0] = dest;
+     task->c64x_arg[1] = dpitch;
+     task->c64x_arg[2] = source0;
+     task->c64x_arg[3] = source1;
+     task->c64x_arg[4] = spitch;
+     task->c64x_arg[5] = height;
+
+     c64x_submit_task( c64x );
+}
+
+static inline void
 davinci_c64x_put_idct_uyvy_16x16( DavinciC64x   *c64x,
                                   unsigned long  dest,
                                   u32            pitch,
@@ -197,46 +242,35 @@ davinci_c64x_put_sum_uyvy_16x16( DavinciC64x   *c64x,
 }
 
 static inline void
-davinci_c64x_fetch_uyvy( DavinciC64x   *c64x,
-                         unsigned long  dest,
-                         unsigned long  source,
-                         u32            pitch,
-                         u32            height,
-                         u32            flags )
+davinci_c64x_dva_begin_frame( DavinciC64x   *c64x,
+                              u32            pitch,
+                              unsigned long  current,
+                              unsigned long  past,
+                              unsigned long  future,
+                              u32            flags )
 {
      c64xTask *task = c64x_get_task( c64x );
 
-     task->c64x_function = C64X_FETCH_UYVY | C64X_FLAG_TODO;
+     task->c64x_function = C64X_DVA_BEGIN_FRAME | C64X_FLAG_TODO;
 
-     task->c64x_arg[0] = dest;
-     task->c64x_arg[1] = source;
-     task->c64x_arg[2] = pitch;
-     task->c64x_arg[3] = height;
+     task->c64x_arg[0] = pitch;
+     task->c64x_arg[1] = current;
+     task->c64x_arg[2] = past;
+     task->c64x_arg[3] = future;
      task->c64x_arg[4] = flags;
 
      c64x_submit_task( c64x );
 }
 
 static inline void
-davinci_c64x_mc( DavinciC64x   *c64x,
-                 unsigned long  dest,
-                 u32            dpitch,
-                 unsigned long  source0,
-                 unsigned long  source1,
-                 u32            spitch,
-                 u32            height,
-                 int            func )
+davinci_c64x_dva_motion_block( DavinciC64x   *c64x,
+                               unsigned long  macroblock )
 {
      c64xTask *task = c64x_get_task( c64x );
 
-     task->c64x_function = func | C64X_FLAG_TODO;
+     task->c64x_function = C64X_DVA_MOTION_BLOCK | C64X_FLAG_TODO;
 
-     task->c64x_arg[0] = dest;
-     task->c64x_arg[1] = dpitch;
-     task->c64x_arg[2] = source0;
-     task->c64x_arg[3] = source1;
-     task->c64x_arg[4] = spitch;
-     task->c64x_arg[5] = height;
+     task->c64x_arg[0] = macroblock;
 
      c64x_submit_task( c64x );
 }
@@ -407,14 +441,15 @@ davinci_c64x_stretch_32( DavinciC64x     *c64x,
 
 static inline void
 davinci_c64x_blit_blend_32( DavinciC64x   *c64x,
+                            u32            sub_func,
                             unsigned long  dest,
                             u32            dpitch,
                             unsigned long  src,
                             u32            spitch,
                             u32            width,
                             u32            height,
-                            u32            sub_func,
-                            u32            argb )
+                            u32            argb,
+                            u8             alpha )
 {
      c64xTask *task = c64x_get_task( c64x );
 
@@ -424,9 +459,9 @@ davinci_c64x_blit_blend_32( DavinciC64x   *c64x,
      task->c64x_arg[1] = dpitch;
      task->c64x_arg[2] = src;
      task->c64x_arg[3] = spitch;
-     task->c64x_arg[4] = width;
-     task->c64x_arg[5] = height;
-     task->c64x_arg[6] = argb;
+     task->c64x_arg[4] = width | (height << 16);
+     task->c64x_arg[5] = argb;
+     task->c64x_arg[6] = alpha;
 
      c64x_submit_task( c64x );
 }
