@@ -31,12 +31,14 @@
 
 #include <ifusionsound.h>
 
-static DFBResult
-Probe( void *arg );
+#include <misc/sound_conf.h>
 
-static DFBResult
-Construct( IFusionSound *thiz,
-           void         *arg );
+#include <direct/interface.h>
+
+
+static DFBResult Probe( void *arg );
+
+static DFBResult Construct( IFusionSound *thiz, void *arg );
 
 #include <direct/interface_implementation.h>
 
@@ -58,8 +60,22 @@ Construct( IFusionSound *thiz,
      DFBResult ret;
      
      ret = FusionSoundInit( NULL, NULL );
-     if (ret != DFB_OK)
+     if (ret) {
+          DIRECT_DEALLOCATE_INTERFACE(thiz);
           return ret;
+     }
+
+     if (fs_config->remote.host) {
+          DirectInterfaceFuncs *funcs;
+
+          ret = DirectGetInterface( &funcs, "IFusionSound", "Requestor", NULL, NULL );
+          if (ret) {
+               DIRECT_DEALLOCATE_INTERFACE(thiz);
+               return ret;
+          }
+
+          return funcs->Construct( thiz, fs_config->remote.host, fs_config->remote.session );
+     }          
 
      return IFusionSound_Construct( thiz );
 }
