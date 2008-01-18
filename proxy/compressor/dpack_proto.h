@@ -37,26 +37,43 @@ FUNC_NAME(encode, TYPE)( const TYPE *source, int channels, int length, u8 *dest 
           int   bits = 0;
           int   sign = 0;
           int   mind = 0;
+          int   coup = 0;
           int   prev;
           int   n;
-          
-          src = (TYPE*) &source[c];
-          prev = GET_SAMP(src);
-          src += channels;
-          
+                    
           if (length > 1) {
-               int max = 0;
-               int min = 0x7fffffff;
+               int max   = 0;
+               int min   = 0x7fffffff;
+               int max2  = 0;
+               int min2  = 0x7fffffff;
+               int prev2 = 0;
                int an, bn;
                int as, bs;
                
+               src = (TYPE*) &source[c];
+               prev = GET_SAMP(src);
+               if (c)
+                    prev2 = prev - GET_SAMP(src-1);
+               src += channels;
+               
                for (n = length-1; n; n--) {
-                    int delta = (GET_SAMP(src) - prev) >> DPACK_SCALE;
-                    if (delta > max)
-                         max = delta;
-                    if (delta < min)
-                         min = delta;
-                    prev += delta << DPACK_SCALE;
+                    int s, d;
+                    s = GET_SAMP(src);
+                    d = (s - prev) >> DPACK_SCALE;
+                    if (d > max)
+                         max = d;
+                    if (d < min)
+                         min = d;
+                    prev += d << DPACK_SCALE;
+                    if (c) {
+                         s -= GET_SAMP(src-1);
+                         d = (s - prev2) >> DPACK_SCALE;
+                         if (d > max2)
+                              max2 = d;
+                         if (d < min2)
+                              min2 = d;
+                         prev2 += d << DPACK_SCALE;
+                    }
                     src += channels;
                }
                
@@ -68,6 +85,24 @@ FUNC_NAME(encode, TYPE)( const TYPE *source, int channels, int length, u8 *dest 
                else
                     an = bitcount( ABS(min) );
                as = (max < 0 || min < 0);
+               
+               if (c) {
+                    int an2, as2;
+               
+                    if (ABS(max2) > ABS(min2))
+                         an2 = bitcount( ABS(max2) );
+                    else
+                         an2 = bitcount( ABS(min2) );
+                    as2 = (max2 < 0 || min2 < 0);
+                    
+                    if (an+as > an2+as2) {
+                         an = an2;
+                         as = as2;
+                         max = max2;
+                         min = min2;
+                         coup = 1;
+                    }
+               }
                
                bn = bitcount( ABS(max-min) );
                bs = (max-min < 0);
@@ -85,9 +120,11 @@ FUNC_NAME(encode, TYPE)( const TYPE *source, int channels, int length, u8 *dest 
          
           src = (TYPE*) &source[c];
           prev = GET_SAMP(src);
+          if (coup)
+               prev -= GET_SAMP(src-1);
           src += channels;
           
-          *dst++ = (bits & 31) | (sign << 5) | ((mind != 0) << 6);
+          *dst++ = (bits & 31) | (sign << 5) | ((mind != 0) << 6) | (coup << 7);
           PUT_CODED_SAMP(dst, prev);
           dst += sizeof(TYPE);
           if (mind) {
@@ -102,9 +139,13 @@ FUNC_NAME(encode, TYPE)( const TYPE *source, int channels, int length, u8 *dest 
                bitio_init( &bio, dst );
                
                for (n = length-1; n; n--) {
-                    int delta = (GET_SAMP(src) - prev) >> DPACK_SCALE;
-                    bitio_put( &bio, delta-mind, bits );
-                    prev += delta << DPACK_SCALE;
+                    int s, d;
+                    s = GET_SAMP(src);
+                    if (coup)
+                         s -= GET_SAMP(src-1);
+                    d = (s - prev) >> DPACK_SCALE;
+                    bitio_put( &bio, d-mind, bits );
+                    prev += d << DPACK_SCALE;
                     src += channels;
                }
                
@@ -126,6 +167,7 @@ FUNC_NAME(decode, TYPE)( const u8 *source, int channels, int length, TYPE *dest 
           int   bits;
           int   sign;
           int   mind;
+          int   coup;
           int   prev;
           int   n;
           
@@ -139,7 +181,14 @@ FUNC_NAME(decode, TYPE)( const u8 *source, int channels, int length, TYPE *dest 
                mind = 0;
           }
           
-          PUT_SAMP(dst, prev);
+          coup = bits >> 7;
+          if (coup) {
+               int s = prev + GET_SAMP(dst-1);
+               PUT_SAMP(dst, s);
+          }
+          else { 
+               PUT_SAMP(dst, prev);
+          }
           dst += channels;
           
           sign = (bits >> 5) & 1;
@@ -151,15 +200,31 @@ FUNC_NAME(decode, TYPE)( const u8 *source, int channels, int length, TYPE *dest 
                
                if (sign) {
                     for (n = length-1; n; n--) {
+                         int s;
                          prev += (bitio_gets( &bio, bits ) + mind) << DPACK_SCALE;
-                         PUT_SAMP(dst, prev);
+                         s = prev;
+                         if (coup)
+                              s += GET_SAMP(dst-1);
+                         if (s > SAMP_MAX)
+                              s = SAMP_MAX;
+                         else if (s < -(SAMP_MAX+1))
+                              s = -(SAMP_MAX+1);
+                         PUT_SAMP(dst, s);
                          dst += channels;
                     }
                }
                else {
                     for (n = length-1; n; n--) {
+                         int s;
                          prev += (bitio_get( &bio, bits ) + mind) << DPACK_SCALE;
-                         PUT_SAMP(dst, prev);
+                         s = prev;
+                         if (coup)
+                              s += GET_SAMP(dst-1);
+                         if (s > SAMP_MAX)
+                              s = SAMP_MAX;
+                         else if (s < -(SAMP_MAX+1))
+                              s = -(SAMP_MAX+1);
+                         PUT_SAMP(dst, s);
                          dst += channels;
                     }
                }
@@ -169,8 +234,16 @@ FUNC_NAME(decode, TYPE)( const u8 *source, int channels, int length, TYPE *dest 
           else {
                mind <<= DPACK_SCALE;
                for (n = length-1; n; n--) {
+                    int s;
                     prev += mind;
-                    PUT_SAMP(dst, prev);
+                    s = prev;
+                    if (coup)
+                         s += GET_SAMP(dst-1);
+                    if (s > SAMP_MAX)
+                         s = SAMP_MAX;
+                    else if (s < -(SAMP_MAX+1))
+                         s = -(SAMP_MAX+1);
+                    PUT_SAMP(dst, s);
                     dst += channels;
                }
           }

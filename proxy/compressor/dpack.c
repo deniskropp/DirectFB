@@ -47,8 +47,10 @@
  *                       Bit 5  : 0 if unsigned deltas, 1 if signed;
  *                                add this bit to the previous value to
  *                                obtain the effective amount of bits per delta.
- *                       Bit 6  : deltas are represented as the difference
- *                                between the effective delta and the minimum delta.
+ *                       Bit 6  : deltas are encoded as the difference between
+ *                                the effective delta and the minimum delta (MD).
+ *                       Bit 7  : channels are coupled
+ *
  *
  *      N BYTES   - First Sample:
  *                       N can be 1, 2 or 4, depending on the sample format.
@@ -62,15 +64,24 @@
  *      N BITS    - Deltas:
  *                       deltas are encoded using the following formalas
  *                        
- *                         ENCODING: D(t) = (I(t) - O(t-1)) / 2
- *
- *                         DECODING: IF [Header:6]
- *                                      O(t) = O(t-1) + (D(t) + MD) * 2
- *                                   ELSE
- *                                      O(t) = O(t-1) + D(t) * 2
+ *                         ENCODING: IF [Header:7 && c > 0]
+ *                                      I(t)[c] -= I(t)[c-1]
  *                                   ENDIF
  *
- *                       where D(t) is the delta at t, I(t) is the input sample
+ *                                   D(t)[c] = (I(t)[c] - O(t-1)[c]) / 2
+ *
+ *                         DECODING: IF [Header:6]
+ *                                      O(t)[c] = O(t-1)[c] + (D(t)[c] + MD) * 2
+ *                                   ELSE
+ *                                      O(t)[c] = O(t-1)[c] + D(t)[c] * 2
+ *                                   ENDIF
+ *
+ *                                   IF [Header:7 && c > 0]
+ *                                      O(t)[c] += O(t)[c-1]
+ *                                   ENDIF
+ *
+ *                       where t is the frame index, c is the channel index,
+ *                       D(t) is the delta at t, I(t) is the input sample
  *                       at t, O(t) is the output sample at t and MD is the
  *                       minimum delta;
  *                       the amount of bits used to store the delta is given by
@@ -390,7 +401,7 @@ dpack_decode( const u8 *source, FSSampleFormat format, int channels, int length,
      D_ASSERT( source != NULL );
      D_ASSERT( channels > 0 );
      D_ASSERT( length > 0 );
-     D_ASSERT( dest != NULL );
+     D_ASSERT( dest != NULL );  
      
      switch (format) {
           case FSSF_U8:
@@ -442,7 +453,7 @@ dpack_decode( const u8 *source, FSSampleFormat format, int channels, int length,
                D_WARN( "unsupported sample format" );
                return 0;
      }
-              
+      
      return size;
 }
 
