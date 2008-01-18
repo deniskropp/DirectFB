@@ -64,7 +64,7 @@
  *      N BITS    - Deltas:
  *                       deltas are encoded using the following formalas
  *                        
- *                         ENCODING: IF [Header:7 && c > 0]
+ *                         ENCODING: IF [Header:7]
  *                                      I(t)[c] -= I(t)[c-1]
  *                                   ENDIF
  *
@@ -76,7 +76,7 @@
  *                                      O(t)[c] = O(t-1)[c] + D(t)[c] * 2
  *                                   ENDIF
  *
- *                                   IF [Header:7 && c > 0]
+ *                                   IF [Header:7]
  *                                      O(t)[c] += O(t)[c-1]
  *                                   ENDIF
  *
