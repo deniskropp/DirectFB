@@ -388,7 +388,7 @@ IFusionSoundMusicProvider_Wave_GetStreamDescription( IFusionSoundMusicProvider *
      desc->flags        = FSSDF_SAMPLERATE   | FSSDF_CHANNELS  |
                           FSSDF_SAMPLEFORMAT | FSSDF_BUFFERSIZE;
      desc->samplerate   = data->samplerate;
-     desc->channels     = data->channels;
+     desc->channels     = MIN(data->channels, FS_MAX_CHANNELS);
      desc->sampleformat = data->format;
      desc->buffersize   = data->samplerate/10;
 
@@ -407,7 +407,7 @@ IFusionSoundMusicProvider_Wave_GetBufferDescription( IFusionSoundMusicProvider *
      desc->flags        = FSBDF_LENGTH       | FSBDF_CHANNELS  |
                           FSBDF_SAMPLEFORMAT | FSBDF_SAMPLERATE;
      desc->samplerate   = data->samplerate;
-     desc->channels     = data->channels;
+     desc->channels     = MIN(data->channels, FS_MAX_CHANNELS);
      desc->sampleformat = data->format;
      desc->length       = data->datasize / data->framesize;
      if (desc->length > FS_MAX_FRAMES)

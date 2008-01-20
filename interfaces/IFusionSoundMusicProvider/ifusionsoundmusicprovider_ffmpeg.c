@@ -459,7 +459,7 @@ IFusionSoundMusicProvider_FFmpeg_GetStreamDescription( IFusionSoundMusicProvider
      desc->flags        = FSSDF_SAMPLERATE   | FSSDF_CHANNELS  |
                           FSSDF_SAMPLEFORMAT | FSSDF_BUFFERSIZE;
      desc->samplerate   = data->codec->sample_rate;
-     desc->channels     = data->codec->channels;
+     desc->channels     = MIN(data->codec->channels, FS_MAX_CHANNELS);
      desc->sampleformat = FSSF_S16;
      desc->buffersize   = desc->samplerate/8;
      
@@ -478,7 +478,7 @@ IFusionSoundMusicProvider_FFmpeg_GetBufferDescription( IFusionSoundMusicProvider
      desc->flags        = FSBDF_SAMPLERATE   | FSBDF_CHANNELS |
                           FSBDF_SAMPLEFORMAT | FSBDF_LENGTH;
      desc->samplerate   = data->codec->sample_rate;
-     desc->channels     = data->codec->channels;
+     desc->channels     = MIN(data->codec->channels, FS_MAX_CHANNELS);
      desc->sampleformat = FSSF_S16;
      if (data->st->nb_frames)
           desc->length = MIN(data->st->nb_frames, FS_MAX_FRAMES);
@@ -1074,6 +1074,7 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
      if (format && format->name) {
           if (!strcmp( format->name, "asf" ) || // wma
               !strcmp( format->name, "rm" )  || // real audio
+              !strcmp( format->name, "aac" ) ||
               !strcmp( format->name, "ac3" ) ||
               !strcmp( format->name, "flac" ))
                return DFB_OK;
@@ -1176,6 +1177,4 @@ Construct( IFusionSoundMusicProvider *thiz,
      thiz->SetPlaybackFlags     = IFusionSoundMusicProvider_FFmpeg_SetPlaybackFlags;
 
      return DFB_OK;
-}
-     
-     
+} 

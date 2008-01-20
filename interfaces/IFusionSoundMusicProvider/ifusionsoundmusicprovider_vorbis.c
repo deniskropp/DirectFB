@@ -671,7 +671,7 @@ IFusionSoundMusicProvider_Vorbis_GetStreamDescription( IFusionSoundMusicProvider
      desc->flags        = FSSDF_SAMPLERATE   | FSSDF_CHANNELS  |
                           FSSDF_SAMPLEFORMAT | FSSDF_BUFFERSIZE;
      desc->samplerate   = data->info->rate;
-     desc->channels     = data->info->channels;
+     desc->channels     = MIN(data->info->channels, FS_MAX_CHANNELS);
 #ifdef USE_TREMOR
      desc->sampleformat = FSSF_S16;
 #else
@@ -694,7 +694,7 @@ IFusionSoundMusicProvider_Vorbis_GetBufferDescription( IFusionSoundMusicProvider
      desc->flags        = FSBDF_SAMPLERATE   | FSBDF_CHANNELS |
                           FSBDF_SAMPLEFORMAT | FSBDF_LENGTH;
      desc->samplerate   = data->info->rate;
-     desc->channels     = data->info->channels;
+     desc->channels     = MIN(data->info->channels, FS_MAX_CHANNELS);
 #ifdef USE_TREMOR
      desc->sampleformat = FSSF_S16;
 #else
