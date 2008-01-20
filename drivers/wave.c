@@ -30,6 +30,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -293,9 +296,12 @@ static DFBResult
 device_suspend( void *device_data )
 {
      WaveDeviceData *data = device_data;
+     struct stat     st;
      
-     close( data->fd );
-     data->fd = -1;
+     if (fstat( data->fd, &st ) == 0 && !S_ISFIFO(st.st_mode)) {
+          close( data->fd );
+          data->fd = -1;
+     }
      
      return DFB_OK;
 }
@@ -306,18 +312,20 @@ device_resume( void *device_data )
      WaveDeviceData *data = device_data;
      char            path[4096];
      
-     if (fs_config->device) {
-          snprintf( path, sizeof(path), "%s", fs_config->device );
-     }
-     else {
-          snprintf( path, sizeof(path),
-                    "./fusionsound-%d.wav", fs_config->session );
-     }
+     if (data->fd < 0) {             
+          if (fs_config->device) {
+               snprintf( path, sizeof(path), "%s", fs_config->device );
+          }
+          else {
+               snprintf( path, sizeof(path),
+                         "./fusionsound-%d.wav", fs_config->session );
+          }
 
-     data->fd = open( path, O_WRONLY | O_APPEND | O_NOCTTY );
-     if (data->fd < 0) {
-          D_ERROR( "FusionSound/Device/Wave: couldn't reopen '%s'!\n", path );
-          return DFB_IO;
+          data->fd = open( path, O_WRONLY | O_APPEND | O_NOCTTY );
+          if (data->fd < 0) {
+               D_ERROR( "FusionSound/Device/Wave: couldn't reopen '%s'!\n", path );
+               return DFB_IO;
+          }
      }
      
      return DFB_OK;
