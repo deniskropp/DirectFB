@@ -89,6 +89,25 @@ fs2alsa_format( FSSampleFormat format )
      return SND_PCM_FORMAT_UNKNOWN;
 }
 
+static const char*
+alsa_device_get_devname( const CoreSoundDeviceConfig *config )
+{
+     switch (config->mode) {
+          case FSCM_SURROUND40_2F2R:
+               return "surround40";
+          case FSCM_SURROUND41_2F2R:
+               return "surround41";
+          case FSCM_SURROUND50:
+               return "surround50";
+          case FSCM_SURROUND51:
+               return "surround51";
+          default:
+               break;
+     }
+     
+     return "default";
+}
+
 static DFBResult
 alsa_device_set_configuration( snd_pcm_t             *handle,
                                CoreSoundDeviceConfig *config )
@@ -283,13 +302,15 @@ device_open( void                  *device_data,
              CoreSoundDeviceConfig *config )
 {
      AlsaDeviceData      *data = device_data;
+     const char          *dev;
      snd_ctl_t           *ctl;
      snd_ctl_card_info_t *info;
      DFBResult            ret;
+     
+     dev = fs_config->device ? : alsa_device_get_devname( config );
 
-     if (snd_pcm_open( &data->handle, fs_config->device ? : "default",
-                       SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK ) < 0) {
-          D_ERROR( "FusionSound/Device/Alsa: couldn't open pcm device!\n" );
+     if (snd_pcm_open( &data->handle, dev, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK ) < 0) {
+          D_ERROR( "FusionSound/Device/Alsa: couldn't open pcm device '%s'!\n", dev );
           return DFB_IO;
      }
 
@@ -503,11 +524,13 @@ static DFBResult
 device_resume( void *device_data )
 {
      AlsaDeviceData *data = device_data;
+     const char     *dev;
      DFBResult       ret;
+     
+     dev = fs_config->device ? : alsa_device_get_devname( data->config );
 
-     if (snd_pcm_open( &data->handle, fs_config->device ? : "default",
-                       SND_PCM_STREAM_PLAYBACK, 0 ) < 0) {
-          D_ERROR( "FusionSound/Device/Alsa: couldn't reopen pcm device!\n" );
+     if (snd_pcm_open( &data->handle, dev, SND_PCM_STREAM_PLAYBACK, 0 ) < 0) {
+          D_ERROR( "FusionSound/Device/Alsa: couldn't reopen pcm device '%s'!\n", dev );
           return DFB_IO;
      }
      
