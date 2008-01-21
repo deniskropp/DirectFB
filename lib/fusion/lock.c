@@ -462,7 +462,7 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
      WaitNode         *node;
      long long         stop;
      struct sigaction  act, oldact;
-     sigset_t          mask;
+     sigset_t          mask, set;
      DirectResult      ret = DFB_OK;
      
      D_ASSERT( skirmish != NULL );
@@ -498,21 +498,24 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
      while (!node->notified) {
           if (timeout) {
                long long now = direct_clock_get_micros();
-               sigset_t  oldmask;
 
                if (now >= stop) {
                     ret = DFB_TIMEOUT;
                     break;
                }
                
-               sigprocmask( SIG_SETMASK, &mask, &oldmask );
+               sigprocmask( SIG_SETMASK, &mask, &set );
                usleep( stop - now );
-               sigprocmask( SIG_SETMASK, &oldmask, NULL );           
+               sigprocmask( SIG_SETMASK, &set, NULL );           
           }
           else {
                sigsuspend( &mask );
           }
      }
+
+     /* Flush pending signals. */
+     while (!sigpending( &set ) && sigismember( &set, SIGRESTART ) > 0)
+          sigsuspend( &mask );
      
      if (fusion_skirmish_prevail( skirmish ))
           ret = DFB_DESTROYED;
