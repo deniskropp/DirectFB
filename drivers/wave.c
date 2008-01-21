@@ -164,6 +164,9 @@ device_open( void                  *device_data,
           return DFB_IO;
      }
 
+     /* close file descriptor on exec */
+     fcntl( data->fd, F_SETFD, FD_CLOEXEC );
+
      /* device name */
      snprintf( device_info->name,
                FS_SOUND_DEVICE_INFO_NAME_LENGTH,
@@ -326,6 +329,8 @@ device_resume( void *device_data )
                D_ERROR( "FusionSound/Device/Wave: couldn't reopen '%s'!\n", path );
                return DFB_IO;
           }
+
+          fcntl( data->fd, F_SETFD, FD_CLOEXEC );
      }
      
      return DFB_OK;
