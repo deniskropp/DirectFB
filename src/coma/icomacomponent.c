@@ -255,6 +255,22 @@ IComaComponent_Unlisten( IComaComponent     *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IComaComponent_Activate( IComaComponent *thiz )
+{
+     DirectResult ret;
+
+     DIRECT_INTERFACE_GET_DATA (IComaComponent)
+
+     coma_component_lock( data->component );
+
+     ret = coma_component_activate( data->component );
+
+     coma_component_unlock( data->component );
+
+     return ret;
+}
+
 DFBResult
 IComaComponent_Construct( IComaComponent *thiz,
                           Coma           *coma,
@@ -297,6 +313,7 @@ IComaComponent_Construct( IComaComponent *thiz,
      thiz->Listen            = IComaComponent_Listen;
      thiz->InitListeners     = IComaComponent_InitListeners;
      thiz->Unlisten          = IComaComponent_Unlisten;
+     thiz->Activate          = IComaComponent_Activate;
 
      return DFB_OK;
 }

@@ -39,6 +39,7 @@ struct __COMA_ComaComponent {
      FusionSHMPoolShared *shmpool;
 
      FusionSkirmish       lock;
+     bool                 active;
 
      char                *name;               /* Name of the component. */
 
@@ -79,6 +80,8 @@ DirectResult coma_component_init             ( ComaComponent                  *c
 
 DirectResult coma_component_lock             ( ComaComponent                  *component );
 DirectResult coma_component_unlock           ( ComaComponent                  *component );
+
+DirectResult coma_component_activate         ( ComaComponent                  *component );
 
 DirectResult coma_component_init_notification( ComaComponent                  *component,
                                                ComaNotificationID              id,

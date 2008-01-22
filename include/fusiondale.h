@@ -398,6 +398,13 @@ DEFINE_INTERFACE( IComaComponent,
           IComaComponent           *thiz,
           ComaNotificationID        id
      );
+
+
+   /** Activation **/
+
+     DFBResult (*Activate) (
+          IComaComponent           *thiz
+     );
 )
 
 #ifdef __cplusplus

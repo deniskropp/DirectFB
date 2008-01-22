@@ -263,10 +263,12 @@ coma_get_component( Coma           *coma,
      shared = coma->shared;
      D_MAGIC_ASSERT( shared, ComaShared );
 
+     /* Lock the manager. */
      ret = fusion_skirmish_prevail( &shared->lock );
      if (ret)
           return ret;
 
+     /* Wait for the component to be added. */
      while ((component = fusion_hash_lookup( shared->components, name )) == NULL) {
           ret = fusion_skirmish_wait( &shared->lock, timeout );
           if (ret)
@@ -275,15 +277,37 @@ coma_get_component( Coma           *coma,
 
      D_MAGIC_ASSERT( component, ComaComponent );
 
+     /* Increase component's ref counter. */
      ret = coma_component_ref( component );
      if (ret) {
           fusion_skirmish_dismiss( &shared->lock );
           return ret;
      }
 
-     *ret_component = component;
-
+     /* Unlock the manager. */
      fusion_skirmish_dismiss( &shared->lock );
+
+
+     /* Lock the component. */
+     ret = fusion_skirmish_prevail( &component->lock );
+     if (ret) {
+          coma_component_unref( component );
+          return ret;
+     }
+
+     /* Wait for component to become active? */
+     while (!component->active) {
+          ret = fusion_skirmish_wait( &component->lock, timeout );
+          if (ret) {
+               coma_component_unref( component );
+               return ret;
+          }
+     }
+
+     /* Unlock the component. */
+     fusion_skirmish_dismiss( &component->lock );
+
+     *ret_component = component;
 
      return DFB_OK;
 }

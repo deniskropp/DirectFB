@@ -111,6 +111,7 @@ method_call_handler( int           caller,
      ComaComponent *component = ctx;
 
      D_MAGIC_ASSERT( component, ComaComponent );
+     D_ASSUME( component->active );
      D_ASSERT( component->method_func != NULL );
 
      component->method_func( component->method_ctx, call_arg, call_ptr, serial );
@@ -130,6 +131,7 @@ notify_call_handler( int           caller,
      ComaComponent    *component = ctx;
 
      D_MAGIC_ASSERT( component, ComaComponent );
+     D_ASSUME( component->active );
 
      D_ASSERT( call_arg >= 0 );
      D_ASSERT( call_arg < component->num_notifications );
@@ -247,6 +249,29 @@ coma_component_unlock( ComaComponent *component )
 }
 
 DirectResult
+coma_component_activate( ComaComponent *component )
+{
+     DFBResult ret;
+
+     D_MAGIC_ASSERT( component, ComaComponent );
+     FUSION_SKIRMISH_ASSERT( &component->lock );
+     D_ASSUME( !component->active );
+
+     D_DEBUG_AT( Coma_Component, "%s( %p ) <- '%s'\n", __FUNCTION__, component, name );
+
+     if (component->active)
+          return DFB_BUSY;
+
+     component->active = true;
+
+     ret = fusion_skirmish_notify( &component->lock );
+     if (ret)
+          D_DERROR( ret, "Coma/Component: fusion_skirmish_notify() failed!\n" );
+
+     return ret;
+}
+
+DirectResult
 coma_component_init_notification( ComaComponent         *component,
                                   ComaNotificationID     id,
                                   ComaNotifyFunc         func,
@@ -256,7 +281,9 @@ coma_component_init_notification( ComaComponent         *component,
      ComaNotification *notification;
 
      D_MAGIC_ASSERT( component, ComaComponent );
-
+     FUSION_SKIRMISH_ASSERT( &component->lock );
+     D_ASSUME( !component->active );
+     
      D_DEBUG_AT( Coma_Component, "%s( %p, %lu - %p )\n", __FUNCTION__, component, id, func );
 
      if (id < 0 || id >= component->num_notifications)
@@ -286,6 +313,7 @@ coma_component_call( ComaComponent *component,
                      int           *ret_val )
 {
      D_MAGIC_ASSERT( component, ComaComponent );
+     D_ASSUME( component->active );
 
      D_DEBUG_AT( Coma_Component, "%s( %p, %lu - %p, %p )\n", __FUNCTION__, component, method, arg, ret_val );
 
@@ -298,6 +326,7 @@ coma_component_return( ComaComponent *component,
                        int            val )
 {
      D_MAGIC_ASSERT( component, ComaComponent );
+     D_ASSUME( component->active );
 
      D_DEBUG_AT( Coma_Component, "%s( %p, %u - %d )\n", __FUNCTION__, component, serial, val );
 
@@ -310,6 +339,7 @@ coma_component_notify( ComaComponent                  *component,
                        void                           *arg )
 {
      D_MAGIC_ASSERT( component, ComaComponent );
+     D_ASSUME( component->active );
 
      D_DEBUG_AT( Coma_Component, "%s( %p [%lu], %lu - %p )\n", __FUNCTION__,
                  component, component->object.id, id, arg );
