@@ -259,7 +259,10 @@ device_open( void                  *device_data,
      
      /* reset to blocking mode */
      fcntl( data->fd, F_SETFL, fcntl( data->fd, F_GETFL ) & ~O_NONBLOCK );
-      
+     
+     /* close file descriptor on exec */
+     fcntl( data->fd, F_SETFD, FD_CLOEXEC );
+
      /* TODO: get device name */
      
      /* device capabilities */
@@ -419,9 +422,12 @@ device_resume( void *device_data )
      if (ret) {
           close( data->fd );
           data->fd = -1;
+          return ret;
      }
+
+     fcntl( data->fd, F_SETFD, FD_CLOEXEC );
      
-     return ret;     
+     return DFB_OK;
 }  
 
 static void
