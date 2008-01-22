@@ -4334,7 +4334,12 @@ typedef enum {
      DVPET_FATALERROR     = 0x00000010,  /* A fatal error has occured: restart must be done */
      DVPET_FINISHED       = 0x00000020,  /* The video provider has finished the playback    */
      DVPET_SURFACECHANGE  = 0x00000040,  /* A surface description change has occured        */
-     DVPET_ALL            = 0x0000007F   /* all event types */
+     DVPET_FRAMEDECODED   = 0x00000080,  /* A frame has been decoded by the decoder         */
+     DVPET_FRAMEDISPLAYED = 0x00000100,  /* A frame has been rendered to the output         */
+     DVPET_DATAEXHAUSTED  = 0x00000200,  /* There is no more data available for consumption */
+     DVPET_VIDEOACTION    = 0x00000400,  /* An action is required on the video provider     */
+     DVPET_DATALOW        = 0x00000800,  /* The stream buffer is running low in data (threshold defined by implementation). */
+     DVPET_ALL            = 0x00000FFF   /* All event types */
 } DFBVideoProviderEventType;
 
 /*
@@ -4393,12 +4398,28 @@ typedef struct {
 } DFBWindowEvent;
 
 /*
+ * Video Provider Event Types - can also be used as flags for event filters.
+ */
+typedef enum {
+     DVPEDST_UNKNOWN      = 0x00000000, /* Event is valid for unknown Data   */
+     DVPEDST_AUDIO        = 0x00000001, /* Event is valid for Audio Data     */
+     DVPEDST_VIDEO        = 0x00000002, /* Event is valid for Video Data     */
+     DVPEDST_DATA         = 0x00000004, /* Event is valid for Data types     */
+     DVPEDST_ALL          = 0x00000007, /* Event is valid for all Data types */
+
+} DFBVideoProviderEventDataSubType;
+
+/*
  * Event from the video provider
  */
 typedef struct {
-     DFBEventClass                   clazz;      /* clazz of event */
+     DFBEventClass                    clazz;      /* clazz of event */
 
-     DFBVideoProviderEventType       type;       /* type of event */
+     DFBVideoProviderEventType        type;       /* type of event */
+     DFBVideoProviderEventDataSubType data_type;  /* data type that this event is applicable for. */
+
+     int                              data[4];    /* custom data - large enough for 4 ints so that in most cases
+                                                     memory allocation will not be needed */
 } DFBVideoProviderEvent;
 
 /*
@@ -4478,6 +4499,11 @@ typedef struct {
      unsigned int   DVPET_FATALERROR;
      unsigned int   DVPET_FINISHED;
      unsigned int   DVPET_SURFACECHANGE;
+     unsigned int   DVPET_FRAMEDECODED;
+     unsigned int   DVPET_FRAMEDISPLAYED;
+     unsigned int   DVPET_DATAEXHAUSTED;
+     unsigned int   DVPET_DATALOW;
+     unsigned int   DVPET_VIDEOACTION;
 } DFBEventBufferStats;
 
 
@@ -5775,7 +5801,19 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
           DFBVideoProviderAudioUnits *audioUnits
      );
 
-     /** Event buffers **/
+     /*
+      * Set the audio delay
+      *
+      * The parameter is in microseconds. Values < 0 make audio earlier, > 0 make audio later.
+      */
+      DFBResult (*SetAudioDelay) (
+          IDirectFBVideoProvider     *thiz,
+          long                        delay
+      );
+
+
+  /** Event buffers **/
+
      /*
       * Create an event buffer for this video provider and attach it.
       */

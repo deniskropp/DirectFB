@@ -1055,6 +1055,26 @@ CollectEventStatistics( DFBEventBufferStats *stats,
                          stats->DVPET_SURFACECHANGE += incdec;
                          break;
 
+                    case DVPET_FRAMEDECODED:
+                         stats->DVPET_FRAMEDECODED += incdec;
+                         break;
+
+                    case DVPET_FRAMEDISPLAYED:
+                         stats->DVPET_FRAMEDISPLAYED += incdec;
+                         break;
+
+                    case DVPET_DATAEXHAUSTED:
+                         stats->DVPET_DATAEXHAUSTED += incdec;
+                         break;
+
+                    case DVPET_VIDEOACTION:
+                         stats->DVPET_VIDEOACTION += incdec;
+                         break;
+
+                    case DVPET_DATALOW:
+                         stats->DVPET_DATALOW += incdec;
+                         break;
+
                     default:
                          D_BUG( "unknown video provider event type 0x%08x\n", event->videoprovider.type );
                }

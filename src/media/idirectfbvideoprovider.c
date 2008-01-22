@@ -225,6 +225,13 @@ IDirectFBVideoProvider_GetAudioOutputs(IDirectFBVideoProvider         *thiz,
 }
 
 static DFBResult
+IDirectFBVideoProvider_SetAudioDelay( IDirectFBVideoProvider *thiz,
+                                 long                  delay )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
 IDirectFBVideoProvider_CreateEventBuffer( IDirectFBVideoProvider  *thiz,
                                           IDirectFBEventBuffer    **buffer )
 {
@@ -289,6 +296,7 @@ IDirectFBVideoProvider_Construct( IDirectFBVideoProvider *thiz )
      thiz->EnableEvents          = IDirectFBVideoProvider_EnableEvents;
      thiz->DisableEvents         = IDirectFBVideoProvider_DisableEvents;
      thiz->DetachEventBuffer     = IDirectFBVideoProvider_DetachEventBuffer;
+     thiz->SetAudioDelay         = IDirectFBVideoProvider_SetAudioDelay;
 }
 
 
