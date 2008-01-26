@@ -445,7 +445,7 @@ ov_read_callback( void *dst, size_t size, size_t nmemb, void *ctx )
           length += read;
      }
 
-     return length;
+     return length / size;
 }
 
 static int
