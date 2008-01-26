@@ -442,6 +442,15 @@ smil_playlist_parse( IFusionSoundMusicProvider_Playlist_data *data, char *src )
      int   id = 0;
      
      while ((src = strchr( src, '<' ))) {
+          if (!strncmp( src, "<!--", 4 )) {
+               src += 4;
+               end = strstr( src, "-->" );
+               if (!end)
+                    break;
+               src = end + 3;
+               continue;
+          }
+          
           end = strchr( src, '>' );
           if (!end)
                break;
@@ -513,7 +522,14 @@ asx_playlist_parse( IFusionSoundMusicProvider_Playlist_data *data, char *src )
      int   id     = 0;
      
      while ((src = strchr( src, '<' ))) {
-          if (!strncasecmp( src, "<entry>", 7 )) {
+          if (!strncmp( src, "<!--", 4 )) {
+               src += 4;
+               end = strstr( src, "-->" );
+               if (!end)
+                    break;
+               src = end + 3;
+          }
+          else if (!strncasecmp( src, "<entry>", 7 )) {
                src += 7;
                url = title = author = start = NULL;
           }
@@ -599,7 +615,14 @@ xspf_playlist_parse( IFusionSoundMusicProvider_Playlist_data *data, char *src )
      int   id      = 0;
      
      while ((src = strchr( src, '<' ))) {
-          if (!strncmp( src, "<track>", 7 )) {
+          if (!strncmp( src, "<!--", 4 )) {
+               src += 4;
+               end = strstr( src, "-->" );
+               if (!end)
+                    break;
+               src = end + 3;
+          }
+          else if (!strncmp( src, "<track>", 7 )) {
                src += 7;
                url = creator = title = album = NULL;
           }
