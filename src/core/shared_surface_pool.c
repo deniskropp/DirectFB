@@ -37,6 +37,7 @@
 #include <core/core.h>
 #include <core/surface_pool.h>
 
+#include <misc/conf.h>
 
 /**********************************************************************************************************************/
 
@@ -93,7 +94,7 @@ sharedInitPool( CoreDFB                    *core,
      local->core  = core;
      local->world = dfb_core_world( core );
 
-     ret = fusion_shm_pool_create( local->world, "Surface Memory Pool", 0x6000000,
+     ret = fusion_shm_pool_create( local->world, "Surface Memory Pool", dfb_config->surface_shmpool_size,
                                    fusion_config->debugshm, &data->shmpool );
      if (ret)
           return ret;

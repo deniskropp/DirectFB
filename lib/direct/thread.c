@@ -94,10 +94,6 @@ struct __D_DirectThreadInitHandler {
  */
 static void *direct_thread_main( void *arg );
 
-#if DIRECT_BUILD_TEXT
-static const char *thread_type_name( DirectThreadType type )  D_CONST_FUNC;
-#endif
-
 /******************************************************************************/
 
 static pthread_mutex_t  handler_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -160,13 +156,18 @@ direct_thread_create( DirectThreadType      thread_type,
                       void                 *arg,
                       const char           *name )
 {
-     DirectThread *thread;
+     DirectThread       *thread;
+     pthread_attr_t      attr;
+     struct sched_param  param;
+     int                 policy;
+     int                 priority;
+     size_t              stack_size;
 
      D_ASSERT( thread_main != NULL );
      D_ASSERT( name != NULL );
 
      D_DEBUG_AT( Direct_Thread, "%s( %s, %p(%p), '%s' )\n", __FUNCTION__,
-                 thread_type_name(thread_type), thread_main, arg, name );
+                 direct_thread_type_name(thread_type), thread_main, arg, name );
 
      /* Create the key for the TSD (thread specific data). */
      pthread_mutex_lock( &key_lock );
@@ -199,13 +200,86 @@ direct_thread_create( DirectThreadType      thread_type,
 
      D_MAGIC_SET( thread, DirectThread );
 
+     /* Initialize scheduling and other parameters. */
+     pthread_attr_init( &attr );
+
+     pthread_attr_setinheritsched( &attr, PTHREAD_EXPLICIT_SCHED );
+
+     /* Select scheduler. */
+     switch (direct_config->thread_scheduler) {
+          case DCTS_FIFO:
+               policy = SCHED_FIFO;
+               break;
+
+          case DCTS_RR:
+               policy = SCHED_RR;
+               break;
+
+          default:
+               policy = SCHED_OTHER;
+               break;
+     }
+
+     if (pthread_attr_setschedpolicy( &attr, policy ))
+          D_PERROR( "Direct/Thread: Could not set scheduling policy to %s!\n", direct_thread_policy_name(policy) );
+
+     /* Read (back) value. */
+     pthread_attr_getschedpolicy( &attr, &policy );
+
+     /* Select priority. */
+     switch (thread->type) {
+          case DTT_CLEANUP:
+          case DTT_INPUT:
+          case DTT_OUTPUT:
+          case DTT_MESSAGING:
+          case DTT_CRITICAL:
+               priority = thread->type;
+               break;
+
+          default:
+               priority = direct_config->thread_priority;
+               break;
+     }
+
+     D_DEBUG_AT( Direct_ThreadInit, "  -> %s (%d) [%d;%d]\n", direct_thread_policy_name(policy), priority,
+                 sched_get_priority_min( policy ), sched_get_priority_max( policy ) );
+
+     if (priority < sched_get_priority_min( policy ))
+          priority = sched_get_priority_min( policy );
+
+     if (priority > sched_get_priority_max( policy ))
+          priority = sched_get_priority_max( policy );
+
+     param.sched_priority = priority;
+
+     if (pthread_attr_setschedparam( &attr, &param ))
+          D_PERROR( "Direct/Thread: Could not set scheduling priority to %d!\n", priority );
+
+     /* Select stack size? */
+     if (direct_config->thread_stack_size > 0) {
+          if (pthread_attr_setstacksize( &attr, direct_config->thread_stack_size ))
+               D_PERROR( "Direct/Thread: Could not set stack size to %d!\n", direct_config->thread_stack_size );
+     }
+
+     /* Read (back) value. */
+     pthread_attr_getstacksize( &attr, &stack_size );
+
      /* Lock the thread mutex. */
      D_DEBUG_AT( Direct_ThreadInit, "  -> locking...\n" );
      pthread_mutex_lock( &thread->lock );
 
      /* Create and run the thread. */
      D_DEBUG_AT( Direct_ThreadInit, "  -> creating...\n" );
-     pthread_create( &thread->thread, NULL, direct_thread_main, thread );
+     pthread_create( &thread->thread, &attr, direct_thread_main, thread );
+
+     pthread_attr_destroy( &attr );
+
+     pthread_getschedparam( thread->thread, &policy, &param );
+
+     D_INFO( "Direct/Thread: Started '%s' (%d) [%s %s/%s %d/%d] <%zu>...\n",
+             name, thread->tid, direct_thread_type_name(thread_type),
+             direct_thread_policy_name(policy), direct_thread_scheduler_name(direct_config->thread_scheduler),
+             param.sched_priority, priority, stack_size );
 
 #ifdef DIRECT_THREAD_WAIT_INIT
      /* Wait for completion of the thread's initialization. */
@@ -220,9 +294,6 @@ direct_thread_create( DirectThreadType      thread_type,
      /* Unlock the thread mutex. */
      D_DEBUG_AT( Direct_ThreadInit, "  -> unlocking...\n" );
      pthread_mutex_unlock( &thread->lock );
-
-     D_INFO( "Direct/Thread: Running '%s' (%s, %d)...\n",
-             name, thread_type_name(thread_type), thread->tid );
 
      D_DEBUG_AT( Direct_ThreadInit, "  -> returning %p\n", thread );
 
@@ -453,8 +524,8 @@ direct_thread_destroy( DirectThread *thread )
 /******************************************************************************/
 
 #if DIRECT_BUILD_TEXT
-static const char *
-thread_type_name( DirectThreadType type )
+const char *
+direct_thread_type_name( DirectThreadType type )
 {
      switch (type) {
           case DTT_DEFAULT:
@@ -476,7 +547,41 @@ thread_type_name( DirectThreadType type )
                return "CRITICAL";
      }
 
-     return "unknown type!";
+     return "<unknown>";
+}
+
+const char *
+direct_thread_scheduler_name( DirectConfigThreadScheduler scheduler )
+{
+     switch (scheduler) {
+          case DCTS_OTHER:
+               return "OTHER";
+
+          case DCTS_FIFO:
+               return "FIFO";
+
+          case DCTS_RR:
+               return "RR";
+     }
+
+     return "<unknown>";
+}
+
+const char *
+direct_thread_policy_name( int policy )
+{
+     switch (policy) {
+          case SCHED_OTHER:
+               return "OTHER";
+
+          case SCHED_FIFO:
+               return "FIFO";
+
+          case SCHED_RR:
+               return "RR";
+     }
+
+     return "<unknown>";
 }
 #endif
 
@@ -536,21 +641,6 @@ direct_thread_main( void *arg )
      if (direct_config->thread_block_signals)
           direct_signals_block_all();
 
-     /* Adjust scheduling priority. */
-     switch (thread->type) {
-          case DTT_CLEANUP:
-          case DTT_INPUT:
-          case DTT_OUTPUT:
-          case DTT_MESSAGING:
-          case DTT_CRITICAL:
-               D_DEBUG_AT( Direct_ThreadInit, "  -> setpriority( %d )...\n", thread->type );
-               setpriority( PRIO_PROCESS, 0, thread->type );
-               break;
-
-          default:
-               break;
-     }
-
      /* Lock the thread mutex. */
      D_DEBUG_AT( Direct_ThreadInit, "  -> locking...\n" );
      pthread_mutex_lock( &thread->lock );
@@ -579,7 +669,7 @@ direct_thread_main( void *arg )
      ret = thread->main( thread, thread->arg );
 
      D_DEBUG_AT( Direct_Thread, "  -> Returning %p from '%s' (%s, %d)...\n",
-                 ret, thread->name, thread_type_name(thread->type), thread->tid );
+                 ret, thread->name, direct_thread_type_name(thread->type), thread->tid );
 
      D_MAGIC_ASSERT( thread, DirectThread );
 
