@@ -722,7 +722,7 @@ dfb_input_dispatch( CoreInputDevice *device, DFBInputEvent *event )
           return;
      }
 
-     D_DEBUG_AT( Core_InputEvt, "  -> (%02x) %s%s%s\n",
+     D_DEBUG_AT( Core_InputEvt, "  -> (%02x) %s%s%s\n", event->type,
                  dfb_input_event_type_name( event->type ),
                  (event->flags & DIEF_FOLLOW) ? " [FOLLOW]" : "",
                  (event->flags & DIEF_REPEAT) ? " [REPEAT]" : "" );
