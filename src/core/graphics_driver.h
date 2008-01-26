@@ -64,12 +64,12 @@ driver_close_driver( CoreGraphicsDevice *device,
                      void               *driver_data );
 
 static GraphicsDriverFuncs driver_funcs = {
-     Probe:              driver_probe,
-     GetDriverInfo:      driver_get_info,
-     InitDriver:         driver_init_driver,
-     InitDevice:         driver_init_device,
-     CloseDevice:        driver_close_device,
-     CloseDriver:        driver_close_driver
+     .Probe              = driver_probe,
+     .GetDriverInfo      = driver_get_info,
+     .InitDriver         = driver_init_driver,
+     .InitDevice         = driver_init_device,
+     .CloseDevice        = driver_close_device,
+     .CloseDriver        = driver_close_driver
 };
 
 #define DFB_GRAPHICS_DRIVER(shortname)                           \

@@ -37,11 +37,11 @@ static const char   *GetImplementation( void );
 static DirectResult  Allocate( void **interface );
 
 static DirectInterfaceFuncs interface_funcs = {
-     GetType:            GetType,
-     GetImplementation:  GetImplementation,
-     Allocate:           Allocate,
-     Probe:              (DirectInterfaceGenericProbeFunc) Probe,
-     Construct:          (DirectInterfaceGenericConstructFunc) Construct
+     .GetType            = GetType,
+     .GetImplementation  = GetImplementation,
+     .Allocate           = Allocate,
+     .Probe              = (DirectInterfaceGenericProbeFunc) Probe,
+     .Construct          = (DirectInterfaceGenericConstructFunc) Construct
 };
 
 #define DIRECT_INTERFACE_IMPLEMENTATION(type, impl)    \

@@ -53,11 +53,11 @@ static void
 driver_close_device( void *driver_data );
 
 static const InputDriverFuncs driver_funcs = {
-     GetAvailable:       driver_get_available,
-     GetDriverInfo:      driver_get_info,
-     OpenDevice:         driver_open_device,
-     GetKeymapEntry:     driver_get_keymap_entry,
-     CloseDevice:        driver_close_device
+     .GetAvailable       = driver_get_available,
+     .GetDriverInfo      = driver_get_info,
+     .OpenDevice         = driver_open_device,
+     .GetKeymapEntry     = driver_get_keymap_entry,
+     .CloseDevice        = driver_close_device
 };
 
 #define DFB_INPUT_DRIVER(shortname)                                             \
