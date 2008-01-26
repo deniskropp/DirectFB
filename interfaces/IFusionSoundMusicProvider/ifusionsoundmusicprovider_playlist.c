@@ -264,8 +264,7 @@ get_playlist_type( const char *mimetype, const char *filename,
           if (ext) {
                if (!strcasecmp( ext, ".m3u" ))
                     return PLT_M3U;           
-               if (!strcasecmp( ext, ".ram" ) || 
-                   !strcasecmp( ext, ".rpm" ))
+               if (!strcasecmp( ext, ".ram" ))
                     return PLT_RAM;              
                if (!strcasecmp( ext, ".pls" ))
                     return PLT_PLS;                 
@@ -289,7 +288,8 @@ get_playlist_type( const char *mimetype, const char *filename,
           if (!strncmp( tmp, "#EXTM3U", 7 ))
                return PLT_M3U;     
           if (!strncmp( tmp, "rtsp://", 7 ) ||
-              !strncmp( tmp, "http://", 7 ))
+              !strncmp( tmp, "http://", 7 ) ||
+              !strncmp( tmp, "file://", 7 ))
                return PLT_RAM;     
           if (!strncmp( tmp, "[Playlist]", 10 ))
                return PLT_PLS;      
