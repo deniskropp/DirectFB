@@ -185,6 +185,11 @@ static DFBResult
 IFusionSoundMusicProvider_GetPos( IFusionSoundMusicProvider *thiz,
                                   double                    *seconds )
 {
+     if (!seconds)
+          return DFB_INVARG;
+          
+     *seconds = 0.0;
+          
      return DFB_UNIMPLEMENTED;
 }
 
@@ -192,6 +197,11 @@ static DFBResult
 IFusionSoundMusicProvider_GetLength( IFusionSoundMusicProvider *thiz,
                                      double                    *seconds )
 {
+     if (!seconds)
+          return DFB_INVARG;
+          
+     *seconds = 0.0;
+     
      return DFB_UNIMPLEMENTED;
 }
 
