@@ -42,28 +42,38 @@ typedef enum {
      DCFL_ASSUME    /* ASSERT and ASSUME are fatal. */
 } DirectConfigFatalLevel;
 
+typedef enum {
+     DCTS_OTHER,
+     DCTS_FIFO,
+     DCTS_RR
+} DirectConfigThreadScheduler;
+
 struct __D_DirectConfig {
-     bool                     quiet;
-     bool                     debug;
-     bool                     trace;
+     bool                          quiet;
+     bool                          debug;
+     bool                          trace;
 
-     char                    *memcpy;               /* Don't probe for memcpy routines to save a lot of
-                                                       startup time. Use this one instead if it's set. */
+     char                         *memcpy;            /* Don't probe for memcpy routines to save a lot of
+                                                         startup time. Use this one instead if it's set. */
 
-     char                   **disable_module;       /* Never load these modules. */
+     char                        **disable_module;    /* Never load these modules. */
 
-     bool                     sighandler;
-     sigset_t                 dont_catch;           /* don't catch these signals */
+     bool                          sighandler;
+     sigset_t                      dont_catch;        /* don't catch these signals */
 
-     DirectLog               *log;
+     DirectLog                    *log;
 
-     DirectConfigFatalLevel   fatal;
+     DirectConfigFatalLevel        fatal;
      
-     bool                     debugmem;
+     bool                          debugmem;
 
-     bool                     thread_block_signals;
+     bool                          thread_block_signals;
 
-     bool                     fatal_break;          /* Should D_BREAK() cause a trap? */
+     bool                          fatal_break;        /* Should D_BREAK() cause a trap? */
+
+     int                           thread_priority;
+     DirectConfigThreadScheduler   thread_scheduler;
+     int                           thread_stack_size;
 };
 
 extern DirectConfig *direct_config;

@@ -135,5 +135,14 @@ bool direct_thread_is_joined  ( DirectThread *thread );
  */
 void direct_thread_destroy    ( DirectThread *thread );
 
+/*
+ * Utilities for stringification.
+ */
+#if DIRECT_BUILD_TEXT
+const char *direct_thread_type_name     ( DirectThreadType type );
+const char *direct_thread_scheduler_name( DirectConfigThreadScheduler scheduler );
+const char *direct_thread_policy_name   ( int policy );
+#endif
+
 #endif
 

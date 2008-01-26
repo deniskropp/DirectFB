@@ -236,6 +236,58 @@ direct_config_set( const char *name, const char *value )
      else
           if (strcmp (name, "no-thread_block_signals") == 0) {
           direct_config->thread_block_signals = false;
+     } else
+     if (strcmp (name, "thread-priority" ) == 0) {  /* Must be moved to lib/direct/conf.c in trunk! */
+          if (value) {
+               int priority;
+
+               if (sscanf( value, "%d", &priority ) < 1) {
+                    D_ERROR("Direct/Config '%s': Could not parse value!\n", name);
+                    return DFB_INVARG;
+               }
+
+               direct_config->thread_priority = priority;
+          }
+          else {
+               D_ERROR("Direct/Config '%s': No value specified!\n", name);
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "thread-scheduler" ) == 0) {  /* Must be moved to lib/direct/conf.c in trunk! */
+          if (value) {
+               if (strcmp( value, "other" ) == 0) {
+                    direct_config->thread_scheduler = DCTS_OTHER;
+               } else
+               if (strcmp( value, "fifo" ) == 0) {
+                    direct_config->thread_scheduler = DCTS_FIFO;
+               } else
+               if (strcmp( value, "rr" ) == 0) {
+                    direct_config->thread_scheduler = DCTS_RR;
+               } else {
+                    D_ERROR( "Direct/Config '%s': Unknown scheduler '%s'!\n", name, value );
+                    return DFB_INVARG;
+               }
+          }
+          else {
+               D_ERROR( "Direct/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "thread-stacksize" ) == 0) {  /* Must be moved to lib/direct/conf.c in trunk! */
+          if (value) {
+               int size;
+
+               if (sscanf( value, "%d", &size ) < 1) {
+                    D_ERROR( "Direct/Config '%s': Could not parse value!\n", name );
+                    return DFB_INVARG;
+               }
+
+               direct_config->thread_stack_size = size;
+          }
+          else {
+               D_ERROR( "Direct/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
      }
      else
           return DFB_UNSUPPORTED;
