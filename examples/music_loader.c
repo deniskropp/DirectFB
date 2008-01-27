@@ -33,7 +33,6 @@ load_sample( IFusionSound *sound, const char *file )
      
      provider->GetBufferDescription( provider, &dsc );
   
-     dsc.channels = 6;
      ret = sound->CreateBuffer( sound, &dsc, &buffer );
      if (ret) {
           FusionSoundError( "IFusionSound::CreateBuffer()", ret );
