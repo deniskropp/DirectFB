@@ -397,7 +397,7 @@ TimidityBufferThread( DirectThread *thread, void *ctx )
           if (data->callback && size) {
                size /= FS_BYTES_PER_SAMPLE(dsc.sampleformat) * dsc.channels;
                if (data->callback( size, data->ctx ))
-                    data->status = FMSTATE_FINISHED;
+                    data->status = FMSTATE_STOP;
           }
      }
 
@@ -492,11 +492,6 @@ IFusionSoundMusicProvider_Timidity_Stop( IFusionSoundMusicProvider *thiz )
      DIRECT_INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
 
      pthread_mutex_lock( &data->lock );
-     
-     if (data->status == FMSTATE_STOP) {
-          pthread_mutex_unlock( &data->lock );
-          return DFB_OK;
-     }
      
      data->status = FMSTATE_STOP;
 
