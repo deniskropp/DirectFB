@@ -475,6 +475,7 @@ main( int argc, char **argv )
                ret = sound->CreateMusicProvider( sound, media->url, &provider );
                if (ret) {
                     FusionSoundError( "IFusionSound::CreateMusicProvider", ret );
+                    media = next;
                     continue;
                }
                
