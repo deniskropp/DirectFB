@@ -347,7 +347,15 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
                               provider->PlayToStream( provider, stream );
                               break;
                          case 's':
+                              if (!pitch) {
+                                   playback->SetVolume( playback, 0 );
+                                   playback->SetPitch( playback, 1 );
+                              }
                               provider->Stop( provider );
+                              if (!pitch) { 
+                                   playback->SetPitch( playback, pitch );
+                                   playback->SetVolume( playback, volume );
+                              }
                               break;
                          case 'f':
                               provider->GetPos( provider, &pos );
@@ -433,7 +441,6 @@ main( int argc, char **argv )
      /* Register clean-up handlers. */
      atexit( do_quit );
      signal( SIGINT, handle_sig );
-     signal( SIGTERM, handle_sig );
      
      if (isatty( STDIN_FILENO )) {
           struct termios cur;
