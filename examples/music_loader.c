@@ -22,7 +22,6 @@ load_sample( IFusionSound *sound, const char *file )
      void                      *data;
      int                        bytes;
      int                        frames = 0;
-     FSMusicProviderStatus      status;
      DFBResult                  ret;
      
      ret = sound->CreateMusicProvider( sound, file, &provider );
@@ -32,7 +31,7 @@ load_sample( IFusionSound *sound, const char *file )
      }
      
      provider->GetBufferDescription( provider, &dsc );
-  
+     
      ret = sound->CreateBuffer( sound, &dsc, &buffer );
      if (ret) {
           FusionSoundError( "IFusionSound::CreateBuffer()", ret );
@@ -53,15 +52,8 @@ load_sample( IFusionSound *sound, const char *file )
           return NULL;
      }
      
-     /* Wait until buffer is full. */
-     do {
-          usleep( 1 );
-          ret = provider->GetStatus( provider, &status );
-          if (ret) {
-               FusionSoundError( "IFusionSoundMusicProvider::GetStatus()", ret );
-               break;
-          }
-     } while (status == FMSTATE_PLAY);
+     /* Wait until provider has finished. */
+     provider->WaitStatus( provider, FMSTATE_STOP | FMSTATE_FINISHED, 0 );
      
      provider->Release( provider );
      

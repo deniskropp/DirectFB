@@ -34,6 +34,8 @@
 
 #include <media/ifusionsoundmusicprovider.h>
 
+#include <direct/types.h>
+#include <direct/clock.h>
 #include <direct/mem.h>
 #include <direct/thread.h>
 #include <direct/util.h>
@@ -68,6 +70,7 @@ typedef struct {
      
      DirectThread                 *thread;
      pthread_mutex_t               lock;
+     pthread_cond_t                cond;
      int                           seeked;
      
      FSMusicProviderStatus         status;
@@ -122,6 +125,7 @@ IFusionSoundMusicProvider_Timidity_Destruct( IFusionSoundMusicProvider *thiz )
      if (data->st)
           direct_stream_destroy( data->st );
 
+     pthread_cond_destroy( &data->cond );
      pthread_mutex_destroy( &data->lock );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
@@ -253,10 +257,13 @@ TimidityStreamThread( DirectThread *thread, void *ctx )
           
           size = mid_song_read_wave( data->song, data->buf, dsc.buffersize );
           if (!size) {
-               if (data->flags & FMPLAY_LOOPING)
+               if (data->flags & FMPLAY_LOOPING) {
                     mid_song_start( data->song );
-               else
+               }
+               else {
                     data->status = FMSTATE_FINISHED;
+                    pthread_cond_broadcast( &data->cond );
+               }
           }
           
           pthread_mutex_unlock( &data->lock );
@@ -337,6 +344,7 @@ IFusionSoundMusicProvider_Timidity_PlayToStream(
      data->buf = D_MALLOC( desc.buffersize*desc.channels*FS_BYTES_PER_SAMPLE(desc.sampleformat) );
      
      data->status = FMSTATE_PLAY;
+     pthread_cond_broadcast( &data->cond );
 
      /* start thread */
      data->thread = direct_thread_create( DTT_DEFAULT,
@@ -369,7 +377,6 @@ TimidityBufferThread( DirectThread *thread, void *ctx )
           
           if (data->seeked) {
                mid_song_seek( data->song, data->song_pos );
-               data->stream->Flush( data->stream );
                data->seeked = false;
           }
 
@@ -378,16 +385,20 @@ TimidityBufferThread( DirectThread *thread, void *ctx )
           if (data->buffer->Lock( data->buffer, &ptr, &len, 0 ) != DFB_OK) {
                D_ERROR( "IFusionSoundMusicProvider_Timidity: couldn't lock buffer!\n" );
                data->status = FMSTATE_FINISHED;
+               pthread_cond_broadcast( &data->cond );
                pthread_mutex_unlock( &data->lock );
                break;
           }
 
           size = mid_song_read_wave( data->song, ptr, len );
           if (!size) {
-               if (data->flags & FMPLAY_LOOPING)
+               if (data->flags & FMPLAY_LOOPING) {
                     mid_song_start( data->song );
-               else
+               }
+               else {
                     data->status = FMSTATE_FINISHED;
+                    pthread_cond_broadcast( &data->cond );
+               }
           }
           
           data->buffer->Unlock( data->buffer );
@@ -396,8 +407,10 @@ TimidityBufferThread( DirectThread *thread, void *ctx )
 
           if (data->callback && size) {
                size /= FS_BYTES_PER_SAMPLE(dsc.sampleformat) * dsc.channels;
-               if (data->callback( size, data->ctx ))
+               if (data->callback( size, data->ctx )) {
                     data->status = FMSTATE_STOP;
+                    pthread_cond_broadcast( &data->cond );
+               }
           }
      }
 
@@ -476,6 +489,7 @@ IFusionSoundMusicProvider_Timidity_PlayToBuffer(
      data->ctx      = ctx;
 
      data->status = FMSTATE_PLAY;
+     pthread_cond_broadcast( &data->cond );
      
      /* start thread */
      data->thread = direct_thread_create( DTT_DEFAULT,
@@ -497,9 +511,11 @@ IFusionSoundMusicProvider_Timidity_Stop( IFusionSoundMusicProvider *thiz )
 
      /* stop thread */
      if (data->thread) {
-          pthread_mutex_unlock( &data->lock );
-          direct_thread_join( data->thread );
-          pthread_mutex_lock( &data->lock );
+          if (!direct_thread_is_joined( data->thread )) {
+               pthread_mutex_unlock( &data->lock );
+               direct_thread_join( data->thread );
+               pthread_mutex_lock( &data->lock );
+          }
           direct_thread_destroy( data->thread );
           data->thread = NULL;
      }
@@ -527,6 +543,8 @@ IFusionSoundMusicProvider_Timidity_Stop( IFusionSoundMusicProvider *thiz )
           data->buffer->Release( data->buffer );
           data->buffer = NULL;
      }
+     
+     pthread_cond_broadcast( &data->cond );
 
      pthread_mutex_unlock( &data->lock );
 
@@ -593,7 +611,7 @@ IFusionSoundMusicProvider_Timidity_GetLength( IFusionSoundMusicProvider *thiz,
 }
 
 static DFBResult
-IFusionSoundMusicProvider_Timidity_SetPlaybackFlags(
+IFusionSoundMusicProvider_Timidity_SetPlaybackFlags( 
                                              IFusionSoundMusicProvider    *thiz,
                                              FSMusicProviderPlaybackFlags  flags )
 {
@@ -603,6 +621,53 @@ IFusionSoundMusicProvider_Timidity_SetPlaybackFlags(
           return DFB_UNSUPPORTED;
           
      data->flags = flags;
+     
+     return DFB_OK;
+}
+
+static DFBResult
+IFusionSoundMusicProvider_Timidity_WaitStatus( IFusionSoundMusicProvider *thiz,
+                                               FSMusicProviderStatus      mask,
+                                               unsigned int               timeout )
+{
+     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Timidity )
+     
+     if (!mask || mask & ~FMSTATE_ALL)
+          return DFB_INVARG;
+          
+     if (timeout) {
+          struct timespec t;
+          long long       s;
+          
+          s = direct_clock_get_abs_micros() + timeout * 1000ll;
+          t.tv_sec  = (s / 1000000);
+          t.tv_nsec = (s % 1000000) * 1000;
+          
+#ifdef HAVE_PTHREAD_MUTEX_TIMEDLOCK
+          if (pthread_mutex_timedlock( &data->lock, &t ))
+               return DFB_TIMEOUT;
+#else          
+          while (pthread_mutex_trylock( &data->lock )) {
+               usleep( 1000 );
+               if (direct_clock_get_abs_micros() >= s)
+                    return DFB_TIMEOUT;
+          }
+#endif  
+          while (!(data->status & mask)) {
+               if (pthread_cond_timedwait( &data->cond, &data->lock, &t ) == ETIMEDOUT) {
+                    pthread_mutex_unlock( &data->lock );
+                    return DFB_TIMEOUT;
+               }
+          }
+     }
+     else {
+          pthread_mutex_lock( &data->lock );
+          
+          while (!(data->status & mask))
+               pthread_cond_wait( &data->cond, &data->lock );
+     }
+     
+     pthread_mutex_unlock( &data->lock );
      
      return DFB_OK;
 }
@@ -641,7 +706,9 @@ Construct( IFusionSoundMusicProvider *thiz,
      data->ref = 1;
      data->st = direct_stream_dup( stream );
      data->status = FMSTATE_STOP;
+     
      direct_util_recursive_pthread_mutex_init( &data->lock );
+     pthread_cond_init( &data->cond, NULL );
 
      /* initialize function pointers */
      thiz->AddRef               = IFusionSoundMusicProvider_Timidity_AddRef;
@@ -658,6 +725,7 @@ Construct( IFusionSoundMusicProvider *thiz,
      thiz->GetPos               = IFusionSoundMusicProvider_Timidity_GetPos;
      thiz->GetLength            = IFusionSoundMusicProvider_Timidity_GetLength;
      thiz->SetPlaybackFlags     = IFusionSoundMusicProvider_Timidity_SetPlaybackFlags;
+     thiz->WaitStatus           = IFusionSoundMusicProvider_Timidity_WaitStatus;
 
      return DFB_OK;
 }

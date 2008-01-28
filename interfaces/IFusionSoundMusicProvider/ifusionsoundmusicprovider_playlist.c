@@ -1026,7 +1026,20 @@ IFusionSoundMusicProvider_Playlist_SetPlaybackFlags( IFusionSoundMusicProvider  
           return data->selected->provider->SetPlaybackFlags( data->selected->provider, flags );
           
      return DFB_UNSUPPORTED;
-}  
+}
+
+static DFBResult
+IFusionSoundMusicProvider_Playlist_WaitStatus( IFusionSoundMusicProvider *thiz,
+                                               FSMusicProviderStatus      mask,
+                                               unsigned int               timeout )
+{
+     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Playlist )
+     
+     if (data->selected->provider)
+          return data->selected->provider->WaitStatus( data->selected->provider, mask, timeout );
+          
+     return DFB_UNSUPPORTED;
+}
       
 /* exported symbols */
 
@@ -1144,6 +1157,7 @@ Construct( IFusionSoundMusicProvider *thiz,
      thiz->GetPos               = IFusionSoundMusicProvider_Playlist_GetPos;
      thiz->GetLength            = IFusionSoundMusicProvider_Playlist_GetLength;
      thiz->SetPlaybackFlags     = IFusionSoundMusicProvider_Playlist_SetPlaybackFlags;
+     thiz->WaitStatus           = IFusionSoundMusicProvider_Playlist_WaitStatus;
      
      /* select first media */
      thiz->SelectTrack( thiz, data->playlist->id );

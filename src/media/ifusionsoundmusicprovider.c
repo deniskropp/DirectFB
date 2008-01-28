@@ -212,6 +212,14 @@ IFusionSoundMusicProvider_SetPlaybackFlags( IFusionSoundMusicProvider    *thiz,
      return DFB_UNIMPLEMENTED;
 }
 
+static DFBResult
+IFusionSoundMusicProvider_WaitStatus( IFusionSoundMusicProvider *thiz,
+                                      FSMusicProviderStatus      mask,
+                                      unsigned int               timeout )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
 static void
 IFusionSoundMusicProvider_Construct( IFusionSoundMusicProvider *thiz )
 {
@@ -232,6 +240,7 @@ IFusionSoundMusicProvider_Construct( IFusionSoundMusicProvider *thiz )
      thiz->GetPos               = IFusionSoundMusicProvider_GetPos;
      thiz->GetLength            = IFusionSoundMusicProvider_GetLength;
      thiz->SetPlaybackFlags     = IFusionSoundMusicProvider_SetPlaybackFlags;
+     thiz->WaitStatus           = IFusionSoundMusicProvider_WaitStatus;
 }
      
 
