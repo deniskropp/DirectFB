@@ -54,9 +54,11 @@ typedef struct {
 } MediaTrack;
 
 typedef struct {
-     DirectLink   link;    
-     
+     DirectLink   link;
+
      const char  *url;
+
+     int          id;
 
      MediaTrack  *tracks;
 } Media;
@@ -65,7 +67,7 @@ typedef struct {
 static IFusionSound              *sound    = NULL;
 static IFusionSoundStream        *stream   = NULL;
 static IFusionSoundPlayback      *playback = NULL;
-static DirectLink                *playlist = NULL;
+static Media                     *playlist = NULL;
 static struct termios             term;
 
 static int                        quit     = 0;
@@ -116,6 +118,7 @@ usage( const char *progname )
 static void
 parse_options( int argc, char **argv )
 {
+     int id = 0;
      int i;
      
      for (i = 1; i < argc; i++) {
@@ -174,7 +177,8 @@ parse_options( int argc, char **argv )
                if (!media)
                     exit( D_OOM() );
                media->url = opt;
-               direct_list_append( &playlist, &media->link );
+               media->id  = id++;
+               direct_list_append( (DirectLink**)&playlist, &media->link );
           }
      }
      
@@ -205,7 +209,7 @@ track_add_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
      return DFENUM_OK;
 }
 
-static void
+static int
 playback_run( IFusionSoundMusicProvider *provider, Media *media )
 {
      DFBResult              ret;
@@ -244,7 +248,8 @@ playback_run( IFusionSoundMusicProvider *provider, Media *media )
                          playback->Release( playback ); 
                          playback = NULL;
                     }
-                    stream->Wait( stream, 0 );
+                    if (pitch)
+                         stream->Wait( stream, 0 );
                     stream->Release( stream );
                     stream = NULL;
                }
@@ -288,11 +293,11 @@ playback_run( IFusionSoundMusicProvider *provider, Media *media )
                FusionSoundError( "IFusionSoundMusicProvider::PlayTo", ret );
                break;
           }
-          
-          /* Print some informations about the track. */
+
+          /* Print some information on the track. */
           if (!quiet) {
                fprintf( stderr,
-                        "\nTrack %d:\n"
+                        "\nTrack %d.%d:\n"
                         "  Artist:     %s\n"
                         "  Title:      %s\n"
                         "  Album:      %s\n"
@@ -302,14 +307,15 @@ playback_run( IFusionSoundMusicProvider *provider, Media *media )
                         "  Bitrate:    %d Kbits/s\n" 
                         "  ReplayGain: %.2f (track), %.2f (album)\n"
                         "  Output:     %d Hz, %d channel(s), %d bits\n\n\n",
-                        track->id, t_dsc.artist, t_dsc.title, t_dsc.album, t_dsc.year,
+                        media->id, track->id,
+                        t_dsc.artist, t_dsc.title, t_dsc.album, t_dsc.year,
                         t_dsc.genre, t_dsc.encoding, t_dsc.bitrate/1000, 
                         t_dsc.replaygain, t_dsc.replaygain_album,
                         s_dsc.samplerate, s_dsc.channels,
                         FS_BITS_PER_SAMPLE(s_dsc.sampleformat) );
                fflush( stderr );
           }
-
+          
           do {
                /* Query playback status. */
                provider->GetStatus( provider, &status );
@@ -370,6 +376,8 @@ playback_run( IFusionSoundMusicProvider *provider, Media *media )
                                         provider->SeekTo( provider, len * (c-'0') / 10 );
                                    break;
                               case '<':
+                                   if (track == media->tracks)
+                                        return -1;
                                    next = (MediaTrack*)track->link.prev;
                               case '>': 
                                    status = FMSTATE_FINISHED;
@@ -409,7 +417,7 @@ playback_run( IFusionSoundMusicProvider *provider, Media *media )
                               case 'Q':
                               case '\033': // Escape
                                    quit = 1;
-                                   return;
+                                   return 0;
                               default:
                                    break;
                          }
@@ -426,7 +434,7 @@ playback_run( IFusionSoundMusicProvider *provider, Media *media )
           track = next;
      }
 
-     provider->Stop( provider );
+     return 0;
 }     
 
 int
@@ -459,7 +467,8 @@ main( int argc, char **argv )
      }
      
      do {
-          direct_list_foreach (media, playlist) {
+          for (media = playlist; media && !quit;) {
+               Media                     *next = (Media*)media->link.next;
                IFusionSoundMusicProvider *provider;
 
                /* Create a music provider for the specified file. */
@@ -477,7 +486,8 @@ main( int argc, char **argv )
                     fprintf( stderr, "\n" );
     
                /* Play tracks. */
-               playback_run( provider, media );
+               if (playback_run( provider, media ) < 0)
+                    next = (Media*)media->link.prev;
          
                /* Release provider. */
                provider->Release( provider );
@@ -488,6 +498,8 @@ main( int argc, char **argv )
                     media->tracks = (MediaTrack*)track->link.next;
                     D_FREE( track );
                }
+
+               media = next;
           }
      } while (repeat && !quit);
 
