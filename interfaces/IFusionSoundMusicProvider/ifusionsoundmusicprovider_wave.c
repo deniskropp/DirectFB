@@ -311,7 +311,21 @@ IFusionSoundMusicProvider_Wave_Destruct( IFusionSoundMusicProvider *thiz )
 {
      IFusionSoundMusicProvider_Wave_data *data = thiz->priv;
 
-     thiz->Stop( thiz );
+     if (data->thread) {
+          data->status = FMSTATE_STOP;
+          direct_thread_cancel( data->thread );
+          direct_thread_join( data->thread );
+          direct_thread_destroy( data->thread );
+     }
+
+     if (data->src_buffer)
+          D_FREE( data->src_buffer );
+
+     if (data->dest.stream)
+          data->dest.stream->Release( data->dest.stream );
+
+     if (data->dest.buffer)
+          data->dest.buffer->Release( data->dest.buffer );
 
      if (data->stream)
           direct_stream_destroy( data->stream );

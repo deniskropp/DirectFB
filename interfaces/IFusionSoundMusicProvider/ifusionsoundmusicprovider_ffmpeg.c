@@ -363,7 +363,21 @@ IFusionSoundMusicProvider_FFmpeg_Destruct( IFusionSoundMusicProvider *thiz )
 {
      IFusionSoundMusicProvider_FFmpeg_data *data = thiz->priv;
 
-     thiz->Stop( thiz );
+     if (data->thread) {
+          data->status = FMSTATE_STOP;
+          direct_thread_cancel( data->thread );
+          direct_thread_join( data->thread );
+          direct_thread_destroy( data->thread );
+     }
+     
+     if (data->dest.stream)
+          data->dest.stream->Release( data->dest.stream );
+
+     if (data->dest.buffer)
+          data->dest.buffer->Release( data->dest.buffer );
+   
+     if (data->buf)
+          D_FREE( data->buf );
 
      if (data->codec)
           avcodec_close( data->codec );

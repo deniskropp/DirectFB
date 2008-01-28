@@ -371,7 +371,21 @@ IFusionSoundMusicProvider_Mad_Destruct( IFusionSoundMusicProvider *thiz )
 {
      IFusionSoundMusicProvider_Mad_data *data = thiz->priv;
 
-     thiz->Stop( thiz );
+     if (data->thread) {
+          data->status = FMSTATE_STOP;
+          direct_thread_cancel( data->thread );
+          direct_thread_join( data->thread );
+          direct_thread_destroy( data->thread );
+     }
+
+     if (data->read_buffer)
+          D_FREE( data->read_buffer );
+
+     if (data->dest.stream)
+          data->dest.stream->Release( data->dest.stream );
+
+     if (data->dest.buffer)
+          data->dest.buffer->Release( data->dest.buffer );
 
      mad_synth_finish( &data->synth );
      mad_frame_finish( &data->frame );

@@ -120,7 +120,24 @@ IFusionSoundMusicProvider_Timidity_Destruct( IFusionSoundMusicProvider *thiz )
      IFusionSoundMusicProvider_Timidity_data *data =
          (IFusionSoundMusicProvider_Timidity_data*)thiz->priv;
 
-     thiz->Stop( thiz );
+     if (data->thread) {
+          data->status = FMSTATE_STOP;
+          direct_thread_cancel( data->thread );
+          direct_thread_join( data->thread );
+          direct_thread_destroy( data->thread );
+     }
+     
+     if (data->buf)
+          D_FREE( data->buf );
+
+     if (data->stream)
+          data->stream->Release( data->stream );
+
+     if (data->buffer)
+          data->buffer->Release( data->buffer );
+          
+     if (data->song)
+          mid_song_free( data->song );
 
      if (data->st)
           direct_stream_destroy( data->st );

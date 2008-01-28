@@ -691,10 +691,14 @@ IFusionSoundMusicProvider_Playlist_Destruct( IFusionSoundMusicProvider *thiz )
      IFusionSoundMusicProvider_Playlist_data *data = thiz->priv;
      PlaylistEntry                           *entry, *tmp;
      
-     thiz->Stop( thiz );
-     
      direct_list_foreach_safe (entry, tmp, data->playlist)
-          remove_media( entry, &data->playlist );    
+          remove_media( entry, &data->playlist );
+          
+     if (data->stream)
+          data->stream->Release( data->stream );
+
+     if (data->buffer)
+          data->buffer->Release( data->buffer );
      
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
