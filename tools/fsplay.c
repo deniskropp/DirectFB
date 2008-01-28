@@ -38,7 +38,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <signal.h>
 #include <termios.h>
 
 #include <fusionsound.h>
@@ -55,7 +54,6 @@ typedef struct {
 
 
 static IFusionSound              *sound    = NULL;
-static IFusionSoundMusicProvider *provider = NULL;
 static IFusionSoundStream        *stream   = NULL;
 static IFusionSoundPlayback      *playback = NULL;
 static DirectLink                *playlist = NULL;
@@ -172,31 +170,6 @@ parse_options( int argc, char **argv )
      if (!playlist)
           usage( argv[0] );
 }                   
- 
-static void
-do_quit( void )
-{
-     if (!quiet)
-          fprintf( stderr, "\nQuit.\n" );
-     
-     if (provider)
-          provider->Release( provider );
-     if (playback)
-          playback->Release( playback );
-     if (stream)
-          stream->Release( stream );
-     if (sound)
-          sound->Release( sound );
-     
-     if (isatty( STDIN_FILENO ))
-          tcsetattr( STDIN_FILENO, TCSADRAIN, &term );
-}
-
-static void
-handle_sig( int s )
-{
-     quit = 1;
-}
 
 static DFBEnumerationResult
 track_display_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
@@ -211,10 +184,11 @@ track_display_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
 static DFBEnumerationResult
 track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
 {
-     DFBResult             ret;
-     FSMusicProviderStatus status = FMSTATE_UNKNOWN;
-     double                len    = 0;
-     FSStreamDescription   s_dsc;
+     IFusionSoundMusicProvider *provider = ctx;
+     FSMusicProviderStatus      status   = FMSTATE_UNKNOWN;
+     double                     len      = 0;
+     FSStreamDescription        s_dsc;
+     DFBResult                  ret;
           
      /* Select current track in playlist. */
      ret = provider->SelectTrack( provider, id );
@@ -413,12 +387,12 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
           else {
                usleep( 40000 );
           }
-     } while (status != FMSTATE_FINISHED && !quit);
+     } while (status != FMSTATE_FINISHED);
      
      if (!quiet)
           fprintf( stderr, "\n" );
      
-     return quit ? DFENUM_CANCEL : DFENUM_OK;
+     return DFENUM_OK;
 }     
 
 int
@@ -437,10 +411,6 @@ main( int argc, char **argv )
      ret = FusionSoundCreate( &sound );
      if (ret)
           FusionSoundErrorFatal( "FusionSoundCreate", ret );
-
-     /* Register clean-up handlers. */
-     atexit( do_quit );
-     signal( SIGINT, handle_sig );
      
      if (isatty( STDIN_FILENO )) {
           struct termios cur;
@@ -456,8 +426,7 @@ main( int argc, char **argv )
      
      do {
           direct_list_foreach (media, playlist) {
-               if (quit)
-                    break;
+               IFusionSoundMusicProvider *provider;
 
                /* Create a music provider for the specified file. */
                ret = sound->CreateMusicProvider( sound, media->url, &provider );
@@ -474,13 +443,26 @@ main( int argc, char **argv )
                }
      
                /* Play tracks. */
-               provider->EnumTracks( provider, track_playback_callback, NULL );
-          
+               provider->EnumTracks( provider, track_playback_callback, provider );
+         
                provider->Release( provider );
-               provider = NULL;
           }
      } while (repeat && !quit);
 
+     if (!quiet)
+          fprintf( stderr, "\nQuit.\n" );
+     
+     if (playback)
+          playback->Release( playback );
+     
+     if (stream)
+          stream->Release( stream );
+     
+     sound->Release( sound );
+     
+     if (isatty( STDIN_FILENO ))
+          tcsetattr( STDIN_FILENO, TCSADRAIN, &term );
+     
      return 0;
 }
 
