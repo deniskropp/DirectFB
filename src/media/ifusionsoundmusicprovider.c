@@ -185,6 +185,11 @@ static DFBResult
 IFusionSoundMusicProvider_GetPos( IFusionSoundMusicProvider *thiz,
                                   double                    *seconds )
 {
+     if (!seconds)
+          return DFB_INVARG;
+          
+     *seconds = 0.0;
+          
      return DFB_UNIMPLEMENTED;
 }
 
@@ -192,12 +197,25 @@ static DFBResult
 IFusionSoundMusicProvider_GetLength( IFusionSoundMusicProvider *thiz,
                                      double                    *seconds )
 {
+     if (!seconds)
+          return DFB_INVARG;
+          
+     *seconds = 0.0;
+     
      return DFB_UNIMPLEMENTED;
 }
 
 static DFBResult
 IFusionSoundMusicProvider_SetPlaybackFlags( IFusionSoundMusicProvider    *thiz,
                                             FSMusicProviderPlaybackFlags  flags )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IFusionSoundMusicProvider_WaitStatus( IFusionSoundMusicProvider *thiz,
+                                      FSMusicProviderStatus      mask,
+                                      unsigned int               timeout )
 {
      return DFB_UNIMPLEMENTED;
 }
@@ -222,6 +240,7 @@ IFusionSoundMusicProvider_Construct( IFusionSoundMusicProvider *thiz )
      thiz->GetPos               = IFusionSoundMusicProvider_GetPos;
      thiz->GetLength            = IFusionSoundMusicProvider_GetLength;
      thiz->SetPlaybackFlags     = IFusionSoundMusicProvider_SetPlaybackFlags;
+     thiz->WaitStatus           = IFusionSoundMusicProvider_WaitStatus;
 }
      
 

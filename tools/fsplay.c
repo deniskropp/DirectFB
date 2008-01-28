@@ -395,7 +395,8 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
                          case 'q':
                          case 'Q':
                          case '\033': // Escape
-                              exit( 0 );
+                              quit = 1;
+                              return DFENUM_CANCEL;
                          default:
                               break;
                     }
@@ -409,7 +410,7 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
      if (!quiet)
           fprintf( stderr, "\n" );
      
-     return DFENUM_OK;
+     return quit ? DFENUM_CANCEL : DFENUM_OK;
 }     
 
 int

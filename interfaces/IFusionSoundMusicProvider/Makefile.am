@@ -6,13 +6,13 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src 	\
 	$(FUSION_CFLAGS)	\
+	$(TIMIDITY_CFLAGS)	\
 	$(VORBISFILE_CFLAGS)	\
 	$(CDDB_CFLAGS) 		\
 	$(FFMPEG_CFLAGS)
 
 
 if BUILD_TIMIDITY
-SUBDIRS = timidity
 TIMIDITY_PROVIDER_LTLIB = libifusionsoundmusicprovider_timidity.la
 endif
 
@@ -52,7 +52,7 @@ ifusionsoundmusicprovider_LTLIBRARIES =	\
 
 libifusionsoundmusicprovider_timidity_la_SOURCES = ifusionsoundmusicprovider_timidity.c
 
-libifusionsoundmusicprovider_timidity_la_LIBADD = timidity/libtimidity.la -lm
+libifusionsoundmusicprovider_timidity_la_LIBADD = $(TIMIDITY_LIBS)
 
 libifusionsoundmusicprovider_timidity_la_LDFLAGS = -avoid-version -module
 

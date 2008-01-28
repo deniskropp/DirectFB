@@ -42,6 +42,7 @@
 #include <media/ifusionsoundmusicprovider.h>
 
 #include <direct/types.h>
+#include <direct/clock.h>
 #include <direct/mem.h>
 #include <direct/thread.h>
 #include <direct/util.h>
@@ -83,13 +84,13 @@ typedef struct {
      unsigned int                  total_tracks;
      struct cdda_track            *tracks;
 
+     FSMusicProviderStatus         status;
      FSMusicProviderPlaybackFlags  flags;
 
      DirectThread                 *thread;
      pthread_mutex_t               lock;
-     bool                          playing;
-     bool                          finished;
-     bool                          seeked;
+     pthread_cond_t                cond;
+     int                           seeked;
 
      int                           buffered_frames;
      void                         *buffer;
@@ -595,6 +596,7 @@ IFusionSoundMusicProvider_CDDA_Destruct( IFusionSoundMusicProvider *thiz )
      if (data->fd > 0)
           close( data->fd );
 
+     pthread_cond_destroy( &data->cond );
      pthread_mutex_destroy( &data->lock );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
@@ -801,13 +803,13 @@ CDDAStreamThread( DirectThread *thread, void *ctx )
 {
      IFusionSoundMusicProvider_CDDA_data *data = ctx;
 
-     while (data->playing && !data->finished) {
+     while (data->status == FMSTATE_PLAY) {
           void *src = data->buffer;
           int   len, pos;
 
           pthread_mutex_lock( &data->lock );
 
-          if (!data->playing) {
+          if (data->status != FMSTATE_PLAY) {
                pthread_mutex_unlock( &data->lock );
                break;
           }
@@ -843,16 +845,18 @@ CDDAStreamThread( DirectThread *thread, void *ctx )
           }              
 
           if (len < 1) {
-               if (data->flags & FMPLAY_LOOPING)
+               if (data->flags & FMPLAY_LOOPING) {
                     data->tracks[data->current_track].frame = 0;
-               else
-                    data->finished = true;
+               }
+               else {
+                    data->status = FMSTATE_FINISHED;
+                    pthread_cond_broadcast( &data->cond );
+               }
                pthread_mutex_unlock( &data->lock );
                continue;
           }
 
           data->tracks[data->current_track].frame += len;
-          data->finished = false;
 
           pthread_mutex_unlock( &data->lock );
           
@@ -944,12 +948,12 @@ IFusionSoundMusicProvider_CDDA_PlayToStream( IFusionSoundMusicProvider *thiz,
      track = &data->tracks[data->current_track];
      if (track->frame == track->length)
           track->frame = 0;
+          
+     data->status = FMSTATE_PLAY;
+     pthread_cond_broadcast( &data->cond );
 
      /* start thread */
-     data->finished = false;
-     data->playing  = true;
-     data->thread   = direct_thread_create( DTT_DEFAULT,
-                                            CDDAStreamThread, data, "CDDA" );
+     data->thread = direct_thread_create( DTT_DEFAULT, CDDAStreamThread, data, "CDDA" );
 
      pthread_mutex_unlock( &data->lock );
 
@@ -964,14 +968,14 @@ CDDABufferThread( DirectThread *thread, void *ctx )
 
      IFusionSoundBuffer *buffer = data->dest.buffer;
 
-     while (data->playing && !data->finished) {
+     while (data->status == FMSTATE_PLAY) {
           int  len, pos;
           u8  *dst;
           int  size;
 
           pthread_mutex_lock( &data->lock );
 
-          if (!data->playing) {
+          if (data->status != FMSTATE_PLAY) {
                pthread_mutex_unlock( &data->lock );
                break;
           }
@@ -984,6 +988,8 @@ CDDABufferThread( DirectThread *thread, void *ctx )
           if (buffer->Lock( buffer, (void*)&dst, &size, 0 ) != DFB_OK) {
                D_ERROR( "IFusionSoundMusicProvider_CDDA: "
                         "Couldn't lock destination buffer!\n" );
+               data->status = FMSTATE_FINISHED;
+               pthread_cond_broadcast( &data->cond );
                pthread_mutex_unlock( &data->lock );
                break;
           }
@@ -1003,17 +1009,19 @@ CDDABufferThread( DirectThread *thread, void *ctx )
                len = cdda_read_audio( data->fd, data->buffer ? : dst, pos, len );
 
           if (len < 1) {
-               if (data->flags & FMPLAY_LOOPING)
+               if (data->flags & FMPLAY_LOOPING) {
                     data->tracks[data->current_track].frame = 0;
-               else
-                    data->finished = true;
+               }
+               else {
+                    data->status = FMSTATE_FINISHED;
+                    pthread_cond_broadcast( &data->cond );
+               }
                buffer->Unlock( buffer );
                pthread_mutex_unlock( &data->lock );
                continue;
           }
 
           data->tracks[data->current_track].frame += len;
-          data->finished = false;
 
           pthread_mutex_unlock( &data->lock );
 
@@ -1027,8 +1035,10 @@ CDDABufferThread( DirectThread *thread, void *ctx )
           buffer->Unlock( buffer );
 
           if (data->callback) {
-               if (data->callback( len, data->ctx ))
-                    data->playing = false;
+               if (data->callback( len, data->ctx )) {
+                    data->status = FMSTATE_STOP;
+                    pthread_cond_broadcast( &data->cond );
+               }
           }
      }
 
@@ -1101,12 +1111,12 @@ IFusionSoundMusicProvider_CDDA_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      track = &data->tracks[data->current_track];
      if (track->frame == track->length)
           track->frame = 0;
+          
+     data->status = FMSTATE_PLAY;
+     pthread_cond_broadcast( &data->cond );
 
      /* start thread */
-     data->finished = false;
-     data->playing  = true;
-     data->thread   = direct_thread_create( DTT_DEFAULT,
-                                            CDDABufferThread, data, "CDDA" );
+     data->thread = direct_thread_create( DTT_DEFAULT, CDDABufferThread, data, "CDDA" );
 
      pthread_mutex_unlock( &data->lock );
 
@@ -1120,12 +1130,15 @@ IFusionSoundMusicProvider_CDDA_Stop( IFusionSoundMusicProvider *thiz )
 
      pthread_mutex_lock( &data->lock );
 
+     data->status = FMSTATE_STOP;
+     
      /* stop thread */
      if (data->thread) {
-          data->playing = false;
-          pthread_mutex_unlock( &data->lock );
-          direct_thread_join( data->thread );
-          pthread_mutex_lock( &data->lock );
+          if (!direct_thread_is_joined( data->thread )) {
+               pthread_mutex_unlock( &data->lock );
+               direct_thread_join( data->thread );
+               pthread_mutex_lock( &data->lock );
+          }
           direct_thread_destroy( data->thread );
           data->thread = NULL;
      }
@@ -1147,6 +1160,8 @@ IFusionSoundMusicProvider_CDDA_Stop( IFusionSoundMusicProvider *thiz )
           data->dest.buffer->Release( data->dest.buffer );
           data->dest.buffer = NULL;
      }
+     
+     pthread_cond_broadcast( &data->cond );
 
      pthread_mutex_unlock( &data->lock );
 
@@ -1162,15 +1177,7 @@ IFusionSoundMusicProvider_CDDA_GetStatus( IFusionSoundMusicProvider *thiz,
      if (!status)
           return DFB_INVARG;
 
-     if (data->finished) {
-          *status = FMSTATE_FINISHED;
-     }
-     else if (data->playing) {
-          *status = FMSTATE_PLAY;
-     }
-     else {
-          *status = FMSTATE_STOP;
-     }
+     *status = data->status;
 
      return DFB_OK;
 }
@@ -1248,6 +1255,53 @@ IFusionSoundMusicProvider_CDDA_SetPlaybackFlags( IFusionSoundMusicProvider    *t
      return DFB_OK;
 }
 
+static DFBResult
+IFusionSoundMusicProvider_CDDA_WaitStatus( IFusionSoundMusicProvider *thiz,
+                                           FSMusicProviderStatus      mask,
+                                           unsigned int               timeout )
+{
+     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
+     
+     if (!mask || mask & ~FMSTATE_ALL)
+          return DFB_INVARG;
+          
+     if (timeout) {
+          struct timespec t;
+          long long       s;
+          
+          s = direct_clock_get_abs_micros() + timeout * 1000ll;
+          t.tv_sec  = (s / 1000000);
+          t.tv_nsec = (s % 1000000) * 1000;
+          
+#ifdef HAVE_PTHREAD_MUTEX_TIMEDLOCK
+          if (pthread_mutex_timedlock( &data->lock, &t ))
+               return DFB_TIMEOUT;
+#else          
+          while (pthread_mutex_trylock( &data->lock )) {
+               usleep( 1000 );
+               if (direct_clock_get_abs_micros() >= s)
+                    return DFB_TIMEOUT;
+          }
+#endif  
+          while (!(data->status & mask)) {
+               if (pthread_cond_timedwait( &data->cond, &data->lock, &t ) == ETIMEDOUT) {
+                    pthread_mutex_unlock( &data->lock );
+                    return DFB_TIMEOUT;
+               }
+          }
+     }
+     else {
+          pthread_mutex_lock( &data->lock );
+          
+          while (!(data->status & mask))
+               pthread_cond_wait( &data->cond, &data->lock );
+     }
+     
+     pthread_mutex_unlock( &data->lock );
+     
+     return DFB_OK;
+}
+
 /* exported symbols */
 
 static DFBResult
@@ -1266,6 +1320,7 @@ Construct( IFusionSoundMusicProvider *thiz,
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSoundMusicProvider_CDDA )
 
      data->ref = 1;
+     data->status = FMSTATE_STOP;
 
      data->fd = dup( direct_stream_fileno( stream ) );
      if (data->fd < 0) {
@@ -1288,6 +1343,7 @@ Construct( IFusionSoundMusicProvider *thiz,
 #endif
 
      direct_util_recursive_pthread_mutex_init( &data->lock );
+     pthread_cond_init( &data->cond, NULL );
 
      /* initialize function pointers */
      thiz->AddRef               = IFusionSoundMusicProvider_CDDA_AddRef;
@@ -1307,6 +1363,7 @@ Construct( IFusionSoundMusicProvider *thiz,
      thiz->GetPos               = IFusionSoundMusicProvider_CDDA_GetPos;
      thiz->GetLength            = IFusionSoundMusicProvider_CDDA_GetLength;
      thiz->SetPlaybackFlags     = IFusionSoundMusicProvider_CDDA_SetPlaybackFlags;
+     thiz->WaitStatus           = IFusionSoundMusicProvider_CDDA_WaitStatus;
 
      return DFB_OK;
 }

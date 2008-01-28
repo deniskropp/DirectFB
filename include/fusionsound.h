@@ -381,16 +381,17 @@ typedef enum {
      FMSTATE_UNKNOWN   = 0x00000000, /* Unknown status.       */
      FMSTATE_PLAY      = 0x00000001, /* Provider is playing.  */
      FMSTATE_STOP      = 0x00000002, /* Playback was stopped. */
-     FMSTATE_FINISHED  = 0x00000003, /* Playback is finished. */
+     FMSTATE_FINISHED  = 0x00000004, /* Playback is finished. */
+     FMSTATE_ALL       = 0x00000007
 } FSMusicProviderStatus;
 
 /*
  * Flags controlling playback of a music provider.
  */
 typedef enum {
-     FMPLAY_NOFX       = 0x000000000, /* Normal playback.                        */
+     FMPLAY_NOFX       = 0x000000000, /* Normal playback.                            */
      FMPLAY_LOOPING    = 0x000000001, /* Automatically restart playback as soon
-                                         as end of the current track is reached. */
+                                         as the end of the current track is reached. */
 } FSMusicProviderPlaybackFlags;
 
 /*
@@ -1217,6 +1218,20 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
      DFBResult (*SetPlaybackFlags) (
           IFusionSoundMusicProvider    *thiz,
           FSMusicProviderPlaybackFlags  flags
+     );
+     
+     /*
+      * Wait for playback status.
+      *
+      * This method blocks until playback reaches
+      * one of the states specified in <b>mask</b> or,
+      * if the specified <b>timeout</b> in milliseconds
+      * is non-zero, until timeout expires.
+      */
+     DFBResult (*WaitStatus) (
+          IFusionSoundMusicProvider *thiz,
+          FSMusicProviderStatus      mask,
+          unsigned int               timeout
      );
 )
 
