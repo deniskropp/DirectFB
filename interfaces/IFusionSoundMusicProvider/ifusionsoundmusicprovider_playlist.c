@@ -854,34 +854,37 @@ IFusionSoundMusicProvider_Playlist_SelectTrack( IFusionSoundMusicProvider *thiz,
      
      direct_list_foreach (entry, data->playlist) {
           IFusionSoundMusicProvider *provider;
+          DFBResult                  ret;
           
           if (entry->id != track_id)
                continue;
           
-          if (data->selected) {     
-               provider = data->selected->provider;
-               if (provider)
-                    provider->Stop( provider );
-          } 
+          if (data->selected) {
+               if (data->selected->provider) {
+                    data->selected->provider->Stop( data->selected->provider );
+                    data->selected->provider->GetPos( data->selected->provider,
+                                                      &data->selected->start );
+                    data->selected->provider->Release( data->selected->provider );
+                    data->selected->provider = NULL;
+               }
+          }
           data->selected = entry;
           
-          if (!entry->provider) {
-               DFBResult ret;
-               ret = IFusionSoundMusicProvider_Create( entry->url, &entry->provider );
-               if (ret)
-                    return ret;
+          ret = IFusionSoundMusicProvider_Create( entry->url, &provider );
+          if (ret)
+               return ret;
                
-               if (entry->start)
-                    entry->provider->SeekTo( entry->provider, entry->start );
-          }
+          if (entry->start)
+               provider->SeekTo( provider, entry->start );
           
-          provider = entry->provider;
           provider->SetPlaybackFlags( provider, data->playback_flags );
           if (data->stream)
                provider->PlayToStream( provider, data->stream );
           if (data->buffer)
                provider->PlayToBuffer( provider, data->buffer, 
                                        data->callback, data->callback_ctx );
+                                       
+          entry->provider = provider;
           
           return DFB_OK;
      }
