@@ -625,9 +625,13 @@ http_open( DirectStream *stream, const char *filename )
                     stream->seek = http_seek;
           }
           else if (!strncasecmp( buf, "Content-Type:", 13 )) {
+               char *mime = trim( buf+13 );
+               char *tmp  = strchr( mime, ';' );
+               if (tmp)
+                    *tmp = '\0';
                if (stream->mime)
                     D_FREE( stream->mime );
-               stream->mime = D_STRDUP( trim( buf+13 ) );
+               stream->mime = D_STRDUP( mime );
           }
           else if (!strncasecmp( buf, "Content-Length:", 15 )) {
                char *tmp = trim( buf+15 );
