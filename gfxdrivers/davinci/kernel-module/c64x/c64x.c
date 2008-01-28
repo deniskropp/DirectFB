@@ -49,6 +49,9 @@
 #include <asm/system.h>
 #include <asm/uaccess.h>
 
+#include <linux/c64x.h>
+
+#define C64X_IRQ
 
 MODULE_LICENSE("GPL v2");
 //MODULE_LICENSE("Propietary");
@@ -123,9 +126,13 @@ static struct class_simple*dev_class;
 static volatile unsigned int*mmr=0;
 static unsigned char*l2ram=0;
 static volatile unsigned int*l1dram=0;
+static volatile void*dram=0;
+static volatile c64xTaskControl*c64xctl=0;
+static volatile c64xTask*queue_l=0;
 
 #ifdef C64X_IRQ
-static int dev_irq=7;
+static int dev_irq=46;
+static DECLARE_WAIT_QUEUE_HEAD( wait_irq );
 
 /* IRQ */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 21)
@@ -133,6 +140,7 @@ static irqreturn_t dev_irq_handler(int irq,void*dev_id) {
 #else
 static irqreturn_t dev_irq_handler(int irq,void*dev_id,struct pt_regs*regs) {
 #endif
+  wake_up_all( &wait_irq );
   return IRQ_HANDLED;
 }
 #endif
@@ -206,14 +214,72 @@ static int dev_mmap(struct file * file, struct vm_area_struct * vma) {
   return 0;
 }
 
+static void
+c64x_dump( void )
+{
+  static const char *state_names[] = { "DONE", "ERROR", "TODO", "RUNNING" };
+
+  uint32_t  ql_dsp  = c64xctl->QL_dsp;
+  uint32_t  ql_arm  = c64xctl->QL_arm;
+  uint32_t  qh_dsp  = c64xctl->QH_dsp;
+  uint32_t  qh_arm  = c64xctl->QH_arm;
+  uint32_t  task    = queue_l[ql_dsp & C64X_QUEUE_MASK].c64x_function;
+  int       dl, dh;
+
+  dl = ql_arm - ql_dsp;
+  if (dl < 0)
+    dl += C64X_QUEUE_LENGTH;
+
+  dh = qh_arm - qh_dsp;
+  if (dh < 0)
+    dh += C64X_QUEUE_LENGTH;
+
+  printk( "High Q:  arm %5d - dsp %5d = %d\n", qh_arm, qh_dsp, dh );
+  printk( "Low  Q:  arm %5d - dsp %5d = %d\n", ql_arm, ql_dsp, dl );
+
+  printk( "                      (%08x: func %d - %s)\n", 
+          task, (task >> 2) & 0x3fff, state_names[task & 3] );
+
+}
+
+static int
+c64x_wait_low( void )
+{
+  int ret;
+  int num = 0;
+  u32 dsp = c64xctl->QL_dsp;
+
+//  c64x_dump();
+
+  while (dsp != c64xctl->QL_arm) {
+    ret = wait_event_interruptible_timeout( wait_irq, c64xctl->QL_dsp == c64xctl->QL_arm, 1 );
+    if (ret < 0)
+      return ret;
+
+    if (c64xctl->QL_dsp == dsp && ++num > HZ) {
+      printk( KERN_ERR "c64x+ : timeout waiting for idle queue\n" );
+      c64x_dump();
+      return -ETIMEDOUT;
+    }
+    else
+      num = 0;
+
+    dsp = c64xctl->QL_dsp;
+  }
+
+  return 0;
+}
+
 static int dev_ioctl(struct inode *i, struct file *f, unsigned int cmd, unsigned long arg) {
   switch (cmd) {
-  case 1: // RESET
+  case C64X_IOCTL_RESET:
     MDCTL39=0x00000000;		/* local reset */
     mdelay(10);
     DSPidle=0;
     MDCTL39=0x00000103;
     break;
+  case C64X_IOCTL_WAIT_LOW:
+    return c64x_wait_low();
   default:
     printk(KERN_INFO "c64x+ : unknown ioctl : cmd=%08x\n",cmd);
     return -EAGAIN;
@@ -241,6 +307,13 @@ static int __init dev_init(void) {
 
   printk(KERN_INFO "c64x+ : module load\n");
 
+  if ((dram=ioremap(R_BASE,R_LEN))==0) {
+    printk(KERN_ERR "c64x+ : module couldn't get memory\n");
+    goto err0;
+  }
+  printk(KERN_INFO "c64x+ : module got memory @ %p\n",dram);
+  queue_l = dram + 0x01e00000;
+
   /* get the 'device' memory */
   if ((mmr=ioremap(IO_BASE,IO_LEN))==0) {
     printk(KERN_ERR "c64x+ : module couldn't get IO-MMR\n");
@@ -263,6 +336,7 @@ static int __init dev_init(void) {
     goto err1;
   }
   printk(KERN_INFO "c64x+ : module got L1D @ %p\n",l1dram);
+  c64xctl = (volatile void*)l1dram;
 
   if ((l2ram=ioremap(D_BASE,D_LEN))==0) {
     printk(KERN_ERR "c64x+ : module couldn't get L2 dsp-memory\n");
@@ -377,6 +451,8 @@ err2:
 err1:
   iounmap((void*)mmr);
 err0:
+  if (dram)
+    iounmap((void*)dram);
   return ret;
 }
 module_init(dev_init);

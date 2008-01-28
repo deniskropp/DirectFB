@@ -21,7 +21,7 @@ CPPFLAGS += -DMODULE
 
 it all:
 	$(MAKE) -C $(KERNEL_BUILD) \
-		CPPFLAGS="$(CPPFLAGS) -D__KERNEL__ -I$(KERNEL_BUILD)/include -I$(KERNEL_SOURCE)/include $(AUTOCONF_H)" \
+		CPPFLAGS="$(CPPFLAGS) -D__KERNEL__ -I$(shell pwd)/include -I$(KERNEL_BUILD)/include -I$(KERNEL_SOURCE)/include $(AUTOCONF_H)" \
 		SUBDIRS=`pwd`/$(SUB) modules
 
 install: all

@@ -106,27 +106,85 @@ bench_mem( const char *name,
              total / dt, (total * 1000 / dt) % 1000 );
 }
 
+
+/* insert idct code for testing here */
+
+
 #define DVA_BLOCK_WORD( val, index, EOB )    (((val) << 16) | (((index)&0x3f) << 1) | ((EOB) ? 1 : 0))
 
 static inline void
 test_load_block( DavinciC64x *c64x, bool dct_type_interlaced )
 {
      int    i;
+     int    num = 0;
      short *dst = c64x->mem + 0x01000000;
-     int   *src = c64x->mem + 0x01200000;
+     int   *src = c64x->mem + 0x01100000;
 
 
-     src[0] = DVA_BLOCK_WORD( 100, 0, 1 );
-     src[1] = DVA_BLOCK_WORD( 200, 0, 0 );
-     src[2] = DVA_BLOCK_WORD( 210, 1, 0 );
-     src[3] = DVA_BLOCK_WORD( 220, 2, 1 );
-     src[4] = DVA_BLOCK_WORD( 300, 0, 1 );
-     src[5] = DVA_BLOCK_WORD( 400, 0, 0 );
-     src[6] = DVA_BLOCK_WORD( 410, 1, 1 );
-     src[7] = DVA_BLOCK_WORD( 500, 0, 0 );
-     src[8] = DVA_BLOCK_WORD( 510, 63, 1 );
-     src[9] = DVA_BLOCK_WORD( 600, 63, 1 );
+#if 0
+     src[num++] = DVA_BLOCK_WORD( 100, 0, 1 );
+     src[num++] = DVA_BLOCK_WORD( 200, 0, 0 );
+     src[num++] = DVA_BLOCK_WORD( 210, 1, 0 );
+     src[num++] = DVA_BLOCK_WORD( 220, 2, 1 );
+     src[num++] = DVA_BLOCK_WORD( 300, 0, 1 );
+     src[num++] = DVA_BLOCK_WORD( 400, 0, 0 );
+     src[num++] = DVA_BLOCK_WORD( 410, 1, 1 );
+     src[num++] = DVA_BLOCK_WORD( 500, 0, 0 );
+     src[num++] = DVA_BLOCK_WORD( 510, 63, 1 );
+     src[num++] = DVA_BLOCK_WORD( 600, 63, 1 );
+#else
+     src[num++] = DVA_BLOCK_WORD(136, 0, 0);
+     src[num++] = DVA_BLOCK_WORD(-12, 8, 0);
+     src[num++] = DVA_BLOCK_WORD(7, 16, 0);
+     src[num++] = DVA_BLOCK_WORD(-2, 24, 1);
 
+     src[num++] = DVA_BLOCK_WORD(136, 0, 0);
+     src[num++] = DVA_BLOCK_WORD(-12, 8, 0);
+     src[num++] = DVA_BLOCK_WORD(7, 16, 0);
+     src[num++] = DVA_BLOCK_WORD(-2, 24, 1);
+
+
+     src[num++] = DVA_BLOCK_WORD(1076, 0, 0);
+     src[num++] = DVA_BLOCK_WORD(-204, 8, 0);
+     src[num++] = DVA_BLOCK_WORD(-168, 16, 0);
+     src[num++] = DVA_BLOCK_WORD(-129, 24, 0);
+     src[num++] = DVA_BLOCK_WORD(-100, 32, 0);
+     src[num++] = DVA_BLOCK_WORD(-40, 40, 0);
+     src[num++] = DVA_BLOCK_WORD(-14, 48, 1);
+#if 1
+     src[num++] = DVA_BLOCK_WORD(1068, 0, 0);
+     src[num++] = DVA_BLOCK_WORD(2, 1, 0);
+     src[num++] = DVA_BLOCK_WORD(-202, 8, 0);
+     src[num++] = DVA_BLOCK_WORD(-168, 16, 0);
+     src[num++] = DVA_BLOCK_WORD(-2, 9, 0);
+     src[num++] = DVA_BLOCK_WORD(-129, 24, 0);
+     src[num++] = DVA_BLOCK_WORD(-97, 32, 0);
+     src[num++] = DVA_BLOCK_WORD(-40, 40, 0);
+     src[num++] = DVA_BLOCK_WORD(-13, 48, 1);
+#else
+     src[num++] = DVA_BLOCK_WORD(1068, 0, 0);
+//     src[num++] = DVA_BLOCK_WORD(2, 1, 0);
+     src[num++] = DVA_BLOCK_WORD(-202, 8, 0);
+     src[num++] = DVA_BLOCK_WORD(-1, 16, 0);
+//     src[num++] = DVA_BLOCK_WORD(-2, 9, 0);
+     src[num++] = DVA_BLOCK_WORD(-1, 24, 0);
+     src[num++] = DVA_BLOCK_WORD(-97, 32, 1);
+//     src[num++] = DVA_BLOCK_WORD(-40, 40, 0);
+//     src[num++] = DVA_BLOCK_WORD(-13, 48, 1);
+#endif
+
+     src[num++] = DVA_BLOCK_WORD(1048, 0, 0);
+     src[num++] = DVA_BLOCK_WORD(-26, 8, 0);
+     src[num++] = DVA_BLOCK_WORD(4, 16, 0);
+     src[num++] = DVA_BLOCK_WORD(5, 24, 0);
+     src[num++] = DVA_BLOCK_WORD(-4, 32, 1);
+
+     src[num++] = DVA_BLOCK_WORD(996, 0, 0);
+     src[num++] = DVA_BLOCK_WORD(24, 8, 0);
+     src[num++] = DVA_BLOCK_WORD(-2, 24, 0);
+     src[num++] = DVA_BLOCK_WORD(3, 32, 0);
+     src[num++] = DVA_BLOCK_WORD(-4, 48, 1);
+#endif
 
      BRINTF("\n");
      BRINTF("\n\n.======================== Testing load_block (dct_type_interlaced: %s) ========================.\n",
@@ -135,7 +193,7 @@ test_load_block( DavinciC64x *c64x, bool dct_type_interlaced )
      BRINTF( "SOURCE (DVABlockWords)\n" );
      BRINTF("\n");
 
-     for (i=0; i<10; i++)
+     for (i=0; i<num; i++)
           BRINTF("0x%08x  (%d, %d, %d)\n", (u32)src[i], src[i] >> 16, (src[i] >> 1) & 0x3f, src[i] & 1);
 
      BRINTF("\n\n");
@@ -145,11 +203,12 @@ test_load_block( DavinciC64x *c64x, bool dct_type_interlaced )
 
 
      // test routine
-     davinci_c64x_load_block( c64x, 0x8e000000+0x01200000, 10, dct_type_interlaced ? 0x7f : 0x3f );
+     davinci_c64x_load_block( c64x, 0x8e000000+0x01100000, 10, dct_type_interlaced ? 0x7f : 0x3f );
 
      // copy idct buffer to memory where we can read it
      davinci_c64x_blit_16( c64x, 0x8f000000, 0, 0xf065c0, 0, 16 * 24, 1 );
 
+     davinci_c64x_write_back_all( c64x );
      davinci_c64x_write_back_all( c64x );
      davinci_c64x_wait_low( c64x );
 
@@ -168,6 +227,85 @@ test_load_block( DavinciC64x *c64x, bool dct_type_interlaced )
      }
 
      BRINTF("\n\n");
+
+#if 1
+     s16 *blocks = c64x->mem + 0x01200000;
+     int offset  = 0;
+
+     memset( blocks, 0, 1024 );
+
+     for (i=0; i<num; i++) {
+          blocks[offset + ((src[i] >> 1) & 0x3f)] = src[i] >> 16;
+
+          if (src[i] & 1)
+               offset += 64;
+     }
+
+	memset( dst, 0x55, 0x100000 );
+
+	// test routine
+	for (i=0; i<6; i++)
+		davinci_c64x_dva_idct( c64x, 0x8e000000+0x01000000 + i*128, 16, 0x8e000000+0x01200000 + i*128 );
+
+	davinci_c64x_write_back_all( c64x );
+	davinci_c64x_write_back_all( c64x );
+	davinci_c64x_wait_low( c64x );
+
+
+     BRINTF( "-> SINGLE IDCT (59) BLOCKS (6x 8x8 shorts)\n" );
+     BRINTF("\n");
+
+     for (i=0; i<6*64; i++) {
+          BRINTF("%5d ", dst[i] );
+          if ((i&7)==7) {
+               BRINTF("\n");
+          }
+          if ((i&63)==63) {
+               BRINTF("\n");
+          }
+     }
+
+     BRINTF("\n\n");
+#endif
+
+#if 0
+//     s16 blocks[384];
+//     int offset = 0;
+     offset = 0;
+
+     memset( blocks, 0, 1024 );
+
+     for (i=0; i<num; i++) {
+          blocks[offset + ((src[i] >> 1) & 0x3f)] = src[i] >> 16;
+
+          if (src[i] & 1) {
+               int n;
+
+               for (n = 0; n < 8; n++)
+                    idct_row (blocks + offset + 8 * n);
+
+               for (n = 0; n < 8; n++)
+                    idct_col (blocks + offset + n);
+
+               offset += 64;
+          }
+     }
+
+     BRINTF( "-> REFERENCE IDCT BLOCKS (6x 8x8 shorts)\n" );
+     BRINTF("\n");
+
+     for (i=0; i<6*64; i++) {
+          BRINTF("%5d ", blocks[i] );
+          if ((i&7)==7) {
+               BRINTF("\n");
+          }
+          if ((i&63)==63) {
+               BRINTF("\n");
+          }
+     }
+
+     BRINTF("\n\n");
+#endif
 }
 
 static inline void
@@ -1542,6 +1680,8 @@ davinci_c64x_open( DavinciC64x *c64x )
 
 if (getenv("C64X_TEST")) {
      test_load_block( c64x, false );
+
+return DFB_OK;
      test_load_block( c64x, true );
 
      bench_dither_argb( c64x );

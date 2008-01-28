@@ -55,12 +55,12 @@ DFBResult davinci_c64x_close( DavinciC64x *c64x );
 /**********************************************************************************************************************/
 
 static inline c64xTask *
-c64x_get_task( DavinciC64x *c64x )
+c64x_get_task( const DavinciC64x *c64x )
 {
      c64xTaskControl *ctl  = c64x->ctl;
      int              idx  = ctl->QL_arm;
      c64xTask        *task = &c64x->QueueL[idx];
-     int              next = (idx + 1) & 0x3fff;
+     int              next = (idx + 1) & C64X_QUEUE_MASK;
 
      /* The entry should be free as we are... */
      D_ASSERT( !(task->c64x_flags & C64X_FLAG_TODO) );
@@ -80,7 +80,7 @@ static inline void
 c64x_submit_task( DavinciC64x *c64x )
 {
      /* DSP head is at least two entries ahead, we can safely extend the ARM tail. */
-     c64x->ctl->QL_arm = (c64x->ctl->QL_arm + 1) & 0x3fff;
+     c64x->ctl->QL_arm = (c64x->ctl->QL_arm + 1) & C64X_QUEUE_MASK;
 }
 
 /**********************************************************************************************************************/
@@ -88,13 +88,21 @@ c64x_submit_task( DavinciC64x *c64x )
 static inline DFBResult
 davinci_c64x_wait_low( DavinciC64x *c64x )
 {
+     DFBResult        ret;
      c64xTaskControl *ctl = c64x->ctl;
 
      while (ctl->QL_dsp != ctl->QL_arm) {
-          //direct_log_printf( NULL, "%s() sleeping... (dsp %d, arm %d)\n", __FUNCTION__, ctl->QL_dsp, ctl->QL_arm );
+          c64xTask *task = c64x_get_task( c64x );
 
-          /* FIXME: ioctl */
-          usleep( 1 );
+          task->c64x_function = C64X_FLAG_TODO | C64X_FLAG_INTERRUPT;
+
+          c64x_submit_task( c64x );
+
+          if (ioctl( c64x->fd, C64X_IOCTL_WAIT_LOW )) {
+               ret = errno2result( errno );
+               D_PERROR( "C64X: C64X_IOCTL_WAIT_LOW failed!\n" );
+               return ret;
+          }
      }
 
      return DFB_OK;
@@ -271,6 +279,25 @@ davinci_c64x_dva_motion_block( DavinciC64x   *c64x,
      task->c64x_function = C64X_DVA_MOTION_BLOCK | C64X_FLAG_TODO;
 
      task->c64x_arg[0] = macroblock;
+
+     c64x_submit_task( c64x );
+}
+
+/**********************************************************************************************************************/
+
+static inline void
+davinci_c64x_dva_idct( DavinciC64x   *c64x,
+				   unsigned long  dest,
+				   u32            pitch,
+				   unsigned long  source )
+{
+     c64xTask *task = c64x_get_task( c64x );
+
+     task->c64x_function = C64X_DVA_IDCT | C64X_FLAG_TODO;
+
+     task->c64x_arg[0] = dest;
+     task->c64x_arg[1] = pitch;
+	task->c64x_arg[2] = source;
 
      c64x_submit_task( c64x );
 }

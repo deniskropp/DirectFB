@@ -47,7 +47,8 @@ typedef enum {
 
 typedef enum {
      C64X_FLAG_RUN       = 1,
-     C64X_FLAG_TODO      = 2
+     C64X_FLAG_TODO      = 2,
+     C64X_FLAG_INTERRUPT = 0x80000000
 } C64XTaskFlags;
 
 #define C64X_TASK_STATE(task) ((task)->c64x_flags & 3)
@@ -60,6 +61,8 @@ typedef volatile struct {
      uint32_t  idlecounter;
 } c64xTaskControl;
 
+#define C64X_QUEUE_LENGTH     0x4000
+#define C64X_QUEUE_MASK       0x3fff
 
 
 typedef enum {
@@ -71,14 +74,15 @@ typedef enum {
 } C64XBlendSubFunction;
 
 
+#define C64X_IOCTL_RESET      _IO( 'c', 0 )
+#define C64X_IOCTL_WAIT_LOW   _IO( 'c', 1 )
+
+
 /* function macro */
 #define _C64XFUNC(val)             (((val)&0x3fff)<<2)
 
 
-/*  USED INTERNALLY
-void c64x_mpeg2_idct(int16_t*src,int16_t*dst);
-*/
-#define C64X_MPEG2_IDCT	           _C64XFUNC(0)
+#define C64X_NOP	           _C64XFUNC(0)
 
 /*
 void c64x_dither_argb(u32*dst_rgb, u8*dst_alpha, u32 dst_pitch, u32*src, u32 src_pitch, u32 width, u32 height);
@@ -206,6 +210,11 @@ void c64x_dva_begin_frame(u32 pitch, u16 *current, u16 *past, u16 *future, u32 f
 void c64x_dva_motion(DVAMacroBlock *macroblock);
 */
 #define C64X_DVA_MOTION_BLOCK      _C64XFUNC(53)
+
+/*
+void c64x_dva_idct(u16* dst, u32 pitch, u16* src);
+*/
+#define C64X_DVA_IDCT              _C64XFUNC(59)
 
 
 

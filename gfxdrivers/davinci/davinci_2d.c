@@ -421,7 +421,7 @@ davinciEmitCommands( void *drv, void *dev )
 void
 davinciFlushTextureCache( void *drv, void *dev )
 {
-     DavinciDriverData *ddrv = drv;
+/*     DavinciDriverData *ddrv = drv;
      DavinciDeviceData *ddev = dev;
 
      davinci_c64x_wb_inv_range( &ddrv->c64x, dfb_config->video_phys,
@@ -429,6 +429,7 @@ davinciFlushTextureCache( void *drv, void *dev )
 
      davinci_c64x_wb_inv_range( &ddrv->c64x, ddev->fix[OSD0].smem_start,
                                              ddev->fix[OSD0].smem_len, 2 );
+*/
 }
 
 /*
@@ -767,11 +768,22 @@ davinciFillRectangle32( void *drv, void *dev, DFBRectangle *rect )
      DavinciDriverData *ddrv = drv;
      DavinciDeviceData *ddev = dev;
 
-     davinci_c64x_fill_32( &ddrv->c64x,
-                           ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
-                           ddev->dst_pitch,
-                           rect->w, rect->h,
-                           ddev->fillcolor );
+     if (ddev->dst_format == DSPF_ARGB && ddev->color.a == 0xff)
+          davinci_c64x_blit_blend_32( &ddrv->c64x,
+                                      C64X_BLEND_ONE_INVSRC,
+                                      ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
+                                      ddev->dst_pitch,
+                                      0,
+                                      0,
+                                      rect->w, rect->h,
+                                      ddev->color_argb,
+                                      0xff );
+     else
+          davinci_c64x_fill_32( &ddrv->c64x,
+                                ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
+                                ddev->dst_pitch,
+                                rect->w, rect->h,
+                                ddev->fillcolor );
 
      return true;
 }
