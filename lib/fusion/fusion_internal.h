@@ -59,6 +59,8 @@
 
 struct __Fusion_FusionWorldShared {
      int                  magic;
+     
+     int                  refs;     /* Increased by the master on fork(). */
 
      int                  world_index;
 
@@ -75,17 +77,17 @@ struct __Fusion_FusionWorldShared {
 
      FusionSHMPoolShared *main_pool;
      
-     DirectLink          *fusionees;   /* Connected fusionees */
+     DirectLink          *fusionees;   /* Connected fusionees. */
      FusionSkirmish       fusionees_lock;
     
-     unsigned int         call_ids;    /* Generate call ids */
-     unsigned int         lock_ids;    /* Generate locks ids */
-     unsigned int         ref_ids;     /* Generate refs ids */
-     unsigned int         reactor_ids; /* Generate reactors ids */
-     unsigned int         pool_ids;    /* Generate pools ids */
+     unsigned int         call_ids;    /* Generates call ids. */
+     unsigned int         lock_ids;    /* Generates locks ids. */
+     unsigned int         ref_ids;     /* Generates refs ids. */
+     unsigned int         reactor_ids; /* Generates reactors ids. */
+     unsigned int         pool_ids;    /* Generates pools ids. */
 
-     void                *pool_base;   /* SHM pool allocation base */ 
-     void                *pool_max;    /* SHM pool max address */
+     void                *pool_base;   /* SHM pool allocation base. */ 
+     void                *pool_max;    /* SHM pool max address. */
 };
 
 struct __Fusion_FusionWorld {
@@ -109,8 +111,7 @@ struct __Fusion_FusionWorld {
      FusionSHM            shm;
 
      FusionForkAction     fork_action;
-     bool                 forked;
-
+     
      void                *fusionee;
 };
 

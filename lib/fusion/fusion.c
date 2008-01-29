@@ -290,15 +290,23 @@ fusion_fork_handler_parent()
      D_DEBUG_AT( Fusion_Main, "%s()\n", __FUNCTION__ );
     
      for (i=0; i<FUSION_MAX_WORLDS; i++) {
-          FusionWorld *world = fusion_worlds[i];
+          FusionWorld       *world = fusion_worlds[i];
+          FusionWorldShared *shared;
 
           if (!world)
                continue;
-
-          D_MAGIC_ASSERT( world, FusionWorld );
                
-          if (world->fork_action == FFA_FORK)
-               world->forked = true;
+          D_MAGIC_ASSERT( world, FusionWorld );
+          
+          shared = world->shared;
+          
+          D_MAGIC_ASSERT( shared, FusionWorldShared );
+               
+          if (world->fork_action == FFA_FORK) {
+               /* Increase the shared reference counter. */
+               if (fusion_master( world ))
+                    shared->refs++;
+          }
      }
 }
 
@@ -539,6 +547,9 @@ fusion_enter( int               world_index,
 
      /* Initialize shared data. */
      if (enter.fusion_id == FUSION_ID_MASTER) {
+          /* Initialize reference counter. */
+          shared->refs = 1;
+          
           /* Set ABI version. */
           shared->world_abi = abi_version;
 
@@ -737,16 +748,21 @@ fusion_exit( FusionWorld *world,
 
      /* Master has to deinitialize shared data. */
      if (fusion_master( world )) {
-          fusion_skirmish_destroy( &shared->reactor_globals );
-          fusion_skirmish_destroy( &shared->arenas_lock );
+          shared->refs--;
+          if (shared->refs == 0) {
+               fusion_skirmish_destroy( &shared->reactor_globals );
+               fusion_skirmish_destroy( &shared->arenas_lock );
 
-          if (!world->forked)
                fusion_shm_pool_destroy( world, shared->main_pool );
+          
+               /* Deinitialize shared memory. */
+               fusion_shm_deinit( world );
+          }
      }
-
-     /* Deinitialize or leave shared memory. */
-     if (!world->forked)
+     else {
+          /* Leave shared memory. */
           fusion_shm_deinit( world );
+     }
 
      /* Reset local dispatch nodes. */
      _fusion_reactor_free_all( world );
@@ -757,7 +773,7 @@ fusion_exit( FusionWorld *world,
 
 
      /* Unmap shared area. */
-     if (fusion_master( world ) && !world->forked)
+     if (fusion_master( world ) && shared->refs == 0)
           D_MAGIC_CLEAR( shared );
 
      munmap( shared, sizeof(FusionWorldShared) );
@@ -1224,17 +1240,25 @@ fusion_fork_handler_parent()
      D_DEBUG_AT( Fusion_Main, "%s()\n", __FUNCTION__ );
     
      for (i=0; i<FUSION_MAX_WORLDS; i++) {
-          FusionWorld *world = fusion_worlds[i];
+          FusionWorld        *world = fusion_worlds[i];
+           FusionWorldShared *shared;
 
           if (!world)
                continue;
 
           D_MAGIC_ASSERT( world, FusionWorld );
+          
+          shared = world->shared;
+          
+          D_MAGIC_ASSERT( shared, FusionWorldShared );
                
           if (world->fork_action == FFA_FORK) {
+               /* Increase the shared reference counter. */
+               if (fusion_master( world ))
+                    shared->refs++;
+               
                /* Cancel the dispatcher to prevent conflicts. */
                direct_thread_cancel( world->dispatch_loop );
-               world->forked = true;
           }
      }
 }
@@ -1328,7 +1352,7 @@ fusion_fork_handler_child()
                                                                  world, "Fusion Dispatch" );
                     if (!world->dispatch_loop)
                          raise( SIGTRAP );
-
+               
                }    break;
           }
      }
@@ -1565,6 +1589,9 @@ fusion_enter( int               world_index,
           
           D_DEBUG_AT( Fusion_Main, "  -> shared area at %p, size %zu\n", shared, sizeof(FusionWorldShared) );
           
+          /* Initialize reference counter. */
+          shared->refs = 1;
+          
           /* Set ABI version. */
           shared->world_abi = abi_version;
 
@@ -1770,6 +1797,7 @@ fusion_exit( FusionWorld *world,
 {
      FusionWorldShared *shared;
      int                world_index;
+     bool               clear = false;
 
      D_DEBUG_AT( Fusion_Main, "%s( %p, %semergency )\n", __FUNCTION__, world, emergency ? "" : "no " );
 
@@ -1822,17 +1850,25 @@ fusion_exit( FusionWorld *world,
      }
 
      /* Master has to deinitialize shared data. */
-     if (fusion_master( world ) && !world->forked) {
-          fusion_skirmish_destroy( &shared->reactor_globals );
-          fusion_skirmish_destroy( &shared->arenas_lock );
-          fusion_skirmish_destroy( &shared->fusionees_lock );
+     if (fusion_master( world )) {
+          shared->refs--;
+          if (shared->refs == 0) {
+               fusion_skirmish_destroy( &shared->reactor_globals );
+               fusion_skirmish_destroy( &shared->arenas_lock );
+               fusion_skirmish_destroy( &shared->fusionees_lock );
 
-          fusion_shm_pool_destroy( world, shared->main_pool );
+               fusion_shm_pool_destroy( world, shared->main_pool );
+          
+               /* Deinitialize shared memory. */
+               fusion_shm_deinit( world );
+          
+               clear = true;
+          }
      }
-
-     /* Deinitialize or leave shared memory. */
-     if (!world->forked)
+     else {
+          /* Leave shared memory. */
           fusion_shm_deinit( world );
+     }
 
      /* Reset local dispatch nodes. */
      _fusion_reactor_free_all( world );
@@ -1841,14 +1877,15 @@ fusion_exit( FusionWorld *world,
      fusion_worlds[shared->world_index] = NULL;
 
      /* Unmap shared area. */
-     if (fusion_master( world ) && !world->forked)
+     if (clear)
           D_MAGIC_CLEAR( shared );
+     
      munmap( shared, sizeof(FusionWorldShared) );
      
      /* Close socket. */     
      close( world->fusion_fd );
 
-     if (fusion_master( world ) && !world->forked) {
+     if (clear) {
           DIR  *dir;
           char  buf[128];
           int   len;
