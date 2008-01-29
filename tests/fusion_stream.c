@@ -312,6 +312,8 @@ main( int argc, char *argv[] )
 
                     usleep( 50000 );
           }
+
+          fusion_world_set_fork_action( world, FFA_CLOSE );
      }
 
 

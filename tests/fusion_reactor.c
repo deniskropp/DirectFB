@@ -113,8 +113,6 @@ main( int argc, char *argv[] )
      MSG( "Entered world %d as master (FusionID %lu, pid %d)\n",
           fusion_world_index( m_world ), fusion_id( m_world ), getpid() );
 
-     fusion_world_set_fork_action( m_world, FFA_FORK );
-
 
      reactor = fusion_reactor_new( sizeof(TestMessage), "Test", m_world );
      if (!reactor) {
@@ -134,7 +132,9 @@ main( int argc, char *argv[] )
 
      MSG( ".........FORKING NOW.........\n" );
 
+     fusion_world_set_fork_action( m_world, FFA_FORK );
      child_pid = fork();
+     fusion_world_set_fork_action( m_world, FFA_CLOSE );
 
      switch (child_pid) {
           case -1:
