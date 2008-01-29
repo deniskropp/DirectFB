@@ -510,8 +510,19 @@ static void
 IFusionSoundMusicProvider_Vorbis_Destruct( IFusionSoundMusicProvider *thiz )
 {
      IFusionSoundMusicProvider_Vorbis_data *data = thiz->priv;
+     
+     if (data->thread) {
+          data->status = FMSTATE_STOP;
+          direct_thread_cancel( data->thread );
+          direct_thread_join( data->thread );
+          direct_thread_destroy( data->thread );
+     }
 
-     thiz->Stop( thiz );
+     if (data->dest.stream)
+          data->dest.stream->Release( data->dest.stream );
+
+     if (data->dest.buffer)
+          data->dest.buffer->Release( data->dest.buffer );
 
      ov_clear( &data->vf );
 
