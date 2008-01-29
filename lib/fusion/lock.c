@@ -500,6 +500,8 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
                long long now = direct_clock_get_micros();
 
                if (now >= stop) {
+                    /* Stop notifying us. */
+                    node->notified = true;
                     ret = DFB_TIMEOUT;
                     break;
                }
@@ -514,7 +516,7 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
      }
 
      /* Flush pending signals. */
-     while (!sigpending( &set ) && sigismember( &set, SIGRESTART ) > 0)
+     if (!sigpending( &set ) && sigismember( &set, SIGRESTART ) > 0)
           sigsuspend( &mask );
      
      if (fusion_skirmish_prevail( skirmish ))
