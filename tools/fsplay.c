@@ -177,7 +177,8 @@ parse_options( int argc, char **argv )
                if (!media)
                     exit( D_OOM() );
                media->url = opt;
-               media->id  = id++;
+               media->id = id++;
+               media->tracks = NULL;
                direct_list_append( (DirectLink**)&playlist, &media->link );
           }
      }
