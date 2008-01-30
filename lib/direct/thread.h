@@ -32,6 +32,7 @@
 #include <sys/types.h>
 
 #include <direct/types.h>
+#include <direct/conf.h>
 
 typedef enum {
      DTT_DEFAULT    =   0,
