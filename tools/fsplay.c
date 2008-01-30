@@ -185,7 +185,7 @@ parse_options( int argc, char **argv )
      
      if (!playlist)
           usage( argv[0] );
-}                   
+}
 
 static DFBEnumerationResult
 track_add_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
@@ -222,6 +222,7 @@ playback_run( IFusionSoundMusicProvider *provider, Media *media )
      for (track = media->tracks; track;) {
           MediaTrack *next = (MediaTrack*)track->link.next;
           double      len = 0, pos = 0;
+          int         vol_set = 0, pitch_set = 0;
 
           /* Select current track in playlist. */
           ret = provider->SelectTrack( provider, track->id );
@@ -322,7 +323,7 @@ playback_run( IFusionSoundMusicProvider *provider, Media *media )
                provider->GetStatus( provider, &status );
           
                if (!quiet) {
-                    int filled = 0, total = 0;
+                    int filled = 0, total = 0, clear = 0;
     
                     /* Query ring buffer status. */
                     stream->GetStatus( stream, &filled, &total, NULL, NULL, NULL );
@@ -331,10 +332,26 @@ playback_run( IFusionSoundMusicProvider *provider, Media *media )
 
                     /* Print playback status. */
                     fprintf( stderr, 
-                         "\rTime: %02d:%02d,%02d of %02d:%02d,%02d  Ring Buffer: %02d%% ",
+                         "\rTime: %02d:%02d,%02d of %02d:%02d,%02d  Ring Buffer:%3d%% ",
                          (int)pos/60, (int)pos%60, (int)(pos*100.0)%100,
                          (int)len/60, (int)len%60, (int)(len*100.0)%100,
                          filled * 100 / total );
+                    if (vol_set) {
+                         if (--vol_set)
+                              fprintf( stderr, "[Vol:%3d%%] ", (int)(volume*100.0) );
+                         else
+                              clear += 12;
+                    }
+                    if (pitch_set) {
+                         if (--pitch_set)
+                              fprintf( stderr, "[Pitch:%3d%%] ", (int)(pitch*100.0) );
+                         else
+                              clear += 13;
+                    }
+                    while (clear) {
+                         putc( ' ', stderr );
+                         clear--;
+                    }
                     fflush( stderr );
                }
 
@@ -391,28 +408,32 @@ playback_run( IFusionSoundMusicProvider *provider, Media *media )
                                    repeat = !repeat;
                                    break;
                               case '-':
-                                   volume -= 0.1;
+                                   volume -= 1.0/32;
                                    if (volume < 0.0)
                                         volume = 0.0;
                                    playback->SetVolume( playback, volume );
+                                   vol_set = 50;
                                    break;
                               case '+':
-                                   volume += 0.1;
+                                   volume += 1.0/32;
                                    if (volume > 64.0)
                                         volume = 64.0;
                                    playback->SetVolume( playback, volume );
+                                   vol_set = 50;
                                    break;
                               case '/':
-                                   pitch -= 0.1;
+                                   pitch -= 1.0/32;
                                    if (pitch < 0.0)
                                         pitch = 0.0;
                                    playback->SetPitch( playback, pitch );
+                                   pitch_set = 50;
                                    break;
                               case '*':
-                                   pitch += 0.1;
+                                   pitch += 1.0/32;
                                    if (pitch > 64.0)
                                         pitch = 64.0;
                                    playback->SetPitch( playback, pitch );
+                                   pitch_set = 50;
                                    break;
                               case 'q':
                               case 'Q':
@@ -432,11 +453,17 @@ playback_run( IFusionSoundMusicProvider *provider, Media *media )
           if (!quiet)
                fprintf( stderr, "\n" );
 
+          if (!pitch) {
+               playback->SetVolume( playback, 0 );
+               playback->SetPitch( playback, 1 );
+          }
+
           track = next;
      }
 
      return 0;
-}     
+}
+
 
 int
 main( int argc, char **argv )
@@ -482,7 +509,7 @@ main( int argc, char **argv )
                
                /* Add contents. */
                if (!quiet)
-                    fprintf( stderr, "\n%s:\n", media->url );
+                    fprintf( stderr, "\nMedia %d (%s):\n", media->id, media->url );
                provider->EnumTracks( provider, track_add_callback, media );
                if (!quiet)
                     fprintf( stderr, "\n" );
