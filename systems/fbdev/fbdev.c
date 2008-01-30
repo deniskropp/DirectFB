@@ -1941,7 +1941,8 @@ dfb_fbdev_set_mode( CoreSurface           *surface,
           dfb_surfacemanager_adjust_heap_offset( dfb_fbdev->shared->manager,
                                                  var.yres_virtual * fix.line_length );
 
-          dfb_fbdev_pan( var.xoffset, var.yoffset, false );
+          if (shared->fix.xpanstep || shared->fix.ypanstep || shared->fix.ywrapstep)
+               dfb_fbdev_pan( var.xoffset, var.yoffset, false );
 
           dfb_gfxcard_after_set_var();
 
