@@ -59,8 +59,15 @@ struct __D_DirectLog {
      pthread_mutex_t lock;
 };
 
-static DirectLog *auto_log;
-static DirectLog *def_log;
+/**********************************************************************************************************************/
+
+/* Statically allocated to avoid endless loops between D_CALLOC() and D_DEBUG(), while the latter would only
+ * call the allocation once, if there wouldn't be the loopback...
+ */
+static DirectLog       fallback_log;
+
+static DirectLog      *default_log   = NULL;
+static pthread_once_t  init_fallback = PTHREAD_ONCE_INIT;
 
 /**********************************************************************************************************************/
 
@@ -120,11 +127,10 @@ direct_log_destroy( DirectLog *log )
 {
      D_MAGIC_ASSERT( log, DirectLog );
 
-     if (auto_log == log)
-          auto_log = NULL;
+     D_ASSERT( &fallback_log != log );
 
-     if (def_log == log)
-          def_log = auto_log;
+     if (log == default_log)
+          default_log = NULL;
 
      close( log->fd );
 
@@ -181,7 +187,7 @@ direct_log_set_default( DirectLog *log )
 {
      D_MAGIC_ASSERT( log, DirectLog );
 
-     def_log = log;
+     default_log = log;
 
      return DFB_OK;
 }
@@ -215,19 +221,29 @@ direct_log_unlock( DirectLog *log )
 }
 
 __attribute__((no_instrument_function))
+static void
+init_fallback_log()
+{
+     fallback_log.type = DLT_STDERR;
+     fallback_log.fd   = fileno( stderr );
+
+     direct_util_recursive_pthread_mutex_init( &fallback_log.lock );
+
+     D_MAGIC_SET( &fallback_log, DirectLog );
+}
+
+__attribute__((no_instrument_function))
 DirectLog *
 direct_log_default()
 {
-     if (!def_log) {
-          if (!auto_log)
-               direct_log_create( DLT_STDERR, NULL, &auto_log );
+     pthread_once( &init_fallback, init_fallback_log );
 
-          def_log = auto_log;
-     }
+     if (!default_log)
+          default_log = &fallback_log;
 
-     D_MAGIC_ASSERT( def_log, DirectLog );
+     D_MAGIC_ASSERT( default_log, DirectLog );
 
-     return def_log;
+     return default_log;
 }
 
 /**********************************************************************************************************************/
