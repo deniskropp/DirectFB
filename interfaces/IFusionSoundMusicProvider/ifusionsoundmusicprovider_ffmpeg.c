@@ -80,7 +80,7 @@ typedef struct {
      pthread_cond_t                cond;
      
      FSMusicProviderStatus         status;
-     
+     int                           finished;
      int                           seeked;
 
      struct {
@@ -359,25 +359,53 @@ ffmpeg_mix_audio( s16 *src, void *dst, int len,
 /*****************************************************************************/
 
 static void
+FFmpeg_Stop( IFusionSoundMusicProvider_FFmpeg_data *data, bool now )
+{
+     data->status = FMSTATE_STOP;
+     
+     /* stop thread */
+     if (data->thread) {
+          if (!direct_thread_is_joined( data->thread )) {
+               if (now) {
+                    direct_thread_cancel( data->thread );
+                    direct_thread_join( data->thread );
+               }
+               else {
+                    /* mutex must be already locked */
+                    pthread_mutex_unlock( &data->lock );
+                    direct_thread_join( data->thread );
+                    pthread_mutex_lock( &data->lock );
+               }
+          }
+          direct_thread_destroy( data->thread );
+          data->thread = NULL;
+     }
+     
+     /* release previous destination stream */
+     if (data->dest.stream) {
+          data->dest.stream->Release( data->dest.stream );
+          data->dest.stream = NULL;
+     }
+
+     /* release previous destination buffer */
+     if (data->dest.buffer) {
+          data->dest.buffer->Release( data->dest.buffer );
+          data->dest.buffer = NULL;
+     }
+   
+     /* release output buffer */  
+     if (data->buf) {
+          D_FREE( data->buf );
+          data->buf = NULL;
+     }
+}
+
+static void
 IFusionSoundMusicProvider_FFmpeg_Destruct( IFusionSoundMusicProvider *thiz )
 {
      IFusionSoundMusicProvider_FFmpeg_data *data = thiz->priv;
 
-     if (data->thread) {
-          data->status = FMSTATE_STOP;
-          direct_thread_cancel( data->thread );
-          direct_thread_join( data->thread );
-          direct_thread_destroy( data->thread );
-     }
-     
-     if (data->dest.stream)
-          data->dest.stream->Release( data->dest.stream );
-
-     if (data->dest.buffer)
-          data->dest.buffer->Release( data->dest.buffer );
-   
-     if (data->buf)
-          D_FREE( data->buf );
+     FFmpeg_Stop( data, true );
 
      if (data->codec)
           avcodec_close( data->codec );
@@ -541,6 +569,7 @@ FFmpegStreamThread( DirectThread *thread, void *ctx )
                     //if (url_feof( data->ctx->pb )) {
                          if (!(data->flags & FMPLAY_LOOPING) ||
                              av_seek_frame( data->ctx, -1, 0, 0 ) < 0) {
+                              data->finished = true;
                               data->status = FMSTATE_FINISHED;
                               pthread_cond_broadcast( &data->cond );
                          }
@@ -667,15 +696,16 @@ IFusionSoundMusicProvider_FFmpeg_PlayToStream( IFusionSoundMusicProvider *thiz,
                return DFB_UNSUPPORTED;
      }
      
-     thiz->Stop( thiz );
-     
      pthread_mutex_lock( &data->lock );
      
-     if (data->status == FMSTATE_FINISHED) {
+     FFmpeg_Stop( data, false );
+     
+     if (data->finished) {
           if (av_seek_frame( data->ctx, -1, 0, AVSEEK_FLAG_BACKWARD ) < 0) {
                pthread_mutex_unlock( &data->lock );
                return DFB_UNSUPPORTED;
           }
+          data->finished = false;
      }
      
      if (!data->buf) {
@@ -740,6 +770,7 @@ FFmpegBufferThread( DirectThread *thread, void *ctx )
                          if (!(data->flags & FMPLAY_LOOPING) ||
                              av_seek_frame( data->ctx, -1, 0, 0 ) < 0)
                          {
+                              data->finished = true;
                               data->status = FMSTATE_FINISHED;
                               if (pos && data->callback) {
                                    if (data->callback( pos, data->callback_data ))
@@ -883,15 +914,16 @@ IFusionSoundMusicProvider_FFmpeg_PlayToBuffer( IFusionSoundMusicProvider *thiz,
                return DFB_UNSUPPORTED;
      }
      
-     thiz->Stop( thiz );
-     
      pthread_mutex_lock( &data->lock );
      
-     if (data->status == FMSTATE_FINISHED) {
+     FFmpeg_Stop( data, false );
+     
+     if (data->finished) {
           if (av_seek_frame( data->ctx, -1, 0, AVSEEK_FLAG_BACKWARD ) < 0) {
                pthread_mutex_unlock( &data->lock );
                return DFB_UNSUPPORTED;
           }
+          data->finished = false;
      }
      
      if (!data->buf) {
@@ -929,36 +961,7 @@ IFusionSoundMusicProvider_FFmpeg_Stop( IFusionSoundMusicProvider *thiz )
           
      pthread_mutex_lock( &data->lock );
      
-     data->status = FMSTATE_STOP;
-     
-     /* stop thread */
-     if (data->thread) {
-          if (!direct_thread_is_joined( data->thread )) {
-               pthread_mutex_unlock( &data->lock );
-               direct_thread_join( data->thread );
-               pthread_mutex_lock( &data->lock );
-          }
-          direct_thread_destroy( data->thread );
-          data->thread = NULL;
-     }
-     
-     /* release previous destination stream */
-     if (data->dest.stream) {
-          data->dest.stream->Release( data->dest.stream );
-          data->dest.stream = NULL;
-     }
-
-     /* release previous destination buffer */
-     if (data->dest.buffer) {
-          data->dest.buffer->Release( data->dest.buffer );
-          data->dest.buffer = NULL;
-     }
-   
-     /* release output buffer */  
-     if (data->buf) {
-          D_FREE( data->buf );
-          data->buf = NULL;
-     }
+     FFmpeg_Stop( data, false );
      
      pthread_cond_broadcast( &data->cond );
 
@@ -1005,6 +1008,7 @@ IFusionSoundMusicProvider_FFmpeg_SeekTo( IFusionSoundMusicProvider *thiz,
      if (av_seek_frame( data->ctx, -1, time, 
                        (time < data->pts) ? AVSEEK_FLAG_BACKWARD : 0 ) >= 0) {
           data->seeked = true;
+          data->finished = false;
           data->pts = time;
           ret = DFB_OK;
      }

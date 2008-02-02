@@ -3,6 +3,7 @@
 ifusionsoundmusicproviderdir = $(MODULEDIR)/interfaces/IFusionSoundMusicProvider
 
 INCLUDES = \
+	-I$(top_builddir)/include	\
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src 	\
 	$(FUSION_CFLAGS)	\

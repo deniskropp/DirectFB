@@ -107,11 +107,10 @@ typedef struct {
      void                         *ctx;
 } IFusionSoundMusicProvider_CDDA_data;
 
-
+/*****************************************************************************/
 
 #define CD_FRAMES_PER_SECOND  75
 #define CD_BYTES_PER_FRAME    2352
-
 
 #if defined(__linux__)
 
@@ -382,6 +381,8 @@ cdda_read_audio( int fd, u8 *buf, int pos, int frames )
 
 #endif
 
+/*****************************************************************************/
+
 #ifdef HAVE_CDDB
 static void
 cdda_get_metadata( struct cdda_track *tracks,
@@ -482,6 +483,8 @@ cdda_get_metadata( struct cdda_track *tracks,
 }
 #endif
 
+/*****************************************************************************/
+
 static void
 cdda_mix_audio( s16 *src, u8 *dst, int len,
                 FSSampleFormat format, int channels )
@@ -568,27 +571,56 @@ cdda_mix_audio( s16 *src, u8 *dst, int len,
      }
 }
 
+/*****************************************************************************/
+
+static void
+CDDA_Stop( IFusionSoundMusicProvider_CDDA_data *data, bool now )
+{
+     data->status = FMSTATE_STOP;
+     
+     /* stop thread */
+     if (data->thread) {
+          if (!direct_thread_is_joined( data->thread )) {
+               if (now) {
+                    direct_thread_cancel( data->thread );
+                    direct_thread_join( data->thread );
+               }
+               else {
+                    /* mutex must be already locked */
+                    pthread_mutex_unlock( &data->lock );
+                    direct_thread_join( data->thread );
+                    pthread_mutex_lock( &data->lock );
+               }
+          }
+          direct_thread_destroy( data->thread );
+          data->thread = NULL;
+     }
+
+     /* release buffer */
+     if (data->buffer) {
+          D_FREE( data->buffer );
+          data->buffer = NULL;
+     }
+
+     /* release previous destination stream */
+     if (data->dest.stream) {
+          data->dest.stream->Release( data->dest.stream );
+          data->dest.stream = NULL;
+     }
+
+     /* release previous destination buffer */
+     if (data->dest.buffer) {
+          data->dest.buffer->Release( data->dest.buffer );
+          data->dest.buffer = NULL;
+     }
+}
 
 static void
 IFusionSoundMusicProvider_CDDA_Destruct( IFusionSoundMusicProvider *thiz )
 {
      IFusionSoundMusicProvider_CDDA_data *data = thiz->priv;
 
-     if (data->thread) {
-          data->status = FMSTATE_STOP;
-          direct_thread_cancel( data->thread );
-          direct_thread_join( data->thread );
-          direct_thread_destroy( data->thread );
-     }
-
-     if (data->buffer)
-          D_FREE( data->buffer );
-
-     if (data->dest.stream)
-          data->dest.stream->Release( data->dest.stream );
-
-     if (data->dest.buffer)
-          data->dest.buffer->Release( data->dest.buffer );
+     CDDA_Stop( data, true );
 
      if (data->tracks) {
           int i;
@@ -938,9 +970,9 @@ IFusionSoundMusicProvider_CDDA_PlayToStream( IFusionSoundMusicProvider *thiz,
      if (desc.buffersize < CD_BYTES_PER_FRAME/4)
           return DFB_UNSUPPORTED;
 
-     thiz->Stop( thiz );
-
      pthread_mutex_lock( &data->lock );
+     
+     CDDA_Stop( data, false );
 
      data->buffered_frames = (desc.buffersize << 2) / CD_BYTES_PER_FRAME;
 
@@ -1099,9 +1131,9 @@ IFusionSoundMusicProvider_CDDA_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      if (desc.length < CD_BYTES_PER_FRAME/4)
           return DFB_UNSUPPORTED;
 
-     thiz->Stop( thiz );
-
      pthread_mutex_lock( &data->lock );
+     
+     CDDA_Stop( data, false );
 
      data->buffered_frames = (desc.length << 2) / CD_BYTES_PER_FRAME;
 
@@ -1143,37 +1175,8 @@ IFusionSoundMusicProvider_CDDA_Stop( IFusionSoundMusicProvider *thiz )
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
 
      pthread_mutex_lock( &data->lock );
-
-     data->status = FMSTATE_STOP;
      
-     /* stop thread */
-     if (data->thread) {
-          if (!direct_thread_is_joined( data->thread )) {
-               pthread_mutex_unlock( &data->lock );
-               direct_thread_join( data->thread );
-               pthread_mutex_lock( &data->lock );
-          }
-          direct_thread_destroy( data->thread );
-          data->thread = NULL;
-     }
-
-     /* release buffer */
-     if (data->buffer) {
-          D_FREE( data->buffer );
-          data->buffer = NULL;
-     }
-
-     /* release previous destination stream */
-     if (data->dest.stream) {
-          data->dest.stream->Release( data->dest.stream );
-          data->dest.stream = NULL;
-     }
-
-     /* release previous destination buffer */
-     if (data->dest.buffer) {
-          data->dest.buffer->Release( data->dest.buffer );
-          data->dest.buffer = NULL;
-     }
+     CDDA_Stop( data, false );
      
      pthread_cond_broadcast( &data->cond );
 

@@ -81,7 +81,7 @@ typedef struct {
      pthread_cond_t                cond;
 
      FSMusicProviderStatus         status;
-     
+     int                           finished;     
      int                           seeked;
 
      struct {
@@ -425,7 +425,7 @@ vorbis_mix_audio( float **src, void *dst, int pos, int len,
 
 #endif /* USE_TREMOR */
 
-/* I/O callbacks */
+/*****************************************************************************/
 
 static size_t
 ov_read_callback( void *dst, size_t size, size_t nmemb, void *ctx )
@@ -504,25 +504,50 @@ ov_close_callback( void *ctx )
      return 0;
 }
 
-/* provider methods */
+/*****************************************************************************/
+
+static void
+Vorbis_Stop( IFusionSoundMusicProvider_Vorbis_data *data, bool now )
+{
+     data->status = FMSTATE_STOP;
+
+     /* stop thread */
+     if (data->thread) {
+          if (!direct_thread_is_joined( data->thread )) {
+               if (now) {
+                    direct_thread_cancel( data->thread );
+                    direct_thread_join( data->thread );
+               }
+               else {
+                    /* mutex must be already locked */
+                    pthread_mutex_unlock( &data->lock );
+                    direct_thread_join( data->thread );
+                    pthread_mutex_lock( &data->lock );
+               }
+          }
+          direct_thread_destroy( data->thread );
+          data->thread = NULL;
+     }
+
+     /* release previous destination stream */
+     if (data->dest.stream) {
+          data->dest.stream->Release( data->dest.stream );
+          data->dest.stream = NULL;
+     }
+
+     /* release previous destination buffer */
+     if (data->dest.buffer) {
+          data->dest.buffer->Release( data->dest.buffer );
+          data->dest.buffer = NULL;
+     }
+}
 
 static void
 IFusionSoundMusicProvider_Vorbis_Destruct( IFusionSoundMusicProvider *thiz )
 {
      IFusionSoundMusicProvider_Vorbis_data *data = thiz->priv;
      
-     if (data->thread) {
-          data->status = FMSTATE_STOP;
-          direct_thread_cancel( data->thread );
-          direct_thread_join( data->thread );
-          direct_thread_destroy( data->thread );
-     }
-
-     if (data->dest.stream)
-          data->dest.stream->Release( data->dest.stream );
-
-     if (data->dest.buffer)
-          data->dest.buffer->Release( data->dest.buffer );
+     Vorbis_Stop( data, true );
 
      ov_clear( &data->vf );
 
@@ -763,6 +788,7 @@ VorbisStreamThread( DirectThread *thread, void *ctx )
                          ov_time_seek( &data->vf, 0 );
                }
                else {
+                    data->finished = true;
                     data->status = FMSTATE_FINISHED;
                     pthread_cond_broadcast( &data->cond );
                }
@@ -850,9 +876,9 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
                return DFB_UNSUPPORTED;
      }
 
-     thiz->Stop( thiz );
-
      pthread_mutex_lock( &data->lock );
+     
+     Vorbis_Stop( data, false );
      
 #ifndef USE_TREMOR
      if (desc.samplerate == data->info->rate/2) {
@@ -872,11 +898,13 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
      data->dest.mode   = desc.channelmode;
      data->dest.length = desc.buffersize;
 
-     if (data->status == FMSTATE_FINISHED) {
+     if (data->finished) {
           if (direct_stream_remote( data->stream ))
                direct_stream_seek( data->stream, 0 );
           else
                ov_time_seek( &data->vf, 0 );
+          
+          data->finished = false;
      }
      
      data->status = FMSTATE_PLAY;
@@ -941,6 +969,7 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
                               ov_time_seek( &data->vf, 0 );
                     }
                     else {
+                         data->finished = true;
                          data->status = FMSTATE_FINISHED;
                          pthread_cond_broadcast( &data->cond );
                     }
@@ -1036,9 +1065,9 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
                return DFB_UNSUPPORTED;
      }
 
-     thiz->Stop( thiz );
-
      pthread_mutex_lock( &data->lock );
+     
+     Vorbis_Stop( data, false );
      
 #ifndef USE_TREMOR
      if (desc.samplerate == data->info->rate/2) {
@@ -1062,11 +1091,13 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      data->callback = callback;
      data->ctx      = ctx;
 
-     if (data->status == FMSTATE_FINISHED) {
+     if (data->finished) {
           if (direct_stream_remote( data->stream ))
                direct_stream_seek( data->stream, 0 );
           else
                ov_time_seek( &data->vf, 0 );
+               
+          data->finished = false;
      }
      
      data->status = FMSTATE_PLAY;
@@ -1087,30 +1118,7 @@ IFusionSoundMusicProvider_Vorbis_Stop( IFusionSoundMusicProvider *thiz )
 
      pthread_mutex_lock( &data->lock );
 
-     data->status = FMSTATE_STOP;
-
-     /* stop thread */
-     if (data->thread) {
-          if (!direct_thread_is_joined( data->thread )) {
-               pthread_mutex_unlock( &data->lock );
-               direct_thread_join( data->thread );
-               pthread_mutex_lock( &data->lock );
-          }
-          direct_thread_destroy( data->thread );
-          data->thread = NULL;
-     }
-
-     /* release previous destination stream */
-     if (data->dest.stream) {
-          data->dest.stream->Release( data->dest.stream );
-          data->dest.stream = NULL;
-     }
-
-     /* release previous destination buffer */
-     if (data->dest.buffer) {
-          data->dest.buffer->Release( data->dest.buffer );
-          data->dest.buffer = NULL;
-     }
+     Vorbis_Stop( data, false );
      
      pthread_cond_broadcast( &data->cond );
 
@@ -1163,8 +1171,10 @@ IFusionSoundMusicProvider_Vorbis_SeekTo( IFusionSoundMusicProvider *thiz,
                ret = DFB_FAILURE;
      }
      
-     if (ret == DFB_OK)
-          data->seeked = true;
+     if (ret == DFB_OK) {
+          data->seeked   = true;
+          data->finished = false;
+     }
 
      pthread_mutex_unlock( &data->lock );
 

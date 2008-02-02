@@ -71,9 +71,11 @@ typedef struct {
      DirectThread                 *thread;
      pthread_mutex_t               lock;
      pthread_cond_t                cond;
-     int                           seeked;
      
      FSMusicProviderStatus         status;
+     int                           finished;
+     int                           seeked;
+     
      FSMusicProviderPlaybackFlags  flags;
 
      IFusionSoundStream           *stream;
@@ -86,7 +88,7 @@ typedef struct {
 static int             timidity_refs = 0;
 static pthread_mutex_t timidity_lock = PTHREAD_MUTEX_INITIALIZER;
 
-/* MidIStream callbacks */
+/*****************************************************************************/
 
 static size_t
 read_callback( void *ctx, void *ptr, size_t size, size_t num )
@@ -112,7 +114,55 @@ close_callback( void *ctx )
      return 0;
 }
 
-/* interface implementation */
+/*****************************************************************************/
+
+static void
+Timidity_Stop( IFusionSoundMusicProvider_Timidity_data *data, bool now )
+{
+     data->status = FMSTATE_STOP;
+
+     /* stop thread */
+     if (data->thread) {
+          if (!direct_thread_is_joined( data->thread )) {
+               if (now) {
+                    direct_thread_cancel( data->thread );
+                    direct_thread_join( data->thread );
+               }
+               else {
+                    /* mutex must be already locked */
+                    pthread_mutex_unlock( &data->lock );
+                    direct_thread_join( data->thread );
+                    pthread_mutex_lock( &data->lock );
+               }
+          }
+          direct_thread_destroy( data->thread );
+          data->thread = NULL;
+     }
+     
+     /* free song */
+     if (data->song) {
+          mid_song_free( data->song );
+          data->song = NULL;
+     }
+     
+     /* free buffer */
+     if (data->buf) {
+          D_FREE( data->buf );
+          data->buf = NULL;
+     }
+
+     /* release previous destination stream */
+     if (data->stream) {
+          data->stream->Release( data->stream );
+          data->stream = NULL;
+     }
+
+     /* release previous destination buffer */
+     if (data->buffer) {
+          data->buffer->Release( data->buffer );
+          data->buffer = NULL;
+     }
+}
 
 static void
 IFusionSoundMusicProvider_Timidity_Destruct( IFusionSoundMusicProvider *thiz )
@@ -120,24 +170,7 @@ IFusionSoundMusicProvider_Timidity_Destruct( IFusionSoundMusicProvider *thiz )
      IFusionSoundMusicProvider_Timidity_data *data =
          (IFusionSoundMusicProvider_Timidity_data*)thiz->priv;
 
-     if (data->thread) {
-          data->status = FMSTATE_STOP;
-          direct_thread_cancel( data->thread );
-          direct_thread_join( data->thread );
-          direct_thread_destroy( data->thread );
-     }
-     
-     if (data->buf)
-          D_FREE( data->buf );
-
-     if (data->stream)
-          data->stream->Release( data->stream );
-
-     if (data->buffer)
-          data->buffer->Release( data->buffer );
-          
-     if (data->song)
-          mid_song_free( data->song );
+     Timidity_Stop( data, true );
 
      if (data->st)
           direct_stream_destroy( data->st );
@@ -278,6 +311,7 @@ TimidityStreamThread( DirectThread *thread, void *ctx )
                     mid_song_start( data->song );
                }
                else {
+                    data->finished = true;
                     data->status = FMSTATE_FINISHED;
                     pthread_cond_broadcast( &data->cond );
                }
@@ -318,10 +352,10 @@ IFusionSoundMusicProvider_Timidity_PlayToStream(
           default:
                return DFB_UNSUPPORTED;
      }
-     
-     thiz->Stop( thiz );
 
      pthread_mutex_lock( &data->lock );
+     
+     Timidity_Stop( data, false );
      
      direct_stream_seek( data->st, 0 );
      stream = mid_istream_open_callbacks( read_callback, close_callback, data );
@@ -350,8 +384,10 @@ IFusionSoundMusicProvider_Timidity_PlayToStream(
      
      mid_song_start( data->song );
      
-     if (data->status == FMSTATE_FINISHED && !data->seeked)
+     if (data->finished) {
           data->song_pos = 0;
+          data->finished = false;
+     }
      mid_song_seek( data->song, data->song_pos );
 
      /* reference destination stream */
@@ -413,6 +449,7 @@ TimidityBufferThread( DirectThread *thread, void *ctx )
                     mid_song_start( data->song );
                }
                else {
+                    data->finished = true;
                     data->status = FMSTATE_FINISHED;
                     pthread_cond_broadcast( &data->cond );
                }
@@ -463,9 +500,9 @@ IFusionSoundMusicProvider_Timidity_PlayToBuffer(
                return DFB_UNSUPPORTED;
      }
      
-     thiz->Stop( thiz );
-
      pthread_mutex_lock( &data->lock );
+     
+     Timidity_Stop( data, false );
 
      direct_stream_seek( data->st, 0 );
      stream = mid_istream_open_callbacks( read_callback, close_callback, data );
@@ -494,8 +531,10 @@ IFusionSoundMusicProvider_Timidity_PlayToBuffer(
      
      mid_song_start( data->song );
      
-     if (data->status == FMSTATE_FINISHED && !data->seeked)
+     if (data->finished) {
           data->song_pos = 0;
+          data->finished = false;
+     }
      mid_song_seek( data->song, data->song_pos );
 
      /* reference destination buffer */
@@ -524,42 +563,7 @@ IFusionSoundMusicProvider_Timidity_Stop( IFusionSoundMusicProvider *thiz )
 
      pthread_mutex_lock( &data->lock );
      
-     data->status = FMSTATE_STOP;
-
-     /* stop thread */
-     if (data->thread) {
-          if (!direct_thread_is_joined( data->thread )) {
-               pthread_mutex_unlock( &data->lock );
-               direct_thread_join( data->thread );
-               pthread_mutex_lock( &data->lock );
-          }
-          direct_thread_destroy( data->thread );
-          data->thread = NULL;
-     }
-     
-     /* free song */
-     if (data->song) {
-          mid_song_free( data->song );
-          data->song = NULL;
-     }
-     
-     /* free buffer */
-     if (data->buf) {
-          D_FREE( data->buf );
-          data->buf = NULL;
-     }
-
-     /* release previous destination stream */
-     if (data->stream) {
-          data->stream->Release( data->stream );
-          data->stream = NULL;
-     }
-
-     /* release previous destination buffer */
-     if (data->buffer) {
-          data->buffer->Release( data->buffer );
-          data->buffer = NULL;
-     }
+     Timidity_Stop( data, false );
      
      pthread_cond_broadcast( &data->cond );
 
@@ -592,8 +596,11 @@ IFusionSoundMusicProvider_Timidity_SeekTo( IFusionSoundMusicProvider *thiz,
           return DFB_INVARG;
           
      pthread_mutex_lock( &data->lock );
+     
      data->song_pos = seconds * 1000.0;
      data->seeked   = true;
+     data->finished = false;
+     
      pthread_mutex_unlock( &data->lock );
      
      return DFB_OK;
