@@ -385,7 +385,7 @@ IDirectFBEventBuffer_GetEvent( IDirectFBEventBuffer *thiz,
 
      pthread_mutex_unlock( &data->events_mutex );
 
-     D_DEBUG_AT( IDFBEvBuf, "  -> class %d, type/size %d, data/id %p", event->clazz, event->user.type, event->user.data );
+     D_DEBUG_AT( IDFBEvBuf, "  -> class %d, type/size %d, data/id %p\n", event->clazz, event->user.type, event->user.data );
 
      return DFB_OK;
 }
@@ -439,7 +439,7 @@ IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
 
      pthread_mutex_unlock( &data->events_mutex );
 
-     D_DEBUG_AT( IDFBEvBuf, "  -> class %d, type/size %d, data/id %p", event->clazz, event->user.type, event->user.data );
+     D_DEBUG_AT( IDFBEvBuf, "  -> class %d, type/size %d, data/id %p\n", event->clazz, event->user.type, event->user.data );
 
      return DFB_OK;
 }
@@ -480,6 +480,10 @@ IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
           case DFEC_UNIVERSAL:
                size = event->universal.size;
                if (size < sizeof(DFBUniversalEvent))
+                    return DFB_INVARG;
+               /* We must not exceed the union to avoid crashes in generic code (reading DFBEvents)
+                * and to support pipe mode where each written block has to have a fixed size. */
+               if (size > sizeof(DFBEvent))
                     return DFB_INVARG;
                size += sizeof(DirectLink);
                break;
