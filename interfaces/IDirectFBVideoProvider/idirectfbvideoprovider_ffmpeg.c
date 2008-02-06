@@ -992,8 +992,8 @@ IDirectFBVideoProvider_FFmpeg_GetStreamDescription( IDirectFBVideoProvider *thiz
 
      desc->caps = DVSCAPS_VIDEO;
 
-     snprintf( desc->video.encoding,
-               DFB_STREAM_DESC_ENCODING_LENGTH, data->video.codec->name );
+     direct_snputs( desc->video.encoding, data->video.codec->name,
+                    DFB_STREAM_DESC_ENCODING_LENGTH );
      desc->video.framerate = av_q2d( data->video.st->r_frame_rate );
      desc->video.aspect    = av_q2d( data->video.ctx->sample_aspect_ratio );
      if (!finite( desc->video.aspect ))
@@ -1005,23 +1005,18 @@ IDirectFBVideoProvider_FFmpeg_GetStreamDescription( IDirectFBVideoProvider *thiz
      if (data->audio.st) {
           desc->caps |= DVSCAPS_AUDIO;
 
-          snprintf( desc->audio.encoding,
-                    DFB_STREAM_DESC_ENCODING_LENGTH, data->audio.codec->name );
+          direct_snputs( desc->audio.encoding, data->audio.codec->name,
+                         DFB_STREAM_DESC_ENCODING_LENGTH );
           desc->audio.samplerate = data->audio.ctx->sample_rate;
           desc->audio.channels   = data->audio.ctx->channels;
           desc->audio.bitrate    = data->audio.ctx->bit_rate;
      }
                
-     snprintf( desc->title,
-               DFB_STREAM_DESC_TITLE_LENGTH, data->context->title );
-     snprintf( desc->author,
-               DFB_STREAM_DESC_AUTHOR_LENGTH, data->context->author );
-     snprintf( desc->album,
-               DFB_STREAM_DESC_ALBUM_LENGTH, data->context->album );
-     snprintf( desc->genre,
-               DFB_STREAM_DESC_GENRE_LENGTH, data->context->genre );
-     snprintf( desc->comment,
-               DFB_STREAM_DESC_COMMENT_LENGTH, data->context->comment );
+     direct_snputs( desc->title, data->context->title, DFB_STREAM_DESC_TITLE_LENGTH );
+     direct_snputs( desc->author, data->context->author, DFB_STREAM_DESC_AUTHOR_LENGTH );
+     direct_snputs( desc->album, data->context->album, DFB_STREAM_DESC_ALBUM_LENGTH );
+     direct_snputs( desc->genre, data->context->genre, DFB_STREAM_DESC_GENRE_LENGTH );
+     direct_snputs( desc->comment, data->context->comment, DFB_STREAM_DESC_COMMENT_LENGTH );
      desc->year = data->context->year;
 
      return DFB_OK;
