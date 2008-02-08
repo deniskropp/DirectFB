@@ -463,7 +463,7 @@ cdda_get_metadata( struct cdda_track *tracks,
                          if (artist)
                               tracks[i].artist = D_STRDUP( artist );
                          if (title)
-                          tracks[i].title  = D_STRDUP( title );
+                              tracks[i].title  = D_STRDUP( title );
                          if (genre)
                               tracks[i].genre  = D_STRDUP( genre );
                          if (album)
@@ -701,26 +701,17 @@ IFusionSoundMusicProvider_CDDA_EnumTracks( IFusionSoundMusicProvider *thiz,
 
           memset( &desc, 0, sizeof(desc) );
 
-          if (track->artist) {
-               snprintf( desc.artist,
-                         FS_TRACK_DESC_ARTIST_LENGTH, track->artist );
-          }
-          if (track->title) {
-               snprintf( desc.title,
-                         FS_TRACK_DESC_TITLE_LENGTH, track->title );
-          }
-          if (track->genre) {
-               snprintf( desc.genre,
-                         FS_TRACK_DESC_GENRE_LENGTH, track->genre );
-          }
-          if (track->album) {
-               snprintf( desc.album,
-                         FS_TRACK_DESC_ALBUM_LENGTH, track->album );
-          }
+          if (track->artist)
+               direct_snputs( desc.artist, track->artist, FS_TRACK_DESC_ARTIST_LENGTH );
+          if (track->title)
+               direct_snputs( desc.title, track->title, FS_TRACK_DESC_TITLE_LENGTH );
+          if (track->genre)
+               direct_snputs( desc.genre, track->genre, FS_TRACK_DESC_GENRE_LENGTH );
+          if (track->album)
+               direct_snputs( desc.album, track->album, FS_TRACK_DESC_ALBUM_LENGTH );
           desc.year = track->year;
 
-          snprintf( desc.encoding,
-                    FS_TRACK_DESC_ENCODING_LENGTH, "PCM 16 bit" );
+          direct_snputs( desc.encoding, "PCM 16 bit", FS_TRACK_DESC_ENCODING_LENGTH );
           desc.bitrate = CD_FRAMES_PER_SECOND * CD_BYTES_PER_FRAME * 8;
 
           if (callback( i, desc, callbackdata ) != DFENUM_OK)
@@ -759,26 +750,17 @@ IFusionSoundMusicProvider_CDDA_GetTrackDescription( IFusionSoundMusicProvider *t
 
      track = &data->tracks[data->current_track];
 
-     if (track->artist) {
-          snprintf( desc->artist,
-                    FS_TRACK_DESC_ARTIST_LENGTH, track->artist );
-     }
-     if (track->title) {
-          snprintf( desc->title,
-                    FS_TRACK_DESC_TITLE_LENGTH, track->title );
-     }
-     if (track->genre) {
-          snprintf( desc->genre,
-                    FS_TRACK_DESC_GENRE_LENGTH, track->genre );
-     }
-     if (track->album) {
-          snprintf( desc->album,
-                    FS_TRACK_DESC_ALBUM_LENGTH, track->album );
-     }
+     if (track->artist)
+          direct_snputs( desc->artist, track->artist, FS_TRACK_DESC_ARTIST_LENGTH );
+     if (track->title)
+          direct_snputs( desc->title, track->title, FS_TRACK_DESC_TITLE_LENGTH );
+     if (track->genre)
+          direct_snputs( desc->genre, track->genre, FS_TRACK_DESC_GENRE_LENGTH );
+     if (track->album)
+          direct_snputs( desc->album, track->album, FS_TRACK_DESC_ALBUM_LENGTH );
      desc->year = track->year;
 
-     snprintf( desc->encoding,
-               FS_TRACK_DESC_ENCODING_LENGTH, "PCM 16 bit" );
+     direct_snputs( desc->encoding, "PCM 16 bit", FS_TRACK_DESC_ENCODING_LENGTH );
      desc->bitrate = CD_FRAMES_PER_SECOND * CD_BYTES_PER_FRAME * 8;
 
      return DFB_OK;

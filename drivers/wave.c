@@ -239,7 +239,7 @@ device_get_buffer( void *device_data, u8 **addr, unsigned int *avail )
      *addr = data->buffer;
      *avail = data->buffersize;
      
-     return DFB_TRUE;
+     return DFB_OK;
 }
 
 static DFBResult
