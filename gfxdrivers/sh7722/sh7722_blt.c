@@ -889,6 +889,10 @@ sh7722CheckState( void                *drv,
                /* Check blend functions. */
                if (!check_blend_functions( state ))
                     return;
+
+               /* XOR only without blending. */
+               if (state->drawingflags & DSDRAW_XOR)
+                    return;
           }
 
           /* Enable acceleration of drawing functions. */
@@ -918,6 +922,10 @@ sh7722CheckState( void                *drv,
           if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
                /* Check blend functions. */
                if (!check_blend_functions( state ))
+                    return;
+
+               /* XOR only without blending. */
+               if (state->blittingflags & DSBLIT_XOR)
                     return;
           }
 
@@ -1194,6 +1202,9 @@ draw_rectangle( SH7722DriverData *sdrv,
                                                 BLE_DSTF_1_SRC_A) : BLE_FUNC_NONE
                                               );
 
+     if (sdev->dflags & DSDRAW_XOR)
+          prep[9] |= BLE_ROP_XOR;
+
      prep[10] = BEM_WR_CTRL;
      prep[11] = WR_CTRL_LINE | ctrl;
 
@@ -1248,6 +1259,9 @@ sh7722FillRectangle( void *drv, void *dev, DFBRectangle *rect )
                                                 sdev->ble_srcf |
                                                 BLE_SRCA_FIXED |
                                                 sdev->ble_dstf) : BLE_FUNC_NONE;
+
+     if (sdev->dflags & DSDRAW_XOR)
+          prep[5] |= BLE_ROP_XOR;
 
      prep[6] = BEM_BE_CTRL;
      prep[7] = BE_CTRL_RECTANGLE | BE_CTRL_SCANMODE_LINE;
@@ -1338,6 +1352,9 @@ sh7722FillRectangleMatrixAA( void *drv, void *dev, DFBRectangle *rect )
                                                      BLE_SRCA_FIXED |
                                                      BLE_DSTF_1_SRC_A);
 
+          if (sdev->dflags & DSDRAW_XOR)
+               prep[9] |= BLE_ROP_XOR;
+
           prep[10] = BEM_WR_CTRL;
           prep[11] = WR_CTRL_LINE | WR_CTRL_ANTIALIAS;
 
@@ -1405,6 +1422,9 @@ sh7722FillRectangleMatrixAA( void *drv, void *dev, DFBRectangle *rect )
                                                 sdev->ble_srcf |
                                                 BLE_SRCA_FIXED |
                                                 sdev->ble_dstf) : BLE_FUNC_NONE;
+
+     if (sdev->dflags & DSDRAW_XOR)
+          prep[9] |= BLE_ROP_XOR;
 
      prep[10] = BEM_BE_CTRL;
 
@@ -1492,6 +1512,9 @@ sh7722FillTriangle( void *drv, void *dev, DFBTriangle *tri )
                                                      BLE_SRCA_FIXED |
                                                      BLE_DSTF_1_SRC_A);
 
+          if (sdev->dflags & DSDRAW_XOR)
+               prep[9] |= BLE_ROP_XOR;
+
           prep[10] = BEM_WR_CTRL;
           prep[11] = WR_CTRL_LINE | WR_CTRL_ANTIALIAS;
 
@@ -1538,6 +1561,9 @@ sh7722FillTriangle( void *drv, void *dev, DFBTriangle *tri )
                                                 BLE_SRCA_FIXED |
                                                 sdev->ble_dstf) : BLE_FUNC_NONE;
 
+     if (sdev->dflags & DSDRAW_XOR)
+          prep[9] |= BLE_ROP_XOR;
+
      prep[10] = BEM_BE_CTRL;
      prep[11] = BE_CTRL_QUADRANGLE | BE_CTRL_SCANMODE_LINE;
 
@@ -1579,6 +1605,9 @@ sh7722DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
                                                 sdev->ble_srcf |
                                                 BLE_SRCA_FIXED |
                                                 sdev->ble_dstf) : BLE_FUNC_NONE;
+
+     if (sdev->dflags & DSDRAW_XOR)
+          prep[5] |= BLE_ROP_XOR;
 
      prep[6] = BEM_WR_CTRL;
      prep[7] = WR_CTRL_LINE;
@@ -1692,6 +1721,9 @@ sh7722DrawLine( void *drv, void *dev, DFBRegion *line )
                                                 BLE_SRCA_FIXED |
                                                 sdev->ble_dstf) : BLE_FUNC_NONE;
 
+     if (sdev->dflags & DSDRAW_XOR)
+          prep[5] |= BLE_ROP_XOR;
+
      prep[6] = BEM_WR_CTRL;
      prep[7] = WR_CTRL_LINE | WR_CTRL_ENDPOINT;
 
@@ -1732,6 +1764,9 @@ sh7722DrawLineMatrix( void *drv, void *dev, DFBRegion *line )
                                                 sdev->ble_srcf |
                                                 BLE_SRCA_FIXED |
                                                 sdev->ble_dstf) : BLE_FUNC_NONE;
+
+     if (sdev->dflags & DSDRAW_XOR)
+          prep[5] |= BLE_ROP_XOR;
 
      prep[6] = BEM_WR_CTRL;
      prep[7] = WR_CTRL_LINE | WR_CTRL_ENDPOINT;
@@ -1798,6 +1833,9 @@ sh7722DrawLineAA( void *drv, void *dev, DFBRegion *line )
                                                 BLE_SRCA_FIXED |
                                                 BLE_DSTF_1_SRC_A);
 
+     if (sdev->dflags & DSDRAW_XOR)
+          prep[9] |= BLE_ROP_XOR;
+
      prep[10] = BEM_WR_CTRL;
      prep[11] = WR_CTRL_LINE | WR_CTRL_ENDPOINT | WR_CTRL_ANTIALIAS;
 
@@ -1823,6 +1861,9 @@ sh7722DrawLineAA( void *drv, void *dev, DFBRegion *line )
                                                  sdev->ble_srcf |
                                                  BLE_SRCA_FIXED |
                                                  sdev->ble_dstf) : BLE_FUNC_NONE;
+
+     if (sdev->dflags & DSDRAW_XOR)
+          prep[21] |= BLE_ROP_XOR;
 
      prep[22] = BEM_WR_CTRL;
      prep[23] = WR_CTRL_LINE | WR_CTRL_ENDPOINT;
@@ -1860,6 +1901,9 @@ sh7722DoBlit( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
 
      prep[8] = BEM_PE_OPERATION;
      prep[9] = BLE_FUNC_NONE;
+
+     if (sdev->bflags & DSBLIT_XOR)
+          prep[9] |= BLE_ROP_XOR;
 
      if (sdev->bflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
           prep[9] |= BLE_FUNC_AxB_plus_CxD | sdev->ble_srcf | sdev->ble_dstf;
@@ -1925,6 +1969,9 @@ sh7722DoBlitM( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
 
      prep[12] = BEM_PE_OPERATION;
      prep[13] = BLE_FUNC_NONE;
+
+     if (sdev->bflags & DSBLIT_XOR)
+          prep[13] |= BLE_ROP_XOR;
 
      if (sdev->bflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
           prep[13] |= BLE_FUNC_AxB_plus_CxD | sdev->ble_srcf | sdev->ble_dstf;

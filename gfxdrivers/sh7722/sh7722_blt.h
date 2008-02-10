@@ -7,7 +7,8 @@
 
 
 
-#define SH7722_SUPPORTED_DRAWINGFLAGS      (DSDRAW_BLEND)
+#define SH7722_SUPPORTED_DRAWINGFLAGS      (DSDRAW_BLEND | \
+                                            DSDRAW_XOR)
 
 #define SH7722_SUPPORTED_DRAWINGFUNCTIONS  (DFXL_FILLRECTANGLE | \
                                             DFXL_FILLTRIANGLE  | \
@@ -18,7 +19,8 @@
                                             DSBLIT_BLEND_COLORALPHA   | \
                                             DSBLIT_SRC_COLORKEY       | \
                                             DSBLIT_ROTATE180          | \
-                                            DSBLIT_COLORIZE)
+                                            DSBLIT_COLORIZE           | \
+                                            DSBLIT_XOR)
 
 #define SH7722_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT | \
                                             DFXL_STRETCHBLIT)
@@ -137,6 +139,8 @@ bool sh7722StretchBlit      ( void *drv, void *dev, DFBRectangle *srect, DFBRect
 #define BLE_FUNC_AxB_plus_CxD      0x10000000
 #define BLE_FUNC_CxD_minus_AxB     0x20000000
 #define BLE_FUNC_AxB_minus_CxD     0x30000000
+
+#define BLE_ROP_XOR                0x01660000
 
 #define BLE_SRCA_FIXED             0x00000000
 #define BLE_SRCA_SOURCE_ALPHA      0x00001000
