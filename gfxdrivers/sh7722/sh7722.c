@@ -71,7 +71,7 @@ driver_get_info( CoreGraphicsDevice *device,
                "Denis Oliver Kropp" );
 
      info->version.major = 0;
-     info->version.minor = 7;
+     info->version.minor = 8;
 
      info->driver_data_size = sizeof(SH7722DriverData);
      info->device_data_size = sizeof(SH7722DeviceData);
