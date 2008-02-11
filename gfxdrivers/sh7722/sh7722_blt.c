@@ -441,8 +441,6 @@ sh7722_validate_MASK( SH7722DriverData *sdrv,
      sdev->mask_offset = state->src_mask_offset;
      sdev->mask_flags  = state->src_mask_flags;
 
-     printf("flags in validate: %x\n", state->src_mask_flags);
-
      /* Set mask. */
      prep[0] = BEM_TE_MASK;
      prep[1] = TE_MASK_ENABLE | pixel_formats[sdev->mask_index];
@@ -720,14 +718,6 @@ sh7722EngineSync( void *drv, void *dev )
 
      DUMP_INFO();
 
-/*     printf( "  -> %srunning, hw %d-%d, next %d-%d - %svalid\n",     \
-                        sdrv->gfx_shared->hw_running ? "" : "not ",             \
-                        sdrv->gfx_shared->hw_start,                             \
-                        sdrv->gfx_shared->hw_end,                               \
-                        sdrv->gfx_shared->next_start,                           \
-                        sdrv->gfx_shared->next_end,                             \
-                        sdrv->gfx_shared->next_valid ? "" : "not " );
-*/
      while (shared->hw_running && ioctl( sdrv->gfx_fd, SH7722GFX_IOCTL_WAIT_IDLE ) < 0) {
           if (errno == EINTR)
                continue;
@@ -746,14 +736,6 @@ sh7722EngineSync( void *drv, void *dev )
           break;
      }
 
-/*     printf( "   -> %srunning, hw %d-%d, next %d-%d - %svalid\n",     \
-                        sdrv->gfx_shared->hw_running ? "" : "not ",             \
-                        sdrv->gfx_shared->hw_start,                             \
-                        sdrv->gfx_shared->hw_end,                               \
-                        sdrv->gfx_shared->next_start,                           \
-                        sdrv->gfx_shared->next_end,                             \
-                        sdrv->gfx_shared->next_valid ? "" : "not " );
-*/
      if (ret == DFB_OK) {
           D_ASSERT( !shared->hw_running );
           D_ASSERT( !shared->next_valid );
