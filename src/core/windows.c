@@ -1440,6 +1440,62 @@ dfb_window_repaint( CoreWindow          *window,
      return ret;
 }
 
+const char *
+dfb_window_event_type_name( DFBWindowEventType type )
+{
+     switch (type) {
+          case DWET_POSITION:
+               return "POSITION";
+
+          case DWET_SIZE:
+               return "SIZE";
+
+          case DWET_CLOSE:
+               return "CLOSE";
+
+          case DWET_DESTROYED:
+               return "DESTROYED";
+
+          case DWET_GOTFOCUS:
+               return "GOTFOCUS";
+
+          case DWET_LOSTFOCUS:
+               return "LOSTFOCUS";
+
+          case DWET_KEYDOWN:
+               return "KEYDOWN";
+
+          case DWET_KEYUP:
+               return "KEYUP";
+
+          case DWET_BUTTONDOWN:
+               return "BUTTONDOWN";
+
+          case DWET_BUTTONUP:
+               return "BUTTONUP";
+
+          case DWET_MOTION:
+               return "MOTION";
+
+          case DWET_ENTER:
+               return "ENTER";
+
+          case DWET_LEAVE:
+               return "LEAVE";
+
+          case DWET_WHEEL:
+               return "WHEEL";
+
+          case DWET_POSITION_SIZE:
+               return "POSITION_SIZE";
+
+          default:
+               break;
+     }
+
+     return "<invalid>";
+}
+
 void
 dfb_window_post_event( CoreWindow     *window,
                        DFBWindowEvent *event )
