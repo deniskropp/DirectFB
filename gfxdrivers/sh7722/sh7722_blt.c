@@ -50,21 +50,57 @@ D_DEBUG_DOMAIN( SH7722_StartStop, "SH7722/StartStop", "Renesas SH7722 Drawing St
 enum {
      DEST         = 0x00000001,
      CLIP         = 0x00000002,
-     SOURCE       = 0x00000004,
+     DEST_CLIP    = 0x00000003,
 
-     COLOR1       = 0x00000010,
+     SOURCE       = 0x00000010,
+     MASK         = 0x00000020,
 
-     FGC          = 0x00000100,
-     COLOR_KEY    = 0x00000200,
-     COLOR_CHANGE = 0x00000400,
+     COLOR        = 0x00000100,
 
-     BLEND_SRCF   = 0x00001000,
-     BLEND_DSTF   = 0x00002000,
-     FIXEDALPHA   = 0x00004000,
+     COLOR_KEY    = 0x00001000,
+     COLOR_CHANGE = 0x00002000,
 
-     MATRIX       = 0x00010000,
+     BLENDING     = 0x00010000,
 
-     ALL          = 0x00017717
+     MATRIX       = 0x00100000,
+
+     BLIT_OP      = 0x01000000,
+
+     ALL          = 0x01113133
+};
+
+/*
+ * Map pixel formats.
+ */
+static const int pixel_formats[DFB_NUM_PIXELFORMATS] = {
+     3,   /*   DSPF_ARGB1555  =  0 */
+     1,   /*   DSPF_RGB16     =  1 */
+     7,   /*   DSPF_RGB24     =  2 */
+     0,   /*   DSPF_RGB32     =  3 */
+     0,   /*   DSPF_ARGB      =  4 */
+    10,   /*   DSPF_A8        =  5 */
+    -1,   /*   DSPF_YUY2      =  6 */
+    -1,   /*   DSPF_RGB332    =  7 */
+    -1,   /*   DSPF_UYVY      =  8 */
+    -1,   /*   DSPF_I420      =  9 */
+    -1,   /*   DSPF_YV12      = 10 */
+    -1,   /*   DSPF_LUT8      = 11 */
+    -1,   /*   DSPF_ALUT44    = 12 */
+    -1,   /*   DSPF_AiRGB     = 13 */
+     8,   /*   DSPF_A1        = 14 */
+    -1,   /*   DSPF_NV12      = 15 */
+    -1,   /*   DSPF_NV16      = 16 */
+    -1,   /*   DSPF_ARGB2554  = 17 */
+     4,   /*   DSPF_ARGB4444  = 18 */
+    -1,   /*   DSPF_NV21      = 19 */
+    -1,   /*   DSPF_AYUV      = 20 */
+    -1,   /*   DSPF_A4        = 21 */
+    -1,   /*   DSPF_ARGB1666  = 22 */
+    -1,   /*   DSPF_ARGB6666  = 23 */
+     6,   /*   DSPF_RGB18     = 24 */
+    -1,   /*   DSPF_LUT2      = 25 */
+     4,   /*   DSPF_RGB444    = 26 */
+     3,   /*   DSPF_RGB555    = 27 */
 };
 
 /*
@@ -173,6 +209,7 @@ start_hardware( SH7722DriverData *sdrv )
      return true;
 }
 
+__attribute__((noinline))
 static void
 flush_prepared( SH7722DriverData *sdrv )
 {
@@ -314,63 +351,11 @@ submit_buffer( SH7722DriverData *sdrv,
 /**********************************************************************************************************************/
 
 static inline void
-sh7722_validate_DEST( SH7722DriverData *sdrv,
-                      SH7722DeviceData *sdev,
-                      CardState        *state )
+sh7722_validate_DEST_CLIP( SH7722DriverData *sdrv,
+                           SH7722DeviceData *sdev,
+                           CardState        *state )
 {
-     CoreSurface       *surface = state->destination;
-     CoreSurfaceBuffer *buffer  = state->dst.buffer;
-     __u32             *prep    = start_buffer( sdrv, 6 );
-
-     sdev->dst_offset = state->dst.phys;
-     sdev->dst_pitch  = state->dst.pitch;
-     sdev->dst_bpp    = DFB_BYTES_PER_PIXEL( buffer->format );
-
-     /* Set destination. */
-     prep[0] = BEM_PE_DST;
-
-     switch (buffer->format) {
-          case DSPF_ARGB:
-          case DSPF_RGB32:
-               prep[1] = 0;
-               break;
-
-          case DSPF_RGB16:
-               prep[1] = 1;
-               break;
-
-          case DSPF_ARGB1555:
-          case DSPF_RGB555:
-               prep[1] = 3;
-               break;
-
-          case DSPF_ARGB4444:
-          case DSPF_RGB444:
-               prep[1] = 4;
-               break;
-
-          default:
-               D_BUG( "unexpected pixelformat" );
-     }
-
-     prep[2] = BEM_PE_DST_BASE;
-     prep[3] = sdev->dst_offset;
-
-     prep[4] = BEM_PE_DST_SIZE;
-     prep[5] = SH7722_XY( sdev->dst_pitch / sdev->dst_bpp, surface->config.size.h );
-
-     submit_buffer( sdrv, 6 );
-
-     /* Set the flag. */
-     SH7722_VALIDATE( DEST );
-}
-
-static inline void
-sh7722_validate_CLIP( SH7722DriverData *sdrv,
-                      SH7722DeviceData *sdev,
-                      CardState        *state )
-{
-     __u32 *prep = start_buffer( sdrv, 4 );
+     __u32 *prep = start_buffer( sdrv, 10 );
 
      /* Set clip. */
      prep[0] = BEM_PE_SC0_MIN;
@@ -379,10 +364,34 @@ sh7722_validate_CLIP( SH7722DriverData *sdrv,
      prep[2] = BEM_PE_SC0_MAX;
      prep[3] = SH7722_XY( state->clip.x2, state->clip.y2 );
 
-     submit_buffer( sdrv, 4 );
+     /* Only clip? */
+     if (sdev->v_flags & DEST) {
+          submit_buffer( sdrv, 4 );
+     }
+     else {
+          CoreSurface       *surface = state->destination;
+          CoreSurfaceBuffer *buffer  = state->dst.buffer;
 
-     /* Set the flag. */
-     SH7722_VALIDATE( CLIP );
+          sdev->dst_phys  = state->dst.phys;
+          sdev->dst_pitch = state->dst.pitch;
+          sdev->dst_bpp   = DFB_BYTES_PER_PIXEL( buffer->format );
+          sdev->dst_index = DFB_PIXELFORMAT_INDEX( buffer->format ) % DFB_NUM_PIXELFORMATS;
+
+          /* Set destination. */
+          prep[4] = BEM_PE_DST;
+          prep[5] = pixel_formats[sdev->dst_index];
+
+          prep[6] = BEM_PE_DST_BASE;
+          prep[7] = sdev->dst_phys;
+
+          prep[8] = BEM_PE_DST_SIZE;
+          prep[9] = SH7722_XY( sdev->dst_pitch / sdev->dst_bpp, surface->config.size.h );
+
+          submit_buffer( sdrv, 10 );
+     }
+
+     /* Set the flags. */
+     SH7722_VALIDATE( DEST_CLIP );
 }
 
 static inline void
@@ -394,39 +403,17 @@ sh7722_validate_SOURCE( SH7722DriverData *sdrv,
      CoreSurfaceBuffer *buffer  = state->src.buffer;
      __u32             *prep    = start_buffer( sdrv, 6 );
 
-     sdev->src_offset = state->src.phys;
-     sdev->src_pitch  = state->src.pitch;
-     sdev->src_bpp    = DFB_BYTES_PER_PIXEL( buffer->format );
+     sdev->src_phys  = state->src.phys;
+     sdev->src_pitch = state->src.pitch;
+     sdev->src_bpp   = DFB_BYTES_PER_PIXEL( buffer->format );
+     sdev->src_index = DFB_PIXELFORMAT_INDEX( buffer->format ) % DFB_NUM_PIXELFORMATS;
 
      /* Set source. */
      prep[0] = BEM_TE_SRC;
-
-     switch (buffer->format) {
-          case DSPF_ARGB:
-          case DSPF_RGB32:
-               prep[1] = 0;
-               break;
-
-          case DSPF_RGB16:
-               prep[1] = 1;
-               break;
-
-          case DSPF_ARGB1555:
-          case DSPF_RGB555:
-               prep[1] = 3;
-               break;
-
-          case DSPF_ARGB4444:
-          case DSPF_RGB444:
-               prep[1] = 4;
-               break;
-
-          default:
-               D_BUG( "unexpected pixelformat" );
-     }
+     prep[1] = pixel_formats[sdev->src_index];
 
      prep[2] = BEM_TE_SRC_BASE;
-     prep[3] = sdev->src_offset;
+     prep[3] = sdev->src_phys;
 
      prep[4] = BEM_TE_SRC_SIZE;
      prep[5] = SH7722_XY( sdev->src_pitch / sdev->src_bpp, surface->config.size.h );
@@ -437,12 +424,48 @@ sh7722_validate_SOURCE( SH7722DriverData *sdrv,
      SH7722_VALIDATE( SOURCE );
 }
 
-static inline void
-sh7722_validate_COLOR1( SH7722DriverData *sdrv,
-                        SH7722DeviceData *sdev,
-                        CardState        *state )
+__attribute__((noinline))
+static void
+sh7722_validate_MASK( SH7722DriverData *sdrv,
+                      SH7722DeviceData *sdev,
+                      CardState        *state )
 {
-     __u32 *prep = start_buffer( sdrv, 2 );
+     CoreSurface       *surface = state->source_mask;
+     CoreSurfaceBuffer *buffer  = state->src_mask.buffer;
+     __u32             *prep    = start_buffer( sdrv, 6 );
+
+     sdev->mask_phys   = state->src_mask.phys;
+     sdev->mask_pitch  = state->src_mask.pitch;
+     sdev->mask_format = buffer->format;
+     sdev->mask_index  = DFB_PIXELFORMAT_INDEX( buffer->format ) % DFB_NUM_PIXELFORMATS;
+     sdev->mask_offset = state->src_mask_offset;
+     sdev->mask_flags  = state->src_mask_flags;
+
+     printf("flags in validate: %x\n", state->src_mask_flags);
+
+     /* Set mask. */
+     prep[0] = BEM_TE_MASK;
+     prep[1] = TE_MASK_ENABLE | pixel_formats[sdev->mask_index];
+
+     prep[2] = BEM_TE_MASK_SIZE;
+     prep[3] = SH7722_XY( sdev->mask_pitch / DFB_BYTES_PER_PIXEL(sdev->mask_format), surface->config.size.h );
+
+     prep[4] = BEM_TE_MASK_BASE;
+     prep[5] = sdev->mask_phys  +  sdev->mask_pitch * sdev->mask_offset.y +
+               DFB_BYTES_PER_LINE( sdev->mask_format, sdev->mask_offset.x );
+     
+     submit_buffer( sdrv, 6 );
+
+     /* Set the flag. */
+     SH7722_VALIDATE( MASK );
+}
+
+static inline void
+sh7722_validate_COLOR( SH7722DriverData *sdrv,
+                       SH7722DeviceData *sdev,
+                       CardState        *state )
+{
+     __u32 *prep = start_buffer( sdrv, 4 );
 
      prep[0] = BEM_BE_COLOR1;
      prep[1] = PIXEL_ARGB( state->color.a,
@@ -450,32 +473,17 @@ sh7722_validate_COLOR1( SH7722DriverData *sdrv,
                            state->color.g,
                            state->color.b );
 
-     submit_buffer( sdrv, 2 );
+     prep[2] = BEM_WR_FGC;
+     prep[3] = prep[1];
+
+     submit_buffer( sdrv, 4 );
 
      /* Set the flag. */
-     SH7722_VALIDATE( COLOR1 );
+     SH7722_VALIDATE( COLOR );
 }
 
-static inline void
-sh7722_validate_FGC( SH7722DriverData *sdrv,
-                     SH7722DeviceData *sdev,
-                     CardState        *state )
-{
-     __u32 *prep = start_buffer( sdrv, 2 );
-
-     prep[0] = BEM_WR_FGC;
-     prep[1] = PIXEL_ARGB( state->color.a,
-                           state->color.r,
-                           state->color.g,
-                           state->color.b );
-
-     submit_buffer( sdrv, 2 );
-
-     /* Set the flag. */
-     SH7722_VALIDATE( FGC );
-}
-
-static inline void
+__attribute__((noinline))
+static void
 sh7722_validate_COLOR_KEY( SH7722DriverData *sdrv,
                            SH7722DeviceData *sdev,
                            CardState        *state )
@@ -518,7 +526,8 @@ sh7722_validate_COLOR_KEY( SH7722DriverData *sdrv,
      SH7722_VALIDATE( COLOR_KEY );
 }
 
-static inline void
+/* let compiler decide here :) */
+static void
 sh7722_validate_COLOR_CHANGE( SH7722DriverData *sdrv,
                               SH7722DeviceData *sdev,
                               CardState        *state )
@@ -543,12 +552,28 @@ sh7722_validate_COLOR_CHANGE( SH7722DriverData *sdrv,
      SH7722_VALIDATE( COLOR_CHANGE );
 }
 
+/*                            DSBF_UNKNOWN      = 0    */
+/*   BLE_DSTF_ZERO    = 0     DSBF_ZERO         = 1    */
+/*   BLE_DSTF_ONE     = 1     DSBF_ONE          = 2    */
+/*   BLE_DSTF_SRC     = 2     DSBF_SRCCOLOR     = 3    */
+/*   BLE_DSTF_1_SRC   = 3     DSBF_INVSRCCOLOR  = 4    */
+/*   BLE_DSTF_SRC_A   = 4     DSBF_SRCALPHA     = 5    */
+/*   BLE_DSTF_1_SRC_A = 5     DSBF_INVSRCALPHA  = 6    */
+/*   BLE_DSTF_DST_A   = 6     DSBF_DESTALPHA    = 7    */
+/*   BLE_DSTF_1_DST_A = 7     DSBF_INVDESTALPHA = 8    */
+/*                            DSBF_DESTCOLOR    = 9    */
+/*   Hey, matches!!? :-P      DSBF_INVDESTCOLOR = 10   */
+/*                            DSBF_SRCALPHASAT  = 11   */
+
 static inline void
-sh7722_validate_FIXEDALPHA( SH7722DriverData *sdrv,
-                            SH7722DeviceData *sdev,
-                            CardState        *state )
+sh7722_validate_BLENDING( SH7722DriverData *sdrv,
+                          SH7722DeviceData *sdev,
+                          CardState        *state )
 {
      __u32 *prep = start_buffer( sdrv, 2 );
+
+     sdev->ble_dstf =  (state->dst_blend - 1) & 7;
+     sdev->ble_srcf = ((state->src_blend - 1) & 7) << 4;
 
      prep[0] = BEM_PE_FIXEDALPHA;
      prep[1] = (state->color.a << 24) | (state->color.a << 16);
@@ -556,102 +581,11 @@ sh7722_validate_FIXEDALPHA( SH7722DriverData *sdrv,
      submit_buffer( sdrv, 2 );
 
      /* Set the flag. */
-     SH7722_VALIDATE( FIXEDALPHA );
+     SH7722_VALIDATE( BLENDING );
 }
 
-static inline void
-sh7722_validate_BLEND_SRCF( SH7722DriverData *sdrv,
-                            SH7722DeviceData *sdev,
-                            CardState        *state )
-{
-     switch (state->src_blend) {
-          case DSBF_ZERO:
-               sdev->ble_srcf = BLE_SRCF_ZERO;
-               break;
-
-          case DSBF_ONE:
-               sdev->ble_srcf = BLE_SRCF_ONE;
-               break;
-
-          case DSBF_DESTCOLOR:
-               sdev->ble_srcf = BLE_SRCF_DST;
-               break;
-
-          case DSBF_INVDESTCOLOR:
-               sdev->ble_srcf = BLE_SRCF_1_DST;
-               break;
-
-          case DSBF_SRCALPHA:
-               sdev->ble_srcf = BLE_SRCF_SRC_A;
-               break;
-
-          case DSBF_INVSRCALPHA:
-               sdev->ble_srcf = BLE_SRCF_1_SRC_A;
-               break;
-
-          case DSBF_DESTALPHA:
-               sdev->ble_srcf = BLE_SRCF_DST_A;
-               break;
-
-          case DSBF_INVDESTALPHA:
-               sdev->ble_srcf = BLE_SRCF_1_DST_A;
-               break;
-
-          default:
-               D_BUG( "unexpected blend function 0x%x", state->src_blend );
-     }
-
-     /* Set the flag. */
-     SH7722_VALIDATE( BLEND_SRCF );
-}
-
-static inline void
-sh7722_validate_BLEND_DSTF( SH7722DriverData *sdrv,
-                            SH7722DeviceData *sdev,
-                            CardState        *state )
-{
-     switch (state->dst_blend) {
-          case DSBF_ZERO:
-               sdev->ble_dstf = BLE_DSTF_ZERO;
-               break;
-
-          case DSBF_ONE:
-               sdev->ble_dstf = BLE_DSTF_ONE;
-               break;
-
-          case DSBF_SRCCOLOR:
-               sdev->ble_dstf = BLE_DSTF_SRC;
-               break;
-
-          case DSBF_INVSRCCOLOR:
-               sdev->ble_dstf = BLE_DSTF_1_SRC;
-               break;
-
-          case DSBF_SRCALPHA:
-               sdev->ble_dstf = BLE_DSTF_SRC_A;
-               break;
-
-          case DSBF_INVSRCALPHA:
-               sdev->ble_dstf = BLE_DSTF_1_SRC_A;
-               break;
-
-          case DSBF_DESTALPHA:
-               sdev->ble_dstf = BLE_DSTF_DST_A;
-               break;
-
-          case DSBF_INVDESTALPHA:
-               sdev->ble_dstf = BLE_DSTF_1_DST_A;
-               break;
-
-          default:
-               D_BUG( "unexpected blend function 0x%x", state->dst_blend );
-     }
-
-     /* Set the flag. */
-     SH7722_VALIDATE( BLEND_DSTF );
-}
-
-static inline void
+__attribute__((noinline))
+static void
 sh7722_validate_MATRIX( SH7722DriverData *sdrv,
                         SH7722DeviceData *sdev,
                         CardState        *state )
@@ -678,14 +612,51 @@ sh7722_validate_MATRIX( SH7722DriverData *sdrv,
 
      submit_buffer( sdrv, 12 );
 
+     /* Keep for CPU transformation of lines. */
      direct_memcpy( sdev->matrix, state->matrix, sizeof(s32) * 6 );
 
      /* Set the flag. */
      SH7722_VALIDATE( MATRIX );
 }
 
+static inline void
+sh7722_validate_BLIT_OP( SH7722DriverData *sdrv,
+                         SH7722DeviceData *sdev,
+                         CardState        *state )
+{
+     __u32 *prep = start_buffer( sdrv, 2 );
+
+     prep[0] = BEM_PE_OPERATION;
+     prep[1] = BLE_FUNC_NONE;
+
+     if (state->blittingflags & DSBLIT_XOR)
+          prep[1] |= BLE_ROP_XOR;
+
+     if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
+          prep[1] |= BLE_FUNC_AxB_plus_CxD | sdev->ble_srcf | sdev->ble_dstf;
+
+          switch (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
+               case DSBLIT_BLEND_ALPHACHANNEL:
+                    prep[1] |= BLE_SRCA_SOURCE_ALPHA;
+                    break;
+
+               case DSBLIT_BLEND_COLORALPHA:
+                    prep[1] |= BLE_SRCA_FIXED;
+                    break;
+          }
+     }
+     else if (state->blittingflags & DSBLIT_SRC_MASK_ALPHA)
+          prep[1] |= BLE_FUNC_AxB_plus_CxD | BLE_SRCA_ALPHA_CHANNEL | BLE_SRCF_SRC_A | BLE_DSTF_1_SRC_A;
+
+     submit_buffer( sdrv, 2 );
+
+     /* Set the flag. */
+     SH7722_VALIDATE( BLIT_OP );
+}
+
 /**********************************************************************************************************************/
 
+__attribute__((noinline))
 static void
 invalidate_ckey( SH7722DriverData *sdrv, SH7722DeviceData *sdev )
 {
@@ -704,6 +675,7 @@ invalidate_ckey( SH7722DriverData *sdrv, SH7722DeviceData *sdev )
      SH7722_INVALIDATE( COLOR_KEY );
 }
 
+__attribute__((noinline))
 static void
 invalidate_color_change( SH7722DriverData *sdrv, SH7722DeviceData *sdev )
 {
@@ -717,6 +689,22 @@ invalidate_color_change( SH7722DriverData *sdrv, SH7722DeviceData *sdev )
      sdev->color_change_enabled = false;
 
      SH7722_INVALIDATE( COLOR_CHANGE );
+}
+
+__attribute__((noinline))
+static void
+invalidate_mask( SH7722DriverData *sdrv, SH7722DeviceData *sdev )
+{
+     u32 *prep = start_buffer( sdrv, 2 );
+
+     prep[0] = BEM_TE_MASK;
+     prep[1] = TE_MASK_DISABLE;
+
+     submit_buffer( sdrv, 2 );
+
+     sdev->mask_enabled = false;
+
+     SH7722_INVALIDATE( MASK );
 }
 
 /**********************************************************************************************************************/
@@ -787,7 +775,7 @@ sh7722EngineReset( void *drv, void *dev )
 
      ioctl( sdrv->gfx_fd, SH7722GFX_IOCTL_RESET );
 
-     prep = start_buffer( sdrv, 18 );
+     prep = start_buffer( sdrv, 20 );
 
      prep[0] = BEM_PE_OPERATION;
      prep[1] = 0x00000000;
@@ -816,9 +804,14 @@ sh7722EngineReset( void *drv, void *dev )
      prep[16] = BEM_BE_ORIGIN;
      prep[17] = SH7722_XY( 0, 0 );
 
-     submit_buffer( sdrv, 18 );
+     prep[18] = BEM_TE_MASK_CNV;
+     prep[19] = 2;
 
-     sdev->ckey_b_enabled = false;
+     submit_buffer( sdrv, 20 );
+
+     sdev->ckey_b_enabled       = false;
+     sdev->color_change_enabled = false;
+     sdev->mask_enabled         = false;
 }
 
 void
@@ -899,8 +892,10 @@ sh7722CheckState( void                *drv,
           state->accel |= SH7722_SUPPORTED_DRAWINGFUNCTIONS;
      }
      else {
+          DFBSurfaceBlittingFlags flags = state->blittingflags;
+
           /* Return if unsupported blitting flags are set. */
-          if (state->blittingflags & ~SH7722_SUPPORTED_BLITTINGFLAGS) 
+          if (flags & ~SH7722_SUPPORTED_BLITTINGFLAGS) 
                return;
 
           /* Return if the source format is not supported. */
@@ -919,23 +914,40 @@ sh7722CheckState( void                *drv,
           }
 
           /* Return if blending with unsupported blend functions is requested. */
-          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
+          if (flags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
                /* Check blend functions. */
                if (!check_blend_functions( state ))
                     return;
-
-               /* XOR only without blending. */
-               if (state->blittingflags & DSBLIT_XOR)
-                    return;
           }
 
+          /* XOR only without blending etc. */
+          if (flags & DSBLIT_XOR &&
+              flags & ~(DSBLIT_SRC_COLORKEY | DSBLIT_ROTATE180 | DSBLIT_XOR))
+               return;
+
           /* Return if colorizing for non-font surfaces is requested. */
-          if ((state->blittingflags & DSBLIT_COLORIZE) && !(state->source->type & CSTF_FONT))
+          if ((flags & DSBLIT_COLORIZE) && !(state->source->type & CSTF_FONT))
                return;
 
           /* Return if blending with both alpha channel and value is requested. */
-          if (D_FLAGS_ARE_SET( state->blittingflags, DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA))
+          if (D_FLAGS_ARE_SET( flags, DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA))
                return;
+
+          /* Mask checking. */
+          if (flags & DSBLIT_SRC_MASK_ALPHA) {
+               if (!state->source_mask)
+                    return;
+                    
+               /* Return if the source mask format is not supported. */
+               switch (state->source_mask->config.format) {
+                    case DSPF_A1:
+                    case DSPF_A8:
+                         break;
+
+                    default:
+                         return;
+               }
+          }
 
           /* Enable acceleration of blitting functions. */
           state->accel |= SH7722_SUPPORTED_BLITTINGFUNCTIONS;
@@ -985,19 +997,23 @@ sh7722SetState( void                *drv,
           else if (modified & SMF_SRC_COLORKEY)
                SH7722_INVALIDATE( COLOR_KEY );
 
-          /* Invalidate color register. */
-          if (modified & SMF_COLOR)
-               SH7722_INVALIDATE( COLOR1 | FGC | FIXEDALPHA | COLOR_CHANGE );
+          /* Invalidate mask registers. */
+          if (modified & (SMF_SOURCE_MASK | SMF_SOURCE_MASK_VALS))
+               SH7722_INVALIDATE( MASK );
 
-          /* Invalidate blend functions. */
-          if (modified & SMF_SRC_BLEND)
-               SH7722_INVALIDATE( BLEND_SRCF );
-          if (modified & SMF_DST_BLEND)
-               SH7722_INVALIDATE( BLEND_DSTF );
+          /* Invalidate color registers. */
+          if (modified & SMF_COLOR)
+               SH7722_INVALIDATE( BLENDING | COLOR | COLOR_CHANGE );
+          else if (modified & (SMF_SRC_BLEND | SMF_SRC_BLEND))
+               SH7722_INVALIDATE( BLENDING );
 
           /* Invalidate matrix registers. */
           if (modified & SMF_MATRIX)
                SH7722_INVALIDATE( MATRIX );
+
+          /* Invalidate blitting operation. */
+          if (modified & SMF_BLITTING_FLAGS)
+               SH7722_INVALIDATE( BLIT_OP );
      }
 
      /*
@@ -1007,8 +1023,7 @@ sh7722SetState( void                *drv,
       */
 
      /* Always requiring valid destination and clip. */
-     SH7722_CHECK_VALIDATE( DEST );
-     SH7722_CHECK_VALIDATE( CLIP );
+     SH7722_CHECK_VALIDATE( DEST_CLIP );
 
      /* Use transformation matrix? */
      if (state->render_options & DSRO_MATRIX)
@@ -1021,26 +1036,21 @@ sh7722SetState( void                *drv,
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
                /* ...require valid color. */
-               if (accel == DFXL_FILLRECTANGLE || accel == DFXL_FILLTRIANGLE)
-                    SH7722_CHECK_VALIDATE( COLOR1 );
-               else
-                    SH7722_CHECK_VALIDATE( FGC );
+               SH7722_CHECK_VALIDATE( COLOR );
 
                /* Use blending? */
                if (state->drawingflags & DSDRAW_BLEND) {
                     /* need valid source and destination blend factors */
-                    SH7722_CHECK_VALIDATE( BLEND_SRCF );
-                    SH7722_CHECK_VALIDATE( BLEND_DSTF );
-                    SH7722_CHECK_VALIDATE( FIXEDALPHA );
+                    SH7722_CHECK_VALIDATE( BLENDING );
                }
 
                /* Clear old ckeys */
-               if (sdev->ckey_b_enabled) {
+               if (sdev->ckey_b_enabled)
                     invalidate_ckey( sdrv, sdev );
 
-                    /* Force SetState() to be called before the next blitting operation. */
-                    state->set &= ~SH7722_SUPPORTED_BLITTINGFUNCTIONS;
-               }
+               /* Clear old mask */
+               if (sdev->mask_enabled)
+                    invalidate_mask( sdrv, sdev );
 
                /* Choose function. */
                switch (accel) {
@@ -1076,7 +1086,7 @@ sh7722SetState( void                *drv,
                 *
                 * When the hw independent state is changed, this collection is reset.
                 */
-               state->set |= accel;
+               state->set = SH7722_SUPPORTED_DRAWINGFUNCTIONS;
                break;
 
           case DFXL_BLIT:
@@ -1087,14 +1097,7 @@ sh7722SetState( void                *drv,
                /* Use blending? */
                if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
                     /* need valid source and destination blend factors */
-                    SH7722_CHECK_VALIDATE( BLEND_SRCF );
-                    SH7722_CHECK_VALIDATE( BLEND_DSTF );
-               }
-
-               /* Use alpha value from color? */
-               if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
-                    /* need valid fixed alpha */
-                    SH7722_CHECK_VALIDATE( FIXEDALPHA );
+                    SH7722_CHECK_VALIDATE( BLENDING );
                }
 
                /* Use color keying? */
@@ -1118,6 +1121,19 @@ sh7722SetState( void                *drv,
                /* Disable color change? */
                else if (sdev->color_change_enabled)
                     invalidate_color_change( sdrv, sdev );
+
+               /* Use mask? */
+               if (state->blittingflags & DSBLIT_SRC_MASK_ALPHA) {
+                    /* need valid mask */
+                    SH7722_CHECK_VALIDATE( MASK );
+
+                    sdev->mask_enabled = true;
+               }
+               /* Disable mask? */
+               else if (sdev->mask_enabled)
+                    invalidate_mask( sdrv, sdev );
+
+               SH7722_CHECK_VALIDATE( BLIT_OP );
 
                /*
                 * 3) Tell which functions can be called without further validation, i.e. SetState()
@@ -1881,6 +1897,7 @@ static inline bool
 sh7722DoBlit( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
               DFBRectangle *rect, int x, int y, int w, int h )
 {
+     int    num  = 8;
      __u32 *prep = start_buffer( sdrv, 12 );
 
      D_DEBUG_AT( SH7722_BLT, "%s( %d, %d - %dx%d  ->  %d, %d - %dx%d )\n", __FUNCTION__,
@@ -1888,7 +1905,12 @@ sh7722DoBlit( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
      DUMP_INFO();
 
      prep[0] = BEM_BE_SRC_LOC;
-     prep[1] = SH7722_XY( rect->x, rect->y );
+
+     /* Stencil mode needs a workaround, because the hardware always adds the source location. */
+     if (sdev->bflags & DSBLIT_SRC_MASK_ALPHA && sdev->mask_flags & DSMF_STENCIL)
+          prep[1] = SH7722_XY( 0, 0 );
+     else
+          prep[1] = SH7722_XY( rect->x, rect->y );
 
      prep[2] = BEM_BE_SRC_SIZE;
      prep[3] = SH7722_XY( rect->w, rect->h );
@@ -1899,39 +1921,23 @@ sh7722DoBlit( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
      prep[6] = BEM_BE_V2;
      prep[7] = SH7722_XY( w, h );
 
-     prep[8] = BEM_PE_OPERATION;
-     prep[9] = BLE_FUNC_NONE;
+     /* Stencil mode needs a workaround, because the hardware always adds the source location. */
+     if (sdev->bflags & DSBLIT_SRC_MASK_ALPHA && sdev->mask_flags & DSMF_STENCIL) {
+          prep[num++] = BEM_TE_SRC_BASE;
+          prep[num++] = sdev->src_phys + sdev->src_pitch * rect->y + sdev->src_bpp * rect->x;
 
-     if (sdev->bflags & DSBLIT_XOR)
-          prep[9] |= BLE_ROP_XOR;
-
-     if (sdev->bflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
-          prep[9] |= BLE_FUNC_AxB_plus_CxD | sdev->ble_srcf | sdev->ble_dstf;
-
-          switch (sdev->bflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
-               case DSBLIT_BLEND_ALPHACHANNEL:
-                    prep[9] |= BLE_SRCA_SOURCE_ALPHA;
-                    break;
-
-               case DSBLIT_BLEND_COLORALPHA:
-                    prep[9] |= BLE_SRCA_FIXED;
-                    break;
-
-               case DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA:
-                    prep[9] |= BLE_SRCA_ALPHA_CHANNEL;      /* does not work */
-                    break;
-          }
+          SH7722_INVALIDATE( SOURCE );
      }
 
-     prep[10] = BEM_BE_CTRL;
-     prep[11] = BE_CTRL_RECTANGLE | BE_CTRL_TEXTURE | BE_CTRL_SCANMODE_4x4;
+     prep[num++] = BEM_BE_CTRL;
+     prep[num++] = BE_CTRL_RECTANGLE | BE_CTRL_TEXTURE | BE_CTRL_SCANMODE_LINE;
 
      if (sdev->bflags & DSBLIT_ROTATE180)
-          prep[11] |= BE_FLIP_BOTH;
+          prep[num-1] |= BE_FLIP_BOTH;
      else if (rect->w == w && rect->h == h)  /* No blit direction handling for StretchBlit(). */
-          prep[11] |= BE_CTRL_BLTDIR_AUTOMATIC;
+          prep[num-1] |= BE_CTRL_BLTDIR_AUTOMATIC;
 
-     submit_buffer( sdrv, 12 );
+     submit_buffer( sdrv, num );
 
      return true;
 }
@@ -1943,6 +1949,7 @@ static inline bool
 sh7722DoBlitM( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
                DFBRectangle *rect, int x1, int y1, int x2, int y2 )
 {
+     int    num  = 12;
      __u32 *prep = start_buffer( sdrv, 16 );
 
      D_DEBUG_AT( SH7722_BLT, "%s( %d, %d - %dx%d  ->  %d, %d - %d, %d )\n", __FUNCTION__,
@@ -1950,7 +1957,12 @@ sh7722DoBlitM( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
      DUMP_INFO();
 
      prep[0]  = BEM_BE_SRC_LOC;
-     prep[1]  = SH7722_XY( rect->x, rect->y );
+
+     /* Stencil mode needs a workaround, because the hardware always adds the source location. */
+     if (sdev->bflags & DSBLIT_SRC_MASK_ALPHA && sdev->mask_flags & DSMF_STENCIL)
+          prep[1] = SH7722_XY( 0, 0 );
+     else
+          prep[1] = SH7722_XY( rect->x, rect->y );
              
      prep[2]  = BEM_BE_SRC_SIZE;
      prep[3]  = SH7722_XY( rect->w, rect->h );
@@ -1967,38 +1979,22 @@ sh7722DoBlitM( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
      prep[10] = BEM_BE_V4;
      prep[11] = SH7722_XY( x2, y2 );
 
-     prep[12] = BEM_PE_OPERATION;
-     prep[13] = BLE_FUNC_NONE;
+     /* Stencil mode needs a workaround, because the hardware always adds the source location. */
+     if (sdev->bflags & DSBLIT_SRC_MASK_ALPHA && sdev->mask_flags & DSMF_STENCIL) {
+          prep[num++] = BEM_TE_SRC_BASE;
+          prep[num++] = sdev->src_phys + sdev->src_pitch * rect->y + sdev->src_bpp * rect->x;
 
-     if (sdev->bflags & DSBLIT_XOR)
-          prep[13] |= BLE_ROP_XOR;
-
-     if (sdev->bflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
-          prep[13] |= BLE_FUNC_AxB_plus_CxD | sdev->ble_srcf | sdev->ble_dstf;
-
-          switch (sdev->bflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
-               case DSBLIT_BLEND_ALPHACHANNEL:
-                    prep[13] |= BLE_SRCA_SOURCE_ALPHA;
-                    break;
-
-               case DSBLIT_BLEND_COLORALPHA:
-                    prep[13] |= BLE_SRCA_FIXED;
-                    break;
-
-               case DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA:
-                    prep[13] |= BLE_SRCA_ALPHA_CHANNEL;      /* does not work */
-                    break;
-          }
+          SH7722_INVALIDATE( SOURCE );
      }
 
-     prep[14] = BEM_BE_CTRL;
-     prep[15] = BE_CTRL_QUADRANGLE | BE_CTRL_TEXTURE | BE_CTRL_SCANMODE_4x4 |
-                BE_CTRL_MATRIX | BE_CTRL_FIXMODE_16_16;// | BE_CTRL_ORIGIN;
+     prep[num++] = BEM_BE_CTRL;
+     prep[num++] = BE_CTRL_QUADRANGLE | BE_CTRL_TEXTURE | BE_CTRL_SCANMODE_4x4 |
+                   BE_CTRL_MATRIX | BE_CTRL_FIXMODE_16_16;// | BE_CTRL_ORIGIN;
 
      if (sdev->bflags & DSBLIT_ROTATE180)
-          prep[15] |= BE_FLIP_BOTH;
+          prep[num-1] |= BE_FLIP_BOTH;
 
-     submit_buffer( sdrv, 16 );
+     submit_buffer( sdrv, num );
 
      return true;
 }

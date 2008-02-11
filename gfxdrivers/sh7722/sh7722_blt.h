@@ -20,7 +20,8 @@
                                             DSBLIT_SRC_COLORKEY       | \
                                             DSBLIT_ROTATE180          | \
                                             DSBLIT_COLORIZE           | \
-                                            DSBLIT_XOR)
+                                            DSBLIT_XOR                | \
+                                            DSBLIT_SRC_MASK_ALPHA)
 
 #define SH7722_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT | \
                                             DFXL_STRETCHBLIT)
@@ -83,6 +84,9 @@ bool sh7722StretchBlit      ( void *drv, void *dev, DFBRectangle *srect, DFBRect
 #define	BEM_TE_SRC_SIZE            (0x00C08)
 #define	BEM_TE_SRC_CNV             (0x00C0C)
 #define	BEM_TE_MASK                (0x00C10)
+#define	BEM_TE_MASK_BASE           (0x00C14)
+#define	BEM_TE_MASK_SIZE           (0x00C18)
+#define	BEM_TE_MASK_CNV            (0x00C1C)
 #define	BEM_TE_ALPHA               (0x00C28)
 #define	BEM_TE_FILTER              (0x00C30)
 #define	BEM_TE_INVALID             (0x00C40)
@@ -103,6 +107,7 @@ bool sh7722StretchBlit      ( void *drv, void *dev, DFBRectangle *srect, DFBRect
 #define	BEM_PE_OPERATION           (0x01080)
 #define	BEM_PE_FIXEDALPHA          (0x01084)
 #define	BEM_PE_OFFSET              (0x01088)
+#define	BEM_PE_MASK                (0x01094)
 #define	BEM_PE_CACHE               (0x010B0)
 
 /*
@@ -184,6 +189,19 @@ bool sh7722StretchBlit      ( void *drv, void *dev, DFBRectangle *srect, DFBRect
 #define COLORCHANGE_DISABLE        0x00000000
 #define COLORCHANGE_COMPARE_FIRST  0x0000000b
 #define COLORCHANGE_EXCLUDE_UNUSED 0x00010000
+
+/*
+ * BEM_PE_MASK
+ */
+#define PE_MASK_DISABLE            0x00000000
+#define PE_MASK_COLOR              0x00000001
+#define PE_MASK_ALPHA              0x00000080
+
+/*
+ * BEM_TE_MASK
+ */
+#define TE_MASK_DISABLE            0x00000000
+#define TE_MASK_ENABLE             0x00010000
 
 /*
  * BEM_WR_CTRL
