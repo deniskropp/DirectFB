@@ -114,6 +114,7 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 
      dfb_state_set_destination( &data->state, NULL );
      dfb_state_set_source( &data->state, NULL );
+     dfb_state_set_source_mask( &data->state, NULL );
 
      dfb_state_destroy( &data->state );
 
@@ -2215,6 +2216,7 @@ IDirectFBSurface_ReleaseSource( IDirectFBSurface *thiz )
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
 
      dfb_state_set_source( &data->state, NULL );
+     dfb_state_set_source_mask( &data->state, NULL );
 
      return DFB_OK;
 }
@@ -2244,6 +2246,38 @@ IDirectFBSurface_SetMatrix( IDirectFBSurface *thiz,
           return DFB_INVARG;
 
      dfb_state_set_matrix( &data->state, matrix );
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_SetSourceMask( IDirectFBSurface    *thiz,
+                                IDirectFBSurface    *mask,
+                                int                  x,
+                                int                  y,
+                                DFBSurfaceMaskFlags  flags )
+{
+     DFBResult              ret;
+     DFBPoint               offset = { x, y };
+     IDirectFBSurface_data *mask_data;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p, %p, %d,%d, 0x%04x )\n", __FUNCTION__, thiz, mask, x, y, flags );
+
+     if (!mask || flags & ~DSMF_ALL)
+          return DFB_INVARG;
+
+     DIRECT_INTERFACE_GET_DATA_FROM(mask, mask_data, IDirectFBSurface);
+
+     if (!mask_data->surface)
+          return DFB_DESTROYED;
+
+     ret = dfb_state_set_source_mask( &data->state, mask_data->surface );
+     if (ret)
+          return ret;
+
+     dfb_state_set_source_mask_vals( &data->state, &offset, flags );
 
      return DFB_OK;
 }
@@ -2399,6 +2433,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->SetRenderOptions = IDirectFBSurface_SetRenderOptions;
      thiz->SetMatrix        = IDirectFBSurface_SetMatrix;
+     thiz->SetSourceMask    = IDirectFBSurface_SetSourceMask;
 
 
      dfb_surface_attach( surface,
