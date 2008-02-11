@@ -317,6 +317,12 @@ typedef struct {
 } DFBColorYUV;
 
 /*
+ * Macro to compare two points.
+ */
+#define DFB_POINT_EQUAL(a,b)  ((a).x == (b).x &&  \
+                               (a).y == (b).y)
+
+/*
  * Macro to compare two rectangles.
  */
 #define DFB_RECTANGLE_EQUAL(a,b)  ((a).x == (b).x &&  \
@@ -714,6 +720,10 @@ typedef enum {
                                                 this flag is mutual exclusive with all others */
      DSBLIT_ROTATE180          = 0x00001000, /* rotate the image by 180 degree */
      DSBLIT_COLORKEY_PROTECT   = 0x00010000, /* make sure written pixels don't match color key (internal only ATM) */
+     DSBLIT_SRC_MASK_ALPHA     = 0x00100000, /* modulate source alpha channel with alpha channel from source mask,
+                                                see also IDirectFBSurface::SetSourceMask() */
+     DSBLIT_SRC_MASK_COLOR     = 0x00200000, /* modulate source color channels with color channels from source mask,
+                                                see also IDirectFBSurface::SetSourceMask() */
 } DFBSurfaceBlittingFlags;
 
 /*
@@ -747,7 +757,10 @@ typedef enum {
 
      DFXL_DRAWSTRING     = 0x01000000,  /* DrawString() and DrawGlyph() are accelerated. */
 
-     DFXL_ALL            = 0x0107000F   /* All drawing/blitting functions. */
+
+     DFXL_ALL            = 0x0107000F,  /* All drawing/blitting functions. */
+     DFXL_ALL_DRAW       = 0x0000000F,  /* All drawing functions. */
+     DFXL_ALL_BLIT       = 0x01070000,  /* All blitting functions. */
 } DFBAccelerationMask;
 
 
@@ -3145,6 +3158,17 @@ typedef enum {
      DTTF_FAN    /* 0/1/2  0/2/3  0/3/4 ... */
 } DFBTriangleFormation;
 
+/*
+ * Flags controlling surface masks set via IDirectFBSurface::SetMask().
+ */
+typedef enum {
+     DSMF_NONE      = 0x00000000,  /* None of these. */
+
+     DSMF_STENCIL   = 0x00000001,  /* Take <b>x</b> and <b>y</b> as fixed start coordinates in the mask. */
+
+     DSMF_ALL       = 0x00000001,  /* All of these. */
+} DFBSurfaceMaskFlags;
+
 /********************
  * IDirectFBSurface *
  ********************/
@@ -3848,13 +3872,48 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       * All drawing and blitting will be transformed:
       *
       * <pre>
-      * X' = X * v0 + Y * v1 + v2
-      * Y' = X * v3 + Y * v4 + v5
+      *        X' = X * v0 + Y * v1 + v2
+      *        Y' = X * v3 + Y * v4 + v5
       * </pre>
       */
      DFBResult (*SetMatrix) (
           IDirectFBSurface         *thiz,
           const s32                *matrix
+     );
+
+     /*
+      * Set the surface to be used as a mask for blitting.
+      *
+      * The <b>mask</b> applies when DSBLIT_SRC_MASK_ALPHA or DSBLIT_SRC_MASK_COLOR is used.
+      *
+      * Depending on the <b>flags</b> reading either starts at a fixed location in the mask with
+      * absolute <b>x</b> and <b>y</b>, or at the same location as in the source, with <b>x</b>
+      * and <b>y</b> used as an offset.
+      *
+      * <i>Example with DSMF_STENCIL:</i>
+      * <pre>
+      *        Blit from <b>19,  6</b> in the source
+      *              and <b> 0,  0</b> in the mask (<b>x =  0, y =  0</b>)
+      *               or <b>-5, 17</b>             (<b>x = -5, y = 17</b>)
+      *               or <b>23, 42</b>             (<b>x = 23, y = 42</b>)
+      * </pre>
+      *
+      * <i>Example without:</i>
+      * <pre>
+      *        Blit from <b>19,  6</b> in the source
+      *              and <b>19,  6</b> in the mask (<b>x =  0, y =  0</b>)
+      *               or <b>14, 23</b>             (<b>x = -5, y = 17</b>)
+      *               or <b>42, 48</b>             (<b>x = 23, y = 42</b>)
+      * </pre>
+      *
+      * See also IDirectFBSurface::SetBlittingFlags().
+      */
+     DFBResult (*SetSourceMask) (
+          IDirectFBSurface         *thiz,
+          IDirectFBSurface         *mask,
+          int                       x,
+          int                       y,
+          DFBSurfaceMaskFlags       flags
      );
 )
 

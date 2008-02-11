@@ -185,11 +185,11 @@ sub parse_comment ($$) {
             {
                if (/^\s*\*?\s*$/)
                   {
-                     $body .= " </P><P>";
+                     $body .= " </P><P>\n";
                   }
-               elsif (/^\s*\*?\s*(.+)$/)
+               elsif (/^\s*\*?\s(.+)$/)
                   {
-                     $body .= " $1";
+                     $body .= " $1\n";
                   }
             }
       }

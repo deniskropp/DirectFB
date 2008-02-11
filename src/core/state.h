@@ -60,6 +60,8 @@ typedef enum {
 
      SMF_DESTINATION       = 0x00000100,
      SMF_SOURCE            = 0x00000200,
+     SMF_SOURCE_MASK       = 0x00000400,
+     SMF_SOURCE_MASK_VALS  = 0x00000800,
 
      SMF_INDEX_TRANSLATION = 0x00001000,
      SMF_COLORKEY          = 0x00002000,
@@ -67,21 +69,23 @@ typedef enum {
      SMF_RENDER_OPTIONS    = 0x00010000,
      SMF_MATRIX            = 0x00020000,
 
-     SMF_ALL               = 0x000333FF
+     SMF_ALL               = 0x00033FFF
 } StateModificationFlags;
 
 typedef enum {
-     CSF_NONE            = 0x00000000,
+     CSF_NONE                 = 0x00000000,
 
-     CSF_DESTINATION     = 0x00000001,  /* destination is set using dfb_state_set_destination() */
-     CSF_SOURCE          = 0x00000002,  /* source is set using dfb_state_set_source() */
+     CSF_DESTINATION          = 0x00000001,  /* destination is set using dfb_state_set_destination() */
+     CSF_SOURCE               = 0x00000002,  /* source is set using dfb_state_set_source() */
+     CSF_SOURCE_MASK          = 0x00000008,  /* source mask is set using dfb_state_set_source_mask() */
 
-     CSF_SOURCE_LOCKED   = 0x00000010,  /* source surface is locked */
+     CSF_SOURCE_LOCKED        = 0x00000010,  /* source surface is locked */
+     CSF_SOURCE_MASK_LOCKED   = 0x00000020,  /* source mask surface is locked */
 
-     CSF_DRAWING         = 0x00010000,  /* something has been rendered with this state,
-                                           this is cleared by flushing the state, e.g. upon flip */
+     CSF_DRAWING              = 0x00010000,  /* something has been rendered with this state,
+                                                this is cleared by flushing the state, e.g. upon flip */
 
-     CSF_ALL             = 0x00010013
+     CSF_ALL                  = 0x0001003B
 } CardStateFlags;
 
 struct _CardState {
@@ -145,18 +149,28 @@ struct _CardState {
 
      GenefxState             *gfxs;
 
+
+     /* extended state */
+
      DFBSurfaceRenderOptions  render_options;
 
-     DFBColorKey              colorkey;      /* key for color key protection */
+     DFBColorKey              colorkey;           /* key for color key protection */
 
-     s32                      matrix[6];     /* transformation matrix for DSRO_MATRIX (fixed 16.16) */
+     s32                      matrix[6];          /* transformation matrix for DSRO_MATRIX (fixed 16.16) */
+
+     CoreSurface             *source_mask;        /* source mask surface */
+     CoreSurfaceBufferLock    src_mask;           /* source mask surface lock */
+     DirectSerial             src_mask_serial;    /* last source mask surface serial */
+     DFBPoint                 src_mask_offset;    /* relative or absolute coordinates */
+     DFBSurfaceMaskFlags      src_mask_flags;     /* controls coordinate mode and more */
 };
 
 int  dfb_state_init( CardState *state, CoreDFB *core );
 void dfb_state_destroy( CardState *state );
 
-void dfb_state_set_destination( CardState *state, CoreSurface *destination );
-void dfb_state_set_source( CardState *state, CoreSurface *source );
+DFBResult dfb_state_set_destination( CardState *state, CoreSurface *destination );
+DFBResult dfb_state_set_source( CardState *state, CoreSurface *source );
+DFBResult dfb_state_set_source_mask( CardState *state, CoreSurface *source_mask );
 
 void dfb_state_update( CardState *state, bool update_source );
 
@@ -309,6 +323,22 @@ static inline void dfb_state_set_colorkey( CardState *state, const DFBColorKey *
      if (! DFB_COLORKEY_EQUAL( state->colorkey, *key )) {
           state->colorkey = *key;
           state->modified = (StateModificationFlags)( state->modified | SMF_COLOR );
+     }
+}
+
+static inline void dfb_state_set_source_mask_vals( CardState           *state,
+                                                   const DFBPoint      *offset,
+                                                   DFBSurfaceMaskFlags  flags )
+{
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( offset != NULL );
+     D_FLAGS_ASSERT( flags, DSMF_ALL );
+
+     if (! DFB_POINT_EQUAL( state->src_mask_offset, *offset ) || state->src_mask_flags != flags) {
+          state->src_mask_offset = *offset;
+          state->src_mask_flags  = flags;
+
+          state->modified = (StateModificationFlags)( state->modified | SMF_SOURCE_MASK_VALS );
      }
 }
 

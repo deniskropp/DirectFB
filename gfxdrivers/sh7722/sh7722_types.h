@@ -70,13 +70,22 @@ typedef struct {
      u32                      ble_dstf;
 
      /* cached values */
-     u32                      dst_offset;
+     unsigned long            dst_phys;
      int                      dst_pitch;
      int                      dst_bpp;
+     int                      dst_index;
 
-     u32                      src_offset;
+     unsigned long            src_phys;
      int                      src_pitch;
      int                      src_bpp;
+     int                      src_index;
+
+     unsigned long            mask_phys;
+     int                      mask_pitch;
+     DFBSurfacePixelFormat    mask_format;
+     int                      mask_index;
+     DFBPoint                 mask_offset;
+     DFBSurfaceMaskFlags      mask_flags;
 
      DFBSurfaceDrawingFlags   dflags;
      DFBSurfaceBlittingFlags  bflags;
@@ -84,6 +93,7 @@ typedef struct {
 
      bool                     ckey_b_enabled;
      bool                     color_change_enabled;
+     bool                     mask_enabled;
 
      unsigned int             input_mask;
 

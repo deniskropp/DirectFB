@@ -570,11 +570,26 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
      }
 
      dst = state->destination;
+     src = state->source;
 
      /* Destination may have been destroyed. */
      if (!dst) {
           D_BUG( "no destination" );
           return false;
+     }
+
+     /* Source may have been destroyed. */
+     if (DFB_BLITTING_FUNCTION( accel )) {
+          if (!src) {
+               D_BUG( "no source" );
+               return false;
+          }
+
+          /* Mask may have been destroyed. */
+          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR) && !state->source_mask) {
+               D_BUG( "no mask" );
+               return false;
+          }
      }
 
      dst_buffer = dfb_surface_get_buffer( dst, state->to );
@@ -604,13 +619,6 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           state->modified |= SMF_CLIP;
      }
 
-     src = state->source;
-
-     /* Source may have been destroyed. */
-     if (DFB_BLITTING_FUNCTION( accel ) && !src) {
-          D_BUG( "no source" );
-          return false;
-     }
 
      /*
       * If there's no CheckState function there's no acceleration at all.
@@ -625,24 +633,21 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           return false;
 
      /* If destination or blend functions have been changed... */
-     if (state->modified & (SMF_DESTINATION | SMF_SRC_BLEND | SMF_DST_BLEND)) {
+     if (state->modified & (SMF_DESTINATION | SMF_SRC_BLEND | SMF_DST_BLEND | SMF_RENDER_OPTIONS)) {
           /* ...force rechecking for all functions. */
-          state->accel   = 0;
-          state->checked = 0;
+          state->checked = DFXL_NONE;
      }
      else {
-          /* If source or blitting flags have been changed... */
-          if (state->modified & (SMF_SOURCE | SMF_BLITTING_FLAGS)) {
+          /* If source/mask or blitting flags have been changed... */
+          if (state->modified & (SMF_SOURCE | SMF_BLITTING_FLAGS | SMF_SOURCE_MASK | SMF_SOURCE_MASK_VALS)) {
                /* ...force rechecking for all blitting functions. */
-               state->accel   &= 0x0000FFFF;
-               state->checked &= 0x0000FFFF;
+               state->checked &= ~DFXL_ALL_BLIT;
           }
 
           /* If drawing flags have been changed... */
           if (state->modified & SMF_DRAWING_FLAGS) {
                /* ...force rechecking for all drawing functions. */
-               state->accel   &= 0xFFFF0000;
-               state->checked &= 0xFFFF0000;
+               state->checked &= ~DFXL_ALL_DRAW;
           }
      }
 
@@ -671,7 +676,7 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
       */
      if (dst_buffer->policy == CSP_SYSTEMONLY) {
           /* Clear 'accelerated functions'. */
-          state->accel   = 0;
+          state->accel   = DFXL_NONE;
           state->checked = DFXL_ALL;
 
           /* Return immediately. */
@@ -689,8 +694,8 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
 
           if (src_buffer->policy == CSP_SYSTEMONLY && !(card->caps.flags & CCF_READSYSMEM)) {
                /* Clear 'accelerated blitting functions'. */
-               state->accel   &= 0x0000FFFF;
-               state->checked |= 0xFFFF0000;
+               state->accel   &= ~DFXL_ALL_BLIT;
+               state->checked |=  DFXL_ALL_BLIT;
      
                return false;
           }
@@ -752,6 +757,20 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           }
 
           state->flags |= CSF_SOURCE_LOCKED;
+
+          /* if using a mask... */
+          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+               /* ...lock source mask for reading */
+               ret = dfb_surface_lock_buffer( state->source_mask, state->from, CSAF_GPU_READ, &state->src_mask );
+               if (ret) {
+                    D_DEBUG_AT( Core_Graphics, "Could not lock source mask for GPU access!\n" );
+                    dfb_surface_unlock_buffer( src, &state->src );
+                    dfb_surface_unlock_buffer( dst, &state->dst );
+                    return false;
+               }
+
+               state->flags |= CSF_SOURCE_MASK_LOCKED;
+          }
      }
 
      /*
@@ -771,6 +790,13 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
                state->flags &= ~CSF_SOURCE_LOCKED;
           }
 
+          /* if source mask got locked this value is true */
+          if (state->flags & CSF_SOURCE_MASK_LOCKED) {
+               dfb_surface_unlock_buffer( state->source_mask, &state->src_mask );
+
+               state->flags &= ~CSF_SOURCE_MASK_LOCKED;
+          }
+
           return false;
      }
 
@@ -784,7 +810,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           shared->holder = state->fusion_id;
      }
 
-     dfb_state_update( state, state->flags & CSF_SOURCE_LOCKED );
+     dfb_state_update( state, state->flags & (CSF_SOURCE_LOCKED | CSF_SOURCE_MASK_LOCKED) );
 
      /* Move modification flags to the set for drivers. */
      state->mod_hw   |= state->modified;
@@ -841,6 +867,13 @@ dfb_gfxcard_state_release( CardState *state )
           dfb_surface_unlock_buffer( state->source, &state->src );
 
           state->flags &= ~CSF_SOURCE_LOCKED;
+     }
+
+     /* if source mask got locked this value is true */
+     if (state->flags & CSF_SOURCE_MASK_LOCKED) {
+          dfb_surface_unlock_buffer( state->source_mask, &state->src_mask );
+
+          state->flags &= ~CSF_SOURCE_MASK_LOCKED;
      }
 }
 

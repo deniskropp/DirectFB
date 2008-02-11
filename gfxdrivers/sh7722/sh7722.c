@@ -173,7 +173,7 @@ driver_init_device( CoreGraphicsDevice *device,
      D_DEBUG_AT( SH7722_Driver, "%s()\n", __FUNCTION__ );
 
      /* FIXME: Add a runtime option / config file. */
-     sdev->lcd_format = DSPF_NV16;
+     sdev->lcd_format = DSPF_RGB16;
 
      /* Check format of LCD buffer. */
      switch (sdev->lcd_format) {
