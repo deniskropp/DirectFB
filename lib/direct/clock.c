@@ -28,12 +28,12 @@
 
 #include <config.h>
 
-#include <sys/time.h>
-#include <time.h>
-
 #include <direct/clock.h>
 #include <direct/debug.h>
 #include <direct/util.h>
+
+#include <sys/time.h>
+#include <time.h>
 
 D_DEBUG_DOMAIN( Direct_Clock, "Direct/Clock", "Time measurement etc." );
 
