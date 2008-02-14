@@ -162,43 +162,13 @@ fd_config_set( const char *name, const char *value )
      else if (!strcmp( name, "no-banner" )) {
           fusiondale_config->banner = false;
      }
-     else if (!strcmp( name, "debug" )) {
-          if (value)
-               direct_debug_config_domain( value, true );
-          else
-               direct_config->debug = true;
-     }
-     else if (!strcmp( name, "no-debug" )) {
-          if (value)
-               direct_debug_config_domain( value, false );
-          else
-               direct_config->debug = false;
-     }
-     else if (!strcmp( name, "debugshm" )) {
-          fusion_config->debugshm = true;
-     }
-     else if (!strcmp( name, "no-debugshm" )) {
-          fusion_config->debugshm = false;
-     }
-     else if (!strcmp( name, "debugmem" )) {
-          direct_config->debugmem = true;
-     }
-     else if (!strcmp( name, "no-debugmem" )) {
-          direct_config->debugmem = false;
-     }
-     else if (strcmp ( name, "sighandler" ) == 0) {
-          direct_config->sighandler = true;
-     }
-     else if (strcmp ( name, "no-sighandler" ) == 0) {
-          direct_config->sighandler = false;
-     }
      else if (strcmp ( name, "force-slave" ) == 0) {
           fusiondale_config->force_slave = true;
      }
      else if (strcmp ( name, "no-force-slave" ) == 0) {
           fusiondale_config->force_slave = false;
-     }
-     else
+     } else
+     if (fusion_config_set( name, value ) && direct_config_set( name, value ))
           return DFB_UNSUPPORTED;
 
      return DFB_OK;
