@@ -34,6 +34,9 @@ void r100_set_destination   ( RadeonDriverData *rdrv,
 void r100_set_source        ( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev,
                               CardState        *state );
+void r100_set_source_mask   ( RadeonDriverData *rdrv,
+                              RadeonDeviceData *rdev,
+                              CardState        *state );
 void r100_set_clip          ( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev,
                               CardState        *state );
@@ -63,6 +66,9 @@ void r200_set_destination   ( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev,
                               CardState        *state );
 void r200_set_source        ( RadeonDriverData *rdrv,
+                              RadeonDeviceData *rdev,
+                              CardState        *state );
+void r200_set_source_mask   ( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev,
                               CardState        *state );
 void r200_set_clip          ( RadeonDriverData *rdrv,

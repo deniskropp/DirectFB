@@ -94,7 +94,8 @@ DFB_GRAPHICS_DRIVER( radeon )
      ( RADEON_SUPPORTED_2D_BLITTINGFLAGS                   | \
        DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | \
        DSBLIT_COLORIZE           | DSBLIT_SRC_PREMULTCOLOR | \
-       DSBLIT_DEINTERLACE        | DSBLIT_ROTATE180 )
+       DSBLIT_DEINTERLACE        | DSBLIT_ROTATE180        | \
+       DSBLIT_SRC_MASK_ALPHA     | DSBLIT_SRC_MASK_COLOR )
 
 #define R100_SUPPORTED_BLITTINGFUNCS \
      ( RADEON_SUPPORTED_2D_BLITTINGFUNCS | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES )
@@ -110,7 +111,8 @@ DFB_GRAPHICS_DRIVER( radeon )
      ( RADEON_SUPPORTED_2D_BLITTINGFLAGS                   | \
        DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | \
        DSBLIT_COLORIZE           | DSBLIT_SRC_PREMULTCOLOR | \
-       DSBLIT_DEINTERLACE        | DSBLIT_ROTATE180 )
+       DSBLIT_DEINTERLACE        | DSBLIT_ROTATE180        | \
+       DSBLIT_SRC_MASK_ALPHA     | DSBLIT_SRC_MASK_COLOR )
 
 #define R200_SUPPORTED_BLITTINGFUNCS \
      ( RADEON_SUPPORTED_2D_BLITTINGFUNCS | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES )
@@ -139,12 +141,16 @@ DFB_GRAPHICS_DRIVER( radeon )
                                 DSBLIT_SRC_PREMULTCOLOR )
 #define DSBLIT_MODULATE       ( DSBLIT_MODULATE_ALPHA     | \
                                 DSBLIT_MODULATE_COLOR )
+#define DSBLIT_MASK           ( DSBLIT_SRC_MASK_ALPHA     | \
+                                DSBLIT_SRC_MASK_COLOR )
 
-#define RADEON_DRAW_3D()      ( rdev->accel & DFXL_FILLTRIANGLE || \
-                                rdev->drawingflags & ~DSDRAW_XOR )
-#define RADEON_BLIT_3D()      ( rdev->accel & ~DFXL_BLIT                     || \
+#define RADEON_DRAW_3D()      ( rdev->accel & DFXL_FILLTRIANGLE  || \
+                                rdev->drawingflags & ~DSDRAW_XOR || \
+                                rdev->matrix != NULL )
+#define RADEON_BLIT_3D()      ( rdev->accel & ~DFXL_BLIT                     ||\
                                 rdev->blittingflags & ~(DSBLIT_XOR |            \
                                                         DSBLIT_SRC_COLORKEY) || \
+                                rdev->matrix != NULL                         || \
                                (rdev->dst_format != rdev->src_format        &&  \
                                 !(DFB_PLANAR_PIXELFORMAT(rdev->dst_format) &&   \
                                   DFB_PLANAR_PIXELFORMAT(rdev->src_format)  )))
@@ -270,11 +276,11 @@ radeon_reset( RadeonDriverData *rdrv, RadeonDeviceData *rdev )
      mclk_cntl  = radeon_inpll( mmio, MCLK_CNTL );
      radeon_outpll( mmio, MCLK_CNTL, mclk_cntl     |
                                      FORCEON_MCLKA |
-			                      FORCEON_MCLKB |
-			                      FORCEON_YCLKA |
-			                      FORCEON_YCLKB |
-			                      FORCEON_MC    |
-			                      FORCEON_AIC );
+                                     FORCEON_MCLKB |
+                                     FORCEON_YCLKA |
+                                     FORCEON_YCLKB |
+                                     FORCEON_MC    |
+                                     FORCEON_AIC );
 
      host_path_cntl  = radeon_in32( mmio, HOST_PATH_CNTL );
      rbbm_soft_reset = radeon_in32( mmio, RBBM_SOFT_RESET );
@@ -378,8 +384,9 @@ static void radeonInvalidateState( void *drv, void *dev )
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
  
      rdev->set = 0;
-     rdev->src_format = DSPF_UNKNOWN;
      rdev->dst_format = DSPF_UNKNOWN;
+     rdev->src_format = DSPF_UNKNOWN;
+     rdev->msk_format = DSPF_UNKNOWN;
 }
 
 static void radeonFlushTextureCache( void *drv, void *dev )
@@ -395,12 +402,14 @@ static void radeonFlushTextureCache( void *drv, void *dev )
           }
      }
      else if (rdev->chipset >= CHIP_R200) {
-          radeon_waitfifo( rdrv, rdev, 1 );
+          radeon_waitfifo( rdrv, rdev, 2 );
           radeon_out32( mmio, R200_PP_TXOFFSET_0, rdev->src_offset );
+          radeon_out32( mmio, R200_PP_TXOFFSET_1, rdev->msk_offset );
      }
      else if (rdev->chipset >= CHIP_R100) {     
-          radeon_waitfifo( rdrv, rdev, 1 );
+          radeon_waitfifo( rdrv, rdev, 2 );
           radeon_out32( mmio, PP_TXOFFSET_0, rdev->src_offset );
+          radeon_out32( mmio, PP_TXOFFSET_1, rdev->msk_offset );
      }
 }
 
@@ -495,7 +504,7 @@ static void r100CheckState( void *drv, void *dev,
                     return;
                supported_drawingflags   =  DSDRAW_NOFX;
                supported_blittingfuncs &= ~DFXL_TEXTRIANGLES;
-               supported_blittingflags &= ~DSBLIT_MODULATE;
+               supported_blittingflags &= ~(DSBLIT_MODULATE | DSBLIT_MASK);
                break;
 
           case DSPF_ARGB2554:
@@ -505,7 +514,7 @@ static void r100CheckState( void *drv, void *dev,
                supported_drawingfuncs  &= ~DFXL_FILLTRIANGLE;
                supported_drawingflags   =  DSDRAW_XOR;
                supported_blittingfuncs &= ~DFXL_TEXTRIANGLES;
-               supported_blittingflags &= ~DSBLIT_MODULATE;
+               supported_blittingflags &= ~(DSBLIT_MODULATE | DSBLIT_MASK);
                break;
                
           case DSPF_AiRGB:
@@ -515,22 +524,22 @@ static void r100CheckState( void *drv, void *dev,
 
           case DSPF_I420:
           case DSPF_YV12:
-               if (DFB_BLITTING_FUNCTION( accel ) &&
-                   source->config.format != DSPF_A8      &&
-                   source->config.format != DSPF_I420    &&
+               if (DFB_BLITTING_FUNCTION( accel )     &&
+                   source->config.format != DSPF_A8   &&
+                   source->config.format != DSPF_I420 &&
                    source->config.format != DSPF_YV12)
                     return;
           case DSPF_YUY2:
           case DSPF_UYVY:
                if (source && source->config.format != DSPF_A8)
-                    supported_blittingflags &= ~(DSBLIT_COLORIZE | DSBLIT_SRC_COLORKEY);
+                   supported_blittingflags &= ~(DSBLIT_COLORIZE | DSBLIT_SRC_COLORKEY);
                break;
 
           case DSPF_AYUV:
                if (DFB_BLITTING_FUNCTION( accel ) && source->config.format != DSPF_A8) {
                     if (source->config.format != DSPF_AYUV)
                          return;
-                    supported_blittingflags &= ~DSBLIT_COLORIZE;
+                    supported_blittingflags &= ~(DSBLIT_COLORIZE | DSBLIT_MASK);
                }
                break;
                
@@ -583,9 +592,7 @@ static void r100CheckState( void *drv, void *dev,
                
                case DSPF_LUT8:
                case DSPF_ALUT44:
-                    if (destination->config.format != source->config.format ||
-                        !dfb_palette_equal( source->palette,
-                                            destination->palette ))
+                    if (destination->config.format != source->config.format)
                          return;
                     break;
                         
@@ -606,6 +613,47 @@ static void r100CheckState( void *drv, void *dev,
                
                default:
                     return;
+          }
+
+          if (state->blittingflags & DSBLIT_MASK) {
+               CoreSurface *mask = state->source_mask;
+               
+               if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
+                                           DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR))
+                    return;
+               
+               if (state->src_mask_flags & DSMF_STENCIL ||
+                   state->src_mask_offset.x || state->src_mask_offset.y)
+                    return;
+                    
+               if (mask->config.size.w > 2048 || mask->config.size.h > 2048)
+                    return;
+                    
+               if (!radeon_compatible_format( drv, mask->config.format ))
+                    return;
+                    
+               switch (mask->config.format) {
+                    case DSPF_A8:
+                    case DSPF_RGB332:
+                    case DSPF_RGB444:
+                    case DSPF_ARGB4444:
+                    case DSPF_RGB555:
+                    case DSPF_ARGB1555:
+                    case DSPF_RGB16:
+                    case DSPF_RGB32:
+                    case DSPF_ARGB:
+                         break;
+
+                    case DSPF_AiRGB:
+                         if (state->blittingflags & DSBLIT_SRC_MASK_ALPHA &&
+                             DFB_PIXELFORMAT_HAS_ALPHA(source->config.format) &&
+                             source->config.format != DSPF_AiRGB)
+                              return;
+                         break;
+                    
+                    default:
+                         return; 
+               }
           }
 
           state->accel |= supported_blittingfuncs;
@@ -670,7 +718,7 @@ static void r200CheckState( void *drv, void *dev,
                     return;
                supported_drawingflags   =  DSDRAW_NOFX;
                supported_blittingfuncs &= ~DFXL_TEXTRIANGLES;
-               supported_blittingflags &= ~DSBLIT_MODULATE;
+               supported_blittingflags &= ~(DSBLIT_MODULATE | DSBLIT_MASK);
                break;
 
           case DSPF_ARGB2554:
@@ -680,7 +728,7 @@ static void r200CheckState( void *drv, void *dev,
                supported_drawingfuncs  &= ~DFXL_FILLTRIANGLE;
                supported_drawingflags   =  DSDRAW_XOR;
                supported_blittingfuncs &= ~DFXL_TEXTRIANGLES;
-               supported_blittingflags &= ~DSBLIT_MODULATE;
+               supported_blittingflags &= ~(DSBLIT_MODULATE | DSBLIT_MASK);
                break;
                
           case DSPF_AiRGB:
@@ -698,14 +746,14 @@ static void r200CheckState( void *drv, void *dev,
           case DSPF_YUY2:
           case DSPF_UYVY:
                if (source && source->config.format != DSPF_A8)
-                    supported_blittingflags &= ~(DSBLIT_COLORIZE | DSBLIT_SRC_COLORKEY);
+                    supported_blittingflags &= ~(DSBLIT_COLORIZE | DSBLIT_SRC_COLORKEY | DSBLIT_MASK);
                break;
                
           case DSPF_AYUV:
                if (DFB_BLITTING_FUNCTION( accel ) && source->config.format != DSPF_A8) {
                     if (source->config.format != DSPF_AYUV)
                          return;
-                    supported_blittingflags &= ~DSBLIT_COLORIZE;
+                    supported_blittingflags &= ~(DSBLIT_COLORIZE | DSBLIT_MASK);
                }
                break;
           
@@ -756,9 +804,7 @@ static void r200CheckState( void *drv, void *dev,
                
                case DSPF_LUT8:
                case DSPF_ALUT44:
-                    if (destination->config.format != source->config.format ||
-                        !dfb_palette_equal( source->palette,
-                                            destination->palette ))
+                    if (destination->config.format != source->config.format)
                          return;
                     break;
                
@@ -770,7 +816,7 @@ static void r200CheckState( void *drv, void *dev,
                     
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    if (rdev->chipset == CHIP_RV250      &&
+                    if (rdev->chipset == CHIP_RV250             &&
                         destination->config.format != DSPF_YUY2 &&
                         destination->config.format != DSPF_UYVY)
                          return;
@@ -787,6 +833,47 @@ static void r200CheckState( void *drv, void *dev,
                
                default:
                     return;
+          }
+          
+          if (state->blittingflags & DSBLIT_MASK) {
+               CoreSurface *mask = state->source_mask;
+               
+               if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
+                                           DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR))
+                    return;
+               
+               if (state->src_mask_flags & DSMF_STENCIL ||
+                   state->src_mask_offset.x || state->src_mask_offset.y)
+                    return;
+                    
+               if (mask->config.size.w > 2048 || mask->config.size.h > 2048)
+                    return;
+                    
+               if (!radeon_compatible_format( drv, mask->config.format ))
+                    return;
+                    
+               switch (mask->config.format) {
+                    case DSPF_A8:
+                    case DSPF_RGB332:
+                    case DSPF_RGB444:
+                    case DSPF_ARGB4444:
+                    case DSPF_RGB555:
+                    case DSPF_ARGB1555:
+                    case DSPF_RGB16:
+                    case DSPF_RGB32:
+                    case DSPF_ARGB:
+                         break;
+               
+                    case DSPF_AiRGB:
+                         if (state->blittingflags & DSBLIT_SRC_MASK_ALPHA &&
+                             DFB_PIXELFORMAT_HAS_ALPHA(source->config.format) &&
+                             source->config.format != DSPF_AiRGB)
+                              return;
+                         break;
+
+                    default:
+                         return; 
+               }
           }
 
           state->accel |= supported_blittingfuncs;
@@ -925,9 +1012,7 @@ static void r300CheckState( void *drv, void *dev,
                
                case DSPF_LUT8:
                case DSPF_ALUT44:
-                    if (destination->config.format != source->config.format ||
-                        !dfb_palette_equal( source->palette,
-                                            destination->palette ))
+                    if (destination->config.format != source->config.format)
                          return;
                     break;
 
@@ -990,6 +1075,8 @@ static void r100SetState( void *drv, void *dev,
      
      rdev->accel = accel;
      
+     rdev->matrix = (state->render_options & DSRO_MATRIX) ? state->matrix : NULL;
+     
      r100_set_destination( rdrv, rdev, state );
      r100_set_clip( rdrv, rdev, state );
     
@@ -1026,6 +1113,9 @@ static void r100SetState( void *drv, void *dev,
           case DFXL_STRETCHBLIT:
           case DFXL_TEXTRIANGLES:     
                r100_set_source( rdrv, rdev, state );
+               
+               if (state->blittingflags & DSBLIT_MASK)
+                    r100_set_source_mask( rdrv, rdev, state );
                
                if (state->blittingflags & DSBLIT_MODULATE_ALPHA)
                     r100_set_blend_function( rdrv, rdev, state );
@@ -1077,6 +1167,8 @@ static void r200SetState( void *drv, void *dev,
      
      rdev->accel = accel;
      
+     rdev->matrix = (state->render_options & DSRO_MATRIX) ? state->matrix : NULL;
+     
      r200_set_destination( rdrv, rdev, state );
      r200_set_clip( rdrv, rdev, state );
     
@@ -1113,6 +1205,9 @@ static void r200SetState( void *drv, void *dev,
           case DFXL_STRETCHBLIT:
           case DFXL_TEXTRIANGLES:     
                r200_set_source( rdrv, rdev, state );
+               
+               if (state->blittingflags & DSBLIT_MASK)
+                    r200_set_source_mask( rdrv, rdev, state );
                
                if (state->blittingflags & DSBLIT_MODULATE_ALPHA)
                     r200_set_blend_function( rdrv, rdev, state );
@@ -1163,6 +1258,8 @@ static void r300SetState( void *drv, void *dev,
      }
      
      rdev->accel = accel;
+     
+     rdev->matrix = (state->render_options & DSRO_MATRIX) ? state->matrix : NULL;
      
      r300_set_destination( rdrv, rdev, state );
      r300_set_clip( rdrv, rdev, state );
@@ -1305,7 +1402,7 @@ driver_get_info( CoreGraphicsDevice *device,
                "http://www.directfb.org" );
 
      info->version.major = 1;
-     info->version.minor = 1;
+     info->version.minor = 2;
 
      info->driver_data_size = sizeof(RadeonDriverData);
      info->device_data_size = sizeof(RadeonDeviceData);
@@ -1490,7 +1587,7 @@ driver_init_device( CoreGraphicsDevice *device,
      rdev->fb_phys = dfb_gfxcard_memory_physical( device, 0 );
 
      radeon_waitidle( rdrv, rdev );
-     
+
      /* get connected monitors */
      radeon_get_monitors( rdrv, rdev, &rdev->monitor1, &rdev->monitor2 );
 

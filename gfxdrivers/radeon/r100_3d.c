@@ -175,12 +175,31 @@ bool r100FillRectangle3D( void *drv, void *dev, DFBRectangle *rect )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
+     float             x1, y1;
+     float             x2, y2;
      u32              *v;
      
-     v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_RECTANGLE_LIST, 3, 6 );
-     *v++ = f2d(rect->x);         *v++ = f2d(rect->y);
-     *v++ = f2d(rect->x+rect->w); *v++ = f2d(rect->y);
-     *v++ = f2d(rect->x+rect->w); *v++ = f2d(rect->y+rect->h);
+     x1 = rect->x;         y1 = rect->y;
+     x2 = rect->x+rect->w; y2 = rect->y+rect->h;
+     if (rdev->matrix) {
+          float x, y;
+
+          v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_TRIANGLE_FAN, 4, 8 );
+          RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix );
+          *v++ = f2d(x); *v++ = f2d(y);
+          RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix );
+          *v++ = f2d(x); *v++ = f2d(y);
+          RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix );
+          *v++ = f2d(x); *v++ = f2d(y);
+          RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix );
+          *v++ = f2d(x); *v++ = f2d(y);
+     }
+     else {
+          v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_RECTANGLE_LIST, 3, 6 );
+          *v++ = f2d(x1); *v++ = f2d(y1);
+          *v++ = f2d(x2); *v++ = f2d(y1);
+          *v++ = f2d(x2); *v++ = f2d(y2);
+     }
      
      return true;
 }
@@ -189,12 +208,24 @@ bool r100FillTriangle( void *drv, void *dev, DFBTriangle *tri )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
+     float             x1, y1;
+     float             x2, y2;
+     float             x3, y3;
      u32              *v;
 
+     x1 = tri->x1; y1 = tri->y1;
+     x2 = tri->x2; y2 = tri->y2;
+     x3 = tri->x3; y3 = tri->y3;
+     if (rdev->matrix) {
+          RADEON_TRANSFORM( x1, y1, x1, y1, rdev->matrix );
+          RADEON_TRANSFORM( x2, y2, x2, y2, rdev->matrix );
+          RADEON_TRANSFORM( x3, y3, x3, y3, rdev->matrix );
+     }
+
      v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_TRIANGLE_LIST, 3, 6 );
-     *v++ = f2d(tri->x1); *v++ = f2d(tri->y1);
-     *v++ = f2d(tri->x2); *v++ = f2d(tri->y2);
-     *v++ = f2d(tri->x3); *v++ = f2d(tri->y3);
+     *v++ = f2d(x1); *v++ = f2d(y1);
+     *v++ = f2d(x2); *v++ = f2d(y2);
+     *v++ = f2d(x3); *v++ = f2d(y3);
      
      return true;
 }
@@ -203,25 +234,38 @@ bool r100DrawRectangle3D( void *drv, void *dev, DFBRectangle *rect )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
-     u32              *v;
 
-     v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_RECTANGLE_LIST, 12, 24 );
-     /* top line */
-     *v++ = f2d(rect->x);           *v++ = f2d(rect->y);
-     *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y);
-     *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y+1);
-     /* right line */
-     *v++ = f2d(rect->x+rect->w-1); *v++ = f2d(rect->y+1);
-     *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y+1);
-     *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y+rect->h-1);
-     /* bottom line */
-     *v++ = f2d(rect->x);           *v++ = f2d(rect->y+rect->h-1);
-     *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y+rect->h-1);
-     *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y+rect->h);
-     /* left line */
-     *v++ = f2d(rect->x);           *v++ = f2d(rect->y+1);
-     *v++ = f2d(rect->x+1);         *v++ = f2d(rect->y+1);
-     *v++ = f2d(rect->x+1);         *v++ = f2d(rect->y+rect->h-1);
+     if (rdev->matrix) {
+          DFBRectangle r;
+
+          r = (DFBRectangle) { rect->x, rect->y, rect->w, 1 };
+          r100FillRectangle3D( drv, dev, &r );
+          r = (DFBRectangle) { rect->x+rect->w-1, rect->y+1, 1, rect->h-1 };
+          r100FillRectangle3D( drv, dev, &r );
+          r = (DFBRectangle) { rect->x, rect->y+rect->h-1, rect->w, 1 };
+          r100FillRectangle3D( drv, dev, &r );
+          r = (DFBRectangle) { rect->x, rect->y+1, 1, rect->h-1 };
+          r100FillRectangle3D( drv, dev, &r );
+     }
+     else {
+          u32 *v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_RECTANGLE_LIST, 12, 24 );
+          /* top line */
+          *v++ = f2d(rect->x);           *v++ = f2d(rect->y);
+          *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y);
+          *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y+1);
+          /* right line */
+          *v++ = f2d(rect->x+rect->w-1); *v++ = f2d(rect->y+1);
+          *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y+1);
+          *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y+rect->h-1);
+          /* bottom line */
+          *v++ = f2d(rect->x);           *v++ = f2d(rect->y+rect->h-1);
+          *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y+rect->h-1);
+          *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y+rect->h);
+          /* left line */
+          *v++ = f2d(rect->x);           *v++ = f2d(rect->y+1);
+          *v++ = f2d(rect->x+1);         *v++ = f2d(rect->y+1);
+          *v++ = f2d(rect->x+1);         *v++ = f2d(rect->y+rect->h-1);
+     }
      
      return true;
 }
@@ -230,11 +274,20 @@ bool r100DrawLine3D( void *drv, void *dev, DFBRegion *line )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
+     float             x1, y1;
+     float             x2, y2;
      u32              *v;
 
+     x1 = line->x1; y1 = line->y1;
+     x2 = line->x2; y2 = line->y2;
+     if (rdev->matrix) {
+          RADEON_TRANSFORM( x1, y1, x1, y1, rdev->matrix );
+          RADEON_TRANSFORM( x2, y2, x2, y2, rdev->matrix );
+     }
+
      v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_LINE_LIST, 2, 4 );
-     *v++ = f2d(line->x1); *v++ = f2d(line->y1);
-     *v++ = f2d(line->x2); *v++ = f2d(line->y2);
+     *v++ = f2d(x1); *v++ = f2d(y1);
+     *v++ = f2d(x2); *v++ = f2d(y2);
 
      return true;
 }
@@ -250,23 +303,54 @@ bool r100StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
+     float             x1, y1;
+     float             x2, y2;
      u32              *v;
     
      if (rdev->blittingflags & DSBLIT_DEINTERLACE) {
           sr->y /= 2;
           sr->h /= 2;
      }
+     
+     x1 = dr->x;       y1 = dr->y;
+     x2 = dr->x+dr->w; y2 = dr->y+dr->h;
+     if (rdev->matrix) {
+          float x, y;
 
-     v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_RECTANGLE_LIST, 3, 12 );
-     if (rdev->blittingflags & DSBLIT_ROTATE180) {
-          *v++ = f2d(dr->x);       *v++ = f2d(dr->y);       *v++ = f2d(sr->x+sr->w); *v++ = f2d(sr->y+sr->h);
-          *v++ = f2d(dr->x+dr->w); *v++ = f2d(dr->y);       *v++ = f2d(sr->x);       *v++ = f2d(sr->y+sr->h);
-          *v++ = f2d(dr->x+dr->w); *v++ = f2d(dr->y+dr->h); *v++ = f2d(sr->x);       *v++ = f2d(sr->y);
+          v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_TRIANGLE_FAN, 4, 16 );
+          if (rdev->blittingflags & DSBLIT_ROTATE180) {
+               RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix );
+               *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(sr->x+sr->w); *v++ = f2d(sr->y+sr->h);
+               RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix );
+               *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(sr->x);       *v++ = f2d(sr->y+sr->h);
+               RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix );
+               *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(sr->x);       *v++ = f2d(sr->y);
+               RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix );
+               *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(sr->x+sr->w); *v++ = f2d(sr->y);
+          }
+          else {
+               RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix );
+               *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(sr->x);       *v++ = f2d(sr->y);
+               RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix );
+               *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(sr->x+sr->w); *v++ = f2d(sr->y);
+               RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix );
+               *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(sr->x+sr->w); *v++ = f2d(sr->y+sr->h);
+               RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix );
+               *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(sr->x);       *v++ = f2d(sr->y+sr->h);
+          }
      }
      else {
-          *v++ = f2d(dr->x);       *v++ = f2d(dr->y);       *v++ = f2d(sr->x);       *v++ = f2d(sr->y);
-          *v++ = f2d(dr->x+dr->w); *v++ = f2d(dr->y);       *v++ = f2d(sr->x+sr->w); *v++ = f2d(sr->y);
-          *v++ = f2d(dr->x+dr->w); *v++ = f2d(dr->y+dr->h); *v++ = f2d(sr->x+sr->w); *v++ = f2d(sr->y+sr->h);
+          v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_RECTANGLE_LIST, 3, 12 );
+          if (rdev->blittingflags & DSBLIT_ROTATE180) {
+               *v++ = f2d(x1); *v++ = f2d(y1); *v++ = f2d(sr->x+sr->w); *v++ = f2d(sr->y+sr->h);
+               *v++ = f2d(x2); *v++ = f2d(y1); *v++ = f2d(sr->x);       *v++ = f2d(sr->y+sr->h);
+               *v++ = f2d(x2); *v++ = f2d(y2); *v++ = f2d(sr->x);       *v++ = f2d(sr->y);
+          }
+          else {
+               *v++ = f2d(x1); *v++ = f2d(y1); *v++ = f2d(sr->x);       *v++ = f2d(sr->y);
+               *v++ = f2d(x2); *v++ = f2d(y1); *v++ = f2d(sr->x+sr->w); *v++ = f2d(sr->y);
+               *v++ = f2d(x2); *v++ = f2d(y2); *v++ = f2d(sr->x+sr->w); *v++ = f2d(sr->y+sr->h);
+          }
      }
      
      return true;
@@ -318,6 +402,7 @@ bool r100TextureTriangles( void *drv, void *dev, DFBVertex *ve,
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
      u32               prim = 0;
+     int               i;
 
      if (num > 65535) {
           D_WARN( "R100 supports maximum 65535 vertices" );
@@ -337,6 +422,11 @@ bool r100TextureTriangles( void *drv, void *dev, DFBVertex *ve,
           default:
                D_BUG( "unexpected triangle formation" );
                return false;
+     }
+     
+     if (rdev->matrix) {
+          for (i = 0; i < num; i++)
+               RADEON_TRANSFORM( ve[i].x, ve[i].y, ve[i].x, ve[i].y, rdev->matrix );
      }
      
      r100DoTextureTriangles( rdrv, rdev, ve, num, prim );

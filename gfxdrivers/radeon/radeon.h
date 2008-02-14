@@ -93,6 +93,12 @@ typedef struct {
      u32                     src_width;
      u32                     src_height;
      u32                     src_mask;
+     
+     DFBSurfacePixelFormat   msk_format;
+     u32                     msk_offset;
+     u32                     msk_pitch;
+     u32                     msk_width;
+     u32                     msk_height;
 
      DFBRegion               clip;
 
@@ -103,6 +109,8 @@ typedef struct {
 
      DFBSurfaceDrawingFlags  drawingflags;
      DFBSurfaceBlittingFlags blittingflags;
+     
+     const s32              *matrix;
      
      /* chipset identified */
      RadeonChipsetFamily     chipset;
@@ -194,6 +202,14 @@ static __inline__ float d2f( u32 d )
      tmp.d = d;
      return tmp.f;
 }
+
+#define RADEON_TRANSFORM(x, y, retx, rety, m) \
+ do { \
+     float _x, _y; \
+     _x = ((x) * m[0] + (y) * m[1] + m[2]) / 65536.f; \
+     _y = ((x) * m[3] + (y) * m[4] + m[5]) / 65536.f; \
+     retx = _x; rety = _y; \
+ } while(0)
 
 
 #endif /* __RADEON_H__ */

@@ -156,13 +156,32 @@ bool r300FillRectangle3D( void *drv, void *dev, DFBRectangle *rect )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
+     float             x1, y1;
+     float             x2, y2;
      u32              *v;
      
-     v = r300_init_vb( rdrv, rdev, VF_PRIM_TYPE_QUAD_LIST, 4, 32 );
-     VTX( v, rect->x,         rect->y,         rdev->color );
-     VTX( v, rect->x+rect->w, rect->y,         rdev->color );
-     VTX( v, rect->x+rect->w, rect->y+rect->h, rdev->color );
-     VTX( v, rect->x        , rect->y+rect->h, rdev->color );
+     x1 = rect->x;         y1 = rect->y;
+     x2 = rect->x+rect->w; y2 = rect->y+rect->h;
+     if (rdev->matrix) {
+          float x, y;
+
+          v = r300_init_vb( rdrv, rdev, VF_PRIM_TYPE_QUAD_LIST, 4, 32 );
+          RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix );
+          VTX( v, x, y, rdev->color );
+          RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix );
+          VTX( v, x, y, rdev->color );
+          RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix );
+          VTX( v, x, y, rdev->color );
+          RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix );
+          VTX( v, x, y, rdev->color );
+     }
+     else { 
+          v = r300_init_vb( rdrv, rdev, VF_PRIM_TYPE_QUAD_LIST, 4, 32 );
+          VTX( v, x1, y1, rdev->color );
+          VTX( v, x2, y1, rdev->color );
+          VTX( v, x2, y2, rdev->color );
+          VTX( v, x1, y2, rdev->color );
+     }
 
      return true;
 }
@@ -171,12 +190,24 @@ bool r300FillTriangle( void *drv, void *dev, DFBTriangle *tri )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
+     float             x1, y1;
+     float             x2, y2;
+     float             x3, y3;
      u32              *v;
-     
+
+     x1 = tri->x1; y1 = tri->y1;
+     x2 = tri->x2; y2 = tri->y2;
+     x3 = tri->x3; y3 = tri->y3;
+     if (rdev->matrix) {
+          RADEON_TRANSFORM( x1, y1, x1, y1, rdev->matrix );
+          RADEON_TRANSFORM( x2, y2, x2, y2, rdev->matrix );
+          RADEON_TRANSFORM( x3, y3, x3, y3, rdev->matrix );
+     }
+
      v = r300_init_vb( rdrv, rdev, VF_PRIM_TYPE_TRIANGLE_LIST, 3, 24 );
-     VTX( v, tri->x1, tri->y1, rdev->color );
-     VTX( v, tri->x2, tri->y2, rdev->color );
-     VTX( v, tri->x3, tri->y3, rdev->color );
+     VTX( v, x1, y1, rdev->color );
+     VTX( v, x2, y2, rdev->color );
+     VTX( v, x3, y3, rdev->color );
      
      return true;
 }
@@ -205,11 +236,20 @@ bool r300DrawLine3D( void *drv, void *dev, DFBRegion *line )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
+     float             x1, y1;
+     float             x2, y2;
      u32              *v;
+
+     x1 = line->x1; y1 = line->y1;
+     x2 = line->x2; y2 = line->y2;
+     if (rdev->matrix) {
+          RADEON_TRANSFORM( x1, y1, x1, y1, rdev->matrix );
+          RADEON_TRANSFORM( x2, y2, x2, y2, rdev->matrix );
+     }
      
      v = r300_init_vb( rdrv, rdev, VF_PRIM_TYPE_LINE_LIST, 2, 16 );
-     VTX( v, line->x1, line->y1, rdev->color );
-     VTX( v, line->x2, line->y2, rdev->color );
+     VTX( v, x1, y1, rdev->color );
+     VTX( v, x2, y2, rdev->color );
 
      return true;
 }
@@ -236,31 +276,46 @@ bool r300StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
-     DFBLocation       sl;
+     float             x1, y1;
+     float             x2, y2;
+     float             s1, s2;
+     float             t1, t2;
      u32              *v;
      
      if (rdev->blittingflags & DSBLIT_DEINTERLACE) {
           sr->y /= 2;
           sr->h /= 2;
      }
-     
-     sl.x = (float)sr->x / (float)rdev->src_width;
-     sl.y = (float)sr->y / (float)rdev->src_height;
-     sl.w = (float)sr->w / (float)rdev->src_width;
-     sl.h = (float)sr->h / (float)rdev->src_height;
-    
-     v = r300_init_vb( rdrv, rdev, VF_PRIM_TYPE_QUAD_LIST, 4, 32 );
+   
+     s1 = (float)sr->x / rdev->src_width;  s2 = (float)(sr->x+sr->w) / rdev->src_width;
+     t1 = (float)sr->y / rdev->src_height; t2 = (float)(sr->y+sr->h) / rdev->src_height;
      if (rdev->blittingflags & DSBLIT_ROTATE180) {
-          VTX( v, dr->x      , dr->y      , sl.x+sl.w, sl.y+sl.h );
-          VTX( v, dr->x+dr->w, dr->y      , sl.x     , sl.y+sl.h );
-          VTX( v, dr->x+dr->w, dr->y+dr->h, sl.x     , sl.y       );
-          VTX( v, dr->x      , dr->y+dr->h, sl.x+sl.w, sl.y       );
+          float tmp;
+          tmp = s2; s2 = s1; s1 = tmp;
+          tmp = t2; t2 = t1; t1 = tmp;
+     }
+
+     x1 = dr->x;       y1 = dr->y;
+     x2 = dr->x+dr->w; y2 = dr->y+dr->h;
+     if (rdev->matrix) {
+          float x, y;
+
+          v = r300_init_vb( rdrv, rdev, VF_PRIM_TYPE_QUAD_LIST, 4, 32 );
+          RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix );
+          VTX( v, x, y, s1, t1 );
+          RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix );
+          VTX( v, x, y, s2, t1 );
+          RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix );
+          VTX( v, x, y, s2, t2 );
+          RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix );
+          VTX( v, x, y, s1, t2 );
      }
      else {
-          VTX( v, dr->x      , dr->y      , sl.x     , sl.y       );
-          VTX( v, dr->x+dr->w, dr->y      , sl.x+sl.w, sl.y       );
-          VTX( v, dr->x+dr->w, dr->y+dr->h, sl.x+sl.w, sl.y+sl.h );
-          VTX( v, dr->x      , dr->y+dr->h, sl.x     , sl.y+sl.h );
+          v = r300_init_vb( rdrv, rdev, VF_PRIM_TYPE_QUAD_LIST, 4, 32 );
+          VTX( v, x1, y1, s1, t1 );
+          VTX( v, x2, y1, s2, t1 );
+          VTX( v, x2, y2, s2, t2 );
+          VTX( v, x1, y2, s1, t2 );
      }
      
      return true;
@@ -318,6 +373,7 @@ bool r300TextureTriangles( void *drv, void *dev, DFBVertex *ve,
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
      u32               prim = 0;
+     int               i;
 
      if (num > 65535) {
           D_WARN( "R300 supports maximum 65535 vertices" );
@@ -337,6 +393,11 @@ bool r300TextureTriangles( void *drv, void *dev, DFBVertex *ve,
           default:
                D_BUG( "unexpected triangle formation" );
                return false;
+     }
+     
+     if (rdev->matrix) {
+          for (i = 0; i < num; i++)
+               RADEON_TRANSFORM( ve[i].x, ve[i].y, ve[i].x, ve[i].y, rdev->matrix );
      }
      
      r300DoTextureTriangles( rdrv, rdev, ve, num, prim );

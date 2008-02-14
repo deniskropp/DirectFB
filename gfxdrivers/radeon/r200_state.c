@@ -77,7 +77,7 @@ void r200_restore( RadeonDriverData *rdrv, RadeonDeviceData *rdev )
 {
      volatile u8 *mmio = rdrv->mmio_base;
      
-     radeon_waitfifo( rdrv, rdev, 19 );
+     radeon_waitfifo( rdrv, rdev, 15 );
      /* enable caches */
      radeon_out32( mmio, RB2D_DSTCACHE_MODE, RB2D_DC_2D_CACHE_AUTOFLUSH     |
                                              RB2D_DC_3D_CACHE_AUTOFLUSH     |
@@ -105,12 +105,7 @@ void r200_restore( RadeonDriverData *rdrv, RadeonDeviceData *rdev )
      radeon_out32( mmio, RB3D_ZSTENCILCNTL, Z_TEST_ALWAYS );
      radeon_out32( mmio, RB3D_ROPCNTL, ROP_XOR );
      radeon_out32( mmio, R200_PP_TXFORMAT_X_0, 0 );
-     radeon_out32( mmio, R200_PP_BORDER_COLOR_0, 0 );
-     /* set YUV422 color buffer */
-     radeon_out32( mmio, R200_PP_TXFILTER_1, 0 );
-     radeon_out32( mmio, R200_PP_TXFORMAT_1, R200_TXFORMAT_VYUY422 );
      radeon_out32( mmio, R200_PP_TXFORMAT_X_1, 0 );
-     radeon_out32( mmio, R200_PP_BORDER_COLOR_1, 0 );
 }
 
 void r200_set_destination( RadeonDriverData *rdrv,
@@ -391,6 +386,95 @@ void r200_set_source( RadeonDriverData *rdrv,
      RADEON_SET( SOURCE );
 }
 
+void r200_set_source_mask( RadeonDriverData *rdrv,
+                           RadeonDeviceData *rdev,
+                           CardState        *state )
+{
+     CoreSurface       *surface  = state->source_mask;
+     CoreSurfaceBuffer *buffer   = state->src_mask.buffer;
+     volatile u8       *mmio     = rdrv->mmio_base;
+     u32                txformat = R200_TXFORMAT_NON_POWER2;
+     u32                txfilter = R200_MAG_FILTER_LINEAR  |
+                                   R200_MIN_FILTER_LINEAR  |
+                                   R200_CLAMP_S_CLAMP_LAST |
+                                   R200_CLAMP_T_CLAMP_LAST;
+     
+     if (RADEON_IS_SET( SOURCE_MASK )) {
+          if ((state->blittingflags & DSBLIT_DEINTERLACE) ==
+              (rdev->blittingflags  & DSBLIT_DEINTERLACE))
+               return;
+     }
+
+     D_ASSERT( (state->src_mask.offset % 32) == 0 );
+     D_ASSERT( (state->src_mask.pitch % 32) == 0 );
+     
+     rdev->msk_format = buffer->format;
+     rdev->msk_offset = radeon_buffer_offset( rdev, &state->src_mask );
+     rdev->msk_pitch  = state->src_mask.pitch;
+     rdev->msk_width  = surface->config.size.w;
+     rdev->msk_height = surface->config.size.h;
+
+     switch (buffer->format) {
+          case DSPF_A8:
+               txformat |= R200_TXFORMAT_I8 |
+                           R200_TXFORMAT_ALPHA_IN_MAP;
+               break;
+          case DSPF_RGB332:
+               txformat |= R200_TXFORMAT_RGB332;
+               break;
+          case DSPF_RGB444:
+               txformat |= R200_TXFORMAT_ARGB4444;
+               break;     
+          case DSPF_ARGB4444:
+               txformat |= R200_TXFORMAT_ARGB4444 |
+                           R200_TXFORMAT_ALPHA_IN_MAP;
+               break;
+          case DSPF_RGB555:
+               txformat |= R200_TXFORMAT_ARGB1555;
+               break; 
+          case DSPF_ARGB1555:
+               txformat |= R200_TXFORMAT_ARGB1555 |
+                           R200_TXFORMAT_ALPHA_IN_MAP;
+               break;
+          case DSPF_RGB16:
+               txformat |= R200_TXFORMAT_RGB565;
+               break;
+          case DSPF_RGB32:
+               txformat |= R200_TXFORMAT_ARGB8888;
+               break;
+          case DSPF_ARGB:
+          case DSPF_AiRGB:
+               txformat |= R200_TXFORMAT_ARGB8888 |
+                           R200_TXFORMAT_ALPHA_IN_MAP;
+               break;
+          default:
+               D_BUG( "unexpected pixelformat" );
+               return;
+     }
+
+     if (state->blittingflags & DSBLIT_DEINTERLACE) { 
+          rdev->msk_height /= 2;
+          if (surface->config.caps & DSCAPS_SEPARATED) {
+               if (surface->field)
+                    rdev->msk_offset += rdev->msk_height * rdev->msk_pitch;
+          } else {
+               if (surface->field)
+                    rdev->msk_offset += rdev->msk_pitch;
+               rdev->msk_pitch *= 2;
+          }
+     }
+
+     radeon_waitfifo( rdrv, rdev, 5 );
+     radeon_out32( mmio, R200_PP_TXFILTER_1, txfilter );
+     radeon_out32( mmio, R200_PP_TXFORMAT_1, txformat );
+     radeon_out32( mmio, R200_PP_TXSIZE_1, ((rdev->msk_height-1) << 16) | 
+                                           ((rdev->msk_width-1) & 0xffff) );
+     radeon_out32( mmio, R200_PP_TXPITCH_1, rdev->msk_pitch - 32 );
+     radeon_out32( mmio, R200_PP_TXOFFSET_1, rdev->msk_offset );
+
+     RADEON_SET( SOURCE_MASK );
+}
+
 void r200_set_clip( RadeonDriverData *rdrv,
                     RadeonDeviceData *rdev,
                     CardState        *state )
@@ -431,9 +515,12 @@ void r200_set_clip( RadeonDriverData *rdrv,
      radeon_out32( (rdrv)->fb_base, (rdev)->yuv422_buffer,      \
                    PIXEL_YUY2( y, u, v ) );                     \
      radeon_in8( (rdrv)->fb_base, (rdev)->yuv422_buffer );      \
-     radeon_waitfifo( rdrv, rdev, 1 );                          \
+     radeon_waitfifo( rdrv, rdev, 3 );                          \
      radeon_out32( (rdrv)->mmio_base, R200_PP_TXOFFSET_1,       \
                    (rdev)->fb_offset + (rdev)->yuv422_buffer ); \
+     radeon_out32( (rdrv)->mmio_base, R200_PP_TXFORMAT_1,       \
+                   R200_TXFORMAT_VYUY422 );                     \
+     radeon_out32( (rdrv)->mmio_base, R200_PP_TXFILTER_1, 0 );  \
 }
 
 void r200_set_drawing_color( RadeonDriverData *rdrv,
@@ -756,8 +843,17 @@ void r200_set_blittingflags( RadeonDriverData *rdrv,
           rb3d_cntl |= ALPHA_BLEND_ENABLE;
      }
 
-     if (rdev->dst_format != DSPF_A8) {    
-          if (state->blittingflags & DSBLIT_COLORIZE) {
+     if (rdev->dst_format != DSPF_A8) {
+          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+               if (state->blittingflags & DSBLIT_SRC_MASK_ALPHA)
+                    ablend = R200_TXA_ARG_A_R0_ALPHA | R200_TXA_ARG_B_R1_ALPHA;
+               
+               if (state->blittingflags & DSBLIT_SRC_MASK_COLOR)
+                    cblend = R200_TXC_ARG_A_R0_COLOR | R200_TXC_ARG_B_R1_COLOR;
+                    
+               pp_cntl |= TEX_1_ENABLE | TEX_BLEND_0_ENABLE;
+          }
+          else if (state->blittingflags & DSBLIT_COLORIZE) {
                if (rdev->dst_422) {
                     cblend = (rdev->src_format == DSPF_A8)
                              ? (R200_TXC_ARG_C_R1_COLOR)
@@ -782,11 +878,22 @@ void r200_set_blittingflags( RadeonDriverData *rdrv,
           }
      } /* DSPF_A8 */
      else {
-          if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
-                                      DSBLIT_BLEND_ALPHACHANNEL))
+          if (state->blittingflags & DSBLIT_SRC_MASK_ALPHA) {
+               ablend = R200_TXA_ARG_A_R0_ALPHA | R200_TXA_ARG_B_R1_ALPHA;
+               pp_cntl |= TEX_1_ENABLE;
+          }
+               
+          if (state->blittingflags & DSBLIT_SRC_MASK_COLOR) {
+               cblend = R200_TXC_ARG_C_R1_COLOR;
+               pp_cntl |= TEX_1_ENABLE;
+          }
+          else if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
+                                           DSBLIT_BLEND_ALPHACHANNEL)) {
                cblend = R200_TXC_ARG_C_TFACTOR_COLOR;
-          else
+          }
+          else {
                cblend = R200_TXC_ARG_C_R0_ALPHA;
+          }
 
           pp_cntl |= TEX_BLEND_0_ENABLE;
      }
