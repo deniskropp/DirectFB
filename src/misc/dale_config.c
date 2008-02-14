@@ -52,6 +52,8 @@ static const char *config_usage =
      "\n"
      "FusionDale options:\n"
      "\n"
+     "  coma-shmpool-size=<kb>         Set the maximum size of the shared memory pool created by\n"
+     "                                 each component manager (once for all EnterComa with same name)\n"
      "  session=<num>                  Select multi app world (-1 = new)\n"
      "  [no-]banner                    Show FusionDale banner on startup\n"
      "\n";
@@ -105,9 +107,10 @@ config_allocate()
           
      fusiondale_config = D_CALLOC( 1, sizeof(FusionDaleConfig) );
      
-     fusiondale_config->session = 5;  // FIXME!!!
+     fusiondale_config->session           = 5;  // FIXME!!!
 
-     fusiondale_config->banner  = true;
+     fusiondale_config->banner            = true;
+     fusiondale_config->coma_shmpool_size = 16 * 1024 * 1024;
 }
 
 const char*
@@ -134,6 +137,22 @@ fd_config_set( const char *name, const char *value )
           else {
                D_ERROR( "FusionDale/Config 'session': "
                         "No value specified!\n" );
+               return DFB_INVARG;
+          }
+     }
+     else if (!strcmp( name, "coma-shmpool-size" )) {
+          if (value) {
+               int size_kb;
+
+               if (sscanf( value, "%d", &size_kb ) < 1) {
+                    D_ERROR( "FusionDale/Config '%s': Could not parse value!\n", name);
+                    return DFB_INVARG;
+               }
+
+               fusiondale_config->coma_shmpool_size = size_kb * 1024;
+          }
+          else {
+               D_ERROR( "FusionDale/Config '%s': No value specified!\n", name );
                return DFB_INVARG;
           }
      }
