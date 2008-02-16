@@ -257,7 +257,7 @@ coma_component_activate( ComaComponent *component )
      FUSION_SKIRMISH_ASSERT( &component->lock );
      D_ASSUME( !component->active );
 
-     D_DEBUG_AT( Coma_Component, "%s( %p ) <- '%s'\n", __FUNCTION__, component, name );
+     D_DEBUG_AT( Coma_Component, "%s( %p ) <- '%s'\n", __FUNCTION__, component, component->name );
 
      if (component->active)
           return DFB_BUSY;
