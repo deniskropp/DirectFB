@@ -47,6 +47,8 @@
 #include <coma/coma.h>
 #include <coma/component.h>
 
+#include <misc/dale_config.h>
+
 
 D_DEBUG_DOMAIN( Coma_Core, "Coma/Core", "Coma Core" );
 
@@ -547,7 +549,8 @@ coma_arena_initialize( FusionArena *arena,
      D_MAGIC_ASSERT( coma, Coma );
 
      /* Create the shared memory pool first! */
-     ret = fusion_shm_pool_create( coma->world, "Coma Core", 0x1000000,
+     ret = fusion_shm_pool_create( coma->world, "Coma Core",
+                                   fusiondale_config->coma_shmpool_size,
                                    fusion_config->debugshm, &pool );
      if (ret)
           return ret;
