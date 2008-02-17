@@ -1588,6 +1588,10 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
                prog++;
           else
                prog = (*argv)[0];
+
+          /* Strip lt- prefix. */
+          if (prog[0] == 'l' && prog[1] == 't' && prog[2] == '-')
+            prog += 3;
      }
 
      /* Read global application settings. */
