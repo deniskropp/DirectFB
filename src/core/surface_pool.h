@@ -63,6 +63,7 @@ typedef struct {
      CoreSurfaceTypeFlags          types;
      CoreSurfacePoolPriority       priority;
      char                          name[DFB_SURFACE_POOL_DESC_NAME_LENGTH];
+     unsigned long                 size;
 } CoreSurfacePoolDescription;
 
 

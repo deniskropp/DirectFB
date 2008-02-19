@@ -29,6 +29,7 @@
 #ifndef __CORE__SURFACE_BUFFER_H__
 #define __CORE__SURFACE_BUFFER_H__
 
+#include <direct/debug.h>
 #include <direct/list.h>
 
 #include <fusion/vector.h>
@@ -36,6 +37,7 @@
 #include <core/surface.h>
 
 #include <directfb.h>
+
 
 /*
  * Configuration and State flags of a Surface Buffer
@@ -81,6 +83,19 @@ struct __DFB_CoreSurfaceAllocation {
      CoreSurfaceAccessFlags         accessed;     /* Access since last synchronization. */
 };
 
+#define CORE_SURFACE_ALLOCATION_ASSERT(alloc)                                                  \
+     do {                                                                                      \
+          D_MAGIC_ASSERT( alloc, CoreSurfaceAllocation );                                      \
+          /*CORE_SURFACE_BUFFER_ASSERT( (alloc)->buffer );*/                                   \
+          /*CORE_SURFACE_POOL_ASSERT( (alloc)->pool );*/                                       \
+          D_ASSUME( (alloc)->size > 0 );                                                       \
+          D_ASSERT( (alloc)->size >= 0 );                                                      \
+          D_ASSERT( (alloc)->offset + (alloc)->size <= ((alloc)->pool->desc.size ?:~0UL) );    \
+          D_FLAGS_ASSERT( (alloc)->access, CSAF_ALL );                                         \
+          D_FLAGS_ASSERT( (alloc)->flags, CSALF_ALL );                                         \
+          D_FLAGS_ASSERT( (alloc)->accessed, CSAF_ALL );                                       \
+     } while (0)
+
 /*
  * A Lock on a Surface Buffer
  */
@@ -99,6 +114,20 @@ struct __DFB_CoreSurfaceBufferLock {
 
      void                    *handle;
 };
+
+#define CORE_SURFACE_BUFFER_LOCK_ASSERT(lock)                                                  \
+     do {                                                                                      \
+          D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );                                       \
+          D_FLAGS_ASSERT( (lock)->access, CSAF_ALL );                                          \
+          CORE_SURFACE_ALLOCATION_ASSERT( (lock)->allocation );                                \
+          D_ASSERT( (lock)->buffer == (lock)->allocation->buffer );                            \
+          D_ASSUME( (lock)->addr != NULL ||                                                    \
+                    !((lock)->access & (CSAF_CPU_READ|CSAF_CPU_WRITE)) );                      \
+          D_ASSUME( (lock)->phys != 0 || (lock)->handle != NULL ||                             \
+                    !((lock)->access & (CSAF_GPU_READ|CSAF_GPU_WRITE)) );                      \
+          D_ASSUME( (lock)->offset == (lock)->allocation->offset );                            \
+          D_ASSERT( (lock)->pitch > 0 );                                                       \
+     } while (0)
 
 /*
  * A Surface Buffer of a Surface

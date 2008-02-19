@@ -46,6 +46,11 @@
 #include <direct/trace.h>
 #include <direct/util.h>
 
+
+D_DEBUG_DOMAIN( Direct_Mem, "Direct/Mem", "libdirect memory allocation (debugging)" );
+
+/**********************************************************************************************************************/
+
 typedef struct {
      const void        *mem;
      size_t             bytes;
@@ -55,18 +60,21 @@ typedef struct {
      DirectTraceBuffer *trace;
 } MemDesc;
 
+/**********************************************************************************************************************/
 
 static int              alloc_count    = 0;
 static int              alloc_capacity = 0;
 static MemDesc         *alloc_list     = NULL;
 static pthread_mutex_t  alloc_lock     = PTHREAD_MUTEX_INITIALIZER;
 
+/**********************************************************************************************************************/
 
 void
 direct_print_memleaks()
 {
      unsigned int i;
 
+     /* Debug only. */
      pthread_mutex_lock( &alloc_lock );
 
      if (alloc_count && (!direct_config || direct_config->debugmem)) {
@@ -86,6 +94,10 @@ direct_print_memleaks()
      pthread_mutex_unlock( &alloc_lock );
 }
 
+/**********************************************************************************************************************/
+
+/* FIXME: Replace array by linked list, or at least avoid the memmove on free of an item. */
+
 static MemDesc *
 allocate_mem_desc()
 {
@@ -97,10 +109,19 @@ allocate_mem_desc()
           cap <<= 1;
 
      if (cap != alloc_capacity) {
-          alloc_capacity = cap;
-          alloc_list     = realloc( alloc_list, sizeof(MemDesc) * cap );
+          void *new_list = malloc( sizeof(MemDesc) * cap );
 
-          D_ASSERT( alloc_list != NULL );
+          if (!new_list) {
+               D_WARN( "could not allocate more descriptors (%d->%d)", alloc_capacity, cap );
+               return NULL;
+          }
+
+          direct_memcpy( new_list, alloc_list, sizeof(MemDesc) * alloc_count );
+
+          free( alloc_list );
+
+          alloc_capacity = cap;
+          alloc_list     = new_list;
      }
 
      return &alloc_list[alloc_count++];
@@ -118,29 +139,34 @@ fill_mem_desc( MemDesc *desc, const void *mem, int bytes,
      desc->trace = trace;
 }
 
+/**********************************************************************************************************************/
+
 void *
 direct_malloc( const char* file, int line, const char *func, size_t bytes )
 {
      void    *mem;
      MemDesc *desc;
 
-     D_DEBUG( "Direct/Mem: allocating %7zu bytes in %s (%s: %u)\n", bytes, func, file, line );
+     D_DEBUG_AT( Direct_Mem, "  +%6zu bytes [%s:%d in %s()]\n", bytes, file, line, func );
 
      mem = malloc( bytes );
      if (!mem)
           return NULL;
 
+     if (!direct_config->debugmem)
+          return mem;
+
+
+     /* Debug only. */
      pthread_mutex_lock( &alloc_lock );
-
      desc = allocate_mem_desc();
-
-     fill_mem_desc( desc, mem, bytes, func, file, line, direct_trace_copy_buffer(NULL) );
-
      pthread_mutex_unlock( &alloc_lock );
+
+     if (desc)
+          fill_mem_desc( desc, mem, bytes, func, file, line, direct_trace_copy_buffer(NULL) );
 
      return mem;
 }
-
 
 void *
 direct_calloc( const char* file, int line, const char *func, size_t count, size_t bytes )
@@ -148,24 +174,26 @@ direct_calloc( const char* file, int line, const char *func, size_t count, size_
      void    *mem;
      MemDesc *desc;
 
-     D_DEBUG( "Direct/Mem: allocating %7zu bytes in %s (%s: %u)\n",
-                   count * bytes, func, file, line );
+     D_DEBUG_AT( Direct_Mem, "  +%6zu bytes [%s:%d in %s()]\n", count * bytes, file, line, func );
 
      mem = calloc( count, bytes );
      if (!mem)
           return NULL;
 
+     if (!direct_config->debugmem)
+          return mem;
+
+
+     /* Debug only. */
      pthread_mutex_lock( &alloc_lock );
-
      desc = allocate_mem_desc();
-
-     fill_mem_desc( desc, mem, count * bytes, func, file, line, direct_trace_copy_buffer(NULL) );
-
      pthread_mutex_unlock( &alloc_lock );
+
+     if (desc)
+          fill_mem_desc( desc, mem, count * bytes, func, file, line, direct_trace_copy_buffer(NULL) );
 
      return mem;
 }
-
 
 void *
 direct_realloc( const char *file, int line, const char *func, const char *what, void *mem, size_t bytes )
@@ -180,6 +208,13 @@ direct_realloc( const char *file, int line, const char *func, const char *what, 
           return NULL;
      }
 
+     if (!direct_config->debugmem) {
+          D_DEBUG_AT( Direct_Mem, "  *%6zu bytes [%s:%d in %s()] '%s'\n", bytes, file, line, func, what );
+          return mem;
+     }
+
+
+     /* Debug only. */
      pthread_mutex_lock( &alloc_lock );
 
      for (i=0; i<alloc_count; i++) {
@@ -188,12 +223,26 @@ direct_realloc( const char *file, int line, const char *func, const char *what, 
           if (desc->mem == mem) {
                void *new_mem = realloc( mem, bytes );
 
-               D_ASSERT( new_mem != NULL );
+               D_DEBUG_AT( Direct_Mem, "  %c%6zu bytes [%s:%d in %s()] (%s%zu) <- %p -> %p '%s'\n",
+                           (bytes > desc->bytes) ? '>' : '<', bytes, file, line, func,
+                           (bytes > desc->bytes) ? "+" : "", bytes - desc->bytes, mem, new_mem, what);
 
-               if (desc->trace)
+               if (desc->trace) {
                     direct_trace_free_buffer( desc->trace );
+                    desc->trace = NULL;
+               }
 
-               fill_mem_desc( desc, new_mem, bytes, func, file, line, direct_trace_copy_buffer(NULL) );
+               if (!new_mem) {
+                    D_WARN( "could not reallocate memory (%p: %zu->%zu)", mem, desc->bytes, bytes );
+
+                    alloc_count--;
+
+                    /* FIXME: This can be very slow. */
+                    if (i < alloc_count)
+                         direct_memmove( desc, desc + 1, (alloc_count - i) * sizeof(MemDesc) );
+               }
+               else
+                    fill_mem_desc( desc, new_mem, bytes, func, file, line, direct_trace_copy_buffer(NULL) );
 
                pthread_mutex_unlock( &alloc_lock );
 
@@ -203,11 +252,8 @@ direct_realloc( const char *file, int line, const char *func, const char *what, 
 
      pthread_mutex_unlock( &alloc_lock );
 
-     if (mem != NULL) {
-          D_ERROR( "Direct/Mem: unknown chunk %p (%s) from [%s:%d in %s()]\n",
-                   mem, what, file, line, func );
-          D_BREAK( "unknown chunk" );
-     }
+     D_ERROR( "Direct/Mem: Not reallocating unknown %p (%s) from [%s:%d in %s()] - corrupt/incomplete list?\n",
+              mem, what, file, line, func );
 
      return direct_malloc( file, line, func, bytes );
 }
@@ -217,9 +263,19 @@ direct_free( const char *file, int line, const char *func, const char *what, voi
 {
      unsigned int i;
 
-     if (!mem)
+     if (!mem) {
+          D_WARN( "%s (NULL) called", __FUNCTION__ );
           return;
+     }
 
+     if (!direct_config->debugmem) {
+          D_DEBUG_AT( Direct_Mem, "  - number of bytes of %s [%s:%d in %s()] -> %p\n", what, file, line, func, mem );
+          free( mem );
+          return;
+     }
+
+
+     /* Debug only. */
      pthread_mutex_lock( &alloc_lock );
 
      for (i=0; i<alloc_count; i++) {
@@ -228,11 +284,15 @@ direct_free( const char *file, int line, const char *func, const char *what, voi
           if (desc->mem == mem) {
                free( mem );
 
+               D_DEBUG_AT( Direct_Mem, "  -%6zu bytes [%s:%d in %s()] -> %p '%s'\n",
+                           desc->bytes, file, line, func, mem, what );
+
                if (desc->trace)
                     direct_trace_free_buffer( desc->trace );
 
                alloc_count--;
 
+               /* FIXME: This can be very slow. */
                if (i < alloc_count)
                     direct_memmove( desc, desc + 1, (alloc_count - i) * sizeof(MemDesc) );
 
@@ -244,9 +304,8 @@ direct_free( const char *file, int line, const char *func, const char *what, voi
 
      pthread_mutex_unlock( &alloc_lock );
 
-     D_ERROR( "Direct/Mem: unknown chunk %p (%s) from [%s:%d in %s()]\n",
+     D_ERROR( "Direct/Mem: Not freeing unknown %p (%s) from [%s:%d in %s()] - corrupt/incomplete list?\n",
               mem, what, file, line, func );
-     D_BREAK( "unknown chunk" );
 }
 
 char *
@@ -254,27 +313,31 @@ direct_strdup( const char* file, int line, const char *func, const char *string 
 {
      void    *mem;
      MemDesc *desc;
-     int      length = strlen( string ) + 1;
-
-     D_DEBUG( "Direct/Mem: allocating %7d bytes in %s (%s: %u)\n",
-                   length, func, file, line );
+     size_t   length = strlen( string ) + 1;
 
      mem = malloc( length );
+     D_DEBUG_AT( Direct_Mem, "  +%6zu bytes [%s:%d in %s()] -> %p \"%30s\"\n", length, file, line, func, mem, string );
      if (!mem)
           return NULL;
 
      direct_memcpy( mem, string, length );
 
+     if (!direct_config->debugmem)
+          return mem;
+
+
+     /* Debug only. */
      pthread_mutex_lock( &alloc_lock );
-
      desc = allocate_mem_desc();
-
-     fill_mem_desc( desc, mem, length, func, file, line, direct_trace_copy_buffer(NULL) );
-
      pthread_mutex_unlock( &alloc_lock );
+
+     if (desc)
+          fill_mem_desc( desc, mem, length, func, file, line, direct_trace_copy_buffer(NULL) );
 
      return mem;
 }
+
+/**********************************************************************************************************************/
 
 #else
 
