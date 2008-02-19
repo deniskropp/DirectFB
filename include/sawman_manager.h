@@ -408,8 +408,8 @@ sawman_window_priority( const SaWManWindow *sawwin )
 }
 
 static inline int
-sawman_window_index( const SaWMan       *sawman,
-                     const SaWManWindow *sawwin )
+sawman_window_index( SaWMan       *sawman,
+                     SaWManWindow *sawwin )
 {
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );

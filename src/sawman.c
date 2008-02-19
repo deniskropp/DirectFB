@@ -1388,8 +1388,8 @@ sawman_update_geometry( SaWManWindow *sawwin )
 int
 sawman_window_border( const SaWManWindow *sawwin )
 {
+     SaWMan                 *sawman;
      const CoreWindow       *window;
-     const SaWMan           *sawman;
      const SaWManTier       *tier;
      const SaWManBorderInit *border;
      int                     thickness = 0;
