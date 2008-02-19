@@ -9,7 +9,21 @@ INCLUDES = \
 	-DLINUX_2_6
 
 
-noinst_PROGRAMS = fusion_fork fusion_reactor fusion_skirmish fusion_stream
+noinst_PROGRAMS = \
+	direct_stream	\
+	direct_test	\
+	fusion_fork	\
+	fusion_reactor	\
+	fusion_skirmish	\
+	fusion_stream
+
+
+direct_stream_SOURCES = direct_stream.c
+direct_stream_LDADD   = ../lib/direct/libdirect.la
+
+direct_test_SOURCES = direct_test.c
+direct_test_LDADD   = ../lib/direct/libdirect.la
+
 
 fusion_fork_SOURCES = fusion_fork.c
 fusion_fork_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la

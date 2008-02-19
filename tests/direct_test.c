@@ -43,9 +43,9 @@
 #include <direct/trace.h>
 
 static int
-show_usage()
+show_usage( const void *name )
 {
-     fprintf( stderr, "Usage: dtest [-f <file>] [-u <host>:<port>]\n" );
+     fprintf( stderr, "Usage: %s [-f <file>] [-u <host>:<port>]\n", name );
 
      return -1;
 }
@@ -67,7 +67,7 @@ main( int argc, char *argv[] )
                     log_param = argv[i];
                }
                else
-                    return show_usage();
+                    return show_usage(argv[0]);
           }
           else if (!strcmp( argv[i], "-u" )) {
                if (++i < argc) {
@@ -75,10 +75,10 @@ main( int argc, char *argv[] )
                     log_param = argv[i];
                }
                else
-                    return show_usage();
+                    return show_usage(argv[0]);
           }
           else
-               return show_usage();
+               return show_usage(argv[0]);
      }
 
      /* Initialize logging. */
@@ -99,12 +99,14 @@ main( int argc, char *argv[] )
      /* Initialize libdirect. */
      direct_initialize();
 
-     direct_find_best_memcpy();
 
+     D_INFO( "Direct/Test: Application stopping...\n" );
 
      /* Shutdown libdirect. */
      direct_shutdown();
 
+
+     D_INFO( "Direct/Test: You should see a leak message with debug-mem turned on...\n" );
 
      /* Shutdown logging. */
      direct_log_destroy( log );

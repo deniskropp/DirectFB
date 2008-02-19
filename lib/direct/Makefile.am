@@ -13,13 +13,6 @@ AM_CPPFLAGS = \
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = direct.pc
 
-noinst_PROGRAMS = dtest
-
-dtest_SOURCES = dtest.c
-dtest_LDADD   = libdirect.la
-dtest_CFLAGS  = $(CPPFLAGS)
-
-
 EXTRA_DIST = \
 	ppcasm_memcpy.S			\
 	ppcasm_memcpy_cachable.S	\
