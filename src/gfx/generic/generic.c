@@ -6511,21 +6511,21 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
      CoreSurfaceAccessFlags access = CSAF_CPU_WRITE;
 
-     if (dfb_config->software_warn) {
-          if (DFB_BLITTING_FUNCTION( accel ))
-               D_WARN( "Ignoring blit (%x) from %s to %s, flags 0x%08x, funcs %d %d", accel,
-                       source ? dfb_pixelformat_name(source->config.format) : "NULL SOURCE",
-                       destination ? dfb_pixelformat_name(destination->config.format) : "NULL DESTINATION",
-                       state->blittingflags, state->src_blend, state->dst_blend );
-          else
-               D_WARN( "Ignoring draw (%x) to %s, flags 0x%08x", accel,
-                       destination ? dfb_pixelformat_name(destination->config.format) : "NULL DESTINATION",
-                       state->drawingflags );
+     if (dfb_config->hardware_only) {
+          if (dfb_config->software_warn) {
+               if (DFB_BLITTING_FUNCTION( accel ))
+                    D_WARN( "Ignoring blit (%x) from %s to %s, flags 0x%08x, funcs %d %d", accel,
+                            source ? dfb_pixelformat_name(source->config.format) : "NULL SOURCE",
+                            destination ? dfb_pixelformat_name(destination->config.format) : "NULL DESTINATION",
+                            state->blittingflags, state->src_blend, state->dst_blend );
+               else
+                    D_WARN( "Ignoring draw (%x) to %s, flags 0x%08x", accel,
+                            destination ? dfb_pixelformat_name(destination->config.format) : "NULL DESTINATION",
+                            state->drawingflags );
+          }
 
-     }
-
-     if (dfb_config->hardware_only)
           return false;
+     }
 
      if (!state->gfxs) {
           gfxs = D_CALLOC( 1, sizeof(GenefxState) );
@@ -7815,6 +7815,12 @@ void gFillRectangle( CardState *state, DFBRectangle *rect )
 
      D_ASSERT( gfxs != NULL );
 
+     if (dfb_config->software_warn) {
+          D_WARN( "FillRectangle (%4d,%4d-%4dx%4d) %s, flags 0x%08x, color 0x%02x%02x%02x%02x",
+                  DFB_RECTANGLE_VALS(rect), dfb_pixelformat_name(gfxs->dst_format), state->drawingflags,
+                  state->color.a, state->color.r, state->color.g, state->color.b );
+     }
+
      D_ASSERT( state->clip.x1 <= rect->x );
      D_ASSERT( state->clip.y1 <= rect->y );
      D_ASSERT( state->clip.x2 >= (rect->x + rect->w - 1) );
@@ -7866,6 +7872,12 @@ void gDrawLine( CardState *state, DFBRegion *line )
 
           gFillRectangle( state, &rect );
           return;
+     }
+
+     if (dfb_config->software_warn) {
+          D_WARN( "DrawLine      (%4d,%4d-%4d,%4d) %s, flags 0x%08x, color 0x%02x%02x%02x%02x",
+                  DFB_RECTANGLE_VALS_FROM_REGION(line), dfb_pixelformat_name(gfxs->dst_format), state->drawingflags,
+                  state->color.a, state->color.r, state->color.g, state->color.b );
      }
 
      sdy = SIGN(dy) * SIGN(dx);
@@ -7923,6 +7935,13 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
      int          x, h;
 
      D_ASSERT( gfxs != NULL );
+
+     if (dfb_config->software_warn) {
+          D_WARN( "Blit          (%4d,%4d-%4dx%4d) %s, flags 0x%08x, color 0x%02x%02x%02x%02x, source (%4d,%4d) %s",
+                  dx, dy, rect->w, rect->h, dfb_pixelformat_name(gfxs->dst_format), state->blittingflags,
+                  state->color.a, state->color.r, state->color.g, state->color.b, rect->x, rect->y,
+                  dfb_pixelformat_name(gfxs->src_format) );
+     }
 
      D_ASSERT( state->clip.x1 <= dx );
      D_ASSERT( state->clip.y1 <= dy );
@@ -8434,6 +8453,13 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      int h;
 
      D_ASSERT( gfxs != NULL );
+
+     if (dfb_config->software_warn) {
+          D_WARN( "StretchBlit   (%4d,%4d-%4dx%4d) %s, flags 0x%08x, color 0x%02x%02x%02x%02x, source (%4d,%4d-%4dx%4d) %s",
+                  srect->x, srect->y, srect->w, srect->h, dfb_pixelformat_name(gfxs->dst_format), state->blittingflags,
+                  state->color.a, state->color.r, state->color.g, state->color.b, drect->x, drect->y, drect->w, drect->h,
+                  dfb_pixelformat_name(gfxs->src_format) );
+     }
 
      CHECK_PIPELINE();
 
