@@ -70,8 +70,9 @@
 #include <misc/util.h>
 
 
-D_DEBUG_DOMAIN( Core_Graphics, "Core/Graphics", "DirectFB Graphics Core" );
+D_DEBUG_DOMAIN( Core_Graphics,    "Core/Graphics",    "DirectFB Graphics Core" );
 D_DEBUG_DOMAIN( Core_GraphicsOps, "Core/GraphicsOps", "DirectFB Graphics Core Operations" );
+D_DEBUG_DOMAIN( Core_GfxState,    "Core/GfxState",    "DirectFB Graphics Core State" );
 
 
 DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers", DFB_GRAPHICS_DRIVER_ABI_VERSION );
@@ -559,6 +560,15 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
      D_ASSERT( state->clip.x1 >= 0 );
      D_ASSERT( state->clip.y1 >= 0 );
 
+     if (DFB_BLITTING_FUNCTION(accel)) {
+          D_DEBUG_AT( Core_GfxState, "%s( %p, 0x%08x )  blitting %p -> %p\n", __FUNCTION__,
+                      state, accel, state->source, state->destination );
+     }
+     else {
+          D_DEBUG_AT( Core_GfxState, "%s( %p, 0x%08x )  drawing -> %p\n", __FUNCTION__,
+                      state, accel, state->destination );
+     }
+
      if (state->clip.x1 < 0) {
           state->clip.x1   = 0;
           state->modified |= SMF_CLIP;
@@ -568,6 +578,9 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           state->clip.y1   = 0;
           state->modified |= SMF_CLIP;
      }
+
+     D_DEBUG_AT( Core_GfxState, "  <- checked 0x%08x, accel 0x%08x, modified 0x%08x, mod_hw 0x%08x\n",
+                 state->checked, state->accel, state->modified, state->mod_hw );
 
      dst = state->destination;
      src = state->source;
@@ -651,10 +664,13 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           }
      }
 
+     D_DEBUG_AT( Core_GfxState, "  -> checked 0x%08x, accel 0x%08x, modified 0x%08x, mod_hw 0x%08x\n",
+                 state->checked, state->accel, state->modified, state->mod_hw );
+
      /* If the function needs to be checked... */
      if (!(state->checked & accel)) {
-          /* Unset function bit. */
-          state->accel &= ~accel;
+          /* Unset unchecked functions. */
+          state->accel &= state->checked;
 
           /* Call driver to (re)set the bit if the function is supported. */
           card->funcs.CheckState( card->driver_data, card->device_data, state, accel );
@@ -665,6 +681,9 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           /* Add additional functions the driver might have checked, too. */
           state->checked |= state->accel;
      }
+
+     D_DEBUG_AT( Core_GfxState, "  -> checked 0x%08x, accel 0x%08x, modified 0x%08x, mod_hw 0x%08x\n",
+                 state->checked, state->accel, state->modified, state->mod_hw );
 
      /* Move modification flags to the set for drivers. */
      state->mod_hw   |= state->modified;
@@ -678,16 +697,12 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           /* Clear 'accelerated functions'. */
           state->accel   = DFXL_NONE;
           state->checked = DFXL_ALL;
-
-          /* Return immediately. */
-          return false;
      }
-
-     /*
-      * If the front buffer policy of the source is 'system only'
-      * no accelerated blitting is available.
-      */
-     if (DFB_BLITTING_FUNCTION( accel )) {
+     else if (DFB_BLITTING_FUNCTION( accel )) {
+          /*
+           * If the front buffer policy of the source is 'system only'
+           * no accelerated blitting is available.
+           */
           src_buffer = dfb_surface_get_buffer( src, state->from );
 
           D_MAGIC_ASSERT( src_buffer, CoreSurfaceBuffer );
@@ -696,10 +711,11 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
                /* Clear 'accelerated blitting functions'. */
                state->accel   &= ~DFXL_ALL_BLIT;
                state->checked |=  DFXL_ALL_BLIT;
-     
-               return false;
           }
      }
+
+     D_DEBUG_AT( Core_GfxState, "  => checked 0x%08x, accel 0x%08x, modified 0x%08x, mod_hw 0x%08x\n",
+                 state->checked, state->accel, state->modified, state->mod_hw );
 
      /* Return whether the function bit is set. */
      return !!(state->accel & accel);
@@ -738,6 +754,15 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      }
      else if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_DST_COLORKEY))
           access |= CSAF_GPU_READ;
+
+     if (DFB_BLITTING_FUNCTION(accel)) {
+          D_DEBUG_AT( Core_GfxState, "%s( %p, 0x%08x )  blitting %p -> %p\n", __FUNCTION__,
+                      state, accel, state->source, state->destination );
+     }
+     else {
+          D_DEBUG_AT( Core_GfxState, "%s( %p, 0x%08x )  drawing -> %p\n", __FUNCTION__,
+                      state, accel, state->destination );
+     }
 
      /* lock destination */
      ret = dfb_surface_lock_buffer( dst, state->to, access, &state->dst );
@@ -802,6 +827,9 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 
      /* if we are switching to another state... */
      if (state != shared->state || state->fusion_id != shared->holder) {
+          D_DEBUG_AT( Core_GfxState, "  -> switch from %p [%lu] to %p [%lu]\n",
+                      shared->state, shared->holder, state, state->fusion_id );
+
           /* ...set all modification bits and clear 'set functions' */
           state->mod_hw |= SMF_ALL;
           state->set     = 0;
@@ -812,6 +840,8 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 
      dfb_state_update( state, state->flags & (CSF_SOURCE_LOCKED | CSF_SOURCE_MASK_LOCKED) );
 
+     D_DEBUG_AT( Core_GfxState, "  -> mod_hw 0x%08x, modified 0x%08x\n", state->mod_hw, state->modified );
+
      /* Move modification flags to the set for drivers. */
      state->mod_hw   |= state->modified;
      state->modified  = SMF_ALL;
@@ -820,9 +850,13 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
       * If function hasn't been set or state is modified,
       * call the driver function to propagate the state changes.
       */
-     if (state->mod_hw || !(state->set & accel))
+     D_DEBUG_AT( Core_GfxState, "  -> mod_hw 0x%08x, set 0x%08x\n", state->mod_hw, state->set );
+     if (state->mod_hw || !(state->set & accel)) {
           card->funcs.SetState( card->driver_data, card->device_data,
                                 &card->funcs, state, accel );
+
+          D_DEBUG_AT( Core_GfxState, "  => mod_hw 0x%08x, set 0x%08x\n", state->mod_hw, state->set );
+     }
 
      if (state->modified != SMF_ALL)
           D_ONCE( "USING OLD DRIVER! *** Use 'state->mod_hw' NOT 'modified'." );
@@ -1704,7 +1738,7 @@ void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
 static void
 setup_font_state( CoreFont *font, CardState *state )
 {
-     DFBSurfaceBlittingFlags flags = font->state.blittingflags;
+     DFBSurfaceBlittingFlags flags = font->blittingflags;
 
      D_MAGIC_ASSERT( state, CardState );
 
@@ -1772,7 +1806,7 @@ setup_font_state( CoreFont *font, CardState *state )
      if (state->disabled & DFXL_DRAWSTRING)
           font->state.disabled = DFXL_ALL;
      else
-          font->state.disabled = state->disabled;
+          font->state.disabled = DFXL_NONE;
 }
 
 void
@@ -2011,6 +2045,8 @@ void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
      D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( font != NULL );
 
+     D_DEBUG_AT( Core_GfxState, "%s( %p, %p ) <- font state %p\n", __FUNCTION__, font, state, &font->state );
+
      dfb_font_lock( font );
 
      for (i=0; i<128; i++) {
@@ -2019,6 +2055,7 @@ void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
      }
 
      if (!data) {
+          D_DEBUG_AT( Core_GfxState, "  -> No font data!\n" );
           dfb_font_unlock( font );
           return;
      }

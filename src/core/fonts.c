@@ -102,7 +102,8 @@ dfb_font_create( CoreDFB *core, CoreFont **ret_font )
 
      /* the state used to blit the glyphs, may be changed by the font provider */
      dfb_state_init( &font->state, core );
-     font->state.blittingflags = DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE;
+
+     font->blittingflags = DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE;
 
      D_MAGIC_SET( font, CoreFont );
 

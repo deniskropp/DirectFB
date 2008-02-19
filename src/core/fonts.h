@@ -99,6 +99,7 @@ typedef struct {
 struct _CoreFont {
      CoreDFB                      *core;
 
+     DFBSurfaceBlittingFlags       blittingflags;
      CardState                     state;         /* the state used to blit glyphs    */
      DFBSurfacePixelFormat         pixel_format;
      DFBSurfaceCapabilities        surface_caps;

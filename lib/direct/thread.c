@@ -348,8 +348,12 @@ direct_thread_set_name( const char *name )
      char         *copy;
      DirectThread *thread = pthread_getspecific( thread_key );
 
+     D_DEBUG_AT( Direct_Thread, "%s( '%s' )\n", __FUNCTION__, name );
+
      /* Support this function for non-direct threads. */
      if (!thread) {
+          D_DEBUG_AT( Direct_Thread, "  -> attaching unknown thread %d\n", direct_gettid() );
+
           /* Create the key for the TSD (thread specific data). */
           pthread_mutex_lock( &key_lock );
 
@@ -370,6 +374,8 @@ direct_thread_set_name( const char *name )
 
           pthread_setspecific( thread_key, thread );
      }
+     else
+          D_DEBUG_AT( Direct_Thread, "  -> was '%s' (%d)\n", thread->name, direct_gettid() );
 
      /* Duplicate string. */
      copy = D_STRDUP( name );
@@ -395,7 +401,7 @@ direct_thread_cancel( DirectThread *thread )
 
      D_ASSUME( !thread->canceled );
 
-     D_DEBUG_AT( Direct_Thread, "Canceling %d.\n", thread->tid );
+     D_DEBUG_AT( Direct_Thread, "%s( %p, '%s' %d )\n", __FUNCTION__, thread->main, thread->name, thread->tid );
 
      thread->canceled = true;
 
@@ -419,7 +425,7 @@ direct_thread_detach( DirectThread *thread )
 
      D_ASSUME( !thread->canceled );
 
-     D_DEBUG_AT( Direct_Thread, "Detaching %d.\n", thread->tid );
+     D_DEBUG_AT( Direct_Thread, "%s( %p, '%s' %d )\n", __FUNCTION__, thread->main, thread->name, thread->tid );
 
      thread->detached = true;
 
@@ -457,19 +463,23 @@ direct_thread_join( DirectThread *thread )
      D_ASSUME( !thread->joined );
      D_ASSUME( !thread->detached );
 
-     if (thread->detached)
+     D_DEBUG_AT( Direct_Thread, "%s( %p, '%s' %d )\n", __FUNCTION__, thread->main, thread->name, thread->tid );
+
+     if (thread->detached) {
+          D_DEBUG_AT( Direct_Thread, "  -> DETACHED!\n" );
           return;
+     }
 
      if (!thread->joining && !pthread_equal( thread->thread, pthread_self() )) {
           thread->joining = true;
 
-          D_DEBUG_AT( Direct_Thread, "Joining %d...\n", thread->tid );
+          D_DEBUG_AT( Direct_Thread, "  -> joining...\n" );
 
           pthread_join( thread->thread, NULL );
 
           thread->joined = true;
 
-          D_DEBUG_AT( Direct_Thread, "...joined %d.\n", thread->tid );
+          D_DEBUG_AT( Direct_Thread, "  -> joined.\n" );
      }
 }
 
@@ -490,16 +500,18 @@ direct_thread_destroy( DirectThread *thread )
      //D_ASSUME( thread->joined );
      D_ASSUME( !thread->detached );
 
-     if (thread->detached)
+     D_DEBUG_AT( Direct_Thread, "%s( %p, '%s' %d )\n", __FUNCTION__, thread->main, thread->name, thread->tid );
+
+     if (thread->detached) {
+          D_DEBUG_AT( Direct_Thread, "  -> DETACHED!\n" );
           return;
+     }
 
      if (!thread->joined && !pthread_equal( thread->thread, pthread_self() )) {
           if (thread->canceled)
-               D_DEBUG_AT( Direct_Thread, "'%s' (%d) is canceled but not joined!\n",
-                           thread->name, thread->tid );
+               D_DEBUG_AT( Direct_Thread, "  -> cancled but not joined!\n" );
           else {
-               D_DEBUG_AT( Direct_Thread, "'%s' (%d) is still running!\n",
-                           thread->name, thread->tid );
+               D_DEBUG_AT( Direct_Thread, "  -> still running!\n" );
 
                if (thread->name)
                     D_ERROR( "Direct/Thread: Canceling '%s' (%d)!\n", thread->name, thread->tid );
@@ -593,6 +605,8 @@ direct_thread_cleanup( void *arg )
      DirectThread *thread = arg;
 
      D_MAGIC_ASSERT( thread, DirectThread );
+
+     D_DEBUG_AT( Direct_Thread, "%s( %p, '%s' %d )\n", __FUNCTION__, thread->main, thread->name, thread->tid );
 
      if (thread->detached) {
           D_MAGIC_CLEAR( thread );
