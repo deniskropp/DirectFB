@@ -138,7 +138,7 @@ fusion_skirmish_swoop( FusionSkirmish *skirmish )
 }
 
 DirectResult
-fusion_skirmish_lock_count( const FusionSkirmish *skirmish, int *lock_count )
+fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
 {
      int data[2];
 
@@ -384,7 +384,7 @@ fusion_skirmish_swoop( FusionSkirmish *skirmish )
 }
 
 DirectResult
-fusion_skirmish_lock_count( const FusionSkirmish *skirmish, int *lock_count )
+fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
 {
      D_ASSERT( skirmish != NULL );
      
@@ -584,7 +584,12 @@ fusion_skirmish_prevail (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
 
-     return pthread_mutex_lock( &skirmish->single.lock );
+     if (pthread_mutex_lock( &skirmish->single.lock ))
+          return errno2result( errno );
+
+     skirmish->single.count++;
+
+     return DFB_OK;
 }
 
 DirectResult
@@ -592,19 +597,30 @@ fusion_skirmish_swoop (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
 
-     return pthread_mutex_trylock( &skirmish->single.lock );
+     if (pthread_mutex_trylock( &skirmish->single.lock ))
+          return errno2result( errno );
+
+     skirmish->single.count++;
+
+     return DFB_OK;
 }
 
 DirectResult
-fusion_skirmish_lock_count( const FusionSkirmish *skirmish, int *lock_count )
+fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
 {
      D_ASSERT( skirmish != NULL );
+     D_ASSERT( lock_count != NULL );
      
-     D_UNIMPLEMENTED();
+     if (pthread_mutex_trylock( &skirmish->single.lock )) {
+          *lock_count = 0;
+          return errno2result( errno );
+     }
 
-     *lock_count = 0;
+     *lock_count = skirmish->single.count;
 
-     return DFB_UNIMPLEMENTED;
+     pthread_mutex_unlock( &skirmish->single.lock );
+
+     return DFB_OK;
 }
 
 DirectResult
@@ -612,7 +628,12 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
 
-     return pthread_mutex_unlock( &skirmish->single.lock );
+     if (pthread_mutex_unlock( &skirmish->single.lock ))
+          return errno2result( errno );
+
+     skirmish->single.count++;
+
+     return DFB_OK;
 }
 
 DirectResult
