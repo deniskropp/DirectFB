@@ -30,6 +30,7 @@
 #include <direct/debug.h>
 #include <direct/list.h>
 
+#include <fusion/conf.h>
 #include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
 
@@ -426,7 +427,7 @@ sawman_initialize( SaWMan         *sawman,
           return ret;
 
      /* Create shared memory pool. */
-     ret = fusion_shm_pool_create( world, "SaWMan Pool", 0x1000000, true, &sawman->shmpool );
+     ret = fusion_shm_pool_create( world, "SaWMan Pool", 0x100000, fusion_config->debugshm, &sawman->shmpool );
      if (ret)
           goto error;
 
