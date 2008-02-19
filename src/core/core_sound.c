@@ -871,8 +871,10 @@ sound_thread( DirectThread *thread, void *arg )
           fusion_skirmish_prevail( &shared->playlist.lock );
           
           if (!shared->playlist.entries) {
-               if (fusion_skirmish_wait( &shared->playlist.lock, delay ? 1 : 0 ))
+               if (fusion_skirmish_wait( &shared->playlist.lock, delay ? 1 : 0 )) {
+                    fusion_skirmish_dismiss( &shared->playlist.lock );
                     continue;
+               }
           }
 
           direct_list_foreach_safe (l, next, shared->playlist.entries) {
