@@ -234,6 +234,8 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
 
      /*
       * Manage access interlocks.
+      *
+      * SOON FIXME: Clear flags only when not locked yet? Otherwise nested GPU/CPU locks are a problem.
       */
      /* Software read/write access... */
      if (access & (CSAF_CPU_READ | CSAF_CPU_WRITE)) {
@@ -291,8 +293,9 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
 DFBResult
 dfb_surface_buffer_unlock( CoreSurfaceBufferLock *lock )
 {
-     DFBResult        ret;
-     CoreSurfacePool *pool;
+     DFBResult              ret;
+     CoreSurfacePool       *pool;
+     CoreSurfaceAllocation *allocation;
 
      D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_unlock( %p )\n", lock );
 
@@ -300,13 +303,19 @@ dfb_surface_buffer_unlock( CoreSurfaceBufferLock *lock )
 
      D_MAGIC_ASSERT( lock->buffer, CoreSurfaceBuffer );
      D_MAGIC_ASSERT( lock->buffer->surface, CoreSurface );
-     D_MAGIC_ASSERT( lock->allocation, CoreSurfaceAllocation );
 
      FUSION_SKIRMISH_ASSERT( &lock->buffer->surface->lock );
 
-     pool = lock->allocation->pool;
+     allocation = lock->allocation;
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
 
+     pool = allocation->pool;
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
+
+     /*
+      * FIXME: This should fail with a nested GPU Lock during a CPU Lock and/or vice versa?
+      */
+     D_ASSUME( D_FLAGS_ARE_SET( allocation->accessed, lock->access ) );
 
      ret = dfb_surface_pool_unlock( pool, lock->allocation, lock );
      if (ret) {
