@@ -218,8 +218,9 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
 
      D_ASSERT( skirmish != NULL );
 
-     wait.id      = skirmish->multi.id;
-     wait.timeout = timeout;
+     wait.id         = skirmish->multi.id;
+     wait.timeout    = timeout;
+     wait.lock_count = 0;
 
      while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_WAIT, &wait)) {
           switch (errno) {
