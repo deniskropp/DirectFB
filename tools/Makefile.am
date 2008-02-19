@@ -36,7 +36,7 @@ if FREETYPE_PROVIDER
 FREETYPE_PROGS = mkdgiff
 endif
 
-bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbfx dfbg dfbinfo dfbinput dfblayer dfbscreen dfbpenmount $(PNG_PROGS) $(FREETYPE_PROGS) $(VOODOO_PROGS)
+bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbfx dfbg dfbinfo dfbinput dfbinspector dfblayer dfbscreen dfbpenmount $(PNG_PROGS) $(FREETYPE_PROGS) $(VOODOO_PROGS)
 
 noinst_PROGRAMS = $(LINUXONLY_TOOLS)
 
@@ -51,6 +51,9 @@ dfbinfo_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct
 
 dfbinput_SOURCES = dfbinput.c
 dfbinput_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la $(OSX_LIBS)
+
+dfbinspector_SOURCES = dfbinspector.c
+dfbinspector_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la $(OSX_LIBS)
 
 dfblayer_SOURCES = dfblayer.c
 dfblayer_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la $(OSX_LIBS)
