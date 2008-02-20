@@ -26,7 +26,7 @@
    Boston, MA 02111-1307, USA.
 */
 
-
+//#define DIRECT_ENABLE_DEBUG
 
 #include <config.h>
 
@@ -365,57 +365,62 @@ DisplayLayerFuncs x11PrimaryLayerFuncs = {
 static DFBResult
 update_screen( CoreSurface *surface, int x, int y, int w, int h, CoreSurfaceBufferLock *lock )
 {
-#if 0
-     void        *dst;
-     void        *src;
-     int          pitch;
-     DFBResult    ret;
-     XWindow     *xw = dfb_x11->xw;
+     void         *dst;
+     void         *src;
+     unsigned int  offset = 0;
+     XWindow      *xw     = dfb_x11->xw;
+     x11Image     *image;
+     XImage       *ximage;
 
      D_ASSERT( surface != NULL );
-     D_ASSERT( lock != NULL );
+     CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
 
-     src = lock->addr;
-     pitch = lock->pitch;
+     image = lock->handle;
+     D_ASSERT( image != NULL );
 
-     xw->ximage_offset = xw->ximage_offset ? 0 : (xw->ximage->height / 2);
+     if (image->ximage) {
+          D_MAGIC_ASSERT( image, x11Image );
 
-     dst = xw->virtualscreen + xw->ximage_offset * xw->ximage->bytes_per_line;
+          ximage = image->ximage;
+     }
+     else {
+          ximage = xw->ximage;
+          offset = xw->ximage_offset;
 
-     src += DFB_BYTES_PER_LINE( surface->config.format, x ) + y * pitch;
-     dst += x * xw->bpp + y * xw->ximage->bytes_per_line;
-
-     switch (xw->depth) {
-          case 16:
-               dfb_convert_to_rgb16( surface->config.format, src, pitch,
-                                     surface->config.size.h, dst, xw->ximage->bytes_per_line, w, h );
-               break;
-
-          case 24:
-               if (xw->bpp == 4)
-                    dfb_convert_to_rgb32( surface->config.format, src, pitch,
-                                          surface->config.size.h, dst, xw->ximage->bytes_per_line, w, h );
-               break;
-
-          default:
-               D_ONCE( "unsupported depth %d", xw->depth );
+          xw->ximage_offset = (offset ? 0 : ximage->height / 2);
+          
+          src = lock->addr + DFB_BYTES_PER_LINE( surface->config.format, x ) + y * lock->pitch;
+          dst = xw->virtualscreen + x * xw->bpp + (y + offset) * ximage->bytes_per_line;
+          
+          switch (xw->depth) {
+               case 16:
+                    dfb_convert_to_rgb16( surface->config.format, src, lock->pitch,
+                                          surface->config.size.h, dst, ximage->bytes_per_line, w, h );
+                    break;
+          
+               case 24:
+                    if (xw->bpp == 4)
+                         dfb_convert_to_rgb32( surface->config.format, src, lock->pitch,
+                                               surface->config.size.h, dst, ximage->bytes_per_line, w, h );
+                    break;
+          
+               default:
+                    D_ONCE( "unsupported depth %d", xw->depth );
+          }
      }
 
-     XSync(dfb_x11->display, False);
+     D_ASSERT( ximage != NULL );
 
-     XShmPutImage(dfb_x11->display, xw->window, xw->gc, xw->ximage,
-                  x, xw->ximage_offset + y, x, y, w, h, False);
-#else
-     XWindow *xw     = dfb_x11->xw;
-     XImage  *ximage = lock->handle;
 
      XSync( dfb_x11->display, False );
 
-     XShmPutImage( dfb_x11->display, xw->window, xw->gc, ximage,
-                   x, y, x, y, w, h, False );
+     if (dfb_x11->use_shm)
+          XShmPutImage( xw->display, xw->window, xw->gc, ximage, x, y + offset, x, y, w, h, False );
+     else
+          XPutImage( xw->display, xw->window, xw->gc, ximage, x, y + offset, x, y, w, h );
 
      XFlush( dfb_x11->display );
-#endif
+
      return DFB_OK;
 }
 

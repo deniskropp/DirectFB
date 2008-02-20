@@ -41,7 +41,10 @@
 
 typedef struct 
 {
+	Display*			display;
 	Window 				window;
+	Screen*				screenptr;
+	int 				screennum;
 	Visual*				visual;
 	GC 					gc;
 	XImage*				ximage;
@@ -51,7 +54,7 @@ typedef struct
 	XShmSegmentInfo*	shmseginfo;
 	unsigned char*		videomemory;
 
-	unsigned char*		virtualscreen;
+	char*		        virtualscreen;
 	int 				videoaccesstype;
 
 	int 				width;

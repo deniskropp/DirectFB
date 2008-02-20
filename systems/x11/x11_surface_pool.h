@@ -36,7 +36,9 @@
 extern const SurfacePoolFuncs x11SurfacePoolFuncs;
 
 typedef struct {
-     x11Image image;
+     bool      real;
+     x11Image  image;
+     void     *ptr;
 } x11AllocationData;
 
 #endif

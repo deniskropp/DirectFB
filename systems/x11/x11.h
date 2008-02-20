@@ -51,21 +51,25 @@ typedef struct {
 
 
 typedef struct {
-    UpdateScreenData update;
-    SetModeData      setmode;
+     UpdateScreenData     update;
+     SetModeData          setmode;
+                         
+     bool                 use_shm;
+                         
+     FusionSkirmish       lock;
+     FusionCall           call;
 
-    FusionSkirmish   lock;
-    FusionCall       call;
-
-    CoreSurfacePool *surface_pool;
-
-    CoreSurface     *primary;
-    XWindow         *xw;
-    Display         *display;
-    Screen*          screenptr;
-    int              screennum;
-
-    Visual          *visuals[DFB_NUM_PIXELFORMATS];
+     FusionSHMPoolShared *data_shmpool;
+ 
+     CoreSurfacePool     *surface_pool;
+ 
+     CoreSurface         *primary;
+     XWindow             *xw;
+     Display             *display;
+     Screen*              screenptr;
+     int                  screennum;
+                     
+     Visual              *visuals[DFB_NUM_PIXELFORMATS];
 } DFBX11;
 
 typedef enum {

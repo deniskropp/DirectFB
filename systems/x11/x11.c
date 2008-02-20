@@ -74,10 +74,23 @@ static VideoMode modes[] = {
      {  512,  384 },
      {  640,  480 },
      {  768,  576 },
-     { 1024,  600 },
-     { 1024,  768 },
-     { 1280, 1024 },
-     { 1600, 1200 },
+
+     { 1024,  576 },     // 16:9
+     { 1024,  600 },     // Where does that mode come from? :-)
+     { 1024,  768 },     // 4:3
+
+     { 1280,  720 },     // 16:9
+     { 1280,  960 },     // 4:3
+     { 1280, 1024 },     // 5:4
+
+     { 1440,  810 },     // 16:9
+     { 1440, 1080 },     // 4:3
+
+     { 1600,  900 },     // 16:9, obviously :)
+     { 1600, 1200 },     // 4:3
+
+     { 1920, 1080 },     // 16:9
+     { 1920, 1200 },     // 16:10
 
      { 0, 0 }
 };
@@ -133,6 +146,8 @@ system_initialize( CoreDFB *core, void **data )
 
      XInitThreads();
 
+     dfb_x11->data_shmpool = dfb_core_shmpool_data( core );
+
      dfb_x11->display = XOpenDisplay(NULL);
      if (!dfb_x11->display) {
           D_ERROR("X11: Error opening X_Display\n");
@@ -145,13 +160,13 @@ system_initialize( CoreDFB *core, void **data )
      for (i=0; i<dfb_x11->screenptr->ndepths; i++) {
           const Depth *depth = &dfb_x11->screenptr->depths[i];
 
-          D_INFO( "X11/Display: Depth %d\n", depth->depth );
-
           for (n=0; n<depth->nvisuals; n++) {
                Visual *visual = &depth->visuals[n];
 
-               D_INFO( "X11/Display:     Visual (%02lu) 0x%08lx, 0x%08lx, 0x%08lx, %d bits, %d entries\n", visual->visualid,
-                       visual->red_mask, visual->green_mask, visual->blue_mask, visual->bits_per_rgb, visual->map_entries );
+               D_INFO( "X11/Visual: ID %02lu, depth %d, red 0x%06lx, green 0x%06lx, blue 0x%06lx, %d bits/rgb, %d entries\n",
+                       visual->visualid, depth->depth,
+                       visual->red_mask, visual->green_mask, visual->blue_mask,
+                       visual->bits_per_rgb, visual->map_entries );
 
                switch (depth->depth) {
                     case 24:

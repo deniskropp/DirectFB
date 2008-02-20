@@ -44,6 +44,9 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/input.h>
+#include <core/layer_context.h>
+#include <core/layer_control.h>
+#include <core/layers_internal.h>
 #include <core/system.h>
 
 #include <direct/mem.h>
@@ -51,6 +54,7 @@
 
 #include "xwindow.h"
 
+#include "primary.h"
 #include "x11.h"
 
 #include <core/input_driver.h>
@@ -447,6 +451,49 @@ static void handleMouseEvent(XEvent* pXEvent, X11InputData* pData)
      }
 }
 
+static void
+handle_expose( const XExposeEvent *expose )
+{
+     CoreLayer               *layer = dfb_layer_at( DLID_PRIMARY );
+     const DisplayLayerFuncs *funcs = layer->funcs;
+     CoreLayerContext        *context;
+
+     D_ASSERT( funcs != NULL );
+     D_ASSERT( funcs->UpdateRegion != NULL );
+
+     /* Get the currently active context. */
+     if (dfb_layer_get_active_context( layer, &context ) == DFB_OK) {
+          CoreLayerRegion *region;
+
+          /* Get the first region. */
+          if (dfb_layer_context_get_primary_region( context,
+                                                    false, &region ) == DFB_OK)
+          {
+               /* Lock the region to avoid tearing due to concurrent updates. */
+               dfb_layer_region_lock( region );
+
+               /* Get the surface of the region. */
+               if (region->surface && region->surface_lock.buffer) {
+                    DFBRegion update = { expose->x, expose->y,
+                                         expose->x + expose->width  - 1,
+                                         expose->y + expose->height - 1 };
+
+                    funcs->UpdateRegion( layer, layer->driver_data, layer->layer_data,
+                                         region->region_data, region->surface, &update, &region->surface_lock );
+               }
+
+               /* Unlock the region. */
+               dfb_layer_region_unlock( region );
+
+               /* Release the region. */
+               dfb_layer_region_unref( region );
+          }
+
+          /* Release the context. */
+          dfb_layer_context_unref( context );
+     }
+}
+
 /*
  * Input thread reading from device.
  * Generates events on incoming data.
@@ -520,6 +567,10 @@ x11EventThread( DirectThread *thread, void *driver_data )
                          dfb_input_dispatch( data->device, &dfbEvent );
                          break;
                     }
+
+                    case Expose:
+                         handle_expose( &xEvent.xexpose );
+                         break;
 
                     default:
                          break;

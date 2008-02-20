@@ -34,6 +34,8 @@
 #include <direct/hash.h>
 #include <direct/mem.h>
 
+#include <fusion/shmalloc.h>
+
 #include <core/surface_pool.h>
 
 #include "x11.h"
@@ -174,7 +176,7 @@ x11TestConfig( CoreSurfacePool         *pool,
                CoreSurfaceBuffer       *buffer,
                const CoreSurfaceConfig *config )
 {
-     return x11ImageInit( NULL, config->size.w, config->size.h, config->format );
+     return DFB_OK;
 }
 
 static DFBResult
@@ -185,7 +187,6 @@ x11AllocateBuffer( CoreSurfacePool       *pool,
                    CoreSurfaceAllocation *allocation,
                    void                  *alloc_data )
 {
-     DFBResult          ret;
      CoreSurface       *surface;
      x11AllocationData *alloc = alloc_data;
 
@@ -197,13 +198,9 @@ x11AllocateBuffer( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     ret = x11ImageInit( &alloc->image, surface->config.size.w, surface->config.size.h, surface->config.format );
-     if (ret) {
-          D_DERROR( ret, "X11/Surfaces: x11ImageInit() failed!\n" );
-          return ret;
-     }
+     alloc->real = (x11ImageInit( &alloc->image, surface->config.size.w, surface->config.size.h, surface->config.format ) == DFB_OK);
 
-     dfb_surface_calc_buffer_size( surface, 4/*?*/, 1, NULL, &allocation->size );
+     dfb_surface_calc_buffer_size( surface, 4, 1, NULL, &allocation->size );
 
      return DFB_OK;
 }
@@ -223,7 +220,15 @@ x11DeallocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     return x11ImageDestroy( &alloc->image );
+     CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+
+     if (alloc->real)
+          return x11ImageDestroy( &alloc->image );
+
+     if (alloc->ptr)
+          SHFREE( dfb_x11->data_shmpool, alloc->ptr );
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -239,6 +244,7 @@ x11Lock( CoreSurfacePool       *pool,
      x11PoolLocalData  *local = pool_local;
      x11AllocationData *alloc = alloc_data;
      CoreSurfaceBuffer *buffer;
+     CoreSurface       *surface;
 
      D_DEBUG_AT( X11_Surfaces, "%s( %p )\n", __FUNCTION__, allocation );
 
@@ -249,29 +255,44 @@ x11Lock( CoreSurfacePool       *pool,
      buffer = allocation->buffer;
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
+     surface = buffer->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
      D_ASSERT( local->hash != NULL );
 
      pthread_mutex_lock( &local->lock );
 
-     addr = direct_hash_lookup( local->hash, alloc->image.seginfo.shmid );
-     if (!addr) {
-          ret = x11ImageAttach( &alloc->image, &addr );
-          if (ret) {
-               D_DERROR( ret, "X11/Surfaces: x11ImageAttach() failed!\n" );
-               pthread_mutex_unlock( &local->lock );
-               return ret;
+     if (alloc->real) {
+          addr = direct_hash_lookup( local->hash, alloc->image.seginfo.shmid );
+          if (!addr) {
+               ret = x11ImageAttach( &alloc->image, &addr );
+               if (ret) {
+                    D_DERROR( ret, "X11/Surfaces: x11ImageAttach() failed!\n" );
+                    pthread_mutex_unlock( &local->lock );
+                    return ret;
+               }
+
+               direct_hash_insert( local->hash, alloc->image.seginfo.shmid, addr );
+
+               /* FIXME: When to remove/detach? */
           }
 
-          direct_hash_insert( local->hash, alloc->image.seginfo.shmid, addr );
+     }
+     else {
+          if (!alloc->ptr) {
+               alloc->ptr = SHCALLOC( dfb_x11->data_shmpool, 1, allocation->size );
+               if (!alloc->ptr)
+                    return D_OOSHM();
+          }
 
-          /* FIXME: remove/detach? */
+          addr = alloc->ptr;
      }
 
-     pthread_mutex_unlock( &local->lock );
-
      lock->addr   = addr;
-     lock->pitch  = DFB_BYTES_PER_LINE( buffer->format, alloc->image.width );
-     lock->handle = alloc->image.ximage;
+     lock->pitch  = (DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w ) + 3) & ~3;
+     lock->handle = &alloc->image;
+
+     pthread_mutex_unlock( &local->lock );
 
      return DFB_OK;
 }
@@ -289,6 +310,8 @@ x11Unlock( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
+
+     /* FIXME: Check overhead of attach/detach per lock/unlock. */
 
      return DFB_OK;
 }
