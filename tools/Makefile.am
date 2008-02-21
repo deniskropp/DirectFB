@@ -7,6 +7,8 @@ INCLUDES = \
 	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/src
 
+AM_CPPFLAGS = -DDATADIR=\"@DATADIR@\"
+
 AM_CFLAGS = $(FREETYPE_CFLAGS)
 
 if BUILD_DIRECTFB_CSOURCE
