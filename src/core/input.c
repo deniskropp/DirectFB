@@ -446,15 +446,32 @@ dfb_input_core_shutdown( DFBInputCore *data,
 
 
      direct_list_foreach_safe (device, n, data->devices) {
-          InputDriver       *driver    = device->driver;
-          InputDeviceShared *devshared = device->shared;
+          InputDriver       *driver;
+          InputDeviceShared *devshared;
 
           D_MAGIC_ASSERT( device, CoreInputDevice );
+
+          driver = device->driver;
+          D_ASSERT( driver != NULL );
+
+          devshared = device->shared;
+          D_ASSERT( devshared != NULL );
 
           fusion_call_destroy( &devshared->call );
           fusion_skirmish_destroy( &devshared->lock );
 
-          driver->funcs->CloseDevice( device->driver_data );
+          if (device->driver_data != NULL) {
+               D_ASSERT( driver->funcs != NULL );
+               D_ASSERT( driver->funcs->CloseDevice != NULL );
+
+               D_DEBUG_AT( Core_Input, "  -> closing '%s' (%d) %d.%d (%s)\n",
+                           devshared->device_info.desc.name, devshared->num + 1,
+                           driver->info.version.major,
+                           driver->info.version.minor, driver->info.vendor );
+
+               driver->funcs->CloseDevice( device->driver_data );
+               device->driver_data = NULL;
+          }
 
           if (!--driver->nr_devices) {
                direct_module_unref( driver->module );
@@ -523,19 +540,29 @@ dfb_input_core_suspend( DFBInputCore *data )
      D_DEBUG_AT( Core_Input, "  -> suspending...\n" );
 
      direct_list_foreach (device, data->devices) {
-          InputDriver       *driver = device->driver;
-          InputDeviceShared *shared = device->shared;
-
-          (void) shared;
-
+          InputDriver       *driver;
+          InputDeviceShared *devshared;
+          
           D_MAGIC_ASSERT( device, CoreInputDevice );
+          
+          driver = device->driver;
+          D_ASSERT( driver != NULL );
+          
+          devshared = device->shared;
+          D_ASSERT( devshared != NULL );
 
-          D_DEBUG_AT( Core_Input, "  -> closing '%s' (%d) %d.%d (%s)\n",
-                      shared->device_info.desc.name, shared->num + 1,
-                      driver->info.version.major,
-                      driver->info.version.minor, driver->info.vendor );
+          if (device->driver_data != NULL) {
+               D_ASSERT( driver->funcs != NULL );
+               D_ASSERT( driver->funcs->CloseDevice != NULL );
 
-          driver->funcs->CloseDevice( device->driver_data );
+               D_DEBUG_AT( Core_Input, "  -> closing '%s' (%d) %d.%d (%s)\n",
+                           devshared->device_info.desc.name, devshared->num + 1,
+                           driver->info.version.major,
+                           driver->info.version.minor, driver->info.vendor );
+
+               driver->funcs->CloseDevice( device->driver_data );
+               device->driver_data = NULL;
+          }
 
           flush_keys( device );
      }
@@ -570,12 +597,15 @@ dfb_input_core_resume( DFBInputCore *data )
                       device->driver->info.version.minor,
                       device->driver->info.vendor );
 
+          D_ASSERT( device->driver_data == NULL );
+
           ret = device->driver->funcs->OpenDevice( device, device->shared->num,
                                                    &device->shared->device_info,
                                                    &device->driver_data );
           if (ret) {
                D_DERROR( ret, "DirectFB/Input: Failed reopening device "
                          "during resume (%s)!\n", device->shared->device_info.desc.name );
+               device->driver_data = NULL;
           }
      }
 
@@ -1127,6 +1157,10 @@ init_devices( CoreDFB *core )
                     D_FREE( device );
                     continue;
                }
+
+               D_DEBUG_AT( Core_Input, "  -> opened '%s' (%d) %d.%d (%s)\n",
+                           device_info.desc.name, n + 1, driver->info.version.major,
+                           driver->info.version.minor, driver->info.vendor );
 
                if (driver->nr_devices > 1)
                     snprintf( buf, sizeof(buf), "%s (%d)", device_info.desc.name, n+1 );
