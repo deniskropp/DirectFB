@@ -179,6 +179,13 @@ IDirectFB_Destruct( IDirectFB *thiz )
 
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
 
+     drop_window( data );
+
+     if (data->primary.context)
+          dfb_layer_context_unref( data->primary.context );
+
+     dfb_layer_context_unref( data->context );
+
      for (i=0; i<MAX_LAYERS; i++) {
           if (data->layers[i].context) {
                if (data->layers[i].palette)
@@ -189,13 +196,6 @@ IDirectFB_Destruct( IDirectFB *thiz )
                dfb_layer_context_unref( data->layers[i].context );
           }
      }
-
-     if (data->primary.context)
-          dfb_layer_context_unref( data->primary.context );
-
-     dfb_layer_context_unref( data->context );
-
-     drop_window( data );
 
      dfb_core_destroy( data->core, false );
 
