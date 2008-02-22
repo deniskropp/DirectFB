@@ -235,7 +235,7 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
      /*
       * Manage access interlocks.
       *
-      * SOON FIXME: Clear flags only when not locked yet? Otherwise nested GPU/CPU locks are a problem.
+      * SOON FIXME: Clearing flags only when not locked yet. Otherwise nested GPU/CPU locks are a problem.
       */
      /* Software read/write access... */
      if (access & (CSAF_CPU_READ | CSAF_CPU_WRITE)) {
@@ -247,10 +247,13 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
                /* Software read access after hardware write requires flush of the (bus) read cache. */
                dfb_gfxcard_flush_read_cache();
 
-               /* ...clear hardware write access. */
-               allocation->accessed &= ~CSAF_GPU_WRITE;
-               /* ...clear hardware read access (to avoid syncing twice). */
-               allocation->accessed &= ~CSAF_GPU_READ;
+               if (!buffer->locked) {
+                    /* ...clear hardware write access. */
+                    allocation->accessed &= ~CSAF_GPU_WRITE;
+
+                    /* ...clear hardware read access (to avoid syncing twice). */
+                    allocation->accessed &= ~CSAF_GPU_READ;
+               }
           }
 
           /* Software write access... */
@@ -261,7 +264,8 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
                     dfb_gfxcard_sync(); /* TODO: wait for serial instead */
 
                     /* ...clear hardware read access. */
-                    allocation->accessed &= ~CSAF_GPU_READ;
+                    if (!buffer->locked)
+                         allocation->accessed &= ~CSAF_GPU_READ;
                }
           }
      }
@@ -274,7 +278,8 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
                dfb_gfxcard_flush_texture_cache();
 
                /* ...clear software write access. */
-               allocation->accessed &= ~CSAF_CPU_WRITE;
+               if (!buffer->locked)
+                    allocation->accessed &= ~CSAF_CPU_WRITE;
           }
      }
 
