@@ -130,7 +130,8 @@ r300_init_vb( RadeonDriverData *rdrv, RadeonDeviceData *rdev, u32 type, u32 coun
 {
      u32 *vb;
     
-     if (rdev->vb_size+size > sizeof(rdev->vb)/sizeof(rdev->vb[0]))
+     if ((rdev->vb_size && rdev->vb_type != type) ||
+          rdev->vb_size+size > D_ARRAY_SIZE(rdev->vb))
           r300_flush_vb( rdrv, rdev );
         
      vb = &rdev->vb[rdev->vb_size];
@@ -159,7 +160,18 @@ bool r300FillRectangle3D( void *drv, void *dev, DFBRectangle *rect )
      float             x1, y1;
      float             x2, y2;
      u32              *v;
-     
+    
+     if (rect->w == 1 && rect->h == 1) {
+          x1 = rect->x+1; y1 = rect->y+1;
+          if (rdev->matrix)
+               RADEON_TRANSFORM( x1, y1, x1, y1, rdev->matrix );
+
+          v = r300_init_vb( rdrv, rdev, VF_PRIM_TYPE_POINT_LIST, 1, 8 );
+          VTX( v, x1, y1, rdev->color );
+
+          return true;
+     }
+
      x1 = rect->x;         y1 = rect->y;
      x2 = rect->x+rect->w; y2 = rect->y+rect->h;
      if (rdev->matrix) {
@@ -214,20 +226,34 @@ bool r300FillTriangle( void *drv, void *dev, DFBTriangle *tri )
 
 bool r300DrawRectangle3D( void *drv, void *dev, DFBRectangle *rect )
 {
-     DFBRectangle tmp;
+     RadeonDriverData *rdrv = (RadeonDriverData*) drv;
+     RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
+     float             x1, y1;
+     float             x2, y2;
+     u32              *v;
      
-     /* top line */
-     tmp = (DFBRectangle) { rect->x, rect->y, rect->w, 1 };
-     r300FillRectangle3D( drv, dev, &tmp );
-     /* right line */
-     tmp = (DFBRectangle) { rect->x+rect->w-1, rect->y+1, 1, rect->h-2 };
-     r300FillRectangle3D( drv, dev, &tmp );
-     /* bottom line */
-     tmp = (DFBRectangle) { rect->x, rect->y+rect->h-1, rect->w, 1 };
-     r300FillRectangle3D( drv, dev, &tmp );
-     /* left line */
-     tmp = (DFBRectangle) { rect->x, rect->y+1, 1, rect->h-2 };
-     r300FillRectangle3D( drv, dev, &tmp );
+     x1 = rect->x;         y1 = rect->y;
+     x2 = rect->x+rect->w; y2 = rect->y+rect->h;
+     if (rdev->matrix) {
+          float x, y;
+          
+          v = r300_init_vb( rdrv, rdev, VF_PRIM_TYPE_LINE_LOOP, 4, 32 );
+          RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix );
+          VTX( v, x, y, rdev->color );
+          RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix );
+          VTX( v, x, y, rdev->color );
+          RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix );
+          VTX( v, x, y, rdev->color );
+          RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix );
+          VTX( v, x, y, rdev->color );
+     }
+     else {
+          v = r300_init_vb( rdrv, rdev, VF_PRIM_TYPE_LINE_LOOP, 4, 32 );
+          VTX( v, x1, y1, rdev->color );
+          VTX( v, x2, y1, rdev->color );
+          VTX( v, x2, y2, rdev->color );
+          VTX( v, x1, y2, rdev->color );
+     }
      
      return true;
 }
@@ -278,8 +304,8 @@ bool r300StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
      float             x1, y1;
      float             x2, y2;
-     float             s1, s2;
-     float             t1, t2;
+     float             s1, t1;
+     float             s2, t2;
      u32              *v;
      
      if (rdev->blittingflags & DSBLIT_DEINTERLACE) {
@@ -287,8 +313,8 @@ bool r300StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
           sr->h /= 2;
      }
    
-     s1 = (float)sr->x / rdev->src_width;  s2 = (float)(sr->x+sr->w) / rdev->src_width;
-     t1 = (float)sr->y / rdev->src_height; t2 = (float)(sr->y+sr->h) / rdev->src_height;
+     s1 = (float)sr->x / rdev->src_width;         t1 = (float)sr->y / rdev->src_height;
+     s2 = (float)(sr->x+sr->w) / rdev->src_width; t2 = (float)(sr->y+sr->h) / rdev->src_height;
      if (rdev->blittingflags & DSBLIT_ROTATE180) {
           float tmp;
           tmp = s2; s2 = s1; s1 = tmp;

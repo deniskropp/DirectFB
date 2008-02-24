@@ -159,7 +159,8 @@ r100_init_vb( RadeonDriverData *rdrv, RadeonDeviceData *rdev, u32 type, u32 coun
 {
      u32 *vb;
     
-     if (rdev->vb_size+size > sizeof(rdev->vb)/sizeof(rdev->vb[0]))
+     if ((rdev->vb_size && rdev->vb_type != type) ||
+          rdev->vb_size+size > D_ARRAY_SIZE(rdev->vb))
           r100_flush_vb( rdrv, rdev );
         
      vb = &rdev->vb[rdev->vb_size];
@@ -178,12 +179,23 @@ bool r100FillRectangle3D( void *drv, void *dev, DFBRectangle *rect )
      float             x1, y1;
      float             x2, y2;
      u32              *v;
-     
+    
+     if (rect->w == 1 && rect->h == 1) {
+          x1 = rect->x+1; y1 = rect->y+1;
+          if (rdev->matrix)
+               RADEON_TRANSFORM( x1, y1, x1, y1, rdev->matrix );
+
+          v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_POINT_LIST, 1, 2 );
+          *v++ = f2d(x1); *v++ = f2d(y1);
+
+          return true;
+     }
+
      x1 = rect->x;         y1 = rect->y;
      x2 = rect->x+rect->w; y2 = rect->y+rect->h;
      if (rdev->matrix) {
           float x, y;
-
+          
           v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_TRIANGLE_FAN, 4, 8 );
           RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix );
           *v++ = f2d(x); *v++ = f2d(y);
@@ -234,37 +246,49 @@ bool r100DrawRectangle3D( void *drv, void *dev, DFBRectangle *rect )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
-
+     float             x1, y1;
+     float             x2, y2;
+     u32              *v;
+     
+     x1 = rect->x;         y1 = rect->y;
+     x2 = rect->x+rect->w; y2 = rect->y+rect->h;
      if (rdev->matrix) {
-          DFBRectangle r;
+          float x, y;
 
-          r = (DFBRectangle) { rect->x, rect->y, rect->w, 1 };
-          r100FillRectangle3D( drv, dev, &r );
-          r = (DFBRectangle) { rect->x+rect->w-1, rect->y+1, 1, rect->h-1 };
-          r100FillRectangle3D( drv, dev, &r );
-          r = (DFBRectangle) { rect->x, rect->y+rect->h-1, rect->w, 1 };
-          r100FillRectangle3D( drv, dev, &r );
-          r = (DFBRectangle) { rect->x, rect->y+1, 1, rect->h-1 };
-          r100FillRectangle3D( drv, dev, &r );
+          /* XXX: better LINE_STRIP?! */
+          v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_LINE_LIST, 8, 16 );
+          RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix );
+          *v++ = f2d(x); *v++ = f2d(y);
+          RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix );
+          *v++ = f2d(x); *v++ = f2d(y);
+          *v++ = f2d(x); *v++ = f2d(y);
+          RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix );
+          *v++ = f2d(x); *v++ = f2d(y);
+          *v++ = f2d(x); *v++ = f2d(y);
+          RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix );
+          *v++ = f2d(x); *v++ = f2d(y);
+          *v++ = f2d(x); *v++ = f2d(y);
+          RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix );
+          *v++ = f2d(x); *v++ = f2d(y);
      }
      else {
-          u32 *v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_RECTANGLE_LIST, 12, 24 );
+          v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_RECTANGLE_LIST, 12, 24 );
           /* top line */
-          *v++ = f2d(rect->x);           *v++ = f2d(rect->y);
-          *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y);
-          *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y+1);
+          *v++ = f2d(x1);   *v++ = f2d(y1);
+          *v++ = f2d(x2);   *v++ = f2d(y1);
+          *v++ = f2d(x2);   *v++ = f2d(y1+1);
           /* right line */
-          *v++ = f2d(rect->x+rect->w-1); *v++ = f2d(rect->y+1);
-          *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y+1);
-          *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y+rect->h-1);
+          *v++ = f2d(x2-1); *v++ = f2d(y1+1);
+          *v++ = f2d(x2);   *v++ = f2d(y1+1);
+          *v++ = f2d(x2);   *v++ = f2d(y2-1);
           /* bottom line */
-          *v++ = f2d(rect->x);           *v++ = f2d(rect->y+rect->h-1);
-          *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y+rect->h-1);
-          *v++ = f2d(rect->x+rect->w);   *v++ = f2d(rect->y+rect->h);
+          *v++ = f2d(x1);   *v++ = f2d(y2-1);
+          *v++ = f2d(x2);   *v++ = f2d(y2-1);
+          *v++ = f2d(x2);   *v++ = f2d(y2);
           /* left line */
-          *v++ = f2d(rect->x);           *v++ = f2d(rect->y+1);
-          *v++ = f2d(rect->x+1);         *v++ = f2d(rect->y+1);
-          *v++ = f2d(rect->x+1);         *v++ = f2d(rect->y+rect->h-1);
+          *v++ = f2d(x1);   *v++ = f2d(y1+1);
+          *v++ = f2d(x1+1); *v++ = f2d(y1+1);
+          *v++ = f2d(x1+1); *v++ = f2d(y2-1);
      }
      
      return true;
@@ -280,7 +304,7 @@ bool r100DrawLine3D( void *drv, void *dev, DFBRegion *line )
 
      x1 = line->x1; y1 = line->y1;
      x2 = line->x2; y2 = line->y2;
-     if (rdev->matrix) {
+     if (rdev->matrix) { 
           RADEON_TRANSFORM( x1, y1, x1, y1, rdev->matrix );
           RADEON_TRANSFORM( x2, y2, x2, y2, rdev->matrix );
      }
@@ -305,6 +329,8 @@ bool r100StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
      float             x1, y1;
      float             x2, y2;
+     float             s1, t1;
+     float             s2, t2;
      u32              *v;
     
      if (rdev->blittingflags & DSBLIT_DEINTERLACE) {
@@ -312,45 +338,34 @@ bool r100StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
           sr->h /= 2;
      }
      
+     s1 = sr->x;       t1 = sr->y;
+     s2 = sr->x+sr->w; t2 = sr->y+sr->h;
+     if (rdev->blittingflags & DSBLIT_ROTATE180) {
+          float tmp;
+          tmp = s2; s2 = s1; s1 = tmp;
+          tmp = t2; t2 = t1; t1 = tmp;
+     }
+     
      x1 = dr->x;       y1 = dr->y;
      x2 = dr->x+dr->w; y2 = dr->y+dr->h;
      if (rdev->matrix) {
           float x, y;
-
+          
           v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_TRIANGLE_FAN, 4, 16 );
-          if (rdev->blittingflags & DSBLIT_ROTATE180) {
-               RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix );
-               *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(sr->x+sr->w); *v++ = f2d(sr->y+sr->h);
-               RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix );
-               *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(sr->x);       *v++ = f2d(sr->y+sr->h);
-               RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix );
-               *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(sr->x);       *v++ = f2d(sr->y);
-               RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix );
-               *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(sr->x+sr->w); *v++ = f2d(sr->y);
-          }
-          else {
-               RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix );
-               *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(sr->x);       *v++ = f2d(sr->y);
-               RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix );
-               *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(sr->x+sr->w); *v++ = f2d(sr->y);
-               RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix );
-               *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(sr->x+sr->w); *v++ = f2d(sr->y+sr->h);
-               RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix );
-               *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(sr->x);       *v++ = f2d(sr->y+sr->h);
-          }
+          RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix );
+          *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(s1); *v++ = f2d(t1);
+          RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix );
+          *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(s2); *v++ = f2d(t1);
+          RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix );
+          *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(s2); *v++ = f2d(t2);
+          RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix );
+          *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(s1); *v++ = f2d(t2);
      }
      else {
           v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_RECTANGLE_LIST, 3, 12 );
-          if (rdev->blittingflags & DSBLIT_ROTATE180) {
-               *v++ = f2d(x1); *v++ = f2d(y1); *v++ = f2d(sr->x+sr->w); *v++ = f2d(sr->y+sr->h);
-               *v++ = f2d(x2); *v++ = f2d(y1); *v++ = f2d(sr->x);       *v++ = f2d(sr->y+sr->h);
-               *v++ = f2d(x2); *v++ = f2d(y2); *v++ = f2d(sr->x);       *v++ = f2d(sr->y);
-          }
-          else {
-               *v++ = f2d(x1); *v++ = f2d(y1); *v++ = f2d(sr->x);       *v++ = f2d(sr->y);
-               *v++ = f2d(x2); *v++ = f2d(y1); *v++ = f2d(sr->x+sr->w); *v++ = f2d(sr->y);
-               *v++ = f2d(x2); *v++ = f2d(y2); *v++ = f2d(sr->x+sr->w); *v++ = f2d(sr->y+sr->h);
-          }
+          *v++ = f2d(x1); *v++ = f2d(y1); *v++ = f2d(s1); *v++ = f2d(t1);
+          *v++ = f2d(x2); *v++ = f2d(y1); *v++ = f2d(s2); *v++ = f2d(t1);
+          *v++ = f2d(x2); *v++ = f2d(y2); *v++ = f2d(s2); *v++ = f2d(t2);
      }
      
      return true;

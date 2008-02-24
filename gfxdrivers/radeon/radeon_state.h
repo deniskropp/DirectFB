@@ -52,6 +52,9 @@ void r100_set_src_colorkey  ( RadeonDriverData *rdrv,
 void r100_set_blend_function( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev,
                               CardState        *state );
+void r100_set_render_options( RadeonDriverData *rdrv,
+                              RadeonDeviceData *rdev,
+                              CardState        *state );
 void r100_set_drawingflags  ( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev,
                               CardState        *state );
@@ -86,6 +89,9 @@ void r200_set_src_colorkey  ( RadeonDriverData *rdrv,
 void r200_set_blend_function( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev,
                               CardState        *state );
+void r200_set_render_options( RadeonDriverData *rdrv,
+                              RadeonDeviceData *rdev,
+                              CardState        *state );
 void r200_set_drawingflags  ( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev,
                               CardState        *state );
@@ -118,6 +124,9 @@ void r300_set_src_colorkey  ( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev,
                               CardState        *state );
 void r300_set_blend_function( RadeonDriverData *rdrv,
+                              RadeonDeviceData *rdev,
+                              CardState        *state );
+void r300_set_render_options( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev,
                               CardState        *state );
 void r300_set_drawingflags  ( RadeonDriverData *rdrv,

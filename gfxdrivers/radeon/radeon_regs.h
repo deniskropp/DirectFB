@@ -3666,6 +3666,7 @@ I am fairly certain that they are correct unless stated otherwise in comments.
 // registers directly. A subsequent ALU instruction is always necessary,
 // even if it's just MAD o0, r0, 1, 0 */
 #define R300_PFS_TEXI_0                     0x4620
+#define R300_PFS_TEXI_1                     0x4624
 #       define R300_FPITX_SRC_SHIFT              0
 #       define R300_FPITX_SRC_MASK               (31 << 0)
 #       define R300_FPITX_SRC_CONST              (1 << 5) /* GUESS */

@@ -566,7 +566,6 @@ void r300_set_source( RadeonDriverData *rdrv,
           radeon_out32( mmio, R300_TX_PITCH_0, rdev->src_pitch / 
                                                DFB_BYTES_PER_PIXEL(buffer->format) - 8 );
           radeon_out32( mmio, R300_TX_OFFSET_0, rdev->src_offset ); 
-          //radeon_out32( mmio, R300_TX_BORDER_COLOR_0, 0 );
      }
 
      if (rdev->src_format != buffer->format)
@@ -876,6 +875,31 @@ r300_set_blend_function( RadeonDriverData *rdrv,
      RADEON_UNSET( BLITTING_FLAGS );
      RADEON_SET( SRC_BLEND );
      RADEON_SET( DST_BLEND );
+}
+
+void r300_set_render_options( RadeonDriverData *rdrv,
+                              RadeonDeviceData *rdev,
+                              CardState        *state )
+{
+     if (RADEON_IS_SET( RENDER_OPTIONS ))
+          return;
+          
+     if (state->render_options & DSRO_MATRIX &&
+        (state->matrix[0] != (1<<16) || state->matrix[1] != 0 || state->matrix[2] != 0 ||
+         state->matrix[3] != 0 || state->matrix[4] != (1<<16) || state->matrix[5] != 0))
+          rdev->matrix = state->matrix;
+     else
+          rdev->matrix = NULL;
+
+     /* TODO: antialiasing */
+#if 0
+     radeon_waitfifo( rdrv, rdev, 1 );
+     radeon_out32( rdrv->mmio_base, R300_GB_AA_CONFIG, 
+                   (state->render_options & DSRO_ANTIALIAS) ? R300_AA_ENABLE : 0 );
+#endif
+     rdev->render_options = state->render_options & ~DSRO_ANTIALIAS;
+     
+     RADEON_SET( RENDER_OPTIONS );
 }
 
 void r300_set_drawingflags( RadeonDriverData *rdrv,
