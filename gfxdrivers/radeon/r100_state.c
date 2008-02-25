@@ -701,6 +701,17 @@ void r100_set_blend_function( RadeonDriverData *rdrv,
           else if (dblend == DST_BLEND_GL_ONE_MINUS_DST_ALPHA)
                dblend = DST_BLEND_GL_ZERO;
      }
+     else if (rdev->dst_format == DSPF_A8) {
+          if (sblend == SRC_BLEND_GL_DST_ALPHA)
+               sblend = SRC_BLEND_GL_DST_COLOR;
+          else if (sblend == SRC_BLEND_GL_ONE_MINUS_DST_ALPHA)
+               sblend = SRC_BLEND_GL_ONE_MINUS_DST_COLOR;
+
+          if (dblend == DST_BLEND_GL_DST_ALPHA)
+               dblend = DST_BLEND_GL_DST_COLOR;
+          else if (dblend == DST_BLEND_GL_ONE_MINUS_DST_ALPHA)
+               dblend = DST_BLEND_GL_ONE_MINUS_DST_COLOR;
+     }
 
      radeon_waitfifo( rdrv, rdev, 1 ); 
      radeon_out32( mmio, RB3D_BLENDCNTL, sblend | dblend );
@@ -758,13 +769,12 @@ void r100_set_drawingflags( RadeonDriverData *rdrv,
           pp_cntl |= TEX_1_ENABLE;
           cblend   = COLOR_ARG_C_T1_COLOR;
      }
-     
-     if (state->drawingflags & DSDRAW_BLEND) {
-          rb3d_cntl |= ALPHA_BLEND_ENABLE;
-     }
      else if (rdev->dst_format == DSPF_A8) {
           cblend = COLOR_ARG_C_TFACTOR_ALPHA;
      }
+     
+     if (state->drawingflags & DSDRAW_BLEND)
+          rb3d_cntl |= ALPHA_BLEND_ENABLE;
 
      if (state->drawingflags & DSDRAW_XOR) {
           rb3d_cntl   |= ROP_ENABLE;
@@ -885,11 +895,15 @@ void r100_set_blittingflags( RadeonDriverData *rdrv,
      } /* DSPF_A8 */
      else {
           if (state->blittingflags & DSBLIT_SRC_MASK_ALPHA) {
-               cblend = ALPHA_ARG_A_T0_ALPHA | ALPHA_ARG_B_T1_ALPHA;
+               ablend = ALPHA_ARG_A_T0_ALPHA | ALPHA_ARG_B_T1_ALPHA;
+               cblend = COLOR_ARG_A_T0_ALPHA | COLOR_ARG_B_T1_ALPHA;
                pp_cntl |= TEX_1_ENABLE;
           }
-          else if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) { 
-               cblend = COLOR_ARG_A_T0_ALPHA | COLOR_ARG_B_TFACTOR_ALPHA;
+          else if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
+               if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
+                    cblend = COLOR_ARG_A_T0_ALPHA | COLOR_ARG_B_TFACTOR_ALPHA;
+               else
+                    cblend = COLOR_ARG_C_TFACTOR_ALPHA;
           }
           else {
                cblend = COLOR_ARG_C_T0_ALPHA;

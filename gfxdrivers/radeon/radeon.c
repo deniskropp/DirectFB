@@ -479,15 +479,9 @@ static void r100CheckState( void *drv, void *dev,
 
      switch (destination->config.format) {               
           case DSPF_A8:
-               if (DFB_DRAWING_FUNCTION(accel) ? 
-                  (state->drawingflags & DSDRAW_BLEND) :
-                  (state->blittingflags & DSBLIT_MODULATE_ALPHA)) {     
-                    if (state->src_blend == DSBF_DESTALPHA    || 
-                        state->src_blend == DSBF_INVDESTALPHA ||
-                        state->src_blend == DSBF_SRCALPHASAT  ||
-                        state->dst_blend == DSBF_DESTALPHA    ||
-                        state->dst_blend == DSBF_INVDESTALPHA)
-                         return;
+               if (state->src_blend == DSBF_SRCALPHASAT) {
+                    supported_drawingflags  &= ~DSDRAW_BLEND;
+                    supported_blittingflags &= ~DSBLIT_MODULATE_ALPHA;
                }
                break;
                
@@ -694,15 +688,9 @@ static void r200CheckState( void *drv, void *dev,
      
      switch (destination->config.format) {               
           case DSPF_A8:
-               if (DFB_DRAWING_FUNCTION(accel) ? 
-                  (state->drawingflags & DSDRAW_BLEND) :
-                  (state->blittingflags & DSBLIT_MODULATE_ALPHA)) {     
-                    if (state->src_blend == DSBF_DESTALPHA    || 
-                        state->src_blend == DSBF_INVDESTALPHA ||
-                        state->src_blend == DSBF_SRCALPHASAT  ||
-                        state->dst_blend == DSBF_DESTALPHA    ||
-                        state->dst_blend == DSBF_INVDESTALPHA)
-                         return;
+               if (state->src_blend == DSBF_SRCALPHASAT) {
+                    supported_drawingflags  &= ~DSDRAW_BLEND;
+                    supported_blittingflags &= ~DSBLIT_MODULATE_ALPHA;
                }
                break;
                    

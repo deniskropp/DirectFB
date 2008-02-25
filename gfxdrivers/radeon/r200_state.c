@@ -554,7 +554,7 @@ void r200_set_drawing_color( RadeonDriverData *rdrv,
                break;
           case DSPF_A8:
                color2d = color.a;
-               color3d = (color.a << 24) | 0x00ffffff;
+               color3d = (color.a << 24) | 0x00ffffff;              
                break;
           case DSPF_RGB332:
                color2d = PIXEL_RGB332( color.r, color.g, color.b );
@@ -713,6 +713,17 @@ void r200_set_blend_function( RadeonDriverData *rdrv,
           else if (dblend == DST_BLEND_GL_ONE_MINUS_DST_ALPHA)
                dblend = DST_BLEND_GL_ZERO;
      }
+     else if (rdev->dst_format == DSPF_A8) {
+          if (sblend == SRC_BLEND_GL_DST_ALPHA)
+               sblend = SRC_BLEND_GL_DST_COLOR;
+          else if (sblend == SRC_BLEND_GL_ONE_MINUS_DST_ALPHA)
+               sblend = SRC_BLEND_GL_ONE_MINUS_DST_COLOR;
+
+          if (dblend == DST_BLEND_GL_DST_ALPHA)
+               dblend = DST_BLEND_GL_DST_COLOR;
+          else if (dblend == DST_BLEND_GL_ONE_MINUS_DST_ALPHA)
+               dblend = DST_BLEND_GL_ONE_MINUS_DST_COLOR;
+     }
      
      radeon_waitfifo( rdrv, rdev, 1 ); 
      radeon_out32( mmio, RB3D_BLENDCNTL, sblend | dblend );
@@ -770,14 +781,13 @@ void r200_set_drawingflags( RadeonDriverData *rdrv,
           pp_cntl |= TEX_1_ENABLE;
           cblend   = R200_TXC_ARG_C_R1_COLOR;
      }
-     
-     if (state->drawingflags & DSDRAW_BLEND) {
-          rb3d_cntl |= ALPHA_BLEND_ENABLE;
-     }
      else if (rdev->dst_format == DSPF_A8) {
           cblend = R200_TXC_ARG_C_TFACTOR_ALPHA;
      }
-
+     
+     if (state->drawingflags & DSDRAW_BLEND)
+          rb3d_cntl |= ALPHA_BLEND_ENABLE;
+     
      if (state->drawingflags & DSDRAW_XOR) {
           rb3d_cntl   |= ROP_ENABLE;
           master_cntl |= GMC_ROP3_PATXOR;
@@ -907,11 +917,15 @@ void r200_set_blittingflags( RadeonDriverData *rdrv,
      } /* DSPF_A8 */
      else {
           if (state->blittingflags & DSBLIT_SRC_MASK_ALPHA) {
-               cblend = R200_TXA_ARG_A_R0_ALPHA | R200_TXA_ARG_B_R1_ALPHA;
+               ablend = R200_TXA_ARG_A_R0_ALPHA | R200_TXA_ARG_B_R1_ALPHA;
+               cblend = R200_TXC_ARG_A_R0_ALPHA | R200_TXC_ARG_B_R1_ALPHA;
                pp_cntl |= TEX_1_ENABLE;
           }
           else if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
-               cblend = R200_TXC_ARG_A_R0_ALPHA | R200_TXC_ARG_B_TFACTOR_ALPHA;
+               if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
+                    cblend = R200_TXC_ARG_A_R0_ALPHA | R200_TXC_ARG_B_TFACTOR_ALPHA;
+               else
+                    cblend = R200_TXC_ARG_C_TFACTOR_ALPHA;
           }
           else {
                cblend = R200_TXC_ARG_C_R0_ALPHA;
