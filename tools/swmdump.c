@@ -262,7 +262,7 @@ dump_tier( SaWMan *sawman, SaWManTier *tier, int n )
           printf( "  Updates\n" );
 
           for (i=0; i<tier->updates.num_regions; i++)
-               printf( "             [%d]    %4d,%4d - %4dx%4d\n", i, DFB_RECTANGLE_VALS_FROM_REGION( tier->updates.regions ) );
+               printf( "             [%d]    %4d,%4d - %4dx%4d\n", i, DFB_RECTANGLE_VALS_FROM_REGION( &tier->updates.regions[i] ) );
      }
 
      printf( "\n"
