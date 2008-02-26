@@ -182,7 +182,6 @@ dump_tier( SaWMan *sawman, SaWManTier *tier, int n )
      D_ASSERT( layer->shared != NULL );
 
      region = tier->region;
-     D_ASSERT( region != NULL );
 
      if (tier->active) {
           if (tier->single_mode && tier->single_window)
@@ -209,7 +208,6 @@ dump_tier( SaWMan *sawman, SaWManTier *tier, int n )
      printf( "  Standard      %dx%d %-8s%s\n", tier->config.width, tier->config.height, dfb_pixelformat_name(tier->config.pixelformat), is_standard );
      printf( "  Border        %dx%d %-8s%s\n", tier->border_config.width, tier->border_config.height, dfb_pixelformat_name(tier->border_config.pixelformat), is_border );
      printf( "  Single        %dx%d %-8s%s\n", tier->single_width, tier->single_height, dfb_pixelformat_name(tier->single_format), is_single );
-     printf( "  Region State  0x%08x\n", region->state );
 
      if (tier->single_window && tier->single_mode) {
           CoreWindow  *window;
@@ -222,6 +220,8 @@ dump_tier( SaWMan *sawman, SaWManTier *tier, int n )
 
           surface = window->surface;
           D_ASSERT( surface != NULL );
+
+          printf( "             Window %p <%p> [%u]\n", tier->single_window, window, window->id );
 
           if (DFB_PIXELFORMAT_IS_INDEXED( tier->single_format )) {
                CorePalette *palette = surface->palette;
@@ -244,6 +244,25 @@ dump_tier( SaWMan *sawman, SaWManTier *tier, int n )
 
                printf( "             Key 0x%08x (%02x %02x %02x)\n", window->config.color_key, color.r, color.g, color.b );
           }
+
+          printf( "             Dest   %4d,%4d - %4dx%4d\n", DFB_RECTANGLE_VALS( &tier->single_dst ) );
+          printf( "             Source %4d,%4d - %4dx%4d\n", DFB_RECTANGLE_VALS( &tier->single_src ) );
+     }
+
+     if (region) {
+          printf( "  Layer Region\n" );
+          printf( "             Dest   %4d,%4d - %4dx%4d\n", DFB_RECTANGLE_VALS( &region->config.dest ) );
+          printf( "             Source %4d,%4d - %4dx%4d\n", DFB_RECTANGLE_VALS( &region->config.source ) );
+          printf( "             State  0x%08x\n", region->state );
+     }
+
+     if (tier->updates.num_regions) {
+          int i;
+
+          printf( "  Updates\n" );
+
+          for (i=0; i<tier->updates.num_regions; i++)
+               printf( "             [%d]    %4d,%4d - %4dx%4d\n", i, DFB_RECTANGLE_VALS_FROM_REGION( tier->updates.regions ) );
      }
 
      printf( "\n"
