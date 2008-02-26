@@ -283,8 +283,6 @@ sub parse_interface (NAME)
    {
       my $interface = shift(@_);
 
-      $headline = "";
-      $detailed = "";
       $section = "";
 
       html_create( INTERFACE, "$interface.html",
@@ -292,11 +290,10 @@ sub parse_interface (NAME)
                               "<FONT color=#DDDDDD>$PROJECT Interfaces</FONT>" .
                               "</A>", $interface, $interface );
 
-#      print INTERFACE "<P align=center>\n",
-#                      "  $interface_abstracts{$interface}\n",
-#                      "</P>";
-
-      print INTERFACE "<p style=\"margin\-left:3%; margin\-right:3%;\"\><h4>$headline</h4>$detailed</p>";
+      print INTERFACE "<P>\n",
+                      "  $headline\n",
+                      "  $detailed\n",
+                      "</P>";
 
       print INTERFACE "<P>\n",
                       "  <CENTER><TABLE width=93% border=1 rules=groups cellpadding=4 cellspacing=2>\n";
