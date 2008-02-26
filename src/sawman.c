@@ -2175,6 +2175,8 @@ sawman_process_updates( SaWMan              *sawman,
 
                     dfb_layer_context_set_screenrectangle( tier->context, &dst );
                }
+               else
+                    dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
   
                /* Update color key */
                if (!DFB_COLORKEY_EQUAL( single_key, tier->single_key )) {
@@ -2186,8 +2188,6 @@ sawman_process_updates( SaWMan              *sawman,
                                                         tier->single_key.r, tier->single_key.g,
                                                         tier->single_key.b, tier->single_key.index );
                }
-
-               dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
 
                tier->active = true;
 
