@@ -1961,6 +1961,7 @@ sawman_process_updates( SaWMan              *sawman,
           CoreLayerShared *shared;
           int              screen_width;
           int              screen_height;
+          DFBColorKey      single_key;
 
           idx++;
 
@@ -2073,7 +2074,38 @@ sawman_process_updates( SaWMan              *sawman,
                if (window->config.options & DWOP_COLORKEYING)
                     options |= DLOP_SRC_COLORKEY;
 
-               if (tier->single_window  == NULL ||
+               single_key = tier->single_key;
+
+               if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format )) {
+                    CorePalette *palette = surface->palette;
+
+                    D_ASSERT( palette != NULL );
+                    D_ASSERT( palette->num_entries > 0 );
+
+                    dfb_surface_set_palette( tier->region->surface, surface->palette );
+
+                    if (options & DLOP_SRC_COLORKEY) {
+                         int index = window->config.color_key % palette->num_entries;
+
+                         single_key.r     = palette->entries[index].r;
+                         single_key.g     = palette->entries[index].g;
+                         single_key.b     = palette->entries[index].b;
+                         single_key.index = index;
+                    }
+               }
+               else {
+                    DFBColor color;
+
+                    dfb_pixel_to_color( surface->config.format, window->config.color_key, &color );
+
+                    single_key.r     = color.r;
+                    single_key.g     = color.g;
+                    single_key.b     = color.b;
+                    single_key.index = window->config.color_key;
+               }
+
+               /* Complete reconfig? */
+               if (tier->single_window  != single ||
                    !DFB_RECTANGLE_EQUAL( tier->single_src, src ) ||
                    tier->single_format  != surface->config.format ||
                    tier->single_options != options)
@@ -2102,6 +2134,7 @@ sawman_process_updates( SaWMan              *sawman,
                     tier->single_dst      = dst;
                     tier->single_format   = surface->config.format;
                     tier->single_options  = options;
+                    tier->single_key      = single_key;
 
                     tier->active          = false;
                     tier->region->state  |= CLRSF_FROZEN;
@@ -2115,33 +2148,9 @@ sawman_process_updates( SaWMan              *sawman,
                     else if (shared->description.caps & DLCAPS_SCREEN_POSITION)
                          dfb_layer_context_set_screenposition( tier->context, dst.x, dst.y );
 
-                    if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format )) {
-                         CorePalette *palette = surface->palette;
-
-                         D_ASSERT( palette != NULL );
-                         D_ASSERT( palette->num_entries > 0 );
-
-                         dfb_surface_set_palette( tier->region->surface, surface->palette );
-
-                         if (options & DLOP_SRC_COLORKEY) {
-                              int index = window->config.color_key % palette->num_entries;
-
-                              dfb_layer_context_set_src_colorkey( tier->context,
-                                                                  palette->entries[index].r,
-                                                                  palette->entries[index].g,
-                                                                  palette->entries[index].b,
-                                                                  index );
-                         }
-                    }
-                    else {
-                         DFBColor color;
-
-                         dfb_pixel_to_color( surface->config.format, window->config.color_key, &color );
-
-                         dfb_layer_context_set_src_colorkey( tier->context,
-                                                             color.r, color.g, color.b,
-                                                             window->config.color_key );
-                    }
+                    dfb_layer_context_set_src_colorkey( tier->context,
+                                                        tier->single_key.r, tier->single_key.g,
+                                                        tier->single_key.b, tier->single_key.index );
 
                     dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
 
@@ -2152,13 +2161,26 @@ sawman_process_updates( SaWMan              *sawman,
                     dfb_updates_reset( &tier->updates );
                     continue;
                }
-               else if (!DFB_RECTANGLE_EQUAL( tier->single_dst, dst )) {
+
+               /* Update destination window */
+               if (!DFB_RECTANGLE_EQUAL( tier->single_dst, dst )) {
                     tier->single_dst = dst;
 
                     D_DEBUG_AT( SaWMan_Auto, "  -> Changing single destination to %d,%d-%dx%d.\n",
                                 DFB_RECTANGLE_VALS(&dst) );
 
                     dfb_layer_context_set_screenrectangle( tier->context, &dst );
+               }
+  
+               /* Update color key */
+               if (!DFB_COLORKEY_EQUAL( single_key, tier->single_key )) {
+                    D_DEBUG_AT( SaWMan_Auto, "  -> Changing single color key.\n" );
+
+                    tier->single_key = single_key;
+
+                    dfb_layer_context_set_src_colorkey( tier->context,
+                                                        tier->single_key.r, tier->single_key.g,
+                                                        tier->single_key.b, tier->single_key.index );
                }
 
                dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );

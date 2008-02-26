@@ -229,6 +229,7 @@ struct __SaWMan_SaWManTier {
      DFBRectangle            single_dst;
      DFBSurfacePixelFormat   single_format;
      DFBDisplayLayerOptions  single_options;
+     DFBColorKey             single_key;
 
      bool                    border_only;
      DFBDisplayLayerConfig   border_config;
