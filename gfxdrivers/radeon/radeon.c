@@ -146,7 +146,10 @@ DFB_GRAPHICS_DRIVER( radeon )
 
 #define RADEON_DRAW_3D()      ( rdev->accel & DFXL_FILLTRIANGLE  || \
                                 rdev->drawingflags & ~DSDRAW_XOR || \
-                                rdev->matrix != NULL )
+                                rdev->matrix != NULL             || \
+                               (rdev->render_options & DSRO_ANTIALIAS && \
+                                rdev->accel & DFXL_DRAWLINE) )
+
 #define RADEON_BLIT_3D()      ( rdev->accel & ~DFXL_BLIT                     ||\
                                 rdev->blittingflags & ~(DSBLIT_XOR |            \
                                                         DSBLIT_SRC_COLORKEY) || \
@@ -476,14 +479,9 @@ static void r100CheckState( void *drv, void *dev,
 
      switch (destination->config.format) {               
           case DSPF_A8:
-               if (DFB_DRAWING_FUNCTION(accel) ? 
-                  (state->drawingflags & DSDRAW_BLEND) :
-                  (state->blittingflags & DSBLIT_MODULATE_ALPHA)) {     
-                    if (state->src_blend == DSBF_DESTALPHA    || 
-                        state->src_blend == DSBF_INVDESTALPHA ||
-                        state->dst_blend == DSBF_DESTALPHA    ||
-                        state->dst_blend == DSBF_INVDESTALPHA)
-                         return;
+               if (state->src_blend == DSBF_SRCALPHASAT) {
+                    supported_drawingflags  &= ~DSDRAW_BLEND;
+                    supported_blittingflags &= ~DSBLIT_MODULATE_ALPHA;
                }
                break;
                
@@ -690,14 +688,9 @@ static void r200CheckState( void *drv, void *dev,
      
      switch (destination->config.format) {               
           case DSPF_A8:
-               if (DFB_DRAWING_FUNCTION(accel) ? 
-                  (state->drawingflags & DSDRAW_BLEND) :
-                  (state->blittingflags & DSBLIT_MODULATE_ALPHA)) {     
-                    if (state->src_blend == DSBF_DESTALPHA    || 
-                        state->src_blend == DSBF_INVDESTALPHA ||
-                        state->dst_blend == DSBF_DESTALPHA    ||
-                        state->dst_blend == DSBF_INVDESTALPHA)
-                         return;
+               if (state->src_blend == DSBF_SRCALPHASAT) {
+                    supported_drawingflags  &= ~DSDRAW_BLEND;
+                    supported_blittingflags &= ~DSBLIT_MODULATE_ALPHA;
                }
                break;
                    
@@ -1037,7 +1030,7 @@ static void r300CheckState( void *drv, void *dev,
                default:
                     return;
           }
-
+          
           state->accel |= supported_blittingfuncs;
           rdev->blitting_mask = supported_blittingfuncs;
      } 
@@ -1075,10 +1068,9 @@ static void r100SetState( void *drv, void *dev,
      
      rdev->accel = accel;
      
-     rdev->matrix = (state->render_options & DSRO_MATRIX) ? state->matrix : NULL;
-     
      r100_set_destination( rdrv, rdev, state );
      r100_set_clip( rdrv, rdev, state );
+     r100_set_render_options( rdrv, rdev, state );
     
      switch (accel) {
           case DFXL_FILLRECTANGLE:
@@ -1167,10 +1159,9 @@ static void r200SetState( void *drv, void *dev,
      
      rdev->accel = accel;
      
-     rdev->matrix = (state->render_options & DSRO_MATRIX) ? state->matrix : NULL;
-     
      r200_set_destination( rdrv, rdev, state );
      r200_set_clip( rdrv, rdev, state );
+     r200_set_render_options( rdrv, rdev, state );
     
      switch (accel) {
           case DFXL_FILLRECTANGLE:
@@ -1259,10 +1250,9 @@ static void r300SetState( void *drv, void *dev,
      
      rdev->accel = accel;
      
-     rdev->matrix = (state->render_options & DSRO_MATRIX) ? state->matrix : NULL;
-     
      r300_set_destination( rdrv, rdev, state );
      r300_set_clip( rdrv, rdev, state );
+     r300_set_render_options( rdrv, rdev, state );
     
      switch (accel) {
           case DFXL_FILLRECTANGLE:

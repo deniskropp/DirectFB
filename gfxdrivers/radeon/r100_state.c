@@ -525,9 +525,9 @@ void r100_set_drawing_color( RadeonDriverData *rdrv,
           return;
 
      if (state->drawingflags & DSDRAW_SRC_PREMULTIPLY) {
-          color.r = ((long) color.r * color.a / 255L);
-          color.g = ((long) color.g * color.a / 255L);
-          color.b = ((long) color.b * color.a / 255L);
+          color.r = color.r * color.a / 255;
+          color.g = color.g * color.a / 255;
+          color.b = color.b * color.a / 255;
      }
 
      color3d = PIXEL_ARGB( color.a, color.r,
@@ -701,12 +701,46 @@ void r100_set_blend_function( RadeonDriverData *rdrv,
           else if (dblend == DST_BLEND_GL_ONE_MINUS_DST_ALPHA)
                dblend = DST_BLEND_GL_ZERO;
      }
+     else if (rdev->dst_format == DSPF_A8) {
+          if (sblend == SRC_BLEND_GL_DST_ALPHA)
+               sblend = SRC_BLEND_GL_DST_COLOR;
+          else if (sblend == SRC_BLEND_GL_ONE_MINUS_DST_ALPHA)
+               sblend = SRC_BLEND_GL_ONE_MINUS_DST_COLOR;
+
+          if (dblend == DST_BLEND_GL_DST_ALPHA)
+               dblend = DST_BLEND_GL_DST_COLOR;
+          else if (dblend == DST_BLEND_GL_ONE_MINUS_DST_ALPHA)
+               dblend = DST_BLEND_GL_ONE_MINUS_DST_COLOR;
+     }
 
      radeon_waitfifo( rdrv, rdev, 1 ); 
      radeon_out32( mmio, RB3D_BLENDCNTL, sblend | dblend );
      
      RADEON_SET( SRC_BLEND );
      RADEON_SET( DST_BLEND );
+}
+
+void r100_set_render_options( RadeonDriverData *rdrv,
+                              RadeonDeviceData *rdev,
+                              CardState        *state )
+{
+     if (RADEON_IS_SET( RENDER_OPTIONS ))
+          return;
+          
+     if (state->render_options & DSRO_MATRIX &&
+        (state->matrix[0] != (1<<16) || state->matrix[1] != 0 || state->matrix[2] != 0 ||
+         state->matrix[3] != 0 || state->matrix[4] != (1<<16) || state->matrix[5] != 0))
+          rdev->matrix = state->matrix;
+     else
+          rdev->matrix = NULL;
+
+     if ((rdev->render_options & DSRO_ANTIALIAS) != (state->render_options & DSRO_ANTIALIAS)) {
+          RADEON_UNSET( DRAWING_FLAGS );
+          RADEON_UNSET( BLITTING_FLAGS );
+     }     
+     rdev->render_options = state->render_options;
+     
+     RADEON_SET( RENDER_OPTIONS );
 }
 
 /* NOTES:
@@ -732,23 +766,27 @@ void r100_set_drawingflags( RadeonDriverData *rdrv,
           return;
 
      if (rdev->dst_422) {
-          pp_cntl     |= TEX_1_ENABLE;
-          cblend       = COLOR_ARG_C_T1_COLOR;
-     }
-     
-     if (state->drawingflags & DSDRAW_BLEND) {
-          rb3d_cntl   |= ALPHA_BLEND_ENABLE;
+          pp_cntl |= TEX_1_ENABLE;
+          cblend   = COLOR_ARG_C_T1_COLOR;
      }
      else if (rdev->dst_format == DSPF_A8) {
-          cblend       = COLOR_ARG_C_TFACTOR_ALPHA;
+          cblend = COLOR_ARG_C_TFACTOR_ALPHA;
      }
+     
+     if (state->drawingflags & DSDRAW_BLEND)
+          rb3d_cntl |= ALPHA_BLEND_ENABLE;
 
      if (state->drawingflags & DSDRAW_XOR) {
           rb3d_cntl   |= ROP_ENABLE;
           master_cntl |= GMC_ROP3_PATXOR;
-     } else
+     }
+     else {
           master_cntl |= GMC_ROP3_PATCOPY;
- 
+     }
+
+     if (state->render_options & DSRO_ANTIALIAS)
+          pp_cntl |= ANTI_ALIAS_LINE_POLY;
+
      radeon_waitfifo( rdrv, rdev, 8 );
      radeon_out32( mmio, DP_GUI_MASTER_CNTL, master_cntl );
      radeon_out32( mmio, DP_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
@@ -796,7 +834,7 @@ void r100_set_blittingflags( RadeonDriverData *rdrv,
      
      if (RADEON_IS_SET( BLITTING_FLAGS ))
           return;
- 
+           
      if (rdev->accel == DFXL_TEXTRIANGLES) {
           se_cntl   |= DIFFUSE_SHADE_GOURAUD  |
                        ALPHA_SHADE_GOURAUD    |
@@ -858,16 +896,14 @@ void r100_set_blittingflags( RadeonDriverData *rdrv,
      else {
           if (state->blittingflags & DSBLIT_SRC_MASK_ALPHA) {
                ablend = ALPHA_ARG_A_T0_ALPHA | ALPHA_ARG_B_T1_ALPHA;
+               cblend = COLOR_ARG_A_T0_ALPHA | COLOR_ARG_B_T1_ALPHA;
                pp_cntl |= TEX_1_ENABLE;
           }
-          
-          if (state->blittingflags & DSBLIT_SRC_MASK_COLOR) {
-               cblend = COLOR_ARG_C_T1_COLOR;
-               pp_cntl |= TEX_1_ENABLE;
-          }
-          if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
-                                      DSBLIT_BLEND_ALPHACHANNEL)) {
-               cblend = COLOR_ARG_C_TFACTOR_COLOR;
+          else if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
+               if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
+                    cblend = COLOR_ARG_A_T0_ALPHA | COLOR_ARG_B_TFACTOR_ALPHA;
+               else
+                    cblend = COLOR_ARG_C_TFACTOR_ALPHA;
           }
           else {
                cblend = COLOR_ARG_C_T0_ALPHA;
@@ -882,8 +918,13 @@ void r100_set_blittingflags( RadeonDriverData *rdrv,
      if (state->blittingflags & DSBLIT_XOR) {
           master_cntl |= GMC_ROP3_XOR;
           rb3d_cntl   |= ROP_ENABLE; 
-     } else
+     } 
+     else {
           master_cntl |= GMC_ROP3_SRCCOPY;
+     }
+
+     if (state->render_options & DSRO_ANTIALIAS)
+          pp_cntl |= ANTI_ALIAS_POLY;
 
      radeon_waitfifo( rdrv, rdev, 9 );
      radeon_out32( mmio, CLR_CMP_CNTL, cmp_cntl );

@@ -107,6 +107,7 @@ typedef struct {
      u32                     cb_cop;
      u32                     cr_cop;
 
+     DFBSurfaceRenderOptions render_options;
      DFBSurfaceDrawingFlags  drawingflags;
      DFBSurfaceBlittingFlags blittingflags;
      
