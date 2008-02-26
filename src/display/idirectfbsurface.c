@@ -2164,7 +2164,7 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
 
-     if (!directory || !prefix)
+     if (!directory)
           return DFB_INVARG;
 
      if (!data->area.current.w || !data->area.current.h)

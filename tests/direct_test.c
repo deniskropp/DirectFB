@@ -43,7 +43,7 @@
 #include <direct/trace.h>
 
 static int
-show_usage( const void *name )
+show_usage( const char *name )
 {
      fprintf( stderr, "Usage: %s [-f <file>] [-u <host>:<port>]\n", name );
 

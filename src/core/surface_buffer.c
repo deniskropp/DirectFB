@@ -575,7 +575,7 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
      int                    fd_p = -1;
      int                    fd_g = -1;
      int                    i, n;
-     int                    len = strlen(directory) + strlen(prefix) + 40;
+     int                    len = (directory ? strlen(directory) : 0) + (prefix ? strlen(prefix) : 0) + 40;
      char                   filename[len];
      char                   head[30];
      bool                   rgb   = false;
@@ -594,7 +594,6 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_ASSERT( directory != NULL );
-     D_ASSERT( prefix != NULL );
 
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
@@ -658,33 +657,37 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
           return ret;
      }
 
-     /* Find the lowest unused index. */
-     while (++num < 10000) {
-          snprintf( filename, len, "%s/%s_%04d.ppm%s",
-                    directory, prefix, num, gz_ext );
-
-          if (access( filename, F_OK ) != 0) {
-               snprintf( filename, len, "%s/%s_%04d.pgm%s",
+     if (prefix) {
+          /* Find the lowest unused index. */
+          while (++num < 10000) {
+               snprintf( filename, len, "%s/%s_%04d.ppm%s",
                          directory, prefix, num, gz_ext );
 
-               if (access( filename, F_OK ) != 0)
-                    break;
-          }
-     }
+               if (access( filename, F_OK ) != 0) {
+                    snprintf( filename, len, "%s/%s_%04d.pgm%s",
+                              directory, prefix, num, gz_ext );
 
-     if (num == 10000) {
-          D_ERROR( "DirectFB/core/surfaces: "
-                   "couldn't find an unused index for surface dump!\n" );
-          dfb_surface_buffer_unlock( &lock );
-          if (palette)
-               dfb_palette_unref( palette );
-          return DFB_FAILURE;
+                    if (access( filename, F_OK ) != 0)
+                         break;
+               }
+          }
+
+          if (num == 10000) {
+               D_ERROR( "DirectFB/core/surfaces: "
+                        "couldn't find an unused index for surface dump!\n" );
+               dfb_surface_buffer_unlock( &lock );
+               if (palette)
+                    dfb_palette_unref( palette );
+               return DFB_FAILURE;
+          }
      }
 
      /* Create a file with the found index. */
      if (rgb) {
-          snprintf( filename, len, "%s/%s_%04d.ppm%s",
-                    directory, prefix, num, gz_ext );
+          if (prefix)
+               snprintf( filename, len, "%s/%s_%04d.ppm%s", directory, prefix, num, gz_ext );
+          else
+               snprintf( filename, len, "%s.ppm%s", directory, gz_ext );
 
           fd_p = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
           if (fd_p < 0) {
@@ -699,8 +702,10 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
 
      /* Create a graymap for the alpha channel using the found index. */
      if (alpha) {
-          snprintf( filename, len, "%s/%s_%04d.pgm%s",
-                    directory, prefix, num, gz_ext );
+          if (prefix)
+               snprintf( filename, len, "%s/%s_%04d.pgm%s", directory, prefix, num, gz_ext );
+          else
+               snprintf( filename, len, "%s.pgm%s", directory, gz_ext );
 
           fd_g = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
           if (fd_g < 0) {
@@ -769,16 +774,6 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
 
           switch (buffer->format) {
                case DSPF_LUT8:
-                    if (i==10) {
-                         direct_log_printf(NULL,"%d\n", data8[10]);
-
-                         for (n=0; n<6; n++)
-                              direct_log_printf(NULL,"  %d: 0x%08x\n", n,
-                                                PIXEL_ARGB( palette->entries[n].a,
-                                                            palette->entries[n].r,
-                                                            palette->entries[n].g,
-                                                            palette->entries[n].b ));
-                    }
                     for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
                          buf_p[n3+0] = palette->entries[data8[n]].r;
                          buf_p[n3+1] = palette->entries[data8[n]].g;

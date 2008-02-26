@@ -27,19 +27,29 @@
 #   Boston, MA 02111-1307, USA.
 #
 
-################################################################
-#                                                              #
-#  Documentation generator (early stage of implementation)     #
-#                                                              #
-#  - Reads header from stdin                                   #
-#  - Writes HTML to several files                              #
-#                                                              #
-################################################################
+#####################################################################################
+#                                                                                   #
+#  Documentation generator written by Denis Oliver Kropp <dok@directfb.org>         #
+#                                                                                   #
+#  - Uses first argument as project name and second as version                      #
+#  - Reads header files from stdin, parsing is tied to the coding style             #
+#  - Writes HTML 3.x to different files: 'index', 'types', <interfaces>, <methods>  #
+#                                                                                   #
+#  FIXME: remove all copy'n'waste code, cleanup more, simplify more, ...            #
+#                                                                                   #
+#####################################################################################
 
-$version = shift @ARGV;
+$PROJECT = shift @ARGV;
+$VERSION = shift @ARGV;
+
+
+# TODO: add more constants
+$COLOR_LINK = "#2369E0";
+$COLOR_TEXT = "#232323";
+
 
 html_create( INDEX, "index.html", "Index Page", "", "Index" );
-html_create( TYPES, "types.html", "DirectFB Types", "", "Types" );
+html_create( TYPES, "types.html", "$PROJECT Types", "", "Types" );
 
 print INDEX "<P>\n",
             "  <CENTER>\n",
@@ -49,39 +59,13 @@ print INDEX "<P>\n",
 while (<>) {
    chomp;
 
-   if ( /^\s*\/\*\s*$/ ) {
-      %options = ();
-      $comment = "";
-
-      while (<>) {
-         chomp;
-
-         last if ( /^\s*\*\/\s*$/ );
-
-         if (/^\s*\*\s*(.*)$/) {
-            $line = $1;
-
-            if ($line eq "" && $comment ne "") {
-               $comment .= "    <br><br>\n";
-            }
-            elsif ($line =~ /^@(\w+)\s*=?\s*(.*)$/) {
-               $options{$1} = $2;
-            }
-            else {
-               $comment .= "      $line\n";
-            }
-         }
-      }
-
-      substitute_method_links (\$comment);
-   }
-   elsif ( /^\s*DECLARE_INTERFACE\s*\(\s*(\w+)\s\)\s*$/ ) {
-      $interface_abstracts{$1} = $comment;
+   if ( /^\s*DECLARE_INTERFACE\s*\(\s*(\w+)\s\)\s*$/ ) {
+      $interface_abstracts{$1} = "$headline $detailed";
 
       print INDEX "    <TR><TD valign=top>\n",
                   "      <A href=\"$1.html\">$1</A>\n",
                   "    </TD><TD valign=top>\n",
-                  "      $comment\n",
+                  "      $headline $detailed\n",
                   "    </TD></TR>\n";
    }
    elsif ( /^\s*DEFINE_INTERFACE\s*\(\s*(\w+),\s*$/ ) {
@@ -96,18 +80,23 @@ while (<>) {
    elsif ( /^\s*typedef\s+(\w+)\s+\(\*(\w+)\)\s*\(\s*$/ ) {
       parse_func( $1, $2 );
    }
-   elsif ( /^\s*#define\s+([^\(\s]+)\s*(\([^\)]*\))?/ ) {
+   elsif ( /^\s*#define\s+([^\(\s]+)(\([^\)]*\))?\s*(.*)/ ) {
       $macro  = $1;
       $params = $2;
+      $value  = $3;
 
       chomp $params;
+      chomp $value;
 
-      if ($comment ne "" && !defined ($options{"internal"})) {
-         parse_macro( $macro, $params );
-      }
+      parse_macro( $macro, $params, $value );
+   }
+   elsif ( /^\s*\/\*\s*$/ ) {
+      parse_comment( \$headline, \$detailed, \$options );
    }
    else {
-      $comment = "";
+      $headline = "";
+      $detailed = "";
+      %options  = ();
    }
 }
 
@@ -154,16 +143,25 @@ sub substitute_method_links ($)
    {
       my $str = shift(@_);
 
+      # Interface Methods
       $$str =~ s/(I\w+)\:\:(\w+)\(\)/\<a\ href=\"\1\_\2\.html\"\>\1\:\:\2\(\)\<\/a\>/g;
+
+      # Automatic type links
+      $$str =~ s/(\s)([A-Z][A-Z][A-Z][A-Z]?[a-z][a-z][a-z]?[\w0-9]+)/\1\<a\ href=\"types\.html#\2\"\>\2\<\/a\>/g;
+
+      # Explicit type links
+      $$str =~ s/(\s)\@\_(\w[\w0-9]+)/\1\<a\ href=\"types\.html#\2\"\>\2\<\/a\>/g;
    }
 
-sub parse_comment ($$) {
-   local (*head, *body) = @_;
+sub parse_comment ($$$) {
+   local (*head, *body, *options) = @_;
    my $headline_mode = 1;
+   my $list_open = 0;
 
    $head = "";
    $body = "";
 
+   %options = ();
 
    while (<>)
       {
@@ -172,26 +170,61 @@ sub parse_comment ($$) {
 
          if ($headline_mode == 1)
             {
-               if (/^\s*\*?\s*$/)
+               if (/^\s*\*\s*$/)
                   {
                      $headline_mode = 0;
                   }
-               elsif (/^\s*\*?\s*(.+)$/)
+               elsif (/^\s*\*\s*@(\w+)\s*=?\s*(.*)$/)
                   {
-                     $head .= " $1";
+                     $options{$1} = $2;
+                  }
+               elsif (/^\s*\*\s*(.+)$/)
+                  {
+                     $head .= "  $1";
                   }
             }
          else
             {
-               if (/^\s*\*?\s*$/)
+               if (/^\s*\*\s*$/)
                   {
                      $body .= " </P><P>\n";
                   }
-               elsif (/^\s*\*?\s(.+)$/)
+               elsif (/^\s*\*\s\-\s(.+)$/)
                   {
-                     $body .= " $1\n";
+                     if ($list_open == 0)
+                        {
+                           $list_open = 1;
+
+                           $body .= " <UL><LI>\n";
+                        }
+                     else
+                        {
+                           $body .= " </LI><LI>\n";
+                        }
+
+                     $body .= "  $1\n";
+                  }
+               elsif (/^\s*\*\s\s(.+)$/)
+                  {
+                     $body .= "  $1\n";
+                  }
+               elsif (/^\s*\*\s(.+)$/)
+                  {
+                     if ($list_open == 1)
+                        {
+                           $list_open = 0;
+
+                           $body .= " </LI></UL>\n";
+                        }
+
+                     $body .= "  $1\n";
                   }
             }
+      }
+
+   if ($list_open == 1)
+      {
+         $body .= " </LI></UL>\n";
       }
 
    substitute_method_links (\$head);
@@ -250,23 +283,20 @@ sub parse_interface (NAME)
    {
       my $interface = shift(@_);
 
-      $headline = "";
-      $detailed = "";
       $section = "";
 
       html_create( INTERFACE, "$interface.html",
                               "<A href=\"index.html\">" .
-                              "<FONT color=#DDDDDD>DirectFB Interfaces</FONT>" .
+                              "<FONT color=#DDDDDD>$PROJECT Interfaces</FONT>" .
                               "</A>", $interface, $interface );
 
-#      print INTERFACE "<P align=center>\n",
-#                      "  $interface_abstracts{$interface}\n",
-#                      "</P>";
-
-      print INTERFACE "<p style=\"margin\-left:3%; margin\-right:3%;\"\>$comment</p>";
+      print INTERFACE "<P>\n",
+                      "  $headline\n",
+                      "  $detailed\n",
+                      "</P>";
 
       print INTERFACE "<P>\n",
-                      "  <CENTER><TABLE width=93% border=1 rules=groups cellpadding=2 cellspacing=0>\n";
+                      "  <CENTER><TABLE width=93% border=1 rules=groups cellpadding=4 cellspacing=2>\n";
 
       print INTERFACE "    <THEAD>\n";
       print INTERFACE "      <TR><TH colspan=3>Methods of $interface</TH></TR>\n";
@@ -283,40 +313,42 @@ sub parse_interface (NAME)
                {
                   $section = $1;
                }
-            elsif ( /^\s*DFBResult\s*\(\s*\*\s*(\w+)\s*\)\s*\(?\s*$/ )
+            elsif ( /^\s*(\w+)\s*\(\s*\*\s*(\w+)\s*\)\s*\(?\s*$/ )
                {
                   print INTERFACE "    <TR><TD valign=top>\n",
                                   "      <B><SMALL>$section</SMALL></B>\n",
                                   "    </TD><TD valign=top>\n",
-                                  "      <A href=\"${interface}_$1.html\">",
-                                  "      <B>$1</B></A>\n",
+                                  "      <A href=\"${interface}_$2.html\">",
+                                  "      <B>$2</B></A>\n",
                                   "    </TD><TD valign=top>\n",
                                   "      $headline\n",
                                   "    </TD></TR>\n";
 
-                  html_create( FUNCTION, "${interface}_$1.html",
+                  html_create( FUNCTION, "${interface}_$2.html",
                                "<A href=\"$interface.html\">" .
                                "<FONT color=#DDDDDD>$interface</FONT>" .
-                               "</A>", $1, "$interface - $1" );
+                               "</A>", $2, "$interface - $2" );
 
-                  print FUNCTION "<P>$headline</P><P>\n",
-                                 "  <TABLE border=0 cellspacing=0 cellpadding=2 bgcolor=#C0C0C0>\n",
-                                 "    <TR><TD colspan=5><I><FONT color=black>$1 (</FONT></I></TD></TR>\n";
+                  print FUNCTION "<H4>$headline</H4>\n",
+                                 "  <TABLE border=0 cellspacing=4 cellpadding=2 bgcolor=#F8F8F0>\n",
+                                 "    <TR><TD colspan=5><I><FONT color=#425469><A href=\"types.html#$1\">$1</A> <b>$2 (</b></FONT></I></TD></TR>\n";
 
                   my @params = parse_params();
 
                   for my $param (@params)
                      {
-                        print FUNCTION "    <TR><TD width=50>&nbsp;</TD><TD valign=top>\n",
+                        print FUNCTION "    <TR><TD width=50>\n",
+                                       "      &nbsp;\n",
+                                       "    </TD><TD valign=top>\n",
                                        "      $param->{TYPE}\n",
                                        "    </TD><TD width=20>&nbsp;</TD><TD align=right>\n",
-                                       "      <FONT color=black><B>$param->{PTR}</B></FONT>\n",
+                                       "      <FONT color=#424242><B>$param->{PTR}</B></FONT>\n",
                                        "    </TD><TD valign=top>\n",
-                                       "      <FONT color=black><B>$param->{NAME}</B></FONT>\n",
+                                       "      <FONT color=#234269><B>$param->{NAME}</B></FONT>\n",
                                        "    </TD></TR>\n";
                      }
 
-                  print FUNCTION "    <TR><TD colspan=3><I><FONT color=black>);</FONT></I></TD></TR>\n",
+                  print FUNCTION "    <TR><TD colspan=5><I><FONT color=#425469><b>);</b></FONT></I></TD></TR>\n",
                                  "  </TABLE>\n",
                                  "</P>\n";
 
@@ -330,7 +362,7 @@ sub parse_interface (NAME)
                }
             elsif ( /^\s*\/\*\s*$/ )
                {
-                  parse_comment( \$headline, \$detailed );
+                  parse_comment( \$headline, \$detailed, \$options );
                }
          }
 
@@ -361,16 +393,17 @@ sub parse_enum
             $entry = "";
 
             # entry with assignment (complete comment)
-            if ( /^\s*(\w+)\s*=\s*([\w\d\(\)\,\!\s]+)\s*,?\s*\/\*\s*(.+)\s*\*\/\s*$/ )
+            if ( /^\s*(\w+)\s*=\s*([\w\d\(\)\,\|\!\s]+[^\,\s])\s*,?\s*\/\*\s*(.+)\s*\*\/\s*$/ )
                {
                   $entry = $1;
+                  $values{ $entry } = $2;
                   $entries{ $entry } = $3;
                }
             # entry with assignment (opening comment)
-            elsif ( /^\s*(\w+)\s*=\s*([\w\d\(\)\,\!\s]+)\s*,?\s*\/\*\s*(.+)\s*$/ )
+            elsif ( /^\s*(\w+)\s*=\s*([\w\d\(\)\,\|\!\s]+[^\,\s])\s*,?\s*\/\*\s*(.+)\s*$/ )
                {
                   $entry = $1;
-
+                  $values{ $entry } = $2;
                   $entries{ $entry } = $3;
 
                   while (<>)
@@ -389,9 +422,10 @@ sub parse_enum
                   }
                }
             # entry with assignment (none or preceding comment)
-            elsif ( /^\s*(\w+)\s*=\s*([\w\d\(\)\,\!\s]+)\s*,?\s*$/ )
+            elsif ( /^\s*(\w+)\s*=\s*([\w\d\(\)\,\|\!\s]+[^\,\s])\s*,?\s*$/ )
                {
                   $entry = $1;
+                  $values{ $entry } = $2;
                   $entries{ $entry } = $pre;
                }
             # entry without assignment (complete comment)
@@ -404,7 +438,6 @@ sub parse_enum
             elsif ( /^\s*(\w+)\s*,?\s*\/\*\s*(.+)\s*$/ )
                {
                   $entry = $1;
-
                   $entries{ $entry } = $2;
 
                   while (<>)
@@ -458,7 +491,7 @@ sub parse_enum
                {
                   $enum = $1;
 
-                  $types{$enum} = $comment;
+                  $types{$enum} = $headline;
 
                   last;
                }
@@ -477,29 +510,29 @@ sub parse_enum
       if (scalar @list > 0)
          {
             print TYPES "<p>\n",
-                        "  <a name=$enum>\n",
-                        "  <font color=#D07070 size=+1>$enum</font>\n";
-
-            print TYPES "  <br>\n",
-                        "  <TABLE border=0 cellspacing=0 cellpadding=4 bgcolor=#F0F0F0>\n";
+                        "  <a name=\"$enum\" href=\"#$enum\">\n",
+                        "    <h3><font color=#B04223>$enum</font></h3>\n",
+                        "  </a>\n",
+                        "  <h4>$headline</h4>\n",
+                        "  <TABLE border=0 cellspacing=4 cellpadding=2 bgcolor=#F8F8F0>\n";
 
             foreach $key (@list)
                {
                   substitute_method_links (\$entries{$key});
 
                   print TYPES "    <TR><TD width=32>&nbsp;</TD><TD valign=top>\n",
-                              "      <font color=#40A040>$key</font>\n",
-                              "    </TD><TD valign=top>\n",
-                              "      <font color=#404040>$entries{$key}</font>\n",
+                              "      <font color=#429023><b>$key</b></font>\n",
+                              "    </TD><TD width=20>&nbsp;</TD><TD valign=top>\n",
+                              "      <font color=#234269>$values{$key}</font>\n",
+                              "    </TD><TD width=20>&nbsp;</TD><TD valign=top>\n",
+                              "      <font color=#424242>$entries{$key}</font>\n",
                               "    </TD></TR>\n";
                }
 
-            substitute_method_links (\$comment);
-
             print TYPES "  </TABLE>\n",
-                        "  $comment\n",
-                        "  <br>\n",
-                        "</p>\n";
+                        "  </p><p>\n",
+                        "  $detailed\n",
+                        "</p><hr>\n";
          }
    }
 
@@ -513,84 +546,40 @@ sub parse_struct
       @entries = ();
       %entries_params = ();
       %entries_types = ();
+      %entries_ptrs = ();
 
       while (<>)
          {
             chomp;
 
+            $entry = "";
+
             # without comment
-            if ( /^\s*([\w\ ]+)\s+(\**[\w\d\+\[\]]+;)\s*$/ )
+            if ( /^\s*(const )?\s*([\w ]+)\s+(\**)([\w\d\+\[\]]+)(\s*:\s*\d+)?;\s*$/ )
                {
-                  $type = $1;
-                  $entry = $2;
-
-                  $type =~ s/\ *$//;
-
-                  if ($types{$type})
-                     {
-                        $entries_types{$entry} = "<A href=\"types.html#$type\">$type</A>";
-                     }
-                  elsif ($interface_abstracts{$type})
-                     {
-                        $entries_types{$entry} = "<A href=\"$type.html\">$type</A>";
-                     }
-                  else
-                     {
-                        $entries_types{$entry} = "$type";
-                     }
-
-                  push (@entries, $entry);
-                  $entries_params{ $entry } = "";
+                  $const = $1;
+                  $type = $2;
+                  $ptr = $3;
+                  $entry = $4.$5;
+                  $text = "";
                }
             # complete one line entry
-            elsif ( /^\s*([\w\ ]+)\s+(\**[\w\d\+\[\]]+;)\s*\/\*\s*(.+)\*\/\s*$/ )
+            elsif ( /^\s*(const )?\s*([\w ]+)\s+(\**)([\w\d\+\[\]]+)(\s*:\s*\d+)?;\s*\/\*\s*(.+)\*\/\s*$/ )
                {
-                  $type = $1;
-                  $entry = $2;
-                  $text = $3;
-
-                  $type =~ s/\ *$//;
-
-                  if ($types{$type})
-                     {
-                        $entries_types{$entry} = "<A href=\"types.html#$type\">$type</A>";
-                     }
-                  elsif ($interface_abstracts{$type})
-                     {
-                        $entries_types{$entry} = "<A href=\"$type.html\">$type</A>";
-                     }
-                  else
-                     {
-                        $entries_types{$entry} = "$type";
-                     }
-
-                  push (@entries, $entry);
-                  $entries_params{ $entry } = $text;
+                  $const = $1;
+                  $type = $2;
+                  $ptr = $3;
+                  $entry = $4.$5;
+                  $text = $6;
                }
             # with comment opening
-            elsif ( /^\s*([\w\ ]+)\s+(\**[\w\d\+\[\]]+;)\s*\/\*\s*(.+)\s*$/ )
+            elsif ( /^\s*(const )?\s*([\w ]+)\s+(\**)([\w\d\+\[\]]+)(\s*:\s*\d+)?;\s*\/\*\s*(.+)\s*$/ )
                {
-                  $type = $1;
-                  $entry = $2;
-                  $text = $3;
-
-                  $type =~ s/\ *$//;
-
-                  if ($types{$type})
-                     {
-                        $entries_types{$entry} = "<A href=\"types.html#$type\">$type</A>";
-                     }
-                  elsif ($interface_abstracts{$type})
-                     {
-                        $entries_types{$entry} = "<A href=\"$type.html\">$type</A>";
-                     }
-                  else
-                     {
-                        $entries_types{$entry} = "$type";
-                     }
-
-                  push (@entries, $entry);
-                  $entries_params{ $entry } = $text;
+                  $const = $1;
+                  $type = $2;
+                  $ptr = $3;
+                  $entry = $4.$5;
+                  $text = $6;
 
                   while (<>)
                      {
@@ -598,12 +587,12 @@ sub parse_struct
 
                         if ( /^\s*(.+)\*\/\s*$/ )
                            {
-                              $entries_params{ $entry } .= " $1";
+                              $text .= " $1";
                               last;
                            }
                         elsif ( /^\s*(.+)\s*$/ )
                            {
-                              $entries_params{ $entry } .= " $1";
+                              $text .= " $1";
                            }
                      }
                }
@@ -611,20 +600,43 @@ sub parse_struct
                {
                   $struct = $1;
 
-                  $types{$struct} = $comment;
+                  $types{$struct} = $headline;
 
                   last;
+               }
+
+            if ($entry ne "")
+               {
+                  $type =~ s/\s*$//g;
+
+                  if ($types{$type})
+                     {
+                        $entries_types{$entry} = "$const<A href=\"types.html#$type\">$type</A>";
+                     }
+                  elsif ($interface_abstracts{$type})
+                     {
+                        $entries_types{$entry} = "$const<A href=\"$type.html\">$type</A>";
+                     }
+                  else
+                     {
+                        $entries_types{$entry} = "$const$type";
+                     }
+   
+                  $entries_ptrs{$entry} = $ptr;
+                  $entries_params{$entry} = $text;
+
+                  push (@entries, $entry);
                }
          }
 
       if (scalar @entries > 0)
          {
             print TYPES "<p>",
-                        "  <a name=$struct>",
-                        "  <font color=#70D070 size=+1>$struct</font>\n";
-
-            print TYPES "  <br>\n",
-                        "  <TABLE border=0 cellspacing=0 cellpadding=4 bgcolor=#E0E0E0>\n";
+                        "  <a name=\"$struct\" href=\"#$struct\">\n",
+                        "    <h3><font color=#238423>$struct</font></h3>\n",
+                        "  </a>\n",
+                        "  <h4>$headline</h4>\n",
+                        "  <TABLE border=0 cellspacing=4 cellpadding=2 bgcolor=#F8F8F0>\n";
 
             foreach $key (@entries)
                {
@@ -632,20 +644,19 @@ sub parse_struct
 
                   print TYPES "    <TR><TD width=32>&nbsp;</TD><TD valign=top>\n",
                               "      $entries_types{$key}\n",
+                              "    </TD><TD width=20>&nbsp;</TD><TD valign=top align=right>\n",
+                              "      <FONT color=#424242>$entries_ptrs{$key}</FONT>\n",
                               "    </TD><TD valign=top>\n",
-                              "      <FONT color=black><B>$key</B></FONT>\n",
-                              "    </TD><TD valign=top>\n",
-                              "      <font color=#404040>$entries_params{$key}</font>\n",
+                              "      <FONT color=#234269><B>$key</B></FONT>\n",
+                              "    </TD><TD width=20>&nbsp;</TD><TD valign=top>\n",
+                              "      <font color=#424242>$entries_params{$key}</font>\n",
                               "    </TD></TR>\n";
                }
 
-            substitute_method_links (\$comment);
-
             print TYPES "  </TABLE>\n",
-                        "  $comment\n",
-                        "  <br>\n",
-                        "</p>\n";
-
+                        "  </p><p>\n",
+                        "  $detailed\n",
+                        "</p><hr>\n";
          }
    }
 
@@ -658,84 +669,40 @@ sub parse_func (TYPE, NAME)
       @entries = ();
       %entries_params = ();
       %entries_types = ();
+      %entries_ptrs = ();
 
       while (<>)
          {
             chomp;
 
+            $entry = "";
+
             # without comment
-            if ( /^\s*([\w\ ]+)\s+(\**[\w\d\+\[\]]+,?)\s*$/ )
+            if ( /^\s*(const )?\s*([\w ]+)\s+(\**)([\w\d\+\[\]]+)(\s*:\s*\d+)?,?\s*$/ )
                {
-                  $type = $1;
-                  $entry = $2;
-
-                  $type =~ s/\ *$//;
-
-                  if ($types{$type})
-                     {
-                        $entries_types{$entry} = "<A href=\"types.html#$type\">$type</A>";
-                     }
-                  elsif ($interface_abstracts{$type})
-                     {
-                        $entries_types{$entry} = "<A href=\"$type.html\">$type</A>";
-                     }
-                  else
-                     {
-                        $entries_types{$entry} = "$type";
-                     }
-
-                  push (@entries, $entry);
-                  $entries_params{ $entry } = "";
+                  $const = $1;
+                  $type = $2;
+                  $ptr = $3;
+                  $entry = $4.$5;
+                  $text = "";
                }
             # complete one line entry
-            elsif ( /^\s*([\w\ ]+)\s+(\**[\w\d\+\[\]]+,?)\s*\/\*\s*(.+)\*\/\s*$/ )
+            elsif ( /^\s*(const )?\s*([\w ]+)\s+(\**)([\w\d\+\[\]]+)(\s*:\s*\d+)?,?\s*\/\*\s*(.+)\*\/\s*$/ )
                {
-                  $type = $1;
-                  $entry = $2;
-                  $text = $3;
-
-                  $type =~ s/\ *$//;
-
-                  if ($types{$type})
-                     {
-                        $entries_types{$entry} = "<A href=\"types.html#$type\">$type</A>";
-                     }
-                  elsif ($interface_abstracts{$type})
-                     {
-                        $entries_types{$entry} = "<A href=\"$type.html\">$type</A>";
-                     }
-                  else
-                     {
-                        $entries_types{$entry} = "$type";
-                     }
-
-                  push (@entries, $entry);
-                  $entries_params{ $entry } = $text;
+                  $const = $1;
+                  $type = $2;
+                  $ptr = $3;
+                  $entry = $4.$5;
+                  $text = $6;
                }
             # with comment opening
-            elsif ( /^\s*([\w\ ]+)\s+(\**[\w\d\+\[\]]+,?)\s*\/\*\s*(.+)\s*$/ )
+            elsif ( /^\s*(const )?\s*([\w ]+)\s+(\**)([\w\d\+\[\]]+)(\s*:\s*\d+)?,?\s*\/\*\s*(.+)\s*$/ )
                {
-                  $type = $1;
-                  $entry = $2;
-                  $text = $3;
-
-                  $type =~ s/\ *$//;
-
-                  if ($types{$type})
-                     {
-                        $entries_types{$entry} = "<A href=\"types.html#$type\">$type</A>";
-                     }
-                  elsif ($interface_abstracts{$type})
-                     {
-                        $entries_types{$entry} = "<A href=\"$type.html\">$type</A>";
-                     }
-                  else
-                     {
-                        $entries_types{$entry} = "$type";
-                     }
-
-                  push (@entries, $entry);
-                  $entries_params{ $entry } = $text;
+                  $const = $1;
+                  $type = $2;
+                  $ptr = $3;
+                  $entry = $4.$5;
+                  $text = $6;
 
                   while (<>)
                      {
@@ -743,20 +710,43 @@ sub parse_func (TYPE, NAME)
 
                         if ( /^\s*(.+)\*\/\s*$/ )
                            {
-                              $entries_params{ $entry } .= " $1";
+                              $text .= " $1";
                               last;
                            }
                         elsif ( /^\s*(.+)\s*$/ )
                            {
-                              $entries_params{ $entry } .= " $1";
+                              $text .= " $1";
                            }
                      }
                }
             elsif ( /^\s*\)\;\s*$/ )
                {
-                  $types{$name} = $comment;
+                  $types{$name} = $headline;
 
                   last;
+               }
+
+            if ($entry ne "")
+               {
+                  $type =~ s/\s*$//g;
+
+                  if ($types{$type})
+                     {
+                        $entries_types{$entry} = "$const<A href=\"types.html#$type\">$type</A>";
+                     }
+                  elsif ($interface_abstracts{$type})
+                     {
+                        $entries_types{$entry} = "$const<A href=\"$type.html\">$type</A>";
+                     }
+                  else
+                     {
+                        $entries_types{$entry} = "$const$type";
+                     }
+
+                  $entries_ptrs{$entry} = $ptr;
+                  $entries_params{$entry} = $text;
+
+                  push (@entries, $entry);
                }
          }
 
@@ -768,30 +758,35 @@ sub parse_func (TYPE, NAME)
       if (scalar @entries > 0)
          {
             print TYPES "<p>",
-                        "  <a name=$name>",
-                        "  <font color=#40A0F0 size=+1>$name</font>\n",
-                        "  <br>\n",
-                        "  <TABLE border=0 cellspacing=0 cellpadding=4 bgcolor=#E0E0E0>\n",
+                        "  <a name=\"$name\" href=\"#$name\">\n",
+                        "    <h3><font color=#D06923>$name</font></h3>\n",
+                        "  </a>\n",
+                        "  <h4>$headline</h4>\n",
+                        "  <TABLE border=0 cellspacing=4 cellpadding=2 bgcolor=#F8F8F0>\n",
                         "    <TR><TD colspan=4>\n",
-                        "         <I><FONT color=black>$rtype (*$name) (</FONT></I>\n",
+                        "         <I><FONT color=#232342>$rtype (*$name) (</FONT></I>\n",
                         "    </TD></TR>\n";
 
             foreach $key (@entries)
                {
-                  print TYPES "    <TR><TD width=32>&nbsp;</TD><TD valign=top>\n",
+                  print TYPES "    <TR><TD width=32>\n",
+                              "      &nbsp;\n",
+                              "    </TD><TD valign=top>\n",
                               "      $entries_types{$key}\n",
+                              "    </TD><TD width=20>&nbsp;</TD><TD valign=top align=right>\n",
+                              "      <FONT color=#424242>$entries_ptrs{$key}</FONT>\n",
                               "    </TD><TD valign=top>\n",
-                              "      <FONT color=black><B>$key</B></FONT>\n",
-                              "    </TD><TD valign=top>\n",
-                              "      <font color=#404040>$entries_params{$key}</font>\n",
+                              "      <FONT color=#234269><B>$key</B></FONT>\n",
+                              "    </TD><TD width=20>&nbsp;</TD><TD valign=top>\n",
+                              "      <font color=#424242>$entries_params{$key}</font>\n",
                               "    </TD></TR>\n";
                }
 
-            print TYPES "    <TR><TD colspan=3><I><FONT color=black>);</FONT></I></TD></TR>\n",
+            print TYPES "    <TR><TD colspan=4><I><FONT color=#234269>);</FONT></I></TD></TR>\n",
                         "  </TABLE>\n",
-                        "  $comment\n",
-                        "</p>\n";
-
+                        "  </p><p>\n",
+                        "  $detailed\n",
+                        "</p><hr>\n";
          }
    }
 
@@ -800,10 +795,11 @@ sub parse_func (TYPE, NAME)
 # Writes formatted HTML to "types.html".
 # Parameter is the macro name.
 #
-sub parse_macro (NAME, PARAMS)
+sub parse_macro (NAME, PARAMS, VALUE)
    {
       my $macro  = shift(@_);
       my $params = shift(@_);
+      my $value  = shift(@_);
 
       while (<>)
          {
@@ -812,15 +808,21 @@ sub parse_macro (NAME, PARAMS)
             last unless /\\$/;
          }
 
-      $definitions{"$macro $params"} = $comment;
+      if (!defined ($options{"internal"}) && $value ne "") {
+         $definitions{$macro} = $headline;
 
-      print TYPES "<p>\n",
-                  "  <a name=\"$macro $params\">\n",
-                  "  <font color=#7070D0 size=+1>$macro $params</font>\n",
-                  "  <br>\n",
-                  "  $comment\n",
-                  "  <br>\n",
-                  "</p>\n";
+         $value =~ s/^\s*\\\s*$//;
+
+         print TYPES "<p>\n",
+                     "  <a name=\"$macro\" href=\"#$macro\">\n",
+                     "    <h3><font color=#2342A0>$macro</font> <font color=#606080>$params</font></h3>\n",
+                     "  </a>\n",
+                     "  <h4>$headline</h4>\n",
+                     "  <font color=#232342 size=+1><b>$value</b></font>\n",
+                     "  </p><p>\n",
+                     "  $detailed\n",
+                     "</p><hr>\n";
+      }
    }
 
 
@@ -845,19 +847,18 @@ sub html_create (FILEHANDLE, FILENAME, TITLE, SUBTITLE, SINGLETITLE)
                   "  A:link, A:visited, A:active { text-decoration: none; }\n",
                   "</STYLE>\n",
                   "<HEAD>\n",
-                  "  <TITLE>$singletitle [DirectFB Reference Manual]</TITLE>\n",
+                  "  <TITLE>$singletitle [$PROJECT Reference Manual]</TITLE>\n",
                   "</HEAD>\n",
-                  "<BODY bgcolor=#FFFFFF link=#0070FF",
-                       " vlink=#0070FF text=#404040>\n",
+                  "<BODY bgcolor=#FFF0D8 link=$COLOR_LINK vlink=$COLOR_LINK text=$COLOR_TEXT>\n",
                   "\n",
                   "<TABLE width=100% bgcolor=black border=0 cellspacing=1 cellpadding=3>\n",
                   "  <TR><TD width=30%>\n",
                   "    <A href=\"http://www.directfb.org\"><IMG border=0 src=\"directfb.png\"></A>\n",
                   "  </TD><TD align=right>\n",
                   "    &nbsp;&nbsp;",
-                  "    <A href=\"index.html\"><FONT size=+3 color=white>Reference Manual - $version</FONT></A>\n",
+                  "    <A href=\"index.html\"><FONT size=+3 color=white>Reference Manual - $VERSION</FONT></A>\n",
                   "  </TD></TR>\n",
-                  "  <TR><TD colspan=2 align=center bgcolor=#303030>\n";
+                  "  <TR><TD colspan=2 align=center bgcolor=#203040>\n";
 
       if ($subtitle)
          {
@@ -884,7 +885,7 @@ sub html_close (FILEHANDLE)
       my $FILE = shift(@_);
 
       print $FILE "\n",
-                  "<TABLE width=100% bgcolor=#eeeeee border=0 cellspacing=1 cellpadding=3>\n",
+                  "<TABLE width=100% bgcolor=#e0e8f0 border=0 cellspacing=1 cellpadding=3>\n",
                   "  <TR><TD width=100>\n",
                   "    <a rel=\"license\" href=\"http://creativecommons.org/licenses/by-sa/3.0/\">",
                   "    <img alt=\"Creative Commons License\" style=\"border-width:0\" border=\"0\" ",
