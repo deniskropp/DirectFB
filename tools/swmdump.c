@@ -167,11 +167,12 @@ dump_window( SaWMan       *sawman,
 static void
 dump_tier( SaWMan *sawman, SaWManTier *tier, int n )
 {
-     CoreLayer    *layer;
-     SaWManWindow *sawwin;
-     const char   *is_standard = "";
-     const char   *is_border   = "";
-     const char   *is_single   = "";
+     CoreLayer       *layer;
+     CoreLayerRegion *region;
+     SaWManWindow    *sawwin;
+     const char      *is_standard = "";
+     const char      *is_border   = "";
+     const char      *is_single   = "";
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( tier, SaWManTier );
@@ -179,6 +180,9 @@ dump_tier( SaWMan *sawman, SaWManTier *tier, int n )
      layer = dfb_layer_at( tier->layer_id );
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->shared != NULL );
+
+     region = tier->region;
+     D_ASSERT( region != NULL );
 
      if (tier->active) {
           if (tier->single_mode && tier->single_window)
@@ -200,11 +204,12 @@ dump_tier( SaWMan *sawman, SaWManTier *tier, int n )
           printf( " UPPER" );
      printf( "\n" );
 
-     printf( "  Layer      [%d] %s\n", tier->layer_id, layer->shared->description.name );
-     printf( "  Size       %dx%d\n", tier->size.w, tier->size.h );
-     printf( "  Standard   %dx%d %-8s%s\n", tier->config.width, tier->config.height, dfb_pixelformat_name(tier->config.pixelformat), is_standard );
-     printf( "  Border     %dx%d %-8s%s\n", tier->border_config.width, tier->border_config.height, dfb_pixelformat_name(tier->border_config.pixelformat), is_border );
-     printf( "  Single     %dx%d %-8s%s\n", tier->single_width, tier->single_height, dfb_pixelformat_name(tier->single_format), is_single );
+     printf( "  Layer         [%d] %s\n", tier->layer_id, layer->shared->description.name );
+     printf( "  Size          %dx%d\n", tier->size.w, tier->size.h );
+     printf( "  Standard      %dx%d %-8s%s\n", tier->config.width, tier->config.height, dfb_pixelformat_name(tier->config.pixelformat), is_standard );
+     printf( "  Border        %dx%d %-8s%s\n", tier->border_config.width, tier->border_config.height, dfb_pixelformat_name(tier->border_config.pixelformat), is_border );
+     printf( "  Single        %dx%d %-8s%s\n", tier->single_width, tier->single_height, dfb_pixelformat_name(tier->single_format), is_single );
+     printf( "  Region State  0x%08x\n", region->state );
 
      if (tier->single_window && tier->single_mode) {
           CoreWindow  *window;
