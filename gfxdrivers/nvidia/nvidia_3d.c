@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <math.h>
 
 #include <directfb.h>
 
@@ -89,26 +90,49 @@ f2d( float f ) {
 }
 
 
-static void nv_load_texture( NVidiaDriverData *nvdrv,
-                             NVidiaDeviceData *nvdev );
+static void nv_load_texture( NVidiaDriverData *nvdrv, NVidiaDeviceData *nvdev );
+                             
+                             
+#define M_TRANSFORM(x, y, retx, rety, m) { \
+     float _x, _y; \
+     _x = ((x) * (m)[0] + (y) * (m)[1] + (m)[2]) / 65536.f; \
+     _y = ((x) * (m)[3] + (y) * (m)[4] + (m)[5]) / 65536.f; \
+     retx = _x; \
+     rety = _y; \
+}
 
 
 bool nvFillRectangle3D( void *drv, void *dev, DFBRectangle *rect )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
+     float             x1, y1;
+     float             x2, y2;
+     
+     x1 = rect->x; x2 = rect->x+rect->w;
+     y1 = rect->y; y2 = rect->y+rect->h;
 
      nv_setstate3d( &nvdev->state3d[0] );
 
-     nv_putvertex( 0, rect->x,         rect->y, 
-                      0, 1, nvdev->color3d, 0, 0, 0 );
-     nv_putvertex( 1, rect->x+rect->w, rect->y,
-                      0, 1, nvdev->color3d, 0, 0, 0 );
-     nv_putvertex( 2, rect->x+rect->w, rect->y+rect->h,
-                      0, 1, nvdev->color3d, 0, 0, 0 );
-     nv_putvertex( 3, rect->x,         rect->y+rect->h,
-                      0, 1, nvdev->color3d, 0, 0, 0 );
-
+     if (nvdev->matrix) {
+          float x, y;
+          
+          M_TRANSFORM( x1, y1, x, y, nvdev->matrix );
+          nv_putvertex( 0, x, y, 0, 1, nvdev->color3d, 0, 0, 0 );
+          M_TRANSFORM( x2, y1, x, y, nvdev->matrix );
+          nv_putvertex( 1, x, y, 0, 1, nvdev->color3d, 0, 0, 0 );
+          M_TRANSFORM( x2, y2, x, y, nvdev->matrix );
+          nv_putvertex( 2, x, y, 0, 1, nvdev->color3d, 0, 0, 0 );
+          M_TRANSFORM( x1, y2, x, y, nvdev->matrix );
+          nv_putvertex( 3, x, y, 0, 1, nvdev->color3d, 0, 0, 0 );
+     }
+     else {    
+          nv_putvertex( 0, x1, y1, 0, 1, nvdev->color3d, 0, 0, 0 );
+          nv_putvertex( 1, x2, y1, 0, 1, nvdev->color3d, 0, 0, 0 );
+          nv_putvertex( 2, x2, y2, 0, 1, nvdev->color3d, 0, 0, 0 );
+          nv_putvertex( 3, x1, y2, 0, 1, nvdev->color3d, 0, 0, 0 );
+     }
+     
      nv_emit_vertices( 0, 0, 1, 2, 0, 2, 3, 0, 0 );
 
      return true;
@@ -118,12 +142,23 @@ bool nvFillTriangle3D( void *drv, void *dev, DFBTriangle *tri )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
+     float             x1, y1;
+     float             x2, y2;
+     float             x3, y3;
+     
+     x1 = tri->x1; x2 = tri->x2; x3 = tri->x3;
+     y1 = tri->y1; y2 = tri->y2; y3 = tri->y3;     
+     if (nvdev->matrix) {
+          M_TRANSFORM( x1, y1, x1, y1, nvdev->matrix );
+          M_TRANSFORM( x2, y2, x2, y2, nvdev->matrix );
+          M_TRANSFORM( x3, y3, x3, y3, nvdev->matrix );
+     }
 
      nv_setstate3d( &nvdev->state3d[0] );
 
-     nv_putvertex( 0, tri->x1, tri->y1, 0, 1, nvdev->color3d, 0, 0, 0 );
-     nv_putvertex( 1, tri->x2, tri->y2, 0, 1, nvdev->color3d, 0, 0, 0 );
-     nv_putvertex( 2, tri->x3, tri->y3, 0, 1, nvdev->color3d, 0, 0, 0 );
+     nv_putvertex( 0, x1, y1, 0, 1, nvdev->color3d, 0, 0, 0 );
+     nv_putvertex( 1, x2, y2, 0, 1, nvdev->color3d, 0, 0, 0 );
+     nv_putvertex( 2, x3, y3, 0, 1, nvdev->color3d, 0, 0, 0 );
 
      nv_emit_vertices( 0, 0, 1, 2, 0, 0, 0, 0, 0 );
 
@@ -136,6 +171,25 @@ bool nvDrawRectangle3D( void *drv, void *dev, DFBRectangle *rect )
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
      DFBRegion         r[4];
      int               i;
+
+     if (nvdev->matrix) {
+          DFBRegion line;
+
+          /* top */
+          line = (DFBRegion) { rect->x, rect->y, rect->x+rect->w, rect->y };
+          nvDrawLine3D( drv, dev, &line );
+          /* right */
+          line = (DFBRegion) { rect->x+rect->w, rect->y, rect->x+rect->w, rect->y+rect->h };
+          nvDrawLine3D( drv, dev, &line );
+          /* bottom */
+          line = (DFBRegion) { rect->x, rect->y+rect->h, rect->x+rect->w, rect->y+rect->h };
+          nvDrawLine3D( drv, dev, &line );
+          /* left */
+          line = (DFBRegion) { rect->x, rect->y, rect->x, rect->y+rect->h };
+          nvDrawLine3D( drv, dev, &line );
+
+          return true;
+     }
     
      /* top */
      r[0].x1 = rect->x;
@@ -143,23 +197,23 @@ bool nvDrawRectangle3D( void *drv, void *dev, DFBRectangle *rect )
      r[0].x2 = rect->x + rect->w;
      r[0].y2 = rect->y + 1;
 
-     /* bottom */
-     r[1].x1 = rect->x;
-     r[1].y1 = rect->y + rect->h - 1;
+     /* right */
+     r[1].x1 = rect->x + rect->w - 1;
+     r[1].y1 = rect->y + 1;
      r[1].x2 = rect->x + rect->w;
-     r[1].y2 = rect->y + rect->h;
+     r[1].y2 = rect->y + rect->h - 1;
+
+     /* bottom */
+     r[2].x1 = rect->x;
+     r[2].y1 = rect->y + rect->h - 1;
+     r[2].x2 = rect->x + rect->w;
+     r[2].y2 = rect->y + rect->h;
 
      /* left */
-     r[2].x1 = rect->x;
-     r[2].y1 = rect->y + 1;
-     r[2].x2 = rect->x + 1;
-     r[2].y2 = rect->y + rect->h - 2;
-
-     /* right */
-     r[3].x1 = rect->x + rect->w - 1;
+     r[3].x1 = rect->x;
      r[3].y1 = rect->y + 1;
-     r[3].x2 = rect->x + rect->w;
-     r[3].y2 = rect->y + rect->h - 2;
+     r[3].x2 = rect->x + 1;
+     r[3].y2 = rect->y + rect->h - 1;
      
      nv_setstate3d( &nvdev->state3d[0] );
 
@@ -179,16 +233,24 @@ bool nvDrawLine3D( void *drv, void *dev, DFBRegion *line )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
-     float             x1    = line->x1;
-     float             y1    = line->y1;
-     float             x2    = line->x2;
-     float             y2    = line->y2;
-     float             xinc  = 0.0;
-     float             yinc  = 0.0;
-     int               dx, dy;
-
-     dx = abs( line->x2 - line->x1 );
-     dy = abs( line->y2 - line->y1 );
+     float             xinc, yinc;
+     float             x1, y1;
+     float             x2, y2;
+     float             dx, dy;
+     
+     x1 = line->x1; x2 = line->x2;
+     y1 = line->y1; y2 = line->y2;
+     if (nvdev->matrix) {
+          M_TRANSFORM( x1, y1, x1, y1, nvdev->matrix );
+          M_TRANSFORM( x2, y2, x2, y2, nvdev->matrix );
+          
+          dx = fabs(x2 - x1);
+          dy = fabs(y2 - y1);
+     }
+     else {
+          dx = abs(line->x2 - line->x1);
+          dy = abs(line->y2 - line->y1);
+     }
 
      if (dx > dy) { /* more horizontal */
           xinc = 0.0;
@@ -228,6 +290,8 @@ bool nvTextureTriangles( void *drv, void *dev, DFBVertex *ve,
                (float)(1 << ((nvdev->state3d[1].format >> 20) & 0xF));
 
      for (i = 0; i < num; i++) {
+          if (nvdev->matrix)
+               M_TRANSFORM( ve[i].x, ve[i].y, ve[i].x, ve[i].y, nvdev->matrix );
           ve[i].x += 0.5;
           ve[i].y += 0.5;
           ve[i].s *= s_scale;

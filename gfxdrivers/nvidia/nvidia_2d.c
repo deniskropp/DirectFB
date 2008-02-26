@@ -113,6 +113,14 @@ nv_clip_source( DFBRectangle *rect, u32 width, u32 height )
 }
 
 
+#define M_TRANSFORM(x, y, retx, rety, m) { \
+     s32 _x, _y; \
+     _x = ((s64)(x) * (m)[0] + (y) * (m)[1] + (m)[2] + 0x8000) >> 16; \
+     _y = ((s64)(x) * (m)[3] + (y) * (m)[4] + (m)[5] + 0x8000) >> 16; \
+     retx = _x; \
+     rety = _y; \
+}
+
 
 bool nvFillRectangle2D( void *drv, void *dev, DFBRectangle *rect )
 {
@@ -122,14 +130,40 @@ bool nvFillRectangle2D( void *drv, void *dev, DFBRectangle *rect )
      if (nvdev->dst_422) {
           rect->x /= 2;
           rect->w = (rect->w+1) >> 1;
+     }      
+     
+     if (nvdev->matrix) {
+          int x1 = rect->x, x2 = rect->x+rect->w;
+          int y1 = rect->y, y2 = rect->y+rect->h;
+          int x, y;
+          
+          nv_begin( SUBC_TRIANGLE, TRI_COLOR, 1 );
+          nv_outr( nvdev->color2d );
+          
+          nv_begin( SUBC_TRIANGLE, TRI_POINT0, 3 );
+          M_TRANSFORM( x1, y1, x, y, nvdev->matrix );
+          nv_outr( (y << 16) | (x & 0xFFFF) );
+          M_TRANSFORM( x2, y1, x, y, nvdev->matrix );
+          nv_outr( (y << 16) | (x & 0xFFFF) );
+          M_TRANSFORM( x1, y2, x, y, nvdev->matrix );
+          nv_outr( (y << 16) | (x & 0xFFFF) );
+          
+          nv_begin( SUBC_TRIANGLE, TRI_POINT0, 3 );
+          M_TRANSFORM( x2, y1, x, y, nvdev->matrix );
+          nv_outr( (y << 16) | (x & 0xFFFF) );
+          M_TRANSFORM( x2, y2, x, y, nvdev->matrix );
+          nv_outr( (y << 16) | (x & 0xFFFF) );
+          M_TRANSFORM( x1, y2, x, y, nvdev->matrix );
+          nv_outr( (y << 16) | (x & 0xFFFF) );
      }
+     else {
+          nv_begin( SUBC_RECTANGLE, RECT_COLOR, 1 );
+          nv_outr( nvdev->color2d );
      
-     nv_begin( SUBC_RECTANGLE, RECT_COLOR, 1 );
-     nv_outr( nvdev->color2d );
-     
-     nv_begin( SUBC_RECTANGLE, RECT_TOP_LEFT, 2 );
-     nv_outr( (rect->y << 16) | (rect->x & 0xFFFF) );
-     nv_outr( (rect->h << 16) | (rect->w & 0xFFFF) );
+          nv_begin( SUBC_RECTANGLE, RECT_TOP_LEFT, 2 );
+          nv_outr( (rect->y << 16) | (rect->x & 0xFFFF) );
+          nv_outr( (rect->h << 16) | (rect->w & 0xFFFF) );
+     }
 
      return true;
 }
@@ -138,6 +172,12 @@ bool nvFillTriangle2D( void *drv, void *dev, DFBTriangle *tri )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
+     
+     if (nvdev->matrix) {
+          M_TRANSFORM( tri->x1, tri->y1, tri->x1, tri->y1, nvdev->matrix );
+          M_TRANSFORM( tri->x2, tri->y3, tri->x2, tri->y2, nvdev->matrix );
+          M_TRANSFORM( tri->x3, tri->y3, tri->x3, tri->y3, nvdev->matrix );
+     }
      
      nv_begin( SUBC_TRIANGLE, TRI_COLOR, 1 );
      nv_outr( nvdev->color2d );
@@ -160,22 +200,51 @@ bool nvDrawRectangle2D( void *drv, void *dev, DFBRectangle *rect )
           rect->w = (rect->w+1) >> 1;
      }
      
-     nv_begin( SUBC_RECTANGLE, RECT_COLOR, 1 );
-     nv_outr( nvdev->color2d );
-     
-     nv_begin( SUBC_RECTANGLE, RECT_TOP_LEFT, 8 );
-     /* top */
-     nv_outr( (rect->y << 16) | (rect->x & 0xFFFF) );
-     nv_outr( (1       << 16) | (rect->w & 0xFFFF) );
-     /* bottom */
-     nv_outr( ((rect->y + rect->h - 1) << 16) | (rect->x & 0xFFFF) );
-     nv_outr( (1                       << 16) | (rect->w & 0xFFFF) );
-     /* left */
-     nv_outr( ((rect->y + 1) << 16) | (rect->x & 0xFFFF) );
-     nv_outr( ((rect->h - 2) << 16) | 1 );
-     /* right */
-     nv_outr( ((rect->y + 1) << 16) | ((rect->x + rect->w - 1) & 0xFFFF) );
-     nv_outr( ((rect->h - 2) << 16) | 1 );
+     if (nvdev->matrix) {
+          int x1 = rect->x, x2 = rect->x+rect->w;
+          int y1 = rect->y, y2 = rect->y+rect->h;
+          int x, y;
+          
+          nv_begin( SUBC_LINE, LINE_COLOR, 1 );
+          nv_outr( nvdev->color2d );
+          
+          nv_begin( SUBC_LINE, LINE_POINT0, 8 );
+          /* top */
+          M_TRANSFORM( x1, y1, x, y, nvdev->matrix );
+          nv_outr( (y << 16) | (x & 0xFFFF) );
+          M_TRANSFORM( x2, y1, x, y, nvdev->matrix );
+          nv_outr( (y << 16) | (x & 0xFFFF) );
+          /* right */
+          nv_outr( (y << 16) | (x & 0xFFFF) );
+          M_TRANSFORM( x2, y2, x, y, nvdev->matrix );
+          nv_outr( (y << 16) | (x & 0xFFFF) );
+          /* bottom */
+          nv_outr( (y << 16) | (x & 0xFFFF) );
+          M_TRANSFORM( x1, y2, x, y, nvdev->matrix );
+          nv_outr( (y << 16) | (x & 0xFFFF) );
+          /* left */
+          nv_outr( (y << 16) | (x & 0xFFFF) );
+          M_TRANSFORM( x1, y1, x, y, nvdev->matrix );
+          nv_outr( (y << 16) | (x & 0xFFFF) );
+     }
+     else {
+          nv_begin( SUBC_RECTANGLE, RECT_COLOR, 1 );
+          nv_outr( nvdev->color2d );
+          
+          nv_begin( SUBC_RECTANGLE, RECT_TOP_LEFT, 8 );
+          /* top */
+          nv_outr( (rect->y << 16) | (rect->x & 0xFFFF) );
+          nv_outr( (1       << 16) | (rect->w & 0xFFFF) );
+          /* bottom */
+          nv_outr( ((rect->y + rect->h - 1) << 16) | (rect->x & 0xFFFF) );
+          nv_outr( (1                       << 16) | (rect->w & 0xFFFF) );
+          /* left */
+          nv_outr( ((rect->y + 1) << 16) | (rect->x & 0xFFFF) );
+          nv_outr( ((rect->h - 2) << 16) | 1 );
+          /* right */
+          nv_outr( ((rect->y + 1) << 16) | ((rect->x + rect->w - 1) & 0xFFFF) );
+          nv_outr( ((rect->h - 2) << 16) | 1 );
+     }
 
      return true;
 }
@@ -184,6 +253,11 @@ bool nvDrawLine2D( void *drv, void *dev, DFBRegion *line )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
+     
+     if (nvdev->matrix) {
+          M_TRANSFORM( line->x1, line->y1, line->x1, line->y1, nvdev->matrix );
+          M_TRANSFORM( line->x2, line->y2, line->x2, line->y2, nvdev->matrix );
+     }
      
      nv_begin( SUBC_LINE, LINE_COLOR, 1 );
      nv_outr( nvdev->color2d );
@@ -200,7 +274,7 @@ bool nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
 
-     if (nvdev->blittingflags & DSBLIT_DEINTERLACE) {
+     if (nvdev->blittingflags & DSBLIT_DEINTERLACE || nvdev->matrix) {
           DFBRectangle dr = { dx, dy, rect->w, rect->h };
           return nvStretchBlit( drv, dev, rect, &dr );
      }
@@ -260,7 +334,7 @@ bool nvBlitFromCPU( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      u32               src_h;
      int               w, h, n;
      
-     if (nvdev->blittingflags & DSBLIT_DEINTERLACE) {
+     if (nvdev->blittingflags & DSBLIT_DEINTERLACE || nvdev->matrix) {
           DFBRectangle dr = { dx, dy, rect->x, rect->y };
           return nvStretchBlitFromCPU( drv, dev, rect, &dr );
      }
@@ -346,6 +420,19 @@ bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
           sr->y /= 2;
           sr->h  = (sr->h+1) / 2;
      }
+     
+     if (nvdev->matrix) {
+          int x1, y1, x2, y2;
+          
+          if (!nvdev->matrix[0] || !nvdev->matrix[4])
+               return true;
+          
+          M_TRANSFORM( dr->x, dr->y, x1, y1, nvdev->matrix );
+          M_TRANSFORM( dr->x+dr->w, dr->y+dr->h, x2, y2, nvdev->matrix );
+          
+          dr->x = x1; dr->w = x2-x1;
+          dr->y = y1; dr->h = y2-y1;
+     }
 
      nv_begin( SUBC_SCALEDIMAGE, SCALER_COLOR_FORMAT, 1 );
      nv_outr( nvdev->scaler_format );
@@ -384,6 +471,19 @@ bool nvStretchBlitFromCPU( void *drv, void *dev,
      if (nvdev->blittingflags & DSBLIT_DEINTERLACE) {
           sr->y /= 2;
           sr->h /= 2;
+     }
+     
+     if (nvdev->matrix) {
+          int x1, y1, x2, y2;
+          
+          if (!nvdev->matrix[0] || !nvdev->matrix[4])
+               return true;
+          
+          M_TRANSFORM( dr->x, dr->y, x1, y1, nvdev->matrix );
+          M_TRANSFORM( dr->x+dr->w, dr->y+dr->h, x2, y2, nvdev->matrix );
+          
+          dr->x = x1; dr->w = x2-x1;
+          dr->y = y1; dr->h = y2-y1;
      }
      
      src_w = (DFB_BYTES_PER_PIXEL(nvdev->src_format) == 2)

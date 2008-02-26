@@ -398,6 +398,8 @@ void nv_set_drawing_color( NVidiaDriverData *nvdrv,
                D_BUG( "unexpected pixelformat" );
                break;
      }
+
+     nvdev->color3d = PIXEL_ARGB(color.a, color.r, color.g, color.b);
      
      if (nvdev->dst_format == DSPF_ARGB1555) {
           nv_assign_object( nvdrv, nvdev,
@@ -409,22 +411,15 @@ void nv_set_drawing_color( NVidiaDriverData *nvdrv,
                    : SURFACES2D_FORMAT_X1R5G5B5 );
      }
   
-     if (state->drawingflags & DSDRAW_BLEND) {
-          if (!nvdev->enabled_3d) {
-               if (!nvdev->beta1_set || nvdev->beta1_val != (color.a << 23)) {
-                    nv_assign_object( nvdrv, nvdev, 
-                                      SUBC_BETA1, OBJ_BETA1, false );
+     if (state->drawingflags & DSDRAW_BLEND && !nvdev->enabled_3d) {
+          if (!nvdev->beta1_set || nvdev->beta1_val != (color.a << 23)) {
+               nv_assign_object( nvdrv, nvdev, SUBC_BETA1, OBJ_BETA1, false );
                     
-                    nv_begin( SUBC_BETA1, BETA1_FACTOR, 1 );
-                    nv_outr( color.a << 23 );
+               nv_begin( SUBC_BETA1, BETA1_FACTOR, 1 );
+               nv_outr( color.a << 23 );
 
-                    nvdev->beta1_val = color.a << 23;
-                    nvdev->beta1_set = true;
-               }
-          } 
-          else {
-               nvdev->color3d = PIXEL_ARGB( color.a, color.r,
-                                            color.g, color.b );
+               nvdev->beta1_val = color.a << 23;
+               nvdev->beta1_set = true;
           }
      }
      
@@ -513,19 +508,6 @@ void nv_set_blend_function( NVidiaDriverData *nvdrv,
      sblend = state->src_blend;
      dblend = state->dst_blend;
      
-#if 0
-     if (!DFB_PIXELFORMAT_HAS_ALPHA(nvdev->src_format)) {
-          if (sblend == DSBF_SRCALPHA)
-               sblend = DSBF_ONE;
-          else if (sblend == DSBF_INVSRCALPHA)
-               sblend = DSBF_ZERO;
-               
-          if (dblend == DSBF_SRCALPHA)
-               dblend = DSBF_ONE;
-          else if (dblend == DSBF_INVSRCALPHA)
-               dblend = DSBF_ZERO;
-     }
-#endif
      if (!DFB_PIXELFORMAT_HAS_ALPHA(nvdev->dst_format)) {
           if (sblend == DSBF_DESTALPHA)
                sblend = DSBF_ONE;
@@ -576,6 +558,12 @@ void nv_set_drawingflags( NVidiaDriverData *nvdrv,
                
                nvdev->drawing_operation = operation;
           }
+     }
+     else {
+          if (state->drawingflags & DSDRAW_BLEND)
+               nvdev->state3d[0].blend |= TXTRI_BLEND_ALPHABLEND_ENABLE;
+          else
+               nvdev->state3d[0].blend &= ~TXTRI_BLEND_ALPHABLEND_ENABLE;
      }
 
      nvdev->drawingflags = state->drawingflags;
