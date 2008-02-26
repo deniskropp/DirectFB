@@ -1234,14 +1234,13 @@ sawman_withdraw_window( SaWMan       *sawman,
 static void
 apply_geometry( const DFBWindowGeometry *geometry,
                 const DFBRegion         *clip,
-                const DFBRectangle      *parent,
+                const DFBWindowGeometry *parent,
                 DFBRectangle            *ret_rect )
 {
      int width, height;
 
      D_ASSERT( geometry != NULL );
      DFB_REGION_ASSERT( clip );
-     DFB_RECTANGLE_ASSERT_IF( parent );
      D_ASSERT( ret_rect != NULL );
 
      width  = clip->x2 - clip->x1 + 1;
@@ -1255,10 +1254,9 @@ apply_geometry( const DFBWindowGeometry *geometry,
                return;
 
           case DWGM_FOLLOW:
-               D_DEBUG_AT( SaWMan_Geometry, " -- FOLLOW [%d,%d-%dx%d]\n",
-                           DFB_RECTANGLE_VALS( parent ) );
                D_ASSERT( parent != NULL );
-               *ret_rect = *parent;
+               D_DEBUG_AT( SaWMan_Geometry, " -- FOLLOW\n" );
+               apply_geometry( parent, clip, NULL, ret_rect );
                break;
 
           case DWGM_RECTANGLE:
@@ -1301,6 +1299,7 @@ sawman_update_geometry( SaWManWindow *sawwin )
 {
      int           i;
      CoreWindow   *window;
+     CoreWindow   *parent_window = NULL;
      SaWMan       *sawman;
      SaWManWindow *parent;
      SaWManWindow *child;
@@ -1324,7 +1323,12 @@ sawman_update_geometry( SaWManWindow *sawwin )
      D_ASSERT( window != NULL );
 
      parent = sawwin->parent;
-     D_MAGIC_ASSERT_IF( parent, SaWManWindow );
+     if (parent) {
+          D_MAGIC_ASSERT( parent, SaWManWindow );
+
+          parent_window = parent->window;
+          D_ASSERT( parent_window != NULL );
+     }
 
      /* Update source geometry. */
      clip.x1 = 0;
@@ -1345,7 +1349,7 @@ sawman_update_geometry( SaWManWindow *sawwin )
      D_DEBUG_AT( SaWMan_Geometry, "  -> Applying source geometry...\n" );
 
      apply_geometry( &window->config.src_geometry, &clip,
-                     parent ? &parent->src : NULL, &src );
+                     parent_window ? &parent_window->config.src_geometry : NULL, &src );
 
      if (!DFB_RECTANGLE_EQUAL( src, sawwin->src )) {
           sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, false, false, false );
@@ -1360,7 +1364,7 @@ sawman_update_geometry( SaWManWindow *sawwin )
      D_DEBUG_AT( SaWMan_Geometry, "  -> Applying destination geometry...\n" );
 
      apply_geometry( &window->config.dst_geometry, &clip,
-                     parent ? &parent->dst : NULL, &dst );
+                     parent_window ? &parent_window->config.dst_geometry : NULL, &dst );
 
      if (!DFB_RECTANGLE_EQUAL( dst, sawwin->dst )) {
           if (!src_updated)
