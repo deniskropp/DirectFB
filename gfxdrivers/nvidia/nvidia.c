@@ -485,9 +485,15 @@ static void nv4CheckState( void *drv, void *dev,
                if (size > nvdev->max_texture_size)
                     return;
           } 
-          else if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) {
-               if (state->src_blend != DSBF_SRCALPHA   ||
-                   state->dst_blend != DSBF_INVSRCALPHA)
+          else {
+               if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) {
+                    if (state->src_blend != DSBF_SRCALPHA   ||
+                        state->dst_blend != DSBF_INVSRCALPHA)
+                         return;
+               }
+               if (state->render_options & DSRO_MATRIX &&
+                  (state->matrix[0] < 0 || state->matrix[1] ||
+                   state->matrix[3] || state->matrix[4] < 0))
                     return;
           }
 
@@ -608,16 +614,22 @@ static void nv5CheckState( void *drv, void *dev,
                if (size > nvdev->max_texture_size)
                     return;
           }
-          else if (state->blittingflags & DSBLIT_MODULATE) {
-               if (state->blittingflags & DSBLIT_MODULATE_ALPHA &&
-                   state->blittingflags & DSBLIT_MODULATE_COLOR)
-                    return;
-               
-               if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) {
-                    if (state->src_blend != DSBF_SRCALPHA  || 
-                        state->dst_blend != DSBF_INVSRCALPHA)
+          else {
+               if (state->blittingflags & DSBLIT_MODULATE) {
+                    if (state->blittingflags & DSBLIT_MODULATE_ALPHA &&
+                        state->blittingflags & DSBLIT_MODULATE_COLOR)
                          return;
+               
+                    if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) {
+                         if (state->src_blend != DSBF_SRCALPHA  || 
+                             state->dst_blend != DSBF_INVSRCALPHA)
+                              return;
+                    }
                }
+               if (state->render_options & DSRO_MATRIX &&
+                  (state->matrix[0] < 0 || state->matrix[1] ||
+                   state->matrix[3] || state->matrix[4] < 0))
+                    return;
           }
 
           switch (source->config.format) {
@@ -732,17 +744,25 @@ static void nv10CheckState( void *drv, void *dev,
                if (size > nvdev->max_texture_size)
                     return;
           } 
-          else if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) {
-               if (state->blittingflags & DSBLIT_MODULATE_COLOR) {
-                    if (source->config.format == DSPF_ARGB && state->src_blend != DSBF_ONE)
+          else {
+               if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) {
+                    if (state->blittingflags & DSBLIT_MODULATE_COLOR) {
+                         if (source->config.format == DSPF_ARGB &&
+                             state->src_blend != DSBF_ONE)
+                              return;
+                    }
+
+                    if (state->src_blend != DSBF_ONE &&
+                        state->src_blend != DSBF_SRCALPHA)
+                         return;
+
+                    if (state->dst_blend != DSBF_INVSRCALPHA)
                          return;
                }
-
-               if (state->src_blend != DSBF_ONE &&
-                   state->src_blend != DSBF_SRCALPHA)
-                    return;
-
-               if (state->dst_blend != DSBF_INVSRCALPHA)
+               
+               if (state->render_options & DSRO_MATRIX &&
+                  (state->matrix[0] < 0 || state->matrix[1] ||
+                   state->matrix[3] || state->matrix[4] < 0))
                     return;
           }
 
@@ -868,6 +888,11 @@ static void nv20CheckState( void *drv, void *dev,
                if (state->dst_blend != DSBF_INVSRCALPHA)
                     return;
           }
+          
+          if (state->render_options & DSRO_MATRIX &&
+             (state->matrix[0] < 0 || state->matrix[1] ||
+              state->matrix[3] || state->matrix[4] < 0))
+                    return;
 
           switch (source->config.format) {
                case DSPF_A8:
@@ -968,6 +993,11 @@ static void nv30CheckState( void *drv, void *dev,
           if (accel & ~NV30_SUPPORTED_BLITTINGFUNCTIONS ||
               state->blittingflags & ~NV30_SUPPORTED_BLITTINGFLAGS)
                return;
+               
+          if (state->render_options & DSRO_MATRIX &&
+             (state->matrix[0] != 0x10000 || state->matrix[1] ||
+              state->matrix[3] || state->matrix[4] != 0x10000))
+               return;
 
           switch (source->config.format) {
                case DSPF_LUT8:
@@ -1010,6 +1040,8 @@ static void nv30CheckState( void *drv, void *dev,
      }
 }
 
+#define M_IDENTITY(m) ((m)[0] == 0x10000 && (m)[1] == 0 && (m)[2] == 0 && \
+                       (m)[3] == 0 && (m)[4] == 0x10000 && (m)[5] == 0)
 
 static void nv4SetState( void *drv, void *dev,
                          GraphicsDeviceFuncs *funcs,
@@ -1024,6 +1056,11 @@ static void nv4SetState( void *drv, void *dev,
 
      nv_set_destination( nvdrv, nvdev, state );
      nv_set_clip( nvdrv, nvdev, state );
+     
+     if (state->render_options & DSRO_MATRIX && !M_IDENTITY(state->matrix))
+          nvdev->matrix = state->matrix;
+     else
+          nvdev->matrix = NULL;
 
      switch (accel) {
           case DFXL_FILLRECTANGLE:
@@ -1031,11 +1068,12 @@ static void nv4SetState( void *drv, void *dev,
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
                nv_set_drawing_color( nvdrv, nvdev, state );
+               if (state->drawingflags & DSDRAW_BLEND)
+                    nv_set_blend_function( nvdrv, nvdev, state );
                nv_set_drawingflags( nvdrv, nvdev, state );
                
-               if (state->drawingflags & DSDRAW_BLEND && nvdev->enabled_3d) {
+               if ((state->drawingflags & DSDRAW_BLEND || nvdev->matrix) && nvdev->enabled_3d) {
                     nvdev->state3d[0].modified = true;
-                    nv_set_blend_function( nvdrv, nvdev, state );
 
                     funcs->FillRectangle = nvFillRectangle3D;
                     funcs->FillTriangle  = nvFillTriangle3D;
@@ -1101,18 +1139,24 @@ static void nv5SetState( void *drv, void *dev,
 
      nv_set_destination( nvdrv, nvdev, state );
      nv_set_clip( nvdrv, nvdev, state );
+     
+     if (state->render_options & DSRO_MATRIX && !M_IDENTITY(state->matrix))
+          nvdev->matrix = state->matrix;
+     else
+          nvdev->matrix = NULL;
 
      switch (accel) {
           case DFXL_FILLRECTANGLE:
           case DFXL_FILLTRIANGLE:
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
-               nv_set_drawing_color( nvdrv, nvdev, state );
+               nv_set_drawing_color( nvdrv, nvdev, state ); 
+               if (state->drawingflags & DSDRAW_BLEND)
+                    nv_set_blend_function( nvdrv, nvdev, state );
                nv_set_drawingflags( nvdrv, nvdev, state );
                
-               if (state->drawingflags & DSDRAW_BLEND && nvdev->enabled_3d) {
-                    nvdev->state3d[0].modified = true;                  
-                    nv_set_blend_function( nvdrv, nvdev, state );
+               if ((state->drawingflags & DSDRAW_BLEND || nvdev->matrix) && nvdev->enabled_3d) {
+                    nvdev->state3d[0].modified = true;
 
                     funcs->FillRectangle = nvFillRectangle3D;
                     funcs->FillTriangle  = nvFillTriangle3D;
@@ -1186,6 +1230,11 @@ static void nv10SetState( void *drv, void *dev,
 
      nv_set_destination( nvdrv, nvdev, state );
      nv_set_clip( nvdrv, nvdev, state );
+     
+     if (state->render_options & DSRO_MATRIX && !M_IDENTITY(state->matrix))
+          nvdev->matrix = state->matrix;
+     else
+          nvdev->matrix = NULL;
 
      switch (accel) {
           case DFXL_FILLRECTANGLE:
@@ -1193,11 +1242,12 @@ static void nv10SetState( void *drv, void *dev,
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
                nv_set_drawing_color( nvdrv, nvdev, state );
+               if (state->drawingflags & DSDRAW_BLEND)
+                    nv_set_blend_function( nvdrv, nvdev, state );
                nv_set_drawingflags( nvdrv, nvdev, state );
                
-               if (state->drawingflags & DSDRAW_BLEND && nvdev->enabled_3d) {
+               if ((state->drawingflags & DSDRAW_BLEND || nvdev->matrix) && nvdev->enabled_3d) { 
                     nvdev->state3d[0].modified = true;
-                    nv_set_blend_function( nvdrv, nvdev, state );
 
                     funcs->FillRectangle = nvFillRectangle3D;
                     funcs->FillTriangle  = nvFillTriangle3D;
@@ -1271,6 +1321,11 @@ static void nv20SetState( void *drv, void *dev,
 
      nv_set_destination( nvdrv, nvdev, state );
      nv_set_clip( nvdrv, nvdev, state );
+     
+     if (state->render_options & DSRO_MATRIX && !M_IDENTITY(state->matrix))
+          nvdev->matrix = state->matrix;
+     else
+          nvdev->matrix = NULL;
 
      switch (accel) {
           case DFXL_FILLRECTANGLE:
@@ -1339,6 +1394,11 @@ static void nv30SetState( void *drv, void *dev,
 
      nv_set_destination( nvdrv, nvdev, state );
      nv_set_clip( nvdrv, nvdev, state );
+
+     if (state->render_options & DSRO_MATRIX && !M_IDENTITY(state->matrix))
+          nvdev->matrix = state->matrix;
+     else
+          nvdev->matrix = NULL;
 
      switch (accel) {
           case DFXL_FILLRECTANGLE:
@@ -1736,9 +1796,8 @@ driver_init_device( CoreGraphicsDevice *device,
           nvdev->state3d[0].blend    = TXTRI_BLEND_TEXTUREMAPBLEND_MODULATEALPHA |
                                        TXTRI_BLEND_OPERATION_MUX_TALPHAMSB       |
                                        TXTRI_BLEND_SHADEMODE_FLAT                |
-                                       TXTRI_BLEND_ALPHABLEND_ENABLE             |
-                                       TXTRI_BLEND_SRCBLEND_SRCALPHA             |
-                                       TXTRI_BLEND_DESTBLEND_INVSRCALPHA;
+                                       TXTRI_BLEND_SRCBLEND_ONE                  |
+                                       TXTRI_BLEND_DESTBLEND_ZERO;
           nvdev->state3d[0].control  = TXTRI_CONTROL_ALPHAFUNC_ALWAYS |
                                        TXTRI_CONTROL_ORIGIN_CORNER    |
                                        TXTRI_CONTROL_ZFUNC_ALWAYS     |

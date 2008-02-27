@@ -132,6 +132,8 @@ typedef struct {
      DFBSurfaceDrawingFlags  drawingflags;
      DFBSurfaceBlittingFlags blittingflags;
      
+     const s32              *matrix;
+     
      /* NVRectangle/NVTriangle/NVLine registers */
      u32                     drawing_operation; // SetOperation
      
