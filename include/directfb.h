@@ -29,39 +29,18 @@
 #ifndef __DIRECTFB_H__
 #define __DIRECTFB_H__
 
-#include <dfb_types.h>
-#include <sys/time.h> /* struct timeval */
-
-#include <directfb_keyboard.h>
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-/*
- * @internal
- *
- * Forward declaration macro for interfaces.
- */
-#define DECLARE_INTERFACE( IFACE )                \
-     typedef struct _##IFACE IFACE;
+#include <dfb_types.h>
+#include <sys/time.h> /* struct timeval */
 
-/*
- * @internal
- *
- * Macro for an interface definition.
- */
-#define DEFINE_INTERFACE( IFACE, IDATA... )       \
-     struct _##IFACE     {                        \
-          void       *priv;                       \
-          int         magic;                      \
-          DFBResult (*AddRef)( IFACE *thiz );     \
-          DFBResult (*Release)( IFACE *thiz );    \
-                                                  \
-          IDATA                                   \
-     };
+#include <directfb_keyboard.h>
 
+#include <direct/interface.h>
 
 /*
  * Version handling.
@@ -87,16 +66,6 @@ const char * DirectFBCheckVersion( unsigned int required_major,
 DECLARE_INTERFACE( IDirectFB )
 
 /*
- * Interface to different display outputs, encoders, connector settings, power management and synchronization.
- */
-DECLARE_INTERFACE( IDirectFBScreen )
-
-/*
- * Layer interface for configuration, window stack usage or direct surface access, with shared/exclusive context.
- */
-DECLARE_INTERFACE( IDirectFBDisplayLayer )
-
-/*
  * Interface to a surface object, being a graphics context for rendering and state control,
  * buffer operations, palette access and sub area translate'n'clip logic.
  */
@@ -108,15 +77,20 @@ DECLARE_INTERFACE( IDirectFBSurface )
 DECLARE_INTERFACE( IDirectFBPalette )
 
 /*
+ * Input device interface for keymap access, event buffers and state queries.
+ */
+DECLARE_INTERFACE( IDirectFBInputDevice )
+
+/*
+ * Layer interface for configuration, window stack usage or direct surface access, with shared/exclusive context.
+ */
+DECLARE_INTERFACE( IDirectFBDisplayLayer )
+
+/*
  * Interface to a window object, controlling appearance and focus, positioning and stacking,
  * event buffers and surface access.
  */
 DECLARE_INTERFACE( IDirectFBWindow )
-
-/*
- * Input device interface for keymap access, event buffers and state queries.
- */
-DECLARE_INTERFACE( IDirectFBInputDevice )
 
 /*
  * Interface to a local event buffer to send/receive events, wait for events, abort waiting or reset buffer.
@@ -144,56 +118,72 @@ DECLARE_INTERFACE( IDirectFBVideoProvider )
 DECLARE_INTERFACE( IDirectFBDataBuffer )
 
 /*
+ * Interface to different display outputs, encoders, connector settings, power management and synchronization.
+ */
+DECLARE_INTERFACE( IDirectFBScreen )
+
+/*
  * OpenGL context of a surface.
  */
 DECLARE_INTERFACE( IDirectFBGL )
 
 
 /*
- * Every interface method returns this result code.<br>
- * Any other value to be returned adds an argument pointing
- * to a location the value should be written to.
+ * Return code of all interface methods and most functions
+ *
+ * Whenever a method has to return any information, it is done via output parameters. These are pointers to
+ * primitive types such as <i>int *ret_num</i>, enumerated types like <i>DFBBoolean *ret_enabled</i>, structures
+ * as in <i>DFBDisplayLayerConfig *ret_config</i>, just <i>void **ret_data</i> or other types...
  */
 typedef enum {
-     DFB_OK,             /* No error occured. */
-     DFB_FAILURE,        /* A general or unknown error occured. */
-     DFB_INIT,           /* A general initialization error occured. */
-     DFB_BUG,            /* Internal bug or inconsistency has been detected. */
-     DFB_DEAD,           /* Interface has a zero reference counter (available in debug mode). */
-     DFB_UNSUPPORTED,    /* The requested operation or an argument is (currently) not supported. */
-     DFB_UNIMPLEMENTED,  /* The requested operation is not implemented, yet. */
-     DFB_ACCESSDENIED,   /* Access to the resource is denied. */
-     DFB_INVARG,         /* An invalid argument has been specified. */
-     DFB_NOSYSTEMMEMORY, /* There's not enough system memory. */
+     /*
+      * Aliases for backward compatibility and uniform look in DirectFB code
+      */
+     DFB_OK              = DR_OK,                 /* No error occured. */
+     DFB_FAILURE         = DR_FAILURE,            /* A general or unknown error occured. */
+     DFB_INIT            = DR_INIT,               /* A general initialization error occured. */
+     DFB_BUG             = DR_BUG,                /* Internal bug or inconsistency has been detected. */
+     DFB_DEAD            = DR_DEAD,               /* Interface has a zero reference counter (available in debug mode). */
+     DFB_UNSUPPORTED     = DR_UNSUPPORTED,        /* The requested operation or an argument is (currently) not supported. */
+     DFB_UNIMPLEMENTED   = DR_UNIMPLEMENTED,      /* The requested operation is not implemented, yet. */
+     DFB_ACCESSDENIED    = DR_ACCESSDENIED,       /* Access to the resource is denied. */
+     DFB_INVAREA         = DR_INVAREA,            /* An invalid area has been specified or detected. */
+     DFB_INVARG          = DR_INVARG,             /* An invalid argument has been specified. */
+     DFB_NOSYSTEMMEMORY  = DR_NOLOCALMEMORY,      /* There's not enough system memory. */
+     DFB_NOSHAREDMEMORY  = DR_NOSHAREDMEMORY,     /* There's not enough shared memory. */
+     DFB_LOCKED          = DR_LOCKED,             /* The resource is (already) locked. */
+     DFB_BUFFEREMPTY     = DR_BUFFEREMPTY,        /* The buffer is empty. */
+     DFB_FILENOTFOUND    = DR_FILENOTFOUND,       /* The specified file has not been found. */
+     DFB_IO              = DR_IO,                 /* A general I/O error occured. */
+     DFB_BUSY            = DR_BUSY,               /* The resource or device is busy. */
+     DFB_NOIMPL          = DR_NOIMPL,             /* No implementation for this interface or content type has been found. */
+     DFB_TIMEOUT         = DR_TIMEOUT,            /* The operation timed out. */
+     DFB_THIZNULL        = DR_THIZNULL,           /* 'thiz' pointer is NULL. */
+     DFB_IDNOTFOUND      = DR_IDNOTFOUND,         /* No resource has been found by the specified id. */
+     DFB_DESTROYED       = DR_DESTROYED,          /* The underlying object (e.g. a window or surface) has been destroyed. */
+     DFB_FUSION          = DR_FUSION,             /* Internal fusion error detected, most likely related to IPC resources. */
+     DFB_BUFFERTOOLARGE  = DR_BUFFERTOOLARGE,     /* Buffer is too large. */
+     DFB_INTERRUPTED     = DR_INTERRUPTED,        /* The operation has been interrupted. */
+     DFB_NOCONTEXT       = DR_NOCONTEXT,          /* No context available. */
+     DFB_TEMPUNAVAIL     = DR_TEMPUNAVAIL,        /* Temporarily unavailable. */
+     DFB_LIMITEXCEEDED   = DR_LIMITEXCEEDED,      /* Attempted to exceed limit, i.e. any kind of maximum size, count etc. */
+     DFB_NOSUCHMETHOD    = DR_NOSUCHMETHOD,       /* Requested method is not known, e.g. to remote site. */
+     DFB_NOSUCHINSTANCE  = DR_NOSUCHINSTANCE,     /* Requested instance is not known, e.g. to remote site. */
+     DFB_ITEMNOTFOUND    = DR_ITEMNOTFOUND,       /* No such item found. */
+     DFB_VERSIONMISMATCH = DR_VERSIONMISMATCH,    /* Some versions didn't match. */
+     DFB_EOF             = DR_EOF,                /* Reached end of file. */
+     DFB_SUSPENDED       = DR_SUSPENDED,          /* The requested object is suspended. */
+     DFB_INCOMPLETE      = DR_INCOMPLETE,         /* The operation has been executed, but not completely. */
+     DFB_NOCORE          = DR_NOCORE,             /* Core part not available. */
+
+     /*
+      * DirectFB specific result codes starting at (after) this offset
+      */
+     DFB__RESULT_OFFSET  = D_RESULT_TYPE_BASE( 'D','F','B' ),
+
      DFB_NOVIDEOMEMORY,  /* There's not enough video memory. */
-     DFB_LOCKED,         /* The resource is (already) locked. */
-     DFB_BUFFEREMPTY,    /* The buffer is empty. */
-     DFB_FILENOTFOUND,   /* The specified file has not been found. */
-     DFB_IO,             /* A general I/O error occured. */
-     DFB_BUSY,           /* The resource or device is busy. */
-     DFB_NOIMPL,         /* No implementation for this interface or content type has been found. */
      DFB_MISSINGFONT,    /* No font has been set. */
-     DFB_TIMEOUT,        /* The operation timed out. */
      DFB_MISSINGIMAGE,   /* No image has been set. */
-     DFB_THIZNULL,       /* 'thiz' pointer is NULL. */
-     DFB_IDNOTFOUND,     /* No resource has been found by the specified id. */
-     DFB_INVAREA,        /* An invalid area has been specified or detected. */
-     DFB_DESTROYED,      /* The underlying object (e.g. a window or surface) has been destroyed. */
-     DFB_FUSION,         /* Internal fusion error detected, most likely related to IPC resources. */
-     DFB_BUFFERTOOLARGE, /* Buffer is too large. */
-     DFB_INTERRUPTED,    /* The operation has been interrupted. */
-     DFB_NOCONTEXT,      /* No context available. */
-     DFB_TEMPUNAVAIL,    /* Temporarily unavailable. */
-     DFB_LIMITEXCEEDED,  /* Attempted to exceed limit, i.e. any kind of maximum size, count etc. */
-     DFB_NOSUCHMETHOD,   /* Requested method is not known to remote site. */
-     DFB_NOSUCHINSTANCE, /* Requested instance is not known to remote site. */
-     DFB_ITEMNOTFOUND,   /* No such item found. */
-     DFB_VERSIONMISMATCH,/* Some versions didn't match. */
-     DFB_NOSHAREDMEMORY, /* There's not enough shared memory. */
-     DFB_EOF,            /* Reached end of file. */
-     DFB_SUSPENDED,      /* The requested object is suspended. */
-     DFB_INCOMPLETE,     /* The operation has been executed, but not completely. */
-     DFB_NOCORE          /* Core part not available. */
 } DFBResult;
 
 /*
@@ -5574,38 +5564,39 @@ typedef enum {
 } DFBStreamCapabilities;
 
 #define DFB_STREAM_DESC_ENCODING_LENGTH   30
+
 #define DFB_STREAM_DESC_TITLE_LENGTH     255
+
 #define DFB_STREAM_DESC_AUTHOR_LENGTH    255
+
 #define DFB_STREAM_DESC_ALBUM_LENGTH     255
+
 #define DFB_STREAM_DESC_GENRE_LENGTH      32
+
 #define DFB_STREAM_DESC_COMMENT_LENGTH   255
 
 /*
  * Informations about an audio/video stream.
  */
 typedef struct {
-     DFBStreamCapabilities  caps;         /* capabilities                       */
+     DFBStreamCapabilities  caps;         /* capabilities */
 
      struct {
-          char              encoding[DFB_STREAM_DESC_ENCODING_LENGTH]; /*
-                                             encoding (e.g. "MPEG4")            */
-          double            framerate;    /* number of frames per second        */
-          double            aspect;       /* frame aspect ratio                 */
-          int               bitrate;      /* amount of bits per second          */
-    	  int               afd;          /* Active Format Descriptor              */
-    	  int               width;        /* Width as reported by Sequence Header  */
+          char              encoding[DFB_STREAM_DESC_ENCODING_LENGTH]; /* encoding (e.g. "MPEG4") */
+          double            framerate;    /* number of frames per second */
+          double            aspect;       /* frame aspect ratio */
+          int               bitrate;      /* amount of bits per second */
+    	  int               afd;          /* Active Format Descriptor */
+    	  int               width;        /* Width as reported by Sequence Header */
     	  int               height;       /* Height as reported by Sequence Header */
-     } 
-      video;
+     } video;                             /* struct containing the above encoding properties for video */
 
      struct {
-          char              encoding[DFB_STREAM_DESC_ENCODING_LENGTH]; /*
-                                             encoding (e.g. "AAC")              */
-          int               samplerate;   /* number of samples per second       */
-          int               channels;     /* number of channels per sample      */
-          int               bitrate;      /* amount of bits per second          */
-     }
-      audio;
+          char              encoding[DFB_STREAM_DESC_ENCODING_LENGTH]; /* encoding (e.g. "AAC") */
+          int               samplerate;   /* number of samples per second */
+          int               channels;     /* number of channels per sample */
+          int               bitrate;      /* amount of bits per second */
+     } audio;                             /* struct containing the above four encoding properties for audio */
 
      char                   title[DFB_STREAM_DESC_TITLE_LENGTH];     /* title   */
      char                   author[DFB_STREAM_DESC_AUTHOR_LENGTH];   /* author  */
@@ -5624,21 +5615,18 @@ typedef enum {
 } DFBStreamFormat;
 
 /*
- * Stream attributes for a audio/video stream.
+ * Stream attributes for an audio/video stream.
  */
 typedef struct {
      struct {
-          char            encoding[DFB_STREAM_DESC_ENCODING_LENGTH]; /*
-                                             encoding (e.g. "MPEG4")            */
-          DFBStreamFormat format;   /* format of the video stream      */
-          
-     } video;
+          char            encoding[DFB_STREAM_DESC_ENCODING_LENGTH]; /* encoding (e.g. "MPEG4") */
+          DFBStreamFormat format;                                    /* format of the video stream */
+     } video;                           /* struct containing the above two encoding properties for video */
      
      struct {
-          char            encoding[DFB_STREAM_DESC_ENCODING_LENGTH]; /*
-                                             encoding (e.g. "AAC")              */
-          DFBStreamFormat format;   /* format of the audio stream      */
-     } audio;
+          char            encoding[DFB_STREAM_DESC_ENCODING_LENGTH]; /* encoding (e.g. "AAC") */
+          DFBStreamFormat format;                                    /* format of the audio stream */
+     } audio;                           /* struct containing the above two encoding properties for audio */
 } DFBStreamAttributes;
 
 /*

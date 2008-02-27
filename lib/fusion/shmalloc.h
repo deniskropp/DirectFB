@@ -42,7 +42,7 @@
 
 #if FUSION_BUILD_MULTI && DIRECT_BUILD_TEXT
 #define D_OOSHM()        (direct_messages_warn( __FUNCTION__, __FILE__, __LINE__,              \
-                                                "out of shared memory" ), DFB_NOSHAREDMEMORY)
+                                                "out of shared memory" ), DR_NOSHAREDMEMORY)
 #else
 #define D_OOSHM()        D_OOM()
 #endif

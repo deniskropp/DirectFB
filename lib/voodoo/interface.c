@@ -67,7 +67,7 @@ voodoo_construct_requestor( VoodooManager     *manager,
 
      *ret_requestor = requestor;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -109,6 +109,6 @@ voodoo_construct_dispatcher( VoodooManager     *manager,
      if (ret_dispatcher)
           *ret_dispatcher = dispatcher;
 
-     return DFB_OK;
+     return DR_OK;
 }
 

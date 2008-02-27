@@ -29,26 +29,52 @@
 #ifndef __DIRECT__INTERFACE_H__
 #define __DIRECT__INTERFACE_H__
 
-#include <direct/build.h>
-#include <direct/types.h>
-
 #include <direct/debug.h>
 #include <direct/mem.h>
 
+/*
+ * Forward declaration macro for interfaces.
+ */
+#define DECLARE_INTERFACE( IFACE )                \
+     typedef struct _##IFACE IFACE;
 
-#include <directfb.h>    /* FIXME: needed for DECLARE_INTERFACE and DEFINE_INTERFACE */
-/* the following hack can be removed if the above FIXME has been resolved */
-#ifdef __APPLE__
-#undef main  
-#endif
+/*
+ * Macro for an interface definition.
+ */
+#define DEFINE_INTERFACE( IFACE, IDATA... )       \
+     struct _##IFACE {                            \
+          void          *priv;                    \
+          int            magic;                   \
+                                                  \
+          DirectResult (*AddRef)( IFACE *thiz );  \
+          DirectResult (*Release)( IFACE *thiz ); \
+                                                  \
+          IDATA                                   \
+     };
 
-
+/*
+ * Declare base interface
+ */
 DECLARE_INTERFACE( IAny )
+
+/*
+ * Define base interface
+ */
 DEFINE_INTERFACE( IAny, )
 
+/*
+ * Function type for probing of interface implementations
+ */
 typedef DirectResult (*DirectInterfaceGenericProbeFunc)( void *ctx, ... );
+
+/*
+ * Function type for initialization of interface instances
+ */
 typedef DirectResult (*DirectInterfaceGenericConstructFunc)( void *interface, ... );
 
+/*
+ * Function table for interface implementations
+ */
 typedef struct {
      const char * (*GetType)(void);
      const char * (*GetImplementation)(void);
@@ -58,6 +84,9 @@ typedef struct {
      DirectInterfaceGenericConstructFunc Construct;
 } DirectInterfaceFuncs;
 
+/*
+ * Callback type for user probing interface implementations
+ */
 typedef DirectResult (*DirectInterfaceProbeFunc)( DirectInterfaceFuncs *impl, void *ctx );
 
 /*
@@ -90,6 +119,13 @@ void DirectRegisterInterface( DirectInterfaceFuncs *funcs );
 void direct_print_interface_leaks(void);
 
 
+
+#if DIRECT_BUILD_DEBUG || defined(DIRECT_ENABLE_DEBUG) || defined(DIRECT_FORCE_DEBUG)
+
+#if !DIRECT_BUILD_DEBUGS
+#error Building with debug, but library headers suggest that debug is not supported.
+#endif
+
 void direct_dbg_interface_add   ( const char *func,
                                   const char *file,
                                   int         line,
@@ -102,14 +138,6 @@ void direct_dbg_interface_remove( const char *func,
                                   int         line,
                                   const char *what,
                                   const void *interface );
-
-
-
-#if DIRECT_BUILD_DEBUG || defined(DIRECT_ENABLE_DEBUG) || defined(DIRECT_FORCE_DEBUG)
-
-#if !DIRECT_BUILD_DEBUGS
-#warning Building with debug, but library headers suggest that debug is not supported.
-#endif
 
 #define DIRECT_DBG_INTERFACE_ADD        direct_dbg_interface_add
 #define DIRECT_DBG_INTERFACE_REMOVE     direct_dbg_interface_remove
@@ -125,7 +153,7 @@ void direct_dbg_interface_remove( const char *func,
 
 #define DIRECT_ALLOCATE_INTERFACE(p,i)                                               \
      do {                                                                            \
-          (p) = (__typeof__(p))D_CALLOC( 1, sizeof(i) );                                 \
+          (p) = (__typeof__(p))D_CALLOC( 1, sizeof(i) );                             \
                                                                                      \
           D_MAGIC_SET( (IAny*)(p), DirectInterface );                                \
                                                                                      \
@@ -161,14 +189,14 @@ void direct_dbg_interface_remove( const char *func,
      i##_data *data;                                                                 \
                                                                                      \
      if (!thiz)                                                                      \
-          return DFB_THIZNULL;                                                       \
+          return DR_THIZNULL;                                                        \
                                                                                      \
      D_MAGIC_ASSERT( (IAny*)thiz, DirectInterface );                                 \
                                                                                      \
      data = (i##_data*) thiz->priv;                                                  \
                                                                                      \
      if (!data)                                                                      \
-          return DFB_DEAD;
+          return DR_DEAD;
 
 
 #define DIRECT_INTERFACE_GET_DATA_FROM(interface,data,prefix)                        \
@@ -178,7 +206,7 @@ void direct_dbg_interface_remove( const char *func,
           (data) = (prefix##_data*) (interface)->priv;                               \
                                                                                      \
           if (!(data))                                                               \
-               return DFB_DEAD;                                                      \
+               return DR_DEAD;                                                       \
      } while (0)
 
 

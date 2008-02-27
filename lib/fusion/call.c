@@ -75,7 +75,7 @@ fusion_call_init (FusionCall        *call,
 
           D_PERROR ("FUSION_CALL_NEW");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
      memset( call, 0, sizeof(FusionCall) );
@@ -91,7 +91,7 @@ fusion_call_init (FusionCall        *call,
      /* Keep back pointer to shared world data. */
      call->shared = world->shared;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -104,7 +104,7 @@ fusion_call_execute (FusionCall          *call,
      D_ASSERT( call != NULL );
 
      if (!call->handler)
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
 
      if (!(flags & FCEF_NODIRECT) && call->fusion_id == _fusion_id( call->shared )) {
           int                     ret;
@@ -132,23 +132,23 @@ fusion_call_execute (FusionCall          *call,
                          continue;
                     case EINVAL:
 //                         D_ERROR ("Fusion/Call: invalid call\n");
-                         return DFB_INVARG;
+                         return DR_INVARG;
                     case EIDRM:
-                         return DFB_DESTROYED;
+                         return DR_DESTROYED;
                     default:
                          break;
                }
 
                D_PERROR ("FUSION_CALL_EXECUTE");
 
-               return DFB_FAILURE;
+               return DR_FAILURE;
           }
 
           if (ret_val)
                *ret_val = execute.ret_val;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -170,17 +170,17 @@ fusion_call_return( FusionCall   *call,
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Call: invalid call\n");
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_CALL_RETURN");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -195,19 +195,19 @@ fusion_call_destroy (FusionCall *call)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Call: invalid call\n");
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_CALL_DESTROY");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
      call->handler = NULL;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 void
@@ -285,7 +285,7 @@ fusion_call_init (FusionCall        *call,
      /* Keep back pointer to shared world data. */
      call->shared = world->shared;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -295,7 +295,7 @@ fusion_call_execute (FusionCall          *call,
                      void                *call_ptr,
                      int                 *ret_val)
 {
-     DirectResult        ret = DFB_OK;
+     DirectResult        ret = DR_OK;
      FusionWorld        *world;
      FusionCallMessage   msg;
      struct sockaddr_un  addr;
@@ -303,7 +303,7 @@ fusion_call_execute (FusionCall          *call,
      D_ASSERT( call != NULL );
 
      if (!call->handler)
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
 
      if (!(flags & FCEF_NODIRECT) && call->fusion_id == _fusion_id( call->shared )) {
           int                     ret;
@@ -317,7 +317,7 @@ fusion_call_execute (FusionCall          *call,
           if (ret_val)
                *ret_val = ret;
                
-          return DFB_OK;
+          return DR_OK;
      }
      
      world = _fusion_world( call->shared );
@@ -350,7 +350,7 @@ fusion_call_execute (FusionCall          *call,
           fd = socket( PF_LOCAL, SOCK_RAW, 0 );
           if (fd < 0) {
                D_PERROR( "Fusion/Call: Error creating local socket!\n" ) ;
-               return DFB_IO;
+               return DR_IO;
           }
 
           /* Set close-on-exec flag. */
@@ -376,7 +376,7 @@ fusion_call_execute (FusionCall          *call,
           if (err < 0) {
                D_PERROR( "Fusion/Call: Error binding local socket!\n" );
                close( fd );
-               return DFB_IO;
+               return DR_IO;
           }
 
           /* Send message. */
@@ -384,11 +384,11 @@ fusion_call_execute (FusionCall          *call,
                     "/tmp/.fusion-%d/%lx", call->shared->world_index, call->fusion_id );
           
           ret = _fusion_send_message( fd, &msg, sizeof(msg), &addr );
-          if (ret == DFB_OK) {
+          if (ret == DR_OK) {
                FusionCallReturn callret;
                /* Wait for reply. */
                ret = _fusion_recv_message( fd, &callret, sizeof(callret), NULL );
-               if (ret == DFB_OK) {
+               if (ret == DR_OK) {
                     if (ret_val)
                          *ret_val = callret.val;
                } 
@@ -431,7 +431,7 @@ fusion_call_destroy (FusionCall *call)
 
      call->handler = NULL;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 void
@@ -493,7 +493,7 @@ fusion_call_init (FusionCall        *call,
      call->handler = handler;
      call->ctx     = ctx;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -509,7 +509,7 @@ fusion_call_execute (FusionCall          *call,
      D_ASSERT( call != NULL );
 
      if (!call->handler)
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
 
      ret = call->handler( 1, call_arg, call_ptr, call->ctx, 0, &val );
      if (ret != FCHR_RETURN)
@@ -518,7 +518,7 @@ fusion_call_execute (FusionCall          *call,
      if (ret_val)
           *ret_val = val;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -526,7 +526,7 @@ fusion_call_return( FusionCall   *call,
                     unsigned int  serial,
                     int           val )
 {
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
 DirectResult
@@ -537,7 +537,7 @@ fusion_call_destroy (FusionCall *call)
 
      call->handler = NULL;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 #endif

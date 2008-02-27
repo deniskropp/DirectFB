@@ -197,7 +197,7 @@ fusion_reactor_destroy( FusionReactor *reactor )
      D_ASSUME( !reactor->destroyed );
 
      if (reactor->destroyed)
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
 
      while (ioctl( _fusion_fd( shared ), FUSION_REACTOR_DESTROY, &reactor->id )) {
           switch (errno) {
@@ -206,16 +206,16 @@ fusion_reactor_destroy( FusionReactor *reactor )
 
                case EINVAL:
                     D_ERROR( "Fusion/Reactor: invalid reactor\n" );
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
           }
 
           D_PERROR( "FUSION_REACTOR_DESTROY" );
-          return DFB_FUSION;
+          return DR_FUSION;
      }
 
      reactor->destroyed = true;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -241,7 +241,7 @@ fusion_reactor_free( FusionReactor *reactor )
      /* free shared reactor data */
      SHFREE( shared->main_pool, reactor );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -270,7 +270,7 @@ fusion_reactor_attach_channel( FusionReactor *reactor,
      node = lock_node( reactor->id, true, true, reactor, NULL );
      if (!node) {
           D_FREE( link );
-          return DFB_FUSION;
+          return DR_FUSION;
      }
 
      attach.reactor_id = reactor->id;
@@ -285,13 +285,13 @@ fusion_reactor_attach_channel( FusionReactor *reactor,
                     D_ERROR( "Fusion/Reactor: invalid reactor\n" );
                     unlock_node( node );
                     D_FREE( link );
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
           }
 
           D_PERROR( "FUSION_REACTOR_ATTACH" );
           unlock_node( node );
           D_FREE( link );
-          return DFB_FUSION;
+          return DR_FUSION;
      }
 
      /* fill out callback information */
@@ -309,7 +309,7 @@ fusion_reactor_attach_channel( FusionReactor *reactor,
 
      unlock_node( node );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void
@@ -345,7 +345,7 @@ fusion_reactor_detach( FusionReactor *reactor,
      node = lock_node( reactor->id, false, true, reactor, NULL );
      if (!node) {
           D_BUG( "node not found" );
-          return DFB_BUG;
+          return DR_BUG;
      }
 
      link = reaction->node_link;
@@ -373,18 +373,18 @@ fusion_reactor_detach( FusionReactor *reactor,
                     case EINVAL:
                          D_ERROR( "Fusion/Reactor: invalid reactor\n" );
                          unlock_node( node );
-                         return DFB_DESTROYED;
+                         return DR_DESTROYED;
                }
 
                D_PERROR( "FUSION_REACTOR_DETACH" );
                unlock_node( node );
-               return DFB_FUSION;
+               return DR_FUSION;
           }
      }
 
      unlock_node( node );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -435,14 +435,14 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
 
                case EINVAL:
                     D_ERROR( "Fusion/Reactor: invalid reactor\n" );
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
           }
 
           D_PERROR( "FUSION_REACTOR_DISPATCH" );
-          return DFB_FUSION;
+          return DR_FUSION;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -472,14 +472,14 @@ fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
 
                case EINVAL:
                     D_ERROR( "Fusion/Reactor: invalid reactor\n" );
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
           }
 
           D_PERROR( "FUSION_REACTOR_SET_DISPATCH_CALLBACK" );
-          return DFB_FUSION;
+          return DR_FUSION;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -508,14 +508,14 @@ fusion_reactor_set_name( FusionReactor *reactor,
 
                case EINVAL:
                     D_ERROR( "Fusion/Reactor: invalid reactor\n" );
-                    return DFB_IDNOTFOUND;
+                    return DR_IDNOTFOUND;
           }
 
           D_PERROR( "FUSION_ENTRY_SET_INFO( reactor 0x%08x, '%s' )\n", reactor->id, name );
-          return DFB_FUSION;
+          return DR_FUSION;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 void
@@ -670,13 +670,13 @@ fusion_reactor_destroy( FusionReactor *reactor )
      D_ASSUME( !reactor->destroyed );
 
      if (reactor->destroyed)
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
           
      fusion_skirmish_destroy( &reactor->listeners_lock );
           
      reactor->destroyed = true;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -705,7 +705,7 @@ fusion_reactor_free( FusionReactor *reactor )
      /* free shared reactor data */
      SHFREE( shared->main_pool, reactor );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -730,7 +730,7 @@ fusion_reactor_attach_channel( FusionReactor *reactor,
                  reactor, reactor->id, func, ctx, reaction );
                  
      if (reactor->destroyed)
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
                  
      shared = reactor->shared;
 
@@ -741,7 +741,7 @@ fusion_reactor_attach_channel( FusionReactor *reactor,
      node = lock_node( reactor->id, true, true, reactor, NULL );
      if (!node) {
           D_FREE( link );
-          return DFB_FUSION;
+          return DR_FUSION;
      }
      
      fusion_id = _fusion_id( shared );
@@ -762,7 +762,7 @@ fusion_reactor_attach_channel( FusionReactor *reactor,
                fusion_skirmish_dismiss( &reactor->listeners_lock );
                unlock_node( node );
                D_FREE( link );
-               return DFB_NOSHAREDMEMORY;
+               return DR_NOSHAREDMEMORY;
           }
           
           listener->refs      = 1;
@@ -789,7 +789,7 @@ fusion_reactor_attach_channel( FusionReactor *reactor,
 
      unlock_node( node );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void
@@ -824,14 +824,14 @@ fusion_reactor_detach( FusionReactor *reactor,
                  reactor, reactor->id, reaction, reaction->func, reaction->ctx );
      
      if (reactor->destroyed)
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
                           
      shared = reactor->shared;
 
      node = lock_node( reactor->id, false, true, reactor, NULL );
      if (!node) {
           D_BUG( "node not found" );
-          return DFB_BUG;
+          return DR_BUG;
      }
 
      link = reaction->node_link;
@@ -869,7 +869,7 @@ fusion_reactor_detach( FusionReactor *reactor,
 
      unlock_node( node );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -896,11 +896,11 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
                  reactor, reactor->id, msg_data, self ? "true" : "false", globals );
 
      if (reactor->destroyed)
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
 
      if (msg_size > FUSION_MESSAGE_SIZE-sizeof(FusionReactorMessage)) {
           D_ERROR( "Fusion/Reactor: Message too large (%d)!\n", msg_size );
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
 
      world = _fusion_world( reactor->shared );
@@ -960,7 +960,7 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
                D_DEBUG_AT( Fusion_Reactor, " -> sending to '%s'\n", addr.sun_path );
                
                ret = _fusion_send_message( world->fusion_fd, msg, sizeof(FusionReactorMessage)+msg_size, &addr );
-               if (ret == DFB_FUSION) {
+               if (ret == DR_FUSION) {
                     D_DEBUG_AT( Fusion_Reactor, " -> removing dead listener %lu\n", listener->fusion_id );
                     
                     if (ref)
@@ -977,7 +977,7 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
 
      if (ref) {
           fusion_ref_down( ref, true );
-          if (fusion_ref_zero_trylock( ref ) == DFB_OK) {
+          if (fusion_ref_zero_trylock( ref ) == DR_OK) {
                fusion_ref_destroy( ref );
                SHFREE( world->shared->main_pool, ref );
           }
@@ -985,7 +985,7 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
 
      D_DEBUG_AT( Fusion_Reactor, "fusion_reactor_dispatch( %p ) done.\n", reactor );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -1001,14 +1001,14 @@ fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
                  reactor, reactor->id, call, call->call_id, call_ptr );
                  
      if (reactor->destroyed)
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
 
      if (call_ptr)
-          return DFB_UNIMPLEMENTED;
+          return DR_UNIMPLEMENTED;
 
      reactor->call = call;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -1017,7 +1017,7 @@ fusion_reactor_set_name( FusionReactor *reactor,
 {
      D_UNIMPLEMENTED();
 
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
 void
@@ -1124,7 +1124,7 @@ fusion_reactor_set_lock( FusionReactor  *reactor,
      /* Release the old lock which is obsolete now. */
      fusion_skirmish_dismiss( old );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -1142,7 +1142,7 @@ fusion_reactor_set_lock_only( FusionReactor  *reactor,
      /* Set the lock replacement. */
      reactor->globals_lock = lock;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -1201,7 +1201,7 @@ fusion_reactor_attach_global( FusionReactor  *reactor,
      /* Unlock the list of global reactions. */
      fusion_skirmish_dismiss( lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -1247,7 +1247,7 @@ fusion_reactor_detach_global( FusionReactor  *reactor,
      /* Unlock the list of global reactions. */
      fusion_skirmish_dismiss( lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -1280,7 +1280,7 @@ fusion_reactor_direct( FusionReactor *reactor, bool direct )
      
      reactor->direct = direct;
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 
@@ -1609,7 +1609,7 @@ fusion_reactor_set_lock( FusionReactor  *reactor,
 
 //     D_UNIMPLEMENTED();
 
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
 DirectResult
@@ -1619,7 +1619,7 @@ fusion_reactor_set_lock_only( FusionReactor  *reactor,
      D_ASSERT( reactor != NULL );
      D_ASSERT( lock != NULL );
 
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
 DirectResult
@@ -1641,7 +1641,7 @@ fusion_reactor_attach (FusionReactor *reactor,
 
      pthread_mutex_unlock( &reactor->reactions_lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -1657,7 +1657,7 @@ fusion_reactor_detach (FusionReactor *reactor,
 
      pthread_mutex_unlock( &reactor->reactions_lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -1679,7 +1679,7 @@ fusion_reactor_attach_global (FusionReactor  *reactor,
 
      pthread_mutex_unlock( &reactor->globals_lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -1695,7 +1695,7 @@ fusion_reactor_detach_global (FusionReactor  *reactor,
 
      pthread_mutex_unlock( &reactor->globals_lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -1707,7 +1707,7 @@ fusion_reactor_attach_channel( FusionReactor *reactor,
 {
      D_UNIMPLEMENTED();
 
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
 DirectResult
@@ -1720,7 +1720,7 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
 {
      D_UNIMPLEMENTED();
 
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
 DirectResult
@@ -1730,7 +1730,7 @@ fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
 {
      D_UNIMPLEMENTED();
 
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
 DirectResult
@@ -1739,7 +1739,7 @@ fusion_reactor_set_name( FusionReactor *reactor,
 {
      D_UNIMPLEMENTED();
 
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
 DirectResult
@@ -1762,7 +1762,7 @@ fusion_reactor_dispatch (FusionReactor      *reactor,
      }
 
      if (!self)
-          return DFB_OK;
+          return DR_OK;
 
      pthread_mutex_lock( &reactor->reactions_lock );
 
@@ -1778,7 +1778,7 @@ fusion_reactor_dispatch (FusionReactor      *reactor,
 
                case RS_DROP:
                     pthread_mutex_unlock( &reactor->reactions_lock );
-                    return DFB_OK;
+                    return DR_OK;
 
                default:
                     break;
@@ -1789,7 +1789,7 @@ fusion_reactor_dispatch (FusionReactor      *reactor,
 
      pthread_mutex_unlock( &reactor->reactions_lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -1797,7 +1797,7 @@ fusion_reactor_direct( FusionReactor *reactor, bool direct )
 {
      D_ASSERT( reactor != NULL );
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -1809,7 +1809,7 @@ fusion_reactor_destroy (FusionReactor *reactor)
 
      reactor->destroyed = true;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -1825,7 +1825,7 @@ fusion_reactor_free (FusionReactor *reactor)
 
      D_FREE( reactor );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /******************************************************************************/

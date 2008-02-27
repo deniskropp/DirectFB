@@ -123,7 +123,7 @@ DirectResult fusion_ref_inherit      (FusionRef *ref,
 /*
  * Deinitialize.
  * Can be called after successful zero_lock or zero_trylock
- * so that waiting fusion_ref_up calls return with DFB_DESTROYED.
+ * so that waiting fusion_ref_up calls return with DR_DESTROYED.
  */
 DirectResult fusion_ref_destroy      (FusionRef *ref);
 

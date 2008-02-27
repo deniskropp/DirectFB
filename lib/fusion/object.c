@@ -93,10 +93,10 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
           D_MAGIC_ASSERT( object, FusionObject );
 
           switch (fusion_ref_zero_trylock( &object->ref )) {
-               case DFB_OK:
+               case DR_OK:
                     break;
 
-               case DFB_DESTROYED:
+               case DR_DESTROYED:
                     D_BUG( "already destroyed %p [%ld] in '%s'", object, object->id, pool->name );
 
                     direct_list_remove( &pool->objects, &object->link );
@@ -109,7 +109,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
                              object, object->id, pool->name );
                     /* fall through */
 
-               case DFB_BUSY:
+               case DR_BUSY:
                     fusion_skirmish_dismiss( &pool->lock );
                     return FCHR_RETURN;
           }
@@ -277,7 +277,7 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
      SHFREE( shared->main_pool, pool->name );
      SHFREE( shared->main_pool, pool );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -292,7 +292,7 @@ fusion_object_pool_enum( FusionObjectPool     *pool,
 
      /* Lock the pool. */
      if (fusion_skirmish_prevail( &pool->lock ))
-          return DFB_FUSION;
+          return DR_FUSION;
 
      direct_list_foreach (object, pool->objects) {
           D_MAGIC_ASSERT( object, FusionObject );
@@ -304,7 +304,7 @@ fusion_object_pool_enum( FusionObjectPool     *pool,
      /* Unlock the pool. */
      fusion_skirmish_dismiss( &pool->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 FusionObject *
@@ -397,7 +397,7 @@ fusion_object_get( FusionObjectPool  *pool,
                    FusionObjectID     object_id,
                    FusionObject     **ret_object )
 {
-     DirectResult  ret = DFB_IDNOTFOUND;
+     DirectResult  ret = DR_IDNOTFOUND;
      FusionObject *object;
 
      D_MAGIC_ASSERT( pool, FusionObjectPool );
@@ -405,7 +405,7 @@ fusion_object_get( FusionObjectPool  *pool,
 
      /* Lock the pool. */
      if (fusion_skirmish_prevail( &pool->lock ))
-          return DFB_FUSION;
+          return DR_FUSION;
 
      direct_list_foreach (object, pool->objects) {
           D_MAGIC_ASSERT( object, FusionObject );
@@ -416,7 +416,7 @@ fusion_object_get( FusionObjectPool  *pool,
           }
      }
 
-     if (ret == DFB_OK)
+     if (ret == DR_OK)
           *ret_object = object;
 
      /* Unlock the pool. */
@@ -446,7 +446,7 @@ fusion_object_activate( FusionObject *object )
      /* Set "active" state. */
      object->state = FOS_ACTIVE;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -475,7 +475,7 @@ fusion_object_destroy( FusionObject *object )
 
           /* Lock the pool. */
           if (fusion_skirmish_prevail( &pool->lock ))
-               return DFB_FAILURE;
+               return DR_FAILURE;
 
           D_MAGIC_ASSERT( pool, FusionObjectPool );
 
@@ -503,7 +503,7 @@ fusion_object_destroy( FusionObject *object )
 
      D_MAGIC_CLEAR( object );
      SHFREE( shared->main_pool, object );
-     return DFB_OK;
+     return DR_OK;
 }
 
 /*

@@ -106,7 +106,7 @@ direct_cleanup_handler_add( DirectCleanupHandlerFunc   func,
      handler = D_CALLOC( 1, sizeof(DirectCleanupHandler) );
      if (!handler) {
           D_WARN( "out of memory" );
-          return DFB_NOSYSTEMMEMORY;
+          return DR_NOLOCALMEMORY;
      }
      
      handler->func = func;
@@ -125,7 +125,7 @@ direct_cleanup_handler_add( DirectCleanupHandlerFunc   func,
      
      *ret_handler = handler;
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -146,7 +146,7 @@ direct_cleanup_handler_remove( DirectCleanupHandler *handler )
 
      D_FREE( handler );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -159,7 +159,7 @@ direct_initialize()
      if (refs++) {
           D_DEBUG_AT( Direct_Main, "...%d references now.\n", refs );
           pthread_mutex_unlock( &main_lock );
-          return DFB_OK;
+          return DR_OK;
      }
      else if (!direct_thread_self_name())
           direct_thread_set_name( "Main Thread" );
@@ -170,7 +170,7 @@ direct_initialize()
 
      pthread_mutex_unlock( &main_lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -183,7 +183,7 @@ direct_shutdown()
      if (--refs) {
           D_DEBUG_AT( Direct_Main, "...%d references left.\n", refs );
           pthread_mutex_unlock( &main_lock );
-          return DFB_OK;
+          return DR_OK;
      }
 
      D_DEBUG_AT( Direct_Main, "...shutting down now.\n" );
@@ -192,6 +192,6 @@ direct_shutdown()
 
      pthread_mutex_unlock( &main_lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 

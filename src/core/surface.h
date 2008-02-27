@@ -165,7 +165,7 @@ struct __DFB_CoreSurface
      DirectSerial             serial;
 
      int                      field;
-     __u8                     alpha_ramp[4];
+     u8                       alpha_ramp[4];
 
      CoreSurfaceBuffer       *buffers[MAX_SURFACE_BUFFERS];
      int                      num_buffers;
@@ -255,10 +255,10 @@ DFBResult dfb_surface_set_field     ( CoreSurface                  *surface,
                                       int                           field );
 
 DFBResult dfb_surface_set_alpha_ramp( CoreSurface                  *surface,
-                                      __u8                          a0,
-                                      __u8                          a1,
-                                      __u8                          a2,
-                                      __u8                          a3 );
+                                      u8                            a0,
+                                      u8                            a1,
+                                      u8                            a2,
+                                      u8                            a3 );
 
 
 static inline DFBResult

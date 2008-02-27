@@ -231,9 +231,9 @@ Construct( IDirectFBFont      *thiz,
           else {
                for (i = 1; i < font_desc.height; i++) {
                     int    i, j, n;
-                    __u8  *dst8  = lock.addr;
-                    __u16 *dst16 = lock.addr;
-                    __u32 *dst32 = lock.addr;
+                    u8  *dst8  = lock.addr;
+                    u16 *dst16 = lock.addr;
+                    u32 *dst32 = lock.addr;
 
                     pixels += font_desc.preallocated[0].pitch;
                     switch (surface->config.format) {

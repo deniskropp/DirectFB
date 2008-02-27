@@ -83,39 +83,39 @@ voodoo_client_create( const char     *hostname,
           switch (err) {
                case EAI_FAMILY:
                     D_ERROR( "Direct/Log: Unsupported address family!\n" );
-                    return DFB_UNSUPPORTED;
+                    return DR_UNSUPPORTED;
                
                case EAI_SOCKTYPE:
                     D_ERROR( "Direct/Log: Unsupported socket type!\n" );
-                    return DFB_UNSUPPORTED;
+                    return DR_UNSUPPORTED;
                
                case EAI_NONAME:
                     D_ERROR( "Direct/Log: Host not found!\n" );
-                    return DFB_FAILURE;
+                    return DR_FAILURE;
                     
                case EAI_SERVICE:
                     D_ERROR( "Direct/Log: Port 2323 is unreachable!\n" );
-                    return DFB_FAILURE;
+                    return DR_FAILURE;
                
                case EAI_ADDRFAMILY:
                case EAI_NODATA:
                     D_ERROR( "Direct/Log: Host found, but has no address!\n" );
-                    return DFB_FAILURE;
+                    return DR_FAILURE;
                     
                case EAI_MEMORY:
                     return D_OOM();
 
                case EAI_FAIL:
                     D_ERROR( "Direct/Log: A non-recoverable name server error occurred!\n" );
-                    return DFB_FAILURE;
+                    return DR_FAILURE;
 
                case EAI_AGAIN:
                     D_ERROR( "Direct/Log: Temporary error, try again!\n" );
-                    return DFB_TEMPUNAVAIL;
+                    return DR_TEMPUNAVAIL;
                     
                default:
                     D_ERROR( "Direct/Log: Unknown error occured!?\n" );
-                    return DFB_FAILURE;
+                    return DR_FAILURE;
           }
      }
 
@@ -145,7 +145,7 @@ voodoo_client_create( const char     *hostname,
      if (!client) {
           D_WARN( "out of memory" );
           close( fd );
-          return DFB_NOSYSTEMMEMORY;
+          return DR_NOLOCALMEMORY;
      }
 
      /* Initialize client structure. */
@@ -162,7 +162,7 @@ voodoo_client_create( const char     *hostname,
      /* Return the new client. */
      *ret_client = client;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -176,7 +176,7 @@ voodoo_client_destroy( VoodooClient *client )
 
      D_FREE( client );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 VoodooManager *

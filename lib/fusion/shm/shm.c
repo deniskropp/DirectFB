@@ -186,7 +186,7 @@ fusion_shm_init( FusionWorld *world )
           fusion_skirmish_dismiss( &shared->lock );
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -246,7 +246,7 @@ fusion_shm_deinit( FusionWorld *world )
 
      D_MAGIC_CLEAR( shm );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -287,7 +287,7 @@ fusion_shm_attach_unattached( FusionWorld *world )
 
      fusion_skirmish_dismiss( &shared->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -332,6 +332,6 @@ fusion_shm_enum_pools( FusionWorld           *world,
 
      fusion_skirmish_dismiss( &shared->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 

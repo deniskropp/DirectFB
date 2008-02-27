@@ -371,7 +371,7 @@ fusion_enter( int               world_index,
               FusionEnterRole   role,
               FusionWorld     **ret_world )
 {
-     DirectResult       ret    = DFB_OK;
+     DirectResult       ret    = DR_OK;
      int                fd     = -1;
      FusionWorld       *world  = NULL;
      FusionWorldShared *shared = NULL;
@@ -385,7 +385,7 @@ fusion_enter( int               world_index,
 
      if (world_index >= FUSION_MAX_WORLDS) {
           D_ERROR( "Fusion/Init: World index %d exceeds maximum index %d!\n", world_index, FUSION_MAX_WORLDS - 1 );
-          return DFB_INVARG;
+          return DR_INVARG;
      }
 
      pthread_once( &fusion_init_once, init_once );
@@ -403,7 +403,7 @@ fusion_enter( int               world_index,
           if (role == FER_SLAVE) {
                D_ERROR( "Fusion/Init: Slave role and a new world (index -1) was requested!\n" );
                pthread_mutex_unlock( &fusion_worlds_lock );
-               return DFB_INVARG;
+               return DR_INVARG;
           }
 
           for (world_index=0; world_index<FUSION_MAX_WORLDS; world_index++) {
@@ -453,7 +453,7 @@ fusion_enter( int               world_index,
                     if (world->fusion_id != FUSION_ID_MASTER) {
                          D_ERROR( "Fusion/Init: Master role requested for a world (%d) "
                                   "we're already slave in!\n", world_index );
-                         ret = DFB_UNSUPPORTED;
+                         ret = DR_UNSUPPORTED;
                          goto error;
                     }
                     break;
@@ -462,7 +462,7 @@ fusion_enter( int               world_index,
                     if (world->fusion_id == FUSION_ID_MASTER) {
                          D_ERROR( "Fusion/Init: Slave role requested for a world (%d) "
                                   "we're already master in!\n", world_index );
-                         ret = DFB_UNSUPPORTED;
+                         ret = DR_UNSUPPORTED;
                          goto error;
                     }
                     break;
@@ -478,7 +478,7 @@ fusion_enter( int               world_index,
           if (shared->world_abi != abi_version) {
                D_ERROR( "Fusion/Init: World ABI (%d) of world '%d' doesn't match own (%d)!\n",
                         shared->world_abi, world_index, abi_version );
-               ret = DFB_VERSIONMISMATCH;
+               ret = DR_VERSIONMISMATCH;
                goto error;
           }
 
@@ -491,13 +491,13 @@ fusion_enter( int               world_index,
           /* Return the world. */
           *ret_world = world;
 
-          return DFB_OK;
+          return DR_OK;
      }
 
      if (fd < 0) {
           D_PERROR( "Fusion/Init: Opening fusion device (world %d) as '%s' failed!\n", world_index,
                     role == FER_ANY ? "any" : (role == FER_MASTER ? "master" : "slave")  );
-          ret = DFB_INIT;
+          ret = DR_INIT;
           goto error;
      }
 
@@ -514,7 +514,7 @@ fusion_enter( int               world_index,
      while (ioctl( fd, FUSION_ENTER, &enter )) {
           if (errno != EINTR) {
                D_PERROR( "Fusion/Init: Could not enter world '%d'!\n", world_index );
-               ret = DFB_INIT;
+               ret = DR_INIT;
                goto error;
           }
      }
@@ -522,7 +522,7 @@ fusion_enter( int               world_index,
      /* Check for valid Fusion ID. */
      if (!enter.fusion_id) {
           D_ERROR( "Fusion/Init: Got no ID from FUSION_ENTER! Kernel module might be too old.\n" );
-          ret = DFB_INIT;
+          ret = DR_INIT;
           goto error;
      }
 
@@ -531,7 +531,7 @@ fusion_enter( int               world_index,
      /* Check slave role only, master is handled by O_EXCL earlier. */
      if (role == FER_SLAVE && enter.fusion_id == FUSION_ID_MASTER) {
           D_PERROR( "Fusion/Init: Entering world '%d' as a slave failed!\n", world_index );
-          ret = DFB_UNSUPPORTED;
+          ret = DR_UNSUPPORTED;
           goto error;
      }
 
@@ -568,7 +568,7 @@ fusion_enter( int               world_index,
           if (shared->world_abi != abi_version) {
                D_ERROR( "Fusion/Init: World ABI (%d) doesn't match own (%d)!\n",
                         shared->world_abi, abi_version );
-               ret = DFB_VERSIONMISMATCH;
+               ret = DR_VERSIONMISMATCH;
                goto error;
           }
      }
@@ -623,7 +623,7 @@ fusion_enter( int               world_index,
                                                   fusion_dispatch_loop,
                                                   world, "Fusion Dispatch" );
      if (!world->dispatch_loop) {
-          ret = DFB_FAILURE;
+          ret = DR_FAILURE;
           goto error4;
      }
 
@@ -635,7 +635,7 @@ fusion_enter( int               world_index,
           while (ioctl( fd, FUSION_UNBLOCK )) {
                if (errno != EINTR) {
                     D_PERROR( "Fusion/Init: Could not unblock world!\n" );
-                    ret = DFB_FUSION;
+                    ret = DR_FUSION;
                     goto error4;
                }
           }
@@ -648,7 +648,7 @@ fusion_enter( int               world_index,
      /* Return the fusion world. */
      *ret_world = world;
 
-     return DFB_OK;
+     return DR_OK;
 
 
 error4:
@@ -718,7 +718,7 @@ fusion_exit( FusionWorld *world,
 
      if (--world->refs) {
           pthread_mutex_unlock( &fusion_worlds_lock );
-          return DFB_OK;
+          return DR_OK;
      }
 
 
@@ -792,7 +792,7 @@ fusion_exit( FusionWorld *world,
 
      direct_shutdown();
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /*
@@ -822,17 +822,17 @@ fusion_kill( FusionWorld *world,
                case EINTR:
                     continue;
                case ETIMEDOUT:
-                    return DFB_TIMEOUT;
+                    return DR_TIMEOUT;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_KILL");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
@@ -983,7 +983,7 @@ _fusion_add_fusionee( FusionWorld *world, FusionID fusion_id )
      /* Set local pointer. */
      world->fusionee = fusionee;
 
-     return DFB_OK;
+     return DR_OK;
 }    
 
 void
@@ -1189,17 +1189,17 @@ _fusion_send_message( int                 fd,
                case EINTR:
                     continue;
                case ECONNREFUSED:
-                    return DFB_FUSION;
+                    return DR_FUSION;
                default:
                     break;
           }
 
           D_PERROR( "Fusion: sendto()\n" );
 
-          return DFB_IO;
+          return DR_IO;
      }
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -1217,17 +1217,17 @@ _fusion_recv_message( int                 fd,
                case EINTR:
                     continue;
                case ECONNREFUSED:
-                    return DFB_FUSION;
+                    return DR_FUSION;
                default:
                     break;
           }
 
           D_PERROR( "Fusion: recvfrom()\n" );
           
-          return DFB_IO;
+          return DR_IO;
      }
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
@@ -1372,7 +1372,7 @@ fusion_enter( int               world_index,
               FusionEnterRole   role,
               FusionWorld     **ret_world )
 {
-     DirectResult        ret     = DFB_OK;
+     DirectResult        ret     = DR_OK;
      int                 fd      = -1;
      FusionID            id      = -1;
      FusionWorld        *world   = NULL;
@@ -1387,7 +1387,7 @@ fusion_enter( int               world_index,
 
      if (world_index >= FUSION_MAX_WORLDS) {
           D_ERROR( "Fusion/Init: World index %d exceeds maximum index %d!\n", world_index, FUSION_MAX_WORLDS - 1 );
-          return DFB_INVARG;
+          return DR_INVARG;
      }
      
      if (fusion_config->force_slave)
@@ -1400,7 +1400,7 @@ fusion_enter( int               world_index,
      fd = socket( PF_LOCAL, SOCK_RAW, 0 );
      if (fd < 0) {
           D_PERROR( "Fusion/Init: Error creating local socket!\n" );
-          return DFB_IO;
+          return DR_IO;
      }
           
      /* Set close-on-exec flag. */
@@ -1416,7 +1416,7 @@ fusion_enter( int               world_index,
                D_ERROR( "Fusion/Init: Slave role and a new world (index -1) was requested!\n" );
                pthread_mutex_unlock( &fusion_worlds_lock );
                close( fd );
-               return DFB_INVARG;
+               return DR_INVARG;
           }
           
           for (world_index=0; world_index<FUSION_MAX_WORLDS; world_index++) {
@@ -1463,7 +1463,7 @@ fusion_enter( int               world_index,
                if (err < 0) {
                     if (role == FER_MASTER) {
                          D_ERROR( "Fusion/Main: Couldn't start session as master! Remove %s.\n", addr.sun_path );
-                         ret = DFB_INIT;
+                         ret = DR_INIT;
                          goto error;
                     }
                     
@@ -1501,7 +1501,7 @@ fusion_enter( int               world_index,
                     if (world->fusion_id != FUSION_ID_MASTER) {
                          D_ERROR( "Fusion/Init: Master role requested for a world (%d) "
                                   "we're already slave in!\n", world_index );
-                         ret = DFB_UNSUPPORTED;
+                         ret = DR_UNSUPPORTED;
                          goto error;
                     }
                     break;
@@ -1510,7 +1510,7 @@ fusion_enter( int               world_index,
                     if (world->fusion_id == FUSION_ID_MASTER) {
                          D_ERROR( "Fusion/Init: Slave role requested for a world (%d) "
                                   "we're already master in!\n", world_index );
-                         ret = DFB_UNSUPPORTED;
+                         ret = DR_UNSUPPORTED;
                          goto error;
                     }
                     break;
@@ -1526,7 +1526,7 @@ fusion_enter( int               world_index,
           if (shared->world_abi != abi_version) {
                D_ERROR( "Fusion/Init: World ABI (%d) of world '%d' doesn't match own (%d)!\n",
                         shared->world_abi, world_index, abi_version );
-               ret = DFB_VERSIONMISMATCH;
+               ret = DR_VERSIONMISMATCH;
                goto error;
           }
 
@@ -1541,13 +1541,13 @@ fusion_enter( int               world_index,
           /* Return the world. */
           *ret_world = world;
 
-          return DFB_OK;
+          return DR_OK;
      }
      
      if (id == (FusionID)-1) {
           D_ERROR( "Fusion/Init: Opening fusion socket (world %d) as '%s' failed!\n", world_index,
                     role == FER_ANY ? "any" : (role == FER_MASTER ? "master" : "slave")  );
-          ret = DFB_INIT;
+          ret = DR_INIT;
           goto error;
      }
      
@@ -1563,7 +1563,7 @@ fusion_enter( int               world_index,
           shared_fd = open( buf, O_RDWR | O_CREAT | O_TRUNC, 0660 );
           if (shared_fd < 0) {
                D_PERROR( "Fusion/Init: Couldn't open shared memory file!\n" );
-               ret = DFB_INIT;
+               ret = DR_INIT;
                goto error;
           }
 
@@ -1581,7 +1581,7 @@ fusion_enter( int               world_index,
           if (shared == MAP_FAILED) {
                D_PERROR( "Fusion/Init: Mapping shared area failed!\n" );
                close( shared_fd );
-               ret = DFB_INIT;
+               ret = DR_INIT;
                goto error;
           }
           
@@ -1620,11 +1620,11 @@ fusion_enter( int               world_index,
           
           /* Send enter message (used to sync with the master) */
           ret = _fusion_send_message( fd, &enter, sizeof(FusionEnter), &addr );
-          if (ret == DFB_OK) {
+          if (ret == DR_OK) {
                ret = _fusion_recv_message( fd, &enter, sizeof(FusionEnter), NULL );
-               if (ret == DFB_OK && enter.type != FMT_ENTER) {
+               if (ret == DR_OK && enter.type != FMT_ENTER) {
                     D_ERROR( "Fusion/Init: Expected message ENTER, got '%d'!\n", enter.type );
-                    ret = DFB_FUSION;
+                    ret = DR_FUSION;
                }
           }
                
@@ -1640,7 +1640,7 @@ fusion_enter( int               world_index,
           shared_fd = open( buf, O_RDWR );
           if (shared_fd < 0) {
                D_PERROR( "Fusion/Init: Couldn't open shared memory file!\n" );
-               ret = DFB_INIT;
+               ret = DR_INIT;
                goto error;
           }
           
@@ -1650,7 +1650,7 @@ fusion_enter( int               world_index,
           if (shared == MAP_FAILED) {
                D_PERROR( "Fusion/Init: Mapping shared area failed!\n" );
                close( shared_fd );
-               ret = DFB_INIT;
+               ret = DR_INIT;
                goto error;
           }
           
@@ -1664,7 +1664,7 @@ fusion_enter( int               world_index,
           if (shared->world_abi != abi_version) {
                D_ERROR( "Fusion/Init: World ABI (%d) doesn't match own (%d)!\n",
                         shared->world_abi, abi_version );
-               ret = DFB_VERSIONMISMATCH;
+               ret = DR_VERSIONMISMATCH;
                goto error;
           }
      }
@@ -1721,7 +1721,7 @@ fusion_enter( int               world_index,
                                                   fusion_dispatch_loop,
                                                   world, "Fusion Dispatch" );
      if (!world->dispatch_loop) {
-          ret = DFB_FAILURE;
+          ret = DR_FAILURE;
           goto error5;
      }
 
@@ -1732,7 +1732,7 @@ fusion_enter( int               world_index,
      /* Return the fusion world. */
      *ret_world = world;
 
-     return DFB_OK;
+     return DR_OK;
 
 
 error5:
@@ -1815,7 +1815,7 @@ fusion_exit( FusionWorld *world,
 
      if (--world->refs) {
           pthread_mutex_unlock( &fusion_worlds_lock );
-          return DFB_OK;
+          return DR_OK;
      }
  
      if (!emergency) {
@@ -1932,7 +1932,7 @@ fusion_exit( FusionWorld *world,
 
      direct_shutdown();
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /*
@@ -2003,7 +2003,7 @@ fusion_kill( FusionWorld *world,
      
      fusion_skirmish_dismiss( &shared->fusionees_lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
@@ -2096,7 +2096,7 @@ fusion_dispatch_loop( DirectThread *self, void *arg )
                                                           &buf[sizeof(FusionReactorMessage)] );
                          if (msg->reactor.ref) {
                               fusion_ref_down( msg->reactor.ref, true );
-                              if (fusion_ref_zero_trylock( msg->reactor.ref ) == DFB_OK) {
+                              if (fusion_ref_zero_trylock( msg->reactor.ref ) == DR_OK) {
                                    fusion_ref_destroy( msg->reactor.ref );
                                    SHFREE( world->shared->main_pool, msg->reactor.ref );
                               }
@@ -2150,10 +2150,10 @@ fusion_sync( const FusionWorld *world )
           switch (result) {
                case -1:
                     if (errno == EINTR)
-                         return DFB_OK;
+                         return DR_OK;
 
                     D_PERROR( "Fusion/Sync: select() failed!\n");
-                    return DFB_FAILURE;
+                    return DR_FAILURE;
 
                default:
                     D_DEBUG_AT( Fusion_Main, "  -> FD_ISSET %d...\n", FD_ISSET( world->fusion_fd, &set ) );
@@ -2165,7 +2165,7 @@ fusion_sync( const FusionWorld *world )
 
                case 0:
                     D_DEBUG_AT( Fusion_Main, "  -> synced.\n");
-                    return DFB_OK;
+                    return DR_OK;
           }
      }
 
@@ -2173,7 +2173,7 @@ fusion_sync( const FusionWorld *world )
 
      D_ERROR( "Fusion/Main: Timeout waiting for empty message queue!\n" );
 
-     return DFB_TIMEOUT;
+     return DR_TIMEOUT;
 }
 
 /*
@@ -2346,7 +2346,7 @@ DirectResult fusion_enter( int               world_index,
 
      *ret_world = world;
 
-     return DFB_OK;
+     return DR_OK;
 
 
 error:
@@ -2385,7 +2385,7 @@ DirectResult fusion_exit( FusionWorld *world,
 
      direct_shutdown();
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /*
@@ -2437,7 +2437,7 @@ fusion_kill( FusionWorld *world,
 {
      D_MAGIC_ASSERT( world, FusionWorld );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /*
@@ -2470,7 +2470,7 @@ fusion_sync( const FusionWorld *world )
 {
      D_MAGIC_ASSERT( world, FusionWorld );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /* Check if a pointer points to the shared memory. */

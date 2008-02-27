@@ -85,7 +85,7 @@ direct_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR("Direct/Config '%s': No module name specified!\n", name);
-               return DFB_INVARG;
+               return DR_INVARG;
           }
      }
      else
@@ -97,7 +97,7 @@ direct_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR("Direct/Config '%s': No method specified!\n", name);
-               return DFB_INVARG;
+               return DR_INVARG;
           }
      }
      else
@@ -160,7 +160,7 @@ direct_config_set( const char *name, const char *value )
                     D_ERROR("Direct/Config '%s': No file name specified!\n", name);
                else
                     D_ERROR("Direct/Config '%s': No host and port specified!\n", name);
-               return DFB_INVARG;
+               return DR_INVARG;
           }
      }
      else
@@ -178,7 +178,7 @@ direct_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR("Direct/Config '%s': Unknown level specified (use 'none', 'assert', 'assume')!\n", name);
-               return DFB_INVARG;
+               return DR_INVARG;
           }
      }
      else
@@ -214,7 +214,7 @@ direct_config_set( const char *name, const char *value )
                     if (*error) {
                          D_ERROR( "Direct/Config '%s': Error in number at '%s'!\n", name, error );
                          D_FREE( signals );
-                         return DFB_INVARG;
+                         return DR_INVARG;
                     }
 
                     sigaddset( &direct_config->dont_catch, signum );
@@ -226,7 +226,7 @@ direct_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR("Direct/Config '%s': No signals specified!\n", name);
-               return DFB_INVARG;
+               return DR_INVARG;
           }
      }
      else
@@ -243,14 +243,14 @@ direct_config_set( const char *name, const char *value )
 
                if (sscanf( value, "%d", &priority ) < 1) {
                     D_ERROR("Direct/Config '%s': Could not parse value!\n", name);
-                    return DFB_INVARG;
+                    return DR_INVARG;
                }
 
                direct_config->thread_priority = priority;
           }
           else {
                D_ERROR("Direct/Config '%s': No value specified!\n", name);
-               return DFB_INVARG;
+               return DR_INVARG;
           }
      } else
      if (strcmp (name, "thread-scheduler" ) == 0) {  /* Must be moved to lib/direct/conf.c in trunk! */
@@ -265,12 +265,12 @@ direct_config_set( const char *name, const char *value )
                     direct_config->thread_scheduler = DCTS_RR;
                } else {
                     D_ERROR( "Direct/Config '%s': Unknown scheduler '%s'!\n", name, value );
-                    return DFB_INVARG;
+                    return DR_INVARG;
                }
           }
           else {
                D_ERROR( "Direct/Config '%s': No value specified!\n", name );
-               return DFB_INVARG;
+               return DR_INVARG;
           }
      } else
      if (strcmp (name, "thread-stacksize" ) == 0) {  /* Must be moved to lib/direct/conf.c in trunk! */
@@ -279,19 +279,19 @@ direct_config_set( const char *name, const char *value )
 
                if (sscanf( value, "%d", &size ) < 1) {
                     D_ERROR( "Direct/Config '%s': Could not parse value!\n", name );
-                    return DFB_INVARG;
+                    return DR_INVARG;
                }
 
                direct_config->thread_stack_size = size;
           }
           else {
                D_ERROR( "Direct/Config '%s': No value specified!\n", name );
-               return DFB_INVARG;
+               return DR_INVARG;
           }
      }
      else
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
-     return DFB_OK;
+     return DR_OK;
 }
 

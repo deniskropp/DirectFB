@@ -229,7 +229,7 @@ prefix##_link( type **link,                                                    \
                                                                                \
      *link = object;                                                           \
                                                                                \
-     return DFB_OK;                                                            \
+     return DR_OK;                                                            \
 }                                                                              \
                                                                                \
 static inline DirectResult                                                     \

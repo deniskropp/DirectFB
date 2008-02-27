@@ -98,7 +98,7 @@ direct_hash_create( int          size,
      hash = D_CALLOC( 1, sizeof (DirectHash) );
      if (!hash) {
           D_WARN( "out of memory" );
-          return DFB_NOSYSTEMMEMORY;
+          return DR_NOLOCALMEMORY;
      }
 
      hash->size     = size;
@@ -107,14 +107,14 @@ direct_hash_create( int          size,
      if (!hash->elements) {
           D_WARN( "out of memory" );
           D_FREE( hash );
-          return DFB_NOSYSTEMMEMORY;
+          return DR_NOLOCALMEMORY;
      }
 
      D_MAGIC_SET( hash, DirectHash );
 
      *ret_hash = hash;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 void
@@ -150,7 +150,7 @@ direct_hash_insert( DirectHash    *hash,
           elements = D_CALLOC( size, sizeof(Element) );
           if (!elements) {
                D_WARN( "out of memory" );
-               return DFB_NOSYSTEMMEMORY;
+               return DR_NOLOCALMEMORY;
           }
 
           for (i=0; i<hash->size; i++) {
@@ -187,7 +187,7 @@ direct_hash_insert( DirectHash    *hash,
      while (element->value && element->value != REMOVED) {
           if (element->key == key) {
                D_BUG( "key already exists" );
-               return DFB_BUG;
+               return DR_BUG;
           }
 
           if (++pos == hash->size)
@@ -207,7 +207,7 @@ direct_hash_insert( DirectHash    *hash,
      D_DEBUG_AT( Direct_Hash, "...inserted at %d, new count = %d, removed = %d, size = %d, key = 0x%08lx.\n",
                  pos, hash->count, hash->removed, hash->size, key );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 void

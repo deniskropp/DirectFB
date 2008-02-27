@@ -61,7 +61,7 @@ fusion_shm_pool_create( FusionWorld          *world,
 
      *ret_pool = pool;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -74,7 +74,7 @@ fusion_shm_pool_destroy( FusionWorld         *world,
 
      D_FREE( pool );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -85,7 +85,7 @@ fusion_shm_pool_attach( FusionSHM           *shm,
 
      pool->index++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -98,7 +98,7 @@ fusion_shm_pool_detach( FusionSHM           *shm,
 
      pool->index--;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -114,11 +114,11 @@ fusion_shm_pool_allocate( FusionSHMPoolShared  *pool,
 
      data = clear ? D_CALLOC( 1, size ) : D_MALLOC( size );
      if (!data)
-          return DFB_NOSHAREDMEMORY;
+          return DR_NOSHAREDMEMORY;
 
      *ret_data = data;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -134,11 +134,11 @@ fusion_shm_pool_reallocate( FusionSHMPoolShared  *pool,
 
      new_data = D_REALLOC( data, size );
      if (!new_data)
-          return DFB_NOSHAREDMEMORY;
+          return DR_NOSHAREDMEMORY;
 
      *ret_data = new_data;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -150,7 +150,7 @@ fusion_shm_pool_deallocate( FusionSHMPoolShared *pool,
 
      D_FREE( data );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -158,6 +158,6 @@ fusion_shm_enum_pools( FusionWorld           *world,
                        FusionSHMPoolCallback  callback,
                        void                  *ctx )
 {
-     return DFB_OK;
+     return DR_OK;
 }
 

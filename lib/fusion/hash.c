@@ -49,10 +49,9 @@
 #include <fusion/object.h>
 #include <fusion/shmalloc.h>
 #include <fusion/hash.h>
-#include <directfb.h>
 
 
-//D_DEBUG_DOMAIN( Fusion_Hash, "Fusion/Hash", "Hash table implementation" );
+D_DEBUG_DOMAIN( Fusion_Hash, "Fusion/Hash", "Hash table implementation" );
 
 
 
@@ -166,9 +165,9 @@ fusion_hash_create_internal (bool local,FusionSHMPoolShared *pool,
      FusionHash *hash;
 
      if (!ret_hash)
-          return DFB_BUG;
+          return DR_BUG;
      if (!local && !pool)
-          return DFB_BUG;
+          return DR_BUG;
 
      if (size < FUSION_HASH_MIN_SIZE)
           size = FUSION_HASH_MIN_SIZE;
@@ -179,7 +178,7 @@ fusion_hash_create_internal (bool local,FusionSHMPoolShared *pool,
           hash = SHCALLOC(pool, 1, sizeof (FusionHash) );
 
      if (!hash)
-          return local ?DFB_NOSYSTEMMEMORY:DFB_NOSHAREDMEMORY;
+          return local ?DR_NOLOCALMEMORY:DR_NOSHAREDMEMORY;
 
      hash->local              = local;
      hash->pool               = pool;
@@ -197,14 +196,14 @@ fusion_hash_create_internal (bool local,FusionSHMPoolShared *pool,
                D_FREE(hash );
           else
                SHFREE(pool, hash );
-          return local?DFB_NOSYSTEMMEMORY:DFB_NOSHAREDMEMORY;
+          return local?DR_NOLOCALMEMORY:DR_NOSHAREDMEMORY;
      }
 
      D_MAGIC_SET(hash, FusionHash );
 
      *ret_hash = hash;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 void
@@ -268,7 +267,7 @@ fusion_hash_lookup (FusionHash *hash, const void * key)
  * @value: the value to associate with the key.
  * 
  * Inserts a new key and value into a #FusionHash.
- * If the key already exists in the #FusionHash DFB_BUG is returned 
+ * If the key already exists in the #FusionHash DR_BUG is returned 
  * If you think a key may exist you should call fusion_hash_replace
  * Generally this is only used on a new FusionHash
  **/
@@ -284,7 +283,7 @@ fusion_hash_insert( FusionHash *hash,
 
      if (*node) {
           D_BUG( "key already exists" );
-          return DFB_BUG;
+          return DR_BUG;
      }
      else {
           if (hash->local)
@@ -292,7 +291,7 @@ fusion_hash_insert( FusionHash *hash,
           else
                (*node) = SHCALLOC(hash->pool, 1, sizeof(FusionHashNode));
           if ( !(*node) )
-               return hash->local?DFB_NOSYSTEMMEMORY:DFB_NOSHAREDMEMORY;
+               return hash->local?DR_NOLOCALMEMORY:DR_NOSHAREDMEMORY;
 
           (*node)->key = key;
           (*node)->value = value;
@@ -300,7 +299,7 @@ fusion_hash_insert( FusionHash *hash,
           if ( fusion_hash_should_resize(hash) )
                fusion_hash_resize(hash);
      }
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**
@@ -358,14 +357,14 @@ fusion_hash_replace (FusionHash *hash,
                *node = SHCALLOC(hash->pool, 1, sizeof(FusionHashNode));
 
           if ( !(*node) )
-               return hash->local?DFB_NOSYSTEMMEMORY:DFB_NOSHAREDMEMORY;
+               return hash->local?DR_NOLOCALMEMORY:DR_NOSHAREDMEMORY;
 
           hash->nnodes++;
      }
      (*node)->key = (void*)key;
      (*node)->value = (void*)value;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**
@@ -400,9 +399,9 @@ fusion_hash_remove (FusionHash    *hash,
           (*node) = dest->next;
           fusion_hash_node_destroy(hash, dest, old_key, old_value);
           hash->nnodes--;
-          return DFB_OK;
+          return DR_OK;
      }
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**
@@ -496,7 +495,7 @@ fusion_hash_resize (FusionHash *hash)
      else
           new_nodes = SHCALLOC (hash->pool, new_size, sizeof(FusionHashNode*));
      if (!new_nodes)
-          return hash->local?DFB_NOSYSTEMMEMORY:DFB_NOSHAREDMEMORY;
+          return hash->local?DR_NOLOCALMEMORY:DR_NOSHAREDMEMORY;
 
      for (i = 0; i < hash->size; i++)
           for (node = hash->nodes[i]; node; node = next) {

@@ -62,7 +62,7 @@ static DirectResult                                    \
 Allocate( void **interface )                           \
 {                                                      \
      DIRECT_ALLOCATE_INTERFACE( *interface, type );    \
-     return DFB_OK;                                    \
+     return DR_OK;                                    \
 }                                                      \
                                                        \
 __attribute__((constructor)) void type##_##impl(void); \

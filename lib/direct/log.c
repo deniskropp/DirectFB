@@ -86,7 +86,7 @@ direct_log_create( DirectLogType   type,
                    const char     *param,
                    DirectLog     **ret_log )
 {
-     DirectResult  ret = DFB_INVARG;
+     DirectResult  ret = DR_INVARG;
      DirectLog    *log;
 
      log = D_CALLOC( 1, sizeof(DirectLog) );
@@ -138,7 +138,7 @@ direct_log_destroy( DirectLog *log )
 
      D_FREE( log );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 __attribute__((no_instrument_function))
@@ -179,7 +179,7 @@ direct_log_printf( DirectLog  *log,
 
      va_end( args );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -189,7 +189,7 @@ direct_log_set_default( DirectLog *log )
 
      default_log = log;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 __attribute__((no_instrument_function))
@@ -253,7 +253,7 @@ init_stderr( DirectLog *log )
 {
      log->fd = dup( fileno( stderr ) );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -272,7 +272,7 @@ init_file( DirectLog  *log,
 
      log->fd = fd;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -303,13 +303,13 @@ parse_host_addr( const char       *hostport,
 
      if (!portstr) {
           D_ERROR( "Direct/Log: Parse error in '%s' that should be '<host>:<port>'!\n", hostport );
-          return DFB_INVARG;
+          return DR_INVARG;
      }
 
      strtoul( portstr, &end, 10 );
      if (end && *end) {
           D_ERROR( "Direct/Log: Parse error in port number '%s'!\n", portstr );
-          return DFB_INVARG;
+          return DR_INVARG;
      }
      
      memset( &hints, 0, sizeof(hints) );
@@ -321,43 +321,43 @@ parse_host_addr( const char       *hostport,
           switch (ret) {
                case EAI_FAMILY:
                     D_ERROR( "Direct/Log: Unsupported address family!\n" );
-                    return DFB_UNSUPPORTED;
+                    return DR_UNSUPPORTED;
                
                case EAI_SOCKTYPE:
                     D_ERROR( "Direct/Log: Unsupported socket type!\n" );
-                    return DFB_UNSUPPORTED;
+                    return DR_UNSUPPORTED;
                
                case EAI_NONAME:
                     D_ERROR( "Direct/Log: Host not found!\n" );
-                    return DFB_FAILURE;
+                    return DR_FAILURE;
                     
                case EAI_SERVICE:
                     D_ERROR( "Direct/Log: Port %s is unreachable!\n", portstr );
-                    return DFB_FAILURE;
+                    return DR_FAILURE;
                
                case EAI_ADDRFAMILY:
                case EAI_NODATA:
                     D_ERROR( "Direct/Log: Host found, but has no address!\n" );
-                    return DFB_FAILURE;
+                    return DR_FAILURE;
                     
                case EAI_MEMORY:
                     return D_OOM();
 
                case EAI_FAIL:
                     D_ERROR( "Direct/Log: A non-recoverable name server error occurred!\n" );
-                    return DFB_FAILURE;
+                    return DR_FAILURE;
 
                case EAI_AGAIN:
                     D_ERROR( "Direct/Log: Temporary error, try again!\n" );
-                    return DFB_TEMPUNAVAIL;
+                    return DR_TEMPUNAVAIL;
                     
                default:
                     D_ERROR( "Direct/Log: Unknown error occured!?\n" );
-                    return DFB_FAILURE;
+                    return DR_FAILURE;
           }
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -392,5 +392,5 @@ init_udp( DirectLog  *log,
 
      log->fd = fd;
 
-     return DFB_OK;
+     return DR_OK;
 }

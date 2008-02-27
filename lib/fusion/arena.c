@@ -113,10 +113,10 @@ fusion_arena_enter (FusionWorld     *world,
      /* Lookup arena and lock it. If it doesn't exist create it. */
      arena = lock_arena( world, name, true );
      if (!arena)
-          return DFB_FAILURE;
+          return DR_FAILURE;
 
      /* Check if we are the first. */
-     if (fusion_ref_zero_trylock( &arena->ref ) == DFB_OK) {
+     if (fusion_ref_zero_trylock( &arena->ref ) == DR_OK) {
           D_DEBUG ("Fusion/Arena: entering arena '%s' (establishing)\n", name);
 
           /* Call 'initialize' later. */
@@ -173,14 +173,14 @@ fusion_arena_enter (FusionWorld     *world,
                SHFREE( shared->main_pool, arena->name );
                SHFREE( shared->main_pool, arena );
 
-               return DFB_OK;
+               return DR_OK;
           }
      }
 
      /* Unlock the arena. */
      unlock_arena( arena );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -188,7 +188,7 @@ fusion_arena_add_shared_field (FusionArena *arena,
                                const char  *name,
                                void        *data)
 {
-     DFBResult          ret;
+     DirectResult       ret;
      FusionWorldShared *shared;
      char              *shname;
 
@@ -238,7 +238,7 @@ fusion_arena_get_shared_field (FusionArena  *arena,
 
      /* Lock the arena. */
      if (fusion_skirmish_prevail( &arena->lock ))
-          return DFB_FAILURE;
+          return DR_FAILURE;
 
      /* Lookup entry. */
      ptr = fusion_hash_lookup( arena->field_hash, name );
@@ -249,11 +249,11 @@ fusion_arena_get_shared_field (FusionArena  *arena,
      fusion_skirmish_dismiss( &arena->lock );
 
      if (!ptr)
-          return DFB_ITEMNOTFOUND;
+          return DR_ITEMNOTFOUND;
 
      *data = ptr;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -279,13 +279,13 @@ fusion_arena_exit (FusionArena   *arena,
 
      /* Lock the arena. */
      if (fusion_skirmish_prevail( &arena->lock ))
-          return DFB_FAILURE;
+          return DR_FAILURE;
 
      /* Decrease reference counter. */
      fusion_ref_down( &arena->ref, false );
 
      /* If we are the last... */
-     if (fusion_ref_zero_trylock( &arena->ref ) == DFB_OK) {
+     if (fusion_ref_zero_trylock( &arena->ref ) == DR_OK) {
           /* Deinitialize everything. */
           error = shutdown( arena, ctx, emergency );
 
@@ -315,7 +315,7 @@ fusion_arena_exit (FusionArena   *arena,
           if (!leave) {
                fusion_ref_up( &arena->ref, false );
                fusion_skirmish_dismiss( &arena->lock );
-               return DFB_BUSY;
+               return DR_BUSY;
           }
 
           /* Simply leave the arena. */
@@ -329,7 +329,7 @@ fusion_arena_exit (FusionArena   *arena,
      if (ret_error)
           *ret_error = error;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 
@@ -341,7 +341,7 @@ static FusionArena *
 create_arena( FusionWorld *world,
               const char  *name )
 {
-     DFBResult          ret;
+     DirectResult       ret;
      char               buf[64];
      FusionArena       *arena;
      FusionWorldShared *shared;
@@ -447,7 +447,7 @@ lock_arena( FusionWorld *world,
           /* Check if the name matches. */
           if (! strcmp( arena->name, name )) {
                /* Check for an orphaned arena. */
-               if (fusion_ref_zero_trylock( &arena->ref ) == DFB_OK) {
+               if (fusion_ref_zero_trylock( &arena->ref ) == DR_OK) {
                     D_ERROR( "Fusion/Arena: orphaned arena '%s'!\n", name );
 
                     fusion_ref_unlock( &arena->ref );
@@ -512,7 +512,7 @@ fusion_arena_enter (FusionWorld    *world,
      if (ret_error)
           *ret_error = error;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -523,7 +523,7 @@ fusion_arena_add_shared_field (FusionArena *arena,
      D_ASSERT( data != NULL );
      D_ASSERT( name != NULL );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -537,7 +537,7 @@ fusion_arena_get_shared_field (FusionArena  *arena,
      D_BUG( "should not call this in fake mode" );
 
      /* No field by that name has been found. */
-     return DFB_ITEMNOTFOUND;
+     return DR_ITEMNOTFOUND;
 }
 
 DirectResult
@@ -559,7 +559,7 @@ fusion_arena_exit (FusionArena   *arena,
      if (ret_error)
           *ret_error = error;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 #endif

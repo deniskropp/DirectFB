@@ -72,7 +72,7 @@ DirectResult fusion_property_init     (FusionProperty    *property,
  * Lease the property causing others to wait before leasing or purchasing.
  *
  * Waits as long as property is leased by another party.
- * Returns DFB_BUSY if property is/gets purchased by another party.
+ * Returns DR_BUSY if property is/gets purchased by another party.
  *
  * Succeeds if property is available,
  * puts the property into 'leased' state.
@@ -83,7 +83,7 @@ DirectResult fusion_property_lease    (FusionProperty *property);
  * Purchase the property disallowing others to lease or purchase it.
  *
  * Waits as long as property is leased by another party.
- * Returns DFB_BUSY if property is/gets purchased by another party.
+ * Returns DR_BUSY if property is/gets purchased by another party.
  *
  * Succeeds if property is available,
  * puts the property into 'purchased' state and wakes up any waiting party.

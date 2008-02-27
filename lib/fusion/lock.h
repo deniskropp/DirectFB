@@ -109,7 +109,7 @@ DirectResult fusion_skirmish_notify ( FusionSkirmish    *skirmish );
                                                                                           \
           D_ASSERT( skirmish != NULL );                                                   \
                                                                                           \
-          D_ASSERT( fusion_skirmish_lock_count( skirmish, &lock_count ) == DFB_OK );      \
+          D_ASSERT( fusion_skirmish_lock_count( skirmish, &lock_count ) == DR_OK );      \
           D_ASSERT( lock_count > 0 );                                                     \
      } while (0)
 #else

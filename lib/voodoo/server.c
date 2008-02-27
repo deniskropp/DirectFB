@@ -138,7 +138,7 @@ voodoo_server_create( VoodooServer **ret_server )
      if (!server) {
           D_WARN( "out of memory" );
           close( fd );
-          return DFB_NOSYSTEMMEMORY;
+          return DR_NOLOCALMEMORY;
      }
 
      /* Initialize server structure. */
@@ -147,7 +147,7 @@ voodoo_server_create( VoodooServer **ret_server )
      /* Return the new server. */
      *ret_server = server;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -163,7 +163,7 @@ voodoo_server_register( VoodooServer         *server,
      D_ASSERT( func != NULL );
 
      if (server->num_super == MAX_SUPER)
-          return DFB_LIMITEXCEEDED;
+          return DR_LIMITEXCEEDED;
 
      super = &server->supers[server->num_super++];
 
@@ -171,7 +171,7 @@ voodoo_server_register( VoodooServer         *server,
      super->func = func;
      super->ctx  = ctx;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static inline Super *
@@ -211,7 +211,7 @@ voodoo_server_construct( VoodooServer      *server,
      super = lookup_super( server, name );
      if (!super) {
           D_ERROR( "Voodoo/Server: Super interface '%s' is not available!\n", name );
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
 
      ret = super->func( server, manager, name, super->ctx, &instance );
@@ -223,7 +223,7 @@ voodoo_server_construct( VoodooServer      *server,
 
      *ret_instance = instance;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -251,7 +251,7 @@ voodoo_server_run( VoodooServer *server )
                     D_FREE( connection );
 
                     if (!server->connections)
-                         return DFB_OK;
+                         return DR_OK;
                }
           }
 
@@ -276,7 +276,7 @@ voodoo_server_run( VoodooServer *server )
           }
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -301,7 +301,7 @@ voodoo_server_destroy( VoodooServer *server )
 
      D_FREE( server );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**************************************************************************************************/
@@ -317,7 +317,7 @@ accept_connection( VoodooServer *server )
      connection = D_CALLOC( 1, sizeof(Connection) );
      if (!connection) {
           D_WARN( "out of memory" );
-          return DFB_NOSYSTEMMEMORY;
+          return DR_NOLOCALMEMORY;
      }
 
      connection->fd = accept( server->fd, &addr, &addrlen );
@@ -339,6 +339,6 @@ accept_connection( VoodooServer *server )
 
      direct_list_prepend( &server->connections, &connection->link );
 
-     return DFB_OK;
+     return DR_OK;
 }
 

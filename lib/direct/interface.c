@@ -88,7 +88,7 @@ DirectRegisterInterface( DirectInterfaceFuncs *funcs )
 DirectResult
 DirectProbeInterface( DirectInterfaceFuncs *funcs, void *ctx )
 {
-     return (funcs->Probe( ctx ) == DFB_OK);
+     return (funcs->Probe( ctx ) == DR_OK);
 }
 
 DirectResult
@@ -135,7 +135,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 
                pthread_mutex_unlock( &implementations_mutex );
 
-               return DFB_OK;
+               return DR_OK;
           }
      }
 
@@ -146,7 +146,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 
      /* NULL type means we can't find plugin, so stop immediately */
      if (type == NULL)
-          return DFB_NOIMPL;
+          return DR_NOIMPL;
 
      len = strlen(MODULEDIR"/interfaces/") + strlen(type) + 1;
      interface_dir = alloca( len );
@@ -240,7 +240,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 
                     pthread_mutex_unlock( &implementations_mutex );
 
-                    return DFB_OK;
+                    return DR_OK;
                }
           }
           else
@@ -252,7 +252,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
      pthread_mutex_unlock( &implementations_mutex );
 #endif
 
-     return DFB_NOIMPL;
+     return DR_NOIMPL;
 }
 
 /**************************************************************************************************/

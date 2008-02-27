@@ -686,10 +686,10 @@ dfb_surface_set_field( CoreSurface *surface,
 
 DFBResult
 dfb_surface_set_alpha_ramp( CoreSurface *surface,
-                            __u8         a0,
-                            __u8         a1,
-                            __u8         a2,
-                            __u8         a3 )
+                            u8           a0,
+                            u8           a1,
+                            u8           a2,
+                            u8           a3 )
 {
      D_MAGIC_ASSERT( surface, CoreSurface );
 

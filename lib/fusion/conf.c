@@ -67,7 +67,7 @@ fusion_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR("Fusion/Config 'tmpfs': No directory specified!\n");
-               return DFB_INVARG;
+               return DR_INVARG;
           }
      } else
      if (strcmp (name, "shmfile-group" ) == 0) {
@@ -82,7 +82,7 @@ fusion_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR("Fusion/Config 'shmfile-group': No file group name specified!\n");
-               return DFB_INVARG;
+               return DR_INVARG;
           }
      } else
      if (strcmp (name, "force-slave" ) == 0) {
@@ -106,8 +106,8 @@ fusion_config_set( const char *name, const char *value )
           fusion_config->madv_remove_force = true;
      } else
      if (direct_config_set( name, value ))
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
-     return DFB_OK;
+     return DR_OK;
 }
 

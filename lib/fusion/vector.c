@@ -127,7 +127,7 @@ fusion_vector_add( FusionVector *vector,
      /* Add the element to the vector. */
      vector->elements[vector->count++] = element;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -155,7 +155,7 @@ fusion_vector_insert( FusionVector *vector,
      /* Increase the element counter. */
      vector->count++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -172,7 +172,7 @@ fusion_vector_move( FusionVector *vector,
      D_ASSERT( to < vector->count );
 
      if (to == from)
-          return DFB_OK;
+          return DR_OK;
 
      /* Save the element. */
      element = vector->elements[from];
@@ -194,7 +194,7 @@ fusion_vector_move( FusionVector *vector,
      /* Restore the element at the new position. */
      vector->elements[to] = element;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -213,7 +213,7 @@ fusion_vector_remove( FusionVector *vector,
      /* Decrease the element counter. */
      vector->count--;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -225,6 +225,6 @@ fusion_vector_remove_last( FusionVector *vector )
      /* Decrease the element counter. */
      vector->count--;
 
-     return DFB_OK;
+     return DR_OK;
 }
 

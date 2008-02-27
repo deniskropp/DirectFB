@@ -74,7 +74,7 @@ fusion_ref_init (FusionRef         *ref,
                continue;
 
           D_PERROR( "FUSION_REF_NEW" );
-          return DFB_FUSION;
+          return DR_FUSION;
      }
 
      D_DEBUG_AT( Fusion_Ref, "  -> new ref %p [%d]\n", ref, ref->multi.id );
@@ -90,7 +90,7 @@ fusion_ref_init (FusionRef         *ref,
      ref->multi.shared  = world->shared;
      ref->multi.creator = fusion_id( world );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -105,10 +105,10 @@ fusion_ref_up (FusionRef *ref, bool global)
                case EINTR:
                     continue;
                case EAGAIN:
-                    return DFB_LOCKED;
+                    return DR_LOCKED;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
                default:
                     break;
           }
@@ -118,10 +118,10 @@ fusion_ref_up (FusionRef *ref, bool global)
           else
                D_PERROR ("FUSION_REF_UP");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -137,7 +137,7 @@ fusion_ref_down (FusionRef *ref, bool global)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
                default:
                     break;
           }
@@ -147,10 +147,10 @@ fusion_ref_down (FusionRef *ref, bool global)
           else
                D_PERROR ("FUSION_REF_DOWN");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -167,19 +167,19 @@ fusion_ref_stat (FusionRef *ref, int *refs)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_REF_STAT");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
      *refs = val;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -193,17 +193,17 @@ fusion_ref_zero_lock (FusionRef *ref)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_REF_ZERO_LOCK");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -216,20 +216,20 @@ fusion_ref_zero_trylock (FusionRef *ref)
                case EINTR:
                     continue;
                case ETOOMANYREFS:
-                    return DFB_BUSY;
+                    return DR_BUSY;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_REF_ZERO_TRYLOCK");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -243,17 +243,17 @@ fusion_ref_unlock (FusionRef *ref)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_REF_UNLOCK");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -274,17 +274,17 @@ fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_REF_WATCH");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -304,17 +304,17 @@ fusion_ref_inherit (FusionRef *ref, FusionRef *from)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_REF_INHERIT");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -330,17 +330,17 @@ fusion_ref_destroy (FusionRef *ref)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_REF_DESTROY");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 #else /* FUSION_BUILD_KERNEL */
@@ -369,7 +369,7 @@ fusion_ref_init (FusionRef         *ref,
      ref->multi.shared  = world->shared;
      ref->multi.creator = fusion_id( world );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -388,7 +388,7 @@ _fusion_ref_change (FusionRef *ref, int add, bool global)
           if (ref->multi.builtin.global+add < 0) {
                D_BUG( "ref has no global references" );
                fusion_skirmish_dismiss( &ref->multi.builtin.lock );
-               return DFB_BUG;
+               return DR_BUG;
           }
 
           ref->multi.builtin.global += add;
@@ -397,7 +397,7 @@ _fusion_ref_change (FusionRef *ref, int add, bool global)
           if (ref->multi.builtin.local+add < 0) {
                D_BUG( "ref has no local references" );
                fusion_skirmish_dismiss( &ref->multi.builtin.lock );
-               return DFB_BUG;
+               return DR_BUG;
           }
 
           ref->multi.builtin.local += add;
@@ -417,7 +417,7 @@ _fusion_ref_change (FusionRef *ref, int add, bool global)
      
      fusion_skirmish_dismiss( &ref->multi.builtin.lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -440,7 +440,7 @@ fusion_ref_stat (FusionRef *ref, int *refs)
           
      *refs = ref->multi.builtin.local + ref->multi.builtin.global;
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -455,7 +455,7 @@ fusion_ref_zero_lock (FusionRef *ref)
           return ret;
      
      if (ref->multi.builtin.call) {
-          ret = DFB_ACCESSDENIED;
+          ret = DR_ACCESSDENIED;
      }
      else {
           if (ref->multi.builtin.local)
@@ -463,11 +463,11 @@ fusion_ref_zero_lock (FusionRef *ref)
           
           while (ref->multi.builtin.local+ref->multi.builtin.global) {    
                ret = fusion_skirmish_wait( &ref->multi.builtin.lock, 1000 ); /* 1 second */
-               if (ret && ret != DFB_TIMEOUT);
+               if (ret && ret != DR_TIMEOUT);
                     return ret;
                
                if (ref->multi.builtin.call) {
-                    ret = DFB_ACCESSDENIED;
+                    ret = DR_ACCESSDENIED;
                     break;
                }
 
@@ -497,7 +497,7 @@ fusion_ref_zero_trylock (FusionRef *ref)
           _fusion_check_locals( _fusion_world(ref->multi.shared), ref );
 
      if (ref->multi.builtin.local+ref->multi.builtin.global)
-          ret = DFB_BUSY;
+          ret = DR_BUSY;
      
      if (ret)
           fusion_skirmish_dismiss( &ref->multi.builtin.lock );
@@ -512,7 +512,7 @@ fusion_ref_unlock (FusionRef *ref)
           
      fusion_skirmish_dismiss( &ref->multi.builtin.lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -529,10 +529,10 @@ fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
      
      if (ref->multi.builtin.local+ref->multi.builtin.global == 0) {
           D_BUG( "ref has no references" );
-          ret = DFB_BUG;
+          ret = DR_BUG;
      }
      else if (ref->multi.builtin.call) {
-          ret = DFB_BUSY;
+          ret = DR_BUSY;
      }
      else {
           ref->multi.builtin.call = call;
@@ -567,13 +567,13 @@ fusion_ref_destroy (FusionRef *ref)
     
      skirmish = &ref->multi.builtin.lock;
      if (skirmish->multi.builtin.destroyed)
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
 
      _fusion_remove_all_locals( _fusion_world(ref->multi.shared), ref ); 
 
      fusion_skirmish_destroy( skirmish );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 #endif /* FUSION_BUILD_KERNEL */
@@ -595,20 +595,20 @@ fusion_ref_init (FusionRef         *ref,
      ref->single.destroyed = false;
      ref->single.waiting   = 0;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
 fusion_ref_up (FusionRef *ref, bool global)
 {
-     DirectResult ret = DFB_OK;
+     DirectResult ret = DR_OK;
 
      D_ASSERT( ref != NULL );
 
      pthread_mutex_lock (&ref->single.lock);
 
      if (ref->single.destroyed)
-          ret = DFB_DESTROYED;
+          ret = DR_DESTROYED;
      else
           ref->single.refs++;
 
@@ -627,12 +627,12 @@ fusion_ref_down (FusionRef *ref, bool global)
      if (!ref->single.refs) {
           D_BUG( "no more references" );
           pthread_mutex_unlock (&ref->single.lock);
-          return DFB_BUG;
+          return DR_BUG;
      }
 
      if (ref->single.destroyed) {
           pthread_mutex_unlock (&ref->single.lock);
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
      }
 
      if (! --ref->single.refs && ref->single.call) {
@@ -642,13 +642,13 @@ fusion_ref_down (FusionRef *ref, bool global)
                int ret;
                pthread_mutex_unlock (&ref->single.lock);
                call->handler( 0, ref->single.call_arg, NULL, call->ctx, 0, &ret );
-               return DFB_OK;
+               return DR_OK;
           }
      }
 
      pthread_mutex_unlock (&ref->single.lock);
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -658,38 +658,38 @@ fusion_ref_stat (FusionRef *ref, int *refs)
      D_ASSERT( refs != NULL );
 
      if (ref->single.destroyed)
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
 
      *refs = ref->single.refs;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
 fusion_ref_zero_lock (FusionRef *ref)
 {
-     DirectResult ret = DFB_OK;
+     DirectResult ret = DR_OK;
 
      D_ASSERT( ref != NULL );
 
      pthread_mutex_lock (&ref->single.lock);
 
      if (ref->single.destroyed)
-          ret = DFB_DESTROYED;
+          ret = DR_DESTROYED;
      else if (ref->single.call)
-          ret = DFB_ACCESSDENIED;
+          ret = DR_ACCESSDENIED;
      else while (ref->single.refs && !ret) {
           ref->single.waiting++;
           pthread_cond_wait (&ref->single.cond, &ref->single.lock);
           ref->single.waiting--;
 
           if (ref->single.destroyed)
-               ret = DFB_DESTROYED;
+               ret = DR_DESTROYED;
           else if (ref->single.call)
-               ret = DFB_ACCESSDENIED;
+               ret = DR_ACCESSDENIED;
      }
 
-     if (ret != DFB_OK)
+     if (ret != DR_OK)
           pthread_mutex_unlock (&ref->single.lock);
 
      return ret;
@@ -698,18 +698,18 @@ fusion_ref_zero_lock (FusionRef *ref)
 DirectResult
 fusion_ref_zero_trylock (FusionRef *ref)
 {
-     DirectResult ret = DFB_OK;
+     DirectResult ret = DR_OK;
 
      D_ASSERT( ref != NULL );
 
      pthread_mutex_lock (&ref->single.lock);
 
      if (ref->single.destroyed)
-          ret = DFB_DESTROYED;
+          ret = DR_DESTROYED;
      else if (ref->single.refs)
-          ret = DFB_BUSY;
+          ret = DR_BUSY;
 
-     if (ret != DFB_OK)
+     if (ret != DR_OK)
           pthread_mutex_unlock (&ref->single.lock);
 
      return ret;
@@ -722,7 +722,7 @@ fusion_ref_unlock (FusionRef *ref)
 
      pthread_mutex_unlock (&ref->single.lock);
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -735,17 +735,17 @@ fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
 
      if (ref->single.destroyed) {
           pthread_mutex_unlock (&ref->single.lock);
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
      }
 
      if (!ref->single.refs) {
           pthread_mutex_unlock (&ref->single.lock);
-          return DFB_BUG;
+          return DR_BUG;
      }
 
      if (ref->single.call) {
           pthread_mutex_unlock (&ref->single.lock);
-          return DFB_BUSY;
+          return DR_BUSY;
      }
 
      ref->single.call     = call;
@@ -753,7 +753,7 @@ fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
 
      pthread_mutex_unlock (&ref->single.lock);
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -781,7 +781,7 @@ fusion_ref_destroy (FusionRef *ref)
      pthread_mutex_unlock (&ref->single.lock);
      pthread_cond_destroy (&ref->single.cond);
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 #endif

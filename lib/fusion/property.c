@@ -68,13 +68,13 @@ fusion_property_init (FusionProperty *property, const FusionWorld *world)
 
           D_PERROR ("FUSION_PROPERTY_NEW");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
      /* Keep back pointer to shared world data. */
      property->multi.shared = world->shared;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -87,20 +87,20 @@ fusion_property_lease (FusionProperty *property)
                case EINTR:
                     continue;
                case EAGAIN:
-                    return DFB_BUSY;
+                    return DR_BUSY;
                case EINVAL:
                     D_ERROR ("Fusion/Property: invalid property\n");
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_PROPERTY_LEASE");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -113,20 +113,20 @@ fusion_property_purchase (FusionProperty *property)
                case EINTR:
                     continue;
                case EAGAIN:
-                    return DFB_BUSY;
+                    return DR_BUSY;
                case EINVAL:
                     D_ERROR ("Fusion/Property: invalid property\n");
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_PROPERTY_PURCHASE");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -140,17 +140,17 @@ fusion_property_cede (FusionProperty *property)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Property: invalid property\n");
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_PROPERTY_CEDE");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -164,17 +164,17 @@ fusion_property_holdup (FusionProperty *property)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Property: invalid property\n");
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_PROPERTY_HOLDUP");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -188,17 +188,17 @@ fusion_property_destroy (FusionProperty *property)
                     continue;
                case EINVAL:
                     D_ERROR ("Fusion/Property: invalid property\n");
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
                default:
                     break;
           }
 
           D_PERROR ("FUSION_PROPERTY_DESTROY");
 
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 #else /* FUSION_BUILD_KERNEL */
@@ -221,7 +221,7 @@ fusion_property_init (FusionProperty *property, const FusionWorld *world)
      /* Keep back pointer to shared world data. */
      property->multi.shared = world->shared;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -232,7 +232,7 @@ fusion_property_lease (FusionProperty *property)
      D_ASSERT( property != NULL );
 
      if (property->multi.builtin.destroyed)
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
 
      D_ASSUME( property->multi.builtin.owner != direct_gettid() );
      
@@ -259,13 +259,13 @@ fusion_property_lease (FusionProperty *property)
           }
                
           if (property->multi.builtin.destroyed)
-               return DFB_DESTROYED;
+               return DR_DESTROYED;
      }
 
      if (property->multi.builtin.state == FUSION_PROPERTY_PURCHASED) {
           /* Check whether owner exited without releasing. */
           if (!(kill( property->multi.builtin.owner, 0 ) < 0 && errno == ESRCH))
-               return DFB_BUSY;
+               return DR_BUSY;
      }
      
      property->multi.builtin.state = FUSION_PROPERTY_LEASED;
@@ -273,7 +273,7 @@ fusion_property_lease (FusionProperty *property)
      
      asm( "" ::: "memory" );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -284,7 +284,7 @@ fusion_property_purchase (FusionProperty *property)
      D_ASSERT( property != NULL );
 
      if (property->multi.builtin.destroyed)
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
 
      D_ASSUME( property->multi.builtin.owner != direct_gettid() );
      
@@ -311,13 +311,13 @@ fusion_property_purchase (FusionProperty *property)
           }
                
           if (property->multi.builtin.destroyed)
-               return DFB_DESTROYED;
+               return DR_DESTROYED;
      }
      
      if (property->multi.builtin.state == FUSION_PROPERTY_PURCHASED) {
           /* Check whether owner exited without releasing. */
           if (!(kill( property->multi.builtin.owner, 0 ) < 0 && errno == ESRCH))
-               return DFB_BUSY;
+               return DR_BUSY;
      }
      
      property->multi.builtin.state = FUSION_PROPERTY_PURCHASED;
@@ -325,7 +325,7 @@ fusion_property_purchase (FusionProperty *property)
      
      asm( "" ::: "memory" );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -334,7 +334,7 @@ fusion_property_cede (FusionProperty *property)
      D_ASSERT( property != NULL );
      
      if (property->multi.builtin.destroyed)
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
 
      D_ASSUME( property->multi.builtin.state != FUSION_PROPERTY_AVAILABLE );
      D_ASSUME( property->multi.builtin.owner == direct_gettid() );
@@ -350,7 +350,7 @@ fusion_property_cede (FusionProperty *property)
           direct_sched_yield();
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -359,19 +359,19 @@ fusion_property_holdup (FusionProperty *property)
      D_ASSERT( property != NULL );
 
      if (property->multi.builtin.destroyed)
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
 
      if (property->multi.builtin.state == FUSION_PROPERTY_PURCHASED &&
          property->multi.builtin.owner != direct_gettid()) {
           pid_t pid = property->multi.builtin.owner;
           
           if (kill( pid, SIGKILL ) < 0 && errno != ESRCH)
-               return DFB_UNSUPPORTED;
+               return DR_UNSUPPORTED;
 
           /* Wait process termination. */
           while (kill( pid, 0 ) == 0) {
                if (property->multi.builtin.destroyed)
-                    return DFB_DESTROYED;
+                    return DR_DESTROYED;
                
                direct_sched_yield();
           }
@@ -381,7 +381,7 @@ fusion_property_holdup (FusionProperty *property)
           property->multi.builtin.requested = false;
      } 
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -390,11 +390,11 @@ fusion_property_destroy (FusionProperty *property)
      D_ASSERT( property != NULL );
 
      if (property->multi.builtin.destroyed)
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
      
      property->multi.builtin.destroyed = true;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 #endif /* FUSION_BUILD_KERNEL */
@@ -416,7 +416,7 @@ fusion_property_init (FusionProperty *property, const FusionWorld *world)
 
      property->single.state = FUSION_PROPERTY_AVAILABLE;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /*
@@ -425,7 +425,7 @@ fusion_property_init (FusionProperty *property, const FusionWorld *world)
 DirectResult
 fusion_property_lease (FusionProperty *property)
 {
-     DirectResult ret = DFB_OK;
+     DirectResult ret = DR_OK;
 
      D_ASSERT( property != NULL );
 
@@ -437,7 +437,7 @@ fusion_property_lease (FusionProperty *property)
 
      /* Fail if purchased by another party, otherwise succeed. */
      if (property->single.state == FUSION_PROPERTY_PURCHASED)
-          ret = DFB_BUSY;
+          ret = DR_BUSY;
      else
           property->single.state = FUSION_PROPERTY_LEASED;
 
@@ -452,7 +452,7 @@ fusion_property_lease (FusionProperty *property)
 DirectResult
 fusion_property_purchase (FusionProperty *property)
 {
-     DirectResult ret = DFB_OK;
+     DirectResult ret = DR_OK;
 
      D_ASSERT( property != NULL );
 
@@ -464,7 +464,7 @@ fusion_property_purchase (FusionProperty *property)
 
      /* Fail if purchased by another party, otherwise succeed. */
      if (property->single.state == FUSION_PROPERTY_PURCHASED)
-          ret = DFB_BUSY;
+          ret = DR_BUSY;
      else {
           property->single.state = FUSION_PROPERTY_PURCHASED;
 
@@ -498,7 +498,7 @@ fusion_property_cede (FusionProperty *property)
 
      pthread_mutex_unlock (&property->single.lock);
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /*
@@ -509,7 +509,7 @@ fusion_property_holdup (FusionProperty *property)
 {
      D_ASSERT( property != NULL );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /*
@@ -523,7 +523,7 @@ fusion_property_destroy (FusionProperty *property)
      pthread_cond_destroy (&property->single.cond);
      pthread_mutex_destroy (&property->single.lock);
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 #endif

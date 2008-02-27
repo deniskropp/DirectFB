@@ -96,7 +96,7 @@ direct_signals_initialize()
 
      install_handlers();
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -108,7 +108,7 @@ direct_signals_shutdown()
 
      pthread_mutex_destroy( &handlers_lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 void
@@ -141,7 +141,7 @@ direct_signal_handler_add( int                       num,
      handler = D_CALLOC( 1, sizeof(DirectSignalHandler) );
      if (!handler) {
           D_WARN( "out of memory" );
-          return DFB_NOSYSTEMMEMORY;
+          return DR_NOLOCALMEMORY;
      }
 
      handler->num  = num;
@@ -156,7 +156,7 @@ direct_signal_handler_add( int                       num,
 
      *ret_handler = handler;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -175,7 +175,7 @@ direct_signal_handler_remove( DirectSignalHandler *handler )
 
      D_FREE( handler );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**************************************************************************************************/

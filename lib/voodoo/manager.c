@@ -181,7 +181,7 @@ voodoo_manager_create( int             fd,
      manager = D_CALLOC( 1, sizeof(VoodooManager) );
      if (!manager) {
           D_WARN( "out of memory" );
-          return DFB_NOSYSTEMMEMORY;
+          return DR_NOLOCALMEMORY;
      }
 
      D_DEBUG( "Voodoo/Manager: Creating manager at %p.\n", manager );
@@ -248,7 +248,7 @@ voodoo_manager_create( int             fd,
      /* Return the new manager. */
      *ret_manager = manager;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -258,7 +258,7 @@ voodoo_manager_quit( VoodooManager *manager )
      D_ASSUME( !manager->quit );
 
      if (manager->quit)
-          return DFB_OK;
+          return DR_OK;
 
      D_DEBUG( "Voodoo/Manager: Quitting manager at %p!\n", manager );
 
@@ -278,7 +278,7 @@ voodoo_manager_quit( VoodooManager *manager )
      pthread_cond_broadcast( &manager->output.wait );
      pthread_mutex_unlock( &manager->output.lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static bool
@@ -366,7 +366,7 @@ voodoo_manager_destroy( VoodooManager *manager )
      /* Deallocate manager structure. */
      D_FREE( manager );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 bool
@@ -452,7 +452,7 @@ voodoo_manager_super( VoodooManager    *manager,
      /* Unlock the response buffer. */
      manager_unlock_response( manager, response );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static inline int
@@ -671,7 +671,7 @@ voodoo_manager_request( VoodooManager           *manager,
           *ret_response = response;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -744,7 +744,7 @@ voodoo_manager_respond( VoodooManager          *manager,
      /* Unlock the output buffer. */
      manager_unlock_output( manager, true );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -768,7 +768,7 @@ voodoo_manager_register_local( VoodooManager    *manager,
      instance = D_CALLOC( 1, sizeof(VoodooInstance) );
      if (!instance) {
           D_WARN( "out of memory" );
-          return DFB_NOSYSTEMMEMORY;
+          return DR_NOLOCALMEMORY;
      }
 
      instance->super    = super;
@@ -795,7 +795,7 @@ voodoo_manager_register_local( VoodooManager    *manager,
 
      *ret_instance = instance_id;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -817,7 +817,7 @@ voodoo_manager_lookup_local( VoodooManager     *manager,
      pthread_mutex_unlock( &manager->instances.lock );
 
      if (!instance)
-          return DFB_NOSUCHINSTANCE;
+          return DR_NOSUCHINSTANCE;
 
      if (ret_dispatcher)
           *ret_dispatcher = instance->proxy;
@@ -825,7 +825,7 @@ voodoo_manager_lookup_local( VoodooManager     *manager,
      if (ret_real)
           *ret_real = instance->real;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -844,7 +844,7 @@ voodoo_manager_register_remote( VoodooManager    *manager,
      instance = D_CALLOC( 1, sizeof(VoodooInstance) );
      if (!instance) {
           D_WARN( "out of memory" );
-          return DFB_NOSYSTEMMEMORY;
+          return DR_NOLOCALMEMORY;
      }
 
      instance->super = super;
@@ -865,7 +865,7 @@ voodoo_manager_register_remote( VoodooManager    *manager,
      D_DEBUG( "Voodoo/Manager: "
               "Added remote instance %u, requestor %p.\n", instance_id, requestor );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 
@@ -887,11 +887,11 @@ voodoo_manager_lookup_remote( VoodooManager     *manager,
      pthread_mutex_unlock( &manager->instances.lock );
 
      if (!instance)
-          return DFB_NOSUCHINSTANCE;
+          return DR_NOSUCHINSTANCE;
 
      *ret_requestor = instance->proxy;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**************************************************************************************************/
@@ -945,13 +945,13 @@ handle_super( VoodooManager      *manager,
           }
 
           voodoo_manager_respond( manager, super->header.serial,
-                                  DFB_OK, instance,
+                                  DR_OK, instance,
                                   VMBT_NONE );
      }
      else {
           D_WARN( "can't handle this as a client" );
           voodoo_manager_respond( manager, super->header.serial,
-                                  DFB_UNSUPPORTED, VOODOO_INSTANCE_NONE,
+                                  DR_UNSUPPORTED, VOODOO_INSTANCE_NONE,
                                   VMBT_NONE );
      }
 }
@@ -1012,7 +1012,7 @@ handle_request( VoodooManager        *manager,
 
           if (request->flags & VREQ_RESPOND)
                voodoo_manager_respond( manager, request->header.serial,
-                                       DFB_NOSUCHINSTANCE, VOODOO_INSTANCE_NONE,
+                                       DR_NOSUCHINSTANCE, VOODOO_INSTANCE_NONE,
                                        VMBT_NONE );
 
           return;
@@ -1346,7 +1346,7 @@ manager_lock_output( VoodooManager  *manager,
 
      if (length > MAX_MSG_SIZE) {
           D_WARN( "%d exceeds maximum message size of %d", length, MAX_MSG_SIZE );
-          return DFB_LIMITEXCEEDED;
+          return DR_LIMITEXCEEDED;
      }
 
      aligned = VOODOO_MSG_ALIGN( length );
@@ -1360,7 +1360,7 @@ manager_lock_output( VoodooManager  *manager,
 
           if (manager->quit) {
                pthread_mutex_lock( &manager->output.lock );
-               return DFB_DESTROYED;
+               return DR_DESTROYED;
           }
      }
 
@@ -1368,7 +1368,7 @@ manager_lock_output( VoodooManager  *manager,
 
      manager->output.end += aligned;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -1382,7 +1382,7 @@ manager_unlock_output( VoodooManager *manager,
 
      pthread_mutex_unlock( &manager->output.lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**************************************************************************************************/
@@ -1416,7 +1416,7 @@ manager_lock_response( VoodooManager          *manager,
 
      if (manager->quit) {
           pthread_mutex_unlock( &manager->response.lock );
-          return DFB_DESTROYED;
+          return DR_DESTROYED;
      }
 
      D_DEBUG( "Voodoo/Manager: ...locked response %llu to request %llu (%d bytes).\n",
@@ -1424,7 +1424,7 @@ manager_lock_response( VoodooManager          *manager,
 
      *ret_response = response;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -1444,6 +1444,6 @@ manager_unlock_response( VoodooManager         *manager,
 
      pthread_mutex_unlock( &manager->response.lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 

@@ -46,111 +46,110 @@ errno2result( int erno )
 {
      switch (erno) {
           case 0:
-               return DFB_OK;
+               return DR_OK;
           case ENOENT:
-               return DFB_FILENOTFOUND;
+               return DR_FILENOTFOUND;
           case EACCES:
           case EPERM:
-               return DFB_ACCESSDENIED;
+               return DR_ACCESSDENIED;
           case EBUSY:
           case EAGAIN:
-               return DFB_BUSY;
+               return DR_BUSY;
           case ECONNREFUSED:
-               return DFB_ACCESSDENIED;
+               return DR_ACCESSDENIED;
           case ENODEV:
           case ENXIO:
 #ifdef ENOTSUP
           /* ENOTSUP is not defined on NetBSD */
           case ENOTSUP:
 #endif
-               return DFB_UNSUPPORTED;
+               return DR_UNSUPPORTED;
      }
 
-     return DFB_FAILURE;
+     return DR_FAILURE;
 }
 
 const char *
 DirectResultString( DirectResult result )
 {
+     if (!D_RESULT_TYPE_IS( result, 0, 0, 0 ))
+          return "UNKNOWN RESULT CODE TYPE!";
+
      switch (result) {
-          case DFB_OK:
+          case DR_OK:
                return "OK";
-          case DFB_FAILURE:
+          case DR_FAILURE:
                return "General failure!";
-          case DFB_INIT:
+          case DR_INIT:
                return "Initialization error!";
-          case DFB_BUG:
+          case DR_BUG:
                return "Internal bug!";
-          case DFB_DEAD:
+          case DR_DEAD:
                return "Interface was released!";
-          case DFB_UNSUPPORTED:
+          case DR_UNSUPPORTED:
                return "Not supported!";
-          case DFB_UNIMPLEMENTED:
+          case DR_UNIMPLEMENTED:
                return "Not implemented!";
-          case DFB_ACCESSDENIED:
+          case DR_ACCESSDENIED:
                return "Access denied!";
-          case DFB_INVARG:
+          case DR_INVARG:
                return "Invalid argument!";
-          case DFB_NOSYSTEMMEMORY:
+          case DR_NOLOCALMEMORY:
                return "Out of memory!";
-          case DFB_NOVIDEOMEMORY:
-               return "Out of video memory!";
-          case DFB_LOCKED:
+          case DR_LOCKED:
                return "Resource is locked!";
-          case DFB_BUFFEREMPTY:
+          case DR_BUFFEREMPTY:
                return "Buffer is empty!";
-          case DFB_FILENOTFOUND:
+          case DR_FILENOTFOUND:
                return "File not found!";
-          case DFB_IO:
+          case DR_IO:
                return "General I/O error!";
-          case DFB_NOIMPL:
+          case DR_NOIMPL:
                return "No (suitable) implementation found!";
-          case DFB_MISSINGFONT:
-               return "No font has been set!";
-          case DFB_TIMEOUT:
+          case DR_TIMEOUT:
                return "Operation timed out!";
-          case DFB_MISSINGIMAGE:
-               return "No image has been set!";
-          case DFB_BUSY:
+          case DR_BUSY:
                return "Resource is busy!";
-          case DFB_THIZNULL:
+          case DR_THIZNULL:
                return "'thiz' argument is NULL!";
-          case DFB_IDNOTFOUND:
+          case DR_IDNOTFOUND:
                return "Requested ID not found!";
-          case DFB_INVAREA:
+          case DR_INVAREA:
                return "Invalid area present!";
-          case DFB_DESTROYED:
+          case DR_DESTROYED:
                return "Resource was destroyed!";
-          case DFB_FUSION:
+          case DR_FUSION:
                return "Fusion IPC error detected!";
-          case DFB_BUFFERTOOLARGE:
+          case DR_BUFFERTOOLARGE:
                return "Buffer is too large!";
-          case DFB_INTERRUPTED:
+          case DR_INTERRUPTED:
                return "Operation has been interrupted!";
-          case DFB_NOCONTEXT:
+          case DR_NOCONTEXT:
                return "No context available!";
-          case DFB_TEMPUNAVAIL:
+          case DR_TEMPUNAVAIL:
                return "Resource temporarily unavailable!";
-          case DFB_LIMITEXCEEDED:
+          case DR_LIMITEXCEEDED:
                return "Limit has been exceeded!";
-          case DFB_NOSUCHMETHOD:
+          case DR_NOSUCHMETHOD:
                return "No such (remote) method!";
-          case DFB_NOSUCHINSTANCE:
+          case DR_NOSUCHINSTANCE:
                return "No such (remote) instance!";
-          case DFB_ITEMNOTFOUND:
+          case DR_ITEMNOTFOUND:
                return "Appropriate item not found!";
-          case DFB_VERSIONMISMATCH:
+          case DR_VERSIONMISMATCH:
                return "Some versions didn't match!";
-          case DFB_NOSHAREDMEMORY:
+          case DR_NOSHAREDMEMORY:
                return "Out of shared memory!";
-          case DFB_EOF:
+          case DR_EOF:
                return "End of file!";
-          case DFB_SUSPENDED:
+          case DR_SUSPENDED:
                return "Object is suspended!";
-          case DFB_INCOMPLETE:
+          case DR_INCOMPLETE:
                return "Operation incomplete!";
-          case DFB_NOCORE:
+          case DR_NOCORE:
                return "No core (loaded)!";
+          default:
+               break;
      }
 
      return "UNKNOWN RESULT CODE!";

@@ -31,8 +31,8 @@
 
 #include <fusion/types.h>
 
-typedef DFBEnumerationResult (*FusionSHMPoolCallback)( FusionSHMPool *pool,
-                                                       void          *ctx );
+typedef DirectEnumerationResult (*FusionSHMPoolCallback)( FusionSHMPool *pool,
+                                                          void          *ctx );
 
 DirectResult fusion_shm_init  ( FusionWorld *world );
 

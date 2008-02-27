@@ -232,6 +232,19 @@ DirectFBError( const char *msg, DFBResult error )
 const char *
 DirectFBErrorString( DFBResult error )
 {
+     if (D_RESULT_TYPE_IS( error, 'D','F','B' )) {
+          switch (error) {
+               case DFB_NOVIDEOMEMORY:
+                    return "Out of video memory!";
+               case DFB_MISSINGFONT:
+                    return "No font has been set!";
+               case DFB_MISSINGIMAGE:
+                    return "No image has been set!";
+               default:
+                    return "UKNOWN DIRECTFB RESULT!";
+          }
+     }
+
      return DirectResultString( error );
 }
 

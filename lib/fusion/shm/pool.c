@@ -103,7 +103,7 @@ fusion_shm_pool_create( FusionWorld          *world,
 
      if (max_size < 8192) {
           D_ERROR( "Fusion/SHMPool: Maximum size (%d) should be 8192 at least!\n", max_size );
-          return DFB_INVARG;
+          return DR_INVARG;
      }
 
      ret = fusion_skirmish_prevail( &shared->lock );
@@ -112,7 +112,7 @@ fusion_shm_pool_create( FusionWorld          *world,
 
      if (shared->num_pools == FUSION_SHM_MAX_POOLS) {
           D_ERROR( "Fusion/SHMPool: Maximum number of pools (%d) already reached!\n", FUSION_SHM_MAX_POOLS );
-          ret = DFB_LIMITEXCEEDED;
+          ret = DR_LIMITEXCEEDED;
           goto error;
      }
 
@@ -145,7 +145,7 @@ fusion_shm_pool_create( FusionWorld          *world,
 
      D_DEBUG_AT( Fusion_SHMPool, "  -> %p\n", *ret_pool );
 
-     return DFB_OK;
+     return DR_OK;
 
 
 error:
@@ -201,7 +201,7 @@ fusion_shm_pool_destroy( FusionWorld         *world,
 
      fusion_skirmish_dismiss( &shared->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -277,7 +277,7 @@ fusion_shm_pool_detach( FusionSHM           *shm,
 
      fusion_skirmish_dismiss( &pool->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -310,7 +310,7 @@ fusion_shm_pool_allocate( FusionSHMPoolShared  *pool,
      if (!data) {
           if (lock)
                fusion_skirmish_dismiss( &pool->lock );
-          return DFB_NOSHAREDMEMORY;
+          return DR_NOSHAREDMEMORY;
      }
 
      if (clear)
@@ -321,7 +321,7 @@ fusion_shm_pool_allocate( FusionSHMPoolShared  *pool,
      if (lock)
           fusion_skirmish_dismiss( &pool->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -357,7 +357,7 @@ fusion_shm_pool_reallocate( FusionSHMPoolShared  *pool,
      if (!new_data) {
           if (lock)
                fusion_skirmish_dismiss( &pool->lock );
-          return DFB_NOSHAREDMEMORY;
+          return DR_NOSHAREDMEMORY;
      }
 
      *ret_data = new_data;
@@ -365,7 +365,7 @@ fusion_shm_pool_reallocate( FusionSHMPoolShared  *pool,
      if (lock)
           fusion_skirmish_dismiss( &pool->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -396,7 +396,7 @@ fusion_shm_pool_deallocate( FusionSHMPoolShared *pool,
      if (lock)
           fusion_skirmish_dismiss( &pool->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
@@ -447,7 +447,7 @@ init_pool( FusionSHM           *shm,
                continue;
 
           D_PERROR( "Fusion/SHM: FUSION_SHMPOOL_NEW failed!\n" );
-          return DFB_FUSION;
+          return DR_FUSION;
      }
 
      /* Set the pool info. */
@@ -476,7 +476,7 @@ init_pool( FusionSHM           *shm,
                }
           }
 
-          return DFB_FUSION;
+          return DR_FUSION;
      }
 
 
@@ -525,7 +525,7 @@ init_pool( FusionSHM           *shm,
 
      shared->name = SHSTRDUP( shared, name );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -548,7 +548,7 @@ join_pool( FusionSHM           *shm,
 #if !DIRECT_BUILD_DEBUGS
      if (shared->debug) {
           D_ERROR( "Fusion/SHM: Can't join debug enabled pool with pure-release library!\n" );
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
 #endif
 
@@ -566,7 +566,7 @@ join_pool( FusionSHM           *shm,
                continue;
 
           D_PERROR( "Fusion/SHM: FUSION_SHMPOOL_ATTACH failed!\n" );
-          return DFB_FUSION;
+          return DR_FUSION;
      }
 
 
@@ -599,7 +599,7 @@ join_pool( FusionSHM           *shm,
 
      D_MAGIC_SET( pool, FusionSHMPool );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void
@@ -735,7 +735,7 @@ init_pool( FusionSHM           *shm,
      world->shared->pool_base += ((pool_max_size + page_size - 1) & ~(page_size - 1)) + page_size;
      /* Exceeded limit? */
      if (world->shared->pool_base > world->shared->pool_max)
-          return DFB_NOSHAREDMEMORY;
+          return DR_NOSHAREDMEMORY;
 
      /* Generate filename. */
      snprintf( buf, sizeof(buf), "%s/fusion.%d.%d", shm->shared->tmpfs,
@@ -773,7 +773,7 @@ init_pool( FusionSHM           *shm,
 
      shared->name = SHSTRDUP( shared, name );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -795,7 +795,7 @@ join_pool( FusionSHM           *shm,
 #if !DIRECT_BUILD_DEBUGS
      if (shared->debug) {
           D_ERROR( "Fusion/SHM: Can't join debug enabled pool with pure-release library!\n" );
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
 #endif
 
@@ -823,7 +823,7 @@ join_pool( FusionSHM           *shm,
 
      D_MAGIC_SET( pool, FusionSHMPool );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void
