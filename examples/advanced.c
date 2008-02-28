@@ -17,7 +17,7 @@ static IFusionSoundPlayback *
 prepare_test( IFusionSoundBuffer *buffer,
               const char         *name )
 {
-     DFBResult             ret;
+     DirectResult          ret;
      IFusionSoundPlayback *playback;
 
      ret = buffer->CreatePlayback (buffer, &playback);
@@ -48,7 +48,7 @@ prepare_test( IFusionSoundBuffer *buffer,
 
 #define TEST(x...)                                                    \
      do {                                                             \
-          DFBResult ret = (x);                                        \
+          DirectResult ret = (x);                                        \
           if (ret) {                                                  \
                fprintf( stderr, "FAILED!\n\n" );                      \
                FusionSoundError (#x, ret);                               \
@@ -191,7 +191,7 @@ do_playback_tests (IFusionSoundBuffer *buffer)
 
 int main (int argc, char *argv[])
 {
-     DFBResult           ret;
+     DirectResult        ret;
      IFusionSound       *sound;
      IFusionSoundBuffer *buffer;
 

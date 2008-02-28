@@ -108,7 +108,7 @@ alsa_device_get_devname( const CoreSoundDeviceConfig *config )
      return "default";
 }
 
-static DFBResult
+static DirectResult
 alsa_device_set_configuration( snd_pcm_t             *handle,
                                CoreSoundDeviceConfig *config )
 {
@@ -124,7 +124,7 @@ alsa_device_set_configuration( snd_pcm_t             *handle,
 
      if (snd_pcm_hw_params_any( handle, params ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't get hw params!\n" );
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
      if (snd_pcm_hw_params_set_access( handle, params,
@@ -133,19 +133,19 @@ alsa_device_set_configuration( snd_pcm_t             *handle,
                                        : SND_PCM_ACCESS_RW_INTERLEAVED ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't set interleaved %saccess!\n",
                    fs_config->dma ? "DMA " : "" );
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
      if (snd_pcm_hw_params_set_format( handle, params,
                                        fs2alsa_format( config->format ) ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't set format!\n" );
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
 
      if (snd_pcm_hw_params_set_channels( handle, params,
                                          FS_CHANNELS_FOR_MODE(config->mode) ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't set channels mode!\n" );
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
 
 #if SND_LIB_VERSION >= 0x010009
@@ -157,14 +157,14 @@ alsa_device_set_configuration( snd_pcm_t             *handle,
      if (snd_pcm_hw_params_set_rate_near( handle, params,
                                           &config->rate, &dir ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't set rate!\n" );
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
 
      dir = 0;
      if (snd_pcm_hw_params_set_buffer_time_near( handle, params,
                                                  &buffertime, &dir ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't set buffertime!\n" );
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
 
      dir = 1;
@@ -172,12 +172,12 @@ alsa_device_set_configuration( snd_pcm_t             *handle,
      if (snd_pcm_hw_params_set_periods_near( handle, params,
                                              &periods, &dir ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't set period count!\n" );
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
 
      if (snd_pcm_hw_params( handle, params ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't set hw params!\n" );
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
 
      /* Workaround for ALSA >= 1.0.9 always returning the maximum supported buffersize. */
@@ -191,37 +191,37 @@ alsa_device_set_configuration( snd_pcm_t             *handle,
 
      if (snd_pcm_prepare( handle ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't prepare stream!\n" );
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
      
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 alsa_device_getset_volume( float *get, float *set )
 {
-     DFBResult             ret = DFB_OK;
+     DirectResult          ret = DR_OK;
      snd_mixer_t          *mixer;
      snd_mixer_selem_id_t *sid;
      snd_mixer_elem_t     *elem;
      long                  vol, min, max;
      
      if (snd_mixer_open( &mixer, 0 ) < 0)
-          return DFB_IO;
+          return DR_IO;
           
      if (snd_mixer_attach( mixer, fs_config->device ? : "default" ) < 0) {
           snd_mixer_close( mixer );
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
      
      if (snd_mixer_selem_register( mixer, NULL, NULL ) < 0) {
           snd_mixer_close( mixer );
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
      
      if (snd_mixer_load( mixer ) < 0) {
           snd_mixer_close( mixer );
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
      
      snd_mixer_selem_id_malloc( &sid );
@@ -230,7 +230,7 @@ alsa_device_getset_volume( float *get, float *set )
      elem = snd_mixer_find_selem( mixer, sid );
      if (!elem) {
           snd_mixer_close( mixer );
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
      
      snd_mixer_selem_get_playback_volume_range( elem, &min, &max );
@@ -239,12 +239,12 @@ alsa_device_getset_volume( float *get, float *set )
           vol = *set * (float)(max - min) + min;
           
           if (snd_mixer_selem_set_playback_volume_all( elem, vol ) < 0)
-               ret = DFB_UNSUPPORTED;
+               ret = DR_UNSUPPORTED;
      }
      else {
           /* Assume equal level for all channels */
           if (snd_mixer_selem_get_playback_volume( elem, 0, &vol ) < 0)
-               ret = DFB_UNSUPPORTED;
+               ret = DR_UNSUPPORTED;
           else
                *get = (float)(vol - min) / (float)(max - min);
      }
@@ -257,7 +257,7 @@ alsa_device_getset_volume( float *get, float *set )
 /******************************************************************************/
 
 
-static DFBResult
+static DirectResult
 device_probe( void )
 {
      snd_pcm_t *handle;
@@ -265,10 +265,10 @@ device_probe( void )
      if (snd_pcm_open( &handle, fs_config->device ? : "default",
                        SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK ) == 0) {
           snd_pcm_close( handle );
-          return DFB_OK;
+          return DR_OK;
      }
 
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
 static void
@@ -296,7 +296,7 @@ device_get_driver_info( SoundDriverInfo *info )
      info->device_data_size = sizeof(AlsaDeviceData);
 }
 
-static DFBResult
+static DirectResult
 device_open( void                  *device_data,
              SoundDeviceInfo       *device_info,
              CoreSoundDeviceConfig *config )
@@ -305,18 +305,18 @@ device_open( void                  *device_data,
      const char          *dev;
      snd_ctl_t           *ctl;
      snd_ctl_card_info_t *info;
-     DFBResult            ret;
+     DirectResult         ret;
      
      dev = fs_config->device ? : alsa_device_get_devname( config );
 
      if (snd_pcm_open( &data->handle, dev, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't open pcm device '%s'!\n", dev );
-          return DFB_IO;
+          return DR_IO;
      }
 
      if (snd_pcm_nonblock( data->handle, 0 ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't disable non-blocking mode!\n" );
-          return DFB_IO;
+          return DR_IO;
      }
 
      /* device name */
@@ -357,7 +357,7 @@ device_open( void                  *device_data,
           D_INFO( "FusionSound/Device/ALSA: DMA enabled.\n" );
      }    
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static int
@@ -382,7 +382,7 @@ try_recover( snd_pcm_t *handle, int err )
      return err;
 }
 
-static DFBResult
+static DirectResult
 device_get_buffer( void *device_data, u8 **addr, unsigned int *avail )
 {
      AlsaDeviceData *data = device_data;
@@ -403,7 +403,7 @@ device_get_buffer( void *device_data, u8 **addr, unsigned int *avail )
                     if (r < 0) {
                          D_ERROR( "FusionSound/Device/ALSA: snd_pcm_avail_update() failed: %s\n",
                                    snd_strerror( r ) );
-                         return DFB_FAILURE;
+                         return DR_FAILURE;
                      }
                      continue;
                }
@@ -417,7 +417,7 @@ device_get_buffer( void *device_data, u8 **addr, unsigned int *avail )
                     if (r < 0) {
                          D_ERROR( "FusionSound/Device/ALSA: snd_pcm_avail_update() failed: %s\n",
                                   snd_strerror( r ) );
-                         return DFB_FAILURE;
+                         return DR_FAILURE;
                     }
                     continue;
                }
@@ -429,7 +429,7 @@ device_get_buffer( void *device_data, u8 **addr, unsigned int *avail )
                     if (r < 0) {
                          D_ERROR( "FusionSound/Device/ALSA: snd_pcm_mmap_begin() failed: %s\n",
                                    snd_strerror( r ) );
-                         return DFB_FAILURE;
+                         return DR_FAILURE;
                     }
                     continue;
                }
@@ -441,10 +441,10 @@ device_get_buffer( void *device_data, u8 **addr, unsigned int *avail )
           }
      }
      
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 device_commit_buffer( void *device_data, unsigned int frames )
 {
      AlsaDeviceData    *data = device_data;
@@ -460,7 +460,7 @@ device_commit_buffer( void *device_data, unsigned int frames )
                     if (r < 0) {
                          D_ERROR( "FusionSound/Device/ALSA: snd_pcm_writei() failed: %s\n",
                                   snd_strerror( r ) );
-                         return DFB_FAILURE;
+                         return DR_FAILURE;
                     }
                }
                frames -= r;
@@ -475,7 +475,7 @@ device_commit_buffer( void *device_data, unsigned int frames )
                     if (r < 0) {
                          D_ERROR( "FusionSound/Device/ALSA: snd_pcm_mmap_commit() failed: %s\n",
                                   snd_strerror( r ) );
-                         return DFB_FAILURE;
+                         return DR_FAILURE;
                     }
                     continue;
                }
@@ -483,7 +483,7 @@ device_commit_buffer( void *device_data, unsigned int frames )
           }
      }
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void
@@ -496,19 +496,19 @@ device_get_output_delay( void *device_data, int *delay )
      *delay = odelay;
 }
 
-static DFBResult
+static DirectResult
 device_get_volume( void *device_data, float *level )
 {
      return alsa_device_getset_volume( level, NULL );
 }
 
-static DFBResult
+static DirectResult
 device_set_volume( void *device_data, float level )
 {
      return alsa_device_getset_volume( NULL, &level );
 }
 
-static DFBResult
+static DirectResult
 device_suspend( void *device_data )
 {
      AlsaDeviceData *data = device_data;
@@ -517,21 +517,21 @@ device_suspend( void *device_data )
      snd_pcm_close( data->handle );
      data->handle = NULL;
      
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 device_resume( void *device_data )
 {
      AlsaDeviceData *data = device_data;
      const char     *dev;
-     DFBResult       ret;
+     DirectResult    ret;
      
      dev = fs_config->device ? : alsa_device_get_devname( data->config );
 
      if (snd_pcm_open( &data->handle, dev, SND_PCM_STREAM_PLAYBACK, 0 ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't reopen pcm device '%s'!\n", dev );
-          return DFB_IO;
+          return DR_IO;
      }
      
      ret = alsa_device_set_configuration( data->handle, data->config );

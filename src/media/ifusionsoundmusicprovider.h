@@ -43,7 +43,7 @@ typedef struct {
 } IFusionSoundMusicProvider_ProbeContext;
 
 
-DFBResult IFusionSoundMusicProvider_Create( const char                 *filename, 
+DirectResult IFusionSoundMusicProvider_Create( const char                 *filename, 
                                             IFusionSoundMusicProvider **interface );
 
 #endif

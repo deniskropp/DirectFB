@@ -74,47 +74,47 @@ FusionObjectPool *fs_playback_pool_create( const FusionWorld *world );
 FUSION_OBJECT_METHODS( CorePlayback, fs_playback )
 
 
-DFBResult fs_playback_create      ( CoreSound           *core,
+DirectResult fs_playback_create      ( CoreSound           *core,
                                     CoreSoundBuffer     *buffer,
                                     bool                 notify,
                                     CorePlayback       **ret_playback );
 
-DFBResult fs_playback_enable      ( CorePlayback        *playback );
+DirectResult fs_playback_enable      ( CorePlayback        *playback );
 
-DFBResult fs_playback_start       ( CorePlayback        *playback,
+DirectResult fs_playback_start       ( CorePlayback        *playback,
                                     bool                 enable );
 
-DFBResult fs_playback_stop        ( CorePlayback        *playback,
+DirectResult fs_playback_stop        ( CorePlayback        *playback,
                                     bool                 disable );
 
-DFBResult fs_playback_set_stop    ( CorePlayback        *playback,
+DirectResult fs_playback_set_stop    ( CorePlayback        *playback,
                                     int                  stop );
 
-DFBResult fs_playback_set_position( CorePlayback        *playback,
+DirectResult fs_playback_set_position( CorePlayback        *playback,
                                     int                  position );
 
 /* Must call fs_playback_set_volume() after this. */                                  
-DFBResult fs_playback_set_downmix ( CorePlayback        *playback,
+DirectResult fs_playback_set_downmix ( CorePlayback        *playback,
                                     float                center,
                                     float                rear );
 
-DFBResult fs_playback_set_volume  ( CorePlayback        *playback,
+DirectResult fs_playback_set_volume  ( CorePlayback        *playback,
                                     float                levels[6] );
                                     
-DFBResult fs_playback_set_local_volume( CorePlayback    *playback,
+DirectResult fs_playback_set_local_volume( CorePlayback    *playback,
                                         float            level );
 
-DFBResult fs_playback_set_pitch   ( CorePlayback        *playback,
+DirectResult fs_playback_set_pitch   ( CorePlayback        *playback,
                                     int                  pitch );
 
-DFBResult fs_playback_get_status  ( CorePlayback        *playback,
+DirectResult fs_playback_get_status  ( CorePlayback        *playback,
                                     CorePlaybackStatus  *ret_status,
                                     int                 *ret_position );
 
 /*
  * Internally called by core_sound.c in the audio thread.
  */
-DFBResult fs_playback_mixto       ( CorePlayback        *playback,
+DirectResult fs_playback_mixto       ( CorePlayback        *playback,
                                     __fsf               *dest,
                                     int                  dest_rate,
                                     FSChannelMode        dest_mode,

@@ -28,7 +28,7 @@
 #ifndef __FUSIONSOUND_H__
 #define __FUSIONSOUND_H__
 
-#include <directfb.h>
+#include <direct/interface.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -81,50 +81,50 @@ DECLARE_INTERFACE( IFusionSoundMusicProvider )
  * Parses the command-line and initializes some variables. You absolutely need to
  * call this before doing anything else. Removes all options used by FusionSound from argv.
  */
-DFBResult FusionSoundInit(
-                           int    *argc,   /* pointer to main()'s argc */
-                           char *(*argv[]) /* pointer to main()'s argv */
-                         );
+DirectResult FusionSoundInit(
+                               int    *argc,   /* pointer to main()'s argc */
+                               char *(*argv[]) /* pointer to main()'s argv */
+                             );
 
 /*
  * Sets configuration parameters supported on command line and in config file.
  * Can only be called before FusionSoundCreate but after FusionSoundInit.
  */
-DFBResult FusionSoundSetOption(
-                                const char *name,
-                                const char *value
-                              );
+DirectResult FusionSoundSetOption(
+                                    const char *name,
+                                    const char *value
+                                  );
 
 /*
  * Creates the super interface.
  */
-DFBResult FusionSoundCreate(
-                             IFusionSound **ret_interface  /* pointer to the created interface */
-                           );
+DirectResult FusionSoundCreate(
+                                 IFusionSound **ret_interface    /* pointer to the created interface */
+                               );
 
 /*
  * Print a description of the result code along with an
  * optional message that is put in front with a colon.
  */
-DFBResult FusionSoundError(
-                            const char *msg,    /* optional message */
-                            DFBResult   result  /* result code to interpret */
-                          );
+DirectResult FusionSoundError(
+                                const char   *msg,     /* optional message */
+                                DirectResult  result   /* result code to interpret */
+                              );
                           
 /*
  * Behaves like FusionSoundError, but shuts down the calling application.
  */
-DFBResult FusionSoundErrorFatal(
-                            const char *msg,    /* optional message */
-                            DFBResult   result  /* result code to interpret */
-                          );
+DirectResult FusionSoundErrorFatal(
+                                     const char   *msg,     /* optional message */
+                                     DirectResult  result   /* result code to interpret */
+                                   );
 
 /*
  * Returns a string describing 'result'.
  */
 const char *FusionSoundErrorString(
-                                    DFBResult result
-                                  );
+                                     DirectResult result
+                                   );
                                   
 /*
  * Retrieves information about supported command-line flags in the
@@ -423,7 +423,7 @@ typedef struct {
 /*
  * Called for each track provided by a music provider.
  */
-typedef DFBEnumerationResult (*FSTrackCallback) (
+typedef DirectEnumerationResult (*FSTrackCallback) (
      FSTrackID                track_id,
      FSTrackDescription       desc,
      void                    *callbackdata
@@ -456,7 +456,7 @@ DEFINE_INTERFACE( IFusionSound,
      /* 
       * Get a description of the sound device.
       */
-     DFBResult (*GetDeviceDescription) (
+     DirectResult (*GetDeviceDescription) (
           IFusionSound           *thiz,
           FSDeviceDescription    *ret_desc
      );
@@ -471,7 +471,7 @@ DEFINE_INTERFACE( IFusionSound,
       * Default values for sample rate, sample format and number of channels
       * depend on device configuration.
       */
-     DFBResult (*CreateBuffer) (
+     DirectResult (*CreateBuffer) (
           IFusionSound               *thiz,
           const FSBufferDescription  *desc,
           IFusionSoundBuffer        **interface
@@ -485,7 +485,7 @@ DEFINE_INTERFACE( IFusionSound,
       * Default values for sample rate, sample format and number of channels
       * depend on device configuration, while ring buffer length defaults to 1/5 seconds.
       */
-     DFBResult (*CreateStream) (
+     DirectResult (*CreateStream) (
           IFusionSound               *thiz,
           const FSStreamDescription  *desc,
           IFusionSoundStream        **interface
@@ -494,7 +494,7 @@ DEFINE_INTERFACE( IFusionSound,
      /*
       * Create a music provider.
       */
-     DFBResult (*CreateMusicProvider) (
+     DirectResult (*CreateMusicProvider) (
           IFusionSound               *thiz,
           const char                 *filename,
           IFusionSoundMusicProvider **interface
@@ -510,7 +510,7 @@ DEFINE_INTERFACE( IFusionSound,
       *
       * See also <i>SetMasterVolume()</i>.
       */
-     DFBResult (*GetMasterVolume) (
+     DirectResult (*GetMasterVolume) (
           IFusionSound               *thiz,
           float                      *level
      );
@@ -523,7 +523,7 @@ DEFINE_INTERFACE( IFusionSound,
       *
       * See also <i>GetMasterVolume()</i>.
       */
-     DFBResult (*SetMasterVolume) (
+     DirectResult (*SetMasterVolume) (
           IFusionSound               *thiz,
           float                       level
      );
@@ -536,7 +536,7 @@ DEFINE_INTERFACE( IFusionSound,
       *
       * See also <i>SetLocalVolume()</i>.
       */
-     DFBResult (*GetLocalVolume) (
+     DirectResult (*GetLocalVolume) (
           IFusionSound               *thiz,
           float                      *level
      );
@@ -550,7 +550,7 @@ DEFINE_INTERFACE( IFusionSound,
       *
       * See also <i>GetLocalVolume()</i>.
       */
-     DFBResult (*SetLocalVolume) (
+     DirectResult (*SetLocalVolume) (
           IFusionSound               *thiz,
           float                       level
      );
@@ -564,7 +564,7 @@ DEFINE_INTERFACE( IFusionSound,
       * No other calls to FusionSound are allowed until <i>Resume()</i>
       * has been called.
       */
-     DFBResult (*Suspend) (
+     DirectResult (*Suspend) (
           IFusionSound               *thiz
      );
      
@@ -573,7 +573,7 @@ DEFINE_INTERFACE( IFusionSound,
       *
       * Only to be called after <i>Suspend()</i>.
       */
-     DFBResult (*Resume) (
+     DirectResult (*Resume) (
           IFusionSound               *thiz
      );
 )
@@ -622,7 +622,7 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
      /*
       * Get a description of the buffer.
       */
-     DFBResult (*GetDescription) (
+     DirectResult (*GetDescription) (
           IFusionSoundBuffer       *thiz,
           FSBufferDescription      *ret_desc
      );
@@ -636,7 +636,7 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
       * Set the buffer position indicator (in frames)
       * affecting subsequent playback and lock for access.
       */
-     DFBResult (*SetPosition) (
+     DirectResult (*SetPosition) (
           IFusionSoundBuffer       *thiz,
           int                       position
      );
@@ -652,7 +652,7 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
       *
       * See also <i>SetPosition()</i>.
       */
-     DFBResult (*Lock) (
+     DirectResult (*Lock) (
           IFusionSoundBuffer       *thiz,
           void                    **ret_data,
           int                      *ret_frames,
@@ -662,7 +662,7 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
      /*
       * Unlock a buffer.
       */
-     DFBResult (*Unlock) (
+     DirectResult (*Unlock) (
           IFusionSoundBuffer       *thiz
      );
 
@@ -679,7 +679,7 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
       *
       * See also <i>CreatePlayback()</i>.
       */
-     DFBResult (*Play) (
+     DirectResult (*Play) (
           IFusionSoundBuffer       *thiz,
           FSBufferPlayFlags         flags
      );
@@ -692,7 +692,7 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
       *
       * See also <i>CreatePlayback()</i>.
       */
-     DFBResult (*Stop) (
+     DirectResult (*Stop) (
           IFusionSoundBuffer       *thiz
      );
 
@@ -704,7 +704,7 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
       *
       * Each playback instance represents one concurrent playback of the buffer.
       */
-     DFBResult (*CreatePlayback) (
+     DirectResult (*CreatePlayback) (
           IFusionSoundBuffer       *thiz,
           IFusionSoundPlayback    **interface
      );
@@ -739,7 +739,7 @@ DEFINE_INTERFACE( IFusionSoundStream,
      /*
       * Get a description of the stream.
       */
-     DFBResult (*GetDescription) (
+     DirectResult (*GetDescription) (
           IFusionSoundStream       *thiz,
           FSStreamDescription      *ret_desc
      );
@@ -758,7 +758,7 @@ DEFINE_INTERFACE( IFusionSoundStream,
       *
       * If this method returns successfully, all data has been written.
       */
-     DFBResult (*Write) (
+     DirectResult (*Write) (
           IFusionSoundStream       *thiz,
           const void               *data,
           int                       length
@@ -772,7 +772,7 @@ DEFINE_INTERFACE( IFusionSoundStream,
       *
       * Specifying a <b>length</b> of zero waits until playback has finished.
       */
-     DFBResult (*Wait) (
+     DirectResult (*Wait) (
           IFusionSoundStream       *thiz,
           int                       length
      );
@@ -787,13 +787,13 @@ DEFINE_INTERFACE( IFusionSoundStream,
       *
       * Simply pass NULL for values that are not of interest.
       */
-     DFBResult (*GetStatus) (
+     DirectResult (*GetStatus) (
           IFusionSoundStream       *thiz,
           int                      *filled,
           int                      *total,
           int                      *read_position,
           int                      *write_position,
-          DFBBoolean               *playing
+          bool                     *playing
      );
 
      /*
@@ -802,7 +802,7 @@ DEFINE_INTERFACE( IFusionSoundStream,
       * This method stops the playback immediately and 
       * discards any buffered data.
       */
-     DFBResult (*Flush) (
+     DirectResult (*Flush) (
           IFusionSoundStream       *thiz
      );
 
@@ -812,7 +812,7 @@ DEFINE_INTERFACE( IFusionSoundStream,
       * This method discards any pending input data,
       * making <i>Write()</i> return as soon as possible.
       */
-     DFBResult (*Drop) (
+     DirectResult (*Drop) (
           IFusionSoundStream       *thiz
      );
 
@@ -830,7 +830,7 @@ DEFINE_INTERFACE( IFusionSoundStream,
       * Even if the stream is not playing, e.g. due to pre-buffering,
       * the method behaves as if the playback has just been started.
       */
-     DFBResult (*GetPresentationDelay) (
+     DirectResult (*GetPresentationDelay) (
           IFusionSoundStream       *thiz,
           int                      *delay
      );
@@ -845,7 +845,7 @@ DEFINE_INTERFACE( IFusionSoundStream,
       * This includes volume, pitch and pan settings as well as manual starting, pausing or
       * stopping of the playback.
       */
-     DFBResult (*GetPlayback) (
+     DirectResult (*GetPlayback) (
           IFusionSoundStream       *thiz,
           IFusionSoundPlayback    **interface
      );
@@ -865,7 +865,7 @@ DEFINE_INTERFACE( IFusionSoundStream,
       * After filling the ring buffer, call <i>Commit()</i> to submit
       * the samples to the stream.
       */
-     DFBResult (*Access) (
+     DirectResult (*Access) (
           IFusionSoundStream       *thiz,
           void                    **ret_data,
           int                      *ret_avail
@@ -876,7 +876,7 @@ DEFINE_INTERFACE( IFusionSoundStream,
       *
       * Commit <b>length</b> frames of data written upon previous <i>Access()</i>.
       */
-     DFBResult (*Commit) (
+     DirectResult (*Commit) (
           IFusionSoundStream       *thiz,
           int                       length
      );
@@ -928,7 +928,7 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
       *
       * This method can be used for seeking if the playback is already running.
       */
-     DFBResult (*Start) (
+     DirectResult (*Start) (
           IFusionSoundPlayback     *thiz,
           int                       start,
           int                       stop
@@ -940,7 +940,7 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
       * This method stops a running playback. The playback can be continued
       * by calling <i>Continue()</i> or restarted using <i>Start()</i>.
       */
-     DFBResult (*Stop) (
+     DirectResult (*Stop) (
           IFusionSoundPlayback     *thiz
      );
 
@@ -963,7 +963,7 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
       * <i>IFusionSoundBuffer::Play()</i>, but rejects multiple concurrent
       * playbacks.
       */
-     DFBResult (*Continue) (
+     DirectResult (*Continue) (
           IFusionSoundPlayback     *thiz
      );
 
@@ -975,7 +975,7 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
       * If the playback is in looping mode the method returns immediately
       * with an error.
       */
-     DFBResult (*Wait) (
+     DirectResult (*Wait) (
           IFusionSoundPlayback     *thiz
      );
 
@@ -990,9 +990,9 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
       * It also returns the current playback <b>position</b> or the position
       * where <i>Continue()</i> would start to play.
       */
-     DFBResult (*GetStatus) (
+     DirectResult (*GetStatus) (
           IFusionSoundPlayback     *thiz,
-          DFBBoolean               *running,
+          bool                     *running,
           int                      *position
      );
 
@@ -1005,7 +1005,7 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
       * The <b>level</b> is a linear factor being 1.0f by default, currently
       * ranges from 0.0f to 64.0f due to internal mixing limitations.
       */
-     DFBResult (*SetVolume) (
+     DirectResult (*SetVolume) (
           IFusionSoundPlayback     *thiz,
           float                     level
      );
@@ -1015,7 +1015,7 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
       *
       * The <b>value</b> ranges from -1.0f (left) to 1.0f (right).
       */
-     DFBResult (*SetPan) (
+     DirectResult (*SetPan) (
           IFusionSoundPlayback     *thiz,
           float                     value
      );
@@ -1026,7 +1026,7 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
       * The <b>value</b> is a linear factor being 1.0f by default, currently
       * ranges from 0.0f to 64.0f due to internal mixing limitations.
       */
-     DFBResult (*SetPitch) (
+     DirectResult (*SetPitch) (
           IFusionSoundPlayback     *thiz,
           float                     value
      );
@@ -1034,7 +1034,7 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
      /*
       * Set the direction of the playback.
       */
-     DFBResult (*SetDirection) (
+     DirectResult (*SetDirection) (
           IFusionSoundPlayback     *thiz,
           FSPlaybackDirection       direction
      );
@@ -1047,7 +1047,7 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
       * Levels are linear factors ranging from 0.0f to 1.0f and
       * being 0.707f (-3dB) by default.
       */
-     DFBResult (*SetDownmixLevels) (
+     DirectResult (*SetDownmixLevels) (
           IFusionSoundPlayback     *thiz,
           float                     center,
           float                     rear
@@ -1077,7 +1077,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
       * Retrieve information about the music provider's
       * capabilities.
       */
-     DFBResult (*GetCapabilities) (
+     DirectResult (*GetCapabilities) (
           IFusionSoundMusicProvider   *thiz,
           FSMusicProviderCapabilities *ret_caps
      );
@@ -1090,7 +1090,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
       * used to select a track for playback using 
       * IFusionSoundMusicProvider::SelectTrack().
       */
-     DFBResult (*EnumTracks) (
+     DirectResult (*EnumTracks) (
           IFusionSoundMusicProvider *thiz,
           FSTrackCallback            callback,
           void                      *callbackdata
@@ -1099,7 +1099,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
      /*
       * Get the unique ID of the current track.
       */
-     DFBResult (*GetTrackID) (
+     DirectResult (*GetTrackID) (
           IFusionSoundMusicProvider *thiz,
           FSTrackID                 *ret_track_id
      );
@@ -1107,7 +1107,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
      /*
       * Get a description of the current track.
       */
-     DFBResult (*GetTrackDescription) (
+     DirectResult (*GetTrackDescription) (
           IFusionSoundMusicProvider *thiz,
           FSTrackDescription        *ret_desc
      );
@@ -1116,7 +1116,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
       * Get a stream description that best matches the music
       * contained in the file.
       */
-     DFBResult (*GetStreamDescription) (
+     DirectResult (*GetStreamDescription) (
           IFusionSoundMusicProvider *thiz,
           FSStreamDescription       *ret_desc
      );
@@ -1128,7 +1128,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
       * The music provider is responsible of returning a 
       * buffer description suitable for holding the whole track.
       */
-     DFBResult (*GetBufferDescription) (
+     DirectResult (*GetBufferDescription) (
           IFusionSoundMusicProvider *thiz,
           FSBufferDescription       *ret_desc
      );
@@ -1138,7 +1138,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
      /*
       * Select a track by its unique ID.
       */
-     DFBResult (*SelectTrack) (
+     DirectResult (*SelectTrack) (
           IFusionSoundMusicProvider *thiz,
           FSTrackID                  track_id 
      );
@@ -1147,7 +1147,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
       * Play selected track rendering it into
       * the destination stream.
       */
-     DFBResult (*PlayToStream) (
+     DirectResult (*PlayToStream) (
           IFusionSoundMusicProvider *thiz,
           IFusionSoundStream        *destination
      );
@@ -1162,7 +1162,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
       * samples per channels actually written
       * to the destination buffer.
       */
-     DFBResult (*PlayToBuffer) (
+     DirectResult (*PlayToBuffer) (
           IFusionSoundMusicProvider *thiz,
           IFusionSoundBuffer        *destination,
           FMBufferCallback           callback,
@@ -1172,14 +1172,14 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
      /*
       * Stop playback.
       */
-     DFBResult (*Stop) (
+     DirectResult (*Stop) (
           IFusionSoundMusicProvider *thiz
      );
      
      /*
       * Get playback status.
       */
-     DFBResult (*GetStatus) (
+     DirectResult (*GetStatus) (
           IFusionSoundMusicProvider *thiz,
           FSMusicProviderStatus     *ret_status
      );
@@ -1189,7 +1189,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
      /*
       * Seeks to a position within the current track.
       */
-     DFBResult (*SeekTo) (
+     DirectResult (*SeekTo) (
           IFusionSoundMusicProvider *thiz,
           double                     seconds
      );
@@ -1197,7 +1197,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
      /*
       * Gets current position within the current track.
       */
-     DFBResult (*GetPos) (
+     DirectResult (*GetPos) (
           IFusionSoundMusicProvider *thiz,
           double                    *ret_seconds
      );
@@ -1205,7 +1205,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
      /*
       * Gets the length of the current track.
       */
-     DFBResult (*GetLength) (
+     DirectResult (*GetLength) (
           IFusionSoundMusicProvider *thiz,
           double                    *ret_seconds
      );
@@ -1215,7 +1215,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
      /*
       * Set the flags controlling playback.
       */
-     DFBResult (*SetPlaybackFlags) (
+     DirectResult (*SetPlaybackFlags) (
           IFusionSoundMusicProvider    *thiz,
           FSMusicProviderPlaybackFlags  flags
      );
@@ -1228,7 +1228,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
       * if the specified <b>timeout</b> in milliseconds
       * is non-zero, until timeout expires.
       */
-     DFBResult (*WaitStatus) (
+     DirectResult (*WaitStatus) (
           IFusionSoundMusicProvider *thiz,
           FSMusicProviderStatus      mask,
           unsigned int               timeout

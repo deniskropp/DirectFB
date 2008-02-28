@@ -62,17 +62,17 @@ IFusionSound_Destruct( IFusionSound *thiz )
           ifusionsound_singleton = NULL;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_AddRef( IFusionSound *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound)
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Release( IFusionSound *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound)
@@ -80,29 +80,29 @@ IFusionSound_Release( IFusionSound *thiz )
      if (--data->ref == 0)
           IFusionSound_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_GetDeviceDescription( IFusionSound        *thiz,
                                    FSDeviceDescription *desc )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound)
      
      if (!desc)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      *desc = *fs_core_device_description( data->core );
      
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_CreateBuffer( IFusionSound               *thiz,
                            const FSBufferDescription  *desc,
                            IFusionSoundBuffer        **ret_interface )
 {
-     DFBResult                 ret;
+     DirectResult              ret;
      CoreSoundDeviceConfig    *config;
      FSChannelMode             mode;
      FSSampleFormat            format;
@@ -115,7 +115,7 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
      DIRECT_INTERFACE_GET_DATA(IFusionSound)
 
      if (!desc || !ret_interface)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      config = fs_core_device_config( data->core );
      mode   = config->mode;
@@ -126,7 +126,7 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
      flags = desc->flags;
 
      if (flags & ~FSBDF_ALL)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      
      if (flags & FSBDF_CHANNELMODE) {
@@ -150,7 +150,7 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
                     break;
                     
                default:
-                    return DFB_INVARG;
+                    return DR_INVARG;
           }
      }
      else if (flags & FSBDF_CHANNELS) {
@@ -160,7 +160,7 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
                     break;
 
                default:
-                    return DFB_INVARG;
+                    return DR_INVARG;
           }
      }
      
@@ -175,13 +175,13 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
                     break;
 
                default:
-                    return DFB_INVARG;
+                    return DR_INVARG;
           }
      }
      
      if (flags & FSBDF_SAMPLERATE) {
           if (desc->samplerate < 100)
-               return DFB_UNSUPPORTED;
+               return DR_UNSUPPORTED;
           rate = desc->samplerate;
      }
           
@@ -189,10 +189,10 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
           length = desc->length;
           
      if (length < 1)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      if (length > FS_MAX_FRAMES)
-          return DFB_LIMITEXCEEDED;
+          return DR_LIMITEXCEEDED;
 
      ret = fs_buffer_create( data->core, length, mode, format, rate, &buffer );
      if (ret)
@@ -210,12 +210,12 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_CreateStream( IFusionSound               *thiz,
                            const FSStreamDescription  *desc,
                            IFusionSoundStream        **ret_interface )
 {
-     DFBResult                 ret;
+     DirectResult              ret;
      CoreSoundDeviceConfig    *config;
      FSChannelMode             mode;
      FSSampleFormat            format;
@@ -229,7 +229,7 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
      DIRECT_INTERFACE_GET_DATA(IFusionSound)
 
      if (!ret_interface)
-          return DFB_INVARG;
+          return DR_INVARG;
      
      config    = fs_core_device_config( data->core );
      mode      = config->mode;
@@ -242,7 +242,7 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
           flags = desc->flags;
 
           if (flags & ~FSSDF_ALL)
-               return DFB_INVARG;
+               return DR_INVARG;
 
           if (flags & FSSDF_CHANNELMODE) {
                switch (desc->channelmode) {
@@ -265,7 +265,7 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
                          break;
                     
                     default:
-                         return DFB_INVARG;
+                         return DR_INVARG;
                }
           }
           else if (flags & FSSDF_CHANNELS) {
@@ -275,7 +275,7 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
                          break;
 
                     default:
-                         return DFB_INVARG;
+                         return DR_INVARG;
                }
           }               
 
@@ -290,25 +290,25 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
                          break;
 
                     default:
-                         return DFB_INVARG;
+                         return DR_INVARG;
                }
           }    
 
           if (flags & FSSDF_SAMPLERATE) {
                if (desc->samplerate < 100)
-                    return DFB_UNSUPPORTED;
+                    return DR_UNSUPPORTED;
                rate = desc->samplerate;
           }
                
           if (flags & FSSDF_BUFFERSIZE) {
                if (desc->buffersize < 1)
-                    return DFB_INVARG;
+                    return DR_INVARG;
                size = desc->buffersize;
           }
 
           if (flags & FSSDF_PREBUFFER) {
                if (desc->prebuffer >= size)
-                    return DFB_INVARG;
+                    return DR_INVARG;
                prebuffer = desc->prebuffer;
           }
      }
@@ -318,7 +318,7 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
 
      /* Limit ring buffer size to five seconds. */
      if (size > rate * 5)
-          return DFB_LIMITEXCEEDED;
+          return DR_LIMITEXCEEDED;
 
      ret = fs_buffer_create( data->core, size, mode, format, rate, &buffer );
      if (ret)
@@ -336,7 +336,7 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_CreateMusicProvider( IFusionSound               *thiz,
                                   const char                 *filename,
                                   IFusionSoundMusicProvider **ret_interface )
@@ -345,12 +345,12 @@ IFusionSound_CreateMusicProvider( IFusionSound               *thiz,
 
      /* Check arguments */
      if (!ret_interface || !filename)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      return IFusionSoundMusicProvider_Create( filename, ret_interface );
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_GetMasterVolume( IFusionSound *thiz, 
                               float        *level )
 {
@@ -358,12 +358,12 @@ IFusionSound_GetMasterVolume( IFusionSound *thiz,
      
      /* Check arguments */
      if (!level)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      return fs_core_get_master_volume( data->core, level );
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_SetMasterVolume( IFusionSound *thiz,
                               float         level )
 {
@@ -371,12 +371,12 @@ IFusionSound_SetMasterVolume( IFusionSound *thiz,
      
      /* Check arguments */
      if (level < 0.0f || level > 1.0f)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      return fs_core_set_master_volume( data->core, level );
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_GetLocalVolume( IFusionSound *thiz, 
                              float        *level )
 {
@@ -384,12 +384,12 @@ IFusionSound_GetLocalVolume( IFusionSound *thiz,
      
      /* Check arguments */
      if (!level)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      return fs_core_get_local_volume( data->core, level );
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_SetLocalVolume( IFusionSound *thiz,
                              float         level )
 {
@@ -397,12 +397,12 @@ IFusionSound_SetLocalVolume( IFusionSound *thiz,
      
      /* Check arguments */
      if (level < 0.0f || level > 1.0f)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      return fs_core_set_local_volume( data->core, level );
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Suspend( IFusionSound *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound)
@@ -410,7 +410,7 @@ IFusionSound_Suspend( IFusionSound *thiz )
      return fs_core_suspend( data->core );
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Resume( IFusionSound *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound)
@@ -419,10 +419,10 @@ IFusionSound_Resume( IFusionSound *thiz )
 }
      
 
-DFBResult
+DirectResult
 IFusionSound_Construct( IFusionSound *thiz )
 {
-     DFBResult ret;
+     DirectResult ret;
 
      /* Allocate interface data. */
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSound );
@@ -454,5 +454,5 @@ IFusionSound_Construct( IFusionSound *thiz )
      thiz->Suspend              = IFusionSound_Suspend;
      thiz->Resume               = IFusionSound_Resume;
 
-     return DFB_OK;
+     return DR_OK;
 }

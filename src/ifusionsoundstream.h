@@ -62,7 +62,7 @@ typedef struct {
 /*
  * initializes interface struct and private data
  */
-DFBResult IFusionSoundStream_Construct( IFusionSoundStream *thiz,
+DirectResult IFusionSoundStream_Construct( IFusionSoundStream *thiz,
                                         CoreSound          *core,
                                         CoreSoundBuffer    *buffer,
                                         int                 size,

@@ -33,39 +33,39 @@
 #include <core/sound_device.h>
 
 
-static DFBResult
+static DirectResult
 device_probe( void );
 
 static void
 device_get_driver_info( SoundDriverInfo *info );
 
-static DFBResult
+static DirectResult
 device_open( void                  *device_data,
              SoundDeviceInfo       *device_info,
              CoreSoundDeviceConfig *config );
 
-static DFBResult
+static DirectResult
 device_get_buffer( void           *device_data, 
                    u8            **addr, 
                    unsigned int   *avail );
                     
-static DFBResult
+static DirectResult
 device_commit_buffer( void         *device_data, 
                       unsigned int  frames );
 
 static void
 device_get_output_delay( void *device_data, int  *delay );
 
-static DFBResult
+static DirectResult
 device_get_volume( void *device_data, float *level );
 
-static DFBResult
+static DirectResult
 device_set_volume( void *device_data, float level );
 
-static DFBResult
+static DirectResult
 device_suspend( void *device_data );
 
-static DFBResult
+static DirectResult
 device_resume( void *device_data );
 
 static void

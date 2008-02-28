@@ -60,7 +60,7 @@ usage( const char *progname )
 int
 main( int argc, char **argv )
 {
-     DFBResult     ret;
+     DirectResult  ret;
      IFusionSound *sound;
      float         volume = 0.0f;
 

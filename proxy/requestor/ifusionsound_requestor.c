@@ -48,8 +48,8 @@
 
 #include <ifusionsound_dispatcher.h>
 
-static DFBResult Probe();
-static DFBResult Construct( IFusionSound *thiz, const char *host, int session );
+static DirectResult Probe();
+static DirectResult Construct( IFusionSound *thiz, const char *host, int session );
 
 #include <direct/interface_implementation.h>
 
@@ -82,17 +82,17 @@ IFusionSound_Requestor_Destruct( IFusionSound *thiz )
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 IFusionSound_Requestor_AddRef( IFusionSound *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Requestor)
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Requestor_Release( IFusionSound *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Requestor)
@@ -100,10 +100,10 @@ IFusionSound_Requestor_Release( IFusionSound *thiz )
      if (--data->ref == 0)
           IFusionSound_Requestor_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Requestor_GetDeviceDescription( IFusionSound        *thiz,
                                              FSDeviceDescription *desc )
 {
@@ -120,7 +120,7 @@ IFusionSound_Requestor_GetDeviceDescription( IFusionSound        *thiz,
           return ret;
 
      ret = response->result;
-     if (ret == DFB_OK) {
+     if (ret == DR_OK) {
           VoodooMessageParser parser;
 
           VOODOO_PARSER_BEGIN( parser, response );
@@ -133,7 +133,7 @@ IFusionSound_Requestor_GetDeviceDescription( IFusionSound        *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Requestor_CreateBuffer( IFusionSound               *thiz,
                                      const FSBufferDescription  *desc,
                                      IFusionSoundBuffer        **ret_interface )
@@ -147,7 +147,7 @@ IFusionSound_Requestor_CreateBuffer( IFusionSound               *thiz,
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Requestor)
      
      if (!desc || !ret_interface)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IFUSIONSOUND_METHOD_ID_CreateBuffer, VREQ_RESPOND, &response,
@@ -157,7 +157,7 @@ IFusionSound_Requestor_CreateBuffer( IFusionSound               *thiz,
           return ret;
 
      ret = response->result;
-     if (ret == DFB_OK) {
+     if (ret == DR_OK) {
           VOODOO_PARSER_BEGIN( parser, response );
           VOODOO_PARSER_GET_DATA( parser, dsc );
           VOODOO_PARSER_END( parser );
@@ -173,7 +173,7 @@ IFusionSound_Requestor_CreateBuffer( IFusionSound               *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Requestor_CreateStream( IFusionSound               *thiz,
                                      const FSStreamDescription  *desc,
                                      IFusionSoundStream        **ret_interface )
@@ -187,7 +187,7 @@ IFusionSound_Requestor_CreateStream( IFusionSound               *thiz,
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Requestor)
      
      if (!ret_interface)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IFUSIONSOUND_METHOD_ID_CreateStream, VREQ_RESPOND, &response,
@@ -197,7 +197,7 @@ IFusionSound_Requestor_CreateStream( IFusionSound               *thiz,
           return ret;
 
      ret = response->result;
-     if (ret == DFB_OK) {
+     if (ret == DR_OK) {
           VOODOO_PARSER_BEGIN( parser, response );
           VOODOO_PARSER_GET_DATA( parser, dsc );
           VOODOO_PARSER_END( parser );
@@ -213,7 +213,7 @@ IFusionSound_Requestor_CreateStream( IFusionSound               *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Requestor_CreateMusicProvider( IFusionSound               *thiz,
                                             const char                 *filename,
                                             IFusionSoundMusicProvider **ret_interface )
@@ -226,7 +226,7 @@ IFusionSound_Requestor_CreateMusicProvider( IFusionSound               *thiz,
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Requestor)
      
      if (!filename || !ret_interface)
-          return DFB_INVARG;
+          return DR_INVARG;
          
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IFUSIONSOUND_METHOD_ID_CreateMusicProvider,
@@ -237,7 +237,7 @@ IFusionSound_Requestor_CreateMusicProvider( IFusionSound               *thiz,
           return ret;
 
      ret = response->result;
-     if (ret == DFB_OK)
+     if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IFusionSoundMusicProvider",
                                             response->instance, NULL, &interface );
 
@@ -251,13 +251,13 @@ IFusionSound_Requestor_CreateMusicProvider( IFusionSound               *thiz,
 
      /* Check arguments */
      if (!filename || !ret_interface)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      return IFusionSoundMusicProvider_Create( filename, ret_interface );
 #endif
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Requestor_GetMasterVolume( IFusionSound *thiz, 
                                         float        *level )
 {
@@ -268,7 +268,7 @@ IFusionSound_Requestor_GetMasterVolume( IFusionSound *thiz,
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Requestor)
      
      if (!level)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IFUSIONSOUND_METHOD_ID_GetMasterVolume, VREQ_RESPOND, &response,
@@ -291,7 +291,7 @@ IFusionSound_Requestor_GetMasterVolume( IFusionSound *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Requestor_SetMasterVolume( IFusionSound *thiz, 
                                         float         level )
 {
@@ -314,7 +314,7 @@ IFusionSound_Requestor_SetMasterVolume( IFusionSound *thiz,
      return ret;
 } 
 
-static DFBResult
+static DirectResult
 IFusionSound_Requestor_GetLocalVolume( IFusionSound *thiz, 
                                        float        *level )
 {
@@ -325,7 +325,7 @@ IFusionSound_Requestor_GetLocalVolume( IFusionSound *thiz,
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Requestor)
      
      if (!level)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IFUSIONSOUND_METHOD_ID_GetLocalVolume, VREQ_RESPOND, &response,
@@ -348,7 +348,7 @@ IFusionSound_Requestor_GetLocalVolume( IFusionSound *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Requestor_SetLocalVolume( IFusionSound *thiz, 
                                        float         level )
 {
@@ -371,7 +371,7 @@ IFusionSound_Requestor_SetLocalVolume( IFusionSound *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Requestor_Suspend( IFusionSound *thiz )
 {
      DirectResult           ret;
@@ -392,7 +392,7 @@ IFusionSound_Requestor_Suspend( IFusionSound *thiz )
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Requestor_Resume( IFusionSound *thiz )
 {
      DirectResult           ret;
@@ -415,11 +415,11 @@ IFusionSound_Requestor_Resume( IFusionSound *thiz )
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 Probe()
 {
      /* This implementation has to be loaded explicitly. */
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
 /*
@@ -427,10 +427,10 @@ Probe()
  *
  * Fills in function pointers and intializes data structure.
  */
-static DFBResult
+static DirectResult
 Construct( IFusionSound *thiz, const char *host, int session )
 {
-     DFBResult ret;
+     DirectResult ret;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IFusionSound_Requestor)
 
@@ -464,7 +464,7 @@ Construct( IFusionSound *thiz, const char *host, int session )
      thiz->Suspend              = IFusionSound_Requestor_Suspend;
      thiz->Resume               = IFusionSound_Requestor_Resume;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
      

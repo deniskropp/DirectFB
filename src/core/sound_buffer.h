@@ -75,22 +75,22 @@ FusionObjectPool *fs_buffer_pool_create( const FusionWorld *world );
 FUSION_OBJECT_METHODS( CoreSoundBuffer, fs_buffer )
 
 
-DFBResult fs_buffer_create( CoreSound        *core,
+DirectResult fs_buffer_create( CoreSound        *core,
                             int               length,
                             FSChannelMode     mode,
                             FSSampleFormat    format,
                             int               rate,
                             CoreSoundBuffer **ret_buffer );
 
-DFBResult fs_buffer_lock  ( CoreSoundBuffer  *buffer,
+DirectResult fs_buffer_lock  ( CoreSoundBuffer  *buffer,
                             int               pos,
                             int               length,
                             void            **ret_data,
                             int              *ret_bytes );
 
-DFBResult fs_buffer_unlock( CoreSoundBuffer  *buffer );
+DirectResult fs_buffer_unlock( CoreSoundBuffer  *buffer );
 
-DFBResult fs_buffer_mixto ( CoreSoundBuffer  *buffer,
+DirectResult fs_buffer_mixto ( CoreSoundBuffer  *buffer,
                             __fsf            *dest,
                             int               dest_rate,
                             FSChannelMode     dest_mode,

@@ -124,7 +124,7 @@ oss2fs_format( int format )
      return -1;
 }
 
-static DFBResult
+static DirectResult
 oss_device_set_configuration( int fd, CoreSoundDeviceConfig *config )
 {
      int fmt;
@@ -137,7 +137,7 @@ oss_device_set_configuration( int fd, CoreSoundDeviceConfig *config )
 
      fmt = fs2oss_format( config->format );
      if (fmt == -1)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
      /* set application profile */
 #if defined(SNDCTL_DSP_PROFILE) && defined(APF_NORMAL)
@@ -149,20 +149,20 @@ oss_device_set_configuration( int fd, CoreSoundDeviceConfig *config )
      if (ioctl( fd, SNDCTL_DSP_SETFMT, &fmt ) < 0 || 
          oss2fs_format( fmt ) != config->format) {
           D_ERROR( "FusionSound/Device/OSS: unsupported format!\n" );
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
 
      /* set number of channels */
      if (ioctl( fd, SNDCTL_DSP_CHANNELS, &channels ) < 0 || 
          channels != FS_CHANNELS_FOR_MODE(config->mode)) {
           D_ERROR( "FusionSound/Device/OSS: unsupported channels mode!\n" );
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
      
      /* set sample rate */
      if (ioctl( fd, SNDCTL_DSP_SPEED, &rate ) < 0) {
           D_ERROR( "FusionSound/Device/OSS: unable to set rate to '%d'!\n", config->rate );
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
      
      /* query block size */
@@ -170,18 +170,18 @@ oss_device_set_configuration( int fd, CoreSoundDeviceConfig *config )
      buffersize /= channels * FS_BYTES_PER_SAMPLE(config->format);
      if (buffersize < 1) {
           D_ERROR( "FusionSound/Device/OSS: unable to query block size!\n" );
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
 
      config->rate = rate;
      config->buffersize = buffersize;
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 /******************************************************************************/
 
-static DFBResult
+static DirectResult
 device_probe( void )
 {
      int fd, fmt;
@@ -195,17 +195,17 @@ device_probe( void )
      }
      
      if (fd < 0)
-          return DFB_IO;
+          return DR_IO;
      
      /* issue a generic ioctl to test the device */     
      if (ioctl( fd, SNDCTL_DSP_GETFMTS, &fmt ) < 0) {
           close( fd );
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
           
      close( fd );
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void
@@ -233,7 +233,7 @@ device_get_driver_info( SoundDriverInfo *info )
      info->device_data_size = sizeof(OSSDeviceData);
 }
 
-static DFBResult
+static DirectResult
 device_open( void                  *device_data, 
              SoundDeviceInfo       *device_info,
              CoreSoundDeviceConfig *config )
@@ -241,7 +241,7 @@ device_open( void                  *device_data,
      OSSDeviceData *data = device_data;
      int            mixer_fd;
      audio_buf_info info;
-     DFBResult      ret;
+     DirectResult   ret;
      
      /* open sound device in non-blocking mode */
      if (fs_config->device) {
@@ -254,7 +254,7 @@ device_open( void                  *device_data,
      
      if (data->fd < 0) {
           D_ERROR( "FusionSound/Device/OSS: Couldn't open output device!\n" );
-          return DFB_IO;
+          return DR_IO;
      }
      
      /* reset to blocking mode */
@@ -303,10 +303,10 @@ device_open( void                  *device_data,
           close( mixer_fd );
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 device_get_buffer( void *device_data, u8 **addr, unsigned int *avail )
 {
      OSSDeviceData *data = device_data;
@@ -314,21 +314,21 @@ device_get_buffer( void *device_data, u8 **addr, unsigned int *avail )
      *addr = data->buffer;
      *avail = data->config->buffersize;
      
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 device_commit_buffer( void *device_data, unsigned int frames )
 {
      OSSDeviceData *data = device_data;
      
      if (write( data->fd, data->buffer, frames*data->bytes_per_frame ) < 0) {
-          DFBResult ret = errno2result( errno );
+          DirectResult ret = errno2result( errno );
           D_DERROR( ret, "FusionSound/Device/OSS: couldn't write %d frames!\n", frames );
           return ret;
      }
      
-     return DFB_OK;         
+     return DR_OK;         
 }
 
 static void
@@ -346,7 +346,7 @@ device_get_output_delay( void *device_data, int *delay )
      *delay = (info.fragsize * info.fragstotal - info.bytes) / data->bytes_per_frame;
 }
 
-static DFBResult
+static DirectResult
 device_get_volume( void *device_data, float *level )
 {
      int fd;
@@ -354,22 +354,22 @@ device_get_volume( void *device_data, float *level )
 
      fd = direct_try_open( "/dev/mixer", "/dev/sound/mixer", O_RDONLY, false );
      if (fd < 0)
-          return DFB_IO;
+          return DR_IO;
 
      if (ioctl( fd, SOUND_MIXER_READ_PCM, &vol ) < 0) {
           D_PERROR( "FusionSound/Device/OSS: couldn't get volume level!\n" );
           close( fd );
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
      
      close( fd );
 
      *level = (float)((vol & 0xff) + ((vol >> 8) & 0xff)) / 200.0f;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 device_set_volume( void *device_data, float level )
 {
      int fd;
@@ -377,22 +377,22 @@ device_set_volume( void *device_data, float level )
 
      fd = direct_try_open( "/dev/mixer", "/dev/sound/mixer", O_RDONLY, false );
      if (fd < 0)
-          return DFB_IO;
+          return DR_IO;
 
      vol  = level * 100.0f;
      vol |= vol << 8;
      if (ioctl( fd, SOUND_MIXER_WRITE_PCM, &vol ) < 0) {
           D_PERROR( "FusionSound/Device/OSS: couldn't set volume level!\n" );
           close( fd );
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
      
      close( fd );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 device_suspend( void *device_data )
 {
      OSSDeviceData *data = device_data;
@@ -401,21 +401,21 @@ device_suspend( void *device_data )
      close( data->fd );
      data->fd = -1;
      
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 device_resume( void *device_data )
 {
      OSSDeviceData *data = device_data;
-     DFBResult      ret;
+     DirectResult   ret;
      
      data->fd = (fs_config->device)
                 ? open( fs_config->device, O_WRONLY )
                 : direct_try_open( "/dev/dsp", "/dev/sound/dsp", O_WRONLY, false );
      if (data->fd < 0) {
           D_ERROR( "FusionSound/Device/OSS: Couldn't reopen output device!\n" );
-          return DFB_IO;
+          return DR_IO;
      }
      
      ret = oss_device_set_configuration( data->fd, data->config );
@@ -427,7 +427,7 @@ device_resume( void *device_data )
 
      fcntl( data->fd, F_SETFD, FD_CLOEXEC );
      
-     return DFB_OK;
+     return DR_OK;
 }  
 
 static void

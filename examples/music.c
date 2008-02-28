@@ -56,7 +56,7 @@ cleanup( int s )
      exit( s );
 }
 
-static DFBEnumerationResult
+static DirectEnumerationResult
 track_display_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
 {
      printf( "  Track %2d: %s - %s\n", id,
@@ -66,10 +66,10 @@ track_display_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
      return DFENUM_OK;
 }
 
-static DFBEnumerationResult
+static DirectEnumerationResult
 track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
 {
-     DFBResult             ret;
+     DirectResult          ret;
      FSMusicProviderStatus status = FMSTATE_UNKNOWN;
      double                len    = 0;
      static int            flags  = FMPLAY_NOFX;
@@ -220,7 +220,7 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
 int
 main( int argc, char *argv[] )
 {
-     DFBResult ret;
+     DirectResult ret;
 
      ret = FusionSoundInit( &argc, &argv );
      if (ret)

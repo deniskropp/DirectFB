@@ -36,9 +36,9 @@
 #include <direct/interface.h>
 
 
-static DFBResult Probe( void *arg );
+static DirectResult Probe( void *arg );
 
-static DFBResult Construct( IFusionSound *thiz, void *arg );
+static DirectResult Construct( IFusionSound *thiz, void *arg );
 
 #include <direct/interface_implementation.h>
 
@@ -47,17 +47,17 @@ DIRECT_INTERFACE_IMPLEMENTATION( IFusionSound, default )
 
 /* exported symbols */
 
-static DFBResult
+static DirectResult
 Probe( void *arg )
 {
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 Construct( IFusionSound *thiz,
            void         *arg )
 {
-     DFBResult ret;
+     DirectResult ret;
      
      ret = FusionSoundInit( NULL, NULL );
      if (ret) {

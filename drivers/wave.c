@@ -85,7 +85,7 @@ typedef struct {
 /******************************************************************************/
 
 
-static DFBResult
+static DirectResult
 device_probe( void )
 {
      int  fd;
@@ -93,7 +93,7 @@ device_probe( void )
 
      /* load only when requested */
      if (!fs_config->driver)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
      if (fs_config->device) {
           snprintf( path, sizeof(path), "%s", fs_config->device );
@@ -105,11 +105,11 @@ device_probe( void )
 
      fd = open( path, O_WRONLY | O_CREAT | O_NOCTTY | O_NONBLOCK, 0644 );
      if (fd < 0)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
      close( fd );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void
@@ -137,7 +137,7 @@ device_get_driver_info( SoundDriverInfo *info )
      info->device_data_size = sizeof(WaveDeviceData);
 }
 
-static DFBResult
+static DirectResult
 device_open( void                  *device_data,
              SoundDeviceInfo       *device_info,
              CoreSoundDeviceConfig *config )
@@ -147,7 +147,7 @@ device_open( void                  *device_data,
      char            path[4096];
 
      if (config->format == FSSF_FLOAT)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
      if (fs_config->device) {
           snprintf( path, sizeof(path), "%s", fs_config->device );
@@ -161,7 +161,7 @@ device_open( void                  *device_data,
      if (data->fd < 0) {
           D_ERROR( "FusionSound/Device/Wave: "
                    "couldn't open '%s' for writing!\n", path );
-          return DFB_IO;
+          return DR_IO;
      }
 
      /* close file descriptor on exec */
@@ -222,16 +222,16 @@ device_open( void                  *device_data,
 
      if (write( data->fd, &header, sizeof(header) ) < sizeof(header)) {
           D_ERROR( "FusionSound/Device/Wave: write error!\n" );
-          return DFB_IO;
+          return DR_IO;
      }
 
      data->bits = FS_BITS_PER_SAMPLE(config->format);
      data->channels = FS_CHANNELS_FOR_MODE(config->mode);
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 device_get_buffer( void *device_data, u8 **addr, unsigned int *avail )
 {
      WaveDeviceData *data = device_data;
@@ -239,10 +239,10 @@ device_get_buffer( void *device_data, u8 **addr, unsigned int *avail )
      *addr = data->buffer;
      *avail = data->buffersize;
      
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 device_commit_buffer( void *device_data, unsigned int frames )
 {
      WaveDeviceData *data = device_data;
@@ -274,7 +274,7 @@ device_commit_buffer( void *device_data, unsigned int frames )
 
      write( data->fd, buf, frames * data->channels * data->bits >> 3 );
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void
@@ -283,19 +283,19 @@ device_get_output_delay( void *device_data, int *delay )
      *delay = 0;
 }
 
-static DFBResult
+static DirectResult
 device_get_volume( void *device_data, float *level )
 {
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
-static DFBResult
+static DirectResult
 device_set_volume( void *device_data, float level )
 {
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
-static DFBResult
+static DirectResult
 device_suspend( void *device_data )
 {
      WaveDeviceData *data = device_data;
@@ -306,10 +306,10 @@ device_suspend( void *device_data )
           data->fd = -1;
      }
      
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 device_resume( void *device_data )
 {
      WaveDeviceData *data = device_data;
@@ -327,13 +327,13 @@ device_resume( void *device_data )
           data->fd = open( path, O_WRONLY | O_APPEND | O_NOCTTY );
           if (data->fd < 0) {
                D_ERROR( "FusionSound/Device/Wave: couldn't reopen '%s'!\n", path );
-               return DFB_IO;
+               return DR_IO;
           }
 
           fcntl( data->fd, F_SETFD, FD_CLOEXEC );
      }
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void

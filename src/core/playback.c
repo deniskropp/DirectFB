@@ -97,7 +97,7 @@ fs_playback_pool_create( const FusionWorld *world )
 
 /******************************************************************************/
 
-DFBResult
+DirectResult
 fs_playback_create( CoreSound        *core,
                     CoreSoundBuffer  *buffer,
                     bool              notify,
@@ -115,12 +115,12 @@ fs_playback_create( CoreSound        *core,
      /* Create playback object. */
      playback = fs_core_create_playback( core );
      if (!playback)
-          return DFB_FUSION;
+          return DR_FUSION;
 
      /* Link buffer to playback object. */
      if (fs_buffer_link( &playback->buffer, buffer )) {
           fusion_object_destroy( &playback->object );
-          return DFB_FUSION;
+          return DR_FUSION;
      }
      
      fusion_skirmish_init( &playback->lock, "FusionSound Playback", fs_core_world(core) );
@@ -151,20 +151,20 @@ fs_playback_create( CoreSound        *core,
      /* Return playback object. */
      *ret_playback = playback;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-DFBResult
+DirectResult
 fs_playback_enable( CorePlayback *playback )
 {
-     DFBResult ret = DFB_OK;
+     DirectResult ret = DR_OK;
 
      D_ASSERT( playback != NULL );
      D_ASSERT( playback->buffer != NULL );
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
-          return DFB_FUSION;
+          return DR_FUSION;
 
      /* Enable playback. */
      playback->disabled = false;
@@ -175,22 +175,22 @@ fs_playback_enable( CorePlayback *playback )
      return ret;
 }
 
-DFBResult
+DirectResult
 fs_playback_start( CorePlayback *playback, bool enable )
 {
-     DFBResult ret = DFB_OK;
+     DirectResult ret = DR_OK;
 
      D_ASSERT( playback != NULL );
      D_ASSERT( playback->buffer != NULL );
 
      /* Lock playlist. */
      if (fs_core_playlist_lock( playback->core ))
-          return DFB_FUSION;
+          return DR_FUSION;
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock )) {
           fs_core_playlist_unlock( playback->core );
-          return DFB_FUSION;
+          return DR_FUSION;
      }
 
      /* If the playback is disabled, it won't begin to play. */
@@ -200,13 +200,13 @@ fs_playback_start( CorePlayback *playback, bool enable )
      /* Start the playback if it's not running already. */
      if (!playback->running) {
           if (playback->disabled) {
-               ret = DFB_TEMPUNAVAIL;
+               ret = DR_TEMPUNAVAIL;
           }
           else {
                ret = fs_core_add_playback( playback->core, playback );
 
                /* Notify listeners about the start of the playback. */
-               if (ret == DFB_OK)
+               if (ret == DR_OK)
                     fs_playback_notify( playback, CPNF_START, 0 );
           }
      }
@@ -220,19 +220,19 @@ fs_playback_start( CorePlayback *playback, bool enable )
      return ret;
 }
 
-DFBResult
+DirectResult
 fs_playback_stop( CorePlayback *playback, bool disable )
 {
      D_ASSERT( playback != NULL );
 
      /* Lock playlist. */
      if (fs_core_playlist_lock( playback->core ))
-          return DFB_FUSION;
+          return DR_FUSION;
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock )) {
           fs_core_playlist_unlock( playback->core );
-          return DFB_FUSION;
+          return DR_FUSION;
      }
 
      /* Stop the playback if it's running. */
@@ -253,10 +253,10 @@ fs_playback_stop( CorePlayback *playback, bool disable )
      /* Unlock playlist. */
      fs_core_playlist_unlock( playback->core );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-DFBResult
+DirectResult
 fs_playback_set_stop( CorePlayback *playback,
                       int           stop )
 {
@@ -266,7 +266,7 @@ fs_playback_set_stop( CorePlayback *playback,
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
-          return DFB_FUSION;
+          return DR_FUSION;
 
      /* Adjust stop position. */
      playback->stop = stop;
@@ -274,10 +274,10 @@ fs_playback_set_stop( CorePlayback *playback,
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-DFBResult
+DirectResult
 fs_playback_set_position( CorePlayback *playback,
                           int           position )
 {
@@ -288,7 +288,7 @@ fs_playback_set_position( CorePlayback *playback,
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
-          return DFB_FUSION;
+          return DR_FUSION;
 
      /* Adjust the playback position. */
      playback->position = position;
@@ -296,10 +296,10 @@ fs_playback_set_position( CorePlayback *playback,
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-DFBResult
+DirectResult
 fs_playback_set_downmix( CorePlayback *playback,
                          float         center,
                          float         rear )
@@ -315,7 +315,7 @@ fs_playback_set_downmix( CorePlayback *playback,
      
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
-          return DFB_FUSION;
+          return DR_FUSION;
           
      buffer = playback->buffer;
      config = fs_core_device_config( playback->core );
@@ -335,10 +335,10 @@ fs_playback_set_downmix( CorePlayback *playback,
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
      
-     return DFB_OK;
+     return DR_OK;
 }
 
-DFBResult
+DirectResult
 fs_playback_set_volume( CorePlayback *playback,
                         float         levels[6] )
 {
@@ -352,7 +352,7 @@ fs_playback_set_volume( CorePlayback *playback,
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
-          return DFB_FUSION;
+          return DR_FUSION;
 
      /* Adjust volume. */
      for (i = 0; i < 6; i++)
@@ -370,10 +370,10 @@ fs_playback_set_volume( CorePlayback *playback,
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-DFBResult
+DirectResult
 fs_playback_set_local_volume( CorePlayback *playback,
                               float         level )
 {
@@ -383,7 +383,7 @@ fs_playback_set_local_volume( CorePlayback *playback,
      
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
-          return DFB_FUSION;
+          return DR_FUSION;
           
      /* Set local volume level. */
      playback->volume = fsf_from_float( level );
@@ -391,10 +391,10 @@ fs_playback_set_local_volume( CorePlayback *playback,
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }    
 
-DFBResult
+DirectResult
 fs_playback_set_pitch( CorePlayback *playback,
                        int           pitch )
 {
@@ -404,7 +404,7 @@ fs_playback_set_pitch( CorePlayback *playback,
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
-          return DFB_FUSION;
+          return DR_FUSION;
 
      /* Adjust pitch. */
      playback->pitch = pitch;
@@ -412,10 +412,10 @@ fs_playback_set_pitch( CorePlayback *playback,
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-DFBResult
+DirectResult
 fs_playback_get_status( CorePlayback       *playback,
                         CorePlaybackStatus *ret_status,
                         int                *ret_position )
@@ -424,7 +424,7 @@ fs_playback_get_status( CorePlayback       *playback,
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
-          return DFB_FUSION;
+          return DR_FUSION;
 
      /* Return status. */
      if (ret_status) {
@@ -447,12 +447,12 @@ fs_playback_get_status( CorePlayback       *playback,
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /******************************************************************************/
 
-DFBResult
+DirectResult
 fs_playback_mixto( CorePlayback *playback,
                    __fsf        *dest,
                    int           dest_rate,
@@ -461,7 +461,7 @@ fs_playback_mixto( CorePlayback *playback,
                    __fsf         volume,
                    int          *ret_samples)
 {
-     DFBResult ret;
+     DirectResult ret;
      int       pos;
      int       num;
      __fsf    *levels;
@@ -474,7 +474,7 @@ fs_playback_mixto( CorePlayback *playback,
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
-          return DFB_FUSION;
+          return DR_FUSION;
           
      if (volume != FSF_ONE || playback->volume != FSF_ONE) {
           levels = alloca( 6 * sizeof(__fsf) ); 

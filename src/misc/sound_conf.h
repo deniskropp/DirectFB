@@ -69,12 +69,12 @@ extern FSConfig *fs_config;
  * for overrides. Options identified as FusionSound options are stripped out
  * of the array.
  */
-DFBResult fs_config_init( int *argc, char **argv[] );
+DirectResult fs_config_init( int *argc, char **argv[] );
 
 /*
  * Set indiviual option. Used by config_init(), and FusionSoundSetOption()
  */
-DFBResult fs_config_set( const char *name, const char *value );
+DirectResult fs_config_set( const char *name, const char *value );
 
 const char *fs_config_usage( void );
 

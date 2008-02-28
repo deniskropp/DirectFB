@@ -94,23 +94,23 @@ typedef struct {
 
 /* Device funcs. */
 typedef struct {
-     DFBResult (*Probe)            ( void );
+     DirectResult (*Probe)            ( void );
      
      /* Get device driver information. */
      void      (*GetDriverInfo)    ( SoundDriverInfo       *info);
 
      /* Open the device, get device information and apply given configuration. */
-     DFBResult (*OpenDevice)       ( void                  *device_data,
+     DirectResult (*OpenDevice)       ( void                  *device_data,
                                      SoundDeviceInfo       *device_info,
                                      CoreSoundDeviceConfig *config );
      
      /* Begin access to the ring buffer, return buffer pointer and available frames. */
-     DFBResult (*GetBuffer)        ( void                  *device_data,
+     DirectResult (*GetBuffer)        ( void                  *device_data,
                                      u8                   **addr,
                                      unsigned int          *avail );
      
      /* Finish access to the ring buffer, commit specified amout of frames. */
-     DFBResult (*CommitBuffer)     ( void                  *device_data,
+     DirectResult (*CommitBuffer)     ( void                  *device_data,
                                      unsigned int           frames );
      
      /* Get output delay in frames. */                             
@@ -118,25 +118,25 @@ typedef struct {
                                      int                   *delay );
                                      
      /* Get volume level */
-     DFBResult (*GetVolume)        ( void                  *device_data,
+     DirectResult (*GetVolume)        ( void                  *device_data,
                                      float                 *level );
                                      
      /* Set volume level */
-     DFBResult (*SetVolume)        ( void                  *device_data,
+     DirectResult (*SetVolume)        ( void                  *device_data,
                                      float                  level );
                                      
      /* Suspend the device */
-     DFBResult (*Suspend)          ( void                  *device_data );
+     DirectResult (*Suspend)          ( void                  *device_data );
      
      /* Resume the device */
-     DFBResult (*Resume)           ( void                  *device_data );
+     DirectResult (*Resume)           ( void                  *device_data );
      
      /* Close device. */
      void      (*CloseDevice)      ( void                  *device_data );
 } SoundDriverFuncs;
      
      
-DFBResult fs_device_initialize( CoreSound              *core, 
+DirectResult fs_device_initialize( CoreSound              *core, 
                                 CoreSoundDeviceConfig  *config,
                                 CoreSoundDevice       **ret_device );
 void      fs_device_shutdown  ( CoreSoundDevice        *device );
@@ -147,20 +147,20 @@ void      fs_device_get_description( CoreSoundDevice     *device,
 DeviceCapabilities 
           fs_device_get_capabilities( CoreSoundDevice *device );
                                                                                                           
-DFBResult fs_device_get_buffer( CoreSoundDevice  *device, 
+DirectResult fs_device_get_buffer( CoreSoundDevice  *device, 
                                 u8              **addr,
                                 unsigned int     *avail );
 
-DFBResult fs_device_commit_buffer( CoreSoundDevice *device, unsigned int frames );
+DirectResult fs_device_commit_buffer( CoreSoundDevice *device, unsigned int frames );
                            
 void      fs_device_get_output_delay( CoreSoundDevice *device, int *delay );
 
-DFBResult fs_device_get_volume( CoreSoundDevice *device, float *level );
+DirectResult fs_device_get_volume( CoreSoundDevice *device, float *level );
 
-DFBResult fs_device_set_volume( CoreSoundDevice *device, float  level );
+DirectResult fs_device_set_volume( CoreSoundDevice *device, float  level );
 
-DFBResult fs_device_suspend( CoreSoundDevice *device );
+DirectResult fs_device_suspend( CoreSoundDevice *device );
 
-DFBResult fs_device_resume( CoreSoundDevice *device );
+DirectResult fs_device_resume( CoreSoundDevice *device );
                    
 #endif                                   

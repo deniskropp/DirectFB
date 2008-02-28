@@ -40,8 +40,8 @@
 /*
  * Core initialization and deinitialization
  */
-DFBResult fs_core_create ( CoreSound **ret_core );
-DFBResult fs_core_destroy( CoreSound  *core, bool emergency );
+DirectResult fs_core_create ( CoreSound **ret_core );
+DirectResult fs_core_destroy( CoreSound  *core, bool emergency );
 
 /*
  * Object creation
@@ -52,12 +52,12 @@ CorePlayback    *fs_core_create_playback( CoreSound *core );
 /*
  * Object enumeration
  */
-DirectResult     fs_core_enum_buffers   ( CoreSound            *core,
-                                          FusionObjectCallback  callback,
-                                          void                 *ctx );
-DirectResult     fs_core_enum_playbacks ( CoreSound            *core,
-                                          FusionObjectCallback  callback,
-                                          void                 *ctx );
+DirectResult fs_core_enum_buffers   ( CoreSound            *core,
+                                      FusionObjectCallback  callback,
+                                      void                 *ctx );
+DirectResult fs_core_enum_playbacks ( CoreSound            *core,
+                                      FusionObjectCallback  callback,
+                                      void                 *ctx );
 
 /*
  * Playback list management
@@ -65,11 +65,11 @@ DirectResult     fs_core_enum_playbacks ( CoreSound            *core,
 DirectResult fs_core_playlist_lock  ( CoreSound *core );
 DirectResult fs_core_playlist_unlock( CoreSound *core );
 
-DFBResult fs_core_add_playback   ( CoreSound    *core,
-                                   CorePlayback *playback );
+DirectResult fs_core_add_playback   ( CoreSound    *core,
+                                      CorePlayback *playback );
 
-DFBResult fs_core_remove_playback( CoreSound    *core,
-                                   CorePlayback *playback );
+DirectResult fs_core_remove_playback( CoreSound    *core,
+                                      CorePlayback *playback );
 
 /*
  * Returns the amount of audio data buffered by the device in ms.
@@ -99,32 +99,32 @@ CoreSoundDeviceConfig *fs_core_device_config( CoreSound *core );
 /*
  * Returns the master volume.
  */
-DFBResult fs_core_get_master_volume( CoreSound *core, float *level );
+DirectResult fs_core_get_master_volume( CoreSound *core, float *level );
 
 /*
  * Sets the master volume.
  */
-DFBResult fs_core_set_master_volume( CoreSound *core, float level );
+DirectResult fs_core_set_master_volume( CoreSound *core, float level );
 
 /*
  * Returns the local volume.
  */
-DFBResult fs_core_get_local_volume( CoreSound *core, float *level );
+DirectResult fs_core_get_local_volume( CoreSound *core, float *level );
 
 /*
  * Sets the local volume.
  */
-DFBResult fs_core_set_local_volume( CoreSound *core, float level );
+DirectResult fs_core_set_local_volume( CoreSound *core, float level );
 
 /*
  * Suspends playback.
  */
-DFBResult fs_core_suspend( CoreSound *core );
+DirectResult fs_core_suspend( CoreSound *core );
 
 /*
  * Resumes playback.
  */
-DFBResult fs_core_resume( CoreSound *core );
+DirectResult fs_core_resume( CoreSound *core );
 
 
 #endif

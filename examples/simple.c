@@ -12,7 +12,7 @@
 
 int main (int argc, char *argv[])
 {
-     DFBResult            ret;
+     DirectResult         ret;
      IFusionSound        *sound;
      IFusionSoundBuffer  *buffer;
 

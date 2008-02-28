@@ -66,7 +66,7 @@ fs_buffer_pool_create( const FusionWorld *world )
 
 /******************************************************************************/
 
-DFBResult
+DirectResult
 fs_buffer_create( CoreSound        *core,
                   int               length,
                   FSChannelMode     mode,
@@ -96,12 +96,12 @@ fs_buffer_create( CoreSound        *core,
 
      buffer = fs_core_create_buffer( core );
      if (!buffer)
-          return DFB_FUSION;
+          return DR_FUSION;
 
      buffer->data = SHMALLOC( pool, length * bytes * channels );
      if (!buffer->data) {
           fusion_object_destroy( &buffer->object );
-          return DFB_NOSYSTEMMEMORY;
+          return DR_NOLOCALMEMORY;
      }
 
      buffer->length  = length;
@@ -115,10 +115,10 @@ fs_buffer_create( CoreSound        *core,
 
      *ret_buffer = buffer;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-DFBResult
+DirectResult
 fs_buffer_lock( CoreSoundBuffer  *buffer,
                 int               pos,
                 int               length,
@@ -142,17 +142,17 @@ fs_buffer_lock( CoreSoundBuffer  *buffer,
      *ret_data  = buffer->data + buffer->bytes * pos;
      *ret_bytes = buffer->bytes * length;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-DFBResult
+DirectResult
 fs_buffer_unlock( CoreSoundBuffer *buffer )
 {
      D_ASSERT( buffer != NULL );
 
      D_DEBUG( "FusionSound/Core: %s (%p)\n", __FUNCTION__, buffer );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /******************************************************************************/
@@ -299,7 +299,7 @@ static const SoundMXFunc MIX_RW[FS_NUM_SAMPLEFORMATS][FS_MAX_CHANNELS] = {
 };
 
 
-DFBResult
+DirectResult
 fs_buffer_mixto( CoreSoundBuffer *buffer,
                  __fsf           *dest,
                  int              dest_rate,
@@ -405,6 +405,6 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
      D_DEBUG( "FusionSound/Core: %s ... mixed %d (%d/%d).\n",
               __FUNCTION__, ABS(num), len, max_frames ); 
 
-     return last ? DFB_BUFFEREMPTY : DFB_OK;
+     return last ? DR_BUFFEREMPTY : DR_OK;
 }
 

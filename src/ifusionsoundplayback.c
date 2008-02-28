@@ -63,7 +63,7 @@ typedef struct {
 static ReactionResult IFusionSoundPlayback_React( const void *msg_data,
                                                   void       *ctx );
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_UpdateVolume( IFusionSoundPlayback_data* data );
 
 /******/
@@ -88,17 +88,17 @@ IFusionSoundPlayback_Destruct( IFusionSoundPlayback *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_AddRef( IFusionSoundPlayback *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_Release( IFusionSoundPlayback *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
@@ -106,10 +106,10 @@ IFusionSoundPlayback_Release( IFusionSoundPlayback *thiz )
      if (--data->ref == 0)
           IFusionSoundPlayback_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_Start( IFusionSoundPlayback *thiz,
                             int                   start,
                             int                   stop )
@@ -120,13 +120,13 @@ IFusionSoundPlayback_Start( IFusionSoundPlayback *thiz,
               __FUNCTION__, data->playback, start, stop );
 
      if (data->stream)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
      if (start < 0 || start >= data->length)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      if (stop >= data->length)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      pthread_mutex_lock( &data->lock );
 
@@ -136,10 +136,10 @@ IFusionSoundPlayback_Start( IFusionSoundPlayback *thiz,
 
      pthread_mutex_unlock( &data->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_Stop( IFusionSoundPlayback *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
@@ -149,7 +149,7 @@ IFusionSoundPlayback_Stop( IFusionSoundPlayback *thiz )
      return fs_playback_stop( data->playback, false );
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_Continue( IFusionSoundPlayback *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
@@ -159,10 +159,10 @@ IFusionSoundPlayback_Continue( IFusionSoundPlayback *thiz )
      return fs_playback_start( data->playback, false );
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_Wait( IFusionSoundPlayback *thiz )
 {
-     DFBResult ret;
+     DirectResult ret;
 
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
 
@@ -179,7 +179,7 @@ IFusionSoundPlayback_Wait( IFusionSoundPlayback *thiz )
 
           if (status & CPS_PLAYING) {
                if (status & CPS_LOOPING) {
-                    ret = DFB_UNSUPPORTED;
+                    ret = DR_UNSUPPORTED;
                     break;
                }
                else {
@@ -197,12 +197,12 @@ IFusionSoundPlayback_Wait( IFusionSoundPlayback *thiz )
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_GetStatus( IFusionSoundPlayback *thiz,
-                                DFBBoolean           *ret_playing,
+                                bool                 *ret_playing,
                                 int                  *ret_position )
 {
-     DFBResult          ret;
+     DirectResult       ret;
      CorePlaybackStatus status;
      int                position;
 
@@ -215,15 +215,15 @@ IFusionSoundPlayback_GetStatus( IFusionSoundPlayback *thiz,
           return ret;
 
      if (ret_playing)
-          *ret_playing = (status & CPS_PLAYING) ? DFB_TRUE : DFB_FALSE;
+          *ret_playing = !!(status & CPS_PLAYING);
 
      if (ret_position)
           *ret_position = position;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_SetVolume( IFusionSoundPlayback *thiz,
                                 float                 level )
 {
@@ -232,17 +232,17 @@ IFusionSoundPlayback_SetVolume( IFusionSoundPlayback *thiz,
      D_DEBUG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, level );
 
      if (level < 0.0f)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      if (level > 64.0f)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
      data->volume = level;
 
      return IFusionSoundPlayback_UpdateVolume( data );
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_SetPan( IFusionSoundPlayback *thiz,
                              float                 value )
 {
@@ -251,14 +251,14 @@ IFusionSoundPlayback_SetPan( IFusionSoundPlayback *thiz,
      D_DEBUG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, value );
 
      if (value < -1.0f || value > 1.0f)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      data->pan = value;
 
      return IFusionSoundPlayback_UpdateVolume( data );
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_SetPitch( IFusionSoundPlayback *thiz,
                                float                 value )
 {
@@ -267,19 +267,19 @@ IFusionSoundPlayback_SetPitch( IFusionSoundPlayback *thiz,
      D_DEBUG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, value );
 
      if (value < 0.0f)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      if (value > 64.0f)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
           
      data->pitch = (value * FS_PITCH_ONE + 0.5f);
 
      fs_playback_set_pitch( data->playback, data->pitch*data->dir );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_SetDirection( IFusionSoundPlayback *thiz,
                                    FSPlaybackDirection   direction )
 {
@@ -293,30 +293,30 @@ IFusionSoundPlayback_SetDirection( IFusionSoundPlayback *thiz,
                data->dir = direction;
                break;
           default:
-               return DFB_INVARG;
+               return DR_INVARG;
      }
      
      fs_playback_set_pitch( data->playback, data->pitch*data->dir );
      
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_SetDownmixLevels( IFusionSoundPlayback *thiz,
                                        float                 center,
                                        float                 rear )
 {
-     DFBResult ret;
+     DirectResult ret;
      
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
      
      D_DEBUG( "%s (%p, %.3f, %.3f)\n", __FUNCTION__, data->playback, center, rear );
      
      if (center < 0.0f || center > 1.0f)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      if (rear < 0.0f || rear > 1.0f)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      ret = fs_playback_set_downmix( data->playback, center, rear );
      if (ret)
@@ -327,7 +327,7 @@ IFusionSoundPlayback_SetDownmixLevels( IFusionSoundPlayback *thiz,
 
 /******/
 
-DFBResult
+DirectResult
 IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
                                 CorePlayback         *playback,
                                 int                   length )
@@ -338,7 +338,7 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
      if (fs_playback_ref( playback )) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
 
-          return DFB_FUSION;
+          return DR_FUSION;
      }
 
      /* Attach our listener to the playback. */
@@ -349,7 +349,7 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
 
           DIRECT_DEALLOCATE_INTERFACE( thiz );
 
-          return DFB_FUSION;
+          return DR_FUSION;
      }
 
      /* Initialize private data. */
@@ -382,7 +382,7 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
      thiz->SetDirection     = IFusionSoundPlayback_SetDirection;
      thiz->SetDownmixLevels = IFusionSoundPlayback_SetDownmixLevels;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /******/
@@ -410,7 +410,7 @@ IFusionSoundPlayback_React( const void *msg_data,
      return RS_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_UpdateVolume( IFusionSoundPlayback_data* data )
 {
                        /* L     R     C     Rl    Rr   LFE  */

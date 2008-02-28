@@ -51,10 +51,10 @@
 # include <vorbis/vorbisfile.h>
 #endif
 
-static DFBResult
+static DirectResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx );
 
-static DFBResult
+static DirectResult
 Construct( IFusionSoundMusicProvider *thiz,
            const char                *filename,
            DirectStream              *stream );
@@ -442,7 +442,7 @@ ov_read_callback( void *dst, size_t size, size_t nmemb, void *ctx )
           if (ret) {
                memset( dst+length, 0, total-length );
                if (!length)
-                    return (ret == DFB_EOF) ? 0 : -1;
+                    return (ret == DR_EOF) ? 0 : -1;
                break;
           }
           length += read;
@@ -456,7 +456,7 @@ ov_seek_callback( void *ctx, ogg_int64_t offset, int whence )
 {
      DirectStream *stream = ctx;
      unsigned int  pos    = 0;
-     DirectResult  ret    = DFB_UNSUPPORTED;
+     DirectResult  ret    = DR_UNSUPPORTED;
 
      if (!direct_stream_seekable( stream ) || direct_stream_remote( stream ))
           return -1;
@@ -560,17 +560,17 @@ IFusionSoundMusicProvider_Vorbis_Destruct( IFusionSoundMusicProvider *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Vorbis_AddRef( IFusionSoundMusicProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Vorbis_Release( IFusionSoundMusicProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
@@ -578,17 +578,17 @@ IFusionSoundMusicProvider_Vorbis_Release( IFusionSoundMusicProvider *thiz )
      if (--data->ref == 0)
           IFusionSoundMusicProvider_Vorbis_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Vorbis_GetCapabilities( IFusionSoundMusicProvider   *thiz,
                                                   FSMusicProviderCapabilities *caps )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
 
      if (!caps)
-          return DFB_INVARG;
+          return DR_INVARG;
 
 #ifdef USE_TREMOR
      *caps = FMCAPS_BASIC;
@@ -598,7 +598,7 @@ IFusionSoundMusicProvider_Vorbis_GetCapabilities( IFusionSoundMusicProvider   *t
      if (direct_stream_seekable( data->stream ))
           *caps |= FMCAPS_SEEK;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static inline float
@@ -685,28 +685,28 @@ vorbis_get_metadata( OggVorbis_File     *vf,
           desc->replaygain_album = vorbis_compute_gain( album_gain, album_peak );
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Vorbis_GetTrackDescription( IFusionSoundMusicProvider *thiz,
                                                       FSTrackDescription        *desc )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
 
      if (!desc)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      vorbis_get_metadata( &data->vf, desc );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Vorbis_GetStreamDescription( IFusionSoundMusicProvider *thiz,
                                                        FSStreamDescription       *desc )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
 
      if (!desc)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      desc->flags        = FSSDF_SAMPLERATE   | FSSDF_CHANNELS  |
                           FSSDF_SAMPLEFORMAT | FSSDF_BUFFERSIZE;
@@ -719,17 +719,17 @@ IFusionSoundMusicProvider_Vorbis_GetStreamDescription( IFusionSoundMusicProvider
 #endif
      desc->buffersize   = desc->samplerate/8;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Vorbis_GetBufferDescription( IFusionSoundMusicProvider *thiz,
                                                        FSBufferDescription       *desc )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
 
      if (!desc)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      desc->flags        = FSBDF_SAMPLERATE   | FSBDF_CHANNELS |
                           FSBDF_SAMPLEFORMAT | FSBDF_LENGTH;
@@ -742,7 +742,7 @@ IFusionSoundMusicProvider_Vorbis_GetBufferDescription( IFusionSoundMusicProvider
 #endif
      desc->length       = MIN(ov_pcm_total( &data->vf, -1 ), FS_MAX_FRAMES);
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void*
@@ -818,7 +818,7 @@ VorbisStreamThread( DirectThread *thread, void *ctx )
      return NULL;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
                                                IFusionSoundStream        *destination )
 {
@@ -827,21 +827,21 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
 
      if (!destination)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      if (data->dest.stream == destination)
-          return DFB_OK;
+          return DR_OK;
 
      destination->GetDescription( destination, &desc );
 
      /* check if destination samplerate is supported */
 #ifdef USE_TREMOR
      if (desc.samplerate != data->info->rate)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 #else
      if (desc.samplerate != data->info->rate &&
          desc.samplerate != data->info->rate/2)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 #endif
 
      /* check if destination format is supported */
@@ -853,7 +853,7 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
           case FSSF_FLOAT:
                break;
           default:
-               return DFB_UNSUPPORTED;
+               return DR_UNSUPPORTED;
      }
      
      /* check if destination mode is supported */
@@ -873,7 +873,7 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
           case FSCM_SURROUND51:
                break;
           default:
-               return DFB_UNSUPPORTED;
+               return DR_UNSUPPORTED;
      }
 
      pthread_mutex_lock( &data->lock );
@@ -884,7 +884,7 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
      if (desc.samplerate == data->info->rate/2) {
           if (ov_halfrate( &data->vf, 1 )) {
                pthread_mutex_unlock( &data->lock );
-               return DFB_UNSUPPORTED;
+               return DR_UNSUPPORTED;
           }
      } else {
           ov_halfrate( &data->vf, 0 );
@@ -915,7 +915,7 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
 
      pthread_mutex_unlock( &data->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void*
@@ -947,7 +947,7 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
                break;
           }
 
-          if (buffer->Lock( buffer, (void*)&dst, &size, 0 ) != DFB_OK) {
+          if (buffer->Lock( buffer, (void*)&dst, &size, 0 ) != DR_OK) {
                D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
                         "Couldn't lock buffer!\n" );
                pthread_mutex_unlock( &data->lock );
@@ -1005,7 +1005,7 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
      return NULL;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
                                                IFusionSoundBuffer        *destination,
                                                FMBufferCallback           callback,
@@ -1016,21 +1016,21 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
 
      if (!destination)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      if (data->dest.buffer == destination)
-          return DFB_OK;
+          return DR_OK;
 
      destination->GetDescription( destination, &desc );
 
      /* check if destination samplerate is supported */
 #ifdef USE_TREMOR
      if (desc.samplerate != data->info->rate)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 #else
      if (desc.samplerate != data->info->rate &&
          desc.samplerate != data->info->rate/2)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 #endif
 
      /* check if destination format is supported */
@@ -1042,7 +1042,7 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           case FSSF_FLOAT:
                break;
           default:
-               return DFB_UNSUPPORTED;
+               return DR_UNSUPPORTED;
      }
      
      /* check if destination mode is supported */
@@ -1062,7 +1062,7 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           case FSCM_SURROUND51:
                break;
           default:
-               return DFB_UNSUPPORTED;
+               return DR_UNSUPPORTED;
      }
 
      pthread_mutex_lock( &data->lock );
@@ -1073,7 +1073,7 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      if (desc.samplerate == data->info->rate/2) {
           if (ov_halfrate( &data->vf, 1 )) {
                pthread_mutex_unlock( &data->lock );
-               return DFB_UNSUPPORTED;
+               return DR_UNSUPPORTED;
           }
      } else {
           ov_halfrate( &data->vf, 0 );
@@ -1108,10 +1108,10 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
 
      pthread_mutex_unlock( &data->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Vorbis_Stop( IFusionSoundMusicProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
@@ -1124,33 +1124,33 @@ IFusionSoundMusicProvider_Vorbis_Stop( IFusionSoundMusicProvider *thiz )
 
      pthread_mutex_unlock( &data->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Vorbis_GetStatus( IFusionSoundMusicProvider *thiz,
                                             FSMusicProviderStatus     *status )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
 
      if (!status)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      *status = data->status;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Vorbis_SeekTo( IFusionSoundMusicProvider *thiz,
                                          double                     seconds )
 {
-     DFBResult ret = DFB_OK;
+     DirectResult ret = DR_OK;
 
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
 
      if (seconds < 0.0)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      pthread_mutex_lock( &data->lock );
 
@@ -1158,7 +1158,7 @@ IFusionSoundMusicProvider_Vorbis_SeekTo( IFusionSoundMusicProvider *thiz,
           unsigned int off;
 
           if (!data->info->bitrate_nominal)
-               return DFB_UNSUPPORTED;
+               return DR_UNSUPPORTED;
 
           off = seconds * (double)(data->info->bitrate_nominal >> 3);
           ret = direct_stream_seek( data->stream, off );
@@ -1168,10 +1168,10 @@ IFusionSoundMusicProvider_Vorbis_SeekTo( IFusionSoundMusicProvider *thiz,
           seconds *= 1000;
 #endif
           if (ov_time_seek( &data->vf, seconds ))
-               ret = DFB_FAILURE;
+               ret = DR_FAILURE;
      }
      
-     if (ret == DFB_OK) {
+     if (ret == DR_OK) {
           data->seeked   = true;
           data->finished = false;
      }
@@ -1181,14 +1181,14 @@ IFusionSoundMusicProvider_Vorbis_SeekTo( IFusionSoundMusicProvider *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Vorbis_GetPos( IFusionSoundMusicProvider *thiz,
                                          double                    *seconds )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
 
      if (!seconds)
-          return DFB_INVARG;
+          return DR_INVARG;
 
 #ifdef USE_TREMOR
      *seconds = (double)ov_time_tell( &data->vf ) / 1000.0;
@@ -1196,10 +1196,10 @@ IFusionSoundMusicProvider_Vorbis_GetPos( IFusionSoundMusicProvider *thiz,
      *seconds = ov_time_tell( &data->vf );
 #endif
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Vorbis_GetLength( IFusionSoundMusicProvider *thiz,
                                             double                    *seconds )
 {
@@ -1208,7 +1208,7 @@ IFusionSoundMusicProvider_Vorbis_GetLength( IFusionSoundMusicProvider *thiz,
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
 
      if (!seconds)
-          return DFB_INVARG;
+          return DR_INVARG;
 
 #ifdef USE_TREMOR
      length = (double)ov_time_total( &data->vf, -1 ) / 1000.0;
@@ -1224,27 +1224,27 @@ IFusionSoundMusicProvider_Vorbis_GetLength( IFusionSoundMusicProvider *thiz,
 
      *seconds = length;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Vorbis_SetPlaybackFlags( IFusionSoundMusicProvider    *thiz,
                                                    FSMusicProviderPlaybackFlags  flags )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
 
      if (flags & ~FMPLAY_LOOPING)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
      if (flags & FMPLAY_LOOPING && !direct_stream_seekable( data->stream ))
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
      data->flags = flags;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Vorbis_WaitStatus( IFusionSoundMusicProvider *thiz,
                                              FSMusicProviderStatus      mask,
                                              unsigned int               timeout )
@@ -1252,7 +1252,7 @@ IFusionSoundMusicProvider_Vorbis_WaitStatus( IFusionSoundMusicProvider *thiz,
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis)
      
      if (!mask || mask & ~FMSTATE_ALL)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      if (timeout) {
           struct timespec t;
@@ -1264,18 +1264,18 @@ IFusionSoundMusicProvider_Vorbis_WaitStatus( IFusionSoundMusicProvider *thiz,
           
 #ifdef HAVE_PTHREAD_MUTEX_TIMEDLOCK
           if (pthread_mutex_timedlock( &data->lock, &t ))
-               return DFB_TIMEOUT;
+               return DR_TIMEOUT;
 #else          
           while (pthread_mutex_trylock( &data->lock )) {
                usleep( 1000 );
                if (direct_clock_get_abs_micros() >= s)
-                    return DFB_TIMEOUT;
+                    return DR_TIMEOUT;
           }
 #endif  
           while (!(data->status & mask)) {
                if (pthread_cond_timedwait( &data->cond, &data->lock, &t ) == ETIMEDOUT) {
                     pthread_mutex_unlock( &data->lock );
-                    return DFB_TIMEOUT;
+                    return DR_TIMEOUT;
                }
           }
      }
@@ -1288,23 +1288,23 @@ IFusionSoundMusicProvider_Vorbis_WaitStatus( IFusionSoundMusicProvider *thiz,
      
      pthread_mutex_unlock( &data->lock );
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 
 /* exported symbols */
 
-static DFBResult
+static DirectResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
      if (!memcmp( &ctx->header[0], "OggS", 4 ) &&
          !memcmp( &ctx->header[29], "vorbis", 6 ))
-          return DFB_OK;
+          return DR_OK;
 
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
-static DFBResult
+static DirectResult
 Construct( IFusionSoundMusicProvider *thiz,
            const char                *filename,
            DirectStream              *stream )
@@ -1326,7 +1326,7 @@ Construct( IFusionSoundMusicProvider *thiz,
           D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
                    "Error opening ogg/vorbis stream!\n" );
           IFusionSoundMusicProvider_Vorbis_Destruct( thiz );
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
      data->info = ov_info( &data->vf, -1 );
@@ -1334,7 +1334,7 @@ Construct( IFusionSoundMusicProvider *thiz,
           D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
                    "Error getting stream informations!\n" );
           IFusionSoundMusicProvider_Vorbis_Destruct( thiz );
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
      direct_util_recursive_pthread_mutex_init( &data->lock );
@@ -1357,6 +1357,6 @@ Construct( IFusionSoundMusicProvider *thiz,
      thiz->SetPlaybackFlags     = IFusionSoundMusicProvider_Vorbis_SetPlaybackFlags;
      thiz->WaitStatus           = IFusionSoundMusicProvider_Vorbis_WaitStatus;
 
-     return DFB_OK;
+     return DR_OK;
 }
 

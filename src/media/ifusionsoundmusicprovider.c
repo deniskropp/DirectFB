@@ -38,40 +38,40 @@
 #include <media/ifusionsoundmusicprovider.h>
 
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_AddRef( IFusionSoundMusicProvider *thiz )
 {
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Release( IFusionSoundMusicProvider *thiz )
 {
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_GetCapabilities( IFusionSoundMusicProvider   *thiz,
                                            FSMusicProviderCapabilities *caps )
 {
      if (!caps)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      *caps = FMCAPS_BASIC;
      
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_EnumTracks( IFusionSoundMusicProvider *thiz,
                                       FSTrackCallback            callback,
                                       void                      *callbackdata )
 {
      FSTrackDescription desc;
-     DFBResult          ret;
+     DirectResult       ret;
      
      if (!callback)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      ret = thiz->GetTrackDescription( thiz, &desc );
      if (ret)
@@ -79,145 +79,145 @@ IFusionSoundMusicProvider_EnumTracks( IFusionSoundMusicProvider *thiz,
           
      callback( 0, desc, callbackdata );
           
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_GetTrackID( IFusionSoundMusicProvider *thiz,
                                       FSTrackID                 *ret_track_id )
 {
      if (!ret_track_id)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      *ret_track_id = 0;
      
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_GetTrackDescription( IFusionSoundMusicProvider *thiz,
                                                FSTrackDescription        *desc )
 {
      if (!desc)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      memset( desc, 0, sizeof(FSTrackDescription) );
      
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_GetStreamDescription( IFusionSoundMusicProvider *thiz,
                                                 FSStreamDescription       *desc )
 {
      if (!desc)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      desc->flags = FSSDF_NONE;
      
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_GetBufferDescription( IFusionSoundMusicProvider *thiz,
                                                 FSBufferDescription       *desc )
 {
      if (!desc)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      desc->flags = FSBDF_NONE;
      
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_SelectTrack( IFusionSoundMusicProvider *thiz,
                                        FSTrackID                  track_id )
 {
      if (track_id != 0)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
           
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_PlayToStream( IFusionSoundMusicProvider *thiz,
                                         IFusionSoundStream        *destination )
 {
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_PlayToBuffer( IFusionSoundMusicProvider *thiz,
                                         IFusionSoundBuffer        *destination,
                                         FMBufferCallback           callback,
                                         void                      *ctx )
 {
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Stop( IFusionSoundMusicProvider *thiz )
 {
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_GetStatus( IFusionSoundMusicProvider *thiz,
                                      FSMusicProviderStatus     *status )
 {
      if (!status)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      *status = FMSTATE_UNKNOWN;
           
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_SeekTo( IFusionSoundMusicProvider *thiz,
                                   double                     seconds )
 {
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_GetPos( IFusionSoundMusicProvider *thiz,
                                   double                    *seconds )
 {
      if (!seconds)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      *seconds = 0.0;
           
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_GetLength( IFusionSoundMusicProvider *thiz,
                                      double                    *seconds )
 {
      if (!seconds)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      *seconds = 0.0;
      
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_SetPlaybackFlags( IFusionSoundMusicProvider    *thiz,
                                             FSMusicProviderPlaybackFlags  flags )
 {
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_WaitStatus( IFusionSoundMusicProvider *thiz,
                                       FSMusicProviderStatus      mask,
                                       unsigned int               timeout )
 {
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
 static void
@@ -244,11 +244,11 @@ IFusionSoundMusicProvider_Construct( IFusionSoundMusicProvider *thiz )
 }
      
 
-DFBResult
+DirectResult
 IFusionSoundMusicProvider_Create( const char                 *filename, 
                                   IFusionSoundMusicProvider **interface )
 {
-     DFBResult                               ret;
+     DirectResult                            ret;
      DirectInterfaceFuncs                   *funcs = NULL;
      IFusionSoundMusicProvider              *musicprovider;
      IFusionSoundMusicProvider_ProbeContext  ctx;

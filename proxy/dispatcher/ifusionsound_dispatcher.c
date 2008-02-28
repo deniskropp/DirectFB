@@ -49,8 +49,8 @@
 
 #include "ifusionsound_dispatcher.h"
 
-static DFBResult Probe();
-static DFBResult Construct( IFusionSound     *thiz,
+static DirectResult Probe();
+static DirectResult Construct( IFusionSound     *thiz,
                             VoodooManager    *manager,
                             VoodooInstanceID *ret_instance );
 
@@ -80,17 +80,17 @@ IFusionSound_Dispatcher_Destruct( IFusionSound *thiz )
 
 /***********************************************************************************************/
 
-static DFBResult
+static DirectResult
 IFusionSound_Dispatcher_AddRef( IFusionSound *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Dispatcher)
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Dispatcher_Release( IFusionSound *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Dispatcher)
@@ -98,98 +98,98 @@ IFusionSound_Dispatcher_Release( IFusionSound *thiz )
      if (--data->ref == 0)
           IFusionSound_Dispatcher_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Dispatcher_GetDeviceDescription( IFusionSound        *thiz,
                                               FSDeviceDescription *desc )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Dispatcher)
      
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Dispatcher_CreateBuffer( IFusionSound               *thiz,
                                       const FSBufferDescription  *desc,
                                       IFusionSoundBuffer        **ret_interface )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Dispatcher)
      
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Dispatcher_CreateStream( IFusionSound               *thiz,
                                       const FSStreamDescription  *desc,
                                       IFusionSoundStream        **ret_interface )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Dispatcher)
      
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Dispatcher_CreateMusicProvider( IFusionSound               *thiz,
                                              const char                 *filename,
                                              IFusionSoundMusicProvider **ret_interface )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Dispatcher)
      
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Dispatcher_GetMasterVolume( IFusionSound *thiz, 
                                          float        *level )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Dispatcher)
      
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Dispatcher_SetMasterVolume( IFusionSound *thiz,
                                          float         level )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Dispatcher)
      
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Dispatcher_GetLocalVolume( IFusionSound *thiz, 
                                         float        *level )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Dispatcher)
      
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Dispatcher_SetLocalVolume( IFusionSound *thiz,
                                         float         level )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Dispatcher)
      
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Dispatcher_Suspend( IFusionSound *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Dispatcher)
      
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSound_Dispatcher_Resume( IFusionSound *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSound_Dispatcher)
      
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
 /**************************************************************************************************/
@@ -208,7 +208,7 @@ Dispatch_GetDeviceDescription( IFusionSound *thiz, IFusionSound *real,
           return ret;
           
      return voodoo_manager_respond( manager, msg->header.serial,
-                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    DR_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_DATA, sizeof(FSDeviceDescription), &desc,
                                     VMBT_NONE );
 }
@@ -244,7 +244,7 @@ Dispatch_CreateBuffer( IFusionSound *thiz, IFusionSound *real,
      }
 
      return voodoo_manager_respond( manager, msg->header.serial,
-                                    DFB_OK, instance,
+                                    DR_OK, instance,
                                     VMBT_DATA, sizeof(FSBufferDescription), &dsc,
                                     VMBT_NONE );
 }
@@ -280,7 +280,7 @@ Dispatch_CreateStream( IFusionSound *thiz, IFusionSound *real,
      }
 
      return voodoo_manager_respond( manager, msg->header.serial,
-                                    DFB_OK, instance,
+                                    DR_OK, instance,
                                     VMBT_DATA, sizeof(FSStreamDescription), &dsc,
                                     VMBT_NONE );
 }
@@ -313,7 +313,7 @@ Dispatch_CreateMusicProvider( IFusionSound *thiz, IFusionSound *real,
      }
 
      return voodoo_manager_respond( manager, msg->header.serial,
-                                    DFB_OK, instance,
+                                    DR_OK, instance,
                                     VMBT_NONE );
 }
 
@@ -452,18 +452,18 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
           HANDLE_CASE(Resume);
      }
 
-     return DFB_NOSUCHMETHOD;
+     return DR_NOSUCHMETHOD;
 }
 
 #undef HANDLE_CASE
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 Probe()
 {
      /* This implementation has to be loaded explicitly. */
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
 /*
@@ -471,10 +471,10 @@ Probe()
  *
  * Fills in function pointers and intializes data structure.
  */
-static DFBResult
+static DirectResult
 Construct( IFusionSound *thiz, VoodooManager *manager, VoodooInstanceID *ret_instance )
 {
-     DFBResult         ret;
+     DirectResult      ret;
      IFusionSound     *real;
      VoodooInstanceID  instance;
 
@@ -512,6 +512,6 @@ Construct( IFusionSound *thiz, VoodooManager *manager, VoodooInstanceID *ret_ins
      thiz->Suspend              = IFusionSound_Dispatcher_Suspend;
      thiz->Resume               = IFusionSound_Dispatcher_Resume;
 
-     return DFB_OK;
+     return DR_OK;
 }
 

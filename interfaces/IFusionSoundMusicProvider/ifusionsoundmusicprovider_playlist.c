@@ -36,10 +36,10 @@
 #include <direct/util.h>
 
 
-static DFBResult
+static DirectResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx );
 
-static DFBResult
+static DirectResult
 Construct( IFusionSoundMusicProvider *thiz,
            const char                *filename,
            DirectStream              *stream );
@@ -94,7 +94,7 @@ typedef struct {
 
 /*****************************************************************************/
 
-static DFBResult
+static DirectResult
 add_media( FSTrackID       id, 
            const char     *url, 
            const char     *artist, 
@@ -124,7 +124,7 @@ add_media( FSTrackID       id,
      
      direct_list_append( (DirectLink**)playlist, &entry->link );
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void
@@ -703,17 +703,17 @@ IFusionSoundMusicProvider_Playlist_Destruct( IFusionSoundMusicProvider *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
    
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_AddRef( IFusionSoundMusicProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Playlist )
      
      data->ref++;
      
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_Release( IFusionSoundMusicProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Playlist )
@@ -721,10 +721,10 @@ IFusionSoundMusicProvider_Playlist_Release( IFusionSoundMusicProvider *thiz )
      if (--data->ref == 0)
           IFusionSoundMusicProvider_Playlist_Destruct( thiz );
           
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_GetCapabilities( IFusionSoundMusicProvider   *thiz,
                                                     FSMusicProviderCapabilities *caps )
 {
@@ -733,10 +733,10 @@ IFusionSoundMusicProvider_Playlist_GetCapabilities( IFusionSoundMusicProvider   
      if (data->selected->provider)
           return data->selected->provider->GetCapabilities( data->selected->provider, caps );      
         
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_EnumTracks( IFusionSoundMusicProvider *thiz,
                                                FSTrackCallback            callback,
                                                void                      *callbackdata )
@@ -746,7 +746,7 @@ IFusionSoundMusicProvider_Playlist_EnumTracks( IFusionSoundMusicProvider *thiz,
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Playlist )
      
      if (!callback)
-          return DFB_INVARG;
+          return DR_INVARG;
      
      direct_list_foreach_safe (entry, tmp, data->playlist) {
           FSTrackDescription desc;
@@ -768,27 +768,27 @@ IFusionSoundMusicProvider_Playlist_EnumTracks( IFusionSoundMusicProvider *thiz,
           }
                  
           if (callback( entry->id, desc, callbackdata ))
-               return DFB_INTERRUPTED;
+               return DR_INTERRUPTED;
      }          
      
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_GetTrackID( IFusionSoundMusicProvider *thiz,
                                                FSTrackID                 *track_id )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Playlist )
      
      if (!track_id)
-          return DFB_INVARG;
+          return DR_INVARG;
      
      *track_id = data->selected->id;
      
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_GetTrackDescription( IFusionSoundMusicProvider *thiz,
                                                         FSTrackDescription        *desc )
 {
@@ -797,7 +797,7 @@ IFusionSoundMusicProvider_Playlist_GetTrackDescription( IFusionSoundMusicProvide
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Playlist )
      
      if (!desc)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      entry = data->selected;
      
@@ -817,10 +817,10 @@ IFusionSoundMusicProvider_Playlist_GetTrackDescription( IFusionSoundMusicProvide
           direct_snputs( desc->album, entry->album, sizeof(desc->album) );
      }
      
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_GetStreamDescription( IFusionSoundMusicProvider *thiz,
                                                          FSStreamDescription       *desc )
 {
@@ -829,10 +829,10 @@ IFusionSoundMusicProvider_Playlist_GetStreamDescription( IFusionSoundMusicProvid
      if (data->selected->provider)
           return data->selected->provider->GetStreamDescription( data->selected->provider, desc );
           
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_GetBufferDescription( IFusionSoundMusicProvider *thiz,
                                                          FSBufferDescription       *desc )
 {
@@ -841,10 +841,10 @@ IFusionSoundMusicProvider_Playlist_GetBufferDescription( IFusionSoundMusicProvid
      if (data->selected->provider)
           return data->selected->provider->GetBufferDescription( data->selected->provider, desc );
          
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_SelectTrack( IFusionSoundMusicProvider *thiz,
                                                 FSTrackID                  track_id )
 {
@@ -854,7 +854,7 @@ IFusionSoundMusicProvider_Playlist_SelectTrack( IFusionSoundMusicProvider *thiz,
      
      direct_list_foreach (entry, data->playlist) {
           IFusionSoundMusicProvider *provider;
-          DFBResult                  ret;
+          DirectResult               ret;
           
           if (entry->id != track_id)
                continue;
@@ -886,17 +886,17 @@ IFusionSoundMusicProvider_Playlist_SelectTrack( IFusionSoundMusicProvider *thiz,
                                        
           entry->provider = provider;
           
-          return DFB_OK;
+          return DR_OK;
      }
 
-     return DFB_ITEMNOTFOUND;
+     return DR_ITEMNOTFOUND;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_PlayToStream( IFusionSoundMusicProvider *thiz,
                                                  IFusionSoundStream        *destination )
 {
-     DFBResult ret = DFB_UNSUPPORTED;
+     DirectResult ret = DR_UNSUPPORTED;
      
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Playlist )
      
@@ -911,7 +911,7 @@ IFusionSoundMusicProvider_Playlist_PlayToStream( IFusionSoundMusicProvider *thiz
      
      if (data->selected->provider) {
           ret = data->selected->provider->PlayToStream( data->selected->provider, destination );
-          if (ret == DFB_OK) {
+          if (ret == DR_OK) {
                destination->AddRef( destination );
                data->stream = destination;
           }
@@ -920,13 +920,13 @@ IFusionSoundMusicProvider_Playlist_PlayToStream( IFusionSoundMusicProvider *thiz
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_PlayToBuffer( IFusionSoundMusicProvider *thiz,
                                                  IFusionSoundBuffer        *destination,
                                                  FMBufferCallback           callback,
                                                  void                      *ctx )
 {
-     DFBResult ret = DFB_UNSUPPORTED;
+     DirectResult ret = DR_UNSUPPORTED;
      
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Playlist )
      
@@ -942,7 +942,7 @@ IFusionSoundMusicProvider_Playlist_PlayToBuffer( IFusionSoundMusicProvider *thiz
      if (data->selected->provider) {
           ret = data->selected->provider->PlayToBuffer( data->selected->provider,
                                                         destination, callback, ctx );
-          if (ret == DFB_OK) {
+          if (ret == DR_OK) {
                destination->AddRef( destination );
                data->buffer = destination;
                data->callback = callback;
@@ -953,7 +953,7 @@ IFusionSoundMusicProvider_Playlist_PlayToBuffer( IFusionSoundMusicProvider *thiz
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_Stop( IFusionSoundMusicProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Playlist )
@@ -970,10 +970,10 @@ IFusionSoundMusicProvider_Playlist_Stop( IFusionSoundMusicProvider *thiz )
      if (data->selected->provider)
           return data->selected->provider->Stop( data->selected->provider );
           
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_GetStatus( IFusionSoundMusicProvider *thiz,
                                               FSMusicProviderStatus     *status )
 {
@@ -982,10 +982,10 @@ IFusionSoundMusicProvider_Playlist_GetStatus( IFusionSoundMusicProvider *thiz,
      if (data->selected->provider)
           return data->selected->provider->GetStatus( data->selected->provider, status );
           
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_SeekTo( IFusionSoundMusicProvider *thiz,
                                            double                     seconds )
 {
@@ -994,10 +994,10 @@ IFusionSoundMusicProvider_Playlist_SeekTo( IFusionSoundMusicProvider *thiz,
      if (data->selected->provider)
           return data->selected->provider->SeekTo( data->selected->provider, seconds );
           
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_GetPos( IFusionSoundMusicProvider *thiz,
                                            double                    *seconds )
 {
@@ -1006,10 +1006,10 @@ IFusionSoundMusicProvider_Playlist_GetPos( IFusionSoundMusicProvider *thiz,
      if (data->selected->provider)
           return data->selected->provider->GetPos( data->selected->provider, seconds );
           
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_GetLength( IFusionSoundMusicProvider *thiz,
                                               double                    *seconds )
 {
@@ -1018,10 +1018,10 @@ IFusionSoundMusicProvider_Playlist_GetLength( IFusionSoundMusicProvider *thiz,
      if (data->selected->provider)
           return data->selected->provider->GetLength( data->selected->provider, seconds );
           
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_SetPlaybackFlags( IFusionSoundMusicProvider    *thiz,
                                                      FSMusicProviderPlaybackFlags  flags )
 {
@@ -1032,10 +1032,10 @@ IFusionSoundMusicProvider_Playlist_SetPlaybackFlags( IFusionSoundMusicProvider  
      if (data->selected->provider)
           return data->selected->provider->SetPlaybackFlags( data->selected->provider, flags );
           
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Playlist_WaitStatus( IFusionSoundMusicProvider *thiz,
                                                FSMusicProviderStatus      mask,
                                                unsigned int               timeout )
@@ -1045,22 +1045,22 @@ IFusionSoundMusicProvider_Playlist_WaitStatus( IFusionSoundMusicProvider *thiz,
      if (data->selected->provider)
           return data->selected->provider->WaitStatus( data->selected->provider, mask, timeout );
           
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
       
 /* exported symbols */
 
-static DFBResult
+static DirectResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
      if (get_playlist_type( ctx->mimetype, ctx->filename,
                             (const char*)ctx->header, sizeof(ctx->header) ))
-          return DFB_OK;
+          return DR_OK;
           
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
-static DFBResult
+static DirectResult
 Construct( IFusionSoundMusicProvider *thiz, 
            const char                *filename, 
            DirectStream              *stream )
@@ -1088,7 +1088,7 @@ Construct( IFusionSoundMusicProvider *thiz,
                if (direct_stream_read( stream, size, src+pos, &len )) {
                     D_FREE( src );
                     DIRECT_DEALLOCATE_INTERFACE( thiz );
-                    return DFB_IO;
+                    return DR_IO;
                }
                pos += len;
           }
@@ -1110,7 +1110,7 @@ Construct( IFusionSoundMusicProvider *thiz,
                
           if (!src) {
                DIRECT_DEALLOCATE_INTERFACE( thiz );
-               return DFB_IO;
+               return DR_IO;
           }
      }
      src[size] = 0;
@@ -1143,7 +1143,7 @@ Construct( IFusionSoundMusicProvider *thiz,
 
      if (!data->playlist) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
      
      /* initialize function pointers */
@@ -1169,5 +1169,5 @@ Construct( IFusionSoundMusicProvider *thiz,
      /* select first media */
      thiz->SelectTrack( thiz, data->playlist->id );
 
-     return DFB_OK;
+     return DR_OK;
 }

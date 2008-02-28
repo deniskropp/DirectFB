@@ -42,7 +42,7 @@ typedef struct {
 } IFusionSound_data;
 
 
-DFBResult IFusionSound_Construct( IFusionSound *thiz );
+DirectResult IFusionSound_Construct( IFusionSound *thiz );
 
 extern IFusionSound *ifusionsound_singleton;
 
