@@ -1941,13 +1941,13 @@ get_border_only( SaWMan     *sawman,
 }
 
 /* FIXME: Split up in smaller functions and clean up things like forcing reconfiguration. */
-DFBResult
+DirectResult
 sawman_process_updates( SaWMan              *sawman,
                         DFBSurfaceFlipFlags  flags )
 {
-     DFBResult   ret;
-     int         idx = -1;
-     SaWManTier *tier;
+     DirectResult  ret;
+     int           idx = -1;
+     SaWManTier   *tier;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      FUSION_SKIRMISH_ASSERT( &sawman->lock );

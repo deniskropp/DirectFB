@@ -29,8 +29,7 @@ extern "C"
 {
 #endif
 
-
-#include <direct/interface.h>
+#include <directfb.h>
 
 #include "sawman_types.h"
 

@@ -128,7 +128,7 @@ sawman_config_usage( void )
      return config_usage;
 }
 
-DFBResult 
+DirectResult
 sawman_config_set( const char *name, const char *value )
 {
      if (strcmp (name, "init-border" ) == 0) {
@@ -330,7 +330,7 @@ sawman_config_read( const char *filename )
      return ret;
 }
 
-DFBResult 
+DirectResult
 sawman_config_init( int *argc, char **argv[] )
 {
      DFBResult ret;
