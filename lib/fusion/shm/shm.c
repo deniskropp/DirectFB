@@ -326,7 +326,7 @@ fusion_shm_enum_pools( FusionWorld           *world,
           D_MAGIC_ASSERT( &shm->pools[i], FusionSHMPool );
           D_MAGIC_ASSERT( &shared->pools[i], FusionSHMPoolShared );
 
-          if (callback( &shm->pools[i], ctx ) == DFENUM_CANCEL)
+          if (callback( &shm->pools[i], ctx ) == DENUM_CANCEL)
                break;
      }
 
