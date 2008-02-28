@@ -91,16 +91,16 @@ FusionDaleSetOption( const char *name, const char *value )
 {
      if (fusiondale_config == NULL) {
           D_ERROR( "FusionDaleSetOption: FusionDaleInit has to be called first!\n" );
-          return DFB_INIT;
+          return DR_INIT;
      }
 
      if (ifusiondale_singleton) {
           D_ERROR( "FusionDaleSetOption: FusionDaleCreate has already been called!\n" );
-          return DFB_INIT;
+          return DR_INIT;
      }
 
      if (!name)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      return fd_config_set( name, value );
 }
@@ -112,16 +112,16 @@ FusionDaleCreate( IFusionDale **ret_interface )
      
      if (!fusiondale_config) {
           D_ERROR( "FusionDaleCreate: FusionDaleInit has to be called first!\n" );
-          return DFB_INIT;
+          return DR_INIT;
      }
 
      if (!ret_interface)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      if (ifusiondale_singleton) {
           ifusiondale_singleton->AddRef( ifusiondale_singleton );
           *ret_interface = ifusiondale_singleton;
-          return DFB_OK;
+          return DR_OK;
      }
 
      if (!direct_config->quiet && fusiondale_config->banner) {
@@ -137,7 +137,7 @@ FusionDaleCreate( IFusionDale **ret_interface )
      DIRECT_ALLOCATE_INTERFACE( ifusiondale_singleton, IFusionDale );
      
      ret = IFusionDale_Construct( ifusiondale_singleton );
-     if (ret != DFB_OK)
+     if (ret != DR_OK)
           ifusiondale_singleton = NULL;
           
      *ret_interface = ifusiondale_singleton;

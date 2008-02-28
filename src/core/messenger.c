@@ -95,7 +95,7 @@ fd_messenger_create( CoreDale       *core,
      /* Create messenger object. */
      messenger = fd_core_create_messenger( core );
      if (!messenger)
-          return DFB_FUSION;
+          return DR_FUSION;
 
      /* Initialize private data. */
      messenger->shmpool = fd_core_shmpool( core );
@@ -120,7 +120,7 @@ fd_messenger_create( CoreDale       *core,
      /* Return messenger object. */
      *ret_messenger = messenger;
 
-     return DFB_OK;
+     return DR_OK;
 
 
 error_hash:
@@ -172,7 +172,7 @@ fd_messenger_create_event( CoreMessenger       *messenger,
      /* Return new event. */
      *ret_event = event;
 
-     return DFB_OK;
+     return DR_OK;
 
 
 error:
@@ -229,7 +229,7 @@ fd_messenger_lookup_event( CoreMessenger       *messenger,
      /* Lookup event in hash table. */
      event = fusion_hash_lookup( messenger->hash, name );
      if (!event)
-          return DFB_ITEMNOTFOUND;
+          return DR_ITEMNOTFOUND;
 
      D_MAGIC_ASSERT( event, CoreMessengerEvent );
 
@@ -237,7 +237,7 @@ fd_messenger_lookup_event( CoreMessenger       *messenger,
      if (ret_event)
           *ret_event = event;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -279,7 +279,7 @@ fd_messenger_dispatch_event( CoreMessenger      *messenger,
           SHFREE( messenger->shmpool, dispatch );
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/

@@ -36,8 +36,8 @@
 
 #define CHECK(x)                                  \
      do {                                         \
-          DFBResult ret = (x);                    \
-          if (ret && ret != DFB_BUSY)             \
+          DirectResult ret = (x);                 \
+          if (ret && ret != DR_BUSY)              \
                FusionDaleErrorFatal(#x,ret);      \
      } while (0)
 

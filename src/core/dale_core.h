@@ -33,8 +33,8 @@
 /*
  * Core initialization and deinitialization
  */
-DFBResult fd_core_create ( CoreDale **ret_core );
-DFBResult fd_core_destroy( CoreDale  *core, bool emergency );
+DirectResult fd_core_create ( CoreDale **ret_core );
+DirectResult fd_core_destroy( CoreDale  *core, bool emergency );
 
 /*
  * Object creation

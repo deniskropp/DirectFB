@@ -56,10 +56,10 @@
 static IFusionDale *dale = NULL;
 
 
-static DFBResult
+static DirectResult
 init_fusiondale( int *argc, char **argv[] )
 {
-     DFBResult ret;
+     DirectResult ret;
 
      /* Initialize FusionDale. */
      ret = FusionDaleInit( argc, argv );
@@ -71,7 +71,7 @@ init_fusiondale( int *argc, char **argv[] )
      if (ret)
           return FusionDaleError( "FusionDaleCreate", ret );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void
@@ -133,9 +133,9 @@ dump_messengers( CoreDale *core )
 int
 main( int argc, char *argv[] )
 {
-     DFBResult ret;
-     long long millis;
-     long int  seconds, minutes, hours, days;
+     DirectResult      ret;
+     long long         millis;
+     long int          seconds, minutes, hours, days;
      IFusionDale_data *data;
 
      char *buffer = malloc( 0x10000 );

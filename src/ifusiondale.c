@@ -57,17 +57,17 @@ IFusionDale_Destruct( IFusionDale *thiz )
           ifusiondale_singleton = NULL;
 }
 
-static DFBResult
+static DirectResult
 IFusionDale_AddRef( IFusionDale *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IFusionDale);
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionDale_Release( IFusionDale *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IFusionDale)
@@ -75,10 +75,10 @@ IFusionDale_Release( IFusionDale *thiz )
      if (--data->ref == 0)
           IFusionDale_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionDale_CreateMessenger( IFusionDale           *thiz,
                              IFusionDaleMessenger **ret_interface )
 {
@@ -90,7 +90,7 @@ IFusionDale_CreateMessenger( IFusionDale           *thiz,
 
      /* Check arguments */
      if (!ret_interface)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      /* Create a new messenger. */
      ret = fd_messenger_create( data->core, &messenger );
@@ -108,10 +108,10 @@ IFusionDale_CreateMessenger( IFusionDale           *thiz,
 
      *ret_interface = interface;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionDale_GetMessenger( IFusionDale           *thiz,
                           IFusionDaleMessenger **ret_interface )
 {
@@ -123,15 +123,15 @@ IFusionDale_GetMessenger( IFusionDale           *thiz,
 
      /* Check arguments */
      if (!ret_interface)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      /* Try to get the messenger. */
      ret = fd_core_get_messenger( data->core, 1, &messenger );
      switch (ret) {
-          case DFB_OK:
+          case DR_OK:
                break;
 
-          case DFB_IDNOTFOUND:
+          case DR_IDNOTFOUND:
                /* Create a temporary messenger... */
                ret = fd_messenger_create( data->core, &tmp );
                if (ret)
@@ -162,10 +162,10 @@ IFusionDale_GetMessenger( IFusionDale           *thiz,
 
      *ret_interface = interface;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionDale_EnterComa( IFusionDale  *thiz,
                        const char   *name,
                        IComa       **ret_interface )
@@ -178,7 +178,7 @@ IFusionDale_EnterComa( IFusionDale  *thiz,
 
      /* Check arguments */
      if (!name || !ret_interface)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      /* Enter the specified Coma. */
      ret = coma_enter( fd_core_world( data->core ), name, &coma );
@@ -193,13 +193,13 @@ IFusionDale_EnterComa( IFusionDale  *thiz,
 
      *ret_interface = interface;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-DFBResult
+DirectResult
 IFusionDale_Construct( IFusionDale *thiz )
 {
-     DFBResult ret;
+     DirectResult ret;
 
      /* Allocate interface data. */
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionDale );
@@ -224,5 +224,5 @@ IFusionDale_Construct( IFusionDale *thiz )
      thiz->GetMessenger    = IFusionDale_GetMessenger;
      thiz->EnterComa       = IFusionDale_EnterComa;
 
-     return DFB_OK;
+     return DR_OK;
 }

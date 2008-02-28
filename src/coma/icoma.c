@@ -50,17 +50,17 @@ IComa_Destruct( IComa *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IComa_AddRef( IComa *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IComa);
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IComa_Release( IComa *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IComa)
@@ -68,10 +68,10 @@ IComa_Release( IComa *thiz )
      if (--data->ref == 0)
           IComa_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IComa_CreateComponent( IComa           *thiz,
                        const char      *name,
                        ComaMethodFunc   func,
@@ -87,7 +87,7 @@ IComa_CreateComponent( IComa           *thiz,
 
      /* Check arguments */
      if (!ret_interface)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      /* Create a new component. */
      ret = coma_create_component( data->coma, name, func, num_notifications, ctx, &component );
@@ -100,13 +100,13 @@ IComa_CreateComponent( IComa           *thiz,
 
      coma_component_unref( component );
 
-     if (ret == DFB_OK)
+     if (ret == DR_OK)
           *ret_interface = interface;
 
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IComa_GetComponent( IComa           *thiz,
                     const char      *name,
                     unsigned int     timeout,
@@ -120,7 +120,7 @@ IComa_GetComponent( IComa           *thiz,
 
      /* Check arguments */
      if (!ret_interface)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      /* Get the component. */
      ret = coma_get_component( data->coma, name, timeout, &component );
@@ -133,13 +133,13 @@ IComa_GetComponent( IComa           *thiz,
 
      coma_component_unref( component );
 
-     if (ret == DFB_OK)
+     if (ret == DR_OK)
           *ret_interface = interface;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IComa_Allocate( IComa         *thiz,
                 unsigned int   bytes,
                 void         **ret_ptr )
@@ -149,7 +149,7 @@ IComa_Allocate( IComa         *thiz,
      DIRECT_INTERFACE_GET_DATA(IComa)
 
      if (!bytes || !ret_ptr)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      ptr = SHCALLOC( coma_shmpool(data->coma), 1, bytes );
      if (!ptr)
@@ -157,24 +157,24 @@ IComa_Allocate( IComa         *thiz,
 
      *ret_ptr = ptr;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IComa_Deallocate( IComa *thiz,
                   void  *ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IComa)
 
      if (!ptr)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      SHFREE( coma_shmpool(data->coma), ptr );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IComa_GetLocal( IComa         *thiz,
                 unsigned int   bytes,
                 void         **ret_ptr )
@@ -182,12 +182,12 @@ IComa_GetLocal( IComa         *thiz,
      DIRECT_INTERFACE_GET_DATA(IComa)
 
      if (!bytes || !ret_ptr)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      return coma_get_local( data->coma, bytes, ret_ptr );
 }
 
-static DFBResult
+static DirectResult
 IComa_FreeLocal( IComa *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IComa)
@@ -195,7 +195,7 @@ IComa_FreeLocal( IComa *thiz )
      return coma_free_local( data->coma );
 }
 
-DFBResult
+DirectResult
 IComa_Construct( IComa *thiz, Coma *coma )
 {
      /* Allocate interface data. */
@@ -215,5 +215,5 @@ IComa_Construct( IComa *thiz, Coma *coma )
      thiz->GetLocal        = IComa_GetLocal;
      thiz->FreeLocal       = IComa_FreeLocal;
 
-     return DFB_OK;
+     return DR_OK;
 }

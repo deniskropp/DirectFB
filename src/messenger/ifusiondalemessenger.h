@@ -41,8 +41,8 @@ typedef struct {
      CoreMessengerPort *port;
 } IFusionDaleMessenger_data;
 
-DFBResult IFusionDaleMessenger_Construct( IFusionDaleMessenger *thiz,
-                                          CoreDale             *core,
-                                          CoreMessenger        *messenger );
+DirectResult IFusionDaleMessenger_Construct( IFusionDaleMessenger *thiz,
+                                             CoreDale             *core,
+                                             CoreMessenger        *messenger );
 
 #endif

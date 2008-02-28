@@ -53,17 +53,17 @@ IFusionDaleMessenger_Destruct( IFusionDaleMessenger *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IFusionDaleMessenger_AddRef( IFusionDaleMessenger *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IFusionDaleMessenger)
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionDaleMessenger_Release( IFusionDaleMessenger *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IFusionDaleMessenger)
@@ -71,10 +71,10 @@ IFusionDaleMessenger_Release( IFusionDaleMessenger *thiz )
      if (--data->ref == 0)
           IFusionDaleMessenger_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionDaleMessenger_RegisterEvent( IFusionDaleMessenger *thiz,
                                     const char           *name,
                                     FDMessengerEventID   *ret_id )
@@ -86,7 +86,7 @@ IFusionDaleMessenger_RegisterEvent( IFusionDaleMessenger *thiz,
 
      /* Check arguments. */
      if (!name || !ret_id)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      /* Lock the messenger. */
      ret = fd_messenger_lock( data->messenger );
@@ -96,15 +96,15 @@ IFusionDaleMessenger_RegisterEvent( IFusionDaleMessenger *thiz,
      /* Try to lookup event by name. */
      ret = fd_messenger_lookup_event( data->messenger, name, &event );
      switch (ret) {
-          case DFB_OK:
+          case DR_OK:
                /* Event is found (already registered). */
-               ret = DFB_BUSY;
+               ret = DR_BUSY;
                break;
 
-          case DFB_ITEMNOTFOUND:
+          case DR_ITEMNOTFOUND:
                /* Create a new event. */
                ret = fd_messenger_create_event( data->messenger, name, &event );
-               if (ret == DFB_OK)
+               if (ret == DR_OK)
                     break;
 
                /* fall through */
@@ -127,7 +127,7 @@ IFusionDaleMessenger_RegisterEvent( IFusionDaleMessenger *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionDaleMessenger_UnregisterEvent( IFusionDaleMessenger *thiz,
                                       FDMessengerEventID    event_id )
 {
@@ -137,7 +137,7 @@ IFusionDaleMessenger_UnregisterEvent( IFusionDaleMessenger *thiz,
 
      /* Check arguments */
      if (!event_id)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      /* Lock the messenger (has to happen before port is locked!). */
      ret = fd_messenger_lock( data->messenger );
@@ -153,7 +153,7 @@ IFusionDaleMessenger_UnregisterEvent( IFusionDaleMessenger *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionDaleMessenger_IsEventRegistered( IFusionDaleMessenger *thiz,
                                         const char           *name )
 {
@@ -163,7 +163,7 @@ IFusionDaleMessenger_IsEventRegistered( IFusionDaleMessenger *thiz,
 
      /* Check arguments */
      if (!name)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      /* Lock the messenger. */
      ret = fd_messenger_lock( data->messenger );
@@ -179,7 +179,7 @@ IFusionDaleMessenger_IsEventRegistered( IFusionDaleMessenger *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionDaleMessenger_RegisterListener( IFusionDaleMessenger     *thiz,
                                        FDMessengerEventID        event_id,
                                        FDMessengerEventCallback  callback,
@@ -190,12 +190,12 @@ IFusionDaleMessenger_RegisterListener( IFusionDaleMessenger     *thiz,
 
      /* Check arguments */
      if (!event_id || !callback || !ret_id)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      return fd_messenger_port_add_listener( data->port, event_id, callback, context, ret_id );
 }
 
-static DFBResult
+static DirectResult
 IFusionDaleMessenger_UnregisterListener( IFusionDaleMessenger  *thiz,
                                          FDMessengerListenerID  listener_id )
 {
@@ -203,12 +203,12 @@ IFusionDaleMessenger_UnregisterListener( IFusionDaleMessenger  *thiz,
 
      /* Check arguments */
      if (!listener_id)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      return fd_messenger_port_remove_listener( data->port, listener_id );
 }
 
-static DFBResult
+static DirectResult
 IFusionDaleMessenger_SendSimpleEvent( IFusionDaleMessenger *thiz,
                                       FDMessengerEventID    event_id,
                                       int                   param )
@@ -219,7 +219,7 @@ IFusionDaleMessenger_SendSimpleEvent( IFusionDaleMessenger *thiz,
 
      /* Check arguments */
      if (!event_id)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      /* Lock the messenger (has to happen before port is locked!). */
      ret = fd_messenger_lock( data->messenger );
@@ -235,7 +235,7 @@ IFusionDaleMessenger_SendSimpleEvent( IFusionDaleMessenger *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionDaleMessenger_SendEvent( IFusionDaleMessenger *thiz,
                                 FDMessengerEventID    event_id,
                                 int                   param,
@@ -248,7 +248,7 @@ IFusionDaleMessenger_SendEvent( IFusionDaleMessenger *thiz,
 
      /* Check arguments */
      if (!event_id || !data_ptr || !data_size)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      /* Lock the messenger (has to happen before port is locked!). */
      ret = fd_messenger_lock( data->messenger );
@@ -264,7 +264,7 @@ IFusionDaleMessenger_SendEvent( IFusionDaleMessenger *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionDaleMessenger_AllocateData( IFusionDaleMessenger  *thiz,
                                    unsigned int           data_size,
                                    void                 **ret_data )
@@ -276,7 +276,7 @@ IFusionDaleMessenger_AllocateData( IFusionDaleMessenger  *thiz,
 
      /* Check arguments */
      if (!data_size || !ret_data)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      /* Lock the messenger. */
      ret = fd_messenger_lock( data->messenger );
@@ -294,10 +294,10 @@ IFusionDaleMessenger_AllocateData( IFusionDaleMessenger  *thiz,
 
      *ret_data = data_ptr;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-DFBResult
+DirectResult
 IFusionDaleMessenger_Construct( IFusionDaleMessenger *thiz,
                                 CoreDale             *core,
                                 CoreMessenger        *messenger )
@@ -336,7 +336,7 @@ IFusionDaleMessenger_Construct( IFusionDaleMessenger *thiz,
      thiz->SendEvent          = IFusionDaleMessenger_SendEvent;
      thiz->AllocateData       = IFusionDaleMessenger_AllocateData;
 
-     return DFB_OK;
+     return DR_OK;
 
 
 error_port:

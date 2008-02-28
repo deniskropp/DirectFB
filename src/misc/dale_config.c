@@ -59,7 +59,7 @@ static const char *config_usage =
      "\n";
      
 
-static DFBResult
+static DirectResult
 parse_args( const char *args )
 {
      char *buf = alloca( strlen(args) + 1 );
@@ -67,9 +67,9 @@ parse_args( const char *args )
      strcpy( buf, args );
 
      while (buf && buf[0]) {
-          DFBResult  ret;
-          char      *value;
-          char      *next;
+          DirectResult  ret;
+          char         *value;
+          char         *next;
 
           if ((next = strchr( buf, ',' )) != NULL)
                *next++ = '\0';
@@ -84,9 +84,9 @@ parse_args( const char *args )
 
           ret = fd_config_set( buf, value );
           switch (ret) {
-               case DFB_OK:
+               case DR_OK:
                     break;
-               case DFB_UNSUPPORTED:
+               case DR_UNSUPPORTED:
                     D_ERROR( "FusionDale/Config: Unknown option '%s'!\n", buf );
                     break;
                default:
@@ -96,7 +96,7 @@ parse_args( const char *args )
           buf = next;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void 
@@ -119,7 +119,7 @@ fd_config_usage( void )
      return config_usage;
 }
 
-DFBResult 
+DirectResult 
 fd_config_set( const char *name, const char *value )
 {
      if (!strcmp( name, "session" )) {
@@ -129,7 +129,7 @@ fd_config_set( const char *name, const char *value )
                if (sscanf( value, "%d", &session ) < 1) {
                     D_ERROR( "FusionDale/Config 'session': "
                              "Could not parse value!\n");
-                    return DFB_INVARG;
+                    return DR_INVARG;
                }
 
                fusiondale_config->session = session;
@@ -137,7 +137,7 @@ fd_config_set( const char *name, const char *value )
           else {
                D_ERROR( "FusionDale/Config 'session': "
                         "No value specified!\n" );
-               return DFB_INVARG;
+               return DR_INVARG;
           }
      }
      else if (!strcmp( name, "coma-shmpool-size" )) {
@@ -146,14 +146,14 @@ fd_config_set( const char *name, const char *value )
 
                if (sscanf( value, "%d", &size_kb ) < 1) {
                     D_ERROR( "FusionDale/Config '%s': Could not parse value!\n", name);
-                    return DFB_INVARG;
+                    return DR_INVARG;
                }
 
                fusiondale_config->coma_shmpool_size = size_kb * 1024;
           }
           else {
                D_ERROR( "FusionDale/Config '%s': No value specified!\n", name );
-               return DFB_INVARG;
+               return DR_INVARG;
           }
      }
      else if (!strcmp( name, "banner" )) {
@@ -169,23 +169,23 @@ fd_config_set( const char *name, const char *value )
           fusiondale_config->force_slave = false;
      } else
      if (fusion_config_set( name, value ) && direct_config_set( name, value ))
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult 
+static DirectResult 
 fd_config_read( const char *filename )
 {
-     DFBResult  ret = DFB_OK;
-     char       line[400];
-     FILE      *f;
+     DirectResult  ret = DR_OK;
+     char          line[400];
+     FILE         *f;
 
      f = fopen( filename, "r" );
      if (!f) {
           D_DEBUG( "FusionDale/Config: "
                    "Unable to open config file `%s'!\n", filename );
-          return DFB_IO;
+          return DR_IO;
      } else {
           D_INFO( "FusionDale/Config: "
                   "Parsing config file '%s'.\n", filename );
@@ -207,7 +207,7 @@ fd_config_read( const char *filename )
 
           ret = fd_config_set( name, value );
           if (ret) {
-               if (ret == DFB_UNSUPPORTED)
+               if (ret == DR_UNSUPPORTED)
                     D_ERROR( "FusionDale/Config: In config file `%s': "
                              "Invalid option `%s'!\n", filename, name );
                break;
@@ -219,22 +219,22 @@ fd_config_read( const char *filename )
      return ret;
 }
 
-DFBResult 
+DirectResult 
 fd_config_init( int *argc, char **argv[] )
 {
-     DFBResult  ret;
-     char      *home   = getenv( "HOME" );
-     char      *prog   = NULL;
-     char      *fsargs;
+     DirectResult  ret;
+     char         *home   = getenv( "HOME" );
+     char         *prog   = NULL;
+     char         *fsargs;
      
      if (fusiondale_config)
-          return DFB_OK;
+          return DR_OK;
           
      config_allocate();
      
      /* Read system settings. */
      ret = fd_config_read( SYSCONFDIR"/fusiondalerc" );
-     if (ret  &&  ret != DFB_IO)
+     if (ret  &&  ret != DR_IO)
           return ret;
           
      /* Read user settings. */
@@ -245,7 +245,7 @@ fd_config_init( int *argc, char **argv[] )
           snprintf( buf, len, "%s/.fusiondalerc", home );
 
           ret = fd_config_read( buf );
-          if (ret  &&  ret != DFB_IO)
+          if (ret  &&  ret != DR_IO)
                return ret;
      }
      
@@ -267,7 +267,7 @@ fd_config_init( int *argc, char **argv[] )
           snprintf( buf, len, SYSCONFDIR"/fusiondalerc.%s", prog );
 
           ret = fd_config_read( buf );
-          if (ret  &&  ret != DFB_IO)
+          if (ret  &&  ret != DR_IO)
                return ret;
      }
      
@@ -279,7 +279,7 @@ fd_config_init( int *argc, char **argv[] )
           snprintf( buf, len, "%s/.fusiondalerc.%s", home, prog );
 
           ret = fd_config_read( buf );
-          if (ret  &&  ret != DFB_IO)
+          if (ret  &&  ret != DR_IO)
                return ret;
      }
      
@@ -331,6 +331,6 @@ fd_config_init( int *argc, char **argv[] )
           }
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 

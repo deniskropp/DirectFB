@@ -60,17 +60,17 @@ IComaComponent_Destruct( IComaComponent *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IComaComponent_AddRef( IComaComponent *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IComaComponent)
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IComaComponent_Release( IComaComponent *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IComaComponent)
@@ -78,10 +78,10 @@ IComaComponent_Release( IComaComponent *thiz )
      if (--data->ref == 0)
           IComaComponent_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IComaComponent_InitNotification( IComaComponent        *thiz,
                                  ComaNotificationID     id,
                                  ComaNotifyFunc         func,
@@ -101,19 +101,19 @@ IComaComponent_InitNotification( IComaComponent        *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IComaComponent_InitNotifications( IComaComponent             *thiz,
                                   const ComaNotificationInit *inits,
                                   int                         num_inits,
                                   void                       *ctx )
 {
      int          i;
-     DirectResult ret = DFB_INVARG;
+     DirectResult ret = DR_INVARG;
 
      DIRECT_INTERFACE_GET_DATA (IComaComponent)
 
      if (!inits || num_inits < 1)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      coma_component_lock( data->component );
 
@@ -130,7 +130,7 @@ IComaComponent_InitNotifications( IComaComponent             *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IComaComponent_Call( IComaComponent *thiz,
                      ComaMethodID    method,
                      void           *arg,
@@ -141,7 +141,7 @@ IComaComponent_Call( IComaComponent *thiz,
      return coma_component_call( data->component, method, arg, ret_val );
 }
 
-static DFBResult
+static DirectResult
 IComaComponent_Return( IComaComponent *thiz,
                        int             val,
                        unsigned int    magic )
@@ -151,7 +151,7 @@ IComaComponent_Return( IComaComponent *thiz,
      return coma_component_return( data->component, magic, val );
 }
 
-static DFBResult
+static DirectResult
 IComaComponent_Notify( IComaComponent     *thiz,
                        ComaNotificationID  id,
                        void               *arg )
@@ -159,12 +159,12 @@ IComaComponent_Notify( IComaComponent     *thiz,
      DIRECT_INTERFACE_GET_DATA (IComaComponent)
 
      if (id < 0 || id >= data->num_notifications)
-          return DFB_LIMITEXCEEDED;
+          return DR_LIMITEXCEEDED;
 
      return coma_component_notify( data->component, id, arg );
 }
 
-static DFBResult
+static DirectResult
 IComaComponent_Listen( IComaComponent     *thiz,
                        ComaNotificationID  id,
                        ComaListenerFunc    func,
@@ -176,12 +176,12 @@ IComaComponent_Listen( IComaComponent     *thiz,
      DIRECT_INTERFACE_GET_DATA (IComaComponent)
 
      if (id < 0 || id >= data->num_notifications)
-          return DFB_LIMITEXCEEDED;
+          return DR_LIMITEXCEEDED;
 
      listener = &data->listeners[id];
 
      if (listener->func)
-          return DFB_BUSY;
+          return DR_BUSY;
 
      ret = coma_component_attach_channel( data->component, id,
                                           IComaComponent_ListenerReaction,
@@ -192,10 +192,10 @@ IComaComponent_Listen( IComaComponent     *thiz,
      listener->func = func;
      listener->ctx  = ctx;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IComaComponent_InitListeners( IComaComponent         *thiz,
                               const ComaListenerInit *inits,
                               int                     num_inits,
@@ -208,16 +208,16 @@ IComaComponent_InitListeners( IComaComponent         *thiz,
      DIRECT_INTERFACE_GET_DATA (IComaComponent)
 
      if (!inits || num_inits < 1)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      for (i=0; i<num_inits; i++) {
           if (inits[i].id < 0 || inits[i].id >= data->num_notifications)
-               return DFB_LIMITEXCEEDED;
+               return DR_LIMITEXCEEDED;
 
           listener = &data->listeners[inits[i].id];
 
           if (listener->func)
-               return DFB_BUSY;
+               return DR_BUSY;
 
           ret = coma_component_attach_channel( data->component, inits[i].id,
                                                IComaComponent_ListenerReaction,
@@ -229,10 +229,10 @@ IComaComponent_InitListeners( IComaComponent         *thiz,
           listener->ctx  = inits[i].ctx ? : ctx;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IComaComponent_Unlisten( IComaComponent     *thiz,
                          ComaNotificationID  id )
 {
@@ -241,21 +241,21 @@ IComaComponent_Unlisten( IComaComponent     *thiz,
      DIRECT_INTERFACE_GET_DATA (IComaComponent)
 
      if (id < 0 || id >= data->num_notifications)
-          return DFB_LIMITEXCEEDED;
+          return DR_LIMITEXCEEDED;
 
      listener = &data->listeners[id];
 
      if (!listener->func)
-          return DFB_ITEMNOTFOUND;
+          return DR_ITEMNOTFOUND;
 
      coma_component_detach( data->component, &listener->reaction );
 
      listener->func = NULL;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IComaComponent_Activate( IComaComponent *thiz )
 {
      DirectResult ret;
@@ -271,7 +271,7 @@ IComaComponent_Activate( IComaComponent *thiz )
      return ret;
 }
 
-DFBResult
+DirectResult
 IComaComponent_Construct( IComaComponent *thiz,
                           Coma           *coma,
                           ComaComponent  *component,
@@ -299,7 +299,7 @@ IComaComponent_Construct( IComaComponent *thiz,
           D_OOM();
           coma_component_unref( component );
           DIRECT_DEALLOCATE_INTERFACE( thiz );
-          return DFB_NOSYSTEMMEMORY;
+          return DR_NOLOCALMEMORY;
      }
 
      /* Assign interface pointers. */
@@ -315,7 +315,7 @@ IComaComponent_Construct( IComaComponent *thiz,
      thiz->Unlisten          = IComaComponent_Unlisten;
      thiz->Activate          = IComaComponent_Activate;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/

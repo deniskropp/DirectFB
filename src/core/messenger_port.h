@@ -70,10 +70,10 @@ struct __FD_CoreMessengerPort {
      Reaction               local_reaction;
 };
 
-typedef DFBEnumerationResult (*CoreMPListenerCallback)( CoreMessengerPort        *port,
-                                                        FDMessengerEventCallback  listener,
-                                                        void                     *listener_context,
-                                                        void                     *context );
+typedef DirectEnumerationResult (*CoreMPListenerCallback)( CoreMessengerPort        *port,
+                                                           FDMessengerEventCallback  listener,
+                                                           void                     *listener_context,
+                                                           void                     *context );
 
 /*
  * Creates a pool of messenger port objects.

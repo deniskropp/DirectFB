@@ -115,7 +115,7 @@ coma_enter( FusionWorld *world, const char *name, Coma **ret_coma )
 {
      Coma *coma;
      char  buf[128];
-     int   ret = DFB_OK;
+     int   ret = DR_OK;
 
      D_ASSERT( world != NULL );
      D_ASSERT( name != NULL );
@@ -145,13 +145,13 @@ coma_enter( FusionWorld *world, const char *name, Coma **ret_coma )
           D_MAGIC_CLEAR( coma );
           D_FREE( coma->name );
           D_FREE( coma );
-          return ret ? : DFB_FUSION;
+          return ret ? : DR_FUSION;
      }
 
      /* Return the coma. */
      *ret_coma = coma;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -171,7 +171,7 @@ coma_exit( Coma *coma, bool emergency )
      /* Deallocate local coma structure. */
      D_FREE( coma );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
@@ -205,14 +205,14 @@ coma_create_component( Coma           *coma,
           D_MAGIC_ASSERT( component, ComaComponent );
           D_WARN( "component '%s' already exists", name );
           fusion_skirmish_dismiss( &shared->lock );
-          return DFB_BUSY;
+          return DR_BUSY;
      }
 
      /* Create component object. */
      component = (ComaComponent*) fusion_object_create( shared->component_pool, coma->world );
      if (!component) {
           fusion_skirmish_dismiss( &shared->lock );
-          return DFB_FUSION;
+          return DR_FUSION;
      }
 
      /* Initialize component object. */
@@ -243,7 +243,7 @@ coma_create_component( Coma           *coma,
 
      *ret_component = component;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -311,7 +311,7 @@ coma_get_component( Coma           *coma,
 
      *ret_component = component;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
@@ -378,7 +378,7 @@ coma_get_local( Coma          *coma,
 
      *ret_ptr = tlshm->ptr;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -394,19 +394,19 @@ coma_free_local( Coma *coma )
 
      tlshm = pthread_getspecific( coma->tlshm_key );
      if (!tlshm)
-          return DFB_ITEMNOTFOUND;
+          return DR_ITEMNOTFOUND;
 
      D_MAGIC_ASSERT( tlshm, ThreadLocalSHM );
 
      if (!tlshm->ptr)
-          return DFB_BUFFEREMPTY;
+          return DR_BUFFEREMPTY;
 
      SHFREE( tlshm->pool, tlshm->ptr );
 
      tlshm->ptr  = NULL;
      tlshm->size = 0;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
@@ -462,11 +462,11 @@ _coma_internal_remove_component( Coma          *coma,
 
 /**********************************************************************************************************************/
 
-static DFBResult
+static DirectResult
 coma_initialize( Coma *coma )
 {
-     DFBResult     ret;
-     ComaShared *shared;
+     DirectResult  ret;
+     ComaShared   *shared;
 
      D_DEBUG_AT( Coma_Core, "%s()\n", __FUNCTION__ );
 
@@ -485,10 +485,10 @@ coma_initialize( Coma *coma )
 
      shared->component_pool = coma_component_pool_create( coma );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 coma_join( Coma *coma )
 {
      D_DEBUG_AT( Coma_Core, "%s()\n", __FUNCTION__ );
@@ -497,10 +497,10 @@ coma_join( Coma *coma )
 
      /* really nothing to be done here, yet ;) */
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 coma_leave( Coma *coma )
 {
      D_DEBUG_AT( Coma_Core, "%s()\n", __FUNCTION__ );
@@ -509,10 +509,10 @@ coma_leave( Coma *coma )
 
      /* really nothing to be done here, yet ;) */
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 coma_shutdown( Coma *coma )
 {
      ComaShared *shared;
@@ -530,7 +530,7 @@ coma_shutdown( Coma *coma )
 
      fusion_hash_destroy( shared->components );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
@@ -539,9 +539,9 @@ static int
 coma_arena_initialize( FusionArena *arena,
                           void        *ctx )
 {
-     DFBResult            ret;
-     Coma              *coma = ctx;
-     ComaShared        *shared;
+     DirectResult         ret;
+     Coma                *coma = ctx;
+     ComaShared          *shared;
      FusionSHMPoolShared *pool;
 
      D_DEBUG_AT( Coma_Core, "%s()\n", __FUNCTION__ );
@@ -579,7 +579,7 @@ coma_arena_initialize( FusionArena *arena,
      /* Register shared data. */
      fusion_arena_add_shared_field( arena, "Core/Shared", shared );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static int
@@ -587,9 +587,9 @@ coma_arena_shutdown( FusionArena *arena,
                         void        *ctx,
                         bool         emergency)
 {
-     DFBResult            ret;
-     Coma              *coma = ctx;
-     ComaShared        *shared;
+     DirectResult         ret;
+     Coma                *coma = ctx;
+     ComaShared          *shared;
      FusionSHMPoolShared *pool;
 
      D_DEBUG_AT( Coma_Core, "%s()\n", __FUNCTION__ );
@@ -614,16 +614,16 @@ coma_arena_shutdown( FusionArena *arena,
 
      fusion_shm_pool_destroy( coma->world, pool );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static int
 coma_arena_join( FusionArena *arena,
                     void        *ctx )
 {
-     DFBResult     ret;
-     Coma       *coma = ctx;
-     ComaShared *shared;
+     DirectResult  ret;
+     Coma         *coma = ctx;
+     ComaShared   *shared;
 
      D_DEBUG_AT( Coma_Core, "%s()\n", __FUNCTION__ );
 
@@ -631,7 +631,7 @@ coma_arena_join( FusionArena *arena,
 
      /* Get shared data. */
      if (fusion_arena_get_shared_field( arena, "Core/Shared", (void*)&shared ))
-          return DFB_FUSION;
+          return DR_FUSION;
 
      coma->shared = shared;
 
@@ -640,7 +640,7 @@ coma_arena_join( FusionArena *arena,
      if (ret)
           return ret;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static int
@@ -648,8 +648,8 @@ coma_arena_leave( FusionArena *arena,
                      void        *ctx,
                      bool         emergency)
 {
-     DFBResult  ret;
-     Coma    *coma = ctx;
+     DirectResult  ret;
+     Coma         *coma = ctx;
 
      D_DEBUG_AT( Coma_Core, "%s()\n", __FUNCTION__ );
 
@@ -660,6 +660,6 @@ coma_arena_leave( FusionArena *arena,
      if (ret)
           return ret;
 
-     return DFB_OK;
+     return DR_OK;
 }
 

@@ -24,7 +24,7 @@
 #ifndef __FUSIONDALE_H__
 #define __FUSIONDALE_H__
 
-#include <direct/types.h>
+#include <direct/interface.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -72,49 +72,49 @@ DECLARE_INTERFACE( IComaComponent )
  * Parses the command-line and initializes some variables. You absolutely need to
  * call this before doing anything else. Removes all options used by FusionDale from argv.
  */
-DFBResult FusionDaleInit(
-                           int    *argc,   /* pointer to main()'s argc */
-                           char *(*argv[]) /* pointer to main()'s argv */
-                         );
+DirectResult FusionDaleInit(
+                              int    *argc,   /* pointer to main()'s argc */
+                              char *(*argv[]) /* pointer to main()'s argv */
+                            );
 
 /*
  * Sets configuration parameters supported on command line and in config file.
  * Can only be called before FusionDaleCreate but after FusionDaleInit.
  */
-DFBResult FusionDaleSetOption(
-                                const char *name,
-                                const char *value
-                              );
+DirectResult FusionDaleSetOption(
+                                   const char *name,
+                                   const char *value
+                                 );
 
 /*
  * Creates the super interface.
  */
-DFBResult FusionDaleCreate(
-                             IFusionDale **ret_interface  /* pointer to the created interface */
-                           );
+DirectResult FusionDaleCreate(
+                                IFusionDale **ret_interface  /* pointer to the created interface */
+                              );
 
 /*
  * Print a description of the result code along with an
  * optional message that is put in front with a colon.
  */
-DFBResult FusionDaleError(
-                            const char *msg,    /* optional message */
-                            DFBResult   result  /* result code to interpret */
-                          );
+DirectResult FusionDaleError(
+                               const char   *msg,      /* optional message */
+                               DirectResult  result    /* result code to interpret */
+                             );
                           
 /*
  * Behaves like FusionDaleError, but shuts down the calling application.
  */
-DFBResult FusionDaleErrorFatal(
-                            const char *msg,    /* optional message */
-                            DFBResult   result  /* result code to interpret */
-                          );
+DirectResult FusionDaleErrorFatal(
+                                    const char   *msg,      /* optional message */
+                                    DirectResult  result    /* result code to interpret */
+                                  );
 
 /*
  * Returns a string describing 'result'.
  */
 const char *FusionDaleErrorString(
-                                    DFBResult result
+                                    DirectResult result
                                   );
                                   
 /*
@@ -135,7 +135,7 @@ DEFINE_INTERFACE( IFusionDale,
      /*
       * Create a new event manager.
       */
-     DFBResult (*CreateMessenger) (
+     DirectResult (*CreateMessenger) (
           IFusionDale           *thiz,
           IFusionDaleMessenger **ret_messenger
      );
@@ -143,7 +143,7 @@ DEFINE_INTERFACE( IFusionDale,
      /*
       * Get an interface to an existing event manager.
       */
-     DFBResult (*GetMessenger) (
+     DirectResult (*GetMessenger) (
           IFusionDale           *thiz,
           IFusionDaleMessenger **ret_messenger
      );
@@ -157,7 +157,7 @@ DEFINE_INTERFACE( IFusionDale,
       * The <b>name</b> is a unique identifier.
       * The component manager will be created if it doesn't exist.
       */
-     DFBResult (*EnterComa) (
+     DirectResult (*EnterComa) (
           IFusionDale           *thiz,
           const char            *name,
           IComa                **ret_coma
@@ -187,18 +187,18 @@ DEFINE_INTERFACE( IFusionDaleMessenger,
 
    /** Events **/
 
-     DFBResult (*RegisterEvent) (
+     DirectResult (*RegisterEvent) (
           IFusionDaleMessenger     *thiz,
           const char               *name,
           FDMessengerEventID       *ret_id
      );
 
-     DFBResult (*UnregisterEvent) (
+     DirectResult (*UnregisterEvent) (
           IFusionDaleMessenger     *thiz,
           FDMessengerEventID        event_id
      );
 
-     DFBResult (*IsEventRegistered) (
+     DirectResult (*IsEventRegistered) (
           IFusionDaleMessenger     *thiz,
           const char               *name
      );
@@ -206,7 +206,7 @@ DEFINE_INTERFACE( IFusionDaleMessenger,
 
    /** Listeners **/
 
-     DFBResult (*RegisterListener) (
+     DirectResult (*RegisterListener) (
           IFusionDaleMessenger     *thiz,
           FDMessengerEventID        event_id,
           FDMessengerEventCallback  listener,
@@ -214,7 +214,7 @@ DEFINE_INTERFACE( IFusionDaleMessenger,
           FDMessengerListenerID    *ret_id
      );
 
-     DFBResult (*UnregisterListener) (
+     DirectResult (*UnregisterListener) (
           IFusionDaleMessenger     *thiz,
           FDMessengerListenerID     listener_id
      );
@@ -222,13 +222,13 @@ DEFINE_INTERFACE( IFusionDaleMessenger,
 
    /** Dispatch **/
 
-     DFBResult (*SendSimpleEvent) (
+     DirectResult (*SendSimpleEvent) (
           IFusionDaleMessenger     *thiz,
           FDMessengerEventID        event_id,
           int                       param
      );
 
-     DFBResult (*SendEvent) (
+     DirectResult (*SendEvent) (
           IFusionDaleMessenger     *thiz,
           FDMessengerEventID        event_id,
           int                       param,
@@ -239,7 +239,7 @@ DEFINE_INTERFACE( IFusionDaleMessenger,
 
    /** Message data **/
 
-     DFBResult (*AllocateData) (
+     DirectResult (*AllocateData) (
           IFusionDaleMessenger     *thiz,
           unsigned int              data_size,
           void                    **ret_data
@@ -289,7 +289,7 @@ DEFINE_INTERFACE( IComa,
 
    /** Components **/
 
-     DFBResult (*CreateComponent) (
+     DirectResult (*CreateComponent) (
           IComa                    *thiz,
           const char               *name,
           ComaMethodFunc            func,
@@ -298,7 +298,7 @@ DEFINE_INTERFACE( IComa,
           IComaComponent          **ret_component
      );
 
-     DFBResult (*GetComponent) (
+     DirectResult (*GetComponent) (
           IComa                    *thiz,
           const char               *name,
           unsigned int              timeout,
@@ -308,13 +308,13 @@ DEFINE_INTERFACE( IComa,
 
    /** Shared memory **/
 
-     DFBResult (*Allocate) (
+     DirectResult (*Allocate) (
           IComa                    *thiz,
           unsigned int              bytes,
           void                    **ret_ptr
      );
 
-     DFBResult (*Deallocate) (
+     DirectResult (*Deallocate) (
           IComa                    *thiz,
           void                     *ptr
      );
@@ -322,13 +322,13 @@ DEFINE_INTERFACE( IComa,
 
    /** Thread local SHM **/
 
-     DFBResult (*GetLocal) (
+     DirectResult (*GetLocal) (
           IComa                    *thiz,
           unsigned int              bytes,
           void                    **ret_ptr
      );
 
-     DFBResult (*FreeLocal) (
+     DirectResult (*FreeLocal) (
           IComa                    *thiz
      );
 )
@@ -340,7 +340,7 @@ DEFINE_INTERFACE( IComaComponent,
 
    /** Initialization **/
 
-     DFBResult (*InitNotification) (
+     DirectResult (*InitNotification) (
           IComaComponent           *thiz,
           ComaNotificationID        id,
           ComaNotifyFunc            func,
@@ -348,7 +348,7 @@ DEFINE_INTERFACE( IComaComponent,
           ComaNotificationFlags     flags
      );
 
-     DFBResult (*InitNotifications) (
+     DirectResult (*InitNotifications) (
           IComaComponent                *thiz,
           const ComaNotificationInit    *inits,
           int                            num_inits,
@@ -358,14 +358,14 @@ DEFINE_INTERFACE( IComaComponent,
 
    /** Methods **/
 
-     DFBResult (*Call) (
+     DirectResult (*Call) (
           IComaComponent           *thiz,
           ComaMethodID              method,
           void                     *arg,
           int                      *ret_val
      );
 
-     DFBResult (*Return) (
+     DirectResult (*Return) (
           IComaComponent           *thiz,
           int                       val,
           unsigned int              magic
@@ -374,27 +374,27 @@ DEFINE_INTERFACE( IComaComponent,
 
    /** Notifications **/
 
-     DFBResult (*Notify) (
+     DirectResult (*Notify) (
           IComaComponent           *thiz,
           ComaNotificationID        id,
           void                     *arg
      );
 
-     DFBResult (*Listen) (
+     DirectResult (*Listen) (
           IComaComponent           *thiz,
           ComaNotificationID        id,
           ComaListenerFunc          func,
           void                     *ctx
      );
 
-     DFBResult (*InitListeners) (
+     DirectResult (*InitListeners) (
           IComaComponent           *thiz,
           const ComaListenerInit   *inits,
           int                       num_inits,
           void                     *ctx
      );
 
-     DFBResult (*Unlisten) (
+     DirectResult (*Unlisten) (
           IComaComponent           *thiz,
           ComaNotificationID        id
      );
@@ -402,7 +402,7 @@ DEFINE_INTERFACE( IComaComponent,
 
    /** Activation **/
 
-     DFBResult (*Activate) (
+     DirectResult (*Activate) (
           IComaComponent           *thiz
      );
 )

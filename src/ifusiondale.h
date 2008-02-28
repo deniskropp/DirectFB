@@ -38,7 +38,7 @@ typedef struct {
 } IFusionDale_data;
 
 
-DFBResult IFusionDale_Construct( IFusionDale *thiz );
+DirectResult IFusionDale_Construct( IFusionDale *thiz );
 
 extern IFusionDale *ifusiondale_singleton;
 

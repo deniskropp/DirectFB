@@ -217,7 +217,7 @@ coma_component_init( ComaComponent   *component,
 
      D_MAGIC_SET( component, ComaComponent );
 
-     return DFB_OK;
+     return DR_OK;
 
 
 error:
@@ -251,7 +251,7 @@ coma_component_unlock( ComaComponent *component )
 DirectResult
 coma_component_activate( ComaComponent *component )
 {
-     DFBResult ret;
+     DirectResult ret;
 
      D_MAGIC_ASSERT( component, ComaComponent );
      FUSION_SKIRMISH_ASSERT( &component->lock );
@@ -260,7 +260,7 @@ coma_component_activate( ComaComponent *component )
      D_DEBUG_AT( Coma_Component, "%s( %p ) <- '%s'\n", __FUNCTION__, component, component->name );
 
      if (component->active)
-          return DFB_BUSY;
+          return DR_BUSY;
 
      component->active = true;
 
@@ -287,12 +287,12 @@ coma_component_init_notification( ComaComponent         *component,
      D_DEBUG_AT( Coma_Component, "%s( %p, %lu - %p )\n", __FUNCTION__, component, id, func );
 
      if (id < 0 || id >= component->num_notifications)
-          return DFB_LIMITEXCEEDED;
+          return DR_LIMITEXCEEDED;
 
      notification = &component->notifications[id];
      if (notification->component) {
           D_MAGIC_ASSERT( notification, ComaNotification );
-          return DFB_BUSY;
+          return DR_BUSY;
      }
 
      notification->id          = id;
@@ -303,7 +303,7 @@ coma_component_init_notification( ComaComponent         *component,
 
      D_MAGIC_SET( notification, ComaNotification );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult

@@ -50,9 +50,9 @@ typedef struct {
      ComaListener      *listeners;
 } IComaComponent_data;
 
-DFBResult IComaComponent_Construct( IComaComponent *thiz,
-                                    Coma           *coma,
-                                    ComaComponent  *component,
-                                    int             num_notifications );
+DirectResult IComaComponent_Construct( IComaComponent *thiz,
+                                       Coma           *coma,
+                                       ComaComponent  *component,
+                                       int             num_notifications );
 
 #endif

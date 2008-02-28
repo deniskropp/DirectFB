@@ -116,7 +116,7 @@ purge_node( CoreMessengerPort *port,
 
      if (node->count > 0) {
           ret = fd_messenger_lock( messenger );
-          if (ret == DFB_OK) {
+          if (ret == DR_OK) {
                CoreMessengerDispatch *dispatch;
 
                /* Clear pending dispatches. */
@@ -250,7 +250,7 @@ fd_messenger_port_create( CoreDale           *core,
      /* Create messenger port object. */
      port = fd_core_create_messenger_port( core );
      if (!port)
-          return DFB_FUSION;
+          return DR_FUSION;
 
      /* Set back pointer. */
      ret = fd_messenger_link( &port->messenger, messenger );
@@ -296,7 +296,7 @@ fd_messenger_port_create( CoreDale           *core,
      /* Return messenger port object. */
      *ret_port = port;
 
-     return DFB_OK;
+     return DR_OK;
 
 
 error_hash2:
@@ -379,7 +379,7 @@ fd_messenger_port_add_event( CoreMessengerPort  *port,
      /* Unlock port. */
      fusion_skirmish_dismiss( &port->lock );
 
-     return DFB_OK;
+     return DR_OK;
 
 
 error:
@@ -425,7 +425,7 @@ fd_messenger_port_remove_event( CoreMessengerPort  *port,
      /* Unlock port. */
      fusion_skirmish_dismiss( &port->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -491,7 +491,7 @@ fd_messenger_port_add_listener( CoreMessengerPort        *port,
      /* Unlock port. */
      fusion_skirmish_dismiss( &port->lock );
 
-     return DFB_OK;
+     return DR_OK;
 
 
 error:
@@ -551,7 +551,7 @@ fd_messenger_port_remove_listener( CoreMessengerPort     *port,
      /* Unlock port. */
      fusion_skirmish_dismiss( &port->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -586,7 +586,7 @@ fd_messenger_port_enum_listeners( CoreMessengerPort      *port,
                D_ASSERT( listener->callback != NULL );
 
                /* Pass each listener and its context to the enumeration callback. */
-               if (callback( port, listener->callback, listener->context, context ) == DFENUM_CANCEL)
+               if (callback( port, listener->callback, listener->context, context ) == DENUM_CANCEL)
                     break;
           }
      }
@@ -596,7 +596,7 @@ fd_messenger_port_enum_listeners( CoreMessengerPort      *port,
      /* Unlock port. */
      fusion_skirmish_dismiss( &port->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
@@ -680,7 +680,7 @@ fd_messenger_event_dispatch( CoreMessengerEvent *event,
           SHFREE( messenger->shmpool, dispatch );
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 DirectResult
@@ -713,7 +713,7 @@ fd_messenger_port_send_event( CoreMessengerPort  *port,
      if (!node) {
           D_BUG( "node for event id %lu not found", event_id );
           fusion_skirmish_dismiss( &port->lock );
-          return DFB_BUG;
+          return DR_BUG;
      }
 
      D_MAGIC_ASSERT( node, EventNode );

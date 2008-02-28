@@ -103,7 +103,7 @@ static int fd_core_arena_shutdown  ( FusionArena *arena,
 static CoreDale        *core_dale      = NULL;
 static pthread_mutex_t  core_dale_lock = PTHREAD_MUTEX_INITIALIZER;
 
-DFBResult
+DirectResult
 fd_core_create( CoreDale **ret_core )
 {
      int        ret;
@@ -127,7 +127,7 @@ fd_core_create( CoreDale **ret_core )
           /* Unlock the core singleton mutex. */
           pthread_mutex_unlock( &core_dale_lock );
 
-          return DFB_OK;
+          return DR_OK;
      }
 
      /* Allocate local core structure. */
@@ -163,7 +163,7 @@ fd_core_create( CoreDale **ret_core )
                              core, &core->arena, &ret ) || ret)
      {
           D_MAGIC_CLEAR( core );
-          ret = ret ? : DFB_FUSION;
+          ret = ret ? : DR_FUSION;
           goto error;
      }
 
@@ -173,7 +173,7 @@ fd_core_create( CoreDale **ret_core )
      /* Unlock the core singleton mutex. */
      pthread_mutex_unlock( &core_dale_lock );
 
-     return DFB_OK;
+     return DR_OK;
 
 
 error:
@@ -191,7 +191,7 @@ error:
      return ret;
 }
 
-DFBResult
+DirectResult
 fd_core_destroy( CoreDale *core, bool emergency )
 {
      D_MAGIC_ASSERT( core, CoreDale );
@@ -208,7 +208,7 @@ fd_core_destroy( CoreDale *core, bool emergency )
           /* Unlock the core singleton mutex. */
           pthread_mutex_unlock( &core_dale_lock );
 
-          return DFB_OK;
+          return DR_OK;
      }
 
      direct_signal_handler_remove( core->signal_handler );
@@ -216,7 +216,7 @@ fd_core_destroy( CoreDale *core, bool emergency )
      /* Exit the FusionDale core arena. */
      if (fusion_arena_exit( core->arena, fd_core_arena_shutdown,
                             core->master ? NULL : fd_core_arena_leave,
-                            core, emergency, NULL ) == DFB_BUSY)
+                            core, emergency, NULL ) == DR_BUSY)
      {
           if (core->master) {
                if (emergency) {
@@ -230,7 +230,7 @@ fd_core_destroy( CoreDale *core, bool emergency )
           
           while (fusion_arena_exit( core->arena, fd_core_arena_shutdown,
                                     core->master ? NULL : fd_core_arena_leave,
-                                    core, emergency, NULL ) == DFB_BUSY)
+                                    core, emergency, NULL ) == DR_BUSY)
           {
                D_ONCE( "waiting for FusionDale slaves to terminate" );
                usleep( 100000 );
@@ -251,7 +251,7 @@ fd_core_destroy( CoreDale *core, bool emergency )
      if (!emergency)
           pthread_mutex_unlock( &core_dale_lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
@@ -339,7 +339,7 @@ fd_core_get_messenger( CoreDale        *core,
 
      *ret_messenger = (CoreMessenger*) object;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
@@ -378,12 +378,12 @@ fd_core_signal_handler( int num, void *addr, void *ctx )
 
      fd_core_destroy( core, true );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
 
-static DFBResult
+static DirectResult
 fd_core_initialize( CoreDale *core )
 {
      CoreDaleShared *shared = core->shared;
@@ -396,10 +396,10 @@ fd_core_initialize( CoreDale *core )
      shared->messenger_pool      = fd_messenger_pool_create( core->world );
      shared->messenger_port_pool = fd_messenger_port_pool_create( core->world );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 fd_core_join( CoreDale *core )
 {
      D_DEBUG_AT( Dale_Core, "%s()\n", __FUNCTION__ );
@@ -408,10 +408,10 @@ fd_core_join( CoreDale *core )
 
      /* really nothing to be done here, yet ;) */
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 fd_core_leave( CoreDale *core )
 {
      D_DEBUG_AT( Dale_Core, "%s()\n", __FUNCTION__ );
@@ -420,10 +420,10 @@ fd_core_leave( CoreDale *core )
 
      /* really nothing to be done here, yet ;) */
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 fd_core_shutdown( CoreDale *core )
 {
      CoreDaleShared *shared;
@@ -443,7 +443,7 @@ fd_core_shutdown( CoreDale *core )
      /* destroy messenger object pool */
      fusion_object_pool_destroy( shared->messenger_pool, core->world );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
@@ -452,8 +452,8 @@ static int
 fd_core_arena_initialize( FusionArena *arena,
                           void        *ctx )
 {
-     DFBResult            ret;
-     CoreDale            *core   = ctx;
+     DirectResult         ret;
+     CoreDale            *core = ctx;
      CoreDaleShared      *shared;
      FusionSHMPoolShared *pool;
 
@@ -490,7 +490,7 @@ fd_core_arena_initialize( FusionArena *arena,
      /* Register shared data. */
      fusion_arena_add_shared_field( arena, "Core/Shared", shared );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static int
@@ -498,9 +498,9 @@ fd_core_arena_shutdown( FusionArena *arena,
                         void        *ctx,
                         bool         emergency)
 {
-     DFBResult            ret;
-     CoreDale           *core = ctx;
-     CoreDaleShared     *shared;
+     DirectResult         ret;
+     CoreDale            *core = ctx;
+     CoreDaleShared      *shared;
      FusionSHMPoolShared *pool;
 
      D_DEBUG_AT( Dale_Core, "%s()\n", __FUNCTION__ );
@@ -527,15 +527,15 @@ fd_core_arena_shutdown( FusionArena *arena,
 
      fusion_shm_pool_destroy( core->world, pool );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static int
 fd_core_arena_join( FusionArena *arena,
                     void        *ctx )
 {
-     DFBResult        ret;
-     CoreDale       *core   = ctx;
+     DirectResult    ret;
+     CoreDale       *core = ctx;
      CoreDaleShared *shared;
 
      D_DEBUG_AT( Dale_Core, "%s()\n", __FUNCTION__ );
@@ -544,7 +544,7 @@ fd_core_arena_join( FusionArena *arena,
 
      /* Get shared data. */
      if (fusion_arena_get_shared_field( arena, "Core/Shared", (void*)&shared ))
-          return DFB_FUSION;
+          return DR_FUSION;
 
      core->shared = shared;
 
@@ -553,7 +553,7 @@ fd_core_arena_join( FusionArena *arena,
      if (ret)
           return ret;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static int
@@ -561,8 +561,8 @@ fd_core_arena_leave( FusionArena *arena,
                      void        *ctx,
                      bool         emergency)
 {
-     DFBResult  ret;
-     CoreDale *core = ctx;
+     DirectResult  ret;
+     CoreDale     *core = ctx;
 
      D_DEBUG_AT( Dale_Core, "%s()\n", __FUNCTION__ );
 
@@ -573,6 +573,6 @@ fd_core_arena_leave( FusionArena *arena,
      if (ret)
           return ret;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
