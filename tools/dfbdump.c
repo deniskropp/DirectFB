@@ -684,7 +684,7 @@ dump_layers()
 /**********************************************************************************************************************/
 
 #if FUSION_BUILD_MULTI
-static DFBEnumerationResult
+static DirectEnumerationResult
 dump_shmpool( FusionSHMPool *pool,
               void          *ctx )
 {
