@@ -138,22 +138,22 @@ parse_command_line( int argc, char *argv[] )
      for (i = 1; i < argc; i++) {
           if (!strcmp( argv[i], "-h" ) || !strcmp( argv[i], "--help" )) {
                usage( argv[0] );
-               return DR_FALSE;
+               return false;
           }
           else if (!strcmp( argv[i], "-v" ) || !strcmp( argv[i], "--version" )) {
                puts( FUSIONSOUND_VERSION );
                exit( 0 );
           }
           else if (!strcmp( argv[i], "-k" ) || !strcmp( argv[i], "--keep-alive" )) {
-               keep_alive = DR_TRUE;
+               keep_alive = true;
           }
           else {
                fprintf( stderr, "Unsupported option '%s'!\n", argv[i] );
-               return DR_FALSE;
+               return false;
           }
      }
      
-     return DR_TRUE;
+     return true;
 }
 
 static DirectResult

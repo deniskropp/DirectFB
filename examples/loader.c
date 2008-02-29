@@ -104,7 +104,7 @@ load_sample (IFusionSound *sound, const char *filename)
           return NULL;
      }
 
-     while (DR_TRUE) {
+     while (1) {
           char magic[4];
 
           len = read_chunk_header (fd, magic);
@@ -168,7 +168,7 @@ load_sample (IFusionSound *sound, const char *filename)
      desc.sampleformat = (fmt.bitspersample == 8) ? FSSF_U8 : FSSF_S16;
      desc.samplerate   = fmt.frequency;
 
-     while (DR_TRUE) {
+     while (1) {
           char magic[4];
 
           len = read_chunk_header (fd, magic);

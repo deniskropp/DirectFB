@@ -714,7 +714,7 @@ IFusionSoundMusicProvider_CDDA_EnumTracks( IFusionSoundMusicProvider *thiz,
           direct_snputs( desc.encoding, "PCM 16 bit", FS_TRACK_DESC_ENCODING_LENGTH );
           desc.bitrate = CD_FRAMES_PER_SECOND * CD_BYTES_PER_FRAME * 8;
 
-          if (callback( i, desc, callbackdata ) != DFENUM_OK)
+          if (callback( i, desc, callbackdata ))
                break;
      }
 

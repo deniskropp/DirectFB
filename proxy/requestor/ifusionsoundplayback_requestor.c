@@ -204,7 +204,7 @@ IFusionSoundPlayback_Requestor_GetStatus( IFusionSoundPlayback *thiz,
 {
      DirectResult           ret;
      VoodooResponseMessage *response;
-     bool                   playing  = DR_FALSE;
+     bool                   playing  = false;
      int                    position = 0; 
      
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback_Requestor)
