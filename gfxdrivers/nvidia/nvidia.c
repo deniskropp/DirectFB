@@ -1599,6 +1599,7 @@ driver_init_driver( CoreGraphicsDevice  *device,
                funcs->SetState          = nv30SetState;
                break;
           default:
+               funcs->AfterSetVar       = NULL;
                funcs->EngineReset       = NULL;
                break;
      }
@@ -1695,6 +1696,10 @@ driver_init_device( CoreGraphicsDevice *device,
      }
      
      nvdev->fb_size = 1 << direct_log2( ram_total );
+
+     /* skip if unsupported arch (NV40) */
+     if (!nvdev->arch)
+          return DFB_OK;
 
      nvdev->agp_offset = dfb_gfxcard_auxmemory_physical( nvdrv->device, 0 );
 
