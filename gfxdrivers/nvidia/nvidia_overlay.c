@@ -64,8 +64,14 @@ typedef struct {
      struct {
           u32 BUFFER;
           u32 STOP;
+          u32 UVBASE_0;
+          u32 UVBASE_1;
+          u32 UVOFFSET_0;
+          u32 UVOFFSET_1;
           u32 BASE_0;
           u32 BASE_1;
+          u32 OFFSET_0;
+          u32 OFFSET_1;
           u32 SIZE_IN_0;
           u32 SIZE_IN_1;
           u32 POINT_IN_0;
@@ -184,7 +190,9 @@ ov0TestRegion(CoreLayer                  *layer,
               CoreLayerRegionConfig      *config,
               CoreLayerRegionConfigFlags *failed )
 {
-     CoreLayerRegionConfigFlags fail = 0;
+     NVidiaDriverData           *nvdrv = driver_data;
+     NVidiaDeviceData           *nvdev = nvdrv->device_data;
+     CoreLayerRegionConfigFlags  fail  = CLRCF_NONE;
 
 
      /* check for unsupported options */
@@ -205,11 +213,15 @@ ov0TestRegion(CoreLayer                  *layer,
      }
 
      /* check pixel format */
-     switch (config->format) {
+     switch (config->format) { 
           case DSPF_YUY2:
           case DSPF_UYVY:
-          //case DSPF_I420:
-          //case DSPF_YV12:
+               break;
+
+          case DSPF_NV12:
+          /*case DSPF_NV21:*/
+               if (nvdev->arch < NV_ARCH_30)
+                    fail |= CLRCF_FORMAT;
                break;
 
           default:
@@ -271,265 +283,6 @@ ov0SetRegion( CoreLayer                  *layer,
      return DFB_OK;
 }
 
-#if 0
-static DFBResult
-ov0AllocateSurface( CoreLayer              *layer,
-                    void                   *driver_data,
-                    void                   *layer_data,
-                    void                   *region_data,
-                    CoreLayerRegionConfig  *config,
-                    CoreSurface           **surface )
-{
-     NVidiaOverlayLayerData *nvov0  = (NVidiaOverlayLayerData*) layer_data;
-     CoreLayerShared        *shared = layer->shared;
-     CoreSurfaceTypeFlags    type   = CSTF_LAYER;
-     CoreSurfaceConfig       conf;
-     DFBResult               result;
-     
-     conf.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
-     conf.caps   = DSCAPS_NONE;
-     conf.size.w = config->width;
-     conf.size.h = config->height;
-       
-     switch (config->buffermode) {
-          case DLBM_FRONTONLY:
-               break;
-               
-          case DLBM_BACKSYSTEM:
-          case DLBM_BACKVIDEO:
-               conf.caps |= DSCAPS_DOUBLE;
-               break;
-
-          case DLBM_TRIPLE:
-               conf.caps |= DSCAPS_TRIPLE;
-               break;
-
-          default:
-               D_BUG("unknown buffermode");
-               return DFB_BUG;
-     }
-
-     switch (config->format) {
-          case DSPF_YUY2:
-          case DSPF_UYVY:
-               conf.format = config->format;
-               break;
-               
-          case DSPF_I420:
-          case DSPF_YV12:
-               conf.format = DSPF_YUY2;
-               if (config->buffermode == DLBM_BACKSYSTEM)
-                    conf.caps &= ~DSCAPS_FLIPPING;
-               break;
-               
-          default:
-               D_BUG( "unexpected pixelformat" );
-               return DFB_BUG;
-     }
-     
-     if (config->options & DLOP_DEINTERLACING)
-          conf.caps |= DSCAPS_INTERLACED;
-     
-     /*if (shared->contexts.primary == region->context)
-          type |= CSTF_SHARED;*/
-
-     if (DFB_PLANAR_PIXELFORMAT( config->format )) {
-          result = dfb_surface_create( layer->core, &conf, type, 
-                                       shared->layer_id, NULL, &nvov0->videoSurface );
-          
-          if (result == DFB_OK) {
-               conf.caps  &= ~DSCAPS_FLIPPING;
-               conf.format = config->format;
-               
-               result = dfb_surface_create( layer->core, &conf, type, 
-                                            shared->layer_id, NULL, surface );
-               if (result == DFB_OK)
-                    (*surface)->buffers[0]->policy = CSP_SYSTEMONLY;
-          }
-     } else {
-          result = dfb_surface_create( layer->core, &conf, type, 
-                                       shared->layer_id, NULL, surface );
-          
-          if (result == DFB_OK) {
-               dfb_surface_ref( *surface );
-               nvov0->videoSurface = *surface;
-
-               if (config->buffermode == DLBM_BACKSYSTEM)
-                    (*surface)->buffers[1]->policy = CSP_SYSTEMONLY;
-          }
-     }
-          
-     return result;
-}
-
-static DFBResult
-ov0ReallocateSurface( CoreLayer             *layer,
-                      void                  *driver_data,
-                      void                  *layer_data,
-                      void                  *region_data,
-                      CoreLayerRegionConfig *config,
-                      CoreSurface           *surface )
-{
-     NVidiaOverlayLayerData *nvov0  = (NVidiaOverlayLayerData*) layer_data;
-     CoreLayerShared        *shared = layer->shared;
-     CoreSurfaceTypeFlags    type   = CSTF_LAYER;
-     CoreSurfaceConfig       conf;
-     DFBResult               result;
-     
-     conf.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
-     conf.caps   = DSCAPS_NONE;
-     conf.size.w = config->width;
-     conf.size.h = config->height;
-       
-     switch (config->buffermode) {
-          case DLBM_FRONTONLY:
-               break;
-               
-          case DLBM_BACKSYSTEM:
-          case DLBM_BACKVIDEO:
-               conf.caps |= DSCAPS_DOUBLE;
-               break;
-
-          case DLBM_TRIPLE:
-               conf.caps |= DSCAPS_TRIPLE;
-               break;
-
-          default:
-               D_BUG("unknown buffermode");
-               return DFB_BUG;
-     }
-
-     switch (config->format) {
-          case DSPF_YUY2:
-          case DSPF_UYVY:
-               conf.format = config->format;
-               break;
-               
-          case DSPF_I420:
-          case DSPF_YV12:
-               conf.format = DSPF_YUY2;
-               if (config->buffermode == DLBM_BACKSYSTEM)
-                    conf.caps &= ~DSCAPS_FLIPPING;
-               break;
-               
-          default:
-               D_BUG( "unexpected pixelformat" );
-               return DFB_BUG;
-     }
-     
-     if (config->options & DLOP_DEINTERLACING)
-          conf.caps |= DSCAPS_INTERLACED;
-     
-     /*if (shared->contexts.primary == region->context)
-          type |= CSTF_SHARED;*/
-          
-     dfb_surface_unref( nvov0->videoSurface );
-     nvov0->videoSurface = NULL;
-
-     if (DFB_PLANAR_PIXELFORMAT( config->format )) {
-          result = dfb_surface_create( layer->core, &conf, type, 
-                                       shared->layer_id, NULL, &nvov0->videoSurface );
-          
-          if (result == DFB_OK) {
-               conf.caps  &= ~DSCAPS_FLIPPING;
-               conf.format = config->format;
-               
-               result = dfb_surface_reconfig( surface, &conf );
-               if (result == DFB_OK)
-                    surface->buffers[0]->policy = CSP_SYSTEMONLY;
-          }
-     } else {
-          result = dfb_surface_reconfig( surface, &conf );
-          if (result == DFB_OK) {
-               dfb_surface_ref( surface );
-               nvov0->videoSurface = surface;
-
-               if (config->buffermode == DLBM_BACKSYSTEM)
-                    surface->buffers[1]->policy = CSP_SYSTEMONLY;
-          }
-     }
-          
-     return result;
-}
-
-static DFBResult
-ov0DeallocateSurface( CoreLayer   *layer,
-                      void        *driver_data,
-                      void        *layer_data,
-                      void        *region_data,
-                      CoreSurface *surface )
-{
-     NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
-     
-     if (nvov0->videoSurface) {
-          dfb_surface_unref( nvov0->videoSurface );
-          nvov0->videoSurface = NULL;
-     }
-     dfb_surface_unref( surface );
-     
-     return DFB_OK;
-}
-
-static void
-ov0CopyData420
-(
-     u8 *src1,
-     u8 *src2,
-     u8 *src3,
-     u8 *dst1,
-     int   srcPitch,
-     int   srcPitch2,
-     int   dstPitch,
-     int   h,
-     int   w
-)
-{
-     u32 *dst;
-     u8 *s1, *s2, *s3;
-     int i, j;
-
-     w >>= 1;
-
-     for(j = 0; j < h; j++) {
-          dst = (u32 *)dst1;
-          s1 = src1;  s2 = src2;  s3 = src3;
-          i = w;
-          while(i > 4) {
-#ifdef WORDS_BIGENDIAN
-               dst[0] = (s1[0] << 24) | (s1[1] << 8) | (s3[0] << 16) | s2[0];
-               dst[1] = (s1[2] << 24) | (s1[3] << 8) | (s3[1] << 16) | s2[1];
-               dst[2] = (s1[4] << 24) | (s1[5] << 8) | (s3[2] << 16) | s2[2];
-               dst[3] = (s1[6] << 24) | (s1[7] << 8) | (s3[3] << 16) | s2[3];
-#else
-               dst[0] = s1[0] | (s1[1] << 16) | (s3[0] << 8) | (s2[0] << 24);
-               dst[1] = s1[2] | (s1[3] << 16) | (s3[1] << 8) | (s2[1] << 24);
-               dst[2] = s1[4] | (s1[5] << 16) | (s3[2] << 8) | (s2[2] << 24);
-               dst[3] = s1[6] | (s1[7] << 16) | (s3[3] << 8) | (s2[3] << 24);
-#endif
-               dst += 4; s2 += 4; s3 += 4; s1 += 8;
-               i -= 4;
-          }
-
-          while(i--) {
-#ifdef WORDS_BIGENDIAN
-               dst[0] = (s1[0] << 24) | (s1[1] << 8) | (s3[0] << 16) | s2[0];
-#else
-               dst[0] = s1[0] | (s1[1] << 16) | (s3[0] << 8) | (s2[0] << 24);
-#endif
-               dst++; s2++; s3++;
-               s1 += 2;
-          }
-
-          dst1 += dstPitch;
-          src1 += srcPitch;
-          if(j & 1) {
-               src2 += srcPitch2;
-               src3 += srcPitch2;
-          }
-     }
-}
-#endif /* 0 */
-
 static DFBResult
 ov0FlipRegion ( CoreLayer             *layer,
                 void                  *driver_data,
@@ -541,37 +294,7 @@ ov0FlipRegion ( CoreLayer             *layer,
 {
      NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
-
-#if 0
-     if (DFB_PLANAR_PIXELFORMAT( surface->config.format )) {
-          CoreSurfaceBufferLock l;
-          void *src, *src1, *src2, *tmp;
-          u32   srcPitch, srcPitch2;
-          u32   width  = surface->config.size.w;
-          u32   height = surface->config.size.h;
-          
-          if (dfb_surface_lock_buffer( nvov0->videoSurface, CSBR_BACK, CSAF_CPU_WRITE, &l ))
-               return DFB_FAILURE;
-
-          src = lock->addr;
-          srcPitch = lock->pitch;
-          
-          srcPitch2 = lock->pitch >> 1;
-          src1 = src + srcPitch * height;
-          src2 = src1 + srcPitch2 * (height >> 1);
-
-          if (nvov0->config.format == DSPF_I420) {
-               tmp  = src1;
-               src1 = src2;
-               src2 = tmp;
-          }
-          
-          ov0CopyData420( src, src1, src2, l.addr, 
-                          srcPitch, srcPitch2, l.pitch,
-                          height, width );
-     }
-#endif
-     
+    
      nvov0->videoSurface = surface;
      nvov0->lock = lock;
 
@@ -583,50 +306,6 @@ ov0FlipRegion ( CoreLayer             *layer,
      if (flags & DSFLIP_WAIT)
           dfb_layer_wait_vsync( layer );
      
-     return DFB_OK;
-}
-
-static DFBResult
-ov0UpdateRegion ( CoreLayer             *layer,
-                  void                  *driver_data,
-                  void                  *layer_data,
-                  void                  *region_data,
-                  CoreSurface           *surface,
-                  const DFBRegion       *update,
-                  CoreSurfaceBufferLock *lock )
-{
-#if 0
-     NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
-     NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
-
-     if (DFB_PLANAR_PIXELFORMAT( surface->config.format )) {
-          CoreSurfaceBufferLock l;
-          void *src, *src1, *src2, *tmp;
-          u32   srcPitch, srcPitch2;
-          u32   width  = surface->config.size.w;
-          u32   height = surface->config.size.h;
-          
-          if (dfb_surface_lock_buffer( nvov0->videoSurface, CSBR_BACK, CSAF_CPU_WRITE, &l ))
-               return DFB_FAILURE;
-
-          src = lock->addr;
-          srcPitch = lock->pitch;
-          
-          srcPitch2 = lock->pitch >> 1;
-          src1 = src + srcPitch * height;
-          src2 = src1 + srcPitch2 * (height >> 1);
-
-          if (nvov0->config.format == DSPF_I420) {
-               tmp  = src1;
-               src1 = src2;
-               src2 = tmp;
-          }
-          
-          ov0CopyData420( src, src1, src2, l.addr, 
-                          srcPitch, srcPitch2, l.pitch,
-                          height, width );
-     }
-#endif     
      return DFB_OK;
 }
 
@@ -689,14 +368,8 @@ DisplayLayerFuncs nvidiaOverlayFuncs = {
      .RemoveRegion       = ov0Remove,
      .TestRegion         = ov0TestRegion,
      .FlipRegion         = ov0FlipRegion,
-     .UpdateRegion       = ov0UpdateRegion,
      .SetColorAdjustment = ov0SetColorAdjustment,
      .SetInputField      = ov0SetInputField,
-#if 0
-     .AllocateSurface    = ov0AllocateSurface,
-     .DeallocateSurface  = ov0DeallocateSurface,
-     .ReallocateSurface  = ov0ReallocateSurface
-#endif
 };
 
 
@@ -709,8 +382,16 @@ static void ov0_set_regs( NVidiaDriverData           *nvdrv,
      volatile u8 *mmio = nvdrv->mmio_base;
      
      if (flags & CLRCF_SURFACE) {
+          if (DFB_PLANAR_PIXELFORMAT(nvov0->config.format)) { 
+               nv_out32( mmio, PVIDEO_UVBASE_0, nvov0->regs.UVBASE_0 );
+               nv_out32( mmio, PVIDEO_UVBASE_1, nvov0->regs.UVBASE_1 );
+               nv_out32( mmio, PVIDEO_UVOFFSET_0, nvov0->regs.UVOFFSET_0 );
+               nv_out32( mmio, PVIDEO_UVOFFSET_1, nvov0->regs.UVOFFSET_1 );
+          }
           nv_out32( mmio, PVIDEO_BASE_0, nvov0->regs.BASE_0 );
           nv_out32( mmio, PVIDEO_BASE_1, nvov0->regs.BASE_1 );
+          nv_out32( mmio, PVIDEO_OFFSET_0, nvov0->regs.OFFSET_0 );
+          nv_out32( mmio, PVIDEO_OFFSET_1, nvov0->regs.OFFSET_1 );
      }
      if (flags & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_OPTIONS)) {
           nv_out32( mmio, PVIDEO_SIZE_IN_0, nvov0->regs.SIZE_IN_0 );
@@ -808,7 +489,10 @@ ov0_calc_regs( NVidiaDriverData           *nvdrv,
                format = (lock->pitch*2) & PVIDEO_FORMAT_PITCH_MSK;
           else
                format =  lock->pitch    & PVIDEO_FORMAT_PITCH_MSK;
-     
+               
+          if (DFB_PLANAR_PIXELFORMAT(config->format))
+               format |= PVIDEO_FORMAT_PLANAR_NV;
+    
           if (config->format == DSPF_UYVY)
                format |= PVIDEO_FORMAT_COLOR_YB8CR8YA8CB8;
           else
@@ -818,10 +502,16 @@ ov0_calc_regs( NVidiaDriverData           *nvdrv,
                format |= PVIDEO_FORMAT_DISPLAY_COLOR_KEY_EQUAL;
                
           /* Use Buffer 0 for Odd field */
-          nvov0->regs.BASE_0   = (nvdev->fb_offset + lock->offset) & PVIDEO_BASE_MSK;
+          nvov0->regs.OFFSET_0   = (nvdev->fb_offset + lock->offset) & PVIDEO_OFFSET_MSK;
           /* Use Buffer 1 for Even field */
-          nvov0->regs.BASE_1   = nvov0->regs.BASE_0 + lock->pitch;
-          nvov0->regs.FORMAT_0 =
+          nvov0->regs.OFFSET_1   = nvov0->regs.OFFSET_0 + lock->pitch;
+          if (DFB_PLANAR_PIXELFORMAT(config->format)) {
+               CoreSurface *surface = nvov0->videoSurface;
+               nvov0->regs.UVOFFSET_0 = (nvov0->regs.OFFSET_0 + 
+                                         lock->pitch * surface->config.size.h) & PVIDEO_UVOFFSET_MSK;
+               nvov0->regs.UVOFFSET_1 = nvov0->regs.UVOFFSET_0 + lock->pitch;
+          }
+          nvov0->regs.FORMAT_0 = 
           nvov0->regs.FORMAT_1 = format;
      }
  

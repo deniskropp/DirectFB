@@ -612,6 +612,17 @@
 #define   PVIDEO_STOP_METHOD_IMMEDIATELY               0x00000000
 #define   PVIDEO_STOP_METHOD_NORMALLY                  0x00000010
 
+#define PVIDEO_UVBASE_0                      0x00008800
+#define PVIDEO_UVBASE_1                      0x00008804
+#define   PVIDEO_UVBASE_MSK                  0xFFFFFFC0
+
+#define PVIDEO_UVLIMIT_0                     0x00008808
+#define PVIDEO_UVLIMIT_1                     0x0000880C
+
+#define PVIDEO_UVOFFSET_0                    0x00008820
+#define PVIDEO_UVOFFSET_1                    0x00008824
+#define   PVIDEO_UVOFFSET_MSK                0xFFFFFFC0
+
 #define PVIDEO_BASE_0                        0x00008900
 #define PVIDEO_BASE_1                        0x00008904
 #define   PVIDEO_BASE_MSK                    0xFFFFFFC0
@@ -657,6 +668,7 @@
 
 #define PVIDEO_FORMAT_0                      0x00008958
 #define PVIDEO_FORMAT_1                      0x0000895C
+#define   PVIDEO_FORMAT_PLANAR_NV                      0x00000001
 #define   PVIDEO_FORMAT_PITCH_MSK                      0x00001FC0
 #define   PVIDEO_FORMAT_COLOR_YB8CR8YA8CB8             0x00000000
 #define   PVIDEO_FORMAT_COLOR_CR8YB8CB8YA8             0x00010000
