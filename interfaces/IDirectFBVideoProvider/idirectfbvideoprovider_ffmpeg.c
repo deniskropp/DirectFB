@@ -749,7 +749,7 @@ FFmpegAudio( DirectThread *self, void *arg )
           
           for (pkt_data = pkt.data, pkt_size = pkt.size; pkt_size > 0;) {
                decoded = avcodec_decode_audio( data->audio.ctx, 
-                                               (__s16*)&buf[size], &len, 
+                                               (s16*)&buf[size], &len, 
                                                pkt_data, pkt_size );
                if (decoded < 0)
                     break;
