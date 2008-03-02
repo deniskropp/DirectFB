@@ -322,7 +322,7 @@ bool nvTextureTriangles( void *drv, void *dev, DFBVertex *ve,
                              nvdev->color3d, 0, ve[2].s, ve[2].t );
                nv_emit_vertices( 0, 0, 1, 2, 0, 0, 0, 0, 0 );
                
-               for (i = 0; i < num; i++) {
+               for (i = 3; i < num; i++) {
                     nv_putvertex( 0, ve[i-2].x, ve[i-2].y, ve[i-2].z, ve[i-2].w,
                                   nvdev->color3d, 0, ve[i-2].s, ve[i-2].t );
                     nv_putvertex( 1, ve[i-1].x, ve[i-1].y, ve[i-1].z, ve[i-1].w,
@@ -342,7 +342,7 @@ bool nvTextureTriangles( void *drv, void *dev, DFBVertex *ve,
                              nvdev->color3d, 0, ve[2].s, ve[2].t );
                nv_emit_vertices( 0, 0, 1, 2, 0, 0, 0, 0, 0 );
 
-               for (i = 0; i < num; i++) {
+               for (i = 3; i < num; i++) {
                     nv_putvertex( 0, ve[0].x, ve[0].y, ve[0].z, ve[0].w,
                                   nvdev->color3d, 0, ve[0].s, ve[0].t );
                     nv_putvertex( 1, ve[i-1].x, ve[i-1].y, ve[i-1].z, ve[i-1].w,
