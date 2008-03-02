@@ -82,6 +82,8 @@ DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers", DFB_GRAPHICS_DRIVER
 static void dfb_gfxcard_find_driver( CoreDFB *core );
 static void dfb_gfxcard_load_driver();
 
+static void fill_tri( DFBTriangle *tri, CardState *state, bool accelerated );
+
 /**********************************************************************************************************************/
 
 typedef struct {
@@ -913,6 +915,15 @@ dfb_gfxcard_state_release( CardState *state )
 
 /** DRAWING FUNCTIONS **/
 
+#define DFB_TRANSFORM(x, y, m) \
+do { \
+     s32 _x, _y; \
+     _x = ((x) * (m)[0] + (y) * (m)[1] + (m)[2] + 0x8000) >> 16; \
+     _y = ((x) * (m)[3] + (y) * (m)[4] + (m)[5] + 0x8000) >> 16; \
+     (x) = _x; \
+     (y) = _y; \
+} while (0)
+
 void
 dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state )
 {
@@ -981,11 +992,71 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
           if (i < num) {
                /* Use software fallback. */
                if (gAcquire( state, DFXL_FILLRECTANGLE )) {
-                    for (; i<num; i++) {
-                         rect = rects[i];
+                    if (!(state->render_options & DSRO_MATRIX)) {
+                         for (; i<num; i++) {
+                              rect = rects[i];
 
-                         if (dfb_clip_rectangle( &state->clip, &rect ))
-                              gFillRectangle( state, &rect );
+                              if (dfb_clip_rectangle( &state->clip, &rect ))
+                                   gFillRectangle( state, &rect );
+                         }
+                    }
+                    else if (state->matrix[1] == 0 && state->matrix[3] == 0) {
+                         /* Scaled/Translated Rectangle. */
+                         for (; i<num; i++) {
+                              int x1, y1, x2, y2;
+                              
+                              x1 = rects[i].x;    y1 = rects[i].y;
+                              x2 = x1+rects[i].w; y2 = y1+rects[i].h;
+                              DFB_TRANSFORM(x1, y1, state->matrix);
+                              DFB_TRANSFORM(x2, y2, state->matrix);
+                              
+                              if (x1 < x2) {
+                                   rect.x = x1;
+                                   rect.w = x2-x1;
+                              } else {
+                                   rect.x = x2;
+                                   rect.w = x1-x2;
+                              }
+                              if (y1 < y2) {
+                                   rect.y = y1;
+                                   rect.h = y2-y1;
+                              }
+                              else {
+                                   rect.y = y2;
+                                   rect.h = y1-y2;
+                              }
+
+                              if (dfb_clip_rectangle( &state->clip, &rect ))
+                                   gFillRectangle( state, &rect );
+                         }
+                    }
+                    else {
+                         /* Rotated rectangle. Split into triangles. */
+                         for (; i<num; i++) {
+                              DFBTriangle tri;
+                              
+                              tri.x1 = rects[i].x;            tri.y1 = rects[i].y;
+                              tri.x2 = rects[i].x+rects[i].w; tri.y2 = rects[i].y;
+                              tri.x3 = rects[i].x+rects[i].w; tri.y3 = rects[i].y+rects[i].h;
+                              DFB_TRANSFORM(tri.x1, tri.y1, state->matrix);
+                              DFB_TRANSFORM(tri.x2, tri.y2, state->matrix);
+                              DFB_TRANSFORM(tri.x3, tri.y3, state->matrix);
+                              
+                              dfb_sort_triangle( &tri );
+                              if (tri.y3 - tri.y1 > 0)
+                                   fill_tri( &tri, state, false );
+                                   
+                              tri.x1 = rects[i].x;            tri.y1 = rects[i].y;
+                              tri.x2 = rects[i].x+rects[i].w; tri.y2 = rects[i].y+rects[i].h;
+                              tri.x3 = rects[i].x;            tri.y3 = rects[i].y+rects[i].h;
+                              DFB_TRANSFORM(tri.x1, tri.y1, state->matrix);
+                              DFB_TRANSFORM(tri.x2, tri.y2, state->matrix);
+                              DFB_TRANSFORM(tri.x3, tri.y3, state->matrix);
+                              
+                              dfb_sort_triangle( &tri );
+                              if (tri.y3 - tri.y1 > 0)
+                                   fill_tri( &tri, state, false );
+                         }
                     }
 
                     gRelease( state );
@@ -1097,7 +1168,7 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
           }
      }
 
-     if (!hw) {
+     if (!hw && !(state->render_options & DSRO_MATRIX)) {
           build_clipped_rectangle_outlines( rect, &state->clip, rects, &num );
 
           if (!num) {
@@ -1120,11 +1191,49 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
           }
      }
 
-     if (!hw && gAcquire( state, DFXL_FILLRECTANGLE )) {
-          for (; i<num; i++)
-               gFillRectangle( state, &rects[i] );
+     if (!hw) {
+          if (!(state->render_options & DSRO_MATRIX)) {
+               if (gAcquire( state, DFXL_FILLRECTANGLE )) {
+                    for (; i<num; i++)
+                         gFillRectangle( state, &rects[i] );
 
-          gRelease (state);
+                    gRelease( state );
+               }
+          }
+          else {
+                if (gAcquire( state, DFXL_DRAWLINE )) {
+                    DFBRegion line;
+                    int       x1, x2, x3, x4;
+                    int       y1, y2, y3, y4;
+                    
+                    x1 = rect->x;         y1 = rect->y;
+                    x2 = rect->x+rect->w; y2 = rect->y;
+                    x3 = rect->x+rect->w; y3 = rect->y+rect->h;
+                    x4 = rect->x;         y4 = rect->y+rect->h;
+                    DFB_TRANSFORM(x1, y1, state->matrix);
+                    DFB_TRANSFORM(x2, y2, state->matrix);
+                    DFB_TRANSFORM(x3, y3, state->matrix);
+                    DFB_TRANSFORM(x4, y4, state->matrix);
+                    
+                    line = (DFBRegion) { x1, y1, x2, y2 };
+                    if (dfb_clip_line( &state->clip, &line ))
+                         gDrawLine( state, &line );
+                    
+                    line = (DFBRegion) { x2, y2, x3, y3 };
+                    if (dfb_clip_line( &state->clip, &line ))
+                         gDrawLine( state, &line );
+                         
+                    line = (DFBRegion) { x3, y3, x4, y4 };
+                    if (dfb_clip_line( &state->clip, &line ))
+                         gDrawLine( state, &line );
+                         
+                    line = (DFBRegion) { x4, y4, x1, y1 };
+                    if (dfb_clip_line( &state->clip, &line ))
+                         gDrawLine( state, &line );
+                    
+                    gRelease( state );
+               }
+          }    
      }
 
      dfb_state_unlock( state );
@@ -1168,6 +1277,11 @@ void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
      if (i < num_lines) {
           if (gAcquire( state, DFXL_DRAWLINE )) {
                for (; i<num_lines; i++) {
+                    if (state->render_options & DSRO_MATRIX) {
+                         DFB_TRANSFORM(lines[i].x1, lines[i].y1, state->matrix);
+                         DFB_TRANSFORM(lines[i].x2, lines[i].y2, state->matrix);
+                    }
+                    
                     if (dfb_clip_line( &state->clip, &lines[i] ))
                          gDrawLine( state, &lines[i] );
                }
@@ -1227,9 +1341,65 @@ void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *sta
           if (gAcquire( state, DFXL_FILLRECTANGLE )) {
                for (; i<num_spans; i++) {
                     DFBRectangle rect = { spans[i].x, y + i, spans[i].w, 1 };
+                    
+                    if (state->render_options & DSRO_MATRIX) {
+                         if (state->matrix[1] == 0 && state->matrix[3] == 0) {
+                              int x1, y1, x2, y2;
+                              
+                              x1 = rect.x;    y1 = rect.y;
+                              x2 = x1+rect.w; y2 = y1+rect.h;
+                              DFB_TRANSFORM(x1, y1, state->matrix);
+                              DFB_TRANSFORM(x2, y2, state->matrix);
+                              
+                              if (x1 < x2) {
+                                   rect.x = x1;
+                                   rect.w = x2-x1;
+                              } else {
+                                   rect.x = x2;
+                                   rect.w = x1-x2;
+                              }
+                              if (y1 < y2) {
+                                   rect.y = y1;
+                                   rect.h = y2-y1;
+                              }
+                              else {
+                                   rect.y = y2;
+                                   rect.h = y1-y2;
+                              }
 
-                    if (dfb_clip_rectangle( &state->clip, &rect ))
-                         gFillRectangle( state, &rect );
+                              if (dfb_clip_rectangle( &state->clip, &rect ))
+                                   gFillRectangle( state, &rect );
+                         }
+                         else {
+                              DFBTriangle tri;
+                              
+                              tri.x1 = rect.x;        tri.y1 = rect.y;
+                              tri.x2 = rect.x+rect.w; tri.y2 = rect.y;
+                              tri.x3 = rect.x+rect.w; tri.y3 = rect.y+rect.h;
+                              DFB_TRANSFORM(tri.x1, tri.y1, state->matrix);
+                              DFB_TRANSFORM(tri.x2, tri.y2, state->matrix);
+                              DFB_TRANSFORM(tri.x3, tri.y3, state->matrix);
+                              
+                              dfb_sort_triangle( &tri );
+                              if (tri.y3 - tri.y1 > 0)
+                                   fill_tri( &tri, state, false );
+                                   
+                              tri.x1 = rect.x;        tri.y1 = rect.y;
+                              tri.x2 = rect.x+rect.w; tri.y2 = rect.y+rect.h;
+                              tri.x3 = rect.x;        tri.y3 = rect.y+rect.h;
+                              DFB_TRANSFORM(tri.x1, tri.y1, state->matrix);
+                              DFB_TRANSFORM(tri.x2, tri.y2, state->matrix);
+                              DFB_TRANSFORM(tri.x3, tri.y3, state->matrix);
+                              
+                              dfb_sort_triangle( &tri );
+                              if (tri.y3 - tri.y1 > 0)
+                                   fill_tri( &tri, state, false );
+                         }
+                    }
+                    else {
+                         if (dfb_clip_rectangle( &state->clip, &rect ))
+                              gFillRectangle( state, &rect );
+                    }
                }
 
                gRelease( state );
@@ -1363,13 +1533,40 @@ void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     /* if hardware has clipping try directly accelerated triangle filling */
-     if ((D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) || D_FLAGS_IS_SET( card->caps.clip, DFXL_FILLTRIANGLE )) &&
-          dfb_gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
-          dfb_gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
+     if (dfb_gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
+         dfb_gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
      {
-          hw = card->funcs.FillTriangle( card->driver_data,
-                                         card->device_data, tri );
+          if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
+              !D_FLAGS_IS_SET( card->caps.clip, DFXL_FILLTRIANGLE ))
+          {
+               DFBPoint p[6];
+               int      i, n;
+                              
+               /* FIXME: DSRO_MATRIX. */
+               if (dfb_clip_triangle( &state->clip, tri, p, &n )) {
+                    tri->x1 = p[0].x; tri->y1 = p[0].y;
+                    tri->x2 = p[1].x; tri->y2 = p[1].y;
+                    tri->x3 = p[2].x; tri->y3 = p[2].y;
+                    hw = card->funcs.FillTriangle( card->driver_data,
+                                                   card->device_data, tri );    
+                    /* FIXME: return value. */
+                    for (i = 3; i < n; i++) {
+                         tri->x1 = p[0].x;   tri->y1 = p[0].y;
+                         tri->x2 = p[i-1].x; tri->y2 = p[i-1].y;
+                         tri->x3 = p[i].x;   tri->y3 = p[i].y;
+                         card->funcs.FillTriangle( card->driver_data,
+                                                   card->device_data, tri );
+                    }
+               }
+               else {
+                    hw = true;
+               }
+          }
+          else {
+               hw = card->funcs.FillTriangle( card->driver_data,
+                                              card->device_data, tri );
+          }
+                  
           dfb_gfxcard_state_release( state );
      }
 
@@ -1377,19 +1574,28 @@ void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
           /* otherwise use the spanline rasterizer (fill_tri)
              and fill the triangle using a rectangle for each spanline */
 
-          dfb_sort_triangle( tri );
-
-          if (tri->y3 - tri->y1 > 0) {
-               /* try hardware accelerated rectangle filling */
-               if (! (card->caps.flags & CCF_NOTRIEMU) &&
-                   dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
-                   dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
-               {
+          /* try hardware accelerated rectangle filling */
+          if (!(card->caps.flags & CCF_NOTRIEMU) &&
+              dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
+              dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
+          {
+               dfb_sort_triangle( tri );
+               
+               if (tri->y3 - tri->y1 > 0)
                     fill_tri( tri, state, true );
 
-                    dfb_gfxcard_state_release( state );
+               dfb_gfxcard_state_release( state );
+          }
+          else {
+               if (state->render_options & DSRO_MATRIX) {
+                    DFB_TRANSFORM(tri->x1, tri->y1, state->matrix);
+                    DFB_TRANSFORM(tri->x2, tri->y2, state->matrix);
+                    DFB_TRANSFORM(tri->x3, tri->y3, state->matrix);
                }
-               else if (gAcquire( state, DFXL_FILLRECTANGLE )) {
+               
+               dfb_sort_triangle( tri );
+                    
+               if (tri->y3 - tri->y1 > 0 && gAcquire( state, DFXL_FILLRECTANGLE )) {
                     fill_tri( tri, state, false );
 
                     gRelease( state );
@@ -1426,7 +1632,8 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (!dfb_clip_blit_precheck( &state->clip, rect->w, rect->h, dx, dy )) {
+     if (!(state->render_options & DSRO_MATRIX) &&
+         !dfb_clip_blit_precheck( &state->clip, rect->w, rect->h, dx, dy )) {
           /* no work at all */
           dfb_state_unlock( state );
           return;
@@ -1446,10 +1653,37 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      }
 
      if (!hw) {
-          if (gAcquire( state, DFXL_BLIT )) {
-               dfb_clip_blit( &state->clip, rect, &dx, &dy );
-               gBlit( state, rect, dx, dy );
-               gRelease( state );
+          if (state->render_options & DSRO_MATRIX) {
+               if (state->matrix[0] < 0  || state->matrix[1] != 0 ||
+                   state->matrix[3] != 0 || state->matrix[4] < 0) {
+                    D_WARN( "rotation not yet implemented" );
+                    dfb_state_unlock( state );
+                    return;
+               }
+               
+               if (gAcquire( state, DFXL_STRETCHBLIT )) {
+                    DFBRectangle drect;
+                    int          x1, y1, x2, y2;
+                    
+                    x1 = dx;         y1 = dy;
+                    x2 = dx+rect->w; y2 = dy+rect->h;
+                    DFB_TRANSFORM(x1, y1, state->matrix);
+                    DFB_TRANSFORM(x2, y2, state->matrix);
+                    
+                    drect = (DFBRectangle) { x1, y1, x2-x1, y2-y1 };
+                    if (dfb_clip_blit_precheck( &state->clip, 
+                                                drect.w, drect.h, drect.x, drect.y ))
+                         gStretchBlit( state, rect, &drect );
+                         
+                    gRelease( state );
+               }
+          }
+          else {
+               if (gAcquire( state, DFXL_BLIT )) {
+                    dfb_clip_blit( &state->clip, rect, &dx, &dy );
+                    gBlit( state, rect, dx, dy );
+                    gRelease( state );
+               }
           }
      }
 
@@ -1480,7 +1714,8 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
          dfb_gfxcard_state_acquire( state, DFXL_BLIT ))
      {
           for (; i<num; i++) {
-               if (dfb_clip_blit_precheck( &state->clip,
+               if ((state->render_options & DSRO_MATRIX) ||
+                   dfb_clip_blit_precheck( &state->clip,
                                            rects[i].w, rects[i].h,
                                            points[i].x, points[i].y ))
                {
@@ -1499,20 +1734,49 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
      }
 
      if (i < num) {
-          if (gAcquire( state, DFXL_BLIT )) {
-               for (; i<num; i++) {
-                    if (dfb_clip_blit_precheck( &state->clip,
-                                                rects[i].w, rects[i].h,
-                                                points[i].x, points[i].y ))
-                    {
-                         dfb_clip_blit( &state->clip, &rects[i],
-                                        &points[i].x, &points[i].y );
-
-                         gBlit( state, &rects[i], points[i].x, points[i].y );
-                    }
+          if (state->render_options & DSRO_MATRIX) {
+               if (state->matrix[0] < 0  || state->matrix[1] != 0 ||
+                   state->matrix[3] != 0 || state->matrix[4] < 0) {
+                    D_WARN( "rotation not yet implemented" );
+                    dfb_state_unlock( state );
+                    return;
                }
+               
+               if (gAcquire( state, DFXL_STRETCHBLIT )) {
+                    for (; i<num; i++) {
+                         DFBRectangle drect;
+                         int          x1, y1, x2, y2;
+                    
+                         x1 = points[i].x;   y1 = points[i].y;
+                         x2 = x1+rects[i].w; y2 = y1+rects[i].h;
+                         DFB_TRANSFORM(x1, y1, state->matrix);
+                         DFB_TRANSFORM(x2, y2, state->matrix);
+                    
+                         drect = (DFBRectangle) { x1, y1, x2-x1, y2-y1 };
+                         if (dfb_clip_blit_precheck( &state->clip, 
+                                                     drect.w, drect.h, drect.x, drect.y ))
+                              gStretchBlit( state, &rects[i], &drect );
+                    }
+                    
+                    gRelease( state );
+               }
+          }
+          else {    
+               if (gAcquire( state, DFXL_BLIT )) {
+                    for (; i<num; i++) {
+                         if (dfb_clip_blit_precheck( &state->clip,
+                                                     rects[i].w, rects[i].h,
+                                                     points[i].x, points[i].y ))
+                         {
+                              dfb_clip_blit( &state->clip, &rects[i],
+                                             &points[i].x, &points[i].y );
 
-               gRelease( state );
+                              gBlit( state, &rects[i], points[i].x, points[i].y );
+                         }
+                    }
+
+                    gRelease( state );
+               }
           }
      }
 
@@ -1548,7 +1812,8 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
      clip = &state->clip;
 
      /* Check if anything is drawn at all. */
-     if (!dfb_clip_blit_precheck( clip, dx2-dx1+1, dy2-dy1+1, dx1, dy1 )) {
+     if (!(state->render_options & DSRO_MATRIX) &&
+         !dfb_clip_blit_precheck( clip, dx2-dx1+1, dy2-dy1+1, dx1, dy1 )) {
           dfb_state_unlock( state );
           return;
      }
@@ -1607,28 +1872,62 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
                     break;
                dx1 = odx;
           }
+          
           dfb_gfxcard_state_release( state );
      }
 
      if (dy1 < dy2) {
-          if (gAcquire( state, DFXL_BLIT )) {
-               for (; dy1 < dy2; dy1 += rect->h) {
-                    for (; dx1 < dx2; dx1 += rect->w) {
-
-                         if (!dfb_clip_blit_precheck( clip, rect->w, rect->h, dx1, dy1 ))
-                              continue;
-
-                         x = dx1;
-                         y = dy1;
-                         srect = *rect;
-
-                         dfb_clip_blit( clip, &srect, &x, &y );
-
-                         gBlit( state, &srect, x, y );
-                    }
-                    dx1 = odx;
+          if (state->render_options & DSRO_MATRIX) {
+               if (state->matrix[0] < 0  || state->matrix[1] != 0 ||
+                   state->matrix[3] != 0 || state->matrix[4] < 0) {
+                    D_WARN( "rotation not yet implemented" );
+                    dfb_state_unlock( state );
+                    return;
                }
-               gRelease( state );
+               
+               if (gAcquire( state, DFXL_STRETCHBLIT )) {
+                    for (; dy1 < dy2; dy1 += rect->h) {
+                         for (; dx1 < dx2; dx1 += rect->w) {
+                              DFBRectangle drect;
+                              int          x1, y1, x2, y2;
+                    
+                              x1 = dx1;         y1 = dy1;
+                              x2 = dx1+rect->w; y2 = dy1+rect->h;
+                              DFB_TRANSFORM(x1, y1, state->matrix);
+                              DFB_TRANSFORM(x2, y2, state->matrix);
+                    
+                              drect = (DFBRectangle) { x1, y1, x2-x1, y2-y1 };
+                              if (dfb_clip_blit_precheck( &state->clip, 
+                                                          drect.w, drect.h, drect.x, drect.y ))
+                                   gStretchBlit( state, rect, &drect );
+                         }
+                         dx1 = odx;
+                    }
+                    
+                    gRelease( state );
+               }
+          }
+          else {
+               if (gAcquire( state, DFXL_BLIT )) {
+                    for (; dy1 < dy2; dy1 += rect->h) {
+                         for (; dx1 < dx2; dx1 += rect->w) {
+
+                              if (!dfb_clip_blit_precheck( clip, rect->w, rect->h, dx1, dy1 ))
+                                   continue;
+
+                              x = dx1;
+                              y = dy1;
+                              srect = *rect;
+
+                              dfb_clip_blit( clip, &srect, &x, &y );
+
+                              gBlit( state, &srect, x, y );
+                         }
+                         dx1 = odx;
+                    }
+               
+                    gRelease( state );
+               }
           }
      }
 
@@ -1660,7 +1959,8 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (!dfb_clip_blit_precheck( &state->clip, drect->w, drect->h,
+     if (!(state->render_options & DSRO_MATRIX) &&
+         !dfb_clip_blit_precheck( &state->clip, drect->w, drect->h,
                                   drect->x, drect->y ))
      {
           dfb_state_unlock( state );
@@ -1680,7 +1980,31 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
      }
 
      if (!hw) {
-          if (gAcquire( state, DFXL_STRETCHBLIT )) {
+          if (state->render_options & DSRO_MATRIX) {
+               int x1, y1, x2, y2;
+               
+               if (state->matrix[0] < 0  || state->matrix[1] != 0 ||
+                   state->matrix[3] != 0 || state->matrix[4] < 0) {
+                    D_WARN( "rotation not yet implemented" );
+                    dfb_state_unlock( state );
+                    return;
+               }
+               
+               x1 = drect->x;    y1 = drect->y;
+               x2 = x1+drect->w; y2 = y1+drect->h;
+               DFB_TRANSFORM(x1, y1, state->matrix);
+               DFB_TRANSFORM(x2, y2, state->matrix);        
+               drect->x = x1;    drect->y = y1;
+               drect->w = x2-x1; drect->h = y2-y1;
+                    
+               if (!dfb_clip_blit_precheck( &state->clip, 
+                                            drect->w, drect->h, drect->x, drect->y )) {
+                    dfb_state_unlock( state );
+                    return;
+               }
+          }
+          
+          if (gAcquire( state, DFXL_STRETCHBLIT )) {                  
                /* Clipping is performed in the following function. */
                gStretchBlit( state, srect, drect );
                gRelease( state );
