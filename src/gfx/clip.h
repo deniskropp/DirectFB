@@ -75,6 +75,17 @@ dfb_clip_needed( const DFBRegion *clip, DFBRectangle *rect )
  */
 DFBBoolean   dfb_clip_triangle_precheck( const DFBRegion   *clip,
                                          const DFBTriangle *tri );
+                                         
+/*
+ * Clips the triangle to the clipping region.
+ * Returns true if the triangle if visible within the region.
+ * The vertices of the polygon resulting from intersection are returned in buf.
+ * The number of vertices is at least 3.
+ */
+DFBBoolean   dfb_clip_triangle( const DFBRegion   *clip,
+                                const DFBTriangle *tri,
+                                DFBPoint           buf[6],
+                                int               *num );                                
 
 /*
  * Simple check if requested blitting lies outside of the clipping region.

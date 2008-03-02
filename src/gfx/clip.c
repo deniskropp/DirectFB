@@ -28,6 +28,8 @@
 
 #include <config.h>
 
+#include <string.h>
+
 #include <directfb.h>
 
 #include <direct/util.h>
@@ -206,6 +208,125 @@ dfb_clip_triangle_precheck( const DFBRegion *clip, const DFBTriangle *tri )
 
     return DFB_TRUE;
 }
+
+DFBBoolean
+dfb_clip_triangle( const DFBRegion *clip, const DFBTriangle *tri, DFBPoint p[6], int *num )
+{
+     DFBRegion edges[3];
+     int       num_edges;
+     int       i, n;
+     
+     /* Initialize edges. */
+     edges[0].x1 = tri->x1; edges[0].y1 = tri->y1;
+     edges[0].x2 = tri->x2; edges[0].y2 = tri->y2;
+     edges[1].x1 = tri->x2; edges[1].y1 = tri->y2;
+     edges[1].x2 = tri->x3; edges[1].y2 = tri->y3;
+     edges[2].x1 = tri->x3; edges[2].y1 = tri->y3;
+     edges[2].x2 = tri->x1; edges[2].y2 = tri->y1;
+     num_edges = 3;
+     
+     for (i = 0; i < num_edges; i++) {
+          DFBRegion *reg = &edges[i];
+          DFBRegion  line;
+          DFBPoint   p1, p2;
+          bool       i1, i2;
+
+          /* Clip the edge to the clipping region. */
+          line = *reg;
+          if (dfb_clip_line( clip, &line )) {
+               *reg = line;
+               continue;
+          }
+          
+          /* If the edge doesn't intersect clipping region, then
+           * intersect the edge with the diagonals of the clipping
+           * rectangle. If intersection point exits, add the nearest
+           * corner of the clipping region to the list of vertices.
+           */
+         
+          /* Diagonal (x1,y1) (x2,y2). */
+          line = (DFBRegion) { clip->x1, clip->y1, clip->x2, clip->y2 };   
+          i1 = dfb_line_segment_intersect( &line, reg, &p1.x, &p1.y );
+          if (i1) {
+               /* Get nearest corner. */
+               if (p1.x <= clip->x1 || p1.y <= clip->y1) {
+                    p1.x = clip->x1;
+                    p1.y = clip->y1;
+               } else {
+                    p1.x = clip->x2;
+                    p1.y = clip->y2;
+               }
+          }
+          
+          /* Diagonal (x2,y1) (x1,y2). */
+          line = (DFBRegion) { clip->x2, clip->y1, clip->x1, clip->y2 };
+          i2 = dfb_line_segment_intersect( &line, reg, &p2.x, &p2.y );
+          if (i2) {
+               /* Get nearest corner. */
+               if (p2.x >= clip->x2 || p2.y <= clip->y1) {
+                    p2.x = clip->x2;
+                    p2.y = clip->y1;
+               } else {
+                    p2.x = clip->x1;
+                    p2.y = clip->y2;
+               }
+          }  
+          
+          if (i1 && i2) {
+               reg->x1 = p1.x;
+               reg->y1 = p1.y;
+               reg->x2 = p2.x;
+               reg->y2 = p2.y;
+          }
+          else if (i1) {
+               reg->x1 = reg->x2 = p1.x;
+               reg->y1 = reg->y2 = p1.y;
+          }
+          else if (i2) {
+               reg->x1 = reg->x2 = p2.x;
+               reg->y1 = reg->y2 = p2.y;
+          }
+          else {
+               /* Redudant edge. Remote it. */
+               memmove( reg, &edges[i+1], (num_edges-i-1) * sizeof(DFBRegion) );
+               num_edges--;
+               i--;
+          }
+     }
+     
+     if (num_edges < 1) {
+          *num = 0;
+          return DFB_FALSE;
+     }
+     
+     /* Get vertices from edges. */
+     p[0].x = edges[0].x1; p[0].y = edges[0].y1;
+     n = 1;
+     if (edges[0].x2 != edges[0].x1 || edges[0].y2 != edges[0].y1) {
+          p[1].x = edges[0].x2; p[1].y = edges[0].y2;
+          n++;
+     }
+     
+     for (i = 1; i < num_edges; i++) {
+          if (edges[i].x1 != p[n-1].x || edges[i].y1 != p[n-1].y) {
+               p[n].x = edges[i].x1; p[n].y = edges[i].y1;
+               n++;
+          }
+          if (edges[i].x2 != p[n-1].x || edges[i].y2 != p[n-1].y) {
+               p[n].x = edges[i].x2; p[n].y = edges[i].y2;
+               n++;
+          }
+     }
+     
+     if (p[n-1].x == p[0].x && p[n-1].y == p[0].y)
+          n--;
+     
+     *num = n;
+     
+     /* Actually fail if the number of vertices is below 3. */
+     return (n >= 3);
+}
+
 
 void
 dfb_clip_blit( const DFBRegion *clip,
