@@ -2163,8 +2163,9 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
      D_ASSERT( font != NULL );
 
      /* simple prechecks */
-     if (x > state->clip.x2 || y > state->clip.y2 ||
-         y + font->ascender - font->descender <= state->clip.y1) {
+     if (!(state->render_options & DSRO_MATRIX) &&
+         (x > state->clip.x2 || y > state->clip.y2 ||
+          y + font->ascender - font->descender <= state->clip.y1)) {
           return;
      }
 
@@ -2238,7 +2239,9 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
                     if (dfb_gfxcard_state_check( &font->state, DFXL_BLIT ) &&
                         dfb_gfxcard_state_acquire( &font->state, DFXL_BLIT ))
                          blit = 1;
-                    else if (gAcquire( &font->state, DFXL_BLIT ))
+                    else if (gAcquire( &font->state, 
+                                       (state->render_options & DSRO_MATRIX) 
+                                       ? DFXL_STRETCHBLIT : DFXL_BLIT ))
                          blit = 2;
                     else
                          blit = 0;
@@ -2256,9 +2259,31 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
                                                 &rect, xx, yy );
                               break;
                          case 2:
-                              dfb_clip_blit( &font->state.clip,
-                                             &rect, &xx, &yy );
-                              gBlit( &font->state, &rect, xx, yy );
+                              if (state->render_options & DSRO_MATRIX) { 
+                                   DFBRectangle drect;
+                                   int          x1, y1, x2, y2;
+               
+                                   if (state->matrix[0] < 0  || state->matrix[1] != 0 ||
+                                       state->matrix[3] != 0 || state->matrix[4] < 0) {
+                                        D_WARN( "rotation not yet implemented" );
+                                        num = 0;
+                                        break;
+                                   }
+               
+                                   x1 = xx;        y1 = yy;
+                                   x2 = xx+rect.w; y2 = yy+rect.h;
+                                   DFB_TRANSFORM(x1, y1, state->matrix);
+                                   DFB_TRANSFORM(x2, y2, state->matrix);        
+                                   drect.x = x1;    drect.y = y1;
+                                   drect.w = x2-x1; drect.h = y2-y1;
+                    
+                                   gStretchBlit( &font->state, &rect, &drect );
+                              }
+                              else {
+                                   dfb_clip_blit( &font->state.clip,
+                                                  &rect, &xx, &yy );
+                                   gBlit( &font->state, &rect, xx, yy );
+                              }
                               break;
                          default:
                               break;
