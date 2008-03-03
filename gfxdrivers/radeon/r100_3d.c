@@ -194,17 +194,20 @@ bool r100FillRectangle3D( void *drv, void *dev, DFBRectangle *rect )
      x1 = rect->x;         y1 = rect->y;
      x2 = rect->x+rect->w; y2 = rect->y+rect->h;
      if (rdev->matrix) {
-          float x, y;
+          float X1, Y1, X2, Y2, X3, Y3, X4, Y4;
+
+          RADEON_TRANSFORM( x1, y1, X1, Y1, rdev->matrix );
+          RADEON_TRANSFORM( x2, y1, X2, Y2, rdev->matrix );
+          RADEON_TRANSFORM( x2, y2, X3, Y3, rdev->matrix );
+          RADEON_TRANSFORM( x1, y2, X4, Y4, rdev->matrix );
           
-          v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_TRIANGLE_FAN, 4, 8 );
-          RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix );
-          *v++ = f2d(x); *v++ = f2d(y);
-          RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix );
-          *v++ = f2d(x); *v++ = f2d(y);
-          RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix );
-          *v++ = f2d(x); *v++ = f2d(y);
-          RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix );
-          *v++ = f2d(x); *v++ = f2d(y);
+          v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_TRIANGLE_LIST, 6, 12 );
+          *v++ = f2d(X1); *v++ = f2d(Y1);
+          *v++ = f2d(X2); *v++ = f2d(Y2);
+          *v++ = f2d(X3); *v++ = f2d(Y3);
+          *v++ = f2d(X1); *v++ = f2d(Y1);
+          *v++ = f2d(X3); *v++ = f2d(Y3);
+          *v++ = f2d(X4); *v++ = f2d(Y4);
      }
      else {
           v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_RECTANGLE_LIST, 3, 6 );
@@ -349,17 +352,20 @@ bool r100StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      x1 = dr->x;       y1 = dr->y;
      x2 = dr->x+dr->w; y2 = dr->y+dr->h;
      if (rdev->matrix) {
-          float x, y;
+          float X1, Y1, X2, Y2, X3, Y3, X4, Y4;
+
+          RADEON_TRANSFORM( x1, y1, X1, Y1, rdev->matrix );
+          RADEON_TRANSFORM( x2, y1, X2, Y2, rdev->matrix );
+          RADEON_TRANSFORM( x2, y2, X3, Y3, rdev->matrix );
+          RADEON_TRANSFORM( x1, y2, X4, Y4, rdev->matrix );
           
-          v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_TRIANGLE_FAN, 4, 16 );
-          RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix );
-          *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(s1); *v++ = f2d(t1);
-          RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix );
-          *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(s2); *v++ = f2d(t1);
-          RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix );
-          *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(s2); *v++ = f2d(t2);
-          RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix );
-          *v++ = f2d(x); *v++ = f2d(y); *v++ = f2d(s1); *v++ = f2d(t2);
+          v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_TRIANGLE_LIST, 6, 24 );
+          *v++ = f2d(X1); *v++ = f2d(Y1); *v++ = f2d(s1); *v++ = f2d(t1);
+          *v++ = f2d(X2); *v++ = f2d(Y2); *v++ = f2d(s2); *v++ = f2d(t1);
+          *v++ = f2d(X3); *v++ = f2d(Y3); *v++ = f2d(s2); *v++ = f2d(t2);
+          *v++ = f2d(X1); *v++ = f2d(Y1); *v++ = f2d(s1); *v++ = f2d(t1);
+          *v++ = f2d(X3); *v++ = f2d(Y3); *v++ = f2d(s2); *v++ = f2d(t2);
+          *v++ = f2d(X4); *v++ = f2d(Y4); *v++ = f2d(s1); *v++ = f2d(t2);
      }
      else {
           v = r100_init_vb( rdrv, rdev, VF_PRIM_TYPE_RECTANGLE_LIST, 3, 12 );
