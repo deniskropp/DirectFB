@@ -1098,7 +1098,10 @@ primaryInitLayer( CoreLayer                  *layer,
      config->buffermode = DLBM_FRONTONLY;
      config->width      = default_mode->xres;
      config->height     = default_mode->yres;
-     
+
+     memset( &tmp, 0, sizeof(CoreLayerRegionConfig) );
+     tmp.width      = config->width;
+     tmp.height     = config->height;
      tmp.format     = DSPF_RGB16;
      tmp.buffermode = DLBM_FRONTONLY;
      tmp.source.x   = 0;
