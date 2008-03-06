@@ -3149,7 +3149,7 @@ typedef enum {
 } DFBTriangleFormation;
 
 /*
- * Flags controlling surface masks set via IDirectFBSurface::SetMask().
+ * Flags controlling surface masks set via IDirectFBSurface::SetSourceMask().
  */
 typedef enum {
      DSMF_NONE      = 0x00000000,  /* None of these. */
