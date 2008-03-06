@@ -26,10 +26,10 @@ static IFusionSoundPlayback *playback;
 static int                   sample_length;
 
 
-static DFBResult
+static DirectResult
 create_playback( const char *filename )
 {
-     DFBResult ret;
+     DirectResult ret;
 
      ret = FusionSoundCreate( &sound );
      if (ret) {
@@ -53,13 +53,13 @@ create_playback( const char *filename )
           }
           else {
                playback->Start( playback, 0, -1 );
-               return DFB_OK;
+               return DR_OK;
           }
      }
 
      sound->Release( sound );
 
-     return DFB_FAILURE;
+     return DR_FAILURE;
 }
 
 static void
@@ -101,17 +101,17 @@ slider_update( LiteSlider *slider, float pos, void *ctx )
 static void
 button_pressed( LiteButton *button, void *ctx )
 {
-     static DFBBoolean stopped;
+     static bool stopped;
 
      if (stopped) {
           playback->Continue( playback );
 
-          stopped = DFB_FALSE;
+          stopped = false;
      }
      else {
           playback->Stop( playback );
 
-          stopped = DFB_TRUE;
+          stopped = true;
      }
 }
 
@@ -119,7 +119,7 @@ int
 main (int argc, char *argv[])
 {
      int           i;
-     DFBResult     ret;
+     DirectResult  ret;
      LiteLabel    *label[5];
      LiteSlider   *slider[5];
      LiteButton   *playbutton;
@@ -195,7 +195,7 @@ main (int argc, char *argv[])
      lite_set_window_opacity( window, 0xff );
 
      /* run the event loop with a timeout */
-     while (lite_window_event_loop( window, 20 ) == DFB_TIMEOUT) {
+     while (lite_window_event_loop( window, 20 ) == DR_TIMEOUT) {
           int position = 0;
 
           playback->GetStatus( playback, NULL, &position );

@@ -43,27 +43,27 @@ static void fixup_sampledata(u16 *data, int len)
 }
 #endif
 
-static DFBResult
+static DirectResult
 read_file_header (int fd)
 {
      char buf[12];
 
      if (read (fd, buf, 12) < 12) {
           fprintf (stderr, "Could not read at least 12 bytes!\n");
-          return DFB_IO;
+          return DR_IO;
      }
 
      if (buf[0] != 'R' || buf[1] != 'I' || buf[2] != 'F' || buf[3] != 'F') {
           fprintf (stderr, "No RIFF header found!\n");
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
 
      if (buf[8] != 'W' || buf[9] != 'A' || buf[10] != 'V' || buf[11] != 'E') {
           fprintf (stderr, "Not a WAVE!\n");
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static int
@@ -85,7 +85,7 @@ read_chunk_header (int fd, char *magic)
 IFusionSoundBuffer *
 load_sample (IFusionSound *sound, const char *filename)
 {
-     DFBResult            ret;
+     DirectResult         ret;
      int                  fd;
      FSBufferDescription  desc;
      IFusionSoundBuffer  *buffer;
@@ -104,7 +104,7 @@ load_sample (IFusionSound *sound, const char *filename)
           return NULL;
      }
 
-     while (DFB_TRUE) {
+     while (1) {
           char magic[4];
 
           len = read_chunk_header (fd, magic);
@@ -168,7 +168,7 @@ load_sample (IFusionSound *sound, const char *filename)
      desc.sampleformat = (fmt.bitspersample == 8) ? FSSF_U8 : FSSF_S16;
      desc.samplerate   = fmt.frequency;
 
-     while (DFB_TRUE) {
+     while (1) {
           char magic[4];
 
           len = read_chunk_header (fd, magic);

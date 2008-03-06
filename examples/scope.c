@@ -65,7 +65,7 @@ buffer_callback( int len, void *ctx )
 {
      void *data;
 
-     if (buffer->Lock( buffer, &data, 0, 0 ) != DFB_OK)
+     if (buffer->Lock( buffer, &data, 0, 0 ) != DR_OK)
           return FMBCR_OK;
 
      /* draw scope */
@@ -79,21 +79,21 @@ buffer_callback( int len, void *ctx )
      return FMBCR_OK;
 }
 
-static DFBResult
+static DirectResult
 create_playback( const char *filename )
 {
      FSBufferDescription b_desc;
      FSStreamDescription s_desc;
-     DFBResult           err;
+     DirectResult        err;
 
      err = FusionSoundCreate( &sound );
-     if (err != DFB_OK) {
+     if (err != DR_OK) {
           FusionSoundError( "FusionSoundCreate() failed", err );
           return err;
      }
 
      err = sound->CreateMusicProvider( sound, filename, &provider );
-     if (err != DFB_OK) {
+     if (err != DR_OK) {
           FusionSoundError( "CreateMusicProvider() failed", err );
           return err;
      }
@@ -111,25 +111,25 @@ create_playback( const char *filename )
      s_desc.channels      = 2;
 
      err = sound->CreateStream( sound, &s_desc, &stream );
-     if (err != DFB_OK) {
+     if (err != DR_OK) {
           FusionSoundError( "CreateStream() failed", err );
           return err;
      }
 
      err = sound->CreateBuffer( sound, &b_desc, &buffer );
-     if (err != DFB_OK) {
+     if (err != DR_OK) {
           FusionSoundError( "CreateBuffer() failed", err );
           return err;
      }
 
      err = provider->PlayToBuffer( provider, buffer,
                                    buffer_callback, NULL );
-     if (err != DFB_OK) {
+     if (err != DR_OK) {
           FusionSoundError( "PlayToBuffer() failed", err );
           return err;
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void
@@ -148,11 +148,11 @@ destroy_playback( void )
 int
 main( int argc, char **argv )
 {
-     DFBResult    err;
+     DirectResult err;
      DFBRectangle rect;
 
      err = DirectFBInit( &argc, &argv );
-     if (err != DFB_OK)
+     if (err != DR_OK)
           DirectFBErrorFatal( "DirectFBInit() failed", err );
 
      if (argc != 2) {
@@ -161,7 +161,7 @@ main( int argc, char **argv )
      }
 
      err = FusionSoundInit( &argc, &argv );
-     if (err != DFB_OK)
+     if (err != DR_OK)
           FusionSoundErrorFatal( "FusionSoundInit() failed", err );
 
      /* initialize LiTE */
@@ -184,7 +184,7 @@ main( int argc, char **argv )
      lite_set_window_opacity( window, 0xff );
 
      /* initialize FusionSound and load track */
-     if (create_playback( argv[1] ) != DFB_OK) {
+     if (create_playback( argv[1] ) != DR_OK) {
           destroy_playback();
           lite_destroy_window( window );
           lite_close();
@@ -192,12 +192,12 @@ main( int argc, char **argv )
      }
 
      /* event loop */
-     while (lite_window_event_loop( window, 20 ) == DFB_TIMEOUT) {
+     while (lite_window_event_loop( window, 20 ) == DR_TIMEOUT) {
           double pos;
 
           /* check if playback is finished */
           err = provider->GetPos( provider, &pos );
-          if (err == DFB_EOF)
+          if (err == DR_EOF)
                break;
      }
 

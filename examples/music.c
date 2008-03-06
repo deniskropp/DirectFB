@@ -56,20 +56,20 @@ cleanup( int s )
      exit( s );
 }
 
-static DFBEnumerationResult
+static DirectEnumerationResult
 track_display_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
 {
      printf( "  Track %2d: %s - %s\n", id,
              *desc.artist ? desc.artist : "Unknown",
              *desc.title  ? desc.title  : "Unknown" );
      
-     return DFENUM_OK;
+     return DENUM_OK;
 }
 
-static DFBEnumerationResult
+static DirectEnumerationResult
 track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
 {
-     DFBResult             ret;
+     DirectResult          ret;
      FSMusicProviderStatus status = FMSTATE_UNKNOWN;
      double                len    = 0;
      static int            flags  = FMPLAY_NOFX;
@@ -80,7 +80,7 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
      ret = provider->SelectTrack( provider, id );
      if (ret) {
           FusionSoundError( "IFusionSoundMusicProvider::SelectTrack", ret );
-          return DFENUM_OK;
+          return DENUM_OK;
      }
      
      provider->GetStreamDescription( provider, &s_dsc );
@@ -105,7 +105,7 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
           ret = sound->CreateStream( sound, &s_dsc, &stream );
           if (ret) {
                FusionSoundError( "IFusionSound::CreateStream", ret );
-               return DFENUM_CANCEL;
+               return DENUM_CANCEL;
           }
           stream->GetDescription( stream, &s_dsc );
           stream->GetPlayback( stream, &playback );
@@ -121,7 +121,7 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
      ret = provider->PlayToStream( provider, stream );
      if (ret) {
           FusionSoundError( "IFusionSoundMusicProvider::PlayTo", ret );
-          return DFENUM_CANCEL;
+          return DENUM_CANCEL;
      }
      
      /* Update track's description. */
@@ -202,7 +202,7 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
                          case 'q':
                          case 'Q':
                          case '\033': // Escape
-                              return DFENUM_CANCEL;
+                              return DENUM_CANCEL;
                          default:
                               break;
                     }
@@ -214,13 +214,13 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
      
      printf( "\n" );
      
-     return DFENUM_OK;
+     return DENUM_OK;
 }     
 
 int
 main( int argc, char *argv[] )
 {
-     DFBResult ret;
+     DirectResult ret;
 
      ret = FusionSoundInit( &argc, &argv );
      if (ret)

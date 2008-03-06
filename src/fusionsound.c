@@ -49,7 +49,7 @@ IFusionSound *ifusionsound_singleton = NULL;
 
 /**************************************************************************************************/
 
-static DFBResult CreateRemote( const char    *host,
+static DirectResult CreateRemote( const char    *host,
                                int            session,
                                IFusionSound **ret_interface );
 
@@ -91,27 +91,27 @@ FusionSoundUsageString( void )
      return fs_config_usage();
 }
 
-DFBResult
+DirectResult
 FusionSoundInit( int *argc, char **argv[] )
 {
      return fs_config_init( argc, argv );
 }
 
-DFBResult
+DirectResult
 FusionSoundSetOption( const char *name, const char *value )
 {
      if (fs_config == NULL) {
           D_ERROR( "FusionSoundSetOption: FusionSoundInit has to be called first!\n" );
-          return DFB_INIT;
+          return DR_INIT;
      }
 
      if (ifusionsound_singleton) {
           D_ERROR( "FusionSoundSetOption: FusionSoundCreate has already been called!\n" );
-          return DFB_INIT;
+          return DR_INIT;
      }
 
      if (!name)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      return fs_config_set( name, value );
 }
@@ -119,20 +119,20 @@ FusionSoundSetOption( const char *name, const char *value )
 DirectResult
 FusionSoundCreate( IFusionSound **ret_interface )
 {
-     DFBResult ret;
+     DirectResult ret;
      
      if (!fs_config) {
           D_ERROR( "FusionSoundCreate: FusionSoundInit has to be called first!\n" );
-          return DFB_INIT;
+          return DR_INIT;
      }
 
      if (!ret_interface)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      if (ifusionsound_singleton) {
           ifusionsound_singleton->AddRef( ifusionsound_singleton );
           *ret_interface = ifusionsound_singleton;
-          return DFB_OK;
+          return DR_OK;
      }
 
      if (!direct_config->quiet && fs_config->banner) {
@@ -152,7 +152,7 @@ FusionSoundCreate( IFusionSound **ret_interface )
      DIRECT_ALLOCATE_INTERFACE( ifusionsound_singleton, IFusionSound );
      
      ret = IFusionSound_Construct( ifusionsound_singleton );
-     if (ret != DFB_OK)
+     if (ret != DR_OK)
           ifusionsound_singleton = NULL;
           
      *ret_interface = ifusionsound_singleton;
@@ -171,7 +171,7 @@ FusionSoundError( const char *msg, DirectResult error )
      return error;
 }
 
-DFBResult
+DirectResult
 FusionSoundErrorFatal( const char *msg, DirectResult error )
 {
      FusionSoundError( msg, error );
@@ -187,10 +187,10 @@ FusionSoundErrorString( DirectResult error )
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 CreateRemote( const char *host, int session, IFusionSound **ret_interface )
 {
-     DFBResult             ret;
+     DirectResult          ret;
      DirectInterfaceFuncs *funcs;
      void                 *interface;
 
@@ -211,5 +211,5 @@ CreateRemote( const char *host, int session, IFusionSound **ret_interface )
 
      *ret_interface = interface;
 
-     return DFB_OK;
+     return DR_OK;
 }

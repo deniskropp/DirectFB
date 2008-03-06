@@ -46,7 +46,7 @@
 
 /******/
 
-static DFBResult      IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
+static DirectResult   IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
                                                      const void              *sample_data,
                                                      int                      length,
                                                      int                     *ret_bytes );
@@ -81,17 +81,17 @@ IFusionSoundStream_Destruct( IFusionSoundStream *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundStream_AddRef( IFusionSoundStream *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSoundStream)
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundStream_Release( IFusionSoundStream *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSoundStream)
@@ -99,18 +99,18 @@ IFusionSoundStream_Release( IFusionSoundStream *thiz )
      if (--data->ref == 0)
           IFusionSoundStream_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 
-static DFBResult
+static DirectResult
 IFusionSoundStream_GetDescription( IFusionSoundStream  *thiz,
                                    FSStreamDescription *desc )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSoundStream)
 
      if (!desc)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      desc->flags = FSSDF_BUFFERSIZE   | FSSDF_CHANNELS   |
                    FSSDF_SAMPLEFORMAT | FSSDF_SAMPLERATE | 
@@ -122,10 +122,10 @@ IFusionSoundStream_GetDescription( IFusionSoundStream  *thiz,
      desc->prebuffer    = data->prebuffer;
      desc->channelmode  = data->mode;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundStream_Write( IFusionSoundStream *thiz,
                           const void         *sample_data,
                           int                 length )
@@ -133,14 +133,14 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
      DIRECT_INTERFACE_GET_DATA(IFusionSoundStream)
 
      if (!sample_data || length < 1)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      pthread_mutex_lock( &data->lock );
 
      data->pending = length;
      
      while (data->pending) {
-          DFBResult ret;
+          DirectResult ret;
           int       num;
           int       bytes;
 
@@ -159,7 +159,7 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
                /* Drop could have been called while waiting */
                if (!data->pending) {
                     pthread_mutex_unlock( &data->lock );
-                    return DFB_OK;
+                    return DR_OK;
                }
           }
 
@@ -193,17 +193,17 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
 
      pthread_mutex_unlock( &data->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundStream_Wait( IFusionSoundStream *thiz,
                          int                 length )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSoundStream)
 
      if (length < 0 || length > data->size)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      pthread_mutex_lock( &data->lock );
 
@@ -227,16 +227,16 @@ IFusionSoundStream_Wait( IFusionSoundStream *thiz,
 
      pthread_mutex_unlock( &data->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundStream_GetStatus( IFusionSoundStream *thiz,
                               int                *filled,
                               int                *total,
                               int                *read_position,
                               int                *write_position,
-                              DFBBoolean         *playing )
+                              bool               *playing )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSoundStream)
 
@@ -259,10 +259,10 @@ IFusionSoundStream_GetStatus( IFusionSoundStream *thiz,
 
      pthread_mutex_unlock( &data->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundStream_Flush( IFusionSoundStream *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSoundStream)
@@ -284,10 +284,10 @@ IFusionSoundStream_Flush( IFusionSoundStream *thiz )
 
      pthread_mutex_unlock( &data->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundStream_Drop( IFusionSoundStream *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSoundStream)
@@ -302,17 +302,17 @@ IFusionSoundStream_Drop( IFusionSoundStream *thiz )
 
      pthread_mutex_unlock( &data->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundStream_GetPresentationDelay( IFusionSoundStream *thiz,
                                          int                *delay )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSoundStream)
 
      if (!delay)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      pthread_mutex_lock( &data->lock );
 
@@ -321,21 +321,21 @@ IFusionSoundStream_GetPresentationDelay( IFusionSoundStream *thiz,
 
      pthread_mutex_unlock( &data->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundStream_GetPlayback( IFusionSoundStream    *thiz,
                                 IFusionSoundPlayback **ret_interface )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSoundStream)
 
      if (!ret_interface)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      if (!data->iplayback) {
           IFusionSoundPlayback *interface;
-          DFBResult             ret;
+          DirectResult          ret;
           
           DIRECT_ALLOCATE_INTERFACE( interface, IFusionSoundPlayback );
 
@@ -352,22 +352,22 @@ IFusionSoundStream_GetPlayback( IFusionSoundStream    *thiz,
      
      *ret_interface = data->iplayback;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundStream_Access( IFusionSoundStream  *thiz,
                            void               **ret_data,
                            int                 *ret_avail )
 {
-     DFBResult ret;
+     DirectResult ret;
      int       num;
      int       bytes;
      
      DIRECT_INTERFACE_GET_DATA(IFusionSoundStream)
 
      if (!ret_data || !ret_avail)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      pthread_mutex_lock( &data->lock );
      
@@ -398,22 +398,22 @@ IFusionSoundStream_Access( IFusionSoundStream  *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundStream_Commit( IFusionSoundStream  *thiz,
                            int                  length )
 {
-     DFBResult ret;
+     DirectResult ret;
      
      DIRECT_INTERFACE_GET_DATA(IFusionSoundStream)
 
      if (length < 0)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      pthread_mutex_lock( &data->lock );
      
      if (length > data->size - data->filled) {
           pthread_mutex_unlock( &data->lock );
-          return DFB_INVARG;
+          return DR_INVARG;
      }
      
      D_DEBUG( "%s: length %d, filled %d/%d (%splaying)\n",
@@ -453,13 +453,13 @@ IFusionSoundStream_Commit( IFusionSoundStream  *thiz,
      
      pthread_mutex_unlock( &data->lock );
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 
 /******/
 
-DFBResult
+DirectResult
 IFusionSoundStream_Construct( IFusionSoundStream *thiz,
                               CoreSound          *core,
                               CoreSoundBuffer    *buffer,
@@ -469,14 +469,14 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
                               int                 rate,
                               int                 prebuffer )
 {
-     DFBResult     ret;
+     DirectResult  ret;
      CorePlayback *playback;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IFusionSoundStream)
 
      /* Increase reference counter of the buffer. */
      if (fs_buffer_ref( buffer )) {
-          ret = DFB_FUSION;
+          ret = DR_FUSION;
           goto error_ref;
      }
 
@@ -487,7 +487,7 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
 
      /* Attach our listener to the playback object. */
      if (fs_playback_attach( playback, IFusionSoundStream_React, data, &data->reaction )) {
-          ret = DFB_FUSION;
+          ret = DR_FUSION;
           goto error_attach;
      }
 
@@ -528,7 +528,7 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
      thiz->Access               = IFusionSoundStream_Access;
      thiz->Commit               = IFusionSoundStream_Commit;
 
-     return DFB_OK;
+     return DR_OK;
 
 error_attach:
      fs_playback_unref( playback );
@@ -544,13 +544,13 @@ error_ref:
 
 /******/
 
-static DFBResult
+static DirectResult
 IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
                                const void              *sample_data,
                                int                      length,
                                int                     *ret_bytes )
 {
-     DFBResult        ret;
+     DirectResult     ret;
      void            *lock_data;
      int              lock_bytes;
      int              offset = 0;
@@ -597,7 +597,7 @@ IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
      if (ret_bytes)
           *ret_bytes = offset;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static ReactionResult

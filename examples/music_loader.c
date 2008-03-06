@@ -22,7 +22,7 @@ load_sample( IFusionSound *sound, const char *file )
      void                      *data;
      int                        bytes;
      int                        frames = 0;
-     DFBResult                  ret;
+     DirectResult               ret;
      
      ret = sound->CreateMusicProvider( sound, file, &provider );
      if (ret) {
@@ -68,7 +68,7 @@ main( int argc, char **argv )
 {
      IFusionSound       *sound;
      IFusionSoundBuffer *buffer;
-     DFBResult           ret;
+     DirectResult        ret;
      
      ret = FusionSoundInit( &argc, &argv );
      if (ret)

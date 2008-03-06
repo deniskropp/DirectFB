@@ -187,7 +187,7 @@ parse_options( int argc, char **argv )
           usage( argv[0] );
 }
 
-static DFBEnumerationResult
+static DirectEnumerationResult
 track_add_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
 {
      Media      *media = ctx;
@@ -202,18 +202,18 @@ track_add_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
      track = D_MALLOC( sizeof(MediaTrack) );
      if (!track) {
           D_OOM();
-          return DFENUM_CANCEL;
+          return DENUM_CANCEL;
      }
      track->id = id;
      direct_list_append( (DirectLink**)&media->tracks, &track->link );
      
-     return DFENUM_OK;
+     return DENUM_OK;
 }
 
 static int
 playback_run( IFusionSoundMusicProvider *provider, Media *media )
 {
-     DFBResult              ret;
+     DirectResult           ret;
      FSMusicProviderStatus  status = FMSTATE_UNKNOWN;
      FSStreamDescription    s_dsc;
      FSTrackDescription     t_dsc;
@@ -468,8 +468,8 @@ playback_run( IFusionSoundMusicProvider *provider, Media *media )
 int
 main( int argc, char **argv )
 {
-     DFBResult  ret;
-     Media     *media;
+     DirectResult  ret;
+     Media        *media;
 
      ret = FusionSoundInit( &argc, &argv );
      if (ret)

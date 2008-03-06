@@ -34,7 +34,7 @@
 /*
  * initializes interface struct and private data
  */
-DFBResult IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
+DirectResult IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
                                           CorePlayback         *playback,
                                           int                   length );
 

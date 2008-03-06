@@ -46,8 +46,8 @@
 
 #include <ifusionsoundplayback_dispatcher.h>
 
-static DFBResult Probe();
-static DFBResult Construct( IFusionSoundPlayback *thiz,
+static DirectResult Probe();
+static DirectResult Construct( IFusionSoundPlayback *thiz,
                             VoodooManager        *manager,
                             VoodooInstanceID      instance,
                             void                 *arg );
@@ -84,17 +84,17 @@ IFusionSoundPlayback_Requestor_Destruct( IFusionSoundPlayback *thiz )
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_Requestor_AddRef( IFusionSoundPlayback *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback_Requestor)
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_Requestor_Release( IFusionSoundPlayback *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback_Requestor)
@@ -102,10 +102,10 @@ IFusionSoundPlayback_Requestor_Release( IFusionSoundPlayback *thiz )
      if (--data->ref == 0)
           IFusionSoundPlayback_Requestor_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_Requestor_Start( IFusionSoundPlayback *thiz,
                                       int                   start,
                                       int                   stop )
@@ -116,7 +116,7 @@ IFusionSoundPlayback_Requestor_Start( IFusionSoundPlayback *thiz,
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback_Requestor)
      
      if (start < 0)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IFUSIONSOUNDPLAYBACK_METHOD_ID_Start, VREQ_RESPOND, &response,
@@ -134,7 +134,7 @@ IFusionSoundPlayback_Requestor_Start( IFusionSoundPlayback *thiz,
 }
 
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_Requestor_Stop( IFusionSoundPlayback *thiz )
 {
      DirectResult           ret;
@@ -155,7 +155,7 @@ IFusionSoundPlayback_Requestor_Stop( IFusionSoundPlayback *thiz )
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_Requestor_Continue( IFusionSoundPlayback *thiz )
 {
      DirectResult           ret;
@@ -176,7 +176,7 @@ IFusionSoundPlayback_Requestor_Continue( IFusionSoundPlayback *thiz )
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_Requestor_Wait( IFusionSoundPlayback *thiz )
 {
      DirectResult           ret;
@@ -197,20 +197,20 @@ IFusionSoundPlayback_Requestor_Wait( IFusionSoundPlayback *thiz )
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_Requestor_GetStatus( IFusionSoundPlayback *thiz,
-                                          DFBBoolean           *ret_playing,
+                                          bool                 *ret_playing,
                                           int                  *ret_position )
 {
      DirectResult           ret;
      VoodooResponseMessage *response;
-     DFBBoolean             playing  = DFB_FALSE;
+     bool                   playing  = false;
      int                    position = 0; 
      
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback_Requestor)
      
      if (!ret_playing && !ret_position)
-          return DFB_OK;
+          return DR_OK;
           
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IFUSIONSOUNDPLAYBACK_METHOD_ID_GetStatus, VREQ_RESPOND, &response,
@@ -219,7 +219,7 @@ IFusionSoundPlayback_Requestor_GetStatus( IFusionSoundPlayback *thiz,
           return ret;
 
      ret = response->result;
-     if (ret == DFB_OK) {
+     if (ret == DR_OK) {
           VoodooMessageParser parser;
 
           VOODOO_PARSER_BEGIN( parser, response );
@@ -239,7 +239,7 @@ IFusionSoundPlayback_Requestor_GetStatus( IFusionSoundPlayback *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_Requestor_SetVolume( IFusionSoundPlayback *thiz,
                                           float                 level )
 {
@@ -249,7 +249,7 @@ IFusionSoundPlayback_Requestor_SetVolume( IFusionSoundPlayback *thiz,
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback_Requestor)
      
      if (level < 0.0f || level > 64.f)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IFUSIONSOUNDPLAYBACK_METHOD_ID_SetVolume, VREQ_RESPOND, &response,
@@ -265,7 +265,7 @@ IFusionSoundPlayback_Requestor_SetVolume( IFusionSoundPlayback *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_Requestor_SetPan( IFusionSoundPlayback *thiz,
                                        float                 value )
 {
@@ -275,7 +275,7 @@ IFusionSoundPlayback_Requestor_SetPan( IFusionSoundPlayback *thiz,
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback_Requestor)
      
      if (value < -1.0f || value > 1.0f)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IFUSIONSOUNDPLAYBACK_METHOD_ID_SetPan, VREQ_RESPOND, &response,
@@ -291,7 +291,7 @@ IFusionSoundPlayback_Requestor_SetPan( IFusionSoundPlayback *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_Requestor_SetPitch( IFusionSoundPlayback *thiz,
                                          float                 value )
 {
@@ -301,7 +301,7 @@ IFusionSoundPlayback_Requestor_SetPitch( IFusionSoundPlayback *thiz,
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback_Requestor)
      
      if (value < 0.0f || value > 64.0f)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IFUSIONSOUNDPLAYBACK_METHOD_ID_SetPitch, VREQ_RESPOND, &response,
@@ -317,7 +317,7 @@ IFusionSoundPlayback_Requestor_SetPitch( IFusionSoundPlayback *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_Requestor_SetDirection( IFusionSoundPlayback *thiz,
                                              FSPlaybackDirection   direction )
 {
@@ -331,7 +331,7 @@ IFusionSoundPlayback_Requestor_SetDirection( IFusionSoundPlayback *thiz,
           case FSPD_BACKWARD:
                break;
           default:
-               return DFB_INVARG;
+               return DR_INVARG;
      }
 
      ret = voodoo_manager_request( data->manager, data->instance,
@@ -348,7 +348,7 @@ IFusionSoundPlayback_Requestor_SetDirection( IFusionSoundPlayback *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundPlayback_Requestor_SetDownmixLevels( IFusionSoundPlayback *thiz,
                                        float                 center,
                                        float                 rear )
@@ -359,10 +359,10 @@ IFusionSoundPlayback_Requestor_SetDownmixLevels( IFusionSoundPlayback *thiz,
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback_Requestor)
      
      if (center < 0.0f || center > 1.0f)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      if (rear < 0.0f || rear > 1.0f)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IFUSIONSOUNDPLAYBACK_METHOD_ID_SetDownmixLevels, VREQ_RESPOND, &response,
@@ -381,11 +381,11 @@ IFusionSoundPlayback_Requestor_SetDownmixLevels( IFusionSoundPlayback *thiz,
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 Probe()
 {
      /* This implementation has to be loaded explicitly. */
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
 /*
@@ -393,7 +393,7 @@ Probe()
  *
  * Fills in function pointers and intializes data structure.
  */
-static DFBResult 
+static DirectResult 
 Construct( IFusionSoundPlayback *thiz,
            VoodooManager        *manager,
            VoodooInstanceID      instance,
@@ -418,6 +418,6 @@ Construct( IFusionSoundPlayback *thiz,
      thiz->SetDirection     = IFusionSoundPlayback_Requestor_SetDirection;
      thiz->SetDownmixLevels = IFusionSoundPlayback_Requestor_SetDownmixLevels;
 
-     return DFB_OK;
+     return DR_OK;
 }
 

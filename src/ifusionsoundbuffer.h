@@ -34,7 +34,7 @@
 /*
  * initializes interface struct and private data
  */
-DFBResult IFusionSoundBuffer_Construct( IFusionSoundBuffer *thiz,
+DirectResult IFusionSoundBuffer_Construct( IFusionSoundBuffer *thiz,
                                         CoreSound          *core,
                                         CoreSoundBuffer    *buffer,
                                         int                 size,

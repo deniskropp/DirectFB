@@ -49,17 +49,17 @@
 
 /*****************************************************************************/
 
-static DFBBoolean parse_command_line( int argc, char *argv[] );
-static DFBResult  server_run();
+static bool         parse_command_line( int argc, char *argv[] );
+static DirectResult server_run();
 
-static DFBBoolean keep_alive = DFB_FALSE;
+static bool keep_alive;
 
 /*****************************************************************************/
 
 int
 main( int argc, char *argv[] )
 {
-     DFBResult ret;
+     DirectResult ret;
 
      /* Initialize FusionSound including command line parsing. */
      ret = FusionSoundInit( &argc, &argv );
@@ -109,7 +109,7 @@ ConstructDispatcher( VoodooServer     *server,
 
      *ret_instance = instance;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /*****************************************************************************/
@@ -130,7 +130,7 @@ usage( const char *progname )
               FUSIONSOUND_VERSION, progname );
 }
 
-static DFBBoolean
+static bool
 parse_command_line( int argc, char *argv[] )
 {
      int i;
@@ -138,28 +138,28 @@ parse_command_line( int argc, char *argv[] )
      for (i = 1; i < argc; i++) {
           if (!strcmp( argv[i], "-h" ) || !strcmp( argv[i], "--help" )) {
                usage( argv[0] );
-               return DFB_FALSE;
+               return false;
           }
           else if (!strcmp( argv[i], "-v" ) || !strcmp( argv[i], "--version" )) {
                puts( FUSIONSOUND_VERSION );
                exit( 0 );
           }
           else if (!strcmp( argv[i], "-k" ) || !strcmp( argv[i], "--keep-alive" )) {
-               keep_alive = DFB_TRUE;
+               keep_alive = true;
           }
           else {
                fprintf( stderr, "Unsupported option '%s'!\n", argv[i] );
-               return DFB_FALSE;
+               return false;
           }
      }
      
-     return DFB_TRUE;
+     return true;
 }
 
-static DFBResult
+static DirectResult
 server_run()
 {
-     DFBResult     ret;
+     DirectResult  ret;
      VoodooServer *server;
 
      ret = voodoo_server_create( &server );
@@ -185,6 +185,6 @@ server_run()
 
      voodoo_server_destroy( server );
 
-     return DFB_OK;
+     return DR_OK;
 }
 

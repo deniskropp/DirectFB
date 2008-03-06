@@ -13,7 +13,7 @@
 static void
 feed_stream (IFusionSoundStream *stream)
 {
-     DFBResult ret;
+     DirectResult ret;
      int       i;
      s16       buf[16384];
 
@@ -49,7 +49,7 @@ feed_stream (IFusionSoundStream *stream)
 int
 main (int argc, char *argv[])
 {
-     DFBResult            ret;
+     DirectResult         ret;
      IFusionSound        *sound;
      IFusionSoundStream  *stream;
      FSStreamDescription  desc;

@@ -61,10 +61,10 @@
 static IFusionSound *fsound = NULL;
 
 
-static DFBResult
+static DirectResult
 init_fusionsound( int *argc, char **argv[] )
 {
-     DFBResult ret;
+     DirectResult ret;
 
      /* Initialize FusionSound. */
      ret = FusionSoundInit( argc, argv );
@@ -76,7 +76,7 @@ init_fusionsound( int *argc, char **argv[] )
      if (ret)
           return FusionSoundError( "FusionSoundCreate", ret );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void
@@ -249,7 +249,7 @@ dump_playbacks( CoreSound *core )
 int
 main( int argc, char *argv[] )
 {
-     DFBResult ret;
+     DirectResult ret;
      long long millis;
      long int  seconds, minutes, hours, days;
      IFusionSound_data *data;

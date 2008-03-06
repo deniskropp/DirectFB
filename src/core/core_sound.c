@@ -149,14 +149,14 @@ static int fs_core_arena_shutdown  ( FusionArena *arena,
 
 /******************************************************************************/
 
-static DFBResult fs_core_detach( CoreSound *core );
+static DirectResult fs_core_detach( CoreSound *core );
 
 /******************************************************************************/
 
 static CoreSound       *core_sound      = NULL;
 static pthread_mutex_t  core_sound_lock = PTHREAD_MUTEX_INITIALIZER;
 
-DFBResult
+DirectResult
 fs_core_create( CoreSound **ret_core )
 {
      int        ret;
@@ -180,14 +180,14 @@ fs_core_create( CoreSound **ret_core )
           /* Unlock the core singleton mutex. */
           pthread_mutex_unlock( &core_sound_lock );
 
-          return DFB_OK;
+          return DR_OK;
      }
 
      /* Allocate local core structure. */
      core = D_CALLOC( 1, sizeof(CoreSound) );
      if (!core) {
           pthread_mutex_unlock( &core_sound_lock );
-          return DFB_NOSYSTEMMEMORY;
+          return DR_NOLOCALMEMORY;
      }
 
      ret = fusion_enter( fs_config->session, FUSIONSOUND_CORE_ABI, FER_ANY, &core->world );
@@ -222,7 +222,7 @@ fs_core_create( CoreSound **ret_core )
           fusion_exit( core->world, false );
           D_FREE( core );
           pthread_mutex_unlock( &core_sound_lock );
-          return ret ? ret : DFB_FUSION;
+          return ret ? ret : DR_FUSION;
      }
      
      if (fs_config->deinit_check)
@@ -234,10 +234,10 @@ fs_core_create( CoreSound **ret_core )
      /* Unlock the core singleton mutex. */
      pthread_mutex_unlock( &core_sound_lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-DFBResult
+DirectResult
 fs_core_destroy( CoreSound *core, bool emergency )
 {
      D_ASSERT( core != NULL );
@@ -253,7 +253,7 @@ fs_core_destroy( CoreSound *core, bool emergency )
           /* Unlock the core singleton mutex. */
           pthread_mutex_unlock( &core_sound_lock );
 
-          return DFB_OK;
+          return DR_OK;
      }
 
      direct_signal_handler_remove( core->signal_handler );
@@ -264,7 +264,7 @@ fs_core_destroy( CoreSound *core, bool emergency )
      /* Exit the FusionSound core arena. */
      if (fusion_arena_exit( core->arena, fs_core_arena_shutdown,
                             core->master ? NULL : fs_core_arena_leave,
-                            core, emergency, NULL ) == DFB_BUSY)
+                            core, emergency, NULL ) == DR_BUSY)
      {
           if (core->master) {
                if (emergency) {
@@ -281,7 +281,7 @@ fs_core_destroy( CoreSound *core, bool emergency )
           
           while (fusion_arena_exit( core->arena, fs_core_arena_shutdown,
                                     core->master ? NULL : fs_core_arena_leave,
-                                    core, emergency, NULL ) == DFB_BUSY)
+                                    core, emergency, NULL ) == DR_BUSY)
           {
                D_ONCE( "waiting for FusionSound slaves to terminate" );
                usleep( 100000 );
@@ -303,7 +303,7 @@ fs_core_destroy( CoreSound *core, bool emergency )
      /* Unlock the core singleton mutex. */
      pthread_mutex_unlock( &core_sound_lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 CoreSoundBuffer *
@@ -370,7 +370,7 @@ fs_core_playlist_unlock( CoreSound *core )
      return fusion_skirmish_dismiss( &core->shared->playlist.lock );
 }
 
-DFBResult
+DirectResult
 fs_core_add_playback( CoreSound    *core,
                       CorePlayback *playback )
 {
@@ -388,12 +388,12 @@ fs_core_add_playback( CoreSound    *core,
      /* Allocate playlist entry. */
      entry = SHCALLOC( shared->shmpool, 1, sizeof(CorePlaylistEntry) );
      if (!entry)
-          return DFB_NOSYSTEMMEMORY;
+          return DR_NOLOCALMEMORY;
 
      /* Link playback to playlist entry. */
      if (fs_playback_link( &entry->playback, playback )) {
           SHFREE( shared->shmpool, entry );
-          return DFB_FUSION;
+          return DR_FUSION;
      }
      
      /* Add it to the playback list. */     
@@ -402,10 +402,10 @@ fs_core_add_playback( CoreSound    *core,
      /* Notify new playlist entry to the sound thread. */
      fusion_skirmish_notify( &shared->playlist.lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-DFBResult
+DirectResult
 fs_core_remove_playback( CoreSound    *core,
                          CorePlayback *playback )
 {
@@ -434,7 +434,7 @@ fs_core_remove_playback( CoreSound    *core,
           }
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 int
@@ -482,11 +482,11 @@ fs_core_device_config( CoreSound *core )
      return &core->shared->config;
 }
 
-DFBResult
+DirectResult
 fs_core_get_master_volume( CoreSound *core, float *level )
 {
      CoreSoundShared *shared;
-     DFBResult        ret;
+     DirectResult     ret;
      int              retval;
      
      D_ASSERT( core != NULL );
@@ -511,11 +511,11 @@ fs_core_get_master_volume( CoreSound *core, float *level )
      return ret;
 }
 
-DFBResult
+DirectResult
 fs_core_set_master_volume( CoreSound *core, float level )
 {
      CoreSoundShared *shared;
-     DFBResult        ret;
+     DirectResult     ret;
      int              retval;
      
      D_ASSERT( core != NULL );
@@ -539,7 +539,7 @@ fs_core_set_master_volume( CoreSound *core, float level )
      return ret;
 }
 
-DFBResult
+DirectResult
 fs_core_get_local_volume( CoreSound *core, float *level )
 {
      D_ASSERT( core != NULL );
@@ -551,7 +551,7 @@ fs_core_get_local_volume( CoreSound *core, float *level )
      
      pthread_mutex_unlock( &core_sound_lock );
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 static bool
@@ -569,7 +569,7 @@ volume_callback( FusionObjectPool *pool, FusionObject *object, void *ctx )
      return true;
 }     
 
-DFBResult
+DirectResult
 fs_core_set_local_volume( CoreSound *core, float level )
 {
      D_ASSERT( core != NULL );
@@ -583,13 +583,13 @@ fs_core_set_local_volume( CoreSound *core, float level )
      
      pthread_mutex_unlock( &core_sound_lock );
      
-     return DFB_OK;
+     return DR_OK;
 }
 
-DFBResult
+DirectResult
 fs_core_suspend( CoreSound *core )
 {
-     DFBResult ret;
+     DirectResult ret;
      int       retval;
      
      D_ASSERT( core != NULL );
@@ -603,10 +603,10 @@ fs_core_suspend( CoreSound *core )
      return ret;
 }
 
-DFBResult
+DirectResult
 fs_core_resume( CoreSound *core )
 {
-     DFBResult ret;
+     DirectResult ret;
      int       retval;
      
      D_ASSERT( core != NULL );
@@ -645,7 +645,7 @@ fs_core_signal_handler( int num, void *addr, void *ctx )
 
      fs_core_destroy( core, true );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /******************************************************************************/
@@ -871,12 +871,14 @@ sound_thread( DirectThread *thread, void *arg )
           fusion_skirmish_prevail( &shared->playlist.lock );
           
           if (!shared->playlist.entries) {
-               if (fusion_skirmish_wait( &shared->playlist.lock, delay ? 1 : 0 ))
+               if (fusion_skirmish_wait( &shared->playlist.lock, delay ? 1 : 0 )) {
+                    fusion_skirmish_dismiss( &shared->playlist.lock );
                     continue;
+               }
           }
 
           direct_list_foreach_safe (l, next, shared->playlist.entries) {
-               DFBResult          ret;
+               DirectResult       ret;
                CorePlaylistEntry *entry    = (CorePlaylistEntry *) l;
                CorePlayback      *playback = entry->playback;
                int                num;
@@ -994,41 +996,41 @@ core_call_handler( int caller, int call_arg, void *call_ptr,
      switch (call_arg) {               
           case CSCID_GET_VOLUME:
                if (core->suspended) {
-                    *retval = DFB_SUSPENDED;
+                    *retval = DR_SUSPENDED;
                }
                else {
                     if (!(fs_device_get_capabilities( core->device ) & DCF_VOLUME) ||
-                        fs_device_get_volume( core->device, &volume ) != DFB_OK)
+                        fs_device_get_volume( core->device, &volume ) != DR_OK)
                          volume = fsf_to_float( shared->soft_volume ); 
 
                     *((float*)call_ptr) = volume;
                     
-                    *retval = DFB_OK;
+                    *retval = DR_OK;
                }
                break;
                
           case CSCID_SET_VOLUME:
                if (core->suspended) {
-                    *retval = DFB_SUSPENDED;
+                    *retval = DR_SUSPENDED;
                }
                else {
                     volume = *((float*)call_ptr);
                     if (!(fs_device_get_capabilities( core->device ) & DCF_VOLUME) ||
-                        fs_device_set_volume( core->device, volume ) != DFB_OK)
+                        fs_device_set_volume( core->device, volume ) != DR_OK)
                          shared->soft_volume = fsf_from_float( volume );
                     else
                          shared->soft_volume = FSF_ONE;
                          
-                    *retval = DFB_OK;
+                    *retval = DR_OK;
                }
                break;
                
           case CSCID_SUSPEND:
                if (core->suspended) {
-                    *retval = DFB_BUSY;
+                    *retval = DR_BUSY;
                }
                else {
-                    DFBResult ret;
+                    DirectResult ret;
                     
                     direct_thread_cancel( core->sound_thread );
                     direct_thread_join( core->sound_thread );
@@ -1045,16 +1047,16 @@ core_call_handler( int caller, int call_arg, void *call_ptr,
                     
                     core->suspended = true;
                     
-                    *retval = DFB_OK;
+                    *retval = DR_OK;
                }
                break;
                
           case CSCID_RESUME:
                if (!core->suspended) {
-                    *retval = DFB_BUSY;
+                    *retval = DR_BUSY;
                }
                else {
-                    DFBResult ret;
+                    DirectResult ret;
                     
                     ret = fs_device_resume( core->device );
                     if (ret) {
@@ -1066,7 +1068,7 @@ core_call_handler( int caller, int call_arg, void *call_ptr,
                     
                     core->suspended = false;
                     
-                    *retval = DFB_OK;
+                    *retval = DR_OK;
                }
                break;
                
@@ -1078,11 +1080,11 @@ core_call_handler( int caller, int call_arg, void *call_ptr,
      return FCHR_RETURN;
 }
 
-static DFBResult
+static DirectResult
 fs_core_initialize( CoreSound *core )
 {
      CoreSoundShared *shared = core->shared;
-     DFBResult        ret;
+     DirectResult     ret;
      
      /* Set default device configuration. */  
      shared->config.mode       = fs_config->channelmode;
@@ -1128,26 +1130,26 @@ fs_core_initialize( CoreSound *core )
      /* Start sound mixer. */
      core->sound_thread = direct_thread_create( DTT_OUTPUT, sound_thread, core, "Sound Mixer" );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 fs_core_join( CoreSound *core )
 {
      /* really nothing to be done here, yet ;) */
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 fs_core_leave( CoreSound *core )
 {
      /* really nothing to be done here, yet ;) */
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 fs_core_shutdown( CoreSound *core, bool local )
 {
      DirectLink      *l, *next;
@@ -1202,10 +1204,10 @@ fs_core_shutdown( CoreSound *core, bool local )
      /* Release mixing buffer. */
      D_FREE( core->mixing_buffer );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 fs_core_detach( CoreSound *core )
 {
      int ret;
@@ -1224,7 +1226,7 @@ fs_core_detach( CoreSound *core )
                D_PERROR( "fork()" );
                fusion_kill( core->world, 0, SIGTERM, 5000 );
                fusion_kill( core->world, 0, SIGKILL, 2000 );
-               return DFB_FAILURE;
+               return DR_FAILURE;
           
           case 0:
                D_DEBUG( "FusionSound/Core: ... detached.\n" ); 
@@ -1241,7 +1243,7 @@ fs_core_detach( CoreSound *core )
                break;
      }
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 
@@ -1251,7 +1253,7 @@ static int
 fs_core_arena_initialize( FusionArena *arena,
                           void        *ctx )
 {
-     DFBResult            ret;
+     DirectResult         ret;
      CoreSound           *core   = ctx;
      CoreSoundShared     *shared;
      FusionSHMPoolShared *pool;
@@ -1287,7 +1289,7 @@ fs_core_arena_initialize( FusionArena *arena,
      /* Register shared data. */
      fusion_arena_add_shared_field( arena, "Core/Shared", shared );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static int
@@ -1295,7 +1297,7 @@ fs_core_arena_shutdown( FusionArena *arena,
                         void        *ctx,
                         bool         emergency)
 {
-     DFBResult            ret;
+     DirectResult         ret;
      CoreSound           *core = ctx;
      CoreSoundShared     *shared;
      FusionSHMPoolShared *pool;
@@ -1320,14 +1322,14 @@ fs_core_arena_shutdown( FusionArena *arena,
 
      fusion_shm_pool_destroy( core->world, pool );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static int
 fs_core_arena_join( FusionArena *arena,
                     void        *ctx )
 {
-     DFBResult        ret;
+     DirectResult     ret;
      CoreSound       *core   = ctx;
      CoreSoundShared *shared;
 
@@ -1335,7 +1337,7 @@ fs_core_arena_join( FusionArena *arena,
 
      /* Get shared data. */
      if (fusion_arena_get_shared_field( arena, "Core/Shared", (void*)&shared ))
-          return DFB_FUSION;
+          return DR_FUSION;
 
      core->shared = shared;
 
@@ -1344,7 +1346,7 @@ fs_core_arena_join( FusionArena *arena,
      if (ret)
           return ret;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static int
@@ -1352,7 +1354,7 @@ fs_core_arena_leave( FusionArena *arena,
                      void        *ctx,
                      bool         emergency)
 {
-     DFBResult  ret;
+     DirectResult  ret;
      CoreSound *core = ctx;
 
      D_DEBUG( "FusionSound/Core: Leaving...\n" );
@@ -1362,6 +1364,6 @@ fs_core_arena_leave( FusionArena *arena,
      if (ret)
           return ret;
 
-     return DFB_OK;
+     return DR_OK;
 }
 

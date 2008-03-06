@@ -44,10 +44,10 @@
 #include <mad.h>
 
 
-static DFBResult
+static DirectResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx );
 
-static DFBResult
+static DirectResult
 Construct( IFusionSoundMusicProvider *thiz,
            const char                *filename,
            DirectStream              *stream );
@@ -429,17 +429,17 @@ IFusionSoundMusicProvider_Mad_Destruct( IFusionSoundMusicProvider *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Mad_AddRef( IFusionSoundMusicProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Mad_Release( IFusionSoundMusicProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
@@ -447,47 +447,47 @@ IFusionSoundMusicProvider_Mad_Release( IFusionSoundMusicProvider *thiz )
      if (--data->ref == 0)
           IFusionSoundMusicProvider_Mad_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Mad_GetCapabilities( IFusionSoundMusicProvider   *thiz,
                                                FSMusicProviderCapabilities *caps )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      if (!caps)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      *caps = FMCAPS_BASIC | FMCAPS_HALFRATE;
      if (direct_stream_seekable( data->s ))
           *caps |= FMCAPS_SEEK;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Mad_GetTrackDescription( IFusionSoundMusicProvider *thiz,
                                                    FSTrackDescription        *desc )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      if (!desc)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      *desc = data->desc;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Mad_GetStreamDescription( IFusionSoundMusicProvider *thiz,
                                                     FSStreamDescription       *desc )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      if (!desc)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      desc->flags        = FSSDF_SAMPLERATE   | FSSDF_CHANNELS  |
                           FSSDF_SAMPLEFORMAT | FSSDF_BUFFERSIZE;
@@ -496,17 +496,17 @@ IFusionSoundMusicProvider_Mad_GetStreamDescription( IFusionSoundMusicProvider *t
      desc->sampleformat = FSSF_S32;
      desc->buffersize   = data->samplerate/8;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Mad_GetBufferDescription( IFusionSoundMusicProvider *thiz,
                                                     FSBufferDescription       *desc )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      if (!desc)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      desc->flags        = FSBDF_SAMPLERATE   | FSBDF_CHANNELS | 
                           FSBDF_SAMPLEFORMAT | FSBDF_LENGTH;
@@ -515,7 +515,7 @@ IFusionSoundMusicProvider_Mad_GetBufferDescription( IFusionSoundMusicProvider *t
      desc->sampleformat = FSSF_S32;
      desc->length       = MIN(data->frames, FS_MAX_FRAMES);
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void*
@@ -529,7 +529,7 @@ MadStreamThread( DirectThread *thread, void *ctx )
      direct_stream_wait( data->s, data->read_size, NULL );
 
      while (data->status == FMSTATE_PLAY) {
-          DFBResult      ret    = DFB_OK;
+          DirectResult   ret    = DR_OK;
           unsigned int   len    = data->read_size;
           int            offset = 0;
           struct timeval tv     = { 0, 500 };
@@ -554,7 +554,7 @@ MadStreamThread( DirectThread *thread, void *ctx )
 
           if (offset < data->read_size) {
                ret = direct_stream_wait( data->s, data->read_size, &tv );
-               if (ret != DFB_TIMEOUT) {
+               if (ret != DR_TIMEOUT) {
                     ret = direct_stream_read( data->s,
                                               data->read_size-offset,
                                               data->read_buffer+offset, &len );
@@ -562,7 +562,7 @@ MadStreamThread( DirectThread *thread, void *ctx )
           }
 
           if (ret) {
-               if (ret == DFB_EOF) {
+               if (ret == DR_EOF) {
                     if (data->flags & FMPLAY_LOOPING) {
                          direct_stream_seek( data->s, 0 );
                     }
@@ -616,7 +616,7 @@ MadStreamThread( DirectThread *thread, void *ctx )
      return NULL;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Mad_PlayToStream( IFusionSoundMusicProvider *thiz,
                                             IFusionSoundStream        *destination )
 {
@@ -625,21 +625,21 @@ IFusionSoundMusicProvider_Mad_PlayToStream( IFusionSoundMusicProvider *thiz,
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      if (!destination)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      if (data->dest.stream == destination)
-          return DFB_OK;
+          return DR_OK;
 
      destination->GetDescription( destination, &desc );
 
      /* check whether destination samplerate is supported */
      if (desc.samplerate != data->samplerate  &&
          desc.samplerate != data->samplerate/2)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
      /* check whether number of channels is supported */
      if (desc.channels > 6)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
      /* check whether destination format is supported */
      switch (desc.sampleformat) {
@@ -650,7 +650,7 @@ IFusionSoundMusicProvider_Mad_PlayToStream( IFusionSoundMusicProvider *thiz,
           case FSSF_FLOAT:
                break;
           default:
-               return DFB_UNSUPPORTED;
+               return DR_UNSUPPORTED;
      }
 
      pthread_mutex_lock( &data->lock );
@@ -691,7 +691,7 @@ IFusionSoundMusicProvider_Mad_PlayToStream( IFusionSoundMusicProvider *thiz,
 
      pthread_mutex_unlock( &data->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void*
@@ -709,7 +709,7 @@ MadBufferThread( DirectThread *thread, void *ctx )
      direct_stream_wait( data->s, data->read_size, NULL );
 
      while (data->status == FMSTATE_PLAY) {
-          DFBResult      ret    = DFB_OK;
+          DirectResult   ret    = DR_OK;
           unsigned int   len    = data->read_size;
           int            offset = 0;
           struct timeval tv     = { 0, 500 };
@@ -732,7 +732,7 @@ MadBufferThread( DirectThread *thread, void *ctx )
 
           if (offset < data->read_size) {
                ret = direct_stream_wait( data->s, data->read_size, &tv );
-               if (ret != DFB_TIMEOUT) {
+               if (ret != DR_TIMEOUT) {
                     ret = direct_stream_read( data->s,
                                               data->read_size-offset,
                                               data->read_buffer+offset, &len );
@@ -740,7 +740,7 @@ MadBufferThread( DirectThread *thread, void *ctx )
           }
 
           if (ret) {
-               if (ret == DFB_EOF) {
+               if (ret == DR_EOF) {
                     if (data->flags & FMPLAY_LOOPING) {
                          direct_stream_seek( data->s, 0 );
                     }
@@ -778,7 +778,7 @@ MadBufferThread( DirectThread *thread, void *ctx )
                mad_synth_frame( &data->synth, &data->frame );
                len = pcm->length;
                
-               if (buffer->Lock( buffer, (void*)&dst, &size, 0 ) != DFB_OK) {
+               if (buffer->Lock( buffer, (void*)&dst, &size, 0 ) != DR_OK) {
                     D_ERROR( "IFusionSoundMusicProvider_Mad: Couldn't lock buffer!\n" );
                     break;
                }
@@ -814,7 +814,7 @@ MadBufferThread( DirectThread *thread, void *ctx )
      return NULL;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Mad_PlayToBuffer( IFusionSoundMusicProvider *thiz,
                                             IFusionSoundBuffer        *destination,
                                             FMBufferCallback           callback,
@@ -825,21 +825,21 @@ IFusionSoundMusicProvider_Mad_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      if (!destination)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      if (data->dest.buffer == destination)
-          return DFB_OK;
+          return DR_OK;
 
      destination->GetDescription( destination, &desc );
 
      /* check whether destination samplerate is supported */
      if (desc.samplerate != data->samplerate  &&
          desc.samplerate != data->samplerate/2)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
      /* check whether number of channels is supported */
      if (desc.channels > 6)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
      /* check whether destination format is supported */
      switch (desc.sampleformat) {
@@ -850,7 +850,7 @@ IFusionSoundMusicProvider_Mad_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           case FSSF_FLOAT:
                break;
           default:
-               return DFB_UNSUPPORTED;
+               return DR_UNSUPPORTED;
      }
      
      pthread_mutex_lock( &data->lock );
@@ -895,10 +895,10 @@ IFusionSoundMusicProvider_Mad_PlayToBuffer( IFusionSoundMusicProvider *thiz,
 
      pthread_mutex_unlock( &data->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Mad_Stop( IFusionSoundMusicProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
@@ -911,35 +911,35 @@ IFusionSoundMusicProvider_Mad_Stop( IFusionSoundMusicProvider *thiz )
 
      pthread_mutex_unlock( &data->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Mad_GetStatus( IFusionSoundMusicProvider *thiz,
                                          FSMusicProviderStatus     *status )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      if (!status)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      *status = data->status;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Mad_SeekTo( IFusionSoundMusicProvider *thiz,
                                       double                     seconds )
 {
-     DFBResult    ret  = DFB_FAILURE;
+     DirectResult ret  = DR_FAILURE;
      double       rate;
      unsigned int off;
 
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      if (seconds < 0.0)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      pthread_mutex_lock( &data->lock );
 
@@ -947,7 +947,7 @@ IFusionSoundMusicProvider_Mad_SeekTo( IFusionSoundMusicProvider *thiz,
      if (rate) {
           off = (seconds*rate);
           ret = direct_stream_seek( data->s, off );
-          if (ret == DFB_OK) {
+          if (ret == DR_OK) {
                data->seeked   = true;
                data->finished = false;
           }
@@ -958,7 +958,7 @@ IFusionSoundMusicProvider_Mad_SeekTo( IFusionSoundMusicProvider *thiz,
      return ret;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Mad_GetPos( IFusionSoundMusicProvider *thiz,
                                       double                    *seconds )
 {
@@ -968,10 +968,10 @@ IFusionSoundMusicProvider_Mad_GetPos( IFusionSoundMusicProvider *thiz,
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      if (!seconds)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      if (!data->desc.bitrate)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
      pos = direct_stream_offset( data->s );
      if (data->status == FMSTATE_PLAY && data->stream.this_frame) {
@@ -982,41 +982,41 @@ IFusionSoundMusicProvider_Mad_GetPos( IFusionSoundMusicProvider *thiz,
      rate = (data->desc.bitrate ? : data->frame.header.bitrate) >> 3;
      *seconds = (double)pos / rate;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Mad_GetLength( IFusionSoundMusicProvider *thiz,
                                          double                    *seconds )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      if (!seconds)
-          return DFB_INVARG;
+          return DR_INVARG;
 
      *seconds = data->length;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Mad_SetPlaybackFlags( IFusionSoundMusicProvider    *thiz,
                                                 FSMusicProviderPlaybackFlags  flags )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      if (flags & ~FMPLAY_LOOPING)
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
      if (flags & FMPLAY_LOOPING && !direct_stream_seekable( data->s ))
-          return DFB_UNSUPPORTED;
+          return DR_UNSUPPORTED;
 
      data->flags = flags;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IFusionSoundMusicProvider_Mad_WaitStatus( IFusionSoundMusicProvider *thiz,
                                           FSMusicProviderStatus      mask,
                                           unsigned int               timeout )
@@ -1024,7 +1024,7 @@ IFusionSoundMusicProvider_Mad_WaitStatus( IFusionSoundMusicProvider *thiz,
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
      
      if (!mask || mask & ~FMSTATE_ALL)
-          return DFB_INVARG;
+          return DR_INVARG;
           
      if (timeout) {
           struct timespec t;
@@ -1036,18 +1036,18 @@ IFusionSoundMusicProvider_Mad_WaitStatus( IFusionSoundMusicProvider *thiz,
           
 #ifdef HAVE_PTHREAD_MUTEX_TIMEDLOCK
           if (pthread_mutex_timedlock( &data->lock, &t ))
-               return DFB_TIMEOUT;
+               return DR_TIMEOUT;
 #else          
           while (pthread_mutex_trylock( &data->lock )) {
                usleep( 1000 );
                if (direct_clock_get_abs_micros() >= s)
-                    return DFB_TIMEOUT;
+                    return DR_TIMEOUT;
           }
 #endif   
           while (!(data->status & mask)) {
                if (pthread_cond_timedwait( &data->cond, &data->lock, &t ) == ETIMEDOUT) {
                     pthread_mutex_unlock( &data->lock );
-                    return DFB_TIMEOUT;
+                    return DR_TIMEOUT;
                }
           }
      }
@@ -1060,38 +1060,38 @@ IFusionSoundMusicProvider_Mad_WaitStatus( IFusionSoundMusicProvider *thiz,
      
      pthread_mutex_unlock( &data->lock );
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 /* exported symbols */
 
-static DFBResult
+static DirectResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
      char *ext;
 
      if (ctx->mimetype && !strcmp( ctx->mimetype, "audio/mpeg" ))
-          return DFB_OK;
+          return DR_OK;
 
      ext = strrchr( ctx->filename, '.' );
      if (ext) {
           if (!strcasecmp( ext, ".mp1" ) ||
               !strcasecmp( ext, ".mp2" ) ||
               !strcasecmp( ext, ".mp3" ))
-               return DFB_OK;
+               return DR_OK;
      }
 
      /* Detect by contents ? */
 
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
-static DFBResult
+static DirectResult
 Construct( IFusionSoundMusicProvider *thiz,
            const char                *filename,
            DirectStream              *stream )
 {
-     DFBResult          ret;
+     DirectResult       ret;
      u8                 buf[16384];
      unsigned int       pos = 0;
      unsigned int       len;
@@ -1149,7 +1149,7 @@ Construct( IFusionSoundMusicProvider *thiz,
      if (error) {
           D_ERROR( "IFusionSoundMusicProvider_Mad: Couldn't find a valid frame!\n" );
           IFusionSoundMusicProvider_Mad_Destruct( thiz );
-          return DFB_FAILURE;
+          return DR_FAILURE;
      }
 
      header           = data->frame.header;
@@ -1251,6 +1251,6 @@ Construct( IFusionSoundMusicProvider *thiz,
      thiz->SetPlaybackFlags     = IFusionSoundMusicProvider_Mad_SetPlaybackFlags;
      thiz->WaitStatus           = IFusionSoundMusicProvider_Mad_WaitStatus;
 
-     return DFB_OK;
+     return DR_OK;
 }
 

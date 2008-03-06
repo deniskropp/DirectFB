@@ -54,12 +54,12 @@ struct __FS_CoreSoundDevice {
 };
 
 
-DFBResult 
+DirectResult 
 fs_device_initialize( CoreSound               *core, 
                       CoreSoundDeviceConfig   *config,
                       CoreSoundDevice        **ret_device )
 {
-     DFBResult        ret;
+     DirectResult     ret;
      CoreSoundDevice *device;
      DirectLink      *link;
      
@@ -90,7 +90,7 @@ fs_device_initialize( CoreSound               *core,
                
                if (!device->module && 
                   (!fs_config->driver || !strcmp( module->name, fs_config->driver ))) {
-                    if (funcs->Probe() == DFB_OK) {
+                    if (funcs->Probe() == DR_OK) {
                          device->module = module;
                          device->funcs  = funcs;
                
@@ -112,7 +112,7 @@ fs_device_initialize( CoreSound               *core,
                }
           
                D_FREE( device );
-               return DFB_FAILURE;
+               return DR_FAILURE;
           }
      
           if (device->info.device_data_size) {
@@ -146,7 +146,7 @@ fs_device_initialize( CoreSound               *core,
      
      *ret_device = device;
      
-     return DFB_OK;
+     return DR_OK;
 }
 
 void
@@ -168,7 +168,7 @@ fs_device_get_capabilities( CoreSoundDevice *device )
      return device->device_info.caps;
 }
    
-DFBResult 
+DirectResult 
 fs_device_get_buffer( CoreSoundDevice  *device,
                       u8              **addr,
                       unsigned int     *avail )
@@ -180,10 +180,10 @@ fs_device_get_buffer( CoreSoundDevice  *device,
      if (device->funcs)
           return device->funcs->GetBuffer( device->device_data, addr, avail );
           
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
-DFBResult
+DirectResult
 fs_device_commit_buffer( CoreSoundDevice *device, unsigned int frames )
 {
      D_ASSERT( device != NULL );
@@ -191,7 +191,7 @@ fs_device_commit_buffer( CoreSoundDevice *device, unsigned int frames )
      if (device->funcs)
           return device->funcs->CommitBuffer( device->device_data, frames );
           
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
 void
@@ -206,7 +206,7 @@ fs_device_get_output_delay( CoreSoundDevice *device, int *delay )
           *delay = 0;
 }
 
-DFBResult
+DirectResult
 fs_device_get_volume( CoreSoundDevice *device, float *level )
 {
      D_ASSERT( device != NULL );
@@ -215,10 +215,10 @@ fs_device_get_volume( CoreSoundDevice *device, float *level )
      if (device->funcs)
           return device->funcs->GetVolume( device->device_data, level );
      
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
-DFBResult
+DirectResult
 fs_device_set_volume( CoreSoundDevice *device, float level )
 {
      D_ASSERT( device != NULL );
@@ -226,10 +226,10 @@ fs_device_set_volume( CoreSoundDevice *device, float level )
      if (device->funcs)
           return device->funcs->SetVolume( device->device_data, level );
           
-     return DFB_UNSUPPORTED;
+     return DR_UNSUPPORTED;
 }
 
-DFBResult
+DirectResult
 fs_device_suspend( CoreSoundDevice *device )
 {
      D_ASSERT( device != NULL );
@@ -237,10 +237,10 @@ fs_device_suspend( CoreSoundDevice *device )
      if (device->funcs)
           return device->funcs->Suspend( device->device_data );
           
-     return DFB_OK;
+     return DR_OK;
 }
 
-DFBResult
+DirectResult
 fs_device_resume( CoreSoundDevice *device )
 {
      D_ASSERT( device != NULL );
@@ -248,7 +248,7 @@ fs_device_resume( CoreSoundDevice *device )
      if (device->funcs)
           return device->funcs->Resume( device->device_data );
           
-     return DFB_OK;
+     return DR_OK;
 }
 
 void
