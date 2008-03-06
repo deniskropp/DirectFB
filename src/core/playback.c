@@ -37,34 +37,11 @@
 #include <core/core_sound.h>
 #include <core/sound_buffer.h>
 #include <core/playback.h>
-
-/******************************************************************************/
-
-struct __FS_CorePlayback {
-     FusionObject     object;
-
-     FusionSkirmish   lock;
-
-     CoreSound       *core;
-     CoreSoundBuffer *buffer;
-     bool             notify;
-
-     bool             disabled;
-     bool             running;
-     int              position;
-     int              stop;
-     
-     int              pitch;       /* multiplier for sample rate in FS_PITCH_ONE units */
-
-     __fsf            center;      /* downmixing level for center channel */
-     __fsf            rear;        /* downmixing level for rear channel */
-     
-     __fsf            levels[6];   /* multipliers for channels  */
-     
-     __fsf            volume;      /* local volume level */
-};
+#include <core/playback_internal.h>
 
 #define DOWNMIX_LEVEL_3DB  0.70794578438413791
+
+/******************************************************************************/
 
 static void fs_playback_notify( CorePlayback                  *playback,
                                 CorePlaybackNotificationFlags  flags,

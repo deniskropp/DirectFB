@@ -43,6 +43,7 @@
 
 #include <direct/clock.h>
 #include <direct/debug.h>
+#include <direct/messages.h>
 
 #include <fusion/build.h>
 #include <fusion/fusion.h>
@@ -51,7 +52,10 @@
 #include <fusion/shmalloc.h>
 #include <fusion/shm/shm_internal.h>
 
+#include <core/types_sound.h>
 #include <core/sound_buffer.h>
+#include <core/playback.h>
+#include <core/playback_internal.h>
 
 
 static IFusionSound *fsound = NULL;
@@ -88,20 +92,19 @@ buffer_callback( FusionObjectPool *pool,
                  void             *ctx )
 {
      DirectResult     ret;
-     int              refs;
+     int              refs   = -1;
+     int              ref_id = object->ref.multi.id;
      CoreSoundBuffer *buffer = (CoreSoundBuffer*) object;
 
      if (object->state != FOS_ACTIVE)
           return true;
 
      ret = fusion_ref_stat( &object->ref, &refs );
-     if (ret) {
-          printf( "Fusion error %d!\n", ret );
-          return false;
-     }
+     if (ret)
+          D_DERROR( ret, "FusionSound/Dump: fusion_ref_stat() on 0x%08x (buffer's reference id) failed!\n", ref_id );
 
 #if FUSION_BUILD_MULTI
-     printf( "0x%08x : ", object->ref.multi.id );
+     printf( "0x%08x : ", ref_id );
 #else
      printf( "N/A        : " );
 #endif
@@ -109,8 +112,10 @@ buffer_callback( FusionObjectPool *pool,
      printf( "%3d   ", refs );
 
      printf( "%6d  ", buffer->length );
+     printf( "%6d  ", buffer->break_pos );
+     printf( "%3s   ", buffer->notify ? "YES" : " no" );
 
-     printf( "%6d    ", FS_CHANNELS_FOR_MODE(buffer->mode) );
+     printf( "%2d  ", FS_CHANNELS_FOR_MODE(buffer->mode) );
 
      switch (buffer->format) {
           case FSSF_U8:
@@ -146,11 +151,99 @@ static void
 dump_buffers( CoreSound *core )
 {
      printf( "\n"
-             "----------------------------[ Sound Buffers ]----------------------------\n" );
-     printf( "Reference  . Refs  Length  Channels  Format  Samplerate   Size\n" );
-     printf( "-------------------------------------------------------------------------\n" );
+             "------------------------------[ Sound Buffers ]-------------------------------\n" );
+     printf( "Reference  . Refs  Length   Break  Ntf   Ch  Format  Samplerate   Size\n" );
+     printf( "------------------------------------------------------------------------------\n" );
 
      fs_core_enum_buffers( core, buffer_callback, NULL );
+}
+
+static bool
+playback_callback( FusionObjectPool *pool,
+                   FusionObject     *object,
+                   void             *ctx )
+{
+     DirectResult     ret;
+     int              refs     = -1;
+     int              ref_id   = object->ref.multi.id;
+     CorePlayback    *playback = (CorePlayback*) object;
+     CoreSoundBuffer *buffer;
+
+     if (object->state != FOS_ACTIVE)
+          return true;
+
+     buffer = playback->buffer;
+     if (!buffer)
+          D_ERROR( "FusionSound/Dump: Playback with reference id 0x%08x has no buffer!\n", ref_id );
+
+     ret = fusion_ref_stat( &object->ref, &refs );
+     if (ret)
+          D_DERROR( ret, "FusionSound/Dump: fusion_ref_stat() on 0x%08x (playback's reference id) failed!\n", ref_id );
+
+#if FUSION_BUILD_MULTI
+     ref_id = 
+     printf( "0x%08x : ", ref_id );
+#else
+     printf( "N/A        : " );
+#endif
+
+     printf( "%3d   ", refs );
+
+     printf( "%6d  ", playback->position );
+     printf( "%6d  ", playback->stop );
+
+     printf( "%3s ", playback->notify ? "YES" : " no" );
+     printf( "%c ", playback->running ? '*' : ' ' );
+
+     printf( "%2d  ", buffer ? FS_CHANNELS_FOR_MODE(buffer->mode) : -1 );
+
+     switch (buffer ? buffer->format : -1) {
+          case FSSF_U8:
+               printf( "   U8   " );
+               break;
+          case FSSF_S16:
+               printf( "  S16   " );
+               break;
+          case FSSF_S24:
+               printf( "  S24   " );
+               break;
+          case FSSF_S32:
+               printf( "  S32   " );
+               break;
+          case FSSF_FLOAT:
+               printf( " FLOAT  " );
+               break;
+          case -1:
+               printf( "  N/A   " );
+               break;
+          default:
+               printf( "unknown!" );
+               break;
+     }
+
+     printf( "%8d  ", playback->pitch );
+
+#if FUSION_BUILD_MULTI
+     ref_id = buffer->object.ref.multi.id;
+     printf( "0x%08x", ref_id );
+#else
+     printf( "N/A" );
+#endif
+
+     printf( "\n" );
+
+     return true;
+}
+
+static void
+dump_playbacks( CoreSound *core )
+{
+     printf( "\n"
+             "------------------------------[ Sound Playbacks ]----------------------------\n" );
+     printf( "Reference  . Refs  Position  Stop  Ntf R Ch  Format  Playrate  Buffer\n" );
+     printf( "-----------------------------------------------------------------------------\n" );
+
+     fs_core_enum_playbacks( core, playback_callback, NULL );
 }
 
 int
@@ -204,6 +297,7 @@ main( int argc, char *argv[] )
      data = ifusionsound_singleton->priv;
 
      dump_buffers( data->core );
+     dump_playbacks( data->core );
 
 #if FUSION_BUILD_MULTI
      if (argc > 1 && !strcmp( argv[1], "-s" )) {
