@@ -157,6 +157,7 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
      CoreSurface           *surface;
      CoreSurfaceAllocation *alloc      = NULL;
      CoreSurfaceAllocation *allocation = NULL;
+     bool                   allocated  = false;
 
 #if DIRECT_BUILD_DEBUG
      D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_lock( %p, 0x%08x, %p )\n", buffer, access, lock );
@@ -199,13 +200,15 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
                return ret;
 
           D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+
+          allocated = true;
      }
 
      /* Synchronize with other allocations. */
      ret = update_allocation( allocation, access );
      if (ret) {
           /* Destroy if newly created. */
-          if (!alloc)
+          if (allocated)
                dfb_surface_pool_deallocate( allocation->pool, allocation );
           return ret;
      }
@@ -223,7 +226,7 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
           D_MAGIC_CLEAR( lock );
 
           /* Destroy if newly created. */
-          if (!alloc)
+          if (allocated)
                dfb_surface_pool_deallocate( allocation->pool, allocation );
 
           return ret;
@@ -466,6 +469,7 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
      CoreSurfaceAllocation *alloc      = NULL;
      CoreSurfaceAllocation *allocation = NULL;
      DFBSurfacePixelFormat  format;
+     bool                   allocated  = false;
 
      D_DEBUG_AT( Core_SurfBuffer, "%s( %p, %p [%d] )\n", __FUNCTION__, buffer, source, pitch );
 
@@ -501,6 +505,7 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
                D_DERROR( ret, "Core/SurfBuffer: Buffer allocation failed!\n" );
                return ret;
           }
+          allocated = true;
      }
      else {
           /* Look for allocation with CPU access. */
@@ -520,7 +525,7 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
      ret = update_allocation( allocation, CSAF_CPU_WRITE );
      if (ret) {
           /* Destroy if newly created. */
-          if (!alloc)
+          if (allocated)
                dfb_surface_pool_deallocate( allocation->pool, allocation );
           return ret;
      }
