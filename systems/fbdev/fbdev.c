@@ -1173,11 +1173,9 @@ primarySetColorAdjustment( CoreLayer          *layer,
                }
                /* Decrease contrast */
                else if (contrast < 127) {
-                    float c = (float)contrast/128.0;
-
-                    r = (int)((float)r * c);
-                    g = (int)((float)g * c);
-                    b = (int)((float)b * c);
+                    r = (r * contrast) >> 7;
+                    g = (g * contrast) >> 7;
+                    b = (b * contrast) >> 7;
                }
 
                r = CLAMP( r, 0, 255 );
@@ -1193,20 +1191,20 @@ primarySetColorAdjustment( CoreLayer          *layer,
            */
           if (adjustment->flags & DCAF_SATURATION) {
                if (saturation > 128) {
-                    float gray = ((float)saturation - 128.0)/128.0;
-                    float color = 1.0 - gray;
+                    int gray = saturation - 128;
+                    int color = 128 - gray;
 
-                    r = (int)(((float)r - 128.0 * gray)/color);
-                    g = (int)(((float)g - 128.0 * gray)/color);
-                    b = (int)(((float)b - 128.0 * gray)/color);
+                    r = ((r - gray) << 7) / color;
+                    g = ((g - gray) << 7) / color;
+                    b = ((b - gray) << 7) / color;
                }
                else if (saturation < 128) {
-                    float color = (float)saturation/128.0;
-                    float gray = 1.0 - color;
+                    int color = saturation;
+                    int gray = 128 - color;
 
-                    r = (int)(((float) r * color) + (128.0 * gray));
-                    g = (int)(((float) g * color) + (128.0 * gray));
-                    b = (int)(((float) b * color) + (128.0 * gray));
+                    r = ((r * color) >> 7) + gray;
+                    g = ((g * color) >> 7) + gray;
+                    b = ((b * color) >> 7) + gray;
                }
 
                r = CLAMP( r, 0, 255 );
@@ -2033,7 +2031,7 @@ static DFBResult dfb_fbdev_read_modes()
 
 static u16 dfb_fbdev_calc_gamma(int n, int max)
 {
-     int ret = 65535.0 * ((float)((float)n/(max)));
+     int ret = 65535 * n / max;
      return CLAMP( ret, 0, 65535 );
 }
 
