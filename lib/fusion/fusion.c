@@ -75,6 +75,7 @@ static void                      *fusion_dispatch_loop ( DirectThread *thread,
 
 /**********************************************************************************************************************/
 
+static void                       fusion_fork_handler_prepare( void );
 static void                       fusion_fork_handler_parent( void );
 static void                       fusion_fork_handler_child( void );
 
@@ -154,7 +155,7 @@ init_once()
      struct utsname uts;
      int            i, j, k, l;
 
-     pthread_atfork( NULL, fusion_fork_handler_parent, fusion_fork_handler_child );
+     pthread_atfork( fusion_fork_handler_prepare, fusion_fork_handler_parent, fusion_fork_handler_child );
 
      if (uname( &uts ) < 0) {
           D_PERROR( "Fusion/Init: uname() failed!\n" );
@@ -283,6 +284,26 @@ fusion_world_fork( FusionWorld *world )
 }
 
 static void
+fusion_fork_handler_prepare()
+{
+     int i;
+     
+     D_DEBUG_AT( Fusion_Main, "%s()\n", __FUNCTION__ );
+     
+     for (i=0; i<FUSION_MAX_WORLDS; i++) {
+          FusionWorld *world = fusion_worlds[i];
+
+          if (!world)
+               continue;
+               
+          D_MAGIC_ASSERT( world, FusionWorld );
+          
+          if (world->fork_callback)
+               world->fork_callback( world->fork_action, FFS_PREPARE );
+     }
+}     
+
+static void
 fusion_fork_handler_parent()
 {
      int i;
@@ -301,6 +322,9 @@ fusion_fork_handler_parent()
           shared = world->shared;
           
           D_MAGIC_ASSERT( shared, FusionWorldShared );
+          
+          if (world->fork_callback)
+               world->fork_callback( world->fork_action, FFS_PARENT );
                
           if (world->fork_action == FFA_FORK) {
                /* Increase the shared reference counter. */
@@ -324,6 +348,9 @@ fusion_fork_handler_child()
                continue;
 
           D_MAGIC_ASSERT( world, FusionWorld );
+          
+          if (world->fork_callback)
+               world->fork_callback( world->fork_action, FFS_CHILD );
 
           switch (world->fork_action) {
                default:
@@ -1233,6 +1260,26 @@ _fusion_recv_message( int                 fd,
 /**********************************************************************************************************************/
 
 static void
+fusion_fork_handler_prepare()
+{
+     int i;
+     
+     D_DEBUG_AT( Fusion_Main, "%s()\n", __FUNCTION__ );
+     
+     for (i=0; i<FUSION_MAX_WORLDS; i++) {
+          FusionWorld *world = fusion_worlds[i];
+
+          if (!world)
+               continue;
+               
+          D_MAGIC_ASSERT( world, FusionWorld );
+          
+          if (world->fork_callback)
+               world->fork_callback( world->fork_action, FFS_PREPARE );
+     }
+}
+
+static void
 fusion_fork_handler_parent()
 {
      int i;
@@ -1251,6 +1298,9 @@ fusion_fork_handler_parent()
           shared = world->shared;
           
           D_MAGIC_ASSERT( shared, FusionWorldShared );
+          
+          if (world->fork_callback)
+               world->fork_callback( world->fork_action, FFS_PARENT );
                
           if (world->fork_action == FFA_FORK) {
                /* Increase the shared reference counter. */
@@ -1282,6 +1332,9 @@ fusion_fork_handler_child()
           shared = world->shared;
 
           D_MAGIC_ASSERT( shared, FusionWorldShared );
+          
+          if (world->fork_callback)
+               world->fork_callback( world->fork_action, FFS_CHILD );
 
           switch (world->fork_action) {
                default:
@@ -2189,6 +2242,29 @@ fusion_world_set_fork_action( FusionWorld      *world,
 }
 
 /*
+ * Gets the current fork() action.
+ */
+FusionForkAction 
+fusion_world_get_fork_action( FusionWorld *world )
+{
+     D_MAGIC_ASSERT( world, FusionWorld );
+     
+     return world->fork_action;
+}
+
+/*
+ * Registers a callback called upon fork().
+ */
+void
+fusion_world_set_fork_callback( FusionWorld        *world,
+                                FusionForkCallback  callback )
+{
+     D_MAGIC_ASSERT( world, FusionWorld );
+     
+     world->fork_callback = callback;
+}
+
+/*
  * Return the index of the specified world.
  */
 int
@@ -2394,6 +2470,27 @@ DirectResult fusion_exit( FusionWorld *world,
 void
 fusion_world_set_fork_action( FusionWorld      *world,
                               FusionForkAction  action )
+{
+     D_MAGIC_ASSERT( world, FusionWorld );
+}
+
+/*
+ * Gets the current fork() action.
+ */
+FusionForkAction 
+fusion_world_get_fork_action( FusionWorld *world )
+{
+     D_MAGIC_ASSERT( world, FusionWorld );
+     
+     return world->fork_action;
+}
+
+/*
+ * Registers a callback called upon fork().
+ */
+void
+fusion_world_set_fork_callback( FusionWorld        *world,
+                                FusionForkCallback  callback )
 {
      D_MAGIC_ASSERT( world, FusionWorld );
 }
