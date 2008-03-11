@@ -252,7 +252,7 @@ copy_line_nv16( u16 *yy, u16 *cbcr, const u8 *src_ycbcr, int width )
      D_ASSUME( !(width & 1) );
 
      for (x=0; x<width/2; x++) {
-#if WORDS_BIGENDIAN
+#ifdef WORDS_BIGENDIAN
           yy[x] = (src_ycbcr[0] << 8) | src_ycbcr[3];
 #else
           yy[x] = (src_ycbcr[3] << 8) | src_ycbcr[0];
