@@ -1253,7 +1253,7 @@ fs_core_detach( CoreSound *core )
 static void
 fs_fork_callback( FusionForkAction action, FusionForkState state )
 {
-     D_INFO( "FusionSound/Core: %s( %d, %d )\n", __FUNCTION__, action, state );
+     D_DEBUG( "FusionSound/Core: %s( %d, %d )\n", __FUNCTION__, action, state );
      
      if (core_sound)
           fs_device_handle_fork( core_sound->device, action, state );
