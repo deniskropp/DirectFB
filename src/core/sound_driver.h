@@ -69,6 +69,11 @@ static DirectResult
 device_resume( void *device_data );
 
 static void
+device_handle_fork( void             *device_data, 
+                    FusionForkAction  action,
+                    FusionForkState   state ); 
+
+static void
 device_close( void *device_data );
                   
 
@@ -83,6 +88,7 @@ static const SoundDriverFuncs driver_funcs = {
      SetVolume:          device_set_volume,
      Suspend:            device_suspend,
      Resume:             device_resume,
+     HandleFork:         device_handle_fork,
      CloseDevice:        device_close,
 };
 

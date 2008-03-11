@@ -30,6 +30,8 @@
 
 #include <direct/modules.h>
 
+#include <fusion/fusion.h>
+
 #include <fusionsound.h>
 
 #include <core/types_sound.h>
@@ -40,7 +42,7 @@ DECLARE_MODULE_DIRECTORY( fs_sound_drivers );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define FS_SOUND_DRIVER_ABI_VERSION  4
+#define FS_SOUND_DRIVER_ABI_VERSION  5
 
 
 typedef struct {
@@ -94,66 +96,70 @@ typedef struct {
 
 /* Device funcs. */
 typedef struct {
-     DirectResult (*Probe)            ( void );
+     DirectResult (*Probe)         ( void );
      
      /* Get device driver information. */
-     void      (*GetDriverInfo)    ( SoundDriverInfo       *info);
+     void         (*GetDriverInfo) ( SoundDriverInfo       *info);
 
      /* Open the device, get device information and apply given configuration. */
-     DirectResult (*OpenDevice)       ( void                  *device_data,
+     DirectResult (*OpenDevice)    ( void                  *device_data,
                                      SoundDeviceInfo       *device_info,
                                      CoreSoundDeviceConfig *config );
      
      /* Begin access to the ring buffer, return buffer pointer and available frames. */
-     DirectResult (*GetBuffer)        ( void                  *device_data,
+     DirectResult (*GetBuffer)     ( void                  *device_data,
                                      u8                   **addr,
                                      unsigned int          *avail );
      
      /* Finish access to the ring buffer, commit specified amout of frames. */
-     DirectResult (*CommitBuffer)     ( void                  *device_data,
+     DirectResult (*CommitBuffer)  ( void                  *device_data,
                                      unsigned int           frames );
      
      /* Get output delay in frames. */                             
-     void      (*GetOutputDelay)   ( void                  *device_data,
+     void         (*GetOutputDelay)( void                  *device_data,
                                      int                   *delay );
                                      
      /* Get volume level */
-     DirectResult (*GetVolume)        ( void                  *device_data,
+     DirectResult (*GetVolume)     ( void                  *device_data,
                                      float                 *level );
                                      
      /* Set volume level */
-     DirectResult (*SetVolume)        ( void                  *device_data,
+     DirectResult (*SetVolume)     ( void                  *device_data,
                                      float                  level );
                                      
      /* Suspend the device */
-     DirectResult (*Suspend)          ( void                  *device_data );
+     DirectResult (*Suspend)       ( void                  *device_data );
      
      /* Resume the device */
-     DirectResult (*Resume)           ( void                  *device_data );
+     DirectResult (*Resume)        ( void                  *device_data );
+     
+     /* Handle fork */
+     void         (*HandleFork)    ( void                  *device_data,
+                                     FusionForkAction       action,
+                                     FusionForkState        state );
      
      /* Close device. */
-     void      (*CloseDevice)      ( void                  *device_data );
+     void         (*CloseDevice)   ( void                  *device_data );
 } SoundDriverFuncs;
      
      
 DirectResult fs_device_initialize( CoreSound              *core, 
-                                CoreSoundDeviceConfig  *config,
-                                CoreSoundDevice       **ret_device );
-void      fs_device_shutdown  ( CoreSoundDevice        *device );
+                                   CoreSoundDeviceConfig  *config,
+                                   CoreSoundDevice       **ret_device );
+void         fs_device_shutdown  ( CoreSoundDevice        *device );
 
-void      fs_device_get_description( CoreSoundDevice     *device,
-                                     FSDeviceDescription *desc );
+void         fs_device_get_description( CoreSoundDevice     *device,
+                                        FSDeviceDescription *desc );
 
-DeviceCapabilities 
-          fs_device_get_capabilities( CoreSoundDevice *device );
+DeviceCapabilities fs_device_get_capabilities( CoreSoundDevice *device );
                                                                                                           
 DirectResult fs_device_get_buffer( CoreSoundDevice  *device, 
-                                u8              **addr,
-                                unsigned int     *avail );
+                                   u8              **addr,
+                                   unsigned int     *avail );
 
 DirectResult fs_device_commit_buffer( CoreSoundDevice *device, unsigned int frames );
                            
-void      fs_device_get_output_delay( CoreSoundDevice *device, int *delay );
+void         fs_device_get_output_delay( CoreSoundDevice *device, int *delay );
 
 DirectResult fs_device_get_volume( CoreSoundDevice *device, float *level );
 
@@ -162,5 +168,9 @@ DirectResult fs_device_set_volume( CoreSoundDevice *device, float  level );
 DirectResult fs_device_suspend( CoreSoundDevice *device );
 
 DirectResult fs_device_resume( CoreSoundDevice *device );
+
+void         fs_device_handle_fork( CoreSoundDevice  *device,
+                                    FusionForkAction  action,
+                                    FusionForkState   state );
                    
 #endif                                   

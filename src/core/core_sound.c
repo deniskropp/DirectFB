@@ -1210,16 +1210,18 @@ fs_core_shutdown( CoreSound *core, bool local )
 static DirectResult
 fs_core_detach( CoreSound *core )
 {
-     int ret;
+     FusionForkAction action;
+     int              ret;
      
      D_DEBUG( "FusionSound/Core: Detaching...\n" );
      
      D_ASSUME( !core->detached );
      
      /* Detach core from the controlling process. */
+     action = fusion_world_get_fork_action( core->world );
      fusion_world_set_fork_action( core->world, FFA_FORK );
      ret = fork();
-     fusion_world_set_fork_action( core->world, FFA_CLOSE );
+     fusion_world_set_fork_action( core->world, action );
      
      switch (ret) {
           case -1:
@@ -1246,6 +1248,16 @@ fs_core_detach( CoreSound *core )
      return DR_OK;
 }
 
+/******************************************************************************/
+
+static void
+fs_fork_callback( FusionForkAction action, FusionForkState state )
+{
+     D_INFO( "FusionSound/Core: %s( %d, %d )\n", __FUNCTION__, action, state );
+     
+     if (core_sound)
+          fs_device_handle_fork( core_sound->device, action, state );
+}
 
 /******************************************************************************/
 
@@ -1259,7 +1271,7 @@ fs_core_arena_initialize( FusionArena *arena,
      FusionSHMPoolShared *pool;
 
      D_DEBUG( "FusionSound/Core: Initializing...\n" );
-
+     
      /* Create the shared memory pool first! */
      ret = fusion_shm_pool_create( core->world, "FusionSound Main Pool", 0x1000000,
                                    fusion_config->debugshm, &pool );
@@ -1288,6 +1300,9 @@ fs_core_arena_initialize( FusionArena *arena,
 
      /* Register shared data. */
      fusion_arena_add_shared_field( arena, "Core/Shared", shared );
+     
+     /* Register fork() callback. */
+     fusion_world_set_fork_callback( core->world, fs_fork_callback );
 
      return DR_OK;
 }
@@ -1312,6 +1327,9 @@ fs_core_arena_shutdown( FusionArena *arena,
           D_DEBUG( "FusionSound/Core: Refusing shutdown in slave.\n" );
           return fs_core_leave( core );
      }
+     
+     /* Unregister fork() callback. */
+     fusion_world_set_fork_callback( core->world, NULL );
 
      /* Shutdown. */
      ret = fs_core_shutdown( core, false );

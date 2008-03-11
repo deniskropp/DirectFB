@@ -252,6 +252,17 @@ fs_device_resume( CoreSoundDevice *device )
 }
 
 void
+fs_device_handle_fork( CoreSoundDevice  *device,
+                       FusionForkAction  action,
+                       FusionForkState   state )
+{
+     D_ASSERT( device != NULL );
+     
+     if (device->funcs)
+          device->funcs->HandleFork( device->device_data, action, state );
+}
+
+void
 fs_device_shutdown( CoreSoundDevice *device )
 {
      D_ASSERT( device != NULL );

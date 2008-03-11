@@ -291,7 +291,7 @@ device_get_driver_info( SoundDriverInfo *info )
                "LGPL" );
 
      info->version.major = 0;
-     info->version.minor = 1;
+     info->version.minor = 2;
 
      info->device_data_size = sizeof(AlsaDeviceData);
 }
@@ -541,7 +541,28 @@ device_resume( void *device_data )
      }
      
      return ret;
-} 
+}
+
+static void
+device_handle_fork( void             *device_data,
+                    FusionForkAction  action,
+                    FusionForkState   state )
+{
+     AlsaDeviceData *data = device_data;
+     
+     if (action == FFA_CLOSE) {
+          switch (state) {
+               case FFS_PREPARE:
+                    device_suspend( device_data );
+                    break;
+               case FFS_PARENT:
+                    device_resume( device_data );
+                    break;
+               default:
+                    break;
+          }
+     }
+}                    
 
 static void
 device_close( void *device_data )

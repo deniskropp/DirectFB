@@ -228,7 +228,7 @@ device_get_driver_info( SoundDriverInfo *info )
                "LGPL" );
                
      info->version.major = 0;
-     info->version.minor = 1;
+     info->version.minor = 2;
      
      info->device_data_size = sizeof(OSSDeviceData);
 }
@@ -428,7 +428,20 @@ device_resume( void *device_data )
      fcntl( data->fd, F_SETFD, FD_CLOEXEC );
      
      return DR_OK;
-}  
+}
+
+static void
+device_handle_fork( void             *device_data,
+                    FusionForkAction  action,
+                    FusionForkState   state )
+{
+     OSSDeviceData *data = device_data;
+     
+     if (action == FFA_CLOSE && state == FFS_CHILD) {
+          close( data->fd );
+          data->fd = -1;
+     }
+}
 
 static void
 device_close( void *device_data )
