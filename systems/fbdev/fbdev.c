@@ -1150,13 +1150,9 @@ primarySetColorAdjustment( CoreLayer          *layer,
                g += brightness;
                b += brightness;
 
-               r = (r < 0) ? 0 : r;
-               g = (g < 0) ? 0 : g;
-               b = (b < 0) ? 0 : b;
-
-               r = (r > 255) ? 255 : r;
-               g = (g > 255) ? 255 : g;
-               b = (b > 255) ? 255 : b;
+               r = CLAMP( r, 0, 255 );
+               g = CLAMP( g, 0, 255 );
+               b = CLAMP( b, 0, 255 );
           }
 
           /*
@@ -1183,13 +1179,10 @@ primarySetColorAdjustment( CoreLayer          *layer,
                     g = (int)((float)g * c);
                     b = (int)((float)b * c);
                }
-               r = (r < 0) ? 0 : r;
-               g = (g < 0) ? 0 : g;
-               b = (b < 0) ? 0 : b;
 
-               r = (r > 255) ? 255 : r;
-               g = (g > 255) ? 255 : g;
-               b = (b > 255) ? 255 : b;
+               r = CLAMP( r, 0, 255 );
+               g = CLAMP( g, 0, 255 );
+               b = CLAMP( b, 0, 255 );
           }
 
           /*
@@ -1216,13 +1209,9 @@ primarySetColorAdjustment( CoreLayer          *layer,
                     b = (int)(((float) b * color) + (128.0 * gray));
                }
 
-               r = (r < 0) ? 0 : r;
-               g = (g < 0) ? 0 : g;
-               b = (b < 0) ? 0 : b;
-
-               r = (r > 255) ? 255 : r;
-               g = (g > 255) ? 255 : g;
-               b = (b > 255) ? 255 : b;
+               r = CLAMP( r, 0, 255 );
+               g = CLAMP( g, 0, 255 );
+               b = CLAMP( b, 0, 255 );
           }
           r |= r << 8;
           g |= g << 8;
@@ -2045,9 +2034,7 @@ static DFBResult dfb_fbdev_read_modes()
 static u16 dfb_fbdev_calc_gamma(int n, int max)
 {
      int ret = 65535.0 * ((float)((float)n/(max)));
-     if (ret > 65535) ret = 65535;
-     if (ret <     0) ret =     0;
-     return ret;
+     return CLAMP( ret, 0, 65535 );
 }
 
 static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
