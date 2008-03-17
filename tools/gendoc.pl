@@ -165,12 +165,14 @@ sub parse_comment ($$$$) {
    local $headline_mode = 1;
    local $list_open     = 0;
 
+   $head = "\n";
+   $body = "\n";
+
    if ($inithead ne "") {
       $headline_mode = 0;
-   }
 
-   $head = $inithead;
-   $body = "";
+      $head .= "        $inithead\n";
+   }
 
    %options = ();
 
@@ -179,8 +181,10 @@ sub parse_comment ($$$$) {
          chomp;
          last if /^\s*\*+\/\s*$/;
 
-         s/^\s*[^\*\s]/\* /;
+         # Prepend asterisk if first non-whitespace isn't an asterisk
+         s/^\s*([^\*\s])/\* $1/;
 
+         # In head line mode append to $head
          if ($headline_mode == 1)
             {
                if (/^\s*\*+\s*$/)
@@ -193,19 +197,20 @@ sub parse_comment ($$$$) {
                   }
                elsif (/^\s*\*+\s*(.+)\*\/\s*$/)
                   {
-                     $head .= "  $1\n";
+                     $head .= "        $1\n";
                      last;
                   }
                elsif (/^\s*\*+\s*(.+)$/)
                   {
-                     $head .= "  $1\n";
+                     $head .= "        $1\n";
                   }
             }
          else
+            # Otherwise append to $body
             {
                if (/^\s*\*+\s*(.+)\*\/\s*$/)
                   {
-                     $body .= "  $1\n";
+                     $body .= "        $1\n";
                      last;
                   }
                elsif (/^\s*\*+\s*$/)
@@ -225,11 +230,11 @@ sub parse_comment ($$$$) {
                            $body .= " </LI><LI>\n";
                         }
 
-                     $body .= "  $1\n";
+                     $body .= "        $1\n";
                   }
                elsif (/^\s*\*+\s\s(.+)$/)
                   {
-                     $body .= "  $1\n";
+                     $body .= "        $1\n";
                   }
                elsif (/^\s*\*+\s(.+)$/)
                   {
@@ -240,7 +245,7 @@ sub parse_comment ($$$$) {
                            $body .= " </LI></UL>\n";
                         }
 
-                     $body .= "  $1\n";
+                     $body .= "        $1\n";
                   }
             }
       }
@@ -304,6 +309,10 @@ sub parse_interface ($)
       local $section;
 
       trim( \$interface );
+
+      if (!defined ($interfaces{$interface})) {
+         print "WARNING: Interface definition '$interface' has no declaration!\n"
+      }
 
       html_create( INTERFACE, "$interface.html",
                               "<A href=\"index.html\">" .
@@ -873,13 +882,19 @@ sub gen_doc ($$) {
       chomp;
    
       if ( /^\s*DECLARE_INTERFACE\s*\(\s*(\w+)\s\)\s*$/ ) {
-         $interfaces{$1} = "$headline $detailed";
-   
-         print INDEX "    <TR><TD valign=top>\n",
-                     "      <A href=\"$1.html\">$1</A>\n",
-                     "    </TD><TD valign=top>\n",
-                     "      $headline $detailed\n",
-                     "    </TD></TR>\n";
+         $interface = $1;
+
+         trim( \$interface );
+
+         if (!defined ($interfaces{$interface})) {
+            print INDEX "    <TR><TD valign=top>\n",
+                        "      <A href=\"$1.html\">$1</A>\n",
+                        "    </TD><TD valign=top>\n",
+                        "      $headline $detailed\n",
+                        "    </TD></TR>\n";
+
+            $interfaces{$interface} = "$headline $detailed";
+         }
       }
       elsif ( /^\s*DEFINE_INTERFACE\s*\(\s*(\w+),\s*$/ ) {
          parse_interface( $1 );
