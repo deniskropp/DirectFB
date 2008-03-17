@@ -247,48 +247,110 @@ DEFINE_INTERFACE( IFusionDaleMessenger,
 )
 
 
-
+/*
+ * Method ID
+ */
 typedef unsigned long ComaMethodID;
+
+/*
+ * Notification ID
+ */
 typedef unsigned long ComaNotificationID;
 
-typedef void (*ComaMethodFunc)  ( void               *ctx,
+
+/*
+ * 'Method Invocation' Callback
+ *
+ * Called at the component owner upon invocation of a method using IComaComponent::Call().
+ *
+ * See also IComa::CreateComponent().
+ */
+typedef void (*ComaMethodFunc)  (
+                                  void               *ctx,
                                   ComaMethodID        method,
                                   void               *arg,
-                                  unsigned int        magic );
+                                  unsigned int        magic
+                                 );
 
-typedef void (*ComaNotifyFunc)  ( void               *ctx,
+/*
+ * 'Notification Received' Callback
+ *
+ * Called at each listener of the notification when IComaComponent::Notify() is used.
+ *
+ * See also IComaComponent::Listen() and IComaComponent::InitListeners().
+ */
+typedef void (*ComaListenerFunc)(
+                                  void               *ctx,
+                                  void               *arg
+                                 );
+
+/*
+ * 'Notification Dispatched' Callback
+ *
+ * Called at the component owner when a notification has been processed by all recipients.
+ *
+ * See also IComaComponent::InitNotification() and IComaComponent::InitNotifications().
+ */
+typedef void (*ComaNotifyFunc)  (
+                                  void               *ctx,
                                   ComaNotificationID  notification,
-                                  void               *arg );
+                                  void               *arg
+                                 );
 
-typedef void (*ComaListenerFunc)( void               *ctx,
-                                  void               *arg );
-
+/*
+ * Notification flags
+ *
+ * See also IComaComponent::InitNotification() and IComaComponent::InitNotifications().
+ */
 typedef enum {
-     CNF_NONE        = 0x00000000,
-     CNF_DEALLOC_ARG = 0x00000001  /* Deallocate 'arg' after notification is dispatched. */
+     CNF_NONE            = 0x00000000,  /* None of these */
+
+     CNF_DEALLOC_ARG     = 0x00000001,  /* Deallocate 'arg' after notification is dispatched */
+
+     CNF_ALL             = 0x00000001,  /* All of these */
 } ComaNotificationFlags;
 
+/*
+ * Notification setup (batch)
+ *
+ * See also IComaComponent::InitNotifications().
+ */
 typedef struct {
-     ComaNotificationID     id;
-     ComaNotifyFunc         func;
-     void                  *ctx;
-     ComaNotificationFlags  flags;
+     ComaNotificationID     id;         /* Notification ID */
+
+     ComaNotifyFunc         func;       /* Optional 'Notification Dispatched' callback */
+     void                  *ctx;        /* Optional context pointer for callback */
+
+     ComaNotificationFlags  flags;      /* Notification flags */
 } ComaNotificationInit;
 
+/*
+ * Listener setup (batch)
+ *
+ * See also IComaComponent::InitListeners().
+ */
 typedef struct {
-     ComaNotificationID     id;
-     ComaListenerFunc       func;
-     void                  *ctx;
+     ComaNotificationID     id;         /* Notification ID */
+
+     ComaListenerFunc       func;       /* 'Notification Received' callback */
+     void                  *ctx;        /* Optional context pointer for callback */
 } ComaListenerInit;
 
 
 /*
- * <i><b>IComa</b></i> is a component manager.
+ * <i><b>IComa</b></i> is a component manager with its own name space created/joined by IFusionDale::EnterComa().
  */
 DEFINE_INTERFACE( IComa,
 
    /** Components **/
 
+     /*
+      * Create a new component
+      *
+      * The component still needs to be activated after notification setup etc. using IComaComponent::Activate().
+      *
+      * Corresponding calls to IComa::GetComponent() will block until the component has been activated!
+      */
      DirectResult (*CreateComponent) (
           IComa                    *thiz,
           const char               *name,
@@ -298,6 +360,13 @@ DEFINE_INTERFACE( IComa,
           IComaComponent          **ret_component
      );
 
+     /*
+      * Request a component
+      *
+      * This blocks until the component has been created and activated or a <b>timeout</b> occurrs.
+      *
+      * See also IComa::CreateComponent() and IComaComponent::Activate().
+      */
      DirectResult (*GetComponent) (
           IComa                    *thiz,
           const char               *name,
@@ -308,12 +377,25 @@ DEFINE_INTERFACE( IComa,
 
    /** Shared memory **/
 
+     /*
+      * Allocate anonymous block of shared memory
+      *
+      * Each allocated block must be deallocated, e.g. in a 'notification dispatched' callback,
+      * when it has been used as data for a notification (asynchronous).
+      *
+      * See also IComa::Deallocate().
+      */
      DirectResult (*Allocate) (
           IComa                    *thiz,
           unsigned int              bytes,
           void                    **ret_ptr
      );
 
+     /*
+      * Deallocate anonymous block of shared memory
+      *
+      * See also IComa::Allocate().
+      */
      DirectResult (*Deallocate) (
           IComa                    *thiz,
           void                     *ptr
@@ -322,24 +404,49 @@ DEFINE_INTERFACE( IComa,
 
    /** Thread local SHM **/
 
+     /*
+      * Get the thread local shared memory block
+      *
+      * The shared memory block belonging to the calling thread will be allocated or reallocated,
+      * if the required amount of <b>bytes</b> is not satisfied, yet.
+      *
+      * The memory should not be used for asynchronous notifications (queued), but for synchronous method invocations.
+      *
+      * See also IComa::FreeLocal().
+      */
      DirectResult (*GetLocal) (
           IComa                    *thiz,
           unsigned int              bytes,
           void                    **ret_ptr
      );
 
+     /*
+      * Free the thread local shared memory
+      *
+      * This should be called after huge allocations using 
+      *
+      * Do NOT use this after each call to IComa::GetLocal().
+      * It is wise to call when the block is not going to be used at all (or its last size) in the short term.
+      *
+      * See also IComa::GetLocal().
+      */
      DirectResult (*FreeLocal) (
           IComa                    *thiz
      );
 )
 
 /*
- * <i><b>IComaComponent</b></i> is a component.
+ * <i><b>IComaComponent</b></i> is a component created by IComa::CreateComponent() or returned by IComa::GetComponent().
  */
 DEFINE_INTERFACE( IComaComponent,
 
    /** Initialization **/
 
+     /*
+      * Setup a notification
+      *
+      * See also IComaComponent::Notify().
+      */
      DirectResult (*InitNotification) (
           IComaComponent           *thiz,
           ComaNotificationID        id,
@@ -348,6 +455,11 @@ DEFINE_INTERFACE( IComaComponent,
           ComaNotificationFlags     flags
      );
 
+     /*
+      * Batched notification setup
+      *
+      * See also IComaComponent::Notify().
+      */
      DirectResult (*InitNotifications) (
           IComaComponent                *thiz,
           const ComaNotificationInit    *inits,
@@ -358,6 +470,13 @@ DEFINE_INTERFACE( IComaComponent,
 
    /** Methods **/
 
+     /*
+      * Perform method invocation
+      *
+      * This blocks until the owner has returned from invocation or an error occurred.
+      *
+      * See also IComaComponent::Return().
+      */
      DirectResult (*Call) (
           IComaComponent           *thiz,
           ComaMethodID              method,
@@ -365,6 +484,13 @@ DEFINE_INTERFACE( IComaComponent,
           int                      *ret_val
      );
 
+     /*
+      * Return from method invocation
+      *
+      * This can be called outside of the method callback and does not need to follow the call order.
+      *
+      * See also IComaComponent::Call().
+      */
      DirectResult (*Return) (
           IComaComponent           *thiz,
           int                       val,
@@ -374,12 +500,24 @@ DEFINE_INTERFACE( IComaComponent,
 
    /** Notifications **/
 
+     /*
+      * Send a notification to all listeners
+      *
+      * This returns immediately after posting the asynchronous notification.
+      *
+      * See also IComaComponent::Listen() and IComaComponent::InitListeners().
+      */
      DirectResult (*Notify) (
           IComaComponent           *thiz,
           ComaNotificationID        id,
           void                     *arg
      );
 
+     /*
+      * Setup a listener for one notification
+      *
+      * See also IComaComponent::Notify().
+      */
      DirectResult (*Listen) (
           IComaComponent           *thiz,
           ComaNotificationID        id,
@@ -387,6 +525,11 @@ DEFINE_INTERFACE( IComaComponent,
           void                     *ctx
      );
 
+     /*
+      * Batched listener setup
+      *
+      * See also IComaComponent::Notify().
+      */
      DirectResult (*InitListeners) (
           IComaComponent           *thiz,
           const ComaListenerInit   *inits,
@@ -394,6 +537,11 @@ DEFINE_INTERFACE( IComaComponent,
           void                     *ctx
      );
 
+     /*
+      * Stop listening
+      *
+      * See also IComaComponent::Listen() and IComaComponent::InitListeners().
+      */
      DirectResult (*Unlisten) (
           IComaComponent           *thiz,
           ComaNotificationID        id
@@ -402,6 +550,11 @@ DEFINE_INTERFACE( IComaComponent,
 
    /** Activation **/
 
+     /*
+      * Activate the component
+      *
+      * This is required after creation and setup, to unblock waiting IComa::GetComponent() calls.
+      */
      DirectResult (*Activate) (
           IComaComponent           *thiz
      );
