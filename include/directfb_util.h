@@ -92,6 +92,8 @@ void dfb_rectangle_union ( DFBRectangle       *rect1,
 #define DFB_RECTANGLE_CONTAINS_POINT(r,X,Y)  (((X) >= (r)->x) && ((X) < (r)->x + (r)->w) && \
                                               ((Y) >= (r)->y) && ((Y) < (r)->y + (r)->h))
 
+#define DFB_TRIANGLE_VALS(t)                 (t)->x1, (t)->y1, (t)->x2, (t)->y2, (t)->x3, (t)->y3
+
 #define DFB_REGION_CHECK(r)     \
       ((r) != NULL &&           \
        (r)->x1 <= (r)->x2 &&    \
