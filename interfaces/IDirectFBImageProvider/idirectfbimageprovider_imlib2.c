@@ -51,7 +51,7 @@
 
 #include <core/layers.h>
 #include <core/state.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/gfxcard.h>
 
 #include <gfx/convert.h>
@@ -213,15 +213,14 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
                                         IDirectFBSurface       *destination,
                                         const DFBRectangle     *dest_rect )
 {
-     int    err;
-     void  *dst;
-     int    pitch;
-     int    src_width, src_height;
-     __u32 *image_data;
+     DFBResult              err;
+     int                    src_width, src_height;
+     u32                   *image_data;
      DFBRectangle           rect;
      DFBRegion              clip;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
+     CoreSurfaceBufferLock  lock;
 
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_IMLIB2)
 
@@ -255,14 +254,15 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
      if (!image_data)
           return DFB_FAILURE; /* what else makes sense here? */
 
-     err = dfb_surface_soft_lock( dst_data->core, dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
+     err = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
      if (err)
           return err;
 
      dfb_scale_linear_32( image_data, src_width, src_height,
-                          dst, pitch, &rect, dst_surface, &clip );
+                          lock.addr, lock.pitch, &rect, dst_surface, &clip );
 
-     dfb_surface_unlock( dst_surface, 0 );
+     dfb_surface_unlock_buffer( dst_surface, &lock );
+
      return DFB_OK;
 }
 
