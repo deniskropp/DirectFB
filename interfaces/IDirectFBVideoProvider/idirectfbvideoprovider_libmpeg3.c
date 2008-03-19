@@ -56,7 +56,7 @@
 
 #include <core/layers.h>
 #include <core/state.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/gfxcard.h>
 
 #include <gfx/convert.h>
@@ -278,9 +278,9 @@ IDirectFBVideoProvider_Libmpeg3_GetStreamDescription(
 static void
 RGB888_to_RGB332( void *d, void *s, int len )
 {
-     int    i;
-     __u8 *dst = (__u8*) d;
-     __u8 *src = (__u8*) s;
+     int i;
+     u8 *dst = (u8*) d;
+     u8 *src = (u8*) s;
 
      for (i=0; i<len; i++) {
           dst[i] = PIXEL_RGB332( src[0], src[1], src[2] );
@@ -292,9 +292,9 @@ RGB888_to_RGB332( void *d, void *s, int len )
 static void
 RGB888_to_ARGB1555( void *d, void *s, int len )
 {
-     int    i;
-     __u16 *dst = (__u16*) d;
-     __u8  *src = (__u8*) s;
+     int  i;
+     u16 *dst = (u16*) d;
+     u8  *src = (u8*) s;
 
      for (i=0; i<len; i++) {
           dst[i] = PIXEL_ARGB1555( 0xff, src[0], src[1], src[2] );
@@ -306,9 +306,9 @@ RGB888_to_ARGB1555( void *d, void *s, int len )
 static void
 RGB888_to_RGB16( void *d, void *s, int len )
 {
-     int    i;
-     __u16 *dst = (__u16*) d;
-     __u8  *src = (__u8*) s;
+     int  i;
+     u16 *dst = (u16*) d;
+     u8  *src = (u8*) s;
 
      for (i=0; i<len; i++) {
           dst[i] = PIXEL_RGB16( src[0], src[1], src[2] );
@@ -320,9 +320,9 @@ RGB888_to_RGB16( void *d, void *s, int len )
 static void
 RGB888_to_RGB24( void *d, void *s, int len )
 {
-     int   i;
-     __u8 *dst = (__u8*) d;
-     __u8 *src = (__u8*) s;
+     int i;
+     u8 *dst = (u8*) d;
+     u8 *src = (u8*) s;
 
      for (i=0; i<len*3; i+=3) {
           dst[i+0] = src[i+2];
@@ -334,9 +334,9 @@ RGB888_to_RGB24( void *d, void *s, int len )
 static void
 RGB888_to_RGB32( void *d, void *s, int len )
 {
-     int    i;
-     __u32 *dst = (__u32*) d;
-     __u8  *src = (__u8*) s;
+     int  i;
+     u32 *dst = (u32*) d;
+     u8  *src = (u8*) s;
 
      for (i=0; i<len; i++) {
           dst[i] = PIXEL_RGB32( src[0], src[1], src[2] );
@@ -348,9 +348,9 @@ RGB888_to_RGB32( void *d, void *s, int len )
 static void
 RGB888_to_ARGB( void *d, void *s, int len )
 {
-     int    i;
-     __u32 *dst = (__u32*) d;
-     __u8  *src = (__u8*) s;
+     int  i;
+     u32 *dst = (u32*) d;
+     u8  *src = (u8*) s;
 
      for (i=0; i<len; i++) {
           dst[i] = PIXEL_ARGB( 0xff, src[0], src[1], src[2] );
@@ -365,21 +365,26 @@ WriteRGBFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
      void                  *ptr;
      int                    pitch;
      CoreSurface           *surface;
+     CoreSurfaceBufferLock  lock;
      IDirectFBSurface_data *dst_data;
      int                    i, off_x, off_y;
 
      dst_data = (IDirectFBSurface_data*) data->destination->priv;
      surface  = dst_data->surface;
 
-     dfb_surface_soft_lock( dst_data->core, surface, DSLF_WRITE, &ptr, &pitch, 0 );
+     if (dfb_surface_lock_buffer( surface, CSBR_BACK, CSAF_CPU_WRITE, &lock ))
+          return;
+
+     ptr   = lock.addr;
+     pitch = lock.pitch;
 
      ptr += data->dest_clip.y * pitch +
-            data->dest_clip.x * DFB_BYTES_PER_PIXEL (surface->format);
+            data->dest_clip.x * DFB_BYTES_PER_PIXEL (surface->config.format);
 
      off_x = data->dest_clip.x - data->dest_rect.x;
      off_y = data->dest_clip.y - data->dest_rect.y;
 
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_RGB332:
                for (i=off_y; i<data->dest_clip.h; i++) {
                     RGB888_to_RGB332( ptr, data->rgb.lines[i] + off_x * 4,
@@ -438,29 +443,34 @@ WriteRGBFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
                break;
      }
 
-     dfb_surface_unlock( dst_data->surface, 0 );
+     dfb_surface_unlock_buffer( surface, &lock );
 }
 
 static void
 WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
 {
      void                  *dst;
-     __u16                 *dst16;
+     u16                   *dst16;
      int                    pitch;
      CoreSurface           *surface;
+     CoreSurfaceBufferLock  lock;
      IDirectFBSurface_data *dst_data;
-     __u8                  *src_y, *src_u, *src_v;
-     __u8                  *dst_y, *dst_u, *dst_v;
+     u8                    *src_y, *src_u, *src_v;
+     u8                    *dst_y, *dst_u, *dst_v;
      int                    x, y, off_x, off_y;
 
      dst_data = (IDirectFBSurface_data*) data->destination->priv;
      surface  = dst_data->surface;
 
-     dfb_surface_soft_lock( dst_data->core, surface, DSLF_WRITE, &dst, &pitch, 0 );
+     if (dfb_surface_lock_buffer( surface, CSBR_BACK, CSAF_CPU_WRITE, &lock ))
+          return;
 
-     src_y  = (__u8*) data->yuv.lines[0];
-     src_u  = (__u8*) data->yuv.lines[1];
-     src_v  = (__u8*) data->yuv.lines[2];
+     dst = lock.addr;
+     pitch = lock.pitch;
+
+     src_y  = (u8*) data->yuv.lines[0];
+     src_u  = (u8*) data->yuv.lines[1];
+     src_v  = (u8*) data->yuv.lines[2];
 
      off_x  = data->dest_clip.x - data->dest_rect.x;
      off_y  = data->dest_clip.y - data->dest_rect.y;
@@ -471,13 +481,13 @@ WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
 
      /* this code might not work with offsets not being a multiple of 2 */
 
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_I420:
           case DSPF_YV12:
                dst_y  = dst;
                dst_y += data->dest_clip.y * pitch + data->dest_clip.x;
 
-               if (surface->format == DSPF_I420) {
+               if (surface->config.format == DSPF_I420) {
                     dst_u = dst + pitch * data->video.height;
                     dst_v = dst_u + pitch/2 * data->video.height / 2;
 
@@ -559,7 +569,7 @@ WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
                break;
      }
 
-     dfb_surface_unlock( dst_data->surface, 0 );
+     dfb_surface_unlock_buffer( surface, &lock );
 }
 
 static void*
@@ -686,9 +696,9 @@ AudioThread( void *ctx )
      IDirectFBVideoProvider_Libmpeg3_data *data =
           (IDirectFBVideoProvider_Libmpeg3_data*) ctx;
 
-     __s16 buffer[data->audio.samples_per_block * data->audio.channels];
-     __s16 left[data->audio.samples_per_block];
-     __s16 right[data->audio.samples_per_block];
+     s16 buffer[data->audio.samples_per_block * data->audio.channels];
+     s16 left[data->audio.samples_per_block];
+     s16 right[data->audio.samples_per_block];
 
      /* calculate audio position */
      long audio_pos = (long) ((double)mpeg3_get_frame (data->file, 0) *
@@ -794,7 +804,7 @@ IDirectFBVideoProvider_Libmpeg3_PlayTo( IDirectFBVideoProvider *thiz,
           return DFB_DEAD;
 
      /* check if destination format is supported */
-     switch (dst_data->surface->format) {
+     switch (dst_data->surface->config.format) {
           case DSPF_I420:
           case DSPF_YV12:
           case DSPF_YUY2:
