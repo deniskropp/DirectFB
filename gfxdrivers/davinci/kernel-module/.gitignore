@@ -4,3 +4,4 @@
 .tmp_versions
 c64x.ko
 c64x.mod.c
+Module.symvers
