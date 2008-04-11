@@ -1,23 +1,24 @@
 /*
    TI Davinci driver - C64X+ DSP Library
 
+   (c) Copyright 2008  directfb.org
    (c) Copyright 2007  Telio AG
 
-   Written by Denis Oliver Kropp <dok@directfb.org>
+   Written by Denis Oliver Kropp <dok@directfb.org> and
+              Olaf Dreesen <olaf@directfb.org>.
 
    All rights reserved.
 
    This library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Lesser General Public
-   License as published by the Free Software Foundation; either
-   version 2 of the License, or (at your option) any later version.
+   modify it under the terms of the GNU General Public License
+   version 2 as published by the Free Software Foundation.
 
    This library is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Lesser General Public License for more details.
+   General Public License for more details.
 
-   You should have received a copy of the GNU Lesser General Public
+   You should have received a copy of the GNU General Public
    License along with this library; if not, write to the
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
@@ -312,8 +313,6 @@ davinci_c64x_dva_motion_block( DavinciC64x   *c64x,
 
      task->c64x_function = C64X_DVA_MOTION_BLOCK | C64X_FLAG_TODO;
 
-     D_ONCE("FUNC 0x%x", C64X_DVA_MOTION_BLOCK_);
-
      c64x_submit_task( c64x, task );
 }
 
@@ -329,7 +328,7 @@ davinci_c64x_dva_idct( DavinciC64x   *c64x,
 
      task->c64x_arg[0] = dest;
      task->c64x_arg[1] = pitch;
-	task->c64x_arg[2] = source;
+     task->c64x_arg[2] = source;
 
      task->c64x_function = C64X_DVA_IDCT | C64X_FLAG_TODO;
 
