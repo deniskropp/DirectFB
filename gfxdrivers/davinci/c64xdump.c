@@ -28,10 +28,8 @@ int main (int argc, char *argv[])
      long long        stamp_last = 0;
 
      fd = direct_try_open( C64X_DEVICE, C64X_DEVICE0, O_RDONLY, true );
-     if (fd < 0) {
-          D_PERROR( "C64XDump: Opening '%s' failed!\n", C64X_DEVICE );
+     if (fd < 0)
           return -1;
-     }
 
      ctl = mmap( NULL, C64X_QLEN, PROT_READ, MAP_SHARED, fd, 0 );
      if (ctl == MAP_FAILED) {
