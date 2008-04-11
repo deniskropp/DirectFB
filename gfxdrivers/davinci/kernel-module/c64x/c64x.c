@@ -28,13 +28,13 @@
 
 #include <linux/types.h>
 #include <linux/kernel.h>
+#include <linux/fs.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
 #include <linux/delay.h>
 #include <linux/errno.h>
 #include <linux/fcntl.h>
 #include <linux/firmware.h>
-#include <linux/fs.h>
 #include <linux/interrupt.h>
 #include <linux/mm.h>
 #include <linux/page-flags.h>
@@ -113,7 +113,7 @@ MODULE_DESCRIPTION("A little c64+ handling module.");
 #define MDCFG39		(mmr[0x169C>>2])
 #define MDCTL39		(mmr[0x1A9C>>2])
 
-MODULE_FIRMWARE(F_NAME);
+//MODULE_FIRMWARE(F_NAME);
 
 static dev_t dev_major;
 static struct cdev*dev_cdev;

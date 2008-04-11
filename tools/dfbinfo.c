@@ -167,6 +167,10 @@ input_device_callback( DFBInputDeviceID           id,
      
      
      /* Details */
+     if (desc.caps & DICAPS_KEYS)
+          printf( "   Min. Keycode: %d\n", desc.min_keycode );
+     if (desc.caps & DICAPS_KEYS)
+          printf( "   Max. Keycode: %d\n", desc.max_keycode );
      if (desc.caps & DICAPS_AXES)
           printf( "   Max. Axis: %d\n", desc.max_axis );
      if (desc.caps & DICAPS_BUTTONS)

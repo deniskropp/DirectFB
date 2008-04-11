@@ -1,4 +1,4 @@
-KERNEL_SOURCE = ...set-to-kernel-source-dir
+KERNEL_SOURCE = $(shell pwd)/../../../linux-davinci-2.6
 KERNEL_BUILD  = $(KERNEL_SOURCE)
 
 all:

@@ -55,6 +55,9 @@
 #include "davinci_video.h"
 
 
+#define D_VIDERROR(x...) do {} while (0)
+
+
 D_DEBUG_DOMAIN( Davinci_Video, "Davinci/Video", "TI Davinci Video" );
 
 /**********************************************************************************************************************/
@@ -87,11 +90,11 @@ videoInitLayer( CoreLayer                  *layer,
 
      ret = ioctl( ddrv->fb[VID0].fd, FBIO_ENABLE_DISABLE_WIN, 0 );
      if (ret)
-          D_PERROR( "Davinci/Video: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", VID0, 0 );
+          D_VIDERROR( "Davinci/Video: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", VID0, 0 );
 
      ret = ioctl( ddrv->fb[VID1].fd, FBIO_ENABLE_DISABLE_WIN, 0 );
      if (ret)
-          D_PERROR( "Davinci/Video: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", VID1, 0 );
+          D_VIDERROR( "Davinci/Video: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", VID1, 0 );
 
      /* set capabilities and type */
      description->caps = DLCAPS_SURFACE | DLCAPS_SCREEN_POSITION;
@@ -185,7 +188,7 @@ videoSetRegion( CoreLayer                  *layer,
 
      ret = ioctl( ddrv->fb[VID1].fd, FBIO_ENABLE_DISABLE_WIN, 0 );
      if (ret)
-          D_PERROR( "Davinci/Video: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", VID1, 0 );
+          D_VIDERROR( "Davinci/Video: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", VID1, 0 );
 
      ioctl( ddrv->fb[VID1].fd, FBIO_WAITFORVSYNC );
 
@@ -201,7 +204,7 @@ videoSetRegion( CoreLayer                  *layer,
 
           ret = ioctl( ddrv->fb[VID1].fd, FBIO_SETPOS, &win_pos );
           if (ret)
-               D_PERROR( "Davinci/Video: FBIO_SETPOS (fb%d - %d,%d) failed!\n", VID1, win_pos.xpos, win_pos.ypos );
+               D_VIDERROR( "Davinci/Video: FBIO_SETPOS (fb%d - %d,%d) failed!\n", VID1, win_pos.xpos, win_pos.ypos );
 
           updated |= CLRCF_DEST;
 
@@ -231,7 +234,7 @@ videoSetRegion( CoreLayer                  *layer,
 
           ret = ioctl( ddrv->fb[VID1].fd, FBIO_SETPOS, &win_pos );
           if (ret)
-               D_PERROR( "Davinci/Video: FBIO_SETPOS (fb%d - %d,%d) failed!\n", VID1, config->dest.x, config->dest.y );
+               D_VIDERROR( "Davinci/Video: FBIO_SETPOS (fb%d - %d,%d) failed!\n", VID1, config->dest.x, config->dest.y );
      }
 
      /* Update format? */
@@ -245,7 +248,7 @@ videoSetRegion( CoreLayer                  *layer,
 
           ret = ioctl( ddrv->fb[VID1].fd, FBIO_SET_VIDEO_CONFIG_PARAMS, &params );
           if (ret)
-               D_PERROR( "Davinci/Video: FBIO_SET_VIDEO_CONFIG_PARAMS (fb%d - %s) failed!\n",
+               D_VIDERROR( "Davinci/Video: FBIO_SET_VIDEO_CONFIG_PARAMS (fb%d - %s) failed!\n",
                          VID1, params.cb_cr_order ? "CrCb" : "CbCr" );
      }
 
@@ -276,7 +279,7 @@ videoRemoveRegion( CoreLayer *layer,
 
      ret = ioctl( ddrv->fb[VID1].fd, FBIO_ENABLE_DISABLE_WIN, 0 );
      if (ret)
-          D_PERROR( "Davinci/Video: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", VID1, 0 );
+          D_VIDERROR( "Davinci/Video: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", VID1, 0 );
 
      dvid->enable = false;
 
@@ -293,7 +296,7 @@ enable_video( DavinciDriverData     *ddrv,
      ioctl( ddrv->fb[VID1].fd, FBIO_WAITFORVSYNC );
 
      if (ioctl( ddrv->fb[VID1].fd, FBIO_ENABLE_DISABLE_WIN, 1 ))
-          D_PERROR( "Davinci/Video: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", VID1, 1 );
+          D_VIDERROR( "Davinci/Video: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", VID1, 1 );
 
      dvid->enable = false;
 }

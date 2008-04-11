@@ -284,7 +284,7 @@ alloc_callback( CoreSurfaceAllocation *alloc,
 
      printf( direct_serial_check(&alloc->serial, &buffer->serial) ? " * " : "   " );
 
-     printf( "%d  %2lu  ", buffer->allocs.count, surface->resource_id );
+     printf( "%d  %2lu  ", fusion_vector_size( &buffer->allocs ), surface->resource_id );
 
      if (surface->type & CSTF_SHARED)
           printf( "SHARED  " );

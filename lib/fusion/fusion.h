@@ -44,6 +44,14 @@ typedef enum {
      FFA_FORK
 } FusionForkAction;
 
+typedef enum {
+     FFS_PREPARE,
+     FFS_PARENT,
+     FFS_CHILD
+} FusionForkState;
+
+typedef void (*FusionForkCallback) ( FusionForkAction action, FusionForkState state );
+
 /*
  * Enters a fusion world by joining or creating it.
  *
@@ -68,6 +76,17 @@ DirectResult fusion_exit( FusionWorld *world,
  */
 void fusion_world_set_fork_action( FusionWorld      *world,
                                    FusionForkAction  action );
+                                   
+/*
+ * Gets the current fork() action.
+ */ 
+FusionForkAction fusion_world_get_fork_action( FusionWorld *world );
+
+/*
+ * Registers a callback called upon fork().
+ */
+void fusion_world_set_fork_callback( FusionWorld        *world,
+                                     FusionForkCallback  callback );
 
 /*
  * Return the index of the specified world.

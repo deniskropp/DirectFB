@@ -1939,11 +1939,11 @@ restack_window( CoreWindow             *window,
 
           if (index < 0)
                index = 0;
-          else if (index > data->windows.count - 1)
-               index = data->windows.count - 1;
+          else if (index > fusion_vector_size( &data->windows ) - 1)
+               index = fusion_vector_size( &data->windows ) - 1;
      }
      else if (relation)
-          index = data->windows.count - 1;
+          index = fusion_vector_size( &data->windows ) - 1;
      else
           index = 0;
 
@@ -1962,7 +1962,7 @@ restack_window( CoreWindow             *window,
      }
 
      /* Assure window won't be below any window with a lower priority. */
-     while (index < data->windows.count - 1) {
+     while (index < fusion_vector_size( &data->windows ) - 1) {
           int         above      = (old > index) ? index : index + 1;
           CoreWindow *other      = fusion_vector_at( &data->windows, above );
           WindowData *other_data = other->window_data;

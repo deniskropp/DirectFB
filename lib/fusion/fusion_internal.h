@@ -111,6 +111,7 @@ struct __Fusion_FusionWorld {
      FusionSHM            shm;
 
      FusionForkAction     fork_action;
+     FusionForkCallback   fork_callback;
      
      void                *fusionee;
 };

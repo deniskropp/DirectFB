@@ -1711,11 +1711,8 @@ davinci_c64x_open( DavinciC64x *c64x )
      mknod( C64X_DEVICE, 0666 | S_IFCHR, makedev( 400, 0 ) );
 
      fd = direct_try_open( C64X_DEVICE, C64X_DEVICE0, O_RDWR, true );
-     if (fd < 0) {
-          ret = errno2result( errno );
-          D_PERROR( "Davinci/C64X: Opening '%s' failed!\n", C64X_DEVICE );
-          return ret;
-     }
+     if (fd < 0)
+          return DFB_IO;
 
      map_q = mmap( NULL, C64X_QLEN, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
      if (map_q == MAP_FAILED) {

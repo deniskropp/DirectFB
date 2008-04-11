@@ -78,7 +78,7 @@ stret_iteration_init( StretIteration *iteration, StretRegion *region, StretRegio
 
      do {
           int last_level = region->levels - 1;
-          int last_child = region->children[last_level].count - 1;
+          int last_child = fusion_vector_size( &region->children[last_level] ) - 1;
 
           iteration->frame++;
 
@@ -97,7 +97,7 @@ stret_iteration_init( StretIteration *iteration, StretRegion *region, StretRegio
 
                D_MAGIC_ASSERT( region, StretRegion );
           }
-     } while (region->children[region->levels - 1].count && check_depth( iteration->frame + 1 ));
+     } while (fusion_vector_size( &region->children[region->levels - 1] ) && check_depth( iteration->frame + 1 ));
 
      iteration->stack[iteration->frame].index++;
 
@@ -152,7 +152,7 @@ stret_iteration_next( StretIteration  *iteration,
                         return region;
                }
                else {
-                    frame->index = region->children[level].count - 1;
+                    frame->index = fusion_vector_size( &region->children[level] ) - 1;
                }
           }
           else {
@@ -168,7 +168,7 @@ stret_iteration_next( StretIteration  *iteration,
                if (accept_region( region, iteration->x0, iteration->y0, clip )) {
                     level = region->levels - 1;
 
-                    while (!region->children[level].count) {
+                    while (fusion_vector_is_empty( &region->children[level] )) {
                          if (level)
                               level--;
                          else
@@ -183,7 +183,7 @@ stret_iteration_next( StretIteration  *iteration,
 
                          frame->region = region;
                          frame->level  = level;
-                         frame->index  = region->children[level].count - 1;
+                         frame->index  = fusion_vector_size( &region->children[level] ) - 1;
 
                          continue;
                     }
