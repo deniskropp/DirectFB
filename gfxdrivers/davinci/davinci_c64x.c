@@ -338,7 +338,7 @@ bench_dezigzag( DavinciC64x *c64x )
           task->c64x_arg[1] = 0x8f000000+0x000000;
           //task->c64x_arg[2] = length/4;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      davinci_c64x_wait_low( c64x );
@@ -418,7 +418,7 @@ bench_blend_argb( DavinciC64x *c64x, int sub )
           task->c64x_arg[5] = 8;
           task->c64x_arg[6] = 0x80;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      davinci_c64x_wait_low( c64x );
@@ -443,6 +443,64 @@ bench_blend_argb( DavinciC64x *c64x, int sub )
              "blend_32(8x8)", total * 1000000ULL / dt );
 }
 
+static inline void
+bench_fetch_uyvy( DavinciC64x *c64x, bool interleave, int xoff, int yoff ) {
+  int       i, x, y, num=1;
+  long long t1, t2, dt, total;
+  u8 *yuv = c64x->mem + 0x1000000;
+  u8 *src = c64x->mem + 0x1200000;
+
+  BRINTF("\n\n\n.======================== Testing fetch_uyvy (inter %d, xoff %d, yoff %d) ========================.\n\n",
+	interleave, xoff, yoff);
+
+  for (y=0; y<20; y++) {
+    for (x=0; x<40; x++) {
+      int val = (y*40)+x;
+      src[y*1440 + x] = val;
+      BRINTF("%02x ", val&0xff);
+    }
+    BRINTF("\n");
+  }
+  BRINTF("\n");
+
+  memset( yuv, 0xAA, 0x100000 );
+
+  t1 = direct_clock_get_abs_micros();
+
+  for (i=0; i<num; i++) {
+    c64xTask *task = c64x_get_task( c64x );
+
+    task->c64x_arg[0] = 0x8f000000+0x000000;
+    task->c64x_arg[1] = 0x8f000000+0x200000 + yoff*1440 + xoff * 2;
+    task->c64x_arg[2] = 1440;
+
+    task->c64x_function = (21 << 2) | C64X_FLAG_TODO;
+
+    c64x_submit_task( c64x, task );
+  }
+
+  davinci_c64x_write_back_all( c64x );
+  davinci_c64x_write_back_all( c64x );
+  davinci_c64x_wait_low( c64x );
+
+  t2 = direct_clock_get_abs_micros();
+
+  BRINTF( "\n\nDESTINATION\n\nY:\n" );
+  for (y=0;y<27;y++) {
+    if (y==18) BRINTF("\nUV:\n");
+    for (x=0;x<32;x++) {
+      BRINTF("%02x ",yuv[y*32+x]);
+    }
+    BRINTF("\n");
+  }
+
+  dt    = t2 - t1;
+  total = num;
+
+  D_INFO("\n\nDavinci/C64X: BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
+	"blend_fetch_uyvy(16x16)", total * 1000000ULL / dt );
+}
+#if 0
 static inline void
 bench_fetch_uyvy( DavinciC64x *c64x, bool interleave, int xoff, int yoff )
 {
@@ -479,24 +537,24 @@ bench_fetch_uyvy( DavinciC64x *c64x, bool interleave, int xoff, int yoff )
 
      t1 = direct_clock_get_abs_micros();
 
-     for (i=0; i<num; i++) {
-          c64xTask *task = c64x_get_task( c64x );
+    for (i=0; i<num; i++) {
+	c64xTask *task = c64x_get_task( c64x );
 
-          task->c64x_function = (19 << 2) | C64X_FLAG_TODO;
+	task->c64x_function = (19 << 2) | C64X_FLAG_TODO;
 
-          task->c64x_arg[0] = 0x8f000000+0x000000;
-          task->c64x_arg[1] = 0x8f000000+0x200000 + yoff*1440 + xoff * 2;
-          task->c64x_arg[2] = 1440;
-          task->c64x_arg[3] = 16;
-          task->c64x_arg[4] = interleave ? 1 : 0;
+	task->c64x_arg[0] = 0x8f000000+0x000000;
+	task->c64x_arg[1] = 0x8f000000+0x200000 + yoff*1440 + xoff * 2;
+	task->c64x_arg[2] = 1440;
+	task->c64x_arg[3] = 16;
+	task->c64x_arg[4] = interleave ? 1 : 0;
 
-          c64x_submit_task( c64x );
-     }
+	c64x_submit_task( c64x, task );
+    }
 
-     davinci_c64x_write_back_all( c64x );
-     davinci_c64x_wait_low( c64x );
+    davinci_c64x_write_back_all( c64x );
+    davinci_c64x_wait_low( c64x );
 
-     t2 = direct_clock_get_abs_micros();
+    t2 = direct_clock_get_abs_micros();
 
 
      BRINTF( "\n\nDESTINATION (17x18 / [9x9 9x9])\n" );
@@ -539,6 +597,7 @@ bench_fetch_uyvy( DavinciC64x *c64x, bool interleave, int xoff, int yoff )
      D_INFO( "Davinci/C64X: BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
              "blend_fetch_uyvy(16x16)", total * 1000000ULL / dt );
 }
+#endif
 
 #if 0
 static inline void
@@ -587,7 +646,7 @@ bench_put_idct( DavinciC64x *c64x, int dct_type )
           task->c64x_arg[1] = 10;
           task->c64x_arg[2] = 0x3f;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      davinci_c64x_blit_16( c64x, 0x8f000000, 0, 0xf06180, 0, 384, 1 );
@@ -713,7 +772,7 @@ bench_put_mc( DavinciC64x *c64x, bool interleave )
           task->c64x_arg[1] = 1440;
           task->c64x_arg[2] = interleave ? 1 : 0;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      davinci_c64x_write_back_all( c64x );
@@ -783,7 +842,7 @@ bench_put_sum( DavinciC64x *c64x, bool interleave )
           task->c64x_arg[1] = 6;
           task->c64x_arg[2] = 0x3f;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      BRINTF("\n");
@@ -842,7 +901,7 @@ bench_put_sum( DavinciC64x *c64x, bool interleave )
           task->c64x_arg[1] = 1440;
           task->c64x_arg[2] = interleave ? 1 : 0;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      davinci_c64x_write_back_all( c64x );
@@ -881,7 +940,6 @@ bench_sat_mc( DavinciC64x *c64x )
      u8 *dst = c64x->mem + 0x1000000;
      u8 *src = c64x->mem + 0x1200000;
 
-     BRINTF("\n");
      BRINTF("\n\n.======================== Testing sat_mc ========================.\n");
      BRINTF("\n");
      BRINTF("SOURCE (16x16 / [8x8 8x8]\n");
@@ -935,7 +993,7 @@ bench_sat_mc( DavinciC64x *c64x )
           task->c64x_arg[1] = 0x8e000000+0x1200000;
           task->c64x_arg[2] = 16;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      davinci_c64x_write_back_all( c64x );
@@ -982,8 +1040,9 @@ bench_sat_mc( DavinciC64x *c64x )
 }
 
 static inline void
-bench_uyvy_1( DavinciC64x *c64x )
+bench_uyvy_1( DavinciC64x *c64x, bool progressive )
 {
+     c64xTask *task;
      int       i, num;
      long long t1, t2, dt, total;
 
@@ -992,8 +1051,8 @@ bench_uyvy_1( DavinciC64x *c64x )
      u8 *u = c64x->mem + 0x1200000;
      u8 *p = c64x->mem + 0x1000000;
 
-     BRINTF("\n");
-     BRINTF("\n");
+     BRINTF("\n\n\n.======================== Testing put_uyvy (%s) ========================.\n\n",
+            progressive ? "progressive" : "interlaced");
 
      for (i=0; i<256; i++) {
           p[i] = i - 128;
@@ -1035,7 +1094,9 @@ bench_uyvy_1( DavinciC64x *c64x )
      t1 = direct_clock_get_abs_micros();
 
      for (i=0; i<num; i++) {
-          c64xTask *task = c64x_get_task( c64x );
+          davinci_c64x_dva_begin_frame( c64x, 720 * 2, 0x8f000000+0x200000+i*16*16*2, 0, 0, progressive ? 0x100 : 0 );
+
+          task = c64x_get_task( c64x );
 
           task->c64x_function = C64X_PUT_UYVY_16x16 | C64X_FLAG_TODO;
 
@@ -1044,7 +1105,7 @@ bench_uyvy_1( DavinciC64x *c64x )
           task->c64x_arg[2] = 0x8f000000;
           task->c64x_arg[3] = 0;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      BRINTF("\n");
@@ -1071,18 +1132,19 @@ bench_uyvy_1( DavinciC64x *c64x )
 }
 
 static inline void
-bench_uyvy_2( DavinciC64x *c64x )
+bench_uyvy_2( DavinciC64x *c64x, bool progressive )
 {
+     c64xTask *task;
      int       i, num;
      long long t1, t2, dt, total;
 
-     num = 0x10000;//720/16*576/16;
+     num = 1;//720/16*576/16;
 
      u8 *u = c64x->mem + 0x0200000;
      u8 *p = c64x->mem + 0x0000000;
 
-     BRINTF("\n");
-     BRINTF("\n");
+     BRINTF("\n\n\n.======================== Testing put_uyvy (%s) ========================.\n\n",
+            progressive ? "progressive" : "interlaced");
 
      for (i=0; i<256; i++) {
           p[i] = i/8;
@@ -1124,16 +1186,18 @@ bench_uyvy_2( DavinciC64x *c64x )
      t1 = direct_clock_get_abs_micros();
 
      for (i=0; i<num; i++) {
-          c64xTask *task = c64x_get_task( c64x );
+          davinci_c64x_dva_begin_frame( c64x, 720 * 2, 0x8f000000+0x200000+i*16*16*2, 0, 0, progressive ? 0x100 : 0 );
+
+          task = c64x_get_task( c64x );
 
           task->c64x_function = C64X_PUT_UYVY_16x16 | C64X_FLAG_TODO;
 
-          task->c64x_arg[0] = 0x8e000000+0x200000;//+i*16*16*2;
+          task->c64x_arg[0] = 0x8e000000+0x200000+i*16*16*2;
           task->c64x_arg[1] = 720 * 2;
           task->c64x_arg[2] = 0x8e000000;
           task->c64x_arg[3] = 0;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      BRINTF("\n");
@@ -1161,18 +1225,19 @@ bench_uyvy_2( DavinciC64x *c64x )
 }
 
 static inline void
-bench_uyvy_3( DavinciC64x *c64x )
+bench_uyvy_3( DavinciC64x *c64x, bool progressive )
 {
+     c64xTask *task;
      int       i, num;
      long long t1, t2, dt, total;
 
-     num = 720/16*576/16;
+     num = 1;//720/16*576/16;
 
      u8 *u = c64x->mem + 0x1200000;
      u8 *p = c64x->mem + 0x1000000;
 
-     BRINTF("\n");
-     BRINTF("\n");
+     BRINTF("\n\n\n.======================== Testing put_uyvy (%s) ========================.\n\n",
+            progressive ? "progressive" : "interlaced");
 
      for (i=0; i<256; i++) {
           p[i] = i%8;
@@ -1214,7 +1279,9 @@ bench_uyvy_3( DavinciC64x *c64x )
      t1 = direct_clock_get_abs_micros();
 
      for (i=0; i<num; i++) {
-          c64xTask *task = c64x_get_task( c64x );
+          davinci_c64x_dva_begin_frame( c64x, 720 * 2, 0x8f000000+0x200000+i*16*16*2, 0, 0, progressive ? 0x100 : 0 );
+
+          task = c64x_get_task( c64x );
 
           task->c64x_function = C64X_PUT_UYVY_16x16 | C64X_FLAG_TODO;
 
@@ -1223,7 +1290,7 @@ bench_uyvy_3( DavinciC64x *c64x )
           task->c64x_arg[2] = 0x8f000000;
           task->c64x_arg[3] = 0;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      BRINTF("\n");
@@ -1307,7 +1374,7 @@ bench_mc( DavinciC64x *c64x, int func, int w, int h, bool avg, const char *name 
           task->c64x_arg[4] = 32;
           task->c64x_arg[5] = h;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      davinci_c64x_wait_low( c64x );
@@ -1345,7 +1412,7 @@ bench_div( DavinciC64x *c64x, u32 nom, u32 den )
      task->c64x_arg[0] = nom;
      task->c64x_arg[1] = den;
 
-     c64x_submit_task( c64x );
+     c64x_submit_task( c64x, task );
 
      davinci_c64x_wait_low( c64x );
 
@@ -1402,7 +1469,7 @@ bench_dither_argb( DavinciC64x *c64x )
           task->c64x_arg[5] = w;
           task->c64x_arg[6] = h;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      davinci_c64x_wait_low( c64x );
@@ -1571,7 +1638,7 @@ bench_stretch_32( DavinciC64x *c64x, int sw, int sh, int dw, int dh )
           task->c64x_arg[5] = (dw - 1) | ((dh - 1) << 16);
           task->c64x_arg[6] = 0        | (0        << 16);
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      davinci_c64x_write_back_all( c64x );
@@ -1679,17 +1746,19 @@ davinci_c64x_open( DavinciC64x *c64x )
      D_MAGIC_SET( c64x, DavinciC64x );
 
 if (getenv("C64X_TEST")) {
-     test_load_block( c64x, false );
+//     test_load_block( c64x, false );
 
-return DFB_OK;
-     test_load_block( c64x, true );
+//     test_load_block( c64x, true );
 
-     bench_dither_argb( c64x );
+//     bench_dither_argb( c64x );
 
 #if 0
-     bench_uyvy_1( c64x );
-     bench_uyvy_2( c64x );
-     bench_uyvy_3( c64x );
+     bench_uyvy_1( c64x, true );
+     bench_uyvy_1( c64x, false );
+     bench_uyvy_2( c64x, true );
+     bench_uyvy_2( c64x, false );
+     bench_uyvy_3( c64x, true );
+     bench_uyvy_3( c64x, false );
 #endif
 
 #if 0
@@ -1699,7 +1768,7 @@ return DFB_OK;
      bench_blend_argb( c64x, 3 );
 #endif
 
-#if 1
+#if 0
      bench_stretch_32( c64x, 2, 1, 16, 1 );
      bench_stretch_32( c64x, 2, 2, 16, 2 );
 
