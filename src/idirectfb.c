@@ -449,13 +449,19 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
      if (!desc || !interface)
           return DFB_INVARG;
 
+     D_DEBUG_AT( IDFB, "  -> flags  0x%08x\n", desc->flags );
+
      if (desc->flags & DSDESC_WIDTH) {
+          D_DEBUG_AT( IDFB, "  -> width  %d\n", desc->width );
+
           width = desc->width;
           if (width < 1)
                return DFB_INVARG;
      }
 
      if (desc->flags & DSDESC_HEIGHT) {
+          D_DEBUG_AT( IDFB, "  -> height %d\n", desc->height );
+
           height = desc->height;
           if (height < 1)
                return DFB_INVARG;
@@ -465,11 +471,17 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           if (!desc->palette.entries || !desc->palette.size)
                return DFB_INVARG;
 
-     if (desc->flags & DSDESC_CAPS)
-          caps = desc->caps;
+     if (desc->flags & DSDESC_CAPS) {
+          D_DEBUG_AT( IDFB, "  -> caps   0x%08x\n", desc->caps );
 
-     if (desc->flags & DSDESC_PIXELFORMAT)
+          caps = desc->caps;
+     }
+
+     if (desc->flags & DSDESC_PIXELFORMAT) {
+          D_DEBUG_AT( IDFB, "  -> format %s\n", dfb_pixelformat_name(desc->pixelformat) );
+
           format = desc->pixelformat;
+     }
 
      if (desc->flags & DSDESC_RESOURCE_ID)
           resource_id = desc->resource_id;
