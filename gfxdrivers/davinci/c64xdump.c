@@ -17,13 +17,20 @@
 
 static const char *state_names[] = { "DONE", "ERROR", "TODO", "RUNNING" };
 
+// auto
+#define IDLE_MAX    (0)
+
+// manual (examples)
+//#define IDLE_MAX    (567087584/10)
+//#define IDLE_MAX    (59457217)
+
 int main (int argc, char *argv[])
 {
      int              fd;
      void            *mem;
      c64xTaskControl *ctl;
      c64xTask        *queue;
-     int              idle_max   = 567087584/10;   /* FIXME */
+     int              idle_max   = IDLE_MAX;
      uint32_t         idle_last  = 0;
      long long        stamp_last = 0;
 
@@ -49,7 +56,7 @@ int main (int argc, char *argv[])
      queue = mem + (0x8fe00000 - 0x8e000000);
 
      while (1) {
-          usleep( 100000 );
+          usleep( 250000 );
 
           int       loadx   = 1000;
           uint32_t  counter = ctl->idlecounter;
@@ -84,8 +91,10 @@ int main (int argc, char *argv[])
 
                long long int  diff = cdiff * 1200000 / tdiff;
 
-          //     if (diff > idle_max)
-          //          idle_max = diff;
+#if !IDLE_MAX
+               if (diff > idle_max)
+                    idle_max = diff;
+#endif
 
                loadx = (idle_max - diff) * 1000 / idle_max;
           }
