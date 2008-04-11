@@ -146,6 +146,8 @@ driver_probe( CoreGraphicsDevice *device )
      switch (dfb_system_type()) {
           case CORE_DEVMEM:
           case CORE_TI_CMEM:
+               if (dfb_config->accelerator == 6400)
+                    return 1;
                break;
 
           default:
