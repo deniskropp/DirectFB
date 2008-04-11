@@ -17,6 +17,8 @@ INCLUDES = \
 	-I$(top_srcdir)/systems	\
 	-I$(srcdir)/kernel-module/include
 
+bin_PROGRAMS = c64xdump
+
 davinci_LTLIBRARIES = libdirectfb_davinci.la
 
 if BUILD_STATIC
@@ -52,5 +54,7 @@ libdirectfb_davinci_la_LDFLAGS = \
 libdirectfb_davinci_la_LIBADD = \
 	$(top_builddir)/src/libdirectfb.la
 
+c64xdump_SOURCES = c64xdump.c
+c64xdump_LDADD   = $(top_builddir)/lib/direct/libdirect.la
 
 include $(top_srcdir)/rules/libobject.make
