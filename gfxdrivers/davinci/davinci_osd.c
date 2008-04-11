@@ -397,14 +397,33 @@ update_buffers( DavinciDriverData     *ddrv,
 
      /* Can we use the DSP? */
      if (ddrv->c64x_present) {
+          int           i;
+          int           lines = ddev->fix[OSD0].line_length == ddev->fix[OSD1].line_length ? rect.h : 1;
           unsigned long rgb   = ddev->fix[OSD0].smem_start + rect.x * 2 + rect.y * ddev->fix[OSD0].line_length;
           unsigned long alpha = ddev->fix[OSD1].smem_start + rect.x / 2 + rect.y * ddev->fix[OSD1].line_length;
           unsigned long src   = lock->phys                 + rect.x * 4 + rect.y * lock->pitch;
 
-          D_ASSUME( ddev->fix[OSD0].line_length == ddev->fix[OSD1].line_length );
+          //D_ASSUME( ddev->fix[OSD0].line_length == ddev->fix[OSD1].line_length );
 
           /* Dither ARGB to RGB16+A3 using the DSP. */
-          davinci_c64x_dither_argb( &ddrv->c64x, rgb, alpha, ddev->fix[OSD0].line_length, src, lock->pitch, rect.w, rect.h );
+          for (i=0; i<rect.h; i+=lines) {
+               if (lines > rect.h - i)
+                    lines = rect.h - i;
+               
+               davinci_c64x_dither_argb( &ddrv->c64x, rgb, alpha,
+                                         ddev->fix[OSD0].line_length, src, lock->pitch, rect.w, lines );
+
+               if (ddev->fix[OSD0].line_length != ddev->fix[OSD1].line_length && lines > 1) {
+                    davinci_c64x_blit_32( &ddrv->c64x,
+                                          alpha + ddev->fix[OSD1].line_length, ddev->fix[OSD1].line_length,
+                                          alpha + ddev->fix[OSD0].line_length, ddev->fix[OSD0].line_length,
+                                          rect.w/2, lines - 1 );
+               }
+
+               rgb   += lines * ddev->fix[OSD0].line_length;
+               alpha += lines * ddev->fix[OSD1].line_length;
+               src   += lines * lock->pitch;
+          }
 
           /* Flush the write cache. */
           davinci_c64x_write_back_all( &ddrv->c64x );
