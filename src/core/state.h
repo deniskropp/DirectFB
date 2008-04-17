@@ -156,7 +156,8 @@ struct _CardState {
 
      DFBColorKey              colorkey;           /* key for color key protection */
 
-     s32                      matrix[6];          /* transformation matrix for DSRO_MATRIX (fixed 16.16) */
+     s32                      matrix[9];          /* transformation matrix for DSRO_MATRIX (fixed 16.16) */
+     DFBBoolean               affine_matrix;
 
      CoreSurface             *source_mask;        /* source mask surface */
      CoreSurfaceBufferLock    src_mask;           /* source mask surface lock */

@@ -915,11 +915,26 @@ dfb_gfxcard_state_release( CardState *state )
 
 /** DRAWING FUNCTIONS **/
 
-#define DFB_TRANSFORM(x, y, m) \
+#define DFB_TRANSFORM(x, y, m, affine) \
 do { \
-     s32 _x, _y; \
-     _x = ((x) * (m)[0] + (y) * (m)[1] + (m)[2] + 0x8000) >> 16; \
-     _y = ((x) * (m)[3] + (y) * (m)[4] + (m)[5] + 0x8000) >> 16; \
+     s32 _x, _y, _w; \
+     if (affine) { \
+          _x = ((x) * (m)[0] + (y) * (m)[1] + (m)[2] + 0x8000) >> 16; \
+          _y = ((x) * (m)[3] + (y) * (m)[4] + (m)[5] + 0x8000) >> 16; \
+     } \
+     else { \
+          _x = ((x) * (m)[0] + (y) * (m)[1] + (m)[2]); \
+          _y = ((x) * (m)[3] + (y) * (m)[4] + (m)[5]); \
+          _w = ((x) * (m)[6] + (y) * (m)[7] + (m)[8]); \
+          if (!_w) { \
+               _x = (_x < 0) ? -0x7fffffff : 0x7fffffff; \
+               _y = (_y < 0) ? -0x7fffffff : 0x7fffffff; \
+          } \
+          else { \
+               _x /= _w; \
+               _y /= _w; \
+          } \
+     } \
      (x) = _x; \
      (y) = _y; \
 } while (0)
@@ -1007,8 +1022,8 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
                               
                               x1 = rects[i].x;    y1 = rects[i].y;
                               x2 = x1+rects[i].w; y2 = y1+rects[i].h;
-                              DFB_TRANSFORM(x1, y1, state->matrix);
-                              DFB_TRANSFORM(x2, y2, state->matrix);
+                              DFB_TRANSFORM(x1, y1, state->matrix, state->affine_matrix);
+                              DFB_TRANSFORM(x2, y2, state->matrix, state->affine_matrix);
                               
                               if (x1 < x2) {
                                    rect.x = x1;
@@ -1038,9 +1053,9 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
                               tri.x1 = rects[i].x;            tri.y1 = rects[i].y;
                               tri.x2 = rects[i].x+rects[i].w; tri.y2 = rects[i].y;
                               tri.x3 = rects[i].x+rects[i].w; tri.y3 = rects[i].y+rects[i].h;
-                              DFB_TRANSFORM(tri.x1, tri.y1, state->matrix);
-                              DFB_TRANSFORM(tri.x2, tri.y2, state->matrix);
-                              DFB_TRANSFORM(tri.x3, tri.y3, state->matrix);
+                              DFB_TRANSFORM(tri.x1, tri.y1, state->matrix, state->affine_matrix);
+                              DFB_TRANSFORM(tri.x2, tri.y2, state->matrix, state->affine_matrix);
+                              DFB_TRANSFORM(tri.x3, tri.y3, state->matrix, state->affine_matrix);
                               
                               dfb_sort_triangle( &tri );
                               if (tri.y3 - tri.y1 > 0)
@@ -1049,9 +1064,9 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
                               tri.x1 = rects[i].x;            tri.y1 = rects[i].y;
                               tri.x2 = rects[i].x+rects[i].w; tri.y2 = rects[i].y+rects[i].h;
                               tri.x3 = rects[i].x;            tri.y3 = rects[i].y+rects[i].h;
-                              DFB_TRANSFORM(tri.x1, tri.y1, state->matrix);
-                              DFB_TRANSFORM(tri.x2, tri.y2, state->matrix);
-                              DFB_TRANSFORM(tri.x3, tri.y3, state->matrix);
+                              DFB_TRANSFORM(tri.x1, tri.y1, state->matrix, state->affine_matrix);
+                              DFB_TRANSFORM(tri.x2, tri.y2, state->matrix, state->affine_matrix);
+                              DFB_TRANSFORM(tri.x3, tri.y3, state->matrix, state->affine_matrix);
                               
                               dfb_sort_triangle( &tri );
                               if (tri.y3 - tri.y1 > 0)
@@ -1210,10 +1225,10 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
                     x2 = rect->x+rect->w; y2 = rect->y;
                     x3 = rect->x+rect->w; y3 = rect->y+rect->h;
                     x4 = rect->x;         y4 = rect->y+rect->h;
-                    DFB_TRANSFORM(x1, y1, state->matrix);
-                    DFB_TRANSFORM(x2, y2, state->matrix);
-                    DFB_TRANSFORM(x3, y3, state->matrix);
-                    DFB_TRANSFORM(x4, y4, state->matrix);
+                    DFB_TRANSFORM(x1, y1, state->matrix, state->affine_matrix);
+                    DFB_TRANSFORM(x2, y2, state->matrix, state->affine_matrix);
+                    DFB_TRANSFORM(x3, y3, state->matrix, state->affine_matrix);
+                    DFB_TRANSFORM(x4, y4, state->matrix, state->affine_matrix);
                     
                     line = (DFBRegion) { x1, y1, x2, y2 };
                     if (dfb_clip_line( &state->clip, &line ))
@@ -1278,8 +1293,8 @@ void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
           if (gAcquire( state, DFXL_DRAWLINE )) {
                for (; i<num_lines; i++) {
                     if (state->render_options & DSRO_MATRIX) {
-                         DFB_TRANSFORM(lines[i].x1, lines[i].y1, state->matrix);
-                         DFB_TRANSFORM(lines[i].x2, lines[i].y2, state->matrix);
+                         DFB_TRANSFORM(lines[i].x1, lines[i].y1, state->matrix, state->affine_matrix);
+                         DFB_TRANSFORM(lines[i].x2, lines[i].y2, state->matrix, state->affine_matrix);
                     }
                     
                     if (dfb_clip_line( &state->clip, &lines[i] ))
@@ -1348,8 +1363,8 @@ void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *sta
                               
                               x1 = rect.x;    y1 = rect.y;
                               x2 = x1+rect.w; y2 = y1+rect.h;
-                              DFB_TRANSFORM(x1, y1, state->matrix);
-                              DFB_TRANSFORM(x2, y2, state->matrix);
+                              DFB_TRANSFORM(x1, y1, state->matrix, state->affine_matrix);
+                              DFB_TRANSFORM(x2, y2, state->matrix, state->affine_matrix);
                               
                               if (x1 < x2) {
                                    rect.x = x1;
@@ -1376,9 +1391,9 @@ void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *sta
                               tri.x1 = rect.x;        tri.y1 = rect.y;
                               tri.x2 = rect.x+rect.w; tri.y2 = rect.y;
                               tri.x3 = rect.x+rect.w; tri.y3 = rect.y+rect.h;
-                              DFB_TRANSFORM(tri.x1, tri.y1, state->matrix);
-                              DFB_TRANSFORM(tri.x2, tri.y2, state->matrix);
-                              DFB_TRANSFORM(tri.x3, tri.y3, state->matrix);
+                              DFB_TRANSFORM(tri.x1, tri.y1, state->matrix, state->affine_matrix);
+                              DFB_TRANSFORM(tri.x2, tri.y2, state->matrix, state->affine_matrix);
+                              DFB_TRANSFORM(tri.x3, tri.y3, state->matrix, state->affine_matrix);
                               
                               dfb_sort_triangle( &tri );
                               if (tri.y3 - tri.y1 > 0)
@@ -1387,9 +1402,9 @@ void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *sta
                               tri.x1 = rect.x;        tri.y1 = rect.y;
                               tri.x2 = rect.x+rect.w; tri.y2 = rect.y+rect.h;
                               tri.x3 = rect.x;        tri.y3 = rect.y+rect.h;
-                              DFB_TRANSFORM(tri.x1, tri.y1, state->matrix);
-                              DFB_TRANSFORM(tri.x2, tri.y2, state->matrix);
-                              DFB_TRANSFORM(tri.x3, tri.y3, state->matrix);
+                              DFB_TRANSFORM(tri.x1, tri.y1, state->matrix, state->affine_matrix);
+                              DFB_TRANSFORM(tri.x2, tri.y2, state->matrix, state->affine_matrix);
+                              DFB_TRANSFORM(tri.x3, tri.y3, state->matrix, state->affine_matrix);
                               
                               dfb_sort_triangle( &tri );
                               if (tri.y3 - tri.y1 > 0)
@@ -1515,17 +1530,18 @@ fill_tri( DFBTriangle *tri, CardState *state, bool accelerated )
 }
 
 
-void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
+void dfb_gfxcard_filltriangles( const DFBTriangle *tris, int num, CardState *state )
 {
      bool hw = false;
+     int  i  = 0;
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
      D_MAGIC_ASSERT( state, CardState );
-     D_ASSERT( tri != NULL );
+     D_ASSERT( tris != NULL );
+     D_ASSERT( num > 0 );
 
-     D_DEBUG_AT( Core_GraphicsOps, "%s( %d,%d - %d,%d - %d,%d, %p )\n", __FUNCTION__,
-                 tri->x1, tri->y1, tri->x2, tri->y2, tri->x3, tri->y3, state );
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %p [%d], %p )\n", __FUNCTION__, tris, num, state );
 
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
@@ -1540,37 +1556,49 @@ void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
               !D_FLAGS_IS_SET( card->caps.clip, DFXL_FILLTRIANGLE ))
           {
                DFBPoint p[6];
-               int      i, n;
-                              
-               /* FIXME: DSRO_MATRIX. */
-               if (dfb_clip_triangle( &state->clip, tri, p, &n )) {
-                    tri->x1 = p[0].x; tri->y1 = p[0].y;
-                    tri->x2 = p[1].x; tri->y2 = p[1].y;
-                    tri->x3 = p[2].x; tri->y3 = p[2].y;
-                    hw = card->funcs.FillTriangle( card->driver_data,
-                                                   card->device_data, tri );    
-                    /* FIXME: return value. */
-                    for (i = 3; i < n; i++) {
-                         tri->x1 = p[0].x;   tri->y1 = p[0].y;
-                         tri->x2 = p[i-1].x; tri->y2 = p[i-1].y;
-                         tri->x3 = p[i].x;   tri->y3 = p[i].y;
-                         card->funcs.FillTriangle( card->driver_data,
-                                                   card->device_data, tri );
+               int      n;
+               
+               for (; i < num; i++) {               
+                    /* FIXME: DSRO_MATRIX. */
+                    if (dfb_clip_triangle( &state->clip, &tris[i], p, &n )) {
+                         DFBTriangle tri;
+                         int         j;
+                         
+                         tri.x1 = p[0].x; tri.y1 = p[0].y;
+                         tri.x2 = p[1].x; tri.y2 = p[1].y;
+                         tri.x3 = p[2].x; tri.y3 = p[2].y;
+                         hw = card->funcs.FillTriangle( card->driver_data,
+                                                        card->device_data, &tri );
+                         if (!hw)
+                              break;
+   
+                         /* FIXME: return value. */
+                         for (j = 3; j < n; j++) {
+                              tri.x1 = p[0].x;   tri.y1 = p[0].y;
+                              tri.x2 = p[j-1].x; tri.y2 = p[j-1].y;
+                              tri.x3 = p[j].x;   tri.y3 = p[j].y;
+                              card->funcs.FillTriangle( card->driver_data,
+                                                        card->device_data, &tri );
+                         }
                     }
-               }
-               else {
-                    hw = true;
                }
           }
           else {
-               hw = card->funcs.FillTriangle( card->driver_data,
-                                              card->device_data, tri );
+               for (; i < num; i++) {
+                    DFBTriangle tri = tris[i];
+                    
+                    hw = card->funcs.FillTriangle( card->driver_data,
+                                                   card->device_data, &tri );
+                    if (!hw)
+                         break;
+               }
+                    
           }
                   
           dfb_gfxcard_state_release( state );
      }
 
-     if (!hw) {
+     if (!hw && i < num) {
           /* otherwise use the spanline rasterizer (fill_tri)
              and fill the triangle using a rectangle for each spanline */
 
@@ -1579,27 +1607,34 @@ void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
               dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
               dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
           {
-               dfb_sort_triangle( tri );
+               for (; i < num; i++) {
+                    DFBTriangle tri = tris[i];
                
-               if (tri->y3 - tri->y1 > 0)
-                    fill_tri( tri, state, true );
-
+                    dfb_sort_triangle( &tri );
+               
+                    if (tri.y3 - tri.y1 > 0)
+                         fill_tri( &tri, state, true );
+               }
+               
                dfb_gfxcard_state_release( state );
           }
-          else {
-               if (state->render_options & DSRO_MATRIX) {
-                    DFB_TRANSFORM(tri->x1, tri->y1, state->matrix);
-                    DFB_TRANSFORM(tri->x2, tri->y2, state->matrix);
-                    DFB_TRANSFORM(tri->x3, tri->y3, state->matrix);
-               }
-               
-               dfb_sort_triangle( tri );
+          else if (gAcquire( state, DFXL_FILLRECTANGLE )) {
+               for (; i < num; i++) {
+                    DFBTriangle tri = tris[i];
                     
-               if (tri->y3 - tri->y1 > 0 && gAcquire( state, DFXL_FILLRECTANGLE )) {
-                    fill_tri( tri, state, false );
-
-                    gRelease( state );
+                    if (state->render_options & DSRO_MATRIX) {
+                         DFB_TRANSFORM(tri.x1, tri.y1, state->matrix, state->affine_matrix);
+                         DFB_TRANSFORM(tri.x2, tri.y2, state->matrix, state->affine_matrix);
+                         DFB_TRANSFORM(tri.x3, tri.y3, state->matrix, state->affine_matrix);
+                    }
+               
+                    dfb_sort_triangle( &tri );
+                    
+                    if (tri.y3 - tri.y1 > 0)
+                         fill_tri( &tri, state, false );
                }
+
+               gRelease( state );
           }
      }
 
@@ -1655,7 +1690,8 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      if (!hw) {
           if (state->render_options & DSRO_MATRIX) {
                if (state->matrix[0] < 0  || state->matrix[1] != 0 ||
-                   state->matrix[3] != 0 || state->matrix[4] < 0) {
+                   state->matrix[3] != 0 || state->matrix[4] < 0  ||
+                   state->matrix[6] != 0 || state->matrix[7] != 0) {
                     D_WARN( "rotation not yet implemented" );
                     dfb_state_unlock( state );
                     return;
@@ -1667,8 +1703,8 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
                     
                     x1 = dx;         y1 = dy;
                     x2 = dx+rect->w; y2 = dy+rect->h;
-                    DFB_TRANSFORM(x1, y1, state->matrix);
-                    DFB_TRANSFORM(x2, y2, state->matrix);
+                    DFB_TRANSFORM(x1, y1, state->matrix, state->affine_matrix);
+                    DFB_TRANSFORM(x2, y2, state->matrix, state->affine_matrix);
                     
                     drect = (DFBRectangle) { x1, y1, x2-x1, y2-y1 };
                     if (dfb_clip_blit_precheck( &state->clip, 
@@ -1736,7 +1772,8 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
      if (i < num) {
           if (state->render_options & DSRO_MATRIX) {
                if (state->matrix[0] < 0  || state->matrix[1] != 0 ||
-                   state->matrix[3] != 0 || state->matrix[4] < 0) {
+                   state->matrix[3] != 0 || state->matrix[4] < 0  ||
+                   state->matrix[6] != 0 || state->matrix[7] != 0) {
                     D_WARN( "rotation not yet implemented" );
                     dfb_state_unlock( state );
                     return;
@@ -1749,8 +1786,8 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
                     
                          x1 = points[i].x;   y1 = points[i].y;
                          x2 = x1+rects[i].w; y2 = y1+rects[i].h;
-                         DFB_TRANSFORM(x1, y1, state->matrix);
-                         DFB_TRANSFORM(x2, y2, state->matrix);
+                         DFB_TRANSFORM(x1, y1, state->matrix, state->affine_matrix);
+                         DFB_TRANSFORM(x2, y2, state->matrix, state->affine_matrix);
                     
                          drect = (DFBRectangle) { x1, y1, x2-x1, y2-y1 };
                          if (dfb_clip_blit_precheck( &state->clip, 
@@ -1879,7 +1916,8 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
      if (dy1 < dy2) {
           if (state->render_options & DSRO_MATRIX) {
                if (state->matrix[0] < 0  || state->matrix[1] != 0 ||
-                   state->matrix[3] != 0 || state->matrix[4] < 0) {
+                   state->matrix[3] != 0 || state->matrix[4] < 0  ||
+                   state->matrix[6] != 0 || state->matrix[7] != 0) {
                     D_WARN( "rotation not yet implemented" );
                     dfb_state_unlock( state );
                     return;
@@ -1893,8 +1931,8 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
                     
                               x1 = dx1;         y1 = dy1;
                               x2 = dx1+rect->w; y2 = dy1+rect->h;
-                              DFB_TRANSFORM(x1, y1, state->matrix);
-                              DFB_TRANSFORM(x2, y2, state->matrix);
+                              DFB_TRANSFORM(x1, y1, state->matrix, state->affine_matrix);
+                              DFB_TRANSFORM(x2, y2, state->matrix, state->affine_matrix);
                     
                               drect = (DFBRectangle) { x1, y1, x2-x1, y2-y1 };
                               if (dfb_clip_blit_precheck( &state->clip, 
@@ -1984,7 +2022,8 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
                int x1, y1, x2, y2;
                
                if (state->matrix[0] < 0  || state->matrix[1] != 0 ||
-                   state->matrix[3] != 0 || state->matrix[4] < 0) {
+                   state->matrix[3] != 0 || state->matrix[4] < 0  ||
+                   state->matrix[6] != 0 || state->matrix[7] != 0) {
                     D_WARN( "rotation not yet implemented" );
                     dfb_state_unlock( state );
                     return;
@@ -1992,8 +2031,8 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
                
                x1 = drect->x;    y1 = drect->y;
                x2 = x1+drect->w; y2 = y1+drect->h;
-               DFB_TRANSFORM(x1, y1, state->matrix);
-               DFB_TRANSFORM(x2, y2, state->matrix);        
+               DFB_TRANSFORM(x1, y1, state->matrix, state->affine_matrix);
+               DFB_TRANSFORM(x2, y2, state->matrix, state->affine_matrix);        
                drect->x = x1;    drect->y = y1;
                drect->w = x2-x1; drect->h = y2-y1;
                     
@@ -2264,7 +2303,8 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
                                    int          x1, y1, x2, y2;
                
                                    if (state->matrix[0] < 0  || state->matrix[1] != 0 ||
-                                       state->matrix[3] != 0 || state->matrix[4] < 0) {
+                                       state->matrix[3] != 0 || state->matrix[4] < 0  ||
+                                       state->matrix[6] != 0 || state->matrix[7] != 0) {
                                         D_WARN( "rotation not yet implemented" );
                                         num = 0;
                                         break;
@@ -2272,8 +2312,8 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
                
                                    x1 = xx;        y1 = yy;
                                    x2 = xx+rect.w; y2 = yy+rect.h;
-                                   DFB_TRANSFORM(x1, y1, state->matrix);
-                                   DFB_TRANSFORM(x2, y2, state->matrix);        
+                                   DFB_TRANSFORM(x1, y1, state->matrix, state->affine_matrix);
+                                   DFB_TRANSFORM(x2, y2, state->matrix, state->affine_matrix);        
                                    drect.x = x1;    drect.y = y1;
                                    drect.w = x2-x1; drect.h = y2-y1;
                     

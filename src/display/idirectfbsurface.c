@@ -1329,7 +1329,7 @@ IDirectFBSurface_FillTriangle( IDirectFBSurface *thiz,
      tri.x3 += data->area.wanted.x;
      tri.y3 += data->area.wanted.y;
 
-     dfb_gfxcard_filltriangle( &tri, &data->state );
+     dfb_gfxcard_filltriangles( &tri, 1, &data->state );
 
      return DFB_OK;
 }
@@ -1422,6 +1422,58 @@ IDirectFBSurface_FillSpans( IDirectFBSurface *thiz,
           direct_memcpy( local_spans, spans, sizeof(DFBSpan) * num_spans );
 
      dfb_gfxcard_fillspans( y + data->area.wanted.y, local_spans, num_spans, &data->state );
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_FillTriangles( IDirectFBSurface  *thiz,
+                                const DFBTriangle *tris,
+                                unsigned int       num_tris )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+     if (data->locked)
+          return DFB_LOCKED;
+
+     if (!tris || !num_tris)
+          return DFB_INVARG;
+
+     if (data->area.wanted.x || data->area.wanted.y) {
+          unsigned int  i;
+          DFBTriangle  *local_tris;
+          bool          malloced = (num_tris > 170);
+
+          if (malloced)
+               local_tris = D_MALLOC( sizeof(DFBTriangle) * num_tris );
+          else
+               local_tris = alloca( sizeof(DFBTriangle) * num_tris );
+
+          for (i=0; i<num_tris; i++) {
+               local_tris[i].x1 = tris[i].x1 + data->area.wanted.x;
+               local_tris[i].y1 = tris[i].y1 + data->area.wanted.y;
+               local_tris[i].x2 = tris[i].x2 + data->area.wanted.x;
+               local_tris[i].y2 = tris[i].y2 + data->area.wanted.y;
+               local_tris[i].x3 = tris[i].x3 + data->area.wanted.x;
+               local_tris[i].y3 = tris[i].y3 + data->area.wanted.y;
+          }
+
+          dfb_gfxcard_filltriangles( local_tris, num_tris, &data->state );
+
+          if (malloced)
+               D_FREE( local_tris );
+     }
+     else
+          dfb_gfxcard_filltriangles( tris, num_tris, &data->state );
 
      return DFB_OK;
 }
@@ -2416,6 +2468,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->FillTriangle = IDirectFBSurface_FillTriangle;
      thiz->FillRectangles = IDirectFBSurface_FillRectangles;
      thiz->FillSpans = IDirectFBSurface_FillSpans;
+     thiz->FillTriangles = IDirectFBSurface_FillTriangles;
 
      thiz->SetFont = IDirectFBSurface_SetFont;
      thiz->GetFont = IDirectFBSurface_GetFont;

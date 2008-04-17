@@ -3662,6 +3662,18 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           const DFBSpan            *spans,
           unsigned int              num
      );
+     
+     /*
+      * Fill a bunch of triangles with a single call.
+      *
+      * Fill <b>num</b> triangles with the current color following the
+      * drawing flags. Each triangle specified by a DFBTriangle.
+      */
+     DFBResult (*FillTriangles) (
+          IDirectFBSurface         *thiz,
+          const DFBTriangle        *tris,
+          unsigned int              num
+     );
 
 
    /** Text functions **/
@@ -3856,14 +3868,14 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       *
       * Enable usage of this matrix by setting DSRO_MATRIX via IDirectFBSurface::SetRenderOptions().
       *
-      * The matrix consists of 3x2 fixed point 16.16 values.
+      * The matrix consists of 3x3 fixed point 16.16 values.
       * The order in the array is from left to right and from top to bottom.
       *
       * All drawing and blitting will be transformed:
       *
       * <pre>
-      *        X' = X * v0 + Y * v1 + v2
-      *        Y' = X * v3 + Y * v4 + v5
+      *        X' = (X * v0 + Y * v1 + v2) / (X * v6 + Y * v7 + v8)
+      *        Y' = (X * v3 + Y * v4 + v5) / (X * v6 + Y * v7 + v8)
       * </pre>
       */
      DFBResult (*SetMatrix) (

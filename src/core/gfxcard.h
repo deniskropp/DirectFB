@@ -339,7 +339,8 @@ void dfb_gfxcard_fillspans              ( int                   y,
                                           int                   num_spans,
                                           CardState            *state );
 
-void dfb_gfxcard_filltriangle           ( DFBTriangle          *triangle,
+void dfb_gfxcard_filltriangles          ( const DFBTriangle    *tris,
+                                          int                   num,
                                           CardState            *state );
 
 void dfb_gfxcard_blit                   ( DFBRectangle         *rect,
