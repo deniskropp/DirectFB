@@ -164,7 +164,7 @@ bool r300FillRectangle3D( void *drv, void *dev, DFBRectangle *rect )
      if (rect->w == 1 && rect->h == 1) {
           x1 = rect->x+1; y1 = rect->y+1;
           if (rdev->matrix)
-               RADEON_TRANSFORM( x1, y1, x1, y1, rdev->matrix );
+               RADEON_TRANSFORM( x1, y1, x1, y1, rdev->matrix, rdev->affine_matrix );
 
           v = r300_init_vb( rdrv, rdev, VF_PRIM_TYPE_POINT_LIST, 1, 8 );
           VTX( v, x1, y1, rdev->color );
@@ -178,13 +178,13 @@ bool r300FillRectangle3D( void *drv, void *dev, DFBRectangle *rect )
           float x, y;
 
           v = r300_init_vb( rdrv, rdev, VF_PRIM_TYPE_QUAD_LIST, 4, 32 );
-          RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix );
+          RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix, rdev->affine_matrix );
           VTX( v, x, y, rdev->color );
-          RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix );
+          RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix, rdev->affine_matrix );
           VTX( v, x, y, rdev->color );
-          RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix );
+          RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix, rdev->affine_matrix );
           VTX( v, x, y, rdev->color );
-          RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix );
+          RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix, rdev->affine_matrix );
           VTX( v, x, y, rdev->color );
      }
      else { 
@@ -211,9 +211,9 @@ bool r300FillTriangle( void *drv, void *dev, DFBTriangle *tri )
      x2 = tri->x2; y2 = tri->y2;
      x3 = tri->x3; y3 = tri->y3;
      if (rdev->matrix) {
-          RADEON_TRANSFORM( x1, y1, x1, y1, rdev->matrix );
-          RADEON_TRANSFORM( x2, y2, x2, y2, rdev->matrix );
-          RADEON_TRANSFORM( x3, y3, x3, y3, rdev->matrix );
+          RADEON_TRANSFORM( x1, y1, x1, y1, rdev->matrix, rdev->affine_matrix );
+          RADEON_TRANSFORM( x2, y2, x2, y2, rdev->matrix, rdev->affine_matrix );
+          RADEON_TRANSFORM( x3, y3, x3, y3, rdev->matrix, rdev->affine_matrix );
      }
 
      v = r300_init_vb( rdrv, rdev, VF_PRIM_TYPE_TRIANGLE_LIST, 3, 24 );
@@ -238,13 +238,13 @@ bool r300DrawRectangle3D( void *drv, void *dev, DFBRectangle *rect )
           float x, y;
           
           v = r300_init_vb( rdrv, rdev, VF_PRIM_TYPE_LINE_LOOP, 4, 32 );
-          RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix );
+          RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix, rdev->affine_matrix );
           VTX( v, x, y, rdev->color );
-          RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix );
+          RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix, rdev->affine_matrix );
           VTX( v, x, y, rdev->color );
-          RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix );
+          RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix, rdev->affine_matrix );
           VTX( v, x, y, rdev->color );
-          RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix );
+          RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix, rdev->affine_matrix );
           VTX( v, x, y, rdev->color );
      }
      else {
@@ -269,8 +269,8 @@ bool r300DrawLine3D( void *drv, void *dev, DFBRegion *line )
      x1 = line->x1; y1 = line->y1;
      x2 = line->x2; y2 = line->y2;
      if (rdev->matrix) {
-          RADEON_TRANSFORM( x1, y1, x1, y1, rdev->matrix );
-          RADEON_TRANSFORM( x2, y2, x2, y2, rdev->matrix );
+          RADEON_TRANSFORM( x1, y1, x1, y1, rdev->matrix, rdev->affine_matrix );
+          RADEON_TRANSFORM( x2, y2, x2, y2, rdev->matrix, rdev->affine_matrix );
      }
      
      v = r300_init_vb( rdrv, rdev, VF_PRIM_TYPE_LINE_LIST, 2, 16 );
@@ -327,13 +327,13 @@ bool r300StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
           float x, y;
 
           v = r300_init_vb( rdrv, rdev, VF_PRIM_TYPE_QUAD_LIST, 4, 32 );
-          RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix );
+          RADEON_TRANSFORM( x1, y1, x, y, rdev->matrix, rdev->affine_matrix );
           VTX( v, x, y, s1, t1 );
-          RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix );
+          RADEON_TRANSFORM( x2, y1, x, y, rdev->matrix, rdev->affine_matrix );
           VTX( v, x, y, s2, t1 );
-          RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix );
+          RADEON_TRANSFORM( x2, y2, x, y, rdev->matrix, rdev->affine_matrix );
           VTX( v, x, y, s2, t2 );
-          RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix );
+          RADEON_TRANSFORM( x1, y2, x, y, rdev->matrix, rdev->affine_matrix );
           VTX( v, x, y, s1, t2 );
      }
      else {
@@ -423,7 +423,7 @@ bool r300TextureTriangles( void *drv, void *dev, DFBVertex *ve,
      
      if (rdev->matrix) {
           for (i = 0; i < num; i++)
-               RADEON_TRANSFORM( ve[i].x, ve[i].y, ve[i].x, ve[i].y, rdev->matrix );
+               RADEON_TRANSFORM( ve[i].x, ve[i].y, ve[i].x, ve[i].y, rdev->matrix, rdev->affine_matrix );
      }
      
      r300DoTextureTriangles( rdrv, rdev, ve, num, prim );

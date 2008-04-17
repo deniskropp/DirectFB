@@ -740,12 +740,16 @@ void r200_set_render_options( RadeonDriverData *rdrv,
           return;
           
      if (state->render_options & DSRO_MATRIX &&
-        (state->matrix[0] != (1<<16) || state->matrix[1] != 0 || state->matrix[2] != 0 ||
-         state->matrix[3] != 0 || state->matrix[4] != (1<<16) || state->matrix[5] != 0))
+        (!state->affine_matrix ||
+          state->matrix[0] != (1<<16) || state->matrix[1] != 0 || state->matrix[2] != 0 ||
+          state->matrix[3] != 0 || state->matrix[4] != (1<<16) || state->matrix[5] != 0)) {
           rdev->matrix = state->matrix;
-     else
+          rdev->affine_matrix = state->affine_matrix;
+     }
+     else {
           rdev->matrix = NULL;
-
+     }
+     
      if ((rdev->render_options & DSRO_ANTIALIAS) != (state->render_options & DSRO_ANTIALIAS)) {
           RADEON_UNSET( DRAWING_FLAGS );
           RADEON_UNSET( BLITTING_FLAGS );
