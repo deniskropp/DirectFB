@@ -8297,10 +8297,13 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      DFB_RECTANGLE_ASSERT( srect );
      DFB_RECTANGLE_ASSERT( drect );
 
-     if (state->blittingflags & ~(DSBLIT_COLORKEY_PROTECT | DSBLIT_SRC_COLORKEY))
+     gfxs = state->gfxs;
+
+     if (state->blittingflags & ~(DSBLIT_COLORKEY_PROTECT | DSBLIT_SRC_COLORKEY | DSBLIT_SRC_PREMULTIPLY))
           return false;
 
-     gfxs = state->gfxs;
+     if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY && !DFB_PIXELFORMAT_IS_INDEXED( gfxs->src_format ))
+          return false;
 
      if (DFB_PIXELFORMAT_INDEX(gfxs->dst_format) >= D_ARRAY_SIZE(stretch_tables))
           return false;
@@ -8354,10 +8357,42 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
           entries = gfxs->Blut->entries;
 
           switch (gfxs->dst_format) {
-               case DSPF_RGB32:
                case DSPF_ARGB:
+                    if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY) {
+                         int alpha = 0;
+
+                         for (i=0; i<gfxs->Blut->num_entries; i++) {
+                              switch (alpha) {
+                                   case 0:
+                                        colors[i] = 0;
+                                        break;
+
+                                   case 255:
+                                        colors[i] = PIXEL_ARGB( entries[i].a,
+                                                                entries[i].r,
+                                                                entries[i].g,
+                                                                entries[i].b );
+                                        break;
+
+                                   default:
+                                        alpha = entries[i].a + 1;
+
+                                        colors[i] = PIXEL_ARGB( entries[i].a,
+                                                                (alpha * entries[i].r) >> 8,
+                                                                (alpha * entries[i].g) >> 8,
+                                                                (alpha * entries[i].b) >> 8 );
+                              }
+                         }
+                    }
+                    else {
+                         for (i=0; i<gfxs->Blut->num_entries; i++)
+                              colors[i] = PIXEL_ARGB( entries[i].a, entries[i].r, entries[i].g, entries[i].b );
+                    }
+                    break;
+
+               case DSPF_RGB32:
                     for (i=0; i<gfxs->Blut->num_entries; i++)
-                         colors[i] = PIXEL_ARGB( entries[i].a, entries[i].r, entries[i].g, entries[i].b );
+                         colors[i] = PIXEL_RGB32( entries[i].r, entries[i].g, entries[i].b );
                     break;
 
                case DSPF_RGB16:
@@ -8366,8 +8401,36 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
                     break;
 
                case DSPF_ARGB4444:
-                    for (i=0; i<gfxs->Blut->num_entries; i++)
-                         colors16[i] = PIXEL_ARGB4444( entries[i].a, entries[i].r, entries[i].g, entries[i].b );
+                    if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY) {
+                         int alpha = 0;
+
+                         for (i=0; i<gfxs->Blut->num_entries; i++) {
+                              switch (alpha) {
+                                   case 0:
+                                        colors16[i] = 0;
+                                        break;
+
+                                   case 255:
+                                        colors16[i] = PIXEL_ARGB4444( entries[i].a,
+                                                                      entries[i].r,
+                                                                      entries[i].g,
+                                                                      entries[i].b );
+                                        break;
+
+                                   default:
+                                        alpha = entries[i].a + 1;
+
+                                        colors16[i] = PIXEL_ARGB4444( entries[i].a,
+                                                                      (alpha * entries[i].r) >> 8,
+                                                                      (alpha * entries[i].g) >> 8,
+                                                                      (alpha * entries[i].b) >> 8 );
+                              }
+                         }
+                    }
+                    else {
+                         for (i=0; i<gfxs->Blut->num_entries; i++)
+                              colors16[i] = PIXEL_ARGB4444( entries[i].a, entries[i].r, entries[i].g, entries[i].b );
+                    }
                     break;
 
                case DSPF_RGB444:
