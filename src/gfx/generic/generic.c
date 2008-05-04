@@ -8359,9 +8359,9 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
           switch (gfxs->dst_format) {
                case DSPF_ARGB:
                     if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY) {
-                         int alpha = 0;
-
                          for (i=0; i<gfxs->Blut->num_entries; i++) {
+                              int alpha = entries[i].a + 1;
+
                               switch (alpha) {
                                    case 0:
                                         colors[i] = 0;
@@ -8375,8 +8375,6 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
                                         break;
 
                                    default:
-                                        alpha = entries[i].a + 1;
-
                                         colors[i] = PIXEL_ARGB( entries[i].a,
                                                                 (alpha * entries[i].r) >> 8,
                                                                 (alpha * entries[i].g) >> 8,
@@ -8402,9 +8400,9 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
                case DSPF_ARGB4444:
                     if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY) {
-                         int alpha = 0;
-
                          for (i=0; i<gfxs->Blut->num_entries; i++) {
+                              int alpha = entries[i].a + 1;
+
                               switch (alpha) {
                                    case 0:
                                         colors16[i] = 0;
@@ -8418,8 +8416,6 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
                                         break;
 
                                    default:
-                                        alpha = entries[i].a + 1;
-
                                         colors16[i] = PIXEL_ARGB4444( entries[i].a,
                                                                       (alpha * entries[i].r) >> 8,
                                                                       (alpha * entries[i].g) >> 8,
