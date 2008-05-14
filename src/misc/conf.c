@@ -602,7 +602,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
                dfb_config->surface_shmpool_size = size_kb * 1024;
           }
           else {
-               D_ERROR( "FusionDale/Config '%s': No value specified!\n", name );
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
                return DFB_INVARG;
           }
      } else
