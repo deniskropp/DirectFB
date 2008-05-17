@@ -96,6 +96,8 @@ static int       vt_get_fb( int vt );
 static void      vt_set_fb( int vt, int fb );
 static void     *vt_thread( DirectThread *thread, void *arg );
 
+static DFBResult vt_open (VirtualTerminal *vt);
+
 DFBResult
 dfb_vt_initialize()
 {
@@ -218,6 +220,8 @@ dfb_vt_initialize()
           dfb_vt = NULL;
           return ret;
      }
+
+     dfb_vt->method_open = &vt_open;
 
      dfb_fbdev->vt = dfb_vt;
 
@@ -439,27 +443,23 @@ vt_switch_handler( int signum )
 }
 
 static DFBResult
-vt_init_switching()
-{
-     const char cursoroff_str[] = "\033[?1;0;0c";
-     const char blankoff_str[] = "\033[9;0]";
+vt_open (VirtualTerminal *vt) {
+
      char buf[32];
 
      D_DEBUG_AT( VT, "%s()\n", __FUNCTION__ );
 
-     /* FIXME: Opening the device should be moved out of this function. */
-
-     snprintf(buf, 32, "/dev/tty%d", dfb_vt->num);
-     dfb_vt->fd = open( buf, O_RDWR | O_NOCTTY );
-     if (dfb_vt->fd < 0) {
+     snprintf(buf, 32, "/dev/tty%d", vt->num);
+     vt->fd = open( buf, O_RDWR | O_NOCTTY );
+     if (vt->fd < 0) {
           if (errno == ENOENT) {
-               snprintf(buf, 32, "/dev/vc/%d", dfb_vt->num);
-               dfb_vt->fd = open( buf, O_RDWR | O_NOCTTY );
-               if (dfb_vt->fd < 0) {
+               snprintf(buf, 32, "/dev/vc/%d", vt->num);
+               vt->fd = open( buf, O_RDWR | O_NOCTTY );
+               if (vt->fd < 0) {
                     if (errno == ENOENT) {
                          D_PERROR( "DirectFB/core/vt: Couldn't open "
                                     "neither `/dev/tty%d' nor `/dev/vc/%d'!\n",
-                                    dfb_vt->num, dfb_vt->num );
+                                    vt->num, vt->num );
                     }
                     else {
                          D_PERROR( "DirectFB/core/vt: "
@@ -477,7 +477,24 @@ vt_init_switching()
 
      /* attach to the new TTY before doing anything like KDSETMODE with it,
         otherwise we'd get access denied error: */
-     ioctl( dfb_vt->fd, TIOCSCTTY, 0 );
+     if (ioctl( vt->fd, TIOCSCTTY, 0 ) == -1) {
+	  return errno2result (errno);
+     }
+
+     return DFB_OK;
+}
+
+    
+static DFBResult
+vt_init_switching()
+{
+     const char cursoroff_str[] = "\033[?1;0;0c";
+     const char blankoff_str[] = "\033[9;0]";
+     DFBResult res;
+
+     D_DEBUG_AT( VT, "%s()\n", __FUNCTION__ );
+
+     if ((res = vt_open (dfb_vt)) != DFB_OK) return res;
 
      write( dfb_vt->fd, cursoroff_str, sizeof(cursoroff_str) );
      if (dfb_config->kd_graphics) {

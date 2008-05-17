@@ -289,6 +289,18 @@ keyboard_set_lights( KeyboardData *data, DFBInputDeviceLockState locks )
      ioctl( data->vt->fd, KDSKBLED, locks );
 }
 
+static void
+keyboard_set_input (KeyboardData *data)
+{
+     struct termios  ts;
+     ts = data->old_ts;
+     ts.c_cc[VTIME] = 0;
+     ts.c_cc[VMIN] = 1;
+     ts.c_lflag &= ~(ICANON|ECHO|ISIG);
+     ts.c_iflag = 0;
+     tcsetattr( data->vt->fd, TCSAFLUSH, &ts );
+}
+
 static void*
 keyboardEventThread( DirectThread *thread, void *driver_data )
 {
@@ -301,6 +313,13 @@ keyboardEventThread( DirectThread *thread, void *driver_data )
           int i;
 
           direct_thread_testcancel( thread );
+
+	  if (readlen == 0) {
+	       /* Maybe our controlling terminal has been stolen by init */
+	       close (data->vt->fd);
+	       if (data->vt->method_open (data->vt) != DFB_OK) break;
+	       keyboard_set_input (data);
+	  }
 
           for (i = 0; i < readlen; i++) {
                DFBInputEvent evt;
@@ -356,7 +375,6 @@ driver_open_device( CoreInputDevice      *device,
                     InputDeviceInfo  *info,
                     void            **driver_data )
 {
-     struct termios  ts;
      KeyboardData   *data;
      FBDev          *dfb_fbdev = dfb_system_data();
 
@@ -374,12 +392,7 @@ driver_open_device( CoreInputDevice      *device,
 
      tcgetattr( data->vt->fd, &data->old_ts );
 
-     ts = data->old_ts;
-     ts.c_cc[VTIME] = 0;
-     ts.c_cc[VMIN] = 1;
-     ts.c_lflag &= ~(ICANON|ECHO|ISIG);
-     ts.c_iflag = 0;
-     tcsetattr( data->vt->fd, TCSAFLUSH, &ts );
+     keyboard_set_input (data);
 
      tcsetpgrp( data->vt->fd, getpgrp() );
 

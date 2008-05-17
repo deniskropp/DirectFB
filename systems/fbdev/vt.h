@@ -34,7 +34,7 @@
 
 #include <directfb.h>
 
-typedef struct {
+typedef struct VirtualTerminal {
      int fd0;                      /* file descriptor of /dev/tty0 */
      int fd;                       /* file descriptor of /dev/ttyN
                                       where N is the number of the allocated VT,
@@ -56,6 +56,8 @@ typedef struct {
      pthread_cond_t   wait;
 
      int              vt_sig;
+
+     DFBResult	     (*method_open) (struct VirtualTerminal *);
 } VirtualTerminal;
 
 /*
