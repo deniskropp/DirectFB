@@ -50,7 +50,9 @@ DirectConfig *direct_config       = &config;
 const char   *direct_config_usage =
      "libdirect options:\n"
      "  memcpy=<method>                Skip memcpy() probing (help = show list)\n"
-     "  [no-]quiet                     Text output (except debugging)?\n"
+     "  [no-]quiet                     Disable text output except debug messages or direct logs\n"
+     "  [no-]quiet=<type>              Only quiet certain types (cumulative with 'quiet')\n"
+     "                                 [ info | warning | error | once | unimplemented ]\n"
      "  [no-]debug                     Enable debug output\n"
      "  [no-]debugmem                  Enable memory allocation tracking\n"
      "  [no-]trace                     Enable stack trace support\n"
@@ -101,8 +103,28 @@ direct_config_set( const char *name, const char *value )
           }
      }
      else
-          if (strcmp (name, "quiet" ) == 0) {
-          direct_config->quiet = true;
+          if (strcmp (name, "quiet" ) == 0 || strcmp (name, "no-quiet" ) == 0) {
+          /* Enable/disable all at once by default. */
+          DirectMessageType type = DMT_ALL;
+
+          /* Find out the specific message type being configured. */
+          if (value) {
+               if (!strcmp( value, "info" ))           type = DMT_INFO;              else
+               if (!strcmp( value, "warning" ))        type = DMT_WARNING;           else
+               if (!strcmp( value, "error" ))          type = DMT_ERROR;             else
+               if (!strcmp( value, "once" ))           type = DMT_ONCE;              else
+               if (!strcmp( value, "unimplemented" ))  type = DMT_UNIMPLEMENTED; 
+               else {
+                    D_ERROR( "DirectFB/Config '%s': Unknown message type '%s'!\n", name, value );
+                    return DR_INVARG;
+               }
+          }
+
+          /* Set/clear the corresponding flag in the configuration. */
+          if (name[0] == 'q')
+               direct_config->quiet |= type;
+          else
+               direct_config->quiet &= ~type;
      }
      else
           if (strcmp (name, "no-quiet" ) == 0) {
