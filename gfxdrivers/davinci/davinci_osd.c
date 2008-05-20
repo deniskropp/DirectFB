@@ -115,7 +115,7 @@ osdInitLayer( CoreLayer                  *layer,
                            DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE | DLCONF_OPTIONS;
      config->width       = 640;
      config->height      = 480;
-     config->pixelformat = DSPF_ARGB;
+     config->pixelformat = DSPF_RGB16;
      config->buffermode  = DLBM_FRONTONLY;
      config->options     = DLOP_ALPHACHANNEL;
 
@@ -150,22 +150,20 @@ osdTestRegion( CoreLayer                  *layer,
                fail |= CLRCF_FORMAT;
      }
 
-     if (config->width  < 8 || config->width  > 720)
+     if (config->width  < 8 || config->width  > 1280)
           fail |= CLRCF_WIDTH;
 
-     if (config->height < 8 || config->height > 576)
+     if (config->height < 8 || config->height > 600)
           fail |= CLRCF_HEIGHT;
-
 
      if (config->dest.x < 0 || config->dest.y < 0)
           fail |= CLRCF_DEST;
 
-     if (config->dest.x + config->dest.w > 720)
+     if (config->dest.x + config->dest.w > 1280)
           fail |= CLRCF_DEST;
 
-     if (config->dest.y + config->dest.h > 576)
+     if (config->dest.y + config->dest.h > 600)
           fail |= CLRCF_DEST;
-
 
      if (failed)
           *failed = fail;
