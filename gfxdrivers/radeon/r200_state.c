@@ -918,6 +918,13 @@ void r200_set_blittingflags( RadeonDriverData *rdrv,
             
                pp_cntl |= TEX_BLEND_0_ENABLE;
           }
+          else if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY) {
+               cblend = (rdev->src_format == DSPF_A8)
+                        ? (R200_TXC_ARG_C_R0_ALPHA)
+                        : (R200_TXC_ARG_A_R0_COLOR | R200_TXC_ARG_B_R0_ALPHA);
+            
+               pp_cntl |= TEX_BLEND_0_ENABLE;
+          }
      } /* DSPF_A8 */
      else {
           if (state->blittingflags & DSBLIT_SRC_MASK_ALPHA) {
