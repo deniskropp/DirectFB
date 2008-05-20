@@ -896,6 +896,11 @@ void r100_set_blittingflags( RadeonDriverData *rdrv,
                         ? (COLOR_ARG_C_T0_ALPHA)
                         : (COLOR_ARG_A_T0_COLOR | COLOR_ARG_B_TFACTOR_ALPHA);
           }
+          else if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY) {
+               cblend = (rdev->src_format == DSPF_A8)
+                        ? (COLOR_ARG_C_T0_ALPHA)
+                        : (COLOR_ARG_A_T0_COLOR | COLOR_ARG_B_T0_ALPHA);
+          }
      } /* DSPF_A8 */
      else {
           if (state->blittingflags & DSBLIT_SRC_MASK_ALPHA) {
