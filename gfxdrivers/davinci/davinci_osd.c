@@ -280,7 +280,7 @@ osdSetRegion( CoreLayer                  *layer,
           dosd->var1.xres = config->width;
           dosd->var1.yres = config->height;
 
-          dosd->var0.yres_virtual = ddrv->fb[OSD0].size / ddev->fix[OSD0].line_length
+          dosd->var0.yres_virtual = ddrv->fb[OSD0].size / ddev->fix[OSD0].line_length;
 
           ret = ioctl( ddrv->fb[OSD0].fd, FBIOPUT_VSCREENINFO, &dosd->var0 );
           if (ret)
