@@ -106,8 +106,8 @@ videoInitLayer( CoreLayer                  *layer,
      /* fill out the default configuration */
      config->flags       = DLCONF_WIDTH       | DLCONF_HEIGHT |
                            DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE | DLCONF_OPTIONS;
-     config->width       = dvid->var.xres ;
-     config->height      = dvid->var.yres ;
+     config->width       = dvid->var.xres;
+     config->height      = dvid->var.yres;
      config->pixelformat = DSPF_UYVY;
      config->buffermode  = DLBM_FRONTONLY;
      config->options     = DLOP_NONE;
@@ -137,19 +137,19 @@ videoTestRegion( CoreLayer                  *layer,
                fail |= CLRCF_FORMAT;
      }
 
-     if (config->width  < 8 || config->width  > 1280)
+     if (config->width  < 8 || config->width  > 1920)
           fail |= CLRCF_WIDTH;
 
-     if (config->height < 8 || config->height > 600)
+     if (config->height < 8 || config->height > 1080)
           fail |= CLRCF_HEIGHT;
 
      if (config->dest.x < 0 || config->dest.y < 0)
           fail |= CLRCF_DEST;
 
-     if (config->dest.x + config->dest.w > 1280)
+     if (config->dest.x + config->dest.w > 1920)
           fail |= CLRCF_DEST;
 
-     if (config->dest.y + config->dest.h > 600)
+     if (config->dest.y + config->dest.h > 1080)
           fail |= CLRCF_DEST;
 
      if (failed)
