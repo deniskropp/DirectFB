@@ -2811,6 +2811,13 @@ dfb_gfxcard_get_driver_data()
      return card->driver_data;
 }
 
+CoreGraphicsDevice *
+dfb_gfxcard_get_primary()
+{
+     return card;
+}
+
+
 /** internal **/
 
 /*
