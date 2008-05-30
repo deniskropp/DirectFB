@@ -55,7 +55,16 @@ typedef struct {
      } update;
 
      VideoMode            *modes;        /* linked list of valid video modes */
+
+     SDL_Surface          *screen;
 } DFBSDL;
+
+extern DFBSDL  *dfb_sdl;
+extern CoreDFB *dfb_sdl_core;
+
+DFBResult dfb_sdl_set_video_mode( CoreDFB *core, CoreSurfaceConfig *config );
+DFBResult dfb_sdl_update_screen( CoreDFB *core, DFBRegion *region );
+DFBResult dfb_sdl_set_palette( CorePalette *palette );
 
 #endif
 

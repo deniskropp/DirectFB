@@ -159,6 +159,8 @@ static void sdlSetState( void *drv, void *dev, GraphicsDeviceFuncs *funcs,
 
                     sdev->color_valid = true;
                }
+
+               state->set |= SDL_DRAWING_FUNCTIONS;
                break;
 
           case DFXL_BLIT:
@@ -166,18 +168,18 @@ static void sdlSetState( void *drv, void *dev, GraphicsDeviceFuncs *funcs,
                     SDL_SetColorKey( sdev->source,
                                      (state->blittingflags &
                                       DSBLIT_SRC_COLORKEY) ? SDL_SRCCOLORKEY : 0,
-                                     state->src_colorkey );
+                                     state->src_colorkey | 0xff000000 );
 
                     sdev->key_valid = true;
                }
+
+               state->set |= SDL_BLITTING_FUNCTIONS;
                break;
 
           default:
                D_BUG("unexpected acceleration" );
                break;
      }
-
-     state->set |= SDL_DRAWING_FUNCTIONS | SDL_BLITTING_FUNCTIONS;
 
      state->modified = 0;
 }
