@@ -40,14 +40,32 @@ Supported Operating Systems
 Build Requirements
 ------------------
 
-   - Linux kernel 2.2.x or newer with working frame buffer device
-     (check /proc/fb) for the fbdev system.
-   - Optionally SDL (Simple Direct Media Layer) for the sdl system.
+   Mandatory are libc, libpthread, libm and libdl.
 
-   - freetype (version >= 2.0.1)
-   - libjpeg62
-   - libpng2 or libpng3
-   - zlib
+   Optionally, depending on the configuration you want:
+
+   FBDev
+     - Linux kernel 2.2.x or newer with working frame buffer device
+       (check /proc/fb) for the fbdev system.
+
+   SDL
+     - libSDL (Simple Direct Media Layer) for the sdl system.
+
+   X11
+     - libX11 (X11 client library) for the X11 system.
+
+   The following libraries are optional, but important (Debian package names):
+
+   Fonts
+     - libfreetype6-dev for TrueType and other fonts
+
+   Images
+     - libjpeg-dev for Joint Picture Expert Group images
+     - libpng-dev for Portable Network Graphics
+
+   Extra
+     - zlib1g-dev for compressed screenshot support (also needed by libpng)
+     - pkg-config for building other packages using DirectFB
 
    The multi application core also requires <linux/fusion.h>, see the
    section "Running multiple DirectFB applications" for more details.
