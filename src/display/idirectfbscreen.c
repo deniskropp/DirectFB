@@ -89,7 +89,7 @@ IDirectFBScreen_Destruct( IDirectFBScreen *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBScreen_AddRef( IDirectFBScreen *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
@@ -99,7 +99,7 @@ IDirectFBScreen_AddRef( IDirectFBScreen *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBScreen_Release( IDirectFBScreen *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)

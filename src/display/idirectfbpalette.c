@@ -64,7 +64,7 @@ IDirectFBPalette_Destruct( IDirectFBPalette *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBPalette_AddRef( IDirectFBPalette *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBPalette)
@@ -74,7 +74,7 @@ IDirectFBPalette_AddRef( IDirectFBPalette *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBPalette_Release( IDirectFBPalette *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBPalette)

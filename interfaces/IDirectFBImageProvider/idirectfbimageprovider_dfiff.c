@@ -103,7 +103,7 @@ IDirectFBImageProvider_DFIFF_Destruct( IDirectFBImageProvider *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_DFIFF_AddRef( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_DFIFF)
@@ -113,7 +113,7 @@ IDirectFBImageProvider_DFIFF_AddRef( IDirectFBImageProvider *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_DFIFF_Release( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_DFIFF)

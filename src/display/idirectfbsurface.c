@@ -147,7 +147,7 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
           parent->Release( parent );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBSurface_AddRef( IDirectFBSurface *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
@@ -159,7 +159,7 @@ IDirectFBSurface_AddRef( IDirectFBSurface *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBSurface_Release( IDirectFBSurface *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)

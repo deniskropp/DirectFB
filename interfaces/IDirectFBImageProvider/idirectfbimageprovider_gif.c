@@ -146,10 +146,10 @@ static u32* ReadGIF( IDirectFBImageProvider_GIF_data *data, int imageNumber,
 static bool ReadOK( IDirectFBDataBuffer *buffer, void *data, unsigned int len );
 
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_GIF_AddRef  ( IDirectFBImageProvider *thiz );
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_GIF_Release ( IDirectFBImageProvider *thiz );
 
 static DFBResult
@@ -240,7 +240,7 @@ IDirectFBImageProvider_GIF_Destruct( IDirectFBImageProvider *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_GIF_AddRef( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_GIF)
@@ -250,7 +250,7 @@ IDirectFBImageProvider_GIF_AddRef( IDirectFBImageProvider *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_GIF_Release( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_GIF)

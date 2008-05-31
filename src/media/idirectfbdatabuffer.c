@@ -70,7 +70,7 @@ IDirectFBDataBuffer_Destruct( IDirectFBDataBuffer *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBDataBuffer_AddRef( IDirectFBDataBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer)
@@ -80,7 +80,7 @@ IDirectFBDataBuffer_AddRef( IDirectFBDataBuffer *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBDataBuffer_Release( IDirectFBDataBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer)

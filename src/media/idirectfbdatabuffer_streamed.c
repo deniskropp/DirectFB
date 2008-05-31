@@ -112,7 +112,7 @@ IDirectFBDataBuffer_Streamed_Destruct( IDirectFBDataBuffer *thiz )
      IDirectFBDataBuffer_Destruct( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBDataBuffer_Streamed_Release( IDirectFBDataBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer)

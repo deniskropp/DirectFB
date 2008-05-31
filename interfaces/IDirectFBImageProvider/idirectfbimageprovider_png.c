@@ -115,10 +115,10 @@ typedef struct {
      CoreDFB             *core;
 } IDirectFBImageProvider_PNG_data;
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_PNG_AddRef  ( IDirectFBImageProvider *thiz );
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_PNG_Release ( IDirectFBImageProvider *thiz );
 
 static DFBResult
@@ -269,7 +269,7 @@ IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_PNG_AddRef( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
@@ -279,7 +279,7 @@ IDirectFBImageProvider_PNG_AddRef( IDirectFBImageProvider *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_PNG_Release( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)

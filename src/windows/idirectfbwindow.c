@@ -139,7 +139,7 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBWindow_AddRef( IDirectFBWindow *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
@@ -149,7 +149,7 @@ IDirectFBWindow_AddRef( IDirectFBWindow *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBWindow_Release( IDirectFBWindow *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)

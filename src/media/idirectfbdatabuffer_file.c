@@ -73,7 +73,7 @@ IDirectFBDataBuffer_File_Destruct( IDirectFBDataBuffer *thiz )
      IDirectFBDataBuffer_Destruct( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBDataBuffer_File_Release( IDirectFBDataBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer)

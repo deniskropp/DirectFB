@@ -103,7 +103,7 @@ IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
      IDirectFBSurface_Destruct( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBSurface_Window_Release( IDirectFBSurface *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)

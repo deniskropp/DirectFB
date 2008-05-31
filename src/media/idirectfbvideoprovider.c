@@ -40,13 +40,13 @@
 #include <media/idirectfbdatabuffer.h>
 
 
-static DFBResult
+static DirectResult
 IDirectFBVideoProvider_AddRef( IDirectFBVideoProvider *thiz )
 {
      return DFB_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBVideoProvider_Release( IDirectFBVideoProvider *thiz )
 {
      return DFB_UNIMPLEMENTED;

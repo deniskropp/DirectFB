@@ -623,7 +623,7 @@ IDirectFBFont_FT2_Destruct( IDirectFBFont *thiz )
 }
 
 
-static DFBResult
+static DirectResult
 IDirectFBFont_FT2_Release( IDirectFBFont *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)

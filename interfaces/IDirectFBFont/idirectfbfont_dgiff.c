@@ -96,7 +96,7 @@ IDirectFBFont_DGIFF_Destruct( IDirectFBFont *thiz )
 }
 
 
-static DFBResult
+static DirectResult
 IDirectFBFont_DGIFF_Release( IDirectFBFont *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)

@@ -189,7 +189,7 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBEventBuffer_AddRef( IDirectFBEventBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
@@ -201,7 +201,7 @@ IDirectFBEventBuffer_AddRef( IDirectFBEventBuffer *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBEventBuffer_Release( IDirectFBEventBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)

@@ -207,7 +207,7 @@ IDirectFB_Destruct( IDirectFB *thiz )
 }
 
 
-static DFBResult
+static DirectResult
 IDirectFB_AddRef( IDirectFB *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
@@ -219,7 +219,7 @@ IDirectFB_AddRef( IDirectFB *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFB_Release( IDirectFB *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB)

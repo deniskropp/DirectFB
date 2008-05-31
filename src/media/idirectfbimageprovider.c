@@ -42,13 +42,13 @@
 #include <media/idirectfbdatabuffer.h>
 
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_AddRef( IDirectFBImageProvider *thiz )
 {
      return DFB_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_Release( IDirectFBImageProvider *thiz )
 {
      return DFB_UNIMPLEMENTED;
