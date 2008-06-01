@@ -97,9 +97,6 @@ typedef struct {
 
      CoreLayerRegionConfig    config;
 
-     VideoMode               *test_mode;
-     CoreLayerRegionConfig    test_config;
-
      SurfaceManager          *manager;
 } FBDevShared;
 
@@ -129,10 +126,13 @@ DFBResult dfb_fbdev_join();
  * deinitializes DirectFB fbdev stuff and restores fbdev settings
  */
 DFBResult dfb_fbdev_shutdown( bool emergency );
-DFBResult dfb_fbdev_leave( bool emergency );
+DFBResult dfb_fbdev_leave   ( bool emergency );
 
-DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
-                              VideoMode             *mode,
-                              CoreLayerRegionConfig *config );
+DFBResult dfb_fbdev_test_mode       ( const VideoMode             *mode,
+                                      const CoreLayerRegionConfig *config );
+DFBResult dfb_fbdev_test_mode_simple( const VideoMode             *mode );
+
+DFBResult dfb_fbdev_set_mode        ( const VideoMode             *mode,
+                                      const CoreSurfaceConfig     *config );
 
 #endif
