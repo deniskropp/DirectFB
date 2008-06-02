@@ -48,7 +48,7 @@ extern SurfacePoolFuncs preallocSurfacePoolFuncs;
 
 
 
-D_DEBUG_DOMAIN( Core_Surface, "Core/Surface", "DirectFB Surface Core" );
+D_DEBUG_DOMAIN( Core_Surface, "Core/SurfaceCore", "DirectFB Surface Core" );
 
 /**********************************************************************************************************************/
 
