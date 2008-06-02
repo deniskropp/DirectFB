@@ -684,6 +684,8 @@ driver_get_keymap_entry( CoreInputDevice           *device,
      X11InputData *data    = driver_data;
      DFBX11       *dfb_x11 = data->dfb_x11;
 
+     XLockDisplay( dfb_x11->display );
+
      for (i=0; i<4; i++) {
           KeySym xSymbol = XKeycodeToKeysym( dfb_x11->display, entry->code, i );
 
@@ -692,6 +694,8 @@ driver_get_keymap_entry( CoreInputDevice           *device,
 
           entry->symbols[i] = xsymbol_to_symbol( xSymbol );
      }
+
+     XUnlockDisplay( dfb_x11->display );
 
      /* is CapsLock effective? */
      if (entry->identifier >= DIKI_A && entry->identifier <= DIKI_Z)
