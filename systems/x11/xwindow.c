@@ -39,13 +39,6 @@
 extern DFBX11  *dfb_x11;
 extern CoreDFB *dfb_x11_core;
 
-//
-// Data to create an invisible cursor
-//
-const char null_cursor_bits[] = {
-     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 static int
 error_handler( Display *display, XErrorEvent *event )
@@ -65,22 +58,25 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
      XWindow* xw = (XWindow *)calloc(1, sizeof(XWindow));
 
      /* We set the structure as needed for our window */
-     xw->width = iWidth;
-     xw->height     = iHeight;
+     xw->width   = iWidth;
+     xw->height  = iHeight;
      xw->display = dfb_x11->display;
 
-     xw->screenptr  = DefaultScreenOfDisplay(xw->display);
-     xw->screennum  = DefaultScreen(xw->display);
-     xw->visual          = DefaultVisualOfScreen(xw->screenptr);
-     xw->depth       = DefaultDepth( xw->display, xw->screennum );
+     xw->screenptr = DefaultScreenOfDisplay(xw->display);
+     xw->screennum = DefaultScreen(xw->display);
+     xw->visual    = DefaultVisualOfScreen(xw->screenptr);
+     xw->depth     = DefaultDepth( xw->display, xw->screennum );
 
-     xw->window=XCreateWindow(xw->display,
-                              RootWindowOfScreen(xw->screenptr),
-                              iXPos, iYPos, iWidth, iHeight, 0, xw->depth, InputOutput,
-                              xw->visual, 0, NULL); 
+     XLockDisplay( dfb_x11->display );
+
+     xw->window = XCreateWindow( xw->display,
+                                 RootWindowOfScreen(xw->screenptr),
+                                 iXPos, iYPos, iWidth, iHeight, 0, xw->depth, InputOutput,
+                                 xw->visual, 0, NULL );
 
      if (!xw->window) {
           free( xw );
+          XUnlockDisplay( dfb_x11->display );
           return False;
      }
 
@@ -110,25 +106,29 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
 
 
 
-     XSelectInput(xw->display, xw->window,
-                  ExposureMask|KeyPressMask|KeyReleaseMask|PointerMotionMask|ButtonPressMask|ButtonReleaseMask);
+     XSelectInput( xw->display, xw->window,
+                   ExposureMask|KeyPressMask|KeyReleaseMask|PointerMotionMask|ButtonPressMask|ButtonReleaseMask );
 
 
-     xw->gc=XCreateGC(xw->display, xw->window, 0, NULL);
+     xw->gc = XCreateGC(xw->display, xw->window, 0, NULL);
 
 
 
      // Create a null cursor
      XColor  fore;
      XColor  back;
-     xw->pixmp1 = XCreateBitmapFromData(     xw->display, xw->window, null_cursor_bits, 16, 16);
-     xw->pixmp2 = XCreateBitmapFromData(     xw->display, xw->window, null_cursor_bits, 16, 16);
-     xw->NullCursor = XCreatePixmapCursor(xw->display,xw->pixmp1,xw->pixmp2,&fore,&back,0,0);
-     XDefineCursor(xw->display, xw->window, xw->NullCursor);
+     char    zero = 0;
+
+     xw->pixmp1     = XCreateBitmapFromData( xw->display, xw->window, &zero, 1, 1 );
+     xw->pixmp2     = XCreateBitmapFromData( xw->display, xw->window, &zero, 1, 1 );
+
+     xw->NullCursor = XCreatePixmapCursor( xw->display, xw->pixmp1, xw->pixmp2, &fore, &back, 0, 0 );
+
+     XDefineCursor( xw->display, xw->window, xw->NullCursor );
 
 
      /* maps the window and raises it to the top of the stack */
-     XMapRaised(xw->display, xw->window);
+     XMapRaised( xw->display, xw->window );
 
 
      dfb_x11->use_shm = XShmQueryExtension(dfb_x11->display);
@@ -205,7 +205,7 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
           }
      }
 
-     no_shm:
+no_shm:
      if (!dfb_x11->use_shm) {
           int pitch;
 
@@ -222,18 +222,24 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
                printf("X11: Error creating image (XCreateImage) \n");
                XFreeGC(xw->display,xw->gc);
                XDestroyWindow(xw->display,xw->window);
+               XUnlockDisplay( dfb_x11->display );
                free( xw );
                return False;
           }
      }
+
+     XUnlockDisplay( dfb_x11->display );
 
      (*ppXW) = xw;
 
      return True;
 }
 
-void dfb_x11_close_window(XWindow* xw)
+void
+dfb_x11_close_window( XWindow* xw )
 {
+     XLockDisplay( dfb_x11->display );
+
      if (dfb_x11->use_shm) {
           XShmDetach(xw->display, xw->shmseginfo);
           shmdt(xw->shmseginfo->shmaddr);
@@ -247,6 +253,9 @@ void dfb_x11_close_window(XWindow* xw)
 
      XFreeGC(xw->display,xw->gc);
      XDestroyWindow(xw->display,xw->window);
+
+     XUnlockDisplay( dfb_x11->display );
+
      free(xw);
 }
 

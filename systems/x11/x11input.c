@@ -544,7 +544,11 @@ x11EventThread( DirectThread *thread, void *driver_data )
 #else
           usleep(10000);
 
+          XLockDisplay( dfb_x11->display );
+
           while (XCheckMaskEvent( dfb_x11->display, ~0, &xEvent )) {
+               XUnlockDisplay( dfb_x11->display );
+
                switch (xEvent.type) {
                     case ButtonPress:
                     case ButtonRelease:
@@ -575,7 +579,11 @@ x11EventThread( DirectThread *thread, void *driver_data )
                     default:
                          break;
                }
+
+               XLockDisplay( dfb_x11->display );
           }
+
+          XUnlockDisplay( dfb_x11->display );
 #endif
           motion_realize( data );
 

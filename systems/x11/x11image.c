@@ -130,10 +130,13 @@ dfb_x11_image_init_handler( x11Image *image )
 
      D_MAGIC_ASSERT( image, x11Image );
 
+     XLockDisplay( dfb_x11->display );
+
      ximage = XShmCreateImage( dfb_x11->display, image->visual, image->depth,
                                ZPixmap, NULL, &image->seginfo, image->width, image->height );
      if (!ximage) {
           D_ERROR( "X11/ShmImage: Error creating shared image (XShmCreateImage)!\n");
+          XUnlockDisplay( dfb_x11->display );
           return DFB_FAILURE;
      }
 
@@ -161,6 +164,8 @@ dfb_x11_image_init_handler( x11Image *image )
 
      image->ximage = ximage;
 
+     XUnlockDisplay( dfb_x11->display );
+
      return DFB_OK;
 
 
@@ -173,6 +178,8 @@ error_shmat:
 error:
      XDestroyImage( ximage );
 
+     XUnlockDisplay( dfb_x11->display );
+
      return DFB_FAILURE;
 }
 
@@ -181,9 +188,13 @@ dfb_x11_image_destroy_handler( x11Image *image )
 {
      D_MAGIC_ASSERT( image, x11Image );
 
+     XLockDisplay( dfb_x11->display );
+
      XShmDetach( dfb_x11->display, &image->seginfo );
 
      XDestroyImage( image->ximage );
+
+     XUnlockDisplay( dfb_x11->display );
 
      shmdt( image->seginfo.shmaddr );
 
