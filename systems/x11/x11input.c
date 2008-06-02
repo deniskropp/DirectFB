@@ -72,7 +72,7 @@ typedef struct {
      CoreInputDevice*    device;
      DirectThread*       thread;
      DFBX11*             dfb_x11;
-     int                 stop;
+     bool                stop;
 } X11InputData;
 
 
@@ -505,15 +505,16 @@ x11EventThread( DirectThread *thread, void *driver_data )
      DFBX11       *dfb_x11 = data->dfb_x11;
 
      while (!data->stop) {
-          XEvent xEvent; 
+          unsigned int  pull = 100;
+          XEvent        xEvent; 
           DFBInputEvent dfbEvent;
 
           /* FIXME: Detect key repeats, we're receiving KeyPress, KeyRelease, KeyPress, KeyRelease... !!?? */
 
-#ifdef ___HELP___WHY_DOES_THIS_ALWAYS_BLOCK_THE_LAST_EVENT___HELP___
+#if 1
           XNextEvent( dfb_x11->display, &xEvent );
 
-          do {
+          while (pull--) {
                switch (xEvent.type) {
                     case ButtonPress:
                     case ButtonRelease:
@@ -537,10 +538,23 @@ x11EventThread( DirectThread *thread, void *driver_data )
                          break;
                     }
 
+                    case Expose:
+                         handle_expose( &xEvent.xexpose );
+                         break;
+
                     default:
                          break;
                }
-          } while (XCheckMaskEvent( dfb_x11->display, ~0, &xEvent ));
+
+               if (pull) {
+                    XLockDisplay( dfb_x11->display );
+
+                    if (!XCheckMaskEvent( dfb_x11->display, ~0, &xEvent ))
+                         pull = 0;
+
+                    XUnlockDisplay( dfb_x11->display );
+               }
+          }
 #else
           usleep(10000);
 
@@ -714,10 +728,20 @@ driver_get_keymap_entry( CoreInputDevice           *device,
 static void
 driver_close_device( void *driver_data )
 {
-     X11InputData *data = driver_data;
+     X11InputData *data    = driver_data;
+     DFBX11       *dfb_x11 = data->dfb_x11;
+     XEvent        xEvent;
 
      /* stop input thread */
-     data->stop = 1;
+     data->stop = true;
+
+     memset( &xEvent, 0, sizeof(xEvent) );
+
+     xEvent.xclient.type   = ClientMessage;
+     xEvent.xclient.format = 8;
+
+     XSendEvent( dfb_x11->display, dfb_x11->xw->window, False, 0, &xEvent );
+     XFlush( dfb_x11->display );
 
      direct_thread_join( data->thread );
      direct_thread_destroy( data->thread );
