@@ -1079,6 +1079,18 @@ CollectEventStatistics( DFBEventBufferStats *stats,
                          stats->DVPET_DATALOW += incdec;
                          break;
 
+                   case DVPET_DATAHIGH:
+                         stats->DVPET_DATAHIGH += incdec;
+                         break;
+
+                   case DVPET_BUFFERTIMELOW:
+                         stats->DVPET_BUFFERTIMELOW += incdec;
+                         break;
+
+                   case DVPET_BUFFERTIMEHIGH:
+                         stats->DVPET_BUFFERTIMEHIGH += incdec;
+                         break;
+
                     default:
                          D_BUG( "unknown video provider event type 0x%08x\n", event->videoprovider.type );
                }
