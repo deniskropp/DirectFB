@@ -91,11 +91,6 @@ direct_list_contains_element_EXPENSIVE( DirectLink *list, DirectLink *link )
 {
      D_MAGIC_ASSERT_IF( list, DirectLink );
      
-     if (!link->prev && !link->next)
-          return false;
-     
-//     D_MAGIC_ASSERT( link, DirectLink );
-
      while (list) {
           if (list == link)
                return true;
