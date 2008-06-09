@@ -48,7 +48,7 @@ ISaWMan_Destruct( ISaWMan *thiz )
 }
 
 
-static DFBResult
+static DirectResult
 ISaWMan_AddRef( ISaWMan *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( ISaWMan )
@@ -58,7 +58,7 @@ ISaWMan_AddRef( ISaWMan *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 ISaWMan_Release( ISaWMan *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( ISaWMan )
