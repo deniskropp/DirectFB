@@ -2360,7 +2360,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
           return DFB_FAILURE;
      }
 
-     if (parent) {
+     if (parent && dfb_config->startstop) {
           IDirectFBSurface_data *parent_data;
 
           if (parent->AddRef( parent )) {
@@ -2542,6 +2542,9 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
 void
 IDirectFBSurface_StopAll( IDirectFBSurface_data *data )
 {
+     if (!dfb_config->startstop)
+          return;
+
      if (data->children_data) {
           IDirectFBSurface_data *child;
 
