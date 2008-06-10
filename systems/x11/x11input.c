@@ -414,7 +414,7 @@ static void handleMouseEvent(XEvent* pXEvent, X11InputData* pData)
                case 5: /*down*/
                case 6: /*left*/
                case 7: /*right*/
-                    {
+                    if (pXEvent->type == ButtonPress) {
                          dfbEvent.type = DIET_AXISMOTION;
                          dfbEvent.flags = DIEF_AXISREL;
                          dfbEvent.axis = DIAI_Z;
@@ -436,8 +436,9 @@ static void handleMouseEvent(XEvent* pXEvent, X11InputData* pData)
                               dfbEvent.axis = DIAI_X;
                               dfbEvent.axisrel = 1;
                          }
-
                     }
+                    else
+                         return;
                     break;
                default:
                     break;
