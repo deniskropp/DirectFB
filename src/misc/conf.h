@@ -210,6 +210,8 @@ typedef struct
 
      int           surface_shmpool_size;          /* Set the size of the shared memory pool used for
                                                      shared system memory surfaces. */
+
+     bool          no_cursor_updates;             /* Never show the cursor etc. */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;
