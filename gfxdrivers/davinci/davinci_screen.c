@@ -81,14 +81,24 @@ davinciGetScreenSize( CoreScreen *screen,
                       int        *ret_width,
                       int        *ret_height )
 {
+     int                       ret;
+     struct fb_var_screeninfo  var;
+     DavinciDriverData        *ddrv = driver_data;
+
      D_DEBUG_AT( Davinci_Screen, "%s()\n", __FUNCTION__ );
 
      D_ASSERT( ret_width != NULL );
      D_ASSERT( ret_height != NULL );
 
+     ret = ioctl( ddrv->fb[OSD0].fd, FBIOGET_VSCREENINFO, &var );
+     if (ret) {
+          D_PERROR( "%s: FBIOGET_VSCREENINFO (fb%d) failed!\n", __func__ );
+          return DFB_INIT;
+     }
+
      /* FIXME */
-     *ret_width  = 720;
-     *ret_height = 576;
+     *ret_width  = var.xres;
+     *ret_height = var.yres;
 
      return DFB_OK;
 }
