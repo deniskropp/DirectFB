@@ -47,12 +47,12 @@ $COLOR_BG                = "#F8F4D8";
 $COLOR_LINK              = "#2369E0";
 $COLOR_TEXT              = "#232323";
 
-$COLOR_TOP_BG            = "#000000";
-$COLOR_TOP_LINK          = "#FFFFFF";
+$COLOR_TOP_BG            = "#C0B090";
+$COLOR_TOP_LINK          = "#203040";
 
-$COLOR_TITLE             = "#CC7723";
-$COLOR_TITLE_BG          = "#203040";
-$COLOR_TITLE_MAIN        = "#DDDDDD";
+$COLOR_TITLE             = "#E09040";
+$COLOR_TITLE_BG          = "#284460";
+$COLOR_TITLE_MAIN        = "#D0D0D0";
 
 $COLOR_ENTRIES_BG        = "#F8F8F0";
 $COLOR_ENTRIES_PTR       = "#424242";
@@ -807,9 +807,9 @@ sub html_create ($$$$$)
                   "</HEAD>\n",
                   "<BODY bgcolor=$COLOR_BG link=$COLOR_LINK vlink=$COLOR_LINK text=$COLOR_TEXT>\n",
                   "\n",
-                  "<TABLE width=100% bgcolor=$COLOR_TOP_BG border=0 cellspacing=1 cellpadding=3>\n",
+                  "<TABLE width=100% bgcolor=$COLOR_TOP_BG border=0 cellspacing=0 cellpadding=5>\n",
                   "  <TR><TD width=30%>\n",
-                  "    <A href=\"http://www.directfb.org\"><IMG border=0 src=\"directfb.png\"></A>\n",
+                  "    <A href=\"http://www.directfb.org\"><IMG border=0 src=\"dfb_logo-alpha.png\"></A>\n",
                   "  </TD><TD align=right>\n",
                   "    &nbsp;&nbsp;",
                   "    <A href=\"index.html\"><FONT size=+3 color=$COLOR_TOP_LINK>Reference Manual - $VERSION</FONT></A>\n",
@@ -820,7 +820,7 @@ sub html_create ($$$$$)
          {
             print $FILE "    <TABLE border=0 cellspacing=0 cellpadding=0>\n",
                         "      <TR><TD nowrap align=right width=50%>\n",
-                        "        <BIG>$title&nbsp;</BIG>\n",
+                        "        <BIG><FONT color=$COLOR_TITLE_MAIN>$title&nbsp;</FONT></BIG>\n",
                         "      </TD><TD nowrap align=left width=50%>\n",
                         "        <BIG><FONT color=$COLOR_TITLE>&nbsp;$subtitle</FONT></BIG>\n",
                         "      </TD></TR>\n",
@@ -828,7 +828,7 @@ sub html_create ($$$$$)
          }
       else
          {
-            print $FILE "    <BIG><FONT color=$COLOR_TITLE>$title</FONT></BIG>\n";
+            print $FILE "    <BIG><FONT color=$COLOR_TITLE_MAIN>$title</FONT></BIG>\n";
          }
 
       print $FILE "  </TD></TR>\n",
@@ -870,8 +870,8 @@ sub gen_doc ($$) {
    trim( \$project );
    trim( \$version );
 
-   html_create( INDEX, "index.html", "Index Page", "", "Index" );
-   html_create( TYPES, "types.html", "$PROJECT Types", "", "Types" );
+   html_create( INDEX, "index.html", "$PROJECT Reference", "API Overview", "Index" );
+   html_create( TYPES, "types.html", "$PROJECT Reference", "Type Definitions", "Types" );
    
    print INDEX "<P>\n",
                "  <CENTER>\n",

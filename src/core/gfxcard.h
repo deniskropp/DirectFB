@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -411,6 +411,8 @@ unsigned int    dfb_gfxcard_auxmemory_length  ( void );
 
 void           *dfb_gfxcard_get_device_data   ( void );
 void           *dfb_gfxcard_get_driver_data   ( void );
+
+CoreGraphicsDevice *dfb_gfxcard_get_primary   ( void );
 
 /*
  * Graphics drivers call this function to get access to MMIO regions.

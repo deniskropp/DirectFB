@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -106,7 +106,7 @@ IDirectFBDisplayLayer_Destruct( IDirectFBDisplayLayer *thiz )
      D_DEBUG_AT( Layer, "  -> done.\n" );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBDisplayLayer_AddRef( IDirectFBDisplayLayer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
@@ -116,7 +116,7 @@ IDirectFBDisplayLayer_AddRef( IDirectFBDisplayLayer *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBDisplayLayer_Release( IDirectFBDisplayLayer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)

@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -34,7 +34,7 @@
 
 #include <directfb.h>
 
-typedef struct VirtualTerminal {
+typedef struct {
      int fd0;                      /* file descriptor of /dev/tty0 */
      int fd;                       /* file descriptor of /dev/ttyN
                                       where N is the number of the allocated VT,
@@ -56,8 +56,6 @@ typedef struct VirtualTerminal {
      pthread_cond_t   wait;
 
      int              vt_sig;
-
-     DFBResult	     (*method_open) (struct VirtualTerminal *);
 } VirtualTerminal;
 
 /*

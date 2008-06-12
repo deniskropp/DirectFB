@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -623,7 +623,7 @@ IDirectFBFont_FT2_Destruct( IDirectFBFont *thiz )
 }
 
 
-static DFBResult
+static DirectResult
 IDirectFBFont_FT2_Release( IDirectFBFont *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)

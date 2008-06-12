@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -323,7 +323,7 @@ dfb_surface_buffer_unlock( CoreSurfaceBufferLock *lock )
      /*
       * FIXME: This should fail with a nested GPU Lock during a CPU Lock and/or vice versa?
       */
-     D_ASSUME( D_FLAGS_ARE_SET( allocation->accessed, lock->access ) );
+//     D_ASSUME( D_FLAGS_ARE_SET( allocation->accessed, lock->access ) );
 
      ret = dfb_surface_pool_unlock( pool, lock->allocation, lock );
      if (ret) {

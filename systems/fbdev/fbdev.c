@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -93,6 +93,11 @@
 #include <core/core_system.h>
 
 DFB_CORE_SYSTEM( fbdev )
+
+
+D_DEBUG_DOMAIN( FBDev_Mode, "FBDev/Mode", "FBDev System Module Mode Switching" );
+
+/******************************************************************************/
 
 extern const SurfacePoolFuncs fbdevSurfacePoolFuncs;
 
@@ -216,8 +221,8 @@ static DFBResult dfb_fbdev_set_palette( CorePalette *palette );
 static DFBResult dfb_fbdev_set_rgb332_palette();
 static DFBResult dfb_fbdev_pan( int xoffset, int yoffset, bool onsync );
 static DFBResult dfb_fbdev_blank( int level );
-static void      dfb_fbdev_var_to_mode( struct fb_var_screeninfo *var,
-                                        VideoMode                *mode );
+static void      dfb_fbdev_var_to_mode( const struct fb_var_screeninfo *var,
+                                        VideoMode                      *mode );
 
 /******************************************************************************/
 
@@ -941,7 +946,7 @@ init_modes()
 
           *dfb_fbdev->shared->modes = dfb_fbdev->shared->current_mode;
 
-          if (dfb_fbdev_set_mode(NULL, dfb_fbdev->shared->modes, NULL)) {
+          if (dfb_fbdev_test_mode_simple(dfb_fbdev->shared->modes)) {
                D_ERROR("DirectFB/FBDev: "
                         "No supported modes found in /etc/fb.modes and "
                         "current mode not supported!\n");
@@ -1068,7 +1073,6 @@ primaryInitLayer( CoreLayer                  *layer,
 {
      DFBResult  ret;
      VideoMode *default_mode;
-     CoreLayerRegionConfig tmp;
 
      /* initialize mode table */
      ret = init_modes();
@@ -1099,19 +1103,10 @@ primaryInitLayer( CoreLayer                  *layer,
      config->width      = default_mode->xres;
      config->height     = default_mode->yres;
 
-     memset( &tmp, 0, sizeof(CoreLayerRegionConfig) );
-     tmp.width      = config->width;
-     tmp.height     = config->height;
-     tmp.format     = DSPF_RGB16;
-     tmp.buffermode = DLBM_FRONTONLY;
-     tmp.source.x   = 0;
-     tmp.source.y   = 0;
-     tmp.source.w   = config->width;
-     tmp.source.h   = config->height;
-     if (dfb_fbdev_set_mode( NULL, NULL, &tmp ))
-          config->pixelformat = dfb_pixelformat_for_depth( dfb_fbdev->shared->orig_var.bits_per_pixel );
+     if (dfb_config->mode.format)
+          config->pixelformat = dfb_config->mode.format;
      else
-          config->pixelformat = DSPF_RGB16;
+          config->pixelformat = dfb_pixelformat_for_depth( default_mode->bpp );
 
      return DFB_OK;
 }
@@ -1238,22 +1233,30 @@ primaryTestRegion( CoreLayer                  *layer,
                    CoreLayerRegionConfig      *config,
                    CoreLayerRegionConfigFlags *failed )
 {
-     VideoMode                  *videomode = NULL;
-     CoreLayerRegionConfigFlags  fail = 0;
+     FBDevShared                *shared    = dfb_fbdev->shared;
+     const VideoMode            *videomode = NULL;
+     const VideoMode            *highest   = NULL;
+     CoreLayerRegionConfigFlags  fail      = CLRCF_NONE;
 
-     D_INFO( "FBDev/Mode: Testing %dx%d %s\n", config->source.w, config->source.h,
-             dfb_pixelformat_name(config->format) );
+     D_DEBUG_AT( FBDev_Mode, "%s( %dx%d, %s )\n", __FUNCTION__,
+                 config->source.w, config->source.h, dfb_pixelformat_name(config->format) );
 
-     videomode = dfb_fbdev->shared->modes;
+     videomode = shared->modes;
      while (videomode) {
           if (videomode->xres == config->source.w  &&
               videomode->yres == config->source.h)
-               break;
+          {
+               if (!highest || highest->priority < videomode->priority)
+                    highest = videomode;
+          }
 
           videomode = videomode->next;
      }
 
-     if (!videomode || dfb_fbdev_set_mode( NULL, videomode, config ))
+     if (!highest)
+          D_ERROR( "FBDev/Mode: No mode found for %dx%d!\n", config->source.w, config->source.h );
+
+     if (!highest || dfb_fbdev_test_mode( highest, config ))
           fail |= CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_BUFFERMODE;
 
      if (config->options)
@@ -1264,12 +1267,6 @@ primaryTestRegion( CoreLayer                  *layer,
 
      if (fail)
           return DFB_UNSUPPORTED;
-
-     D_INFO( "FBDev/Mode: Preparing switch to %dx%d %s\n", config->source.w, config->source.h,
-             dfb_pixelformat_name(config->format) );
-     /* HACK FIXME_SC_2 ALLOCATE/SETMODE TWIST */
-     dfb_fbdev->shared->test_mode   = videomode;  /* HACK */
-     dfb_fbdev->shared->test_config = *config;    /* HACK */
 
      return DFB_OK;
 }
@@ -1295,51 +1292,13 @@ primarySetRegion( CoreLayer                  *layer,
                   CorePalette                *palette,
                   CoreSurfaceBufferLock      *lock )
 {
-     DFBResult  ret;
-     VideoMode *videomode;
-     VideoMode *highest = NULL;
+     DFBResult    ret;
      FBDevShared *shared = dfb_fbdev->shared;
 
-     D_INFO( "FBDev/Mode: (Post)Setting %dx%d %s\n", config->source.w, config->source.h,
-             dfb_pixelformat_name(config->format) );
-
-     videomode = shared->modes;
-     while (videomode) {
-          if (videomode->xres == config->source.w  &&
-              videomode->yres == config->source.h)
-          {
-               if (!highest || highest->priority < videomode->priority)
-                    highest = videomode;
-          }
-
-          videomode = videomode->next;
-     }
-
-     if (!highest)
-          return DFB_UNSUPPORTED;
-
-     switch (updated & (CLRCF_BUFFERMODE | CLRCF_FORMAT | CLRCF_HEIGHT |
-                        CLRCF_SURFACE | CLRCF_WIDTH |  CLRCF_SOURCE)) {
-     case CLRCF_NONE:
-          /* No Flags - Clear pass through */
-          break;
-
-     case CLRCF_SOURCE:
-          if (config->source.w == shared->current_mode.xres &&
-              config->source.h == shared->current_mode.yres) {
-               ret = dfb_fbdev_pan( config->source.x,
-                                    lock->offset / lock->pitch + config->source.y,
-                                    true );
-               if (ret)
-                    return ret;
-               break;
-          }
-          /* fall through */
-     default:
-          ret = dfb_fbdev_set_mode( surface, highest, config );
+     if (updated & CLRCF_SOURCE) {
+          ret = dfb_fbdev_pan( config->source.x, lock->offset / lock->pitch + config->source.y, true );
           if (ret)
                return ret;
-          ;
      }
 
      if ((updated & CLRCF_PALETTE) && palette)
@@ -1393,8 +1352,9 @@ primaryFlipRegion( CoreLayer             *layer,
 
 /** fbdev internal **/
 
-static void dfb_fbdev_var_to_mode( struct fb_var_screeninfo *var, 
-                                   VideoMode                *mode )
+static void
+dfb_fbdev_var_to_mode( const struct fb_var_screeninfo *var, 
+                       VideoMode                      *mode )
 {
      mode->xres          = var->xres;
      mode->yres          = var->yres;
@@ -1416,6 +1376,7 @@ static void dfb_fbdev_var_to_mode( struct fb_var_screeninfo *var,
      mode->doubled       = (var->vmode & FB_VMODE_DOUBLE) ? 1 : 0;
 }
 
+#if 0
 static int dfb_fbdev_compatible_format( struct fb_var_screeninfo *var,
                                         int al, int rl, int gl, int bl,
                                         int ao, int ro, int go, int bo )
@@ -1522,11 +1483,13 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
 
      return DSPF_UNKNOWN;
 }
+#endif
 
 /*
  * pans display (flips buffer) using fbdev ioctl
  */
-static DFBResult dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
+static DFBResult
+dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
 {
 //     DFBResult                 ret;
      int                       result;
@@ -1574,7 +1537,7 @@ static DFBResult dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
      if (result) {
           errno = result;
 #else
-     if (ioctl( dfb_fbdev->fd, FBIOPAN_DISPLAY, var )) {
+     if (ioctl( dfb_fbdev->fd, FBIOPAN_DISPLAY, var ) < 0) {
           result = errno;
 #endif
           D_PERROR( "DirectFB/FBDev: Panning display failed (x=%u y=%u ywrap=%d vbl=%d)!\n",
@@ -1591,7 +1554,8 @@ static DFBResult dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
 /*
  * blanks display using fbdev ioctl
  */
-static DFBResult dfb_fbdev_blank( int level )
+static DFBResult
+dfb_fbdev_blank( int level )
 {
      if (ioctl( dfb_fbdev->fd, FBIOBLANK, level ) < 0) {
           D_PERROR( "DirectFB/FBDev: Display blanking failed!\n" );
@@ -1602,10 +1566,366 @@ static DFBResult dfb_fbdev_blank( int level )
      return DFB_OK;
 }
 
-/*
- * sets (if surface != NULL) or tests (if surface == NULL) video mode,
- * sets virtual y-resolution according to buffermode
- */
+DFBResult
+dfb_fbdev_mode_to_var( const VideoMode           *mode,
+                       DFBSurfacePixelFormat      pixelformat,
+                       unsigned int               vxres,
+                       unsigned int               vyres,
+                       DFBDisplayLayerBufferMode  buffermode,
+                       struct fb_var_screeninfo  *ret_var )
+{
+     struct fb_var_screeninfo  var;
+     FBDevShared              *shared = dfb_fbdev->shared;
+
+     D_DEBUG_AT( FBDev_Mode, "%s( mode: %p )\n", __FUNCTION__, mode );
+
+     D_ASSERT( mode != NULL );
+     D_ASSERT( ret_var != NULL );
+
+     D_DEBUG_AT( FBDev_Mode, "  -> resolution   %dx%d\n", mode->xres, mode->yres );
+     D_DEBUG_AT( FBDev_Mode, "  -> virtual      %dx%d\n", vxres, vyres );
+     D_DEBUG_AT( FBDev_Mode, "  -> pixelformat  %s\n", dfb_pixelformat_name(pixelformat) );
+     D_DEBUG_AT( FBDev_Mode, "  -> buffermode   %s\n",
+                 buffermode == DLBM_FRONTONLY  ? "FRONTONLY"  :
+                 buffermode == DLBM_BACKVIDEO  ? "BACKVIDEO"  :
+                 buffermode == DLBM_BACKSYSTEM ? "BACKSYSTEM" :
+                 buffermode == DLBM_TRIPLE     ? "TRIPLE"     : "invalid!" );
+
+     /* Start from current information */
+     var              = shared->current_var;
+     var.activate     = FB_ACTIVATE_NOW;
+
+     /* Set timings */
+     var.pixclock     = mode->pixclock;
+     var.left_margin  = mode->left_margin;
+     var.right_margin = mode->right_margin;
+     var.upper_margin = mode->upper_margin;
+     var.lower_margin = mode->lower_margin;
+     var.hsync_len    = mode->hsync_len;
+     var.vsync_len    = mode->vsync_len;
+
+     /* Set resolution */
+     var.xres         = mode->xres;
+     var.yres         = mode->yres;
+     var.xres_virtual = vxres;
+     var.yres_virtual = vyres;
+     var.xoffset      = 0;
+     var.yoffset      = 0;
+
+     /* Set buffer mode */
+     switch (buffermode) {
+          case DLBM_TRIPLE:
+               if (shared->fix.ypanstep == 0 && shared->fix.ywrapstep == 0)
+                    return DFB_UNSUPPORTED;
+
+               var.yres_virtual *= 3;
+               break;
+
+          case DLBM_BACKVIDEO:
+               if (shared->fix.ypanstep == 0 && shared->fix.ywrapstep == 0)
+                    return DFB_UNSUPPORTED;
+
+               var.yres_virtual *= 2;
+               break;
+
+          case DLBM_BACKSYSTEM:
+          case DLBM_FRONTONLY:
+               break;
+
+          default:
+               return DFB_UNSUPPORTED;
+     }
+
+     /* Set pixel format */
+     var.bits_per_pixel = DFB_BITS_PER_PIXEL(pixelformat);
+     var.transp.length  = var.transp.offset = 0;
+
+     switch (pixelformat) {
+          case DSPF_ARGB1555:
+               var.transp.length = 1;
+               var.red.length    = 5;
+               var.green.length  = 5;
+               var.blue.length   = 5;
+               var.transp.offset = 15;
+               var.red.offset    = 10;
+               var.green.offset  = 5;
+               var.blue.offset   = 0;
+               break;
+
+          case DSPF_RGB555:
+               var.red.length    = 5;
+               var.green.length  = 5;
+               var.blue.length   = 5;
+               var.red.offset    = 10;
+               var.green.offset  = 5;
+               var.blue.offset   = 0;
+               break;
+
+          case DSPF_ARGB4444:
+               var.transp.length = 4;
+               var.red.length    = 4;
+               var.green.length  = 4;
+               var.blue.length   = 4;
+               var.transp.offset = 12;
+               var.red.offset    = 8;
+               var.green.offset  = 4;
+               var.blue.offset   = 0;
+               break;
+
+         case DSPF_RGB444:
+               var.red.length    = 4;
+               var.green.length  = 4;
+               var.blue.length   = 4;
+               var.red.offset    = 8;
+               var.green.offset  = 4;
+               var.blue.offset   = 0;
+               break;
+
+         case DSPF_RGB32:
+               var.red.length    = 8;
+               var.green.length  = 8;
+               var.blue.length   = 8;
+               var.red.offset    = 16;
+               var.green.offset  = 8;
+               var.blue.offset   = 0;
+               break;
+
+          case DSPF_RGB16:
+               var.red.length    = 5;
+               var.green.length  = 6;
+               var.blue.length   = 5;
+               var.red.offset    = 11;
+               var.green.offset  = 5;
+               var.blue.offset   = 0;
+               break;
+
+          case DSPF_ARGB:
+          case DSPF_AiRGB:
+               var.transp.length = 8;
+               var.red.length    = 8;
+               var.green.length  = 8;
+               var.blue.length   = 8;
+               var.transp.offset = 24;
+               var.red.offset    = 16;
+               var.green.offset  = 8;
+               var.blue.offset   = 0;
+               break;
+
+          case DSPF_LUT8:
+          case DSPF_RGB24:
+          case DSPF_RGB332:
+               break;
+
+          case DSPF_ARGB1666:
+               var.transp.length = 1;
+               var.red.length    = 6;
+               var.green.length  = 6;
+               var.blue.length   = 6;
+               var.transp.offset = 18;
+               var.red.offset    = 12;
+               var.green.offset  = 6;
+               var.blue.offset   = 0;
+               break;
+
+          case DSPF_ARGB6666:
+               var.transp.length = 6;
+               var.red.length    = 6;
+               var.green.length  = 6;
+               var.blue.length   = 6;
+               var.transp.offset = 18;
+               var.red.offset    = 12;
+               var.green.offset  = 6;
+               var.blue.offset   = 0;
+               break;
+
+          case DSPF_RGB18:
+               var.red.length    = 6;
+               var.green.length  = 6;
+               var.blue.length   = 6;
+               var.red.offset    = 12;
+               var.green.offset  = 6;
+               var.blue.offset   = 0;
+               break;
+
+          default:
+               return DFB_UNSUPPORTED;
+     }
+
+     /* Set sync options */
+     var.sync = 0;
+     if (mode->hsync_high)
+          var.sync |= FB_SYNC_HOR_HIGH_ACT;
+     if (mode->vsync_high)
+          var.sync |= FB_SYNC_VERT_HIGH_ACT;
+     if (mode->csync_high)
+          var.sync |= FB_SYNC_COMP_HIGH_ACT;
+     if (mode->sync_on_green)
+          var.sync |= FB_SYNC_ON_GREEN;
+     if (mode->external_sync)
+          var.sync |= FB_SYNC_EXT;
+     if (mode->broadcast)
+          var.sync |= FB_SYNC_BROADCAST;
+
+     /* Set interlace/linedouble */
+     var.vmode = 0;
+     if (mode->laced)
+          var.vmode |= FB_VMODE_INTERLACED;
+     if (mode->doubled)
+          var.vmode |= FB_VMODE_DOUBLE;
+
+     *ret_var = var;
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_fbdev_test_mode( const VideoMode             *mode,
+                     const CoreLayerRegionConfig *config )
+{
+     DFBResult                  ret;
+     struct fb_var_screeninfo   var;
+     FBDevShared               *shared = dfb_fbdev->shared;
+     const DFBRectangle        *source = &config->source;
+
+     D_DEBUG_AT( FBDev_Mode, "%s( mode: %p, config: %p )\n", __FUNCTION__, mode, config );
+
+     D_ASSERT( mode != NULL );
+     D_ASSERT( config != NULL );
+
+     /* Is panning supported? */
+     if (source->w != mode->xres && shared->fix.xpanstep == 0)
+          return DFB_UNSUPPORTED;
+     if (source->h != mode->yres && shared->fix.ypanstep == 0 && shared->fix.ywrapstep == 0)
+          return DFB_UNSUPPORTED;
+
+     ret = dfb_fbdev_mode_to_var( mode, config->format, config->width, config->height, config->buffermode, &var );
+     if (ret)
+          return ret;
+
+     /* Enable test mode */
+     var.activate = FB_ACTIVATE_TEST;
+
+
+     dfb_gfxcard_lock( GDLF_WAIT | GDLF_SYNC | GDLF_RESET | GDLF_INVALIDATE );
+
+     if (FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &var ) < 0) {
+          int erno = errno;
+          dfb_gfxcard_unlock();
+          D_DEBUG_AT( FBDev_Mode, "  => FAILED!\n" );
+          return errno2result( erno );
+     }
+
+     dfb_gfxcard_unlock();
+
+     D_DEBUG_AT( FBDev_Mode, "  => SUCCESS\n" );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_fbdev_test_mode_simple( const VideoMode *mode )
+{
+     DFBResult                ret;
+     struct fb_var_screeninfo var;
+
+     D_DEBUG_AT( FBDev_Mode, "%s( mode: %p )\n", __FUNCTION__, mode );
+
+     D_ASSERT( mode != NULL );
+
+     ret = dfb_fbdev_mode_to_var( mode, dfb_pixelformat_for_depth(mode->bpp),
+                                  mode->xres, mode->yres, DLBM_FRONTONLY, &var );
+     if (ret)
+          return ret;
+
+     /* Enable test mode */
+     var.activate = FB_ACTIVATE_TEST;
+
+     if (FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &var ) < 0) {
+          D_DEBUG_AT( FBDev_Mode, "  => FAILED!\n" );
+          return errno2result( errno );
+     }
+
+     D_DEBUG_AT( FBDev_Mode, "  => SUCCESS\n" );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_fbdev_set_mode( const VideoMode         *mode,
+                    const CoreSurfaceConfig *config )
+{
+     DFBResult                  ret;
+     struct fb_var_screeninfo   var;
+     FBDevShared               *shared     = dfb_fbdev->shared;
+     DFBDisplayLayerBufferMode  buffermode = DLBM_FRONTONLY;
+
+     D_DEBUG_AT( FBDev_Mode, "%s( mode: %p, config: %p )\n", __FUNCTION__, mode, config );
+
+     D_ASSERT( mode != NULL );
+     D_ASSERT( config != NULL );
+
+     if (config->caps & DSCAPS_DOUBLE)
+          buffermode = DLBM_BACKVIDEO;
+     else if (config->caps & DSCAPS_TRIPLE)
+          buffermode = DLBM_TRIPLE;
+
+     ret = dfb_fbdev_mode_to_var( mode, config->format, config->size.w, config->size.h, buffermode, &var );
+     if (ret) {
+          D_ERROR( "FBDev/Mode: Failed to switch to %dx%d %s (buffermode %d)\n",
+                   config->size.w, config->size.h, dfb_pixelformat_name(config->format), buffermode );
+          return ret;
+     }
+
+
+     dfb_gfxcard_lock( GDLF_WAIT | GDLF_SYNC | GDLF_RESET | GDLF_INVALIDATE );
+
+     if (FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &var ) < 0) {
+          int erno = errno;
+
+          dfb_gfxcard_unlock();
+
+          D_DEBUG_AT( FBDev_Mode, "  => FAILED!\n" );
+
+          D_ERROR( "FBDev/Mode: Failed to switched to %dx%d (virtual %dx%d) at %d bit (%s)!\n",
+                   var.xres, var.yres, var.xres_virtual, var.yres_virtual, var.bits_per_pixel,
+                   dfb_pixelformat_name(config->format) );
+
+          return errno2result( erno );
+     }
+
+     D_DEBUG_AT( FBDev_Mode, "  => SUCCESS\n" );
+
+     shared->current_var = var;
+     dfb_fbdev_var_to_mode( &var, &shared->current_mode );
+
+     /* To get the new pitch */
+     FBDEV_IOCTL( FBIOGET_FSCREENINFO, &shared->fix );
+
+     D_INFO( "FBDev/Mode: Switched to %dx%d (virtual %dx%d) at %d bit (%s), pitch %d\n",
+             var.xres, var.yres, var.xres_virtual, var.yres_virtual, var.bits_per_pixel,
+             dfb_pixelformat_name(config->format), shared->fix.line_length );
+
+     if (config->format == DSPF_RGB332)
+          dfb_fbdev_set_rgb332_palette();
+     else
+          dfb_fbdev_set_gamma_ramp( config->format );
+
+     /* invalidate original pan offset */
+     shared->orig_var.xoffset = 0;
+     shared->orig_var.yoffset = 0;
+
+     dfb_surfacemanager_adjust_heap_offset( dfb_fbdev->shared->manager,
+                                            var.yres_virtual * shared->fix.line_length );
+
+     dfb_gfxcard_after_set_var();
+
+     dfb_gfxcard_unlock();
+
+     return DFB_OK;
+}
+
+
+#if 0
 DFBResult
 dfb_fbdev_set_mode( CoreSurface           *surface,
                     VideoMode             *mode,
@@ -1938,29 +2258,33 @@ dfb_fbdev_set_mode( CoreSurface           *surface,
 
           dfb_gfxcard_after_set_var();
 
-/*          dfb_surface_notify( surface,
+          dfb_surface_notify( surface,
                               CSNF_SIZEFORMAT | CSNF_FLIP |
-                              CSNF_VIDEO      | CSNF_SYSTEM );*/
+                              CSNF_VIDEO      | CSNF_SYSTEM );
      }
 
      dfb_gfxcard_unlock();
 
      return DFB_OK;
 }
+#endif
 
 /*
  * parses video modes in /etc/fb.modes and stores them in dfb_fbdev->shared->modes
  * (to be replaced by DirectFB's own config system
  */
-static DFBResult dfb_fbdev_read_modes()
+static DFBResult
+dfb_fbdev_read_modes()
 {
-     FILE *fp;
-     char line[80],label[32],value[16];
-     int geometry=0, timings=0;
-     int dummy;
-     VideoMode temp_mode;
+     FILE        *fp;
+     char         line[80],label[32],value[16];
+     int          geometry=0, timings=0;
+     int          dummy;
+     VideoMode    temp_mode;
      FBDevShared *shared = dfb_fbdev->shared;
      VideoMode   *m      = shared->modes;
+
+     D_DEBUG_AT( FBDev_Mode, "%s()\n", __FUNCTION__ );
 
      if (!(fp = fopen("/etc/fb.modes","r")))
           return errno2result( errno );
@@ -1968,8 +2292,10 @@ static DFBResult dfb_fbdev_read_modes()
      while (fgets(line,79,fp)) {
           if (sscanf(line, "mode \"%31[^\"]\"",label) == 1) {
                memset( &temp_mode, 0, sizeof(VideoMode) );
+
                geometry = 0;
                timings = 0;
+
                while (fgets(line,79,fp) && !(strstr(line,"endmode"))) {
                     if (5 == sscanf(line," geometry %d %d %d %d %d", &temp_mode.xres, &temp_mode.yres, &dummy, &dummy, &temp_mode.bpp)) {
                          geometry = 1;
@@ -2003,7 +2329,8 @@ static DFBResult dfb_fbdev_read_modes()
                          temp_mode.broadcast = 1;
                     }
                }
-               if (geometry && timings && !dfb_fbdev_set_mode(NULL, &temp_mode, NULL)) {
+
+               if (geometry && timings && !dfb_fbdev_test_mode_simple(&temp_mode)) {
                     if (!m) {
                          shared->modes = SHCALLOC( shared->shmpool, 1, sizeof(VideoMode) );
                          m = shared->modes;
@@ -2012,9 +2339,11 @@ static DFBResult dfb_fbdev_read_modes()
                          m->next = SHCALLOC( shared->shmpool, 1, sizeof(VideoMode) );
                          m = m->next;
                     }
+
                     direct_memcpy (m, &temp_mode, sizeof(VideoMode));
-                    D_DEBUG( "DirectFB/FBDev: %20s %4dx%4d  %s%s\n", label, temp_mode.xres, temp_mode.yres,
-                              temp_mode.laced ? "interlaced " : "", temp_mode.doubled ? "doublescan" : "" );
+
+                    D_DEBUG_AT( FBDev_Mode, " +-> %16s %4dx%4d  %s%s\n", label, temp_mode.xres, temp_mode.yres,
+                                temp_mode.laced ? "interlaced " : "", temp_mode.doubled ? "doublescan" : "" );
                }
           }
      }
@@ -2029,13 +2358,15 @@ static DFBResult dfb_fbdev_read_modes()
  * correct colors, the gamme ramp has to be initialized.
  */
 
-static u16 dfb_fbdev_calc_gamma(int n, int max)
+static u16
+dfb_fbdev_calc_gamma(int n, int max)
 {
      int ret = 65535 * n / max;
      return CLAMP( ret, 0, 65535 );
 }
 
-static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
+static DFBResult
+dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
 {
      int i;
 
@@ -2161,7 +2492,8 @@ dfb_fbdev_set_palette( CorePalette *palette )
      return DFB_OK;
 }
 
-static DFBResult dfb_fbdev_set_rgb332_palette()
+static DFBResult
+dfb_fbdev_set_rgb332_palette()
 {
      int red_val;
      int green_val;

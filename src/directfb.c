@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -180,10 +180,10 @@ DirectFBCreate( IDirectFB **interface )
      if ( !(direct_config->quiet & DMT_BANNER) && dfb_config->banner) {
           direct_log_printf( NULL,
                              "\n"
-                             "     =======================|  DirectFB " DIRECTFB_VERSION "  |=======================\n"
-                             "          (c) 2001-2007  The DirectFB Organization (directfb.org)\n"
-                             "          (c) 2000-2004  Convergence (integrated media) GmbH\n"
-                             "        ------------------------------------------------------------\n"
+                             "   ~~~~~~~~~~~~~~~~~~~~~~~~| DirectFB " DIRECTFB_VERSION " |~~~~~~~~~~~~~~~~~~~~~~~~\n"
+                             "        (c) 2001-2008  The world wide DirectFB Open Source Community\n"
+                             "        (c) 2000-2004  Convergence (integrated media) GmbH\n"
+                             "      ----------------------------------------------------------------\n"
                              "\n" );
      }
 

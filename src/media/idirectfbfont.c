@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -71,7 +71,7 @@ IDirectFBFont_Destruct( IDirectFBFont *thiz )
 /*
  * increments reference count of font
  */
-static DFBResult
+static DirectResult
 IDirectFBFont_AddRef( IDirectFBFont *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
@@ -86,7 +86,7 @@ IDirectFBFont_AddRef( IDirectFBFont *thiz )
 /*
  * decrements reference count, destructs interface data if reference count is 0
  */
-static DFBResult
+static DirectResult
 IDirectFBFont_Release( IDirectFBFont *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)

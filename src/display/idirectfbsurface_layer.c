@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -57,6 +57,9 @@
 #include <gfx/util.h>
 
 
+D_DEBUG_DOMAIN( Surface, "IDirectFBSurfaceL", "IDirectFBSurface_Layer Interface" );
+
+/**********************************************************************************************************************/
 
 /*
  * private data struct of IDirectFBSurface_Layer
@@ -73,14 +76,18 @@ IDirectFBSurface_Layer_Destruct( IDirectFBSurface *thiz )
 {
      IDirectFBSurface_Layer_data *data = (IDirectFBSurface_Layer_data*) thiz->priv;
 
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
      dfb_layer_region_unref( data->region );
      IDirectFBSurface_Destruct( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBSurface_Layer_Release( IDirectFBSurface *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
 
      if (--data->base.ref == 0)
           IDirectFBSurface_Layer_Destruct( thiz );
@@ -96,6 +103,8 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
      DFBRegion reg;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
+
+     D_DEBUG_AT( Surface, "%s( %p, %p, 0x%08x )\n", __FUNCTION__, thiz, region, flags );
 
      if (!data->base.surface)
           return DFB_DESTROYED;
@@ -144,6 +153,8 @@ IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface    *thiz,
      DFBResult ret;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
 
      /* Check arguments */
      if (!data->base.surface)
@@ -207,6 +218,8 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
      CoreSurface *surface;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Layer);
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
 
      if (dfb_layer_region_ref( region ))
           return DFB_FUSION;

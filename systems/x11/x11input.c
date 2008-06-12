@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -72,7 +72,7 @@ typedef struct {
      CoreInputDevice*    device;
      DirectThread*       thread;
      DFBX11*             dfb_x11;
-     int                 stop;
+     bool                stop;
 } X11InputData;
 
 
@@ -414,7 +414,7 @@ static void handleMouseEvent(XEvent* pXEvent, X11InputData* pData)
                case 5: /*down*/
                case 6: /*left*/
                case 7: /*right*/
-                    {
+                    if (pXEvent->type == ButtonPress) {
                          dfbEvent.type = DIET_AXISMOTION;
                          dfbEvent.flags = DIEF_AXISREL;
                          dfbEvent.axis = DIAI_Z;
@@ -436,8 +436,9 @@ static void handleMouseEvent(XEvent* pXEvent, X11InputData* pData)
                               dfbEvent.axis = DIAI_X;
                               dfbEvent.axisrel = 1;
                          }
-
                     }
+                    else
+                         return;
                     break;
                default:
                     break;
@@ -505,46 +506,16 @@ x11EventThread( DirectThread *thread, void *driver_data )
      DFBX11       *dfb_x11 = data->dfb_x11;
 
      while (!data->stop) {
-          XEvent xEvent; 
+          unsigned int  pull = 100;
+          XEvent        xEvent; 
           DFBInputEvent dfbEvent;
 
           /* FIXME: Detect key repeats, we're receiving KeyPress, KeyRelease, KeyPress, KeyRelease... !!?? */
 
-#ifdef ___HELP___WHY_DOES_THIS_ALWAYS_BLOCK_THE_LAST_EVENT___HELP___
+#if 1
           XNextEvent( dfb_x11->display, &xEvent );
 
-          do {
-               switch (xEvent.type) {
-                    case ButtonPress:
-                    case ButtonRelease:
-                         motion_realize( data );
-                    case MotionNotify:
-                         handleMouseEvent( &xEvent, data ); // crash ???
-                         break;
-
-                    case KeyPress:
-                    case KeyRelease: {
-                         motion_realize( data );
-
-                         dfbEvent.type     = (xEvent.type == KeyPress) ? DIET_KEYPRESS : DIET_KEYRELEASE;
-                         dfbEvent.flags    = DIEF_KEYCODE | DIEF_TIMESTAMP;
-                         dfbEvent.key_code = xEvent.xkey.keycode;
-
-                         dfbEvent.timestamp.tv_sec  =  xEvent.xkey.time / 1000;
-                         dfbEvent.timestamp.tv_usec = (xEvent.xkey.time % 1000) * 1000;
-
-                         dfb_input_dispatch( data->device, &dfbEvent );
-                         break;
-                    }
-
-                    default:
-                         break;
-               }
-          } while (XCheckMaskEvent( dfb_x11->display, ~0, &xEvent ));
-#else
-          usleep(10000);
-
-          while (XCheckMaskEvent( dfb_x11->display, ~0, &xEvent )) {
+          while (pull--) {
                switch (xEvent.type) {
                     case ButtonPress:
                     case ButtonRelease:
@@ -575,7 +546,59 @@ x11EventThread( DirectThread *thread, void *driver_data )
                     default:
                          break;
                }
+
+               if (pull) {
+                    XLockDisplay( dfb_x11->display );
+
+                    if (!XCheckMaskEvent( dfb_x11->display, ~0, &xEvent ))
+                         pull = 0;
+
+                    XUnlockDisplay( dfb_x11->display );
+               }
           }
+#else
+          usleep(10000);
+
+          XLockDisplay( dfb_x11->display );
+
+          while (XCheckMaskEvent( dfb_x11->display, ~0, &xEvent )) {
+               XUnlockDisplay( dfb_x11->display );
+
+               switch (xEvent.type) {
+                    case ButtonPress:
+                    case ButtonRelease:
+                         motion_realize( data );
+                    case MotionNotify:
+                         handleMouseEvent( &xEvent, data ); // crash ???
+                         break;
+
+                    case KeyPress:
+                    case KeyRelease: {
+                         motion_realize( data );
+
+                         dfbEvent.type     = (xEvent.type == KeyPress) ? DIET_KEYPRESS : DIET_KEYRELEASE;
+                         dfbEvent.flags    = DIEF_KEYCODE | DIEF_TIMESTAMP;
+                         dfbEvent.key_code = xEvent.xkey.keycode;
+
+                         dfbEvent.timestamp.tv_sec  =  xEvent.xkey.time / 1000;
+                         dfbEvent.timestamp.tv_usec = (xEvent.xkey.time % 1000) * 1000;
+
+                         dfb_input_dispatch( data->device, &dfbEvent );
+                         break;
+                    }
+
+                    case Expose:
+                         handle_expose( &xEvent.xexpose );
+                         break;
+
+                    default:
+                         break;
+               }
+
+               XLockDisplay( dfb_x11->display );
+          }
+
+          XUnlockDisplay( dfb_x11->display );
 #endif
           motion_realize( data );
 
@@ -676,6 +699,8 @@ driver_get_keymap_entry( CoreInputDevice           *device,
      X11InputData *data    = driver_data;
      DFBX11       *dfb_x11 = data->dfb_x11;
 
+     XLockDisplay( dfb_x11->display );
+
      for (i=0; i<4; i++) {
           KeySym xSymbol = XKeycodeToKeysym( dfb_x11->display, entry->code, i );
 
@@ -684,6 +709,8 @@ driver_get_keymap_entry( CoreInputDevice           *device,
 
           entry->symbols[i] = xsymbol_to_symbol( xSymbol );
      }
+
+     XUnlockDisplay( dfb_x11->display );
 
      /* is CapsLock effective? */
      if (entry->identifier >= DIKI_A && entry->identifier <= DIKI_Z)
@@ -702,10 +729,20 @@ driver_get_keymap_entry( CoreInputDevice           *device,
 static void
 driver_close_device( void *driver_data )
 {
-     X11InputData *data = driver_data;
+     X11InputData *data    = driver_data;
+     DFBX11       *dfb_x11 = data->dfb_x11;
+     XEvent        xEvent;
 
      /* stop input thread */
-     data->stop = 1;
+     data->stop = true;
+
+     memset( &xEvent, 0, sizeof(xEvent) );
+
+     xEvent.xclient.type   = ClientMessage;
+     xEvent.xclient.format = 8;
+
+     XSendEvent( dfb_x11->display, dfb_x11->xw->window, False, 0, &xEvent );
+     XFlush( dfb_x11->display );
 
      direct_thread_join( data->thread );
      direct_thread_destroy( data->thread );

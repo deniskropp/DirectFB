@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -40,13 +40,13 @@
 #include <media/idirectfbdatabuffer.h>
 
 
-static DFBResult
+static DirectResult
 IDirectFBVideoProvider_AddRef( IDirectFBVideoProvider *thiz )
 {
      return DFB_UNIMPLEMENTED;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBVideoProvider_Release( IDirectFBVideoProvider *thiz )
 {
      return DFB_UNIMPLEMENTED;
@@ -86,6 +86,37 @@ IDirectFBVideoProvider_GetStreamDescription( IDirectFBVideoProvider *thiz,
      memset( ret_dsc, 0, sizeof(DFBStreamDescription) );
      
      return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_GetBufferOccupancy( IDirectFBVideoProvider *thiz,
+                                           DFBBufferOccupancy     *ret_occ )
+{
+     if (!ret_occ)
+          return DFB_INVARG;
+          
+     memset( ret_occ, 0, sizeof(DFBBufferOccupancy) );
+     
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_GetBufferThresholds( IDirectFBVideoProvider *thiz,
+                                            DFBBufferThresholds    *ret_thresh )
+{
+     if (!ret_thresh)
+          return DFB_INVARG;
+          
+     memset( ret_thresh, 0, sizeof(DFBBufferThresholds) );
+     
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_SetBufferThresholds( IDirectFBVideoProvider *thiz,
+                                            DFBBufferThresholds    thresh )
+{
+    return DFB_UNIMPLEMENTED;
 }
 
 static DFBResult
@@ -205,7 +236,7 @@ IDirectFBVideoProvider_GetVolume( IDirectFBVideoProvider *thiz,
 
 static DFBResult
 IDirectFBVideoProvider_SetStreamAttributes(IDirectFBVideoProvider   *thiz,
-          				    DFBStreamDescription      attr)
+          				    DFBStreamAttributes       attr)
 {
      return DFB_UNIMPLEMENTED;
 }
@@ -274,6 +305,9 @@ IDirectFBVideoProvider_Construct( IDirectFBVideoProvider *thiz )
      thiz->GetCapabilities       = IDirectFBVideoProvider_GetCapabilities;
      thiz->GetSurfaceDescription = IDirectFBVideoProvider_GetSurfaceDescription;
      thiz->GetStreamDescription  = IDirectFBVideoProvider_GetStreamDescription;
+     thiz->GetBufferOccupancy    = IDirectFBVideoProvider_GetBufferOccupancy;
+     thiz->SetBufferThresholds   = IDirectFBVideoProvider_SetBufferThresholds;
+     thiz->GetBufferThresholds   = IDirectFBVideoProvider_GetBufferThresholds;
      thiz->PlayTo                = IDirectFBVideoProvider_PlayTo;
      thiz->Stop                  = IDirectFBVideoProvider_Stop;
      thiz->GetStatus             = IDirectFBVideoProvider_GetStatus;

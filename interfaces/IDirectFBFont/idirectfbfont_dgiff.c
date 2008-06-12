@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -96,7 +96,7 @@ IDirectFBFont_DGIFF_Destruct( IDirectFBFont *thiz )
 }
 
 
-static DFBResult
+static DirectResult
 IDirectFBFont_DGIFF_Release( IDirectFBFont *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
@@ -161,6 +161,7 @@ Construct( IDirectFBFont      *thiz,
      DGIFFGlyphInfo  *glyphs;
      DGIFFGlyphRow   *row;
      DGIFFImplData   *data;
+     CoreSurfaceConfig config;
 
 //     if (desc->flags & (DFDESC_WIDTH | DFDESC_ATTRIBUTES | DFDESC_FIXEDADVANCE))
   //        return DFB_UNSUPPORTED;
@@ -234,6 +235,12 @@ Construct( IDirectFBFont      *thiz,
      }
 
      /* Build glyph cache rows. */
+
+     config.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_PREALLOCATED;
+     config.format = face->pixelformat;
+     config.preallocated[1].addr = NULL;
+     config.preallocated[1].pitch = 0;
+
      for (i=0; i<face->num_rows; i++) {
           font->rows[i] = D_CALLOC( 1, sizeof(CoreFontCacheRow) );
           if (!font->rows[i]) {
@@ -241,9 +248,14 @@ Construct( IDirectFBFont      *thiz,
                goto error;
           }
 
-          ret = dfb_surface_create_preallocated( core, row->width, row->height, face->pixelformat,
-                                                 CSP_VIDEOHIGH, DSCAPS_NONE, NULL, (void*)(row+1),
-                                                 NULL, row->pitch, 0, &font->rows[i]->surface );
+          config.size.w = row->width;
+          config.size.h = row->height;
+          config.preallocated[0].addr = (void*)(row+1);
+          config.preallocated[0].pitch = row->pitch;
+
+          ret = dfb_surface_create( core, &config, CSTF_PREALLOCATED, 0, NULL,
+                                    &font->rows[i]->surface );
+
           if (ret) {
                D_DERROR( ret, "DGIFF/Font: Could not create preallocated %s %dx%d glyph row surface!\n",
                          dfb_pixelformat_name(face->pixelformat), row->width, row->height );

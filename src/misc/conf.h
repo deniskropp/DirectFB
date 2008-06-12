@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -210,6 +210,8 @@ typedef struct
 
      int           surface_shmpool_size;          /* Set the size of the shared memory pool used for
                                                      shared system memory surfaces. */
+
+     bool          no_cursor_updates;             /* Never show the cursor etc. */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

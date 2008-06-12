@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -147,7 +147,7 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
           parent->Release( parent );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBSurface_AddRef( IDirectFBSurface *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
@@ -159,7 +159,7 @@ IDirectFBSurface_AddRef( IDirectFBSurface *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBSurface_Release( IDirectFBSurface *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
@@ -2360,7 +2360,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
           return DFB_FAILURE;
      }
 
-     if (parent) {
+     if (parent && dfb_config->startstop) {
           IDirectFBSurface_data *parent_data;
 
           if (parent->AddRef( parent )) {
@@ -2542,6 +2542,9 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
 void
 IDirectFBSurface_StopAll( IDirectFBSurface_data *data )
 {
+     if (!dfb_config->startstop)
+          return;
+
      if (data->children_data) {
           IDirectFBSurface_data *child;
 

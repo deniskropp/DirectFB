@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -215,6 +215,7 @@ dfb_clip_triangle( const DFBRegion *clip, const DFBTriangle *tri, DFBPoint p[6],
      DFBRegion edges[3];
      int       num_edges;
      int       i, n;
+     DFBPoint  p1 = {0, 0}, p2 = {0, 0};
      
      /* Initialize edges. */
      edges[0].x1 = tri->x1; edges[0].y1 = tri->y1;
@@ -228,7 +229,6 @@ dfb_clip_triangle( const DFBRegion *clip, const DFBTriangle *tri, DFBPoint p[6],
      for (i = 0; i < num_edges; i++) {
           DFBRegion *reg = &edges[i];
           DFBRegion  line;
-          DFBPoint   p1, p2;
           bool       i1, i2;
 
           /* Clip the edge to the clipping region. */
