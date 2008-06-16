@@ -28,13 +28,13 @@
 
 #include <linux/types.h>
 #include <linux/kernel.h>
-#include <linux/fs.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
 #include <linux/delay.h>
 #include <linux/errno.h>
 #include <linux/fcntl.h>
 #include <linux/firmware.h>
+#include <linux/fs.h>
 #include <linux/interrupt.h>
 #include <linux/mm.h>
 #include <linux/page-flags.h>
@@ -113,11 +113,11 @@ MODULE_DESCRIPTION("A little c64+ handling module.");
 #define MDCFG39		(mmr[0x169C>>2])
 #define MDCTL39		(mmr[0x1A9C>>2])
 
-//MODULE_FIRMWARE(F_NAME);
+MODULE_FIRMWARE(F_NAME);
 
 static dev_t dev_major;
 static struct cdev*dev_cdev;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 15)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 static struct class*dev_class;
 #else
 static struct class_simple*dev_class;
@@ -192,7 +192,9 @@ static int dev_mmap(struct file * file, struct vm_area_struct * vma) {
   if (vma->vm_pgoff) {
     if (size!=R_LEN) return -EINVAL;
 #if defined(pgprot_writecombine)
-    vma->vm_page_prot=pgprot_writecombine(vma->vm_page_prot);
+    vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
+#else
+    vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 #endif
     if (remap_pfn_range(vma,
 			  vma->vm_start,
@@ -203,7 +205,11 @@ static int dev_mmap(struct file * file, struct vm_area_struct * vma) {
   }
   else {
     if (size!=Q_LEN) return -EINVAL;
+#if defined(pgprot_writecombine)
+    vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
+#else
     vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+#endif
     if (remap_pfn_range(vma,
 			  vma->vm_start,
 			  Q_BASE>>PAGE_SHIFT,
@@ -303,6 +309,7 @@ static __initdata struct device dev_device = {
 };
 static int __init dev_init(void) {
   int ret=-EIO;
+  u8 *at;
   const struct firmware*fw = NULL;
 
   printk(KERN_INFO "c64x+ : module load\n");
@@ -360,8 +367,8 @@ static int __init dev_init(void) {
     goto err3;
   }
   printk(KERN_INFO "c64x+ : firmware upload %p %zd\n",fw->data,fw->size);
-  if (fw->size>32768) {
-    printk(KERN_ERR "c64x+ : firmware too big! 32768 is maximum (for now)\n");
+  if (fw->size>32767) {
+    printk(KERN_ERR "c64x+ : firmware too big! 32767 is maximum (for now)\n");
     release_firmware(fw);
     device_del(&dev_device);
     goto err3;
@@ -372,6 +379,21 @@ static int __init dev_init(void) {
     device_del(&dev_device);
     goto err3;
   }
+  at = fw->data + fw->size;
+  while ((ulong)--at > (ulong)fw->data) {
+       if (*at == '@')
+            break;
+  }
+  if (at == fw->data) {
+    printk(KERN_ERR "c64x+ : firmware tag missing\n");
+    release_firmware(fw);
+    device_del(&dev_device);
+    goto err3;
+  }
+  printk(KERN_NOTICE "c64x+ : got firmware of length %d at %p with tag '%*s' of length %d at %p+1\n",
+         fw->size, fw->data,
+         (int)((ulong)(fw->data + fw->size) - (ulong)at - 1), at + 1,
+         (int)((ulong)(fw->data + fw->size) - (ulong)at - 1), at );
   /* move firmware into the hardware buffer here. */
   memcpy(l2ram,fw->data,fw->size);
   release_firmware(fw);
@@ -417,7 +439,7 @@ static int __init dev_init(void) {
 #endif
 
   /* tell sysfs/udev */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 15)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
   dev_class=class_create(THIS_MODULE,C_MOD_NAME);
 #else
   dev_class=class_simple_create(THIS_MODULE,C_MOD_NAME);
@@ -427,7 +449,7 @@ static int __init dev_init(void) {
     printk(KERN_ERR "c64x+ : can't allocate class\n");
     goto err6;
   }
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 15)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
   class_device_create(dev_class,NULL,dev_major,NULL,C_MOD_NAME"%d",0);
 #else
   class_simple_device_add(dev_class,dev_major,NULL,C_MOD_NAME"%d",0);
@@ -466,7 +488,7 @@ static void __exit dev_exit(void) {
   iounmap((void*)l1dram);
   iounmap(l2ram);
   /* release all the other resources */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 15)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
   class_device_destroy(dev_class,dev_major);
   class_destroy(dev_class);
 #else
