@@ -318,6 +318,7 @@ videoLock( CoreSurfacePool       *pool,
 {
      VideoPoolLocalData  *local = pool_local;
      VideoAllocationData *alloc = alloc_data;
+     DavinciDeviceData   *ddev  = dfb_gfxcard_get_device_data();
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
@@ -325,6 +326,16 @@ videoLock( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
      D_DEBUG_AT( Video_SurfLock, "%s( %p )\n", __FUNCTION__, lock->buffer );
+
+     int index  = alloc->offset / alloc->size;
+     int height = alloc->size   / alloc->pitch;
+
+     alloc->pitch  = ddev->fix[VID1].line_length;
+     alloc->size   = height * alloc->pitch;
+     alloc->offset = index * alloc->size;
+
+     allocation->size   = alloc->size;
+     allocation->offset = alloc->offset;
 
      lock->pitch  = alloc->pitch;
      lock->offset = alloc->offset;
