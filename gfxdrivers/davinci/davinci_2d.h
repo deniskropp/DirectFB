@@ -70,5 +70,10 @@ void      davinciSetState         ( void                *drv,
                                     CardState           *state,
                                     DFBAccelerationMask  accel );
 
+bool      davinciStretchBlit32    ( void                *drv,
+                                    void                *dev,
+                                    DFBRectangle        *srect,
+                                    DFBRectangle        *drect );
+
 #endif
 

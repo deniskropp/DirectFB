@@ -59,7 +59,7 @@ typedef struct {
      DFBSurfacePixelFormat     src_format;
      unsigned long             src_bpp;
 
-     u32                       source_mult;
+     unsigned long             source_mult;
 
      unsigned long             fillcolor;
 
@@ -67,8 +67,8 @@ typedef struct {
      int                       draw_blend_sub_function;
 
      DFBColor                  color;
-     u32                       color_argb;
-     u32                       colorkey;
+     unsigned long             color_argb;
+     unsigned long             colorkey;
 
      DFBSurfaceBlittingFlags   blitting_flags;
 

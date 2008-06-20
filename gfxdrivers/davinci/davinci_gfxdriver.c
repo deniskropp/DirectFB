@@ -246,6 +246,7 @@ driver_init_driver( CoreGraphicsDevice  *device,
           funcs->FlushTextureCache = davinciFlushTextureCache;
           funcs->CheckState        = davinciCheckState;
           funcs->SetState          = davinciSetState;
+          funcs->StretchBlit       = davinciStretchBlit32;
      }
 
      ddrv->screen = dfb_screens_register( device, driver_data, &davinciScreenFuncs );
