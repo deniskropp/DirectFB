@@ -17,12 +17,14 @@
 
 static const char *state_names[] = { "DONE", "ERROR", "TODO", "RUNNING" };
 
-// auto
-#define IDLE_MAX    (0)
-
 // manual (examples)
-//#define IDLE_MAX    (567087584/10)
-//#define IDLE_MAX    (59457217)
+//#define DAVINCI_C64X_IDLE_MAX    (567087584/10)
+//#define DAVINCI_C64X_IDLE_MAX    (59457217)
+
+// auto
+#ifndef DAVINCI_C64X_IDLE_MAX
+#define DAVINCI_C64X_IDLE_MAX    (0)
+#endif
 
 int main (int argc, char *argv[])
 {
@@ -30,7 +32,7 @@ int main (int argc, char *argv[])
      void            *mem;
      c64xTaskControl *ctl;
      c64xTask        *queue;
-     int              idle_max   = IDLE_MAX;
+     int              idle_max   = DAVINCI_C64X_IDLE_MAX;
      uint32_t         idle_last  = 0;
      long long        stamp_last = 0;
 
@@ -91,7 +93,7 @@ int main (int argc, char *argv[])
 
                long long int  diff = cdiff * 1200000 / tdiff;
 
-#if !IDLE_MAX
+#if !DAVINCI_C64X_IDLE_MAX
                if (diff > idle_max)
                     idle_max = diff;
 #endif
