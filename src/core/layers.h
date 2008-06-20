@@ -65,6 +65,23 @@ struct __DFB_CoreLayerRegionConfig {
      DFBBoolean                 positive;         /* show or cut out regions */
 };
 
+#define DFB_CORE_LAYER_REGION_CONFIG_DEBUG_AT( domain, config )                                                    \
+     do {                                                                                                          \
+          const CoreLayerRegionConfig *_config = config;                                                           \
+                                                                                                                   \
+          D_DEBUG_AT( domain, "  -> size       %dx%d\n", _config->width, _config->height );                        \
+          D_DEBUG_AT( domain, "  -> format     %s\n", dfb_pixelformat_name( _config->format ) );                   \
+          D_DEBUG_AT( domain, "  -> surf caps  0x%08x\n", _config->surface_caps );                                 \
+          D_DEBUG_AT( domain, "  -> buffermode %d\n", _config->buffermode );                                       \
+          D_DEBUG_AT( domain, "  -> options    0x%08x\n", _config->options );                                      \
+          D_DEBUG_AT( domain, "  -> source     %d,%d-%dx%d\n", DFB_RECTANGLE_VALS(&_config->source) );             \
+          D_DEBUG_AT( domain, "  -> dest       %d,%d-%dx%d\n", DFB_RECTANGLE_VALS(&_config->dest) );               \
+          D_DEBUG_AT( domain, "  -> opacity    %d\n", _config->opacity );                                          \
+          D_DEBUG_AT( domain, "  -> src_key    %02x%02x%02x (index %d)\n", DFB_COLORKEY_VALS(&_config->src_key) ); \
+          D_DEBUG_AT( domain, "  -> dst_key    %02x%02x%02x (index %d)\n", DFB_COLORKEY_VALS(&_config->dst_key) ); \
+     } while (0)
+
+
 typedef enum {
      CLRCF_NONE         = 0x00000000,
 
