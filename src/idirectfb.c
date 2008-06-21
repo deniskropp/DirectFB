@@ -455,7 +455,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           D_DEBUG_AT( IDFB, "  -> width  %d\n", desc->width );
 
           width = desc->width;
-          if (width < 1)
+          if (width < 1 || width > 20480)
                return DFB_INVARG;
      }
 
@@ -463,7 +463,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           D_DEBUG_AT( IDFB, "  -> height %d\n", desc->height );
 
           height = desc->height;
-          if (height < 1)
+          if (height < 1 || height > 20480)
                return DFB_INVARG;
      }
 
