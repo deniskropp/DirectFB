@@ -183,11 +183,13 @@ videoSetRegion( CoreLayer                  *layer,
      D_ASSERT( ddev != NULL );
      D_ASSERT( dvid != NULL );
 
+#if 0 //FIXME
      ret = ioctl( ddrv->fb[VID1].fd, FBIO_ENABLE_DISABLE_WIN, 0 );
      if (ret)
           D_VIDERROR( "Davinci/Video: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", VID1, 0 );
 
      ioctl( ddrv->fb[VID1].fd, FBIO_WAITFORVSYNC );
+#endif
 
      /* Update size? */
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT)) {
@@ -217,6 +219,10 @@ videoSetRegion( CoreLayer                  *layer,
           ret = ioctl( ddrv->fb[VID1].fd, FBIOPUT_VSCREENINFO, &dvid->var );
           if (ret)
                D_PERROR( "Davinci/Video: FBIOPUT_VSCREENINFO (fb%d) failed!\n", VID1 );
+
+          ret = ioctl( ddrv->fb[VID1].fd, FBIOGET_FSCREENINFO, &ddev->fix[VID1] );
+          if (ret)
+               D_PERROR( "Davinci/Video: FBIOGET_FSCREENINFO (fb%d) failed!\n", VID1 );
      }
 
      /* Update position? */
@@ -249,12 +255,6 @@ videoSetRegion( CoreLayer                  *layer,
                          VID1, params.cb_cr_order ? "CrCb" : "CbCr" );
      }
 
-     davincifb_pan_display( &ddrv->fb[VID1], &dvid->var, lock, DSFLIP_NONE );
-
-     ret = ioctl( ddrv->fb[VID1].fd, FBIOGET_FSCREENINFO, &ddev->fix[VID1] );
-     if (ret)
-          D_PERROR( "Davinci/Video: FBIOGET_FSCREENINFO (fb%d) failed!\n", VID1 );
-
      dvid->enable = true;
 
      return DFB_OK;
@@ -278,7 +278,8 @@ videoRemoveRegion( CoreLayer *layer,
      if (ret)
           D_VIDERROR( "Davinci/Video: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", VID1, 0 );
 
-     dvid->enable = false;
+     dvid->enabled = false;
+     dvid->enable  = false;
 
      return DFB_OK;
 }
@@ -287,15 +288,14 @@ static void
 enable_video( DavinciDriverData     *ddrv,
               DavinciVideoLayerData *dvid )
 {
-     if (!dvid->enable)
-          return;
+     if (dvid->enable && !dvid->enabled) {
+//          ioctl( ddrv->fb[VID1].fd, FBIO_WAITFORVSYNC );
 
-     ioctl( ddrv->fb[VID1].fd, FBIO_WAITFORVSYNC );
+          if (ioctl( ddrv->fb[VID1].fd, FBIO_ENABLE_DISABLE_WIN, 1 ))
+               D_VIDERROR( "Davinci/Video: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", VID1, 1 );
 
-     if (ioctl( ddrv->fb[VID1].fd, FBIO_ENABLE_DISABLE_WIN, 1 ))
-          D_VIDERROR( "Davinci/Video: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", VID1, 1 );
-
-     dvid->enable = false;
+          dvid->enabled = true;
+     }
 }
 
 static DFBResult
@@ -344,6 +344,8 @@ videoUpdateRegion( CoreLayer             *layer,
      D_ASSERT( lock != NULL );
      D_ASSERT( ddrv != NULL );
      D_ASSERT( dvid != NULL );
+
+     davincifb_pan_display( &ddrv->fb[VID1], &dvid->var, lock, DSFLIP_NONE );
 
      enable_video( ddrv, dvid );
 

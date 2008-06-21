@@ -42,6 +42,7 @@ typedef struct {
      struct fb_var_screeninfo var;
 
      bool                     enable;
+     bool                     enabled;
 } DavinciVideoLayerData;
 
 
