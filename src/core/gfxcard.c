@@ -391,9 +391,6 @@ dfb_graphics_core_leave( DFBGraphicsCore *data,
 
      shared = data->shared;
 
-
-     dfb_gfxcard_sync();
-
      if (data->driver_funcs) {
           data->driver_funcs->CloseDriver( data, data->driver_data );
 
