@@ -69,7 +69,7 @@ MODULE_DESCRIPTION("A little c64+ handling module.");
  *
  * transfer buffer
  */
-#define R_BASE		0x8e000000
+#define R_BASE		DAVINCI_C64X_MEM
 #define R_LEN		0x02000000
 
 /* L2RAM:

@@ -31,6 +31,12 @@
 #include <stdint.h>
 #endif
 
+
+#ifndef DAVINCI_C64X_MEM
+#define DAVINCI_C64X_MEM 0x86000000
+#endif
+
+
 typedef volatile struct {
      uint32_t  c64x_function;
      uint32_t  c64x_arg[7];

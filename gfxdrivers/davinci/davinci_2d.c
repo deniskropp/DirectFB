@@ -937,7 +937,7 @@ davinciBlit32to16( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 
      davinci_c64x_dither_argb( &ddrv->c64x,
                                ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
-                               0x8e000000,
+                               DAVINCI_C64X_MEM,
                                ddev->dst_pitch,
                                ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
                                ddev->src_pitch,
