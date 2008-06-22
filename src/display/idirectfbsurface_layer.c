@@ -61,16 +61,6 @@ D_DEBUG_DOMAIN( Surface, "IDirectFBSurfaceL", "IDirectFBSurface_Layer Interface"
 
 /**********************************************************************************************************************/
 
-/*
- * private data struct of IDirectFBSurface_Layer
- */
-typedef struct {
-     IDirectFBSurface_data  base;   /* base Surface implementation */
-
-     CoreLayerRegion       *region; /* the region this surface belongs to */
-} IDirectFBSurface_Layer_data;
-
-
 static void
 IDirectFBSurface_Layer_Destruct( IDirectFBSurface *thiz )
 {

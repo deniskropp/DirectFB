@@ -1,3 +1,4 @@
+CROSS_COMPILE = arm-v4t-linux-gnueabi-
 KERNEL_SOURCE = $(shell pwd)/../../../linux-davinci-2.6
 KERNEL_BUILD  = $(KERNEL_SOURCE)
 

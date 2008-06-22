@@ -21,8 +21,8 @@ CPPFLAGS += -DMODULE
 
 it all:
 	$(MAKE) -C $(KERNEL_BUILD) \
-		CPPFLAGS="$(CPPFLAGS) -D__KERNEL__ -I$(shell pwd)/include -I$(KERNEL_BUILD)/include -I$(KERNEL_SOURCE)/include $(AUTOCONF_H)" \
-		SUBDIRS=`pwd`/$(SUB) modules
+		KCPPFLAGS="$(CPPFLAGS) -I$(shell pwd)/include -I$(KERNEL_BUILD)/include" \
+		SUBDIRS=$(shell pwd)/$(SUB) ARCH=arm CROSS_COMPILE=arm-v4t-linux-gnueabi- modules
 
 install: all
 

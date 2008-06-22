@@ -33,6 +33,15 @@
 #include <core/coretypes.h>
 
 /*
+ * private data struct of IDirectFBSurface_Layer
+ */
+typedef struct {
+     IDirectFBSurface_data  base;   /* base Surface implementation */
+
+     CoreLayerRegion       *region; /* the region this surface belongs to */
+} IDirectFBSurface_Layer_data;
+
+/*
  * sets buffer mode according to capabilities, calls base classes
  * IDirectFBSurface_Construct, reallocates private data and
  * overloads functions of the interface

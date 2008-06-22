@@ -7161,8 +7161,10 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          }
 
                          /* Premultiply color alpha? */
-                         if (state->blittingflags & DSBLIT_SRC_PREMULTCOLOR)
+                         if (state->blittingflags & DSBLIT_SRC_PREMULTCOLOR) {
+                              gfxs->Cacc.RGB.a = color.a + 1;
                               *funcs++ = Dacc_premultiply_color_alpha;
+                         }
 
                          /* modulate the source if requested */
                          if (Dacc_modulation[modulation & 0x7]) {

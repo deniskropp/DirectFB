@@ -1241,7 +1241,7 @@ IDirectFBSurface_DrawLines( IDirectFBSurface *thiz,
                             const DFBRegion  *lines,
                             unsigned int      num_lines )
 {
-     DFBRegion *local_lines = alloca(sizeof(DFBRegion) * num_lines);
+     unsigned int i;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -1260,21 +1260,53 @@ IDirectFBSurface_DrawLines( IDirectFBSurface *thiz,
      if (!lines || !num_lines)
           return DFB_INVARG;
 
-     if (data->area.wanted.x || data->area.wanted.y) {
-          unsigned int i;
-
-          for (i=0; i<num_lines; i++) {
-               local_lines[i].x1 = lines[i].x1 + data->area.wanted.x;
-               local_lines[i].x2 = lines[i].x2 + data->area.wanted.x;
-               local_lines[i].y1 = lines[i].y1 + data->area.wanted.y;
-               local_lines[i].y2 = lines[i].y2 + data->area.wanted.y;
-          }
+     /* Check if all lines are either horizontal or vertical */
+     for (i=0; i<num_lines; i++) {
+          if (lines[i].x1 != lines[i].x2 && lines[i].y1 != lines[i].y2)
+               break;
      }
-     else
-          /* clipping may modify lines, so we copy them */
-          direct_memcpy( local_lines, lines, sizeof(DFBRegion) * num_lines );
 
-     dfb_gfxcard_drawlines( local_lines, num_lines, &data->state );
+     /* Use real line drawing? */
+     if (i < num_lines) {
+          DFBRegion *local_lines = alloca(sizeof(DFBRegion) * num_lines);
+          
+          if (data->area.wanted.x || data->area.wanted.y) {
+               for (i=0; i<num_lines; i++) {
+                    local_lines[i].x1 = lines[i].x1 + data->area.wanted.x;
+                    local_lines[i].x2 = lines[i].x2 + data->area.wanted.x;
+                    local_lines[i].y1 = lines[i].y1 + data->area.wanted.y;
+                    local_lines[i].y2 = lines[i].y2 + data->area.wanted.y;
+               }
+          }
+          else
+               /* clipping may modify lines, so we copy them */
+               direct_memcpy( local_lines, lines, sizeof(DFBRegion) * num_lines );
+
+          dfb_gfxcard_drawlines( local_lines, num_lines, &data->state );
+     }
+     /* Optimized rectangle drawing */
+     else {
+          DFBRectangle *local_rects = alloca(sizeof(DFBRectangle) * num_lines);
+          
+          for (i=0; i<num_lines; i++) {
+               /* Vertical line? */
+               if (lines[i].x1 == lines[i].x2) {
+                    local_rects[i].x = data->area.wanted.x + lines[i].x1;
+                    local_rects[i].y = data->area.wanted.y + MIN( lines[i].y1, lines[i].y2 );
+                    local_rects[i].w = 1;
+                    local_rects[i].h = ABS( lines[i].y2 - lines[i].y1 ) + 1;
+               }
+               /* Horizontal line */
+               else {
+                    local_rects[i].x = data->area.wanted.x + MIN( lines[i].x1, lines[i].x2 );
+                    local_rects[i].y = data->area.wanted.y + lines[i].y1;
+                    local_rects[i].w = ABS( lines[i].x2 - lines[i].x1 ) + 1;
+                    local_rects[i].h = 1;
+               }
+          }
+
+          dfb_gfxcard_fillrectangles( local_rects, num_lines, &data->state );
+     }
 
      return DFB_OK;
 }

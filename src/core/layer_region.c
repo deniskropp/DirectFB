@@ -855,7 +855,14 @@ set_region( CoreLayerRegion            *region,
 {
      DFBResult                ret = DFB_OK;
      CoreLayer               *layer;
+     CoreLayerShared         *shared;
      const DisplayLayerFuncs *funcs;
+
+     D_DEBUG_AT( Core_Layers, "%s( %p, %p, 0x%08x, %p )\n", __FUNCTION__, region, config, flags, surface );
+
+     DFB_CORE_LAYER_REGION_CONFIG_DEBUG_AT( Core_Layers, config );
+
+     D_DEBUG_AT( Core_Layers, "  -> state    0x%08x\n", region->state );
 
      D_ASSERT( region != NULL );
      D_ASSERT( region->context != NULL );
@@ -867,13 +874,17 @@ set_region( CoreLayerRegion            *region,
      layer = dfb_layer_at( region->context->layer_id );
 
      D_ASSERT( layer != NULL );
+     D_ASSERT( layer->shared != NULL );
      D_ASSERT( layer->funcs != NULL );
      D_ASSERT( layer->funcs->SetRegion != NULL );
 
-     if (region->state & CLRSF_FROZEN)
+     if (region->state & CLRSF_FROZEN) {
+          D_DEBUG_AT( Core_Layers, "  -> FROZEN!\n" );
           return DFB_OK;
+     }
 
-     funcs = layer->funcs;
+     shared = layer->shared;
+     funcs  = layer->funcs;
 
      if (surface) {
           if (flags & (CLRCF_SURFACE | CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT)) {
@@ -922,6 +933,8 @@ set_region( CoreLayerRegion            *region,
           dfb_surface_unlock_buffer( region->surface_lock.buffer->surface, &region->surface_lock );
      }
 
+     D_DEBUG_AT( Core_Layers, "  => setting region of '%s'\n", shared->description.name );
+
      /* Setup hardware. */
      return funcs->SetRegion( layer, layer->driver_data, layer->layer_data,
                               region->region_data, config, flags,
@@ -936,7 +949,14 @@ realize_region( CoreLayerRegion *region )
      CoreLayerShared         *shared;
      const DisplayLayerFuncs *funcs;
 
+     D_DEBUG_AT( Core_Layers, "%s( %p )\n", __FUNCTION__, region );
+
      D_ASSERT( region != NULL );
+
+     DFB_CORE_LAYER_REGION_CONFIG_DEBUG_AT( Core_Layers, &region->config );
+
+     D_DEBUG_AT( Core_Layers, "  -> state    0x%08x\n", region->state );
+
      D_ASSERT( region->context != NULL );
      D_ASSERT( D_FLAGS_IS_SET( region->state, CLRSF_CONFIGURED ) );
      D_ASSERT( ! D_FLAGS_IS_SET( region->state, CLRSF_REALIZED ) );
@@ -952,8 +972,10 @@ realize_region( CoreLayerRegion *region )
 
      D_ASSERT( ! fusion_vector_contains( &shared->added_regions, region ) );
 
-     if (region->state & CLRSF_FROZEN)
+     if (region->state & CLRSF_FROZEN) {
+          D_DEBUG_AT( Core_Layers, "  -> FROZEN!\n" );
           return DFB_OK;
+     }
 
      /* Allocate the driver's region data. */
      if (funcs->RegionDataSize) {
@@ -966,8 +988,7 @@ realize_region( CoreLayerRegion *region )
           }
      }
 
-     D_DEBUG_AT( Core_Layers, "Adding region (%d, %d - %dx%d) to '%s'.\n",
-                 DFB_RECTANGLE_VALS( &region->config.dest ), shared->description.name );
+     D_DEBUG_AT( Core_Layers, "  => adding region to '%s'\n", shared->description.name );
 
      /* Add the region to the driver. */
      if (funcs->AddRegion) {
@@ -1011,7 +1032,14 @@ unrealize_region( CoreLayerRegion *region )
      CoreLayerShared         *shared;
      const DisplayLayerFuncs *funcs;
 
+     D_DEBUG_AT( Core_Layers, "%s( %p )\n", __FUNCTION__, region );
+
      D_ASSERT( region != NULL );
+
+     DFB_CORE_LAYER_REGION_CONFIG_DEBUG_AT( Core_Layers, &region->config );
+
+     D_DEBUG_AT( Core_Layers, "  -> state    0x%08x\n", region->state );
+
      D_ASSERT( region->context != NULL );
      D_ASSERT( D_FLAGS_IS_SET( region->state, CLRSF_REALIZED ) );
 
@@ -1028,8 +1056,7 @@ unrealize_region( CoreLayerRegion *region )
 
      index = fusion_vector_index_of( &shared->added_regions, region );
 
-     D_DEBUG_AT( Core_Layers, "Removing region (%d, %d - %dx%d) from '%s'.\n",
-                 DFB_RECTANGLE_VALS( &region->config.dest ), shared->description.name );
+     D_DEBUG_AT( Core_Layers, "  => removing region from '%s'\n", shared->description.name );
 
      /* Remove the region from hardware and driver. */
      if (funcs->RemoveRegion) {

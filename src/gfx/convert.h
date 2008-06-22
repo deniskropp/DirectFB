@@ -307,12 +307,23 @@ extern const u16 cr_from_rey[512];
 
 DFBSurfacePixelFormat dfb_pixelformat_for_depth( int depth );
 
-u32 dfb_color_to_pixel( DFBSurfacePixelFormat format,
-                        u8 r, u8 g, u8 b );
 
-void dfb_pixel_to_color( DFBSurfacePixelFormat  format,
-                         unsigned long          pixel,
-                         DFBColor              *ret_color );
+void                  dfb_pixel_to_color  ( DFBSurfacePixelFormat  format,
+                                            unsigned long          pixel,
+                                            DFBColor              *ret_color )  D_CONST_FUNC;
+
+unsigned long         dfb_pixel_from_color( DFBSurfacePixelFormat  format,
+                                            const DFBColor        *color )      D_CONST_FUNC;
+
+
+static inline u32
+dfb_color_to_pixel( DFBSurfacePixelFormat format,
+                    u8 r, u8 g, u8 b )
+{
+     const DFBColor color = { 0, r, g, b };
+
+     return dfb_pixel_from_color( format, &color );
+}
 
 static inline u32
 dfb_color_to_argb( const DFBColor *color )
