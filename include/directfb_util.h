@@ -92,6 +92,15 @@ void dfb_rectangle_union ( DFBRectangle       *rect1,
 #define DFB_RECTANGLE_CONTAINS_POINT(r,X,Y)  (((X) >= (r)->x) && ((X) < (r)->x + (r)->w) && \
                                               ((Y) >= (r)->y) && ((Y) < (r)->y + (r)->h))
 
+#define DFB_RECTANGLES_DEBUG_AT( Domain, rects, num )                                                         \
+     do {                                                                                                     \
+          unsigned int i;                                                                                     \
+                                                                                                              \
+          for (i=0; i<(num); i++)                                                                             \
+               D_DEBUG_AT( Domain, "  -> [%2d] %4d,%4d-%4dx%4d\n", i, DFB_RECTANGLE_VALS(&(rects)[i]) );      \
+     } while (0)
+
+
 #define DFB_TRIANGLE_VALS(t)                 (t)->x1, (t)->y1, (t)->x2, (t)->y2, (t)->x3, (t)->y3
 
 #define DFB_REGION_CHECK(r)     \
