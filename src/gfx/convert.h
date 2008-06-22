@@ -310,10 +310,10 @@ DFBSurfacePixelFormat dfb_pixelformat_for_depth( int depth );
 
 void                  dfb_pixel_to_color  ( DFBSurfacePixelFormat  format,
                                             unsigned long          pixel,
-                                            DFBColor              *ret_color )  D_CONST_FUNC;
+                                            DFBColor              *ret_color );
 
 unsigned long         dfb_pixel_from_color( DFBSurfacePixelFormat  format,
-                                            const DFBColor        *color )      D_CONST_FUNC;
+                                            const DFBColor        *color );
 
 
 static inline u32
