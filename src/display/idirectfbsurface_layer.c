@@ -142,6 +142,8 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
                return DFB_INVAREA;
      }
 
+     D_DEBUG_AT( Surface, "  -> FLIP %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
+
      return dfb_layer_region_flip_update( data->region, &reg, flags );
 }
 

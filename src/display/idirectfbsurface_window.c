@@ -165,7 +165,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
                return DFB_INVAREA;
      }
 
-     D_DEBUG_AT( Surface, "  -> %d, %d - %dx%d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
+     D_DEBUG_AT( Surface, "  -> FLIP %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
 
 
      if (flags & DSFLIP_PIPELINE) {
