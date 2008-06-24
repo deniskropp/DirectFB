@@ -390,8 +390,8 @@ davinciEngineSync( void *drv, void *dev )
      if (!ddev->synced) {
           D_DEBUG_AT( Davinci_2D, "  -> syncing...\n" );
 
-          davinci_c64x_write_back_all( &ddrv->c64x );
-          davinci_c64x_write_back_all( &ddrv->c64x );
+//          davinci_c64x_write_back_all( &ddrv->c64x );
+//          davinci_c64x_write_back_all( &ddrv->c64x );
 
           ret = davinci_c64x_wait_low( &ddrv->c64x );
           if (ret) {
