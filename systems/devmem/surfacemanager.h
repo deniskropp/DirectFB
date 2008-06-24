@@ -67,13 +67,6 @@ DFBResult dfb_surfacemanager_create ( CoreDFB             *core,
 void      dfb_surfacemanager_destroy( SurfaceManager      *manager );
 
 /*
- * adjust the offset within the framebuffer for surface storage,
- * needs to be called after a resolution switch
- */
-DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
-                                                 int             offset );
-
-/*
  * finds and allocates one for the surface or fails,
  * after success the video health is CSH_RESTORE.
  * NOTE: this does not notify the listeners

@@ -155,48 +155,6 @@ dfb_surfacemanager_destroy( SurfaceManager *manager )
      SHFREE( manager->shmpool, manager );
 }
 
-DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
-                                                 int             offset )
-{
-     D_MAGIC_ASSERT( manager, SurfaceManager );
-     D_ASSERT( offset >= 0 );
-
-     D_DEBUG_AT( SurfMan, "%s( %p, %d )\n", __FUNCTION__, manager, offset );
-
-/*FIXME_SC_2     if (manager->limits.surface_byteoffset_alignment > 1) {
-          offset += manager->limits.surface_byteoffset_alignment - 1;
-          offset -= offset % manager->limits.surface_byteoffset_alignment;
-     }
-*/
-     /*
-      * Adjust the offset of the heap.
-      */
-     if (manager->chunks->buffer == NULL) {
-          /* first chunk is free */
-          if (offset <= manager->chunks->offset + manager->chunks->length) {
-               /* ok, just recalculate offset and length */
-               manager->chunks->length = manager->chunks->offset +
-                                         manager->chunks->length - offset;
-               manager->chunks->offset = offset;
-          }
-          else {
-               D_WARN("unable to adjust heap offset");
-               /* more space needed than free at the beginning */
-               /* TODO: move/destroy instances */
-          }
-     }
-     else {
-          D_WARN("unable to adjust heap offset");
-          /* very rare case that the first chunk is occupied */
-          /* TODO: move/destroy instances */
-     }
-
-     manager->avail -= offset - manager->offset;
-     manager->offset = offset;
-
-     return DFB_OK;
-}
-
 /** public functions NOT locking the surfacemanger theirself,
     to be called between lock/unlock of surfacemanager **/
 
@@ -236,20 +194,6 @@ DFBResult dfb_surfacemanager_allocate( CoreDFB            *core,
      /* examine chunks */
      c = manager->chunks;
      D_MAGIC_ASSERT( c, Chunk );
-
-     /* FIXME_SC_2  Workaround creation happening before graphics driver initialization. */
-     if (!c->next) {
-          int length = dfb_gfxcard_memory_length();
-
-          if (c->length != length - manager->offset) {
-               D_WARN( "workaround" );
-
-               manager->length = length;
-               manager->avail  = length - manager->offset;
-
-               c->length = length - manager->offset;
-          }
-     }
 
      while (c) {
           D_MAGIC_ASSERT( c, Chunk );
