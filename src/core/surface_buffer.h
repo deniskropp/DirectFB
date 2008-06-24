@@ -146,7 +146,7 @@ struct __DFB_CoreSurfaceBuffer {
 
      FusionVector             allocs;        /* Allocations within Surface Pools. */
 
-     unsigned int             locked;        /* Lock count. */
+     unsigned int             locked;        /* Lock count. FIXME: Add fail safe cleanup! */
 };
 
 
