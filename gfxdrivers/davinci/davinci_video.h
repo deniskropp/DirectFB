@@ -43,6 +43,12 @@ typedef struct {
 
      bool                     enable;
      bool                     enabled;
+
+     CoreLayerRegionConfig    config;
+
+     vpfe_resizer_params_t    resizer;
+     DFBDimension             resized;
+     DFBPoint                 offset;
 } DavinciVideoLayerData;
 
 

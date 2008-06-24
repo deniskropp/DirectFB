@@ -111,28 +111,28 @@ static inline DFBResult
 davincifb_pan_display( const DavinciFB             *fb,
                        struct fb_var_screeninfo    *var,
                        const CoreSurfaceBufferLock *lock,
-                       DFBSurfaceFlipFlags          flags )
+                       DFBSurfaceFlipFlags          flags,
+                       int                          x,
+                       int                          y )
 {
      int ret;
 
      if (lock) {
 #ifdef FBIO_SET_START
-          struct fb_set_start set_start;
+          CoreSurfaceBuffer   *buffer = lock->buffer;
+          struct fb_set_start  set_start;
 
-          set_start.offset   = -1;           /* physical mode */
-          set_start.physical = lock->phys;   /* life's so easy */
+          /* physical mode */
+          set_start.offset   = -1;
           set_start.sync     = (flags & DSFLIP_ONSYNC) ? 1 : 0;
 
-          //direct_log_lock( NULL );
-          //direct_log_printf( NULL, "phys 0x%08lx, sync %llu -> ", set_start.physical, set_start.sync );
+          /* life's so easy */
+          set_start.physical = lock->phys + DFB_BYTES_PER_LINE( buffer->format, x ) + y * lock->pitch;
 
           ret = ioctl( fb->fd, FBIO_SET_START, &set_start );
           if (ret < 0)
                D_DEBUG( "FBIO_SET_START (0x%08lx, sync %llu) failed!\n",
                          set_start.physical, set_start.sync );
-
-          //direct_log_printf( NULL, "%llu (ret = %d)\n", set_start.sync, ret );
-          //direct_log_unlock( NULL );
 
           if (ret == 0) {
                if (flags & DSFLIP_WAIT)
@@ -140,13 +140,15 @@ davincifb_pan_display( const DavinciFB             *fb,
 
                return DFB_OK;
           }
+
+          /* fallback */
 #endif
-          var->xoffset = 0;                  /* poor version */
-          var->yoffset = lock->offset / lock->pitch;
+          var->xoffset = x;                  /* poor version */
+          var->yoffset = y + lock->offset / lock->pitch;
      }
      else {
-          var->xoffset = 0;
-          var->yoffset = 0;
+          var->xoffset = x;
+          var->yoffset = y;
      }
 
      var->activate = /*(flags & DSFLIP_ONSYNC) ? FB_ACTIVATE_VBL :*/ FB_ACTIVATE_NOW;

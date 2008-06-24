@@ -311,7 +311,7 @@ osdSetRegion( CoreLayer                  *layer,
      }
 
      davincifb_pan_display( &ddrv->fb[OSD0], &dosd->var0,
-                            (config->format == DSPF_RGB16) ? lock : NULL, DSFLIP_NONE );
+                            (config->format == DSPF_RGB16) ? lock : NULL, DSFLIP_NONE, 0, 0 );
 
      ret = ioctl( ddrv->fb[OSD0].fd, FBIOGET_FSCREENINFO, &ddev->fix[OSD0] );
      if (ret)
@@ -615,7 +615,7 @@ osdFlipRegion( CoreLayer             *layer,
                update_rgb( ddrv, ddev, surface, lock, NULL );
      }
      else
-          davincifb_pan_display( &ddrv->fb[OSD0], &dosd->var0, lock, flags );
+          davincifb_pan_display( &ddrv->fb[OSD0], &dosd->var0, lock, flags, 0, 0 );
 
      dfb_surface_flip( surface, false );
 

@@ -33,6 +33,8 @@
 #define FBIO_SETPOSY                            _IOW('F', 0x23, u_int32_t)
 #define FBIO_SETZOOM            		_IOW('F', 0x24, struct zoom_params)
 #define FBIO_GETSTD                             _IOR('F', 0x25, u_int32_t)
+#define FBIO_RESIZER		                _IOW('F', 0x26, struct vpfe_resizer_params)
+#define FBIO_SYNC		                _IOW('F', 0x27, u_int32_t)
 
 typedef struct zoom_params {
 	u_int32_t window_id;
@@ -40,6 +42,20 @@ typedef struct zoom_params {
 	u_int32_t zoom_v;
 } zoom_params_t;
 
+typedef struct vpfe_resizer_params
+{
+	u_int32_t rsz_cnt;	//busy-lock
+	u_int32_t out_size;	//busy-lock
+	u_int32_t in_start;	//busy-lock
+	u_int32_t in_size;	//busy-lock
+	u_int32_t sdr_inadd;	//shadowed
+	u_int32_t sdr_inoff;	//shadowed
+	u_int32_t sdr_outadd;	//shadowed
+	u_int32_t sdr_outoff;	//shadowed
+	u_int32_t hfilt[16];	//busy-lock
+	u_int32_t vfilt[16];	//busy-lock
+	u_int32_t yenh;		//busy-lock
+} vpfe_resizer_params_t;
 
 typedef struct fb_set_start {
 	int		offset;		/* offset from smem_start */

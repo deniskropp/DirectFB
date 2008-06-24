@@ -256,7 +256,7 @@ driver_init_driver( CoreGraphicsDevice  *device,
 
      if (!master) {
           dfb_surface_pool_join( core, ddev->osd_pool, &davinciOSDSurfacePoolFuncs );
-          dfb_surface_pool_join( core, ddev->video_pool, &davinciVideoSurfacePoolFuncs );
+//          dfb_surface_pool_join( core, ddev->video_pool, &davinciVideoSurfacePoolFuncs );
      }
 
      if (!dfb_config->software_only) {
@@ -305,7 +305,7 @@ driver_init_device( CoreGraphicsDevice *device,
      }
 
      dfb_surface_pool_initialize( ddrv->core, &davinciOSDSurfacePoolFuncs, &ddev->osd_pool );
-     dfb_surface_pool_initialize( ddrv->core, &davinciVideoSurfacePoolFuncs, &ddev->video_pool );
+//     dfb_surface_pool_initialize( ddrv->core, &davinciVideoSurfacePoolFuncs, &ddev->video_pool );
 
      return DFB_OK;
 }
