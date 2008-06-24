@@ -205,11 +205,7 @@ static int dev_mmap(struct file * file, struct vm_area_struct * vma) {
   }
   else {
     if (size!=Q_LEN) return -EINVAL;
-#if defined(pgprot_writecombine)
-    vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
-#else
     vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
-#endif
     if (remap_pfn_range(vma,
 			  vma->vm_start,
 			  Q_BASE>>PAGE_SHIFT,
@@ -221,56 +217,62 @@ static int dev_mmap(struct file * file, struct vm_area_struct * vma) {
 }
 
 static void
-c64x_dump( void )
+c64x_dump( const char *condition )
 {
   static const char *state_names[] = { "DONE", "ERROR", "TODO", "RUNNING" };
 
-  uint32_t  ql_dsp  = c64xctl->QL_dsp;
-  uint32_t  ql_arm  = c64xctl->QL_arm;
-  uint32_t  qh_dsp  = c64xctl->QH_dsp;
-  uint32_t  qh_arm  = c64xctl->QH_arm;
-  uint32_t  task    = queue_l[ql_dsp & C64X_QUEUE_MASK].c64x_function;
-  int       dl, dh;
+  uint32_t  ql_dsp = c64xctl->QL_dsp;
+  uint32_t  ql_arm = c64xctl->QL_arm;
+  uint32_t  tl_dsp = queue_l[ql_dsp & C64X_QUEUE_MASK].c64x_function;
+  uint32_t  tl_arm = queue_l[ql_arm & C64X_QUEUE_MASK].c64x_function;
+  int       dl;
 
   dl = ql_arm - ql_dsp;
   if (dl < 0)
     dl += C64X_QUEUE_LENGTH;
 
-  dh = qh_arm - qh_dsp;
-  if (dh < 0)
-    dh += C64X_QUEUE_LENGTH;
-
-  printk( "High Q:  arm %5d - dsp %5d = %d\n", qh_arm, qh_dsp, dh );
-  printk( "Low  Q:  arm %5d - dsp %5d = %d\n", ql_arm, ql_dsp, dl );
-
-  printk( "                      (%08x: func %d - %s)\n", 
-          task, (task >> 2) & 0x3fff, state_names[task & 3] );
-
+  printk( "C64X+ Queue: %s\n"
+          "   [DSP %d / %d (%s), ARM %d / %d (%s)] <- %d pending\n",
+          condition,
+          ql_dsp, (tl_dsp >> 2) & 0x3fff, state_names[tl_dsp & 3],
+          ql_arm, (tl_arm >> 2) & 0x3fff, state_names[tl_arm & 3],
+          dl );
 }
 
 static int
 c64x_wait_low( void )
 {
   int ret;
-  int num = 0;
-  u32 dsp = c64xctl->QL_dsp;
+  int num  = 0;
+  /* Keep reference values for comparison. */
+  u32 idle = c64xctl->idlecounter;
+  u32 dsp  = c64xctl->QL_dsp;
 
-//  c64x_dump();
-
+  /* Wait for equal pointers... */
   while (dsp != c64xctl->QL_arm) {
-    ret = wait_event_interruptible_timeout( wait_irq, c64xctl->QL_dsp == c64xctl->QL_arm, 1 );
+    /* ...each time for a 1/50 second... */
+    ret = wait_event_interruptible_timeout( wait_irq, c64xctl->QL_dsp == c64xctl->QL_arm, HZ/50 );
     if (ret < 0)
       return ret;
 
-    if (c64xctl->QL_dsp == dsp && ++num > HZ) {
-      printk( KERN_ERR "c64x+ : timeout waiting for idle queue\n" );
-      c64x_dump();
-      return -ETIMEDOUT;
+    /* ...if after that 1/50 second still the same command is running... */
+    if (!ret && c64xctl->QL_dsp == dsp) {
+      /* ...and almost one second elapsed in total, or the DSP felt idle... */
+      if (++num > 42 || c64xctl->idlecounter != idle) {
+        /* ...timeout! */
+        printk( KERN_ERR "c64x+ : timeout waiting for idle queue\n" );
+        c64x_dump( "TIMEOUT!!!" );
+        return -ETIMEDOUT;
+      }
     }
-    else
+    else {
+      /* Different command running, reset total elapsed time. */
       num = 0;
+    }
 
-    dsp = c64xctl->QL_dsp;
+    /* Update reference values. */
+    idle = c64xctl->idlecounter;
+    dsp  = c64xctl->QL_dsp;
   }
 
   return 0;
