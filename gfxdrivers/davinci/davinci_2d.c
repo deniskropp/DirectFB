@@ -390,9 +390,6 @@ davinciEngineSync( void *drv, void *dev )
      if (!ddev->synced) {
           D_DEBUG_AT( Davinci_2D, "  -> syncing...\n" );
 
-//          davinci_c64x_write_back_all( &ddrv->c64x );
-//          davinci_c64x_write_back_all( &ddrv->c64x );
-
           ret = davinci_c64x_wait_low( &ddrv->c64x );
           if (ret) {
                D_DEBUG_AT( Davinci_2D, "  -> ERROR (%s)\n", DirectFBErrorString(ret) );
@@ -429,9 +426,15 @@ davinciEngineReset( void *drv, void *dev )
 void
 davinciEmitCommands( void *drv, void *dev )
 {
+     DFBResult          ret;
      DavinciDeviceData *ddev = dev;
+     DavinciDriverData *ddrv = drv;
 
      D_DEBUG_AT( Davinci_2D, "%s()\n", __FUNCTION__ );
+
+     ret = davinci_c64x_emit_tasks( &ddrv->c64x, &ddrv->tasks, C64X_TEF_RESET );
+     if (ret)
+          D_DERROR( ret, "Davinci/Driver: Error emitting local task buffer!\n" );
 
      ddev->synced = false;
 }
@@ -449,7 +452,7 @@ davinciFlushTextureCache( void *drv, void *dev )
 
      D_DEBUG_AT( Davinci_2D, "%s()\n", __FUNCTION__ );
 
-/*
+/* Function does not work!
      davinci_c64x_wb_inv_range( &ddrv->c64x, dfb_config->video_phys,
                                              dfb_config->video_length, 2 );
 
@@ -805,17 +808,17 @@ davinciFillRectangle16( void *drv, void *dev, DFBRectangle *rect )
 
      /* FIXME: Optimize in DSP. */
      if ((rect->x | rect->w) & 1)
-          davinci_c64x_fill_16( &ddrv->c64x,
-                                ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
-                                ddev->dst_pitch,
-                                rect->w, rect->h,
-                                ddev->fillcolor );
+          davinci_c64x_fill_16__L( &ddrv->tasks,
+                                   ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
+                                   ddev->dst_pitch,
+                                   rect->w, rect->h,
+                                   ddev->fillcolor );
      else
-          davinci_c64x_fill_32( &ddrv->c64x,
-                                ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
-                                ddev->dst_pitch,
-                                rect->w/2, rect->h,
-                                ddev->fillcolor );
+          davinci_c64x_fill_32__L( &ddrv->tasks,
+                                   ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
+                                   ddev->dst_pitch,
+                                   rect->w/2, rect->h,
+                                   ddev->fillcolor );
 
      return true;
 }
@@ -829,21 +832,21 @@ davinciFillRectangle32( void *drv, void *dev, DFBRectangle *rect )
      D_DEBUG_AT( Davinci_2D, "%s( %4d,%4d-%4dx%4d )\n", __FUNCTION__, DFB_RECTANGLE_VALS(rect) );
 
      if (ddev->dst_format == DSPF_ARGB && ddev->color.a == 0xff)
-          davinci_c64x_blit_blend_32( &ddrv->c64x,
-                                      C64X_BLEND_ONE_INVSRC,
-                                      ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
-                                      ddev->dst_pitch,
-                                      0,
-                                      0,
-                                      rect->w, rect->h,
-                                      ddev->color_argb,
-                                      0xff );
+          davinci_c64x_blit_blend_32__L( &ddrv->tasks,
+                                         C64X_BLEND_ONE_INVSRC,
+                                         ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
+                                         ddev->dst_pitch,
+                                         0,
+                                         0,
+                                         rect->w, rect->h,
+                                         ddev->color_argb,
+                                         0xff );
      else
-          davinci_c64x_fill_32( &ddrv->c64x,
-                                ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
-                                ddev->dst_pitch,
-                                rect->w, rect->h,
-                                ddev->fillcolor );
+          davinci_c64x_fill_32__L( &ddrv->tasks,
+                                   ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
+                                   ddev->dst_pitch,
+                                   rect->w, rect->h,
+                                   ddev->fillcolor );
 
      return true;
 }
@@ -858,15 +861,15 @@ davinciFillRectangleBlend32( void *drv, void *dev, DFBRectangle *rect )
 
      D_DEBUG_AT( Davinci_2D, "%s( %4d,%4d-%4dx%4d )\n", __FUNCTION__, DFB_RECTANGLE_VALS(rect) );
 
-     davinci_c64x_blit_blend_32( &ddrv->c64x,
-                                 ddev->draw_blend_sub_function,
-                                 ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
-                                 ddev->dst_pitch,
-                                 0,
-                                 0,
-                                 rect->w, rect->h,
-                                 ddev->color_argb,
-                                 0xff );
+     davinci_c64x_blit_blend_32__L( &ddrv->tasks,
+                                    ddev->draw_blend_sub_function,
+                                    ddev->dst_phys + ddev->dst_pitch * rect->y + ddev->dst_bpp * rect->x,
+                                    ddev->dst_pitch,
+                                    0,
+                                    0,
+                                    rect->w, rect->h,
+                                    ddev->color_argb,
+                                    0xff );
 
      return true;
 }
@@ -888,19 +891,19 @@ davinciBlit16( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 
      /* FIXME: Optimize in DSP. */
      if ((dx | rect->x | rect->w) & 1)
-          davinci_c64x_blit_16( &ddrv->c64x,
-                                ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
-                                ddev->dst_pitch,
-                                ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
-                                ddev->src_pitch,
-                                rect->w, rect->h );
+          davinci_c64x_blit_16__L( &ddrv->tasks,
+                                   ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
+                                   ddev->dst_pitch,
+                                   ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
+                                   ddev->src_pitch,
+                                   rect->w, rect->h );
      else
-          davinci_c64x_blit_32( &ddrv->c64x,
-                                ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
-                                ddev->dst_pitch,
-                                ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
-                                ddev->src_pitch,
-                                rect->w/2, rect->h );
+          davinci_c64x_blit_32__L( &ddrv->tasks,
+                                   ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
+                                   ddev->dst_pitch,
+                                   ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
+                                   ddev->src_pitch,
+                                   rect->w/2, rect->h );
 
      return true;
 }
@@ -914,12 +917,12 @@ davinciBlit32( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      D_DEBUG_AT( Davinci_2D, "%s( %4d,%4d-%4dx%4d <- %4d,%4d )\n",
                  __FUNCTION__, dx, dy, rect->w, rect->h, rect->x, rect->y );
 
-     davinci_c64x_blit_32( &ddrv->c64x,
-                           ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
-                           ddev->dst_pitch,
-                           ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
-                           ddev->src_pitch,
-                           rect->w, rect->h );
+     davinci_c64x_blit_32__L( &ddrv->tasks,
+                              ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
+                              ddev->dst_pitch,
+                              ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
+                              ddev->src_pitch,
+                              rect->w, rect->h );
 
      return true;
 }
@@ -935,13 +938,13 @@ davinciBlit32to16( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      D_DEBUG_AT( Davinci_2D, "%s( %4d,%4d-%4dx%4d <- %4d,%4d )\n",
                  __FUNCTION__, dx, dy, rect->w, rect->h, rect->x, rect->y );
 
-     davinci_c64x_dither_argb( &ddrv->c64x,
-                               ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
-                               DAVINCI_C64X_MEM,
-                               ddev->dst_pitch,
-                               ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
-                               ddev->src_pitch,
-                               rect->w, rect->h );
+     davinci_c64x_dither_argb__L( &ddrv->tasks,
+                                  ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
+                                  DAVINCI_C64X_MEM,
+                                  ddev->dst_pitch,
+                                  ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
+                                  ddev->src_pitch,
+                                  rect->w, rect->h );
 
      return true;
 }
@@ -957,14 +960,14 @@ davinciBlitKeyed16( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      D_DEBUG_AT( Davinci_2D, "%s( %4d,%4d-%4dx%4d <- %4d,%4d ) <- key 0x%04lx\n",
                  __FUNCTION__, dx, dy, rect->w, rect->h, rect->x, rect->y, ddev->colorkey );
 
-     davinci_c64x_blit_keyed_16( &ddrv->c64x,
-                                 ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
-                                 ddev->dst_pitch,
-                                 ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
-                                 ddev->src_pitch,
-                                 rect->w, rect->h,
-                                 ddev->colorkey,
-                                 (1 << DFB_COLOR_BITS_PER_PIXEL( ddev->dst_format )) - 1 );
+     davinci_c64x_blit_keyed_16__L( &ddrv->tasks,
+                                    ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
+                                    ddev->dst_pitch,
+                                    ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
+                                    ddev->src_pitch,
+                                    rect->w, rect->h,
+                                    ddev->colorkey,
+                                    (1 << DFB_COLOR_BITS_PER_PIXEL( ddev->dst_format )) - 1 );
 
      return true;
 }
@@ -978,14 +981,14 @@ davinciBlitKeyed32( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      D_DEBUG_AT( Davinci_2D, "%s( %4d,%4d-%4dx%4d <- %4d,%4d ) <- key 0x%08lx\n",
                  __FUNCTION__, dx, dy, rect->w, rect->h, rect->x, rect->y, ddev->colorkey );
 
-     davinci_c64x_blit_keyed_32( &ddrv->c64x,
-                                 ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
-                                 ddev->dst_pitch,
-                                 ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
-                                 ddev->src_pitch,
-                                 rect->w, rect->h,
-                                 ddev->colorkey,
-                                 (1 << DFB_COLOR_BITS_PER_PIXEL( ddev->dst_format )) - 1 );
+     davinci_c64x_blit_keyed_32__L( &ddrv->tasks,
+                                    ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
+                                    ddev->dst_pitch,
+                                    ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
+                                    ddev->src_pitch,
+                                    rect->w, rect->h,
+                                    ddev->colorkey,
+                                    (1 << DFB_COLOR_BITS_PER_PIXEL( ddev->dst_format )) - 1 );
 
      return true;
 }
@@ -1001,15 +1004,15 @@ davinciBlitBlend32( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      D_DEBUG_AT( Davinci_2D, "%s( %4d,%4d-%4dx%4d <- %4d,%4d )\n",
                  __FUNCTION__, dx, dy, rect->w, rect->h, rect->x, rect->y );
 
-     davinci_c64x_blit_blend_32( &ddrv->c64x,
-                                 ddev->blit_blend_sub_function,
-                                 ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
-                                 ddev->dst_pitch,
-                                 ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
-                                 ddev->src_pitch,
-                                 rect->w, rect->h,
-                                 ddev->source_mult,
-                                 ddev->color.a );
+     davinci_c64x_blit_blend_32__L( &ddrv->tasks,
+                                    ddev->blit_blend_sub_function,
+                                    ddev->dst_phys + ddev->dst_pitch * dy      + ddev->dst_bpp * dx,
+                                    ddev->dst_pitch,
+                                    ddev->src_phys + ddev->src_pitch * rect->y + ddev->src_bpp * rect->x,
+                                    ddev->src_pitch,
+                                    rect->w, rect->h,
+                                    ddev->source_mult,
+                                    ddev->color.a );
 
      return true;
 }
@@ -1033,14 +1036,14 @@ davinciStretchBlit32( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *d
 
      dfb_region_translate( &clip, -drect->x, -drect->y );
 
-     davinci_c64x_stretch_32( &ddrv->c64x,
-                              ddev->dst_phys + ddev->dst_pitch * drect->y + ddev->dst_bpp * drect->x,
-                              ddev->dst_pitch,
-                              ddev->src_phys + ddev->src_pitch * srect->y + ddev->src_bpp * srect->x,
-                              ddev->src_pitch,
-                              drect->w, drect->h,
-                              srect->w, srect->h,
-                              &clip );
+     davinci_c64x_stretch_32__L( &ddrv->tasks,
+                                 ddev->dst_phys + ddev->dst_pitch * drect->y + ddev->dst_bpp * drect->x,
+                                 ddev->dst_pitch,
+                                 ddev->src_phys + ddev->src_pitch * srect->y + ddev->src_bpp * srect->x,
+                                 ddev->src_pitch,
+                                 drect->w, drect->h,
+                                 srect->w, srect->h,
+                                 &clip );
 
      return true;
 }

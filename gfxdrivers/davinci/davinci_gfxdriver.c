@@ -237,6 +237,12 @@ driver_init_driver( CoreGraphicsDevice  *device,
      if (ret)
           D_WARN( "running without DSP acceleration" );
      else {
+          ret = davinci_c64x_tasks_init( &ddrv->tasks, 2048 );
+          if (ret) {
+               D_DERROR( ret, "Davinci/Driver: Error initializing local task buffer!\n" );
+               return ret;
+          }
+
           ddrv->c64x_present = true;
 
           /* initialize function pointers */
@@ -259,7 +265,7 @@ driver_init_driver( CoreGraphicsDevice  *device,
 //          dfb_surface_pool_join( core, ddev->video_pool, &davinciVideoSurfacePoolFuncs );
      }
 
-     if (!dfb_config->software_only) {
+     if (!dfb_config->software_only && funcs->CheckState) {
           dfb_config->font_format  = DSPF_ARGB;
           dfb_config->font_premult = true;
      }
@@ -323,8 +329,11 @@ driver_close_driver( CoreGraphicsDevice *device,
 {
      DavinciDriverData *ddrv = driver_data;
 
-     if (ddrv->c64x_present)
+     if (ddrv->c64x_present) {
+          davinci_c64x_tasks_destroy( &ddrv->tasks );
+
           davinci_c64x_close( &ddrv->c64x );
+     }
 
      close_fb( &ddrv->fb[VID1] );
      close_fb( &ddrv->fb[OSD1] );

@@ -49,12 +49,201 @@
 
 #include "davinci_c64x.h"
 
+
 /**********************************************************************************************************************/
 
 #define C64X_DEVICE  "/dev/c64x"
 #define C64X_DEVICE0 "/dev/c64x0"
 #define C64X_QLEN    direct_page_align( sizeof(c64xTaskControl) )
 #define C64X_MLEN    direct_page_align( 0x2000000 )
+
+__attribute__((noinline))
+static void
+davinci_c64x_queue_error( DavinciC64x *c64x, const char *msg )
+{
+     c64xTaskControl *ctl       = c64x->ctl;
+     uint32_t         dsp       = ctl->QL_dsp;
+     uint32_t         arm       = ctl->QL_arm;
+     uint32_t         armp      = (arm-1) & C64X_QUEUE_MASK;
+     c64xTask        *dsp_task  = &c64x->QueueL[dsp];
+     c64xTask        *arm_task  = &c64x->QueueL[arm];
+     c64xTask        *armp_task = &c64x->QueueL[armp];
+
+     D_PERROR( "Davinci/C64X+: %s [DSP %d / %d (%s), ARM %d / %d (%s) <- %d / %d (%s)]\n",
+               msg,
+               dsp,
+               (dsp_task->c64x_function >> 2) & 0x3fff,
+               state_names[dsp_task->c64x_function & 3],
+               arm,
+               (arm_task->c64x_function >> 2) & 0x3fff,
+               state_names[arm_task->c64x_function & 3],
+               armp,
+               (armp_task->c64x_function >> 2) & 0x3fff,
+               state_names[armp_task->c64x_function & 3] );
+}
+
+/*
+
+1. Idle Case
+
+     ARM                                        ARM
+     DSP                                        DSP
+   |  .  .  .  .  .  .  .  .  |      |  .  .  .  .  .  .  .  .  |          free = length-1
+
+
+2. Busy Case (ARM after)
+
+        ARM                                     ARM
+     DSP                                  DSP
+   |  o  .  .  .  .  .  .  .  |      |  .  o  o  .  .  .  .  .  |          free = length-1 - arm + dsp
+
+
+3. Busy Case (ARM before)
+
+     ARM                                     ARM
+                    DSP                                     DSP
+   |  .  .  .  .  .  o  o  o  |      |  o  o  .  .  .  .  .  o  |          free = dsp - arm - 1
+
+
+4. Full Case (ARM after)
+
+                          ARM
+     DSP
+   |  o  o  o  o  o  o  o  .  |                                            free = 0
+
+
+5. Full Case (ARM before)
+
+                    ARM                ARM
+                       DSP                DSP
+   |  o  o  o  o  o  .  o  o  |      |  .  o  o  o  o  o  o  o  |          free = 0
+
+*/
+
+DFBResult
+davinci_c64x_emit_tasks( DavinciC64x          *c64x,
+                         DavinciC64xTasks     *tasks,
+                         DavinciC64xEmitFlags  flags )
+{
+     c64xTaskControl *ctl     = c64x->ctl;
+     uint32_t         arm     = ctl->QL_arm;
+     unsigned int     emitted = 0;
+     unsigned int     timeout = 23;
+
+     D_MAGIC_ASSERT( tasks, DavinciC64xTasks );
+
+     while (emitted < tasks->num_tasks) {
+          uint32_t dsp = ctl->QL_dsp;
+          int      free;
+
+          if (arm == dsp)
+               free = C64X_QUEUE_LENGTH - 1;
+          else if (arm > dsp)
+               free = C64X_QUEUE_LENGTH - 1 - arm + dsp;
+          else
+               free = dsp - arm - 1;
+
+          if (free) {
+               int emit = MIN( free, tasks->num_tasks - emitted );
+               int copy = MIN( emit, C64X_QUEUE_LENGTH - arm );
+
+               memcpy( (void*) &c64x->QueueL[arm], (void*) &tasks->tasks[emitted], sizeof(c64xTask) * copy );
+
+               if (copy < emit) {
+                    memcpy( (void*) &c64x->QueueL[0], (void*) &tasks->tasks[emitted+copy], sizeof(c64xTask) * (emit - copy) );
+
+                    arm = (emit - copy);
+               }
+               else
+                    arm = (arm + copy) & C64X_QUEUE_MASK;
+
+               mb();
+
+               ctl->QL_arm = arm;
+
+               mb();
+
+               emitted += emit;
+
+               timeout = 23;
+          }
+          else {
+               if (!timeout--) {
+                    davinci_c64x_queue_error( c64x, "Emit Timeout!" );
+                    return DFB_TIMEOUT;
+               }
+                    
+               usleep( 7000 );
+          }
+     }
+
+     if (flags & C64X_TEF_RESET)
+          tasks->num_tasks = 0;
+
+     return DFB_OK;
+}
+
+DFBResult
+davinci_c64x_tasks_init( DavinciC64xTasks *tasks,
+                         unsigned int      size )
+{
+     tasks->tasks = D_MALLOC( sizeof(c64xTask) * size );
+     if (!tasks->tasks)
+          return D_OOM();
+
+     tasks->max_tasks = size;
+     tasks->num_tasks = 0;
+
+     D_MAGIC_SET( tasks, DavinciC64xTasks );
+
+     return DFB_OK;
+}
+
+DFBResult
+davinci_c64x_tasks_destroy( DavinciC64xTasks *tasks )
+{
+     D_MAGIC_ASSERT( tasks, DavinciC64xTasks );
+     D_ASSERT( tasks->tasks != NULL );
+
+     D_FREE( (void*) tasks->tasks );
+
+     tasks->tasks = NULL;
+
+     D_MAGIC_CLEAR( tasks );
+
+     return DFB_OK;
+}
+
+DFBResult
+davinci_c64x_wait_low( DavinciC64x *c64x )
+{
+     DFBResult        ret;
+     c64xTaskControl *ctl = c64x->ctl;
+
+     while (ctl->QL_dsp != ctl->QL_arm) {
+          c64xTask *task = c64x_get_task( c64x );
+
+          task->c64x_function = C64X_FLAG_TODO | C64X_FLAG_INTERRUPT;
+
+          c64x_submit_task( c64x, task );
+
+          if (ioctl( c64x->fd, C64X_IOCTL_WAIT_LOW )) {
+               c64xTask *dsp_task = &c64x->QueueL[ctl->QL_dsp];
+
+               ret = errno2result( errno );
+               D_PERROR( "Davinci/C64X+: C64X_IOCTL_WAIT_LOW failed! [DSP %d / %d (%s), ARM %d / %d (%s)]\n",
+                         ctl->QL_dsp,
+                         (dsp_task->c64x_function >> 2) & 0x3fff,
+                         state_names[dsp_task->c64x_function & 3],
+                         ctl->QL_arm,
+                         (task->c64x_function >> 2) & 0x3fff,
+                         state_names[task->c64x_function & 3] );
+               return ret;
+          }
+     }
+
+     return DFB_OK;
+}
 
 /**********************************************************************************************************************/
 /*   Benchmarking or Testing                                                                                          */
@@ -65,7 +254,6 @@
 #else
 #define BRINTF(x...)     printf( x )
 #endif
-
 
 static void
 bench_mem( const char *name,

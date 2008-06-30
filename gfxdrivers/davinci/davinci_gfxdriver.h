@@ -104,6 +104,8 @@ typedef struct {
 
      DavinciC64x               c64x;
      bool                      c64x_present;
+
+     DavinciC64xTasks          tasks;
 } DavinciDriverData;
 
 

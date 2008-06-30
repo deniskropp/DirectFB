@@ -36,30 +36,56 @@
 
 #include <linux/c64x.h>
 
-
-typedef struct {
-     int              magic;
-
-     int              fd;
-     c64xTaskControl *ctl;
-     void            *mem;
-
-     c64xTask        *QueueL;
-} DavinciC64x;
-
-
-DFBResult davinci_c64x_open ( DavinciC64x *c64x );
-
-DFBResult davinci_c64x_close( DavinciC64x *c64x );
+#define mb() __asm__ __volatile__ ("" : : : "memory")
 
 /**********************************************************************************************************************/
 
-#define mb() __asm__ __volatile__ ("" : : : "memory")
-#define nop() __asm__ __volatile__("mov\tr0,r0\t@ nop\n\t");
+typedef struct {
+     int                 magic;
+
+     int                 fd;
+     c64xTaskControl    *ctl;
+     void               *mem;
+
+     c64xTask           *QueueL;
+} DavinciC64x;
+
+typedef struct {
+     int                 magic;
+     unsigned int        max_tasks;
+     unsigned int        num_tasks;
+     c64xTask           *tasks;
+} DavinciC64xTasks;
+
+typedef enum {
+     C64X_TEF_NONE       = 0x0000,
+     C64X_TEF_RESET      = 0x0001
+} DavinciC64xEmitFlags;
+
+/**********************************************************************************************************************/
+
+DFBResult davinci_c64x_open    ( DavinciC64x *c64x );
+
+DFBResult davinci_c64x_close   ( DavinciC64x *c64x );
+
+DFBResult davinci_c64x_wait_low( DavinciC64x *c64x );
+
+/**********************************************************************************************************************/
+
+DFBResult davinci_c64x_tasks_init   ( DavinciC64xTasks *tasks,
+                                      unsigned int      size );
+
+DFBResult davinci_c64x_tasks_destroy( DavinciC64xTasks *tasks );
+
+/**********************************************************************************************************************/
+
+DFBResult davinci_c64x_emit_tasks( DavinciC64x          *c64x,
+                                   DavinciC64xTasks     *tasks,
+                                   DavinciC64xEmitFlags  flags );
+
+/**********************************************************************************************************************/
 
 static const char *state_names[] = { "DONE", "ERROR", "TODO", "RUNNING" };
-
-static uint32_t last_func;
 
 static inline c64xTask *
 c64x_get_task( DavinciC64x *c64x )
@@ -76,15 +102,13 @@ c64x_get_task( DavinciC64x *c64x )
           if (loops > 666 || (idle && ctl->idlecounter - idle > 666)) {
                c64xTask *dsp_task = &c64x->QueueL[ctl->QL_dsp];
 
-               D_ERROR( "Davinci/C64X+: DSP stuck at %d - func %d (%s), ARM at %d (%d) - func %d (%s), last %d (%s)\n",
-                        ctl->QL_dsp,
-                        (dsp_task->c64x_function >> 2) & 0x3fff,
-                        state_names[dsp_task->c64x_function & 3],
-                        ctl->QL_arm, idx,
-                        (task->c64x_function >> 2) & 0x3fff,
-                        state_names[task->c64x_function & 3],
-                        (last_func >> 2) & 0x3fff,
-                        state_names[last_func & 3] );
+               D_PERROR( "Davinci/C64X+: Blocked! [DSP %d / %d (%s), ARM %d / %d (%s)]\n",
+                         ctl->QL_dsp,
+                         (dsp_task->c64x_function >> 2) & 0x3fff,
+                         state_names[dsp_task->c64x_function & 3],
+                         ctl->QL_arm,
+                         (task->c64x_function >> 2) & 0x3fff,
+                         state_names[task->c64x_function & 3] );
 
                break;
           }
@@ -106,8 +130,6 @@ c64x_submit_task( DavinciC64x *c64x, c64xTask *task )
      uint32_t         idx  = ctl->QL_arm;
      uint32_t         next = (idx + 1) & C64X_QUEUE_MASK;
 
-     last_func = task->c64x_function;
-
      mb();
 
      ctl->QL_arm = next;
@@ -116,29 +138,6 @@ c64x_submit_task( DavinciC64x *c64x, c64xTask *task )
 }
 
 /**********************************************************************************************************************/
-
-static inline DFBResult
-davinci_c64x_wait_low( DavinciC64x *c64x )
-{
-     DFBResult        ret;
-     c64xTaskControl *ctl = c64x->ctl;
-
-     while (ctl->QL_dsp != ctl->QL_arm) {
-          c64xTask *task = c64x_get_task( c64x );
-
-          task->c64x_function = C64X_FLAG_TODO | C64X_FLAG_INTERRUPT;
-
-          c64x_submit_task( c64x, task );
-
-          if (ioctl( c64x->fd, C64X_IOCTL_WAIT_LOW )) {
-               ret = errno2result( errno );
-               D_PERROR( "C64X: C64X_IOCTL_WAIT_LOW failed!\n" );
-               return ret;
-          }
-     }
-
-     return DFB_OK;
-}
 
 static inline void
 davinci_c64x_wb_inv_range( DavinciC64x   *c64x,
@@ -168,6 +167,25 @@ davinci_c64x_write_back_all( DavinciC64x *c64x )
 }
 
 /**********************************************************************************************************************/
+
+static inline void
+davinci_c64x_load_block__L( DavinciC64xTasks *tasks,
+                            unsigned long     words,
+                            u32               num,
+                            u32               flags )
+{
+     c64xTask *task = &tasks->tasks[tasks->num_tasks];
+
+     D_ASSERT( tasks->num_tasks < tasks->max_tasks );
+
+     task->c64x_arg[0] = words;
+     task->c64x_arg[1] = num;
+     task->c64x_arg[2] = flags;
+
+     task->c64x_function = C64X_LOAD_BLOCK | C64X_FLAG_TODO;
+
+     tasks->num_tasks++;
+}
 
 static inline void
 davinci_c64x_load_block( DavinciC64x   *c64x,
@@ -232,6 +250,25 @@ davinci_c64x_mc( DavinciC64x   *c64x,
 }
 
 static inline void
+davinci_c64x_put_idct_uyvy_16x16__L( DavinciC64xTasks *tasks,
+                                     unsigned long     dest,
+                                     u32               pitch,
+                                     u32               flags )
+{
+     c64xTask *task = &tasks->tasks[tasks->num_tasks];
+
+     D_ASSERT( tasks->num_tasks < tasks->max_tasks );
+
+     task->c64x_arg[0] = dest;
+     task->c64x_arg[1] = pitch;
+     task->c64x_arg[2] = flags;
+
+     task->c64x_function = C64X_PUT_IDCT_UYVY_16x16 | C64X_FLAG_TODO;
+
+     tasks->num_tasks++;
+}
+
+static inline void
 davinci_c64x_put_idct_uyvy_16x16( DavinciC64x   *c64x,
                                   unsigned long  dest,
                                   u32            pitch,
@@ -246,6 +283,25 @@ davinci_c64x_put_idct_uyvy_16x16( DavinciC64x   *c64x,
      task->c64x_function = C64X_PUT_IDCT_UYVY_16x16 | C64X_FLAG_TODO;
 
      c64x_submit_task( c64x, task );
+}
+
+static inline void
+davinci_c64x_put_mc_uyvy_16x16__L( DavinciC64xTasks *tasks,
+                                   unsigned long     dest,
+                                   u32               pitch,
+                                   u32               flags )
+{
+     c64xTask *task = &tasks->tasks[tasks->num_tasks];
+
+     D_ASSERT( tasks->num_tasks < tasks->max_tasks );
+
+     task->c64x_arg[0] = dest;
+     task->c64x_arg[1] = pitch;
+     task->c64x_arg[2] = flags;
+
+     task->c64x_function = C64X_PUT_MC_UYVY_16x16 | C64X_FLAG_TODO;
+
+     tasks->num_tasks++;
 }
 
 static inline void
@@ -266,6 +322,25 @@ davinci_c64x_put_mc_uyvy_16x16( DavinciC64x   *c64x,
 }
 
 static inline void
+davinci_c64x_put_sum_uyvy_16x16__L( DavinciC64xTasks *tasks,
+                                    unsigned long     dest,
+                                    u32               pitch,
+                                    u32               flags )
+{
+     c64xTask *task = &tasks->tasks[tasks->num_tasks];
+
+     D_ASSERT( tasks->num_tasks < tasks->max_tasks );
+
+     task->c64x_arg[0] = dest;
+     task->c64x_arg[1] = pitch;
+     task->c64x_arg[2] = flags;
+
+     task->c64x_function = C64X_PUT_SUM_UYVY_16x16 | C64X_FLAG_TODO;
+
+     tasks->num_tasks++;
+}
+
+static inline void
 davinci_c64x_put_sum_uyvy_16x16( DavinciC64x   *c64x,
                                  unsigned long  dest,
                                  u32            pitch,
@@ -280,6 +355,29 @@ davinci_c64x_put_sum_uyvy_16x16( DavinciC64x   *c64x,
      task->c64x_function = C64X_PUT_SUM_UYVY_16x16 | C64X_FLAG_TODO;
 
      c64x_submit_task( c64x, task );
+}
+
+static inline void
+davinci_c64x_dva_begin_frame__L( DavinciC64xTasks *tasks,
+                                 u32               pitch,
+                                 unsigned long     current,
+                                 unsigned long     past,
+                                 unsigned long     future,
+                                 u32               flags )
+{
+     c64xTask *task = &tasks->tasks[tasks->num_tasks];
+
+     D_ASSERT( tasks->num_tasks < tasks->max_tasks );
+
+     task->c64x_arg[0] = pitch;
+     task->c64x_arg[1] = current;
+     task->c64x_arg[2] = past;
+     task->c64x_arg[3] = future;
+     task->c64x_arg[4] = flags;
+
+     task->c64x_function = C64X_DVA_BEGIN_FRAME | C64X_FLAG_TODO;
+
+     tasks->num_tasks++;
 }
 
 static inline void
@@ -301,6 +399,21 @@ davinci_c64x_dva_begin_frame( DavinciC64x   *c64x,
      task->c64x_function = C64X_DVA_BEGIN_FRAME | C64X_FLAG_TODO;
 
      c64x_submit_task( c64x, task );
+}
+
+static inline void
+davinci_c64x_dva_motion_block__L( DavinciC64xTasks *tasks,
+                                  unsigned long     macroblock )
+{
+     c64xTask *task = &tasks->tasks[tasks->num_tasks];
+
+     D_ASSERT( tasks->num_tasks < tasks->max_tasks );
+
+     task->c64x_arg[0] = macroblock;
+
+     task->c64x_function = C64X_DVA_MOTION_BLOCK | C64X_FLAG_TODO;
+
+     tasks->num_tasks++;
 }
 
 static inline void
@@ -357,6 +470,33 @@ davinci_c64x_put_uyvy_16x16( DavinciC64x   *c64x,
 }
 
 static inline void
+davinci_c64x_dither_argb__L( DavinciC64xTasks *tasks,
+                             unsigned long     dst_rgb,
+                             unsigned long     dst_alpha,
+                             u32               dst_pitch,
+                             unsigned long     source,
+                             u32               src_pitch,
+                             u32               width,
+                             u32               height )
+{
+     c64xTask *task = &tasks->tasks[tasks->num_tasks];
+
+     D_ASSERT( tasks->num_tasks < tasks->max_tasks );
+
+     task->c64x_arg[0] = dst_rgb;
+     task->c64x_arg[1] = dst_alpha;
+     task->c64x_arg[2] = dst_pitch;
+     task->c64x_arg[3] = source;
+     task->c64x_arg[4] = src_pitch;
+     task->c64x_arg[5] = width;
+     task->c64x_arg[6] = height;
+
+     task->c64x_function = C64X_DITHER_ARGB | C64X_FLAG_TODO;
+
+     tasks->num_tasks++;
+}
+
+static inline void
 davinci_c64x_dither_argb( DavinciC64x   *c64x,
                           unsigned long  dst_rgb,
                           unsigned long  dst_alpha,
@@ -382,6 +522,29 @@ davinci_c64x_dither_argb( DavinciC64x   *c64x,
 }
 
 static inline void
+davinci_c64x_fill_16__L( DavinciC64xTasks *tasks,
+                         unsigned long     dest,
+                         u32               pitch,
+                         u32               width,
+                         u32               height,
+                         u32               value )
+{
+     c64xTask *task = &tasks->tasks[tasks->num_tasks];
+
+     D_ASSERT( tasks->num_tasks < tasks->max_tasks );
+
+     task->c64x_arg[0] = dest;
+     task->c64x_arg[1] = pitch;
+     task->c64x_arg[2] = width;
+     task->c64x_arg[3] = height;
+     task->c64x_arg[4] = value;
+
+     task->c64x_function = C64X_FILL_16 | C64X_FLAG_TODO;
+
+     tasks->num_tasks++;
+}
+
+static inline void
 davinci_c64x_fill_16( DavinciC64x   *c64x,
                       unsigned long  dest,
                       u32            pitch,
@@ -403,6 +566,29 @@ davinci_c64x_fill_16( DavinciC64x   *c64x,
 }
 
 static inline void
+davinci_c64x_fill_32__L( DavinciC64xTasks *tasks,
+                         unsigned long     dest,
+                         u32               pitch,
+                         u32               width,
+                         u32               height,
+                         u32               value )
+{
+     c64xTask *task = &tasks->tasks[tasks->num_tasks];
+
+     D_ASSERT( tasks->num_tasks < tasks->max_tasks );
+
+     task->c64x_arg[0] = dest;
+     task->c64x_arg[1] = pitch;
+     task->c64x_arg[2] = width;
+     task->c64x_arg[3] = height;
+     task->c64x_arg[4] = value;
+
+     task->c64x_function = C64X_FILL_32 | C64X_FLAG_TODO;
+
+     tasks->num_tasks++;
+}
+
+static inline void
 davinci_c64x_fill_32( DavinciC64x   *c64x,
                       unsigned long  dest,
                       u32            pitch,
@@ -421,6 +607,31 @@ davinci_c64x_fill_32( DavinciC64x   *c64x,
      task->c64x_function = C64X_FILL_32 | C64X_FLAG_TODO;
 
      c64x_submit_task( c64x, task );
+}
+
+static inline void
+davinci_c64x_blit_16__L( DavinciC64xTasks *tasks,
+                         unsigned long     dest,
+                         u32               dpitch,
+                         unsigned long     src,
+                         u32               spitch,
+                         u32               width,
+                         u32               height )
+{
+     c64xTask *task = &tasks->tasks[tasks->num_tasks];
+
+     D_ASSERT( tasks->num_tasks < tasks->max_tasks );
+
+     task->c64x_arg[0] = dest;
+     task->c64x_arg[1] = dpitch;
+     task->c64x_arg[2] = src;
+     task->c64x_arg[3] = spitch;
+     task->c64x_arg[4] = width;
+     task->c64x_arg[5] = height;
+
+     task->c64x_function = C64X_COPY_16 | C64X_FLAG_TODO;
+
+     tasks->num_tasks++;
 }
 
 static inline void
@@ -447,6 +658,31 @@ davinci_c64x_blit_16( DavinciC64x   *c64x,
 }
 
 static inline void
+davinci_c64x_blit_32__L( DavinciC64xTasks *tasks,
+                         unsigned long     dest,
+                         u32               dpitch,
+                         unsigned long     src,
+                         u32               spitch,
+                         u32               width,
+                         u32               height )
+{
+     c64xTask *task = &tasks->tasks[tasks->num_tasks];
+
+     D_ASSERT( tasks->num_tasks < tasks->max_tasks );
+
+     task->c64x_arg[0] = dest;
+     task->c64x_arg[1] = dpitch;
+     task->c64x_arg[2] = src;
+     task->c64x_arg[3] = spitch;
+     task->c64x_arg[4] = width;
+     task->c64x_arg[5] = height;
+
+     task->c64x_function = C64X_COPY_32 | C64X_FLAG_TODO;
+
+     tasks->num_tasks++;
+}
+
+static inline void
 davinci_c64x_blit_32( DavinciC64x   *c64x,
                       unsigned long  dest,
                       u32            dpitch,
@@ -467,6 +703,38 @@ davinci_c64x_blit_32( DavinciC64x   *c64x,
      task->c64x_function = C64X_COPY_32 | C64X_FLAG_TODO;
 
      c64x_submit_task( c64x, task );
+}
+
+static inline void
+davinci_c64x_stretch_32__L( DavinciC64xTasks *tasks,
+                            unsigned long     dest,
+                            u32               dpitch,
+                            unsigned long     src,
+                            u32               spitch,
+                            u32               dw,
+                            u32               dh,
+                            u32               sw,
+                            u32               sh,
+                            const DFBRegion  *clip )
+{
+     c64xTask *task = &tasks->tasks[tasks->num_tasks];
+
+     D_ASSERT( tasks->num_tasks < tasks->max_tasks );
+
+     task->c64x_arg[0] = dest;
+     task->c64x_arg[1] = src;
+     task->c64x_arg[2] = dpitch   | (spitch   << 16);
+     task->c64x_arg[3] = dh       | (dw       << 16);
+     task->c64x_arg[4] = sh       | (sw       << 16);
+     task->c64x_arg[5] = clip->x2 | (clip->y2 << 16);
+     task->c64x_arg[6] = clip->x1 | (clip->y1 << 16);
+
+     if (sw > dw && sh > dh)
+          task->c64x_function = C64X_STRETCH_32_down | C64X_FLAG_TODO;
+     else
+          task->c64x_function = C64X_STRETCH_32_up | C64X_FLAG_TODO;
+
+     tasks->num_tasks++;
 }
 
 static inline void
@@ -500,6 +768,35 @@ davinci_c64x_stretch_32( DavinciC64x     *c64x,
 }
 
 static inline void
+davinci_c64x_blit_blend_32__L( DavinciC64xTasks *tasks,
+                               u32               sub_func,
+                               unsigned long     dest,
+                               u32               dpitch,
+                               unsigned long     src,
+                               u32               spitch,
+                               u32               width,
+                               u32               height,
+                               u32               argb,
+                               u8                alpha )
+{
+     c64xTask *task = &tasks->tasks[tasks->num_tasks];
+
+     D_ASSERT( tasks->num_tasks < tasks->max_tasks );
+
+     task->c64x_arg[0] = dest;
+     task->c64x_arg[1] = dpitch;
+     task->c64x_arg[2] = src;
+     task->c64x_arg[3] = spitch;
+     task->c64x_arg[4] = width | (height << 16);
+     task->c64x_arg[5] = argb;
+     task->c64x_arg[6] = alpha;
+
+     task->c64x_function = (sub_func << 16) | C64X_BLEND_32 | C64X_FLAG_TODO;
+
+     tasks->num_tasks++;
+}
+
+static inline void
 davinci_c64x_blit_blend_32( DavinciC64x   *c64x,
                             u32            sub_func,
                             unsigned long  dest,
@@ -527,6 +824,34 @@ davinci_c64x_blit_blend_32( DavinciC64x   *c64x,
 }
 
 static inline void
+davinci_c64x_blit_keyed_16__L( DavinciC64xTasks *tasks,
+                               unsigned long     dest,
+                               u32               dpitch,
+                               unsigned long     src,
+                               u32               spitch,
+                               u32               width,
+                               u32               height,
+                               u32               key,
+                               u32               mask )
+{
+     c64xTask *task = &tasks->tasks[tasks->num_tasks];
+
+     D_ASSERT( tasks->num_tasks < tasks->max_tasks );
+
+     task->c64x_arg[0] = dest;
+     task->c64x_arg[1] = (dpitch << 16) | (spitch & 0xffff);
+     task->c64x_arg[2] = src;
+     task->c64x_arg[3] = width;
+     task->c64x_arg[4] = height;
+     task->c64x_arg[5] = key;
+     task->c64x_arg[6] = mask;
+
+     task->c64x_function = C64X_COPY_KEYED_16 | C64X_FLAG_TODO;
+
+     tasks->num_tasks++;
+}
+
+static inline void
 davinci_c64x_blit_keyed_16( DavinciC64x   *c64x,
                             unsigned long  dest,
                             u32            dpitch,
@@ -550,6 +875,34 @@ davinci_c64x_blit_keyed_16( DavinciC64x   *c64x,
      task->c64x_function = C64X_COPY_KEYED_16 | C64X_FLAG_TODO;
 
      c64x_submit_task( c64x, task );
+}
+
+static inline void
+davinci_c64x_blit_keyed_32__L( DavinciC64xTasks *tasks,
+                               unsigned long     dest,
+                               u32               dpitch,
+                               unsigned long     src,
+                               u32               spitch,
+                               u32               width,
+                               u32               height,
+                               u32               key,
+                               u32               mask )
+{
+     c64xTask *task = &tasks->tasks[tasks->num_tasks];
+
+     D_ASSERT( tasks->num_tasks < tasks->max_tasks );
+
+     task->c64x_arg[0] = dest;
+     task->c64x_arg[1] = (dpitch << 16) | (spitch & 0xffff);
+     task->c64x_arg[2] = src;
+     task->c64x_arg[3] = width;
+     task->c64x_arg[4] = height;
+     task->c64x_arg[5] = key;
+     task->c64x_arg[6] = mask;
+
+     task->c64x_function = C64X_COPY_KEYED_32 | C64X_FLAG_TODO;
+
+     tasks->num_tasks++;
 }
 
 static inline void
