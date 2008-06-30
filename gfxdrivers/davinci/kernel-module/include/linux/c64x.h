@@ -33,7 +33,7 @@
 
 
 #ifndef DAVINCI_C64X_MEM
-#define DAVINCI_C64X_MEM 0x86000000
+#define DAVINCI_C64X_MEM 0x8e000000
 #endif
 
 
