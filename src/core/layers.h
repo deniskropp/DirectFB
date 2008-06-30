@@ -109,7 +109,9 @@ typedef enum {
      CLRCF_SURFACE      = 0x10000000,
      CLRCF_PALETTE      = 0x20000000,
 
-     CLRCF_ALL          = 0x3013377F
+     CLRCF_FREEZE       = 0x80000000,
+
+     CLRCF_ALL          = 0xB013377F
 } CoreLayerRegionConfigFlags;
 
 typedef struct {

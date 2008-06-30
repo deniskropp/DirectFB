@@ -698,6 +698,10 @@ dfb_layer_region_set_configuration( CoreLayerRegion            *region,
           return ret;
      }
 
+     /* Check if the region should be frozen, thus requiring to apply changes explicitly. */
+     if (flags & CLRCF_FREEZE)
+          region->state |= CLRSF_FROZEN;
+
      /* Propagate new configuration to the driver if the region is realized. */
      if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
           ret = set_region( region, &new_config, flags, region->surface );
