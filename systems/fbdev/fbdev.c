@@ -1545,7 +1545,7 @@ dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
                     (var->vmode & FB_VMODE_YWRAP) ? 1 : 0,
                     (var->activate & FB_ACTIVATE_VBL) ? 1 : 0);
 
-          return errno2result(result);
+         // return errno2result(result);
      }
 
      return DFB_OK;
