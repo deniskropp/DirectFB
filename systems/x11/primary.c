@@ -257,6 +257,23 @@ primaryTestRegion( CoreLayer                  *layer,
                break;
      }
 
+     switch (config->format) {
+          case DSPF_RGB16:
+          case DSPF_NV16:
+          case DSPF_RGB444:
+          case DSPF_ARGB4444:
+          case DSPF_RGB555:
+          case DSPF_ARGB1555:
+          case DSPF_BGR555:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               break;
+
+          default:
+               fail |= CLRCF_FORMAT;
+               break;
+     }
+
      if (config->options)
           fail |= CLRCF_OPTIONS;
 
