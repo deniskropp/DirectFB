@@ -65,6 +65,7 @@ struct __DFB_CoreLayerRegionConfig {
      DFBBoolean                 positive;         /* show or cut out regions */
 };
 
+#if D_DEBUG_ENABLED
 #define DFB_CORE_LAYER_REGION_CONFIG_DEBUG_AT( domain, config )                                                    \
      do {                                                                                                          \
           const CoreLayerRegionConfig *_config = config;                                                           \
@@ -80,7 +81,11 @@ struct __DFB_CoreLayerRegionConfig {
           D_DEBUG_AT( domain, "  -> src_key    %02x%02x%02x (index %d)\n", DFB_COLORKEY_VALS(&_config->src_key) ); \
           D_DEBUG_AT( domain, "  -> dst_key    %02x%02x%02x (index %d)\n", DFB_COLORKEY_VALS(&_config->dst_key) ); \
      } while (0)
-
+#else
+#define DFB_CORE_LAYER_REGION_CONFIG_DEBUG_AT( domain, config )                                                    \
+     do {                                                                                                          \
+     } while (0)
+#endif
 
 typedef enum {
      CLRCF_NONE         = 0x00000000,

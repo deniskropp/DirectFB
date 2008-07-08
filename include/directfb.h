@@ -5891,7 +5891,7 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
       */
      DFBResult (*SetStreamAttributes) (
           IDirectFBVideoProvider   *thiz,
-          DFBStreamDescription      attr
+          DFBStreamAttributes       attr
      );
 
      /*
