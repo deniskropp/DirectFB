@@ -928,7 +928,7 @@ dfb_wm_update_cursor( CoreWindowStack       *stack,
      D_FLAGS_ASSERT( flags, CCUF_ALL );
 
      if (dfb_config->no_cursor_updates)
-          return;
+          return DFB_OK;
 
      return wm_local->funcs->UpdateCursor( stack, wm_local->data,
                                            stack->stack_data, flags );
