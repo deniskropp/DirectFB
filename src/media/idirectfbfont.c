@@ -478,6 +478,7 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
      font   = data->font;
      string = (const u8*) text;
      end    = string + bytes;
+     *ret_next_line = NULL;
 
      dfb_font_lock( font );
 
@@ -515,16 +516,22 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
 
      if (width<max_width && string >= end) {
           *ret_next_line = NULL;
-          *ret_str_length = length-1;
+          *ret_str_length = length;
           *ret_width = width;
 
           return DFB_OK;
      }
 
      if (*ret_next_line == NULL) {
-          *ret_next_line = (const char*) string;
-          *ret_str_length = length;
-          *ret_width = width;
+          if (length == 1) {
+               *ret_str_length = length;
+               *ret_next_line = (const char*) string;
+               *ret_width = width;
+          } else {
+               *ret_str_length = length-1;
+               *ret_next_line = (const char*) string-1;
+               /* ret_width already set in the loop */
+          }
      }
 
      return DFB_OK;
