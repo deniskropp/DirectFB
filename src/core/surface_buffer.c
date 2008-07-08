@@ -644,8 +644,10 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
           case DSPF_NV16:
           case DSPF_RGB444:
           case DSPF_RGB555:
+          case DSPF_BGR555:
                rgb   = true;
                break;
+
 
           default:
                D_ERROR( "DirectFB/core/surfaces: surface dump for format "
@@ -822,6 +824,14 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
                          buf_p[n3+0] = (data16[n] & 0x7C00) >> 7;
                          buf_p[n3+1] = (data16[n] & 0x03E0) >> 2;
                          buf_p[n3+2] = (data16[n] & 0x001F) << 3;
+                    }
+                    break;
+
+               case DSPF_BGR555:
+                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
+                         buf_p[n3+2] = (data16[n] & 0x7C00) >> 7;
+                         buf_p[n3+1] = (data16[n] & 0x03E0) >> 2;
+                         buf_p[n3+0] = (data16[n] & 0x001F) << 3;
                     }
                     break;
 

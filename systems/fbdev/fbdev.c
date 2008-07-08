@@ -1423,10 +1423,13 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
                if(dfb_fbdev_compatible_format( var, 1, 5, 5, 5, 15, 10, 5, 0 ))
                    return DSPF_ARGB1555;
 
+               if (dfb_fbdev_compatible_format( var, 0, 5, 5, 5, 0, 0, 5, 10 )){
+                    return DSPF_BGR555;
+		}
+
                break;
 
          case 16:
-
                if (dfb_fbdev_compatible_format( var, 0, 5, 5, 5, 0, 10, 5, 0 ))
                     return DSPF_RGB555;
 
@@ -1441,6 +1444,10 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
 
                if (dfb_fbdev_compatible_format( var, 0, 5, 6, 5, 0, 11, 5, 0 ))
                     return DSPF_RGB16;
+
+               if (dfb_fbdev_compatible_format( var, 0, 5, 5, 5, 0, 0, 5, 10 )){
+			return DSPF_BGR555;
+		}
 
                break;
 
@@ -2006,6 +2013,15 @@ dfb_fbdev_set_mode( CoreSurface           *surface,
                     var.blue.offset   = 0;
                     break;
 
+               case DSPF_BGR555:
+                    var.red.length    = 5;
+                    var.green.length  = 5;
+                    var.blue.length   = 5;
+                    var.red.offset    = 0;
+                    var.green.offset  = 5;
+                    var.blue.offset   = 10;
+                    break;
+
                case DSPF_ARGB4444:
                     var.transp.length = 4;
                     var.red.length    = 4;
@@ -2388,6 +2404,7 @@ dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
      switch (format) {
           case DSPF_ARGB1555:
           case DSPF_RGB555:
+	   case DSPF_BGR555:
                red_size   = 32;
                green_size = 32;
                blue_size  = 32;

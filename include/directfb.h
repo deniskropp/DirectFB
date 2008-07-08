@@ -1124,12 +1124,15 @@ typedef enum {
      DSPF_RGB444    = DFB_SURFACE_PIXELFORMAT( 26, 12, 0, 0, 0, 2, 0, 0, 0, 0, 0 ),
 
      /* 16 bit   RGB (2 byte, nothing @15, red 5@10, green 5@5, blue 5@0) */
-     DSPF_RGB555    = DFB_SURFACE_PIXELFORMAT( 27, 15, 0, 0, 0, 2, 0, 0, 0, 0, 0 )
+     DSPF_RGB555    = DFB_SURFACE_PIXELFORMAT( 27, 15, 0, 0, 0, 2, 0, 0, 0, 0, 0 ),
+
+     /* 16 bit   BGR (2 byte, nothing @15, blue 5@10, green 5@5, red 5@0) */
+     DSPF_BGR555    = DFB_SURFACE_PIXELFORMAT( 28, 15, 0, 0, 0, 2, 0, 0, 0, 0, 0 )
 
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
-#define DFB_NUM_PIXELFORMATS            28
+#define DFB_NUM_PIXELFORMATS            29
 
 /* These macros extract information about the pixel format. */
 #define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000007F)      )

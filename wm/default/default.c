@@ -508,6 +508,7 @@ window_at_pointer( CoreWindowStack *stack,
 
                                    case DSPF_ARGB1555:
                                    case DSPF_RGB555:
+                                   case DSPF_BGR555:
                                         pixel = *(u16*)(data + 2 * wx +
                                                         pitch * wy)
                                                 & 0x7fff;

@@ -94,6 +94,12 @@ dfb_pixel_to_color( DFBSurfacePixelFormat  format,
                ret_color->b = EXPAND_5to8( (pixel & 0x001f)       );
                break;
 
+          case DSPF_BGR555:
+               ret_color->r = EXPAND_5to8( (pixel & 0x001f)       );
+               ret_color->g = EXPAND_5to8( (pixel & 0x03e0) >>  5 );
+               ret_color->b = EXPAND_5to8( (pixel & 0x7c00) >> 10 );
+               break;
+
           case DSPF_ARGB2554:
                ret_color->a = EXPAND_2to8(  pixel >> 14 );
                ret_color->r = EXPAND_5to8( (pixel & 0x3e00) >>  9 );
@@ -153,6 +159,9 @@ dfb_pixel_from_color( DFBSurfacePixelFormat  format,
 
           case DSPF_RGB555:
                return PIXEL_RGB555( color->r, color->g, color->b );
+
+          case DSPF_BGR555:
+               return PIXEL_BGR555( color->r, color->g, color->b );
 
           case DSPF_ARGB2554:
                return PIXEL_ARGB2554( color->a, color->r, color->g, color->b );
@@ -223,6 +232,9 @@ dfb_pixelformat_name( DFBSurfacePixelFormat format )
 
           case DSPF_RGB555:
                return "RGB555";
+
+          case DSPF_BGR555:
+               return "BGR555";
 
           case DSPF_RGB16:
                return "RGB16";

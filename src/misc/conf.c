@@ -53,7 +53,6 @@
 
 #include <misc/conf.h>
 
-
 DFBConfig *dfb_config = NULL;
 
 static const char *config_usage =
@@ -195,6 +194,7 @@ static const FormatString format_strings[] = {
      { "ARGB6666", DSPF_ARGB6666 },
      { "AYUV",     DSPF_AYUV     },
      { "AiRGB",    DSPF_AiRGB    },
+     { "BGR555",   DSPF_BGR555   },
      { "I420",     DSPF_I420     },
      { "LUT2",     DSPF_LUT2     },
      { "LUT8",     DSPF_LUT8     },

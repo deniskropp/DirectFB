@@ -515,6 +515,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           case DSPF_NV16:
           case DSPF_RGB444:
           case DSPF_RGB555:
+          case DSPF_BGR555:
                break;
 
           default:

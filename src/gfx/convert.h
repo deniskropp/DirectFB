@@ -50,6 +50,10 @@
                                  (((g)&0xF8) << 2) | \
                                  (((b)&0xF8) >> 3) )
 
+#define PIXEL_BGR555(r,g,b)  ( (((b)&0xF8) << 7) | \
+                                 (((g)&0xF8) << 2) | \
+                                 (((r)&0xF8) >> 3) )
+
 #define PIXEL_ARGB2554(a,r,g,b)( (((a)&0xC0) << 8) | \
                                  (((r)&0xF8) << 6) | \
                                  (((g)&0xF8) << 1) | \
@@ -200,6 +204,10 @@
                                     (((pixel) & 0x07C0) >> 1) | \
                                     (((pixel) & 0x001F)) )
 
+#define RGB16_TO_BGR555(pixel)  ( (((pixel) & 0xF800) >> 12) | \
+                                    (((pixel) & 0x07C0) >> 1) | \
+                                    (((pixel) & 0x001F) << 10 ) )
+
 #define RGB16_TO_RGB444(pixel)  ( (((pixel) & 0xF000) >> 4) | \
                                     (((pixel) & 0x0780) >> 3) | \
                                     (((pixel) & 0x001F) >> 1) )
@@ -244,6 +252,10 @@
                                     (((pixel) & 0x00F800) >> 6) | \
                                     (((pixel) & 0x0000F8) >> 3) )
 
+#define RGB32_TO_BGR555(pixel)  ( (((pixel) & 0xF80000) >> 19) | \
+                                    (((pixel) & 0x00F800) >> 6) | \
+                                    (((pixel) & 0x0000F8) << 7) )
+
 #define RGB32_TO_RGB444(pixel)  ( (((pixel) & 0xF00000) >> 12) | \
                                     (((pixel) & 0x00F000) >>  8) | \
                                     (((pixel) & 0x0000F0) >>  4) )
@@ -270,6 +282,10 @@
 #define ARGB_TO_RGB555(pixel)  ( (((pixel) & 0x00F80000) >>  9) | \
                                    (((pixel) & 0x0000F800) >>  6) | \
                                    (((pixel) & 0x000000F8) >>  3) )
+
+#define ARGB_TO_BGR555(pixel)  ( (((pixel) & 0x00F80000) >>  19) | \
+                                   (((pixel) & 0x0000F800) >>  6) | \
+                                   (((pixel) & 0x000000F8) <<  7) )
 /* RGB <-> YCbCr conversion */
 
 extern const u16 y_for_rgb[256];
@@ -488,6 +504,18 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
                }
                break;
 
+ 	  case DSPF_BGR555:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = ((src16[x] & 0x7c00) >> 10) | ((src16[x] & 0x03e0) << 1) | ((src16[x] & 0x001f) << 11 );
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
           case DSPF_RGB32:
           case DSPF_ARGB:
                while (height--) {
@@ -576,6 +604,20 @@ dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
                          dst[x] = PIXEL_RGB32( ((src16[x] & 0x7c00) >> 7) | ((src16[x] & 0x7000) >> 12),
                                                ((src16[x] & 0x03e0) >> 2) | ((src16[x] & 0x0380) >> 7),
                                                ((src16[x] & 0x001f) << 3) | ((src16[x] & 0x001c) >> 2) );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          case DSPF_BGR555:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB32( ((src16[x] & 0x001f) << 3) | ((src16[x] & 0x001c) >> 2),
+                                               ((src16[x] & 0x03e0) >> 2) | ((src16[x] & 0x0380) >> 7),
+                                               ((src16[x] & 0x7c00) >> 7) | ((src16[x] & 0x7000) >> 12) );
 
                     src += spitch;
                     dst += dp4;
