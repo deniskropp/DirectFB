@@ -88,7 +88,6 @@ static DFBResult update_screen( CoreSurface *surface,
                                 int x, int y, int w, int h );
 
 static void* vnc_server_thread( DirectThread *thread, void *data );
-static void* vnc_refresh_thread( DirectThread *thread, void *data );
 
 extern DFBVNC *dfb_vnc;
 extern CoreDFB *dfb_vnc_core;
@@ -254,7 +253,8 @@ primarySetRegion( CoreLayer                  *layer,
                   CoreLayerRegionConfig      *config,
                   CoreLayerRegionConfigFlags  updated,
                   CoreSurface                *surface,
-                  CorePalette                *palette )
+                  CorePalette                *palette,
+                  CoreSurfaceBufferLock      *lock )
 {
      DFBResult ret;
 
@@ -287,12 +287,13 @@ primaryRemoveRegion( CoreLayer             *layer,
 }
 
 static DFBResult
-primaryFlipRegion( CoreLayer           *layer,
-                   void                *driver_data,
-                   void                *layer_data,
-                   void                *region_data,
-                   CoreSurface         *surface,
-                   DFBSurfaceFlipFlags  flags )
+primaryFlipRegion( CoreLayer             *layer,
+                   void                  *driver_data,
+                   void                  *layer_data,
+                   void                  *region_data,
+                   CoreSurface           *surface,
+                   DFBSurfaceFlipFlags    flags,
+                   CoreSurfaceBufferLock *lock )
 {
      dfb_surface_flip( surface, false );
 
@@ -300,12 +301,13 @@ primaryFlipRegion( CoreLayer           *layer,
 }
 
 static DFBResult
-primaryUpdateRegion( CoreLayer           *layer,
-                     void                *driver_data,
-                     void                *layer_data,
-                     void                *region_data,
-                     CoreSurface         *surface,
-                     const DFBRegion           *update )
+primaryUpdateRegion( CoreLayer             *layer,
+                     void                  *driver_data,
+                     void                  *layer_data,
+                     void                  *region_data,
+                     CoreSurface           *surface,
+                     const DFBRegion       *update,
+                     CoreSurfaceBufferLock *lock )
 {
      if (update) {
           DFBRegion region = *update;
@@ -335,7 +337,7 @@ primaryAllocateSurface( CoreLayer              *layer,
      if (config->buffermode != DLBM_FRONTONLY)
           conf.caps |= DSCAPS_DOUBLE;
 
-     return dfb_surface_create( dfb_vnc_core, &conf, NULL, ret_surface );
+     return dfb_surface_create( dfb_vnc_core, &conf, CSTF_LAYER, DLID_PRIMARY, NULL, ret_surface );
 }
 
 static DFBResult
@@ -346,39 +348,21 @@ primaryReallocateSurface( CoreLayer             *layer,
                           CoreLayerRegionConfig *config,
                           CoreSurface           *surface )
 {
-//     DFBResult ret;
+     DFBResult         ret;
+     CoreSurfaceConfig conf;
 
-     /* FIXME: write surface management functions
-               for easier configuration changes */
+     conf.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
+     conf.size.w = config->width;
+     conf.size.h = config->height;
+     conf.format = config->format;
+     conf.caps   = DSCAPS_SYSTEMONLY;
 
-/*     switch (config->buffermode) {
-          case DLBM_BACKVIDEO:
-          case DLBM_BACKSYSTEM:
-               surface->config.caps |= DSCAPS_DOUBLE;
+     if (config->buffermode != DLBM_FRONTONLY)
+          conf.caps |= DSCAPS_DOUBLE;
 
-               ret = dfb_surface_reconfig( surface,
-                                           CSP_SYSTEMONLY, CSP_SYSTEMONLY );
-               break;
-
-          case DLBM_FRONTONLY:
-               surface->config.caps &= ~DSCAPS_DOUBLE;
-
-               ret = dfb_surface_reconfig( surface,
-                                           CSP_SYSTEMONLY, CSP_SYSTEMONLY );
-               break;
-
-          default:
-               D_BUG("unknown buffermode");
-               return DFB_BUG;
-     }
+     ret = dfb_surface_reconfig( surface, &conf );
      if (ret)
           return ret;
-
-     ret = dfb_surface_reformat( NULL, surface, config->width,
-                                 config->height, config->format );
-     if (ret)
-          return ret;
-*/
 
      if (DFB_PIXELFORMAT_IS_INDEXED(config->format) && !surface->palette) {
           DFBResult    ret;
@@ -422,48 +406,46 @@ DisplayLayerFuncs vncPrimaryLayerFuncs = {
 static DFBResult
 update_screen( CoreSurface *surface, int x, int y, int w, int h )
 {
-     int          i, j, k;
-     void        *dst, *p;
-     void        *src, *q;
-     int          pitch;
-     DFBResult    ret;
+     DFBResult              ret;
+     int                    i, j, k;
+     void                  *dst, *p;
+     void                  *src, *q;
+     CoreSurfaceBufferLock  lock;
 
      D_ASSERT( surface != NULL );
      D_ASSERT( rfb_screen != NULL );
      D_ASSERT( rfb_screen->frameBuffer != NULL );
 
-     ret = dfb_surface_soft_lock( dfb_vnc_core, surface, DSLF_READ, &src, &pitch, true );
+     ret = dfb_surface_lock_buffer( surface, CSBR_FRONT, CSAF_CPU_READ, &lock );
      if (ret) {
-          D_ERROR( "DirectFB/VNC: Couldn't lock layer surface: %s\n",
-                   DirectFBErrorString( ret ) );
+          D_DERROR( ret, "DirectFB/VNC: Couldn't lock layer surface!\n" );
           return ret;
      }
 
-     dst = rfb_screen->frameBuffer;
-     
-     src += DFB_BYTES_PER_LINE( surface->config.format, x ) + y * pitch;
-     dst += x * rfb_screen->depth/8 + y * rfb_screen->width * rfb_screen->depth/8;
+     src = lock.addr + DFB_BYTES_PER_LINE( surface->config.format, x ) + y * lock.pitch;
+
+     dst = rfb_screen->frameBuffer + x * rfb_screen->depth/8 + y * rfb_screen->width * rfb_screen->depth/8;
 
      for (i=0; i<h; ++i) {
           /*direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->config.format, w ) );*/
-      for(j=0, p=src, q=dst; j<w; j++, 
-                    p += DFB_BYTES_PER_PIXEL(surface->config.format),
-                    q += rfb_screen->depth/8){
-         /*direct_memcpy( q, p, DFB_BYTES_PER_PIXEL(surface->config.format));*/
-         /**(char*) q = *(char*) (p+2);
-         *(char*) (q+1) = *(char*) (p+1);
-         *(char*) (q+2) = *(char*) p;*/
-         for(k=0; k<DFB_BYTES_PER_PIXEL(surface->config.format); k++)
-        *(char*) (q+k) = *(char*) (p+DFB_BYTES_PER_PIXEL(surface->config.format)-1-k);
+          for (j=0, p=src, q=dst; j<w; j++, 
+              p += DFB_BYTES_PER_PIXEL(surface->config.format),
+              q += rfb_screen->depth/8) {
+               /*direct_memcpy( q, p, DFB_BYTES_PER_PIXEL(surface->config.format));*/
+               /**(char*) q = *(char*) (p+2);
+               *(char*) (q+1) = *(char*) (p+1);
+               *(char*) (q+2) = *(char*) p;*/
+               for (k=0; k<DFB_BYTES_PER_PIXEL(surface->config.format); k++)
+                    *(char*) (q+k) = *(char*) (p+DFB_BYTES_PER_PIXEL(surface->config.format)-1-k);
           }
-      
-          src += pitch;
+
+          src += lock.pitch;
           dst += rfb_screen->width * rfb_screen->depth/8;
      }
 
      rfbMarkRectAsModified ( rfb_screen, x, y, x+w, y+h );
 
-     dfb_surface_unlock( surface, true );
+     dfb_surface_unlock_buffer( surface, &lock );
 
 
 #if 0 /* Mire test */
@@ -568,11 +550,6 @@ dfb_vnc_set_video_mode_handler( CoreLayerRegionConfig *config )
 
      direct_thread_create( DTT_OUTPUT, vnc_server_thread, rfb_screen, "VNC Output" ); 
     
-     /* Create a thread for refreshing if necessary */
-
-     if ( !(config->surface_caps & (DSCAPS_DOUBLE | DSCAPS_TRIPLE)) )
-          direct_thread_create( DTT_OUTPUT, vnc_refresh_thread, rfb_screen, "VNC Refresh" );
- 
      fusion_skirmish_dismiss( &dfb_vnc->lock );
 
      return DFB_OK;
@@ -582,17 +559,6 @@ static void*
 vnc_server_thread( DirectThread *thread, void *data )
 {
    rfbRunEventLoop(rfb_screen, -1, FALSE); 
-   return NULL;
-}
-
-static void*
-vnc_refresh_thread( DirectThread *thread, void *data )
-{
-   while(1) {
-      update_screen(dfb_vnc->primary, 0, 0, rfb_screen->width, rfb_screen->height);
-      /* refresh frequency of 50 Hz */
-      usleep(20000);
-   }
    return NULL;
 }
 

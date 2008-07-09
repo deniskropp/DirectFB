@@ -43,7 +43,7 @@ dfb_vnc_call_handler( int           caller,
                       void         *call_ptr,
                       void         *ctx,
                       unsigned int  serial,
-                      int          *ret_val )
+                      int          *ret_val );
 
 #endif
 
