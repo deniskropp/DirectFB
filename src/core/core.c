@@ -911,7 +911,8 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      D_MAGIC_ASSERT( shared, CoreDFBShared );
 
      /* Suspend input core to stop all input threads before shutting down. */
-     dfb_input_core.Suspend( dfb_input_core.data_local );
+     if (dfb_input_core.initialized)
+          dfb_input_core.Suspend( dfb_input_core.data_local );
 
      /* Destroy layer context and region objects. */
      fusion_object_pool_destroy( shared->layer_region_pool, core->world );
