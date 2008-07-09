@@ -624,9 +624,18 @@ dfb_input_enumerate_devices( InputDeviceCallback         callback,
      D_ASSERT( core_input != NULL );
 
      direct_list_foreach (device, core_local->devices) {
-          D_MAGIC_ASSERT( device, CoreInputDevice );
+          DFBInputDeviceCapabilities dev_caps;
 
-          if ((device->shared->device_info.desc.caps & caps) && callback( device, ctx ) == DFENUM_CANCEL)
+          D_MAGIC_ASSERT( device, CoreInputDevice );
+          D_ASSERT( device->shared != NULL );
+
+          dev_caps = device->shared->device_info.desc.caps;
+
+          /* Always match if unclassified */
+          if (!dev_caps)
+               dev_caps = DICAPS_ALL;
+
+          if ((dev_caps & caps) && callback( device, ctx ) == DFENUM_CANCEL)
                break;
      }
 }
