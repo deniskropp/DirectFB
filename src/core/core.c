@@ -54,6 +54,7 @@
 #include <core/surface.h>
 #include <core/system.h>
 #include <core/windows.h>
+#include <core/windows_internal.h>
 
 #include <direct/build.h>
 #include <direct/debug.h>
@@ -913,15 +914,18 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      /* Suspend input core to stop all input threads before shutting down. */
      dfb_input_core.Suspend( dfb_input_core.data_local );
 
+     /* Destroy window objects. */
+     fusion_object_pool_destroy( shared->window_pool, core->world );
+
+     /* Close window stacks. */
+     dfb_wm_close_all_stacks( dfb_wm_core.data_local );
+
      /* Destroy layer context and region objects. */
      fusion_object_pool_destroy( shared->layer_region_pool, core->world );
      fusion_object_pool_destroy( shared->layer_context_pool, core->world );
 
      /* Shutdown WM core. */
      dfb_core_part_shutdown( core, &dfb_wm_core, emergency );
-
-     /* Destroy window objects. */
-     fusion_object_pool_destroy( shared->window_pool, core->world );
 
      /* Shutdown layer core. */
      dfb_core_part_shutdown( core, &dfb_layer_core, emergency );

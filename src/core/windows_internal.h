@@ -107,6 +107,10 @@ struct __DFB_CoreWindow {
  * Core data of a window stack.
  */
 struct __DFB_CoreWindowStack {
+     DirectLink          link;
+
+     int                 magic;
+
      CoreLayerContext   *context;
 
      int                 width;
@@ -159,6 +163,8 @@ struct __DFB_CoreWindowStack {
      FusionSHMPoolShared *shmpool;
 };
 
+
+DFBResult dfb_wm_close_all_stacks( void *data );
 
 
 /* global reactions */
