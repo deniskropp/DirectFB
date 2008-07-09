@@ -1563,7 +1563,7 @@ driver_init_device( CoreGraphicsDevice *device,
      snprintf( device_info->vendor,
                DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "ATI" );
 
-     device_info->caps.flags = CCF_CLIPPING | CCF_AUXMEMORY;
+     device_info->caps.flags = CCF_CLIPPING | CCF_AUXMEMORY | CCF_RENDEROPTS;
      
      if (rdev->chipset >= CHIP_R300) {
           if (rdrv->mmio_size > 0x4000) {
