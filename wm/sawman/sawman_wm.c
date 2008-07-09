@@ -1409,6 +1409,8 @@ wm_close_stack( CoreWindowStack *stack,
      if (tier->cursor_bs)
           dfb_surface_unlink( &tier->cursor_bs );
 
+     direct_list_remove( &sawman->tiers, &tier->link );
+
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
 
