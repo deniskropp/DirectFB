@@ -692,7 +692,9 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
       * If back_buffer policy is 'system only' there's no acceleration
       * available.
       */
-     if (dst_buffer->policy == CSP_SYSTEMONLY) {
+     if (dst_buffer->policy == CSP_SYSTEMONLY || /* Special check required if driver does not check itself. */
+                                                 (!(card->caps.flags & CCF_RENDEROPTS) && state->render_options))
+     {
           /* Clear 'accelerated functions'. */
           state->accel   = DFXL_NONE;
           state->checked = DFXL_ALL;

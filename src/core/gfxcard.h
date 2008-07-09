@@ -44,7 +44,8 @@ typedef enum {
      CCF_NOTRIEMU   = 0x00000002,
      CCF_READSYSMEM = 0x00000004,
      /* CCF_WRITESYSMEM ?! */
-     CCF_AUXMEMORY  = 0x00000010
+     CCF_AUXMEMORY  = 0x00000010,
+     CCF_RENDEROPTS = 0x00000020
 } CardCapabilitiesFlags;
 
 struct __DFB_CoreGraphicsSerial {
