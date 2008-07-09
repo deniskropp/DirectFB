@@ -7,7 +7,7 @@
 
    Code is derived from VMWare driver.
 
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -69,6 +69,11 @@ void      davinciSetState         ( void                *drv,
                                     GraphicsDeviceFuncs *funcs,
                                     CardState           *state,
                                     DFBAccelerationMask  accel );
+
+bool      davinciStretchBlit32    ( void                *drv,
+                                    void                *dev,
+                                    DFBRectangle        *srect,
+                                    DFBRectangle        *drect );
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -189,7 +189,7 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBEventBuffer_AddRef( IDirectFBEventBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
@@ -201,7 +201,7 @@ IDirectFBEventBuffer_AddRef( IDirectFBEventBuffer *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBEventBuffer_Release( IDirectFBEventBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
@@ -1077,6 +1077,18 @@ CollectEventStatistics( DFBEventBufferStats *stats,
 
                     case DVPET_DATALOW:
                          stats->DVPET_DATALOW += incdec;
+                         break;
+
+                   case DVPET_DATAHIGH:
+                         stats->DVPET_DATAHIGH += incdec;
+                         break;
+
+                   case DVPET_BUFFERTIMELOW:
+                         stats->DVPET_BUFFERTIMELOW += incdec;
+                         break;
+
+                   case DVPET_BUFFERTIMEHIGH:
+                         stats->DVPET_BUFFERTIMEHIGH += incdec;
                          break;
 
                     default:

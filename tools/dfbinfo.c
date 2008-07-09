@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -167,6 +167,10 @@ input_device_callback( DFBInputDeviceID           id,
      
      
      /* Details */
+     if (desc.caps & DICAPS_KEYS)
+          printf( "   Min. Keycode: %d\n", desc.min_keycode );
+     if (desc.caps & DICAPS_KEYS)
+          printf( "   Max. Keycode: %d\n", desc.max_keycode );
      if (desc.caps & DICAPS_AXES)
           printf( "   Max. Axis: %d\n", desc.max_axis );
      if (desc.caps & DICAPS_BUTTONS)

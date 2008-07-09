@@ -112,6 +112,7 @@ typedef struct {
      DFBSurfaceBlittingFlags blittingflags;
      
      const s32              *matrix;
+     DFBBoolean              affine_matrix;
      
      /* chipset identified */
      RadeonChipsetFamily     chipset;
@@ -204,11 +205,18 @@ static __inline__ float d2f( u32 d )
      return tmp.f;
 }
 
-#define RADEON_TRANSFORM(x, y, retx, rety, m) \
+#define RADEON_TRANSFORM(x, y, retx, rety, m, affine) \
  do { \
-     float _x, _y; \
-     _x = ((x) * m[0] + (y) * m[1] + m[2]) / 65536.f; \
-     _y = ((x) * m[3] + (y) * m[4] + m[5]) / 65536.f; \
+     float _x, _y, _w; \
+     if (affine) { \
+          _x = ((x) * m[0] + (y) * m[1] + m[2]) / 65536.f; \
+          _y = ((x) * m[3] + (y) * m[4] + m[5]) / 65536.f; \
+     } \
+     else { \
+          _w = ((x) * m[6] + (y) * m[7] + m[8]); \
+          _x = ((x) * m[0] + (y) * m[1] + m[2]) / _w; \
+          _y = ((x) * m[3] + (y) * m[4] + m[5]) / _w; \
+     } \
      retx = _x; rety = _y; \
  } while(0)
 

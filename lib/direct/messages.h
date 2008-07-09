@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -30,6 +30,7 @@
 #define __DIRECT__MESSAGES_H__
 
 #include <direct/build.h>
+#include <direct/types.h>
 
 
 #if __GNUC__ >= 3
@@ -38,6 +39,19 @@
 #define D_FORMAT_PRINTF(n)
 #endif
 
+typedef enum {
+     DMT_NONE           = 0x00000000, /* No message type. */
+
+     DMT_BANNER         = 0x00000001, /* Startup banner. */
+     DMT_INFO           = 0x00000002, /* Info messages. */
+     DMT_WARNING        = 0x00000004, /* Warnings. */
+     DMT_ERROR          = 0x00000008, /* Error messages: regular, with DFBResult, bugs,
+                                         system call errors, dlopen errors */
+     DMT_UNIMPLEMENTED  = 0x00000010, /* Messages notifying unimplemented functionality. */
+     DMT_ONCE           = 0x00000020, /* One-shot messages .*/
+
+     DMT_ALL            = 0x0000003f  /* All types. */
+} DirectMessageType;
 
 #if DIRECT_BUILD_TEXT
 
@@ -80,33 +94,33 @@ void direct_messages_warn         ( const char *func,
 
 
 #define D_INFO(x...)     do {                                                                  \
-                              if (!direct_config->quiet)                                       \
+                              if (!(direct_config->quiet & DMT_INFO))                          \
                                    direct_messages_info( x );                                  \
                          } while (0)
 
 #define D_ERROR(x...)    do {                                                                  \
-                              if (!direct_config->quiet)                                       \
+                              if (!(direct_config->quiet & DMT_ERROR))                         \
                                    direct_messages_error( x );                                 \
                          } while (0)
 
 #define D_DERROR(r,x...) do {                                                                  \
-                              if (!direct_config->quiet)                                       \
+                              if (!(direct_config->quiet & DMT_ERROR))                         \
                                    direct_messages_derror( r, x );                             \
                          } while (0)
 
 #define D_PERROR(x...)   do {                                                                  \
-                              if (!direct_config->quiet)                                       \
+                              if (!(direct_config->quiet & DMT_ERROR))                         \
                                    direct_messages_perror( errno, x );                         \
                          } while (0)
 
 #define D_DLERROR(x...)  do {                                                                  \
-                              if (!direct_config->quiet)                                       \
+                              if (!(direct_config->quiet & DMT_ERROR))                         \
                                    direct_messages_dlerror( dlerror(), x );                    \
                          } while (0)
 
 
 #define D_ONCE(x...)     do {                                                                  \
-                              if (!direct_config->quiet) {                                     \
+                              if (!(direct_config->quiet & DMT_ONCE)) {                        \
                                    static bool first = true;                                   \
                                    if (first) {                                                \
                                         direct_messages_once( __FUNCTION__,                    \
@@ -117,7 +131,7 @@ void direct_messages_warn         ( const char *func,
                          } while (0)
 
 #define D_UNIMPLEMENTED() do {                                                                 \
-                              if (!direct_config->quiet) {                                     \
+                              if (!(direct_config->quiet & DMT_UNIMPLEMENTED)) {               \
                                    static bool first = true;                                   \
                                    if (first) {                                                \
                                         direct_messages_unimplemented( __FUNCTION__,           \
@@ -128,12 +142,12 @@ void direct_messages_warn         ( const char *func,
                          } while (0)
 
 #define D_BUG(x...)      do {                                                                  \
-                              if (!direct_config->quiet)                                       \
+                              if (!(direct_config->quiet & DMT_ERROR))                         \
                                    direct_messages_bug( __FUNCTION__, __FILE__, __LINE__, x ); \
                          } while (0)
 
 #define D_WARN(x...)     do {                                                                  \
-                              if (!direct_config->quiet)                                       \
+                              if (!(direct_config->quiet & DMT_WARNING))                       \
                                    direct_messages_warn( __FUNCTION__, __FILE__, __LINE__, x );\
                          } while (0)
 

@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -90,10 +90,10 @@ typedef struct {
      CoreDFB             *core;
 } IDirectFBImageProvider_JPEG_data;
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_JPEG_AddRef  ( IDirectFBImageProvider *thiz );
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_JPEG_Release ( IDirectFBImageProvider *thiz );
 
 static DFBResult
@@ -252,7 +252,7 @@ copy_line_nv16( u16 *yy, u16 *cbcr, const u8 *src_ycbcr, int width )
      D_ASSUME( !(width & 1) );
 
      for (x=0; x<width/2; x++) {
-#if WORDS_BIGENDIAN
+#ifdef WORDS_BIGENDIAN
           yy[x] = (src_ycbcr[0] << 8) | src_ycbcr[3];
 #else
           yy[x] = (src_ycbcr[3] << 8) | src_ycbcr[0];
@@ -354,7 +354,7 @@ IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_JPEG_AddRef( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
@@ -364,7 +364,7 @@ IDirectFBImageProvider_JPEG_AddRef( IDirectFBImageProvider *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_JPEG_Release( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)

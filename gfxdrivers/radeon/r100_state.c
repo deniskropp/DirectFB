@@ -728,12 +728,16 @@ void r100_set_render_options( RadeonDriverData *rdrv,
           return;
           
      if (state->render_options & DSRO_MATRIX &&
-        (state->matrix[0] != (1<<16) || state->matrix[1] != 0 || state->matrix[2] != 0 ||
-         state->matrix[3] != 0 || state->matrix[4] != (1<<16) || state->matrix[5] != 0))
+        (!state->affine_matrix ||
+          state->matrix[0] != (1<<16) || state->matrix[1] != 0 || state->matrix[2] != 0 ||
+          state->matrix[3] != 0 || state->matrix[4] != (1<<16) || state->matrix[5] != 0)) {
           rdev->matrix = state->matrix;
-     else
+          rdev->affine_matrix = state->affine_matrix;
+     }
+     else {
           rdev->matrix = NULL;
-
+     }
+     
      if ((rdev->render_options & DSRO_ANTIALIAS) != (state->render_options & DSRO_ANTIALIAS)) {
           RADEON_UNSET( DRAWING_FLAGS );
           RADEON_UNSET( BLITTING_FLAGS );
@@ -891,6 +895,11 @@ void r100_set_blittingflags( RadeonDriverData *rdrv,
                cblend = (rdev->src_format == DSPF_A8)
                         ? (COLOR_ARG_C_T0_ALPHA)
                         : (COLOR_ARG_A_T0_COLOR | COLOR_ARG_B_TFACTOR_ALPHA);
+          }
+          else if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY) {
+               cblend = (rdev->src_format == DSPF_A8)
+                        ? (COLOR_ARG_C_T0_ALPHA)
+                        : (COLOR_ARG_A_T0_COLOR | COLOR_ARG_B_T0_ALPHA);
           }
      } /* DSPF_A8 */
      else {

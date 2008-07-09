@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -83,7 +83,7 @@ sdlInitPool( CoreDFB                    *core,
 
      ret_desc->caps     = CSPCAPS_NONE;
      ret_desc->access   = CSAF_CPU_READ | CSAF_CPU_WRITE | CSAF_GPU_READ | CSAF_GPU_WRITE;
-     ret_desc->types    = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_EXTERNAL;
+     ret_desc->types    = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
      ret_desc->priority = CSPP_PREFERED;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "SDL" );
@@ -134,14 +134,9 @@ sdlAllocateBuffer( CoreSurfacePool       *pool,
                    CoreSurfaceAllocation *allocation,
                    void                  *alloc_data )
 {
-     CoreSurface           *surface;
-     DFBSurfacePixelFormat  format;
-     Uint32                 rmask;
-     Uint32                 gmask;
-     Uint32                 bmask;
-     Uint32                 amask;
-     Uint32                 flags = SDL_HWSURFACE | SDL_ASYNCBLIT;
-     SDLAllocationData     *alloc = alloc_data;
+     DFBResult          ret;
+     CoreSurface       *surface;
+     SDLAllocationData *alloc = alloc_data;
 
      D_DEBUG_AT( SDL_Pool, "%s()\n", __FUNCTION__ );
 
@@ -151,64 +146,76 @@ sdlAllocateBuffer( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     format = surface->config.format;
-
-     switch (format) {
-          case DSPF_A8:
-               rmask = 0x00;
-               gmask = 0x00;
-               bmask = 0x00;
-               amask = 0xff;
-               break;
-
-          case DSPF_RGB16:
-               rmask = 0xf800;
-               gmask = 0x07e0;
-               bmask = 0x001f;
-               amask = 0x0000;
-               break;
-
-          case DSPF_RGB32:
-               rmask = 0x00ff0000;
-               gmask = 0x0000ff00;
-               bmask = 0x000000ff;
-               amask = 0x00000000;
-               break;
-
-          case DSPF_ARGB:
-               rmask = 0x00ff0000;
-               gmask = 0x0000ff00;
-               bmask = 0x000000ff;
-               amask = 0xff000000;
-               break;
-
-          default:
-               D_ERROR( "SDL/Surface: %s() has no support for %s!\n",
-                        __FUNCTION__, dfb_pixelformat_name(format) );
-               return DFB_UNSUPPORTED;
-     }
-
      if (surface->type & CSTF_LAYER) {
-          if (surface->config.caps & DSCAPS_FLIPPING)
-               flags |= SDL_DOUBLEBUF;
+          dfb_sdl->screen = NULL; /* clear? */
 
-          D_DEBUG_AT( SDL_Pool, "  -> SDL_SetVideoMode( %dx%d, %d, 0x%08x )\n",
-                      surface->config.size.w, surface->config.size.h, DFB_BITS_PER_PIXEL(format), flags );
-
-          alloc->sdl_surf = SDL_SetVideoMode( surface->config.size.w,
-                                              surface->config.size.h,
-                                              DFB_BITS_PER_PIXEL(format),
-                                              flags );
-          if (!alloc->sdl_surf) {
-               D_ERROR( "SDL/Surface: SDL_SetVideoMode( %dx%d, %d, 0x%08x ) failed!\n",
-                        surface->config.size.w, surface->config.size.h, DFB_BITS_PER_PIXEL(format), flags );
-
-               return DFB_FAILURE;
+          ret = dfb_sdl_set_video_mode( dfb_sdl_core, &surface->config );
+          if (ret) {
+               D_DERROR( ret, "SDL/Surface: dfb_sdl_set_video_mode() failed!\n" );
+               return ret;
           }
+
+          D_ASSERT( dfb_sdl->screen != NULL );
+
+          if (!dfb_sdl->screen) {
+               D_ERROR( "SDL/Surface: No screen surface!?\n" );
+               return DFB_BUG;
+          }
+
+          alloc->sdl_surf = dfb_sdl->screen;
+
+          D_DEBUG_AT( SDL_Pool, "  -> screen surface  %dx%d, %d, 0x%08x, pitch %d\n",
+                      dfb_sdl->screen->w, dfb_sdl->screen->h, dfb_sdl->screen->format->BitsPerPixel,
+                      dfb_sdl->screen->flags, dfb_sdl->screen->pitch );
 
           allocation->flags |= CSALF_ONEFORALL;
      }
      else {
+          DFBSurfacePixelFormat  format = surface->config.format;
+          Uint32                 flags  = SDL_HWSURFACE;// | SDL_ASYNCBLIT | SDL_FULLSCREEN;
+          Uint32                 rmask;
+          Uint32                 gmask;
+          Uint32                 bmask;
+          Uint32                 amask;
+
+          if (surface->config.caps & DSCAPS_FLIPPING)
+               flags |= SDL_DOUBLEBUF;
+
+          switch (format) {
+               case DSPF_A8:
+                    rmask = 0x00;
+                    gmask = 0x00;
+                    bmask = 0x00;
+                    amask = 0xff;
+                    break;
+
+               case DSPF_RGB16:
+                    rmask = 0xf800;
+                    gmask = 0x07e0;
+                    bmask = 0x001f;
+                    amask = 0x0000;
+                    break;
+
+               case DSPF_RGB32:
+                    rmask = 0x00ff0000;
+                    gmask = 0x0000ff00;
+                    bmask = 0x000000ff;
+                    amask = 0x00000000;
+                    break;
+
+               case DSPF_ARGB:
+                    rmask = 0x00ff0000;
+                    gmask = 0x0000ff00;
+                    bmask = 0x000000ff;
+                    amask = 0xff000000;
+                    break;
+
+               default:
+                    D_ERROR( "SDL/Surface: %s() has no support for %s!\n",
+                             __FUNCTION__, dfb_pixelformat_name(format) );
+                    return DFB_UNSUPPORTED;
+          }
+
           D_DEBUG_AT( SDL_Pool, "  -> SDL_CreateRGBSurface( 0x%08x, "
                       "%dx%d, %d, 0x%08x, 0x%08x, 0x%08x, 0x%08x )\n",
                       flags, surface->config.size.w, surface->config.size.h,

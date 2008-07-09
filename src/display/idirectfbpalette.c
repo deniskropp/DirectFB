@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -64,7 +64,7 @@ IDirectFBPalette_Destruct( IDirectFBPalette *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBPalette_AddRef( IDirectFBPalette *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBPalette)
@@ -74,7 +74,7 @@ IDirectFBPalette_AddRef( IDirectFBPalette *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBPalette_Release( IDirectFBPalette *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBPalette)

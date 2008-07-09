@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -65,13 +65,6 @@ DFBResult dfb_surfacemanager_create ( CoreDFB             *core,
                                       SurfaceManager     **ret_manager );
 
 void      dfb_surfacemanager_destroy( SurfaceManager      *manager );
-
-/*
- * adjust the offset within the framebuffer for surface storage,
- * needs to be called after a resolution switch
- */
-DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
-                                                 int             offset );
 
 /*
  * finds and allocates one for the surface or fails,

@@ -7,7 +7,7 @@
 
    Code is derived from VMWare driver.
 
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -59,7 +59,7 @@ typedef struct {
      DFBSurfacePixelFormat     src_format;
      unsigned long             src_bpp;
 
-     u32                       source_mult;
+     unsigned long             source_mult;
 
      unsigned long             fillcolor;
 
@@ -67,8 +67,8 @@ typedef struct {
      int                       draw_blend_sub_function;
 
      DFBColor                  color;
-     u32                       color_argb;
-     u32                       colorkey;
+     unsigned long             color_argb;
+     unsigned long             colorkey;
 
      DFBSurfaceBlittingFlags   blitting_flags;
 
@@ -104,6 +104,8 @@ typedef struct {
 
      DavinciC64x               c64x;
      bool                      c64x_present;
+
+     DavinciC64xTasks          tasks;
 } DavinciDriverData;
 
 
@@ -111,28 +113,28 @@ static inline DFBResult
 davincifb_pan_display( const DavinciFB             *fb,
                        struct fb_var_screeninfo    *var,
                        const CoreSurfaceBufferLock *lock,
-                       DFBSurfaceFlipFlags          flags )
+                       DFBSurfaceFlipFlags          flags,
+                       int                          x,
+                       int                          y )
 {
      int ret;
 
      if (lock) {
 #ifdef FBIO_SET_START
-          struct fb_set_start set_start;
+          CoreSurfaceBuffer   *buffer = lock->buffer;
+          struct fb_set_start  set_start;
 
-          set_start.offset   = -1;           /* physical mode */
-          set_start.physical = lock->phys;   /* life's so easy */
+          /* physical mode */
+          set_start.offset   = -1;
           set_start.sync     = (flags & DSFLIP_ONSYNC) ? 1 : 0;
 
-          //direct_log_lock( NULL );
-          //direct_log_printf( NULL, "phys 0x%08lx, sync %llu -> ", set_start.physical, set_start.sync );
+          /* life's so easy */
+          set_start.physical = lock->phys + DFB_BYTES_PER_LINE( buffer->format, x ) + y * lock->pitch;
 
           ret = ioctl( fb->fd, FBIO_SET_START, &set_start );
           if (ret < 0)
                D_DEBUG( "FBIO_SET_START (0x%08lx, sync %llu) failed!\n",
                          set_start.physical, set_start.sync );
-
-          //direct_log_printf( NULL, "%llu (ret = %d)\n", set_start.sync, ret );
-          //direct_log_unlock( NULL );
 
           if (ret == 0) {
                if (flags & DSFLIP_WAIT)
@@ -140,13 +142,15 @@ davincifb_pan_display( const DavinciFB             *fb,
 
                return DFB_OK;
           }
+
+          /* fallback */
 #endif
-          var->xoffset = 0;                  /* poor version */
-          var->yoffset = lock->offset / lock->pitch;
+          var->xoffset = x;                  /* poor version */
+          var->yoffset = y + lock->offset / lock->pitch;
      }
      else {
-          var->xoffset = 0;
-          var->yoffset = 0;
+          var->xoffset = x;
+          var->yoffset = y;
      }
 
      var->activate = /*(flags & DSFLIP_ONSYNC) ? FB_ACTIVATE_VBL :*/ FB_ACTIVATE_NOW;

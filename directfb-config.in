@@ -162,7 +162,7 @@ while test $# -gt 0; do
         echo_imageprovider="$echo_imageprovider $moduledir/interfaces/IDirectFBImageProvider/libidirectfbimageprovider_$i.o"
         case $i in
           imlib2)
-            echo_imageprovider="$echo_imageprovider -lImlib2 -lttf -lm -L/usr/X11R6/lib -lXext -lX11"
+            echo_imageprovider="$echo_imageprovider -lImlib2 -lttf -lm -lXext -lX11"
             ;;
           jpeg)
             echo_imageprovider="$echo_imageprovider -ljpeg"
@@ -224,7 +224,7 @@ fi
 
 if test "$echo_cflags" = "yes"; then
       if test @INCLUDEDIR@ != /usr/include ; then
-        cflags="-I@INCLUDEDIR@"
+        cflags="-I${SYSROOT}@INCLUDEDIR@"
       fi
       echo $cflags @THREADFLAGS@
 fi
@@ -272,7 +272,7 @@ if test -n "$echo_wm"; then
 fi
 
 if test -n "$echo_fusionsound"; then
-	echo -L$moduledir/interfaces/IFusionSound $echo_fusionsound
+	echo -L${SYSROOT}$moduledir/interfaces/IFusionSound $echo_fusionsound
 fi
 
 
@@ -297,7 +297,7 @@ if test -n "$echo_voodoo"; then
 fi
 
 if test "$echo_libs" = "yes"; then
-      libs=-L@libdir@
+      libs=-L${SYSROOT}@libdir@
 
       if test "$lib_directfb" = "yes"; then
 	 libs="$libs -ldirectfb -lfusion -ldirect @THREADLIB@"

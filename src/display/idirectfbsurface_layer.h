@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -31,6 +31,15 @@
 
 #include <directfb.h>
 #include <core/coretypes.h>
+
+/*
+ * private data struct of IDirectFBSurface_Layer
+ */
+typedef struct {
+     IDirectFBSurface_data  base;   /* base Surface implementation */
+
+     CoreLayerRegion       *region; /* the region this surface belongs to */
+} IDirectFBSurface_Layer_data;
 
 /*
  * sets buffer mode according to capabilities, calls base classes

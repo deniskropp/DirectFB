@@ -248,7 +248,7 @@ driver_init_device( CoreGraphicsDevice *device,
      device_info->limits.surface_bytepitch_alignment  = 8;
 
      /* Set device capabilities. */
-     device_info->caps.flags    = CCF_CLIPPING;
+     device_info->caps.flags    = CCF_CLIPPING | CCF_RENDEROPTS;
      device_info->caps.accel    = SH7722_SUPPORTED_DRAWINGFUNCTIONS |
                                   SH7722_SUPPORTED_BLITTINGFUNCTIONS;
      device_info->caps.drawing  = SH7722_SUPPORTED_DRAWINGFLAGS;

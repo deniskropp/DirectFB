@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -1124,12 +1124,15 @@ typedef enum {
      DSPF_RGB444    = DFB_SURFACE_PIXELFORMAT( 26, 12, 0, 0, 0, 2, 0, 0, 0, 0, 0 ),
 
      /* 16 bit   RGB (2 byte, nothing @15, red 5@10, green 5@5, blue 5@0) */
-     DSPF_RGB555    = DFB_SURFACE_PIXELFORMAT( 27, 15, 0, 0, 0, 2, 0, 0, 0, 0, 0 )
+     DSPF_RGB555    = DFB_SURFACE_PIXELFORMAT( 27, 15, 0, 0, 0, 2, 0, 0, 0, 0, 0 ),
+
+     /* 16 bit   BGR (2 byte, nothing @15, blue 5@10, green 5@5, red 5@0) */
+     DSPF_BGR555    = DFB_SURFACE_PIXELFORMAT( 28, 15, 0, 0, 0, 2, 0, 0, 0, 0, 0 )
 
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
-#define DFB_NUM_PIXELFORMATS            28
+#define DFB_NUM_PIXELFORMATS            29
 
 /* These macros extract information about the pixel format. */
 #define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000007F)      )
@@ -3662,6 +3665,18 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           const DFBSpan            *spans,
           unsigned int              num
      );
+     
+     /*
+      * Fill a bunch of triangles with a single call.
+      *
+      * Fill <b>num</b> triangles with the current color following the
+      * drawing flags. Each triangle specified by a DFBTriangle.
+      */
+     DFBResult (*FillTriangles) (
+          IDirectFBSurface         *thiz,
+          const DFBTriangle        *tris,
+          unsigned int              num
+     );
 
 
    /** Text functions **/
@@ -3856,14 +3871,14 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       *
       * Enable usage of this matrix by setting DSRO_MATRIX via IDirectFBSurface::SetRenderOptions().
       *
-      * The matrix consists of 3x2 fixed point 16.16 values.
+      * The matrix consists of 3x3 fixed point 16.16 values.
       * The order in the array is from left to right and from top to bottom.
       *
       * All drawing and blitting will be transformed:
       *
       * <pre>
-      *        X' = X * v0 + Y * v1 + v2
-      *        Y' = X * v3 + Y * v4 + v5
+      *        X' = (X * v0 + Y * v1 + v2) / (X * v6 + Y * v7 + v8)
+      *        Y' = (X * v3 + Y * v4 + v5) / (X * v6 + Y * v7 + v8)
       * </pre>
       */
      DFBResult (*SetMatrix) (
@@ -4388,7 +4403,10 @@ typedef enum {
      DVPET_DATAEXHAUSTED  = 0x00000200,  /* There is no more data available for consumption */
      DVPET_VIDEOACTION    = 0x00000400,  /* An action is required on the video provider     */
      DVPET_DATALOW        = 0x00000800,  /* The stream buffer is running low in data (threshold defined by implementation). */
-     DVPET_ALL            = 0x00000FFF   /* All event types */
+     DVPET_DATAHIGH       = 0x00001000,  /* The stream buffer is high. */
+     DVPET_BUFFERTIMELOW  = 0x00002000,  /* The stream buffer has less than requested playout time buffered. */
+     DVPET_BUFFERTIMEHIGH = 0x00004000,  /* The stream buffer has more than requested playout time buffered. */
+     DVPET_ALL            = 0x00007FFF   /* All event types */
 } DFBVideoProviderEventType;
 
 /*
@@ -4553,6 +4571,9 @@ typedef struct {
      unsigned int   DVPET_DATAEXHAUSTED;
      unsigned int   DVPET_DATALOW;
      unsigned int   DVPET_VIDEOACTION;
+     unsigned int   DVPET_DATAHIGH;
+     unsigned int   DVPET_BUFFERTIMELOW;
+     unsigned int   DVPET_BUFFERTIMEHIGH;
 } DFBEventBufferStats;
 
 
@@ -5630,6 +5651,48 @@ typedef struct {
 } DFBStreamAttributes;
 
 /*
+ * Buffer levels and occupancy for Audio/Video input buffers.
+ */
+typedef struct {
+     DFBStreamCapabilities valid;        /* Which of the Audio / Video sections are valid. */
+
+     struct {
+         unsigned int  buffer_size;      /* Size in bytes of the input buffer to video decoder */
+         unsigned int  minimum_level;    /* The level at which a DVPET_DATALOW event will be generated. */
+         unsigned int  maximum_level;    /* The level at which a DVPET_DATAHIGH event will be generated. */
+         unsigned int  current_level;    /* Current fill level of video input buffer.*/
+     } video;
+
+     struct {
+         unsigned int  buffer_size;      /* Size in bytes of the input buffer to audio decoder */
+         unsigned int  minimum_level;    /* The level at which a DVPET_DATALOW event will be generated. */
+         unsigned int  maximum_level;    /* The level at which a DVPET_DATAHIGH event will be generated. */
+         unsigned int  current_level;    /* Current fill level of audio input buffer.*/
+     } audio;
+} DFBBufferOccupancy;
+
+/*
+ * Buffer thresholds for Audio and Video.
+ */
+typedef struct {
+     DFBStreamCapabilities selection;    /* Which of the Audio / Video are we setting? */
+
+     struct {
+          unsigned int  minimum_level;   /* The level at which a DVPET_DATALOW event will be generated. */
+          unsigned int  maximum_level;   /* The level at which a DVPET_DATAHIGH event will be generated. */
+          unsigned int  minimum_time;    /* The level at which a DVPET_BUFFERTIMELOW event will be generated. */
+          unsigned int  maximum_time;    /* The level at which a DVPET_BUFFERTIMEHIGH event will be generated. */
+     } video;
+
+     struct {
+          unsigned int  minimum_level;   /* The level at which a DVPET_DATALOW event will be generated. */
+          unsigned int  maximum_level;   /* The level at which a DVPET_DATAHIGH event will be generated. */
+          unsigned int  minimum_time;    /* The level at which a DVPET_BUFFERTIMELOW event will be generated. */
+          unsigned int  maximum_time;    /* The level at which a DVPET_BUFFERTIMEHIGH event will be generated. */
+     } audio;
+} DFBBufferThresholds;
+
+/*
  * Called for each written frame.
  */
 typedef void (*DVFrameCallback)(void *ctx);
@@ -5671,6 +5734,7 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
           IDirectFBVideoProvider   *thiz,
           DFBStreamDescription     *ret_dsc
      );
+
 
    /** Playback **/
 
@@ -5827,7 +5891,7 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
       */
      DFBResult (*SetStreamAttributes) (
           IDirectFBVideoProvider   *thiz,
-          DFBStreamDescription      attr
+          DFBStreamAttributes       attr
      );
 
      /*
@@ -5907,6 +5971,33 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
      DFBResult (*DetachEventBuffer) (
           IDirectFBVideoProvider     *thiz,
           IDirectFBEventBuffer       *buffer
+     );
+
+
+  /** Buffer control **/
+
+     /*
+      * Get buffer occupancy (A/V) when playing this stream.
+      */
+     DFBResult (*GetBufferOccupancy) (
+          IDirectFBVideoProvider   *thiz,
+          DFBBufferOccupancy       *ret_occ
+     );
+
+     /*
+      * Set buffer thresholds for the Audio / Video playback.
+      */
+     DFBResult (*SetBufferThresholds) (
+          IDirectFBVideoProvider   *thiz,
+          DFBBufferThresholds       thresh
+     );
+
+     /*
+      * Get buffer thresholds for the Audio / Video playback.
+      */
+     DFBResult (*GetBufferThresholds) (
+          IDirectFBVideoProvider   *thiz,
+          DFBBufferThresholds      *ret_thresh
      );
 )
 

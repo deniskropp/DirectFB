@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -1642,35 +1642,35 @@ driver_init_device( CoreGraphicsDevice *device,
 
      switch (nvdev->arch) {
           case NV_ARCH_04:
-               device_info->caps.flags    = CCF_CLIPPING;
+               device_info->caps.flags    = CCF_CLIPPING | CCF_RENDEROPTS;
                device_info->caps.accel    = NV4_SUPPORTED_DRAWINGFUNCTIONS |
                                             NV4_SUPPORTED_BLITTINGFUNCTIONS;
                device_info->caps.drawing  = NV4_SUPPORTED_DRAWINGFLAGS;
                device_info->caps.blitting = NV4_SUPPORTED_BLITTINGFLAGS;
                break;
           case NV_ARCH_05:
-               device_info->caps.flags    = CCF_CLIPPING /*| CCF_READSYSMEM*/;
+               device_info->caps.flags    = CCF_CLIPPING | CCF_RENDEROPTS /*| CCF_READSYSMEM*/;
                device_info->caps.accel    = NV5_SUPPORTED_DRAWINGFUNCTIONS |
                                             NV5_SUPPORTED_BLITTINGFUNCTIONS;
                device_info->caps.drawing  = NV5_SUPPORTED_DRAWINGFLAGS;
                device_info->caps.blitting = NV5_SUPPORTED_BLITTINGFLAGS;
                break;
           case NV_ARCH_10:
-               device_info->caps.flags    = CCF_CLIPPING /*| CCF_READSYSMEM*/;
+               device_info->caps.flags    = CCF_CLIPPING | CCF_RENDEROPTS /*| CCF_READSYSMEM*/;
                device_info->caps.accel    = NV10_SUPPORTED_DRAWINGFUNCTIONS |
                                             NV10_SUPPORTED_BLITTINGFUNCTIONS;
                device_info->caps.drawing  = NV10_SUPPORTED_DRAWINGFLAGS;
                device_info->caps.blitting = NV10_SUPPORTED_BLITTINGFLAGS;
                break;
           case NV_ARCH_20:
-               device_info->caps.flags    = CCF_CLIPPING /* | CCF_READSYSMEM*/; /* Crash reported when the flag is on. */
+               device_info->caps.flags    = CCF_CLIPPING | CCF_RENDEROPTS /* | CCF_READSYSMEM*/; /* Crash reported when the flag is on. */
                device_info->caps.accel    = NV20_SUPPORTED_DRAWINGFUNCTIONS |
                                             NV20_SUPPORTED_BLITTINGFUNCTIONS;
                device_info->caps.drawing  = NV20_SUPPORTED_DRAWINGFLAGS;
                device_info->caps.blitting = NV20_SUPPORTED_BLITTINGFLAGS;
                break;
           case NV_ARCH_30:
-               device_info->caps.flags    = CCF_CLIPPING;
+               device_info->caps.flags    = CCF_CLIPPING | CCF_RENDEROPTS;
                device_info->caps.accel    = NV30_SUPPORTED_DRAWINGFUNCTIONS |
                                             NV30_SUPPORTED_BLITTINGFUNCTIONS;
                device_info->caps.drawing  = NV30_SUPPORTED_DRAWINGFLAGS;

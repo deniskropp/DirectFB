@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -261,7 +261,7 @@ DFBResult dfb_surface_set_alpha_ramp( CoreSurface                  *surface,
                                       u8                            a3 );
 
 
-static inline DFBResult
+static inline DirectResult
 dfb_surface_lock( CoreSurface *surface )
 {
      D_MAGIC_ASSERT( surface, CoreSurface );
@@ -269,7 +269,7 @@ dfb_surface_lock( CoreSurface *surface )
      return fusion_skirmish_prevail( &surface->lock );
 }
 
-static inline DFBResult
+static inline DirectResult
 dfb_surface_unlock( CoreSurface *surface )
 {
      D_MAGIC_ASSERT( surface, CoreSurface );

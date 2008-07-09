@@ -7,7 +7,7 @@
 
    Code is derived from VMWare driver.
 
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -55,6 +55,9 @@
 #include "davinci_osd.h"
 
 
+#define D_OSDERROR(x...) do {} while (0)
+
+
 D_DEBUG_DOMAIN( Davinci_OSD, "Davinci/OSD", "TI Davinci OSD" );
 
 /**********************************************************************************************************************/
@@ -93,11 +96,11 @@ osdInitLayer( CoreLayer                  *layer,
 
      ret = ioctl( ddrv->fb[OSD0].fd, FBIO_ENABLE_DISABLE_WIN, 0 );
      if (ret)
-          D_PERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", OSD0, 0 );
+          D_OSDERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", OSD0, 0 );
 
      ret = ioctl( ddrv->fb[OSD1].fd, FBIO_ENABLE_DISABLE_WIN, 0 );
      if (ret)
-          D_PERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", OSD1, 0 );
+          D_OSDERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", OSD1, 0 );
 
      /* set capabilities and type */
      description->caps = DLCAPS_SURFACE | DLCAPS_ALPHACHANNEL | DLCAPS_OPACITY | DLCAPS_SCREEN_POSITION |
@@ -112,7 +115,7 @@ osdInitLayer( CoreLayer                  *layer,
                            DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE | DLCONF_OPTIONS;
      config->width       = 640;
      config->height      = 480;
-     config->pixelformat = DSPF_ARGB;
+     config->pixelformat = DSPF_RGB16;
      config->buffermode  = DLBM_FRONTONLY;
      config->options     = DLOP_ALPHACHANNEL;
 
@@ -147,22 +150,20 @@ osdTestRegion( CoreLayer                  *layer,
                fail |= CLRCF_FORMAT;
      }
 
-     if (config->width  < 8 || config->width  > 720)
+     if (config->width  < 8 || config->width  > 1920)
           fail |= CLRCF_WIDTH;
 
-     if (config->height < 8 || config->height > 576)
+     if (config->height < 8 || config->height > 1080)
           fail |= CLRCF_HEIGHT;
-
 
      if (config->dest.x < 0 || config->dest.y < 0)
           fail |= CLRCF_DEST;
 
-     if (config->dest.x + config->dest.w > 720)
+     if (config->dest.x + config->dest.w > 1920)
           fail |= CLRCF_DEST;
 
-     if (config->dest.y + config->dest.h > 576)
+     if (config->dest.y + config->dest.h > 1080)
           fail |= CLRCF_DEST;
-
 
      if (failed)
           *failed = fail;
@@ -197,11 +198,11 @@ osdSetRegion( CoreLayer                  *layer,
 
      ret = ioctl( ddrv->fb[OSD0].fd, FBIO_ENABLE_DISABLE_WIN, 0 );
      if (ret)
-          D_PERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", OSD0, 0 );
+          D_OSDERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", OSD0, 0 );
 
      ret = ioctl( ddrv->fb[OSD1].fd, FBIO_ENABLE_DISABLE_WIN, 0 );
      if (ret)
-          D_PERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", OSD1, 0 );
+          D_OSDERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", OSD1, 0 );
 
      ioctl( ddrv->fb[OSD0].fd, FBIO_WAITFORVSYNC );
 
@@ -243,11 +244,11 @@ osdSetRegion( CoreLayer                  *layer,
 
           if (dosd->alpha) {
                if (ioctl( ddrv->fb[OSD0].fd, FBIO_ENABLE_DISABLE_ATTRIBUTE_WIN, dosd->alpha ))
-                    D_PERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_ATTRIBUTE_WIN (fb%d - %d)!\n", OSD0, dosd->alpha );
+                    D_OSDERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_ATTRIBUTE_WIN (fb%d - %d)!\n", OSD0, dosd->alpha );
           }
 
           if (ioctl( ddrv->fb[OSD1].fd, FBIO_SET_BLINK_INTERVAL, &blink ))
-               D_PERROR( "Davinci/OSD: FBIO_SET_BLINK_INTERVAL (fb%d - disable)!\n", OSD1 );
+               D_OSDERROR( "Davinci/OSD: FBIO_SET_BLINK_INTERVAL (fb%d - disable)!\n", OSD1 );
      }
 
      /* Update size? */
@@ -262,11 +263,11 @@ osdSetRegion( CoreLayer                  *layer,
 
           ret = ioctl( ddrv->fb[OSD0].fd, FBIO_SETPOS, &win_pos );
           if (ret)
-               D_PERROR( "Davinci/OSD: FBIO_SETPOS (fb%d - %d,%d) failed!\n", OSD0, win_pos.xpos, win_pos.ypos );
+               D_OSDERROR( "Davinci/OSD: FBIO_SETPOS (fb%d - %d,%d) failed!\n", OSD0, win_pos.xpos, win_pos.ypos );
 
           ret = ioctl( ddrv->fb[OSD1].fd, FBIO_SETPOS, &win_pos );
           if (ret)
-               D_PERROR( "Davinci/OSD: FBIO_SETPOS (fb%d - %d,%d) failed!\n", OSD1, win_pos.xpos, win_pos.ypos );
+               D_OSDERROR( "Davinci/OSD: FBIO_SETPOS (fb%d - %d,%d) failed!\n", OSD1, win_pos.xpos, win_pos.ypos );
 
           updated |= CLRCF_DEST;
 
@@ -279,7 +280,7 @@ osdSetRegion( CoreLayer                  *layer,
           dosd->var1.xres = config->width;
           dosd->var1.yres = config->height;
 
-          dosd->var0.yres_virtual = ddrv->fb[OSD0].size / lock->pitch;
+          dosd->var0.yres_virtual = ddrv->fb[OSD0].size / ddev->fix[OSD0].line_length;
 
           ret = ioctl( ddrv->fb[OSD0].fd, FBIOPUT_VSCREENINFO, &dosd->var0 );
           if (ret)
@@ -302,15 +303,15 @@ osdSetRegion( CoreLayer                  *layer,
 
           ret = ioctl( ddrv->fb[OSD0].fd, FBIO_SETPOS, &win_pos );
           if (ret)
-               D_PERROR( "Davinci/OSD: FBIO_SETPOS (fb%d - %d,%d) failed!\n", OSD0, config->dest.x, config->dest.y );
+               D_OSDERROR( "Davinci/OSD: FBIO_SETPOS (fb%d - %d,%d) failed!\n", OSD0, config->dest.x, config->dest.y );
 
           ret = ioctl( ddrv->fb[OSD1].fd, FBIO_SETPOS, &win_pos );
           if (ret)
-               D_PERROR( "Davinci/OSD: FBIO_SETPOS (fb%d - %d,%d) failed!\n", OSD1, config->dest.x, config->dest.y );
+               D_OSDERROR( "Davinci/OSD: FBIO_SETPOS (fb%d - %d,%d) failed!\n", OSD1, config->dest.x, config->dest.y );
      }
 
      davincifb_pan_display( &ddrv->fb[OSD0], &dosd->var0,
-                            (config->format == DSPF_RGB16) ? lock : NULL, DSFLIP_NONE );
+                            (config->format == DSPF_RGB16) ? lock : NULL, DSFLIP_NONE, 0, 0 );
 
      ret = ioctl( ddrv->fb[OSD0].fd, FBIOGET_FSCREENINFO, &ddev->fix[OSD0] );
      if (ret)
@@ -323,7 +324,7 @@ osdSetRegion( CoreLayer                  *layer,
      dosd->enable = true;
 
      if (ioctl( ddrv->fb[OSD0].fd, FBIO_ENABLE_DISABLE_ATTRIBUTE_WIN, 0 ))
-          D_PERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_ATTRIBUTE_WIN (fb%d - %d)!\n", OSD0, 0 );
+          D_OSDERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_ATTRIBUTE_WIN (fb%d - %d)!\n", OSD0, 0 );
 
      return DFB_OK;
 }
@@ -344,11 +345,11 @@ osdRemoveRegion( CoreLayer *layer,
 
      ret = ioctl( ddrv->fb[OSD0].fd, FBIO_ENABLE_DISABLE_WIN, 0 );
      if (ret)
-          D_PERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", OSD0, 0 );
+          D_OSDERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", OSD0, 0 );
 
      ret = ioctl( ddrv->fb[OSD1].fd, FBIO_ENABLE_DISABLE_WIN, 0 );
      if (ret)
-          D_PERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", OSD1, 0 );
+          D_OSDERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", OSD1, 0 );
 
      dosd->enable = false;
 
@@ -394,14 +395,33 @@ update_buffers( DavinciDriverData     *ddrv,
 
      /* Can we use the DSP? */
      if (ddrv->c64x_present) {
+          int           i;
+          int           lines = ddev->fix[OSD0].line_length == ddev->fix[OSD1].line_length ? rect.h : 1;
           unsigned long rgb   = ddev->fix[OSD0].smem_start + rect.x * 2 + rect.y * ddev->fix[OSD0].line_length;
           unsigned long alpha = ddev->fix[OSD1].smem_start + rect.x / 2 + rect.y * ddev->fix[OSD1].line_length;
           unsigned long src   = lock->phys                 + rect.x * 4 + rect.y * lock->pitch;
 
-          D_ASSUME( ddev->fix[OSD0].line_length == ddev->fix[OSD1].line_length );
+          //D_ASSUME( ddev->fix[OSD0].line_length == ddev->fix[OSD1].line_length );
 
           /* Dither ARGB to RGB16+A3 using the DSP. */
-          davinci_c64x_dither_argb( &ddrv->c64x, rgb, alpha, ddev->fix[OSD0].line_length, src, lock->pitch, rect.w, rect.h );
+          for (i=0; i<rect.h; i+=lines) {
+               if (lines > rect.h - i)
+                    lines = rect.h - i;
+               
+               davinci_c64x_dither_argb( &ddrv->c64x, rgb, alpha,
+                                         ddev->fix[OSD0].line_length, src, lock->pitch, rect.w, lines );
+
+               if (ddev->fix[OSD0].line_length != ddev->fix[OSD1].line_length && lines > 1) {
+                    davinci_c64x_blit_32( &ddrv->c64x,
+                                          alpha + ddev->fix[OSD1].line_length, ddev->fix[OSD1].line_length,
+                                          alpha + ddev->fix[OSD0].line_length, ddev->fix[OSD0].line_length,
+                                          rect.w/2, lines - 1 );
+               }
+
+               rgb   += lines * ddev->fix[OSD0].line_length;
+               alpha += lines * ddev->fix[OSD1].line_length;
+               src   += lines * lock->pitch;
+          }
 
           /* Flush the write cache. */
           davinci_c64x_write_back_all( &ddrv->c64x );
@@ -553,13 +573,13 @@ enable_osd( DavinciDriverData   *ddrv,
      ioctl( ddrv->fb[OSD0].fd, FBIO_WAITFORVSYNC );
 
      if (ioctl( ddrv->fb[OSD0].fd, FBIO_ENABLE_DISABLE_ATTRIBUTE_WIN, dosd->alpha ))
-          D_PERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_ATTRIBUTE_WIN (fb%d - %d)!\n", OSD0, dosd->alpha );
+          D_OSDERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_ATTRIBUTE_WIN (fb%d - %d)!\n", OSD0, dosd->alpha );
 
      if (ioctl( ddrv->fb[OSD0].fd, FBIO_ENABLE_DISABLE_WIN, 1 ))
-          D_PERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", OSD0, 1 );
+          D_OSDERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", OSD0, 1 );
 
      if (ioctl( ddrv->fb[OSD1].fd, FBIO_ENABLE_DISABLE_WIN, dosd->alpha ))
-          D_PERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", OSD1, dosd->alpha );
+          D_OSDERROR( "Davinci/OSD: FBIO_ENABLE_DISABLE_WIN (fb%d - %d)!\n", OSD1, dosd->alpha );
 
      dosd->enable = false;
 }
@@ -595,7 +615,7 @@ osdFlipRegion( CoreLayer             *layer,
                update_rgb( ddrv, ddev, surface, lock, NULL );
      }
      else
-          davincifb_pan_display( &ddrv->fb[OSD0], &dosd->var0, lock, flags );
+          davincifb_pan_display( &ddrv->fb[OSD0], &dosd->var0, lock, flags, 0, 0 );
 
      dfb_surface_flip( surface, false );
 

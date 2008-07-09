@@ -1,3 +1,1626 @@
+commit 4e7313e6e15d9a00203a864532b43618460a1683
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 2 11:12:11 2008 +0200
+
+    [x11] Use XNextEvent() again instead of usleep() based polling after fixes.
+    
+    Pull up to 100 events per round, i.e. until accumulated motion events
+    are flushed and thread exit status is checked.
+    
+    Send ClientMessage to wake up thread from blocking XNextEvent().
+    
+    NOTE: Assuming XNextEvent() is thread safe by itself and does not require
+    to use XLock/UnlockDisplay(), because using it blocks all other threads
+    while XNextEvent() is blocking...
+
+commit c040e8b5baa2b748b08efb7b6cf8bdcfe4b9ef82
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 2 10:31:35 2008 +0200
+
+    [x11] Missed one Xlib actor site not enclosed by XLock/UnlockDisplay().
+
+commit ab863f2ab71453bdc1a1574bb862a7891d3c5d00
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 2 10:18:07 2008 +0200
+
+    [IDirectFBSurface_Layer] Added debug domain IDirectFBSurfaceL with messages as in IDirectFBSurfaceW.
+
+commit c64fe7d7aa06114cc91b005f5b9045e57995ef45
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 2 10:17:20 2008 +0200
+
+    [surface_core] Changed debug domain name from Core/Surface to Core/SurfaceCore.
+
+commit c54118cc9ed7eae4a6df417a8c9613a07fc0dc3e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 2 10:15:42 2008 +0200
+
+    [x11] Fixed threading issues using XLock/UnlockDisplay(), reduced invisible 16x16 cursor to 1x1, minor cleanups.
+
+commit f59e9e8d861ca7156ff1d0ffd2104290da608efe
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 2 08:22:42 2008 +0200
+
+    [IDirectFBVideoProvider] Applied patch from Daniel Laird adding buffer threshold control/notifications. Thanks!
+
+commit 18552ace2ccfd852fac90016844cd30027b432aa
+Author: Denis Oliver Kropp <dok@shark.directfb.home>
+Date:   Sun Jun 1 15:03:11 2008 +0200
+
+    [fbdev] The big fix[tm]
+    
+    Still not working again is support for virtual resolutions with panning,
+    not double/triple buffering which works.
+
+commit ba01767fcdaa91b00ae739e82ca270c5f810b74f
+Author: Denis Oliver Kropp <dok@shark.directfb.home>
+Date:   Sat May 31 18:13:08 2008 +0200
+
+    [copyright] Update copyright headers.
+
+commit 3b52479e932f1ba951778283fee10351903b2350
+Author: Denis Oliver Kropp <dok@shark.directfb.home>
+Date:   Sat May 31 18:08:26 2008 +0200
+
+    1.2.0-rc1
+
+commit 504fcd5fa51fb67bcd8f2eb0dfea59cebb7f8875
+Merge: e02436f... 5b83790...
+Author: Denis Oliver Kropp <dok@shark.directfb.home>
+Date:   Sat May 31 17:36:43 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit e02436f38eb1bee6e9312ee3a4ffaeeb76d681a6
+Author: Denis Oliver Kropp <dok@shark.directfb.home>
+Date:   Sat May 31 17:26:22 2008 +0200
+
+    [interfaces] Fixed assignments of invalid pointer type. AddRef/Release return DirectResult now.
+
+commit ebca2537c452aac57fae113c1359051620b0c3bf
+Author: Denis Oliver Kropp <dok@shark.directfb.home>
+Date:   Sat May 31 17:20:34 2008 +0200
+
+    [clip] Fixed bogus gcc-4.1 warning.
+
+commit 5b837903a083655800970fcbfee7dfe6a5e28310
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat May 31 16:28:08 2008 +0200
+
+    [dfbdump] Show sum of buffers' "locked" value.
+
+commit 2dd15de3123d80105b06bc11a605cf0db3f902a7
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat May 31 16:05:26 2008 +0200
+
+    [README] Elaborate requirements, use Debian package names.
+
+commit 0d395ea7a4618dace405c9bc66909bc5d0450b9d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri May 30 13:48:47 2008 +0200
+
+    [SDL] Fix mode switching/surface creation, having working accelerated SDL backend again.
+
+commit 0f05533015beea8847bcc56c6188a02f96ae0dd4
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri May 30 13:47:59 2008 +0200
+
+    [surface] Commented out annoying assumption for now.
+
+commit a08511ae755464e93f05fd66bb6da6a0320f240c
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed May 28 08:15:38 2008 +0200
+
+    ignore all SlickEdit project/workspace files
+
+commit 703f622980d497b85541c4501ceea2844c9050ee
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed May 28 08:12:59 2008 +0200
+
+    Revert "[input] Patch to reopen console if zero length byte is read"
+    
+    Fails in the usual case, but works when run through strace.
+    
+    This reverts commit cb9e767d7a829801a53952e3a34eb770fd8bfff4.
+
+commit c2c776002794e6793867ed9a2138ab02915a73cd
+Merge: 9c357f6... c291ee5...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue May 27 08:13:04 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 9c357f658c967d8b93d90c39cff691a8bcaddc06
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue May 27 08:12:45 2008 +0200
+
+    [graphics] Added dfb_gfxcard_get_primary().
+
+commit c291ee57abd3d9149e9f3a8ed4a82e4ee69a9f0e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed May 21 00:16:42 2008 +0200
+
+    [davinci] Allow layers up to 1920x1080 instead of the bogus limit I added before.
+    
+    The original patch did not include any limit at all.
+
+commit 0ac0d24980d2f2d4b1d1a238d78f29658c23197d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue May 20 19:15:24 2008 +0200
+
+    [davinci] build fix
+
+commit 575de8b0d56bd26a0e4191d99a25f360d865cd01
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue May 20 19:10:50 2008 +0200
+
+    [davinci] More changes for HD support, thanks to Eric Nelson!
+
+commit 1384d02151c248dba0a200ad73c624a7e56b5255
+Merge: 82fa12f... c65ed1d...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue May 20 18:44:53 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 82fa12f125e41619ed772b02ac39fa149eab2a83
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue May 20 18:41:58 2008 +0200
+
+    [davinci] Patch from Eric Nelson to support HD OSD planes.
+
+commit c65ed1da33a374047a62d62310c6ab971b5a9ccc
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Tue May 20 12:04:04 2008 +0200
+
+    [radeon] Implemented DSBLIT_SRC_PREMULTIPLY (R100/R200 only).
+
+commit 8eeb64fc9564d804e01548659f5807049b54afa8
+Merge: cb9e767... 449e86d...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat May 17 23:36:19 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit cb9e767d7a829801a53952e3a34eb770fd8bfff4
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat May 17 23:15:31 2008 +0200
+
+    [input] Patch to reopen console if zero length byte is read
+    
+    As reported by John Hughes on http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=462626, Splashy is a small boot splash program that starts from initramfs during early boot on Linux. While Splashy is running, the contents of root (/) gets umounted and cleaned up loosing access to the devices when the system started.
+    
+    Using the following patch, when libdirectfb detects zero length reads, it attempts to reopen the console (possibly from a newly mounted root tree).
+    
+    This was the same solution that was suggested to us by Dennis a few months ago. John arrived to the same conclusion independently (and submitted a patch!)
+
+commit 449e86d519e98cd1d189ac07e97229841250ebe6
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed May 14 07:04:34 2008 +0200
+
+    [options] New runtime option "quiet=<type>" to disable only certain message types.
+    
+    Thanks to Niels Roest!
+    
+    [merged from b2007ph1]
+
+commit 991d8ff7d13d1ad84cc33d1390a962b6bb63d4c6
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon May 5 01:02:31 2008 +0200
+
+    [tests] Smooth indexed -> ARGB scaling test.
+
+commit b79c72198361748528f7ff0e6426784a8647bed9
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon May 5 00:47:23 2008 +0200
+
+    [generic] Fixed dumb mistake in premultiplication of alpha during smooth scaling.
+
+commit 749f21a25614a01cce60804792af9ddba6a7fb5f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Apr 27 14:00:44 2008 +0200
+
+    [generic] Allow DSBLIT_SRC_PREMULTIPLY while scaling from indexed to alpha formats.
+    
+    Scaling an image which has alpha values != 255 (non-premultiplied) now produces
+    premultiplied output (smooth scaling only). Support for non-indexed sources still
+    needs to be added.
+
+commit ff8d4e51c6d09efef9448d1dd282f8225ba7dcb5
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Thu Apr 17 15:38:06 2008 +0200
+
+    [radeon] Follow changes.
+
+commit 5e81db40d3dc93b7f467336e872656a4ba2b9680
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Thu Apr 17 15:36:44 2008 +0200
+
+    Entering version 1.2.
+
+commit 34356075fe7910e6974c8528deac5eb6c2797919
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Thu Apr 17 15:35:44 2008 +0200
+
+    IDirectFBSurface API changes.
+    
+    Added IDirectFBSurface::FillTriangles().
+    IDirectFBSurface::SetMatrix() takes a 3x3 matrix.
+
+commit e0f615d069d267bcd6e1e6c2bb62ce8ff23d246b
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Apr 11 19:17:30 2008 +0200
+
+    [davinci] Work around missing alpha plane pitch setting (when differing from RGB plane).
+    
+    The DSP function needs to be extended to fix it properly.
+
+commit 4c1b8080a3e2b1abb55428b8b668332d2f93d2ae
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Apr 11 18:10:27 2008 +0200
+
+    [davinci] In c64xdump do 4 instead of 10 updates/sec and switch to automatic idle_max.
+    
+    You should measure your idle_max once with an idle system and set the IDLE_MAX macro accordingly.
+
+commit ff8d40c4520de2dfe140da777166d5b9993abc6e
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Apr 11 18:00:50 2008 +0200
+
+    [davinci] Fix double error message.
+
+commit dd272a04d4f9ed177fbcbe67e6f0329d71554380
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Apr 11 17:58:40 2008 +0200
+
+    [davinci] Further DSP interface updates and cleanups.
+
+commit e648a4d07251a7d1c3ca5db13ea6c35f1b433b5f
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Apr 11 17:57:31 2008 +0200
+
+    [davinci] Added small tool for showing DSP status.
+
+commit 1d67f2e5451fbbebe5ea5ab75bbd3c98073c456f
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Apr 11 17:51:54 2008 +0200
+
+    ignore
+
+commit 3d9890e79aa10c9e00f4b710ae3189e94bcd182d
+Merge: 9dd3fd8... 468b12e...
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Apr 11 17:39:30 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 9dd3fd82fb5c3bbe382e915923bd5265f01f4bde
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Apr 11 17:39:19 2008 +0200
+
+    [davinci] Task handling fixes.
+
+commit 468b12e10db3d55d918a7c254ea9e720efb273ff
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Apr 11 16:34:37 2008 +0200
+
+    [IDirectFB] Added more debug messages to IDirectFB::CreateSurface().
+
+commit 21cebe19e4db44858bf457da535971f588683fac
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Apr 11 16:33:57 2008 +0200
+
+    [davinci] Fixed kernel module for more recent kernels.
+
+commit da483de031e5b603ddf3e53ce81839424408435b
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Apr 11 16:32:38 2008 +0200
+
+    [davinci] Suppress errors of custom ioctls for now.
+
+commit b18878562fb8f8b14bcfac77e9a4d4e81b9dcdb2
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Apr 11 16:31:49 2008 +0200
+
+    [davinci] Allow explicit driver usage without probing by setting accelerator id to 6400.
+    
+    system		= devmem
+    accelerator	= 6400
+    video-phys	= 86000000
+    video-length	= 8388608
+
+commit ebb40f5c738f359d645ab6ee8db049ea3079bd58
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Apr 11 16:30:04 2008 +0200
+
+    [davinci] Fixed double error message.
+
+commit 9edf2a0a09b7c6fa0ceffd380975d66fb496ea9b
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Apr 11 16:29:44 2008 +0200
+
+    [davinci] Set default kernel source location to be "linux-davinci-2.6" next to "DirectFB".
+
+commit 243705777c7b280e61de721433bafb136ee93022
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Apr 11 16:29:01 2008 +0200
+
+    [configure] Fixed typo in X11 detection.
+
+commit e78501238b28f6bb318b89532743b91cece1c5b3
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Mar 19 14:08:29 2008 +0100
+
+    [util] Added DFB_TRIANGLE_VALS(t)
+
+commit c469e1004ed4544fd7e2896c1fe3e83d04b8063e
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Mon Mar 17 19:54:06 2008 +0100
+
+    [docs] Changes to gendoc.pl to fix missing character after newline.
+    
+    Other changes:
+    - Ignore redeclarations of interfaces (no double items in index)
+    - Warn about interface definitions without a declaration (not indexed)
+    - Indention...
+
+commit c386f912febdf7ca7b7d264e701ab98a9d65fb26
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Mon Mar 17 15:35:50 2008 +0100
+
+    warmer...
+
+commit becaa3e3533b1dbb2f9faa94c0cb3acea49fc98c
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sun Mar 16 18:35:00 2008 +0100
+
+    [docs] Made color equal on most systems (RGB16 did differ before).
+
+commit bb71cad3e17fb8f9a068ffa94e66473186c4e3e7
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Mar 14 02:13:34 2008 +0100
+
+    [docs] Update version.
+
+commit 6cc35d5d1d0bc2a1a5129aa7e0f6c312d0e2aada
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Mar 11 02:41:07 2008 +0200
+
+    surface core: Fix a potential problem with deallocating buffers.
+    
+    dfb_surface_buffer_lock() walks the buffer allocations with
+    fusion_vector_foreach (alloc, i, buffer->allocs) and if it doesn't
+    find a suitable allocation it will allocate one. It then tests
+    alloc against NULL in the error paths to determine if the
+    allocation was performed. If there are only unsuitable allocations
+    alloc will not be NULL even though a new allocation was made.
+    So use other means to keep track if allocation was made.
+    
+    In the name of keeping the code more readable give
+    dfb_surface_buffer_write() the same treatment even though it's
+    not actually necessary there.
+
+commit db3a591846f12c1b284a71e2d2346c45d94a85a0
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Mon Sep 17 22:21:52 2007 +0300
+
+    Don't access FusionVector members directly.
+    
+    Surface core seems to test FusionVector::elements against NULL to
+    determine if the vector is empty. That won't work when the vector has
+    contained some data but has since become empty (since elements is not
+    deallocated/set to NULL). AFAICS that could happen eg. when
+    dfb_surface_buffer_write() would do the first allocation and
+    update_allocation() would then fail which would lead to deallocation in
+    the error path. The next dfb_surface_buffer_write() would then fail
+    to detect that there are no allocations and would not try to make a new
+    allocation.
+    
+    There are several other places where FusionVector members are accessed
+    directly. AFAICS nothing that could cause bugs but I decided to clean
+    them up at the same time.
+
+commit 9f693ab58d17a4a3cb235956a2b754d0122dc2b2
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Mar 11 18:11:04 2008 +0200
+
+    dfbinfo: Show min/max keycodes.
+
+commit cb71d1da5ac1f31d70404de4bfcf62cd62faf2f0
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Mar 11 18:12:51 2008 +0200
+
+    fbdev: Eliminate floats.
+
+commit 45db5ded04afcaa4a015efd9670d57f2fe5f4eac
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Mar 11 18:12:40 2008 +0200
+
+    fbdev: Use CLAMP().
+
+commit 9a3abe8781628d994f7ecf7bab3b49b61d259834
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Mar 11 18:14:47 2008 +0200
+
+    jpeg: Use #ifdef WORDS_BIGENDIAN instead of #if WORDS_BIGENDIAN
+
+commit 552ab7a4ce5829b3f81254002b516617d3656419
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Tue Mar 11 12:21:59 2008 +0100
+
+    [fusion] Added fusion_world_get_fork_action() and fusion_world_set_fork_callback().
+    
+    fusion_world_set_fork_callback() allows to register a callback called during
+    the different states of fork() (prepare, parent, child) and before the actual fork
+    action is performed. Useful to free local resources when fork action is FFA_CLOSE.
+
+commit 886be63179ed680f52ba30577bc6ceb7eedf8be6
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Thu Mar 6 17:08:26 2008 +0100
+
+    [docs] Fixed reference to SetSourceMask().
+
+commit 3bd7cf172c17edb17794b6942790bbc4fa50dbe7
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Thu Mar 6 12:33:32 2008 +0200
+
+    fbdev: Initialize primary layer config width and height
+    
+    primaryInitLayer() forgot to initialize the config width and height
+    that were passed to dfb_fbdev_set_mode(). Also memset() the config
+    to 0 for good measure.
+
+commit a4968c5e842271b9e37edda1fe2e4f7585d2e385
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Mon Mar 3 18:33:34 2008 +0100
+
+    Added support for affine transformations to dfb_gfxcard_draw_string().
+    
+    Actually this is done by using gStretchBlit.
+    Direct glyph transformation (done by the font provider) would be better.
+
+commit dd3f1f2cc6b9b5066c68f0cf8b9ade53ca50091f
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Mon Mar 3 18:30:58 2008 +0100
+
+    [radeon] Emit transformed rectangle using TRIANGLE_LIST instead of TRIANGLE_FAN.
+    
+    Because of vertex buffering, TRIANGLE_FAN leds to incorrect result when drawing multiple rectangles.
+
+commit 5ffa438d0872695bcac73f48fbe3856416d47202
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Sun Mar 2 15:57:23 2008 +0100
+
+    Started implementing affine transformations in software.
+    Also fixed incorrect clipping when DSRO_MATRIX is set.
+
+commit bfad60cbd3269aa33ea360aad843bb266046ad88
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Sun Mar 2 15:55:42 2008 +0100
+
+    Implemented triangle clipping.
+
+commit e5448dff452407df4d1d28acb402650c0e75f8f4
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Sun Mar 2 15:55:01 2008 +0100
+
+    Added dfb_line_segment_intersect().
+    Gets the intersection point between a line and segment within the given segment.
+
+commit 5081997bbf0e59d2f4a70148f37e1d2acc267504
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Sun Mar 2 13:27:07 2008 +0100
+
+    [nvidia] Fixed buggy vertices formation in TextureTriangles.
+
+commit 01d772a3741b5865ad4758d98bb3f1d82cb278cf
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Fri Feb 29 16:15:01 2008 +0100
+
+    [direct] Fixed a prototype.
+
+commit 73cd5a4f3c578bf0d8d9d5f16fac5a72aa628d56
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Fri Feb 29 15:25:00 2008 +0100
+
+    [nvidia] Cleanup overlay code. Enbale using NV12 (requires NV30 or newer).
+
+commit 83d555be5f3f22be050e854d9c132277c3edc57c
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Fri Feb 29 15:23:28 2008 +0100
+
+    [nvidia] In case of unsupported arch (NV40), skip objects and fifo setup.
+
+commit 72e8be27b38ad21d9e55819d2c6bbdee25630798
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Thu Feb 28 14:53:48 2008 +0100
+
+    [dfbdump] Build fix.
+
+commit 5997403179ffb774e40cd7ad9c0313025e077dbf
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Thu Feb 28 13:36:17 2008 +0100
+
+    [fusion] Fix multi app core build.
+
+commit c89ee26379d95b7297c4b419efbf44221bc2f180
+Merge: 16d886a... 14b09af...
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Feb 27 04:25:03 2008 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 16d886addf8386d5c8e0a268d33cdba5d9845828
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Feb 27 04:24:49 2008 +0100
+
+    [DirectResult] Added extensible result codes and made other fixes to ban <directfb.h> from libdirect and others.
+    
+    Made DirectResult the primary type for result codes.
+    
+    Added D_RESULT_TYPE_BASE, D_RESULT_TYPE_MAX and D_RESULT_TYPE_IS for extended result codes.
+    
+    Changed most of DFB_ codes to be assigned the corresponding DR_ code.
+    
+    Three DirectFB specific codes remain, after DFB__RESULT_OFFSET defined as D_RESULT_TYPE_BASE('D','F','B').
+    
+    Added DirectEnumerationResult.
+    
+    Moved DECLARE_INTERFACE and DEFINE_INTERFACE to <direct/interface.h>.
+    
+    NOTE: Need type changes of all AddRef/Release implementations from return type DFBResult to DirectResult!
+    
+    No more inclusion of <directfb.h> outside of DirectFB!
+
+commit 14b09af2a288f71f90dee1cfd508033969e55e42
+Merge: 8fb7df8... ca24167...
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Tue Feb 26 19:07:01 2008 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 8fb7df82d8ee14859b809c49f00350808df407c8
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Tue Feb 26 18:58:59 2008 +0100
+
+    NVIDIA: Implemented affine transformations.
+
+commit ca241672be0b4bd9bdd92629d2d96e3e83f581c7
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Feb 26 17:13:01 2008 +0100
+
+    [docs] Fixed broken interface description, only IDirectFB had one.
+
+commit 2d934900ae4ef394bafb3b26d1415acda5966477
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Feb 26 16:41:45 2008 +0100
+
+    [tests] Fixed warning due to a stupid mixup of void/char.
+
+commit 055a18e3d069a86b01aa8081ba769075279d2c3a
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Feb 26 16:28:05 2008 +0100
+
+    [docs] Fixed missing new argument to gendoc.pl call.
+
+commit 774d0b4c86bf1ebe75c356f9162c014ea2c91b91
+Merge: 3d9759e... b933f4a...
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Feb 26 16:25:52 2008 +0100
+
+    Merge branch 'master' of ssh://directfb.org/git/directfb/core/DirectFB
+
+commit 3d9759ef23e517557d3a475df5cb66aa50de07e2
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Feb 26 16:15:53 2008 +0100
+
+    [docs] Improved generated documentation to include more and look better.
+
+commit 4b6b14ef9e9422d88c5de5dcbfba015d9cefb827
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Feb 26 16:21:12 2008 +0100
+
+    [util] Added macro to determine the first set bit of a 32 bit constant at compile time.
+
+commit 60f1b19e2aef15ba1a4c5bb47970b4ec1543ac5e
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sat Feb 23 16:48:03 2008 +0100
+
+    [surface] Allow second string (prefix) in Dump() to be NULL to dump without numbering.
+
+commit b933f4a4bb38a00b770ec8241f3df46ca003303d
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Mon Feb 25 17:40:22 2008 +0100
+
+    RADEON: Implemented DSPF_DSTALPHA/INVDSTALPHA for A8.
+
+commit 21b739036416c96de21db34ae5395970bec19aeb
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Sun Feb 24 21:24:40 2008 +0100
+
+    Specify that alphablend must be enabled for antialiasing.
+
+commit c8060ca4e611716e46e0c9f2577db28d17f52a2c
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Sun Feb 24 21:23:41 2008 +0100
+
+    RADEON: Implemented antialiasing (R100 and R200 only).
+            Fixed conversion+blend with A8 destination.
+            Use LINE primitive for transformed DrawRectangle.
+            Use POINT primitive for 1x1 rectangles.
+
+commit b417724db62384eba84c481c6c7f670f4347a295
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Feb 22 21:08:59 2008 +0100
+
+    [surface core] Hotfix failing assumption that flags would still be set when unlocking.
+    
+    While locking the surface and managing interlocks, only clear access flags when the
+    buffer has not been locked before. Probably we should have an allocation lock counter.
+    
+    But it needs to be protected anyhow, e.g. using FusionRef, but I'd like to avoid overhead
+    and instead add an allocation manager per Fusionee. This one would just have one FusionRef,
+    e.g. as a FusionObject, and a list of locked allocations. The destructor handles them all.
+    
+    Another important job for the local allocation manager would be to remember allocations that
+    have been attached to locally, e.g. mapped, and require to be detached by everyone when destroyed.
+    
+    The XShmImages in the X11 backend are currently only shmat()ed by slave processes :-P
+
+commit 7decf9233c0c0b753bad72ace4959862e4d53027
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Feb 22 21:43:31 2008 +0100
+
+    [deinit] Fix crashes during shutdown by suspending the input core before shutting down anything.
+    
+    The input core is shutdown almost at last. Lots of shutdown happens before, which
+    could collide with input threads doing fancy stuff like handling expose events :)
+    
+    With this change the input core is suspended before any other shutdown.
+    This closes all input threads to avoid crashes or other misbehaviour.
+    
+    Made the input core allow shutdown during suspended state. Added debug messages, assertions...
+
+commit 4f957b6ccbe0f108c448dad7572c885d34b94e2c
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Feb 22 20:37:46 2008 +0100
+
+    [deinit] Fix deinitialization order in IDirectFB_Destruct().
+    
+    This fixes an assertion happening when drop_window() enables the
+    cursor of the context that has been destroyed (unrefed) just before.
+
+commit 09c35c9c27783cceb3446079dd8b67fc63c866c5
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Thu Feb 21 18:45:50 2008 +0100
+
+    Added missing definition of DATADIR.
+
+commit 942c98ba5385060a4dcb9f3d9e88f90354370563
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Feb 20 15:12:58 2008 +0100
+
+    [tests] oops, forgot the source.
+
+commit ac760580de6bcaf0b8087d7949c161bfd64a96a7
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Feb 20 01:12:00 2008 +0100
+
+    [x11] Bring in line with 1.0 features, expose handler, format conversion, shm, smp...
+
+commit 2bb6bfccfd7d35d0fa299f6829456e1970ca49b9
+Merge: 4d12462... aec6c55...
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Feb 20 00:14:37 2008 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 4d12462cf000758748bc808d469121251c1dca97
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Feb 20 00:14:27 2008 +0100
+
+    [software] Have two stages of software fallback warnings.
+    
+    If software fallbacks are disabled, just print a brief message as before,
+    otherwise print a detailed message in the specific functions.
+
+commit 287af30cd2679d70a8a97016b9090156aeec9ae6
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Feb 19 23:58:37 2008 +0100
+
+    [surfac core] Added more debug and an assumption with a FIXME.
+
+commit aec6c554d8fa99f72edaa1b9819740a6dfdf8c78
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Feb 19 23:31:44 2008 +0100
+
+    [tools] Added dfbinspector as a small C app.
+
+commit f9137c2e57b78e6a1d28ae27a3d70a4b400238ae
+Merge: f648447... 25fbe5a...
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Feb 19 23:23:47 2008 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit f64844754cab020c11e88b210329372e15ac67c2
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Feb 19 23:23:36 2008 +0100
+
+    [fusion] Implemented lock counter in single app Fusion.
+
+commit 4b245174e0253343a43ec1e8a4bf786c534bfa0f
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Feb 19 23:22:38 2008 +0100
+
+    [threads] Added debug messages.
+
+commit 69465c68c3fa3cdfbb64f5f3a328562b91b9ce77
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Feb 19 23:21:55 2008 +0100
+
+    [graphics/font] Fixed state handling bug causing wrong acceleration masks.
+    
+    Added special graphics state debug messages in domain "Core/GfxState".
+    
+    Added separate blittingflags member to the font as the one in the state will be modified.
+
+commit d71d8a0f6d2e6c74f0c6172a7068501c5d2aba96
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Feb 19 18:07:11 2008 +0100
+
+    [core] Late increase of ABI version after adding pool size to the description.
+
+commit ee0a49e338a8c712e2c67357b319189c2df0bc9f
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Feb 19 18:04:13 2008 +0100
+
+    [tests] Small restructuring, new test writing data retrieved from an URL to stdout.
+
+commit 25fbe5a187e3b9a9e910985ee57e0cf2668ea876
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Feb 19 15:29:55 2008 +0100
+
+    [fusion] Support resume of interrupted wait on a skirmish.
+
+commit da996c99b1686f91ae6829388f188d60a64b1883
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Feb 19 15:20:41 2008 +0100
+
+    [mem] Fixed allocation debugging always being used when available.
+
+commit 875dea04fe7291afa8cb53206ded0d6c4ebb5b68
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Feb 19 14:57:59 2008 +0100
+
+    Test skirmish wait timeout.
+
+commit 94479dccd2d9f11ff44f4fca658be9f56b53fe9a
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sun Feb 17 16:24:36 2008 +0100
+
+    [surface core] Added CORE_SURFACE_BUFFER_LOCK_ASSERT(lock) and CORE_SURFACE_ALLOCATION_ASSERT(lock).
+    
+    These two macros are consisting of assertions for all they could check.
+
+commit 03e4ee39816a3179f6013e9eabfd9a63a948627d
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sun Feb 17 16:19:54 2008 +0100
+
+    [fbdev] Added DSPF_ARGB6666 to formats checked at depth 24.
+
+commit 85c5b5961d0f98a42d39f2158bce91ba3531b299
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sun Feb 17 16:17:50 2008 +0100
+
+    [surface pools] added size field to description for pools with a defined maximum.
+
+commit 86ce96319e81052b0ee8e60401ccc6a19a379a33
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sun Feb 17 16:16:04 2008 +0100
+
+    ignore
+
+commit 77919e759c7f1cc3738f07fe0419d4b94970b348
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sun Feb 17 16:14:22 2008 +0100
+
+    [config] strip off "lt-" at the beginning of a program name.
+
+commit 93d6dc2d2fd5dad1fe84d9829c6f9c08c6c7fecb
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Thu Feb 14 18:40:16 2008 +0100
+
+    Ported radeonfb patch to linux-2.6.22.
+
+commit 9eba76a734d6937932c11a764a1c215999d93848
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Thu Feb 14 18:38:45 2008 +0100
+
+    RADEON: Implemented affine transformation (all cards) and source masking (R100/R200 only).
+            Switched to version 1.1.2.
+
+commit e64f23f7425322d9514a84166f0bb07f232f6301
+Merge: d8114d4... 974cc71...
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Mon Feb 11 23:36:43 2008 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 974cc710f1bd92707278a6622bfa7ea14f68c43d
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Mon Feb 11 23:35:58 2008 +0100
+
+    SH7722: Remove a temporary printf and two commented out.
+
+commit 99bc47070b386fbd2df4731711ccd2364f262bf8
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Mon Feb 11 23:29:40 2008 +0100
+
+    SH7722: Implemented DSBLIT_SRC_MASK_ALPHA, cleaned up and optimized state handling.
+
+commit fe25a2d4bbbecc4abfa474098d9e0d3bca4ae2cd
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Mon Feb 11 23:26:30 2008 +0100
+
+    RENDER: Added IDirectFBSurface::SetSourceMask() - yes, a third blitting operand :)
+    
+    Added DSBLIT_SRC_MASK_ALPHA to modulate source alpha channel with alpha channel from source mask.
+    Added DSBLIT_SRC_MASK_COLOR to modulate source color channels with color channels from source mask.
+    
+    Added IDirectFBSurface::SetSourceMask() with a surface argument plus x/y offset and flags.
+    
+    Added DFBSurfaceMaskFlags with DSMF_STENCIL to make x/y offset absolute and always start at a
+    fixed position in the mask, otherwise x/y from the Blit() are added.
+    
+    Implemented interface and core code for the new API, adding some new core functions and flags,
+    mostly state handling, e.g. dfb_state_set_source_mask().
+    
+    Added DFB_POINT_EQUAL(a,b).
+    
+    Added DFXL_ALL_DRAW and DFXL_ALL_BLIT.
+    
+    Did some cleanup...
+
+commit 63a5ee545b5d96616b4cdd1115a35bab28175b4d
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Mon Feb 11 23:14:44 2008 +0100
+
+    CLOCK: Moving includes solved a build issue here.
+
+commit d16c5807c105abf2dd7f8894b1bdf4f27a86fe87
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Mon Feb 11 23:12:07 2008 +0100
+
+    SH7722: Use RGB16 in LCD buffer again. NV16 did flicker.
+
+commit d8114d40845168aa563ad572bbe864c22ea34eb7
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Mon Feb 11 20:24:44 2008 +0100
+
+    UTIL: Added dfb_window_event_type_name().
+
+commit 4f1de5ecd83b25b7cea5d777780b5e33774151c5
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sun Feb 10 17:50:03 2008 +0100
+
+    GENDOC: Preserve preceding spaces and line breaks in comments, e.g. to use <pre>.
+
+commit 70f7977c9812df8276c520f3dccb80f2e12b0bca
+Merge: 35b3ba2... 4d7dec6...
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sun Feb 10 13:12:37 2008 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 4d7dec6d68edbeeb085e5c59b716a16677dd640c
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sun Feb 10 11:38:46 2008 +0100
+
+    SH7722: Implemented XOR for drawing and blitting. Version 0.8 now.
+
+commit 35b3ba298131e69328240593195757ef4fce8b87
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sat Feb 2 17:35:25 2008 +0100
+
+    [DirectLog] The default/fallback instance is no longer allocated dynamically,
+    but still initialized on demand.
+
+commit f3e472e86198b5c32d3899f5ec7dbe9df1235f9e
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sat Feb 2 17:32:14 2008 +0100
+
+    EVENTBUFFER: Don't allow posting of universal events bigger than DFBEvent.
+    
+    This avoids crashes when GetEvent() has been called with just a DFBEvent
+    as a buffer. Sometimes you don't know.
+    
+    Added missing newlines to debug messages.
+
+commit 880a47b5212c1f17e796e7b622d8ddf7a7667de5
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed Jan 30 13:22:51 2008 +0200
+
+    fbdev: Don't pan at all when it's not supported by the device
+
+commit 170dd0cfeb4d46dd914a701c1a33e035d7262358
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed Jan 30 22:44:18 2008 +0200
+
+    direct/thread.h needs direct/conf.h
+
+commit ed62a4a5e830dbdabb6004bd91d8d6a244d6b39d
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Tue Jan 29 12:35:58 2008 +0100
+
+    TESTS: Reset the fork action to FFA_CLOSE after forking.
+
+commit f576123a36f4a6ef0b8854e0095242db3f23e79a
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Tue Jan 29 12:31:18 2008 +0100
+
+    BUILTIN-FUSION: Stop other threads from killing fusion_skirmish_wait() when timeout is expired.
+
+commit 0bba7d29e2a61d475bee10178515c5261c479de8
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Tue Jan 29 12:26:51 2008 +0100
+
+    FUSION: Finally solved the master-forks problem.
+    
+    This is done by adding a reference counter to FusionWorldShared, increased by the master on fork().
+    Shared memory gets deinitialized only when the counter reaches 0.
+
+commit ab4530bdbb9a1d75e4cf82940ecb8d1cca4a7e2a
+Merge: 1c7c5c6... c80e5c7...
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Mon Jan 28 22:34:54 2008 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 1c7c5c609b23c53299e1844308a72b2c036aa634
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Mon Jan 28 22:30:16 2008 +0100
+
+    DAVINCI: Real IRQ based synchronization, optimization for opaque filled rectangles.
+    
+    Added C64X_FLAG_INTERRUPT to get an interrupt when the command is finished.
+    
+    Function zero is NOP now, e.g. to generate an interrupt at the end of the queue,
+    without setting the interrupt generation bit in already queued commands.
+    
+    davinci_c64x_wait_low() no longer does a usleep() leading to big performance loss,
+    when it's called often with almost nothing on the queue. If synchronization needs
+    to be done, it queues a NOP with Interrupt flag and calls C64X_IOCTL_WAIT_LOW to
+    wait inside the kernel for the end of the queue, and continue without a huge latency.
+    
+    Because blended rectangles are much faster, use the blending function on DSP also
+    for non-blended filling if possible, i.e. alpha = 0xff.
+    
+    Updated tests. Cleanups.
+
+commit c80e5c712943c5774396f10479dd046eb64a290d
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Mon Jan 28 21:45:53 2008 +0100
+
+    DIRECT-STREAM: Fixed HTTP Content-Type parsing (mimetype might be followed by a charset).
+
+commit e36b34847dbffddb4ec3b796018d707b14801320
+Merge: 7e032d9... be5597c...
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sat Jan 26 12:53:00 2008 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 7e032d95f71442b42c821e874a26099112f4917b
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sat Jan 26 12:29:37 2008 +0100
+
+    MODULES: Use standard syntax for initialization of struct members in headers.
+    
+    Thanks to Daniel J. Laird!
+
+commit e443b848e3459bb8cfd23f891cf8a51f57f4e1f9
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sat Jan 26 12:26:43 2008 +0100
+
+    INPUT: Fix debug message in core.
+
+commit 174f6fa683d4bbb141fd3230723b1df49d845b6a
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sat Jan 26 09:02:16 2008 +0100
+
+    More info in configure output.
+
+commit be5597c601f6364c35b7bea554d25560e36353f6
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sat Jan 26 07:18:01 2008 +0100
+
+    THREAD: Added options to set default priority, policy and stack size for threads.
+    
+    Initialize attributes before creating the thread.
+
+commit 4a4c6496109cf818378a2ddc012b1275f13e403d
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Mon Jan 14 15:12:29 2008 +0100
+
+    CONFIG: Added option "surface-shmpool-size=<kb>" to set the size of the shared memory pool
+    used for shared system memory surfaces.
+    
+    [merged from b2007ph1]
+
+commit cc014b4447eafc2505e9b2f55b73b6ad7fb0695a
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Jan 22 06:57:52 2008 +0100
+
+    IDirectFBVideoProvider: New events and SetAudioDelay().
+    
+    Thanks to Daniel J Laird!
+
+commit ec7a8323889e06379220d92bbe68a1a51bf6f867
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Mon Jan 21 14:41:05 2008 +0100
+
+    BUILTIN-FUSION: Flush pending signals before re-acquiring the lock in fusion_skirmish_wait().
+
+commit 0321bd2d2a81c4a73d22a7cfdcc3daccd888a883
+Merge: f763b52... 14b96b6...
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Jan 18 20:13:00 2008 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit f763b520dc525c1f6b7fa6ddf6a60a5efdb657a8
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Jan 18 20:12:50 2008 +0100
+
+    IMAGEPROVIDER: Include <string.h>.
+
+commit 14b96b6a9019a296011db914eac5b666e93dace7
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Jan 18 12:06:08 2008 +0100
+
+    DAVINCI: Better support for blended FillRectangle(), cleanups...
+
+commit 059e7d5e61a50752d66983b050efb86d280e5d72
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Jan 16 16:49:58 2008 +0100
+
+    JPEG: Fix broken merge (merged but not ported).
+    
+    aea0bea25384584c6f30e2967d369be8116a6a5d
+        JPEG: Implemented directly loading to NV16 surfaces staying in YCbCr space.
+
+commit 58c282e03f7cd2cdffdad2015bd55812422723d9
+Merge: 783ce73... 3fbbd91...
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Jan 16 16:45:37 2008 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 3fbbd911976ac59ce37c366631bce63d85da6a09
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Jan 16 12:46:47 2008 +0100
+
+    SURFACE: Support NV16 in dfb_surface_dump() and so IDirectFBSurface::Dump().
+    
+    [merged from old-surface-core-1.1]
+
+commit aea0bea25384584c6f30e2967d369be8116a6a5d
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Jan 16 12:45:16 2008 +0100
+
+    JPEG: Implemented directly loading to NV16 surfaces staying in YCbCr space.
+    
+    No offsets, clipping or scaling supported.
+    
+    In my test (df_dok --load-image wood_andi.jpg) NV16 had a 34% advantage
+    over RGB16 with this change. It has been the other way around before.
+    
+    [merged from old-surface-core-1.1]
+
+commit 783ce73133ade984952daa169180246cb15dd986
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Jan 15 23:18:52 2008 +0100
+
+    DAVINCI: StretchBlit() fix, FillRectangle() blended, progress on the caching front
+    and more work behind the DVA (DirectFB Accelerated Video) scenes.
+
+commit 9c07e574535db5d86ef11bda0bbe7a18e2a2f306
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Jan 15 23:04:57 2008 +0100
+
+    CONFIG: Added option "[no-]software-warn" to show warnings when doing/dropping software operations.
+    
+    No longer print a warning when software fallbacks are disabled. Use the new option!
+
+commit aa1f5ffc61fcb99a2e64ad9750fcc1e666f73595
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Jan 15 23:03:50 2008 +0100
+
+    Cleanup .gitignore files.
+
+commit 5d6d2a89d90233297a5f3f0b468ea80bd4d86334
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Jan 15 12:47:55 2008 +0100
+
+    HEADER: Don't define inline conversion functions due to void* arithmetic if C++ is used.
+
+commit 213517ebfa140ac3a2d6ece256c4ec96b3906712
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Jan 15 12:38:15 2008 +0100
+
+    DFBFX: Fixed copy'n'paste bug.
+
+commit 4d72b6c01ee44dfeb97f0dc0fb99ca3acfe1d4a4
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Jan 15 12:37:51 2008 +0100
+
+    HEADERS: C++ fixes.
+
+commit 18b15a9003153b4c9e604888f080a8a2cd2df666
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Tue Jan 15 08:29:11 2008 +0100
+
+    [builtin-fusion] Cleanup socket directory and shm files on exit.
+    Return DFB_FUSION instead of DFB_DEAD if the recipient is unreachable.
+
+commit 3f726505d53b68f4f506fe30b39436b3adac848a
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sun Jan 13 14:11:09 2008 +0100
+
+    SH7722: Step back to RGB as default input color space until we can
+    switch dynamically and maybe automatically. This means all Inputs
+    (3 Layers) and Windows on MultiWindow Layer (4th) can be (A)RGB,
+    only Input 1 can be configured to NV12/NV16...
+    
+    Many cleanups, new macros etc.
+
+commit 6abd2846eebb06a1744fbc9515f95237b8587b04
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sun Jan 13 11:02:05 2008 +0100
+
+    Cleaned up LCD Buffer Setup Code. A variable for selecting between RGB16 and NV16 is in the code.
+    
+    Clear LCD Buffer after allocation with black using memset, one for RGB16 and two for NV16.
+
+commit 890f8bb71477aaba7d2621cdc6605863cb4b3018
+Merge: 0eca8a2... bd08a3e...
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Thu Jan 10 04:25:41 2008 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 0eca8a246c4ed8df3f5b1b94ce2067b559f27eaa
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Thu Jan 10 04:25:33 2008 +0100
+
+    INPUT: Added dfb_input_event_type_name() and event debug at Core/Input/Evt.
+
+commit ef3dcdaf776d204519dd171adf9292db57da8813
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Thu Jan 10 04:24:40 2008 +0100
+
+    DEFAULTWM: Combine multiple x and/or y motion events before sending events or updating the cursor.
+    
+    This is a better way as opposed to have the driver do the work,
+    otherwise there was too much cursor acceleration in such a case.
+
+commit d63edceff38d3ba40dad7588faf04b83f689c632
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Thu Jan 10 04:16:23 2008 +0100
+
+    LINUX-INPUT: Set DIEF_FOLLOW on all events known not to be the last.
+
+commit a37b95f3d6a7dd1c3723244a08e23081f9e818d1
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Thu Jan 10 04:03:56 2008 +0100
+
+    CORE: A bit late ABI++ after last clipping feature in gfxcard.c.
+
+commit bd08a3e3edb113a9f360e6ac73c432c15d1d92b6
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Jan 9 23:38:32 2008 +0100
+
+    DAVINCI: Fixed sub directory used by wrapper Makefile.kernel.
+
+commit d699b968396c9c8e494b2cf06eff74718f7abe9f
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Jan 9 10:54:12 2008 +0100
+
+    CONFIG: Don't enable mouse motion compression at input drivers by default.
+
+commit 47658336e8fb38f259af9d60e110671c07769ed0
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Jan 9 10:52:36 2008 +0100
+
+    IDirectFBImageProvider: Don't fail if PeekData() is not supported, same behaviour as video providers...
+    
+    Thanks to Daniel J Laird!
+    
+    I also added clearing the context struct for safety,
+    especially regarding the header data which might not be read in completely.
+
+commit f9dfac2d159229fd57fcebb6ba87b15b79c7c6d8
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Jan 9 06:17:28 2008 +0100
+
+    DIRECT: Move default log instantiation into DirectLog code.
+
+commit e5d3a344e30efbf5f0fd8ac6741155cdf2bdf788
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Jan 9 06:15:06 2008 +0100
+
+    DAVINCI: Added experimental ioctl similar to the flip ioctl,
+    just testing, could not find the original flip ioctl so far.
+    
+    Arguments are:
+    - byte offset from frame buffer device base OR a physical address
+    - optional target sync count when to show the frame
+    - returns sync count of actual setting or 0 if pending
+
+commit 54bbd5beb8e324fd9c38357b5f2cc0836404fee3
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Jan 9 05:22:15 2008 +0100
+
+    DAVINCI: Fixed recently broken blend and new colorize.
+
+commit bc2506ff29f855df43af096758c065c98784f289
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Jan 9 05:21:36 2008 +0100
+
+    DAVINCI: Minor cleanup.
+
+commit 64ecce22f31da6f88dc140ad6177c7fdc8f6e89e
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Jan 9 01:30:03 2008 +0100
+
+    DAVINCI: Added colorizing support to blend functions. No additional cycles in DSP :)
+
+commit 484b3777238cf2b49c5d4fc51e66016eba21a5b7
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Jan 8 12:30:58 2008 +0100
+
+    DIRECT: Fixed missing declaration of debug functions when debug support is enabled, but no debug active.
+
+commit 7a15814e056c9411b7269eb5c6649cd43521b71a
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Jan 8 07:08:42 2008 +0100
+
+    DAVINCI: Fixed incomplete header file update.
+
+commit cb1a784ac6ce868176a98ec71dc02c27726d6c9b
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Jan 8 07:01:58 2008 +0100
+
+    DAVINCI: More acceleration (StretchBlit for ARGB, ARGB/RGB32->RGB16 conversion) and fixes.
+    
+    Added properly clipped (phases!) StretchBlit() for ARGB and RGB32 without any blitting flags.
+    
+    Added ARGB/RGB32 conversion to RGB16 without any flags (currently writing alpha data to scratch area).
+    
+    Fixed color calculation for filling/drawing to UYVY.
+    
+    Moved write back from EngineSync() to EmitCommands() as there's no guarantee for EngineSync() to be called :(
+    
+    More tests for DSP internal MPEG2 functions.
+    
+    Only run DSP test code if C64X_TEST is exported.
+
+commit 45b8a0975257cdcee16b92dc161107754b2c02f9
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Jan 8 06:36:10 2008 +0100
+
+    DAVINCI: Added davinci_c64x_write_back_all() after davinci_c64x_dither_argb() for OSD updates.
+
+commit 88e33559fe7521794f37fabfe1103a23ae6d3ea1
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Jan 8 06:28:28 2008 +0100
+
+    DIRECT: Fixed 'log-file' and 'log-udp' option.
+
+commit 322f0fe1dd9aeb538e675a4137a5c80e8668fa9c
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Jan 8 06:20:53 2008 +0100
+
+    FONTS: Added minimum glyph alignment of 8 bytes.
+
+commit fd3a4151a9b9e0ec8fe94d93d06da364e04a3013
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Jan 8 06:16:24 2008 +0100
+
+    GFXCORE: Added mask of clipped functions to internal CardCapabilities (gfx drivers).
+    
+    Instead of providing clipping for none or for all functions (CCF_CLIPPING) a driver
+    can set individual functions to be hardware clipped, e.g. DFXL_STRETCHBLIT where
+    clipping is crucial.
+
+commit 2c7096c217f15136cf9e5e3a4f36709fb1fc55fe
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Jan 8 06:02:53 2008 +0100
+
+    LAYERS: Only sync with accelerator in dfb_layer_region_flip_update() when DSFLIP_PIPELINE is not set.
+
+commit df15f4ba6ad4d7dd964d61b85ea3b651168ceb1a
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Jan 8 06:00:39 2008 +0100
+
+    GENERIC: Print blend funcs in warning caused by 'no-software'.
+
+commit 5b2fb854ee2a57408059778d1bdd88e063d085a6
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Tue Jan 8 05:59:41 2008 +0100
+
+    Added option "-ds" for dumping surfaces.
+
+commit 98f761d339c6cd7e6f8c37e3e32b2f617eec8013
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Thu Jan 3 21:09:11 2008 +0100
+
+    SH7722: Use VEU for scaling and format conversion of JPEG decoded data (line buffer mode).
+    
+    Support 4:2:0 and 4:2:2 to
+    - NV12
+    - NV16
+    - RGB16
+    - RGB24
+    - RGB32
+    
+    Allocate two line buffers (2560x16 pixels). Let JPU decode into line buffers. Each line
+    buffer (16 lines) will be converted by VEU to destination surface. CPU, JPU and VEU can
+    work in parallel (loading coded data to reload buffer 0/1, decoding data to line buffer 0/1,
+    converting from line buffer 0/1 to destination). Conversion is enable using one the new
+    flags: SH7722_JPEG_FLAG_CONVERT.
+    
+    Less overhead for smaller JPEGs. Only request further reloads if data is available, i.e. if
+    any GetData() returns less than SH7722_JPEG_RELOAD_SIZE, clear SH7722_JPEG_FLAG_RELOAD.
+    
+    Cleanups.
+
+commit 93136ba54a7b7d0ce835526e5e9c5a12e2aaab56
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Thu Jan 3 20:40:46 2008 +0100
+
+    DEBUG: Cleanup header.
+
+commit 04a16a088f0b8af2754109e9e949359401a83a82
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Thu Jan 3 11:01:39 2008 +0100
+
+    MPEG2: Removed MPEG2 I-Frame Imageprovider. Patch by Daniel J Laird - daniel.j.laird _ nxp.c0m
+
+commit 32673352738ecfb030181fc689e8a537a205bd29
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Thu Jan 3 10:51:13 2008 +0100
+
+    ignore
+
+commit c23c88c7f76e9f7a2ffa12a0d87979f8bea8a8b7
+Merge: ff62e5a... 0825352...
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Thu Jan 3 10:04:33 2008 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit ff62e5a349bd043152ff014f767456be7fc8dfce
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Thu Jan 3 10:04:23 2008 +0100
+
+    SH//22: Kernel based state machine for less overhead and latencies.
+    
+    After filling the first reload buffer, execution enters the kernel
+    which starts the decoder and only returns to user space for
+      - end of decoding
+      - error in decoding
+      - less than two buffers loaded or in use (reload)
+
+commit 0825352a4de6e3d8abaf41a6105ceaa5df43b518
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Wed Jan 2 14:20:21 2008 +0100
+
+    [builtin-fusion] Replaced usage of getpid() by direct_gettid().
+
+commit 561c4a9099115bdf921c2b5ea7d95e8c4cb45fa7
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Wed Jan 2 12:49:19 2008 +0100
+
+    Handle option [no-]thread_block_signals in direct_config_set().
+
+commit a5d3346339b9fe3197fb216447e42c87b7fe19f8
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Wed Jan 2 11:45:14 2008 +0100
+
+    Check whether mount point is writable in find_tmpfs().
+
+commit 7818ff8c8b5578de135c61389c43f87ff7e1747b
+Author: Claudio Ciccani <klan@directfb.org>
+Date:   Wed Jan 2 11:37:35 2008 +0100
+
+    Include directfb_util.h (defines dfb_pixelformat_name()).
+
+commit 3a36cc5ae838fb012a0d63943f92dde5244359b6
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Dec 28 23:27:51 2007 +0100
+
+    fbdev: Fixed missing include.
+
+commit 69f61b2cc7b4b22f490895953a8b58454398096c
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Dec 28 23:25:48 2007 +0100
+
+    IDirectFBInputBuffer: I thought I built this code already...
+
+commit 2a41f52a00240644a49f65dfb6f7e02b21210c4e
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Fri Dec 28 23:25:14 2007 +0100
+
+    libdirect: Fixed warnings.
+
+commit 19f3486f6b14a573dc6c9d1ffd43f5edb270ddbd
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Dec 26 04:08:07 2007 +0100
+
+    SH7722: JPEG enhancements
+    
+    - Decode header in Construct()
+    - Utilize reload buffers properly (fill one while hw reads the other)
+    - Support NV12 and NV16 (4:2:0 and 4:2:2 images)
+    - Added locking for JPU usage
+
+commit 8f1ac453e7bc13b78ad8ac87a3ed6e680c6954f8
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Wed Dec 26 04:00:57 2007 +0100
+
+    DEBUG: Missed one line in last commit (adding debug messages).
+
+commit f23610b51e7d099bd129afa4a9b802133316dc99
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Mon Dec 24 04:28:23 2007 +0100
+
+    DEBUG: Further cleanup of debugging code. New minimal debug mode
+    to support D_DEBUG_AT, D_ASSERT and D_ASSUME when debug support is
+    disabled, but DIRECT_ENABLE_DEBUG or DIRECT_FORCE_DEBUG have been
+    defined. No domain filters, just formatted output (all or nothing).
+
+commit f3fdc7435788346515d993651abc3640d05d4db6
+Merge: 75dd9d7... 3afd652...
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Mon Dec 24 02:45:51 2007 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 75dd9d767f1e0a0317c251aafe257a00e58ee697
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Mon Dec 24 02:45:29 2007 +0100
+
+    LINUX-INPUT: Fix redefinitions by moving up kernel headers.
+
+commit 3afd652d8be162b15ec2fbfd6921af95f48de763
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sun Dec 23 16:11:30 2007 +0100
+
+    SH7722: Experimental JPEG decoding (first working version) and other enhancements and fixes.
+    
+    Changed the LCD buffer from RGB16 to NV16 to improve image quality with same amount of data.
+    BEU generates YCbCr 4:2:2 content, LCDC converts and sends RGB18 data to the display (at least on AP325).
+    
+    Switched BEU to YCbCr input by default, thus allowing only the first layer to be (A)RGB.
+    Implemented LUT8 support for the third layer. Added lock for BEU code called for different layers.
+    Automatic parent input system selection and other fixes, allowing to run df_fire on third and df_dok
+    with alpha channel on first layer.
+    
+    Fixed byte swapping issues, e.g. no more swapping between BEU and LCDC, correct swapping of BEU input
+    depending on number of bytes per pixel.
+    
+    Added experimental first working version of hardware JPEG decoding:
+    
+         /*
+          * FIRST WORKING VERSION [tm]
+          *
+          * Almost user space based only. To NOT USE usleep() & friends and loose throughput (sleep) or
+          * CPU resources (busyloop), I added an ioctl that waits for the next interrupt to occur.
+          *
+          * With a 128x128 image (23k coded data) being loaded in a loop, this temporary mechanism is
+          * achieving almost the same throughput as a busyloop, but with only half the CPU load.
+          *
+          * TODO
+          * - prefetch image info with a state machine used by Construct(), GetSurfaceDescription() and RenderTo().
+          * - utilize both reload buffers properly (pipelining)
+          * - implement clipping, scaling and format conversion via VEU (needs line buffer mode)
+          * - add locking and/or move more code into the kernel module (multiple contexts with queueing?)
+          */
+    
+    Kernel Module
+    - Added SH7722GFX_IOCTL_WAIT_JPEG to wait for the next interrupt.
+    - Added JPU IRQ handler: save interrupt status in shared memory, clear interrupt and wake up waiter.
+
+commit 65040dc9d34566454f94be4d1b1f47f57dd9a7c0
+Merge: 1c82251... 5a3d3e3...
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sun Dec 23 13:22:13 2007 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 1c82251e77e13038ee4c4c94401efef8361165e9
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sun Dec 23 13:22:03 2007 +0100
+
+    DEBUG: Added "[no-]fatal-break", d_debug_at() and direct_debug_at_always().
+    
+    The new runtime option was added to enable/disable the trap in D_BREAK().
+    
+    Even without debug support (but text) in libdirect, changing one D_DEBUG_AT()
+    to d_debug_at() - which is a single shortcut in my SlickEdit - will bypass the
+    check for the domain or any debug macros and directly print out the message.
+    
+    The new function direct_debug_at_always() is called by the new d_debug_at() macro
+    unless text support is completely disabled, e.g. configured with "--disable-text".
+    
+    Added static inline debug_domain_vprintf() to clean up debug message printing code
+    a bit and optimize it, saving two intermediate printfs, one for "%s:" (domain name)
+    and the other for the final format string.
+    
+    Domain less D_DEBUG() messages are using the same format/function now (domain "- - ").
+
+commit 5a3d3e31a74db36395cdeba13a4fed83198fb1f5
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sun Dec 23 06:58:48 2007 +0100
+
+    CONFIGURE: Show $SYSCONFDIR in summary.
+
+commit 154f272eb2173a41f5a2289e3e92c019ac47a6d9
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sun Dec 23 06:58:10 2007 +0100
+
+    DIRECT: Added MODULEDIR to direct.pc, until this becomes configurable for each package.
+
+commit 81316724cab757636ac25361ceba312f86cc733f
+Author: Marc Kleine-Budde <mkl@pengutronix.de>
+Date:   Fri Dec 21 09:50:08 2007 +0100
+
+    add AC_SUBST(LD) to configure.in
+    
+    $(LD) is used in Makefile.am, but when using libtool $(LD) sems not to
+    substituted automatically. This patch adds the missing AC_SUBST().
+    
+    Signed-off-by: Marc Kleine-Budde <mkl@pengutronix.de>
+    Signed-off-by: Denis Oliver Kropp <dok@pengutronix.de>
+
+commit f683452e5227b1cd4934b700b0a79c24d71060f6
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Mon Dec 17 18:13:14 2007 +0100
+
+    Fix unconditional use of SA_SIGINFO, thanks to Samuel Thibault!
+
+commit 5551b51ff8dfb0b4f4c5cf287a34ec20d5247b1b
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Mon Dec 17 18:10:02 2007 +0100
+
+    MAKE: Clean autogenerated header files on distclean, thanks to Tobias Grimm (now really).
+
+commit 60e5be4e3122cdc219898caaac92d61be8806e60
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sat Dec 15 19:01:54 2007 +0100
+
+    BUILD-OPTIONS: Set smooth scaling to 'no' if software rendering already is.
+
+commit dbb7b400a84b1579a9e6193eed59f3a5bfbaedfe
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sat Dec 15 18:56:20 2007 +0100
+
+    BUILD-OPTIONS: Added "--without-software" to save 100k+ binary size if really not needed.
+
+commit d30a1839d517612fdfbd806f206517375193a2ff
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sat Dec 15 18:33:51 2007 +0100
+
+    DIRECT: Fixed warnings for building with DIRECT_BUILD_TEXT set to 0.
+
+commit 3e6f6e2be975a9abee6d2d9321917192fbcb13b0
+Author: Denis Oliver Kropp <dok@shizo.directfb.home>
+Date:   Sat Dec 15 16:38:49 2007 +0100
+
+    Generated ChangeLog for 1.1.1.
+
 commit c3a7068532972d18feaf0efd82aef2db04bd96d7
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Sat Dec 15 16:31:05 2007 +0100

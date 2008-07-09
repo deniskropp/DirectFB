@@ -20,9 +20,10 @@ DirectFB.kdevelop.pcs
 DirectFB.kdevses
 directfb.pc
 directfb.spec
-DirectFB.vpj
-DirectFB.vpw
-DirectFB.vtg
+*.vpj
+*.vtg
+*.vpw
+*.vpwhistu
 Doxyfile
 gmon.out
 INSTALL

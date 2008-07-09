@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -260,30 +260,47 @@ fbdevAllocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( surface, CoreSurface );
 
      if ((surface->type & CSTF_LAYER) && surface->resource_id == DLID_PRIMARY) {
-          int i, index = dfb_surface_buffer_index( buffer );
+          FBDevShared *shared = dfb_fbdev->shared;
+          int          index  = dfb_surface_buffer_index( buffer );
 
-          /* HACK FIXME_SC_2 ALLOCATE/SETMODE TWIST */
-          for (i=0; i<surface->num_buffers; i++) {
-               if (surface->buffers[i]->allocs.elements)
-                    break;
-          }
+          D_DEBUG_AT( FBDev_Surfaces, "  -> primary layer buffer (index %d)\n", index );
 
-          if (i == surface->num_buffers && dfb_fbdev->shared->test_mode) {
-               ret = dfb_fbdev_set_mode( surface, dfb_fbdev->shared->test_mode, &dfb_fbdev->shared->test_config );
+          if (( (surface->config.caps & DSCAPS_FLIPPING) && index == 1) ||
+              (!(surface->config.caps & DSCAPS_FLIPPING) && index == 0) )
+          {
+               const VideoMode *videomode;
+               const VideoMode *highest = NULL;
+               /* FIXME: this should use source.w/source.h from layer region config! */
+               unsigned int     width  = surface->config.size.w;
+               unsigned int     height = surface->config.size.h;
+               
+               D_INFO( "FBDev/Mode: Setting %dx%d %s\n", width, height, dfb_pixelformat_name(surface->config.format) );
+
+               videomode = shared->modes;
+               while (videomode) {
+                    if (videomode->xres == width && videomode->yres == height) {
+                         if (!highest || highest->priority < videomode->priority)
+                              highest = videomode;
+                    }
+
+                    videomode = videomode->next;
+               }
+
+               if (!highest)
+                    return DFB_UNSUPPORTED;
+
+               ret = dfb_fbdev_set_mode( highest, &surface->config );
                if (ret)
                     return ret;
-
-               dfb_fbdev->shared->test_mode = NULL;
           }
-          /* /HACK FIXME_SC_2 ALLOCATE/SETMODE TWIST */
 
-          alloc->pitch  = dfb_fbdev->shared->fix.line_length;
+          alloc->pitch  = shared->fix.line_length;
           alloc->size   = surface->config.size.h * alloc->pitch;
           alloc->offset = index * alloc->size;
 
-          D_INFO( "FBDev/Surface: Allocated %dx%d %dbit %s buffer at offset %d and pitch %d.\n",
-                  surface->config.size.w, surface->config.size.h, dfb_fbdev->shared->current_var.bits_per_pixel,
-                  dfb_pixelformat_name(buffer->format), alloc->offset, alloc->pitch );
+          D_INFO( "FBDev/Surface: Allocated %dx%d %d bit %s buffer (index %d) at offset %d and pitch %d.\n",
+                  surface->config.size.w, surface->config.size.h, shared->current_var.bits_per_pixel,
+                  dfb_pixelformat_name(buffer->format), index, alloc->offset, alloc->pitch );
      }
      else {
           Chunk *chunk;
@@ -296,7 +313,7 @@ fbdevAllocateBuffer( CoreSurfacePool       *pool,
 
           alloc->offset = chunk->offset;
           alloc->pitch  = chunk->pitch;
-          alloc->size   = chunk->length;// DFB_PLANE_MULTIPLY( buffer->format, surface->config.size.h ) * alloc->pitch;
+          alloc->size   = chunk->length;
 
           alloc->chunk  = chunk;
      }

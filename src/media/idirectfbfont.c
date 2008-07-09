@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -71,7 +71,7 @@ IDirectFBFont_Destruct( IDirectFBFont *thiz )
 /*
  * increments reference count of font
  */
-static DFBResult
+static DirectResult
 IDirectFBFont_AddRef( IDirectFBFont *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
@@ -86,7 +86,7 @@ IDirectFBFont_AddRef( IDirectFBFont *thiz )
 /*
  * decrements reference count, destructs interface data if reference count is 0
  */
-static DFBResult
+static DirectResult
 IDirectFBFont_Release( IDirectFBFont *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
@@ -478,6 +478,7 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
      font   = data->font;
      string = (const u8*) text;
      end    = string + bytes;
+     *ret_next_line = NULL;
 
      dfb_font_lock( font );
 
@@ -515,16 +516,22 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
 
      if (width<max_width && string >= end) {
           *ret_next_line = NULL;
-          *ret_str_length = length-1;
+          *ret_str_length = length;
           *ret_width = width;
 
           return DFB_OK;
      }
 
      if (*ret_next_line == NULL) {
-          *ret_next_line = (const char*) string;
-          *ret_str_length = length;
-          *ret_width = width;
+          if (length == 1) {
+               *ret_str_length = length;
+               *ret_next_line = (const char*) string;
+               *ret_width = width;
+          } else {
+               *ret_str_length = length-1;
+               *ret_next_line = (const char*) string-1;
+               /* ret_width already set in the loop */
+          }
      }
 
      return DFB_OK;

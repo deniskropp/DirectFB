@@ -69,7 +69,7 @@ MODULE_DESCRIPTION("A little c64+ handling module.");
  *
  * transfer buffer
  */
-#define R_BASE		0x8e000000
+#define R_BASE		DAVINCI_C64X_MEM
 #define R_LEN		0x02000000
 
 /* L2RAM:
@@ -117,7 +117,7 @@ MODULE_FIRMWARE(F_NAME);
 
 static dev_t dev_major;
 static struct cdev*dev_cdev;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 15)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 static struct class*dev_class;
 #else
 static struct class_simple*dev_class;
@@ -192,7 +192,9 @@ static int dev_mmap(struct file * file, struct vm_area_struct * vma) {
   if (vma->vm_pgoff) {
     if (size!=R_LEN) return -EINVAL;
 #if defined(pgprot_writecombine)
-    vma->vm_page_prot=pgprot_writecombine(vma->vm_page_prot);
+    vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
+#else
+    vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 #endif
     if (remap_pfn_range(vma,
 			  vma->vm_start,
@@ -215,56 +217,62 @@ static int dev_mmap(struct file * file, struct vm_area_struct * vma) {
 }
 
 static void
-c64x_dump( void )
+c64x_dump( const char *condition )
 {
   static const char *state_names[] = { "DONE", "ERROR", "TODO", "RUNNING" };
 
-  uint32_t  ql_dsp  = c64xctl->QL_dsp;
-  uint32_t  ql_arm  = c64xctl->QL_arm;
-  uint32_t  qh_dsp  = c64xctl->QH_dsp;
-  uint32_t  qh_arm  = c64xctl->QH_arm;
-  uint32_t  task    = queue_l[ql_dsp & C64X_QUEUE_MASK].c64x_function;
-  int       dl, dh;
+  uint32_t  ql_dsp = c64xctl->QL_dsp;
+  uint32_t  ql_arm = c64xctl->QL_arm;
+  uint32_t  tl_dsp = queue_l[ql_dsp & C64X_QUEUE_MASK].c64x_function;
+  uint32_t  tl_arm = queue_l[ql_arm & C64X_QUEUE_MASK].c64x_function;
+  int       dl;
 
   dl = ql_arm - ql_dsp;
   if (dl < 0)
     dl += C64X_QUEUE_LENGTH;
 
-  dh = qh_arm - qh_dsp;
-  if (dh < 0)
-    dh += C64X_QUEUE_LENGTH;
-
-  printk( "High Q:  arm %5d - dsp %5d = %d\n", qh_arm, qh_dsp, dh );
-  printk( "Low  Q:  arm %5d - dsp %5d = %d\n", ql_arm, ql_dsp, dl );
-
-  printk( "                      (%08x: func %d - %s)\n", 
-          task, (task >> 2) & 0x3fff, state_names[task & 3] );
-
+  printk( "C64X+ Queue: %s\n"
+          "   [DSP %d / %d (%s), ARM %d / %d (%s)] <- %d pending\n",
+          condition,
+          ql_dsp, (tl_dsp >> 2) & 0x3fff, state_names[tl_dsp & 3],
+          ql_arm, (tl_arm >> 2) & 0x3fff, state_names[tl_arm & 3],
+          dl );
 }
 
 static int
 c64x_wait_low( void )
 {
   int ret;
-  int num = 0;
-  u32 dsp = c64xctl->QL_dsp;
+  int num  = 0;
+  /* Keep reference values for comparison. */
+  u32 idle = c64xctl->idlecounter;
+  u32 dsp  = c64xctl->QL_dsp;
 
-//  c64x_dump();
-
+  /* Wait for equal pointers... */
   while (dsp != c64xctl->QL_arm) {
-    ret = wait_event_interruptible_timeout( wait_irq, c64xctl->QL_dsp == c64xctl->QL_arm, 1 );
+    /* ...each time for a 1/50 second... */
+    ret = wait_event_interruptible_timeout( wait_irq, c64xctl->QL_dsp == c64xctl->QL_arm, HZ/50 );
     if (ret < 0)
       return ret;
 
-    if (c64xctl->QL_dsp == dsp && ++num > HZ) {
-      printk( KERN_ERR "c64x+ : timeout waiting for idle queue\n" );
-      c64x_dump();
-      return -ETIMEDOUT;
+    /* ...if after that 1/50 second still the same command is running... */
+    if (!ret && c64xctl->QL_dsp == dsp) {
+      /* ...and almost one second elapsed in total, or the DSP felt idle... */
+      if (++num > 42 || c64xctl->idlecounter != idle) {
+        /* ...timeout! */
+        printk( KERN_ERR "c64x+ : timeout waiting for idle queue\n" );
+        c64x_dump( "TIMEOUT!!!" );
+        return -ETIMEDOUT;
+      }
     }
-    else
+    else {
+      /* Different command running, reset total elapsed time. */
       num = 0;
+    }
 
-    dsp = c64xctl->QL_dsp;
+    /* Update reference values. */
+    idle = c64xctl->idlecounter;
+    dsp  = c64xctl->QL_dsp;
   }
 
   return 0;
@@ -303,6 +311,7 @@ static __initdata struct device dev_device = {
 };
 static int __init dev_init(void) {
   int ret=-EIO;
+  u8 *at;
   const struct firmware*fw = NULL;
 
   printk(KERN_INFO "c64x+ : module load\n");
@@ -360,8 +369,8 @@ static int __init dev_init(void) {
     goto err3;
   }
   printk(KERN_INFO "c64x+ : firmware upload %p %zd\n",fw->data,fw->size);
-  if (fw->size>32768) {
-    printk(KERN_ERR "c64x+ : firmware too big! 32768 is maximum (for now)\n");
+  if (fw->size>32767) {
+    printk(KERN_ERR "c64x+ : firmware too big! 32767 is maximum (for now)\n");
     release_firmware(fw);
     device_del(&dev_device);
     goto err3;
@@ -372,6 +381,21 @@ static int __init dev_init(void) {
     device_del(&dev_device);
     goto err3;
   }
+  at = fw->data + fw->size;
+  while ((ulong)--at > (ulong)fw->data) {
+       if (*at == '@')
+            break;
+  }
+  if (at == fw->data) {
+    printk(KERN_ERR "c64x+ : firmware tag missing\n");
+    release_firmware(fw);
+    device_del(&dev_device);
+    goto err3;
+  }
+  printk(KERN_NOTICE "c64x+ : got firmware of length %d at %p with tag '%*s' of length %d at %p+1\n",
+         fw->size, fw->data,
+         (int)((ulong)(fw->data + fw->size) - (ulong)at - 1), at + 1,
+         (int)((ulong)(fw->data + fw->size) - (ulong)at - 1), at );
   /* move firmware into the hardware buffer here. */
   memcpy(l2ram,fw->data,fw->size);
   release_firmware(fw);
@@ -417,7 +441,7 @@ static int __init dev_init(void) {
 #endif
 
   /* tell sysfs/udev */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 15)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
   dev_class=class_create(THIS_MODULE,C_MOD_NAME);
 #else
   dev_class=class_simple_create(THIS_MODULE,C_MOD_NAME);
@@ -427,7 +451,7 @@ static int __init dev_init(void) {
     printk(KERN_ERR "c64x+ : can't allocate class\n");
     goto err6;
   }
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 15)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
   class_device_create(dev_class,NULL,dev_major,NULL,C_MOD_NAME"%d",0);
 #else
   class_simple_device_add(dev_class,dev_major,NULL,C_MOD_NAME"%d",0);
@@ -466,7 +490,7 @@ static void __exit dev_exit(void) {
   iounmap((void*)l1dram);
   iounmap(l2ram);
   /* release all the other resources */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 15)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
   class_device_destroy(dev_class,dev_major);
   class_destroy(dev_class);
 #else

@@ -114,11 +114,18 @@ else
 VMWARE_DIR =
 endif
 
+if GFX_EP9X
+EP9X_DIR = ep9x
+else
+EP9X_DIR =
+endif
+
 SUBDIRS = \
 	$(ATI128_DIR)	\
 	$(CLE266_DIR)	\
 	$(CYBER5K_DIR)	\
 	$(DAVINCI_DIR)	\
+	$(EP9X_DIR)	\
 	$(I810_DIR)	\
 	$(I830_DIR)	\
 	$(MACH64_DIR)	\

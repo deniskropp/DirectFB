@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -139,20 +139,24 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBWindow_AddRef( IDirectFBWindow *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      data->ref++;
 
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBWindow_Release( IDirectFBWindow *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (--data->ref == 0)
           IDirectFBWindow_Destruct( thiz );
@@ -167,6 +171,8 @@ IDirectFBWindow_CreateEventBuffer( IDirectFBWindow       *thiz,
      IDirectFBEventBuffer *b;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -190,6 +196,8 @@ IDirectFBWindow_AttachEventBuffer( IDirectFBWindow       *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -206,6 +214,8 @@ IDirectFBWindow_DetachEventBuffer( IDirectFBWindow       *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      return IDirectFBEventBuffer_DetachWindow( buffer, data->window );
 }
 
@@ -214,6 +224,8 @@ IDirectFBWindow_EnableEvents( IDirectFBWindow       *thiz,
                               DFBWindowEventType     mask )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -230,6 +242,8 @@ IDirectFBWindow_DisableEvents( IDirectFBWindow       *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -244,6 +258,8 @@ IDirectFBWindow_GetID( IDirectFBWindow *thiz,
                        DFBWindowID     *id )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -263,6 +279,8 @@ IDirectFBWindow_GetPosition( IDirectFBWindow *thiz,
 {
      DFBInsets insets;
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
 
      if (data->destroyed)
@@ -290,6 +308,8 @@ IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
      DFBInsets insets;
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -311,6 +331,8 @@ IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
                             IDirectFBSurface **surface )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -350,6 +372,8 @@ IDirectFBWindow_SetProperty( IDirectFBWindow   *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      /* Check arguments */
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -367,6 +391,8 @@ IDirectFBWindow_GetProperty( IDirectFBWindow  *thiz,
                              void            **ret_value )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -388,6 +414,8 @@ IDirectFBWindow_RemoveProperty( IDirectFBWindow  *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -403,6 +431,8 @@ IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
                             DFBWindowOptions  options )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      /* Check arguments */
      if (data->destroyed)
@@ -423,6 +453,8 @@ IDirectFBWindow_GetOptions( IDirectFBWindow  *thiz,
                             DFBWindowOptions *ret_options )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -445,6 +477,8 @@ IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
      CoreSurface *surface;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -470,6 +504,8 @@ IDirectFBWindow_SetColorKeyIndex( IDirectFBWindow *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -490,6 +526,8 @@ IDirectFBWindow_SetOpaqueRegion( IDirectFBWindow *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -507,6 +545,8 @@ IDirectFBWindow_SetOpacity( IDirectFBWindow *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -518,6 +558,8 @@ IDirectFBWindow_GetOpacity( IDirectFBWindow *thiz,
                             u8              *opacity )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -539,6 +581,8 @@ IDirectFBWindow_SetCursorShape( IDirectFBWindow  *thiz,
      DFBResult ret;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -583,6 +627,8 @@ IDirectFBWindow_RequestFocus( IDirectFBWindow *thiz )
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -602,6 +648,8 @@ IDirectFBWindow_GrabKeyboard( IDirectFBWindow *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -612,6 +660,8 @@ static DFBResult
 IDirectFBWindow_UngrabKeyboard( IDirectFBWindow *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -624,6 +674,8 @@ IDirectFBWindow_GrabPointer( IDirectFBWindow *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -634,6 +686,8 @@ static DFBResult
 IDirectFBWindow_UngrabPointer( IDirectFBWindow *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -648,6 +702,8 @@ IDirectFBWindow_GrabKey( IDirectFBWindow            *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -661,6 +717,8 @@ IDirectFBWindow_UngrabKey( IDirectFBWindow            *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -671,6 +729,8 @@ static DFBResult
 IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -686,6 +746,8 @@ IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
 {
      DFBInsets insets;
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -706,6 +768,8 @@ IDirectFBWindow_Resize( IDirectFBWindow *thiz,
      
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -724,6 +788,8 @@ IDirectFBWindow_Raise( IDirectFBWindow *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -735,6 +801,8 @@ IDirectFBWindow_SetStackingClass( IDirectFBWindow        *thiz,
                                   DFBWindowStackingClass  stacking_class )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -756,6 +824,8 @@ IDirectFBWindow_Lower( IDirectFBWindow *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -767,6 +837,8 @@ IDirectFBWindow_RaiseToTop( IDirectFBWindow *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -777,6 +849,8 @@ static DFBResult
 IDirectFBWindow_LowerToBottom( IDirectFBWindow *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -791,6 +865,8 @@ IDirectFBWindow_PutAtop( IDirectFBWindow *thiz,
      IDirectFBWindow_data *lower_data;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -816,6 +892,8 @@ IDirectFBWindow_PutBelow( IDirectFBWindow *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -839,6 +917,8 @@ IDirectFBWindow_Close( IDirectFBWindow *thiz )
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -853,6 +933,8 @@ static DFBResult
 IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -873,6 +955,8 @@ IDirectFBWindow_SetBounds( IDirectFBWindow *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -887,6 +971,8 @@ IDirectFBWindow_ResizeSurface( IDirectFBWindow *thiz,
                                int              height )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -904,6 +990,8 @@ IDirectFBWindow_SetKeySelection( IDirectFBWindow               *thiz,
                                  unsigned int                   num_keys )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      /* What a lovely switch */
      switch (selection) {
@@ -927,6 +1015,8 @@ IDirectFBWindow_GrabUnselectedKeys( IDirectFBWindow *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      if (data->destroyed)
           return DFB_DESTROYED;
 
@@ -937,6 +1027,8 @@ static DFBResult
 IDirectFBWindow_UngrabUnselectedKeys( IDirectFBWindow *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -953,6 +1045,8 @@ IDirectFBWindow_Bind( IDirectFBWindow *thiz,
      IDirectFBWindow_data *source_data;
  
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -972,6 +1066,8 @@ IDirectFBWindow_Unbind( IDirectFBWindow *thiz,
      IDirectFBWindow_data *source_data;
  
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -1031,6 +1127,8 @@ IDirectFBWindow_SetSrcGeometry( IDirectFBWindow         *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
      ret = CheckGeometry( geometry );
      if (ret)
           return ret;
@@ -1051,6 +1149,8 @@ IDirectFBWindow_SetDstGeometry( IDirectFBWindow         *thiz,
      CoreWindowConfig config;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      ret = CheckGeometry( geometry );
      if (ret)
@@ -1146,7 +1246,7 @@ IDirectFBWindow_React( const void *msg_data,
      const DFBWindowEvent *evt  = msg_data;
      IDirectFBWindow_data *data = ctx;
 
-     D_DEBUG_AT( IDirectFB_Window, "IDirectFBWindow_React()\n");
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
 
      switch (evt->type) {
           case DWET_DESTROYED:

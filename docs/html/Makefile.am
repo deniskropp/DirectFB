@@ -1,4 +1,4 @@
-EXTRA_DIST = directfb.png
+EXTRA_DIST = dfb_logo-alpha.png
 
 docs_headers = \
 	$(top_srcdir)/include/directfb.h \

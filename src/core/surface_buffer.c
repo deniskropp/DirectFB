@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -157,6 +157,7 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
      CoreSurface           *surface;
      CoreSurfaceAllocation *alloc      = NULL;
      CoreSurfaceAllocation *allocation = NULL;
+     bool                   allocated  = false;
 
 #if DIRECT_BUILD_DEBUG
      D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_lock( %p, 0x%08x, %p )\n", buffer, access, lock );
@@ -199,13 +200,15 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
                return ret;
 
           D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+
+          allocated = true;
      }
 
      /* Synchronize with other allocations. */
      ret = update_allocation( allocation, access );
      if (ret) {
           /* Destroy if newly created. */
-          if (!alloc)
+          if (allocated)
                dfb_surface_pool_deallocate( allocation->pool, allocation );
           return ret;
      }
@@ -223,7 +226,7 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
           D_MAGIC_CLEAR( lock );
 
           /* Destroy if newly created. */
-          if (!alloc)
+          if (allocated)
                dfb_surface_pool_deallocate( allocation->pool, allocation );
 
           return ret;
@@ -320,7 +323,7 @@ dfb_surface_buffer_unlock( CoreSurfaceBufferLock *lock )
      /*
       * FIXME: This should fail with a nested GPU Lock during a CPU Lock and/or vice versa?
       */
-     D_ASSUME( D_FLAGS_ARE_SET( allocation->accessed, lock->access ) );
+//     D_ASSUME( D_FLAGS_ARE_SET( allocation->accessed, lock->access ) );
 
      ret = dfb_surface_pool_unlock( pool, lock->allocation, lock );
      if (ret) {
@@ -389,7 +392,7 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
                  dfb_pixelformat_name( format ) );
 
      /* If no allocations exists, simply clear the destination. */
-     if (!buffer->allocs.elements) {
+     if (fusion_vector_is_empty( &buffer->allocs )) {
           for (y=0; y<rect.h; y++) {
                memset( destination, 0, bytes );
 
@@ -466,6 +469,7 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
      CoreSurfaceAllocation *alloc      = NULL;
      CoreSurfaceAllocation *allocation = NULL;
      DFBSurfacePixelFormat  format;
+     bool                   allocated  = false;
 
      D_DEBUG_AT( Core_SurfBuffer, "%s( %p, %p [%d] )\n", __FUNCTION__, buffer, source, pitch );
 
@@ -495,12 +499,13 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
                  dfb_pixelformat_name( format ) );
 
      /* If no allocations exists, create one. */
-     if (!buffer->allocs.elements) {
+     if (fusion_vector_is_empty( &buffer->allocs )) {
           ret = allocate_buffer( buffer, CSAF_CPU_WRITE, &allocation );
           if (ret) {
                D_DERROR( ret, "Core/SurfBuffer: Buffer allocation failed!\n" );
                return ret;
           }
+          allocated = true;
      }
      else {
           /* Look for allocation with CPU access. */
@@ -520,7 +525,7 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
      ret = update_allocation( allocation, CSAF_CPU_WRITE );
      if (ret) {
           /* Destroy if newly created. */
-          if (!alloc)
+          if (allocated)
                dfb_surface_pool_deallocate( allocation->pool, allocation );
           return ret;
      }
@@ -639,8 +644,10 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
           case DSPF_NV16:
           case DSPF_RGB444:
           case DSPF_RGB555:
+          case DSPF_BGR555:
                rgb   = true;
                break;
+
 
           default:
                D_ERROR( "DirectFB/core/surfaces: surface dump for format "
@@ -817,6 +824,14 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
                          buf_p[n3+0] = (data16[n] & 0x7C00) >> 7;
                          buf_p[n3+1] = (data16[n] & 0x03E0) >> 2;
                          buf_p[n3+2] = (data16[n] & 0x001F) << 3;
+                    }
+                    break;
+
+               case DSPF_BGR555:
+                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
+                         buf_p[n3+2] = (data16[n] & 0x7C00) >> 7;
+                         buf_p[n3+1] = (data16[n] & 0x03E0) >> 2;
+                         buf_p[n3+0] = (data16[n] & 0x001F) << 3;
                     }
                     break;
 

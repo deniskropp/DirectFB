@@ -7,7 +7,7 @@
 
    Code is derived from VMWare driver.
 
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -42,6 +42,13 @@ typedef struct {
      struct fb_var_screeninfo var;
 
      bool                     enable;
+     bool                     enabled;
+
+     CoreLayerRegionConfig    config;
+
+     vpfe_resizer_params_t    resizer;
+     DFBDimension             resized;
+     DFBPoint                 offset;
 } DavinciVideoLayerData;
 
 

@@ -1,23 +1,24 @@
 /*
    TI Davinci driver - C64X+ DSP Library
 
+   (c) Copyright 2008  directfb.org
    (c) Copyright 2007  Telio AG
 
-   Written by Denis Oliver Kropp <dok@directfb.org>
+   Written by Denis Oliver Kropp <dok@directfb.org> and
+              Olaf Dreesen <olaf@directfb.org>.
 
    All rights reserved.
 
    This library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Lesser General Public
-   License as published by the Free Software Foundation; either
-   version 2 of the License, or (at your option) any later version.
+   modify it under the terms of the GNU General Public License
+   version 2 as published by the Free Software Foundation.
 
    This library is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Lesser General Public License for more details.
+   General Public License for more details.
 
-   You should have received a copy of the GNU Lesser General Public
+   You should have received a copy of the GNU General Public
    License along with this library; if not, write to the
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
@@ -48,6 +49,7 @@
 
 #include "davinci_c64x.h"
 
+
 /**********************************************************************************************************************/
 
 #define C64X_DEVICE  "/dev/c64x"
@@ -55,8 +57,196 @@
 #define C64X_QLEN    direct_page_align( sizeof(c64xTaskControl) )
 #define C64X_MLEN    direct_page_align( 0x2000000 )
 
+__attribute__((noinline))
+static void
+davinci_c64x_queue_error( DavinciC64x *c64x, const char *msg )
+{
+     c64xTaskControl *ctl       = c64x->ctl;
+     uint32_t         dsp       = ctl->QL_dsp;
+     uint32_t         arm       = ctl->QL_arm;
+     uint32_t         armp      = (arm-1) & C64X_QUEUE_MASK;
+     c64xTask        *dsp_task  = &c64x->QueueL[dsp];
+     c64xTask        *arm_task  = &c64x->QueueL[arm];
+     c64xTask        *armp_task = &c64x->QueueL[armp];
+
+     D_PERROR( "Davinci/C64X+: %s [DSP %d / %d (%s), ARM %d / %d (%s) <- %d / %d (%s)]\n",
+               msg,
+               dsp,
+               (dsp_task->c64x_function >> 2) & 0x3fff,
+               state_names[dsp_task->c64x_function & 3],
+               arm,
+               (arm_task->c64x_function >> 2) & 0x3fff,
+               state_names[arm_task->c64x_function & 3],
+               armp,
+               (armp_task->c64x_function >> 2) & 0x3fff,
+               state_names[armp_task->c64x_function & 3] );
+}
+
+/*
+
+1. Idle Case
+
+     ARM                                        ARM
+     DSP                                        DSP
+   |  .  .  .  .  .  .  .  .  |      |  .  .  .  .  .  .  .  .  |          free = length-1
+
+
+2. Busy Case (ARM after)
+
+        ARM                                     ARM
+     DSP                                  DSP
+   |  o  .  .  .  .  .  .  .  |      |  .  o  o  .  .  .  .  .  |          free = length-1 - arm + dsp
+
+
+3. Busy Case (ARM before)
+
+     ARM                                     ARM
+                    DSP                                     DSP
+   |  .  .  .  .  .  o  o  o  |      |  o  o  .  .  .  .  .  o  |          free = dsp - arm - 1
+
+
+4. Full Case (ARM after)
+
+                          ARM
+     DSP
+   |  o  o  o  o  o  o  o  .  |                                            free = 0
+
+
+5. Full Case (ARM before)
+
+                    ARM                ARM
+                       DSP                DSP
+   |  o  o  o  o  o  .  o  o  |      |  .  o  o  o  o  o  o  o  |          free = 0
+
+*/
+
+DFBResult
+davinci_c64x_emit_tasks( DavinciC64x          *c64x,
+                         DavinciC64xTasks     *tasks,
+                         DavinciC64xEmitFlags  flags )
+{
+     c64xTaskControl *ctl     = c64x->ctl;
+     uint32_t         arm     = ctl->QL_arm;
+     unsigned int     emitted = 0;
+     unsigned int     timeout = 23;
+
+     D_MAGIC_ASSERT( tasks, DavinciC64xTasks );
+
+     while (emitted < tasks->num_tasks) {
+          uint32_t dsp = ctl->QL_dsp;
+          int      free;
+
+          if (arm == dsp)
+               free = C64X_QUEUE_LENGTH - 1;
+          else if (arm > dsp)
+               free = C64X_QUEUE_LENGTH - 1 - arm + dsp;
+          else
+               free = dsp - arm - 1;
+
+          if (free) {
+               int emit = MIN( free, tasks->num_tasks - emitted );
+               int copy = MIN( emit, C64X_QUEUE_LENGTH - arm );
+
+               memcpy( (void*) &c64x->QueueL[arm], (void*) &tasks->tasks[emitted], sizeof(c64xTask) * copy );
+
+               if (copy < emit) {
+                    memcpy( (void*) &c64x->QueueL[0], (void*) &tasks->tasks[emitted+copy], sizeof(c64xTask) * (emit - copy) );
+
+                    arm = (emit - copy);
+               }
+               else
+                    arm = (arm + copy) & C64X_QUEUE_MASK;
+
+               mb();
+
+               ctl->QL_arm = arm;
+
+               mb();
+
+               emitted += emit;
+
+               timeout = 23;
+          }
+          else {
+               if (!timeout--) {
+                    davinci_c64x_queue_error( c64x, "Emit Timeout!" );
+                    return DFB_TIMEOUT;
+               }
+                    
+               usleep( 7000 );
+          }
+     }
+
+     if (flags & C64X_TEF_RESET)
+          tasks->num_tasks = 0;
+
+     return DFB_OK;
+}
+
+DFBResult
+davinci_c64x_tasks_init( DavinciC64xTasks *tasks,
+                         unsigned int      size )
+{
+     tasks->tasks = D_MALLOC( sizeof(c64xTask) * size );
+     if (!tasks->tasks)
+          return D_OOM();
+
+     tasks->max_tasks = size;
+     tasks->num_tasks = 0;
+
+     D_MAGIC_SET( tasks, DavinciC64xTasks );
+
+     return DFB_OK;
+}
+
+DFBResult
+davinci_c64x_tasks_destroy( DavinciC64xTasks *tasks )
+{
+     D_MAGIC_ASSERT( tasks, DavinciC64xTasks );
+     D_ASSERT( tasks->tasks != NULL );
+
+     D_FREE( (void*) tasks->tasks );
+
+     tasks->tasks = NULL;
+
+     D_MAGIC_CLEAR( tasks );
+
+     return DFB_OK;
+}
+
+DFBResult
+davinci_c64x_wait_low( DavinciC64x *c64x )
+{
+     DFBResult        ret;
+     c64xTaskControl *ctl = c64x->ctl;
+
+     while (ctl->QL_dsp != ctl->QL_arm) {
+          c64xTask *task = c64x_get_task( c64x );
+
+          task->c64x_function = C64X_FLAG_TODO | C64X_FLAG_INTERRUPT;
+
+          c64x_submit_task( c64x, task );
+
+          if (ioctl( c64x->fd, C64X_IOCTL_WAIT_LOW )) {
+               c64xTask *dsp_task = &c64x->QueueL[ctl->QL_dsp];
+
+               ret = errno2result( errno );
+               D_PERROR( "Davinci/C64X+: C64X_IOCTL_WAIT_LOW failed! [DSP %d / %d (%s), ARM %d / %d (%s)]\n",
+                         ctl->QL_dsp,
+                         (dsp_task->c64x_function >> 2) & 0x3fff,
+                         state_names[dsp_task->c64x_function & 3],
+                         ctl->QL_arm,
+                         (task->c64x_function >> 2) & 0x3fff,
+                         state_names[task->c64x_function & 3] );
+               return ret;
+          }
+     }
+
+     return DFB_OK;
+}
+
 /**********************************************************************************************************************/
-/*   Benchmarking or Testing                                                                                       */
+/*   Benchmarking or Testing                                                                                          */
 /**********************************************************************************************************************/
 
 #if 1
@@ -64,7 +254,6 @@
 #else
 #define BRINTF(x...)     printf( x )
 #endif
-
 
 static void
 bench_mem( const char *name,
@@ -203,10 +392,10 @@ test_load_block( DavinciC64x *c64x, bool dct_type_interlaced )
 
 
      // test routine
-     davinci_c64x_load_block( c64x, 0x8e000000+0x01100000, 10, dct_type_interlaced ? 0x7f : 0x3f );
+     davinci_c64x_load_block( c64x, DAVINCI_C64X_MEM+0x01100000, 10, dct_type_interlaced ? 0x7f : 0x3f );
 
      // copy idct buffer to memory where we can read it
-     davinci_c64x_blit_16( c64x, 0x8f000000, 0, 0xf065c0, 0, 16 * 24, 1 );
+     davinci_c64x_blit_16( c64x, DAVINCI_C64X_MEM+0x01000000, 0, 0xf065c0, 0, 16 * 24, 1 );
 
      davinci_c64x_write_back_all( c64x );
      davinci_c64x_write_back_all( c64x );
@@ -245,7 +434,7 @@ test_load_block( DavinciC64x *c64x, bool dct_type_interlaced )
 
 	// test routine
 	for (i=0; i<6; i++)
-		davinci_c64x_dva_idct( c64x, 0x8e000000+0x01000000 + i*128, 16, 0x8e000000+0x01200000 + i*128 );
+		davinci_c64x_dva_idct( c64x, DAVINCI_C64X_MEM+0x01000000 + i*128, 16, DAVINCI_C64X_MEM+0x01200000 + i*128 );
 
 	davinci_c64x_write_back_all( c64x );
 	davinci_c64x_write_back_all( c64x );
@@ -334,11 +523,11 @@ bench_dezigzag( DavinciC64x *c64x )
 
           task->c64x_function = C64X_DEZIGZAG | C64X_FLAG_TODO;
 
-          task->c64x_arg[0] = 0x8f000000+0x200000;
-          task->c64x_arg[1] = 0x8f000000+0x000000;
+          task->c64x_arg[0] = (DAVINCI_C64X_MEM+0x01000000)+0x200000;
+          task->c64x_arg[1] = (DAVINCI_C64X_MEM+0x01000000)+0x000000;
           //task->c64x_arg[2] = length/4;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      davinci_c64x_wait_low( c64x );
@@ -410,15 +599,15 @@ bench_blend_argb( DavinciC64x *c64x, int sub )
 
           task->c64x_function = C64X_BLEND_32 | C64X_FLAG_TODO | (sub << 16);
 
-          task->c64x_arg[0] = 0x8f000000+0x200000;
+          task->c64x_arg[0] = (DAVINCI_C64X_MEM+0x01000000)+0x200000;
           task->c64x_arg[1] = 32;
-          task->c64x_arg[2] = 0x8f000000+0x000000;
+          task->c64x_arg[2] = (DAVINCI_C64X_MEM+0x01000000)+0x000000;
           task->c64x_arg[3] = 32;
           task->c64x_arg[4] = 8;
           task->c64x_arg[5] = 8;
           task->c64x_arg[6] = 0x80;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      davinci_c64x_wait_low( c64x );
@@ -443,6 +632,64 @@ bench_blend_argb( DavinciC64x *c64x, int sub )
              "blend_32(8x8)", total * 1000000ULL / dt );
 }
 
+static inline void
+bench_fetch_uyvy( DavinciC64x *c64x, bool interleave, int xoff, int yoff ) {
+  int       i, x, y, num=1;
+  long long t1, t2, dt, total;
+  u8 *yuv = c64x->mem + 0x1000000;
+  u8 *src = c64x->mem + 0x1200000;
+
+  BRINTF("\n\n\n.======================== Testing fetch_uyvy (inter %d, xoff %d, yoff %d) ========================.\n\n",
+	interleave, xoff, yoff);
+
+  for (y=0; y<20; y++) {
+    for (x=0; x<40; x++) {
+      int val = (y*40)+x;
+      src[y*1440 + x] = val;
+      BRINTF("%02x ", val&0xff);
+    }
+    BRINTF("\n");
+  }
+  BRINTF("\n");
+
+  memset( yuv, 0xAA, 0x100000 );
+
+  t1 = direct_clock_get_abs_micros();
+
+  for (i=0; i<num; i++) {
+    c64xTask *task = c64x_get_task( c64x );
+
+    task->c64x_arg[0] = (DAVINCI_C64X_MEM+0x01000000)+0x000000;
+    task->c64x_arg[1] = (DAVINCI_C64X_MEM+0x01000000)+0x200000 + yoff*1440 + xoff * 2;
+    task->c64x_arg[2] = 1440;
+
+    task->c64x_function = (21 << 2) | C64X_FLAG_TODO;
+
+    c64x_submit_task( c64x, task );
+  }
+
+  davinci_c64x_write_back_all( c64x );
+  davinci_c64x_write_back_all( c64x );
+  davinci_c64x_wait_low( c64x );
+
+  t2 = direct_clock_get_abs_micros();
+
+  BRINTF( "\n\nDESTINATION\n\nY:\n" );
+  for (y=0;y<27;y++) {
+    if (y==18) BRINTF("\nUV:\n");
+    for (x=0;x<32;x++) {
+      BRINTF("%02x ",yuv[y*32+x]);
+    }
+    BRINTF("\n");
+  }
+
+  dt    = t2 - t1;
+  total = num;
+
+  D_INFO("\n\nDavinci/C64X: BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
+	"blend_fetch_uyvy(16x16)", total * 1000000ULL / dt );
+}
+#if 0
 static inline void
 bench_fetch_uyvy( DavinciC64x *c64x, bool interleave, int xoff, int yoff )
 {
@@ -479,24 +726,24 @@ bench_fetch_uyvy( DavinciC64x *c64x, bool interleave, int xoff, int yoff )
 
      t1 = direct_clock_get_abs_micros();
 
-     for (i=0; i<num; i++) {
-          c64xTask *task = c64x_get_task( c64x );
+    for (i=0; i<num; i++) {
+	c64xTask *task = c64x_get_task( c64x );
 
-          task->c64x_function = (19 << 2) | C64X_FLAG_TODO;
+	task->c64x_function = (19 << 2) | C64X_FLAG_TODO;
 
-          task->c64x_arg[0] = 0x8f000000+0x000000;
-          task->c64x_arg[1] = 0x8f000000+0x200000 + yoff*1440 + xoff * 2;
-          task->c64x_arg[2] = 1440;
-          task->c64x_arg[3] = 16;
-          task->c64x_arg[4] = interleave ? 1 : 0;
+	task->c64x_arg[0] = (DAVINCI_C64X_MEM+0x01000000)+0x000000;
+	task->c64x_arg[1] = (DAVINCI_C64X_MEM+0x01000000)+0x200000 + yoff*1440 + xoff * 2;
+	task->c64x_arg[2] = 1440;
+	task->c64x_arg[3] = 16;
+	task->c64x_arg[4] = interleave ? 1 : 0;
 
-          c64x_submit_task( c64x );
-     }
+	c64x_submit_task( c64x, task );
+    }
 
-     davinci_c64x_write_back_all( c64x );
-     davinci_c64x_wait_low( c64x );
+    davinci_c64x_write_back_all( c64x );
+    davinci_c64x_wait_low( c64x );
 
-     t2 = direct_clock_get_abs_micros();
+    t2 = direct_clock_get_abs_micros();
 
 
      BRINTF( "\n\nDESTINATION (17x18 / [9x9 9x9])\n" );
@@ -539,6 +786,7 @@ bench_fetch_uyvy( DavinciC64x *c64x, bool interleave, int xoff, int yoff )
      D_INFO( "Davinci/C64X: BENCHMARK on DSP - %-15s   %lld Calls/sec\n",
              "blend_fetch_uyvy(16x16)", total * 1000000ULL / dt );
 }
+#endif
 
 #if 0
 static inline void
@@ -583,17 +831,17 @@ bench_put_idct( DavinciC64x *c64x, int dct_type )
 
           task->c64x_function = C64X_LOAD_BLOCK | C64X_FLAG_TODO;
 
-          task->c64x_arg[0] = 0x8e000000+0x1200000;
+          task->c64x_arg[0] = DAVINCI_C64X_MEM+0x1200000;
           task->c64x_arg[1] = 10;
           task->c64x_arg[2] = 0x3f;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
-     davinci_c64x_blit_16( c64x, 0x8f000000, 0, 0xf06180, 0, 384, 1 );
-     davinci_c64x_blit_16( c64x, 0x8f100000, 0, 0xf06480, 0, 384/2, 1 );
+     davinci_c64x_blit_16( c64x, (DAVINCI_C64X_MEM+0x01000000), 0, 0xf06180, 0, 384, 1 );
+     davinci_c64x_blit_16( c64x, (DAVINCI_C64X_MEM+0x01100000), 0, 0xf06480, 0, 384/2, 1 );
 
-     davinci_c64x_put_uyvy_16x16( c64x, 0x8f300000, 32, 0xf06180, 0 );
+     davinci_c64x_put_uyvy_16x16( c64x, (DAVINCI_C64X_MEM+0x01300000), 32, 0xf06180, 0 );
 
      davinci_c64x_write_back_all( c64x );
      davinci_c64x_wait_low( c64x );
@@ -698,7 +946,7 @@ bench_put_mc( DavinciC64x *c64x, bool interleave )
 
      memset( dst, 0x55, 0x100000 );
 
-     davinci_c64x_blit_32( c64x, C64X_MC_BUFFER_Y, 16, 0x8e000000+0x1200000, 16, 4, 24 );
+     davinci_c64x_blit_32( c64x, C64X_MC_BUFFER_Y, 16, DAVINCI_C64X_MEM+0x1200000, 16, 4, 24 );
      davinci_c64x_write_back_all( c64x );
      davinci_c64x_wait_low( c64x );
 
@@ -709,11 +957,11 @@ bench_put_mc( DavinciC64x *c64x, bool interleave )
 
           task->c64x_function = C64X_PUT_MC_UYVY_16x16 | C64X_FLAG_TODO;
 
-          task->c64x_arg[0] = 0x8e000000+0x1000000;
+          task->c64x_arg[0] = DAVINCI_C64X_MEM+0x1000000;
           task->c64x_arg[1] = 1440;
           task->c64x_arg[2] = interleave ? 1 : 0;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      davinci_c64x_write_back_all( c64x );
@@ -779,11 +1027,11 @@ bench_put_sum( DavinciC64x *c64x, bool interleave )
 
           task->c64x_function = C64X_LOAD_BLOCK | C64X_FLAG_TODO;
 
-          task->c64x_arg[0] = 0x8e000000+0x1100000;
+          task->c64x_arg[0] = DAVINCI_C64X_MEM+0x1100000;
           task->c64x_arg[1] = 6;
           task->c64x_arg[2] = 0x3f;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      BRINTF("\n");
@@ -827,7 +1075,7 @@ bench_put_sum( DavinciC64x *c64x, bool interleave )
 
      memset( dst, 0x55, 0x100000 );
 
-     davinci_c64x_blit_32( c64x, C64X_MC_BUFFER_Y, 16, 0x8e000000+0x1200000, 16, 4, 24 );
+     davinci_c64x_blit_32( c64x, C64X_MC_BUFFER_Y, 16, DAVINCI_C64X_MEM+0x1200000, 16, 4, 24 );
      davinci_c64x_write_back_all( c64x );
      davinci_c64x_wait_low( c64x );
 
@@ -838,11 +1086,11 @@ bench_put_sum( DavinciC64x *c64x, bool interleave )
 
           task->c64x_function = C64X_PUT_SUM_UYVY_16x16 | C64X_FLAG_TODO;
 
-          task->c64x_arg[0] = 0x8e000000+0x1000000;
+          task->c64x_arg[0] = DAVINCI_C64X_MEM+0x1000000;
           task->c64x_arg[1] = 1440;
           task->c64x_arg[2] = interleave ? 1 : 0;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      davinci_c64x_write_back_all( c64x );
@@ -881,7 +1129,6 @@ bench_sat_mc( DavinciC64x *c64x )
      u8 *dst = c64x->mem + 0x1000000;
      u8 *src = c64x->mem + 0x1200000;
 
-     BRINTF("\n");
      BRINTF("\n\n.======================== Testing sat_mc ========================.\n");
      BRINTF("\n");
      BRINTF("SOURCE (16x16 / [8x8 8x8]\n");
@@ -931,11 +1178,11 @@ bench_sat_mc( DavinciC64x *c64x )
 
           task->c64x_function = (57 << 2) | C64X_FLAG_TODO;
 
-          task->c64x_arg[0] = 0x8e000000+0x1000000;
-          task->c64x_arg[1] = 0x8e000000+0x1200000;
+          task->c64x_arg[0] = DAVINCI_C64X_MEM+0x1000000;
+          task->c64x_arg[1] = DAVINCI_C64X_MEM+0x1200000;
           task->c64x_arg[2] = 16;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      davinci_c64x_write_back_all( c64x );
@@ -982,8 +1229,9 @@ bench_sat_mc( DavinciC64x *c64x )
 }
 
 static inline void
-bench_uyvy_1( DavinciC64x *c64x )
+bench_uyvy_1( DavinciC64x *c64x, bool progressive )
 {
+     c64xTask *task;
      int       i, num;
      long long t1, t2, dt, total;
 
@@ -992,8 +1240,8 @@ bench_uyvy_1( DavinciC64x *c64x )
      u8 *u = c64x->mem + 0x1200000;
      u8 *p = c64x->mem + 0x1000000;
 
-     BRINTF("\n");
-     BRINTF("\n");
+     BRINTF("\n\n\n.======================== Testing put_uyvy (%s) ========================.\n\n",
+            progressive ? "progressive" : "interlaced");
 
      for (i=0; i<256; i++) {
           p[i] = i - 128;
@@ -1035,16 +1283,18 @@ bench_uyvy_1( DavinciC64x *c64x )
      t1 = direct_clock_get_abs_micros();
 
      for (i=0; i<num; i++) {
-          c64xTask *task = c64x_get_task( c64x );
+          davinci_c64x_dva_begin_frame( c64x, 720 * 2, (DAVINCI_C64X_MEM+0x01000000)+0x200000+i*16*16*2, 0, 0, progressive ? 0x100 : 0 );
+
+          task = c64x_get_task( c64x );
 
           task->c64x_function = C64X_PUT_UYVY_16x16 | C64X_FLAG_TODO;
 
-          task->c64x_arg[0] = 0x8f000000+0x200000+i*16*16*2;
+          task->c64x_arg[0] = (DAVINCI_C64X_MEM+0x01000000)+0x200000+i*16*16*2;
           task->c64x_arg[1] = 720 * 2;
-          task->c64x_arg[2] = 0x8f000000;
+          task->c64x_arg[2] = (DAVINCI_C64X_MEM+0x01000000);
           task->c64x_arg[3] = 0;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      BRINTF("\n");
@@ -1071,18 +1321,19 @@ bench_uyvy_1( DavinciC64x *c64x )
 }
 
 static inline void
-bench_uyvy_2( DavinciC64x *c64x )
+bench_uyvy_2( DavinciC64x *c64x, bool progressive )
 {
+     c64xTask *task;
      int       i, num;
      long long t1, t2, dt, total;
 
-     num = 0x10000;//720/16*576/16;
+     num = 1;//720/16*576/16;
 
      u8 *u = c64x->mem + 0x0200000;
      u8 *p = c64x->mem + 0x0000000;
 
-     BRINTF("\n");
-     BRINTF("\n");
+     BRINTF("\n\n\n.======================== Testing put_uyvy (%s) ========================.\n\n",
+            progressive ? "progressive" : "interlaced");
 
      for (i=0; i<256; i++) {
           p[i] = i/8;
@@ -1124,16 +1375,18 @@ bench_uyvy_2( DavinciC64x *c64x )
      t1 = direct_clock_get_abs_micros();
 
      for (i=0; i<num; i++) {
-          c64xTask *task = c64x_get_task( c64x );
+          davinci_c64x_dva_begin_frame( c64x, 720 * 2, (DAVINCI_C64X_MEM+0x01000000)+0x200000+i*16*16*2, 0, 0, progressive ? 0x100 : 0 );
+
+          task = c64x_get_task( c64x );
 
           task->c64x_function = C64X_PUT_UYVY_16x16 | C64X_FLAG_TODO;
 
-          task->c64x_arg[0] = 0x8e000000+0x200000;//+i*16*16*2;
+          task->c64x_arg[0] = DAVINCI_C64X_MEM+0x200000+i*16*16*2;
           task->c64x_arg[1] = 720 * 2;
-          task->c64x_arg[2] = 0x8e000000;
+          task->c64x_arg[2] = DAVINCI_C64X_MEM;
           task->c64x_arg[3] = 0;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      BRINTF("\n");
@@ -1161,18 +1414,19 @@ bench_uyvy_2( DavinciC64x *c64x )
 }
 
 static inline void
-bench_uyvy_3( DavinciC64x *c64x )
+bench_uyvy_3( DavinciC64x *c64x, bool progressive )
 {
+     c64xTask *task;
      int       i, num;
      long long t1, t2, dt, total;
 
-     num = 720/16*576/16;
+     num = 1;//720/16*576/16;
 
      u8 *u = c64x->mem + 0x1200000;
      u8 *p = c64x->mem + 0x1000000;
 
-     BRINTF("\n");
-     BRINTF("\n");
+     BRINTF("\n\n\n.======================== Testing put_uyvy (%s) ========================.\n\n",
+            progressive ? "progressive" : "interlaced");
 
      for (i=0; i<256; i++) {
           p[i] = i%8;
@@ -1214,16 +1468,18 @@ bench_uyvy_3( DavinciC64x *c64x )
      t1 = direct_clock_get_abs_micros();
 
      for (i=0; i<num; i++) {
-          c64xTask *task = c64x_get_task( c64x );
+          davinci_c64x_dva_begin_frame( c64x, 720 * 2, (DAVINCI_C64X_MEM+0x01000000)+0x200000+i*16*16*2, 0, 0, progressive ? 0x100 : 0 );
+
+          task = c64x_get_task( c64x );
 
           task->c64x_function = C64X_PUT_UYVY_16x16 | C64X_FLAG_TODO;
 
-          task->c64x_arg[0] = 0x8f000000+0x200000+i*16*16*2;
+          task->c64x_arg[0] = (DAVINCI_C64X_MEM+0x01000000)+0x200000+i*16*16*2;
           task->c64x_arg[1] = 720 * 2;
-          task->c64x_arg[2] = 0x8f000000;
+          task->c64x_arg[2] = (DAVINCI_C64X_MEM+0x01000000);
           task->c64x_arg[3] = 0;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      BRINTF("\n");
@@ -1300,14 +1556,14 @@ bench_mc( DavinciC64x *c64x, int func, int w, int h, bool avg, const char *name 
 
           task->c64x_function = (func << 2) | C64X_FLAG_TODO;
 
-          task->c64x_arg[0] = 0x8e000000 + 0x01200000;
+          task->c64x_arg[0] = DAVINCI_C64X_MEM + 0x01200000;
           task->c64x_arg[1] = 32;
-          task->c64x_arg[2] = 0x8e000000 + 0x01000000;
-          task->c64x_arg[3] = 0x8e000000 + 0x01100000;
+          task->c64x_arg[2] = DAVINCI_C64X_MEM + 0x01000000;
+          task->c64x_arg[3] = DAVINCI_C64X_MEM + 0x01100000;
           task->c64x_arg[4] = 32;
           task->c64x_arg[5] = h;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      davinci_c64x_wait_low( c64x );
@@ -1345,7 +1601,7 @@ bench_div( DavinciC64x *c64x, u32 nom, u32 den )
      task->c64x_arg[0] = nom;
      task->c64x_arg[1] = den;
 
-     c64x_submit_task( c64x );
+     c64x_submit_task( c64x, task );
 
      davinci_c64x_wait_low( c64x );
 
@@ -1394,15 +1650,15 @@ bench_dither_argb( DavinciC64x *c64x )
 
           task->c64x_function = C64X_DITHER_ARGB | C64X_FLAG_TODO;
 
-          task->c64x_arg[0] = 0x8e000000 + 0x01200000;
-          task->c64x_arg[1] = 0x8e000000 + 0x01100000;
+          task->c64x_arg[0] = DAVINCI_C64X_MEM + 0x01200000;
+          task->c64x_arg[1] = DAVINCI_C64X_MEM + 0x01100000;
           task->c64x_arg[2] = 64;
-          task->c64x_arg[3] = 0x8e000000 + 0x01000000;
+          task->c64x_arg[3] = DAVINCI_C64X_MEM + 0x01000000;
           task->c64x_arg[4] = 128;
           task->c64x_arg[5] = w;
           task->c64x_arg[6] = h;
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      davinci_c64x_wait_low( c64x );
@@ -1563,15 +1819,15 @@ bench_stretch_32( DavinciC64x *c64x, int sw, int sh, int dw, int dh )
                                  C64X_STRETCH_32_down :
                                  C64X_STRETCH_32_up ) | C64X_FLAG_TODO;
 
-          task->c64x_arg[0] = 0x8e000000 + 0x1200000;
-          task->c64x_arg[1] = 0x8e000000 + 0x1000000;
+          task->c64x_arg[0] = DAVINCI_C64X_MEM + 0x1200000;
+          task->c64x_arg[1] = DAVINCI_C64X_MEM + 0x1000000;
           task->c64x_arg[2] = (DW * 4) | ((SW * 4) << 16);
           task->c64x_arg[3] = dh       | (dw       << 16);
           task->c64x_arg[4] = sh       | (sw       << 16);
           task->c64x_arg[5] = (dw - 1) | ((dh - 1) << 16);
           task->c64x_arg[6] = 0        | (0        << 16);
 
-          c64x_submit_task( c64x );
+          c64x_submit_task( c64x, task );
      }
 
      davinci_c64x_write_back_all( c64x );
@@ -1644,11 +1900,8 @@ davinci_c64x_open( DavinciC64x *c64x )
      mknod( C64X_DEVICE, 0666 | S_IFCHR, makedev( 400, 0 ) );
 
      fd = direct_try_open( C64X_DEVICE, C64X_DEVICE0, O_RDWR, true );
-     if (fd < 0) {
-          ret = errno2result( errno );
-          D_PERROR( "Davinci/C64X: Opening '%s' failed!\n", C64X_DEVICE );
-          return ret;
-     }
+     if (fd < 0)
+          return DFB_IO;
 
      map_q = mmap( NULL, C64X_QLEN, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
      if (map_q == MAP_FAILED) {
@@ -1671,7 +1924,7 @@ davinci_c64x_open( DavinciC64x *c64x )
      c64x->fd  = fd;
      c64x->ctl = map_q;
      c64x->mem = map_m;
-     c64x->QueueL = map_m + (0x8fe00000 - 0x8e000000);
+     c64x->QueueL = map_m + 0x01e00000;
 
      D_INFO( "Davinci/C64X: Low ARM %d / DSP %d, High ARM %d / DSP %d\n",
              c64x->ctl->QL_arm, c64x->ctl->QL_dsp, c64x->ctl->QH_arm, c64x->ctl->QH_dsp );
@@ -1679,17 +1932,19 @@ davinci_c64x_open( DavinciC64x *c64x )
      D_MAGIC_SET( c64x, DavinciC64x );
 
 if (getenv("C64X_TEST")) {
-     test_load_block( c64x, false );
+//     test_load_block( c64x, false );
 
-return DFB_OK;
-     test_load_block( c64x, true );
+//     test_load_block( c64x, true );
 
-     bench_dither_argb( c64x );
+//     bench_dither_argb( c64x );
 
 #if 0
-     bench_uyvy_1( c64x );
-     bench_uyvy_2( c64x );
-     bench_uyvy_3( c64x );
+     bench_uyvy_1( c64x, true );
+     bench_uyvy_1( c64x, false );
+     bench_uyvy_2( c64x, true );
+     bench_uyvy_2( c64x, false );
+     bench_uyvy_3( c64x, true );
+     bench_uyvy_3( c64x, false );
 #endif
 
 #if 0
@@ -1699,7 +1954,7 @@ return DFB_OK;
      bench_blend_argb( c64x, 3 );
 #endif
 
-#if 1
+#if 0
      bench_stretch_32( c64x, 2, 1, 16, 1 );
      bench_stretch_32( c64x, 2, 2, 16, 2 );
 

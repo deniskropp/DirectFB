@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -111,6 +111,7 @@ struct __Fusion_FusionWorld {
      FusionSHM            shm;
 
      FusionForkAction     fork_action;
+     FusionForkCallback   fork_callback;
      
      void                *fusionee;
 };

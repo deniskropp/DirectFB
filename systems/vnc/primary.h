@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -43,7 +43,7 @@ dfb_vnc_call_handler( int           caller,
                       void         *call_ptr,
                       void         *ctx,
                       unsigned int  serial,
-                      int          *ret_val )
+                      int          *ret_val );
 
 #endif
 

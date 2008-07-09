@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -59,21 +59,12 @@
 #include "sdl.h"
 #include "primary.h"
 
+D_DEBUG_DOMAIN( SDL_Screen,  "SDL/Screen",  "SDL System Screen" );
 D_DEBUG_DOMAIN( SDL_Updates, "SDL/Updates", "SDL System Screen Updates" );
-
-
-extern DFBSDL  *dfb_sdl;
-extern CoreDFB *dfb_sdl_core;
 
 /******************************************************************************/
 
-static DFBResult dfb_sdl_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config );
-static DFBResult dfb_sdl_update_screen( CoreDFB *core, DFBRegion *region );
-static DFBResult dfb_sdl_set_palette( CorePalette *palette );
-
 static DFBResult update_screen( int x, int y, int w, int h );
-
-static SDL_Surface *screen = NULL;
 
 /******************************************************************************/
 
@@ -248,12 +239,6 @@ primarySetRegion( CoreLayer                  *layer,
                   CorePalette                *palette,
                   CoreSurfaceBufferLock      *lock )
 {
-     DFBResult ret;
-
-     ret = dfb_sdl_set_video_mode( dfb_sdl_core, config );
-     if (ret)
-          return ret;
-
      if (surface) {
           pthread_mutex_lock( &dfb_sdl->update.lock );
           dfb_sdl->primary = surface;
@@ -457,7 +442,7 @@ update_screen( int x, int y, int w, int h )
 #endif
      D_DEBUG_AT( SDL_Updates, "  -> calling SDL_UpdateRect()...\n" );
 
-     SDL_UpdateRect( screen, x, y, w, h );
+     SDL_UpdateRect( dfb_sdl->screen, x, y, w, h );
 
      D_DEBUG_AT( SDL_Updates, "  -> unlocking sdl lock...\n" );
 
@@ -525,24 +510,35 @@ get_pixelformat_target_depth( DFBSurfacePixelFormat format )
 }
 
 static DFBResult
-dfb_sdl_set_video_mode_handler( CoreLayerRegionConfig *config )
+dfb_sdl_set_video_mode_handler( CoreSurfaceConfig *config )
 {
-     int depth = get_pixelformat_target_depth( config->format );
+     int          depth = get_pixelformat_target_depth( config->format );
+     Uint32       flags = SDL_HWSURFACE | SDL_RESIZABLE;// | SDL_ASYNCBLIT | SDL_FULLSCREEN;
+     SDL_Surface *screen;
+
+     if (config->caps & DSCAPS_FLIPPING)
+          flags |= SDL_DOUBLEBUF;
 
      fusion_skirmish_prevail( &dfb_sdl->lock );
 
+     D_DEBUG_AT( SDL_Screen, "  -> SDL_SetVideoMode( %dx%d, %d, 0x%08x )\n",
+                 config->size.w, config->size.h, DFB_BITS_PER_PIXEL(config->format), flags );
+
      /* Set video mode */
-     if ((screen=SDL_SetVideoMode(config->width, config->height, depth, SDL_HWSURFACE)) == NULL) {
+     screen = SDL_SetVideoMode( config->size.w, config->size.h, depth, flags );
+     if (!screen) {
           D_ERROR( "DirectFB/SDL: Couldn't set %dx%dx%d video mode: %s\n",
-                   config->width, config->height, depth, SDL_GetError());
+                   config->size.w, config->size.h, depth, SDL_GetError());
 
           fusion_skirmish_dismiss( &dfb_sdl->lock );
 
           return DFB_FAILURE;
      }
 
+     dfb_sdl->screen = screen;
+
      /* Hide SDL's cursor */
-     SDL_ShowCursor(SDL_DISABLE);
+     SDL_ShowCursor( SDL_DISABLE );
 
      fusion_skirmish_dismiss( &dfb_sdl->lock );
 
@@ -581,9 +577,9 @@ dfb_sdl_update_screen_handler( const DFBRegion *region )
      pthread_mutex_unlock( &dfb_sdl->update.lock );
 #else
      if (surface->config.caps & DSCAPS_FLIPPING)
-          SDL_Flip( screen );
+          SDL_Flip( dfb_sdl->screen );
      else
-          SDL_UpdateRect( screen, DFB_RECTANGLE_VALS_FROM_REGION(&update) );
+          SDL_UpdateRect( dfb_sdl->screen, DFB_RECTANGLE_VALS_FROM_REGION(&update) );
 #endif
 
      return DFB_OK;
@@ -603,7 +599,7 @@ dfb_sdl_set_palette_handler( CorePalette *palette )
 
      fusion_skirmish_prevail( &dfb_sdl->lock );
 
-     SDL_SetColors( screen, colors, 0, palette->num_entries );
+     SDL_SetColors( dfb_sdl->screen, colors, 0, palette->num_entries );
 
      fusion_skirmish_dismiss( &dfb_sdl->lock );
 
@@ -625,7 +621,6 @@ dfb_sdl_call_handler( int           caller,
 
           case SDL_UPDATE_SCREEN:
                *ret_val = dfb_sdl_update_screen_handler( call_ptr );
-               SHFREE( dfb_core_shmpool(dfb_sdl_core), call_ptr );    /* FIXME: use reactor with dispatch callback or TLS */
                break;
 
           case SDL_SET_PALETTE:
@@ -641,11 +636,11 @@ dfb_sdl_call_handler( int           caller,
      return FCHR_RETURN;
 }
 
-static DFBResult
-dfb_sdl_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
+DFBResult
+dfb_sdl_set_video_mode( CoreDFB *core, CoreSurfaceConfig *config )
 {
-     int                    ret;
-     CoreLayerRegionConfig *tmp = NULL;
+     int                ret;
+     CoreSurfaceConfig *tmp = NULL;
 
      D_ASSERT( config != NULL );
 
@@ -653,11 +648,11 @@ dfb_sdl_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
           return dfb_sdl_set_video_mode_handler( config );
 
      if (!fusion_is_shared( dfb_core_world(core), config )) {
-          tmp = SHMALLOC( dfb_core_shmpool(core), sizeof(CoreLayerRegionConfig) );
+          tmp = SHMALLOC( dfb_core_shmpool(core), sizeof(CoreSurfaceConfig) );
           if (!tmp)
                return D_OOSHM();
 
-          direct_memcpy( tmp, config, sizeof(CoreLayerRegionConfig) );
+          direct_memcpy( tmp, config, sizeof(CoreSurfaceConfig) );
      }
 
      fusion_call_execute( &dfb_sdl->call, FCEF_NONE, SDL_SET_VIDEO_MODE,
@@ -669,7 +664,7 @@ dfb_sdl_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
      return ret;
 }
 
-static DFBResult
+DFBResult
 dfb_sdl_update_screen( CoreDFB *core, DFBRegion *region )
 {
      int        ret;
@@ -686,19 +681,20 @@ dfb_sdl_update_screen( CoreDFB *core, DFBRegion *region )
           direct_memcpy( tmp, region, sizeof(DFBRegion) );
      }
 
-     fusion_call_execute( &dfb_sdl->call, FCEF_ONEWAY, SDL_UPDATE_SCREEN,
-                          tmp ? tmp : region, &ret );
+     fusion_call_execute( &dfb_sdl->call, FCEF_NONE, SDL_UPDATE_SCREEN, tmp ? tmp : region, &ret );
+
+     if (tmp)
+          SHFREE( dfb_core_shmpool(core), tmp );
 
      return DFB_OK;
 }
 
-static DFBResult
+DFBResult
 dfb_sdl_set_palette( CorePalette *palette )
 {
      int ret;
 
-     fusion_call_execute( &dfb_sdl->call, FCEF_NONE, SDL_SET_PALETTE,
-                          palette, &ret );
+     fusion_call_execute( &dfb_sdl->call, FCEF_NONE, SDL_SET_PALETTE, palette, &ret );
 
      return ret;
 }

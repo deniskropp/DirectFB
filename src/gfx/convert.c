@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -72,70 +72,6 @@ dfb_pixelformat_for_depth( int depth )
      return DSPF_UNKNOWN;
 }
 
-u32
-dfb_color_to_pixel( DFBSurfacePixelFormat format,
-                    u8 r, u8 g, u8 b )
-{
-     u32 pixel;
-     u32 y, cb, cr;
-
-     switch (format) {
-          case DSPF_RGB332:
-               pixel = PIXEL_RGB332( r, g, b );
-               break;
-          case DSPF_ARGB1555:
-               pixel = PIXEL_ARGB1555( 0, r, g, b );
-               break;
-          case DSPF_RGB555:
-               pixel = PIXEL_RGB555( r, g, b );
-               break;
-          case DSPF_ARGB2554:
-               pixel = PIXEL_ARGB2554( 0, r, g, b );
-               break;
-          case DSPF_ARGB4444:
-               pixel = PIXEL_ARGB4444( 0, r, g, b );
-               break;
-          case DSPF_RGB444:
-               pixel = PIXEL_RGB444( r, g, b );
-               break;
-          case DSPF_RGB16:
-               pixel = PIXEL_RGB16( r, g, b );
-               break;
-          case DSPF_RGB18:
-          case DSPF_ARGB1666:
-          case DSPF_ARGB6666:
-               pixel = PIXEL_RGB18( r, g, b );
-               break;
-          case DSPF_RGB24:
-          case DSPF_RGB32:
-          case DSPF_ARGB:
-          case DSPF_AiRGB:
-               pixel = PIXEL_RGB32( r, g, b );
-               break;
-          case DSPF_AYUV:
-               RGB_TO_YCBCR( r, g, b, y, cb, cr );
-               pixel = PIXEL_AYUV( 0, y, cb, cr );
-               break;
-          case DSPF_YUY2:
-               RGB_TO_YCBCR( r, g, b, y, cb, cr );
-               pixel = PIXEL_YUY2( y, cb, cr );
-               break;
-          case DSPF_UYVY:
-               RGB_TO_YCBCR( r, g, b, y, cb, cr );
-               pixel = PIXEL_UYVY( y, cb, cr );
-               break;
-          case DSPF_I420:
-          case DSPF_YV12:
-               RGB_TO_YCBCR( r, g, b, y, cb, cr );
-               pixel = y | (cb << 8) | (cr << 16);
-               break;
-          default:
-               pixel = 0;
-     }
-
-     return pixel;
-}
-
 void
 dfb_pixel_to_color( DFBSurfacePixelFormat  format,
                     unsigned long          pixel,
@@ -156,6 +92,12 @@ dfb_pixel_to_color( DFBSurfacePixelFormat  format,
                ret_color->r = EXPAND_5to8( (pixel & 0x7c00) >> 10 );
                ret_color->g = EXPAND_5to8( (pixel & 0x03e0) >>  5 );
                ret_color->b = EXPAND_5to8( (pixel & 0x001f)       );
+               break;
+
+          case DSPF_BGR555:
+               ret_color->r = EXPAND_5to8( (pixel & 0x001f)       );
+               ret_color->g = EXPAND_5to8( (pixel & 0x03e0) >>  5 );
+               ret_color->b = EXPAND_5to8( (pixel & 0x7c00) >> 10 );
                break;
 
           case DSPF_ARGB2554:
@@ -202,6 +144,82 @@ dfb_pixel_to_color( DFBSurfacePixelFormat  format,
      }
 }
 
+unsigned long
+dfb_pixel_from_color( DFBSurfacePixelFormat  format,
+                      const DFBColor        *color )
+{
+     u32 y, cb, cr;
+
+     switch (format) {
+          case DSPF_RGB332:
+               return PIXEL_RGB332( color->r, color->g, color->b );
+
+          case DSPF_ARGB1555:
+               return PIXEL_ARGB1555( color->a, color->r, color->g, color->b );
+
+          case DSPF_RGB555:
+               return PIXEL_RGB555( color->r, color->g, color->b );
+
+          case DSPF_BGR555:
+               return PIXEL_BGR555( color->r, color->g, color->b );
+
+          case DSPF_ARGB2554:
+               return PIXEL_ARGB2554( color->a, color->r, color->g, color->b );
+
+          case DSPF_ARGB4444:
+               return PIXEL_ARGB4444( color->a, color->r, color->g, color->b );
+
+          case DSPF_RGB444:
+               return PIXEL_RGB444( color->r, color->g, color->b );
+
+          case DSPF_RGB16:
+               return PIXEL_RGB16( color->r, color->g, color->b );
+
+          case DSPF_RGB18:
+               return PIXEL_RGB18( color->r, color->g, color->b );
+
+          case DSPF_ARGB1666:
+               return PIXEL_ARGB1666( color->a, color->r, color->g, color->b );
+
+          case DSPF_ARGB6666:
+               return PIXEL_ARGB6666( color->a, color->r, color->g, color->b );
+
+          case DSPF_RGB24:
+               return PIXEL_RGB32( color->r, color->g, color->b );
+
+          case DSPF_RGB32:
+               return PIXEL_RGB32( color->r, color->g, color->b );
+
+          case DSPF_ARGB:
+               return PIXEL_ARGB( color->a, color->r, color->g, color->b );
+
+          case DSPF_AiRGB:
+               return PIXEL_AiRGB( color->a, color->r, color->g, color->b );
+
+          case DSPF_AYUV:
+               RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
+               return PIXEL_AYUV( color->a, y, cb, cr );
+
+          case DSPF_YUY2:
+               RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
+               return PIXEL_YUY2( y, cb, cr );
+
+          case DSPF_UYVY:
+               RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
+               return PIXEL_UYVY( y, cb, cr );
+
+          case DSPF_I420:
+          case DSPF_YV12:
+               RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
+               return y | (cb << 8) | (cr << 16);
+
+          default:
+               D_WARN( "unknown format 0x%08x", format );
+     }
+
+     return 0x55555555;
+}
+
 const char *
 dfb_pixelformat_name( DFBSurfacePixelFormat format )
 {
@@ -214,6 +232,9 @@ dfb_pixelformat_name( DFBSurfacePixelFormat format )
 
           case DSPF_RGB555:
                return "RGB555";
+
+          case DSPF_BGR555:
+               return "BGR555";
 
           case DSPF_RGB16:
                return "RGB16";
@@ -295,5 +316,343 @@ dfb_pixelformat_name( DFBSurfacePixelFormat format )
      }
 
      return "<invalid>";
+}
+
+void
+dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
+                      void                  *src,
+                      int                    spitch,
+                      int                    surface_height,
+                      u16                   *dst,
+                      int                    dpitch,
+                      int                    width,
+                      int                    height )
+{
+     int  x;
+     int  dp2 = dpitch / 2;
+     u8  *src8;
+     u16 *src16;
+     u32 *src32;
+
+     switch (format) {
+          case DSPF_RGB16:
+               while (height--) {
+                    direct_memcpy( dst, src, width * 2 );
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+          case DSPF_NV16:
+               while (height--) {
+                    src8  = src;
+                    src16 = src + surface_height * spitch;
+     
+                    for (x=0; x<width; x++) {
+                         int r, g, b;
+     
+                         YCBCR_TO_RGB( src8[x], src16[x>>1] & 0xff, src16[x>>1] >> 8, r, g, b );
+     
+                         dst[x] = PIXEL_RGB16( r, g, b );
+                    }
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+          case DSPF_RGB444:
+          case DSPF_ARGB4444:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB16( ((src16[x] & 0x0f00) >> 4) | ((src16[x] & 0x0f00) >> 8),
+                                               ((src16[x] & 0x00f0)     ) | ((src16[x] & 0x00f0) >> 4),
+                                               ((src16[x] & 0x000f) << 4) | ((src16[x] & 0x000f)     ) );
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+          case DSPF_RGB555:
+          case DSPF_ARGB1555:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = ((src16[x] & 0x7c00) << 1) | ((src16[x] & 0x03e0) << 1) | (src16[x] & 0x003f);
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+ 	  case DSPF_BGR555:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = ((src16[x] & 0x7c00) >> 10) | ((src16[x] & 0x03e0) << 1) | ((src16[x] & 0x001f) << 11 );
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               while (height--) {
+                    src32 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB16( (src32[x] & 0xff0000) >> 16,
+                                               (src32[x] & 0x00ff00) >>  8,
+                                               (src32[x] & 0x0000ff) );
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+          default:
+               D_ONCE( "unsupported format" );
+     }
+}
+
+void
+dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
+                      void                  *src,
+                      int                    spitch,
+                      int                    surface_height,
+                      u32                   *dst,
+                      int                    dpitch,
+                      int                    width,
+                      int                    height )
+{
+     int  x;
+     int  dp4 = dpitch / 4;
+     u8  *src8;
+     u16 *src16;
+
+     switch (format) {
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               while (height--) {
+                    direct_memcpy( dst, src, width * 4 );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          case DSPF_NV16:
+               while (height--) {
+                    src8  = src;
+                    src16 = src + surface_height * spitch;
+     
+                    for (x=0; x<width; x++) {
+                         int r, g, b;
+     
+                         YCBCR_TO_RGB( src8[x], src16[x>>1] & 0xff, src16[x>>1] >> 8, r, g, b );
+     
+                         dst[x] = PIXEL_RGB32( r, g, b );
+                    }
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          case DSPF_RGB444:
+          case DSPF_ARGB4444:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB32( ((src16[x] & 0x0f00) >> 4) | ((src16[x] & 0x0f00) >> 8),
+                                               ((src16[x] & 0x00f0)     ) | ((src16[x] & 0x00f0) >> 4),
+                                               ((src16[x] & 0x000f) << 4) | ((src16[x] & 0x000f)     ) );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          case DSPF_RGB555:
+          case DSPF_ARGB1555:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB32( ((src16[x] & 0x7c00) >> 7) | ((src16[x] & 0x7000) >> 12),
+                                               ((src16[x] & 0x03e0) >> 2) | ((src16[x] & 0x0380) >> 7),
+                                               ((src16[x] & 0x001f) << 3) | ((src16[x] & 0x001c) >> 2) );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          case DSPF_BGR555:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB32( ((src16[x] & 0x001f) << 3) | ((src16[x] & 0x001c) >> 2),
+                                               ((src16[x] & 0x03e0) >> 2) | ((src16[x] & 0x0380) >> 7),
+                                               ((src16[x] & 0x7c00) >> 7) | ((src16[x] & 0x7000) >> 12) );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          case DSPF_RGB16:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB32( ((src16[x] & 0xf800) >> 8) | ((src16[x] & 0xe000) >> 13),
+                                               ((src16[x] & 0x07e0) >> 3) | ((src16[x] & 0x0300) >> 8),
+                                               ((src16[x] & 0x001f) << 3) | ((src16[x] & 0x001c) >> 2) );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          default:
+               D_ONCE( "unsupported format" );
+     }
+}
+
+void
+dfb_convert_to_a4( DFBSurfacePixelFormat  format,
+                   void                  *src,
+                   int                    spitch,
+                   int                    surface_height,
+                   u8                    *dst,
+                   int                    dpitch,
+                   int                    width,
+                   int                    height )
+{
+     int  x, n;
+     int  w2 = width / 2;
+     u8  *src8;
+     u16 *src16;
+     u32 *src32;
+
+     D_ASSUME( (width & 1) == 0 );
+
+     switch (format) {
+          case DSPF_A8:
+               while (height--) {
+                    src8 = src;
+
+                    for (x=0, n=0; x<w2; x++, n+=2)
+                         dst[x] = (src8[n] & 0xf0) | ((src8[n+1] & 0xf0) >> 4);
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+
+          case DSPF_ARGB4444:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0, n=0; x<w2; x++, n+=2)
+                         dst[x] = ((src16[n] & 0xf000) >> 8) | (src16[n+1] >> 12);
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+
+          case DSPF_ARGB1555:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0, n=0; x<w2; x++, n+=2)
+                         dst[x] = ((src16[n] & 0x8000) ? 0xf0 : 0) | ((src16[n+1] & 0x8000) ? 0x0f : 0);
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+
+          case DSPF_ARGB:
+               while (height--) {
+                    src32 = src;
+
+                    for (x=0, n=0; x<w2; x++, n+=2)
+                         dst[x] = ((src32[n] & 0xf0000000) >> 24) | ((src32[n+1] & 0xf0000000) >> 28);
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+
+          default:
+               if (DFB_PIXELFORMAT_HAS_ALPHA( format ))
+                    D_ONCE( "unsupported format" );
+     }
+}
+
+void
+dfb_convert_to_yuy2( DFBSurfacePixelFormat  format,
+                     void                  *src,
+                     int                    spitch,
+                     int                    surface_height,
+                     u32                   *dst,
+                     int                    dpitch,
+                     int                    width,
+                     int                    height )
+{
+     int dp4 = dpitch / 4;
+
+     switch (format) {
+          case DSPF_YUY2:
+               while (height--) {
+                    direct_memcpy( dst, src, width * 2 );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          default:
+               D_ONCE( "unsupported format" );
+     }
+}
+
+void
+dfb_convert_to_uyvy( DFBSurfacePixelFormat  format,
+                     void                  *src,
+                     int                    spitch,
+                     int                    surface_height,
+                     u32                   *dst,
+                     int                    dpitch,
+                     int                    width,
+                     int                    height )
+{
+     int dp4 = dpitch / 4;
+
+     switch (format) {
+          case DSPF_UYVY:
+               while (height--) {
+                    direct_memcpy( dst, src, width * 2 );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          default:
+               D_ONCE( "unsupported format" );
+     }
 }
 

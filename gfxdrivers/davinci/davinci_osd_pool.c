@@ -7,7 +7,7 @@
 
    Code is derived from VMWare driver.
 
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -270,7 +270,8 @@ osdAllocateBuffer( CoreSurfacePool       *pool,
           alloc->size   = surface->config.size.h * alloc->pitch;
           alloc->offset = index * alloc->size;
 
-          D_DEBUG_AT( OSD_Surfaces, "  -> offset %d, pitch %d, size %d\n", alloc->offset, alloc->pitch, alloc->size );
+          D_DEBUG_AT( OSD_Surfaces, "  -> index %d, offset %d, pitch %d, size %d\n",
+                      index, alloc->offset, alloc->pitch, alloc->size );
 
           allocation->size   = alloc->size;
           allocation->offset = alloc->offset;
@@ -318,6 +319,7 @@ osdLock( CoreSurfacePool       *pool,
 {
      OSDPoolLocalData  *local = pool_local;
      OSDAllocationData *alloc = alloc_data;
+     DavinciDeviceData *ddev  = dfb_gfxcard_get_device_data();
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
@@ -325,6 +327,16 @@ osdLock( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
      D_DEBUG_AT( OSD_SurfLock, "%s( %p )\n", __FUNCTION__, lock->buffer );
+
+     int index  = alloc->offset / alloc->size;
+     int height = alloc->size   / alloc->pitch;
+
+     alloc->pitch  = ddev->fix[OSD0].line_length;
+     alloc->size   = height * alloc->pitch;
+     alloc->offset = index * alloc->size;
+
+     allocation->size   = alloc->size;
+     allocation->offset = alloc->offset;
 
      lock->pitch  = alloc->pitch;
      lock->offset = alloc->offset;

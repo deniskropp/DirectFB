@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -132,9 +132,9 @@ buffer_locks( CoreSurface *surface, bool video )
      int i, locks = 0;
 
      for (i=0; i<surface->num_buffers; i++) {
-          //CoreSurfaceBuffer *buffer = surface->buffers[i];
+          CoreSurfaceBuffer *buffer = surface->buffers[i];
 
-          locks += 0;    /* FIXME */
+          locks += buffer->locked;
      }
 
      return locks;
@@ -202,8 +202,8 @@ surface_callback( FusionObjectPool *pool,
      if (smem && smem < 1024)
           smem = 1024;
 
-     printf( "%5dk%c  ", vmem >> 10, buffer_locks( surface, true ) ? '°' : ' ' );
-     printf( "%5dk%c  ", smem >> 10, buffer_locks( surface, false ) ? '°' : ' ' );
+     printf( "%5dk%c  ", vmem >> 10, buffer_locks( surface, true ) ? '*' : ' ' );
+     printf( "%5dk%c  ", smem >> 10, buffer_locks( surface, false ) ? '*' : ' ' );
 
      /* FIXME: assumes all buffers have this flag (or none) */
 //     if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM)
@@ -284,7 +284,7 @@ alloc_callback( CoreSurfaceAllocation *alloc,
 
      printf( direct_serial_check(&alloc->serial, &buffer->serial) ? " * " : "   " );
 
-     printf( "%d  %2lu  ", buffer->allocs.count, surface->resource_id );
+     printf( "%d  %2lu  ", fusion_vector_size( &buffer->allocs ), surface->resource_id );
 
      if (surface->type & CSTF_SHARED)
           printf( "SHARED  " );

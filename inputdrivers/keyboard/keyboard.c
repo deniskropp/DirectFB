@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -70,12 +70,12 @@
 DFB_INPUT_DRIVER( keyboard )
 
 typedef struct {
-     CoreInputDevice     *device;
+     CoreInputDevice *device;
      DirectThread    *thread;
 
      struct termios   old_ts;
 
-     VirtualTerminal *vt;
+     int              vt_fd;
 } KeyboardData;
 
 static DFBInputDeviceKeySymbol
@@ -274,7 +274,7 @@ keyboard_read_value( KeyboardData *data,
      entry.kb_index = index;
      entry.kb_value = 0;
 
-     if (ioctl( data->vt->fd, KDGKBENT, &entry )) {
+     if (ioctl( data->vt_fd, KDGKBENT, &entry )) {
           D_PERROR("DirectFB/keyboard: KDGKBENT (table: %d, index: %d) "
                     "failed!\n", table, index);
           return 0;
@@ -286,7 +286,7 @@ keyboard_read_value( KeyboardData *data,
 static void
 keyboard_set_lights( KeyboardData *data, DFBInputDeviceLockState locks )
 {
-     ioctl( data->vt->fd, KDSKBLED, locks );
+     ioctl( data->vt_fd, KDSKBLED, locks );
 }
 
 static void*
@@ -297,7 +297,7 @@ keyboardEventThread( DirectThread *thread, void *driver_data )
      KeyboardData  *data = (KeyboardData*) driver_data;
 
      /* Read keyboard data */
-     while ((readlen = read (data->vt->fd, buf, 64)) >= 0 || errno == EINTR) {
+     while ((readlen = read (data->vt_fd, buf, 64)) >= 0 || errno == EINTR) {
           int i;
 
           direct_thread_testcancel( thread );
@@ -316,7 +316,7 @@ keyboardEventThread( DirectThread *thread, void *driver_data )
           }
 
           if (readlen <= 0)
-               usleep( 2000 );
+               usleep( 200000 );
      }
 
      if (readlen <= 0 && errno != EINTR)
@@ -330,10 +330,18 @@ keyboardEventThread( DirectThread *thread, void *driver_data )
 static int
 driver_get_available()
 {
+     int fd;
+
      if (dfb_system_type() == CORE_FBDEV && dfb_config->vt)
           return 1;
 
-     return 0;
+     fd = open( "/dev/tty0", O_RDWR | O_NOCTTY );
+     if (fd < 0)
+          return 0;
+
+     close( fd );
+
+     return 1;
 }
 
 static void
@@ -351,37 +359,54 @@ driver_get_info( InputDriverInfo *info )
 }
 
 static DFBResult
-driver_open_device( CoreInputDevice      *device,
+driver_open_device( CoreInputDevice  *device,
                     unsigned int      number,
                     InputDeviceInfo  *info,
                     void            **driver_data )
 {
+     int             fd;
      struct termios  ts;
      KeyboardData   *data;
-     FBDev          *dfb_fbdev = dfb_system_data();
 
-     /* put keyboard into medium raw mode */
-     if (ioctl( dfb_fbdev->vt->fd, KDSKBMODE, K_MEDIUMRAW ) < 0) {
-          D_PERROR( "DirectFB/Keyboard: K_MEDIUMRAW failed!\n" );
-          return DFB_INIT;
+     if (dfb_system_type() == CORE_FBDEV && dfb_config->vt) {
+          FBDev *dfb_fbdev = dfb_system_data();
+
+          fd = dup( dfb_fbdev->vt->fd );
+          if (fd < 0) {
+               D_PERROR( "DirectFB/Keyboard: Could not dup() file descriptor of TTY!\n" );
+               return DFB_INIT;
+          }
+
+          /* put keyboard into medium raw mode */
+          if (ioctl( fd, KDSKBMODE, K_MEDIUMRAW ) < 0) {
+               D_PERROR( "DirectFB/Keyboard: K_MEDIUMRAW failed!\n" );
+               return DFB_INIT;
+          }
+     }
+     else {
+          fd = open( "/dev/tty0", O_RDWR | O_NOCTTY );
+          if (fd < 0) {
+               D_PERROR( "DirectFB/Keyboard: Could not open() /dev/tty0!\n" );
+               return DFB_INIT;
+          }
      }
 
      /* allocate and fill private data */
      data = D_CALLOC( 1, sizeof(KeyboardData) );
 
      data->device = device;
-     data->vt     = dfb_fbdev->vt;
+     data->vt_fd  = fd;
 
-     tcgetattr( data->vt->fd, &data->old_ts );
+     tcgetattr( data->vt_fd, &data->old_ts );
 
      ts = data->old_ts;
      ts.c_cc[VTIME] = 0;
      ts.c_cc[VMIN] = 1;
      ts.c_lflag &= ~(ICANON|ECHO|ISIG);
      ts.c_iflag = 0;
-     tcsetattr( data->vt->fd, TCSAFLUSH, &ts );
+     tcsetattr( data->vt_fd, TCSAFLUSH, &ts );
 
-     tcsetpgrp( data->vt->fd, getpgrp() );
+     tcsetpgrp( data->vt_fd, getpgrp() );
 
      /* fill device info structure */
      snprintf( info->desc.name,
@@ -478,13 +503,17 @@ driver_close_device( void *driver_data )
      direct_thread_join( data->thread );
      direct_thread_destroy( data->thread );
 
-     if (tcsetattr( data->vt->fd, TCSAFLUSH, &data->old_ts ) < 0)
+     if (tcsetattr( data->vt_fd, TCSAFLUSH, &data->old_ts ) < 0)
           D_PERROR("DirectFB/keyboard: tcsetattr for original values failed!\n");
 
-     if (ioctl( data->vt->fd, KDSKBMODE, K_XLATE ) < 0)
-          D_PERROR("DirectFB/keyboard: Could not set mode to XLATE!\n");
-     if (ioctl( data->vt->fd, KDSETMODE, KD_TEXT ) < 0)
-          D_PERROR("DirectFB/keyboard: Could not set terminal mode to text!\n");
+     if (dfb_system_type() == CORE_FBDEV && dfb_config->vt) {
+          if (ioctl( data->vt_fd, KDSKBMODE, K_XLATE ) < 0)
+               D_PERROR("DirectFB/keyboard: Could not set mode to XLATE!\n");
+          if (ioctl( data->vt_fd, KDSETMODE, KD_TEXT ) < 0)
+               D_PERROR("DirectFB/keyboard: Could not set terminal mode to text!\n");
+     }
+
+     close( data->vt_fd );
 
      /* free private data */
      D_FREE( data );

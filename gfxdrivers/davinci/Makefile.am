@@ -17,6 +17,10 @@ INCLUDES = \
 	-I$(top_srcdir)/systems	\
 	-I$(srcdir)/kernel-module/include
 
+bin_PROGRAMS = c64xdump
+
+lib_LTLIBRARIES = libdavinci_c64x.la
+
 davinci_LTLIBRARIES = libdirectfb_davinci.la
 
 if BUILD_STATIC
@@ -24,15 +28,24 @@ davinci_DATA = $(davinci_LTLIBRARIES:.la=.o)
 endif
 
 davincidir = $(MODULEDIR)/gfxdrivers
+includedir = @INCLUDEDIR@
+includelinuxdir = @INCLUDEDIR@/linux
+
+include_HEADERS = \
+	davincifb.h		\
+	davinci_c64x.h		\
+	davinci_gfxdriver.h
+
+includelinux_HEADERS = \
+	kernel-module/include/linux/c64x.h
+
+libdavinci_c64x_la_SOURCES =	\
+	davinci_c64x.c
 
 libdirectfb_davinci_la_SOURCES =	\
-	davincifb.h		\
 	davinci_2d.c		\
 	davinci_2d.h		\
-	davinci_c64x.c		\
-	davinci_c64x.h		\
 	davinci_gfxdriver.c	\
-	davinci_gfxdriver.h	\
 	davinci_osd.c		\
 	davinci_osd.h		\
 	davinci_osd_pool.c	\
@@ -50,7 +63,10 @@ libdirectfb_davinci_la_LDFLAGS = \
 	$(DFB_LDFLAGS)
 
 libdirectfb_davinci_la_LIBADD = \
-	$(top_builddir)/src/libdirectfb.la
+	$(top_builddir)/src/libdirectfb.la \
+	$(builddir)/libdavinci_c64x.la
 
+c64xdump_SOURCES = c64xdump.c
+c64xdump_LDADD   = $(top_builddir)/lib/direct/libdirect.la
 
 include $(top_srcdir)/rules/libobject.make

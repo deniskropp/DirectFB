@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -175,7 +175,7 @@ static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult IDirectFBVideoProvider_V4L_AddRef( IDirectFBVideoProvider *thiz )
+static DirectResult IDirectFBVideoProvider_V4L_AddRef( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
@@ -184,7 +184,7 @@ static DFBResult IDirectFBVideoProvider_V4L_AddRef( IDirectFBVideoProvider *thiz
      return DFB_OK;
 }
 
-static DFBResult IDirectFBVideoProvider_V4L_Release( IDirectFBVideoProvider *thiz )
+static DirectResult IDirectFBVideoProvider_V4L_Release( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 

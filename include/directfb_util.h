@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -91,6 +91,19 @@ void dfb_rectangle_union ( DFBRectangle       *rect1,
 #define DFB_RECTANGLE_INIT_FROM_REGION(r)    (DFBRectangle){ DFB_RECTANGLE_VALS_FROM_REGION(r) }
 #define DFB_RECTANGLE_CONTAINS_POINT(r,X,Y)  (((X) >= (r)->x) && ((X) < (r)->x + (r)->w) && \
                                               ((Y) >= (r)->y) && ((Y) < (r)->y + (r)->h))
+
+#define DFB_RECTANGLES_DEBUG_AT( Domain, rects, num )                                                         \
+     do {                                                                                                     \
+          unsigned int i;                                                                                     \
+                                                                                                              \
+          for (i=0; i<(num); i++)                                                                             \
+               D_DEBUG_AT( Domain, "  -> [%2d] %4d,%4d-%4dx%4d\n", i, DFB_RECTANGLE_VALS(&(rects)[i]) );      \
+     } while (0)
+
+
+#define DFB_TRIANGLE_VALS(t)                 (t)->x1, (t)->y1, (t)->x2, (t)->y2, (t)->x3, (t)->y3
+
+#define DFB_COLORKEY_VALS(c)                 (c)->r, (c)->g, (c)->b, (c)->index
 
 #define DFB_REGION_CHECK(r)     \
       ((r) != NULL &&           \

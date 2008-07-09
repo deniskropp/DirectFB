@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -91,11 +91,6 @@ direct_list_contains_element_EXPENSIVE( DirectLink *list, DirectLink *link )
 {
      D_MAGIC_ASSERT_IF( list, DirectLink );
      
-     if (!link->prev && !link->next)
-          return false;
-     
-//     D_MAGIC_ASSERT( link, DirectLink );
-
      while (list) {
           if (list == link)
                return true;

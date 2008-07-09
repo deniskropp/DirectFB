@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -437,6 +437,11 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
           case DSPF_RGB555:
                for (i = 0; i < len; i++)
                     ((u16*)d)[i] = ARGB_TO_RGB555( src[i] );
+               break;
+
+          case DSPF_BGR555:
+               for (i = 0; i < len; i++)
+                    ((u16*)d)[i] = ARGB_TO_BGR555( src[i] );
                break;
 
           case DSPF_RGB444:

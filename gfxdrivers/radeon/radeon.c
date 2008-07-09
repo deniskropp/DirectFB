@@ -95,7 +95,8 @@ DFB_GRAPHICS_DRIVER( radeon )
        DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | \
        DSBLIT_COLORIZE           | DSBLIT_SRC_PREMULTCOLOR | \
        DSBLIT_DEINTERLACE        | DSBLIT_ROTATE180        | \
-       DSBLIT_SRC_MASK_ALPHA     | DSBLIT_SRC_MASK_COLOR )
+       DSBLIT_SRC_MASK_ALPHA     | DSBLIT_SRC_MASK_COLOR   | \
+       DSBLIT_SRC_PREMULTIPLY )
 
 #define R100_SUPPORTED_BLITTINGFUNCS \
      ( RADEON_SUPPORTED_2D_BLITTINGFUNCS | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES )
@@ -112,7 +113,8 @@ DFB_GRAPHICS_DRIVER( radeon )
        DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | \
        DSBLIT_COLORIZE           | DSBLIT_SRC_PREMULTCOLOR | \
        DSBLIT_DEINTERLACE        | DSBLIT_ROTATE180        | \
-       DSBLIT_SRC_MASK_ALPHA     | DSBLIT_SRC_MASK_COLOR )
+       DSBLIT_SRC_MASK_ALPHA     | DSBLIT_SRC_MASK_COLOR   | \
+       DSBLIT_SRC_PREMULTIPLY )
 
 #define R200_SUPPORTED_BLITTINGFUNCS \
      ( RADEON_SUPPORTED_2D_BLITTINGFUNCS | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES )
@@ -140,7 +142,8 @@ DFB_GRAPHICS_DRIVER( radeon )
                                 DSBLIT_COLORIZE           | \
                                 DSBLIT_SRC_PREMULTCOLOR )
 #define DSBLIT_MODULATE       ( DSBLIT_MODULATE_ALPHA     | \
-                                DSBLIT_MODULATE_COLOR )
+                                DSBLIT_MODULATE_COLOR     | \
+                                DSBLIT_SRC_PREMULTIPLY )
 #define DSBLIT_MASK           ( DSBLIT_SRC_MASK_ALPHA     | \
                                 DSBLIT_SRC_MASK_COLOR )
 
@@ -502,7 +505,7 @@ static void r100CheckState( void *drv, void *dev,
                     return;
                supported_drawingflags   =  DSDRAW_NOFX;
                supported_blittingfuncs &= ~DFXL_TEXTRIANGLES;
-               supported_blittingflags &= ~(DSBLIT_MODULATE | DSBLIT_MASK);
+               supported_blittingflags  = ~(DSBLIT_MODULATE | DSBLIT_MASK);
                break;
 
           case DSPF_ARGB2554:
@@ -530,7 +533,7 @@ static void r100CheckState( void *drv, void *dev,
           case DSPF_YUY2:
           case DSPF_UYVY:
                if (source && source->config.format != DSPF_A8)
-                   supported_blittingflags &= ~(DSBLIT_COLORIZE | DSBLIT_SRC_COLORKEY);
+                   supported_blittingflags &= ~(DSBLIT_COLORIZE | DSBLIT_SRC_COLORKEY | DSBLIT_MASK);
                break;
 
           case DSPF_AYUV:
@@ -545,7 +548,16 @@ static void r100CheckState( void *drv, void *dev,
                return;
      }
 
-     if (DFB_BLITTING_FUNCTION( accel )) {
+     if (DFB_BLITTING_FUNCTION( accel )) { 
+          if (state->blittingflags & DSBLIT_MASK ||
+              state->blittingflags & DSBLIT_SRC_PREMULTIPLY) {
+               if (state->blittingflags & DSBLIT_MASK &&
+                   state->blittingflags & DSBLIT_SRC_PREMULTIPLY)
+                    return;
+               if (state->blittingflags & (DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR))
+                    return;
+          }
+
           if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                if (destination->config.format != source->config.format)
                     return;
@@ -579,7 +591,6 @@ static void r100CheckState( void *drv, void *dev,
                case DSPF_RGB16:
                case DSPF_RGB32:
                case DSPF_ARGB:
-               case DSPF_AiRGB:
                     if (destination->config.format == DSPF_UYVY ||
                         destination->config.format == DSPF_YUY2)
                          return;
@@ -587,13 +598,19 @@ static void r100CheckState( void *drv, void *dev,
                case DSPF_YUY2:
                case DSPF_UYVY:
                     break;
+
+               case DSPF_AiRGB:
+                    if (destination->config.format != source->config.format &&
+                        (DFB_PIXELFORMAT_HAS_ALPHA(destination->config.format) ||
+                         destination->config.format == DSPF_UYVY ||
+                         destination->config.format == DSPF_YUY2))
+                         return;
+                    if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY)
+                         return;
+                    break;
                
                case DSPF_LUT8:
                case DSPF_ALUT44:
-                    if (destination->config.format != source->config.format)
-                         return;
-                    break;
-                        
                case DSPF_ARGB2554:
                case DSPF_AYUV:
                     if (destination->config.format != source->config.format)
@@ -755,6 +772,15 @@ static void r200CheckState( void *drv, void *dev,
      }
 
      if (DFB_BLITTING_FUNCTION( accel )) {
+          if (state->blittingflags & DSBLIT_MASK ||
+              state->blittingflags & DSBLIT_SRC_PREMULTIPLY) {
+               if (state->blittingflags & DSBLIT_MASK &&
+                   state->blittingflags & DSBLIT_SRC_PREMULTIPLY)
+                    return;
+               if (state->blittingflags & (DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR))
+                    return;
+          }
+              
           if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                if (destination->config.format != source->config.format)
                     return;
@@ -788,25 +814,30 @@ static void r200CheckState( void *drv, void *dev,
                case DSPF_RGB16:
                case DSPF_RGB32:
                case DSPF_ARGB:
-               case DSPF_AiRGB:
                     if (destination->config.format == DSPF_UYVY ||
                         destination->config.format == DSPF_YUY2)
                          return;
                case DSPF_A8:
                     break;
-               
-               case DSPF_LUT8:
-               case DSPF_ALUT44:
-                    if (destination->config.format != source->config.format)
+
+               case DSPF_AiRGB:
+                    if (destination->config.format != source->config.format &&
+                        (DFB_PIXELFORMAT_HAS_ALPHA(destination->config.format) ||
+                         destination->config.format == DSPF_UYVY ||
+                         destination->config.format == DSPF_YUY2))
+                         return;
+                    if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY)
                          return;
                     break;
                
+               case DSPF_LUT8:
+               case DSPF_ALUT44:
                case DSPF_ARGB2554:
                case DSPF_AYUV:
                     if (destination->config.format != source->config.format)
                          return;
                     break;
-                    
+                
                case DSPF_YUY2:
                case DSPF_UYVY:
                     if (rdev->chipset == CHIP_RV250             &&
@@ -1532,7 +1563,7 @@ driver_init_device( CoreGraphicsDevice *device,
      snprintf( device_info->vendor,
                DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "ATI" );
 
-     device_info->caps.flags = CCF_CLIPPING | CCF_AUXMEMORY;
+     device_info->caps.flags = CCF_CLIPPING | CCF_AUXMEMORY | CCF_RENDEROPTS;
      
      if (rdev->chipset >= CHIP_R300) {
           if (rdrv->mmio_size > 0x4000) {

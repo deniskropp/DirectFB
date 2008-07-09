@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -44,7 +44,8 @@ typedef enum {
      CCF_NOTRIEMU   = 0x00000002,
      CCF_READSYSMEM = 0x00000004,
      /* CCF_WRITESYSMEM ?! */
-     CCF_AUXMEMORY  = 0x00000010
+     CCF_AUXMEMORY  = 0x00000010,
+     CCF_RENDEROPTS = 0x00000020
 } CardCapabilitiesFlags;
 
 struct __DFB_CoreGraphicsSerial {
@@ -339,7 +340,8 @@ void dfb_gfxcard_fillspans              ( int                   y,
                                           int                   num_spans,
                                           CardState            *state );
 
-void dfb_gfxcard_filltriangle           ( DFBTriangle          *triangle,
+void dfb_gfxcard_filltriangles          ( const DFBTriangle    *tris,
+                                          int                   num,
                                           CardState            *state );
 
 void dfb_gfxcard_blit                   ( DFBRectangle         *rect,
@@ -410,6 +412,8 @@ unsigned int    dfb_gfxcard_auxmemory_length  ( void );
 
 void           *dfb_gfxcard_get_device_data   ( void );
 void           *dfb_gfxcard_get_driver_data   ( void );
+
+CoreGraphicsDevice *dfb_gfxcard_get_primary   ( void );
 
 /*
  * Graphics drivers call this function to get access to MMIO regions.

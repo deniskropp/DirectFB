@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -147,7 +147,7 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
           parent->Release( parent );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBSurface_AddRef( IDirectFBSurface *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
@@ -159,7 +159,7 @@ IDirectFBSurface_AddRef( IDirectFBSurface *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBSurface_Release( IDirectFBSurface *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
@@ -539,7 +539,7 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
                return DFB_INVAREA;
      }
 
-     D_DEBUG_AT( Surface, "  -> %d, %d - %dx%d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
+     D_DEBUG_AT( Surface, "  ->      %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
 
      if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
          reg.x2 == surface->config.size.w - 1 && reg.y2 == surface->config.size.h - 1)
@@ -593,7 +593,7 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "%s( %p, 0x%08x )\n", __FUNCTION__, thiz, PIXEL_ARGB(a,r,g,b) );
 
      surface = data->surface;
      if (!surface)
@@ -653,7 +653,7 @@ IDirectFBSurface_SetClip( IDirectFBSurface *thiz, const DFBRegion *clip )
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "%s( %p, %p )\n", __FUNCTION__, thiz, clip );
 
 
      if (!data->area.current.w || !data->area.current.h)
@@ -662,9 +662,13 @@ IDirectFBSurface_SetClip( IDirectFBSurface *thiz, const DFBRegion *clip )
      if (clip) {
           newclip = DFB_REGION_INIT_TRANSLATED( clip, data->area.wanted.x, data->area.wanted.y );
 
+          D_DEBUG_AT( Surface, "  <-      %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION(&newclip) );
+
           if (!dfb_unsafe_region_rectangle_intersect( &newclip,
                                                       &data->area.wanted ))
                return DFB_INVARG;
+
+          D_DEBUG_AT( Surface, "  ->      %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION(&newclip) );
 
           data->clip_set = true;
           data->clip_wanted = newclip;
@@ -676,6 +680,8 @@ IDirectFBSurface_SetClip( IDirectFBSurface *thiz, const DFBRegion *clip )
           dfb_region_from_rectangle( &newclip, &data->area.current );
           data->clip_set = false;
      }
+
+     D_DEBUG_AT( Surface, "  => CLIP %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION(&newclip) );
 
      dfb_state_set_clip( &data->state, &newclip );
 
@@ -697,6 +703,8 @@ IDirectFBSurface_GetClip( IDirectFBSurface *thiz, DFBRegion *ret_clip )
 
      *ret_clip = DFB_REGION_INIT_TRANSLATED( &data->state.clip, -data->area.wanted.x, -data->area.wanted.y );
 
+     D_DEBUG_AT( Surface, "  ->      %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION(ret_clip) );
+
      return DFB_OK;
 }
 
@@ -709,7 +717,7 @@ IDirectFBSurface_SetColor( IDirectFBSurface *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "%s( %p, COLOR 0x%08x )\n", __FUNCTION__, thiz, PIXEL_ARGB(a, r, g, b) );
 
      surface = data->surface;
      if (!surface)
@@ -733,7 +741,7 @@ IDirectFBSurface_SetColorIndex( IDirectFBSurface *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "%s( %p, COLOR INDEX %3u )\n", __FUNCTION__, thiz, index );
 
      surface = data->surface;
      if (!surface)
@@ -762,7 +770,7 @@ IDirectFBSurface_SetSrcBlendFunction( IDirectFBSurface        *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "%s( %p, %d )\n", __FUNCTION__, thiz, src );
 
      switch (src) {
           case DSBF_ZERO:
@@ -792,7 +800,7 @@ IDirectFBSurface_SetDstBlendFunction( IDirectFBSurface        *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "%s( %p, %d )\n", __FUNCTION__, thiz, dst );
 
      switch (dst) {
           case DSBF_ZERO:
@@ -825,7 +833,7 @@ IDirectFBSurface_SetPorterDuff( IDirectFBSurface         *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "%s( %p, %d )\n", __FUNCTION__, thiz, rule );
 
 
      switch (rule) {
@@ -1062,7 +1070,7 @@ IDirectFBSurface_SetFont( IDirectFBSurface *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "%s( %p, %p )\n", __FUNCTION__, thiz, font );
 
      if (data->font != font) {
          if (font) {
@@ -1129,7 +1137,7 @@ IDirectFBSurface_SetDrawingFlags( IDirectFBSurface       *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "%s( %p, 0x%08x )\n", __FUNCTION__, thiz, flags );
 
      dfb_state_set_drawing_flags( &data->state, flags );
 
@@ -1145,6 +1153,7 @@ IDirectFBSurface_FillRectangle( IDirectFBSurface *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "  -> [%2d] %4d,%4d-%4dx%4d\n", 0, x, y, w, h );
 
      if (!data->surface)
           return DFB_DESTROYED;
@@ -1175,6 +1184,7 @@ IDirectFBSurface_DrawLine( IDirectFBSurface *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "  -> [%2d] %4d,%4d-%4d,%4d\n", 0, x1, y1, x2, y2 );
 
      if (!data->surface)
           return DFB_DESTROYED;
@@ -1231,11 +1241,11 @@ IDirectFBSurface_DrawLines( IDirectFBSurface *thiz,
                             const DFBRegion  *lines,
                             unsigned int      num_lines )
 {
-     DFBRegion *local_lines = alloca(sizeof(DFBRegion) * num_lines);
+     unsigned int i;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "%s( %p, %p [%d] )\n", __FUNCTION__, thiz, lines, num_lines );
 
      if (!data->surface)
           return DFB_DESTROYED;
@@ -1250,21 +1260,53 @@ IDirectFBSurface_DrawLines( IDirectFBSurface *thiz,
      if (!lines || !num_lines)
           return DFB_INVARG;
 
-     if (data->area.wanted.x || data->area.wanted.y) {
-          unsigned int i;
-
-          for (i=0; i<num_lines; i++) {
-               local_lines[i].x1 = lines[i].x1 + data->area.wanted.x;
-               local_lines[i].x2 = lines[i].x2 + data->area.wanted.x;
-               local_lines[i].y1 = lines[i].y1 + data->area.wanted.y;
-               local_lines[i].y2 = lines[i].y2 + data->area.wanted.y;
-          }
+     /* Check if all lines are either horizontal or vertical */
+     for (i=0; i<num_lines; i++) {
+          if (lines[i].x1 != lines[i].x2 && lines[i].y1 != lines[i].y2)
+               break;
      }
-     else
-          /* clipping may modify lines, so we copy them */
-          direct_memcpy( local_lines, lines, sizeof(DFBRegion) * num_lines );
 
-     dfb_gfxcard_drawlines( local_lines, num_lines, &data->state );
+     /* Use real line drawing? */
+     if (i < num_lines) {
+          DFBRegion *local_lines = alloca(sizeof(DFBRegion) * num_lines);
+          
+          if (data->area.wanted.x || data->area.wanted.y) {
+               for (i=0; i<num_lines; i++) {
+                    local_lines[i].x1 = lines[i].x1 + data->area.wanted.x;
+                    local_lines[i].x2 = lines[i].x2 + data->area.wanted.x;
+                    local_lines[i].y1 = lines[i].y1 + data->area.wanted.y;
+                    local_lines[i].y2 = lines[i].y2 + data->area.wanted.y;
+               }
+          }
+          else
+               /* clipping may modify lines, so we copy them */
+               direct_memcpy( local_lines, lines, sizeof(DFBRegion) * num_lines );
+
+          dfb_gfxcard_drawlines( local_lines, num_lines, &data->state );
+     }
+     /* Optimized rectangle drawing */
+     else {
+          DFBRectangle *local_rects = alloca(sizeof(DFBRectangle) * num_lines);
+          
+          for (i=0; i<num_lines; i++) {
+               /* Vertical line? */
+               if (lines[i].x1 == lines[i].x2) {
+                    local_rects[i].x = data->area.wanted.x + lines[i].x1;
+                    local_rects[i].y = data->area.wanted.y + MIN( lines[i].y1, lines[i].y2 );
+                    local_rects[i].w = 1;
+                    local_rects[i].h = ABS( lines[i].y2 - lines[i].y1 ) + 1;
+               }
+               /* Horizontal line */
+               else {
+                    local_rects[i].x = data->area.wanted.x + MIN( lines[i].x1, lines[i].x2 );
+                    local_rects[i].y = data->area.wanted.y + lines[i].y1;
+                    local_rects[i].w = ABS( lines[i].x2 - lines[i].x1 ) + 1;
+                    local_rects[i].h = 1;
+               }
+          }
+
+          dfb_gfxcard_fillrectangles( local_rects, num_lines, &data->state );
+     }
 
      return DFB_OK;
 }
@@ -1278,6 +1320,7 @@ IDirectFBSurface_DrawRectangle( IDirectFBSurface *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "  -> [%2d] %4d,%4d-%4dx%4d\n", 0, x, y, w, h );
 
      if (!data->surface)
           return DFB_DESTROYED;
@@ -1311,6 +1354,7 @@ IDirectFBSurface_FillTriangle( IDirectFBSurface *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "  -> [%2d] %4d,%4d-%4d,%4d-%4d,%4d\n", 0, x1, y1, x2, y2, x3, y3 );
 
      if (!data->surface)
           return DFB_DESTROYED;
@@ -1329,7 +1373,7 @@ IDirectFBSurface_FillTriangle( IDirectFBSurface *thiz,
      tri.x3 += data->area.wanted.x;
      tri.y3 += data->area.wanted.y;
 
-     dfb_gfxcard_filltriangle( &tri, &data->state );
+     dfb_gfxcard_filltriangles( &tri, 1, &data->state );
 
      return DFB_OK;
 }
@@ -1341,7 +1385,10 @@ IDirectFBSurface_FillRectangles( IDirectFBSurface   *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "%s( %p, %p [%d] )\n", __FUNCTION__, thiz, rects, num_rects );
+
+     DFB_RECTANGLES_DEBUG_AT( Surface, rects, num_rects );
+
 
      if (!data->surface)
           return DFB_DESTROYED;
@@ -1427,6 +1474,58 @@ IDirectFBSurface_FillSpans( IDirectFBSurface *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_FillTriangles( IDirectFBSurface  *thiz,
+                                const DFBTriangle *tris,
+                                unsigned int       num_tris )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+     if (data->locked)
+          return DFB_LOCKED;
+
+     if (!tris || !num_tris)
+          return DFB_INVARG;
+
+     if (data->area.wanted.x || data->area.wanted.y) {
+          unsigned int  i;
+          DFBTriangle  *local_tris;
+          bool          malloced = (num_tris > 170);
+
+          if (malloced)
+               local_tris = D_MALLOC( sizeof(DFBTriangle) * num_tris );
+          else
+               local_tris = alloca( sizeof(DFBTriangle) * num_tris );
+
+          for (i=0; i<num_tris; i++) {
+               local_tris[i].x1 = tris[i].x1 + data->area.wanted.x;
+               local_tris[i].y1 = tris[i].y1 + data->area.wanted.y;
+               local_tris[i].x2 = tris[i].x2 + data->area.wanted.x;
+               local_tris[i].y2 = tris[i].y2 + data->area.wanted.y;
+               local_tris[i].x3 = tris[i].x3 + data->area.wanted.x;
+               local_tris[i].y3 = tris[i].y3 + data->area.wanted.y;
+          }
+
+          dfb_gfxcard_filltriangles( local_tris, num_tris, &data->state );
+
+          if (malloced)
+               D_FREE( local_tris );
+     }
+     else
+          dfb_gfxcard_filltriangles( tris, num_tris, &data->state );
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBSurface_SetBlittingFlags( IDirectFBSurface        *thiz,
                                    DFBSurfaceBlittingFlags  flags )
 {
@@ -1451,6 +1550,9 @@ IDirectFBSurface_Blit( IDirectFBSurface   *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (sr)
+          D_DEBUG_AT( Surface, "  -> [%2d] %4d,%4d-%4dx%4d <- %4d,%4d\n", 0, dx, dy, sr->w, sr->h, sr->x, sr->y );
 
      if (!data->surface)
           return DFB_DESTROYED;
@@ -1517,6 +1619,9 @@ IDirectFBSurface_TileBlit( IDirectFBSurface   *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (sr)
+          D_DEBUG_AT( Surface, "  -> [%2d] %4d,%4d-%4dx%4d <- %4d,%4d\n", 0, dx, dy, sr->w, sr->h, sr->x, sr->y );
 
      if (!data->surface)
           return DFB_DESTROYED;
@@ -2308,7 +2413,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
           return DFB_FAILURE;
      }
 
-     if (parent) {
+     if (parent && dfb_config->startstop) {
           IDirectFBSurface_data *parent_data;
 
           if (parent->AddRef( parent )) {
@@ -2416,6 +2521,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->FillTriangle = IDirectFBSurface_FillTriangle;
      thiz->FillRectangles = IDirectFBSurface_FillRectangles;
      thiz->FillSpans = IDirectFBSurface_FillSpans;
+     thiz->FillTriangles = IDirectFBSurface_FillTriangles;
 
      thiz->SetFont = IDirectFBSurface_SetFont;
      thiz->GetFont = IDirectFBSurface_GetFont;
@@ -2489,6 +2595,9 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
 void
 IDirectFBSurface_StopAll( IDirectFBSurface_data *data )
 {
+     if (!dfb_config->startstop)
+          return;
+
      if (data->children_data) {
           IDirectFBSurface_data *child;
 

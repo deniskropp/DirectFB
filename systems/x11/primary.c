@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -214,9 +214,8 @@ primaryInitLayer( CoreLayer                  *layer,
      else if (dfb_config->mode.depth > 0)
           config->pixelformat = dfb_pixelformat_for_depth( dfb_config->mode.depth );
      else {
-          Display *display =XOpenDisplay(NULL);
-          int depth=DefaultDepth(display,DefaultScreen(display));
-          XCloseDisplay(display);
+          int depth = DefaultDepth( dfb_x11->display, DefaultScreen(dfb_x11->display) );
+
           switch (depth) {
                case 15:
                     config->pixelformat = DSPF_RGB555;
@@ -255,6 +254,23 @@ primaryTestRegion( CoreLayer                  *layer,
 
           default:
                fail |= CLRCF_BUFFERMODE;
+               break;
+     }
+
+     switch (config->format) {
+          case DSPF_RGB16:
+          case DSPF_NV16:
+          case DSPF_RGB444:
+          case DSPF_ARGB4444:
+          case DSPF_RGB555:
+          case DSPF_ARGB1555:
+          case DSPF_BGR555:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               break;
+
+          default:
+               fail |= CLRCF_FORMAT;
                break;
      }
 
@@ -412,6 +428,8 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h, CoreSurfaceBuff
      D_ASSERT( ximage != NULL );
 
 
+     XLockDisplay( dfb_x11->display );
+
      XSync( dfb_x11->display, False );
 
      if (dfb_x11->use_shm)
@@ -420,6 +438,8 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h, CoreSurfaceBuff
           XPutImage( xw->display, xw->window, xw->gc, ximage, x, y + offset, x, y, w, h );
 
      XFlush( dfb_x11->display );
+
+     XUnlockDisplay( dfb_x11->display );
 
      return DFB_OK;
 }

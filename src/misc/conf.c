@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -52,7 +52,6 @@
 #include <gfx/convert.h>
 
 #include <misc/conf.h>
-
 
 DFBConfig *dfb_config = NULL;
 
@@ -108,7 +107,8 @@ static const char *config_usage =
      "  [no-]capslock-meta             Map the CapsLock key to Meta\n"
      "  linux-input-ir-only            Ignore all non-IR Linux Input devices\n"
      "  [no-]linux-input-grab          Grab Linux Input devices?\n"
-     "  [no-]cursor                    Never create a cursor\n"
+     "  [no-]cursor                    Never create a cursor or handle it\n"
+     "  [no-]cursor-updates            Never show a cursor, but still handle it\n"
      "  wm=<wm>                        Window manager module ('default' or 'unique')\n"
      "  init-layer=<id>                Initialize layer with ID (following layer- options apply)\n"
      "  layer-size=<width>x<height>    Set the pixel resolution\n"
@@ -194,6 +194,7 @@ static const FormatString format_strings[] = {
      { "ARGB6666", DSPF_ARGB6666 },
      { "AYUV",     DSPF_AYUV     },
      { "AiRGB",    DSPF_AiRGB    },
+     { "BGR555",   DSPF_BGR555   },
      { "I420",     DSPF_I420     },
      { "LUT2",     DSPF_LUT2     },
      { "LUT8",     DSPF_LUT8     },
@@ -602,7 +603,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
                dfb_config->surface_shmpool_size = size_kb * 1024;
           }
           else {
-               D_ERROR( "FusionDale/Config '%s': No value specified!\n", name );
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
                return DFB_INVARG;
           }
      } else
@@ -776,6 +777,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-cursor" ) == 0) {
           dfb_config->no_cursor = true;
+     } else
+     if (strcmp (name, "cursor-updates" ) == 0) {
+          dfb_config->no_cursor_updates = false;
+     } else
+     if (strcmp (name, "no-cursor-updates" ) == 0) {
+          dfb_config->no_cursor_updates = true;
      } else
      if (strcmp (name, "linux-input-ir-only" ) == 0) {
           dfb_config->linux_input_ir_only = true;

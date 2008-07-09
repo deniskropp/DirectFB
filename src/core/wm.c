@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -987,6 +987,9 @@ dfb_wm_update_cursor( CoreWindowStack       *stack,
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_FLAGS_ASSERT( flags, CCUF_ALL );
+
+     if (dfb_config->no_cursor_updates)
+          return DFB_OK;
 
      return wm_local->funcs->UpdateCursor( stack, wm_local->data,
                                            stack->stack_data, flags );

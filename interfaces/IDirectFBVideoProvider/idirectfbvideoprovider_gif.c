@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -662,7 +662,7 @@ IDirectFBVideoProvider_GIF_Destruct( IDirectFBVideoProvider *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBVideoProvider_GIF_AddRef( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_GIF )
@@ -672,7 +672,7 @@ IDirectFBVideoProvider_GIF_AddRef( IDirectFBVideoProvider *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBVideoProvider_GIF_Release( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_GIF )

@@ -7,7 +7,7 @@
 
    Code is derived from VMWare driver.
 
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -81,14 +81,23 @@ davinciGetScreenSize( CoreScreen *screen,
                       int        *ret_width,
                       int        *ret_height )
 {
+     int                  ret;
+     vpbe_fb_videomode_t  mode;
+     DavinciDriverData   *ddrv = driver_data;
+
      D_DEBUG_AT( Davinci_Screen, "%s()\n", __FUNCTION__ );
 
      D_ASSERT( ret_width != NULL );
      D_ASSERT( ret_height != NULL );
 
-     /* FIXME */
-     *ret_width  = 720;
-     *ret_height = 576;
+     ret = ioctl( ddrv->fb[OSD0].fd, FBIO_GET_TIMING, &mode );
+     if (ret) {
+          D_PERROR( "%s: FBIO_GET_TIMING (fb%d) failed!\n", __func__ );
+          return DFB_INIT;
+     }
+
+     *ret_width  = mode.xres;
+     *ret_height = mode.yres;
 
      return DFB_OK;
 }

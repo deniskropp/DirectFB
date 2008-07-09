@@ -10,12 +10,21 @@ INCLUDES = \
 
 
 noinst_PROGRAMS = \
+	dfbtest_reinit	\
+	dfbtest_scale	\
 	direct_stream	\
 	direct_test	\
 	fusion_fork	\
 	fusion_reactor	\
 	fusion_skirmish	\
 	fusion_stream
+
+
+dfbtest_reinit_SOURCES = dfbtest_reinit.c
+dfbtest_reinit_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
+
+dfbtest_scale_SOURCES = dfbtest_scale.c
+dfbtest_scale_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
 
 
 direct_stream_SOURCES = direct_stream.c

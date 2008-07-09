@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -207,7 +207,7 @@ IDirectFB_Destruct( IDirectFB *thiz )
 }
 
 
-static DFBResult
+static DirectResult
 IDirectFB_AddRef( IDirectFB *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
@@ -219,7 +219,7 @@ IDirectFB_AddRef( IDirectFB *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFB_Release( IDirectFB *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
@@ -449,15 +449,21 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
      if (!desc || !interface)
           return DFB_INVARG;
 
+     D_DEBUG_AT( IDFB, "  -> flags  0x%08x\n", desc->flags );
+
      if (desc->flags & DSDESC_WIDTH) {
+          D_DEBUG_AT( IDFB, "  -> width  %d\n", desc->width );
+
           width = desc->width;
-          if (width < 1)
+          if (width < 1 || width > 20480)
                return DFB_INVARG;
      }
 
      if (desc->flags & DSDESC_HEIGHT) {
+          D_DEBUG_AT( IDFB, "  -> height %d\n", desc->height );
+
           height = desc->height;
-          if (height < 1)
+          if (height < 1 || height > 20480)
                return DFB_INVARG;
      }
 
@@ -465,11 +471,17 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           if (!desc->palette.entries || !desc->palette.size)
                return DFB_INVARG;
 
-     if (desc->flags & DSDESC_CAPS)
-          caps = desc->caps;
+     if (desc->flags & DSDESC_CAPS) {
+          D_DEBUG_AT( IDFB, "  -> caps   0x%08x\n", desc->caps );
 
-     if (desc->flags & DSDESC_PIXELFORMAT)
+          caps = desc->caps;
+     }
+
+     if (desc->flags & DSDESC_PIXELFORMAT) {
+          D_DEBUG_AT( IDFB, "  -> format %s\n", dfb_pixelformat_name(desc->pixelformat) );
+
           format = desc->pixelformat;
+     }
 
      if (desc->flags & DSDESC_RESOURCE_ID)
           resource_id = desc->resource_id;
@@ -503,6 +515,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           case DSPF_NV16:
           case DSPF_RGB444:
           case DSPF_RGB555:
+          case DSPF_BGR555:
                break;
 
           default:

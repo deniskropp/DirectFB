@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -135,10 +135,10 @@ static void sdlSetState( void *drv, void *dev, GraphicsDeviceFuncs *funcs,
      sdev->dest   = state->dst.handle;
      sdev->source = state->src.handle;
 
-     if (state->modified & (SMF_SOURCE | SMF_BLITTING_FLAGS | SMF_SRC_COLORKEY))
+     if (state->mod_hw & (SMF_SOURCE | SMF_BLITTING_FLAGS | SMF_SRC_COLORKEY))
           sdev->key_valid = false;
 
-     if (state->modified & (SMF_DESTINATION | SMF_COLOR))
+     if (state->mod_hw & (SMF_DESTINATION | SMF_COLOR))
           sdev->color_valid = false;
 
      switch (accel) {
@@ -159,6 +159,8 @@ static void sdlSetState( void *drv, void *dev, GraphicsDeviceFuncs *funcs,
 
                     sdev->color_valid = true;
                }
+
+               state->set |= SDL_DRAWING_FUNCTIONS;
                break;
 
           case DFXL_BLIT:
@@ -166,10 +168,12 @@ static void sdlSetState( void *drv, void *dev, GraphicsDeviceFuncs *funcs,
                     SDL_SetColorKey( sdev->source,
                                      (state->blittingflags &
                                       DSBLIT_SRC_COLORKEY) ? SDL_SRCCOLORKEY : 0,
-                                     state->src_colorkey );
+                                     state->src_colorkey | 0xff000000 );
 
                     sdev->key_valid = true;
                }
+
+               state->set |= SDL_BLITTING_FUNCTIONS;
                break;
 
           default:
@@ -177,9 +181,7 @@ static void sdlSetState( void *drv, void *dev, GraphicsDeviceFuncs *funcs,
                break;
      }
 
-     state->set |= SDL_DRAWING_FUNCTIONS | SDL_BLITTING_FUNCTIONS;
-
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 static bool sdlFillRectangle( void *drv, void *dev, DFBRectangle *rect )

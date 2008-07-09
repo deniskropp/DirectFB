@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -95,7 +95,7 @@ IDirectFBInputDevice_Destruct( IDirectFBInputDevice *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBInputDevice_AddRef( IDirectFBInputDevice *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
@@ -105,7 +105,7 @@ IDirectFBInputDevice_AddRef( IDirectFBInputDevice *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBInputDevice_Release( IDirectFBInputDevice *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
