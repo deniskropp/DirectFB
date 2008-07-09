@@ -210,7 +210,7 @@ direct_realloc( const char *file, int line, const char *func, const char *what, 
 
      if (!direct_config->debugmem) {
           D_DEBUG_AT( Direct_Mem, "  *%6zu bytes [%s:%d in %s()] '%s'\n", bytes, file, line, func, what );
-          return mem;
+          return realloc( mem, bytes );
      }
 
 
