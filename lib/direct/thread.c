@@ -233,7 +233,7 @@ direct_thread_create( DirectThreadType      thread_type,
           case DTT_OUTPUT:
           case DTT_MESSAGING:
           case DTT_CRITICAL:
-               priority = thread->type;
+               priority = thread->type * direct_config->thread_priority_scale / 100;
                break;
 
           default:

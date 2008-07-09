@@ -43,7 +43,8 @@ static DirectConfig config = {
 
      fatal:                   DCFL_ASSERT,
      fatal_break:             true,
-     thread_block_signals:    true
+     thread_block_signals:    true,
+     thread_priority_scale:   100
 };
 
 DirectConfig *direct_config       = &config;
@@ -64,6 +65,7 @@ const char   *direct_config_usage =
      "  [no-]sighandler                Enable signal handler\n"
      "  [no-]thread-block-signals      Block all signals in new threads?\n"
      "  disable-module=<module_name>   suppress loading this module\n"
+     "  thread-priority-scale=<100th>  Apply scaling factor on thread type based priorities\n"
      "\n";
 
 /**********************************************************************************************************************/
@@ -258,6 +260,22 @@ direct_config_set( const char *name, const char *value )
      else
           if (strcmp (name, "no-thread_block_signals") == 0) {
           direct_config->thread_block_signals = false;
+     } else
+     if (strcmp (name, "thread-priority-scale" ) == 0) {
+          if (value) {
+               int scale;
+
+               if (sscanf( value, "%d", &scale ) < 1) {
+                    D_ERROR("Direct/Config '%s': Could not parse value!\n", name);
+                    return DR_INVARG;
+               }
+
+               direct_config->thread_priority_scale = scale;
+          }
+          else {
+               D_ERROR("Direct/Config '%s': No value specified!\n", name);
+               return DR_INVARG;
+          }
      } else
      if (strcmp (name, "thread-priority" ) == 0) {  /* Must be moved to lib/direct/conf.c in trunk! */
           if (value) {

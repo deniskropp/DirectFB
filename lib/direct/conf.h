@@ -74,6 +74,7 @@ struct __D_DirectConfig {
      int                           thread_priority;
      DirectConfigThreadScheduler   thread_scheduler;
      int                           thread_stack_size;
+     int                           thread_priority_scale;
 };
 
 extern DirectConfig *direct_config;
