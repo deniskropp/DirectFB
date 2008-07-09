@@ -135,10 +135,10 @@ static void sdlSetState( void *drv, void *dev, GraphicsDeviceFuncs *funcs,
      sdev->dest   = state->dst.handle;
      sdev->source = state->src.handle;
 
-     if (state->modified & (SMF_SOURCE | SMF_BLITTING_FLAGS | SMF_SRC_COLORKEY))
+     if (state->mod_hw & (SMF_SOURCE | SMF_BLITTING_FLAGS | SMF_SRC_COLORKEY))
           sdev->key_valid = false;
 
-     if (state->modified & (SMF_DESTINATION | SMF_COLOR))
+     if (state->mod_hw & (SMF_DESTINATION | SMF_COLOR))
           sdev->color_valid = false;
 
      switch (accel) {
@@ -181,7 +181,7 @@ static void sdlSetState( void *drv, void *dev, GraphicsDeviceFuncs *funcs,
                break;
      }
 
-     state->modified = 0;
+     state->mod_hw = 0;
 }
 
 static bool sdlFillRectangle( void *drv, void *dev, DFBRectangle *rect )
