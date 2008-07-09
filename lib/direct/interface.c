@@ -154,10 +154,8 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 
      dir = opendir( interface_dir );
      if (!dir) {
-          D_PERROR( "Direct/Interface: Could not open interface directory `%s'!\n", interface_dir );
-
+          D_DEBUG( "Could not open interface directory `%s'!\n", interface_dir );
           pthread_mutex_unlock( &implementations_mutex );
-
           return errno2result( errno );
      }
 
