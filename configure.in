@@ -867,6 +867,7 @@ ati128=no
 cle266=no
 cyber5k=no
 davinci=no
+ep9x=no
 i810=no
 i830=no
 mach64=no
@@ -891,8 +892,8 @@ AC_ARG_WITH(gfxdrivers,
 [                               gfxdrivers may be comma separated ]
 [                               'all' builds all drivers (default), 'none' builds none ]
 [                               Possible gfxdrivers are: ]
-[                               ati128, cle266, cyber5k, davinci, i810, i830, mach64, matrox,]
-[                               neomagic, nsc, nvidia, omap, radeon, savage, sh7722,]
+[                               ati128, cle266, cyber5k, davinci, ep9x, i810, i830, mach64,]
+[                               matrox, neomagic, nsc, nvidia, omap, radeon, savage, sh7722,]
 [                               sis315, tdfx, unichrome, vmware], gfxdrivers="$withval",[gfxdrivers="all"])
 
 if test "$gfxdrivers" = "all"; then
@@ -900,6 +901,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_cle266=no
   checkfor_cyber5k=yes
   checkfor_davinci="$have_arm"
+  checkfor_ep9x=yes
   checkfor_i810=yes
   checkfor_i830=yes
   checkfor_mach64=yes
@@ -915,6 +917,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_tdfx=yes
   checkfor_unichrome=yes
   checkfor_vmware=yes
+
   AC_MSG_RESULT(all)
 else 
   if test "$gfxdrivers" != "none"; then
@@ -933,6 +936,9 @@ else
                   ;;
           davinci)
                   checkfor_davinci=yes
+                  ;;
+          ep9x)
+                  checkfor_ep9x=yes
                   ;;
           i810)
                   checkfor_i810=yes
@@ -1005,6 +1011,10 @@ if test "$checkfor_davinci" = "yes"; then
   davinci=yes
 fi
 
+if test "$checkfor_ep9x" = "yes"; then
+  ep9x=yes
+fi
+
 if test "$checkfor_i810" = "yes" && test "$have_sysio" = "yes"; then
   i810=yes
 fi
@@ -1064,7 +1074,6 @@ fi
 if test "$checkfor_vmware" = "yes"; then
   vmware=yes
 fi
-
 
 # lets check for input driver
 
@@ -1382,6 +1391,7 @@ AM_CONDITIONAL(GFX_ATI128, test "$ati128" = "yes")
 AM_CONDITIONAL(GFX_CLE266, test "$cle266" = "yes")
 AM_CONDITIONAL(GFX_CYBER5K, test "$cyber5k" = "yes")
 AM_CONDITIONAL(GFX_DAVINCI, test "$davinci" = "yes")
+AM_CONDITIONAL(GFX_EP9X, test "$ep9x" = "yes")
 AM_CONDITIONAL(GFX_I810, test "$i810" = "yes")
 AM_CONDITIONAL(GFX_I830, test "$i830" = "yes")
 AM_CONDITIONAL(GFX_MACH64, test "$mach64" = "yes")
@@ -1544,6 +1554,7 @@ gfxdrivers/ati128/Makefile
 gfxdrivers/cle266/Makefile
 gfxdrivers/cyber5k/Makefile
 gfxdrivers/davinci/Makefile
+gfxdrivers/ep9x/Makefile
 gfxdrivers/i810/Makefile
 gfxdrivers/i830/Makefile
 gfxdrivers/mach64/Makefile
@@ -1670,6 +1681,7 @@ Building Graphics Drivers:
   ATI Mach64                $mach64 
   ATI Rage 128              $ati128
   ATI Radeon                $radeon
+  Cirrus EP9X               $ep9x
   Intel i810                $i810
   Intel i830                $i830
   Matrox                    $matrox

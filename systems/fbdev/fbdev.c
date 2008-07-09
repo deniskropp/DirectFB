@@ -820,6 +820,11 @@ system_get_accelerator()
      if (!strcmp( dfb_fbdev->shared->fix.id, "MATROX DH" ))
           return FB_ACCEL_MATROX_MGAG400;
 #endif
+#ifdef FB_ACCEL_EP9X
+     if (!strcmp( dfb_fbdev->shared->fix.id, "ep9xfb" ))
+	  return FB_ACCEL_EP9X;
+#endif
+
      if (dfb_fbdev->shared->fix.mmio_len > 0)
           return dfb_fbdev->shared->fix.accel;
      return -1;
