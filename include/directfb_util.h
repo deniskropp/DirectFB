@@ -277,6 +277,18 @@ static inline bool dfb_region_region_intersects( const DFBRegion *region,
              region->y2 >= other->y1);
 }
 
+static inline bool dfb_region_region_extends( const DFBRegion *a,
+                                              const DFBRegion *b )
+{
+     if (a->x1 == b->x1 && a->x2 == b->x2)
+          return (a->y1 == b->y2 - 1) || (a->y2 == b->y1 - 1);
+
+     if (a->y1 == b->y1 && a->y2 == b->y2)
+          return (a->x1 == b->x2 - 1) || (a->x2 == b->x1 - 1);
+
+     return false;
+}
+
 static inline void dfb_region_region_union( DFBRegion       *region,
                                             const DFBRegion *other )
 {
