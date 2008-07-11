@@ -38,11 +38,14 @@
 #include <sys/time.h>
 #include <time.h>
 
+#include <direct/debug.h>
 #include <direct/messages.h>
 #include <direct/util.h>
 
 #include <misc/util.h>
 
+
+D_DEBUG_DOMAIN( DFB_Updates, "DirectFB/Updates", "DirectFB Updates" );
 
 bool
 dfb_region_intersect( DFBRegion *region,
@@ -331,7 +334,12 @@ dfb_updates_add( DFBUpdates      *updates,
      D_ASSERT( updates->num_regions >= 0 );
      D_ASSERT( updates->num_regions <= updates->max_regions );
 
+     D_DEBUG_AT( DFB_Updates, "%s( %p, %4d,%4d-%4dx%4d )\n", __FUNCTION__, updates,
+                 DFB_RECTANGLE_VALS_FROM_REGION(region) );
+
      if (updates->num_regions == 0) {
+          D_DEBUG_AT( DFB_Updates, "  -> added as first\n" );
+
           updates->regions[0]  = updates->bounding = *region;
           updates->num_regions = 1;
 
@@ -339,16 +347,18 @@ dfb_updates_add( DFBUpdates      *updates,
      }
 
      for (i=0; i<updates->num_regions; i++) {
-          DFBRegion inter = updates->regions[i];
+          if (dfb_region_region_extends( &updates->regions[i], region ) ||
+              dfb_region_region_intersects( &updates->regions[i], region ))
+          {
+               D_DEBUG_AT( DFB_Updates, "  -> combined with [%d] %4d,%4d-%4dx%4d\n", i,
+                           DFB_RECTANGLE_VALS_FROM_REGION(&updates->regions[i]) );
 
-          if (dfb_region_region_intersect( &inter, region )) {
-               DFBRegion uni = updates->regions[i];
+               dfb_region_region_union( &updates->regions[i], region );
 
-               dfb_region_region_union( &uni, region );
+               dfb_region_region_union( &updates->bounding, region );
 
-               updates->regions[i] = uni;
-
-               dfb_region_region_union( &updates->bounding, &uni );
+               D_DEBUG_AT( DFB_Updates, "  -> resulting in  [%d] %4d,%4d-%4dx%4d\n", i,
+                           DFB_RECTANGLE_VALS_FROM_REGION(&updates->regions[i]) );
 
                return;
           }
@@ -359,11 +369,17 @@ dfb_updates_add( DFBUpdates      *updates,
 
           updates->regions[0]  = updates->bounding;
           updates->num_regions = 1;
+
+          D_DEBUG_AT( DFB_Updates, "  -> collapsing to [0] %4d,%4d-%4dx%4d\n",
+                      DFB_RECTANGLE_VALS_FROM_REGION(&updates->regions[0]) );
      }
      else {
           updates->regions[updates->num_regions++] = *region;
 
           dfb_region_region_union( &updates->bounding, region );
+
+          D_DEBUG_AT( DFB_Updates, "  -> added as      [%d] %4d,%4d-%4dx%4d\n", updates->num_regions - 1,
+                      DFB_RECTANGLE_VALS_FROM_REGION(&updates->regions[updates->num_regions - 1]) );
      }
 }
 
