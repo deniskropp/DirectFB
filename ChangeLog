@@ -1,3 +1,17 @@
+commit 7cb19857f5e3feb6d6daf43bffbc52ce28ddd2ff
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jul 13 16:28:06 2008 +0200
+
+    1.2.0
+
+commit 7bbab526840d15886dbdbe62ab8691f9b40df1e2
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jul 13 16:25:25 2008 +0200
+
+    [IDirectFB] Don't check for input device caps in CreateEventBuffer_Callback() which are checked already.
+    
+    This also fixes missing events from devices without caps.
+
 commit 14ddb08b822effda0884155353d30ec8f65c890d
 Author: Denis Oliver Kropp <dok@vm.directfb.home>
 Date:   Sun Jul 13 15:55:30 2008 +0200
