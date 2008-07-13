@@ -1850,9 +1850,6 @@ CreateEventBuffer_Callback( CoreInputDevice *device, void *ctx )
 
      dfb_input_device_description( device, &desc );
 
-     if (! (desc.caps & context->caps))
-          return DFENUM_OK;
-
      IDirectFBEventBuffer_AttachInputDevice( *context->interface, device );
 
      return DFENUM_OK;
