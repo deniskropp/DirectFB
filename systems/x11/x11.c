@@ -148,9 +148,9 @@ system_initialize( CoreDFB *core, void **data )
 
      dfb_x11->data_shmpool = dfb_core_shmpool_data( core );
 
-     dfb_x11->display = XOpenDisplay(NULL);
+     dfb_x11->display = XOpenDisplay(getenv("DISPLAY"));
      if (!dfb_x11->display) {
-          D_ERROR("X11: Error opening X_Display\n");
+          D_ERROR("X11: Error in XOpenDisplay for '%s'\n", getenv("DISPLAY"));
           return DFB_INIT;
      }
 
@@ -163,10 +163,10 @@ system_initialize( CoreDFB *core, void **data )
           for (n=0; n<depth->nvisuals; n++) {
                Visual *visual = &depth->visuals[n];
 
-               D_INFO( "X11/Visual: ID %02lu, depth %d, red 0x%06lx, green 0x%06lx, blue 0x%06lx, %d bits/rgb, %d entries\n",
-                       visual->visualid, depth->depth,
-                       visual->red_mask, visual->green_mask, visual->blue_mask,
-                       visual->bits_per_rgb, visual->map_entries );
+               D_DEBUG( "X11/Visual: ID %02lu, depth %d, red 0x%06lx, green 0x%06lx, blue 0x%06lx, %d bits/rgb, %d entries\n",
+                        visual->visualid, depth->depth,
+                        visual->red_mask, visual->green_mask, visual->blue_mask,
+                        visual->bits_per_rgb, visual->map_entries );
 
                switch (depth->depth) {
                     case 24:
