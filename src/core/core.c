@@ -919,7 +919,8 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      fusion_object_pool_destroy( shared->window_pool, core->world );
 
      /* Close window stacks. */
-     dfb_wm_close_all_stacks( dfb_wm_core.data_local );
+     if (dfb_wm_core.initialized)
+          dfb_wm_close_all_stacks( dfb_wm_core.data_local );
 
      /* Destroy layer context and region objects. */
      fusion_object_pool_destroy( shared->layer_region_pool, core->world );
