@@ -198,7 +198,7 @@ x11AllocateBuffer( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     alloc->real = (x11ImageInit( &alloc->image, surface->config.size.w, surface->config.size.h, surface->config.format ) == DFB_OK);
+     alloc->real = false;//(x11ImageInit( &alloc->image, surface->config.size.w, surface->config.size.h, surface->config.format ) == DFB_OK);
 
      dfb_surface_calc_buffer_size( surface, 4, 1, NULL, &allocation->size );
 

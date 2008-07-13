@@ -133,8 +133,6 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
 
      dfb_x11->use_shm = XShmQueryExtension(dfb_x11->display);
 
-     D_INFO( "X11/Display: %ssing XShm.\n", dfb_x11->use_shm ? "U" : "Not u" );
-
      if (dfb_x11->use_shm) {
           // Shared memory 	
           xw->shmseginfo=(XShmSegmentInfo *)malloc(sizeof(XShmSegmentInfo));
@@ -148,7 +146,7 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
           xw->ximage=XShmCreateImage(xw->display, xw->visual, xw->depth, ZPixmap,
                                      NULL,xw->shmseginfo, xw->width, xw->height * 2);
           if (!xw->ximage) {
-               printf("X11: Error creating shared image (XShmCreateImage) \n");
+               D_ERROR("X11: Error creating shared image (XShmCreateImage) \n");
                dfb_x11->use_shm = false;
                free(xw->shmseginfo);
                goto no_shm;
@@ -219,7 +217,7 @@ no_shm:
                                   xw->virtualscreen,
                                   xw->width, xw->height * 2, 32, pitch);
           if (!xw->ximage) {
-               printf("X11: Error creating image (XCreateImage) \n");
+               D_ERROR("X11: Error creating image (XCreateImage) \n");
                XFreeGC(xw->display,xw->gc);
                XDestroyWindow(xw->display,xw->window);
                XUnlockDisplay( dfb_x11->display );
@@ -229,6 +227,8 @@ no_shm:
      }
 
      XUnlockDisplay( dfb_x11->display );
+
+     D_INFO( "X11/Display: %ssing XShm.\n", dfb_x11->use_shm ? "U" : "Not u" );
 
      (*ppXW) = xw;
 

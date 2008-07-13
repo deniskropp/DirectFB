@@ -513,6 +513,15 @@ x11EventThread( DirectThread *thread, void *driver_data )
           /* FIXME: Detect key repeats, we're receiving KeyPress, KeyRelease, KeyPress, KeyRelease... !!?? */
 
 #if 1
+          if (data->thread)
+               direct_thread_testcancel( data->thread );
+
+          if (!dfb_x11->xw || !dfb_x11->xw->window) {
+               usleep( 20000 );
+               continue;
+          }
+
+
           XNextEvent( dfb_x11->display, &xEvent );
 
           while (pull--) {
@@ -731,18 +740,23 @@ driver_close_device( void *driver_data )
 {
      X11InputData *data    = driver_data;
      DFBX11       *dfb_x11 = data->dfb_x11;
-     XEvent        xEvent;
 
      /* stop input thread */
      data->stop = true;
 
-     memset( &xEvent, 0, sizeof(xEvent) );
+     if (dfb_x11->xw && dfb_x11->xw->window) {
+          XEvent xEvent;
+          
+          memset( &xEvent, 0, sizeof(xEvent) );
 
-     xEvent.xclient.type   = ClientMessage;
-     xEvent.xclient.format = 8;
+          xEvent.xclient.type   = ClientMessage;
+          xEvent.xclient.format = 8;
 
-     XSendEvent( dfb_x11->display, dfb_x11->xw->window, False, 0, &xEvent );
-     XFlush( dfb_x11->display );
+          XSendEvent( dfb_x11->display, dfb_x11->xw->window, False, 0, &xEvent );
+          XFlush( dfb_x11->display );
+     }
+     else
+          direct_thread_cancel( data->thread );
 
      direct_thread_join( data->thread );
      direct_thread_destroy( data->thread );
