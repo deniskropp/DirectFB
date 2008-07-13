@@ -1,3 +1,98 @@
+1.2.0
+-----
+
+Overall
+- Minor fixes and cleanups, fixed compiler warnings etc.
+- Debugging messages and utility macros have been added.
+
+API | IDirectFB
+- Added sanity limit of 20480x20480 to CreateSurface().
+- Fixed input device enumeration and event collection for devices without caps.
+
+API | IDirectFBFont
+- Bug fixes in GetStringBreak(), thanks to Keith Mok!
+
+API | IDirectFBSurface
+- Don't build hierarchy of sub surfaces internally, if start-stop is not used (speeds up sub surface construct/destruct).
+- Optimized DrawLines() to use rectangle filling if all lines are horizontal/vertical.
+  This allows hardware acceleration to be used, e.g. in GTK+ using gdk_directfb_draw_segments() a lot with
+  only horizontal and vertical lines for widgets.
+
+API | IDirectFBVideoProvider
+- Fixed copy'n'paste(?) bug in SetStreamAttributes() argument.
+  The argument was DFBStreamDescription, but obviously should be DFBStreamAttributes.
+
+Pixel Formats
+- Added BGR555 as a new pixel format, thanks to GARDET Guillaume!
+
+Runtime Options
+- Added "[no-]cursor-updates" to never show a cursor, but still handle it.
+- New runtime option "thread-priority-scale=<100th>" to apply a scaling factor on thread type based priorities.
+
+Graphics Core
+- Removed dfb_gfxcard_sync() call from slave leaving procedure.
+- Added CCF_RENDEROPTS that needs to be set by the driver to allow acceleration when != DSRO_NONE.
+
+Input Core
+- Only suspend the input core during shutdown if it has been initialized already.
+- If a device has no caps at all, let it match with any caps being requested.
+
+Layer Core
+- Added CLRCF_FREEZE for dfb_layer_region_set_configuration() to set CLRSF_FROZEN.
+  Changes are not applied until dfb_layer_region_flip_update() is called.
+- Check if region surface is system only and avoid using CSAF_GPU_READ which would fail.
+- Keep a list of window stacks, added dfb_wm_close_all_stacks() called early during core shutdown.
+
+Software fallbacks
+- Dacc_premultiply_color_alpha() also needs Cacc.a to be set, thanks to Mandy Wu for spotting!
+
+libdirect
+- Important Fix: Actual realloc() was missing in runtime-disabled debug mode (default).
+- Remove check on element in direct_list_contains_element_EXPENSIVE() used for debugging.
+  When checking for existence in a list, avoid crashes due to already freed elements being passed
+  in as a pointer and checked for existence in a list.
+
+TI Davinci driver
+- Added scaling support to video layer using the Davinci Resizer.
+- Added local task buffer for preparing a list of commands and send at once (CPU load reduced).
+- Fixed timeout detection in DAVINCI_IOCTL_WAIT_LOW.
+- Fix kernel module Makefile for newer kernels.
+- Use FBIO_GET_TIMING to query screen size.
+- Build and install a library and header files.
+- Update allocations during Lock().
+- Allow external definition of DAVINCI_C64X_IDLE_MAX for c64xdump tool.
+- Added lots of debug messages to 2D acceleration.
+- Set StretchBlit() hook statically.
+- Replaced all hard coded addressing of 32MB DSP working area by DAVINCI_C64X_MEM.
+  DAVINCI_C64X_MEM is defined in <linux/c64x.h> to be 0x8e000000 if not defined from outside.
+- Moved call to set buffer start address to videoUpdateRegion().
+  Also made videoSetRegion() very lightweight, e.g. when only the surface is changed.
+- Commented out davinci_c64x_write_back_all() in EngineSync() which is still not working properly anyhow.
+
+CirrusLogic EP9xx
+- New driver, thanks to Brian Austin!
+
+DGIFF Font
+- Revival of the DGIFF (DirectFB Glyph Image File Format). Thanks to Vaclav Slavik!
+
+FBDev System
+- Ignore panning errors as before.
+
+X11 System
+- Fixed double wheel events by discarding ButtonUps.
+- Added missing check of layer pixel format based on conversion routines available.
+- Don't use XShm for offscreen surfaces, but always use Fusion SHM.
+
+Keyboard Input driver
+- Make driver usable without fbdev/vt just for the sake of a keymap.
+
+Linux Input driver
+- Thanks to Phil Endecott for adding F13 to F24 support!
+
+directfb-config
+- Teach directfb-config about SYSROOT and removes -L/usr/X11R6/lib, thanks to Marc Kleine-Budde!
+
+
 1.2.0-rc1
 ---------
 

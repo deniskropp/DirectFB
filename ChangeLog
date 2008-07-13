@@ -1,3 +1,584 @@
+commit 14ddb08b822effda0884155353d30ec8f65c890d
+Author: Denis Oliver Kropp <dok@vm.directfb.home>
+Date:   Sun Jul 13 15:55:30 2008 +0200
+
+    [x11] Don't use XShm for offscreen surfaces, but always use Fusion SHM.
+    
+    Other cleanups and input thread cancellation fixes.
+
+commit bf9272493b021d4b4b4b32d81b5306e667a10e2a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jul 13 13:34:14 2008 +0200
+
+    [x11] Make visual info just debug messages, better error message on XOpenDisplay() failure.
+
+commit 02779f1f765085f6e54c517593f9fd9c5567255d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jul 13 13:33:39 2008 +0200
+
+    [core] Call dfb_wm_close_all_stacks() only if already initialized.
+
+commit 2c111d0071809171482554f412ea43bdc3ad9740
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jul 11 17:02:06 2008 +0200
+
+    [util] Optimized dfb_updates_add() incl. usage of dfb_region_region_extends() to combine adjacent regions.
+
+commit ae3258c3c457a12de52b59ed515d5513e915fb71
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jul 11 17:00:03 2008 +0200
+
+    [util] Added dfb_region_region_extends() returning true if both regions' number of pixels added equals to number of pixels of their bounding box.
+
+commit b4102221ad64904f414bc90464b02a2df6f444bf
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jul 10 01:25:08 2008 +0200
+
+    [input] If a device has no caps at all, let it match with any caps being requested.
+
+commit 1f5c911d6fb78100b8558180244582b13351bd7d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jul 10 01:07:36 2008 +0200
+
+    [option] New runtime option "thread-priority-scale=<100th>" to apply a scaling factor on thread type based priorities.
+
+commit 5a0efaa2c12ba5eb260401e552718de71b07e475
+Merge: 111cd2d... 568cff6...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jul 10 00:14:43 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 111cd2dba120b89c05206ca7656c253dfe94f1fb
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jul 10 00:14:09 2008 +0200
+
+    [core] Only suspend the input core during shutdown if it has been initialized already.
+
+commit 568cff642107feb98c8a9b4ad3e057745811058a
+Merge: a6dcfee... 7490602...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jul 10 00:13:05 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit a6dcfee1f13b9cfccf5c71114714cc175411c154
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jul 10 00:01:36 2008 +0200
+
+    [wm] Keep a list of window stacks, added dfb_wm_close_all_stacks() called early during core shutdown.
+    
+    Fixes shutdown misbehaviour.
+    
+    Added D_MAGIC_ASSERT() for CoreWindowStack functions.
+
+commit 16afac667b5927bba5637fbb5d71983a8e4ad09c
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 9 23:54:54 2008 +0200
+
+    [interfaces] Turn error from missing interface directories into a debug message.
+
+commit 7490602e83e5e3b6a9af0aa90fa151f60e4e1920
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 9 20:42:39 2008 +0200
+
+    [nvidia] Indicate CCF_RENDEROPTS (render options support).
+
+commit 01558be062fbbf0c210382f80f7cda34a31e5783
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 9 20:42:23 2008 +0200
+
+    [radeon] Indicate CCF_RENDEROPTS (render options support).
+
+commit 930bdad51885bc118bda98cab5655ab926b1459d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 9 20:41:54 2008 +0200
+
+    [sh7722] Indicate CCF_RENDEROPTS (render options support).
+
+commit d12c253cbac831940334f5fcbccc8eddd3e505c3
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 9 20:40:31 2008 +0200
+
+    [graphics] Added CCF_RENDEROPTS that needs to be set by the driver to allow acceleration when != DSRO_NONE.
+
+commit 4491f78d48bf268e72b9aebedeb2cfac14199727
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 9 20:28:31 2008 +0200
+
+    [vnc] Builds, runs again, but looks wrong...
+
+commit f990c1afe695d188d086851902147ac80b996ffc
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 9 20:27:39 2008 +0200
+
+    [layers] Check if region surface is system only and avoid using CSAF_GPU_READ which would fail.
+
+commit 3f09498bd5a57e33334242cd6c187b288c55b53e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 9 19:25:30 2008 +0200
+
+    [sdl] Small fix using mod_hw instead of modified.
+
+commit 406e279d55aeb22009dd5e8ebb7b5ef7bc099ff0
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 9 18:33:29 2008 +0200
+
+    [CirrusLogic] New EP9xx driver, thanks to Brian Austin!
+
+commit 56279c0acf016858a180fa4bbd405df53bb39b88
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 9 07:28:31 2008 +0200
+
+    [test] Added reinitialization test program.
+
+commit d697b7310b3bddb4c649f437f8b0ac0c02ca2ff9
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 9 06:53:15 2008 +0200
+
+    [mem] Doh! ...doh! .....Dooooh!  Actual realloc() was missing in runtime-disabled debug mode.
+
+commit 8d262f21b2eb83dda14f73370ea53c62f4ec2122
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jul 8 20:15:27 2008 +0200
+
+    [gfxutil] Changed dfb_convert_to_*() functions from static inline to non-inline.
+
+commit 9cd095ba55897a2431c9e07b7da4c72c1e82ac86
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jul 8 20:11:09 2008 +0200
+
+    [x11] Added missing check of layer pixel format based on conversion routines available.
+
+commit 2298104d1af5ea8736e75287e77ddc4db9731ad3
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jul 8 19:50:57 2008 +0200
+
+    [linux_input] Thanks to Phil Endecott for adding F13 to F24 support!
+
+commit 32adbf9ba07da09927e84c7bc5c973b131d5b176
+Merge: eaea0e3... ef9efd7...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jul 8 19:31:13 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit eaea0e34702b7bcb8839b6df0397cbe313d4dd7f
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jul 8 19:30:32 2008 +0200
+
+    [pixelformats] This patch adds BGR555 as a new pixel format, thanks to GARDET Guillaume!
+
+commit ef9efd7e9179cb7bb3a1528437aa752831e7c781
+Merge: 22c876f... c8255c8...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jul 8 14:34:31 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit c8255c8d85f608c5e6a4573689e993530c17004d
+Merge: d00dbd4... 701bf91...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jul 8 14:34:22 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit d00dbd4512f9caf29e0768cc33e0e10a66adb2ce
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jul 8 12:52:38 2008 +0200
+
+    [IDirectFBFont] Bug fixes in GetStringBreak(), thanks to Keith Mok!
+    
+    1.) The ret_next_line is not initialized, so if the initial string is too long without delimiter,  "if (*ret_next_line == NULL)" will not run.
+    
+    2.) If the initial string is too long without delimiter, the return string should be minus one character since the width had already longer than the input width.
+        Should keep the width within input width unless only one character.
+    
+    3.) The return length should not minus one when whole string is within input width, otherwise one character is cropped.
+
+commit 22c876fcc30d48920ebe47856cff79c889b11165
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jul 8 11:54:22 2008 +0200
+
+    [windows] Fixed missing return value.
+
+commit 0c90ba1bd190da49b9e957dea0820e4c17962315
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jul 8 11:54:06 2008 +0200
+
+    [layers] Fixed warning in non-debug mode.
+
+commit 89bb501307b4904cf3c45f24a09c3da3e286b196
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jul 8 11:53:00 2008 +0200
+
+    [IDirectFBVideoProvider] Fixed copy'n'paste(?) bug in SetStreamAttributes() argument.
+    
+    The argument was DFBStreamDescription, but obviously should be DFBStreamAttributes.
+
+commit 701bf9100f84f44b894661799b455e67c4fd2158
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jul 7 10:33:48 2008 +0200
+
+    [fbdev] Ignore panning errors as before.
+
+commit 80d913df4165389dc06767548420813784f6052f
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 30 15:32:17 2008 +0200
+
+    [davinci] Added local task buffer for preparing a list of commands and send at once.
+    
+    This avoids overhead due to uncached task control structure being accessed for every
+    task that is added. A new function will emit all tasks at once using memcpy() that allows
+    write combining on the uncached area.
+    
+    Changed all 2D rendering to use new functions for preparing tasks reducing CPU load in
+    DrawString(), FillSpans() etc.
+    
+    Benchmarking 256x256 on 800x580 ARGB (32bit)...
+    
+    Anti-aliased Text                              3.085 secs (* 208.881 KChars/sec) [ 87.9%]
+    Anti-aliased Text (blend)                      3.084 secs (* 208.949 KChars/sec) [ 89.6%]
+    Fill Rectangle                                27.189 secs (*  44.351 MPixel/sec) [  2.5%]
+    Fill Rectangle (blend)                        27.334 secs (*  44.355 MPixel/sec) [  2.3%]
+    Fill Rectangles [10]                          28.063 secs (*  44.371 MPixel/sec) [  0.8%]
+    Fill Rectangles [10] (blend)                  28.065 secs (*  44.367 MPixel/sec) [  0.6%]
+    Fill Spans                                     3.115 secs (*  35.766 MPixel/sec) [ 25.4%]
+    Fill Spans (blend)                             3.117 secs (*  35.743 MPixel/sec) [ 20.9%]
+    Blit                                          40.124 secs (*  28.910 MPixel/sec) [  1.6%]
+    Blit colorkeyed                               36.324 secs (*  32.295 MPixel/sec) [  2.0%]
+    Blit from 32bit (blend)                       38.073 secs (*  30.639 MPixel/sec) [  1.9%]
+    Blit from 32bit (blend) with colorizing       38.065 secs (*  30.646 MPixel/sec) [  2.2%]
+    Stretch Blit                                 105.843 secs (*  16.893 MPixel/sec) [  0.6%]
+
+commit 19699fb58779a3a46f53a9820b4b5c68ad21c734
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 30 15:30:01 2008 +0200
+
+    [davinci] Set address back from 0x86000000 to 0x8e000000 for using the uncached window at 0x8f000000.
+    
+    The address wraps around when 128MB are available instead of 256MB.
+
+commit 028288dcd22009d2060755256cd857579592692e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 30 15:10:18 2008 +0200
+
+    [layers] Added CLRCF_FREEZE for dfb_layer_region_set_configuration() to set CLRSF_FROZEN.
+    
+    Changes are not applied until dfb_layer_region_flip_update() is called.
+
+commit bd8749232bd22df253a3e99c02a230f54f12e089
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jun 24 16:49:32 2008 +0200
+
+    [davinci] Fixed timeout detection in DAVINCI_IOCTL_WAIT_LOW.
+    
+    - reduced polling frequency from 1/HZ sec to 1/50 sec with an allowed
+      total of almost one second while still running the same command (DSP stuck)
+    - or timeout immediately (after 1/50 sec) if idle counter changed (DSP felt idle)
+    
+    - enhanced queue dump on timeout
+    - disabled user space write combine on control structure (just one member written)
+
+commit 1640375755e5bab96a21be1a697fb65c18b4e5a3
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jun 24 05:09:45 2008 +0200
+
+    [davinci] Added scaling support to video layer using the Davinci Resizer.
+    
+    Surface buffers must be allocated in devmem as the fb memory of the layer
+    is used to store the resized data. Applications can set source and destination
+    rectangles as with other scaled layers, but a Flip() is always required to
+    show updates even in a single buffer mode.
+    
+    Minor fixes and cleanups.
+
+commit 7f861b88953fd1d064acb77ada8d51fd2a44fa75
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jun 24 03:54:58 2008 +0200
+
+    [davinci] Commented out davinci_c64x_write_back_all() in EngineSync() which is still not working properly anyhow.
+
+commit 20ce5efe7bbc98b0c3e89570c42d641a31cd44e3
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jun 24 03:43:07 2008 +0200
+
+    added fixme note
+
+commit 20716634b6bd361d1851111c9a771618cea8a722
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jun 24 03:31:59 2008 +0200
+
+    [devmem] Minor cleanup removing the unneeded heap offset adjustment.
+
+commit f48943cf555b72f249d3f75a94390bc5ea4c38b7
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jun 22 02:57:31 2008 +0200
+
+    [convert] Removed D_CONST_FUNC from dfb_pixel_to_color() and dfb_pixel_from_color().
+
+commit 059a4fdad664c60ce8c2e50d32b1ef265c981e12
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jun 22 02:56:35 2008 +0200
+
+    [surfaces] Fixed return type of dfb_surface_lock/unlock() for C++.
+
+commit 857c82cd4563e12ca50e57110108245d1e920149
+Merge: 4ed64ec... 399266a...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jun 22 02:16:45 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 4ed64ec5d5ce68a02f526459d8e7d3cfea7d40cd
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jun 22 02:16:09 2008 +0200
+
+    [IDirectFBSurface] Extended debugging messages, mostly coordinates of rendering operations.
+
+commit f8cbbf52d7e4bc9e8d1c5f3e7041d362ef267182
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jun 22 02:14:40 2008 +0200
+
+    [util] Added DFB_RECTANGLES_DEBUG_AT() to dump one or more rectangles.
+
+commit 1e48f64765f02e403d29a74970d7e500a9ba806e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jun 22 02:13:54 2008 +0200
+
+    [IDirectFBWindow] Added basic debug message to each method.
+
+commit 399266add735534c4c2722726332b04f8f0be830
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Jun 21 14:22:27 2008 +0200
+
+    [davinci] Moved call to set buffer start address to videoUpdateRegion().
+    
+    Also made videoSetRegion() very lightweight, e.g. when only the surface is changed.
+
+commit ea47bd8c24e4c8b260cc8c3a676551cf385d74a8
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Jun 21 12:04:40 2008 +0200
+
+    [IDirectFBSurface] Optimized DrawLines() to use rectangle filling if all lines are horizontal/vertical.
+    
+    This allows hardware acceleration to be used, e.g. in GTK+ using gdk_directfb_draw_segments() a lot with
+    only horizontal and vertical lines for widgets.
+
+commit b00372c5f6af1a749c1e13bb95fe9552c0e45318
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Jun 21 03:22:19 2008 +0200
+
+    [davinci] Replaced all hard coded addressing of 32MB DSP working area by DAVINCI_C64X_MEM.
+    
+    DAVINCI_C64X_MEM is defined in <linux/c64x.h> to be 0x86000000 if not defined from outside.
+    
+    FIXME: We could save probably most of the 32MB...
+
+commit 2f5c21a288e4111ecd079a68f9f63d647b5436a5
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Jun 21 03:19:18 2008 +0200
+
+    [graphics] Removed dfb_gfxcard_sync() call from slave leaving procedure.
+
+commit fea27e5d2e5e359658cbcb182805c6eba8e98531
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Jun 21 03:14:36 2008 +0200
+
+    [IDirectFB] Added sanity limit of 20480x20480 to CreateSurface().
+    
+    This way further calculations like 20480*20480*4 still work and
+    buffer allocations can be made (rather rejected) as there's no
+    wrap around with 31 or 32 bit numbers.
+
+commit 884c9d9e1a2f8a5aa33e5d0a29be87505be7389e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Jun 21 03:06:45 2008 +0200
+
+    [keyboard] Make driver usable without fbdev/vt just for the sake of a keymap.
+    
+    If the FBDev system module is not used, e.g. using DevMem system module, try
+    opening /dev/tty0 just to be able to register a keyboard device with a keymap.
+    
+    GTK+-DirectFB still does not work without it...
+
+commit 2d2eb9803277ab5f8f749374b37a73a7fbb788a1
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jun 20 11:38:55 2008 +0200
+
+    [generic] Dacc_premultiply_color_alpha() also needs Cacc.a to be set, thanks to Mandy Wu for spotting!
+    
+    When only DSBLIT_SRC_PREMULTCOLOR was used, the Cacc.RGB.a value was not set at all.
+    This was only done in conjunction with DSBLIT_BLEND_COLORALPHA or DSBLIT_COLORIZE.
+
+commit b1ff8418ed52127a7735b610b723934957c6cef5
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jun 20 11:19:54 2008 +0200
+
+    [davinci] Added lots of debug messages to 2D acceleration, set StretchBlit() hook statically.
+    
+    As there's no other implementation than for 32 bit at the moment, assign the function pointer
+    for StretchBlit once during driver initialization to save (very minimal) overhead.
+
+commit 706d0542ecfe318a99d75a881ea5baddf457c356
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jun 20 11:16:55 2008 +0200
+
+    [davinci] Allow external definition of DAVINCI_C64X_IDLE_MAX for c64xdump tool.
+
+commit 29700e4d2a04f213710dae7c10e759ff36622a98
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jun 20 11:16:27 2008 +0200
+
+    [util] Added DFB_COLORKEY_VALS().
+
+commit b1f15d73e55225c656ca5f2a208202b11fa2930c
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jun 20 11:15:30 2008 +0200
+
+    [layers] Enhanced debugging output for layer regions.
+
+commit 9dff083726ddefb6d773697af1958e3070cc850c
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jun 20 11:14:38 2008 +0200
+
+    [layers] Added DFB_CORE_LAYER_REGION_CONFIG_DEBUG_AT() to dump a configuration.
+
+commit 99a2fea3f71be631629d6ddc921ff79c9d364f8b
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jun 20 11:13:41 2008 +0200
+
+    [IDirectFBSurface_Layer] Moved interface data structure definition to header file.
+
+commit eec017753d1e32ccf6c6f1ecebfdaeca9ee0b8cb
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 16 09:19:01 2008 +0200
+
+    [davinci] Update allocations during Lock().
+
+commit 08d636baa4399f63d78b1e96127855b55d20c27f
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 16 09:18:02 2008 +0200
+
+    [davinci] Updated kernel module.
+
+commit 432c828da55b829adff0dca888d519c42c3e6aef
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 16 09:07:23 2008 +0200
+
+    [davinci] Build libdavinci_c64x.la and install headers.
+
+commit e456cdc058546a19d405d18ab88f9dabbdd568b7
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 16 09:04:14 2008 +0200
+
+    [tslib] Include <string.h>.
+
+commit d261c76eb8c8a53bc8e2132f6b8905b58a01340d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Jun 14 10:10:07 2008 +0200
+
+    [davinci] Use FBIO_GET_TIMING to query screen size.
+
+commit 87943754c47067a2d88ea791d3144607792315bb
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jun 12 09:34:07 2008 +0200
+
+    [davinci] Remove sizeof() from ioctl definitions. Thanks to Eric Nelson!
+
+commit 7c1d09bb5e1e76d69af33af2e14ac4418485d7bb
+Merge: ef6be22... 1c605ad...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jun 12 09:16:42 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit ef6be22899e343dfa84e3df822b43a8544c7adcc
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jun 12 09:15:19 2008 +0200
+
+    [convert] Added dfb_pixel_from_color() for full ARGB version of dfb_color_to_pixel().
+    
+    The latter is still there for compatibility, but calling dfb_pixel_from_color() with alpha = 0.
+
+commit 65c355244ce1a2e00197a1113ef1a420a1029c68
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jun 12 09:12:00 2008 +0200
+
+    [davinci] Temporary workaround for getting the screen size. Thanks to Eric Nelson!
+
+commit 1c605ade7e377ff3cdcea67669692e7530a9cf1e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jun 11 23:57:19 2008 +0200
+
+    [davinci] Use KCPPFLAGS and set CROSS_COMPILE_PREFIX.
+
+commit 62e92a111de85dc720521bef7388b8aa94d791a7
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jun 11 04:14:07 2008 +0200
+
+    [options] Added "[no-]cursor-updates" to never show a cursor, but still handle it.
+
+commit efab271d361fa8981416180347bc94d020801b09
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jun 10 11:31:25 2008 +0200
+
+    [x11] Fixed double wheel events by discarding ButtonUps.
+
+commit 94e9fc75aa7cc83eea759f7fb00e0ec0c9aa5b88
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 9 21:15:54 2008 +0200
+
+    [IDirectFBSurface] Don't build hierarchy of sub surfaces if start-stop is not used.
+
+commit 0752af54638978b49045817a30e9e473a9b29f20
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 9 19:16:15 2008 +0200
+
+    fixed png filename
+
+commit 44c85a885e88fce2ed43a0bb5dcb7a8095ff82b0
+Merge: a420a6c... e554901...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 9 02:44:39 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit a420a6c70c056e8dfb88d64c51d737fe0ea74381
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 9 02:41:57 2008 +0200
+
+    [list] Remove check on element in direct_list_contains_element_EXPENSIVE() used for debugging.
+    
+    When checking for existence in a list, avoid crashes due to already freed elements being passed
+    in as a pointer and checked for existence in a list.
+
+commit e554901f69e726397f29c8480a71ed28d70a530a
+Author: Denis Oliver Kropp <dok@headway.(none)>
+Date:   Thu Jun 5 09:32:20 2008 +0200
+
+    This patches teaches directfb-config about SYSROOT and removes -L/usr/X11R6/lib
+    
+    Signed-off-by: Marc Kleine-Budde <mkl@pengutronix.de>
+
+commit c59be091ecbd83bfcc1535c934bbaf1305b5feac
+Author: Denis Oliver Kropp <dok@headway.(none)>
+Date:   Wed Jun 4 23:00:39 2008 +0200
+
+    [dgiff] Revival of the DGIFF (DirectFB Glyph Image File Format). Thanks to Vaclav Slavik!
+
+commit 28207ee35af6157032ca3059fc723ec2eefd757a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jun 3 11:08:07 2008 +0200
+
+    [gendoc] Adjusted page top and added better logo image.
+
+commit 483c9a336355c9bdbfa12ac6329bd39e583d2438
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jun 2 21:10:01 2008 +0200
+
+    [NEWS] Updated for 1.2.0-rc1.
+
 commit 4e7313e6e15d9a00203a864532b43618460a1683
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Mon Jun 2 11:12:11 2008 +0200

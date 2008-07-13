@@ -40,7 +40,12 @@ Supported Operating Systems
 Build Requirements
 ------------------
 
-   Mandatory are libc, libpthread, libm and libdl.
+   Mandatory are
+     - libc
+     - libpthread
+     - libm
+     - libdl
+     - pkg-config (for regenerating configure script)
 
    Optionally, depending on the configuration you want:
 
@@ -52,7 +57,7 @@ Build Requirements
      - libSDL (Simple Direct Media Layer) for the sdl system.
 
    X11
-     - libX11 (X11 client library) for the X11 system.
+     - libX11 (X11 client library) for the X11 system (libx11-dev and libxext-dev packages).
 
    The following libraries are optional, but important (Debian package names):
 
@@ -65,7 +70,6 @@ Build Requirements
 
    Extra
      - zlib1g-dev for compressed screenshot support (also needed by libpng)
-     - pkg-config for building other packages using DirectFB
 
    The multi application core also requires <linux/fusion.h>, see the
    section "Running multiple DirectFB applications" for more details.
