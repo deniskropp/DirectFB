@@ -2221,6 +2221,89 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_MakeSubSurface( IDirectFBSurface   *thiz,
+                                 IDirectFBSurface   *from,
+                                 const DFBRectangle *rect )
+{
+     CoreSurface           *surface;
+     DFBRectangle           wanted, granted;
+     DFBRectangle           full_rect;
+     IDirectFBSurface_data *from_data;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     /* Check arguments */
+     if (!from)
+          return DFB_INVARG;
+
+     surface = data->surface;
+     if (!surface)
+          return DFB_DESTROYED;
+
+     DIRECT_INTERFACE_GET_DATA_FROM(from, from_data, IDirectFBSurface);
+
+     /* Check if CoreSurface is the same */
+     if (from_data->surface != surface)
+          return DFB_UNSUPPORTED;
+
+
+     full_rect.x = 0;
+     full_rect.y = 0;
+     full_rect.w = surface->config.size.w;
+     full_rect.h = surface->config.size.h;
+
+     if (rect || from_data->limit_set) {
+          /* Compute wanted rectangle */
+          if (rect) {
+               wanted = *rect;
+
+               wanted.x += from_data->area.wanted.x;
+               wanted.y += from_data->area.wanted.y;
+
+               if (wanted.w <= 0 || wanted.h <= 0) {
+                    wanted.w = 0;
+                    wanted.h = 0;
+               }
+          }
+          else {
+               wanted = from_data->area.wanted;
+          }
+          
+          /* Compute granted rectangle */
+          granted = wanted;
+
+          dfb_rectangle_intersect( &granted, &from_data->area.granted );
+     }
+     else {
+          wanted  = full_rect;
+          granted = full_rect;
+     }
+
+
+     data->caps |= DSCAPS_SUBSURFACE;
+
+
+     data->area.wanted  = wanted;
+     data->area.granted = granted;
+
+     data->area.current = data->area.granted;
+     dfb_rectangle_intersect( &data->area.current, &full_rect );
+
+
+     data->state.clip.x1   = data->area.current.x;
+     data->state.clip.y1   = data->area.current.y;
+     data->state.clip.x2   = data->area.current.x + (data->area.current.w ? : 1) - 1;
+     data->state.clip.y2   = data->area.current.y + (data->area.current.h ? : 1) - 1;
+
+     data->state.modified |= SMF_CLIP;
+
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBSurface_GetGL( IDirectFBSurface   *thiz,
                         IDirectFBGL       **interface )
 {
@@ -2541,6 +2624,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->SetMatrix        = IDirectFBSurface_SetMatrix;
      thiz->SetSourceMask    = IDirectFBSurface_SetSourceMask;
 
+     thiz->MakeSubSurface = IDirectFBSurface_MakeSubSurface;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );

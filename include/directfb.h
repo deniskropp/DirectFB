@@ -3920,6 +3920,18 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           int                       y,
           DFBSurfaceMaskFlags       flags
      );
+
+
+   /** Lightweight helpers **/
+
+     /*
+      * Make this a sub surface or adjust the rectangle of this sub surface.
+      */
+     DFBResult (*MakeSubSurface) (
+          IDirectFBSurface         *thiz,
+          IDirectFBSurface         *from,
+          const DFBRectangle       *rect
+     );
 )
 
 
