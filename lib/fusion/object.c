@@ -266,6 +266,8 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
           D_ASSERT( ! direct_list_contains_element_EXPENSIVE( pool->objects, (DirectLink*) object ) );
      }
 
+     pool->objects = NULL;
+
      /* Destroy the pool lock. */
      fusion_skirmish_destroy( &pool->lock );
 
