@@ -506,6 +506,8 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                                                        layer->layer_data,
                                                        region->region_data,
                                                        surface, flags, &region->surface_lock );
+
+                         dfb_surface_unlock( surface );
                     }
                     else {
                          D_DEBUG_AT( Core_Layers, "  -> Flipping region not using driver...\n" );
@@ -893,8 +895,6 @@ region_buffer_lock( CoreLayerRegion       *region,
           allocation->accessed &= ~CSAF_GPU_WRITE;
      }
 
-     dfb_surface_unlock( surface );
-
      return DFB_OK;
 }
 
@@ -942,6 +942,8 @@ set_region( CoreLayerRegion            *region,
                ret = region_buffer_lock( region, surface, CSBR_FRONT );
                if (ret)
                     return ret;
+
+               dfb_surface_unlock( surface );
           }
 
           D_ASSERT( region->surface_lock.buffer != NULL );
