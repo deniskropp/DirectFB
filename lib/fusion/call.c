@@ -168,8 +168,11 @@ fusion_call_return( FusionCall   *call,
           switch (errno) {
                case EINTR:
                     continue;
+               case EIDRM:
+                    D_WARN( "caller withdrawn (signal?)" );
+                    return DR_NOCONTEXT;
                case EINVAL:
-                    D_ERROR ("Fusion/Call: invalid call\n");
+                    D_ERROR( "Fusion/Call: invalid call\n" );
                     return DR_DESTROYED;
                default:
                     break;
@@ -236,11 +239,14 @@ _fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg )
                     switch (errno) {
                          case EINTR:
                               continue;
+                         case EIDRM:
+                              D_WARN( "caller withdrawn (signal?)" );
+                              return;
                          case EINVAL:
-                              D_ERROR ("Fusion/Call: invalid call\n");
+                              D_ERROR( "Fusion/Call: invalid call\n" );
                               return;
                          default:
-                              D_PERROR ("FUSION_CALL_RETURN");
+                              D_PERROR( "FUSION_CALL_RETURN" );
                               return;
                     }
                }
