@@ -195,6 +195,20 @@ DFBResult dfb_surfacemanager_allocate( CoreDFB            *core,
      c = manager->chunks;
      D_MAGIC_ASSERT( c, Chunk );
 
+     /* FIXME_SC_2  Workaround creation happening before graphics driver initialization. */
+     if (!c->next) {
+          int length = dfb_gfxcard_memory_length();
+
+          if (c->length != length - manager->offset) {
+               D_WARN( "workaround" );
+
+               manager->length = length;
+               manager->avail  = length - manager->offset;
+
+               c->length = length - manager->offset;
+          }
+     }
+
      while (c) {
           D_MAGIC_ASSERT( c, Chunk );
 
