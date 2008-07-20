@@ -162,7 +162,9 @@ surface_callback( FusionObjectPool *pool,
           return false;
      }
 
-     if (dump_surface && (dump_surface < 0 || dump_surface == object->ref.multi.id) && surface->num_buffers) {
+     if (dump_surface && ((dump_surface < 0 && surface->type & CSTF_SHARED) ||
+                          (dump_surface == object->ref.multi.id)) && surface->num_buffers)
+     {
           char buf[32];
 
           snprintf( buf, sizeof(buf), "dfb_surface_0x%08x", object->ref.multi.id );
@@ -403,13 +405,13 @@ surface_pool_info_callback( CoreSurfacePool *pool,
              (pool->desc.access & CSAF_SHARED)    ? '*' : ' ' );
 
 
-     printf( "%5luk  ", total / 1024 );
+     printf( "%6lu/%6luk   ", total / 1024, pool->desc.size / 1024 );
 
 
      if (pool->desc.types & CSTF_SHARED)
-          printf( "SHARED  " );
+          printf( "SHARED   " );
      else
-          printf( "        " );
+          printf( "         " );
 
 
      if (pool->desc.types & CSTF_INTERNAL)
@@ -444,7 +446,7 @@ dump_surface_pool_info()
 {
      printf( "\n" );
      printf( "-------------------------------------[ Surface Buffer Pools ]------------------------------------\n" );
-     printf( "Name                 Priority  CrCw GrGw Sh  Usage  Types\n" );
+     printf( "Name                 Priority  CrCw GrGw Sh   Used/Capacity  Usage    Storage   Resource Types\n" );
      printf( "-------------------------------------------------------------------------------------------------\n" );
 
      dfb_surface_pools_enumerate( surface_pool_info_callback, NULL );
