@@ -86,8 +86,6 @@ struct __DFB_CoreSurfaceAllocation {
 #define CORE_SURFACE_ALLOCATION_ASSERT(alloc)                                                  \
      do {                                                                                      \
           D_MAGIC_ASSERT( alloc, CoreSurfaceAllocation );                                      \
-          /*CORE_SURFACE_BUFFER_ASSERT( (alloc)->buffer );*/                                   \
-          /*CORE_SURFACE_POOL_ASSERT( (alloc)->pool );*/                                       \
           D_ASSUME( (alloc)->size > 0 );                                                       \
           D_ASSERT( (alloc)->size >= 0 );                                                      \
           D_ASSERT( (alloc)->offset + (alloc)->size <= ((alloc)->pool->desc.size ?:~0UL) );    \
@@ -119,7 +117,7 @@ struct __DFB_CoreSurfaceBufferLock {
      do {                                                                                      \
           D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );                                       \
           D_FLAGS_ASSERT( (lock)->access, CSAF_ALL );                                          \
-          CORE_SURFACE_ALLOCATION_ASSERT( (lock)->allocation );                                \
+          D_ASSERT( (lock)->allocation != NULL );                                              \
           D_ASSERT( (lock)->buffer == (lock)->allocation->buffer );                            \
           D_ASSUME( (lock)->addr != NULL ||                                                    \
                     !((lock)->access & (CSAF_CPU_READ|CSAF_CPU_WRITE)) );                      \
