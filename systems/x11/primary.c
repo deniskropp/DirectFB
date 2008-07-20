@@ -226,6 +226,9 @@ primaryInitLayer( CoreLayer                  *layer,
                case 24:
                     config->pixelformat = DSPF_RGB32;
                     break;
+               case 32:
+                    config->pixelformat = DSPF_ARGB;
+                    break;
                default:
                     printf(" Unsupported X11 screen depth %d \n",depth);
                     exit(-1);
@@ -267,6 +270,7 @@ primaryTestRegion( CoreLayer                  *layer,
           case DSPF_BGR555:
           case DSPF_RGB32:
           case DSPF_ARGB:
+          case DSPF_AYUV:
                break;
 
           default:
@@ -379,47 +383,61 @@ DisplayLayerFuncs x11PrimaryLayerFuncs = {
 /******************************************************************************/
 
 static DFBResult
-update_screen( CoreSurface *surface, int x, int y, int w, int h, CoreSurfaceBufferLock *lock )
+update_screen( CoreSurface *surface, const DFBRectangle *rect, CoreSurfaceBufferLock *lock )
 {
-     void         *dst;
-     void         *src;
-     unsigned int  offset = 0;
-     XWindow      *xw     = dfb_x11->xw;
-     x11Image     *image;
-     XImage       *ximage;
+     void                  *dst;
+     void                  *src;
+     unsigned int           offset = 0;
+     XWindow               *xw     = dfb_x11->xw;
+     XImage                *ximage;
+     CoreSurfaceAllocation *allocation;
 
      D_ASSERT( surface != NULL );
      CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
 
-     image = lock->handle;
-     D_ASSERT( image != NULL );
+     allocation = lock->allocation;
+     CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
-     if (image->ximage) {
+     /* Check for our special native allocation... */
+     if (allocation->pool == dfb_x11->x11image_pool && lock->handle) {
+          x11Image *image = lock->handle;
+
           D_MAGIC_ASSERT( image, x11Image );
 
+          /* ...and directly XShmPutImage from that. */
           ximage = image->ximage;
      }
      else {
+          /* ...or copy or convert into XShmImage or XImage allocated with the XWindow. */
           ximage = xw->ximage;
           offset = xw->ximage_offset;
 
           xw->ximage_offset = (offset ? 0 : ximage->height / 2);
           
-          src = lock->addr + DFB_BYTES_PER_LINE( surface->config.format, x ) + y * lock->pitch;
-          dst = xw->virtualscreen + x * xw->bpp + (y + offset) * ximage->bytes_per_line;
-          
+          dst = xw->virtualscreen + rect->x * xw->bpp + (rect->y + offset) * ximage->bytes_per_line;
+          src = lock->addr + DFB_BYTES_PER_LINE( surface->config.format, rect->x ) + rect->y * lock->pitch;
+
           switch (xw->depth) {
+               case 32:
+                    dfb_convert_to_argb( surface->config.format, src, lock->pitch,
+                                         surface->config.size.h, dst, ximage->bytes_per_line, rect->w, rect->h );
+                    break;
+
+               case 24:
+                    dfb_convert_to_rgb32( surface->config.format, src, lock->pitch,
+                                          surface->config.size.h, dst, ximage->bytes_per_line, rect->w, rect->h );
+                    break;
+
                case 16:
                     dfb_convert_to_rgb16( surface->config.format, src, lock->pitch,
-                                          surface->config.size.h, dst, ximage->bytes_per_line, w, h );
+                                          surface->config.size.h, dst, ximage->bytes_per_line, rect->w, rect->h );
                     break;
-          
-               case 24:
-                    if (xw->bpp == 4)
-                         dfb_convert_to_rgb32( surface->config.format, src, lock->pitch,
-                                               surface->config.size.h, dst, ximage->bytes_per_line, w, h );
+
+               case 15:
+                    dfb_convert_to_rgb555( surface->config.format, src, lock->pitch,
+                                           surface->config.size.h, dst, ximage->bytes_per_line, rect->w, rect->h );
                     break;
-          
+
                default:
                     D_ONCE( "unsupported depth %d", xw->depth );
           }
@@ -430,14 +448,22 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h, CoreSurfaceBuff
 
      XLockDisplay( dfb_x11->display );
 
+     /* Wait for previous data to be processed... */
      XSync( dfb_x11->display, False );
 
-     if (dfb_x11->use_shm)
-          XShmPutImage( xw->display, xw->window, xw->gc, ximage, x, y + offset, x, y, w, h, False );
-     else
-          XPutImage( xw->display, xw->window, xw->gc, ximage, x, y + offset, x, y, w, h );
+     /* ...and immediately queue or send the next! */
+     if (dfb_x11->use_shm) {
+          /* Just queue the command, it's XShm :) */
+          XShmPutImage( xw->display, xw->window, xw->gc, ximage,
+                        rect->x, rect->y + offset, rect->x, rect->y, rect->w, rect->h, False );
 
-     XFlush( dfb_x11->display );
+          /* Make sure the queue has really happened! */
+          XFlush( dfb_x11->display );
+     }
+     else
+          /* Initiate transfer of buffer... */
+          XPutImage( xw->display, xw->window, xw->gc, ximage,
+                     rect->x, rect->y + offset, rect->x, rect->y, rect->w, rect->h );
 
      XUnlockDisplay( dfb_x11->display );
 
@@ -478,10 +504,13 @@ dfb_x11_set_video_mode_handler( CoreLayerRegionConfig *config )
 DFBResult
 dfb_x11_update_screen_handler( UpdateScreenData *data )
 {
-     return update_screen( dfb_x11->primary,
-                           data->region.x1,  data->region.y1,
-                           data->region.x2 - data->region.x1 + 1,
-                           data->region.y2 - data->region.y1 + 1, data->lock );
+     DFBRectangle rect = {
+          data->region.x1,  data->region.y1,
+          data->region.x2 - data->region.x1 + 1,
+          data->region.y2 - data->region.y1 + 1
+     };
+
+     return update_screen( dfb_x11->primary, &rect, data->lock );
 }
 
 DFBResult
