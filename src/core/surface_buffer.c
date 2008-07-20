@@ -195,6 +195,8 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
      }
 
      if (!allocation) {
+          D_DEBUG_AT( Core_SurfBuffer, "  -> no suitable allocation (yet)!\n" );
+
           ret = allocate_buffer( buffer, access, &allocation );
           if (ret)
                return ret;
@@ -294,6 +296,8 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
      allocation->accessed |= access;
 
      buffer->locked++;
+
+     D_DEBUG_AT( Core_SurfBuffer, "  -> locked %dx now\n", buffer->locked );
 
      return DFB_OK;
 }
