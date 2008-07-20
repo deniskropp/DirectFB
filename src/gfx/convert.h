@@ -440,6 +440,24 @@ void dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
                            int                    width,
                            int                    height );
 
+void dfb_convert_to_rgb555( DFBSurfacePixelFormat  format,
+                            void                  *src,
+                            int                    spitch,
+                            int                    surface_height,
+                            u16                   *dst,
+                            int                    dpitch,
+                            int                    width,
+                            int                    height );
+
+void dfb_convert_to_argb( DFBSurfacePixelFormat  format,
+                          void                  *src,
+                          int                    spitch,
+                          int                    surface_height,
+                          u32                   *dst,
+                          int                    dpitch,
+                          int                    width,
+                          int                    height );
+
 void dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
                            void                  *src,
                            int                    spitch,
