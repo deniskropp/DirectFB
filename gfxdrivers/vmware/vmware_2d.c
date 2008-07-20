@@ -384,8 +384,8 @@ vmwareBlit( void *drv, void *dev, DFBRectangle *srect, int dx, int dy )
      VMWareDeviceData *vdev = (VMWareDeviceData*) dev;
      void             *dst  = vdev->dst_addr + dy * vdev->dst_pitch +
                               DFB_BYTES_PER_LINE(vdev->dst_format, dx);
-     void             *src  = vdev->src_addr + srect->y * vdev->dst_pitch +
-                              DFB_BYTES_PER_LINE(vdev->dst_format, srect->x);
+     void             *src  = vdev->src_addr + srect->y * vdev->src_pitch +
+                              DFB_BYTES_PER_LINE(vdev->src_format, srect->x);
 
      D_DEBUG_AT( VMWare_2D, "%s( %d,%d-%dx%d -> %d, %d )\n", __FUNCTION__,
                  DFB_RECTANGLE_VALS( srect ), dx, dy );
