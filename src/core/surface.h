@@ -270,6 +270,14 @@ dfb_surface_lock( CoreSurface *surface )
 }
 
 static inline DirectResult
+dfb_surface_trylock( CoreSurface *surface )
+{
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     return fusion_skirmish_swoop( &surface->lock );
+}
+
+static inline DirectResult
 dfb_surface_unlock( CoreSurface *surface )
 {
      D_MAGIC_ASSERT( surface, CoreSurface );

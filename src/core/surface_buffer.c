@@ -64,15 +64,6 @@ D_DEBUG_DOMAIN( Core_SurfBuffer, "Core/SurfBuffer", "DirectFB Core Surface Buffe
 
 /**********************************************************************************************************************/
 
-static DFBResult allocate_buffer( CoreSurfaceBuffer       *buffer,
-                                  CoreSurfaceAccessFlags   access,
-                                  CoreSurfaceAllocation  **ret_allocation );
-
-static DFBResult update_allocation( CoreSurfaceAllocation  *allocation,
-                                    CoreSurfaceAccessFlags  access );
-
-/**********************************************************************************************************************/
-
 DFBResult
 dfb_surface_buffer_new( CoreSurface             *surface,
                         CoreSurfaceBufferFlags   flags,
@@ -129,6 +120,7 @@ dfb_surface_buffer_destroy( CoreSurfaceBuffer *buffer )
 
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
 
      D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_destroy( %p [%dx%d] )\n",
                  buffer, surface->config.size.w, surface->config.size.h );
@@ -197,7 +189,7 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
      if (!allocation) {
           D_DEBUG_AT( Core_SurfBuffer, "  -> no suitable allocation (yet)!\n" );
 
-          ret = allocate_buffer( buffer, access, &allocation );
+          ret = dfb_surface_pools_allocate( buffer, access, &allocation );
           if (ret)
                return ret;
 
@@ -207,7 +199,7 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
      }
 
      /* Synchronize with other allocations. */
-     ret = update_allocation( allocation, access );
+     ret = dfb_surface_allocation_update( allocation, access );
      if (ret) {
           /* Destroy if newly created. */
           if (allocated)
@@ -419,7 +411,7 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
           return DFB_UNIMPLEMENTED;
 
      /* Synchronize with other allocations. */
-     ret = update_allocation( allocation, CSAF_CPU_READ );
+     ret = dfb_surface_allocation_update( allocation, CSAF_CPU_READ );
      if (ret)
           return ret;
 
@@ -504,7 +496,7 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
 
      /* If no allocations exists, create one. */
      if (fusion_vector_is_empty( &buffer->allocs )) {
-          ret = allocate_buffer( buffer, CSAF_CPU_WRITE, &allocation );
+          ret = dfb_surface_pools_allocate( buffer, CSAF_CPU_WRITE, &allocation );
           if (ret) {
                D_DERROR( ret, "Core/SurfBuffer: Buffer allocation failed!\n" );
                return ret;
@@ -526,7 +518,7 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
           return DFB_UNIMPLEMENTED;
 
      /* Synchronize with other allocations. */
-     ret = update_allocation( allocation, CSAF_CPU_WRITE );
+     ret = dfb_surface_allocation_update( allocation, CSAF_CPU_WRITE );
      if (ret) {
           /* Destroy if newly created. */
           if (allocated)
@@ -1000,55 +992,6 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
 
 /**********************************************************************************************************************/
 
-static DFBResult
-allocate_buffer( CoreSurfaceBuffer       *buffer,
-                 CoreSurfaceAccessFlags   access,
-                 CoreSurfaceAllocation  **ret_allocation )
-{
-     DFBResult              ret;
-     CoreSurface           *surface;
-     CoreSurfacePool       *pool;
-     CoreSurfaceAllocation *allocation;
-
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-     D_FLAGS_ASSERT( access, CSAF_ALL );
-     D_ASSERT( ret_allocation != NULL );
-
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
-
-     D_DEBUG_AT( Core_SurfBuffer, "%s( %p, 0x%x )\n", __FUNCTION__, buffer, access );
-
-     D_DEBUG_AT( Core_SurfBuffer, " -> %dx%d %s - %s%s%s%s%s%s%s\n",
-                 surface->config.size.w, surface->config.size.h,
-                 dfb_pixelformat_name( surface->config.format ),
-                 (surface->type & CSTF_SHARED)   ? "SHARED "  : "PRIVATE ",
-                 (surface->type & CSTF_LAYER)    ? "LAYER "   : "",
-                 (surface->type & CSTF_WINDOW)   ? "WINDOW "  : "",
-                 (surface->type & CSTF_CURSOR)   ? "CURSOR "  : "",
-                 (surface->type & CSTF_FONT)     ? "FONT "    : "",
-                 (surface->type & CSTF_INTERNAL) ? "INTERNAL" : "",
-                 (surface->type & CSTF_EXTERNAL) ? "EXTERNAL" : "" );
-
-     ret = dfb_surface_pools_negotiate( buffer, access, &pool );
-     if (ret) {
-          D_DEBUG_AT( Core_SurfBuffer, " -> failed! (%s)\n", DirectFBErrorString( ret ) );
-          return ret;
-     }
-
-     ret = dfb_surface_pool_allocate( pool, buffer, &allocation );
-     if (ret) {
-          D_DERROR( ret, "Core/SurfBuffer: Allocation in '%s' failed!\n", pool->desc.name );
-          return ret;
-     }
-
-     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
-
-     *ret_allocation = allocation;
-
-     return DFB_OK;
-}
-
 static void
 transfer_buffer( CoreSurfaceBuffer *buffer,
                  void              *src,
@@ -1117,9 +1060,9 @@ transfer_buffer( CoreSurfaceBuffer *buffer,
      }
 }
 
-static DFBResult
-update_allocation( CoreSurfaceAllocation  *allocation,
-                   CoreSurfaceAccessFlags  access )
+DFBResult
+dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
+                               CoreSurfaceAccessFlags  access )
 {
      DFBResult              ret;
      int                    i;

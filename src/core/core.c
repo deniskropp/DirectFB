@@ -90,10 +90,10 @@ extern CorePart dfb_wm_core;
 static CorePart *core_parts[] = {
      &dfb_clipboard_core,
      &dfb_colorhash_core,
+     &dfb_surface_core,
      &dfb_system_core,
      &dfb_input_core,
      &dfb_graphics_core,
-     &dfb_surface_core,
      &dfb_screen_core,
      &dfb_layer_core,
      &dfb_wm_core

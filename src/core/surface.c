@@ -61,6 +61,8 @@ surface_destructor( FusionObject *object, bool zombie, void *ctx )
      D_DEBUG_AT( Core_Surface, "destroying %p (%dx%d%s)\n", surface,
                  surface->config.size.h, surface->config.size.h, zombie ? " ZOMBIE" : "");
 
+     dfb_surface_lock( surface );
+
      surface->state |= CSSF_DESTROYED;
 
      /* announce surface destruction */
@@ -79,6 +81,8 @@ surface_destructor( FusionObject *object, bool zombie, void *ctx )
      }
 
      direct_serial_deinit( &surface->serial );
+
+     dfb_surface_unlock( surface );
 
      fusion_skirmish_destroy( &surface->lock );
 
@@ -329,13 +333,12 @@ dfb_surface_notify( CoreSurface                  *surface,
      CoreSurfaceNotification notification;
 
      D_MAGIC_ASSERT( surface, CoreSurface );
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
      D_FLAGS_ASSERT( flags, CSNF_ALL );
 
      direct_serial_increase( &surface->serial );
 
      if (!(surface->state & CSSF_DESTROYED)) {
-          FUSION_SKIRMISH_ASSERT( &surface->lock );
-
           if (!(surface->notifications & flags))
                return DFB_OK;
      }

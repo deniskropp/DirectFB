@@ -157,6 +157,14 @@ typedef struct {
                           const void            *source,
                           int                    pitch,
                           const DFBRectangle    *rect );
+
+     /*
+      * Muck out
+      */
+     DFBResult (*MuckOut) ( CoreSurfacePool        *pool,
+                            void                   *pool_data,
+                            void                   *pool_local,
+                            CoreSurfaceBuffer      *buffer );
 } SurfacePoolFuncs;
 
 
@@ -178,6 +186,8 @@ struct __DFB_CoreSurfacePool {
      FusionVector                allocs;
 
      FusionSHMPoolShared        *shmpool;
+
+     CoreSurfacePool            *backup;
 };
 
 
@@ -191,11 +201,16 @@ typedef DFBEnumerationResult (*CoreSurfaceAllocCallback)( CoreSurfaceAllocation 
 
 DFBResult dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
                                        CoreSurfaceAccessFlags   access,
-                                       CoreSurfacePool        **ret_pool );
+                                       CoreSurfacePool        **ret_pools,
+                                       unsigned int             max_pools,
+                                       unsigned int            *ret_num );
 
 DFBResult dfb_surface_pools_enumerate( CoreSurfacePoolCallback  callback,
                                        void                    *ctx );
 
+DFBResult dfb_surface_pools_allocate ( CoreSurfaceBuffer       *buffer,
+                                       CoreSurfaceAccessFlags   access,
+                                       CoreSurfaceAllocation  **ret_allocation );
 
 
 DFBResult dfb_surface_pool_initialize( CoreDFB                 *core,
@@ -218,6 +233,10 @@ DFBResult dfb_surface_pool_allocate  ( CoreSurfacePool         *pool,
 
 DFBResult dfb_surface_pool_deallocate( CoreSurfacePool         *pool,
                                        CoreSurfaceAllocation   *allocation );
+
+DFBResult dfb_surface_pool_displace  ( CoreSurfacePool         *pool,
+                                       CoreSurfaceBuffer       *buffer,
+                                       CoreSurfaceAllocation  **ret_allocation );
 
 DFBResult dfb_surface_pool_lock      ( CoreSurfacePool         *pool,
                                        CoreSurfaceAllocation   *allocation,

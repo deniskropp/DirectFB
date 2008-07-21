@@ -60,7 +60,10 @@ typedef enum {
      CSALF_VOLATILE      = 0x00000002,  /* Allocation should be freed when no longer up to date. */
      CSALF_PREALLOCATED  = 0x00000004,  /* Preallocated memory, don't zap when "thrifty-surface-buffers" is active. */
 
-     CSALF_ALL           = 0x00000007   /* All of these. */
+     CSALF_MUCKOUT       = 0x00001000,  /* Indicates surface pool being in the progress of mucking out this and possibly
+                                           other allocations to have enough space for a new allocation to be made. */
+
+     CSALF_ALL           = 0x00001007   /* All of these. */
 } CoreSurfaceAllocationFlags;
 
 /*
@@ -195,6 +198,9 @@ dfb_surface_buffer_index( CoreSurfaceBuffer *buffer )
 
      return 0;
 }
+
+DFBResult dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
+                                         CoreSurfaceAccessFlags  access );
 
 #endif
 
