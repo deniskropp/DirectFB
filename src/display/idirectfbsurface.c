@@ -2344,9 +2344,7 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
                        const char         *directory,
                        const char         *prefix )
 {
-     DFBResult          ret;
-     CoreSurface       *surface;
-     CoreSurfaceBuffer *buffer;
+     CoreSurface *surface;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -2367,17 +2365,7 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
      if (!surface)
           return DFB_DESTROYED;
 
-     if (dfb_surface_lock( surface ))
-          return DFB_FUSION;
-
-     buffer = dfb_surface_get_buffer( surface, CSBR_FRONT );
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     ret = dfb_surface_buffer_dump( buffer, directory, prefix );
-
-     dfb_surface_unlock( surface );
-
-     return ret;
+     return dfb_surface_dump_buffer( surface, CSBR_FRONT, directory, prefix );
 }
 
 static DFBResult
