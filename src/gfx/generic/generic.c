@@ -6543,9 +6543,6 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      bool         src_ycbcr   = false;
      bool         dst_ycbcr   = false;
 
-     CoreSurfaceBuffer *dst_buffer = NULL;
-     CoreSurfaceBuffer *src_buffer = NULL;
-
      CoreSurfaceAccessFlags access = CSAF_CPU_WRITE;
 
      if (dfb_config->hardware_only) {
@@ -6589,18 +6586,6 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
       * Destination setup
       */
 
-     if (dfb_surface_lock( destination ))
-          return false;
-
-     dst_buffer = dfb_surface_get_buffer( destination, state->to );
-     D_MAGIC_ASSERT( dst_buffer, CoreSurfaceBuffer );
-
-     gfxs->dst_caps   = destination->config.caps;
-     gfxs->dst_height = destination->config.size.h;
-     gfxs->dst_format = dst_buffer->format;
-     gfxs->dst_bpp    = DFB_BYTES_PER_PIXEL( gfxs->dst_format );
-     dst_pfi          = DFB_PIXELFORMAT_INDEX( gfxs->dst_format );
-
      if (DFB_BLITTING_FUNCTION( accel )) {
           if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
                                       DSBLIT_BLEND_COLORALPHA   |
@@ -6610,14 +6595,18 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      else if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_DST_COLORKEY))
           access |= CSAF_CPU_READ;
 
-     ret = dfb_surface_buffer_lock( dst_buffer, access, &state->dst );
-
-     dfb_surface_unlock( destination );
-
+     /* Lock destination */
+     ret = dfb_surface_lock_buffer( destination, state->to, access, &state->dst );
      if (ret) {
           D_DERROR( ret, "DirectFB/Genefx: Could not lock destination!\n" );
           return false;
      }
+
+     gfxs->dst_caps   = destination->config.caps;
+     gfxs->dst_height = destination->config.size.h;
+     gfxs->dst_format = destination->config.format;
+     gfxs->dst_bpp    = DFB_BYTES_PER_PIXEL( gfxs->dst_format );
+     dst_pfi          = DFB_PIXELFORMAT_INDEX( gfxs->dst_format );
 
      gfxs->dst_org[0] = state->dst.addr;
      gfxs->dst_pitch  = state->dst.pitch;
@@ -6655,29 +6644,19 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                flags |= CSLF_FORCE;
 #endif
 
-          if (dfb_surface_lock( source )) {
-               dfb_surface_unlock_buffer( destination, &state->dst );
-               return false;
-          }
-
-          src_buffer = dfb_surface_get_buffer( source, state->from );
-          D_MAGIC_ASSERT( src_buffer, CoreSurfaceBuffer );
-
-          gfxs->src_caps   = source->config.caps;
-          gfxs->src_height = source->config.size.h;
-          gfxs->src_format = src_buffer->format;
-          gfxs->src_bpp    = DFB_BYTES_PER_PIXEL( gfxs->src_format );
-          src_pfi          = DFB_PIXELFORMAT_INDEX( gfxs->src_format );
-
-          ret = dfb_surface_buffer_lock( src_buffer, CSAF_CPU_READ, &state->src );
-
-          dfb_surface_unlock( source );
-
+          /* Lock source */
+          ret = dfb_surface_lock_buffer( source, state->from, CSAF_CPU_READ, &state->src );
           if (ret) {
                D_DERROR( ret, "DirectFB/Genefx: Could not lock source!\n" );
                dfb_surface_unlock_buffer( destination, &state->dst );
                return false;
           }
+
+          gfxs->src_caps   = source->config.caps;
+          gfxs->src_height = source->config.size.h;
+          gfxs->src_format = source->config.format;
+          gfxs->src_bpp    = DFB_BYTES_PER_PIXEL( gfxs->src_format );
+          src_pfi          = DFB_PIXELFORMAT_INDEX( gfxs->src_format );
 
           gfxs->src_org[0] = state->src.addr;
           gfxs->src_pitch  = state->src.pitch;

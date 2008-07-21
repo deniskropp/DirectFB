@@ -2354,19 +2354,8 @@ handle_wm_key( CoreWindowStack     *stack,
                break;
 
           case DIKS_PRINT:
-               if (dfb_config->screenshot_dir && focused && focused->surface) {
-                    CoreSurfaceBuffer *buffer;
-
-                    if (dfb_surface_lock( focused->surface ))
-                         break;
-
-                    buffer = dfb_surface_get_buffer( focused->surface, CSBR_FRONT );
-                    D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-                    dfb_surface_buffer_dump( buffer, dfb_config->screenshot_dir, "dfb_window" );
-
-                    dfb_surface_unlock( focused->surface );
-               }
+               if (dfb_config->screenshot_dir && focused && focused->surface)
+                    dfb_surface_dump_buffer( focused->surface, CSBR_FRONT, dfb_config->screenshot_dir, "dfb_window" );
                break;
 
           case DIKS_F12:
