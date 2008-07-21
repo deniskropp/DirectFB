@@ -128,9 +128,9 @@ dfb_surface_core_join( CoreDFB              *core,
      data->core   = core;
      data->shared = shared;
 
-     dfb_surface_pool_join( core, shared->prealloc_pool, &preallocSurfacePoolFuncs );
      dfb_surface_pool_join( core, shared->shared_pool, &sharedSurfacePoolFuncs );
      dfb_surface_pool_join( core, shared->local_pool, &localSurfacePoolFuncs );
+     dfb_surface_pool_join( core, shared->prealloc_pool, &preallocSurfacePoolFuncs );
 
      D_MAGIC_SET( data, DFBSurfaceCore );
 
@@ -173,9 +173,9 @@ dfb_surface_core_leave( DFBSurfaceCore *data,
 
      shared = data->shared;
 
-     dfb_surface_pool_leave( shared->prealloc_pool );
-     dfb_surface_pool_leave( shared->local_pool );
      dfb_surface_pool_leave( shared->shared_pool );
+     dfb_surface_pool_leave( shared->local_pool );
+     dfb_surface_pool_leave( shared->prealloc_pool );
 
      D_MAGIC_CLEAR( data );
 

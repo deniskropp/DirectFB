@@ -179,9 +179,16 @@ dfb_surface_pool_join( CoreDFB                *core,
      D_ASSERT( core != NULL );
      D_ASSERT( funcs != NULL );
 
-     D_ASSERT( pool->pool_id >= 0 );
      D_ASSERT( pool->pool_id < MAX_SURFACE_POOLS );
+     D_ASSERT( pool->pool_id == pool_count );
      D_ASSERT( pool_funcs[pool->pool_id] == NULL );
+
+     /* Enforce same order as initialization to be used during join. */
+     if (pool->pool_id != pool_count) {
+          D_ERROR( "Core/SurfacePool: Wrong order of joining pools, got %d, should be %d!\n",
+                   pool->pool_id, pool_count );
+          return DFB_BUG;
+     }
 
      /* Allocate local pool data. */
      if (pool->pool_local_data_size &&
@@ -335,7 +342,7 @@ dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
                break;
      }
 
-     D_DEBUG_AT( Core_SurfacePool, "  -> 0x%02x 0x%02x required\n", access, type );
+     D_DEBUG_AT( Core_SurfacePool, "  ->     0x%02x 0x%03x required\n", access, type );
 
      for (i=0; i<pool_count; i++) {
           CoreSurfacePool *pool;
@@ -351,27 +358,26 @@ dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
           {
                const SurfacePoolFuncs *funcs;
 
-               D_DEBUG_AT( Core_SurfacePool, "  -  (%d) 0x%02x 0x%02x [%s]\n",
-                           pool->desc.priority, pool->desc.access, pool->desc.types, pool->desc.name );
+               D_DEBUG_AT( Core_SurfacePool, "  -> [%d] 0x%02x 0x%03x (%d) [%s]\n", pool->pool_id,
+                           pool->desc.access, pool->desc.types, pool->desc.priority, pool->desc.name );
 
                funcs = get_funcs( pool );
 
-               if (funcs->TestConfig) {
-                    ret = funcs->TestConfig( pool, pool->data, get_local(pool), buffer, &surface->config );
-                    switch (ret) {
-                         case DFB_OK:
-                              D_DEBUG_AT( Core_SurfacePool, "  -> OK\n" );
-                              free_pools[free_count++] = pool;
-                              break;
+               ret = funcs->TestConfig ? funcs->TestConfig( pool, pool->data, get_local(pool),
+                                                            buffer, &surface->config ) : DFB_OK;
+               switch (ret) {
+                    case DFB_OK:
+                         D_DEBUG_AT( Core_SurfacePool, "    => OK\n" );
+                         free_pools[free_count++] = pool;
+                         break;
 
-                         case DFB_NOVIDEOMEMORY:
-                              D_DEBUG_AT( Core_SurfacePool, "  -> OUT OF MEMORY\n" );
-                              oom_pools[oom_count++] = pool;
-                              break;
+                    case DFB_NOVIDEOMEMORY:
+                         D_DEBUG_AT( Core_SurfacePool, "    => OUT OF MEMORY\n" );
+                         oom_pools[oom_count++] = pool;
+                         break;
 
-                         default:
-                              continue;
-                    }
+                    default:
+                         continue;
                }
           }
      }
@@ -885,12 +891,12 @@ insert_pool_local( CoreSurfacePool *pool )
      }
 
      for (n=pool_count-1; n>i; n--) {
-          D_ASSERT( pool_order[n] >= 0 );
-          D_ASSERT( pool_order[n] < pool_count-1 );
+          D_ASSERT( pool_order[n-1] >= 0 );
+          D_ASSERT( pool_order[n-1] < pool_count-1 );
 
-          D_MAGIC_ASSERT( pool_array[pool_order[n]], CoreSurfacePool );
+          D_MAGIC_ASSERT( pool_array[pool_order[n-1]], CoreSurfacePool );
 
-          pool_order[n+1] = pool_order[n];
+          pool_order[n] = pool_order[n-1];
      }
 
      pool_order[n] = pool_count - 1;
@@ -938,9 +944,12 @@ backup_allocation( CoreSurfacePool       *pool,
                    CoreSurfaceAllocation *allocation )
 {
      DFBResult              ret;
+     int                    i;
      CoreSurfaceBuffer     *buffer;
      CoreSurface           *surface;
      CoreSurfaceAllocation *backup = NULL;
+
+     D_DEBUG_AT( Core_SurfacePool, "%s( %p, %p )\n", __FUNCTION__, pool, allocation );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
@@ -960,30 +969,69 @@ backup_allocation( CoreSurfacePool       *pool,
      if (direct_serial_check( &allocation->serial, &buffer->serial )) {
           CoreSurfacePool *backup_pool = pool->backup;
 
-          D_MAGIC_ASSERT( backup_pool, CoreSurfacePool );
+          /* First check if any of the existing allocations is up to date */
+          fusion_vector_foreach (backup, i, buffer->allocs) {
+               D_MAGIC_ASSERT( backup, CoreSurfaceAllocation );
+               D_MAGIC_ASSERT( backup->pool, CoreSurfacePool );
+
+               if (backup->pool != pool && direct_serial_check( &backup->serial, &buffer->serial )) {
+                    D_DEBUG_AT( Core_SurfacePool, "  -> up to date in '%s'\n", backup->pool->desc.name );
+                    goto out;
+               }
+          }
+
+          backup = NULL;
+
+          /* Try to update one of the existing allocations */
+          fusion_vector_foreach (backup, i, buffer->allocs) {
+               D_MAGIC_ASSERT( backup, CoreSurfaceAllocation );
+               D_MAGIC_ASSERT( backup->pool, CoreSurfacePool );
+
+               if (backup->pool != pool && dfb_surface_allocation_update( backup, CSAF_NONE ) == DFB_OK) {
+                    D_DEBUG_AT( Core_SurfacePool, "  -> updated in '%s'\n", backup->pool->desc.name );
+                    goto out;
+               }
+          }
+
+          backup = NULL;
 
           /* Try the designated backup pool and theirs if failing */
           while (backup_pool) {
+               D_MAGIC_ASSERT( backup_pool, CoreSurfacePool );
+
+               D_DEBUG_AT( Core_SurfacePool, "  -> allocating in '%s'\n", backup_pool->desc.name );
+
                /* Allocate in backup pool */
                ret = dfb_surface_pool_allocate( backup_pool, buffer, &backup );
                if (ret == DFB_OK) {
                     /* Update new allocation */
                     ret = dfb_surface_allocation_update( backup, CSAF_NONE );
                     if (ret) {
+                         D_DEBUG_AT( Core_SurfacePool, "  -> update failed! (%s)\n", DirectFBErrorString(ret) );
                          dfb_surface_pool_deallocate( backup_pool, backup );
                          backup = NULL;
                     }
-                    else {
-                         /* Deallocate old one */
-                         dfb_surface_pool_deallocate( pool, allocation );
-                         break;
-                    }
+                    else
+                         goto out;
                }
+               else
+                    D_DEBUG_AT( Core_SurfacePool, "  -> allocation failed! (%s)\n", DirectFBErrorString(ret) );
 
                backup_pool = backup_pool->backup;
           }
      }
-     
+     else {
+          D_DEBUG_AT( Core_SurfacePool, "  -> not up to date anyhow\n" );
+
+          dfb_surface_unlock( surface );
+          return DFB_OK;
+     }
+
+out:
+     /* Deallocate mucked out allocation when backup succeeded */
+     if (backup)
+          dfb_surface_pool_deallocate( pool, allocation );
+
      dfb_surface_unlock( surface );
 
      return backup ? DFB_OK : DFB_FAILURE;

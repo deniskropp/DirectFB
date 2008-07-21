@@ -1080,7 +1080,7 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
      if (direct_serial_update( &allocation->serial, &buffer->serial ) && buffer->written) {
           CoreSurfaceAllocation *source = buffer->written;
 
-          D_DEBUG_AT( Core_SurfBuffer, "  -> updating allocation...\n" );
+          D_DEBUG_AT( Core_SurfBuffer, "  -> updating allocation... %p -> %p\n", source->buffer, allocation->buffer );
 
           D_MAGIC_ASSERT( source, CoreSurfaceAllocation );
           D_ASSERT( source->buffer == allocation->buffer );
@@ -1148,11 +1148,13 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
 
      /* Zap all other allocations? */
      if (dfb_config->thrifty_surface_buffers) {
+          buffer->written = allocation;
+
           fusion_vector_foreach (alloc, i, buffer->allocs) {
                D_MAGIC_ASSERT( alloc, CoreSurfaceAllocation );
 
                /* Don't zap preallocated which would not really free up memory, but just loose the handle. */
-               if (alloc != allocation && !(alloc->flags & CSALF_PREALLOCATED)) {
+               if (alloc != allocation && !(alloc->flags & (CSALF_PREALLOCATED | CSALF_MUCKOUT))) {
                     dfb_surface_pool_deallocate( alloc->pool, alloc );
                     i--;
                }
