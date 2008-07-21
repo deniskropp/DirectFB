@@ -276,7 +276,12 @@ vpsmemAllocateBuffer( CoreSurfacePool       *pool,
 
      alloc->chunk  = chunk;
 
-     D_DEBUG_AT( VPSMem_Surfaces, "  -> offset %d, pitch %d, size %d\n", alloc->offset, alloc->pitch, alloc->size );
+     D_DEBUG_AT( VPSMem_Surfaces, "  -> offset %d, pitch %d, size %d (%d)\n",
+                 alloc->offset, alloc->pitch, alloc->size, chunk->length );
+
+     D_ASSERT( chunk->length >= alloc->size );
+
+     alloc->size = chunk->length;
 
      allocation->size   = alloc->size;
      allocation->offset = alloc->offset;

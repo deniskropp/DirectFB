@@ -176,6 +176,9 @@ x11TestConfig( CoreSurfacePool         *pool,
                CoreSurfaceBuffer       *buffer,
                const CoreSurfaceConfig *config )
 {
+     if (!dfb_x11->vpsmem_length)
+          return DFB_OK;
+          
      /* Pass NULL image for probing */
      return x11ImageInit( NULL, config->size.w, config->size.h, config->format );
 }

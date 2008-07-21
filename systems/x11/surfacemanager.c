@@ -153,8 +153,7 @@ DFBResult dfb_surfacemanager_allocate( CoreDFB                *core,
      Chunk *c;
      CoreGraphicsDevice *device;
 
-     Chunk *best_free     = NULL;
-     Chunk *best_occupied = NULL;
+     Chunk *best_free = NULL;
 
      D_MAGIC_ASSERT( manager, SurfaceManager );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
@@ -180,6 +179,9 @@ DFBResult dfb_surfacemanager_allocate( CoreDFB                *core,
 
      D_DEBUG_AT( SurfMan, "  -> pitch %d, length %d\n", pitch, length );
 
+     if (manager->avail < length)
+          return DFB_TEMPUNAVAIL;
+
      /* examine chunks */
      c = manager->chunks;
      D_MAGIC_ASSERT( c, Chunk );
@@ -187,32 +189,14 @@ DFBResult dfb_surfacemanager_allocate( CoreDFB                *core,
      while (c) {
           D_MAGIC_ASSERT( c, Chunk );
 
-          if (c->length >= length) {
-               if (c->buffer) {
-                    c->tolerations++;
-                    if (c->tolerations > 0xff)
-                         c->tolerations = 0xff;
+          if (!c->buffer && c->length >= length) {
+               /* found a nice place to chill */
+               if (!best_free  ||  best_free->length > c->length)
+                    /* first found or better one? */
+                    best_free = c;
 
-                    if (//FIXME_SC_1  !c->buffer->video.locked              &&
-                        c->buffer->policy <= buffer->policy   &&
-                        c->buffer->policy != CSP_VIDEOONLY    &&
-                       ((buffer->policy > c->buffer->policy)  ||
-                        (c->tolerations > manager->min_toleration/8 + 2)))
-                    {
-                         /* found a nice place to chill */
-                         if (!best_occupied  ||
-                             best_occupied->length > c->length  ||
-                             best_occupied->tolerations < c->tolerations)
-                              /* first found or better one? */
-                              best_occupied = c;
-                    }
-               }
-               else {
-                    /* found a nice place to chill */
-                    if (!best_free  ||  best_free->length > c->length)
-                         /* first found or better one? */
-                         best_free = c;
-               }
+               if (c->length == length)
+                    break;
           }
 
           c = c->next;
@@ -240,6 +224,7 @@ DFBResult dfb_surfacemanager_displace( CoreDFB           *core,
                                        CoreSurfaceBuffer *buffer )
 {
      int                    length;
+     int                    min_toleration;
      Chunk                 *chunk;
      CoreGraphicsDevice    *device;
      CoreSurfaceAllocation *smallest = NULL;
@@ -258,6 +243,10 @@ DFBResult dfb_surfacemanager_displace( CoreDFB           *core,
 
      dfb_gfxcard_calc_buffer_size( dfb_core_get_part( core, DFCP_GRAPHICS ), buffer, NULL, &length );
 
+     min_toleration = manager->min_toleration/8 + 2;
+
+     D_DEBUG_AT( SurfMan, "  -> %7d required, min toleration %d\n", length, min_toleration );
+
      chunk = manager->chunks;
      while (chunk) {
           CoreSurfaceAllocation *allocation;
@@ -266,15 +255,66 @@ DFBResult dfb_surfacemanager_displace( CoreDFB           *core,
 
           allocation = chunk->allocation;
           if (allocation) {
+               CoreSurfaceBuffer *other;
+               int                size;
+
                D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
-               D_MAGIC_ASSERT( allocation->buffer, CoreSurfaceBuffer );
+               D_ASSERT( chunk->buffer == allocation->buffer );
+               D_ASSERT( chunk->length >= allocation->size );
 
-               if (allocation->size >= length && !allocation->buffer->locked) {
-                    if (!smallest || smallest->size > allocation->size)
-                         smallest = allocation;
+               other = allocation->buffer;
+               D_MAGIC_ASSERT( other, CoreSurfaceBuffer );
+
+               if (other->locked) {
+                    D_DEBUG_AT( SurfMan, "  -> %7d locked %dx\n", allocation->size, other->locked );
+                    goto next;
                }
-          }
 
+               if (other->policy > buffer->policy) {
+                    D_DEBUG_AT( SurfMan, "  -> %7d policy %d > %d\n", allocation->size, other->policy, buffer->policy );
+                    goto next;
+               }
+
+               if (other->policy == CSP_VIDEOONLY) {
+                    D_DEBUG_AT( SurfMan, "  -> %7d policy videoonly\n", allocation->size );
+                    goto next;
+               }
+
+               chunk->tolerations++;
+               if (chunk->tolerations > 0xff)
+                    chunk->tolerations = 0xff;
+
+               if (other->policy == buffer->policy && chunk->tolerations < min_toleration) {
+                    D_DEBUG_AT( SurfMan, "  -> %7d tolerations %d/%d\n",
+                                allocation->size, chunk->tolerations, min_toleration );
+                    goto next;
+               }
+
+               size = allocation->size;
+
+               if (chunk->prev && !chunk->prev->allocation)
+                    size += chunk->prev->length;
+
+               if (chunk->next && !chunk->next->allocation)
+                    size += chunk->next->length;
+
+               if (size >= length) {
+                    if (!smallest || smallest->size > allocation->size) {
+                         D_DEBUG_AT( SurfMan, "  => %7d [%d] < %d, tolerations %d\n",
+                                     allocation->size, size, smallest ? smallest->size : 0, chunk->tolerations );
+
+                         smallest = allocation;
+                    }
+                    else
+                         D_DEBUG_AT( SurfMan, "  -> %7d [%d] > %d\n", allocation->size, size, smallest->size );
+               }
+               else
+                    D_DEBUG_AT( SurfMan, "  -> %7d [%d]\n", allocation->size, size );
+          }
+          else
+               D_DEBUG_AT( SurfMan, "  -  %7d free\n", chunk->length );
+
+next:
           chunk = chunk->next;
      }
 

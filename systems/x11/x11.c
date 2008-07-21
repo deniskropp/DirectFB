@@ -210,8 +210,8 @@ system_initialize( CoreDFB *core, void **data )
 
           dfb_surface_pool_initialize( core, &vpsmemSurfacePoolFuncs, &dfb_x11->vpsmem_pool );
      }
-     else
-          dfb_surface_pool_initialize( core, &x11SurfacePoolFuncs, &dfb_x11->x11image_pool );
+
+     dfb_surface_pool_initialize( core, &x11SurfacePoolFuncs, &dfb_x11->x11image_pool );
 
 
      screen = dfb_screens_register( NULL, NULL, &x11PrimaryScreenFuncs );
