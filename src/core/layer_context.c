@@ -257,8 +257,14 @@ dfb_layer_context_activate( CoreLayerContext *context )
                                             layer->layer_data, &context->adjustment );
 
      /* Resume window stack. */
-     if (context->stack)
-          dfb_wm_set_active( context->stack, true );
+     if (context->stack) {
+          CoreWindowStack *stack = context->stack;
+
+          D_MAGIC_ASSERT( stack, CoreWindowStack );
+
+          if (stack->flags & CWSF_INITIALIZED)
+               dfb_wm_set_active( stack, true );
+     }
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
@@ -296,8 +302,14 @@ dfb_layer_context_deactivate( CoreLayerContext *context )
      context->active = false;
 
      /* Suspend window stack. */
-     if (context->stack)
-          dfb_wm_set_active( context->stack, false );
+     if (context->stack) {
+          CoreWindowStack *stack = context->stack;
+
+          D_MAGIC_ASSERT( stack, CoreWindowStack );
+
+          if (stack->flags & CWSF_ACTIVATED)
+               dfb_wm_set_active( stack, false );
+     }
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );

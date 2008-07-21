@@ -422,25 +422,10 @@ dfb_wm_close_all_stacks( void *data )
      D_MAGIC_ASSERT( local->shared, DFBWMCoreShared );
 
      direct_list_foreach (stack, wm_shared->stacks) {
-          CoreLayerContext *context;
-
           D_MAGIC_ASSERT( stack, CoreWindowStack );
 
-          context = stack->context;
-
-          D_ASSERT( context != NULL );
-          D_ASSERT( context->stack == stack );
-
-          context->stack = NULL;
-
-          /* Window manager specific deinitialization. */
-          local->funcs->CloseStack( stack, local->data, stack->stack_data );
-          
-          /* Deallocate shared stack data. */
-          if (stack->stack_data)
-               SHFREE( shared->shmpool, stack->stack_data );
-
-          D_MAGIC_CLEAR( stack );
+          if (stack->flags & CWSF_INITIALIZED)
+               dfb_wm_close_stack( stack );
      }
 
      return DFB_OK;
@@ -516,40 +501,37 @@ dfb_wm_post_init( CoreDFB *core )
 DFBResult
 dfb_wm_init_stack( CoreWindowStack *stack )
 {
-     DFBResult  ret;
-     void      *stack_data = NULL;
+     DFBResult ret;
 
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->InitStack != NULL );
      D_ASSERT( wm_shared != NULL );
 
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_ASSERT( !(stack->flags & CWSF_INITIALIZED) );
 
      /* Allocate shared stack data. */
      if (wm_shared->info.stack_data_size) {
-          stack_data = SHCALLOC( wm_shared->shmpool, 1, wm_shared->info.stack_data_size );
-          if (!stack_data) {
+          stack->stack_data = SHCALLOC( wm_shared->shmpool, 1, wm_shared->info.stack_data_size );
+          if (!stack->stack_data) {
                D_WARN( "out of (shared) memory" );
                return D_OOSHM();
           }
      }
 
-     D_MAGIC_SET( stack, CoreWindowStack );
-
      /* Window manager specific initialization. */
-     ret = wm_local->funcs->InitStack( stack, wm_local->data, stack_data );
+     ret = wm_local->funcs->InitStack( stack, wm_local->data, stack->stack_data );
      if (ret) {
-          if (stack_data)
-               SHFREE( wm_shared->shmpool, stack_data );
-
-          D_MAGIC_CLEAR( stack );
+          if (stack->stack_data) {
+               SHFREE( wm_shared->shmpool, stack->stack_data );
+               stack->stack_data = NULL;
+          }
 
           return ret;
      }
 
-     /* Keep shared stack data. */
-     stack->stack_data = stack_data;
+     stack->flags |= CWSF_INITIALIZED;
 
      /* Add window stack to list. */
      direct_list_append( &wm_shared->stacks, &stack->link );
@@ -558,7 +540,7 @@ dfb_wm_init_stack( CoreWindowStack *stack )
 }
 
 DFBResult
-dfb_wm_close_stack( CoreWindowStack *stack, bool final )
+dfb_wm_close_stack( CoreWindowStack *stack )
 {
      DFBResult ret;
 
@@ -568,17 +550,31 @@ dfb_wm_close_stack( CoreWindowStack *stack, bool final )
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
 
+     D_ASSUME( stack->flags & CWSF_INITIALIZED );
+
+     if (!(stack->flags & CWSF_INITIALIZED)) {
+          D_ASSUME( !(stack->flags & CWSF_ACTIVATED) );
+          return DFB_OK;
+     }
+
+     /* Deactivate before deinitialization. */
+     if (stack->flags & CWSF_ACTIVATED)
+          dfb_wm_set_active( stack, false );
+
      /* Window manager specific deinitialization. */
      ret = wm_local->funcs->CloseStack( stack, wm_local->data, stack->stack_data );
 
      /* Deallocate shared stack data. */
-     if (final && stack->stack_data)
+     if (stack->stack_data) {
           SHFREE( wm_shared->shmpool, stack->stack_data );
+
+          stack->stack_data = NULL;
+     }
 
      /* Remove window stack from list. */
      direct_list_remove( &wm_shared->stacks, &stack->link );
 
-     D_MAGIC_CLEAR( stack );
+     stack->flags &= ~CWSF_INITIALIZED;
 
      return ret;
 }
@@ -587,13 +583,37 @@ DFBResult
 dfb_wm_set_active( CoreWindowStack *stack,
                    bool             active )
 {
+     DFBResult ret;
+
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->SetActive != NULL );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
-     return wm_local->funcs->SetActive( stack, wm_local->data, stack->stack_data, active );
+     if (active) {
+          D_ASSUME( !(stack->flags & CWSF_ACTIVATED) );
+
+          if (stack->flags & CWSF_ACTIVATED)
+               return DFB_OK;
+
+          ret = wm_local->funcs->SetActive( stack, wm_local->data, stack->stack_data, true );
+
+          stack->flags |= CWSF_ACTIVATED;
+     }
+     else {
+          D_ASSUME( stack->flags & CWSF_ACTIVATED );
+
+          if (!(stack->flags & CWSF_ACTIVATED))
+               return DFB_OK;
+
+          ret = wm_local->funcs->SetActive( stack, wm_local->data, stack->stack_data, false );
+
+          stack->flags &= ~CWSF_ACTIVATED;
+     }
+
+     return ret;
 }
 
 DFBResult
@@ -606,6 +626,7 @@ dfb_wm_resize_stack( CoreWindowStack *stack,
      D_ASSERT( wm_local->funcs->ResizeStack != NULL );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
      /* Notify window manager about the new size. */
      return wm_local->funcs->ResizeStack( stack, wm_local->data, stack->stack_data, width, height );
@@ -620,6 +641,7 @@ dfb_wm_process_input( CoreWindowStack     *stack,
      D_ASSERT( wm_local->funcs->ProcessInput != NULL );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
      D_ASSERT( event != NULL );
 
@@ -635,6 +657,7 @@ dfb_wm_flush_keys( CoreWindowStack *stack )
      D_ASSERT( wm_local->funcs->FlushKeys != NULL );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
      return wm_local->funcs->FlushKeys( stack, wm_local->data, stack->stack_data );
 }
@@ -650,6 +673,7 @@ dfb_wm_window_at( CoreWindowStack  *stack,
      D_ASSERT( wm_local->funcs->WindowAt != NULL );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
      D_ASSERT( ret_window != NULL );
 
@@ -666,6 +690,7 @@ dfb_wm_window_lookup( CoreWindowStack  *stack,
      D_ASSERT( wm_local->funcs->WindowLookup != NULL );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
      D_ASSERT( ret_window != NULL );
 
@@ -683,6 +708,7 @@ dfb_wm_enum_windows( CoreWindowStack      *stack,
      D_ASSERT( wm_local->funcs->EnumWindows != NULL );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
      D_ASSERT( callback != NULL );
 
@@ -703,6 +729,8 @@ dfb_wm_get_insets( CoreWindowStack *stack,
      D_ASSERT( wm_local->funcs->GetInsets != NULL );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_ASSERT( stack->flags & CWSF_INITIALIZED );
+
      D_ASSERT( window != NULL );
      D_ASSERT( insets != NULL );
 
@@ -723,6 +751,7 @@ dfb_wm_preconfigure_window( CoreWindowStack *stack,
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_shared != NULL );
      D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_ASSERT( stack->flags & CWSF_INITIALIZED );
      D_ASSERT( window != NULL );
      D_ASSERT( wm_local->funcs->PreConfigureWindow != NULL );
 
@@ -764,6 +793,7 @@ dfb_wm_add_window( CoreWindowStack *stack,
      D_ASSERT( wm_shared != NULL );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
      D_ASSERT( window != NULL );
 
@@ -789,6 +819,7 @@ dfb_wm_remove_window( CoreWindowStack *stack,
      D_ASSERT( wm_local->funcs->RemoveWindow != NULL );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
      D_ASSERT( window != NULL );
 
@@ -818,6 +849,8 @@ dfb_wm_set_window_property( CoreWindowStack  *stack,
      D_ASSERT( wm_local->funcs->SetWindowProperty != NULL );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_ASSERT( stack->flags & CWSF_INITIALIZED );
+
      D_ASSERT( window != NULL );
      D_ASSERT( key != NULL );
 
@@ -840,6 +873,8 @@ dfb_wm_get_window_property( CoreWindowStack  *stack,
      D_ASSERT( wm_local->funcs->GetWindowProperty != NULL );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_ASSERT( stack->flags & CWSF_INITIALIZED );
+
      D_ASSERT( window != NULL );
      D_ASSERT( key != NULL );
 
@@ -861,6 +896,8 @@ dfb_wm_remove_window_property( CoreWindowStack  *stack,
      D_ASSERT( wm_local->funcs->RemoveWindowProperty != NULL );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_ASSERT( stack->flags & CWSF_INITIALIZED );
+
      D_ASSERT( window != NULL );
      D_ASSERT( key != NULL );
 
@@ -953,6 +990,7 @@ dfb_wm_update_stack( CoreWindowStack     *stack,
      D_ASSERT( wm_local->funcs->UpdateStack != NULL );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
      DFB_REGION_ASSERT( region );
 
@@ -986,6 +1024,8 @@ dfb_wm_update_cursor( CoreWindowStack       *stack,
      D_ASSERT( wm_local->funcs->UpdateStack != NULL );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_ASSERT( stack->flags & CWSF_INITIALIZED );
+
      D_FLAGS_ASSERT( flags, CCUF_ALL );
 
      if (dfb_config->no_cursor_updates)

@@ -97,6 +97,7 @@ static DFBEnumerationResult stack_attach_devices( CoreInputDevice *device,
 CoreWindowStack*
 dfb_windowstack_create( CoreLayerContext *context )
 {
+     DFBResult          ret;
      CoreWindowStack   *stack;
      CoreSurfacePolicy  policy = CSP_SYSTEMONLY;
 
@@ -106,8 +107,10 @@ dfb_windowstack_create( CoreLayerContext *context )
 
      /* Allocate window stack data (completely shared) */
      stack = (CoreWindowStack*) SHCALLOC( context->shmpool, 1, sizeof(CoreWindowStack) );
-     if (!stack)
+     if (!stack) {
+          D_OOSHM();
           return NULL;
+     }
 
      stack->shmpool = context->shmpool;
 
@@ -141,7 +144,15 @@ dfb_windowstack_create( CoreLayerContext *context )
      stack->bg.mode        = DLBM_COLOR;
      stack->bg.color_index = -1;
 
-     dfb_wm_init_stack( stack );
+     D_MAGIC_SET( stack, CoreWindowStack );
+
+     /* Initialize window manager */
+     ret = dfb_wm_init_stack( stack );
+     if (ret) {
+          D_MAGIC_CLEAR( stack );
+          SHFREE( context->shmpool, stack );
+          return NULL;
+     }
 
      /* Attach to all input devices */
      dfb_input_enumerate_devices( stack_attach_devices, stack, DICAPS_ALL );
@@ -158,7 +169,7 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
 
      D_DEBUG_AT( Core_WindowStack, "%s( %p )\n", __FUNCTION__, stack );
 
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
 
      /* Detach all input devices. */
      l = stack->devices;
@@ -178,7 +189,9 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
      if (stack->cursor.surface)
           dfb_surface_unlink( &stack->cursor.surface );
 
-     dfb_wm_close_stack( stack, true );
+     /* Shutdown window manager? */
+     if (stack->flags & CWSF_INITIALIZED)
+          dfb_wm_close_stack( stack );
 
      /* detach listener from background surface and unlink it */
      if (stack->bg.image) {
@@ -187,6 +200,8 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
 
           dfb_surface_unlink( &stack->bg.image );
      }
+
+     D_MAGIC_CLEAR( stack );
 
      /* Free stack data. */
      SHFREE( stack->shmpool, stack );
@@ -199,7 +214,7 @@ dfb_windowstack_resize( CoreWindowStack *stack,
 {
      D_DEBUG_AT( Core_WindowStack, "%s( %p, %dx%d )\n", __FUNCTION__, stack, width, height );
 
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -229,7 +244,7 @@ dfb_windowstack_resize( CoreWindowStack *stack,
 DirectResult
 dfb_windowstack_lock( CoreWindowStack *stack )
 {
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->context != NULL );
 
      return dfb_layer_context_lock( stack->context );
@@ -241,7 +256,7 @@ dfb_windowstack_lock( CoreWindowStack *stack )
 DirectResult
 dfb_windowstack_unlock( CoreWindowStack *stack )
 {
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->context != NULL );
 
      return dfb_layer_context_unlock( stack->context );
@@ -255,7 +270,7 @@ dfb_windowstack_repaint_all( CoreWindowStack *stack )
 
      D_DEBUG_AT( Core_WindowStack, "%s( %p )\n", __FUNCTION__, stack );
 
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -286,7 +301,7 @@ dfb_windowstack_set_background_mode ( CoreWindowStack               *stack,
 {
      D_DEBUG_AT( Core_WindowStack, "%s( %p, %d )\n", __FUNCTION__, stack, mode );
 
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -320,7 +335,7 @@ dfb_windowstack_set_background_image( CoreWindowStack *stack,
 {
      D_DEBUG_AT( Core_WindowStack, "%s( %p, %p )\n", __FUNCTION__, stack, image );
 
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( image != NULL );
 
      if (!(image->type & CSTF_SHARED))
@@ -363,11 +378,12 @@ DFBResult
 dfb_windowstack_set_background_color( CoreWindowStack *stack,
                                       const DFBColor  *color )
 {
-     D_ASSERT( stack != NULL );
      D_ASSERT( color != NULL );
 
      D_DEBUG_AT( Core_WindowStack, "%s( %p, 0x%08x )\n", __FUNCTION__, stack,
                  PIXEL_ARGB( color->a, color->r, color->g, color->b ) );
+
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -393,9 +409,9 @@ DFBResult
 dfb_windowstack_set_background_color_index( CoreWindowStack *stack,
                                             int              index )
 {
-     D_ASSERT( stack != NULL );
-
      D_DEBUG_AT( Core_WindowStack, "%s( %p, %d )\n", __FUNCTION__, stack, index );
+
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -430,7 +446,7 @@ dfb_windowstack_cursor_enable( CoreDFB *core, CoreWindowStack *stack, bool enabl
 
      D_DEBUG_AT( Core_WindowStack, "%s( %p, %s )\n", __FUNCTION__, stack, enable ? "enable" : "disable" );
 
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -468,7 +484,7 @@ dfb_windowstack_cursor_set_opacity( CoreWindowStack *stack, u8 opacity )
 {
      D_DEBUG_AT( Core_WindowStack, "%s( %p, 0x%02x )\n", __FUNCTION__, stack, opacity );
 
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -503,7 +519,7 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
                  __FUNCTION__, stack, shape, hot_x, hot_y,
                  shape->config.size.w, shape->config.size.h );
 
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( shape != NULL );
 
      if (dfb_config->no_cursor)
@@ -564,7 +580,7 @@ dfb_windowstack_cursor_warp( CoreWindowStack *stack, int x, int y )
 {
      D_DEBUG_AT( Core_WindowStack, "%s( %p, %d, %d )\n", __FUNCTION__, stack, x, y );
 
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -604,7 +620,7 @@ dfb_windowstack_cursor_set_acceleration( CoreWindowStack *stack,
      D_DEBUG_AT( Core_WindowStack, "%s( %p, %d, %d, %d )\n",
                  __FUNCTION__, stack, numerator, denominator, threshold );
 
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -625,7 +641,7 @@ dfb_windowstack_get_cursor_position( CoreWindowStack *stack, int *ret_x, int *re
 {
      D_DEBUG_AT( Core_WindowStack, "%s( %p, %p, %p )\n", __FUNCTION__, stack, ret_x, ret_y );
 
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSUME( ret_x != NULL || ret_y != NULL );
 
      /* Lock the window stack. */
@@ -656,7 +672,7 @@ _dfb_windowstack_inputdevice_listener( const void *msg_data,
      D_DEBUG_AT( Core_WindowStack, "%s( %p, %p )\n", __FUNCTION__, msg_data, ctx );
 
      D_ASSERT( msg_data != NULL );
-     D_ASSERT( ctx != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -685,7 +701,7 @@ _dfb_windowstack_background_image_listener( const void *msg_data,
      D_DEBUG_AT( Core_WindowStack, "%s( %p, %p )\n", __FUNCTION__, msg_data, ctx );
 
      D_ASSERT( notification != NULL );
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
 
      if (notification->flags & CSNF_DESTROY) {
           if (stack->bg.image == notification->surface) {
@@ -719,7 +735,7 @@ stack_attach_devices( CoreInputDevice *device,
      StackDevice     *dev;
      CoreWindowStack *stack = (CoreWindowStack*) ctx;
 
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
 
      dev = SHCALLOC( stack->shmpool, 1, sizeof(StackDevice) );
      if (!dev) {
@@ -752,7 +768,7 @@ load_default_cursor( CoreDFB *core, CoreWindowStack *stack )
 
      D_DEBUG_AT( Core_WindowStack, "%s( %p )\n", __FUNCTION__, stack );
 
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
 
      if (!stack->cursor.surface) {
           ret = create_cursor_surface( stack, 40, 40 );
@@ -840,7 +856,7 @@ create_cursor_surface( CoreWindowStack *stack,
 
      D_DEBUG_AT( Core_WindowStack, "%s( %p, %dx%d )\n", __FUNCTION__, stack, width, height );
 
-     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->cursor.surface == NULL );
 
      context = stack->context;

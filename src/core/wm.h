@@ -283,8 +283,7 @@ DFBResult dfb_wm_post_init          ( CoreDFB                *core );
 
 DFBResult dfb_wm_init_stack         ( CoreWindowStack        *stack );
                                     
-DFBResult dfb_wm_close_stack        ( CoreWindowStack        *stack,
-                                      bool                    final );
+DFBResult dfb_wm_close_stack        ( CoreWindowStack        *stack );
 
 DFBResult dfb_wm_set_active         ( CoreWindowStack        *stack,
                                       bool                    active );

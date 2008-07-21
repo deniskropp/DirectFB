@@ -103,6 +103,15 @@ struct __DFB_CoreWindow {
      DFBWindowID             parent_id;      /* window id of parent window */
 };
 
+typedef enum {
+     CWSF_NONE           = 0x00000000,
+
+     CWSF_INITIALIZED    = 0x00000001,
+     CWSF_ACTIVATED      = 0x00000002,
+
+     CWSF_ALL            = 0x00000003
+} CoreWindowStackFlags;
+
 /*
  * Core data of a window stack.
  */
@@ -161,6 +170,8 @@ struct __DFB_CoreWindowStack {
      void                *stack_data;   /* private data of window manager */
 
      FusionSHMPoolShared *shmpool;
+
+     CoreWindowStackFlags flags;
 };
 
 
