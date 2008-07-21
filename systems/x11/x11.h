@@ -54,14 +54,18 @@ typedef struct {
      UpdateScreenData     update;
      SetModeData          setmode;
                          
-     bool                 use_shm;
+     Bool                 use_shm;
+     int                  xshm_major;
+     int                  xshm_minor;
                          
      FusionSkirmish       lock;
      FusionCall           call;
 
      FusionSHMPoolShared *data_shmpool;
  
-     CoreSurfacePool     *surface_pool;
+     CoreSurfacePool     *x11image_pool;
+     CoreSurfacePool     *vpsmem_pool;
+     unsigned int         vpsmem_length;
  
      CoreSurface         *primary;
      XWindow             *xw;

@@ -50,6 +50,8 @@ typedef struct {
      Visual*               visual;
 
      XImage*               ximage;
+     int                   pitch;
+
      XShmSegmentInfo       seginfo;
 } x11Image;
 

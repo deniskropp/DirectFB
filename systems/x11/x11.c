@@ -60,6 +60,8 @@
 #include "x11.h"
 #include "x11_surface_pool.h"
 
+#include "vpsmem_surface_pool.h"
+
 #include <core/core_system.h>
 
 
@@ -110,6 +112,7 @@ static void
 system_get_info( CoreSystemInfo *info )
 {
      info->type = CORE_X11;   
+     info->caps = CSCAPS_ACCELERATION;
 
      snprintf( info->name, DFB_CORE_SYSTEM_INFO_NAME_LENGTH, "X11" );
 }
@@ -128,25 +131,13 @@ system_initialize( CoreDFB *core, void **data )
           return D_OOSHM();
      }
 
+     dfb_x11->data_shmpool = dfb_core_shmpool_data( core );
+
      dfb_x11_core = core;
 
-     fusion_skirmish_init( &dfb_x11->lock, "X11 System", dfb_core_world(core) );
 
-     fusion_call_init( &dfb_x11->call, call_handler, NULL, dfb_core_world(core) );
-
-     dfb_surface_pool_initialize( core, &x11SurfacePoolFuncs, &dfb_x11->surface_pool );
-
-     screen = dfb_screens_register( NULL, NULL, &x11PrimaryScreenFuncs );
-
-     dfb_layers_register( screen, NULL, &x11PrimaryLayerFuncs );
-
-     fusion_arena_add_shared_field( dfb_core_arena( core ), "x11", dfb_x11 );
-
-     *data = dfb_x11;
 
      XInitThreads();
-
-     dfb_x11->data_shmpool = dfb_core_shmpool_data( core );
 
      dfb_x11->display = XOpenDisplay(getenv("DISPLAY"));
      if (!dfb_x11->display) {
@@ -204,6 +195,34 @@ system_initialize( CoreDFB *core, void **data )
           }
      }
 
+     if (XShmQueryExtension( dfb_x11->display ))
+          XShmQueryVersion( dfb_x11->display, &dfb_x11->xshm_major, &dfb_x11->xshm_minor, &dfb_x11->use_shm );
+
+
+
+     fusion_skirmish_init( &dfb_x11->lock, "X11 System", dfb_core_world(core) );
+
+     fusion_call_init( &dfb_x11->call, call_handler, NULL, dfb_core_world(core) );
+
+
+     if (dfb_config->video_length) {
+          dfb_x11->vpsmem_length = dfb_config->video_length;
+
+          dfb_surface_pool_initialize( core, &vpsmemSurfacePoolFuncs, &dfb_x11->vpsmem_pool );
+     }
+     else
+          dfb_surface_pool_initialize( core, &x11SurfacePoolFuncs, &dfb_x11->x11image_pool );
+
+
+     screen = dfb_screens_register( NULL, NULL, &x11PrimaryScreenFuncs );
+
+     dfb_layers_register( screen, NULL, &x11PrimaryLayerFuncs );
+
+
+     fusion_arena_add_shared_field( dfb_core_arena( core ), "x11", dfb_x11 );
+
+     *data = dfb_x11;
+
      return DFB_OK;
 }
 
@@ -220,7 +239,11 @@ system_join( CoreDFB *core, void **data )
      dfb_x11 = ret;
      dfb_x11_core = core;
 
-     dfb_surface_pool_join( core, dfb_x11->surface_pool, &x11SurfacePoolFuncs );
+     if (dfb_x11->vpsmem_pool)
+          dfb_surface_pool_join( core, dfb_x11->vpsmem_pool, &vpsmemSurfacePoolFuncs );
+
+     if (dfb_x11->x11image_pool)
+          dfb_surface_pool_join( core, dfb_x11->x11image_pool, &x11SurfacePoolFuncs );
 
      screen = dfb_screens_register( NULL, NULL, &x11PrimaryScreenFuncs );
 
@@ -236,7 +259,11 @@ system_shutdown( bool emergency )
 {
      D_ASSERT( dfb_x11 != NULL );
 
-     dfb_surface_pool_destroy( dfb_x11->surface_pool );
+     if (dfb_x11->x11image_pool)
+          dfb_surface_pool_destroy( dfb_x11->x11image_pool );
+
+     if (dfb_x11->vpsmem_pool)
+          dfb_surface_pool_destroy( dfb_x11->vpsmem_pool );
 
      fusion_call_destroy( &dfb_x11->call );
 
@@ -260,6 +287,12 @@ static DFBResult
 system_leave( bool emergency )
 {
      D_ASSERT( dfb_x11 != NULL );
+
+     if (dfb_x11->x11image_pool)
+          dfb_surface_pool_leave( dfb_x11->x11image_pool );
+
+     if (dfb_x11->vpsmem_pool)
+          dfb_surface_pool_leave( dfb_x11->vpsmem_pool );
 
      dfb_x11 = NULL;
      dfb_x11_core = NULL;
@@ -295,7 +328,7 @@ system_unmap_mmio( volatile void  *addr,
 static int
 system_get_accelerator()
 {
-     return -1;
+     return 51;
 }
 
 static VideoMode *

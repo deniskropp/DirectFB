@@ -1,0 +1,429 @@
+/*
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2000-2004  Convergence (integrated media) GmbH
+
+   All rights reserved.
+
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org>,
+              Ville Syrjälä <syrjala@sci.fi> and
+              Claudio Ciccani <klan@users.sf.net>.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+
+#include <config.h>
+
+#include <fusion/shmalloc.h>
+
+#include <directfb.h>
+#include <directfb_util.h>
+
+#include <core/core.h>
+
+#include <core/gfxcard.h>
+#include <core/surface.h>
+#include <core/surface_buffer.h>
+
+#include <direct/debug.h>
+#include <direct/messages.h>
+#include <direct/util.h>
+
+#include <gfx/convert.h>
+
+#include "surfacemanager.h"
+
+D_DEBUG_DOMAIN( SurfMan, "SurfaceManager", "DirectFB Surface Manager" );
+
+
+static Chunk *split_chunk ( SurfaceManager *manager,
+                            Chunk          *chunk,
+                            int             length );
+
+static Chunk *free_chunk  ( SurfaceManager *manager,
+                            Chunk          *chunk );
+
+static Chunk *occupy_chunk( SurfaceManager        *manager,
+                            Chunk                 *chunk,
+                            CoreSurfaceAllocation *allocation,
+                            int                    length,
+                            int                    pitch );
+
+
+DFBResult
+dfb_surfacemanager_create( CoreDFB         *core,
+                           unsigned int     length,
+                           SurfaceManager **ret_manager )
+{
+     FusionSHMPoolShared *pool;
+     SurfaceManager      *manager;
+     Chunk               *chunk;
+
+     D_DEBUG_AT( SurfMan, "%s( %p, %d )\n", __FUNCTION__, core, length );
+
+     D_ASSERT( core != NULL );
+     D_ASSERT( ret_manager != NULL );
+
+     pool = dfb_core_shmpool( core );
+
+     manager = SHCALLOC( pool, 1, sizeof(SurfaceManager) );
+     if (!manager)
+          return D_OOSHM();
+
+     chunk = SHCALLOC( pool, 1, sizeof(Chunk) );
+     if (!chunk) {
+          D_OOSHM();
+          SHFREE( pool, manager );
+          return DFB_NOSHAREDMEMORY;
+     }
+
+     manager->shmpool = pool;
+     manager->chunks  = chunk;
+     manager->offset  = 0;
+     manager->length  = length;
+     manager->avail   = manager->length - manager->offset;
+
+     D_MAGIC_SET( manager, SurfaceManager );
+
+     chunk->offset    = manager->offset;
+     chunk->length    = manager->avail;
+
+     D_MAGIC_SET( chunk, Chunk );
+
+     D_DEBUG_AT( SurfMan, "  -> %p\n", manager );
+
+     *ret_manager = manager;
+
+     return DFB_OK;
+}
+
+void
+dfb_surfacemanager_destroy( SurfaceManager *manager )
+{
+     Chunk *chunk;
+     void  *next;
+
+     D_DEBUG_AT( SurfMan, "%s( %p )\n", __FUNCTION__, manager );
+
+     D_MAGIC_ASSERT( manager, SurfaceManager );
+
+     /* Deallocate all video chunks. */
+     chunk = manager->chunks;
+     while (chunk) {
+          next = chunk->next;
+
+          D_MAGIC_CLEAR( chunk );
+
+          SHFREE( manager->shmpool, chunk );
+
+          chunk = next;
+     }
+
+     D_MAGIC_CLEAR( manager );
+
+     /* Deallocate manager struct. */
+     SHFREE( manager->shmpool, manager );
+}
+
+/** public functions NOT locking the surfacemanger theirself,
+    to be called between lock/unlock of surfacemanager **/
+
+DFBResult dfb_surfacemanager_allocate( CoreDFB                *core,
+                                       SurfaceManager         *manager,
+                                       CoreSurfaceBuffer      *buffer,
+                                       CoreSurfaceAllocation  *allocation,
+                                       Chunk                 **ret_chunk )
+{
+     int pitch;
+     int length;
+     Chunk *c;
+     CoreGraphicsDevice *device;
+
+     Chunk *best_free     = NULL;
+     Chunk *best_occupied = NULL;
+
+     D_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     D_MAGIC_ASSERT( buffer->surface, CoreSurface );
+
+     if (ret_chunk)
+          D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+     else
+          D_ASSUME( allocation == NULL );
+
+     D_DEBUG_AT( SurfMan, "%s( %p ) <- %dx%d %s\n", __FUNCTION__, buffer,
+                 buffer->surface->config.size.w, buffer->surface->config.size.h,
+                 dfb_pixelformat_name( buffer->surface->config.format ) );
+
+     if (manager->suspended)
+          return DFB_SUSPENDED;
+
+     /* FIXME: Only one global device at the moment. */
+     device = dfb_core_get_part( core, DFCP_GRAPHICS );
+     D_ASSERT( device != NULL );
+
+     dfb_gfxcard_calc_buffer_size( device, buffer, &pitch, &length );
+
+     D_DEBUG_AT( SurfMan, "  -> pitch %d, length %d\n", pitch, length );
+
+     /* examine chunks */
+     c = manager->chunks;
+     D_MAGIC_ASSERT( c, Chunk );
+
+     while (c) {
+          D_MAGIC_ASSERT( c, Chunk );
+
+          if (c->length >= length) {
+               if (c->buffer) {
+                    c->tolerations++;
+                    if (c->tolerations > 0xff)
+                         c->tolerations = 0xff;
+
+                    if (//FIXME_SC_1  !c->buffer->video.locked              &&
+                        c->buffer->policy <= buffer->policy   &&
+                        c->buffer->policy != CSP_VIDEOONLY    &&
+                       ((buffer->policy > c->buffer->policy)  ||
+                        (c->tolerations > manager->min_toleration/8 + 2)))
+                    {
+                         /* found a nice place to chill */
+                         if (!best_occupied  ||
+                             best_occupied->length > c->length  ||
+                             best_occupied->tolerations < c->tolerations)
+                              /* first found or better one? */
+                              best_occupied = c;
+                    }
+               }
+               else {
+                    /* found a nice place to chill */
+                    if (!best_free  ||  best_free->length > c->length)
+                         /* first found or better one? */
+                         best_free = c;
+               }
+          }
+
+          c = c->next;
+     }
+
+     /* if we found a place */
+     if (best_free) {
+          D_DEBUG_AT( SurfMan, "  -> found free (%d)\n", best_free->length );
+
+          /* NULL means check only. */
+          if (ret_chunk)
+               *ret_chunk = occupy_chunk( manager, best_free, allocation, length, pitch );
+
+          return DFB_OK;
+     }
+
+     D_DEBUG_AT( SurfMan, "  -> failed (%d/%d avail)\n", manager->avail, manager->length );
+
+     /* no luck */
+     return DFB_NOVIDEOMEMORY;
+}
+
+DFBResult dfb_surfacemanager_displace( CoreDFB           *core,
+                                       SurfaceManager    *manager,
+                                       CoreSurfaceBuffer *buffer )
+{
+     int                    length;
+     Chunk                 *chunk;
+     CoreGraphicsDevice    *device;
+     CoreSurfaceAllocation *smallest = NULL;
+
+     D_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     D_MAGIC_ASSERT( buffer->surface, CoreSurface );
+
+     D_DEBUG_AT( SurfMan, "%s( %p ) <- %dx%d %s\n", __FUNCTION__, buffer,
+                 buffer->surface->config.size.w, buffer->surface->config.size.h,
+                 dfb_pixelformat_name( buffer->surface->config.format ) );
+
+     /* FIXME: Only one global device at the moment. */
+     device = dfb_core_get_part( core, DFCP_GRAPHICS );
+     D_ASSERT( device != NULL );
+
+     dfb_gfxcard_calc_buffer_size( dfb_core_get_part( core, DFCP_GRAPHICS ), buffer, NULL, &length );
+
+     chunk = manager->chunks;
+     while (chunk) {
+          CoreSurfaceAllocation *allocation;
+
+          D_MAGIC_ASSERT( chunk, Chunk );
+
+          allocation = chunk->allocation;
+          if (allocation) {
+               D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+               D_MAGIC_ASSERT( allocation->buffer, CoreSurfaceBuffer );
+
+               if (allocation->size >= length && !allocation->buffer->locked) {
+                    if (!smallest || smallest->size > allocation->size)
+                         smallest = allocation;
+               }
+          }
+
+          chunk = chunk->next;
+     }
+
+     if (!smallest)
+          return DFB_NOVIDEOMEMORY;
+
+     D_MAGIC_ASSERT( smallest, CoreSurfaceAllocation );
+     D_MAGIC_ASSERT( smallest->buffer, CoreSurfaceBuffer );
+
+     smallest->flags |= CSALF_MUCKOUT;
+
+     D_DEBUG_AT( SurfMan, "  -> offset %lu, size %d\n", smallest->offset, smallest->size );
+
+     return DFB_OK;
+}
+
+DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
+                                         Chunk          *chunk )
+{
+     CoreSurfaceBuffer *buffer;
+
+     D_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( chunk, Chunk );
+
+     buffer = chunk->buffer;
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     D_MAGIC_ASSERT( buffer->surface, CoreSurface );
+
+     D_DEBUG_AT( SurfMan, "%s( %p ) <- %dx%d %s\n", __FUNCTION__, buffer,
+                 buffer->surface->config.size.w, buffer->surface->config.size.h,
+                 dfb_pixelformat_name( buffer->surface->config.format ) );
+
+     free_chunk( manager, chunk );
+
+     return DFB_OK;
+}
+
+/** internal functions NOT locking the surfacemanager **/
+
+static Chunk *
+split_chunk( SurfaceManager *manager, Chunk *c, int length )
+{
+     Chunk *newchunk;
+
+     D_MAGIC_ASSERT( c, Chunk );
+
+     if (c->length == length)          /* does not need be splitted */
+          return c;
+
+     newchunk = (Chunk*) SHCALLOC( manager->shmpool, 1, sizeof(Chunk) );
+
+     /* calculate offsets and lengths of resulting chunks */
+     newchunk->offset = c->offset + c->length - length;
+     newchunk->length = length;
+     c->length -= newchunk->length;
+
+     /* insert newchunk after chunk c */
+     newchunk->prev = c;
+     newchunk->next = c->next;
+     if (c->next)
+          c->next->prev = newchunk;
+     c->next = newchunk;
+
+     D_MAGIC_SET( newchunk, Chunk );
+
+     return newchunk;
+}
+
+static Chunk *
+free_chunk( SurfaceManager *manager, Chunk *chunk )
+{
+     D_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( chunk, Chunk );
+
+     if (!chunk->buffer) {
+          D_BUG( "freeing free chunk" );
+          return chunk;
+     }
+     else {
+          D_DEBUG_AT( SurfMan, "Deallocating %d bytes at offset %d.\n", chunk->length, chunk->offset );
+     }
+
+     if (chunk->buffer->policy == CSP_VIDEOONLY)
+          manager->avail += chunk->length;
+
+     chunk->allocation = NULL;
+     chunk->buffer     = NULL;
+
+     manager->min_toleration--;
+
+     if (chunk->prev  &&  !chunk->prev->buffer) {
+          Chunk *prev = chunk->prev;
+
+          //D_DEBUG_AT( SurfMan, "  -> merging with previous chunk at %d\n", prev->offset );
+
+          prev->length += chunk->length;
+
+          prev->next = chunk->next;
+          if (prev->next)
+               prev->next->prev = prev;
+
+          //D_DEBUG_AT( SurfMan, "  -> freeing %p (prev %p, next %p)\n", chunk, chunk->prev, chunk->next);
+
+          D_MAGIC_CLEAR( chunk );
+
+          SHFREE( manager->shmpool, chunk );
+          chunk = prev;
+     }
+
+     if (chunk->next  &&  !chunk->next->buffer) {
+          Chunk *next = chunk->next;
+
+          //D_DEBUG_AT( SurfMan, "  -> merging with next chunk at %d\n", next->offset );
+
+          chunk->length += next->length;
+
+          chunk->next = next->next;
+          if (chunk->next)
+               chunk->next->prev = chunk;
+
+          D_MAGIC_CLEAR( next );
+
+          SHFREE( manager->shmpool, next );
+     }
+
+     return chunk;
+}
+
+static Chunk *
+occupy_chunk( SurfaceManager *manager, Chunk *chunk, CoreSurfaceAllocation *allocation, int length, int pitch )
+{
+     D_MAGIC_ASSERT( manager, SurfaceManager );
+     D_MAGIC_ASSERT( chunk, Chunk );
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+     D_MAGIC_ASSERT( allocation->buffer, CoreSurfaceBuffer );
+     
+     if (allocation->buffer->policy == CSP_VIDEOONLY)
+          manager->avail -= length;
+
+     chunk = split_chunk( manager, chunk, length );
+
+     D_DEBUG_AT( SurfMan, "Allocating %d bytes at offset %d.\n", chunk->length, chunk->offset );
+
+     chunk->allocation = allocation;
+     chunk->buffer     = allocation->buffer;
+     chunk->pitch      = pitch;
+
+     manager->min_toleration++;
+
+     return chunk;
+}
+

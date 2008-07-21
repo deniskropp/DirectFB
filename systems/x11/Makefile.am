@@ -35,6 +35,10 @@ libdirectfb_x11_la_LDFLAGS = \
 libdirectfb_x11_la_SOURCES = \
 	primary.c		\
 	primary.h		\
+	surfacemanager.c	\
+	surfacemanager.h	\
+	vpsmem_surface_pool.c	\
+	vpsmem_surface_pool.h	\
 	x11.c			\
 	x11.h			\
 	x11image.c		\

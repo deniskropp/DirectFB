@@ -131,8 +131,6 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
      XMapRaised( xw->display, xw->window );
 
 
-     dfb_x11->use_shm = XShmQueryExtension(dfb_x11->display);
-
      if (dfb_x11->use_shm) {
           // Shared memory 	
           xw->shmseginfo=(XShmSegmentInfo *)D_CALLOC(1, sizeof(XShmSegmentInfo));

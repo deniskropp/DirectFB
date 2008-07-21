@@ -26,22 +26,12 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __X11SYSTEM__X11_SURFACE_POOL_H__
-#define __X11SYSTEM__X11_SURFACE_POOL_H__
+#ifndef __X11SYSTEM__VPSMEM_SURFACE_POOL_H__
+#define __X11SYSTEM__VPSMEM_SURFACE_POOL_H__
 
 #include <core/surface_pool.h>
 
-#include "x11image.h"
-
-extern const SurfacePoolFuncs x11SurfacePoolFuncs;
-
-typedef struct {
-     bool      real;
-     x11Image  image;
-
-     void     *ptr;
-     int       pitch;
-} x11AllocationData;
+extern const SurfacePoolFuncs vpsmemSurfacePoolFuncs;
 
 #endif
 

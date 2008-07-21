@@ -176,7 +176,8 @@ x11TestConfig( CoreSurfacePool         *pool,
                CoreSurfaceBuffer       *buffer,
                const CoreSurfaceConfig *config )
 {
-     return DFB_OK;
+     /* Pass NULL image for probing */
+     return x11ImageInit( NULL, config->size.w, config->size.h, config->format );
 }
 
 static DFBResult
@@ -198,9 +199,14 @@ x11AllocateBuffer( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     alloc->real = false;//(x11ImageInit( &alloc->image, surface->config.size.w, surface->config.size.h, surface->config.format ) == DFB_OK);
+     if (x11ImageInit( &alloc->image, surface->config.size.w, surface->config.size.h, surface->config.format ) == DFB_OK) {
+          alloc->real  = true;
+          alloc->pitch = alloc->image.pitch;
 
-     dfb_surface_calc_buffer_size( surface, 4, 1, NULL, &allocation->size );
+          allocation->size = surface->config.size.h * alloc->image.pitch;
+     }
+     else
+          dfb_surface_calc_buffer_size( surface, 8, 2, &alloc->pitch, &allocation->size );
 
      return DFB_OK;
 }
@@ -240,7 +246,6 @@ x11Lock( CoreSurfacePool       *pool,
          CoreSurfaceBufferLock *lock )
 {
      DFBResult          ret;
-     void              *addr;
      x11PoolLocalData  *local = pool_local;
      x11AllocationData *alloc = alloc_data;
      CoreSurfaceBuffer *buffer;
@@ -263,7 +268,8 @@ x11Lock( CoreSurfacePool       *pool,
      pthread_mutex_lock( &local->lock );
 
      if (alloc->real) {
-          addr = direct_hash_lookup( local->hash, alloc->image.seginfo.shmid );
+          void *addr = direct_hash_lookup( local->hash, alloc->image.seginfo.shmid );
+
           if (!addr) {
                ret = x11ImageAttach( &alloc->image, &addr );
                if (ret) {
@@ -277,6 +283,8 @@ x11Lock( CoreSurfacePool       *pool,
                /* FIXME: When to remove/detach? */
           }
 
+          lock->addr   = addr;
+          lock->handle = &alloc->image;
      }
      else {
           if (!alloc->ptr) {
@@ -285,12 +293,10 @@ x11Lock( CoreSurfacePool       *pool,
                     return D_OOSHM();
           }
 
-          addr = alloc->ptr;
+          lock->addr = alloc->ptr;
      }
 
-     lock->addr   = addr;
-     lock->pitch  = (DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w ) + 3) & ~3;
-     lock->handle = &alloc->image;
+     lock->pitch = alloc->pitch;
 
      pthread_mutex_unlock( &local->lock );
 

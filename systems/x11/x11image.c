@@ -45,6 +45,9 @@ DFBResult x11ImageInit( x11Image              *image,
      int     ret;
      Visual *visual;
 
+     if (!dfb_x11->use_shm)
+          return DFB_UNSUPPORTED;
+
      /* Lookup visual. */
      visual = dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(format)];
      if (!visual)
@@ -163,6 +166,7 @@ dfb_x11_image_init_handler( x11Image *image )
           goto error_xshmattach;
 
      image->ximage = ximage;
+     image->pitch  = ximage->bytes_per_line;
 
      XUnlockDisplay( dfb_x11->display );
 
