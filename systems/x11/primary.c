@@ -399,7 +399,7 @@ update_screen( CoreSurface *surface, const DFBRectangle *rect, CoreSurfaceBuffer
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
      /* Check for our special native allocation... */
-     if (allocation->pool == dfb_x11->x11image_pool && lock->handle) {
+     if (allocation->pool == dfb_x11->surface_pool && lock->handle) {
           x11Image *image = lock->handle;
 
           D_MAGIC_ASSERT( image, x11Image );
