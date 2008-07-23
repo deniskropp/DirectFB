@@ -199,11 +199,97 @@ static Handler m_pause = {
 };
 
 
+static void
+process_text( FILE *stream )
+{
+     int  ms      = 0;
+     bool leading = true;
+
+     fscanf( stream, "%d", &ms );
+
+     while (!feof( stream )) {
+          int c = fgetc( stream );
+
+          if (c == ' ' && leading)
+               continue;
+
+          if (c == '\n')
+               break;
+
+          divine_send_symbol( m_divine, c );
+
+          leading = false;
+
+          usleep( ms * 1000 );
+     }
+}
+
+static Handler m_text = {
+     .process = process_text
+};
+
+
+static void
+process_text_special( FILE *stream )
+{
+     int ms = 0;
+
+     fscanf( stream, "%d", &ms );
+
+     while (!feof( stream )) {
+          switch (fgetc( stream )) {
+               case '\n':
+                    return;
+
+               case 'b':
+                    divine_send_symbol( m_divine, DIKS_BACKSPACE );
+                    break;
+
+               case 'd':
+                    divine_send_symbol( m_divine, DIKS_DELETE );
+                    break;
+
+               case 'r':
+                    divine_send_symbol( m_divine, DIKS_RETURN );
+                    break;
+
+               case 'C':
+                    switch (fgetc( stream )) {
+                         case 'l':
+                              divine_send_symbol( m_divine, DIKS_CURSOR_LEFT );
+                              break;
+
+                         case 'r':
+                              divine_send_symbol( m_divine, DIKS_CURSOR_RIGHT );
+                              break;
+
+                         case 'u':
+                              divine_send_symbol( m_divine, DIKS_CURSOR_UP );
+                              break;
+
+                         case 'd':
+                              divine_send_symbol( m_divine, DIKS_CURSOR_DOWN );
+                              break;
+                    }
+                    break;
+          }
+
+          usleep( ms * 1000 );
+     }
+}
+
+static Handler m_text_special = {
+     .process = process_text_special
+};
+
+
 static Handler *m_handlers[] = {
      ['b'] = &m_button,
      ['m'] = &m_motion,
      ['M'] = &m_motion_special,
-     ['p'] = &m_pause
+     ['p'] = &m_pause,
+     ['t'] = &m_text,
+     ['T'] = &m_text_special
 };
 
 
@@ -231,6 +317,12 @@ main( int argc, char *argv[] )
                                 "               (linear)           l <x,y>                    M20c1000l10,20\n"
                                 "               (circular)         o <radius>                 M20c1000o100\n"
                                 "                                  s <step>                   M20c1000s30o50\n"
+                                "  t    Entering text              <ms> <Text to enter>       t0 directfb.org\n"
+                                "  T    Special characters/keys    <ms> {b|d|r|Cx}            T3 CuClbbr\n"
+                                "                                        a e e Cl (left)\n"
+                                "                                        c l t Cr (right)\n"
+                                "                                        k     Cu (up)\n"
+                                "                                              Cd (down)\n"
                                 "\n" );
 
                return -1;
