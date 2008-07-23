@@ -95,7 +95,12 @@ static void remove_pool_local( CoreSurfacePoolID  pool_id );
 
 /**********************************************************************************************************************/
 
+static void      remove_allocation( CoreSurfacePool       *pool,
+                                    CoreSurfaceBuffer     *buffer,
+                                    CoreSurfaceAllocation *allocation );
+
 static DFBResult backup_allocation( CoreSurfacePool       *pool,
+                                    CoreSurfaceBuffer     *buffer,
                                     CoreSurfaceAllocation *allocation );
 
 /**********************************************************************************************************************/
@@ -480,7 +485,7 @@ dfb_surface_pools_allocate( CoreSurfaceBuffer       *buffer,
 
      /* Check if none of the pools could do the allocation */
      if (!allocation) {
-          /* Try to find a pool with an "older" allocation to muck out */
+          /* Try to find a pool with "older" allocations to muck out */
           for (i=0; i<num_pools; i++) {
                CoreSurfacePool *pool = pools[i];
 
@@ -646,17 +651,11 @@ dfb_surface_pool_deallocate( CoreSurfacePool       *pool,
      }
 
      if (allocation->flags & CSALF_ONEFORALL) {
-          for (i=0; i<surface->num_buffers; i++) {
-               buffer = surface->buffers[i];
-
-               fusion_vector_remove( &buffer->allocs, fusion_vector_index_of( &buffer->allocs, allocation ) );
-               fusion_vector_remove( &pool->allocs, fusion_vector_index_of( &pool->allocs, allocation ) );
-          }
+          for (i=0; i<surface->num_buffers; i++)
+               remove_allocation( pool, surface->buffers[i], allocation );
      }
-     else {
-          fusion_vector_remove( &buffer->allocs, fusion_vector_index_of( &buffer->allocs, allocation ) );
-          fusion_vector_remove( &pool->allocs, fusion_vector_index_of( &pool->allocs, allocation ) );
-     }
+     else
+          remove_allocation( pool, buffer, allocation );
 
      fusion_skirmish_dismiss( &pool->lock );
 
@@ -677,8 +676,8 @@ dfb_surface_pool_displace( CoreSurfacePool        *pool,
                            CoreSurfaceBuffer      *buffer,
                            CoreSurfaceAllocation **ret_allocation )
 {
-     DFBResult               ret;
-     int                     i;
+     DFBResult               ret, ret_lock = DFB_OK;
+     int                     i, retries = 3;
      CoreSurface            *surface;
      CoreSurfaceAllocation  *allocation;
      const SurfacePoolFuncs *funcs;
@@ -712,23 +711,72 @@ dfb_surface_pool_displace( CoreSurfacePool        *pool,
           D_UNIMPLEMENTED();
      }
 
+     /* FIXME: Solve potential dead lock, until then do a few retries... */
+fixme_retry:
      fusion_vector_foreach (allocation, i, pool->allocs) {
           D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
 
           if (allocation->flags & CSALF_MUCKOUT) {
+               CoreSurface       *alloc_surface;
+               CoreSurfaceBuffer *alloc_buffer;
+
+               alloc_buffer = allocation->buffer;
+               D_MAGIC_ASSERT( alloc_buffer, CoreSurfaceBuffer );
+
+               alloc_surface = alloc_buffer->surface;
+               D_MAGIC_ASSERT( alloc_surface, CoreSurface );
+
                D_DEBUG_AT( Core_SurfacePool, "  <= %p %5dk, %lu\n",
                            allocation, allocation->size / 1024, allocation->offset );
 
-               ret = backup_allocation( pool, allocation );
+               /* FIXME: Solve potential dead lock, until then only try to lock... */
+               ret = dfb_surface_trylock( alloc_surface );
+               if (ret) {
+                    D_WARN( "could not lock surface (%s)", DirectFBErrorString(ret) );
+                    ret_lock = ret;
+                    continue;
+               }
+
+               /* Ensure mucked out allocation is backed up in another pool */
+               ret = backup_allocation( pool, buffer, allocation );
                if (ret) {
                     D_WARN( "could not backup allocation (%s)", DirectFBErrorString(ret) );
-                    fusion_skirmish_dismiss( &pool->lock );
-                    return ret;
+                    dfb_surface_unlock( alloc_surface );
+                    goto error_cleanup;
                }
+
+               /* Deallocate mucked out allocation */
+               dfb_surface_pool_deallocate( pool, allocation );
+               i--;
+
+               dfb_surface_unlock( alloc_surface );
           }
      }
 
-     ret = dfb_surface_pool_allocate( pool, buffer, ret_allocation );
+     /* FIXME: Solve potential dead lock, until then do a few retries... */
+     if (ret_lock) {
+          if (retries--)
+               goto fixme_retry;
+
+          ret = DFB_LOCKED;
+
+          goto error_cleanup;
+     }
+     else
+          ret = dfb_surface_pool_allocate( pool, buffer, ret_allocation );
+
+     fusion_skirmish_dismiss( &pool->lock );
+
+     return ret;
+
+
+error_cleanup:
+     fusion_vector_foreach (allocation, i, pool->allocs) {
+          D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+
+          if (allocation->flags & CSALF_MUCKOUT)
+               allocation->flags &= ~CSALF_MUCKOUT;
+     }
 
      fusion_skirmish_dismiss( &pool->lock );
 
@@ -939,31 +987,72 @@ remove_pool_local( CoreSurfacePoolID pool_id )
      }
 }
 
-static DFBResult
-backup_allocation( CoreSurfacePool       *pool,
+/**********************************************************************************************************************/
+
+static void
+remove_allocation( CoreSurfacePool       *pool,
+                   CoreSurfaceBuffer     *buffer,
                    CoreSurfaceAllocation *allocation )
 {
-     DFBResult              ret;
+     int index_buffer;
+     int index_pool;
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+     D_MAGIC_ASSERT( buffer->surface, CoreSurface );
+     FUSION_SKIRMISH_ASSERT( &buffer->surface->lock );
+     FUSION_SKIRMISH_ASSERT( &pool->lock );
+     D_ASSERT( pool == allocation->pool );
+
+     /* Lookup indices within vectors */
+     index_buffer = fusion_vector_index_of( &buffer->allocs, allocation );
+     index_pool   = fusion_vector_index_of( &pool->allocs,   allocation );
+
+     D_ASSERT( index_buffer >= 0 );
+     D_ASSERT( index_pool >= 0 );
+
+     /* Remove allocation from buffer and pool */
+     fusion_vector_remove( &buffer->allocs, index_buffer );
+     fusion_vector_remove( &pool->allocs,   index_pool );
+
+     /* Update 'written' allocation pointer of buffer */
+     if (buffer->written == allocation) {
+          /* Reset pointer first */
+          buffer->written = NULL;
+
+          /* Iterate through remaining allocations */
+          fusion_vector_foreach (allocation, index_buffer, buffer->allocs) {
+               D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+               D_ASSERT( allocation->pool == pool );
+
+               /* Check if allocation is up to date and set it as 'written' allocation */
+               if (direct_serial_check( &allocation->serial, &buffer->serial )) {
+                    buffer->written = allocation;
+                    break;
+               }
+          }
+     }
+}
+
+static DFBResult
+backup_allocation( CoreSurfacePool       *pool,
+                   CoreSurfaceBuffer     *buffer,
+                   CoreSurfaceAllocation *allocation )
+{
+     DFBResult              ret = DFB_OK;
      int                    i;
-     CoreSurfaceBuffer     *buffer;
-     CoreSurface           *surface;
      CoreSurfaceAllocation *backup = NULL;
 
      D_DEBUG_AT( Core_SurfacePool, "%s( %p, %p )\n", __FUNCTION__, pool, allocation );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
-     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
-
-     buffer = allocation->buffer;
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
-
-     /* FIXME: Solve potential dead lock, until then only try to lock... */
-     ret = dfb_surface_trylock( surface );
-     if (ret)
-          return ret;
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+     D_MAGIC_ASSERT( buffer->surface, CoreSurface );
+     FUSION_SKIRMISH_ASSERT( &buffer->surface->lock );
+     FUSION_SKIRMISH_ASSERT( &pool->lock );
+     D_ASSERT( pool == allocation->pool );
 
      /* Check if allocation is the only up to date (requiring a backup) */
      if (direct_serial_check( &allocation->serial, &buffer->serial )) {
@@ -976,11 +1065,9 @@ backup_allocation( CoreSurfacePool       *pool,
 
                if (backup->pool != pool && direct_serial_check( &backup->serial, &buffer->serial )) {
                     D_DEBUG_AT( Core_SurfacePool, "  -> up to date in '%s'\n", backup->pool->desc.name );
-                    goto out;
+                    return DFB_OK;
                }
           }
-
-          backup = NULL;
 
           /* Try to update one of the existing allocations */
           fusion_vector_foreach (backup, i, buffer->allocs) {
@@ -989,11 +1076,9 @@ backup_allocation( CoreSurfacePool       *pool,
 
                if (backup->pool != pool && dfb_surface_allocation_update( backup, CSAF_NONE ) == DFB_OK) {
                     D_DEBUG_AT( Core_SurfacePool, "  -> updated in '%s'\n", backup->pool->desc.name );
-                    goto out;
+                    return DFB_OK;
                }
           }
-
-          backup = NULL;
 
           /* Try the designated backup pool and theirs if failing */
           while (backup_pool) {
@@ -1012,7 +1097,7 @@ backup_allocation( CoreSurfacePool       *pool,
                          backup = NULL;
                     }
                     else
-                         goto out;
+                         return DFB_OK;
                }
                else
                     D_DEBUG_AT( Core_SurfacePool, "  -> allocation failed! (%s)\n", DirectFBErrorString(ret) );
@@ -1020,20 +1105,9 @@ backup_allocation( CoreSurfacePool       *pool,
                backup_pool = backup_pool->backup;
           }
      }
-     else {
+     else
           D_DEBUG_AT( Core_SurfacePool, "  -> not up to date anyhow\n" );
 
-          dfb_surface_unlock( surface );
-          return DFB_OK;
-     }
-
-out:
-     /* Deallocate mucked out allocation when backup succeeded */
-     if (backup)
-          dfb_surface_pool_deallocate( pool, allocation );
-
-     dfb_surface_unlock( surface );
-
-     return backup ? DFB_OK : DFB_FAILURE;
+     return ret;
 }
 

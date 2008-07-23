@@ -1080,7 +1080,7 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
      if (direct_serial_update( &allocation->serial, &buffer->serial ) && buffer->written) {
           CoreSurfaceAllocation *source = buffer->written;
 
-          D_DEBUG_AT( Core_SurfBuffer, "  -> updating allocation... %p -> %p\n", source->buffer, allocation->buffer );
+          D_DEBUG_AT( Core_SurfBuffer, "  -> updating allocation...\n" );
 
           D_MAGIC_ASSERT( source, CoreSurfaceAllocation );
           D_ASSERT( source->buffer == allocation->buffer );
