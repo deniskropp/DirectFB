@@ -190,6 +190,10 @@ DFBResult dfb_surfacemanager_allocate( CoreDFB                *core,
           D_MAGIC_ASSERT( c, Chunk );
 
           if (!c->buffer && c->length >= length) {
+               /* NULL means check only. */
+               if (!ret_chunk)
+                    return DFB_OK;
+
                /* found a nice place to chill */
                if (!best_free  ||  best_free->length > c->length)
                     /* first found or better one? */
@@ -224,6 +228,13 @@ DFBResult dfb_surfacemanager_displace( CoreDFB           *core,
                                        CoreSurfaceBuffer *buffer )
 {
      int                    length;
+     Chunk                 *multi_start = NULL;
+     int                    multi_size  = 0;
+     int                    multi_tsize = 0;
+     int                    multi_count = 0;
+     Chunk                 *bestm_start = NULL;
+     int                    bestm_count = 0;
+     int                    bestm_size  = 0;
      int                    min_toleration;
      Chunk                 *chunk;
      CoreGraphicsDevice    *device;
@@ -266,18 +277,18 @@ DFBResult dfb_surfacemanager_displace( CoreDFB           *core,
                D_MAGIC_ASSERT( other, CoreSurfaceBuffer );
 
                if (other->locked) {
-                    D_DEBUG_AT( SurfMan, "  -> %7d locked %dx\n", allocation->size, other->locked );
-                    goto next;
+                    D_DEBUG_AT( SurfMan, "  ++ %7d locked %dx\n", allocation->size, other->locked );
+                    goto next_reset;
                }
 
                if (other->policy > buffer->policy) {
-                    D_DEBUG_AT( SurfMan, "  -> %7d policy %d > %d\n", allocation->size, other->policy, buffer->policy );
-                    goto next;
+                    D_DEBUG_AT( SurfMan, "  ++ %7d policy %d > %d\n", allocation->size, other->policy, buffer->policy );
+                    goto next_reset;
                }
 
                if (other->policy == CSP_VIDEOONLY) {
-                    D_DEBUG_AT( SurfMan, "  -> %7d policy videoonly\n", allocation->size );
-                    goto next;
+                    D_DEBUG_AT( SurfMan, "  ++ %7d policy videoonly\n", allocation->size );
+                    goto next_reset;
                }
 
                chunk->tolerations++;
@@ -285,9 +296,9 @@ DFBResult dfb_surfacemanager_displace( CoreDFB           *core,
                     chunk->tolerations = 0xff;
 
                if (other->policy == buffer->policy && chunk->tolerations < min_toleration) {
-                    D_DEBUG_AT( SurfMan, "  -> %7d tolerations %d/%d\n",
+                    D_DEBUG_AT( SurfMan, "  ++ %7d tolerations %d/%d\n",
                                 allocation->size, chunk->tolerations, min_toleration );
-                    goto next;
+                    goto next_reset;
                }
 
                size = allocation->size;
@@ -314,21 +325,96 @@ DFBResult dfb_surfacemanager_displace( CoreDFB           *core,
           else
                D_DEBUG_AT( SurfMan, "  -  %7d free\n", chunk->length );
 
-next:
+
+          if (!smallest) {
+               if (!multi_start) {
+                    multi_start = chunk;
+                    multi_tsize = chunk->length;
+                    multi_size  = chunk->allocation ? chunk->length : 0;
+                    multi_count = chunk->allocation ? 1 : 0;
+               }
+               else {
+                    multi_tsize += chunk->length;
+                    multi_size  += chunk->allocation ? chunk->length : 0;
+                    multi_count += chunk->allocation ? 1 : 0;
+
+                    while (multi_tsize >= length && multi_count > 1) {
+                         if (!bestm_start || bestm_size > multi_size * multi_count / bestm_count) {
+                              D_DEBUG_AT( SurfMan, "                =====> %7d, %7d %2d used [%7d %2d]\n",
+                                          multi_tsize, multi_size, multi_count, bestm_size, bestm_count );
+
+                              bestm_size  = multi_size;
+                              bestm_start = multi_start;
+                              bestm_count = multi_count;
+                         }
+                         else
+                              D_DEBUG_AT( SurfMan, "                -----> %7d, %7d %2d used\n",
+                                          multi_tsize, multi_size, multi_count );
+
+                         if (multi_count <= 2)
+                              break;
+
+                         if (!multi_start->allocation) {
+                              multi_tsize -= multi_start->length;
+                              multi_start  = multi_start->next;
+                         }
+
+                         D_ASSUME( multi_start->allocation != NULL );
+
+                         multi_tsize -= multi_start->length;
+                         multi_size  -= multi_start->allocation ? multi_start->length : 0;
+                         multi_count -= multi_start->allocation ? 1 : 0;
+                         multi_start  = multi_start->next;
+                    }
+               }
+          }
+
+          chunk = chunk->next;
+
+          continue;
+
+
+next_reset:
+          multi_start = NULL;
+
           chunk = chunk->next;
      }
 
-     if (!smallest)
-          return DFB_NOVIDEOMEMORY;
+     if (smallest) {
+          D_MAGIC_ASSERT( smallest, CoreSurfaceAllocation );
+          D_MAGIC_ASSERT( smallest->buffer, CoreSurfaceBuffer );
 
-     D_MAGIC_ASSERT( smallest, CoreSurfaceAllocation );
-     D_MAGIC_ASSERT( smallest->buffer, CoreSurfaceBuffer );
+          smallest->flags |= CSALF_MUCKOUT;
 
-     smallest->flags |= CSALF_MUCKOUT;
+          D_DEBUG_AT( SurfMan, "  -> offset %lu, size %d\n", smallest->offset, smallest->size );
 
-     D_DEBUG_AT( SurfMan, "  -> offset %lu, size %d\n", smallest->offset, smallest->size );
+          return DFB_OK;
+     }
 
-     return DFB_OK;
+     if (bestm_start) {
+          chunk = bestm_start;
+
+          while (bestm_count) {
+               CoreSurfaceAllocation *allocation = chunk->allocation;
+
+               if (allocation) {
+                    D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+                    D_MAGIC_ASSERT( allocation->buffer, CoreSurfaceBuffer );
+                    
+                    allocation->flags |= CSALF_MUCKOUT;
+
+                    bestm_count--;
+               }
+
+               D_DEBUG_AT( SurfMan, "  ---> offset %d, length %d\n", chunk->offset, chunk->length );
+
+               chunk = chunk->next;
+          }
+
+          return DFB_OK;
+     }
+
+     return DFB_NOVIDEOMEMORY;
 }
 
 DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
