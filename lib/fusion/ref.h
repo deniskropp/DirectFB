@@ -72,6 +72,9 @@ DirectResult fusion_ref_init         (FusionRef         *ref,
                                       const char        *name,
                                       const FusionWorld *world);
 
+DirectResult fusion_ref_set_name     (FusionRef         *ref,
+                                      const char        *name);
+
 /*
  * Lock, increase, unlock.
  */

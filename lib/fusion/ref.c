@@ -94,6 +94,41 @@ fusion_ref_init (FusionRef         *ref,
 }
 
 DirectResult
+fusion_ref_set_name (FusionRef  *ref,
+                     const char *name)
+{
+     FusionEntryInfo info;
+
+     D_ASSERT( ref != NULL );
+     D_ASSERT( name != NULL );
+
+     info.type = FT_REF;
+     info.id   = ref->multi.id;
+
+     direct_snputs( info.name, name, sizeof(info.name) );
+
+     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_ENTRY_SET_INFO, &info)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EAGAIN:
+                    return DR_LOCKED;
+               case EINVAL:
+                    D_ERROR ("Fusion/Reference: invalid reference\n");
+                    return DR_DESTROYED;
+               default:
+                    break;
+          }
+
+          D_PERROR ("FUSION_ENTRY_SET_NAME");
+
+          return DR_FAILURE;
+     }
+
+     return DR_OK;
+}
+
+DirectResult
 fusion_ref_up (FusionRef *ref, bool global)
 {
      D_ASSERT( ref != NULL );
@@ -373,6 +408,13 @@ fusion_ref_init (FusionRef         *ref,
 }
 
 DirectResult
+fusion_ref_set_name (FusionRef  *ref,
+                     const char *name)
+{
+     return DR_OK;
+}
+
+DirectResult
 _fusion_ref_change (FusionRef *ref, int add, bool global)
 {
      DirectResult ret;
@@ -595,6 +637,13 @@ fusion_ref_init (FusionRef         *ref,
      ref->single.destroyed = false;
      ref->single.locked    = 0;
 
+     return DR_OK;
+}
+
+DirectResult
+fusion_ref_set_name (FusionRef  *ref,
+                     const char *name)
+{
      return DR_OK;
 }
 
