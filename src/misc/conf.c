@@ -455,6 +455,7 @@ static void config_allocate()
      dfb_config->matrox_tv_std            = DSETV_PAL;
      dfb_config->i8xx_overlay_pipe_b      = false;
      dfb_config->surface_shmpool_size     = 64 * 1024 * 1024;
+     dfb_config->keep_accumulators        = 1024;
 
      /* default to fbdev */
      dfb_config->system = D_STRDUP( "FBDev" );
@@ -661,6 +662,22 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR("DirectFB/Config 'videoram-limit': No value specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "keep-accumulators" ) == 0) {
+          if (value) {
+               int limit;
+
+               if (sscanf( value, "%d", &limit ) < 1) {
+                    D_ERROR("DirectFB/Config '%s': Could not parse value!\n", name);
+                    return DFB_INVARG;
+               }
+
+               dfb_config->keep_accumulators = limit;
+          }
+          else {
+               D_ERROR("DirectFB/Config '%s': No value specified!\n", name);
                return DFB_INVARG;
           }
      } else

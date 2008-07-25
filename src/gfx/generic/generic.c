@@ -7803,15 +7803,17 @@ static inline void Bop_prev( GenefxState *gfxs )
 }
 
 static bool
-ABacc_prepare( GenefxState *gfxs, int size )
+ABacc_prepare( GenefxState *gfxs, int width )
 {
+     int size;
+
      if (!gfxs->need_accumulator)
           return true;
-     
-     size = (size < 256) ? 256 : (1 << direct_log2(size));
+
+     size = (width + 31) & ~31;
 
      if (gfxs->ABsize < size) {
-          void *ABstart = D_MALLOC( size * sizeof(GenefxAccumulator) * 2 + 7 );
+          void *ABstart = D_MALLOC( size * sizeof(GenefxAccumulator) * 2 + 31 );
 
           if (!ABstart) {
                D_WARN( "out of memory" );
@@ -7823,11 +7825,24 @@ ABacc_prepare( GenefxState *gfxs, int size )
 
           gfxs->ABstart = ABstart;
           gfxs->ABsize  = size;
-          gfxs->Aacc    = (GenefxAccumulator*) (((unsigned long)ABstart+7) & ~7);
+          gfxs->Aacc    = (GenefxAccumulator*) (((unsigned long)ABstart+31) & ~31);
           gfxs->Bacc    = gfxs->Aacc + size;
      }
 
      return true;
+}
+
+static void
+ABacc_flush( GenefxState *gfxs )
+{
+     if (dfb_config->keep_accumulators >= 0 && gfxs->ABsize > dfb_config->keep_accumulators) {
+          D_FREE( gfxs->ABstart );
+
+          gfxs->ABsize  = 0;
+          gfxs->ABstart = NULL;
+          gfxs->Aacc    = NULL;
+          gfxs->Bacc    = NULL;
+     }
 }
 
 void gFillRectangle( CardState *state, DFBRectangle *rect )
@@ -7838,7 +7853,7 @@ void gFillRectangle( CardState *state, DFBRectangle *rect )
      D_ASSERT( gfxs != NULL );
 
      if (dfb_config->software_warn) {
-          D_WARN( "FillRectangle (%4d,%4d-%4dx%4d) %s, flags 0x%08x, color 0x%02x%02x%02x%02x",
+          D_WARN( "FillRectangle (%4d,%4d-%4dx%4d) %6s, flags 0x%08x, color 0x%02x%02x%02x%02x",
                   DFB_RECTANGLE_VALS(rect), dfb_pixelformat_name(gfxs->dst_format), state->drawingflags,
                   state->color.a, state->color.r, state->color.g, state->color.b );
      }
@@ -7863,6 +7878,8 @@ void gFillRectangle( CardState *state, DFBRectangle *rect )
 
           Aop_next( gfxs );
      }
+
+     ABacc_flush( gfxs );
 }
 
 void gDrawLine( CardState *state, DFBRegion *line )
@@ -7897,7 +7914,7 @@ void gDrawLine( CardState *state, DFBRegion *line )
      }
 
      if (dfb_config->software_warn) {
-          D_WARN( "DrawLine      (%4d,%4d-%4d,%4d) %s, flags 0x%08x, color 0x%02x%02x%02x%02x",
+          D_WARN( "DrawLine      (%4d,%4d-%4d,%4d) %6s, flags 0x%08x, color 0x%02x%02x%02x%02x",
                   DFB_RECTANGLE_VALS_FROM_REGION(line), dfb_pixelformat_name(gfxs->dst_format), state->drawingflags,
                   state->color.a, state->color.r, state->color.g, state->color.b );
      }
@@ -7949,6 +7966,8 @@ void gDrawLine( CardState *state, DFBRegion *line )
                RUN_PIPELINE();
           }
      }
+
+     ABacc_flush( gfxs );
 }
 
 void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
@@ -7959,7 +7978,7 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
      D_ASSERT( gfxs != NULL );
 
      if (dfb_config->software_warn) {
-          D_WARN( "Blit          (%4d,%4d-%4dx%4d) %s, flags 0x%08x, color 0x%02x%02x%02x%02x, source (%4d,%4d) %s",
+          D_WARN( "Blit          (%4d,%4d-%4dx%4d) %6s, flags 0x%08x, color 0x%02x%02x%02x%02x, source (%4d,%4d) %6s",
                   dx, dy, rect->w, rect->h, dfb_pixelformat_name(gfxs->dst_format), state->blittingflags,
                   state->color.a, state->color.r, state->color.g, state->color.b, rect->x, rect->y,
                   dfb_pixelformat_name(gfxs->src_format) );
@@ -8101,6 +8120,8 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
                }
           }
      }
+
+     ABacc_flush( gfxs );
 }
 
 /**********************************************************************************************************************/
@@ -8537,9 +8558,9 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      D_ASSERT( gfxs != NULL );
 
      if (dfb_config->software_warn) {
-          D_WARN( "StretchBlit   (%4d,%4d-%4dx%4d) %s, flags 0x%08x, color 0x%02x%02x%02x%02x, source (%4d,%4d-%4dx%4d) %s",
-                  srect->x, srect->y, srect->w, srect->h, dfb_pixelformat_name(gfxs->dst_format), state->blittingflags,
-                  state->color.a, state->color.r, state->color.g, state->color.b, drect->x, drect->y, drect->w, drect->h,
+          D_WARN( "StretchBlit   (%4d,%4d-%4dx%4d) %6s, flags 0x%08x, color 0x%02x%02x%02x%02x, source (%4d,%4d-%4dx%4d) %6s",
+                  drect->x, drect->y, drect->w, drect->h, dfb_pixelformat_name(gfxs->dst_format), state->blittingflags,
+                  state->color.a, state->color.r, state->color.g, state->color.b, srect->x, srect->y, srect->w, srect->h,
                   dfb_pixelformat_name(gfxs->src_format) );
      }
 
@@ -8626,6 +8647,8 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
                Bop_next( gfxs );
           }
      }
+
+     ABacc_flush( gfxs );
 }
 
 

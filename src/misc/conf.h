@@ -235,6 +235,8 @@ typedef struct
                DFBDimension   min_size;
           } allocate_buffer;
      } warn;
+
+     int           keep_accumulators;             /* Free accumulators above this limit */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;
