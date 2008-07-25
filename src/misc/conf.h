@@ -60,6 +60,17 @@ typedef struct {
      int                                 rotate;
 } DFBConfigLayer;
 
+typedef enum {
+     DCWF_NONE                          = 0x00000000,
+
+     DCWF_CREATE_SURFACE                = 0x00000001,
+     DCWF_CREATE_WINDOW                 = 0x00000002,
+
+     DCWF_ALLOCATE_BUFFER               = 0x00000010,
+
+     DCWF_ALL                           = 0x00000013,
+} DFBConfigWarnFlags;
+
 typedef struct
 {
      bool      mouse_motion_compression;          /* use motion compression? */
@@ -212,6 +223,18 @@ typedef struct
                                                      shared system memory surfaces. */
 
      bool          no_cursor_updates;             /* Never show the cursor etc. */
+
+     struct {
+          DFBConfigWarnFlags  flags;              /* Warn on various actions as window/surface creation. */
+
+          struct {
+               DFBDimension   min_size;
+          } create_surface;
+
+          struct {
+               DFBDimension   min_size;
+          } allocate_buffer;
+     } warn;
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

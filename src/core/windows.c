@@ -384,6 +384,10 @@ dfb_window_create( CoreWindowStack             *stack,
      config = window->config;
      caps   = window->caps;
 
+     if (dfb_config->warn.flags & DCWF_CREATE_WINDOW)
+          D_WARN( "create-window   %4dx%4d %6s, caps 0x%08x, surface-caps 0x%08x, ID %u",
+                  window->config.bounds.w, window->config.bounds.h, dfb_pixelformat_name(pixelformat),
+                  window->caps, surface_caps, window->id );
 
      /* Create the window's surface using the layer's palette if possible. */
      if (! (caps & DWCAPS_INPUTONLY)) {

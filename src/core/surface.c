@@ -208,6 +208,14 @@ dfb_surface_create( CoreDFB                  *core,
      D_MAGIC_SET( surface, CoreSurface );
 
 
+     if (dfb_config->warn.flags & DCWF_CREATE_SURFACE &&
+         dfb_config->warn.create_surface.min_size.w <= surface->config.size.w &&
+         dfb_config->warn.create_surface.min_size.h <= surface->config.size.h)
+          D_WARN( "create-surface  %4dx%4d %6s, buffers %d, caps 0x%08x, type 0x%08x",
+                  surface->config.size.w, surface->config.size.h, dfb_pixelformat_name(surface->config.format),
+                  buffers, surface->config.caps, surface->type );
+
+
      if (palette) {
           dfb_surface_set_palette( surface, palette );
      }

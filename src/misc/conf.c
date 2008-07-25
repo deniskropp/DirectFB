@@ -700,6 +700,48 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "no-software-warn" ) == 0) {
           dfb_config->software_warn = false;
      } else
+     if (strcmp (name, "warn" ) == 0 || strcmp (name, "no-warn" ) == 0) {
+          /* Enable/disable all at once by default. */
+          DFBConfigWarnFlags flags = DMT_ALL;
+
+          /* Find out the specific message type being configured. */
+          if (value) {
+               char *opt = strchr( value, ':' );
+
+               if (opt)
+                    opt++;
+
+               if (!strncmp( value, "create-surface", 14 )) {
+                    flags = DCWF_CREATE_SURFACE;
+
+                    if (opt)
+                         sscanf( opt, "%dx%d",
+                                 &dfb_config->warn.create_surface.min_size.w,
+                                 &dfb_config->warn.create_surface.min_size.h );
+               } else
+               if (!strncmp( value, "create-window", 13 )) {
+                    flags = DCWF_CREATE_WINDOW;
+               } else
+               if (!strncmp( value, "allocate-buffer", 15 )) {
+                    flags = DCWF_ALLOCATE_BUFFER;
+
+                    if (opt)
+                         sscanf( opt, "%dx%d",
+                                 &dfb_config->warn.allocate_buffer.min_size.w,
+                                 &dfb_config->warn.allocate_buffer.min_size.h );
+               }
+               else {
+                    D_ERROR( "DirectFB/Config '%s': Unknown warning type '%s'!\n", name, value );
+                    return DFB_INVARG;
+               }
+          }
+
+          /* Set/clear the corresponding flag in the configuration. */
+          if (name[0] == 'w')
+               dfb_config->warn.flags |= flags;
+          else
+               dfb_config->warn.flags &= ~flags;
+     } else
      if (strcmp (name, "dma" ) == 0) {
           dfb_config->dma = true;
      } else

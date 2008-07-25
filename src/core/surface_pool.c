@@ -43,6 +43,8 @@
 
 #include <gfx/convert.h>
 
+#include <misc/conf.h>
+
 
 D_DEBUG_DOMAIN( Core_SurfacePool,  "Core/SurfacePool",  "DirectFB Core Surface Pool" );
 D_DEBUG_DOMAIN( Core_SurfPoolLock, "Core/SurfPoolLock", "DirectFB Core Surface Pool Lock" );
@@ -567,6 +569,13 @@ dfb_surface_pool_allocate( CoreSurfacePool        *pool,
           ret = DFB_FUSION;
           goto error;
      }
+
+     if (dfb_config->warn.flags & DCWF_ALLOCATE_BUFFER &&
+         dfb_config->warn.allocate_buffer.min_size.w <= surface->config.size.w &&
+         dfb_config->warn.allocate_buffer.min_size.h <= surface->config.size.h)
+          D_WARN( "allocate-buffer %4dx%4d %6s, surface-caps 0x%08x",
+                  surface->config.size.w, surface->config.size.h, dfb_pixelformat_name(buffer->format),
+                  surface->config.caps );
 
      ret = funcs->AllocateBuffer( pool, pool->data, get_local(pool), buffer, allocation, allocation->data );
      if (ret) {
