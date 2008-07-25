@@ -201,6 +201,9 @@ dfb_surface_create( CoreDFB                  *core,
 
      snprintf( buf, sizeof(buf), "Surface %dx%d %s", surface->config.size.w,
                surface->config.size.h, dfb_pixelformat_name(surface->config.format) );
+
+     fusion_ref_set_name( &surface->object.ref, buf );
+
      fusion_skirmish_init( &surface->lock, buf, dfb_core_world(core) );
 
      fusion_object_set_lock( &surface->object, &surface->lock );
