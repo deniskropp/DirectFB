@@ -54,7 +54,7 @@ typedef struct {
 
      DFBWindowStackingClass              stacking;
 
-     DFBColor                            palette[256];
+     DFBColor                           *palette;
      bool                                palette_set;
 
      int                                 rotate;

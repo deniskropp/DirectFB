@@ -406,15 +406,6 @@ static void config_allocate()
           dfb_config->layers[i].background.color.b     = 0;
           dfb_config->layers[i].background.color_index = -1;
           dfb_config->layers[i].background.mode        = DLBM_COLOR;
-
-          D_ASSERT( D_ARRAY_SIZE(dfb_config->layers[i].palette) == 256 );
-
-          for (n=0; n<256; n++) {
-               dfb_config->layers[i].palette[n].a = i ? 0xff : 0x00;
-               dfb_config->layers[i].palette[n].r = lookup3to8[ (i & 0xE0) >> 5 ];
-               dfb_config->layers[i].palette[n].g = lookup3to8[ (i & 0x1C) >> 2 ];
-               dfb_config->layers[i].palette[n].b = lookup2to8[ (i & 0x03) ];
-          }
      }
 
      dfb_config->layers[0].init               = true;
@@ -1317,7 +1308,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
 
-          if (index < 0 || index > D_ARRAY_SIZE(conf->palette)) {
+          if (index < 0 || index > 255) {
                D_ERROR("DirectFB/Config '%s': Index %d out of bounds!\n", name, index);
                return DFB_INVARG;
           }
@@ -1331,6 +1322,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
                if (*error) {
                     D_ERROR( "DirectFB/Config '%s': Error in color '%s'!\n", name, error );
                     return DFB_INVARG;
+               }
+
+               if (!conf->palette) {
+                    conf->palette = D_CALLOC( 256, sizeof(DFBColor) );
+                    if (!conf->palette)
+                         return D_OOM();
                }
 
                conf->palette[index].a = (argb & 0xFF000000) >> 24;
