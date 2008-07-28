@@ -328,7 +328,7 @@ system_unmap_mmio( volatile void  *addr,
 static int
 system_get_accelerator()
 {
-     return 51;
+     return dfb_config->accelerator;
 }
 
 static VideoMode *
