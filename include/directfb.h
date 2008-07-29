@@ -5584,6 +5584,19 @@ DEFINE_INTERFACE(   IDirectFBImageProvider,
           DIRenderCallback          callback,
           void                     *callback_data
      );
+
+
+   /** Encoding **/
+
+     /*
+      * Encode a portion of a surface.
+      */
+     DFBResult (*WriteBack) (
+          IDirectFBImageProvider   *thiz,
+          IDirectFBSurface         *surface,
+          const DFBRectangle       *src_rect,
+          const char               *filename
+     );
 )
 
 /*
