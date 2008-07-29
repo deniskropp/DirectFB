@@ -1,7 +1,7 @@
 /*
  *	SH7722 Graphics Device
  *
- *	Copyright (C) 2006-2007  IGEL Co.,Ltd
+ *	Copyright (C) 2006-2008  IGEL Co.,Ltd
  *
  *      Written by Denis Oliver Kropp <dok@directfb.org>
  *
@@ -14,6 +14,7 @@
 #include <linux/module.h>
 #include <linux/version.h>
 
+#include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/miscdevice.h>
 #include <linux/mm.h>
@@ -24,7 +25,8 @@
 
 #include <sh7722gfx.h>
 
-//#define SH7722GFX_DEBUG
+//#define SH7722GFX_DEBUG_2DG
+//#define SH7722GFX_DEBUG_JPU
 //#define SH7722GFX_IRQ_POLLER
 
 /**********************************************************************************************************************/
@@ -58,6 +60,7 @@
 #define JPU_JINTE                  JPU_REG(0x00038)
 #define JPU_JINTS                  JPU_REG(0x0003C)
 #define JPU_JCDERR                 JPU_REG(0x00040)
+#define JPU_JCRST                  JPU_REG(0x00044)
 #define JPU_JIFDDVSZ               JPU_REG(0x000B4)
 #define JPU_JIFDDHSZ               JPU_REG(0x000B8)
 #define JPU_JIFDDYA1               JPU_REG(0x000BC)
@@ -70,13 +73,14 @@
 #define VEU_VSACR                  VEU_REG(0x0001c)
 #define VEU_VEVTR                  VEU_REG(0x000A4)
 
-#define JINTS_MASK                 0x00005C68
+#define JINTS_MASK                 0x00007CE8
 #define JINTS_INS3_HEADER          0x00000008
 #define JINTS_INS5_ERROR           0x00000020
 #define JINTS_INS6_DONE            0x00000040
 #define JINTS_INS10_XFER_DONE      0x00000400
 #define JINTS_INS11_LINEBUF0       0x00000800
 #define JINTS_INS12_LINEBUF1       0x00001000
+#define JINTS_INS13_LOADED         0x00002000
 #define JINTS_INS14_RELOAD         0x00004000
 
 #define JCCMD_START                0x00000001
@@ -86,6 +90,7 @@
 #define JCCMD_LCMD2                0x00000100
 #define JCCMD_LCMD1                0x00000200
 #define JCCMD_READ_RESTART         0x00000400
+#define JCCMD_WRITE_RESTART        0x00000800
 
 /**********************************************************************************************************************/
 
@@ -135,6 +140,7 @@ static DECLARE_WAIT_QUEUE_HEAD( wait_idle );
 static DECLARE_WAIT_QUEUE_HEAD( wait_next );
 static DECLARE_WAIT_QUEUE_HEAD( wait_jpeg_irq );
 static DECLARE_WAIT_QUEUE_HEAD( wait_jpeg_run );
+static DECLARE_WAIT_QUEUE_HEAD( wait_jpeg_lock );
 
 static SH7722GfxSharedArea *shared;
 
@@ -149,17 +155,24 @@ static unsigned int         shared_order;
 static int                  stop_poller;
 #endif
 
+static struct page         *jpeg_page;
+static unsigned int         jpeg_order;
+static volatile void       *jpeg_area;
 static u32                  jpeg_buffers;
 static int                  jpeg_buffer;
 static u32                  jpeg_error;
 static int                  jpeg_reading;
 static int                  jpeg_writing;
+static int                  jpeg_reading_line;
+static int                  jpeg_writing_line;
 static int                  jpeg_end;
 static u32                  jpeg_linebufs;
 static int                  jpeg_linebuf;
 static int                  jpeg_line;
 static int                  veu_linebuf;
 static int                  veu_running;
+
+static pid_t                jpeg_locked;
 
 /**********************************************************************************************************************/
 
@@ -186,6 +199,7 @@ sh7722_reset( SH7722GfxSharedArea *shared )
      memset( (void*) shared, 0, sizeof(SH7722GfxSharedArea) );
 
      shared->buffer_phys = virt_to_phys(&shared->buffer[0]);
+     shared->jpeg_phys   = virt_to_phys(jpeg_area);
      shared->magic       = SH7722GFX_SHARED_MAGIC;
 
 
@@ -280,25 +294,28 @@ sh7722_run_jpeg( SH7722GfxSharedArea *shared,
                  SH7722JPEG          *jpeg )
 {
      int ret;
+     int encode = (jpeg->flags & SH7722_JPEG_FLAG_ENCODE) ? 1 : 0;
 
      switch (jpeg->state) {
           case SH7722_JPEG_START:
                JPRINT( "START (buffers: %d, flags: 0x%x)", jpeg->buffers, jpeg->flags );
 
-               jpeg_line     = 0;
-               jpeg_end      = 0;
-               jpeg_error    = 0;
-               jpeg_reading  = 0;
-               jpeg_writing  = 1;
-               jpeg_linebuf  = 0;
-               jpeg_linebufs = 0;
-               jpeg_buffer   = 0;
-               jpeg_buffers  = jpeg->buffers;
-               veu_linebuf   = 0;
-               veu_running   = 0;
+               jpeg_line         = 0;
+               jpeg_end          = 0;
+               jpeg_error        = 0;
+               jpeg_reading      = 0;
+               jpeg_writing      = encode;
+               jpeg_reading_line = encode;
+               jpeg_writing_line = !encode;
+               jpeg_linebuf      = 0;
+               jpeg_linebufs     = 0;
+               jpeg_buffer       = 0;
+               jpeg_buffers      = jpeg->buffers;
+               veu_linebuf       = 0;
+               veu_running       = 0;
 
-               jpeg->state  = SH7722_JPEG_RUN;
-               jpeg->error  = 0;
+               jpeg->state       = SH7722_JPEG_RUN;
+               jpeg->error       = 0;
 
                JPU_JCCMD = JCCMD_START;
                break;
@@ -316,7 +333,15 @@ sh7722_run_jpeg( SH7722GfxSharedArea *shared,
                return -EINVAL;
      }
 
-     if (jpeg_buffers && !jpeg_reading) {
+     if (encode) {
+          if (jpeg_buffers && !jpeg_writing) {
+               JPRINT( " '-> write start (buffers: %d)", jpeg_buffers );
+
+               jpeg_writing = 1;
+               JPU_JCCMD = JCCMD_WRITE_RESTART;
+          }
+     }
+     else if (jpeg_buffers && !jpeg_reading) {
           JPRINT( " '-> read start (buffers: %d)", jpeg_buffers );
 
           jpeg_reading = 1;
@@ -325,33 +350,75 @@ sh7722_run_jpeg( SH7722GfxSharedArea *shared,
 
      ret = wait_event_interruptible_timeout( wait_jpeg_run,
                                              (jpeg_end && !jpeg_linebufs) || jpeg_error ||
-                                             (jpeg_buffers != 3 && (jpeg->flags & SH7722_JPEG_FLAG_RELOAD)), HZ );
+                                             (jpeg_buffers != 3 && (jpeg->flags & SH7722_JPEG_FLAG_RELOAD)), 5 * HZ );
+     if (ret < 0)
+          return ret;
+          
      if (!ret) {
-          printk( KERN_ERR "%s: TIMEOUT! (status 0x%08x, ints 0x%08x)\n", __FUNCTION__, JPU_JCSTS, JPU_JINTS );
+          printk( KERN_ERR "%s: TIMEOUT! (JCSTS 0x%08x, JINTS 0x%08x, JCRST 0x%08x)\n", __FUNCTION__,
+                  JPU_JCSTS, JPU_JINTS, JPU_JCRST );
+          return -ETIMEDOUT;
+     }
+
+     if (jpeg_error) {
+          /* Return error. */
+          jpeg->state = SH7722_JPEG_END;
+          jpeg->error = jpeg_error;
+
+          JPRINT( " '-> ERROR (0x%x)", jpeg->error );
      }
      else {
-          if (jpeg_error) {
-               /* Return error. */
-               jpeg->state = SH7722_JPEG_END;
-               jpeg->error = jpeg_error;
+          /* Return buffers to reload or to empty. */
+          jpeg->buffers = jpeg_buffers ^ 3;
 
-               JPRINT( " '-> ERROR (0x%x)", jpeg->error );
-          }
-          else if (jpeg_end) {
-               /* Return end. */
-               jpeg->state = SH7722_JPEG_END;
-
+          if (jpeg_end) {
                JPRINT( " '-> END" );
-          }
-          else {
-               /* Return buffers to reload. */
-               jpeg->buffers = jpeg_buffers ^ 3;
 
+               /* Return end. */
+               jpeg->state    = SH7722_JPEG_END;
+               jpeg->buffers |= 1 << jpeg_buffer;
+          }
+          else if (encode)
+               JPRINT( " '-> LOADED (%d)", jpeg->buffers );
+          else
                JPRINT( " '-> RELOAD (%d)", jpeg->buffers );
+     }
+
+     return 0;
+}
+
+static int
+sh7722_lock_jpeg( SH7722GfxSharedArea *shared )
+{
+     int ret;
+
+     if (jpeg_locked) {
+          ret = wait_event_interruptible_timeout( wait_jpeg_lock, !jpeg_locked, 5 * HZ );
+          if (ret < 0)
+               return ret;
+               
+          if (!ret) {
+               printk( KERN_ERR "%s: TIMEOUT! (status 0x%08x, ints 0x%08x)\n", __FUNCTION__, JPU_JCSTS, JPU_JINTS );
+               return -ETIMEDOUT;
           }
      }
 
-     return (ret > 0) ? 0 : (ret < 0) ? ret : -ETIMEDOUT;
+     jpeg_locked = current->pid;
+
+     return 0;
+}
+
+static int
+sh7722_unlock_jpeg( SH7722GfxSharedArea *shared )
+{
+     if (jpeg_locked != current->pid)
+          return -EIO;
+
+     jpeg_locked = 0;
+
+     wake_up_all( &wait_jpeg_lock );
+
+     return 0;
 }
 
 /**********************************************************************************************************************/
@@ -369,8 +436,8 @@ sh7722_jpu_irq( int irq, void *ctx )
      if (ints & (JINTS_INS3_HEADER | JINTS_INS5_ERROR | JINTS_INS6_DONE))
           JPU_JCCMD = JCCMD_END;
 
-     JPRINT( " ... JPU interrupt 0x%08x (veu_linebuf: %d, jpeg_linebuf: %d, jpeg_linebufs: %d, jpeg_line: %d)",
-             ints, veu_linebuf, jpeg_linebuf, jpeg_linebufs, jpeg_line );
+     JPRINT( " ... JPU interrupt 0x%08x (veu_linebuf: %d, jpeg_linebuf: %d, jpeg_linebufs: %d, jpeg_line: %d, jpeg_buffers: %d)",
+             ints, veu_linebuf, jpeg_linebuf, jpeg_linebufs, jpeg_line, jpeg_buffers );
 
      if (ints) {
           shared->jpeg_ints |= ints;
@@ -400,7 +467,16 @@ sh7722_jpu_irq( int irq, void *ctx )
                wake_up_all( &wait_jpeg_run );
           }
 
-          /* Line buffer ready? */
+          /* Done */
+          if (ints & JINTS_INS10_XFER_DONE) {
+               jpeg_end = 1;
+
+               JPRINT( "         -> XFER DONE" );
+
+               wake_up_all( &wait_jpeg_run );
+          }
+
+          /* Line buffer ready? FIXME: encoding */
           if (ints & (JINTS_INS11_LINEBUF0 | JINTS_INS12_LINEBUF1)) {
                JPRINT( "         -> LINEBUF %d", jpeg_linebuf );
 
@@ -409,13 +485,13 @@ sh7722_jpu_irq( int irq, void *ctx )
                jpeg_linebuf = jpeg_linebuf ? 0 : 1;
 
                if (jpeg_linebufs != 3) {
-                    jpeg_writing = 1;   /* should still be one */
+                    jpeg_writing_line = 1;   /* should still be one */
 
                     if (jpeg_line > 0)
                          JPU_JCCMD = JCCMD_LCMD1 | JCCMD_LCMD2;
                }
                else {
-                    jpeg_writing = 0;
+                    jpeg_writing_line = 0;
                }
 
                jpeg_line += 16;
@@ -429,6 +505,22 @@ sh7722_jpu_irq( int irq, void *ctx )
                     VEU_VSACR = veu_linebuf ? JPU_JIFDDCA2 : JPU_JIFDDCA1;
                     VEU_VESTR = 0x101;
                }
+          }
+
+          /* Loaded */
+          if (ints & JINTS_INS13_LOADED) {
+               JPRINT( "         -> LOADED %d", jpeg_buffer );
+
+               jpeg_buffers &= ~(1 << jpeg_buffer);
+
+               jpeg_buffer = jpeg_buffer ? 0 : 1;
+
+               if (jpeg_buffers)
+                    jpeg_writing = 1;   /* should still be one */
+               else
+                    jpeg_writing = 0;
+
+               wake_up_all( &wait_jpeg_run );
           }
 
           /* Reload */
@@ -470,10 +562,10 @@ sh7722_veu_irq( int irq, void *ctx )
      jpeg_linebufs &= ~(1 << veu_linebuf);
 
      /* Resume decoding if it was blocked. */
-     if (!jpeg_writing && !jpeg_end && !jpeg_error && jpeg_buffers) {
+     if (!jpeg_writing_line && !jpeg_end && !jpeg_error && jpeg_buffers) {
           JPRINT( "         -> RESUME %d", jpeg_linebuf );
 
-          jpeg_writing = 1;
+          jpeg_writing_line = 1;
 
           JPU_JCCMD = JCCMD_LCMD1 | JCCMD_LCMD2;
      }
@@ -616,6 +708,19 @@ sh7722_tdg_irq_poller( void *arg )
 /**********************************************************************************************************************/
 
 static int
+sh7722gfx_flush( struct file *filp,
+                 fl_owner_t   id )
+{
+     if (jpeg_locked == current->pid) {
+          jpeg_locked = 0;
+
+          wake_up_all( &wait_jpeg_lock );
+     }
+          
+     return 0;
+}
+
+static int
 sh7722gfx_ioctl( struct inode  *inode,
                  struct file   *filp,
                  unsigned int   cmd,
@@ -639,8 +744,8 @@ sh7722gfx_ioctl( struct inode  *inode,
                if (copy_from_user( &reg, arg, sizeof(SH7722Register) ))
                     return -EFAULT;
 
-               /* BEU, LCDC, VOU, JPEG */
-               if (reg.address < 0xFE930000 || reg.address > 0xFEA102D0)
+               /* VEU, BEU, LCDC, VOU, JPEG */
+               if (reg.address < 0xFE920000 || reg.address > 0xFEA102D0)
                     return -EACCES;
 
                *(volatile __u32 *) reg.address = reg.value;
@@ -651,8 +756,8 @@ sh7722gfx_ioctl( struct inode  *inode,
                if (copy_from_user( &reg, arg, sizeof(SH7722Register) ))
                     return -EFAULT;
 
-               /* BEU, LCDC, VOU, JPEG */
-               if (reg.address < 0xFE930000 || reg.address > 0xFEA102D0)
+               /* VEU, BEU, LCDC, VOU, JPEG */
+               if (reg.address < 0xFE920000 || reg.address > 0xFEA102D0)
                     return -EACCES;
 
                reg.value = *(volatile __u32 *) reg.address;
@@ -677,6 +782,12 @@ sh7722gfx_ioctl( struct inode  *inode,
                     return -EFAULT;
 
                return 0;
+
+          case SH7722GFX_IOCTL_LOCK_JPEG:
+               return sh7722_lock_jpeg( shared );
+
+          case SH7722GFX_IOCTL_UNLOCK_JPEG:
+               return sh7722_unlock_jpeg( shared );
      }
 
      return -ENOSYS;
@@ -721,6 +832,7 @@ sh7722gfx_mmap( struct file           *file,
 /**********************************************************************************************************************/
 
 static struct file_operations sh7722gfx_fops = {
+     flush:    sh7722gfx_flush,
      ioctl:    sh7722gfx_ioctl,
      mmap:     sh7722gfx_mmap
 };
@@ -767,6 +879,19 @@ sh7722gfx_module_init( void )
 
      printk( KERN_INFO "sh7722gfx: shared area (order %d) at %p [%lx] using %d bytes\n",
              shared_order, shared, virt_to_phys(shared), sizeof(SH7722GfxSharedArea) );
+
+
+     jpeg_order = get_order(SH7722GFX_JPEG_SIZE);
+     jpeg_page  = alloc_pages( GFP_DMA | GFP_KERNEL, jpeg_order );
+     jpeg_area  = ioremap( virt_to_phys( page_address(jpeg_page) ),
+                           PAGE_ALIGN(SH7722GFX_JPEG_SIZE) );
+
+     for (i=0; i<1<<jpeg_order; i++)
+          SetPageReserved( jpeg_page + i );
+
+     printk( KERN_INFO "sh7722gfx: jpeg area (order %d) at %p [%lx] using %d bytes\n",
+             jpeg_order, jpeg_area, virt_to_phys(jpeg_area), SH7722GFX_JPEG_SIZE );
+
 
      /* Register the BEU interrupt handler. */
      ret = request_irq( BEU_IRQ, sh7722_beu_irq, IRQF_DISABLED, "BEU", (void*) shared );
@@ -821,6 +946,11 @@ error_tdg:
      free_irq( BEU_IRQ, (void*) shared );
 
 error_beu:
+     for (i=0; i<1<<jpeg_order; i++)
+          ClearPageReserved( jpeg_page + i );
+
+     __free_pages( jpeg_page, jpeg_order );
+
 #ifndef SHARED_AREA_PHYS
      for (i=0; i<1<<shared_order; i++)
           ClearPageReserved( shared_page + i );
@@ -863,6 +993,11 @@ sh7722gfx_module_exit( void )
 
      misc_deregister( &sh7722gfx_miscdev );
 
+
+     for (i=0; i<1<<jpeg_order; i++)
+          ClearPageReserved( jpeg_page + i );
+
+     __free_pages( jpeg_page, jpeg_order );
 
 #ifndef SHARED_AREA_PHYS
      for (i=0; i<1<<shared_order; i++)

@@ -8,12 +8,6 @@
 
 #define SH7722GFX_MAX_PREPARE             8192
 
-#define SH7722GFX_JPEG_RELOAD_SIZE       (64 * 1024)
-#define SH7722GFX_JPEG_LINEBUFFER_PITCH  (2560)
-#define SH7722GFX_JPEG_LINEBUFFER_HEIGHT (16)
-#define SH7722GFX_JPEG_LINEBUFFER_SIZE   (SH7722GFX_JPEG_LINEBUFFER_PITCH * SH7722GFX_JPEG_LINEBUFFER_HEIGHT * 2)
-#define SH7722GFX_JPEG_LINEBUFFER_SIZE_Y (SH7722GFX_JPEG_LINEBUFFER_PITCH * SH7722GFX_JPEG_LINEBUFFER_HEIGHT)
-
 
 typedef enum {
      SH7722_LAYER_INPUT1,
@@ -102,14 +96,6 @@ typedef struct {
 
      /* locking */
      FusionSkirmish           beu_lock;
-
-     /* JPEG */
-     FusionSkirmish           jpeg_lock;
-     int                      jpeg_offset;
-     int                      jpeg_size;
-     unsigned long            jpeg_phys;
-     unsigned long            jpeg_lb1;
-     unsigned long            jpeg_lb2;
 } SH7722DeviceData;
 
 
@@ -137,8 +123,6 @@ typedef struct {
      int                      num_inputs;
 
      volatile void           *lcd_virt;
-
-     volatile void           *jpeg_virt;
 } SH7722DriverData;
 
 #endif

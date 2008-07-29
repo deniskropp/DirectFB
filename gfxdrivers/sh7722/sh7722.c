@@ -37,6 +37,7 @@ DFB_GRAPHICS_DRIVER( sh7722 )
 
 #include "sh7722.h"
 #include "sh7722_blt.h"
+#include "sh7722_jpeglib.h"
 #include "sh7722_layer.h"
 #include "sh7722_lcd.h"
 #include "sh7722_multi.h"
@@ -84,6 +85,7 @@ driver_init_driver( CoreGraphicsDevice  *device,
                     void                *device_data,
                     CoreDFB             *core )
 {
+     DFBResult         ret;
      SH7722DriverData *sdrv = driver_data;
      SH7722DeviceData *sdev = device_data;
 
@@ -129,12 +131,20 @@ driver_init_driver( CoreGraphicsDevice  *device,
           return DFB_INIT;
      }
 
-     /* Get virtual addresses for LCD buffer and JPEG reload buffers in slaves here,
-        master does it in driver_init_device(). */
-     if (!dfb_core_is_master( core )) {
-          sdrv->lcd_virt  = dfb_gfxcard_memory_virtual( device, sdev->lcd_offset );
-          sdrv->jpeg_virt = dfb_gfxcard_memory_virtual( device, sdev->jpeg_offset );
+     /* Initialize JPEG library. */
+     ret = SH7722_JPEG_Initialize();
+     if (ret) {
+          D_DERROR( ret, "SH7722/Driver: JPEG initialization failed!\n" );
+          dfb_gfxcard_unmap_mmio( device, sdrv->mmio_base, -1 );
+          munmap( (void*) sdrv->gfx_shared, direct_page_align( sizeof(SH7722GfxSharedArea) ) );
+          close( sdrv->gfx_fd );
+          return DFB_INIT;
      }
+
+     /* Get virtual address for the LCD buffer in slaves here,
+        master does it in driver_init_device(). */
+     if (!dfb_core_is_master( core ))
+          sdrv->lcd_virt = dfb_gfxcard_memory_virtual( device, sdev->lcd_offset );
 
      /* Initialize function table. */
      funcs->EngineReset       = sh7722EngineReset;
@@ -201,7 +211,7 @@ driver_init_device( CoreGraphicsDevice *device,
 
      sdev->lcd_phys = dfb_gfxcard_memory_physical( device, sdev->lcd_offset );
 
-     /* Get virtual addresses for JPEG reload buffers in master here,
+     /* Get virtual addresses for LCD buffer in master here,
         slaves do it in driver_init_driver(). */
      sdrv->lcd_virt = dfb_gfxcard_memory_virtual( device, sdev->lcd_offset );
 
@@ -211,32 +221,6 @@ driver_init_device( CoreGraphicsDevice *device,
 
      D_ASSERT( ! (sdev->lcd_pitch & 0xf) );
      D_ASSERT( ! (sdev->lcd_phys & 0xf) );
-
-
-     /*
-      * Setup JPEG reload buffers.
-      */
-     sdev->jpeg_size   = SH7722GFX_JPEG_RELOAD_SIZE * 2 + SH7722GFX_JPEG_LINEBUFFER_SIZE * 2;
-     sdev->jpeg_offset = dfb_gfxcard_reserve_memory( device, sdev->jpeg_size );
-
-     if (sdev->jpeg_offset < 0) {
-          D_ERROR( "SH7722/Driver: Allocating %d bytes for the JPEG reload and line buffers failed!\n", sdev->jpeg_size );
-          return DFB_FAILURE;
-     }
-
-     sdev->jpeg_phys = dfb_gfxcard_memory_physical( device, sdev->jpeg_offset );
-     sdev->jpeg_lb1  = sdev->jpeg_phys + SH7722GFX_JPEG_RELOAD_SIZE * 2;
-     sdev->jpeg_lb2  = sdev->jpeg_lb1  + SH7722GFX_JPEG_LINEBUFFER_SIZE;
-
-     /* Get virtual addresses for JPEG reload buffers in master here,
-        slaves do it in driver_init_driver(). */
-     sdrv->jpeg_virt = dfb_gfxcard_memory_virtual( device, sdev->jpeg_offset );
-
-     D_INFO( "SH7722/JPEG: Allocated reload and line buffers (%d bytes) at 0x%08lx (%p)\n",
-             sdev->jpeg_size, sdev->jpeg_phys, sdrv->jpeg_virt );
-
-     D_ASSERT( ! (sdev->jpeg_size & 0xff) );
-     D_ASSERT( ! (sdev->jpeg_phys & 0xf) );
 
 
      /* Fill in the device info. */
@@ -327,9 +311,6 @@ driver_init_device( CoreGraphicsDevice *device,
      /* Initialize BEU lock. */
      fusion_skirmish_init( &sdev->beu_lock, "BEU", dfb_core_world(sdrv->core) );
 
-     /* Initialize JPEG lock. */
-     fusion_skirmish_init( &sdev->jpeg_lock, "JPEG", dfb_core_world(sdrv->core) );
-
      return DFB_OK;
 }
 
@@ -341,9 +322,6 @@ driver_close_device( CoreGraphicsDevice *device,
      SH7722DeviceData *sdev = device_data;
 
      D_DEBUG_AT( SH7722_Driver, "%s()\n", __FUNCTION__ );
-
-     /* Destroy JPEG lock. */
-     fusion_skirmish_destroy( &sdev->jpeg_lock );
 
      /* Destroy BEU lock. */
      fusion_skirmish_destroy( &sdev->beu_lock );
@@ -369,6 +347,9 @@ driver_close_driver( CoreGraphicsDevice *device,
              shared->num_words  / shared->num_starts,
              shared->num_words  / shared->num_idle,
              shared->num_starts / shared->num_idle );
+
+     /* Shutdown JPEG library. */
+     SH7722_JPEG_Shutdown();
 
      /* Unmap shared area. */
      munmap( (void*) sdrv->gfx_shared, direct_page_align( sizeof(SH7722GfxSharedArea) ) );

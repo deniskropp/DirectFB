@@ -1927,7 +1927,8 @@ sh7722DoBlit( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
 /*
  * This version sends a quadrangle to have all four edges transformed.
  */
-static inline bool
+__attribute__((noinline))
+static bool
 sh7722DoBlitM( SH7722DriverData *sdrv, SH7722DeviceData *sdev,
                DFBRectangle *rect, int x1, int y1, int x2, int y2 )
 {
