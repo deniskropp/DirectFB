@@ -34,8 +34,8 @@ sh7722_jpegtool_SOURCES = \
 	sh7722_jpegtool.c
 
 sh7722_jpegtool_LDADD = \
-	libsh7722_jpeg.la	\
-	$(top_builddir)/lib/direct/libdirect.la
+	$(top_builddir)/src/libdirectfb.la	\
+	libsh7722_jpeg.la
 
 
 sh7722_LTLIBRARIES = libdirectfb_sh7722.la
