@@ -390,7 +390,7 @@ static void config_cleanup()
  */
 static void config_allocate()
 {
-     int i, n;
+     int i;
 
      if (dfb_config)
           return;
