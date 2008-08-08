@@ -1,3 +1,402 @@
+commit 8881c385160ebb1fbf20093755866c1f29b1993f
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 8 15:59:01 2008 +0200
+
+    Updated NEWS for 1.2.1 release
+
+commit 3a7f7c9872db39a131bfec3be411568ecaa356d0
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 8 15:56:00 2008 +0200
+
+    [keyboard] Only become active if FBDev or DevMem is used to avoid grabbing keyboard from X11 for example.
+
+commit 7a34de0dd8584cc4c5bc4ab20288099e1c535177
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 8 15:47:42 2008 +0200
+
+    [fbdev] Update surface manager code from X11 virtual physical testing pool.
+
+commit c450bca736be7850a064ae3071d560a948fdcd5e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 8 15:47:05 2008 +0200
+
+    [devmem] Update surface manager code from X11 virtual physical testing pool.
+
+commit 5de1c0424fdd7a08288f071cd2e891a87c78b70e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 8 14:59:18 2008 +0200
+
+    [x11] Set buffer lock offset in fallback mode to satisfy assumption in surface core.
+
+commit dca79d97500dab35ff3a6c407b6a9c191bdeec44
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 8 14:58:15 2008 +0200
+
+    [surfaces] Cleanup buffer initialization and reset with two new convenience functions.
+
+commit 11703ae62d1e7246dd55d755b8b1a742c047cae4
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 8 11:34:04 2008 +0200
+
+    [IDirectFBSurface] Fix Lock() on layer surfaces with system memory back buffer.
+    
+    This reverts commit 4cc82baddbc3a9849c2ff6c4979a65bcfb6ba96b and fixes
+    GetFramebufferOffset() properly by not adding CSAF_GPU_READ in Lock(), but
+    checking if there's a physical address provided by the surface pool via the
+    buffer lock in GetFramebufferOffset().
+
+commit 79332a26310c7b03abe059c08b1a0d087f7ed14b
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 8 11:33:36 2008 +0200
+
+    [dfblayer] Add testing Lock() with read/write, read only or write only.
+
+commit 56a7aefda6b61c18167574a564defeb5c6058c3d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jul 29 05:44:41 2008 +0200
+
+    [sh7722] Build fix (link against libdirectfb for dfb_pixelformat_name).
+
+commit 435ca9a063582bbafe07563b0c1d3d9c4044268d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jul 29 05:37:54 2008 +0200
+
+    [sh7722] JPEG encoding, code moved into library, JPEG lock and buffer allocation in kernel
+
+commit aa8fd4aa6d4261979900a3c51a4aa5ff926e3e09
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jul 29 04:35:01 2008 +0200
+
+    [IDirectFBImageProvider] Added simple WriteBack() method for encoding surface data.
+
+commit 871bc2ac72d15c1cb2f8f702e268e2774d7b2b0e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jul 29 04:34:36 2008 +0200
+
+    [options] Fixed warning.
+
+commit db4030c985b3b824c0986b95a4ec9d92325f7cd0
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Jul 29 00:26:56 2008 +0200
+
+    [x11] Return accelerator as set in config.
+
+commit 62c8ed26e0585926c7d9ce16e8c8bba02ad3d356
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jul 25 16:56:56 2008 +0200
+
+    [config] Allocate palette on demand saving 16kB of the 60kB allocated until after DirectFBCreate().
+
+commit 99f4fd47a12f26d8ddae00101b354563ea863ca1
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jul 25 16:42:12 2008 +0200
+
+    [options] Added "keep-accumulators = <limit>" to allow freeing of accumulators above the limit.
+    
+    Setting -1 never frees accumulators until the state is destroyed (previous behaviour).
+    
+    The default is 1024 which already means up to 16kB are kept!
+
+commit 9c09c56afb9c3b2d491d27ab4ac292d13d997fdd
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jul 25 16:06:41 2008 +0200
+
+    [surface] Use fusion_ref_set_name() to show the same info as with the skirmish.
+    
+    TODO: Update information on both when surface is reconfigured!
+
+commit c326ef6b5556111a870d4cce2b66f41401185999
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jul 25 16:06:04 2008 +0200
+
+    [fusion] Added fusion_ref_set_name(), e.g. for better debug information on object references.
+
+commit b180da246613406fec27abbe2139fed2cafbedf1
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jul 25 16:00:48 2008 +0200
+
+    [options] New option "warn=<event:params>" to print warnings on surface/window creation or surface buffer allocations.
+    
+    Example:
+    	warn = allocate-buffer:300x300
+    
+    Prints a warning for every surface buffer allocation made with both width and height of 300 or above.
+
+commit 4abe47f51b2164e37632566dd300e7f69548ff9c
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 23 15:53:22 2008 +0200
+
+    [x11] Build fix.
+
+commit 5730f838a7ac3b39b5e83e3bc7cea197fac513ed
+Merge: 701aa94... d9461ad...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 23 15:51:47 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit d9461ad5e8e46a5d0f8f1279f214bce64c9bfb0b
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 23 15:28:23 2008 +0200
+
+    [x11] Build fix.
+
+commit b815d1b7adb82c9791fc31e546a8e3e8bbbfd73a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 23 15:24:47 2008 +0200
+
+    [version] Also increase binary age (don't think compatibility is broken).
+
+commit 701aa94e931d85cd18b0b5ff47a32beeb1472fec
+Merge: f00bc9f... 10fc3aa...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 23 14:59:27 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit f00bc9fc3a4febd48b159f6534068552917a8610
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 23 11:05:29 2008 +0200
+
+    [x11] Enhance surface manager to find the best matching group of allocations to muck out.
+    
+    This is the first time multiple smaller allocations can be mucked out for a bigger one.
+    The code that determines these allocations is still O(1) and finds the best matching
+    group within all possible combinations.
+
+commit 3a607bdc5cae5e0766b4962794741b7476db496e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 23 11:03:46 2008 +0200
+
+    [surfaces] Fixes for mucking out multiple allocations. Cleanups.
+
+commit 97727598045878dba91d7f61d3bb77d9acf61b3f
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jul 21 18:17:16 2008 +0200
+
+    [x11] Enhancements to surface manager code and fixes for old behaviour (without virtual physical surface pool).
+    
+    Extend dfb_surfacemanager_displace() to check policies, reimplement toleration code
+    and take free space before and after an occupied chunk into account.
+    
+    Cleanup dfb_surfacemanager_allocate() to only check for free chunks.
+    
+    Always initialize x11(Shm)Image surface pool, regardless of virtual physical
+    surface pool being enabled.
+    
+    Never fail in x11TestConfig() if virtual physical surface pool is not enabled,
+    but use Fusion shared memory allocations as a fallback (previous behaviour).
+    
+    Update allocation size from chunk length which is usually bigger (at least 16
+    bytes of safety area).
+
+commit 29ab6ef9f3d1e978d99a6523b429398e8df8edf1
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jul 21 18:07:07 2008 +0200
+
+    [surfaces] Enhanced backup strategy when mucking out allocations.
+    
+    First check if any of the existing allocations is up to date,
+    otherwise try to update one of the existing allocations.
+    
+    Enforce same order of joining pools as of initializing them.
+    
+    Fixed invalid 'buffer->written' allocation pointer when using "thrifty-surface-buffers" option.
+    
+    Fixed wrong order of joining surface pools in slaves.
+    
+    Other fixes and enhanced debugging output.
+
+commit 10fc3aa44ee4c79f06c87a44aecd51a027f6fed5
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jul 21 18:00:21 2008 +0200
+
+    [misc] Bumped version to 1.2.1 and did forgotten increase of the core ABI.
+
+commit 01b57b96155cbcb512218dca1a7997866fb3e0ae
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jul 21 13:35:05 2008 +0200
+
+    [x11] XShm fixes and new virtual physical surface pool for development and testing.
+    
+    Specifying 'video-length = <bytes>' option will create a shared memory block of that
+    size and initialize a surface pool with a surface manager supporting the new MuckOut() call.
+    
+    Changed x11(Shm)Image pool to only allow allocations for supported visuals (no fallback
+    shared memory allocations) when the new option is used.
+    
+    Return accelerator ID 51 for testing with the virtual acceleration (currently called vmware).
+    
+    Make usage of XShmQueryVersion() to check for XShm support.
+    
+    Other cleanups and fixes.
+
+commit 03c500eea0451a8164090f86f5ff9ae1a529aeeb
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jul 21 13:33:24 2008 +0200
+
+    [surfaces] Implemented strategy for surface allocations when pools are out of memory.
+    
+    Extended dfb_surface_pools_negotiate() to return a list of capable pools order by priority
+    including pools out of memory at the end of the list.
+    
+    Added MuckOut() to the surface pool API to tag all allocations for removal to free up memory
+    for a new allocation. If not provided by the pool, a fallback implementation will do the job,
+    but that's not implemented yet.
+    
+    Added dfb_surface_pool_displace() to muck out and backup allocations and do the new allocation.
+    
+    Moved allocate_buffer() from surface buffer to surface pool code as dfb_surface_pools_allocate()
+    with extended negotiation using a list of possible pools and with ability to muck out allocations.
+    
+    Changed static update_allocation() to exported dfb_surface_allocation_update().
+    
+    Added dfb_surface_trylock() for a fusion_skirmish_swoop() on the surface lock.
+    
+    Call dfb_surface_lock() and dfb_surface_unlock() in surface_destructor().
+    
+    Moved surface core initialization before system module to have generic pools always at
+    the same position (with the same pool IDs).
+    
+    Keep an ordered list of surface pool IDs based on priority.
+    
+    Have a pointer to a backup pool in every pool which is set to the shared memory surface pool by default.
+
+commit 5ffb341a6f716bfc900bd722317dd63451911e0b
+Merge: c148939... d5bda88...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jul 21 13:32:34 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit c148939c7c01ffc6f4491dc7fb9339180c9350af
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jul 21 12:57:00 2008 +0200
+
+    [surfaces] Use convenience functions where possible, e.g. dfb_surface_lock_buffer() instead of dfb_surface_get_buffer() and dfb_surface_buffer_lock() etc.
+
+commit d5bda88808477881fa5fc58f9684aa1bd0867d83
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jul 21 12:57:00 2008 +0200
+
+    [surfaces] Use convenience functions where possible, e.g. dfb_surface_lock_buffer() instead of dfb_surface_get_buffer() and dfb_surface_buffer_lock() etc.
+
+commit 0c9a7dca0bd288479c773191435042b6853e273f
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jul 21 12:56:08 2008 +0200
+
+    [windows] Shutdown fixes in the window management and new flags for the state of the stack.
+    
+    Added CoreWindowStackFlags with CWSF_INITIALIZED and CWSF_ACTIVATED to CoreWindowStack.
+    
+    In dfb_wm_close_all_stacks() simply call dfb_wm_close_stack() for any stack with CWSF_INITIALIZED set.
+    The previous code did only half of it, just clearing context->stack pointer and clearing the magic value
+    resulting in the notification handler for the background image accessing a stack structure without magic.
+    
+    In dfb_wm_close_stack() first deactivate the stack if CWSF_ACTIVATED is set.
+    
+    Safe state handling in dfb_wm_set_active().
+    
+    Moved magic value set/clear from wm.c to windowstack.c where the structure is allocated and freed.
+    
+    Check return value of dfb_wm_init_stack().
+
+commit c32441475ff21fbbae477129310a9d594a7cb72d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jul 20 15:13:21 2008 +0200
+
+    [x11] Output ARGB when depth is 32, support AYUV input (layer format).
+
+commit 38d4b138168b56330c54f3bb92673f5017444f6b
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jul 20 15:03:15 2008 +0200
+
+    [dfbdump] Show capacity in pool info (with "-p") and only dump shared or explicitly specified surfaces to avoid crashes.
+
+commit c2bea38a0855e8c7e050e693a4e36705026bc92a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jul 20 15:00:08 2008 +0200
+
+    [convert] Added conversion to RGB555 and from AYUV (added to all conversion functions).
+
+commit cc328caa46510e5b0e185edbb17bd732b40a3d8a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jul 20 14:59:26 2008 +0200
+
+    [surfaces] A bit more debug when locking buffers.
+
+commit c319b6a969a064a83e7e7da308daaca7fb1f4866
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jul 20 14:58:31 2008 +0200
+
+    [virtual2d] Fixed copy'n'paste bug in virtual driver.
+
+commit edaf0352f0a90ef68ef0b571fb1fe52abb5907df
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jul 20 14:57:39 2008 +0200
+
+    [surfaces] Cleanup complex assertions, no CORE_SURFACE_ALLOCATION_ASSERT within CORE_SURFACE_BUFFER_LOCK_ASSERT, only D_ASSERTs.
+
+commit 95d25625adbd57ac04dd5a04f42a2b3d1056fd52
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jul 20 01:06:48 2008 +0200
+
+    [layers] Fix failing assertion due to recent code cleanup.
+
+commit 123d8d07824ab4112350d763bb21ababb5b343fb
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jul 20 01:05:28 2008 +0200
+
+    [fusion] Clear object list (pointer to NULL) after cleanup for safety.
+
+commit d52e27ac0165199dc90987bba232474b31bf6385
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jul 20 01:02:17 2008 +0200
+
+    [fusion] Print warning for FUSION_CALL_RETURN if caller could not receive result due to a signal.
+
+commit f7eee07eac4bf0cf6ca96ac03c77b7c447b32e74
+Author: Denis Oliver Kropp <dok@vm.directfb.home>
+Date:   Tue Nov 21 04:56:02 2028 +0100
+
+    [x11] Fixed bytes per pixel and pitch calculation for fallback XCreateImage() when no XShm is available.
+
+commit e766efa2b9cac28d76fc014774bb9f28e15df70e
+Author: Denis Oliver Kropp <dok@vm.directfb.home>
+Date:   Tue Nov 21 04:55:54 2028 +0100
+
+    [x11] Take first matching visual for each format instead of last and handle RGB32 and ARGB separately (depth 24 and 32).
+
+commit 84059022f5d1bcaf685b38d6a5009230c663d652
+Author: Denis Oliver Kropp <dok@vm.directfb.home>
+Date:   Tue Nov 21 04:55:37 2028 +0100
+
+    [fusion] Fixed dead lock with references in single app mode.
+    
+    fusion_ref_zero_lock() no longer leaves the mutex locked. Turned
+    'waiting' into 'locked' to keep size for binary compatibility.
+
+commit a39849d8bb11301ec3d5c2420b026f7dbaa0e5a7
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Jul 19 04:52:11 2008 +0200
+
+    [devmem] Partially reverted cleanup of surface manager code.
+    
+    The workaround for the surface manager creation happening before graphics driver
+    initialization with possible dfb_gfxcard_reserve_memory() calls is still required.
+
+commit 811ee7208e30cf72d98e44cbc7a672eb589a6337
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jul 14 02:45:07 2008 +0200
+
+    [IDirectFBSurface] Added MakeSubSurface() to make this surface a sub surface or adjust the rectangle of this sub surface.
+
+commit dac4a5fe8c43205ca9854f48183134325e8897c8
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Jul 13 16:28:43 2008 +0200
+
+    updated once more
+
 commit 7cb19857f5e3feb6d6daf43bffbc52ce28ddd2ff
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Sun Jul 13 16:28:06 2008 +0200
