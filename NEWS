@@ -1,3 +1,135 @@
+1.2.1
+-----
+
+API | IDirectFBSurface
+- Added MakeSubSurface() to make this surface a sub surface or adjust the rectangle of this sub surface.
+- Fix Lock() on layer surfaces with system memory back buffer.
+  This reverts commit 4cc82baddbc3a9849c2ff6c4979a65bcfb6ba96b and fixes
+  GetFramebufferOffset() properly by not adding CSAF_GPU_READ in Lock(), but
+  checking if there's a physical address provided by the surface pool via the
+  buffer lock in GetFramebufferOffset().
+
+API | IDirectFBImageProvider
+- Added simple WriteBack() method for encoding surface data.
+
+Runtime Options
+- New option "warn=<event:params>" to print warnings on surface/window creation or surface buffer allocations.
+  Example: 'warn = allocate-buffer:300x300' - Prints a warning for every surface buffer allocation made with
+  both width and height of 300 or above.
+- Added "keep-accumulators = <limit>" to allow freeing of accumulators above the limit.
+  Setting -1 never frees accumulators until the state is destroyed (previous behaviour).
+  The default is 1024 which already means up to 16kB are kept!
+- Allocate palette on demand saving 16kB of the 60kB allocated until after DirectFBCreate().
+
+Layer Core
+- Fix failing assertion due to recent code cleanup.
+
+Surface Core
+- Cleanup complex assertions, no CORE_SURFACE_ALLOCATION_ASSERT within CORE_SURFACE_BUFFER_LOCK_ASSERT, only D_ASSERTs.
+- A bit more debug when locking buffers.
+- Use convenience functions where possible, e.g. dfb_surface_lock_buffer() instead of dfb_surface_get_buffer()
+  and dfb_surface_buffer_lock() etc.
+- Implemented strategy for surface allocations when pools are out of memory.
+- Extended dfb_surface_pools_negotiate() to return a list of capable pools order by priority
+  including pools out of memory at the end of the list.
+- Added MuckOut() to the surface pool API to tag all allocations for removal to free up memory
+  for a new allocation. If not provided by the pool, a fallback implementation will do the job,
+  but that's not implemented yet.
+- Added dfb_surface_pool_displace() to muck out and backup allocations and do the new allocation.
+- Moved allocate_buffer() from surface buffer to surface pool code as dfb_surface_pools_allocate()
+  with extended negotiation using a list of possible pools and with ability to muck out allocations.
+- Changed static update_allocation() to exported dfb_surface_allocation_update().
+- Added dfb_surface_trylock() for a fusion_skirmish_swoop() on the surface lock.
+- Call dfb_surface_lock() and dfb_surface_unlock() in surface_destructor().
+- Moved surface core initialization before system module to have generic pools always at
+  the same position (with the same pool IDs).
+- Keep an ordered list of surface pool IDs based on priority.
+- Have a pointer to a backup pool in every pool which is set to the shared memory surface pool by default.
+- Enhanced backup strategy when mucking out allocations.
+- First check if any of the existing allocations is up to date,
+  otherwise try to update one of the existing allocations.
+- Enforce same order of joining pools as of initializing them.
+- Fixed invalid 'buffer->written' allocation pointer when using "thrifty-surface-buffers" option.
+- Fixed wrong order of joining surface pools in slaves.
+- Fixes for mucking out multiple allocations.
+- Use fusion_ref_set_name() to show the same info as with the skirmish.
+- Cleanup buffer initialization and reset with two new convenience functions.
+- Other fixes and enhanced debugging output.
+
+Surface Manager (FBDev, DevMem, X11 Virtual Physical testing pool)
+- Enhancements to surface manager code and fixes for old behaviour (without virtual physical surface pool).
+- Extend dfb_surfacemanager_displace() to check policies, reimplement toleration code
+  and take free space before and after an occupied chunk into account.
+- Cleanup dfb_surfacemanager_allocate() to only check for free chunks.
+- Always initialize x11(Shm)Image surface pool, regardless of virtual physical surface pool being enabled.
+- Never fail in x11TestConfig() if virtual physical surface pool is not enabled,
+  but use Fusion shared memory allocations as a fallback (previous behaviour).
+- Update allocation size from chunk length which is usually bigger (at least 16 bytes of safety area).
+- Enhance surface manager to find the best matching group of allocations to muck out.
+- This is the first time multiple smaller allocations can be mucked out for a bigger one.
+  The code that determines these allocations is still O(1) and finds the best matching
+  group within all possible combinations.
+
+Window Core
+- Shutdown fixes in the window management and new flags for the state of the stack.
+- Added CoreWindowStackFlags with CWSF_INITIALIZED and CWSF_ACTIVATED to CoreWindowStack.
+- In dfb_wm_close_all_stacks() simply call dfb_wm_close_stack() for any stack with CWSF_INITIALIZED set.
+  The previous code did only half of it, just clearing context->stack pointer and clearing the magic value
+  resulting in the notification handler for the background image accessing a stack structure without magic.
+- In dfb_wm_close_stack() first deactivate the stack if CWSF_ACTIVATED is set.
+- Safe state handling in dfb_wm_set_active().
+- Moved magic value set/clear from wm.c to windowstack.c where the structure is allocated and freed.
+- Check return value of dfb_wm_init_stack().
+
+libfusion
+- Fixed dead lock with references in single app mode. fusion_ref_zero_lock() no longer leaves the mutex locked.
+  Turned 'waiting' into 'locked' to keep size for binary compatibility.
+- Print warning for FUSION_CALL_RETURN if caller could not receive result due to a signal.
+- Clear object list (pointer to NULL) after cleanup for safety.
+- Added fusion_ref_set_name(), e.g. for better debug information on object references.
+
+Conversion
+- Added conversion to RGB555 and from AYUV (added to all conversion functions).
+
+SH7722 Driver
+- Added hardware JPEG encoding support, code moved into library, JPEG lock and buffer allocation in kernel
+
+VMWare Driver
+- Fixed copy'n'paste bug in virtual driver.
+
+Keyboard Input Driver
+- Only become active if FBDev or DevMem is used to avoid grabbing keyboard from X11 for example.
+
+DevMem System
+- Partially reverted cleanup of surface manager code. The workaround for the surface manager creation happening before
+  graphics driver initialization with possible dfb_gfxcard_reserve_memory() calls is still required.
+- Update surface manager code from X11 virtual physical testing pool.
+
+FBDev System
+- Update surface manager code from X11 virtual physical testing pool.
+
+X11 System
+- Take first matching visual for each format instead of last and handle RGB32 and ARGB separately (depth 24 and 32).
+- Fixed bytes per pixel and pitch calculation for fallback XCreateImage() when no XShm is available.
+- Output ARGB when depth is 32, support AYUV input (layer format).
+- XShm fixes and new virtual physical surface pool for development and testing.
+- Specifying 'video-length = <bytes>' option will create a shared memory block of that
+  size and initialize a surface pool with a surface manager supporting the new MuckOut() call.
+- Changed x11(Shm)Image pool to only allow allocations for supported visuals (no fallback
+  shared memory allocations) when the new option is used.
+- Return accelerator ID 51 for testing with the virtual acceleration (currently called vmware).
+- Make usage of XShmQueryVersion() to check for XShm support.
+- Return accelerator as set in config.
+- Set buffer lock offset in fallback mode to satisfy assumption in surface core.
+- Other cleanups and fixes.
+
+dfbdump tool
+- Show capacity in pool info (with "-p") and only dump shared or explicitly specified surfaces to avoid crashes.
+
+dfblayer tool
+- Add testing Lock() with read/write, read only or write only.
+
+
 1.2.0
 -----
 
