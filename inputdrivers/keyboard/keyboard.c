@@ -332,8 +332,14 @@ driver_get_available()
 {
      int fd;
 
-     if (dfb_system_type() == CORE_FBDEV && dfb_config->vt)
-          return 1;
+     switch (dfb_system_type()) {
+          case CORE_FBDEV:
+          case CORE_DEVMEM:
+               return 1;
+
+          default:
+               return 0;
+     }
 
      fd = open( "/dev/tty0", O_RDWR | O_NOCTTY );
      if (fd < 0)
@@ -367,6 +373,7 @@ driver_open_device( CoreInputDevice  *device,
      int             fd;
      struct termios  ts;
      KeyboardData   *data;
+
 
      if (dfb_system_type() == CORE_FBDEV && dfb_config->vt) {
           FBDev *dfb_fbdev = dfb_system_data();
