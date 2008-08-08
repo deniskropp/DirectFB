@@ -231,7 +231,7 @@ devmemTestConfig( CoreSurfacePool         *pool,
      if (surface->type & CSTF_LAYER)
           return DFB_OK;
 
-     ret = dfb_surfacemanager_allocate( local->core, data->manager, buffer, NULL );
+     ret = dfb_surfacemanager_allocate( local->core, data->manager, buffer, NULL, NULL );
 
      D_DEBUG_AT( DevMem_Surfaces, "  -> %s\n", DirectFBErrorString(ret) );
 
@@ -263,7 +263,7 @@ devmemAllocateBuffer( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     ret = dfb_surfacemanager_allocate( local->core, data->manager, buffer, &chunk );
+     ret = dfb_surfacemanager_allocate( local->core, data->manager, buffer, allocation, &chunk );
      if (ret)
           return ret;
 
