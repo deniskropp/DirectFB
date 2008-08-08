@@ -802,7 +802,8 @@ dfb_surface_pool_lock( CoreSurfacePool       *pool,
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
-     D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
+     CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
+     D_ASSERT( lock->buffer == NULL );
 
      D_DEBUG_AT( Core_SurfPoolLock, "%s( %p [%d], %p )\n", __FUNCTION__, pool, pool->pool_id, allocation );
 
@@ -812,11 +813,18 @@ dfb_surface_pool_lock( CoreSurfacePool       *pool,
 
      D_ASSERT( funcs->Lock != NULL );
 
+     lock->allocation = allocation;
+     lock->buffer     = allocation->buffer;
+
      ret = funcs->Lock( pool, pool->data, get_local(pool), allocation, allocation->data, lock );
      if (ret) {
           D_DERROR( ret, "Core/SurfacePool: Could not lock allocation!\n" );
+          dfb_surface_buffer_lock_reset( lock );
           return ret;
      }
+
+     CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
+     D_ASSERT( lock->buffer != NULL );
 
      return DFB_OK;
 }
@@ -831,7 +839,8 @@ dfb_surface_pool_unlock( CoreSurfacePool       *pool,
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
-     D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
+     CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
+     D_ASSERT( lock->buffer != NULL );
 
      D_DEBUG_AT( Core_SurfPoolLock, "%s( %p [%d], %p )\n", __FUNCTION__, pool, pool->pool_id, allocation );
 
@@ -846,6 +855,11 @@ dfb_surface_pool_unlock( CoreSurfacePool       *pool,
           D_DERROR( ret, "Core/SurfacePool: Could not unlock allocation!\n" );
           return ret;
      }
+
+     CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
+     D_ASSERT( lock->buffer != NULL );
+
+     dfb_surface_buffer_lock_reset( lock );
 
      return DFB_OK;
 }

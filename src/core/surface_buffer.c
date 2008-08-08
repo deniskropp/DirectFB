@@ -207,11 +207,8 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
           return ret;
      }
 
-     lock->buffer     = buffer;
-     lock->access     = access;
-     lock->allocation = NULL;
-
-     D_MAGIC_SET( lock, CoreSurfaceBufferLock );
+     /* Lock the allocation. */
+     dfb_surface_buffer_lock_init( lock, access );
 
      ret = dfb_surface_pool_lock( allocation->pool, allocation, lock );
      if (ret) {
@@ -299,6 +296,7 @@ dfb_surface_buffer_unlock( CoreSurfaceBufferLock *lock )
 {
      DFBResult              ret;
      CoreSurfacePool       *pool;
+     CoreSurfaceBuffer     *buffer;
      CoreSurfaceAllocation *allocation;
 
      D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_unlock( %p )\n", lock );
@@ -312,6 +310,9 @@ dfb_surface_buffer_unlock( CoreSurfaceBufferLock *lock )
 
      allocation = lock->allocation;
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+
+     buffer = lock->buffer;
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      pool = allocation->pool;
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
@@ -327,7 +328,7 @@ dfb_surface_buffer_unlock( CoreSurfaceBufferLock *lock )
           return ret;
      }
 
-     lock->buffer->locked--;
+     buffer->locked--;
 
      lock->buffer     = NULL;
      lock->allocation = NULL;
@@ -416,10 +417,7 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
           return ret;
 
      /* Lock the allocation. */
-     lock.buffer = buffer;
-     lock.access = CSAF_CPU_READ;
-
-     D_MAGIC_SET( &lock, CoreSurfaceBufferLock );
+     dfb_surface_buffer_lock_init( &lock, CSAF_CPU_READ );
 
      ret = dfb_surface_pool_lock( allocation->pool, allocation, &lock );
      if (ret) {
@@ -527,10 +525,7 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
      }
 
      /* Lock the allocation. */
-     lock.buffer = buffer;
-     lock.access = CSAF_CPU_WRITE;
-
-     D_MAGIC_SET( &lock, CoreSurfaceBufferLock );
+     dfb_surface_buffer_lock_init( &lock, CSAF_CPU_WRITE );
 
      ret = dfb_surface_pool_lock( allocation->pool, allocation, &lock );
      if (ret) {
@@ -1089,10 +1084,8 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
                CoreSurfaceBufferLock src;
                CoreSurfaceBufferLock dst;
 
-               D_MAGIC_SET( &src, CoreSurfaceBufferLock );
-
-               src.buffer = buffer;
-               src.access = CSAF_CPU_READ;
+               /* Lock the allocation. */
+               dfb_surface_buffer_lock_init( &src, CSAF_CPU_READ );
 
                ret = dfb_surface_pool_lock( source->pool, source, &src );
                if (ret) {
@@ -1101,10 +1094,8 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
                     return ret;
                }
 
-               D_MAGIC_SET( &dst, CoreSurfaceBufferLock );
-
-               dst.buffer = buffer;
-               dst.access = CSAF_CPU_WRITE;
+               /* Lock the allocation. */
+               dfb_surface_buffer_lock_init( &dst, CSAF_CPU_WRITE );
 
                ret = dfb_surface_pool_lock( allocation->pool, allocation, &dst );
                if (ret) {

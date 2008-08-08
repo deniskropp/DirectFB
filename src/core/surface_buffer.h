@@ -101,33 +101,67 @@ struct __DFB_CoreSurfaceAllocation {
  * A Lock on a Surface Buffer
  */
 struct __DFB_CoreSurfaceBufferLock {
-     int                      magic;
+     int                      magic;              /* Must be valid before calling dfb_surface_pool_lock() */
 
-     CoreSurfaceAccessFlags   access;
+     CoreSurfaceAccessFlags   access;             /* " */
 
-     CoreSurfaceBuffer       *buffer;
-     CoreSurfaceAllocation   *allocation;
+     CoreSurfaceBuffer       *buffer;             /* Set by dfb_surface_pool_lock() */
+     CoreSurfaceAllocation   *allocation;         /* " */
 
-     void                    *addr;
-     unsigned long            phys;
-     unsigned long            offset;
-     unsigned int             pitch;
+     void                    *addr;               /* " */
+     unsigned long            phys;               /* " */
+     unsigned long            offset;             /* " */
+     unsigned int             pitch;              /* " */
 
-     void                    *handle;
+     void                    *handle;             /* " */
 };
 
-#define CORE_SURFACE_BUFFER_LOCK_ASSERT(lock)                                                  \
-     do {                                                                                      \
-          D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );                                       \
-          D_FLAGS_ASSERT( (lock)->access, CSAF_ALL );                                          \
-          D_ASSERT( (lock)->allocation != NULL );                                              \
-          D_ASSERT( (lock)->buffer == (lock)->allocation->buffer );                            \
-          D_ASSUME( (lock)->addr != NULL ||                                                    \
-                    !((lock)->access & (CSAF_CPU_READ|CSAF_CPU_WRITE)) );                      \
-          D_ASSUME( (lock)->phys != 0 || (lock)->handle != NULL ||                             \
-                    !((lock)->access & (CSAF_GPU_READ|CSAF_GPU_WRITE)) );                      \
-          D_ASSUME( (lock)->offset == (lock)->allocation->offset );                            \
-          D_ASSERT( (lock)->pitch > 0 );                                                       \
+static inline void
+dfb_surface_buffer_lock_reset( CoreSurfaceBufferLock *lock )
+{
+     D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
+
+     lock->buffer     = NULL;
+     lock->allocation = NULL;
+     lock->addr       = NULL;
+     lock->phys       = 0;
+     lock->offset     = ~0;
+     lock->pitch      = 0;
+     lock->handle     = NULL;
+}
+
+static inline void
+dfb_surface_buffer_lock_init( CoreSurfaceBufferLock *lock, CoreSurfaceAccessFlags access )
+{
+     D_MAGIC_SET( lock, CoreSurfaceBufferLock );
+
+     lock->access = access;
+
+     dfb_surface_buffer_lock_reset( lock );
+}
+
+#define CORE_SURFACE_BUFFER_LOCK_ASSERT(lock)                                                       \
+     do {                                                                                           \
+          D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );                                            \
+          D_FLAGS_ASSERT( (lock)->access, CSAF_ALL );                                               \
+          if ((lock)->buffer) {                                                                     \
+               D_ASSERT( (lock)->allocation != NULL );                                              \
+               D_ASSERT( (lock)->buffer == (lock)->allocation->buffer );                            \
+               D_ASSUME( (lock)->addr != NULL ||                                                    \
+                         !((lock)->access & (CSAF_CPU_READ|CSAF_CPU_WRITE)) );                      \
+               D_ASSUME( (lock)->phys != 0 || (lock)->offset != ~0 || (lock)->handle != NULL ||     \
+                         !((lock)->access & (CSAF_GPU_READ|CSAF_GPU_WRITE)) );                      \
+               D_ASSUME( (lock)->offset == (lock)->allocation->offset || (lock)->offset == ~0 );    \
+               D_ASSERT( (lock)->pitch > 0 );                                                       \
+          }                                                                                         \
+          else {                                                                                    \
+               D_ASSERT( (lock)->allocation == NULL );                                              \
+               D_ASSERT( (lock)->addr == NULL );                                                    \
+               D_ASSERT( (lock)->phys == 0 );                                                       \
+               D_ASSERT( (lock)->offset == ~0 );                                                    \
+               D_ASSERT( (lock)->pitch == 0 );                                                      \
+               D_ASSERT( (lock)->handle == NULL );                                                  \
+          }                                                                                         \
      } while (0)
 
 /*
