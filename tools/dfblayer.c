@@ -62,6 +62,7 @@ static int                       level        = 0;
 static DFBBoolean                set_level    = DFB_FALSE;
 static int                       rotation     = 0;
 static DFBBoolean                set_rotation = DFB_FALSE;
+static DFBSurfaceLockFlags       test_lock    = 0;
 
 /*****************************************************************************/
 
@@ -125,6 +126,32 @@ main( int argc, char *argv[] )
      /* Show/change the configuration. */
      set_configuration();
 
+     /* Test Lock() on layer surface? */
+     if (test_lock) {
+          IDirectFBSurface *surface;
+
+          fprintf( stderr, "\nGetting layer surface...\n" );
+
+          ret = layer->GetSurface( layer, &surface );
+          if (ret)
+               DirectFBError( "IDirectFBDisplayLayer::GetSurface() failed", ret );
+          else {
+               void *data;
+               int   pitch;
+
+               fprintf( stderr, "\nTesting Lock( %s ) on layer surface...\n",
+                        test_lock == DSLF_READ ? "read only" : test_lock == DSLF_WRITE ? "write only" : "read/write" );
+
+               ret = surface->Lock( surface, test_lock, &data, &pitch );
+               if (ret)
+                    DirectFBError( "IDirectFBSurface::Lock() failed", ret );
+               else
+                    fprintf( stderr, "  => OK\n\n" );
+
+               surface->Release( surface );
+          }
+     }
+
      /* Release the display layer. */
      layer->Release( layer );
 
@@ -144,15 +171,18 @@ print_usage (const char *prg_name)
      fprintf (stderr, "\nDirectFB Layer Configuration (version %s)\n\n", DIRECTFB_VERSION);
      fprintf (stderr, "Usage: %s [options]\n\n", prg_name);
      fprintf (stderr, "Options:\n");
-     fprintf (stderr, "   -l, --layer   <id>              Use the specified layer, default is primary\n");
-     fprintf (stderr, "   -m, --mode    <width>x<height>  Change the resolution (pixels)\n");
-     fprintf (stderr, "   -f, --format  <pixelformat>     Change the pixel format\n");
-     fprintf (stderr, "   -b, --buffer  <buffermode>      Change the buffer mode (single/video/system)\n");
-     fprintf (stderr, "   -o, --opacity <opacity>         Change the layer's opacity (0-255)\n");
-     fprintf (stderr, "   -L, --level   <level>           Change the layer's level\n");
-     fprintf (stderr, "   -R, --rotate  <degree>          Change the layer rotation\n");
-     fprintf (stderr, "   -h, --help                      Show this help message\n");
-     fprintf (stderr, "   -v, --version                   Print version information\n");
+     fprintf (stderr, "   -l,  --layer            <id>              Use the specified layer, default is primary\n");
+     fprintf (stderr, "   -m,  --mode             <width>x<height>  Change the resolution (pixels)\n");
+     fprintf (stderr, "   -f,  --format           <pixelformat>     Change the pixel format\n");
+     fprintf (stderr, "   -b,  --buffer           <buffermode>      Change the buffer mode (single/video/system)\n");
+     fprintf (stderr, "   -o,  --opacity          <opacity>         Change the layer's opacity (0-255)\n");
+     fprintf (stderr, "   -L,  --level            <level>           Change the layer's level\n");
+     fprintf (stderr, "   -R,  --rotate           <degree>          Change the layer rotation\n");
+     fprintf (stderr, "   -t,  --test-lock                          Get layer surface and Lock() it (read/write)\n");
+     fprintf (stderr, "   -tr, --test-lock-read                     Get layer surface and Lock() it (read  only)\n");
+     fprintf (stderr, "   -tw, --test-lock-write                    Get layer surface and Lock() it (write only)\n");
+     fprintf (stderr, "   -h,  --help                               Show this help message\n");
+     fprintf (stderr, "   -v,  --version                            Print version information\n");
      fprintf (stderr, "\n");
 
      fprintf (stderr, "Known pixel formats:\n");
@@ -400,6 +430,24 @@ parse_command_line( int argc, char *argv[] )
 
                if (!parse_rotation( argv[n] ))
                     return DFB_FALSE;
+
+               continue;
+          }
+
+          if (strcmp (arg, "-t") == 0 || strcmp (arg, "--test-lock") == 0) {
+               test_lock = DSLF_READ | DSLF_WRITE;
+
+               continue;
+          }
+
+          if (strcmp (arg, "-tr") == 0 || strcmp (arg, "--test-lock-read") == 0) {
+               test_lock = DSLF_READ;
+
+               continue;
+          }
+
+          if (strcmp (arg, "-tw") == 0 || strcmp (arg, "--test-lock-write") == 0) {
+               test_lock = DSLF_WRITE;
 
                continue;
           }
