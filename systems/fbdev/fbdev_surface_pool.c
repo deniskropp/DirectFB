@@ -228,7 +228,7 @@ fbdevTestConfig( CoreSurfacePool         *pool,
      if (surface->type & CSTF_LAYER)
           return DFB_OK;
 
-     ret = dfb_surfacemanager_allocate( local->core, data->manager, buffer, NULL );
+     ret = dfb_surfacemanager_allocate( local->core, data->manager, buffer, NULL, NULL );
 
      D_DEBUG_AT( FBDev_Surfaces, "  -> %s\n", DirectFBErrorString(ret) );
 
@@ -305,7 +305,7 @@ fbdevAllocateBuffer( CoreSurfacePool       *pool,
      else {
           Chunk *chunk;
 
-          ret = dfb_surfacemanager_allocate( local->core, data->manager, buffer, &chunk );
+          ret = dfb_surfacemanager_allocate( local->core, data->manager, buffer, allocation, &chunk );
           if (ret)
                return ret;
 

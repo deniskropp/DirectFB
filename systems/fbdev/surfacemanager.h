@@ -52,6 +52,7 @@ struct _Chunk {
      
      CoreSurfaceBuffer   *buffer;      /* pointer to surface buffer occupying
                                           this chunk, or NULL if chunk is free */
+     CoreSurfaceAllocation *allocation;
 
      int                  tolerations; /* number of times this chunk was scanned
                                           occupied, resetted in assure_video */
@@ -59,6 +60,23 @@ struct _Chunk {
      Chunk               *prev;
      Chunk               *next;
 };
+
+struct _SurfaceManager {
+     int                  magic;
+
+     FusionSHMPoolShared *shmpool;
+
+     Chunk               *chunks;
+
+     int                  offset;
+     int                  length;         /* length of the heap in bytes */
+     int                  avail;          /* amount of available memory in bytes */
+
+     int                  min_toleration;
+     
+     bool                 suspended;
+};
+
 
 DFBResult dfb_surfacemanager_create ( CoreDFB             *core,
                                       unsigned int         length,
@@ -78,10 +96,15 @@ DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
  * after success the video health is CSH_RESTORE.
  * NOTE: this does not notify the listeners
  */
-DFBResult dfb_surfacemanager_allocate( CoreDFB            *core,
-                                       SurfaceManager     *manager,
-                                       CoreSurfaceBuffer  *buffer,
-                                       Chunk             **ret_chunk );
+DFBResult dfb_surfacemanager_allocate( CoreDFB                *core,
+                                       SurfaceManager         *manager,
+                                       CoreSurfaceBuffer      *buffer,
+                                       CoreSurfaceAllocation  *allocation,
+                                       Chunk                 **ret_chunk );
+
+DFBResult dfb_surfacemanager_displace( CoreDFB           *core,
+                                       SurfaceManager    *manager,
+                                       CoreSurfaceBuffer *buffer );
 
 /*
  * sets the video health to CSH_INVALID frees the chunk and
