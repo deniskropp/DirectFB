@@ -427,9 +427,6 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
           role = CSBR_BACK;
      }
 
-     if (data->caps & DSCAPS_VIDEOONLY)
-          access |= CSAF_GPU_READ;
-
      ret = dfb_surface_lock_buffer( data->surface, role, access, &data->lock );
      if (ret)
           return ret;
@@ -458,8 +455,8 @@ IDirectFBSurface_GetFramebufferOffset( IDirectFBSurface *thiz,
      if (!data->locked)
           return DFB_ACCESSDENIED;
 
-     if (!(data->lock.access & (CSAF_GPU_READ | CSAF_GPU_WRITE))) {
-          /* The surface is probably in a system buffer if video is unlocked. */
+     if (!data->lock.phys) {
+          /* The surface is probably in a system buffer if there's no physical address. */
           return DFB_UNSUPPORTED;
      }
 
