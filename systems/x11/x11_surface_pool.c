@@ -296,7 +296,8 @@ x11Lock( CoreSurfacePool       *pool,
                     return D_OOSHM();
           }
 
-          lock->addr = alloc->ptr;
+          lock->addr   = alloc->ptr;
+          lock->offset = 0;
      }
 
      lock->pitch = alloc->pitch;
