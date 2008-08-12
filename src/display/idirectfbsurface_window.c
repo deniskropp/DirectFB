@@ -41,6 +41,7 @@
 
 #include <core/fonts.h>
 #include <core/gfxcard.h>
+#include <core/layer_context.h>
 #include <core/layer_region.h>
 #include <core/state.h>
 #include <core/surface.h>
@@ -276,15 +277,23 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
                                    DFBSurfaceCapabilities  caps,
                                    CoreDFB                *core )
 {
-     DFBResult ret;
-     DFBInsets insets;
+     DFBResult        ret;
+     DFBInsets        insets;
+     CoreWindowStack *stack;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Window)
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     stack = window->stack;
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
+
+     dfb_layer_context_lock( stack->context );
+
+     dfb_wm_get_insets( stack, window, &insets );
      
-     dfb_wm_get_insets( window->stack, window, &insets );
-     
+     dfb_layer_context_unlock( stack->context );
+
      ret = IDirectFBSurface_Construct( thiz, parent, wanted, granted, &insets,
                                        window->surface, caps, core );
      if (ret)
