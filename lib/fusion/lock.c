@@ -629,10 +629,10 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
 
+     skirmish->single.count--;
+
      if (pthread_mutex_unlock( &skirmish->single.lock ))
           return errno2result( errno );
-
-     skirmish->single.count++;
 
      return DR_OK;
 }
