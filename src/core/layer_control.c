@@ -252,6 +252,10 @@ dfb_layer_get_active_context( CoreLayer         *layer,
           return DFB_FUSION;
      }
 
+     D_DEBUG_AT( Core_Layers, "  => %p [%4dx%4d %8s]\n", context,
+                 context->config.width, context->config.height,
+                 dfb_pixelformat_name( context->config.pixelformat ) );
+
      /* Return the context. */
      *ret_context = context;
 
