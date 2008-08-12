@@ -289,7 +289,9 @@ IDirectFBWindow_GetPosition( IDirectFBWindow *thiz,
      if (!x && !y)
           return DFB_INVARG;
 
-     dfb_wm_get_insets(data->window->stack,data->window,&insets);
+     dfb_windowstack_lock( data->window->stack );
+     dfb_wm_get_insets( data->window->stack, data->window, &insets );
+     dfb_windowstack_unlock( data->window->stack );
 
      if (x)
           *x = data->window->config.bounds.x-insets.l;
@@ -315,7 +317,10 @@ IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
 
      if (!width && !height)
           return DFB_INVARG;
-     dfb_wm_get_insets(data->window->stack,data->window,&insets);
+
+     dfb_windowstack_lock( data->window->stack );
+     dfb_wm_get_insets( data->window->stack, data->window, &insets );
+     dfb_windowstack_unlock( data->window->stack );
 
      if (width)
           *width = data->window->config.bounds.w-insets.l-insets.r;
@@ -370,6 +375,8 @@ IDirectFBWindow_SetProperty( IDirectFBWindow   *thiz,
                              void              *value,
                              void            **old_value )
 {
+     DFBResult ret;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
@@ -381,8 +388,11 @@ IDirectFBWindow_SetProperty( IDirectFBWindow   *thiz,
      if (!key)
           return DFB_INVARG;
 
-     return dfb_wm_set_window_property( data->window->stack,
-                                        data->window, key, value, old_value );
+     dfb_windowstack_lock( data->window->stack );
+     ret = dfb_wm_set_window_property( data->window->stack, data->window, key, value, old_value );
+     dfb_windowstack_unlock( data->window->stack );
+
+     return ret;
 }
 
 static DFBResult
@@ -390,6 +400,8 @@ IDirectFBWindow_GetProperty( IDirectFBWindow  *thiz,
                              const char       *key,
                              void            **ret_value )
 {
+     DFBResult ret;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
@@ -403,8 +415,11 @@ IDirectFBWindow_GetProperty( IDirectFBWindow  *thiz,
      if (!ret_value)
           return DFB_INVARG;
 
-     return dfb_wm_get_window_property( data->window->stack, 
-                                        data->window, key, ret_value );
+     dfb_windowstack_lock( data->window->stack );
+     ret = dfb_wm_get_window_property( data->window->stack, data->window, key, ret_value );
+     dfb_windowstack_unlock( data->window->stack );
+
+     return ret;
 }
 
 static DFBResult
@@ -412,6 +427,8 @@ IDirectFBWindow_RemoveProperty( IDirectFBWindow  *thiz,
                                 const char       *key,
                                 void            **ret_value )
 {
+     DFBResult ret;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
@@ -422,8 +439,11 @@ IDirectFBWindow_RemoveProperty( IDirectFBWindow  *thiz,
      if (!key)
           return DFB_INVARG;
 
-     return dfb_wm_remove_window_property( data->window->stack,
-                                           data->window, key, ret_value );
+     dfb_windowstack_lock( data->window->stack );
+     ret = dfb_wm_remove_window_property( data->window->stack, data->window, key, ret_value );
+     dfb_windowstack_unlock( data->window->stack );
+
+     return ret;
 }
 
 static DFBResult
@@ -744,6 +764,7 @@ IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
 static DFBResult
 IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
 {
+     DFBResult ret;
      DFBInsets insets;
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -752,11 +773,17 @@ IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
      if (data->destroyed)
           return DFB_DESTROYED;
 
+     dfb_windowstack_lock( data->window->stack );
+
      dfb_wm_get_insets( data->window->stack, data->window, &insets );
      x += insets.l;
      y += insets.t;
-     
-     return dfb_window_move( data->window, x, y, false );
+
+     ret = dfb_window_move( data->window, x, y, false );
+
+     dfb_windowstack_unlock( data->window->stack );
+
+     return ret;
 }
 
 static DFBResult
@@ -764,6 +791,7 @@ IDirectFBWindow_Resize( IDirectFBWindow *thiz,
                         int              width,
                         int              height )
 {
+     DFBResult ret;
      DFBInsets insets;
      
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
@@ -776,11 +804,17 @@ IDirectFBWindow_Resize( IDirectFBWindow *thiz,
      if (width < 1 || width > 4096 || height < 1 || height > 4096)
           return DFB_INVARG;
      
+     dfb_windowstack_lock( data->window->stack );
+
      dfb_wm_get_insets( data->window->stack, data->window, &insets );
      width  += insets.l+insets.r;
      height += insets.t+insets.b;
-     
-     return dfb_window_resize( data->window, width, height );
+
+     ret = dfb_window_resize( data->window, width, height );
+
+     dfb_windowstack_unlock( data->window->stack );
+
+     return ret;
 }
 
 static DFBResult
