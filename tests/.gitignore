@@ -1,5 +1,6 @@
 dfbtest_reinit
 dfbtest_scale
+dfbtest_window
 direct_stream
 direct_test
 fusion_fork
