@@ -45,6 +45,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/core_parts.h>
+#include <core/layer_context.h>
 #include <core/layers_internal.h>
 #include <core/windows_internal.h>
 #include <core/wm.h>
@@ -405,9 +406,10 @@ dfb_wm_core_resume( DFBWMCore *data )
 DFBResult
 dfb_wm_close_all_stacks( void *data )
 {
-     CoreWindowStack *stack, *next;
-     DFBWMCore       *local;
-     DFBWMCoreShared *shared;
+     CoreLayerContext *context;
+     CoreWindowStack  *stack, *next;
+     DFBWMCore        *local;
+     DFBWMCoreShared  *shared;
 
      D_DEBUG_AT( Core_WM, "%s( %p )\n", __FUNCTION__, data );
 
@@ -424,8 +426,19 @@ dfb_wm_close_all_stacks( void *data )
      direct_list_foreach_safe (stack, next, wm_shared->stacks) {
           D_MAGIC_ASSERT( stack, CoreWindowStack );
 
+          context = stack->context;
+          D_MAGIC_ASSERT( context, CoreLayerContext );
+
+          dfb_layer_context_ref( context );
+
+          dfb_layer_context_lock( context );
+
           if (stack->flags & CWSF_INITIALIZED)
                dfb_wm_close_stack( stack );
+
+          dfb_layer_context_unlock( context );
+
+          dfb_layer_context_unref( context );
      }
 
      return DFB_OK;
@@ -511,6 +524,9 @@ dfb_wm_init_stack( CoreWindowStack *stack )
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( !(stack->flags & CWSF_INITIALIZED) );
 
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
+
      /* Allocate shared stack data. */
      if (wm_shared->info.stack_data_size) {
           if (stack->stack_data)
@@ -558,6 +574,9 @@ dfb_wm_close_stack( CoreWindowStack *stack )
           return DFB_OK;
      }
 
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
+
      /* Deactivate before deinitialization. */
      if (stack->flags & CWSF_ACTIVATED)
           dfb_wm_set_active( stack, false );
@@ -587,6 +606,9 @@ dfb_wm_set_active( CoreWindowStack *stack,
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
+
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
 
      if (active) {
           D_ASSUME( !(stack->flags & CWSF_ACTIVATED) );
@@ -624,6 +646,9 @@ dfb_wm_resize_stack( CoreWindowStack *stack,
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
+
      /* Notify window manager about the new size. */
      return wm_local->funcs->ResizeStack( stack, wm_local->data, stack->stack_data, width, height );
 }
@@ -638,6 +663,9 @@ dfb_wm_process_input( CoreWindowStack     *stack,
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
+
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
 
      D_ASSERT( event != NULL );
 
@@ -655,6 +683,9 @@ dfb_wm_flush_keys( CoreWindowStack *stack )
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
+
      return wm_local->funcs->FlushKeys( stack, wm_local->data, stack->stack_data );
 }
 
@@ -670,6 +701,9 @@ dfb_wm_window_at( CoreWindowStack  *stack,
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
+
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
 
      D_ASSERT( ret_window != NULL );
 
@@ -688,6 +722,9 @@ dfb_wm_window_lookup( CoreWindowStack  *stack,
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
+
      D_ASSERT( ret_window != NULL );
 
      return wm_local->funcs->WindowLookup( stack, wm_local->data,
@@ -705,6 +742,9 @@ dfb_wm_enum_windows( CoreWindowStack      *stack,
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
+
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
 
      D_ASSERT( callback != NULL );
 
@@ -726,6 +766,9 @@ dfb_wm_get_insets( CoreWindowStack *stack,
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
+
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
 
      D_ASSERT( window != NULL );
      D_ASSERT( insets != NULL );
@@ -750,6 +793,9 @@ dfb_wm_preconfigure_window( CoreWindowStack *stack,
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
      D_ASSERT( window != NULL );
      D_ASSERT( wm_local->funcs->PreConfigureWindow != NULL );
+
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
 
      /* Allocate shared window data. */
      if (wm_shared->info.window_data_size) {
@@ -791,6 +837,9 @@ dfb_wm_add_window( CoreWindowStack *stack,
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
+
      D_ASSERT( window != NULL );
 
      /* Tell window manager about the new window. */
@@ -816,6 +865,9 @@ dfb_wm_remove_window( CoreWindowStack *stack,
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
+
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
 
      D_ASSERT( window != NULL );
 
@@ -847,6 +899,9 @@ dfb_wm_set_window_property( CoreWindowStack  *stack,
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
+
      D_ASSERT( window != NULL );
      D_ASSERT( key != NULL );
 
@@ -871,6 +926,9 @@ dfb_wm_get_window_property( CoreWindowStack  *stack,
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
+
      D_ASSERT( window != NULL );
      D_ASSERT( key != NULL );
 
@@ -894,6 +952,9 @@ dfb_wm_remove_window_property( CoreWindowStack  *stack,
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
+
      D_ASSERT( window != NULL );
      D_ASSERT( key != NULL );
 
@@ -913,6 +974,10 @@ dfb_wm_set_window_config( CoreWindow             *window,
      D_ASSERT( window != NULL );
      D_ASSERT( config != NULL );
 
+     D_MAGIC_ASSERT( window->stack, CoreWindowStack );
+     D_MAGIC_ASSERT( window->stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &window->stack->context->lock );
+
      return wm_local->funcs->SetWindowConfig( window, wm_local->data,
                                               window->window_data, config, flags );
 }
@@ -927,6 +992,10 @@ dfb_wm_restack_window( CoreWindow *window,
      D_ASSERT( wm_local->funcs->RestackWindow != NULL );
 
      D_ASSERT( window != NULL );
+
+     D_MAGIC_ASSERT( window->stack, CoreWindowStack );
+     D_MAGIC_ASSERT( window->stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &window->stack->context->lock );
 
      D_ASSERT( relative == NULL || relative == window || relation != 0);
 
@@ -944,6 +1013,10 @@ dfb_wm_grab( CoreWindow *window,
 
      D_ASSERT( window != NULL );
 
+     D_MAGIC_ASSERT( window->stack, CoreWindowStack );
+     D_MAGIC_ASSERT( window->stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &window->stack->context->lock );
+
      D_ASSERT( grab != NULL );
 
      return wm_local->funcs->Grab( window, wm_local->data, window->window_data, grab );
@@ -959,6 +1032,10 @@ dfb_wm_ungrab( CoreWindow *window,
 
      D_ASSERT( window != NULL );
 
+     D_MAGIC_ASSERT( window->stack, CoreWindowStack );
+     D_MAGIC_ASSERT( window->stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &window->stack->context->lock );
+
      D_ASSERT( grab != NULL );
 
      return wm_local->funcs->Ungrab( window, wm_local->data, window->window_data, grab );
@@ -972,6 +1049,10 @@ dfb_wm_request_focus( CoreWindow *window )
      D_ASSERT( wm_local->funcs->RequestFocus != NULL );
 
      D_ASSERT( window != NULL );
+
+     D_MAGIC_ASSERT( window->stack, CoreWindowStack );
+     D_MAGIC_ASSERT( window->stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &window->stack->context->lock );
 
      return wm_local->funcs->RequestFocus( window, wm_local->data, window->window_data );
 }
@@ -987,6 +1068,9 @@ dfb_wm_update_stack( CoreWindowStack     *stack,
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
+
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
 
      DFB_REGION_ASSERT( region );
 
@@ -1005,6 +1089,10 @@ dfb_wm_update_window( CoreWindow          *window,
 
      D_ASSERT( window != NULL );
 
+     D_MAGIC_ASSERT( window->stack, CoreWindowStack );
+     D_MAGIC_ASSERT( window->stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &window->stack->context->lock );
+
      DFB_REGION_ASSERT_IF( region );
 
      return wm_local->funcs->UpdateWindow( window, wm_local->data,
@@ -1021,6 +1109,9 @@ dfb_wm_update_cursor( CoreWindowStack       *stack,
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
+
+     D_MAGIC_ASSERT( stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
 
      D_FLAGS_ASSERT( flags, CCUF_ALL );
 
