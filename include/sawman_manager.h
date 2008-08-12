@@ -209,8 +209,6 @@ struct __SaWMan_SaWManTier {
      CoreLayerContext       *context;
      CoreLayerRegion        *region;
 
-     FusionSkirmish          context_lock;
-
      DFBDisplayLayerConfig   config;
      DFBColorKey             key;
 
@@ -267,6 +265,8 @@ struct __SaWMan_SaWManWindow {
      SaWManWindow          *parent;
      CoreWindow            *parent_window;
      FusionVector           children;
+
+     DFBRectangle           bounds;
 
      DFBRectangle           src;
      DFBRectangle           dst;

@@ -196,18 +196,18 @@ draw_border( SaWManWindow    *sawwin,
      D_DEBUG_AT( SaWMan_Draw, "%s( %p, %p, %d,%d-%dx%d, %d )\n", __FUNCTION__,
                  sawwin, state, DFB_RECTANGLE_VALS_FROM_REGION( region ), thickness );
 
-     if (thickness > window->config.bounds.w / 2)
-          thickness = window->config.bounds.w / 2;
+     if (thickness > sawwin->bounds.w / 2)
+          thickness = sawwin->bounds.w / 2;
 
-     if (thickness > window->config.bounds.h / 2)
-          thickness = window->config.bounds.h / 2;
+     if (thickness > sawwin->bounds.h / 2)
+          thickness = sawwin->bounds.h / 2;
 
      /* Check thickness. */
      if (thickness < 1)
           return;
 
      /* Initialize border rectangles. */
-     rects[0] = window->config.bounds;
+     rects[0] = sawwin->bounds;
 
      for (i=1; i<thickness; i++) {
           rects[i].x = rects[i-1].x + 1;
@@ -446,10 +446,10 @@ sawman_draw_window( SaWManTier   *tier,
 
      if (window->surface &&
          dfb_region_intersect( region,
-                               window->config.bounds.x + border,
-                               window->config.bounds.y + border,
-                               window->config.bounds.x + window->config.bounds.w - border - 1,
-                               window->config.bounds.y + window->config.bounds.h - border - 1 ) &&
+                               sawwin->bounds.x + border,
+                               sawwin->bounds.y + border,
+                               sawwin->bounds.x + sawwin->bounds.w - border - 1,
+                               sawwin->bounds.y + sawwin->bounds.h - border - 1 ) &&
          dfb_region_rectangle_intersect( region, &sawwin->dst )
          )
           draw_window( tier, sawwin, state, region, alpha_channel );

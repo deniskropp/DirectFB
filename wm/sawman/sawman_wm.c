@@ -150,13 +150,13 @@ send_button_event( SaWMan              *sawman,
      D_ASSERT( window->surface != NULL );
 
      we.type   = (event->type == DIET_BUTTONPRESS) ? DWET_BUTTONDOWN : DWET_BUTTONUP;
-     we.x      = stack->cursor.x - window->config.bounds.x;
-     we.y      = stack->cursor.y - window->config.bounds.y;
+     we.x      = stack->cursor.x - sawwin->bounds.x;
+     we.y      = stack->cursor.y - sawwin->bounds.y;
      we.button = event->button;
 
      if (window->config.options & DWOP_SCALE) {
-          we.x = we.x * window->surface->config.size.w  / window->config.bounds.w;
-          we.y = we.y * window->surface->config.size.h / window->config.bounds.h;
+          we.x = we.x * window->surface->config.size.w / sawwin->bounds.w;
+          we.y = we.y * window->surface->config.size.h / sawwin->bounds.h;
      }
 
      sawman_post_event( sawman, sawwin, &we );
@@ -308,8 +308,8 @@ window_at_pointer( SaWMan          *sawman,
           D_ASSERT( window != NULL );
 
           if (!(window->config.options & DWOP_GHOST) && window->config.opacity &&
-              x >= window->config.bounds.x  &&  x < window->config.bounds.x + window->config.bounds.w &&
-              y >= window->config.bounds.y  &&  y < window->config.bounds.y + window->config.bounds.h)
+              x >= sawwin->bounds.x  &&  x < sawwin->bounds.x + sawwin->bounds.w &&
+              y >= sawwin->bounds.y  &&  y < sawwin->bounds.y + sawwin->bounds.h)
                return sawwin;
      }
 
@@ -344,8 +344,8 @@ update_focus( SaWMan          *sawman,
                     D_ASSERT( before->window != NULL );
 
                     we.type = DWET_LEAVE;
-                    we.x    = stack->cursor.x - before->window->config.bounds.x;
-                    we.y    = stack->cursor.y - before->window->config.bounds.y;
+                    we.x    = stack->cursor.x - before->bounds.x;
+                    we.y    = stack->cursor.y - before->bounds.y;
 
                     sawman_post_event( sawman, before, &we );
                }
@@ -358,8 +358,8 @@ update_focus( SaWMan          *sawman,
                     D_ASSERT( after->window != NULL );
 
                     we.type = DWET_ENTER;
-                    we.x    = stack->cursor.x - after->window->config.bounds.x;
-                    we.y    = stack->cursor.y - after->window->config.bounds.y;
+                    we.x    = stack->cursor.x - after->bounds.x;
+                    we.y    = stack->cursor.y - after->bounds.y;
 
                     sawman_post_event( sawman, after, &we );
                }
@@ -897,8 +897,8 @@ request_focus( SaWMan       *sawman,
           D_ASSERT( entered->window != NULL );
 
           we.type = DWET_LEAVE;
-          we.x    = stack->cursor.x - entered->window->config.bounds.x;
-          we.y    = stack->cursor.y - entered->window->config.bounds.y;
+          we.x    = stack->cursor.x - entered->bounds.x;
+          we.y    = stack->cursor.y - entered->bounds.y;
 
           sawman_post_event( sawman, entered, &we );
 
@@ -1043,8 +1043,8 @@ handle_motion( CoreWindowStack *stack,
           D_ASSERT( sawwin->window != NULL );
 
           we.type = DWET_MOTION;
-          we.x    = stack->cursor.x - sawwin->window->config.bounds.x;
-          we.y    = stack->cursor.y - sawwin->window->config.bounds.y;
+          we.x    = stack->cursor.x - sawwin->bounds.x;
+          we.y    = stack->cursor.y - sawwin->bounds.y;
 
           sawman_post_event( sawman, sawwin, &we );
      }
@@ -1055,8 +1055,8 @@ handle_motion( CoreWindowStack *stack,
           D_ASSERT( sawwin->window != NULL );
 
           we.type = DWET_MOTION;
-          we.x    = stack->cursor.x - sawwin->window->config.bounds.x;
-          we.y    = stack->cursor.y - sawwin->window->config.bounds.y;
+          we.x    = stack->cursor.x - sawwin->bounds.x;
+          we.y    = stack->cursor.y - sawwin->bounds.y;
 
           sawman_post_event( sawman, sawwin, &we );
      }
@@ -1083,8 +1083,8 @@ handle_wheel( CoreWindowStack *stack,
           D_ASSERT( sawwin->window != NULL );
 
           we.type = DWET_WHEEL;
-          we.x    = stack->cursor.x - sawwin->window->config.bounds.x;
-          we.y    = stack->cursor.y - sawwin->window->config.bounds.y;
+          we.x    = stack->cursor.x - sawwin->bounds.x;
+          we.y    = stack->cursor.y - sawwin->bounds.y;
           we.step = dz;
 
           sawman_post_event( sawman, sawwin, &we );
@@ -1261,9 +1261,6 @@ wm_post_init( void *wm_data, void *shared_data )
           if (ret)
                D_DERROR( ret, "SaWMan/PostInit: Could not get configuration of layer context!\n" );
 
-          tier->context_lock  = tier->context->lock;
-          tier->context->lock = sawman->lock;
-
           D_INFO( "SaWMan/Init: Layer  %d:  %dx%d, %s, options: %x\n",
                   tier->layer_id, tier->config.width, tier->config.height,
                   dfb_pixelformat_name( tier->config.pixelformat ), tier->config.options );
@@ -1393,8 +1390,6 @@ wm_close_stack( CoreWindowStack *stack,
      }
 
      D_ASSERT( tier->context != NULL );
-
-     tier->context->lock = tier->context_lock;
 
      tier->stack   = NULL;
      tier->context = NULL;
@@ -2788,7 +2783,7 @@ wm_update_window( CoreWindow          *window,
                       window, wm_data, window_data, DFB_RECTANGLE_VALS_FROM_REGION( region ) );
      else
           D_DEBUG_AT( SaWMan_WM, "%s( %p, %p, %p, <0,0-%dx%d> )\n", __FUNCTION__,
-                      window, wm_data, window_data, window->config.bounds.w, window->config.bounds.h );
+                      window, wm_data, window_data, sawwin->bounds.w, sawwin->bounds.h );
 
      if (!SAWMAN_VISIBLE_WINDOW(window))
           return DFB_OK;

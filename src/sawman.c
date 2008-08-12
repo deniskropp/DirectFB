@@ -41,6 +41,7 @@
 #include <core/screen.h>
 #include <core/windows_internal.h>
 
+#include <gfx/clip.h>
 #include <gfx/convert.h>
 #include <gfx/util.h>
 
@@ -592,7 +593,7 @@ sawman_shutdown( SaWMan      *sawman,
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
           D_ASSERT( sawwin->window != NULL );
 
-          D_WARN( "window %d,%d-%dx%d still there", DFB_RECTANGLE_VALS( &sawwin->window->config.bounds ) );
+          D_WARN( "window %d,%d-%dx%d still there", DFB_RECTANGLE_VALS( &sawwin->bounds ) );
 
           sawwin->window->stack = NULL;
      }
@@ -944,7 +945,7 @@ sawman_update_window( SaWMan              *sawman,
                area = DFB_REGION_INIT_TRANSLATED( region, sawwin->dst.x, sawwin->dst.y );
      }
      else
-          area = DFB_REGION_INIT_FROM_RECTANGLE( &window->config.bounds );
+          area = DFB_REGION_INIT_FROM_RECTANGLE( &sawwin->bounds );
 
      if (!dfb_unsafe_region_intersect( &area, 0, 0, tier->size.w - 1, tier->size.h - 1 ))
           return DFB_OK;
@@ -991,7 +992,7 @@ sawman_showing_window( SaWMan       *sawman,
      if (!(sawwin->flags & SWMWF_INSERTED))
           return DFB_OK;
 
-     area = DFB_REGION_INIT_FROM_RECTANGLE( &window->config.bounds );
+     area = DFB_REGION_INIT_FROM_RECTANGLE( &sawwin->bounds );
 
      if (!dfb_unsafe_region_intersect( &area, 0, 0, stack->width - 1, stack->height - 1 ))
           return DFB_OK;
@@ -1300,9 +1301,12 @@ sawman_update_geometry( SaWManWindow *sawwin )
      int           i;
      CoreWindow   *window;
      CoreWindow   *parent_window = NULL;
+     CoreWindow   *toplevel;
+     SaWManWindow *topsaw = NULL;
      SaWMan       *sawman;
      SaWManWindow *parent;
      SaWManWindow *child;
+     CoreWindow   *childwin;
      DFBRegion     clip;
      DFBRectangle  src;
      DFBRectangle  dst;
@@ -1330,13 +1334,74 @@ sawman_update_geometry( SaWManWindow *sawwin )
           D_ASSERT( parent_window != NULL );
      }
 
+     toplevel = window->toplevel;
+     if (toplevel) {
+          topsaw = toplevel->window_data;
+          D_MAGIC_ASSERT( topsaw, SaWManWindow );
+     }
+
+     /* Initialize bounds from base window configuration */
+     sawwin->bounds = window->config.bounds;
+
+     /*
+      * In case of a sub window, the top level bounds define the coordinate space instead of the root (layer bounds)
+      */
+     toplevel = window->toplevel;
+     if (toplevel) {
+          DFBRectangle in, out;
+
+          /*
+           * Take output space from top level bounds
+           */
+          out = topsaw->bounds;
+
+          /*
+           * Take input space from surface if present
+           */
+          if (toplevel->surface) {
+               in.w = toplevel->surface->config.size.w;
+               in.h = toplevel->surface->config.size.h;
+          }
+          else {
+               in.w = out.w;
+               in.h = out.h;
+          }
+
+          in.x = in.y = 0;
+
+          D_DEBUG_AT( SaWMan_Geometry, "  o- top in     %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS(&in) );
+          D_DEBUG_AT( SaWMan_Geometry, "  o- top out    %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS(&out) );
+
+          D_DEBUG_AT( SaWMan_Geometry, "  <- sub bounds %4d,%4d-%4dx%4d (base)\n", DFB_RECTANGLE_VALS(&sawwin->bounds) );
+
+          /*
+           * Scale the sub window bounds if top level window is scaled
+           */
+          if (in.w != out.w || in.h != out.h) {
+               sawwin->bounds.x = sawwin->bounds.x * out.w / in.w;
+               sawwin->bounds.y = sawwin->bounds.y * out.h / in.h;
+               sawwin->bounds.w = sawwin->bounds.w * out.w / in.w;
+               sawwin->bounds.h = sawwin->bounds.h * out.h / in.h;
+
+               D_DEBUG_AT( SaWMan_Geometry, "  -> sub bounds %4d,%4d-%4dx%4d (scaled)\n", DFB_RECTANGLE_VALS(&sawwin->bounds) );
+          }
+
+          /*
+           * Translate the sub window bounds by top level offset
+           */
+          sawwin->bounds.x += out.x;
+          sawwin->bounds.y += out.y;
+
+          D_DEBUG_AT( SaWMan_Geometry, "  => sub bounds %4d,%4d-%4dx%4d (translated)\n", DFB_RECTANGLE_VALS(&sawwin->bounds) );
+     }
+
      /* Update source geometry. */
      clip.x1 = 0;
      clip.y1 = 0;
 
      if (window->caps & DWCAPS_INPUTONLY) {
-          clip.x2 = window->config.bounds.w - 1;
-          clip.y2 = window->config.bounds.h - 1;
+          clip.x2 = sawwin->bounds.w - 1;
+          clip.y2 = sawwin->bounds.h - 1;
      }
      else {
           CoreSurface *surface = window->surface;
@@ -1358,8 +1423,9 @@ sawman_update_geometry( SaWManWindow *sawwin )
           src_updated = true;
      }
 
+
      /* Update destination geometry. */
-     clip = DFB_REGION_INIT_FROM_RECTANGLE( &window->config.bounds );
+     clip = DFB_REGION_INIT_FROM_RECTANGLE( &sawwin->bounds );
 
      D_DEBUG_AT( SaWMan_Geometry, "  -> Applying destination geometry...\n" );
 
@@ -1376,7 +1442,20 @@ sawman_update_geometry( SaWManWindow *sawwin )
           sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, false, false, false );
      }
 
-     D_DEBUG_AT( SaWMan_Geometry, "  -> Updating children...\n" );
+     /* Adjust if clipped by top level window */
+     if (toplevel) {
+          DFBRegion topclip = DFB_REGION_INIT_FROM_RECTANGLE( &topsaw->bounds );
+
+          /*
+           * Clip the sub window bounds against the top level window
+           */
+          dfb_clip_stretchblit( &topclip, &src, &dst );
+
+          D_DEBUG_AT( SaWMan_Geometry, "  => sub dst    %4d,%4d-%4dx%4d (clipped)\n", DFB_RECTANGLE_VALS(&dst) );
+          D_DEBUG_AT( SaWMan_Geometry, "  => sub src    %4d,%4d-%4dx%4d (clipped)\n", DFB_RECTANGLE_VALS(&src) );
+     }
+
+     D_DEBUG_AT( SaWMan_Geometry, "  -> Updating children (associated windows)...\n" );
 
      fusion_vector_foreach (child, i, sawwin->children) {
           window = child->window;
@@ -1386,6 +1465,11 @@ sawman_update_geometry( SaWManWindow *sawwin )
               (window->config.dst_geometry.mode == DWGM_FOLLOW && dst_updated))
                sawman_update_geometry( child );
      }
+
+     D_DEBUG_AT( SaWMan_Geometry, "  -> Updating children (sub windows)...\n" );
+
+     fusion_vector_foreach (childwin, i, window->subwindows)
+          sawman_update_geometry( childwin->window_data );
 
      return DFB_OK;
 }
@@ -1653,7 +1737,7 @@ update_region( SaWMan          *sawman,
 
           if (SAWMAN_VISIBLE_WINDOW( window ) && (tier->classes & (1 << window->config.stacking))) {
                if (dfb_region_intersect( &region,
-                                         DFB_REGION_VALS_FROM_RECTANGLE( &window->config.bounds )))
+                                         DFB_REGION_VALS_FROM_RECTANGLE( &sawwin->bounds )))
                     break;
           }
 
@@ -1667,8 +1751,8 @@ update_region( SaWMan          *sawman,
 
           if (D_FLAGS_ARE_SET( window->config.options, DWOP_ALPHACHANNEL | DWOP_OPAQUE_REGION )) {
                DFBRegion opaque = DFB_REGION_INIT_TRANSLATED( &window->config.opaque,
-                                                              window->config.bounds.x,
-                                                              window->config.bounds.y );
+                                                              sawwin->bounds.x,
+                                                              sawwin->bounds.y );
 
                if (!dfb_region_region_intersect( &opaque, &region )) {
                     update_region( sawman, tier, state, i-1, x1, y1, x2, y2 );

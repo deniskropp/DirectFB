@@ -51,6 +51,8 @@
 
 #include <isawman.h>
 
+static DFBBoolean show_geometry = DFB_FALSE;
+
 static DFBBoolean parse_command_line( int argc, char *argv[] );
 
 /**********************************************************************************************************************/
@@ -64,7 +66,7 @@ dump_window( SaWMan       *sawman,
      int               refs    = -1;
      CoreWindowConfig *config  = &window->config;
      CoreSurface      *surface = window->surface;
-     DFBRectangle     *bounds  = &config->bounds;
+     DFBRectangle     *bounds  = &sawwin->bounds;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
@@ -162,6 +164,17 @@ dump_window( SaWMan       *sawman,
           printf( "DESTROYED    " );
 
      printf( "\n" );
+
+
+     if (show_geometry) {
+          printf( "                      " );
+
+          printf( "%4d,%4d - %4dx%4d   ", sawwin->dst.x, sawwin->dst.y, sawwin->dst.w, sawwin->dst.h );
+          printf( "%4dx%4d - %3d,%3d   ", sawwin->src.w, sawwin->src.h, sawwin->src.x, sawwin->src.y );
+
+
+          printf( "\n" );
+     }
 }
 
 static void
@@ -293,7 +306,7 @@ dump_tiers( SaWMan *sawman )
 
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+//     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      direct_list_foreach (tier, sawman->tiers) {
           D_MAGIC_ASSERT( tier, SaWManTier );
@@ -428,7 +441,7 @@ parse_command_line( int argc, char *argv[] )
           }
 
           if (strcmp (arg, "-g") == 0 || strcmp (arg, "--geometry") == 0) {
-//               show_geometry = true;
+               show_geometry = true;
                continue;
           }
 
