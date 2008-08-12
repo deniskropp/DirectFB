@@ -524,7 +524,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
 
           XNextEvent( dfb_x11->display, &xEvent );
 
-          while (pull--) {
+          while (pull-- && !data->stop) {
                switch (xEvent.type) {
                     case ButtonPress:
                     case ButtonRelease:
@@ -556,7 +556,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
                          break;
                }
 
-               if (pull) {
+               if (pull && !data->stop) {
                     XLockDisplay( dfb_x11->display );
 
                     if (!XCheckMaskEvent( dfb_x11->display, ~0, &xEvent ))
@@ -752,8 +752,12 @@ driver_close_device( void *driver_data )
           xEvent.xclient.type   = ClientMessage;
           xEvent.xclient.format = 8;
 
+          XLockDisplay( dfb_x11->display );
+
           XSendEvent( dfb_x11->display, dfb_x11->xw->window, False, 0, &xEvent );
           XFlush( dfb_x11->display );
+
+          XUnlockDisplay( dfb_x11->display );
      }
      else
           direct_thread_cancel( data->thread );
