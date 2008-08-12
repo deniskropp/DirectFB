@@ -106,6 +106,8 @@ context_destructor( FusionObject *object, bool zombie, void *ctx )
      /* Remove the context from the layer's context stack. */
      dfb_layer_remove_context( layer, context );
 
+     dfb_layer_context_lock( context );
+
      /* Destroy the window stack. */
      if (context->stack) {
           dfb_windowstack_destroy( context->stack );
@@ -121,6 +123,8 @@ context_destructor( FusionObject *object, bool zombie, void *ctx )
      /* Free clip regions. */
      if (context->primary.config.clips)
           SHFREE( context->shmpool, context->primary.config.clips );
+
+     dfb_layer_context_unlock( context );
 
      /* Destroy the object. */
      fusion_object_destroy( object );
