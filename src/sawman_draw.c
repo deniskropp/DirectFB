@@ -181,7 +181,7 @@ draw_border( SaWManWindow    *sawwin,
              int              thickness )
 {
      int                     i;
-     DFBRegion               clip;
+     DFBRegion               old_clip;
      DFBRectangle            rects[thickness];
      CoreWindow             *window;
      const SaWManBorderInit *border;
@@ -217,7 +217,7 @@ draw_border( SaWManWindow    *sawwin,
      }
 
      /* Save clipping region. */
-     clip = state->clip;
+     old_clip = state->clip;
 
      /* Change clipping region. */
      dfb_state_set_clip( state, region );
@@ -247,7 +247,7 @@ draw_border( SaWManWindow    *sawwin,
      }
 
      /* Restore clipping region. */
-     dfb_state_set_clip( state, &clip );
+     dfb_state_set_clip( state, &old_clip );
 }
 
 static void
@@ -525,8 +525,8 @@ sawman_draw_background( SaWManTier *tier, CardState *state, DFBRegion *region )
                     dfb_gfxcard_blit( &dst, dst.x, dst.y, state );
                }
                else {
-                    DFBRegion    clip = state->clip;
-                    DFBRectangle src  = { 0, 0, bg->config.size.w, bg->config.size.h };
+                    DFBRegion    old_clip = state->clip;
+                    DFBRectangle src      = { 0, 0, bg->config.size.w, bg->config.size.h };
 
                     /* Change clipping region. */
                     dfb_state_set_clip( state, region );
@@ -544,7 +544,7 @@ sawman_draw_background( SaWManTier *tier, CardState *state, DFBRegion *region )
                     dfb_gfxcard_stretchblit( &src, &dst, state );
 
                     /* Restore clipping region. */
-                    dfb_state_set_clip( state, &clip );
+                    dfb_state_set_clip( state, &old_clip );
                }
 
                /* Reset blitting source. */
@@ -555,9 +555,9 @@ sawman_draw_background( SaWManTier *tier, CardState *state, DFBRegion *region )
           }
 
           case DLBM_TILE: {
-               CoreSurface  *bg   = stack->bg.image;
-               DFBRegion     clip = state->clip;
-               DFBRectangle  src  = { 0, 0, bg->config.size.w, bg->config.size.h };
+               CoreSurface  *bg       = stack->bg.image;
+               DFBRegion     old_clip = state->clip;
+               DFBRectangle  src      = { 0, 0, bg->config.size.w, bg->config.size.h };
 
                /* Set blitting source. */
                state->source    = bg;
@@ -578,7 +578,7 @@ sawman_draw_background( SaWManTier *tier, CardState *state, DFBRegion *region )
                                      state );
 
                /* Restore clipping region. */
-               dfb_state_set_clip( state, &clip );
+               dfb_state_set_clip( state, &old_clip );
 
                /* Reset blitting source. */
                state->source    = NULL;
