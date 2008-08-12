@@ -108,17 +108,42 @@ window_destructor( FusionObject *object, bool zombie, void *ctx )
 
      D_ASSUME( window->stack != NULL );
 
-     if (stack) {
-          dfb_windowstack_lock( stack );
-
-          dfb_window_destroy( window );
-
-          /* Unlink the primary region of the context. */
-          if (window->primary_region)
-               dfb_layer_region_unlink( &window->primary_region );
-
-          dfb_windowstack_unlock( stack );
+     if (!stack) {
+          fusion_object_destroy( object );
+          return;
      }
+
+     dfb_windowstack_lock( stack );
+
+     dfb_window_destroy( window );
+
+
+     if (window->caps & DWCAPS_SUBWINDOW) {
+          int         index;
+          CoreWindow *toplevel;
+
+          toplevel = window->toplevel;
+          D_ASSERT( toplevel != NULL );
+
+          index = fusion_vector_index_of( &toplevel->subwindows, window );
+          D_ASSERT( index >= 0 );
+
+          fusion_vector_remove( &toplevel->subwindows, index );
+
+          dfb_window_unlink( &window->toplevel );
+     }
+     else {
+          D_ASSERT( fusion_vector_size(&window->subwindows) == 0 );
+
+          fusion_vector_destroy( &window->subwindows );
+     }
+
+     dfb_windowstack_unlock( stack );
+
+
+     /* Unlink the primary region of the context. */
+     if (window->primary_region)
+          dfb_layer_region_unlink( &window->primary_region );
 
      fusion_object_destroy( object );
 }
@@ -238,6 +263,46 @@ create_region( CoreDFB                 *core,
      return DFB_OK;
 }
 
+static DFBResult
+init_subwindow( CoreWindow      *window,
+                CoreWindowStack *stack,
+                DFBWindowID      toplevel_id )
+{
+     DFBResult   ret;
+     CoreWindow *toplevel;
+
+     /* Lookup top level window */
+     ret = dfb_wm_window_lookup( stack, toplevel_id, &toplevel );
+     if (ret)
+          return ret;
+
+     /* Make sure chosen top level window is not a sub window */
+     if (toplevel->caps & DWCAPS_SUBWINDOW) {
+          D_ASSERT( toplevel->toplevel != NULL );
+          D_ASSERT( toplevel->toplevel_id != 0 );
+
+          return DFB_INVARG;
+     }
+     else {
+          D_ASSERT( toplevel->toplevel == NULL );
+          D_ASSERT( toplevel->toplevel_id == 0 );
+     }
+
+     /* Link top level window into sub window structure */
+     ret = dfb_window_link( &window->toplevel, toplevel );
+     if (ret)
+          return ret;
+
+     /* Add window to sub window list of top level window */
+     ret = fusion_vector_add( &toplevel->subwindows, window );
+     if (ret) {
+          dfb_window_unlink( &window->toplevel );
+          return ret;
+     }
+
+     return DFB_OK;
+}
+
 DFBResult
 dfb_window_create( CoreWindowStack             *stack,
                    const DFBWindowDescription  *desc,
@@ -254,6 +319,7 @@ dfb_window_create( CoreWindowStack             *stack,
      DFBWindowCapabilities   caps;
      DFBSurfaceCapabilities  surface_caps;
      DFBSurfacePixelFormat   pixelformat;
+     DFBWindowID             toplevel_id;
 
      D_DEBUG_AT( Core_Windows, "%s( %p )\n", __FUNCTION__, stack );
 
@@ -281,6 +347,13 @@ dfb_window_create( CoreWindowStack             *stack,
                                           DSCAPS_PREMULTIPLIED | DSCAPS_DEPTH      |
                                           DSCAPS_STATIC_ALLOC  | DSCAPS_SYSTEMONLY |
                                           DSCAPS_VIDEOONLY);
+     toplevel_id  = (desc->flags & DWDESC_TOPLEVEL_ID) ? desc->toplevel_id : 0;
+
+     if (toplevel_id != 0)
+          caps |= DWCAPS_SUBWINDOW;
+     else
+          caps &= ~DWCAPS_SUBWINDOW;
+
 
      if (!dfb_config->translucent_windows) {
           caps &= ~DWCAPS_ALPHACHANNEL;
@@ -373,6 +446,9 @@ dfb_window_create( CoreWindowStack             *stack,
      window->config    = config;
      window->parent_id = (desc->flags & DWDESC_PARENT) ? desc->parent_id : 0;
 
+     /* Set toplevel window ID (new sub window feature) */
+     window->toplevel_id = toplevel_id;
+
      ret = dfb_wm_preconfigure_window( stack, window );
      if(ret) {
           fusion_object_destroy( &window->object );
@@ -383,6 +459,23 @@ dfb_window_create( CoreWindowStack             *stack,
      /* wm may have changed values */
      config = window->config;
      caps   = window->caps;
+
+     /* Initialize sub window... */
+     if (caps & DWCAPS_SUBWINDOW) {
+          ret = init_subwindow( window, stack, toplevel_id );
+          if (ret) {
+               fusion_object_destroy( &window->object );
+               dfb_windowstack_unlock( stack );
+               return ret;
+          }
+     }
+     else {
+          /* ...or initialize top level window */
+          fusion_vector_init( &window->subwindows, 3, stack->shmpool );
+
+          /* In case WM forbids sub window request, clear the toplevel window ID */
+          window->toplevel_id = 0;
+     }
 
      if (dfb_config->warn.flags & DCWF_CREATE_WINDOW)
           D_WARN( "create-window   %4dx%4d %6s, caps 0x%08x, surface-caps 0x%08x, ID %u",

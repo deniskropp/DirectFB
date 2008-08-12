@@ -852,6 +852,8 @@ typedef enum {
      DWDESC_OPTIONS      = 0x00000100,  /* Initial window options have been set. */
      DWDESC_STACKING     = 0x00000200,  /* Initial stacking class has been set. */
 
+     DWDESC_TOPLEVEL_ID  = 0x00000400,  /* The top level window is set in toplevel_id field. */
+
      DWDESC_RESOURCE_ID  = 0x00001000,  /* Resource id for window surface creation has been set. */
 } DFBWindowDescriptionFlags;
 
@@ -870,6 +872,7 @@ typedef enum {
  */
 typedef enum {
      DWCAPS_NONE         = 0x00000000,  /* None of these. */
+
      DWCAPS_ALPHACHANNEL = 0x00000001,  /* The window has an alphachannel
                                            for pixel-per-pixel blending. */
      DWCAPS_DOUBLEBUFFER = 0x00000002,  /* The window's surface is double
@@ -884,7 +887,10 @@ typedef enum {
                                            You can not draw to it but it
                                            receives events */
      DWCAPS_NODECORATION = 0x00000008,  /* The window won't be decorated. */
-     DWCAPS_ALL          = 0x0000000F   /* All valid flags. */
+
+     DWCAPS_SUBWINDOW    = 0x00000010,  /* Not a top level window. */
+
+     DWCAPS_ALL          = 0x0000001F   /* All of these. */
 } DFBWindowCapabilities;
 
 /*
@@ -1346,6 +1352,8 @@ typedef struct {
      DFBWindowStackingClass             stacking;     /* initial stacking class */
 
      unsigned long                      resource_id;  /* resource id used to create the window surface */
+
+     DFBWindowID                        toplevel_id;  /* top level window, if != 0 window will be a sub window */
 } DFBWindowDescription;
 
 /*
@@ -4785,7 +4793,59 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      );
 
 
-   /** Event handling **/
+   /** Close & Destroy **/
+
+     /*
+      * Send a close message to the window.
+      *
+      * This function sends a message of type DWET_CLOSE to the window.
+      * It does NOT actually close it.
+      */
+     DFBResult (*Close) (
+          IDirectFBWindow               *thiz
+     );
+
+     /*
+      * Destroys the window and sends a destruction message.
+      *
+      * This function sends a message of type DWET_DESTROY to
+      * the window after removing it from the window stack and
+      * freeing its data.  Some functions called from this
+      * interface will return DFB_DESTROYED after that.
+      */
+     DFBResult (*Destroy) (
+          IDirectFBWindow               *thiz
+     );
+
+
+   /** Surface & Scaling **/
+
+     /*
+      * Get an interface to the backing store surface.
+      *
+      * This surface has to be flipped to make previous drawing
+      * commands visible, i.e. to repaint the windowstack for
+      * that region.
+      */
+     DFBResult (*GetSurface) (
+          IDirectFBWindow               *thiz,
+          IDirectFBSurface             **ret_surface
+     );
+
+     /*
+      * Resize the surface of a scalable window.
+      *
+      * This requires the option DWOP_SCALE.
+      * See IDirectFBWindow::SetOptions().
+      */
+     DFBResult (*ResizeSurface) (
+          IDirectFBWindow               *thiz,
+          int                            width,
+          int                            height
+     );
+
+
+   /** Events **/
 
      /*
       * Create an event buffer for this window and attach it.
@@ -4837,50 +4897,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      );
 
 
-   /** Surface handling **/
-
-     /*
-      * Get an interface to the backing store surface.
-      *
-      * This surface has to be flipped to make previous drawing
-      * commands visible, i.e. to repaint the windowstack for
-      * that region.
-      */
-     DFBResult (*GetSurface) (
-          IDirectFBWindow               *thiz,
-          IDirectFBSurface             **ret_surface
-     );
-
-
-   /** Appearance and Behaviour **/
-
-     /*
-      * Set property controlling appearance and behaviour of the window.
-      */
-     DFBResult (*SetProperty) (
-          IDirectFBWindow               *thiz,
-          const char                    *key,
-          void                          *value,
-          void                         **ret_old_value
-     );
-
-     /*
-      * Get property controlling appearance and behaviour of the window.
-      */
-     DFBResult (*GetProperty) (
-          IDirectFBWindow               *thiz,
-          const char                    *key,
-          void                         **ret_value
-     );
-
-     /*
-      * Remove property controlling appearance and behaviour of the window.
-      */
-     DFBResult (*RemoveProperty) (
-          IDirectFBWindow               *thiz,
-          const char                    *key,
-          void                         **ret_value
-     );
+   /** Options **/
 
      /*
       * Set options controlling appearance and behaviour of the window.
@@ -4978,6 +4995,131 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      );
 
 
+   /** Position and Size **/
+
+     /*
+      * Move the window by the specified distance.
+      */
+     DFBResult (*Move) (
+          IDirectFBWindow               *thiz,
+          int                            dx,
+          int                            dy
+     );
+
+     /*
+      * Move the window to the specified coordinates.
+      */
+     DFBResult (*MoveTo) (
+          IDirectFBWindow               *thiz,
+          int                            x,
+          int                            y
+     );
+
+     /*
+      * Resize the window.
+      */
+     DFBResult (*Resize) (
+          IDirectFBWindow               *thiz,
+          int                            width,
+          int                            height
+     );
+
+     /*
+      * Set position and size in one step.
+      */
+     DFBResult (*SetBounds) (
+          IDirectFBWindow               *thiz,
+          int                            x,
+          int                            y,
+          int                            width,
+          int                            height
+     );
+
+
+   /** Stacking **/
+
+     /*
+      * Put the window into a specific stacking class.
+      */
+     DFBResult (*SetStackingClass) (
+          IDirectFBWindow               *thiz,
+          DFBWindowStackingClass         stacking_class
+     );
+
+     /*
+      * Raise the window by one within the window stack.
+      */
+     DFBResult (*Raise) (
+          IDirectFBWindow               *thiz
+     );
+
+     /*
+      * Lower the window by one within the window stack.
+      */
+     DFBResult (*Lower) (
+          IDirectFBWindow               *thiz
+     );
+
+     /*
+      * Put the window on the top of the window stack.
+      */
+     DFBResult (*RaiseToTop) (
+          IDirectFBWindow               *thiz
+     );
+
+     /*
+      * Send a window to the bottom of the window stack.
+      */
+     DFBResult (*LowerToBottom) (
+          IDirectFBWindow               *thiz
+     );
+
+     /*
+      * Put a window on top of another window.
+      */
+     DFBResult (*PutAtop) (
+          IDirectFBWindow               *thiz,
+          IDirectFBWindow               *lower
+     );
+
+     /*
+      * Put a window below another window.
+      */
+     DFBResult (*PutBelow) (
+          IDirectFBWindow               *thiz,
+          IDirectFBWindow               *upper
+     );
+
+
+   /** Binding **/
+     
+     /*
+      * Bind a window at the specified position of this window.
+      *
+      * After binding, bound window will be automatically moved
+      * when this window moves to a new position.<br>
+      * Binding the same window to multiple windows is not supported.
+      * Subsequent call to Bind() automatically unbounds the bound window
+      * before binding it again.<br>
+      * To move the bound window to a new position call Bind() again 
+      * with the new coordinates.
+      */
+     DFBResult (*Bind) (
+          IDirectFBWindow               *thiz,
+          IDirectFBWindow               *window,
+          int                            x,
+          int                            y
+     );
+
+     /*
+      * Unbind a window from this window.
+      */
+     DFBResult (*Unbind) (
+          IDirectFBWindow               *thiz,
+          IDirectFBWindow               *window
+     );
+
+
    /** Focus handling **/
 
      /*
@@ -5040,174 +5182,6 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      );
 
 
-   /** Position and Size **/
-
-     /*
-      * Move the window by the specified distance.
-      */
-     DFBResult (*Move) (
-          IDirectFBWindow               *thiz,
-          int                            dx,
-          int                            dy
-     );
-
-     /*
-      * Move the window to the specified coordinates.
-      */
-     DFBResult (*MoveTo) (
-          IDirectFBWindow               *thiz,
-          int                            x,
-          int                            y
-     );
-
-     /*
-      * Resize the window.
-      */
-     DFBResult (*Resize) (
-          IDirectFBWindow               *thiz,
-          int                            width,
-          int                            height
-     );
-
-
-   /** Stacking **/
-
-     /*
-      * Put the window into a specific stacking class.
-      */
-     DFBResult (*SetStackingClass) (
-          IDirectFBWindow               *thiz,
-          DFBWindowStackingClass         stacking_class
-     );
-
-     /*
-      * Raise the window by one within the window stack.
-      */
-     DFBResult (*Raise) (
-          IDirectFBWindow               *thiz
-     );
-
-     /*
-      * Lower the window by one within the window stack.
-      */
-     DFBResult (*Lower) (
-          IDirectFBWindow               *thiz
-     );
-
-     /*
-      * Put the window on the top of the window stack.
-      */
-     DFBResult (*RaiseToTop) (
-          IDirectFBWindow               *thiz
-     );
-
-     /*
-      * Send a window to the bottom of the window stack.
-      */
-     DFBResult (*LowerToBottom) (
-          IDirectFBWindow               *thiz
-     );
-
-     /*
-      * Put a window on top of another window.
-      */
-     DFBResult (*PutAtop) (
-          IDirectFBWindow               *thiz,
-          IDirectFBWindow               *lower
-     );
-
-     /*
-      * Put a window below another window.
-      */
-     DFBResult (*PutBelow) (
-          IDirectFBWindow               *thiz,
-          IDirectFBWindow               *upper
-     );
-
-
-   /** Closing **/
-
-     /*
-      * Send a close message to the window.
-      *
-      * This function sends a message of type DWET_CLOSE to the window.
-      * It does NOT actually close it.
-      */
-     DFBResult (*Close) (
-          IDirectFBWindow               *thiz
-     );
-
-     /*
-      * Destroys the window and sends a destruction message.
-      *
-      * This function sends a message of type DWET_DESTROY to
-      * the window after removing it from the window stack and
-      * freeing its data.  Some functions called from this
-      * interface will return DFB_DESTROYED after that.
-      */
-     DFBResult (*Destroy) (
-          IDirectFBWindow               *thiz
-     );
-
-
-   /** Geometry **/
-
-     /*
-      * Set position and size in one step.
-      */
-     DFBResult (*SetBounds) (
-          IDirectFBWindow               *thiz,
-          int                            x,
-          int                            y,
-          int                            width,
-          int                            height
-     );
-
-
-   /** Scaling **/
-
-     /*
-      * Resize the surface of a scalable window.
-      *
-      * This requires the option DWOP_SCALE.
-      * See IDirectFBWindow::SetOptions().
-      */
-     DFBResult (*ResizeSurface) (
-          IDirectFBWindow               *thiz,
-          int                            width,
-          int                            height
-     );
-
-
-   /** Binding **/
-     
-     /*
-      * Bind a window at the specified position of this window.
-      *
-      * After binding, bound window will be automatically moved
-      * when this window moves to a new position.<br>
-      * Binding the same window to multiple windows is not supported.
-      * Subsequent call to Bind() automatically unbounds the bound window
-      * before binding it again.<br>
-      * To move the bound window to a new position call Bind() again 
-      * with the new coordinates.
-      */
-     DFBResult (*Bind) (
-          IDirectFBWindow               *thiz,
-          IDirectFBWindow               *window,
-          int                            x,
-          int                            y
-     );
-
-     /*
-      * Unbind a window from this window.
-      */
-     DFBResult (*Unbind) (
-          IDirectFBWindow               *thiz,
-          IDirectFBWindow               *window
-     );
-
-
    /** Key selection **/
 
      /*
@@ -5267,6 +5241,37 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      DFBResult (*SetDstGeometry) (
           IDirectFBWindow               *thiz,
           const DFBWindowGeometry       *geometry
+     );
+
+
+   /** Properties **/
+
+     /*
+      * Set property controlling appearance and behaviour of the window.
+      */
+     DFBResult (*SetProperty) (
+          IDirectFBWindow               *thiz,
+          const char                    *key,
+          void                          *value,
+          void                         **ret_old_value
+     );
+
+     /*
+      * Get property controlling appearance and behaviour of the window.
+      */
+     DFBResult (*GetProperty) (
+          IDirectFBWindow               *thiz,
+          const char                    *key,
+          void                         **ret_value
+     );
+
+     /*
+      * Remove property controlling appearance and behaviour of the window.
+      */
+     DFBResult (*RemoveProperty) (
+          IDirectFBWindow               *thiz,
+          const char                    *key,
+          void                         **ret_value
      );
 )
 
