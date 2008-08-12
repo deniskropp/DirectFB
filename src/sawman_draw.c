@@ -413,7 +413,7 @@ draw_window( SaWManTier   *tier,
      dfb_gfxcard_stretchblit( &src, &dst, state );
 
      /* Restore clipping region. */
-     dfb_state_set_clip( state, &clip );
+     dfb_state_set_clip( state, &old_clip );
 }
 
 void
