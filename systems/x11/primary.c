@@ -65,6 +65,9 @@
 #include "primary.h"
 
 
+D_DEBUG_DOMAIN( X11_Window, "X11/Window", "X11 Window" );
+D_DEBUG_DOMAIN( X11_Update, "X11/Update", "X11 Update" );
+
 /**********************************************************************************************************************/
 
 static DFBResult
@@ -383,7 +386,7 @@ DisplayLayerFuncs x11PrimaryLayerFuncs = {
 /******************************************************************************/
 
 static DFBResult
-update_screen( CoreSurface *surface, const DFBRectangle *rect, CoreSurfaceBufferLock *lock )
+update_screen( CoreSurface *surface, const DFBRectangle *clip, CoreSurfaceBufferLock *lock )
 {
      void                  *dst;
      void                  *src;
@@ -391,12 +394,31 @@ update_screen( CoreSurface *surface, const DFBRectangle *rect, CoreSurfaceBuffer
      XWindow               *xw     = dfb_x11->xw;
      XImage                *ximage;
      CoreSurfaceAllocation *allocation;
+     DFBRectangle           rect;
+
+     D_ASSERT( clip != NULL );
+     D_ASSERT( xw != NULL );
+
+     D_DEBUG_AT( X11_Update, "%s( %4d,%4d-%4dx%4d )\n", __FUNCTION__, DFB_RECTANGLE_VALS( clip ) );
 
      D_ASSERT( surface != NULL );
      CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
 
      allocation = lock->allocation;
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+
+     XLockDisplay( dfb_x11->display );
+
+     rect.x = rect.y = 0;
+     rect.w = xw->width;
+     rect.h = xw->height;
+
+     if (!dfb_rectangle_intersect( &rect, clip )) {
+          XUnlockDisplay( dfb_x11->display );
+          return DFB_OK;
+     }
+
+     D_DEBUG_AT( X11_Update, "  -> %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS( &rect ) );
 
      /* Check for our special native allocation... */
      if (allocation->pool == dfb_x11->x11image_pool && lock->handle) {
@@ -414,28 +436,28 @@ update_screen( CoreSurface *surface, const DFBRectangle *rect, CoreSurfaceBuffer
 
           xw->ximage_offset = (offset ? 0 : ximage->height / 2);
           
-          dst = xw->virtualscreen + rect->x * xw->bpp + (rect->y + offset) * ximage->bytes_per_line;
-          src = lock->addr + DFB_BYTES_PER_LINE( surface->config.format, rect->x ) + rect->y * lock->pitch;
+          dst = xw->virtualscreen + rect.x * xw->bpp + (rect.y + offset) * ximage->bytes_per_line;
+          src = lock->addr + DFB_BYTES_PER_LINE( surface->config.format, rect.x ) + rect.y * lock->pitch;
 
           switch (xw->depth) {
                case 32:
                     dfb_convert_to_argb( surface->config.format, src, lock->pitch,
-                                         surface->config.size.h, dst, ximage->bytes_per_line, rect->w, rect->h );
+                                         surface->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
                     break;
 
                case 24:
                     dfb_convert_to_rgb32( surface->config.format, src, lock->pitch,
-                                          surface->config.size.h, dst, ximage->bytes_per_line, rect->w, rect->h );
+                                          surface->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
                     break;
 
                case 16:
                     dfb_convert_to_rgb16( surface->config.format, src, lock->pitch,
-                                          surface->config.size.h, dst, ximage->bytes_per_line, rect->w, rect->h );
+                                          surface->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
                     break;
 
                case 15:
                     dfb_convert_to_rgb555( surface->config.format, src, lock->pitch,
-                                           surface->config.size.h, dst, ximage->bytes_per_line, rect->w, rect->h );
+                                           surface->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
                     break;
 
                default:
@@ -446,8 +468,6 @@ update_screen( CoreSurface *surface, const DFBRectangle *rect, CoreSurfaceBuffer
      D_ASSERT( ximage != NULL );
 
 
-     XLockDisplay( dfb_x11->display );
-
      /* Wait for previous data to be processed... */
      XSync( dfb_x11->display, False );
 
@@ -455,7 +475,7 @@ update_screen( CoreSurface *surface, const DFBRectangle *rect, CoreSurfaceBuffer
      if (dfb_x11->use_shm) {
           /* Just queue the command, it's XShm :) */
           XShmPutImage( xw->display, xw->window, xw->gc, ximage,
-                        rect->x, rect->y + offset, rect->x, rect->y, rect->w, rect->h, False );
+                        rect.x, rect.y + offset, rect.x, rect.y, rect.w, rect.h, False );
 
           /* Make sure the queue has really happened! */
           XFlush( dfb_x11->display );
@@ -463,7 +483,7 @@ update_screen( CoreSurface *surface, const DFBRectangle *rect, CoreSurfaceBuffer
      else
           /* Initiate transfer of buffer... */
           XPutImage( xw->display, xw->window, xw->gc, ximage,
-                     rect->x, rect->y + offset, rect->x, rect->y, rect->w, rect->h );
+                     rect.x, rect.y + offset, rect.x, rect.y, rect.w, rect.h );
 
      XUnlockDisplay( dfb_x11->display );
 
@@ -475,11 +495,20 @@ update_screen( CoreSurface *surface, const DFBRectangle *rect, CoreSurfaceBuffer
 DFBResult
 dfb_x11_set_video_mode_handler( CoreLayerRegionConfig *config )
 {
-     XWindow *xw = dfb_x11->xw;
+     XWindow *xw;
 
+     D_DEBUG_AT( X11_Window, "%s( %p )\n", __FUNCTION__, config );
+
+     D_DEBUG_AT( X11_Window, "  -> %4dx%4d %s\n", config->width, config->height, dfb_pixelformat_name(config->format) );
+
+     XLockDisplay( dfb_x11->display );
+
+     xw = dfb_x11->xw;
      if (xw != NULL) {
-          if (xw->width == config->width && xw->height == config->height)
+          if (xw->width == config->width && xw->height == config->height) {
+               XUnlockDisplay( dfb_x11->display );
                return DFB_OK;
+          }
 
           dfb_x11_close_window( xw );
           dfb_x11->xw = NULL;
@@ -492,23 +521,24 @@ dfb_x11_set_video_mode_handler( CoreLayerRegionConfig *config )
           D_ERROR( "ML: DirectFB/X11: Couldn't open %dx%d window: %s\n",
                    config->width, config->height, "X11 error!");
 
-          fusion_skirmish_dismiss( &dfb_x11->lock );
+          XUnlockDisplay( dfb_x11->display );
           return DFB_FAILURE;
      }
      else
           dfb_x11->xw = xw;
 
+     XUnlockDisplay( dfb_x11->display );
      return DFB_OK;
 }
 
 DFBResult
 dfb_x11_update_screen_handler( UpdateScreenData *data )
 {
-     DFBRectangle rect = {
-          data->region.x1,  data->region.y1,
-          data->region.x2 - data->region.x1 + 1,
-          data->region.y2 - data->region.y1 + 1
-     };
+     DFBRectangle rect;
+
+     D_DEBUG_AT( X11_Update, "%s( %p )\n", __FUNCTION__, data );
+
+     rect = DFB_RECTANGLE_INIT_FROM_REGION( &data->region );
 
      return update_screen( dfb_x11->primary, &rect, data->lock );
 }
