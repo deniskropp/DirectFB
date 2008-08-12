@@ -405,7 +405,7 @@ dfb_wm_core_resume( DFBWMCore *data )
 DFBResult
 dfb_wm_close_all_stacks( void *data )
 {
-     CoreWindowStack *stack;
+     CoreWindowStack *stack, *next;
      DFBWMCore       *local;
      DFBWMCoreShared *shared;
 
@@ -421,7 +421,7 @@ dfb_wm_close_all_stacks( void *data )
 
      D_MAGIC_ASSERT( local->shared, DFBWMCoreShared );
 
-     direct_list_foreach (stack, wm_shared->stacks) {
+     direct_list_foreach_safe (stack, next, wm_shared->stacks) {
           D_MAGIC_ASSERT( stack, CoreWindowStack );
 
           if (stack->flags & CWSF_INITIALIZED)
@@ -513,7 +513,10 @@ dfb_wm_init_stack( CoreWindowStack *stack )
 
      /* Allocate shared stack data. */
      if (wm_shared->info.stack_data_size) {
-          stack->stack_data = SHCALLOC( wm_shared->shmpool, 1, wm_shared->info.stack_data_size );
+          if (stack->stack_data)
+               SHFREE( stack->shmpool, stack->stack_data );
+               
+          stack->stack_data = SHCALLOC( stack->shmpool, 1, wm_shared->info.stack_data_size );
           if (!stack->stack_data) {
                D_WARN( "out of (shared) memory" );
                return D_OOSHM();
@@ -542,8 +545,6 @@ dfb_wm_init_stack( CoreWindowStack *stack )
 DFBResult
 dfb_wm_close_stack( CoreWindowStack *stack )
 {
-     DFBResult ret;
-
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->CloseStack != NULL );
@@ -561,22 +562,17 @@ dfb_wm_close_stack( CoreWindowStack *stack )
      if (stack->flags & CWSF_ACTIVATED)
           dfb_wm_set_active( stack, false );
 
-     /* Window manager specific deinitialization. */
-     ret = wm_local->funcs->CloseStack( stack, wm_local->data, stack->stack_data );
-
-     /* Deallocate shared stack data. */
-     if (stack->stack_data) {
-          SHFREE( wm_shared->shmpool, stack->stack_data );
-
-          stack->stack_data = NULL;
-     }
+     /*
+      * Clear flag and remove stack first, because
+      * CloseStack() may cause the stack to be destroyed!
+      */
+     stack->flags &= ~CWSF_INITIALIZED;
 
      /* Remove window stack from list. */
      direct_list_remove( &wm_shared->stacks, &stack->link );
 
-     stack->flags &= ~CWSF_INITIALIZED;
-
-     return ret;
+     /* Window manager specific deinitialization. */
+     return wm_local->funcs->CloseStack( stack, wm_local->data, stack->stack_data );
 }
 
 DFBResult

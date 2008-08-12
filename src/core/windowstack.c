@@ -201,6 +201,12 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
           dfb_surface_unlink( &stack->bg.image );
      }
 
+     /* Deallocate shared stack data. */
+     if (stack->stack_data) {
+          SHFREE( stack->shmpool, stack->stack_data );
+          stack->stack_data = NULL;
+     }
+
      D_MAGIC_CLEAR( stack );
 
      /* Free stack data. */
