@@ -103,6 +103,8 @@ typedef enum {
 struct __DFB_CoreLayerContext {
      FusionObject                object;
 
+     int                         magic;
+
      DFBDisplayLayerID           layer_id;
 
      FusionSkirmish              lock;

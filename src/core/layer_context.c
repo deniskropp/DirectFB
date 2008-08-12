@@ -59,8 +59,7 @@
 #include <fusion/shmalloc.h>
 
 
-D_DEBUG_DOMAIN( Core_Layers, "Core/Layers", "DirectFB Display Layer Core" );
-
+D_DEBUG_DOMAIN( Core_LayerContext, "Core/LayerContext", "DirectFB Display Layer Context" );
 
 /**********************************************************************************************************************/
 
@@ -99,9 +98,11 @@ context_destructor( FusionObject *object, bool zombie, void *ctx )
 
      (void) shared;
 
-     D_DEBUG_AT( Core_Layers, "destroying context %p (%s, %sactive%s)\n",
+     D_DEBUG_AT( Core_LayerContext, "*~ destroying context %p (%s, %sactive%s)\n",
                  context, shared->description.name, context->active ? "" : "in",
                  zombie ? " - ZOMBIE" : "");
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      /* Remove the context from the layer's context stack. */
      dfb_layer_remove_context( layer, context );
@@ -125,6 +126,8 @@ context_destructor( FusionObject *object, bool zombie, void *ctx )
           SHFREE( context->shmpool, context->primary.config.clips );
 
      dfb_layer_context_unlock( context );
+
+     D_MAGIC_CLEAR( context );
 
      /* Destroy the object. */
      fusion_object_destroy( object );
@@ -155,7 +158,7 @@ dfb_layer_context_init( CoreLayerContext *context,
 
      shared = layer->shared;
 
-     D_DEBUG_AT( Core_Layers, "%s -> %p\n", __FUNCTION__, context );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p [%s] )\n", __FUNCTION__, context, layer, shared->description.name );
 
      context->shmpool = shared->shmpool;
 
@@ -185,19 +188,24 @@ dfb_layer_context_init( CoreLayerContext *context,
      else if (D_FLAGS_IS_SET( shared->description.caps, DLCAPS_SCREEN_POSITION ))
           context->screen.mode = CLLM_CENTER;
 
-     /* Initialize the primary region's configuration. */
-     init_region_config( context, &context->primary.config );
-
      /* Change global reaction lock. */
      fusion_object_set_lock( &context->object, &context->lock );
+
+     D_MAGIC_SET( context, CoreLayerContext );
+
+     /* Initialize the primary region's configuration. */
+     init_region_config( context, &context->primary.config );
 
      /* Activate the object. */
      fusion_object_activate( &context->object );
 
 
+     dfb_layer_context_lock( context );
+
      /* Create the window stack. */
      context->stack = dfb_windowstack_create( context );
      if (!context->stack) {
+          dfb_layer_context_unlock( context );
           dfb_layer_context_unref( context );
           return D_OOSHM();
      }
@@ -206,6 +214,8 @@ dfb_layer_context_init( CoreLayerContext *context,
      dfb_windowstack_resize( context->stack,
                              context->config.width,
                              context->config.height );
+
+     dfb_layer_context_unlock( context );
 
      return DFB_OK;
 }
@@ -218,9 +228,9 @@ dfb_layer_context_activate( CoreLayerContext *context )
      CoreLayer       *layer;
      CoreLayerRegion *region;
 
-     D_DEBUG_AT( Core_Layers, "%s (%p)\n", __FUNCTION__, context );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p )\n", __FUNCTION__, context );
 
-     D_ASSERT( context != NULL );
+     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      layer = dfb_layer_at( context->layer_id );
 
@@ -282,13 +292,13 @@ dfb_layer_context_deactivate( CoreLayerContext *context )
      int              index;
      CoreLayerRegion *region;
 
-     D_ASSERT( context != NULL );
+     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
           return DFB_FUSION;
 
-     D_DEBUG_AT( Core_Layers, "%s (%p)\n", __FUNCTION__, context );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p )\n", __FUNCTION__, context );
 
      D_ASSUME( context->active );
 
@@ -325,7 +335,9 @@ DFBResult
 dfb_layer_context_add_region( CoreLayerContext *context,
                               CoreLayerRegion  *region )
 {
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p )\n", __FUNCTION__, context, region );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
      D_ASSERT( region != NULL );
 
      /* Lock the context. */
@@ -361,7 +373,7 @@ dfb_layer_context_remove_region( CoreLayerContext *context,
 {
      int index;
 
-     D_ASSERT( context != NULL );
+     D_MAGIC_ASSERT( context, CoreLayerContext );
      D_ASSERT( region != NULL );
 
      /* Lock the context. */
@@ -397,7 +409,9 @@ dfb_layer_context_get_primary_region( CoreLayerContext  *context,
 {
      DFBResult ret = DFB_OK;
 
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %screate )\n", __FUNCTION__, context, create ? "" : "DON'T " );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
      D_ASSERT( ret_region != NULL );
 
      /* Lock the context. */
@@ -505,7 +519,9 @@ dfb_layer_context_test_configuration( CoreLayerContext            *context,
      CoreLayerRegionConfigFlags  failed;
      const DisplayLayerFuncs    *funcs;
 
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p, %p )\n", __FUNCTION__, context, config, ret_failed );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
      D_ASSERT( config != NULL );
 
      /* Lock the context. */
@@ -587,13 +603,9 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
      CoreLayerRegionConfigFlags  flags;
      const DisplayLayerFuncs    *funcs;
 
-     D_DEBUG_AT( Core_Layers, "%s (%p, %p)\n", __FUNCTION__, context, config );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p )\n", __FUNCTION__, context, config );
 
-     D_DEBUG_AT( Core_Layers, "%s (%p, %p)\n", __FUNCTION__, context, config );
-
-     D_DEBUG_AT( Core_Layers, "%s (%p, %p)\n", __FUNCTION__, context, config );
-
-     D_ASSERT( context != NULL );
+     D_MAGIC_ASSERT( context, CoreLayerContext );
      D_ASSERT( config != NULL );
 
      /* Lock the context. */
@@ -778,7 +790,9 @@ DFBResult
 dfb_layer_context_get_configuration( CoreLayerContext      *context,
                                      DFBDisplayLayerConfig *config )
 {
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p )\n", __FUNCTION__, context, config );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
      D_ASSERT( config != NULL );
 
      *config = context->config;
@@ -793,7 +807,9 @@ update_primary_region_config( CoreLayerContext           *context,
 {
      DFBResult ret = DFB_OK;
 
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p, 0x%08x )\n", __FUNCTION__, context, config, flags );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
      D_ASSERT( config != NULL );
 
      if (context->primary.region) {
@@ -827,9 +843,9 @@ dfb_layer_context_set_src_colorkey( CoreLayerContext *context,
      DFBResult             ret;
      CoreLayerRegionConfig config;
 
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %02x %02x %02x - %d )\n", __FUNCTION__, context, r, g, b, index );
 
-     D_DEBUG_AT( Core_Layers, "%s (%02x %02x %02x - %d)\n", __FUNCTION__, r, g, b, index );
+     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
@@ -862,7 +878,9 @@ dfb_layer_context_set_dst_colorkey( CoreLayerContext *context,
      DFBResult             ret;
      CoreLayerRegionConfig config;
 
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %02x %02x %02x - %d )\n", __FUNCTION__, context, r, g, b, index );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
@@ -895,7 +913,9 @@ dfb_layer_context_set_sourcerectangle( CoreLayerContext   *context,
      DFBResult             ret;
      CoreLayerRegionConfig config;
 
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p )\n", __FUNCTION__, context, source );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
      D_ASSERT( source != NULL );
 
      /* Lock the context. */
@@ -938,7 +958,9 @@ dfb_layer_context_set_screenlocation( CoreLayerContext  *context,
      DFBResult             ret;
      CoreLayerRegionConfig config;
 
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p )\n", __FUNCTION__, context, location );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
      D_ASSERT( location != NULL );
 
      /* Lock the context. */
@@ -980,7 +1002,9 @@ dfb_layer_context_set_screenrectangle( CoreLayerContext   *context,
      DFBResult             ret;
      CoreLayerRegionConfig config;
 
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p )\n", __FUNCTION__, context, rectangle );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      DFB_RECTANGLE_ASSERT( rectangle );
 
@@ -1023,7 +1047,9 @@ dfb_layer_context_set_screenposition( CoreLayerContext  *context,
      DFBResult             ret;
      CoreLayerRegionConfig config;
 
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %4d,%4d )\n", __FUNCTION__, context, x, y );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
@@ -1062,7 +1088,9 @@ dfb_layer_context_set_opacity( CoreLayerContext *context,
      DFBResult             ret;
      CoreLayerRegionConfig config;
 
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %u )\n", __FUNCTION__, context, opacity );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
@@ -1095,7 +1123,9 @@ DFBResult
 dfb_layer_context_set_rotation( CoreLayerContext *context,
                                 int               rotation )
 {
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %d )\n", __FUNCTION__, context, rotation );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
@@ -1122,7 +1152,9 @@ dfb_layer_context_set_coloradjustment( CoreLayerContext         *context,
      DFBColorAdjustment  adj;
      CoreLayer          *layer;
 
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p )\n", __FUNCTION__, context, adjustment );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
      D_ASSERT( adjustment != NULL );
 
      layer = dfb_layer_at( context->layer_id );
@@ -1161,7 +1193,9 @@ DFBResult
 dfb_layer_context_get_coloradjustment( CoreLayerContext   *context,
                                        DFBColorAdjustment *ret_adjustment )
 {
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p )\n", __FUNCTION__, context, ret_adjustment );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
      D_ASSERT( ret_adjustment != NULL );
 
      *ret_adjustment = context->adjustment;
@@ -1176,7 +1210,9 @@ dfb_layer_context_set_field_parity( CoreLayerContext *context,
      DFBResult             ret;
      CoreLayerRegionConfig config;
 
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %d )\n", __FUNCTION__, context, field );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
@@ -1214,7 +1250,10 @@ dfb_layer_context_set_clip_regions( CoreLayerContext *context,
      DFBRegion             *clips;
      DFBRegion             *old_clips;
 
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p [%d], %s )\n", __FUNCTION__,
+                 context, regions, num_regions, positive ? "positive" : "negative" );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      clips = SHMALLOC( context->shmpool, sizeof(DFBRegion) * num_regions );
      if (!clips)
@@ -1264,9 +1303,9 @@ dfb_layer_context_create_window( CoreDFB                     *core,
      CoreWindowStack *stack;
      CoreLayer       *layer;
 
-     D_DEBUG_AT( Core_Layers, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p, %p, %p )\n", __FUNCTION__, core, context, desc, ret_window );
 
-     D_ASSERT( context != NULL );
+     D_MAGIC_ASSERT( context, CoreLayerContext );
      D_ASSERT( context->stack != NULL );
      D_ASSERT( desc != NULL );
      D_ASSERT( ret_window != NULL );
@@ -1308,7 +1347,9 @@ dfb_layer_context_find_window( CoreLayerContext *context, DFBWindowID id )
      CoreWindowStack *stack;
      CoreWindow      *window;
 
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %u )\n", __FUNCTION__, context, id );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
      D_ASSERT( context->stack != NULL );
 
      stack = context->stack;
@@ -1327,7 +1368,7 @@ dfb_layer_context_find_window( CoreLayerContext *context, DFBWindowID id )
 CoreWindowStack *
 dfb_layer_context_windowstack( const CoreLayerContext *context )
 {
-     D_ASSERT( context != NULL );
+     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      return context->stack;
 }
@@ -1335,7 +1376,7 @@ dfb_layer_context_windowstack( const CoreLayerContext *context )
 bool
 dfb_layer_context_active( const CoreLayerContext *context )
 {
-     D_ASSERT( context != NULL );
+     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      return context->active;
 }
@@ -1343,15 +1384,30 @@ dfb_layer_context_active( const CoreLayerContext *context )
 DirectResult
 dfb_layer_context_lock( CoreLayerContext *context )
 {
-     D_ASSERT( context != NULL );
+     DFBResult ret;
 
-     return fusion_skirmish_prevail( &context->lock );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p )\n", __FUNCTION__, context );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
+
+     ret = fusion_skirmish_prevail( &context->lock );
+     if (ret == DFB_OK) {
+          int locked;
+
+          ret = fusion_skirmish_lock_count( &context->lock, &locked );
+          if (ret == DFB_OK)
+               D_DEBUG_AT( Core_LayerContext, "  -> locked %dx now\n", locked );
+     }
+
+     return ret;
 }
 
 DirectResult
 dfb_layer_context_unlock( CoreLayerContext *context )
 {
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p )\n", __FUNCTION__, context );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      return fusion_skirmish_dismiss( &context->lock );
 }
@@ -1365,7 +1421,9 @@ static void
 init_region_config( CoreLayerContext      *context,
                     CoreLayerRegionConfig *config )
 {
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p )\n", __FUNCTION__, context, config );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
      D_ASSERT( config  != NULL );
 
      memset( config, 0, sizeof(CoreLayerRegionConfig) );
@@ -1407,8 +1465,11 @@ build_updated_config( CoreLayer                   *layer,
 {
      CoreLayerRegionConfigFlags flags = CLRCF_NONE;
 
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p, %p, %p, %p )\n",
+                 __FUNCTION__, layer, context, update, ret_config, ret_flags );
+
      D_ASSERT( layer != NULL );
-     D_ASSERT( context != NULL );
+     D_MAGIC_ASSERT( context, CoreLayerContext );
      D_ASSERT( update != NULL );
      D_ASSERT( ret_config != NULL );
 
@@ -1510,6 +1571,8 @@ allocate_surface( CoreLayer             *layer,
      CoreSurfaceTypeFlags     type    = CSTF_LAYER;
      CoreSurfaceConfig        scon;
 
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p, %p )\n", __FUNCTION__, layer, region, config );
+
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->shared != NULL );
      D_ASSERT( layer->funcs != NULL );
@@ -1604,6 +1667,8 @@ reallocate_surface( CoreLayer             *layer,
      CoreSurface             *surface;
      CoreSurfaceConfig        sconfig;
 
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p, %p )\n", __FUNCTION__, layer, region, config );
+
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );
      D_ASSERT( region != NULL );
@@ -1686,6 +1751,8 @@ deallocate_surface( CoreLayer *layer, CoreLayerRegion *region )
      const DisplayLayerFuncs *funcs;
      CoreSurface             *surface;
 
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p )\n", __FUNCTION__, layer, region );
+
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );
      D_ASSERT( region != NULL );
@@ -1725,10 +1792,17 @@ screen_rectangle( CoreLayerContext  *context,
      int        height;
      CoreLayer *layer;
 
-     D_ASSERT( context != NULL );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p, %p )\n", __FUNCTION__, context, location, rect );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
+     D_ASSERT( location != NULL );
+     D_ASSERT( rect != NULL );
+
+     D_DEBUG_AT( Core_LayerContext, "  <- %4.2f,%4.2f-%4.2f,%4.2f\n",
+                 location->x, location->y, location->w, location->h );
 
      layer = dfb_layer_at( context->layer_id );
-
+     D_ASSERT( layer != NULL );
      D_ASSERT( layer->screen != NULL );
 
      ret = dfb_screen_get_layer_dimension( layer->screen, layer, &width, &height );
@@ -1746,5 +1820,7 @@ screen_rectangle( CoreLayerContext  *context,
           rect->w = location->w * width;
           rect->h = location->h * height;
      }
+
+     D_DEBUG_AT( Core_LayerContext, "  => %4d,%4d-%4d,%4d\n", DFB_RECTANGLE_VALS(rect) );
 }
 
