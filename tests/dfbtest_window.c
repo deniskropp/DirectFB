@@ -49,25 +49,26 @@
 #include <directfb_util.h>
 
 static const DirectFBPixelFormatNames( format_names );
+static const DirectFBWindowCapabilitiesNames( caps_names );
 
 /**********************************************************************************************************************/
 
 static DFBWindowDescription m_desc_top = {
-     .flags         = DWDESC_POSX | DWDESC_POSY | DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_PIXELFORMAT,
+     .flags         = DWDESC_CAPS | DWDESC_POSX | DWDESC_POSY |
+                      DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_PIXELFORMAT,
      .posx          = 100,
      .posy          = 100,
      .width         = 200,
      .height        = 200,
-     .pixelformat   = DSPF_UNKNOWN,
 };
 
 static DFBWindowDescription m_desc_sub = {
-     .flags         = DWDESC_POSX | DWDESC_POSY | DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_PIXELFORMAT | DWDESC_TOPLEVEL_ID,
+     .flags         = DWDESC_CAPS | DWDESC_POSX | DWDESC_POSY |
+                      DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_PIXELFORMAT | DWDESC_TOPLEVEL_ID,
      .posx          = 40,
      .posy          = 40,
      .width         = 120,
      .height        = 120,
-     .pixelformat   = DSPF_UNKNOWN,
 };
 
 static IDirectFBWindow *m_toplevel    = NULL;
@@ -217,24 +218,34 @@ print_usage (const char *prg_name)
 
           ++i;
      }
+
+     fprintf (stderr, "\n");
+     fprintf (stderr, "Known window capabilities:\n");
+
+     for (i=0; caps_names[i].capability != DWCAPS_NONE; i++)
+          fprintf (stderr, "   %s\n", caps_names[i].name);
+
      fprintf (stderr, "\n");
 
+     fprintf (stderr, "\n");
      fprintf (stderr, "Usage: %s [options]\n", prg_name);
      fprintf (stderr, "\n");
      fprintf (stderr, "Options:\n");
-     fprintf (stderr, "  -h, --help                     Show this help message\n");
-     fprintf (stderr, "  -v, --version                  Print version information\n");
+     fprintf (stderr, "  -h, --help                         Show this help message\n");
+     fprintf (stderr, "  -v, --version                      Print version information\n");
+     fprintf (stderr, "  -T, --top-level  <toplevel_id>     WindowID (skips top creation)\n");
      fprintf (stderr, "\n");
      fprintf (stderr, "Top window:\n");
      fprintf (stderr, "  -p, --pos        <posx>,<posy>     Position (%d,%d)\n", m_desc_top.posx, m_desc_top.posy);
      fprintf (stderr, "  -s, --size       <width>x<height>  Size     (%dx%d)\n", m_desc_top.width, m_desc_top.height);
      fprintf (stderr, "  -f, --format     <pixelformat>     Format   (%s)\n",    dfb_pixelformat_name(m_desc_top.pixelformat));
+     fprintf (stderr, "  -c, --caps       <window_caps>     Win Caps (NONE)\n");
      fprintf (stderr, "\n");
      fprintf (stderr, "Sub window:\n");
      fprintf (stderr, "  -P, --sub-pos    <posx>,<posy>     Position (%d,%d)\n", m_desc_sub.posx, m_desc_sub.posy);
      fprintf (stderr, "  -S, --sub-size   <width>x<height>  Size     (%dx%d)\n", m_desc_sub.width, m_desc_sub.height);
      fprintf (stderr, "  -F, --sub-format <pixelformat>     Format   (%s)\n",    dfb_pixelformat_name(m_desc_sub.pixelformat));
-     fprintf (stderr, "  -T, --top-level  <toplevel_id>     WindowID (skips top creation)\n");
+     fprintf (stderr, "  -C, --sub-caps   <window_caps>     Win Caps (NONE)\n");
      fprintf (stderr, "\n");
 }
 
@@ -280,6 +291,25 @@ parse_format( const char *arg, DFBSurfacePixelFormat *_f )
 }
 
 static DFBBoolean
+parse_caps( const char *arg, DFBWindowCapabilities *_c )
+{
+     int i = 0;
+
+     while (caps_names[i].capability != DWCAPS_NONE) {
+          if (!strncasecmp( arg, caps_names[i].name, strlen(arg) )) {
+               *_c |= caps_names[i].capability;
+               return DFB_TRUE;
+          }
+
+          ++i;
+     }
+
+     fprintf (stderr, "\nInvalid caps specified!\n\n" );
+
+     return DFB_FALSE;
+}
+
+static DFBBoolean
 parse_id( const char *arg, unsigned int *_id )
 {
      if (sscanf( arg, "%u", _id ) != 1) {
@@ -306,6 +336,18 @@ parse_command_line( int argc, char *argv[] )
           if (strcmp (arg, "-v") == 0 || strcmp (arg, "--version") == 0) {
                fprintf (stderr, "dfbg version %s\n", DIRECTFB_VERSION);
                return false;
+          }
+
+          if (strcmp (arg, "-T") == 0 || strcmp (arg, "--top-level") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return false;
+               }
+
+               if (!parse_id( argv[n], &m_toplevel_id ))
+                    return false;
+
+               continue;
           }
 
           if (strcmp (arg, "-p") == 0 || strcmp (arg, "--pos") == 0) {
@@ -339,6 +381,18 @@ parse_command_line( int argc, char *argv[] )
                }
 
                if (!parse_format( argv[n], &m_desc_top.pixelformat ))
+                    return false;
+
+               continue;
+          }
+
+          if (strcmp (arg, "-c") == 0 || strcmp (arg, "--caps") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return false;
+               }
+
+               if (!parse_caps( argv[n], &m_desc_top.caps ))
                     return false;
 
                continue;
@@ -380,13 +434,13 @@ parse_command_line( int argc, char *argv[] )
                continue;
           }
 
-          if (strcmp (arg, "-T") == 0 || strcmp (arg, "--top-level") == 0) {
+          if (strcmp (arg, "-C") == 0 || strcmp (arg, "--sub-caps") == 0) {
                if (++n == argc) {
                     print_usage (argv[0]);
                     return false;
                }
 
-               if (!parse_id( argv[n], &m_toplevel_id ))
+               if (!parse_caps( argv[n], &m_desc_sub.caps ))
                     return false;
 
                continue;
@@ -444,7 +498,7 @@ LookAtResult()
 static DFBResult
 Test_CreateWindow( IDirectFBDisplayLayer *layer )
 {
-     IDirectFBSurface *surface;
+     IDirectFBSurface *surface = NULL;
      IDirectFBWindow  *window;
      DFBWindowID       window_id;
      DFBDimension      size = { m_desc_top.width, m_desc_top.height };
@@ -461,22 +515,24 @@ Test_CreateWindow( IDirectFBDisplayLayer *layer )
      _T( layer->CreateWindow( layer, &m_desc_top, &window ) );
 
      /*
-      * Query its surface and clear it with light blue
+      * Query its surface and clear it with light blue (if not input only)
       */
-     D_INFO( "Tests/Window:   -> GetSurface()...\n" );
+     if (!(m_desc_top.caps & DWCAPS_INPUTONLY)) {
+          D_INFO( "Tests/Window:   -> GetSurface()...\n" );
 
-     _T( window->GetSurface( window, &surface ) );
+          _T( window->GetSurface( window, &surface ) );
 
-     D_INFO( "Tests/Window:   -> Clear( 0x20, 0x50, 0xC0, 0xFF )...\n" );
+          D_INFO( "Tests/Window:   -> Clear( 0x20, 0x50, 0xC0, 0xFF )...\n" );
 
-     _T( surface->Clear( surface, 0x20, 0x50, 0xC0, 0xFF ) );
+          _T( surface->Clear( surface, 0x20, 0x50, 0xC0, 0xFF ) );
 
-     _T( surface->SetColor( surface, 0x90, 0xF0, 0xC0, 0xFF ) );
+          _T( surface->SetColor( surface, 0x90, 0xF0, 0xC0, 0xFF ) );
 
-     _T( surface->DrawRectangle( surface, 0, 0, size.w, size.h ) );
+          _T( surface->DrawRectangle( surface, 0, 0, size.w, size.h ) );
 
-     _T( surface->FillRectangle( surface, size.w / 2,          1,          1, size.h - 2 ) );
-     _T( surface->FillRectangle( surface,          1, size.h / 2, size.w - 2,          1 ) );
+          _T( surface->FillRectangle( surface, size.w / 2,          1,          1, size.h - 2 ) );
+          _T( surface->FillRectangle( surface,          1, size.h / 2, size.w - 2,          1 ) );
+     }
 
      /*
       * Show the window
@@ -500,7 +556,8 @@ Test_CreateWindow( IDirectFBDisplayLayer *layer )
 
      LookAtResult();
 
-     surface->Release( surface );
+     if (surface)
+          surface->Release( surface );
 
      return DFB_OK;
 }
