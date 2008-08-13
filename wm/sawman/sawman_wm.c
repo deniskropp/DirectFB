@@ -81,7 +81,8 @@
 DFB_WINDOW_MANAGER( sawman )
 
 
-D_DEBUG_DOMAIN( SaWMan_WM, "SaWMan/WM", "SaWMan window manager module" );
+D_DEBUG_DOMAIN( SaWMan_WM      , "SaWMan/WM",       "SaWMan window manager module" );
+D_DEBUG_DOMAIN( SaWMan_Stacking, "SaWMan/Stacking", "SaWMan window manager stacking" );
 
 /**********************************************************************************************************************/
 
@@ -603,11 +604,14 @@ restack_window( SaWMan                 *sawman,
                 int                     relation,
                 DFBWindowStackingClass  stacking )
 {
+     int         i;
      int         old;
      int         index;
      int         priority;
      StackData  *data;
+     CoreWindow *tmp;
      CoreWindow *window;
+     CoreWindow *toplevel;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
@@ -616,8 +620,10 @@ restack_window( SaWMan                 *sawman,
 
      D_ASSERT( relative == NULL || relative == sawwin || relation != 0);
 
-     data = sawwin->stack_data;
+     D_DEBUG_AT( SaWMan_Stacking, "%s( %p, %p, %p, %d, 0x%d )\n", __FUNCTION__,
+                 sawman, sawwin, relative, relation, stacking );
 
+     data   = sawwin->stack_data;
      window = sawwin->window;
 
      D_ASSERT( window != NULL );
@@ -630,75 +636,177 @@ restack_window( SaWMan                 *sawman,
      }
 
      /* Make sure window is inserted and not kept above/under parent. */
-     if (!(sawwin->flags & SWMWF_INSERTED) && !(window->config.options & (DWOP_KEEP_ABOVE|DWOP_KEEP_UNDER)))
+     if (!(sawwin->flags & SWMWF_INSERTED) || (window->config.options & (DWOP_KEEP_ABOVE|DWOP_KEEP_UNDER)))
           return DFB_OK;
 
      /* Get the (new) priority. */
      priority = sawwin->priority;
 
-     /* Get the old index. */
-     old = sawman_window_index( sawman, sawwin );
+     /* In case of a sub window, the sub window vector is modified and the window reinserted */
+     toplevel = window->toplevel;
+     if (toplevel) {
+          /* Get the old index. */
+          old = fusion_vector_index_of( &toplevel->subwindows, window );
+          D_ASSERT( old >= 0 );
 
-     /* Calculate the desired index. */
-     if (relative) {
-          index = sawman_window_index( sawman, relative );
+          D_DEBUG_AT( SaWMan_Stacking, "  -> old sub index %d\n", old );
 
-          if (relation > 0) {
-               if (old < index)
-                    index--;
+          /* Calculate the desired index. */
+          if (relative) {
+               index = fusion_vector_index_of( &toplevel->subwindows, relative->window );
+               if (index < 0)
+                    return DFB_INVARG;
+
+               if (relation > 0) {
+                    if (old < index)
+                         index--;
+               }
+               else if (relation < 0) {
+                    if (old > index)
+                         index++;
+               }
+
+               index += relation;
+
+               if (index < 0)
+                    index = 0;
+               else if (index > toplevel->subwindows.count - 1)
+                    index = toplevel->subwindows.count - 1;
           }
-          else if (relation < 0) {
-               if (old > index)
-                    index++;
-          }
-
-          index += relation;
-
-          if (index < 0)
+          else if (relation)
+               index = toplevel->subwindows.count - 1;
+          else
                index = 0;
-          else if (index > sawman->layout.count - 1)
+
+          D_DEBUG_AT( SaWMan_Stacking, "  -> new sub index %d\n", index );
+
+          /* Return if index hasn't changed. */
+          if (index == old)
+               return DFB_OK;
+
+          sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
+
+          /* Actually change the stacking order now. */
+          fusion_vector_move( &toplevel->subwindows, old, index );
+
+          /* Reinsert to move in layout as well. */
+          sawman_insert_window( sawman, sawwin, NULL, false );
+     }
+     else {
+          /* Get the old index. */
+          old = sawman_window_index( sawman, sawwin );
+          D_ASSERT( old >= 0 );
+
+          D_DEBUG_AT( SaWMan_Stacking, "  -> old index %d\n", old );
+
+          /* Calculate the desired index. */
+          if (relative) {
+               index = sawman_window_index( sawman, relative );
+
+               if (relation > 0) {
+                    if (old < index)
+                         index--;
+               }
+               else if (relation < 0) {
+                    if (old > index)
+                         index++;
+               }
+
+               index += relation;
+
+               if (relation > 0)
+                    index += window->subwindows.count;
+
+               if (index < 0)
+                    index = 0;
+               else if (index > sawman->layout.count - 1)
+                    index = sawman->layout.count - 1;
+          }
+          else if (relation)
                index = sawman->layout.count - 1;
-     }
-     else if (relation)
-          index = sawman->layout.count - 1;
-     else
-          index = 0;
-
-     /* Assure window won't be above any window with a higher priority. */
-     while (index > 0) {
-          int           below = (old < index) ? index : index - 1;
-          SaWManWindow *other = fusion_vector_at( &sawman->layout, below );
-
-          D_MAGIC_ASSERT( other, SaWManWindow );
-
-          if (priority < other->priority)
-               index--;
           else
-               break;
+               index = 0;
+
+          D_DEBUG_AT( SaWMan_Stacking, "  -> new index %d\n", index );
+
+          /* Assure window won't be above any window with a higher priority. */
+          while (index > 0) {
+               int           below = (old < index) ? index : index - 1;
+               SaWManWindow *other = fusion_vector_at( &sawman->layout, below );
+
+               D_MAGIC_ASSERT( other, SaWManWindow );
+
+               if (priority < other->priority)
+                    index--;
+               else
+                    break;
+          }
+
+          D_DEBUG_AT( SaWMan_Stacking, "  -> new index %d\n", index );
+
+          /* Assure window won't be below any window with a lower priority. */
+          while (index < sawman->layout.count - 1) {
+               int           above = (old > index) ? index : index + 1;
+               SaWManWindow *other = fusion_vector_at( &sawman->layout, above );
+
+               D_MAGIC_ASSERT( other, SaWManWindow );
+
+               if (priority > other->priority)
+                    index++;
+               else
+                    break;
+          }
+
+          D_DEBUG_AT( SaWMan_Stacking, "  -> new index %d\n", index );
+
+          if (relation < 0) {
+               /* Assure window won't be below a sub window (getting between sub and top or other sub window) */
+               while (index > 0) {
+                    SaWManWindow *other = fusion_vector_at( &sawman->layout, index );
+
+                    D_MAGIC_ASSERT( other, SaWManWindow );
+
+                    if (other->window->toplevel)
+                         index--;
+                    else
+                         break;
+               }
+          }
+          else if (relation > 0) {
+               /* Assure window won't be below a sub window (getting between sub and top or other sub window) */
+               while (index < sawman->layout.count - 1) {
+                    SaWManWindow *other = fusion_vector_at( &sawman->layout, index + 1 );
+
+                    D_MAGIC_ASSERT( other, SaWManWindow );
+
+                    if (other->window->toplevel)
+                         index++;
+                    else
+                         break;
+               }
+          }
+
+          D_DEBUG_AT( SaWMan_Stacking, "  -> new index %d\n", index );
+
+          /* Return if index hasn't changed. */
+          if (index == old)
+               return DFB_OK;
+
+          sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
+
+          /* Actually change the stacking order now. */
+          fusion_vector_move( &sawman->layout, old, index );
+
+          D_DEBUG_AT( SaWMan_Stacking, "  -> now index %d\n", fusion_vector_index_of( &sawman->layout, sawwin ) );
+
+          fusion_vector_foreach (tmp, i, window->subwindows) {
+               sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
+               sawman_insert_window( sawman, tmp->window_data, NULL, false );
+               sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
+          }
      }
 
-     /* Assure window won't be below any window with a lower priority. */
-     while (index < sawman->layout.count - 1) {
-          int           above = (old > index) ? index : index + 1;
-          SaWManWindow *other = fusion_vector_at( &sawman->layout, above );
-
-          D_MAGIC_ASSERT( other, SaWManWindow );
-
-          if (priority > other->priority)
-               index++;
-          else
-               break;
-     }
-
-     /* Return if index hasn't changed. */
-     if (index == old)
-          return DFB_OK;
-
-     /* Actually change the stacking order now. */
-     fusion_vector_move( &sawman->layout, old, index );
-
-     sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER |
-                           ((index < old) ? SWMUF_FORCE_COMPLETE : SWMUF_NONE) );
+     sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
 
      return DFB_OK;
 }

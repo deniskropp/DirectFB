@@ -59,6 +59,7 @@
 D_DEBUG_DOMAIN( SaWMan_Auto,     "SaWMan/Auto",     "SaWMan auto configuration" );
 D_DEBUG_DOMAIN( SaWMan_Update,   "SaWMan/Update",   "SaWMan window manager updates" );
 D_DEBUG_DOMAIN( SaWMan_Geometry, "SaWMan/Geometry", "SaWMan window manager geometry" );
+D_DEBUG_DOMAIN( SaWMan_Stacking, "SaWMan/Stacking", "SaWMan window manager stacking" );
 
 
 /* FIXME: avoid globals */
@@ -1021,6 +1022,10 @@ sawman_insert_window( SaWMan       *sawman,
      int           index = 0;
      SaWManWindow *other;
      CoreWindow   *window;
+     CoreWindow   *toplevel;
+
+     D_DEBUG_AT( SaWMan_Stacking, "%s( %p, %p, %p, %s )\n", __FUNCTION__,
+                 sawman, sawwin, relative, top ? "top" : "below" );
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
@@ -1030,7 +1035,31 @@ sawman_insert_window( SaWMan       *sawman,
      window = sawwin->window;
      D_ASSERT( window != NULL );
 
-     if (sawwin->parent && (window->config.options & (DWOP_KEEP_ABOVE|DWOP_KEEP_UNDER))) {
+     /* In case of a sub window, the order from sub window vector is followed */
+     toplevel = window->toplevel;
+     if (toplevel) {
+          CoreWindow *tmp;
+
+          /* Lookup our index in top level window */
+          index = fusion_vector_index_of( &toplevel->subwindows, window );
+
+          D_DEBUG_AT( SaWMan_Stacking, "  -> toplevel %p [%4d,%4d-%4dx%4d] (%d)\n",
+                      toplevel, DFB_RECTANGLE_VALS(&toplevel->config.bounds), index );
+
+          /* Get sub window below (or top level) */
+          if (index == 0)
+               tmp = toplevel;
+          else
+               tmp = fusion_vector_at( &toplevel->subwindows, index - 1 );
+
+          D_DEBUG_AT( SaWMan_Stacking, "  -> relative %p [%4d,%4d-%4dx%4d] (%d)\n",
+                      tmp, DFB_RECTANGLE_VALS(&tmp->config.bounds), index - 1 );
+
+          /* Place on top */
+          relative = tmp->window_data;
+          top      = true;
+     }
+     else if (sawwin->parent && (window->config.options & (DWOP_KEEP_ABOVE|DWOP_KEEP_UNDER))) {
           D_MAGIC_ASSERT( sawwin->parent, SaWManWindow );
 
           relative = sawwin->parent;
@@ -1074,9 +1103,8 @@ sawman_insert_window( SaWMan       *sawman,
 
      /* (Re)Insert the window at the acquired position. */
      if (sawwin->flags & SWMWF_INSERTED) {
-          int old = fusion_vector_index_of( &sawman->layout, sawwin );
+          int old = sawman_window_index( sawman, sawwin );
 
-          old = sawman_window_index( sawman, sawwin );
           D_ASSERT( old >= 0 );
           D_ASSERT( old < sawman->layout.count );
 
