@@ -91,6 +91,7 @@ static DFBResult Test_ScaleWindow( IDirectFBDisplayLayer *layer );
 
 /**********************************************************************************************************************/
 
+static DFBResult Test_HideWindow( IDirectFBDisplayLayer *layer );
 static DFBResult Test_DestroyWindow( IDirectFBDisplayLayer *layer );
 
 /**********************************************************************************************************************/
@@ -156,6 +157,7 @@ main( int argc, char *argv[] )
 
      RUN_TEST( Test_ScaleWindow, layer );
 
+     RUN_TEST( Test_HideWindow, layer );
 
      RUN_TEST( Test_DestroyWindow, layer );
 
@@ -651,6 +653,43 @@ Test_ScaleWindow( IDirectFBDisplayLayer *layer )
      D_INFO( "Tests/Window:   -> SetOptions( 0x%08x )... <- (restore)\n", opts );
 
      _T( window->SetOptions( window, opts ) );
+
+     window->Release( window );
+
+     return DFB_OK;
+}
+
+static DFBResult
+Test_HideWindow( IDirectFBDisplayLayer *layer )
+{
+     IDirectFBWindow *window;
+
+     D_ASSERT( m_toplevel_id != 0 );
+
+     /*
+      * Get the top level window
+      */
+     D_INFO( "Tests/Window:   -> GetWindow( %u )...\n", m_toplevel_id );
+
+     _T( layer->GetWindow( layer, m_toplevel_id, &window ) );
+
+     /*
+      * Hide it
+      */
+     D_INFO( "Tests/Window:   -> SetOpacity( 0 )...\n" );
+
+     _T( window->SetOpacity( window, 0 ) );
+
+     LookAtResult();
+
+     /*
+      * Show it again
+      */
+     D_INFO( "Tests/Window:   -> SetOpacity( 0xff )...\n" );
+
+     _T( window->SetOpacity( window, 0xff ) );
+
+     LookAtResult();
 
      window->Release( window );
 
