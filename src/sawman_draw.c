@@ -406,8 +406,13 @@ draw_window( SaWManTier   *tier,
      state->source    = window->surface;
      state->modified |= SMF_SOURCE;
 
+     D_DEBUG_AT( SaWMan_Draw, "  [][] %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &clip ) );
+
      /* Change clipping region. */
      dfb_state_set_clip( state, &clip );
+
+     D_DEBUG_AT( SaWMan_Draw, "    => %4d,%4d-%4dx%4d <- %4d,%4d-%4dx%4d\n",
+                 DFB_RECTANGLE_VALS( &dst ), DFB_RECTANGLE_VALS( &src ) );
 
      /* Scale window to the screen clipped by the region being updated. */
      dfb_gfxcard_stretchblit( &src, &dst, state );

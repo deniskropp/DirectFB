@@ -1815,21 +1815,25 @@ update_region( SaWMan          *sawman,
                     update_region( sawman, tier, state, i-1, x1, y1, x2, y2 );
                }
                else {
+                    DFBRegion dst = DFB_REGION_INIT_FROM_RECTANGLE( &sawwin->dst );
+
+                    dfb_region_region_intersect( &dst, &region );
+
                     /* left */
-                    if (region.x1 != x1)
-                         update_region( sawman, tier, state, i-1, x1, region.y1, region.x1-1, region.y2 );
+                    if (dst.x1 != x1)
+                         update_region( sawman, tier, state, i-1, x1, dst.y1, dst.x1-1, dst.y2 );
 
                     /* upper */
-                    if (region.y1 != y1)
-                         update_region( sawman, tier, state, i-1, x1, y1, x2, region.y1-1 );
+                    if (dst.y1 != y1)
+                         update_region( sawman, tier, state, i-1, x1, y1, x2, dst.y1-1 );
 
                     /* right */
-                    if (region.x2 != x2)
-                         update_region( sawman, tier, state, i-1, region.x2+1, region.y1, x2, region.y2 );
+                    if (dst.x2 != x2)
+                         update_region( sawman, tier, state, i-1, dst.x2+1, dst.y1, x2, dst.y2 );
 
                     /* lower */
-                    if (region.y2 != y2)
-                         update_region( sawman, tier, state, i-1, x1, region.y2+1, x2, y2 );
+                    if (dst.y2 != y2)
+                         update_region( sawman, tier, state, i-1, x1, dst.y2+1, x2, y2 );
                }
 
                sawman_draw_window( tier, sawwin, state, &region, true );
