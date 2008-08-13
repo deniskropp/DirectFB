@@ -2961,11 +2961,13 @@ wm_update_cursor( CoreWindowStack       *stack,
 
           D_ASSERT( stack->cursor.opacity || (flags & CCUF_OPACITY) );
 
-          dfb_gfx_copy_to( tier->cursor_bs, surface, &rect, old_region.x1, old_region.y1, false );
+          if (tier->active) {
+               dfb_gfx_copy_to( tier->cursor_bs, surface, &rect, old_region.x1, old_region.y1, false );
+
+               restored = true;
+          }
 
           tier->cursor_drawn = false;
-
-          restored = true;
      }
 
      if (flags & CCUF_SIZE) {
@@ -2980,7 +2982,7 @@ wm_update_cursor( CoreWindowStack       *stack,
      if (flags & CCUF_DISABLE) {
           dfb_surface_unlink( &tier->cursor_bs );
      }
-     else if (stack->cursor.opacity) {
+     else if (stack->cursor.opacity && tier->active) {
           CoreLayer *layer = dfb_layer_at( context->layer_id );
           CardState *state = &layer->state;
 
