@@ -443,7 +443,6 @@ resize_window( SaWMan       *sawman,
 
      window = sawwin->window;
      D_ASSERT( window != NULL );
-     D_ASSERT( window->surface != NULL );
 
      /* Resize the surface? */
      if (window->surface && !(window->config.options & DWOP_SCALE)) {
@@ -517,7 +516,6 @@ set_window_bounds( SaWMan       *sawman,
 
      window = sawwin->window;
      D_ASSERT( window != NULL );
-     D_ASSERT( window->surface != NULL );
 
      /* Resize the surface? */
      if (window->surface && !(window->config.options & DWOP_SCALE)) {
@@ -590,8 +588,8 @@ set_window_bounds( SaWMan       *sawman,
      evt.type = DWET_POSITION_SIZE;
      evt.x    = bounds->x;
      evt.y    = bounds->y;
-     evt.w    = window->surface->config.size.w;
-     evt.h    = window->surface->config.size.h;
+     evt.w    = bounds->w;
+     evt.h    = bounds->h;
 
      sawman_post_event( sawman, sawwin, &evt );
 
@@ -2304,7 +2302,7 @@ wm_set_window_config( CoreWindow             *window,
 
 
      if (flags & CWCF_OPTIONS) {
-          if ((window->config.options & DWOP_SCALE) && !(config->options & DWOP_SCALE)) {
+          if ((window->config.options & DWOP_SCALE) && !(config->options & DWOP_SCALE) && window->surface) {
                if (window->config.bounds.w != window->surface->config.size.w ||
                    window->config.bounds.h != window->surface->config.size.h)
                {
@@ -2821,6 +2819,8 @@ wm_update_window( CoreWindow          *window,
 
                     tmp.x -= tier->single_src.x;
                     tmp.y -= tier->single_src.y;
+
+                    D_ASSERT( window->surface != NULL );
 
                     dfb_gfx_copy_to( window->surface, tier->region->surface, &src, tmp.x, tmp.y, false );
 

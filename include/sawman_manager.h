@@ -501,12 +501,9 @@ sawman_tier_by_layer( SaWMan             *sawman,
 
 int sawman_window_border( const SaWManWindow *sawwin );
 
-#define SAWMAN_HIDDEN_WINDOW(w)      (!((w)->caps & DWCAPS_INPUTONLY) && ((w)->config.opacity == 0))
-
-#define SAWMAN_VISIBLE_WINDOW(w)     ((!((w)->caps & (DWCAPS_INPUTONLY)) ||\
-                                       !((w)->caps & (DWCAPS_NODECORATION))) && \
+#define SAWMAN_VISIBLE_WINDOW(w)     ((!((w)->caps & DWCAPS_INPUTONLY) || sawman_window_border((w)->window_data)) && \
                                       (w)->config.opacity > 0 && !DFB_WINDOW_DESTROYED(w) && \
-                                      (!(w)->toplevel || !SAWMAN_HIDDEN_WINDOW((w)->toplevel)))
+                                      (!(w)->toplevel || (w)->toplevel->config.opacity > 0))
 
 #define SAWMAN_TRANSLUCENT_WINDOW(w) ((w)->config.opacity < 0xff || \
                                       (w)->config.options & (DWOP_ALPHACHANNEL | DWOP_COLORKEYING) ||\
