@@ -52,10 +52,28 @@ static const DirectFBPixelFormatNames( format_names );
 
 /**********************************************************************************************************************/
 
-static int                   m_width    = 200;
-static int                   m_height   = 200;
-static DFBSurfacePixelFormat m_format   = DSPF_UNKNOWN;
-static DFBWindowID           m_toplevel = 0;
+static DFBWindowDescription m_desc_top = {
+     .flags         = DWDESC_POSX | DWDESC_POSY | DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_PIXELFORMAT,
+     .posx          = 100,
+     .posy          = 100,
+     .width         = 200,
+     .height        = 200,
+     .pixelformat   = DSPF_UNKNOWN,
+};
+
+static DFBWindowDescription m_desc_sub = {
+     .flags         = DWDESC_POSX | DWDESC_POSY | DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_PIXELFORMAT | DWDESC_TOPLEVEL_ID,
+     .posx          = 40,
+     .posy          = 40,
+     .width         = 120,
+     .height        = 120,
+     .pixelformat   = DSPF_UNKNOWN,
+};
+
+static IDirectFBWindow *m_toplevel    = NULL;
+static DFBWindowID      m_toplevel_id = 0;
+
+static IDirectFBWindow *m_subwindow   = NULL;
 
 /**********************************************************************************************************************/
 
@@ -70,6 +88,10 @@ static DFBResult Test_CreateSubWindow( IDirectFBDisplayLayer *layer );
 
 static DFBResult Test_MoveWindow( IDirectFBDisplayLayer *layer );
 static DFBResult Test_ScaleWindow( IDirectFBDisplayLayer *layer );
+
+/**********************************************************************************************************************/
+
+static DFBResult Test_DestroyWindow( IDirectFBDisplayLayer *layer );
 
 /**********************************************************************************************************************/
 
@@ -125,7 +147,8 @@ main( int argc, char *argv[] )
 
      D_INFO( "Tests/Window: Got layer interface, running tests...\n" );
 
-     RUN_TEST( Test_CreateWindow, layer );
+     if (!m_toplevel_id)
+          RUN_TEST( Test_CreateWindow, layer );
 
      RUN_TEST( Test_CreateSubWindow, layer );
 
@@ -134,7 +157,18 @@ main( int argc, char *argv[] )
      RUN_TEST( Test_ScaleWindow, layer );
 
 
+     RUN_TEST( Test_DestroyWindow, layer );
+
      D_INFO( "Tests/Window: Shutting down...\n" );
+
+
+     /* Release the sub window. */
+     if (m_subwindow)
+          m_subwindow->Release( m_subwindow );
+
+     /* Release the top level. */
+     if (m_toplevel)
+          m_toplevel->Release( m_toplevel );
 
      /* Release the layer. */
      layer->Release( layer );
@@ -152,15 +186,9 @@ print_usage (const char *prg_name)
 {
      int i = 0;
 
-     fprintf (stderr, "\nDirectFB Window Test (version %s)\n\n", DIRECTFB_VERSION);
-     fprintf (stderr, "Usage: %s [options]\n\n", prg_name);
-     fprintf (stderr, "Options:\n");
-     fprintf (stderr, "   -s, --size    <width>x<height>  Set window size (default 200x200)\n");
-     fprintf (stderr, "   -f, --format  <pixelformat>     Set the pixel format\n");
-     fprintf (stderr, "   -h, --help                      Show this help message\n");
-     fprintf (stderr, "   -v, --version                   Print version information\n");
      fprintf (stderr, "\n");
-
+     fprintf (stderr, "== DirectFB Window Test (version %s) ==\n", DIRECTFB_VERSION);
+     fprintf (stderr, "\n");
      fprintf (stderr, "Known pixel formats:\n");
 
      while (format_names[i].format != DSPF_UNKNOWN) {
@@ -188,12 +216,41 @@ print_usage (const char *prg_name)
           ++i;
      }
      fprintf (stderr, "\n");
+
+     fprintf (stderr, "Usage: %s [options]\n", prg_name);
+     fprintf (stderr, "\n");
+     fprintf (stderr, "Options:\n");
+     fprintf (stderr, "  -h, --help                     Show this help message\n");
+     fprintf (stderr, "  -v, --version                  Print version information\n");
+     fprintf (stderr, "\n");
+     fprintf (stderr, "Top window:\n");
+     fprintf (stderr, "  -p, --pos        <posx>,<posy>     Position (%d,%d)\n", m_desc_top.posx, m_desc_top.posy);
+     fprintf (stderr, "  -s, --size       <width>x<height>  Size     (%dx%d)\n", m_desc_top.width, m_desc_top.height);
+     fprintf (stderr, "  -f, --format     <pixelformat>     Format   (%s)\n",    dfb_pixelformat_name(m_desc_top.pixelformat));
+     fprintf (stderr, "\n");
+     fprintf (stderr, "Sub window:\n");
+     fprintf (stderr, "  -P, --sub-pos    <posx>,<posy>     Position (%d,%d)\n", m_desc_sub.posx, m_desc_sub.posy);
+     fprintf (stderr, "  -S, --sub-size   <width>x<height>  Size     (%dx%d)\n", m_desc_sub.width, m_desc_sub.height);
+     fprintf (stderr, "  -F, --sub-format <pixelformat>     Format   (%s)\n",    dfb_pixelformat_name(m_desc_sub.pixelformat));
+     fprintf (stderr, "  -T, --top-level  <toplevel_id>     WindowID (skips top creation)\n");
+     fprintf (stderr, "\n");
 }
 
 static DFBBoolean
-parse_size( const char *arg )
+parse_position( const char *arg, int *_x, int *_y )
 {
-     if (sscanf( arg, "%dx%d", &m_width, &m_height ) != 2 || m_width < 1 || m_height < 1) {
+     if (sscanf( arg, "%d,%d", _x, _y ) != 2) {
+          fprintf (stderr, "\nInvalid position specified!\n\n" );
+          return DFB_FALSE;
+     }
+
+     return DFB_TRUE;
+}
+
+static DFBBoolean
+parse_size( const char *arg, int *_w, int *_h )
+{
+     if (sscanf( arg, "%dx%d", _w, _h ) != 2 || *_w < 1 || *_h < 1) {
           fprintf (stderr, "\nInvalid size specified!\n\n" );
           return DFB_FALSE;
      }
@@ -202,13 +259,13 @@ parse_size( const char *arg )
 }
 
 static DFBBoolean
-parse_format( const char *arg )
+parse_format( const char *arg, DFBSurfacePixelFormat *_f )
 {
      int i = 0;
 
      while (format_names[i].format != DSPF_UNKNOWN) {
           if (!strcasecmp( arg, format_names[i].name )) {
-               m_format = format_names[i].format;
+               *_f = format_names[i].format;
                return DFB_TRUE;
           }
 
@@ -218,6 +275,17 @@ parse_format( const char *arg )
      fprintf (stderr, "\nInvalid format specified!\n\n" );
 
      return DFB_FALSE;
+}
+
+static DFBBoolean
+parse_id( const char *arg, unsigned int *_id )
+{
+     if (sscanf( arg, "%u", _id ) != 1) {
+          fprintf (stderr, "\nInvalid ID specified!\n\n" );
+          return DFB_FALSE;
+     }
+
+     return DFB_TRUE;
 }
 
 static bool
@@ -238,13 +306,25 @@ parse_command_line( int argc, char *argv[] )
                return false;
           }
 
+          if (strcmp (arg, "-p") == 0 || strcmp (arg, "--pos") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return false;
+               }
+
+               if (!parse_position( argv[n], &m_desc_top.posx, &m_desc_top.posy ))
+                    return false;
+
+               continue;
+          }
+
           if (strcmp (arg, "-s") == 0 || strcmp (arg, "--size") == 0) {
                if (++n == argc) {
                     print_usage (argv[0]);
                     return false;
                }
 
-               if (!parse_size( argv[n] ))
+               if (!parse_size( argv[n], &m_desc_top.width, &m_desc_top.height ))
                     return false;
 
                continue;
@@ -256,7 +336,55 @@ parse_command_line( int argc, char *argv[] )
                     return false;
                }
 
-               if (!parse_format( argv[n] ))
+               if (!parse_format( argv[n], &m_desc_top.pixelformat ))
+                    return false;
+
+               continue;
+          }
+
+          if (strcmp (arg, "-P") == 0 || strcmp (arg, "--sub-pos") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return false;
+               }
+
+               if (!parse_position( argv[n], &m_desc_sub.posx, &m_desc_sub.posy ))
+                    return false;
+
+               continue;
+          }
+
+          if (strcmp (arg, "-S") == 0 || strcmp (arg, "--sub-size") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return false;
+               }
+
+               if (!parse_size( argv[n], &m_desc_sub.width, &m_desc_sub.height ))
+                    return false;
+
+               continue;
+          }
+
+          if (strcmp (arg, "-F") == 0 || strcmp (arg, "--sub-format") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return false;
+               }
+
+               if (!parse_format( argv[n], &m_desc_sub.pixelformat ))
+                    return false;
+
+               continue;
+          }
+
+          if (strcmp (arg, "-T") == 0 || strcmp (arg, "--top-level") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return false;
+               }
+
+               if (!parse_id( argv[n], &m_toplevel_id ))
                     return false;
 
                continue;
@@ -314,25 +442,21 @@ LookAtResult()
 static DFBResult
 Test_CreateWindow( IDirectFBDisplayLayer *layer )
 {
-     DFBWindowDescription  desc;
-     IDirectFBSurface     *surface;
-     IDirectFBWindow      *window;
-     DFBWindowID           window_id;
+     IDirectFBSurface *surface;
+     IDirectFBWindow  *window;
+     DFBWindowID       window_id;
+     DFBDimension      size = { m_desc_top.width, m_desc_top.height };
+
+     D_ASSERT( m_toplevel_id == 0 );
 
      /*
       * Create a new top level window
       */
-     desc.flags       = DWDESC_POSX | DWDESC_POSY | DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_PIXELFORMAT;
-     desc.posx        = 100;
-     desc.posy        = 100;
-     desc.width       = m_width;
-     desc.height      = m_height;
-     desc.pixelformat = m_format;
-
      D_INFO( "Tests/Window:   -> CreateWindow( %d,%d - %dx%d %s )...\n",
-             desc.posx, desc.posy, desc.width, desc.height, dfb_pixelformat_name( desc.pixelformat ) );
+             m_desc_top.posx, m_desc_top.posy, m_desc_top.width, m_desc_top.height,
+             dfb_pixelformat_name( m_desc_top.pixelformat ) );
 
-     _T( layer->CreateWindow( layer, &desc, &window ) );
+     _T( layer->CreateWindow( layer, &m_desc_top, &window ) );
 
      /*
       * Query its surface and clear it with light blue
@@ -345,6 +469,13 @@ Test_CreateWindow( IDirectFBDisplayLayer *layer )
 
      _T( surface->Clear( surface, 0x20, 0x50, 0xC0, 0xFF ) );
 
+     _T( surface->SetColor( surface, 0x90, 0xF0, 0xC0, 0xFF ) );
+
+     _T( surface->DrawRectangle( surface, 0, 0, size.w, size.h ) );
+
+     _T( surface->FillRectangle( surface, size.w / 2,          1,          1, size.h - 2 ) );
+     _T( surface->FillRectangle( surface,          1, size.h / 2, size.w - 2,          1 ) );
+
      /*
       * Show the window
       */
@@ -360,10 +491,10 @@ Test_CreateWindow( IDirectFBDisplayLayer *layer )
      D_INFO( "Tests/Window:   => ID %u\n", window_id );
 
      /*
-      * Set top level window ID if user hasn't specified
+      * Set top level window ID (user hasn't specified one)
       */
-     if (!m_toplevel)
-          m_toplevel = window_id;
+     m_toplevel_id = window_id;
+     m_toplevel    = window;
 
      LookAtResult();
 
@@ -375,28 +506,24 @@ Test_CreateWindow( IDirectFBDisplayLayer *layer )
 static DFBResult
 Test_CreateSubWindow( IDirectFBDisplayLayer *layer )
 {
-     DFBWindowDescription  desc;
      IDirectFBSurface     *surface;
      IDirectFBWindow      *window;
      DFBWindowID           window_id;
+     DFBDimension          size = { m_desc_sub.width, m_desc_sub.height };
+
+     D_ASSERT( m_toplevel_id != 0 );
+
+     /* Write window ID of top level into description */
+     m_desc_sub.toplevel_id = m_toplevel_id;
 
      /*
       * Create a new sub window with 75% width/height and positioned at 20,20 within top level window
       */
-     desc.flags       = DWDESC_CAPS | DWDESC_POSX | DWDESC_POSY | DWDESC_WIDTH | DWDESC_HEIGHT |
-                        DWDESC_PIXELFORMAT | DWDESC_TOPLEVEL_ID;
-     desc.caps        = DWCAPS_SUBWINDOW;
-     desc.posx        = 20;
-     desc.posy        = 20;
-     desc.width       = m_width  * 3 / 4;
-     desc.height      = m_height * 3 / 4;
-     desc.pixelformat = m_format;
-     desc.toplevel_id = m_toplevel;
+     D_INFO( "Tests/Window:   -> CreateWindow( %d,%d - %dx%d %s + toplevel ID %u )...\n",
+             m_desc_sub.posx, m_desc_sub.posy, m_desc_sub.width, m_desc_sub.height,
+             dfb_pixelformat_name( m_desc_sub.pixelformat ), m_desc_sub.toplevel_id );
 
-     D_INFO( "Tests/Window:   -> CreateWindow( %d,%d - %dx%d %s + toplevel ID %u )...\n", desc.posx, desc.posy,
-             desc.width, desc.height, dfb_pixelformat_name( desc.pixelformat ), desc.toplevel_id );
-
-     _T( layer->CreateWindow( layer, &desc, &window ) );
+     _T( layer->CreateWindow( layer, &m_desc_sub, &window ) );
 
      /*
       * Query its surface and clear it with light gray
@@ -409,6 +536,11 @@ Test_CreateSubWindow( IDirectFBDisplayLayer *layer )
 
      _T( surface->Clear( surface, 0xC0, 0xC0, 0xC0, 0xFF ) );
 
+     _T( surface->DrawRectangle( surface, 0, 0, size.w, size.h ) );
+
+     _T( surface->FillRectangle( surface, size.w / 2,          1,          1, size.h - 2 ) );
+     _T( surface->FillRectangle( surface,          1, size.h / 2, size.w - 2,          1 ) );
+
      /*
       * Show the window
       */
@@ -422,6 +554,8 @@ Test_CreateSubWindow( IDirectFBDisplayLayer *layer )
      _T( window->GetID( window, &window_id ) );
 
      D_INFO( "Tests/Window:   => ID %u\n", window_id );
+
+     m_subwindow = window;
 
      LookAtResult();
 
@@ -441,12 +575,14 @@ Test_MoveWindow( IDirectFBDisplayLayer *layer )
                                 {  60, 140 },
                                 { 100, 100 } };
 
+     D_ASSERT( m_toplevel_id != 0 );
+
      /*
       * Get the top level window
       */
-     D_INFO( "Tests/Window:   -> GetWindow( %u )...\n", m_toplevel );
+     D_INFO( "Tests/Window:   -> GetWindow( %u )...\n", m_toplevel_id );
 
-     _T( layer->GetWindow( layer, m_toplevel, &window ) );
+     _T( layer->GetWindow( layer, m_toplevel_id, &window ) );
 
      /*
       * Move the window
@@ -470,19 +606,22 @@ Test_ScaleWindow( IDirectFBDisplayLayer *layer )
      int              i;
      IDirectFBWindow *window;
      DFBWindowOptions opts;
-     DFBDimension     size[] = { { m_width + 40, m_height      },
-                                 { m_width + 40, m_height + 40 },
-                                 { m_width,      m_height + 40 },
-                                 { m_width + 40, m_height - 40 },
-                                 { m_width - 40, m_height + 40 },
-                                 { m_width,      m_height      } };
+     DFBDimension     size    = { m_desc_top.width, m_desc_top.height };
+     DFBDimension     sizes[] = { { size.w + 40, size.h      },
+                                  { size.w + 40, size.h + 40 },
+                                  { size.w,      size.h + 40 },
+                                  { size.w + 40, size.h - 40 },
+                                  { size.w - 40, size.h + 40 },
+                                  { size.w,      size.h      } };
+
+     D_ASSERT( m_toplevel_id != 0 );
 
      /*
       * Get the top level window
       */
-     D_INFO( "Tests/Window:   -> GetWindow( %u )...\n", m_toplevel );
+     D_INFO( "Tests/Window:   -> GetWindow( %u )...\n", m_toplevel_id );
 
-     _T( layer->GetWindow( layer, m_toplevel, &window ) );
+     _T( layer->GetWindow( layer, m_toplevel_id, &window ) );
 
      /*
       * Enable scaling
@@ -498,10 +637,10 @@ Test_ScaleWindow( IDirectFBDisplayLayer *layer )
      /*
       * Move the window
       */
-     for (i=0; i<D_ARRAY_SIZE(size); i++) {
-          D_INFO( "Tests/Window:   -> Resize( %4d,%4d - [%02d] )...\n", size[i].w, size[i].h, i );
+     for (i=0; i<D_ARRAY_SIZE(sizes); i++) {
+          D_INFO( "Tests/Window:   -> Resize( %4d,%4d - [%02d] )...\n", sizes[i].w, sizes[i].h, i );
 
-          _T( window->Resize( window, size[i].w, size[i].h ) );
+          _T( window->Resize( window, sizes[i].w, sizes[i].h ) );
 
           LookAtResult();
      }
@@ -512,6 +651,34 @@ Test_ScaleWindow( IDirectFBDisplayLayer *layer )
      D_INFO( "Tests/Window:   -> SetOptions( 0x%08x )... <- (restore)\n", opts );
 
      _T( window->SetOptions( window, opts ) );
+
+     window->Release( window );
+
+     return DFB_OK;
+}
+
+static DFBResult
+Test_DestroyWindow( IDirectFBDisplayLayer *layer )
+{
+     IDirectFBWindow *window;
+
+     D_ASSERT( m_toplevel_id != 0 );
+
+     /*
+      * Get the top level window
+      */
+     D_INFO( "Tests/Window:   -> GetWindow( %u )...\n", m_toplevel_id );
+
+     _T( layer->GetWindow( layer, m_toplevel_id, &window ) );
+
+     /*
+      * Destroy it
+      */
+     D_INFO( "Tests/Window:   -> Destroy()...\n" );
+
+     _T( window->Destroy( window ) );
+
+     LookAtResult();
 
      window->Release( window );
 
