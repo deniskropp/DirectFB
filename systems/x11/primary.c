@@ -71,7 +71,7 @@ D_DEBUG_DOMAIN( X11_Update, "X11/Update", "X11 Update" );
 /**********************************************************************************************************************/
 
 static DFBResult
-dfb_x11_set_video_mode( const CoreLayerRegionConfig *config )
+dfb_x11_create_window( const CoreLayerRegionConfig *config )
 {
      int ret;
 
@@ -79,7 +79,18 @@ dfb_x11_set_video_mode( const CoreLayerRegionConfig *config )
 
      dfb_x11->setmode.config = *config;
 
-     if (fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_SET_VIDEO_MODE, &dfb_x11->setmode, &ret ))
+     if (fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_CREATE_WINDOW, &dfb_x11->setmode, &ret ))
+          return DFB_FUSION;
+
+     return ret;
+}
+
+static DFBResult
+dfb_x11_destroy_window()
+{
+     int ret;
+
+     if (fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_DESTROY_WINDOW, NULL, &ret ))
           return DFB_FUSION;
 
      return ret;
@@ -316,7 +327,7 @@ primarySetRegion( CoreLayer                  *layer,
 {
      DFBResult ret;
 
-     ret = dfb_x11_set_video_mode( config );
+     ret = dfb_x11_create_window( config );
      if (ret)
           return ret;
 
@@ -335,6 +346,8 @@ primaryRemoveRegion( CoreLayer             *layer,
                      void                  *layer_data,
                      void                  *region_data )
 {
+     dfb_x11_destroy_window();
+
      dfb_x11->primary = NULL;
 
      return DFB_OK;
@@ -493,7 +506,7 @@ update_screen( CoreSurface *surface, const DFBRectangle *clip, CoreSurfaceBuffer
 /******************************************************************************/
 
 DFBResult
-dfb_x11_set_video_mode_handler( CoreLayerRegionConfig *config )
+dfb_x11_create_window_handler( CoreLayerRegionConfig *config )
 {
      XWindow *xw;
 
@@ -528,6 +541,25 @@ dfb_x11_set_video_mode_handler( CoreLayerRegionConfig *config )
           dfb_x11->xw = xw;
 
      XUnlockDisplay( dfb_x11->display );
+     return DFB_OK;
+}
+
+DFBResult
+dfb_x11_destroy_window_handler()
+{
+     D_DEBUG_AT( X11_Window, "%s()\n", __FUNCTION__ );
+
+     XLockDisplay( dfb_x11->display );
+
+     if (dfb_x11->xw) {
+          dfb_x11_close_window( dfb_x11->xw );
+          dfb_x11->xw = NULL;
+     }
+
+     XSync( dfb_x11->display, False );
+
+     XUnlockDisplay( dfb_x11->display );
+
      return DFB_OK;
 }
 

@@ -414,8 +414,12 @@ call_handler( int           caller,
               int          *ret_val )
 {
      switch (call_arg) {
-          case X11_SET_VIDEO_MODE:
-               *ret_val = dfb_x11_set_video_mode_handler( call_ptr );
+          case X11_CREATE_WINDOW:
+               *ret_val = dfb_x11_create_window_handler( call_ptr );
+               break;
+
+          case X11_DESTROY_WINDOW:
+               *ret_val = dfb_x11_destroy_window_handler();
                break;
 
           case X11_UPDATE_SCREEN:

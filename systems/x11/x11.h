@@ -77,16 +77,19 @@ typedef struct {
 } DFBX11;
 
 typedef enum {
-     X11_SET_VIDEO_MODE,
+     X11_CREATE_WINDOW,
      X11_UPDATE_SCREEN,
      X11_SET_PALETTE,
      X11_IMAGE_INIT,
-     X11_IMAGE_DESTROY
+     X11_IMAGE_DESTROY,
+     X11_DESTROY_WINDOW,
 } DFBX11Call;
 
 
 
-DFBResult dfb_x11_set_video_mode_handler( CoreLayerRegionConfig *config );
+DFBResult dfb_x11_create_window_handler ( CoreLayerRegionConfig *config );
+DFBResult dfb_x11_destroy_window_handler( void );
+
 DFBResult dfb_x11_update_screen_handler ( UpdateScreenData *data );
 DFBResult dfb_x11_set_palette_handler   ( CorePalette *palette );
 
