@@ -599,9 +599,11 @@ dfb_window_create( CoreWindowStack             *stack,
 void
 dfb_window_destroy( CoreWindow *window )
 {
+     int              i;
      DFBWindowEvent   evt;
      CoreWindowStack *stack;
      BoundWindow     *bound, *next;
+     CoreWindow      *subwindow;
 
      D_ASSERT( window != NULL );
      D_ASSERT( DFB_WINDOW_INITIALIZED( window ) );
@@ -618,6 +620,14 @@ dfb_window_destroy( CoreWindow *window )
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return;
+
+     /* Destroy sub windows first. */
+     fusion_vector_foreach_reverse (subwindow, i, window->subwindows) {
+          D_ASSERT( subwindow != NULL );
+          D_ASSERT( DFB_WINDOW_INITIALIZED( subwindow ) );
+
+          dfb_window_destroy( subwindow );
+     }
 
      /* Avoid multiple destructions. */
      if (DFB_WINDOW_DESTROYED( window )) {
