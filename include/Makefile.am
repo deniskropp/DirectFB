@@ -67,6 +67,9 @@ directfb_strings.h: directfb.h $(MKNAMES) Makefile
 	$(MKNAMES) DFBDisplayLayerBufferMode DLBM UNKNOWN DisplayLayerBufferMode mode $(INCP)/directfb.h \
 	   | grep -v DLBM_DONTCARE | grep -v DLBM_COLOR | grep -v DLBM_IMAGE | grep -v DLBM_TILE >> $@
 
+	$(MKNAMES) DFBWindowCapabilities DWCAPS NONE WindowCapabilities capability $(INCP)/directfb.h \
+	   | grep -v DWCAPS_ALL >> $@
+
 	$(MKNAMES) DFBScreenCapabilities DSCCAPS NONE ScreenCapabilities capability $(INCP)/directfb.h \
 	   | grep -v DSCCAPS_ALL >> $@
 
