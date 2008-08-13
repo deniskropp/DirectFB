@@ -1323,9 +1323,7 @@ process_updates( StackData           *data,
 }
 
 /*
-     recursive procedure to call repaint
-     skipping opaque windows that are above the window
-     that changed
+     skipping opaque windows that are above the window that changed
 */
 static void
 wind_of_change( CoreWindowStack     *stack,
@@ -1341,21 +1339,24 @@ wind_of_change( CoreWindowStack     *stack,
      D_ASSERT( region != NULL );
      D_ASSERT( update != NULL );
 
-     D_ASSERT( changed >= 0 );
-     D_ASSERT( current >= changed );
-     D_ASSERT( current < fusion_vector_size( &data->windows ) );
-
      /*
-          got to the window that changed, redraw.
+          loop through windows above
      */
-     if (current == changed)
-          dfb_updates_add( &data->updates, update );
-     else {
+     for (; current > changed; current--) {
+          CoreWindow       *window;
+          CoreWindowConfig *config;
+          DFBRectangle     *bounds;
           DFBRegion         opaque;
-          CoreWindow       *window  = fusion_vector_at( &data->windows, current );
-          CoreWindowConfig *config  = &window->config;
-          DFBRectangle     *bounds  = &config->bounds;
-          DFBWindowOptions  options = config->options;
+          DFBWindowOptions  options;
+
+          D_ASSERT( changed >= 0 );
+          D_ASSERT( current >= changed );
+          D_ASSERT( current < fusion_vector_size( &data->windows ) );
+
+          window  = fusion_vector_at( &data->windows, current );
+          config  = &window->config;
+          bounds  = &config->bounds;
+          options = config->options;
 
           /*
                can skip opaque region
@@ -1379,7 +1380,8 @@ wind_of_change( CoreWindowStack     *stack,
                                                        bounds->y + config->opaque.y1,
                                                        bounds->x + config->opaque.x2,
                                                        bounds->y + config->opaque.y2 ))
-                 )) {
+                 ))
+          {
                /* left */
                if (opaque.x1 != update->x1) {
                     DFBRegion left = { update->x1, opaque.y1, opaque.x1-1, opaque.y2};
@@ -1400,13 +1402,12 @@ wind_of_change( CoreWindowStack     *stack,
                     DFBRegion lower = { update->x1, opaque.y2+1, update->x2, update->y2};
                     wind_of_change( stack, data, region, &lower, flags, current-1, changed );
                }
+
+               return;
           }
-          /*
-               pass through
-          */
-          else
-               wind_of_change( stack, data, region, update, flags, current-1, changed );
      }
+
+     dfb_updates_add( &tier->updates, update );
 }
 
 static void
