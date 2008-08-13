@@ -1407,7 +1407,7 @@ wind_of_change( CoreWindowStack     *stack,
           }
      }
 
-     dfb_updates_add( &tier->updates, update );
+     dfb_updates_add( &data->updates, update );
 }
 
 static void
