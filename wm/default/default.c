@@ -3312,7 +3312,7 @@ wm_set_window_config( CoreWindow             *window,
      D_ASSERT( stack != NULL );
 
      if (flags & CWCF_OPTIONS) {
-          if ((window->config.options & DWOP_SCALE) && !(config->options & DWOP_SCALE)) {
+          if ((window->config.options & DWOP_SCALE) && !(config->options & DWOP_SCALE) && window->surface) {
                if (window->config.bounds.w != window->surface->config.size.w ||
                    window->config.bounds.h != window->surface->config.size.h)
                {
