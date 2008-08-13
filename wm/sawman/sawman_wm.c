@@ -399,11 +399,11 @@ move_window( SaWMan       *sawman,
      if (SAWMAN_VISIBLE_WINDOW(window) && (sawwin->flags & SWMWF_INSERTED)) {
           DFBRegion region = { 0, 0, bounds->w - 1, bounds->h - 1 };
 
-          sawman_update_window( sawman, sawwin, &region, 0, false, false, false );
+          sawman_update_window( sawman, sawwin, &region, 0, SWMUF_UPDATE_BORDER );
 
           dfb_region_translate( &region, -dx, -dy );
 
-          sawman_update_window( sawman, sawwin, &region, 0, false, false, false );
+          sawman_update_window( sawman, sawwin, &region, 0, SWMUF_UPDATE_BORDER );
      }
 
      /* Send new position */
@@ -466,13 +466,13 @@ resize_window( SaWMan       *sawman,
           if (ow > bounds->w) {
                DFBRegion region = { bounds->w, 0, ow - 1, MIN(bounds->h, oh) - 1 };
 
-               sawman_update_window( sawman, sawwin, &region, 0, false, false, false );
+               sawman_update_window( sawman, sawwin, &region, 0, SWMUF_UPDATE_BORDER );
           }
 
           if (oh > bounds->h) {
                DFBRegion region = { 0, bounds->h, MAX(bounds->w, ow) - 1, oh - 1 };
 
-               sawman_update_window( sawman, sawwin, &region, 0, false, false, false );
+               sawman_update_window( sawman, sawwin, &region, 0, SWMUF_UPDATE_BORDER );
           }
      }
 
@@ -555,7 +555,7 @@ set_window_bounds( SaWMan       *sawman,
                     DFBRegion region = { old_region.x1, old_region.y1,
                                          new_region.x1 - 1, new_region.y2 };
 
-                    sawman_update_window( sawman, sawwin, &region, 0, false, false, false );
+                    sawman_update_window( sawman, sawwin, &region, 0, SWMUF_UPDATE_BORDER );
                }
 
                /* upper */
@@ -563,7 +563,7 @@ set_window_bounds( SaWMan       *sawman,
                     DFBRegion region = { old_region.x1, old_region.y1,
                                          old_region.x2, new_region.y1 - 1 };
 
-                    sawman_update_window( sawman, sawwin, &region, 0, false, false, false );
+                    sawman_update_window( sawman, sawwin, &region, 0, SWMUF_UPDATE_BORDER );
                }
 
                /* right */
@@ -571,7 +571,7 @@ set_window_bounds( SaWMan       *sawman,
                     DFBRegion region = { new_region.x2 + 1, new_region.y1,
                                          old_region.x2, new_region.y2 };
 
-                    sawman_update_window( sawman, sawwin, &region, 0, false, false, false );
+                    sawman_update_window( sawman, sawwin, &region, 0, SWMUF_UPDATE_BORDER );
                }
 
                /* lower */
@@ -579,11 +579,11 @@ set_window_bounds( SaWMan       *sawman,
                     DFBRegion region = { old_region.x1, new_region.y2 + 1,
                                          old_region.x2, old_region.y2 };
 
-                    sawman_update_window( sawman, sawwin, &region, 0, false, false, false );
+                    sawman_update_window( sawman, sawwin, &region, 0, SWMUF_UPDATE_BORDER );
                }
           }
           else
-               sawman_update_window( sawman, sawwin, &old_region, 0, false, false, false );
+               sawman_update_window( sawman, sawwin, &old_region, 0, SWMUF_UPDATE_BORDER );
      }
 
      /* Send new position and size */
@@ -699,7 +699,8 @@ restack_window( SaWMan                 *sawman,
      /* Actually change the stacking order now. */
      fusion_vector_move( &sawman->layout, old, index );
 
-     sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, (index < old), false, false );
+     sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER |
+                           ((index < old) ? SWMUF_FORCE_COMPLETE : SWMUF_NONE) );
 
      return DFB_OK;
 }
@@ -732,7 +733,7 @@ set_opacity( SaWMan       *sawman,
           window->config.opacity = opacity;
 
           if (sawwin->flags & SWMWF_INSERTED) {
-               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, false, true, false );
+               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_FORCE_INVISIBLE | SWMUF_UPDATE_BORDER );
 
                /* Ungrab pointer/keyboard, pass focus... */
                if (old && !opacity) {
@@ -2338,7 +2339,7 @@ wm_set_window_config( CoreWindow             *window,
                     sawman_insert_window( sawman, sawwin, sawwin->parent, false );
                }
 
-               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, true, false, false );
+               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER | SWMUF_FORCE_COMPLETE );
           }
 
           window->config.options = config->options;
@@ -2832,7 +2833,7 @@ wm_update_window( CoreWindow          *window,
      else {
           sawman_update_window( sawman, sawwin,
                                 sawwin->parent ? NULL : region, /* FIXME? */
-                                flags, false, false, true );
+                                flags, SWMUF_SCALE_REGION );
 
           sawman_process_updates( sawman, flags );
      }

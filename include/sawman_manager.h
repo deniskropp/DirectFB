@@ -142,6 +142,17 @@ typedef enum {
      SWMSC_LOWER  = (1 << DWSC_LOWER)
 } SaWManStackingClasses;
 
+typedef enum {
+     SWMUF_NONE               = 0x0000,
+
+     SWMUF_FORCE_COMPLETE     = 0x0001,
+     SWMUF_FORCE_INVISIBLE    = 0x0002,
+     SWMUF_SCALE_REGION       = 0x0004,
+     SWMUF_UPDATE_BORDER      = 0x0008,
+
+     SWMUF_ALL                = 0x000F
+} SaWManUpdateFlags;
+
 
 struct __SaWMan_SaWMan {
      int                   magic;
@@ -339,9 +350,7 @@ DirectResult sawman_update_window  ( SaWMan                *sawman,
                                      SaWManWindow          *sawwin,
                                      const DFBRegion       *region,
                                      DFBSurfaceFlipFlags    flags,
-                                     bool                   force_complete,
-                                     bool                   force_invisible,
-                                     bool                   scale_region );
+                                     SaWManUpdateFlags      update_flags );
 
 DirectResult sawman_showing_window ( SaWMan                *sawman,
                                      SaWManWindow          *sawwin,

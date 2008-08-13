@@ -807,7 +807,7 @@ sawman_switch_focus( SaWMan       *sawman,
           sawman_post_event( sawman, from, &evt );
 
           if (sawman_window_border( from ))
-               sawman_update_window( sawman, from, NULL, DSFLIP_NONE, false, false, false );
+               sawman_update_window( sawman, from, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
      }
 
      if (to) {
@@ -833,7 +833,7 @@ sawman_switch_focus( SaWMan       *sawman,
           sawman_post_event( sawman, to, &evt );
 
           if (sawman_window_border( to ))
-               sawman_update_window( sawman, to, NULL, DSFLIP_NONE, false, false, false );
+               sawman_update_window( sawman, to, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
      }
 
      sawman->focused_window = to;
@@ -866,9 +866,7 @@ sawman_update_window( SaWMan              *sawman,
                       SaWManWindow        *sawwin,
                       const DFBRegion     *region,
                       DFBSurfaceFlipFlags  flags,
-                      bool                 force_complete,
-                      bool                 force_invisible,
-                      bool                 scale_region )
+                      SaWManUpdateFlags    update_flags )
 {
      DFBRegion        area;
      CoreWindowStack *stack;
@@ -888,7 +886,7 @@ sawman_update_window( SaWMan              *sawman,
 
      D_DEBUG_AT( SaWMan_Update, "%s( %p, %p )\n", __FUNCTION__, sawwin, region );
 
-     if (!SAWMAN_VISIBLE_WINDOW(window) && !force_invisible)
+     if (!SAWMAN_VISIBLE_WINDOW(window) && !(update_flags & SWMUF_FORCE_INVISIBLE))
           return DFB_OK;
 
      D_ASSUME( sawwin->flags & SWMWF_INSERTED );
@@ -905,7 +903,7 @@ sawman_update_window( SaWMan              *sawman,
      tier = sawman_tier_by_class( sawman, window->config.stacking );
 
      if (region) {
-          if (scale_region && (window->config.options & DWOP_SCALE)) {
+          if ((update_flags & SWMUF_SCALE_REGION) && (window->config.options & DWOP_SCALE)) {
                int sw = sawwin->src.w;
                int sh = sawwin->src.h;
                int dw = sawwin->dst.w;
@@ -944,13 +942,17 @@ sawman_update_window( SaWMan              *sawman,
           else
                area = DFB_REGION_INIT_TRANSLATED( region, sawwin->dst.x, sawwin->dst.y );
      }
-     else
-          area = DFB_REGION_INIT_FROM_RECTANGLE( &sawwin->bounds );
+     else {
+          if ((update_flags & SWMUF_UPDATE_BORDER) && sawman_window_border( sawwin ))
+               area = DFB_REGION_INIT_FROM_RECTANGLE( &sawwin->bounds );
+          else
+               area = DFB_REGION_INIT_FROM_RECTANGLE( &sawwin->dst );
+     }
 
      if (!dfb_unsafe_region_intersect( &area, 0, 0, tier->size.w - 1, tier->size.h - 1 ))
           return DFB_OK;
 
-     if (force_complete/* || sawwin->children.count*/)
+     if (update_flags & SWMUF_FORCE_COMPLETE)
           dfb_updates_add( &tier->updates, &area );
      else
           wind_of_change( sawman, tier, &area, flags,
@@ -1226,7 +1228,7 @@ sawman_withdraw_window( SaWMan       *sawman,
      if (SAWMAN_VISIBLE_WINDOW(window)) {
           window->config.opacity = 0;
 
-          sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, false, true, false );
+          sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_FORCE_INVISIBLE | SWMUF_UPDATE_BORDER );
      }
 
      return DFB_OK;
@@ -1395,7 +1397,7 @@ sawman_update_geometry( SaWManWindow *sawwin )
           D_DEBUG_AT( SaWMan_Geometry, "  => sub bounds %4d,%4d-%4dx%4d (translated)\n", DFB_RECTANGLE_VALS(&sawwin->bounds) );
      }
 
-     /* Update source geometry. */
+     /* Calculate source geometry. */
      clip.x1 = 0;
      clip.y1 = 0;
 
@@ -1416,15 +1418,7 @@ sawman_update_geometry( SaWManWindow *sawwin )
      apply_geometry( &window->config.src_geometry, &clip,
                      parent_window ? &parent_window->config.src_geometry : NULL, &src );
 
-     if (!DFB_RECTANGLE_EQUAL( src, sawwin->src )) {
-          sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, false, false, false );
-
-          sawwin->src = src;
-          src_updated = true;
-     }
-
-
-     /* Update destination geometry. */
+     /* Calculate destination geometry. */
      clip = DFB_REGION_INIT_FROM_RECTANGLE( &sawwin->bounds );
 
      D_DEBUG_AT( SaWMan_Geometry, "  -> Applying destination geometry...\n" );
@@ -1432,17 +1426,7 @@ sawman_update_geometry( SaWManWindow *sawwin )
      apply_geometry( &window->config.dst_geometry, &clip,
                      parent_window ? &parent_window->config.dst_geometry : NULL, &dst );
 
-     if (!DFB_RECTANGLE_EQUAL( dst, sawwin->dst )) {
-          if (!src_updated)
-               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, false, false, false );
-
-          sawwin->dst = dst;
-          dst_updated = true;
-
-          sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, false, false, false );
-     }
-
-     /* Adjust if clipped by top level window */
+     /* Adjust src/dst if clipped by top level window */
      if (toplevel) {
           DFBRegion topclip = DFB_REGION_INIT_FROM_RECTANGLE( &topsaw->bounds );
 
@@ -1453,6 +1437,25 @@ sawman_update_geometry( SaWManWindow *sawwin )
 
           D_DEBUG_AT( SaWMan_Geometry, "  => sub dst    %4d,%4d-%4dx%4d (clipped)\n", DFB_RECTANGLE_VALS(&dst) );
           D_DEBUG_AT( SaWMan_Geometry, "  => sub src    %4d,%4d-%4dx%4d (clipped)\n", DFB_RECTANGLE_VALS(&src) );
+     }
+
+     /* Update source geometry. */
+     if (!DFB_RECTANGLE_EQUAL( src, sawwin->src )) {
+          sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_NONE );
+
+          sawwin->src = src;
+          src_updated = true;
+     }
+
+     /* Update destination geometry. */
+     if (!DFB_RECTANGLE_EQUAL( dst, sawwin->dst )) {
+          if (!src_updated)
+               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_NONE );
+
+          sawwin->dst = dst;
+          dst_updated = true;
+
+          sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_NONE );
      }
 
      D_DEBUG_AT( SaWMan_Geometry, "  -> Updating children (associated windows)...\n" );
@@ -1518,9 +1521,7 @@ sawman_window_border( const SaWManWindow *sawwin )
 /**********************************************************************************************************************/
 
 /*
-     recursive procedure to call repaint
-     skipping opaque windows that are above the window
-     that changed
+     skipping opaque windows that are above the window that changed
 */
 static void
 wind_of_change( SaWMan              *sawman,
@@ -1530,38 +1531,33 @@ wind_of_change( SaWMan              *sawman,
                 int                  current,
                 int                  changed )
 {
-     CoreWindow   *window;
-     SaWManWindow *sawwin;
-
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( tier, SaWManTier );
      D_ASSERT( update != NULL );
 
-     D_ASSERT( changed >= 0 );
-     D_ASSERT( current >= changed );
-     D_ASSERT( current < fusion_vector_size( &sawman->layout ) );
-
-     sawwin = fusion_vector_at( &sawman->layout, current );
-     D_MAGIC_ASSERT( sawwin, SaWManWindow );
-
-     window = sawwin->window;
-     D_ASSERT( window != NULL );
-
-     D_DEBUG_AT( SaWMan_Update, "%s( %p, %d,%d-%dx%d, %d, %d )\n", __FUNCTION__,
-                 tier, DFB_RECTANGLE_VALS_FROM_REGION( update ), current, changed );
-
      /*
-          got to the window that changed, redraw.
+          loop through windows above
      */
-     if (current == changed) {
-          D_DEBUG_AT( SaWMan_Update, "  -> adding update %d,%d-%dx%d\n",
-                      DFB_RECTANGLE_VALS_FROM_REGION( update ) );
-
-          dfb_updates_add( &tier->updates, update );
-     }
-     else {
+     for (; current > changed; current--) {
+          CoreWindow       *window;
+          SaWManWindow     *sawwin;
           DFBRegion         opaque;
-          DFBWindowOptions  options = window->config.options;
+          DFBWindowOptions  options;
+
+          D_ASSERT( changed >= 0 );
+          D_ASSERT( current >= changed );
+          D_ASSERT( current < fusion_vector_size( &sawman->layout ) );
+     
+          sawwin = fusion_vector_at( &sawman->layout, current );
+          D_MAGIC_ASSERT( sawwin, SaWManWindow );
+     
+          window = sawwin->window;
+          D_ASSERT( window != NULL );
+     
+          options = window->config.options;
+
+          D_DEBUG_AT( SaWMan_Update, "--[%p] %4d,%4d-%4dx%4d : %d->%d\n",
+                      tier, DFB_RECTANGLE_VALS_FROM_REGION( update ), current, changed );
 
           /*
                can skip opaque region
@@ -1585,7 +1581,8 @@ wind_of_change( SaWMan              *sawman,
                                                        sawwin->dst.y + window->config.opaque.y1,
                                                        sawwin->dst.x + window->config.opaque.x2,
                                                        sawwin->dst.y + window->config.opaque.y2 ))
-                 )  )) {
+                 )  ))
+          {
                /* left */
                if (opaque.x1 != update->x1) {
                     DFBRegion left = { update->x1, opaque.y1, opaque.x1-1, opaque.y2};
@@ -1606,13 +1603,15 @@ wind_of_change( SaWMan              *sawman,
                     DFBRegion lower = { update->x1, opaque.y2+1, update->x2, update->y2};
                     wind_of_change( sawman, tier, &lower, flags, current-1, changed );
                }
+
+               return;
           }
-          /*
-               pass through   --- FIXME: use loop instead of recursion in this case
-          */
-          else
-               wind_of_change( sawman, tier, update, flags, current-1, changed );
      }
+
+     D_DEBUG_AT( SaWMan_Update, "+ UPDATE %4d,%4d-%4dx%4d\n",
+                 DFB_RECTANGLE_VALS_FROM_REGION( update ) );
+
+     dfb_updates_add( &tier->updates, update );
 }
 
 static void
@@ -1627,28 +1626,28 @@ wind_of_showing( SaWMan     *sawman,
      D_MAGIC_ASSERT( tier, SaWManTier );
      D_ASSERT( update != NULL );
 
-     D_ASSERT( changed >= 0 );
-     D_ASSERT( current >= changed );
-     D_ASSERT( current < fusion_vector_size( &sawman->layout ) );
-
      if (*ret_showing)
           return;
 
      /*
-          got to the window that changed, redraw.
+          loop through windows above
      */
-     if (current == changed)
-          *ret_showing = true;
-     else {
+     for (; current > changed; current--) {
+          CoreWindow       *window;
+          SaWManWindow     *sawwin;
           DFBRegion         opaque;
           DFBWindowOptions  options;
-          CoreWindow       *window;
-          SaWManWindow     *sawwin = fusion_vector_at( &sawman->layout, current );
 
+          D_ASSERT( changed >= 0 );
+          D_ASSERT( current >= changed );
+          D_ASSERT( current < fusion_vector_size( &sawman->layout ) );
+
+          sawwin = fusion_vector_at( &sawman->layout, current );
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
           window = sawwin->window;
           D_ASSERT( window != NULL );
+
           options = window->config.options;
 
           /*
@@ -1673,7 +1672,8 @@ wind_of_showing( SaWMan     *sawman,
                                                        sawwin->dst.y + window->config.opaque.y1,
                                                        sawwin->dst.x + window->config.opaque.x2,
                                                        sawwin->dst.y + window->config.opaque.y2 ))
-                 )  )) {
+                 )  ))
+          {
                /* left */
                if (opaque.x1 != update->x1) {
                     DFBRegion left = { update->x1, opaque.y1, opaque.x1-1, opaque.y2};
@@ -1694,13 +1694,12 @@ wind_of_showing( SaWMan     *sawman,
                     DFBRegion lower = { update->x1, opaque.y2+1, update->x2, update->y2};
                     wind_of_showing( sawman, tier, &lower, current-1, changed, ret_showing );
                }
+
+               return;
           }
-          /*
-               pass through   --- FIXME: use loop instead of recursion in this case
-          */
-          else
-               wind_of_showing( sawman, tier, update, current-1, changed, ret_showing );
      }
+
+     *ret_showing = true;
 }
 
 static void
