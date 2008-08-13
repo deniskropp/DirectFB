@@ -101,13 +101,7 @@ dump_window( SaWMan       *sawman,
 
      printf( "0x%02x  ", config->opacity );
 
-     if (sawwin->flags & SWMWF_INSERTED) {
-          D_ASSERT( fusion_vector_contains( &sawman->layout, sawwin ) );
-
-          printf( "+  " );
-     }
-     else
-          printf( "   " );
+     printf( "%2d ", fusion_vector_index_of( &sawman->layout, sawwin ) );
 
      if (DFB_WINDOW_FOCUSED( window ))
           printf( "# " );
@@ -117,9 +111,9 @@ dump_window( SaWMan       *sawman,
      printf( "%4d ", window->id );
 
      if (window->parent_id) {
-          D_ASSERT( sawwin->parent != NULL );
+          D_ASSUME( sawwin->parent != NULL );
 
-          printf( "%4d ", window->parent_id ? : -1 );
+          printf( "%4d ", window->parent_id );
      }
      else
           printf( " N/A " );
@@ -139,29 +133,32 @@ dump_window( SaWMan       *sawman,
                break;
      }
 
+     if (window->caps & DWCAPS_SUBWINDOW)
+          printf( "SUBWINDOW(%2d) ", window->toplevel_id );
+
      if (window->caps & DWCAPS_ALPHACHANNEL)
-          printf( "ALPHACHANNEL " );
+          printf( "ALPHACHANNEL  " );
 
      if (window->caps & DWCAPS_INPUTONLY)
-          printf( "INPUTONLY    " );
+          printf( "INPUTONLY     " );
 
      if (window->caps & DWCAPS_DOUBLEBUFFER)
-          printf( "DOUBLEBUFFER " );
+          printf( "DOUBLEBUFFER  " );
 
      if (window->caps & DWCAPS_NODECORATION)
-          printf( "NODECORATION " );
+          printf( "NODECORATION  " );
 
      if (config->options & DWOP_GHOST)
-          printf( "GHOST        " );
+          printf( "GHOST         " );
 
      if (config->options & DWOP_SCALE)
-          printf( "SCALED       " );
+          printf( "SCALED        " );
 
      if (config->options & DWOP_COLORKEYING)
-          printf( "COLORKEYED   " );
+          printf( "COLORKEYED    " );
 
      if (DFB_WINDOW_DESTROYED( window ))
-          printf( "DESTROYED    " );
+          printf( "DESTROYED     " );
 
      printf( "\n" );
 
@@ -279,9 +276,9 @@ dump_tier( SaWMan *sawman, SaWManTier *tier, int n )
      }
 
      printf( "\n"
-             "---------------------------------------------------[ Windows in Tier %d ]--------------------------------------------------\n", n );
-     printf( "Reference   FID  . Refs  Window - Bounds      Surface - Format   Opacity In Fo  ID  PID  St Capabilities / State & Options\n" );
-     printf( "--------------------------------------------------------------------------------------------------------------------------\n" );
+             "---------------------------------------------------[ Windows in Tier %d ]---------------------------------------------\n", n );
+     printf( "Reference   FID  . Refs  Window - Bounds      Surface - Format   Opacity In Fo  ID  PID  St Caps, State, Options...\n" );
+     printf( "---------------------------------------------------------------------------------------------------------------------\n" );
 
      direct_list_foreach (sawwin, sawman->windows) {
           CoreWindow *window;
