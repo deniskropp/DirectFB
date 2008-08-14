@@ -1374,40 +1374,44 @@ sawman_update_geometry( SaWManWindow *sawwin )
      sawwin->bounds = window->config.bounds;
 
      /*
-      * In case of a sub window, the top level bounds define the coordinate space instead of the root (layer bounds)
+      * In case of a sub window, the top level surface is the coordinate space instead of the layer surface
       */
      toplevel = window->toplevel;
      if (toplevel) {
-          DFBRectangle in, out;
+          DFBDimension in, out;
+
+          D_DEBUG_AT( SaWMan_Geometry, "  -> sub bounds %4d,%4d-%4dx%4d (base)\n", DFB_RECTANGLE_VALS(&sawwin->bounds) );
+
+          D_DEBUG_AT( SaWMan_Geometry, "  o- top src    %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS(&topsaw->src) );
+          D_DEBUG_AT( SaWMan_Geometry, "  o- top dst    %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS(&topsaw->dst) );
 
           /*
-           * Take output space from top level bounds
+           * Translate against top level source geometry
            */
-          out = topsaw->bounds;
+          sawwin->bounds.x -= topsaw->src.x;
+          sawwin->bounds.y -= topsaw->src.y;
+
+          D_DEBUG_AT( SaWMan_Geometry, "  -> sub bounds %4d,%4d-%4dx%4d (translated)\n", DFB_RECTANGLE_VALS(&sawwin->bounds) );
 
           /*
-           * Take input space from surface if present
+           * Take input dimension from top level source geometry
            */
-          if (toplevel->surface) {
-               in.w = toplevel->surface->config.size.w;
-               in.h = toplevel->surface->config.size.h;
-          }
-          else {
-               in.w = out.w;
-               in.h = out.h;
-          }
-
-          in.x = in.y = 0;
-
-          D_DEBUG_AT( SaWMan_Geometry, "  o- top in     %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS(&in) );
-          D_DEBUG_AT( SaWMan_Geometry, "  o- top out    %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS(&out) );
-
-          D_DEBUG_AT( SaWMan_Geometry, "  <- sub bounds %4d,%4d-%4dx%4d (base)\n", DFB_RECTANGLE_VALS(&sawwin->bounds) );
+          in.w = topsaw->src.w;
+          in.h = topsaw->src.h;
 
           /*
-           * Scale the sub window bounds if top level window is scaled
+           * Take output dimension from top level destination geometry
+           */
+          out.w = topsaw->dst.w;
+          out.h = topsaw->dst.h;
+
+          /*
+           * Scale the sub window size if top level window is scaled
            */
           if (in.w != out.w || in.h != out.h) {
+               D_DEBUG_AT( SaWMan_Geometry, "  o- scale in             %4dx%4d\n", in.w, in.h );
+               D_DEBUG_AT( SaWMan_Geometry, "  o- scale out            %4dx%4d\n", out.w, out.h );
+
                sawwin->bounds.x = sawwin->bounds.x * out.w / in.w;
                sawwin->bounds.y = sawwin->bounds.y * out.h / in.h;
                sawwin->bounds.w = sawwin->bounds.w * out.w / in.w;
@@ -1417,10 +1421,10 @@ sawman_update_geometry( SaWManWindow *sawwin )
           }
 
           /*
-           * Translate the sub window bounds by top level offset
+           * Translate to top level destination geometry
            */
-          sawwin->bounds.x += out.x;
-          sawwin->bounds.y += out.y;
+          sawwin->bounds.x += topsaw->dst.x;
+          sawwin->bounds.y += topsaw->dst.y;
 
           D_DEBUG_AT( SaWMan_Geometry, "  => sub bounds %4d,%4d-%4dx%4d (translated)\n", DFB_RECTANGLE_VALS(&sawwin->bounds) );
      }
@@ -1456,7 +1460,7 @@ sawman_update_geometry( SaWManWindow *sawwin )
 
      /* Adjust src/dst if clipped by top level window */
      if (toplevel) {
-          DFBRegion topclip = DFB_REGION_INIT_FROM_RECTANGLE( &topsaw->bounds );
+          DFBRegion topclip = DFB_REGION_INIT_FROM_RECTANGLE( &topsaw->dst );
 
           /*
            * Clip the sub window bounds against the top level window
