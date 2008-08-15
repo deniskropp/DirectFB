@@ -159,7 +159,6 @@ struct __SaWMan_SaWMan {
 
      FusionSkirmish        lock;
 
-
      FusionVector          layout;
 
      DirectLink           *tiers;
@@ -173,7 +172,6 @@ struct __SaWMan_SaWMan {
      FusionCall            process_watch;
 
      SaWManScalingMode     scaling_mode;
-     bool                  fast_mode;
 
      DFBInputDeviceButtonMask      buttons;
      DFBInputDeviceModifierMask    modifiers;
