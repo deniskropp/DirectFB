@@ -1749,14 +1749,14 @@ update_region( SaWMan          *sawman,
      CoreWindow   *window = NULL;
      SaWManWindow *sawwin = NULL;
 
+     D_DEBUG_AT( SaWMan_Update, "%s( %p, %d, %d,%d - %d,%d )\n", __FUNCTION__, tier, start, x1, y1, x2, y2 );
+
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( tier, SaWManTier );
      D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( start < fusion_vector_size( &sawman->layout ) );
      D_ASSERT( x1 <= x2 );
      D_ASSERT( y1 <= y2 );
-
-     D_DEBUG_AT( SaWMan_Update, "%s( %p, %d, %d,%d - %d,%d )\n", __FUNCTION__, tier, start, x1, y1, x2, y2 );
 
      /* Find next intersecting window. */
      while (i >= 0) {
