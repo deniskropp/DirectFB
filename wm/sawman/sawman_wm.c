@@ -680,6 +680,37 @@ restack_window( SaWMan                 *sawman,
 
           D_DEBUG_AT( SaWMan_Stacking, "  -> new sub index %d\n", index );
 
+          if (relation < 0) {
+               while (index > 0) {
+                    SaWManWindow *other = fusion_vector_at( &toplevel->subwindows, index );
+                    SaWManWindow *under = fusion_vector_at( &toplevel->subwindows, index - 1 );
+
+                    D_MAGIC_ASSERT( other, SaWManWindow );
+
+                    if ((other->window->config.options & DWOP_KEEP_ABOVE) ||
+                        (under->window->config.options & DWOP_KEEP_UNDER))
+                         index--;
+                    else
+                         break;
+               }
+          }
+          else if (relation > 0) {
+               while (index < toplevel->subwindows.count - 1) {
+                    SaWManWindow *other = fusion_vector_at( &toplevel->subwindows, index );
+                    SaWManWindow *above = fusion_vector_at( &toplevel->subwindows, index + 1 );
+
+                    D_MAGIC_ASSERT( other, SaWManWindow );
+
+                    if ((above->window->config.options & DWOP_KEEP_ABOVE) ||
+                        (other->window->config.options & DWOP_KEEP_UNDER))
+                         index++;
+                    else
+                         break;
+               }
+          }
+
+          D_DEBUG_AT( SaWMan_Stacking, "  -> new sub index %d\n", index );
+
           /* Return if index hasn't changed. */
           if (index == old)
                return DFB_OK;
@@ -763,10 +794,13 @@ restack_window( SaWMan                 *sawman,
                /* Assure window won't be below a sub window (getting between sub and top or other sub window) */
                while (index > 0) {
                     SaWManWindow *other = fusion_vector_at( &sawman->layout, index );
+                    SaWManWindow *under = fusion_vector_at( &sawman->layout, index - 1 );
 
                     D_MAGIC_ASSERT( other, SaWManWindow );
 
-                    if (other->window->toplevel)
+                    if (other->window->toplevel ||
+                        (other->window->config.options & DWOP_KEEP_ABOVE) ||
+                        (under->window->config.options & DWOP_KEEP_UNDER))
                          index--;
                     else
                          break;
@@ -775,11 +809,14 @@ restack_window( SaWMan                 *sawman,
           else if (relation > 0) {
                /* Assure window won't be below a sub window (getting between sub and top or other sub window) */
                while (index < sawman->layout.count - 1) {
-                    SaWManWindow *other = fusion_vector_at( &sawman->layout, index + 1 );
+                    SaWManWindow *other = fusion_vector_at( &sawman->layout, index );
+                    SaWManWindow *above = fusion_vector_at( &sawman->layout, index + 1 );
 
                     D_MAGIC_ASSERT( other, SaWManWindow );
 
-                    if (other->window->toplevel)
+                    if (above->window->toplevel ||
+                        (above->window->config.options & DWOP_KEEP_ABOVE) ||
+                        (other->window->config.options & DWOP_KEEP_UNDER))
                          index++;
                     else
                          break;

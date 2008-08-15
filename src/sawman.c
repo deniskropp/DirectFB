@@ -1038,7 +1038,53 @@ sawman_insert_window( SaWMan       *sawman,
      /* In case of a sub window, the order from sub window vector is followed */
      toplevel = window->toplevel;
      if (toplevel) {
-          CoreWindow *tmp;
+          CoreWindow   *tmp;
+          SaWManWindow *parent;
+
+          /* Enforce association rules... */
+          parent = sawwin->parent;
+          if (parent) {
+               D_MAGIC_ASSERT( parent, SaWManWindow );
+
+               tmp = parent->window;
+               D_ASSERT( tmp != NULL );
+               D_ASSERT( tmp->toplevel == toplevel );
+
+               if (window->config.options & DWOP_KEEP_UNDER) {
+                    int under;
+
+                    index = fusion_vector_index_of( &toplevel->subwindows, window );
+                    under = fusion_vector_index_of( &toplevel->subwindows, parent );
+
+                    if (index < under - 1) {
+                         D_DEBUG_AT( SaWMan_Stacking, "  -> moving under (%d->%d)\n", index, under - 1 );
+
+                         fusion_vector_move( &toplevel->subwindows, index, under - 1 );
+                    }
+                    else if (index > under - 1) {
+                         D_DEBUG_AT( SaWMan_Stacking, "  -> moving under (%d<-%d)\n", under, index );
+
+                         fusion_vector_move( &toplevel->subwindows, index, under );
+                    }
+               }
+               else if (window->config.options & DWOP_KEEP_ABOVE) {
+                    int above;
+
+                    index = fusion_vector_index_of( &toplevel->subwindows, window );
+                    above = fusion_vector_index_of( &toplevel->subwindows, parent );
+
+                    if (index < above + 1) {
+                         D_DEBUG_AT( SaWMan_Stacking, "  -> moving above (%d->%d)\n", index, above );
+
+                         fusion_vector_move( &toplevel->subwindows, index, above );
+                    }
+                    else if (index > above + 1) {
+                         D_DEBUG_AT( SaWMan_Stacking, "  -> moving above (%d<-%d)\n", above + 1, index );
+
+                         fusion_vector_move( &toplevel->subwindows, index, above + 1 );
+                    }
+               }
+          }
 
           /* Lookup our index in top level window */
           index = fusion_vector_index_of( &toplevel->subwindows, window );
@@ -1065,7 +1111,9 @@ sawman_insert_window( SaWMan       *sawman,
           relative = sawwin->parent;
           top      = (window->config.options & DWOP_KEEP_ABOVE) ? true : false;
      }
-     else if (relative)
+
+
+     if (relative)
           D_ASSUME( relative->priority == sawwin->priority );
 
      if (relative) {
@@ -1493,11 +1541,11 @@ sawman_update_geometry( SaWManWindow *sawwin )
      D_DEBUG_AT( SaWMan_Geometry, "  -> Updating children (associated windows)...\n" );
 
      fusion_vector_foreach (child, i, sawwin->children) {
-          window = child->window;
-          D_ASSERT( window != NULL );
+          childwin = child->window;
+          D_ASSERT( childwin != NULL );
 
-          if ((window->config.src_geometry.mode == DWGM_FOLLOW && src_updated) ||
-              (window->config.dst_geometry.mode == DWGM_FOLLOW && dst_updated))
+          if ((childwin->config.src_geometry.mode == DWGM_FOLLOW && src_updated) ||
+              (childwin->config.dst_geometry.mode == DWGM_FOLLOW && dst_updated))
                sawman_update_geometry( child );
      }
 
@@ -1755,8 +1803,11 @@ update_region( SaWMan          *sawman,
      D_MAGIC_ASSERT( tier, SaWManTier );
      D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( start < fusion_vector_size( &sawman->layout ) );
-     D_ASSERT( x1 <= x2 );
-     D_ASSERT( y1 <= y2 );
+     D_ASSUME( x1 <= x2 );
+     D_ASSUME( y1 <= y2 );
+
+     if (x1 > x2 || y1 > y2)
+          return;
 
      /* Find next intersecting window. */
      while (i >= 0) {
