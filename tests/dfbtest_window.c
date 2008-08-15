@@ -98,6 +98,11 @@ static DFBResult Test_RestackWindow( IDirectFBDisplayLayer *layer, void *arg );
 
 /**********************************************************************************************************************/
 
+static DFBResult Test_SrcGeometry( IDirectFBDisplayLayer *layer, void *arg );
+static DFBResult Test_DstGeometry( IDirectFBDisplayLayer *layer, void *arg );
+
+/**********************************************************************************************************************/
+
 static DFBResult Test_HideWindow( IDirectFBDisplayLayer *layer, void *arg );
 static DFBResult Test_DestroyWindow( IDirectFBDisplayLayer *layer, void *arg );
 
@@ -163,6 +168,12 @@ main( int argc, char *argv[] )
           RUN_TEST( Test_CreateWindow, layer, NULL );
 
      RUN_TEST( Test_CreateSubWindow, layer, NULL );
+
+     RUN_TEST( Test_SrcGeometry, layer, NULL );
+     RUN_TEST( Test_SrcGeometry, layer, (void*) (unsigned long) m_subwindow_id );
+
+     RUN_TEST( Test_DstGeometry, layer, NULL );
+     RUN_TEST( Test_DstGeometry, layer, (void*) (unsigned long) m_subwindow_id );
 
      RUN_TEST( Test_RestackWindow, layer, NULL );
      RUN_TEST( Test_RestackWindow, layer, (void*) (unsigned long) m_subwindow_id );
@@ -662,13 +673,8 @@ static DFBResult
 Test_MoveWindow( IDirectFBDisplayLayer *layer, void *arg )
 {
      int              i;
+     DFBPoint         pos;
      IDirectFBWindow *window;
-     DFBPoint         pos    = { m_desc_top.posx, m_desc_top.posy };
-     DFBPoint         poss[] = { { pos.x - 40, pos.y - 40 },
-                                 { pos.x + 40, pos.y - 40 },
-                                 { pos.x + 40, pos.y + 40 },
-                                 { pos.x - 40, pos.y + 40 },
-                                 { pos.x     , pos.y      } };
 
      D_ASSERT( m_toplevel_id != 0 );
 
@@ -677,15 +683,25 @@ Test_MoveWindow( IDirectFBDisplayLayer *layer, void *arg )
       */
      _T( layer->GetWindow( layer, arg ? (unsigned long) arg : m_toplevel_id, &window ) );
 
+     window->GetPosition( window, &pos.x, &pos.y );
+
      /*
       * Move the window
       */
-     for (i=0; i<D_ARRAY_SIZE(poss); i++) {
-          SHOW_TEST( "MoveTo( %4d,%4d - [%02d] )...", poss[i].x, poss[i].y, i );
+     {
+          DFBPoint poss[] = { { pos.x - 40, pos.y - 40 },
+                              { pos.x + 40, pos.y - 40 },
+                              { pos.x + 40, pos.y + 40 },
+                              { pos.x - 40, pos.y + 40 },
+                              { pos.x     , pos.y      } };
 
-          _T( window->MoveTo( window, poss[i].x, poss[i].y ) );
+          for (i=0; i<D_ARRAY_SIZE(poss); i++) {
+               SHOW_TEST( "MoveTo( %4d,%4d - [%02d] )...", poss[i].x, poss[i].y, i );
 
-          SHOW_RESULT( "...MoveTo( %4d,%4d - [%02d] ) done.", poss[i].x, poss[i].y, i );
+               _T( window->MoveTo( window, poss[i].x, poss[i].y ) );
+
+               SHOW_RESULT( "...MoveTo( %4d,%4d - [%02d] ) done.", poss[i].x, poss[i].y, i );
+          }
      }
 
      window->Release( window );
@@ -699,13 +715,7 @@ Test_ScaleWindow( IDirectFBDisplayLayer *layer, void *arg )
      int              i;
      IDirectFBWindow *window;
      DFBWindowOptions opts;
-     DFBDimension     size    = { m_desc_top.width, m_desc_top.height };
-     DFBDimension     sizes[] = { { size.w + 40, size.h      },
-                                  { size.w + 40, size.h + 40 },
-                                  { size.w,      size.h + 40 },
-                                  { size.w + 40, size.h - 40 },
-                                  { size.w - 40, size.h + 40 },
-                                  { size.w,      size.h      } };
+     DFBDimension     size;
 
      D_ASSERT( m_toplevel_id != 0 );
 
@@ -714,6 +724,8 @@ Test_ScaleWindow( IDirectFBDisplayLayer *layer, void *arg )
       */
      _T( layer->GetWindow( layer, arg ? (unsigned long) arg : m_toplevel_id, &window ) );
 
+     window->GetSize( window, &size.w, &size.h );
+
      /*
       * Enable scaling
       */
@@ -721,14 +733,23 @@ Test_ScaleWindow( IDirectFBDisplayLayer *layer, void *arg )
      _T( window->SetOptions( window, opts | DWOP_SCALE ) );
 
      /*
-      * Move the window
+      * Scale the window
       */
-     for (i=0; i<D_ARRAY_SIZE(sizes); i++) {
-          SHOW_TEST( "Resize( %4d,%4d - [%02d] )...", sizes[i].w, sizes[i].h, i );
+     {
+          DFBDimension sizes[] = { { size.w + 40, size.h      },
+                                   { size.w + 40, size.h + 40 },
+                                   { size.w,      size.h + 40 },
+                                   { size.w + 40, size.h - 40 },
+                                   { size.w - 40, size.h + 40 },
+                                   { size.w,      size.h      } };
 
-          _T( window->Resize( window, sizes[i].w, sizes[i].h ) );
+          for (i=0; i<D_ARRAY_SIZE(sizes); i++) {
+               SHOW_TEST( "Resize( %4d,%4d - [%02d] )...", sizes[i].w, sizes[i].h, i );
 
-          SHOW_RESULT( "...Resize( %4d,%4d - [%02d] ) done.", sizes[i].w, sizes[i].h, i );
+               _T( window->Resize( window, sizes[i].w, sizes[i].h ) );
+
+               SHOW_RESULT( "...Resize( %4d,%4d - [%02d] ) done.", sizes[i].w, sizes[i].h, i );
+          }
      }
 
      /*
@@ -793,6 +814,112 @@ Test_RestackWindow( IDirectFBDisplayLayer *layer, void *arg )
      _T( window->RaiseToTop( window ) );
 
      SHOW_RESULT( "...RaiseToTop() done." );
+
+
+     window->Release( window );
+
+     return DFB_OK;
+}
+
+static DFBResult
+Test_SrcGeometry( IDirectFBDisplayLayer *layer, void *arg )
+{
+     int                i;
+     IDirectFBWindow   *window;
+     DFBWindowGeometry  geometry;
+     DFBDimension       size;
+
+     D_ASSERT( m_toplevel_id != 0 );
+
+     /*
+      * Get the top level window
+      */
+     _T( layer->GetWindow( layer, arg ? (unsigned long) arg : m_toplevel_id, &window ) );
+
+     window->GetSize( window, &size.w, &size.h );
+
+     /*
+      * Change source geometry
+      */
+     {
+          DFBRectangle rects[] = { {          0,          0, size.w / 2, size.h / 2 },
+                                   { size.w / 2,          0, size.w / 2, size.h / 2 },
+                                   { size.w / 2, size.h / 2, size.w / 2, size.h / 2 },
+                                   {          0, size.h / 2, size.w / 2, size.h / 2 } };
+
+          for (i=0; i<D_ARRAY_SIZE(rects); i++) {
+               SHOW_TEST( "SetSrcGeometry( %4d,%4d-%4dx%4d - [%02d] )...", DFB_RECTANGLE_VALS(&rects[i]), i );
+
+               geometry.mode      = DWGM_RECTANGLE;
+               geometry.rectangle = rects[i];
+
+               _T( window->SetSrcGeometry( window, &geometry ) );
+
+               SHOW_RESULT( "...SetSrcGeometry( %4d,%4d-%4dx%4d - [%02d] ) done.", DFB_RECTANGLE_VALS(&rects[i]), i );
+          }
+     }
+
+
+     SHOW_TEST( "SetSrcGeometry( DEFAULT )..." );
+
+     geometry.mode = DWGM_DEFAULT;
+
+     _T( window->SetSrcGeometry( window, &geometry ) );
+
+     SHOW_RESULT( "...SetSrcGeometry( DEFAULT ) done." );
+
+
+     window->Release( window );
+
+     return DFB_OK;
+}
+
+static DFBResult
+Test_DstGeometry( IDirectFBDisplayLayer *layer, void *arg )
+{
+     int                i;
+     IDirectFBWindow   *window;
+     DFBWindowGeometry  geometry;
+     DFBDimension       size;
+
+     D_ASSERT( m_toplevel_id != 0 );
+
+     /*
+      * Get the top level window
+      */
+     _T( layer->GetWindow( layer, arg ? (unsigned long) arg : m_toplevel_id, &window ) );
+
+     window->GetSize( window, &size.w, &size.h );
+
+     /*
+      * Change destination geometry
+      */
+     {
+          DFBRectangle rects[] = { {          0,          0, size.w / 2, size.h / 2 },
+                                   { size.w / 2,          0, size.w / 2, size.h / 2 },
+                                   { size.w / 2, size.h / 2, size.w / 2, size.h / 2 },
+                                   {          0, size.h / 2, size.w / 2, size.h / 2 } };
+
+          for (i=0; i<D_ARRAY_SIZE(rects); i++) {
+               SHOW_TEST( "SetDstGeometry( %4d,%4d-%4dx%4d - [%02d] )...", DFB_RECTANGLE_VALS(&rects[i]), i );
+
+               geometry.mode      = DWGM_RECTANGLE;
+               geometry.rectangle = rects[i];
+
+               _T( window->SetDstGeometry( window, &geometry ) );
+
+               SHOW_RESULT( "...SetDstGeometry( %4d,%4d-%4dx%4d - [%02d] ) done.", DFB_RECTANGLE_VALS(&rects[i]), i );
+          }
+     }
+
+
+     SHOW_TEST( "SetDstGeometry( DEFAULT )..." );
+
+     geometry.mode = DWGM_DEFAULT;
+
+     _T( window->SetDstGeometry( window, &geometry ) );
+
+     SHOW_RESULT( "...SetDstGeometry( DEFAULT ) done." );
 
 
      window->Release( window );
