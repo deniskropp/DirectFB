@@ -62,15 +62,23 @@ static DirectResult                                    \
 Allocate( void **interface )                           \
 {                                                      \
      DIRECT_ALLOCATE_INTERFACE( *interface, type );    \
-     return DR_OK;                                    \
+     return DR_OK;                                     \
 }                                                      \
                                                        \
 __attribute__((constructor)) void type##_##impl(void); \
                                                        \
 void                                                   \
-type##_##impl(void)                                    \
+type##_##impl_ctor(void)                               \
 {                                                      \
      DirectRegisterInterface( &interface_funcs );      \
+}                                                      \
+                                                       \
+__attribute__((destructor)) void type##_##impl(void);  \
+                                                       \
+void                                                   \
+type##_##impl_dtor(void)                               \
+{                                                      \
+     DirectUnregisterInterface( &interface_funcs );    \
 }
 
 #endif

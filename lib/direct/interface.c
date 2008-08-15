@@ -55,6 +55,8 @@
 typedef struct {
      DirectLink            link;
 
+     int                   magic;
+
      char                 *filename;
      void                 *module_handle;
 
@@ -66,7 +68,7 @@ typedef struct {
      int                   references;
 } DirectInterfaceImplementation;
 
-static pthread_mutex_t  implementations_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  implementations_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 static DirectLink      *implementations       = NULL;
 
 /**************************************************************************************************/
@@ -76,13 +78,46 @@ DirectRegisterInterface( DirectInterfaceFuncs *funcs )
 {
      DirectInterfaceImplementation *impl;
 
-     impl = calloc( 1, sizeof(DirectInterfaceImplementation) );
+     impl = D_CALLOC( 1, sizeof(DirectInterfaceImplementation) );
 
      impl->funcs          = funcs;
      impl->type           = funcs->GetType();
      impl->implementation = funcs->GetImplementation();
 
+     D_MAGIC_SET( impl, DirectInterfaceImplementation );
+
+     pthread_mutex_lock( &implementations_mutex );
      direct_list_prepend( &implementations, &impl->link );
+     pthread_mutex_unlock( &implementations_mutex );
+}
+
+void
+DirectUnregisterInterface( DirectInterfaceFuncs *funcs )
+{
+     DirectInterfaceImplementation *impl;
+
+     pthread_mutex_lock( &implementations_mutex );
+
+     direct_list_foreach (impl, implementations) {
+          D_MAGIC_ASSERT( impl, DirectInterfaceImplementation );
+
+          if (impl->funcs == funcs) {
+               direct_list_remove( &implementations, &impl->link );
+
+               break;
+          }
+     }
+
+     pthread_mutex_unlock( &implementations_mutex );
+
+     if (!impl) {
+          D_BUG( "implementation not found" );
+          return;
+     }
+
+     D_MAGIC_CLEAR( impl );
+
+     D_FREE( impl );
 }
 
 DirectResult

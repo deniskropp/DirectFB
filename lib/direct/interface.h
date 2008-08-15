@@ -115,6 +115,7 @@ DirectResult DirectProbeInterface( DirectInterfaceFuncs *funcs, void *ctx );
  */
 void DirectRegisterInterface( DirectInterfaceFuncs *funcs );
 
+void DirectUnregisterInterface( DirectInterfaceFuncs *funcs );
 
 void direct_print_interface_leaks(void);
 
