@@ -57,6 +57,8 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
 {
      XWindow* xw = (XWindow *)D_CALLOC(1, sizeof(XWindow));
 
+     XSetWindowAttributes attr = { 0 };
+
      /* We set the structure as needed for our window */
      xw->width   = iWidth;
      xw->height  = iHeight;
@@ -67,12 +69,21 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
      xw->visual    = DefaultVisualOfScreen(xw->screenptr);
      xw->depth     = DefaultDepth( xw->display, xw->screennum );
 
+     attr.event_mask = 
+            ButtonPressMask
+          | ButtonReleaseMask
+          | PointerMotionMask
+          | KeyPressMask
+          | KeyReleaseMask
+          | ExposureMask
+          | StructureNotifyMask;
+
      XLockDisplay( dfb_x11->display );
 
      xw->window = XCreateWindow( xw->display,
                                  RootWindowOfScreen(xw->screenptr),
                                  iXPos, iYPos, iWidth, iHeight, 0, xw->depth, InputOutput,
-                                 xw->visual, 0, NULL );
+                                 xw->visual, CWEventMask, &attr );
 
      if (!xw->window) {
           D_FREE( xw );
@@ -104,15 +115,7 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
      /* We change the title of the window (default:Untitled) */
      XStoreName(xw->display,xw->window,"DFB X11 system window");
 
-
-
-     XSelectInput( xw->display, xw->window,
-                   ExposureMask|KeyPressMask|KeyReleaseMask|PointerMotionMask|ButtonPressMask|ButtonReleaseMask );
-
-
      xw->gc = XCreateGC(xw->display, xw->window, 0, NULL);
-
-
 
      // Create a null cursor
      XColor  fore;
@@ -235,8 +238,6 @@ no_shm:
 void
 dfb_x11_close_window( XWindow* xw )
 {
-     XLockDisplay( dfb_x11->display );
-
      if (dfb_x11->use_shm) {
           XShmDetach(xw->display, xw->shmseginfo);
           shmdt(xw->shmseginfo->shmaddr);
@@ -250,9 +251,7 @@ dfb_x11_close_window( XWindow* xw )
 
      XFreeGC(xw->display,xw->gc);
      XDestroyWindow(xw->display,xw->window);
-
-     XUnlockDisplay( dfb_x11->display );
-
+	
      D_FREE(xw);
 }
 

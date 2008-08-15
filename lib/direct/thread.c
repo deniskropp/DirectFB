@@ -495,9 +495,7 @@ void
 direct_thread_destroy( DirectThread *thread )
 {
      D_MAGIC_ASSERT( thread, DirectThread );
-
      D_ASSUME( !pthread_equal( thread->thread, pthread_self() ) );
-     //D_ASSUME( thread->joined );
      D_ASSUME( !thread->detached );
 
      D_DEBUG_AT( Direct_Thread, "%s( %p, '%s' %d )\n", __FUNCTION__, thread->main, thread->name, thread->tid );
