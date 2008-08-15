@@ -70,6 +70,9 @@ directfb_strings.h: directfb.h $(MKNAMES) Makefile
 	$(MKNAMES) DFBWindowCapabilities DWCAPS NONE WindowCapabilities capability $(INCP)/directfb.h \
 	   | grep -v DWCAPS_ALL >> $@
 
+	$(MKNAMES) DFBWindowOptions DWOP NONE WindowOptions option $(INCP)/directfb.h \
+	   | grep -v DWOP_ALL >> $@
+
 	$(MKNAMES) DFBScreenCapabilities DSCCAPS NONE ScreenCapabilities capability $(INCP)/directfb.h \
 	   | grep -v DSCCAPS_ALL >> $@
 
