@@ -1021,6 +1021,7 @@ sawman_insert_window( SaWMan       *sawman,
      DirectResult  ret;
      int           index = 0;
      SaWManWindow *other;
+     CoreWindow   *tmp;
      CoreWindow   *window;
      CoreWindow   *toplevel;
 
@@ -1038,7 +1039,6 @@ sawman_insert_window( SaWMan       *sawman,
      /* In case of a sub window, the order from sub window vector is followed */
      toplevel = window->toplevel;
      if (toplevel) {
-          CoreWindow   *tmp;
           SaWManWindow *parent;
 
           /* Enforce association rules... */
@@ -1110,6 +1110,15 @@ sawman_insert_window( SaWMan       *sawman,
 
           relative = sawwin->parent;
           top      = (window->config.options & DWOP_KEEP_ABOVE) ? true : false;
+
+          D_MAGIC_ASSERT( relative, SaWManWindow );
+
+          if (top && relative->window->subwindows.count) {
+               tmp      = fusion_vector_at( &relative->window->subwindows, relative->window->subwindows.count - 1 );
+               relative = tmp->window_data;
+
+               D_MAGIC_ASSERT( relative, SaWManWindow );
+          }
      }
 
 
