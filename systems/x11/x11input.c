@@ -517,6 +517,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
                direct_thread_testcancel( data->thread );
 
           if (!dfb_x11->xw || !dfb_x11->xw->window) {
+               /* no window, so no event */
                usleep( 20000 );
                continue;
           }
@@ -550,6 +551,13 @@ x11EventThread( DirectThread *thread, void *driver_data )
 
                     case Expose:
                          handle_expose( &xEvent.xexpose );
+                         break;
+				
+                    case DestroyNotify:
+                         /* this event is mainly to unblock XNextEvent. */
+                         /* we also need to make sure that xw is NULL at this point */
+                         while (dfb_x11->xw) 
+                              usleep( 10000 );
                          break;
 
                     default:
@@ -744,23 +752,15 @@ driver_close_device( void *driver_data )
      /* stop input thread */
      data->stop = true;
 
-     if (dfb_x11->xw && dfb_x11->xw->window) {
-          XEvent xEvent;
-          
-          memset( &xEvent, 0, sizeof(xEvent) );
+     XLockDisplay( dfb_x11->display );
+     if( dfb_x11->xw ) {
+          /* the window must generate an event, otherwise the input thread will not end */
 
-          xEvent.xclient.type   = ClientMessage;
-          xEvent.xclient.format = 8;
-
-          XLockDisplay( dfb_x11->display );
-
-          XSendEvent( dfb_x11->display, dfb_x11->xw->window, False, 0, &xEvent );
-          XFlush( dfb_x11->display );
-
-          XUnlockDisplay( dfb_x11->display );
+          XWindow* xw = dfb_x11->xw;
+          dfb_x11_close_window( xw );
+          dfb_x11->xw = NULL;
      }
-     else
-          direct_thread_cancel( data->thread );
+     XUnlockDisplay( dfb_x11->display );
 
      direct_thread_join( data->thread );
      direct_thread_destroy( data->thread );

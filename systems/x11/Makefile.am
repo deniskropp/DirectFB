@@ -18,15 +18,6 @@ endif
 systems_LTLIBRARIES = libdirectfb_x11.la
 
 
-inputdriversdir = $(MODULEDIR)/inputdrivers
-
-if BUILD_STATIC
-inputdrivers_DATA = libdirectfb_x11input.o
-endif
-
-inputdrivers_LTLIBRARIES = libdirectfb_x11input.la
-
-
 libdirectfb_x11_la_LDFLAGS = \
 	$(X11_LIBS)	\
 	-avoid-version	\
@@ -43,25 +34,13 @@ libdirectfb_x11_la_SOURCES = \
 	x11.h			\
 	x11image.c		\
 	x11image.h		\
+	x11input.c		\
 	x11_surface_pool.c	\
 	x11_surface_pool.h	\
 	xwindow.h		\
 	xwindow.c
 
 libdirectfb_x11_la_LIBADD = \
-	$(top_builddir)/lib/direct/libdirect.la \
-	$(top_builddir)/lib/fusion/libfusion.la \
-	$(top_builddir)/src/libdirectfb.la
-
-libdirectfb_x11input_la_LDFLAGS = \
-	$(X11_LIBS)	\
-	-avoid-version	\
-	-module
-
-libdirectfb_x11input_la_SOURCES = \
-	x11input.c
-
-libdirectfb_x11input_la_LIBADD = \
 	$(top_builddir)/lib/direct/libdirect.la \
 	$(top_builddir)/lib/fusion/libfusion.la \
 	$(top_builddir)/src/libdirectfb.la
