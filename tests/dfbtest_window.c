@@ -73,11 +73,13 @@ static DFBWindowDescription m_desc_sub = {
      .height        = 120,
 };
 
-static IDirectFBWindow *m_toplevel    = NULL;
-static DFBWindowID      m_toplevel_id = 0;
+static IDirectFBWindow *m_toplevel     = NULL;
+static DFBWindowID      m_toplevel_id  = 0;
 
 static IDirectFBWindow *m_subwindow    = NULL;
 static DFBWindowID      m_subwindow_id = 0;
+
+static DFBBoolean       m_wait_at_end  = DFB_FALSE;
 
 /**********************************************************************************************************************/
 
@@ -109,9 +111,27 @@ static DFBResult Test_DestroyWindow( IDirectFBDisplayLayer *layer, void *arg );
 
 /**********************************************************************************************************************/
 
-static DFBResult RunTest( TestFunc func, const char *func_name, IDirectFBDisplayLayer *layer, void *arg );
+typedef struct {
+     const char *name;
+     TestFunc    func;
 
-#define RUN_TEST(func,layer,arg)   RunTest( func, #func, layer, arg )
+     bool        run_top;
+     bool        run_sub;
+} Test;
+
+static Test m_tests[] = {
+     { "Restack",        Test_RestackWindow },
+     { "Move",           Test_MoveWindow },
+     { "Scale",          Test_ScaleWindow },
+     { "SrcGeometry",    Test_SrcGeometry },
+     { "DstGeometry",    Test_DstGeometry },
+     { "Hide",           Test_HideWindow },
+     { "Destroy",        Test_DestroyWindow },
+};
+
+/**********************************************************************************************************************/
+
+static DFBResult RunTest( TestFunc func, const char *func_name, IDirectFBDisplayLayer *layer, void *arg );
 
 /**********************************************************************************************************************/
 
@@ -133,6 +153,7 @@ int
 main( int argc, char *argv[] )
 {
      DFBResult              ret;
+     int                    i;
      IDirectFB             *dfb;
      IDirectFBDisplayLayer *layer;
 
@@ -166,30 +187,26 @@ main( int argc, char *argv[] )
 
 
      if (!m_toplevel_id)
-          RUN_TEST( Test_CreateWindow, layer, NULL );
+          RunTest( Test_CreateWindow, "CreateWindow", layer, NULL );
 
-     RUN_TEST( Test_CreateSubWindow, layer, NULL );
+     RunTest( Test_CreateSubWindow, "CreateSubWindow", layer, NULL );
 
-     RUN_TEST( Test_SrcGeometry, layer, NULL );
-     RUN_TEST( Test_SrcGeometry, layer, (void*) (unsigned long) m_subwindow_id );
 
-     RUN_TEST( Test_DstGeometry, layer, NULL );
-     RUN_TEST( Test_DstGeometry, layer, (void*) (unsigned long) m_subwindow_id );
+     for (i=0; i<D_ARRAY_SIZE(m_tests); i++) {
+          if (m_tests[i].run_top)
+               RunTest( m_tests[i].func, m_tests[i].name, layer, NULL );
 
-     RUN_TEST( Test_RestackWindow, layer, NULL );
-     RUN_TEST( Test_RestackWindow, layer, (void*) (unsigned long) m_subwindow_id );
+          if (m_tests[i].run_sub)
+               RunTest( m_tests[i].func, m_tests[i].name, layer, (void*) (unsigned long) m_subwindow_id );
+     }
 
-     RUN_TEST( Test_MoveWindow, layer, NULL );
-     RUN_TEST( Test_MoveWindow, layer, (void*) (unsigned long) m_subwindow_id );
+     if (m_wait_at_end) {
+          sigset_t block;
 
-     RUN_TEST( Test_ScaleWindow, layer, NULL );
-     RUN_TEST( Test_ScaleWindow, layer, (void*) (unsigned long) m_subwindow_id );
+          sigemptyset( &block );
 
-     RUN_TEST( Test_HideWindow, layer, NULL );
-     RUN_TEST( Test_HideWindow, layer, (void*) (unsigned long) m_subwindow_id );
-
-     RUN_TEST( Test_DestroyWindow, layer, NULL );
-
+          sigsuspend( &block );
+     }
 
      SHOW_INFO( "Shutting down..." );
 
@@ -268,8 +285,10 @@ print_usage (const char *prg_name)
      fprintf (stderr, "  -h, --help                            Show this help message\n");
      fprintf (stderr, "  -v, --version                         Print version information\n");
      fprintf (stderr, "  -T, --top-level     <toplevel_id>     WindowID (skips top creation)\n");
+     fprintf (stderr, "  -W, --wait-at-end                     Wait at the end (don't exit)\n");
      fprintf (stderr, "\n");
      fprintf (stderr, "Top window:\n");
+     fprintf (stderr, "  -r, --run           <test>            Run test (see list below)\n");
      fprintf (stderr, "  -p, --pos           <posx>,<posy>     Position     (%d,%d)\n", m_desc_top.posx, m_desc_top.posy);
      fprintf (stderr, "  -s, --size          <width>x<height>  Size         (%dx%d)\n", m_desc_top.width, m_desc_top.height);
      fprintf (stderr, "  -f, --format        <pixelformat>     Pixel Format (%s)\n",    dfb_pixelformat_name(m_desc_top.pixelformat));
@@ -278,6 +297,7 @@ print_usage (const char *prg_name)
      fprintf (stderr, "  -a, --associate     <parent_id>       Association  (N/A)\n");
      fprintf (stderr, "\n");
      fprintf (stderr, "Sub window:\n");
+     fprintf (stderr, "  -R, --sub-run       <test>            Run test (see list below)\n");
      fprintf (stderr, "  -P, --sub-pos       <posx>,<posy>     Position     (%d,%d)\n", m_desc_sub.posx, m_desc_sub.posy);
      fprintf (stderr, "  -S, --sub-size      <width>x<height>  Size         (%dx%d)\n", m_desc_sub.width, m_desc_sub.height);
      fprintf (stderr, "  -F, --sub-format    <pixelformat>     Format       (%s)\n",    dfb_pixelformat_name(m_desc_sub.pixelformat));
@@ -285,6 +305,34 @@ print_usage (const char *prg_name)
      fprintf (stderr, "  -O, --sub-option    <window_option>   Options      (NONE)\n");
      fprintf (stderr, "  -A, --sub-associate <parent_id>       Association  (N/A)\n");
      fprintf (stderr, "\n");
+
+     fprintf (stderr, "Available tests:\n");
+
+     for (i=0; i<D_ARRAY_SIZE(m_tests); i++)
+          fprintf (stderr, "   %s\n", m_tests[i].name);
+
+     fprintf (stderr, "\n");
+}
+
+static DFBBoolean
+parse_test( const char *arg, bool sub )
+{
+     int i;
+
+     for (i=0; i<D_ARRAY_SIZE(m_tests); i++) {
+          if (!strncasecmp( arg, m_tests[i].name, strlen(arg) )) {
+               if (sub)
+                    m_tests[i].run_sub = true;
+               else
+                    m_tests[i].run_top = true;
+
+               return DFB_TRUE;
+          }
+     }
+
+     fprintf (stderr, "\nInvalid test specified!\n\n" );
+
+     return DFB_FALSE;
 }
 
 static DFBBoolean
@@ -407,6 +455,23 @@ parse_command_line( int argc, char *argv[] )
                continue;
           }
 
+          if (strcmp (arg, "-W") == 0 || strcmp (arg, "--wait-at-end") == 0) {
+               m_wait_at_end = DFB_TRUE;
+               continue;
+          }
+
+          if (strcmp (arg, "-r") == 0 || strcmp (arg, "--run") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return false;
+               }
+
+               if (!parse_test( argv[n], false ))
+                    return false;
+
+               continue;
+          }
+
           if (strcmp (arg, "-p") == 0 || strcmp (arg, "--pos") == 0) {
                if (++n == argc) {
                     print_usage (argv[0]);
@@ -477,6 +542,18 @@ parse_command_line( int argc, char *argv[] )
                     return false;
 
                m_desc_top.flags |= DWDESC_PARENT;
+
+               continue;
+          }
+
+          if (strcmp (arg, "-R") == 0 || strcmp (arg, "--sub-run") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return false;
+               }
+
+               if (!parse_test( argv[n], true ))
+                    return false;
 
                continue;
           }
@@ -567,7 +644,7 @@ parse_command_line( int argc, char *argv[] )
 
 static DFBResult
 RunTest( TestFunc               func,
-         const char            *func_name,
+         const char            *test_name,
          IDirectFBDisplayLayer *layer,
          void                  *arg )
 {
@@ -576,7 +653,7 @@ RunTest( TestFunc               func,
      /* Run the actual test... */
      ret = func( layer, arg );
      if (ret)
-          D_DERROR( ret, "RunTest: '%s' failed!\n", func_name );
+          D_DERROR( ret, "RunTest: '%s' failed!\n", test_name );
 
      return ret;
 }
