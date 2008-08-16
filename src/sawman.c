@@ -1427,8 +1427,12 @@ sawman_update_geometry( SaWManWindow *sawwin )
           D_MAGIC_ASSERT( topsaw, SaWManWindow );
      }
 
-     /* Initialize bounds from base window configuration */
-     sawwin->bounds = window->config.bounds;
+     if (parent && (window->config.options & DWOP_FOLLOW_BOUNDS))
+          /* Initialize bounds from parent window (window association) */
+          sawwin->bounds = parent->bounds;
+     else
+          /* Initialize bounds from base window configuration */
+          sawwin->bounds = window->config.bounds;
 
      /*
       * In case of a sub window, the top level surface is the coordinate space instead of the layer surface
@@ -1550,18 +1554,24 @@ sawman_update_geometry( SaWManWindow *sawwin )
      D_DEBUG_AT( SaWMan_Geometry, "  -> Updating children (associated windows)...\n" );
 
      fusion_vector_foreach (child, i, sawwin->children) {
+          D_MAGIC_ASSERT( child, SaWManWindow );
+
           childwin = child->window;
           D_ASSERT( childwin != NULL );
 
           if ((childwin->config.src_geometry.mode == DWGM_FOLLOW && src_updated) ||
-              (childwin->config.dst_geometry.mode == DWGM_FOLLOW && dst_updated))
+              (childwin->config.dst_geometry.mode == DWGM_FOLLOW && dst_updated) ||
+              (childwin->config.options & DWOP_FOLLOW_BOUNDS))
                sawman_update_geometry( child );
      }
 
      D_DEBUG_AT( SaWMan_Geometry, "  -> Updating children (sub windows)...\n" );
 
-     fusion_vector_foreach (childwin, i, window->subwindows)
+     fusion_vector_foreach (childwin, i, window->subwindows) {
+          D_ASSERT( childwin != NULL );
+
           sawman_update_geometry( childwin->window_data );
+     }
 
      return DFB_OK;
 }
