@@ -922,8 +922,9 @@ typedef enum {
 
      DWOP_KEEP_ABOVE     = 0x00100000,  /* Keep window above parent window. */
      DWOP_KEEP_UNDER     = 0x00200000,  /* Keep window under parent window. */
+     DWOP_FOLLOW_BOUNDS  = 0x00400000,  /* Follow window bounds from parent. */
 
-     DWOP_ALL            = 0x0031307F   /* all possible options */
+     DWOP_ALL            = 0x0071307F   /* all possible options */
 } DFBWindowOptions;
 
 /*
