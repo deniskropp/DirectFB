@@ -2057,6 +2057,12 @@ wm_preconfigure_window( CoreWindowStack *stack,
                return DFB_IDNOTFOUND;
           }
 
+          if (parent->window->toplevel != window->toplevel) {
+               D_ERROR( "SaWMan/WM: Can't associate windows with different toplevel!\n" );
+               sawman_unlock( sawman );
+               return DFB_INVARG;
+          }
+
           sawwin->parent = parent;
      }
 
