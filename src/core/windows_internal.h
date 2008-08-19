@@ -74,6 +74,8 @@ typedef struct {
 struct __DFB_CoreWindow {
      FusionObject            object;
 
+     int                     magic;
+
      DFBWindowID             id;
 
      CoreWindowFlags         flags;
@@ -104,6 +106,8 @@ struct __DFB_CoreWindow {
      DFBWindowID             toplevel_id;    /* in case of a sub window toplevel_id != 0 */
      CoreWindow             *toplevel;       /* for top level windows this will be NULL */
      FusionVector            subwindows;     /* list of sub windows (only valid for top level windows) */
+
+     CoreWindow             *subfocus;       /* which of the sub windows has the focus? */
 };
 
 typedef enum {

@@ -145,6 +145,8 @@ window_destructor( FusionObject *object, bool zombie, void *ctx )
      if (window->primary_region)
           dfb_layer_region_unlink( &window->primary_region );
 
+     D_MAGIC_CLEAR( window );
+
      fusion_object_destroy( object );
 }
 
@@ -582,6 +584,8 @@ dfb_window_create( CoreWindowStack             *stack,
      /* Increase number of windows. */
      stack->num++;
 
+     D_MAGIC_SET( window, CoreWindow );
+
      /* Finally activate the object. */
      fusion_object_activate( &window->object );
 
@@ -605,7 +609,7 @@ dfb_window_destroy( CoreWindow *window )
      BoundWindow     *bound, *next;
      CoreWindow      *subwindow;
 
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
      D_ASSERT( DFB_WINDOW_INITIALIZED( window ) );
 
      D_DEBUG_AT( Core_Windows, "dfb_window_destroy (%p) [%4d,%4d - %4dx%4d]\n",
@@ -692,7 +696,7 @@ dfb_window_change_stacking( CoreWindow             *window,
      CoreWindowStack  *stack;
      CoreWindowConfig  config;
 
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
      D_ASSERT( window->stack != NULL );
 
      stack = window->stack;
@@ -724,7 +728,7 @@ dfb_window_raise( CoreWindow *window )
      DFBResult        ret;
      CoreWindowStack *stack;
 
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
      D_ASSERT( window->stack != NULL );
 
      stack = window->stack;
@@ -754,7 +758,7 @@ dfb_window_lower( CoreWindow *window )
      DFBResult        ret;
      CoreWindowStack *stack;
 
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
      D_ASSERT( window->stack != NULL );
 
      stack = window->stack;
@@ -784,7 +788,7 @@ dfb_window_raisetotop( CoreWindow *window )
      DFBResult        ret;
      CoreWindowStack *stack;
 
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
      D_ASSERT( window->stack != NULL );
 
      stack = window->stack;
@@ -814,7 +818,7 @@ dfb_window_lowertobottom( CoreWindow *window )
      DFBResult        ret;
      CoreWindowStack *stack;
 
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
      D_ASSERT( window->stack != NULL );
 
      stack = window->stack;
@@ -845,7 +849,7 @@ dfb_window_putatop( CoreWindow *window,
      DFBResult        ret;
      CoreWindowStack *stack;
 
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
      D_ASSERT( window->stack != NULL );
 
      stack = window->stack;
@@ -876,7 +880,7 @@ dfb_window_putbelow( CoreWindow *window,
      DFBResult        ret;
      CoreWindowStack *stack;
 
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
      D_ASSERT( window->stack != NULL );
 
      stack = window->stack;
@@ -908,6 +912,8 @@ dfb_window_set_config( CoreWindow             *window,
      DFBResult         ret;
      CoreWindowStack  *stack = window->stack;
 
+     D_MAGIC_ASSERT( window, CoreWindow );
+
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
@@ -935,6 +941,8 @@ move_window( CoreWindow *window,
      CoreWindowConfig  config;
      BoundWindow      *bound;
 
+     D_MAGIC_ASSERT( window, CoreWindow );
+
      config.bounds.x = x;
      config.bounds.y = y;
 
@@ -959,6 +967,8 @@ dfb_window_move( CoreWindow *window,
 {
      DFBResult        ret;    
      CoreWindowStack *stack = window->stack;
+
+     D_MAGIC_ASSERT( window, CoreWindow );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -1005,6 +1015,8 @@ dfb_window_set_bounds( CoreWindow *window,
      CoreWindowStack  *stack = window->stack;
      int               old_x;
      int               old_y;
+
+     D_MAGIC_ASSERT( window, CoreWindow );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -1071,6 +1083,8 @@ dfb_window_resize( CoreWindow   *window,
      CoreWindowConfig  config;
      CoreWindowStack  *stack = window->stack;
 
+     D_MAGIC_ASSERT( window, CoreWindow );
+
      D_DEBUG_AT( Core_Windows, "dfb_window_resize (%p) [%4d,%4d - %4dx%4d -> %dx%d]\n",
                  window, DFB_RECTANGLE_VALS( &window->config.bounds ), width, height );
 
@@ -1115,6 +1129,8 @@ dfb_window_bind( CoreWindow *window,
      DFBResult        ret;
      CoreWindowStack *stack = window->stack;
      BoundWindow     *bound;
+
+     D_MAGIC_ASSERT( window, CoreWindow );
 
      if (window == source)
           return DFB_UNSUPPORTED;
@@ -1172,6 +1188,8 @@ dfb_window_unbind( CoreWindow *window,
      CoreWindowStack *stack = window->stack;
      BoundWindow     *bound;
 
+     D_MAGIC_ASSERT( window, CoreWindow );
+
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
@@ -1220,6 +1238,8 @@ dfb_window_set_colorkey( CoreWindow *window,
      CoreWindowConfig  config;
      CoreWindowStack  *stack = window->stack;
 
+     D_MAGIC_ASSERT( window, CoreWindow );
+
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
@@ -1252,6 +1272,8 @@ dfb_window_set_opacity( CoreWindow *window,
      DFBResult         ret;
      CoreWindowConfig  config;
      CoreWindowStack  *stack = window->stack;
+
+     D_MAGIC_ASSERT( window, CoreWindow );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -1287,6 +1309,8 @@ dfb_window_change_options( CoreWindow       *window,
      CoreWindowConfig  config;
      CoreWindowStack  *stack = window->stack;
 
+     D_MAGIC_ASSERT( window, CoreWindow );
+
      D_ASSUME( disable | enable );
 
      if (!disable && !enable)
@@ -1319,6 +1343,8 @@ dfb_window_set_opaque( CoreWindow      *window,
      DFBResult         ret;
      CoreWindowConfig  config;
      CoreWindowStack  *stack = window->stack;
+
+     D_MAGIC_ASSERT( window, CoreWindow );
 
      DFB_REGION_ASSERT_IF( region );
 
@@ -1357,6 +1383,8 @@ dfb_window_change_events( CoreWindow         *window,
      CoreWindowConfig  config;
      CoreWindowStack  *stack = window->stack;
 
+     D_MAGIC_ASSERT( window, CoreWindow );
+
      D_ASSUME( disable | enable );
 
      if (!disable && !enable)
@@ -1391,6 +1419,8 @@ dfb_window_set_key_selection( CoreWindow                    *window,
     DFBResult         ret;
     CoreWindowConfig  config;
     CoreWindowStack  *stack = window->stack;
+
+    D_MAGIC_ASSERT( window, CoreWindow );
 
     D_ASSERT( selection == DWKS_ALL || selection == DWKS_NONE || selection == DWKS_LIST );
     D_ASSERT( keys != NULL || selection != DWKS_LIST );
@@ -1427,7 +1457,7 @@ dfb_window_change_grab( CoreWindow       *window,
      CoreWMGrab       wmgrab;
      CoreWindowStack *stack;
 
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
 
      stack = window->stack;
 
@@ -1463,6 +1493,8 @@ dfb_window_grab_key( CoreWindow                 *window,
      CoreWMGrab       grab;
      CoreWindowStack *stack = window->stack;
 
+     D_MAGIC_ASSERT( window, CoreWindow );
+
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
@@ -1494,6 +1526,8 @@ dfb_window_ungrab_key( CoreWindow                 *window,
      CoreWMGrab       grab;
      CoreWindowStack *stack = window->stack;
 
+     D_MAGIC_ASSERT( window, CoreWindow );
+
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
@@ -1524,7 +1558,7 @@ dfb_window_repaint( CoreWindow          *window,
      DFBResult        ret;
      CoreWindowStack *stack = window->stack;
 
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
      D_ASSERT( window->stack != NULL );
 
      DFB_REGION_ASSERT_IF( region );
@@ -1607,7 +1641,7 @@ void
 dfb_window_post_event( CoreWindow     *window,
                        DFBWindowEvent *event )
 {
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
      D_ASSERT( event != NULL );
 
      D_ASSUME( !DFB_WINDOW_DESTROYED( window ) || event->type == DWET_DESTROYED );
@@ -1638,6 +1672,8 @@ dfb_window_send_configuration( CoreWindow *window )
 {
      DFBWindowEvent event;
 
+     D_MAGIC_ASSERT( window, CoreWindow );
+
      D_ASSUME( !DFB_WINDOW_DESTROYED( window ) );
 
      event.type = DWET_POSITION_SIZE;
@@ -1656,6 +1692,8 @@ dfb_window_request_focus( CoreWindow *window )
 {
      DFBResult        ret;
      CoreWindowStack *stack = window->stack;
+
+     D_MAGIC_ASSERT( window, CoreWindow );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -1678,7 +1716,7 @@ dfb_window_request_focus( CoreWindow *window )
 DFBWindowID
 dfb_window_id( const CoreWindow *window )
 {
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
 
      return window->id;
 }
@@ -1686,7 +1724,7 @@ dfb_window_id( const CoreWindow *window )
 CoreSurface *
 dfb_window_surface( const CoreWindow *window )
 {
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
 
      return window->surface;
 }
@@ -1696,6 +1734,8 @@ dfb_window_surface( const CoreWindow *window )
 static bool
 core_window_filter( CoreWindow *window, const DFBWindowEvent *event )
 {
+     D_MAGIC_ASSERT( window, CoreWindow );
+
      switch (event->type) {
           case DWET_GOTFOCUS:
                D_FLAGS_SET( window->flags, CWF_FOCUSED );
