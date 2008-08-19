@@ -812,10 +812,11 @@ sawman_switch_focus( SaWMan       *sawman,
      }
 
      if (to) {
-/*          CoreWindow *window = to->window;
+          CoreWindow *window = to->window;
 
-          D_ASSERT( window != NULL );
+          D_MAGIC_ASSERT( window, CoreWindow );
 
+/*
           if (window->surface && window->surface->palette) {
                CoreSurface *surface;
 
@@ -830,6 +831,21 @@ sawman_switch_focus( SaWMan       *sawman,
           }
 */
           evt.type = DWET_GOTFOCUS;
+
+          if (window->toplevel) {
+               CoreWindow *toplevel = window->toplevel;
+
+               D_MAGIC_ASSERT( toplevel, CoreWindow );
+
+               toplevel->subfocus = window;
+          }
+          else if (window->subfocus) {
+               window = window->subfocus;
+               D_MAGIC_ASSERT( window, CoreWindow );
+
+               to = window->window_data;
+               D_MAGIC_ASSERT( to, SaWManWindow );
+          }
 
           sawman_post_event( sawman, to, &evt );
 
@@ -883,7 +899,7 @@ sawman_update_window( SaWMan              *sawman,
      window = sawwin->window;
 
      D_ASSERT( stack != NULL );
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
 
      D_DEBUG_AT( SaWMan_Update, "%s( %p, %p )\n", __FUNCTION__, sawwin, region );
 
@@ -897,9 +913,6 @@ sawman_update_window( SaWMan              *sawman,
           D_DEBUG_AT( SaWMan_Update, "  -> window %d not inserted!\n", window->id );
           return DFB_OK;
      }
-
-     window = sawwin->window;
-     D_ASSERT( window != NULL );
 
      tier = sawman_tier_by_class( sawman, window->config.stacking );
 
@@ -981,7 +994,7 @@ sawman_showing_window( SaWMan       *sawman,
      window = sawwin->window;
 
      D_ASSERT( stack != NULL );
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
 
      if (!sawman_tier_by_stack( sawman, stack, &tier ))
           return DFB_BUG;
@@ -1034,7 +1047,7 @@ sawman_insert_window( SaWMan       *sawman,
      FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      window = sawwin->window;
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
 
      /* In case of a sub window, the order from sub window vector is followed */
      toplevel = window->toplevel;
@@ -1197,7 +1210,7 @@ sawman_remove_window( SaWMan       *sawman,
      FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      window = sawwin->window;
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
 
      if (!(sawwin->flags & SWMWF_INSERTED)) {
           D_BUG( "window %d not inserted", window->id );
@@ -1249,7 +1262,7 @@ sawman_withdraw_window( SaWMan       *sawman,
      FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      window = sawwin->window;
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
 
      /* Make sure window is inserted. */
      if (!(sawwin->flags & SWMWF_INSERTED)) {
@@ -1280,6 +1293,15 @@ sawman_withdraw_window( SaWMan       *sawman,
                     break;
                }
           }
+     }
+
+     if (window->toplevel) {
+          CoreWindow *toplevel = window->toplevel;
+
+          D_MAGIC_ASSERT( toplevel, CoreWindow );
+
+          if (toplevel->subfocus == window)
+               toplevel->subfocus = NULL;
      }
 
      /* Release explicit keyboard grab. */
@@ -1411,7 +1433,7 @@ sawman_update_geometry( SaWManWindow *sawwin )
           FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      window = sawwin->window;
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
 
      parent = sawwin->parent;
      if (parent) {
@@ -1595,7 +1617,7 @@ sawman_window_border( const SaWManWindow *sawwin )
           return 0;
 
      window = sawwin->window;
-     D_ASSERT( window != NULL );
+     D_MAGIC_ASSERT( window, CoreWindow );
 
      tier = sawman_tier_by_class( sawwin->sawman, window->config.stacking );
      D_MAGIC_ASSERT( tier, SaWManTier );
@@ -1651,7 +1673,7 @@ wind_of_change( SaWMan              *sawman,
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
      
           window = sawwin->window;
-          D_ASSERT( window != NULL );
+          D_MAGIC_ASSERT( window, CoreWindow );
      
           options = window->config.options;
 
@@ -1745,7 +1767,7 @@ wind_of_showing( SaWMan     *sawman,
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
           window = sawwin->window;
-          D_ASSERT( window != NULL );
+          D_MAGIC_ASSERT( window, CoreWindow );
 
           options = window->config.options;
 
@@ -1834,7 +1856,7 @@ update_region( SaWMan          *sawman,
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
           window = sawwin->window;
-          D_ASSERT( window != NULL );
+          D_MAGIC_ASSERT( window, CoreWindow );
 
           if (SAWMAN_VISIBLE_WINDOW( window ) && (tier->classes & (1 << window->config.stacking))) {
                if (dfb_region_intersect( &region,
@@ -1848,7 +1870,7 @@ update_region( SaWMan          *sawman,
      /* Intersecting window found? */
      if (i >= 0) {
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
-          D_ASSERT( window != NULL );
+          D_MAGIC_ASSERT( window, CoreWindow );
 
           if (D_FLAGS_ARE_SET( window->config.options, DWOP_ALPHACHANNEL | DWOP_OPAQUE_REGION )) {
                DFBRegion opaque = DFB_REGION_INIT_TRANSLATED( &window->config.opaque,
@@ -2077,7 +2099,7 @@ get_single_window( SaWMan     *sawman,
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
           window = sawwin->window;
-          D_ASSERT( window != NULL );
+          D_MAGIC_ASSERT( window, CoreWindow );
 
           if (SAWMAN_VISIBLE_WINDOW(window) && (tier->classes & (1 << window->config.stacking))) {
                if (single || (window->caps & DWCAPS_INPUTONLY))
@@ -2118,7 +2140,7 @@ get_border_only( SaWMan     *sawman,
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
           window = sawwin->window;
-          D_ASSERT( window != NULL );
+          D_MAGIC_ASSERT( window, CoreWindow );
 
           none = false;
 
@@ -2256,7 +2278,7 @@ sawman_process_updates( SaWMan              *sawman,
 
 
                window = single->window;
-               D_ASSERT( window != NULL );
+               D_MAGIC_ASSERT( window, CoreWindow );
 
                surface = window->surface;
                D_ASSERT( surface != NULL );
