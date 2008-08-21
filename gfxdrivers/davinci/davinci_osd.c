@@ -403,16 +403,18 @@ update_buffers( DavinciDriverData     *ddrv,
 
           //D_ASSUME( ddev->fix[OSD0].line_length == ddev->fix[OSD1].line_length );
 
+          dfb_gfxcard_lock( GDLF_NONE );
+
           /* Dither ARGB to RGB16+A3 using the DSP. */
           for (i=0; i<rect.h; i+=lines) {
                if (lines > rect.h - i)
                     lines = rect.h - i;
                
-               davinci_c64x_dither_argb( &ddrv->c64x, rgb, alpha,
+               davinci_c64x_dither_argb__L( &ddrv->tasks, rgb, alpha,
                                          ddev->fix[OSD0].line_length, src, lock->pitch, rect.w, lines );
 
                if (ddev->fix[OSD0].line_length != ddev->fix[OSD1].line_length && lines > 1) {
-                    davinci_c64x_blit_32( &ddrv->c64x,
+                    davinci_c64x_blit_32__L( &ddrv->tasks,
                                           alpha + ddev->fix[OSD1].line_length, ddev->fix[OSD1].line_length,
                                           alpha + ddev->fix[OSD0].line_length, ddev->fix[OSD0].line_length,
                                           rect.w/2, lines - 1 );
@@ -425,6 +427,12 @@ update_buffers( DavinciDriverData     *ddrv,
 
           /* Flush the write cache. */
           davinci_c64x_write_back_all( &ddrv->c64x );
+
+
+          davinci_c64x_emit_tasks( &ddrv->c64x, &ddrv->tasks, C64X_TEF_RESET );
+
+
+          dfb_gfxcard_unlock();
      }
      else {
           u32  *src32 = lock->addr + rect.y * lock->pitch + DFB_BYTES_PER_LINE( buffer->format, rect.x );
