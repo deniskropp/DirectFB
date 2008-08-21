@@ -67,14 +67,14 @@ Allocate( void **interface )                           \
                                                        \
 __attribute__((constructor))                           \
 void                                                   \
-type##_##impl_ctor(void)                               \
+type##_##impl##_ctor(void)                             \
 {                                                      \
      DirectRegisterInterface( &interface_funcs );      \
 }                                                      \
                                                        \
 __attribute__((destructor))                            \
 void                                                   \
-type##_##impl_dtor(void)                               \
+type##_##impl##_dtor(void)                             \
 {                                                      \
      DirectUnregisterInterface( &interface_funcs );    \
 }
