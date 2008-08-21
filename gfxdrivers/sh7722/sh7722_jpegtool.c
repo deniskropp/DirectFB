@@ -17,6 +17,7 @@
 #include <config.h>
 
 #include <direct/debug.h>
+#include <direct/direct.h>
 #include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
@@ -83,9 +84,11 @@ write_ppm( const char    *filename,
 int
 main( int argc, char *argv[] )
 {
-     DirectResult      ret;
-     SH7722_JPEG_info  info;
-     DirectStream     *stream = NULL;
+     DirectResult           ret;
+     SH7722_JPEG_context    info;
+     DFBSurfacePixelFormat  format;
+     int                    pitch;
+     DirectStream          *stream = NULL;
 
      if (argc != 2) {
           fprintf( stderr, "Usage: %s <filename>\n", argv[0] );
@@ -93,6 +96,8 @@ main( int argc, char *argv[] )
      }
 
 #ifndef STANDALONE
+     direct_initialize();
+
      direct_config->debug = true;
 #endif
 
@@ -108,19 +113,22 @@ main( int argc, char *argv[] )
      if (ret)
           goto out;
 
-     D_INFO( "SH7722/JPEGTool: Opened %dx%d image (4:2:%c)\n", info.width, info.height, info.mode420 ? '0' : '2' );
+     D_INFO( "SH7722/JPEGTool: Opened %dx%d image (4:%s)\n", info.width, info.height,
+             info.mode420 ? "2:0" : info.mode444 ? "4:4" : "2:2?" );
 
+     format = DSPF_RGB24;// info.mode444 ? DSPF_NV16 : DSPF_NV12;
+     pitch  = (DFB_BYTES_PER_LINE( format, info.width ) + 31) & ~31;
 
-     ret = SH7722_JPEG_Decode( &info, stream, NULL, NULL, DSPF_NV12, 0x0f800000, 4096, info.width, info.height );
+     ret = SH7722_JPEG_Decode( &info, NULL, NULL, format, 0x0f800000, NULL, pitch, info.width, info.height );
      if (ret)
           goto out;
 
 
 //  Use RGB24 format for this
-//     write_ppm( "test.ppm", 0x0f800000, 4096, info.width, info.height );
+//     write_ppm( "test.ppm", 0x0f800000, pitch, info.width, info.height );
 
 
-     ret = SH7722_JPEG_Encode( "test.jpg", NULL, NULL, DSPF_NV12, 0x0f800000, 4096, info.width, info.height );
+     ret = SH7722_JPEG_Encode( "test.jpg", NULL, NULL, format, 0x0f800000, pitch, info.width, info.height );
      if (ret)
           goto out;
 

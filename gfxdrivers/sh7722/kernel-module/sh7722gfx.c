@@ -1,14 +1,14 @@
 /*
- *	SH7722 Graphics Device
+ * SH7722/SH7723 Graphics Device
  *
- *	Copyright (C) 2006-2008  IGEL Co.,Ltd
+ * Copyright (C) 2006-2008  IGEL Co.,Ltd
  *
- *      Written by Denis Oliver Kropp <dok@directfb.org>
+ * Written by Denis Oliver Kropp <dok@directfb.org>
  *
  *
- *	This program is free software; you can redistribute it and/or
- *	modify it under the terms of the GNU General Public License v2
- *	as published by the Free Software Foundation.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License v2
+ * as published by the Free Software Foundation.
  */
 
 #include <linux/module.h>
@@ -26,12 +26,12 @@
 #include <sh7722gfx.h>
 
 //#define SH7722GFX_DEBUG_2DG
-//#define SH7722GFX_DEBUG_JPU
+#define SH7722GFX_DEBUG_JPU
 //#define SH7722GFX_IRQ_POLLER
 
 /**********************************************************************************************************************/
 
-#define	ENGINE_REG_TOP   0xFD000000
+#define ENGINE_REG_TOP   0xFD000000
 #define SH7722_VEU_BASE  0xFE920000
 #define SH7722_BEU_BASE  0xFE930000
 #define SH7722_JPU_BASE  0xFEA00000
@@ -41,17 +41,17 @@
 #define BEU_REG(x)       (*(volatile u32*)((x)+SH7722_BEU_BASE))
 #define JPU_REG(x)       (*(volatile u32*)((x)+SH7722_JPU_BASE))
 
-#define	BEM_HC_STATUS			   BEM_REG(0x00000)
-#define	BEM_HC_RESET			   BEM_REG(0x00004)
-#define	BEM_HC_CLOCK			   BEM_REG(0x00008)
-#define	BEM_HC_INT_STATUS		   BEM_REG(0x00020)
-#define	BEM_HC_INT_MASK			   BEM_REG(0x00024)
-#define	BEM_HC_INT_CLEAR		   BEM_REG(0x00028)
-#define	BEM_HC_CACHE_FLUSH		   BEM_REG(0x0002C)
-#define	BEM_HC_DMA_ADR			   BEM_REG(0x00040)
-#define	BEM_HC_DMA_START		   BEM_REG(0x00044)
-#define	BEM_HC_DMA_STOP			   BEM_REG(0x00048)
-#define	BEM_PE_CACHE			   BEM_REG(0x010B0)
+#define BEM_HC_STATUS              BEM_REG(0x00000)
+#define BEM_HC_RESET               BEM_REG(0x00004)
+#define BEM_HC_CLOCK               BEM_REG(0x00008)
+#define BEM_HC_INT_STATUS          BEM_REG(0x00020)
+#define BEM_HC_INT_MASK            BEM_REG(0x00024)
+#define BEM_HC_INT_CLEAR           BEM_REG(0x00028)
+#define BEM_HC_CACHE_FLUSH         BEM_REG(0x0002C)
+#define BEM_HC_DMA_ADR             BEM_REG(0x00040)
+#define BEM_HC_DMA_START           BEM_REG(0x00044)
+#define BEM_HC_DMA_STOP            BEM_REG(0x00048)
+#define BEM_PE_CACHE               BEM_REG(0x010B0)
 
 #define BEVTR                      BEU_REG(0x0018C)
 
@@ -67,10 +67,16 @@
 #define JPU_JIFDDCA1               JPU_REG(0x000C0)
 #define JPU_JIFDDYA2               JPU_REG(0x000C4)
 #define JPU_JIFDDCA2               JPU_REG(0x000C8)
+#define JPU_JIFESYA1               JPU_REG(0x00074)
+#define JPU_JIFESCA1               JPU_REG(0x00078)
+#define JPU_JIFESYA2               JPU_REG(0x0007C)
+#define JPU_JIFESCA2               JPU_REG(0x00080)
                                               
 #define VEU_VESTR                  VEU_REG(0x00000)
 #define VEU_VSAYR                  VEU_REG(0x00018)
 #define VEU_VSACR                  VEU_REG(0x0001c)
+#define VEU_VDAYR                  VEU_REG(0x00034)
+#define VEU_VDACR                  VEU_REG(0x00038)
 #define VEU_VEVTR                  VEU_REG(0x000A4)
 
 #define JINTS_MASK                 0x00007CE8
@@ -138,22 +144,23 @@
 
 static DECLARE_WAIT_QUEUE_HEAD( wait_idle );
 static DECLARE_WAIT_QUEUE_HEAD( wait_next );
-static DECLARE_WAIT_QUEUE_HEAD( wait_jpeg_irq );
-static DECLARE_WAIT_QUEUE_HEAD( wait_jpeg_run );
-static DECLARE_WAIT_QUEUE_HEAD( wait_jpeg_lock );
 
 static SH7722GfxSharedArea *shared;
 
 static struct timeval       base_time;
 
-#ifndef SHARED_AREA_PHYS
 static struct page         *shared_page;
 static unsigned int         shared_order;
-#endif
 
 #ifdef SH7722GFX_IRQ_POLLER
 static int                  stop_poller;
 #endif
+
+/**********************************************************************************************************************/
+
+static DECLARE_WAIT_QUEUE_HEAD( wait_jpeg_irq );
+static DECLARE_WAIT_QUEUE_HEAD( wait_jpeg_run );
+static DECLARE_WAIT_QUEUE_HEAD( wait_jpeg_lock );
 
 static struct page         *jpeg_page;
 static unsigned int         jpeg_order;
@@ -161,10 +168,12 @@ static volatile void       *jpeg_area;
 static u32                  jpeg_buffers;
 static int                  jpeg_buffer;
 static u32                  jpeg_error;
+static int                  jpeg_encode;
 static int                  jpeg_reading;
 static int                  jpeg_writing;
 static int                  jpeg_reading_line;
 static int                  jpeg_writing_line;
+static int                  jpeg_height;
 static int                  jpeg_end;
 static u32                  jpeg_linebufs;
 static int                  jpeg_linebuf;
@@ -276,6 +285,8 @@ sh7722_wait_next( SH7722GfxSharedArea *shared )
      return (ret > 0) ? 0 : (ret < 0) ? ret : -ETIMEDOUT;
 }
 
+/**********************************************************************************************************************/
+
 static int
 sh7722_wait_jpeg( SH7722GfxSharedArea *shared )
 {
@@ -294,7 +305,8 @@ sh7722_run_jpeg( SH7722GfxSharedArea *shared,
                  SH7722JPEG          *jpeg )
 {
      int ret;
-     int encode = (jpeg->flags & SH7722_JPEG_FLAG_ENCODE) ? 1 : 0;
+     int encode  = (jpeg->flags & SH7722_JPEG_FLAG_ENCODE) ? 1 : 0;
+     int convert = (jpeg->flags & SH7722_JPEG_FLAG_CONVERT) ? 1 : 0;
 
      switch (jpeg->state) {
           case SH7722_JPEG_START:
@@ -303,10 +315,12 @@ sh7722_run_jpeg( SH7722GfxSharedArea *shared,
                jpeg_line         = 0;
                jpeg_end          = 0;
                jpeg_error        = 0;
+               jpeg_encode       = encode;
                jpeg_reading      = 0;
-               jpeg_writing      = encode;
-               jpeg_reading_line = encode;
+               jpeg_writing      = encode ? 2 : 0;
+               jpeg_reading_line = encode && !convert;
                jpeg_writing_line = !encode;
+               jpeg_height       = jpeg->height;
                jpeg_linebuf      = 0;
                jpeg_linebufs     = 0;
                jpeg_buffer       = 0;
@@ -317,7 +331,8 @@ sh7722_run_jpeg( SH7722GfxSharedArea *shared,
                jpeg->state       = SH7722_JPEG_RUN;
                jpeg->error       = 0;
 
-               JPU_JCCMD = JCCMD_START;
+//               if (!encode || !convert)
+                    JPU_JCCMD = JCCMD_START;
                break;
 
           case SH7722_JPEG_RUN:
@@ -334,6 +349,17 @@ sh7722_run_jpeg( SH7722GfxSharedArea *shared,
      }
 
      if (encode) {
+          if (convert) {
+               if (jpeg_linebufs != 3 && !veu_running) {
+                    JPRINT( " '-> convert start (buffers: %d, veu linebuf: %d)", jpeg_buffers, veu_linebuf );
+
+                    veu_running = 1;
+
+                    VEU_VDAYR = veu_linebuf ? JPU_JIFESYA2 : JPU_JIFESYA1;
+                    VEU_VDACR = veu_linebuf ? JPU_JIFESCA2 : JPU_JIFESCA1;
+                    VEU_VESTR = 0x101;
+               }
+          }
           if (jpeg_buffers && !jpeg_writing) {
                JPRINT( " '-> write start (buffers: %d)", jpeg_buffers );
 
@@ -349,7 +375,7 @@ sh7722_run_jpeg( SH7722GfxSharedArea *shared,
      }
 
      ret = wait_event_interruptible_timeout( wait_jpeg_run,
-                                             (jpeg_end && !jpeg_linebufs) || jpeg_error ||
+                                             jpeg_end || jpeg_error ||
                                              (jpeg_buffers != 3 && (jpeg->flags & SH7722_JPEG_FLAG_RELOAD)), 5 * HZ );
      if (ret < 0)
           return ret;
@@ -480,45 +506,71 @@ sh7722_jpu_irq( int irq, void *ctx )
           if (ints & (JINTS_INS11_LINEBUF0 | JINTS_INS12_LINEBUF1)) {
                JPRINT( "         -> LINEBUF %d", jpeg_linebuf );
 
-               jpeg_linebufs |= (1 << jpeg_linebuf);
+               if (jpeg_encode) {
+                    jpeg_linebufs &= ~(1 << jpeg_linebuf);
 
-               jpeg_linebuf = jpeg_linebuf ? 0 : 1;
+                    jpeg_linebuf = jpeg_linebuf ? 0 : 1;
 
-               if (jpeg_linebufs != 3) {
-                    jpeg_writing_line = 1;   /* should still be one */
+                    if (jpeg_linebufs) {
+                         jpeg_reading_line = 1;   /* should still be one */
 
-                    if (jpeg_line > 0)
-                         JPU_JCCMD = JCCMD_LCMD1 | JCCMD_LCMD2;
+                         if (!jpeg_end)
+                              JPU_JCCMD = JCCMD_LCMD2 | JCCMD_LCMD1;
+                    }
+                    else {
+                         jpeg_reading_line = 0;
+                    }
+
+                    jpeg_line += 16;
+
+                    if (!veu_running && !jpeg_end) {
+                         JPRINT( "         -> CONVERT %d", veu_linebuf );
+
+                         veu_running = 1;
+
+                         VEU_VDAYR = veu_linebuf ? JPU_JIFESYA2 : JPU_JIFESYA1;
+                         VEU_VDACR = veu_linebuf ? JPU_JIFESCA2 : JPU_JIFESCA1;
+                         VEU_VESTR = 0x101;
+                    }
                }
                else {
-                    jpeg_writing_line = 0;
-               }
+                    jpeg_linebufs |= (1 << jpeg_linebuf);
 
-               jpeg_line += 16;
+                    jpeg_linebuf = jpeg_linebuf ? 0 : 1;
 
-               if (!veu_running) {
-                    JPRINT( "         -> CONVERT %d", veu_linebuf );
+                    if (jpeg_linebufs != 3) {
+                         jpeg_writing_line = 1;   /* should still be one */
 
-                    veu_running = 1;
+                         if (jpeg_line > 0 && !jpeg_end)
+                              JPU_JCCMD = JCCMD_LCMD1 | JCCMD_LCMD2;
+                    }
+                    else {
+                         jpeg_writing_line = 0;
+                    }
 
-                    VEU_VSAYR = veu_linebuf ? JPU_JIFDDYA2 : JPU_JIFDDYA1;
-                    VEU_VSACR = veu_linebuf ? JPU_JIFDDCA2 : JPU_JIFDDCA1;
-                    VEU_VESTR = 0x101;
+                    jpeg_line += 16;
+
+                    if (!veu_running && !jpeg_end && !jpeg_error) {
+                         JPRINT( "         -> CONVERT %d", veu_linebuf );
+
+                         veu_running = 1;
+
+                         VEU_VSAYR = veu_linebuf ? JPU_JIFDDYA2 : JPU_JIFDDYA1;
+                         VEU_VSACR = veu_linebuf ? JPU_JIFDDCA2 : JPU_JIFDDCA1;
+                         VEU_VESTR = 0x101;
+                    }
                }
           }
 
           /* Loaded */
           if (ints & JINTS_INS13_LOADED) {
-               JPRINT( "         -> LOADED %d", jpeg_buffer );
+               JPRINT( "         -> LOADED %d (writing: %d)", jpeg_buffer, jpeg_writing );
 
                jpeg_buffers &= ~(1 << jpeg_buffer);
 
                jpeg_buffer = jpeg_buffer ? 0 : 1;
 
-               if (jpeg_buffers)
-                    jpeg_writing = 1;   /* should still be one */
-               else
-                    jpeg_writing = 0;
+               jpeg_writing--;
 
                wake_up_all( &wait_jpeg_run );
           }
@@ -558,34 +610,78 @@ sh7722_veu_irq( int irq, void *ctx )
      JPRINT( " ... VEU interrupt 0x%08x (veu_linebuf: %d, jpeg_linebuf: %d, jpeg_linebufs: %d, jpeg_line: %d)",
              events, veu_linebuf, jpeg_linebuf, jpeg_linebufs, jpeg_line );
 
-     /* Release line buffer. */
-     jpeg_linebufs &= ~(1 << veu_linebuf);
+     if (events & 1)
+          return IRQ_HANDLED;
 
-     /* Resume decoding if it was blocked. */
-     if (!jpeg_writing_line && !jpeg_end && !jpeg_error && jpeg_buffers) {
-          JPRINT( "         -> RESUME %d", jpeg_linebuf );
+     if (jpeg_encode) {
+          /* Fill line buffers. */
+          jpeg_linebufs |= 1 << veu_linebuf;
 
-          jpeg_writing_line = 1;
+          /* Resume encoding if it was blocked. */
+          if (!jpeg_reading_line && !jpeg_end && !jpeg_error && jpeg_linebufs) {
+               if (jpeg_writing == 2) {
+                    if (jpeg_linebufs == 3) {
+                         JPRINT( "         -> ENCODE START!" );
 
-          JPU_JCCMD = JCCMD_LCMD1 | JCCMD_LCMD2;
-     }
+                         jpeg_reading_line = 1;
 
-     veu_linebuf = veu_linebuf ? 0 : 1;
+                         JPU_JCCMD = JCCMD_LCMD2 | JCCMD_LCMD1;
+                    }
+               }
+               else {
+                    JPRINT( "         -> ENCODE %d", veu_linebuf );
 
-     if (jpeg_linebufs) {
-          JPRINT( "         -> CONVERT %d", veu_linebuf );
+                    jpeg_reading_line = 1;
 
-          veu_running = 1;   /* should still be one */
+                    JPU_JCCMD = JCCMD_LCMD2 | JCCMD_LCMD1;
+               }
+          }
 
-          VEU_VSAYR = veu_linebuf ? JPU_JIFDDYA2 : JPU_JIFDDYA1;
-          VEU_VSACR = veu_linebuf ? JPU_JIFDDCA2 : JPU_JIFDDCA1;
-          VEU_VESTR = 0x101;
+          veu_linebuf = veu_linebuf ? 0 : 1;
+
+          if (jpeg_linebufs != 3 && !jpeg_end && !jpeg_error) {
+               JPRINT( "         -> CONVERT %d", veu_linebuf );
+
+               veu_running = 1;   /* should still be one */
+
+               VEU_VDAYR = veu_linebuf ? JPU_JIFESYA2 : JPU_JIFESYA1;
+               VEU_VDACR = veu_linebuf ? JPU_JIFESCA2 : JPU_JIFESCA1;
+               VEU_VESTR = 0x101;
+          }
+          else {
+               veu_running = 0;
+          }
      }
      else {
-          if (jpeg_end)
-               wake_up_all( &wait_jpeg_run );
+          /* Release line buffer. */
+          jpeg_linebufs &= ~(1 << veu_linebuf);
 
-          veu_running = 0;
+          /* Resume decoding if it was blocked. */
+          if (!jpeg_writing_line && !jpeg_end && !jpeg_error && jpeg_linebufs != 3) {
+               JPRINT( "         -> RESUME %d", jpeg_linebuf );
+
+               jpeg_writing_line = 1;
+
+               JPU_JCCMD = JCCMD_LCMD1 | JCCMD_LCMD2;
+          }
+
+          veu_linebuf = veu_linebuf ? 0 : 1;
+
+          if (jpeg_linebufs) {
+               JPRINT( "         -> CONVERT %d", veu_linebuf );
+
+               veu_running = 1;   /* should still be one */
+
+               VEU_VSAYR = veu_linebuf ? JPU_JIFDDYA2 : JPU_JIFDDYA1;
+               VEU_VSACR = veu_linebuf ? JPU_JIFDDCA2 : JPU_JIFDDCA1;
+               VEU_VESTR = 0x101;
+          }
+          else {
+               if (jpeg_end)
+                    wake_up_all( &wait_jpeg_run );
+
+               veu_running = 0;
+          }
      }
 
      return IRQ_HANDLED;
@@ -602,6 +698,8 @@ sh7722_beu_irq( int irq, void *ctx )
 
      return IRQ_HANDLED;
 }
+
+/**********************************************************************************************************************/
 
 static irqreturn_t
 sh7722_tdg_irq( int irq, void *ctx )
@@ -705,6 +803,7 @@ sh7722_tdg_irq_poller( void *arg )
 }
 #endif
 
+/**********************************************************************************************************************/
 /**********************************************************************************************************************/
 
 static int
@@ -848,9 +947,7 @@ static struct miscdevice sh7722gfx_miscdev = {
 static int __init
 sh7722gfx_module_init( void )
 {
-#ifndef SHARED_AREA_PHYS
      int i;
-#endif
      int ret;
 
      /* Register the SH7722 graphics device. */
@@ -862,12 +959,6 @@ sh7722gfx_module_init( void )
      }
 
      /* Allocate and initialize the shared area. */
-#ifdef SHARED_AREA_PHYS
-#if SHARED_AREA_SIZE < PAGE_ALIGN(sizeof(SH7722GfxSharedArea))
-#error SHARED_AREA_SIZE < PAGE_ALIGN(sizeof(SH7722GfxSharedArea))!
-#endif
-     shared = ioremap( SHARED_AREA_PHYS, PAGE_ALIGN(sizeof(SH7722GfxSharedArea)) );
-#else
      shared_order = get_order(sizeof(SH7722GfxSharedArea));
      shared_page  = alloc_pages( GFP_DMA | GFP_KERNEL, shared_order );
      shared       = ioremap( virt_to_phys( page_address(shared_page) ),
@@ -875,12 +966,12 @@ sh7722gfx_module_init( void )
 
      for (i=0; i<1<<shared_order; i++)
           SetPageReserved( shared_page + i );
-#endif
 
      printk( KERN_INFO "sh7722gfx: shared area (order %d) at %p [%lx] using %d bytes\n",
              shared_order, shared, virt_to_phys(shared), sizeof(SH7722GfxSharedArea) );
 
 
+     /* Allocate and initialize the JPEG area. */
      jpeg_order = get_order(SH7722GFX_JPEG_SIZE);
      jpeg_page  = alloc_pages( GFP_DMA | GFP_KERNEL, jpeg_order );
      jpeg_area  = ioremap( virt_to_phys( page_address(jpeg_page) ),
@@ -951,12 +1042,12 @@ error_beu:
 
      __free_pages( jpeg_page, jpeg_order );
 
-#ifndef SHARED_AREA_PHYS
+
      for (i=0; i<1<<shared_order; i++)
           ClearPageReserved( shared_page + i );
 
      __free_pages( shared_page, shared_order );
-#endif
+
 
      misc_deregister( &sh7722gfx_miscdev );
 
@@ -970,9 +1061,7 @@ module_init( sh7722gfx_module_init );
 static void __exit
 sh7722gfx_module_exit( void )
 {
-#ifndef SHARED_AREA_PHYS
      int i;
-#endif
 
 
      free_irq( VEU_IRQ, (void*) shared );
@@ -999,12 +1088,11 @@ sh7722gfx_module_exit( void )
 
      __free_pages( jpeg_page, jpeg_order );
 
-#ifndef SHARED_AREA_PHYS
+
      for (i=0; i<1<<shared_order; i++)
           ClearPageReserved( shared_page + i );
 
      __free_pages( shared_page, shared_order );
-#endif
 }
 
 module_exit( sh7722gfx_module_exit );

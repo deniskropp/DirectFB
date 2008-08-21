@@ -26,9 +26,14 @@
 #include <direct/stream.h>
 #include <direct/util.h>
 
+#include <gfx/convert.h>
+
 #include <directfb.h>
 #include <directfb_util.h>
 #endif
+
+#include <jpeglib.h>
+#include <setjmp.h>
 
 #include <sh7722gfx.h>
 
@@ -44,19 +49,19 @@ D_DEBUG_DOMAIN( SH7722_JPEG, "SH7722/JPEG", "SH7722 JPEG Processing Unit" );
  * private data struct of SH7722_JPEG
  */
 typedef struct {
-     int                      ref_count;
+     int                            ref_count;
 
-     int                      gfx_fd;
-     SH7722GfxSharedArea     *gfx_shared;
+     int                            gfx_fd;
+     SH7722GfxSharedArea           *gfx_shared;
 
-     unsigned long            jpeg_phys;
-     unsigned long            jpeg_lb1;
-     unsigned long            jpeg_lb2;
+     unsigned long                  jpeg_phys;
+     unsigned long                  jpeg_lb1;
+     unsigned long                  jpeg_lb2;
 
-     volatile void           *jpeg_virt;
+     volatile void                 *jpeg_virt;
 
-     unsigned long            mmio_phys;
-     volatile void           *mmio_base;
+     unsigned long                  mmio_phys;
+     volatile void                 *mmio_base;
 } SH7722_JPEG_data;
 
 /**********************************************************************************************************************/
@@ -117,8 +122,7 @@ coded_data_amount( SH7722_JPEG_data *data )
 
 static DirectResult
 DecodeHW( SH7722_JPEG_data      *data,
-          SH7722_JPEG_info      *info,
-          DirectStream          *stream,
+          SH7722_JPEG_context   *info,
           const DFBRectangle    *rect,
           const DFBRegion       *clip,
           DFBSurfacePixelFormat  format,
@@ -136,6 +140,7 @@ DecodeHW( SH7722_JPEG_data      *data,
      SH7722JPEG             jpeg;
      u32                    vtrcr   = 0;
      u32                    vswpout = 0;
+     DirectStream          *stream  = info->stream;
 
      D_ASSERT( data != NULL );
      DFB_RECTANGLE_ASSERT( rect );
@@ -376,7 +381,7 @@ EncodeHW( SH7722_JPEG_data      *data,
      int                    written = 0;
      SH7722GfxSharedArea   *shared  = data->gfx_shared;
      u32                    vtrcr   = 0;
-     u32                    vswpout = 0;
+     u32                    vswpin  = 0;
      bool                   mode420 = false;
      SH7722JPEG             jpeg;
 
@@ -416,34 +421,34 @@ EncodeHW( SH7722_JPEG_data      *data,
      }
 
      /* Init VEU transformation control (format conversion). */
-     if (format != DSPF_NV12)
-          vtrcr |= (1 << 14);
-     else
+     if (format == DSPF_NV12)
           mode420 = true;
+     else
+          vtrcr |= (1 << 22);
 
      switch (format) {
           case DSPF_NV12:
-               vswpout = 0x70;
+               vswpin = 0x07;
                break;
 
           case DSPF_NV16:
-               vswpout = 0x70;
-               vtrcr  |= (1 << 22);
+               vswpin  = 0x07;
+               vtrcr  |= (1 << 14);
                break;
 
           case DSPF_RGB16:
-               vswpout = 0x60;
-               vtrcr  |= (6 << 16) | 2;
+               vswpin  = 0x06;
+               vtrcr  |= (3 << 8) | 3;
                break;
 
           case DSPF_RGB32:
-               vswpout = 0x40;
-               vtrcr  |= (19 << 16) | 2;
+               vswpin  = 0x04;
+               vtrcr  |= (0 << 8) | 3;
                break;
 
           case DSPF_RGB24:
-               vswpout = 0x70;
-               vtrcr  |= (21 << 16) | 2;
+               vswpin  = 0x07;
+               vtrcr  |= (2 << 8) | 3;
                break;
 
           default:
@@ -507,7 +512,7 @@ EncodeHW( SH7722_JPEG_data      *data,
      {
           /* Setup JPU for encoding in frame mode (directly from surface). */
           SH7722_SETREG32( data, JINTE,    JINTS_INS10_XFER_DONE | JINTS_INS13_LOADED );
-          SH7722_SETREG32( data, JIFECNT,  JIFECNT_SWAP_4321 | JIFECNT_RELOAD_ENABLE | 1 );
+          SH7722_SETREG32( data, JIFECNT,  JIFECNT_SWAP_4321 | JIFECNT_RELOAD_ENABLE | (mode420 ? 1 : 0) );
 
           SH7722_SETREG32( data, JIFESYA1, phys );
           SH7722_SETREG32( data, JIFESCA1, phys + pitch * height );
@@ -515,12 +520,13 @@ EncodeHW( SH7722_JPEG_data      *data,
      }
      else {
           jpeg.flags |= SH7722_JPEG_FLAG_CONVERT;
+          jpeg.height = height;
 
           /* Setup JPU for encoding in line buffer mode. */
           SH7722_SETREG32( data, JINTE,    JINTS_INS11_LINEBUF0 | JINTS_INS12_LINEBUF1 |
                                            JINTS_INS10_XFER_DONE | JINTS_INS13_LOADED );
           SH7722_SETREG32( data, JIFECNT,  JIFECNT_LINEBUF_MODE | (SH7722GFX_JPEG_LINEBUFFER_HEIGHT << 16) |
-                                           JIFECNT_SWAP_4321 | JIFECNT_RELOAD_ENABLE );
+                                           JIFECNT_SWAP_4321 | JIFECNT_RELOAD_ENABLE | (mode420 ? 1 : 0) );
 
           SH7722_SETREG32( data, JIFESYA1, data->jpeg_lb1 );
           SH7722_SETREG32( data, JIFESCA1, data->jpeg_lb1 + SH7722GFX_JPEG_LINEBUFFER_SIZE_Y );
@@ -531,22 +537,24 @@ EncodeHW( SH7722_JPEG_data      *data,
           /* FIXME: Setup VEU for conversion/scaling (from surface to line buffer). */
           SH7722_SETREG32( data, VEU_VBSRR, 0x00000100 );
           SH7722_SETREG32( data, VEU_VESTR, 0x00000000 );
-          SH7722_SETREG32( data, VEU_VESWR, SH7722GFX_JPEG_LINEBUFFER_PITCH );
-          SH7722_SETREG32( data, VEU_VESSR, (height << 16) | width );
+          SH7722_SETREG32( data, VEU_VESWR, pitch );
+          SH7722_SETREG32( data, VEU_VESSR, (ch << 16) | cw );
           SH7722_SETREG32( data, VEU_VBSSR, 16 );
-          SH7722_SETREG32( data, VEU_VEDWR, pitch );
-          SH7722_SETREG32( data, VEU_VDAYR, phys );
-          SH7722_SETREG32( data, VEU_VDACR, phys + pitch * height );
+          SH7722_SETREG32( data, VEU_VEDWR, SH7722GFX_JPEG_LINEBUFFER_PITCH );
+          SH7722_SETREG32( data, VEU_VDAYR, data->jpeg_lb1 );
+          SH7722_SETREG32( data, VEU_VDACR, data->jpeg_lb1 + SH7722GFX_JPEG_LINEBUFFER_SIZE_Y );
+          SH7722_SETREG32( data, VEU_VSAYR, phys );
+          SH7722_SETREG32( data, VEU_VSACR, phys + pitch * height );
           SH7722_SETREG32( data, VEU_VTRCR, vtrcr );
 
-          SH7722_SETREG32( data, VEU_VRFCR, (((rect->h << 12) / height) << 16) |
-                                            ((rect->w << 12) / width) );
+          SH7722_SETREG32( data, VEU_VRFCR, (((ch << 12) / height) << 16) |
+                                            ((cw << 12) / width) );
           SH7722_SETREG32( data, VEU_VRFSR, (ch << 16) | cw );
 
           SH7722_SETREG32( data, VEU_VENHR, 0x00000000 );
           SH7722_SETREG32( data, VEU_VFMCR, 0x00000000 );
           SH7722_SETREG32( data, VEU_VAPCR, 0x00000000 );
-          SH7722_SETREG32( data, VEU_VSWPR, 0x00000007 | vswpout );
+          SH7722_SETREG32( data, VEU_VSWPR, 0x00000070 | vswpin );
           SH7722_SETREG32( data, VEU_VEIER, 0x00000101 );
      }
 
@@ -746,10 +754,11 @@ EncodeHW( SH7722_JPEG_data      *data,
      return DR_OK;
 }
 
+#if 0
 static DirectResult
-DecodeHeader( SH7722_JPEG_data *data,
-              DirectStream     *stream,
-              SH7722_JPEG_info *info )
+DecodeHeader( SH7722_JPEG_data    *data,
+              DirectStream        *stream,
+              SH7722_JPEG_context *info )
 {
      DirectResult         ret;
      unsigned int         len;
@@ -856,6 +865,245 @@ DecodeHeader( SH7722_JPEG_data *data,
 
      return DR_OK;
 }
+#endif
+
+/**********************************************************************************************************************/
+
+static void write_rgb_span( u8 *src, void *dst, int len, DFBSurfacePixelFormat format )
+{
+     int i;
+
+     switch (format) {
+          case DSPF_RGB332:
+               for (i = 0; i < len; i++)
+                    ((u8*)dst)[i] = PIXEL_RGB332( src[i*3+0], src[i*3+1], src[i*3+2] );
+               break;
+
+          case DSPF_ARGB1555:
+               for (i = 0; i < len; i++)
+                    ((u16*)dst)[i] = PIXEL_ARGB1555( 0xff, src[i*3+0], src[i*3+1], src[i*3+2] );
+               break;
+
+          case DSPF_ARGB2554:
+               for (i = 0; i < len; i++)
+                    ((u16*)dst)[i] = PIXEL_ARGB2554( 0xff, src[i*3+0], src[i*3+1], src[i*3+2] );
+               break;
+
+          case DSPF_ARGB4444:
+               for (i = 0; i < len; i++)
+                    ((u16*)dst)[i] = PIXEL_ARGB4444( 0xff, src[i*3+0], src[i*3+1], src[i*3+2] );
+               break;
+               
+          case DSPF_RGB16:
+               for (i = 0; i < len; i++)
+                    ((u16*)dst)[i] = PIXEL_RGB16( src[i*3+0], src[i*3+1], src[i*3+2] );
+               break;
+
+          case DSPF_RGB24:
+               direct_memcpy( dst, src, len*3 );
+               break;
+
+          case DSPF_RGB32:
+               for (i = 0; i < len; i++)
+                    ((u32*)dst)[i] = PIXEL_RGB32( src[i*3+0], src[i*3+1], src[i*3+2] );
+               break;
+
+          case DSPF_ARGB:
+               for (i = 0; i < len; i++)
+                    ((u32*)dst)[i] = PIXEL_ARGB( 0xff, src[i*3+0], src[i*3+1], src[i*3+2] );
+               break;
+               
+          case DSPF_AiRGB:
+               for (i = 0; i < len; i++)
+                    ((u32*)dst)[i] = PIXEL_AiRGB( 0xff, src[i*3+0], src[i*3+1], src[i*3+2] );
+               break;
+
+          case DSPF_RGB555:
+               for (i = 0; i < len; i++)
+                    ((u16*)dst)[i] = PIXEL_RGB555( src[i*3+0], src[i*3+1], src[i*3+2] );
+               break;
+
+          case DSPF_BGR555:
+               for (i = 0; i < len; i++)
+                    ((u16*)dst)[i] = PIXEL_BGR555( src[i*3+0], src[i*3+1], src[i*3+2] );
+               break;
+
+          case DSPF_RGB444:
+               for (i = 0; i < len; i++)
+                    ((u16*)dst)[i] = PIXEL_RGB444( src[i*3+0], src[i*3+1], src[i*3+2] );
+               break;
+
+          default:
+               D_ONCE( "unimplemented destination format (0x%08x)", format );
+               break;
+     }
+}
+
+static inline void
+copy_line_nv16( u16 *yy, u16 *cbcr, const u8 *src_ycbcr, int width )
+{
+     int x;
+
+     D_ASSUME( !(width & 1) );
+
+     for (x=0; x<width/2; x++) {
+#ifdef WORDS_BIGENDIAN
+          yy[x] = (src_ycbcr[0] << 8) | src_ycbcr[3];
+#else
+          yy[x] = (src_ycbcr[3] << 8) | src_ycbcr[0];
+#endif
+
+          cbcr[x] = (((src_ycbcr[2] + src_ycbcr[5]) << 7) & 0xff00) |
+                     ((src_ycbcr[1] + src_ycbcr[4]) >> 1);
+
+          src_ycbcr += 6;
+     }
+}
+
+static inline void
+copy_line_y( u16 *yy, const u8 *src_ycbcr, int width )
+{
+     int x;
+
+     D_ASSUME( !(width & 1) );
+
+     for (x=0; x<width/2; x++) {
+#ifdef WORDS_BIGENDIAN
+          yy[x] = (src_ycbcr[0] << 8) | src_ycbcr[3];
+#else
+          yy[x] = (src_ycbcr[3] << 8) | src_ycbcr[0];
+#endif
+
+          src_ycbcr += 6;
+     }
+}
+
+static DirectResult
+DecodeSW( SH7722_JPEG_context   *info,
+          const DFBRectangle    *rect,
+          const DFBRegion       *clip,
+          DFBSurfacePixelFormat  format,
+          void                  *addr,
+          int                    pitch,
+          unsigned int           width,
+          unsigned int           height )
+{
+     int cw, ch;
+     JSAMPARRAY buffer;      /* Output row buffer */
+     int row_stride;         /* physical row width in output buffer */
+     void *addr_uv = addr + height * pitch;
+
+     D_ASSERT( info != NULL );
+     DFB_RECTANGLE_ASSERT( rect );
+     DFB_REGION_ASSERT( clip );
+
+     cw = clip->x2 - clip->x1 + 1;
+     ch = clip->y2 - clip->y1 + 1;
+
+     if (cw < 1 || ch < 1)
+          return DR_INVAREA;
+
+     D_DEBUG_AT( SH7722_JPEG, "%s( %p, %p|%d [%dx%d] %s )\n", __FUNCTION__,
+                 info, addr, pitch, info->width, info->height,
+                 dfb_pixelformat_name(format) );
+
+     D_DEBUG_AT( SH7722_JPEG, "  -> %d,%d - %4dx%4d  [clip %d,%d - %4dx%4d]\n",
+                 DFB_RECTANGLE_VALS( rect ), DFB_RECTANGLE_VALS_FROM_REGION( clip ) );
+
+     /* No cropping or clipping yet :( */
+     if (clip->x1 != 0 || clip->y1 != 0 ||
+         clip->x2 != rect->w - 1 || clip->y2 != rect->h - 1 || rect->w != width || rect->h != height)
+     {
+          D_UNIMPLEMENTED();
+          return DR_UNIMPLEMENTED;
+     }
+
+     info->cinfo.output_components = 3;
+
+     /* Calculate destination base address. */
+     addr += DFB_BYTES_PER_LINE( format, rect->x ) + rect->y * pitch;
+
+     /* Not all formats yet :( */
+     switch (format) {
+          case DSPF_RGB332:
+          case DSPF_ARGB1555:
+          case DSPF_ARGB2554:
+          case DSPF_ARGB4444:
+          case DSPF_RGB16:
+          case DSPF_RGB24:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+          case DSPF_AiRGB:
+          case DSPF_RGB555:
+          case DSPF_BGR555:
+          case DSPF_RGB444:
+               info->cinfo.out_color_space = JCS_RGB;
+               break;
+
+          case DSPF_NV12:
+               if (rect->x & 1)
+                    return DFB_INVARG;
+
+               if (rect->y & 1)
+                    return DFB_INVARG;
+
+               addr_uv += rect->x + rect->y / 2 * pitch;
+
+               info->cinfo.out_color_space = JCS_YCbCr;
+               break;
+                    
+          case DSPF_NV16:
+               if (rect->x & 1)
+                    return DFB_INVARG;
+
+               addr_uv += rect->x + rect->y * pitch;
+
+               info->cinfo.out_color_space = JCS_YCbCr;
+               break;
+
+          default:
+               D_UNIMPLEMENTED();
+               return DR_UNIMPLEMENTED;
+     }
+
+     D_DEBUG_AT( SH7722_JPEG, "  -> decoding...\n" );
+
+     jpeg_start_decompress( &info->cinfo );
+
+     row_stride = ((info->cinfo.output_width + 1) & ~1) * 3;
+
+     buffer = (*info->cinfo.mem->alloc_sarray)((j_common_ptr) &info->cinfo, JPOOL_IMAGE, row_stride, 1);
+
+     while (info->cinfo.output_scanline < info->cinfo.output_height) {
+          jpeg_read_scanlines( &info->cinfo, buffer, 1 );
+
+          switch (format) {
+               case DSPF_NV12:
+                    if (info->cinfo.output_scanline & 1) {
+                         copy_line_nv16( addr, addr_uv, *buffer, (rect->w + 1) & ~1 );
+                         addr_uv += pitch;
+                    }
+                    else
+                         copy_line_y( addr, *buffer, (rect->w + 1) & ~1 );
+                    break;
+
+               case DSPF_NV16:
+                    copy_line_nv16( addr, addr_uv, *buffer, (rect->w + 1) & ~1 );
+                    addr_uv += pitch;
+                    break;
+
+               default:
+                    write_rgb_span( *buffer, addr, rect->w, format );
+                    break;
+          }
+
+          addr += pitch;
+     }
+
+     jpeg_finish_decompress( &info->cinfo );
+
+     return DFB_OK;
+}
 
 /**********************************************************************************************************************/
 
@@ -949,6 +1197,131 @@ Shutdown_Mem( SH7722_JPEG_data *data )
 
 /**********************************************************************************************************************/
 
+#define JPEG_PROG_BUF_SIZE    0x10000
+
+typedef struct {
+     struct jpeg_source_mgr  pub; /* public fields */
+
+     JOCTET                 *data;       /* start of buffer */
+
+     DirectStream           *stream;
+
+     int                     peekonly;
+     int                     peekoffset;
+} stream_source_mgr;
+
+typedef stream_source_mgr * stream_src_ptr;
+
+static void
+stream_init_source (j_decompress_ptr cinfo)
+{
+     stream_src_ptr src = (stream_src_ptr) cinfo->src;
+
+     direct_stream_seek( src->stream, 0 ); /* ignore return value */
+}
+
+static boolean
+stream_fill_input_buffer (j_decompress_ptr cinfo)
+{
+     DFBResult      ret;
+     unsigned int   nbytes = 0;
+     stream_src_ptr src    = (stream_src_ptr) cinfo->src;
+
+     struct timeval tv;
+
+     tv.tv_sec  = 0;
+     tv.tv_usec = 50000;
+
+     direct_stream_wait( src->stream, JPEG_PROG_BUF_SIZE, &tv );
+
+     if (src->peekonly) {
+          ret = direct_stream_peek( src->stream, JPEG_PROG_BUF_SIZE, src->peekoffset, src->data, &nbytes );
+          if (ret && ret != DFB_EOF)
+               D_DERROR( ret, "SH7722/JPEG: direct_stream_peek() failed!\n" );
+
+          src->peekoffset += MAX( nbytes, 0 );
+     }
+     else {
+          ret = direct_stream_read( src->stream, JPEG_PROG_BUF_SIZE, src->data, &nbytes );
+          if (ret && ret != DFB_EOF)
+               D_DERROR( ret, "SH7722/JPEG: direct_stream_read() failed!\n" );
+     }
+     
+     if (ret || nbytes <= 0) {
+          /* Insert a fake EOI marker */
+          src->data[0] = (JOCTET) 0xFF;
+          src->data[1] = (JOCTET) JPEG_EOI;
+          nbytes = 2;
+     }
+
+     src->pub.next_input_byte = src->data;
+     src->pub.bytes_in_buffer = nbytes;
+
+     return TRUE;
+}
+
+static void
+stream_skip_input_data (j_decompress_ptr cinfo, long num_bytes)
+{
+     stream_src_ptr src = (stream_src_ptr) cinfo->src;
+
+     if (num_bytes > 0) {
+          while (num_bytes > (long) src->pub.bytes_in_buffer) {
+               num_bytes -= (long) src->pub.bytes_in_buffer;
+               (void)stream_fill_input_buffer(cinfo);
+          }
+          src->pub.next_input_byte += (size_t) num_bytes;
+          src->pub.bytes_in_buffer -= (size_t) num_bytes;
+     }
+}
+
+static void
+stream_term_source (j_decompress_ptr cinfo)
+{
+}
+
+static void
+jpeg_stream_src (j_decompress_ptr cinfo, DirectStream *stream, int peekonly)
+{
+     stream_src_ptr src;
+
+     cinfo->src = (struct jpeg_source_mgr *)
+                  cinfo->mem->alloc_small ((j_common_ptr) cinfo, JPOOL_PERMANENT,
+                                           sizeof (stream_source_mgr));
+
+     src = (stream_src_ptr) cinfo->src;
+
+     src->data = (JOCTET *)
+                  cinfo->mem->alloc_small ((j_common_ptr) cinfo, JPOOL_PERMANENT,
+                                           JPEG_PROG_BUF_SIZE * sizeof (JOCTET));
+
+     src->stream = stream;
+     src->peekonly = peekonly;
+     src->peekoffset = 0;
+
+     src->pub.init_source       = stream_init_source;
+     src->pub.fill_input_buffer = stream_fill_input_buffer;
+     src->pub.skip_input_data   = stream_skip_input_data;
+     src->pub.resync_to_restart = jpeg_resync_to_restart; /* use default method */
+     src->pub.term_source       = stream_term_source;
+     src->pub.bytes_in_buffer   = 0; /* forces fill_input_buffer on first read */
+     src->pub.next_input_byte   = NULL; /* until buffer loaded */
+}
+
+struct my_error_mgr {
+     struct jpeg_error_mgr pub;     /* "public" fields */
+     jmp_buf  setjmp_buffer;          /* for return to caller */
+};
+
+static void
+jpeglib_panic(j_common_ptr cinfo)
+{
+     struct my_error_mgr *myerr = (struct my_error_mgr*) cinfo->err;
+     longjmp(myerr->setjmp_buffer, 1);
+}
+
+/**********************************************************************************************************************/
+
 static SH7722_JPEG_data data;
 
 DirectResult
@@ -993,31 +1366,72 @@ SH7722_JPEG_Shutdown()
 }
 
 DirectResult
-SH7722_JPEG_Open( DirectStream     *stream,
-                  SH7722_JPEG_info *info )
+SH7722_JPEG_Open( DirectStream        *stream,
+                  SH7722_JPEG_context *context )
 {
+     struct my_error_mgr jerr;
+
      if (!data.ref_count)
           return DR_DEAD;
 
-     return DecodeHeader( &data, stream, info );
+     context->cinfo.err  = jpeg_std_error( &jerr.pub );
+     jerr.pub.error_exit = jpeglib_panic;
+
+     if (setjmp( jerr.setjmp_buffer )) {
+          D_ERROR( "SH7722/JPEG: Error while reading headers!\n" );
+
+          jpeg_destroy_decompress( &context->cinfo );
+          return DFB_FAILURE;
+     }
+
+     jpeg_create_decompress( &context->cinfo );
+     jpeg_stream_src( &context->cinfo, stream, 1 );
+     jpeg_read_header( &context->cinfo, TRUE );
+     jpeg_calc_output_dimensions( &context->cinfo );
+
+     context->stream = stream;
+     context->width  = context->cinfo.output_width;
+     context->height = context->cinfo.output_height;
+
+     context->mode420 = context->cinfo.comp_info[1].h_samp_factor == context->cinfo.comp_info[0].h_samp_factor / 2 &&
+                        context->cinfo.comp_info[1].v_samp_factor == context->cinfo.comp_info[0].v_samp_factor / 2 &&
+                        context->cinfo.comp_info[2].h_samp_factor == context->cinfo.comp_info[0].h_samp_factor / 2 &&
+                        context->cinfo.comp_info[2].v_samp_factor == context->cinfo.comp_info[0].v_samp_factor / 2;
+
+     context->mode444 = context->cinfo.comp_info[1].h_samp_factor == context->cinfo.comp_info[0].h_samp_factor &&
+                        context->cinfo.comp_info[1].v_samp_factor == context->cinfo.comp_info[0].v_samp_factor &&
+                        context->cinfo.comp_info[2].h_samp_factor == context->cinfo.comp_info[0].h_samp_factor &&
+                        context->cinfo.comp_info[2].v_samp_factor == context->cinfo.comp_info[0].v_samp_factor;
+
+     return DFB_OK;
 }
 
 DirectResult
-SH7722_JPEG_Decode( SH7722_JPEG_info      *info,
-                    DirectStream          *stream,
+SH7722_JPEG_Decode( SH7722_JPEG_context   *context,
                     const DFBRectangle    *rect,
                     const DFBRegion       *clip,
                     DFBSurfacePixelFormat  format,
                     unsigned long          phys,
+                    void                  *addr,
                     int                    pitch,
                     unsigned int           width,
                     unsigned int           height )
 {
-     DFBRectangle _rect;
-     DFBRegion    _clip;
+     DFBResult           ret = DFB_UNSUPPORTED;
+     DFBRectangle        _rect;
+     DFBRegion           _clip;
+     struct my_error_mgr jerr;
 
      if (!data.ref_count)
           return DR_DEAD;
+
+     context->cinfo.err  = jpeg_std_error( &jerr.pub );
+     jerr.pub.error_exit = jpeglib_panic;
+
+     if (setjmp( jerr.setjmp_buffer )) {
+          D_ERROR( "SH7722/JPEG: Error while decoding image!\n" );
+          return DFB_FAILURE;
+     }
 
      switch (format) {
           case DSPF_NV12:
@@ -1049,7 +1463,40 @@ SH7722_JPEG_Decode( SH7722_JPEG_info      *info,
           clip = &_clip;
      }
 
-     return DecodeHW( &data, info, stream, rect, clip, format, phys, pitch, width, height );
+     if (!context->mode444)
+          ret = DecodeHW( &data, context, rect, clip, format, phys, pitch, width, height );
+
+     if (ret) {
+          int fd, len = direct_page_align( DFB_PLANE_MULTIPLY( format, height ) * pitch );
+
+          fd = open( "/dev/mem", O_RDWR | O_SYNC );
+          if (fd < 0) {
+               D_PERROR( "SH7722/JPEG: Could not open /dev/mem!\n" );
+               return DR_INIT;
+          }
+
+          addr = mmap( NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, phys );
+          if (addr == MAP_FAILED) {
+               D_PERROR( "SH7722/JPEG: Could not map /dev/mem at 0x%08lx (length %d)!\n", phys, len );
+               close( fd );
+               return DR_INIT;
+          }
+
+          ret = DecodeSW( context, rect, clip, format, addr, pitch, width, height );
+
+          munmap( addr, len );
+     }
+
+     return ret;
+}
+
+
+DirectResult
+SH7722_JPEG_Close( SH7722_JPEG_context *context )
+{
+     jpeg_destroy_decompress( &context->cinfo );
+
+     return DFB_OK;
 }
 
 DirectResult

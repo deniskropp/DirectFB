@@ -52,7 +52,7 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, SH7722_JPEG )
 typedef struct {
      int                  ref;      /* reference counter */
 
-     SH7722_JPEG_info     info;
+     SH7722_JPEG_context  info;
 
      CoreDFB             *core;
 
@@ -154,8 +154,8 @@ IDirectFBImageProvider_SH7722_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      if (ret)
           return ret;
 
-     ret = SH7722_JPEG_Decode( &data->info, data->stream, &rect, &clip, dst_surface->config.format,
-                               lock.phys, lock.pitch, dst_surface->config.size.w, dst_surface->config.size.h );
+     ret = SH7722_JPEG_Decode( &data->info, &rect, &clip, dst_surface->config.format,
+                               lock.phys, lock.addr, lock.pitch, dst_surface->config.size.w, dst_surface->config.size.h );
 
      dfb_surface_unlock_buffer( dst_surface, &lock );
 

@@ -72,6 +72,8 @@ typedef struct {
 
      u32             buffers; /* input = loaded buffers, output = buffers to reload */
      u32             error;   /* valid in END state, non-zero means error */
+
+     int             height;
 } SH7722JPEG;
 
 
