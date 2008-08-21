@@ -555,9 +555,6 @@ x11EventThread( DirectThread *thread, void *driver_data )
 				
                     case DestroyNotify:
                          /* this event is mainly to unblock XNextEvent. */
-                         /* we also need to make sure that xw is NULL at this point */
-                         while (dfb_x11->xw) 
-                              usleep( 10000 );
                          break;
 
                     default:
@@ -757,8 +754,8 @@ driver_close_device( void *driver_data )
           /* the window must generate an event, otherwise the input thread will not end */
 
           XWindow* xw = dfb_x11->xw;
-          dfb_x11_close_window( xw );
           dfb_x11->xw = NULL;
+          dfb_x11_close_window( xw );
      }
      XUnlockDisplay( dfb_x11->display );
 
