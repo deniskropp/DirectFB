@@ -182,8 +182,8 @@ driver_open_device( CoreInputDevice      *device,
                        DIDTF_JOYSTICK | DIDTF_REMOTE | DIDTF_VIRTUAL;
 
      /* set capabilities */
-     info->desc.caps = DICAPS_ALL;
-
+     info->desc.caps     = DICAPS_ALL;
+     info->desc.max_axis = DIAI_LAST;
 
      /* allocate and fill private data */
      data = D_CALLOC( 1, sizeof(DiVineData) );
