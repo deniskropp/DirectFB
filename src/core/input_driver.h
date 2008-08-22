@@ -49,6 +49,14 @@ driver_get_keymap_entry( CoreInputDevice           *device,
                          void                      *driver_data,
                          DFBInputDeviceKeymapEntry *entry );
 
+#ifdef DFB_INPUTDRIVER_HAS_AXIS_INFO
+static DFBResult
+driver_get_axis_info( CoreInputDevice              *device,
+                      void                         *driver_data,
+                      DFBInputDeviceAxisIdentifier  axis,
+                      DFBInputDeviceAxisInfo       *ret_info );
+#endif
+
 static void
 driver_close_device( void *driver_data );
 
@@ -57,7 +65,11 @@ static const InputDriverFuncs driver_funcs = {
      .GetDriverInfo      = driver_get_info,
      .OpenDevice         = driver_open_device,
      .GetKeymapEntry     = driver_get_keymap_entry,
-     .CloseDevice        = driver_close_device
+     .CloseDevice        = driver_close_device,
+
+#ifdef DFB_INPUTDRIVER_HAS_AXIS_INFO
+     .GetAxisInfo        = driver_get_axis_info
+#endif
 };
 
 #define DFB_INPUT_DRIVER(shortname)                                             \

@@ -78,15 +78,20 @@ typedef struct {
 
 typedef struct {
      int       (*GetAvailable)   (void);
-     void      (*GetDriverInfo)  (InputDriverInfo            *driver_info);
-     DFBResult (*OpenDevice)     (CoreInputDevice            *device,
-                                  unsigned int                number,
-                                  InputDeviceInfo            *device_info,
-                                  void                      **driver_data);
-     DFBResult (*GetKeymapEntry) (CoreInputDevice            *device,
-                                  void                       *driver_data,
-                                  DFBInputDeviceKeymapEntry  *entry);
-     void      (*CloseDevice)    (void                       *driver_data);
+     void      (*GetDriverInfo)  (InputDriverInfo              *driver_info);
+     DFBResult (*OpenDevice)     (CoreInputDevice              *device,
+                                  unsigned int                  number,
+                                  InputDeviceInfo              *device_info,
+                                  void                        **driver_data);
+     DFBResult (*GetKeymapEntry) (CoreInputDevice              *device,
+                                  void                         *driver_data,
+                                  DFBInputDeviceKeymapEntry    *entry);
+     void      (*CloseDevice)    (void                         *driver_data);
+
+     DFBResult (*GetAxisInfo)    (CoreInputDevice              *device,
+                                  void                         *driver_data,
+                                  DFBInputDeviceAxisIdentifier  axis,
+                                  DFBInputDeviceAxisInfo       *ret_info);
 } InputDriverFuncs;
 
 
