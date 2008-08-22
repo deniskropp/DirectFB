@@ -137,6 +137,9 @@ typedef struct {
      FusionSkirmish               lock;
 
      FusionCall                   call;          /* driver call via master */
+
+     unsigned int                 axis_num;
+     DFBInputDeviceAxisInfo      *axis_info;
 } InputDeviceShared;
 
 struct __DFB_CoreInputDevice {
@@ -483,6 +486,9 @@ dfb_input_core_shutdown( DFBInputCore *data,
           if (devshared->keymap.entries)
                SHFREE( pool, devshared->keymap.entries );
   
+          if (devshared->axis_info)
+               SHFREE( pool, devshared->axis_info );
+
           SHFREE( pool, devshared );
 
           D_MAGIC_CLEAR( device );
@@ -1092,6 +1098,48 @@ input_device_call_handler( int           caller,   /* fusion id of the caller */
      return FCHR_RETURN;
 }
 
+static DFBResult
+init_axes( CoreInputDevice *device )
+{
+     int                     i, num;
+     DFBResult               ret;
+     InputDeviceShared      *shared;
+     const InputDriverFuncs *funcs;
+
+     D_DEBUG_AT( Core_Input, "%s( %p )\n", __FUNCTION__, device );
+
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+     D_ASSERT( device->driver != NULL );
+
+     funcs = device->driver->funcs;
+     D_ASSERT( funcs != NULL );
+
+     shared = device->shared;
+     D_ASSERT( shared != NULL );
+
+     if (shared->device_info.desc.max_axis < 0)
+          return DFB_OK;
+
+     num = shared->device_info.desc.max_axis + 1;
+
+     shared->axis_info = SHCALLOC( dfb_core_shmpool(device->core), num, sizeof(DFBInputDeviceAxisInfo) );
+     if (!shared->axis_info)
+          return D_OOSHM();
+
+     shared->axis_num = num;
+
+     if (funcs->GetAxisInfo) {
+          for (i=0; i<num; i++) {
+               ret = funcs->GetAxisInfo( device, device->driver_data, i, &shared->axis_info[i] );
+               if (ret)
+                    D_DERROR( ret, "Core/Input: GetAxisInfo() failed for '%s' [%d] on axis %d!\n",
+                              shared->device_info.desc.name, shared->id, i );
+          }
+     }
+
+     return DFB_OK;
+}
+
 static void
 init_devices( CoreDFB *core )
 {
@@ -1211,6 +1259,8 @@ init_devices( CoreDFB *core )
                else if (device_info.desc.min_keycode >= 0 &&
                         device_info.desc.max_keycode >= 0)
                     allocate_device_keymap( core, device );
+
+               init_axes( device );
 
                /* add it to the list */
                input_add_device( device );
@@ -1666,6 +1716,27 @@ fixup_mouse_event( CoreInputDevice *device, DFBInputEvent *event )
           event->flags |= DIEF_BUTTONS;
 
           event->buttons = shared->buttons;
+     }
+
+     switch (event->type) {
+          case DIET_AXISMOTION:
+               if ((event->flags & DIEF_AXISABS) && event->axis >= 0 && event->axis <= shared->axis_num) {
+                    if (!(event->flags & DIEF_MIN) && (shared->axis_info[event->axis].flags & DIAIF_ABS_MIN)) {
+                         event->min = shared->axis_info[event->axis].abs_min;
+
+                         event->flags |= DIEF_MIN;
+                    }
+                         
+                    if (!(event->flags & DIEF_MAX) && (shared->axis_info[event->axis].flags & DIAIF_ABS_MAX)) {
+                         event->max = shared->axis_info[event->axis].abs_max;
+
+                         event->flags |= DIEF_MAX;
+                    }
+               }
+               break;
+
+          default:
+               break;
      }
 }
 
