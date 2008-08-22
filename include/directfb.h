@@ -1303,6 +1303,20 @@ typedef struct {
      char vendor[DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH]; /* Device vendor */
 } DFBInputDeviceDescription;
 
+typedef enum {
+     DIAIF_NONE                    = 0x00000000,
+
+     DIAIF_ABS_MIN                 = 0x00000001,
+     DIAIF_ABS_MAX                 = 0x00000002,
+
+     DIAIF_ALL                     = 0x00000003
+} DFBInputDeviceAxisInfoFlags;
+
+typedef struct {
+     DFBInputDeviceAxisInfoFlags   flags;
+     int                           abs_min;
+     int                           abs_max;
+} DFBInputDeviceAxisInfo;
 
 #define DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH    40
 #define DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH  60
