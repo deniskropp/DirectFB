@@ -2757,13 +2757,28 @@ handle_axis_motion( CoreWindowStack     *stack,
           }
      }
      else if (event->flags & DIEF_AXISABS) {
+          int axismin = 0;
+          int axisabs = event->axisabs;
+
+          if (event->flags & DIEF_MIN) {
+               axismin = event->min;
+
+               axisabs -= axismin;
+          }
+
           switch (event->axis) {
                case DIAI_X:
-                    data->cursor_dx = event->axisabs - stack->cursor.x;
+                    if (event->flags & DIEF_MAX)
+                         axisabs = axisabs * stack->width / (event->max - axismin + 1);
+
+                    data->cursor_dx = axisabs - stack->cursor.x;
                     break;
 
                case DIAI_Y:
-                    data->cursor_dy = event->axisabs - stack->cursor.y;
+                    if (event->flags & DIEF_MAX)
+                         axisabs = axisabs * stack->height / (event->max - axismin + 1);
+
+                    data->cursor_dy = axisabs - stack->cursor.y;
                     break;
 
                default:
