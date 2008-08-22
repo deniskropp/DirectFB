@@ -1720,7 +1720,7 @@ fixup_mouse_event( CoreInputDevice *device, DFBInputEvent *event )
 
      switch (event->type) {
           case DIET_AXISMOTION:
-               if ((event->flags & DIEF_AXISABS) && event->axis >= 0 && event->axis <= shared->axis_num) {
+               if ((event->flags & DIEF_AXISABS) && event->axis >= 0 && event->axis < shared->axis_num) {
                     if (!(event->flags & DIEF_MIN) && (shared->axis_info[event->axis].flags & DIAIF_ABS_MIN)) {
                          event->min = shared->axis_info[event->axis].abs_min;
 
