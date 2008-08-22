@@ -47,10 +47,12 @@
 #include <direct/messages.h>
 #include <direct/thread.h>
 
+#define DFB_INPUTDRIVER_HAS_AXIS_INFO
+
 #include <core/input_driver.h>
 
-
 DFB_INPUT_DRIVER( divine )
+
 
 #define PIPE_PATH "/tmp/divine"
 
@@ -207,6 +209,19 @@ driver_get_keymap_entry( CoreInputDevice               *device,
                          DFBInputDeviceKeymapEntry *entry )
 {
      return DFB_UNSUPPORTED;
+}
+
+static DFBResult
+driver_get_axis_info( CoreInputDevice              *device,
+                      void                         *driver_data,
+                      DFBInputDeviceAxisIdentifier  axis,
+                      DFBInputDeviceAxisInfo       *ret_info )
+{
+     ret_info->flags   = DIAIF_ABS_MIN | DIAIF_ABS_MAX;
+     ret_info->abs_min = 0;
+     ret_info->abs_max = 65535;
+
+     return DFB_OK;
 }
 
 /*
