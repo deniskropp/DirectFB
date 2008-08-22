@@ -4292,31 +4292,34 @@ typedef enum {
  * Flags defining which additional (optional) event fields are valid.
  */
 typedef enum {
-     DIEF_NONE           = 0x000,   /* no additional fields */
-     DIEF_TIMESTAMP      = 0x001,   /* timestamp is valid */
-     DIEF_AXISABS        = 0x002,   /* axis and axisabs are valid */
-     DIEF_AXISREL        = 0x004,   /* axis and axisrel are valid */
+     DIEF_NONE           = 0x0000,   /* no additional fields */
+     DIEF_TIMESTAMP      = 0x0001,   /* timestamp is valid */
+     DIEF_AXISABS        = 0x0002,   /* axis and axisabs are valid */
+     DIEF_AXISREL        = 0x0004,   /* axis and axisrel are valid */
 
-     DIEF_KEYCODE        = 0x008,   /* used internally by the input core,
-                                       always set at application level */
-     DIEF_KEYID          = 0x010,   /* used internally by the input core,
-                                       always set at application level */
-     DIEF_KEYSYMBOL      = 0x020,   /* used internally by the input core,
-                                       always set at application level */
-     DIEF_MODIFIERS      = 0x040,   /* used internally by the input core,
-                                       always set at application level */
-     DIEF_LOCKS          = 0x080,   /* used internally by the input core,
-                                       always set at application level */
-     DIEF_BUTTONS        = 0x100,   /* used internally by the input core,
-                                       always set at application level */
-     DIEF_GLOBAL         = 0x200,   /* Only for event buffers creates by
-                                       IDirectFB::CreateInputEventBuffer()
-                                       with global events enabled.
-                                       Indicates that the event would have been
-                                       filtered if the buffer hadn't been
-                                       global. */
-     DIEF_REPEAT         = 0x400,   /* repeated event, e.g. key or button press */
-     DIEF_FOLLOW         = 0x800    /* another event will follow immediately, e.g. x/y axis */
+     DIEF_KEYCODE        = 0x0008,   /* used internally by the input core,
+                                        always set at application level */
+     DIEF_KEYID          = 0x0010,   /* used internally by the input core,
+                                        always set at application level */
+     DIEF_KEYSYMBOL      = 0x0020,   /* used internally by the input core,
+                                        always set at application level */
+     DIEF_MODIFIERS      = 0x0040,   /* used internally by the input core,
+                                        always set at application level */
+     DIEF_LOCKS          = 0x0080,   /* used internally by the input core,
+                                        always set at application level */
+     DIEF_BUTTONS        = 0x0100,   /* used internally by the input core,
+                                        always set at application level */
+     DIEF_GLOBAL         = 0x0200,   /* Only for event buffers creates by
+                                        IDirectFB::CreateInputEventBuffer()
+                                        with global events enabled.
+                                        Indicates that the event would have been
+                                        filtered if the buffer hadn't been
+                                        global. */
+     DIEF_REPEAT         = 0x0400,   /* repeated event, e.g. key or button press */
+     DIEF_FOLLOW         = 0x0800,   /* another event will follow immediately, e.g. x/y axis */
+
+     DIEF_MIN            = 0x1000,   /* minimum value is set, e.g. for absolute axis motion */
+     DIEF_MAX            = 0x2000,   /* maximum value is set, e.g. for absolute axis motion */
 } DFBInputEventFlags;
 
 /*
@@ -4363,6 +4366,10 @@ typedef struct {
                                                     joystick coordinate */
      int                             axisrel;    /* relative mouse/
                                                     joystick movement */
+
+     /* general information */
+     int                             min;        /* minimum possible value */
+     int                             max;        /* maximum possible value */
 } DFBInputEvent;
 
 /*
