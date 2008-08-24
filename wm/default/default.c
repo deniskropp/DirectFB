@@ -563,6 +563,9 @@ switch_focus( CoreWindowStack *stack,
      if (from == to)
           return;
 
+     if (to->caps & DWCAPS_NOFOCUS)
+          return;
+
      if (from) {
           evt.type = DWET_LOSTFOCUS;
 
