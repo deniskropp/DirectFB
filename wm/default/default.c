@@ -563,7 +563,7 @@ switch_focus( CoreWindowStack *stack,
      if (from == to)
           return;
 
-     if (to->caps & DWCAPS_NOFOCUS)
+     if (to && to->caps & DWCAPS_NOFOCUS)
           return;
 
      if (from) {
