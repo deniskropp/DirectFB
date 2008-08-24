@@ -890,7 +890,9 @@ typedef enum {
 
      DWCAPS_SUBWINDOW    = 0x00000010,  /* Not a top level window. */
 
-     DWCAPS_ALL          = 0x0000001F   /* All of these. */
+     DWCAPS_NOFOCUS      = 0x00000100,  /* Window will never get focus or receive key events, unless it grabs them. */
+
+     DWCAPS_ALL          = 0x0000011F   /* All of these. */
 } DFBWindowCapabilities;
 
 /*
