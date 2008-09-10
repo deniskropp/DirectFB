@@ -451,8 +451,11 @@ dfb_window_create( CoreWindowStack             *stack,
      /* Set toplevel window ID (new sub window feature) */
      window->toplevel_id = toplevel_id;
 
+     D_MAGIC_SET( window, CoreWindow );
+
      ret = dfb_wm_preconfigure_window( stack, window );
      if(ret) {
+          D_MAGIC_CLEAR( window );
           fusion_object_destroy( &window->object );
           dfb_windowstack_unlock( stack );
           return ret;
@@ -466,6 +469,7 @@ dfb_window_create( CoreWindowStack             *stack,
      if (caps & DWCAPS_SUBWINDOW) {
           ret = init_subwindow( window, stack, toplevel_id );
           if (ret) {
+               D_MAGIC_CLEAR( window );
                fusion_object_destroy( &window->object );
                dfb_windowstack_unlock( stack );
                return ret;
@@ -493,6 +497,7 @@ dfb_window_create( CoreWindowStack             *stack,
                ret = create_region( layer->core, context, window,
                                     pixelformat, surface_caps, &region, &surface );
                if (ret) {
+                    D_MAGIC_CLEAR( window );
                     fusion_object_destroy( &window->object );
                     dfb_windowstack_unlock( stack );
                     return ret;
@@ -512,6 +517,7 @@ dfb_window_create( CoreWindowStack             *stack,
                /* Get the primary region of the layer context. */
                ret = dfb_layer_context_get_primary_region( context, true, &region );
                if (ret) {
+                    D_MAGIC_CLEAR( window );
                     fusion_object_destroy( &window->object );
                     dfb_windowstack_unlock( stack );
                     return ret;
@@ -541,6 +547,7 @@ dfb_window_create( CoreWindowStack             *stack,
                                                      region->surface->palette : NULL, &surface );
                     if (ret) {
                          D_DERROR( ret, "Core/Windows: Failed to create window surface!\n" );
+                         D_MAGIC_CLEAR( window );
                          dfb_layer_region_unlink( &window->primary_region );
                          fusion_object_destroy( &window->object );
                          dfb_windowstack_unlock( stack );
@@ -564,6 +571,8 @@ dfb_window_create( CoreWindowStack             *stack,
      if (ret) {
           D_DERROR( ret, "Core/Windows: Failed to add window to manager!\n" );
 
+          D_MAGIC_CLEAR( window );
+
           if (window->surface)
                dfb_surface_unlink( &window->surface );
 
@@ -583,8 +592,6 @@ dfb_window_create( CoreWindowStack             *stack,
 
      /* Increase number of windows. */
      stack->num++;
-
-     D_MAGIC_SET( window, CoreWindow );
 
      /* Finally activate the object. */
      fusion_object_activate( &window->object );
