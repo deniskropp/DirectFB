@@ -638,6 +638,21 @@ __cyg_profile_func_exit (void *this_fn,
 
 #else
 
+const char *
+direct_trace_lookup_symbol( const char *filename, long offset )
+{
+     return NULL;
+}
+
+const char *
+direct_trace_lookup_file( void *address, void **ret_base )
+{
+     if (ret_base)
+          *ret_base = NULL;
+          
+     return NULL;
+}
+
 void
 direct_trace_print_stack( DirectTraceBuffer *buffer )
 {
