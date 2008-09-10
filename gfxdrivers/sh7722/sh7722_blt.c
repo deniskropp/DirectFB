@@ -111,7 +111,7 @@ static const int pixel_formats[DFB_NUM_PIXELFORMATS] = {
 #define SH7722_INVALIDATE(flags)        do { sdev->v_flags &= ~(flags); } while (0)
 
 #define SH7722_CHECK_VALIDATE(flag)     do {                                                        \
-                                             if (! (sdev->v_flags & flag))                          \
+                                             if ((sdev->v_flags & flag) != flag)                    \
                                                   sh7722_validate_##flag( sdrv, sdev, state );      \
                                         } while (0)
 
