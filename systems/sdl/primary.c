@@ -389,47 +389,15 @@ update_screen( int x, int y, int w, int h )
 
      D_DEBUG_AT( SDL_Updates, "  -> copying pixels...\n" );
 
-     for (i=0; i<h; ++i) {
-          switch (screen->format->BitsPerPixel) {
-               case 16:
-                    switch (surface->config.format) {
-                         case DSPF_RGB16:
-                              direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->config.format, w ) );
-                              break;
+     switch (screen->format->BitsPerPixel) {
+          case 16:
+               dfb_convert_to_rgb16( surface->config.format,
+                                     src, lock.pitch, surface->config.size.h,
+                                     dst, screen->pitch, w, h );
+               break;
 
-                         case DSPF_NV16:
-                              src8  = src;
-                              src16 = src + surface->config.size.h * lock.pitch;
-                              dst16 = dst;
-
-                              for (n=0; n<w; n++) {
-                                   int r, g, b;
-
-                                   YCBCR_TO_RGB( src8[n], src16[n>>1] & 0xff, src16[n>>1] >> 8, r, g, b );
-
-                                   dst16[n] = PIXEL_RGB16( r, g, b );
-                              }
-                              break;
-
-                         case DSPF_RGB444:
-                         case DSPF_ARGB4444:
-                              src16 = src;
-                              dst16 = dst;
-
-                              for (n=0; n<w; n++)
-                                   dst16[n] = PIXEL_RGB16( ((src16[n] & 0x0F00) >> 4) | ((src16[n] & 0x0F00) >> 8),
-                                                           ((src16[n] & 0x00F0)     ) | ((src16[n] & 0x00F0) >> 4),
-                                                           ((src16[n] & 0x000F) << 4) | ((src16[n] & 0x000F)     ) );
-                              break;
-                    }
-                    break;
-
-               default:
-                    direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->config.format, w ) );
-          }
-
-          src += lock.pitch;
-          dst += screen->pitch;
+          default:
+               direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->config.format, w ) );
      }
 
      D_DEBUG_AT( SDL_Updates, "  -> unlocking dfb surface...\n" );
