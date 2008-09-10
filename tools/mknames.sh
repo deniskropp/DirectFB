@@ -16,10 +16,13 @@ HEADER=$6
 
 cat << EOF
 
-#define DirectFB${NAME}Names(Identifier) struct DFB${NAME}Name { \\
-     ${ENUM} ${VALUE}; \\
-     const char *name; \\
-} Identifier[] = { \\
+
+struct DFB${NAME}Name {
+     ${ENUM} ${VALUE};
+     const char *name;
+};
+
+#define DirectFB${NAME}Names(Identifier) struct DFB${NAME}Name Identifier[] = { \\
 EOF
 
 egrep "^ +${PREFIX}_[0-9A-Za-z_]+[ ,]" $HEADER | grep -v ${PREFIX}_${NULL} | perl -p -e "s/^\\s*(${PREFIX}_)([\\w_]+)[ ,].*/     \\{ \\1\\2, \\\"\\2\\\" \\}, \\\\/"
