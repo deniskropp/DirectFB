@@ -83,6 +83,7 @@ static const char *config_usage =
      "  [no-]hardware                  Enable/disable hardware acceleration\n"
      "  [no-]software                  Enable/disable software fallbacks\n"
      "  [no-]software-warn             Show warnings when doing/dropping software operations\n"
+     "  [no-]software-trace            Show every stage of the software rendering pipeline\n"
      "  [no-]dma                       Enable DMA acceleration\n"
      "  [no-]sync                      Do `sync()' (default=no)\n"
 #ifdef USE_MMX
@@ -707,6 +708,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-software-warn" ) == 0) {
           dfb_config->software_warn = false;
+     } else
+     if (strcmp (name, "software-trace" ) == 0) {
+          dfb_config->software_trace = true;
+     } else
+     if (strcmp (name, "no-software-trace" ) == 0) {
+          dfb_config->software_trace = false;
      } else
      if (strcmp (name, "warn" ) == 0 || strcmp (name, "no-warn" ) == 0) {
           /* Enable/disable all at once by default. */

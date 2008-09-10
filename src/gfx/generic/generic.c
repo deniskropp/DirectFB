@@ -7425,10 +7425,25 @@ void gRelease( CardState *state )
      }
 }
 
-#define CHECK_PIPELINE()           \
-     {                             \
-          if (!gfxs->funcs[0])     \
-               return;             \
+#define CHECK_PIPELINE()                                                             \
+     {                                                                               \
+          if (!gfxs->funcs[0])                                                       \
+               return;                                                               \
+                                                                                     \
+          if (dfb_config->software_trace) {                                          \
+               int         i;                                                        \
+               GenefxFunc *funcs = gfxs->funcs;                                      \
+                                                                                     \
+               direct_log_lock( NULL );                                              \
+               direct_log_printf( NULL, "  Software Fallback Pipeline:\n" );         \
+                                                                                     \
+               for (i=0; funcs[i]; ++i)                                              \
+                    direct_log_printf( NULL, "    [%2d] %s\n", i,                    \
+                                       direct_trace_lookup_symbol_at( funcs[i] ) );  \
+                                                                                     \
+               direct_log_printf( NULL, "\n" );                                      \
+               direct_log_unlock( NULL );                                            \
+          }                                                                          \
      }
 
 #define RUN_PIPELINE()                     \
