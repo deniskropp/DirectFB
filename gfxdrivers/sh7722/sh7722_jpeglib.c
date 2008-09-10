@@ -1421,6 +1421,7 @@ SH7722_JPEG_Decode( SH7722_JPEG_context   *context,
      DFBRectangle        _rect;
      DFBRegion           _clip;
      struct my_error_mgr jerr;
+     bool                sw_only = false;
 
      if (!data.ref_count)
           return DR_DEAD;
@@ -1439,6 +1440,18 @@ SH7722_JPEG_Decode( SH7722_JPEG_context   *context,
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_RGB24:
+               break;
+
+          case DSPF_RGB332:
+          case DSPF_ARGB1555:
+          case DSPF_ARGB2554:
+          case DSPF_ARGB4444:
+          case DSPF_ARGB:
+          case DSPF_AiRGB:
+          case DSPF_RGB555:
+          case DSPF_BGR555:
+          case DSPF_RGB444:
+               sw_only = true;
                break;
 
           default:
@@ -1463,28 +1476,33 @@ SH7722_JPEG_Decode( SH7722_JPEG_context   *context,
           clip = &_clip;
      }
 
-     if (!context->mode444)
+     if (!context->mode444 && !sw_only)
           ret = DecodeHW( &data, context, rect, clip, format, phys, pitch, width, height );
 
      if (ret) {
-          int fd, len = direct_page_align( DFB_PLANE_MULTIPLY( format, height ) * pitch );
-
-          fd = open( "/dev/mem", O_RDWR | O_SYNC );
-          if (fd < 0) {
-               D_PERROR( "SH7722/JPEG: Could not open /dev/mem!\n" );
-               return DR_INIT;
+          if (addr) {
+               ret = DecodeSW( context, rect, clip, format, addr, pitch, width, height );
           }
+          else {
+               int fd, len = direct_page_align( DFB_PLANE_MULTIPLY( format, height ) * pitch );
 
-          addr = mmap( NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, phys );
-          if (addr == MAP_FAILED) {
-               D_PERROR( "SH7722/JPEG: Could not map /dev/mem at 0x%08lx (length %d)!\n", phys, len );
-               close( fd );
-               return DR_INIT;
+               fd = open( "/dev/mem", O_RDWR | O_SYNC );
+               if (fd < 0) {
+                    D_PERROR( "SH7722/JPEG: Could not open /dev/mem!\n" );
+                    return DR_INIT;
+               }
+
+               addr = mmap( NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, phys );
+               if (addr == MAP_FAILED) {
+                    D_PERROR( "SH7722/JPEG: Could not map /dev/mem at 0x%08lx (length %d)!\n", phys, len );
+                    close( fd );
+                    return DR_INIT;
+               }
+
+               ret = DecodeSW( context, rect, clip, format, addr, pitch, width, height );
+
+               munmap( addr, len );
           }
-
-          ret = DecodeSW( context, rect, clip, format, addr, pitch, width, height );
-
-          munmap( addr, len );
      }
 
      return ret;

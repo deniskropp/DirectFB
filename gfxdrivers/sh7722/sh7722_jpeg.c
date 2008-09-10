@@ -119,20 +119,6 @@ IDirectFBImageProvider_SH7722_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      if (!dst_surface)
           return DFB_DESTROYED;
 
-     switch (dst_surface->config.format) {
-          case DSPF_NV12:
-          case DSPF_NV16:
-          case DSPF_RGB16:
-          case DSPF_RGB32:
-          case DSPF_RGB24:
-               break;
-
-          default:
-               /* FIXME: implement fallback */
-               D_UNIMPLEMENTED();
-               return DFB_UNIMPLEMENTED;
-     }
-
      dfb_region_from_rectangle( &clip, &dst_data->area.current );
 
      if (dest_rect) {
