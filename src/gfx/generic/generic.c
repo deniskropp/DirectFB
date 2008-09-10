@@ -61,7 +61,6 @@
 
 #include "generic.h"
 #include "duffs_device.h"
-#include "yuvtbl.h"
 
 
 /* lookup tables for 2/3bit to 8bit color conversion */
