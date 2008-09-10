@@ -1118,7 +1118,7 @@ Initialize_GFX( SH7722_JPEG_data *data )
      D_DEBUG_AT( SH7722_JPEG, "%s( %p )\n", __FUNCTION__, data );
 
      /* Open the drawing engine device. */
-     data->gfx_fd = direct_try_open( "/dev/sh7722gfx", "/dev/misc/sh7722gfx", O_RDWR, true );
+     data->gfx_fd = direct_try_open( "/dev/sh772x_gfx", "/dev/misc/sh772x_gfx", O_RDWR, true );
      if (data->gfx_fd < 0)
           return DR_INIT;
 
