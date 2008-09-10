@@ -291,9 +291,9 @@
 
 #define YCBCR_TO_RGB( y, cb, cr, r, g, b )                            \
 do {                                                                  \
-     int _y  = y  -  16;                                              \
-     int _cb = cb - 128;                                              \
-     int _cr = cr - 128;                                              \
+     int _y  = (y)  -  16;                                            \
+     int _cb = (cb) - 128;                                            \
+     int _cr = (cr) - 128;                                            \
                                                                       \
      int _r = (298 * _y             + 409 * _cr + 128) >> 8;          \
      int _g = (298 * _y - 100 * _cb - 208 * _cr + 128) >> 8;          \
