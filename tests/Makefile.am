@@ -10,6 +10,7 @@ INCLUDES = \
 
 
 noinst_PROGRAMS = \
+	dfbtest_blit	\
 	dfbtest_reinit	\
 	dfbtest_scale	\
 	dfbtest_window	\
@@ -20,6 +21,9 @@ noinst_PROGRAMS = \
 	fusion_skirmish	\
 	fusion_stream
 
+
+dfbtest_blit_SOURCES = dfbtest_blit.c
+dfbtest_blit_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
 
 dfbtest_reinit_SOURCES = dfbtest_reinit.c
 dfbtest_reinit_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
