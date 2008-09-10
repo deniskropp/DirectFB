@@ -1096,10 +1096,10 @@ typedef enum {
      /*  1 bit alpha (1 byte/ 8 pixel, most significant bit used first) */
      DSPF_A1        = DFB_SURFACE_PIXELFORMAT( 14,  0, 1, 1, 1, 0, 7, 0, 0, 0, 0 ),
 
-     /* 12 bit   YUV (8 bit Y plane followed by one 16 bit quarter size CbCr [15:0] plane) */
+     /* 12 bit   YUV (8 bit Y plane followed by one 16 bit quarter size Cb|Cr [7:0|7:0] plane) */
      DSPF_NV12      = DFB_SURFACE_PIXELFORMAT( 15, 12, 0, 0, 0, 1, 0, 2, 0, 0, 0 ),
 
-     /* 16 bit   YUV (8 bit Y plane followed by one 16 bit half width CbCr [15:0] plane) */
+     /* 16 bit   YUV (8 bit Y plane followed by one 16 bit half width Cb|Cr [7:0|7:0] plane) */
      DSPF_NV16      = DFB_SURFACE_PIXELFORMAT( 16, 24, 0, 0, 0, 1, 0, 0, 1, 0, 0 ),
 
      /* 16 bit  ARGB (2 byte, alpha 2@14, red 5@9, green 5@4, blue 4@0) */
@@ -1108,7 +1108,7 @@ typedef enum {
      /* 16 bit  ARGB (2 byte, alpha 4@12, red 4@8, green 4@4, blue 4@0) */
      DSPF_ARGB4444  = DFB_SURFACE_PIXELFORMAT( 18, 12, 4, 1, 0, 2, 0, 0, 0, 0, 0 ),
 
-     /* 12 bit   YUV (8 bit Y plane followed by one 16 bit quarter size CrCb [15:0] plane) */
+     /* 12 bit   YUV (8 bit Y plane followed by one 16 bit quarter size Cr|Cb [7:0|7:0] plane) */
      DSPF_NV21      = DFB_SURFACE_PIXELFORMAT( 19, 12, 0, 0, 0, 1, 0, 2, 0, 0, 0 ),
 
      /* 32 bit  AYUV (4 byte, alpha 8@24, Y 8@16, Cb 8@8, Cr 8@0) */
