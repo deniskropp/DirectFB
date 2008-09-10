@@ -4,7 +4,7 @@ system = devmem
 video-phys   = f800000	# Requires 'mem=120M' kernel option!!!!!
 video-length = 8388608	# 8MB of physically contiguous memory for acceleration
 
-mmio-phys    = fd000000	# Start of 2DG register space
+mmio-phys    = a4680000	# Start of 2DG register space
 mmio-length  = 65536	# Size of register space
 
 accelerator  = 11591	# 0x2D47 (2DG)

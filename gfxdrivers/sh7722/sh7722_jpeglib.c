@@ -1,6 +1,9 @@
-//#ifdef SH7722_DEBUG_JPEG
+#ifdef SH7722_DEBUG_JPEG
 #define DIRECT_ENABLE_DEBUG
-//#endif
+#endif
+
+#include <stdio.h>
+#include <jpeglib.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,10 +15,12 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
+#include <asm/types.h>
 
 #ifdef STANDALONE
 #include "sh7722_jpeglib_standalone.h"
 #else
+#undef HAVE_STDLIB_H
 #include <config.h>
 
 #include <direct/conf.h>
@@ -35,7 +40,7 @@
 #include <jpeglib.h>
 #include <setjmp.h>
 
-#include <sh7722gfx.h>
+#include <sh772x_gfx.h>
 
 #include "sh7722_jpeglib.h"
 #include "sh7722_regs.h"
@@ -52,7 +57,7 @@ typedef struct {
      int                            ref_count;
 
      int                            gfx_fd;
-     SH7722GfxSharedArea           *gfx_shared;
+     SH772xGfxSharedArea           *gfx_shared;
 
      unsigned long                  jpeg_phys;
      unsigned long                  jpeg_lb1;
@@ -71,10 +76,10 @@ static inline u32
 SH7722_GETREG32( SH7722_JPEG_data *data,
                  u32               address )
 {
-     SH7722Register reg = { address, 0 };
+     SH772xRegister reg = { address, 0 };
 
-     if (ioctl( data->gfx_fd, SH7722GFX_IOCTL_GETREG32, &reg ) < 0)
-          D_PERROR( "SH7722GFX_IOCTL_GETREG32( 0x%08x )\n", reg.address );
+     if (ioctl( data->gfx_fd, SH772xGFX_IOCTL_GETREG32, &reg ) < 0)
+          D_PERROR( "SH772xGFX_IOCTL_GETREG32( 0x%08x )\n", reg.address );
 
      return reg.value;
 }
@@ -84,10 +89,10 @@ SH7722_SETREG32( SH7722_JPEG_data *data,
                  u32               address,
                  u32               value )
 {
-     SH7722Register reg = { address, value };
+     SH772xRegister reg = { address, value };
 
-     if (ioctl( data->gfx_fd, SH7722GFX_IOCTL_SETREG32, &reg ) < 0)
-          D_PERROR( "SH7722GFX_IOCTL_SETREG32( 0x%08x, 0x%08x )\n", reg.address, reg.value );
+     if (ioctl( data->gfx_fd, SH772xGFX_IOCTL_SETREG32, &reg ) < 0)
+          D_PERROR( "SH772xGFX_IOCTL_SETREG32( 0x%08x, 0x%08x )\n", reg.address, reg.value );
 }
 #else
 static inline u32
@@ -136,7 +141,7 @@ DecodeHW( SH7722_JPEG_data      *data,
      int                    i;
      int                    cw, ch;
      bool                   reload = false;
-     SH7722GfxSharedArea   *shared = data->gfx_shared;
+     SH772xGfxSharedArea   *shared = data->gfx_shared;
      SH7722JPEG             jpeg;
      u32                    vtrcr   = 0;
      u32                    vswpout = 0;
@@ -379,7 +384,7 @@ EncodeHW( SH7722_JPEG_data      *data,
      int                    i, fd;
      int                    cw, ch;
      int                    written = 0;
-     SH7722GfxSharedArea   *shared  = data->gfx_shared;
+     SH772xGfxSharedArea   *shared  = data->gfx_shared;
      u32                    vtrcr   = 0;
      u32                    vswpin  = 0;
      bool                   mode420 = false;
@@ -762,7 +767,7 @@ DecodeHeader( SH7722_JPEG_data    *data,
 {
      DirectResult         ret;
      unsigned int         len;
-     SH7722GfxSharedArea *shared;
+     SH772xGfxSharedArea *shared;
 
      D_DEBUG_AT( SH7722_JPEG, "%s( %p )\n", __FUNCTION__, data );
 
@@ -1118,7 +1123,7 @@ Initialize_GFX( SH7722_JPEG_data *data )
           return DR_INIT;
 
      /* Map its shared data. */
-     data->gfx_shared = mmap( NULL, direct_page_align( sizeof(SH7722GfxSharedArea) ),
+     data->gfx_shared = mmap( NULL, direct_page_align( sizeof(SH772xGfxSharedArea) ),
                               PROT_READ | PROT_WRITE,
                               MAP_SHARED, data->gfx_fd, 0 );
      if (data->gfx_shared == MAP_FAILED) {
@@ -1135,7 +1140,7 @@ Initialize_GFX( SH7722_JPEG_data *data )
      if (data->gfx_shared->magic != SH7722GFX_SHARED_MAGIC) {
           D_ERROR( "SH7722/GFX: Magic value 0x%08x doesn't match 0x%08x!\n",
                    data->gfx_shared->magic, SH7722GFX_SHARED_MAGIC );
-          munmap( (void*) data->gfx_shared, direct_page_align( sizeof(SH7722GfxSharedArea) ) );
+          munmap( (void*) data->gfx_shared, direct_page_align( sizeof(SH772xGfxSharedArea) ) );
           close( data->gfx_fd );
           return DR_INIT;
      }
@@ -1146,7 +1151,7 @@ Initialize_GFX( SH7722_JPEG_data *data )
 static DirectResult
 Shutdown_GFX( SH7722_JPEG_data *data )
 {
-     munmap( (void*) data->gfx_shared, direct_page_align( sizeof(SH7722GfxSharedArea) ) );
+     munmap( (void*) data->gfx_shared, direct_page_align( sizeof(SH772xGfxSharedArea) ) );
 
      close( data->gfx_fd );
 

@@ -1,7 +1,8 @@
-.sh7722gfx.ko.cmd
-.sh7722gfx.mod.o.cmd
-.sh7722gfx.o.cmd
+.sh772x_gfx.ko.cmd
+.sh772x_gfx.mod.o.cmd
+*.o.cmd
 .tmp_versions
 Module.symvers
-sh7722gfx.ko
-sh7722gfx.mod.c
+sh772x_gfx.ko
+sh772x_gfx.mod.c
+modules.order

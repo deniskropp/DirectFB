@@ -51,6 +51,8 @@ libdirectfb_sh7722_la_SOURCES =	\
 	sh7722.h		\
 	sh7722_blt.c		\
 	sh7722_blt.h		\
+	sh7723_blt.c		\
+	sh7723_blt.h		\
 	sh7722_jpeg.c		\
 	sh7722_layer.c		\
 	sh7722_layer.h		\

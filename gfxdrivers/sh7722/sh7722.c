@@ -2,6 +2,10 @@
 #define DIRECT_ENABLE_DEBUG
 #endif
 
+#include <stdio.h>
+#include <jpeglib.h>
+
+#undef HAVE_STDLIB_H
 
 #include <config.h>
 #include <stdio.h>
@@ -43,6 +47,8 @@ DFB_GRAPHICS_DRIVER( sh7722 )
 #include "sh7722_multi.h"
 #include "sh7722_screen.h"
 
+#include "sh7723_blt.h"
+
 
 D_DEBUG_DOMAIN( SH7722_Driver, "SH7722/Driver", "Renesas SH7722 Driver" );
 
@@ -65,14 +71,14 @@ driver_get_info( CoreGraphicsDevice *device,
      /* fill driver info structure */
      snprintf( info->name,
                DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,
-               "Renesas SH7722 Driver" );
+               "Renesas SH772x Driver" );
 
      snprintf( info->vendor,
                DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
-               "Denis Oliver Kropp" );
+               "Denis & Janine Kropp" );
 
      info->version.major = 0;
-     info->version.minor = 8;
+     info->version.minor = 9;
 
      info->driver_data_size = sizeof(SH7722DriverData);
      info->device_data_size = sizeof(SH7722DeviceData);
@@ -99,12 +105,12 @@ driver_init_driver( CoreGraphicsDevice  *device,
      sdrv->device = device;
 
      /* Open the drawing engine device. */
-     sdrv->gfx_fd = direct_try_open( "/dev/sh7722gfx", "/dev/misc/sh7722gfx", O_RDWR, true );
+     sdrv->gfx_fd = direct_try_open( "/dev/sh772x_gfx", "/dev/misc/sh772x_gfx", O_RDWR, true );
      if (sdrv->gfx_fd < 0)
           return DFB_INIT;
 
      /* Map its shared data. */
-     sdrv->gfx_shared = mmap( NULL, direct_page_align( sizeof(SH7722GfxSharedArea) ),
+     sdrv->gfx_shared = mmap( NULL, direct_page_align( sizeof(SH772xGfxSharedArea) ),
                               PROT_READ | PROT_WRITE,
                               MAP_SHARED, sdrv->gfx_fd, 0 );
      if (sdrv->gfx_shared == MAP_FAILED) {
@@ -116,46 +122,69 @@ driver_init_driver( CoreGraphicsDevice  *device,
      sdrv->mmio_base = dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!sdrv->mmio_base) {
           D_PERROR( "SH7722/Driver: Could not map MMIO area!\n" );
-          munmap( (void*) sdrv->gfx_shared, direct_page_align( sizeof(SH7722GfxSharedArea) ) );
+          munmap( (void*) sdrv->gfx_shared, direct_page_align( sizeof(SH772xGfxSharedArea) ) );
           close( sdrv->gfx_fd );
           return DFB_INIT;
      }
 
      /* Check the magic value. */
-     if (sdrv->gfx_shared->magic != SH7722GFX_SHARED_MAGIC) {
-          D_ERROR( "SH7722/Driver: Magic value 0x%08x doesn't match 0x%08x!\n",
-                   sdrv->gfx_shared->magic, SH7722GFX_SHARED_MAGIC );
-          dfb_gfxcard_unmap_mmio( device, sdrv->mmio_base, -1 );
-          munmap( (void*) sdrv->gfx_shared, direct_page_align( sizeof(SH7722GfxSharedArea) ) );
-          close( sdrv->gfx_fd );
-          return DFB_INIT;
+     switch (sdrv->gfx_shared->magic) {
+          case SH7722GFX_SHARED_MAGIC:
+               sdev->sh772x = 7722;
+
+               /* Initialize function table. */
+               funcs->EngineReset       = sh7722EngineReset;
+               funcs->EngineSync        = sh7722EngineSync;
+               funcs->EmitCommands      = sh7722EmitCommands;
+               funcs->CheckState        = sh7722CheckState;
+               funcs->SetState          = sh7722SetState;
+               funcs->FillTriangle      = sh7722FillTriangle;
+               funcs->Blit              = sh7722Blit;
+               funcs->StretchBlit       = sh7722StretchBlit;
+               funcs->FlushTextureCache = sh7722FlushTextureCache;
+
+               /* Initialize JPEG library. */
+               ret = SH7722_JPEG_Initialize();
+               if (ret) {
+                    D_DERROR( ret, "SH7722/Driver: JPEG initialization failed!\n" );
+                    dfb_gfxcard_unmap_mmio( device, sdrv->mmio_base, -1 );
+                    munmap( (void*) sdrv->gfx_shared, direct_page_align( sizeof(SH772xGfxSharedArea) ) );
+                    close( sdrv->gfx_fd );
+                    return DFB_INIT;
+               }
+               break;
+
+          case SH7723GFX_SHARED_MAGIC:
+               sdev->sh772x = 7723;
+
+               /* Initialize function table. */
+               funcs->EngineReset       = sh7723EngineReset;
+               funcs->EngineSync        = sh7723EngineSync;
+               funcs->EmitCommands      = sh7723EmitCommands;
+               funcs->CheckState        = sh7723CheckState;
+               funcs->SetState          = sh7723SetState;
+               funcs->FillRectangle     = sh7723FillRectangle;
+               funcs->FillTriangle      = sh7723FillTriangle;
+               funcs->DrawRectangle     = sh7723DrawRectangle;
+               funcs->DrawLine          = sh7723DrawLine;
+               funcs->Blit              = sh7723Blit;
+               break;
+
+          default:
+               D_ERROR( "SH772x/Driver: Magic value 0x%08x doesn't match 0x%08x or 0x%08x!\n",
+                        sdrv->gfx_shared->magic, SH7722GFX_SHARED_MAGIC, SH7723GFX_SHARED_MAGIC );
+               dfb_gfxcard_unmap_mmio( device, sdrv->mmio_base, -1 );
+               munmap( (void*) sdrv->gfx_shared, direct_page_align( sizeof(SH772xGfxSharedArea) ) );
+               close( sdrv->gfx_fd );
+               return DFB_INIT;
      }
 
-     /* Initialize JPEG library. */
-     ret = SH7722_JPEG_Initialize();
-     if (ret) {
-          D_DERROR( ret, "SH7722/Driver: JPEG initialization failed!\n" );
-          dfb_gfxcard_unmap_mmio( device, sdrv->mmio_base, -1 );
-          munmap( (void*) sdrv->gfx_shared, direct_page_align( sizeof(SH7722GfxSharedArea) ) );
-          close( sdrv->gfx_fd );
-          return DFB_INIT;
-     }
 
      /* Get virtual address for the LCD buffer in slaves here,
         master does it in driver_init_device(). */
      if (!dfb_core_is_master( core ))
           sdrv->lcd_virt = dfb_gfxcard_memory_virtual( device, sdev->lcd_offset );
 
-     /* Initialize function table. */
-     funcs->EngineReset       = sh7722EngineReset;
-     funcs->EngineSync        = sh7722EngineSync;
-     funcs->EmitCommands      = sh7722EmitCommands;
-     funcs->CheckState        = sh7722CheckState;
-     funcs->SetState          = sh7722SetState;
-     funcs->FillTriangle      = sh7722FillTriangle;
-     funcs->Blit              = sh7722Blit;
-     funcs->StretchBlit       = sh7722StretchBlit;
-     funcs->FlushTextureCache = sh7722FlushTextureCache;
 
      /* Register primary screen. */
      sdrv->screen = dfb_screens_register( device, driver_data, &sh7722ScreenFuncs );
@@ -195,12 +224,15 @@ driver_init_device( CoreGraphicsDevice *device,
                return DFB_UNSUPPORTED;
      }
 
+     if (sdev->sh772x == 7723)
+          memset( dfb_gfxcard_memory_virtual(device,0), 0, dfb_gfxcard_memory_length() );
+
      /*
       * Setup LCD buffer.
       */
      sdev->lcd_width  = SH7722_LCD_WIDTH;
      sdev->lcd_height = SH7722_LCD_HEIGHT;
-     sdev->lcd_pitch  = (DFB_BYTES_PER_LINE( sdev->lcd_format, sdev->lcd_width ) + 0xf) & ~0xf;
+     sdev->lcd_pitch  = (DFB_BYTES_PER_LINE( sdev->lcd_format, sdev->lcd_width ) + 0x1ff) & ~0x1ff;
      sdev->lcd_size   = DFB_PLANE_MULTIPLY( sdev->lcd_format, sdev->lcd_height ) * sdev->lcd_pitch;
      sdev->lcd_offset = dfb_gfxcard_reserve_memory( device, sdev->lcd_size );
 
@@ -222,35 +254,63 @@ driver_init_device( CoreGraphicsDevice *device,
      D_ASSERT( ! (sdev->lcd_pitch & 0xf) );
      D_ASSERT( ! (sdev->lcd_phys & 0xf) );
 
-
-     /* Fill in the device info. */
-     snprintf( device_info->name,   DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH,   "SH7722" );
-     snprintf( device_info->vendor, DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "Renesas" );
-
-     /* Set device limitations. */
-     device_info->limits.surface_byteoffset_alignment = 16;
-     device_info->limits.surface_bytepitch_alignment  = 8;
-
-     /* Set device capabilities. */
-     device_info->caps.flags    = CCF_CLIPPING | CCF_RENDEROPTS;
-     device_info->caps.accel    = SH7722_SUPPORTED_DRAWINGFUNCTIONS |
-                                  SH7722_SUPPORTED_BLITTINGFUNCTIONS;
-     device_info->caps.drawing  = SH7722_SUPPORTED_DRAWINGFLAGS;
-     device_info->caps.blitting = SH7722_SUPPORTED_BLITTINGFLAGS;
-
-     /* Change font format for acceleration. */
-     if (!dfb_config->software_only) {
-          dfb_config->font_format  = DSPF_ARGB;
-          dfb_config->font_premult = false;
-     }
-
-
      /*
       * Initialize hardware.
       */
 
-     /* Reset the drawing engine. */
-     sh7722EngineReset( sdrv, sdev );
+     switch (sdev->sh772x) {
+          case 7722:
+               /* Reset the drawing engine. */
+               sh7722EngineReset( sdrv, sdev );
+
+               /* Fill in the device info. */
+               snprintf( device_info->name,   DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH,   "SH7722" );
+               snprintf( device_info->vendor, DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "Renesas" );
+
+               /* Set device limitations. */
+               device_info->limits.surface_byteoffset_alignment = 16;
+               device_info->limits.surface_bytepitch_alignment  = 8;
+
+               /* Set device capabilities. */
+               device_info->caps.flags    = CCF_CLIPPING | CCF_RENDEROPTS;
+               device_info->caps.accel    = SH7722_SUPPORTED_DRAWINGFUNCTIONS |
+                                            SH7722_SUPPORTED_BLITTINGFUNCTIONS;
+               device_info->caps.drawing  = SH7722_SUPPORTED_DRAWINGFLAGS;
+               device_info->caps.blitting = SH7722_SUPPORTED_BLITTINGFLAGS;
+
+               /* Change font format for acceleration. */
+               if (!dfb_config->software_only) {
+                    dfb_config->font_format  = DSPF_ARGB;
+                    dfb_config->font_premult = false;
+               }
+               break;
+
+          case 7723:
+               /* Reset the drawing engine. */
+               sh7723EngineReset( sdrv, sdev );
+
+               /* Fill in the device info. */
+               snprintf( device_info->name,   DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH,   "SH7723" );
+               snprintf( device_info->vendor, DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "Renesas" );
+
+               /* Set device limitations. */
+               device_info->limits.surface_byteoffset_alignment = 512;
+               device_info->limits.surface_bytepitch_alignment  = 64;
+
+               /* Set device capabilities. */
+               device_info->caps.flags    = CCF_CLIPPING | CCF_RENDEROPTS;
+               device_info->caps.accel    = SH7723_SUPPORTED_DRAWINGFUNCTIONS | \
+                                            SH7723_SUPPORTED_BLITTINGFUNCTIONS;
+               device_info->caps.drawing  = SH7723_SUPPORTED_DRAWINGFLAGS;
+               device_info->caps.blitting = SH7723_SUPPORTED_BLITTINGFLAGS;
+
+               break;
+
+          default:
+               D_BUG( "unexpected device" );
+               return DFB_BUG;
+     }
+
 
      /* Wait for idle BEU. */
      while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
@@ -332,7 +392,7 @@ driver_close_driver( CoreGraphicsDevice *device,
                      void               *driver_data )
 {
      SH7722DriverData    *sdrv   = driver_data;
-     SH7722GfxSharedArea *shared = sdrv->gfx_shared;
+     SH772xGfxSharedArea *shared = sdrv->gfx_shared;
 
      (void) shared;
 
@@ -352,7 +412,7 @@ driver_close_driver( CoreGraphicsDevice *device,
      SH7722_JPEG_Shutdown();
 
      /* Unmap shared area. */
-     munmap( (void*) sdrv->gfx_shared, direct_page_align( sizeof(SH7722GfxSharedArea) ) );
+     munmap( (void*) sdrv->gfx_shared, direct_page_align( sizeof(SH772xGfxSharedArea) ) );
 
      /* Close Drawing Engine device. */
      close( sdrv->gfx_fd );
