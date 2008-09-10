@@ -34,6 +34,7 @@
 #include <string.h>
 
 #include <directfb.h>
+#include <directfb_util.h>
 
 #include <direct/conf.h>
 #include <direct/log.h>
@@ -177,100 +178,29 @@ static const char *config_usage =
      "  vsync-none:    disable polling for vertical retrace.\n"
      "\n";
 
-typedef struct {
-     const char            *string;
-     DFBSurfacePixelFormat  format;
-} FormatString;
-
-static const FormatString format_strings[] = {
-     { "A1",       DSPF_A1       },
-     { "A4",       DSPF_A4       },
-     { "A8",       DSPF_A8       },
-     { "ALUT44",   DSPF_ALUT44   },
-     { "ARGB",     DSPF_ARGB     },
-     { "ARGB1555", DSPF_ARGB1555 },
-     { "ARGB1666", DSPF_ARGB1666 },
-     { "ARGB2554", DSPF_ARGB2554 },
-     { "ARGB4444", DSPF_ARGB4444 },
-     { "ARGB6666", DSPF_ARGB6666 },
-     { "AYUV",     DSPF_AYUV     },
-     { "AiRGB",    DSPF_AiRGB    },
-     { "BGR555",   DSPF_BGR555   },
-     { "I420",     DSPF_I420     },
-     { "LUT2",     DSPF_LUT2     },
-     { "LUT8",     DSPF_LUT8     },
-     { "NV12",     DSPF_NV12     },
-     { "NV16",     DSPF_NV16     },
-     { "NV21",     DSPF_NV21     },
-     { "RGB16",    DSPF_RGB16    },
-     { "RGB18",    DSPF_RGB18    },
-     { "RGB24",    DSPF_RGB24    },
-     { "RGB32",    DSPF_RGB32    },
-     { "RGB332",   DSPF_RGB332   },
-     { "RGB444",   DSPF_RGB444   },
-     { "RGB555",   DSPF_RGB555   },
-     { "UYVY",     DSPF_UYVY     },
-     { "YUY2",     DSPF_YUY2     },
-     { "YV12",     DSPF_YV12     },
-};
-
-#define NUM_FORMAT_STRINGS D_ARRAY_SIZE(format_strings)
-
-static const FormatString font_format_strings[] = {
-     { "A1",       DSPF_A1       },
-     { "A4",       DSPF_A4       },
-     { "A8",       DSPF_A8       },
-     { "ARGB",     DSPF_ARGB     },
-     { "ARGB1555", DSPF_ARGB1555 },
-     { "ARGB2554", DSPF_ARGB2554 },
-     { "ARGB4444", DSPF_ARGB4444 },
-     { "AiRGB",    DSPF_AiRGB    },
-     { "LUT2",     DSPF_LUT2     }
-};
-
-#define NUM_FONT_FORMAT_STRINGS D_ARRAY_SIZE(font_format_strings)
+/**********************************************************************************************************************/
 
 /* serial mouse device names */
 #define DEV_NAME     "/dev/mouse"
 #define DEV_NAME_GPM "/dev/gpmdata"
 
-static const u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
-static const u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff };
-
-static int
-format_string_compare (const void *key,
-                       const void *base)
-{
-     return strcmp ((const char *) key, ((const FormatString *) base)->string);
-}
+/**********************************************************************************************************************/
 
 DFBSurfacePixelFormat
 dfb_config_parse_pixelformat( const char *format )
 {
-     FormatString *format_string;
+     int    i;
+     size_t length = strlen(format);
 
-     format_string = bsearch( format, format_strings,
-                              NUM_FORMAT_STRINGS, sizeof(FormatString),
-                              format_string_compare );
-     if (!format_string)
-          return DSPF_UNKNOWN;
+     for (i=0; dfb_pixelformat_names[i].format != DSPF_UNKNOWN; i++) {
+          if (!strncasecmp( format, dfb_pixelformat_names[i].name, length ))
+               return dfb_pixelformat_names[i].format;
+     }
 
-     return format_string->format;
+     return DSPF_UNKNOWN;
 }
 
-static DFBSurfacePixelFormat
-parse_font_format( const char *format )
-{
-     FormatString *format_string;
-
-     format_string = bsearch( format, font_format_strings,
-                              NUM_FONT_FORMAT_STRINGS, sizeof(FormatString),
-                              format_string_compare );
-     if (!format_string)
-          return DSPF_UNKNOWN;
-
-     return format_string->format;
-}
+/**********************************************************************************************************************/
 
 static void
 print_config_usage( void )
@@ -565,7 +495,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                DFBSurfacePixelFormat format;
 
-               format = parse_font_format( value );
+               format = dfb_config_parse_pixelformat( value );
                if (format == DSPF_UNKNOWN) {
                     D_ERROR("DirectFB/Config 'font-format': Could not parse format!\n");
                     return DFB_INVARG;

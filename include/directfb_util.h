@@ -39,6 +39,8 @@ extern "C"
 {
 #endif
 
+#include <directfb_strings.h>
+
 #include <direct/types.h>
 #include <direct/debug.h>
 
@@ -396,6 +398,10 @@ static inline bool dfb_line_segment_intersect( const DFBRegion *line,
 }
 
 
+/*
+ * Copied declaration of DFBPixelFormatName from directfb_strings.h
+ */
+extern const struct DFBPixelFormatName dfb_pixelformat_names[];
 
 
 const char *dfb_input_event_type_name ( DFBInputEventType     type );

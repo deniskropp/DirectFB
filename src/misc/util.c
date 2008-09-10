@@ -47,6 +47,12 @@
 
 D_DEBUG_DOMAIN( DFB_Updates, "DirectFB/Updates", "DirectFB Updates" );
 
+/**********************************************************************************************************************/
+
+const DirectFBPixelFormatNames( dfb_pixelformat_names );
+
+/**********************************************************************************************************************/
+
 bool
 dfb_region_intersect( DFBRegion *region,
                       int x1, int y1, int x2, int y2 )
