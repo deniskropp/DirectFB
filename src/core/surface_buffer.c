@@ -929,11 +929,19 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
                     u16 *cbcr = (u16*)(data8 + surface->config.size.h * lock.pitch);
 
                     for (n=0, n3=0; n<surface->config.size.w/2; n++, n3+=6) {
+#ifdef WORDS_BIGENDIAN
                          YCBCR_TO_RGB( data8[n*2+0], cbcr[n] >> 8, cbcr[n] & 0xff,
                                        buf_p[n3+0], buf_p[n3+1], buf_p[n3+2] );
 
                          YCBCR_TO_RGB( data8[n*2+1], cbcr[n] >> 8, cbcr[n] & 0xff,
                                        buf_p[n3+3], buf_p[n3+4], buf_p[n3+5] );
+#else
+                         YCBCR_TO_RGB( data8[n*2+0], cbcr[n] & 0xff, cbcr[n] >> 8,
+                                       buf_p[n3+0], buf_p[n3+1], buf_p[n3+2] );
+
+                         YCBCR_TO_RGB( data8[n*2+1], cbcr[n] & 0xff, cbcr[n] >> 8,
+                                       buf_p[n3+3], buf_p[n3+4], buf_p[n3+5] );
+#endif
                     }
                     break;
                }

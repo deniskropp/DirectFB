@@ -3574,6 +3574,20 @@ static void Sacc_to_Aop_nv12( GenefxState *gfxs )
                     if (cr & 0xFF00)
                          cr = 0xFF;
                          
+#ifdef WORDS_BIGENDIAN
+                    *Duv = cr | (cb << 8);
+               }
+               else if (!(S[0].YUV.a & 0xF000)) {
+                    cb = ((*Duv >> 8)   + ((S[0].YUV.u & 0xFF00) ? 0xFF : S[0].YUV.u)) >> 1;
+                    cr = ((*Duv & 0xFF) + ((S[0].YUV.v & 0xFF00) ? 0xFF : S[0].YUV.v)) >> 1;
+                    *Duv = cr | (cb << 8);
+               }
+               else if (!(S[1].YUV.a & 0xF000)) {
+                    cb = ((*Duv >> 8)   + ((S[1].YUV.u & 0xFF00) ? 0xFF : S[1].YUV.u)) >> 1;
+                    cr = ((*Duv & 0xFF) + ((S[1].YUV.v & 0xFF00) ? 0xFF : S[1].YUV.v)) >> 1;
+                    *Duv = cr | (cb << 8);
+               }
+#else
                     *Duv = cb | (cr << 8);
                }
                else if (!(S[0].YUV.a & 0xF000)) {
@@ -3586,6 +3600,7 @@ static void Sacc_to_Aop_nv12( GenefxState *gfxs )
                     cr = ((*Duv >> 8)   + ((S[1].YUV.v & 0xFF00) ? 0xFF : S[1].YUV.v)) >> 1;
                     *Duv = cb | (cr << 8);
                }
+#endif
                
                S += 2;
                Duv++;
@@ -4146,6 +4161,20 @@ static void Sacc_Sto_Aop_nv12( GenefxState *gfxs )
                     if (cr & 0xFF00)
                          cr = 0xFF;
                          
+#ifdef WORDS_BIGENDIAN
+                    *Duv = cr | (cb << 8);
+               }
+               else if (!(S0->YUV.a & 0xF000)) {
+                    cb = ((*Duv >> 8)   + ((S0->YUV.u & 0xFF00) ? 0xFF : S0->YUV.u)) >> 1;
+                    cr = ((*Duv & 0xFF) + ((S0->YUV.v & 0xFF00) ? 0xFF : S0->YUV.v)) >> 1;
+                    *Duv = cr | (cb << 8);
+               }
+               else if (!(S1->YUV.a & 0xF000)) {
+                    cb = ((*Duv >> 8)   + ((S1->YUV.u & 0xFF00) ? 0xFF : S1->YUV.u)) >> 1;
+                    cr = ((*Duv & 0xFF) + ((S1->YUV.v & 0xFF00) ? 0xFF : S1->YUV.v)) >> 1;
+                    *Duv = cr | (cb << 8);
+               }
+#else
                     *Duv = cb | (cr << 8);
                }
                else if (!(S0->YUV.a & 0xF000)) {
@@ -4158,6 +4187,7 @@ static void Sacc_Sto_Aop_nv12( GenefxState *gfxs )
                     cr = ((*Duv >> 8)   + ((S1->YUV.v & 0xFF00) ? 0xFF : S1->YUV.v)) >> 1;
                     *Duv = cb | (cr << 8);
                }
+#endif
                
                Duv++;
 
@@ -4204,6 +4234,20 @@ static void Sacc_Sto_Aop_nv21( GenefxState *gfxs )
                     if (cr & 0xFF00)
                          cr = 0xFF;
                          
+#ifdef WORDS_BIGENDIAN
+                    *Dvu = cb | (cr << 8);
+               }
+               else if (!(S0->YUV.a & 0xF000)) {
+                    cb = ((*Dvu & 0xFF) + ((S0->YUV.u & 0xFF00) ? 0xFF : S0->YUV.u)) >> 1;
+                    cr = ((*Dvu >> 8)   + ((S0->YUV.v & 0xFF00) ? 0xFF : S0->YUV.v)) >> 1;
+                    *Dvu = cb | (cr << 8);
+               }
+               else if (!(S1->YUV.a & 0xF000)) {
+                    cb = ((*Dvu & 0xFF) + ((S1->YUV.u & 0xFF00) ? 0xFF : S1->YUV.u)) >> 1;
+                    cr = ((*Dvu >> 8)   + ((S1->YUV.v & 0xFF00) ? 0xFF : S1->YUV.v)) >> 1;
+                    *Dvu = cb | (cr << 8);
+               }
+#else
                     *Dvu = cr | (cb << 8);
                }
                else if (!(S0->YUV.a & 0xF000)) {
@@ -4216,6 +4260,7 @@ static void Sacc_Sto_Aop_nv21( GenefxState *gfxs )
                     cr = ((*Dvu & 0xFF) + ((S1->YUV.v & 0xFF00) ? 0xFF : S1->YUV.v)) >> 1;
                     *Dvu = cr | (cb << 8);
                }
+#endif
                
                Dvu++;
 
