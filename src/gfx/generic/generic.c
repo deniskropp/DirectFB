@@ -6240,6 +6240,66 @@ static GenefxFunc Bop_argb_blend_alphachannel_src_invsrc_Aop_PFI[DFB_NUM_PIXELFO
 
 /**********************************************************************************************************************/
 
+/* change the last value to adjust the size of the device (1-4) */
+#define SET_PIXEL_DUFFS_DEVICE( D, S, w ) \
+     SET_PIXEL_DUFFS_DEVICE_N( D, S, w, 3 )
+
+#define SET_PIXEL( D, S )                                   \
+do {                                                        \
+     int invsrc = 256 - (S >> 24);                          \
+                                                            \
+     u32 Drb = ((D & 0x00ff00ff) * invsrc) >> 8;            \
+     u32 Dag = ((D & 0xff00ff00) >> 8) * invsrc;            \
+                                                            \
+     D = S + (Drb & 0x00ff00ff) + (Dag & 0xff00ff00);       \
+} while (0)
+
+static void Bop_argb_blend_alphachannel_one_invsrc_Aop_argb( GenefxState *gfxs )
+{
+     int  w = gfxs->length;
+     u32 *S = gfxs->Bop[0];
+     u32 *D = gfxs->Aop[0];
+
+     SET_PIXEL_DUFFS_DEVICE( D, S, w );
+}
+
+#undef SET_PIXEL_DUFFS_DEVICE
+#undef SET_PIXEL
+
+static GenefxFunc Bop_argb_blend_alphachannel_one_invsrc_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
+     NULL,                                             /* DSPF_ARGB1555 */
+     NULL,                                             /* DSPF_RGB16 */
+     NULL,                                             /* DSPF_RGB24 */
+     Bop_argb_blend_alphachannel_one_invsrc_Aop_argb,  /* DSPF_RGB32 */
+     Bop_argb_blend_alphachannel_one_invsrc_Aop_argb,  /* DSPF_ARGB */
+     NULL,                                             /* DSPF_A8 */
+     NULL,                                             /* DSPF_YUY2 */
+     NULL,                                             /* DSPF_RGB332 */
+     NULL,                                             /* DSPF_UYVY */
+     NULL,                                             /* DSPF_I420 */
+     NULL,                                             /* DSPF_YV12 */
+     NULL,                                             /* DSPF_LUT8 */
+     NULL,                                             /* DSPF_ALUT44 */
+     NULL,                                             /* DSPF_AiRGB */
+     NULL,                                             /* DSPF_A1 */
+     NULL,                                             /* DSPF_NV12 */
+     NULL,                                             /* DSPF_NV16 */
+     NULL,                                             /* DSPF_ARGB2554 */
+     NULL,                                             /* DSPF_ARGB4444 */
+     NULL,                                             /* DSPF_NV21 */
+     NULL,                                             /* DSPF_AYUV */
+     NULL,                                             /* DSPF_A4 */
+     NULL,                                             /* DSPF_ARGB1666 */
+     NULL,                                             /* DSPF_ARGB6666 */
+     NULL,                                             /* DSPF_RGB18 */
+     NULL,                                             /* DSPF_LUT2 */
+     NULL,                                             /* DSPF_RGB444 */
+     NULL,                                             /* DSPF_RGB555 */
+     NULL,                                             /* DSPF_BGR555 */
+};
+
+/**********************************************************************************************************************/
+
 /* A8/A1 to YCbCr */
 static void Dacc_Alpha_to_YCbCr( GenefxState *gfxs )
 {
@@ -7018,6 +7078,17 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                         Bop_argb_blend_alphachannel_src_invsrc_Aop_PFI[dst_pfi])
                     {
                          *funcs++ = Bop_argb_blend_alphachannel_src_invsrc_Aop_PFI[dst_pfi];
+                         break;
+                    }
+               }
+               if (state->blittingflags == DSBLIT_BLEND_ALPHACHANNEL &&
+                   state->src_blend     == DSBF_ONE                  &&
+                   state->dst_blend     == DSBF_INVSRCALPHA)
+               {
+                    if (gfxs->src_format == DSPF_ARGB &&
+                        Bop_argb_blend_alphachannel_one_invsrc_Aop_PFI[dst_pfi])
+                    {
+                         *funcs++ = Bop_argb_blend_alphachannel_one_invsrc_Aop_PFI[dst_pfi];
                          break;
                     }
                }
