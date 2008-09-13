@@ -693,7 +693,8 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
       * available.
       */
      if (dst_buffer->policy == CSP_SYSTEMONLY || /* Special check required if driver does not check itself. */
-                                                 (!(card->caps.flags & CCF_RENDEROPTS) && state->render_options))
+                                                 ( !(card->caps.flags & CCF_RENDEROPTS) &&
+                                                    (state->render_options & DSRO_MATRIX) ))
      {
           /* Clear 'accelerated functions'. */
           state->accel   = DFXL_NONE;
