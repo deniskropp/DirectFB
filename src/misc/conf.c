@@ -193,6 +193,11 @@ dfb_config_parse_pixelformat( const char *format )
      size_t length = strlen(format);
 
      for (i=0; dfb_pixelformat_names[i].format != DSPF_UNKNOWN; i++) {
+          if (!strcasecmp( format, dfb_pixelformat_names[i].name ))
+               return dfb_pixelformat_names[i].format;
+     }
+
+     for (i=0; dfb_pixelformat_names[i].format != DSPF_UNKNOWN; i++) {
           if (!strncasecmp( format, dfb_pixelformat_names[i].name, length ))
                return dfb_pixelformat_names[i].format;
      }
