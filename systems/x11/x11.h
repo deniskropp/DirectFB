@@ -64,6 +64,9 @@ typedef struct {
      FusionSHMPoolShared *data_shmpool;
  
      CoreSurfacePool     *x11image_pool;
+
+     CoreSurfacePool     *glx_pool;
+
      CoreSurfacePool     *vpsmem_pool;
      unsigned int         vpsmem_length;
  

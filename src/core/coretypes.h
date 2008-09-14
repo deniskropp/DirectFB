@@ -68,6 +68,7 @@ typedef struct __DFB_CoreLayerRegion         CoreLayerRegion;
 typedef struct __DFB_CoreLayerRegionConfig   CoreLayerRegionConfig;
 
 typedef struct __DFB_CoreSurface             CoreSurface;
+typedef struct __DFB_CoreSurfaceAccessor     CoreSurfaceAccessor;
 typedef struct __DFB_CoreSurfaceAllocation   CoreSurfaceAllocation;
 typedef struct __DFB_CoreSurfaceBuffer       CoreSurfaceBuffer;
 typedef struct __DFB_CoreSurfaceBufferLock   CoreSurfaceBufferLock;

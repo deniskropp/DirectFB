@@ -90,10 +90,13 @@ x11InitPool( CoreDFB                    *core,
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_ASSERT( ret_desc != NULL );
 
-     ret_desc->caps     = CSPCAPS_NONE;
-     ret_desc->access   = CSAF_CPU_READ | CSAF_CPU_WRITE | CSAF_GPU_READ | CSAF_GPU_WRITE | CSAF_SHARED;
-     ret_desc->types    = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
-     ret_desc->priority = CSPP_PREFERED;
+     ret_desc->caps              = CSPCAPS_VIRTUAL;
+     ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+     ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
+     ret_desc->priority          = CSPP_PREFERED;
+
+     /* For showing our X11 window */
+     ret_desc->access[CSAID_LAYER0] = CSAF_READ;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "X11 Shm Images" );
 
@@ -296,8 +299,7 @@ x11Lock( CoreSurfacePool       *pool,
                     return D_OOSHM();
           }
 
-          lock->addr   = alloc->ptr;
-          lock->offset = 0;
+          lock->addr = alloc->ptr;
      }
 
      lock->pitch = alloc->pitch;

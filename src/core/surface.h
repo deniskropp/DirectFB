@@ -123,15 +123,41 @@ typedef enum {
 typedef enum {
      CSAF_NONE           = 0x00000000,
 
-     CSAF_GPU_READ       = 0x00000001,  /* accelerator can read */
-     CSAF_GPU_WRITE      = 0x00000002,  /* accelerator can write */
-     CSAF_CPU_READ       = 0x00000004,  /* software can read */
-     CSAF_CPU_WRITE      = 0x00000008,  /* software can write */
+     CSAF_READ           = 0x00000001,  /* accessor may read */
+     CSAF_WRITE          = 0x00000002,  /* accessor may write */
 
-     CSAF_SHARED         = 0x00000010,  /* other processes can read/write as well */
+     CSAF_SHARED         = 0x00000010,  /* other processes can read/write at the same time (shared mapping) */
 
-     CSAF_ALL            = 0x0000001F
+     CSAF_ALL            = 0x00000013
 } CoreSurfaceAccessFlags;
+
+typedef enum {
+     CSAID_NONE          = 0x00000000,  /* none or unknown accessor */
+
+     CSAID_CPU           = 0x00000001,  /* local processor, where DirectFB is running on, could be app or sw fallback */
+
+     CSAID_GPU           = 0x00000002,  /* primary accelerator, as in traditional 'gfxcard' core (ACCEL0) */
+
+     CSAID_ACCEL0        = 0x00000002,  /* accelerators, decoders etc. (CSAID_ACCEL0 + accel_id<0-5>) */
+     CSAID_ACCEL1        = 0x00000003,
+     CSAID_ACCEL2        = 0x00000004,
+     CSAID_ACCEL3        = 0x00000005,
+     CSAID_ACCEL4        = 0x00000006,
+     CSAID_ACCEL5        = 0x00000007,
+
+     CSAID_LAYER0        = 0x00000008,  /* display layers, registered by layer core (CSAID_LAYER0 + layer_id<0-7>) */
+     CSAID_LAYER1        = 0x00000009,
+     CSAID_LAYER2        = 0x0000000a,
+     CSAID_LAYER3        = 0x0000000b,
+     CSAID_LAYER4        = 0x0000000c,
+     CSAID_LAYER5        = 0x0000000d,
+     CSAID_LAYER6        = 0x0000000e,
+     CSAID_LAYER7        = 0x0000000f,
+
+     _CSAID_NUM          = 0x00000010,  /* number of statically assigned IDs for usage in static arrays */
+
+     CSAID_ANY           = 0x00000100,  /* any other accessor needs to be registered using IDs starting from here */
+} CoreSurfaceAccessorID;
 
 typedef enum {
      CSBR_FRONT          = 0,
@@ -225,6 +251,7 @@ DFBResult dfb_surface_destroy_buffers( CoreSurface                 *surface );
 
 DFBResult dfb_surface_lock_buffer   ( CoreSurface                  *surface,
                                       CoreSurfaceBufferRole         role,
+                                      CoreSurfaceAccessorID         accessor,
                                       CoreSurfaceAccessFlags        access,
                                       CoreSurfaceBufferLock        *ret_lock );
 

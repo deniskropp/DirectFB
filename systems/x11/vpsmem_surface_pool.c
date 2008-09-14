@@ -125,11 +125,17 @@ vpsmemInitPool( CoreDFB                    *core,
      if (ret)
           return ret;
 
-     ret_desc->caps     = CSPCAPS_NONE;
-     ret_desc->access   = CSAF_CPU_READ | CSAF_CPU_WRITE | CSAF_GPU_READ | CSAF_GPU_WRITE | CSAF_SHARED;
-     ret_desc->types    = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
-     ret_desc->priority = CSPP_DEFAULT;
-     ret_desc->size     = data->length;
+     ret_desc->caps              = CSPCAPS_PHYSICAL | CSPCAPS_VIRTUAL;
+     ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+     ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
+     ret_desc->priority          = CSPP_DEFAULT;
+     ret_desc->size              = data->length;
+
+     /* For testing... */
+     ret_desc->access[CSAID_ACCEL1] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+     ret_desc->access[CSAID_ACCEL2] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+     ret_desc->access[CSAID_ACCEL3] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+     ret_desc->access[CSAID_ACCEL4] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "Virtual Physical" );
 

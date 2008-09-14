@@ -102,7 +102,7 @@ load_foo( CoreDFB *core, WMShared *shared )
           return ret;
      }
 
-     ret = dfb_surface_lock_buffer( shared->foo_surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
+     ret = dfb_surface_lock_buffer( shared->foo_surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
      if (ret) {
           D_DERROR( ret, "UniQuE/WM: Could not lock surface for border tiles!\n" );
           dfb_surface_unref( shared->foo_surface );

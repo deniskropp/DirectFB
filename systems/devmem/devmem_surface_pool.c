@@ -115,10 +115,21 @@ devmemInitPool( CoreDFB                    *core,
      if (ret)
           return ret;
 
-     ret_desc->caps     = CSPCAPS_NONE;
-     ret_desc->access   = CSAF_CPU_READ | CSAF_CPU_WRITE | CSAF_GPU_READ | CSAF_GPU_WRITE | CSAF_SHARED;
-     ret_desc->types    = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
-     ret_desc->priority = CSPP_DEFAULT;
+     ret_desc->caps              = CSPCAPS_PHYSICAL | CSPCAPS_VIRTUAL;
+     ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+     ret_desc->access[CSAID_GPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+     ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
+     ret_desc->priority          = CSPP_DEFAULT;
+
+     /* For hardware layers */
+     ret_desc->access[CSAID_LAYER0] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER1] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER2] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER3] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER4] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER5] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER6] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER7] = CSAF_READ;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "/dev/mem" );
 

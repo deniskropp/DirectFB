@@ -6557,7 +6557,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      bool         src_ycbcr   = false;
      bool         dst_ycbcr   = false;
 
-     CoreSurfaceAccessFlags access = CSAF_CPU_WRITE;
+     CoreSurfaceAccessFlags access = CSAF_WRITE;
 
      if (dfb_config->hardware_only) {
           if (dfb_config->software_warn) {
@@ -6604,13 +6604,13 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
           if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
                                       DSBLIT_BLEND_COLORALPHA   |
                                       DSBLIT_DST_COLORKEY))
-               access |= CSAF_CPU_READ;
+               access |= CSAF_READ;
      }
      else if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_DST_COLORKEY))
-          access |= CSAF_CPU_READ;
+          access |= CSAF_READ;
 
      /* Lock destination */
-     ret = dfb_surface_lock_buffer( destination, state->to, access, &state->dst );
+     ret = dfb_surface_lock_buffer( destination, state->to, CSAID_CPU, access, &state->dst );
      if (ret) {
           D_DERROR( ret, "DirectFB/Genefx: Could not lock destination!\n" );
           return false;
@@ -6659,7 +6659,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 #endif
 
           /* Lock source */
-          ret = dfb_surface_lock_buffer( source, state->from, CSAF_CPU_READ, &state->src );
+          ret = dfb_surface_lock_buffer( source, state->from, CSAID_CPU, CSAF_READ, &state->src );
           if (ret) {
                D_DERROR( ret, "DirectFB/Genefx: Could not lock source!\n" );
                dfb_surface_unlock_buffer( destination, &state->dst );

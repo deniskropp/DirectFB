@@ -32,6 +32,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <directfb_util.h>
+
 #include <direct/mem.h>
 
 #include "x11.h"
@@ -53,11 +55,16 @@ error_handler( Display *display, XErrorEvent *event )
 }
 
 Bool
-dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight)
+dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight, DFBSurfacePixelFormat format)
 {
-     XWindow* xw = (XWindow *)D_CALLOC(1, sizeof(XWindow));
+     XWindow              *xw;
+     XSetWindowAttributes  attr = { 0 };
 
-     XSetWindowAttributes attr = { 0 };
+     D_INFO( "X11/Window: Creating %4dx%4d %s window...\n", iWidth, iHeight, dfb_pixelformat_name(format) );
+
+     xw = D_CALLOC( 1, sizeof(XWindow) );
+     if (!xw)
+          return D_OOM();
 
      /* We set the structure as needed for our window */
      xw->width   = iWidth;
@@ -66,8 +73,8 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
 
      xw->screenptr = DefaultScreenOfDisplay(xw->display);
      xw->screennum = DefaultScreen(xw->display);
-     xw->visual    = DefaultVisualOfScreen(xw->screenptr);
-     xw->depth     = DefaultDepth( xw->display, xw->screennum );
+     xw->depth     = DFB_COLOR_BITS_PER_PIXEL(format) + DFB_ALPHA_BITS_PER_PIXEL(format);
+     xw->visual    = dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(format)] ?: DefaultVisualOfScreen(xw->screenptr);
 
      attr.event_mask = 
             ButtonPressMask
@@ -84,7 +91,7 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
                                  RootWindowOfScreen(xw->screenptr),
                                  iXPos, iYPos, iWidth, iHeight, 0, xw->depth, InputOutput,
                                  xw->visual, CWEventMask, &attr );
-
+     XSync( xw->display, False );
      if (!xw->window) {
           D_FREE( xw );
           XUnlockDisplay( dfb_x11->display );

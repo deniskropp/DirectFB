@@ -224,7 +224,7 @@ Construct( IDirectFBFont      *thiz,
      {
           CoreSurfaceBufferLock lock;
 
-          ret = dfb_surface_lock_buffer( surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
+          ret = dfb_surface_lock_buffer( surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
           if (ret) {
                D_DERROR( ret, "IDirectFBFont_Default: Could not lock surface buffer!\n" );
           }

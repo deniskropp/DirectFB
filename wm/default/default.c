@@ -421,7 +421,7 @@ window_at_pointer( CoreWindowStack *stack,
                     DFBSurfacePixelFormat  format  = surface->config.format;
                     CoreSurfaceBufferLock  lock;
 
-                    if (dfb_surface_lock_buffer( surface, CSBR_FRONT, CSAF_CPU_READ, &lock ) == DFB_OK) {
+                    if (dfb_surface_lock_buffer( surface, CSBR_FRONT, CSAID_CPU, CSAF_READ, &lock ) == DFB_OK) {
                          void *data  = lock.addr;
                          int   pitch = lock.pitch;
 

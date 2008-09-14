@@ -506,76 +506,25 @@ x11EventThread( DirectThread *thread, void *driver_data )
      DFBX11       *dfb_x11 = data->dfb_x11;
 
      while (!data->stop) {
-          unsigned int  pull = 100;
+          unsigned int  pull = 23;
           XEvent        xEvent; 
           DFBInputEvent dfbEvent;
 
           /* FIXME: Detect key repeats, we're receiving KeyPress, KeyRelease, KeyPress, KeyRelease... !!?? */
 
-#if 1
-          if (data->thread)
-               direct_thread_testcancel( data->thread );
-
           if (!dfb_x11->xw || !dfb_x11->xw->window) {
                /* no window, so no event */
-               usleep( 20000 );
+               usleep( 50000 );
                continue;
           }
 
-
-          XNextEvent( dfb_x11->display, &xEvent );
-
-          while (pull-- && !data->stop) {
-               switch (xEvent.type) {
-                    case ButtonPress:
-                    case ButtonRelease:
-                         motion_realize( data );
-                    case MotionNotify:
-                         handleMouseEvent( &xEvent, data ); // crash ???
-                         break;
-
-                    case KeyPress:
-                    case KeyRelease: {
-                         motion_realize( data );
-
-                         dfbEvent.type     = (xEvent.type == KeyPress) ? DIET_KEYPRESS : DIET_KEYRELEASE;
-                         dfbEvent.flags    = DIEF_KEYCODE | DIEF_TIMESTAMP;
-                         dfbEvent.key_code = xEvent.xkey.keycode;
-
-                         dfbEvent.timestamp.tv_sec  =  xEvent.xkey.time / 1000;
-                         dfbEvent.timestamp.tv_usec = (xEvent.xkey.time % 1000) * 1000;
-
-                         dfb_input_dispatch( data->device, &dfbEvent );
-                         break;
-                    }
-
-                    case Expose:
-                         handle_expose( &xEvent.xexpose );
-                         break;
-				
-                    case DestroyNotify:
-                         /* this event is mainly to unblock XNextEvent. */
-                         break;
-
-                    default:
-                         break;
-               }
-
-               if (pull && !data->stop) {
-                    XLockDisplay( dfb_x11->display );
-
-                    if (!XCheckMaskEvent( dfb_x11->display, ~0, &xEvent ))
-                         pull = 0;
-
-                    XUnlockDisplay( dfb_x11->display );
-               }
-          }
-#else
-          usleep(10000);
+          usleep( 10000 );
 
           XLockDisplay( dfb_x11->display );
 
-          while (XCheckMaskEvent( dfb_x11->display, ~0, &xEvent )) {
+          while (!data->stop && pull-- && XPending( dfb_x11->display )) {
+               XNextEvent( dfb_x11->display, &xEvent );
+
                XUnlockDisplay( dfb_x11->display );
 
                switch (xEvent.type) {
@@ -605,6 +554,10 @@ x11EventThread( DirectThread *thread, void *driver_data )
                          handle_expose( &xEvent.xexpose );
                          break;
 
+                    case DestroyNotify:
+                         /* this event is mainly to unblock XNextEvent. */
+                         break;
+
                     default:
                          break;
                }
@@ -613,10 +566,9 @@ x11EventThread( DirectThread *thread, void *driver_data )
           }
 
           XUnlockDisplay( dfb_x11->display );
-#endif
-          motion_realize( data );
 
-          direct_thread_testcancel( thread );
+          if (!data->stop)
+               motion_realize( data );
      }
 
      return NULL;

@@ -38,9 +38,12 @@
 
 
 typedef enum {
-     CSPCAPS_NONE   = 0x00000000,
+     CSPCAPS_NONE        = 0x00000000,
 
-     CSPCAPS_ALL    = 0x00000000
+     CSPCAPS_PHYSICAL    = 0x00000001,  /* pool provides physical address to buffer */
+     CSPCAPS_VIRTUAL     = 0x00000002,  /* pool provides virtual address to buffer */
+
+     CSPCAPS_ALL         = 0x00000003
 } CoreSurfacePoolCapabilities;
 
 typedef enum {
@@ -54,12 +57,12 @@ typedef enum {
  */
 #define DFB_SURFACE_POOL_ABI_VERSION           1
 
-#define DFB_SURFACE_POOL_DESC_NAME_LENGTH     40
+#define DFB_SURFACE_POOL_DESC_NAME_LENGTH     44
 
 
 typedef struct {
      CoreSurfacePoolCapabilities   caps;
-     CoreSurfaceAccessFlags        access;
+     CoreSurfaceAccessFlags        access[_CSAID_NUM];
      CoreSurfaceTypeFlags          types;
      CoreSurfacePoolPriority       priority;
      char                          name[DFB_SURFACE_POOL_DESC_NAME_LENGTH];
@@ -200,6 +203,7 @@ typedef DFBEnumerationResult (*CoreSurfaceAllocCallback)( CoreSurfaceAllocation 
 
 
 DFBResult dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
+                                       CoreSurfaceAccessorID    accessor,
                                        CoreSurfaceAccessFlags   access,
                                        CoreSurfacePool        **ret_pools,
                                        unsigned int             max_pools,
@@ -209,6 +213,7 @@ DFBResult dfb_surface_pools_enumerate( CoreSurfacePoolCallback  callback,
                                        void                    *ctx );
 
 DFBResult dfb_surface_pools_allocate ( CoreSurfaceBuffer       *buffer,
+                                       CoreSurfaceAccessorID    accessor,
                                        CoreSurfaceAccessFlags   access,
                                        CoreSurfaceAllocation  **ret_allocation );
 
@@ -245,6 +250,18 @@ DFBResult dfb_surface_pool_lock      ( CoreSurfacePool         *pool,
 DFBResult dfb_surface_pool_unlock    ( CoreSurfacePool         *pool,
                                        CoreSurfaceAllocation   *allocation,
                                        CoreSurfaceBufferLock   *lock );
+
+DFBResult dfb_surface_pool_read      ( CoreSurfacePool         *pool,
+                                       CoreSurfaceAllocation   *allocation,
+                                       void                    *data,
+                                       int                      pitch,
+                                       const DFBRectangle      *rect );
+
+DFBResult dfb_surface_pool_write     ( CoreSurfacePool         *pool,
+                                       CoreSurfaceAllocation   *allocation,
+                                       void                    *data,
+                                       int                      pitch,
+                                       const DFBRectangle      *rect );
 
 DFBResult dfb_surface_pool_enumerate ( CoreSurfacePool         *pool,
                                        CoreSurfaceAllocCallback  callback,

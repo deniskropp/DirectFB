@@ -26,52 +26,48 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __SYSTEMS_XWINDOW_H__
-#define __SYSTEMS_XWINDOW_H__
+#ifndef __X11SYSTEM__GLX_SURFACE_POOL_H__
+#define __X11SYSTEM__GLX_SURFACE_POOL_H__
 
-#include <X11/Xlib.h>    /* fundamentals X datas structures */
-#include <X11/Xutil.h>   /* datas definitions for various functions */
-#include <X11/keysym.h>  /* for a perfect use of keyboard events */
+#include <GL/glx.h>
 
-#include <X11/extensions/XShm.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
- 
+#include <core/surface_pool.h>
+
+extern const SurfacePoolFuncs glxSurfacePoolFuncs;
 
 
-typedef struct 
-{
-	Display*			display;
-	Window 				window;
-	Screen*				screenptr;
-	int 				screennum;
-	Visual*				visual;
-	GC 					gc;
-	XImage*				ximage;
-    int                 ximage_offset;
-	Colormap 			colormap;
-
-	XShmSegmentInfo*	shmseginfo;
-	unsigned char*		videomemory;
-
-	char*		        virtualscreen;
-	int 				videoaccesstype;
-
-	int 				width;
-	int 				height;
-	int 				depth;
-    int 				bpp;
-
-    /* (Null) cursor stuff*/
-	Pixmap  			pixmp1;
-	Pixmap  			pixmp2;
-	Cursor 				NullCursor;
-} XWindow;
-
-Bool dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight, DFBSurfacePixelFormat format);
-void dfb_x11_close_window(XWindow* pXW);
+typedef void (*GLXBindTexImageEXTProc)   ( Display *dpy, GLXDrawable drawable, int buffer, const int *attrib_list );
+typedef void (*GLXReleaseTexImageEXTProc)( Display *dpy, GLXDrawable drawable, int buffer );
 
 
+typedef struct {
+     int            magic;
 
-#endif /* __SYSTEMS_XWINDOW_H__ */
+     Screen        *screen;
+     Visual        *visual;
+     int            depth;
+
+
+#if GLX_POOL_WINDOW
+     Window         window;
+#endif
+     Pixmap         pixmap;
+     GC             gc;
+
+     GLXFBConfig    config;
+     GLXDrawable    drawable;
+#if GLX_POOL_CONTEXT
+     GLXContext     context;
+#endif
+
+     GLXContext     bound;
+
+     GLuint         texture;
+
+
+     GLXBindTexImageEXTProc        BindTexImageEXT;
+     GLXReleaseTexImageEXTProc     ReleaseTexImageEXT;
+} glxAllocationData;
+
+#endif
 

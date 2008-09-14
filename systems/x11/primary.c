@@ -56,6 +56,7 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
+#include <GL/glx.h>
 
 #include <string.h>
 #include <stdlib.h>
@@ -63,6 +64,7 @@
 #include "xwindow.h"
 #include "x11.h"
 #include "primary.h"
+#include "glx_surface_pool.h"
 
 
 D_DEBUG_DOMAIN( X11_Window, "X11/Window", "X11 Window" );
@@ -420,6 +422,7 @@ update_screen( CoreSurface *surface, const DFBRectangle *clip, CoreSurfaceBuffer
      allocation = lock->allocation;
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
+
      XLockDisplay( dfb_x11->display );
 
      rect.x = rect.y = 0;
@@ -432,6 +435,31 @@ update_screen( CoreSurface *surface, const DFBRectangle *clip, CoreSurfaceBuffer
      }
 
      D_DEBUG_AT( X11_Update, "  -> %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS( &rect ) );
+
+     /* Check for GLX allocation... */
+     if (allocation->pool == dfb_x11->glx_pool && lock->handle) {
+          glxAllocationData *alloc = lock->handle;
+
+          D_MAGIC_ASSERT( alloc, glxAllocationData );
+
+          /* ...and just call SwapBuffers... */
+          //D_DEBUG_AT( X11_Update, "  -> Calling glXSwapBuffers( 0x%lx )...\n", alloc->drawable );
+          //glXSwapBuffers( dfb_x11->display, alloc->drawable );
+
+
+          D_DEBUG_AT( X11_Update, "  -> Copying from GLXPixmap...\n" );
+
+          glXWaitGL();
+
+          XCopyArea( dfb_x11->display, alloc->pixmap, xw->window, xw->gc,
+                     rect.x, rect.y, rect.w, rect.h, rect.x, rect.y );
+
+          glXWaitX();
+
+          XUnlockDisplay( dfb_x11->display );
+
+          return DFB_OK;
+     }
 
      /* Check for our special native allocation... */
      if (allocation->pool == dfb_x11->x11image_pool && lock->handle) {
@@ -527,7 +555,7 @@ dfb_x11_create_window_handler( CoreLayerRegionConfig *config )
           dfb_x11->xw = NULL;
      }
 
-     bool bSucces = dfb_x11_open_window(&xw, 0, 0, config->width, config->height);
+     bool bSucces = dfb_x11_open_window(&xw, 0, 0, config->width, config->height, config->format);
 
      /* Set video mode */
      if ( !bSucces ) {

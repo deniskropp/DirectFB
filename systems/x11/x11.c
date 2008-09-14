@@ -59,6 +59,7 @@
 #include "xwindow.h"
 #include "x11.h"
 #include "x11_surface_pool.h"
+#include "glx_surface_pool.h"
 
 #include "vpsmem_surface_pool.h"
 
@@ -154,8 +155,8 @@ system_initialize( CoreDFB *core, void **data )
           for (n=0; n<depth->nvisuals; n++) {
                Visual *visual = &depth->visuals[n];
 
-               D_DEBUG( "X11/Visual: ID %02lu, depth %d, red 0x%06lx, green 0x%06lx, blue 0x%06lx, %d bits/rgb, %d entries\n",
-                        visual->visualid, depth->depth,
+               D_DEBUG( "X11/Visual: [%2d] ID 0x%02lx, depth %d, red 0x%06lx, green 0x%06lx, blue 0x%06lx, %d bits/rgb, %d entries\n",
+                        n, visual->visualid, depth->depth,
                         visual->red_mask, visual->green_mask, visual->blue_mask,
                         visual->bits_per_rgb, visual->map_entries );
 
@@ -204,6 +205,9 @@ system_initialize( CoreDFB *core, void **data )
 
      fusion_call_init( &dfb_x11->call, call_handler, NULL, dfb_core_world(core) );
 
+     *data = dfb_x11;
+
+
 
      if (dfb_config->video_length) {
           dfb_x11->vpsmem_length = dfb_config->video_length;
@@ -212,6 +216,7 @@ system_initialize( CoreDFB *core, void **data )
      }
 
      dfb_surface_pool_initialize( core, &x11SurfacePoolFuncs, &dfb_x11->x11image_pool );
+     dfb_surface_pool_initialize( core, &glxSurfacePoolFuncs, &dfb_x11->glx_pool );
 
 
      screen = dfb_screens_register( NULL, NULL, &x11PrimaryScreenFuncs );
@@ -220,8 +225,6 @@ system_initialize( CoreDFB *core, void **data )
 
 
      fusion_arena_add_shared_field( dfb_core_arena( core ), "x11", dfb_x11 );
-
-     *data = dfb_x11;
 
      return DFB_OK;
 }
@@ -239,17 +242,23 @@ system_join( CoreDFB *core, void **data )
      dfb_x11 = ret;
      dfb_x11_core = core;
 
+     *data = dfb_x11;
+
+
+
      if (dfb_x11->vpsmem_pool)
           dfb_surface_pool_join( core, dfb_x11->vpsmem_pool, &vpsmemSurfacePoolFuncs );
 
      if (dfb_x11->x11image_pool)
           dfb_surface_pool_join( core, dfb_x11->x11image_pool, &x11SurfacePoolFuncs );
 
+     if (dfb_x11->glx_pool)
+          dfb_surface_pool_join( core, dfb_x11->glx_pool, &glxSurfacePoolFuncs );
+
      screen = dfb_screens_register( NULL, NULL, &x11PrimaryScreenFuncs );
 
      dfb_layers_register( screen, NULL, &x11PrimaryLayerFuncs );
 
-     *data = dfb_x11;
 
      return DFB_OK;
 }
@@ -258,6 +267,9 @@ static DFBResult
 system_shutdown( bool emergency )
 {
      D_ASSERT( dfb_x11 != NULL );
+
+     if (dfb_x11->glx_pool)
+          dfb_surface_pool_destroy( dfb_x11->glx_pool );
 
      if (dfb_x11->x11image_pool)
           dfb_surface_pool_destroy( dfb_x11->x11image_pool );
@@ -287,6 +299,9 @@ static DFBResult
 system_leave( bool emergency )
 {
      D_ASSERT( dfb_x11 != NULL );
+
+     if (dfb_x11->glx_pool)
+          dfb_surface_pool_leave( dfb_x11->glx_pool );
 
      if (dfb_x11->x11image_pool)
           dfb_surface_pool_leave( dfb_x11->x11image_pool );
