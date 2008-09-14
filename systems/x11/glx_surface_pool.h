@@ -48,17 +48,11 @@ typedef struct {
      int            depth;
 
 
-#if GLX_POOL_WINDOW
-     Window         window;
-#endif
      Pixmap         pixmap;
      GC             gc;
 
      GLXFBConfig    config;
      GLXDrawable    drawable;
-#if GLX_POOL_CONTEXT
-     GLXContext     context;
-#endif
 
      GLXContext     bound;
 

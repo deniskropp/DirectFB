@@ -75,50 +75,10 @@ typedef struct {
 
 /**********************************************************************************************************************/
 
-static int
-glxPoolDataSize()
-{
-     return sizeof(glxPoolData);
-}
-
-static int
-glxPoolLocalDataSize()
-{
-     return sizeof(glxPoolLocalData);
-}
-
-static int
-glxAllocationDataSize()
-{
-     return sizeof(glxAllocationData);
-}
-
 static DFBResult
-glxInitPool( CoreDFB                    *core,
-             CoreSurfacePool            *pool,
-             void                       *pool_data,
-             void                       *pool_local,
-             void                       *system_data,
-             CoreSurfacePoolDescription *ret_desc )
+InitLocal( glxPoolLocalData *local,
+           DFBX11           *x11 )
 {
-     glxPoolLocalData *local = pool_local;
-     DFBX11           *x11   = system_data;
-
-     D_DEBUG_AT( GLX_Surfaces, "%s()\n", __FUNCTION__ );
-
-     D_MAGIC_ASSERT( pool, CoreSurfacePool );
-     D_ASSERT( ret_desc != NULL );
-
-     ret_desc->caps              = CSPCAPS_NONE;
-     ret_desc->access[CSAID_GPU] = CSAF_READ | CSAF_WRITE;
-     ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
-     ret_desc->priority          = CSPP_DEFAULT;
-
-     /* For showing our X11 window */
-     ret_desc->access[CSAID_LAYER0] = CSAF_READ;
-
-     snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "GLX Drawables" );
-
      local->display = x11->display;
 
      local->BindTexImageEXT = (GLXBindTexImageEXTProc) glXGetProcAddress( (unsigned char*) "glXBindTexImageEXT" );
@@ -179,7 +139,7 @@ glxInitPool( CoreDFB                    *core,
           XVisualInfo *info = glXGetVisualFromFBConfig( local->display, local->configs[index] );
 
           glXGetFBConfigAttrib( local->display, local->configs[index], GLX_DEPTH_SIZE, &depth );
-          
+
           D_DEBUG_AT( GLX_Surfaces, "     [%2d] ID 0x%02lx, depth %d, RGB 0x%06lx/0x%06lx/0x%06lx {%d}, class %d, z %d\n",
                       index, info->visualid, info->depth,
                       info->red_mask, info->green_mask, info->blue_mask,
@@ -214,6 +174,56 @@ glxInitPool( CoreDFB                    *core,
      return DFB_OK;
 }
 
+/**********************************************************************************************************************/
+
+static int
+glxPoolDataSize()
+{
+     return sizeof(glxPoolData);
+}
+
+static int
+glxPoolLocalDataSize()
+{
+     return sizeof(glxPoolLocalData);
+}
+
+static int
+glxAllocationDataSize()
+{
+     return sizeof(glxAllocationData);
+}
+
+static DFBResult
+glxInitPool( CoreDFB                    *core,
+             CoreSurfacePool            *pool,
+             void                       *pool_data,
+             void                       *pool_local,
+             void                       *system_data,
+             CoreSurfacePoolDescription *ret_desc )
+{
+     glxPoolLocalData *local = pool_local;
+     DFBX11           *x11   = system_data;
+
+     D_DEBUG_AT( GLX_Surfaces, "%s()\n", __FUNCTION__ );
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_ASSERT( ret_desc != NULL );
+
+     ret_desc->caps              = CSPCAPS_NONE;
+     ret_desc->access[CSAID_GPU] = CSAF_READ | CSAF_WRITE;
+     ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
+     ret_desc->priority          = CSPP_DEFAULT;
+
+     /* For showing our X11 window */
+     ret_desc->access[CSAID_LAYER0] = CSAF_READ;
+
+     snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "GLX Drawables" );
+
+
+     return InitLocal( local, x11 );
+}
+
 static DFBResult
 glxJoinPool( CoreDFB                    *core,
              CoreSurfacePool            *pool,
@@ -221,13 +231,15 @@ glxJoinPool( CoreDFB                    *core,
              void                       *pool_local,
              void                       *system_data )
 {
+     glxPoolLocalData *local = pool_local;
+     DFBX11           *x11   = system_data;
+
      D_DEBUG_AT( GLX_Surfaces, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 
-     D_UNIMPLEMENTED();
 
-     return DFB_OK;
+     return InitLocal( local, x11 );
 }
 
 static DFBResult
@@ -250,8 +262,6 @@ glxLeavePool( CoreSurfacePool *pool,
      D_DEBUG_AT( GLX_Surfaces, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
-
-     D_UNIMPLEMENTED();
 
      return DFB_OK;
 }
@@ -284,12 +294,8 @@ glxAllocateBuffer( CoreSurfacePool       *pool,
      CoreSurface          *surface;
      glxPoolLocalData     *local = pool_local;
      glxAllocationData    *alloc = alloc_data;
-#if GLX_POOL_WINDOW
-     XSetWindowAttributes  attr  = { 0 };
-#endif
 
-     D_DEBUG_AT( GLX_Surfaces, "%s( %p | 0x%lx )...\n", __FUNCTION__,
-                 dfb_x11->xw, dfb_x11->xw ? dfb_x11->xw->window : 0 );
+     D_DEBUG_AT( GLX_Surfaces, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( local, glxPoolLocalData );
@@ -303,28 +309,13 @@ glxAllocateBuffer( CoreSurfacePool       *pool,
      alloc->screen = DefaultScreenOfDisplay( local->display );
      alloc->depth  = DFB_COLOR_BITS_PER_PIXEL( buffer->format ) + DFB_ALPHA_BITS_PER_PIXEL( buffer->format );
 
-     alloc->visual = (alloc->depth == 24) ? local->visual24 : local->visual32;// DefaultVisualOfScreen( alloc->screen );
+     alloc->visual = (alloc->depth == 24) ? local->visual24 : local->visual32;
      alloc->config = (alloc->depth == 24) ? local->config24 : local->config32;
-
-     /*
-      * Create an input only window
-      */
-#if GLX_POOL_WINDOW
-     alloc->window = XCreateWindow( local->display, RootWindowOfScreen( alloc->screen ),
-                                    0, 0, 1, 1, 0, alloc->depth, InputOutput, alloc->visual, CWEventMask, &attr );
-     if (!alloc->window) {
-          D_ERROR( "GLX/Surfaces: Could not create input only window!\n" );
-          goto error_window;
-     }
-
-     D_DEBUG_AT( GLX_Surfaces, "  -> window 0x%lx\n", alloc->window );
-#endif
-
 
      /*
       * Create a pixmap
       */
-     alloc->pixmap = XCreatePixmap( local->display, RootWindowOfScreen( alloc->screen ),// alloc->window,
+     alloc->pixmap = XCreatePixmap( local->display, RootWindowOfScreen( alloc->screen ),
                                     surface->config.size.w, surface->config.size.h, alloc->depth );
      if (!alloc->pixmap) {
           D_ERROR( "GLX/Surfaces: Could not create %dx%d (depth %d) pixmap!\n",
@@ -334,23 +325,17 @@ glxAllocateBuffer( CoreSurfacePool       *pool,
 
      D_DEBUG_AT( GLX_Surfaces, "  -> pixmap 0x%lx\n", alloc->pixmap );
 
-
      /*
       * Create a GC (for writing to pixmap)
       */
      alloc->gc = XCreateGC( local->display, alloc->pixmap, 0, NULL );
 
-
      /*
       * Create a GLXPixmap
       */
      int attribs[] = {
-          GLX_TEXTURE_FORMAT_EXT,
-          (alloc->depth == 24) ? GLX_TEXTURE_FORMAT_RGB_EXT : GLX_TEXTURE_FORMAT_RGBA_EXT,
-
-          GLX_TEXTURE_TARGET_EXT,
-          GLX_TEXTURE_RECTANGLE_EXT,
-
+          GLX_TEXTURE_FORMAT_EXT,  (alloc->depth == 24) ? GLX_TEXTURE_FORMAT_RGB_EXT : GLX_TEXTURE_FORMAT_RGBA_EXT,
+          GLX_TEXTURE_TARGET_EXT,  GLX_TEXTURE_RECTANGLE_EXT,
           None
      };
 
@@ -364,20 +349,6 @@ glxAllocateBuffer( CoreSurfacePool       *pool,
      D_DEBUG_AT( GLX_Surfaces, "  -> drawable 0x%lx\n", alloc->drawable );
 
 
-     /*
-      * Create a GLXContext
-      */
-#if GLX_POOL_CONTEXT
-     alloc->context = glXCreateNewContext( local->display, alloc->config, GLX_RGBA_TYPE, NULL, GL_TRUE );
-
-     D_DEBUG_AT( GLX_Surfaces, "  -> context %p\n", alloc->context );
-
-     if (!alloc->context) {
-          D_ERROR( "GLX/Surfaces: Could not create GLXContext!\n" );
-          goto error_context;
-     }
-#endif
-
      alloc->BindTexImageEXT    = local->BindTexImageEXT;
      alloc->ReleaseTexImageEXT = local->ReleaseTexImageEXT;
 
@@ -387,25 +358,6 @@ glxAllocateBuffer( CoreSurfacePool       *pool,
       */
      glGenTextures( 1, &alloc->texture );
 
-#if GLX_POOL_BIND_TEXTURE
-     glEnable( GL_TEXTURE_2D );
-
-     glBindTexture( GL_TEXTURE_2D, alloc->texture );
-
-     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-
-     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-     glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-
-     /*
-      * Bind the pixmap to the texture
-      */
-     alloc->BindTexImageEXT( local->display, alloc->drawable, GLX_FRONT_EXT, NULL );
-
-     glBindTexture( GL_TEXTURE_2D, 0 );
-     glDisable( GL_TEXTURE_2D );
-#endif
 
      XUnlockDisplay( local->display );
 
@@ -422,22 +374,12 @@ glxAllocateBuffer( CoreSurfacePool       *pool,
      return DFB_OK;
 
 
-#if GLX_POOL_CONTEXT
-     glXDestroyContext( local->display, alloc->context );
-
-error_context:
-#endif
      glXDestroyPixmap( local->display, alloc->drawable );
 
 error_glxpixmap:
      XFreePixmap( local->display, alloc->pixmap );
 
 error_pixmap:
-#if GLX_POOL_WINDOW
-     XDestroyWindow( local->display, alloc->window );
-
-error_window:
-#endif
      XUnlockDisplay( local->display );
 
      return DFB_FAILURE;
@@ -465,10 +407,6 @@ glxDeallocateBuffer( CoreSurfacePool       *pool,
 
      XLockDisplay( local->display );
 
-#if GLX_POOL_CONTEXT
-     glXDestroyContext( local->display, alloc->context );
-#endif
-
      if (alloc->bound) {
           D_DEBUG_AT( GLX_Surfaces, "  -> RELEASE %p from %p\n", alloc, alloc->bound );
 
@@ -480,10 +418,6 @@ glxDeallocateBuffer( CoreSurfacePool       *pool,
      glXDestroyPixmap( local->display, alloc->drawable );
 
      XFreePixmap( local->display, alloc->pixmap );
-
-#if GLX_POOL_WINDOW
-     XDestroyWindow( local->display, alloc->window );
-#endif
 
      glXWaitX();
 

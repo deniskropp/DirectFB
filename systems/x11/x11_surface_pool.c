@@ -52,6 +52,8 @@ typedef struct {
 typedef struct {
      pthread_mutex_t  lock;
      DirectHash      *hash;
+
+     DFBX11          *x11;
 } x11PoolLocalData;
 
 /**********************************************************************************************************************/
@@ -84,11 +86,14 @@ x11InitPool( CoreDFB                    *core,
 {
      DFBResult         ret;
      x11PoolLocalData *local = pool_local;
+     DFBX11           *x11   = system_data;
 
      D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_ASSERT( ret_desc != NULL );
+
+     local->x11 = x11;
 
      ret_desc->caps              = CSPCAPS_VIRTUAL;
      ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
@@ -120,10 +125,13 @@ x11JoinPool( CoreDFB                    *core,
 {
      DFBResult         ret;
      x11PoolLocalData *local = pool_local;
+     DFBX11           *x11   = system_data;
 
      D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
+
+     local->x11 = x11;
 
      ret = direct_hash_create( 7, &local->hash );
      if (ret) {
@@ -179,11 +187,16 @@ x11TestConfig( CoreSurfacePool         *pool,
                CoreSurfaceBuffer       *buffer,
                const CoreSurfaceConfig *config )
 {
-     if (!dfb_x11->vpsmem_length)
+     x11PoolLocalData *local  = pool_local;
+     DFBX11           *x11    = local->x11;
+     DFBX11Shared     *shared = x11->shared;
+
+     /* Provide a fallback only if no virtual physical pool is allocated... */
+     if (!shared->vpsmem_length)
           return DFB_OK;
           
      /* Pass NULL image for probing */
-     return x11ImageInit( NULL, config->size.w, config->size.h, config->format );
+     return x11ImageInit( x11, NULL, config->size.w, config->size.h, config->format );
 }
 
 static DFBResult
@@ -196,6 +209,8 @@ x11AllocateBuffer( CoreSurfacePool       *pool,
 {
      CoreSurface       *surface;
      x11AllocationData *alloc = alloc_data;
+     x11PoolLocalData  *local = pool_local;
+     DFBX11            *x11   = local->x11;
 
      D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
 
@@ -205,7 +220,7 @@ x11AllocateBuffer( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     if (x11ImageInit( &alloc->image, surface->config.size.w, surface->config.size.h, surface->config.format ) == DFB_OK) {
+     if (x11ImageInit( x11, &alloc->image, surface->config.size.w, surface->config.size.h, surface->config.format ) == DFB_OK) {
           alloc->real  = true;
           alloc->pitch = alloc->image.pitch;
 
@@ -225,7 +240,10 @@ x11DeallocateBuffer( CoreSurfacePool       *pool,
                      CoreSurfaceAllocation *allocation,
                      void                  *alloc_data )
 {
-     x11AllocationData *alloc = alloc_data;
+     x11AllocationData *alloc  = alloc_data;
+     x11PoolLocalData  *local  = pool_local;
+     DFBX11            *x11    = local->x11;
+     DFBX11Shared      *shared = x11->shared;
 
      D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
 
@@ -235,10 +253,10 @@ x11DeallocateBuffer( CoreSurfacePool       *pool,
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
      if (alloc->real)
-          return x11ImageDestroy( &alloc->image );
+          return x11ImageDestroy( x11, &alloc->image );
 
      if (alloc->ptr)
-          SHFREE( dfb_x11->data_shmpool, alloc->ptr );
+          SHFREE( shared->data_shmpool, alloc->ptr );
 
      return DFB_OK;
 }
@@ -252,8 +270,10 @@ x11Lock( CoreSurfacePool       *pool,
          CoreSurfaceBufferLock *lock )
 {
      DFBResult          ret;
-     x11PoolLocalData  *local = pool_local;
-     x11AllocationData *alloc = alloc_data;
+     x11PoolLocalData  *local  = pool_local;
+     x11AllocationData *alloc  = alloc_data;
+     DFBX11            *x11    = local->x11;
+     DFBX11Shared      *shared = x11->shared;
      CoreSurfaceBuffer *buffer;
      CoreSurface       *surface;
 
@@ -294,7 +314,7 @@ x11Lock( CoreSurfacePool       *pool,
      }
      else {
           if (!alloc->ptr) {
-               alloc->ptr = SHCALLOC( dfb_x11->data_shmpool, 1, allocation->size );
+               alloc->ptr = SHCALLOC( shared->data_shmpool, 1, allocation->size );
                if (!alloc->ptr)
                     return D_OOSHM();
           }

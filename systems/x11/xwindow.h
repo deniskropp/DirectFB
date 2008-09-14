@@ -36,40 +36,40 @@
 #include <X11/extensions/XShm.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
- 
+
+#include "x11types.h"
 
 
-typedef struct 
-{
-	Display*			display;
-	Window 				window;
-	Screen*				screenptr;
-	int 				screennum;
-	Visual*				visual;
-	GC 					gc;
-	XImage*				ximage;
-    int                 ximage_offset;
-	Colormap 			colormap;
+typedef struct {
+     Display*            display;
+     Window              window;
+     Screen*             screenptr;
+     int                 screennum;
+     Visual*             visual;
+     GC                  gc;
+     XImage*             ximage;
+     int                 ximage_offset;
+     Colormap            colormap;
 
-	XShmSegmentInfo*	shmseginfo;
-	unsigned char*		videomemory;
+     XShmSegmentInfo*    shmseginfo;
+     unsigned char*      videomemory;
 
-	char*		        virtualscreen;
-	int 				videoaccesstype;
+     char*               virtualscreen;
+     int                 videoaccesstype;
 
-	int 				width;
-	int 				height;
-	int 				depth;
-    int 				bpp;
+     int                 width;
+     int                 height;
+     int                 depth;
+     int                 bpp;
 
-    /* (Null) cursor stuff*/
-	Pixmap  			pixmp1;
-	Pixmap  			pixmp2;
-	Cursor 				NullCursor;
+     /* (Null) cursor stuff*/
+     Pixmap              pixmp1;
+     Pixmap              pixmp2;
+     Cursor              NullCursor;
 } XWindow;
 
-Bool dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight, DFBSurfacePixelFormat format);
-void dfb_x11_close_window(XWindow* pXW);
+Bool dfb_x11_open_window ( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight, DFBSurfacePixelFormat format );
+void dfb_x11_close_window( DFBX11 *x11, XWindow* pXW );
 
 
 

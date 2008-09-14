@@ -102,8 +102,10 @@ vpsmemInitPool( CoreDFB                    *core,
                 CoreSurfacePoolDescription *ret_desc )
 {
      DFBResult            ret;
-     VPSMemPoolData      *data  = pool_data;
-     VPSMemPoolLocalData *local = pool_local;
+     VPSMemPoolData      *data   = pool_data;
+     VPSMemPoolLocalData *local  = pool_local;
+     DFBX11              *x11    = system_data;
+     DFBX11Shared        *shared = x11->shared;
 
      D_DEBUG_AT( VPSMem_Surfaces, "%s()\n", __FUNCTION__ );
 
@@ -113,13 +115,13 @@ vpsmemInitPool( CoreDFB                    *core,
      D_ASSERT( local != NULL );
      D_ASSERT( ret_desc != NULL );
 
-     data->mem = SHMALLOC( dfb_x11->data_shmpool, dfb_x11->vpsmem_length );
+     data->mem = SHMALLOC( shared->data_shmpool, shared->vpsmem_length );
      if (!data->mem) {
-          dfb_x11->vpsmem_length = 0;
+          shared->vpsmem_length = 0;
           return D_OOSHM();
      }
 
-     data->length = dfb_x11->vpsmem_length;
+     data->length = shared->vpsmem_length;
 
      ret = dfb_surfacemanager_create( core, data->length, &data->manager );
      if (ret)
