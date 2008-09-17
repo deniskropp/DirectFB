@@ -941,7 +941,7 @@ dfb_surface_pool_read( CoreSurfacePool       *pool,
 DFBResult
 dfb_surface_pool_write( CoreSurfacePool       *pool,
                         CoreSurfaceAllocation *allocation,
-                        void                  *data,
+                        const void            *data,
                         int                    pitch,
                         const DFBRectangle    *rect )
 {
@@ -1176,6 +1176,10 @@ remove_allocation( CoreSurfacePool       *pool,
                }
           }
      }
+
+     /* Reset 'read' allocation pointer of buffer */
+     if (buffer->read == allocation)
+          buffer->read = NULL;
 }
 
 static DFBResult

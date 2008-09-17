@@ -174,6 +174,7 @@ struct __DFB_CoreSurfaceBuffer {
 
      DirectSerial             serial;        /* Increased when content is written. */
      CoreSurfaceAllocation   *written;       /* Allocation with the last write access. */
+     CoreSurfaceAllocation   *read;          /* Allocation with the last read access. */
 
      CoreSurface             *surface;       /* Surface owning this Surface Buffer. */
      CoreSurfacePolicy        policy;

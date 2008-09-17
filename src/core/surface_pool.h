@@ -259,7 +259,7 @@ DFBResult dfb_surface_pool_read      ( CoreSurfacePool         *pool,
 
 DFBResult dfb_surface_pool_write     ( CoreSurfacePool         *pool,
                                        CoreSurfaceAllocation   *allocation,
-                                       void                    *data,
+                                       const void              *data,
                                        int                      pitch,
                                        const DFBRectangle      *rect );
 

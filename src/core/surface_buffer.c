@@ -26,6 +26,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include <string.h>
@@ -482,6 +484,40 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
      return ret;
 }
 
+static CoreSurfaceAllocation *
+find_allocation( CoreSurfaceBuffer       *buffer,
+                 CoreSurfaceAccessFlags   flags,
+                 bool                     lock )
+{
+     int                    i;
+     CoreSurfaceAllocation *alloc;
+     CoreSurfaceAllocation *uptodate = NULL;
+     CoreSurfaceAllocation *outdated = NULL;
+
+     /* Prefer allocations which are up to date. */
+     fusion_vector_foreach (alloc, i, buffer->allocs) {
+          if (direct_serial_check( &alloc->serial, &buffer->serial )) {
+               /* Return immediately if up to date allocation has required flags. */
+               if (D_FLAGS_ARE_SET( alloc->access[CSAID_CPU], flags ))
+                    return alloc;
+
+               /* Remember up to date allocation in case none has supported flags. */
+               uptodate = alloc;
+          }
+          else if (D_FLAGS_ARE_SET( alloc->access[CSAID_CPU], flags )) {
+               /* Remember outdated allocation which has supported flags though. */
+               outdated = alloc;
+          }
+     }
+
+     /* In case of a lock the flags are mandatory and the outdated allocation has to be used... */
+     if (lock)
+          return outdated;
+
+     /* ...otherwise we can still prefer the up to date allocation for Read/Write()! */
+     return uptodate ?: outdated;
+}
+
 DFBResult
 dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
                           const void         *source,
@@ -490,13 +526,8 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
 {
      DFBResult              ret;
      DFBRectangle           rect;
-     int                    i, y;
-     int                    bytes;
      CoreSurface           *surface;
-     CoreSurfaceBufferLock  lock;
-     CoreSurfaceAllocation *alloc      = NULL;
      CoreSurfaceAllocation *allocation = NULL;
-     DFBSurfacePixelFormat  format;
      bool                   allocated  = false;
 
      D_DEBUG_AT( Core_SurfBuffer, "%s( %p, %p [%d] )\n", __FUNCTION__, buffer, source, pitch );
@@ -519,35 +550,26 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
      if (prect && (!dfb_rectangle_intersect( &rect, prect ) || !DFB_RECTANGLE_EQUAL( rect, *prect )))
           return DFB_INVAREA;
 
-     /* Calculate bytes per written line. */
-     format = surface->config.format;
-     bytes  = DFB_BYTES_PER_LINE( format, rect.w );
-
      D_DEBUG_AT( Core_SurfBuffer, "  -> %d,%d - %dx%d (%s)\n", DFB_RECTANGLE_VALS(&rect),
-                 dfb_pixelformat_name( format ) );
+                 dfb_pixelformat_name( surface->config.format ) );
 
-     /* If no allocation exists, create one. */
-     if (fusion_vector_is_empty( &buffer->allocs )) {
-          ret = dfb_surface_pools_allocate( buffer, CSAID_CPU, CSAF_WRITE, &allocation );
-          if (ret) {
-               D_DERROR( ret, "Core/SurfBuffer: Buffer allocation failed!\n" );
-               return ret;
-          }
-          allocated = true;
-     }
+     /* Use last read allocation if it's up to date... */
+     if (buffer->read && direct_serial_check( &buffer->read->serial, &buffer->serial ))
+          allocation = buffer->read;
      else {
-          /* Look for allocation with CPU access. */
-          fusion_vector_foreach (alloc, i, buffer->allocs) {
-               if (D_FLAGS_ARE_SET( alloc->access[CSAID_CPU], CSAF_WRITE )) {
-                    allocation = alloc;
-                    break;
+          /* ...otherwise look for allocation with CPU access. */
+          allocation = find_allocation( buffer, CSAF_WRITE, false );
+          if (!allocation) {
+               /* If no allocation exists, create one. */
+               ret = dfb_surface_pools_allocate( buffer, CSAID_CPU, CSAF_WRITE, &allocation );
+               if (ret) {
+                    D_DERROR( ret, "Core/SurfBuffer: Buffer allocation failed!\n" );
+                    return ret;
                }
+
+               allocated = true;
           }
      }
-
-     /* FIXME: use Write() */
-     if (!allocation)
-          return DFB_UNIMPLEMENTED;
 
      /* Synchronize with other allocations. */
      ret = dfb_surface_allocation_update( allocation, CSAF_WRITE );
@@ -558,39 +580,55 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
           return ret;
      }
 
-     /* Lock the allocation. */
-     dfb_surface_buffer_lock_init( &lock, CSAID_CPU, CSAF_WRITE );
-
-     ret = dfb_surface_pool_lock( allocation->pool, allocation, &lock );
+     /* Try writing to allocation directly... */
+     ret = dfb_surface_pool_write( allocation->pool, allocation, source, pitch, &rect );
      if (ret) {
-          D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
-                    allocation->pool->desc.name );
-          D_MAGIC_CLEAR( &lock );
-          return ret;
-     }
+          /* ...otherwise use fallback method via locking if possible. */
+          if (allocation->access[CSAID_CPU] & CSAF_WRITE) {
+               int                   y;
+               int                   bytes;
+               DFBSurfacePixelFormat format;
+               CoreSurfaceBufferLock lock;
 
-     /* Move to start of write. */
-     lock.addr += DFB_BYTES_PER_LINE( format, rect.x ) + rect.y * lock.pitch;
+               /* Calculate bytes per written line. */
+               format = surface->config.format;
+               bytes  = DFB_BYTES_PER_LINE( format, rect.w );
 
-     /* Copy the data. */
-     for (y=0; y<rect.h; y++) {
-          if (source) {
-               direct_memcpy( lock.addr, source, bytes );
+               /* Lock the allocation. */
+               dfb_surface_buffer_lock_init( &lock, CSAID_CPU, CSAF_WRITE );
 
-               source += pitch;
+               ret = dfb_surface_pool_lock( allocation->pool, allocation, &lock );
+               if (ret) {
+                    D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
+                              allocation->pool->desc.name );
+                    D_MAGIC_CLEAR( &lock );
+                    return ret;
+               }
+
+               /* Move to start of write. */
+               lock.addr += DFB_BYTES_PER_LINE( format, rect.x ) + rect.y * lock.pitch;
+
+               /* Copy the data. */
+               for (y=0; y<rect.h; y++) {
+                    if (source) {
+                         direct_memcpy( lock.addr, source, bytes );
+
+                         source += pitch;
+                    }
+                    else
+                         memset( lock.addr, 0, bytes );
+
+                    lock.addr += lock.pitch;
+               }
+
+               /* Unlock the allocation. */
+               ret = dfb_surface_pool_unlock( allocation->pool, allocation, &lock );
+               if (ret)
+                    D_DERROR( ret, "Core/SurfBuffer: Unlocking allocation failed! [%s]\n", allocation->pool->desc.name );
+
+               D_MAGIC_CLEAR( &lock );
           }
-          else
-               memset( lock.addr, 0, bytes );
-
-          lock.addr += lock.pitch;
      }
-
-     /* Unlock the allocation. */
-     ret = dfb_surface_pool_unlock( allocation->pool, allocation, &lock );
-     if (ret)
-          D_DERROR( ret, "Core/SurfBuffer: Unlocking allocation failed! [%s]\n", allocation->pool->desc.name );
-
-     D_MAGIC_CLEAR( &lock );
 
      return ret;
 }
@@ -1285,6 +1323,7 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
           direct_serial_copy( &allocation->serial, &buffer->serial );
 
           buffer->written = allocation;
+          buffer->read    = NULL;
 
           /* Zap volatile allocations (freed when no longer up to date). */
           fusion_vector_foreach (alloc, i, buffer->allocs) {
@@ -1296,10 +1335,12 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
                }
           }
      }
+     else
+          buffer->read = allocation;
 
      /* Zap all other allocations? */
      if (dfb_config->thrifty_surface_buffers) {
-          buffer->written = allocation;
+          buffer->written = buffer->read = allocation;
 
           fusion_vector_foreach (alloc, i, buffer->allocs) {
                D_MAGIC_ASSERT( alloc, CoreSurfaceAllocation );
