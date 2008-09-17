@@ -92,11 +92,6 @@ driver_init_driver( CoreGraphicsDevice  *device,
                     void                *device_data,
                     CoreDFB             *core )
 {
-     GLDriverData *gdrv = driver_data;
-     DFBX11       *x11  = dfb_system_data();
-
-     gdrv->display = x11->display;
-
      /* initialize function pointers */
      funcs->EngineSync    = glEngineSync;
      funcs->EngineReset   = glEngineReset;
@@ -124,8 +119,10 @@ driver_init_device( CoreGraphicsDevice *device,
                     void               *device_data )
 {
      const char   *renderer;
+     Display      *display;
+     XVisualInfo  *visual;
      GLXContext    context;
-     GLDriverData *gdrv = driver_data;
+     DFBX11       *x11;
 
      int attr[] = {
           GLX_RGBA,
@@ -135,24 +132,28 @@ driver_init_device( CoreGraphicsDevice *device,
           None
      };
 
-     gdrv->visual = glXChooseVisual( gdrv->display, DefaultScreen(gdrv->display), attr );
-     if (!gdrv->visual) {
+     x11 = dfb_system_data();
+
+     display = x11->display;
+
+     visual = glXChooseVisual( display, DefaultScreen(display), attr );
+     if (!visual) {
           D_ERROR( "GL/Driver: Could not find a suitable visual!\n" );
           return DFB_INIT;
      }
 
-     context = glXCreateContext( gdrv->display, gdrv->visual, NULL, GL_TRUE );
+     context = glXCreateContext( display, visual, NULL, GL_TRUE );
      if (!context) {
           D_ERROR( "GL/Driver: Could not create a context!\n" );
           return DFB_INIT;
      }
 
-     glXMakeCurrent( gdrv->display, RootWindowOfScreen(DefaultScreenOfDisplay(gdrv->display)), context );
+     glXMakeCurrent( display, RootWindowOfScreen(DefaultScreenOfDisplay(display)), context );
 
      renderer = (const char*) glGetString( GL_RENDERER );
 
-     glXMakeCurrent( gdrv->display, None, NULL );
-     glXDestroyContext( gdrv->display, context );
+     glXMakeCurrent( display, None, NULL );
+     glXDestroyContext( display, context );
 
 
      /* fill device info */

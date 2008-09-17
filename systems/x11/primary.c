@@ -445,9 +445,9 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 
      /* Check for GLX allocation... */
      if (allocation->pool == shared->glx_pool && lock->handle) {
-          glxAllocationData *alloc = lock->handle;
+          LocalPixmap *pixmap = lock->handle;
 
-          D_MAGIC_ASSERT( alloc, glxAllocationData );
+          D_MAGIC_ASSERT( pixmap, LocalPixmap );
 
           /* ...and just call SwapBuffers... */
           //D_DEBUG_AT( X11_Update, "  -> Calling glXSwapBuffers( 0x%lx )...\n", alloc->drawable );
@@ -458,7 +458,7 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 
           glXWaitGL();
 
-          XCopyArea( x11->display, alloc->pixmap, xw->window, xw->gc,
+          XCopyArea( x11->display, pixmap->pixmap, xw->window, xw->gc,
                      rect.x, rect.y, rect.w, rect.h, rect.x, rect.y );
 
           glXWaitX();

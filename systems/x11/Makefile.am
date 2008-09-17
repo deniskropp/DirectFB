@@ -6,6 +6,7 @@ INCLUDES = \
 	-I$(top_builddir)/lib		\
 	-I$(top_srcdir)/lib		\
 	-I$(top_srcdir)/src		\
+	-I$(top_srcdir)/gfxdrivers	\
 	$(X11_CFLAGS)
 
 

@@ -29,39 +29,49 @@
 #ifndef __X11SYSTEM__GLX_SURFACE_POOL_H__
 #define __X11SYSTEM__GLX_SURFACE_POOL_H__
 
+
 #include <GL/glx.h>
+
+#include <gl/gl_gfxdriver.h>
 
 #include <core/surface_pool.h>
 
 extern const SurfacePoolFuncs glxSurfacePoolFuncs;
 
 
-typedef void (*GLXBindTexImageEXTProc)   ( Display *dpy, GLXDrawable drawable, int buffer, const int *attrib_list );
-typedef void (*GLXReleaseTexImageEXTProc)( Display *dpy, GLXDrawable drawable, int buffer );
+typedef struct {
+     int            magic;
 
+     /* Shared resource */
+     Pixmap         pixmap;
+     int            depth;
+} glxAllocationData;
 
 typedef struct {
      int            magic;
 
-     Screen        *screen;
-     Visual        *visual;
-     int            depth;
+     GLBufferData   buffer;
 
-
+     /* Shared resource */
      Pixmap         pixmap;
+
+     /* Process local data */
      GC             gc;
 
      GLXFBConfig    config;
      GLXDrawable    drawable;
 
+     /* Bound to a thread's context? */
+     GLXContext     current;
      GLXContext     bound;
+} LocalPixmap;
 
-     GLuint         texture;
+typedef struct {
+     Display       *display;
 
-
-     GLXBindTexImageEXTProc        BindTexImageEXT;
-     GLXReleaseTexImageEXTProc     ReleaseTexImageEXT;
-} glxAllocationData;
+     /* Thread local data */
+     GLXContext     context;
+} ThreadContext;
 
 #endif
 

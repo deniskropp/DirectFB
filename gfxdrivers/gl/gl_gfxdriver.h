@@ -23,30 +23,34 @@
 #ifndef __GL_GFXDRIVER_H__
 #define __GL_GFXDRIVER_H__
 
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-
 #include <GL/glx.h>
 
-#include <x11/glx_surface_pool.h>
+
+typedef enum {
+     GLBF_UPDATE_TARGET  = 0x00000001,
+     GLBF_UPDATE_TEXTURE = 0x00000002,
+} GLBufferFlags;
+
+typedef struct {
+     int                      magic;
+
+     /* Update flags for OpenGL driver */
+     GLBufferFlags            flags;
+
+     /* Texture object bound to buffer */
+     GLuint                   texture;
+} GLBufferData;
+
 
 typedef struct {
      /* validation flags */
-     int                    v_flags;
+     int                      v_flags;
 
      /** Add shared data here... **/
 } GLDeviceData;
 
 
 typedef struct {
-     /* Server connection and main visual */
-     Display                 *display;
-     XVisualInfo             *visual;
-
-     /* Every thread needs its own context! */
-     pthread_key_t            context_key;
-     bool                     context_key_valid;
-
      DFBSurfaceBlittingFlags  blittingflags;
 
      /* Flush every bunch of commands to avoid issue with the XServer... */

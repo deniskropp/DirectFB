@@ -49,11 +49,12 @@
 #include "x11_surface_pool.h"
 
 D_DEBUG_DOMAIN( GLX_Surfaces, "GLX/Surfaces", "GLX Surface Pool" );
+D_DEBUG_DOMAIN( GLX_Pixmaps,  "GLX/Pixmaps",  "GLX Surface Pool Pixmaps" );
 
 /**********************************************************************************************************************/
 
-typedef struct {
-} glxPoolData;
+typedef void (*GLXBindTexImageEXTProc)   ( Display *dpy, GLXDrawable drawable, int buffer, const int *attrib_list );
+typedef void (*GLXReleaseTexImageEXTProc)( Display *dpy, GLXDrawable drawable, int buffer );
 
 typedef struct {
      int                           magic;
@@ -71,7 +72,31 @@ typedef struct {
 
      GLXBindTexImageEXTProc        BindTexImageEXT;
      GLXReleaseTexImageEXTProc     ReleaseTexImageEXT;
+
+     DirectHash                   *pixmaps;
+
+     /* Every thread needs its own context! */
+     pthread_key_t                 context_key;
 } glxPoolLocalData;
+
+typedef struct {
+} glxPoolData;
+
+/**********************************************************************************************************************/
+
+static void
+destroy_context( void *arg )
+{
+     ThreadContext *ctx = arg;
+
+     XLockDisplay( ctx->display );
+
+     glXDestroyContext( ctx->display, ctx->context );
+
+     XUnlockDisplay( ctx->display );
+
+     D_FREE( ctx );
+}
 
 /**********************************************************************************************************************/
 
@@ -79,6 +104,41 @@ static DFBResult
 InitLocal( glxPoolLocalData *local,
            DFBX11           *x11 )
 {
+     DFBResult ret;
+
+     int i;
+     int attribs[] = {
+          GLX_DOUBLEBUFFER,
+          False,
+
+          GLX_DRAWABLE_TYPE,
+          GLX_PIXMAP_BIT,
+
+          GLX_X_RENDERABLE,
+          True,
+
+          GLX_RED_SIZE,
+          8,
+
+          GLX_GREEN_SIZE,
+          8,
+
+          GLX_BLUE_SIZE,
+          8,
+
+          GLX_ALPHA_SIZE,
+          8,
+
+          GLX_DEPTH_SIZE,
+          0,
+
+          GLX_X_VISUAL_TYPE,
+          GLX_TRUE_COLOR,
+
+          None
+     };
+
+
      local->display = x11->display;
 
      local->BindTexImageEXT = (GLXBindTexImageEXTProc) glXGetProcAddress( (unsigned char*) "glXBindTexImageEXT" );
@@ -94,37 +154,11 @@ InitLocal( glxPoolLocalData *local,
      }
 
 
-     int index = 0;
-     int attribs[32];
+     ret = direct_hash_create( 7, &local->pixmaps );
+     if (ret)
+          return ret;
 
-     attribs[index++] = GLX_DOUBLEBUFFER;
-     attribs[index++] = False;
-
-     attribs[index++] = GLX_DRAWABLE_TYPE;
-     attribs[index++] = GLX_PIXMAP_BIT;
-
-     attribs[index++] = GLX_X_RENDERABLE;
-     attribs[index++] = True;
-
-     attribs[index++] = GLX_RED_SIZE;
-     attribs[index++] = 8;
-
-     attribs[index++] = GLX_GREEN_SIZE;
-     attribs[index++] = 8;
-
-     attribs[index++] = GLX_BLUE_SIZE;
-     attribs[index++] = 8;
-
-     attribs[index++] = GLX_ALPHA_SIZE;
-     attribs[index++] = 8;
-
-     attribs[index++] = GLX_DEPTH_SIZE;
-     attribs[index++] = 0;
-
-     attribs[index++] = GLX_X_VISUAL_TYPE;
-     attribs[index++] = GLX_TRUE_COLOR;
-
-     attribs[index++] = None;
+     pthread_key_create( &local->context_key, destroy_context );
 
 
      XLockDisplay( local->display );
@@ -134,26 +168,26 @@ InitLocal( glxPoolLocalData *local,
 
      D_DEBUG_AT( GLX_Surfaces, "  -> found %d configs\n", local->num_configs );
 
-     for (index=0; index<local->num_configs; index++) {
+     for (i=0; i<local->num_configs; i++) {
           int          depth;
-          XVisualInfo *info = glXGetVisualFromFBConfig( local->display, local->configs[index] );
+          XVisualInfo *info = glXGetVisualFromFBConfig( local->display, local->configs[i] );
 
-          glXGetFBConfigAttrib( local->display, local->configs[index], GLX_DEPTH_SIZE, &depth );
+          glXGetFBConfigAttrib( local->display, local->configs[i], GLX_DEPTH_SIZE, &depth );
 
           D_DEBUG_AT( GLX_Surfaces, "     [%2d] ID 0x%02lx, depth %d, RGB 0x%06lx/0x%06lx/0x%06lx {%d}, class %d, z %d\n",
-                      index, info->visualid, info->depth,
+                      i, info->visualid, info->depth,
                       info->red_mask, info->green_mask, info->blue_mask,
                       info->bits_per_rgb, info->class, depth );
 
           if (depth == 0 && info->class == TrueColor) {
                switch (info->depth) {
                     case 32:
-                         local->config32 = local->configs[index];
+                         local->config32 = local->configs[i];
                          local->visual32 = info->visual;
                          break;
 
                     case 24:
-                         local->config24 = local->configs[index];
+                         local->config24 = local->configs[i];
                          local->visual24 = info->visual;
                          break;
                }
@@ -169,9 +203,136 @@ InitLocal( glxPoolLocalData *local,
      XUnlockDisplay( local->display );
 
 
+
      D_MAGIC_SET( local, glxPoolLocalData );
 
      return DFB_OK;
+}
+
+static DFBResult
+GetLocalPixmap( glxPoolLocalData       *local,
+                glxAllocationData      *alloc,
+                CoreSurfaceAllocation  *allocation,
+                LocalPixmap           **ret_pixmap )
+{
+     LocalPixmap       *pixmap;
+     CoreSurface       *surface;
+     CoreSurfaceBuffer *buffer;
+
+     surface = allocation->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     buffer = allocation->buffer;
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     pixmap = direct_hash_lookup( local->pixmaps, alloc->pixmap );
+     if (!pixmap) {
+          pixmap = D_CALLOC( 1, sizeof(LocalPixmap) );
+          if (!pixmap)
+               return D_OOM();
+
+          pixmap->pixmap = alloc->pixmap;
+          pixmap->config = (alloc->depth == 24) ? local->config24 : local->config32;
+
+          /*
+           * Create a GLXPixmap
+           */
+          int attribs[] = {
+               GLX_TEXTURE_FORMAT_EXT,  (alloc->depth == 24) ? GLX_TEXTURE_FORMAT_RGB_EXT : GLX_TEXTURE_FORMAT_RGBA_EXT,
+               GLX_TEXTURE_TARGET_EXT,  GLX_TEXTURE_RECTANGLE_EXT,
+               None
+          };
+
+
+          XLockDisplay( local->display );
+
+          pixmap->drawable = glXCreatePixmap( local->display, pixmap->config, alloc->pixmap, attribs );
+          if (!pixmap->drawable) {
+               D_ERROR( "GLX/Surfaces: Could not create %dx%d (depth %d) GLXPixmap!\n",
+                        surface->config.size.w, surface->config.size.h, alloc->depth );
+               XUnlockDisplay( local->display );
+               D_FREE( pixmap );
+               return DFB_FAILURE;
+          }
+
+          D_DEBUG_AT( GLX_Surfaces, "  -> drawable 0x%lx\n", pixmap->drawable );
+
+          /*
+           * Create a GC (for writing to pixmap)
+           */
+          pixmap->gc = XCreateGC( local->display, alloc->pixmap, 0, NULL );
+
+          D_DEBUG_AT( GLX_Surfaces, "  -> gc 0x%lx\n", pixmap->drawable );
+
+          XUnlockDisplay( local->display );
+
+
+          /*
+           * Create a texture object
+           */
+          glGenTextures( 1, &pixmap->buffer.texture );
+
+
+          D_DEBUG_AT( GLX_Pixmaps, "  NEW GLXPixmap 0x%lx for 0x%lx [%4dx%4d] %-10s\n", pixmap->drawable, alloc->pixmap,
+                      surface->config.size.w, surface->config.size.h, dfb_pixelformat_name(buffer->format) );
+          D_DEBUG_AT( GLX_Surfaces, "  -> GLXPixmap 0x%lx [%4dx%4d] %-10s (%u)\n", pixmap->drawable,
+                      surface->config.size.w, surface->config.size.h, dfb_pixelformat_name(buffer->format),
+                      pixmap->buffer.texture );
+
+          D_MAGIC_SET( pixmap, LocalPixmap );
+          D_MAGIC_SET( &pixmap->buffer, GLBufferData );
+
+          direct_hash_insert( local->pixmaps, alloc->pixmap, pixmap );
+     }
+
+     *ret_pixmap = pixmap;
+
+     return DFB_OK;
+}
+
+static void
+ReleasePixmap( glxPoolLocalData *local,
+               LocalPixmap      *pixmap )
+{
+     D_MAGIC_ASSERT( local, glxPoolLocalData );
+     D_MAGIC_ASSERT( pixmap, LocalPixmap );
+
+     if (pixmap->bound) {
+          D_DEBUG_AT( GLX_Pixmaps, "  RELEASE 0x%08lx from %p\n", pixmap->drawable, pixmap->bound );
+
+          local->ReleaseTexImageEXT( local->display, pixmap->drawable, GLX_FRONT_EXT );
+
+          pixmap->bound = NULL;
+     }
+}
+
+static void
+DestroyPixmap( glxPoolLocalData *local,
+               LocalPixmap      *pixmap )
+{
+     D_MAGIC_ASSERT( local, glxPoolLocalData );
+     D_MAGIC_ASSERT( pixmap, LocalPixmap );
+
+     D_DEBUG_AT( GLX_Pixmaps, "  DESTROY 0x%08lx (%d)\n", pixmap->drawable, pixmap->buffer.texture );
+
+     glXWaitGL();
+
+     ReleasePixmap( local, pixmap );
+
+     glXWaitX();
+
+     glDeleteTextures( 1, &pixmap->buffer.texture );
+
+     XFreeGC( local->display, pixmap->gc );
+
+     glXDestroyPixmap( local->display, pixmap->drawable );
+
+     direct_hash_remove( local->pixmaps, pixmap->pixmap );
+
+     D_MAGIC_CLEAR( pixmap );
+     D_MAGIC_CLEAR( &pixmap->buffer );
+
+     D_FREE( pixmap );
 }
 
 /**********************************************************************************************************************/
@@ -306,64 +467,28 @@ glxAllocateBuffer( CoreSurfacePool       *pool,
 
      XLockDisplay( local->display );
 
-     alloc->screen = DefaultScreenOfDisplay( local->display );
      alloc->depth  = DFB_COLOR_BITS_PER_PIXEL( buffer->format ) + DFB_ALPHA_BITS_PER_PIXEL( buffer->format );
-
-     alloc->visual = (alloc->depth == 24) ? local->visual24 : local->visual32;
-     alloc->config = (alloc->depth == 24) ? local->config24 : local->config32;
 
      /*
       * Create a pixmap
       */
-     alloc->pixmap = XCreatePixmap( local->display, RootWindowOfScreen( alloc->screen ),
+     alloc->pixmap = XCreatePixmap( local->display, DefaultRootWindow( local->display ),
                                     surface->config.size.w, surface->config.size.h, alloc->depth );
      if (!alloc->pixmap) {
           D_ERROR( "GLX/Surfaces: Could not create %dx%d (depth %d) pixmap!\n",
                    surface->config.size.w, surface->config.size.h, alloc->depth );
-          goto error_pixmap;
+
+          XUnlockDisplay( local->display );
+
+          return DFB_FAILURE;
      }
 
      D_DEBUG_AT( GLX_Surfaces, "  -> pixmap 0x%lx\n", alloc->pixmap );
 
-     /*
-      * Create a GC (for writing to pixmap)
-      */
-     alloc->gc = XCreateGC( local->display, alloc->pixmap, 0, NULL );
-
-     /*
-      * Create a GLXPixmap
-      */
-     int attribs[] = {
-          GLX_TEXTURE_FORMAT_EXT,  (alloc->depth == 24) ? GLX_TEXTURE_FORMAT_RGB_EXT : GLX_TEXTURE_FORMAT_RGBA_EXT,
-          GLX_TEXTURE_TARGET_EXT,  GLX_TEXTURE_RECTANGLE_EXT,
-          None
-     };
-
-     alloc->drawable = glXCreatePixmap( local->display, alloc->config, alloc->pixmap, attribs );
-     if (!alloc->drawable) {
-          D_ERROR( "GLX/Surfaces: Could not create %dx%d (depth %d) GLXPixmap!\n",
-                   surface->config.size.w, surface->config.size.h, alloc->depth );
-          goto error_glxpixmap;
-     }
-
-     D_DEBUG_AT( GLX_Surfaces, "  -> drawable 0x%lx\n", alloc->drawable );
-
-
-     alloc->BindTexImageEXT    = local->BindTexImageEXT;
-     alloc->ReleaseTexImageEXT = local->ReleaseTexImageEXT;
-
-
-     /*
-      * Create a texture object
-      */
-     glGenTextures( 1, &alloc->texture );
-
+     D_DEBUG_AT( GLX_Pixmaps, "  NEW Pixmap 0x%lx [%4dx%4d] %-10s\n", alloc->pixmap,
+                 surface->config.size.w, surface->config.size.h, dfb_pixelformat_name(buffer->format) );
 
      XUnlockDisplay( local->display );
-
-
-     D_DEBUG_AT( GLX_Surfaces, "  -> GLXPixmap 0x%lx [%4dx%4d] %-10s (%u)\n", alloc->drawable,
-                 surface->config.size.w, surface->config.size.h, dfb_pixelformat_name(buffer->format), alloc->texture );
 
 
      /* Pseudo calculation */
@@ -372,17 +497,6 @@ glxAllocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_SET( alloc, glxAllocationData );
 
      return DFB_OK;
-
-
-     glXDestroyPixmap( local->display, alloc->drawable );
-
-error_glxpixmap:
-     XFreePixmap( local->display, alloc->pixmap );
-
-error_pixmap:
-     XUnlockDisplay( local->display );
-
-     return DFB_FAILURE;
 }
 
 static DFBResult
@@ -393,6 +507,8 @@ glxDeallocateBuffer( CoreSurfacePool       *pool,
                      CoreSurfaceAllocation *allocation,
                      void                  *alloc_data )
 {
+     DFBResult          ret;
+     LocalPixmap       *pixmap;
      glxPoolLocalData  *local = pool_local;
      glxAllocationData *alloc = alloc_data;
 
@@ -405,23 +521,19 @@ glxDeallocateBuffer( CoreSurfacePool       *pool,
 
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
+     ret = GetLocalPixmap( local, alloc, allocation, &pixmap );
+     if (ret)
+          return ret;
+
      XLockDisplay( local->display );
 
-     if (alloc->bound) {
-          D_DEBUG_AT( GLX_Surfaces, "  -> RELEASE %p from %p\n", alloc, alloc->bound );
-
-          glXWaitGL();
-
-          alloc->ReleaseTexImageEXT( local->display, alloc->drawable, GLX_FRONT_EXT );
-     }
-
-     glXDestroyPixmap( local->display, alloc->drawable );
+     DestroyPixmap( local, pixmap );
 
      XFreePixmap( local->display, alloc->pixmap );
 
-     glXWaitX();
-
      XUnlockDisplay( local->display );
+
+     D_MAGIC_CLEAR( alloc );
 
      return DFB_OK;
 }
@@ -434,17 +546,89 @@ glxLock( CoreSurfacePool       *pool,
          void                  *alloc_data,
          CoreSurfaceBufferLock *lock )
 {
+     DFBResult          ret;
+     LocalPixmap       *pixmap;
+     glxPoolLocalData  *local = pool_local;
      glxAllocationData *alloc = alloc_data;
 
      D_DEBUG_AT( GLX_Surfaces, "%s( %p )\n", __FUNCTION__, allocation );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_MAGIC_ASSERT( local, glxPoolLocalData );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( alloc, glxAllocationData );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
-     lock->handle = alloc;
-     lock->pitch  = 1;
+     ret = GetLocalPixmap( local, alloc, allocation, &pixmap );
+     if (ret)
+          return ret;
+
+     if (lock->accessor == CSAID_GPU) {
+          ThreadContext *ctx;
+
+          ctx = pthread_getspecific( local->context_key );
+          if (!ctx) {
+               ctx = D_CALLOC( 1, sizeof(ThreadContext) );
+               if (!ctx) {
+                    XUnlockDisplay( local->display );
+                    return D_OOM();
+               }
+
+               ctx->display = local->display;
+
+               ctx->context = glXCreateNewContext( local->display, pixmap->config, GLX_RGBA_TYPE, NULL, GL_TRUE );
+               if (!ctx->context) {
+                    D_ERROR( "GLX: Could not create GLXContext!\n" );
+                    XUnlockDisplay( local->display );
+                    D_FREE( ctx );
+                    return DFB_FAILURE;
+               }
+
+               pthread_setspecific( local->context_key, ctx );
+
+               D_DEBUG_AT( GLX_Surfaces, "  -> NEW CONTEXT %p\n", ctx->context );
+          }
+
+          if (lock->access & CSAF_WRITE) {
+//               ReleasePixmap( local, pixmap );
+
+               if (pixmap->drawable != glXGetCurrentDrawable()) {
+                    D_DEBUG_AT( GLX_Surfaces, "  -> MAKE CURRENT 0x%08lx <- 0x%08lx\n", pixmap->drawable, glXGetCurrentDrawable() );
+
+                    XLockDisplay( local->display );
+
+                    glXMakeContextCurrent( local->display, pixmap->drawable, pixmap->drawable, ctx->context );
+                    pixmap->current = ctx->context;
+
+                    pixmap->buffer.flags |= GLBF_UPDATE_TARGET;
+
+                    XUnlockDisplay( local->display );
+               }
+          }
+          else {
+               if (pixmap->bound != ctx->context) {
+                    D_DEBUG_AT( GLX_Surfaces, "  -> BIND TEXTURE 0x%08lx (%d)\n", pixmap->drawable, pixmap->buffer.texture );
+
+                    XLockDisplay( local->display );
+
+                    glEnable( GL_TEXTURE_RECTANGLE_ARB );
+                    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, pixmap->buffer.texture );
+
+                    ReleasePixmap( local, pixmap );
+
+                    local->BindTexImageEXT( local->display, pixmap->drawable, GLX_FRONT_EXT, NULL );
+                    pixmap->bound = ctx->context;
+
+                    pixmap->buffer.flags |= GLBF_UPDATE_TEXTURE;
+
+                    XUnlockDisplay( local->display );
+               }
+          }
+
+          lock->handle = &pixmap->buffer;
+     }
+     else
+          lock->handle = pixmap;
 
      return DFB_OK;
 }
@@ -457,17 +641,38 @@ glxUnlock( CoreSurfacePool       *pool,
            void                  *alloc_data,
            CoreSurfaceBufferLock *lock )
 {
+/*
+     DFBResult          ret;
+     LocalPixmap       *pixmap;
+     glxPoolLocalData  *local = pool_local;
      glxAllocationData *alloc = alloc_data;
 
      D_DEBUG_AT( GLX_Surfaces, "%s( %p )\n", __FUNCTION__, allocation );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_MAGIC_ASSERT( local, glxPoolLocalData );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( alloc, glxAllocationData );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
-     (void) alloc;
+     ret = GetLocalPixmap( local, alloc, allocation, &pixmap );
+     if (ret)
+          return ret;
 
+     if (lock->accessor == CSAID_GPU) {
+          XLockDisplay( local->display );
+
+          if (lock->access & CSAF_WRITE) {
+               glXMakeContextCurrent( local->display, None, None, NULL );
+               pixmap->current = NULL;
+          }
+          else {
+               ReleasePixmap( local, pixmap );
+          }
+
+          XUnlockDisplay( local->display );
+     }
+*/
      return DFB_OK;
 }
 
@@ -500,8 +705,8 @@ glxRead( CoreSurfacePool       *pool,
 
      XLockDisplay( local->display );
 
-     image = XCreateImage( local->display, alloc->visual, alloc->depth,
-                           ZPixmap, 0, destination, rect->w, rect->h, 32, pitch );
+     image = XCreateImage( local->display, (alloc->depth == 24) ? local->visual24 : local->visual32,
+                           alloc->depth, ZPixmap, 0, destination, rect->w, rect->h, 32, pitch );
      if (!image) {
           D_ERROR( "GLX/Surfaces: XCreateImage( %dx%d, depth %d ) failed!\n", rect->w, rect->h, alloc->depth );
           XUnlockDisplay( local->display );
@@ -538,6 +743,9 @@ glxWrite( CoreSurfacePool       *pool,
           int                    pitch,
           const DFBRectangle    *rect )
 {
+     DFBResult          ret;
+     LocalPixmap       *pixmap;
+     CoreSurface       *surface;
      XImage            *image;
      glxPoolLocalData  *local = pool_local;
      glxAllocationData *alloc = alloc_data;
@@ -554,10 +762,17 @@ glxWrite( CoreSurfacePool       *pool,
 
      D_DEBUG_AT( GLX_Surfaces, "  <= %p 0x%08lx [%4d,%4d-%4dx%4d]\n", alloc, alloc->pixmap, DFB_RECTANGLE_VALS(rect) );
 
+     surface = allocation->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     ret = GetLocalPixmap( local, alloc, allocation, &pixmap );
+     if (ret)
+          return ret;
+
      XLockDisplay( local->display );
 
-     image = XCreateImage( local->display, alloc->visual, alloc->depth,
-                           ZPixmap, 0, (void*) source, rect->w, rect->h, 32, pitch );
+     image = XCreateImage( local->display, (alloc->depth == 24) ? local->visual24 : local->visual32,
+                           alloc->depth, ZPixmap, 0, (void*) source, rect->w, rect->h, 32, pitch );
      if (!image) {
           D_ERROR( "GLX/Surfaces: XCreateImage( %dx%d, depth %d ) failed!\n", rect->w, rect->h, alloc->depth );
           XUnlockDisplay( local->display );
@@ -566,7 +781,7 @@ glxWrite( CoreSurfacePool       *pool,
 
      glXWaitGL();
 
-     XPutImage( local->display, alloc->pixmap, alloc->gc, image, 0, 0, rect->x, rect->y, rect->w, rect->h );
+     XPutImage( local->display, alloc->pixmap, pixmap->gc, image, 0, 0, rect->x, rect->y, rect->w, rect->h );
 
      glXWaitX();
 

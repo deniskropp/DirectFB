@@ -36,9 +36,6 @@
 
 #include <gfx/convert.h>
 
-#include <x11/x11.h>
-#include <x11/glx_surface_pool.h>
-
 #include "gl_2d.h"
 #include "gl_gfxdriver.h"
 
@@ -81,27 +78,6 @@ enum {
 
 /**********************************************************************************************************************/
 
-typedef struct {
-     Display       *display;
-     GLXContext     context;
-} ThreadContext;
-
-static void
-destroy_context( void *arg )
-{
-     ThreadContext *ctx = arg;
-
-     XLockDisplay( ctx->display );
-
-     glXDestroyContext( ctx->display, ctx->context );
-
-     XUnlockDisplay( ctx->display );
-
-     D_FREE( ctx );
-}
-
-/**********************************************************************************************************************/
-
 /*
  * Called by glSetState() to ensure that the destination parameters are properly set
  * for execution of rendering functions.
@@ -111,52 +87,14 @@ gl_validate_DESTINATION( GLDriverData *gdrv,
                          GLDeviceData *gdev,
                          CardState    *state )
 {
-     ThreadContext     *ctx;
-     CoreSurface       *surface = state->destination;
-     glxAllocationData *alloc   = state->dst.handle;
+     CoreSurface  *surface = state->destination;
+     GLBufferData *buffer  = state->dst.handle;
 
-     D_DEBUG_AT( GL__2D, "%s( %p )\n", __FUNCTION__, alloc );
+     D_DEBUG_AT( GL__2D, "%s( %p )\n", __FUNCTION__, buffer );
 
-     D_MAGIC_ASSERT( alloc, glxAllocationData );
+     D_MAGIC_ASSERT( buffer, GLBufferData );
 
-     if (!gdrv->context_key_valid) {
-          pthread_key_create( &gdrv->context_key, destroy_context );
-          gdrv->context_key_valid = true;
-     }
-
-     XLockDisplay( gdrv->display );
-
-     ctx = pthread_getspecific( gdrv->context_key );
-     if (!ctx) {
-          ctx = D_CALLOC( 1, sizeof(ThreadContext) );
-          if (!ctx) {
-               D_OOM();
-               XUnlockDisplay( gdrv->display );
-               return;
-          }
-
-          ctx->context = glXCreateNewContext( gdrv->display, alloc->config, GLX_RGBA_TYPE, NULL, GL_TRUE );
-          if (!ctx->context) {
-               D_ERROR( "GLX: Could not create GLXContext!\n" );
-               XUnlockDisplay( gdrv->display );
-               D_FREE( ctx );
-               return;
-          }
-
-          ctx->display = gdrv->display;
-
-          pthread_setspecific( gdrv->context_key, ctx );
-
-          D_DEBUG_AT( GL__2D, "  -> NEW CONTEXT %p\n", ctx->context );
-
-          GL_INVALIDATE( ALL );
-     }
-
-     if (alloc->drawable != glXGetCurrentDrawable()) {
-          D_DEBUG_AT( GL__2D, "  -> MAKE CURRENT 0x%08lx <- 0x%08lx\n", alloc->drawable, glXGetCurrentDrawable() );
-
-          glXMakeContextCurrent( gdrv->display, alloc->drawable, alloc->drawable, ctx->context );
-
+     if (buffer->flags & GLBF_UPDATE_TARGET) {
           glViewport( 0, 0, surface->config.size.w, surface->config.size.h );
 
           glMatrixMode( GL_PROJECTION );
@@ -178,9 +116,11 @@ gl_validate_DESTINATION( GLDriverData *gdrv,
           glDisable( GL_CULL_FACE );
 
           glEnable( GL_SCISSOR_TEST );
-     }
 
-     XUnlockDisplay( gdrv->display );
+          GL_INVALIDATE( ALL );
+
+          buffer->flags &= ~GLBF_UPDATE_TARGET;
+     }
 
      /* Set the flag. */
      GL_VALIDATE( DESTINATION );
@@ -311,44 +251,23 @@ gl_validate_SOURCE( GLDriverData *gdrv,
                     GLDeviceData *gdev,
                     CardState    *state )
 {
-     ThreadContext     *ctx;
-     glxAllocationData *alloc = state->src.handle;
+     GLBufferData *buffer = state->src.handle;
 
-     D_DEBUG_AT( GL__2D, "%s( %p )\n", __FUNCTION__, alloc );
+     D_DEBUG_AT( GL__2D, "%s( %p )\n", __FUNCTION__, buffer );
 
-     D_MAGIC_ASSERT( alloc, glxAllocationData );
+     D_MAGIC_ASSERT( buffer, GLBufferData );
 
-     ctx = pthread_getspecific( gdrv->context_key );
-     if (!ctx) {
-          D_BUG( "no context" );
-          return;
-     }
+     glBindTexture( GL_TEXTURE_RECTANGLE_ARB, buffer->texture );
 
-     XLockDisplay( gdrv->display );
-
-     glBindTexture( GL_TEXTURE_RECTANGLE_ARB, alloc->texture );
-
-     if (alloc->bound != ctx->context) {
-          if (alloc->bound) {
-               D_DEBUG_AT( GL__2D, "  -> RELEASE %p from %p\n", alloc, alloc->bound );
-
-               alloc->ReleaseTexImageEXT( gdrv->display, alloc->drawable, GLX_FRONT_EXT );
-          }
-
+     if (buffer->flags & GLBF_UPDATE_TEXTURE) {
           glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
           glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 
           glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
           glTexParameterf( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 
-          D_DEBUG_AT( GL__2D, "  -> BIND %p to %p\n", alloc, ctx->context );
-
-          alloc->BindTexImageEXT( gdrv->display, alloc->drawable, GLX_FRONT_EXT, NULL );
-
-          alloc->bound = ctx->context;
+          buffer->flags &= ~GLBF_UPDATE_TEXTURE;
      }
-
-     XUnlockDisplay( gdrv->display );
 
      /* Set the flag. */
      GL_VALIDATE( SOURCE );
@@ -530,11 +449,7 @@ glEngineSync( void *drv, void *dev )
      D_DEBUG_AT( GL__2D, "%s()\n", __FUNCTION__ );
 
      if (gdrv->calls > 0) {
-          XLockDisplay( gdrv->display );
-
-          glXWaitGL();
-
-          XUnlockDisplay( gdrv->display );
+          glFinish();
 
           gdrv->calls = 0;
      }
@@ -548,17 +463,7 @@ glEngineSync( void *drv, void *dev )
 void
 glEngineReset( void *drv, void *dev )
 {
-//     GLDriverData *gdrv = drv;
-
      D_DEBUG_AT( GL__2D, "%s()\n", __FUNCTION__ );
-
-/*
-     if (gdrv->context_key_valid) {
-          pthread_key_delete( gdrv->context_key );
-
-          gdrv->context_key_valid = false;
-     }
-*/
 }
 
 /*
