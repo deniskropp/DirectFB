@@ -107,6 +107,7 @@ print_usage( const char *prg )
      fprintf (stderr, "  -d, --dest      <pixelformat>     Destination pixel format\n");
      fprintf (stderr, "  -r, --resize                      Set destination from source size\n");
      fprintf (stderr, "  -b, --benchmark                   Enable benchmarking mode\n");
+     fprintf (stderr, "  -R, --rerender                    Rerender before every blit (benchmark)\n");
 
      return -1;
 }
@@ -128,6 +129,7 @@ main( int argc, char *argv[] )
      DFBSurfacePixelFormat   dest_format   = DSPF_UNKNOWN;
      bool                    dest_resize   = false;
      bool                    benchmark     = false;
+     bool                    rerender      = false;
 
      /* Initialize DirectFB. */
      ret = DirectFBInit( &argc, &argv );
@@ -168,6 +170,8 @@ main( int argc, char *argv[] )
                dest_resize = true;
           else if (strcmp (arg, "-b") == 0 || strcmp (arg, "--benchmark") == 0)
                benchmark = true;
+          else if (strcmp (arg, "-R") == 0 || strcmp (arg, "--rerender") == 0)
+               rerender = true;
           else if (!url)
                url = arg;
           else
@@ -265,6 +269,14 @@ main( int argc, char *argv[] )
           start = direct_clock_get_millis();
 
           do {
+               if (rerender) {
+                    ret = provider->RenderTo( provider, source, NULL );
+                    if (ret) {
+                         D_DERROR( ret, "DFBTest/Blit: IDirectFBImageProvider::RenderTo() failed!\n" );
+                         goto out;
+                    }
+               }
+
                dest->StretchBlit( dest, source, NULL, NULL );
 
                if ((num & 7) == 7)
