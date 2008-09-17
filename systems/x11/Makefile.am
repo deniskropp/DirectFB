@@ -49,7 +49,7 @@ libdirectfb_x11_la_SOURCES = \
 	xwindow.c
 
 if GFX_GLX
-  libdirectfb_x11_la_SOURCES += \
+libdirectfb_x11_la_SOURCES += \
 	glx_surface_pool.c	\
 	glx_surface_pool.h
 endif
