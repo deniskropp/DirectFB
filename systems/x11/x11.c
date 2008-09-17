@@ -59,6 +59,7 @@
 #include "xwindow.h"
 #include "x11.h"
 #include "x11_surface_pool.h"
+#include "glx_surface_pool.h"
 
 #include "vpsmem_surface_pool.h"
 
@@ -67,8 +68,6 @@
 
 DFB_CORE_SYSTEM( x11 )
 
-DFBX11*   dfb_x11      = NULL;
-CoreDFB*  dfb_x11_core = NULL;
 
 static VideoMode modes[] = {
      {  320,  200 },
@@ -108,6 +107,85 @@ static FusionCallHandlerResult call_handler( int           caller,
 
 /**********************************************************************************************************************/
 
+static DFBResult
+InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
+{
+     int i, n;
+
+     XInitThreads();
+
+     x11->shared = shared;
+     x11->core   = core;
+
+     x11->display = XOpenDisplay(getenv("DISPLAY"));
+     if (!x11->display) {
+          D_ERROR("X11: Error in XOpenDisplay for '%s'\n", getenv("DISPLAY"));
+          return DFB_INIT;
+     }
+
+     x11->screenptr = DefaultScreenOfDisplay(x11->display);
+     x11->screennum = DefaultScreen(x11->display);
+
+     for (i=0; i<x11->screenptr->ndepths; i++) {
+          const Depth *depth = &x11->screenptr->depths[i];
+
+          for (n=0; n<depth->nvisuals; n++) {
+               Visual *visual = &depth->visuals[n];
+
+               D_DEBUG( "X11/Visual: [%2d] ID 0x%02lx, depth %d, red 0x%06lx, green 0x%06lx, blue 0x%06lx, %d bits/rgb, %d entries\n",
+                        n, visual->visualid, depth->depth,
+                        visual->red_mask, visual->green_mask, visual->blue_mask,
+                        visual->bits_per_rgb, visual->map_entries );
+
+               switch (depth->depth) {
+                    case 32:
+                         if (visual->red_mask   == 0xff0000 &&
+                             visual->green_mask == 0x00ff00 &&
+                             visual->blue_mask  == 0x0000ff &&
+                             !x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)])
+                              x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)] = visual;
+                         break;
+
+                    case 24:
+                         if (visual->red_mask   == 0xff0000 &&
+                             visual->green_mask == 0x00ff00 &&
+                             visual->blue_mask  == 0x0000ff &&
+                             !x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)])
+                              x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)] = visual;
+                         break;
+
+                    case 16:
+                         if (visual->red_mask   == 0xf800 &&
+                             visual->green_mask == 0x07e0 &&
+                             visual->blue_mask  == 0x001f &&
+                             !x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB16)])
+                              x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB16)] = visual;
+                         break;
+
+                    case 15:
+                         if (visual->red_mask   == 0x7c00 &&
+                             visual->green_mask == 0x03e0 &&
+                             visual->blue_mask  == 0x001f &&
+                             !x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB555)])
+                              x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB555)] = visual;
+                         break;
+               }
+          }
+     }
+
+     if (XShmQueryExtension( x11->display ))
+          XShmQueryVersion( x11->display, &x11->xshm_major, &x11->xshm_minor, &x11->use_shm );
+
+
+     x11->screen = dfb_screens_register( NULL, x11, &x11PrimaryScreenFuncs );
+
+     dfb_layers_register( x11->screen, x11, &x11PrimaryLayerFuncs );
+
+     return DFB_OK;
+}
+
+/**********************************************************************************************************************/
+
 static void
 system_get_info( CoreSystemInfo *info )
 {
@@ -120,108 +198,66 @@ system_get_info( CoreSystemInfo *info )
 static DFBResult
 system_initialize( CoreDFB *core, void **data )
 {
-     int         i, n;
-     CoreScreen *screen;
+     DFBResult     ret;
+     DFBX11       *x11;
+     DFBX11Shared *shared;
 
-     D_ASSERT( dfb_x11 == NULL );
+     x11 = D_CALLOC( 1, sizeof(DFBX11) );
+     if (!x11)
+          return D_OOM();
 
-     dfb_x11 = (DFBX11*) SHCALLOC( dfb_core_shmpool(core), 1, sizeof(DFBX11) );
-     if (!dfb_x11) {
-          D_ERROR( "DirectFB/X11: Couldn't allocate shared memory!\n" );
+     shared = SHCALLOC( dfb_core_shmpool( core ), 1, sizeof(DFBX11Shared) );
+     if (!shared) {
+          D_FREE( x11 );
           return D_OOSHM();
      }
 
-     dfb_x11->data_shmpool = dfb_core_shmpool_data( core );
 
-     dfb_x11_core = core;
-
-
-
-     XInitThreads();
-
-     dfb_x11->display = XOpenDisplay(getenv("DISPLAY"));
-     if (!dfb_x11->display) {
-          D_ERROR("X11: Error in XOpenDisplay for '%s'\n", getenv("DISPLAY"));
-          return DFB_INIT;
+     /*
+      * Local init (master and slave)
+      */
+     ret = InitLocal( x11, shared, core );
+     if (ret) {
+          SHFREE( dfb_core_shmpool( core ), shared );
+          D_FREE( x11 );
+          return ret;
      }
 
-     dfb_x11->screenptr = DefaultScreenOfDisplay(dfb_x11->display);
-     dfb_x11->screennum = DefaultScreen(dfb_x11->display);
 
-     for (i=0; i<dfb_x11->screenptr->ndepths; i++) {
-          const Depth *depth = &dfb_x11->screenptr->depths[i];
+     /*
+      * Shared init (master only)
+      */
+     shared->data_shmpool = dfb_core_shmpool_data( core );
 
-          for (n=0; n<depth->nvisuals; n++) {
-               Visual *visual = &depth->visuals[n];
+     shared->screen_size.w = x11->screenptr->width;
+     shared->screen_size.h = x11->screenptr->height;
 
-               D_DEBUG( "X11/Visual: ID %02lu, depth %d, red 0x%06lx, green 0x%06lx, blue 0x%06lx, %d bits/rgb, %d entries\n",
-                        visual->visualid, depth->depth,
-                        visual->red_mask, visual->green_mask, visual->blue_mask,
-                        visual->bits_per_rgb, visual->map_entries );
+     fusion_skirmish_init( &shared->lock, "X11 System", dfb_core_world(core) );
 
-               switch (depth->depth) {
-                    case 32:
-                         if (visual->red_mask   == 0xff0000 &&
-                             visual->green_mask == 0x00ff00 &&
-                             visual->blue_mask  == 0x0000ff &&
-                             !dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)])
-                              dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)] = visual;
-                         break;
-
-                    case 24:
-                         if (visual->red_mask   == 0xff0000 &&
-                             visual->green_mask == 0x00ff00 &&
-                             visual->blue_mask  == 0x0000ff &&
-                             !dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)])
-                              dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)] = visual;
-                         break;
-
-                    case 16:
-                         if (visual->red_mask   == 0xf800 &&
-                             visual->green_mask == 0x07e0 &&
-                             visual->blue_mask  == 0x001f &&
-                             !dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB16)])
-                              dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB16)] = visual;
-                         break;
-
-                    case 15:
-                         if (visual->red_mask   == 0x7c00 &&
-                             visual->green_mask == 0x03e0 &&
-                             visual->blue_mask  == 0x001f &&
-                             !dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB555)])
-                              dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB555)] = visual;
-                         break;
-               }
-          }
-     }
-
-     if (XShmQueryExtension( dfb_x11->display ))
-          XShmQueryVersion( dfb_x11->display, &dfb_x11->xshm_major, &dfb_x11->xshm_minor, &dfb_x11->use_shm );
+     fusion_call_init( &shared->call, call_handler, x11, dfb_core_world(core) );
 
 
+     /*
+      * Must be set before initializing the pools!
+      */
+     *data = x11;
 
-     fusion_skirmish_init( &dfb_x11->lock, "X11 System", dfb_core_world(core) );
 
-     fusion_call_init( &dfb_x11->call, call_handler, NULL, dfb_core_world(core) );
+     /*
+      * Master init
+      */
+     dfb_surface_pool_initialize( core, &x11SurfacePoolFuncs, &shared->x11image_pool );
 
+     dfb_surface_pool_initialize( core, &glxSurfacePoolFuncs, &shared->glx_pool );
 
      if (dfb_config->video_length) {
-          dfb_x11->vpsmem_length = dfb_config->video_length;
+          shared->vpsmem_length = dfb_config->video_length;
 
-          dfb_surface_pool_initialize( core, &vpsmemSurfacePoolFuncs, &dfb_x11->vpsmem_pool );
+          dfb_surface_pool_initialize( core, &vpsmemSurfacePoolFuncs, &shared->vpsmem_pool );
      }
 
-     dfb_surface_pool_initialize( core, &x11SurfacePoolFuncs, &dfb_x11->x11image_pool );
 
-
-     screen = dfb_screens_register( NULL, NULL, &x11PrimaryScreenFuncs );
-
-     dfb_layers_register( screen, NULL, &x11PrimaryLayerFuncs );
-
-
-     fusion_arena_add_shared_field( dfb_core_arena( core ), "x11", dfb_x11 );
-
-     *data = dfb_x11;
+     fusion_arena_add_shared_field( dfb_core_arena( core ), "x11", shared );
 
      return DFB_OK;
 }
@@ -229,27 +265,47 @@ system_initialize( CoreDFB *core, void **data )
 static DFBResult
 system_join( CoreDFB *core, void **data )
 {
-     void       *ret;
-     CoreScreen *screen;
+     DFBResult     ret;
+     void         *ptr;
+     DFBX11       *x11;
+     DFBX11Shared *shared;
 
-     D_ASSERT( dfb_x11 == NULL );
+     x11 = D_CALLOC( 1, sizeof(DFBX11) );
+     if (!x11)
+          return D_OOM();
 
-     fusion_arena_get_shared_field( dfb_core_arena( core ), "x11", &ret );
+     fusion_arena_get_shared_field( dfb_core_arena( core ), "x11", &ptr );
+     shared = ptr;
 
-     dfb_x11 = ret;
-     dfb_x11_core = core;
 
-     if (dfb_x11->vpsmem_pool)
-          dfb_surface_pool_join( core, dfb_x11->vpsmem_pool, &vpsmemSurfacePoolFuncs );
+     /*
+      * Local init (master and slave)
+      */
+     ret = InitLocal( x11, shared, core );
+     if (ret) {
+          D_FREE( x11 );
+          return ret;
+     }
 
-     if (dfb_x11->x11image_pool)
-          dfb_surface_pool_join( core, dfb_x11->x11image_pool, &x11SurfacePoolFuncs );
 
-     screen = dfb_screens_register( NULL, NULL, &x11PrimaryScreenFuncs );
+     /*
+      * Must be set before joining the pools!
+      */
+     *data = x11;
 
-     dfb_layers_register( screen, NULL, &x11PrimaryLayerFuncs );
 
-     *data = dfb_x11;
+     /*
+      * Slave init
+      */
+     if (shared->x11image_pool)
+          dfb_surface_pool_join( core, shared->x11image_pool, &x11SurfacePoolFuncs );
+
+     if (shared->glx_pool)
+          dfb_surface_pool_join( core, shared->glx_pool, &glxSurfacePoolFuncs );
+
+     if (shared->vpsmem_pool)
+          dfb_surface_pool_join( core, shared->vpsmem_pool, &vpsmemSurfacePoolFuncs );
+
 
      return DFB_OK;
 }
@@ -257,28 +313,45 @@ system_join( CoreDFB *core, void **data )
 static DFBResult
 system_shutdown( bool emergency )
 {
-     D_ASSERT( dfb_x11 != NULL );
+     DFBX11       *x11    = dfb_system_data();
+     DFBX11Shared *shared = x11->shared;
 
-     if (dfb_x11->x11image_pool)
-          dfb_surface_pool_destroy( dfb_x11->x11image_pool );
+     /*
+      * Master deinit
+      */
+     if (shared->glx_pool)
+          dfb_surface_pool_destroy( shared->glx_pool );
 
-     if (dfb_x11->vpsmem_pool)
-          dfb_surface_pool_destroy( dfb_x11->vpsmem_pool );
+     if (shared->x11image_pool)
+          dfb_surface_pool_destroy( shared->x11image_pool );
 
-     fusion_call_destroy( &dfb_x11->call );
+     if (shared->vpsmem_pool)
+          dfb_surface_pool_destroy( shared->vpsmem_pool );
 
-     fusion_skirmish_prevail( &dfb_x11->lock );
-     if (dfb_x11->xw)
-         dfb_x11_close_window( dfb_x11->xw );
 
-     if (dfb_x11->display)
-         XCloseDisplay( dfb_x11->display );
+     /*
+      * Shared deinit (master only)
+      */
+     fusion_call_destroy( &shared->call );
 
-     fusion_skirmish_destroy( &dfb_x11->lock );
+     fusion_skirmish_prevail( &shared->lock );
 
-     SHFREE( dfb_core_shmpool(dfb_x11_core), dfb_x11 );
-     dfb_x11 = NULL;
-     dfb_x11_core = NULL;
+     if (shared->xw)
+         dfb_x11_close_window( x11, shared->xw );
+
+     fusion_skirmish_destroy( &shared->lock );
+
+
+     SHFREE( dfb_core_shmpool( x11->core ), shared );
+
+
+     /*
+      * Local deinit (master and slave)
+      */
+     if (x11->display)
+         XCloseDisplay( x11->display );
+
+     D_FREE( x11 );
 
      return DFB_OK;
 }
@@ -286,16 +359,29 @@ system_shutdown( bool emergency )
 static DFBResult
 system_leave( bool emergency )
 {
-     D_ASSERT( dfb_x11 != NULL );
+     DFBX11       *x11    = dfb_system_data();
+     DFBX11Shared *shared = x11->shared;
 
-     if (dfb_x11->x11image_pool)
-          dfb_surface_pool_leave( dfb_x11->x11image_pool );
+     /*
+      * Slave deinit
+      */
+     if (shared->glx_pool)
+          dfb_surface_pool_leave( shared->glx_pool );
 
-     if (dfb_x11->vpsmem_pool)
-          dfb_surface_pool_leave( dfb_x11->vpsmem_pool );
+     if (shared->x11image_pool)
+          dfb_surface_pool_leave( shared->x11image_pool );
 
-     dfb_x11 = NULL;
-     dfb_x11_core = NULL;
+     if (shared->vpsmem_pool)
+          dfb_surface_pool_leave( shared->vpsmem_pool );
+
+
+     /*
+      * Local deinit (master and slave)
+      */
+     if (x11->display)
+         XCloseDisplay( x11->display );
+
+     D_FREE( x11 );
 
      return DFB_OK;
 }
@@ -395,14 +481,12 @@ system_auxram_length()
 static void
 system_get_busid( int *ret_bus, int *ret_dev, int *ret_func )
 {
-     return;
 }
 
 static void
 system_get_deviceid( unsigned int *ret_vendor_id,
                      unsigned int *ret_device_id )
 {
-     return;
 }
 
 static FusionCallHandlerResult
@@ -413,29 +497,31 @@ call_handler( int           caller,
               unsigned int  serial,
               int          *ret_val )
 {
+     DFBX11 *x11 = ctx;
+
      switch (call_arg) {
           case X11_CREATE_WINDOW:
-               *ret_val = dfb_x11_create_window_handler( call_ptr );
+               *ret_val = dfb_x11_create_window_handler( x11, call_ptr );
                break;
 
           case X11_DESTROY_WINDOW:
-               *ret_val = dfb_x11_destroy_window_handler();
+               *ret_val = dfb_x11_destroy_window_handler( x11 );
                break;
 
           case X11_UPDATE_SCREEN:
-               *ret_val = dfb_x11_update_screen_handler( call_ptr );
+               *ret_val = dfb_x11_update_screen_handler( x11, call_ptr );
                break;
 
           case X11_SET_PALETTE:
-               *ret_val = dfb_x11_set_palette_handler( call_ptr );
+               *ret_val = dfb_x11_set_palette_handler( x11, call_ptr );
                break;
 
           case X11_IMAGE_INIT:
-               *ret_val = dfb_x11_image_init_handler( call_ptr );
+               *ret_val = dfb_x11_image_init_handler( x11, call_ptr );
                break;
 
           case X11_IMAGE_DESTROY:
-               *ret_val = dfb_x11_image_destroy_handler( call_ptr );
+               *ret_val = dfb_x11_image_destroy_handler( x11, call_ptr );
                break;
 
           default:

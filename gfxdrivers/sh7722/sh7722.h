@@ -3,12 +3,10 @@
 
 #include <sys/ioctl.h>
 
-#include <sh7722gfx.h>
+#include <sh772x_gfx.h>
 
 #include "sh7722_regs.h"
 #include "sh7722_types.h"
-
-extern SH7722GfxSharedArea *sh7722gfx_shared;
 
 
 /******************************************************************************
@@ -35,15 +33,63 @@ extern SH7722GfxSharedArea *sh7722gfx_shared;
  * Register access
  */
 
-#ifdef SH7722_REG_USE_IOCTLS
+//#define SH7722_TDG_REG_USE_IOCTLS
+
+#ifdef SH7722_TDG_REG_USE_IOCTLS
+static inline u32
+SH7722_TDG_GETREG32( SH7722DriverData *sdrv,
+                     u32               address )
+{
+     SH772xRegister reg = { address, 0 };
+
+     if (ioctl( sdrv->gfx_fd, SH772xGFX_IOCTL_GETREG32, &reg ) < 0)
+          D_PERROR( "SH772xGFX_IOCTL_GETREG32( 0x%08x )\n", reg.address );
+
+     return reg.value;
+}
+
+static inline void
+SH7722_TDG_SETREG32( SH7722DriverData *sdrv,
+                     u32               address,
+                     u32               value )
+{
+     SH772xRegister reg = { address, value };
+
+     if (ioctl( sdrv->gfx_fd, SH772xGFX_IOCTL_SETREG32, &reg ) < 0)
+          D_PERROR( "SH772xGFX_IOCTL_SETREG32( 0x%08x, 0x%08x )\n", reg.address, reg.value );
+}
+#else
+static inline u32
+SH7722_TDG_GETREG32( SH7722DriverData *sdrv,
+                     u32               address )
+{
+     D_ASSERT( address >= dfb_config->mmio_phys );
+     D_ASSERT( address < (dfb_config->mmio_phys + dfb_config->mmio_length) );
+
+     return *(volatile u32*)(sdrv->mmio_base + (address - dfb_config->mmio_phys));
+}
+
+static inline void
+SH7722_TDG_SETREG32( SH7722DriverData *sdrv,
+                     u32               address,
+                     u32               value )
+{
+     D_ASSERT( address >= dfb_config->mmio_phys );
+     D_ASSERT( address < (dfb_config->mmio_phys + dfb_config->mmio_length) );
+
+     *(volatile u32*)(sdrv->mmio_base + (address - dfb_config->mmio_phys)) = value;
+}
+#endif
+
+
 static inline u32
 SH7722_GETREG32( SH7722DriverData *sdrv,
                  u32               address )
 {
-     SH7722Register reg = { address, 0 };
+     SH772xRegister reg = { address, 0 };
 
-     if (ioctl( sdrv->gfx_fd, SH7722GFX_IOCTL_GETREG32, &reg ) < 0)
-          D_PERROR( "SH7722GFX_IOCTL_GETREG32( 0x%08x )\n", reg.address );
+     if (ioctl( sdrv->gfx_fd, SH772xGFX_IOCTL_GETREG32, &reg ) < 0)
+          D_PERROR( "SH772xGFX_IOCTL_GETREG32( 0x%08x )\n", reg.address );
 
      return reg.value;
 }
@@ -53,33 +99,11 @@ SH7722_SETREG32( SH7722DriverData *sdrv,
                  u32               address,
                  u32               value )
 {
-     SH7722Register reg = { address, value };
+     SH772xRegister reg = { address, value };
 
-     if (ioctl( sdrv->gfx_fd, SH7722GFX_IOCTL_SETREG32, &reg ) < 0)
-          D_PERROR( "SH7722GFX_IOCTL_SETREG32( 0x%08x, 0x%08x )\n", reg.address, reg.value );
+     if (ioctl( sdrv->gfx_fd, SH772xGFX_IOCTL_SETREG32, &reg ) < 0)
+          D_PERROR( "SH772xGFX_IOCTL_SETREG32( 0x%08x, 0x%08x )\n", reg.address, reg.value );
 }
-#else
-static inline u32
-SH7722_GETREG32( SH7722DriverData *sdrv,
-                 u32               address )
-{
-     D_ASSERT( address >= dfb_config->mmio_phys );
-     D_ASSERT( address < (dfb_config->mmio_phys + dfb_config->mmio_length) );
-
-     return *(volatile u32*)(sdrv->mmio_base + (address - dfb_config->mmio_phys));
-}
-
-static inline void
-SH7722_SETREG32( SH7722DriverData *sdrv,
-                 u32               address,
-                 u32               value )
-{
-     D_ASSERT( address >= dfb_config->mmio_phys );
-     D_ASSERT( address < (dfb_config->mmio_phys + dfb_config->mmio_length) );
-
-     *(volatile u32*)(sdrv->mmio_base + (address - dfb_config->mmio_phys)) = value;
-}
-#endif
 
 
 static inline void

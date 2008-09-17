@@ -6,6 +6,7 @@ INCLUDES = \
 	-I$(top_builddir)/lib		\
 	-I$(top_srcdir)/lib		\
 	-I$(top_srcdir)/src		\
+	-I$(top_srcdir)/gfxdrivers	\
 	$(X11_CFLAGS)
 
 
@@ -19,11 +20,13 @@ systems_LTLIBRARIES = libdirectfb_x11.la
 
 
 libdirectfb_x11_la_LDFLAGS = \
-	$(X11_LIBS)	\
+	$(X11_LIBS) -lGL	\
 	-avoid-version	\
 	-module
 
 libdirectfb_x11_la_SOURCES = \
+	glx_surface_pool.c	\
+	glx_surface_pool.h	\
 	primary.c		\
 	primary.h		\
 	surfacemanager.c	\

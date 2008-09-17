@@ -249,19 +249,32 @@ copy_line_nv16( u16 *yy, u16 *cbcr, const u8 *src_ycbcr, int width )
 {
      int x;
 
-     D_ASSUME( !(width & 1) );
-
      for (x=0; x<width/2; x++) {
 #ifdef WORDS_BIGENDIAN
           yy[x] = (src_ycbcr[0] << 8) | src_ycbcr[3];
-#else
-          yy[x] = (src_ycbcr[3] << 8) | src_ycbcr[0];
-#endif
 
           cbcr[x] = (((src_ycbcr[1] + src_ycbcr[4]) << 7) & 0xff00) |
                      ((src_ycbcr[2] + src_ycbcr[5]) >> 1);
+#else
+          yy[x] = (src_ycbcr[3] << 8) | src_ycbcr[0];
+
+          cbcr[x] = (((src_ycbcr[2] + src_ycbcr[5]) << 7) & 0xff00) |
+                     ((src_ycbcr[1] + src_ycbcr[4]) >> 1);
+#endif
 
           src_ycbcr += 6;
+     }
+
+     if (width & 1) {
+          u8 *y = (u8*) yy;
+
+          y[width-1] = src_ycbcr[0];
+
+#ifdef WORDS_BIGENDIAN
+          cbcr[x] = (src_ycbcr[1] << 8) | src_ycbcr[2];
+#else
+          cbcr[x] = (src_ycbcr[2] << 8) | src_ycbcr[1];
+#endif
      }
 }
 
@@ -422,7 +435,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           rect = dst_data->area.wanted;
      }
 
-     ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
+     ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
      if (ret)
           return ret;
 

@@ -102,10 +102,10 @@ buffer_size( CoreSurface *surface, CoreSurfaceBuffer *buffer, bool video )
 
      fusion_vector_foreach (allocation, i, buffer->allocs) {
           if (video) {
-               if (allocation->access & (CSAF_GPU_READ | CSAF_GPU_WRITE))
+               if (allocation->access[CSAID_GPU])
                     mem += allocation->size;
           }
-          else if (!(allocation->access & (CSAF_GPU_READ | CSAF_GPU_WRITE)))
+          else if (!allocation->access[CSAID_GPU])
                mem += allocation->size;
      }
 
@@ -397,44 +397,58 @@ surface_pool_info_callback( CoreSurfacePool *pool,
                break;
      }
 
-     printf( "  %c %c  %c %c  %c ",
-             (pool->desc.access & CSAF_CPU_READ)  ? '*' : ' ',
-             (pool->desc.access & CSAF_CPU_WRITE) ? '*' : ' ',
-             (pool->desc.access & CSAF_GPU_READ)  ? '*' : ' ',
-             (pool->desc.access & CSAF_GPU_WRITE) ? '*' : ' ',
-             (pool->desc.access & CSAF_SHARED)    ? '*' : ' ' );
-
-
-     printf( "%6lu/%6luk   ", total / 1024, pool->desc.size / 1024 );
-
+     printf( "%6lu/%6luk  ", total / 1024, pool->desc.size / 1024 );
 
      if (pool->desc.types & CSTF_SHARED)
-          printf( "SHARED   " );
+          printf( "* " );
      else
-          printf( "         " );
+          printf( "  " );
 
 
      if (pool->desc.types & CSTF_INTERNAL)
-          printf( "INTERNAL  " );
+          printf( "INT " );
 
      if (pool->desc.types & CSTF_EXTERNAL)
-          printf( "EXTERNAL  " );
+          printf( "EXT " );
 
      if (!(pool->desc.types & (CSTF_INTERNAL | CSTF_EXTERNAL)))
-          printf( "          " );
+          printf( "    " );
 
 
      if (pool->desc.types & CSTF_LAYER)
           printf( "LAYER " );
+     else
+          printf( "      " );
 
      if (pool->desc.types & CSTF_WINDOW)
           printf( "WINDOW " );
+     else
+          printf( "       " );
 
      if (pool->desc.types & CSTF_CURSOR)
           printf( "CURSOR " );
+     else
+          printf( "       " );
 
      if (pool->desc.types & CSTF_FONT)
           printf( "FONT " );
+     else
+          printf( "     " );
+
+
+     for (i=CSAID_CPU; i<=CSAID_GPU; i++) {
+          printf( " %c%c%c",
+                  (pool->desc.access[i] & CSAF_READ)   ? 'r' : '-',
+                  (pool->desc.access[i] & CSAF_WRITE)  ? 'w' : '-',
+                  (pool->desc.access[i] & CSAF_SHARED) ? 's' : '-' );
+     }
+
+     for (i=CSAID_LAYER0; i<=CSAID_LAYER2; i++) {
+          printf( " %c%c%c",
+                  (pool->desc.access[i] & CSAF_READ)   ? 'r' : '-',
+                  (pool->desc.access[i] & CSAF_WRITE)  ? 'w' : '-',
+                  (pool->desc.access[i] & CSAF_SHARED) ? 's' : '-' );
+     }
 
      printf( "\n" );
 
@@ -446,7 +460,7 @@ dump_surface_pool_info()
 {
      printf( "\n" );
      printf( "-------------------------------------[ Surface Buffer Pools ]------------------------------------\n" );
-     printf( "Name                 Priority  CrCw GrGw Sh   Used/Capacity  Usage    Storage   Resource Types\n" );
+     printf( "Name                 Priority   Used/Capacity S I/E Resource Type Support     CPU GPU Layer 0 - 2\n" );
      printf( "-------------------------------------------------------------------------------------------------\n" );
 
      dfb_surface_pools_enumerate( surface_pool_info_callback, NULL );

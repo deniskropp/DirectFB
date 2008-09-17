@@ -36,7 +36,8 @@
 #include <X11/extensions/XShm.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
- 
+
+#include "x11types.h"
 
 
 typedef struct {
@@ -56,12 +57,14 @@ typedef struct {
 } x11Image;
 
 
-DFBResult x11ImageInit   ( x11Image              *image,
+DFBResult x11ImageInit   ( DFBX11                *x11,
+                           x11Image              *image,
                            int                    width,
                            int                    height,
                            DFBSurfacePixelFormat  format );
 
-DFBResult x11ImageDestroy( x11Image              *image );
+DFBResult x11ImageDestroy( DFBX11                *x11,
+                           x11Image              *image );
 
 DFBResult x11ImageAttach ( x11Image              *image,
                            void                 **ret_addr );

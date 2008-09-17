@@ -111,7 +111,7 @@ static const int pixel_formats[DFB_NUM_PIXELFORMATS] = {
 #define SH7722_INVALIDATE(flags)        do { sdev->v_flags &= ~(flags); } while (0)
 
 #define SH7722_CHECK_VALIDATE(flag)     do {                                                        \
-                                             if (! (sdev->v_flags & flag))                          \
+                                             if ((sdev->v_flags & flag) != flag)                    \
                                                   sh7722_validate_##flag( sdrv, sdev, state );      \
                                         } while (0)
 
@@ -179,7 +179,7 @@ check_blend_functions( const CardState *state )
 static inline bool
 start_hardware( SH7722DriverData *sdrv )
 {
-     SH7722GfxSharedArea *shared = sdrv->gfx_shared;
+     SH772xGfxSharedArea *shared = sdrv->gfx_shared;
 
      D_DEBUG_AT( SH7722_BLT, "%s()\n", __FUNCTION__ );
 
@@ -203,8 +203,8 @@ start_hardware( SH7722DriverData *sdrv )
 
      D_ASSERT( shared->buffer[shared->hw_end] == 0xF0000000 );
 
-     SH7722_SETREG32( sdrv, BEM_HC_DMA_ADR,   shared->buffer_phys + shared->hw_start*4 );
-     SH7722_SETREG32( sdrv, BEM_HC_DMA_START, 1 );
+     SH7722_TDG_SETREG32( sdrv, BEM_HC_DMA_ADR,   shared->buffer_phys + shared->hw_start*4 );
+     SH7722_TDG_SETREG32( sdrv, BEM_HC_DMA_START, 1 );
 
      return true;
 }
@@ -213,14 +213,14 @@ __attribute__((noinline))
 static void
 flush_prepared( SH7722DriverData *sdrv )
 {
-     SH7722GfxSharedArea *shared  = sdrv->gfx_shared;
+     SH772xGfxSharedArea *shared  = sdrv->gfx_shared;
      unsigned int         timeout = 2;
 
      D_DEBUG_AT( SH7722_BLT, "%s()\n", __FUNCTION__ );
 
      DUMP_INFO();
 
-     D_ASSERT( sdrv->prep_num < SH7722GFX_BUFFER_WORDS );
+     D_ASSERT( sdrv->prep_num < SH772xGFX_BUFFER_WORDS );
      D_ASSERT( sdrv->prep_num <= D_ARRAY_SIZE(sdrv->prep_buf) );
 
      /* Something prepared? */
@@ -233,8 +233,8 @@ flush_prepared( SH7722DriverData *sdrv )
 
           /* Check if there's enough space at the end.
            * Wait until hardware has started next block before it gets too big. */
-          if (shared->next_end + sdrv->prep_num >= SH7722GFX_BUFFER_WORDS ||
-              shared->next_end - shared->next_start >= SH7722GFX_BUFFER_WORDS/4)
+          if (shared->next_end + sdrv->prep_num >= SH772xGFX_BUFFER_WORDS ||
+              shared->next_end - shared->next_start >= SH772xGFX_BUFFER_WORDS/4)
           {
                /* If there's no next block waiting, start at the beginning. */
                if (shared->next_start == shared->next_end)
@@ -264,7 +264,7 @@ flush_prepared( SH7722DriverData *sdrv )
                          }
 
                          /* Wait til next block is started. */
-                         ioctl( sdrv->gfx_fd, SH7722GFX_IOCTL_WAIT_NEXT );
+                         ioctl( sdrv->gfx_fd, SH772xGFX_IOCTL_WAIT_NEXT );
                     }
 
                     /* Start over with the checks. */
@@ -301,7 +301,7 @@ flush_prepared( SH7722DriverData *sdrv )
                }
 
                /* Wait til next block is started. */
-               ioctl( sdrv->gfx_fd, SH7722GFX_IOCTL_WAIT_NEXT );
+               ioctl( sdrv->gfx_fd, SH772xGFX_IOCTL_WAIT_NEXT );
           }
 
           /* Copy from local to shared buffer. */
@@ -356,6 +356,9 @@ sh7722_validate_DEST_CLIP( SH7722DriverData *sdrv,
                            CardState        *state )
 {
      __u32 *prep = start_buffer( sdrv, 10 );
+
+     D_DEBUG_AT( SH7722_BLT, "%s( 0x%08lx [%d] - %4d,%4d-%4dx%4d )\n", __FUNCTION__,
+                 state->dst.phys, state->dst.pitch, DFB_RECTANGLE_VALS_FROM_REGION( &state->clip ) );
 
      /* Set clip. */
      prep[0] = BEM_PE_SC0_MIN;
@@ -712,13 +715,13 @@ sh7722EngineSync( void *drv, void *dev )
 {
      DFBResult            ret    = DFB_OK;
      SH7722DriverData    *sdrv   = drv;
-     SH7722GfxSharedArea *shared = sdrv->gfx_shared;
+     SH772xGfxSharedArea *shared = sdrv->gfx_shared;
 
      D_DEBUG_AT( SH7722_BLT, "%s()\n", __FUNCTION__ );
 
      DUMP_INFO();
 
-     while (shared->hw_running && ioctl( sdrv->gfx_fd, SH7722GFX_IOCTL_WAIT_IDLE ) < 0) {
+     while (shared->hw_running && ioctl( sdrv->gfx_fd, SH772xGFX_IOCTL_WAIT_IDLE ) < 0) {
           if (errno == EINTR)
                continue;
 
@@ -755,7 +758,7 @@ sh7722EngineReset( void *drv, void *dev )
 
      DUMP_INFO();
 
-     ioctl( sdrv->gfx_fd, SH7722GFX_IOCTL_RESET );
+     ioctl( sdrv->gfx_fd, SH772xGFX_IOCTL_RESET );
 
      prep = start_buffer( sdrv, 20 );
 

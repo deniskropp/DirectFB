@@ -557,15 +557,17 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                          D_ASSERT( allocation != NULL );
 
                          /* If hardware has written or is writing... */
-                         if (allocation->accessed & CSAF_GPU_WRITE) {
+                         if (allocation->accessed[CSAID_GPU] & CSAF_WRITE) {
                               D_DEBUG_AT( Core_Layers, "  -> Waiting for pending writes...\n" );
 
                               /* ...wait for the operation to finish. */
                               if (!(flags & DSFLIP_PIPELINE))
                                    dfb_gfxcard_sync(); /* TODO: wait for serial instead */
 
-                              allocation->accessed &= ~CSAF_GPU_WRITE;
+                              allocation->accessed[CSAID_GPU] &= ~CSAF_WRITE;
                          }
+
+                         dfb_surface_allocation_update( allocation, CSAF_READ );
                     }
 
                     D_DEBUG_AT( Core_Layers, "  -> Notifying driver about updated content...\n" );
@@ -850,10 +852,16 @@ region_buffer_lock( CoreLayerRegion       *region,
                     CoreSurface           *surface,
                     CoreSurfaceBufferRole  role )
 {
-     DFBResult               ret;
-     CoreSurfaceAccessFlags  flags;
-     CoreSurfaceBuffer      *buffer;
-     CoreSurfaceAllocation  *allocation;
+     DFBResult              ret;
+     CoreSurfaceBuffer     *buffer;
+     CoreSurfaceAllocation *allocation;
+     CoreLayerContext      *context;
+
+     D_ASSERT( region != NULL );
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     context = region->context;
+     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      /* First unlock any previously locked buffer. */
      if (region->surface_lock.buffer) {
@@ -862,12 +870,6 @@ region_buffer_lock( CoreLayerRegion       *region,
           dfb_surface_unlock_buffer( region->surface_lock.buffer->surface, &region->surface_lock );
      }
 
-     /* Determine flags to use. */
-     if (surface->config.caps & DSCAPS_SYSTEMONLY)
-          flags = CSAF_CPU_READ;
-     else
-          flags = CSAF_GPU_READ;
-         
      if (dfb_surface_lock( surface ))
           return DFB_FUSION;
 
@@ -875,7 +877,7 @@ region_buffer_lock( CoreLayerRegion       *region,
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      /* Lock the surface buffer. */
-     ret = dfb_surface_buffer_lock( buffer, flags, &region->surface_lock );
+     ret = dfb_surface_buffer_lock( buffer, CSAID_LAYER0 + context->layer_id, CSAF_READ, &region->surface_lock );
      if (ret) {
           D_DERROR( ret, "Core/LayerRegion: Could not lock region surface for SetRegion()!\n" );
           dfb_surface_unlock( surface );
@@ -886,14 +888,16 @@ region_buffer_lock( CoreLayerRegion       *region,
      D_ASSERT( allocation != NULL );
 
      /* If hardware has written or is writing... */
-     if (allocation->accessed & CSAF_GPU_WRITE) {
+     if (allocation->accessed[CSAID_GPU] & CSAF_WRITE) {
           D_DEBUG_AT( Core_Layers, "  -> Waiting for pending writes...\n" );
 
           /* ...wait for the operation to finish. */
           dfb_gfxcard_sync(); /* TODO: wait for serial instead */
 
-          allocation->accessed &= ~CSAF_GPU_WRITE;
+          allocation->accessed[CSAID_GPU] &= ~CSAF_WRITE;
      }
+
+     /* surface is unlocked by caller */
 
      return DFB_OK;
 }

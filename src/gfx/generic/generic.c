@@ -61,7 +61,6 @@
 
 #include "generic.h"
 #include "duffs_device.h"
-#include "yuvtbl.h"
 
 
 /* lookup tables for 2/3bit to 8bit color conversion */
@@ -3574,6 +3573,20 @@ static void Sacc_to_Aop_nv12( GenefxState *gfxs )
                     if (cr & 0xFF00)
                          cr = 0xFF;
                          
+#ifdef WORDS_BIGENDIAN
+                    *Duv = cr | (cb << 8);
+               }
+               else if (!(S[0].YUV.a & 0xF000)) {
+                    cb = ((*Duv >> 8)   + ((S[0].YUV.u & 0xFF00) ? 0xFF : S[0].YUV.u)) >> 1;
+                    cr = ((*Duv & 0xFF) + ((S[0].YUV.v & 0xFF00) ? 0xFF : S[0].YUV.v)) >> 1;
+                    *Duv = cr | (cb << 8);
+               }
+               else if (!(S[1].YUV.a & 0xF000)) {
+                    cb = ((*Duv >> 8)   + ((S[1].YUV.u & 0xFF00) ? 0xFF : S[1].YUV.u)) >> 1;
+                    cr = ((*Duv & 0xFF) + ((S[1].YUV.v & 0xFF00) ? 0xFF : S[1].YUV.v)) >> 1;
+                    *Duv = cr | (cb << 8);
+               }
+#else
                     *Duv = cb | (cr << 8);
                }
                else if (!(S[0].YUV.a & 0xF000)) {
@@ -3586,6 +3599,7 @@ static void Sacc_to_Aop_nv12( GenefxState *gfxs )
                     cr = ((*Duv >> 8)   + ((S[1].YUV.v & 0xFF00) ? 0xFF : S[1].YUV.v)) >> 1;
                     *Duv = cb | (cr << 8);
                }
+#endif
                
                S += 2;
                Duv++;
@@ -4146,6 +4160,20 @@ static void Sacc_Sto_Aop_nv12( GenefxState *gfxs )
                     if (cr & 0xFF00)
                          cr = 0xFF;
                          
+#ifdef WORDS_BIGENDIAN
+                    *Duv = cr | (cb << 8);
+               }
+               else if (!(S0->YUV.a & 0xF000)) {
+                    cb = ((*Duv >> 8)   + ((S0->YUV.u & 0xFF00) ? 0xFF : S0->YUV.u)) >> 1;
+                    cr = ((*Duv & 0xFF) + ((S0->YUV.v & 0xFF00) ? 0xFF : S0->YUV.v)) >> 1;
+                    *Duv = cr | (cb << 8);
+               }
+               else if (!(S1->YUV.a & 0xF000)) {
+                    cb = ((*Duv >> 8)   + ((S1->YUV.u & 0xFF00) ? 0xFF : S1->YUV.u)) >> 1;
+                    cr = ((*Duv & 0xFF) + ((S1->YUV.v & 0xFF00) ? 0xFF : S1->YUV.v)) >> 1;
+                    *Duv = cr | (cb << 8);
+               }
+#else
                     *Duv = cb | (cr << 8);
                }
                else if (!(S0->YUV.a & 0xF000)) {
@@ -4158,6 +4186,7 @@ static void Sacc_Sto_Aop_nv12( GenefxState *gfxs )
                     cr = ((*Duv >> 8)   + ((S1->YUV.v & 0xFF00) ? 0xFF : S1->YUV.v)) >> 1;
                     *Duv = cb | (cr << 8);
                }
+#endif
                
                Duv++;
 
@@ -4204,6 +4233,20 @@ static void Sacc_Sto_Aop_nv21( GenefxState *gfxs )
                     if (cr & 0xFF00)
                          cr = 0xFF;
                          
+#ifdef WORDS_BIGENDIAN
+                    *Dvu = cb | (cr << 8);
+               }
+               else if (!(S0->YUV.a & 0xF000)) {
+                    cb = ((*Dvu & 0xFF) + ((S0->YUV.u & 0xFF00) ? 0xFF : S0->YUV.u)) >> 1;
+                    cr = ((*Dvu >> 8)   + ((S0->YUV.v & 0xFF00) ? 0xFF : S0->YUV.v)) >> 1;
+                    *Dvu = cb | (cr << 8);
+               }
+               else if (!(S1->YUV.a & 0xF000)) {
+                    cb = ((*Dvu & 0xFF) + ((S1->YUV.u & 0xFF00) ? 0xFF : S1->YUV.u)) >> 1;
+                    cr = ((*Dvu >> 8)   + ((S1->YUV.v & 0xFF00) ? 0xFF : S1->YUV.v)) >> 1;
+                    *Dvu = cb | (cr << 8);
+               }
+#else
                     *Dvu = cr | (cb << 8);
                }
                else if (!(S0->YUV.a & 0xF000)) {
@@ -4216,6 +4259,7 @@ static void Sacc_Sto_Aop_nv21( GenefxState *gfxs )
                     cr = ((*Dvu & 0xFF) + ((S1->YUV.v & 0xFF00) ? 0xFF : S1->YUV.v)) >> 1;
                     *Dvu = cr | (cb << 8);
                }
+#endif
                
                Dvu++;
 
@@ -6055,68 +6099,59 @@ static void Sacc_add_to_Dacc_C( GenefxState *gfxs )
 
 static GenefxFunc Sacc_add_to_Dacc = Sacc_add_to_Dacc_C;
 
+/**********************************************************************************************************************/
+
+/* change the last value to adjust the size of the device (1-4) */
+#define SET_PIXEL_DUFFS_DEVICE( D, S, w ) \
+     SET_PIXEL_DUFFS_DEVICE_N( D, S, w, 3 )
+
+#define SET_PIXEL( D, S )                              \
+     if (!(S.RGB.a & 0xF000)) {                        \
+          RGB_TO_YCBCR( S.RGB.r, S.RGB.g, S.RGB.b,     \
+                        D.YUV.y, D.YUV.u, D.YUV.v );   \
+     }
 
 static void Dacc_RGB_to_YCbCr_C( GenefxState *gfxs )
 {
-     int                w = gfxs->length>>1;
+     int                w = gfxs->length;
      GenefxAccumulator *D = gfxs->Dacc;
+     GenefxAccumulator *S = gfxs->Dacc;
 
-     while (w--) {
-          /* Actually DirectFB only supports 4:2:X formats */
-          if (!(D[0].RGB.a & 0xF000) && !(D[1].RGB.a & 0xF000)) {
-               u32 r0, g0, b0;
-               u32 r1, g1, b1;
-               u32 ey0, ey1;
-
-               r0 = D[0].RGB.r; g0 = D[0].RGB.g; b0 = D[0].RGB.b;
-               r1 = D[1].RGB.r; g1 = D[1].RGB.g; b1 = D[1].RGB.b;
-               ey0 = (19595 * r0 + 38469 * g0 + 7471 * b0) >> 16;
-               ey1 = (19595 * r1 + 38469 * g1 + 7471 * b1) >> 16;
-
-               D[0].YUV.y = y_from_ey[ey0];
-               D[1].YUV.y = y_from_ey[ey1];
-               D[0].YUV.u = D[1].YUV.u = cb_from_bey[(b0-ey0+b1-ey1)>>1];
-               D[0].YUV.v = D[1].YUV.v = cr_from_rey[(r0-ey0+r1-ey1)>>1];
-          }
-          else if (!(D[0].RGB.a & 0xF000)) {
-               u32 r, g, b, ey;
-
-               r = D[0].RGB.r; g = D[0].RGB.g; b = D[0].RGB.b;
-               ey = (19595 * r + 38469 * g + 7471 * b) >> 16;
-
-               D[0].YUV.y = y_from_ey[ey];
-               D[0].YUV.u = cb_from_bey[b-ey];
-               D[0].YUV.v = cr_from_rey[r-ey];
-          }
-          else if (!(D[1].RGB.a & 0xF000)) {
-               u32 r, g, b, ey;
-
-               r = D[1].RGB.r; g = D[1].RGB.g; b = D[1].RGB.b;
-               ey = (19595 * r + 38469 * g + 7471 * b) >> 16;
-
-               D[1].YUV.y = y_from_ey[ey];
-               D[1].YUV.u = cb_from_bey[b-ey];
-               D[1].YUV.v = cr_from_rey[r-ey];
-          }
-
-          D += 2;
-     }
-
-     if (gfxs->length & 1) {
-          if (!(D->RGB.a & 0xF000)) {
-               u32 r, g, b, ey;
-
-               r = D->RGB.r; g = D->RGB.g; b = D->RGB.b;
-               ey = (19595 * r + 38469 * g + 7471 * b) >> 16;
-
-               D->YUV.y = y_from_ey[ey];
-               D->YUV.u = cb_from_bey[b-ey];
-               D->YUV.v = cr_from_rey[r-ey];
-          }
-     }
+     SET_PIXEL_DUFFS_DEVICE( D, S, w );
 }
 
+#undef SET_PIXEL_DUFFS_DEVICE
+#undef SET_PIXEL
+
 static GenefxFunc Dacc_RGB_to_YCbCr = Dacc_RGB_to_YCbCr_C;
+
+/**********************************************************************************************************************/
+
+/* change the last value to adjust the size of the device (1-4) */
+#define SET_PIXEL_DUFFS_DEVICE( D, S, w ) \
+     SET_PIXEL_DUFFS_DEVICE_N( D, S, w, 2 )
+
+#define SET_PIXEL( D, S )                              \
+     if (!(S.YUV.a & 0xF000)) {                        \
+          YCBCR_TO_RGB( S.YUV.y, S.YUV.u, S.YUV.v,     \
+                        D.RGB.r, D.RGB.g, D.RGB.b );   \
+     }
+
+static void Dacc_YCbCr_to_RGB_C( GenefxState *gfxs )
+{
+     int                w = gfxs->length;
+     GenefxAccumulator *D = gfxs->Dacc;
+     GenefxAccumulator *S = gfxs->Dacc;
+
+     SET_PIXEL_DUFFS_DEVICE( D, S, w );
+}
+
+#undef SET_PIXEL_DUFFS_DEVICE
+#undef SET_PIXEL
+
+static GenefxFunc Dacc_YCbCr_to_RGB = Dacc_YCbCr_to_RGB_C;
+
+/**********************************************************************************************************************/
 
 /* change the last value to adjust the size of the device (1-4) */
 #define SET_PIXEL_DUFFS_DEVICE( D, S, w ) \
@@ -6203,6 +6238,68 @@ static GenefxFunc Bop_argb_blend_alphachannel_src_invsrc_Aop_PFI[DFB_NUM_PIXELFO
      NULL,                                             /* DSPF_BGR555 */
 };
 
+/**********************************************************************************************************************/
+
+/* change the last value to adjust the size of the device (1-4) */
+#define SET_PIXEL_DUFFS_DEVICE( D, S, w ) \
+     SET_PIXEL_DUFFS_DEVICE_N( D, S, w, 3 )
+
+#define SET_PIXEL( D, S )                                   \
+do {                                                        \
+     int invsrc = 256 - (S >> 24);                          \
+                                                            \
+     u32 Drb = ((D & 0x00ff00ff) * invsrc) >> 8;            \
+     u32 Dag = ((D & 0xff00ff00) >> 8) * invsrc;            \
+                                                            \
+     D = S + (Drb & 0x00ff00ff) + (Dag & 0xff00ff00);       \
+} while (0)
+
+static void Bop_argb_blend_alphachannel_one_invsrc_Aop_argb( GenefxState *gfxs )
+{
+     int  w = gfxs->length;
+     u32 *S = gfxs->Bop[0];
+     u32 *D = gfxs->Aop[0];
+
+     SET_PIXEL_DUFFS_DEVICE( D, S, w );
+}
+
+#undef SET_PIXEL_DUFFS_DEVICE
+#undef SET_PIXEL
+
+static GenefxFunc Bop_argb_blend_alphachannel_one_invsrc_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
+     NULL,                                             /* DSPF_ARGB1555 */
+     NULL,                                             /* DSPF_RGB16 */
+     NULL,                                             /* DSPF_RGB24 */
+     Bop_argb_blend_alphachannel_one_invsrc_Aop_argb,  /* DSPF_RGB32 */
+     Bop_argb_blend_alphachannel_one_invsrc_Aop_argb,  /* DSPF_ARGB */
+     NULL,                                             /* DSPF_A8 */
+     NULL,                                             /* DSPF_YUY2 */
+     NULL,                                             /* DSPF_RGB332 */
+     NULL,                                             /* DSPF_UYVY */
+     NULL,                                             /* DSPF_I420 */
+     NULL,                                             /* DSPF_YV12 */
+     NULL,                                             /* DSPF_LUT8 */
+     NULL,                                             /* DSPF_ALUT44 */
+     NULL,                                             /* DSPF_AiRGB */
+     NULL,                                             /* DSPF_A1 */
+     NULL,                                             /* DSPF_NV12 */
+     NULL,                                             /* DSPF_NV16 */
+     NULL,                                             /* DSPF_ARGB2554 */
+     NULL,                                             /* DSPF_ARGB4444 */
+     NULL,                                             /* DSPF_NV21 */
+     NULL,                                             /* DSPF_AYUV */
+     NULL,                                             /* DSPF_A4 */
+     NULL,                                             /* DSPF_ARGB1666 */
+     NULL,                                             /* DSPF_ARGB6666 */
+     NULL,                                             /* DSPF_RGB18 */
+     NULL,                                             /* DSPF_LUT2 */
+     NULL,                                             /* DSPF_RGB444 */
+     NULL,                                             /* DSPF_RGB555 */
+     NULL,                                             /* DSPF_BGR555 */
+};
+
+/**********************************************************************************************************************/
+
 /* A8/A1 to YCbCr */
 static void Dacc_Alpha_to_YCbCr( GenefxState *gfxs )
 {
@@ -6220,90 +6317,7 @@ static void Dacc_Alpha_to_YCbCr( GenefxState *gfxs )
      }
 }
 
-static void Dacc_YCbCr_to_RGB_C( GenefxState *gfxs )
-{
-     int                w = gfxs->length>>1;
-     GenefxAccumulator *D = gfxs->Dacc;
-
-     while (w--) {
-          /* Actually DirectFB only supports 4:2:X formats,
-           * therefore D[0].YUV.u/v is equal to D[1].YUV.u/v */
-          if (!(D[0].YUV.a & 0xF000) && !(D[1].YUV.a & 0xF000)) {
-               s16 c0, c1, c2;
-               s16 r, g, b;
-
-               c0 = cr_for_r[D[0].YUV.v];
-               c1 = cr_for_g[D[0].YUV.v] + cb_for_g[D[0].YUV.u];
-               c2 = cb_for_b[D[0].YUV.u];
-
-               r = c0 + y_for_rgb[D[0].YUV.y];
-               g = c1 + y_for_rgb[D[0].YUV.y];
-               b = c2 + y_for_rgb[D[0].YUV.y];
-               D[0].RGB.r = (r < 0) ? 0 : r;
-               D[0].RGB.g = (g < 0) ? 0 : g;
-               D[0].RGB.b = (b < 0) ? 0 : b;
-
-               r = c0 + y_for_rgb[D[1].YUV.y];
-               g = c1 + y_for_rgb[D[1].YUV.y];
-               b = c2 + y_for_rgb[D[1].YUV.y];
-               D[1].RGB.r = (r < 0) ? 0 : r;
-               D[1].RGB.g = (g < 0) ? 0 : g;
-               D[1].RGB.b = (b < 0) ? 0 : b;
-          }
-          else if (!(D[0].YUV.a & 0xF000)) {
-               u16 y, cb, cr;
-               s16 r, g, b;
-
-               y  = y_for_rgb[D[0].YUV.y];
-               cb = D[0].YUV.u;
-               cr = D[0].YUV.v;
-               r  = y + cr_for_r[cr];
-               g  = y + cr_for_g[cr] + cb_for_g[cb];
-               b  = y                + cb_for_b[cb];
-
-               D[0].RGB.r = (r < 0) ? 0 : r;
-               D[0].RGB.g = (g < 0) ? 0 : g;
-               D[0].RGB.b = (b < 0) ? 0 : b;
-          }
-          else if (!(D[1].YUV.a & 0xF000)) {
-               u16 y, cb, cr;
-               s16 r, g, b;
-
-               y  = y_for_rgb[D[1].YUV.y];
-               cb = D[1].YUV.u;
-               cr = D[1].YUV.v;
-               r  = y + cr_for_r[cr];
-               g  = y + cr_for_g[cr] + cb_for_g[cb];
-               b  = y                + cb_for_b[cb];
-
-               D[1].RGB.r = (r < 0) ? 0 : r;
-               D[1].RGB.g = (g < 0) ? 0 : g;
-               D[1].RGB.b = (b < 0) ? 0 : b;
-          }
-
-          D += 2;
-     }
-
-     if (gfxs->length & 1) {
-          if (!(D->YUV.a & 0xF000)) {
-               u16 y, cb, cr;
-               s16 r, g, b;
-
-               y  = y_for_rgb[D->YUV.y];
-               cb = D->YUV.u;
-               cr = D->YUV.v;
-               r  = y + cr_for_r[cr];
-               g  = y + cr_for_g[cr] + cb_for_g[cb];
-               b  = y                + cb_for_b[cb];
-
-               D->RGB.r = (r < 0) ? 0 : r;
-               D->RGB.g = (g < 0) ? 0 : g;
-               D->RGB.b = (b < 0) ? 0 : b;
-          }
-     }
-}
-
-static GenefxFunc Dacc_YCbCr_to_RGB = Dacc_YCbCr_to_RGB_C;
+/**********************************************************************************************************************/
 
 static void Sop_is_Aop( GenefxState *gfxs ) { gfxs->Sop = gfxs->Aop;}
 static void Sop_is_Bop( GenefxState *gfxs ) { gfxs->Sop = gfxs->Bop;}
@@ -6543,7 +6557,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      bool         src_ycbcr   = false;
      bool         dst_ycbcr   = false;
 
-     CoreSurfaceAccessFlags access = CSAF_CPU_WRITE;
+     CoreSurfaceAccessFlags access = CSAF_WRITE;
 
      if (dfb_config->hardware_only) {
           if (dfb_config->software_warn) {
@@ -6590,13 +6604,13 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
           if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
                                       DSBLIT_BLEND_COLORALPHA   |
                                       DSBLIT_DST_COLORKEY))
-               access |= CSAF_CPU_READ;
+               access |= CSAF_READ;
      }
      else if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_DST_COLORKEY))
-          access |= CSAF_CPU_READ;
+          access |= CSAF_READ;
 
      /* Lock destination */
-     ret = dfb_surface_lock_buffer( destination, state->to, access, &state->dst );
+     ret = dfb_surface_lock_buffer( destination, state->to, CSAID_CPU, access, &state->dst );
      if (ret) {
           D_DERROR( ret, "DirectFB/Genefx: Could not lock destination!\n" );
           return false;
@@ -6645,7 +6659,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 #endif
 
           /* Lock source */
-          ret = dfb_surface_lock_buffer( source, state->from, CSAF_CPU_READ, &state->src );
+          ret = dfb_surface_lock_buffer( source, state->from, CSAID_CPU, CSAF_READ, &state->src );
           if (ret) {
                D_DERROR( ret, "DirectFB/Genefx: Could not lock source!\n" );
                dfb_surface_unlock_buffer( destination, &state->dst );
@@ -7067,6 +7081,17 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          break;
                     }
                }
+               if (state->blittingflags == DSBLIT_BLEND_ALPHACHANNEL &&
+                   state->src_blend     == DSBF_ONE                  &&
+                   state->dst_blend     == DSBF_INVSRCALPHA)
+               {
+                    if (gfxs->src_format == DSPF_ARGB &&
+                        Bop_argb_blend_alphachannel_one_invsrc_Aop_PFI[dst_pfi])
+                    {
+                         *funcs++ = Bop_argb_blend_alphachannel_one_invsrc_Aop_PFI[dst_pfi];
+                         break;
+                    }
+               }
                if (((state->blittingflags == (DSBLIT_COLORIZE | DSBLIT_BLEND_ALPHACHANNEL |
                                               DSBLIT_SRC_PREMULTIPLY) &&
                      state->src_blend == DSBF_ONE)
@@ -7347,11 +7372,8 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          if (scale_from_accumulator)
                               *funcs++ = Len_is_Slen;
 
-                         /* slow */
-                         *funcs++ = Sacc_is_Aacc;
-                         *funcs++ = Dacc_is_Aacc;
+                         gfxs->Sop = gfxs->Bop;
 
-                         *funcs++ = Sop_is_Bop;
                          if (DFB_PIXELFORMAT_IS_INDEXED(gfxs->src_format))
                               *funcs++ = Slut_is_Blut;
 
@@ -7425,10 +7447,25 @@ void gRelease( CardState *state )
      }
 }
 
-#define CHECK_PIPELINE()           \
-     {                             \
-          if (!gfxs->funcs[0])     \
-               return;             \
+#define CHECK_PIPELINE()                                                             \
+     {                                                                               \
+          if (!gfxs->funcs[0])                                                       \
+               return;                                                               \
+                                                                                     \
+          if (dfb_config->software_trace) {                                          \
+               int         i;                                                        \
+               GenefxFunc *funcs = gfxs->funcs;                                      \
+                                                                                     \
+               direct_log_lock( NULL );                                              \
+               direct_log_printf( NULL, "  Software Fallback Pipeline:\n" );         \
+                                                                                     \
+               for (i=0; funcs[i]; ++i)                                              \
+                    direct_log_printf( NULL, "    [%2d] %s\n", i,                    \
+                                       direct_trace_lookup_symbol_at( funcs[i] ) );  \
+                                                                                     \
+               direct_log_printf( NULL, "\n" );                                      \
+               direct_log_unlock( NULL );                                            \
+          }                                                                          \
      }
 
 #define RUN_PIPELINE()                     \
@@ -7829,6 +7866,8 @@ ABacc_prepare( GenefxState *gfxs, int width )
           gfxs->Bacc    = gfxs->Aacc + size;
      }
 
+     gfxs->Sacc = gfxs->Dacc = gfxs->Aacc;
+
      return true;
 }
 
@@ -7842,6 +7881,8 @@ ABacc_flush( GenefxState *gfxs )
           gfxs->ABstart = NULL;
           gfxs->Aacc    = NULL;
           gfxs->Bacc    = NULL;
+          gfxs->Sacc    = NULL;
+          gfxs->Dacc    = NULL;
      }
 }
 

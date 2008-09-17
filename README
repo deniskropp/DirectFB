@@ -45,7 +45,12 @@ Build Requirements
      - libpthread
      - libm
      - libdl
-     - pkg-config (for regenerating configure script)
+
+   For regenerating autofoo (./autogen.sh or autoreconf)
+     - autoconf
+     - automake
+     - libtool
+     - pkg-config
 
    Optionally, depending on the configuration you want:
 

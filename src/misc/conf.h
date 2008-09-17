@@ -237,6 +237,8 @@ typedef struct
      } warn;
 
      int           keep_accumulators;             /* Free accumulators above this limit */
+
+     bool          software_trace;
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

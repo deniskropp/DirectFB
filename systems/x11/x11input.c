@@ -59,8 +59,6 @@
 
 #include <core/input_driver.h>
 
-extern DFBX11  *dfb_x11;
-extern CoreDFB *dfb_x11_core;
 
 DFB_INPUT_DRIVER( x11input )
 
@@ -71,7 +69,7 @@ DFB_INPUT_DRIVER( x11input )
 typedef struct {
      CoreInputDevice*    device;
      DirectThread*       thread;
-     DFBX11*             dfb_x11;
+     DFBX11*             x11;
      bool                stop;
 } X11InputData;
 
@@ -502,30 +500,32 @@ handle_expose( const XExposeEvent *expose )
 static void*
 x11EventThread( DirectThread *thread, void *driver_data )
 {
-     X11InputData *data    = driver_data;
-     DFBX11       *dfb_x11 = data->dfb_x11;
+     X11InputData *data   = driver_data;
+     DFBX11       *x11    = data->x11;
+     DFBX11Shared *shared = x11->shared;
 
      while (!data->stop) {
-          unsigned int  pull = 100;
+          unsigned int  pull = 23;
           XEvent        xEvent; 
           DFBInputEvent dfbEvent;
 
           /* FIXME: Detect key repeats, we're receiving KeyPress, KeyRelease, KeyPress, KeyRelease... !!?? */
 
-#if 1
-          if (data->thread)
-               direct_thread_testcancel( data->thread );
-
-          if (!dfb_x11->xw || !dfb_x11->xw->window) {
+          if (!shared->xw || !shared->xw->window) {
                /* no window, so no event */
-               usleep( 20000 );
+               usleep( 50000 );
                continue;
           }
 
+          usleep( 10000 );
 
-          XNextEvent( dfb_x11->display, &xEvent );
+          XLockDisplay( x11->display );
 
-          while (pull-- && !data->stop) {
+          while (!data->stop && pull-- && XPending( x11->display )) {
+               XNextEvent( x11->display, &xEvent );
+
+               XUnlockDisplay( x11->display );
+
                switch (xEvent.type) {
                     case ButtonPress:
                     case ButtonRelease:
@@ -552,7 +552,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
                     case Expose:
                          handle_expose( &xEvent.xexpose );
                          break;
-				
+
                     case DestroyNotify:
                          /* this event is mainly to unblock XNextEvent. */
                          break;
@@ -561,62 +561,13 @@ x11EventThread( DirectThread *thread, void *driver_data )
                          break;
                }
 
-               if (pull && !data->stop) {
-                    XLockDisplay( dfb_x11->display );
-
-                    if (!XCheckMaskEvent( dfb_x11->display, ~0, &xEvent ))
-                         pull = 0;
-
-                    XUnlockDisplay( dfb_x11->display );
-               }
-          }
-#else
-          usleep(10000);
-
-          XLockDisplay( dfb_x11->display );
-
-          while (XCheckMaskEvent( dfb_x11->display, ~0, &xEvent )) {
-               XUnlockDisplay( dfb_x11->display );
-
-               switch (xEvent.type) {
-                    case ButtonPress:
-                    case ButtonRelease:
-                         motion_realize( data );
-                    case MotionNotify:
-                         handleMouseEvent( &xEvent, data ); // crash ???
-                         break;
-
-                    case KeyPress:
-                    case KeyRelease: {
-                         motion_realize( data );
-
-                         dfbEvent.type     = (xEvent.type == KeyPress) ? DIET_KEYPRESS : DIET_KEYRELEASE;
-                         dfbEvent.flags    = DIEF_KEYCODE | DIEF_TIMESTAMP;
-                         dfbEvent.key_code = xEvent.xkey.keycode;
-
-                         dfbEvent.timestamp.tv_sec  =  xEvent.xkey.time / 1000;
-                         dfbEvent.timestamp.tv_usec = (xEvent.xkey.time % 1000) * 1000;
-
-                         dfb_input_dispatch( data->device, &dfbEvent );
-                         break;
-                    }
-
-                    case Expose:
-                         handle_expose( &xEvent.xexpose );
-                         break;
-
-                    default:
-                         break;
-               }
-
-               XLockDisplay( dfb_x11->display );
+               XLockDisplay( x11->display );
           }
 
-          XUnlockDisplay( dfb_x11->display );
-#endif
-          motion_realize( data );
+          XUnlockDisplay( x11->display );
 
-          direct_thread_testcancel( thread );
+          if (!data->stop)
+               motion_realize( data );
      }
 
      return NULL;
@@ -661,11 +612,12 @@ driver_open_device( CoreInputDevice  *device,
                     void            **driver_data )
 {
      X11InputData *data;
-     DFBX11       *dfb_x11 = dfb_system_data();
+     DFBX11       *x11    = dfb_system_data();
+     DFBX11Shared *shared = x11->shared;
 
-     fusion_skirmish_prevail( &dfb_x11->lock );
+     fusion_skirmish_prevail( &shared->lock );
 
-     fusion_skirmish_dismiss( &dfb_x11->lock );
+     fusion_skirmish_dismiss( &shared->lock );
 
      /* set device vendor and name */
      snprintf( info->desc.vendor, DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "XServer" );
@@ -688,8 +640,8 @@ driver_open_device( CoreInputDevice  *device,
      /* allocate and fill private data */
      data = D_CALLOC( 1, sizeof(X11InputData) );
 
-     data->device  = device;
-     data->dfb_x11 = dfb_x11;
+     data->device = device;
+     data->x11    = x11;
 
      /* start input thread */
      data->thread = direct_thread_create( DTT_INPUT, x11EventThread, data, "X11 Input" );
@@ -710,13 +662,13 @@ driver_get_keymap_entry( CoreInputDevice           *device,
                          DFBInputDeviceKeymapEntry *entry )
 {
      int           i;
-     X11InputData *data    = driver_data;
-     DFBX11       *dfb_x11 = data->dfb_x11;
+     X11InputData *data = driver_data;
+     DFBX11       *x11  = data->x11;
 
-     XLockDisplay( dfb_x11->display );
+     XLockDisplay( x11->display );
 
      for (i=0; i<4; i++) {
-          KeySym xSymbol = XKeycodeToKeysym( dfb_x11->display, entry->code, i );
+          KeySym xSymbol = XKeycodeToKeysym( x11->display, entry->code, i );
 
           if (i == 0)
                entry->identifier = xsymbol_to_id( xSymbol );
@@ -724,7 +676,7 @@ driver_get_keymap_entry( CoreInputDevice           *device,
           entry->symbols[i] = xsymbol_to_symbol( xSymbol );
      }
 
-     XUnlockDisplay( dfb_x11->display );
+     XUnlockDisplay( x11->display );
 
      /* is CapsLock effective? */
      if (entry->identifier >= DIKI_A && entry->identifier <= DIKI_Z)
@@ -743,21 +695,24 @@ driver_get_keymap_entry( CoreInputDevice           *device,
 static void
 driver_close_device( void *driver_data )
 {
-     X11InputData *data    = driver_data;
-     DFBX11       *dfb_x11 = data->dfb_x11;
+     X11InputData *data   = driver_data;
+     DFBX11       *x11    = data->x11;
+     DFBX11Shared *shared = x11->shared;
 
      /* stop input thread */
      data->stop = true;
 
-     XLockDisplay( dfb_x11->display );
-     if( dfb_x11->xw ) {
+     XLockDisplay( x11->display );
+     if( shared->xw ) {
           /* the window must generate an event, otherwise the input thread will not end */
 
-          XWindow* xw = dfb_x11->xw;
-          dfb_x11->xw = NULL;
-          dfb_x11_close_window( xw );
+          XWindow *xw = shared->xw;
+
+          shared->xw = NULL;
+
+          dfb_x11_close_window( x11, xw );
      }
-     XUnlockDisplay( dfb_x11->display );
+     XUnlockDisplay( x11->display );
 
      /* it is possible that this "close" function is called from the same
       * thread that the input device is actually running on.

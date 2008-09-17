@@ -1,8 +1,23 @@
-KERNEL_SOURCE  = /home/taki/AP325/linux-2.6.21.1
-KERNEL_BUILD   = $(KERNEL_SOURCE)
-KERNEL_VERSION = 2.6.21.1
+KERNEL_VERSION  ?= $(shell uname -r)
+KERNEL_MODLIB   ?= /lib/modules/$(KERNEL_VERSION)
+KERNEL_BUILD    ?= $(SYSROOT)$(KERNEL_MODLIB)/build
+KERNEL_SOURCE   ?= $(SYSROOT)$(KERNEL_MODLIB)/source
 
-DESTDIR = /export/nfs/ap325/rootfs
+ifeq ($(shell test -L $(KERNEL_BUILD) && echo yes),yes)
+  KERNEL_BUILD := $(SYSROOT)$(shell readlink $(KERNEL_BUILD))
+endif
+
+ifeq ($(shell test -L $(KERNEL_SOURCE) && echo yes),yes)
+  KERNEL_SOURCE := $(SYSROOT)$(shell readlink $(KERNEL_SOURCE))
+endif
+
+K_VERSION    := $(shell echo $(KERNEL_VERSION) | cut -d . -f 1)
+K_PATCHLEVEL := $(shell echo $(KERNEL_VERSION) | cut -d . -f 2)
+K_SUBLEVEL   := $(shell echo $(KERNEL_VERSION) | cut -d . -f 3 | cut -d '-' -f 1)
+
+
+DESTDIR ?= $(SYSROOT)
+
 
 ifeq ($(DEBUG_2DG),yes)
   CPPFLAGS += -DSH7722GFX_DEBUG_2DG
@@ -20,18 +35,27 @@ ifeq ($(shell test -e $(KERNEL_BUILD)/include/linux/config.h && echo yes),yes)
   CPPFLAGS += -DHAVE_LINUX_CONFIG_H
 endif
     
+check-version = $(shell expr \( $(K_VERSION) \* 65536 + $(K_PATCHLEVEL) \* 256 + $(K_SUBLEVEL) \) \>= \( $(1) \* 65536 + $(2) \* 256 + $(3) \))
+
+.PHONY: all install clean
 
 all:
-	make -C $(KERNEL_SOURCE) \
+ifeq ($(call check-version,2,6,24),1)
+	$(MAKE) -C $(KERNEL_BUILD) \
+		KCPPFLAGS="$(CPPFLAGS) -I`pwd`/kernel-module" \
+		SUBDIRS="`pwd`/kernel-module" modules
+else
+	$(MAKE) -C $(KERNEL_BUILD) \
 		CPPFLAGS="$(CPPFLAGS) -D__KERNEL__ -I`pwd`/kernel-module -I$(KERNEL_BUILD)/include -I$(KERNEL_SOURCE)/include $(AUTOCONF_H)" \
 		SUBDIRS="`pwd`/kernel-module" modules
+endif
 
 clean:
 	rm -rf kernel-module/*.*o kernel-module/.*.*o* kernel-module/*.mod.c kernel-module/.tmp_versions
 
 install: all
 	install -v -m 0755 -d $(DESTDIR)/lib/modules/$(KERNEL_VERSION)/renesas
-	install -v -m 0644 kernel-module/sh7722gfx.ko $(DESTDIR)/lib/modules/$(KERNEL_VERSION)/renesas/
+	install -v -m 0644 kernel-module/sh772x_gfx.ko $(DESTDIR)/lib/modules/$(KERNEL_VERSION)/renesas/
 
 
 .PHONY: all clean

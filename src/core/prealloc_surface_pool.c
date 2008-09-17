@@ -61,10 +61,10 @@ preallocInitPool( CoreDFB                    *core,
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_ASSERT( ret_desc != NULL );
 
-     ret_desc->caps     = CSPCAPS_NONE;
-     ret_desc->access   = CSAF_CPU_READ | CSAF_CPU_WRITE;
-     ret_desc->types    = CSTF_PREALLOCATED;
-     ret_desc->priority = CSPP_DEFAULT;
+     ret_desc->caps              = CSPCAPS_NONE;
+     ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE;
+     ret_desc->types             = CSTF_PREALLOCATED;
+     ret_desc->priority          = CSPP_DEFAULT;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "Preallocated Memory" );
 

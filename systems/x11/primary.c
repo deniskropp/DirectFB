@@ -56,6 +56,7 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
+#include <GL/glx.h>
 
 #include <string.h>
 #include <stdlib.h>
@@ -63,6 +64,7 @@
 #include "xwindow.h"
 #include "x11.h"
 #include "primary.h"
+#include "glx_surface_pool.h"
 
 
 D_DEBUG_DOMAIN( X11_Window, "X11/Window", "X11 Window" );
@@ -71,56 +73,60 @@ D_DEBUG_DOMAIN( X11_Update, "X11/Update", "X11 Update" );
 /**********************************************************************************************************************/
 
 static DFBResult
-dfb_x11_create_window( const CoreLayerRegionConfig *config )
+dfb_x11_create_window( DFBX11 *x11, const CoreLayerRegionConfig *config )
 {
-     int ret;
+     int           ret;
+     DFBX11Shared *shared = x11->shared;
 
      D_ASSERT( config != NULL );
 
-     dfb_x11->setmode.config = *config;
+     shared->setmode.config = *config;
 
-     if (fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_CREATE_WINDOW, &dfb_x11->setmode, &ret ))
+     if (fusion_call_execute( &shared->call, FCEF_NONE, X11_CREATE_WINDOW, &shared->setmode, &ret ))
           return DFB_FUSION;
 
      return ret;
 }
 
 static DFBResult
-dfb_x11_destroy_window()
+dfb_x11_destroy_window( DFBX11 *x11 )
 {
-     int ret;
+     int           ret;
+     DFBX11Shared *shared = x11->shared;
 
-     if (fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_DESTROY_WINDOW, NULL, &ret ))
+     if (fusion_call_execute( &shared->call, FCEF_NONE, X11_DESTROY_WINDOW, NULL, &ret ))
           return DFB_FUSION;
 
      return ret;
 }
 
 static DFBResult
-dfb_x11_update_screen( const DFBRegion *region, CoreSurfaceBufferLock *lock )
+dfb_x11_update_screen( DFBX11 *x11, const DFBRegion *region, CoreSurfaceBufferLock *lock )
 {
-     int ret;
+     int           ret;
+     DFBX11Shared *shared = x11->shared;
 
      DFB_REGION_ASSERT( region );
      D_ASSERT( lock != NULL );
 
-     dfb_x11->update.region = *region;
-     dfb_x11->update.lock   = lock;
+     shared->update.region = *region;
+     shared->update.lock   = lock;
 
-     if (fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_UPDATE_SCREEN, &dfb_x11->update, &ret ))
+     if (fusion_call_execute( &shared->call, FCEF_NONE, X11_UPDATE_SCREEN, &shared->update, &ret ))
           return DFB_FUSION;
 
      return ret;
 }
 
 static DFBResult
-dfb_x11_set_palette( CorePalette *palette )
+dfb_x11_set_palette( DFBX11 *x11, CorePalette *palette )
 {
-     int ret;
+     int           ret;
+     DFBX11Shared *shared = x11->shared;
 
      D_ASSERT( palette != NULL );
 
-     if (fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_SET_PALETTE, palette, &ret ))
+     if (fusion_call_execute( &shared->call, FCEF_NONE, X11_SET_PALETTE, palette, &ret ))
           return DFB_FUSION;
 
      return ret;
@@ -152,23 +158,11 @@ primaryGetScreenSize( CoreScreen *screen,
                       int        *ret_width,
                       int        *ret_height )
 {
-     D_ASSERT( dfb_x11 != NULL );
+     DFBX11       *x11    = driver_data;
+     DFBX11Shared *shared = x11->shared;
 
-     if (dfb_x11->primary) {
-          *ret_width  = dfb_x11->primary->config.size.w;
-          *ret_height = dfb_x11->primary->config.size.h;
-     }
-     else {
-          if (dfb_config->mode.width)
-               *ret_width  = dfb_config->mode.width;
-          else
-               *ret_width  = 640;
-
-          if (dfb_config->mode.height)
-               *ret_height = dfb_config->mode.height;
-          else
-               *ret_height = 480;
-     }
+     *ret_width  = shared->screen_size.w;
+     *ret_height = shared->screen_size.h;
 
      return DFB_OK;
 }
@@ -200,6 +194,9 @@ primaryInitLayer( CoreLayer                  *layer,
                   DFBDisplayLayerConfig      *config,
                   DFBColorAdjustment         *adjustment )
 {
+     DFBX11       *x11    = driver_data;
+     DFBX11Shared *shared = x11->shared;
+
      /* set capabilities and type */
      description->caps = DLCAPS_SURFACE;
      description->type = DLTF_GRAPHICS;
@@ -216,19 +213,19 @@ primaryInitLayer( CoreLayer                  *layer,
      if (dfb_config->mode.width)
           config->width  = dfb_config->mode.width;
      else
-          config->width  = 640;
+          config->width  = shared->screen_size.w;
 
      if (dfb_config->mode.height)
           config->height = dfb_config->mode.height;
      else
-          config->height = 480;
+          config->height = shared->screen_size.h;
 
      if (dfb_config->mode.format != DSPF_UNKNOWN)
           config->pixelformat = dfb_config->mode.format;
      else if (dfb_config->mode.depth > 0)
           config->pixelformat = dfb_pixelformat_for_depth( dfb_config->mode.depth );
      else {
-          int depth = DefaultDepth( dfb_x11->display, DefaultScreen(dfb_x11->display) );
+          int depth = DefaultDepthOfScreen( x11->screenptr );
 
           switch (depth) {
                case 15:
@@ -245,8 +242,7 @@ primaryInitLayer( CoreLayer                  *layer,
                     break;
                default:
                     printf(" Unsupported X11 screen depth %d \n",depth);
-                    exit(-1);
-                    break;
+                    return DFB_UNSUPPORTED;
           }
      }
 
@@ -325,17 +321,15 @@ primarySetRegion( CoreLayer                  *layer,
                   CorePalette                *palette,
                   CoreSurfaceBufferLock      *lock )
 {
-     DFBResult ret;
+     DFBResult  ret;
+     DFBX11    *x11 = driver_data;
 
-     ret = dfb_x11_create_window( config );
+     ret = dfb_x11_create_window( x11, config );
      if (ret)
           return ret;
 
-     if (surface)
-          dfb_x11->primary = surface;
-
      if (palette)
-          dfb_x11_set_palette( palette );
+          dfb_x11_set_palette( x11, palette );
 
      return DFB_OK;
 }
@@ -346,9 +340,9 @@ primaryRemoveRegion( CoreLayer             *layer,
                      void                  *layer_data,
                      void                  *region_data )
 {
-     dfb_x11_destroy_window();
+     DFBX11 *x11 = driver_data;
 
-     dfb_x11->primary = NULL;
+     dfb_x11_destroy_window( x11 );
 
      return DFB_OK;
 }
@@ -362,11 +356,12 @@ primaryFlipRegion( CoreLayer             *layer,
                    DFBSurfaceFlipFlags    flags,
                    CoreSurfaceBufferLock *lock )
 {
-     DFBRegion region = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
+     DFBX11    *x11    = driver_data;
+     DFBRegion  region = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
 
      dfb_surface_flip( surface, false );
 
-     return dfb_x11_update_screen( &region, lock );
+     return dfb_x11_update_screen( x11, &region, lock );
 }
 
 static DFBResult
@@ -378,9 +373,13 @@ primaryUpdateRegion( CoreLayer             *layer,
                      const DFBRegion       *update,
                      CoreSurfaceBufferLock *lock )
 {
-     DFBRegion region = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
+     DFBX11    *x11    = driver_data;
+     DFBRegion  region = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
 
-     return dfb_x11_update_screen( update ? : &region, lock );
+     if (update && !dfb_region_region_intersect( &region, update ))
+          return DFB_OK;
+
+     return dfb_x11_update_screen( x11, &region, lock );
 }
 
 DisplayLayerFuncs x11PrimaryLayerFuncs = {
@@ -399,42 +398,78 @@ DisplayLayerFuncs x11PrimaryLayerFuncs = {
 /******************************************************************************/
 
 static DFBResult
-update_screen( CoreSurface *surface, const DFBRectangle *clip, CoreSurfaceBufferLock *lock )
+update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *lock )
 {
      void                  *dst;
      void                  *src;
      unsigned int           offset = 0;
-     XWindow               *xw     = dfb_x11->xw;
+     XWindow               *xw;
      XImage                *ximage;
+     CoreSurface           *surface;
      CoreSurfaceAllocation *allocation;
+     DFBX11Shared          *shared;
      DFBRectangle           rect;
 
-     D_ASSERT( clip != NULL );
-     D_ASSERT( xw != NULL );
+     D_ASSERT( x11 != NULL );
+     DFB_RECTANGLE_ASSERT( clip );
 
      D_DEBUG_AT( X11_Update, "%s( %4d,%4d-%4dx%4d )\n", __FUNCTION__, DFB_RECTANGLE_VALS( clip ) );
 
-     D_ASSERT( surface != NULL );
      CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
+
+     shared = x11->shared;
+     D_ASSERT( shared != NULL );
+
+     xw = shared->xw;
+     D_ASSERT( xw != NULL );
 
      allocation = lock->allocation;
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
-     XLockDisplay( dfb_x11->display );
+     surface = allocation->surface;
+     D_ASSERT( surface != NULL );
+
+
+     XLockDisplay( x11->display );
 
      rect.x = rect.y = 0;
      rect.w = xw->width;
      rect.h = xw->height;
 
      if (!dfb_rectangle_intersect( &rect, clip )) {
-          XUnlockDisplay( dfb_x11->display );
+          XUnlockDisplay( x11->display );
           return DFB_OK;
      }
 
      D_DEBUG_AT( X11_Update, "  -> %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS( &rect ) );
 
+     /* Check for GLX allocation... */
+     if (allocation->pool == shared->glx_pool && lock->handle) {
+          LocalPixmap *pixmap = lock->handle;
+
+          D_MAGIC_ASSERT( pixmap, LocalPixmap );
+
+          /* ...and just call SwapBuffers... */
+          //D_DEBUG_AT( X11_Update, "  -> Calling glXSwapBuffers( 0x%lx )...\n", alloc->drawable );
+          //glXSwapBuffers( x11->display, alloc->drawable );
+
+
+          D_DEBUG_AT( X11_Update, "  -> Copying from GLXPixmap...\n" );
+
+          glXWaitGL();
+
+          XCopyArea( x11->display, pixmap->pixmap, xw->window, xw->gc,
+                     rect.x, rect.y, rect.w, rect.h, rect.x, rect.y );
+
+          glXWaitX();
+
+          XUnlockDisplay( x11->display );
+
+          return DFB_OK;
+     }
+
      /* Check for our special native allocation... */
-     if (allocation->pool == dfb_x11->x11image_pool && lock->handle) {
+     if (allocation->pool == shared->x11image_pool && lock->handle) {
           x11Image *image = lock->handle;
 
           D_MAGIC_ASSERT( image, x11Image );
@@ -482,23 +517,23 @@ update_screen( CoreSurface *surface, const DFBRectangle *clip, CoreSurfaceBuffer
 
 
      /* Wait for previous data to be processed... */
-     XSync( dfb_x11->display, False );
+     XSync( x11->display, False );
 
      /* ...and immediately queue or send the next! */
-     if (dfb_x11->use_shm) {
+     if (x11->use_shm) {
           /* Just queue the command, it's XShm :) */
           XShmPutImage( xw->display, xw->window, xw->gc, ximage,
                         rect.x, rect.y + offset, rect.x, rect.y, rect.w, rect.h, False );
 
           /* Make sure the queue has really happened! */
-          XFlush( dfb_x11->display );
+          XFlush( x11->display );
      }
      else
           /* Initiate transfer of buffer... */
           XPutImage( xw->display, xw->window, xw->gc, ximage,
                      rect.x, rect.y + offset, rect.x, rect.y, rect.w, rect.h );
 
-     XUnlockDisplay( dfb_x11->display );
+     XUnlockDisplay( x11->display );
 
      return DFB_OK;
 }
@@ -506,65 +541,68 @@ update_screen( CoreSurface *surface, const DFBRectangle *clip, CoreSurfaceBuffer
 /******************************************************************************/
 
 DFBResult
-dfb_x11_create_window_handler( CoreLayerRegionConfig *config )
+dfb_x11_create_window_handler( DFBX11 *x11, CoreLayerRegionConfig *config )
 {
-     XWindow *xw;
+     XWindow      *xw;
+     DFBX11Shared *shared = x11->shared;
 
      D_DEBUG_AT( X11_Window, "%s( %p )\n", __FUNCTION__, config );
 
      D_DEBUG_AT( X11_Window, "  -> %4dx%4d %s\n", config->width, config->height, dfb_pixelformat_name(config->format) );
 
-     XLockDisplay( dfb_x11->display );
+     XLockDisplay( x11->display );
 
-     xw = dfb_x11->xw;
+     xw = shared->xw;
      if (xw != NULL) {
           if (xw->width == config->width && xw->height == config->height) {
-               XUnlockDisplay( dfb_x11->display );
+               XUnlockDisplay( x11->display );
                return DFB_OK;
           }
 
-          dfb_x11_close_window( xw );
-          dfb_x11->xw = NULL;
+          dfb_x11_close_window( x11, xw );
+          shared->xw = NULL;
      }
 
-     bool bSucces = dfb_x11_open_window(&xw, 0, 0, config->width, config->height);
+     bool bSucces = dfb_x11_open_window( x11, &xw, 0, 0, config->width, config->height, config->format );
 
      /* Set video mode */
      if ( !bSucces ) {
           D_ERROR( "ML: DirectFB/X11: Couldn't open %dx%d window: %s\n",
                    config->width, config->height, "X11 error!");
 
-          XUnlockDisplay( dfb_x11->display );
+          XUnlockDisplay( x11->display );
           return DFB_FAILURE;
      }
      else
-          dfb_x11->xw = xw;
+          shared->xw = xw;
 
-     XUnlockDisplay( dfb_x11->display );
+     XUnlockDisplay( x11->display );
      return DFB_OK;
 }
 
 DFBResult
-dfb_x11_destroy_window_handler()
+dfb_x11_destroy_window_handler( DFBX11 *x11 )
 {
+     DFBX11Shared *shared = x11->shared;
+
      D_DEBUG_AT( X11_Window, "%s()\n", __FUNCTION__ );
 
-     XLockDisplay( dfb_x11->display );
+     XLockDisplay( x11->display );
 
-     if (dfb_x11->xw) {
-          dfb_x11_close_window( dfb_x11->xw );
-          dfb_x11->xw = NULL;
+     if (shared->xw) {
+          dfb_x11_close_window( x11, shared->xw );
+          shared->xw = NULL;
      }
 
-     XSync( dfb_x11->display, False );
+     XSync( x11->display, False );
 
-     XUnlockDisplay( dfb_x11->display );
+     XUnlockDisplay( x11->display );
 
      return DFB_OK;
 }
 
 DFBResult
-dfb_x11_update_screen_handler( UpdateScreenData *data )
+dfb_x11_update_screen_handler( DFBX11 *x11, UpdateScreenData *data )
 {
      DFBRectangle rect;
 
@@ -572,11 +610,11 @@ dfb_x11_update_screen_handler( UpdateScreenData *data )
 
      rect = DFB_RECTANGLE_INIT_FROM_REGION( &data->region );
 
-     return update_screen( dfb_x11->primary, &rect, data->lock );
+     return update_screen( x11, &rect, data->lock );
 }
 
 DFBResult
-dfb_x11_set_palette_handler( CorePalette *palette )
+dfb_x11_set_palette_handler( DFBX11 *x11, CorePalette *palette )
 {
      return DFB_OK;
 }

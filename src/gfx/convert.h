@@ -286,39 +286,32 @@
 #define ARGB_TO_BGR555(pixel)  ( (((pixel) & 0x00F80000) >>  19) | \
                                    (((pixel) & 0x0000F800) >>  6) | \
                                    (((pixel) & 0x000000F8) <<  7) )
+
 /* RGB <-> YCbCr conversion */
 
-extern const u16 y_for_rgb[256];
-extern const s16 cr_for_r[256];
-extern const s16 cr_for_g[256];
-extern const s16 cb_for_g[256];
-extern const s16 cb_for_b[256];
-
-#define YCBCR_TO_RGB( y, cb, cr, r, g, b ) do { \
-     u16 _y, _cb, _cr;\
-     s16 _r, _g, _b;\
-     _y  = y_for_rgb[(y)]; _cb = (cb); _cr = (cr);\
-     _r  = _y + cr_for_r[_cr]; \
-     _g  = _y + cr_for_g[_cr] + cb_for_g[_cb]; \
-     _b  = _y + cb_for_b[_cb]; \
-     (r) = CLAMP( _r, 0, 255 ); \
-     (g) = CLAMP( _g, 0, 255 ); \
-     (b) = CLAMP( _b, 0, 255 ); \
+#define YCBCR_TO_RGB( y, cb, cr, r, g, b )                            \
+do {                                                                  \
+     int _y  = (y)  -  16;                                            \
+     int _cb = (cb) - 128;                                            \
+     int _cr = (cr) - 128;                                            \
+                                                                      \
+     int _r = (298 * _y             + 409 * _cr + 128) >> 8;          \
+     int _g = (298 * _y - 100 * _cb - 208 * _cr + 128) >> 8;          \
+     int _b = (298 * _y + 516 * _cb             + 128) >> 8;          \
+                                                                      \
+     (r) = CLAMP( _r, 0, 255 );                                       \
+     (g) = CLAMP( _g, 0, 255 );                                       \
+     (b) = CLAMP( _b, 0, 255 );                                       \
 } while (0)
 
-extern const u16 y_from_ey[256];
-extern const u16 cb_from_bey[512];
-extern const u16 cr_from_rey[512];
-
-#define RGB_TO_YCBCR( r, g, b, y, cb, cr ) do { \
-     u32 _ey, _r, _g, _b;\
-     _r = (r); _g = (g); _b = (b);\
-     _ey = (19595 * _r + 38469 * _g + 7471 * _b) >> 16;\
-     (y)  = y_from_ey[_ey]; \
-     (cb) = cb_from_bey[_b-_ey+255]; \
-     (cr) = cr_from_rey[_r-_ey+255]; \
+#define RGB_TO_YCBCR( r, g, b, y, cb, cr )                            \
+do {                                                                  \
+     int _r = (r), _g = (g), _b = (b);                                \
+                                                                      \
+     (y)  = (   66 * _r + 129 * _g +  25 * _b  +  16*256 + 128) >> 8; \
+     (cb) = ( - 38 * _r -  74 * _g + 112 * _b  + 128*256 + 128) >> 8; \
+     (cr) = (  112 * _r -  94 * _g -  18 * _b  + 128*256 + 128) >> 8; \
 } while (0)
-
 
 
 DFBSurfacePixelFormat dfb_pixelformat_for_depth( int depth );
@@ -350,14 +343,9 @@ dfb_color_to_argb( const DFBColor *color )
 static inline u32
 dfb_color_to_aycbcr( const DFBColor *color )
 {
-     unsigned int red   = color->r;
-     unsigned int green = color->g;
-     unsigned int blue  = color->b;
-
-     u8 y  = (u8)(((66 * red + 129 * green + 25 * blue) / 256) + 16);
-
-     u8 cb = (u8)((128 * 256 -  38 * red   - 74 * green + 112 * blue) / 256);
-     u8 cr = (u8)((128 * 256 + 112 * red   - 94 * green -  18 * blue) / 256);
+     u32 y  = (   66 * color->r + 129 * color->g +  25 * color->b  +  16*256 + 128) >> 8;
+     u32 cb = ( - 38 * color->r -  74 * color->g + 112 * color->b  + 128*256 + 128) >> 8;
+     u32 cr = (  112 * color->r -  94 * color->g -  18 * color->b  + 128*256 + 128) >> 8;
 
      return (color->a << 24) | (y << 16) | (cb << 8) | cr;
 }

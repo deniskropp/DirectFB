@@ -75,15 +75,16 @@ struct __DFB_CoreSurfaceAllocation {
      DirectSerial                   serial;       /* Equals serial of buffer if content is up to date. */
 
      CoreSurfaceBuffer             *buffer;       /* Surface Buffer owning this allocation. */
+     CoreSurface                   *surface;      /* Surface owning the Buffer of this allocation. */
      CoreSurfacePool               *pool;         /* Surface Pool providing the allocation. */
      void                          *data;         /* Pool's private data for this allocation. */
      int                            size;         /* Amount of data used by this allocation. */
      unsigned long                  offset;       /* Offset within address range of pool if contiguous. */
 
-     CoreSurfaceAccessFlags         access;       /* Possible access flags. */
      CoreSurfaceAllocationFlags     flags;        /* Pool can return CSALF_ONEFORALL upon allocation of first buffer. */
 
-     CoreSurfaceAccessFlags         accessed;     /* Access since last synchronization. */
+     const CoreSurfaceAccessFlags  *access;                 /* Possible access flags (pointer to pool description). */
+     CoreSurfaceAccessFlags         accessed[_CSAID_NUM];   /* Access since last synchronization. */
 };
 
 #define CORE_SURFACE_ALLOCATION_ASSERT(alloc)                                                  \
@@ -92,9 +93,11 @@ struct __DFB_CoreSurfaceAllocation {
           D_ASSUME( (alloc)->size > 0 );                                                       \
           D_ASSERT( (alloc)->size >= 0 );                                                      \
           D_ASSERT( (alloc)->offset + (alloc)->size <= ((alloc)->pool->desc.size ?:~0UL) );    \
-          D_FLAGS_ASSERT( (alloc)->access, CSAF_ALL );                                         \
+          D_FLAGS_ASSERT( (alloc)->access[CSAID_CPU], CSAF_ALL );                              \
+          D_FLAGS_ASSERT( (alloc)->access[CSAID_GPU], CSAF_ALL );                              \
           D_FLAGS_ASSERT( (alloc)->flags, CSALF_ALL );                                         \
-          D_FLAGS_ASSERT( (alloc)->accessed, CSAF_ALL );                                       \
+          D_FLAGS_ASSERT( (alloc)->accessed[CSAID_CPU], CSAF_ALL );                            \
+          D_FLAGS_ASSERT( (alloc)->accessed[CSAID_GPU], CSAF_ALL );                            \
      } while (0)
 
 /*
@@ -103,6 +106,7 @@ struct __DFB_CoreSurfaceAllocation {
 struct __DFB_CoreSurfaceBufferLock {
      int                      magic;              /* Must be valid before calling dfb_surface_pool_lock() */
 
+     CoreSurfaceAccessorID    accessor;           /* " */
      CoreSurfaceAccessFlags   access;             /* " */
 
      CoreSurfaceBuffer       *buffer;             /* Set by dfb_surface_pool_lock() */
@@ -131,11 +135,12 @@ dfb_surface_buffer_lock_reset( CoreSurfaceBufferLock *lock )
 }
 
 static inline void
-dfb_surface_buffer_lock_init( CoreSurfaceBufferLock *lock, CoreSurfaceAccessFlags access )
+dfb_surface_buffer_lock_init( CoreSurfaceBufferLock *lock, CoreSurfaceAccessorID accessor, CoreSurfaceAccessFlags access )
 {
      D_MAGIC_SET( lock, CoreSurfaceBufferLock );
 
-     lock->access = access;
+     lock->accessor = accessor;
+     lock->access   = access;
 
      dfb_surface_buffer_lock_reset( lock );
 }
@@ -147,12 +152,9 @@ dfb_surface_buffer_lock_init( CoreSurfaceBufferLock *lock, CoreSurfaceAccessFlag
           if ((lock)->buffer) {                                                                     \
                D_ASSERT( (lock)->allocation != NULL );                                              \
                D_ASSERT( (lock)->buffer == (lock)->allocation->buffer );                            \
-               D_ASSUME( (lock)->addr != NULL ||                                                    \
-                         !((lock)->access & (CSAF_CPU_READ|CSAF_CPU_WRITE)) );                      \
-               D_ASSUME( (lock)->phys != 0 || (lock)->offset != ~0 || (lock)->handle != NULL ||     \
-                         !((lock)->access & (CSAF_GPU_READ|CSAF_GPU_WRITE)) );                      \
+               D_ASSUME( (lock)->addr != NULL || (lock)->phys != 0 || (lock)->offset != ~0 || (lock)->handle != NULL );\
                D_ASSUME( (lock)->offset == (lock)->allocation->offset || (lock)->offset == ~0 );    \
-               D_ASSERT( (lock)->pitch > 0 );                                                       \
+               D_ASSERT( (lock)->pitch > 0 || ((lock)->addr == NULL && (lock)->phys == 0) );        \
           }                                                                                         \
           else {                                                                                    \
                D_ASSERT( (lock)->allocation == NULL );                                              \
@@ -193,6 +195,7 @@ DFBResult dfb_surface_buffer_destroy( CoreSurfaceBuffer       *buffer );
 
 
 DFBResult dfb_surface_buffer_lock   ( CoreSurfaceBuffer       *buffer,
+                                      CoreSurfaceAccessorID    accessor,
                                       CoreSurfaceAccessFlags   access,
                                       CoreSurfaceBufferLock   *ret_lock );
 

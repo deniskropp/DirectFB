@@ -529,6 +529,7 @@ dfb_surface_destroy_buffers( CoreSurface *surface )
 DFBResult
 dfb_surface_lock_buffer( CoreSurface            *surface,
                          CoreSurfaceBufferRole   role,
+                         CoreSurfaceAccessorID   accessor,
                          CoreSurfaceAccessFlags  access,
                          CoreSurfaceBufferLock  *ret_lock )
 {
@@ -543,7 +544,7 @@ dfb_surface_lock_buffer( CoreSurface            *surface,
      buffer = dfb_surface_get_buffer( surface, role );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     ret = dfb_surface_buffer_lock( buffer, access, ret_lock );
+     ret = dfb_surface_buffer_lock( buffer, accessor, access, ret_lock );
 
      fusion_skirmish_dismiss( &surface->lock );
 

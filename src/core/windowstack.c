@@ -789,7 +789,7 @@ load_default_cursor( CoreDFB *core, CoreWindowStack *stack )
      }
 
      /* lock the cursor surface */
-     ret = dfb_surface_lock_buffer( stack->cursor.surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
+     ret = dfb_surface_lock_buffer( stack->cursor.surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
      if (ret) {
           D_ERROR( "Core/WindowStack: cannot lock the cursor surface!\n" );
           return ret;

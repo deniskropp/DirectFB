@@ -416,7 +416,7 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
      D_ASSERT( rfb_screen != NULL );
      D_ASSERT( rfb_screen->frameBuffer != NULL );
 
-     ret = dfb_surface_lock_buffer( surface, CSBR_FRONT, CSAF_CPU_READ, &lock );
+     ret = dfb_surface_lock_buffer( surface, CSBR_FRONT, CSAID_CPU, CSAF_READ, &lock );
      if (ret) {
           D_DERROR( ret, "DirectFB/VNC: Couldn't lock layer surface!\n" );
           return ret;

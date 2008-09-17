@@ -526,21 +526,9 @@ static void Dacc_YCbCr_to_RGB_MMX( GenefxState *gfxs )
           : "memory" );
 
      while (w) {
-          if (!(D->YUV.a & 0xF000)) {
-               u16 y, cb, cr;
-               s16 r, g, b;
-
-               y  = y_for_rgb[D->YUV.y];
-               cb = D->YUV.u;
-               cr = D->YUV.v;
-               r  = y + cr_for_r[cr];
-               g  = y + cr_for_g[cr] + cb_for_g[cb];
-               b  = y                + cb_for_b[cb];
-               
-               D->RGB.r = (r < 0) ? 0 : r;
-               D->RGB.g = (g < 0) ? 0 : g;
-               D->RGB.b = (b < 0) ? 0 : b;
-          }
+          if (!(D->YUV.a & 0xF000))
+               YCBCR_TO_RGB( D->YUV.y, D->YUV.u, D->YUV.v,
+                             D->RGB.r, D->RGB.g, D->RGB.b );
 
           D++;
           w--;
@@ -640,16 +628,9 @@ static void Dacc_RGB_to_YCbCr_MMX( GenefxState *gfxs )
           : "memory" );
 
      while (w) {
-          if (!(D->RGB.a & 0xF000)) {
-               u32 r, g, b, ey;
-
-               r = D->RGB.r; g = D->RGB.g; b = D->RGB.b;
-               ey = (19595 * r + 38469 * g + 7471 * b) >> 16;
-
-               D->YUV.y = y_from_ey[ey];
-               D->YUV.u = cb_from_bey[b-ey];
-               D->YUV.v = cr_from_rey[r-ey];
-          }
+          if (!(D->RGB.a & 0xF000))
+               RGB_TO_YCBCR( D->RGB.r, D->RGB.g, D->RGB.b,
+                             D->YUV.y, D->YUV.u, D->YUV.v );
 
           D++;
           w--;

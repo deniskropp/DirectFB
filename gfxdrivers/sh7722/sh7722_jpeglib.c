@@ -1,6 +1,9 @@
-//#ifdef SH7722_DEBUG_JPEG
+#ifdef SH7722_DEBUG_JPEG
 #define DIRECT_ENABLE_DEBUG
-//#endif
+#endif
+
+#include <stdio.h>
+#include <jpeglib.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,10 +15,12 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
+#include <asm/types.h>
 
 #ifdef STANDALONE
 #include "sh7722_jpeglib_standalone.h"
 #else
+#undef HAVE_STDLIB_H
 #include <config.h>
 
 #include <direct/conf.h>
@@ -35,7 +40,7 @@
 #include <jpeglib.h>
 #include <setjmp.h>
 
-#include <sh7722gfx.h>
+#include <sh772x_gfx.h>
 
 #include "sh7722_jpeglib.h"
 #include "sh7722_regs.h"
@@ -52,7 +57,7 @@ typedef struct {
      int                            ref_count;
 
      int                            gfx_fd;
-     SH7722GfxSharedArea           *gfx_shared;
+     SH772xGfxSharedArea           *gfx_shared;
 
      unsigned long                  jpeg_phys;
      unsigned long                  jpeg_lb1;
@@ -71,10 +76,10 @@ static inline u32
 SH7722_GETREG32( SH7722_JPEG_data *data,
                  u32               address )
 {
-     SH7722Register reg = { address, 0 };
+     SH772xRegister reg = { address, 0 };
 
-     if (ioctl( data->gfx_fd, SH7722GFX_IOCTL_GETREG32, &reg ) < 0)
-          D_PERROR( "SH7722GFX_IOCTL_GETREG32( 0x%08x )\n", reg.address );
+     if (ioctl( data->gfx_fd, SH772xGFX_IOCTL_GETREG32, &reg ) < 0)
+          D_PERROR( "SH772xGFX_IOCTL_GETREG32( 0x%08x )\n", reg.address );
 
      return reg.value;
 }
@@ -84,10 +89,10 @@ SH7722_SETREG32( SH7722_JPEG_data *data,
                  u32               address,
                  u32               value )
 {
-     SH7722Register reg = { address, value };
+     SH772xRegister reg = { address, value };
 
-     if (ioctl( data->gfx_fd, SH7722GFX_IOCTL_SETREG32, &reg ) < 0)
-          D_PERROR( "SH7722GFX_IOCTL_SETREG32( 0x%08x, 0x%08x )\n", reg.address, reg.value );
+     if (ioctl( data->gfx_fd, SH772xGFX_IOCTL_SETREG32, &reg ) < 0)
+          D_PERROR( "SH772xGFX_IOCTL_SETREG32( 0x%08x, 0x%08x )\n", reg.address, reg.value );
 }
 #else
 static inline u32
@@ -136,7 +141,7 @@ DecodeHW( SH7722_JPEG_data      *data,
      int                    i;
      int                    cw, ch;
      bool                   reload = false;
-     SH7722GfxSharedArea   *shared = data->gfx_shared;
+     SH772xGfxSharedArea   *shared = data->gfx_shared;
      SH7722JPEG             jpeg;
      u32                    vtrcr   = 0;
      u32                    vswpout = 0;
@@ -379,7 +384,7 @@ EncodeHW( SH7722_JPEG_data      *data,
      int                    i, fd;
      int                    cw, ch;
      int                    written = 0;
-     SH7722GfxSharedArea   *shared  = data->gfx_shared;
+     SH772xGfxSharedArea   *shared  = data->gfx_shared;
      u32                    vtrcr   = 0;
      u32                    vswpin  = 0;
      bool                   mode420 = false;
@@ -762,7 +767,7 @@ DecodeHeader( SH7722_JPEG_data    *data,
 {
      DirectResult         ret;
      unsigned int         len;
-     SH7722GfxSharedArea *shared;
+     SH772xGfxSharedArea *shared;
 
      D_DEBUG_AT( SH7722_JPEG, "%s( %p )\n", __FUNCTION__, data );
 
@@ -1113,12 +1118,12 @@ Initialize_GFX( SH7722_JPEG_data *data )
      D_DEBUG_AT( SH7722_JPEG, "%s( %p )\n", __FUNCTION__, data );
 
      /* Open the drawing engine device. */
-     data->gfx_fd = direct_try_open( "/dev/sh7722gfx", "/dev/misc/sh7722gfx", O_RDWR, true );
+     data->gfx_fd = direct_try_open( "/dev/sh772x_gfx", "/dev/misc/sh772x_gfx", O_RDWR, true );
      if (data->gfx_fd < 0)
           return DR_INIT;
 
      /* Map its shared data. */
-     data->gfx_shared = mmap( NULL, direct_page_align( sizeof(SH7722GfxSharedArea) ),
+     data->gfx_shared = mmap( NULL, direct_page_align( sizeof(SH772xGfxSharedArea) ),
                               PROT_READ | PROT_WRITE,
                               MAP_SHARED, data->gfx_fd, 0 );
      if (data->gfx_shared == MAP_FAILED) {
@@ -1135,7 +1140,7 @@ Initialize_GFX( SH7722_JPEG_data *data )
      if (data->gfx_shared->magic != SH7722GFX_SHARED_MAGIC) {
           D_ERROR( "SH7722/GFX: Magic value 0x%08x doesn't match 0x%08x!\n",
                    data->gfx_shared->magic, SH7722GFX_SHARED_MAGIC );
-          munmap( (void*) data->gfx_shared, direct_page_align( sizeof(SH7722GfxSharedArea) ) );
+          munmap( (void*) data->gfx_shared, direct_page_align( sizeof(SH772xGfxSharedArea) ) );
           close( data->gfx_fd );
           return DR_INIT;
      }
@@ -1146,7 +1151,7 @@ Initialize_GFX( SH7722_JPEG_data *data )
 static DirectResult
 Shutdown_GFX( SH7722_JPEG_data *data )
 {
-     munmap( (void*) data->gfx_shared, direct_page_align( sizeof(SH7722GfxSharedArea) ) );
+     munmap( (void*) data->gfx_shared, direct_page_align( sizeof(SH772xGfxSharedArea) ) );
 
      close( data->gfx_fd );
 
@@ -1421,6 +1426,7 @@ SH7722_JPEG_Decode( SH7722_JPEG_context   *context,
      DFBRectangle        _rect;
      DFBRegion           _clip;
      struct my_error_mgr jerr;
+     bool                sw_only = false;
 
      if (!data.ref_count)
           return DR_DEAD;
@@ -1439,6 +1445,18 @@ SH7722_JPEG_Decode( SH7722_JPEG_context   *context,
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_RGB24:
+               break;
+
+          case DSPF_RGB332:
+          case DSPF_ARGB1555:
+          case DSPF_ARGB2554:
+          case DSPF_ARGB4444:
+          case DSPF_ARGB:
+          case DSPF_AiRGB:
+          case DSPF_RGB555:
+          case DSPF_BGR555:
+          case DSPF_RGB444:
+               sw_only = true;
                break;
 
           default:
@@ -1463,28 +1481,33 @@ SH7722_JPEG_Decode( SH7722_JPEG_context   *context,
           clip = &_clip;
      }
 
-     if (!context->mode444)
+     if (!context->mode444 && !sw_only)
           ret = DecodeHW( &data, context, rect, clip, format, phys, pitch, width, height );
 
      if (ret) {
-          int fd, len = direct_page_align( DFB_PLANE_MULTIPLY( format, height ) * pitch );
-
-          fd = open( "/dev/mem", O_RDWR | O_SYNC );
-          if (fd < 0) {
-               D_PERROR( "SH7722/JPEG: Could not open /dev/mem!\n" );
-               return DR_INIT;
+          if (addr) {
+               ret = DecodeSW( context, rect, clip, format, addr, pitch, width, height );
           }
+          else {
+               int fd, len = direct_page_align( DFB_PLANE_MULTIPLY( format, height ) * pitch );
 
-          addr = mmap( NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, phys );
-          if (addr == MAP_FAILED) {
-               D_PERROR( "SH7722/JPEG: Could not map /dev/mem at 0x%08lx (length %d)!\n", phys, len );
-               close( fd );
-               return DR_INIT;
+               fd = open( "/dev/mem", O_RDWR | O_SYNC );
+               if (fd < 0) {
+                    D_PERROR( "SH7722/JPEG: Could not open /dev/mem!\n" );
+                    return DR_INIT;
+               }
+
+               addr = mmap( NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, phys );
+               if (addr == MAP_FAILED) {
+                    D_PERROR( "SH7722/JPEG: Could not map /dev/mem at 0x%08lx (length %d)!\n", phys, len );
+                    close( fd );
+                    return DR_INIT;
+               }
+
+               ret = DecodeSW( context, rect, clip, format, addr, pitch, width, height );
+
+               munmap( addr, len );
           }
-
-          ret = DecodeSW( context, rect, clip, format, addr, pitch, width, height );
-
-          munmap( addr, len );
      }
 
      return ret;

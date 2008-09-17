@@ -1,11 +1,13 @@
-#ifndef __SH7722GFX_H__
-#define __SH7722GFX_H__
+#ifndef __SH772X_GFX_H__
+#define __SH772X_GFX_H__
 
 #include <asm/types.h>
 
 
-#define SH7722GFX_BUFFER_WORDS  0x1f000      /* Number of 32bit words in display list (ring buffer). */
+#define SH772xGFX_BUFFER_WORDS  0x1f000      /* Number of 32bit words in display list (ring buffer). */
+
 #define SH7722GFX_SHARED_MAGIC  0x77220001   /* Increase if binary compatibility is broken. */
+#define SH7723GFX_SHARED_MAGIC  0x77230001   /* Increase if binary compatibility is broken. */
 
 #define SH7722GFX_JPEG_RELOAD_SIZE       (64 * 1024)
 #define SH7722GFX_JPEG_LINEBUFFER_PITCH  (2560)
@@ -16,7 +18,7 @@
 
 
 typedef volatile struct {
-     u32            buffer[SH7722GFX_BUFFER_WORDS];
+     u32            buffer[SH772xGFX_BUFFER_WORDS];
 
 
      int            hw_start;
@@ -45,13 +47,13 @@ typedef volatile struct {
      unsigned long  jpeg_phys;
 
      u32            magic;
-} SH7722GfxSharedArea;
+} SH772xGfxSharedArea;
 
 
 typedef struct {
      u32            address;  /* in */
      u32            value;    /* in/out */
-} SH7722Register;
+} SH772xRegister;
 
 
 typedef enum {
@@ -79,9 +81,9 @@ typedef struct {
 
 /* Just initialization and synchronization.
  * Hardware is started from user space via MMIO to DMA registers. */
-#define SH7722GFX_IOCTL_RESET      _IO( 'G', 0 )
-#define SH7722GFX_IOCTL_WAIT_IDLE  _IO( 'G', 1 )
-#define SH7722GFX_IOCTL_WAIT_NEXT  _IO( 'G', 2 )
+#define SH772xGFX_IOCTL_RESET      _IO( 'G', 0 )
+#define SH772xGFX_IOCTL_WAIT_IDLE  _IO( 'G', 1 )
+#define SH772xGFX_IOCTL_WAIT_NEXT  _IO( 'G', 2 )
 
 /* JPEG processing, requires programming from user space. */
 #define SH7722GFX_IOCTL_WAIT_JPEG   _IO  ( 'J', 0 )
@@ -91,8 +93,8 @@ typedef struct {
 
 
 /* Register access limited to BEU, LCDC, VOU and JPU. */
-#define SH7722GFX_IOCTL_SETREG32   _IOW( 'g', 0, SH7722Register )
-#define SH7722GFX_IOCTL_GETREG32   _IOR( 'g', 1, SH7722Register )
+#define SH772xGFX_IOCTL_SETREG32   _IOW( 'g', 0, SH772xRegister )
+#define SH772xGFX_IOCTL_GETREG32   _IOR( 'g', 1, SH772xRegister )
 
 
 #endif

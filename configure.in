@@ -854,6 +854,7 @@ cle266=no
 cyber5k=no
 davinci=no
 ep9x=no
+gl=no
 i810=no
 i830=no
 mach64=no
@@ -878,7 +879,7 @@ AC_ARG_WITH(gfxdrivers,
 [                               gfxdrivers may be comma separated ]
 [                               'all' builds all drivers (default), 'none' builds none ]
 [                               Possible gfxdrivers are: ]
-[                               ati128, cle266, cyber5k, davinci, ep9x, i810, i830, mach64,]
+[                               ati128, cle266, cyber5k, davinci, ep9x, gl, i810, i830, mach64,]
 [                               matrox, neomagic, nsc, nvidia, omap, radeon, savage, sh7722,]
 [                               sis315, tdfx, unichrome, vmware], gfxdrivers="$withval",[gfxdrivers="all"])
 
@@ -888,6 +889,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_cyber5k=yes
   checkfor_davinci="$have_arm"
   checkfor_ep9x=yes
+  checkfor_gl=yes
   checkfor_i810=yes
   checkfor_i830=yes
   checkfor_mach64=yes
@@ -925,6 +927,9 @@ else
                   ;;
           ep9x)
                   checkfor_ep9x=yes
+                  ;;
+          gl)
+                  checkfor_gl=yes
                   ;;
           i810)
                   checkfor_i810=yes
@@ -999,6 +1004,10 @@ fi
 
 if test "$checkfor_ep9x" = "yes"; then
   ep9x=yes
+fi
+
+if test "$checkfor_gl" = "yes"; then
+  AC_CHECK_HEADER(GL/gl.h, gl=yes)
 fi
 
 if test "$checkfor_i810" = "yes" && test "$have_sysio" = "yes"; then
@@ -1378,6 +1387,7 @@ AM_CONDITIONAL(GFX_CLE266, test "$cle266" = "yes")
 AM_CONDITIONAL(GFX_CYBER5K, test "$cyber5k" = "yes")
 AM_CONDITIONAL(GFX_DAVINCI, test "$davinci" = "yes")
 AM_CONDITIONAL(GFX_EP9X, test "$ep9x" = "yes")
+AM_CONDITIONAL(GFX_GL, test "$gl" = "yes")
 AM_CONDITIONAL(GFX_I810, test "$i810" = "yes")
 AM_CONDITIONAL(GFX_I830, test "$i830" = "yes")
 AM_CONDITIONAL(GFX_MACH64, test "$mach64" = "yes")
@@ -1541,6 +1551,7 @@ gfxdrivers/cle266/Makefile
 gfxdrivers/cyber5k/Makefile
 gfxdrivers/davinci/Makefile
 gfxdrivers/ep9x/Makefile
+gfxdrivers/gl/Makefile
 gfxdrivers/i810/Makefile
 gfxdrivers/i830/Makefile
 gfxdrivers/mach64/Makefile
@@ -1683,6 +1694,8 @@ Building Graphics Drivers:
   VIA CLE266                $cle266
   VIA UniChrome             $unichrome
   VMWare                    $vmware
+  --
+  OpenGL                    $gl
 
 Building Input Drivers:
   DBox2 Remote              $enable_dbox2remote

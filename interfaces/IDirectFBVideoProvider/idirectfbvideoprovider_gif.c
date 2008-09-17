@@ -784,7 +784,7 @@ GIFVideo( DirectThread *self, void *arg )
           D_MAGIC_ASSERT( surface, CoreSurface );
 
           if (dfb_rectangle_region_intersects( &rect, &clip ) &&
-              dfb_surface_lock_buffer( surface, CSBR_BACK, CSAF_CPU_WRITE, &lock ) == DFB_OK)
+              dfb_surface_lock_buffer( surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock ) == DFB_OK)
           {
                dfb_scale_linear_32( data->image, data->Width, data->Height,
                                     lock.addr, lock.pitch, &rect, data->dst_data->surface, &clip );

@@ -420,14 +420,14 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
           return DFB_INVAREA;
 
      if (flags & DSLF_READ)
-          access |= CSAF_CPU_READ;
+          access |= CSAF_READ;
 
      if (flags & DSLF_WRITE) {
-          access |= CSAF_CPU_WRITE;
+          access |= CSAF_WRITE;
           role = CSBR_BACK;
      }
 
-     ret = dfb_surface_lock_buffer( data->surface, role, access, &data->lock );
+     ret = dfb_surface_lock_buffer( data->surface, role, CSAID_CPU, access, &data->lock );
      if (ret)
           return ret;
 

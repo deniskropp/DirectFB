@@ -505,6 +505,9 @@ sh7722UpdateRegion( CoreLayer             *layer,
      /* Start operation! */
      BEU_Start( sdrv, sdev );
 
+     if (!(surface->config.caps & DSCAPS_FLIPPING))
+          BEU_Wait( sdrv, sdev );
+
      return DFB_OK;
 }
 

@@ -693,7 +693,8 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
       * available.
       */
      if (dst_buffer->policy == CSP_SYSTEMONLY || /* Special check required if driver does not check itself. */
-                                                 (!(card->caps.flags & CCF_RENDEROPTS) && state->render_options))
+                                                 ( !(card->caps.flags & CCF_RENDEROPTS) &&
+                                                    (state->render_options & DSRO_MATRIX) ))
      {
           /* Clear 'accelerated functions'. */
           state->accel   = DFXL_NONE;
@@ -733,7 +734,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      CoreSurface            *dst;
      CoreSurface            *src;
      DFBGraphicsCoreShared  *shared;
-     CoreSurfaceAccessFlags  access = CSAF_GPU_WRITE;
+     CoreSurfaceAccessFlags  access = CSAF_WRITE;
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -751,10 +752,10 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
                                       DSBLIT_BLEND_COLORALPHA   |
                                       DSBLIT_DST_COLORKEY))
-               access |= CSAF_GPU_READ;
+               access |= CSAF_READ;
      }
      else if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_DST_COLORKEY))
-          access |= CSAF_GPU_READ;
+          access |= CSAF_READ;
 
      if (DFB_BLITTING_FUNCTION(accel)) {
           D_DEBUG_AT( Core_GfxState, "%s( %p, 0x%08x )  blitting %p -> %p\n", __FUNCTION__,
@@ -766,7 +767,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      }
 
      /* lock destination */
-     ret = dfb_surface_lock_buffer( dst, state->to, access, &state->dst );
+     ret = dfb_surface_lock_buffer( dst, state->to, CSAID_GPU, access, &state->dst );
      if (ret) {
           D_DEBUG_AT( Core_Graphics, "Could not lock destination for GPU access!\n" );
           return false;
@@ -775,7 +776,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      /* if blitting... */
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* ...lock source for reading */
-          ret = dfb_surface_lock_buffer( src, state->from, CSAF_GPU_READ, &state->src );
+          ret = dfb_surface_lock_buffer( src, state->from, CSAID_GPU, CSAF_READ, &state->src );
           if (ret) {
                D_DEBUG_AT( Core_Graphics, "Could not lock source for GPU access!\n" );
                dfb_surface_unlock_buffer( dst, &state->dst );
@@ -787,7 +788,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           /* if using a mask... */
           if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
                /* ...lock source mask for reading */
-               ret = dfb_surface_lock_buffer( state->source_mask, state->from, CSAF_GPU_READ, &state->src_mask );
+               ret = dfb_surface_lock_buffer( state->source_mask, state->from, CSAID_GPU, CSAF_READ, &state->src_mask );
                if (ret) {
                     D_DEBUG_AT( Core_Graphics, "Could not lock source mask for GPU access!\n" );
                     dfb_surface_unlock_buffer( src, &state->src );

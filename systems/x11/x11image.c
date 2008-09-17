@@ -37,19 +37,21 @@
 
 /**********************************************************************************************************************/
 
-DFBResult x11ImageInit( x11Image              *image,
+DFBResult x11ImageInit( DFBX11                *x11,
+                        x11Image              *image,
                         int                    width,
                         int                    height,
                         DFBSurfacePixelFormat  format )
 {
-     int     ret;
-     Visual *visual;
+     int           ret;
+     Visual       *visual;
+     DFBX11Shared *shared = x11->shared;
 
-     if (!dfb_x11->use_shm)
+     if (!x11->use_shm)
           return DFB_UNSUPPORTED;
 
      /* Lookup visual. */
-     visual = dfb_x11->visuals[DFB_PIXELFORMAT_INDEX(format)];
+     visual = x11->visuals[DFB_PIXELFORMAT_INDEX(format)];
      if (!visual)
           return DFB_UNSUPPORTED;
 
@@ -65,7 +67,7 @@ DFBResult x11ImageInit( x11Image              *image,
 
      D_MAGIC_SET( image, x11Image );
 
-     if (fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_IMAGE_INIT, image, &ret )) {
+     if (fusion_call_execute( &shared->call, FCEF_NONE, X11_IMAGE_INIT, image, &ret )) {
           D_MAGIC_CLEAR( image );
           return DFB_FUSION;
      }
@@ -80,13 +82,15 @@ DFBResult x11ImageInit( x11Image              *image,
 }
 
 DFBResult
-x11ImageDestroy( x11Image *image )
+x11ImageDestroy( DFBX11   *x11,
+                 x11Image *image )
 {
-     int ret;
+     int           ret;
+     DFBX11Shared *shared = x11->shared;
 
      D_MAGIC_ASSERT( image, x11Image );
 
-     if (fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_IMAGE_DESTROY, image, &ret ))
+     if (fusion_call_execute( &shared->call, FCEF_NONE, X11_IMAGE_DESTROY, image, &ret ))
           return DFB_FUSION;
 
      if (ret) {
@@ -127,19 +131,19 @@ x11ImageAttach( x11Image  *image,
 /**********************************************************************************************************************/
 
 DFBResult
-dfb_x11_image_init_handler( x11Image *image )
+dfb_x11_image_init_handler( DFBX11 *x11, x11Image *image )
 {
      XImage *ximage;
 
      D_MAGIC_ASSERT( image, x11Image );
 
-     XLockDisplay( dfb_x11->display );
+     XLockDisplay( x11->display );
 
-     ximage = XShmCreateImage( dfb_x11->display, image->visual, image->depth,
+     ximage = XShmCreateImage( x11->display, image->visual, image->depth,
                                ZPixmap, NULL, &image->seginfo, image->width, image->height );
      if (!ximage) {
           D_ERROR( "X11/ShmImage: Error creating shared image (XShmCreateImage)!\n");
-          XUnlockDisplay( dfb_x11->display );
+          XUnlockDisplay( x11->display );
           return DFB_FAILURE;
      }
 
@@ -162,13 +166,13 @@ dfb_x11_image_init_handler( x11Image *image )
      /* We set the buffer in Read and Write mode */
      image->seginfo.readOnly = False;
 
-     if (!XShmAttach( dfb_x11->display, &image->seginfo ))
+     if (!XShmAttach( x11->display, &image->seginfo ))
           goto error_xshmattach;
 
      image->ximage = ximage;
      image->pitch  = ximage->bytes_per_line;
 
-     XUnlockDisplay( dfb_x11->display );
+     XUnlockDisplay( x11->display );
 
      return DFB_OK;
 
@@ -182,23 +186,23 @@ error_shmat:
 error:
      XDestroyImage( ximage );
 
-     XUnlockDisplay( dfb_x11->display );
+     XUnlockDisplay( x11->display );
 
      return DFB_FAILURE;
 }
 
 DFBResult
-dfb_x11_image_destroy_handler( x11Image *image )
+dfb_x11_image_destroy_handler( DFBX11 *x11, x11Image *image )
 {
      D_MAGIC_ASSERT( image, x11Image );
 
-     XLockDisplay( dfb_x11->display );
+     XLockDisplay( x11->display );
 
-     XShmDetach( dfb_x11->display, &image->seginfo );
+     XShmDetach( x11->display, &image->seginfo );
 
      XDestroyImage( image->ximage );
 
-     XUnlockDisplay( dfb_x11->display );
+     XUnlockDisplay( x11->display );
 
      shmdt( image->seginfo.shmaddr );
 

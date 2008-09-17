@@ -37,9 +37,6 @@
 #include <direct/messages.h>
 
 
-#include "yuvtbl.h"
-
-
 void
 gGetDriverInfo( GraphicsDriverInfo *info )
 {

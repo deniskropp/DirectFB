@@ -383,9 +383,11 @@ find_table( const char *filename )
      return NULL;
 }
 
+/**************************************************************************************************/
+
 __attribute__((no_instrument_function))
-static const char *
-lookup_symbol( const char *filename, long offset )
+const char *
+direct_trace_lookup_symbol( const char *filename, long offset )
 {
      Symbol      *symbol;
      SymbolTable *table;
@@ -411,7 +413,28 @@ lookup_symbol( const char *filename, long offset )
      return symbol ? symbol->name : NULL;
 }
 
-/**************************************************************************************************/
+__attribute__((no_instrument_function))
+const char *
+direct_trace_lookup_file( void *address, void **ret_base )
+{
+#ifdef DYNAMIC_LINKING
+     Dl_info info;
+
+     if (dladdr( address, &info )) {
+          if (ret_base)
+               *ret_base = info.dli_fbase;
+
+          return info.dli_fname;
+     }
+     else
+#endif
+     {
+          if (ret_base)
+               *ret_base = NULL;
+     }
+
+     return NULL;
+}
 
 __attribute__((no_instrument_function))
 void
@@ -461,9 +484,9 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
                     const char *symbol = NULL;//info.dli_sname;
 
                     if (!symbol) {
-                         symbol = lookup_symbol(info.dli_fname, (long)(fn - info.dli_fbase));
+                         symbol = direct_trace_lookup_symbol(info.dli_fname, (long)(fn - info.dli_fbase));
                          if (!symbol) {
-                              symbol = lookup_symbol(info.dli_fname, (long)(fn));
+                              symbol = direct_trace_lookup_symbol(info.dli_fname, (long)(fn));
                               if (!symbol) {
                                    if (info.dli_sname)
                                         symbol = info.dli_sname;
@@ -487,7 +510,7 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
           else
 #endif
           {
-               const char *symbol = lookup_symbol(NULL, (long)(fn));
+               const char *symbol = direct_trace_lookup_symbol(NULL, (long)(fn));
                direct_log_printf( NULL, "  #%-2d 0x%08lx in %s ()\n",
                                   level - i - 1, (unsigned long) fn, symbol ? symbol : "??" );
           }
@@ -614,6 +637,21 @@ __cyg_profile_func_exit (void *this_fn,
 }
 
 #else
+
+const char *
+direct_trace_lookup_symbol( const char *filename, long offset )
+{
+     return NULL;
+}
+
+const char *
+direct_trace_lookup_file( void *address, void **ret_base )
+{
+     if (ret_base)
+          *ret_base = NULL;
+          
+     return NULL;
+}
 
 void
 direct_trace_print_stack( DirectTraceBuffer *buffer )

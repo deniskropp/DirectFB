@@ -3,7 +3,7 @@
 
 #include <core/layers.h>
 
-#include <sh7722gfx.h>
+#include <sh772x_gfx.h>
 
 
 #define SH7722GFX_MAX_PREPARE             8192
@@ -48,6 +48,8 @@ typedef struct {
 
 
 typedef struct {
+     int                      sh772x;
+
      int                      lcd_width;
      int                      lcd_height;
      int                      lcd_offset;
@@ -96,6 +98,11 @@ typedef struct {
 
      /* locking */
      FusionSkirmish           beu_lock;
+
+
+     /* sh7723 */
+     u32                      rclr;
+     u32                      color16;
 } SH7722DeviceData;
 
 
@@ -113,7 +120,7 @@ typedef struct {
      CoreLayer               *input3;
 
      int                      gfx_fd;
-     SH7722GfxSharedArea     *gfx_shared;
+     SH772xGfxSharedArea     *gfx_shared;
 
      int                      prep_num;
      __u32                    prep_buf[SH7722GFX_MAX_PREPARE];

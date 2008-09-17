@@ -54,27 +54,40 @@ typedef struct {
      UpdateScreenData     update;
      SetModeData          setmode;
                          
-     Bool                 use_shm;
-     int                  xshm_major;
-     int                  xshm_minor;
-                         
      FusionSkirmish       lock;
      FusionCall           call;
 
      FusionSHMPoolShared *data_shmpool;
  
      CoreSurfacePool     *x11image_pool;
+
+     CoreSurfacePool     *glx_pool;
+
      CoreSurfacePool     *vpsmem_pool;
      unsigned int         vpsmem_length;
  
-     CoreSurface         *primary;
+//     CoreSurface         *primary;
+     DFBDimension         screen_size;
+
      XWindow             *xw;
+} DFBX11Shared;
+
+struct __DFB_X11 {
+     DFBX11Shared        *shared;
+
+     CoreDFB             *core;
+     CoreScreen          *screen;
+
+     Bool                 use_shm;
+     int                  xshm_major;
+     int                  xshm_minor;
+                         
      Display             *display;
-     Screen*              screenptr;
+     Screen              *screenptr;
      int                  screennum;
                      
      Visual              *visuals[DFB_NUM_PIXELFORMATS];
-} DFBX11;
+};
 
 typedef enum {
      X11_CREATE_WINDOW,
@@ -87,18 +100,14 @@ typedef enum {
 
 
 
-DFBResult dfb_x11_create_window_handler ( CoreLayerRegionConfig *config );
-DFBResult dfb_x11_destroy_window_handler( void );
+DFBResult dfb_x11_create_window_handler ( DFBX11 *x11, CoreLayerRegionConfig *config );
+DFBResult dfb_x11_destroy_window_handler( DFBX11 *x11 );
 
-DFBResult dfb_x11_update_screen_handler ( UpdateScreenData *data );
-DFBResult dfb_x11_set_palette_handler   ( CorePalette *palette );
+DFBResult dfb_x11_update_screen_handler ( DFBX11 *x11, UpdateScreenData *data );
+DFBResult dfb_x11_set_palette_handler   ( DFBX11 *x11, CorePalette *palette );
 
-DFBResult dfb_x11_image_init_handler    ( x11Image *image );
-DFBResult dfb_x11_image_destroy_handler ( x11Image *image );
-
-
-extern DFBX11  *dfb_x11;
-extern CoreDFB *dfb_x11_core;
+DFBResult dfb_x11_image_init_handler    ( DFBX11 *x11, x11Image *image );
+DFBResult dfb_x11_image_destroy_handler ( DFBX11 *x11, x11Image *image );
 
 
 #endif //__X11SYSTEM__X11_H__

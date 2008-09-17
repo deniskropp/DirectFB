@@ -29,6 +29,7 @@
 #include <config.h>
 
 #include <directfb.h>
+#include <directfb_util.h>
 
 #include "convert.h"
 
@@ -223,97 +224,12 @@ dfb_pixel_from_color( DFBSurfacePixelFormat  format,
 const char *
 dfb_pixelformat_name( DFBSurfacePixelFormat format )
 {
-     switch (format) {
-          case DSPF_UNKNOWN:
-               return "UNKNOWN";
+     int i = 0;
 
-          case DSPF_ARGB1555:
-               return "ARGB1555";
-
-          case DSPF_RGB555:
-               return "RGB555";
-
-          case DSPF_BGR555:
-               return "BGR555";
-
-          case DSPF_RGB16:
-               return "RGB16";
-
-          case DSPF_RGB18:
-               return "RGB18";
-
-          case DSPF_RGB24:
-               return "RGB24";
-
-          case DSPF_RGB32:
-               return "RGB32";
-
-          case DSPF_ARGB:
-               return "ARGB";
-
-          case DSPF_A8:
-               return "A8";
-
-          case DSPF_YUY2:
-               return "YUY2";
-
-          case DSPF_RGB332:
-               return "RGB332";
-
-          case DSPF_UYVY:
-               return "UYVY";
-
-          case DSPF_I420:
-               return "I420";
-
-          case DSPF_YV12:
-               return "YV12";
-
-          case DSPF_LUT8:
-               return "LUT8";
-
-          case DSPF_ALUT44:
-               return "ALUT44";
-
-          case DSPF_AiRGB:
-               return "AiRGB";
-
-          case DSPF_A1:
-               return "A1";
-
-          case DSPF_NV12:
-               return "NV12";
-
-          case DSPF_NV21:
-               return "NV21";
-
-          case DSPF_NV16:
-               return "NV16";
-
-          case DSPF_ARGB2554:
-               return "ARGB2554";
-
-          case DSPF_ARGB4444:
-               return "ARGB4444";
-
-          case DSPF_RGB444:
-               return "RGB444";
-
-          case DSPF_ARGB1666:
-               return "ARGB1666";
-
-          case DSPF_ARGB6666:
-               return "ARGB6666";
-
-          case DSPF_AYUV:
-               return "AYUV";
-
-          case DSPF_A4:
-               return "A4";
-
-          case DSPF_LUT2:
-               return "LUT2";
-     }
+     do {
+          if (format == dfb_pixelformat_names[i].format)
+               return dfb_pixelformat_names[i].name;
+     } while (dfb_pixelformat_names[i++].format != DSPF_UNKNOWN);
 
      return "<invalid>";
 }
@@ -351,9 +267,13 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
      
                     for (x=0; x<width; x++) {
                          int r, g, b;
-     
+
+#ifdef WORDS_BIGENDIAN
+                         YCBCR_TO_RGB( src8[x], src16[x>>1] >> 8, src16[x>>1] & 0xff, r, g, b );
+#else
                          YCBCR_TO_RGB( src8[x], src16[x>>1] & 0xff, src16[x>>1] >> 8, r, g, b );
-     
+#endif
+
                          dst[x] = PIXEL_RGB16( r, g, b );
                     }
 
@@ -474,7 +394,11 @@ dfb_convert_to_rgb555( DFBSurfacePixelFormat  format,
                     for (x=0; x<width; x++) {
                          int r, g, b;
      
+#ifdef WORDS_BIGENDIAN
+                         YCBCR_TO_RGB( src8[x], src16[x>>1] >> 8, src16[x>>1] & 0xff, r, g, b );
+#else
                          YCBCR_TO_RGB( src8[x], src16[x>>1] & 0xff, src16[x>>1] >> 8, r, g, b );
+#endif
      
                          dst[x] = PIXEL_RGB555( r, g, b );
                     }
@@ -612,7 +536,11 @@ dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
                     for (x=0; x<width; x++) {
                          int r, g, b;
      
+#ifdef WORDS_BIGENDIAN
+                         YCBCR_TO_RGB( src8[x], src16[x>>1] >> 8, src16[x>>1] & 0xff, r, g, b );
+#else
                          YCBCR_TO_RGB( src8[x], src16[x>>1] & 0xff, src16[x>>1] >> 8, r, g, b );
+#endif
      
                          dst[x] = PIXEL_RGB32( r, g, b );
                     }
@@ -748,7 +676,11 @@ dfb_convert_to_argb( DFBSurfacePixelFormat  format,
                     for (x=0; x<width; x++) {
                          int r, g, b;
 
+#ifdef WORDS_BIGENDIAN
+                         YCBCR_TO_RGB( src8[x], src16[x>>1] >> 8, src16[x>>1] & 0xff, r, g, b );
+#else
                          YCBCR_TO_RGB( src8[x], src16[x>>1] & 0xff, src16[x>>1] >> 8, r, g, b );
+#endif
 
                          dst[x] = PIXEL_ARGB( 0xff, r, g, b );
                     }

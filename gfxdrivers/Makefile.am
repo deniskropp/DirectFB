@@ -24,6 +24,12 @@ else
 DAVINCI_DIR =
 endif
 
+if GFX_GL
+GL_DIR = gl
+else
+GL_DIR =
+endif
+
 if GFX_I810
 I810_DIR = i810
 else
@@ -120,12 +126,14 @@ else
 EP9X_DIR =
 endif
 
+
 SUBDIRS = \
 	$(ATI128_DIR)	\
 	$(CLE266_DIR)	\
 	$(CYBER5K_DIR)	\
 	$(DAVINCI_DIR)	\
 	$(EP9X_DIR)	\
+	$(GL_DIR)	\
 	$(I810_DIR)	\
 	$(I830_DIR)	\
 	$(MACH64_DIR)	\

@@ -1,5 +1,5 @@
 /*
- * SH7722/SH7723 Graphics Device
+ * SH7722 Graphics Device
  *
  * Copyright (C) 2006-2008  IGEL Co.,Ltd
  *
@@ -15,7 +15,9 @@
 #include <linux/version.h>
 
 #include <linux/delay.h>
+#include <linux/fs.h>
 #include <linux/interrupt.h>
+#include <linux/ioctl.h>
 #include <linux/miscdevice.h>
 #include <linux/mm.h>
 #include <linux/sched.h>
@@ -23,11 +25,31 @@
 #include <asm/io.h>
 #include <asm/uaccess.h>
 
-#include <sh7722gfx.h>
+#include <sh772x_gfx.h>
+
 
 //#define SH7722GFX_DEBUG_2DG
 #define SH7722GFX_DEBUG_JPU
 //#define SH7722GFX_IRQ_POLLER
+
+
+/**********************************************************************************************************************/
+
+#ifndef SH7722_BEU_IRQ
+#define SH7722_BEU_IRQ 53
+#endif
+
+#ifndef SH7722_VEU_IRQ
+#define SH7722_VEU_IRQ 54
+#endif
+
+#ifndef SH7722_JPU_IRQ
+#define SH7722_JPU_IRQ 27
+#endif
+
+#ifndef SH7722_TDG_IRQ
+#define SH7722_TDG_IRQ 109
+#endif
 
 /**********************************************************************************************************************/
 
@@ -145,7 +167,7 @@
 static DECLARE_WAIT_QUEUE_HEAD( wait_idle );
 static DECLARE_WAIT_QUEUE_HEAD( wait_next );
 
-static SH7722GfxSharedArea *shared;
+static SH772xGfxSharedArea *shared;
 
 static struct timeval       base_time;
 
@@ -186,7 +208,7 @@ static pid_t                jpeg_locked;
 /**********************************************************************************************************************/
 
 static int
-sh7722_reset( SH7722GfxSharedArea *shared )
+sh7722_reset( SH772xGfxSharedArea *shared )
 {
      int i;
 
@@ -205,7 +227,7 @@ sh7722_reset( SH7722GfxSharedArea *shared )
 
      QPRINT( "Initializing shared area..." );
 
-     memset( (void*) shared, 0, sizeof(SH7722GfxSharedArea) );
+     memset( (void*) shared, 0, sizeof(SH772xGfxSharedArea) );
 
      shared->buffer_phys = virt_to_phys(&shared->buffer[0]);
      shared->jpeg_phys   = virt_to_phys(jpeg_area);
@@ -225,7 +247,7 @@ sh7722_reset( SH7722GfxSharedArea *shared )
 }
 
 static int
-sh7722_wait_idle( SH7722GfxSharedArea *shared )
+sh7722_wait_idle( SH772xGfxSharedArea *shared )
 {
      int ret;
 
@@ -255,7 +277,7 @@ sh7722_wait_idle( SH7722GfxSharedArea *shared )
 }
 
 static int
-sh7722_wait_next( SH7722GfxSharedArea *shared )
+sh7722_wait_next( SH772xGfxSharedArea *shared )
 {
      int ret;
 
@@ -288,7 +310,7 @@ sh7722_wait_next( SH7722GfxSharedArea *shared )
 /**********************************************************************************************************************/
 
 static int
-sh7722_wait_jpeg( SH7722GfxSharedArea *shared )
+sh7722_wait_jpeg( SH772xGfxSharedArea *shared )
 {
      int ret;
 
@@ -301,7 +323,7 @@ sh7722_wait_jpeg( SH7722GfxSharedArea *shared )
 }
 
 static int
-sh7722_run_jpeg( SH7722GfxSharedArea *shared,
+sh7722_run_jpeg( SH772xGfxSharedArea *shared,
                  SH7722JPEG          *jpeg )
 {
      int ret;
@@ -414,7 +436,7 @@ sh7722_run_jpeg( SH7722GfxSharedArea *shared,
 }
 
 static int
-sh7722_lock_jpeg( SH7722GfxSharedArea *shared )
+sh7722_lock_jpeg( SH772xGfxSharedArea *shared )
 {
      int ret;
 
@@ -435,7 +457,7 @@ sh7722_lock_jpeg( SH7722GfxSharedArea *shared )
 }
 
 static int
-sh7722_unlock_jpeg( SH7722GfxSharedArea *shared )
+sh7722_unlock_jpeg( SH772xGfxSharedArea *shared )
 {
      if (jpeg_locked != current->pid)
           return -EIO;
@@ -453,7 +475,7 @@ static irqreturn_t
 sh7722_jpu_irq( int irq, void *ctx )
 {
      u32                  ints;
-     SH7722GfxSharedArea *shared = ctx;
+     SH772xGfxSharedArea *shared = ctx;
 
      ints = JPU_JINTS;
 
@@ -704,7 +726,7 @@ sh7722_beu_irq( int irq, void *ctx )
 static irqreturn_t
 sh7722_tdg_irq( int irq, void *ctx )
 {
-     SH7722GfxSharedArea *shared = ctx;
+     SH772xGfxSharedArea *shared = ctx;
      u32                  status = BEM_HC_INT_STATUS;
 
      if (! (status & 0x111111)) {
@@ -794,7 +816,7 @@ sh7722_tdg_irq_poller( void *arg )
           set_current_state( TASK_UNINTERRUPTIBLE );
           schedule_timeout( 1 );
 
-          sh7722_tdg_irq( TDG_IRQ, (void*) arg );
+          sh7722_tdg_irq( SH7722_TDG_IRQ, (void*) arg );
      }
 
      stop_poller = 0;
@@ -826,21 +848,21 @@ sh7722gfx_ioctl( struct inode  *inode,
                  unsigned long  arg )
 {
      int            ret;
-     SH7722Register reg;
+     SH772xRegister reg;
      SH7722JPEG     jpeg;
 
      switch (cmd) {
-          case SH7722GFX_IOCTL_RESET:
+          case SH772xGFX_IOCTL_RESET:
                return sh7722_reset( shared );
 
-          case SH7722GFX_IOCTL_WAIT_IDLE:
+          case SH772xGFX_IOCTL_WAIT_IDLE:
                return sh7722_wait_idle( shared );
 
-          case SH7722GFX_IOCTL_WAIT_NEXT:
+          case SH772xGFX_IOCTL_WAIT_NEXT:
                return sh7722_wait_next( shared );
 
-          case SH7722GFX_IOCTL_SETREG32:
-               if (copy_from_user( &reg, arg, sizeof(SH7722Register) ))
+          case SH772xGFX_IOCTL_SETREG32:
+               if (copy_from_user( &reg, (void*)arg, sizeof(SH772xRegister) ))
                     return -EFAULT;
 
                /* VEU, BEU, LCDC, VOU, JPEG */
@@ -851,8 +873,8 @@ sh7722gfx_ioctl( struct inode  *inode,
 
                return 0;
 
-          case SH7722GFX_IOCTL_GETREG32:
-               if (copy_from_user( &reg, arg, sizeof(SH7722Register) ))
+          case SH772xGFX_IOCTL_GETREG32:
+               if (copy_from_user( &reg, (void*)arg, sizeof(SH772xRegister) ))
                     return -EFAULT;
 
                /* VEU, BEU, LCDC, VOU, JPEG */
@@ -861,7 +883,7 @@ sh7722gfx_ioctl( struct inode  *inode,
 
                reg.value = *(volatile __u32 *) reg.address;
 
-               if (copy_to_user( arg, &reg, sizeof(SH7722Register) ))
+               if (copy_to_user( (void*)arg, &reg, sizeof(SH772xRegister) ))
                     return -EFAULT;
 
                return 0;
@@ -870,14 +892,14 @@ sh7722gfx_ioctl( struct inode  *inode,
                return sh7722_wait_jpeg( shared );
 
           case SH7722GFX_IOCTL_RUN_JPEG:
-               if (copy_from_user( &jpeg, arg, sizeof(SH7722JPEG) ))
+               if (copy_from_user( &jpeg, (void*)arg, sizeof(SH7722JPEG) ))
                     return -EFAULT;
 
                ret = sh7722_run_jpeg( shared, &jpeg );
                if (ret)
                     return ret;
 
-               if (copy_to_user( arg, &jpeg, sizeof(SH7722JPEG) ))
+               if (copy_to_user( (void*)arg, &jpeg, sizeof(SH7722JPEG) ))
                     return -EFAULT;
 
                return 0;
@@ -904,7 +926,7 @@ sh7722gfx_mmap( struct file           *file,
 
      /* Check size of requested mapping. */
      size = vma->vm_end - vma->vm_start;
-     if (size != PAGE_ALIGN(sizeof(SH7722GfxSharedArea)))
+     if (size != PAGE_ALIGN(sizeof(SH772xGfxSharedArea)))
           return -EINVAL;
 
      /* Set reserved and I/O flag for the area. */
@@ -938,14 +960,14 @@ static struct file_operations sh7722gfx_fops = {
 
 static struct miscdevice sh7722gfx_miscdev = {
      minor:    196,           // 7*7*2*2
-     name:     "sh7722gfx",
+     name:     "sh772x_gfx",
      fops:     &sh7722gfx_fops
 };
 
 /**********************************************************************************************************************/
 
-static int __init
-sh7722gfx_module_init( void )
+int
+sh7722_init( void )
 {
      int i;
      int ret;
@@ -959,16 +981,16 @@ sh7722gfx_module_init( void )
      }
 
      /* Allocate and initialize the shared area. */
-     shared_order = get_order(sizeof(SH7722GfxSharedArea));
+     shared_order = get_order(sizeof(SH772xGfxSharedArea));
      shared_page  = alloc_pages( GFP_DMA | GFP_KERNEL, shared_order );
      shared       = ioremap( virt_to_phys( page_address(shared_page) ),
-                             PAGE_ALIGN(sizeof(SH7722GfxSharedArea)) );
+                             PAGE_ALIGN(sizeof(SH772xGfxSharedArea)) );
 
      for (i=0; i<1<<shared_order; i++)
           SetPageReserved( shared_page + i );
 
      printk( KERN_INFO "sh7722gfx: shared area (order %d) at %p [%lx] using %d bytes\n",
-             shared_order, shared, virt_to_phys(shared), sizeof(SH7722GfxSharedArea) );
+             shared_order, shared, virt_to_phys(shared), sizeof(SH772xGfxSharedArea) );
 
 
      /* Allocate and initialize the JPEG area. */
@@ -985,10 +1007,10 @@ sh7722gfx_module_init( void )
 
 
      /* Register the BEU interrupt handler. */
-     ret = request_irq( BEU_IRQ, sh7722_beu_irq, IRQF_DISABLED, "BEU", (void*) shared );
+     ret = request_irq( SH7722_BEU_IRQ, sh7722_beu_irq, IRQF_DISABLED, "BEU", (void*) shared );
      if (ret) {
           printk( KERN_ERR "%s: request_irq() for interrupt %d failed! (error %d)\n",
-                  __FUNCTION__, BEU_IRQ, ret );
+                  __FUNCTION__, SH7722_BEU_IRQ, ret );
           goto error_beu;
      }
 
@@ -996,27 +1018,27 @@ sh7722gfx_module_init( void )
      kernel_thread( sh7722_tdg_irq_poller, (void*) shared, CLONE_KERNEL );
 #else
      /* Register the TDG interrupt handler. */
-     ret = request_irq( TDG_IRQ, sh7722_tdg_irq, IRQF_DISABLED, "TDG", (void*) shared );
+     ret = request_irq( SH7722_TDG_IRQ, sh7722_tdg_irq, IRQF_DISABLED, "TDG", (void*) shared );
      if (ret) {
           printk( KERN_ERR "%s: request_irq() for interrupt %d failed! (error %d)\n",
-                  __FUNCTION__, TDG_IRQ, ret );
+                  __FUNCTION__, SH7722_TDG_IRQ, ret );
           goto error_tdg;
      }
 #endif
 
      /* Register the JPU interrupt handler. */
-     ret = request_irq( JPU_IRQ, sh7722_jpu_irq, IRQF_DISABLED, "JPU", (void*) shared );
+     ret = request_irq( SH7722_JPU_IRQ, sh7722_jpu_irq, IRQF_DISABLED, "JPU", (void*) shared );
      if (ret) {
           printk( KERN_ERR "%s: request_irq() for interrupt %d failed! (error %d)\n",
-                  __FUNCTION__, JPU_IRQ, ret );
+                  __FUNCTION__, SH7722_JPU_IRQ, ret );
           goto error_jpu;
      }
 
      /* Register the VEU interrupt handler. */
-     ret = request_irq( VEU_IRQ, sh7722_veu_irq, IRQF_DISABLED, "VEU", (void*) shared );
+     ret = request_irq( SH7722_VEU_IRQ, sh7722_veu_irq, IRQF_DISABLED, "VEU", (void*) shared );
      if (ret) {
           printk( KERN_ERR "%s: request_irq() for interrupt %d failed! (error %d)\n",
-                  __FUNCTION__, VEU_IRQ, ret );
+                  __FUNCTION__, SH7722_VEU_IRQ, ret );
           goto error_veu;
      }
 
@@ -1026,15 +1048,15 @@ sh7722gfx_module_init( void )
 
 
 error_veu:
-     free_irq( JPU_IRQ, (void*) shared );
+     free_irq( SH7722_JPU_IRQ, (void*) shared );
 
 error_jpu:
 #ifndef SH7722GFX_IRQ_POLLER
-     free_irq( TDG_IRQ, (void*) shared );
+     free_irq( SH7722_TDG_IRQ, (void*) shared );
 
 error_tdg:
 #endif
-     free_irq( BEU_IRQ, (void*) shared );
+     free_irq( SH7722_BEU_IRQ, (void*) shared );
 
 error_beu:
      for (i=0; i<1<<jpeg_order; i++)
@@ -1054,18 +1076,16 @@ error_beu:
      return ret;
 }
 
-module_init( sh7722gfx_module_init );
-
 /**********************************************************************************************************************/
 
-static void __exit
-sh7722gfx_module_exit( void )
+void
+sh7722_exit( void )
 {
      int i;
 
 
-     free_irq( VEU_IRQ, (void*) shared );
-     free_irq( JPU_IRQ, (void*) shared );
+     free_irq( SH7722_VEU_IRQ, (void*) shared );
+     free_irq( SH7722_JPU_IRQ, (void*) shared );
 
 #ifdef SH7722GFX_IRQ_POLLER
      stop_poller = 1;
@@ -1075,10 +1095,10 @@ sh7722gfx_module_exit( void )
           schedule_timeout( 1 );
      }
 #else
-     free_irq( TDG_IRQ, (void*) shared );
+     free_irq( SH7722_TDG_IRQ, (void*) shared );
 #endif
 
-     free_irq( BEU_IRQ, (void*) shared );
+     free_irq( SH7722_BEU_IRQ, (void*) shared );
 
      misc_deregister( &sh7722gfx_miscdev );
 
@@ -1094,11 +1114,4 @@ sh7722gfx_module_exit( void )
 
      __free_pages( shared_page, shared_order );
 }
-
-module_exit( sh7722gfx_module_exit );
-
-/**********************************************************************************************************************/
-
-MODULE_AUTHOR( "Denis Oliver Kropp <dok@directfb.org>" );
-MODULE_LICENSE( "GPL v2" );
 

@@ -2,6 +2,11 @@
 #define DIRECT_ENABLE_DEBUG
 #endif
 
+#include <stdio.h>
+#include <jpeglib.h>
+
+#undef HAVE_STDLIB_H
+
 #include <config.h>
 
 #include <stdio.h>
@@ -11,6 +16,8 @@
 #include <string.h>
 #include <stdarg.h>
 #include <fcntl.h>
+
+#include <asm/types.h>
 
 #include <direct/debug.h>
 #include <direct/interface.h>
@@ -118,20 +125,6 @@ IDirectFBImageProvider_SH7722_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      dst_surface = dst_data->surface;
      if (!dst_surface)
           return DFB_DESTROYED;
-
-     switch (dst_surface->config.format) {
-          case DSPF_NV12:
-          case DSPF_NV16:
-          case DSPF_RGB16:
-          case DSPF_RGB32:
-          case DSPF_RGB24:
-               break;
-
-          default:
-               /* FIXME: implement fallback */
-               D_UNIMPLEMENTED();
-               return DFB_UNIMPLEMENTED;
-     }
 
      dfb_region_from_rectangle( &clip, &dst_data->area.current );
 
@@ -281,6 +274,11 @@ IDirectFBImageProvider_SH7722_JPEG_WriteBack( IDirectFBImageProvider *thiz,
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx )
 {
+     SH7722DeviceData *sdev = dfb_gfxcard_get_device_data();
+
+     if (sdev->sh772x != 7722)
+          return DFB_UNSUPPORTED;
+
      /* Called with NULL when used for encoding. */
      if (!ctx)
           return DFB_OK;

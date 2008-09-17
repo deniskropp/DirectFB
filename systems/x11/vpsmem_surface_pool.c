@@ -102,8 +102,10 @@ vpsmemInitPool( CoreDFB                    *core,
                 CoreSurfacePoolDescription *ret_desc )
 {
      DFBResult            ret;
-     VPSMemPoolData      *data  = pool_data;
-     VPSMemPoolLocalData *local = pool_local;
+     VPSMemPoolData      *data   = pool_data;
+     VPSMemPoolLocalData *local  = pool_local;
+     DFBX11              *x11    = system_data;
+     DFBX11Shared        *shared = x11->shared;
 
      D_DEBUG_AT( VPSMem_Surfaces, "%s()\n", __FUNCTION__ );
 
@@ -113,23 +115,29 @@ vpsmemInitPool( CoreDFB                    *core,
      D_ASSERT( local != NULL );
      D_ASSERT( ret_desc != NULL );
 
-     data->mem = SHMALLOC( dfb_x11->data_shmpool, dfb_x11->vpsmem_length );
+     data->mem = SHMALLOC( shared->data_shmpool, shared->vpsmem_length );
      if (!data->mem) {
-          dfb_x11->vpsmem_length = 0;
+          shared->vpsmem_length = 0;
           return D_OOSHM();
      }
 
-     data->length = dfb_x11->vpsmem_length;
+     data->length = shared->vpsmem_length;
 
      ret = dfb_surfacemanager_create( core, data->length, &data->manager );
      if (ret)
           return ret;
 
-     ret_desc->caps     = CSPCAPS_NONE;
-     ret_desc->access   = CSAF_CPU_READ | CSAF_CPU_WRITE | CSAF_GPU_READ | CSAF_GPU_WRITE | CSAF_SHARED;
-     ret_desc->types    = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
-     ret_desc->priority = CSPP_DEFAULT;
-     ret_desc->size     = data->length;
+     ret_desc->caps              = CSPCAPS_PHYSICAL | CSPCAPS_VIRTUAL;
+     ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+     ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
+     ret_desc->priority          = CSPP_DEFAULT;
+     ret_desc->size              = data->length;
+
+     /* For testing... */
+     ret_desc->access[CSAID_ACCEL1] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+     ret_desc->access[CSAID_ACCEL2] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+     ret_desc->access[CSAID_ACCEL3] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+     ret_desc->access[CSAID_ACCEL4] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "Virtual Physical" );
 

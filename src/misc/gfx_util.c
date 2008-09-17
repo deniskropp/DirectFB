@@ -379,8 +379,13 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                     d[i+1] = y1;
                                   
                     if (dst_surface->config.format == DSPF_NV16 || dy & 1) {
+#ifdef WORDS_BIGENDIAN
+                         ((u16*)d1)[i>>1] =    ((v0 + v1) >> 1)     |
+                                              (((u0 + u1) >> 1) << 8);
+#else
                          ((u16*)d1)[i>>1] =    ((u0 + u1) >> 1)     |
                                               (((v0 + v1) >> 1) << 8);
+#endif
                     }
                }
                if (len & 1) {
@@ -394,7 +399,11 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                                   
                     d[i] = y;
                     if (dst_surface->config.format == DSPF_NV16 || dy & 1)
+#ifdef WORDS_BIGENDIAN
+                         ((u16*)d1)[i>>1] = v | (u << 8);
+#else
                          ((u16*)d1)[i>>1] = u | (v << 8);
+#endif
                }
                break;
                
@@ -415,8 +424,13 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                     d[i+1] = y1;
                                   
                     if (dy & 1) {
+#ifdef WORDS_BIGENDIAN
+                         ((u16*)d1)[i>>1] =    ((u0 + u1) >> 1)     |
+                                              (((v0 + v1) >> 1) << 8);
+#else
                          ((u16*)d1)[i>>1] =    ((v0 + v1) >> 1)     |
                                               (((u0 + u1) >> 1) << 8);
+#endif
                     }
                }
                if (len & 1) {
@@ -430,7 +444,11 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                                   
                     d[i] = y;
                     if (dy & 1)
+#ifdef WORDS_BIGENDIAN
+                         ((u16*)d1)[i>>1] = u | (v << 8);
+#else
                          ((u16*)d1)[i>>1] = v | (u << 8);
+#endif
                }  
                break;
 
