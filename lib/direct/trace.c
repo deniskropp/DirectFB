@@ -430,7 +430,7 @@ direct_trace_lookup_file( void *address, void **ret_base )
 #endif
      {
           if (ret_base)
-               *ret_base = info.dli_fbase;
+               *ret_base = NULL;
      }
 
      return NULL;
