@@ -92,7 +92,7 @@ davinciGetScreenSize( CoreScreen *screen,
 
      ret = ioctl( ddrv->fb[OSD0].fd, FBIO_GET_TIMING, &mode );
      if (ret) {
-          D_PERROR( "%s: FBIO_GET_TIMING (fb%d) failed!\n", __func__ );
+          D_PERROR( "%s: FBIO_GET_TIMING (fb%d, OSD0) failed!\n", __func__, OSD0 );
           return DFB_INIT;
      }
 
