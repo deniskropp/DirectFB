@@ -445,20 +445,20 @@ davinciEmitCommands( void *drv, void *dev )
 void
 davinciFlushTextureCache( void *drv, void *dev )
 {
-/*
      DavinciDriverData *ddrv = drv;
      DavinciDeviceData *ddev = dev;
-*/
 
      D_DEBUG_AT( Davinci_2D, "%s()\n", __FUNCTION__ );
 
-/* Function does not work!
-     davinci_c64x_wb_inv_range( &ddrv->c64x, dfb_config->video_phys,
-                                             dfb_config->video_length, 2 );
+     /* Bad workaround */
+     davinci_c64x_blit_32( &ddrv->c64x, dfb_config->video_phys, 1024, dfb_config->video_phys, 1024, 256, 64 );
 
-     davinci_c64x_wb_inv_range( &ddrv->c64x, ddev->fix[OSD0].smem_start,
-                                             ddev->fix[OSD0].smem_len, 2 );
-*/
+     /* These don't work */
+//     davinci_c64x_wb_inv_range( &ddrv->c64x, dfb_config->video_phys,
+//                                             dfb_config->video_length, 2 );
+
+//     davinci_c64x_wb_inv_range( &ddrv->c64x, ddev->fix[OSD0].smem_start,
+//                                             ddev->fix[OSD0].smem_len, 2 );
 }
 
 /*
