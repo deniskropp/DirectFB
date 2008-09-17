@@ -121,7 +121,7 @@ osdInitPool( CoreDFB                    *core,
      ret_desc->caps     = CSPCAPS_NONE;
      ret_desc->access   = CSAF_CPU_READ | CSAF_CPU_WRITE | CSAF_GPU_READ | CSAF_GPU_WRITE | CSAF_SHARED;
      ret_desc->types    = CSTF_LAYER | CSTF_SHARED | CSTF_EXTERNAL;
-     ret_desc->priority = CSPP_DEFAULT;
+     ret_desc->priority = CSPP_PREFERED;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "OSD Pool" );
 
