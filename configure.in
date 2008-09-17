@@ -1009,7 +1009,10 @@ fi
 
 if test "$checkfor_gl" = "yes"; then
   AC_CHECK_HEADER(GL/gl.h, gl=yes)
-  AC_CHECK_HEADER(GL/glx.h, glx=yes)
+  AC_CHECK_HEADER(GL/glx.h, [
+                  glx=yes
+                  AC_DEFINE(USE_GLX,1,[Define to 1 if GLX has been selected or detected])
+                  ])
 fi
 
 if test "$checkfor_i810" = "yes" && test "$have_sysio" = "yes"; then
@@ -1698,7 +1701,7 @@ Building Graphics Drivers:
   VIA UniChrome             $unichrome
   VMWare                    $vmware
   --
-  OpenGL                    $gl
+  OpenGL                    $gl (GLX: $glx)
 
 Building Input Drivers:
   DBox2 Remote              $enable_dbox2remote

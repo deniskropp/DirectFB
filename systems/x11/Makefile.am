@@ -18,10 +18,6 @@ endif
 
 systems_LTLIBRARIES = libdirectfb_x11.la
 
-if GFX_GLX
-  AC_DEFINE(USE_GLX,1,[Define to 1 if GLX has been selected or detected])
-endif
-
 libdirectfb_x11_la_LDFLAGS = \
 	$(X11_LIBS)	\
 	-avoid-version	\
