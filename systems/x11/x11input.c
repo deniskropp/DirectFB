@@ -759,8 +759,15 @@ driver_close_device( void *driver_data )
      }
      XUnlockDisplay( dfb_x11->display );
 
-     direct_thread_join( data->thread );
-     direct_thread_destroy( data->thread );
+     /* it is possible that this "close" function is called from the same
+      * thread that the input device is actually running on.
+      * This happens when you e.g. click the close box with your mouse.
+      * As a fix, we check if we are this thread. */
+     if( data->thread != direct_thread_self() )
+     {
+          direct_thread_join( data->thread );
+          direct_thread_destroy( data->thread );
+     }
 
      /* free private data */
      D_FREE ( data );
