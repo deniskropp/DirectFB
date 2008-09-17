@@ -1491,6 +1491,7 @@ build_updated_config( CoreLayer                   *layer,
      /* Update source and destination rectangle. */
      if (update->flags & (DLCONF_WIDTH | DLCONF_HEIGHT)) {
           int width, height;
+          DFBResult ret;
 
           flags |= CLRCF_SOURCE | CLRCF_DEST;
 
@@ -1501,10 +1502,11 @@ build_updated_config( CoreLayer                   *layer,
 
           switch (context->screen.mode) {
                case CLLM_CENTER:
-                    dfb_screen_get_layer_dimension( layer->screen, layer, &width, &height );
-
-                    ret_config->dest.x = (width  - ret_config->width)  / 2;
-                    ret_config->dest.y = (height - ret_config->height) / 2;
+                    ret = dfb_screen_get_layer_dimension( layer->screen, layer, &width, &height );
+                    if( ret == DFB_OK ) {
+                         ret_config->dest.x = (width  - ret_config->width)  / 2;
+                         ret_config->dest.y = (height - ret_config->height) / 2;
+                    }
                     /* fall through */
 
                case CLLM_POSITION:
