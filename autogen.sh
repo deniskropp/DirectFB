@@ -137,7 +137,7 @@ autoconf
 (autoheader --version)  < /dev/null > /dev/null 2>&1 && echo Running autoheader... && autoheader
 
 echo Running automake ...
-automake --add-missing $am_opt
+automake -Wno-portability --add-missing $am_opt
 
 cd $ORIGDIR
 

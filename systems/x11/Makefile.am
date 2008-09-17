@@ -18,15 +18,20 @@ endif
 
 systems_LTLIBRARIES = libdirectfb_x11.la
 
+if GFX_GLX
+  AC_DEFINE(USE_GLX,1,[Define to 1 if GLX has been selected or detected])
+endif
 
 libdirectfb_x11_la_LDFLAGS = \
-	$(X11_LIBS) -lGL	\
+	$(X11_LIBS)	\
 	-avoid-version	\
 	-module
 
+if GFX_GLX
+  libdirectfb_x11_la_LDFLAGS += -lGL
+endif
+
 libdirectfb_x11_la_SOURCES = \
-	glx_surface_pool.c	\
-	glx_surface_pool.h	\
 	primary.c		\
 	primary.h		\
 	surfacemanager.c	\
@@ -42,6 +47,12 @@ libdirectfb_x11_la_SOURCES = \
 	x11_surface_pool.h	\
 	xwindow.h		\
 	xwindow.c
+
+if GFX_GLX
+  libdirectfb_x11_la_SOURCES += \
+	glx_surface_pool.c	\
+	glx_surface_pool.h
+endif
 
 libdirectfb_x11_la_LIBADD = \
 	$(top_builddir)/lib/direct/libdirect.la \

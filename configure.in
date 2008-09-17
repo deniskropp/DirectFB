@@ -855,6 +855,7 @@ cyber5k=no
 davinci=no
 ep9x=no
 gl=no
+glx=no
 i810=no
 i830=no
 mach64=no
@@ -1008,6 +1009,7 @@ fi
 
 if test "$checkfor_gl" = "yes"; then
   AC_CHECK_HEADER(GL/gl.h, gl=yes)
+  AC_CHECK_HEADER(GL/glx.h, glx=yes)
 fi
 
 if test "$checkfor_i810" = "yes" && test "$have_sysio" = "yes"; then
@@ -1388,6 +1390,7 @@ AM_CONDITIONAL(GFX_CYBER5K, test "$cyber5k" = "yes")
 AM_CONDITIONAL(GFX_DAVINCI, test "$davinci" = "yes")
 AM_CONDITIONAL(GFX_EP9X, test "$ep9x" = "yes")
 AM_CONDITIONAL(GFX_GL, test "$gl" = "yes")
+AM_CONDITIONAL(GFX_GLX, test "$glx" = "yes")
 AM_CONDITIONAL(GFX_I810, test "$i810" = "yes")
 AM_CONDITIONAL(GFX_I830, test "$i830" = "yes")
 AM_CONDITIONAL(GFX_MACH64, test "$mach64" = "yes")

@@ -56,15 +56,17 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
-#include <GL/glx.h>
-
 #include <string.h>
 #include <stdlib.h>
+
+#ifdef USE_GLX
+#include <GL/glx.h>
+#include "glx_surface_pool.h"
+#endif
 
 #include "xwindow.h"
 #include "x11.h"
 #include "primary.h"
-#include "glx_surface_pool.h"
 
 
 D_DEBUG_DOMAIN( X11_Window, "X11/Window", "X11 Window" );
@@ -443,6 +445,7 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 
      D_DEBUG_AT( X11_Update, "  -> %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS( &rect ) );
 
+#ifdef USE_GLX
      /* Check for GLX allocation... */
      if (allocation->pool == shared->glx_pool && lock->handle) {
           LocalPixmap *pixmap = lock->handle;
@@ -467,6 +470,7 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 
           return DFB_OK;
      }
+#endif
 
      /* Check for our special native allocation... */
      if (allocation->pool == shared->x11image_pool && lock->handle) {

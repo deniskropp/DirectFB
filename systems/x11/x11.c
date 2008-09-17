@@ -59,7 +59,10 @@
 #include "xwindow.h"
 #include "x11.h"
 #include "x11_surface_pool.h"
+
+#ifdef USE_GLX
 #include "glx_surface_pool.h"
+#endif
 
 #include "vpsmem_surface_pool.h"
 
@@ -248,7 +251,9 @@ system_initialize( CoreDFB *core, void **data )
       */
      dfb_surface_pool_initialize( core, &x11SurfacePoolFuncs, &shared->x11image_pool );
 
+#ifdef USE_GLX
      dfb_surface_pool_initialize( core, &glxSurfacePoolFuncs, &shared->glx_pool );
+#endif
 
      if (dfb_config->video_length) {
           shared->vpsmem_length = dfb_config->video_length;
@@ -300,8 +305,10 @@ system_join( CoreDFB *core, void **data )
      if (shared->x11image_pool)
           dfb_surface_pool_join( core, shared->x11image_pool, &x11SurfacePoolFuncs );
 
+#ifdef USE_GLX
      if (shared->glx_pool)
           dfb_surface_pool_join( core, shared->glx_pool, &glxSurfacePoolFuncs );
+#endif
 
      if (shared->vpsmem_pool)
           dfb_surface_pool_join( core, shared->vpsmem_pool, &vpsmemSurfacePoolFuncs );

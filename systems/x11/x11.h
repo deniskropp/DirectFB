@@ -61,7 +61,7 @@ typedef struct {
  
      CoreSurfacePool     *x11image_pool;
 
-     CoreSurfacePool     *glx_pool;
+     CoreSurfacePool     *glx_pool; /* only used for GL */
 
      CoreSurfacePool     *vpsmem_pool;
      unsigned int         vpsmem_length;
