@@ -28,7 +28,7 @@ libdirectfb_x11_la_LDFLAGS = \
 	-module
 
 if GFX_GLX
-  libdirectfb_x11_la_LDFLAGS += -lGL
+libdirectfb_x11_la_LDFLAGS += -lGL
 endif
 
 libdirectfb_x11_la_SOURCES = \
