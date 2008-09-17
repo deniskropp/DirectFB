@@ -305,6 +305,7 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
      DFBRectangle           rect;
      png_infop              info;
      int                    x, y;
+     DFBRectangle           clipped;
 
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
@@ -347,8 +348,23 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                return ret;
      }
 
+     clipped = rect;
+
+     if (!dfb_rectangle_intersect_by_region( &clipped, &clip ))
+          return DFB_INVAREA;
+
      /* actual rendering */
-     if (dfb_rectangle_region_intersects( &rect, &clip )) {
+     if (rect.w == data->width && rect.h == data->height &&
+         (data->color_type == PNG_COLOR_TYPE_RGB || data->color_type == PNG_COLOR_TYPE_RGBA) &&
+         (dst_surface->config.format == DSPF_RGB32 || dst_surface->config.format == DSPF_ARGB))
+     {
+          ret = dfb_surface_write_buffer( dst_surface, CSBR_BACK,
+                                          data->image +
+                                             (clipped.x - rect.x) * 4 +
+                                             (clipped.y - rect.y) * data->width * 4,
+                                          data->width * 4, &clipped );
+     }
+     else {
           CoreSurfaceBufferLock lock;
 
           ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
