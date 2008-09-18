@@ -284,6 +284,8 @@ GetLocalPixmap( glxPoolLocalData       *local,
 
           direct_hash_insert( local->pixmaps, alloc->pixmap, pixmap );
      }
+     else
+          D_MAGIC_ASSERT( pixmap, LocalPixmap );
 
      *ret_pixmap = pixmap;
 

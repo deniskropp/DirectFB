@@ -59,6 +59,7 @@
 #include "xwindow.h"
 #include "x11.h"
 #include "x11_surface_pool.h"
+#include "x11_surface_pool_bridge.h"
 
 #ifdef USE_GLX
 #include "glx_surface_pool.h"
@@ -261,6 +262,8 @@ system_initialize( CoreDFB *core, void **data )
           dfb_surface_pool_initialize( core, &vpsmemSurfacePoolFuncs, &shared->vpsmem_pool );
      }
 
+     dfb_surface_pool_bridge_initialize( core, &x11SurfacePoolBridgeFuncs, x11, &shared->x11_pool_bridge );
+
 
      fusion_arena_add_shared_field( dfb_core_arena( core ), "x11", shared );
 
@@ -313,6 +316,8 @@ system_join( CoreDFB *core, void **data )
      if (shared->vpsmem_pool)
           dfb_surface_pool_join( core, shared->vpsmem_pool, &vpsmemSurfacePoolFuncs );
 
+     if (shared->x11_pool_bridge)
+          dfb_surface_pool_bridge_join( core, shared->x11_pool_bridge, &x11SurfacePoolBridgeFuncs, x11 );
 
      return DFB_OK;
 }
@@ -326,14 +331,17 @@ system_shutdown( bool emergency )
      /*
       * Master deinit
       */
+     if (shared->x11_pool_bridge)
+          dfb_surface_pool_bridge_destroy( shared->x11_pool_bridge );
+
+     if (shared->vpsmem_pool)
+          dfb_surface_pool_destroy( shared->vpsmem_pool );
+
      if (shared->glx_pool)
           dfb_surface_pool_destroy( shared->glx_pool );
 
      if (shared->x11image_pool)
           dfb_surface_pool_destroy( shared->x11image_pool );
-
-     if (shared->vpsmem_pool)
-          dfb_surface_pool_destroy( shared->vpsmem_pool );
 
 
      /*
@@ -372,14 +380,17 @@ system_leave( bool emergency )
      /*
       * Slave deinit
       */
+     if (shared->x11_pool_bridge)
+          dfb_surface_pool_bridge_leave( shared->x11_pool_bridge );
+
+     if (shared->vpsmem_pool)
+          dfb_surface_pool_leave( shared->vpsmem_pool );
+
      if (shared->glx_pool)
           dfb_surface_pool_leave( shared->glx_pool );
 
      if (shared->x11image_pool)
           dfb_surface_pool_leave( shared->x11image_pool );
-
-     if (shared->vpsmem_pool)
-          dfb_surface_pool_leave( shared->vpsmem_pool );
 
 
      /*

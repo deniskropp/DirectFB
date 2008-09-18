@@ -66,6 +66,8 @@ typedef struct {
      CoreSurfacePool     *vpsmem_pool;
      unsigned int         vpsmem_length;
  
+     CoreSurfacePoolBridge *x11_pool_bridge;
+
 //     CoreSurface         *primary;
      DFBDimension         screen_size;
 
