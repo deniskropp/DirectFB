@@ -372,6 +372,8 @@ direct_thread_set_name( const char *name )
           thread->thread = pthread_self();
           thread->tid    = direct_gettid();
 
+          D_MAGIC_SET( thread, DirectThread );
+
           pthread_setspecific( thread_key, thread );
      }
      else
