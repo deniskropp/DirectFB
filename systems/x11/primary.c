@@ -415,6 +415,7 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
      CoreSurfaceAllocation *allocation;
      DFBX11Shared          *shared;
      DFBRectangle           rect;
+     bool                   direct = false;
 
      D_ASSERT( x11 != NULL );
      DFB_RECTANGLE_ASSERT( clip );
@@ -484,6 +485,8 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 
           /* ...and directly XShmPutImage from that. */
           ximage = image->ximage;
+
+          direct = true;
      }
      else {
           /* ...or copy or convert into XShmImage or XImage allocated with the XWindow. */
@@ -540,6 +543,10 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
           /* Initiate transfer of buffer... */
           XPutImage( xw->display, xw->window, xw->gc, ximage,
                      rect.x, rect.y + offset, rect.x, rect.y, rect.w, rect.h );
+
+     /* Wait for display if single buffered and not converted... */
+     if (direct && !(surface->config.caps & DSCAPS_FLIPPING))
+          XSync( x11->display, False );
 
      XUnlockDisplay( x11->display );
 
