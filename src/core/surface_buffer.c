@@ -53,6 +53,7 @@
 #include <core/surface.h>
 #include <core/surface_buffer.h>
 #include <core/surface_pool.h>
+#include <core/surface_pool_bridge.h>
 
 #include <misc/conf.h>
 
@@ -1298,15 +1299,18 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
           D_MAGIC_ASSERT( source, CoreSurfaceAllocation );
           D_ASSERT( source->buffer == allocation->buffer );
 
-          if ((source->access[CSAID_CPU] & CSAF_READ) && (allocation->access[CSAID_CPU] & CSAF_WRITE))
-               ret = allocation_update_copy( allocation, source );
-          else if (source->access[CSAID_CPU] & CSAF_READ)
-               ret = allocation_update_write( allocation, source );
-          else if (allocation->access[CSAID_CPU] & CSAF_WRITE)
-               ret = allocation_update_read( allocation, source );
-          else {
-               D_UNIMPLEMENTED();
-               ret = DFB_UNSUPPORTED;
+          ret = dfb_surface_pool_bridges_transfer( buffer, source, allocation, NULL, 0 );
+          if (ret) {
+               if ((source->access[CSAID_CPU] & CSAF_READ) && (allocation->access[CSAID_CPU] & CSAF_WRITE))
+                    ret = allocation_update_copy( allocation, source );
+               else if (source->access[CSAID_CPU] & CSAF_READ)
+                    ret = allocation_update_write( allocation, source );
+               else if (allocation->access[CSAID_CPU] & CSAF_WRITE)
+                    ret = allocation_update_read( allocation, source );
+               else {
+                    D_UNIMPLEMENTED();
+                    ret = DFB_UNSUPPORTED;
+               }
           }
 
           if (ret) {

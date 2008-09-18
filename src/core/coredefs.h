@@ -34,14 +34,15 @@
 #define DFB_DYNAMIC_LINKING
 #endif
 
-#define MAX_INPUTDEVICES     16
-#define MAX_LAYERS           16
-#define MAX_SCREENS           4
+#define MAX_INPUTDEVICES          16
+#define MAX_LAYERS                16
+#define MAX_SCREENS                4
 
-#define MAX_INPUT_GLOBALS     8
+#define MAX_INPUT_GLOBALS          8
 
-#define MAX_SURFACE_BUFFERS   6
-#define MAX_SURFACE_POOLS     6
+#define MAX_SURFACE_BUFFERS        6
+#define MAX_SURFACE_POOLS          8
+#define MAX_SURFACE_POOL_BRIDGES   4
 
 #endif
 

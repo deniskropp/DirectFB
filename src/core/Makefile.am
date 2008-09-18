@@ -42,6 +42,7 @@ internalinclude_HEADERS = \
 	surface.h		\
 	surface_buffer.h	\
 	surface_pool.h		\
+	surface_pool_bridge.h	\
 	system.h		\
 	windows.h		\
 	windows_internal.h	\
@@ -76,6 +77,7 @@ libdirectfb_core_la_SOURCES = \
 	surface_buffer.c	\
 	surface_core.c		\
 	surface_pool.c		\
+	surface_pool_bridge.c	\
 	system.c		\
 	windows.c		\
 	windowstack.c		\

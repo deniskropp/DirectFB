@@ -73,6 +73,8 @@ typedef struct __DFB_CoreSurfaceAllocation   CoreSurfaceAllocation;
 typedef struct __DFB_CoreSurfaceBuffer       CoreSurfaceBuffer;
 typedef struct __DFB_CoreSurfaceBufferLock   CoreSurfaceBufferLock;
 typedef struct __DFB_CoreSurfacePool         CoreSurfacePool;
+typedef struct __DFB_CoreSurfacePoolBridge   CoreSurfacePoolBridge;
+typedef struct __DFB_CoreSurfacePoolTransfer CoreSurfacePoolTransfer;
 
 typedef struct __DFB_CoreWindow              CoreWindow;
 typedef struct __DFB_CoreWindowConfig        CoreWindowConfig;
@@ -80,6 +82,7 @@ typedef struct __DFB_CoreWindowStack         CoreWindowStack;
 
 
 typedef unsigned int CoreSurfacePoolID;
+typedef unsigned int CoreSurfacePoolBridgeID;
 
 #endif
 
