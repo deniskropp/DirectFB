@@ -509,7 +509,6 @@ glxDeallocateBuffer( CoreSurfacePool       *pool,
                      CoreSurfaceAllocation *allocation,
                      void                  *alloc_data )
 {
-     DFBResult          ret;
      LocalPixmap       *pixmap;
      glxPoolLocalData  *local = pool_local;
      glxAllocationData *alloc = alloc_data;
@@ -523,13 +522,11 @@ glxDeallocateBuffer( CoreSurfacePool       *pool,
 
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
-     ret = GetLocalPixmap( local, alloc, allocation, &pixmap );
-     if (ret)
-          return ret;
-
      XLockDisplay( local->display );
 
-     DestroyPixmap( local, pixmap );
+     pixmap = direct_hash_lookup( local->pixmaps, alloc->pixmap );
+     if (pixmap)
+          DestroyPixmap( local, pixmap );
 
      XFreePixmap( local->display, alloc->pixmap );
 
