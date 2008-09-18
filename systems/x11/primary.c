@@ -111,6 +111,10 @@ dfb_x11_update_screen( DFBX11 *x11, const DFBRegion *region, CoreSurfaceBufferLo
      DFB_REGION_ASSERT( region );
      D_ASSERT( lock != NULL );
 
+     /* FIXME: Just a hot fix! */
+     while (shared->update.lock)
+          usleep( 10000 );
+
      shared->update.region = *region;
      shared->update.lock   = lock;
 
@@ -614,7 +618,11 @@ dfb_x11_update_screen_handler( DFBX11 *x11, UpdateScreenData *data )
 
      rect = DFB_RECTANGLE_INIT_FROM_REGION( &data->region );
 
-     return update_screen( x11, &rect, data->lock );
+     update_screen( x11, &rect, data->lock );
+
+     data->lock = NULL;
+
+     return DFB_OK;
 }
 
 DFBResult
