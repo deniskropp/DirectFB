@@ -204,6 +204,8 @@ MosaicRelayout( TestManager *tm,
      manager = tm->manager;
      D_ASSERT( manager != NULL );
 
+     manager->Lock( manager );
+
      manager->GetSize( manager, DWSC_MIDDLE, &size );
 
      hcenter = (size.w / 2) & ~1;
@@ -294,6 +296,8 @@ MosaicRelayout( TestManager *tm,
      }
 
      manager->QueueUpdate( manager, DWSC_MIDDLE, NULL );
+
+     manager->Unlock( manager );
 }
 
 static void
@@ -309,11 +313,15 @@ MosaicAddWindow( TestManager  *tm,
      manager = tm->manager;
      D_ASSERT( manager != NULL );
 
+     manager->Lock( manager );
+
      tm->windows[tm->num_windows++] = window;
 
      manager->InsertWindow( manager, window, NULL, DFB_TRUE );
 
      MosaicRelayout( tm, layout_data );
+
+     manager->Unlock( manager );
 }
 
 static void
@@ -330,10 +338,14 @@ MosaicRemoveWindow( TestManager  *tm,
      manager = tm->manager;
      D_ASSERT( manager != NULL );
 
+     manager->Lock( manager );
+
      /* Remove window from layout. */
      manager->RemoveWindow( manager, window );
 
      MosaicRelayout( tm, layout_data );
+
+     manager->Unlock( manager );
 }
 
 static const Layout mosaic_layout = {
@@ -587,6 +599,8 @@ input_filter( void          *context,
 
      D_ASSERT( manager != NULL );
 
+     manager->Lock( manager );
+
      switch (event->type) {
           case DIET_KEYPRESS:
                switch (event->key_symbol) {
@@ -609,6 +623,7 @@ input_filter( void          *context,
                                    }
                               }
                          }
+                         manager->Unlock( manager );
                          return DFB_BUSY;
 
                     case DIKS_F10:
@@ -625,11 +640,13 @@ input_filter( void          *context,
 
                               layout->Relayout( tm, layout->data );
                          }
+                         manager->Unlock( manager );
                          return DFB_BUSY;
 
                     case DIKS_F11:
                          tm->scaling_mode = (tm->scaling_mode == SWMSM_SMOOTH_SW) ? SWMSM_STANDARD : SWMSM_SMOOTH_SW;
                          manager->SetScalingMode( manager, tm->scaling_mode );
+                         manager->Unlock( manager );
                          return DFB_BUSY;
 
                     default:
@@ -641,6 +658,7 @@ input_filter( void          *context,
                     case DIKS_F9:
                     case DIKS_F10:
                     case DIKS_F11:
+                         manager->Unlock( manager );
                          return DFB_BUSY;
 
                     default:
@@ -651,6 +669,7 @@ input_filter( void          *context,
                break;
      }
 
+     manager->Unlock( manager );
      return DFB_OK;
 }
 
