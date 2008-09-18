@@ -63,7 +63,6 @@ DFBResult x11ImageInit( DFBX11                *x11,
      image->height = height;
      image->format = format;
      image->depth  = DFB_COLOR_BITS_PER_PIXEL( format );
-     image->visual = visual;
 
      D_MAGIC_SET( image, x11Image );
 
@@ -133,9 +132,20 @@ x11ImageAttach( x11Image  *image,
 DFBResult
 dfb_x11_image_init_handler( DFBX11 *x11, x11Image *image )
 {
+     Visual *visual;
      XImage *ximage;
 
      D_MAGIC_ASSERT( image, x11Image );
+
+     if (!x11->use_shm)
+          return DFB_UNSUPPORTED;
+
+     /* Lookup visual. */
+     visual = x11->visuals[DFB_PIXELFORMAT_INDEX(image->format)];
+     if (!visual)
+          return DFB_UNSUPPORTED;
+
+     image->visual = visual;
 
      XLockDisplay( x11->display );
 
