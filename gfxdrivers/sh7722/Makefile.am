@@ -2,11 +2,16 @@
 
 EXTRA_DIST = \
 	directfbrc.sh7722		\
+	directfbrc.sh7723		\
 	Makefile.kernel			\
 	README.sh7722			\
-	kernel-module/Makefile		\
-	kernel-module/sh7722gfx.c	\
-	kernel-module/sh7722gfx.h
+	kernel-module/sh772x_driver.c	\
+	kernel-module/sh772x_gfx.h	\
+	kernel-module/sh7722.c		\
+	kernel-module/sh7722.h		\
+	kernel-module/sh7723.c		\
+	kernel-module/sh7723.h		\
+	kernel-module/Makefile
 
 INCLUDES = \
 	-I$(top_srcdir)/include		\
