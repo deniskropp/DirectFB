@@ -216,7 +216,7 @@ x11StartTransfer( CoreSurfacePoolBridge   *bridge,
 
           ret = dfb_surface_pool_lock( to->pool, to, &lock );
           if (ret) {
-               D_MAGIC_CLEAR( &lock );
+               dfb_surface_buffer_lock_deinit( &lock );
                return ret;
           }
 
@@ -240,7 +240,7 @@ x11StartTransfer( CoreSurfacePoolBridge   *bridge,
 
           dfb_surface_pool_unlock( to->pool, to, &lock );
 
-          D_MAGIC_CLEAR( &lock );
+          dfb_surface_buffer_lock_deinit( &lock );
 
           return DFB_OK;
      }
@@ -254,7 +254,7 @@ x11StartTransfer( CoreSurfacePoolBridge   *bridge,
 
           ret = dfb_surface_pool_lock( from->pool, from, &lock );
           if (ret) {
-               D_MAGIC_CLEAR( &lock );
+               dfb_surface_buffer_lock_deinit( &lock );
                return ret;
           }
 
@@ -274,7 +274,7 @@ x11StartTransfer( CoreSurfacePoolBridge   *bridge,
 
           dfb_surface_pool_unlock( from->pool, from, &lock );
 
-          D_MAGIC_CLEAR( &lock );
+          dfb_surface_buffer_lock_deinit( &lock );
 
           return DFB_OK;
      }
