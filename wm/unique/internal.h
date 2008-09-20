@@ -213,6 +213,7 @@ struct __UniQuE_UniqueWindow {
      StretRegion             *frame;
      StretRegion             *region;
      StretRegion             *foos[8];
+     DFBPoint                 foo_motion;
 
      DFBInsets                insets;
 

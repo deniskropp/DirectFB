@@ -78,8 +78,8 @@ foo_get_input( StretRegion         *region,
                break;
 
           case UDCI_POINTER:
-               *ret_channel = window->channel;
-//               *ret_channel = context->foo_channel;
+//               *ret_channel = window->channel;
+               *ret_channel = context->foo_channel;
                break;
 
           default:

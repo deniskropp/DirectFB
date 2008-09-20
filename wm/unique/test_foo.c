@@ -43,6 +43,9 @@
 
 #include <direct/debug.h>
 
+#include <core/layer_context.h>
+#include <core/layers_internal.h>
+
 #include <unique/context.h>
 #include <unique/input_channel.h>
 #include <unique/internal.h>
@@ -79,12 +82,49 @@ context_callback( FusionObjectPool *pool,
      return false;
 }
 
+static void
+dispatch_motion( UniqueWindow                  *window,
+                 const UniqueInputPointerEvent *event )
+{
+     D_MAGIC_ASSERT( window, UniqueWindow );
+     D_ASSERT( event != NULL );
+
+     if (event->buttons) {
+          CoreWindowConfig config;
+
+          unique_window_get_config( window, &config );
+
+          config.bounds.x -= window->foo_motion.x - event->x;
+          config.bounds.y -= window->foo_motion.y - event->y;
+
+          unique_window_set_config( window, &config, CWCF_POSITION );
+     }
+
+     window->foo_motion.x = event->x;
+     window->foo_motion.y = event->y;
+}
+
+static void
+dispatch_button( UniqueWindow                  *window,
+                 const UniqueInputPointerEvent *event )
+{
+     D_MAGIC_ASSERT( window, UniqueWindow );
+     D_ASSERT( event != NULL );
+
+     if (event->press)
+          unique_window_restack( window, NULL, 1 );
+}
+
 static ReactionResult
 foo_channel_listener( const void *msg_data,
                       void       *ctx )
 {
      const UniqueInputEvent *event   = msg_data;
      UniqueContext          *context = ctx;
+     CoreLayerRegion        *region;
+     StretRegion            *stret;
+     WMShared               *shared;
+     static UniqueWindow    *window;
 
      (void) context;
 
@@ -94,31 +134,51 @@ foo_channel_listener( const void *msg_data,
 
      D_DEBUG_AT( UniQuE_TestFoo, "foo_channel_listener( %p, %p )\n", event, context );
 
+     region = context->region;
+     D_ASSERT( region != NULL );
+     D_ASSERT( region->context != NULL );
+
+     shared = context->shared;
+     D_MAGIC_ASSERT( shared, WMShared );
+
+     dfb_layer_context_lock( region->context );
+
      switch (event->type) {
           case UIET_MOTION:
-               //dispatch_motion( window, event );
-               break;
-
           case UIET_BUTTON:
-               //dispatch_button( window, event );
+               /* FIXME: This is a workaround because of the global input channel used for all windows. */
+               stret = stret_region_at( context->root, event->pointer.x, event->pointer.y,
+                                        SRF_INPUT, shared->region_classes[URCI_FOO] );
+               if (stret)
+                    window = stret->data;
+               else if (event->type == UIET_BUTTON && !event->pointer.buttons)
+                    window = NULL;
+
+               if (window) {
+                    D_MAGIC_ASSERT( window, UniqueWindow );
+
+                    if (event->type == UIET_MOTION)
+                         dispatch_motion( window, &event->pointer );
+                    else
+                         dispatch_button( window, &event->pointer );
+               }
                break;
 
           case UIET_WHEEL:
-               //dispatch_wheel( window, event );
                break;
 
           case UIET_KEY:
-               //dispatch_key( window, event );
                break;
 
           case UIET_CHANNEL:
-               //dispatch_channel( window, event );
                break;
 
           default:
                D_ONCE( "unknown event type" );
                break;
      }
+
+     dfb_layer_context_unlock( region->context );
 
      return RS_OK;
 }
