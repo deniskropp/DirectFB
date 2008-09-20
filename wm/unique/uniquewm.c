@@ -86,9 +86,7 @@ static DFBResult unregister_device_classes( WMShared *shared );
 static DFBResult
 load_foo( CoreDFB *core, WMShared *shared )
 {
-     int                   i;
-     DFBResult             ret;
-     CoreSurfaceBufferLock lock;
+     DFBResult ret;
 
      D_ASSERT( core != NULL );
 
@@ -102,20 +100,11 @@ load_foo( CoreDFB *core, WMShared *shared )
           return ret;
      }
 
-     ret = dfb_surface_lock_buffer( shared->foo_surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
-     if (ret) {
-          D_DERROR( ret, "UniQuE/WM: Could not lock surface for border tiles!\n" );
-          dfb_surface_unref( shared->foo_surface );
-          return ret;
-     }
-
-     for (i=0; i<foo_desc.height; i++) {
-          direct_memcpy( dfb_surface_data_offset( shared->foo_surface, lock.addr, lock.pitch, 0, i ),
-                         foo_data + i * foo_desc.preallocated[0].pitch,
-                         DFB_BYTES_PER_LINE( foo_desc.pixelformat, foo_desc.width ) );
-     }
-
-     dfb_surface_unlock_buffer( shared->foo_surface, &lock );
+     ret = dfb_surface_write_buffer( shared->foo_surface, CSBR_BACK,
+                                     foo_desc.preallocated[0].data, foo_desc.preallocated[0].pitch, NULL );
+     if (ret)
+          D_DERROR( ret, "UniQuE/WM: Could not write to %dx%d surface for border tiles!\n",
+                    foo_desc.width, foo_desc.height );
 
      dfb_surface_globalize( shared->foo_surface );
 
