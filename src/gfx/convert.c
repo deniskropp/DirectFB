@@ -786,6 +786,406 @@ dfb_convert_to_argb( DFBSurfacePixelFormat  format,
 }
 
 void
+dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
+                      void                  *src,
+                      int                    spitch,
+                      int                    surface_height,
+                      u8                    *dst,
+                      int                    dpitch,
+                      int                    width,
+                      int                    height )
+{
+     int  n, n3;
+     u8  *src8;
+     u16 *src16;
+     u32 *src32;
+
+     switch (format) {
+          case DSPF_A8:
+               while (height--) {
+                    src8 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+                         dst[n3+0] = src8[n];
+                         dst[n3+1] = src8[n];
+                         dst[n3+2] = src8[n];
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_AiRGB:
+               while (height--) {
+                    src32 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+                         dst[n3+0] = (src32[n] & 0xFF0000) >> 16;
+                         dst[n3+1] = (src32[n] & 0x00FF00) >>  8;
+                         dst[n3+2] = (src32[n] & 0x0000FF);
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_ARGB:
+               while (height--) {
+                    src32 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+                         dst[n3+0] = (src32[n] & 0xFF0000) >> 16;
+                         dst[n3+1] = (src32[n] & 0x00FF00) >>  8;
+                         dst[n3+2] = (src32[n] & 0x0000FF);
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_ARGB1555:
+               while (height--) {
+                    src16 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+                         dst[n3+0] = (src16[n] & 0x7C00) >> 7;
+                         dst[n3+1] = (src16[n] & 0x03E0) >> 2;
+                         dst[n3+2] = (src16[n] & 0x001F) << 3;
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_RGB555:
+               while (height--) {
+                    src16 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+                         dst[n3+0] = (src16[n] & 0x7C00) >> 7;
+                         dst[n3+1] = (src16[n] & 0x03E0) >> 2;
+                         dst[n3+2] = (src16[n] & 0x001F) << 3;
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+
+          case DSPF_BGR555:
+               while (height--) {
+                    src16 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+                         dst[n3+2] = (src16[n] & 0x7C00) >> 7;
+                         dst[n3+1] = (src16[n] & 0x03E0) >> 2;
+                         dst[n3+0] = (src16[n] & 0x001F) << 3;
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+
+          case DSPF_ARGB2554:
+               while (height--) {
+                    src16 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+                         dst[n3+0] = (src16[n] & 0x3E00) >> 6;
+                         dst[n3+1] = (src16[n] & 0x01F0) >> 1;
+                         dst[n3+2] = (src16[n] & 0x000F) << 4;
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_ARGB4444:
+               while (height--) {
+                    src16 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+                         dst[n3+0] = (src16[n] & 0x0F00) >> 4;
+                         dst[n3+1] = (src16[n] & 0x00F0);
+                         dst[n3+2] = (src16[n] & 0x000F) << 4;
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_RGB444:
+               while (height--) {
+                    src16 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+                         dst[n3+0] = (src16[n] & 0x0F00) >> 4;
+                         dst[n3+1] = (src16[n] & 0x00F0);
+                         dst[n3+2] = (src16[n] & 0x000F) << 4;
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_RGB332:
+               while (height--) {
+                    src8 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+                         dst[n3+0] = lookup3to8[ (src8[n] >> 5)        ];
+                         dst[n3+1] = lookup3to8[ (src8[n] >> 2) & 0x07 ];
+                         dst[n3+2] = lookup2to8[ (src8[n]     ) & 0x03 ];
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_RGB16:
+               while (height--) {
+                    src16 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+                         dst[n3+0] = (src16[n] & 0xF800) >> 8;
+                         dst[n3+1] = (src16[n] & 0x07E0) >> 3;
+                         dst[n3+2] = (src16[n] & 0x001F) << 3;
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_RGB24:
+               while (height--) {
+                    src8 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+#ifdef WORDS_BIGENDIAN
+                         dst[n3+0] = src8[n3+0];
+                         dst[n3+1] = src8[n3+1];
+                         dst[n3+2] = src8[n3+2];
+#else
+                         dst[n3+0] = src8[n3+2];
+                         dst[n3+1] = src8[n3+1];
+                         dst[n3+2] = src8[n3+0];
+#endif
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_RGB32:
+               while (height--) {
+                    src32 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+                         dst[n3+0] = (src32[n] & 0xFF0000) >> 16;
+                         dst[n3+1] = (src32[n] & 0x00FF00) >>  8;
+                         dst[n3+2] = (src32[n] & 0x0000FF);
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_YUY2:
+               while (height--) {
+                    src32 = src;
+
+                    for (n=0, n3=0; n<width/2; n++, n3+=6) {
+                         register u32 y0, cb, y1, cr;
+                         y0 = (src32[n] & 0x000000FF);
+                         cb = (src32[n] & 0x0000FF00) >>  8;
+                         y1 = (src32[n] & 0x00FF0000) >> 16;
+                         cr = (src32[n] & 0xFF000000) >> 24;
+                         YCBCR_TO_RGB( y0, cb, cr,
+                                       dst[n3+0], dst[n3+1], dst[n3+2] );
+                         YCBCR_TO_RGB( y1, cb, cr,
+                                       dst[n3+3], dst[n3+4], dst[n3+5] );
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_UYVY:
+               while (height--) {
+                    src32 = src;
+
+                    for (n=0, n3=0; n<width/2; n++, n3+=6) {
+                         register u32 y0, cb, y1, cr;
+                         cb = (src32[n] & 0x000000FF);
+                         y0 = (src32[n] & 0x0000FF00) >>  8;
+                         cr = (src32[n] & 0x00FF0000) >> 16;
+                         y1 = (src32[n] & 0xFF000000) >> 24;
+                         YCBCR_TO_RGB( y0, cb, cr,
+                                       dst[n3+0], dst[n3+1], dst[n3+2] );
+                         YCBCR_TO_RGB( y1, cb, cr,
+                                       dst[n3+3], dst[n3+4], dst[n3+5] );
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_NV16: {
+               while (height--) {
+                    u16 *cbcr = (u16*)(src + surface_height * spitch);
+     
+                    src8 = src;
+
+                    for (n=0, n3=0; n<width/2; n++, n3+=6) {
+#ifdef WORDS_BIGENDIAN
+                         YCBCR_TO_RGB( src8[n*2+0], cbcr[n] >> 8, cbcr[n] & 0xff,
+                                       dst[n3+0], dst[n3+1], dst[n3+2] );
+     
+                         YCBCR_TO_RGB( src8[n*2+1], cbcr[n] >> 8, cbcr[n] & 0xff,
+                                       dst[n3+3], dst[n3+4], dst[n3+5] );
+#else
+                         YCBCR_TO_RGB( src8[n*2+0], cbcr[n] & 0xff, cbcr[n] >> 8,
+                                       dst[n3+0], dst[n3+1], dst[n3+2] );
+     
+                         YCBCR_TO_RGB( src8[n*2+1], cbcr[n] & 0xff, cbcr[n] >> 8,
+                                       dst[n3+3], dst[n3+4], dst[n3+5] );
+#endif
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          }
+          default:
+               D_ONCE( "unsupported format" );
+     }
+}
+
+void
+dfb_convert_to_a8( DFBSurfacePixelFormat  format,
+                   void                  *src,
+                   int                    spitch,
+                   int                    surface_height,
+                   u8                    *dst,
+                   int                    dpitch,
+                   int                    width,
+                   int                    height )
+{
+     int  n;
+     u8  *src8;
+     u16 *src16;
+     u32 *src32;
+
+     switch (format) {
+          case DSPF_A8:
+               while (height--) {
+                    src8 = src;
+
+                    direct_memcpy( dst, src8, width );
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_AiRGB:
+               while (height--) {
+                    src32 = src;
+
+                    for (n=0; n<width; n++) {
+                         dst[n] = ~(src32[n] >> 24);
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_ARGB:
+               while (height--) {
+                    src32 = src;
+
+                    for (n=0; n<width; n++) {
+                         dst[n] = src32[n] >> 24;
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_ARGB1555:
+               while (height--) {
+                    src16 = src;
+
+                    for (n=0; n<width; n++) {
+                         dst[n] = (src16[n] & 0x8000) ? 0xff : 0x00;
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_ARGB2554:
+               while (height--) {
+                    src16 = src;
+
+                    for (n=0; n<width; n++) {
+                         switch (src16[n] >> 14) {
+                              case 0:
+                                   dst[n] = 0x00;
+                                   break;
+                              case 1:
+                                   dst[n] = 0x55;
+                                   break;
+                              case 2:
+                                   dst[n] = 0xAA;
+                                   break;
+                              case 3:
+                                   dst[n] = 0xFF;
+                                   break;
+                         }
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_ARGB4444:
+               while (height--) {
+                    src16 = src;
+
+                    for (n=0; n<width; n++) {
+                         dst[n]  = (src16[n] >> 12);
+                         dst[n] |= dst[n] << 4;
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+
+          case DSPF_RGB332:
+          case DSPF_RGB444:
+          case DSPF_RGB555:
+          case DSPF_BGR555:
+          case DSPF_RGB16:
+          case DSPF_RGB24:
+          case DSPF_RGB32:
+          case DSPF_YUY2:
+          case DSPF_UYVY:
+          case DSPF_NV16:
+               while (height--) {
+                    memset( dst, 0xff, width );
+
+                    dst += dpitch;
+               }
+               break;
+          default:
+               D_ONCE( "unsupported format" );
+     }
+}
+
+void
 dfb_convert_to_a4( DFBSurfacePixelFormat  format,
                    void                  *src,
                    int                    spitch,

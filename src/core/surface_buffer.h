@@ -145,6 +145,17 @@ dfb_surface_buffer_lock_init( CoreSurfaceBufferLock *lock, CoreSurfaceAccessorID
      dfb_surface_buffer_lock_reset( lock );
 }
 
+static inline void
+dfb_surface_buffer_lock_deinit( CoreSurfaceBufferLock *lock )
+{
+     D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
+
+     lock->accessor = CSAID_NONE;
+     lock->access   = CSAF_NONE;
+
+     D_MAGIC_CLEAR( lock );
+}
+
 #define CORE_SURFACE_BUFFER_LOCK_ASSERT(lock)                                                       \
      do {                                                                                           \
           D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );                                            \
@@ -184,7 +195,9 @@ struct __DFB_CoreSurfaceBuffer {
 
      FusionVector             allocs;        /* Allocations within Surface Pools. */
 
+#if 1
      unsigned int             locked;        /* Lock count. FIXME: Add fail safe cleanup! */
+#endif
 };
 
 

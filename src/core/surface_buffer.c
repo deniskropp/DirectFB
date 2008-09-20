@@ -142,6 +142,41 @@ dfb_surface_buffer_destroy( CoreSurfaceBuffer *buffer )
      return DFB_OK;
 }
 
+static CoreSurfaceAllocation *
+find_allocation( CoreSurfaceBuffer       *buffer,
+                 CoreSurfaceAccessorID    accessor,
+                 CoreSurfaceAccessFlags   flags,
+                 bool                     lock )
+{
+     int                    i;
+     CoreSurfaceAllocation *alloc;
+     CoreSurfaceAllocation *uptodate = NULL;
+     CoreSurfaceAllocation *outdated = NULL;
+
+     /* Prefer allocations which are up to date. */
+     fusion_vector_foreach (alloc, i, buffer->allocs) {
+          if (direct_serial_check( &alloc->serial, &buffer->serial )) {
+               /* Return immediately if up to date allocation has required flags. */
+               if (D_FLAGS_ARE_SET( alloc->access[accessor], flags ))
+                    return alloc;
+
+               /* Remember up to date allocation in case none has supported flags. */
+               uptodate = alloc;
+          }
+          else if (D_FLAGS_ARE_SET( alloc->access[accessor], flags )) {
+               /* Remember outdated allocation which has supported flags though. */
+               outdated = alloc;
+          }
+     }
+
+     /* In case of a lock the flags are mandatory and the outdated allocation has to be used... */
+     if (lock)
+          return outdated;
+
+     /* ...otherwise we can still prefer the up to date allocation for Read/Write()! */
+     return uptodate ?: outdated;
+}
+
 DFBResult
 dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
                          CoreSurfaceAccessorID   accessor,
@@ -149,9 +184,7 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
                          CoreSurfaceBufferLock  *lock )
 {
      DFBResult              ret;
-     int                    i;
      CoreSurface           *surface;
-     CoreSurfaceAllocation *alloc      = NULL;
      CoreSurfaceAllocation *allocation = NULL;
      bool                   allocated  = false;
 
@@ -211,28 +244,20 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
           D_DEBUG_AT( Core_SurfBuffer, "  -> SHARED\n" );
 #endif
 
-     fusion_vector_foreach (alloc, i, buffer->allocs) {
-          CORE_SURFACE_ALLOCATION_ASSERT( alloc );
-
-          if (D_FLAGS_ARE_SET( alloc->access[accessor], access )) {
-               /* Take last up to date or first available. */
-               if (!allocation || direct_serial_check( &alloc->serial, &buffer->serial ))
-                    allocation = alloc;
-               //break;
-          }
-     }
-
+     /* Look for allocation with proper access. */
+     allocation = find_allocation( buffer, accessor, access, false );
      if (!allocation) {
-          D_DEBUG_AT( Core_SurfBuffer, "  -> no suitable allocation (yet)!\n" );
-
+          /* If no allocation exists, create one. */
           ret = dfb_surface_pools_allocate( buffer, accessor, access, &allocation );
-          if (ret)
+          if (ret) {
+               D_DERROR( ret, "Core/SurfBuffer: Buffer allocation failed!\n" );
                return ret;
-
-          CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+          }
 
           allocated = true;
      }
+
+     CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
      /* Synchronize with other allocations. */
      ret = dfb_surface_allocation_update( allocation, access );
@@ -250,7 +275,7 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
      if (ret) {
           D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
                     allocation->pool->desc.name );
-          D_MAGIC_CLEAR( lock );
+          dfb_surface_buffer_lock_deinit( lock );
 
           /* Destroy if newly created. */
           if (allocated)
@@ -259,9 +284,7 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
           return ret;
      }
 
-     lock->allocation = allocation;
-
-
+#if 1
      /*
       * Manage access interlocks.
       *
@@ -316,14 +339,17 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
      if (! D_FLAGS_ARE_SET( allocation->accessed[accessor], access )) {
           /* FIXME: surface_enter */
      }
+#endif
 
      /* Collect... */
      allocation->accessed[accessor] |= access;
 
+#if 1
      /* FIXME: don't use weak counter */
      buffer->locked++;
 
      D_DEBUG_AT( Core_SurfBuffer, "  -> locked %dx now\n", buffer->locked );
+#endif
 
      return DFB_OK;
 }
@@ -365,18 +391,13 @@ dfb_surface_buffer_unlock( CoreSurfaceBufferLock *lock )
           return ret;
      }
 
+#if 1
      buffer->locked--;
+#endif
 
-     lock->buffer     = NULL;
-     lock->allocation = NULL;
+     dfb_surface_buffer_lock_reset( lock );
 
-     lock->addr       = NULL;
-     lock->phys       = 0;
-     lock->offset     = 0;
-     lock->pitch      = 0;
-     lock->handle     = NULL;
-
-     D_MAGIC_CLEAR( lock );
+     dfb_surface_buffer_lock_deinit( lock );
 
      return DFB_OK;
 }
@@ -388,13 +409,12 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
                          const DFBRectangle *prect )
 {
      DFBResult              ret;
-     DFBRectangle           rect;
-     int                    i, y;
+     int                    y;
      int                    bytes;
+     DFBRectangle           rect;
      CoreSurface           *surface;
-     CoreSurfaceBufferLock  lock;
-     CoreSurfaceAllocation *alloc;
      CoreSurfaceAllocation *allocation = NULL;
+     bool                   allocated  = false;
      DFBSurfacePixelFormat  format;
 
      D_DEBUG_AT( Core_SurfBuffer, "%s( %p, %p [%d] )\n", __FUNCTION__, buffer, destination, pitch );
@@ -436,87 +456,74 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
           return DFB_OK;
      }
 
-     /* Look for allocation with CPU access. */
-     fusion_vector_foreach (alloc, i, buffer->allocs) {
-          if (D_FLAGS_ARE_SET( alloc->access[CSAID_CPU], CSAF_READ )) {
-               allocation = alloc;
-               break;
+     /* Use last written allocation if it's up to date... */
+     if (buffer->written && direct_serial_check( &buffer->written->serial, &buffer->serial ))
+          allocation = buffer->written;
+     else {
+          /* ...otherwise look for allocation with CPU access. */
+          allocation = find_allocation( buffer, CSAID_CPU, CSAF_READ, false );
+          if (!allocation) {
+               /* If no allocation exists, create one. */
+               ret = dfb_surface_pools_allocate( buffer, CSAID_CPU, CSAF_READ, &allocation );
+               if (ret) {
+                    D_DERROR( ret, "Core/SurfBuffer: Buffer allocation failed!\n" );
+                    return ret;
+               }
+
+               allocated = true;
           }
      }
 
-     /* FIXME: use Read() */
-     if (!allocation)
-          return DFB_UNIMPLEMENTED;
+     CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
      /* Synchronize with other allocations. */
      ret = dfb_surface_allocation_update( allocation, CSAF_READ );
-     if (ret)
-          return ret;
-
-     /* Lock the allocation. */
-     dfb_surface_buffer_lock_init( &lock, CSAID_CPU, CSAF_READ );
-
-     ret = dfb_surface_pool_lock( allocation->pool, allocation, &lock );
      if (ret) {
-          D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
-                    allocation->pool->desc.name );
-          D_MAGIC_CLEAR( &lock );
+          /* Destroy if newly created. */
+          if (allocated)
+               dfb_surface_pool_deallocate( allocation->pool, allocation );
           return ret;
      }
 
-     /* Move to start of read. */
-     lock.addr += DFB_BYTES_PER_LINE( format, rect.x ) + rect.y * lock.pitch;
+     /* Try reading from allocation directly... */
+     ret = dfb_surface_pool_read( allocation->pool, allocation, destination, pitch, &rect );
+     if (ret) {
+          /* ...otherwise use fallback method via locking if possible. */
+          if (allocation->access[CSAID_CPU] & CSAF_READ) {
+               CoreSurfaceBufferLock lock;
 
-     /* Copy the data. */
-     for (y=0; y<rect.h; y++) {
-          direct_memcpy( destination, lock.addr, bytes );
+               /* Lock the allocation. */
+               dfb_surface_buffer_lock_init( &lock, CSAID_CPU, CSAF_READ );
 
-          destination += pitch;
-          lock.addr   += lock.pitch;
+               ret = dfb_surface_pool_lock( allocation->pool, allocation, &lock );
+               if (ret) {
+                    D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
+                              allocation->pool->desc.name );
+                    dfb_surface_buffer_lock_deinit( &lock );
+                    return ret;
+               }
+
+               /* Move to start of read. */
+               lock.addr += DFB_BYTES_PER_LINE( format, rect.x ) + rect.y * lock.pitch;
+
+               /* Copy the data. */
+               for (y=0; y<rect.h; y++) {
+                    direct_memcpy( destination, lock.addr, bytes );
+
+                    destination += pitch;
+                    lock.addr   += lock.pitch;
+               }
+
+               /* Unlock the allocation. */
+               ret = dfb_surface_pool_unlock( allocation->pool, allocation, &lock );
+               if (ret)
+                    D_DERROR( ret, "Core/SurfBuffer: Unlocking allocation failed! [%s]\n", allocation->pool->desc.name );
+
+               dfb_surface_buffer_lock_deinit( &lock );
+          }
      }
-
-     /* Unlock the allocation. */
-     ret = dfb_surface_pool_unlock( allocation->pool, allocation, &lock );
-     if (ret)
-          D_DERROR( ret, "Core/SurfBuffer: Unlocking allocation failed! [%s]\n", allocation->pool->desc.name );
-
-     D_MAGIC_CLEAR( &lock );
 
      return ret;
-}
-
-static CoreSurfaceAllocation *
-find_allocation( CoreSurfaceBuffer       *buffer,
-                 CoreSurfaceAccessFlags   flags,
-                 bool                     lock )
-{
-     int                    i;
-     CoreSurfaceAllocation *alloc;
-     CoreSurfaceAllocation *uptodate = NULL;
-     CoreSurfaceAllocation *outdated = NULL;
-
-     /* Prefer allocations which are up to date. */
-     fusion_vector_foreach (alloc, i, buffer->allocs) {
-          if (direct_serial_check( &alloc->serial, &buffer->serial )) {
-               /* Return immediately if up to date allocation has required flags. */
-               if (D_FLAGS_ARE_SET( alloc->access[CSAID_CPU], flags ))
-                    return alloc;
-
-               /* Remember up to date allocation in case none has supported flags. */
-               uptodate = alloc;
-          }
-          else if (D_FLAGS_ARE_SET( alloc->access[CSAID_CPU], flags )) {
-               /* Remember outdated allocation which has supported flags though. */
-               outdated = alloc;
-          }
-     }
-
-     /* In case of a lock the flags are mandatory and the outdated allocation has to be used... */
-     if (lock)
-          return outdated;
-
-     /* ...otherwise we can still prefer the up to date allocation for Read/Write()! */
-     return uptodate ?: outdated;
 }
 
 DFBResult
@@ -559,7 +566,7 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
           allocation = buffer->read;
      else {
           /* ...otherwise look for allocation with CPU access. */
-          allocation = find_allocation( buffer, CSAF_WRITE, false );
+          allocation = find_allocation( buffer, CSAID_CPU, CSAF_WRITE, false );
           if (!allocation) {
                /* If no allocation exists, create one. */
                ret = dfb_surface_pools_allocate( buffer, CSAID_CPU, CSAF_WRITE, &allocation );
@@ -572,6 +579,8 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
           }
      }
 
+     CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+
      /* Synchronize with other allocations. */
      ret = dfb_surface_allocation_update( allocation, CSAF_WRITE );
      if (ret) {
@@ -582,7 +591,7 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
      }
 
      /* Try writing to allocation directly... */
-     ret = dfb_surface_pool_write( allocation->pool, allocation, source, pitch, &rect );
+     ret = source ? dfb_surface_pool_write( allocation->pool, allocation, source, pitch, &rect ) : DFB_UNSUPPORTED;
      if (ret) {
           /* ...otherwise use fallback method via locking if possible. */
           if (allocation->access[CSAID_CPU] & CSAF_WRITE) {
@@ -602,7 +611,7 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
                if (ret) {
                     D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
                               allocation->pool->desc.name );
-                    D_MAGIC_CLEAR( &lock );
+                    dfb_surface_buffer_lock_deinit( &lock );
                     return ret;
                }
 
@@ -627,7 +636,7 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
                if (ret)
                     D_DERROR( ret, "Core/SurfBuffer: Unlocking allocation failed! [%s]\n", allocation->pool->desc.name );
 
-               D_MAGIC_CLEAR( &lock );
+               dfb_surface_buffer_lock_deinit( &lock );
           }
      }
 
@@ -830,214 +839,49 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
 
      /* Write the pixmap (and graymap) data. */
      for (i=0; i<surface->config.size.h; i++) {
-          int    n3;
-          u8    *data8;
-          u16 *data16;
-          u32 *data32;
-
-          u8 buf_p[surface->config.size.w * 3];
-          u8 buf_g[surface->config.size.w];
+          int n3;
 
           /* Prepare one row. */
-          data8  = dfb_surface_data_offset( surface, lock.addr, lock.pitch, 0, i );
-          data16 = (u16*) data8;
-          data32 = (u32*) data8;
-
-          switch (buffer->format) {
-               case DSPF_LUT8:
-                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
-                         buf_p[n3+0] = palette->entries[data8[n]].r;
-                         buf_p[n3+1] = palette->entries[data8[n]].g;
-                         buf_p[n3+2] = palette->entries[data8[n]].b;
-
-                         buf_g[n] = palette->entries[data8[n]].a;
-                    }
-                    break;
-               case DSPF_A8:
-                    direct_memcpy( &buf_g[0], data8, surface->config.size.w );
-                    break;
-               case DSPF_AiRGB:
-                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
-                         buf_p[n3+0] = (data32[n] & 0xFF0000) >> 16;
-                         buf_p[n3+1] = (data32[n] & 0x00FF00) >>  8;
-                         buf_p[n3+2] = (data32[n] & 0x0000FF);
-
-                         buf_g[n] = ~(data32[n] >> 24);
-                    }
-                    break;
-               case DSPF_ARGB:
-                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
-                         buf_p[n3+0] = (data32[n] & 0xFF0000) >> 16;
-                         buf_p[n3+1] = (data32[n] & 0x00FF00) >>  8;
-                         buf_p[n3+2] = (data32[n] & 0x0000FF);
-
-                         buf_g[n] = data32[n] >> 24;
-                    }
-                    break;
-               case DSPF_ARGB1555:
-                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
-                         buf_p[n3+0] = (data16[n] & 0x7C00) >> 7;
-                         buf_p[n3+1] = (data16[n] & 0x03E0) >> 2;
-                         buf_p[n3+2] = (data16[n] & 0x001F) << 3;
-
-                         buf_g[n] = (data16[n] & 0x8000) ? 0xff : 0x00;
-                    }
-                    break;
-               case DSPF_RGB555:
-                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
-                         buf_p[n3+0] = (data16[n] & 0x7C00) >> 7;
-                         buf_p[n3+1] = (data16[n] & 0x03E0) >> 2;
-                         buf_p[n3+2] = (data16[n] & 0x001F) << 3;
-                    }
-                    break;
-
-               case DSPF_BGR555:
-                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
-                         buf_p[n3+2] = (data16[n] & 0x7C00) >> 7;
-                         buf_p[n3+1] = (data16[n] & 0x03E0) >> 2;
-                         buf_p[n3+0] = (data16[n] & 0x001F) << 3;
-                    }
-                    break;
-
-               case DSPF_ARGB2554:
-                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
-                         buf_p[n3+0] = (data16[n] & 0x3E00) >> 6;
-                         buf_p[n3+1] = (data16[n] & 0x01F0) >> 1;
-                         buf_p[n3+2] = (data16[n] & 0x000F) << 4;
-
-                         switch (data16[n] >> 14) {
-                              case 0:
-                                   buf_g[n] = 0x00;
-                                   break;
-                              case 1:
-                                   buf_g[n] = 0x55;
-                                   break;
-                              case 2:
-                                   buf_g[n] = 0xAA;
-                                   break;
-                              case 3:
-                                   buf_g[n] = 0xFF;
-                                   break;
-                         }
-                    }
-                    break;
-               case DSPF_ARGB4444:
-                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
-                         buf_p[n3+0] = (data16[n] & 0x0F00) >> 4;
-                         buf_p[n3+1] = (data16[n] & 0x00F0);
-                         buf_p[n3+2] = (data16[n] & 0x000F) << 4;
-
-                         buf_g[n]  = (data16[n] >> 12);
-                         buf_g[n] |= buf_g[n] << 4;
-                    }
-                    break;
-              case DSPF_RGB444:
-                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
-                         buf_p[n3+0] = (data16[n] & 0x0F00) >> 4;
-                         buf_p[n3+1] = (data16[n] & 0x00F0);
-                         buf_p[n3+2] = (data16[n] & 0x000F) << 4;
-                    }
-                    break;
-               case DSPF_RGB332:
-                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
-                         buf_p[n3+0] = lookup3to8[ (data8[n] >> 5)        ];
-                         buf_p[n3+1] = lookup3to8[ (data8[n] >> 2) & 0x07 ];
-                         buf_p[n3+2] = lookup2to8[ (data8[n]     ) & 0x03 ];
-                    }
-                    break;
-               case DSPF_RGB16:
-                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
-                         buf_p[n3+0] = (data16[n] & 0xF800) >> 8;
-                         buf_p[n3+1] = (data16[n] & 0x07E0) >> 3;
-                         buf_p[n3+2] = (data16[n] & 0x001F) << 3;
-                    }
-                    break;
-               case DSPF_RGB24:
-                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
-#ifdef WORDS_BIGENDIAN
-                         buf_p[n3+0] = data8[n3+0];
-                         buf_p[n3+1] = data8[n3+1];
-                         buf_p[n3+2] = data8[n3+2];
-#else
-                         buf_p[n3+0] = data8[n3+2];
-                         buf_p[n3+1] = data8[n3+1];
-                         buf_p[n3+2] = data8[n3+0];
-#endif
-                    }
-                    break;
-               case DSPF_RGB32:
-                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
-                         buf_p[n3+0] = (data32[n] & 0xFF0000) >> 16;
-                         buf_p[n3+1] = (data32[n] & 0x00FF00) >>  8;
-                         buf_p[n3+2] = (data32[n] & 0x0000FF);
-                    }
-                    break;
-               case DSPF_YUY2:
-                    for (n=0, n3=0; n<surface->config.size.w/2; n++, n3+=6) {
-                         register u32 y0, cb, y1, cr;
-                         y0 = (data32[n] & 0x000000FF);
-                         cb = (data32[n] & 0x0000FF00) >>  8;
-                         y1 = (data32[n] & 0x00FF0000) >> 16;
-                         cr = (data32[n] & 0xFF000000) >> 24;
-                         YCBCR_TO_RGB( y0, cb, cr,
-                                       buf_p[n3+0], buf_p[n3+1], buf_p[n3+2] );
-                         YCBCR_TO_RGB( y1, cb, cr,
-                                       buf_p[n3+3], buf_p[n3+4], buf_p[n3+5] );
-                    }
-                    break;
-               case DSPF_UYVY:
-                    for (n=0, n3=0; n<surface->config.size.w/2; n++, n3+=6) {
-                         register u32 y0, cb, y1, cr;
-                         cb = (data32[n] & 0x000000FF);
-                         y0 = (data32[n] & 0x0000FF00) >>  8;
-                         cr = (data32[n] & 0x00FF0000) >> 16;
-                         y1 = (data32[n] & 0xFF000000) >> 24;
-                         YCBCR_TO_RGB( y0, cb, cr,
-                                       buf_p[n3+0], buf_p[n3+1], buf_p[n3+2] );
-                         YCBCR_TO_RGB( y1, cb, cr,
-                                       buf_p[n3+3], buf_p[n3+4], buf_p[n3+5] );
-                    }
-                    break;
-               case DSPF_NV16: {
-                    u16 *cbcr = (u16*)(data8 + surface->config.size.h * lock.pitch);
-
-                    for (n=0, n3=0; n<surface->config.size.w/2; n++, n3+=6) {
-#ifdef WORDS_BIGENDIAN
-                         YCBCR_TO_RGB( data8[n*2+0], cbcr[n] >> 8, cbcr[n] & 0xff,
-                                       buf_p[n3+0], buf_p[n3+1], buf_p[n3+2] );
-
-                         YCBCR_TO_RGB( data8[n*2+1], cbcr[n] >> 8, cbcr[n] & 0xff,
-                                       buf_p[n3+3], buf_p[n3+4], buf_p[n3+5] );
-#else
-                         YCBCR_TO_RGB( data8[n*2+0], cbcr[n] & 0xff, cbcr[n] >> 8,
-                                       buf_p[n3+0], buf_p[n3+1], buf_p[n3+2] );
-
-                         YCBCR_TO_RGB( data8[n*2+1], cbcr[n] & 0xff, cbcr[n] >> 8,
-                                       buf_p[n3+3], buf_p[n3+4], buf_p[n3+5] );
-#endif
-                    }
-                    break;
-               }
-               default:
-                    D_BUG( "unexpected pixelformat" );
-                    break;
-          }
+          u8 *src8 = dfb_surface_data_offset( surface, lock.addr, lock.pitch, 0, i );
 
           /* Write color buffer to pixmap file. */
-          if (rgb)
+          if (rgb) {
+               u8 buf_p[surface->config.size.w * 3];
+
+               if (buffer->format == DSPF_LUT8) {
+                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
+                         buf_p[n3+0] = palette->entries[src8[n]].r;
+                         buf_p[n3+1] = palette->entries[src8[n]].g;
+                         buf_p[n3+2] = palette->entries[src8[n]].b;
+                    }
+               }
+               else
+                    dfb_convert_to_rgb24( buffer->format, src8, lock.pitch, surface->config.size.h,
+                                          buf_p, surface->config.size.w * 3, surface->config.size.w, 1 );
 #ifdef USE_ZLIB
                gzwrite( gz_p, buf_p, surface->config.size.w * 3 );
 #else
                write( fd_p, buf_p, surface->config.size.w * 3 );
 #endif
+          }
 
           /* Write alpha buffer to graymap file. */
-          if (alpha)
+          if (alpha) {
+               u8 buf_g[surface->config.size.w];
+
+               if (buffer->format == DSPF_LUT8) {
+                    for (n=0; n<surface->config.size.w; n++)
+                         buf_g[n] = palette->entries[src8[n]].a;
+               }
+               else
+                    dfb_convert_to_a8( buffer->format, src8, lock.pitch, surface->config.size.h,
+                                       buf_g, surface->config.size.w, surface->config.size.w, 1 );
 #ifdef USE_ZLIB
                gzwrite( gz_g, buf_g, surface->config.size.w );
 #else
                write( fd_g, buf_g, surface->config.size.w );
 #endif
+          }
      }
 
      /* Unlock the surface buffer. */
@@ -1163,7 +1007,7 @@ allocation_update_copy( CoreSurfaceAllocation *allocation,
      ret = dfb_surface_pool_lock( source->pool, source, &src );
      if (ret) {
           D_DERROR( ret, "Core/SurfBuffer: Could not lock source for transfer!\n" );
-          D_MAGIC_CLEAR( &src );
+          dfb_surface_buffer_lock_deinit( &src );
           return ret;
      }
 
@@ -1182,8 +1026,8 @@ allocation_update_copy( CoreSurfaceAllocation *allocation,
      dfb_surface_pool_unlock( allocation->pool, allocation, &dst );
      dfb_surface_pool_unlock( source->pool, source, &src );
 
-     D_MAGIC_CLEAR( &dst );
-     D_MAGIC_CLEAR( &src );
+     dfb_surface_buffer_lock_deinit( &dst );
+     dfb_surface_buffer_lock_deinit( &src );
 
      return DFB_OK;
 }
@@ -1214,7 +1058,7 @@ allocation_update_write( CoreSurfaceAllocation *allocation,
      ret = dfb_surface_pool_lock( source->pool, source, &src );
      if (ret) {
           D_DERROR( ret, "Core/SurfBuffer: Could not lock source for transfer!\n" );
-          D_MAGIC_CLEAR( &src );
+          dfb_surface_buffer_lock_deinit( &src );
           return ret;
      }
 
@@ -1225,7 +1069,7 @@ allocation_update_write( CoreSurfaceAllocation *allocation,
 
      dfb_surface_pool_unlock( source->pool, source, &src );
 
-     D_MAGIC_CLEAR( &src );
+     dfb_surface_buffer_lock_deinit( &src );
 
      return ret;
 }
@@ -1256,7 +1100,7 @@ allocation_update_read( CoreSurfaceAllocation *allocation,
      ret = dfb_surface_pool_lock( allocation->pool, allocation, &dst );
      if (ret) {
           D_DERROR( ret, "Core/SurfBuffer: Could not lock destination for transfer!\n" );
-          D_MAGIC_CLEAR( &dst );
+          dfb_surface_buffer_lock_deinit( &dst );
           return ret;
      }
 
@@ -1267,7 +1111,7 @@ allocation_update_read( CoreSurfaceAllocation *allocation,
 
      dfb_surface_pool_unlock( allocation->pool, allocation, &dst );
 
-     D_MAGIC_CLEAR( &dst );
+     dfb_surface_buffer_lock_deinit( &dst );
 
      return ret;
 }
