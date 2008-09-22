@@ -143,7 +143,7 @@ IDirectFBImageProvider_SH7722_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      if (!dfb_rectangle_region_intersects( &rect, &clip ))
           return DFB_OK;
 
-     ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAF_GPU_WRITE, &lock );
+     ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAID_GPU, CSAF_WRITE, &lock );
      if (ret)
           return ret;
 
@@ -257,7 +257,7 @@ IDirectFBImageProvider_SH7722_JPEG_WriteBack( IDirectFBImageProvider *thiz,
      if (!dfb_rectangle_region_intersects( &rect, &clip ))
           return DFB_INVAREA;
 
-     ret = dfb_surface_lock_buffer( src_surface, CSBR_FRONT, CSAF_GPU_READ, &lock );
+     ret = dfb_surface_lock_buffer( src_surface, CSBR_FRONT, CSAID_GPU, CSAF_READ, &lock );
      if (ret)
           return ret;
 
