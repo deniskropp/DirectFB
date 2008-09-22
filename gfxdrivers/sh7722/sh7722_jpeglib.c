@@ -540,22 +540,24 @@ EncodeHW( SH7722_JPEG_data      *data,
           SH7722_SETREG32( data, JIFESMW,  SH7722GFX_JPEG_LINEBUFFER_PITCH );
 
           /* FIXME: Setup VEU for conversion/scaling (from surface to line buffer). */
+          /* we will not use the VEU in burst mode since we cannot program the 
+           * destination addresses intermediately. */
           SH7722_SETREG32( data, VEU_VBSRR, 0x00000100 );
           SH7722_SETREG32( data, VEU_VESTR, 0x00000000 );
           SH7722_SETREG32( data, VEU_VESWR, pitch );
-          SH7722_SETREG32( data, VEU_VESSR, (ch << 16) | cw );
-          SH7722_SETREG32( data, VEU_VBSSR, 16 );
+          //SH7722_SETREG32( data, VEU_VESSR, (224 << 16) | cw );
+          SH7722_SETREG32( data, VEU_VESSR, MIN(ch,16)<<16 | cw );
+          //SH7722_SETREG32( data, VEU_VBSSR, 16 );
+           
           SH7722_SETREG32( data, VEU_VEDWR, SH7722GFX_JPEG_LINEBUFFER_PITCH );
           SH7722_SETREG32( data, VEU_VDAYR, data->jpeg_lb1 );
           SH7722_SETREG32( data, VEU_VDACR, data->jpeg_lb1 + SH7722GFX_JPEG_LINEBUFFER_SIZE_Y );
           SH7722_SETREG32( data, VEU_VSAYR, phys );
           SH7722_SETREG32( data, VEU_VSACR, phys + pitch * height );
           SH7722_SETREG32( data, VEU_VTRCR, vtrcr );
-
           SH7722_SETREG32( data, VEU_VRFCR, (((ch << 12) / height) << 16) |
                                             ((cw << 12) / width) );
-          SH7722_SETREG32( data, VEU_VRFSR, (ch << 16) | cw );
-
+          SH7722_SETREG32( data, VEU_VRFSR, (MIN(ch,16) << 16) | cw );
           SH7722_SETREG32( data, VEU_VENHR, 0x00000000 );
           SH7722_SETREG32( data, VEU_VFMCR, 0x00000000 );
           SH7722_SETREG32( data, VEU_VAPCR, 0x00000000 );

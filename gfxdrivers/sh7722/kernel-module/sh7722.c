@@ -29,7 +29,7 @@
 
 
 //#define SH7722GFX_DEBUG_2DG
-#define SH7722GFX_DEBUG_JPU
+//#define SH7722GFX_DEBUG_JPU
 //#define SH7722GFX_IRQ_POLLER
 
 
@@ -93,15 +93,21 @@
 #define JPU_JIFESCA1               JPU_REG(0x00078)
 #define JPU_JIFESYA2               JPU_REG(0x0007C)
 #define JPU_JIFESCA2               JPU_REG(0x00080)
-                                              
+#define JPU_JIFEDA1                JPU_REG(0x00090)
+#define JPU_JIFEDA2                JPU_REG(0x00094)
+
 #define VEU_VESTR                  VEU_REG(0x00000)
+#define VEU_VESWR                  VEU_REG(0x00010)
+#define VEU_VESSR                  VEU_REG(0x00014)
 #define VEU_VSAYR                  VEU_REG(0x00018)
 #define VEU_VSACR                  VEU_REG(0x0001c)
 #define VEU_VDAYR                  VEU_REG(0x00034)
 #define VEU_VDACR                  VEU_REG(0x00038)
+#define VEU_VRFSR                  VEU_REG(0x00058)
 #define VEU_VEVTR                  VEU_REG(0x000A4)
+#define VEU_VSTAR                  VEU_REG(0x000b0)
 
-#define JINTS_MASK                 0x00007CE8
+#define JINTS_MASK                 0x00007C68
 #define JINTS_INS3_HEADER          0x00000008
 #define JINTS_INS5_ERROR           0x00000020
 #define JINTS_INS6_DONE            0x00000040
@@ -200,6 +206,7 @@ static int                  jpeg_end;
 static u32                  jpeg_linebufs;
 static int                  jpeg_linebuf;
 static int                  jpeg_line;
+static int                  jpeg_line_veu; /* is the VEU done yet? */
 static int                  veu_linebuf;
 static int                  veu_running;
 
@@ -330,16 +337,19 @@ sh7722_run_jpeg( SH772xGfxSharedArea *shared,
      int encode  = (jpeg->flags & SH7722_JPEG_FLAG_ENCODE) ? 1 : 0;
      int convert = (jpeg->flags & SH7722_JPEG_FLAG_CONVERT) ? 1 : 0;
 
+     JPRINT( "run JPEG called %d", jpeg->state );
+
      switch (jpeg->state) {
           case SH7722_JPEG_START:
                JPRINT( "START (buffers: %d, flags: 0x%x)", jpeg->buffers, jpeg->flags );
 
                jpeg_line         = 0;
+               jpeg_line_veu     = 0;
                jpeg_end          = 0;
                jpeg_error        = 0;
                jpeg_encode       = encode;
                jpeg_reading      = 0;
-               jpeg_writing      = encode ? 2 : 0;
+               jpeg_writing      = 0;
                jpeg_reading_line = encode && !convert;
                jpeg_writing_line = !encode;
                jpeg_height       = jpeg->height;
@@ -379,7 +389,7 @@ sh7722_run_jpeg( SH772xGfxSharedArea *shared,
 
                     VEU_VDAYR = veu_linebuf ? JPU_JIFESYA2 : JPU_JIFESYA1;
                     VEU_VDACR = veu_linebuf ? JPU_JIFESCA2 : JPU_JIFESCA1;
-                    VEU_VESTR = 0x101;
+                    VEU_VESTR = 0x1;
                }
           }
           if (jpeg_buffers && !jpeg_writing) {
@@ -476,6 +486,8 @@ sh7722_jpu_irq( int irq, void *ctx )
 {
      u32                  ints;
      SH772xGfxSharedArea *shared = ctx;
+     
+     int diff, todo;
 
      ints = JPU_JINTS;
 
@@ -484,7 +496,7 @@ sh7722_jpu_irq( int irq, void *ctx )
      if (ints & (JINTS_INS3_HEADER | JINTS_INS5_ERROR | JINTS_INS6_DONE))
           JPU_JCCMD = JCCMD_END;
 
-     JPRINT( " ... JPU interrupt 0x%08x (veu_linebuf: %d, jpeg_linebuf: %d, jpeg_linebufs: %d, jpeg_line: %d, jpeg_buffers: %d)",
+     JPRINT( " ... JPU int 0x%08x (veu_linebuf:%d,jpeg_linebuf:%d,jpeg_linebufs:%d,jpeg_line:%d,jpeg_buffers:%d)",
              ints, veu_linebuf, jpeg_linebuf, jpeg_linebufs, jpeg_line, jpeg_buffers );
 
      if (ints) {
@@ -545,14 +557,20 @@ sh7722_jpu_irq( int irq, void *ctx )
 
                     jpeg_line += 16;
 
-                    if (!veu_running && !jpeg_end) {
+                    diff = jpeg_height - jpeg_line_veu;
+                    todo = diff < SH7722GFX_JPEG_LINEBUFFER_HEIGHT ? diff : SH7722GFX_JPEG_LINEBUFFER_HEIGHT;
+                     if (todo>0 && !veu_running && !jpeg_end) {
                          JPRINT( "         -> CONVERT %d", veu_linebuf );
 
                          veu_running = 1;
 
+                         VEU_VESSR = (todo << 16) | (VEU_VESSR & 0xffff);
+                         VEU_VRFSR = (todo << 16) | (VEU_VRFSR & 0xffff);
+
+                         VEU_VSAYR += VEU_VESWR * SH7722GFX_JPEG_LINEBUFFER_HEIGHT;
                          VEU_VDAYR = veu_linebuf ? JPU_JIFESYA2 : JPU_JIFESYA1;
                          VEU_VDACR = veu_linebuf ? JPU_JIFESCA2 : JPU_JIFESCA1;
-                         VEU_VESTR = 0x101;
+                         VEU_VESTR = 0x1;
                     }
                }
                else {
@@ -626,14 +644,15 @@ static irqreturn_t
 sh7722_veu_irq( int irq, void *ctx )
 {
      u32 events = VEU_VEVTR;
+     int diff, todo;
 
      VEU_VEVTR = ~events & 0x101;
 
-     JPRINT( " ... VEU interrupt 0x%08x (veu_linebuf: %d, jpeg_linebuf: %d, jpeg_linebufs: %d, jpeg_line: %d)",
+     JPRINT( " ... VEU int 0x%08x (veu_linebuf:%d,jpeg_linebuf:%d,jpeg_linebufs:%d,jpeg_line:%d)",
              events, veu_linebuf, jpeg_linebuf, jpeg_linebufs, jpeg_line );
 
-     if (events & 1)
-          return IRQ_HANDLED;
+     /* update the lines processed, 16 or less */
+     jpeg_line_veu += SH7722GFX_JPEG_LINEBUFFER_HEIGHT;
 
      if (jpeg_encode) {
           /* Fill line buffers. */
@@ -641,34 +660,30 @@ sh7722_veu_irq( int irq, void *ctx )
 
           /* Resume encoding if it was blocked. */
           if (!jpeg_reading_line && !jpeg_end && !jpeg_error && jpeg_linebufs) {
-               if (jpeg_writing == 2) {
-                    if (jpeg_linebufs == 3) {
-                         JPRINT( "         -> ENCODE START!" );
-
-                         jpeg_reading_line = 1;
-
-                         JPU_JCCMD = JCCMD_LCMD2 | JCCMD_LCMD1;
-                    }
-               }
-               else {
-                    JPRINT( "         -> ENCODE %d", veu_linebuf );
-
-                    jpeg_reading_line = 1;
-
-                    JPU_JCCMD = JCCMD_LCMD2 | JCCMD_LCMD1;
-               }
+               JPRINT( "         -> ENCODE %d", veu_linebuf );
+               jpeg_reading_line = 1;
+               JPU_JCCMD = JCCMD_LCMD2 | JCCMD_LCMD1;
           }
 
           veu_linebuf = veu_linebuf ? 0 : 1;
 
-          if (jpeg_linebufs != 3 && !jpeg_end && !jpeg_error) {
+          diff = jpeg_height - jpeg_line_veu;
+          todo = diff < SH7722GFX_JPEG_LINEBUFFER_HEIGHT ? diff : SH7722GFX_JPEG_LINEBUFFER_HEIGHT;
+          if(    todo > 0              /* still some more lines to do */
+             &&  jpeg_linebufs != 3    /* and still some place to put them */
+             && !jpeg_end              /* safety, should not happen */
+             && !jpeg_error ) {
                JPRINT( "         -> CONVERT %d", veu_linebuf );
 
-               veu_running = 1;   /* should still be one */
+               VEU_VSAYR += VEU_VESWR * SH7722GFX_JPEG_LINEBUFFER_HEIGHT;
+               VEU_VDAYR  = veu_linebuf ? JPU_JIFESYA2 : JPU_JIFESYA1;
+               VEU_VDACR  = veu_linebuf ? JPU_JIFESCA2 : JPU_JIFESCA1;
 
-               VEU_VDAYR = veu_linebuf ? JPU_JIFESYA2 : JPU_JIFESYA1;
-               VEU_VDACR = veu_linebuf ? JPU_JIFESCA2 : JPU_JIFESCA1;
-               VEU_VESTR = 0x101;
+               VEU_VESSR = (todo << 16) | (VEU_VESSR & 0xffff);
+               VEU_VRFSR = (todo << 16) | (VEU_VRFSR & 0xffff);
+
+               veu_running = 1;   /* kick VEU to continue */
+               VEU_VESTR = 0x1;
           }
           else {
                veu_running = 0;
