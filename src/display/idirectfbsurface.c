@@ -1193,7 +1193,7 @@ IDirectFBSurface_DrawLine( IDirectFBSurface *thiz,
      if (data->locked)
           return DFB_LOCKED;
 
-     if (x1 == x2 || y1 == y2) {
+     if ((x1 == x2 || y1 == y2) && !(data->state.render_options & DSRO_MATRIX)) {
           DFBRectangle rect;
 
           if (x1 <= x2) {
