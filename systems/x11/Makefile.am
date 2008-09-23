@@ -41,8 +41,6 @@ libdirectfb_x11_la_SOURCES = \
 	x11input.c		\
 	x11_surface_pool.c	\
 	x11_surface_pool.h	\
-	x11_surface_pool_bridge.c	\
-	x11_surface_pool_bridge.h	\
 	x11types.h		\
 	xwindow.h		\
 	xwindow.c
@@ -50,7 +48,9 @@ libdirectfb_x11_la_SOURCES = \
 if GFX_GLX
 libdirectfb_x11_la_SOURCES += \
 	glx_surface_pool.c	\
-	glx_surface_pool.h
+	glx_surface_pool.h	\
+	x11_surface_pool_bridge.c	\
+	x11_surface_pool_bridge.h
 endif
 
 libdirectfb_x11_la_LIBADD = \

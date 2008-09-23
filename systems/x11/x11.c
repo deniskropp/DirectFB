@@ -262,8 +262,9 @@ system_initialize( CoreDFB *core, void **data )
           dfb_surface_pool_initialize( core, &vpsmemSurfacePoolFuncs, &shared->vpsmem_pool );
      }
 
+#ifdef USE_GLX
      dfb_surface_pool_bridge_initialize( core, &x11SurfacePoolBridgeFuncs, x11, &shared->x11_pool_bridge );
-
+#endif
 
      fusion_arena_add_shared_field( dfb_core_arena( core ), "x11", shared );
 
@@ -316,8 +317,10 @@ system_join( CoreDFB *core, void **data )
      if (shared->vpsmem_pool)
           dfb_surface_pool_join( core, shared->vpsmem_pool, &vpsmemSurfacePoolFuncs );
 
+#ifdef USE_GLX
      if (shared->x11_pool_bridge)
           dfb_surface_pool_bridge_join( core, shared->x11_pool_bridge, &x11SurfacePoolBridgeFuncs, x11 );
+#endif
 
      return DFB_OK;
 }
