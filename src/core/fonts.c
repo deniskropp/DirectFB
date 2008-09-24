@@ -250,7 +250,7 @@ dfb_font_get_glyph_data( CoreFont        *font,
 
      D_MAGIC_SET( data, CoreGlyphData );
 
-     align = MAX( 8 / (DFB_BYTES_PER_PIXEL( font->pixel_format ) ? : 1),
+     align = MAX( 8 / (DFB_BYTES_PER_PIXEL( font->pixel_format ) ? : 1) - 1,
                   DFB_PIXELFORMAT_ALIGNMENT( font->pixel_format ) );
 
      ret = font->GetGlyphData( font, index, data );
