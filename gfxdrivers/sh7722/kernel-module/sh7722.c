@@ -202,6 +202,8 @@ static int                  jpeg_writing;
 static int                  jpeg_reading_line;
 static int                  jpeg_writing_line;
 static int                  jpeg_height;
+static int                  jpeg_inputheight;
+static unsigned long        jpeg_phys;
 static int                  jpeg_end;
 static u32                  jpeg_linebufs;
 static int                  jpeg_linebuf;
@@ -353,6 +355,8 @@ sh7722_run_jpeg( SH772xGfxSharedArea *shared,
                jpeg_reading_line = encode && !convert;
                jpeg_writing_line = !encode;
                jpeg_height       = jpeg->height;
+               jpeg_inputheight  = jpeg->inputheight;
+               jpeg_phys         = jpeg->phys;
                jpeg_linebuf      = 0;
                jpeg_linebufs     = 0;
                jpeg_buffer       = 0;
@@ -487,8 +491,6 @@ sh7722_jpu_irq( int irq, void *ctx )
      u32                  ints;
      SH772xGfxSharedArea *shared = ctx;
      
-     int diff, todo;
-
      ints = JPU_JINTS;
 
      JPU_JINTS = ~ints & JINTS_MASK;
@@ -524,6 +526,8 @@ sh7722_jpu_irq( int irq, void *ctx )
 
                JPRINT( "         -> DONE" );
 
+               JPU_JCCMD = JCCMD_END;
+
                wake_up_all( &wait_jpeg_run );
           }
 
@@ -532,6 +536,8 @@ sh7722_jpu_irq( int irq, void *ctx )
                jpeg_end = 1;
 
                JPRINT( "         -> XFER DONE" );
+
+               JPU_JCCMD = JCCMD_END;
 
                wake_up_all( &wait_jpeg_run );
           }
@@ -557,17 +563,28 @@ sh7722_jpu_irq( int irq, void *ctx )
 
                     jpeg_line += 16;
 
-                    diff = jpeg_height - jpeg_line_veu;
-                    todo = diff < SH7722GFX_JPEG_LINEBUFFER_HEIGHT ? diff : SH7722GFX_JPEG_LINEBUFFER_HEIGHT;
-                     if (todo>0 && !veu_running && !jpeg_end) {
+                    if (jpeg_line_veu<jpeg_height && !veu_running && !jpeg_end) {
+                         int offset = 0;
+                         int n      = 0;
+               
                          JPRINT( "         -> CONVERT %d", veu_linebuf );
 
                          veu_running = 1;
 
-                         VEU_VESSR = (todo << 16) | (VEU_VESSR & 0xffff);
-                         VEU_VRFSR = (todo << 16) | (VEU_VRFSR & 0xffff);
+                         /* we will not update VESSR or VRFSR to prevent recalculating
+                          * the input lines in case of partial content.
+                          * This prevents hangups in case of program errors */
+                         //VEU_VESSR = (todo << 16) | (VEU_VESSR & 0xffff);
+                         //VEU_VRFSR = (todo << 16) | (VEU_VRFSR & 0xffff);
 
-                         VEU_VSAYR += VEU_VESWR * SH7722GFX_JPEG_LINEBUFFER_HEIGHT;
+                         n = jpeg_line_veu * jpeg_inputheight;
+                         while (n >= jpeg_height) {
+                              offset++;
+                              n -= jpeg_height;
+                         }
+                          
+                         VEU_VSAYR = jpeg_phys + offset * VEU_VESWR;
+
                          VEU_VDAYR = veu_linebuf ? JPU_JIFESYA2 : JPU_JIFESYA1;
                          VEU_VDACR = veu_linebuf ? JPU_JIFESCA2 : JPU_JIFESCA1;
                          VEU_VESTR = 0x1;
@@ -644,7 +661,6 @@ static irqreturn_t
 sh7722_veu_irq( int irq, void *ctx )
 {
      u32 events = VEU_VEVTR;
-     int diff, todo;
 
      VEU_VEVTR = ~events & 0x101;
 
@@ -667,20 +683,25 @@ sh7722_veu_irq( int irq, void *ctx )
 
           veu_linebuf = veu_linebuf ? 0 : 1;
 
-          diff = jpeg_height - jpeg_line_veu;
-          todo = diff < SH7722GFX_JPEG_LINEBUFFER_HEIGHT ? diff : SH7722GFX_JPEG_LINEBUFFER_HEIGHT;
-          if(    todo > 0              /* still some more lines to do */
-             &&  jpeg_linebufs != 3    /* and still some place to put them */
-             && !jpeg_end              /* safety, should not happen */
+          if(    jpeg_line_veu < jpeg_height /* still some more lines to do */
+             &&  jpeg_linebufs != 3          /* and still some place to put them */
+             && !jpeg_end                    /* safety, should not happen */
              && !jpeg_error ) {
+               int offset = 0;
+               int n      = 0;
+               
                JPRINT( "         -> CONVERT %d", veu_linebuf );
 
-               VEU_VSAYR += VEU_VESWR * SH7722GFX_JPEG_LINEBUFFER_HEIGHT;
+               n = jpeg_line_veu * jpeg_inputheight;
+               while (n >= jpeg_height) {
+                    offset++;
+                    n -= jpeg_height;
+               }
+               
+               VEU_VSAYR = jpeg_phys + offset * VEU_VESWR;
+               
                VEU_VDAYR  = veu_linebuf ? JPU_JIFESYA2 : JPU_JIFESYA1;
                VEU_VDACR  = veu_linebuf ? JPU_JIFESCA2 : JPU_JIFESCA1;
-
-               VEU_VESSR = (todo << 16) | (VEU_VESSR & 0xffff);
-               VEU_VRFSR = (todo << 16) | (VEU_VRFSR & 0xffff);
 
                veu_running = 1;   /* kick VEU to continue */
                VEU_VESTR = 0x1;

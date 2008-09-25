@@ -261,7 +261,7 @@ IDirectFBImageProvider_SH7722_JPEG_WriteBack( IDirectFBImageProvider *thiz,
      if (ret)
           return ret;
 
-     ret = SH7722_JPEG_Encode( filename, &rect, &clip, src_surface->config.format, lock.phys, lock.pitch,
+     ret = SH7722_JPEG_Encode( filename, &rect, src_surface->config.format, lock.phys, lock.pitch,
                                src_surface->config.size.w, src_surface->config.size.h );
 
      dfb_surface_unlock_buffer( src_surface, &lock );

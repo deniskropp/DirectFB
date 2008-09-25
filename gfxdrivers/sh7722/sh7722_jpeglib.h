@@ -36,7 +36,6 @@ DirectResult SH7722_JPEG_Close ( SH7722_JPEG_context   *context );
 
 DirectResult SH7722_JPEG_Encode( const char            *filename,
                                  const DFBRectangle    *rect,
-                                 const DFBRegion       *clip,
                                  DFBSurfacePixelFormat  format,
                                  unsigned long          phys,
                                  int                    pitch,
