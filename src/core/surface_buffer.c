@@ -245,7 +245,7 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
 #endif
 
      /* Look for allocation with proper access. */
-     allocation = find_allocation( buffer, accessor, access, false );
+     allocation = find_allocation( buffer, accessor, access, true );
      if (!allocation) {
           /* If no allocation exists, create one. */
           ret = dfb_surface_pools_allocate( buffer, accessor, access, &allocation );
