@@ -550,7 +550,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
           case DLBM_FRONTONLY:
                /* Tell the driver about the update if the region is realized. */
                if (funcs->UpdateRegion && D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
-                    if (region->surface) {
+                    if (surface) {
                          CoreSurfaceAllocation *allocation;
 
                          allocation = region->surface_lock.allocation;
@@ -567,7 +567,9 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                               allocation->accessed[CSAID_GPU] &= ~CSAF_WRITE;
                          }
 
+                         dfb_surface_lock( surface );
                          dfb_surface_allocation_update( allocation, CSAF_READ );
+                         dfb_surface_unlock( surface );
                     }
 
                     D_DEBUG_AT( Core_Layers, "  -> Notifying driver about updated content...\n" );
