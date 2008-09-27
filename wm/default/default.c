@@ -176,6 +176,36 @@ static int keys_compare( const void *key1,
 
 /**************************************************************************************************/
 
+static inline void
+transform_point_in_window( CoreWindow *window,
+                           int        *x,
+                           int        *y )
+{
+     int _x = *x, _y = *y;
+
+     switch (window->config.rotation) {
+          default:
+               D_BUG( "invalid rotation %d", window->config.rotation );
+          case 0:
+               break;
+
+          case 90:
+               *x = window->config.bounds.w - _y - 1;
+               *y = _x;
+               break;
+
+          case 180:
+               *x = window->config.bounds.w - _x - 1;
+               *y = window->config.bounds.h - _y - 1;
+               break;
+
+          case 270:
+               *x = _y;
+               *y = window->config.bounds.h - _x - 1;
+               break;
+     }
+}
+
 static void
 post_event( CoreWindow     *window,
             StackData      *data,
@@ -228,10 +258,39 @@ send_button_event( CoreWindow          *window,
      we.y      = window->stack->cursor.y - window->config.bounds.y;
      we.button = (data->wm_level & 2) ? (event->button + 2) : event->button;
 
+     transform_point_in_window( window, &we.x, &we.y );
+
      post_event( window, data, &we );
 }
 
 /**************************************************************************************************/
+
+static inline void
+transform_window_to_stack( CoreWindow         *window,
+                           const DFBRectangle *rect,
+                           DFBRectangle       *ret_rect )
+{
+     DFB_RECTANGLE_ASSERT( rect );
+
+     ret_rect->x = rect->x;
+     ret_rect->y = rect->y;
+
+     switch (window->config.rotation) {
+          default:
+               D_BUG( "invalid rotation %d", window->config.rotation );
+          case 0:
+          case 180:
+               ret_rect->w = rect->w;
+               ret_rect->h = rect->h;
+               break;
+
+          case 90:
+          case 270:
+               ret_rect->w = rect->h;
+               ret_rect->h = rect->w;
+               break;
+     }
+}
 
 static inline int
 get_priority( const CoreWindow *window )
@@ -397,8 +456,11 @@ window_at_pointer( CoreWindowStack *stack,
 
      fusion_vector_foreach_reverse (window, i, data->windows) {
           CoreWindowConfig *config  = &window->config;
-          DFBRectangle     *bounds  = &config->bounds;
           DFBWindowOptions  options = config->options;
+          DFBRectangle      rotated;
+          DFBRectangle     *bounds  = &rotated;
+
+          transform_window_to_stack( window, &config->bounds, &rotated );
 
           if (!(options & DWOP_GHOST) && config->opacity &&
               x >= bounds->x  &&  x < bounds->x + bounds->w &&
@@ -600,6 +662,8 @@ update_focus( CoreWindowStack *stack,
                     we.x    = stack->cursor.x - before->config.bounds.x;
                     we.y    = stack->cursor.y - before->config.bounds.y;
 
+                    transform_point_in_window( before, &we.x, &we.y );
+
                     post_event( before, data, &we );
                }
 
@@ -610,6 +674,8 @@ update_focus( CoreWindowStack *stack,
                     we.type = DWET_ENTER;
                     we.x    = stack->cursor.x - after->config.bounds.x;
                     we.y    = stack->cursor.y - after->config.bounds.y;
+
+                    transform_point_in_window( after, &we.x, &we.y );
 
                     post_event( after, data, &we );
                }
@@ -645,11 +711,23 @@ ensure_focus( CoreWindowStack *stack,
 /**************************************************************************************************/
 /**************************************************************************************************/
 
+static inline void
+transform_stack_to_dest( CoreWindowStack *stack,
+                         const DFBRegion *region,
+                         DFBRegion       *ret_dest )
+{
+     DFBDimension size = { stack->width, stack->height };
+
+     DFB_REGION_ASSERT( region );
+
+     dfb_region_from_rotated( ret_dest, region, &size, stack->rotation );
+}
+
 static void
-draw_cursor( CoreWindowStack *stack, StackData *data, CardState *state, DFBRegion *region )
+draw_cursor( CoreWindowStack *stack, StackData *data, CardState *state, const DFBRegion *region )
 {
      DFBRectangle            src;
-     DFBRectangle            clip;
+     DFBRegion               dest;
      DFBSurfaceBlittingFlags flags = DSBLIT_BLEND_ALPHACHANNEL;
 
      D_ASSERT( stack != NULL );
@@ -659,18 +737,14 @@ draw_cursor( CoreWindowStack *stack, StackData *data, CardState *state, DFBRegio
 
      D_ASSUME( stack->cursor.opacity > 0 );
 
+     /* Initialize destination region. */
+     transform_stack_to_dest( stack, region, &dest );
+
      /* Initialize source rectangle. */
      src.x = region->x1 - stack->cursor.x + stack->cursor.hot.x;
      src.y = region->y1 - stack->cursor.y + stack->cursor.hot.y;
      src.w = region->x2 - region->x1 + 1;
      src.h = region->y2 - region->y1 + 1;
-     /* Initialize source clipping rectangle */
-     clip.x = clip.y = 0;
-     clip.w = stack->cursor.surface->config.size.w;
-     clip.h = stack->cursor.surface->config.size.h;
-     /* Intersect rectangles */
-     if (!dfb_rectangle_intersect( &src, &clip ))
-          return;
 
      /* Use global alpha blending. */
      if (stack->cursor.opacity != 0xFF) {
@@ -747,14 +821,14 @@ draw_cursor( CoreWindowStack *stack, StackData *data, CardState *state, DFBRegio
      }
 
      /* Set blitting flags. */
-     dfb_state_set_blitting_flags( state, flags );
+     dfb_state_set_blitting_flags( state, flags | stack->rotated_blit );
 
      /* Set blitting source. */
      state->source    = stack->cursor.surface;
      state->modified |= SMF_SOURCE;
 
      /* Blit from the window to the region being updated. */
-     dfb_gfxcard_blit( &src, region->x1, region->y1, state );
+     dfb_gfxcard_blit( &src, dest.x1, dest.y1, state );
 
      /* Reset blitting source. */
      state->source    = NULL;
@@ -763,24 +837,29 @@ draw_cursor( CoreWindowStack *stack, StackData *data, CardState *state, DFBRegio
 
 static void
 draw_window( CoreWindow *window, CardState *state,
-             DFBRegion *region, bool alpha_channel )
+             const DFBRegion *region, bool alpha_channel )
 {
-     DFBRectangle             src;
+     DFBRegion                dest;
      DFBSurfaceBlittingFlags  flags = DSBLIT_NOFX;
+     CoreWindowStack         *stack;
      CoreWindowConfig        *config;
+     CoreSurface             *surface;
+     int                      rotation;
 
      D_ASSERT( window != NULL );
      D_MAGIC_ASSERT( state, CardState );
      DFB_REGION_ASSERT( region );
 
+     stack = window->stack;
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
+
+     surface = window->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
      config = &window->config;
 
-     /* Initialize source rectangle. */
-     dfb_rectangle_from_region( &src, region );
-
-     /* Subtract window offset. */
-     src.x -= config->bounds.x;
-     src.y -= config->bounds.y;
+     /* Initialize destination region. */
+     transform_stack_to_dest( stack, region, &dest );
 
      /* Use per pixel alpha blending. */
      if (alpha_channel && (config->options & DWOP_ALPHACHANNEL))
@@ -806,7 +885,7 @@ draw_window( CoreWindow *window, CardState *state,
      }
 
      /* Use automatic deinterlacing. */
-     if (window->surface->config.caps & DSCAPS_INTERLACED)
+     if (surface->config.caps & DSCAPS_INTERLACED)
           flags |= DSBLIT_DEINTERLACE;
 
      /* Different compositing methods depending on destination format. */
@@ -835,7 +914,7 @@ draw_window( CoreWindow *window, CardState *state,
                dfb_state_set_src_blend( state, DSBF_ONE );
 
                /* Need to premultiply source with As*Ac or only with Ac? */
-               if (! (window->surface->config.caps & DSCAPS_PREMULTIPLIED))
+               if (! (surface->config.caps & DSCAPS_PREMULTIPLIED))
                     flags |= DSBLIT_SRC_PREMULTIPLY;
                else if (flags & DSBLIT_BLEND_COLORALPHA)
                     flags |= DSBLIT_SRC_PREMULTCOLOR;
@@ -860,7 +939,7 @@ draw_window( CoreWindow *window, CardState *state,
                 * cx = Cd * (1-As*Ac) + Cs*As * Ac  (still same effect as above)
                 * ax = Ad * (1-As*Ac) + As*As * Ac  (wrong, but discarded anyways)
                 */
-               if (window->surface->config.caps & DSCAPS_PREMULTIPLIED) {
+               if (surface->config.caps & DSCAPS_PREMULTIPLIED) {
                     /* Need to premultiply source with Ac? */
                     if (flags & DSBLIT_BLEND_COLORALPHA)
                          flags |= DSBLIT_SRC_PREMULTCOLOR;
@@ -872,20 +951,46 @@ draw_window( CoreWindow *window, CardState *state,
           }
      }
 
+     rotation = (window->config.rotation + stack->rotation) % 360;
+     switch (rotation) {
+          default:
+               D_BUG( "invalid rotation %d", rotation );
+          case 0:
+               break;
+
+          case 90:
+               flags |= DSBLIT_ROTATE90;
+               break;
+
+          case 180:
+               flags |= DSBLIT_ROTATE180;
+               break;
+
+          case 270:
+               flags |= DSBLIT_ROTATE270;
+               break;
+     }
+
      /* Set blitting flags. */
      dfb_state_set_blitting_flags( state, flags );
 
      /* Set blitting source. */
-     state->source    = window->surface;
+     state->source    = surface;
      state->modified |= SMF_SOURCE;
 
      if (window->config.options & DWOP_SCALE) {
+          DFBDimension size = { stack->width, stack->height };
           DFBRegion    clip = state->clip;
-          DFBRectangle dst  = window->config.bounds;
-          DFBRectangle src  = { 0, 0, window->surface->config.size.w, window->surface->config.size.h };
+          DFBRectangle src  = { 0, 0, surface->config.size.w, surface->config.size.h };
+          DFBRectangle dst;
+          DFBRectangle bounds;
+
+          transform_window_to_stack( window, &window->config.bounds, &bounds );
+
+          dfb_rectangle_from_rotated( &dst, &bounds, &size, stack->rotation );
 
           /* Change clipping region. */
-          dfb_state_set_clip( state, region );
+          dfb_state_set_clip( state, &dest );
 
           /* Scale window to the screen clipped by the region being updated. */
           dfb_gfxcard_stretchblit( &src, &dst, state );
@@ -894,11 +999,27 @@ draw_window( CoreWindow *window, CardState *state,
           dfb_state_set_clip( state, &clip );
      }
      else {
-          D_ASSERT( window->surface->config.size.w  == window->config.bounds.w );
-          D_ASSERT( window->surface->config.size.h == window->config.bounds.h );
+          DFBDimension size = { config->bounds.w, config->bounds.h };
+          DFBRectangle rect, src;
+
+          D_ASSERT( surface->config.size.w == config->bounds.w );
+          D_ASSERT( surface->config.size.h == config->bounds.h );
+
+          /* Initialize source rectangle. */
+          dfb_rectangle_from_region( &rect, region );
+
+          /* Subtract window offset. */
+          rect.x -= config->bounds.x;
+          rect.y -= config->bounds.y;
+
+          /* Rotate back to window surface. */
+          if (window->config.rotation == 90 || window->config.rotation == 270)
+               D_UTIL_SWAP( size.w, size.h );
+
+          dfb_rectangle_from_rotated( &src, &rect, &size, (360 - window->config.rotation) % 360 );
 
           /* Blit from the window to the region being updated. */
-          dfb_gfxcard_blit( &src, region->x1, region->y1, state );
+          dfb_gfxcard_blit( &src, dest.x1, dest.y1, state );
      }
 
      /* Reset blitting source. */
@@ -907,9 +1028,9 @@ draw_window( CoreWindow *window, CardState *state,
 }
 
 static void
-draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
+draw_background( CoreWindowStack *stack, CardState *state, const DFBRegion *region )
 {
-     DFBRectangle dst;
+     DFBRegion dest;
 
      D_ASSERT( stack != NULL );
      D_MAGIC_ASSERT( state, CardState );
@@ -918,67 +1039,57 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
      D_ASSERT( stack->bg.image != NULL || (stack->bg.mode != DLBM_IMAGE &&
                                            stack->bg.mode != DLBM_TILE) );
 
-     /* Initialize destination rectangle. */
-     dfb_rectangle_from_region( &dst, region );
+     /* Initialize destination region. */
+     transform_stack_to_dest( stack, region, &dest );
+
+     if (!dfb_region_intersect( &dest, 0, 0,
+                                state->destination->config.size.w - 1, state->destination->config.size.h - 1 ))
+         return;
 
      switch (stack->bg.mode) {
           case DLBM_COLOR: {
-               CoreSurface *dest  = state->destination;
-               DFBColor    *color = &stack->bg.color;
+               DFBRectangle  rect  = DFB_RECTANGLE_INIT_FROM_REGION( &dest );
+               CoreSurface  *dst   = state->destination;
+               DFBColor     *color = &stack->bg.color;
+
+               D_MAGIC_ASSERT( dst, CoreSurface );
 
                /* Set the background color. */
-               if (DFB_PIXELFORMAT_IS_INDEXED( dest->config.format ))
+               if (DFB_PIXELFORMAT_IS_INDEXED( dst->config.format ))
                     dfb_state_set_color_index( state,  /* FIXME: don't search every time */
-                                               dfb_palette_search( dest->palette, color->r,
+                                               dfb_palette_search( dst->palette, color->r,
                                                                    color->g, color->b, color->a ) );
                else
                     dfb_state_set_color( state, color );
 
                /* Simply fill the background. */
-               dfb_gfxcard_fillrectangles( &dst, 1, state );
-
+               dfb_gfxcard_fillrectangles( &rect, 1, state );
                break;
           }
 
           case DLBM_IMAGE: {
-               CoreSurface *bg = stack->bg.image;
+               CoreSurface  *bg   = stack->bg.image;
+               DFBRegion     clip = state->clip;
+               DFBRectangle  src  = { 0, 0, bg->config.size.w, bg->config.size.h };
+               DFBRectangle  dst  = { 0, 0, stack->rotated_width, stack->rotated_height };
+
+               D_MAGIC_ASSERT( bg, CoreSurface );
 
                /* Set blitting source. */
                state->source    = bg;
                state->modified |= SMF_SOURCE;
 
                /* Set blitting flags. */
-               dfb_state_set_blitting_flags( state, DSBLIT_NOFX );
+               dfb_state_set_blitting_flags( state, stack->rotated_blit );
 
-               /* Check the size of the background image. */
-               if (bg->config.size.w == stack->width && bg->config.size.h == stack->height) {
-                    /* Simple blit for 100% fitting background image. */
-                    dfb_gfxcard_blit( &dst, dst.x, dst.y, state );
-               }
-               else {
-                    DFBRegion    clip = state->clip;
-                    DFBRectangle src  = { 0, 0,
-                                          bg->config.size.w,
-                                          bg->config.size.h };
+               /* Set clipping region. */
+               dfb_state_set_clip( state, &dest );
 
-                    /* Change clipping region. */
-                    dfb_state_set_clip( state, region );
+               /* Blit background image. */
+               dfb_gfxcard_stretchblit( &src, &dst, state );
 
-                    /*
-                     * Scale image to fill the whole screen
-                     * clipped to the region being updated.
-                     */
-                    dst.x = 0;
-                    dst.y = 0;
-                    dst.w = stack->width;
-                    dst.h = stack->height;
-
-                    /* Stretch blit for non fitting background images. */
-                    dfb_gfxcard_stretchblit( &src, &dst, state );
-
-                    /* Restore clipping region. */
-                    dfb_state_set_clip( state, &clip );
-               }
+               /* Restore clipping region. */
+               dfb_state_set_clip( state, &clip );
 
                /* Reset blitting source. */
                state->source    = NULL;
@@ -992,15 +1103,17 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
                DFBRegion     clip = state->clip;
                DFBRectangle  src  = { 0, 0, bg->config.size.w, bg->config.size.h };
 
+               D_MAGIC_ASSERT( bg, CoreSurface );
+
                /* Set blitting source. */
                state->source    = bg;
                state->modified |= SMF_SOURCE;
 
                /* Set blitting flags. */
-               dfb_state_set_blitting_flags( state, DSBLIT_NOFX );
+               dfb_state_set_blitting_flags( state, stack->rotated_blit );
 
                /* Change clipping region. */
-               dfb_state_set_clip( state, region );
+               dfb_state_set_clip( state, &clip );
 
                /* Tiled blit (aligned). */
                dfb_gfxcard_tileblit( &src,
@@ -1054,8 +1167,12 @@ update_region( CoreWindowStack *stack,
           CoreWindow *window = fusion_vector_at( &data->windows, i );
 
           if (VISIBLE_WINDOW( window )) {
+               DFBRectangle rotated;
+
+               transform_window_to_stack( window, &window->config.bounds, &rotated );
+
                if (dfb_region_intersect( &region,
-                                         DFB_REGION_VALS_FROM_RECTANGLE( &window->config.bounds )))
+                                         DFB_REGION_VALS_FROM_RECTANGLE( &rotated )))
                     break;
           }
 
@@ -1173,7 +1290,8 @@ repaint_stack( CoreWindowStack     *stack,
      CoreLayer   *layer;
      CardState   *state;
      CoreSurface *surface;
-     DFBRegion    cursor_inter;
+     DFBRegion    flips[num_updates];
+     int          num_flips = 0;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( stack->context != NULL );
@@ -1195,6 +1313,7 @@ repaint_stack( CoreWindowStack     *stack,
      state->modified    |= SMF_DESTINATION;
 
      for (i=0; i<num_updates; i++) {
+          DFBRegion        dest;
           const DFBRegion *update = &updates[i];
 
           DFB_REGION_ASSERT( update );
@@ -1202,26 +1321,38 @@ repaint_stack( CoreWindowStack     *stack,
           D_DEBUG_AT( WM_Default, "  -> %d, %d - %dx%d  (%d)\n",
                       DFB_RECTANGLE_VALS_FROM_REGION( update ), i );
 
+          transform_stack_to_dest( stack, update, &dest );
+
+          if (!dfb_region_intersect( &dest, 0, 0, surface->config.size.w - 1, surface->config.size.h - 1 ))
+               continue;
+
           /* Set clipping region. */
-          dfb_state_set_clip( state, update );
+          dfb_state_set_clip( state, &dest );
 
           /* Compose updated region. */
           update_region( stack, data, state,
                          fusion_vector_size( &data->windows ) - 1,
-                         update->x1, update->y1, update->x2, update->y2 );
+                         DFB_REGION_VALS( update ) );
+
+          flips[num_flips++] = dest;
 
           /* Update cursor? */
-          cursor_inter = data->cursor_region;
-          if (data->cursor_drawn && dfb_region_region_intersect( &cursor_inter, update )) {
-               DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &cursor_inter );
+          if (data->cursor_drawn) {
+               DFBRegion cursor_rotated;
 
                D_ASSUME( data->cursor_bs_valid );
 
-               dfb_gfx_copy_to( surface, data->cursor_bs, &rect,
-                                rect.x - data->cursor_region.x1,
-                                rect.y - data->cursor_region.y1, true );
+               transform_stack_to_dest( stack, &data->cursor_region, &cursor_rotated );
 
-               draw_cursor( stack, data, state, &cursor_inter );
+               if (dfb_region_region_intersect( &dest, &cursor_rotated )) {
+                    DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &dest );
+
+                    dfb_gfx_copy_to( surface, data->cursor_bs, &rect,
+                                     rect.x - cursor_rotated.x1,
+                                     rect.y - cursor_rotated.y1, true );
+
+                    draw_cursor( stack, data, state, &data->cursor_region );
+               }
           }
      }
 
@@ -1233,13 +1364,13 @@ repaint_stack( CoreWindowStack     *stack,
      if (stack->cursor.enabled)
           flags |= DSFLIP_BLIT;
 
-     for (i=0; i<num_updates; i++) {
-          const DFBRegion *update = &updates[i];
+     for (i=0; i<num_flips; i++) {
+          const DFBRegion *flip = &flips[i];
 
-          DFB_REGION_ASSERT( update );
+          DFB_REGION_ASSERT( flip );
 
           /* Flip the updated region .*/
-          dfb_layer_region_flip_update( region, update, flags );
+          dfb_layer_region_flip_update( region, flip, flags );
      }
 }
 
@@ -1287,6 +1418,9 @@ process_updates( StackData           *data,
 //          direct_log_printf( NULL, "%s() <- %d regions, total %d, bounding %d (%d/%d: %d), FULL UPDATE\n",
 //                             __FUNCTION__, data->updates.num_regions, total, bounding, n, d, bounding*n/d );
 
+//          if (context->config.buffermode == DLBM_FRONTONLY)
+//               dfb_region_transpose(&region, context->rotation);
+
           repaint_stack( stack, data, primary, &region, 1, flags );
      }
      else if (data->updates.num_regions < 2 || total < bounding * n / d)
@@ -1331,8 +1465,9 @@ wind_of_change( CoreWindowStack     *stack,
      for (; current > changed; current--) {
           CoreWindow       *window;
           CoreWindowConfig *config;
-          DFBRectangle     *bounds;
           DFBRegion         opaque;
+          DFBRectangle      rotated;
+          DFBRectangle     *bounds = &rotated;
           DFBWindowOptions  options;
 
           D_ASSERT( changed >= 0 );
@@ -1341,8 +1476,9 @@ wind_of_change( CoreWindowStack     *stack,
 
           window  = fusion_vector_at( &data->windows, current );
           config  = &window->config;
-          bounds  = &config->bounds;
           options = config->options;
+
+          transform_window_to_stack( window, &config->bounds, &rotated );
 
           /*
                can skip opaque region
@@ -1434,9 +1570,11 @@ update_window( CoreWindow          *window,
                bool                 scale_region )
 {
      DFBRegion        area;
+     DFBRegion        update;
      StackData       *data;
      CoreWindowStack *stack;
      DFBRectangle    *bounds;
+     DFBDimension     size;
 
      D_ASSERT( window != NULL );
      D_ASSERT( window_data != NULL );
@@ -1455,6 +1593,8 @@ update_window( CoreWindow          *window,
           return DFB_OK;
 
      bounds = &window->config.bounds;
+     size.w = bounds->w;
+     size.h = bounds->h;
 
      if (region) {
           if (scale_region && (window->config.options & DWOP_SCALE)) {
@@ -1487,24 +1627,29 @@ update_window( CoreWindow          *window,
 
                /* limit to window area */
                dfb_region_clip( &area, 0, 0, bounds->w - 1, bounds->h - 1 );
-
-               /* screen offset */
-               dfb_region_translate( &area, bounds->x, bounds->y );
           }
           else
-               area = DFB_REGION_INIT_TRANSLATED( region, bounds->x, bounds->y );
+               area = *region;
      }
-     else
-          area = DFB_REGION_INIT_FROM_RECTANGLE( bounds );
+     else {
+          area.x1 = area.y1 = 0;
+          area.x2 = bounds->w - 1;
+          area.y2 = bounds->h - 1;
+     }
 
-     if (!dfb_unsafe_region_intersect( &area, 0, 0, stack->width - 1, stack->height - 1 ))
+     dfb_region_from_rotated( &update, &area, &size, window->config.rotation );
+
+     /* screen offset */
+     dfb_region_translate( &update, bounds->x, bounds->y );
+
+     if (!dfb_unsafe_region_intersect( &update, 0, 0, stack->width - 1, stack->height - 1 ))
           return DFB_OK;
 
      if (force_complete)
-          dfb_updates_add( &data->updates, &area );
+          dfb_updates_add( &data->updates, &update );
      else
           repaint_stack_for_window( stack, data, window->primary_region,
-                                    &area, flags, get_index( data, window ) );
+                                    &update, flags, get_index( data, window ) );
 
      return DFB_OK;
 }
@@ -1646,32 +1791,28 @@ move_window( CoreWindow *window,
      DFBWindowEvent  evt;
      DFBRectangle   *bounds = &window->config.bounds;
 
-     bounds->x += dx;
-     bounds->y += dy;
-
      if (window->region) {
           data->config.dest.x += dx;
           data->config.dest.y += dy;
 
           ret = dfb_layer_region_set_configuration( window->region, &data->config, CLRCF_DEST );
           if (ret) {
-               bounds->x -= dx;
-               bounds->y -= dy;
-
                data->config.dest.x -= dx;
                data->config.dest.y -= dy;
 
                return ret;
           }
+
+          bounds->x += dx;
+          bounds->y += dy;
      }
      else if (VISIBLE_WINDOW(window)) {
-          DFBRegion region = { 0, 0, bounds->w - 1, bounds->h - 1 };
+          update_window( window, data, NULL, 0, false, false, false );
 
-          update_window( window, data, &region, 0, false, false, false );
+          bounds->x += dx;
+          bounds->y += dy;
 
-          dfb_region_translate( &region, -dx, -dy );
-
-          update_window( window, data, &region, 0, false, false, false );
+          update_window( window, data, NULL, 0, false, false, false );
      }
 
      /* Send new position */
@@ -1722,9 +1863,6 @@ resize_window( CoreWindow *window,
                return ret;
      }
 
-     bounds->w = width;
-     bounds->h = height;
-
      if (window->region) {
           data->config.dest.w = data->config.source.w = data->config.width  = width;
           data->config.dest.h = data->config.source.h = data->config.height = height;
@@ -1743,19 +1881,22 @@ resize_window( CoreWindow *window,
           dfb_region_intersect( &window->config.opaque, 0, 0, width - 1, height - 1 );
 
           if (VISIBLE_WINDOW (window)) {
-               if (ow > bounds->w) {
-                    DFBRegion region = { bounds->w, 0, ow - 1, MIN(bounds->h, oh) - 1 };
+               if (ow > width) {
+                    DFBRegion region = { width, 0, ow - 1, MIN(height, oh) - 1 };
 
                     update_window( window, data, &region, 0, false, false, false );
                }
 
-               if (oh > bounds->h) {
-                    DFBRegion region = { 0, bounds->h, MAX(bounds->w, ow) - 1, oh - 1 };
+               if (oh > height) {
+                    DFBRegion region = { 0, height, MAX(width, ow) - 1, oh - 1 };
 
                     update_window( window, data, &region, 0, false, false, false );
                }
           }
      }
+
+     bounds->w = width;
+     bounds->h = height;
 
      /* Send new size */
      evt.type = DWET_SIZE;
@@ -2211,6 +2352,8 @@ request_focus( CoreWindow *window,
           we.x    = stack->cursor.x - entered->config.bounds.x;
           we.y    = stack->cursor.y - entered->config.bounds.y;
 
+          transform_point_in_window( entered, &we.x, &we.y );
+
           post_event( entered, data, &we );
 
           data->entered_window = NULL;
@@ -2625,6 +2768,8 @@ perform_motion( CoreWindowStack *stack,
                     we.x    = stack->cursor.x - window->config.bounds.x;
                     we.y    = stack->cursor.y - window->config.bounds.y;
 
+                    transform_point_in_window( window, &we.x, &we.y );
+
                     post_event( window, data, &we );
                }
                else if (!update_focus( stack, data, wmdata ) && data->entered_window) {
@@ -2633,6 +2778,8 @@ perform_motion( CoreWindowStack *stack,
                     we.type = DWET_MOTION;
                     we.x    = stack->cursor.x - window->config.bounds.x;
                     we.y    = stack->cursor.y - window->config.bounds.y;
+
+                    transform_point_in_window( window, &we.x, &we.y );
 
                     post_event( window, data, &we );
                }
@@ -2694,6 +2841,8 @@ handle_wheel( CoreWindowStack *stack,
                we.y    = stack->cursor.y - window->config.bounds.y;
                we.step = dz;
 
+               transform_point_in_window( window, &we.x, &we.y );
+
                post_event( window, data, &we );
           }
      }
@@ -2705,10 +2854,75 @@ handle_axis_motion( CoreWindowStack     *stack,
                     WMData              *wmdata,
                     const DFBInputEvent *event )
 {
+     CoreLayerContext *context;
+     DFBInputEvent     rotated_event;
+
      D_ASSERT( stack != NULL );
      D_ASSERT( data != NULL );
      D_ASSERT( event != NULL );
      D_ASSERT( event->type == DIET_AXISMOTION );
+
+     context = stack->context;
+     D_MAGIC_ASSERT( context, CoreLayerContext );
+
+     if (event->flags & DIEF_AXISREL) {
+          rotated_event = *event;
+          event = &rotated_event;
+
+          if (event->axis == DIAI_X) {
+               if (context->rotation == 90) {
+                    rotated_event.axis = DIAI_Y;
+               }
+               else if (context->rotation == 180) {
+                    rotated_event.axisrel = -rotated_event.axisrel;
+               }
+               else if (context->rotation == 270) {
+                    rotated_event.axis = DIAI_Y;
+                    rotated_event.axisrel = -rotated_event.axisrel;
+               }
+          }
+          else if (event->axis == DIAI_Y) {
+               if (context->rotation == 90) {
+                    rotated_event.axis = DIAI_X;
+                    rotated_event.axisrel = -rotated_event.axisrel;
+               }
+               else if (context->rotation == 180) {
+                    rotated_event.axisrel = -rotated_event.axisrel;
+               }
+               else if (context->rotation == 270) {
+                    rotated_event.axis = DIAI_X;
+               }
+          }
+     }
+     else if (event->flags & DIEF_AXISABS) {
+          rotated_event = *event;
+          event = &rotated_event;
+
+          if (event->axis == DIAI_X) {
+               if (context->rotation == 90) {
+                    rotated_event.axis = DIAI_Y;
+               }
+               else if (context->rotation == 180) {
+                    rotated_event.axisabs = stack->rotated_width - rotated_event.axisabs;
+               }
+               else if (context->rotation == 270) {
+                    rotated_event.axis = DIAI_Y;
+                    rotated_event.axisabs = stack->rotated_width - rotated_event.axisabs;
+               }
+          }
+          else if (event->axis == DIAI_Y) {
+               if (context->rotation == 90) {
+                    rotated_event.axis = DIAI_X;
+                    rotated_event.axisabs = stack->rotated_height - rotated_event.axisabs;
+               }
+               else if (context->rotation == 180) {
+                    rotated_event.axisabs = stack->rotated_height - rotated_event.axisabs;
+               }
+               else if (context->rotation == 270) {
+                    rotated_event.axis = DIAI_X;
+               }
+          }
+     }
 
      if (event->flags & DIEF_AXISREL) {
           int rel = event->axisrel;
@@ -3371,6 +3585,14 @@ wm_set_window_config( CoreWindow             *window,
           }
      }
 
+     if (flags & CWCF_ROTATION) {
+          update_window( window, window_data, NULL, DSFLIP_NONE, false, false, false );
+
+          window->config.rotation = config->rotation;
+
+          update_window( window, window_data, NULL, DSFLIP_NONE, false, false, false );
+     }
+
      if (flags & CWCF_STACKING)
           restack_window( window, window_data, window, window_data, 0, config->stacking );
 
@@ -3557,7 +3779,7 @@ static DFBResult
 wm_update_stack( CoreWindowStack     *stack,
                  void                *wm_data,
                  void                *stack_data,
-                 const DFBRegion     *region,
+                 const DFBRegion     *region,     /* stack coordinates */
                  DFBSurfaceFlipFlags  flags )
 {
      StackData *data = stack_data;
@@ -3608,6 +3830,7 @@ wm_update_cursor( CoreWindowStack       *stack,
                   CoreCursorUpdateFlags  flags )
 {
      DFBResult         ret;
+     DFBRegion         old_dest;
      DFBRegion         old_region;
      WMData           *wmdata   = wm_data;
      StackData        *data     = stack_data;
@@ -3623,6 +3846,8 @@ wm_update_cursor( CoreWindowStack       *stack,
      D_MAGIC_ASSERT( data, StackData );
 
      old_region = data->cursor_region;
+
+     transform_stack_to_dest( stack, &old_region, &old_dest );
 
      if (flags & (CCUF_ENABLE | CCUF_POSITION | CCUF_SIZE)) {
           data->cursor_bs_valid  = false;
@@ -3646,15 +3871,19 @@ wm_update_cursor( CoreWindowStack       *stack,
      D_ASSERT( context != NULL );
 
      if (!data->cursor_bs) {
-          CoreSurface *cursor_bs;
-          DFBSurfaceCapabilities caps = DSCAPS_NONE;
+          CoreSurface            *cursor_bs;
+          DFBSurfaceCapabilities  caps = DSCAPS_NONE;
+          DFBDimension            size = stack->cursor.size;
 
           D_ASSUME( flags & CCUF_ENABLE );
 
           dfb_surface_caps_apply_policy( stack->cursor.policy, &caps );
 
+          if (stack->rotation == 90 || stack->rotation == 270)
+               D_UTIL_SWAP( size.w, size.h );
+
           /* Create the cursor backing store surface. */
-          ret = dfb_surface_create_simple( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
+          ret = dfb_surface_create_simple( wmdata->core, size.w, size.h,
                                            context->config.pixelformat, caps, CSTF_SHARED | CSTF_CURSOR,
                                            0, /* FIXME: no shared cursor objects, no cursor id */
                                            NULL, &cursor_bs );
@@ -3677,8 +3906,7 @@ wm_update_cursor( CoreWindowStack       *stack,
           return ret;
 
      surface = primary->surface;
-
-     D_ASSERT( surface != NULL );
+     D_MAGIC_ASSERT( surface, CoreSurface );
 
      if (flags & CCUF_ENABLE) {
          /* Ensure valid back buffer. From now on swapping is prevented until cursor is disabled.
@@ -3696,14 +3924,16 @@ wm_update_cursor( CoreWindowStack       *stack,
      }
 
      /* restore region under cursor */
-     if (data->cursor_drawn) {
+     if (data->cursor_drawn && dfb_region_intersect( &old_dest, 0, 0,
+                                                     surface->config.size.w - 1, surface->config.size.h - 1 ))
+     {
           DFBRectangle rect = { 0, 0,
-                                old_region.x2 - old_region.x1 + 1,
-                                old_region.y2 - old_region.y1 + 1 };
+                                old_dest.x2 - old_dest.x1 + 1,
+                                old_dest.y2 - old_dest.y1 + 1 };
 
           D_ASSERT( stack->cursor.opacity || (flags & CCUF_OPACITY) );
 
-          dfb_gfx_copy_to( data->cursor_bs, surface, &rect, old_region.x1, old_region.y1, false );
+          dfb_gfx_copy_to( data->cursor_bs, surface, &rect, old_dest.x1, old_dest.y1, false );
 
           data->cursor_drawn = false;
 
@@ -3711,9 +3941,12 @@ wm_update_cursor( CoreWindowStack       *stack,
      }
 
      if (flags & CCUF_SIZE) {
-          ret = dfb_surface_reformat( data->cursor_bs,
-                                      stack->cursor.size.w, stack->cursor.size.h,
-                                      data->cursor_bs->config.format );
+          DFBDimension size = stack->cursor.size;
+
+          if (stack->rotation == 90 || stack->rotation == 270)
+               D_UTIL_SWAP( size.w, size.h );
+
+          ret = dfb_surface_reformat( data->cursor_bs, size.w, size.h, data->cursor_bs->config.format );
           if (ret)
                D_DERROR( ret, "WM/Default: Failed resizing backing store for cursor from %dx%d to %dx%d!\n",
                          data->cursor_bs->config.size.w, data->cursor_bs->config.size.h,
@@ -3724,13 +3957,22 @@ wm_update_cursor( CoreWindowStack       *stack,
           dfb_surface_unlink( &data->cursor_bs );
      }
      else if (stack->cursor.opacity) {
+          DFBRegion  dest;
           CoreLayer *layer = dfb_layer_at( context->layer_id );
           CardState *state = &layer->state;
-          DFBRectangle source = primary->config.source;
+
+          transform_stack_to_dest( stack, &data->cursor_region, &dest );
+
+          if (!dfb_region_intersect( &dest, 0, 0, surface->config.size.w - 1, surface->config.size.h - 1 )) {
+               if (restored)
+                    dfb_layer_region_flip_update( primary, &old_dest, DSFLIP_BLIT );
+               dfb_layer_region_unref( primary );
+               return DFB_OK;
+          }
 
           /* backup region under cursor */
           if (!data->cursor_bs_valid) {
-               DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &data->cursor_region );
+               DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &dest );
 
                D_ASSERT( !data->cursor_drawn );
 
@@ -3747,7 +3989,7 @@ wm_update_cursor( CoreWindowStack       *stack,
           state->modified    |= SMF_DESTINATION;
 
           /* Set clipping region. */
-          dfb_state_set_clip( state, &data->cursor_region );
+          dfb_state_set_clip( state, &dest );
 
           /* draw cursor */
           draw_cursor( stack, data, state, &data->cursor_region );
@@ -3759,31 +4001,38 @@ wm_update_cursor( CoreWindowStack       *stack,
           data->cursor_drawn = true;
 
           if (restored) {
-               if (dfb_region_region_intersects( &old_region, &data->cursor_region ))
-                    dfb_region_region_union( &old_region, &data->cursor_region );
+               if (dfb_region_region_intersects( &old_dest, &dest ))
+                    dfb_region_region_union( &old_dest, &dest );
                else
-                    dfb_layer_region_flip_update( primary, &data->cursor_region, DSFLIP_BLIT );
+                    dfb_layer_region_flip_update( primary, &dest, DSFLIP_BLIT );
 
-               dfb_layer_region_flip_update( primary, &old_region, DSFLIP_BLIT );
+               dfb_layer_region_flip_update( primary, &old_dest, DSFLIP_BLIT );
           }
           else
-               dfb_layer_region_flip_update( primary, &data->cursor_region, DSFLIP_BLIT );
+               dfb_layer_region_flip_update( primary, &dest, DSFLIP_BLIT );
 
-          /* Pan to follow the cursor. */
-          if (source.x > stack->cursor.x)
-               source.x = stack->cursor.x;
-          else if (source.x + source.w - 1 < stack->cursor.x)
-               source.x = stack->cursor.x - source.w + 1;
+          /* Pan to follow the cursor? */
+          if (primary->config.source.w < surface->config.size.w || primary->config.source.h < surface->config.size.h) {
+               DFBRectangle source = primary->config.source;
 
-          if (source.y > stack->cursor.y)
-               source.y = stack->cursor.y;
-          else if (source.y + source.h - 1 < stack->cursor.y)
-               source.y = stack->cursor.y - source.h + 1;
+               if (stack->rotation)
+                    D_UNIMPLEMENTED();
 
-          dfb_layer_context_set_sourcerectangle( context, &source );
+               if (source.x > stack->cursor.x)
+                    source.x = stack->cursor.x;
+               else if (source.x + source.w - 1 < stack->cursor.x)
+                    source.x = stack->cursor.x - source.w + 1;
+
+               if (source.y > stack->cursor.y)
+                    source.y = stack->cursor.y;
+               else if (source.y + source.h - 1 < stack->cursor.y)
+                    source.y = stack->cursor.y - source.h + 1;
+
+               dfb_layer_context_set_sourcerectangle( context, &source );
+          }
      }
      else if (restored)
-          dfb_layer_region_flip_update( primary, &old_region, DSFLIP_BLIT );
+          dfb_layer_region_flip_update( primary, &old_dest, DSFLIP_BLIT );
 
      /* Unref primary region. */
      dfb_layer_region_unref( primary );
