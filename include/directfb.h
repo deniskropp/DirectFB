@@ -708,7 +708,9 @@ typedef enum {
                                                 source pixels after premultiplication */
      DSBLIT_INDEX_TRANSLATION  = 0x00000800, /* do fast indexed to indexed translation,
                                                 this flag is mutual exclusive with all others */
+     DSBLIT_ROTATE90           = 0x00002000, /* rotate the image by 90 degree */
      DSBLIT_ROTATE180          = 0x00001000, /* rotate the image by 180 degree */
+     DSBLIT_ROTATE270          = 0x00004000, /* rotate the image by 270 degree */
      DSBLIT_COLORKEY_PROTECT   = 0x00010000, /* make sure written pixels don't match color key (internal only ATM) */
      DSBLIT_SRC_MASK_ALPHA     = 0x00100000, /* modulate source alpha channel with alpha channel from source mask,
                                                 see also IDirectFBSurface::SetSourceMask() */

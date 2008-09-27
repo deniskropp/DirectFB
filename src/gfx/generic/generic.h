@@ -99,6 +99,9 @@ struct _GenefxState {
      void *Bop[3];
      u32   Cop;
 
+     int   Astep;
+     int   Bstep;
+
      u8 YCop;
      u8 CbCop;
      u8 CrCop;
