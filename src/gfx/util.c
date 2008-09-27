@@ -104,9 +104,10 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, const DFBRectang
 }
 
 static void
-back_to_front_copy( CoreSurface *surface, const DFBRegion *region, DFBSurfaceBlittingFlags flags )
+back_to_front_copy( CoreSurface *surface, const DFBRegion *region, DFBSurfaceBlittingFlags flags, int rotation)
 {
      DFBRectangle rect;
+     int          dx, dy;
 
      if (region) {
           rect.x = region->x1;
@@ -120,6 +121,9 @@ back_to_front_copy( CoreSurface *surface, const DFBRegion *region, DFBSurfaceBli
           rect.w = surface->config.size.w;
           rect.h = surface->config.size.h;
      }
+
+     dx = rect.x;
+     dy = rect.y;
 
      pthread_mutex_lock( &btf_lock );
 
@@ -139,9 +143,30 @@ back_to_front_copy( CoreSurface *surface, const DFBRegion *region, DFBSurfaceBli
      btf_state.source        = surface;
      btf_state.destination   = surface;
 
+
+     if (rotation == 90) {
+          dx = rect.y;
+          dy = surface->config.size.w - rect.w - rect.x;
+
+          flags |= DSBLIT_ROTATE90;
+     }
+     else if (rotation == 180) {
+          dx = surface->config.size.w - rect.w - rect.x;
+          dy = surface->config.size.h - rect.h - rect.y;
+
+          flags |= DSBLIT_ROTATE180;
+     }
+     else if (rotation == 270) {
+          dx = surface->config.size.h - rect.h - rect.y;
+          dy = rect.x;
+
+          flags |= DSBLIT_ROTATE270;
+     }
+
+
      dfb_state_set_blitting_flags( &btf_state, flags );
 
-     dfb_gfxcard_blit( &rect, rect.x, rect.y, &btf_state );
+     dfb_gfxcard_blit( &rect, dx, dy, &btf_state );
 
      /* Signal end of sequence. */
      dfb_state_stop_drawing( &btf_state );
@@ -152,13 +177,13 @@ back_to_front_copy( CoreSurface *surface, const DFBRegion *region, DFBSurfaceBli
 void
 dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region )
 {
-     back_to_front_copy( surface, region, DSBLIT_NOFX );
+     back_to_front_copy( surface, region, DSBLIT_NOFX, 0);
 }
 
 void
-dfb_back_to_front_copy_180( CoreSurface *surface, const DFBRegion *region )
+dfb_back_to_front_copy_rotation( CoreSurface *surface, const DFBRegion *region, int rotation )
 {
-     back_to_front_copy( surface, region, DSBLIT_ROTATE180 );
+     back_to_front_copy( surface, region, DSBLIT_NOFX, rotation );
 }
 
 void
