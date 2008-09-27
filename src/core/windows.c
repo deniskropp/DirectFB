@@ -1767,3 +1767,50 @@ core_window_filter( CoreWindow *window, const DFBWindowEvent *event )
      return false;
 }
 
+DFBResult
+dfb_window_set_rotation( CoreWindow *window,
+                         int         rotation )
+{
+     DFBResult        ret   = DFB_OK;
+     CoreWindowStack *stack = window->stack;
+
+     D_MAGIC_ASSERT( window, CoreWindow );
+
+     stack = window->stack;
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
+     
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack ))
+          return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+     
+     /* Do nothing if the rotation didn't change. */
+     if (window->config.rotation != rotation) {
+          CoreWindowConfig config;
+
+          switch (rotation) {
+               case 0:
+               case 90:
+               case 180:
+               case 270:
+                    config.rotation = rotation;
+
+                    dfb_wm_set_window_config( window, &config, CWCF_ROTATION );
+                    break;
+
+               default:
+                    ret = DFB_UNSUPPORTED;
+          }
+     }
+
+     /* Unlock the window stack. */
+     dfb_windowstack_unlock( stack );
+
+     return ret;
+}
+

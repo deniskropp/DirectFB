@@ -1199,6 +1199,16 @@ IDirectFBWindow_SetDstGeometry( IDirectFBWindow         *thiz,
 }
 
 DFBResult
+IDirectFBWindow_SetRotation(IDirectFBWindow *thiz,
+                          int rotation)
+{
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     return dfb_window_set_rotation( data->window, rotation % 360 );     
+ }
+
+DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                            CoreWindow      *window,
                            CoreLayer       *layer,
@@ -1266,6 +1276,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->UngrabUnselectedKeys = IDirectFBWindow_UngrabUnselectedKeys;
      thiz->SetSrcGeometry = IDirectFBWindow_SetSrcGeometry;
      thiz->SetDstGeometry = IDirectFBWindow_SetDstGeometry;
+     thiz->SetRotation = IDirectFBWindow_SetRotation;
 
      return DFB_OK;
 }

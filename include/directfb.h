@@ -5309,6 +5309,14 @@ DEFINE_INTERFACE(   IDirectFBWindow,
           const char                    *key,
           void                         **ret_value
      );
+
+     /*
+      * Set window rotation.
+      */
+     DFBResult (*SetRotation) (
+          IDirectFBWindow               *thiz,
+          int                            rotation
+     );
 )
 
 

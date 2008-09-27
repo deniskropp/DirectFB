@@ -62,7 +62,9 @@ typedef enum {
      CWCF_SRC_GEOMETRY  = 0x00010000,
      CWCF_DST_GEOMETRY  = 0x00020000,
 
-     CWCF_ALL           = 0x0003133F
+     CWCF_ROTATION      = 0x00040000,
+
+     CWCF_ALL           = 0x0007133F
 } CoreWindowConfigFlags;
 
 struct __DFB_CoreWindowConfig {
@@ -80,6 +82,8 @@ struct __DFB_CoreWindowConfig {
 
      DFBWindowGeometry        src_geometry;   /* advanced source geometry */
      DFBWindowGeometry        dst_geometry;   /* advanced destination geometry */
+
+     int                      rotation;
 };
 
 
@@ -284,4 +288,6 @@ DFBWindowID dfb_window_id( const CoreWindow *window );
 
 CoreSurface *dfb_window_surface( const CoreWindow *window );
 
+DFBResult
+dfb_window_set_rotation( CoreWindow *window, int rotation );
 #endif
