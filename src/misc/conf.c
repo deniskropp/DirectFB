@@ -124,7 +124,7 @@ static const char *config_usage =
      "  layer-bg-tile=<filename>       Use tiled background image\n"
      "  layer-src-key=AARRGGBB         Enable color keying (hex)\n"
      "  layer-palette-<index>=AARRGGBB Set palette entry at index (hex)\n"
-     "  layer-rotate=<degree>          Set the layer rotation for double buffer mode (0/180)\n"
+     "  layer-rotate=<degree>          Set the layer rotation for double buffer mode (0,90,180,270)\n"
      "  [no-]smooth-upscale            Enable/disable smooth upscaling per default\n"
      "  [no-]smooth-downscale          Enable/disable smooth downscaling per default\n"
      "  [no-]translucent-windows       Allow translucent windows\n"
@@ -1295,8 +1295,8 @@ DFBResult dfb_config_set( const char *name, const char *value )
                     return DFB_INVARG;
                }
 
-               if (rotate != 0 && rotate != 180) {
-                    D_ERROR("DirectFB/Config '%s': Only 0 and 180 supported yet!\n", name);
+               if (rotate != 0 && rotate != 90 && rotate != 180 && rotate != 270) {
+                    D_ERROR("DirectFB/Config '%s': Only 0, 90, 180 or 270 supported!\n", name);
                     return DFB_UNSUPPORTED;
                }
 
