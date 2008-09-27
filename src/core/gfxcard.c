@@ -1641,10 +1641,72 @@ void dfb_gfxcard_filltriangles( const DFBTriangle *tris, int num, CardState *sta
      dfb_state_unlock( state );
 }
 
+static void
+clip_blit_rotated( DFBRectangle *srect, DFBRectangle *drect, const DFBRegion *clip, DFBSurfaceBlittingFlags flags )
+{
+     DFBRegion dest    = DFB_REGION_INIT_FROM_RECTANGLE( drect );
+     DFBRegion clipped = dest;
+
+     if (flags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270)) {
+          D_ASSERT( srect->w == drect->h );
+          D_ASSERT( srect->h == drect->w );
+     }
+     else {
+          D_ASSERT( srect->w == drect->w );
+          D_ASSERT( srect->h == drect->h );
+     }
+
+     dfb_region_region_intersect( &clipped, clip );
+     dfb_rectangle_from_region( drect, &clipped );
+
+     if (flags & DSBLIT_ROTATE90) {
+          srect->x += dest.y2 - clipped.y2;
+          srect->y += clipped.x1 - dest.x1;
+          srect->w  = drect->h;
+          srect->h  = drect->w;
+
+          D_DEBUG_AT( Core_GraphicsOps, "  => %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d (90°)\n",
+                      DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect) );
+     }
+     else if (flags & DSBLIT_ROTATE180) {
+          srect->x += dest.x2 - clipped.x2;
+          srect->y += dest.y2 - clipped.y2;
+          srect->w  = drect->w;
+          srect->h  = drect->h;
+
+          D_DEBUG_AT( Core_GraphicsOps, "  => %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d (180°)\n",
+                      DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect) );
+     }
+     else if (flags & DSBLIT_ROTATE270) {
+          srect->x += clipped.y1 - dest.y1;
+          srect->y += dest.x2 - clipped.x2;
+          srect->w  = drect->h;
+          srect->h  = drect->w;
+
+          D_DEBUG_AT( Core_GraphicsOps, "  => %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d (270°)\n",
+                      DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect) );
+     }
+     else {
+          srect->x += clipped.x1 - dest.x1;
+          srect->y += clipped.y1 - dest.y1;
+          srect->w  = drect->w;
+          srect->h  = drect->h;
+
+          D_DEBUG_AT( Core_GraphicsOps, "  => %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d\n",
+                      DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect) );
+     }
+}
 
 void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
 {
-     bool hw = false;
+     bool         hw    = false;
+     DFBRectangle drect = { dx, dy, rect->w, rect->h };
+
+     if (state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270))
+          D_UTIL_SWAP( drect.w, drect.h );
+
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d, %p )\n",
+                 __FUNCTION__, DFB_RECTANGLE_VALS(rect), DFB_RECTANGLE_VALS(&drect), state );
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -1658,9 +1720,6 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      D_ASSERT( rect->x + rect->w - 1 < state->source->config.size.w );
      D_ASSERT( rect->y + rect->h - 1 < state->source->config.size.h );
 
-     D_DEBUG_AT( Core_GraphicsOps, "%s( %d,%d - %dx%d -> %d,%d, %p )\n",
-                 __FUNCTION__, DFB_RECTANGLE_VALS(rect), dx, dy, state );
-
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
 
@@ -1668,7 +1727,8 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      dfb_state_start_drawing( state, card );
 
      if (!(state->render_options & DSRO_MATRIX) &&
-         !dfb_clip_blit_precheck( &state->clip, rect->w, rect->h, dx, dy )) {
+         !dfb_clip_blit_precheck( &state->clip, drect.w, drect.h, drect.x, drect.y ))
+     {
           /* no work at all */
           dfb_state_unlock( state );
           return;
@@ -1679,10 +1739,9 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      {
           if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
               !D_FLAGS_IS_SET( card->caps.clip, DFXL_BLIT ))
-               dfb_clip_blit( &state->clip, rect, &dx, &dy );
+               clip_blit_rotated( rect, &drect, &state->clip, state->blittingflags );
 
-          hw = card->funcs.Blit( card->driver_data, card->device_data,
-                                 rect, dx, dy );
+          hw = card->funcs.Blit( card->driver_data, card->device_data, rect, drect.x, drect.y );
 
           dfb_gfxcard_state_release( state );
      }
@@ -1716,8 +1775,10 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
           }
           else {
                if (gAcquire( state, DFXL_BLIT )) {
-                    dfb_clip_blit( &state->clip, rect, &dx, &dy );
-                    gBlit( state, rect, dx, dy );
+                    clip_blit_rotated( rect, &drect, &state->clip, state->blittingflags );
+
+                    gBlit( state, rect, drect.x, drect.y );
+
                     gRelease( state );
                }
           }
@@ -1986,9 +2047,17 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
      D_DEBUG_AT( Core_GraphicsOps, "%s( %d,%d - %dx%d -> %d,%d - %dx%d, %p )\n",
                  __FUNCTION__, DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect), state );
 
-     if (srect->w == drect->w && srect->h == drect->h) {
-          dfb_gfxcard_blit( srect, drect->x, drect->y, state );
-          return;
+     if (state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270)) {
+          if (srect->w == drect->h && srect->h == drect->w) {
+               dfb_gfxcard_blit( srect, drect->x, drect->y, state );
+               return;
+          }
+     }
+     else {
+          if (srect->w == drect->w && srect->h == drect->h) {
+               dfb_gfxcard_blit( srect, drect->x, drect->y, state );
+               return;
+          }
      }
 
      /* The state is locked during graphics operations. */
