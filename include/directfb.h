@@ -3052,13 +3052,21 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       *
       * Only available in exclusive or administrative mode.
       *
-      * Any <b>rotation</b> other than 0 or 180 is not supported yet.
+      * Any <b>rotation</b> other than 0, 90, 180 or 270 is not supported.
       *
-      * No layer hardware feature usage, only rotated blitting yet.
+      * No layer hardware feature usage, only rotated blitting is used.
       */
      DFBResult (*SetRotation) (
           IDirectFBDisplayLayer              *thiz,
           int                                 rotation
+     );
+
+     /*
+      * Get the rotation of data within the layer.
+      */
+     DFBResult (*GetRotation) (
+          IDirectFBDisplayLayer              *thiz,
+          int                                *ret_rotation
      );
 )
 

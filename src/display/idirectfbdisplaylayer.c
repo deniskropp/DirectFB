@@ -891,6 +891,32 @@ IDirectFBDisplayLayer_SetRotation( IDirectFBDisplayLayer *thiz,
      return dfb_layer_context_set_rotation( data->context, rotation );
 }
 
+static DFBResult
+IDirectFBDisplayLayer_GetRotation( IDirectFBDisplayLayer *thiz,
+                                   int                   *ret_rotation )
+{
+     CoreLayerContext *context;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (!ret_rotation)
+          return DFB_INVARG;
+
+     context = data->context;
+     D_MAGIC_ASSERT( context, CoreLayerContext );
+
+     /* Lock the context. */
+     if (dfb_layer_context_lock( context ))
+          return DFB_FUSION;
+
+     *ret_rotation = context->rotation;
+
+     /* Unlock the context. */
+     dfb_layer_context_unlock( context );
+
+     return DFB_OK;
+}
+
 DFBResult
 IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
                                  CoreLayer             *layer,
@@ -965,6 +991,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->SetScreenRectangle    = IDirectFBDisplayLayer_SetScreenRectangle;
      thiz->SwitchContext         = IDirectFBDisplayLayer_SwitchContext;
      thiz->SetRotation           = IDirectFBDisplayLayer_SetRotation;
+     thiz->GetRotation           = IDirectFBDisplayLayer_GetRotation;
 
      return DFB_OK;
 }
