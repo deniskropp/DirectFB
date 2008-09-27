@@ -544,6 +544,9 @@ context_callback( FusionObjectPool *pool,
      else
           printf( "PRIVATE  " );
 
+     if (context->rotation)
+          printf( "ROTATED %d ", context->rotation);
+
      if (dfb_layer_get_level( layer, &level ))
           printf( "N/A" );
      else
@@ -631,6 +634,9 @@ window_callback( CoreWindow *window,
 
      if (DFB_WINDOW_DESTROYED( window ))
           printf( "DESTROYED      " );
+
+     if (window->config.rotation)
+          printf( "ROTATED %d     ", window->config.rotation);
 
      printf( "\n" );
 
@@ -814,23 +820,29 @@ main( int argc, char *argv[] )
      }
 
      dump_surfaces();
+     fflush( stdout );
+
      dump_layers();
+     fflush( stdout );
 
 #if FUSION_BUILD_MULTI
      if (show_shm) {
           printf( "\n" );
           dump_shmpools();
+          fflush( stdout );
      }
 #endif
 
      if (show_pools) {
           printf( "\n" );
           dump_surface_pool_info();
+          fflush( stdout );
      }
 
      if (show_allocs) {
           printf( "\n" );
           dump_surface_pools();
+          fflush( stdout );
      }
 
      printf( "\n" );
