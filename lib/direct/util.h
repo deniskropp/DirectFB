@@ -81,6 +81,11 @@
 
 #define D_ARRAY_SIZE(array)        ((int)(sizeof(array) / sizeof((array)[0])))
 
+#define D_UTIL_SWAP(a,b)                                    \
+     do {                                                   \
+          const typeof(a) x = (a); (a) = (b); (b) = x;      \
+     } while (0)
+
 
 #if __GNUC__ >= 3
 #define D_CONST_FUNC               __attribute__((const))
