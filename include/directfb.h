@@ -650,7 +650,9 @@ typedef enum {
 
      DSCAPS_SHARED        = 0x00100000,  /* The surface will be accessible among processes. */
 
-     DSCAPS_ALL           = 0x001113F7,  /* All of these. */
+     DSCAPS_ROTATED       = 0x01000000,  /* The back buffers are allocated with swapped width/height (unimplemented!). */
+
+     DSCAPS_ALL           = 0x011113F7,  /* All of these. */
 
 
      DSCAPS_FLIPPING      = DSCAPS_DOUBLE | DSCAPS_TRIPLE /* Surface needs Flip() calls to make

@@ -151,7 +151,10 @@ dfb_surface_create( CoreDFB                  *core,
           if (config->flags & CSCONF_CAPS) {
                D_DEBUG_AT( Core_Surface, "  -> caps 0x%08x\n", config->caps );
 
-               surface->config.caps = config->caps;
+               if (config->caps & DSCAPS_ROTATED)
+                    D_UNIMPLEMENTED();
+
+               surface->config.caps = config->caps & ~DSCAPS_ROTATED;
           }
 
           if (config->flags & CSCONF_PREALLOCATED) {
@@ -181,8 +184,11 @@ dfb_surface_create( CoreDFB                  *core,
           buffers = 3;
      else if (surface->config.caps & DSCAPS_DOUBLE)
           buffers = 2;
-     else
+     else {
           buffers = 1;
+
+          surface->config.caps &= ~DSCAPS_ROTATED;
+     }
 
      surface->notifications = CSNF_ALL & ~CSNF_FLIP;
 
@@ -371,7 +377,7 @@ dfb_surface_flip( CoreSurface *surface, bool swap )
      D_ASSERT( surface->buffer_indices[CSBR_FRONT] < surface->num_buffers );
 
      if (surface->buffers[surface->buffer_indices[CSBR_BACK]]->policy !=
-         surface->buffers[surface->buffer_indices[CSBR_FRONT]]->policy)
+         surface->buffers[surface->buffer_indices[CSBR_FRONT]]->policy || (surface->config.caps & DSCAPS_ROTATED))
           return DFB_UNSUPPORTED;
 
      if (swap) {
@@ -449,8 +455,12 @@ dfb_surface_reconfig( CoreSurface             *surface,
      if (config->flags & CSCONF_FORMAT)
           surface->config.format = config->format;
 
-     if (config->flags & CSCONF_CAPS)
-          surface->config.caps = config->caps;
+     if (config->flags & CSCONF_CAPS) {
+          if (config->caps & DSCAPS_ROTATED)
+               D_UNIMPLEMENTED();
+
+          surface->config.caps = config->caps & ~DSCAPS_ROTATED;
+     }
 
      if (surface->config.caps & DSCAPS_SYSTEMONLY)
           surface->type = (surface->type & ~CSTF_EXTERNAL) | CSTF_INTERNAL;
@@ -463,8 +473,11 @@ dfb_surface_reconfig( CoreSurface             *surface,
           buffers = 3;
      else if (surface->config.caps & DSCAPS_DOUBLE)
           buffers = 2;
-     else
+     else {
           buffers = 1;
+
+          surface->config.caps &= ~DSCAPS_ROTATED;
+     }
 
      /* Recreate the Surface Buffers. */
      for (i=0; i<buffers; i++) {

@@ -186,6 +186,8 @@ struct __DFB_CoreSurface
      CoreSurfaceTypeFlags     type;
      unsigned long            resource_id;   /* layer id, window id, or user specified */
 
+     int                      rotation;
+
      CoreSurfaceNotificationFlags notifications;
 
      DirectSerial             serial;
