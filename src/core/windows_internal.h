@@ -132,6 +132,12 @@ struct __DFB_CoreWindowStack {
      int                 width;
      int                 height;
 
+     int                 rotation;
+
+     int                      rotated_width;
+     int                      rotated_height;
+     DFBSurfaceBlittingFlags  rotated_blit;
+
      DFBWindowID         id_pool;
 
      int                 num;

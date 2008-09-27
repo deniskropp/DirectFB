@@ -416,6 +416,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                               DFBSurfaceFlipFlags  flags )
 {
      DFBResult                ret = DFB_OK;
+     DFBRegion                rotated;
      CoreLayer               *layer;
      CoreLayerContext        *context;
      CoreSurface             *surface;
@@ -480,7 +481,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
           case DLBM_TRIPLE:
           case DLBM_BACKVIDEO:
                /* Check if simply swapping the buffers is possible... */
-               if (!(flags & DSFLIP_BLIT) && !context->rotation &&
+               if (!(flags & DSFLIP_BLIT) && !surface->rotation &&
                    (!update || (update->x1 == 0 &&
                                 update->y1 == 0 &&
                                 update->x2 == surface->config.size.w - 1 &&
@@ -534,10 +535,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                D_DEBUG_AT( Core_Layers, "  -> Copying content from back to front buffer...\n" );
 
                /* ...or copy updated contents from back to front buffer. */
-               if (context->rotation == 180)
-                    dfb_back_to_front_copy_180( surface, update );
-               else
-                    dfb_back_to_front_copy( surface, update );
+               dfb_back_to_front_copy_rotation( surface, update, surface->rotation );
 
                if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAIT) {
                     D_DEBUG_AT( Core_Layers, "  -> Waiting for VSync...\n" );
@@ -574,11 +572,13 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
 
                     D_DEBUG_AT( Core_Layers, "  -> Notifying driver about updated content...\n" );
 
+                    dfb_region_from_rotated( &rotated, update, &surface->config.size, surface->rotation );
+
                     ret = funcs->UpdateRegion( layer,
                                                layer->driver_data,
                                                layer->layer_data,
                                                region->region_data,
-                                               surface, update, &region->surface_lock );
+                                               surface, &rotated, &region->surface_lock );
                }
                break;
 

@@ -216,9 +216,10 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
 void
 dfb_windowstack_resize( CoreWindowStack *stack,
                         int              width,
-                        int              height )
+                        int              height,
+                        int              rotation )
 {
-     D_DEBUG_AT( Core_WindowStack, "%s( %p, %dx%d )\n", __FUNCTION__, stack, width, height );
+     D_DEBUG_AT( Core_WindowStack, "%s( %p, %dx%d, %d )\n", __FUNCTION__, stack, width, height, rotation );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
 
@@ -227,8 +228,37 @@ dfb_windowstack_resize( CoreWindowStack *stack,
           return;
 
      /* Store the width and height of the stack */
-     stack->width  = width;
-     stack->height = height;
+     stack->width    = width;
+     stack->height   = height;
+     stack->rotation = rotation;
+
+     switch (stack->rotation) {
+          default:
+               D_BUG( "invalid rotation %d", stack->rotation );
+          case 0:
+               stack->rotated_blit   = DSBLIT_NOFX;
+               stack->rotated_width  = stack->width;
+               stack->rotated_height = stack->height;
+               break;
+
+          case 90:
+               stack->rotated_blit   = DSBLIT_ROTATE90;
+               stack->rotated_width  = stack->height;
+               stack->rotated_height = stack->width;
+               break;
+
+          case 180:
+               stack->rotated_blit   = DSBLIT_ROTATE180;
+               stack->rotated_width  = stack->width;
+               stack->rotated_height = stack->height;
+               break;
+
+          case 270:
+               stack->rotated_blit   = DSBLIT_ROTATE270;
+               stack->rotated_width  = stack->height;
+               stack->rotated_height = stack->width;
+               break;
+     }
 
      /* Setup new cursor clipping region */
      stack->cursor.region.x1 = 0;
@@ -284,8 +314,8 @@ dfb_windowstack_repaint_all( CoreWindowStack *stack )
 
      region.x1 = 0;
      region.y1 = 0;
-     region.x2 = stack->width  - 1;
-     region.y2 = stack->height - 1;
+     region.x2 = stack->rotated_width  - 1;
+     region.y2 = stack->rotated_height - 1;
 
      ret = dfb_wm_update_stack( stack, &region, 0 );
 

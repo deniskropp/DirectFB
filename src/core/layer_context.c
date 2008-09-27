@@ -144,11 +144,54 @@ dfb_layer_context_pool_create( const FusionWorld *world )
 
 /**********************************************************************************************************************/
 
+static void
+update_stack_geometry( CoreLayerContext *context )
+{
+     DFBDimension     size;
+     int              rotation;
+     CoreLayerRegion *region;
+     CoreSurface     *surface;
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
+
+     rotation = context->rotation;
+
+     switch (rotation) {
+          default:
+               D_BUG( "invalid rotation %d", rotation );
+          case 0:
+          case 180:
+               size.w = context->config.width;
+               size.h = context->config.height;
+               break;
+
+          case 90:
+          case 270:
+               size.w = context->config.height;
+               size.h = context->config.width;
+               break;
+     }
+
+     region = context->primary.region;
+     if (region) {
+          surface = region->surface;
+          if (surface) {
+               D_MAGIC_ASSERT( surface, CoreSurface );
+
+               rotation -= surface->rotation;
+               if (rotation < 0)
+                    rotation += 360;
+          }
+     }
+
+     dfb_windowstack_resize( context->stack, size.w, size.h, rotation );
+}
+
 DFBResult
 dfb_layer_context_init( CoreLayerContext *context,
                         CoreLayer        *layer )
 {
-     CoreLayerShared  *shared;
+     CoreLayerShared *shared;
 
      D_ASSERT( context != NULL );
      D_ASSERT( layer != NULL );
@@ -209,9 +252,7 @@ dfb_layer_context_init( CoreLayerContext *context,
      }
 
      /* Tell the window stack about its size. */
-     dfb_windowstack_resize( context->stack,
-                             context->config.width,
-                             context->config.height );
+     update_stack_geometry( context );
 
      dfb_layer_context_unlock( context );
 
@@ -769,9 +810,7 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
           if (config->flags & (DLCONF_WIDTH | DLCONF_HEIGHT |
                                DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE | DLCONF_SURFACE_CAPS))
           {
-               dfb_windowstack_resize( stack,
-                                       region_config.width,
-                                       region_config.height );
+               update_stack_geometry( context );
 
                /* FIXME: call only if really needed */
                dfb_windowstack_repaint_all( stack );
@@ -1132,6 +1171,8 @@ dfb_layer_context_set_rotation( CoreLayerContext *context,
      /* Do nothing if the rotation didn't change. */
      if (context->rotation != rotation) {
           context->rotation = rotation;
+
+          update_stack_geometry( context );
 
           dfb_windowstack_repaint_all( context->stack );
      }
@@ -1566,6 +1607,7 @@ allocate_surface( CoreLayer             *layer,
 {
      DFBResult                ret;
      const DisplayLayerFuncs *funcs;
+     CoreLayerContext        *context;
      CoreSurface             *surface = NULL;
      DFBSurfaceCapabilities   caps    = DSCAPS_VIDEOONLY;
      CoreSurfaceTypeFlags     type    = CSTF_LAYER;
@@ -1580,6 +1622,9 @@ allocate_surface( CoreLayer             *layer,
      D_ASSERT( region->surface == NULL );
      D_ASSERT( config != NULL );
      D_ASSERT( config->buffermode != DLBM_WINDOWS );
+
+     context = region->context;
+     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      funcs = layer->funcs;
 
@@ -1619,6 +1664,9 @@ allocate_surface( CoreLayer             *layer,
                     break;
           }
 
+          if (context->rotation == 90 || context->rotation == 270)
+               caps |= DSCAPS_ROTATED;
+
           /* FIXME: remove this? */
           if (config->options & DLOP_DEINTERLACING)
                caps |= DSCAPS_INTERLACED;
@@ -1648,6 +1696,11 @@ allocate_surface( CoreLayer             *layer,
                surface->buffers[1]->policy = CSP_SYSTEMONLY;
      }
 
+     if (surface->config.caps & DSCAPS_ROTATED)
+          surface->rotation = context->rotation;
+     else
+          surface->rotation = (context->rotation == 180) ? 180 : 0;
+
      /* Tell the region about its new surface (adds a global reference). */
      ret = dfb_layer_region_set_surface( region, surface );
 
@@ -1664,6 +1717,7 @@ reallocate_surface( CoreLayer             *layer,
 {
      DFBResult                ret;
      const DisplayLayerFuncs *funcs;
+     CoreLayerContext        *context;
      CoreSurface             *surface;
      CoreSurfaceConfig        sconfig;
 
@@ -1675,6 +1729,9 @@ reallocate_surface( CoreLayer             *layer,
      D_ASSERT( region->surface != NULL );
      D_ASSERT( config != NULL );
      D_ASSERT( config->buffermode != DLBM_WINDOWS );
+
+     context = region->context;
+     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      funcs   = layer->funcs;
      surface = region->surface;
@@ -1688,7 +1745,7 @@ reallocate_surface( CoreLayer             *layer,
      sconfig.flags = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
 
      sconfig.caps = surface->config.caps & ~(DSCAPS_FLIPPING  | DSCAPS_INTERLACED |
-                                             DSCAPS_SEPARATED | DSCAPS_PREMULTIPLIED);
+                                             DSCAPS_SEPARATED | DSCAPS_PREMULTIPLIED | DSCAPS_ROTATED);
 
      switch (config->buffermode) {
           case DLBM_TRIPLE:
@@ -1707,6 +1764,9 @@ reallocate_surface( CoreLayer             *layer,
                D_BUG("unknown buffermode");
                return DFB_BUG;
      }
+
+     if (context->rotation == 90 || context->rotation == 270)
+          sconfig.caps |= DSCAPS_ROTATED;
 
      /* Add available surface capabilities. */
      sconfig.caps |= config->surface_caps & (DSCAPS_INTERLACED |
@@ -1738,6 +1798,11 @@ reallocate_surface( CoreLayer             *layer,
 
      if (config->buffermode == DLBM_BACKSYSTEM)
           surface->buffers[1]->policy = CSP_SYSTEMONLY;
+
+     if (surface->config.caps & DSCAPS_ROTATED)
+          surface->rotation = context->rotation;
+     else
+          surface->rotation = (context->rotation == 180) ? 180 : 0;
 
      dfb_surface_unlock( surface );
      

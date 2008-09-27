@@ -43,7 +43,8 @@ void             dfb_windowstack_destroy( CoreWindowStack  *stack );
 
 void             dfb_windowstack_resize ( CoreWindowStack  *stack,
                                           int               width,
-                                          int               height );
+                                          int               height,
+                                          int               rotation );
 
 DirectResult     dfb_windowstack_lock   ( CoreWindowStack  *stack );
 
