@@ -71,6 +71,9 @@ DirectResult fusion_enter( int               world_index,
 DirectResult fusion_exit( FusionWorld *world,
                           bool         emergency );
 
+DirectResult fusion_stop_dispatcher( FusionWorld *world,
+                                     bool         emergency );
+
 /*
  * Sets the fork() action of the calling Fusionee within the world.
  */

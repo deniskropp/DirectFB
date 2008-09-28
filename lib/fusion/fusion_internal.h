@@ -101,6 +101,7 @@ struct __Fusion_FusionWorld {
      FusionID             fusion_id;
 
      DirectThread        *dispatch_loop;
+     bool                 dispatch_stop;
 
      /*
       * List of reactors with at least one local reaction attached.

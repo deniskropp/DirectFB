@@ -719,6 +719,27 @@ error:
      return ret;
 }
 
+DirectResult
+fusion_stop_dispatcher( FusionWorld *world,
+                        bool         emergency )
+{
+     if (!emergency) {
+          fusion_sync( world );
+
+          direct_thread_lock( world->dispatch_loop );
+     }
+          
+     world->dispatch_stop = true;
+
+     if (!emergency) {
+          direct_thread_unlock( world->dispatch_loop );
+
+          fusion_sync( world );
+     }
+
+     return DR_OK;
+}
+
 /*
  * Exits the fusion world.
  *
@@ -748,7 +769,6 @@ fusion_exit( FusionWorld *world,
           return DR_OK;
      }
 
-
      if (!emergency) {
           int               foo;
           FusionSendMessage msg;
@@ -761,7 +781,8 @@ fusion_exit( FusionWorld *world,
 
           while (ioctl( world->fusion_fd, FUSION_SEND_MESSAGE, &msg ) < 0) {
                if (errno != EINTR) {
-                    D_PERROR ("FUSION_SEND_MESSAGE");
+                    D_PERROR( "FUSION_SEND_MESSAGE" );
+                    direct_thread_cancel( world->dispatch_loop );
                     break;
                }
           }
@@ -771,7 +792,6 @@ fusion_exit( FusionWorld *world,
      }
 
      direct_thread_destroy( world->dispatch_loop );
-
 
      /* Master has to deinitialize shared data. */
      if (fusion_master( world )) {
@@ -904,40 +924,55 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
 
                D_DEBUG_AT( Fusion_Main_Dispatch, "  -> got %d bytes...\n", len );
 
-               while (buf_p < buf + len) {
-                    FusionReadMessage *header = (FusionReadMessage*) buf_p;
-                    void              *data   = buf_p + sizeof(FusionReadMessage);
+               direct_thread_lock( world->dispatch_loop );
 
-                    D_MAGIC_ASSERT( world, FusionWorld );
-                    D_ASSERT( (buf + len - buf_p) >= sizeof(FusionReadMessage) );
+               if (world->dispatch_stop) {
+                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> IGNORING (dispatch_stop!)\n" );
+               }
+               else {
+                    while (buf_p < buf + len) {
+                         FusionReadMessage *header = (FusionReadMessage*) buf_p;
+                         void              *data   = buf_p + sizeof(FusionReadMessage);
 
-                    switch (header->msg_type) {
-                         case FMT_SEND:
-                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SEND!\n" );
-                              if (!world->refs) {
-                                   D_DEBUG_AT( Fusion_Main_Dispatch, "  -> good bye!\n" );
-                                   return NULL;
-                              }
-                              break; 
-                         case FMT_CALL:
-                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL...\n" );
-                              _fusion_call_process( world, header->msg_id, data );
+                         if (world->dispatch_stop) {
+                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> ABORTING (dispatch_stop!)\n" );
                               break;
-                         case FMT_REACTOR:
-                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_REACTOR...\n" );
-                              _fusion_reactor_process_message( world, header->msg_id, header->msg_channel, data );
-                              break;
-                         case FMT_SHMPOOL:
-                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SHMPOOL...\n" );
-                              _fusion_shmpool_process( world, header->msg_id, data );
-                              break;
-                         default:
-                              D_DEBUG( "Fusion/Receiver: discarding message of unknown type '%d'\n",
-                                       header->msg_type );
-                              break;
+                         }
+
+                         D_MAGIC_ASSERT( world, FusionWorld );
+                         D_ASSERT( (buf + len - buf_p) >= sizeof(FusionReadMessage) );
+
+                         switch (header->msg_type) {
+                              case FMT_SEND:
+                                   D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SEND!\n" );
+                                   break; 
+                              case FMT_CALL:
+                                   D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL...\n" );
+                                   _fusion_call_process( world, header->msg_id, data );
+                                   break;
+                              case FMT_REACTOR:
+                                   D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_REACTOR...\n" );
+                                   _fusion_reactor_process_message( world, header->msg_id, header->msg_channel, data );
+                                   break;
+                              case FMT_SHMPOOL:
+                                   D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SHMPOOL...\n" );
+                                   _fusion_shmpool_process( world, header->msg_id, data );
+                                   break;
+                              default:
+                                   D_DEBUG( "Fusion/Receiver: discarding message of unknown type '%d'\n",
+                                            header->msg_type );
+                                   break;
+                         }
+
+                         buf_p = data + ((header->msg_size + 3) & ~3);
                     }
+               }
 
-                    buf_p = data + ((header->msg_size + 3) & ~3);
+               direct_thread_unlock( world->dispatch_loop );
+
+               if (!world->refs) {
+                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> good bye!\n" );
+                    return NULL;
                }
           }
      }
@@ -1839,6 +1874,27 @@ error:
      return ret;
 }
 
+DirectResult
+fusion_stop_dispatcher( FusionWorld *world,
+                        bool         emergency )
+{
+     if (!emergency) {
+          fusion_sync( world );
+
+          direct_thread_lock( world->dispatch_loop );
+     }
+
+     world->dispatch_stop = true;
+
+     if (!emergency) {
+          direct_thread_unlock( world->dispatch_loop );
+
+          fusion_sync( world );
+     }
+
+     return DR_OK;
+}
+
 /*
  * Exits the fusion world.
  *
@@ -1873,15 +1929,15 @@ fusion_exit( FusionWorld *world,
  
      if (!emergency) {
           FusionMessageType msg = FMT_SEND;
-          
+
           /* Wakeup dispatcher. */
           if (_fusion_send_message( world->fusion_fd, &msg, sizeof(msg), NULL ))
                direct_thread_cancel( world->dispatch_loop );
-          
+
           /* Wait for its termination. */
           direct_thread_join( world->dispatch_loop );
      }
-     
+
      direct_thread_destroy( world->dispatch_loop );
 
      /* Remove ourselves from list. */
@@ -2101,64 +2157,74 @@ fusion_dispatch_loop( DirectThread *self, void *arg )
                pthread_setcancelstate( PTHREAD_CANCEL_DISABLE, NULL );
 
                D_DEBUG_AT( Fusion_Main_Dispatch, " -> message from '%s'...\n", addr.sun_path );
-               
-               switch (msg->type) {
-                    case FMT_SEND:
-                         D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SEND...\n" );
-                         if (!world->refs) {
-                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> good bye!\n" );
-                              return NULL;
-                         }
-                         break;
 
-                    case FMT_ENTER:
-                         D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_ENTER...\n" ); 
-                         if (!fusion_master( world )) {
-                              D_ERROR( "Fusion/Dispatch: Got ENTER request, but I'm not master!\n" );
-                              break;
-                         }
-                         if (msg->enter.fusion_id == world->fusion_id) {
-                              D_ERROR( "Fusion/Dispatch: Received ENTER request from myself!\n" );
-                              break;
-                         }
-                         /* Nothing to do here. Send back message. */
-                         _fusion_send_message( world->fusion_fd, msg, sizeof(FusionEnter), &addr );
-                         break;
+               direct_thread_lock( world->dispatch_loop );
 
-                    case FMT_LEAVE:
-                         D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_LEAVE...\n" );
-                         if (!fusion_master( world )) {
-                              D_ERROR( "Fusion/Dispatch: Got LEAVE request, but I'm not master!\n" );
+               if (world->dispatch_stop) {
+                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> IGNORING (dispatch_stop!)\n" );
+               }
+               else {
+                    switch (msg->type) {
+                         case FMT_SEND:
+                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SEND...\n" );
                               break;
-                         }
-                         if (msg->leave.fusion_id == world->fusion_id) {
-                              D_ERROR( "Fusion/Dispatch: Received LEAVE request from myself!\n" );
-                              break;
-                         }
-                         _fusion_remove_fusionee( world, msg->leave.fusion_id );
-                         break;
-                          
-                    case FMT_CALL:
-                         D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL...\n" );
-                         _fusion_call_process( world, msg->call.call_id, &msg->call );
-                         break;
-                         
-                    case FMT_REACTOR:
-                         D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_REACTOR...\n" );
-                         _fusion_reactor_process_message( world, msg->reactor.id, msg->reactor.channel, 
-                                                          &buf[sizeof(FusionReactorMessage)] );
-                         if (msg->reactor.ref) {
-                              fusion_ref_down( msg->reactor.ref, true );
-                              if (fusion_ref_zero_trylock( msg->reactor.ref ) == DR_OK) {
-                                   fusion_ref_destroy( msg->reactor.ref );
-                                   SHFREE( world->shared->main_pool, msg->reactor.ref );
+
+                         case FMT_ENTER:
+                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_ENTER...\n" ); 
+                              if (!fusion_master( world )) {
+                                   D_ERROR( "Fusion/Dispatch: Got ENTER request, but I'm not master!\n" );
+                                   break;
                               }
-                         }
-                         break;                    
-                         
-                    default:
-                         D_BUG( "unexpected message type (%d)", msg->type );
-                         break;
+                              if (msg->enter.fusion_id == world->fusion_id) {
+                                   D_ERROR( "Fusion/Dispatch: Received ENTER request from myself!\n" );
+                                   break;
+                              }
+                              /* Nothing to do here. Send back message. */
+                              _fusion_send_message( world->fusion_fd, msg, sizeof(FusionEnter), &addr );
+                              break;
+
+                         case FMT_LEAVE:
+                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_LEAVE...\n" );
+                              if (!fusion_master( world )) {
+                                   D_ERROR( "Fusion/Dispatch: Got LEAVE request, but I'm not master!\n" );
+                                   break;
+                              }
+                              if (msg->leave.fusion_id == world->fusion_id) {
+                                   D_ERROR( "Fusion/Dispatch: Received LEAVE request from myself!\n" );
+                                   break;
+                              }
+                              _fusion_remove_fusionee( world, msg->leave.fusion_id );
+                              break;
+
+                         case FMT_CALL:
+                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL...\n" );
+                              _fusion_call_process( world, msg->call.call_id, &msg->call );
+                              break;
+
+                         case FMT_REACTOR:
+                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_REACTOR...\n" );
+                              _fusion_reactor_process_message( world, msg->reactor.id, msg->reactor.channel, 
+                                                               &buf[sizeof(FusionReactorMessage)] );
+                              if (msg->reactor.ref) {
+                                   fusion_ref_down( msg->reactor.ref, true );
+                                   if (fusion_ref_zero_trylock( msg->reactor.ref ) == DR_OK) {
+                                        fusion_ref_destroy( msg->reactor.ref );
+                                        SHFREE( world->shared->main_pool, msg->reactor.ref );
+                                   }
+                              }
+                              break;                    
+
+                         default:
+                              D_BUG( "unexpected message type (%d)", msg->type );
+                              break;
+                    }
+               }
+
+               direct_thread_unlock( world->dispatch_loop );
+
+               if (!world->refs) {
+                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> good bye!\n" );
+                    return NULL;
                }
 
                D_DEBUG_AT( Fusion_Main_Dispatch, " ...done\n" );
@@ -2438,13 +2504,21 @@ error:
      return ret;
 }
 
+DirectResult
+fusion_stop_dispatcher( FusionWorld *world,
+                        bool         emergency )
+{
+     return DR_OK;
+}
+
 /*
  * Exits the fusion world.
  *
  * If 'emergency' is true the function won't join but kill the dispatcher thread.
  */
-DirectResult fusion_exit( FusionWorld *world,
-                          bool         emergency )
+DirectResult
+fusion_exit( FusionWorld *world,
+             bool         emergency )
 {
      D_MAGIC_ASSERT( world, FusionWorld );
      D_MAGIC_ASSERT( world->shared, FusionWorldShared );

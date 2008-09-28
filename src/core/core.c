@@ -915,6 +915,8 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      if (dfb_input_core.initialized)
           dfb_input_core.Suspend( dfb_input_core.data_local );
 
+     fusion_stop_dispatcher( core->world, emergency );
+
      /* Destroy window objects. */
      fusion_object_pool_destroy( shared->window_pool, core->world );
 

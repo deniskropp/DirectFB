@@ -703,23 +703,25 @@ driver_close_device( void *driver_data )
      data->stop = true;
 
      XLockDisplay( x11->display );
-     if( shared->xw ) {
-          /* the window must generate an event, otherwise the input thread will not end */
 
+     if (shared->xw) {
           XWindow *xw = shared->xw;
 
           shared->xw = NULL;
 
+          /* the window must generate an event, otherwise the input thread will not end */
           dfb_x11_close_window( x11, xw );
      }
+
+     XSync( x11->display, False );
+
      XUnlockDisplay( x11->display );
 
      /* it is possible that this "close" function is called from the same
       * thread that the input device is actually running on.
       * This happens when you e.g. click the close box with your mouse.
       * As a fix, we check if we are this thread. */
-     if( data->thread != direct_thread_self() )
-     {
+     if (data->thread != direct_thread_self()) {
           direct_thread_join( data->thread );
           direct_thread_destroy( data->thread );
      }
