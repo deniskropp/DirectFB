@@ -723,13 +723,19 @@ DirectResult
 fusion_stop_dispatcher( FusionWorld *world,
                         bool         emergency )
 {
-     if (!emergency)
+     if (!emergency) {
           fusion_sync( world );
+
+          direct_thread_lock( world->dispatch_loop );
+     }
           
      world->dispatch_stop = true;
 
-     if (!emergency)
+     if (!emergency) {
+          direct_thread_unlock( world->dispatch_loop );
+
           fusion_sync( world );
+     }
 
      return DR_OK;
 }
@@ -918,6 +924,8 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
 
                D_DEBUG_AT( Fusion_Main_Dispatch, "  -> got %d bytes...\n", len );
 
+               direct_thread_lock( world->dispatch_loop );
+
                if (world->dispatch_stop) {
                     D_DEBUG_AT( Fusion_Main_Dispatch, "  -> IGNORING (dispatch_stop!)\n" );
                }
@@ -925,6 +933,11 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                     while (buf_p < buf + len) {
                          FusionReadMessage *header = (FusionReadMessage*) buf_p;
                          void              *data   = buf_p + sizeof(FusionReadMessage);
+
+                         if (world->dispatch_stop) {
+                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> ABORTING (dispatch_stop!)\n" );
+                              break;
+                         }
 
                          D_MAGIC_ASSERT( world, FusionWorld );
                          D_ASSERT( (buf + len - buf_p) >= sizeof(FusionReadMessage) );
@@ -954,6 +967,8 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                          buf_p = data + ((header->msg_size + 3) & ~3);
                     }
                }
+
+               direct_thread_unlock( world->dispatch_loop );
 
                if (!world->refs) {
                     D_DEBUG_AT( Fusion_Main_Dispatch, "  -> good bye!\n" );
@@ -1863,13 +1878,19 @@ DirectResult
 fusion_stop_dispatcher( FusionWorld *world,
                         bool         emergency )
 {
-     if (!emergency)
+     if (!emergency) {
           fusion_sync( world );
+
+          direct_thread_lock( world->dispatch_loop );
+     }
 
      world->dispatch_stop = true;
 
-     if (!emergency)
+     if (!emergency) {
+          direct_thread_unlock( world->dispatch_loop );
+
           fusion_sync( world );
+     }
 
      return DR_OK;
 }
@@ -2137,6 +2158,8 @@ fusion_dispatch_loop( DirectThread *self, void *arg )
 
                D_DEBUG_AT( Fusion_Main_Dispatch, " -> message from '%s'...\n", addr.sun_path );
 
+               direct_thread_lock( world->dispatch_loop );
+
                if (world->dispatch_stop) {
                     D_DEBUG_AT( Fusion_Main_Dispatch, "  -> IGNORING (dispatch_stop!)\n" );
                }
@@ -2196,6 +2219,8 @@ fusion_dispatch_loop( DirectThread *self, void *arg )
                               break;
                     }
                }
+
+               direct_thread_unlock( world->dispatch_loop );
 
                if (!world->refs) {
                     D_DEBUG_AT( Fusion_Main_Dispatch, "  -> good bye!\n" );
