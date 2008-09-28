@@ -42,13 +42,30 @@
 static bool use_shm = true;
 
 static int
-error_handler( Display *display, XErrorEvent *event )
+error_handler_shm( Display *display, XErrorEvent *event )
 {
      if (use_shm) {
           D_INFO( "X11/Display: Error! Disabling XShm.\n" );
 
           use_shm = false;
      }
+
+     return 0;
+}
+
+
+static int error_code = 0;
+
+static int
+error_handler( Display *display, XErrorEvent *event )
+{
+     char buf[512];
+
+     XGetErrorText( display, event->error_code, buf, sizeof(buf) );
+
+     D_ERROR( "X11/Display: Error! %s\n", buf );
+
+     error_code = event->error_code;
 
      return 0;
 }
@@ -86,12 +103,16 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
 
      XLockDisplay( x11->display );
 
+     XSetErrorHandler( error_handler );
+
+     error_code = 0;
+
      xw->window = XCreateWindow( xw->display,
                                  RootWindowOfScreen(xw->screenptr),
                                  iXPos, iYPos, iWidth, iHeight, 0, xw->depth, InputOutput,
                                  xw->visual, CWEventMask, &attr );
      XSync( xw->display, False );
-     if (!xw->window) {
+     if (!xw->window || error_code) {
           D_FREE( xw );
           XUnlockDisplay( x11->display );
           return False;
@@ -150,10 +171,12 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
 
           xw->ximage=XShmCreateImage(xw->display, xw->visual, xw->depth, ZPixmap,
                                      NULL,xw->shmseginfo, xw->width, xw->height * 2);
-          if (!xw->ximage) {
+          XSync( xw->display, False );
+          if (!xw->ximage || error_code) {
                D_ERROR("X11: Error creating shared image (XShmCreateImage) \n");
                x11->use_shm = false;
                D_FREE(xw->shmseginfo);
+               error_code = 0;
                goto no_shm;
           }
 
@@ -189,7 +212,7 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
           xw->virtualscreen= xw->ximage->data = xw->shmseginfo->shmaddr;
 
 
-          XSetErrorHandler( error_handler );
+          XSetErrorHandler( error_handler_shm );
 
           XShmAttach(x11->display,xw->shmseginfo);
 
@@ -198,7 +221,7 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
 
           XSync(x11->display, False);
 
-          XSetErrorHandler( NULL );
+          XSetErrorHandler( error_handler );
 
           if (!x11->use_shm) {
                shmdt(xw->shmseginfo->shmaddr);
@@ -221,16 +244,20 @@ no_shm:
 
           xw->ximage = XCreateImage( xw->display, xw->visual, xw->depth, ZPixmap, 0,
                                      xw->virtualscreen, xw->width, xw->height * 2, 32, pitch );
-          if (!xw->ximage) {
+          XSync( xw->display, False );
+          if (!xw->ximage || error_code) {
                D_ERROR( "X11/Window: XCreateImage( Visual %02lu, depth %d, size %dx%d, buffer %p [%d] ) failed!\n",
                         xw->visual->visualid, xw->depth, xw->width, xw->height * 2, xw->virtualscreen, pitch );
                XFreeGC(xw->display,xw->gc);
                XDestroyWindow(xw->display,xw->window);
+               XSetErrorHandler( NULL );
                XUnlockDisplay( x11->display );
                D_FREE( xw );
                return False;
           }
      }
+
+     XSetErrorHandler( NULL );
 
      XUnlockDisplay( x11->display );
 
