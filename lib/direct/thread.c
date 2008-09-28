@@ -55,26 +55,29 @@ D_DEBUG_DOMAIN( Direct_ThreadInit, "Direct/Thread/Init", "Thread initialization"
 struct __D_DirectThread {
      int                   magic;
 
-     pthread_t             thread;   /* The pthread thread identifier. */
+     pthread_t             thread;      /* The pthread thread identifier. */
      pid_t                 tid;
 
      char                 *name;
 
-     DirectThreadType      type;     /* The thread's type, e.g. input thread. */
-     DirectThreadMainFunc  main;     /* The thread's main routine (or entry point). */
-     void                 *arg;      /* Custom argument passed to the main routine. */
+     DirectThreadType      type;        /* The thread's type, e.g. input thread. */
+     DirectThreadMainFunc  main;        /* The thread's main routine (or entry point). */
+     void                 *arg;         /* Custom argument passed to the main routine. */
 
-     bool                  canceled; /* Set when direct_thread_cancel() is called. */
-     bool                  joining;  /* Set when direct_thread_join() is called. */
-     bool                  joined;   /* Set when direct_thread_join() has finished. */
-     bool                  detached; /* Set when direct_thread_detach() is called. */
+     bool                  canceled;    /* Set when direct_thread_cancel() is called. */
+     bool                  joining;     /* Set when direct_thread_join() is called. */
+     bool                  joined;      /* Set when direct_thread_join() has finished. */
+     bool                  detached;    /* Set when direct_thread_detach() is called. */
+     bool                  terminated;  /* Set when direct_thread_terminate() is called. */
 
 #ifdef DIRECT_THREAD_WAIT_INIT
-     bool                  init;     /* Set to true before calling the main routine. */
+     bool                  init;        /* Set to true before calling the main routine. */
 #endif
 
      pthread_mutex_t       lock;
      pthread_cond_t        cond;
+
+     unsigned int          counter;
 };
 
 struct __D_DirectThreadInitHandler {
@@ -392,6 +395,89 @@ direct_thread_set_name( const char *name )
 
      /* Keep the copy. */
      thread->name = copy;
+}
+
+DirectResult
+direct_thread_wait( DirectThread *thread, int timeout_ms )
+{
+     unsigned int old_counter = thread->counter;
+
+     D_MAGIC_ASSERT( thread, DirectThread );
+     D_ASSERT( thread->thread != -1 );
+
+     D_ASSUME( !thread->canceled );
+
+     D_DEBUG_AT( Direct_Thread, "%s( %p, '%s' %d, %dms )\n", __FUNCTION__,
+                 thread->main, thread->name, thread->tid, timeout_ms );
+
+     while (old_counter == thread->counter && !thread->terminated)
+          pthread_cond_wait( &thread->cond, &thread->lock );
+
+     if (thread->terminated)
+          return DR_DEAD;
+
+     return DR_OK;
+}
+
+void
+direct_thread_notify( DirectThread *thread )
+{
+     D_MAGIC_ASSERT( thread, DirectThread );
+     D_ASSERT( thread->thread != -1 );
+
+     D_ASSUME( !thread->canceled );
+
+     D_DEBUG_AT( Direct_Thread, "%s( %p, '%s' %d )\n", __FUNCTION__, thread->main, thread->name, thread->tid );
+
+     pthread_mutex_lock( &thread->lock );
+
+     thread->counter++;
+
+     pthread_mutex_unlock( &thread->lock );
+
+     pthread_cond_broadcast( &thread->cond );
+}
+
+void
+direct_thread_lock( DirectThread *thread )
+{
+     D_MAGIC_ASSERT( thread, DirectThread );
+     D_ASSERT( thread->thread != -1 );
+
+     D_ASSUME( !thread->canceled );
+
+     D_DEBUG_AT( Direct_Thread, "%s( %p, '%s' %d )\n", __FUNCTION__, thread->main, thread->name, thread->tid );
+
+     pthread_mutex_lock( &thread->lock );
+}
+
+void
+direct_thread_unlock( DirectThread *thread )
+{
+     D_MAGIC_ASSERT( thread, DirectThread );
+     D_ASSERT( thread->thread != -1 );
+
+     D_ASSUME( !thread->canceled );
+
+     D_DEBUG_AT( Direct_Thread, "%s( %p, '%s' %d )\n", __FUNCTION__, thread->main, thread->name, thread->tid );
+
+     pthread_mutex_unlock( &thread->lock );
+}
+
+void
+direct_thread_terminate( DirectThread *thread )
+{
+     D_MAGIC_ASSERT( thread, DirectThread );
+     D_ASSERT( thread->thread != -1 );
+     D_ASSUME( !pthread_equal( thread->thread, pthread_self() ) );
+
+     D_ASSUME( !thread->canceled );
+
+     D_DEBUG_AT( Direct_Thread, "%s( %p, '%s' %d )\n", __FUNCTION__, thread->main, thread->name, thread->tid );
+
+     thread->terminated = true;
+
+     direct_thread_notify( thread );
 }
 
 void

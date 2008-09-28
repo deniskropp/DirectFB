@@ -94,6 +94,25 @@ const char   *direct_thread_self_name  ( void );
 void          direct_thread_set_name   ( const char   *name );
 
 /*
+ * Wait on the thread object to be notified via direct_thread_notify().
+ */
+DirectResult  direct_thread_wait       ( DirectThread *thread,
+                                         int           timeout_ms );
+
+/*
+ * Notify the thread object waking up callers of direct_thread_wait().
+ */
+void direct_thread_notify     ( DirectThread *thread );
+
+void direct_thread_lock       ( DirectThread *thread );
+void direct_thread_unlock     ( DirectThread *thread );
+
+/*
+ * Kindly ask the thread to terminate (for joining without thread cancellation).
+ */
+void direct_thread_terminate  ( DirectThread *thread );
+
+/*
  * Cancel a running thread.
  */
 void direct_thread_cancel     ( DirectThread *thread );
