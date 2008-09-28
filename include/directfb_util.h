@@ -553,6 +553,14 @@ typedef struct {
      DFBRegion  bounding;
 } DFBUpdates;
 
+#define DFB_UPDATES_ASSERT(updates)                                        \
+     do {                                                                  \
+          D_MAGIC_ASSERT( updates, DFBUpdates );                           \
+          D_ASSERT( (updates)->regions != NULL );                          \
+          D_ASSERT( (updates)->max_regions > 0 );                          \
+          D_ASSERT( (updates)->num_regions <= (updates)->max_regions );    \
+     } while (0)
+
 
 void dfb_updates_init( DFBUpdates      *updates,
                        DFBRegion       *regions,
@@ -565,6 +573,21 @@ void dfb_updates_stat( DFBUpdates      *updates,
                        int             *ret_total,
                        int             *ret_bounding );
 
+void dfb_updates_get_rectangles( DFBUpdates   *updates,
+                                 DFBRectangle *ret_rects,
+                                 int          *ret_num );
+
+static inline void
+dfb_updates_add_rect( DFBUpdates      *updates,
+                      int              x,
+                      int              y,
+                      int              w,
+                      int              h )
+{
+     DFBRegion region = DFB_REGION_INIT_FROM_RECTANGLE_VALS( x, y, w, h );
+
+     dfb_updates_add( updates, &region );
+}
 
 static inline void
 dfb_updates_reset( DFBUpdates *updates )
@@ -572,6 +595,14 @@ dfb_updates_reset( DFBUpdates *updates )
      D_MAGIC_ASSERT( updates, DFBUpdates );
 
      updates->num_regions = 0;
+}
+
+static inline void
+dfb_updates_deinit( DFBUpdates *updates )
+{
+     D_MAGIC_ASSERT( updates, DFBUpdates );
+
+     D_MAGIC_CLEAR( updates );
 }
 
 #ifdef __cplusplus
