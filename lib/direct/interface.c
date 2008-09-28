@@ -52,6 +52,10 @@
 #define DYNAMIC_LINKING
 #endif
 
+
+D_DEBUG_DOMAIN( Direct_Interface, "Direct/Interface", "Direct Interface" );
+
+
 typedef struct {
      DirectLink            link;
 
@@ -78,6 +82,8 @@ DirectRegisterInterface( DirectInterfaceFuncs *funcs )
 {
      DirectInterfaceImplementation *impl;
 
+     D_DEBUG_AT( Direct_Interface, "%s( %p )\n", __FUNCTION__, funcs );
+
      impl = D_CALLOC( 1, sizeof(DirectInterfaceImplementation) );
 
      impl->funcs          = funcs;
@@ -85,6 +91,8 @@ DirectRegisterInterface( DirectInterfaceFuncs *funcs )
      impl->implementation = funcs->GetImplementation();
 
      D_MAGIC_SET( impl, DirectInterfaceImplementation );
+
+     D_DEBUG_AT( Direct_Interface, "  -> %s | %s\n", impl->type, impl->implementation );
 
      pthread_mutex_lock( &implementations_mutex );
      direct_list_prepend( &implementations, &impl->link );
@@ -143,6 +151,9 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 
      DirectLink *link;
 
+     D_DEBUG_AT( Direct_Interface, "%s( %p, '%s', '%s', %p, %p )\n", __FUNCTION__,
+                 funcs, type, implementation, probe, probe_ctx );
+
      pthread_mutex_lock( &implementations_mutex );
 
      /*
@@ -156,6 +167,8 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 
           if (implementation && strcmp( implementation, impl->implementation ))
                continue;
+
+          D_DEBUG_AT( Direct_Interface, "  -> Probing '%s'...\n", impl->implementation );
 
           if (probe && !probe( impl->funcs, probe_ctx ))
                continue;
