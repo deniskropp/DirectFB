@@ -106,8 +106,10 @@ driver_init_driver( CoreGraphicsDevice  *device,
      funcs->StretchBlit   = glStretchBlit;
 
      /* Choose accelerated font format */
-     dfb_config->font_format  = DSPF_ARGB;
-     dfb_config->font_premult = true;
+     if (!dfb_config->software_only) {
+          dfb_config->font_format  = DSPF_ARGB;
+          dfb_config->font_premult = true;
+     }
 
      return DFB_OK;
 }
