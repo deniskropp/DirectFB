@@ -428,3 +428,44 @@ dfb_updates_stat( DFBUpdates *updates,
                           (updates->bounding.y2 - updates->bounding.y1 + 1);
 }
 
+void
+dfb_updates_get_rectangles( DFBUpdates   *updates,
+                            DFBRectangle *ret_rects,
+                            int          *ret_num )
+{
+     D_MAGIC_ASSERT( updates, DFBUpdates );
+     D_ASSERT( updates->regions != NULL );
+     D_ASSERT( updates->num_regions >= 0 );
+     D_ASSERT( updates->num_regions <= updates->max_regions );
+
+     switch (updates->num_regions) {
+          case 0:
+               *ret_num = 0;
+               break;
+
+          default: {
+               int n, d, total, bounding;
+
+               dfb_updates_stat( updates, &total, &bounding );
+
+               n = updates->max_regions - updates->num_regions + 1;
+               d = n + 1;
+
+               /* Try to optimize updates. Use individual regions only if not too much overhead. */
+               if (total < bounding * n / d) {
+                    *ret_num = updates->num_regions;
+
+                    for (n=0; n<updates->num_regions; n++)
+                         ret_rects[n] = DFB_RECTANGLE_INIT_FROM_REGION( &updates->regions[n] );
+
+                    break;
+               }
+          }
+          /* fall through */
+
+          case 1:
+               *ret_num   = 1;
+               *ret_rects = DFB_RECTANGLE_INIT_FROM_REGION( &updates->bounding );
+               break;
+     }
+}
