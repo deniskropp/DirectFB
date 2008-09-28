@@ -427,8 +427,13 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
      shared = x11->shared;
      D_ASSERT( shared != NULL );
 
+     XLockDisplay( x11->display );
+
      xw = shared->xw;
-     D_ASSERT( xw != NULL );
+     if (!xw) {
+          XUnlockDisplay( x11->display );
+          return DFB_OK;
+     }
 
      allocation = lock->allocation;
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
@@ -436,8 +441,6 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
      surface = allocation->surface;
      D_ASSERT( surface != NULL );
 
-
-     XLockDisplay( x11->display );
 
      rect.x = rect.y = 0;
      rect.w = xw->width;
@@ -574,16 +577,15 @@ dfb_x11_create_window_handler( DFBX11 *x11, CoreLayerRegionConfig *config )
                return DFB_OK;
           }
 
-          dfb_x11_close_window( x11, xw );
           shared->xw = NULL;
+          dfb_x11_close_window( x11, xw );
      }
 
      bool bSucces = dfb_x11_open_window( x11, &xw, 0, 0, config->width, config->height, config->format );
 
      /* Set video mode */
      if ( !bSucces ) {
-          D_ERROR( "ML: DirectFB/X11: Couldn't open %dx%d window: %s\n",
-                   config->width, config->height, "X11 error!");
+          D_ERROR( "DirectFB/X11: Couldn't open %dx%d window!\n", config->width, config->height );
 
           XUnlockDisplay( x11->display );
           return DFB_FAILURE;
@@ -605,8 +607,11 @@ dfb_x11_destroy_window_handler( DFBX11 *x11 )
      XLockDisplay( x11->display );
 
      if (shared->xw) {
-          dfb_x11_close_window( x11, shared->xw );
+          XWindow *xw = shared->xw;
+
           shared->xw = NULL;
+
+          dfb_x11_close_window( x11, xw );
      }
 
      XSync( x11->display, False );
@@ -625,7 +630,8 @@ dfb_x11_update_screen_handler( DFBX11 *x11, UpdateScreenData *data )
 
      rect = DFB_RECTANGLE_INIT_FROM_REGION( &data->region );
 
-     update_screen( x11, &rect, data->lock );
+     if (data->lock)
+          update_screen( x11, &rect, data->lock );
 
      data->lock = NULL;
 
