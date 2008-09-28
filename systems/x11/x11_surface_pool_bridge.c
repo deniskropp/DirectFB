@@ -229,8 +229,10 @@ x11StartTransfer( CoreSurfacePoolBridge   *bridge,
           for (i=0; i<transfer->num_rects; i++) {
                const DFBRectangle *rect = &transfer->rects[i];
 
-               XShmPutImage( local->display, pixmap->pixmap, pixmap->gc, alloc->image.ximage,
-                             rect->x, rect->y, rect->x, rect->y, rect->w, rect->h, False );
+               D_DEBUG_AT( X11_Bridge, "  -> XCopyArea( %4d,%4d-%4dx%4d )\n", rect->x, rect->y, rect->w, rect->h );
+
+               XCopyArea( local->display, alloc->image.pixmap, pixmap->pixmap, pixmap->gc,
+                          rect->x, rect->y, rect->w, rect->h, rect->x, rect->y );
           }
 
           XFlush( local->display );
@@ -266,8 +268,16 @@ x11StartTransfer( CoreSurfacePoolBridge   *bridge,
 
           glFinish();
 
-          /* X11: Thanks for the nice API without offset and size as in XShmPutImage! *doh* */
-          XShmGetImage( local->display, pixmap->pixmap, alloc->image.ximage, 0, 0, ~0 );
+          for (i=0; i<transfer->num_rects; i++) {
+               const DFBRectangle *rect = &transfer->rects[i];
+
+               D_DEBUG_AT( X11_Bridge, "  -> XCopyArea( %4d,%4d-%4dx%4d )\n", rect->x, rect->y, rect->w, rect->h );
+
+               XCopyArea( local->display, pixmap->pixmap, alloc->image.pixmap, alloc->image.gc,
+                          rect->x, rect->y, rect->w, rect->h, rect->x, rect->y );
+          }
+
+          XFlush( local->display );
 
           XUnlockDisplay( local->display );
 
@@ -289,21 +299,15 @@ x11FinishTransfer( CoreSurfacePoolBridge   *bridge,
                    CoreSurfacePoolTransfer *transfer,
                    void                    *transfer_data )
 {
-     x11PoolBridgeLocalData *local  = bridge_local;
-     DFBX11                 *x11    = local->x11;
-     DFBX11Shared           *shared = x11->shared;
-     CoreSurfaceAllocation  *from   = transfer->from;
-     CoreSurfaceAllocation  *to     = transfer->to;
+     x11PoolBridgeLocalData *local = bridge_local;
 
      D_DEBUG_AT( X11_Bridge, "%s()\n", __FUNCTION__ );
 
-     if (from->pool == shared->x11image_pool && to->pool == shared->glx_pool) {
-          XLockDisplay( local->display );
+     XLockDisplay( local->display );
 
-          XSync( local->display, False );
+     XSync( local->display, False );
 
-          XUnlockDisplay( local->display );
-     }
+     XUnlockDisplay( local->display );
 
      return DFB_OK;
 }

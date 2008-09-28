@@ -182,6 +182,11 @@ dfb_x11_image_init_handler( DFBX11 *x11, x11Image *image )
      image->ximage = ximage;
      image->pitch  = ximage->bytes_per_line;
 
+     image->pixmap = XShmCreatePixmap( x11->display, DefaultRootWindow(x11->display), ximage->data,
+                                       &image->seginfo, image->width, image->height, image->depth );
+
+     image->gc = XCreateGC( x11->display, image->pixmap, 0, NULL );
+
      XUnlockDisplay( x11->display );
 
      return DFB_OK;
@@ -207,6 +212,9 @@ dfb_x11_image_destroy_handler( DFBX11 *x11, x11Image *image )
      D_MAGIC_ASSERT( image, x11Image );
 
      XLockDisplay( x11->display );
+
+     XFreeGC( x11->display, image->gc );
+     XFreePixmap( x11->display, image->pixmap );
 
      XShmDetach( x11->display, &image->seginfo );
 

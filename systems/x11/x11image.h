@@ -54,6 +54,9 @@ typedef struct {
      int                   pitch;
 
      XShmSegmentInfo       seginfo;
+
+     Pixmap                pixmap;
+     GC                    gc;
 } x11Image;
 
 
