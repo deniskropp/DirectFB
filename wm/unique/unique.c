@@ -128,7 +128,8 @@ context_notify( WMData                          *data,
      if (notification->flags & UCNF_DESTROYED) {
           D_DEBUG_AT( WM_Unique, "  -> context destroyed.\n" );
 
-          stack_data->context = NULL;
+          if (notification->context == stack_data->context)
+               stack_data->context = NULL;
 
           return RS_REMOVE;
      }
@@ -384,6 +385,9 @@ wm_set_active( CoreWindowStack *stack,
      D_ASSERT( stack_data != NULL );
 
      D_MAGIC_ASSERT( data, StackData );
+
+     D_DEBUG_AT( WM_Unique, "%s( stack %p, wm_data %p, stack_data %p, %sactive )\n",
+                 __FUNCTION__, stack, wm_data, stack_data, active ? "" : "in" );
 
      if (!data->context) {
           D_ASSERT( !active );
