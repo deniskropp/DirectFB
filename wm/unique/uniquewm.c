@@ -221,7 +221,8 @@ unique_wm_module_deinit( WMData *data, WMShared *shared, bool master, bool emerg
      unregister_device_classes( shared );
      unregister_region_classes( shared );
 
-//FIXME     unload_foo( wm_shared );
+     if (master)
+          unload_foo( wm_shared );
 
      dfb_core  = NULL;
      wm_data   = NULL;
