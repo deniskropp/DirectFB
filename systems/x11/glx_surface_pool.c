@@ -565,17 +565,15 @@ glxLock( CoreSurfacePool       *pool,
      if (lock->accessor == CSAID_GPU) {
           ThreadContext *ctx;
 
-          XLockDisplay( local->display );
-
           ctx = pthread_getspecific( local->context_key );
           if (!ctx) {
                ctx = D_CALLOC( 1, sizeof(ThreadContext) );
-               if (!ctx) {
-                    XUnlockDisplay( local->display );
+               if (!ctx)
                     return D_OOM();
-               }
 
                ctx->display = local->display;
+
+               XLockDisplay( local->display );
 
                ctx->context = glXCreateNewContext( local->display, pixmap->config, GLX_RGBA_TYPE, NULL, GL_TRUE );
                if (!ctx->context) {
@@ -584,6 +582,8 @@ glxLock( CoreSurfacePool       *pool,
                     D_FREE( ctx );
                     return DFB_FAILURE;
                }
+
+               XUnlockDisplay( local->display );
 
                pthread_setspecific( local->context_key, ctx );
 
@@ -594,17 +594,23 @@ glxLock( CoreSurfacePool       *pool,
                if (pixmap->drawable != glXGetCurrentDrawable()) {
                     D_DEBUG_AT( GLX_Surfaces, "  -> MAKE CURRENT 0x%08lx <- 0x%08lx\n", pixmap->drawable, glXGetCurrentDrawable() );
 
+                    XLockDisplay( local->display );
+
                     glXMakeContextCurrent( local->display, pixmap->drawable, pixmap->drawable, ctx->context );
                     pixmap->current = ctx->context;
 
+                    ReleasePixmap( local, pixmap );
+
+                    XUnlockDisplay( local->display );
+
                     pixmap->buffer.flags |= GLBF_UPDATE_TARGET;
                }
-
-               ReleasePixmap( local, pixmap );
           }
           else {
                if (pixmap->bound != ctx->context) {
                     D_DEBUG_AT( GLX_Surfaces, "  -> BIND TEXTURE 0x%08lx (%d)\n", pixmap->drawable, pixmap->buffer.texture );
+
+                    XLockDisplay( local->display );
 
                     ReleasePixmap( local, pixmap );
 
@@ -614,11 +620,11 @@ glxLock( CoreSurfacePool       *pool,
                     local->BindTexImageEXT( local->display, pixmap->drawable, GLX_FRONT_EXT, NULL );
                     pixmap->bound = ctx->context;
 
+                    XUnlockDisplay( local->display );
+
                     pixmap->buffer.flags |= GLBF_UPDATE_TEXTURE;
                }
           }
-
-          XUnlockDisplay( local->display );
 
           lock->handle = &pixmap->buffer;
      }
