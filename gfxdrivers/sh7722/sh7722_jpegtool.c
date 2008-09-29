@@ -128,7 +128,7 @@ main( int argc, char *argv[] )
 //     write_ppm( "test.ppm", 0x0f800000, pitch, info.width, info.height );
 
 
-     ret = SH7722_JPEG_Encode( "test.jpg", NULL, NULL, format, 0x0f800000, pitch, info.width, info.height );
+     ret = SH7722_JPEG_Encode( "test.jpg", NULL, format, 0x0f800000, pitch, info.width, info.height );
      if (ret)
           goto out;
 
