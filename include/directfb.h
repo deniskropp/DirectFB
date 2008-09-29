@@ -600,7 +600,10 @@ typedef enum {
                                            surfaces is specified, or resource id of window,
                                            layer, user is returned */
 
-     DSDESC_ALL          = 0x0000013F   /* all of these */
+     DSDESC_HINTS        = 0x00000200,  /* Flags for optimized allocation and pixel format selection are set.
+                                           See also DFBSurfaceHintFlags. */
+
+     DSDESC_ALL          = 0x0000033F   /* all of these */
 } DFBSurfaceDescriptionFlags;
 
 /*
@@ -1172,6 +1175,19 @@ typedef enum {
 
 #define DFB_PIXELFORMAT_INV_ALPHA(fmt)  (((fmt) & 0x80000000) !=  0)
 
+/*
+ * Hint flags for optimized allocation, format selection etc.
+ */
+typedef enum {
+     DSHF_NONE                = 0x00000000,
+
+     DSHF_LAYER               = 0x00000001,       /* Surface optimized for display layer usage */
+     DSHF_WINDOW              = 0x00000002,       /* Surface optimized for being a window buffer */
+     DSHF_CURSOR              = 0x00000004,       /* Surface optimized for usage as a cursor shape */
+     DSHF_FONT                = 0x00000008,       /* Surface optimized for text rendering */
+
+     DSHF_ALL                 = 0x0000000F
+} DFBSurfaceHintFlags;
 
 /*
  * Description of the surface that is to be created.
@@ -1196,6 +1212,8 @@ typedef struct {
 
      unsigned long                      resource_id;   /* universal resource id, either user specified for general
                                                           purpose surfaces or id of layer or window */
+
+     DFBSurfaceHintFlags                hints;       /* usage hints for optimized allocation, format selection etc. */
 } DFBSurfaceDescription;
 
 /*
