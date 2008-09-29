@@ -1,3 +1,15 @@
+commit 375e21f904ae1b17aad9bfeadcd3422b92b19377
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Sep 29 15:11:44 2008 +0200
+
+    [options] Set default font format to A8 for new surface hint code to always work.
+
+commit 1837deea823d728cab760b3d340470ce2cc592e7
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Sep 29 13:39:45 2008 +0200
+
+    updated ChangeLog once more
+
 commit e53b0eb0b2906255d95c4b7ac35ac7406311658e
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Mon Sep 29 13:39:12 2008 +0200
