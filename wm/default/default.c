@@ -2483,6 +2483,11 @@ handle_wm_key( CoreWindowStack     *stack,
                /* TODO: set new cursor shape, the current one might be completely transparent */
                break;
 
+          case DIKS_SMALL_R:
+               if (focused && !(focused->config.options & DWOP_KEEP_POSITION))
+                    dfb_window_set_rotation( focused, (focused->config.rotation + 90) % 360 );
+               break;
+
           case DIKS_PRINT:
                if (dfb_config->screenshot_dir && focused && focused->surface)
                     dfb_surface_dump_buffer( focused->surface, CSBR_FRONT, dfb_config->screenshot_dir, "dfb_window" );
@@ -2517,6 +2522,7 @@ is_wm_key( DFBInputDeviceKeySymbol key_symbol )
           case DIKS_SMALL_W:
           case DIKS_SMALL_D:
           case DIKS_SMALL_P:
+          case DIKS_SMALL_R:
           case DIKS_PRINT:
                break;
 

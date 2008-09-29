@@ -298,6 +298,7 @@ Using the builtin "window manager"
      - Press X to cycle the focus through the windows.
      - Press S to raise the lowest window to the top.
      - Press P to enable and show the mouse cursor.
+     - Press R to rotate the focused window by 90 degree.
      - Press E to focus the window currently under the mouse cursor,
        useful in conjunction with 'X'.
      - Press Escape to return from fullscreen mode to the desktop.
