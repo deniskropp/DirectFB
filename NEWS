@@ -7,12 +7,17 @@ API | IDirectFBDisplayLayer
 API | IDirectFBSurface
 - Added DSBLIT_ROTATE90 and DSBLIT_ROTATE270. Thanks to Young Hoon for original patch!
 - Added DFBSurfaceHintFlags for optimized allocation, format selection etc.
+- Added DSDESC_HINTS to DFBSurfaceDescriptionFlags and 'hints' to DFBSurfaceDescription.
 - Implemented DSHF_FONT by selecting the configured font format and premultiplication.
 - Added DSCAPS_ROTATED to allocate back buffers with width/height swapped (unimplemented).
 
 API | IDirectFBWindow
 - Added SetRotation() for 90, 180 and 270 degree rotation per window.
+  Thanks to Young Hoon for the original patch!
 - Added sub window support with each sub window having its own surface (one level only for DirectFB 1.4)...
+- Added DWCAPS_SUBWINDOW, DWDESC_TOPLEVEL_ID and "toplevel_id" to DFBWindowDescription.
+  Manage ref to top level window and vector of sub windows in window core, but leave scaling,
+  translation and clipping of sub window bounds based on top level bounds to the WM module.
 - Added DWOP_FOLLOW_BOUNDS to make bounds follow the parent window (only for window association, sub windows always follow).
 
 Runtime Options
@@ -23,12 +28,23 @@ Graphics Core
 
 Layer Core
 - Implement layer rotation using DSCAPS_ROTATED if available, otherwise using rotated window stack.
+  With just a single buffer (frontonly), it always uses rotation of the window stack.
+  Thanks to Young Hoon for the original patch!
 - Added magic value to CoreLayerContext structure, improved debug messages.
 - Fixed missing lock on surface structure around dfb_surface_allocation_update() call.
 
 Surface Core
 - Added Surface Pool Bridge[tm] technology to speed up transfer between pools.
+  New API can be implemented to do optimized transfer from one surface pool to another.
+  CheckTransfer() is called to probe each registered CoreSurfacePoolBridge.
+  CoreSurfacePoolTransfer is allocated with one or more rectangles to be transfered.
+  StartTransfer() and FinishTransfer() are used to actually execute the transfer
+  which could be queued, but is synchronous at the moment (Start+Finish).
 - Implemented dfb_surface_buffer_write() using Write() on allocation.
+- New algorithm for finding the allocation which to Write() to, using last read
+  allocation or other up to date allocation.
+- Remember last read allocation for better negotiation in case of multiple up to
+  date allocations.
 - Implemented dfb_surface_buffer_read() using Read() on allocation
 - Added dfb_surface_buffer_lock_deinit(), moved out format conversion.
 
@@ -36,6 +52,9 @@ Window Core
 - Added magic value to CoreWindow.
 - Set magic value in CoreWindow before calling WM functions.
 - Added lock and ref around dfb_wm_close_stack() in dfb_wm_close_all_stacks(), added context magic and lock assertions everywhere!
+
+Pixel Formats
+- Added dfb_convert_to_rgb24() and dfb_convert_to_a8(), used for surface dumps to .ppm files.
 
 Software Rendering
 - Started implementation of DSBLIT_ROTATE90, DSBLIT_ROTATE180 and DSBLIT_ROTATE270 for all blitting flags...
@@ -45,6 +64,7 @@ Utilities
 - Added D_UTIL_SWAP(a,b) to exchange values.
 - Added dfb_region_from_rotated(), dfb_rectangle_from_rotated() and dfb_point_from_rotated_region().
 - Replaced dfb_back_to_front_copy_180() by dfb_back_to_front_copy_rotation() with extra argument.
+  Thanks to Young Hoon for the original patch!
 
 OpenGL Driver
 - New accelerated driver using OpenGL!
@@ -65,6 +85,8 @@ X11 System
 - Full featured OpenGL based acceleration via GLX!
 - Implemented Surface Pool Bridge for fast transfer between XShmImage and GLX pool.
 - Use XShmCreatePixmap() and XCopyArea() instead of XShmGet/PutImage() allowing partial transfers in both directions!
+- Also tried to make multi application working, but it seems that for an X11 Pixmap there can
+  only be one process doing a glXCreatePixmap() which also does not allow the GLXPixmap to be shared :(
 
 dfbdump tool
 - Show layer and window rotation.
