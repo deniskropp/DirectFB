@@ -1,3 +1,1132 @@
+commit 96b8e12ff8436f0bb7d111325085c4377d20ee6e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Sep 29 11:21:46 2008 +0200
+
+    [IDirectFBSurface] Added DFBSurfaceHintFlags for optimized allocation, format selection etc.
+    
+    Added DSDESC_HINTS to DFBSurfaceDescriptionFlags.
+    
+    Added 'hints' to DFBSurfaceDescription.
+    
+    Implemented DSHF_FONT by selecting the configured font format and premultiplication.
+
+commit 7296d476f6691dc727782e9ba33fb325f6742ff6
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Sep 29 02:49:25 2008 +0200
+
+    [x11] Optimized locking for lock-free case when nothing has changed.
+
+commit 4e2d62d344f9e6b7a5fd7686a1cddf25c8e67ebb
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Sep 29 02:26:25 2008 +0200
+
+    [x11] Fixed GLX texture corruption by making sure ReleaseTexImageEXT() is called *after* glXMakeContextCurrent()
+    
+    when the pixmap was bound as a texture before, especially from another thread/context.
+
+commit ac2a3c267652bfaf95867e43ad687c237d06c8be
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 23:54:05 2008 +0200
+
+    [dispatcher] Use direct_thread_lock()/unlock() in dispatcher and stopping function to fix remaining issues.
+
+commit 533e1cb6bfd5974d1f011332eb9926d00031b64b
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 23:33:55 2008 +0200
+
+    [x11] Use XShmCreatePixmap() and XCopyArea() instead of XShmGet/PutImage() allowing partial transfers in both directions!
+
+commit 41d7d3cab148b3e53607597c69dd79bc2125074b
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 23:33:19 2008 +0200
+
+    [x11] Evil error handling...
+
+commit 8eafc86b91340200050bbb0de7c0dabe9c99e269
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 23:32:22 2008 +0200
+
+    [x11] Fixed remaining crash with expose events that ran into a NULL window.
+
+commit 67a367273916fbd4cdba6e46d434e07ee6188346
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 23:31:25 2008 +0200
+
+    [wm] Lots of useful debug messages.
+
+commit 7de055f41796e32dfef59f97f5c4c8b8f7e876e7
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 23:30:39 2008 +0200
+
+    [core] Call fusion_stop_dispatcher() before destroying pools to fix lots of shutdown issues.
+
+commit 744a03d368e5ee3d2b1cf371190a08764c0a29d1
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 23:29:45 2008 +0200
+
+    [fusion] Added fusion_stop_dispatcher() to be called before destroying pools etc... fixing lots of shutdown issues!
+
+commit 7bcddc09975447dca83e86bbe22d0dcbbd2fb49a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 21:25:38 2008 +0200
+
+    [interfaces] Added some debug messages to DirectInterface code.
+
+commit e9b0350475504a535f4db6c85a5085403cfaf946
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 21:24:47 2008 +0200
+
+    [util] Added dfb_updates_get_rectangles() for convenience, doing bounding box trade off etc...
+
+commit b9962de77dc15dfe31c4ab51c1ef8b88ea3b6f13
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 21:21:41 2008 +0200
+
+    [UniQuE] A debug message and a minor safety check.
+
+commit 589179f256a2426759b4888b89cb369f7be84a34
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 21:20:35 2008 +0200
+
+    [UniQuE] Unload foo surface (border tiles) during master shutdown.
+
+commit 778d6a7d28e15d25d089a15051dfe1b2e2477270
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 21:19:34 2008 +0200
+
+    [OpenGL] Don't switch to ARGB fonts if acceleration is disabled.
+
+commit f7f22e3df68a0b1e18b5497ed5e233af40c51aae
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 14:04:20 2008 +0200
+
+    [thread] Added direct_thread_wait() / _notify(), _lock(), _unlock() and _terminate().
+
+commit 82e0198724ff2a4caa301b3cdd89d5bb8760f433
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 01:54:36 2008 +0200
+
+    [software] Disable MMX functions not supporting rotation (Ostep/Dstep) properly.
+
+commit 3e2919e719f3592bd9d2904e1b348c299a5e2168
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 01:48:07 2008 +0200
+
+    [default wm] Implement stack rotation and window rotation, thanks to Young Hoon for the original patch!
+
+commit 8339b0644ac6a2ec1ca31c73a357e048364c4c59
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 01:45:38 2008 +0200
+
+    [layers] Implement layer rotation using DSCAPS_ROTATED if available, otherwise using rotated window stack.
+    
+    With just a single buffer (frontonly), it always uses rotation of the window stack.
+    
+    Thanks to Young Hoon for the original patch!
+
+commit 09bc7acb42ee21eeb053483f99a67f859c668272
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 01:44:27 2008 +0200
+
+    [dfbdump] Show layer and window rotation.
+
+commit b7da6d0e033d85e3ef74e27d15babd73e84db135
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 01:43:08 2008 +0200
+
+    [IDirectFBWindow] Added SetRotation() for 90, 180 and 270 degree rotation per window.
+    
+    Thanks to Young Hoon for the original patch!
+
+commit 6d4e5b8b08c8085215d4b01654641265b0bdeb08
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 01:26:36 2008 +0200
+
+    [IDirectFBSurface] Added (unimplemented!) DSCAPS_ROTATED to allocate back buffers with width/height swapped.
+
+commit 0826c71717a168423395b27405cfa49291f7db75
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 01:20:30 2008 +0200
+
+    [IDirectFBDisplayLayer] Added GetRotation() to query the layer rotation.
+
+commit a42d0243b668376006e673781722bd7f11549857
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 01:17:29 2008 +0200
+
+    [graphics] Implement proper clipping for rotated blits of 90, 180 or 270 degree.
+
+commit b265d72582f5b230bf35676e8c1f83a3f86bd01a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 01:16:08 2008 +0200
+
+    [options] Allow '90' and '270' for "layer-rotate" option.
+
+commit 8525bb01605913ccefc82963cfd95ee7989f50fa
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 01:12:16 2008 +0200
+
+    [util] Replaced dfb_back_to_front_copy_180() by dfb_back_to_front_copy_rotation() with extra argument.
+    
+    Thanks to Young Hoon for the original patch!
+
+commit 96842fc12394e4a89a66a05f5cf083a5d3441595
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 01:05:30 2008 +0200
+
+    [IDirectFBSurface] Added DSBLIT_ROTATE90 and DSBLIT_ROTATE270. Thanks to Young Hoon for original patch!
+
+commit 44c300ddb9d5d8e003c06eb8d5e49572f40e3df7
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 00:59:22 2008 +0200
+
+    [util] Added dfb_region_from_rotated(), dfb_rectangle_from_rotated() and dfb_point_from_rotated_region().
+
+commit 55b46effe7f19ef554ba09517e556105fd21ed74
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 00:55:07 2008 +0200
+
+    [util] Added D_UTIL_SWAP(a,b) to exchange values.
+
+commit e1c2174e4aa0519bc8463df2c0d3981096aefc1e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Sep 26 22:12:20 2008 +0200
+
+    [layers] Fixed missing lock on surface structure around dfb_surface_allocation_update() call.
+
+commit 66387ba7565804a12be2b102a392f78cb56f38cf
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Sep 26 22:07:21 2008 +0200
+
+    [surfaces] Fixed wrong allocations being used for locks due to a copy'n'paste error during last cleanup.
+
+commit 0e8877d5706e824b5a2d48b1cdf5e48b24462851
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Sep 26 21:50:21 2008 +0200
+
+    ignore
+
+commit 2a91a14e8171c374ff712b1605a26a69c108e86e
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Sep 25 19:34:40 2008 +0200
+
+    [sh772x] for JPEG encoding: horz/vert up/downscaling + offset
+    scaling is without n-line mode, so there are artefacts visible vertically
+    (since there operation is handled in 16-pixel steps)
+    todo: if enough memory is available, perform full-picture malloc and scale in 1 step
+
+commit c1e82561ca9ca338fcaf4964d9e6ea54dde0536a
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Sep 22 20:06:12 2008 +0200
+
+    [sh772x] fix JPEG encoding.
+    n-line mode impossible because destination addresses of VEU cannot be updated intermediately.
+    current implementation generates ints every 16 lines to reprogram VEU.
+    Disadvantage: phase is lost when scaling. (scaling not tested yet)
+
+commit 6c32f67dc024d80dd72fe32c9922a21a82248dc2
+Author: Nikita Egorov <nikego@geos.varma-el.com>
+Date:   Thu Sep 25 13:52:52 2008 +0400
+
+    Set glyph alignment of 8 bytes for all font formats
+
+commit 53f333bd8c44a2aabe1062dda6792df288ce3b35
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 25 01:10:20 2008 +0200
+
+    [fonts] Fixed alignment on eight byte boundary, thanks to Nikita Egorov for spotting!
+
+commit 5fcc55be33005938b2b8c891542ab542bdfbfd56
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Sep 23 12:42:48 2008 +0200
+
+    [x11] build fixes for people without GLX
+
+commit 11f7f8d45a3b09fb1eb58c57db3dc58066172e65
+Author: Nikita Egorov <nikego@geos.varma-el.com>
+Date:   Mon Sep 22 15:41:00 2008 +0400
+
+    Don't switch to fill rectangle in DrawLine() if matrix is used.
+
+commit cce58cd1c1cce5d0708db3cfd0c8ca1fcb8d43c5
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Sep 22 12:39:18 2008 +0200
+
+    [sh772x] Build fix for 1.3.x.
+
+commit 255907bd76c9e8af7390944bb87715a2d12bedf1
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Sep 20 10:03:59 2008 +0200
+
+    [default wm] In window_at_pointer() use dfb_surface_read_buffer() with 1x1 rectangle instead of lock/unlock.
+
+commit f13337b3bb9ea83881ebccbd98e2ab2a6912d15f
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Sep 20 10:00:30 2008 +0200
+
+    [x11] Use new dfb_surface_buffer_lock_deinit() rather than clearing the magic.
+
+commit 539cec381cf29413df91e3ec72d88bb2134af81c
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Sep 20 09:57:08 2008 +0200
+
+    [surfaces] Implemented dfb_surface_buffer_read(), added dfb_surface_buffer_lock_deinit(), moved out format conversion.
+    
+    Added dfb_convert_to_rgb24() and dfb_convert_to_a8(), used for surface dumps to .ppm files.
+
+commit d9aaad3f6a8e8ed3cb19ef0afebb8d531057e261
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Sep 20 09:41:41 2008 +0200
+
+    [UniQuE] Added experimental border event handling in test_foo program to move/raise any window :)
+    
+    Try running:
+    	./test_foo &
+    and
+    	gtk-demo
+    
+    Note: Raising windows confuses GDK-DirectFB and moving a window over another has grabbing issues,
+    but this was just a quick test and the solution to these issues is clear ;)
+
+commit 05ac679d7d23d59cc20dbea93211c1f43bfbdddd
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Sep 20 09:40:07 2008 +0200
+
+    [UniQuE] Use dfb_surface_write_buffer() instead of lock/memcpy/unlock for border images (foo).
+
+commit 3f2dadcee38044fe6c40d194551db004c093076f
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Sep 19 04:04:48 2008 +0200
+
+    [x11] Fixed missing x11types.h in SOURCES definition.
+
+commit 6952526a54a4adf7c2e0f43d3a2f47d4a4cfbc5d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Sep 19 04:03:06 2008 +0200
+
+    [sh7722] Fixed EXTRA_DIST.
+
+commit 6b258d60b619c26f5483234894513e4272608402
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 22:11:55 2008 +0200
+
+    [x11] In glxDeallocateBuffer() don't use GetLocalPixmap(), but only direct_hash_lookup().
+    
+    This avoids creating the pixmap if it did not exist, yet, e.g. no Lock() happened.
+
+commit 6e34c52a52e0b0136a50fad63f719c59ee614c84
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 21:27:18 2008 +0200
+
+    [x11] When update goes directly from XShmImage without copy/convert (single buffer layer), do an XSync()!
+
+commit 8cc7a4021cf98db2730b3bf0de4effd1cb98c984
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 21:26:50 2008 +0200
+
+    [x11] Hotfix missing update queue...
+
+commit 2df15476a32f2a795446a4b51e090114b972e4f8
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 21:01:02 2008 +0200
+
+    [x11] Lookup visual in master where XShmCreateImage is actually called.
+
+commit 53ad404266ece35e6e6e625ec5d87c6a57c56ee3
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 19:43:30 2008 +0200
+
+    [windowstack] Set background mode of new contexts to DLBM_DONTCARE.
+
+commit 286730ed5ed1358aae77946ff7c827b94be9b727
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 19:10:57 2008 +0200
+
+    [thread] Fixed missing magic value in thread structure created for non-direct threads.
+
+commit 8e34df9400f6161c1885de710e5df5d64dcd6c98
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 19:02:27 2008 +0200
+
+    [layers] Fixed unlocking of destroyed skirmish in context destructor.
+    
+    [merged from release_1_2_x]
+
+commit cdc9cae71ce7ac43f73ed919d853ff0f471289be
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 17:28:44 2008 +0200
+
+    [x11] Implemented Surface Pool Bridge for fast transfer between XShmImage and GLX pool.
+    
+    Using XShmPutImage/XShmGetImage instead of using XPutImage/XGetImage speeds up df_andi
+    by more than 100% in my tests.
+
+commit 9a65e7235b619396096bc01fcb02b3dffc51ef27
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 17:23:56 2008 +0200
+
+    [surfaces] Added Surface Pool Bridge[tm] technology to speed up transfer between pools.
+    
+    New API can be implemented to do optimized transfer from one surface pool to another.
+    
+    CheckTransfer() is called to probe each registered CoreSurfacePoolBridge.
+    
+    CoreSurfacePoolTransfer is allocated with one or more rectangles to be transfered.
+    
+    StartTransfer() and FinishTransfer() are used to actually execute the transfer
+    which could be queued, but is synchronous at the moment (Start+Finish).
+
+commit b0c0ba9446ca0fe67ab940433b149fc7a1d4fb85
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 00:04:38 2008 +0200
+
+    [IDirectFBImageProvider_PNG] Use dfb_surface_write_buffer() if possible.
+
+commit b737a1bc975555ad1b897975803808f0cfce3dd6
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 00:00:29 2008 +0200
+
+    [surfaces] Implemented dfb_surface_buffer_write() using Write() on allocation.
+    
+    New algorithm for finding the allocation which to Write() to, using last read
+    allocation or other up to date allocation.
+    
+    Remember last read allocation for better negotiation in case of multiple up to
+    date allocations.
+
+commit 0c5e8ec043a25184bd2d501417985fa122ec9596
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 23:55:27 2008 +0200
+
+    [dfbtest_blit] Added option "-R" to rerender image to surface before every blit (benchmark).
+
+commit 73e61e0fd4fb4b0ac69882b6a9c94e1ee061be7b
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 21:00:47 2008 +0200
+
+    [x11] Move definition of USE_GLX to configure.
+
+commit 89b08b7254cd4d56b20b8205a1770aec2b687c49
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 20:56:50 2008 +0200
+
+    [x11] Fixed another 'missing separator' error in Makefile.
+
+commit fde10fcaad76bfd25081936a082eef5223e580af
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 20:55:39 2008 +0200
+
+    [x11] Fixed 'missing separator' error in Makefile.
+
+commit 3a60e628798ca0df33779c4b68c631a50007c060
+Merge: dec7005... ab2b4d7...
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Sep 17 20:39:26 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit dec70057d72dcf7f0f5a1b62d8fc848ab1ddace8
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Sep 17 20:39:15 2008 +0200
+
+    [x11] x11 should not rely on gl.h header file presence.
+
+commit ab2b4d7568053c963d15083f798cded3448d1d4a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 20:16:36 2008 +0200
+
+    [davinci] Update driver for 1.3.0 changes in surface pools.
+
+commit ad2f11641d2a23c00a0917c4060858edc1c73413
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 16:11:12 2008 +0200
+
+    [davinci] Workaround broken DSP cache invalidation function.
+
+commit 8403a7fd6d6d79885aa5e62a38929185b589cf4a
+Merge: d1b2807... 5c71f6f...
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Sep 17 19:09:06 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit d1b2807efab53fcd30b0cd3c0d5e0a099555b5b0
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Sep 17 19:08:48 2008 +0200
+
+    [core] check and handle return value of get_layer_dimension().
+    Can go wrong with davinci driver without GET_TIMING patches.
+
+commit 6d1f4e5ea2166f68270230f779b07203aba581db
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Sep 17 19:06:07 2008 +0200
+
+    [davinci] param missing in debug print
+
+commit 9c2808bf55f36d96326f170057a3c4225c9a50bf
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Sep 17 19:05:19 2008 +0200
+
+    [x11 input] possible lock at shutdown due to thread trying to kill itself
+
+commit 5c71f6f7fb98166c0224e5141e7df6f88fb34aa6
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 18:32:50 2008 +0200
+
+    [x11] Added missing header from last major cleanup.
+
+commit e08c004f94228c022cc78e91b12d9df3f5aa3641
+Merge: b67d7df... 69ecb59...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 18:27:56 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit b67d7df1780848705949b7a8819534079ea4be68
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 18:26:03 2008 +0200
+
+    [OpenGL] Restructured surface pool and graphics driver, leaving GLX in the system module...
+    
+    Also tried to make multi application working, but it seems that for an X11 Pixmap there can
+    only be one process doing a glXCreatePixmap() which also does not allow the GLXPixmap to be
+    shared :(
+
+commit 2b63196cd9e93f492cc1c9058c92cfe8d691a9b8
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 18:25:06 2008 +0200
+
+    [surfaces] Assert that pitch is != 0 only if virtual or physical address is present.
+
+commit 69ecb59725ec375da89ee57218afccf56d8bfdc4
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 12:16:49 2008 +0200
+
+    [davinci] Raise OSD surface pool priority to allocate in frame buffer rather than /dev/mem.
+
+commit e10cb3822ac5d0842a0e489fb30ffdcac0532700
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 12:05:43 2008 +0200
+
+    [trace] Fixed static build.
+
+commit ddae89777f9350ce5a5ff754f5909cc950bd08c5
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 14 16:33:59 2008 +0200
+
+    [x11] MAJOR cleanup of system module code. Every slave connects to the server now as well!
+    
+    Separated shared and local parts in the setup to avoid code duplication.
+    
+    It looks like all processes can have their own DirectFB windows and render to them via OpenGL,
+    but putting them on the screen (X window) fails. It seems binding another process' GLXPixmap
+    is not allowed. Hopefully I can just create each process own GLXPixmap wrapper around the real
+    XPixmap...
+
+commit ca33e763a6881d36902bf04da0b7b5a376992250
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 14 11:37:44 2008 +0200
+
+    [OpenGL] GLX to be precise... full featured GL based acceleration on top of X11 system module!
+    
+    Some changes have been necessary to make this happen... a few at least :)
+    
+    $ df_dok --dfb:mode=800x600 --dump --accelonly
+    
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~| DirectFB 1.3.0 |~~~~~~~~~~~~~~~~~~~~~~~~~~
+            (c) 2001-2008  The world wide DirectFB Open Source Community
+            (c) 2000-2004  Convergence (integrated media) GmbH
+          ----------------------------------------------------------------
+    
+    (*) DirectFB/Core: Single Application Core. (2008-09-14 09:06)
+    (*) Direct/Memcpy: Using libc memcpy()
+    (*) GLX/Surfaces: Using visual 0x2e (24bit) and 0x64 (32bit)
+    (*) Direct/Thread: Started 'X11 Input' (29248) [INPUT OTHER/OTHER 0/0] <8388608>...
+    (*) DirectFB/Input: X11 Input 0.1 (directfb.org)
+    (*) DirectFB/Genefx: MMX detected and enabled
+    (*) DirectFB/Graphics: OpenGL Acceleration - GeForce 8800 GTX/PCI/SSE2 0.5 (Denis Oliver Kropp)
+    (*) DirectFB/Core/WM: Default 0.3 (directfb.org)
+    (*) X11/Window: Creating  800x 600 RGB32 window...
+    (*) X11/Display: Using XShm.
+    (*) Direct/Interface: Loaded 'PNG' implementation of 'IDirectFBImageProvider'.
+    (*) Direct/Interface: Loaded 'FT2' implementation of 'IDirectFBFont'.
+    (*) Direct/Interface: Using 'GIF' implementation of 'IDirectFBImageProvider'.
+    
+    Benchmarking 256x256 on 800x580 RGB32 (32bit)...
+    
+    Anti-aliased Text                              3.000 secs (*4736.400 KChars/sec) [ 99.6%]
+    Anti-aliased Text (blend)                      3.000 secs (*4724.400 KChars/sec) [ 99.3%]
+    Fill Rectangle                                 4.288 secs (*13269.205 MPixel/sec) [100.0%]
+    Fill Rectangle (blend)                         5.495 secs (*6860.110 MPixel/sec) [100.0%]
+    Fill Rectangles [10]                           4.614 secs (*13280.485 MPixel/sec) [100.0%]
+    Fill Rectangles [10] (blend)                   6.125 secs (*6858.543 MPixel/sec) [100.0%]
+    Fill Triangles                                 4.841 secs (*13359.001 MPixel/sec) [100.0%]
+    Fill Triangles (blend)                         6.565 secs (*6908.482 MPixel/sec) [ 99.8%]
+    Draw Rectangle                                 3.000 secs (*1206.566 KRects/sec) [ 99.3%]
+    Draw Rectangle (blend)                         3.000 secs (*1205.933 KRects/sec) [ 99.3%]
+    Draw Lines [10]                                3.000 secs (*4576.000 KLines/sec) [ 99.6%]
+    Draw Lines [10] (blend)                        3.000 secs (*4582.333 KLines/sec) [ 99.6%]
+    Fill Spans                                     3.002 secs (*2021.530 MPixel/sec) [ 99.6%]
+    Fill Spans (blend)                             3.001 secs (*2026.571 MPixel/sec) [ 99.3%]
+    Blit                                           4.867 secs (*9148.378 MPixel/sec) [ 99.5%]
+    Blit 180                                       4.867 secs (*9167.230 MPixel/sec) [100.0%]
+    Blit with colorizing                           4.872 secs (*9133.609 MPixel/sec) [ 99.7%]
+    Blit from 32bit (blend)                        5.906 secs (*5886.699 MPixel/sec) [100.0%]
+    Blit from 32bit (blend) with colorizing        5.917 secs (*5869.110 MPixel/sec) [ 99.8%]
+    Stretch Blit                                   4.677 secs (*11836.563 MPixel/sec) [ 99.7%]
+    
+    http://www.directfb.org/tests/benchmarks/DirectFB_OpenGL_GeForce_8800_GTX/
+
+commit 806763a3e190ec55357175197fb01597bf79c874
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 14 05:35:40 2008 +0200
+
+    [call] Added debug messages.
+
+commit 29b4f65de808fe56d0315a518a251342157849df
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Sep 13 20:53:37 2008 +0200
+
+    [options] Fixed pixel format parsing code, first check for exact, then for partial matches.
+
+commit 7872de5113e4ca56c281d585d5b164215c276b56
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Sep 13 20:49:22 2008 +0200
+
+    [graphics] Only have DSRO_MATRIX be mandatory for now. Other flags no longer prohibit acceleration.
+    
+    Worst case was when DSRO_SMOOTH_UP/DOWNSCALE was turned on globally via "smooth-upscale" or "smooth-downscale"
+    runtime option which caused all operations to use software fallbacks, not only StretchBlit()!
+
+commit aeb008fe40f57fbad4572c077c0ee529e5890538
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 11 02:41:22 2008 +0200
+
+    [generic] Added optimized Bop_argb_blend_alphachannel_one_invsrc_Aop_argb() -> 6x speed
+
+commit 7683d221c355d432c62456e40af85dadd5274840
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 22:11:03 2008 +0200
+
+    [SH7722] Follow device name change in JPEG code, too.
+
+commit 0a47e5fecb45cf9cb30ee5bcc897d7a4de369b06
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 21:38:14 2008 +0200
+
+    ignore
+
+commit 898e42cc05c2b306de1f11658a884b5bf79573af
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 21:33:30 2008 +0200
+
+    [SH7723] Added support for SH7723 to SH7722 driver and kernel module.
+    
+    (*) DirectFB/Graphics: Renesas SH7723 0.9 (Denis & Janine Kropp)
+    (*) DirectFB/Core/WM: SaWMan 0.2 (directfb.org)
+    (*) SaWMan/Config: Parsing config file '/etc/sawmanrc'.
+    (*) SaWMan: Initializing stack 0x432078 for tier 0x431a48, 0x0, layer 0, context 0x431e78 [1]...
+    (*) SaWMan/Init: Layer  0:  800x480, RGB16, options: 1
+    (*) SaWMan/Init: Border 0:  800x480, RGB16, options: 8
+    (*) Direct/Interface: Using 'PNG' implementation of 'IDirectFBImageProvider'.
+    (*) Direct/Interface: Using 'FT2' implementation of 'IDirectFBFont'.
+    (*) Direct/Interface: Using 'GIF' implementation of 'IDirectFBImageProvider'.
+    
+    Benchmarking 256x256 on 800x464 RGB16 (16bit)...
+    
+    Fill Rectangle                                 5.350 secs (* 200.895 MPixel/sec) [  3.9%]
+    Fill Rectangle (blend)                         8.590 secs (*  78.582 MPixel/sec) [  1.7%]
+    Fill Rectangles [10]                           5.226 secs (* 200.646 MPixel/sec) [  1.1%]
+    Fill Rectangles [10] (blend)                  11.699 secs (*  78.425 MPixel/sec) [  0.3%]
+    Fill Triangles                                14.254 secs (*  26.436 MPixel/sec) [  1.1%]
+    Fill Triangles (blend)                        26.657 secs (*   8.727 MPixel/sec) [  0.4%]
+    Draw Rectangle                                 3.127 secs (*  30.444 KRects/sec) [ 44.8%]
+    Draw Lines [10]                                3.062 secs (* 122.468 KLines/sec) [ 35.9%]
+    Fill Spans                                     3.013 secs (* 147.907 MPixel/sec) [ 73.4%]
+    Fill Spans (blend)                             3.037 secs (*  73.369 MPixel/sec) [ 27.0%]
+    Blit                                          11.698 secs (*  56.023 MPixel/sec) [  1.4%]
+    Blit colorkeyed                                8.376 secs (*  59.464 MPixel/sec) [  1.6%]
+    
+    TODO: more acceleration work...
+
+commit 19629048a342561cbaa3052eece6d2e75fbc3db2
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 13:39:32 2008 +0200
+
+    [SH7722] Fixed missing update of rendering destination buffer.
+
+commit b9080ea41cc5b711fa91269a0839d9fe5e0f4b35
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 13:39:02 2008 +0200
+
+    [windows] Set magic value in CoreWindow before calling WM functions.
+
+commit 7a005609bc7d15564dd11fe75476e71ba8659d74
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 11:07:57 2008 +0200
+
+    [SH7722] Fixed software fallback for JPEG decoding to unsupported formats.
+
+commit 09affae4b0301cca29b96305b473995d652e427f
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 10:38:48 2008 +0200
+
+    [trace] Added missing dummies of new lookup functions for non-trace builds.
+
+commit 230ff7fdd3a660a19f1b06f664e7ac3f33630524
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 10:24:22 2008 +0200
+
+    [util] Added exported dfb_pixelformat_names[] and replaced relevant code.
+
+commit 6c311c746f706373dd19d043e6c4065c739c864d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 10:22:42 2008 +0200
+
+    [mknames] Generate separate declaration of value/name pair structures.
+
+commit 3869d4e007c82cfe58d094072dcbb81179e53410
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 09:30:32 2008 +0200
+
+    [generic] Get rid of YUV tables saving 5k binary size!
+
+commit 67a89c7383af3c49d7de0ea78904a82e693b4bf6
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 09:05:37 2008 +0200
+
+    [header] tab->space
+
+commit 1179e5c81de1312064d0c9475389e6c7b9e39e13
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 09:04:21 2008 +0200
+
+    [SDL] Replaced code in commented section by using dfb_convert_to_rgb16().
+
+commit 392b6dfbd6ff69e54e6f31e81422e2da2e863e20
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 09:03:07 2008 +0200
+
+    [formats] Fixed many NV12, NV16 and NV21 code areas, mostly for big endian.
+
+commit edb133bd9b26baa21c641acaa0e05f2724260109
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 08:59:59 2008 +0200
+
+    [JPEG] Fix direct decoding to NV16 (no to+from RGB) for little endian.
+
+commit feb307b7c28a52ba38353e96a5816cd374909705
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 08:59:18 2008 +0200
+
+    [formats] Clarify definition of NV12, NV16 and NV21.
+
+commit c723856a84d1892eca64c5b7c3227e665a288c4b
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 06:46:45 2008 +0200
+
+    [dfbtest_blit] Added test program for (Stretch)Blit with an image from file.
+    
+    Options:
+      -h, --help                        Show this help message
+      -v, --version                     Print version information
+      -s, --source    <pixelformat>     Source pixel format
+      -d, --dest      <pixelformat>     Destination pixel format
+      -r, --resize                      Set destination from source size
+      -b, --benchmark                   Enable benchmarking mode
+
+commit 391cf2c4c33738c114a40c0ba0edfffcdac24233
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 06:45:03 2008 +0200
+
+    [generic] Rewrote Dacc_RGB_to_YCbCr_C and Dacc_YCbCr_to_RGB_C using Duff's device with macros.
+    
+    Conversion also supports 4:4:4 by this change, not optimizing for 4:2:x cases.
+
+commit 687dd974b9531e71115dbf833ac7ec0c6e3b9bc3
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 06:42:51 2008 +0200
+
+    [convert] Fix missing parentheses around macro parameters in YCBCR_TO_RGB().
+
+commit ce7dc5e548faef36201be5beb51d1311ef41c78a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 06:35:15 2008 +0200
+
+    [convert] Rewrote YCbCr<->RGB conversion routines without lookups which are much more expensive on embedded devices.
+
+commit 13425aeb1e3f28e7d595f578047f4dc3f069a5b4
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 03:26:18 2008 +0200
+
+    [options] New option "[no-]software-trace" to show every stage of the software rendering pipeline.
+
+commit 01ab1f314edb281b30913d9295a8571f450eca80
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 03:24:30 2008 +0200
+
+    [direct] Added file and symbol lookup functions to trace code for external usage.
+    
+    New functions are direct_trace_lookup_file(), direct_trace_lookup_symbol() and
+    a convenience function combining the above called direct_trace_lookup_symbol_at().
+
+commit 59bbf8d99d59a9e6cf706bf4c4ad3f312905e019
+Author: Denis Oliver Kropp <dok@debian.(none)>
+Date:   Thu Sep 4 01:02:36 2008 +0900
+
+    [README] Added some packages for autofoo...
+
+commit a37835f7cddd8920086d0f7aff812937f9c79368
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Aug 24 21:24:06 2008 +0200
+
+    [default wm] Fixed crash with DWCAPS_NOFOCUS implementation.
+
+commit 47b59c53b7ca42c63b82710fd872081f8e82ed93
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Aug 24 17:10:45 2008 +0200
+
+    [default wm] Implemented DWCAPS_NOFOCUS.
+
+commit 7ca1f65b1b5b9648c136ad60530199a63ac51648
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Aug 24 17:10:19 2008 +0200
+
+    [IDirectFBWindow] Added DWCAPS_NOFOCUS: window will never get focus or receive key events, unless it grabs them.
+
+commit df96caeb46881c266cbd871d0ff8ef182e1eb2ff
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Aug 23 13:58:10 2008 +0200
+
+    [configure] Switch to pkg-config for SDL and FreeType2, thanks to Keith Mok!
+
+commit a812539bf6af796fb236762e75982b5d45b87eff
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 22 20:32:30 2008 +0200
+
+    [input] Fixed boundary check for axis info array access.
+
+commit 967af1280ad5d103c086e8cdfa0200e31bf00892
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 22 20:01:45 2008 +0200
+
+    [sh7722] Build only for SH4.
+
+commit 2b7886ff4e966a3a9a8df499991092058019fc7d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 22 19:46:45 2008 +0200
+
+    [default wm] Use min/max values from absolute axis motion events if present.
+
+commit a7b2e45fa92d1914277bd25e44f2ea9a8703dad5
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 22 19:46:05 2008 +0200
+
+    [input] Query axis information from driver and put it into events.
+
+commit 615d54cfea5becdefd4bd388b7f61b7a9b3dcd3f
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 22 19:41:40 2008 +0200
+
+    [IDirectFBInputDevice] Added DIEF_MIN/MAX and min/max to DFBInputEvent, e.g. for axis boundaries.
+
+commit 698d68a5c0afbf3e4e5f477c4da8e705d78adae8
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 22 16:44:26 2008 +0200
+
+    [input] Added GetAxisInfo() to InputDriverFuncs to query information about one axis.
+    
+    Make use of it in input_driver.h only if driver has defined DFB_INPUTDRIVER_HAS_AXIS_INFO
+    to avoid having to change all input drivers.
+
+commit 043cf5674b99087df7ceebe3749edf7f2268b68d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 22 16:44:10 2008 +0200
+
+    [IDirectFBInputDevice] Added DFBInputDeviceAxisInfo(Flags) with DIAIF_ABS_MIN/MAX flags and abs_min/max fields.
+
+commit b12044ecd6f738bfa28052fcc8b36c520dffe578
+Merge: 6832da9... 8d5f445...
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Aug 21 17:29:30 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 6832da9ae538d5d062e820782e96114757ed8c3b
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Aug 21 17:27:34 2008 +0200
+
+    [davinci] In ARGB OSD dithering use task buffer and add missing locks.
+
+commit 8d5f44551430c5e4005fd9b60edd27e9f383d00b
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Aug 21 11:34:08 2008 +0200
+
+    [sh7722] Fixes for JPEG encoding with conversion, cleanups...
+
+commit a29676ac604b3e3f9fa00543330464f77442c9a5
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Aug 21 08:21:34 2008 +0200
+
+    [interfaces] Important fix for having multiple interface implementations in one module.
+
+commit 5b80d5d1bdec3e3334b4f9119d92f1cb3fcbcea1
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 19 11:21:52 2008 +0200
+
+    [windows] Added magic value to CoreWindow.
+
+commit 294a40d71c8173ba2e539721d8988e58ff5c9436
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Aug 16 02:08:45 2008 +0200
+
+    [IDirectFBWindow] Added DWOP_FOLLOW_BOUNDS to make bounds follow the parent window.
+
+commit ca9c9600e0f1a8f1cb243eb7ecf22115c98669ec
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Aug 16 01:57:03 2008 +0200
+
+    [x11] Fixed new bug with reopening X11 window when layer resizes.
+
+commit b2611d5352b1548900202cc9418e6e83b4b81ca8
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Aug 16 00:36:31 2008 +0200
+
+    [dfbtest_window] Implemented selection of individual tests for top/sub window and added option to wait at the end.
+
+commit e0a02568469a1325de9a5c4a3e9447571f390a1b
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 15 22:59:18 2008 +0200
+
+    [dfbtest_window] Added options for setting window options and for window association.
+
+commit 63c4da3b3a720fd41a59e07c1344614f3956c9eb
+Merge: 779b31c... 0148ec4...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 15 21:00:33 2008 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 779b31c4fbddfc8890d4fb57bbf9ef93ebde62cc
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 15 21:00:04 2008 +0200
+
+    [strings] Generate name/value pairs for DFBWindowOptions.
+
+commit 0148ec4dacbe599d9b10e0075237e87a8f064578
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Aug 15 20:09:50 2008 +0200
+
+    [x11] improve shutdown behaviour of X11 module.
+    
+    Certain race conditions at shutdown prevented, leading to lock or crash.
+    x11input and x11 modules combined into 1.
+
+commit 0b090e40b85160ce947d7b931f9a6ece54862d29
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 15 18:54:59 2008 +0200
+
+    [interfaces] Fix previous commit for unregistering interfaces, removing the proto type which had the old name.
+
+commit af62273b41eab8d66d6ff1cafe1941ef6f7f836d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 15 18:31:34 2008 +0200
+
+    [interfaces] Added DirectUnregisterInterface() and destructor to call it.
+    
+    Added magic value to interface implementation structure and use D_CALLOC/D_FREE.
+
+commit 47ec69f0cb945a74269859a91c2b359deb6d0660
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 15 16:40:50 2008 +0200
+
+    [dfbtest_window] Added advanced window geometry tests.
+
+commit f6b440a1b7beb0ccb6984930422c2ae65accb7e3
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 19:12:04 2008 +0200
+
+    [dfbtest_window] Enhanced testing and logging code. Run most tests on sub window, too.
+
+commit 4124b63f7f897408c9c5ef7b62fed029dd62a64e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 19:08:55 2008 +0200
+
+    [dfbmaster] Added very simple dedicated master for safety, stability or enhanced testing pleasure.
+
+commit 4a3d91bc149d25a6dfaf77b58418d86295033ae1
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 06:14:49 2008 +0200
+
+    [default wm] Build fix for previous commit that reduces recursion.
+
+commit 4596df5e093d5b054f38780577a5fb02252792e5
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 06:05:55 2008 +0200
+
+    [default wm] Make sure window has a surface before restoring its size when disabling scaling.
+
+commit efb4e64a74157b65458ed4c4e297ab3a2b307fca
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 06:05:02 2008 +0200
+
+    [strings] Generate name/value pairs for DFBWindowCapabilities.
+
+commit e27b49141e988748b059f1672a6d98a3baf02389
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 06:04:07 2008 +0200
+
+    [dfbtest_window] New option to pass window caps for top or sub window.
+    
+    Fixes for input only windows, e.g. don't try to grab surface :)
+
+commit 6b6803f94de9da390c32e029211d8c10aba1113e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 05:07:11 2008 +0200
+
+    [x11] Implemented primaryRemoveRegion() with a new call to destroy the X11 window.
+    
+    Also cleaned up name of window creation call (set_video_mode -> create_window).
+
+commit e66998a2459aca790752a7511eab41239112c372
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 05:06:20 2008 +0200
+
+    [dfbtest_window] Added test that hides the top level window and shows it again.
+
+commit 603158aaa73dbf713cf1b66692ec179c6668f8ce
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 04:27:31 2008 +0200
+
+    [subwindows] Destroy all sub windows first in window destruction code.
+
+commit fcb4bd03e2dda669f8c221d236a3828af50f58f7
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 04:24:46 2008 +0200
+
+    [dfbtest_window] Added more options, window destroy test and proper cleanup.
+    
+    Added -p / --pos for top level position and added a sub window version of each top level option.
+    
+    New test at the end destroys the top level window.
+    
+    Remember top level (if created) and sub window and release them before exit.
+
+commit 285b2ccbbcb41c5e6655edd7ebb1974a6bb89cf9
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 03:27:54 2008 +0200
+
+    [default wm] Avoid most of the recursive calls of wind_of_change().
+
+commit ebfdb3cf9d20b43475ad9375e028e965ae2cc7e6
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 00:55:38 2008 +0200
+
+    [x11] Fixed race condition and X error when switching resolution quickly.
+
+commit d934bdd21fb0ca42e86e5c7e0c2c146fa2e1c820
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 14:25:28 2008 +0200
+
+    [x11] More X locking and checks for input thread exit... still not satisfied...
+
+commit da6fcf72c6b101f8890a1d08d513eda67935343c
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 14:23:19 2008 +0200
+
+    [dfbtest_window] Added new program for testing window and sub window features :)
+    
+    Tests done right now:
+    	- create top level
+    	- create sub window
+    	- move top level
+    	- scale top level
+
+commit d1072e7e22013eb0a12f997950499da0b5d2b5eb
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 14:18:11 2008 +0200
+
+    [IDirectFBWindow] Initial checkin of sub window support (one level only for DirectFB 1.4)...
+    
+    Added DWCAPS_SUBWINDOW, DWDESC_TOPLEVEL_ID and "toplevel_id" to DFBWindowDescription.
+    
+    Manage ref to top level window and vector of sub windows in window core, but leave scaling,
+    translation and clipping of sub window bounds based on top level bounds to the WM module.
+    
+    Cleaned up IDirectFBWindow method order...
+
+commit 0ad26c8f57494bca399f09133e04bef17f9f0521
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 14:15:54 2008 +0200
+
+    [windows] Added lock and ref around dfb_wm_close_stack() in dfb_wm_close_all_stacks(), added context magic and lock assertions everywhere!
+
+commit 535061197082f993d05f9dd28c3b231cfdf49423
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 14:14:46 2008 +0200
+
+    [windows] Added missing locks around direct dfb_wm_... calls...
+
+commit e9ba4041cea208c442d6a5d0b1f0a5fd9a46fb1f
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 14:13:37 2008 +0200
+
+    [layers] Added magic vaue to CoreLayerContext structure, improved debug messages.
+
+commit 9422d85f922a740ec06a0f5e0955a9eaf419e194
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 14:08:37 2008 +0200
+
+    [version] 1.3.0 :-)
+
+commit 85f0417c8392b37ec9543e64e1a1c3a2d2f5703d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 10:56:35 2008 +0200
+
+    [layers] Added debug message to print context being returned by dfb_layer_get_active_context().
+
+commit 21067461e719feaafbb404dfd0fe18f61ac01138
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 10:47:03 2008 +0200
+
+    [IDirectFBSurface_Window] Added missing layer context locking around dfb_wm_get_insets() in IDirectFBSurface_Window_Construct().
+
+commit 43cc1713fd9dee2e6c8f9d65ef0d6192187b6a37
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 10:20:27 2008 +0200
+
+    [layers] Fixed failing context lock assertion in dfb_wm_close_stack() by locking in context destructor.
+
+commit b00124a5811ba90ca84dab646d42ef8f6a5b184f
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 10:15:21 2008 +0200
+
+    [fusion] Fixed single app skirmish lock counting (copy'n'paste bug).
+
+commit a21e4cd136e7b293eb3c2d2f4b8e1426db8b195f
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 08:27:39 2008 +0200
+
+    [windows] Avoid recursive dfb_wm_close_stack() caused by SaWMan's CloseStack() unref on the layer region.
+    
+    This issue happens only in single app build, where the layer region constructor gets called synchronously
+    and destroys the window stack structure before the dfb_wm_close_stack() has finished.
+    
+    Fixed by calling CloseStack() at the end dfb_wm_close_stack(), moving the list removal and flag clearing
+    before the call and freeing the stack data in dfb_windowstack_destroy() or recurring dfb_wm_init_stack().
+
+commit b15eb23d6e53f9bb1638575f97e1a6c31a8ef690
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 8 16:39:50 2008 +0200
+
+    updated TODO
+
+commit 550bb3a859161a6ce613dfebebe8b0c86b5701b3
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 8 16:00:31 2008 +0200
+
+    updated ChangeLog
+
 commit 8881c385160ebb1fbf20093755866c1f29b1993f
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Aug 8 15:59:01 2008 +0200
