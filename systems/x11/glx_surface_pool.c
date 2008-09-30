@@ -77,6 +77,7 @@ typedef struct {
 
      /* Every thread needs its own context! */
      pthread_key_t                 context_key;
+     pthread_key_t                 context_key2;
 } glxPoolLocalData;
 
 typedef struct {
@@ -130,7 +131,7 @@ InitLocal( glxPoolLocalData *local,
           8,
 
           GLX_DEPTH_SIZE,
-          0,
+          8,
 
           GLX_X_VISUAL_TYPE,
           GLX_TRUE_COLOR,
@@ -158,8 +159,6 @@ InitLocal( glxPoolLocalData *local,
      if (ret)
           return ret;
 
-     pthread_key_create( &local->context_key, destroy_context );
-
 
      XLockDisplay( local->display );
 
@@ -179,7 +178,7 @@ InitLocal( glxPoolLocalData *local,
                       info->red_mask, info->green_mask, info->blue_mask,
                       info->bits_per_rgb, info->class, depth );
 
-          if (depth == 0 && info->class == TrueColor) {
+          if (depth >= 8 && info->class == TrueColor) {
                switch (info->depth) {
                     case 32:
                          local->config32 = local->configs[i];
@@ -194,15 +193,23 @@ InitLocal( glxPoolLocalData *local,
           }
      }
 
+     if (!local->config24 || !local->config32) {
+          D_ERROR( "GLX/Surfaces: Could not find useful visuals!\n" );
+          direct_hash_destroy( local->pixmaps );
+          XUnlockDisplay( local->display );
+          return DFB_UNSUPPORTED;
+     }
+
      XVisualInfo *info24 = glXGetVisualFromFBConfig( local->display, local->config24 );
      XVisualInfo *info32 = glXGetVisualFromFBConfig( local->display, local->config32 );
 
      D_INFO( "GLX/Surfaces: Using visual 0x%02lx (24bit) and 0x%02lx (32bit)\n", info24->visualid, info32->visualid );
 
-
      XUnlockDisplay( local->display );
 
 
+     pthread_key_create( &local->context_key,  destroy_context );
+     pthread_key_create( &local->context_key2, destroy_context );
 
      D_MAGIC_SET( local, glxPoolLocalData );
 
@@ -380,6 +387,9 @@ glxInitPool( CoreDFB                    *core,
 
      /* For showing our X11 window */
      ret_desc->access[CSAID_LAYER0] = CSAF_READ;
+
+     /* For user contexts via DirectFBGL */
+     ret_desc->access[CSAID_ACCEL1] = CSAF_READ | CSAF_WRITE;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "GLX Drawables" );
 
@@ -562,10 +572,10 @@ glxLock( CoreSurfacePool       *pool,
      if (ret)
           return ret;
 
-     if (lock->accessor == CSAID_GPU) {
+     if (lock->accessor == CSAID_GPU || lock->accessor == CSAID_ACCEL1) {
           ThreadContext *ctx;
 
-          ctx = pthread_getspecific( local->context_key );
+          ctx = pthread_getspecific( (lock->accessor == CSAID_GPU) ? local->context_key : local->context_key2 );
           if (!ctx) {
                ctx = D_CALLOC( 1, sizeof(ThreadContext) );
                if (!ctx)
@@ -585,13 +595,13 @@ glxLock( CoreSurfacePool       *pool,
 
                XUnlockDisplay( local->display );
 
-               pthread_setspecific( local->context_key, ctx );
+               pthread_setspecific( (lock->accessor == CSAID_GPU) ? local->context_key : local->context_key2, ctx );
 
                D_DEBUG_AT( GLX_Surfaces, "  -> NEW CONTEXT %p\n", ctx->context );
           }
 
           if (lock->access & CSAF_WRITE) {
-               if (pixmap->drawable != glXGetCurrentDrawable()) {
+               if (pixmap->drawable != glXGetCurrentDrawable() || ctx->context != glXGetCurrentContext()) {
                     D_DEBUG_AT( GLX_Surfaces, "  -> MAKE CURRENT 0x%08lx <- 0x%08lx\n", pixmap->drawable, glXGetCurrentDrawable() );
 
                     XLockDisplay( local->display );
