@@ -128,10 +128,11 @@ Construct( IDirectFBFont      *thiz,
           return DFB_NOSYSTEMMEMORY;
      }
 
-     config.flags  = CSCONF_SIZE | CSCONF_FORMAT;
+     config.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
      config.size.w = font_desc.width;
      config.size.h = font_desc.height;
      config.format = font->pixel_format;
+     config.caps   = font->surface_caps;
 
      ret = dfb_surface_create( core, &config, CSTF_FONT, 0, NULL, &surface );
      if (ret) {
@@ -238,31 +239,42 @@ Construct( IDirectFBFont      *thiz,
                     pixels += font_desc.preallocated[0].pitch;
                     switch (surface->config.format) {
                          case DSPF_ARGB:
-                              for (n=0; n<font_desc.width; n++)
-                                   dst32[n] = (pixels[n] << 24) | 0xFFFFFF;
+                              if (surface->config.caps & DSCAPS_PREMULTIPLIED) {
+                                   for (i=0; i<font_desc.width; i++)
+                                        dst32[i] = pixels[i] * 0x01010101;
+                              }
+                              else
+                                   for (i=0; i<font_desc.width; i++)
+                                        dst32[i] = (pixels[i] << 24) | 0xFFFFFF;
                               break;
                          case DSPF_AiRGB:
-                              for (n=0; n<font_desc.width; n++)
-                                   dst32[n] = ((pixels[n] ^ 0xFF) << 24) | 0xFFFFFF;
+                              for (i=0; i<font_desc.width; i++)
+                                   dst32[i] = ((pixels[i] ^ 0xFF) << 24) | 0xFFFFFF;
                               break;
                          case DSPF_ARGB4444:
-                              for (n=0; n<font_desc.width; n++)
-                                   dst16[n] = (pixels[n] << 8) | 0xFFF;
+                              if (surface->config.caps & DSCAPS_PREMULTIPLIED) {
+                                   for (i=0; i<font_desc.width; i++)
+                                        dst16[i] = (pixels[i] >> 4) * 0x1111;
+                              }
+                              else {
+                                   for (i=0; i<font_desc.width; i++)
+                                        dst16[i] = (pixels[i] << 8) | 0xFFF;
+                              }
                               break;
                          case DSPF_ARGB2554:
-                              for (n=0; n<font_desc.width; n++)
-                                   dst16[n] = (pixels[n] << 8) | 0x3FFF;
+                              for (i=0; i<font_desc.width; i++)
+                                   dst16[i] = (pixels[i] << 8) | 0x3FFF;
                               break;
                          case DSPF_ARGB1555:
-                              for (n=0; n<font_desc.width; n++)
-                                   dst16[n] = (pixels[n] << 8) | 0x7FFF;
+                              for (i=0; i<font_desc.width; i++)
+                                   dst16[i] = (pixels[i] << 8) | 0x7FFF;
                               break;
                          case DSPF_A8:
-                              direct_memcpy(lock.addr, pixels, font_desc.width);
+                              direct_memcpy( lock.addr, pixels, font_desc.width );
                               break;
                          case DSPF_A4:
-                              for (n=0, j=0; j < font_desc.width; n++, j+=2)
-                                   dst8[n] = (pixels[j] & 0xF0) | (pixels[j+1] >> 4);
+                              for (i=0, j=0; i<font_desc.width; i+=2, j++)
+                                   dst8[j] = (pixels[i] & 0xF0) | (pixels[i+1] >> 4);
                               break;
                          case DSPF_A1:
                               for (i=0, j=0; i < font_desc.width; ++j) {
@@ -274,7 +286,18 @@ Construct( IDirectFBFont      *thiz,
                                    dst8[j] = p;
                               }
                               break;
+                         case DSPF_LUT2:
+                              for (i=0, j=0; i < font_desc.width; ++j) {
+                                   register u8 p = 0;
+
+                                   for (n=0; n<8 && i<font_desc.width; ++i, n+=2)
+                                        p |= (pixels[i] & 0xC0) >> n;
+
+                                   dst8[j] = p;
+                              }
+                              break;
                          default:
+                              D_UNIMPLEMENTED();
                               break;
                     }
 
