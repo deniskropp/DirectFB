@@ -601,8 +601,14 @@ glxLock( CoreSurfacePool       *pool,
           }
 
           if (lock->access & CSAF_WRITE) {
-               if (pixmap->drawable != glXGetCurrentDrawable() || ctx->context != glXGetCurrentContext()) {
+               if (ctx->context != glXGetCurrentContext() || ctx->drawable != pixmap->drawable) {
                     D_DEBUG_AT( GLX_Surfaces, "  -> MAKE CURRENT 0x%08lx <- 0x%08lx\n", pixmap->drawable, glXGetCurrentDrawable() );
+
+                    if (ctx->drawable != pixmap->drawable) {
+                         ctx->drawable = pixmap->drawable;
+
+                         pixmap->buffer.flags |= GLBF_UPDATE_TARGET;
+                    }
 
                     XLockDisplay( local->display );
 
@@ -612,8 +618,6 @@ glxLock( CoreSurfacePool       *pool,
                     ReleasePixmap( local, pixmap );
 
                     XUnlockDisplay( local->display );
-
-                    pixmap->buffer.flags |= GLBF_UPDATE_TARGET;
                }
           }
           else {
