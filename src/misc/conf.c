@@ -383,6 +383,7 @@ static void config_allocate()
      dfb_config->i8xx_overlay_pipe_b      = false;
      dfb_config->surface_shmpool_size     = 64 * 1024 * 1024;
      dfb_config->keep_accumulators        = 1024;
+     dfb_config->font_format              = DSPF_A8;
 
      /* default to fbdev */
      dfb_config->system = D_STRDUP( "FBDev" );

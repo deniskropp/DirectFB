@@ -1,3 +1,276 @@
+1.3.0
+-----
+
+API | IDirectFBDisplayLayer
+- Added GetRotation() to query the layer rotation.
+
+API | IDirectFBSurface
+- Added DSBLIT_ROTATE90 and DSBLIT_ROTATE270. Thanks to Young Hoon for original patch!
+- Added DFBSurfaceHintFlags for optimized allocation, format selection etc.
+- Added DSDESC_HINTS to DFBSurfaceDescriptionFlags and 'hints' to DFBSurfaceDescription.
+- Implemented DSHF_FONT by selecting the configured font format and premultiplication.
+- Added DSCAPS_ROTATED to allocate back buffers with width/height swapped (unimplemented).
+
+API | IDirectFBWindow
+- Added SetRotation() for 90, 180 and 270 degree rotation per window.
+  Thanks to Young Hoon for the original patch!
+- Added sub window support with each sub window having its own surface (one level only for DirectFB 1.4)...
+- Added DWCAPS_SUBWINDOW, DWDESC_TOPLEVEL_ID and "toplevel_id" to DFBWindowDescription.
+  Manage ref to top level window and vector of sub windows in window core, but leave scaling,
+  translation and clipping of sub window bounds based on top level bounds to the WM module.
+- Added DWOP_FOLLOW_BOUNDS to make bounds follow the parent window (only for window association, sub windows always follow).
+
+Runtime Options
+- Allow '90' and '270' for "layer-rotate" option.
+
+Graphics Core
+- Implement proper clipping for rotated blits of 90, 180 or 270 degree.
+
+Layer Core
+- Implement layer rotation using DSCAPS_ROTATED if available, otherwise using rotated window stack.
+  With just a single buffer (frontonly), it always uses rotation of the window stack.
+  Thanks to Young Hoon for the original patch!
+- Added magic value to CoreLayerContext structure, improved debug messages.
+- Fixed missing lock on surface structure around dfb_surface_allocation_update() call.
+
+Surface Core
+- Added Surface Pool Bridge[tm] technology to speed up transfer between pools.
+  New API can be implemented to do optimized transfer from one surface pool to another.
+  CheckTransfer() is called to probe each registered CoreSurfacePoolBridge.
+  CoreSurfacePoolTransfer is allocated with one or more rectangles to be transfered.
+  StartTransfer() and FinishTransfer() are used to actually execute the transfer
+  which could be queued, but is synchronous at the moment (Start+Finish).
+- Implemented dfb_surface_buffer_write() using Write() on allocation.
+- New algorithm for finding the allocation which to Write() to, using last read
+  allocation or other up to date allocation.
+- Remember last read allocation for better negotiation in case of multiple up to
+  date allocations.
+- Implemented dfb_surface_buffer_read() using Read() on allocation
+- Added dfb_surface_buffer_lock_deinit(), moved out format conversion.
+
+Window Core
+- Added magic value to CoreWindow.
+- Set magic value in CoreWindow before calling WM functions.
+- Added lock and ref around dfb_wm_close_stack() in dfb_wm_close_all_stacks(), added context magic and lock assertions everywhere!
+
+Pixel Formats
+- Added dfb_convert_to_rgb24() and dfb_convert_to_a8(), used for surface dumps to .ppm files.
+
+Software Rendering
+- Started implementation of DSBLIT_ROTATE90, DSBLIT_ROTATE180 and DSBLIT_ROTATE270 for all blitting flags...
+- Disable MMX functions not supporting rotation (Ostep/Dstep) properly.
+
+Utilities
+- Added D_UTIL_SWAP(a,b) to exchange values.
+- Added dfb_region_from_rotated(), dfb_rectangle_from_rotated() and dfb_point_from_rotated_region().
+- Replaced dfb_back_to_front_copy_180() by dfb_back_to_front_copy_rotation() with extra argument.
+  Thanks to Young Hoon for the original patch!
+
+OpenGL Driver
+- New accelerated driver using OpenGL!
+
+PNG Image Provider
+- Use dfb_surface_write_buffer() if possible.
+
+Default WM
+- Implement stack rotation and window rotation, thanks to Young Hoon for the original patch!
+- In window_at_pointer() use dfb_surface_read_buffer() with 1x1 rectangle instead of lock/unlock.
+
+UniQuE WM
+- Added experimental border event handling in test_foo program to move/raise any window :)
+- Use dfb_surface_write_buffer() instead of lock/memcpy/unlock for border images (foo).
+- Unload foo surface (border tiles) during master shutdown.
+
+X11 System
+- Full featured OpenGL based acceleration via GLX!
+- Implemented Surface Pool Bridge for fast transfer between XShmImage and GLX pool.
+- Use XShmCreatePixmap() and XCopyArea() instead of XShmGet/PutImage() allowing partial transfers in both directions!
+- Also tried to make multi application working, but it seems that for an X11 Pixmap there can
+  only be one process doing a glXCreatePixmap() which also does not allow the GLXPixmap to be shared :(
+
+dfbdump tool
+- Show layer and window rotation.
+
+dfbtest_window tool
+- Added new program for testing window and sub window features :)
+- Added more options, window destroy test and proper cleanup.
+- Added test that hides the top level window and shows it again.
+- New option to pass window caps for top or sub window.
+- Enhanced testing and logging code. Run most tests on sub window, too.
+- Added advanced window geometry tests.
+- Added options for setting window options and for window association.
+- Implemented selection of individual tests for top/sub window and added option to wait at the end.
+
+
+1.2.6
+-----
+
+Core
+- Call fusion_stop_dispatcher() before destroying pools to fix lots of shutdown issues.
+
+WM Core
+- Lots of useful debug messages.
+
+libfusion
+- Added fusion_stop_dispatcher() to be called before destroying pools etc... fixing lots of shutdown issues!
+
+libdirect
+- Added direct_thread_wait() / _notify(), _lock(), _unlock() and _terminate().
+- Added some debug messages to DirectInterface code.
+
+Utilities
+- Added dfb_updates_get_rectangles() for convenience, doing bounding box trade off etc...
+
+X11 System
+- Fixed remaining crash with expose events that ran into a NULL window.
+
+
+1.2.5
+-----
+
+Fonts
+- Fixed alignment on eight byte boundary, thanks to Nikita Egorov!
+
+Software Rendering
+- Don't switch to fill rectangle in DrawLine() if matrix is used.
+
+SH772x
+- More fixes for JPEG encoding with up/down scaling and offset.
+
+
+1.2.4
+-----
+
+API | IDirectFBInputDevice
+- Added DFBInputDeviceAxisInfo(Flags) with DIAIF_ABS_MIN/MAX flags and abs_min/max fields.
+- Added DIEF_MIN/MAX and min/max to DFBInputEvent, e.g. for axis boundaries.
+
+API | IDirectFBWindow
+- Added DWCAPS_NOFOCUS: window will never get focus or receive key events, unless it grabs them.
+
+Runtime Options
+- New option "[no-]software-trace" to show every stage of the software rendering pipeline.
+
+Build Options
+- Switch to pkg-config for SDL and FreeType2, thanks to Keith Mok!
+
+Graphics Core
+- Only have DSRO_MATRIX be mandatory for now. Other flags no longer prohibit acceleration.
+  Worst case was when DSRO_SMOOTH_UP/DOWNSCALE was turned on globally via "smooth-upscale" or "smooth-downscale"
+  runtime option which caused all operations to use software fallbacks, not only StretchBlit()!
+
+Input Core
+- Added GetAxisInfo() to InputDriverFuncs to query information about one axis.
+  Make use of it in input_driver.h only if driver has defined DFB_INPUTDRIVER_HAS_AXIS_INFO
+  to avoid having to change all input drivers.
+- Query axis information from driver and put it into events.
+
+Layer Core
+- Set background mode of new contexts to DLBM_DONTCARE.
+
+Pixel Formats
+- Rewrote YCbCr<->RGB conversion routines without lookups which are much more expensive on embedded devices.
+- Fixed many NV12, NV16 and NV21 code areas, mostly for big endian.
+
+Software Rendering
+- Rewrote Dacc_RGB_to_YCbCr_C and Dacc_YCbCr_to_RGB_C using Duff's device with macros.
+  Conversion also supports 4:4:4 by this change, not optimizing for 4:2:x cases.
+- Get rid of YUV tables saving 5k binary size!
+- Added optimized Bop_argb_blend_alphachannel_one_invsrc_Aop_argb() -> 6x speed
+
+Utilities
+- Added exported dfb_pixelformat_names[] and replaced relevant code.
+
+libdirect
+- Important fix for having multiple interface implementations in one module.
+- Added file and symbol lookup functions to trace code for external usage.
+  New functions are direct_trace_lookup_file(), direct_trace_lookup_symbol() and
+  a convenience function combining the above called direct_trace_lookup_symbol_at().
+- Fixed missing magic value in thread structure created for non-direct threads.
+
+Davinci Driver
+- In ARGB OSD dithering use task buffer and add missing locks.
+- Raise OSD surface pool priority to allocate in frame buffer rather than /dev/mem.
+- Workaround broken DSP cache invalidation function.
+
+SH7722 Driver
+- Build only for SH4.
+- Fixed missing update of rendering destination buffer.
+- Fixes for JPEG encoding with conversion, cleanups...
+- Fixed software fallback for JPEG decoding to unsupported formats.
+
+SH7723 Driver
+- Added support for SH7723 to SH7722 driver and kernel module.
+
+Default WM
+- Use min/max values from absolute axis motion events if present.
+- Implemented DWCAPS_NOFOCUS.
+
+X11 System
+- Update X11 system module with cleaned up code from 1.3.x.
+- Fixes in input driver and layer output.
+
+JPEG Image Provider
+- Fix direct decoding to NV16 (no to+from RGB) for little endian.
+
+dfbtest_blit
+- Added test program for (Stretch)Blit with an image from file.
+
+
+1.2.3
+-----
+
+X11 System
+- Fixed new bug with reopening X11 window when layer resizes.
+
+
+1.2.2
+-----
+
+API | IDirectFBSurface
+- Added missing layer context locking around dfb_wm_get_insets() in IDirectFBSurface_Window_Construct().
+
+API | IDirectFBWindow
+- Added missing locks around direct dfb_wm_... calls...
+
+API | Utilities
+- Generate name/value pairs for DFBWindowCapabilities and DFBWindowOptions.
+
+Layer Core
+- Fixed failing context lock assertion in dfb_wm_close_stack() by locking in context destructor.
+- Added debug message to print context being returned by dfb_layer_get_active_context().
+
+Window Core
+- Avoid recursive dfb_wm_close_stack() caused by SaWMan's CloseStack() unref on the layer region.
+  This issue happens only in single app build, where the layer region constructor gets called synchronously
+  and destroys the window stack structure before the dfb_wm_close_stack() has finished.
+  Fixed by calling CloseStack() at the end dfb_wm_close_stack(), moving the list removal and flag clearing
+  before the call and freeing the stack data in dfb_windowstack_destroy() or recurring dfb_wm_init_stack().
+- Fixed crash in window destructor caused by (un)locking the stack.
+- In dfb_wm_close_all_stacks() lock each context and temporarily ref it for following unlock.
+
+libdirect
+- Added DirectUnregisterInterface() and destructor to call it.
+- Added magic value to interface implementation structure and use D_CALLOC/D_FREE.
+
+libfusion
+- Fixed single app skirmish lock counting (copy'n'paste bug).
+
+Default WM
+- Avoid most of the recursive calls of wind_of_change().
+- Make sure window has a surface before restoring its size when disabling scaling.
+
+X11 System
+- Fixed race condition and X error when switching resolution quickly.
+- Implemented primaryRemoveRegion() with a new call to destroy the X11 window.
+- Improve shutdown behaviour of X11 module.
+  Certain race conditions at shutdown prevented, leading to lock or crash.
+  x11input and x11 modules combined into one.
+
+dfbmaster tool
+- Added very simple dedicated master for safety, stability or enhanced testing pleasure.
+
+
 1.2.1
 -----
 

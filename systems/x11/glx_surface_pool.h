@@ -71,6 +71,8 @@ typedef struct {
 
      /* Thread local data */
      GLXContext     context;
+
+     GLXDrawable    drawable;
 } ThreadContext;
 
 #endif

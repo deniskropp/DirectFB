@@ -431,9 +431,9 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
      int height = 256;
      DFBSurfacePixelFormat format;
      DFBSurfaceCapabilities caps = DSCAPS_NONE;
-     DFBDisplayLayerConfig  config;
      CoreSurface *surface = NULL;
      unsigned long resource_id = 0;
+     DFBDisplayLayerConfig  config;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
@@ -444,7 +444,14 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
      else
           dfb_layer_context_get_configuration( data->context, &config );
 
-     format = config.pixelformat;
+     if (desc->flags & DSDESC_HINTS && desc->hints & DSHF_FONT) {
+          format = dfb_config->font_format;
+
+          if (dfb_config->font_premult)
+               caps = DSCAPS_PREMULTIPLIED;
+     }
+     else
+          format = config.pixelformat;
 
      if (!desc || !interface)
           return DFB_INVARG;
