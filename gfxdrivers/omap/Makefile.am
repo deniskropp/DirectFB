@@ -18,6 +18,7 @@ omapdir = $(MODULEDIR)/gfxdrivers
 libdirectfb_omap_la_SOURCES = \
 	omap.c \
 	omap.h \
+	omapfb.h \
 	omap_primary.c
 
 libdirectfb_omap_la_LDFLAGS = \
