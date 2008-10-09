@@ -18,7 +18,6 @@ D_DEBUG_DOMAIN( SH7722_LCD, "SH7722/LCD", "Renesas SH7722 LCD" );
 
 /**********************************************************************************************************************/
 
-
 void
 sh7722_lcd_setup( void                  *drv,
                   int                    width,
@@ -30,6 +29,7 @@ sh7722_lcd_setup( void                  *drv,
 {
      u32 MLDDFR = 0;
      u32 LDDDSR = 0;
+     u32 reg;
 
      D_DEBUG_AT( SH7722_LCD, "%s( %dx%d @%lu:%d )\n", __FUNCTION__, width, height, phys, pitch );
 
@@ -99,6 +99,15 @@ sh7722_lcd_setup( void                  *drv,
                return;
      }
 
+     /* software reset of the LCD device */
+     reg = SH7722_GETREG32( drv, LCDC_LDCNT2R );
+     SH7722_SETREG32( drv, LCDC_LDCNT2R, reg | 0x100 );
+     while( SH7722_GETREG32( drv, LCDC_LDCNT2R ) & 0x100 );
+
+     /* stop the LCD while configuring */
+     SH7722_SETREG32( drv, LCDC_LDCNT2R,   0 );
+     SH7722_SETREG32( drv, LCDC_LDDCKSTPR, 1 );
+
      SH7722_SETREG32( drv, LCDC_MLDDCKPAT1R,  0x05555555 );
      SH7722_SETREG32( drv, LCDC_MLDDCKPAT2R,  0x55555555 );
      SH7722_SETREG32( drv, LCDC_LDDCKR,       0x0000003c );
@@ -139,14 +148,25 @@ sh7722_lcd_setup( void                  *drv,
      SH7722_SETREG32( drv, LCDC_MLDHSYNR,     ((8 / 8) << 16) | (960 / 8) );
      SH7722_SETREG32( drv, LCDC_MLDVLNR,      (height << 16) | 624 );
      SH7722_SETREG32( drv, LCDC_MLDVSYNR,     (1 << 16) | 560 );
-     SH7722_SETREG32( drv, LCDC_MLDPMR,       0xf6000f00 );
+     SH7722_SETREG32( drv, LCDC_MLDPMR,       0x00000000 );
 #endif
      SH7722_SETREG32( drv, LCDC_LDINTR,       0x00000000 );
      SH7722_SETREG32( drv, LCDC_LDRCNTR,      0x00000000 );
      SH7722_SETREG32( drv, LCDC_LDDDSR,       swap ? LDDDSR : 0 );
      SH7722_SETREG32( drv, LCDC_LDRCR,        0x00000000 );
      SH7722_SETREG32( drv, LCDC_LDPALCR,      0x00000000 );
+     
+     /* enable and start displaying */
      SH7722_SETREG32( drv, LCDC_LDCNT1R,      0x00000001 );
      SH7722_SETREG32( drv, LCDC_LDCNT2R,      0x00000003 );
+     SH7722_SETREG32( drv, LCDC_LDDCKSTPR, 0 );
+     while( SH7722_GETREG32( drv, LCDC_LDDCKSTPR ) & 0x10000 );
+     
+     /* finally, turn the display on */
+     {
+          SH7722DriverData *sdrv = drv;
+          if (ioctl( sdrv->gfx_fd, SH772xGFX_IOCTL_POWER_DISPLAY ) < 0)
+               D_PERROR( "SH772xGFX_IOCTL_POWER_DISPLAY\n" );
+     }
 }
 

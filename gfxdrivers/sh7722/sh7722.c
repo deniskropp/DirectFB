@@ -232,7 +232,7 @@ driver_init_device( CoreGraphicsDevice *device,
       */
      sdev->lcd_width  = SH7722_LCD_WIDTH;
      sdev->lcd_height = SH7722_LCD_HEIGHT;
-     sdev->lcd_pitch  = (DFB_BYTES_PER_LINE( sdev->lcd_format, sdev->lcd_width ) + 0x1ff) & ~0x1ff;
+     sdev->lcd_pitch  = (DFB_BYTES_PER_LINE( sdev->lcd_format, sdev->lcd_width ) + 0xf) & ~0xf;
      sdev->lcd_size   = DFB_PLANE_MULTIPLY( sdev->lcd_format, sdev->lcd_height ) * sdev->lcd_pitch;
      sdev->lcd_offset = dfb_gfxcard_reserve_memory( device, sdev->lcd_size );
 

@@ -98,6 +98,8 @@ typedef struct {
 #define SH772xGFX_IOCTL_SETREG32   _IOW( 'g', 0, SH772xRegister )
 #define SH772xGFX_IOCTL_GETREG32   _IOR( 'g', 1, SH772xRegister )
 
+/* Generic IOCTL to power the display, do this after programming the LCD Controller */
+#define SH772xGFX_IOCTL_POWER_DISPLAY _IO( 'k', 0 )
 
 #endif
 

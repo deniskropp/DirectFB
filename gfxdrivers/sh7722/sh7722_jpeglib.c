@@ -425,7 +425,8 @@ EncodeHW( SH7722_JPEG_data      *data,
           unsigned long          phys,
           int                    pitch,
           unsigned int           width,
-          unsigned int           height )
+          unsigned int           height,
+          unsigned long          tmpphys )
 {
      DirectResult           ret;
      int                    i, fd;
@@ -436,8 +437,9 @@ EncodeHW( SH7722_JPEG_data      *data,
      bool                   mode420 = false;
      SH7722JPEG             jpeg;
          
-     int                    horizontalscaling = 0;
-     int                    verticalscaling   = 0;
+     int horizontalscaling = 0;
+     int verticalscaling   = 0;
+     int tmppitch          = 0;
 
      D_ASSERT( data != NULL );
      DFB_RECTANGLE_ASSERT( rect );
@@ -446,8 +448,8 @@ EncodeHW( SH7722_JPEG_data      *data,
                  data, phys, pitch, width, height,
                  dfb_pixelformat_name(format) );
 
-     D_DEBUG_AT( SH7722_JPEG, "  -> %d,%d - %4dx%4d\n",
-                 DFB_RECTANGLE_VALS( rect ) );
+     D_DEBUG_AT( SH7722_JPEG, "  -> %d,%d - %4dx%4d (at %p)\n",
+                 DFB_RECTANGLE_VALS( rect ), tmpphys );
 
      /* JPU input is 16x16 to 2560x1920 */
      if (width < 16 || width > 2560 || height < 16 || height > 1920)
@@ -457,7 +459,12 @@ EncodeHW( SH7722_JPEG_data      *data,
           return DR_INVAREA;
 
      horizontalscaling = calculate_scaling( rect->w, width  );
-     verticalscaling   = calculate_scaling( rect->h * SH7722GFX_JPEG_LINEBUFFER_HEIGHT / height, SH7722GFX_JPEG_LINEBUFFER_HEIGHT );
+     verticalscaling   = calculate_scaling( rect->h, height );
+     if( !tmpphys ) /* we don't have enough memory, so we do it in 16 pixel steps */
+          verticalscaling = calculate_scaling( rect->h * SH7722GFX_JPEG_LINEBUFFER_HEIGHT / height, SH7722GFX_JPEG_LINEBUFFER_HEIGHT );
+     
+     /* VEU has outputpitch requirement of 4 bytes */
+     tmppitch = (width + 3) & ~3;
 
      /* scaling out-of-range? */
      if( horizontalscaling == -1 || verticalscaling == -1 )
@@ -576,41 +583,57 @@ EncodeHW( SH7722_JPEG_data      *data,
      }
      else {
           /* Setup JPU for encoding in line buffer mode. */
-          
           jpeg.flags       |= SH7722_JPEG_FLAG_CONVERT;
           jpeg.height       = height;
           jpeg.inputheight  = rect->h;
 
           SH7722_SETREG32( data, JINTE,    JINTS_INS11_LINEBUF0 | JINTS_INS12_LINEBUF1 |
                                            JINTS_INS10_XFER_DONE | JINTS_INS13_LOADED );
-          SH7722_SETREG32( data, JIFECNT,  JIFECNT_LINEBUF_MODE | (SH7722GFX_JPEG_LINEBUFFER_HEIGHT << 16) |
-                                           JIFECNT_SWAP_4321 | JIFECNT_RELOAD_ENABLE | (mode420 ? 1 : 0) );
 
-          SH7722_SETREG32( data, JIFESYA1, data->jpeg_lb1 );
-          SH7722_SETREG32( data, JIFESCA1, data->jpeg_lb1 + SH7722GFX_JPEG_LINEBUFFER_SIZE_Y );
+          if( tmpphys ) {
+               /* we have enough memory, so we just read one big "line" */
+               SH7722_SETREG32( data, JIFECNT,  JIFECNT_LINEBUF_MODE | (height << 16) |
+                                           JIFECNT_SWAP_4321 | JIFECNT_RELOAD_ENABLE | (mode420 ? 1 : 0) );
+               SH7722_SETREG32( data, JIFESYA1, tmpphys );
+               SH7722_SETREG32( data, JIFESCA1, tmpphys + tmppitch * height ); /* Y is 8bpp */
+               SH7722_SETREG32( data, JIFESMW,  tmppitch );
+          }
+          else {
+               SH7722_SETREG32( data, JIFECNT,  JIFECNT_LINEBUF_MODE | (SH7722GFX_JPEG_LINEBUFFER_HEIGHT << 16) |
+                                                JIFECNT_SWAP_4321 | JIFECNT_RELOAD_ENABLE | (mode420 ? 1 : 0) );
+
+               SH7722_SETREG32( data, JIFESYA1, data->jpeg_lb1 );
+               SH7722_SETREG32( data, JIFESCA1, data->jpeg_lb1 + SH7722GFX_JPEG_LINEBUFFER_SIZE_Y );
+               SH7722_SETREG32( data, JIFESMW,  SH7722GFX_JPEG_LINEBUFFER_PITCH );
+          }
           SH7722_SETREG32( data, JIFESYA2, data->jpeg_lb2 );
           SH7722_SETREG32( data, JIFESCA2, data->jpeg_lb2 + SH7722GFX_JPEG_LINEBUFFER_SIZE_Y );
-          SH7722_SETREG32( data, JIFESMW,  SH7722GFX_JPEG_LINEBUFFER_PITCH );
-
-          /* FIXME: Setup VEU for conversion/scaling (from surface to line buffer). */
+ 
           /* we will not use the VEU in burst mode since we cannot program the 
            * destination addresses intermediately. */
           SH7722_SETREG32( data, VEU_VBSRR, 0x00000100 );
           SH7722_SETREG32( data, VEU_VESTR, 0x00000000 );
-          SH7722_SETREG32( data, VEU_VESWR, pitch );
-          //SH7722_SETREG32( data, VEU_VESSR, (224 << 16) | cw );
-          SH7722_SETREG32( data, VEU_VESSR, (rect->h * SH7722GFX_JPEG_LINEBUFFER_HEIGHT / height)<<16 | rect->w );
-          //SH7722_SETREG32( data, VEU_VBSSR, 16 );
-           
-          SH7722_SETREG32( data, VEU_VEDWR, SH7722GFX_JPEG_LINEBUFFER_PITCH );
-          SH7722_SETREG32( data, VEU_VDAYR, data->jpeg_lb1 );
-          SH7722_SETREG32( data, VEU_VDACR, data->jpeg_lb1 + SH7722GFX_JPEG_LINEBUFFER_SIZE_Y );
           SH7722_SETREG32( data, VEU_VSAYR, phys );
           SH7722_SETREG32( data, VEU_VSACR, phys + pitch * height );
-          SH7722_SETREG32( data, VEU_VTRCR, vtrcr );
+          SH7722_SETREG32( data, VEU_VESWR, pitch );
+          
+          if( tmpphys )
+          {
+               SH7722_SETREG32( data, VEU_VESSR, (rect->h << 16) | rect->w );
+               SH7722_SETREG32( data, VEU_VEDWR, tmppitch );
+               SH7722_SETREG32( data, VEU_VDAYR, tmpphys );
+               SH7722_SETREG32( data, VEU_VDACR, tmpphys + tmppitch * height );
+               SH7722_SETREG32( data, VEU_VRFSR, (height << 16) | width );
+          }
+          else {
+               SH7722_SETREG32( data, VEU_VESSR, (rect->h * SH7722GFX_JPEG_LINEBUFFER_HEIGHT / height)<<16 | rect->w );
+               SH7722_SETREG32( data, VEU_VEDWR, SH7722GFX_JPEG_LINEBUFFER_PITCH );
+               SH7722_SETREG32( data, VEU_VDAYR, data->jpeg_lb1 );
+               SH7722_SETREG32( data, VEU_VDACR, data->jpeg_lb1 + SH7722GFX_JPEG_LINEBUFFER_SIZE_Y );
+               SH7722_SETREG32( data, VEU_VRFSR, (SH7722GFX_JPEG_LINEBUFFER_HEIGHT << 16) | width );
+          }
           SH7722_SETREG32( data, VEU_VRFCR, (verticalscaling << 16) | horizontalscaling );
-          /* SH7722GFX_JPEG_LINEBUFFER_HEIGHT should be 16 for this to work */
-          SH7722_SETREG32( data, VEU_VRFSR, (SH7722GFX_JPEG_LINEBUFFER_HEIGHT << 16) | width );
+          SH7722_SETREG32( data, VEU_VTRCR, vtrcr );
           SH7722_SETREG32( data, VEU_VENHR, 0x00000000 );
           SH7722_SETREG32( data, VEU_VFMCR, 0x00000000 );
           SH7722_SETREG32( data, VEU_VAPCR, 0x00000000 );
@@ -1579,19 +1602,20 @@ SH7722_JPEG_Close( SH7722_JPEG_context *context )
 
 DirectResult
 SH7722_JPEG_Encode( const char            *filename,
-                    const DFBRectangle    *rect,
-                    DFBSurfacePixelFormat  format,
-                    unsigned long          phys,
-                    int                    pitch,
+                    const DFBRectangle    *srcrect,
+                    DFBSurfacePixelFormat  srcformat,
+                    unsigned long          srcphys,
+                    int                    srcpitch,
                     unsigned int           width,
-                    unsigned int           height )
+                    unsigned int           height,
+                    unsigned int           tmpphys )
 {
      DFBRectangle _rect;
 
      if (!data.ref_count)
           return DR_DEAD;
 
-     switch (format) {
+     switch (srcformat) {
           case DSPF_NV12:
           case DSPF_NV16:
           case DSPF_RGB16:
@@ -1603,15 +1627,15 @@ SH7722_JPEG_Encode( const char            *filename,
                return DR_UNSUPPORTED;
      }
 
-     if (!rect) {
+     if (!srcrect) {
           _rect.x = 0;
           _rect.y = 0;
           _rect.w = width;
           _rect.h = height;
 
-          rect = &_rect;
+          srcrect = &_rect;
      }
 
-     return EncodeHW( &data, filename, rect, format, phys, pitch, width, height );
+     return EncodeHW( &data, filename, srcrect, srcformat, srcphys, srcpitch, width, height, tmpphys );
 }
 

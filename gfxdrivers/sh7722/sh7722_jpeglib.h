@@ -35,12 +35,13 @@ DirectResult SH7722_JPEG_Decode( SH7722_JPEG_context   *context,
 DirectResult SH7722_JPEG_Close ( SH7722_JPEG_context   *context );
 
 DirectResult SH7722_JPEG_Encode( const char            *filename,
-                                 const DFBRectangle    *rect,
-                                 DFBSurfacePixelFormat  format,
-                                 unsigned long          phys,
-                                 int                    pitch,
+                                 const DFBRectangle    *srcrect,
+                                 DFBSurfacePixelFormat  srcformat,
+                                 unsigned long          srcphys,
+                                 int                    srcpitch,
                                  unsigned int           width,
-                                 unsigned int           height );
+                                 unsigned int           height,
+                                 unsigned int           tmpphys );
 
 
 #endif
