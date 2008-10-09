@@ -866,7 +866,7 @@ nvidia=no
 omap=no
 radeon=no
 savage=no
-sh7722=no
+sh772x=no
 sis315=no
 tdfx=no
 unichrome=no
@@ -881,7 +881,7 @@ AC_ARG_WITH(gfxdrivers,
 [                               'all' builds all drivers (default), 'none' builds none ]
 [                               Possible gfxdrivers are: ]
 [                               ati128, cle266, cyber5k, davinci, ep9x, gl, i810, i830, mach64,]
-[                               matrox, neomagic, nsc, nvidia, omap, radeon, savage, sh7722,]
+[                               matrox, neomagic, nsc, nvidia, omap, radeon, savage, sh772x,]
 [                               sis315, tdfx, unichrome, vmware], gfxdrivers="$withval",[gfxdrivers="all"])
 
 if test "$gfxdrivers" = "all"; then
@@ -901,7 +901,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_omap="$have_arm"
   checkfor_radeon=yes
   checkfor_savage=yes
-  checkfor_sh7722=yes
+  checkfor_sh772x=yes
   checkfor_sis315=yes
   checkfor_tdfx=yes
   checkfor_unichrome=yes
@@ -962,8 +962,8 @@ else
           savage)
                   checkfor_savage=yes
                   ;;
-          sh7722)
-                  checkfor_sh7722=yes
+          sh772x)
+                  checkfor_sh772x=yes
                   ;;
           sis315)
                   checkfor_sis315=yes
@@ -1055,8 +1055,8 @@ if test "$checkfor_savage" = "yes" && test "$have_sysio" = "yes"; then
   savage=yes
 fi
 
-if test "$checkfor_sh7722" = "yes" && test "$have_sh4" = "yes"; then
-  sh7722=yes
+if test "$checkfor_sh772x" = "yes" && test "$have_sh4" = "yes"; then
+  sh772x=yes
 fi
 
 if test "$checkfor_sis315" = "yes"; then
@@ -1404,7 +1404,7 @@ AM_CONDITIONAL(GFX_NVIDIA, test "$nvidia" = "yes")
 AM_CONDITIONAL(GFX_OMAP, test "$omap" = "yes")
 AM_CONDITIONAL(GFX_RADEON, test "$radeon" = "yes")
 AM_CONDITIONAL(GFX_SAVAGE, test "$savage" = "yes")
-AM_CONDITIONAL(GFX_SH7722, test "$sh7722" = "yes")
+AM_CONDITIONAL(GFX_SH772X, test "$sh772x" = "yes")
 AM_CONDITIONAL(GFX_SIS315, test "$sis315" = "yes")
 AM_CONDITIONAL(GFX_TDFX, test "$tdfx" = "yes")
 AM_CONDITIONAL(GFX_UNICHROME, test "$unichrome" = "yes")
@@ -1569,7 +1569,7 @@ gfxdrivers/nvidia/Makefile
 gfxdrivers/omap/Makefile
 gfxdrivers/radeon/Makefile
 gfxdrivers/savage/Makefile
-gfxdrivers/sh7722/Makefile
+gfxdrivers/sh772x/Makefile
 gfxdrivers/sis315/Makefile
 gfxdrivers/tdfx/Makefile
 gfxdrivers/unichrome/Makefile
@@ -1691,7 +1691,7 @@ Building Graphics Drivers:
   NeoMagic                  $neomagic
   NSC Geode                 $nsc
   nVidia                    $nvidia
-  Renesas SH7722            $sh7722
+  Renesas SH7722/SH7723     $sh772x
   S3 Savage                 $savage
   SiS 315                   $sis315
   TI Davinci                $davinci
