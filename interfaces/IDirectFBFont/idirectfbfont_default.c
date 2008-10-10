@@ -110,6 +110,7 @@ Construct( IDirectFBFont      *thiz,
      D_ASSERT( font->pixel_format == DSPF_ARGB ||
                font->pixel_format == DSPF_AiRGB ||
                font->pixel_format == DSPF_ARGB4444 ||
+               font->pixel_format == DSPF_RGBA4444 ||
                font->pixel_format == DSPF_ARGB2554 ||
                font->pixel_format == DSPF_ARGB1555 ||
                font->pixel_format == DSPF_A8 ||
@@ -252,13 +253,19 @@ Construct( IDirectFBFont      *thiz,
                                    dst32[i] = ((pixels[i] ^ 0xFF) << 24) | 0xFFFFFF;
                               break;
                          case DSPF_ARGB4444:
+                         case DSPF_RGBA4444:
                               if (surface->config.caps & DSCAPS_PREMULTIPLIED) {
                                    for (i=0; i<font_desc.width; i++)
                                         dst16[i] = (pixels[i] >> 4) * 0x1111;
                               }
                               else {
-                                   for (i=0; i<font_desc.width; i++)
-                                        dst16[i] = (pixels[i] << 8) | 0xFFF;
+                                   if( surface->config.format == DSPF_ARGB4444 ) {
+                                        for (i=0; i<font_desc.width; i++)
+                                             dst16[i] = (pixels[i] << 8) | 0x0FFF;
+                                   } else {
+                                        for (i=0; i<font_desc.width; i++)
+                                             dst16[i] = (pixels[i] >> 4) | 0xFFF0;
+                                   }
                               }
                               break;
                          case DSPF_ARGB2554:

@@ -64,6 +64,11 @@
                                  (((g)&0xF0)     ) | \
                                  (((b)&0xF0) >> 4) )
 
+#define PIXEL_RGBA4444(a,r,g,b)( (((r)&0xF0) << 8) | \
+                                 (((g)&0xF0) << 4) | \
+                                 (((b)&0xF0)     ) | \
+                                 (((a)&0xF0) >> 4) )
+
 #define PIXEL_RGB444(r,g,b)  ( (((r)&0xF0) << 4) | \
                                  (((g)&0xF0)     ) | \
                                  (((b)&0xF0) >> 4) )
@@ -140,10 +145,15 @@
 #define ARGB1555_TO_ARGB2554(pixel) ( (((pixel) & 0x8000)     ) | \
                                       (((pixel) & 0x7FFF) >> 1) )
 
-#define ARGB1555_TO_ARGB4444(pixel) ( (((pixel) & 0x8000)     ) | \
+#define ARGB1555_TO_ARGB4444(pixel) ( (((pixel) & 0x8000) ? 0xf000 : 0 ) | \
                                       (((pixel) & 0x7800) >> 3) | \
                                       (((pixel) & 0x03C0) >> 2) | \
-                                      (((pixel) & 0x001E) >> 1) )
+                                      (((pixel) & 0x0018) >> 1) )
+
+#define ARGB1555_TO_RGBA4444(pixel) ( (((pixel) & 0x8000) ? 0x000f : 0 ) | \
+                                      (((pixel) & 0x7800) << 1) | \
+                                      (((pixel) & 0x03C0) << 2) | \
+                                      (((pixel) & 0x0018) << 3) )
 
 #define ARGB1555_TO_RGB16(pixel)  ( (((pixel) & 0x7C00) << 1) | \
                                     (((pixel) & 0x03E0) << 1) | \
@@ -159,18 +169,39 @@
                                     (((pixel) & 0x001F) << 3) )
 
 #define ARGB1555_TO_RGB555(pixel) ( (((pixel) & 0x7C00) << 9) | \
-                                      (((pixel) & 0x03E0) << 6) | \
-                                      (((pixel) & 0x001F) << 3) )
+                                    (((pixel) & 0x03E0) << 6) | \
+                                    (((pixel) & 0x001F) << 3) )
 
 #define ARGB1555_TO_RGB444(pixel) ( (((pixel) & 0x7800) >> 3) | \
-                                      (((pixel) & 0x03C0) >> 2) | \
-                                      (((pixel) & 0x001E) >> 1) )
+                                    (((pixel) & 0x03C0) >> 2) | \
+                                    (((pixel) & 0x001E) >> 1) )
 
-
+/* xRGB to xxRRGGBB, so xRxx left 3, xRGx left 2, xxGB left 1, xxxB */
 #define ARGB4444_TO_RGB32(pixel)  ( (((pixel) & 0x0F00) << 12) | \
-                                    (((pixel) & 0x00F0) <<  8) | \
-                                    (((pixel) & 0x000F) <<  4) )
+                                    (((pixel) & 0x0FF0) <<  8) | \
+                                    (((pixel) & 0x00FF) <<  4) | \
+                                    (((pixel) & 0x000F)      ) )
 
+/* RGBx to xxRRGGBB, so Rxxx left 2, RGxx left 1, xGBx, xxBx right 1 */
+#define RGBA4444_TO_RGB32(pixel)  ( (((pixel) & 0xF000) <<  8) | \
+                                    (((pixel) & 0xFF00) <<  4) | \
+                                    (((pixel) & 0x0FF0)      ) | \
+                                    (((pixel) & 0x00F0) >>  4) )
+
+/* ARGB to AARRGGBB, so Axxx left 4, ARxx left 3, xRGx left 2, xxGB left 1, xxxB */
+#define ARGB4444_TO_ARGB(pixel)  ( (((pixel) & 0xF000) << 16) | \
+                                   (((pixel) & 0xFF00) << 12) | \
+                                   (((pixel) & 0x0FF0) <<  8) | \
+                                   (((pixel) & 0x00FF) <<  4) | \
+                                   (((pixel) & 0x000F)      ) )
+
+/* RGBA to AARRGGBB, so Rxxx left 2, RGxx left 1, xGBx, xxBx right 1, A to the left */
+#define RGBA4444_TO_ARGB(pixel)  ( (((pixel) & 0x000F) << 28) | \
+                                   (((pixel) & 0x000F) << 24) | \
+                                   (((pixel) & 0xF000) <<  8) | \
+                                   (((pixel) & 0xFF00) <<  4) | \
+                                   (((pixel) & 0x0FF0)      ) | \
+                                   (((pixel) & 0x00F0) >>  4) )
 
 #define RGB16_TO_RGB332(pixel) ( (((pixel) & 0xE000) >> 8) | \
                                  (((pixel) & 0x0700) >> 6) | \
@@ -189,7 +220,13 @@
 #define RGB16_TO_ARGB4444(pixel)  ( 0xF000 |                    \
                                     (((pixel) & 0xF000) >> 4) | \
                                     (((pixel) & 0x0780) >> 3) | \
-                                    (((pixel) & 0x001F) >> 1) )
+                                    (((pixel) & 0x001E) >> 1) )
+
+#define RGB16_TO_RGBA4444(pixel)  ( 0x000F |                    \
+                                    (((pixel) & 0xF000)     ) | \
+                                    (((pixel) & 0x0780) << 1) | \
+                                    (((pixel) & 0x001E) << 3) )
+
 
 #define RGB16_TO_RGB32(pixel)  ( (((pixel) & 0xF800) << 8) | \
                                  (((pixel) & 0x07E0) << 5) | \
@@ -236,6 +273,11 @@
                                     (((pixel) & 0x00F000) >>  8) | \
                                     (((pixel) & 0x0000F0) >>  4) )
 
+#define RGB32_TO_RGBA4444(pixel)  ( 0x000F |                       \
+                                    (((pixel) & 0xF00000) >>  8) | \
+                                    (((pixel) & 0x00F000) >>  4) | \
+                                    (((pixel) & 0x0000F0)      ) )
+
 #define RGB32_TO_RGB16(pixel)  ( (((pixel) & 0xF80000) >> 8) | \
                                  (((pixel) & 0x00FC00) >> 5) | \
                                  (((pixel) & 0x0000F8) >> 3) )
@@ -274,6 +316,11 @@
                                    (((pixel) & 0x00F00000) >> 12) | \
                                    (((pixel) & 0x0000F000) >>  8) | \
                                    (((pixel) & 0x000000F0) >>  4) )
+
+#define ARGB_TO_RGBA4444(pixel)  ( (((pixel) & 0xF0000000) >> 28) | \
+                                   (((pixel) & 0x00F00000) >>  8) | \
+                                   (((pixel) & 0x0000F000) >>  4) | \
+                                   (((pixel) & 0x000000F0)      ) )
 
 #define ARGB_TO_RGB444(pixel)  ( (((pixel) & 0x00F00000) >> 12) | \
                                    (((pixel) & 0x0000F000) >>  8) | \
@@ -395,6 +442,18 @@ dfb_argb_to_argb4444( u32 *src, u16 *dst, int len )
           register u32 argb = src[i];
 
           dst[i] = ARGB_TO_ARGB4444( argb );
+     }
+}
+
+static inline void
+dfb_argb_to_rgba4444( u32 *src, u16 *dst, int len )
+{
+     int i;
+
+     for (i=0; i<len; i++) {
+          register u32 rgba = src[i];
+
+          dst[i] = ARGB_TO_RGBA4444( rgba );
      }
 }
 
