@@ -116,6 +116,13 @@ dfb_pixel_to_color( DFBSurfacePixelFormat  format,
                ret_color->b = EXPAND_4to8( (pixel & 0x000f)       );
                break;
 
+          case DSPF_RGBA4444:
+               ret_color->r = EXPAND_4to8( (pixel         ) >> 12 );
+               ret_color->g = EXPAND_4to8( (pixel & 0x0f00) >>  8 );
+               ret_color->b = EXPAND_4to8( (pixel & 0x00f0) >>  4 );
+               ret_color->a = EXPAND_4to8( (pixel & 0x000f)       );
+               break;
+
           case DSPF_RGB16:
                ret_color->r = EXPAND_5to8( (pixel & 0xf800) >> 11 );
                ret_color->g = EXPAND_6to8( (pixel & 0x07e0) >>  5 );
@@ -169,6 +176,9 @@ dfb_pixel_from_color( DFBSurfacePixelFormat  format,
 
           case DSPF_ARGB4444:
                return PIXEL_ARGB4444( color->a, color->r, color->g, color->b );
+
+          case DSPF_RGBA4444:
+               return PIXEL_RGBA4444( color->a, color->r, color->g, color->b );
 
           case DSPF_RGB444:
                return PIXEL_RGB444( color->r, color->g, color->b );
@@ -288,15 +298,29 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
                     src16 = src;
 
                     for (x=0; x<width; x++)
-                         dst[x] = PIXEL_RGB16( ((src16[x] & 0x0f00) >> 4) | ((src16[x] & 0x0f00) >> 8),
-                                               ((src16[x] & 0x00f0)     ) | ((src16[x] & 0x00f0) >> 4),
-                                               ((src16[x] & 0x000f) << 4) | ((src16[x] & 0x000f)     ) );
+                         dst[x] = PIXEL_RGB16( EXPAND_4to8( (src16[x] & 0x0f00) >> 8 ),
+                                               EXPAND_4to8( (src16[x] & 0x00f0) >> 4 ),
+                                               EXPAND_4to8( (src16[x] & 0x000f)      ) );
 
                     src += spitch;
                     dst += dp2;
                }
                break;
 
+          case DSPF_RGBA4444:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB16( EXPAND_4to8( (src16[x] & 0xf000) >> 12 ),
+                                               EXPAND_4to8( (src16[x] & 0x0f00) >>  8 ),
+                                               EXPAND_4to8( (src16[x] & 0x00f0) >>  4 ) );
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+               
           case DSPF_RGB555:
           case DSPF_ARGB1555:
                while (height--) {
@@ -310,7 +334,7 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
                }
                break;
 
- 	  case DSPF_BGR555:
+          case DSPF_BGR555:
                while (height--) {
                     src16 = src;
 
@@ -414,9 +438,23 @@ dfb_convert_to_rgb555( DFBSurfacePixelFormat  format,
                     src16 = src;
 
                     for (x=0; x<width; x++)
-                         dst[x] = PIXEL_RGB555( ((src16[x] & 0x0f00) >> 4) | ((src16[x] & 0x0f00) >> 8),
-                                                ((src16[x] & 0x00f0)     ) | ((src16[x] & 0x00f0) >> 4),
-                                                ((src16[x] & 0x000f) << 4) | ((src16[x] & 0x000f)     ) );
+                         dst[x] = PIXEL_RGB555( EXPAND_4to8( (src16[x] & 0x0f00) >> 8 ),
+                                                EXPAND_4to8( (src16[x] & 0x00f0) >> 4 ),
+                                                EXPAND_4to8( (src16[x] & 0x000f)      ) );
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+          case DSPF_RGBA4444:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB555( EXPAND_4to8( (src16[x] & 0xf000) >> 12 ),
+                                                EXPAND_4to8( (src16[x] & 0x0f00) >>  8 ),
+                                                EXPAND_4to8( (src16[x] & 0x00f0) >>  4 ) );
 
                     src += spitch;
                     dst += dp2;
@@ -511,6 +549,26 @@ dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
                }
                break;
 
+          case DSPF_RGB24:
+               while (height--) {
+                    src8 = src;
+
+                    for (x=0; x<width; x++)
+#ifdef WORDS_BIGENDIAN
+                         dst[x] = ( src8[x*3+0] << 16 ) |
+                                  ( src8[x*3+1] <<  8 ) |
+                                  ( src8[x*3+2]       );
+#else
+                         dst[x] = ( src8[x*3+2] << 16 ) |
+                                  ( src8[x*3+1] <<  8 ) |
+                                  ( src8[x*3+0]       );
+#endif
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
           case DSPF_AYUV:
                while (height--) {
                     src32 = src;
@@ -556,9 +614,19 @@ dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
                     src16 = src;
 
                     for (x=0; x<width; x++)
-                         dst[x] = PIXEL_RGB32( ((src16[x] & 0x0f00) >> 4) | ((src16[x] & 0x0f00) >> 8),
-                                               ((src16[x] & 0x00f0)     ) | ((src16[x] & 0x00f0) >> 4),
-                                               ((src16[x] & 0x000f) << 4) | ((src16[x] & 0x000f)     ) );
+                         dst[x] = ARGB4444_TO_RGB32( src16[x] );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          case DSPF_RGBA4444:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = RGBA4444_TO_RGB32( src16[x] );
 
                     src += spitch;
                     dst += dp4;
@@ -651,6 +719,26 @@ dfb_convert_to_argb( DFBSurfacePixelFormat  format,
                }
                break;
 
+          case DSPF_RGB24:
+               while (height--) {
+                    src8 = src;
+
+                    for (x=0; x<width; x++)
+#ifdef WORDS_BIGENDIAN
+                         dst[x] = ( src8[x*3+0] << 16 ) |
+                                  ( src8[x*3+1] <<  8 ) |
+                                  ( src8[x*3+2]       ) | 0xff000000;
+#else
+                         dst[x] = ( src8[x*3+2] << 16 ) |
+                                  ( src8[x*3+1] <<  8 ) |
+                                  ( src8[x*3+0]       ) | 0xff000000;
+#endif
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
           case DSPF_AYUV:
                while (height--) {
                     src32 = src;
@@ -695,10 +783,19 @@ dfb_convert_to_argb( DFBSurfacePixelFormat  format,
                     src16 = src;
 
                     for (x=0; x<width; x++)
-                         dst[x] = PIXEL_ARGB( ((src16[x] & 0xf000) >> 8) | ((src16[x] & 0xf000) >> 12),
-                                              ((src16[x] & 0x0f00) >> 4) | ((src16[x] & 0x0f00) >> 8),
-                                              ((src16[x] & 0x00f0)     ) | ((src16[x] & 0x00f0) >> 4),
-                                              ((src16[x] & 0x000f) << 4) | ((src16[x] & 0x000f)     ) );
+                         dst[x] = ARGB4444_TO_ARGB( src16[x] );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          case DSPF_RGBA4444:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = RGBA4444_TO_ARGB( src16[x] );
 
                     src += spitch;
                     dst += dp4;
@@ -909,6 +1006,20 @@ dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
                          dst[n3+0] = (src16[n] & 0x0F00) >> 4;
                          dst[n3+1] = (src16[n] & 0x00F0);
                          dst[n3+2] = (src16[n] & 0x000F) << 4;
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_RGBA4444:
+               while (height--) {
+                    src16 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+                         dst[n3+0] = (src16[n] & 0xF000) >> 8;
+                         dst[n3+1] = (src16[n] & 0x0F00) >> 4;
+                         dst[n3+2] = (src16[n] & 0x00F0);
                     }
 
                     src += spitch;
@@ -1163,6 +1274,18 @@ dfb_convert_to_a8( DFBSurfacePixelFormat  format,
                     dst += dpitch;
                }
                break;
+          case DSPF_RGBA4444:
+               while (height--) {
+                    src16 = src;
+
+                    for (n=0; n<width; n++) {
+                         dst[n] = EXPAND_4to8(src16[n] & 0xf);
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
 
           case DSPF_RGB332:
           case DSPF_RGB444:
@@ -1222,6 +1345,18 @@ dfb_convert_to_a4( DFBSurfacePixelFormat  format,
 
                     for (x=0, n=0; x<w2; x++, n+=2)
                          dst[x] = ((src16[n] & 0xf000) >> 8) | (src16[n+1] >> 12);
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+
+          case DSPF_RGBA4444:
+               while (height--) {
+                    src16 = src;
+
+                    for (x=0, n=0; x<w2; x++, n+=2)
+                         dst[x] = ((src16[n] & 0x000f) << 4) | (src16[n+1] & 0x000f);
 
                     src += spitch;
                     dst += dpitch;

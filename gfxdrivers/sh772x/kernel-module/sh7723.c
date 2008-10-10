@@ -26,7 +26,9 @@
 
 #include <asm/io.h>
 #include <asm/uaccess.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
 #include <asm/mach/irq.h>
+#endif
 
 #include <sh772x_gfx.h>
 
@@ -144,6 +146,28 @@ sh7723_reset( SH772xGfxSharedArea *shared )
 
      QDUMP( "Ready" );
 
+     return 0;
+}
+
+/* copied from board-ap325rxa.c */
+#define PORT_PSCR        0xA405011E
+#define PORT_PSDR        0xA405013E
+#define FPGA_LCDREG      0xB4100180
+#define FPGA_BKLREG      0xB4100212
+
+static int
+sh7723_power_display( void )
+{
+     msleep(100);
+
+     /* ASD AP-320/325 LCD ON */
+     ctrl_outw(0x0018, FPGA_LCDREG);
+
+     /* backlight */
+     ctrl_outw((ctrl_inw(PORT_PSCR) & ~0x00C0) | 0x40, PORT_PSCR);
+     ctrl_outb(ctrl_inb(PORT_PSDR) & ~0x08, PORT_PSDR);
+     ctrl_outw(0x100, FPGA_BKLREG);
+     
      return 0;
 }
 
@@ -371,6 +395,9 @@ sh7723gfx_ioctl( struct inode  *inode,
                     return -EFAULT;
 
                return 0;
+          
+          case SH772xGFX_IOCTL_POWER_DISPLAY:
+               return sh7723_power_display( );
      }
 
      return -ENOSYS;

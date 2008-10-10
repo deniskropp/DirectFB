@@ -214,13 +214,22 @@ IDirectFBImageProvider_SH7722_JPEG_WriteBack( IDirectFBImageProvider *thiz,
      IDirectFBSurface_data *src_data;
      CoreSurface           *src_surface;
      CoreSurfaceBufferLock  lock;
+     DFBDimension           jpeg_size;
 
+     CoreSurface           *tmp_surface;
+     CoreSurfaceBufferLock  tmp_lock;
+     int                    tmp_pitch;
+     unsigned int           tmp_phys;
+     
      DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_SH7722_JPEG)
 
      if (!surface || !filename)
           return DFB_INVARG;
 
      DIRECT_INTERFACE_GET_DATA_FROM(surface, src_data, IDirectFBSurface);
+
+     D_DEBUG_AT( SH7722_JPEG, "%s - surface %p, rect %p to file %s\n",
+               __FUNCTION__, surface, src_rect, filename );
 
      src_surface = src_data->surface;
      if (!src_surface)
@@ -257,14 +266,48 @@ IDirectFBImageProvider_SH7722_JPEG_WriteBack( IDirectFBImageProvider *thiz,
      if (!dfb_rectangle_region_intersects( &rect, &clip ))
           return DFB_INVAREA;
 
+     jpeg_size.w = src_surface->config.size.w;
+     jpeg_size.h = src_surface->config.size.h;
+     
+     /* it would be great if we had intermediate storage, since 
+      * this prevents handling the encoding in 16-line chunks,
+      * causing scaling artefacts at the border of these chunks */
+     
+     tmp_pitch = (jpeg_size.w + 3) & ~3;
+     ret = dfb_surface_create_simple( data->core, tmp_pitch, jpeg_size.h,
+                                      DSPF_NV16, DSCAPS_VIDEOONLY,
+                                      CSTF_NONE, 0, 0, &tmp_surface );
+     if( ret ) {
+          /* too bad, we proceed without */
+          D_DEBUG_AT( SH7722_JPEG, "%s - failed to create intermediate storage: %d\n",
+               __FUNCTION__, ret );
+          tmp_surface = 0;
+          tmp_phys    = 0;
+     }
+     else {
+          /* lock it to get the address */
+          ret = dfb_surface_lock_buffer( tmp_surface, CSBR_FRONT, CSAID_GPU, CSAF_READ | CSAF_WRITE, &tmp_lock );
+          if (ret) {
+               dfb_surface_unref( tmp_surface );
+               return ret;
+          }
+          tmp_phys = tmp_lock.phys;
+          D_DEBUG_AT( SH7722_JPEG, "%s - surface locked at %x\n", __FUNCTION__, tmp_phys );
+     }
+
      ret = dfb_surface_lock_buffer( src_surface, CSBR_FRONT, CSAID_GPU, CSAF_READ, &lock );
-     if (ret)
-          return ret;
-
-     ret = SH7722_JPEG_Encode( filename, &rect, src_surface->config.format, lock.phys, lock.pitch,
-                               src_surface->config.size.w, src_surface->config.size.h );
-
-     dfb_surface_unlock_buffer( src_surface, &lock );
+     if ( ret == DFB_OK ) {
+          ret = SH7722_JPEG_Encode( filename, &rect, src_surface->config.format, lock.phys, lock.pitch,
+                                    jpeg_size.w, jpeg_size.h, tmp_phys );
+                                    
+          dfb_surface_unlock_buffer( src_surface, &lock );
+     }
+     
+     if( tmp_surface ) {
+          /* unlock and release the created surface */
+          dfb_surface_unlock_buffer( tmp_surface, &tmp_lock );
+          dfb_surface_unref( tmp_surface );
+     }
 
      return ret;
 }

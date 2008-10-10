@@ -281,9 +281,11 @@ primaryTestRegion( CoreLayer                  *layer,
           case DSPF_NV16:
           case DSPF_RGB444:
           case DSPF_ARGB4444:
+          case DSPF_RGBA4444:
           case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_BGR555:
+          case DSPF_RGB24:
           case DSPF_RGB32:
           case DSPF_ARGB:
           case DSPF_AYUV:

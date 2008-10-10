@@ -574,14 +574,10 @@ sh7722_jpu_irq( int irq, void *ctx )
                          /* we will not update VESSR or VRFSR to prevent recalculating
                           * the input lines in case of partial content.
                           * This prevents hangups in case of program errors */
-                         //VEU_VESSR = (todo << 16) | (VEU_VESSR & 0xffff);
-                         //VEU_VRFSR = (todo << 16) | (VEU_VRFSR & 0xffff);
 
                          n = jpeg_line_veu * jpeg_inputheight;
-                         while (n >= jpeg_height) {
-                              offset++;
-                              n -= jpeg_height;
-                         }
+                         while (n >= jpeg_height*8) { offset+=8; n -= jpeg_height*8; }
+                         while (n >= jpeg_height)   { offset++;  n -= jpeg_height;   }
                           
                          VEU_VSAYR = jpeg_phys + offset * VEU_VESWR;
 
@@ -667,8 +663,9 @@ sh7722_veu_irq( int irq, void *ctx )
      JPRINT( " ... VEU int 0x%08x (veu_linebuf:%d,jpeg_linebuf:%d,jpeg_linebufs:%d,jpeg_line:%d)",
              events, veu_linebuf, jpeg_linebuf, jpeg_linebufs, jpeg_line );
 
-     /* update the lines processed, 16 or less */
-     jpeg_line_veu += SH7722GFX_JPEG_LINEBUFFER_HEIGHT;
+     /* update the lines processed.
+      * If we have tmpphys memory, we are ready now (veu lines == height) */
+     jpeg_line_veu += (VEU_VRFSR >> 16);
 
      if (jpeg_encode) {
           /* Fill line buffers. */
@@ -693,10 +690,8 @@ sh7722_veu_irq( int irq, void *ctx )
                JPRINT( "         -> CONVERT %d", veu_linebuf );
 
                n = jpeg_line_veu * jpeg_inputheight;
-               while (n >= jpeg_height) {
-                    offset++;
-                    n -= jpeg_height;
-               }
+               while (n >= jpeg_height*8) { offset+=8; n -= jpeg_height*8; }
+               while (n >= jpeg_height)   { offset++;  n -= jpeg_height;   }
                
                VEU_VSAYR = jpeg_phys + offset * VEU_VESWR;
                

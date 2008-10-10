@@ -323,13 +323,19 @@ render_glyph( CoreFont      *thiz,
                                    dst32[i] = ((src[i] ^ 0xFF) << 24) | 0xFFFFFF;
                               break;
                          case DSPF_ARGB4444:
+                         case DSPF_RGBA4444:
                               if (thiz->surface_caps & DSCAPS_PREMULTIPLIED) {
                                    for (i=0; i<info->width; i++)
                                         dst16[i] = (src[i] >> 4) * 0x1111;
                               }
                               else {
-                                   for (i=0; i<info->width; i++)
-                                        dst16[i] = (src[i] << 8) | 0xFFF;
+                                   if( surface->config.format == DSPF_ARGB4444 ) {
+                                        for (i=0; i<info->width; i++)
+                                             dst16[i] = (src[i] << 8) | 0x0FFF;
+                                   } else {
+                                        for (i=0; i<info->width; i++)
+                                             dst16[i] = (src[i] >> 4) | 0xFFF0;
+                                   }
                               }
                               break;
                          case DSPF_ARGB2554:
@@ -389,6 +395,11 @@ render_glyph( CoreFont      *thiz,
                               for (i=0; i<info->width; i++)
                                    dst16[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
                                                 0xF : 0x0) << 12) | 0xFFF;
+                              break;
+                         case DSPF_RGBA4444:
+                              for (i=0; i<info->width; i++)
+                                   dst16[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
+                                                0xF : 0x0)      ) | 0xFFF0;
                               break;
                          case DSPF_ARGB2554:
                               for (i=0; i<info->width; i++)
@@ -834,6 +845,7 @@ Construct( IDirectFBFont      *thiz,
      D_ASSERT( font->pixel_format == DSPF_ARGB ||
                font->pixel_format == DSPF_AiRGB ||
                font->pixel_format == DSPF_ARGB4444 ||
+               font->pixel_format == DSPF_RGBA4444 ||
                font->pixel_format == DSPF_ARGB2554 ||
                font->pixel_format == DSPF_ARGB1555 ||
                font->pixel_format == DSPF_A8 ||

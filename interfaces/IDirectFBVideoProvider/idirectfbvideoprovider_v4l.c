@@ -65,7 +65,6 @@
 #include <core/layers.h>
 #include <core/layer_control.h>
 #include <core/surface.h>
-#include <core/surfacemanager.h>
 
 #include <display/idirectfbsurface.h>
 
@@ -126,6 +125,7 @@ typedef struct {
 
      DirectThread            *thread;
      CoreSurface             *destination;
+     CoreSurfaceBufferLock    destinationlock;
      DVFrameCallback          callback;
      void                    *ctx;
 
@@ -373,21 +373,17 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
 #endif
      {
           data->grab_mode = 0;
-          if ( getenv("DFB_V4L_GRAB") || surface->caps & DSCAPS_SYSTEMONLY
-               || surface->caps & DSCAPS_FLIPPING
+          if ( getenv("DFB_V4L_GRAB") || surface->config.caps & DSCAPS_SYSTEMONLY
+               || surface->config.caps & DSCAPS_FLIPPING
                || !(VID_TYPE_OVERLAY & data->vcap.type))
                data->grab_mode = 1;
           else {
-               dfb_surfacemanager_lock( surface->manager );
-
                /*
                 * Because we're constantly writing to the surface we
                 * permanently lock it.
                 */
-               ret = dfb_surface_hardware_lock( data->core, surface,
-                                                DSLF_WRITE | CSLF_FORCE, false );
-
-               dfb_surfacemanager_unlock( surface->manager );
+               ret = dfb_surface_lock_buffer( surface, CSBR_BACK, CSAID_GPU,
+                                              CSAF_WRITE, &data->destinationlock );
 
                if (ret) {
                     pthread_mutex_unlock( &data->lock );
@@ -401,7 +397,7 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
                ret = v4l_to_surface_overlay( surface, &rect, data );
      }
      if (DFB_OK != ret && !data->grab_mode)
-          dfb_surface_unlock( surface, false );
+          dfb_surface_unlock_buffer( surface, &data->destinationlock );
 
      pthread_mutex_unlock( &data->lock );
 
@@ -712,7 +708,7 @@ static void* OverlayThread( DirectThread *thread, void *ctx )
                break;
 
           if (data->destination &&
-              data->destination->caps & DSCAPS_INTERLACED) {
+              data->destination->config.caps & DSCAPS_INTERLACED) {
                dfb_surface_set_field( data->destination, field );
 
                field = !field;
@@ -764,7 +760,12 @@ static void* GrabThread( DirectThread *thread, void *ctx )
 
           h = surface->config.size.h;
           src = data->buffer + data->vmbuf.offsets[frame];
-          dfb_surface_soft_lock( data->core, surface, DSLF_WRITE, &dst, &dst_pitch, 0 );
+          
+          dfb_surface_lock_buffer( surface, CSBR_BACK, CSAID_CPU,
+                                   CSAF_WRITE, &data->destinationlock );
+          dst       = data->destinationlock.addr;
+          dst_pitch = data->destinationlock.pitch;
+
           while (h--) {
                direct_memcpy( dst, src, src_pitch );
                dst += dst_pitch;
@@ -794,7 +795,7 @@ static void* GrabThread( DirectThread *thread, void *ctx )
                     src += src_pitch >> 1;
                }
           }
-          dfb_surface_unlock( surface, 0 );
+          dfb_surface_unlock_buffer( surface, &data->destinationlock );
 
           data->vmmap.frame = frame;
           ioctl( data->fd, VIDIOCMCAPTURE, &data->vmmap );
@@ -802,7 +803,7 @@ static void* GrabThread( DirectThread *thread, void *ctx )
           if (!data->running)
                break;
 
-          if (surface->caps & DSCAPS_INTERLACED)
+          if (surface->config.caps & DSCAPS_INTERLACED)
                dfb_surface_set_field( surface, 0 );
 
           if (data->callback)
@@ -813,7 +814,7 @@ static void* GrabThread( DirectThread *thread, void *ctx )
 
           sched_yield();
 
-          if (surface->caps & DSCAPS_INTERLACED) {
+          if (surface->config.caps & DSCAPS_INTERLACED) {
                if (!data->running)
                     break;
 
@@ -843,12 +844,14 @@ static ReactionResult v4l_videosurface_listener( const void *msg_data, void *ctx
      IDirectFBVideoProvider_V4L_data *data         = ctx;
      CoreSurface                     *surface      = notification->surface;
 
+     /*
      if ((notification->flags & CSNF_SIZEFORMAT) ||
          (surface->back_buffer->video.health != CSH_STORED)) {
           v4l_stop( data, false );
           return RS_REMOVE;
      }
-
+     */
+     
      return RS_OK;
 }
 
@@ -858,12 +861,14 @@ static ReactionResult v4l_systemsurface_listener( const void *msg_data, void *ct
      IDirectFBVideoProvider_V4L_data *data         = ctx;
      CoreSurface                     *surface      = notification->surface;
 
+     /*
      if ((notification->flags & CSNF_SIZEFORMAT) ||
          (surface->back_buffer->system.health != CSH_STORED &&
           surface->back_buffer->video.health != CSH_STORED)) {
           v4l_stop( data, false );
           return RS_REMOVE;
      }
+     */
 
      return RS_OK;
 }
@@ -875,7 +880,6 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
                                          IDirectFBVideoProvider_V4L_data *data )
 {
      int bpp, palette;
-     SurfaceBuffer *buffer = surface->back_buffer;
 
      D_DEBUG( "DirectFB/Video4Linux: %s (%p, %d,%d - %dx%d)\n", __FUNCTION__,
               surface, rect->x, rect->y, rect->w, rect->h );
@@ -883,7 +887,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
      /*
       * Sanity check. Overlay to system surface isn't possible.
       */
-     if (surface->caps & DSCAPS_SYSTEMONLY)
+     if (surface->config.caps & DSCAPS_SYSTEMONLY)
           return DFB_UNSUPPORTED;
 
      switch (surface->config.format) {
@@ -924,11 +928,15 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
      {
           struct video_buffer b;
 
-          b.base = (void*)dfb_gfxcard_memory_physical( NULL, buffer->video.offset );
-          b.width = buffer->video.pitch / ((bpp + 7) / 8);
+          /* in overlay mode, the destinationlock is already taken
+           * and pointing to the back buffer */
+          CoreSurfaceBufferLock *lock = &data->destinationlock;
+
+          b.base = (void*)dfb_gfxcard_memory_physical( NULL, lock->offset );
+          b.width = lock->pitch / ((bpp + 7) / 8);
           b.height = surface->config.size.h;
           b.depth = bpp;
-          b.bytesperline = buffer->video.pitch;
+          b.bytesperline = lock->pitch;
 
           if (ioctl( data->fd, VIDIOCSFBUF, &b ) < 0) {
                DFBResult ret = errno2result( errno );
@@ -999,7 +1007,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
 
      data->running = true;
 
-     if (data->callback || surface->caps & DSCAPS_INTERLACED)
+     if (data->callback || surface->config.caps & DSCAPS_INTERLACED)
           data->thread = direct_thread_create( DTT_CRITICAL, OverlayThread, data, "V4L Overlay" );
 
      return DFB_OK;
@@ -1136,7 +1144,7 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
 #endif
      {
           if (!data->grab_mode)
-               dfb_surface_unlock( destination, false );
+               dfb_surface_unlock_buffer( destination, &data->destinationlock );
      }
 
      data->destination = NULL;
@@ -1401,7 +1409,7 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
           ioctl(data->fd, VIDIOC_G_CTRL, &data->hue);
      }
 
-     if (surface->caps & DSCAPS_SYSTEMONLY) {
+     if (surface->config.caps & DSCAPS_SYSTEMONLY) {
           data->framebuffer_or_system = 1;
           data->req.memory = V4L2_MEMORY_MMAP;
      }
