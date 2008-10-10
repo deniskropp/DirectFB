@@ -448,7 +448,7 @@ EncodeHW( SH7722_JPEG_data      *data,
                  data, phys, pitch, width, height,
                  dfb_pixelformat_name(format) );
 
-     D_DEBUG_AT( SH7722_JPEG, "  -> %d,%d - %4dx%4d (at %p)\n",
+     D_DEBUG_AT( SH7722_JPEG, "  -> %d,%d - %4dx%4d (at %lx)\n",
                  DFB_RECTANGLE_VALS( rect ), tmpphys );
 
      /* JPU input is 16x16 to 2560x1920 */

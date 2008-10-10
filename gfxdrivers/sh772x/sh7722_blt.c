@@ -72,22 +72,26 @@ enum {
 /*
  * Map pixel formats.
  */
-static const int pixel_formats[DFB_NUM_PIXELFORMATS];
+static int pixel_formats[DFB_NUM_PIXELFORMATS];
 
-pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)   ] =  0;
-pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)    ] =  0;
-pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_RGB16)   ] =  1;
-pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_RGB555)  ] =  2;
-pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_ARGB1555)] =  3;
-pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_ARGB4444)] =  4;
-pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_RGB444)  ] =  4;
-pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_RGB18)   ] =  6;
-pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_ARGB1666)] =  6;
-pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_ARGB6666)] =  6;
-pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_RGB24)   ] =  7;
-pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_A1)      ] =  8;
-pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_A8)      ] = 10;
+__attribute__((constructor)) static void initialization( void )
+{
+     D_DEBUG_AT( SH7722_BLT, "%s()\n", __FUNCTION__ );
 
+     pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)   ] =  0;
+     pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)    ] =  0;
+     pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_RGB16)   ] =  1;
+     pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_RGB555)  ] =  2;
+     pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_ARGB1555)] =  3;
+     pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_ARGB4444)] =  4;
+     pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_RGB444)  ] =  4;
+     pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_RGB18)   ] =  6;
+     pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_ARGB1666)] =  6;
+     pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_ARGB6666)] =  6;
+     pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_RGB24)   ] =  7;
+     pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_A1)      ] =  8;
+     pixel_formats[DFB_PIXELFORMAT_INDEX(DSPF_A8)      ] = 10;
+}
 
 /*
  * State handling macros.
