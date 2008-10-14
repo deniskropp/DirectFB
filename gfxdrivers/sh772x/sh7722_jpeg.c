@@ -288,11 +288,16 @@ IDirectFBImageProvider_SH7722_JPEG_WriteBack( IDirectFBImageProvider *thiz,
           /* lock it to get the address */
           ret = dfb_surface_lock_buffer( tmp_surface, CSBR_FRONT, CSAID_GPU, CSAF_READ | CSAF_WRITE, &tmp_lock );
           if (ret) {
+               D_DEBUG_AT( SH7722_JPEG, "%s - failed to lock intermediate storage: %d\n",
+                    __FUNCTION__, ret );
                dfb_surface_unref( tmp_surface );
-               return ret;
+               tmp_surface = 0;
+               tmp_phys    = 0;
           }
-          tmp_phys = tmp_lock.phys;
-          D_DEBUG_AT( SH7722_JPEG, "%s - surface locked at %x\n", __FUNCTION__, tmp_phys );
+          else {
+               tmp_phys = tmp_lock.phys;
+               D_DEBUG_AT( SH7722_JPEG, "%s - surface locked at %x\n", __FUNCTION__, tmp_phys );
+          }
      }
 
      ret = dfb_surface_lock_buffer( src_surface, CSBR_FRONT, CSAID_GPU, CSAF_READ, &lock );

@@ -439,7 +439,17 @@ EncodeHW( SH7722_JPEG_data      *data,
          
      int horizontalscaling = 0;
      int verticalscaling   = 0;
-     int tmppitch          = 0;
+
+     int clipwidth, clipheight;
+     DFBRectangle cliprect;
+
+     /* VEU has cliprequirement of 4 bytes, input and output must be 4 pixel aligned.
+      * We have to be careful with scaling: take clipped output and input */
+     
+     cliprect.h = (rect->h + 0x3) & ~0x3;
+     cliprect.w = (rect->w + 0x3) & ~0x3;
+     clipheight = (height  + 0x3) & ~0x3;
+     clipwidth  = (width   + 0x3) & ~0x3;
 
      D_ASSERT( data != NULL );
      DFB_RECTANGLE_ASSERT( rect );
@@ -458,14 +468,14 @@ EncodeHW( SH7722_JPEG_data      *data,
      if (rect->w < 1 || rect->h < 1)
           return DR_INVAREA;
 
-     horizontalscaling = calculate_scaling( rect->w, width  );
-     verticalscaling   = calculate_scaling( rect->h, height );
-     if( !tmpphys ) /* we don't have enough memory, so we do it in 16 pixel steps */
-          verticalscaling = calculate_scaling( rect->h * SH7722GFX_JPEG_LINEBUFFER_HEIGHT / height, SH7722GFX_JPEG_LINEBUFFER_HEIGHT );
+     horizontalscaling = calculate_scaling( cliprect.w, clipwidth  );
+     verticalscaling   = calculate_scaling( cliprect.h, clipheight );
+     if( !tmpphys ) {
+          /* we don't have enough memory, so we do it in 16 pixel steps */
+          int h = ((rect->h * SH7722GFX_JPEG_LINEBUFFER_HEIGHT / height) + 0x3) & ~0x3;
+          verticalscaling = calculate_scaling( h, SH7722GFX_JPEG_LINEBUFFER_HEIGHT );
+     }
      
-     /* VEU has outputpitch requirement of 4 bytes */
-     tmppitch = (width + 3) & ~3;
-
      /* scaling out-of-range? */
      if( horizontalscaling == -1 || verticalscaling == -1 )
           return DR_INVAREA;
@@ -519,6 +529,7 @@ EncodeHW( SH7722_JPEG_data      *data,
      }
 
      /* Calculate source base address. */
+     /* TODO: NV12 input with offset. Colour will be off.. */
      phys += DFB_BYTES_PER_LINE(format, rect->x) + rect->y * pitch;
      jpeg.phys = phys;
 
@@ -567,11 +578,13 @@ EncodeHW( SH7722_JPEG_data      *data,
      SH7722_SETREG32( data, JIFEDA1,  data->jpeg_phys );
      SH7722_SETREG32( data, JIFEDA2,  data->jpeg_phys + SH7722GFX_JPEG_RELOAD_SIZE );
      SH7722_SETREG32( data, JIFEDRSZ, SH7722GFX_JPEG_RELOAD_SIZE );
-     SH7722_SETREG32( data, JIFESHSZ, width );
-     SH7722_SETREG32( data, JIFESVSZ, height );
+     SH7722_SETREG32( data, JIFESHSZ, clipwidth );
+     SH7722_SETREG32( data, JIFESVSZ, clipheight );
 
      if (width == rect->w && height == rect->h && (format == DSPF_NV12 || format == DSPF_NV16))
      {
+          D_DEBUG_AT( SH7722_JPEG, "  -> no VEU needed\n" );
+          
           /* no scaling, and supported format - so no VEU needed */
           /* Setup JPU for encoding in frame mode (directly from surface). */
           SH7722_SETREG32( data, JINTE,    JINTS_INS10_XFER_DONE | JINTS_INS13_LOADED );
@@ -595,8 +608,8 @@ EncodeHW( SH7722_JPEG_data      *data,
                SH7722_SETREG32( data, JIFECNT,  JIFECNT_LINEBUF_MODE | (height << 16) |
                                            JIFECNT_SWAP_4321 | JIFECNT_RELOAD_ENABLE | (mode420 ? 1 : 0) );
                SH7722_SETREG32( data, JIFESYA1, tmpphys );
-               SH7722_SETREG32( data, JIFESCA1, tmpphys + tmppitch * height ); /* Y is 8bpp */
-               SH7722_SETREG32( data, JIFESMW,  tmppitch );
+               SH7722_SETREG32( data, JIFESCA1, tmpphys + clipwidth * height ); /* Y is 8bpp */
+               SH7722_SETREG32( data, JIFESMW,  clipwidth );
           }
           else {
                SH7722_SETREG32( data, JIFECNT,  JIFECNT_LINEBUF_MODE | (SH7722GFX_JPEG_LINEBUFFER_HEIGHT << 16) |
@@ -610,27 +623,27 @@ EncodeHW( SH7722_JPEG_data      *data,
           SH7722_SETREG32( data, JIFESCA2, data->jpeg_lb2 + SH7722GFX_JPEG_LINEBUFFER_SIZE_Y );
  
           /* we will not use the VEU in burst mode since we cannot program the 
-           * destination addresses intermediately. */
+           * destination addresses intermediately in line mode. */
           SH7722_SETREG32( data, VEU_VBSRR, 0x00000100 );
           SH7722_SETREG32( data, VEU_VESTR, 0x00000000 );
           SH7722_SETREG32( data, VEU_VSAYR, phys );
           SH7722_SETREG32( data, VEU_VSACR, phys + pitch * height );
           SH7722_SETREG32( data, VEU_VESWR, pitch );
           
-          if( tmpphys )
-          {
-               SH7722_SETREG32( data, VEU_VESSR, (rect->h << 16) | rect->w );
-               SH7722_SETREG32( data, VEU_VEDWR, tmppitch );
+          if( tmpphys ) {
+               SH7722_SETREG32( data, VEU_VESSR, (cliprect.h << 16) | cliprect.w );
+               SH7722_SETREG32( data, VEU_VEDWR, clipwidth );
                SH7722_SETREG32( data, VEU_VDAYR, tmpphys );
-               SH7722_SETREG32( data, VEU_VDACR, tmpphys + tmppitch * height );
-               SH7722_SETREG32( data, VEU_VRFSR, (height << 16) | width );
+               SH7722_SETREG32( data, VEU_VDACR, tmpphys + clipwidth * height );
+               SH7722_SETREG32( data, VEU_VRFSR, (clipheight << 16) | clipwidth );
           }
           else {
-               SH7722_SETREG32( data, VEU_VESSR, (rect->h * SH7722GFX_JPEG_LINEBUFFER_HEIGHT / height)<<16 | rect->w );
+               int h = ((rect->h * SH7722GFX_JPEG_LINEBUFFER_HEIGHT / height) + 0x3) & ~0x3;
+               SH7722_SETREG32( data, VEU_VESSR, (h << 16) | cliprect.w );
                SH7722_SETREG32( data, VEU_VEDWR, SH7722GFX_JPEG_LINEBUFFER_PITCH );
                SH7722_SETREG32( data, VEU_VDAYR, data->jpeg_lb1 );
                SH7722_SETREG32( data, VEU_VDACR, data->jpeg_lb1 + SH7722GFX_JPEG_LINEBUFFER_SIZE_Y );
-               SH7722_SETREG32( data, VEU_VRFSR, (SH7722GFX_JPEG_LINEBUFFER_HEIGHT << 16) | width );
+               SH7722_SETREG32( data, VEU_VRFSR, (SH7722GFX_JPEG_LINEBUFFER_HEIGHT << 16) | clipwidth );
           }
           SH7722_SETREG32( data, VEU_VRFCR, (verticalscaling << 16) | horizontalscaling );
           SH7722_SETREG32( data, VEU_VTRCR, vtrcr );
