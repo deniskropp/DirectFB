@@ -1105,8 +1105,8 @@ primaryInitLayer( CoreLayer                  *layer,
      config->flags      = DLCONF_WIDTH       | DLCONF_HEIGHT |
                           DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE;
      config->buffermode = DLBM_FRONTONLY;
-     config->width      = default_mode->xres;
-     config->height     = default_mode->yres;
+     config->width      = dfb_config->mode.width  ? dfb_config->mode.width  : default_mode->xres;
+     config->height     = dfb_config->mode.height ? dfb_config->mode.height : default_mode->yres;
 
      if (dfb_config->mode.format)
           config->pixelformat = dfb_config->mode.format;
