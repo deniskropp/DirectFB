@@ -898,7 +898,7 @@ draw_window( CoreWindow *window, CardState *state,
           flags |= DSBLIT_DEINTERLACE;
 
      /* Different compositing methods depending on destination format. */
-     if (flags & DSBLIT_BLEND_ALPHACHANNEL) {
+     if (flags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
           if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->config.format )) {
                /*
                 * Always use compliant Porter/Duff SRC_OVER,
