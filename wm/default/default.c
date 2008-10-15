@@ -1815,7 +1815,7 @@ move_window( CoreWindow *window,
           bounds->x += dx;
           bounds->y += dy;
      }
-     else if (VISIBLE_WINDOW(window)) {
+     else {
           update_window( window, data, NULL, 0, false, false, false );
 
           bounds->x += dx;
