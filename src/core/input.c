@@ -1143,18 +1143,18 @@ init_axes( CoreInputDevice *device )
 static void
 init_devices( CoreDFB *core )
 {
-     DirectLink          *link;
+     DirectLink          *next;
+     DirectModuleEntry   *module;
      FusionSHMPoolShared *pool = dfb_core_shmpool( core );
 
      D_DEBUG_AT( Core_Input, "%s( %p )\n", __FUNCTION__, core );
 
      D_ASSERT( core_input != NULL );
 
-     direct_list_foreach( link, dfb_input_modules.entries ) {
+     direct_list_foreach_safe (module, next, dfb_input_modules.entries) {
           int                     n;
           InputDriver            *driver;
           const InputDriverFuncs *funcs;
-          DirectModuleEntry      *module = (DirectModuleEntry*) link;
 
           funcs = direct_module_ref( module );
           if (!funcs)
