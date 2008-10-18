@@ -103,6 +103,7 @@
 #define VEU_VSACR                  VEU_REG(0x0001c)
 #define VEU_VDAYR                  VEU_REG(0x00034)
 #define VEU_VDACR                  VEU_REG(0x00038)
+#define VEU_VTRCR                  VEU_REG(0x00050)
 #define VEU_VRFSR                  VEU_REG(0x00058)
 #define VEU_VEVTR                  VEU_REG(0x000A4)
 #define VEU_VSTAR                  VEU_REG(0x000b0)
@@ -125,6 +126,8 @@
 #define JCCMD_LCMD1                0x00000200
 #define JCCMD_READ_RESTART         0x00000400
 #define JCCMD_WRITE_RESTART        0x00000800
+
+#define VTRCR_CHRR                 0x0000C000
 
 /**********************************************************************************************************************/
 
@@ -351,7 +354,7 @@ sh7722_run_jpeg( SH772xGfxSharedArea *shared,
                jpeg_error        = 0;
                jpeg_encode       = encode;
                jpeg_reading      = 0;
-               jpeg_writing      = 0;
+               jpeg_writing      = 2;
                jpeg_reading_line = encode && !convert;
                jpeg_writing_line = !encode;
                jpeg_height       = jpeg->height;
@@ -579,7 +582,11 @@ sh7722_jpu_irq( int irq, void *ctx )
                          while (n >= jpeg_height*8) { offset+=8; n -= jpeg_height*8; }
                          while (n >= jpeg_height)   { offset++;  n -= jpeg_height;   }
                           
+                         /* VEU_VSACR is only used for CbCr, so we can simplify a bit */
+                         n = (VEU_VTRCR & VTRCR_CHRR) ? 0 : 1;
+
                          VEU_VSAYR = jpeg_phys + offset * VEU_VESWR;
+                         VEU_VSACR = jpeg_phys + ((offset >> n) + jpeg_height) * VEU_VESWR;
 
                          VEU_VDAYR = veu_linebuf ? JPU_JIFESYA2 : JPU_JIFESYA1;
                          VEU_VDACR = veu_linebuf ? JPU_JIFESCA2 : JPU_JIFESCA1;
@@ -693,8 +700,12 @@ sh7722_veu_irq( int irq, void *ctx )
                while (n >= jpeg_height*8) { offset+=8; n -= jpeg_height*8; }
                while (n >= jpeg_height)   { offset++;  n -= jpeg_height;   }
                
+               /* VEU_VSACR is only used for CbCr, so we can simplify a bit */
+               n = (VEU_VTRCR & VTRCR_CHRR) ? 0 : 1;
+
                VEU_VSAYR = jpeg_phys + offset * VEU_VESWR;
-               
+               VEU_VSACR = jpeg_phys + ((offset >> n) + jpeg_height) * VEU_VESWR;
+
                VEU_VDAYR  = veu_linebuf ? JPU_JIFESYA2 : JPU_JIFESYA1;
                VEU_VDACR  = veu_linebuf ? JPU_JIFESCA2 : JPU_JIFESCA1;
 
