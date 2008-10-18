@@ -73,13 +73,20 @@ static const InputDriverFuncs driver_funcs = {
 };
 
 #define DFB_INPUT_DRIVER(shortname)                                             \
-__attribute__((constructor)) void directfb_##shortname();                       \
+__attribute__((constructor)) void directfb_##shortname##_ctor();                \
+__attribute__((destructor))  void directfb_##shortname##_dtor();                \
                                                                                 \
 void                                                                            \
-directfb_##shortname()                                                          \
+directfb_##shortname##_ctor()                                                   \
 {                                                                               \
      direct_modules_register( &dfb_input_modules, DFB_INPUT_DRIVER_ABI_VERSION, \
                               #shortname, &driver_funcs );                      \
+}                                                                               \
+                                                                                \
+void                                                                            \
+directfb_##shortname##_dtor()                                                   \
+{                                                                               \
+     direct_modules_unregister( &dfb_input_modules, #shortname );               \
 }
 
 #endif
