@@ -29,6 +29,7 @@
 #include <config.h>
 
 #include <sys/types.h>
+#include <alloca.h>
 #include <dirent.h>
 #include <string.h>
 #include <stdio.h>
@@ -99,10 +100,12 @@ direct_modules_register( DirectModuleDir *directory,
      D_ASSERT( name != NULL );
      D_ASSERT( funcs != NULL );
 
-     D_DEBUG_AT( Direct_Modules, "Registering '%s' ('%s')\n", name, directory->path );
+     D_DEBUG_AT( Direct_Modules, "Registering '%s' ('%s')...\n", name, directory->path );
 
 #ifdef DYNAMIC_LINKING
      if ((entry = lookup_by_name( directory, name )) != NULL) {
+          D_MAGIC_ASSERT( entry, DirectModuleEntry );
+
           entry->loaded = true;
           entry->funcs  = funcs;
 
@@ -110,10 +113,21 @@ direct_modules_register( DirectModuleDir *directory,
      }
 #endif
 
-     if (directory->loading)
+     if (directory->loading) {
           entry = directory->loading;
-     else if (! (entry = D_CALLOC( 1, sizeof(DirectModuleEntry) )))
-          return;
+          D_MAGIC_ASSERT( entry, DirectModuleEntry );
+
+          directory->loading = NULL;
+     }
+     else {
+          entry = D_CALLOC( 1, sizeof(DirectModuleEntry) );
+          if (!entry) {
+               D_OOM();
+               return;
+          }
+
+          D_MAGIC_SET( entry, DirectModuleEntry );
+     }
 
      entry->directory = directory;
      entry->loaded    = true;
@@ -130,11 +144,36 @@ direct_modules_register( DirectModuleDir *directory,
           entry->disabled = true;
      }
 
-     D_MAGIC_SET( entry, DirectModuleEntry );
-
      direct_list_prepend( &directory->entries, &entry->link );
 
      D_DEBUG_AT( Direct_Modules, "...registered.\n" );
+}
+
+void
+direct_modules_unregister( DirectModuleDir *directory,
+                           const char      *name )
+{
+     DirectModuleEntry *entry;
+
+     D_DEBUG_AT( Direct_Modules, "Unregistering '%s' ('%s')...\n", name, directory->path );
+
+     entry = lookup_by_name( directory, name );
+     if (!entry) {
+          D_ERROR( "Direct/Modules: Unregister failed, could not find '%s' module!\n", name );
+          return;
+     }
+
+     D_MAGIC_ASSERT( entry, DirectModuleEntry );
+
+     D_FREE( entry->name );
+
+     direct_list_remove( &directory->entries, &entry->link );
+
+     D_MAGIC_CLEAR( entry );
+
+     D_FREE( entry );
+
+     D_DEBUG_AT( Direct_Modules, "...unregistered.\n" );
 }
 
 int
@@ -178,6 +217,8 @@ direct_modules_explore_directory( DirectModuleDir *directory )
           if (!module)
                continue;
 
+          D_MAGIC_SET( module, DirectModuleEntry );
+
           module->directory = directory;
           module->dynamic   = true;
           module->file      = D_STRDUP( entry->d_name );
@@ -213,8 +254,6 @@ direct_modules_explore_directory( DirectModuleDir *directory )
                     if (!module->loaded) {
                          module->disabled = true;
 
-                         D_MAGIC_SET( module, DirectModuleEntry );
-
                          direct_list_prepend( &directory->entries,
                                               &module->link );
                     }
@@ -233,8 +272,6 @@ direct_modules_explore_directory( DirectModuleDir *directory )
           }
           else {
                module->disabled = true;
-
-               D_MAGIC_SET( module, DirectModuleEntry );
 
                direct_list_prepend( &directory->entries, &module->link );
           }
@@ -366,11 +403,18 @@ unload_module( DirectModuleEntry *module )
 static void *
 open_module( DirectModuleEntry *module )
 {
-     DirectModuleDir *directory = module->directory;
-     int              entry_len = strlen(module->file);
-     int              buf_len   = strlen(directory->path) + entry_len + 2;
-     char             buf[buf_len];
+     DirectModuleDir *directory;
+     int              entry_len;
+     int              buf_len;
+     char            *buf;
      void            *handle;
+
+     D_MAGIC_ASSERT( module, DirectModuleEntry );
+
+     directory = module->directory;
+     entry_len = strlen(module->file);
+     buf_len   = strlen(directory->path) + entry_len + 2;
+     buf       = alloca( buf_len );
 
      snprintf( buf, buf_len, "%s/%s", directory->path, module->file );
 
