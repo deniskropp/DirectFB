@@ -1139,6 +1139,9 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
                     }
                }
           }
+          else {
+               dfb_surface_unlock_buffer( destination, &data->destinationlock );
+          }
      }
      else
 #endif
@@ -1226,7 +1229,6 @@ static void *V4L2_Thread(DirectThread * thread, void *ctx)
 
      IDirectFBVideoProvider_V4L_data *data = (IDirectFBVideoProvider_V4L_data *) ctx;
      CoreSurface *surface = data->destination;
-     SurfaceBuffer *buffer = surface->back_buffer;
      void *src, *dst;
      int dst_pitch, src_pitch, h;
 
@@ -1239,7 +1241,7 @@ static void *V4L2_Thread(DirectThread * thread, void *ctx)
           struct v4l2_buffer *vidbuf = &data->vidbuf[i];
 
           if (0 == data->framebuffer_or_system) {
-               vidbuf->m.offset = buffer->video.offset;
+               vidbuf->m.offset = data->destinationlock.offset;
           }
 
           err = ioctl(data->fd, VIDIOC_QBUF, vidbuf);
@@ -1264,12 +1266,16 @@ static void *V4L2_Thread(DirectThread * thread, void *ctx)
           }
 
           if (0 != data->framebuffer_or_system) {
+               CoreSurfaceBufferLock lock;
 
                D_DEBUG("DirectFB/Video4Linux2: index:%d, to system memory.\n", cur.index);
 
                h = surface->config.size.h;
                src = data->ptr[cur.index];
-               dfb_surface_soft_lock(data->core, surface, DSLF_WRITE, &dst, &dst_pitch, 0);
+
+               dfb_surface_lock_buffer( surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
+               dst       = lock.addr;
+               dst_pitch = lock.pitch;
                while (h--) {
                     direct_memcpy(dst, src, src_pitch);
                     dst += dst_pitch;
@@ -1308,7 +1314,7 @@ static void *V4L2_Thread(DirectThread * thread, void *ctx)
                          src += src_pitch;
                     }
                }
-               dfb_surface_unlock(surface, 0);
+               dfb_surface_unlock_buffer( surface, &lock );
           }
           else {
                D_DEBUG("DirectFB/Video4Linux2: index:%d, to overlay surface\n", cur.index);
@@ -1328,7 +1334,6 @@ static void *V4L2_Thread(DirectThread * thread, void *ctx)
 
 static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirectFBVideoProvider_V4L_data * data)
 {
-     SurfaceBuffer *buffer = surface->back_buffer;
      int palette;
 
      int err;
@@ -1376,11 +1381,15 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
                return DFB_UNSUPPORTED;
      }
 
+     err = dfb_surface_lock_buffer( surface, CSBR_BACK, CSAID_GPU, CSAF_WRITE, &data->destinationlock );
+     if (err)
+          return err;
+
      data->fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
      data->fmt.fmt.pix.width = surface->config.size.w;
      data->fmt.fmt.pix.height = surface->config.size.h;
      data->fmt.fmt.pix.pixelformat = palette;
-     data->fmt.fmt.pix.bytesperline = buffer->video.pitch;
+     data->fmt.fmt.pix.bytesperline = data->destinationlock.pitch;
      data->fmt.fmt.pix.field = V4L2_FIELD_INTERLACED; /* fixme: we can do field based capture, too */
 
      D_DEBUG("DirectFB/Video4Linux2: surface->config.size.w:%d, surface->config.size.h:%d.\n", surface->config.size.w, surface->config.size.h);
@@ -1388,11 +1397,13 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
      err = ioctl(data->fd, VIDIOC_S_FMT, &data->fmt);
      if (err) {
           D_PERROR("DirectFB/Video4Linux2: VIDIOC_S_FMT.\n");
+          dfb_surface_unlock_buffer( surface, &data->destinationlock );
           return err;
      }
 
      if (data->fmt.fmt.pix.width != surface->config.size.w || data->fmt.fmt.pix.height != surface->config.size.h) {
           D_PERROR("DirectFB/Video4Linux2: driver cannot fulfill application request.\n");
+          dfb_surface_unlock_buffer( surface, &data->destinationlock );
           return DFB_UNSUPPORTED;  /* fixme */
      }
 
@@ -1412,6 +1423,7 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
      if (surface->config.caps & DSCAPS_SYSTEMONLY) {
           data->framebuffer_or_system = 1;
           data->req.memory = V4L2_MEMORY_MMAP;
+          dfb_surface_unlock_buffer( surface, &data->destinationlock );
      }
      else {
           struct v4l2_framebuffer fb;
@@ -1431,6 +1443,7 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
 
                D_PERROR("DirectFB/Video4Linux2: VIDIOC_S_FBUF failed, must run being root!\n");
 
+               dfb_surface_unlock_buffer( surface, &data->destinationlock );
                return ret;
           }
      }
@@ -1441,6 +1454,8 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
      err = ioctl(data->fd, VIDIOC_REQBUFS, &data->req);
      if (err < 0 || data->req.count < NUMBER_OF_BUFFERS) {
           D_PERROR("DirectFB/Video4Linux2: VIDIOC_REQBUFS: %d, %d.\n", err, data->req.count);
+          if (!data->framebuffer_or_system)
+               dfb_surface_unlock_buffer( surface, &data->destinationlock );
           return err;
      }
 
@@ -1454,6 +1469,8 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
           err = ioctl(data->fd, VIDIOC_QUERYBUF, vidbuf);
           if (err < 0) {
                D_PERROR("DirectFB/Video4Linux2: VIDIOC_QUERYBUF.\n");
+               if (!data->framebuffer_or_system)
+                    dfb_surface_unlock_buffer( surface, &data->destinationlock );
                return err;
           }
 
@@ -1467,6 +1484,8 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
                data->ptr[i] = mmap(0, vidbuf->length, PROT_READ | PROT_WRITE, MAP_SHARED, data->fd, vidbuf->m.offset);
                if (data->ptr[i] == MAP_FAILED) {
                     D_PERROR("DirectFB/Video4Linux2: mmap().\n");
+                    if (!data->framebuffer_or_system)
+                         dfb_surface_unlock_buffer( surface, &data->destinationlock );
                     return err;
                }
           }
