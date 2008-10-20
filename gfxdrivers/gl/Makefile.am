@@ -28,6 +28,7 @@ libdirectfb_gl_la_LDFLAGS = \
 	$(DFB_LDFLAGS) -lGL
 
 libdirectfb_gl_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
 	$(top_builddir)/src/libdirectfb.la
 
 

@@ -28,6 +28,7 @@ libdirectfb_vmware_la_LDFLAGS = \
 	$(DFB_LDFLAGS) -lm
 
 libdirectfb_vmware_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
 	$(top_builddir)/src/libdirectfb.la
 
 

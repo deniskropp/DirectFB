@@ -43,6 +43,9 @@ includelinux_HEADERS = \
 libdavinci_c64x_la_SOURCES =	\
 	davinci_c64x.c
 
+libdavinci_c64x_la_LIBADD =	\
+	$(top_builddir)/lib/direct/libdirect.la
+
 libdirectfb_davinci_la_SOURCES =	\
 	davinci_2d.c		\
 	davinci_2d.h		\
@@ -64,6 +67,7 @@ libdirectfb_davinci_la_LDFLAGS = \
 	$(DFB_LDFLAGS)
 
 libdirectfb_davinci_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
 	$(top_builddir)/src/libdirectfb.la \
 	$(builddir)/libdavinci_c64x.la
 
