@@ -29,7 +29,7 @@ static void FUNC_NAME_(K,P,DST_FORMAT)
 
 
 /* INDEXED */
-#define SOURCE_LOOKUP(x) ((uN*)ctx->colors)[x]
+#define SOURCE_LOOKUP(x) ((const uN*)ctx->colors)[x]
 #define SOURCE_TYPE      u8
 static void FUNC_NAME_(_,_,DSPF_LUT8)
 #include STRETCH_HVX_N_H

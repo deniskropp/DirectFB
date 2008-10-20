@@ -171,7 +171,7 @@ update_window( CoreWindow          *window,
 static int keys_compare( const void *key1,
                          const void *key2 )
 {
-     return *(DFBInputDeviceKeySymbol*) key1 - *(DFBInputDeviceKeySymbol*) key2;
+     return *(const DFBInputDeviceKeySymbol*) key1 - *(const DFBInputDeviceKeySymbol*) key2;
 }
 
 /**************************************************************************************************/

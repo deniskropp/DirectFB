@@ -358,7 +358,7 @@ __attribute__((no_instrument_function))
 static int
 compare_symbols(const void *x, const void *y)
 {
-     return  *((long*) x)  -  *((long*) y);
+     return  *((const long*) x)  -  *((const long*) y);
 }
 
 __attribute__((no_instrument_function))

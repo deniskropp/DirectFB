@@ -248,12 +248,12 @@ direct_util_recursive_pthread_mutex_init( pthread_mutex_t *mutex )
 char*
 direct_base64_encode( const void *data, int size )
 {
-     static char   *enc = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                          "abcdefghijklmnopqrstuvwxyz"
-                          "0123456789+/=";
-     unsigned char *src = (unsigned char*)data;
-     char          *ret;
-     char          *buf;
+     static const char   *enc = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                "abcdefghijklmnopqrstuvwxyz"
+                                "0123456789+/=";
+     const unsigned char *src = (const unsigned char*)data;
+     char                *ret;
+     char                *buf;
      
      D_ASSERT( data != NULL );
 
@@ -426,7 +426,7 @@ direct_md5_sum( void *dst, const void *src, const int len )
      ABCD[3] = 0x67452301;
      
      for (i = 0, j = 0; i < len; i++) {
-          block[j++] = ((u8*)src)[i];
+          block[j++] = ((const u8*)src)[i];
           if (j == 64) {
                md5_hash( ABCD, (u32*)block );
                j = 0;

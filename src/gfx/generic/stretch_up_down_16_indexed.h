@@ -1,4 +1,4 @@
-#define SOURCE_LOOKUP(x) (((u16*)colors)[x])
+#define SOURCE_LOOKUP(x) (((const u16*)colors)[x])
 #define SOURCE_TYPE      u8
 
 
