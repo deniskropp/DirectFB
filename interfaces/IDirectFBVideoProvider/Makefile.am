@@ -17,6 +17,7 @@ GIF_PROVIDER_LTLIB =
 endif
 
 INCLUDES = \
+	-I$(top_builddir)/include	\
 	-I$(top_srcdir)/include	\
 	-I$(top_builddir)/lib	\
 	-I$(top_srcdir)/lib	\

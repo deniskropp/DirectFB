@@ -10,6 +10,7 @@ EXTRA_DIST = \
 	patches/ti-davinci-2.6.10-mvl401-fbio_set_start.patch
 
 INCLUDES = \
+	-I$(top_builddir)/include	\
 	-I$(top_srcdir)/include	\
 	-I$(top_builddir)/lib	\
 	-I$(top_srcdir)/lib	\
