@@ -60,6 +60,8 @@ omapEngineSync( void *drv, void *dev )
 
      /* FIXME needed? */
      ioctl( dfb_fbdev->fd, OMAPFB_SYNC_GFX );
+
+     return DFB_OK;
 }
 
 /* exported symbols */
