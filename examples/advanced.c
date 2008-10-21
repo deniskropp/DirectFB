@@ -57,7 +57,7 @@ prepare_test( IFusionSoundBuffer *buffer,
           }                                                           \
      } while (0)
 
-void
+static void
 test_simple_playback (IFusionSoundBuffer *buffer)
 {
      BEGIN_TEST( "Simple Playback" );
@@ -69,7 +69,7 @@ test_simple_playback (IFusionSoundBuffer *buffer)
      END_TEST();
 }
 
-void
+static void
 test_positioned_playback (IFusionSoundBuffer *buffer)
 {
      FSBufferDescription desc;
@@ -85,7 +85,7 @@ test_positioned_playback (IFusionSoundBuffer *buffer)
      END_TEST();
 }
 
-void
+static void
 test_looping_playback (IFusionSoundBuffer *buffer)
 {
      BEGIN_TEST( "Looping Playback" );
@@ -99,7 +99,7 @@ test_looping_playback (IFusionSoundBuffer *buffer)
      END_TEST();
 }
 
-void
+static void
 test_stop_continue_playback (IFusionSoundBuffer *buffer)
 {
      int i;
@@ -121,7 +121,7 @@ test_stop_continue_playback (IFusionSoundBuffer *buffer)
      END_TEST();
 }
 
-void
+static void
 test_volume_level (IFusionSoundBuffer *buffer)
 {
      int i;
@@ -139,7 +139,7 @@ test_volume_level (IFusionSoundBuffer *buffer)
      END_TEST();
 }
 
-void
+static void
 test_pan_value (IFusionSoundBuffer *buffer)
 {
      int i;
@@ -157,7 +157,7 @@ test_pan_value (IFusionSoundBuffer *buffer)
      END_TEST();
 }
 
-void
+static void
 test_pitch_value (IFusionSoundBuffer *buffer)
 {
      int i;

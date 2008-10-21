@@ -63,7 +63,7 @@ create_playback( const char *filename )
 }
 
 static void
-destroy_playback()
+destroy_playback( void )
 {
      playback->Release( playback );
      buffer->Release( buffer );

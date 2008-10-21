@@ -180,7 +180,7 @@ parse_args( const char *args )
 }
 
 static void 
-config_allocate()
+config_allocate( void )
 {
      if (fs_config)
           return;

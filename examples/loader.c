@@ -9,6 +9,8 @@
 
 #include <fusionsound.h>
 
+#include "loader.h"
+
 typedef struct fmtChunk {
      u16     encoding;
      u16     channels;		/* 1 = mono, 2 = stereo */

@@ -93,15 +93,15 @@ static const SoundDriverFuncs driver_funcs = {
 };
 
 
-#define FS_SOUND_DRIVER(shortname)                               \
-__attribute__((constructor)) void fusionsound_##shortname();     \
-                                                                 \
-void                                                             \
-fusionsound_##shortname()                                        \
-{                                                                \
-     direct_modules_register( &fs_sound_drivers,                 \
-                              FS_SOUND_DRIVER_ABI_VERSION,       \
-                              #shortname, &driver_funcs );       \
+#define FS_SOUND_DRIVER(shortname)                                 \
+__attribute__((constructor)) void fusionsound_##shortname( void ); \
+                                                                   \
+void                                                               \
+fusionsound_##shortname( void )                                    \
+{                                                                  \
+     direct_modules_register( &fs_sound_drivers,                   \
+                              FS_SOUND_DRIVER_ABI_VERSION,         \
+                              #shortname, &driver_funcs );         \
 }
 
 #endif

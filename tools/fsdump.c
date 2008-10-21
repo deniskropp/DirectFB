@@ -80,7 +80,7 @@ init_fusionsound( int *argc, char **argv[] )
 }
 
 static void
-deinit_fusionsound()
+deinit_fusionsound( void )
 {
      if (fsound)
           fsound->Release( fsound );
