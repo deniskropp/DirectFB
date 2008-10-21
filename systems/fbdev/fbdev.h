@@ -128,11 +128,15 @@ DFBResult dfb_fbdev_join( void );
 DFBResult dfb_fbdev_shutdown( bool emergency );
 DFBResult dfb_fbdev_leave   ( bool emergency );
 
+const VideoMode *dfb_fbdev_find_mode( int                          width,
+                                      int                          height );
 DFBResult dfb_fbdev_test_mode       ( const VideoMode             *mode,
                                       const CoreLayerRegionConfig *config );
 DFBResult dfb_fbdev_test_mode_simple( const VideoMode             *mode );
 
 DFBResult dfb_fbdev_set_mode        ( const VideoMode             *mode,
-                                      const CoreSurfaceConfig     *config );
+                                      CoreSurface                 *surface,
+                                      unsigned int                 xoffset,
+                                      unsigned int                 yoffset );
 
 #endif

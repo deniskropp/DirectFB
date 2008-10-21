@@ -1231,26 +1231,15 @@ primarySetColorAdjustment( CoreLayer          *layer,
      return DFB_OK;
 }
 
-static DFBResult
-primaryTestRegion( CoreLayer                  *layer,
-                   void                       *driver_data,
-                   void                       *layer_data,
-                   CoreLayerRegionConfig      *config,
-                   CoreLayerRegionConfigFlags *failed )
+const VideoMode *
+dfb_fbdev_find_mode( int width, int height )
 {
-     FBDevShared                *shared    = dfb_fbdev->shared;
-     const VideoMode            *videomode = NULL;
-     const VideoMode            *highest   = NULL;
-     CoreLayerRegionConfigFlags  fail      = CLRCF_NONE;
+     FBDevShared     *shared    = dfb_fbdev->shared;
+     const VideoMode *videomode = shared->modes;
+     const VideoMode *highest   = NULL;
 
-     D_DEBUG_AT( FBDev_Mode, "%s( %dx%d, %s )\n", __FUNCTION__,
-                 config->source.w, config->source.h, dfb_pixelformat_name(config->format) );
-
-     videomode = shared->modes;
      while (videomode) {
-          if (videomode->xres == config->source.w  &&
-              videomode->yres == config->source.h)
-          {
+          if (videomode->xres == width && videomode->yres == height) {
                if (!highest || highest->priority < videomode->priority)
                     highest = videomode;
           }
@@ -1259,13 +1248,36 @@ primaryTestRegion( CoreLayer                  *layer,
      }
 
      if (!highest)
-          D_ERROR( "FBDev/Mode: No mode found for %dx%d!\n", config->source.w, config->source.h );
+          D_ERROR( "FBDev/Mode: No mode found for %dx%d!\n", width, height );
 
-     if (!highest || dfb_fbdev_test_mode( highest, config ))
+     return highest;
+}
+
+static DFBResult
+primaryTestRegion( CoreLayer                  *layer,
+                   void                       *driver_data,
+                   void                       *layer_data,
+                   CoreLayerRegionConfig      *config,
+                   CoreLayerRegionConfigFlags *failed )
+{
+     FBDevShared                *shared = dfb_fbdev->shared;
+     CoreLayerRegionConfigFlags  fail   = CLRCF_NONE;
+     const VideoMode            *mode;
+
+     D_DEBUG_AT( FBDev_Mode, "%s( %dx%d, %s )\n", __FUNCTION__,
+                 config->source.w, config->source.h, dfb_pixelformat_name(config->format) );
+
+     mode = dfb_fbdev_find_mode( config->source.w, config->source.h );
+
+     if (!mode || dfb_fbdev_test_mode( mode, config ))
           fail |= CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_BUFFERMODE;
 
      if (config->options)
           fail |= CLRCF_OPTIONS;
+
+     if ((config->source.x && !shared->fix.xpanstep) ||
+         (config->source.y && !shared->fix.ypanstep && !shared->fix.ywrapstep))
+          fail |= CLRCF_SOURCE;
 
      if (failed)
           *failed = fail;
@@ -1301,9 +1313,26 @@ primarySetRegion( CoreLayer                  *layer,
      FBDevShared *shared = dfb_fbdev->shared;
 
      if (updated & CLRCF_SOURCE) {
-          ret = dfb_fbdev_pan( config->source.x, lock->offset / lock->pitch + config->source.y, true );
-          if (ret)
-               return ret;
+          if (config->source.w == shared->current_var.xres && config->source.h == shared->current_var.yres) {
+               ret = dfb_fbdev_pan( config->source.x, lock->offset / lock->pitch + config->source.y, true );
+               if (ret)
+                    return ret;
+          }
+          else {
+               const VideoMode *mode;
+
+               D_INFO( "FBDev/Mode: Setting %dx%d %s\n", config->source.w, config->source.h,
+                       dfb_pixelformat_name( surface->config.format ) );
+
+               mode = dfb_fbdev_find_mode( config->source.w, config->source.h );
+               if (!mode)
+                    return DFB_UNSUPPORTED;
+
+               ret = dfb_fbdev_set_mode( mode, surface, config->source.x,
+                                         lock->offset / lock->pitch + config->source.y );
+               if (ret)
+                    return ret;
+          }
      }
 
      if ((updated & CLRCF_PALETTE) && palette)
@@ -1590,6 +1619,8 @@ dfb_fbdev_mode_to_var( const VideoMode           *mode,
                        DFBSurfacePixelFormat      pixelformat,
                        unsigned int               vxres,
                        unsigned int               vyres,
+                       unsigned int               xoffset,
+                       unsigned int               yoffset,
                        DFBDisplayLayerBufferMode  buffermode,
                        struct fb_var_screeninfo  *ret_var )
 {
@@ -1627,9 +1658,19 @@ dfb_fbdev_mode_to_var( const VideoMode           *mode,
      var.xres         = mode->xres;
      var.yres         = mode->yres;
      var.xres_virtual = vxres;
-     var.yres_virtual = vyres;
-     var.xoffset      = 0;
-     var.yoffset      = 0;
+     var.yres_virtual = vyres; 
+
+     if (shared->fix.xpanstep)
+          var.xoffset = xoffset - (xoffset % shared->fix.xpanstep);
+     else
+          var.xoffset = 0;
+
+     if (shared->fix.ywrapstep)
+          var.yoffset = yoffset - (yoffset % shared->fix.ywrapstep);
+     else if (shared->fix.ypanstep)
+          var.yoffset = yoffset - (yoffset % shared->fix.ypanstep);
+     else
+          var.yoffset = 0;
 
      /* Set buffer mode */
      switch (buffermode) {
@@ -1828,7 +1869,8 @@ dfb_fbdev_test_mode( const VideoMode             *mode,
      if (source->h != mode->yres && shared->fix.ypanstep == 0 && shared->fix.ywrapstep == 0)
           return DFB_UNSUPPORTED;
 
-     ret = dfb_fbdev_mode_to_var( mode, config->format, config->width, config->height, config->buffermode, &var );
+     ret = dfb_fbdev_mode_to_var( mode, config->format, config->width, config->height,
+                                  0, 0, config->buffermode, &var );
      if (ret)
           return ret;
 
@@ -1862,8 +1904,8 @@ dfb_fbdev_test_mode_simple( const VideoMode *mode )
 
      D_ASSERT( mode != NULL );
 
-     ret = dfb_fbdev_mode_to_var( mode, dfb_pixelformat_for_depth(mode->bpp),
-                                  mode->xres, mode->yres, DLBM_FRONTONLY, &var );
+     ret = dfb_fbdev_mode_to_var( mode, dfb_pixelformat_for_depth(mode->bpp), mode->xres, mode->yres,
+                                  0, 0, DLBM_FRONTONLY, &var );
      if (ret)
           return ret;
 
@@ -1880,26 +1922,52 @@ dfb_fbdev_test_mode_simple( const VideoMode *mode )
      return DFB_OK;
 }
 
+static int num_video_buffers( CoreSurface *surface )
+{
+      int i;
+
+      for (i = 0; i < surface->num_buffers; i++) {
+           if (surface->buffers[i]->policy == CSP_SYSTEMONLY)
+                break;
+      }
+
+      return i;
+}
+
 DFBResult
 dfb_fbdev_set_mode( const VideoMode         *mode,
-                    const CoreSurfaceConfig *config )
+                    CoreSurface             *surface,
+                    unsigned int             xoffset,
+                    unsigned int             yoffset )
 {
      DFBResult                  ret;
      struct fb_var_screeninfo   var;
      FBDevShared               *shared     = dfb_fbdev->shared;
      DFBDisplayLayerBufferMode  buffermode = DLBM_FRONTONLY;
+     const CoreSurfaceConfig   *config     = &surface->config ;
 
      D_DEBUG_AT( FBDev_Mode, "%s( mode: %p, config: %p )\n", __FUNCTION__, mode, config );
 
      D_ASSERT( mode != NULL );
      D_ASSERT( config != NULL );
 
-     if (config->caps & DSCAPS_DOUBLE)
-          buffermode = DLBM_BACKVIDEO;
-     else if (config->caps & DSCAPS_TRIPLE)
+     switch (num_video_buffers( surface )) {
+     case 3:
           buffermode = DLBM_TRIPLE;
+          break;
+     case 2:
+          buffermode = DLBM_BACKVIDEO;
+          break;
+     case 1:
+          buffermode = DLBM_FRONTONLY;
+          break;
+     default:
+          D_BUG( "dfb_fbdev_set_mode() called with %d video buffers!", num_video_buffers( surface ) );
+          return DFB_BUG;
+     }
 
-     ret = dfb_fbdev_mode_to_var( mode, config->format, config->size.w, config->size.h, buffermode, &var );
+     ret = dfb_fbdev_mode_to_var( mode, config->format, config->size.w, config->size.h,
+                                  xoffset, yoffset, buffermode, &var );
      if (ret) {
           D_ERROR( "FBDev/Mode: Failed to switch to %dx%d %s (buffermode %d)\n",
                    config->size.w, config->size.h, dfb_pixelformat_name(config->format), buffermode );

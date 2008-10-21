@@ -277,28 +277,18 @@ fbdevAllocateBuffer( CoreSurfacePool       *pool,
           D_DEBUG_AT( FBDev_Surfaces, "  -> primary layer buffer (index %d)\n", index );
 
           if (index == 0) {
-               const VideoMode *videomode;
-               const VideoMode *highest = NULL;
+               const VideoMode *highest;
                /* FIXME: this should use source.w/source.h from layer region config! */
                unsigned int     width  = surface->config.size.w;
                unsigned int     height = surface->config.size.h;
                
                D_INFO( "FBDev/Mode: Setting %dx%d %s\n", width, height, dfb_pixelformat_name(surface->config.format) );
 
-               videomode = shared->modes;
-               while (videomode) {
-                    if (videomode->xres == width && videomode->yres == height) {
-                         if (!highest || highest->priority < videomode->priority)
-                              highest = videomode;
-                    }
-
-                    videomode = videomode->next;
-               }
-
+               highest = dfb_fbdev_find_mode( width, height );
                if (!highest)
                     return DFB_UNSUPPORTED;
 
-               ret = dfb_fbdev_set_mode( highest, &surface->config );
+               ret = dfb_fbdev_set_mode( highest, surface, 0, 0 );
                if (ret)
                     return ret;
           }
