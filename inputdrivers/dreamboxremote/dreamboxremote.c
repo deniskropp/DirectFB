@@ -209,7 +209,7 @@ dreamboxremoteEventThread( DirectThread *thread, void *driver_data )
  * Called once during initialization of DirectFB.
  */
 static int
-driver_get_available()
+driver_get_available( void )
 {
      /* Check if we are able to read from device */
      if (access( DEVICE, R_OK ))

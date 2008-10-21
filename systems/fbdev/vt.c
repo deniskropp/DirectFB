@@ -91,13 +91,13 @@ extern FBDev *dfb_fbdev;
 
 static VirtualTerminal *dfb_vt = NULL;
 
-static DFBResult vt_init_switching();
+static DFBResult vt_init_switching( void );
 static int       vt_get_fb( int vt );
 static void      vt_set_fb( int vt, int fb );
 static void     *vt_thread( DirectThread *thread, void *arg );
 
 DFBResult
-dfb_vt_initialize()
+dfb_vt_initialize( void )
 {
      DFBResult ret;
      struct vt_stat vs;
@@ -225,7 +225,7 @@ dfb_vt_initialize()
 }
 
 DFBResult
-dfb_vt_join()
+dfb_vt_join( void )
 {
      D_DEBUG_AT( VT, "%s()\n", __FUNCTION__ );
 
@@ -439,7 +439,7 @@ vt_switch_handler( int signum )
 }
 
 static DFBResult
-vt_init_switching()
+vt_init_switching( void )
 {
      const char cursoroff_str[] = "\033[?1;0;0c";
      const char blankoff_str[] = "\033[9;0]";

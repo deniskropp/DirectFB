@@ -70,7 +70,7 @@ static pthread_mutex_t  alloc_lock     = PTHREAD_MUTEX_INITIALIZER;
 /**********************************************************************************************************************/
 
 void
-direct_print_memleaks()
+direct_print_memleaks( void )
 {
      unsigned int i;
 
@@ -99,7 +99,7 @@ direct_print_memleaks()
 /* FIXME: Replace array by linked list, or at least avoid the memmove on free of an item. */
 
 static MemDesc *
-allocate_mem_desc()
+allocate_mem_desc( void )
 {
      int cap = alloc_capacity;
 
@@ -342,7 +342,7 @@ direct_strdup( const char* file, int line, const char *func, const char *string 
 #else
 
 void
-direct_print_memleaks()
+direct_print_memleaks( void )
 {
 }
 

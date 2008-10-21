@@ -80,19 +80,19 @@ typedef struct {
 /**********************************************************************************************************************/
 
 static int
-videoPoolDataSize()
+videoPoolDataSize( void )
 {
      return sizeof(VideoPoolData);
 }
 
 static int
-videoPoolLocalDataSize()
+videoPoolLocalDataSize( void )
 {
      return sizeof(VideoPoolLocalData);
 }
 
 static int
-videoAllocationDataSize()
+videoAllocationDataSize( void )
 {
      return sizeof(VideoAllocationData);
 }

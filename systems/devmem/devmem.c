@@ -260,7 +260,7 @@ system_leave( bool emergency )
 }
 
 static DFBResult
-system_suspend()
+system_suspend( void )
 {
      D_ASSERT( m_data != NULL );
 
@@ -268,7 +268,7 @@ system_suspend()
 }
 
 static DFBResult
-system_resume()
+system_resume( void )
 {
      D_ASSERT( m_data != NULL );
 
@@ -291,25 +291,25 @@ system_unmap_mmio( volatile void  *addr,
 }
 
 static int
-system_get_accelerator()
+system_get_accelerator( void )
 {
      return dfb_config->accelerator;
 }
 
 static VideoMode *
-system_get_modes()
+system_get_modes( void )
 {
      return NULL;
 }
 
 static VideoMode *
-system_get_current_mode()
+system_get_current_mode( void )
 {
      return NULL;
 }
 
 static DFBResult
-system_thread_init()
+system_thread_init( void )
 {
      return DFB_OK;
 }
@@ -336,7 +336,7 @@ system_video_memory_virtual( unsigned int offset )
 }
 
 static unsigned int
-system_videoram_length()
+system_videoram_length( void )
 {
      return dfb_config->video_length;
 }
@@ -354,7 +354,7 @@ system_aux_memory_virtual( unsigned int offset )
 }
 
 static unsigned int
-system_auxram_length()
+system_auxram_length( void )
 {
      return 0;
 }

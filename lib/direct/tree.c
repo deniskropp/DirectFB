@@ -60,7 +60,7 @@ static DirectNode *tree_node_rotate_right( DirectNode *node );
 
 
 DirectTree *
-direct_tree_new()
+direct_tree_new( void )
 {
      return D_CALLOC( 1, sizeof (DirectTree) );
 }

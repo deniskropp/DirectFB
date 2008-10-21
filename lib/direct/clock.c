@@ -40,7 +40,7 @@ D_DEBUG_DOMAIN( Direct_Clock, "Direct/Clock", "Time measurement etc." );
 static struct timeval start_time = { 0, 0 };
 
 long long
-direct_clock_get_micros()
+direct_clock_get_micros( void )
 {
      struct timeval tv;
      long long      ret;
@@ -64,7 +64,7 @@ direct_clock_get_micros()
 }
 
 long long
-direct_clock_get_millis()
+direct_clock_get_millis( void )
 {
      return direct_clock_get_micros() / 1000LL;
 }
@@ -86,7 +86,7 @@ direct_clock_set_start( const struct timeval *start )
 }
 
 long long
-direct_clock_get_abs_micros()
+direct_clock_get_abs_micros( void )
 {
      struct timeval tv;
 
@@ -96,7 +96,7 @@ direct_clock_get_abs_micros()
 }
 
 long long
-direct_clock_get_abs_millis()
+direct_clock_get_abs_millis( void )
 {
      return direct_clock_get_abs_micros() / 1000LL;
 }

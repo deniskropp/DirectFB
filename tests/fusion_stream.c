@@ -61,12 +61,12 @@
 
 static int parse_cmdline  ( int    argc,
                             char  *argv[] );
-static int show_usage     ();
+static int show_usage     ( void );
 
 /**********************************************************************************************************************/
 
 static inline unsigned long
-get_millis()
+get_millis( void )
 {
      struct timeval tv;
 
@@ -95,7 +95,7 @@ static int puser, pnice, psystem, pidle, ptotal;
 static int duser, dnice, dsystem, didle, dtotal;
 
 static int
-read_stat()
+read_stat( void )
 {
      char  dummy[4];
      int   wa = 0, hi = 0, si = 0;
@@ -524,7 +524,7 @@ parse_cmdline( int argc, char *argv[] )
 }
 
 static int
-show_usage()
+show_usage( void )
 {
      fprintf( stderr, "\n"
                       "Usage:\n"

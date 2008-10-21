@@ -82,13 +82,13 @@ static pthread_mutex_t  handlers_lock;
 
 /**************************************************************************************************/
 
-static void install_handlers();
-static void remove_handlers();
+static void install_handlers( void );
+static void remove_handlers( void );
 
 /**************************************************************************************************/
 
 DirectResult
-direct_signals_initialize()
+direct_signals_initialize( void )
 {
      D_DEBUG_AT( Direct_Signals, "Initializing...\n" );
 
@@ -100,7 +100,7 @@ direct_signals_initialize()
 }
 
 DirectResult
-direct_signals_shutdown()
+direct_signals_shutdown( void )
 {
      D_DEBUG_AT( Direct_Signals, "Shutting down...\n" );
 
@@ -112,7 +112,7 @@ direct_signals_shutdown()
 }
 
 void
-direct_signals_block_all()
+direct_signals_block_all( void )
 {
      sigset_t signals;
 
@@ -418,7 +418,7 @@ signal_handler( int num )
 /**************************************************************************************************/
 
 static void
-install_handlers()
+install_handlers( void )
 {
      int i;
 
@@ -456,7 +456,7 @@ install_handlers()
 }
 
 static void
-remove_handlers()
+remove_handlers( void )
 {
      int i;
 

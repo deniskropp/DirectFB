@@ -142,7 +142,7 @@ sonypiEventThread( DirectThread *thread, void *driver_data )
  * Called once during initialization of DirectFB.
  */
 static int
-driver_get_available()
+driver_get_available( void )
 {
      int fd;
 

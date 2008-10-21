@@ -84,7 +84,7 @@ cyber_overlayreg_mask( unsigned char index, unsigned char value, unsigned char m
      cyber_out8(cyber_mmio, GRADATA, tmp);
 }
 
-void cyber_cleanup_overlay()
+void cyber_cleanup_overlay(void)
 {
      /*restore FIFO control regs*/
      cyber_seqreg_mask(0xA7, 0x0, ~0x5);
@@ -209,7 +209,7 @@ void cyber_init_overlay(void)
      savedRegDD[1] = 0x00;
 }
 
-void cyber_change_overlay_fifo()
+void cyber_change_overlay_fifo(void)
 {
      cyber_grphw(0x74, bFIFOPolicyNum[0]);
      cyber_grphw(0x75, bFIFOPolicyNum[1]);

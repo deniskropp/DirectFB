@@ -134,12 +134,12 @@ static inline void OUTSR (u8 index, u8 data)
      outb (data, 0x3c5);
 }
 
-static inline void neo_lock()
+static inline void neo_lock( void )
 {
      OUTGR(0x09, 0x00);
 }
 
-static inline void neo_unlock()
+static inline void neo_unlock( void )
 {
      OUTGR(0x09, 0x26);
 }

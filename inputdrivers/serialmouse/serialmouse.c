@@ -359,7 +359,7 @@ mouseEventThread_mousesystems( DirectThread *thread, void *driver_data )
      return NULL;
 }
 
-static MouseProtocol mouse_get_protocol()
+static MouseProtocol mouse_get_protocol( void )
 {
      MouseProtocol protocol;
 
@@ -378,7 +378,7 @@ static MouseProtocol mouse_get_protocol()
 /* exported symbols */
 
 static int
-driver_get_available()
+driver_get_available( void )
 {
      struct serial_struct serial_info;
      struct timeval       timeout;

@@ -39,7 +39,7 @@
 
 #include "dfb_types.h"
 
-int main()
+int main( void )
 {
      u8  byt;
      u32 pixel32;

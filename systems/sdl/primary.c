@@ -125,13 +125,13 @@ static void * ScreenUpdateLoop( DirectThread *thread, void *arg );
 /******************************************************************************/
 
 static int
-primaryLayerDataSize()
+primaryLayerDataSize( void )
 {
      return 0;
 }
 
 static int
-primaryRegionDataSize()
+primaryRegionDataSize( void )
 {
      return 0;
 }

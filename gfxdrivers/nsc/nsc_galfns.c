@@ -185,7 +185,7 @@ static FBDev *dfb_fbdev = NULL;
  *	return:	'0' was return on creating the galdevice node.
  *----------------------------------------------------------------------*/
 static int
-create_devicenode()
+create_devicenode(void)
 {
 
 #if 1
@@ -222,7 +222,7 @@ create_devicenode()
  *					otherwise '0' was returned on failure.
  *----------------------------------------------------------------------*/
 BOOLEAN
-Gal_initialize_interface()
+Gal_initialize_interface(void)
 {
 /*	create_devicenode();  */
      dfb_fbdev = dfb_system_data();
@@ -239,7 +239,7 @@ Gal_initialize_interface()
  *	return:	 '1' was returned on closing the galdevice.
  *----------------------------------------------------------------------*/
 BOOLEAN
-Gal_cleanup_interface()
+Gal_cleanup_interface(void)
 {
    return 1;
 }

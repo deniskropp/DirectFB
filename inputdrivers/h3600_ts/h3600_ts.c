@@ -132,7 +132,7 @@ h3600tsEventThread( DirectThread *thread, void *driver_data )
 
 /* exported symbols */
 
-static int driver_get_available()
+static int driver_get_available( void )
 {
      int fd;
 

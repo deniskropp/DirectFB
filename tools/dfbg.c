@@ -178,7 +178,7 @@ parse_command_line( int argc, char *argv[] )
 }
 
 static void
-set_background_color()
+set_background_color( void )
 {
      DFBResult  ret;
      char      *error;
@@ -211,7 +211,7 @@ set_background_color()
 }
 
 static void
-set_background_image()
+set_background_image( void )
 {
      DFBResult               ret;
      DFBSurfaceDescription   desc;

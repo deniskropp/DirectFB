@@ -102,7 +102,7 @@ static DFBResult crtc2_enable_output ( MatroxDriverData      *mdrv,
 /**********************/
 
 static int
-crtc2LayerDataSize()
+crtc2LayerDataSize( void )
 {
      return sizeof(MatroxCrtc2LayerData);
 }

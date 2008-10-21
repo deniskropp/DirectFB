@@ -78,7 +78,7 @@ static void ov0_calc_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0,
 /**********************/
 
 static int
-ov0LayerDataSize()
+ov0LayerDataSize( void )
 {
      return sizeof(ATIOverlayLayerData);
 }

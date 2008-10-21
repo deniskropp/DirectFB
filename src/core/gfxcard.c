@@ -80,7 +80,7 @@ DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers", DFB_GRAPHICS_DRIVER
 /**********************************************************************************************************************/
 
 static void dfb_gfxcard_find_driver( CoreDFB *core );
-static void dfb_gfxcard_load_driver();
+static void dfb_gfxcard_load_driver( void );
 
 static void fill_tri( DFBTriangle *tri, CardState *state, bool accelerated );
 
@@ -488,7 +488,7 @@ dfb_gfxcard_lock( GraphicsDeviceLockFlags flags )
 }
 
 void
-dfb_gfxcard_unlock()
+dfb_gfxcard_unlock( void )
 {
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -497,7 +497,7 @@ dfb_gfxcard_unlock()
 }
 
 void
-dfb_gfxcard_holdup()
+dfb_gfxcard_holdup( void )
 {
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -2532,7 +2532,7 @@ void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
      dfb_font_unlock( font );
 }
 
-DFBResult dfb_gfxcard_sync()
+DFBResult dfb_gfxcard_sync( void )
 {
      DFBResult ret;
 
@@ -2550,7 +2550,7 @@ DFBResult dfb_gfxcard_sync()
      return DFB_OK;
 }
 
-void dfb_gfxcard_invalidate_state()
+void dfb_gfxcard_invalidate_state( void )
 {
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -2591,7 +2591,7 @@ DFBResult dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial )
      return ret;
 }
 
-void dfb_gfxcard_flush_texture_cache()
+void dfb_gfxcard_flush_texture_cache( void )
 {
      D_ASSUME( card != NULL );
 
@@ -2599,7 +2599,7 @@ void dfb_gfxcard_flush_texture_cache()
           card->funcs.FlushTextureCache( card->driver_data, card->device_data );
 }
 
-void dfb_gfxcard_flush_read_cache()
+void dfb_gfxcard_flush_read_cache( void )
 {
      D_ASSUME( card != NULL );
 
@@ -2607,7 +2607,7 @@ void dfb_gfxcard_flush_read_cache()
           card->funcs.FlushReadCache( card->driver_data, card->device_data );
 }
 
-void dfb_gfxcard_after_set_var()
+void dfb_gfxcard_after_set_var( void )
 {
      D_ASSUME( card != NULL );
 
@@ -2726,7 +2726,7 @@ dfb_gfxcard_reserve_auxmemory( CoreGraphicsDevice *device, unsigned int size )
 }
 
 unsigned int
-dfb_gfxcard_memory_length()
+dfb_gfxcard_memory_length( void )
 {
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -2735,7 +2735,7 @@ dfb_gfxcard_memory_length()
 }
 
 unsigned int
-dfb_gfxcard_auxmemory_length()
+dfb_gfxcard_auxmemory_length( void )
 {
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -2864,7 +2864,7 @@ dfb_gfxcard_auxmemory_virtual( CoreGraphicsDevice *device,
 }
 
 void *
-dfb_gfxcard_get_device_data()
+dfb_gfxcard_get_device_data( void )
 {
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -2873,7 +2873,7 @@ dfb_gfxcard_get_device_data()
 }
 
 void *
-dfb_gfxcard_get_driver_data()
+dfb_gfxcard_get_driver_data( void )
 {
      D_ASSERT( card != NULL );
 
@@ -2881,7 +2881,7 @@ dfb_gfxcard_get_driver_data()
 }
 
 CoreGraphicsDevice *
-dfb_gfxcard_get_primary()
+dfb_gfxcard_get_primary( void )
 {
      return card;
 }
@@ -2922,7 +2922,7 @@ static void dfb_gfxcard_find_driver( CoreDFB *core )
 /*
  * loads the driver module used by the session
  */
-static void dfb_gfxcard_load_driver()
+static void dfb_gfxcard_load_driver( void )
 {
      DirectLink *link;
 

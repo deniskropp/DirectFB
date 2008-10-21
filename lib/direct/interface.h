@@ -119,14 +119,7 @@ void DirectUnregisterInterface( DirectInterfaceFuncs *funcs );
 
 void direct_print_interface_leaks(void);
 
-
-
-#if DIRECT_BUILD_DEBUG || defined(DIRECT_ENABLE_DEBUG) || defined(DIRECT_FORCE_DEBUG)
-
-#if !DIRECT_BUILD_DEBUGS
-#error Building with debug, but library headers suggest that debug is not supported.
-#endif
-
+#if DIRECT_BUILD_DEBUGS
 void direct_dbg_interface_add   ( const char *func,
                                   const char *file,
                                   int         line,
@@ -139,6 +132,13 @@ void direct_dbg_interface_remove( const char *func,
                                   int         line,
                                   const char *what,
                                   const void *interface );
+#endif
+
+#if DIRECT_BUILD_DEBUG || defined(DIRECT_ENABLE_DEBUG) || defined(DIRECT_FORCE_DEBUG)
+
+#if !DIRECT_BUILD_DEBUGS
+#error Building with debug, but library headers suggest that debug is not supported.
+#endif
 
 #define DIRECT_DBG_INTERFACE_ADD        direct_dbg_interface_add
 #define DIRECT_DBG_INTERFACE_REMOVE     direct_dbg_interface_remove

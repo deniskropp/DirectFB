@@ -156,7 +156,7 @@ static struct {
 };
 
 
-static inline unsigned long long int rdtsc()
+static inline unsigned long long int rdtsc( void )
 {
      struct timeval tv;
 
@@ -170,7 +170,7 @@ memcpy_func direct_memcpy = (memcpy_func) memcpy;
 #define BUFSIZE 1024
 
 void
-direct_find_best_memcpy()
+direct_find_best_memcpy( void )
 {
      /* Save library size and startup time
         on platforms without a special memcpy() implementation. */
@@ -239,7 +239,7 @@ direct_find_best_memcpy()
 }
 
 void
-direct_print_memcpy_routines()
+direct_print_memcpy_routines( void )
 {
      int i;
      u32 config_flags = 0;

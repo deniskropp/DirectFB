@@ -71,19 +71,19 @@ typedef struct {
 /**********************************************************************************************************************/
 
 static int
-devmemPoolDataSize()
+devmemPoolDataSize( void )
 {
      return sizeof(DevMemPoolData);
 }
 
 static int
-devmemPoolLocalDataSize()
+devmemPoolLocalDataSize( void )
 {
      return sizeof(DevMemPoolLocalData);
 }
 
 static int
-devmemAllocationDataSize()
+devmemAllocationDataSize( void )
 {
      return sizeof(DevMemAllocationData);
 }

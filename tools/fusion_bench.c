@@ -77,7 +77,7 @@ reaction_callback (const void *msg_data,
 }
 
 static void
-bench_reactor()
+bench_reactor( void )
 {
      FusionReactor  *reactor;
      Reaction        reaction;
@@ -163,7 +163,7 @@ bench_reactor()
 }
 
 static void
-bench_ref()
+bench_ref( void )
 {
      DirectResult ret;
      FusionRef    ref;
@@ -207,7 +207,7 @@ bench_ref()
 }
 
 static void
-bench_property()
+bench_property( void )
 {
      DirectResult   ret;
      FusionProperty property;
@@ -238,7 +238,7 @@ bench_property()
 }
 
 static void
-bench_skirmish()
+bench_skirmish( void )
 {
      DirectResult   ret;
      FusionSkirmish skirmish;
@@ -282,7 +282,7 @@ prevail_dismiss_loop( void *arg )
 }
 
 static void
-bench_skirmish_threaded()
+bench_skirmish_threaded( void )
 {
      int            i;
      DirectResult   ret;
@@ -333,7 +333,7 @@ mutex_lock_unlock_loop( void *arg )
 }
 
 static void
-bench_mutex_threaded()
+bench_mutex_threaded( void )
 {
      int             i;
      pthread_mutex_t lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
@@ -364,7 +364,7 @@ bench_mutex_threaded()
 }
 
 static void
-bench_mutex()
+bench_mutex( void )
 {
      pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
      pthread_mutex_t rmutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
@@ -403,7 +403,7 @@ bench_mutex()
 }
 
 static void
-bench_flock()
+bench_flock( void )
 {
      int   fd;
      FILE *tmp;

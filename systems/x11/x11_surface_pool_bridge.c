@@ -61,19 +61,19 @@ typedef struct {
 /**********************************************************************************************************************/
 
 static int
-x11PoolBridgeDataSize()
+x11PoolBridgeDataSize( void )
 {
      return sizeof(x11PoolBridgeData);
 }
 
 static int
-x11PoolBridgeLocalDataSize()
+x11PoolBridgeLocalDataSize( void )
 {
      return sizeof(x11PoolBridgeLocalData);
 }
 
 static int
-x11PoolTransferDataSize()
+x11PoolTransferDataSize( void )
 {
      return sizeof(x11PoolTransferData);
 }

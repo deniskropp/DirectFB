@@ -79,11 +79,11 @@ static const u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff};
 static int use_mmx = 0;
 
 #ifdef USE_MMX
-static void gInit_MMX();
+static void gInit_MMX( void );
 #endif
 
 #if SIZEOF_LONG == 8
-static void gInit_64bit();
+static void gInit_64bit( void );
 #endif
 
 /* RGB16 */
@@ -9036,7 +9036,7 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 /*
  * patches function pointers to MMX functions
  */
-static void gInit_MMX()
+static void gInit_MMX( void )
 {
      use_mmx = 1;
 
@@ -9073,7 +9073,7 @@ static void gInit_MMX()
 /*
  * patches function pointers to 64bit functions
  */
-static void gInit_64bit()
+static void gInit_64bit( void )
 {
 /********************************* Cop_to_Aop_PFI ********************************/
      Cop_to_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)] = Cop_to_Aop_32_64;

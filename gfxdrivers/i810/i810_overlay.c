@@ -137,7 +137,7 @@ i810ovlOnOff( I810DriverData *idrv,
 }
 
 static int
-ovlLayerDataSize()
+ovlLayerDataSize( void )
 {
 	return sizeof(I810OverlayLayerData);
 }

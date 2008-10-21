@@ -347,9 +347,9 @@ void      unique_wm_module_deinit( WMData   *data,
                                    bool      master,
                                    bool      emergency );
 
-UniqueContext    *unique_wm_create_context();
-UniqueDecoration *unique_wm_create_decoration();
-UniqueWindow     *unique_wm_create_window();
+UniqueContext    *unique_wm_create_context( void );
+UniqueDecoration *unique_wm_create_decoration( void );
+UniqueWindow     *unique_wm_create_window( void );
 
 /* HACK: temporary, will move into cursor class */
 void unique_draw_cursor( CoreWindowStack *stack, UniqueContext *context, CardState *state, DFBRegion *region );

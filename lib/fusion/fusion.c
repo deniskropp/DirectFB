@@ -150,7 +150,7 @@ _fusion_world( const FusionWorldShared *shared )
 /**********************************************************************************************************************/
 
 static void
-init_once()
+init_once( void )
 {
      struct utsname uts;
      int            i, j, k, l;
@@ -284,7 +284,7 @@ fusion_world_fork( FusionWorld *world )
 }
 
 static void
-fusion_fork_handler_prepare()
+fusion_fork_handler_prepare( void )
 {
      int i;
      
@@ -304,7 +304,7 @@ fusion_fork_handler_prepare()
 }     
 
 static void
-fusion_fork_handler_parent()
+fusion_fork_handler_parent( void )
 {
      int i;
 
@@ -335,7 +335,7 @@ fusion_fork_handler_parent()
 }
 
 static void
-fusion_fork_handler_child()
+fusion_fork_handler_child( void )
 {
      int i;
 
@@ -1295,7 +1295,7 @@ _fusion_recv_message( int                 fd,
 /**********************************************************************************************************************/
 
 static void
-fusion_fork_handler_prepare()
+fusion_fork_handler_prepare( void )
 {
      int i;
      
@@ -1315,7 +1315,7 @@ fusion_fork_handler_prepare()
 }
 
 static void
-fusion_fork_handler_parent()
+fusion_fork_handler_parent( void )
 {
      int i;
 
@@ -1349,7 +1349,7 @@ fusion_fork_handler_parent()
 }
 
 static void
-fusion_fork_handler_child()
+fusion_fork_handler_child( void )
 {
      int i;
 

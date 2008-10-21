@@ -268,7 +268,7 @@ _unique_wm_module_window_listener ( const void *msg_data,
 }
 
 UniqueContext *
-unique_wm_create_context()
+unique_wm_create_context( void )
 {
      D_ASSERT( dfb_core != NULL );
      D_ASSERT( wm_data != NULL );
@@ -279,7 +279,7 @@ unique_wm_create_context()
 }
 
 UniqueDecoration *
-unique_wm_create_decoration()
+unique_wm_create_decoration( void )
 {
      D_ASSERT( dfb_core != NULL );
      D_ASSERT( wm_data != NULL );
@@ -290,7 +290,7 @@ unique_wm_create_decoration()
 }
 
 UniqueWindow *
-unique_wm_create_window()
+unique_wm_create_window( void )
 {
      D_ASSERT( dfb_core != NULL );
      D_ASSERT( wm_data != NULL );
@@ -303,7 +303,7 @@ unique_wm_create_window()
 /**************************************************************************************************/
 
 bool
-unique_wm_running()
+unique_wm_running( void )
 {
      if (dfb_core) {
           if (!wm_data || !wm_shared) {

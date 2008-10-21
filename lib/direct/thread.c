@@ -304,7 +304,7 @@ direct_thread_create( DirectThreadType      thread_type,
 }
 
 DirectThread *
-direct_thread_self()
+direct_thread_self( void )
 {
      DirectThread *thread = pthread_getspecific( thread_key );
 
@@ -333,7 +333,7 @@ direct_thread_get_tid( DirectThread *thread )
 
 __attribute__((no_instrument_function))
 const char *
-direct_thread_self_name()
+direct_thread_self_name( void )
 {
      DirectThread *thread = pthread_getspecific( thread_key );
 

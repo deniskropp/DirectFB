@@ -96,8 +96,8 @@ void uc_flush_texture_cache(void* drv, void* dev)
  * @note This is actually a 1-pixel high or wide rectangular color fill.
  */
 
-inline void uc_draw_hv_line(struct uc_fifo* fifo,
-                            int x, int y, int len, int hv, int rop)
+static inline void uc_draw_hv_line(struct uc_fifo* fifo,
+                                   int x, int y, int len, int hv, int rop)
 {
     UC_FIFO_ADD_2D(fifo, VIA_REG_DSTPOS, ((RS16(y) << 16) | RS16(x)));
     UC_FIFO_ADD_2D(fifo, VIA_REG_DIMENSION, len << (hv ? 16 : 0));

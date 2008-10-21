@@ -160,7 +160,7 @@ i830ovlOnOff( I830DriverData *idrv,
 }
 
 static int
-ovlLayerDataSize()
+ovlLayerDataSize( void )
 {
      return sizeof(I830OverlayLayerData);
 }

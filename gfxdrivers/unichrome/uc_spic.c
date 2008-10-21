@@ -21,7 +21,7 @@
 typedef struct _UcSubpictureData {
 } UcSubpictureData;
 
-static int uc_spic_datasize()
+static int uc_spic_datasize( void )
 {
     return sizeof(UcSubpictureData);
 }

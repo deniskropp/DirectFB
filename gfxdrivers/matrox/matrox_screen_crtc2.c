@@ -60,7 +60,7 @@ static void crtc2_wait_vsync( MatroxDriverData *mdrv );
 /**************************************************************************************************/
 
 static int
-crtc2ScreenDataSize()
+crtc2ScreenDataSize( void )
 {
      return sizeof(MatroxCrtc2ScreenData);
 }

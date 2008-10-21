@@ -229,7 +229,7 @@ direct_modules_explore_directory( DirectModuleDir *directory )
           if ((handle = open_module( module )) != NULL) {
                if (!module->loaded) {
                     int    len;
-                    void (*func)();
+                    void (*func)( void );
 
                     D_ERROR( "Direct/Modules: Module '%s' did not register itself after loading! "
                              "Trying default module constructor...\n", entry->d_name );

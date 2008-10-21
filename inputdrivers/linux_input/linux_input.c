@@ -1110,7 +1110,7 @@ check_device( const char *device )
  * Called once during initialization of DirectFB.
  */
 static int
-driver_get_available()
+driver_get_available( void )
 {
      int   i;
      char *tsdev;

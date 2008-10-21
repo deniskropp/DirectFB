@@ -35,7 +35,7 @@
 #include <fusion/object.h>
 
 
-bool         unique_wm_running      ();
+bool         unique_wm_running      ( void );
 
 DirectResult unique_wm_enum_contexts( FusionObjectCallback  callback,
                                       void                 *ctx );

@@ -192,7 +192,7 @@ parse_command_line( int argc, char *argv[] )
 }
 
 static void
-set_color()
+set_color( void )
 {
      DFBResult  ret;
      char      *error;

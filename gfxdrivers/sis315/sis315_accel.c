@@ -28,6 +28,7 @@
 #include "sis315.h"
 #include "sis315_mmio.h"
 #include "sis315_regs.h"
+#include "sis315_accel.h"
 
 static void sis_idle(SiSDriverData *drv)
 {

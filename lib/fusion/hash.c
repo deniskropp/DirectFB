@@ -107,7 +107,7 @@ static void
 fusion_hash_node_destroy (FusionHash *hash,FusionHashNode *node,
                           void **old_key,void **old_value);
 
-unsigned int
+static unsigned int
 spaced_primes_closest (unsigned int num)
 {
      int i;

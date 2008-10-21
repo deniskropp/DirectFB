@@ -134,7 +134,7 @@ joystickEventThread( DirectThread *thread, void *driver_data )
 /* exported symbols */
 
 static int
-driver_get_available()
+driver_get_available( void )
 {
      int  i, fd;
      int  joy_count = 0;

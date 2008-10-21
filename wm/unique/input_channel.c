@@ -43,6 +43,7 @@
 
 #include <unique/device.h>
 #include <unique/internal.h>
+#include <unique/input_channel.h>
 
 
 D_DEBUG_DOMAIN( UniQuE_InputChan, "UniQuE/InputChan", "UniQuE's Input Channel" );

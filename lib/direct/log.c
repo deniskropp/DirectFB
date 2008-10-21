@@ -222,7 +222,7 @@ direct_log_unlock( DirectLog *log )
 
 __attribute__((no_instrument_function))
 static void
-init_fallback_log()
+init_fallback_log( void )
 {
      fallback_log.type = DLT_STDERR;
      fallback_log.fd   = fileno( stderr );
@@ -234,7 +234,7 @@ init_fallback_log()
 
 __attribute__((no_instrument_function))
 DirectLog *
-direct_log_default()
+direct_log_default( void )
 {
      pthread_once( &init_fallback, init_fallback_log );
 

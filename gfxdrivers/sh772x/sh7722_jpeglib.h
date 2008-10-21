@@ -15,9 +15,9 @@ typedef struct {
 } SH7722_JPEG_context;
 
 
-DirectResult SH7722_JPEG_Initialize();
+DirectResult SH7722_JPEG_Initialize( void );
 
-DirectResult SH7722_JPEG_Shutdown();
+DirectResult SH7722_JPEG_Shutdown( void );
 
 DirectResult SH7722_JPEG_Open  ( DirectStream          *stream,
                                  SH7722_JPEG_context   *context );

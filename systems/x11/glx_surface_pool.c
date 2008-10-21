@@ -347,19 +347,19 @@ DestroyPixmap( glxPoolLocalData *local,
 /**********************************************************************************************************************/
 
 static int
-glxPoolDataSize()
+glxPoolDataSize( void )
 {
      return sizeof(glxPoolData);
 }
 
 static int
-glxPoolLocalDataSize()
+glxPoolLocalDataSize( void )
 {
      return sizeof(glxPoolLocalData);
 }
 
 static int
-glxAllocationDataSize()
+glxAllocationDataSize( void )
 {
      return sizeof(glxAllocationData);
 }

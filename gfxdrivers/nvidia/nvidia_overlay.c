@@ -110,7 +110,7 @@ static void ov0_set_csc     ( NVidiaDriverData       *nvdrv,
 
 
 static int
-ov0LayerDataSize()
+ov0LayerDataSize( void )
 {
      return sizeof(NVidiaOverlayLayerData);
 }
