@@ -5,10 +5,10 @@
 #include <libgen.h>
 #include <pthread.h>
 
-#include <lite/label.h>
+#include <leck/label.h>
 #include <lite/lite.h>
-#include <lite/slider.h>
-#include <lite/button.h>
+#include <leck/slider.h>
+#include <leck/button.h>
 #include <lite/window.h>
 
 #include <fusionsound.h>
