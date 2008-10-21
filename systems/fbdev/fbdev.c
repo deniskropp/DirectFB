@@ -1509,6 +1509,9 @@ dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
      int                       result;
      struct fb_var_screeninfo *var;
      FBDevShared              *shared = dfb_fbdev->shared;
+ 
+     if (!shared->fix.xpanstep && !shared->fix.ypanstep && !shared->fix.ywrapstep)
+          return DFB_OK;
 
      var = &shared->current_var;
 
@@ -1526,18 +1529,20 @@ dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
           return DFB_BUG;
      }
 
-     if (dfb_fbdev->shared->fix.xpanstep)
-          var->xoffset = xoffset - (xoffset % dfb_fbdev->shared->fix.xpanstep);
+     if (shared->fix.xpanstep)
+          var->xoffset = xoffset - (xoffset % shared->fix.xpanstep);
      else
           var->xoffset = 0;
 
-     if (dfb_fbdev->shared->fix.ywrapstep) {
-          var->yoffset = yoffset - (yoffset % dfb_fbdev->shared->fix.ywrapstep);
+     if (shared->fix.ywrapstep) {
+          var->yoffset = yoffset - (yoffset % shared->fix.ywrapstep);
           var->vmode |= FB_VMODE_YWRAP;
-     } else if (dfb_fbdev->shared->fix.ypanstep) {
-          var->yoffset = yoffset - (yoffset % dfb_fbdev->shared->fix.ypanstep);
+     }
+     else if (shared->fix.ypanstep) {
+          var->yoffset = yoffset - (yoffset % shared->fix.ypanstep);
           var->vmode &= ~FB_VMODE_YWRAP;
-     } else {
+     }
+     else {
           var->yoffset = 0;
      }
 
@@ -1559,7 +1564,7 @@ dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
                     (var->vmode & FB_VMODE_YWRAP) ? 1 : 0,
                     (var->activate & FB_ACTIVATE_VBL) ? 1 : 0);
 
-         // return errno2result(result);
+          return errno2result(result);
      }
 
      return DFB_OK;
