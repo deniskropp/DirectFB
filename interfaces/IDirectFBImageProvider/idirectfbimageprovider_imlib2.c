@@ -254,7 +254,7 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
      if (!image_data)
           return DFB_FAILURE; /* what else makes sense here? */
 
-     err = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
+     err = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
      if (err)
           return err;
 

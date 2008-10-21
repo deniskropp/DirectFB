@@ -282,7 +282,7 @@ IDirectFBImageProvider_MPEG2_RenderTo( IDirectFBImageProvider *thiz,
      if (dfb_rectangle_region_intersects( &rect, &clip )) {
           CoreSurfaceBufferLock lock;
 
-          ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
+          ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
           if (ret)
                return ret;
 
