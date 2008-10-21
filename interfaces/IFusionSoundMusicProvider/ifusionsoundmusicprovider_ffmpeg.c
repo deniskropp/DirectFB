@@ -41,8 +41,8 @@
 
 #include <misc/sound_util.h>
 
-#include <avcodec.h>
-#include <avformat.h>
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
 
 static DirectResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx );
@@ -123,8 +123,8 @@ av_read_callback( void *opaque, uint8_t *buf, int size )
      return len;
 }
 
-static offset_t
-av_seek_callback( void *opaque, offset_t offset, int whence )
+static int64_t
+av_seek_callback( void *opaque, int64_t offset, int whence )
 {
      IFusionSoundMusicProvider_FFmpeg_data *data = opaque;
      unsigned int                           pos  = 0;
