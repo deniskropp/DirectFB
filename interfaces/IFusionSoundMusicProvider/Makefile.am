@@ -53,47 +53,49 @@ ifusionsoundmusicprovider_LTLIBRARIES =	\
 
 libifusionsoundmusicprovider_timidity_la_SOURCES = ifusionsoundmusicprovider_timidity.c
 
-libifusionsoundmusicprovider_timidity_la_LIBADD = $(TIMIDITY_LIBS)
+libifusionsoundmusicprovider_timidity_la_LIBADD = $(DIRECT_LIBS)  $(TIMIDITY_LIBS)
 
 libifusionsoundmusicprovider_timidity_la_LDFLAGS = -avoid-version -module
 
 
 libifusionsoundmusicprovider_wave_la_SOURCES = ifusionsoundmusicprovider_wave.c
 
-libifusionsoundmusicprovider_wave_la_LIBADD =
+libifusionsoundmusicprovider_wave_la_LIBADD = $(DIRECT_LIBS) $(top_builddir)/src/libfusionsound.la
 
 libifusionsoundmusicprovider_wave_la_LDFLAGS = -avoid-version -module
 
 
 libifusionsoundmusicprovider_vorbis_la_SOURCES = ifusionsoundmusicprovider_vorbis.c
 
-libifusionsoundmusicprovider_vorbis_la_LIBADD = $(VORBISFILE_LIBS)
+libifusionsoundmusicprovider_vorbis_la_LIBADD = $(DIRECT_LIBS) $(top_builddir)/src/libfusionsound.la $(VORBISFILE_LIBS)
 
 libifusionsoundmusicprovider_vorbis_la_LDFLAGS = -avoid-version -module
 
 
 libifusionsoundmusicprovider_mad_la_SOURCES = ifusionsoundmusicprovider_mad.c
 
-libifusionsoundmusicprovider_mad_la_LIBADD = $(MAD_LIBS) -lm
+libifusionsoundmusicprovider_mad_la_LIBADD = $(DIRECT_LIBS) $(MAD_LIBS) -lm
 
 libifusionsoundmusicprovider_mad_la_LDFLAGS = -avoid-version -module
 
 
 libifusionsoundmusicprovider_cdda_la_SOURCES = ifusionsoundmusicprovider_cdda.c
 
-libifusionsoundmusicprovider_cdda_la_LIBADD = $(CDDB_LIBS)
+libifusionsoundmusicprovider_cdda_la_LIBADD = $(DIRECT_LIBS) $(CDDB_LIBS)
 
 libifusionsoundmusicprovider_cdda_la_LDFLAGS = -avoid-version -module
 
 
 libifusionsoundmusicprovider_playlist_la_SOURCES = ifusionsoundmusicprovider_playlist.c
 
+libifusionsoundmusicprovider_playlist_la_LIBADD = $(DIRECT_LIBS) $(top_builddir)/src/libfusionsound.la
+
 libifusionsoundmusicprovider_playlist_la_LDFLAGS = -avoid-version -module
 
 
 libifusionsoundmusicprovider_ffmpeg_la_SOURCES = ifusionsoundmusicprovider_ffmpeg.c
 
-libifusionsoundmusicprovider_ffmpeg_la_LIBADD = $(FFMPEG_LIBS)
+libifusionsoundmusicprovider_ffmpeg_la_LIBADD = $(DIRECT_LIBS) $(top_builddir)/src/libfusionsound.la $(FFMPEG_LIBS)
 
 libifusionsoundmusicprovider_ffmpeg_la_LDFLAGS = -avoid-version -module
 
