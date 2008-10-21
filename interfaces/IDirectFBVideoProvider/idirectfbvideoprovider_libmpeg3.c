@@ -372,7 +372,7 @@ WriteRGBFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
      dst_data = (IDirectFBSurface_data*) data->destination->priv;
      surface  = dst_data->surface;
 
-     if (dfb_surface_lock_buffer( surface, CSBR_BACK, CSAF_CPU_WRITE, &lock ))
+     if (dfb_surface_lock_buffer( surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock ))
           return;
 
      ptr   = lock.addr;
@@ -462,7 +462,7 @@ WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
      dst_data = (IDirectFBSurface_data*) data->destination->priv;
      surface  = dst_data->surface;
 
-     if (dfb_surface_lock_buffer( surface, CSBR_BACK, CSAF_CPU_WRITE, &lock ))
+     if (dfb_surface_lock_buffer( surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock ))
           return;
 
      dst = lock.addr;

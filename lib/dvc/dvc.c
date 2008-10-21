@@ -1966,7 +1966,7 @@ dvc_scale_to_surface( const DVCPicture   *source,
      picture.width  = dst_data->surface->config.size.w;
      picture.height = dst_data->surface->config.size.h; 
      
-     ret = dfb_surface_lock_buffer( dst_data->surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
+     ret = dfb_surface_lock_buffer( dst_data->surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
      if (ret)
           return ret;
 
