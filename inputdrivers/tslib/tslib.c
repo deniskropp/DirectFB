@@ -155,6 +155,9 @@ driver_get_available(void)
           const char *device;
 
           fusion_vector_foreach (device, i, dfb_config->tslib_devices) {
+               if (num_devices >= MAX_TSLIB_DEVICES)
+                    break;
+
                if (check_device( device ))
                     device_names[num_devices++] = D_STRDUP( device );
           }
@@ -170,6 +173,9 @@ driver_get_available(void)
      /* Try to guess some (more) devices. */
      for (i = 0; i < MAX_TSLIB_DEVICES; i++) {
           char buf[32];
+
+          if (num_devices >= MAX_TSLIB_DEVICES)
+               break;
 
           snprintf( buf, 32, "/dev/input/tslib%d", i );
 

@@ -1133,6 +1133,9 @@ driver_get_available( void )
           const char *device;
 
           fusion_vector_foreach (device, i, dfb_config->linux_input_devices) {
+               if (num_devices >= MAX_LINUX_INPUT_DEVICES)
+                    break;
+
                if (check_device( device ))
                     device_names[num_devices++] = D_STRDUP( device );
           }
