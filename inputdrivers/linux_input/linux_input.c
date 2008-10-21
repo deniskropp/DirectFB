@@ -968,7 +968,7 @@ get_device_info( int              fd,
           ioctl( fd, EVIOCGBIT(EV_KEY, sizeof(keybit)), keybit );
 
 	  /**  count typical keyboard keys only */
-          for (i=KEY_Q; i<KEY_M; i++)
+          for (i=KEY_Q; i<=KEY_M; i++)
                if (test_bit( i, keybit ))
                     num_keys++;
 
