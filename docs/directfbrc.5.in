@@ -521,9 +521,16 @@ to set this mode explicitly because the 'auto' mode chooses it if
 blits are accelerated. Without accelerated blits this mode is not
 recommended.
 
+.BI triple
+Like backvideo except the surface is triple buffered.
+
 .BI frontonly
 There is no back buffer. This is the best choice if you are using
 opaque windows only and don't use any color keying.
+
+.BI windows
+Special mode with window buffers directly displayed. This mode
+requires special hardware support.
 
 .TP
 .BI vsync-after
