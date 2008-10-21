@@ -33,7 +33,7 @@ sh772x_driver_init( void )
      int ret = -ENODEV;
 
      if ((ctrl_inl(CCN_PVR) & 0xffff00) == 0x300800) {
-          switch (ctrl_inl(CCN_PRR) & 0xff0) {
+          switch (ctrl_inl(CCN_PRR) & 0xf00) {
                case 0xa00:
                     ret = sh7722_init();
                     if (ret)
