@@ -176,6 +176,10 @@ fusion_call_return( FusionCall   *call,
 
      D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
 
+     D_ASSUME( serial != 0 );
+     if (!serial)
+          return DR_UNSUPPORTED;
+
      call_ret.call_id = call->call_id;
      call_ret.val     = val;
      call_ret.serial  = serial;
@@ -251,27 +255,30 @@ _fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg )
 
      D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call_handler ) );
 
-     call_ret.call_id = call_id;
-     call_ret.serial  = msg->serial;
-     call_ret.val     = 0;
+     call_ret.val = 0;
 
      result = call_handler( msg->caller, msg->call_arg, msg->call_ptr, msg->ctx, msg->serial, &call_ret.val );
 
      switch (result) {
           case FCHR_RETURN:
-               while (ioctl (world->fusion_fd, FUSION_CALL_RETURN, &call_ret)) {
-                    switch (errno) {
-                         case EINTR:
-                              continue;
-                         case EIDRM:
-                              D_WARN( "caller withdrawn (signal?)" );
-                              return;
-                         case EINVAL:
-                              D_ERROR( "Fusion/Call: invalid call\n" );
-                              return;
-                         default:
-                              D_PERROR( "FUSION_CALL_RETURN" );
-                              return;
+               if (msg->serial) {
+                    call_ret.serial  = msg->serial;
+                    call_ret.call_id = call_id;
+
+                    while (ioctl (world->fusion_fd, FUSION_CALL_RETURN, &call_ret)) {
+                         switch (errno) {
+                              case EINTR:
+                                   continue;
+                              case EIDRM:
+                                   D_WARN( "caller withdrawn (signal?)" );
+                                   return;
+                              case EINVAL:
+                                   D_ERROR( "Fusion/Call: invalid call\n" );
+                                   return;
+                              default:
+                                   D_PERROR( "FUSION_CALL_RETURN" );
+                                   return;
+                         }
                     }
                }
                break;

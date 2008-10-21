@@ -898,7 +898,7 @@ draw_window( CoreWindow *window, CardState *state,
           flags |= DSBLIT_DEINTERLACE;
 
      /* Different compositing methods depending on destination format. */
-     if (flags & DSBLIT_BLEND_ALPHACHANNEL) {
+     if (flags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
           if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->config.format )) {
                /*
                 * Always use compliant Porter/Duff SRC_OVER,
@@ -1815,7 +1815,7 @@ move_window( CoreWindow *window,
           bounds->x += dx;
           bounds->y += dy;
      }
-     else if (VISIBLE_WINDOW(window)) {
+     else {
           update_window( window, data, NULL, 0, false, false, false );
 
           bounds->x += dx;
