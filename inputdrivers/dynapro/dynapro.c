@@ -121,6 +121,8 @@ static inline unsigned char *dynapro_getpck(int fd)
 	 start = 0;
 	 return packet;
   }
+
+  return NULL;
 }
 
 /* Remove all input translations over tty serial controller.
