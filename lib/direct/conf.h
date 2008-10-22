@@ -57,6 +57,7 @@ struct __D_DirectConfig {
                                                          startup time. Use this one instead if it's set. */
 
      char                        **disable_module;    /* Never load these modules. */
+     char                         *module_dir;        /* module dir override */
 
      bool                          sighandler;
      sigset_t                      dont_catch;        /* don't catch these signals */

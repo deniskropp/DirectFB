@@ -72,7 +72,7 @@ struct __D_DirectModuleDir {
 #define DEFINE_MODULE_DIRECTORY(d,p,n)                 \
      DirectModuleDir d = {                             \
           lock:        PTHREAD_MUTEX_INITIALIZER,      \
-          path:        MODULEDIR"/"p,                  \
+          path:        p,                              \
           abi_version: n,                              \
           entries:     NULL,                           \
           loading:     NULL                            \

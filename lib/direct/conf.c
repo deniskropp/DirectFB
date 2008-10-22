@@ -65,6 +65,7 @@ const char   *direct_config_usage =
      "  [no-]sighandler                Enable signal handler\n"
      "  [no-]thread-block-signals      Block all signals in new threads?\n"
      "  disable-module=<module_name>   suppress loading this module\n"
+     "  module-dir=<directory>         Override default module search directory (default = $libdir/directfb-x.y-z)\n"
      "  thread-priority-scale=<100th>  Apply scaling factor on thread type based priorities\n"
      "\n";
 
@@ -91,9 +92,19 @@ direct_config_set( const char *name, const char *value )
                D_ERROR("Direct/Config '%s': No module name specified!\n", name);
                return DR_INVARG;
           }
-     }
-     else
-          if (strcmp (name, "memcpy" ) == 0) {
+     } else
+     if (strcmp (name, "module-dir" ) == 0) {
+          if (value) {
+               if (direct_config->module_dir)
+                    D_FREE( direct_config->module_dir );
+               direct_config->module_dir = D_STRDUP( value );
+          }
+          else {
+               D_ERROR("Direct/Config 'module-dir': No directory name specified!\n");
+               return DR_INVARG;
+          }
+     } else
+     if (strcmp (name, "memcpy" ) == 0) {
           if (value) {
                if (direct_config->memcpy)
                     D_FREE( direct_config->memcpy );

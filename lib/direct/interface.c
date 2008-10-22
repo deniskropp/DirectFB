@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <alloca.h>
 
 #include <direct/debug.h>
 #include <direct/interface.h>
@@ -196,9 +197,13 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
      if (type == NULL)
           return DR_NOIMPL;
 
-     len = strlen(MODULEDIR"/interfaces/") + strlen(type) + 1;
+     char *path = direct_config->module_dir;
+     if(!path)
+          path = MODULEDIR;
+
+     len = strlen(path) + strlen("/interfaces/") + strlen(type) + 1;
      interface_dir = alloca( len );
-     snprintf( interface_dir, len, MODULEDIR"/interfaces/%s", type );
+     snprintf( interface_dir, len, "%s%sinterfaces/%s", path, (path[strlen(path)-1]=='/') ? "" : "/", type );
 
      dir = opendir( interface_dir );
      if (!dir) {
