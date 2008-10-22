@@ -36,6 +36,14 @@ typedef unsigned long kernel_ulong_t;
 #define BITS_PER_LONG    (sizeof(long)*8)
 #endif
 
+#ifndef EV_CNT
+#define EV_CNT (EV_MAX+1)
+#define KEY_CNT (KEY_MAX+1)
+#define REL_CNT (REL_MAX+1)
+#define ABS_CNT (ABS_MAX+1)
+#define LED_CNT (LED_MAX+1)
+#endif
+
 /* compat defines for older kernel like 2.4.x */
 #ifndef EV_SYN
 #define EV_SYN			0x00
@@ -135,7 +143,7 @@ typedef struct {
      int                      fd;
 
      bool                     has_leds;
-     unsigned long            led_state[NBITS(LED_MAX)];
+     unsigned long            led_state[NBITS(LED_CNT)];
      DFBInputDeviceLockState  locks;
 
 #ifdef LINUX_INPUT_USE_FBDEV
@@ -946,10 +954,10 @@ get_device_info( int              fd,
      unsigned int  num_rels     = 0;
      unsigned int  num_abs      = 0;
 
-     unsigned long evbit[NBITS(EV_MAX)];
-     unsigned long keybit[NBITS(KEY_MAX)];
-     unsigned long relbit[NBITS(REL_MAX)];
-     unsigned long absbit[NBITS(ABS_MAX)];
+     unsigned long evbit[NBITS(EV_CNT)];
+     unsigned long keybit[NBITS(KEY_CNT)];
+     unsigned long relbit[NBITS(REL_CNT)];
+     unsigned long absbit[NBITS(ABS_CNT)];
 
      /* get device name */
      ioctl( fd, EVIOCGNAME(DFB_INPUT_DEVICE_DESC_NAME_LENGTH - 1), info->desc.name );
@@ -968,11 +976,11 @@ get_device_info( int              fd,
           ioctl( fd, EVIOCGBIT(EV_KEY, sizeof(keybit)), keybit );
 
 	  /**  count typical keyboard keys only */
-          for (i=KEY_Q; i<KEY_M; i++)
+          for (i=KEY_Q; i<=KEY_M; i++)
                if (test_bit( i, keybit ))
                     num_keys++;
 
-          for (i=KEY_OK; i<KEY_MAX; i++)
+          for (i=KEY_OK; i<KEY_CNT; i++)
                if (test_bit( i, keybit ))
                     num_ext_keys++;
 
@@ -987,7 +995,7 @@ get_device_info( int              fd,
           /* get bits for relative axes */
           ioctl( fd, EVIOCGBIT(EV_REL, sizeof(relbit)), relbit );
 
-          for (i=0; i<REL_MAX; i++)
+          for (i=0; i<REL_CNT; i++)
                if (test_bit( i, relbit ))
                     num_rels++;
      }
@@ -1110,7 +1118,7 @@ check_device( const char *device )
  * Called once during initialization of DirectFB.
  */
 static int
-driver_get_available()
+driver_get_available( void )
 {
      int   i;
      char *tsdev;
@@ -1125,6 +1133,9 @@ driver_get_available()
           const char *device;
 
           fusion_vector_foreach (device, i, dfb_config->linux_input_devices) {
+               if (num_devices >= MAX_LINUX_INPUT_DEVICES)
+                    break;
+
                if (check_device( device ))
                     device_names[num_devices++] = D_STRDUP( device );
           }
@@ -1181,7 +1192,7 @@ driver_open_device( CoreInputDevice  *device,
                     void            **driver_data )
 {
      int              fd, ret;
-     unsigned long    ledbit[NBITS(LED_MAX)];
+     unsigned long    ledbit[NBITS(LED_CNT)];
      LinuxInputData  *data;
 #ifdef LINUX_INPUT_USE_FBDEV
      FBDev           *dfb_fbdev = dfb_system_data();

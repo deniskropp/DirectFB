@@ -303,7 +303,7 @@ static void config_values_free( FusionVector *vector )
  */
 
 #if 0
-static void config_cleanup()
+static void config_cleanup( void )
 {
      if (!dfb_config) {
           D_BUG("config_cleanup() called with no config allocated!");
@@ -324,7 +324,7 @@ static void config_cleanup()
 /*
  * allocates config and fills it with defaults
  */
-static void config_allocate()
+static void config_allocate( void )
 {
      int i;
 

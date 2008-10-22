@@ -442,7 +442,7 @@ dfb_layers_register( CoreScreen              *screen,
      return layer;
 }
 
-typedef void (*AnyFunc)();
+typedef void (*AnyFunc)( void );
 
 CoreLayer *
 dfb_layers_hook_primary( CoreGraphicsDevice *device,
@@ -468,7 +468,7 @@ dfb_layers_hook_primary( CoreGraphicsDevice *device,
           *primary_driver_data = primary->driver_data;
 
      /* replace all entries in the old table that aren't NULL in the new one */
-     entries = sizeof(DisplayLayerFuncs) / sizeof(void(*)());
+     entries = sizeof(DisplayLayerFuncs) / sizeof(void(*)( void ));
      for (i=0; i<entries; i++) {
           AnyFunc *newfuncs = (AnyFunc*) funcs;
           AnyFunc *oldfuncs = (AnyFunc*) primary->funcs;
@@ -518,7 +518,7 @@ dfb_layers_enumerate( DisplayLayerCallback  callback,
 }
 
 int
-dfb_layer_num()
+dfb_layer_num( void )
 {
      return dfb_num_layers;
 }
@@ -613,7 +613,7 @@ dfb_layer_id_translated( const CoreLayer *layer )
 }
 
 DFBSurfacePixelFormat
-dfb_primary_layer_pixelformat()
+dfb_primary_layer_pixelformat( void )
 {
      CoreLayerShared       *shared;
      CoreLayerContext      *context;

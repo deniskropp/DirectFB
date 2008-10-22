@@ -63,9 +63,9 @@ D_DEBUG_DOMAIN( Direct_Memcpy, "Direct/Memcpy", "Direct's Memcpy Routines" );
 
 static void * generic64_memcpy( void * to, const void * from, size_t len )
 {
-     register u8 *d = (u8*)to;
-     register u8 *s = (u8*)from;
-     size_t       n;
+     register u8       *d = (u8*)to;
+     register const u8 *s = (const u8*)from;
+     size_t             n;
 
      if (len >= 128) {
           unsigned long delta;
@@ -79,11 +79,11 @@ static void * generic64_memcpy( void * to, const void * from, size_t len )
                     *d++ = *s++;
                }
                if ((unsigned long)d & 2) {
-                    *((u16*)d) = *((u16*)s);
+                    *((u16*)d) = *((const u16*)s);
                     d += 2; s += 2;
                }
                if ((unsigned long)d & 4) {
-                    *((u32*)d) = *((u32*)s);
+                    *((u32*)d) = *((const u32*)s);
                     d += 4; s += 4;
                }
           }
@@ -92,14 +92,14 @@ static void * generic64_memcpy( void * to, const void * from, size_t len )
           len &= 63;
           
           for (; n; n--) {
-               ((u64*)d)[0] = ((u64*)s)[0];
-               ((u64*)d)[1] = ((u64*)s)[1];
-               ((u64*)d)[2] = ((u64*)s)[2];
-               ((u64*)d)[3] = ((u64*)s)[3];
-               ((u64*)d)[4] = ((u64*)s)[4];
-               ((u64*)d)[5] = ((u64*)s)[5];
-               ((u64*)d)[6] = ((u64*)s)[6];
-               ((u64*)d)[7] = ((u64*)s)[7];
+               ((u64*)d)[0] = ((const u64*)s)[0];
+               ((u64*)d)[1] = ((const u64*)s)[1];
+               ((u64*)d)[2] = ((const u64*)s)[2];
+               ((u64*)d)[3] = ((const u64*)s)[3];
+               ((u64*)d)[4] = ((const u64*)s)[4];
+               ((u64*)d)[5] = ((const u64*)s)[5];
+               ((u64*)d)[6] = ((const u64*)s)[6];
+               ((u64*)d)[7] = ((const u64*)s)[7];
                d += 64; s += 64;
           }
      }
@@ -110,15 +110,15 @@ static void * generic64_memcpy( void * to, const void * from, size_t len )
           n = len >> 3;
           
           for (; n; n--) {
-               *((u64*)d) = *((u64*)s);
+               *((u64*)d) = *((const u64*)s);
                d += 8; s += 8;
           }
           if (len & 4) {
-               *((u32*)d) = *((u32*)s);
+               *((u32*)d) = *((const u32*)s);
                d += 4; s += 4;
           }
           if (len & 2)  {
-               *((u16*)d) = *((u16*)s);
+               *((u16*)d) = *((const u16*)s);
                d += 2; s += 2;
           }
           if (len & 1)
@@ -156,7 +156,7 @@ static struct {
 };
 
 
-static inline unsigned long long int rdtsc()
+static inline unsigned long long int rdtsc( void )
 {
      struct timeval tv;
 
@@ -170,7 +170,7 @@ memcpy_func direct_memcpy = (memcpy_func) memcpy;
 #define BUFSIZE 1024
 
 void
-direct_find_best_memcpy()
+direct_find_best_memcpy( void )
 {
      /* Save library size and startup time
         on platforms without a special memcpy() implementation. */
@@ -239,7 +239,7 @@ direct_find_best_memcpy()
 }
 
 void
-direct_print_memcpy_routines()
+direct_print_memcpy_routines( void )
 {
      int i;
      u32 config_flags = 0;

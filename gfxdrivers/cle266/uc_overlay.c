@@ -28,7 +28,7 @@ uc_ovl_remove(CoreLayer *layer,
               void      *region_data);
 
 
-static int uc_ovl_datasize()
+static int uc_ovl_datasize( void )
 {
     return sizeof(UcOverlayData);
 }

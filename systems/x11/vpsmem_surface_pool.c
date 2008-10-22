@@ -76,19 +76,19 @@ typedef struct {
 /**********************************************************************************************************************/
 
 static int
-vpsmemPoolDataSize()
+vpsmemPoolDataSize( void )
 {
      return sizeof(VPSMemPoolData);
 }
 
 static int
-vpsmemPoolLocalDataSize()
+vpsmemPoolLocalDataSize( void )
 {
      return sizeof(VPSMemPoolLocalData);
 }
 
 static int
-vpsmemAllocationDataSize()
+vpsmemAllocationDataSize( void )
 {
      return sizeof(VPSMemAllocationData);
 }

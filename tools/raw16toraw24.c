@@ -37,7 +37,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
-int main()
+int main( void )
 {
      unsigned char  byt;
      unsigned short wrd;

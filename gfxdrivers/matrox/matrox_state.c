@@ -627,7 +627,7 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
      if (mdev->blit_deinterlace && mdev->field) {
           mdev->src_offset[0][0] = mdev->src_offset[1][0];
           mdev->src_offset[0][1] = mdev->src_offset[1][1];
-          mdev->src_offset[0][2] = mdev->src_offset[1][1];
+          mdev->src_offset[0][2] = mdev->src_offset[1][2];
      }
 
      mdev->w2 = mga_log2( mdev->w );

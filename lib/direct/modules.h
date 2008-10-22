@@ -85,6 +85,9 @@ void  direct_modules_register( DirectModuleDir *directory,
                                const char      *name,
                                const void      *funcs );
 
+void  direct_modules_unregister( DirectModuleDir *directory,
+                                 const char      *name );
+
 const void *direct_module_ref  ( DirectModuleEntry *module );
 void        direct_module_unref( DirectModuleEntry *module );
 

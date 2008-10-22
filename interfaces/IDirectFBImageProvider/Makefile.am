@@ -22,6 +22,7 @@ endif
 
 
 INCLUDES = \
+	-I$(top_builddir)/include	\
 	-I$(top_srcdir)/include	\
 	-I$(top_builddir)/lib	\
 	-I$(top_srcdir)/lib	\
@@ -53,6 +54,7 @@ libidirectfbimageprovider_png_la_LDFLAGS = -avoid-version -module
 libidirectfbimageprovider_dfiff_la_SOURCES = idirectfbimageprovider_dfiff.c
 
 libidirectfbimageprovider_dfiff_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
 	$(top_builddir)/src/libdirectfb.la
 
 libidirectfbimageprovider_dfiff_la_LDFLAGS = -avoid-version -module

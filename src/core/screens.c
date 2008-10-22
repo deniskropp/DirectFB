@@ -459,7 +459,7 @@ dfb_screens_register( CoreGraphicsDevice *device,
      return screen;
 }
 
-typedef void (*AnyFunc)();
+typedef void (*AnyFunc)( void );
 
 CoreScreen *
 dfb_screens_hook_primary( CoreGraphicsDevice  *device,
@@ -485,7 +485,7 @@ dfb_screens_hook_primary( CoreGraphicsDevice  *device,
           *primary_driver_data = primary->driver_data;
 
      /* replace all entries in the old table that aren't NULL in the new one */
-     entries = sizeof(ScreenFuncs) / sizeof(void(*)());
+     entries = sizeof(ScreenFuncs) / sizeof(void(*)( void ));
      for (i=0; i<entries; i++) {
           AnyFunc *newfuncs = (AnyFunc*) funcs;
           AnyFunc *oldfuncs = (AnyFunc*) primary->funcs;

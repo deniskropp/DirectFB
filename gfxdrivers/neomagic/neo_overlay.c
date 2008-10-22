@@ -67,7 +67,7 @@ static void ovl_calc_regs( NeoDriverData         *ndrv,
 /**********************/
 
 static int
-ovlLayerDataSize()
+ovlLayerDataSize( void )
 {
      return sizeof(NeoOverlayLayerData);
 }

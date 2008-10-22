@@ -406,7 +406,7 @@ static const char *dev_input[1] = { "/dev/input/mice" };
 /**************************************************************************************************/
 
 static int
-driver_get_available()
+driver_get_available( void )
 {
      struct utsname uts;
      bool           check_psaux = true;

@@ -44,7 +44,7 @@ DFB_INPUT_DRIVER( vncinput )
  * Called once during initialization of DirectFB.
  */
 static int
-driver_get_available()
+driver_get_available( void )
 {
      if (dfb_system_type() == CORE_VNC)
           return 1;

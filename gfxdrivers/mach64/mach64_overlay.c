@@ -95,7 +95,7 @@ static void ov_set_field( Mach64DriverData *mdrv, Mach64OverlayLayerData *mov );
 /**********************/
 
 static int
-ovLayerDataSize()
+ovLayerDataSize( void )
 {
      return sizeof(Mach64OverlayLayerData);
 }

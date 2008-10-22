@@ -73,7 +73,7 @@ static void spic_set_buffer( MatroxDriverData    *mdrv,
 /**********************/
 
 static int
-spicLayerDataSize()
+spicLayerDataSize( void )
 {
      return sizeof(MatroxSpicLayerData);
 }

@@ -150,7 +150,7 @@ direct_cleanup_handler_remove( DirectCleanupHandler *handler )
 }
 
 DirectResult
-direct_initialize()
+direct_initialize( void )
 {
      pthread_mutex_lock( &main_lock );
 
@@ -174,7 +174,7 @@ direct_initialize()
 }
 
 DirectResult
-direct_shutdown()
+direct_shutdown( void )
 {
      pthread_mutex_lock( &main_lock );
 

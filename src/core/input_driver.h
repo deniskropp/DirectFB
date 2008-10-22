@@ -33,7 +33,7 @@
 
 
 static int
-driver_get_available();
+driver_get_available( void );
 
 static void
 driver_get_info( InputDriverInfo *info );
@@ -73,13 +73,20 @@ static const InputDriverFuncs driver_funcs = {
 };
 
 #define DFB_INPUT_DRIVER(shortname)                                             \
-__attribute__((constructor)) void directfb_##shortname();                       \
+__attribute__((constructor)) void directfb_##shortname##_ctor( void );          \
+__attribute__((destructor))  void directfb_##shortname##_dtor( void );          \
                                                                                 \
 void                                                                            \
-directfb_##shortname()                                                          \
+directfb_##shortname##_ctor( void )                                             \
 {                                                                               \
      direct_modules_register( &dfb_input_modules, DFB_INPUT_DRIVER_ABI_VERSION, \
                               #shortname, &driver_funcs );                      \
+}                                                                               \
+                                                                                \
+void                                                                            \
+directfb_##shortname##_dtor( void )                                             \
+{                                                                               \
+     direct_modules_unregister( &dfb_input_modules, #shortname );               \
 }
 
 #endif

@@ -1198,7 +1198,7 @@ IDirectFBWindow_SetDstGeometry( IDirectFBWindow         *thiz,
      return dfb_window_set_config( data->window, &config, CWCF_DST_GEOMETRY );
 }
 
-DFBResult
+static DFBResult
 IDirectFBWindow_SetRotation(IDirectFBWindow *thiz,
                           int rotation)
 {

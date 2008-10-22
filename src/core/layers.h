@@ -125,12 +125,12 @@ typedef struct {
      /*
       * Return size of layer data (shared memory).
       */
-     int       (*LayerDataSize) ();
+     int       (*LayerDataSize) ( void );
 
      /*
       * Return size of region data (shared memory).
       */
-     int       (*RegionDataSize)();
+     int       (*RegionDataSize)( void );
 
      /*
       * Called once by the master to initialize layer data and reset hardware.
@@ -336,7 +336,7 @@ void dfb_layers_enumerate( DisplayLayerCallback  callback,
                            void                 *ctx );
 
 
-int        dfb_layer_num();
+int        dfb_layer_num( void );
 
 CoreLayer *dfb_layer_at( DFBDisplayLayerID id );
 
@@ -354,6 +354,6 @@ DFBDisplayLayerID dfb_layer_id( const CoreLayer *layer );
 
 DFBDisplayLayerID dfb_layer_id_translated( const CoreLayer *layer );
 
-DFBSurfacePixelFormat dfb_primary_layer_pixelformat();
+DFBSurfacePixelFormat dfb_primary_layer_pixelformat( void );
 
 #endif

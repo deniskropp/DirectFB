@@ -58,10 +58,10 @@ typedef struct {
 
 
 typedef struct {
-     int       (*PoolBridgeDataSize)();
-     int       (*PoolBridgeLocalDataSize)();
+     int       (*PoolBridgeDataSize)( void );
+     int       (*PoolBridgeLocalDataSize)( void );
 
-     int       (*PoolTransferDataSize)();
+     int       (*PoolTransferDataSize)( void );
 
      /*
       * Bridge init/destroy

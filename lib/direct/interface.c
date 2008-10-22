@@ -330,7 +330,7 @@ static pthread_mutex_t  alloc_lock     = PTHREAD_MUTEX_INITIALIZER;
 /**************************************************************************************************/
 
 void
-direct_print_interface_leaks()
+direct_print_interface_leaks( void )
 {
      unsigned int i;
 
@@ -356,7 +356,7 @@ direct_print_interface_leaks()
 /**************************************************************************************************/
 
 static InterfaceDesc *
-allocate_interface_desc()
+allocate_interface_desc( void )
 {
      int cap = alloc_capacity;
 
@@ -458,7 +458,7 @@ direct_dbg_interface_remove( const char *func,
 #else     /* DIRECT_BUILD_DEBUG */
 
 void
-direct_print_interface_leaks()
+direct_print_interface_leaks( void )
 {
 }
 

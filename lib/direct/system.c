@@ -40,7 +40,7 @@
 
 __attribute__((no_instrument_function))
 pid_t
-direct_gettid()
+direct_gettid( void )
 {
      pid_t tid = -1;
 #if DIRECT_BUILD_GETTID && defined(__NR_gettid) /* present on linux >= 2.4.20 */
@@ -53,7 +53,7 @@ direct_gettid()
 }
 
 long
-direct_pagesize()
+direct_pagesize( void )
 {
      return sysconf( _SC_PAGESIZE );
 }

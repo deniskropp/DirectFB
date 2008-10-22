@@ -100,7 +100,7 @@ static int pci_config_in8( unsigned int bus,
 * @returns DFB_OK if successful, with ucdrv->hwid, ucdrv->hwrev,
 * and ucdrv->name filled in.
 */
-DFBResult uc_probe_pci( UcDriverData *ucdrv )
+static DFBResult uc_probe_pci( UcDriverData *ucdrv )
 {
     unsigned int    bus, devfn, vendor, device;
     char            line[512];
@@ -199,7 +199,7 @@ static DFBResult uc_alloc_vq(CoreGraphicsDevice *device, UcDeviceData *ucdev)
  * @param enable    enable VQ if true (else disable it.)
  */
 
-DFBResult uc_init_2d_engine(CoreGraphicsDevice *device, UcDeviceData *ucdev, UcDriverData *ucdrv, bool enable)
+static DFBResult uc_init_2d_engine(CoreGraphicsDevice *device, UcDeviceData *ucdev, UcDriverData *ucdrv, bool enable)
 {
      DFBResult result = DFB_OK;
      volatile u8* hwregs = ucdrv->hwregs;
@@ -270,7 +270,7 @@ DFBResult uc_init_2d_engine(CoreGraphicsDevice *device, UcDeviceData *ucdev, UcD
      return result;
 }
 
-void uc_init_3d_engine(volatile u8* hwregs, int hwrev, bool init_all)
+static void uc_init_3d_engine(volatile u8* hwregs, int hwrev, bool init_all)
 {
      u32 i;
 

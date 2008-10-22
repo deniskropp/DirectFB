@@ -77,7 +77,7 @@ static void SetupResizerParams( vpfe_resizer_params_t *params,
 /**********************************************************************************************************************/
 
 static int
-videoLayerDataSize()
+videoLayerDataSize( void )
 {
      return sizeof(DavinciVideoLayerData);
 }

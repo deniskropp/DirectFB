@@ -57,7 +57,7 @@ static void udl_set_location( CyberDriverData        *cdrv,
 /**********************/
 
 static int
-udlLayerDataSize()
+udlLayerDataSize( void )
 {
      return sizeof(CyberUnderlayLayerData);
 }

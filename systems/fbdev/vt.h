@@ -61,8 +61,8 @@ typedef struct {
 /*
  * allocates and switches to a new virtual terminal
  */
-DFBResult dfb_vt_initialize();
-DFBResult dfb_vt_join();
+DFBResult dfb_vt_initialize( void );
+DFBResult dfb_vt_join( void );
 
 /*
  * deallocates virtual terminal

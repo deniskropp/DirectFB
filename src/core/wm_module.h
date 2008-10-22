@@ -246,15 +246,15 @@ static CoreWMFuncs wm_funcs = {
 };
 
 
-#define DFB_WINDOW_MANAGER(shortname)                       \
-__attribute__((constructor)) void directfbwm_##shortname(); \
-                                                            \
-void                                                        \
-directfbwm_##shortname()                                    \
-{                                                           \
-     direct_modules_register( &dfb_core_wm_modules,         \
-                              DFB_CORE_WM_ABI_VERSION,      \
-                              #shortname, &wm_funcs );      \
+#define DFB_WINDOW_MANAGER(shortname)                             \
+__attribute__((constructor)) void directfbwm_##shortname( void ); \
+                                                                  \
+void                                                              \
+directfbwm_##shortname( void )                                    \
+{                                                                 \
+     direct_modules_register( &dfb_core_wm_modules,               \
+                              DFB_CORE_WM_ABI_VERSION,            \
+                              #shortname, &wm_funcs );            \
 }
 
 #endif

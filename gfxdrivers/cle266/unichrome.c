@@ -164,7 +164,7 @@ static DFBResult uc_alloc_vq(CoreGraphicsDevice *device, UcDeviceData *ucdev)
  * @param enable    enable VQ if true (else disable it.)
  */
 
-DFBResult uc_init_2d_engine(CoreGraphicsDevice *device, UcDeviceData *ucdev, UcDriverData *ucdrv, bool enable)
+static DFBResult uc_init_2d_engine(CoreGraphicsDevice *device, UcDeviceData *ucdev, UcDriverData *ucdrv, bool enable)
 {
      DFBResult result = DFB_OK;
      volatile u8* hwregs = ucdrv->hwregs;
@@ -248,7 +248,7 @@ DFBResult uc_init_2d_engine(CoreGraphicsDevice *device, UcDeviceData *ucdev, UcD
      return result;
 }
 
-void uc_init_3d_engine(volatile u8* hwregs, int hwrev, bool init_all)
+static void uc_init_3d_engine(volatile u8* hwregs, int hwrev, bool init_all)
 {
      u32 i;
 
@@ -340,7 +340,7 @@ static void uc_after_set_var(void* drv, void* dev)
 
 /** Wait until the engine is idle. */
 
-static void uc_engine_sync(void* drv, void* dev)
+static DFBResult uc_engine_sync(void* drv, void* dev)
 {
      UcDriverData* ucdrv = (UcDriverData*) drv;
      UcDeviceData* ucdev = (UcDeviceData*) dev;
@@ -365,6 +365,8 @@ static void uc_engine_sync(void* drv, void* dev)
 
      ucdev->idle_waitcycles += loop;
      ucdev->must_wait = 0;
+
+     return DFB_OK;
 }
 
 

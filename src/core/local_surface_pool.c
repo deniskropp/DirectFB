@@ -56,7 +56,7 @@ typedef struct {
 
 /**********************************************************************************************************************/
 
-FusionCallHandlerResult
+static FusionCallHandlerResult
 local_surface_pool_call_handler( int           caller,
                                  int           call_arg,
                                  void         *call_ptr,
@@ -74,19 +74,19 @@ local_surface_pool_call_handler( int           caller,
 /**********************************************************************************************************************/
 
 static int
-localPoolDataSize()
+localPoolDataSize( void )
 {
      return sizeof(LocalPoolData);
 }
 
 static int
-localPoolLocalDataSize()
+localPoolLocalDataSize( void )
 {
      return sizeof(LocalPoolLocalData);
 }
 
 static int
-localAllocationDataSize()
+localAllocationDataSize( void )
 {
      return sizeof(LocalAllocationData);
 }

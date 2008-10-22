@@ -266,7 +266,7 @@ dfb_system_core_resume( DFBSystemCore *data )
 /**********************************************************************************************************************/
 
 DFBResult
-dfb_system_lookup()
+dfb_system_lookup( void )
 {
      DirectLink *l;
 
@@ -305,19 +305,19 @@ dfb_system_lookup()
 }
 
 CoreSystemType
-dfb_system_type()
+dfb_system_type( void )
 {
      return system_info.type;
 }
 
 CoreSystemCapabilities
-dfb_system_caps()
+dfb_system_caps( void )
 {
      return system_info.caps;
 }
 
 void *
-dfb_system_data()
+dfb_system_data( void )
 {
      return system_data;
 }
@@ -341,7 +341,7 @@ dfb_system_unmap_mmio( volatile void  *addr,
 }
 
 int
-dfb_system_get_accelerator()
+dfb_system_get_accelerator( void )
 {
      D_ASSERT( system_funcs != NULL );
 
@@ -349,7 +349,7 @@ dfb_system_get_accelerator()
 }
 
 VideoMode *
-dfb_system_modes()
+dfb_system_modes( void )
 {
      D_ASSERT( system_funcs != NULL );
 
@@ -357,7 +357,7 @@ dfb_system_modes()
 }
 
 VideoMode *
-dfb_system_current_mode()
+dfb_system_current_mode( void )
 {
      D_ASSERT( system_funcs != NULL );
 
@@ -365,7 +365,7 @@ dfb_system_current_mode()
 }
 
 DFBResult
-dfb_system_thread_init()
+dfb_system_thread_init( void )
 {
      D_ASSERT( system_funcs != NULL );
 
@@ -398,7 +398,7 @@ dfb_system_video_memory_virtual( unsigned int offset )
 }
 
 unsigned int
-dfb_system_videoram_length()
+dfb_system_videoram_length( void )
 {
      D_ASSERT( system_funcs != NULL );
 
@@ -422,7 +422,7 @@ dfb_system_aux_memory_virtual( unsigned int offset )
 }
 
 unsigned int
-dfb_system_auxram_length()
+dfb_system_auxram_length( void )
 {
      D_ASSERT( system_funcs != NULL );
 

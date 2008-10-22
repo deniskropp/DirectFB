@@ -149,13 +149,13 @@ ScreenFuncs vncPrimaryScreenFuncs = {
 /******************************************************************************/
 
 static int
-primaryLayerDataSize()
+primaryLayerDataSize( void )
 {
      return 0;
 }
 
 static int
-primaryRegionDataSize()
+primaryRegionDataSize( void )
 {
      return 0;
 }

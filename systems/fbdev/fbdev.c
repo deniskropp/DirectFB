@@ -117,9 +117,9 @@ FBDev *dfb_fbdev = NULL;
 
 /******************************************************************************/
 
-static int       primaryLayerDataSize ();
+static int       primaryLayerDataSize ( void );
 
-static int       primaryRegionDataSize();
+static int       primaryRegionDataSize( void );
 
 static DFBResult primaryInitLayer     ( CoreLayer                  *layer,
                                         void                       *driver_data,
@@ -215,10 +215,10 @@ static ScreenFuncs primaryScreenFuncs = {
 
 /******************************************************************************/
 
-static DFBResult dfb_fbdev_read_modes();
+static DFBResult dfb_fbdev_read_modes( void );
 static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format );
 static DFBResult dfb_fbdev_set_palette( CorePalette *palette );
-static DFBResult dfb_fbdev_set_rgb332_palette();
+static DFBResult dfb_fbdev_set_rgb332_palette( void );
 static DFBResult dfb_fbdev_pan( int xoffset, int yoffset, bool onsync );
 static DFBResult dfb_fbdev_blank( int level );
 static void      dfb_fbdev_var_to_mode( const struct fb_var_screeninfo *var,
@@ -252,7 +252,7 @@ void waitretrace (void)
 
 /******************************************************************************/
 
-static DFBResult dfb_fbdev_open()
+static DFBResult dfb_fbdev_open( void )
 {
      DFBResult error_result = DFB_FAILURE;
 
@@ -766,13 +766,13 @@ system_leave( bool emergency )
 }
 
 static DFBResult
-system_suspend()
+system_suspend( void )
 {
      return DFB_OK;
 }
 
 static DFBResult
-system_resume()
+system_resume( void )
 {
      return DFB_OK;
 }
@@ -814,7 +814,7 @@ system_unmap_mmio( volatile void  *addr,
 }
 
 static int
-system_get_accelerator()
+system_get_accelerator( void )
 {
 #ifdef FB_ACCEL_MATROX_MGAG400
      if (!strcmp( dfb_fbdev->shared->fix.id, "MATROX DH" ))
@@ -831,19 +831,19 @@ system_get_accelerator()
 }
 
 static VideoMode *
-system_get_modes()
+system_get_modes( void )
 {
      return dfb_fbdev->shared->modes;
 }
 
 static VideoMode *
-system_get_current_mode()
+system_get_current_mode( void )
 {
      return &dfb_fbdev->shared->current_mode;
 }
 
 static DFBResult
-system_thread_init()
+system_thread_init( void )
 {
      if (dfb_config->block_all_signals)
           direct_signals_block_all();
@@ -892,7 +892,7 @@ system_video_memory_virtual( unsigned int offset )
 }
 
 static unsigned int
-system_videoram_length()
+system_videoram_length( void )
 {
      return dfb_fbdev->shared->fix.smem_len;
 }
@@ -914,7 +914,7 @@ system_aux_memory_virtual( unsigned int offset )
 }
 
 static unsigned int
-system_auxram_length()
+system_auxram_length( void )
 {
      if (dfb_fbdev->shared->agp)
           return dfb_fbdev->shared->agp->agp_mem;
@@ -940,7 +940,7 @@ system_get_deviceid( unsigned int *ret_vendor_id,
 /******************************************************************************/
 
 static DFBResult
-init_modes()
+init_modes( void )
 {
      dfb_fbdev_read_modes();
 
@@ -1057,13 +1057,13 @@ primaryGetScreenSize( CoreScreen *screen,
 /******************************************************************************/
 
 static int
-primaryLayerDataSize()
+primaryLayerDataSize( void )
 {
      return 0;
 }
 
 static int
-primaryRegionDataSize()
+primaryRegionDataSize( void )
 {
      return 0;
 }
@@ -1580,7 +1580,7 @@ dfb_fbdev_blank( int level )
      return DFB_OK;
 }
 
-DFBResult
+static DFBResult
 dfb_fbdev_mode_to_var( const VideoMode           *mode,
                        DFBSurfacePixelFormat      pixelformat,
                        unsigned int               vxres,
@@ -2319,7 +2319,7 @@ dfb_fbdev_set_mode( CoreSurface           *surface,
  * (to be replaced by DirectFB's own config system
  */
 static DFBResult
-dfb_fbdev_read_modes()
+dfb_fbdev_read_modes( void )
 {
      FILE        *fp;
      char         line[80],label[32],value[16];
@@ -2540,7 +2540,7 @@ dfb_fbdev_set_palette( CorePalette *palette )
 }
 
 static DFBResult
-dfb_fbdev_set_rgb332_palette()
+dfb_fbdev_set_rgb332_palette( void )
 {
      int red_val;
      int green_val;

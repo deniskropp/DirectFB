@@ -57,13 +57,13 @@ typedef struct {
 /**********************************************************************************************************************/
 
 static int
-sdlPoolDataSize()
+sdlPoolDataSize( void )
 {
      return sizeof(SDLPoolData);
 }
 
 static int
-sdlAllocationDataSize()
+sdlAllocationDataSize( void )
 {
      return sizeof(SDLAllocationData);
 }

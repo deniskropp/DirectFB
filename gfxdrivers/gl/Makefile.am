@@ -1,6 +1,7 @@
 ## Makefile.am for DirectFB/src/core/gfxcards/gl
 
 INCLUDES = \
+	-I$(top_builddir)/include	\
 	-I$(top_srcdir)/include	\
 	-I$(top_builddir)/lib	\
 	-I$(top_srcdir)/lib	\
@@ -27,6 +28,7 @@ libdirectfb_gl_la_LDFLAGS = \
 	$(DFB_LDFLAGS) -lGL
 
 libdirectfb_gl_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
 	$(top_builddir)/src/libdirectfb.la
 
 

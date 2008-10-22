@@ -64,8 +64,8 @@ static IDirectFB *dfb = NULL;
 /*****************************************************************************/
 
 static DFBBoolean parse_command_line ( int argc, char *argv[] );
-static void       enum_input_devices ();
-static void       enum_screens ();
+static void       enum_input_devices ( void );
+static void       enum_screens ( void );
 
 /*****************************************************************************/
 
@@ -183,7 +183,7 @@ input_device_callback( DFBInputDeviceID           id,
 }
 
 static void
-enum_input_devices()
+enum_input_devices( void )
 {
      DFBResult ret;
 
@@ -568,7 +568,7 @@ screen_callback( DFBScreenID           id,
 }
 
 static void
-enum_screens()
+enum_screens( void )
 {
      DFBResult ret;
 

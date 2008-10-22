@@ -1,6 +1,7 @@
 ## Makefile.am for DirectFB/src/core/gfxcards/matrox
 
 INCLUDES = \
+	-I$(top_builddir)/include	\
 	-I$(top_srcdir)/include	\
 	-I$(top_builddir)/lib	\
 	-I$(top_srcdir)/lib	\
@@ -38,6 +39,7 @@ libdirectfb_matrox_la_LDFLAGS = \
 
 libdirectfb_matrox_la_LIBADD = -lm \
 	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/lib/fusion/libfusion.la \
 	$(top_builddir)/src/libdirectfb.la
 
 

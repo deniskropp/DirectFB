@@ -1421,7 +1421,7 @@ jpeglib_panic(j_common_ptr cinfo)
 static SH7722_JPEG_data data;
 
 DirectResult
-SH7722_JPEG_Initialize()
+SH7722_JPEG_Initialize( void )
 {
      DirectResult ret;
 
@@ -1446,7 +1446,7 @@ SH7722_JPEG_Initialize()
 }
 
 DirectResult
-SH7722_JPEG_Shutdown()
+SH7722_JPEG_Shutdown( void )
 {
      if (!data.ref_count)
           return DR_DEAD;

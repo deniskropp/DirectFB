@@ -42,13 +42,13 @@ D_DEBUG_DOMAIN( SH7722_Layer, "SH7722/Layer", "Renesas SH7722 Layers" );
 /**********************************************************************************************************************/
 
 static int
-sh7722LayerDataSize()
+sh7722LayerDataSize( void )
 {
      return sizeof(SH7722MultiLayerData);
 }
 
 static int
-sh7722RegionDataSize()
+sh7722RegionDataSize( void )
 {
      return sizeof(SH7722MultiRegionData);
 }

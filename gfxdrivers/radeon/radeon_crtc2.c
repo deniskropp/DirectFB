@@ -254,7 +254,7 @@ ScreenFuncs RadeonCrtc2ScreenFuncs = {
 #define CRTC2_SUPPORTED_OPTIONS ( DLOP_ALPHACHANNEL )
 
 static int
-crtc2LayerDataSize()
+crtc2LayerDataSize( void )
 {
      return sizeof(RadeonCrtc2LayerData);
 }

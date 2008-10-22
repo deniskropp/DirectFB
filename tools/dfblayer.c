@@ -461,7 +461,7 @@ parse_command_line( int argc, char *argv[] )
 }
 
 static void
-set_configuration()
+set_configuration( void )
 {
      DFBResult             ret;
      DFBDisplayLayerConfig config;

@@ -30,7 +30,7 @@
 #include "cyber5k_alpha.h"
 #include "regs.h"
 
-void cyber_cleanup_alpha()
+void cyber_cleanup_alpha(void)
 {
 	int i;
 

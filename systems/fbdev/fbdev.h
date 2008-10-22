@@ -119,8 +119,8 @@ typedef struct {
  * core init function, opens /dev/fb, get fbdev screeninfo
  * disables font acceleration, reads mode list
  */
-DFBResult dfb_fbdev_initialize();
-DFBResult dfb_fbdev_join();
+DFBResult dfb_fbdev_initialize( void );
+DFBResult dfb_fbdev_join( void );
 
 /*
  * deinitializes DirectFB fbdev stuff and restores fbdev settings

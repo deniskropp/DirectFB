@@ -133,7 +133,7 @@ static void ovl_set_adjustment( RadeonDriverData        *rdrv,
 /**********************/
 
 static int
-ovlLayerDataSize()
+ovlLayerDataSize( void )
 {
      return sizeof(RadeonOverlayLayerData);
 }

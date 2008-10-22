@@ -127,7 +127,7 @@ buffer_destroy( void *arg )
 
 __attribute__((no_instrument_function))
 static inline DirectTraceBuffer *
-get_trace_buffer()
+get_trace_buffer( void )
 {
      DirectTraceBuffer *buffer;
 
@@ -358,7 +358,7 @@ __attribute__((no_instrument_function))
 static int
 compare_symbols(const void *x, const void *y)
 {
-     return  *((long*) x)  -  *((long*) y);
+     return  *((const long*) x)  -  *((const long*) y);
 }
 
 __attribute__((no_instrument_function))
@@ -524,7 +524,7 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
 
 __attribute__((no_instrument_function))
 void
-direct_trace_print_stacks()
+direct_trace_print_stacks( void )
 {
      int                i;
      DirectTraceBuffer *buffer = get_trace_buffer();
@@ -544,7 +544,7 @@ direct_trace_print_stacks()
 
 __attribute__((no_instrument_function))
 int
-direct_trace_debug_indent()
+direct_trace_debug_indent( void )
 {
      int                in;
      DirectTraceBuffer *buffer = get_trace_buffer();
@@ -659,12 +659,12 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
 }
 
 void
-direct_trace_print_stacks()
+direct_trace_print_stacks( void )
 {
 }
 
 int
-direct_trace_debug_indent()
+direct_trace_debug_indent( void )
 {
      return 0;
 }

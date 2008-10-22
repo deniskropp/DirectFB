@@ -328,7 +328,7 @@ keyboardEventThread( DirectThread *thread, void *driver_data )
 /* driver functions */
 
 static int
-driver_get_available()
+driver_get_available( void )
 {
      int fd;
 

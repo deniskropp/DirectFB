@@ -303,7 +303,7 @@ static int GunzeOpen(GunzeDevicePtr priv)
     return 0;
 }
 
-static GunzeDevicePtr GunzeAllocate()
+static GunzeDevicePtr GunzeAllocate(void)
 {
     GunzeDevicePtr priv = (GunzeDevicePtr)malloc(sizeof(GunzeDevice));
 
@@ -325,7 +325,7 @@ static GunzeDevicePtr GunzeAllocate()
 }
 
 //-----------------------------------------------------------------------------------------------
-void SetupFonts()
+void SetupFonts(void)
 {
     DFBFontDescription font_dsc;
     font_dsc.flags = DFDESC_HEIGHT;
@@ -334,7 +334,7 @@ void SetupFonts()
 }
 
 //-----------------------------------------------------------------------------------------------
-void ReleaseFonts()
+void ReleaseFonts(void)
 {
     DFBCHECK(gara_reg_12->Release(gara_reg_12));
 }

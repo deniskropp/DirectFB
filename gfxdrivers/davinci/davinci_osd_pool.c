@@ -80,19 +80,19 @@ typedef struct {
 /**********************************************************************************************************************/
 
 static int
-osdPoolDataSize()
+osdPoolDataSize( void )
 {
      return sizeof(OSDPoolData);
 }
 
 static int
-osdPoolLocalDataSize()
+osdPoolLocalDataSize( void )
 {
      return sizeof(OSDPoolLocalData);
 }
 
 static int
-osdAllocationDataSize()
+osdAllocationDataSize( void )
 {
      return sizeof(OSDAllocationData);
 }

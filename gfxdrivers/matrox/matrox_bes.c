@@ -100,7 +100,7 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
 /**********************/
 
 static int
-besLayerDataSize()
+besLayerDataSize( void )
 {
      return sizeof(MatroxBesLayerData);
 }

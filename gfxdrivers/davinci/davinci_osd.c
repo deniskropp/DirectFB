@@ -63,7 +63,7 @@ D_DEBUG_DOMAIN( Davinci_OSD, "Davinci/OSD", "TI Davinci OSD" );
 /**********************************************************************************************************************/
 
 static int
-osdLayerDataSize()
+osdLayerDataSize( void )
 {
      return sizeof(DavinciOSDLayerData);
 }
