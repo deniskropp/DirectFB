@@ -157,6 +157,7 @@ direct_modules_unregister( DirectModuleDir *directory,
 
      D_DEBUG_AT( Direct_Modules, "Unregistering '%s' ('%s')...\n", name, directory->path );
 
+#ifdef DYNAMIC_LINKING
      entry = lookup_by_name( directory, name );
      if (!entry) {
           D_ERROR( "Direct/Modules: Unregister failed, could not find '%s' module!\n", name );
@@ -172,6 +173,7 @@ direct_modules_unregister( DirectModuleDir *directory,
      D_MAGIC_CLEAR( entry );
 
      D_FREE( entry );
+#endif
 
      D_DEBUG_AT( Direct_Modules, "...unregistered.\n" );
 }
