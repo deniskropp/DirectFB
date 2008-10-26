@@ -181,18 +181,18 @@ IDirectFBVideoProvider_Libmpeg3_Destruct( IDirectFBVideoProvider *thiz )
     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBVideoProvider_Libmpeg3_AddRef( IDirectFBVideoProvider *thiz )
 {
     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 
     data->ref++;
 
-    return DFB_OK;
+    return DR_OK;
 }
 
 
-static DFBResult
+static DirectResult
 IDirectFBVideoProvider_Libmpeg3_Release( IDirectFBVideoProvider *thiz )
 {
     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
@@ -201,7 +201,7 @@ IDirectFBVideoProvider_Libmpeg3_Release( IDirectFBVideoProvider *thiz )
         IDirectFBVideoProvider_Libmpeg3_Destruct( thiz );
     }
 
-    return DFB_OK;
+    return DR_OK;
 }
 
 static DFBResult

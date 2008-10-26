@@ -871,17 +871,17 @@ IDirectFBVideoProvider_FFmpeg_Destruct( IDirectFBVideoProvider *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBVideoProvider_FFmpeg_AddRef( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBVideoProvider_FFmpeg_Release( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
@@ -889,7 +889,7 @@ IDirectFBVideoProvider_FFmpeg_Release( IDirectFBVideoProvider *thiz )
      if (--data->ref == 0)
           IDirectFBVideoProvider_FFmpeg_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DFBResult

@@ -175,18 +175,18 @@ IDirectFBVideoProvider_OpenQuicktime_Destruct( IDirectFBVideoProvider *thiz )
 #endif
 }
 
-static DFBResult
+static DirectResult
 IDirectFBVideoProvider_OpenQuicktime_AddRef( IDirectFBVideoProvider *thiz )
 {
     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
 
     data->ref++;
 
-    return DFB_OK;
+    return DR_OK;
 }
 
 
-static DFBResult
+static DirectResult
 IDirectFBVideoProvider_OpenQuicktime_Release( IDirectFBVideoProvider *thiz )
 {
     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
@@ -195,7 +195,7 @@ IDirectFBVideoProvider_OpenQuicktime_Release( IDirectFBVideoProvider *thiz )
         IDirectFBVideoProvider_OpenQuicktime_Destruct( thiz );
     }
 
-    return DFB_OK;
+    return DR_OK;
 }
 
 static DFBResult

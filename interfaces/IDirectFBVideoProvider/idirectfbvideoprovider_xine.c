@@ -257,7 +257,7 @@ IDirectFBVideoProvider_Xine_Destruct( IDirectFBVideoProvider *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBVideoProvider_Xine_AddRef( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
@@ -268,10 +268,10 @@ IDirectFBVideoProvider_Xine_AddRef( IDirectFBVideoProvider *thiz )
 
      pthread_mutex_unlock( &data->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBVideoProvider_Xine_Release( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
@@ -283,7 +283,7 @@ IDirectFBVideoProvider_Xine_Release( IDirectFBVideoProvider *thiz )
      else
           pthread_mutex_unlock( &data->lock );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DFBResult

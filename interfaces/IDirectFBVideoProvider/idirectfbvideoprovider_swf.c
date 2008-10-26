@@ -207,16 +207,18 @@ void IDirectFBVideoProvider_Swf_Destruct(IDirectFBVideoProvider *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult IDirectFBVideoProvider_Swf_AddRef(IDirectFBVideoProvider *thiz )
+static DirectResult
+IDirectFBVideoProvider_Swf_AddRef(IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_Swf)
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
-static DFBResult IDirectFBVideoProvider_Swf_Release(IDirectFBVideoProvider *thiz )
+static DirectResult
+IDirectFBVideoProvider_Swf_Release(IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_Swf)
 
@@ -224,7 +226,7 @@ static DFBResult IDirectFBVideoProvider_Swf_Release(IDirectFBVideoProvider *thiz
           IDirectFBVideoProvider_Swf_Destruct( thiz );
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DFBResult
