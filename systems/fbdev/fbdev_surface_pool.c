@@ -236,7 +236,7 @@ fbdevTestConfig( CoreSurfacePool         *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     if (surface->type & CSTF_LAYER)
+     if ((surface->type & CSTF_LAYER) && surface->resource_id == DLID_PRIMARY)
           return DFB_OK;
 
      ret = dfb_surfacemanager_allocate( local->core, data->manager, buffer, NULL, NULL );
