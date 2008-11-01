@@ -276,9 +276,7 @@ fbdevAllocateBuffer( CoreSurfacePool       *pool,
 
           D_DEBUG_AT( FBDev_Surfaces, "  -> primary layer buffer (index %d)\n", index );
 
-          if (( (surface->config.caps & DSCAPS_FLIPPING) && index == 1) ||
-              (!(surface->config.caps & DSCAPS_FLIPPING) && index == 0) )
-          {
+          if (index == 0) {
                const VideoMode *videomode;
                const VideoMode *highest = NULL;
                /* FIXME: this should use source.w/source.h from layer region config! */
