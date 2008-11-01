@@ -1122,7 +1122,7 @@ draw_background( CoreWindowStack *stack, CardState *state, const DFBRegion *regi
                dfb_state_set_blitting_flags( state, stack->rotated_blit );
 
                /* Change clipping region. */
-               dfb_state_set_clip( state, &clip );
+               dfb_state_set_clip( state, &dest );
 
                /* Tiled blit (aligned). */
                dfb_gfxcard_tileblit( &src,
