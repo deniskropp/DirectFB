@@ -888,6 +888,13 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
 
                     dfb_input_dispatch( data->device, &devt );
 
+                    if (data->has_leds && (devt.locks != data->locks)) {
+                         set_led( data, LED_SCROLLL, devt.locks & DILS_SCROLL );
+                         set_led( data, LED_NUML, devt.locks & DILS_NUM );
+                         set_led( data, LED_CAPSL, devt.locks & DILS_CAPS );
+                         data->locks = devt.locks;
+                    }
+
                     devt.type  = DIET_UNKNOWN;
                     devt.flags = DIEF_NONE;
                }
@@ -912,13 +919,6 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
                }
                
                /* Event is dispatched in next round of loop. */
-
-               if (data->has_leds && (devt.locks != data->locks)) {
-                    set_led( data, LED_SCROLLL, devt.locks & DILS_SCROLL );
-                    set_led( data, LED_NUML, devt.locks & DILS_NUM );
-                    set_led( data, LED_CAPSL, devt.locks & DILS_CAPS );
-                    data->locks = devt.locks;
-               }
           }
 
           /* Flush last event without DIEF_FOLLOW. */
@@ -926,6 +926,13 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
                flush_xy( data, false );
 
                dfb_input_dispatch( data->device, &devt );
+
+               if (data->has_leds && (devt.locks != data->locks)) {
+                    set_led( data, LED_SCROLLL, devt.locks & DILS_SCROLL );
+                    set_led( data, LED_NUML, devt.locks & DILS_NUM );
+                    set_led( data, LED_CAPSL, devt.locks & DILS_CAPS );
+                    data->locks = devt.locks;
+               }
           }
           else
                flush_xy( data, true );
