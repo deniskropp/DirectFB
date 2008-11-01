@@ -63,8 +63,8 @@
 # include <fusionsound_limits.h>
 #endif
 
-#include <avcodec.h>
-#include <avformat.h>
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
 
 #include "dvc.h"
 
@@ -221,8 +221,8 @@ av_read_callback( void *opaque, uint8_t *buf, int size )
      return len;
 }
 
-static offset_t
-av_seek_callback( void *opaque, offset_t offset, int whence )
+static int64_t
+av_seek_callback( void *opaque, int64_t offset, int whence )
 {
      IDirectFBVideoProvider_FFmpeg_data *data = opaque;
      unsigned int                        pos  = 0;
@@ -721,7 +721,7 @@ FFmpegAudio( DirectThread *self, void *arg )
           u8       *pkt_data;
           int       pkt_size;
           int       decoded = 0;
-          int       len     = 0;
+          int       len     = AVCODEC_MAX_AUDIO_FRAME_SIZE;
           int       size    = 0;
           
           direct_thread_testcancel( self );
@@ -748,9 +748,9 @@ FFmpegAudio( DirectThread *self, void *arg )
           }
           
           for (pkt_data = pkt.data, pkt_size = pkt.size; pkt_size > 0;) {
-               decoded = avcodec_decode_audio( data->audio.ctx, 
-                                               (s16*)&buf[size], &len, 
-                                               pkt_data, pkt_size );
+               decoded = avcodec_decode_audio2( data->audio.ctx, 
+                                                (s16*)&buf[size], &len, 
+                                                pkt_data, pkt_size );
                if (decoded < 0)
                     break;
                        
