@@ -30,6 +30,8 @@
 #define __VT_H__
 
 #include <signal.h>
+#include <termios.h>
+#include <unistd.h>
 #include <linux/vt.h>
 
 #include <directfb.h>
@@ -56,6 +58,7 @@ typedef struct {
      pthread_cond_t   wait;
 
      int              vt_sig;
+     struct termios   old_ts;
 } VirtualTerminal;
 
 /*

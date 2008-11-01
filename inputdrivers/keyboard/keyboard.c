@@ -383,12 +383,6 @@ driver_open_device( CoreInputDevice  *device,
                D_PERROR( "DirectFB/Keyboard: Could not dup() file descriptor of TTY!\n" );
                return DFB_INIT;
           }
-
-          /* put keyboard into medium raw mode */
-          if (ioctl( fd, KDSKBMODE, K_MEDIUMRAW ) < 0) {
-               D_PERROR( "DirectFB/Keyboard: K_MEDIUMRAW failed!\n" );
-               return DFB_INIT;
-          }
      }
      else {
           fd = open( "/dev/tty0", O_RDWR | O_NOCTTY );
@@ -512,13 +506,6 @@ driver_close_device( void *driver_data )
 
      if (tcsetattr( data->vt_fd, TCSAFLUSH, &data->old_ts ) < 0)
           D_PERROR("DirectFB/keyboard: tcsetattr for original values failed!\n");
-
-     if (dfb_system_type() == CORE_FBDEV && dfb_config->vt) {
-          if (ioctl( data->vt_fd, KDSKBMODE, K_XLATE ) < 0)
-               D_PERROR("DirectFB/keyboard: Could not set mode to XLATE!\n");
-          if (ioctl( data->vt_fd, KDSETMODE, KD_TEXT ) < 0)
-               D_PERROR("DirectFB/keyboard: Could not set terminal mode to text!\n");
-     }
 
      close( data->vt_fd );
 

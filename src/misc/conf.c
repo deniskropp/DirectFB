@@ -371,7 +371,7 @@ static void config_allocate( void )
      dfb_config->mouse_motion_compression = false;
      dfb_config->mouse_gpm_source         = false;
      dfb_config->mouse_source             = D_STRDUP( DEV_NAME );
-     dfb_config->linux_input_grab         = true;
+     dfb_config->linux_input_grab         = false;
      dfb_config->window_policy            = -1;
      dfb_config->buffer_mode              = -1;
      dfb_config->wm                       = D_STRDUP( "default" );

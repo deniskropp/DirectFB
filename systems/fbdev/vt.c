@@ -262,12 +262,18 @@ dfb_vt_shutdown( bool emergency )
 
      if (dfb_config->kd_graphics) {
           if (ioctl( dfb_vt->fd, KDSETMODE, KD_TEXT ) < 0)
-               D_PERROR( "DirectFB/Keyboard: KD_TEXT failed!\n" );
+               D_PERROR( "DirectFB/fbdev/vt: KD_TEXT failed!\n" );
      }
      else {
           write( dfb_vt->fd, blankon_str, sizeof(blankon_str) );
      }
      write( dfb_vt->fd, cursoron_str, sizeof(cursoron_str) );
+
+     if (tcsetattr( dfb_vt->fd, TCSAFLUSH, &dfb_vt->old_ts ) < 0)
+          D_PERROR("DirectFB/fbdev/vt: tcsetattr for original values failed!\n");
+
+     if (ioctl( dfb_vt->fd, KDSKBMODE, K_XLATE ) < 0)
+          D_PERROR( "DirectFB/fbdev/vt: K_XLATE failed!\n" );
 
      if (dfb_config->vt_switch) {
           D_DEBUG_AT( VT, "  -> switching back...\n" );
@@ -441,6 +447,7 @@ vt_switch_handler( int signum )
 static DFBResult
 vt_init_switching( void )
 {
+     struct termios ts;
      const char cursoroff_str[] = "\033[?1;0;0c";
      const char blankoff_str[] = "\033[9;0]";
      char buf[32];
@@ -479,10 +486,36 @@ vt_init_switching( void )
         otherwise we'd get access denied error: */
      ioctl( dfb_vt->fd, TIOCSCTTY, 0 );
 
+     if (ioctl( dfb_vt->fd, KDSKBMODE, K_MEDIUMRAW ) < 0) {
+          D_PERROR( "DirectFB/fbdev/vt: K_MEDIUMRAW failed!\n" );
+          close( dfb_vt->fd );
+          return DFB_INIT;
+     }
+
+     if (tcgetattr( dfb_vt->fd, &dfb_vt->old_ts ) < 0) {
+          D_PERROR( "DirectFB/fbdev/vt: tcgetattr failed!\n" );
+          ioctl( dfb_vt->fd, KDSKBMODE, K_XLATE );
+          close( dfb_vt->fd );
+          return DFB_INIT;
+     }
+     ts = dfb_vt->old_ts;
+     ts.c_cc[VTIME] = 0;
+     ts.c_cc[VMIN] = 1;
+     ts.c_lflag &= ~(ICANON|ECHO|ISIG);
+     ts.c_iflag = 0;
+     if (tcsetattr( dfb_vt->fd, TCSAFLUSH, &ts ) < 0) {
+          D_PERROR( "DirectFB/fbdev/vt: tcsetattr for new values failed!\n" );
+          ioctl( dfb_vt->fd, KDSKBMODE, K_XLATE );
+          close( dfb_vt->fd );
+          return DFB_INIT;
+     }
+
      write( dfb_vt->fd, cursoroff_str, sizeof(cursoroff_str) );
      if (dfb_config->kd_graphics) {
           if (ioctl( dfb_vt->fd, KDSETMODE, KD_GRAPHICS ) < 0) {
                D_PERROR( "DirectFB/fbdev/vt: KD_GRAPHICS failed!\n" );
+               tcsetattr( dfb_vt->fd, TCSAFLUSH, &dfb_vt->old_ts );
+               ioctl( dfb_vt->fd, KDSKBMODE, K_XLATE );
                close( dfb_vt->fd );
                return DFB_INIT;
           }
@@ -502,6 +535,8 @@ vt_init_switching( void )
           if (sigaction( SIG_SWITCH_FROM, &sig_tty, &dfb_vt->sig_usr1 ) ||
               sigaction( SIG_SWITCH_TO, &sig_tty, &dfb_vt->sig_usr2 )) {
                D_PERROR( "DirectFB/fbdev/vt: sigaction failed!\n" );
+               tcsetattr( dfb_vt->fd, TCSAFLUSH, &dfb_vt->old_ts );
+               ioctl( dfb_vt->fd, KDSKBMODE, K_XLATE );
                close( dfb_vt->fd );
                return DFB_INIT;
           }
@@ -518,6 +553,8 @@ vt_init_switching( void )
                sigaction( SIG_SWITCH_FROM, &dfb_vt->sig_usr1, NULL );
                sigaction( SIG_SWITCH_TO, &dfb_vt->sig_usr2, NULL );
 
+               tcsetattr( dfb_vt->fd, TCSAFLUSH, &dfb_vt->old_ts );
+               ioctl( dfb_vt->fd, KDSKBMODE, K_XLATE );
                close( dfb_vt->fd );
 
                return DFB_INIT;

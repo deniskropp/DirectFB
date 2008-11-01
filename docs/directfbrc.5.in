@@ -349,7 +349,7 @@ Ignore all non-IR Linux Input devices.
 .TP
 .BI [no-]linux-input-grab
 Grab Linux Input devices. When a device is grabbed only DirectFB
-will receive events from it. The default is to grab.
+will receive events from it. The default is to not grab.
 
 .TP
 .BI [no-]cursor
