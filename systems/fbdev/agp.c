@@ -72,12 +72,12 @@ static DFBResult
 dfb_agp_info( agp_info *info )
 {
      D_ASSERT( info != NULL );
-     
+
      if (ioctl( dfb_agp->fd, AGPIOC_INFO, info )) {
           D_PERROR( "DirectFB/FBDev/agp: Could not get AGP info!\n" );
           return errno2result( errno );
      }
-     
+
      return DFB_OK;
 }
 
@@ -149,7 +149,7 @@ dfb_agp_allocate( unsigned long size, int *key )
      return DFB_OK;
 }
 
-static DFBResult 
+static DFBResult
 dfb_agp_deallocate( int key )
 {
      if (ioctl( dfb_agp->fd, AGPIOC_DEALLOCATE, key )) {
@@ -188,7 +188,7 @@ static DFBResult
 dfb_agp_unbind( int key )
 {
      agp_unbind unbind;
-     
+
      unbind.priority = 0;
      unbind.key      = key;
 
@@ -208,10 +208,10 @@ static inline u16
 pci_read_word( int fd, int pos )
 {
     u8 b[2];
-    
+
     if (pread( fd, b, 2, pos ) < 2)
          return 0;
-    
+
     return b[0] | (b[1] << 8);
 }
 
@@ -219,7 +219,7 @@ static inline u8
 pci_read_byte( int fd, int pos )
 {
      u8 b;
-    
+
      if (pread( fd, &b, 1, pos ) < 1)
           return 0;
 
@@ -240,7 +240,7 @@ dfb_agp_capable( int bus, int dev, int func )
 
      /* XXX: the following detection method requires suid root */
 
-     snprintf( path, sizeof(path), 
+     snprintf( path, sizeof(path),
                "/proc/bus/pci/%02x/%02x.%01x", bus, dev, func );
 
      fd = open( path, O_RDONLY | O_SYNC );
@@ -249,16 +249,16 @@ dfb_agp_capable( int bus, int dev, int func )
                     "Couldn't open '%s'!\n", path );
           return false;
      }
-    
+
      /* stolen from linux/drivers/pci/pci.c */
      if (pci_read_word( fd, PCI_STATUS ) & PCI_STATUS_CAP_LIST) {
           int pos, id;
           int ttl = 48;
-          
+
           pos = pci_read_byte( fd, PCI_CAPABILITY_LIST );
           while (ttl-- && pos >= 0x40) {
                pos &= ~3;
-               
+
                id = pci_read_byte( fd, pos );
                if (id == 0xff)
                     break;
@@ -266,7 +266,7 @@ dfb_agp_capable( int bus, int dev, int func )
                     found = true;
                     break;
                }
-               
+
                pos = pci_read_byte( fd, pos+1 );
           }
      }
@@ -274,7 +274,7 @@ dfb_agp_capable( int bus, int dev, int func )
      close( fd );
 
      return found;
-}     
+}
 
 /*****************************************************************************/
 
@@ -284,7 +284,7 @@ dfb_agp_initialize( void )
      AGPShared     *shared;
      unsigned int   agp_avail;
      DFBResult      ret = DFB_FAILURE;
-     
+
      if (dfb_agp) {
           D_BUG( "dfb_agp_initialize() already called!" );
           return DFB_BUG;
@@ -295,7 +295,7 @@ dfb_agp_initialize( void )
                            dfb_fbdev->shared->pci.dev,
                            dfb_fbdev->shared->pci.func ))
           return DFB_UNSUPPORTED;
-     
+
      dfb_agp = D_CALLOC( 1, sizeof(AGPDevice) );
      if (!dfb_agp)
           return D_OOM();
@@ -307,9 +307,9 @@ dfb_agp_initialize( void )
           goto error0;
      }
 
-     dfb_agp->fd = direct_try_open( "/dev/agpgart", 
+     dfb_agp->fd = direct_try_open( "/dev/agpgart",
                                     "/dev/misc/agpgart", O_RDWR, true );
-     if (dfb_agp->fd < 0) { 
+     if (dfb_agp->fd < 0) {
           ret = errno2result( errno );
           D_ERROR( "DirectFB/FBDev/agp: Error opening AGP device!\n" );
           goto error1;
@@ -335,7 +335,7 @@ dfb_agp_initialize( void )
      shared->info.agp_mode &= ~0xf;
      shared->info.agp_mode |= dfb_config->agp;
      shared->info.agp_mode |= dfb_config->agp - 1;
-     
+
      ret = dfb_agp_setup( shared->info.agp_mode );
      if (ret)
           goto error2;
@@ -355,7 +355,7 @@ dfb_agp_initialize( void )
      shared->agp_mem = shared->info.aper_size << 20;
      if (shared->agp_mem > agp_avail)
           shared->agp_mem = agp_avail;
-     
+
      ret = dfb_agp_allocate( shared->agp_mem, &shared->agp_key );
      if (ret)
           goto error3;
@@ -377,9 +377,9 @@ dfb_agp_initialize( void )
 
      dfb_fbdev->agp = dfb_agp;
      dfb_fbdev->shared->agp = shared;
-              
+
      return DFB_OK;
-     
+
 error5:
      dfb_agp_unbind( shared->agp_key );
 error4:
@@ -393,7 +393,7 @@ error1:
 error0:
      D_FREE( dfb_agp );
      dfb_agp = NULL;
-     
+
      return ret;
 }
 
@@ -402,7 +402,7 @@ dfb_agp_join( void )
 {
      AGPShared *shared;
      DFBResult  ret    = DFB_FAILURE;
-     
+
      if (dfb_agp) {
           D_BUG( "dfb_agp_join() already called!" );
           return DFB_BUG;
@@ -416,9 +416,9 @@ dfb_agp_join( void )
      if (!dfb_agp)
           return D_OOM();
 
-     dfb_agp->fd = direct_try_open( "/dev/agpgart", 
+     dfb_agp->fd = direct_try_open( "/dev/agpgart",
                                     "/dev/misc/agpgart", O_RDWR, true );
-     if (dfb_agp->fd < 0) { 
+     if (dfb_agp->fd < 0) {
           ret = errno2result( errno );
           D_ERROR( "DirectFB/FBDev/agp: Error opening AGP device!\n" );
           goto error0;
@@ -444,7 +444,7 @@ dfb_agp_join( void )
      dfb_fbdev->agp = dfb_agp;
 
      return DFB_OK;
-     
+
 error2:
      dfb_agp_release();
 error1:
@@ -452,9 +452,9 @@ error1:
 error0:
      D_FREE( dfb_agp );
      dfb_agp = NULL;
-     
+
      return ret;
-}     
+}
 
 DFBResult
 dfb_agp_shutdown( void )
@@ -463,12 +463,12 @@ dfb_agp_shutdown( void )
 
      if (!dfb_agp)
           return DFB_INVARG;
-    
+
      shared = dfb_fbdev->shared->agp;
-     
+
      dfb_agp_acquire();
 
-     munmap( dfb_agp->base, shared->info.aper_size << 20 );     
+     munmap( dfb_agp->base, shared->info.aper_size << 20 );
 
      dfb_agp_unbind( shared->agp_key );
      dfb_agp_deallocate( shared->agp_key );
@@ -478,7 +478,7 @@ dfb_agp_shutdown( void )
 
      SHFREE( dfb_fbdev->shared->shmpool, shared );
      D_FREE( dfb_agp );
-     
+
      dfb_fbdev->shared->agp = NULL;
      dfb_fbdev->agp = dfb_agp = NULL;
 
@@ -489,7 +489,7 @@ DFBResult
 dfb_agp_leave( void )
 {
      AGPShared *shared;
-     
+
      if (!dfb_agp)
           return DFB_INVARG;
 
@@ -498,12 +498,12 @@ dfb_agp_leave( void )
      dfb_agp_acquire();
 
      munmap( dfb_agp->base, shared->info.aper_size << 20 );
-     
+
      dfb_agp_release();
-     
+
      close( dfb_agp->fd );
      D_FREE( dfb_agp );
-     
+
      dfb_fbdev->agp = dfb_agp = NULL;
 
      return DFB_OK;

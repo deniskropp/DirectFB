@@ -456,7 +456,7 @@ next_reset:
                if (allocation) {
                     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
                     D_MAGIC_ASSERT( allocation->buffer, CoreSurfaceBuffer );
-                    
+
                     allocation->flags |= CSALF_MUCKOUT;
 
                     bestm_count--;
@@ -592,7 +592,7 @@ occupy_chunk( SurfaceManager *manager, Chunk *chunk, CoreSurfaceAllocation *allo
      D_MAGIC_ASSERT( chunk, Chunk );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( allocation->buffer, CoreSurfaceBuffer );
-     
+
      if (allocation->buffer->policy == CSP_VIDEOONLY)
           manager->avail -= length;
 

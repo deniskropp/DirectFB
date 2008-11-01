@@ -295,7 +295,7 @@ static DFBResult dfb_fbdev_open( void )
 
      return DFB_OK;
 error:
-     return error_result; 
+     return error_result;
 }
 
 /******************************************************************************/
@@ -314,44 +314,44 @@ dfb_fbdev_get_pci_info( FBDevShared *shared )
           struct sysfs_attribute    *attr;
           char                      *fbdev;
           char                       dev[5] = { 'f', 'b', '0', 0, 0 };
-          
+
           fbdev = dfb_config->fb_device;
           if (!fbdev)
                fbdev = getenv( "FRAMEBUFFER" );
-          
+
           if (fbdev) {
                if (!strncmp( fbdev, "/dev/fb/", 8 ))
                     snprintf( dev, 5, "fb%s", fbdev+8 );
                else if (!strncmp( fbdev, "/dev/fb", 7 ))
                     snprintf( dev, 5, "fb%s", fbdev+7 );
-          }    
-          
+          }
+
           classdev = sysfs_open_class_device( "graphics", dev );
           if (classdev) {
                device = sysfs_get_classdev_device( classdev );
-               
+
                if (device) {
                     attr = sysfs_get_device_attr( device, "vendor" );
                     if (attr)
                            sscanf( attr->value, "0x%04x", &vendor );
-                           
+
                     attr = sysfs_get_device_attr( device, "device" );
                     if (attr)
                          sscanf( attr->value, "0x%04x", &model );
-                         
+
                     if (vendor != -1 && model != -1) {
-                         sscanf( device->name, "0000:%02x:%02x.%1x", 
-                                 &shared->pci.bus, 
-                                 &shared->pci.dev, 
+                         sscanf( device->name, "0000:%02x:%02x.%1x",
+                                 &shared->pci.bus,
+                                 &shared->pci.dev,
                                  &shared->pci.func );
-                    
+
                          shared->device.vendor = vendor;
                          shared->device.model  = model;
                     }
                }
-               
+
                sysfs_close_class_device( classdev );
-          }     
+          }
      }
 #endif /* USE_SYSFS */
 
@@ -375,18 +375,18 @@ dfb_fbdev_get_pci_info( FBDevShared *shared )
                     bus  = (id & 0xff00) >> 8;
                     dev  = (id & 0x00ff) >> 3;
                     func = (id & 0x0007);
-                    
+
                     if (bus  == dfb_config->pci.bus &&
                         dev  == dfb_config->pci.dev &&
-                        func == dfb_config->pci.func) 
+                        func == dfb_config->pci.func)
                     {
                          shared->pci.bus  = bus;
                          shared->pci.dev  = dev;
                          shared->pci.func = func;
-                         
+
                          shared->device.vendor = vendor;
                          shared->device.model  = model;
-                         
+
                          break;
                     }
                }
@@ -543,7 +543,7 @@ system_initialize( CoreDFB *core, void **data )
      shared->current_cmap.green  = shared->current_cmap_memory + 256 * 2 * 1;
      shared->current_cmap.blue   = shared->current_cmap_memory + 256 * 2 * 2;
      shared->current_cmap.transp = shared->current_cmap_memory + 256 * 2 * 3;
-     
+
      dfb_fbdev_get_pci_info( shared );
 
      if (dfb_config->agp) {
@@ -554,7 +554,7 @@ system_initialize( CoreDFB *core, void **data )
                          DirectFBErrorString( ret ) );
                ret = DFB_OK;
           }
-     }         
+     }
 
      fusion_call_init( &shared->fbdev_ioctl,
                        fbdev_ioctl_call_handler, NULL, dfb_core_world(core) );
@@ -591,7 +591,7 @@ error:
 
      if (dfb_fbdev->fd != -1)
           close( dfb_fbdev->fd );
-     
+
      D_FREE( dfb_fbdev );
      dfb_fbdev = NULL;
 
@@ -1387,7 +1387,7 @@ primaryFlipRegion( CoreLayer             *layer,
 /** fbdev internal **/
 
 static void
-dfb_fbdev_var_to_mode( const struct fb_var_screeninfo *var, 
+dfb_fbdev_var_to_mode( const struct fb_var_screeninfo *var,
                        VideoMode                      *mode )
 {
      mode->xres          = var->xres;
@@ -1450,7 +1450,7 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
                if (fbdev_compatible_format( var, 0, 3, 3, 2, 0, 5, 2, 0 ))*/
 
                return DSPF_RGB332;
-               
+
           case 15:
                if (dfb_fbdev_compatible_format( var, 0, 5, 5, 5, 0, 10, 5, 0 ))
                     return DSPF_RGB555;
@@ -1538,7 +1538,7 @@ dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
      int                       result;
      struct fb_var_screeninfo *var;
      FBDevShared              *shared = dfb_fbdev->shared;
- 
+
      if (!shared->fix.xpanstep && !shared->fix.ypanstep && !shared->fix.ywrapstep)
           return DFB_OK;
 
@@ -1546,7 +1546,7 @@ dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
 
      if (var->xres_virtual < xoffset + var->xres) {
           D_ERROR( "DirectFB/FBDev: xres %d, vxres %d, xoffset %d\n",
-                    var->xres, var->xres_virtual, xoffset ); 
+                    var->xres, var->xres_virtual, xoffset );
           D_BUG( "panning buffer out of range" );
           return DFB_BUG;
      }
@@ -1658,7 +1658,7 @@ dfb_fbdev_mode_to_var( const VideoMode           *mode,
      var.xres         = mode->xres;
      var.yres         = mode->yres;
      var.xres_virtual = vxres;
-     var.yres_virtual = vyres; 
+     var.yres_virtual = vyres;
 
      if (shared->fix.xpanstep)
           var.xoffset = xoffset - (xoffset % shared->fix.xpanstep);
@@ -2040,7 +2040,7 @@ dfb_fbdev_set_mode( CoreSurface           *surface,
 
      if (!mode)
           mode = &shared->current_mode;
- 
+
      var = shared->current_var;
 
      if (config) {

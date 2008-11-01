@@ -281,7 +281,7 @@ fbdevAllocateBuffer( CoreSurfacePool       *pool,
                /* FIXME: this should use source.w/source.h from layer region config! */
                unsigned int     width  = surface->config.size.w;
                unsigned int     height = surface->config.size.h;
-               
+
                D_INFO( "FBDev/Mode: Setting %dx%d %s\n", width, height, dfb_pixelformat_name(surface->config.format) );
 
                highest = dfb_fbdev_find_mode( width, height );
