@@ -749,7 +749,7 @@ set_led( const LinuxInputData *data, int led, int state )
 static void
 flush_xy( LinuxInputData *data, bool last )
 {
-     DFBInputEvent evt;
+     DFBInputEvent evt = { .type = DIET_UNKNOWN };
 
      if (data->dx) {
           evt.type    = DIET_AXISMOTION;
@@ -812,8 +812,8 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
      }
 
      while (1) {
-          DFBInputEvent devt = { type: DIET_UNKNOWN, flags: DIEF_NONE };
-          
+          DFBInputEvent devt = { .type = DIET_UNKNOWN };
+
           FD_ZERO( &set );
           FD_SET( data->fd, &set );
 
@@ -843,8 +843,6 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
 
           /* timeout? */
           if (status == 0) {
-               DFBInputEvent devt;
-
                if (data->touchpad && touchpad_fsm( &fsm_state, NULL, &devt ) > 0)
                     dfb_input_dispatch( data->device, &devt );
 
@@ -862,7 +860,7 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
                continue;
 
           for (i=0; i<readlen / sizeof(levt[0]); i++) {
-               DFBInputEvent temp;
+               DFBInputEvent temp = { .type = DIET_UNKNOWN };
                
                if (data->touchpad) {
                     status = touchpad_fsm( &fsm_state, &levt[i], &temp );
