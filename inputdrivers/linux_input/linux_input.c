@@ -36,6 +36,13 @@ typedef unsigned long kernel_ulong_t;
 #define BITS_PER_LONG    (sizeof(long)*8)
 #endif
 
+#include <linux/input.h>
+
+#ifndef KEY_OK
+/* Linux kernel 2.5.42+ defines additional keys in linux/input.h */
+#include "input_fake.h"
+#endif
+
 #ifndef EV_CNT
 #define EV_CNT (EV_MAX+1)
 #define KEY_CNT (KEY_MAX+1)
@@ -52,12 +59,6 @@ typedef unsigned long kernel_ulong_t;
 #define ABS_TOOL_WIDTH		0x1c
 #define BTN_TOOL_DOUBLETAP	0x14d
 #define BTN_TOOL_TRIPLETAP	0x14e
-#endif
-
-#include <linux/input.h>
-#ifndef KEY_OK
-/* Linux kernel 2.5.42+ defines additional keys in linux/input.h */
-#include "input_fake.h"
 #endif
 
 #ifndef EVIOCGLED
