@@ -451,6 +451,10 @@ split_chunk( SurfaceManager *manager, Chunk *c, int length )
           return c;
 
      newchunk = (Chunk*) SHCALLOC( manager->shmpool, 1, sizeof(Chunk) );
+     if (!newchunk) {
+          D_OOSHM();
+          return NULL;
+     }
 
      /* calculate offsets and lengths of resulting chunks */
      newchunk->offset = c->offset + c->length - length;

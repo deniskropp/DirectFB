@@ -287,6 +287,12 @@ static DFBResult driver_open_device(CoreInputDevice *device,
   }
 
   data = D_CALLOC(1, sizeof(dynaproData));
+  if (!data) {
+    tty_rawmode(fd, 0);
+    close(fd);
+    return D_OOM();
+  }
+
   data->fd     = fd;
   data->device = device;
 

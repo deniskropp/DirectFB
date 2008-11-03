@@ -614,6 +614,8 @@ system_join( CoreDFB *core, void **data )
      }
 
      dfb_fbdev = D_CALLOC( 1, sizeof(FBDev) );
+     if (!dfb_fbdev)
+          return D_OOM();
 
      fusion_arena_get_shared_field( dfb_core_arena( core ),
                                     "fbdev", &shared );
@@ -948,6 +950,8 @@ init_modes( void )
           /* try to use current mode*/
           dfb_fbdev->shared->modes = (VideoMode*) SHCALLOC( dfb_fbdev->shared->shmpool,
                                                             1, sizeof(VideoMode) );
+          if (!dfb_fbdev->shared->modes)
+               return D_OOSHM();
 
           *dfb_fbdev->shared->modes = dfb_fbdev->shared->current_mode;
 
@@ -2400,7 +2404,7 @@ dfb_fbdev_read_modes( void )
      int          dummy;
      VideoMode    temp_mode;
      FBDevShared *shared = dfb_fbdev->shared;
-     VideoMode   *m      = shared->modes;
+     VideoMode   *prev   = shared->modes;
 
      D_DEBUG_AT( FBDev_Mode, "%s()\n", __FUNCTION__ );
 
@@ -2449,16 +2453,20 @@ dfb_fbdev_read_modes( void )
                }
 
                if (geometry && timings && !dfb_fbdev_test_mode_simple(&temp_mode)) {
-                    if (!m) {
-                         shared->modes = SHCALLOC( shared->shmpool, 1, sizeof(VideoMode) );
-                         m = shared->modes;
-                    }
-                    else {
-                         m->next = SHCALLOC( shared->shmpool, 1, sizeof(VideoMode) );
-                         m = m->next;
+                    VideoMode *mode = SHCALLOC( shared->shmpool, 1, sizeof(VideoMode) );
+                    if (!mode) {
+                         D_OOSHM();
+                         continue;
                     }
 
-                    direct_memcpy (m, &temp_mode, sizeof(VideoMode));
+                    if (!prev)
+                         shared->modes = mode;
+                    else
+                         prev->next = mode;
+
+                    direct_memcpy (mode, &temp_mode, sizeof(VideoMode));
+
+                    prev = mode;
 
                     D_DEBUG_AT( FBDev_Mode, " +-> %16s %4dx%4d  %s%s\n", label, temp_mode.xres, temp_mode.yres,
                                 temp_mode.laced ? "interlaced " : "", temp_mode.doubled ? "doublescan" : "" );
@@ -2615,6 +2623,7 @@ dfb_fbdev_set_palette( CorePalette *palette )
 static DFBResult
 dfb_fbdev_set_rgb332_palette( void )
 {
+     DFBResult ret = DFB_OK;
      int red_val;
      int green_val;
      int blue_val;
@@ -2632,10 +2641,24 @@ dfb_fbdev_set_rgb332_palette( void )
      cmap.start  = 0;
      cmap.len    = 256;
      cmap.red    = (u16*)SHMALLOC( pool, 2 * 256 );
+     if (!cmap.red) {
+          return D_OOSHM();
+     }
      cmap.green  = (u16*)SHMALLOC( pool, 2 * 256 );
+     if (!cmap.green) {
+          ret = D_OOSHM();
+          goto free_red;
+     }
      cmap.blue   = (u16*)SHMALLOC( pool, 2 * 256 );
+     if (!cmap.blue) {
+          ret = D_OOSHM();
+          goto free_green;
+     }
      cmap.transp = (u16*)SHMALLOC( pool, 2 * 256 );
-
+     if (!cmap.transp) {
+          ret = D_OOSHM();
+          goto free_blue;
+     }
 
      for (red_val = 0; red_val  < 8 ; red_val++) {
           for (green_val = 0; green_val  < 8 ; green_val++) {
@@ -2652,21 +2675,20 @@ dfb_fbdev_set_rgb332_palette( void )
      if (FBDEV_IOCTL( FBIOPUTCMAP, &cmap ) < 0) {
           D_PERROR( "DirectFB/FBDev: "
                      "Could not set rgb332 palette" );
-
-          SHFREE( pool, cmap.red );
-          SHFREE( pool, cmap.green );
-          SHFREE( pool, cmap.blue );
-          SHFREE( pool, cmap.transp );
-
-          return errno2result(errno);
+          ret = errno2result(errno);
+          goto free_transp;
      }
 
-     SHFREE( pool, cmap.red );
-     SHFREE( pool, cmap.green );
-     SHFREE( pool, cmap.blue );
+ free_transp:
      SHFREE( pool, cmap.transp );
+ free_blue:
+     SHFREE( pool, cmap.blue );
+ free_green:
+     SHFREE( pool, cmap.green );
+ free_red:
+     SHFREE( pool, cmap.red );
 
-     return DFB_OK;
+     return ret;
 }
 
 static FusionCallHandlerResult

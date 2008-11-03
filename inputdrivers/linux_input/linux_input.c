@@ -1228,6 +1228,12 @@ driver_open_device( CoreInputDevice  *device,
 
      /* allocate and fill private data */
      data = D_CALLOC( 1, sizeof(LinuxInputData) );
+     if (!data) {
+          if (dfb_config->linux_input_grab)
+               ioctl( fd, EVIOCGRAB, 0 );
+          close( fd );
+          return D_OOM();
+     }
 
      data->fd     = fd;
      data->device = device;

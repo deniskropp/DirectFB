@@ -394,6 +394,10 @@ driver_open_device( CoreInputDevice  *device,
 
      /* allocate and fill private data */
      data = D_CALLOC( 1, sizeof(KeyboardData) );
+     if (!data) {
+          close( fd );
+          return D_OOM();
+     }
 
      data->device = device;
      data->vt_fd  = fd;

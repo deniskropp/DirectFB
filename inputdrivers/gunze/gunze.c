@@ -502,6 +502,10 @@ static DFBResult driver_open_device(CoreInputDevice *device,
     }
 
     data = D_CALLOC (1, sizeof(GunzeTData));
+    if (!data) {
+         close (fd);
+         return D_OOM ();
+    }
 
     data->fd = fd;
     data->device = device;

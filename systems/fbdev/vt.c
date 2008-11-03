@@ -105,6 +105,8 @@ dfb_vt_initialize( void )
      D_DEBUG_AT( VT, "%s()\n", __FUNCTION__ );
 
      dfb_vt = D_CALLOC( 1, sizeof(VirtualTerminal) );
+     if (!dfb_vt)
+          return D_OOM();
 
      setsid();
      dfb_vt->fd0 = open( "/dev/tty0", O_RDONLY | O_NOCTTY );

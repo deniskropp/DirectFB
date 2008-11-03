@@ -246,6 +246,10 @@ driver_open_device( CoreInputDevice  *device,
 
      /* allocate and fill private data */
      data = D_CALLOC( 1, sizeof(tslibData) );
+     if (!data) {
+          ts_close( ts );
+          return D_OOM();
+     }
 
      data->ts     = ts;
      data->device = device;
