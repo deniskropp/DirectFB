@@ -46,48 +46,48 @@ static inline int uc_map_src_format_3d( DFBSurfacePixelFormat format )
      return 0;
 }
 
-inline void uc_map_blending_fn( struct uc_hw_alpha      *hwalpha,
-                                DFBSurfaceBlendFunction  sblend,
-                                DFBSurfaceBlendFunction  dblend,
-                                DFBSurfacePixelFormat    dformat );
+void uc_map_blending_fn( struct uc_hw_alpha      *hwalpha,
+                         DFBSurfaceBlendFunction  sblend,
+                         DFBSurfaceBlendFunction  dblend,
+                         DFBSurfacePixelFormat    dformat );
 
-inline void uc_map_blitflags  ( struct uc_hw_texture    *tex,
-                                DFBSurfaceBlittingFlags  bflags,
-                                DFBSurfacePixelFormat    sformat );
+void uc_map_blitflags  ( struct uc_hw_texture    *tex,
+                         DFBSurfaceBlittingFlags  bflags,
+                         DFBSurfacePixelFormat    sformat );
 
 // GPU - setting functions (uc_hwset.c)
 
-inline void uc_set_blending_fn( UcDriverData *ucdrv,
-                                UcDeviceData *ucdev,
-                                CardState    *state );
+void uc_set_blending_fn( UcDriverData *ucdrv,
+                         UcDeviceData *ucdev,
+                         CardState    *state );
 
-inline void uc_set_texenv     ( UcDriverData *ucdrv,
-                                UcDeviceData *ucdev,
-                                CardState    *state );
+void uc_set_texenv     ( UcDriverData *ucdrv,
+                         UcDeviceData *ucdev,
+                         CardState    *state );
 
-inline void uc_set_clip       ( UcDriverData *ucdrv,
-                                UcDeviceData *ucdev,
-                                CardState    *state );
+void uc_set_clip       ( UcDriverData *ucdrv,
+                         UcDeviceData *ucdev,
+                         CardState    *state );
 
-inline void uc_set_destination( UcDriverData *ucdrv,
-                                UcDeviceData *ucdev,
-                                CardState    *state );
+void uc_set_destination( UcDriverData *ucdrv,
+                         UcDeviceData *ucdev,
+                         CardState    *state );
 
-inline void uc_set_source_2d  ( UcDriverData *ucdrv,
-                                UcDeviceData *ucdev,
-                                CardState    *state );
+void uc_set_source_2d  ( UcDriverData *ucdrv,
+                         UcDeviceData *ucdev,
+                         CardState    *state );
 
-inline void uc_set_source_3d  ( UcDriverData *ucdrv,
-                                UcDeviceData *ucdev,
-                                CardState    *state );
+void uc_set_source_3d  ( UcDriverData *ucdrv,
+                         UcDeviceData *ucdev,
+                         CardState    *state );
 
-inline void uc_set_color_2d   ( UcDriverData *ucdrv,
-                                UcDeviceData *ucdev,
-                                CardState    *state );
+void uc_set_color_2d   ( UcDriverData *ucdrv,
+                         UcDeviceData *ucdev,
+                         CardState    *state );
 
-inline void uc_set_colorkey_2d( UcDriverData *ucdrv,
-                                UcDeviceData *ucdev,
-                                CardState    *state );
+void uc_set_colorkey_2d( UcDriverData *ucdrv,
+                         UcDeviceData *ucdev,
+                         CardState    *state );
 
 #endif // __UC_HW_H__
 

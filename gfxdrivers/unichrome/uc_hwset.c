@@ -33,7 +33,7 @@
 #define ILOG2_X86(x,y)  // TODO - use BSR (bit scan reverse) instruction
 
 /// Set alpha blending function (3D)
-inline void
+void
 uc_set_blending_fn( UcDriverData *ucdrv,
                     UcDeviceData *ucdev,
                     CardState    *state )
@@ -70,7 +70,7 @@ uc_set_blending_fn( UcDriverData *ucdrv,
 }
 
 /// Set texture environment (3D)
-inline void
+void
 uc_set_texenv( UcDriverData *ucdrv,
                UcDeviceData *ucdev,
                CardState    *state )
@@ -112,7 +112,7 @@ uc_set_texenv( UcDriverData *ucdrv,
 }
 
 /// Set clipping rectangle (2D and 3D)
-inline void
+void
 uc_set_clip( UcDriverData *ucdrv,
              UcDeviceData *ucdev,
              CardState    *state )
@@ -145,7 +145,7 @@ uc_set_clip( UcDriverData *ucdrv,
 }
 
 /// Set destination (2D and 3D)
-inline void
+void
 uc_set_destination( UcDriverData *ucdrv,
                     UcDeviceData *ucdev,
                     CardState    *state )
@@ -201,7 +201,7 @@ uc_set_destination( UcDriverData *ucdrv,
 }
 
 /// Set new source (2D)
-inline void
+void
 uc_set_source_2d( UcDriverData *ucdrv,
                   UcDeviceData *ucdev,
                   CardState    *state )
@@ -230,7 +230,7 @@ uc_set_source_2d( UcDriverData *ucdrv,
 }
 
 /// Set new source (3D)
-inline void
+void
 uc_set_source_3d( UcDriverData *ucdrv,
                   UcDeviceData *ucdev,
                   CardState    *state )
@@ -336,7 +336,7 @@ uc_set_source_3d( UcDriverData *ucdrv,
 }
 
 /// Set either destination color key, or fill color, as needed. (2D)
-inline void
+void
 uc_set_color_2d( UcDriverData *ucdrv,
                  UcDeviceData *ucdev,
                  CardState    *state )
@@ -406,7 +406,7 @@ uc_set_color_2d( UcDriverData *ucdrv,
      UC_INVALIDATE( uc_colorkey2d );
 }
 
-inline void
+void
 uc_set_colorkey_2d( UcDriverData *ucdrv,
                     UcDeviceData *ucdev,
                     CardState    *state )

@@ -15,7 +15,7 @@
 #include <gfx/convert.h>
 
 /// Map DirectFB blending functions to hardware
-inline void
+void
 uc_map_blending_fn( struct uc_hw_alpha      *hwalpha,
                     DFBSurfaceBlendFunction  sblend,
                     DFBSurfaceBlendFunction  dblend,
@@ -246,7 +246,7 @@ uc_map_blending_fn( struct uc_hw_alpha      *hwalpha,
 }
 
 /// Map DFBSurfaceBlittingFlags to the hardware
-inline void
+void
 uc_map_blitflags( struct uc_hw_texture    *tex,
                   DFBSurfaceBlittingFlags  bflags,
                   DFBSurfacePixelFormat    sformat,
