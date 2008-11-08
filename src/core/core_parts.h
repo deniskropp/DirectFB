@@ -46,15 +46,15 @@ typedef DFBResult (*CoreJoin)      ( CoreDFB *core,
                                      void    *data_local,
                                      void    *data_shared );
 
-typedef DFBResult (*CoreShutdown)  ( CoreDFB *core,
+typedef DFBResult (*CoreShutdown)  ( void    *data_local,
                                      bool     emergency );
 
-typedef DFBResult (*CoreLeave)     ( CoreDFB *core,
+typedef DFBResult (*CoreLeave)     ( void    *data_local,
                                      bool     emergency );
 
-typedef DFBResult (*CoreSuspend)   ( CoreDFB *core );
+typedef DFBResult (*CoreSuspend)   ( void    *data_local );
 
-typedef DFBResult (*CoreResume)    ( CoreDFB *core );
+typedef DFBResult (*CoreResume)    ( void    *data_local );
 
 
 typedef struct {
@@ -95,14 +95,14 @@ DFBResult dfb_core_part_leave     ( CoreDFB  *core,
 #define DFB_CORE_PART(part,Type)                                               \
                                                                                \
 static DFBResult dfb_##part##_initialize( CoreDFB           *core,             \
-                                          DFB##Type         *data,             \
+                                          DFB##Type         *local,            \
                                           DFB##Type##Shared *shared );         \
                                                                                \
 static DFBResult dfb_##part##_join      ( CoreDFB           *core,             \
-                                          DFB##Type         *data,             \
+                                          DFB##Type         *local,            \
                                           DFB##Type##Shared *shared );         \
                                                                                \
-static DFBResult dfb_##part##_shutdown  ( DFB##Type         *data,             \
+static DFBResult dfb_##part##_shutdown  ( DFB##Type         *local,            \
                                           bool               emergency );      \
                                                                                \
 static DFBResult dfb_##part##_leave     ( DFB##Type         *local,            \
@@ -113,17 +113,17 @@ static DFBResult dfb_##part##_suspend   ( DFB##Type         *local );          \
 static DFBResult dfb_##part##_resume    ( DFB##Type         *local );          \
                                                                                \
 CorePart dfb_##part = {                                                        \
-     #part,                                                                    \
+     .name        = #part,                                                     \
                                                                                \
-     sizeof(DFB##Type),                                                        \
-     sizeof(DFB##Type##Shared),                                                \
+     .size_local  = sizeof(DFB##Type),                                         \
+     .size_shared = sizeof(DFB##Type##Shared),                                 \
                                                                                \
-     (void*)dfb_##part##_initialize,                                           \
-     (void*)dfb_##part##_join,                                                 \
-     (void*)dfb_##part##_shutdown,                                             \
-     (void*)dfb_##part##_leave,                                                \
-     (void*)dfb_##part##_suspend,                                              \
-     (void*)dfb_##part##_resume                                                \
+     .Initialize  = (void*)dfb_##part##_initialize,                            \
+     .Join        = (void*)dfb_##part##_join,                                  \
+     .Shutdown    = (void*)dfb_##part##_shutdown,                              \
+     .Leave       = (void*)dfb_##part##_leave,                                 \
+     .Suspend     = (void*)dfb_##part##_suspend,                               \
+     .Resume      = (void*)dfb_##part##_resume,                                \
 }
 
 
