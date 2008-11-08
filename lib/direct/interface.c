@@ -148,7 +148,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
      char                       *interface_dir;
      struct dirent              *entry = NULL;
      struct dirent               tmp;
-     char                       *path;
+     const char                 *path;
 #endif
 
      DirectLink *link;
