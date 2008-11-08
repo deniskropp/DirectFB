@@ -107,7 +107,7 @@ dfb_screen_core_initialize( CoreDFB             *core,
           CoreScreenShared     *sshared;
           CoreScreen           *screen = screens[i];
           ScreenFuncs          *funcs  = screen->funcs;
-          DFBScreenDescription  desc   = { 0 };
+          DFBScreenDescription  desc   = { .caps = DSCCAPS_NONE };
 
           /* Allocate shared data. */
           sshared = SHCALLOC( pool, 1, sizeof(CoreScreenShared) );

@@ -74,7 +74,7 @@ Bool
 dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight, DFBSurfacePixelFormat format )
 {
      XWindow              *xw;
-     XSetWindowAttributes  attr = { 0 };
+     XSetWindowAttributes  attr = { .background_pixmap = 0 };
 
      D_INFO( "X11/Window: Creating %4dx%4d %s window...\n", iWidth, iHeight, dfb_pixelformat_name(format) );
 

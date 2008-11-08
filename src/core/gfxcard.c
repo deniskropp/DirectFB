@@ -1475,7 +1475,7 @@ static void
 fill_tri( DFBTriangle *tri, CardState *state, bool accelerated )
 {
      int y, yend;
-     DDA dda1 = {0}, dda2 = {0};
+     DDA dda1 = { .xi = 0 }, dda2 = { .xi = 0 };
      int clip_x1 = state->clip.x1;
      int clip_x2 = state->clip.x2;
 

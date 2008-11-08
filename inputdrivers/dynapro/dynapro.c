@@ -152,7 +152,7 @@ static void tty_rawmode(int fd, int set)
 }
 
 /* Open file descriptor to touch device */
-static int dynaproOpenDevice(unsigned char *device)
+static int dynaproOpenDevice(char *device)
 {
   int fd;
 

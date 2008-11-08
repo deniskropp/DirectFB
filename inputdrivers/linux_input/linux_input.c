@@ -799,9 +799,9 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
 
      /* Query min/max coordinates. */
      if (data->touchpad) {
-          touchpad_fsm_init( &fsm_state );
-
           struct input_absinfo absinfo;
+
+          touchpad_fsm_init( &fsm_state );
 
           ioctl( data->fd, EVIOCGABS(ABS_X), &absinfo );
           fsm_state.x.min = absinfo.minimum;

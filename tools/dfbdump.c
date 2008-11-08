@@ -78,9 +78,9 @@ typedef struct {
 
 /**********************************************************************************************************************/
 
-static IDirectFB *dfb = NULL;
+static IDirectFB *dfb;
 
-static MemoryUsage mem = { 0, 0 };
+static MemoryUsage mem;
 
 static bool show_shm;
 static bool show_pools;

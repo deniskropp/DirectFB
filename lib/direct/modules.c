@@ -187,22 +187,24 @@ direct_modules_explore_directory( DirectModuleDir *directory )
      struct dirent *entry = NULL;
      struct dirent  tmp;
      int            count = 0;
+     char          *pathfront = "";
+     const char    *path;
+     char          *buf;
 
      D_ASSERT( directory != NULL );
      D_ASSERT( directory->path != NULL );
 
      D_DEBUG_AT( Direct_Modules, "%s( '%s' )\n", __FUNCTION__, directory->path );
 
-     char       *pathfront = "";
-     const char *path      = directory->path;
-     
+     path = directory->path;
+
      if(path[0]!='/') {
           pathfront = direct_config->module_dir;
           if(!pathfront)
                pathfront = MODULEDIR;
      }
 
-     char buf[ strlen(pathfront) + 1 + strlen(path) + 1 ]; /* pre, slash, post, 0 */
+     buf = alloca( strlen(pathfront) + 1 + strlen(path) + 1 ); /* pre, slash, post, 0 */
      sprintf( buf, "%s%s%s", pathfront, ( pathfront && path && (path[0] != '/') && (pathfront[strlen(pathfront)-1] != '/') ) ? "/" : "", path );
 
      dir_len = strlen( buf );

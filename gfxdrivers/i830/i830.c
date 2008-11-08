@@ -220,7 +220,7 @@ i830FlushTextureCache( void *drv, void *dev )
 {
      I830DriverData *idrv  = drv;
      I830DeviceData *idev  = dev;
-     I830RingBlock   block = {0};
+     I830RingBlock   block = { .virt = NULL };
 
      if (i830_begin_lp_ring( idrv, idev, 2, &block ))
           return;

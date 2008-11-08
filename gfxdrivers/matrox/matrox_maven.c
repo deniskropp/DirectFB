@@ -421,6 +421,8 @@ DFBResult maven_init( MatroxMavenData  *mav,
           struct dirent *ent;
 
           while ((ent = readdir( dir )) != NULL) {
+               FILE *fp;
+
                if (!strcmp( ent->d_name, "." ))
                     continue;
                if (!strcmp( ent->d_name, ".." ))
@@ -428,7 +430,7 @@ DFBResult maven_init( MatroxMavenData  *mav,
 
                snprintf( path, sizeof(path), "%s/%s/name", SYS_CLASS_I2C_DEV, ent->d_name );
 
-               FILE *fp = fopen( path, "r" );
+               fp = fopen( path, "r" );
                if (!fp) {
                     D_PERROR( "DirectFB/Matrox/Maven: Error opening `%s'!\n", path );
                     continue;

@@ -148,6 +148,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
      char                       *interface_dir;
      struct dirent              *entry = NULL;
      struct dirent               tmp;
+     char                       *path;
 #endif
 
      DirectLink *link;
@@ -197,7 +198,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
      if (type == NULL)
           return DR_NOIMPL;
 
-     char *path = direct_config->module_dir;
+     path = direct_config->module_dir;
      if(!path)
           path = MODULEDIR;
 

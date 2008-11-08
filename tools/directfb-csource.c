@@ -181,10 +181,11 @@ int main (int         argc,
           struct stat statbuf; 
           if (0 == stat(filename[0], &statbuf))
           {
+               FILE *f;
                unsigned char *data = alloca(statbuf.st_size);
                memset(data, 0, statbuf.st_size);
 
-               FILE *f = fopen(filename[0], "r");
+               f = fopen(filename[0], "r");
                if (f)
                {
                     fread(data, statbuf.st_size, 1, f);

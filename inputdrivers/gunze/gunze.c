@@ -323,6 +323,8 @@ static void *GunzeTouchEventThread(DirectThread *thread, void *driver_data)
             /* if whole packet collected, decode it */
             if (priv->gunBytes == priv->gunDlen) 
             {
+                DFBInputEvent evt;
+
                 priv->gunBytes = 0;
                 if (priv->gunDlen == GUNZE_SERIAL_DLEN) 
                 {
@@ -382,7 +384,6 @@ static void *GunzeTouchEventThread(DirectThread *thread, void *driver_data)
                     priv->flags &= ~FLAG_WAS_UP;
 
                 /* Now send events */
-                DFBInputEvent evt;
 
                 /* only post new x/y if different from previous tap */
                 if ( (priv->gunPrevX != x) || (priv->gunPrevY != y) )

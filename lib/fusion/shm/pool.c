@@ -415,8 +415,8 @@ init_pool( FusionSHM           *shm,
      int                  fd;
      int                  size;
      FusionWorld         *world;
-     FusionSHMPoolNew     pool_new    = {0};
-     FusionSHMPoolAttach  pool_attach = {0};
+     FusionSHMPoolNew     pool_new    = { .pool_id = 0 };
+     FusionSHMPoolAttach  pool_attach = { .pool_id = 0 };
      FusionEntryInfo      info;
      char                 buf[FUSION_SHM_TMPFS_PATH_NAME_LEN + 32];
 
@@ -536,7 +536,7 @@ join_pool( FusionSHM           *shm,
      DirectResult         ret;
      int                  fd;
      FusionWorld         *world;
-     FusionSHMPoolAttach  pool_attach = {0};
+     FusionSHMPoolAttach  pool_attach = { .pool_id = 0 };
      char                 buf[FUSION_SHM_TMPFS_PATH_NAME_LEN + 32];
 
      D_DEBUG_AT( Fusion_SHMPool, "%s( %p, %p, %p )\n", __FUNCTION__, shm, pool, shared );

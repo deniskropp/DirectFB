@@ -48,5 +48,6 @@
 //D_DEBUG_DOMAIN( UniQuE_Frame, "UniQuE/Frame", "UniQuE's Frame Region Class" );
 
 const StretRegionClass unique_frame_region_class = {
+     .GetInput = NULL,
 };
 

@@ -65,6 +65,7 @@
       * Scale line by line.
       */
      for (y=0; y<ch; y++) {
+          long X;
           long nlT = LINE_T( line, vfraq );
 
           D_ASSERT( nlT >= 0 );
@@ -133,7 +134,7 @@
           /*
            * Vertical interpolation
            */
-          long X = LINE_TO_RATIO( line, vfraq );
+          X = LINE_TO_RATIO( line, vfraq );
 
           for (x=0; x<cw; x++) {
 #if defined (COLOR_KEY) || defined (KEY_PROTECT)

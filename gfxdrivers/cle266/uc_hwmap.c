@@ -133,6 +133,9 @@ uc_map_blending_fn( struct uc_hw_alpha      *hwalpha,
                     hwalpha->regHABLRAa = 0x0;
                }
                break;
+          default:
+               D_BUG("Unsupported blending function!");
+               break;
      }
 
      // Set destination blending function

@@ -544,7 +544,7 @@ int
 main( int argc, char *argv[] )
 {
      int       i;
-     CardState state = {0};
+     CardState state = { .blittingflags = DSBLIT_NOFX };
      DFBColor  result;
 
      /* Initialize sample source and destination values. */
