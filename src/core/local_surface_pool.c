@@ -259,19 +259,19 @@ localUnlock( CoreSurfacePool       *pool,
 }
 
 const SurfacePoolFuncs localSurfacePoolFuncs = {
-     PoolDataSize:       localPoolDataSize,
-     PoolLocalDataSize:  localPoolLocalDataSize,
-     AllocationDataSize: localAllocationDataSize,
+     .PoolDataSize       = localPoolDataSize,
+     .PoolLocalDataSize  = localPoolLocalDataSize,
+     .AllocationDataSize = localAllocationDataSize,
 
-     InitPool:           localInitPool,
-     JoinPool:           localJoinPool,
-     DestroyPool:        localDestroyPool,
-     LeavePool:          localLeavePool,
+     .InitPool           = localInitPool,
+     .JoinPool           = localJoinPool,
+     .DestroyPool        = localDestroyPool,
+     .LeavePool          = localLeavePool,
 
-     AllocateBuffer:     localAllocateBuffer,
-     DeallocateBuffer:   localDeallocateBuffer,
+     .AllocateBuffer     = localAllocateBuffer,
+     .DeallocateBuffer   = localDeallocateBuffer,
 
-     Lock:               localLock,
-     Unlock:             localUnlock
+     .Lock               = localLock,
+     .Unlock             = localUnlock,
 };
 

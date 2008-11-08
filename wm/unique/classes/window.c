@@ -159,7 +159,7 @@ window_update( StretRegion     *region,
 }
 
 const StretRegionClass unique_window_region_class = {
-     GetInput: window_get_input,
-     Update:   window_update
+     .GetInput = window_get_input,
+     .Update   = window_update,
 };
 

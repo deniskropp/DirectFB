@@ -40,8 +40,8 @@
 
 
 static FusionConfig config = {
-     tmpfs:       NULL,
-     shmfile_gid: -1
+     .tmpfs       = NULL,
+     .shmfile_gid = -1,
 };
 
 FusionConfig *fusion_config       = &config;

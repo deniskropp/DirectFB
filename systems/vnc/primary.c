@@ -143,7 +143,7 @@ primaryGetScreenSize( CoreScreen *screen,
 
 ScreenFuncs vncPrimaryScreenFuncs = {
      .InitScreen    = primaryInitScreen,
-     .GetScreenSize = primaryGetScreenSize
+     .GetScreenSize = primaryGetScreenSize,
 };
 
 /******************************************************************************/
@@ -398,7 +398,7 @@ DisplayLayerFuncs vncPrimaryLayerFuncs = {
      .UpdateRegion      = primaryUpdateRegion,
 
      .AllocateSurface   = primaryAllocateSurface,
-     .ReallocateSurface = primaryReallocateSurface
+     .ReallocateSurface = primaryReallocateSurface,
 };
 
 /******************************************************************************/

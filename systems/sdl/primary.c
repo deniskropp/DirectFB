@@ -115,7 +115,7 @@ primaryGetScreenSize( CoreScreen *screen,
 
 ScreenFuncs sdlPrimaryScreenFuncs = {
      .InitScreen    = primaryInitScreen,
-     .GetScreenSize = primaryGetScreenSize
+     .GetScreenSize = primaryGetScreenSize,
 };
 
 /******************************************************************************/

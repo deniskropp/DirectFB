@@ -117,8 +117,8 @@ davinciWaitVSync( CoreScreen *screen,
 }
 
 ScreenFuncs davinciScreenFuncs = {
-     InitScreen:    davinciInitScreen,
-     GetScreenSize: davinciGetScreenSize,
-     WaitVSync:     davinciWaitVSync
+     .InitScreen    = davinciInitScreen,
+     .GetScreenSize = davinciGetScreenSize,
+     .WaitVSync     = davinciWaitVSync,
 };
 

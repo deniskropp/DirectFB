@@ -404,20 +404,20 @@ fbdevUnlock( CoreSurfacePool       *pool,
 }
 
 const SurfacePoolFuncs fbdevSurfacePoolFuncs = {
-     PoolDataSize:       fbdevPoolDataSize,
-     PoolLocalDataSize:  fbdevPoolLocalDataSize,
-     AllocationDataSize: fbdevAllocationDataSize,
+     .PoolDataSize       = fbdevPoolDataSize,
+     .PoolLocalDataSize  = fbdevPoolLocalDataSize,
+     .AllocationDataSize = fbdevAllocationDataSize,
 
-     InitPool:           fbdevInitPool,
-     JoinPool:           fbdevJoinPool,
-     DestroyPool:        fbdevDestroyPool,
-     LeavePool:          fbdevLeavePool,
+     .InitPool           = fbdevInitPool,
+     .JoinPool           = fbdevJoinPool,
+     .DestroyPool        = fbdevDestroyPool,
+     .LeavePool          = fbdevLeavePool,
 
-     TestConfig:         fbdevTestConfig,
-     AllocateBuffer:     fbdevAllocateBuffer,
-     DeallocateBuffer:   fbdevDeallocateBuffer,
+     .TestConfig         = fbdevTestConfig,
+     .AllocateBuffer     = fbdevAllocateBuffer,
+     .DeallocateBuffer   = fbdevDeallocateBuffer,
 
-     Lock:               fbdevLock,
-     Unlock:             fbdevUnlock
+     .Lock               = fbdevLock,
+     .Unlock             = fbdevUnlock,
 };
 

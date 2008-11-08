@@ -671,10 +671,10 @@ osdSetRegion( CoreLayer                  *layer,
 }
 
 DisplayLayerFuncs newPrimaryFuncs = {
-     InitLayer:          osdInitLayer,
+     .InitLayer  = osdInitLayer,
 
-     TestRegion:         osdTestRegion,
-     SetRegion:          osdSetRegion
+     .TestRegion = osdTestRegion,
+     .SetRegion  = osdSetRegion,
 };
 
 /* exported symbols */

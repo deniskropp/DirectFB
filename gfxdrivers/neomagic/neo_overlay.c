@@ -281,13 +281,13 @@ ovlSetColorAdjustment( CoreLayer          *layer,
 
 
 DisplayLayerFuncs neoOverlayFuncs = {
-     LayerDataSize:      ovlLayerDataSize,
-     InitLayer:          ovlInitLayer,
-     SetRegion:          ovlSetRegion,
-     RemoveRegion:       ovlRemoveRegion,
-     TestRegion:         ovlTestRegion,
-     FlipRegion:         ovlFlipRegion,
-     SetColorAdjustment: ovlSetColorAdjustment
+     .LayerDataSize      = ovlLayerDataSize,
+     .InitLayer          = ovlInitLayer,
+     .SetRegion          = ovlSetRegion,
+     .RemoveRegion       = ovlRemoveRegion,
+     .TestRegion         = ovlTestRegion,
+     .FlipRegion         = ovlFlipRegion,
+     .SetColorAdjustment = ovlSetColorAdjustment,
 };
 
 

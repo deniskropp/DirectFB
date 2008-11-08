@@ -396,15 +396,15 @@ sh7722UpdateRegion( CoreLayer             *layer,
 }
 
 DisplayLayerFuncs sh7722MultiLayerFuncs = {
-     LayerDataSize:      sh7722LayerDataSize,
-     RegionDataSize:     sh7722RegionDataSize,
-     InitLayer:          sh7722InitLayer,
+     .LayerDataSize  = sh7722LayerDataSize,
+     .RegionDataSize = sh7722RegionDataSize,
+     .InitLayer      = sh7722InitLayer,
 
-     TestRegion:         sh7722TestRegion,
-     AddRegion:          sh7722AddRegion,
-     SetRegion:          sh7722SetRegion,
-     RemoveRegion:       sh7722RemoveRegion,
-     FlipRegion:         sh7722FlipRegion,
-     UpdateRegion:       sh7722UpdateRegion
+     .TestRegion     = sh7722TestRegion,
+     .AddRegion      = sh7722AddRegion,
+     .SetRegion      = sh7722SetRegion,
+     .RemoveRegion   = sh7722RemoveRegion,
+     .FlipRegion     = sh7722FlipRegion,
+     .UpdateRegion   = sh7722UpdateRegion,
 };
 

@@ -275,14 +275,14 @@ spicFlipRegion( CoreLayer             *layer,
 }
 
 DisplayLayerFuncs matroxSpicFuncs = {
-     LayerDataSize:         spicLayerDataSize,
-     InitLayer:             spicInitLayer,
+     .LayerDataSize = spicLayerDataSize,
+     .InitLayer     = spicInitLayer,
 
-     TestRegion:            spicTestRegion,
-     AddRegion:             spicAddRegion,
-     SetRegion:             spicSetRegion,
-     RemoveRegion:          spicRemoveRegion,
-     FlipRegion:            spicFlipRegion
+     .TestRegion    = spicTestRegion,
+     .AddRegion     = spicAddRegion,
+     .SetRegion     = spicSetRegion,
+     .RemoveRegion  = spicRemoveRegion,
+     .FlipRegion    = spicFlipRegion,
 };
 
 /* internal */

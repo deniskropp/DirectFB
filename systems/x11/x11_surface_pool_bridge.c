@@ -314,18 +314,18 @@ x11FinishTransfer( CoreSurfacePoolBridge   *bridge,
 
 
 const SurfacePoolBridgeFuncs x11SurfacePoolBridgeFuncs = {
-     PoolBridgeDataSize:      x11PoolBridgeDataSize,
-     PoolBridgeLocalDataSize: x11PoolBridgeLocalDataSize,
-     PoolTransferDataSize:    x11PoolTransferDataSize,
+     .PoolBridgeDataSize      = x11PoolBridgeDataSize,
+     .PoolBridgeLocalDataSize = x11PoolBridgeLocalDataSize,
+     .PoolTransferDataSize    = x11PoolTransferDataSize,
 
-     InitPoolBridge:          x11InitPoolBridge,
-     JoinPoolBridge:          x11JoinPoolBridge,
-     DestroyPoolBridge:       x11DestroyPoolBridge,
-     LeavePoolBridge:         x11LeavePoolBridge,
+     .InitPoolBridge          = x11InitPoolBridge,
+     .JoinPoolBridge          = x11JoinPoolBridge,
+     .DestroyPoolBridge       = x11DestroyPoolBridge,
+     .LeavePoolBridge         = x11LeavePoolBridge,
 
-     CheckTransfer:           x11CheckTransfer,
+     .CheckTransfer           = x11CheckTransfer,
 
-     StartTransfer:           x11StartTransfer,
-     FinishTransfer:          x11FinishTransfer
+     .StartTransfer           = x11StartTransfer,
+     .FinishTransfer          = x11FinishTransfer,
 };
 

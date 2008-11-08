@@ -63,13 +63,13 @@ typedef struct {
 } OSXInputData;
 
 static DFBInputEvent motionX = {
-     type:     DIET_UNKNOWN,
-     axisabs:  0
+     .type    = DIET_UNKNOWN,
+     .axisabs = 0,
 };
 
 static DFBInputEvent motionY = {
-     type:     DIET_UNKNOWN,
-     axisabs:  0
+     .type    = DIET_UNKNOWN,
+     .axisabs = 0,
 };
 
 static void

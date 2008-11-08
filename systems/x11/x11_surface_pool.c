@@ -349,21 +349,21 @@ x11Unlock( CoreSurfacePool       *pool,
 }
 
 const SurfacePoolFuncs x11SurfacePoolFuncs = {
-     PoolDataSize:       x11PoolDataSize,
-     PoolLocalDataSize:  x11PoolLocalDataSize,
-     AllocationDataSize: x11AllocationDataSize,
+     .PoolDataSize       = x11PoolDataSize,
+     .PoolLocalDataSize  = x11PoolLocalDataSize,
+     .AllocationDataSize = x11AllocationDataSize,
 
-     InitPool:           x11InitPool,
-     JoinPool:           x11JoinPool,
-     DestroyPool:        x11DestroyPool,
-     LeavePool:          x11LeavePool,
+     .InitPool           = x11InitPool,
+     .JoinPool           = x11JoinPool,
+     .DestroyPool        = x11DestroyPool,
+     .LeavePool          = x11LeavePool,
 
-     TestConfig:         x11TestConfig,
+     .TestConfig         = x11TestConfig,
 
-     AllocateBuffer:     x11AllocateBuffer,
-     DeallocateBuffer:   x11DeallocateBuffer,
+     .AllocateBuffer     = x11AllocateBuffer,
+     .DeallocateBuffer   = x11DeallocateBuffer,
 
-     Lock:               x11Lock,
-     Unlock:             x11Unlock
+     .Lock               = x11Lock,
+     .Unlock             = x11Unlock,
 };
 

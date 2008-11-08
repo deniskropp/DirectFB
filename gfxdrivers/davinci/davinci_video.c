@@ -407,14 +407,14 @@ videoUpdateRegion( CoreLayer             *layer,
 }
 
 const DisplayLayerFuncs davinciVideoLayerFuncs = {
-     LayerDataSize:      videoLayerDataSize,
-     InitLayer:          videoInitLayer,
+     .LayerDataSize = videoLayerDataSize,
+     .InitLayer     = videoInitLayer,
 
-     TestRegion:         videoTestRegion,
-     SetRegion:          videoSetRegion,
-     RemoveRegion:       videoRemoveRegion,
-     FlipRegion:         videoFlipRegion,
-     UpdateRegion:       videoUpdateRegion
+     .TestRegion    = videoTestRegion,
+     .SetRegion     = videoSetRegion,
+     .RemoveRegion  = videoRemoveRegion,
+     .FlipRegion    = videoFlipRegion,
+     .UpdateRegion  = videoUpdateRegion,
 };
 
 /***********************************************************************************************************************

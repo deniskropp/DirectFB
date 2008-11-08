@@ -376,15 +376,15 @@ ovSetInputField( CoreLayer          *layer,
 }
 
 DisplayLayerFuncs mach64OverlayFuncs = {
-     LayerDataSize:      ovLayerDataSize,
-     InitLayer:          ovInitLayer,
+     .LayerDataSize      = ovLayerDataSize,
+     .InitLayer          = ovInitLayer,
 
-     TestRegion:         ovTestRegion,
-     SetRegion:          ovSetRegion,
-     RemoveRegion:       ovRemoveRegion,
-     FlipRegion:         ovFlipRegion,
-     SetColorAdjustment: ovSetColorAdjustment,
-     SetInputField:      ovSetInputField,
+     .TestRegion         = ovTestRegion,
+     .SetRegion          = ovSetRegion,
+     .RemoveRegion       = ovRemoveRegion,
+     .FlipRegion         = ovFlipRegion,
+     .SetColorAdjustment = ovSetColorAdjustment,
+     .SetInputField      = ovSetInputField,
 };
 
 /* internal */

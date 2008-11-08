@@ -77,7 +77,7 @@ sh7722GetScreenSize( CoreScreen *screen,
 }
 
 ScreenFuncs sh7722ScreenFuncs = {
-     InitScreen:    sh7722InitScreen,
-     GetScreenSize: sh7722GetScreenSize
+     .InitScreen    = sh7722InitScreen,
+     .GetScreenSize = sh7722GetScreenSize,
 };
 

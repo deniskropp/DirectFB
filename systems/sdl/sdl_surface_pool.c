@@ -333,17 +333,17 @@ sdlUnlock( CoreSurfacePool       *pool,
 }
 
 const SurfacePoolFuncs sdlSurfacePoolFuncs = {
-     PoolDataSize:       sdlPoolDataSize,
-     AllocationDataSize: sdlAllocationDataSize,
-     InitPool:           sdlInitPool,
-     DestroyPool:        sdlDestroyPool,
+     .PoolDataSize       = sdlPoolDataSize,
+     .AllocationDataSize = sdlAllocationDataSize,
+     .InitPool           = sdlInitPool,
+     .DestroyPool        = sdlDestroyPool,
 
-     TestConfig:         sdlTestConfig,
+     .TestConfig         = sdlTestConfig,
 
-     AllocateBuffer:     sdlAllocateBuffer,
-     DeallocateBuffer:   sdlDeallocateBuffer,
+     .AllocateBuffer     = sdlAllocateBuffer,
+     .DeallocateBuffer   = sdlDeallocateBuffer,
 
-     Lock:               sdlLock,
-     Unlock:             sdlUnlock
+     .Lock               = sdlLock,
+     .Unlock             = sdlUnlock,
 };
 

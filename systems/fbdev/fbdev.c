@@ -170,17 +170,17 @@ static DFBResult primaryFlipRegion    ( CoreLayer                  *layer,
 
 
 static DisplayLayerFuncs primaryLayerFuncs = {
-     LayerDataSize:      primaryLayerDataSize,
-     RegionDataSize:     primaryRegionDataSize,
-     InitLayer:          primaryInitLayer,
+     .LayerDataSize      = primaryLayerDataSize,
+     .RegionDataSize     = primaryRegionDataSize,
+     .InitLayer          = primaryInitLayer,
 
-     SetColorAdjustment: primarySetColorAdjustment,
+     .SetColorAdjustment = primarySetColorAdjustment,
 
-     TestRegion:         primaryTestRegion,
-     AddRegion:          primaryAddRegion,
-     SetRegion:          primarySetRegion,
-     RemoveRegion:       primaryRemoveRegion,
-     FlipRegion:         primaryFlipRegion,
+     .TestRegion         = primaryTestRegion,
+     .AddRegion          = primaryAddRegion,
+     .SetRegion          = primarySetRegion,
+     .RemoveRegion       = primaryRemoveRegion,
+     .FlipRegion         = primaryFlipRegion,
 };
 
 /******************************************************************************/
@@ -210,7 +210,7 @@ static ScreenFuncs primaryScreenFuncs = {
      .InitScreen    = primaryInitScreen,
      .SetPowerMode  = primarySetPowerMode,
      .WaitVSync     = primaryWaitVSync,
-     .GetScreenSize = primaryGetScreenSize
+     .GetScreenSize = primaryGetScreenSize,
 };
 
 /******************************************************************************/

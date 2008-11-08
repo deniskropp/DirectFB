@@ -174,8 +174,8 @@ primaryGetScreenSize( CoreScreen *screen,
 }
 
 ScreenFuncs x11PrimaryScreenFuncs = {
-     InitScreen:    primaryInitScreen,
-     GetScreenSize: primaryGetScreenSize
+     .InitScreen    = primaryInitScreen,
+     .GetScreenSize = primaryGetScreenSize,
 };
 
 /******************************************************************************/
@@ -391,16 +391,16 @@ primaryUpdateRegion( CoreLayer             *layer,
 }
 
 DisplayLayerFuncs x11PrimaryLayerFuncs = {
-     LayerDataSize:     primaryLayerDataSize,
-     RegionDataSize:    primaryRegionDataSize,
-     InitLayer:         primaryInitLayer,
+     .LayerDataSize  = primaryLayerDataSize,
+     .RegionDataSize = primaryRegionDataSize,
+     .InitLayer      = primaryInitLayer,
 
-     TestRegion:        primaryTestRegion,
-     AddRegion:         primaryAddRegion,
-     SetRegion:         primarySetRegion,
-     RemoveRegion:      primaryRemoveRegion,
-     FlipRegion:        primaryFlipRegion,
-     UpdateRegion:      primaryUpdateRegion,
+     .TestRegion     = primaryTestRegion,
+     .AddRegion      = primaryAddRegion,
+     .SetRegion      = primarySetRegion,
+     .RemoveRegion   = primaryRemoveRegion,
+     .FlipRegion     = primaryFlipRegion,
+     .UpdateRegion   = primaryUpdateRegion,
 };
 
 /******************************************************************************/

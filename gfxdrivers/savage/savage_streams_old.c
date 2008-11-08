@@ -573,24 +573,24 @@ savageSecondarySetColorAdjustment( CoreLayer          *layer,
 }
 
 DisplayLayerFuncs savageSecondaryFuncs = {
-     LayerDataSize:      savageSecondaryLayerDataSize,
-     InitLayer:          savageSecondaryInitLayer,
-     Enable:             savageSecondaryEnable,
-     Disable:            savageSecondaryDisable,
-     TestConfiguration:  savageSecondaryTestConfiguration,
-     SetConfiguration:   savageSecondarySetConfiguration,
-     SetOpacity:         savageSecondarySetOpacity,
-     SetScreenLocation:  savageSecondarySetScreenLocation,
-     SetSrcColorKey:     savageSecondarySetSrcColorKey,
-     SetDstColorKey:     savageSecondarySetDstColorKey,
-     /*GetLevel:*/
-     /*SetLevel:*/
-     FlipBuffers:        savageSecondaryFlipBuffers,
-     SetColorAdjustment: savageSecondarySetColorAdjustment,
-     /*SetPalette:*/
-     /*AllocateSurface:*/
-     /*ReallocateSurface:*/
-     /*DeallocateSurface:*/
+     .LayerDataSize      = savageSecondaryLayerDataSize,
+     .InitLayer          = savageSecondaryInitLayer,
+     .Enable             = savageSecondaryEnable,
+     .Disable            = savageSecondaryDisable,
+     .TestConfiguration  = savageSecondaryTestConfiguration,
+     .SetConfiguration   = savageSecondarySetConfiguration,
+     .SetOpacity         = savageSecondarySetOpacity,
+     .SetScreenLocation  = savageSecondarySetScreenLocation,
+     .SetSrcColorKey     = savageSecondarySetSrcColorKey,
+     .SetDstColorKey     = savageSecondarySetDstColorKey,
+/*   .GetLevel           = */
+/*   .SetLevel           = */
+     .FlipBuffers        = savageSecondaryFlipBuffers,
+     .SetColorAdjustment = savageSecondarySetColorAdjustment,
+/*   .SetPalette         = */
+/*   .AllocateSurface    = */
+/*   .ReallocateSurface  = */
+/*   .DeallocateSurface  = */
 };
 
 /* secondary internal */
@@ -877,24 +877,24 @@ savagePrimarySetScreenLocation( CoreLayer *layer,
 }
 
 DisplayLayerFuncs savagePrimaryFuncs = {
-     LayerDataSize:      savagePrimaryLayerDataSize,
-     InitLayer:          savagePrimaryInitLayer,
-     /*Enable:             savagePrimaryEnable,*/
-     /*Disable:            savagePrimaryDisable,*/
-     /*TestConfiguration:  savagePrimaryTestConfiguration,*/
-     SetConfiguration:   savagePrimarySetConfiguration,
-     /*SetOpacity:         savagePrimarySetOpacity,*/
-     SetScreenLocation:  savagePrimarySetScreenLocation,
-     /*SetSrcColorKey:     savagePrimarySetSrcColorKey,*/
-     /*SetDstColorKey:     savagePrimarySetDstColorKey,*/
-     /*GetLevel:*/
-     /*SetLevel:*/
-     /*FlipBuffers:        savagePrimaryFlipBuffers,*/
-     /*SetColorAdjustment: savagePrimarySetColorAdjustment,*/
-     /*SetPalette:*/
-     /*AllocateSurface:    savagePrimaryAllocateSurface,*/
-     /*ReallocateSurface:*/
-     /*DeallocateSurface:*/
+     .LayerDataSize      = savagePrimaryLayerDataSize,
+     .InitLayer          = savagePrimaryInitLayer,
+/*   .Enable             = savagePrimaryEnable,*/
+/*   .Disable            = savagePrimaryDisable,*/
+/*   .TestConfiguration  = savagePrimaryTestConfiguration,*/
+     .SetConfiguration   = savagePrimarySetConfiguration,
+/*   .SetOpacity         = savagePrimarySetOpacity,*/
+     .SetScreenLocation  = savagePrimarySetScreenLocation,
+/*   .SetSrcColorKey     = savagePrimarySetSrcColorKey,*/
+/*   .SetDstColorKey     = savagePrimarySetDstColorKey,*/
+/*   .GetLevel           = */
+/*   .SetLevel           = */
+/*   .FlipBuffers        = savagePrimaryFlipBuffers,*/
+/*   .SetColorAdjustment = savagePrimarySetColorAdjustment,*/
+/*   .SetPalette         = */
+/*   .AllocateSurface    = savagePrimaryAllocateSurface,*/
+/*   .ReallocateSurface  = */
+/*   .DeallocateSurface  = */
 };
 
 /* primary internal */

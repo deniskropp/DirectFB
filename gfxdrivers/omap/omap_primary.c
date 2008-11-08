@@ -98,5 +98,5 @@ omapUpdateRegion( CoreLayer             *layer,
 }
 
 DisplayLayerFuncs omapPrimaryLayerFuncs = {
-     UpdateRegion:       omapUpdateRegion,
+     .UpdateRegion = omapUpdateRegion,
 };

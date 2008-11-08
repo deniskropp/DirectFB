@@ -669,13 +669,13 @@ osdUpdateRegion( CoreLayer             *layer,
 }
 
 const DisplayLayerFuncs davinciOSDLayerFuncs = {
-     LayerDataSize:      osdLayerDataSize,
-     InitLayer:          osdInitLayer,
+     .LayerDataSize = osdLayerDataSize,
+     .InitLayer     = osdInitLayer,
 
-     TestRegion:         osdTestRegion,
-     SetRegion:          osdSetRegion,
-     RemoveRegion:       osdRemoveRegion,
-     FlipRegion:         osdFlipRegion,
-     UpdateRegion:       osdUpdateRegion
+     .TestRegion    = osdTestRegion,
+     .SetRegion     = osdSetRegion,
+     .RemoveRegion  = osdRemoveRegion,
+     .FlipRegion    = osdFlipRegion,
+     .UpdateRegion  = osdUpdateRegion,
 };
 

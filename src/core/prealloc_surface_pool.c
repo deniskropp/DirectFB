@@ -178,15 +178,15 @@ preallocUnlock( CoreSurfacePool       *pool,
 }
 
 const SurfacePoolFuncs preallocSurfacePoolFuncs = {
-     AllocationDataSize: preallocAllocationDataSize,
-     InitPool:           preallocInitPool,
+     .AllocationDataSize = preallocAllocationDataSize,
+     .InitPool           = preallocInitPool,
 
-     TestConfig:         preallocTestConfig,
+     .TestConfig         = preallocTestConfig,
 
-     AllocateBuffer:     preallocAllocateBuffer,
-     DeallocateBuffer:   preallocDeallocateBuffer,
+     .AllocateBuffer     = preallocAllocateBuffer,
+     .DeallocateBuffer   = preallocDeallocateBuffer,
 
-     Lock:               preallocLock,
-     Unlock:             preallocUnlock
+     .Lock               = preallocLock,
+     .Unlock             = preallocUnlock,
 };
 

@@ -118,7 +118,7 @@ primaryGetScreenSize( CoreScreen *screen,
 
 ScreenFuncs osxPrimaryScreenFuncs = {
      .InitScreen    = primaryInitScreen,
-     .GetScreenSize = primaryGetScreenSize
+     .GetScreenSize = primaryGetScreenSize,
 };
 
 /******************************************************************************/
@@ -411,7 +411,7 @@ DisplayLayerFuncs osxPrimaryLayerFuncs = {
      .UpdateRegion      = primaryUpdateRegion,
 
      .AllocateSurface   = primaryAllocateSurface,
-     .ReallocateSurface = primaryReallocateSurface
+     .ReallocateSurface = primaryReallocateSurface,
 };
 
 /******************************************************************************/

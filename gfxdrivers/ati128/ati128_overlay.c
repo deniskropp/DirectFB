@@ -251,13 +251,13 @@ ov0FlipRegion( CoreLayer             *layer,
 
 
 DisplayLayerFuncs atiOverlayFuncs = {
-     LayerDataSize:      ov0LayerDataSize,
-     InitLayer:          ov0InitLayer,
+     .LayerDataSize = ov0LayerDataSize,
+     .InitLayer     = ov0InitLayer,
 
-     TestRegion:         ov0TestRegion,
-     SetRegion:          ov0SetRegion,
-     RemoveRegion:       ov0RemoveRegion,
-     FlipRegion:         ov0FlipRegion
+     .TestRegion    = ov0TestRegion,
+     .SetRegion     = ov0SetRegion,
+     .RemoveRegion  = ov0RemoveRegion,
+     .FlipRegion    = ov0FlipRegion,
 };
 
 /* internal */

@@ -384,16 +384,16 @@ besSetInputField( CoreLayer *layer,
 }
 
 DisplayLayerFuncs matroxBesFuncs = {
-     LayerDataSize:      besLayerDataSize,
-     InitLayer:          besInitLayer,
+     .LayerDataSize      = besLayerDataSize,
+     .InitLayer          = besInitLayer,
 
-     TestRegion:         besTestRegion,
-     SetRegion:          besSetRegion,
-     RemoveRegion:       besRemoveRegion,
-     FlipRegion:         besFlipRegion,
+     .TestRegion         = besTestRegion,
+     .SetRegion          = besSetRegion,
+     .RemoveRegion       = besRemoveRegion,
+     .FlipRegion         = besFlipRegion,
 
-     SetColorAdjustment: besSetColorAdjustment,
-     SetInputField:      besSetInputField
+     .SetColorAdjustment = besSetColorAdjustment,
+     .SetInputField      = besSetInputField,
 };
 
 

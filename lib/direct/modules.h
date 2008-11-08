@@ -71,11 +71,11 @@ struct __D_DirectModuleDir {
 
 #define DEFINE_MODULE_DIRECTORY(d,p,n)                 \
      DirectModuleDir d = {                             \
-          lock:        PTHREAD_MUTEX_INITIALIZER,      \
-          path:        p,                              \
-          abi_version: n,                              \
-          entries:     NULL,                           \
-          loading:     NULL                            \
+          .lock        = PTHREAD_MUTEX_INITIALIZER,    \
+          .path        = p,                            \
+          .abi_version = n,                            \
+          .entries     = NULL,                         \
+          .loading     = NULL,                         \
      }
 
 int   direct_modules_explore_directory( DirectModuleDir *directory );

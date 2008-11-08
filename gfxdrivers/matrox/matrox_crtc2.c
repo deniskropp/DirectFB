@@ -112,38 +112,38 @@ static const DFBColorAdjustment adjustments[2][2] = {
      {
           /* PAL / PAL-60 */
           {
-               flags:      DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION,
-               brightness: 0xA800,
-               saturation: 0x9500,
-               contrast:   0xFF00,
-               hue:        0x0000,
+               .flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION,
+               .brightness = 0xA800,
+               .saturation = 0x9500,
+               .contrast   = 0xFF00,
+               .hue        = 0x0000,
           },
           /* NTSC */
           {
-               flags:      DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION,
-               brightness: 0xB500,
-               saturation: 0x8E00,
-               contrast:   0xEA00,
-               hue:        0x0000,
+               .flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION,
+               .brightness = 0xB500,
+               .saturation = 0x8E00,
+               .contrast   = 0xEA00,
+               .hue        = 0x0000,
           }
      },
      /* G450 / G550 */
      {
           /* PAL / PAL-60 */
           {
-               flags:      DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION,
-               brightness: 0x9E00,
-               saturation: 0xBB00,
-               contrast:   0xFF00,
-               hue:        0x0000,
+               .flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION,
+               .brightness = 0x9E00,
+               .saturation = 0xBB00,
+               .contrast   = 0xFF00,
+               .hue        = 0x0000,
           },
           /* NTSC */
           {
-               flags:      DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION,
-               brightness: 0xAA00,
-               saturation: 0xAE00,
-               contrast:   0xEA00,
-               hue:        0x0000,
+               .flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION,
+               .brightness = 0xAA00,
+               .saturation = 0xAE00,
+               .contrast   = 0xEA00,
+               .hue        = 0x0000,
           }
      }
 };
@@ -387,17 +387,17 @@ crtc2GetCurrentOutputField( CoreLayer *layer,
 }
 
 DisplayLayerFuncs matroxCrtc2Funcs = {
-     LayerDataSize:         crtc2LayerDataSize,
-     InitLayer:             crtc2InitLayer,
+     .LayerDataSize         = crtc2LayerDataSize,
+     .InitLayer             = crtc2InitLayer,
 
-     TestRegion:            crtc2TestRegion,
-     AddRegion:             crtc2AddRegion,
-     SetRegion:             crtc2SetRegion,
-     RemoveRegion:          crtc2RemoveRegion,
-     FlipRegion:            crtc2FlipRegion,
+     .TestRegion            = crtc2TestRegion,
+     .AddRegion             = crtc2AddRegion,
+     .SetRegion             = crtc2SetRegion,
+     .RemoveRegion          = crtc2RemoveRegion,
+     .FlipRegion            = crtc2FlipRegion,
 
-     SetColorAdjustment:    crtc2SetColorAdjustment,
-     GetCurrentOutputField: crtc2GetCurrentOutputField
+     .SetColorAdjustment    = crtc2SetColorAdjustment,
+     .GetCurrentOutputField = crtc2GetCurrentOutputField,
 };
 
 /* internal */

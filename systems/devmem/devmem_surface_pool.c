@@ -374,20 +374,20 @@ devmemUnlock( CoreSurfacePool       *pool,
 }
 
 const SurfacePoolFuncs devmemSurfacePoolFuncs = {
-     PoolDataSize:       devmemPoolDataSize,
-     PoolLocalDataSize:  devmemPoolLocalDataSize,
-     AllocationDataSize: devmemAllocationDataSize,
+     .PoolDataSize       = devmemPoolDataSize,
+     .PoolLocalDataSize  = devmemPoolLocalDataSize,
+     .AllocationDataSize = devmemAllocationDataSize,
 
-     InitPool:           devmemInitPool,
-     JoinPool:           devmemJoinPool,
-     DestroyPool:        devmemDestroyPool,
-     LeavePool:          devmemLeavePool,
+     .InitPool           = devmemInitPool,
+     .JoinPool           = devmemJoinPool,
+     .DestroyPool        = devmemDestroyPool,
+     .LeavePool          = devmemLeavePool,
 
-     TestConfig:         devmemTestConfig,
-     AllocateBuffer:     devmemAllocateBuffer,
-     DeallocateBuffer:   devmemDeallocateBuffer,
+     .TestConfig         = devmemTestConfig,
+     .AllocateBuffer     = devmemAllocateBuffer,
+     .DeallocateBuffer   = devmemDeallocateBuffer,
 
-     Lock:               devmemLock,
-     Unlock:             devmemUnlock
+     .Lock               = devmemLock,
+     .Unlock             = devmemUnlock,
 };
 

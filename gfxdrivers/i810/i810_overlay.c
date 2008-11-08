@@ -372,15 +372,14 @@ ovlSetInputField( CoreLayer *layer,
 }
 
 DisplayLayerFuncs i810OverlayFuncs = {
-     LayerDataSize:      ovlLayerDataSize,
-     InitLayer:          ovlInitLayer,
-     TestRegion:         ovlTestRegion,
-     SetRegion:          ovlSetRegion,
-     RemoveRegion:       ovlRemoveRegion,
-     FlipRegion:         ovlFlipRegion,
-     SetColorAdjustment: ovlSetColorAdjustment,
-     SetInputField:      ovlSetInputField
-
+     .LayerDataSize      = ovlLayerDataSize,
+     .InitLayer          = ovlInitLayer,
+     .TestRegion         = ovlTestRegion,
+     .SetRegion          = ovlSetRegion,
+     .RemoveRegion       = ovlRemoveRegion,
+     .FlipRegion         = ovlFlipRegion,
+     .SetColorAdjustment = ovlSetColorAdjustment,
+     .SetInputField      = ovlSetInputField,
 };
 
 

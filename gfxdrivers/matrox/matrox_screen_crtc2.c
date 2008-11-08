@@ -249,17 +249,17 @@ crtc2GetScreenSize( CoreScreen *screen,
 }
 
 ScreenFuncs matroxCrtc2ScreenFuncs = {
-     ScreenDataSize:     crtc2ScreenDataSize,
-     InitScreen:         crtc2InitScreen,
-     InitEncoder:        crtc2InitEncoder,
-     InitOutput:         crtc2InitOutput,
-     SetPowerMode:       crtc2SetPowerMode,
-     WaitVSync:          crtc2WaitVSync,
-     TestEncoderConfig:  crtc2TestEncoderConfig,
-     SetEncoderConfig:   crtc2SetEncoderConfig,
-     TestOutputConfig:   crtc2TestOutputConfig,
-     SetOutputConfig:    crtc2SetOutputConfig,
-     GetScreenSize:      crtc2GetScreenSize
+     .ScreenDataSize    = crtc2ScreenDataSize,
+     .InitScreen        = crtc2InitScreen,
+     .InitEncoder       = crtc2InitEncoder,
+     .InitOutput        = crtc2InitOutput,
+     .SetPowerMode      = crtc2SetPowerMode,
+     .WaitVSync         = crtc2WaitVSync,
+     .TestEncoderConfig = crtc2TestEncoderConfig,
+     .SetEncoderConfig  = crtc2SetEncoderConfig,
+     .TestOutputConfig  = crtc2TestOutputConfig,
+     .SetOutputConfig   = crtc2SetOutputConfig,
+     .GetScreenSize     = crtc2GetScreenSize,
 };
 
 /**************************************************************************************************/

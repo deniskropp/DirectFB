@@ -210,16 +210,16 @@ sharedUnlock( CoreSurfacePool       *pool,
 }
 
 const SurfacePoolFuncs sharedSurfacePoolFuncs = {
-     PoolDataSize:       sharedPoolDataSize,
-     PoolLocalDataSize:  sharedPoolLocalDataSize,
-     AllocationDataSize: sharedAllocationDataSize,
-     InitPool:           sharedInitPool,
-     DestroyPool:        sharedDestroyPool,
+     .PoolDataSize       = sharedPoolDataSize,
+     .PoolLocalDataSize  = sharedPoolLocalDataSize,
+     .AllocationDataSize = sharedAllocationDataSize,
+     .InitPool           = sharedInitPool,
+     .DestroyPool        = sharedDestroyPool,
 
-     AllocateBuffer:     sharedAllocateBuffer,
-     DeallocateBuffer:   sharedDeallocateBuffer,
+     .AllocateBuffer     = sharedAllocateBuffer,
+     .DeallocateBuffer   = sharedDeallocateBuffer,
 
-     Lock:               sharedLock,
-     Unlock:             sharedUnlock
+     .Lock               = sharedLock,
+     .Unlock             = sharedUnlock,
 };
 

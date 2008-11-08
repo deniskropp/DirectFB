@@ -207,13 +207,13 @@ udlFlipRegion( CoreLayer             *layer,
 
 
 DisplayLayerFuncs cyberUnderlayFuncs = {
-     LayerDataSize:      udlLayerDataSize,
-     InitLayer:          udlInitLayer,
+     .LayerDataSize = udlLayerDataSize,
+     .InitLayer     = udlInitLayer,
 
-     TestRegion:         udlTestRegion,
-     SetRegion:          udlSetRegion,
-     RemoveRegion:       udlRemoveRegion,
-     FlipRegion:         udlFlipRegion
+     .TestRegion    = udlTestRegion,
+     .SetRegion     = udlSetRegion,
+     .RemoveRegion  = udlRemoveRegion,
+     .FlipRegion    = udlFlipRegion,
 };
 
 

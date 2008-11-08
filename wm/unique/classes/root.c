@@ -201,6 +201,6 @@ root_update( StretRegion     *region,
  * The root region is the desktop background.
  */
 const StretRegionClass unique_root_region_class = {
-     Update:   root_update
+     .Update = root_update,
 };
 

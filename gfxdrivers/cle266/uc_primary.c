@@ -168,9 +168,9 @@ osdSetRegion( CoreLayer                  *layer,
 }
 
 DisplayLayerFuncs ucPrimaryFuncs = {
-     InitLayer:          osdInitLayer,
+     .InitLayer  = osdInitLayer,
 
-     TestRegion:         osdTestRegion,
-     SetRegion:          osdSetRegion
+     .TestRegion = osdTestRegion,
+     .SetRegion  = osdSetRegion,
 };
 

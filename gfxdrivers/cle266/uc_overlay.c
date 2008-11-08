@@ -307,14 +307,14 @@ uc_ovl_set_input_field( CoreLayer *layer,
 }
 
 DisplayLayerFuncs ucOverlayFuncs = {
-    LayerDataSize:      uc_ovl_datasize,
-    InitLayer:          uc_ovl_init_layer,
-    SetRegion:          uc_ovl_set_region,
-    RemoveRegion:       uc_ovl_remove,
-    TestRegion:         uc_ovl_test_region,
-    FlipRegion:         uc_ovl_flip_region,
-    GetLevel:           uc_ovl_get_level,
-    SetLevel:           uc_ovl_set_level,
-    SetInputField:      uc_ovl_set_input_field,
-    SetColorAdjustment: uc_ovl_set_adjustment
+    .LayerDataSize      = uc_ovl_datasize,
+    .InitLayer          = uc_ovl_init_layer,
+    .SetRegion          = uc_ovl_set_region,
+    .RemoveRegion       = uc_ovl_remove,
+    .TestRegion         = uc_ovl_test_region,
+    .FlipRegion         = uc_ovl_flip_region,
+    .GetLevel           = uc_ovl_get_level,
+    .SetLevel           = uc_ovl_set_level,
+    .SetInputField      = uc_ovl_set_input_field,
+    .SetColorAdjustment = uc_ovl_set_adjustment,
 };

@@ -815,24 +815,24 @@ glxWrite( CoreSurfacePool       *pool,
 }
 
 const SurfacePoolFuncs glxSurfacePoolFuncs = {
-     PoolDataSize:       glxPoolDataSize,
-     PoolLocalDataSize:  glxPoolLocalDataSize,
-     AllocationDataSize: glxAllocationDataSize,
+     .PoolDataSize       = glxPoolDataSize,
+     .PoolLocalDataSize  = glxPoolLocalDataSize,
+     .AllocationDataSize = glxAllocationDataSize,
 
-     InitPool:           glxInitPool,
-     JoinPool:           glxJoinPool,
-     DestroyPool:        glxDestroyPool,
-     LeavePool:          glxLeavePool,
+     .InitPool           = glxInitPool,
+     .JoinPool           = glxJoinPool,
+     .DestroyPool        = glxDestroyPool,
+     .LeavePool          = glxLeavePool,
 
-     TestConfig:         glxTestConfig,
+     .TestConfig         = glxTestConfig,
 
-     AllocateBuffer:     glxAllocateBuffer,
-     DeallocateBuffer:   glxDeallocateBuffer,
+     .AllocateBuffer     = glxAllocateBuffer,
+     .DeallocateBuffer   = glxDeallocateBuffer,
 
-     Lock:               glxLock,
-     Unlock:             glxUnlock,
+     .Lock               = glxLock,
+     .Unlock             = glxUnlock,
 
-     Read:               glxRead,
-     Write:              glxWrite
+     .Read               = glxRead,
+     .Write              = glxWrite,
 };
 

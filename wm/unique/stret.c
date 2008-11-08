@@ -65,7 +65,7 @@ default_update( StretRegion     *region,
 }
 
 static const StretRegionClass default_class = {
-     Update:   default_update
+     .Update = default_update,
 };
 
 /**************************************************************************************************/

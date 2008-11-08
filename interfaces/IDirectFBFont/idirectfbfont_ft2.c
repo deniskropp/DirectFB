@@ -179,8 +179,8 @@ ft2UTF8DecodeText( CoreFont       *thiz,
 }
 
 static const CoreFontEncodingFuncs ft2UTF8Funcs = {
-     GetCharacterIndex:  ft2UTF8GetCharacterIndex,
-     DecodeText:         ft2UTF8DecodeText
+     .GetCharacterIndex = ft2UTF8GetCharacterIndex,
+     .DecodeText        = ft2UTF8DecodeText,
 };
 
 /**********************************************************************************************************************/
@@ -234,8 +234,8 @@ ft2Latin1DecodeText( CoreFont       *thiz,
 }
 
 static const CoreFontEncodingFuncs ft2Latin1Funcs = {
-     GetCharacterIndex:  ft2Latin1GetCharacterIndex,
-     DecodeText:         ft2Latin1DecodeText
+     .GetCharacterIndex = ft2Latin1GetCharacterIndex,
+     .DecodeText        = ft2Latin1DecodeText,
 };
 
 /**********************************************************************************************************************/

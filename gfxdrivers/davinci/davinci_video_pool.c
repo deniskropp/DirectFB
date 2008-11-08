@@ -374,20 +374,20 @@ videoUnlock( CoreSurfacePool       *pool,
 }
 
 const SurfacePoolFuncs davinciVideoSurfacePoolFuncs = {
-     PoolDataSize:       videoPoolDataSize,
-     PoolLocalDataSize:  videoPoolLocalDataSize,
-     AllocationDataSize: videoAllocationDataSize,
+     .PoolDataSize       = videoPoolDataSize,
+     .PoolLocalDataSize  = videoPoolLocalDataSize,
+     .AllocationDataSize = videoAllocationDataSize,
 
-     InitPool:           videoInitPool,
-     JoinPool:           videoJoinPool,
-     DestroyPool:        videoDestroyPool,
-     LeavePool:          videoLeavePool,
+     .InitPool           = videoInitPool,
+     .JoinPool           = videoJoinPool,
+     .DestroyPool        = videoDestroyPool,
+     .LeavePool          = videoLeavePool,
 
-     TestConfig:         videoTestConfig,
-     AllocateBuffer:     videoAllocateBuffer,
-     DeallocateBuffer:   videoDeallocateBuffer,
+     .TestConfig         = videoTestConfig,
+     .AllocateBuffer     = videoAllocateBuffer,
+     .DeallocateBuffer   = videoDeallocateBuffer,
 
-     Lock:               videoLock,
-     Unlock:             videoUnlock
+     .Lock               = videoLock,
+     .Unlock             = videoUnlock,
 };
 

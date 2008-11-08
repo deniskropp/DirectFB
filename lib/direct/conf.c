@@ -37,14 +37,14 @@
 
 
 static DirectConfig config = {
-     debug:                   false,
-     trace:                   true,
-     sighandler:              true,
+     .debug                 = false,
+     .trace                 = true,
+     .sighandler            = true,
 
-     fatal:                   DCFL_ASSERT,
-     fatal_break:             true,
-     thread_block_signals:    true,
-     thread_priority_scale:   100
+     .fatal                 = DCFL_ASSERT,
+     .fatal_break           = true,
+     .thread_block_signals  = true,
+     .thread_priority_scale = 100,
 };
 
 DirectConfig *direct_config       = &config;

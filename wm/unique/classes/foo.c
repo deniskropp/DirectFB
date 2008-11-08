@@ -226,7 +226,7 @@ foo_update( StretRegion     *region,
 }
 
 const StretRegionClass unique_foo_region_class = {
-     GetInput: foo_get_input,
-     Update:   foo_update
+     .GetInput = foo_get_input,
+     .Update   = foo_update,
 };
 

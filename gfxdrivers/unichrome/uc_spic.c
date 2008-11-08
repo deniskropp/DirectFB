@@ -184,10 +184,10 @@ uc_spic_flip_region( CoreLayer             *layer,
 }
 
 DisplayLayerFuncs ucSubpictureFuncs = {
-    LayerDataSize:      uc_spic_datasize,
-    InitLayer:          uc_spic_init_layer,
-    SetRegion:          uc_spic_set_region,
-    RemoveRegion:       uc_spic_remove,
-    TestRegion:         uc_spic_test_region,
-    FlipRegion:         uc_spic_flip_region,
+     .LayerDataSize = uc_spic_datasize,
+     .InitLayer     = uc_spic_init_layer,
+     .SetRegion     = uc_spic_set_region,
+     .RemoveRegion  = uc_spic_remove,
+     .TestRegion    = uc_spic_test_region,
+     .FlipRegion    = uc_spic_flip_region,
 };

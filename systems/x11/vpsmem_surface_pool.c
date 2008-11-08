@@ -400,22 +400,22 @@ vpsmemUnlock( CoreSurfacePool       *pool,
 }
 
 const SurfacePoolFuncs vpsmemSurfacePoolFuncs = {
-     PoolDataSize:       vpsmemPoolDataSize,
-     PoolLocalDataSize:  vpsmemPoolLocalDataSize,
-     AllocationDataSize: vpsmemAllocationDataSize,
+     .PoolDataSize       = vpsmemPoolDataSize,
+     .PoolLocalDataSize  = vpsmemPoolLocalDataSize,
+     .AllocationDataSize = vpsmemAllocationDataSize,
 
-     InitPool:           vpsmemInitPool,
-     JoinPool:           vpsmemJoinPool,
-     DestroyPool:        vpsmemDestroyPool,
-     LeavePool:          vpsmemLeavePool,
+     .InitPool           = vpsmemInitPool,
+     .JoinPool           = vpsmemJoinPool,
+     .DestroyPool        = vpsmemDestroyPool,
+     .LeavePool          = vpsmemLeavePool,
 
-     TestConfig:         vpsmemTestConfig,
-     AllocateBuffer:     vpsmemAllocateBuffer,
-     DeallocateBuffer:   vpsmemDeallocateBuffer,
+     .TestConfig         = vpsmemTestConfig,
+     .AllocateBuffer     = vpsmemAllocateBuffer,
+     .DeallocateBuffer   = vpsmemDeallocateBuffer,
 
-     MuckOut:            vpsmemMuckOut,
+     .MuckOut            = vpsmemMuckOut,
 
-     Lock:               vpsmemLock,
-     Unlock:             vpsmemUnlock
+     .Lock               = vpsmemLock,
+     .Unlock             = vpsmemUnlock,
 };
 

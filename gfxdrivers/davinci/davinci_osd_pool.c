@@ -375,20 +375,20 @@ osdUnlock( CoreSurfacePool       *pool,
 }
 
 const SurfacePoolFuncs davinciOSDSurfacePoolFuncs = {
-     PoolDataSize:       osdPoolDataSize,
-     PoolLocalDataSize:  osdPoolLocalDataSize,
-     AllocationDataSize: osdAllocationDataSize,
+     .PoolDataSize       = osdPoolDataSize,
+     .PoolLocalDataSize  = osdPoolLocalDataSize,
+     .AllocationDataSize = osdAllocationDataSize,
 
-     InitPool:           osdInitPool,
-     JoinPool:           osdJoinPool,
-     DestroyPool:        osdDestroyPool,
-     LeavePool:          osdLeavePool,
+     .InitPool           = osdInitPool,
+     .JoinPool           = osdJoinPool,
+     .DestroyPool        = osdDestroyPool,
+     .LeavePool          = osdLeavePool,
 
-     TestConfig:         osdTestConfig,
-     AllocateBuffer:     osdAllocateBuffer,
-     DeallocateBuffer:   osdDeallocateBuffer,
+     .TestConfig         = osdTestConfig,
+     .AllocateBuffer     = osdAllocateBuffer,
+     .DeallocateBuffer   = osdDeallocateBuffer,
 
-     Lock:               osdLock,
-     Unlock:             osdUnlock
+     .Lock               = osdLock,
+     .Unlock             = osdUnlock,
 };
 
