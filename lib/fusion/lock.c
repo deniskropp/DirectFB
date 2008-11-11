@@ -660,7 +660,7 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
           
           gettimeofday( &tv, NULL );
           
-          ts.tv_nsec = tv.tv_usec*1000 + (timeout%1000)*1000;
+          ts.tv_nsec = tv.tv_usec*1000 + (timeout%1000)*1000000;
           ts.tv_sec  = tv.tv_sec + timeout/1000 + ts.tv_nsec/1000000000;
           ts.tv_nsec = ts.tv_nsec % 1000000000;
           
