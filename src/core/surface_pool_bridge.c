@@ -393,7 +393,7 @@ dfb_surface_pool_bridges_transfer( CoreSurfaceBuffer     *buffer,
      int                           i;
      DFBRectangle                  rect;
      CoreSurface                  *surface;
-     CoreSurfacePoolBridge        *bridge;
+     CoreSurfacePoolBridge        *bridge = NULL;
      const SurfacePoolBridgeFuncs *funcs;
      CoreSurfacePoolTransfer      *transfer;
 
