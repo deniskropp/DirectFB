@@ -3173,18 +3173,30 @@ typedef enum {
  * Blend functions to use for source and destination blending
  */
 typedef enum {
-     DSBF_UNKNOWN            = 0,  /* */
-     DSBF_ZERO               = 1,  /* */
-     DSBF_ONE                = 2,  /* */
-     DSBF_SRCCOLOR           = 3,  /* */
-     DSBF_INVSRCCOLOR        = 4,  /* */
-     DSBF_SRCALPHA           = 5,  /* */
-     DSBF_INVSRCALPHA        = 6,  /* */
-     DSBF_DESTALPHA          = 7,  /* */
-     DSBF_INVDESTALPHA       = 8,  /* */
-     DSBF_DESTCOLOR          = 9,  /* */
-     DSBF_INVDESTCOLOR       = 10, /* */
-     DSBF_SRCALPHASAT        = 11  /* */
+     /*
+      * pixel color = sc * cf[sf] + dc * cf[df]
+      * pixel alpha = sa * af[sf] + da * af[df]
+      * sc = source color
+      * sa = source alpha
+      * dc = destination color
+      * da = destination alpha
+      * sf = source blend function
+      * df = destination blend function
+      * cf[x] = color factor for blend function x
+      * af[x] = alpha factor for blend function x
+      */
+     DSBF_UNKNOWN            = 0,  /*                             */
+     DSBF_ZERO               = 1,  /* cf:    0           af:    0 */
+     DSBF_ONE                = 2,  /* cf:    1           af:    1 */
+     DSBF_SRCCOLOR           = 3,  /* cf:   sc           af:   sa */
+     DSBF_INVSRCCOLOR        = 4,  /* cf: 1-sc           af: 1-sa */
+     DSBF_SRCALPHA           = 5,  /* cf:   sa           af:   sa */
+     DSBF_INVSRCALPHA        = 6,  /* cf: 1-sa           af: 1-sa */
+     DSBF_DESTALPHA          = 7,  /* cf:   da           af:   da */
+     DSBF_INVDESTALPHA       = 8,  /* cf: 1-da           af: 1-da */
+     DSBF_DESTCOLOR          = 9,  /* cf:   dc           af:   da */
+     DSBF_INVDESTCOLOR       = 10, /* cf: 1-dc           af: 1-da */
+     DSBF_SRCALPHASAT        = 11, /* cf: min(sa, 1-da)  af:    1 */
 } DFBSurfaceBlendFunction;
 
 /*
