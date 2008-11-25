@@ -635,7 +635,17 @@ fd_messenger_event_dispatch( CoreMessengerEvent *event,
 
      direct_list_append( &event->dispatches, &dispatch->link );
 
+     /* we need to determine the number of listeners first */
+     direct_list_foreach( node, event->nodes ) {
 
+          D_MAGIC_ASSERT( node, EventNode );
+          D_ASSERT( node->count > 0 );
+          D_ASSERT( node->event == event );
+
+          if (node->listeners) {
+               dispatch->count++;
+          }
+     }
 
      direct_list_foreach( node, event->nodes ) {
           CoreMessengerPort *port;
@@ -648,14 +658,7 @@ fd_messenger_event_dispatch( CoreMessengerEvent *event,
 
           D_MAGIC_ASSERT( port, CoreMessengerPort );
 
-          /* Lock port. */
-/*          if (fusion_skirmish_prevail( &port->lock )) {
-               D_BUG( "could not lock port" );
-               continue;
-          }
-*/
           if (node->listeners) {
-               dispatch->count++;
 
                if (!node->next_dispatch)
                     node->next_dispatch = dispatch;
@@ -665,9 +668,6 @@ fd_messenger_event_dispatch( CoreMessengerEvent *event,
 
                dispatched = true;
           }
-
-          /* Unlock port. */
-//          fusion_skirmish_dismiss( &port->lock );
      }
 
 
