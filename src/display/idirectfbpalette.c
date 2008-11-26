@@ -267,7 +267,7 @@ IDirectFBPalette_SetEntriesYUV( IDirectFBPalette  *thiz,
           direct_memcpy( palette->entries_yuv + offset, entries, num_entries * sizeof(DFBColorYUV));
 
           for (i=offset; i<offset+num_entries; i++) {
-               palette->entries_yuv[i].a = palette->entries[i].a;
+               palette->entries[i].a = palette->entries_yuv[i].a;
 
                YCBCR_TO_RGB( palette->entries_yuv[i].y, palette->entries_yuv[i].u, palette->entries_yuv[i].v,
                              palette->entries[i].r, palette->entries[i].g, palette->entries[i].b );
