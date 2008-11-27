@@ -238,7 +238,11 @@ direct_modules_explore_directory( DirectModuleDir *directory )
           module->directory = directory;
           module->dynamic   = true;
           module->file      = D_STRDUP( entry->d_name );
-
+          if (!module->file) {
+               D_MAGIC_CLEAR( module );
+               D_FREE( module );
+               continue;
+          }
 
           directory->loading = module;
 
@@ -427,6 +431,10 @@ open_module( DirectModuleEntry *module )
      void            *handle;
       
      D_MAGIC_ASSERT( module, DirectModuleEntry );
+
+     D_ASSERT( module->file != NULL );
+     D_ASSERT( module->directory != NULL );
+     D_ASSERT( module->directory->path != NULL );
 
      directory = module->directory;
      path      = directory->path;
