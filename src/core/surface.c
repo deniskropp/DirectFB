@@ -165,6 +165,7 @@ dfb_surface_create( CoreDFB                  *core,
                direct_memcpy( surface->config.preallocated, config->preallocated, sizeof(config->preallocated) );
 
                type |= CSTF_PREALLOCATED;
+               surface->config.caps &= ~DSCAPS_SYSTEMONLY;
           }
      }
 
