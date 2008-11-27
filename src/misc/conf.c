@@ -296,6 +296,32 @@ static void config_values_free( FusionVector *vector )
      fusion_vector_init( vector, 2, NULL );
 }
 
+static int config_read_cmdline( char *cmdbuf, int size, FILE *f )
+{
+     int ret = 0;
+     int len = 0;
+     
+     ret = fread( cmdbuf, 1, 1, f );
+       
+     /* empty dividing 0 */
+     if( ret==1 && *cmdbuf==0 ) {
+          ret = fread( cmdbuf, 1, 1, f );
+     }
+
+     while(ret==1 && len<(size-1)) {
+          len++;
+          ret = fread( ++cmdbuf, 1, 1, f );
+          if( *cmdbuf == 0 )
+               break;
+     }
+     
+     if( len ) {
+          cmdbuf[len]=0;
+     }
+
+     return  len != 0;
+}
+
 /*
  * The following function isn't used because the configuration should
  * only go away if the application is completely terminated. In that case
@@ -1563,7 +1589,8 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
      char *prog = NULL;
      char *session;
      char *dfbargs;
-
+     char  cmdbuf[1024];
+     
      if (dfb_config)
           return DFB_OK;
 
@@ -1594,8 +1621,30 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
                prog++;
           else
                prog = (*argv)[0];
+     }
+     else {
+          /* if we didn't receive argc/argv we try the proc system */
+          FILE *f;
+          int   len;
 
-          /* Strip lt- prefix. */
+          f = fopen( "/proc/self/cmdline", "r" );
+          if (f) {
+               len = fread( cmdbuf, 1, 1023, f );
+               if (len) {
+                    cmdbuf[len] = 0; /* in case of no arguments, or long program name */
+                    prog = strrchr( cmdbuf, '/' );
+                    if (prog)
+                         prog++;
+                    else
+                         prog = cmdbuf;
+               }
+               fprintf(stderr,"commandline read: %s\n", prog );
+               fclose( f );
+          }
+     }
+
+     /* Strip lt- prefix. */
+     if (prog) {
           if (prog[0] == 'l' && prog[1] == 't' && prog[2] == '-')
             prog += 3;
      }
@@ -1672,6 +1721,34 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
 
                     *argc -= k;
                }
+          }
+     }
+     else if (prog) {
+          /* we have prog, so we try again the proc filesystem */
+          char *p;
+          FILE *f;
+          int   len;
+
+          len = strlen( cmdbuf );
+          f = fopen( "/proc/self/cmdline", "r" );
+          if (f) {
+               len = fread( cmdbuf, 1, len, f ); /* skip arg 0 */
+               while( config_read_cmdline( cmdbuf, 1024, f ) ) {
+                    fprintf(stderr,"commandline read: %s\n", cmdbuf );
+                    if (strcmp (cmdbuf, "--dfb-help") == 0) {
+                         print_config_usage();
+                         exit(1);
+                    }
+
+                    if (strncmp (cmdbuf, "--dfb:", 6) == 0) {
+                         ret = parse_args( cmdbuf + 6 );
+                         if (ret) {
+                              fclose( f );
+                              return ret;
+                         }
+                    }
+               }
+               fclose( f );
           }
      }
 
