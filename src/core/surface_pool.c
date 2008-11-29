@@ -468,7 +468,8 @@ dfb_surface_pools_allocate( CoreSurfaceBuffer       *buffer,
                  (surface->type & CSTF_CURSOR)   ? "CURSOR "  : "",
                  (surface->type & CSTF_FONT)     ? "FONT "    : "",
                  (surface->type & CSTF_INTERNAL) ? "INTERNAL" : "",
-                 (surface->type & CSTF_EXTERNAL) ? "EXTERNAL" : "" );
+                 (surface->type & CSTF_EXTERNAL) ? "EXTERNAL" : "" ,
+                 (surface->type & CSTF_PREALLOCATED) ? "PREALLOCATED" : "" );
 
      D_ASSERT( accessor >= CSAID_CPU );
      D_ASSUME( accessor < _CSAID_NUM );
