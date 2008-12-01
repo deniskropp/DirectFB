@@ -1725,7 +1725,6 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
      }
      else if (prog) {
           /* we have prog, so we try again the proc filesystem */
-          char *p;
           FILE *f;
           int   len;
 
