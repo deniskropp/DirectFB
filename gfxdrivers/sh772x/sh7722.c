@@ -49,7 +49,7 @@ DFB_GRAPHICS_DRIVER( sh7722 )
 
 #include "sh7723_blt.h"
 
-#ifdef FBDEV_SH772X_SUPPORT
+#ifdef SH772X_FBDEV_SUPPORT
 #include <linux/fb.h>
 #include <sys/mman.h>
 #endif
@@ -187,7 +187,7 @@ driver_init_driver( CoreGraphicsDevice  *device,
 
      /* Get virtual address for the LCD buffer in slaves here,
         master does it in driver_init_device(). */
-#ifndef FBDEV_SH772X_SUPPORT
+#ifndef SH772X_FBDEV_SUPPORT
      if (!dfb_core_is_master( core ))
           sdrv->lcd_virt = dfb_gfxcard_memory_virtual( device, sdev->lcd_offset );
 #endif
@@ -237,7 +237,7 @@ driver_init_device( CoreGraphicsDevice *device,
      /*
       * Setup LCD buffer.
       */
-#ifdef FBDEV_SH772X_SUPPORT
+#ifdef SH772X_FBDEV_SUPPORT
      { 
      	  struct fb_fix_screeninfo fsi;
      	  struct fb_var_screeninfo vsi;
@@ -387,7 +387,7 @@ driver_init_device( CoreGraphicsDevice *device,
      /* Disable all multi windows. */
      SH7722_SETREG32( sdrv, BMWCR0, SH7722_GETREG32( sdrv, BMWCR0 ) & ~0xf );
 
-#ifndef FBDEV_SH772X_SUPPORT
+#ifndef SH772X_FBDEV_SUPPORT
      /* Clear LCD buffer. */
      switch (sdev->lcd_format) {
           case DSPF_RGB16:
@@ -432,7 +432,7 @@ driver_init_device( CoreGraphicsDevice *device,
      SH7722_SETREG32( sdrv, BDAYR, sdev->lcd_phys & 0xfffffffc );
      SH7722_SETREG32( sdrv, BDMWR, sdev->lcd_pitch & 0x0003fffc );
 
-#ifndef FBDEV_SH772X_SUPPORT
+#ifndef SH772X_FBDEV_SUPPORT
      /* Setup LCD controller to show the buffer. */
      sh7722_lcd_setup( sdrv, sdev->lcd_width, sdev->lcd_height,
                        sdev->lcd_phys, sdev->lcd_pitch, sdev->lcd_format, false );

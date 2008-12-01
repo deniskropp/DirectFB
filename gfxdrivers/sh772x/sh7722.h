@@ -9,7 +9,7 @@
 #include "sh7722_types.h"
 
 
-#define FBDEV_SH772X_SUPPORT
+#define SH772X_FBDEV_SUPPORT
 // #define JPU_SUPPORT
 
 /******************************************************************************
