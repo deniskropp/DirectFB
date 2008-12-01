@@ -459,17 +459,17 @@ dfb_surface_pools_allocate( CoreSurfaceBuffer       *buffer,
 
      D_DEBUG_AT( Core_SurfacePool, "%s( %p, 0x%x )\n", __FUNCTION__, buffer, access );
 
-     D_DEBUG_AT( Core_SurfacePool, " -> %dx%d %s - %s%s%s%s%s%s%s\n",
+     D_DEBUG_AT( Core_SurfacePool, " -> %dx%d %s - %s%s%s%s%s%s%s%s\n",
                  surface->config.size.w, surface->config.size.h,
                  dfb_pixelformat_name( surface->config.format ),
-                 (surface->type & CSTF_SHARED)   ? "SHARED "  : "PRIVATE ",
-                 (surface->type & CSTF_LAYER)    ? "LAYER "   : "",
-                 (surface->type & CSTF_WINDOW)   ? "WINDOW "  : "",
-                 (surface->type & CSTF_CURSOR)   ? "CURSOR "  : "",
-                 (surface->type & CSTF_FONT)     ? "FONT "    : "",
-                 (surface->type & CSTF_INTERNAL) ? "INTERNAL" : "",
-                 (surface->type & CSTF_EXTERNAL) ? "EXTERNAL" : "" ,
-                 (surface->type & CSTF_PREALLOCATED) ? "PREALLOCATED" : "" );
+                 (surface->type & CSTF_SHARED)       ? "SHARED"        : "PRIVATE",
+                 (surface->type & CSTF_LAYER)        ? " LAYER"        : "",
+                 (surface->type & CSTF_WINDOW)       ? " WINDOW"       : "",
+                 (surface->type & CSTF_CURSOR)       ? " CURSOR"       : "",
+                 (surface->type & CSTF_FONT)         ? " FONT"         : "",
+                 (surface->type & CSTF_INTERNAL)     ? " INTERNAL"     : "",
+                 (surface->type & CSTF_EXTERNAL)     ? " EXTERNAL"     : "",
+                 (surface->type & CSTF_PREALLOCATED) ? " PREALLOCATED" : "" );
 
      D_ASSERT( accessor >= CSAID_CPU );
      D_ASSUME( accessor < _CSAID_NUM );
