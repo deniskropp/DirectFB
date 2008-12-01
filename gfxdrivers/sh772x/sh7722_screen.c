@@ -65,13 +65,15 @@ sh7722GetScreenSize( CoreScreen *screen,
                   int        *ret_width,
                   int        *ret_height )
 {
+	 SH7722DriverData *sdrv = driver_data;
+	 SH7722DeviceData *sdev = sdrv->dev;
      D_DEBUG_AT( SH7722_Screen, "%s()\n", __FUNCTION__ );
 
      D_ASSERT( ret_width != NULL );
      D_ASSERT( ret_height != NULL );
 
-     *ret_width  = SH7722_LCD_WIDTH;
-     *ret_height = SH7722_LCD_HEIGHT;
+     *ret_width  = sdev->lcd_width;
+     *ret_height = sdev->lcd_height;
 
      return DFB_OK;
 }

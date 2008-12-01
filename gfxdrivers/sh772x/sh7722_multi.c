@@ -61,6 +61,8 @@ sh7722InitLayer( CoreLayer                  *layer,
                  DFBDisplayLayerConfig      *config,
                  DFBColorAdjustment         *adjustment )
 {
+	 SH7722DriverData *sdrv = driver_data;
+	 SH7722DeviceData *sdev = sdrv->dev;
      D_DEBUG_AT( SH7722_Layer, "%s()\n", __FUNCTION__ );
 
      /* set capabilities and type */
@@ -74,8 +76,8 @@ sh7722InitLayer( CoreLayer                  *layer,
      /* fill out the default configuration */
      config->flags       = DLCONF_WIDTH       | DLCONF_HEIGHT |
                            DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE | DLCONF_OPTIONS;
-     config->width       = SH7722_LCD_WIDTH;
-     config->height      = SH7722_LCD_HEIGHT;
+     config->width       = sdev->lcd_width;
+     config->height      = sdev->lcd_height;
      config->pixelformat = DSPF_NV16;
      config->buffermode  = DLBM_FRONTONLY;
      config->options     = DLOP_NONE;

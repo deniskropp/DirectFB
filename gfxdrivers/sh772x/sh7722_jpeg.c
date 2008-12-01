@@ -324,6 +324,10 @@ Probe( IDirectFBImageProvider_ProbeContext *ctx )
 {
      SH7722DeviceData *sdev = dfb_gfxcard_get_device_data();
 
+#ifndef JPU_SUPPORT
+     return DFB_UNSUPPORTED;
+#endif
+
      if (sdev->sh772x != 7722)
           return DFB_UNSUPPORTED;
 

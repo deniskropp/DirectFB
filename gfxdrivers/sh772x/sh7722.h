@@ -9,6 +9,9 @@
 #include "sh7722_types.h"
 
 
+#define FBDEV_SH772X_SUPPORT
+// #define JPU_SUPPORT
+
 /******************************************************************************
  * Platform specific values (FIXME: add runtime config)
  */

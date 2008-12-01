@@ -63,6 +63,7 @@ sh7722InitLayer( CoreLayer                  *layer,
                  DFBColorAdjustment         *adjustment )
 {
      SH7722DriverData *sdrv = driver_data;
+     SH7722DeviceData *sdev = sdrv->dev;
      SH7722LayerData  *data = layer_data;
 
      D_DEBUG_AT( SH7722_Layer, "%s()\n", __FUNCTION__ );
@@ -82,8 +83,8 @@ sh7722InitLayer( CoreLayer                  *layer,
      /* fill out the default configuration */
      config->flags       = DLCONF_WIDTH       | DLCONF_HEIGHT |
                            DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE | DLCONF_OPTIONS;
-     config->width       = SH7722_LCD_WIDTH;
-     config->height      = SH7722_LCD_HEIGHT;
+     config->width       = sdev->lcd_width;;
+     config->height      = sdev->lcd_height;
      config->pixelformat = DSPF_RGB16;
      config->buffermode  = DLBM_FRONTONLY;
      config->options     = DLOP_ALPHACHANNEL;
@@ -222,11 +223,11 @@ sh7722SetRegion( CoreLayer                  *layer,
           int cw = config->width;
           int ch = config->height;
 
-          if (config->dest.x + cw > SH7722_LCD_WIDTH)
-               cw = SH7722_LCD_WIDTH - config->dest.x;
+          if (config->dest.x + cw > sdev->lcd_width)
+               cw = sdev->lcd_width - config->dest.x;
 
-          if (config->dest.y + ch > SH7722_LCD_HEIGHT)
-               ch = SH7722_LCD_HEIGHT - config->dest.y;
+          if (config->dest.y + ch > sdev->lcd_height)
+               ch = sdev->lcd_height - config->dest.y;
 
           /* Set width and height. */
           SH7722_SETREG32( sdrv, BSSZR(n), (ch << 16) | cw );
@@ -292,6 +293,7 @@ sh7722SetRegion( CoreLayer                  *layer,
                     break;
           }
 
+#if 0
           /* Set swapping. */
           switch (config->format) {
                case DSPF_LUT8:
@@ -316,6 +318,7 @@ sh7722SetRegion( CoreLayer                  *layer,
                default:
                     break;
           }
+#endif
 
           SH7722_SETREG32( sdrv, BSIFR(n), tBSIFR );
           SH7722_SETREG32( sdrv, BSWPR, tBSWPR );

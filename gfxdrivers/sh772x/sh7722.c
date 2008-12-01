@@ -49,6 +49,11 @@ DFB_GRAPHICS_DRIVER( sh7722 )
 
 #include "sh7723_blt.h"
 
+#ifdef FBDEV_SH772X_SUPPORT
+#include <linux/fb.h>
+#include <sys/mman.h>
+#endif
+
 
 D_DEBUG_DOMAIN( SH7722_Driver, "SH7722/Driver", "Renesas SH7722 Driver" );
 
@@ -182,8 +187,10 @@ driver_init_driver( CoreGraphicsDevice  *device,
 
      /* Get virtual address for the LCD buffer in slaves here,
         master does it in driver_init_device(). */
+#ifndef FBDEV_SH772X_SUPPORT
      if (!dfb_core_is_master( core ))
           sdrv->lcd_virt = dfb_gfxcard_memory_virtual( device, sdev->lcd_offset );
+#endif
 
 
      /* Register primary screen. */
@@ -230,6 +237,64 @@ driver_init_device( CoreGraphicsDevice *device,
      /*
       * Setup LCD buffer.
       */
+#ifdef FBDEV_SH772X_SUPPORT
+     { 
+     	  struct fb_fix_screeninfo fsi;
+     	  struct fb_var_screeninfo vsi;
+		  int fbdev;
+
+		  if ((fbdev = open("/dev/fb", O_RDONLY)) < 0) {
+			   D_ERROR( "SH7722/Driver: Can't open fbdev to get LCDC info!\n" );
+			   return DFB_FAILURE;
+		  }
+
+		  if (ioctl(fbdev, FBIOGET_FSCREENINFO, &fsi) < 0) {
+			   D_ERROR( "SH7722/Driver: FBIOGET_FSCREEINFO failed.\n" );
+			   close(fbdev);
+			   return DFB_FAILURE;
+		  }
+
+		  if (ioctl(fbdev, FBIOGET_VSCREENINFO, &vsi) < 0) {
+			   D_ERROR( "SH7722/Driver: FBIOGET_VSCREEINFO failed.\n" );
+			   close(fbdev);
+			   return DFB_FAILURE;
+		  }
+
+		  sdev->lcd_width  = vsi.xres;
+		  sdev->lcd_height = vsi.yres;
+		  sdev->lcd_pitch  = fsi.line_length;
+		  sdev->lcd_size   = fsi.smem_len;
+		  sdev->lcd_offset = 0;
+		  sdev->lcd_phys   = fsi.smem_start;
+#if 0
+		  sdrv->lcd_virt   = mmap(NULL, fsi.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED,
+				  				  fbdev, 0);
+		  if (sdrv->lcd_virt == MAP_FAILED) {
+			   D_PERROR( "SH7722/Driver: mapping fbdev failed.\n" );
+			   close(fbdev);
+			   return DFB_FAILURE;
+		  }
+
+          /* Clear LCD buffer. */
+          switch (sdev->lcd_format) {
+               case DSPF_RGB16:
+                    memset( (void*) sdrv->lcd_virt, 0x00, sdev->lcd_height * sdev->lcd_pitch );
+                    break;
+
+               case DSPF_NV16:
+                    memset( (void*) sdrv->lcd_virt, 0x10, sdev->lcd_height * sdev->lcd_pitch );
+                    memset( (void*) sdrv->lcd_virt + sdev->lcd_height * sdev->lcd_pitch, 0x80, sdev->lcd_height * sdev->lcd_pitch );
+                    break;
+
+               default:
+                    D_BUG( "unsupported format" );
+                    return DFB_BUG;
+          }
+#endif
+
+		  close(fbdev);
+     }     
+#else
      sdev->lcd_width  = SH7722_LCD_WIDTH;
      sdev->lcd_height = SH7722_LCD_HEIGHT;
      sdev->lcd_pitch  = (DFB_BYTES_PER_LINE( sdev->lcd_format, sdev->lcd_width ) + 0xf) & ~0xf;
@@ -246,6 +311,7 @@ driver_init_device( CoreGraphicsDevice *device,
      /* Get virtual addresses for LCD buffer in master here,
         slaves do it in driver_init_driver(). */
      sdrv->lcd_virt = dfb_gfxcard_memory_virtual( device, sdev->lcd_offset );
+#endif
 
      D_INFO( "SH7722/LCD: Allocated %dx%d %s Buffer (%d bytes) at 0x%08lx (%p)\n",
              sdev->lcd_width, sdev->lcd_height, dfb_pixelformat_name(sdev->lcd_format),
@@ -321,6 +387,7 @@ driver_init_device( CoreGraphicsDevice *device,
      /* Disable all multi windows. */
      SH7722_SETREG32( sdrv, BMWCR0, SH7722_GETREG32( sdrv, BMWCR0 ) & ~0xf );
 
+#ifndef FBDEV_SH772X_SUPPORT
      /* Clear LCD buffer. */
      switch (sdev->lcd_format) {
           case DSPF_RGB16:
@@ -336,6 +403,7 @@ driver_init_device( CoreGraphicsDevice *device,
                D_BUG( "unsupported format" );
                return DFB_BUG;
      }
+#endif
 
      /*
       * TODO: Make LCD Buffer format and primary BEU format runtime configurable.
@@ -364,9 +432,11 @@ driver_init_device( CoreGraphicsDevice *device,
      SH7722_SETREG32( sdrv, BDAYR, sdev->lcd_phys & 0xfffffffc );
      SH7722_SETREG32( sdrv, BDMWR, sdev->lcd_pitch & 0x0003fffc );
 
+#ifndef FBDEV_SH772X_SUPPORT
      /* Setup LCD controller to show the buffer. */
      sh7722_lcd_setup( sdrv, sdev->lcd_width, sdev->lcd_height,
                        sdev->lcd_phys, sdev->lcd_pitch, sdev->lcd_format, false );
+#endif
 
      /* Initialize BEU lock. */
      fusion_skirmish_init( &sdev->beu_lock, "BEU", dfb_core_world(sdrv->core) );

@@ -21,6 +21,7 @@
 #include <linux/miscdevice.h>
 #include <linux/mm.h>
 #include <linux/sched.h>
+#include <linux/dma-mapping.h>
 
 #include <asm/io.h>
 #include <asm/uaccess.h>
@@ -173,6 +174,10 @@
 
 /**********************************************************************************************************************/
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+#  define USE_DMA_ALLOC_COHERENT
+#endif
+
 static DECLARE_WAIT_QUEUE_HEAD( wait_idle );
 static DECLARE_WAIT_QUEUE_HEAD( wait_next );
 
@@ -182,6 +187,10 @@ static struct timeval       base_time;
 
 static struct page         *shared_page;
 static unsigned int         shared_order;
+
+#ifdef USE_DMA_ALLOC_COHERENT
+static unsigned long	 	shared_phys;
+#endif
 
 #ifdef SH7722GFX_IRQ_POLLER
 static int                  stop_poller;
@@ -241,7 +250,11 @@ sh7722_reset( SH772xGfxSharedArea *shared )
 
      memset( (void*) shared, 0, sizeof(SH772xGfxSharedArea) );
 
+#ifdef USE_DMA_ALLOC_COHERENT
+     shared->buffer_phys = shared_phys;
+#else
      shared->buffer_phys = virt_to_phys(&shared->buffer[0]);
+#endif
      shared->jpeg_phys   = virt_to_phys(jpeg_area);
      shared->magic       = SH7722GFX_SHARED_MAGIC;
 
@@ -977,7 +990,11 @@ sh7722gfx_mmap( struct file           *file,
      /* Select uncached access. */
      vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 9)
+#ifdef USE_DMA_ALLOC_COHERENT
+	 return remap_pfn_range( vma, vma->vm_start, 
+			 				 (__u32)shared >> PAGE_SHIFT, 
+							 size, vma->vm_page_prot );
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 9)
      return remap_pfn_range( vma, vma->vm_start,
                              virt_to_phys((void*)shared) >> PAGE_SHIFT,
                              size, vma->vm_page_prot );
@@ -1023,7 +1040,15 @@ sh7722_init( void )
      }
 
      /* Allocate and initialize the shared area. */
-     shared_order = get_order(sizeof(SH772xGfxSharedArea));
+#ifdef USE_DMA_ALLOC_COHERENT
+	 shared		  = dma_alloc_coherent( NULL, sizeof(SH772xGfxSharedArea), 
+			 						    (dma_addr_t*)&shared_phys, GFP_KERNEL );
+
+     printk( KERN_INFO "sh7722gfx: shared area at %p [%lx/%lx] using %d bytes\n",
+             shared, virt_to_phys(shared), shared_phys, sizeof(SH772xGfxSharedArea) );
+
+#else
+     shared_order = get_order(PAGE_ALIGN(sizeof(SH772xGfxSharedArea)));
      shared_page  = alloc_pages( GFP_DMA | GFP_KERNEL, shared_order );
      shared       = ioremap( virt_to_phys( page_address(shared_page) ),
                              PAGE_ALIGN(sizeof(SH772xGfxSharedArea)) );
@@ -1033,6 +1058,7 @@ sh7722_init( void )
 
      printk( KERN_INFO "sh7722gfx: shared area (order %d) at %p [%lx] using %d bytes\n",
              shared_order, shared, virt_to_phys(shared), sizeof(SH772xGfxSharedArea) );
+#endif
 
 
      /* Allocate and initialize the JPEG area. */
@@ -1076,6 +1102,7 @@ sh7722_init( void )
           goto error_jpu;
      }
 
+#if 0
      /* Register the VEU interrupt handler. */
      ret = request_irq( SH7722_VEU_IRQ, sh7722_veu_irq, IRQF_DISABLED, "VEU", (void*) shared );
      if (ret) {
@@ -1083,6 +1110,7 @@ sh7722_init( void )
                   __FUNCTION__, SH7722_VEU_IRQ, ret );
           goto error_veu;
      }
+#endif
 
      sh7722_reset( shared );
 
@@ -1151,9 +1179,14 @@ sh7722_exit( void )
      __free_pages( jpeg_page, jpeg_order );
 
 
+#ifdef USE_DMA_ALLOC_COHERENT
+	 dma_free_coherent( NULL, sizeof(SH772xGfxSharedArea), 
+			 			(void*)shared, (dma_addr_t)shared_phys );
+#else
      for (i=0; i<1<<shared_order; i++)
           ClearPageReserved( shared_page + i );
 
      __free_pages( shared_page, shared_order );
+#endif
 }
 
