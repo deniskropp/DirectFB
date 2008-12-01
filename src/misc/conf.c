@@ -148,6 +148,8 @@ static const char *config_usage =
      "                                 Matrox cable type (default=composite)\n"
      "  h3600-device=<device>          Use this device for the H3600 TS driver\n"
      "  mut-device=<device>            Use this device for the MuTouch driver\n"
+     "  zytronic-device=<device>       Use this device for the Zytronic driver\n"
+     "  elo-device=<device>            Use this device for the Elo driver\n"
      "  penmount-device=<device>       Use this device for the PenMount driver\n"
      "  linux-input-devices=<device>[[,<device>]...]\n"
      "                                 Use these devices for the Linux Input driver\n"
@@ -1521,6 +1523,30 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR( "DirectFB/Config: No MuTouch device specified!\n" );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "zytronic-device" ) == 0) {
+          if (value) {
+               if (dfb_config->zytronic_device)
+                    D_FREE( dfb_config->zytronic_device );
+
+               dfb_config->zytronic_device = D_STRDUP( value );
+          }
+          else {
+               D_ERROR( "DirectFB/Config: No Zytronic device specified!\n" );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "elo-device" ) == 0) {
+          if (value) {
+               if (dfb_config->elo_device)
+                    D_FREE( dfb_config->elo_device );
+
+               dfb_config->elo_device = D_STRDUP( value );
+          }
+          else {
+               D_ERROR( "DirectFB/Config: No Elo device specified!\n" );
                return DFB_INVARG;
           }
      } else

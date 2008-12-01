@@ -61,13 +61,13 @@
 
 DFB_INPUT_DRIVER( elo )
 
-#define elo_REPORT_SIZE		5
-#define elo_PACKET_SIZE		10
-#define elo_DEVICE		"/dev/ttyS0"
-#define elo_SCREENWIDTH		800
-#define elo_SCREENHEIGHT	600
-#define elo_MINX		0
-#define elo_MINY		0
+#define elo_REPORT_SIZE    5
+#define elo_PACKET_SIZE    10
+#define elo_DEVICE         "/dev/touchscreen"
+#define elo_SCREENWIDTH    4096
+#define elo_SCREENHEIGHT   4096
+#define elo_MINX           0
+#define elo_MINY           0
 
 
 /* Mode 1 Bit Definitions */
@@ -96,6 +96,14 @@ typedef struct __eloData__ {
   unsigned char action;
 } eloData;
 
+static inline void __mdelay(unsigned int msec)
+{
+  struct timespec delay;
+
+  delay.tv_sec = 0;
+  delay.tv_nsec = msec * 1000000;
+  nanosleep (&delay, NULL);
+}
 
 // Write a 10-byte character packet to the touch device.
 //
@@ -182,6 +190,8 @@ static void tty_rawmode(int fd, int set)
 {
   static struct termio tbuf, termio_save;
 
+  int ret;
+
   if(set) {
     ioctl(fd, TCGETA, &termio_save);
     tbuf=termio_save;
@@ -195,10 +205,12 @@ static void tty_rawmode(int fd, int set)
 
     tbuf.c_cflag = B9600|CS8|CLOCAL|CREAD;  /* Set baud & 1-char read mode */
 
-    ioctl(fd, TCSETAF, &tbuf);
+    ret = ioctl(fd, TCSETAF, &tbuf);
+    D_INFO("Elo:tty_rawmode ioctl= %d\n",ret);
   } else
     ioctl(fd, TCSETAF, &termio_save);
 }
+
 // Set scaling info to touch device. Axis can be either 'X', 'Y', or 'Z'.
 //
 static int elo_set_scale(int fd, unsigned char axis, short low, short high)
@@ -220,17 +232,18 @@ static int elo_set_scale(int fd, unsigned char axis, short low, short high)
   while(1) {
     elo_putbuf(fd, packet);
 
-    if(!(ptr=elo_getbuf(fd)))
-      return -2;
-    if(!strncmp("A0000", (char*)ptr, 5))
+    int ret = elo_check_ack(fd);
+    if( ret == 1 )      // OK
       return 0;
+    if( ret == 0 )      // No receive 
+      return -2;
   }
 }
 // Set touch screen response packet mode (see #ifdefs in beginning of file).
 //
 static int elo_set_mode(int fd, unsigned char mode1, unsigned char mode2)
 {
-  unsigned char packet[8], *ptr;
+  unsigned char packet[8];
 
   /* create packet */
   memset(packet, 0, 8);
@@ -242,23 +255,52 @@ static int elo_set_mode(int fd, unsigned char mode1, unsigned char mode2)
   while(1) {
     elo_putbuf(fd, packet);
 
-    if(!(ptr=elo_getbuf(fd)))
-      return -2;
-    if(!strncmp("A0000", (char*)ptr, 5))
+    int ret = elo_check_ack(fd);
+    if( ret == 1 )      // OK
       return 0;
+    if( ret == 0 )      // No receive 
+      return -2;
+    
   }
 }
-// Wait for acknowledgment. Returns 0 if no packet received or 1 for success.
+// Wait for acknowledgment. Returns 0 if no packet received or 1 for success or 2 for fail.
 static int elo_check_ack(int fd)
 {
-  return elo_getbuf(fd)?1:0;
+  unsigned char buf[100];
+  int i;
+
+
+  __mdelay(100);
+  fd_set set;
+  struct timeval timeout={0, 100000};  /* 0.1 seconds */
+  FD_ZERO(&set);
+  FD_SET(fd, &set);
+  if(!select(fd+1, &set, NULL, NULL, &timeout)) {
+    D_INFO("Elo:elo_check_ack NO PACKET\n");
+    return 0;
+  }
+  memset(buf, 0, sizeof(buf));
+  ssize_t nb = read( fd, buf, sizeof(buf)-1);
+  if( nb >= 0) {
+    for( i = 0; i < nb; i++ ) {
+      if( buf[i] < 0x20 )
+        buf[i] = 0x20;
+    }
+    buf[nb] = '\0';     /* buf now look as a string */
+    char* pt = strstr( buf, "A0000");
+    if ( pt != NULL ) {
+      D_INFO("Elo:elo_check_ack nb= %d ACK OK\n", nb);
+      
+      return 1;
+    }
+  }
+  D_INFO("Elo:elo_check_ack nb= %d ACK KO\n", nb);
+  return 2;
 }
 // Reset the touch-screen interface.
 //
 static int elo_reset_touch(int fd)
 {
-  fd_set set;
-  struct timeval timeout={0, 100000};  /* 0.1 seconds */
   unsigned char packet[8];
 
   /* Send reset command */
@@ -268,11 +310,6 @@ static int elo_reset_touch(int fd)
   elo_putbuf(fd, packet);
 
   /* Wait for response */
-  FD_ZERO(&set);
-  FD_SET(fd, &set);
-  if(!select(fd+1, &set, NULL, NULL, &timeout))
-    return -1;  /* no communications */
-
   if(!elo_check_ack(fd))
     return -1;  /* no valid packet received */
 
@@ -289,7 +326,7 @@ static int elo_reset_touch(int fd)
   return 0;
 }
 
-static int eloOpenDevice(const char *device)
+static int eloOpenDevice(unsigned char *device)
 {
   int fd;
   int res;
@@ -387,11 +424,16 @@ static void *eloTouchEventThread(DirectThread *thread, void *driver_data)
 static int driver_get_available( void )
 {
   int fd;
-
-  fd = eloOpenDevice (elo_DEVICE);
-  if (fd < 0)
+ 
+  /* we will only use the ELO device if it has been configured */
+  if(!dfb_config->elo_device) {
     return 0;
-
+  }
+  fd = eloOpenDevice (dfb_config->elo_device);
+  if (fd < 0) {
+    D_INFO("Elo:driver_get_available NON OK\n");
+    return 0;
+  }
   close(fd);
 
   return 1;
@@ -406,7 +448,7 @@ static void driver_get_info( InputDriverInfo *info )
            "elo Systems" );
 
   info->version.major = 0;
-  info->version.minor = 1;
+  info->version.minor = 2;
 }
 
 static DFBResult driver_open_device(CoreInputDevice *device,
@@ -418,9 +460,9 @@ static DFBResult driver_open_device(CoreInputDevice *device,
   eloData *data;
 
   /* open device */
-  fd = eloOpenDevice(elo_DEVICE);
+  fd = eloOpenDevice(dfb_config->elo_device);
   if(fd < 0) {
-    D_PERROR("DirectFB/elo: Error opening '"elo_DEVICE"'!\n");
+    D_INFO("DirectFB/elo: Error opening '"elo_DEVICE"'!\n");
     return DFB_INIT;
   }
 

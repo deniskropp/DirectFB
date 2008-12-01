@@ -44,6 +44,10 @@ if MUTOUCH_TS
 MUTOUCH_TS_DIR = mutouch
 endif
 
+if ZYTRONIC_TS
+ZYTRONIC_TS_DIR = zytronic
+endif
+
 if PENMOUNT_TS
 PENMOUNT_TS_DIR = penmount
 endif
@@ -84,6 +88,7 @@ SUBDIRS = \
 	$(LINUX_INPUT_DIR)	\
 	$(LIRC_INPUT_DIR)	\
 	$(MUTOUCH_TS_DIR)	\
+	$(ZYTRONIC_TS_DIR)	\
 	$(PENMOUNT_TS_DIR)	\
 	$(PS2MOUSE_INPUT_DIR)	\
 	$(SERIALMOUSE_INPUT_DIR) \

@@ -180,6 +180,10 @@ typedef struct
 
      char      *penmount_device;                  /* PenMount Device */
 
+     char      *zytronic_device;                  /* Zytronic Device */
+
+     char      *elo_device;                       /* elo Device */
+
      int        unichrome_revision;               /* Unichrome hardware
                                                      revision number override */
 

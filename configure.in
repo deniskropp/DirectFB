@@ -1088,6 +1088,7 @@ checkfor_keyboard=no
 checkfor_linux_input=no
 checkfor_lirc=no
 checkfor_mutouch=no
+checkfor_zytronic=no
 checkfor_penmount=no
 checkfor_ps2mouse=no
 checkfor_serialmouse=no
@@ -1104,7 +1105,8 @@ AC_ARG_WITH(inputdrivers,
 [                               Possible inputdrivers are: ]
 [                               dbox2remote, dreamboxremote, dynapro, elo-input, gunze, h3600_ts, ]
 [                               joystick, keyboard, linuxinput, lirc, mutouch, penmount, ps2mouse, ]
-[                               serialmouse, sonypijogdial, tslib, ucb1x00, wm97xx], inputdrivers="$withval",[inputdrivers="all"])
+[                               serialmouse, sonypijogdial, tslib, ucb1x00, wm97xx, zytronic],
+inputdrivers="$withval",[inputdrivers="all"])
 
 if test "$inputdrivers" = "all"; then
   checkfor_dbox2remote=yes
@@ -1118,6 +1120,7 @@ if test "$inputdrivers" = "all"; then
   checkfor_linux_input=yes
   checkfor_lirc=yes
   checkfor_mutouch=yes
+  checkfor_zytronic=yes
   checkfor_penmount=yes
   checkfor_ps2mouse=yes
   checkfor_serialmouse=yes
@@ -1164,6 +1167,9 @@ else
                   ;;
           mutouch)
                   checkfor_mutouch=yes
+                  ;;
+          zytronic)
+                  checkfor_zytronic=yes
                   ;;
           penmount)
                   checkfor_penmount=yes
@@ -1274,6 +1280,11 @@ if test "$checkfor_mutouch" = "yes"; then
   dnl This driver is not built by default since it needs to be configured
   dnl by changing some defines in the source.
     enable_mutouch=yes
+fi
+
+enable_zytronic=no
+if test "$checkfor_zytronic" = "yes"; then
+    enable_zytronic=yes
 fi
 
 enable_penmount=no
@@ -1421,6 +1432,7 @@ AM_CONDITIONAL(KEYBOARD_INPUT, test "$enable_keyboard" = "yes")
 AM_CONDITIONAL(LINUX_INPUT, test "$enable_linux_input" = "yes")
 AM_CONDITIONAL(LIRC_INPUT, test "$enable_lirc" = "yes")
 AM_CONDITIONAL(MUTOUCH_TS, test "$enable_mutouch" = "yes")
+AM_CONDITIONAL(ZYTRONIC_TS, test "$enable_zytronic" = "yes")
 AM_CONDITIONAL(PENMOUNT_TS, test "$enable_penmount" = "yes" )
 AM_CONDITIONAL(PS2MOUSE_INPUT, test "$enable_ps2mouse" = "yes")
 AM_CONDITIONAL(SERIAL_MOUSE_INPUT, test "$enable_serial_mouse" = "yes")
@@ -1587,6 +1599,7 @@ inputdrivers/keyboard/Makefile
 inputdrivers/linux_input/Makefile
 inputdrivers/lirc/Makefile
 inputdrivers/mutouch/Makefile
+inputdrivers/zytronic/Makefile
 inputdrivers/penmount/Makefile
 inputdrivers/ps2mouse/Makefile
 inputdrivers/serialmouse/Makefile
@@ -1715,6 +1728,7 @@ Building Input Drivers:
   Linux Input               $enable_linux_input
   LiRC                      $enable_lirc
   MuTouch touchscreen       $enable_mutouch
+  Zytronic touchscreen      $enable_zytronic
   PS/2 Mouse                $enable_ps2mouse
   Serial Mouse              $enable_serial_mouse
   SonyPI Jogdial            $enable_sonypi_jogdial

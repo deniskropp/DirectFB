@@ -40,6 +40,13 @@
    Lastly, please don't email me regarding technical informations. I
    don't work for 3M. But if you have any new ideas on improving this
    driver, please don't hesitate to share it with me.
+   */
+/*
+ * Jacques Luder j.luder@laposte.net 
+ * Baudrate adjust now realy working ! 
+ * version 0.3 10/09/2006 Jacques Luder j.luder@laposte.net
+ * Can now work also with a keyspan USB-Serial line.
+ * Can start OK even if someone touch the screen during probing.
  */
 
 #include <config.h>
@@ -79,62 +86,63 @@
 
 DFB_INPUT_DRIVER( MuTouch )
 
-#define BAUDRATE		B9600
-#define OPTIMAL_BAUDRATE	B19200
-#define MAX_TIMEOUT		5
 
-#define MuT_REPORT_SIZE		5
-#define MuT_PACKET_SIZE		10
-#define MuT_SCREENWIDTH		800
-#define MuT_SCREENHEIGHT	600
-#define MuT_MINX		800
-#define MuT_MINY		0
+#define BAUDRATE         B9600
+#define OPTIMAL_BAUDRATE B19200
+#define MAX_TIMEOUT      5
 
-#define MuT_LEAD_BYTE		0x01
-#define MuT_TRAIL_BYTE		0x0d
+#define MuT_REPORT_SIZE  5
+#define MuT_PACKET_SIZE  10
+#define MuT_SCREENWIDTH  4096
+#define MuT_SCREENHEIGHT 4096
+#define MuT_MINX         0
+#define MuT_MINY         0
+
+#define MuT_LEAD_BYTE    0x01
+#define MuT_TRAIL_BYTE   0x0d
 
 
-#define ERROR_NOT_SUITABLE	-1110	/* The touchpanel firmware is not
-                                           suitable for IMP2001 */
-#define ERROR_NOT_FOUND	        -1111   /* Touchpanel not found */
-#define ERROR_INIT		-1112	/* Error occurred while initializing */
+#define ERROR_NOT_SUITABLE    -1110  /* The touchpanel firmware is not
+                                        suitable for IMP2001 */
+#define ERROR_NOT_FOUND       -1111  /* Touchpanel not found */
+#define ERROR_INIT            -1112  /* Error occurred while initializing */
 
-#define MUT_PANEL_TOUCH		0x01
-#define MUT_PANEL_UNTOUCH	0x00
+#define MUT_PANEL_TOUCH       0x01
+#define MUT_PANEL_UNTOUCH     0x00
 
 
 /* Commands */
-#define MuT_RESET		"R"
-#define MuT_AUTOBAUD_DISABLE	"AD"
-#define MuT_RESTORE_DEFAULTS	"RD"
-#define MuT_QUERY		"Z"
-#define MuT_FORMAT_TABLET	"FT"
-#define MuT_FORMAT_RAW		"FR"
-#define MuT_CALIBRATE_RAW	"CR"
-#define MuT_CALIBRATE_EXT	"CX"
-#define MuT_OUTPUT_IDENT	"OI"
-#define MuT_UNIT_TYPE		"UT"
-#define MuT_FINGER_ONLY		"FO"
-#define MuT_PEN_ONLY		"PO"
-#define MuT_PEN_FINGER		"PF"
-#define MuT_MODE_STREAM		"MS"
-#define MuT_MODE_DOWN_UP	"MDU"
+#define MuT_RESET             "R"
+#define MuT_AUTOBAUD_DISABLE  "AD"
+#define MuT_RESTORE_DEFAULTS  "RD"
+#define MuT_QUERY             "Z"
+#define MuT_FORMAT_TABLET     "FT"
+#define MuT_FORMAT_RAW        "FR"
+#define MuT_CALIBRATE_RAW     "CR"
+#define MuT_CALIBRATE_EXT     "CX"
+#define MuT_OUTPUT_IDENT      "OI"
+#define MuT_UNIT_TYPE         "UT"
+#define MuT_FINGER_ONLY       "FO"
+#define MuT_PEN_ONLY          "PO"
+#define MuT_PEN_FINGER        "PF"
+#define MuT_MODE_STREAM       "MS"
+#define MuT_MODE_DOWN_UP      "MDU"
 
 /* Command reply */
-#define MuT_OK			'0'
-#define MuT_ERROR		'1'
+#define MuT_OK                '0'
+#define MuT_ERROR             '1'
 
 /* Offsets in status byte of touch and motion reports */
-#define MuT_WHICH_DEVICE	0x20
-#define MuT_CONTACT		0x40
+#define MuT_WHICH_DEVICE      0x20
+#define MuT_CONTACT           0x40
 
 /* Identity and friends */
-#define MuT_SMT3_IDENT		"Q1"
-#define MuT_THRU_GLASS_IDENT	"T1"
+#define MuT_SMT3_IDENT        "Q1"
+#define MuT_THRU_GLASS_IDENT  "T1"
 
 /* Event mask */
-#define MuT_PANEL_TOUCH_MASK	0x40
-#define MuT_PANEL_SYNC_MASK	0x80
+#define MuT_PANEL_TOUCH_MASK  0x40
+#define MuT_PANEL_SYNC_MASK   0x80
 
 typedef struct __MuTData__ {
      int fd;
@@ -175,17 +183,30 @@ static inline void MuTSendPacket(int file, char *packet, unsigned char len)
 static inline void MuTReadPacket(int file, unsigned char *packet)
 {
      int n = 0;
-     memset (packet, 0, MuT_PACKET_SIZE);
-     while ((n += read (file, packet+n, MuT_REPORT_SIZE-n)) != MuT_REPORT_SIZE);
+
+     while ( n < MuT_REPORT_SIZE ) {
+          read( file, &packet[n], 1 );
+          if ( (packet[0] & MuT_PANEL_SYNC_MASK) != 0) {
+               n++;
+          }
+     } 
 }
 
 static int MuTSetToOptimalCTRL(int file, unsigned long baud)
 {
-     unsigned char packet[3];
+     unsigned char packet[3]={0,0,0};
      struct termios options;
+     struct termios save_options;
+     /*
+     * We are now in a mode who "works" but may be not the good one !
+     * So we will make a test if a "good" mode works fine ...
+     */
 
      tcgetattr(file, &options);
-     options.c_cflag = baud | CS8 | CLOCAL | CREAD;
+     tcgetattr(file, &save_options);   // Save mode who works.
+     /*
+     * Send a command to change to suitable mode.
+     */
      switch (baud) {
           case B19200:
                MuTSendPacket (file, "PN811", 5);
@@ -194,40 +215,99 @@ static int MuTSetToOptimalCTRL(int file, unsigned long baud)
                MuTSendPacket (file, "PN812", 5);
                break;
      }
+     // Note answer from driver will be lost ! there is no way to catch it with some
+     // USB-Serial device. we have only to wait !
+     __mdelay (20);
+
+     /*
+     * We can't work on CS7 mode messages format are not the same !
+     */
+     options.c_cflag =  CS8 | CLOCAL | CREAD;
+     /*
+     * POSIX says speed is ONLY here !
+     */
+     cfsetospeed( &options, baud);
+     cfsetispeed( &options, 0);    // Same as output.
 
      tcsetattr (file, TCSANOW, &options);
      __mdelay (100);
-     read (file, packet, 3);
-
-     if (packet[1] != MuT_OK)
-          return 0;
-
-     return 1;
-}
-
-static int MuTTestConnect(int file, unsigned char *packet)
-{
-     unsigned int timeout;
-
-     timeout = 0;
+     tcflush (file, TCIFLUSH);
+     /*
+     * With some USB-Serial device flush may occurs after sending message and answer from driver 
+     * may be lost ! ... so we wait !
+     */
      __mdelay (100);
 
-     if (read (file, packet, 3) > 0)
-          return 1;
+     switch (baud) {
+          case B19200:
+               MuTSendPacket (file, "PN811", 5);
+               break;
+          case B9600:
+               MuTSendPacket (file, "PN812", 5);
+               break;
+     }
+     /* 
+     * note if someone touch screen, we have also to strip "touch" message by testing MuT_LEAD_BYTE.
+     */
+     __mdelay (100);
+     int n = 0;
+     while ( n <3 ) {
+          if (read( file, &packet[n], 1 ) <=0)
+               break;
+          if ( packet[n] == MuT_LEAD_BYTE ) {       // new start
+               n = 0;
+               packet[0] = MuT_LEAD_BYTE;
+          }
+          if ( (n==1) && (packet[1] != MuT_OK)) {
+               n = 0;
+               packet[0]= 0;
+          }
+          if ( (n==2) && (packet[2] != MuT_TRAIL_BYTE) ) {
+               n = 0;
+               packet[0]= 0;
+          }
+          if ( packet[0] == MuT_LEAD_BYTE)
+               n++;
+     }
 
+     if ( n == 3 ) {
+          /* Unset O_NONBLOCK */
+          int flags;
+          flags = fcntl( file,  F_GETFL );
+          flags &= ~O_NONBLOCK;
+          fcntl( file, F_SETFL, flags );
+          /* Unset VTIME */  
+          options.c_cc[VMIN] = 1;
+          options.c_cc[VTIME] = 0;
+          tcsetattr (file, TCSANOW, &options);
+          __mdelay (100);
+
+          return 1;   // OK
+     }
+     // KO return to old termios options.
+     tcsetattr (file, TCSANOW, &save_options);
+     __mdelay (100);
      return 0;
 }
+
 
 static int MuTPollDevice(char *device)
 {
      int file;
      struct termios options;
-     unsigned char i, m, timeout, optimal;
+     unsigned char i, m;
      unsigned char packet[MuT_PACKET_SIZE];
      unsigned long baud[2] = {B9600, B19200};
      unsigned long misc[2] = {CS8, CS7 | CSTOPB};
 
-     file = open (device, O_RDWR | O_NDELAY);
+     file = open (device, O_RDWR | O_NOCTTY);
+
+     /* Set O_NONBLOCK */
+     int flags;
+     flags = fcntl( file,  F_GETFL );
+     flags |= O_NONBLOCK;
+     fcntl( file, F_SETFL, flags );
+
 
      /* Make raw I/O */
      memset (&options, 0, sizeof (struct termios));
@@ -237,50 +317,60 @@ static int MuTPollDevice(char *device)
      options.c_cc[VTIME] = 10;
 
      /* loop through the bauds */
-     timeout = MAX_TIMEOUT;
-     optimal = 0;
-     while ( timeout) {
-          for (i = 0; i < 2; i++) {
-               /* loop through the misc configs */
-               for (m = 0; m < 2; m++) {
-                    options.c_cflag = baud[i] | misc[m] | CLOCAL | CREAD;
-                    tcsetattr (file, TCSANOW, &options);
-                    MuTSendPacket (file, MuT_QUERY, strlen(MuT_QUERY));
-                    if (MuTTestConnect (file, packet)) {
-                         close (file);
-                         file = open (device, O_RDWR | O_NOCTTY);
-                         MuTSendPacket (file, MuT_QUERY, strlen (MuT_QUERY));
-                         read (file, packet, 3);
-                         if (packet[1] == MuT_OK &&
-                             packet[2] == MuT_TRAIL_BYTE) {
-                              if (!optimal) {
-                                   if (MuTSetToOptimalCTRL (file, B19200)) {
-                                        i = m = 0;
-                                        optimal = timeout = MAX_TIMEOUT;
-                                   } else if (MuTSetToOptimalCTRL (file, B9600)) {
-                                        i = m = 0;
-                                        optimal = timeout = MAX_TIMEOUT;
-                                   } else return ERROR_NOT_SUITABLE;
-                              } else
-                                   goto success_return;
-                         }
-                         close (file);
-                         file = open (device, O_RDWR | O_NDELAY);
+     for (i = 0; i < 2; i++) {
+          /* loop through the misc configs */
+          for (m = 0; m < 2; m++) {
+               options.c_cflag =  misc[m] | CLOCAL | CREAD;
+               /*
+               * POSIX
+               */
+               cfsetospeed( &options, baud[i]);
+               cfsetispeed( &options, 0);
+               tcsetattr (file, TCSANOW, &options);
+               /* wait for some USB-Serial device */
+               __mdelay (100);
+               tcflush (file, TCIFLUSH);
+               __mdelay (100);
+
+               MuTSendPacket (file, MuT_QUERY, strlen (MuT_QUERY));
+               /* we are in O_NONBLOCK  need wait before read  */
+               __mdelay (100);
+
+               int n = 0;
+               while ( n <3 ) {
+                    if (read( file, &packet[n], 1 ) <=0)
+                         break;
+                    if ( packet[n] == MuT_LEAD_BYTE ) {       // new start
+                         n = 0;
+                         packet[0] = MuT_LEAD_BYTE;
                     }
+                    if ( (n==1) && (packet[1] != MuT_OK)) {    // false start
+                         n = 0;
+                         packet[0]= 0;
+                    }
+                    if ( (n==2) && (packet[2] != MuT_TRAIL_BYTE) ) {  // false start
+                         n = 0;
+                         packet[0]= 0;
+                    }
+                    if ( packet[0] == MuT_LEAD_BYTE)
+                         n++;
+               }
+
+               if ( n == 3 ) {
+
+
+                    if (MuTSetToOptimalCTRL (file, B19200)) {
+                         return file;
+                    }
+                    else if (MuTSetToOptimalCTRL (file, B9600)) {
+                         return file;
+                    }
+                    else return ERROR_NOT_SUITABLE;
                }
           }
-          timeout--;
      }
-
+     close(file);
      return ERROR_NOT_FOUND;
-
-     success_return:
-     options.c_cc[VMIN] = 1;
-     options.c_cc[VTIME] = 0;
-     tcflush (file, TCIFLUSH);
-     tcsetattr (file, TCSANOW, &options);
-
-     return file;
 }
 
 static int MuTInitCmd(int file, char *cmd)
@@ -290,7 +380,18 @@ static int MuTInitCmd(int file, char *cmd)
 
      do {
           MuTSendPacket (file, cmd, strlen (cmd));
-          read (file, packet, 3);
+
+          /*
+          * Strip out 'touch" message
+          */
+          int n = 0;
+          while ( n <3 ) {
+               if (read( file, &packet[n], 1 ) <=0)
+                    break;
+               if ( packet[0] == MuT_LEAD_BYTE)
+                    n++;
+          }
+
           timeout++;
           if (timeout >= MAX_TIMEOUT)
                return ERROR_INIT;
@@ -364,7 +465,7 @@ static void *MuTouchEventThread(DirectThread *thread, void *driver_data)
           DFBInputEvent evt;
 
           if (!MuTGetEvent (data))
-	       continue;
+               continue;
           direct_thread_testcancel (thread);
 
           /* Dispatch axis */
@@ -427,7 +528,7 @@ static void driver_get_info( InputDriverInfo *info )
               "Microtouch" );
 
      info->version.major = 0;
-     info->version.minor = 2;
+     info->version.minor = 3;
 }
 
 static DFBResult driver_open_device(CoreInputDevice *device,
@@ -440,8 +541,9 @@ static DFBResult driver_open_device(CoreInputDevice *device,
 
      /* open device */
      fd = MuTOpenDevice (dfb_config->mut_device);
+     D_INFO("MuTouch:driver_open_device %s fd %d\n", dfb_config->mut_device,fd);
+
      if (fd < 0) {
-          D_PERROR("DirectFB/MuTouch: Error opening '%s'!\n", dfb_config->mut_device);
           return DFB_INIT;
      }
 
