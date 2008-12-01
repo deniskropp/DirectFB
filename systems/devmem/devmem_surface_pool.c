@@ -120,6 +120,7 @@ devmemInitPool( CoreDFB                    *core,
      ret_desc->access[CSAID_GPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
      ret_desc->priority          = CSPP_DEFAULT;
+     ret_desc->size              = dfb_config->video_length;
 
      /* For hardware layers */
      ret_desc->access[CSAID_LAYER0] = CSAF_READ;
