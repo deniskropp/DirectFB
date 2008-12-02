@@ -416,6 +416,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                               DFBSurfaceFlipFlags  flags )
 {
      DFBResult                ret = DFB_OK;
+     DFBRegion                unrotated;
      DFBRegion                rotated;
      CoreLayer               *layer;
      CoreLayerContext        *context;
@@ -571,7 +572,12 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                     }
 
                     D_DEBUG_AT( Core_Layers, "  -> Notifying driver about updated content...\n" );
-
+                    
+                    if( !update ) {
+                         unrotated = DFB_REGION_INIT_FROM_RECTANGLE_VALS( 0, 0,
+                                        region->config.width, region->config.height );
+                         update    = &unrotated;
+                    }
                     dfb_region_from_rotated( &rotated, update, &surface->config.size, surface->rotation );
 
                     ret = funcs->UpdateRegion( layer,
