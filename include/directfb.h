@@ -4209,6 +4209,29 @@ DEFINE_INTERFACE(   IDirectFBInputDevice,
           DFBInputDeviceKeymapEntry     *ret_entry
      );
 
+     /*
+      * Set one entry of the keymap to the specified entry.
+      * Each entry has 4 modifier combinations for going from key to symbol.
+      */
+     DFBResult (*SetKeymapEntry) (
+          IDirectFBInputDevice          *thiz,
+          int                            keycode,
+          DFBInputDeviceKeymapEntry     *entry
+     );
+
+     /*
+      * Load a keymap from the specified file.
+      * All specified keys will overwrite the current keymap.
+      * On return of an error, the keymap is in an unspecified state.
+      * the file must be ASCII containing lines:
+      * keycode <hw code> = <key id> = <symbol> .... (up to 4 symbols)
+      * Modifier-key-sensitive keys can be framed between
+      * capslock: .... :capslock or numlock: ... :numlock.
+      */
+     DFBResult (*LoadKeymap) (
+          IDirectFBInputDevice          *thiz,
+          char                          *filename
+     );
 
    /** Event buffers **/
 

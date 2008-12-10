@@ -30,6 +30,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <sys/types.h>
@@ -37,6 +38,7 @@
 #include <fcntl.h>
 
 #include <directfb.h>
+#include <directfb_keynames.h>
 
 #include <direct/debug.h>
 #include <direct/list.h>
@@ -263,15 +265,21 @@ static const DeadKeyCombo combos_tilde[] = {
      { DIKS_CAPITAL_N, (unsigned char) 'Ñ' },        
      { DIKS_CAPITAL_O, (unsigned char) 'Õ' },        
      { 0, 0 }                                        
-};                                                   
-                                                     
+};
+
 static const DeadKeyMap deadkey_maps[] = {           
      { DIKS_DEAD_GRAVE,      combos_grave },         
      { DIKS_DEAD_ACUTE,      combos_acute },         
      { DIKS_DEAD_CIRCUMFLEX, combos_circumflex },    
      { DIKS_DEAD_DIAERESIS,  combos_diaeresis },     
      { DIKS_DEAD_TILDE,      combos_tilde }          
-};                                                   
+};
+
+/* define a lookup table to go from key IDs to names.
+ * This is used to look up the names provided in a loaded key table */
+/* this table is roughly 4Kb in size */
+DirectFBKeySymbolNames(KeySymbolNames);
+DirectFBKeyIdentifierNames(KeyIdentifierNames);
 
 /**********************************************************************************************************************/
 
@@ -281,6 +289,16 @@ static void allocate_device_keymap( CoreDFB *core, CoreInputDevice *device );
 
 static DFBInputDeviceKeymapEntry *get_keymap_entry( CoreInputDevice *device,
                                                     int              code );
+
+static DFBResult set_keymap_entry( CoreInputDevice           *device,
+                                   int                        code,
+                                   DFBInputDeviceKeymapEntry *entry );
+
+static DFBResult load_keymap( CoreInputDevice           *device,
+                              char                      *filename );
+
+static DFBInputDeviceKeySymbol     lookup_keysymbol( char *symbolname );
+static DFBInputDeviceKeyIdentifier lookup_keyidentifier( char *identifiername );
 
 /**********************************************************************************************************************/
 
@@ -941,6 +959,33 @@ dfb_input_device_get_keymap_entry( CoreInputDevice           *device,
 }
 
 DFBResult
+dfb_input_device_set_keymap_entry( CoreInputDevice           *device,
+                                   int                        keycode,
+                                   DFBInputDeviceKeymapEntry *entry )
+{
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     D_ASSERT( core_input != NULL );
+     D_ASSERT( device != NULL );
+     D_ASSERT( entry != NULL );
+
+     return set_keymap_entry( device, keycode, entry );
+}
+
+DFBResult
+dfb_input_device_load_keymap   ( CoreInputDevice           *device,
+                                 char                      *filename )
+{
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     D_ASSERT( core_input != NULL );
+     D_ASSERT( device != NULL );
+     D_ASSERT( filename != NULL );
+
+     return load_keymap( device, filename );
+}
+
+DFBResult
 dfb_input_device_reload_keymap( CoreInputDevice *device )
 {
      int                ret;
@@ -1324,6 +1369,182 @@ get_keymap_entry( CoreInputDevice *device,
      }
 
      return entry;
+}
+
+/* replace a single keymap entry with the code-entry pair */
+static DFBResult
+set_keymap_entry( CoreInputDevice           *device,
+                  int                        code,
+                  DFBInputDeviceKeymapEntry *entry )
+{
+     InputDeviceKeymap         *map;
+
+     D_ASSERT( device->shared != NULL );
+     D_ASSERT( device->shared->keymap.entries != NULL );
+
+     map = &device->shared->keymap;
+
+     /* sanity check */
+     if (code < map->min_keycode || code > map->max_keycode)
+          return DFB_FAILURE;
+
+     /* copy the entry to the map */
+     map->entries[code - map->min_keycode] = *entry;
+     
+     return DFB_OK;
+}
+
+/* replace the complete current keymap with a keymap from a file.
+ * the minimum-maximum keycodes of the driver are to be respected. 
+ */
+static DFBResult
+load_keymap( CoreInputDevice           *device,
+             char                      *filename )
+{
+     DFBResult                  ret       = DFB_OK;
+     InputDeviceKeymap         *map       = 0;
+     FILE                      *file      = 0;
+     DFBInputDeviceLockState    lockstate = 0;
+
+     D_ASSERT( device->shared != NULL );
+     D_ASSERT( device->shared->keymap.entries != NULL );
+
+     map = &device->shared->keymap;
+
+     /* open the file */
+     file = fopen( filename, "r" );
+     if( !file )
+     {
+          return errno2result( errno );
+     }
+
+     /* read the file, line by line, and consume the mentioned scancodes */
+     while(1)
+     {
+          int   i;
+          int   dummy;
+          char  buffer[201];
+          int   keycode;
+          char  diki[201];
+          char  diks[4][201];
+          char *b;
+          
+          DFBInputDeviceKeymapEntry entry = {0};
+          
+          b = fgets( buffer, 200, file );
+          if( !b ) {
+               if( feof(file) ) {
+                    fclose(file);
+                    return DFB_OK;
+               }
+               fclose(file);
+               return errno2result(errno);
+          }
+
+          /* comment or empty line */
+          if( buffer[0]=='#' || strcmp(buffer,"\n")==0 )
+               continue;
+
+          /* check for lock state change */
+          if( strncmp(buffer,"capslock:",9) ) { lockstate |=  DILS_CAPS; continue; }
+          if( strncmp(buffer,":capslock",9) ) { lockstate &= ~DILS_CAPS; continue; }
+          if( strncmp(buffer,"numlock:",8)  ) { lockstate |=  DILS_NUM;  continue; }
+          if( strncmp(buffer,":numlock",8)  ) { lockstate &= ~DILS_NUM;  continue; }
+
+          i = sscanf( buffer, " keycode %i = %s = %s %s %s %s %i\n",
+                    &keycode, diki, diks[0], diks[1], diks[2], diks[3], &dummy );
+
+          if( i < 3 || i > 6 ) {
+               /* we want 1 to 4 key symbols */
+               D_INFO( "DirectFB/Input: skipped erroneous input line %s\n", buffer );
+               continue;
+          }
+
+          if( keycode > map->max_keycode || keycode < map->min_keycode ) {
+               D_INFO( "DirectFB/Input: skipped keycode %d out of range\n", keycode );
+               continue;
+          }
+
+          entry.code       = keycode;
+          entry.locks      = lockstate;
+          entry.identifier = lookup_keyidentifier( diki );
+
+          switch( i ) {
+               case 6:  entry.symbols[3] = lookup_keysymbol( diks[3] );
+               case 5:  entry.symbols[2] = lookup_keysymbol( diks[2] );
+               case 4:  entry.symbols[1] = lookup_keysymbol( diks[1] );
+               case 3:  entry.symbols[0] = lookup_keysymbol( diks[0] );
+
+                    /* fall through */
+          }
+
+          switch( i ) {
+               case 3:  entry.symbols[1] = entry.symbols[0];
+               case 4:  entry.symbols[2] = entry.symbols[0];
+               case 5:  entry.symbols[3] = entry.symbols[1];
+
+               /* fall through */
+          }
+
+          ret = set_keymap_entry( device, keycode, &entry );
+          fprintf(stderr,"kk:%d diki %x\n", keycode, entry.identifier);
+          if( ret )
+               return ret;
+     }
+}
+
+static DFBInputDeviceKeySymbol lookup_keysymbol( char *symbolname )
+{
+     int i;
+
+     /* we want uppercase */  
+     for( i=0; i<strlen(symbolname); i++ )
+          if( symbolname[i] >= 'a' && symbolname[i] <= 'z' )
+               symbolname[i] = symbolname[i] - 'a' + 'A';
+
+     for( i=0; i < sizeof (KeySymbolNames) / sizeof (KeySymbolNames[0]); i++ ) {
+          if( strcmp( symbolname, KeySymbolNames[i].name ) == 0 )
+               return KeySymbolNames[i].symbol;
+     }
+     
+     /* not found, maybe starting with 0x for raw conversion.
+      * We are already at uppercase.
+      */
+     if( symbolname[0]=='0' && symbolname[1]=='X' ) {
+          int code=0;
+          symbolname+=2;
+          while(*symbolname) {
+               if( *symbolname >= '0' && *symbolname <= '9' ) {
+                    code = code*16 + *symbolname - '0';
+               } else if( *symbolname >= 'A' && *symbolname <= 'F' ) {
+                    code = code*16 + *symbolname - 'A' + 10;
+               } else {
+                    /* invalid character */
+                    return DIKS_NULL;
+               }
+               symbolname++;
+          }
+          return code;
+     }
+     
+     return DIKS_NULL;
+}
+
+static DFBInputDeviceKeyIdentifier lookup_keyidentifier( char *identifiername )
+{
+     int i;
+
+     /* we want uppercase */  
+     for( i=0; i<strlen(identifiername); i++ )
+          if( identifiername[i] >= 'a' && identifiername[i] <= 'z' )
+               identifiername[i] = identifiername[i] - 'a' + 'A';
+
+     for( i=0; i < sizeof (KeyIdentifierNames) / sizeof (KeyIdentifierNames[0]); i++ ) {
+          if( strcmp( identifiername, KeyIdentifierNames[i].name ) == 0 )
+               return KeyIdentifierNames[i].identifier;
+     }
+     
+     return DIKI_UNKNOWN;
 }
 
 static bool

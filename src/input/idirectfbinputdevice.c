@@ -202,6 +202,38 @@ IDirectFBInputDevice_GetKeymapEntry( IDirectFBInputDevice      *thiz,
 }
 
 static DFBResult
+IDirectFBInputDevice_SetKeymapEntry( IDirectFBInputDevice      *thiz,
+                                     int                        keycode,
+                                     DFBInputDeviceKeymapEntry *entry )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
+
+     if (!entry)
+          return DFB_INVARG;
+
+     if (data->desc.min_keycode < 0 || data->desc.max_keycode < 0)
+          return DFB_UNSUPPORTED;
+
+     if (keycode < data->desc.min_keycode ||
+         keycode > data->desc.max_keycode)
+          return DFB_INVARG;
+
+     return dfb_input_device_set_keymap_entry( data->device, keycode, entry );
+}
+
+static DFBResult
+IDirectFBInputDevice_LoadKeymap ( IDirectFBInputDevice          *thiz,
+                                  char                          *filename )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
+
+     if (!filename)
+          return DFB_INVARG;
+
+     return dfb_input_device_load_keymap( data->device, filename );
+}
+
+static DFBResult
 IDirectFBInputDevice_GetKeyState( IDirectFBInputDevice        *thiz,
                                   DFBInputDeviceKeyIdentifier  key_id,
                                   DFBInputDeviceKeyState      *state )
@@ -327,6 +359,8 @@ IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
      thiz->GetID = IDirectFBInputDevice_GetID;
      thiz->GetDescription = IDirectFBInputDevice_GetDescription;
      thiz->GetKeymapEntry = IDirectFBInputDevice_GetKeymapEntry;
+     thiz->SetKeymapEntry = IDirectFBInputDevice_SetKeymapEntry;
+     thiz->LoadKeymap = IDirectFBInputDevice_LoadKeymap;
      thiz->CreateEventBuffer = IDirectFBInputDevice_CreateEventBuffer;
      thiz->AttachEventBuffer = IDirectFBInputDevice_AttachEventBuffer;
      thiz->DetachEventBuffer = IDirectFBInputDevice_DetachEventBuffer;
