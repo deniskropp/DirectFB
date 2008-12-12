@@ -1798,6 +1798,8 @@ reallocate_surface( CoreLayer             *layer,
 
      if (config->buffermode == DLBM_BACKSYSTEM)
           surface->buffers[1]->policy = CSP_SYSTEMONLY;
+     else
+          surface->buffers[1]->policy = CSP_VIDEOONLY;
 
      if (surface->config.caps & DSCAPS_ROTATED)
           surface->rotation = context->rotation;
