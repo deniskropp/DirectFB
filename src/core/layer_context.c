@@ -1796,10 +1796,23 @@ reallocate_surface( CoreLayer             *layer,
                D_DERROR( ret, "Core/Layers: Could not initialize palette while switching to indexed mode!\n" );
      }
 
-     if (config->buffermode == DLBM_BACKSYSTEM)
-          surface->buffers[1]->policy = CSP_SYSTEMONLY;
-     else
-          surface->buffers[1]->policy = CSP_VIDEOONLY;
+     switch (config->buffermode) {
+          case DLBM_TRIPLE:
+          case DLBM_BACKVIDEO:
+               surface->buffers[1]->policy = CSP_VIDEOONLY;
+               break;
+
+          case DLBM_BACKSYSTEM:
+               surface->buffers[1]->policy = CSP_SYSTEMONLY;
+               break;
+
+          case DLBM_FRONTONLY:
+               break;
+
+          default:
+               D_BUG("unknown buffermode");
+               return DFB_BUG;
+     }
 
      if (surface->config.caps & DSCAPS_ROTATED)
           surface->rotation = context->rotation;
