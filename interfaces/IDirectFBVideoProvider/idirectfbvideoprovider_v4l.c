@@ -845,9 +845,9 @@ GrabThread( DirectThread *thread, void *ctx )
 static ReactionResult
 v4l_videosurface_listener( const void *msg_data, void *ctx )
 {
-     const CoreSurfaceNotification   *notification = msg_data;
-     IDirectFBVideoProvider_V4L_data *data         = ctx;
-     CoreSurface                     *surface      = notification->surface;
+//     const CoreSurfaceNotification   *notification = msg_data;
+//     IDirectFBVideoProvider_V4L_data *data         = ctx;
+//     CoreSurface                     *surface      = notification->surface;
 
      /*
      if ((notification->flags & CSNF_SIZEFORMAT) ||
@@ -863,9 +863,9 @@ v4l_videosurface_listener( const void *msg_data, void *ctx )
 static ReactionResult
 v4l_systemsurface_listener( const void *msg_data, void *ctx )
 {
-     const CoreSurfaceNotification   *notification = msg_data;
-     IDirectFBVideoProvider_V4L_data *data         = ctx;
-     CoreSurface                     *surface      = notification->surface;
+//     const CoreSurfaceNotification   *notification = msg_data;
+//     IDirectFBVideoProvider_V4L_data *data         = ctx;
+//     CoreSurface                     *surface      = notification->surface;
 
      /*
      if ((notification->flags & CSNF_SIZEFORMAT) ||
