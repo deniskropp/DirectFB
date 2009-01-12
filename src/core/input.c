@@ -1446,10 +1446,10 @@ load_keymap( CoreInputDevice           *device,
                continue;
 
           /* check for lock state change */
-          if( strncmp(buffer,"capslock:",9) ) { lockstate |=  DILS_CAPS; continue; }
-          if( strncmp(buffer,":capslock",9) ) { lockstate &= ~DILS_CAPS; continue; }
-          if( strncmp(buffer,"numlock:",8)  ) { lockstate |=  DILS_NUM;  continue; }
-          if( strncmp(buffer,":numlock",8)  ) { lockstate &= ~DILS_NUM;  continue; }
+          if( !strncmp(buffer,"capslock:",9) ) { lockstate |=  DILS_CAPS; continue; }
+          if( !strncmp(buffer,":capslock",9) ) { lockstate &= ~DILS_CAPS; continue; }
+          if( !strncmp(buffer,"numlock:",8)  ) { lockstate |=  DILS_NUM;  continue; }
+          if( !strncmp(buffer,":numlock",8)  ) { lockstate &= ~DILS_NUM;  continue; }
 
           i = sscanf( buffer, " keycode %i = %s = %s %s %s %s %i\n",
                     &keycode, diki, diks[0], diks[1], diks[2], diks[3], &dummy );
@@ -1487,7 +1487,6 @@ load_keymap( CoreInputDevice           *device,
           }
 
           ret = set_keymap_entry( device, keycode, &entry );
-          fprintf(stderr,"kk:%d diki %x\n", keycode, entry.identifier);
           if( ret )
                return ret;
      }
