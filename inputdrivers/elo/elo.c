@@ -63,7 +63,6 @@ DFB_INPUT_DRIVER( elo )
 
 #define elo_REPORT_SIZE    5
 #define elo_PACKET_SIZE    10
-#define elo_DEVICE         "/dev/touchscreen"
 #define elo_SCREENWIDTH    4096
 #define elo_SCREENHEIGHT   4096
 #define elo_MINX           0
@@ -211,58 +210,6 @@ static void tty_rawmode(int fd, int set)
     ioctl(fd, TCSETAF, &termio_save);
 }
 
-// Set scaling info to touch device. Axis can be either 'X', 'Y', or 'Z'.
-//
-static int elo_set_scale(int fd, unsigned char axis, short low, short high)
-{
-  unsigned char packet[8], *ptr;
-
-  if(axis < 'X' || axis > 'Z')
-    return -1;
-
-  memset(packet, 0, 8);
-  packet[0]='S';
-  packet[1]=axis;
-  packet[2]=low;
-  packet[3]=low >> 8;
-  packet[4]=high;
-  packet[5]=high >> 8;
-
-  /* send packet until proper ack is received */
-  while(1) {
-    elo_putbuf(fd, packet);
-
-    int ret = elo_check_ack(fd);
-    if( ret == 1 )      // OK
-      return 0;
-    if( ret == 0 )      // No receive 
-      return -2;
-  }
-}
-// Set touch screen response packet mode (see #ifdefs in beginning of file).
-//
-static int elo_set_mode(int fd, unsigned char mode1, unsigned char mode2)
-{
-  unsigned char packet[8];
-
-  /* create packet */
-  memset(packet, 0, 8);
-  packet[0]='M';
-  packet[2]=mode1;
-  packet[3]=mode2;
-
-  /* send packet until proper ack is received */
-  while(1) {
-    elo_putbuf(fd, packet);
-
-    int ret = elo_check_ack(fd);
-    if( ret == 1 )      // OK
-      return 0;
-    if( ret == 0 )      // No receive 
-      return -2;
-    
-  }
-}
 // Wait for acknowledgment. Returns 0 if no packet received or 1 for success or 2 for fail.
 static int elo_check_ack(int fd)
 {
@@ -296,6 +243,60 @@ static int elo_check_ack(int fd)
   }
   D_INFO("Elo:elo_check_ack nb= %d ACK KO\n", nb);
   return 2;
+}
+
+// Set scaling info to touch device. Axis can be either 'X', 'Y', or 'Z'.
+//
+static int elo_set_scale(int fd, unsigned char axis, short low, short high)
+{
+  unsigned char packet[8], *ptr;
+
+  if(axis < 'X' || axis > 'Z')
+    return -1;
+
+  memset(packet, 0, 8);
+  packet[0]='S';
+  packet[1]=axis;
+  packet[2]=low;
+  packet[3]=low >> 8;
+  packet[4]=high;
+  packet[5]=high >> 8;
+
+  /* send packet until proper ack is received */
+  while(1) {
+    elo_putbuf(fd, packet);
+
+    int ret = elo_check_ack(fd);
+    if( ret == 1 )      // OK
+      return 0;
+    if( ret == 0 )      // No receive 
+      return -2;
+  }
+}
+
+// Set touch screen response packet mode (see #ifdefs in beginning of file).
+//
+static int elo_set_mode(int fd, unsigned char mode1, unsigned char mode2)
+{
+  unsigned char packet[8];
+
+  /* create packet */
+  memset(packet, 0, 8);
+  packet[0]='M';
+  packet[2]=mode1;
+  packet[3]=mode2;
+
+  /* send packet until proper ack is received */
+  while(1) {
+    elo_putbuf(fd, packet);
+
+    int ret = elo_check_ack(fd);
+    if( ret == 1 )      // OK
+      return 0;
+    if( ret == 0 )      // No receive 
+      return -2;
+    
+  }
 }
 // Reset the touch-screen interface.
 //
@@ -462,7 +463,7 @@ static DFBResult driver_open_device(CoreInputDevice *device,
   /* open device */
   fd = eloOpenDevice(dfb_config->elo_device);
   if(fd < 0) {
-    D_INFO("DirectFB/elo: Error opening '"elo_DEVICE"'!\n");
+    D_INFO("DirectFB/elo: Error opening '%s'!\n", dfb_config->elo_device);
     return DFB_INIT;
   }
 
