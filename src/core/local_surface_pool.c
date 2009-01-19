@@ -137,12 +137,25 @@ localDestroyPool( CoreSurfacePool *pool,
                   void            *pool_data,
                   void            *pool_local )
 {
-     LocalPoolLocalData *local = pool_local;
+     CoreSurfaceAllocation *allocation;
+     LocalPoolLocalData    *local = pool_local;
+     LocalAllocationData   *data;
+
+     DFBResult res;
+     int       i;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_ASSERT( pool_local != NULL );
 
-     return fusion_call_destroy( &local->call );
+     res = fusion_call_destroy( &local->call );
+
+     /* remove the local allocations */
+     fusion_vector_foreach (allocation, i, pool->allocs) {
+          data = allocation->data;
+          D_FREE( data->addr );
+     }
+
+     return res;    
 }
 
 static DFBResult
@@ -150,12 +163,25 @@ localLeavePool( CoreSurfacePool *pool,
                 void            *pool_data,
                 void            *pool_local )
 {
-     LocalPoolLocalData *local = pool_local;
+     CoreSurfaceAllocation *allocation;
+     LocalPoolLocalData    *local = pool_local;
+     LocalAllocationData   *data;
+
+     DFBResult res;
+     int       i;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_ASSERT( pool_local != NULL );
 
-     return fusion_call_destroy( &local->call );
+     res = fusion_call_destroy( &local->call );
+
+     /* remove the local allocations */
+     fusion_vector_foreach (allocation, i, pool->allocs) {
+          data = allocation->data;
+          D_FREE( data->addr );
+     }
+
+     return res;    
 }
 
 static DFBResult
