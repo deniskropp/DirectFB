@@ -556,10 +556,11 @@ DirectResult
 sawman_shutdown( SaWMan      *sawman,
                  FusionWorld *world )
 {
-     DirectResult   ret;
-     DirectLink    *l, *next;
-     SaWManProcess *process;
-     SaWManWindow  *sawwin;
+     DirectResult      ret;
+     DirectLink       *next;
+     SaWManProcess    *process;
+     SaWManWindow     *sawwin;
+     SaWManGrabbedKey *key;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( world != NULL );
@@ -614,8 +615,9 @@ sawman_shutdown( SaWMan      *sawman,
      fusion_skirmish_destroy( &sawman->lock );
 
      /* Free grabbed keys. */
-     direct_list_foreach_safe (l, next, sawman->grabbed_keys)
-          SHFREE( sawman->shmpool, l );
+     direct_list_foreach_safe (key, next, sawman->grabbed_keys) {
+          SHFREE( key->owner->shmpool, key );
+     }
 
      D_MAGIC_CLEAR( sawman );
 
@@ -1243,7 +1245,7 @@ sawman_remove_window( SaWMan       *sawman,
 
      /* Free key list. */
      if (window->config.keys) {
-          SHFREE( sawman->shmpool, window->config.keys );
+          SHFREE( sawwin->shmpool, window->config.keys );
 
           window->config.keys     = NULL;
           window->config.num_keys = 0;

@@ -123,7 +123,7 @@ typedef enum {
      SWMCF_COLOR_KEY     = 0x00000100,
      SWMCF_OPAQUE        = 0x00000200,
 
-     //~ SWMCF_KEY_SELECTION = 0x00001000,
+     SWMCF_KEY_SELECTION = 0x00001000,
 
      SWMCF_SRC_GEOMETRY  = 0x00010000,
      SWMCF_DST_GEOMETRY  = 0x00020000,
@@ -140,6 +140,10 @@ typedef struct {
      DFBWindowEventType       events;         /* mask of enabled events */
      u32                      color_key;      /* transparent pixel */
      DFBRegion                opaque;         /* region of the window forced to be opaque */
+
+     DFBWindowKeySelection    key_selection;  /* how to filter keys in focus */
+     DFBInputDeviceKeySymbol *keys;           /* list of keys for DWKS_LIST */
+     unsigned int             num_keys;       /* number of entries in key array */
 
      DFBWindowGeometry        src_geometry;   /* advanced source geometry */
      DFBWindowGeometry        dst_geometry;   /* advanced destination geometry */

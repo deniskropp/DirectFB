@@ -2416,6 +2416,8 @@ wm_set_window_config( CoreWindow             *window,
      SaWManWindowConfig   *current;
      SaWManWindowReconfig *reconfig;
 
+     DFBInputDeviceKeySymbol *shared_keys = 0;
+
      D_ASSERT( window != NULL );
      D_ASSERT( window->stack != NULL );
      D_ASSERT( wm_data != NULL );
@@ -2465,7 +2467,35 @@ wm_set_window_config( CoreWindow             *window,
 
      SAWMANWINDOWCONFIG_COPY( current, &window->config )
      SAWMANWINDOWCONFIG_COPY( config,  updated )
-     
+
+     reconfig->flags = 0;
+
+     /* special consideration due to possibility of local pointer in request */
+     current->key_selection = window->config.key_selection;
+     current->keys          = window->config.keys;
+     current->num_keys      = window->config.num_keys;
+     if( flags & CWCF_KEY_SELECTION )
+     {
+          config->key_selection = updated->key_selection;
+          config->keys          = 0;
+          config->num_keys      = updated->num_keys;
+
+          if( config->key_selection == DWKS_LIST ) {
+               unsigned int bytes = sizeof(DFBInputDeviceKeySymbol) * config->num_keys;
+               shared_keys = SHMALLOC( sawwin->shmpool, bytes );
+               if (!shared_keys) {
+                    D_ERROR( "SaWMan/WM: Could not allocate %d bytes for list "
+                             "of selected keys (%d)!\n", bytes, config->num_keys );
+                    return D_OOSHM();
+               }
+               config->keys = shared_keys;
+               direct_memcpy( config->keys, updated->keys, bytes );
+          }
+
+          /* ..and add the flag */
+          reconfig->flags       = SWMCF_KEY_SELECTION;
+     }
+
      reconfig->flags =
             (flags & CWCF_POSITION     ? SWMCF_POSITION     : 0)
           | (flags & CWCF_SIZE         ? SWMCF_SIZE         : 0)
@@ -2490,6 +2520,7 @@ wm_set_window_config( CoreWindow             *window,
                                    | CWCF_EVENTS
                                    | CWCF_COLOR_KEY
                                    | CWCF_OPAQUE
+                                   | CWCF_KEY_SELECTION
                                    | CWCF_SRC_GEOMETRY
                                    | CWCF_DST_GEOMETRY ) )
                     | (f & SWMCF_POSITION     ? CWCF_POSITION     : 0)
@@ -2499,6 +2530,7 @@ wm_set_window_config( CoreWindow             *window,
                     | (f & SWMCF_OPTIONS      ? CWCF_OPTIONS      : 0)
                     | (f & SWMCF_EVENTS       ? CWCF_EVENTS       : 0)
                     | (f & SWMCF_COLOR_KEY    ? CWCF_COLOR_KEY    : 0)
+                    | (f & SWMCF_KEY_SELECTION? CWCF_KEY_SELECTION: 0)
                     | (f & SWMCF_OPAQUE       ? CWCF_OPAQUE       : 0)
                     | (f & SWMCF_SRC_GEOMETRY ? CWCF_SRC_GEOMETRY : 0)
                     | (f & SWMCF_DST_GEOMETRY ? CWCF_DST_GEOMETRY : 0);
@@ -2532,8 +2564,6 @@ wm_set_window_config( CoreWindow             *window,
                          sawman_unlock( sawman );
                          return ret;
                     }
-                    current->bounds.w = config->bounds.w;
-                    current->bounds.h = config->bounds.h;
                }
           }
 
@@ -2554,26 +2584,20 @@ wm_set_window_config( CoreWindow             *window,
                sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER | SWMUF_FORCE_COMPLETE );
           }
 
-          current->options       =
           window->config.options = config->options;
      }
 
      if (flags & CWCF_EVENTS)
-          current->events       =
           window->config.events = config->events;
 
      if (flags & CWCF_COLOR_KEY)
-          current->color_key       =
           window->config.color_key = config->color_key;
 
      if (flags & CWCF_OPAQUE)
-          current->opaque       =
           window->config.opaque = config->opaque;
 
-     if (flags & CWCF_OPACITY && !config->opacity) {
+     if (flags & CWCF_OPACITY && !config->opacity)
           set_opacity( sawman, sawwin, config->opacity );
-          current->opacity = config->opacity;
-     }
 
      if (flags == (CWCF_POSITION | CWCF_SIZE)) {
           ret = set_window_bounds( sawman, sawwin, wm_data,
@@ -2583,7 +2607,6 @@ wm_set_window_config( CoreWindow             *window,
                sawman_unlock( sawman );
                return ret;
           }
-          current->bounds = config->bounds;
      }
      else {
           if (flags & CWCF_POSITION) {
@@ -2594,8 +2617,6 @@ wm_set_window_config( CoreWindow             *window,
                     sawman_unlock( sawman );
                     return ret;
                }
-               current->bounds.x = config->bounds.x;
-               current->bounds.y = config->bounds.y;
           }
 
           if (flags & CWCF_SIZE) {
@@ -2604,52 +2625,55 @@ wm_set_window_config( CoreWindow             *window,
                     sawman_unlock( sawman );
                     return ret;
                }
-               current->bounds.w = config->bounds.w;
-               current->bounds.h = config->bounds.h;
           }
      }
 
-     if (flags & CWCF_STACKING) {
+     if (flags & CWCF_STACKING)
           restack_window( sawman, sawwin, sawwin, 0, config->stacking );
-          current->stacking = config->stacking;
-     }
 
      if (flags & CWCF_OPACITY && config->opacity) {
           set_opacity( sawman, sawwin, config->opacity );
-          current->opacity = config->opacity;
 
           /* Possibly switch focus to window now under the cursor */
           update_focus( sawman, stack );
      }
 
-#if 0
      if (flags & CWCF_KEY_SELECTION) {
           if (config->key_selection == DWKS_LIST) {
                unsigned int             bytes = sizeof(DFBInputDeviceKeySymbol) * config->num_keys;
-               DFBInputDeviceKeySymbol *keys;
+               DFBInputDeviceKeySymbol *keys  = config->keys;
      
                D_ASSERT( config->keys != NULL );
                D_ASSERT( config->num_keys > 0 );
-     
-               keys = SHMALLOC( window->stack->shmpool, bytes );
-               if (!keys) {
-                    D_ERROR( "SaWMan/WM: Could not allocate %d bytes for list "
-                             "of selected keys (%d)!\n", bytes, config->num_keys );
-                    return D_OOSHM();
-               }
-     
-               direct_memcpy( keys, config->keys, bytes );
 
+               if( shared_keys != config->keys) {
+                    /* buffer difference, MUST reserve new area */
+
+                    /* If old request buffer: must free */
+                    if( shared_keys )
+                         SHFREE( sawwin->shmpool, shared_keys );
+
+                    keys = SHMALLOC( sawwin->shmpool, bytes );
+                    if (!keys) {
+                         D_ERROR( "SaWMan/WM: Could not allocate %d bytes for list "
+                                  "of selected keys (%d)!\n", bytes, config->num_keys );
+                         return D_OOSHM();
+                    }
+
+                    direct_memcpy( keys, config->keys, bytes );
+               }
+
+               /* sort always, also when buffer was reused */
                qsort( keys, config->num_keys, sizeof(DFBInputDeviceKeySymbol), keys_compare );
      
                if (window->config.keys)
-                    SHFREE( window->stack->shmpool, window->config.keys );
+                    SHFREE( sawwin->shmpool, window->config.keys );
      
                window->config.keys     = keys;
                window->config.num_keys = config->num_keys;
           }
           else if (window->config.keys) {
-               SHFREE( window->stack->shmpool, window->config.keys );
+               SHFREE( sawwin->shmpool, window->config.keys );
 
                window->config.keys     = NULL;
                window->config.num_keys = 0;
@@ -2657,13 +2681,11 @@ wm_set_window_config( CoreWindow             *window,
 
           window->config.key_selection = config->key_selection;
      }
-#endif
+
      if (flags & CWCF_SRC_GEOMETRY)
-          current->src_geometry       =
           window->config.src_geometry = config->src_geometry;
 
      if (flags & CWCF_DST_GEOMETRY)
-          current->dst_geometry       =
           window->config.dst_geometry = config->dst_geometry;
 
      /* Update geometry? */
