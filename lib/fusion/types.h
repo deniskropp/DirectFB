@@ -35,11 +35,16 @@
 
 #include <linux/fusion.h>
 
-#if FUSION_API_MAJOR != 8
-#error Need major API version 8!
+#define FUSION_API_MAJOR_REQUIRED 8
+#define FUSION_API_MINOR_REQUIRED 0
+
+#if FUSION_API_MAJOR_REQUIRED > FUSION_API_MAJOR_PROVIDED
+#error Major version of Fusion Kernel Module too low! Upgrade your kernel.
 #else
-#if FUSION_API_MINOR < 0
-#error Insufficient minor API version, need 8.0 at least!
+#if FUSION_API_MAJOR_REQUIRED == FUSION_API_MAJOR_PROVIDED
+#if FUSION_API_MINOR_REQUIRED > FUSION_API_MINOR_PROVIDED
+#error Minor version of Fusion Kernel Module too low! Upgrade your kernel.
+#endif
 #endif
 #endif
 

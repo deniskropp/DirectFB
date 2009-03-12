@@ -229,8 +229,8 @@ fusion_world_fork( FusionWorld *world )
           D_PERROR( "Fusion/Init: Setting FD_CLOEXEC flag failed!\n" );
 
      /* Fill enter information. */
-     enter.api.major = FUSION_API_MAJOR;
-     enter.api.minor = FUSION_API_MINOR;
+     enter.api.major = FUSION_API_MAJOR_REQUIRED;
+     enter.api.minor = FUSION_API_MINOR_REQUIRED;
      enter.fusion_id = 0;     /* Clear for check below. */
 
      /* Enter the fusion world. */
