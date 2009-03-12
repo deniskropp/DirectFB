@@ -54,6 +54,8 @@
 
 #include <misc/conf.h>
 
+D_DEBUG_DOMAIN( DirectFB_Config, "DirectFB/Config", "Runtime configuration options for DirectFB" );
+
 DFBConfig *dfb_config = NULL;
 
 static const char *config_usage =
@@ -157,6 +159,7 @@ static const char *config_usage =
      "                                 Use these devices for the tslib driver\n"
      "  unichrome-revision=<rev>       Override unichrome hardware revision\n"
      "  i8xx_overlay_pipe_b            Redirect videolayer to pixelpipe B\n"
+     "  include=<config file>          Include the specified file, relative to the current file\n"
      "\n"
      " Window surface swapping policy:\n"
      "  window-surface-policy=(auto|videohigh|videolow|systemonly|videoonly)\n"
@@ -1601,6 +1604,18 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "i8xx_overlay_pipe_b") == 0) {
           dfb_config->i8xx_overlay_pipe_b = true;
      } else
+     if (strcmp (name, "include") == 0) {
+          if( value ) {
+               DFBResult ret;
+               ret = dfb_config_read( value );
+               if( ret )
+                    return ret;
+          }
+          else {
+               D_ERROR("DirectFB/Config 'include': No include file specified!\n");
+               return DFB_INVARG; 
+          }
+     } else
      if (fusion_config_set( name, value ) && direct_config_set( name, value ))
           return DFB_UNSUPPORTED;
 
@@ -1789,16 +1804,35 @@ DFBResult dfb_config_read( const char *filename )
      char line[400];
      FILE *f;
 
+     char *slash = 0;
+     char *cwd   = 0;
+
      config_allocate();
 
      dfb_config->config_layer = &dfb_config->layers[0];
 
      f = fopen( filename, "r" );
      if (!f) {
-          D_DEBUG( "DirectFB/Config: Unable to open config file `%s'!\n", filename );
+          D_DEBUG_AT( DirectFB_Config, "Unable to open config file `%s'!\n", filename );
           return DFB_IO;
      } else {
-          D_DEBUG( "DirectFB/Config: Parsing config file '%s'.\n", filename );
+          D_DEBUG_AT( DirectFB_Config, "Parsing config file '%s'.\n", filename );
+     }
+
+     /* store/restore the cwd (needed for the "include" command */
+     slash = strrchr( filename, '/' );
+     if( slash ) {
+          cwd = getcwd(0,0);
+          if( !cwd )
+               return D_OOM();
+
+          /* must copy filename for path, due to const'ness */
+          char nwd[strlen(filename)];
+          strcpy( nwd, filename );
+          nwd[slash-filename] = 0;
+          chdir( nwd );
+
+          D_DEBUG_AT( DirectFB_Config, "changing configuration lookup directory to '%s'.\n", nwd );
      }
 
      while (fgets( line, 400, f )) {
@@ -1827,6 +1861,7 @@ DFBResult dfb_config_read( const char *filename )
                if (ret == DFB_UNSUPPORTED) {
                     D_ERROR( "DirectFB/Config: *********** In config file `%s': "
                              "Invalid option `%s'! ***********\n", filename, name );
+                    ret = DFB_OK;
                     continue;
                }
                break;
@@ -1834,6 +1869,12 @@ DFBResult dfb_config_read( const char *filename )
      }
 
      fclose( f );
+
+     /* restore original cwd */
+     if( cwd ) {
+          chdir( cwd );
+          free( cwd );
+     }
 
      return ret;
 }
