@@ -5765,34 +5765,48 @@ static void Xacc_blend_zero( GenefxState *gfxs )
      int                i;
      int                w = gfxs->length;
      GenefxAccumulator *X = gfxs->Xacc;
+     GenefxAccumulator *Y = gfxs->Yacc;
 
      for (i=0; i<w; i++) {
-          if (!(X[i].RGB.a & 0xF000))
+          if (!(Y[i].RGB.a & 0xF000))
                X[i].RGB.a = X[i].RGB.r = X[i].RGB.g = X[i].RGB.b = 0;
+          else
+               X[i] = Y[i];
      }
 }
 
 static void Xacc_blend_one( GenefxState *gfxs )
 {
+     int                i;
+     int                w = gfxs->length;
+     GenefxAccumulator *X = gfxs->Xacc;
+     GenefxAccumulator *Y = gfxs->Yacc;
+
+     for (i=0; i<w; i++) {
+          X[i] = Y[i];
+     }
 }
 
 static void Xacc_blend_srccolor( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *X = gfxs->Xacc;
+     GenefxAccumulator *Y = gfxs->Yacc;
 
      if (gfxs->Sacc) {
           GenefxAccumulator *S = gfxs->Sacc;
 
           while (w--) {
-               if (!(X->RGB.a & 0xF000)) {
-                    X->RGB.r = ((S->RGB.r + 1) * X->RGB.r) >> 8;
-                    X->RGB.g = ((S->RGB.g + 1) * X->RGB.g) >> 8;
-                    X->RGB.b = ((S->RGB.b + 1) * X->RGB.b) >> 8;
-                    X->RGB.a = ((S->RGB.a + 1) * X->RGB.a) >> 8;
-               }
+               if (!(Y->RGB.a & 0xF000)) {
+                    X->RGB.r = ((S->RGB.r + 1) * Y->RGB.r) >> 8;
+                    X->RGB.g = ((S->RGB.g + 1) * Y->RGB.g) >> 8;
+                    X->RGB.b = ((S->RGB.b + 1) * Y->RGB.b) >> 8;
+                    X->RGB.a = ((S->RGB.a + 1) * Y->RGB.a) >> 8;
+               } else
+                    *X = *Y;
 
                X++;
+               Y++;
                S++;
           }
      }
@@ -5804,14 +5818,16 @@ static void Xacc_blend_srccolor( GenefxState *gfxs )
           Cacc.RGB.a = Cacc.RGB.a + 1;
 
           while (w--) {
-               if (!(X->RGB.a & 0xF000)) {
-                    X->RGB.r = (Cacc.RGB.r * X->RGB.r) >> 8;
-                    X->RGB.g = (Cacc.RGB.g * X->RGB.g) >> 8;
-                    X->RGB.b = (Cacc.RGB.b * X->RGB.b) >> 8;
-                    X->RGB.a = (Cacc.RGB.a * X->RGB.a) >> 8;
-               }
+               if (!(Y->RGB.a & 0xF000)) {
+                    X->RGB.r = (Cacc.RGB.r * Y->RGB.r) >> 8;
+                    X->RGB.g = (Cacc.RGB.g * Y->RGB.g) >> 8;
+                    X->RGB.b = (Cacc.RGB.b * Y->RGB.b) >> 8;
+                    X->RGB.a = (Cacc.RGB.a * Y->RGB.a) >> 8;
+               } else
+                    *X = *Y;
 
                X++;
+               Y++;
           }
      }
 }
@@ -5820,19 +5836,22 @@ static void Xacc_blend_invsrccolor( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *X = gfxs->Xacc;
+     GenefxAccumulator *Y = gfxs->Yacc;
 
      if (gfxs->Sacc) {
           GenefxAccumulator *S = gfxs->Sacc;
 
           while (w--) {
-               if (!(X->RGB.a & 0xF000)) {
-                    X->RGB.r = ((0x100 - S->RGB.r) * X->RGB.r) >> 8;
-                    X->RGB.g = ((0x100 - S->RGB.g) * X->RGB.g) >> 8;
-                    X->RGB.b = ((0x100 - S->RGB.b) * X->RGB.b) >> 8;
-                    X->RGB.a = ((0x100 - S->RGB.a) * X->RGB.a) >> 8;
-               }
+               if (!(Y->RGB.a & 0xF000)) {
+                    X->RGB.r = ((0x100 - S->RGB.r) * Y->RGB.r) >> 8;
+                    X->RGB.g = ((0x100 - S->RGB.g) * Y->RGB.g) >> 8;
+                    X->RGB.b = ((0x100 - S->RGB.b) * Y->RGB.b) >> 8;
+                    X->RGB.a = ((0x100 - S->RGB.a) * Y->RGB.a) >> 8;
+               } else
+                    *X = *Y;
 
                X++;
+               Y++;
                S++;
           }
      }
@@ -5844,14 +5863,16 @@ static void Xacc_blend_invsrccolor( GenefxState *gfxs )
           Cacc.RGB.a = 0x100 - Cacc.RGB.a;
 
           while (w--) {
-               if (!(X->RGB.a & 0xF000)) {
-                    X->RGB.r = (Cacc.RGB.r * X->RGB.r) >> 8;
-                    X->RGB.g = (Cacc.RGB.g * X->RGB.g) >> 8;
-                    X->RGB.b = (Cacc.RGB.b * X->RGB.b) >> 8;
-                    X->RGB.a = (Cacc.RGB.a * X->RGB.a) >> 8;
-               }
+               if (!(Y->RGB.a & 0xF000)) {
+                    X->RGB.r = (Cacc.RGB.r * Y->RGB.r) >> 8;
+                    X->RGB.g = (Cacc.RGB.g * Y->RGB.g) >> 8;
+                    X->RGB.b = (Cacc.RGB.b * Y->RGB.b) >> 8;
+                    X->RGB.a = (Cacc.RGB.a * Y->RGB.a) >> 8;
+               } else
+                    *X = *Y;
 
                X++;
+               Y++;
           }
      }
 }
@@ -5860,21 +5881,24 @@ static void Xacc_blend_srcalpha( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *X = gfxs->Xacc;
+     GenefxAccumulator *Y = gfxs->Yacc;
 
      if (gfxs->Sacc) {
           GenefxAccumulator *S = gfxs->Sacc;
 
           while (w--) {
-               if (!(X->RGB.a & 0xF000)) {
+               if (!(Y->RGB.a & 0xF000)) {
                     register u16 Sa = S->RGB.a + 1;
 
-                    X->RGB.r = (Sa * X->RGB.r) >> 8;
-                    X->RGB.g = (Sa * X->RGB.g) >> 8;
-                    X->RGB.b = (Sa * X->RGB.b) >> 8;
-                    X->RGB.a = (Sa * X->RGB.a) >> 8;
-               }
+                    X->RGB.r = (Sa * Y->RGB.r) >> 8;
+                    X->RGB.g = (Sa * Y->RGB.g) >> 8;
+                    X->RGB.b = (Sa * Y->RGB.b) >> 8;
+                    X->RGB.a = (Sa * Y->RGB.a) >> 8;
+               } else
+                    *X = *Y;
 
                X++;
+               Y++;
                S++;
           }
      }
@@ -5882,14 +5906,16 @@ static void Xacc_blend_srcalpha( GenefxState *gfxs )
           register u16 Sa = gfxs->color.a + 1;
 
           while (w--) {
-               if (!(X->RGB.a & 0xF000)) {
-                    X->RGB.r = (Sa * X->RGB.r) >> 8;
-                    X->RGB.g = (Sa * X->RGB.g) >> 8;
-                    X->RGB.b = (Sa * X->RGB.b) >> 8;
-                    X->RGB.a = (Sa * X->RGB.a) >> 8;
-               }
+               if (!(Y->RGB.a & 0xF000)) {
+                    X->RGB.r = (Sa * Y->RGB.r) >> 8;
+                    X->RGB.g = (Sa * Y->RGB.g) >> 8;
+                    X->RGB.b = (Sa * Y->RGB.b) >> 8;
+                    X->RGB.a = (Sa * Y->RGB.a) >> 8;
+               } else
+                    *X = *Y;
 
                X++;
+               Y++;
           }
      }
 }
@@ -5898,21 +5924,24 @@ static void Xacc_blend_invsrcalpha( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *X = gfxs->Xacc;
+     GenefxAccumulator *Y = gfxs->Yacc;
 
      if (gfxs->Sacc) {
           GenefxAccumulator *S = gfxs->Sacc;
 
           while (w--) {
-               if (!(X->RGB.a & 0xF000)) {
+               if (!(Y->RGB.a & 0xF000)) {
                     register u16 Sa = 0x100 - S->RGB.a;
 
-                    X->RGB.r = (Sa * X->RGB.r) >> 8;
-                    X->RGB.g = (Sa * X->RGB.g) >> 8;
-                    X->RGB.b = (Sa * X->RGB.b) >> 8;
-                    X->RGB.a = (Sa * X->RGB.a) >> 8;
-               }
+                    X->RGB.r = (Sa * Y->RGB.r) >> 8;
+                    X->RGB.g = (Sa * Y->RGB.g) >> 8;
+                    X->RGB.b = (Sa * Y->RGB.b) >> 8;
+                    X->RGB.a = (Sa * Y->RGB.a) >> 8;
+               } else
+                    *X = *Y;
 
                X++;
+               Y++;
                S++;
           }
      }
@@ -5920,14 +5949,16 @@ static void Xacc_blend_invsrcalpha( GenefxState *gfxs )
           register u16 Sa = 0x100 - gfxs->color.a;
 
           while (w--) {
-               if (!(X->RGB.a & 0xF000)) {
-                    X->RGB.a = (Sa * X->RGB.a) >> 8;
-                    X->RGB.r = (Sa * X->RGB.r) >> 8;
-                    X->RGB.g = (Sa * X->RGB.g) >> 8;
-                    X->RGB.b = (Sa * X->RGB.b) >> 8;
-               }
+               if (!(Y->RGB.a & 0xF000)) {
+                    X->RGB.a = (Sa * Y->RGB.a) >> 8;
+                    X->RGB.r = (Sa * Y->RGB.r) >> 8;
+                    X->RGB.g = (Sa * Y->RGB.g) >> 8;
+                    X->RGB.b = (Sa * Y->RGB.b) >> 8;
+               } else
+                    *X = *Y;
 
                X++;
+               Y++;
           }
      }
 }
@@ -5936,19 +5967,22 @@ static void Xacc_blend_dstalpha( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *X = gfxs->Xacc;
+     GenefxAccumulator *Y = gfxs->Yacc;
      GenefxAccumulator *D = gfxs->Dacc;
 
      while (w--) {
-          if (!(X->RGB.a & 0xF000)) {
+          if (!(Y->RGB.a & 0xF000)) {
                register u16 Da = D->RGB.a + 1;
 
-               X->RGB.r = (Da * X->RGB.r) >> 8;
-               X->RGB.g = (Da * X->RGB.g) >> 8;
-               X->RGB.b = (Da * X->RGB.b) >> 8;
-               X->RGB.a = (Da * X->RGB.a) >> 8;
-          }
+               X->RGB.r = (Da * Y->RGB.r) >> 8;
+               X->RGB.g = (Da * Y->RGB.g) >> 8;
+               X->RGB.b = (Da * Y->RGB.b) >> 8;
+               X->RGB.a = (Da * Y->RGB.a) >> 8;
+          } else
+               *X = *Y;
 
           X++;
+          Y++;
           D++;
      }
 }
@@ -5957,19 +5991,22 @@ static void Xacc_blend_invdstalpha( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *X = gfxs->Xacc;
+     GenefxAccumulator *Y = gfxs->Yacc;
      GenefxAccumulator *D = gfxs->Dacc;
 
      while (w--) {
-          if (!(X->RGB.a & 0xF000)) {
+          if (!(Y->RGB.a & 0xF000)) {
                register u16 Da = 0x100 - D->RGB.a;
 
-               X->RGB.r = (Da * X->RGB.r) >> 8;
-               X->RGB.g = (Da * X->RGB.g) >> 8;
-               X->RGB.b = (Da * X->RGB.b) >> 8;
-               X->RGB.a = (Da * X->RGB.a) >> 8;
-          }
+               X->RGB.r = (Da * Y->RGB.r) >> 8;
+               X->RGB.g = (Da * Y->RGB.g) >> 8;
+               X->RGB.b = (Da * Y->RGB.b) >> 8;
+               X->RGB.a = (Da * Y->RGB.a) >> 8;
+          } else
+               *X = *Y;
 
           X++;
+          Y++;
           D++;
      }
 }
@@ -5978,17 +6015,20 @@ static void Xacc_blend_destcolor( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *X = gfxs->Xacc;
+     GenefxAccumulator *Y = gfxs->Yacc;
      GenefxAccumulator *D = gfxs->Dacc;
 
      while (w--) {
-          if (!(X->RGB.a & 0xF000)) {
-               X->RGB.r = ((D->RGB.r + 1) * X->RGB.r) >> 8;
-               X->RGB.g = ((D->RGB.g + 1) * X->RGB.g) >> 8;
-               X->RGB.b = ((D->RGB.b + 1) * X->RGB.b) >> 8;
-               X->RGB.a = ((D->RGB.a + 1) * X->RGB.a) >> 8;
-          }
+          if (!(Y->RGB.a & 0xF000)) {
+               X->RGB.r = ((D->RGB.r + 1) * Y->RGB.r) >> 8;
+               X->RGB.g = ((D->RGB.g + 1) * Y->RGB.g) >> 8;
+               X->RGB.b = ((D->RGB.b + 1) * Y->RGB.b) >> 8;
+               X->RGB.a = ((D->RGB.a + 1) * Y->RGB.a) >> 8;
+          } else
+               *X = *Y;
 
           X++;
+          Y++;
           D++;
      }
 }
@@ -5997,17 +6037,20 @@ static void Xacc_blend_invdestcolor( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *X = gfxs->Xacc;
+     GenefxAccumulator *Y = gfxs->Yacc;
      GenefxAccumulator *D = gfxs->Dacc;
 
      while (w--) {
-          if (!(X->RGB.a & 0xF000)) {
-               X->RGB.r = ((0x100 - D->RGB.r) * X->RGB.r) >> 8;
-               X->RGB.g = ((0x100 - D->RGB.g) * X->RGB.g) >> 8;
-               X->RGB.b = ((0x100 - D->RGB.b) * X->RGB.b) >> 8;
-               X->RGB.a = ((0x100 - D->RGB.a) * X->RGB.a) >> 8;
-          }
+          if (!(Y->RGB.a & 0xF000)) {
+               X->RGB.r = ((0x100 - D->RGB.r) * Y->RGB.r) >> 8;
+               X->RGB.g = ((0x100 - D->RGB.g) * Y->RGB.g) >> 8;
+               X->RGB.b = ((0x100 - D->RGB.b) * Y->RGB.b) >> 8;
+               X->RGB.a = ((0x100 - D->RGB.a) * Y->RGB.a) >> 8;
+          } else
+               *X = *Y;
 
           X++;
+          Y++;
           D++;
      }
 }
@@ -6016,36 +6059,43 @@ static void Xacc_blend_srcalphasat( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *X = gfxs->Xacc;
+     GenefxAccumulator *Y = gfxs->Yacc;
      GenefxAccumulator *D = gfxs->Dacc;
 
      if (gfxs->Sacc) {
           GenefxAccumulator *S = gfxs->Sacc;
 
           while (w--) {
-               if (!(X->RGB.a & 0xF000)) {
+               if (!(Y->RGB.a & 0xF000)) {
                     register u16 Sa = MIN( S->RGB.a + 1, 0x100 - D->RGB.a );
 
-                    X->RGB.r = (Sa * X->RGB.r) >> 8;
-                    X->RGB.g = (Sa * X->RGB.g) >> 8;
-                    X->RGB.b = (Sa * X->RGB.b) >> 8;
-               }
+                    X->RGB.a =       Y->RGB.a;
+                    X->RGB.r = (Sa * Y->RGB.r) >> 8;
+                    X->RGB.g = (Sa * Y->RGB.g) >> 8;
+                    X->RGB.b = (Sa * Y->RGB.b) >> 8;
+               } else
+                    *X = *Y;
 
                X++;
+               Y++;
                D++;
                S++;
           }
      }
      else {
           while (w--) {
-               if (!(X->RGB.a & 0xF000)) {
+               if (!(Y->RGB.a & 0xF000)) {
                     register u16 Sa = MIN( gfxs->color.a + 1, 0x100 - D->RGB.a );
 
-                    X->RGB.r = (Sa * X->RGB.r) >> 8;
-                    X->RGB.g = (Sa * X->RGB.g) >> 8;
-                    X->RGB.b = (Sa * X->RGB.b) >> 8;
-               }
+                    X->RGB.a =       Y->RGB.a;
+                    X->RGB.r = (Sa * Y->RGB.r) >> 8;
+                    X->RGB.g = (Sa * Y->RGB.g) >> 8;
+                    X->RGB.b = (Sa * Y->RGB.b) >> 8;
+               } else
+                    *X = *Y;
 
                X++;
+               Y++;
                D++;
           }
      }
@@ -6537,12 +6587,17 @@ static void Slut_is_Blut( GenefxState *gfxs ) { gfxs->Slut = gfxs->Blut;}
 static void Sacc_is_NULL( GenefxState *gfxs ) { gfxs->Sacc = NULL;}
 static void Sacc_is_Aacc( GenefxState *gfxs ) { gfxs->Sacc = gfxs->Aacc;}
 static void Sacc_is_Bacc( GenefxState *gfxs ) { gfxs->Sacc = gfxs->Bacc;}
+static void Sacc_is_Tacc( GenefxState *gfxs ) { gfxs->Sacc = gfxs->Tacc;}
 
 static void Dacc_is_Aacc( GenefxState *gfxs ) { gfxs->Dacc = gfxs->Aacc;}
 static void Dacc_is_Bacc( GenefxState *gfxs ) { gfxs->Dacc = gfxs->Bacc;}
 
 static void Xacc_is_Aacc( GenefxState *gfxs ) { gfxs->Xacc = gfxs->Aacc;}
 static void Xacc_is_Bacc( GenefxState *gfxs ) { gfxs->Xacc = gfxs->Bacc;}
+static void Xacc_is_Tacc( GenefxState *gfxs ) { gfxs->Xacc = gfxs->Tacc;}
+
+static void Yacc_is_Aacc( GenefxState *gfxs ) { gfxs->Yacc = gfxs->Aacc;}
+static void Yacc_is_Bacc( GenefxState *gfxs ) { gfxs->Yacc = gfxs->Bacc;}
 
 static void Len_is_Slen( GenefxState *gfxs )  { gfxs->length = gfxs->Slen;}
 static void Len_is_Dlen( GenefxState *gfxs )  { gfxs->length = gfxs->Dlen;}
@@ -7212,6 +7267,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
                                    *funcs++ = Dacc_is_Aacc;
                                    *funcs++ = Xacc_is_Bacc;
+                                   *funcs++ = Yacc_is_Bacc;
                                    *funcs++ = Xacc_blend[state->src_blend - 1];
 
                                    break;
@@ -7224,6 +7280,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          /* destination blending */
                          *funcs++ = Sacc_is_NULL;
                          *funcs++ = Xacc_is_Aacc;
+                         *funcs++ = Yacc_is_Aacc;
 
                          if (state->dst_blend > D_ARRAY_SIZE(Xacc_blend) || state->dst_blend < 1)
                               D_BUG( "unknown dst_blend %d", state->dst_blend );
@@ -7465,29 +7522,33 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
                               if (source_needs_destination &&
                                   state->dst_blend != DSBF_ONE) {
+                                   /* blend the destination */
+                                   *funcs++ = Yacc_is_Aacc;
+                                   *funcs++ = Xacc_is_Tacc;
+                                   *funcs++ = Xacc_blend[state->dst_blend - 1];
+
                                    /* blend the source */
                                    *funcs++ = Xacc_is_Bacc;
+                                   *funcs++ = Yacc_is_Bacc;
                                    *funcs++ = Xacc_blend[state->src_blend - 1];
-
-                                   /* blend the destination */
-                                   *funcs++ = Xacc_is_Aacc;
-                                   *funcs++ = Xacc_blend[state->dst_blend - 1];
                               }
                               else {
                                    /* blend the destination if needed */
                                    if (read_destination) {
-                                        *funcs++ = Xacc_is_Aacc;
+                                        *funcs++ = Yacc_is_Aacc;
+                                        *funcs++ = Xacc_is_Tacc;
                                         *funcs++ = Xacc_blend[state->dst_blend - 1];
                                    }
 
                                    /* blend the source */
                                    *funcs++ = Xacc_is_Bacc;
+                                   *funcs++ = Yacc_is_Bacc;
                                    *funcs++ = Xacc_blend[state->src_blend - 1];
                               }
 
                               /* add the destination to the source */
                               if (read_destination) {
-                                   *funcs++ = Sacc_is_Aacc;
+                                   *funcs++ = Sacc_is_Tacc;
                                    *funcs++ = Dacc_is_Bacc;
                                    *funcs++ = Sacc_add_to_Dacc;
                               }
@@ -8076,7 +8137,7 @@ ABacc_prepare( GenefxState *gfxs, int width )
      size = (width + 31) & ~31;
 
      if (gfxs->ABsize < size) {
-          void *ABstart = D_MALLOC( size * sizeof(GenefxAccumulator) * 2 + 31 );
+          void *ABstart = D_MALLOC( size * sizeof(GenefxAccumulator) * 3 + 31 );
 
           if (!ABstart) {
                D_WARN( "out of memory" );
@@ -8090,6 +8151,7 @@ ABacc_prepare( GenefxState *gfxs, int width )
           gfxs->ABsize  = size;
           gfxs->Aacc    = (GenefxAccumulator*) (((unsigned long)ABstart+31) & ~31);
           gfxs->Bacc    = gfxs->Aacc + size;
+          gfxs->Tacc    = gfxs->Aacc + size + size;
      }
 
      gfxs->Sacc = gfxs->Dacc = gfxs->Aacc;

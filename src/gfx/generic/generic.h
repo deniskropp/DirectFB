@@ -131,13 +131,15 @@ struct _GenefxState {
      int                ABsize;
      GenefxAccumulator *Aacc;
      GenefxAccumulator *Bacc;
+     GenefxAccumulator *Tacc; /* for simultaneous S+D blending */
      GenefxAccumulator  Cacc;
      GenefxAccumulator  SCacc;
 
      /*
       * dataflow control
       */
-     GenefxAccumulator *Xacc;
+     GenefxAccumulator *Xacc; /* writing pointer for blending */
+     GenefxAccumulator *Yacc; /* input pointer for blending */
      GenefxAccumulator *Dacc;
      GenefxAccumulator *Sacc;
 
