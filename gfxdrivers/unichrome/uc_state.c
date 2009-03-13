@@ -83,6 +83,7 @@ uc_has_src_format_3d( DFBSurfacePixelFormat format )
           case DSPF_ARGB:
           case DSPF_A8:
           case DSPF_LUT8:
+          case DSPF_YUY2:
                return true;
 
           default:

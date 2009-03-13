@@ -73,11 +73,14 @@ void uc_flush_texture_cache(void* drv, void* dev)
 
     (void) ucdev;
 
-    UC_FIFO_PREPARE(fifo, 4);
+    UC_FIFO_PREPARE(fifo, 16);
 
     UC_FIFO_ADD_HDR(fifo, (HC_ParaType_Tex << 16) | (HC_SubType_TexGeneral << 24));
-    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXSMD, HC_HTXCHCLR_MASK);
-    UC_FIFO_ADD_3D(fifo, HC_SubA_HTXSMD, 0);
+    UC_FIFO_ADD (fifo, 0x00000002);
+
+    UC_FIFO_ADD (fifo, 0x0113000d);
+    UC_FIFO_ADD (fifo, 0x02ed1316);
+    UC_FIFO_ADD (fifo, 0x03071000);
 
     UC_FIFO_CHECK(fifo);
 }

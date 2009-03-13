@@ -35,6 +35,7 @@ static struct uc_via_chipinfo uc_via_devices[] =
     {0x7204, "K8M800/UniChrome Pro"},   // aka VT3204, Unichrome Pro B
     {0x3118, "CN400/UniChrome Pro"},    // aka VT3259, PM8?0, Unichrome Pro A
     {0x3344, "CN700/Unichrome Pro"},    // aka VT3314, P4M800Pro, VN800, CN900
+    {0x3157, "CX700/Unichrome Pro"},    // aka CX700 CX700M CX700M2
     {0, ""}
 };
 

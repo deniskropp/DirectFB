@@ -1019,6 +1019,7 @@
 #define HC_HTXnFM_VU88          (HC_HTXnFM_BUMPMAP   | 0x00000000)
 #define HC_HTXnFM_LVU655        (HC_HTXnFM_BUMPMAP   | 0x00010000)
 #define HC_HTXnFM_LVU888        (HC_HTXnFM_BUMPMAP   | 0x00020000)
+#define HC_HTXnFM_YUY2          0x00300000
 #define HC_HTXnLoc_Local        0x00000000
 #define HC_HTXnLoc_Sys          0x00000002
 #define HC_HTXnLoc_AGP          0x00000003

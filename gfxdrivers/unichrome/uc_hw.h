@@ -48,6 +48,7 @@ static inline int uc_map_src_format_3d( DFBSurfacePixelFormat format )
           case DSPF_AiRGB:    return HC_HTXnFM_ARGB8888; // limited support
           case DSPF_A8:       return HC_HTXnFM_A8;
           case DSPF_LUT8:     return HC_HTXnFM_Index8;
+          case DSPF_YUY2:     return HC_HTXnFM_YUY2;
 
           default:
                D_BUG( "unexpected pixel format" );
