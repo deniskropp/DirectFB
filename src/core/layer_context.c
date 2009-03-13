@@ -947,8 +947,10 @@ DFBResult
 dfb_layer_context_set_sourcerectangle( CoreLayerContext   *context,
                                        const DFBRectangle *source )
 {
-     DFBResult             ret;
-     CoreLayerRegionConfig config;
+     DFBResult                   ret;
+     CoreLayerRegionConfig       config;
+     CoreLayerRegionConfigFlags  flags;
+     CoreLayer                  *layer;
 
      D_DEBUG_AT( Core_LayerContext, "%s( %p, %p )\n", __FUNCTION__, context, source );
 
@@ -978,9 +980,25 @@ dfb_layer_context_set_sourcerectangle( CoreLayerContext   *context,
 
      /* Change the source rectangle. */
      config.source = *source;
+   
+     flags = CLRCF_SOURCE;
+     layer = dfb_layer_at( context->layer_id );
+
+     /*  If the display layer does not support scaling and the destination 
+         rectangle size is not the same as the source, change it to match.  The 
+         origin is left alone to allow the driver to handle it.  */
+     if ( !D_FLAGS_IS_SET( layer->shared->description.caps, DLCAPS_SCREEN_SIZE ) && 
+          ( config.dest.w != config.source.w || 
+            config.dest.h != config.source.h ) )
+     {
+          config.dest.w = config.source.w;
+          config.dest.h = config.source.h;
+
+          flags |= CLRCF_DEST;
+     }
 
      /* Try to set the new configuration. */
-     ret = update_primary_region_config( context, &config, CLRCF_SOURCE );
+     ret = update_primary_region_config( context, &config, flags );
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
@@ -1555,6 +1573,19 @@ build_updated_config( CoreLayer                   *layer,
 
                case CLLM_LOCATION:
                case CLLM_RECTANGLE:
+                    D_ASSERT( layer->shared != NULL );
+                         
+                    /*  If the display layer does not support scaling and the 
+                        destination rectangle size is not the same as the 
+                        source rectangle, change it to match.  The origin is 
+                        left alone to allow the driver to handle it. */
+                    if (     !D_FLAGS_IS_SET( layer->shared->description.caps, DLCAPS_SCREEN_SIZE )
+                         &&  ( ret_config->dest.w != ret_config->source.w || 
+                               ret_config->dest.h != ret_config->source.h ) )
+                    {
+                         ret_config->dest.w = ret_config->width;
+                         ret_config->dest.h = ret_config->height;
+                    }
                     break;
 
                default:

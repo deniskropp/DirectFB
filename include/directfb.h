@@ -491,7 +491,10 @@ typedef enum {
                                                 based on each pixel's alpha value. */
      DLCAPS_SCREEN_LOCATION   = 0x00000008,  /* The layer location on the screen can be changed,
                                                 this includes position and size as normalized
-                                                values. The default is 0.0f, 0.0f, 1.0f, 1.0f. */
+                                                values. The default is 0.0f, 0.0f, 1.0f, 1.0f. 
+                                                Supports IDirectFBDisplayLayer::SetScreenLocation() 
+                                                and IDirectFBDisplayLayer::SetScreenRectangle().
+                                                This implies DLCAPS_SCREEN_POSITION and _SIZE. */
      DLCAPS_FLICKER_FILTERING = 0x00000010,  /* Flicker filtering can be enabled for smooth output
                                                 on interlaced display devices. */
      DLCAPS_DEINTERLACING     = 0x00000020,  /* The layer provides optional deinterlacing for
@@ -518,8 +521,13 @@ typedef enum {
                                                 See also IDirectFBSurface::SetAlphaRamp(). */
      DLCAPS_PREMULTIPLIED     = 0x00020000,  /* Surfaces with premultiplied alpha are supported. */
 
-     DLCAPS_SCREEN_POSITION   = 0x00100000,
-     DLCAPS_SCREEN_SIZE       = 0x00200000,
+     DLCAPS_SCREEN_POSITION   = 0x00100000,  /* The layer position on the screen can be changed. 
+                                                Supports IDirectFBDisplayLayer::SetScreenPosition(). */
+     DLCAPS_SCREEN_SIZE       = 0x00200000,  /* The layer size (defined by its source rectangle) 
+                                                can be scaled to a different size on the screen 
+                                                (defined by its screen/destination rectangle or 
+                                                its normalized size) and does not have to be 1:1 
+                                                with it. */
 
      DLCAPS_CLIP_REGIONS      = 0x00400000,  /* Supports IDirectFBDisplayLayer::SetClipRegions(). */
 
@@ -2743,7 +2751,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
      /*
       * Set location on screen as normalized values.
       *
-      * So the whole screen is 0.0, 0.0, -1.0, 1.0.
+      * So the whole screen is 0.0, 0.0, 1.0, 1.0.
       */
      DFBResult (*SetScreenLocation) (
           IDirectFBDisplayLayer              *thiz,
@@ -3144,7 +3152,11 @@ typedef enum {
 typedef enum {
      DSLF_READ           = 0x00000001,  /* request read access while
                                            surface is locked */
-     DSLF_WRITE          = 0x00000002   /* request write access */
+     DSLF_WRITE          = 0x00000002   /* Request write access. If 
+                                           specified and surface has 
+                                           a back buffer, it will be 
+                                           used. Otherwise, the front 
+                                           buffer is used. */
 } DFBSurfaceLockFlags;
 
 /*
@@ -3349,7 +3361,12 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      /*
       * Lock the surface for the access type specified.
       *
-      * Returns a data pointer and the line pitch of it.
+      * Returns a data pointer and the line pitch of it.<br>
+      * <br>
+      * <b>Note:</b> If the surface is double/triple buffered and 
+      * the DSLF_WRITE flag is specified, the pointer is to the back 
+      * buffer.  In all other cases, the pointer is to the front 
+      * buffer.
       */
      DFBResult (*Lock) (
           IDirectFBSurface         *thiz,
@@ -3840,7 +3857,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
    /** OpenGL **/
 
      /*
-      * Get an OpenGL context for this surface.
+      * Get a unique OpenGL context for this surface.
       */
      DFBResult (*GetGL) (
           IDirectFBSurface         *thiz,
