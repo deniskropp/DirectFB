@@ -155,12 +155,12 @@ driver_init_device( CoreGraphicsDevice *device,
      renderer = (const char*) glGetString( GL_RENDERER );
 
      glXMakeCurrent( display, None, NULL );
-     glXDestroyContext( display, context );
-
 
      /* fill device info */
      snprintf( device_info->vendor, DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "OpenGL Acceleration -" );
-     snprintf( device_info->name,   DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH,   renderer ?: "Unknown" );
+     snprintf( device_info->name,   DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH,   "%s", renderer ?: "Unknown" );
+
+     glXDestroyContext( display, context );
 
      /* device limitations */
      device_info->limits.surface_byteoffset_alignment = 8;

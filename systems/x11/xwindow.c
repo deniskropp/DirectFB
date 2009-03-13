@@ -240,7 +240,10 @@ no_shm:
 
           pitch = (xw->bpp * xw->width + 3) & ~3;
 
-          xw->virtualscreen = D_MALLOC( 2 * xw->height * pitch );
+          /* Use malloc(), not D_MALLOC() here, because XCreateImage()
+           * will call free() on this data.
+           */
+          xw->virtualscreen = malloc ( 2 * xw->height * pitch );
 
           xw->ximage = XCreateImage( xw->display, xw->visual, xw->depth, ZPixmap, 0,
                                      xw->virtualscreen, xw->width, xw->height * 2, 32, pitch );
@@ -277,14 +280,12 @@ dfb_x11_close_window( DFBX11 *x11, XWindow* xw )
           shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
           D_FREE(xw->shmseginfo);
      }
-     else
-          D_FREE( xw->virtualscreen );
 
      XDestroyImage(xw->ximage);
 
      XFreeGC(xw->display,xw->gc);
      XDestroyWindow(xw->display,xw->window);
-	
+
      D_FREE(xw);
 }
 
