@@ -44,7 +44,7 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
-#if defined (ARCH_PPC) || (SIZEOF_LONG == 8)
+#if defined (ARCH_PPC) || defined (ARCH_ARM) || (SIZEOF_LONG == 8)
 # define RUN_BENCHMARK  1
 #else
 # define RUN_BENCHMARK  0
@@ -56,6 +56,10 @@ D_DEBUG_DOMAIN( Direct_Memcpy, "Direct/Memcpy", "Direct's Memcpy Routines" );
 
 #ifdef USE_PPCASM
 #include "ppcasm_memcpy.h"
+#endif
+
+#ifdef USE_ARMASM && !WORDS_BIGENDIAN
+#include "armasm_memcpy.h"
 #endif
 
 
@@ -152,6 +156,9 @@ static struct {
      { "ppccache", "ppcasm_cacheable_memcpy()",  direct_ppcasm_cacheable_memcpy, 0, 0},
 #endif /* __LINUX__ */
 #endif /* USE_PPCASM */
+#ifdef USE_ARMASM && !WORDS_BIGENDIAN
+	 { "arm",      "armasm_memcpy()",            direct_armasm_memcpy, 0, 0},
+#endif
      { NULL, NULL, NULL, 0, 0}
 };
 

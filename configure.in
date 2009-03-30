@@ -198,6 +198,7 @@ case "$target_or_host" in
 
   *arm*)
     have_arm=yes
+	AC_DEFINE(ARCH_ARM,1,[Define to 1 if you are compiling for ARM.])
     ;;
 
   ppc-*-linux* | powerpc-*)
@@ -221,6 +222,7 @@ have_kos=no
 need_libc_r=no
 need_libdl=yes
 want_ppcasm=yes
+want_armasm=yes
 
 case "$target_or_host" in
   *-linux*)
@@ -236,6 +238,7 @@ case "$target_or_host" in
     need_libc_r=yes
     need_libdl=no
     want_ppcasm=yes
+	want_armasm=yes
     CPPFLAGS="$CPPFLAGS -I/usr/local/include"
     LDFLAGS="$LDFLAGS -L/usr/local/lib"
     ;;
@@ -244,6 +247,7 @@ case "$target_or_host" in
     need_libc_r=yes
     need_libdl=no
     want_ppcasm=no
+	want_armasm=no
     CPPFLAGS="$CPPFLAGS -I/usr/local/include"
     LDFLAGS="$LDFLAGS -L/usr/local/lib"
     ;;
@@ -252,6 +256,7 @@ case "$target_or_host" in
     need_libc_r=no
     need_libdl=no
     want_ppcasm=yes
+	want_armasm=yes
     CPPFLAGS="$CPPFLAGS -I/usr/pkg/include"
     LDFLAGS="$LDFLAGS -L/usr/pkg/lib"
     ;;    
@@ -260,6 +265,7 @@ case "$target_or_host" in
     need_libc_r=no
     need_libdl=yes
     want_ppcasm=no
+	want_armasm=no
     CPPFLAGS="$CPPFLAGS -I/sw/include"
     LDFLAGS="$LDFLAGS -L/sw/lib"
     ;;
@@ -279,6 +285,13 @@ AM_CONDITIONAL(BUILDPPCASM, test "$have_ppc" = "yes" && test "$want_ppcasm" = "y
 
 if test "$have_ppc" = "yes" && test "$want_ppcasm" = "yes"; then
     AC_DEFINE(USE_PPCASM,1,[Define to 1 if ppc assembly is available.])
+fi
+
+
+AM_CONDITIONAL(BUILDARMASM, test "$have_arm" = "yes" && test "$want_armasm" = "yes")
+
+if test "$have_arm" = "yes" && test "$want_armasm" = "yes"; then
+    AC_DEFINE(USE_ARMASM,1,[Define to 1 if arm assembly is available.])
 fi
 
 if test "$have_kos" = "yes"; then

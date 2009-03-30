@@ -29,6 +29,10 @@ endif
 ppcasm_headers = ppcasm_memcpy.h ppc_asm.h
 endif
 
+if BUILDARMASM
+armasm_sources = armasm_memcpy.S
+armasm_header = armasm_memcpy.h
+endif
 
 # If the old location isn't cleared, builds of external modules fail
 install-exec-local:
@@ -39,6 +43,7 @@ includedir = @INCLUDEDIR@/direct
 
 include_HEADERS = \
 	$(ppcasm_headers)		\
+	$(armasm_headers)		\
 	build.h				\
 	clock.h				\
 	conf.h				\
@@ -69,6 +74,7 @@ lib_LTLIBRARIES = libdirect.la
 
 libdirect_la_SOURCES = \
 	$(ppcasm_sources)	\
+	$(armasm_sources)	\
 	clock.c			\
 	conf.c			\
 	debug.c			\
