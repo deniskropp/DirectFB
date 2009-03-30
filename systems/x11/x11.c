@@ -69,6 +69,7 @@
 
 #include <core/core_system.h>
 
+D_DEBUG_DOMAIN( X11_Core, "X11/Core", "Main X11 system functions" );
 
 DFB_CORE_SYSTEM( x11 )
 
@@ -136,7 +137,7 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
           for (n=0; n<depth->nvisuals; n++) {
                Visual *visual = &depth->visuals[n];
 
-               D_DEBUG( "X11/Visual: [%2d] ID 0x%02lx, depth %d, red 0x%06lx, green 0x%06lx, blue 0x%06lx, %d bits/rgb, %d entries\n",
+               D_DEBUG_AT( X11_Core, "[Visual %d] ID 0x%02lx, depth %d, RGB 0x%06lx/0x%06lx/0x%06lx, %d bpRGB, %d entr.\n",
                         n, visual->visualid, depth->depth,
                         visual->red_mask, visual->green_mask, visual->blue_mask,
                         visual->bits_per_rgb, visual->map_entries );
@@ -196,6 +197,8 @@ system_get_info( CoreSystemInfo *info )
      info->type = CORE_X11;   
      info->caps = CSCAPS_ACCELERATION;
 
+     D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
+
      snprintf( info->name, DFB_CORE_SYSTEM_INFO_NAME_LENGTH, "X11" );
 }
 
@@ -205,6 +208,8 @@ system_initialize( CoreDFB *core, void **data )
      DFBResult     ret;
      DFBX11       *x11;
      DFBX11Shared *shared;
+
+     D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
 
      x11 = D_CALLOC( 1, sizeof(DFBX11) );
      if (!x11)
@@ -279,6 +284,8 @@ system_join( CoreDFB *core, void **data )
      DFBX11       *x11;
      DFBX11Shared *shared;
 
+     D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
+
      x11 = D_CALLOC( 1, sizeof(DFBX11) );
      if (!x11)
           return D_OOM();
@@ -331,6 +338,8 @@ system_shutdown( bool emergency )
      DFBX11       *x11    = dfb_system_data();
      DFBX11Shared *shared = x11->shared;
 
+     D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
+
      /*
       * Master deinit
       */
@@ -379,6 +388,8 @@ system_leave( bool emergency )
 {
      DFBX11       *x11    = dfb_system_data();
      DFBX11Shared *shared = x11->shared;
+
+     D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
 
      /*
       * Slave deinit

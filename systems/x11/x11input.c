@@ -59,6 +59,7 @@
 
 #include <core/input_driver.h>
 
+D_DEBUG_DOMAIN( X11_Input, "X11/Input", "X11 Input/Key/Mouse handling" );
 
 DFB_INPUT_DRIVER( x11input )
 
@@ -276,7 +277,7 @@ xsymbol_to_id( KeySym xKeySymbol )
           case 0                   : break;
 
           default:
-               D_DEBUG("X11: Unknown key symbol 0x%lx\n", xKeySymbol);
+               D_DEBUG_AT( X11_Input, "Unknown key symbol 0x%lx\n", xKeySymbol);
      }    
 
      return DIKI_UNKNOWN;
@@ -526,6 +527,8 @@ x11EventThread( DirectThread *thread, void *driver_data )
 
                XUnlockDisplay( x11->display );
 
+               D_DEBUG_AT( X11_Input, "Event received: %d\n", xEvent.type );
+
                switch (xEvent.type) {
                     case ButtonPress:
                     case ButtonRelease:
@@ -615,6 +618,8 @@ driver_open_device( CoreInputDevice  *device,
      DFBX11       *x11    = dfb_system_data();
      DFBX11Shared *shared = x11->shared;
 
+     D_DEBUG_AT( X11_Input, "%s()\n", __FUNCTION__ );
+
      fusion_skirmish_prevail( &shared->lock );
 
      fusion_skirmish_dismiss( &shared->lock );
@@ -698,6 +703,8 @@ driver_close_device( void *driver_data )
      X11InputData *data   = driver_data;
      DFBX11       *x11    = data->x11;
      DFBX11Shared *shared = x11->shared;
+
+     D_DEBUG_AT( X11_Input, "%s()\n", __FUNCTION__ );
 
      /* stop input thread */
      data->stop = true;

@@ -39,11 +39,29 @@
 #include "gl_2d.h"
 #include "gl_gfxdriver.h"
 
+D_DEBUG_DOMAIN( GL_Driver, "GL/Driver", "GL graphics driver for X11" );
 
 #include <core/graphics_driver.h>
 
 DFB_GRAPHICS_DRIVER( gl )
 
+static int error_code = 0;
+
+/**********************************************************************************************************************/
+
+static int
+error_handler( Display *display, XErrorEvent *event )
+{
+     char buf[512];
+
+     XGetErrorText( display, event->error_code, buf, sizeof(buf) );
+
+     D_ERROR( "GL/Driver: Error! %s\n", buf );
+
+     error_code = event->error_code;
+
+     return 0;
+}
 
 /**********************************************************************************************************************/
 
@@ -92,6 +110,8 @@ driver_init_driver( CoreGraphicsDevice  *device,
                     void                *device_data,
                     CoreDFB             *core )
 {
+     D_DEBUG_AT( GL_Driver, "%s()\n", __FUNCTION__ );
+
      /* initialize function pointers */
      funcs->EngineSync    = glEngineSync;
      funcs->EngineReset   = glEngineReset;
@@ -134,23 +154,30 @@ driver_init_device( CoreGraphicsDevice *device,
           None
      };
 
+     D_DEBUG_AT( GL_Driver, "%s()\n", __FUNCTION__ );
+
+     XSetErrorHandler( error_handler );
+     error_code = 0;
+
      x11 = dfb_system_data();
 
      display = x11->display;
 
      visual = glXChooseVisual( display, DefaultScreen(display), attr );
-     if (!visual) {
+     if (!visual || error_code) {
           D_ERROR( "GL/Driver: Could not find a suitable visual!\n" );
           return DFB_INIT;
      }
 
      context = glXCreateContext( display, visual, NULL, GL_TRUE );
-     if (!context) {
+     if (!context || error_code) {
           D_ERROR( "GL/Driver: Could not create a context!\n" );
           return DFB_INIT;
      }
 
      glXMakeCurrent( display, RootWindowOfScreen(DefaultScreenOfDisplay(display)), context );
+     if( error_code )
+          return DFB_INIT;
 
      renderer = (const char*) glGetString( GL_RENDERER );
 

@@ -69,7 +69,7 @@
 #include "primary.h"
 
 
-D_DEBUG_DOMAIN( X11_Window, "X11/Window", "X11 Window" );
+D_DEBUG_DOMAIN( X11_Layer,  "X11/Layer",  "X11 Layer" );
 D_DEBUG_DOMAIN( X11_Update, "X11/Update", "X11 Update" );
 
 /**********************************************************************************************************************/
@@ -147,6 +147,8 @@ primaryInitScreen( CoreScreen           *screen,
                    void                 *screen_data,
                    DFBScreenDescription *description )
 {
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
+
      /* Set the screen capabilities. */
      description->caps = DSCCAPS_NONE;
 
@@ -166,6 +168,8 @@ primaryGetScreenSize( CoreScreen *screen,
 {
      DFBX11       *x11    = driver_data;
      DFBX11Shared *shared = x11->shared;
+
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
      *ret_width  = shared->screen_size.w;
      *ret_height = shared->screen_size.h;
@@ -202,6 +206,8 @@ primaryInitLayer( CoreLayer                  *layer,
 {
      DFBX11       *x11    = driver_data;
      DFBX11Shared *shared = x11->shared;
+
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
      /* set capabilities and type */
      description->caps = DLCAPS_SURFACE;
@@ -263,6 +269,8 @@ primaryTestRegion( CoreLayer                  *layer,
                    CoreLayerRegionConfigFlags *failed )
 {
      CoreLayerRegionConfigFlags fail = 0;
+
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
      switch (config->buffermode) {
           case DLBM_FRONTONLY:
@@ -332,6 +340,8 @@ primarySetRegion( CoreLayer                  *layer,
      DFBResult  ret;
      DFBX11    *x11 = driver_data;
 
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
+
      ret = dfb_x11_create_window( x11, config );
      if (ret)
           return ret;
@@ -350,6 +360,8 @@ primaryRemoveRegion( CoreLayer             *layer,
 {
      DFBX11 *x11 = driver_data;
 
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
+
      dfb_x11_destroy_window( x11 );
 
      return DFB_OK;
@@ -367,6 +379,8 @@ primaryFlipRegion( CoreLayer             *layer,
      DFBX11    *x11    = driver_data;
      DFBRegion  region = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
 
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
+
      dfb_surface_flip( surface, false );
 
      return dfb_x11_update_screen( x11, &region, lock );
@@ -383,6 +397,8 @@ primaryUpdateRegion( CoreLayer             *layer,
 {
      DFBX11    *x11    = driver_data;
      DFBRegion  region = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
+
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
      if (update && !dfb_region_region_intersect( &region, update ))
           return DFB_OK;
@@ -566,9 +582,9 @@ dfb_x11_create_window_handler( DFBX11 *x11, CoreLayerRegionConfig *config )
      XWindow      *xw;
      DFBX11Shared *shared = x11->shared;
 
-     D_DEBUG_AT( X11_Window, "%s( %p )\n", __FUNCTION__, config );
+     D_DEBUG_AT( X11_Layer, "%s( %p )\n", __FUNCTION__, config );
 
-     D_DEBUG_AT( X11_Window, "  -> %4dx%4d %s\n", config->width, config->height, dfb_pixelformat_name(config->format) );
+     D_DEBUG_AT( X11_Layer, "  -> %4dx%4d %s\n", config->width, config->height, dfb_pixelformat_name(config->format) );
 
      XLockDisplay( x11->display );
 
@@ -604,7 +620,7 @@ dfb_x11_destroy_window_handler( DFBX11 *x11 )
 {
      DFBX11Shared *shared = x11->shared;
 
-     D_DEBUG_AT( X11_Window, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
      XLockDisplay( x11->display );
 

@@ -38,6 +38,7 @@
 
 #include "x11.h"
 
+D_DEBUG_DOMAIN( X11_Window, "X11/Window", "X11 Window handling" );
 
 static bool use_shm = true;
 
@@ -61,9 +62,11 @@ error_handler( Display *display, XErrorEvent *event )
 {
      char buf[512];
 
+     D_DEBUG_AT( X11_Window, "%s()\n", __FUNCTION__ );
+
      XGetErrorText( display, event->error_code, buf, sizeof(buf) );
 
-     D_ERROR( "X11/Display: Error! %s\n", buf );
+     D_ERROR( "X11/Window: Error! %s\n", buf );
 
      error_code = event->error_code;
 
@@ -76,7 +79,7 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
      XWindow              *xw;
      XSetWindowAttributes  attr = { .background_pixmap = 0 };
 
-     D_INFO( "X11/Window: Creating %4dx%4d %s window...\n", iWidth, iHeight, dfb_pixelformat_name(format) );
+     D_DEBUG_AT( X11_Window, "Creating %4dx%4d %s window...\n", iWidth, iHeight, dfb_pixelformat_name(format) );
 
      xw = D_CALLOC( 1, sizeof(XWindow) );
      if (!xw)
