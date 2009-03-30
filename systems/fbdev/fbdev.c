@@ -2743,7 +2743,8 @@ fbdev_ioctl( int request, void *arg, int arg_size )
 
      if (dfb_core_is_master( dfb_fbdev->core )) {
           fbdev_ioctl_call_handler( 1, request, arg, NULL, 0, &ret );
-          return ret;
+          errno = ret;
+          return errno ? -1 : 0;
      }
 
      if (arg) {
