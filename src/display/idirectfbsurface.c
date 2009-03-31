@@ -485,6 +485,70 @@ IDirectFBSurface_Unlock( IDirectFBSurface *thiz )
 }
 
 static DFBResult
+IDirectFBSurface_Write( IDirectFBSurface    *thiz,
+                        const DFBRectangle  *rect,
+                        const void          *ptr,
+                        int                  pitch )
+{
+     CoreSurface *surface;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p, %p, %p [%d] )\n", __FUNCTION__, thiz, rect, ptr, pitch );
+
+     surface = data->surface;
+     if (!surface)
+          return DFB_DESTROYED;
+
+     if (!rect || !ptr || pitch < DFB_BYTES_PER_LINE(surface->config.format,rect->w ) )
+          return DFB_INVARG;
+
+     if (data->locked)
+          return DFB_LOCKED;
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+     D_DEBUG_AT( Surface, "  ->      %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS( rect ) );
+
+     //FIXME: check rectangle
+
+     return dfb_surface_write_buffer( data->surface, CSBR_BACK, ptr, pitch, rect );
+}
+
+static DFBResult
+IDirectFBSurface_Read( IDirectFBSurface    *thiz,
+                       const DFBRectangle  *rect,
+                       const void          *ptr,
+                       int                  pitch )
+{
+     CoreSurface *surface;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p, %p, %p [%d] )\n", __FUNCTION__, thiz, rect, ptr, pitch );
+
+     surface = data->surface;
+     if (!surface)
+          return DFB_DESTROYED;
+
+     if (!rect || !ptr || pitch < DFB_BYTES_PER_LINE(surface->config.format,rect->w ) )
+          return DFB_INVARG;
+
+     if (data->locked)
+          return DFB_LOCKED;
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+     D_DEBUG_AT( Surface, "  ->      %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS( rect ) );
+
+     //FIXME: check rectangle
+
+     return dfb_surface_read_buffer( data->surface, CSBR_FRONT, ptr, pitch, rect );
+}
+
+static DFBResult
 IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
                        const DFBRegion     *region,
                        DFBSurfaceFlipFlags  flags )
@@ -2610,6 +2674,9 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->SetSourceMask    = IDirectFBSurface_SetSourceMask;
 
      thiz->MakeSubSurface = IDirectFBSurface_MakeSubSurface;
+
+     thiz->Write = IDirectFBSurface_Write;
+     thiz->Read  = IDirectFBSurface_Read;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );

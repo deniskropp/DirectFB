@@ -4019,6 +4019,35 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           IDirectFBSurface         *from,
           const DFBRectangle       *rect
      );
+
+
+   /** Direct Write/Read **/
+
+     /*
+      * Write to the surface without the need for (Un)Lock.
+      * <b>rect</b> defines the area inside the surface.
+      * <b>ptr</b> and <b>pitch</b> specify the source.
+      * The format of the surface and the source data must be the same.
+      */
+     DFBResult (*Write) (
+          IDirectFBSurface         *thiz,
+          const DFBRectangle       *rect,
+          const void               *ptr,
+          int                       pitch
+     );
+
+     /*
+      * Read from the surface without the need for (Un)Lock.
+      * <b>rect</b> defines the area inside the surface to be read.
+      * <b>ptr</b> and <b>pitch</b> specify the destination.
+      * The destination data will have the same format as the surface.
+      */
+     DFBResult (*Read) (
+          IDirectFBSurface         *thiz,
+          const DFBRectangle       *rect,
+          const void               *ptr,
+          int                       pitch
+     );
 )
 
 
