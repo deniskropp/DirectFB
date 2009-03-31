@@ -1,3 +1,76 @@
+1.3.1
+-----
+
+Fusion
+- update to use new 'unified' fusion kernel module.
+  When using multi-app, please use fusion 8.1.1 or newer.
+- fixed skirmish wait argument not taken as msec but usec
+
+Config
+- added 'include' option, to include config files.
+- added config option to override module search dir.
+- read /proc/self/cmdline if DirectFBInit() does not receive argv/argc.
+- added option to override initial screen size.
+- Fix build when srcdir != builddir.
+
+Core
+- Added IDirectFBSurface::Read and ::Write
+- better out-of-memory error handling
+- fixed alpha handling for palette SetEntriesYUV
+- rectified changes to surface policy in case a surface is allocated again, of reallocated 
+- fixed memory leak in local "System Memory" pool when deallocating due to IDirectFB::Release
+- fix software blending bug when modifying both source and destination
+- IDirectFBDisplayLayer::SetSourceRectangle for non-scalable surfaces: change dst size too.
+- surfaces: Fixed missing initialization of bridge pointer, crashing when no bridge is available.
+- surfaces: clean-up local pool on 'leave' and 'destroy'
+- gfx: added RGBA4444 support
+- default font: Support premultiplied font formats.
+
+Direct
+- include ARM memcpy routines (big endian only)
+
+Documentation
+- added documentation for blend functions and some desktop-buffer-mode options
+- directfbrc.5: Document triple and windows desktop-buffer-mode options.
+
+Gfxsystems
+- matrox: Wrong chroma plane offset was being used with deinterlace blits.
+- omap: Added omapfb.h to release zipfile.
+- SH772x: LCD parameters not obtained via fbdev ioctl
+- SH772x: improved JPEG Encode/decode performance, JPEG fixes, JPU by default disabled due to conflicts
+- SH772x: detection broadened to SH772x revisions
+- unichrome: support for accel stretchblit YUV->RGB for CX700/M/2.
+
+Input
+- Fix possible array overruns
+- added direct_modules_unregister() when unloading the module
+- linuxinput: Fix LED handling, Count KEY_M
+- font loading: Support premultiplied font formats.
+- Video4Linux: add sources to release zipfile. Conform v4l and v4l2 to new core architecture.
+- zytronic: added zytronic touch screen driver.
+- vt: Move the keyboard XLATE/MEDIUMRAW handling to the vt code, to allow concurrent input.
+- input: correctly read modifiers for load_keymap
+- keyboard: added setting/loading of keyboard keymaps via IDirectFBInputDevice
+
+Systems
+- fbdev: Fixes for pan & zoom functionality
+- fbdev: corrected ioctl error handling: now stops on error.
+- fbdev: Test non-primary layer allocations
+- fbdev: use directfbrc for initial screen size, if specified.
+- x11: fixes for glx handling, additional logging
+- x11: Remember each GLXContext's drawable and set update flag only if it changed.
+- x11: Manage second GLX context per thread via another surface accessor ID.
+
+Tools
+- dfbdump: fixed to show correct buffer allocation sizes for certain formats.
+- dfbinfo: now shows multiple encoder types correctly
+
+Window Manager
+- default: Fix DLBM_TILE clipping
+- default: Fixed advanced blending with only DSBLIT_BLEND_COLORALPHA being used.
+- default: Added Meta-R for window rotation.
+
+
 1.3.0
 -----
 
