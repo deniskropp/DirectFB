@@ -31,6 +31,8 @@
 #include <direct/debug.h>
 #include <direct/mem.h>
 
+#include <fusion/fusion.h>
+
 #include <core/core.h>
 #include <core/surface_pool.h>
 
@@ -52,6 +54,7 @@ typedef struct {
      int         size;
 
      FusionCall  call;
+     FusionID    fid;
 } LocalAllocationData;
 
 /**********************************************************************************************************************/
@@ -140,6 +143,7 @@ localDestroyPool( CoreSurfacePool *pool,
      CoreSurfaceAllocation *allocation;
      LocalPoolLocalData    *local = pool_local;
      LocalAllocationData   *data;
+     FusionID               fid;
 
      DFBResult res;
      int       i;
@@ -148,11 +152,13 @@ localDestroyPool( CoreSurfacePool *pool,
      D_ASSERT( pool_local != NULL );
 
      res = fusion_call_destroy( &local->call );
+     fid = fusion_id( dfb_core_world(NULL) );
 
      /* remove the local allocations */
      fusion_vector_foreach (allocation, i, pool->allocs) {
           data = allocation->data;
-          D_FREE( data->addr );
+          if( data->fid == fid )
+               D_FREE( data->addr );
      }
 
      return res;    
@@ -166,7 +172,8 @@ localLeavePool( CoreSurfacePool *pool,
      CoreSurfaceAllocation *allocation;
      LocalPoolLocalData    *local = pool_local;
      LocalAllocationData   *data;
-
+     FusionID               fid;
+     
      DFBResult res;
      int       i;
 
@@ -174,11 +181,13 @@ localLeavePool( CoreSurfacePool *pool,
      D_ASSERT( pool_local != NULL );
 
      res = fusion_call_destroy( &local->call );
+     fid = fusion_id( dfb_core_world(NULL) );
 
      /* remove the local allocations */
      fusion_vector_foreach (allocation, i, pool->allocs) {
           data = allocation->data;
-          D_FREE( data->addr );
+          if( data->fid == fid )
+               D_FREE( data->addr );
      }
 
      return res;    
@@ -210,6 +219,7 @@ localAllocateBuffer( CoreSurfacePool       *pool,
           return D_OOM();
 
      alloc->call = local->call;
+     alloc->fid  = fusion_id( dfb_core_world(NULL) );
 
      D_MAGIC_SET( alloc, LocalAllocationData );
 
