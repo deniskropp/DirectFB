@@ -127,8 +127,18 @@ static void Sop_PFI_OP_Dacc(to)( GenefxState *gfxs )
      GenefxAccumulator *D = gfxs->Dacc;
      int                Ostep = gfxs->Ostep;
 
-     if (Ostep != 1)
-          D_UNIMPLEMENTED();
+     if (Ostep != 1) {
+          while (l--) {
+              u16 s = *S;
+
+              EXPAND( *D, s );
+
+              S += Ostep;
+
+              D++;
+          }
+          return;
+     }
 
      if ((long)S & 2) {
           u16 s = *S++;
@@ -194,8 +204,16 @@ static void Sacc_OP_Aop_PFI(to)( GenefxState *gfxs )
      u16               *D = gfxs->Aop[0];
      int                Dstep = gfxs->Astep;
 
-     if (Dstep != 1)
-          D_UNIMPLEMENTED();
+     if (Dstep != 1) {
+          while (l--) {
+              if (!(S->RGB.a & 0xF000))
+                   *D = PIXEL( *S );
+
+              S++;
+              D += Dstep;
+          }
+          return;
+     }
 
      if ((long)D & 2) {
           if (!(S->RGB.a & 0xF000))
@@ -244,9 +262,18 @@ static void Sacc_OP_Aop_PFI(Sto)( GenefxState *gfxs )
      u16               *D     = gfxs->Aop[0];
      int                Dstep = gfxs->Astep;
 
-     if (Dstep != 1)
-          D_UNIMPLEMENTED();
+     if (Dstep != 1) {
+         while (l--) {
+              GenefxAccumulator *S = &Sacc[i>>16];
 
+              if (!(S->RGB.a & 0xF000))
+                   *D = PIXEL( *S );
+
+              D += Dstep;
+              i += SperD;
+         }
+         return;
+     }
      if ((long)D & 2) {
           GenefxAccumulator *S = Sacc;
 
