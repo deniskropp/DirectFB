@@ -1459,7 +1459,7 @@ Dispatch_DisableAcceleration( IDirectFBSurface *thiz, IDirectFBSurface *real,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
 
      VOODOO_PARSER_BEGIN( parser, msg );
-     VOODOO_PARSER_GET_INT( parser, mask );
+     VOODOO_PARSER_GET_UINT( parser, mask );
      VOODOO_PARSER_END( parser );
 
      real->DisableAcceleration( real, mask );
