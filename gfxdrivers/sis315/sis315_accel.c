@@ -111,7 +111,7 @@ bool sis_blit(void *driver_data, void *device_data, DFBRectangle *rect, int dx, 
 	SiSDeviceData *dev = (SiSDeviceData *)device_data;
 
 	sis_wl(drv->mmio_base, SIS315_2D_SRC_Y, (rect->x << 16) | rect->y);
-	sis_wl(drv->mmio_base, SIS315_2D_DST_Y, (dx << 16) | dy);
+	sis_wl(drv->mmio_base, SIS315_2D_DST_Y, (dx << 16) | (dy & 0xffff) );
 	sis_wl(drv->mmio_base, SIS315_2D_RECT_WIDTH, (rect->h << 16) | rect->w);
 
 	sis_cmd(drv, dev, SIS315_2D_CMD_PAT_FG_REG,
