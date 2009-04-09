@@ -27,5 +27,6 @@ bool sis_fill_rectangle(void *driver_data, void *device_data, DFBRectangle *rect
 bool sis_draw_rectangle(void *driver_data, void *device_data, DFBRectangle *rect);
 bool sis_draw_line(void *driver_data, void *device_data, DFBRegion *line);
 bool sis_blit(void *driver_data, void *device_data, DFBRectangle *rect, int dx, int dy);
+bool sis_stretchblit(void *driver_data, void *device_data, DFBRectangle *sr, DFBRectangle *dr );
 
 #endif /* _SIS315_ACCEL_H */

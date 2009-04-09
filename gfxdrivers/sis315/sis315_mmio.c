@@ -28,14 +28,24 @@
 
 
 #include "sis315_mmio.h"
+#include "direct/util.h"
 
 u32 sis_rl(volatile u8 *mmio, unsigned int offset)
 {
+#ifdef WORDS_BIGENDIAN
+     u32 r = *(volatile u32 *)(mmio + offset);
+     return BSWAP32(r);
+#else
 	return *(volatile u32 *)(mmio + offset);
+#endif
 }
 
 void sis_wl(volatile u8 *mmio, unsigned int offset, u32 value)
 {
+#ifdef WORDS_BIGENDIAN
+	*(volatile u32 *)(mmio + offset) = BSWAP32(value);
+#else
 	*(volatile u32 *)(mmio + offset) = value;
+#endif
 }
 

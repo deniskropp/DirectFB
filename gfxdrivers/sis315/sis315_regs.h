@@ -65,6 +65,12 @@ enum sis315_2d_registers {
 	SIS315_2D_PATTERN_REG  = 0x8300
 };
 
+enum SIS315_2d_registers_StretchBlt {
+	SIS315_2D_X_ERROR_TERM = 0x8220,
+	SIS315_2D_Y_ERROR_TERM = 0x8224,
+	SIS315_2D_X_INITIAL_ERROR = 0x8228
+};
+
 enum sis315_2d_registers_drawline {
 	SIS315_2D_LINE_X0      = 0x8208, SIS315_2D_LINE_Y0           = 0x820A,
 	SIS315_2D_LINE_X1      = 0x820C, SIS315_2D_LINE_Y1           = 0x820E,
@@ -128,6 +134,15 @@ enum sis315_2d_cmd_control {
 	/* destination */
 	SIS315_DST_VIDEO		= 0x00000000,
 	SIS315_DST_AGP			= 0x02000000,
+	/*for stretchblit */
+	SIS_2D_CMD_SRC_Y_DEC          = 0x00000000,
+	SIS_2D_CMD_SRC_Y_INC          = 0x00400000,
+	SIS_2D_CMD_SRC_X_DEC          = 0x00000000,
+	SIS_2D_CMD_SRC_X_INC          = 0x00200000,
+	SIS_2D_CMD_DST_Y_DEC          = 0x00000000,
+	SIS_2D_CMD_DST_Y_INC          = 0x00100000,
+	SIS_2D_CMD_DST_X_DEC          = 0x00000000,
+	SIS_2D_CMD_DST_X_INC          = 0x00080000,
 #if 0
 	SIS315_2D_CMD_DIR_X_INC		= 0x00010000,
 	SIS315_2D_CMD_DIR_X_DEC		= 0x00000000,

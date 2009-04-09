@@ -51,7 +51,7 @@ DFB_GRAPHICS_DRIVER(sis315);
 #define SIS_SUPPORTED_DRAWING_FLAGS		\
 	(DSDRAW_NOFX)
 #define SIS_SUPPORTED_BLITTING_FUNCTIONS	\
-	(DFXL_BLIT)
+	(DFXL_BLIT | DFXL_STRETCHBLIT)
 #define SIS_SUPPORTED_BLITTING_FLAGS		\
 	(DSBLIT_SRC_COLORKEY)
 
@@ -101,7 +101,10 @@ static void sis_check_state(void *driver_data, void *device_data,
 
 		switch (state->source->config.format) {
 		case DSPF_LUT8:
+		case DSPF_ARGB1555:
 		case DSPF_RGB16:
+		case DSPF_RGB32:
+		case DSPF_ARGB:
 			break;
 		default:
 			return;
@@ -157,12 +160,22 @@ static void sis_set_state(void *driver_data, void *device_data,
 		sis_set_blittingflags(dev, state);
 		state->set = SIS_SUPPORTED_BLITTING_FUNCTIONS;
 		break;
+	case DFXL_STRETCHBLIT:
+		sis_validate_src(drv, dev, state);
+		sis_validate_dst(drv, dev, state);
+		if (state->blittingflags & DSBLIT_DST_COLORKEY)
+			sis_set_dst_colorkey(drv, dev, state);
+		if (state->blittingflags & DSBLIT_SRC_COLORKEY)
+			sis_set_src_colorkey(drv, dev, state);
+		sis_set_stretchblittingflags(dev, state);
+		state->set = DFXL_STRETCHBLIT;
+		break;
 	default:
 		D_BUG("unexpected drawing or blitting function");
 		break;
 	}
 
-	if (state->mod_hw & SMF_CLIP)
+	if ((state->mod_hw & SMF_CLIP) && (accel!=DFXL_STRETCHBLIT))
 		sis_set_clip(drv, &state->clip);
 
 	state->mod_hw = 0;
@@ -193,6 +206,7 @@ static int driver_probe(CoreGraphicsDevice *device)
 	switch (dfb_gfxcard_get_accelerator(device)) {
 	case FB_ACCEL_SIS_GLAMOUR_2:
 	case FB_ACCEL_SIS_XABRE:
+	case FB_ACCEL_XGI_VOLARI_Z:
 		return 1;
 	default:
 		return 0;
@@ -255,11 +269,6 @@ static DFBResult driver_init_driver(CoreGraphicsDevice *device,
 		return DFB_IO;
 	}
 
-	if (fbinfo->sisfb_id != SISFB_ID) {
-		D_FREE(fbinfo);
-		return DFB_FAILURE;
-	}
-
 	check_sisfb_version(drv, fbinfo);
 
 	D_FREE(fbinfo);
@@ -288,6 +297,10 @@ static DFBResult driver_init_driver(CoreGraphicsDevice *device,
 
 	/* blitting functions */
 	funcs->Blit = sis_blit;
+	funcs->StretchBlit = sis_stretchblit;
+
+	/* allocate buffer for stretchBlit with colorkey */
+	drv->buffer_offset = dfb_gfxcard_reserve_memory( device, 1024*768*4 );
 
 	return DFB_OK;
 }

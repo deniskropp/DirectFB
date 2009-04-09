@@ -11,7 +11,9 @@
 #ifndef FB_ACCEL_SIS_XABRE
 #define FB_ACCEL_SIS_XABRE      41     /* SiS 330 ("Xabre")            */
 #endif
-
+#ifndef FB_ACCEL_XGI_VOLARI_Z
+#define FB_ACCEL_XGI_VOLARI_Z   48     /* Z7 Z9                        */
+#endif
 
 struct sisfb_info {
      u32     sisfb_id;          /* for identifying sisfb */

@@ -33,6 +33,7 @@ typedef struct {
 	int get_info;
 	int get_automaximize;
 	int set_automaximize;
+	unsigned long buffer_offset;
 } SiSDriverData;
 
 typedef struct {
