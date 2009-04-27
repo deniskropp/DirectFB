@@ -42,10 +42,7 @@
 #include <direct/clock.h>
 #include <direct/messages.h>
 
-#include <core/windows_internal.h>
-
 #include <sawman.h>
-#include <sawman_manager.h>
 
 #define MAX_WINDOWS 4
 #define MAX_LAYOUTS 4
@@ -75,8 +72,9 @@ struct __TestMan_TestManager {
 
      SaWManScalingMode  scaling_mode;
 
-     SaWManWindow      *windows[MAX_WINDOWS];
-     int                num_windows;
+     SaWManWindowHandle   windows[MAX_WINDOWS];
+     int                  num_windows;
+     SaWManWindowHandle   focus_window;
 
      const Layout      *layouts[MAX_LAYOUTS];
      int                num_layouts;
@@ -91,14 +89,14 @@ struct __TestMan_Layout {
      void (*Relayout)    ( TestManager  *tm,
                            void         *layout_data );
 
-     void (*AddWindow)   ( TestManager  *tm,
-                           void         *layout_data,
-                           SaWManWindow *window );
+     void (*AddWindow)   ( TestManager        *tm,
+                           void               *layout_data,
+                           SaWManWindowHandle  window );
 
-     void (*RemoveWindow)( TestManager  *tm,
-                           void         *layout_data,
-                           SaWManWindow *window,
-                           int           index );
+     void (*RemoveWindow)( TestManager        *tm,
+                           void               *layout_data,
+                           SaWManWindowHandle  window,
+                           int                 index );
 };
 
 struct __TestMan_Application {
@@ -281,18 +279,13 @@ MosaicRelayout( TestManager *tm,
      }
 
      for (i=0; i<tm->num_windows; i++) {
-          SaWManWindow *window = tm->windows[i];
-          CoreWindow   *corewindow;
-
-          D_MAGIC_ASSERT( window, SaWManWindow );
-
-          corewindow = window->window;
-
-          D_ASSERT( corewindow != NULL );
-
-          corewindow->config.bounds = bounds[i];
-
-          sawman_update_geometry( window );
+          SaWManWindowHandle        window = tm->windows[i];
+          SaWManWindowConfig        config;
+          SaWManWindowConfigFlags   flags;
+          
+          flags = SWMCF_POSITION | SWMCF_SIZE;
+          config.bounds = bounds[i];
+          manager->SetWindowConfig( manager, window, flags, &config );
      }
 
      manager->QueueUpdate( manager, DWSC_MIDDLE, NULL );
@@ -301,14 +294,13 @@ MosaicRelayout( TestManager *tm,
 }
 
 static void
-MosaicAddWindow( TestManager  *tm,
-                 void         *layout_data,
-                 SaWManWindow *window )
+MosaicAddWindow( TestManager        *tm,
+                 void               *layout_data,
+                 SaWManWindowHandle  window )
 {
      ISaWManManager *manager;
 
      D_MAGIC_ASSERT( tm, TestManager );
-     D_MAGIC_ASSERT( window, SaWManWindow );
 
      manager = tm->manager;
      D_ASSERT( manager != NULL );
@@ -317,7 +309,7 @@ MosaicAddWindow( TestManager  *tm,
 
      tm->windows[tm->num_windows++] = window;
 
-     manager->InsertWindow( manager, window, NULL, DFB_TRUE );
+     manager->InsertWindow( manager, window, SAWMAN_WINDOW_NONE, SWMWR_TOP );
 
      MosaicRelayout( tm, layout_data );
 
@@ -325,15 +317,14 @@ MosaicAddWindow( TestManager  *tm,
 }
 
 static void
-MosaicRemoveWindow( TestManager  *tm,
-                    void         *layout_data,
-                    SaWManWindow *window,
-                    int           index )
+MosaicRemoveWindow( TestManager        *tm,
+                    void               *layout_data,
+                    SaWManWindowHandle  window,
+                    int                 index )
 {
      ISaWManManager *manager;
 
      D_MAGIC_ASSERT( tm, TestManager );
-     D_MAGIC_ASSERT( window, SaWManWindow );
 
      manager = tm->manager;
      D_ASSERT( manager != NULL );
@@ -358,13 +349,12 @@ static const Layout mosaic_layout = {
 /**********************************************************************************************************************/
 
 static DFBResult
-LayoutWindowAdd( TestManager  *tm,
-                 SaWManWindow *window )
+LayoutWindowAdd( TestManager        *tm,
+                 SaWManWindowHandle  window )
 {
      const Layout *layout;
 
      D_MAGIC_ASSERT( tm, TestManager );
-     D_MAGIC_ASSERT( window, SaWManWindow );
 
      D_ASSERT( tm->current_layout >= 0 );
      D_ASSERT( tm->current_layout < tm->num_layouts );
@@ -380,8 +370,8 @@ LayoutWindowAdd( TestManager  *tm,
      }
 
      /* Set some default borders. */
-     window->border_normal     = 2;
-     window->border_fullscreen = 4;
+     //window->border_normal     = 2;
+     //window->border_fullscreen = 4;
 
      /* Call the layout implementation. */
      layout->AddWindow( tm, layout->data, window );
@@ -390,14 +380,13 @@ LayoutWindowAdd( TestManager  *tm,
 }
 
 static DFBResult
-LayoutWindowRemove( TestManager  *tm,
-                    SaWManWindow *window )
+LayoutWindowRemove( TestManager        *tm,
+                    SaWManWindowHandle  window )
 {
      int           i;
      const Layout *layout;
 
      D_MAGIC_ASSERT( tm, TestManager );
-     D_MAGIC_ASSERT( window, SaWManWindow );
 
      D_ASSERT( tm->current_layout >= 0 );
      D_ASSERT( tm->current_layout < tm->num_layouts );
@@ -408,14 +397,12 @@ LayoutWindowRemove( TestManager  *tm,
      D_ASSERT( layout->RemoveWindow != NULL );
 
      for (i=0; i<tm->num_windows; i++) {
-          D_MAGIC_ASSERT( tm->windows[i], SaWManWindow );
-
           if (tm->windows[i] == window)
                break;
      }
 
      if (i == MAX_WINDOWS) {
-          D_BUG( "could not find window %p", window );
+          D_BUG( "could not find window %lx", window );
           return DFB_BUG;
      }
 
@@ -423,7 +410,7 @@ LayoutWindowRemove( TestManager  *tm,
      for (; i<tm->num_windows-1; i++)
           tm->windows[i] = tm->windows[i+1];
 
-     tm->windows[i] = NULL;
+     tm->windows[i] = SAWMAN_WINDOW_NONE;
 
      tm->num_windows--;
 
@@ -607,15 +594,10 @@ input_filter( void          *context,
                     case DIKS_F9:
                          if (tm->num_windows > 1) {
                               for (i=0; i<tm->num_windows; i++) {
-                                   SaWManWindow *window = tm->windows[i];
+                                   SaWManWindowHandle window = tm->windows[i];
 
-                                   D_MAGIC_ASSERT( window, SaWManWindow );
-                                   D_ASSERT( window->window != NULL );
-
-                                   if (window->window->flags & CWF_FOCUSED) {
+                                   if (window == tm->focus_window) {
                                         window = tm->windows[(i+1) % tm->num_windows];
-
-                                        D_MAGIC_ASSERT( window, SaWManWindow );
 
                                         manager->SwitchFocus( manager, window );
 
@@ -675,42 +657,36 @@ input_filter( void          *context,
 
 
 static DirectResult
-window_preconfig( void       *context,
-                  CoreWindow *window )
+window_preconfig( void               *context,
+                  SaWManWindowConfig *config )
 {
      D_INFO( "SaWMan/TestMan: Window preconfig (%d,%d-%dx%d)!\n",
-             DFB_RECTANGLE_VALS( &window->config.bounds ) );
+             DFB_RECTANGLE_VALS( &config->bounds ) );
 
      return DFB_OK;
 }
 
 static DirectResult
-window_added( void         *context,
-              SaWManWindow *window )
+window_added( void               *context,
+              SaWManWindowInfo   *info )
 {
      DFBResult    ret;
      TestManager *tm = context;
-     CoreWindow  *corewindow;
 
      D_MAGIC_ASSERT( tm, TestManager );
-     D_MAGIC_ASSERT( window, SaWManWindow );
-
-     corewindow = window->window;
-
-     D_ASSERT( corewindow != NULL );
 
      D_INFO( "SaWMan/TestMan: Window added (%d,%d-%dx%d)!\n",
-             DFB_RECTANGLE_VALS( &corewindow->config.bounds ) );
+             DFB_RECTANGLE_VALS( &info->config.bounds ) );
 
-     if (window->caps & DWCAPS_NODECORATION)
+     if (info->caps & DWCAPS_NODECORATION)
           return DFB_NOIMPL;  /* to let sawman insert the window */
 
      /* Already showing window? (reattaching) */
-     if (corewindow->config.opacity) {
+     if (info->config.opacity) {
           /* Activate scaling. */
-          corewindow->config.options |= DWOP_SCALE;
+          info->config.options |= DWOP_SCALE;
 
-          ret = LayoutWindowAdd( tm, window );
+          ret = LayoutWindowAdd( tm, info->handle );
           if (ret)
                return ret;
      }
@@ -719,70 +695,61 @@ window_added( void         *context,
 }
 
 static DirectResult
-window_removed( void         *context,
-                SaWManWindow *window )
+window_removed( void               *context,
+                SaWManWindowInfo   *info )
 {
-     CoreWindow *corewindow;
-
-     D_MAGIC_ASSERT( window, SaWManWindow );
-
-     corewindow = window->window;
-
-     D_ASSERT( corewindow != NULL );
-
      D_INFO( "SaWMan/TestMan: Window removed (%d,%d-%dx%d)!\n",
-             DFB_RECTANGLE_VALS( &corewindow->config.bounds ) );
+             DFB_RECTANGLE_VALS( &info->config.bounds ) );
 
      return DFB_OK;
 }
 
 static DirectResult
-window_config( void         *context,
-               SaWManWindow *window )
+window_reconfig( void                 *context,
+                 SaWManWindowReconfig *reconfig )
 {
-     DFBResult         ret;
-     TestManager      *tm = context;
-     CoreWindowConfig *current;
-     CoreWindowConfig *request;
+     DFBResult           ret;
+     TestManager        *tm = context;
+     SaWManWindowConfig *current;
+     SaWManWindowConfig *request;
 
      D_MAGIC_ASSERT( tm, TestManager );
-     D_MAGIC_ASSERT( window, SaWManWindow );
 
-     if (window->caps & DWCAPS_NODECORATION)
+     if (reconfig->caps & DWCAPS_NODECORATION)
           return DFB_OK;
 
-     current = &window->config.current;
-     request = &window->config.request;
+     current = &reconfig->current;
+     request = &reconfig->request;
 
-     if (window->config.flags & CWCF_POSITION) {
+     if (reconfig->flags & SWMCF_POSITION) {
           D_INFO( "SaWMan/TestMan: Window config - ignoring position (%d,%d)!\n", request->bounds.x, request->bounds.y );
-          window->config.flags &= ~CWCF_POSITION;
+          reconfig->flags &= ~SWMCF_POSITION;
      }
 
-     if (window->config.flags & CWCF_SIZE) {
+     if (reconfig->flags & SWMCF_SIZE) {
           D_INFO( "SaWMan/TestMan: Window config - ignoring size (%dx%d)!\n", request->bounds.w, request->bounds.h );
-          window->config.flags &= ~CWCF_SIZE;
+          reconfig->flags &= ~SWMCF_SIZE;
      }
 
-     if (window->config.flags & CWCF_STACKING) {
+     if (reconfig->flags & SWMCF_STACKING) {
           D_INFO( "SaWMan/TestMan: Window config - ignoring stacking (%d)!\n", request->stacking );
-          window->config.flags &= ~CWCF_STACKING;
+          reconfig->flags &= ~SWMCF_STACKING;
      }
 
-     if (window->config.flags & CWCF_OPACITY) {
+     if (reconfig->flags & SWMCF_OPACITY) {
           /* Show? */
           if (request->opacity && !current->opacity) {
                /* Activate scaling. */
-               window->config.flags |= CWCF_OPTIONS;
-               request->options     |= DWOP_SCALE;
+               reconfig->flags   |= SWMCF_OPTIONS;
+               request->options  |= DWOP_SCALE;
 
-               ret = LayoutWindowAdd( tm, window );
+               ret = LayoutWindowAdd( tm, reconfig->handle );
                if (ret)
                     return ret;
           }
           /* Hide? */
           else if (!request->opacity && current->opacity) {
-               LayoutWindowRemove( tm, window );
+               LayoutWindowRemove( tm, reconfig->handle );
           }
      }
 
@@ -790,19 +757,33 @@ window_config( void         *context,
 }
 
 static DirectResult
-window_restack( void         *context,
-                SaWManWindow *window )
+window_restack( void                 *context,
+                SaWManWindowHandle    handle,
+                SaWManWindowHandle    relative,
+                SaWManWindowRelation  relation )
 {
-     D_MAGIC_ASSERT( window, SaWManWindow );
-
-     if (window->caps & DWCAPS_NODECORATION)
-          return DFB_OK;
+     //~ if (window->caps & DWCAPS_NODECORATION)
+          //~ return DFB_OK;
 
      D_INFO( "SaWMan/TestMan: Window restack - refusing!\n" );
 
      return DFB_ACCESSDENIED;
 }
 
+static DirectResult
+switch_focus( void                 *context,
+                SaWManWindowHandle  window )
+{
+     TestManager        *tm = context;
+
+     D_MAGIC_ASSERT( tm, TestManager );
+
+     D_INFO( "SaWMan/TestMan: Switching focus to %lx\n", window );
+
+     tm->focus_window = window;
+
+     return DFB_OK;
+}
 
 static const SaWManCallbacks callbacks = {
      Start:              start_request,
@@ -813,8 +794,10 @@ static const SaWManCallbacks callbacks = {
      WindowPreConfig:    window_preconfig,
      WindowAdded:        window_added,
      WindowRemoved:      window_removed,
-     WindowConfig:       window_config,
-     WindowRestack:      window_restack
+     WindowReconfig:     window_reconfig,
+     WindowRestack:      window_restack,
+     //~ StackResized
+     SwitchFocus:        switch_focus
 };
 
 

@@ -29,19 +29,11 @@ extern "C"
 {
 #endif
 
-typedef enum {
-     SWMSM_SMOOTH_SW,    /* Smooth scaling algorithm in software */
-     SWMSM_STANDARD      /* As provided by hardware, otherwise software (nearest neighbor) */
-} SaWManScalingMode;
-
 typedef struct __SaWMan_SaWMan           SaWMan;
-typedef struct __SaWMan_SaWManCallbacks  SaWManCallbacks;
 typedef struct __SaWMan_SaWManGrabbedKey SaWManGrabbedKey;
 typedef struct __SaWMan_SaWManLayout     SaWManLayout;
-typedef struct __SaWMan_SaWManProcess    SaWManProcess;
 typedef struct __SaWMan_SaWManTier       SaWManTier;
 typedef struct __SaWMan_SaWManWindow     SaWManWindow;
-
 
 #ifdef __cplusplus
 }

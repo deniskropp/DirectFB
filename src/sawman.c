@@ -48,7 +48,7 @@
 #include <misc/conf.h>
 
 #include <sawman.h>
-#include <sawman_manager.h>
+#include <sawman_internal.h>
 
 #include "sawman_config.h"
 #include "sawman_draw.h"
@@ -335,14 +335,17 @@ manager_call_handler( int           caller,
                     *ret_val = sawman->manager.callbacks.WindowRemoved( sawman->manager.context, call_ptr );
                break;
 
-          case SWMCID_WINDOW_CONFIG:
-               if (sawman->manager.callbacks.WindowConfig)
-                    *ret_val = sawman->manager.callbacks.WindowConfig( sawman->manager.context, call_ptr );
+          case SWMCID_WINDOW_RECONFIG:
+               if (sawman->manager.callbacks.WindowReconfig)
+                    *ret_val = sawman->manager.callbacks.WindowReconfig( sawman->manager.context, call_ptr );
                break;
 
           case SWMCID_WINDOW_RESTACK:
                if (sawman->manager.callbacks.WindowRestack)
-                    *ret_val = sawman->manager.callbacks.WindowRestack( sawman->manager.context, call_ptr );
+                    *ret_val = sawman->manager.callbacks.WindowRestack( sawman->manager.context,
+                                                                        sawman->callback.handle,
+                                                                        sawman->callback.relative,
+                                                                        (SaWManWindowRelation)call_ptr );
                break;
 
           case SWMCID_STACK_RESIZED:
@@ -352,7 +355,8 @@ manager_call_handler( int           caller,
 
           case SWMCID_SWITCH_FOCUS:
                if (sawman->manager.callbacks.SwitchFocus)
-                    *ret_val = sawman->manager.callbacks.SwitchFocus( sawman->manager.context, call_ptr );
+                    *ret_val = sawman->manager.callbacks.SwitchFocus( sawman->manager.context,
+                                                                      (SaWManWindowRelation)call_ptr );
                break;
 
           default:
@@ -707,8 +711,8 @@ sawman_call( SaWMan       *sawman,
                     return DFB_NOIMPL;
                break;
 
-          case SWMCID_WINDOW_CONFIG:
-               if (!sawman->manager.callbacks.WindowConfig)
+          case SWMCID_WINDOW_RECONFIG:
+               if (!sawman->manager.callbacks.WindowReconfig)
                     return DFB_NOIMPL;
                break;
 

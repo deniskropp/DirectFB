@@ -48,7 +48,7 @@
 #include <misc/util.h>
 
 #include <sawman_config.h>
-#include <sawman_manager.h>
+#include <sawman_internal.h>
 
 D_DEBUG_DOMAIN( SaWMan_Draw, "SaWMan/Draw", "SaWMan window manager drawing" );
 

@@ -50,76 +50,7 @@ extern "C"
 #define SAWMAN_MAX_IMPLICIT_KEYGRABS    16
 
 
-typedef enum {
-     SWMPF_NONE     = 0x00000000,
 
-     SWMPF_MASTER   = 0x00000001,
-     SWMPF_MANAGER  = 0x00000002,
-
-     SWMPF_EXITING  = 0x00000010,
-
-     SWMPF_ALL      = 0x00000013
-} SaWManProcessFlags;
-
-typedef enum {
-     SWMWF_NONE     = 0x00000000,
-
-     SWMWF_INSERTED = 0x00000001,
-
-     SWMWF_ALL      = 0x00000001
-} SaWManWindowFlags;
-
-
-struct __SaWMan_SaWManCallbacks {
-     DirectResult (*Start)          ( void             *context,
-                                      const char       *name,
-                                      pid_t            *ret_pid );
-
-     DirectResult (*Stop)           ( void             *context,
-                                      pid_t             pid,
-                                      FusionID          caller );
-
-
-     DirectResult (*ProcessAdded)   ( void             *context,
-                                      SaWManProcess    *process );
-
-     DirectResult (*ProcessRemoved) ( void             *context,
-                                      SaWManProcess    *process );
-
-
-
-     DirectResult (*InputFilter)    ( void             *context,
-                                      DFBInputEvent    *event );
-
-
-
-     DirectResult (*WindowPreConfig)( void             *context,
-                                      CoreWindow       *window );
-
-
-
-     DirectResult (*WindowAdded)    ( void             *context,
-                                      SaWManWindow     *window );
-
-     DirectResult (*WindowRemoved)  ( void             *context,
-                                      SaWManWindow     *window );
-
-
-     DirectResult (*WindowConfig)   ( void             *context,
-                                      SaWManWindow     *window );
-
-     DirectResult (*WindowRestack)  ( void             *context,
-                                      SaWManWindow     *window );
-
-     DirectResult (*StackResized)   ( void             *context,
-                                      DFBDimension     *size );
-
-     DirectResult (*SwitchFocus)    ( void             *context,
-                                      SaWManWindow     *window );
-
-
-     /* To be extended... */
-};
 
 typedef enum {
      SWMCID_START,
@@ -130,7 +61,7 @@ typedef enum {
      SWMCID_WINDOW_PRECONFIG,
      SWMCID_WINDOW_ADDED,
      SWMCID_WINDOW_REMOVED,
-     SWMCID_WINDOW_CONFIG,
+     SWMCID_WINDOW_RECONFIG,
      SWMCID_WINDOW_RESTACK,
      SWMCID_STACK_RESIZED,
      SWMCID_SWITCH_FOCUS
@@ -152,7 +83,6 @@ typedef enum {
 
      SWMUF_ALL                = 0x000F
 } SaWManUpdateFlags;
-
 
 struct __SaWMan_SaWMan {
      int                   magic;
@@ -204,6 +134,15 @@ struct __SaWMan_SaWMan {
      }                     manager;
 
      DFBWindowID           window_ids;
+     
+     /* reserved area for callback stuctures */
+     struct {
+          SaWManWindowInfo     info;
+          SaWManWindowReconfig reconfig;
+          DFBDimension         size;
+          SaWManWindowHandle   handle;
+          SaWManWindowHandle   relative;
+     } callback;
 };
 
 struct __SaWMan_SaWManTier {
@@ -250,7 +189,7 @@ struct __SaWMan_SaWManTier {
      int                     cursor_dy;
 };
 
-
+# if 0
 struct __SaWMan_SaWManProcess {
      DirectLink             link;
 
@@ -262,6 +201,8 @@ struct __SaWMan_SaWManProcess {
 
      FusionRef              ref;
 };
+
+#endif
 
 struct __SaWMan_SaWManWindow {
      DirectLink             link;
@@ -292,15 +233,6 @@ struct __SaWMan_SaWManWindow {
      void                  *stack_data;
 
      int                    priority;           /* derived from stacking class */
-
-     int                    border_normal;
-     int                    border_fullscreen;
-
-     struct {
-          CoreWindowConfig          current;
-          CoreWindowConfig          request;
-          CoreWindowConfigFlags     flags;
-     }                      config;
 };
 
 struct __SaWMan_SaWManGrabbedKey {

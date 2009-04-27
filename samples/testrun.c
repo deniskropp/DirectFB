@@ -39,10 +39,6 @@
 
 #include <direct/messages.h>
 
-#include <core/windows_internal.h>
-
-#include <sawman_manager.h>
-
 
 #define CHECK(x)                                  \
      do {                                         \

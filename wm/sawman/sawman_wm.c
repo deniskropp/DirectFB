@@ -73,7 +73,7 @@
 #include <core/wm_module.h>
 
 #include <sawman_config.h>
-#include <sawman_manager.h>
+#include <sawman_internal.h>
 
 #include "sawman_draw.h"
 
@@ -124,6 +124,7 @@ send_key_event( SaWMan              *sawman,
      D_ASSERT( event != NULL );
 
      we.type       = (event->type == DIET_KEYPRESS) ? DWET_KEYDOWN : DWET_KEYUP;
+     we.flags      = 0;
      we.key_code   = event->key_code;
      we.key_id     = event->key_id;
      we.key_symbol = event->key_symbol;
@@ -170,6 +171,8 @@ get_keyboard_window( StackData           *data,
                      const DFBInputEvent *event )
 {
      SaWMan           *sawman;
+     SaWManWindow     *sawwin;
+     CoreWindow       *window;
      SaWManGrabbedKey *key;
 
      D_ASSERT( data != NULL );
@@ -186,19 +189,48 @@ get_keyboard_window( StackData           *data,
                return key->owner;
      }
 
-     /* Don't do implicit grabs on keys without a hardware index. */
-     if (event->key_code == -1)
-          return (sawman->keyboard_window ?
-                  sawman->keyboard_window : sawman->focused_window);
+     /* Key is not grabbed, check for explicit keyboard grab or focus. */
+     sawwin = sawman->keyboard_window ?
+              sawman->keyboard_window : sawman->focused_window;
+     if (!sawwin)
+          return NULL;
 
-     /* Implicitly grab (press) or ungrab (release) key. */
-     if (event->type == DIET_KEYPRESS) {
-          int           i;
-          int           free_key = -1;
-          SaWManWindow *sawwin;
-          CoreWindow   *window;
+     D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
-          /* Check active grabs. */
+     window = sawwin->window;
+     D_ASSERT( window != NULL );
+
+     /* Check key selection. */
+     switch (window->config.key_selection) {
+          case DWKS_ALL:
+               break;
+
+          case DWKS_LIST:
+               D_ASSERT( window->config.keys != NULL );
+               D_ASSERT( window->config.num_keys > 0 );
+
+               if (bsearch( &event->key_symbol,
+                            window->config.keys, window->config.num_keys,
+                            sizeof(DFBInputDeviceKeySymbol), keys_compare ))
+                    break;
+
+               /* fall through */
+
+          case DWKS_NONE:
+               return sawman->unselkeys_window;
+     }
+
+     /* key is for this window */
+
+     /* only do implicit grabbing if we have a hardware key code */
+     if( event->key_code == -1 )
+          return sawwin;
+
+     /* do implicit grabbing */
+     if( event->type == DIET_KEYPRESS ) {
+          int i;
+          int free_key = -1;
+
           for (i=0; i<SAWMAN_MAX_IMPLICIT_KEYGRABS; i++) {
                /* Key is grabbed, send to owner (NULL if destroyed). */
                if (sawman->keys[i].code == event->key_code)
@@ -207,37 +239,6 @@ get_keyboard_window( StackData           *data,
                /* Remember first free array item. */
                if (free_key == -1 && sawman->keys[i].code == -1)
                     free_key = i;
-          }
-
-          /* Key is not grabbed, check for explicit keyboard grab or focus. */
-          sawwin = sawman->keyboard_window ?
-                   sawman->keyboard_window : sawman->focused_window;
-          if (!sawwin)
-               return NULL;
-
-          D_MAGIC_ASSERT( sawwin, SaWManWindow );
-
-          window = sawwin->window;
-          D_ASSERT( window != NULL );
-
-          /* Check key selection. */
-          switch (window->config.key_selection) {
-               case DWKS_ALL:
-                    break;
-
-               case DWKS_LIST:
-                    D_ASSERT( window->config.keys != NULL );
-                    D_ASSERT( window->config.num_keys > 0 );
-
-                    if (bsearch( &event->key_symbol,
-                                 window->config.keys, window->config.num_keys,
-                                 sizeof(DFBInputDeviceKeySymbol), keys_compare ))
-                         break;
-
-                    /* fall through */
-
-               case DWKS_NONE:
-                    return sawman->unselkeys_window;
           }
 
           /* Check if a free array item was found. */
@@ -1573,13 +1574,13 @@ wm_close_stack( CoreWindowStack *stack,
 
      dfb_layer_region_unlink( &tier->region );
 
-     D_MAGIC_CLEAR( tier );
-
      /* Destroy backing store of software cursor. */
      if (tier->cursor_bs)
           dfb_surface_unlink( &tier->cursor_bs );
 
      direct_list_remove( &sawman->tiers, &tier->link );
+     D_MAGIC_CLEAR( tier );
+     SHFREE( sawman->shmpool, tier );
 
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
@@ -1825,6 +1826,7 @@ wm_flush_keys( CoreWindowStack *stack,
                DFBWindowEvent we;
 
                we.type       = DWET_KEYUP;
+               we.flags      = 0;
                we.key_code   = sawman->keys[i].code;
                we.key_id     = sawman->keys[i].id;
                we.key_symbol = sawman->keys[i].symbol;
@@ -2017,6 +2019,8 @@ wm_preconfigure_window( CoreWindowStack *stack,
      SaWManTier   *tier;
      SaWManWindow *sawwin = window_data;
 
+     SaWManWindowInfo *info;
+
      D_ASSERT( window != NULL );
      D_ASSERT( wm_data != NULL );
      D_ASSERT( window_data != NULL );
@@ -2066,7 +2070,10 @@ wm_preconfigure_window( CoreWindowStack *stack,
           sawwin->parent = parent;
      }
 
-     switch (ret = sawman_call( sawman, SWMCID_WINDOW_PRECONFIG, window )) {
+     info = &sawman->callback.info;
+     SAWMANWINDOWCONFIG_COPY( &info->config, &window->config )
+ 
+     switch (ret = sawman_call( sawman, SWMCID_WINDOW_PRECONFIG, &info->config )) {
           case DFB_OK:
                break;
 
@@ -2077,6 +2084,8 @@ wm_preconfigure_window( CoreWindowStack *stack,
           default:
                break;
      }
+
+     SAWMANWINDOWCONFIG_COPY( &window->config, &info->config )
 
      sawman_process_updates( wmdata->sawman, DSFLIP_NONE );
 
@@ -2168,6 +2177,8 @@ wm_add_window( CoreWindowStack *stack,
      SaWMan       *sawman;
      SaWManTier   *tier;
 
+     SaWManWindowInfo *info;
+
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
      D_ASSERT( stack_data != NULL );
@@ -2236,7 +2247,12 @@ wm_add_window( CoreWindowStack *stack,
 
      fusion_ref_up( &sawwin->process->ref, true );
 
-     switch (ret = sawman_call( sawman, SWMCID_WINDOW_ADDED, sawwin )) {
+     info = &sawman->callback.info;
+     info->handle = (SaWManWindowHandle)sawwin;
+     info->caps   = sawwin->caps;
+     SAWMANWINDOWCONFIG_COPY( &info->config, &window->config )
+     
+     switch (ret = sawman_call( sawman, SWMCID_WINDOW_ADDED, info )) {
           case DFB_OK:
                break;
 
@@ -2295,6 +2311,8 @@ wm_remove_window( CoreWindowStack *stack,
      SaWMan       *sawman;
      SaWManTier   *tier;
 
+     SaWManWindowInfo *info;
+
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
      D_ASSERT( stack_data != NULL );
@@ -2329,7 +2347,12 @@ wm_remove_window( CoreWindowStack *stack,
 
      direct_list_remove( &sawman->windows, &sawwin->link );
 
-     switch (ret = sawman_call( sawman, SWMCID_WINDOW_REMOVED, sawwin )) {
+     info = &sawman->callback.info;
+     info->handle = (SaWManWindowHandle)sawwin;
+     info->caps   = sawwin->caps;
+     SAWMANWINDOWCONFIG_COPY( &info->config, &window->config )
+     
+     switch (ret = sawman_call( sawman, SWMCID_WINDOW_REMOVED, info )) {
           case DFB_NOIMPL:
                ret = DFB_OK;
 
@@ -2387,8 +2410,11 @@ wm_set_window_config( CoreWindow             *window,
      SaWMan           *sawman;
      SaWManWindow     *sawwin = window_data;
      SaWManTier       *tier;
-     CoreWindowConfig *config;
      CoreWindowStack  *stack;
+
+     SaWManWindowConfig   *config;
+     SaWManWindowConfig   *current;
+     SaWManWindowReconfig *reconfig;
 
      D_ASSERT( window != NULL );
      D_ASSERT( window->stack != NULL );
@@ -2429,49 +2455,54 @@ wm_set_window_config( CoreWindow             *window,
           return DFB_UNSUPPORTED;
      }
 
-     sawwin->config.current = 
-     sawwin->config.request = window->config;
-     sawwin->config.flags   = flags;
+     reconfig = &sawman->callback.reconfig;
 
-     config = &sawwin->config.request;
+     reconfig->caps   = sawwin->caps;
+     reconfig->handle = (SaWManWindowHandle)sawwin;
 
-     if (flags & CWCF_COLOR_KEY)
-          config->color_key = updated->color_key;
+     current  = &reconfig->current;
+     config   = &reconfig->request;
 
-     if (flags & CWCF_EVENTS)
-          config->events = updated->events;
+     SAWMANWINDOWCONFIG_COPY( current, &window->config )
+     SAWMANWINDOWCONFIG_COPY( config,  updated )
+     
+     reconfig->flags =
+            (flags & CWCF_POSITION     ? SWMCF_POSITION     : 0)
+          | (flags & CWCF_SIZE         ? SWMCF_SIZE         : 0)
+          | (flags & CWCF_OPACITY      ? SWMCF_OPACITY      : 0)
+          | (flags & CWCF_STACKING     ? SWMCF_STACKING     : 0)
+          | (flags & CWCF_OPTIONS      ? SWMCF_OPTIONS      : 0)
+          | (flags & CWCF_EVENTS       ? SWMCF_EVENTS       : 0)
+          | (flags & CWCF_COLOR_KEY    ? SWMCF_COLOR_KEY    : 0)
+          | (flags & CWCF_OPAQUE       ? SWMCF_OPAQUE       : 0)
+          | (flags & CWCF_SRC_GEOMETRY ? SWMCF_SRC_GEOMETRY : 0)
+          | (flags & CWCF_DST_GEOMETRY ? SWMCF_DST_GEOMETRY : 0);
 
-     if (flags & CWCF_OPACITY)
-          config->opacity = updated->opacity;
-
-     if (flags & CWCF_OPAQUE)
-          config->opaque = updated->opaque;
-
-     if (flags & CWCF_OPTIONS)
-          config->options = updated->options;
-
-     if (flags & CWCF_POSITION) {
-          config->bounds.x = updated->bounds.x;
-          config->bounds.y = updated->bounds.y;
-     }
-
-     if (flags & CWCF_SIZE) {
-          config->bounds.w = updated->bounds.w;
-          config->bounds.h = updated->bounds.h;
-     }
-
-     if (flags & CWCF_STACKING)
-          config->stacking = updated->stacking;
-
-     if (flags & CWCF_SRC_GEOMETRY)
-          config->src_geometry = updated->src_geometry;
-
-     if (flags & CWCF_DST_GEOMETRY)
-          config->dst_geometry = updated->dst_geometry;
-
-     switch (ret = sawman_call( sawman, SWMCID_WINDOW_CONFIG, sawwin )) {
-          case DFB_OK:
-               flags = sawwin->config.flags;
+     switch (ret = sawman_call( sawman, SWMCID_WINDOW_RECONFIG, reconfig )) {
+          case DFB_OK: {
+               SaWManWindowConfigFlags f = reconfig->flags;
+               flags =
+                      ( flags &   ~( CWCF_POSITION
+                                   | CWCF_SIZE
+                                   | CWCF_OPACITY
+                                   | CWCF_STACKING
+                                   | CWCF_OPTIONS
+                                   | CWCF_EVENTS
+                                   | CWCF_COLOR_KEY
+                                   | CWCF_OPAQUE
+                                   | CWCF_SRC_GEOMETRY
+                                   | CWCF_DST_GEOMETRY ) )
+                    | (f & SWMCF_POSITION     ? CWCF_POSITION     : 0)
+                    | (f & SWMCF_SIZE         ? CWCF_SIZE         : 0)
+                    | (f & SWMCF_OPACITY      ? CWCF_OPACITY      : 0)
+                    | (f & SWMCF_STACKING     ? CWCF_STACKING     : 0)
+                    | (f & SWMCF_OPTIONS      ? CWCF_OPTIONS      : 0)
+                    | (f & SWMCF_EVENTS       ? CWCF_EVENTS       : 0)
+                    | (f & SWMCF_COLOR_KEY    ? CWCF_COLOR_KEY    : 0)
+                    | (f & SWMCF_OPAQUE       ? CWCF_OPAQUE       : 0)
+                    | (f & SWMCF_SRC_GEOMETRY ? CWCF_SRC_GEOMETRY : 0)
+                    | (f & SWMCF_DST_GEOMETRY ? CWCF_DST_GEOMETRY : 0);
+               }
                break;
 
           case DFB_NOIMPL:
@@ -2481,7 +2512,6 @@ wm_set_window_config( CoreWindow             *window,
                sawman_unlock( sawman );
                return ret;
      }
-
 
      if (flags & CWCF_OPTIONS) {
           if ((window->config.options & DWOP_SCALE) && !(config->options & DWOP_SCALE) && window->surface) {
@@ -2502,6 +2532,8 @@ wm_set_window_config( CoreWindow             *window,
                          sawman_unlock( sawman );
                          return ret;
                     }
+                    current->bounds.w = config->bounds.w;
+                    current->bounds.h = config->bounds.h;
                }
           }
 
@@ -2522,20 +2554,26 @@ wm_set_window_config( CoreWindow             *window,
                sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER | SWMUF_FORCE_COMPLETE );
           }
 
+          current->options       =
           window->config.options = config->options;
      }
 
      if (flags & CWCF_EVENTS)
+          current->events       =
           window->config.events = config->events;
 
      if (flags & CWCF_COLOR_KEY)
+          current->color_key       =
           window->config.color_key = config->color_key;
 
      if (flags & CWCF_OPAQUE)
+          current->opaque       =
           window->config.opaque = config->opaque;
 
-     if (flags & CWCF_OPACITY && !config->opacity)
+     if (flags & CWCF_OPACITY && !config->opacity) {
           set_opacity( sawman, sawwin, config->opacity );
+          current->opacity = config->opacity;
+     }
 
      if (flags == (CWCF_POSITION | CWCF_SIZE)) {
           ret = set_window_bounds( sawman, sawwin, wm_data,
@@ -2545,6 +2583,7 @@ wm_set_window_config( CoreWindow             *window,
                sawman_unlock( sawman );
                return ret;
           }
+          current->bounds = config->bounds;
      }
      else {
           if (flags & CWCF_POSITION) {
@@ -2555,6 +2594,8 @@ wm_set_window_config( CoreWindow             *window,
                     sawman_unlock( sawman );
                     return ret;
                }
+               current->bounds.x = config->bounds.x;
+               current->bounds.y = config->bounds.y;
           }
 
           if (flags & CWCF_SIZE) {
@@ -2563,19 +2604,25 @@ wm_set_window_config( CoreWindow             *window,
                     sawman_unlock( sawman );
                     return ret;
                }
+               current->bounds.w = config->bounds.w;
+               current->bounds.h = config->bounds.h;
           }
      }
 
-     if (flags & CWCF_STACKING)
+     if (flags & CWCF_STACKING) {
           restack_window( sawman, sawwin, sawwin, 0, config->stacking );
+          current->stacking = config->stacking;
+     }
 
      if (flags & CWCF_OPACITY && config->opacity) {
           set_opacity( sawman, sawwin, config->opacity );
+          current->opacity = config->opacity;
 
           /* Possibly switch focus to window now under the cursor */
           update_focus( sawman, stack );
      }
 
+#if 0
      if (flags & CWCF_KEY_SELECTION) {
           if (config->key_selection == DWKS_LIST) {
                unsigned int             bytes = sizeof(DFBInputDeviceKeySymbol) * config->num_keys;
@@ -2610,11 +2657,13 @@ wm_set_window_config( CoreWindow             *window,
 
           window->config.key_selection = config->key_selection;
      }
-
+#endif
      if (flags & CWCF_SRC_GEOMETRY)
+          current->src_geometry       =
           window->config.src_geometry = config->src_geometry;
 
      if (flags & CWCF_DST_GEOMETRY)
+          current->dst_geometry       =
           window->config.dst_geometry = config->dst_geometry;
 
      /* Update geometry? */
@@ -2643,6 +2692,8 @@ wm_restack_window( CoreWindow             *window,
      SaWManTier      *tier;
      CoreWindowStack *stack;
      StackData       *data;
+     
+     SaWManWindowRelation r;
 
      D_ASSERT( window != NULL );
      D_ASSERT( wm_data != NULL );
@@ -2673,7 +2724,11 @@ wm_restack_window( CoreWindow             *window,
           return DFB_UNSUPPORTED;
      }
 
-     switch (ret = sawman_call( sawman, SWMCID_WINDOW_RESTACK, sawwin )) {
+     sawman->callback.handle   = (SaWManWindowHandle)sawwin;
+     sawman->callback.relative = (SaWManWindowHandle)relative_data;
+
+     r = (relation==1) ? SWMWR_TOP : SWMWR_BOTTOM;
+     switch (ret = sawman_call( sawman, SWMCID_WINDOW_RESTACK, (void*)r ) ) {
           case DFB_OK:
           case DFB_NOIMPL:
                break;

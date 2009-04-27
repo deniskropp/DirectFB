@@ -47,7 +47,7 @@
 #include <gfx/convert.h>
 
 #include <sawman.h>
-#include <sawman_manager.h>
+#include <sawman_internal.h>
 
 #include <isawman.h>
 
@@ -302,8 +302,6 @@ dump_tiers( SaWMan *sawman )
      SaWManTier *tier;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
-
-//     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      direct_list_foreach (tier, sawman->tiers) {
           D_MAGIC_ASSERT( tier, SaWManTier );

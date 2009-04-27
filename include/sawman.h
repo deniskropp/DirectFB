@@ -30,9 +30,11 @@ extern "C"
 #endif
 
 #include <directfb.h>
+#include <direct/list.h>
+#include <fusion/ref.h>
+#include <fusion/vector.h>
 
 #include "sawman_types.h"
-
 
 /*
  * Main SaWMan interface for all executables including start/stop of other applications.
@@ -50,13 +52,196 @@ DirectResult SaWManInit  ( int       *argc,
 
 DirectResult SaWManCreate( ISaWMan  **ret_sawman );
 
+/*
+ * Public SaWMan types
+ */
+
+typedef enum {
+     SWMWF_NONE     = 0x00000000,
+
+     SWMWF_INSERTED = 0x00000001,
+
+     SWMWF_ALL      = 0x00000001
+} SaWManWindowFlags;
+
+
+typedef enum {
+     SWMSM_SMOOTH_SW,    /* Smooth scaling algorithm in software */
+     SWMSM_STANDARD      /* As provided by hardware, otherwise software (nearest neighbor) */
+} SaWManScalingMode;
+
+
+typedef enum {
+     SWMPF_NONE     = 0x00000000,
+
+     SWMPF_MASTER   = 0x00000001,
+     SWMPF_MANAGER  = 0x00000002,
+
+     SWMPF_EXITING  = 0x00000010,
+
+     SWMPF_ALL      = 0x00000013
+} SaWManProcessFlags;
+
+
+/* defines stacking relation.
+ * If 2 valid window handles are passed, defines relative order of 1st towards 2nd
+ * If only 1 handle is valid (2nd is WINDOW_NONE), defines location in complete stack */
+typedef enum {
+     SWMWR_TOP,
+     SWMWR_BOTTOM
+} SaWManWindowRelation;
+
+
+typedef struct {
+     DirectLink             link;
+
+     int                    magic;
+
+     pid_t                  pid;
+     FusionID               fusion_id;
+     SaWManProcessFlags     flags;
+
+     FusionRef              ref;
+} SaWManProcess;
+
+
+typedef unsigned long SaWManWindowHandle;
+#define SAWMAN_WINDOW_NONE    ((SaWManWindowHandle) 0)
+
+
+typedef enum {
+     SWMCF_NONE          = 0x00000000,
+
+     SWMCF_POSITION      = 0x00000001,
+     SWMCF_SIZE          = 0x00000002,
+     SWMCF_OPACITY       = 0x00000004,
+     SWMCF_STACKING      = 0x00000008,
+
+     SWMCF_OPTIONS       = 0x00000010,
+     SWMCF_EVENTS        = 0x00000020,
+
+     SWMCF_COLOR_KEY     = 0x00000100,
+     SWMCF_OPAQUE        = 0x00000200,
+
+     //~ SWMCF_KEY_SELECTION = 0x00001000,
+
+     SWMCF_SRC_GEOMETRY  = 0x00010000,
+     SWMCF_DST_GEOMETRY  = 0x00020000,
+
+     SWMCF_ALL           = 0x0003033F
+} SaWManWindowConfigFlags;
+
+typedef struct {
+     DFBRectangle             bounds;         /* position and size */
+     int                      opacity;        /* global alpha factor */
+     DFBWindowStackingClass   stacking;       /* level boundaries */
+     DFBWindowOptions         options;        /* flags for appearance/behaviour */
+
+     DFBWindowEventType       events;         /* mask of enabled events */
+     u32                      color_key;      /* transparent pixel */
+     DFBRegion                opaque;         /* region of the window forced to be opaque */
+
+     DFBWindowGeometry        src_geometry;   /* advanced source geometry */
+     DFBWindowGeometry        dst_geometry;   /* advanced destination geometry */
+} SaWManWindowConfig;
+
+#define SAWMANWINDOWCONFIG_COPY( a, b )  {  \
+     (a)->bounds       = (b)->bounds;       \
+     (a)->opacity      = (b)->opacity;      \
+     (a)->stacking     = (b)->stacking;     \
+     (a)->options      = (b)->options;      \
+     (a)->events       = (b)->events;       \
+     (a)->color_key    = (b)->color_key;    \
+     (a)->opaque       = (b)->opaque;       \
+     (a)->src_geometry = (b)->src_geometry; \
+     (a)->dst_geometry = (b)->dst_geometry; }
+
+typedef struct {
+     SaWManWindowHandle       handle;
+
+     DFBWindowCapabilities    caps;
+
+     SaWManWindowConfig       config;
+} SaWManWindowInfo;
+
+
+typedef struct {
+     SaWManWindowHandle       handle;
+
+     DFBWindowCapabilities    caps;         /* window capabilities, RO */
+
+     SaWManWindowConfigFlags  flags;        /* applicability of below values */
+     SaWManWindowConfig       current;
+     SaWManWindowConfig       request;
+} SaWManWindowReconfig;
+
+/*
+ * Callbacks, to be used together with the SaWMan Manager interface
+ */
+
+typedef struct {
+     DirectResult (*Start)          ( void             *context,
+                                      const char       *name,
+                                      pid_t            *ret_pid );
+
+     DirectResult (*Stop)           ( void             *context,
+                                      pid_t             pid,
+                                      FusionID          caller );
+
+
+
+     DirectResult (*ProcessAdded)   ( void             *context,
+                                      SaWManProcess    *process );
+
+     DirectResult (*ProcessRemoved) ( void             *context,
+                                      SaWManProcess    *process );
+
+
+
+     DirectResult (*InputFilter)    ( void             *context,
+                                      DFBInputEvent    *event );
+
+
+
+     DirectResult (*WindowPreConfig)( void               *context,
+                                      SaWManWindowConfig *config );
+
+
+
+     DirectResult (*WindowAdded)    ( void               *context,
+                                      SaWManWindowInfo   *info );
+
+     DirectResult (*WindowRemoved)  ( void               *context,
+                                      SaWManWindowInfo   *info );
+
+
+
+     DirectResult (*WindowReconfig) ( void                 *context,
+                                      SaWManWindowReconfig *reconfig );
+
+     DirectResult (*WindowRestack)  ( void                 *context,
+                                      SaWManWindowHandle    handle,
+                                      SaWManWindowHandle    relative,
+                                      SaWManWindowRelation  relation );
+
+     DirectResult (*SwitchFocus)    ( void                 *context,
+                                      SaWManWindowHandle    handle );
+
+
+
+     DirectResult (*StackResized)   ( void               *context,
+                                      const DFBDimension *size );
+
+} SaWManCallbacks;
 
 /***********
  * ISaWMan *
  ***********/
 
 /*
- * <i>No summary yet...</i>
+ * Main entry point for clients of SaWMan.
+ * Can be used to start/stop external applications and return not-wanted keys to the key collector.
+ * Also used to create the singleton Window Manager interface.
  */
 DEFINE_INTERFACE(   ISaWMan,
 
@@ -88,7 +273,7 @@ DEFINE_INTERFACE(   ISaWMan,
       * Returns a received key event.
       *
       * This sends the key event to the key collector.
-      * In the flags field of the event structure DWET_RETURNED will be set.
+      * In the flags field of the event structure DWEF_RETURNED will be set.
       */
      DirectResult (*ReturnKeyEvent) (
           ISaWMan                  *thiz,
@@ -117,7 +302,9 @@ DEFINE_INTERFACE(   ISaWMan,
  ******************/
 
 /*
- * <i>No summary yet...</i>
+ * Manages SaWMan.
+ * used to request and deny regular window activties like close, remove, switch focus.
+ * To be used together with the callbacks given to ISaWMan::CreateManager().
  */
 DEFINE_INTERFACE(   ISaWManManager,
 
@@ -150,7 +337,7 @@ DEFINE_INTERFACE(   ISaWManManager,
       */
      DirectResult (*CloseWindow) (
           ISaWManManager           *thiz,
-          SaWManWindow             *window
+          SaWManWindowHandle        handle
      );
 
      /*
@@ -158,7 +345,7 @@ DEFINE_INTERFACE(   ISaWManManager,
       */
      DirectResult (*SetVisible) (
           ISaWManManager           *thiz,
-          SaWManWindow             *window,
+          SaWManWindowHandle        handle,
           DFBBoolean                visible
      );
 
@@ -167,7 +354,7 @@ DEFINE_INTERFACE(   ISaWManManager,
       */
      DirectResult (*SwitchFocus) (
           ISaWManManager           *thiz,
-          SaWManWindow             *window
+          SaWManWindowHandle        handle
      );
 
 
@@ -191,9 +378,9 @@ DEFINE_INTERFACE(   ISaWManManager,
       */
      DirectResult (*InsertWindow) (
           ISaWManManager           *thiz,
-          SaWManWindow             *window,
-          SaWManWindow             *relative,
-          DFBBoolean                top
+          SaWManWindowHandle        handle,
+          SaWManWindowHandle        relative,
+          SaWManWindowRelation      relation
      );
 
      /*
@@ -201,7 +388,7 @@ DEFINE_INTERFACE(   ISaWManManager,
       */
      DirectResult (*RemoveWindow) (
           ISaWManManager           *thiz,
-          SaWManWindow             *window
+          SaWManWindowHandle        handle
      );
 
 
@@ -215,18 +402,24 @@ DEFINE_INTERFACE(   ISaWManManager,
           SaWManScalingMode         mode
      );
 
+     DirectResult (*SetWindowConfig) (
+          ISaWManManager           *thiz,
+          SaWManWindowHandle        handle,
+          SaWManWindowConfigFlags   flags,
+          SaWManWindowConfig       *config
+     );
 
    /** Event handling **/
 
      /*
       * Send an event to a window.
       *
-      * This sends an event to the window specified by the <b>window_id</b>.
+      * This sends an event to the window specified by the <b>handle</b>.
       */
      DirectResult (*SendWindowEvent) (
           ISaWManManager           *thiz,
-          const DFBWindowEvent     *event,
-          DFBWindowID               window_id
+          SaWManWindowHandle        handle,
+          const DFBWindowEvent     *event
      );
 
 

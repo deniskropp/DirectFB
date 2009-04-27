@@ -30,7 +30,7 @@
 #include <fusion/shmalloc.h>
 
 #include <sawman.h>
-#include <sawman_manager.h>
+#include <sawman_internal.h>
 
 #include "isawman.h"
 #include "isawmanmanager.h"
@@ -153,9 +153,11 @@ ISaWMan_ReturnKeyEvent( ISaWMan        *thiz,
      if (event->type != DWET_KEYDOWN && event->type != DWET_KEYUP)
           return DFB_UNSUPPORTED;
 
-     /* Don't return same event twice! */
+     /* Don't return same event twice! 'flags' is only valid for KEY events. */
      if (event->flags & DWEF_RETURNED)
           return DFB_LIMITEXCEEDED;
+
+     event->flags |= DWEF_RETURNED;
 
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
@@ -223,12 +225,17 @@ ISaWMan_CreateManager( ISaWMan                  *thiz,
      }
 
      if (callbacks->WindowAdded) {
-          SaWManWindow *window;
-
+          SaWManWindow     *window;
+          SaWManWindowInfo *info;
+          
+          info = &sawman->callback.info;
           direct_list_foreach (window, sawman->windows) {
                D_MAGIC_ASSERT( window, SaWManWindow );
-          
-               callbacks->WindowAdded( context, window );
+               info->handle = (SaWManWindowHandle)window;
+               info->caps   = window->caps;
+               SAWMANWINDOWCONFIG_COPY( &info->config, &window->window->config )
+
+               callbacks->WindowAdded( context, info );
           }
      }
 

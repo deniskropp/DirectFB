@@ -34,7 +34,7 @@
 #include <core/wm.h>
 
 #include <sawman.h>
-#include <sawman_manager.h>
+#include <sawman_internal.h>
 
 #include "isawmanmanager.h"
 
@@ -130,11 +130,12 @@ ISaWManManager_ProcessUpdates( ISaWManManager      *thiz,
 }
 
 static DirectResult
-ISaWManManager_CloseWindow( ISaWManManager *thiz,
-                            SaWManWindow   *window )
+ISaWManManager_CloseWindow( ISaWManManager     *thiz,
+                            SaWManWindowHandle  handle )
 {
      SaWMan         *sawman;
      DFBWindowEvent  event;
+     SaWManWindow   *window = (SaWManWindow*)handle;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
@@ -154,11 +155,12 @@ ISaWManManager_CloseWindow( ISaWManManager *thiz,
 }
 
 static DirectResult
-ISaWManManager_SetVisible( ISaWManManager *thiz,
-                           SaWManWindow   *window,
-                           DFBBoolean      visible )
+ISaWManManager_SetVisible( ISaWManManager     *thiz,
+                           SaWManWindowHandle  handle,
+                           DFBBoolean          visible )
 {
-     SaWMan *sawman;
+     SaWMan       *sawman;
+     SaWManWindow *window = (SaWManWindow*)handle;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
@@ -178,10 +180,11 @@ ISaWManManager_SetVisible( ISaWManManager *thiz,
 }
 
 static DirectResult
-ISaWManManager_SwitchFocus( ISaWManManager *thiz,
-                            SaWManWindow   *window )
+ISaWManManager_SwitchFocus( ISaWManManager     *thiz,
+                            SaWManWindowHandle  handle )
 {
-     SaWMan *sawman;
+     SaWMan       *sawman;
+     SaWManWindow *window = (SaWManWindow*)handle;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
@@ -234,12 +237,14 @@ ISaWManManager_GetSize( ISaWManManager         *thiz,
 }
 
 static DirectResult
-ISaWManManager_InsertWindow( ISaWManManager *thiz,
-                             SaWManWindow   *window,
-                             SaWManWindow   *relative,
-                             DFBBoolean      top )
+ISaWManManager_InsertWindow( ISaWManManager       *thiz,
+                             SaWManWindowHandle    handle,
+                             SaWManWindowHandle    relative,
+                             SaWManWindowRelation  relation )
 {
-     SaWMan *sawman;
+     SaWMan       *sawman;
+     SaWManWindow *window = (SaWManWindow*)handle;
+     SaWManWindow *sawrel = (SaWManWindow*)relative;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
@@ -250,18 +255,20 @@ ISaWManManager_InsertWindow( ISaWManManager *thiz,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
-     D_MAGIC_ASSERT_IF( relative, SaWManWindow );
+     D_MAGIC_ASSERT_IF( sawrel, SaWManWindow );
 
      FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
-     return sawman_insert_window( sawman, window, relative, top );
+     return sawman_insert_window( sawman, window, sawrel, 
+                    (relation == SWMWR_TOP) ? DFB_TRUE : DFB_FALSE );
 }
 
 static DirectResult
-ISaWManManager_RemoveWindow( ISaWManManager *thiz,
-                             SaWManWindow   *window )
+ISaWManManager_RemoveWindow( ISaWManManager     *thiz,
+                             SaWManWindowHandle  handle )
 {
-     SaWMan *sawman;
+     SaWMan       *sawman;
+     SaWManWindow *window = (SaWManWindow*)handle;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
@@ -310,17 +317,65 @@ ISaWManManager_SetScalingMode( ISaWManManager    *thiz,
 }
 
 static DirectResult
-ISaWManManager_SendWindowEvent( ISaWManManager       *thiz,
-                                const DFBWindowEvent *event,
-                                DFBWindowID           window_id )
+ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
+                                 SaWManWindowHandle        handle,
+                                 SaWManWindowConfigFlags   flags,
+                                 SaWManWindowConfig       *config )
 {
      SaWMan         *sawman;
-     SaWManWindow   *window;
+     SaWManWindow   *window = (SaWManWindow*)handle;
+     CoreWindow     *corewindow;
+
+     /* for the moment, we only accept size and position */
+     if( flags & ~(SWMCF_POSITION | SWMCF_SIZE ) )
+          return DFB_INVARG;
+     
+     if( config == NULL )
+          return DFB_INVARG;
+     
+     DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     sawman = data->sawman;
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( window, SaWManWindow );
+
+     corewindow = window->window;
+     D_ASSERT( corewindow != NULL );
+     
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+
+     if( flags & (SWMCF_POSITION | SWMCF_SIZE) ) {
+          if( flags == SWMCF_POSITION ) {
+               corewindow->config.bounds.x = config->bounds.x;
+               corewindow->config.bounds.y = config->bounds.y;
+          }
+          else if( flags == SWMCF_SIZE ) {
+               corewindow->config.bounds.w = config->bounds.w;
+               corewindow->config.bounds.h = config->bounds.h;
+          }
+          else
+               corewindow->config.bounds = config->bounds;          
+
+          sawman_update_geometry( window );
+     }
+
+     return DFB_OK;
+}
+
+     
+
+static DirectResult
+ISaWManManager_SendWindowEvent( ISaWManManager       *thiz,
+                                SaWManWindowHandle    handle,
+                                const DFBWindowEvent *event )
+{
+     SaWMan         *sawman;
+     SaWManWindow   *window  = (SaWManWindow*)handle;
      DFBWindowEvent  evt;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
-     if (!event || !window_id)
+     if (!event || (handle == SAWMAN_WINDOW_NONE))
           return DFB_INVARG;
 
      /* Only key events! */
@@ -333,18 +388,9 @@ ISaWManManager_SendWindowEvent( ISaWManManager       *thiz,
 
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( window, SaWManWindow );
 
      FUSION_SKIRMISH_ASSERT( &sawman->lock );
-
-     direct_list_foreach (window, sawman->windows) {
-          D_MAGIC_ASSERT( window, SaWManWindow );
-
-          if (window->id == window_id)
-               break;
-     }
-
-     if (!window)
-          return DFB_IDNOTFOUND;
 
      sawman_post_event( sawman, window, &evt );
 
@@ -401,6 +447,7 @@ ISaWManManager_Construct( ISaWManManager *thiz,
      thiz->InsertWindow    = ISaWManManager_InsertWindow;
      thiz->RemoveWindow    = ISaWManManager_RemoveWindow;
      thiz->SetScalingMode  = ISaWManManager_SetScalingMode;
+     thiz->SetWindowConfig = ISaWManManager_SetWindowConfig;
      thiz->SendWindowEvent = ISaWManManager_SendWindowEvent;
      thiz->Lock            = ISaWManManager_Lock;
      thiz->Unlock          = ISaWManManager_Unlock;
