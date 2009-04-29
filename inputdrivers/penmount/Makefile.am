@@ -17,7 +17,7 @@ inputdir = $(MODULEDIR)/inputdrivers
 libdirectfb_penmount_la_SOURCES = penmount.c
 
 libdirectfb_penmount_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

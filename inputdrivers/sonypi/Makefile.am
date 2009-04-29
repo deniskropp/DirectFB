@@ -18,7 +18,7 @@ libdirectfb_sonypi_la_SOURCES =	\
 	sonypi.c
 
 libdirectfb_sonypi_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

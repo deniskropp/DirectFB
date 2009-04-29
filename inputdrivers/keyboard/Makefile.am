@@ -20,7 +20,7 @@ libdirectfb_keyboard_la_SOURCES =	\
 	keyboard.c
 
 libdirectfb_keyboard_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

@@ -39,7 +39,7 @@ libdirectfb_radeon_la_SOURCES =	\
 	vertex_shader.h
 
 libdirectfb_radeon_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS) -lm
 

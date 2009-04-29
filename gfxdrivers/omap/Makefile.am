@@ -23,7 +23,7 @@ libdirectfb_omap_la_SOURCES = \
 	omap_primary.c
 
 libdirectfb_omap_la_LDFLAGS = \
-	-export-dynamic \
+	-module \
 	-avoid-version \
 	$(DFB_LDFLAGS)
 

@@ -18,7 +18,7 @@ libdirectfb_dreamboxremote_la_SOURCES =	\
 	dreamboxremote.c
 
 libdirectfb_dreamboxremote_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

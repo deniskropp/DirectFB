@@ -35,7 +35,7 @@ libdirectfb_unichrome_la_SOURCES =  \
 	regs2d.h        regs3d.h
 
 libdirectfb_unichrome_la_LDFLAGS = \
-	-export-dynamic		   \
+	-module			   \
 	-avoid-version		   \
 	$(DFB_LDFLAGS)
 

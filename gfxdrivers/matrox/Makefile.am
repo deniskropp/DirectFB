@@ -33,7 +33,7 @@ libdirectfb_matrox_la_SOURCES =	\
 	mmio.h
 
 libdirectfb_matrox_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

@@ -22,7 +22,7 @@ libdirectfb_neomagic_la_SOURCES =	\
 	neo2200.c
 
 libdirectfb_neomagic_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

@@ -22,7 +22,7 @@ libdirectfb_i810_la_SOURCES =	\
 	i810_overlay.c
 
 libdirectfb_i810_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

@@ -27,7 +27,7 @@ libdirectfb_nsc_la_SOURCES =	\
 	nsc_galfns.c
 
 libdirectfb_nsc_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

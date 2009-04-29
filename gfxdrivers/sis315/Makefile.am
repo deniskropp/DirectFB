@@ -29,7 +29,7 @@ libdirectfb_sis315_la_SOURCES =	\
 	sis315_state.h
 
 libdirectfb_sis315_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

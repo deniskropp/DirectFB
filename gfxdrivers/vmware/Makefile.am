@@ -23,7 +23,7 @@ libdirectfb_vmware_la_SOURCES =	\
 	vmware_gfxdriver.h
 
 libdirectfb_vmware_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS) -lm
 

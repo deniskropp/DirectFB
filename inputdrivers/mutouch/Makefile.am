@@ -17,7 +17,7 @@ inputdir = $(MODULEDIR)/inputdrivers
 libdirectfb_mutouch_la_SOURCES = mutouch.c
 
 libdirectfb_mutouch_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

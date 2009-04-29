@@ -21,7 +21,7 @@ libdirectfb_tdfx_la_SOURCES =	\
 	tdfx.h
 
 libdirectfb_tdfx_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

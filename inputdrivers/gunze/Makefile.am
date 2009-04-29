@@ -18,7 +18,7 @@ libdirectfb_gunze_la_SOURCES =	\
 	gunze.c
 
 libdirectfb_gunze_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

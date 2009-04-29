@@ -21,7 +21,7 @@ libdirectfb_tslib_la_CFLAGS = \
 	$(TSLIB_CFLAGS)
 
 libdirectfb_tslib_la_LDFLAGS = \
-	-export-dynamic \
+	-module \
 	-avoid-version \
 	$(DFB_LDFLAGS)
 

@@ -18,7 +18,7 @@ libdirectfb_dbox2remote_la_SOURCES =	\
 	dbox2remote.c
 
 libdirectfb_dbox2remote_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

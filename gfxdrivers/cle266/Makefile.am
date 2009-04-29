@@ -32,7 +32,7 @@ libdirectfb_cle266_la_SOURCES =     \
 	regs2d.h        regs3d.h
 
 libdirectfb_cle266_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

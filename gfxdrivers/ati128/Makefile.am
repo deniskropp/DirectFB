@@ -28,7 +28,7 @@ libdirectfb_ati128_la_SOURCES =	\
 	mmio.h
 
 libdirectfb_ati128_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

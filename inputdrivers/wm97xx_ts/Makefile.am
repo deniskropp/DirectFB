@@ -18,7 +18,7 @@ libdirectfb_wm97xx_ts_la_SOURCES =	\
 	wm97xx_ts.c
 
 libdirectfb_wm97xx_ts_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

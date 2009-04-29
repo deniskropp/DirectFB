@@ -62,7 +62,7 @@ libdirectfb_davinci_la_SOURCES =	\
 	davinci_video_pool.h
 
 libdirectfb_davinci_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 
