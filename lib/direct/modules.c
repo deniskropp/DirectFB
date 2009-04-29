@@ -182,7 +182,6 @@ int
 direct_modules_explore_directory( DirectModuleDir *directory )
 {
 #ifdef DYNAMIC_LINKING
-     int            dir_len;
      DIR           *dir;
      struct dirent *entry = NULL;
      struct dirent  tmp;
@@ -198,18 +197,16 @@ direct_modules_explore_directory( DirectModuleDir *directory )
 
      path = directory->path;
 
-     if(path[0]!='/') {
+     if (path[0] != '/') {
           pathfront = direct_config->module_dir;
-          if(!pathfront)
+          if (!pathfront)
                pathfront = MODULEDIR;
      }
 
      buf = alloca( strlen(pathfront) + 1 + strlen(path) + 1 ); /* pre, slash, post, 0 */
-     sprintf( buf, "%s%s%s", pathfront, ( pathfront && path && (path[0] != '/') && (pathfront[strlen(pathfront)-1] != '/') ) ? "/" : "", path );
+     sprintf( buf, "%s/%s", pathfront, path );
 
-     dir_len = strlen( buf );
-     dir     = opendir( buf );
-
+     dir = opendir( buf );
      if (!dir) {
           D_DEBUG_AT( Direct_Modules, "  -> ERROR opening directory: %s!\n", strerror(errno) );
           return 0;
@@ -426,10 +423,9 @@ open_module( DirectModuleEntry *module )
      DirectModuleDir *directory;
      const char      *pathfront = "";
      const char      *path;
-     int              buf_len;
      char            *buf;
      void            *handle;
-      
+
      D_MAGIC_ASSERT( module, DirectModuleEntry );
 
      D_ASSERT( module->file != NULL );
@@ -439,16 +435,15 @@ open_module( DirectModuleEntry *module )
      directory = module->directory;
      path      = directory->path;
 
-     if(path[0]!='/') {
+     if (path[0] != '/') {
           pathfront = direct_config->module_dir;
-          if(!pathfront)
+          if (!pathfront)
                pathfront = MODULEDIR;
      }
 
-     buf_len   = strlen(pathfront) + 1 + strlen(path) + 1 + strlen(module->file) + 1;
-     buf       = alloca( buf_len );
-     sprintf( buf, "%s%s%s/%s", pathfront, ( pathfront && path && (path[0] != '/') && (pathfront[strlen(pathfront)-1] != '/') ) ? "/" : "", path, module->file );
-     
+     buf = alloca( strlen( pathfront ) + 1 + strlen( path ) + 1 + strlen( module->file ) + 1 );
+     sprintf( buf, "%s/%s/%s", pathfront, path, module->file );
+
      D_DEBUG_AT( Direct_Modules, "Loading '%s'...\n", buf );
 
      handle = dlopen( buf, RTLD_NOW );
