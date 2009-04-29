@@ -84,7 +84,7 @@
 #include <core/input_driver.h>
 
 
-DFB_INPUT_DRIVER( MuTouch )
+DFB_INPUT_DRIVER( mutouch )
 
 
 #define BAUDRATE         B9600

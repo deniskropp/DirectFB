@@ -70,7 +70,7 @@
 
 #include <core/input_driver.h>
 
-DFB_INPUT_DRIVER( Zytronic )
+DFB_INPUT_DRIVER( zytronic )
 
 
 // codes de retours :
