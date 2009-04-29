@@ -277,9 +277,10 @@ direct_modules_explore_directory( DirectModuleDir *directory )
                }
 
                if (module->disabled) {
-                    dlclose( handle );
-
                     module->loaded = false;
+
+                    /* may call direct_modules_unregister() */
+                    dlclose( handle );
                }
                else {
                     module->handle = handle;
@@ -406,15 +407,20 @@ load_module( DirectModuleEntry *module )
 static void
 unload_module( DirectModuleEntry *module )
 {
+     void *handle;
+
      D_MAGIC_ASSERT( module, DirectModuleEntry );
      D_ASSERT( module->dynamic == true );
      D_ASSERT( module->handle != NULL );
      D_ASSERT( module->loaded == true );
 
-     dlclose( module->handle );
+     handle = module->handle;
 
      module->handle = NULL;
      module->loaded = false;
+
+     /* may call direct_modules_unregister() */
+     dlclose( handle );
 }
 
 static void *
