@@ -95,6 +95,8 @@ typedef struct __eloData__ {
   unsigned char action;
 } eloData;
 
+static int elo_check_ack(int fd);
+
 static inline void __mdelay(unsigned int msec)
 {
   struct timespec delay;
