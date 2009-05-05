@@ -88,8 +88,9 @@ typedef struct {
      } regs;
 } MatroxBesLayerData;
 
-static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
-                          bool onsync );
+static bool bes_set_buffer( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
+                            bool onsync );
+static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes );
 static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
                            CoreLayerRegionConfig *config, CoreSurface *surface,
                            CoreSurfaceBufferLock *lock );
@@ -273,7 +274,7 @@ besSetRegion( CoreLayer                  *layer,
                     CLRCF_OPTIONS | CLRCF_DEST | CLRCF_OPACITY | CLRCF_SOURCE))
      {
           bes_calc_regs( mdrv, mbes, config, surface, lock );
-          bes_set_regs( mdrv, mbes, true );
+          bes_set_regs( mdrv, mbes );
      }
 
      /* set color key */
@@ -334,11 +335,12 @@ besFlipRegion( CoreLayer             *layer,
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
+     bool                swap;
 
      bes_calc_regs( mdrv, mbes, &mbes->config, surface, lock );
-     bes_set_regs( mdrv, mbes, flags & DSFLIP_ONSYNC );
+     swap = bes_set_buffer( mdrv, mbes, flags & DSFLIP_ONSYNC );
 
-     dfb_surface_flip( surface, false );
+     dfb_surface_flip( surface, swap );
 
      if (flags & DSFLIP_WAIT)
           dfb_screen_wait_vsync( mdrv->primary );
@@ -399,8 +401,7 @@ DisplayLayerFuncs matroxBesFuncs = {
 
 /* internal */
 
-static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
-                          bool onsync )
+static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes )
 {
      int            line = 0;
      volatile u8   *mmio = mdrv->mmio_base;
@@ -412,20 +413,30 @@ static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
                return;
      }
 
-     line = onsync ? mode->yres : (mga_in32( mmio, MGAREG_VCOUNT ) + 48);
-     if (line > mode->yres)
-          line = mode->yres;
-
+     /* prevent updates */
+     line = 0xfff;
      mga_out32( mmio, mbes->regs.besGLOBCTL | (line << 16), BESGLOBCTL);
 
-     mga_out32( mmio, mbes->regs.besA1ORG, BESA1ORG );
-     mga_out32( mmio, mbes->regs.besA2ORG, BESA2ORG );
-     mga_out32( mmio, mbes->regs.besA1CORG, BESA1CORG );
-     mga_out32( mmio, mbes->regs.besA2CORG, BESA2CORG );
+     if (mbes->regs.besCTL & 0x4000000) {
+          mga_out32( mmio, mbes->regs.besA1ORG, BESA1ORG );
+          mga_out32( mmio, mbes->regs.besA2ORG, BESA2ORG );
+          mga_out32( mmio, mbes->regs.besA1CORG, BESA1CORG );
+          mga_out32( mmio, mbes->regs.besA2CORG, BESA2CORG );
 
-     if (mdrv->accelerator != FB_ACCEL_MATROX_MGAG200) {
-          mga_out32( mmio, mbes->regs.besA1C3ORG, BESA1C3ORG );
-          mga_out32( mmio, mbes->regs.besA2C3ORG, BESA2C3ORG );
+          if (mdrv->accelerator != FB_ACCEL_MATROX_MGAG200) {
+               mga_out32( mmio, mbes->regs.besA1C3ORG, BESA1C3ORG );
+               mga_out32( mmio, mbes->regs.besA2C3ORG, BESA2C3ORG );
+          }
+     } else {
+          mga_out32( mmio, mbes->regs.besA1ORG, BESB1ORG );
+          mga_out32( mmio, mbes->regs.besA2ORG, BESB2ORG );
+          mga_out32( mmio, mbes->regs.besA1CORG, BESB1CORG );
+          mga_out32( mmio, mbes->regs.besA2CORG, BESB2CORG );
+
+          if (mdrv->accelerator != FB_ACCEL_MATROX_MGAG200) {
+               mga_out32( mmio, mbes->regs.besA1C3ORG, BESB1C3ORG );
+               mga_out32( mmio, mbes->regs.besA2C3ORG, BESB2C3ORG );
+          }
      }
 
      mga_out32( mmio, mbes->regs.besCTL | mbes->regs.besCTL_field, BESCTL );
@@ -448,7 +459,78 @@ static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
      mga_out32( mmio, mbes->regs.besVISCAL, BESVISCAL );
      mga_out32( mmio, mbes->regs.besHISCAL, BESHISCAL );
 
+     /* allow updates again */
+     line = mode->yres;
+     mga_out32( mmio, mbes->regs.besGLOBCTL | (line << 16), BESGLOBCTL);
+
      mga_out_dac( mmio, XKEYOPMODE, mbes->regs.xKEYOPMODE );
+}
+
+static bool bes_set_buffer( MatroxDriverData *mdrv, MatroxBesLayerData *mbes, bool onsync )
+{
+     bool           ret;
+     u32            status;
+     int            line;
+     volatile u8   *mmio = mdrv->mmio_base;
+     VideoMode     *mode = dfb_system_current_mode();
+
+     if (!mode) {
+          mode = dfb_system_modes();
+          if (!mode)
+               return false;
+     }
+
+     /* prevent updates */
+     line = 0xfff;
+     mga_out32( mmio, mbes->regs.besGLOBCTL | (line << 16), BESGLOBCTL);
+
+     status = mga_in32( mmio, BESSTATUS );
+
+     /* Had the previous flip actually occured? */
+     ret = !(status & 0x2) != !(mbes->regs.besCTL & 0x4000000);
+
+     /*
+      * Pick the next buffer based on what's being displayed right now
+      * so that it's possible to detect if the flip actually occured
+      * regardless of how many times the buffers are flipped during one
+      * displayed frame.
+      */
+     if (status & 0x2) {
+          mga_out32( mmio, mbes->regs.besA1ORG, BESA1ORG );
+          mga_out32( mmio, mbes->regs.besA2ORG, BESA2ORG );
+          mga_out32( mmio, mbes->regs.besA1CORG, BESA1CORG );
+          mga_out32( mmio, mbes->regs.besA2CORG, BESA2CORG );
+
+          if (mdrv->accelerator != FB_ACCEL_MATROX_MGAG200) {
+               mga_out32( mmio, mbes->regs.besA1C3ORG, BESA1C3ORG );
+               mga_out32( mmio, mbes->regs.besA2C3ORG, BESA2C3ORG );
+          }
+
+          mbes->regs.besCTL &= ~0x4000000;
+     } else {
+          mga_out32( mmio, mbes->regs.besA1ORG, BESB1ORG );
+          mga_out32( mmio, mbes->regs.besA2ORG, BESB2ORG );
+          mga_out32( mmio, mbes->regs.besA1CORG, BESB1CORG );
+          mga_out32( mmio, mbes->regs.besA2CORG, BESB2CORG );
+
+          if (mdrv->accelerator != FB_ACCEL_MATROX_MGAG200) {
+               mga_out32( mmio, mbes->regs.besA1C3ORG, BESB1C3ORG );
+               mga_out32( mmio, mbes->regs.besA2C3ORG, BESB2C3ORG );
+          }
+
+          mbes->regs.besCTL |= 0x4000000;
+     }
+
+     mga_out32( mmio, mbes->regs.besCTL | mbes->regs.besCTL_field, BESCTL );
+
+     /* allow updates again */
+     if (onsync)
+          line = mode->yres;
+     else
+          line = mga_in32( mmio, MGAREG_VCOUNT ) + 48;
+     mga_out32( mmio, mbes->regs.besGLOBCTL | (line << 16), BESGLOBCTL);
+
+     return ret;
 }
 
 static void bes_calc_regs( MatroxDriverData      *mdrv,
@@ -533,8 +615,12 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      /* initialize */
      mbes->regs.besGLOBCTL = 0;
 
+     /* preserve buffer */
+     mbes->regs.besCTL &= 0x4000000;
+
      /* enable/disable depending on opacity */
-     mbes->regs.besCTL = (config->opacity && visible) ? BESEN : 0;
+     if (config->opacity && visible)
+          mbes->regs.besCTL |= BESEN;
 
      /* pixel format settings */
      switch (surface->config.format) {
@@ -587,7 +673,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      if (surface->config.size.w > 1024)
           mbes->regs.besCTL &= ~BESVFEN;
 
-     mbes->regs.besGLOBCTL |= 3*hzoom | (mode->yres & 0xFFF) << 16;
+     mbes->regs.besGLOBCTL |= 3*hzoom;
 
      mbes->regs.besPITCH = pitch / DFB_BYTES_PER_PIXEL(surface->config.format);
 
