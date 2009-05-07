@@ -38,6 +38,7 @@ ltmain.sh
 makedirectfb.sh
 Makefile
 Makefile.in
+m4
 missing
 mkinstalldirs
 *.nm
