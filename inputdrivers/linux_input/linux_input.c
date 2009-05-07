@@ -85,6 +85,7 @@ typedef unsigned long kernel_ulong_t;
 #include <sys/kd.h>
 #include <stdlib.h>
 
+#define DFB_INPUTDRIVER_HAS_AXIS_INFO
 
 #include <directfb.h>
 #include <directfb_keyboard.h>
@@ -1217,7 +1218,7 @@ driver_open_device( CoreInputDevice  *device,
           ret = ioctl( fd, EVIOCGRAB, 1 );
           /* 2.4 kernels don't have EVIOCGRAB so ignore EINVAL */
           if (ret && errno != EINVAL) {
-               D_PERROR( "Direc      tFB/linux_input: could not grab device" );
+               D_PERROR( "DirectFB/linux_input: could not grab device" );
                close( fd );
                return DFB_INIT;
           }
@@ -1278,6 +1279,50 @@ driver_open_device( CoreInputDevice  *device,
      return DFB_OK;
 }
 
+/*
+ * Obtain information about an axis (only absolute axis so far).
+ */
+static DFBResult
+driver_get_axis_info( CoreInputDevice              *device,
+                      void                         *driver_data,
+                      DFBInputDeviceAxisIdentifier  axis,
+                      DFBInputDeviceAxisInfo       *ret_info )
+{
+     LinuxInputData *data = (LinuxInputData*) driver_data;
+
+     if (data->touchpad) {
+          /*  for the touchpad, events are normalized to 0..511  */
+          switch (axis) {
+               case DIAI_X:
+               case DIAI_Y:
+                    ret_info->flags  |= DIAIF_ABS_MIN | DIAIF_ABS_MAX;
+                    ret_info->abs_min = 0;
+                    ret_info->abs_max = (1 << 9) - 1;
+                    break;
+               default:
+                    break;
+          }
+     } else {
+          if (axis <= ABS_PRESSURE && axis < DIAI_LAST) {
+               unsigned long absbit[NBITS(ABS_CNT)];
+
+               /* check if we have an absolute axes */
+               ioctl( data->fd, EVIOCGBIT(EV_ABS, sizeof(absbit)), absbit );
+
+               if (test_bit (axis, absbit)) {
+                    struct input_absinfo absinfo;
+
+                    ioctl( data->fd, EVIOCGABS(axis), &absinfo );
+
+                    ret_info->flags  |= DIAIF_ABS_MIN | DIAIF_ABS_MAX;
+                    ret_info->abs_min = absinfo.minimum;
+                    ret_info->abs_max = absinfo.maximum;
+               }
+          }
+     }
+
+     return DFB_OK;
+}
 
 /*
  * Fetch one entry from the kernel keymap.
