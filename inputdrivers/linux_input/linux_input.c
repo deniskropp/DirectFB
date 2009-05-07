@@ -863,7 +863,7 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
 
           for (i=0; i<readlen / sizeof(levt[0]); i++) {
                DFBInputEvent temp = { .type = DIET_UNKNOWN };
-               
+
                if (data->touchpad) {
                     status = touchpad_fsm( &fsm_state, &levt[i], &temp );
                     if (status < 0) {
@@ -900,7 +900,7 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
                     devt.type  = DIET_UNKNOWN;
                     devt.flags = DIEF_NONE;
                }
-               
+
                devt = temp;
 
                if (D_FLAGS_IS_SET( devt.flags, DIEF_AXISREL ) && devt.type == DIET_AXISMOTION &&
@@ -919,7 +919,7 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
                               break;
                     }
                }
-               
+
                /* Event is dispatched in next round of loop. */
           }
 
@@ -1290,30 +1290,20 @@ driver_get_axis_info( CoreInputDevice              *device,
 {
      LinuxInputData *data = (LinuxInputData*) driver_data;
 
-     if (data->touchpad) {
-          /*  for the touchpad, events are normalized to 0..511  */
-          switch (axis) {
-               case DIAI_X:
-               case DIAI_Y:
-                    ret_info->flags  |= DIAIF_ABS_MIN | DIAIF_ABS_MAX;
-                    ret_info->abs_min = 0;
-                    ret_info->abs_max = (1 << 9) - 1;
-                    break;
-               default:
-                    break;
-          }
-     } else {
-          if (axis <= ABS_PRESSURE && axis < DIAI_LAST) {
-               unsigned long absbit[NBITS(ABS_CNT)];
+     if (data->touchpad)
+          return DFB_OK;
 
-               /* check if we have an absolute axes */
-               ioctl( data->fd, EVIOCGBIT(EV_ABS, sizeof(absbit)), absbit );
+     if (axis <= ABS_PRESSURE && axis < DIAI_LAST) {
+          unsigned long absbit[NBITS(ABS_CNT)];
 
-               if (test_bit (axis, absbit)) {
-                    struct input_absinfo absinfo;
+          /* check if we have an absolute axes */
+          ioctl( data->fd, EVIOCGBIT(EV_ABS, sizeof(absbit)), absbit );
 
-                    ioctl( data->fd, EVIOCGABS(axis), &absinfo );
+          if (test_bit (axis, absbit)) {
+               struct input_absinfo absinfo;
 
+               if (ioctl( data->fd, EVIOCGABS(axis), &absinfo ) == 0 &&
+                   (absinfo.minimum || absinfo.maximum)) {
                     ret_info->flags  |= DIAIF_ABS_MIN | DIAIF_ABS_MAX;
                     ret_info->abs_min = absinfo.minimum;
                     ret_info->abs_max = absinfo.maximum;
