@@ -86,11 +86,11 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
           for (i = 0; i < len; i++) {
                const u32 s = src[i];
                const u32 a = (s >> 24) + 1;
-               
+
                src[i] = ((((s & 0x00ff00ff) * a) >> 8) & 0x00ff00ff) |
                         ((((s & 0x0000ff00) * a) >> 8) & 0x0000ff00) |
                         ((((s & 0xff000000)    )     )             );
-          }      
+          }
      }
 
      switch (dst_surface->config.format) {
@@ -102,7 +102,7 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                          d[i>>3]  = (src[i] >> 24) & 0x80;
                }
                break;
-               
+
           case DSPF_A4:
                for (i=0, j=0; i<len; i+=2, j++)
                     d[j] = ((src[i] >> 24) & 0xF0) | (src[i+1] >> 28);
@@ -112,7 +112,7 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                for (i = 0; i < len; i++)
                     d[i] = src[i] >> 24;
                break;
-               
+
           case DSPF_RGB332:
                for (i = 0; i < len; i++)
                     d[i] = RGB32_TO_RGB332( src[i] );
@@ -197,9 +197,9 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
 
           case DSPF_RGB32:
           case DSPF_ARGB:
-               direct_memcpy( d, src, len*4 );              
+               direct_memcpy( d, src, len*4 );
                break;
-               
+
           case DSPF_AiRGB:
                for (i = 0; i < len; i++)
                     ((u32*)d)[i] = src[i] ^ 0xff000000;
@@ -208,7 +208,7 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
           case DSPF_LUT8:
                if (palette) {
                     for (i = 0; i < len; i++) {
-                         d[i] = dfb_palette_search( palette, 
+                         d[i] = dfb_palette_search( palette,
                                                     (src[i] >> 16) & 0xff,
                                                     (src[i] >>  8) & 0xff,
                                                     (src[i]      ) & 0xff,
@@ -221,7 +221,7 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                if (palette) {
                     for (i = 0; i < len; i++) {
                          d[i] = ((src[i] >> 24) & 0xf0) +
-                                dfb_palette_search( palette, 
+                                dfb_palette_search( palette,
                                                     (src[i] >> 16) & 0xff,
                                                     (src[i] >>  8) & 0xff,
                                                     (src[i]      ) & 0xff, 0x80 );
@@ -232,8 +232,8 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
           case DSPF_YUY2:
                if (dx & 1) {
                     u32 y, u, v;
-                    
-                    RGB_TO_YCBCR( (src[0] >> 16) & 0xff, 
+
+                    RGB_TO_YCBCR( (src[0] >> 16) & 0xff,
                                   (src[0] >>  8) & 0xff,
                                   (src[0]      ) & 0xff, y, u, v );
                     *((u16*)d) = y | (v << 8);
@@ -244,27 +244,27 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                for (i = 0; i < (len-1); i += 2) {
                     u32 y0, u, v;
                     u32 y1, u1, v1;
-                    
-                    RGB_TO_YCBCR( (src[i+0] >> 16) & 0xff, 
+
+                    RGB_TO_YCBCR( (src[i+0] >> 16) & 0xff,
                                   (src[i+0] >>  8) & 0xff,
                                   (src[i+0]      ) & 0xff, y0, u, v );
-                    RGB_TO_YCBCR( (src[i+1] >> 16) & 0xff, 
+                    RGB_TO_YCBCR( (src[i+1] >> 16) & 0xff,
                                   (src[i+1] >>  8) & 0xff,
                                   (src[i+1]      ) & 0xff, y1, u1, v1 );
-                                  
+
                     u = (u + u1) >> 1;
                     v = (v + v1) >> 1;
-                    
+
                     ((u16*)d)[i+0] = y0 | (u << 8);
                     ((u16*)d)[i+1] = y1 | (v << 8);
                }
                if (len & 1) {
                     u32 y, u, v;
-                    
+
                     src += len-1;
                     d   += (len-1)*2;
-                    
-                    RGB_TO_YCBCR( (*src >> 16) & 0xff, 
+
+                    RGB_TO_YCBCR( (*src >> 16) & 0xff,
                                   (*src >>  8) & 0xff,
                                   (*src      ) & 0xff, y, u, v );
                     *((u16*)d) = y | (u << 8);
@@ -274,39 +274,39 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
           case DSPF_UYVY:
                if (dx & 1) {
                     u32 y, u, v;
-                    
-                    RGB_TO_YCBCR( (src[0] >> 16) & 0xff, 
+
+                    RGB_TO_YCBCR( (src[0] >> 16) & 0xff,
                                   (src[0] >>  8) & 0xff,
                                   (src[0]      ) & 0xff, y, u, v );
                     *((u16*)d) = v | (y << 8);
                     d += 2;
                     src++;
                     len--;
-               } 
+               }
                for (i = 0; i < (len-1); i += 2) {
                     u32 y0, u, v;
                     u32 y1, u1, v1;
-                    
-                    RGB_TO_YCBCR( (src[i+0] >> 16) & 0xff, 
+
+                    RGB_TO_YCBCR( (src[i+0] >> 16) & 0xff,
                                   (src[i+0] >>  8) & 0xff,
                                   (src[i+0]      ) & 0xff, y0, u, v );
-                    RGB_TO_YCBCR( (src[i+1] >> 16) & 0xff, 
+                    RGB_TO_YCBCR( (src[i+1] >> 16) & 0xff,
                                   (src[i+1] >>  8) & 0xff,
                                   (src[i+1]      ) & 0xff, y1, u1, v1 );
-                                  
+
                     u = (u + u1) >> 1;
                     v = (v + v1) >> 1;
-                                  
+
                     ((u16*)d)[i+0] = u | (y0 << 8);
                     ((u16*)d)[i+1] = v | (y1 << 8);
                }
                if (len & 1) {
                     u32 y, u, v;
-                    
+
                     src += len-1;
                     d   += (len-1)*2;
-                    
-                    RGB_TO_YCBCR( (*src >> 16) & 0xff, 
+
+                    RGB_TO_YCBCR( (*src >> 16) & 0xff,
                                   (*src >>  8) & 0xff,
                                   (*src      ) & 0xff, y, u, v );
                     *((u16*)d) = u | (y << 8);
@@ -333,17 +333,17 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                for (i = 0; i < (len-1); i += 2) {
                     u32 y0, u0, v0;
                     u32 y1, u1, v1;
-                    
-                    RGB_TO_YCBCR( (src[i+0] >> 16) & 0xff, 
+
+                    RGB_TO_YCBCR( (src[i+0] >> 16) & 0xff,
                                   (src[i+0] >>  8) & 0xff,
                                   (src[i+0]      ) & 0xff, y0, u0, v0 );
-                    RGB_TO_YCBCR( (src[i+1] >> 16) & 0xff, 
+                    RGB_TO_YCBCR( (src[i+1] >> 16) & 0xff,
                                   (src[i+1] >>  8) & 0xff,
                                   (src[i+1]      ) & 0xff, y1, u1, v1 );
-                    
+
                     d[i+0] = y0;
                     d[i+1] = y1;
-                                  
+
                     if (dy & 1) {
                          d1[i>>1] = (u0 + u1) >> 1;
                          d2[i>>1] = (v0 + v1) >> 1;
@@ -351,13 +351,13 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                }
                if (len & 1) {
                     u32 y, u, v;
-                    
+
                     i = len-1;
-                    
-                    RGB_TO_YCBCR( (src[i] >> 16) & 0xff, 
+
+                    RGB_TO_YCBCR( (src[i] >> 16) & 0xff,
                                   (src[i] >>  8) & 0xff,
                                   (src[i]      ) & 0xff, y, u, v );
-                    
+
                     d[i] = y;
                     if (dy & 1) {
                          d1[i>>1] = u;
@@ -365,24 +365,24 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                     }
                }
                break;
-                    
+
           case DSPF_NV12:
           case DSPF_NV16:
                d1 = dst[1];
                for (i = 0; i < (len-1); i += 2) {
                     u32 y0, u0, v0;
                     u32 y1, u1, v1;
-                    
-                    RGB_TO_YCBCR( (src[i+0] >> 16) & 0xff, 
+
+                    RGB_TO_YCBCR( (src[i+0] >> 16) & 0xff,
                                   (src[i+0] >>  8) & 0xff,
                                   (src[i+0]      ) & 0xff, y0, u0, v0 );
-                    RGB_TO_YCBCR( (src[i+1] >> 16) & 0xff, 
+                    RGB_TO_YCBCR( (src[i+1] >> 16) & 0xff,
                                   (src[i+1] >>  8) & 0xff,
                                   (src[i+1]      ) & 0xff, y1, u1, v1 );
-                    
+
                     d[i+0] = y0;
                     d[i+1] = y1;
-                                  
+
                     if (dst_surface->config.format == DSPF_NV16 || dy & 1) {
 #ifdef WORDS_BIGENDIAN
                          ((u16*)d1)[i>>1] =    ((v0 + v1) >> 1)     |
@@ -395,13 +395,13 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                }
                if (len & 1) {
                     u32 y, u, v;
-                    
+
                     i = len-1;
-                    
-                    RGB_TO_YCBCR( (src[i] >> 16) & 0xff, 
+
+                    RGB_TO_YCBCR( (src[i] >> 16) & 0xff,
                                   (src[i] >>  8) & 0xff,
                                   (src[i]      ) & 0xff, y, u, v );
-                                  
+
                     d[i] = y;
                     if (dst_surface->config.format == DSPF_NV16 || dy & 1)
 #ifdef WORDS_BIGENDIAN
@@ -411,23 +411,23 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
 #endif
                }
                break;
-               
+
           case DSPF_NV21:
                d1 = dst[1];
                for (i = 0; i < (len-1); i += 2) {
                     u32 y0, u0, v0;
                     u32 y1, u1, v1;
-                    
-                    RGB_TO_YCBCR( (src[i+0] >> 16) & 0xff, 
+
+                    RGB_TO_YCBCR( (src[i+0] >> 16) & 0xff,
                                   (src[i+0] >>  8) & 0xff,
                                   (src[i+0]      ) & 0xff, y0, u0, v0 );
-                    RGB_TO_YCBCR( (src[i+1] >> 16) & 0xff, 
+                    RGB_TO_YCBCR( (src[i+1] >> 16) & 0xff,
                                   (src[i+1] >>  8) & 0xff,
                                   (src[i+1]      ) & 0xff, y1, u1, v1 );
-                    
+
                     d[i+0] = y0;
                     d[i+1] = y1;
-                                  
+
                     if (dy & 1) {
 #ifdef WORDS_BIGENDIAN
                          ((u16*)d1)[i>>1] =    ((u0 + u1) >> 1)     |
@@ -440,13 +440,13 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                }
                if (len & 1) {
                     u32 y, u, v;
-                    
+
                     i = len-1;
-                    
-                    RGB_TO_YCBCR( (src[i] >> 16) & 0xff, 
+
+                    RGB_TO_YCBCR( (src[i] >> 16) & 0xff,
                                   (src[i] >>  8) & 0xff,
                                   (src[i]      ) & 0xff, y, u, v );
-                                  
+
                     d[i] = y;
                     if (dy & 1)
 #ifdef WORDS_BIGENDIAN
@@ -454,7 +454,7 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
 #else
                          ((u16*)d1)[i>>1] = v | (u << 8);
 #endif
-               }  
+               }
                break;
 
           case DSPF_RGB555:
@@ -493,7 +493,7 @@ void dfb_copy_buffer_32( u32 *src,
 
      if (dst_clip) {
           int sx = 0, sy = 0;
-          
+
           if (drect->x < dst_clip->x1) {
                sx = dst_clip->x1-drect->x;
                drect->w -= sx;
@@ -513,14 +513,14 @@ void dfb_copy_buffer_32( u32 *src,
 
           src += sy * sw + sx;
      }
-     
+
      if (drect->w < 1 || drect->h < 1)
           return;
      x = drect->x;
-     
+
      switch (dst_surface->config.format) {
           case DSPF_YV12:
-          case DSPF_I420:               
+          case DSPF_I420:
                if (dst_surface->config.format == DSPF_I420) {
                     dst1 = dst  + dpitch   * dst_surface->config.size.h;
                     dst2 = dst1 + dpitch/2 * dst_surface->config.size.h/2;
@@ -528,68 +528,68 @@ void dfb_copy_buffer_32( u32 *src,
                     dst2 = dst  + dpitch   * dst_surface->config.size.h;
                     dst1 = dst2 + dpitch/2 * dst_surface->config.size.h/2;
                }
-               
+
                for (y = drect->y; y < drect->y + drect->h; y++) {
                     u8 *d[3];
-                    
+
                     d[0] = LINE_PTR( dst, dst_surface->config.caps, y,
                                      dst_surface->config.size.h, dpitch ) + x;
                     d[1] = LINE_PTR( dst1, dst_surface->config.caps, y/2,
                                      dst_surface->config.size.h/2, dpitch/2 ) + x/2;
                     d[2] = LINE_PTR( dst2, dst_surface->config.caps, y/2,
                                      dst_surface->config.size.h/2, dpitch/2 ) + x/2;
-                                     
+
                     write_argb_span( src, d, drect->w, x, y, dst_surface );
-                    
+
                     src += sw;
                }
                break;
-               
+
           case DSPF_NV12:
           case DSPF_NV21:
                dst1 = dst + dpitch * dst_surface->config.size.h;
-               
+
                for (y = drect->y; y < drect->y + drect->h; y++) {
                     u8 *d[2];
-                    
+
                     d[0] = LINE_PTR( dst, dst_surface->config.caps, y,
                                      dst_surface->config.size.h, dpitch ) + x;
                     d[1] = LINE_PTR( dst1, dst_surface->config.caps, y/2,
                                      dst_surface->config.size.h/2, dpitch ) + (x&~1);
- 
+
                     write_argb_span( src, d, drect->w, x, y, dst_surface );
-                    
+
                     src += sw;
                }
                break;
-          
+
           case DSPF_NV16:
                dst1 = dst + dpitch * dst_surface->config.size.h;
-               
+
                for (y = drect->y; y < drect->y + drect->h; y++) {
                     u8 *d[2];
-                    
+
                     d[0] = LINE_PTR( dst, dst_surface->config.caps, y,
                                      dst_surface->config.size.h, dpitch ) + x;
                     d[1] = LINE_PTR( dst1, dst_surface->config.caps, y,
                                      dst_surface->config.size.h, dpitch ) + (x&~1);
- 
+
                     write_argb_span( src, d, drect->w, x, y, dst_surface );
-                    
+
                     src += sw;
-               }         
+               }
                break;
 
           default:
                for (y = drect->y; y < drect->y + drect->h; y++) {
                     u8 *d[1];
-                    
+
                     d[0] = LINE_PTR( dst, dst_surface->config.caps,
                                      y, dst_surface->config.size.h, dpitch ) +
                            DFB_BYTES_PER_LINE( dst_surface->config.format, x );
 
                     write_argb_span( src, d, drect->w, x, y, dst_surface );
-                    
+
                     src += sw;
                }
                break;
@@ -787,12 +787,12 @@ static u32* scale_line( const int *weights, int n_x, int n_y,
           g = (g >> 24) == 0xFF ? 0xFF : (g + 0x800000) >> 24;
           b = (b >> 24) == 0xFF ? 0xFF : (b + 0x800000) >> 24;
           a = (a >> 16) == 0xFF ? 0xFF : (a + 0x8000) >> 16;
-          
+
           *dst++ = (a << 24) | (r << 16) | (g << 8) | b;
 
           x += x_step;
      }
-     
+
      return dst;
 }
 
@@ -814,7 +814,7 @@ void dfb_scale_linear_32( u32 *src, int sw, int sh,
           dfb_copy_buffer_32( src, dst, dpitch, drect, dst_surface, dst_clip );
           return;
      }
-     
+
      if (dst_clip)
           dfb_clip_stretchblit( dst_clip, &srect, drect );
 
@@ -834,7 +834,7 @@ void dfb_scale_linear_32( u32 *src, int sw, int sh,
 
      scaled_x_offset = D_IFLOOR( filter.x_offset * (1 << SCALE_SHIFT) );
      sy = D_IFLOOR( filter.y_offset * (1 << SCALE_SHIFT) );
-     
+
      switch (dst_surface->config.format) {
           case DSPF_I420:
                dst1 = dst  + dpitch   * dst_surface->config.size.h;
@@ -852,9 +852,9 @@ void dfb_scale_linear_32( u32 *src, int sw, int sh,
           default:
                break;
      }
-     
+
      buf = (u32*) alloca( drect->w * 4 );
-     
+
      for (i = drect->y; i < drect->y + drect->h; i++) {
           int        x_start;
           int        y_start;
@@ -889,7 +889,7 @@ void dfb_scale_linear_32( u32 *src, int sw, int sh,
           while (x_start < 0 && outbuf < outbuf_end) {
                scale_pixel( run_weights + ((sx >> (SCALE_SHIFT - SUBSAMPLE_BITS))
                                             & SUBSAMPLE_MASK) * (filter.n_x * filter.n_y),
-                            filter.n_x, filter.n_y, 
+                            filter.n_x, filter.n_y,
                             outbuf, line_bufs, sx >> SCALE_SHIFT, sw );
                sx += x_step;
                x_start = sx >> SCALE_SHIFT;
@@ -897,7 +897,7 @@ void dfb_scale_linear_32( u32 *src, int sw, int sh,
           }
 
           new_outbuf = scale_line( run_weights, filter.n_x, filter.n_y,
-                                   outbuf, outbuf_end, line_bufs, 
+                                   outbuf, outbuf_end, line_bufs,
                                    sx >> SCALE_SHIFT, x_step, sw );
           sx = ((outbuf_end - outbuf) >> 2) * x_step + scaled_x_offset;
           outbuf = new_outbuf;
@@ -905,18 +905,18 @@ void dfb_scale_linear_32( u32 *src, int sw, int sh,
           while (outbuf < outbuf_end) {
                scale_pixel( run_weights + ((sx >> (SCALE_SHIFT - SUBSAMPLE_BITS))
                                             & SUBSAMPLE_MASK) * (filter.n_x * filter.n_y),
-                            filter.n_x, filter.n_y, 
+                            filter.n_x, filter.n_y,
                             outbuf, line_bufs, sx >> SCALE_SHIFT, sw );
                sx += x_step;
                outbuf++;
           }
 
           sy += y_step;
-          
+
           d[0] = LINE_PTR( dst, dst_surface->config.caps,
                            i, dst_surface->config.size.h, dpitch ) +
                  DFB_BYTES_PER_LINE( dst_surface->config.format, drect->x );
-                 
+
           switch (dst_surface->config.format) {
                case DSPF_I420:
                case DSPF_YV12:
@@ -937,7 +937,7 @@ void dfb_scale_linear_32( u32 *src, int sw, int sh,
                default:
                     break;
           }
-          
+
           write_argb_span( buf, d, drect->w, drect->x, i, dst_surface );
      }
 
