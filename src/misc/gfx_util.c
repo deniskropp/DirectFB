@@ -75,7 +75,7 @@ struct _PixopsFilter {
 
 
 static void write_argb_span (u32 *src, u8 *dst[], int len,
-                              int dx, int dy, CoreSurface *dst_surface)
+                             int dx, int dy, CoreSurface *dst_surface)
 {
      CorePalette *palette = dst_surface->palette;
      u8          *d       = dst[0];
@@ -84,12 +84,12 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
 
      if (dst_surface->config.caps & DSCAPS_PREMULTIPLIED) {
           for (i = 0; i < len; i++) {
-               u32 s = src[i];
-               u32 a = (s >> 24) + 1;
+               const u32 s = src[i];
+               const u32 a = (s >> 24) + 1;
                
                src[i] = ((((s & 0x00ff00ff) * a) >> 8) & 0x00ff00ff) |
                         ((((s & 0x0000ff00) * a) >> 8) & 0x0000ff00) |
-                        ((((s & 0xff000000)    )      )             );
+                        ((((s & 0xff000000)    )     )             );
           }      
      }
 
@@ -145,10 +145,10 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
 
           case DSPF_ARGB1666:
                for (i = 0; i < len; i++) {
-                    u32 pixel = PIXEL_ARGB1666( src[i] >> 24,
-                                                src[i] >> 16,
-                                                src[i] >> 8,
-                                                src[i] );
+                    const u32 pixel = PIXEL_ARGB1666( src[i] >> 24,
+                                                      src[i] >> 16,
+                                                      src[i] >> 8,
+                                                      src[i] );
 
                     *d++ = pixel;
                     *d++ = pixel >> 8;
@@ -158,10 +158,10 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
 
           case DSPF_ARGB6666:
                for (i = 0; i < len; i++) {
-                    u32 pixel = PIXEL_ARGB6666( src[i] >> 24,
-                                                src[i] >> 16,
-                                                src[i] >> 8,
-                                                src[i] );
+                    const u32 pixel = PIXEL_ARGB6666( src[i] >> 24,
+                                                      src[i] >> 16,
+                                                      src[i] >> 8,
+                                                      src[i] );
 
                     *d++ = pixel;
                     *d++ = pixel >> 8;
@@ -171,9 +171,9 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
 
           case DSPF_RGB18:
                for (i = 0; i < len; i++) {
-                    u32 pixel = PIXEL_RGB18( src[i] >> 16,
-                                             src[i] >> 8,
-                                             src[i] );
+                    const u32 pixel = PIXEL_RGB18( src[i] >> 16,
+                                                   src[i] >> 8,
+                                                   src[i] );
 
                     *d++ = pixel;
                     *d++ = pixel >> 8;
@@ -711,14 +711,14 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, float x_scale, floa
      return 1;
 }
 
-static void scale_pixel( int *weights, int n_x, int n_y,
+static void scale_pixel( const int *weights, int n_x, int n_y,
                          u32 *dst, u32 **src, int x, int sw )
 {
      u32 r = 0, g = 0, b = 0, a = 0;
-     int   i, j;
+     int i, j;
 
      for (i = 0; i < n_y; i++) {
-          int *pixel_weights = weights + n_x * i;
+          const int *pixel_weights = weights + n_x * i;
 
           for (j = 0; j < n_x; j++) {
                u32  ta;
@@ -748,16 +748,16 @@ static void scale_pixel( int *weights, int n_x, int n_y,
      *dst = (a << 24) | (r << 16) | (g << 8) | b;
 }
 
-static u32* scale_line( int *weights, int n_x, int n_y,
+static u32* scale_line( const int *weights, int n_x, int n_y,
                         u32 *dst, u32 *dst_end,
                         u32 **src, int x, int x_step, int sw )
 {
-     int    i, j;
-     int   *pixel_weights;
-     u32   *q;
-     u32    r, g, b, a;
-     int    x_scaled;
-     int   *line_weights;
+     const int *pixel_weights;
+     const int *line_weights;
+     u32       *q;
+     u32        r, g, b, a;
+     int        x_scaled;
+     int        i, j;
 
      while (dst < dst_end) {
           r = g = b = a = 0;
@@ -772,9 +772,7 @@ static u32* scale_line( int *weights, int n_x, int n_y,
                q = src[i] + x_scaled;
 
                for (j = 0; j < n_x; j++) {
-                    u32 ta;
-
-                    ta = ((*q & 0xFF000000) >> 24) * line_weights[j];
+                    const u32 ta = ((*q & 0xFF000000) >> 24) * line_weights[j];
 
                     b += ta * (((*q & 0xFF)) + 1);
                     g += ta * (((*q & 0xFF00) >> 8) + 1);
@@ -809,8 +807,8 @@ void dfb_scale_linear_32( u32 *src, int sw, int sh,
      int x_step, y_step;
      int scaled_x_offset;
      PixopsFilter filter;
-     void  *dst1 = NULL, *dst2 = NULL;
-     u32 *buf;
+     void *dst1 = NULL, *dst2 = NULL;
+     u32  *buf;
 
      if (drect->w == sw && drect->h == sh) {
           dfb_copy_buffer_32( src, dst, dpitch, drect, dst_surface, dst_clip );
@@ -855,17 +853,17 @@ void dfb_scale_linear_32( u32 *src, int sw, int sh,
                break;
      }
      
-     buf = (u32*) alloca( drect->w*4 );
+     buf = (u32*) alloca( drect->w * 4 );
      
      for (i = drect->y; i < drect->y + drect->h; i++) {
-          int     x_start;
-          int     y_start;
-          int    *run_weights;
-          u32    *outbuf     = buf;
-          u32    *outbuf_end = buf+drect->w;
-          u32    *new_outbuf;
-          u32   **line_bufs;
-          u8     *d[3];
+          int        x_start;
+          int        y_start;
+          const int *run_weights;
+          u32       *outbuf     = buf;
+          u32       *outbuf_end = buf + drect->w;
+          u32       *new_outbuf;
+          u32      **line_bufs;
+          u8        *d[3];
 
           y_start = sy >> SCALE_SHIFT;
 
