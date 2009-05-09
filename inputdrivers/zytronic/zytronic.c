@@ -245,7 +245,7 @@ static int ZytReadTouchMessage(ZytData* event){
 }
 
 // procédure pour écrire un paramètre dans le fichier de configuration Zytronic :
-void ecrireConf(int f,char *sp, char *sv){
+static void ecrireConf(int f,char *sp, char *sv){
   char tmp[100];
 
   strcpy(tmp,":");
@@ -257,7 +257,7 @@ void ecrireConf(int f,char *sp, char *sv){
 }
 
 // procédure pour créer le fichier de configuration avec les valeurs par défaut
-void createConfigFile(int *fdConf){
+static void createConfigFile(int *fdConf){
   char tmp[10];
 
   // création du fichier :
@@ -286,7 +286,7 @@ void createConfigFile(int *fdConf){
 }
 
 // procédure qui retourne le prochain paramètre lu dans le fichier de configuration
-int nextConf(int fdConf,char *param, char *res){
+static int nextConf(int fdConf,char *param, char *res){
   char charActuel;
   int i,nb=1;
 
@@ -408,7 +408,7 @@ static void ZytActivateDevice(int fd)
 
 // fonction pour "ouvrir" le périphérique
 // (càd: ouvrir le fichier spécial qui permet de communiquer avec le controleur)
-static int ZytOpenDevice(unsigned char *device)
+static int ZytOpenDevice(char *device)
 {
      int fd;
      fd = open (device, O_RDWR | O_NOCTTY); // pourquoi 0_NOCTTY ? ***

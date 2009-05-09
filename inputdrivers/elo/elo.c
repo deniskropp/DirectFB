@@ -238,12 +238,12 @@ static int elo_check_ack(int fd)
     buf[nb] = '\0';     /* buf now look as a string */
     char* pt = strstr( buf, "A0000");
     if ( pt != NULL ) {
-      D_INFO("Elo:elo_check_ack nb= %d ACK OK\n", nb);
+      D_INFO("Elo:elo_check_ack nb= %zd ACK OK\n", nb);
       
       return 1;
     }
   }
-  D_INFO("Elo:elo_check_ack nb= %d ACK KO\n", nb);
+  D_INFO("Elo:elo_check_ack nb= %zd ACK KO\n", nb);
   return 2;
 }
 
@@ -329,7 +329,7 @@ static int elo_reset_touch(int fd)
   return 0;
 }
 
-static int eloOpenDevice(unsigned char *device)
+static int eloOpenDevice(char *device)
 {
   int fd;
   int res;

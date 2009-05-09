@@ -1444,7 +1444,7 @@ load_keymap( CoreInputDevice           *device,
           char  diks[4][201];
           char *b;
           
-          DFBInputDeviceKeymapEntry entry = {0};
+          DFBInputDeviceKeymapEntry entry = { .code = 0 };
           
           b = fgets( buffer, 200, file );
           if( !b ) {
