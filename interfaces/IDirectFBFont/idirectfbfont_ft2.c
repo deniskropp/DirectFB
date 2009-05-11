@@ -745,6 +745,8 @@ Construct( IDirectFBFont *thiz,
      if (desc->flags & DFDESC_ATTRIBUTES) {
           if (desc->attributes & DFFA_NOHINTING)
                load_flags |= FT_LOAD_NO_HINTING;
+          if (desc->attributes & DFFA_NOBITMAP)
+               load_flags |= FT_LOAD_NO_BITMAP;
           if (desc->attributes & DFFA_NOCHARMAP)
                disable_charmap = true;
           if (desc->attributes & DFFA_NOKERNING)
