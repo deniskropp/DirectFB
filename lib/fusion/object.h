@@ -273,7 +273,7 @@ prefix##_globalize( type *object )                                             \
      return ret;                                                               \
 }
 
-FUSION_OBJECT_METHODS( void, fusion_object );
+FUSION_OBJECT_METHODS( void, fusion_object )
 
 #endif
 

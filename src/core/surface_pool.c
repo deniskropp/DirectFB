@@ -324,8 +324,8 @@ dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     D_DEBUG_AT( Core_SurfacePool, "%s( %p [%s], 0x%02x, max %d )\n", __FUNCTION__,
-                 buffer, dfb_pixelformat_name( buffer->format ), access, max_pools );
+     D_DEBUG_AT( Core_SurfacePool, "%s( %p [%s], 0x%02x, 0x%02x, max %d )\n", __FUNCTION__,
+                 buffer, dfb_pixelformat_name( buffer->format ), accessor, access, max_pools );
 
      D_ASSERT( ret_pools != NULL );
      D_ASSERT( max_pools > 0 );
