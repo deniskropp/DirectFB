@@ -59,7 +59,7 @@
 #include <core/input_driver.h>
 
 
-DFB_INPUT_DRIVER( PenMount )
+DFB_INPUT_DRIVER( penmount )
 
 #define BAUDRATE		B19200
 

@@ -23,9 +23,9 @@ libdirectfb_gl_la_SOURCES =	\
 	gl_gfxdriver.h
 
 libdirectfb_gl_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
-	$(DFB_LDFLAGS) -lGL
+	$(DFB_LDFLAGS) -lGL -lX11
 
 libdirectfb_gl_la_LIBADD = \
 	$(top_builddir)/lib/direct/libdirect.la \

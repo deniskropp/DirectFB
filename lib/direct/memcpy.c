@@ -58,7 +58,7 @@ D_DEBUG_DOMAIN( Direct_Memcpy, "Direct/Memcpy", "Direct's Memcpy Routines" );
 #include "ppcasm_memcpy.h"
 #endif
 
-#ifdef USE_ARMASM && !WORDS_BIGENDIAN
+#if defined(USE_ARMASM) && !defined(WORDS_BIGENDIAN)
 #include "armasm_memcpy.h"
 #endif
 
@@ -156,7 +156,7 @@ static struct {
      { "ppccache", "ppcasm_cacheable_memcpy()",  direct_ppcasm_cacheable_memcpy, 0, 0},
 #endif /* __LINUX__ */
 #endif /* USE_PPCASM */
-#ifdef USE_ARMASM && !WORDS_BIGENDIAN
+#if defined(USE_ARMASM) && !defined(WORDS_BIGENDIAN)
 	 { "arm",      "armasm_memcpy()",            direct_armasm_memcpy, 0, 0},
 #endif
      { NULL, NULL, NULL, 0, 0}

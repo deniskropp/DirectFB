@@ -18,7 +18,7 @@ libdirectfb_h3600_ts_la_SOURCES =	\
 	h3600_ts.c
 
 libdirectfb_h3600_ts_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

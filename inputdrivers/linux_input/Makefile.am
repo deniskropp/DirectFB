@@ -21,7 +21,7 @@ libdirectfb_linux_input_la_SOURCES = \
 	linux_input.c
 
 libdirectfb_linux_input_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

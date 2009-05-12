@@ -18,7 +18,7 @@ libdirectfb_ucb1x00_ts_la_SOURCES =	\
 	ucb1x00_ts.c
 
 libdirectfb_ucb1x00_ts_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

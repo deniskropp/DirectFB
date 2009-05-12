@@ -20,7 +20,7 @@ libdirectfb_ep9x_la_SOURCES =   \
         ep9x.h 
 
 libdirectfb_ep9x_la_LDFLAGS = \
-        -export-dynamic         \
+        -module	                \
         -avoid-version          \
         $(DFB_LDFLAGS)
 

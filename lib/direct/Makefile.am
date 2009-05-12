@@ -14,6 +14,8 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = direct.pc
 
 EXTRA_DIST = \
+	armasm_memcpy.S			\
+	armasm_memcpy.h			\
 	ppcasm_memcpy.S			\
 	ppcasm_memcpy_cachable.S	\
 	ppcasm_memcpy.h			\

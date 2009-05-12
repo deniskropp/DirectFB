@@ -369,22 +369,26 @@ dfb_surface_notify( CoreSurface                  *surface,
 DFBResult
 dfb_surface_flip( CoreSurface *surface, bool swap )
 {
+     unsigned int back, front;
+
      D_MAGIC_ASSERT( surface, CoreSurface );
 
      FUSION_SKIRMISH_ASSERT( &surface->lock );
 
-     D_ASSERT( surface->buffer_indices[CSBR_BACK]  < surface->num_buffers );
-     D_ASSERT( surface->buffer_indices[CSBR_FRONT] < surface->num_buffers );
+     back  = (surface->flips + CSBR_BACK)  % surface->num_buffers;
+     front = (surface->flips + CSBR_FRONT) % surface->num_buffers;
 
-     if (surface->buffers[surface->buffer_indices[CSBR_BACK]]->policy !=
-         surface->buffers[surface->buffer_indices[CSBR_FRONT]]->policy || (surface->config.caps & DSCAPS_ROTATED))
+     D_ASSERT( surface->buffer_indices[back]  < surface->num_buffers );
+     D_ASSERT( surface->buffer_indices[front] < surface->num_buffers );
+
+     if (surface->buffers[surface->buffer_indices[back]]->policy !=
+         surface->buffers[surface->buffer_indices[front]]->policy || (surface->config.caps & DSCAPS_ROTATED))
           return DFB_UNSUPPORTED;
 
      if (swap) {
-          int tmp = surface->buffer_indices[CSBR_BACK];
-
-          surface->buffer_indices[CSBR_BACK]  = surface->buffer_indices[CSBR_FRONT];
-          surface->buffer_indices[CSBR_FRONT] = tmp;
+          int tmp = surface->buffer_indices[back];
+          surface->buffer_indices[back] = surface->buffer_indices[front];
+          surface->buffer_indices[front] = tmp;
      }
      else
           surface->flips++;

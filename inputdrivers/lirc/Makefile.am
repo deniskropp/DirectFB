@@ -19,7 +19,7 @@ libdirectfb_lirc_la_SOURCES =	\
 	lirc.c
 
 libdirectfb_lirc_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

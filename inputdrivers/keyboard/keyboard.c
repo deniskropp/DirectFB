@@ -413,6 +413,11 @@ driver_open_device( CoreInputDevice  *device,
 
      tcsetpgrp( data->vt_fd, getpgrp() );
 
+     if (dfb_system_type() == CORE_FBDEV && dfb_config->vt) {
+          FBDev *dfb_fbdev = dfb_system_data();
+          dfb_fbdev->vt->flush = false;
+     }
+
      /* fill device info structure */
      snprintf( info->desc.name,
                DFB_INPUT_DEVICE_DESC_NAME_LENGTH, "Keyboard" );

@@ -18,7 +18,7 @@ libdirectfb_elo_la_SOURCES =	\
 	elo.c
 
 libdirectfb_elo_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

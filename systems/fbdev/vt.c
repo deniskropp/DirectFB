@@ -96,6 +96,10 @@ static int       vt_get_fb( int vt );
 static void      vt_set_fb( int vt, int fb );
 static void     *vt_thread( DirectThread *thread, void *arg );
 
+static void      vt_start_flushing( void );
+static void      vt_stop_flushing( void );
+static void     *vt_flush_thread( DirectThread *thread, void *arg );
+
 DFBResult
 dfb_vt_initialize( void )
 {
@@ -221,6 +225,8 @@ dfb_vt_initialize( void )
           return ret;
      }
 
+     vt_start_flushing();
+
      dfb_fbdev->vt = dfb_vt;
 
      return DFB_OK;
@@ -246,6 +252,8 @@ dfb_vt_shutdown( bool emergency )
 
      if (!dfb_vt)
           return DFB_OK;
+
+     vt_stop_flushing();
 
      if (dfb_config->vt_switching) {
           if (ioctl( dfb_vt->fd, VT_SETMODE, &dfb_vt->vt_mode ) < 0)
@@ -620,3 +628,48 @@ vt_set_fb( int vt, int fb )
      }
 }
 
+static void
+vt_start_flushing( void )
+{
+     dfb_vt->flush = true;
+     dfb_vt->flush_thread = direct_thread_create( DTT_DEFAULT, vt_flush_thread, NULL, "VT Flusher" );
+}
+
+static void
+vt_stop_flushing( void )
+{
+     dfb_vt->flush = false;
+     direct_thread_cancel( dfb_vt->flush_thread );
+     direct_thread_join( dfb_vt->flush_thread );
+     direct_thread_destroy( dfb_vt->flush_thread );
+     dfb_vt->flush_thread = NULL;
+}
+
+/*
+ * If the vt buffer in not kept clean the kernel may stop sleeping.
+ */
+static void *
+vt_flush_thread( DirectThread *thread, void *arg )
+{
+     D_DEBUG_AT( VT, "%s( %p, %p )\n", __FUNCTION__, thread, arg );
+
+     while (dfb_vt->flush) {
+          fd_set set;
+          int ret;
+
+          FD_ZERO( &set );
+          FD_SET( dfb_vt->fd, &set );
+
+          ret = select( dfb_vt->fd + 1, &set, NULL, NULL, NULL );
+
+          if (ret < 0 && errno == EINTR)
+               continue;
+
+          if (ret < 0)
+               break;
+
+          tcflush( dfb_vt->fd, TCIFLUSH );
+     }
+
+     return NULL;
+}

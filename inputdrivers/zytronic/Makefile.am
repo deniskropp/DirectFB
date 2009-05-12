@@ -17,7 +17,7 @@ inputdir = $(MODULEDIR)/inputdrivers
 libdirectfb_zytronic_la_SOURCES = zytronic.c
 
 libdirectfb_zytronic_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

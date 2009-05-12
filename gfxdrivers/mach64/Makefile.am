@@ -26,7 +26,7 @@ libdirectfb_mach64_la_SOURCES =	\
 	mmio.h
 
 libdirectfb_mach64_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

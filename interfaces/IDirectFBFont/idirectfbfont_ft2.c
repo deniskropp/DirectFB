@@ -680,23 +680,22 @@ Probe( IDirectFBFont_ProbeContext *ctx )
 
 
 static DFBResult
-Construct( IDirectFBFont      *thiz,
+Construct( IDirectFBFont *thiz,
 	   ... )
 {
-     int                    i;
-     DFBResult              ret;
-     CoreFont              *font;
-     FT_Face                face;
-     FT_Error               err;
-     FT_Int                 load_flags = FT_LOAD_DEFAULT;
-     FT2ImplData           *data;
-     bool                   disable_charmap = false;
-     bool                   disable_kerning = false;
-     bool                   load_mono = false;
-     u32                    mask = 0;
-
-     CoreDFB *core;
-     char *filename;
+     int                 i;
+     DFBResult           ret;
+     CoreFont           *font;
+     FT_Face             face;
+     FT_Error            err;
+     FT_Int              load_flags = FT_LOAD_DEFAULT;
+     FT2ImplData        *data;
+     bool                disable_charmap = false;
+     bool                disable_kerning = false;
+     bool                load_mono = false;
+     u32                 mask = 0;
+     CoreDFB            *core;
+     char               *filename;
      DFBFontDescription *desc;
 
      va_list tag;
@@ -746,6 +745,8 @@ Construct( IDirectFBFont      *thiz,
      if (desc->flags & DFDESC_ATTRIBUTES) {
           if (desc->attributes & DFFA_NOHINTING)
                load_flags |= FT_LOAD_NO_HINTING;
+          if (desc->attributes & DFFA_NOBITMAP)
+               load_flags |= FT_LOAD_NO_BITMAP;
           if (desc->attributes & DFFA_NOCHARMAP)
                disable_charmap = true;
           if (desc->attributes & DFFA_NOKERNING)

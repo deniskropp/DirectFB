@@ -979,7 +979,10 @@ typedef enum {
      DFFA_MONOCHROME     = 0x00000004,  /* don't use anti-aliasing */
      DFFA_NOCHARMAP      = 0x00000008,  /* no char map, glyph indices are
                                            specified directly */
-     DFFA_FIXEDCLIP      = 0x00000010   /* width fixed advance, clip to it */
+     DFFA_FIXEDCLIP      = 0x00000010,  /* width fixed advance, clip to it */
+     DFFA_NOBITMAP       = 0x00000020   /* ignore bitmap strikes; for
+                                           bitmap-only fonts this flag is
+                                           ignored */
 } DFBFontAttributes;
 
 /*

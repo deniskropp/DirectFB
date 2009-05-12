@@ -28,10 +28,6 @@ libsh7722_jpeg_la_SOURCES =	\
 	sh7722_jpeglib.c	\
 	sh7722_jpeglib.h
 
-libsh7722_jpeg_la_LDFLAGS = \
-	-export-dynamic		\
-	-avoid-version
-
 
 bin_PROGRAMS = sh7722_jpegtool
 
@@ -71,7 +67,7 @@ libdirectfb_sh7722_la_SOURCES =	\
 	sh7722_types.h
 
 libdirectfb_sh7722_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

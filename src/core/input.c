@@ -432,7 +432,8 @@ dfb_input_core_join( CoreDFB            *core,
 
           device = D_CALLOC( 1, sizeof(CoreInputDevice) );
           if (!device) {
-               return D_OOM();
+               D_OOM();
+               continue;
           }
 
           device->shared = core_input->devices[i];
@@ -1047,6 +1048,10 @@ allocate_device_keymap( CoreDFB *core, CoreInputDevice *device )
      D_ASSERT( core_input != NULL );
 
      entries = SHCALLOC( pool, num_entries, sizeof(DFBInputDeviceKeymapEntry) );
+     if (!entries) {
+          D_OOSHM();
+          return;
+     }
 
      /* write -1 indicating entry is not fetched yet from driver */
      for (i=0; i<num_entries; i++)
@@ -1207,6 +1212,7 @@ init_devices( CoreDFB *core )
 
           driver = D_CALLOC( 1, sizeof(InputDriver) );
           if (!driver) {
+               D_OOM();
                direct_module_unref( module );
                continue;
           }
@@ -1240,9 +1246,18 @@ init_devices( CoreDFB *core )
                InputDeviceShared *shared;
                void              *driver_data;
 
-               /* FIXME: error handling */
                device = D_CALLOC( 1, sizeof(CoreInputDevice) );
+               if (!device) {
+                    D_OOM();
+                    continue;
+               }
+
                shared = SHCALLOC( pool, 1, sizeof(InputDeviceShared) );
+               if (!shared) {
+                    D_OOSHM();
+                    D_FREE( device );
+                    continue;
+               }
 
                device->core = core;
 
@@ -1429,7 +1444,7 @@ load_keymap( CoreInputDevice           *device,
           char  diks[4][201];
           char *b;
           
-          DFBInputDeviceKeymapEntry entry = {0};
+          DFBInputDeviceKeymapEntry entry = { .code = 0 };
           
           b = fgets( buffer, 200, file );
           if( !b ) {

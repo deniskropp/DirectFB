@@ -50,7 +50,7 @@
 
 #include <core/graphics_driver.h>
 
-DFB_GRAPHICS_DRIVER( sdlgfx )
+DFB_GRAPHICS_DRIVER( sdlgraphics )
 
 #include "sdl.h"
 

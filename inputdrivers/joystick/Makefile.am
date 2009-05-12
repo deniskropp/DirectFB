@@ -18,7 +18,7 @@ libdirectfb_joystick_la_SOURCES =	\
 	joystick.c
 
 libdirectfb_joystick_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

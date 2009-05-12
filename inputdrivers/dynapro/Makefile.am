@@ -18,7 +18,7 @@ libdirectfb_dynapro_la_SOURCES =	\
 	dynapro.c
 
 libdirectfb_dynapro_la_LDFLAGS = \
-	-export-dynamic		\
+	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

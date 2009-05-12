@@ -76,10 +76,16 @@
 /* Backend scaler registers */
 #define BESA1ORG         0x3D00
 #define BESA2ORG         0x3D04
+#define BESB1ORG         0x3D08
+#define BESB2ORG         0x3D0C
 #define BESA1CORG        0x3D10
 #define BESA2CORG        0x3D14
+#define BESB1CORG        0x3D18
+#define BESB2CORG        0x3D1C
 #define BESA1C3ORG       0x3D60
 #define BESA2C3ORG       0x3D64
+#define BESB1C3ORG       0x3D68
+#define BESB2C3ORG       0x3D6C
 
 #define BESCTL           0x3D20
 #    define BESEN             0x00000001
