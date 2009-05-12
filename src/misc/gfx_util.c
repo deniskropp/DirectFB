@@ -616,7 +616,7 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, float x_scale, floa
           filter->y_offset = 0.5 * (1/y_scale - 1);
      }
      else {                    /* Tile */
-          n_y = D_ICEIL (1.0 + 1.0/y_scale);
+          n_y = D_ICEIL (1.0 + 1.0 / y_scale);
           filter->y_offset = 0.0;
      }
 
@@ -653,7 +653,7 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, float x_scale, floa
 
                float x = (float)j_offset / 16;
                float y = (float)i_offset / 16;
-               int i,j;
+               int i, j;
 
                if (x_scale > 1.0) {     /* Bilinear */
                     for (i = 0; i < n_x; i++) {
@@ -664,13 +664,13 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, float x_scale, floa
                     for (i = 0; i < n_x; i++) {
                          if (i < x) {
                               if (i + 1 > x)
-                                   x_weights[i] = MIN( i+ 1, x+ 1/x_scale ) -x;
+                                   x_weights[i] = MIN( i + 1, x + 1/x_scale ) -x;
                               else
                                    x_weights[i] = 0;
                          }
                          else {
                               if (x + 1/x_scale > i)
-                                   x_weights[i] = MIN( i+ 1, x+ 1/x_scale ) -i;
+                                   x_weights[i] = MIN( i + 1, x + 1/x_scale ) -i;
                               else
                                    x_weights[i] = 0;
                          }
@@ -686,13 +686,13 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, float x_scale, floa
                     for (i = 0; i < n_y; i++) {
                          if (i < y) {
                               if (i + 1 > y)
-                                   y_weights[i] = MIN( i+ 1, y+ 1/y_scale ) -y;
+                                   y_weights[i] = MIN( i + 1, y + 1/y_scale ) -y;
                               else
                                    y_weights[i] = 0;
                          }
                          else {
                               if (y + 1/y_scale > i)
-                                   y_weights[i] = MIN( i+ 1, y+ 1/y_scale ) -i;
+                                   y_weights[i] = MIN( i + 1, y + 1/y_scale ) -i;
                               else
                                    y_weights[i] = 0;
                          }
@@ -701,9 +701,9 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, float x_scale, floa
 
                for (i = 0; i < n_y; i++) {
                     for (j = 0; j < n_x; j++) {
-                         *(pixel_weights + n_x * i + j) =
-                         65536 * x_weights[j] * x_scale
-                         * y_weights[i] * y_scale;
+                         pixel_weights[n_x * i + j] =
+                              65536.0 * x_weights[j] * x_scale
+                              * y_weights[i] * y_scale;
                     }
                }
           }
