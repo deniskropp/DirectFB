@@ -59,6 +59,9 @@ typedef struct {
 
      int              vt_sig;
      struct termios   old_ts;
+
+     bool             flush;
+     DirectThread    *flush_thread;
 } VirtualTerminal;
 
 /*
