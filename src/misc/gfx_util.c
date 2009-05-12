@@ -712,7 +712,7 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, float x_scale, floa
 }
 
 static void scale_pixel( const int *weights, int n_x, int n_y,
-                         u32 *dst, u32 **src, int x, int sw )
+                         u32 *dst, const u32 **src, int x, int sw )
 {
      u32 r = 0, g = 0, b = 0, a = 0;
      int i, j;
@@ -721,8 +721,7 @@ static void scale_pixel( const int *weights, int n_x, int n_y,
           const int *pixel_weights = weights + n_x * i;
 
           for (j = 0; j < n_x; j++) {
-               u32  ta;
-               u32 *q;
+               const u32 *q;
 
                if (x + j < 0)
                     q = src[i];
@@ -731,12 +730,14 @@ static void scale_pixel( const int *weights, int n_x, int n_y,
                else
                     q = src[i] + sw - 1;
 
-               ta = ((*q & 0xFF000000) >> 24) * pixel_weights[j];
+               {
+                    const u32 ta = ((*q & 0xFF000000) >> 24) * pixel_weights[j];
 
-               b += ta * (((*q & 0xFF)) + 1);
-               g += ta * (((*q & 0xFF00) >> 8) + 1);
-               r += ta * (((*q & 0xFF0000) >> 16) + 1);
-               a += ta;
+                    b += ta * (((*q & 0xFF)) + 1);
+                    g += ta * (((*q & 0xFF00) >> 8) + 1);
+                    r += ta * (((*q & 0xFF0000) >> 16) + 1);
+                    a += ta;
+               }
           }
      }
 
@@ -750,26 +751,19 @@ static void scale_pixel( const int *weights, int n_x, int n_y,
 
 static u32* scale_line( const int *weights, int n_x, int n_y,
                         u32 *dst, u32 *dst_end,
-                        u32 **src, int x, int x_step, int sw )
+                        const u32 **src, int x, int x_step, int sw )
 {
-     const int *pixel_weights;
-     const int *line_weights;
-     u32       *q;
-     u32        r, g, b, a;
-     int        x_scaled;
-     int        i, j;
-
      while (dst < dst_end) {
-          r = g = b = a = 0;
-          x_scaled = x >> SCALE_SHIFT;
-
-          pixel_weights = weights + ((x >> (SCALE_SHIFT - SUBSAMPLE_BITS))
-                                     & SUBSAMPLE_MASK) * n_x * n_y;
+          const int  x_scaled      = x >> SCALE_SHIFT;
+          const int *pixel_weights = weights + ((x >> (SCALE_SHIFT -
+                                                       SUBSAMPLE_BITS))
+                                                & SUBSAMPLE_MASK) * n_x * n_y;
+          u32 r = 0, g = 0, b = 0, a = 0;
+          int i, j;
 
           for (i = 0; i < n_y; i++) {
-               line_weights = pixel_weights + n_x * i;
-
-               q = src[i] + x_scaled;
+               const int *line_weights = pixel_weights + n_x * i;
+               const u32 *q            = src[i] + x_scaled;
 
                for (j = 0; j < n_x; j++) {
                     const u32 ta = ((*q & 0xFF000000) >> 24) * line_weights[j];
@@ -856,21 +850,21 @@ void dfb_scale_linear_32( u32 *src, int sw, int sh,
      buf = (u32*) alloca( drect->w * 4 );
 
      for (i = drect->y; i < drect->y + drect->h; i++) {
-          int        x_start;
-          int        y_start;
-          const int *run_weights;
-          u32       *outbuf     = buf;
-          u32       *outbuf_end = buf + drect->w;
-          u32       *new_outbuf;
-          u32      **line_bufs;
-          u8        *d[3];
+          int         x_start;
+          int         y_start;
+          const int  *run_weights;
+          u32        *outbuf     = buf;
+          u32        *outbuf_end = buf + drect->w;
+          u32        *new_outbuf;
+          const u32 **line_bufs;
+          u8         *d[3];
 
           y_start = sy >> SCALE_SHIFT;
 
           run_weights = filter.weights + ((sy >> (SCALE_SHIFT - SUBSAMPLE_BITS))
                                           & SUBSAMPLE_MASK) * filter.n_x * filter.n_y * SUBSAMPLE;
 
-          line_bufs = (u32 **) alloca( filter.n_y * sizeof (void *) );
+          line_bufs = (const u32 **) alloca( filter.n_y * sizeof (void *) );
 
           for (j = 0; j < filter.n_y; j++) {
                if (y_start <  0)
