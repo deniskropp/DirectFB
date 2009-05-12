@@ -495,20 +495,20 @@ void dfb_copy_buffer_32( u32 *src,
           int sx = 0, sy = 0;
 
           if (drect->x < dst_clip->x1) {
-               sx = dst_clip->x1-drect->x;
+               sx = dst_clip->x1 - drect->x;
                drect->w -= sx;
                drect->x += sx;
           }
           if (drect->y < dst_clip->y1) {
-               sy = dst_clip->y1-drect->y;
+               sy = dst_clip->y1 - drect->y;
                drect->h -= sy;
                drect->y += sy;
           }
-          if ((drect->x+drect->w-1) > dst_clip->x2) {
-               drect->w -= drect->x+drect->w-1-dst_clip->x2;
+          if ((drect->x + drect->w - 1) > dst_clip->x2) {
+               drect->w -= drect->x + drect->w - 1 - dst_clip->x2;
           }
-          if ((drect->y+drect->h-1) > dst_clip->y2) {
-               drect->h -= drect->y+drect->h-1-dst_clip->y2;
+          if ((drect->y + drect->h - 1) > dst_clip->y2) {
+               drect->h -= drect->y + drect-> h - 1 - dst_clip->y2;
           }
 
           src += sy * sw + sx;
@@ -596,7 +596,8 @@ void dfb_copy_buffer_32( u32 *src,
      }
 }
 
-static int bilinear_make_fast_weights( PixopsFilter *filter, const float x_scale, const float y_scale )
+static int bilinear_make_fast_weights( PixopsFilter *filter,
+                                       const float x_scale, const float y_scale )
 {
      int i_offset, j_offset;
      float *x_weights, *y_weights;
