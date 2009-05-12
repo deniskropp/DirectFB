@@ -51,6 +51,7 @@
 #include <direct/util.h>
 
 #include <misc/util.h>
+#include <misc/dither565.h>
 #include <misc/gfx_util.h>
 
 #include <gfx/clip.h>
@@ -139,8 +140,30 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                break;
 
           case DSPF_RGB16:
+#ifdef DFB_DITHER565
+               /* use a pre-generated dither matrix to improve the appearance of the result */
+               {
+                    const u32 *dm = DM_565 + ((dy & (DM_HEIGHT - 1)) << DM_WIDTH_SHIFT);
+
+                    for (i = 0; i < len; i++) {
+                         u32 rgb = ((src[i] & 0xFF)          |
+                                    (src[i] & 0xFF00)   << 2 |
+                                    (src[i] & 0xFF0000) << 4);
+
+                         rgb += dm[(dx + i) & (DM_WIDTH - 1)];
+                         rgb += (0x10040100
+                                 - ((rgb & 0x1e0001e0) >> 5)
+                                 - ((rgb & 0x00070000) >> 6));
+
+                         ((u16*)d)[i] = (((rgb & 0x0f800000) >> 12) |
+                                         ((rgb & 0x0003f000) >> 7)  |
+                                         ((rgb & 0x000000f8) >> 3));
+                    }
+               }
+#else
                for (i = 0; i < len; i++)
                     ((u16*)d)[i] = RGB32_TO_RGB16( src[i] );
+#endif
                break;
 
           case DSPF_ARGB1666:

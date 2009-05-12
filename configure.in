@@ -1366,6 +1366,30 @@ fi
 AC_SUBST(DFB_SMOOTH_SCALING)
 
 
+AC_ARG_WITH(dither-rgb16,
+  [  --with-dither-rgb16=TYPE   dithering to use when loading images into RGB16 surfaces [[default=none]]]
+  [                             Possible types are: ]
+  [                               none     - no dithering ]
+  [                               simple   - simple dithering (increases data section by 256 bytes) ]
+  [                               advanced - advanced dithering (increases data section by 64 KBytes) ])
+
+case x"$with_dither_rgb16" in
+     x | xnone)
+          with_dither_rgb16=none
+          ;;
+     xsimple)
+          AC_DEFINE(DFB_DITHER565,1,[Define to 1 for simple RGB16 dithering, to 2 for advanced])
+          ;;
+     xadvanced)
+          AC_DEFINE(DFB_DITHER565,2,[Define to 1 for simple RGB16 dithering, to 2 for advanced])
+          ;;
+     *)
+          echo "Unknown dithering type $with_dither_rgb16, exiting!"
+          exit 1
+          ;;
+esac
+
+
 AC_ARG_WITH(tests,
   [  --with-tests               build test programs])
 if test "$with_tests" != "yes"; then
@@ -1672,6 +1696,7 @@ Misc options:
   Include all strings       $enable_text
   Software Rendering        $with_software
   Smooth SW Scaling         $with_smooth_scaling
+  16bit Dithering           $with_dither_rgb16
   zlib compression          $use_zlib                 $ZLIB_LIBS
   sysfs support             $use_sysfs                 $SYSFS_LIBS
 
