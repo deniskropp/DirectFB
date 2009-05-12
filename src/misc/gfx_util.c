@@ -104,7 +104,7 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                break;
 
           case DSPF_A4:
-               for (i=0, j=0; i<len; i+=2, j++)
+               for (i = 0, j = 0; i < len; i += 2, j++)
                     d[j] = ((src[i] >> 24) & 0xF0) | (src[i+1] >> 28);
                break;
 
@@ -262,7 +262,7 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                     u32 y, u, v;
 
                     src += len-1;
-                    d   += (len-1)*2;
+                    d   += (len-1) * 2;
 
                     RGB_TO_YCBCR( (*src >> 16) & 0xff,
                                   (*src >>  8) & 0xff,
@@ -304,7 +304,7 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                     u32 y, u, v;
 
                     src += len-1;
-                    d   += (len-1)*2;
+                    d   += (len-1) * 2;
 
                     RGB_TO_YCBCR( (*src >> 16) & 0xff,
                                   (*src >>  8) & 0xff,
