@@ -328,6 +328,7 @@ Construct( IDirectFBImageProvider *thiz,
 
           jpeg_destroy_decompress(&cinfo);
           buffer->Release( buffer );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
           return DFB_FAILURE;
      }
 
