@@ -53,7 +53,7 @@
 #define FLOOR(x) ((s32)floor(x))
 #endif
 
-
+#ifdef ARCH_X86
 static inline long
 my_rint(const float x)
 {
@@ -96,7 +96,7 @@ my_floor(const float x)
                        : "m" (cwtmp), "m" (cw), "t" (arg));
      return value;
 }
-
+#endif
 
 #define F2COL(x) (RINT(x) & 0x00ffffff)
 
