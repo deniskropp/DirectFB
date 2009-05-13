@@ -128,10 +128,18 @@ bool sis_blit(void *driver_data, void *device_data, DFBRectangle *rect, int dx, 
 	sis_wl(drv->mmio_base, SIS315_2D_DST_Y, (dx << 16) | (dy & 0xffff) );
 	sis_wl(drv->mmio_base, SIS315_2D_RECT_WIDTH, (rect->h << 16) | rect->w);
 
-	sis_cmd(drv, dev, SIS315_2D_CMD_PAT_FG_REG,
+	if (dev->v_src_colorkey) {
+	    sis_cmd(drv, dev, SIS315_2D_CMD_PAT_FG_REG,
+		        SIS315_2D_CMD_SRC_VIDEO,
+			    SIS315_2D_CMD_TRANSPARENT_BITBLT,
+			    SIS315_ROP_AND_INVERTED_PAT);
+	}
+	else {
+    	sis_cmd(drv, dev, SIS315_2D_CMD_PAT_FG_REG,
 			  SIS315_2D_CMD_SRC_VIDEO,
-			  dev->blit_cmd,
-			  dev->blit_rop);
+			  SIS315_2D_CMD_BITBLT,
+			  SIS315_ROP_COPY);
+	}
 
 	return true;
 }
@@ -192,7 +200,10 @@ bool sis_stretchblit(void *driver_data, void *device_data, DFBRectangle *sr, DFB
 	sis_wl(drv->mmio_base, 0x8224, ((((lSmallHeight - lLargeHeight) * 2) << 16 ) | ((lSmallHeight * 2) & 0xFFFF)));
 	sis_wl(drv->mmio_base, 0x8228, ((lYInitErr << 16) | (lXInitErr & 0xFFFF)));
 
-	if(dev->blit_rop == SIS315_ROP_AND_INVERTED_PAT) /* DSBLIT_SRC_COLORKEY */
+	dev->blit_cmd = SIS_2D_CMD_DST_Y_INC | SIS_2D_CMD_SRC_X_INC \
+	              | SIS_2D_CMD_SRC_Y_INC | SIS_2D_CMD_DST_X_INC | SIS315_2D_CMD_STRETCH_BITBLT;
+
+	if(dev->v_src_colorkey) /* DSBLIT_SRC_COLORKEY */
 	{
 		dst_offset = sis_rl(drv->mmio_base, SIS315_2D_DST_ADDR);
 		src_offset = sis_rl(drv->mmio_base, SIS315_2D_SRC_ADDR);
@@ -216,21 +227,23 @@ bool sis_stretchblit(void *driver_data, void *device_data, DFBRectangle *sr, DFB
 		sis_wl(drv->mmio_base, SIS315_2D_TRANS_SRC_KEY_HIGH, src_colorkey);
 		sis_wl(drv->mmio_base, SIS315_2D_TRANS_SRC_KEY_LOW, src_colorkey);
 
+        
 		sis_cmd(drv, dev, SIS315_2D_CMD_PAT_FG_REG,
 				  SIS315_2D_CMD_SRC_VIDEO,
 				  SIS315_2D_CMD_TRANSPARENT_BITBLT,
-				  dev->blit_rop);
+				  SIS315_ROP_AND_INVERTED_PAT);
 
 		sis_wl(drv->mmio_base, SIS315_2D_SRC_ADDR, src_offset); /*restore*/
 		sis_wl(drv->mmio_base, 0x8204, src_pitch);
 	}
 	else /*simple stretch bitblt */
 	{
+
 		//fprintf(stderr,"dev->blit_cmd = %x \n",dev->blit_cmd);
 		sis_cmd(drv, dev, SIS315_2D_CMD_PAT_FG_REG,
 				  SIS315_2D_CMD_SRC_VIDEO,
 				  dev->blit_cmd,
-				  dev->blit_rop);
+				  SIS315_ROP_COPY);
 	}
 
 	return true;

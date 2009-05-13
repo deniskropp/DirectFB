@@ -26,10 +26,9 @@
    Boston, MA 02111-1307, USA.
 */
 
-
+#include "config.h"
 #include "sis315_mmio.h"
 #include "direct/util.h"
-#include "config.h"
 
 u32 sis_rl(volatile u8 *mmio, unsigned int offset)
 {

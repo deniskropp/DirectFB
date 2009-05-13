@@ -153,22 +153,6 @@ void sis_set_src_colorkey(SiSDriverData *drv, SiSDeviceData *dev, CardState *sta
 	dev->v_src_colorkey = 1;
 }
 
-void sis_set_blittingflags(SiSDeviceData *dev, CardState *state)
-{
-	if (dev->v_blittingflags)
-		return;
-
-	if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
-		dev->blit_cmd = SIS315_2D_CMD_TRANSPARENT_BITBLT;
-		dev->blit_rop = SIS315_ROP_AND_INVERTED_PAT;
-	}
-	else {
-		dev->blit_cmd = SIS315_2D_CMD_BITBLT;
-		dev->blit_rop = SIS315_ROP_COPY;
-	}
-
-	dev->v_blittingflags = 1;
-}
 
 void sis_set_clip(SiSDriverData *drv, DFBRegion *clip)
 {
@@ -176,19 +160,5 @@ void sis_set_clip(SiSDriverData *drv, DFBRegion *clip)
 	sis_wl(drv->mmio_base, SIS315_2D_RIGHT_CLIP, (clip->y2 << 16) | clip->x2);
 }
 
-void sis_set_stretchblittingflags(SiSDeviceData *dev, CardState *state)
-{
-	if (dev->v_blittingflags)
-		return;
 
-	dev->blit_cmd = SIS_2D_CMD_DST_Y_INC | SIS_2D_CMD_SRC_X_INC \
-		| SIS_2D_CMD_SRC_Y_INC | SIS_2D_CMD_DST_X_INC | SIS315_2D_CMD_STRETCH_BITBLT;
-        
-	if (state->blittingflags & DSBLIT_SRC_COLORKEY) 
-		dev->blit_rop = SIS315_ROP_AND_INVERTED_PAT;
-	else 
-		dev->blit_rop = SIS315_ROP_COPY;
-
-	dev->v_blittingflags = 1;
-}
  

@@ -138,8 +138,8 @@ static void sis_set_state(void *driver_data, void *device_data,
 		if (state->mod_hw & SMF_SRC_COLORKEY)
 			dev->v_src_colorkey = 0;
 
-		if (state->mod_hw & SMF_BLITTING_FLAGS)
-			dev->v_blittingflags = 0;
+//		if (state->mod_hw & SMF_BLITTING_FLAGS)
+//			dev->v_blittingflags = 0;
 	}
 
 	switch (accel) {
@@ -157,7 +157,6 @@ static void sis_set_state(void *driver_data, void *device_data,
 			sis_set_dst_colorkey(drv, dev, state);
 		if (state->blittingflags & DSBLIT_SRC_COLORKEY)
 			sis_set_src_colorkey(drv, dev, state);
-		sis_set_blittingflags(dev, state);
 		state->set = SIS_SUPPORTED_BLITTING_FUNCTIONS;
 		break;
 	case DFXL_STRETCHBLIT:
@@ -167,7 +166,6 @@ static void sis_set_state(void *driver_data, void *device_data,
 			sis_set_dst_colorkey(drv, dev, state);
 		if (state->blittingflags & DSBLIT_SRC_COLORKEY)
 			sis_set_src_colorkey(drv, dev, state);
-		sis_set_stretchblittingflags(dev, state);
 		state->set = DFXL_STRETCHBLIT;
 		break;
 	default:

@@ -28,8 +28,7 @@ void sis_validate_dst(SiSDriverData *drv, SiSDeviceData *dev, CardState *state);
 void sis_validate_src(SiSDriverData *drv, SiSDeviceData *dev, CardState *state);
 void sis_set_dst_colorkey(SiSDriverData *drv, SiSDeviceData *dev, CardState *state);
 void sis_set_src_colorkey(SiSDriverData *drv, SiSDeviceData *dev, CardState *state);
-void sis_set_blittingflags(SiSDeviceData *dev, CardState *state);
 void sis_set_clip(SiSDriverData *drv, DFBRegion *clip);
-void sis_set_stretchblittingflags(SiSDeviceData *dev, CardState *state);
+
 
 #endif /* _SIS315_STATE_H */
