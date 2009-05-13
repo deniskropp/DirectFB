@@ -641,6 +641,7 @@ PatchEncoderConfig( DFBScreenEncoderConfig       *patched,
 
                case DSETV_NTSC:
                case DSETV_NTSC_M_JPN:
+               case DSETV_NTSC_443:
                     patched->resolution = DSOR_720_480;
                     patched->frequency = DSEF_60HZ;
                     break;

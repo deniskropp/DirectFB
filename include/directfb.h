@@ -2304,8 +2304,9 @@ typedef enum {
      DSETV_PAL_N          = 0x00000080, /* PAL N support (specific) */
      DSETV_PAL_NC         = 0x00000100, /* PAL NC support (specific) */
      DSETV_NTSC_M_JPN     = 0x00000200, /* NTSC_JPN support */
+     DSETV_NTSC_443       = 0x00000800, /* NTSC with 4.43MHz colour carrier */
      DSETV_DIGITAL        = 0x00000400, /* TV standards from the digital domain.  specify resolution, scantype, frequency.*/
-     DSETV_ALL            = 0x000007FF  /* All TV Standards*/
+     DSETV_ALL            = 0x00000FFF  /* All TV Standards*/
 } DFBScreenEncoderTVStandards;
 
 /*
@@ -2330,6 +2331,9 @@ typedef enum {
      DSEF_59_94HZ        = 0x00000008, /* 59.94 Hz Output. */
      DSEF_60HZ           = 0x00000010, /* 60 Hz Output. */
      DSEF_75HZ           = 0x00000020, /* 75 Hz Output. */
+     DSEF_30HZ           = 0x00000040, /* 30 Hz Output. */
+     DSEF_24HZ           = 0x00000080, /* 24 Hz Output. */
+     DSEF_23_976HZ       = 0x00000100, /* 23.976 Hz Output. */
 } DFBScreenEncoderFrequency;
 
 #define DFB_SCREEN_ENCODER_DESC_NAME_LENGTH    24
