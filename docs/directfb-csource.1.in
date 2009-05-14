@@ -1,8 +1,8 @@
 .\" Hey Emacs! This file is -*- nroff -*- source.
 .\"
-.\" This man page is Copyright (C) 2002-2003 Sven Neumann <neo@directfb.org>
+.\" This manual page is Copyright (C) 2002-2003 Sven Neumann <neo@directfb.org>
 
-.TH DIRECTFB-CSOURCE 1 "24 Oct 2003" "Version @DIRECTFB_VERSION@" "DirectFB Manual Pages"
+.TH DIRECTFB-CSOURCE 1 "14 May 2009" "Version @DIRECTFB_VERSION@" "DirectFB Manual Pages"
 
 .SH NAME
 directfb-csource \- C code generation utility for DirectFB surfaces
@@ -36,6 +36,12 @@ Specifies the pixel-format of the generated inline surface. Possible
 values are ARGB, RGB32, RGB24, RGB16, RGB15, RGB332, A8 and LUT8.
 By default the format is ARGB if the PNG image has an alpha channel
 or RGB32 otherwise.
+
+.TP
+.B --dither-rgb16
+If specified, images rendered to RGB16 surfaces are dithered. This
+reduces banding caused by the limited colorspace. This option has no
+effect for other pixel-formats than RGB16.
 
 .TP
 .B --version

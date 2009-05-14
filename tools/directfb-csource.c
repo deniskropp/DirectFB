@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -49,6 +49,9 @@
 
 #include <gfx/convert.h>
 
+#define DFB_DITHER565 DFB_DITHER_ADVANCED
+#include <misc/dither565.h>
+
 
 static struct {
      DFBSurfacePixelFormat  format;
@@ -73,7 +76,12 @@ static DFBResult  load_image      (const char             *filename,
                                    DFBSurfaceDescription  *desc,
                                    DFBColor               *palette,
                                    int                    *palette_size,
-                                   DFBSurfacePixelFormat   rgbformat);
+                                   DFBSurfacePixelFormat   rgbformat,
+                                   bool                    dither565);
+static void       dither_rgb16    (const u32              *src,
+                                   u16                    *dest,
+                                   int                     y,
+                                   int                     width);
 static DFBResult  merge_images    (DFBSurfaceDescription  *images,
                                    int                     num_images,
                                    DFBSurfaceDescription  *dest,
@@ -106,7 +114,8 @@ int main (int         argc,
      int         palette_size   = 0;
      int         num_images     = 0;
      int         i, n;
-     int         rawmode        = 0;
+     bool        rawmode        = 0;
+     bool        dither565      = 0;
 
      /*  parse command line  */
 
@@ -126,6 +135,10 @@ int main (int         argc,
                }
                if (strcmp (arg, "raw") == 0) {
                     rawmode = 1;
+                    continue;
+               }
+               if (strcmp (arg, "dither-rgb16") == 0) {
+                    dither565 = 1;
                     continue;
                }
                if (strncmp (arg, "format=", 7) == 0 && !format) {
@@ -203,7 +216,9 @@ int main (int         argc,
                desc.pixelformat = format;
           }
 
-          if (load_image (filename[0], &desc, palette, &palette_size, rgbformat) != DFB_OK)
+          if (load_image (filename[0],
+                          &desc, palette, &palette_size,
+                          rgbformat, dither565) != DFB_OK)
                return EXIT_FAILURE;
 
           /*  dump it and quit if this is the only image on the command line  */
@@ -227,7 +242,8 @@ int main (int         argc,
                image[i].pixelformat = desc.pixelformat;
 
                if (load_image (filename[i],
-                               image + i, foo, &foo_size, rgbformat) != DFB_OK)
+                               image + i, foo, &foo_size, rgbformat,
+                               dither565) != DFB_OK)
                     return EXIT_FAILURE;
           }
 
@@ -252,6 +268,7 @@ static void print_usage (const char *prg_name)
      fprintf (stderr, "   --rgbformat=<identifer> specifies format for non-alpha images\n");
      fprintf (stderr, "   --multi                 multiple images\n");
      fprintf (stderr, "   --raw                   dump a single file directly to header\n");
+     fprintf (stderr, "   --dither-rgb16          dither images rendered to RGB16 surfaces\n");
      fprintf (stderr, "   --help                  show this help message\n");
      fprintf (stderr, "   --version               print version information\n");
      fprintf (stderr, "\n");
@@ -263,7 +280,8 @@ static DFBResult load_image (const char            *filename,
                              DFBSurfaceDescription *desc,
                              DFBColor              *palette,
                              int                   *palette_size,
-                             DFBSurfacePixelFormat  rgbformat)
+                             DFBSurfacePixelFormat  rgbformat,
+                             bool                   dither565)
 {
      DFBSurfacePixelFormat dest_format;
      DFBSurfacePixelFormat src_format;
@@ -448,7 +466,10 @@ static DFBResult load_image (const char            *filename,
           switch (dest_format) {
                case DSPF_RGB16:
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
-                         dfb_argb_to_rgb16 ((u32 *) s, (u16 *) d, width);
+                         if (dither565)
+                              dither_rgb16 ((u32 *) s, (u16 *) d, height - h, width);
+                         else
+                              dfb_argb_to_rgb16 ((u32 *) s, (u16 *) d, width);
                     break;
                case DSPF_ARGB1555:
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
@@ -585,6 +606,28 @@ static DFBResult merge_images (DFBSurfaceDescription *images,
   return DFB_OK;
 }
 
+static void
+dither_rgb16 (const u32 *src, u16 *dest, int y, int width)
+{
+     const u32 *dm = DM_565 + ((y & (DM_HEIGHT - 1)) << DM_WIDTH_SHIFT);
+     int        x;
+
+     for (x = 0; x < width; x++) {
+          u32 rgb = ((src[x] & 0xFF)          |
+                     (src[x] & 0xFF00)   << 2 |
+                     (src[x] & 0xFF0000) << 4);
+
+          rgb += dm[x & (DM_WIDTH - 1)];
+          rgb += (0x10040100
+                  - ((rgb & 0x1e0001e0) >> 5)
+                  - ((rgb & 0x00070000) >> 6));
+
+          dest[x] = (((rgb & 0x0f800000) >> 12) |
+                     ((rgb & 0x0003f000) >> 7)  |
+                     ((rgb & 0x000000f8) >> 3));
+     }
+}
+
 
 typedef struct {
      FILE  *fp;
@@ -645,12 +688,12 @@ static void dump_data(CSourceData         *csource,
      fprintf (csource->fp, "\";\n\n");
 }
 
-static DFBResult dump_raw_data(const char            *name,
-                               const unsigned char   *data,
-                               unsigned int           len)
+static DFBResult dump_raw_data(const char          *name,
+                               const unsigned char *data,
+                               unsigned int         len)
 {
-     CSourceData    csource = { stdout, 0, 0 };
-     char          *vname   = variable_name (name);
+     CSourceData  csource = { stdout, 0, 0 };
+     char        *vname   = variable_name (name);
 
      if (!data || !len)
           return DFB_INVARG;
