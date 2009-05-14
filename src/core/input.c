@@ -483,6 +483,8 @@ dfb_input_core_shutdown( DFBInputCore *data,
           fusion_skirmish_destroy( &devshared->lock );
 
           if (device->driver_data != NULL) {
+               void *driver_data;
+
                D_ASSERT( driver->funcs != NULL );
                D_ASSERT( driver->funcs->CloseDevice != NULL );
 
@@ -491,8 +493,9 @@ dfb_input_core_shutdown( DFBInputCore *data,
                            driver->info.version.major,
                            driver->info.version.minor, driver->info.vendor );
 
-               driver->funcs->CloseDevice( device->driver_data );
+               driver_data = device->driver_data;
                device->driver_data = NULL;
+               driver->funcs->CloseDevice( driver_data );
           }
 
           if (!--driver->nr_devices) {
@@ -577,6 +580,8 @@ dfb_input_core_suspend( DFBInputCore *data )
           D_ASSERT( devshared != NULL );
 
           if (device->driver_data != NULL) {
+               void *driver_data;
+
                D_ASSERT( driver->funcs != NULL );
                D_ASSERT( driver->funcs->CloseDevice != NULL );
 
@@ -585,8 +590,9 @@ dfb_input_core_suspend( DFBInputCore *data )
                            driver->info.version.major,
                            driver->info.version.minor, driver->info.vendor );
 
-               driver->funcs->CloseDevice( device->driver_data );
+               driver_data = device->driver_data;
                device->driver_data = NULL;
+               driver->funcs->CloseDevice( driver_data );
           }
 
           flush_keys( device );
