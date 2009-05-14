@@ -49,7 +49,7 @@
 
 #include <gfx/convert.h>
 
-#define DFB_DITHER565 2
+#define DFB_DITHER565 DFB_DITHER_ADVANCED
 #include <misc/dither565.h>
 
 

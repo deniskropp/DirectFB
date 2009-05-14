@@ -1366,6 +1366,9 @@ fi
 AC_SUBST(DFB_SMOOTH_SCALING)
 
 
+AC_DEFINE(DFB_DITHER_SIMPLE,1,[Simple dithering, uses small dither table])
+AC_DEFINE(DFB_DITHER_ADVANCED,2,[Advanced dithering, uses large dither table])
+
 AC_ARG_WITH(dither-rgb16,
   [  --with-dither-rgb16=TYPE   dithering to use when loading images into RGB16 surfaces [[default=none]]]
   [                             Possible types are: ]
@@ -1378,10 +1381,10 @@ case x"$with_dither_rgb16" in
           with_dither_rgb16=none
           ;;
      xsimple)
-          AC_DEFINE(DFB_DITHER565,1,[Define to 1 for simple RGB16 dithering, to 2 for advanced])
+          AC_DEFINE(DFB_DITHER565,DFB_DITHER_SIMPLE,[Dithering to use when rendering to RGB16 surfaces])
           ;;
      xadvanced)
-          AC_DEFINE(DFB_DITHER565,2,[Define to 1 for simple RGB16 dithering, to 2 for advanced])
+          AC_DEFINE(DFB_DITHER565,DFB_DITHER_ADVANCED,[Dithering to use when rendering to RGB16 surfaces])
           ;;
      *)
           echo "Unknown dithering type $with_dither_rgb16, exiting!"
