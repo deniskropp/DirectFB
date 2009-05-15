@@ -398,7 +398,7 @@ dfb_color_to_aycbcr( const DFBColor *color )
 }
 
 static inline void
-dfb_argb_to_rgb332( u32 *src, u8 *dst, int len )
+dfb_argb_to_rgb332( const u32 *src, u8 *dst, int len )
 {
      int i;
 
@@ -410,7 +410,7 @@ dfb_argb_to_rgb332( u32 *src, u8 *dst, int len )
 }
 
 static inline void
-dfb_argb_to_argb1555( u32 *src, u16 *dst, int len )
+dfb_argb_to_argb1555( const u32 *src, u16 *dst, int len )
 {
      int i;
 
@@ -422,7 +422,7 @@ dfb_argb_to_argb1555( u32 *src, u16 *dst, int len )
 }
 
 static inline void
-dfb_argb_to_argb2554( u32 *src, u16 *dst, int len )
+dfb_argb_to_argb2554( const u32 *src, u16 *dst, int len )
 {
      int i;
 
@@ -434,7 +434,7 @@ dfb_argb_to_argb2554( u32 *src, u16 *dst, int len )
 }
 
 static inline void
-dfb_argb_to_argb4444( u32 *src, u16 *dst, int len )
+dfb_argb_to_argb4444( const u32 *src, u16 *dst, int len )
 {
      int i;
 
@@ -446,7 +446,7 @@ dfb_argb_to_argb4444( u32 *src, u16 *dst, int len )
 }
 
 static inline void
-dfb_argb_to_rgba4444( u32 *src, u16 *dst, int len )
+dfb_argb_to_rgba4444( const u32 *src, u16 *dst, int len )
 {
      int i;
 
@@ -458,7 +458,7 @@ dfb_argb_to_rgba4444( u32 *src, u16 *dst, int len )
 }
 
 static inline void
-dfb_argb_to_rgb16( u32 *src, u16 *dst, int len )
+dfb_argb_to_rgb16( const u32 *src, u16 *dst, int len )
 {
      int i;
 
@@ -470,7 +470,7 @@ dfb_argb_to_rgb16( u32 *src, u16 *dst, int len )
 }
 
 static inline void
-dfb_argb_to_a8( u32 *src, u8 *dst, int len )
+dfb_argb_to_a8( const u32 *src, u8 *dst, int len )
 {
      int i;
 
@@ -479,7 +479,7 @@ dfb_argb_to_a8( u32 *src, u8 *dst, int len )
 }
 
 void dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
-                           void                  *src,
+                           const void            *src,
                            int                    spitch,
                            int                    surface_height,
                            u16                   *dst,
@@ -488,7 +488,7 @@ void dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
                            int                    height );
 
 void dfb_convert_to_rgb555( DFBSurfacePixelFormat  format,
-                            void                  *src,
+                            const void            *src,
                             int                    spitch,
                             int                    surface_height,
                             u16                   *dst,
@@ -497,7 +497,7 @@ void dfb_convert_to_rgb555( DFBSurfacePixelFormat  format,
                             int                    height );
 
 void dfb_convert_to_argb( DFBSurfacePixelFormat  format,
-                          void                  *src,
+                          const void            *src,
                           int                    spitch,
                           int                    surface_height,
                           u32                   *dst,
@@ -506,7 +506,7 @@ void dfb_convert_to_argb( DFBSurfacePixelFormat  format,
                           int                    height );
 
 void dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
-                           void                  *src,
+                           const void            *src,
                            int                    spitch,
                            int                    surface_height,
                            u32                   *dst,
@@ -515,7 +515,7 @@ void dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
                            int                    height );
 
 void dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
-                           void                  *src,
+                           const void            *src,
                            int                    spitch,
                            int                    surface_height,
                            u8                    *dst,
@@ -524,7 +524,7 @@ void dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
                            int                    height );
 
 void dfb_convert_to_a8( DFBSurfacePixelFormat  format,
-                        void                  *src,
+                        const void            *src,
                         int                    spitch,
                         int                    surface_height,
                         u8                    *dst,
@@ -533,7 +533,7 @@ void dfb_convert_to_a8( DFBSurfacePixelFormat  format,
                         int                    height );
 
 void dfb_convert_to_a4( DFBSurfacePixelFormat  format,
-                        void                  *src,
+                        const void            *src,
                         int                    spitch,
                         int                    surface_height,
                         u8                    *dst,
@@ -542,7 +542,7 @@ void dfb_convert_to_a4( DFBSurfacePixelFormat  format,
                         int                    height );
 
 void dfb_convert_to_yuy2( DFBSurfacePixelFormat  format,
-                          void                  *src,
+                          const void            *src,
                           int                    spitch,
                           int                    surface_height,
                           u32                   *dst,
@@ -551,7 +551,7 @@ void dfb_convert_to_yuy2( DFBSurfacePixelFormat  format,
                           int                    height );
 
 void dfb_convert_to_uyvy( DFBSurfacePixelFormat  format,
-                          void                  *src,
+                          const void            *src,
                           int                    spitch,
                           int                    surface_height,
                           u32                   *dst,
