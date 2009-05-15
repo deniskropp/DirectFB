@@ -107,6 +107,13 @@ context_destructor( FusionObject *object, bool zombie, void *ctx )
      /* Remove the context from the layer's context stack. */
      dfb_layer_remove_context( layer, context );
 
+     /*
+      * Detach input devices before taking the context lock to prevent a
+      * deadlock between windowstack destruction and input event processing.
+      */
+     if (context->stack)
+          dfb_windowstack_detach_devices( context->stack );
+
      dfb_layer_context_lock( context );
 
      /* Destroy the window stack. */

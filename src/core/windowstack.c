@@ -163,7 +163,7 @@ dfb_windowstack_create( CoreLayerContext *context )
 }
 
 void
-dfb_windowstack_destroy( CoreWindowStack *stack )
+dfb_windowstack_detach_devices( CoreWindowStack *stack )
 {
      DirectLink *l;
 
@@ -184,6 +184,14 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
 
           l = next;
      }
+}
+
+void
+dfb_windowstack_destroy( CoreWindowStack *stack )
+{
+     D_DEBUG_AT( Core_WindowStack, "%s( %p )\n", __FUNCTION__, stack );
+
+     D_MAGIC_ASSERT( stack, CoreWindowStack );
 
      /* Unlink cursor surface. */
      if (stack->cursor.surface)

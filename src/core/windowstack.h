@@ -39,6 +39,8 @@
  */
 CoreWindowStack *dfb_windowstack_create ( CoreLayerContext *context );
 
+void             dfb_windowstack_detach_devices( CoreWindowStack  *stack );
+
 void             dfb_windowstack_destroy( CoreWindowStack  *stack );
 
 void             dfb_windowstack_resize ( CoreWindowStack  *stack,
