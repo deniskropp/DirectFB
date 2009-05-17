@@ -417,7 +417,7 @@ static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes )
      line = 0xfff;
      mga_out32( mmio, mbes->regs.besGLOBCTL | (line << 16), BESGLOBCTL);
 
-     if (mbes->regs.besCTL & 0x4000000) {
+     if (!(mbes->regs.besCTL & 0x4000000)) {
           mga_out32( mmio, mbes->regs.besA1ORG, BESA1ORG );
           mga_out32( mmio, mbes->regs.besA2ORG, BESA2ORG );
           mga_out32( mmio, mbes->regs.besA1CORG, BESA1CORG );
