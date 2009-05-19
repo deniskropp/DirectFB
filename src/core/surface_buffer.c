@@ -914,7 +914,7 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
 
 static void
 transfer_buffer( CoreSurfaceBuffer *buffer,
-                 void              *src,
+                 const void        *src,
                  void              *dst,
                  int                srcpitch,
                  int                dstpitch )
