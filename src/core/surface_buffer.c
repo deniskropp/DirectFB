@@ -1054,6 +1054,8 @@ allocation_update_copy( CoreSurfaceAllocation *allocation,
      if (ret) {
           D_DERROR( ret, "Core/SurfBuffer: Could not lock destination for transfer!\n" );
           dfb_surface_pool_unlock( source->pool, source, &src );
+          dfb_surface_buffer_lock_deinit( &dst );
+          dfb_surface_buffer_lock_deinit( &src );
           return ret;
      }
 
