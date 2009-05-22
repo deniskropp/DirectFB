@@ -4054,7 +4054,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*Read) (
           IDirectFBSurface         *thiz,
           const DFBRectangle       *rect,
-          const void               *ptr,
+          void                     *ptr,
           int                       pitch
      );
 )

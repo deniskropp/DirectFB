@@ -519,7 +519,7 @@ IDirectFBSurface_Write( IDirectFBSurface    *thiz,
 static DFBResult
 IDirectFBSurface_Read( IDirectFBSurface    *thiz,
                        const DFBRectangle  *rect,
-                       const void          *ptr,
+                       void                *ptr,
                        int                  pitch )
 {
      CoreSurface *surface;
