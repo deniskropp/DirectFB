@@ -153,6 +153,8 @@ dfb_surface_pool_initialize( CoreDFB                 *core,
 
      ret = init_pool( core, pool, funcs );
      if (ret) {
+          pool_funcs[pool->pool_id] = NULL;
+          pool_array[pool->pool_id] = NULL;
           pool_count--;
           D_MAGIC_CLEAR( pool );
           SHFREE( shmpool, pool );
