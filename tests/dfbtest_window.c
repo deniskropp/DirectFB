@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2009  The DirectFB Organization (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
