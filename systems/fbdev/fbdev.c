@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -466,6 +466,11 @@ system_initialize( CoreDFB *core, void **data )
           goto error;
      }
 
+     D_INFO( "DirectFB/FBDev: Found '%s' (ID %d) with frame buffer at 0x%08lx, %dk (MMIO 0x%08lx, %dk)\n",
+             shared->fix.id, shared->fix.accel,
+             shared->fix.smem_start, shared->fix.smem_len >> 10,
+             shared->fix.mmio_start, shared->fix.mmio_len >> 10 );
+
      /* Map the framebuffer */
      dfb_fbdev->framebuffer_base = mmap( NULL, shared->fix.smem_len,
                                          PROT_READ | PROT_WRITE, MAP_SHARED,
@@ -826,6 +831,9 @@ system_get_accelerator( void )
      if (!strcmp( dfb_fbdev->shared->fix.id, "ep9xfb" ))
 	  return FB_ACCEL_EP9X;
 #endif
+
+     if (dfb_config->accelerator)
+          return dfb_config->accelerator;
 
      if (dfb_fbdev->shared->fix.mmio_len > 0)
           return dfb_fbdev->shared->fix.accel;
