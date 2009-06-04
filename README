@@ -1,8 +1,6 @@
 DirectFB README
 ---------------
 
-   This is a developers release of DirectFB.
-
    DirectFB is a graphics library which was designed with embedded
    systems in mind. It offers maximum hardware accelerated performance
    at a minimum of resource usage and overhead. 
@@ -34,7 +32,7 @@ Supported Operating Systems
    We do not have the resources to ensure that every release of
    DirectFB works on all supported platforms. If you are a user of one
    of the operating system listed above, and have the time to test the
-   CVS version regularly, your help is greatly appreciated.
+   CVS or GIT version regularly, your help is greatly appreciated.
 
 
 Build Requirements
@@ -144,15 +142,14 @@ Running multiple DirectFB applications at the same time
    multi application core of DirectFB which allows multiple DirectFB
    applications to run at the same time within a session.
 
-   DirectFB applications communicate through a layer we called Fusion.
+   DirectFB applications communicate through a layer we call "Fusion".
    This layer was previously implemented completely in user space using
    semaphores and message queues. But since 0.9.15 the Fusion Kernel
    Device is required which implements critical parts of Fusion and thus
    lead to better performance and decent stability. To install this kernel
-   module (only available for Linux yet), check out the linux-fusion
-   module from our CVS repository or use the patch provided by this
-   release (in the patches directory). Note that you don't need to patch
-   your kernel using the CVS version of Fusion.
+   module (only available for Linux yet), find the linux-fusion
+   module in our CVS or GIT repository or on the DirectFB website.
+   For DirectFB 1.4.x releases you should use linux-fusion 8.1.1 or newer.
 
    Compile DirectFB with multi-application core enabled:
 
@@ -169,7 +166,7 @@ Running multiple DirectFB applications at the same time
 
    A good way to test the multi-application core is to install the lite
    toolkit and DFBTerm, a DirectFB terminal (both available in the
-   DirectFB CVS repository). You can then start DirectFB applications
+   DirectFB CVS/GIT repository). You can then start DirectFB applications
    from dfbterm.
 
 
@@ -203,7 +200,7 @@ Installation
       impact. It may be noticably slower in some areas, e.g. text drawing.
 
       You may use the options "no-debug" and "no-trace" by default, e.g.
-      in '/etc/directfbrc', and use "--dfb:debug,trace" on the command
+      in '<prefix>/etc/directfbrc', and use "--dfb:debug,trace" on the command
       line if needed.
 
    2) Make sure that "<prefix>/lib" is listed in your /etc/ld.so.conf.
@@ -240,18 +237,19 @@ Configuring DirectFB
    There are lots of things that can be configured. We try to ship DirectFB
    with reasonable defaults but you might have to tweak things. There are
    several ways to do this. You may edit the system-wide configuration
-   file /etc/directfbrc or the user-specific $HOME/.directfbrc. There's a
-   manual page called directfbrc(5) that documents all the settings. The
-   same manual page also explains how DirectFB application can be
+   file <prefix>/etc/directfbrc or the user-specific $HOME/.directfbrc.
+   There's a manual page called directfbrc(5) that documents all the settings.
+   The same manual page also explains how DirectFB application can be
    configured via the command-line.
 
 
 Configuring the Linux frame buffer device
 -----------------------------------------
 
-   DirectFB needs a Linux kernel with frame buffer support. Check the 
-   documentation in the kernel tree (/usr/src/linux/Documentation/fb/) on 
-   how to enable the frame buffer device for your graphics card. 
+   DirectFB's prefered way-of-working needs a Linux kernel
+   with frame buffer support. Check the documentation in the kernel tree
+   (/usr/src/linux/Documentation/fb/) on how to enable the frame buffer device
+   for your graphics card. 
 
    The generic VESA frame buffer device does not support mode switching
    and you will not get hardware acceleration. To make DirectFB work with
@@ -420,7 +418,7 @@ site at 'http://www.sci.fi/~syrjala/'.
 Legal stuff
 -----------
 
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2009  The DirectFB Organization (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.

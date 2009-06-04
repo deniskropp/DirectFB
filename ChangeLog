@@ -1,3 +1,487 @@
+commit cd3e0306347ab0601ad1e6b98b0897aac2fb8942
+Merge: b4cf1e3... b29d791...
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Jun 2 18:47:24 2009 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit b29d791b04000d0dd1d46331fcf6bce1802937ef
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri May 29 17:37:01 2009 +0200
+
+    updated copyright in source files
+    
+    Changed the DirectFB Open Source Community copyright from 2001-2008 to
+    2001-2009 all over the place.
+
+commit 15b303d8946250d424b596565507dce081bfba23
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu May 28 08:37:03 2009 +0200
+
+    [fbdev] Allow accelerator id to be overridden by runtime option, print some info during init.
+
+commit b4cf1e38969bb931e24592d4098d5bc2552d63f1
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon May 25 14:20:16 2009 +0200
+
+    [layer] Bug when switching source from surface to surfaceless (video).
+            The bug is caused by the destruction of the region surface before
+            the active buffer is unlocked (lock being held by layer).
+            Thanks to Sorin Otescu for the patch.
+
+commit 9df11d6795de316b3bf8a8e014095549b5a0a822
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon May 25 14:09:09 2009 +0200
+
+    [build] fix for commit 5a941ac479883bef11bd9ada65b07fafafff2ad1
+            INCLUDES were in the wrong order. Thanks Andre.
+
+commit 95c1ed2a6afa5eee838378dcc9557ce975ab54ff
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon May 25 12:14:00 2009 +0200
+
+    [surfaces] Clean up after failed pool init to keep the memory consistent;
+               consistency is required by ASSERTs. Thanks to Andre Draszik.
+
+commit 68ff8b08292622c8b0d65812858898ebb121b47d
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri May 22 09:30:45 2009 +0200
+
+    Removed const qualifier from destination pointer
+    
+    The recently introduced IDirectFBSurface::Read method had a const
+    qualifier for the pointer to the destination memory. Removed this
+    qualifier as the method writes to this memory.
+
+commit 689a97a85fa0c79c1ab2ff60803d950506d346de
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Sat May 16 00:31:45 2009 +0300
+
+    layers: Prevent deadlock when destroying context
+    
+    A deadlock can happen between the input device shared reactor global
+    lock and the layer context lock if the layer context destruction and
+    input even processing happen at the same time since the code paths
+    acquire the locks in different order. Fix the problem by detaching the
+    input devices from the windowstack before taking the layer context lock
+    in the context destruction path. Nothing ever modifies the
+    windowstack's device list so AFAICS it should be safe to do this
+    without holding the layer context lock.
+    
+    This is a backtrace of the deadlock:
+    
+    Thread 13 (Thread 0x436a7950 (LWP 6158)):
+    0  0x00007f23b8125117 in ioctl () from /lib/libc.so.6
+    1  0x00007f23b95982ee in fusion_skirmish_prevail ()
+       from /usr/local/lib/libfusion-1.3.so.0
+    2  0x00007f23b9846604 in dfb_layer_context_lock ()
+       from /usr/local/lib/libdirectfb-1.3.so.0
+    3  0x00007f23b985690e in _dfb_windowstack_inputdevice_listener ()
+       from /usr/local/lib/libdirectfb-1.3.so.0
+    4  0x00007f23b959a12c in fusion_reactor_dispatch_channel ()
+       from /usr/local/lib/libfusion-1.3.so.0
+    5  0x00007f23b9843dff in dfb_input_dispatch ()
+       from /usr/local/lib/libdirectfb-1.3.so.0
+    6  0x00007f23b5a4b1f6 in linux_input_EventThread ()
+       from /usr/local/lib/directfb-1.3-0/inputdrivers/libdirectfb_linux_input.so
+    7  0x00007f23b9387ec6 in direct_thread_main ()
+       from /usr/local/lib/libdirect-1.3.so.0
+    8  0x00007f23b904e087 in start_thread () from /lib/libpthread.so.0
+    9  0x00007f23b812bccd in clone () from /lib/libc.so.6
+    10 0x0000000000000000 in ?? ()
+    
+    Thread 18 (Thread 0x40832950 (LWP 6153)):
+    0  0x00007f23b8125117 in ioctl () from /lib/libc.so.6
+    1  0x00007f23b95982ee in fusion_skirmish_prevail ()
+       from /usr/local/lib/libfusion-1.3.so.0
+    2  0x00007f23b959944a in fusion_reactor_detach_global ()
+       from /usr/local/lib/libfusion-1.3.so.0
+    3  0x00007f23b98574cd in dfb_windowstack_destroy ()
+       from /usr/local/lib/libdirectfb-1.3.so.0
+    4  0x00007f23b98476f8 in context_destructor ()
+       from /usr/local/lib/libdirectfb-1.3.so.0
+    5  0x00007f23b959900e in object_reference_watcher ()
+       from /usr/local/lib/libfusion-1.3.so.0
+    6  0x00007f23b9595026 in _fusion_call_process ()
+       from /usr/local/lib/libfusion-1.3.so.0
+    7  0x00007f23b9596d5a in fusion_dispatch_loop ()
+       from /usr/local/lib/libfusion-1.3.so.0
+    8  0x00007f23b9387ec6 in direct_thread_main ()
+       from /usr/local/lib/libdirect-1.3.so.0
+    9  0x00007f23b904e087 in start_thread () from /lib/libpthread.so.0
+    10 0x00007f23b812bccd in clone () from /lib/libc.so.6
+    11 0x0000000000000000 in ?? ()
+
+commit 10c2bee93fa36b518de06be670669ce7c263c9a7
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Tue May 19 09:37:45 2009 +0200
+
+    core: added a const qualifier for the source buffer
+
+commit db6b85fd39a26714d173ac3e479688158fbd0e95
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Mon May 18 02:29:35 2009 +0300
+
+    matrox: Fix BES single buffering
+    
+    Commit f94cc4934addfc80025d4fbc6a4f0b98042e6d8f introduced a problem
+    where SetRegion() would update the inactive set of buffer registers.
+    The problem was only really visible with single buffering since the
+    active registers were never updated as FlipRegion() was never called.
+
+commit adab4e0a39c096c1f5359c975c10856c7dc06324
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri May 15 09:38:40 2009 +0200
+
+    gfx: sprinkled the code with const qualifiers
+    
+    Add const qualifiers to the source pointers for all pixel-format
+    conversion functions. Also move some variables to local scope.
+
+commit 555970f9b6707790b9ec5697f542ca0ae75f6c50
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu May 14 20:27:33 2009 +0200
+
+    [input] fix for shutdown crash reproducible with "splashy" boot screen
+
+commit 49baa1d479d3fe65b33d7db5d97de2ec15bc249c
+Merge: b13d1a0... df22ef6...
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu May 14 20:25:38 2009 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit df22ef6e4fc5141461afaf46a6b61f7dc1d83a3b
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Thu May 14 14:53:36 2009 +0200
+
+    Add defines for the RGB16 dithering methods
+
+commit 90fa8286cf22f6d91f29df8c92ea3f71758d9478
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Thu May 14 14:38:23 2009 +0200
+
+    tools: add --dither-rgb16 option to directfb-csource
+
+commit b13d1a0c4b0085fadbca3a1293118afacd202f02
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed May 13 21:47:58 2009 +0200
+
+    [API] add NTSC-443 enum format; add some missing frequency enums.
+
+commit 4b2dfd572bb0ae8863f60d53c9d73c9da14dd5dc
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed May 13 21:46:31 2009 +0200
+
+    [jpeg] plug mem leak on file read error
+
+commit b794f110988652354a0f51d126b9b5b62249e217
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed May 13 21:45:58 2009 +0200
+
+    [matrox] add #ifdef to prevent wrong asm on non-X86 build
+
+commit 5a941ac479883bef11bd9ada65b07fafafff2ad1
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed May 13 21:45:28 2009 +0200
+
+    [build] add missing include path for builddir != srcdir
+            reshuffle makefiles to make changes easier and shorter
+
+commit 50aa399b878c4811d061e50b33e479ddd4401da0
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed May 13 21:43:35 2009 +0200
+
+    [sis315] fix: allow a program to call both blit and stretchblit.
+
+commit b142a30140673eeffc6823da40cea6df76df19a5
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Tue May 12 18:12:42 2009 +0200
+
+    gfx: introduce optional dithering for RGB16 surfaces
+    
+    Introduce a configure switch to enable dithering when
+    rendering an image to a RGB16 surface. The pre-generated
+    dither matrices are taken from GdkRGB.
+
+commit cefa2171ff9c9122ce26821cba4c88c33fe58a6e
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Tue May 12 15:27:20 2009 +0200
+
+    cosmetics
+
+commit c414dedf8dadacd489b35de2ff531d139ddea923
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Tue May 12 15:25:33 2009 +0200
+
+    cosmetics
+
+commit 8082fcb0a454f55ab5a8c82159047661a6e4b519
+Merge: b1f8ddb... 970c13c...
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue May 12 15:12:52 2009 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit b1f8ddbbca046fdd55ca02ab5e3fb86bacf2abd6
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue May 12 15:12:40 2009 +0200
+
+    [build] compiler warning, debug message extended, include file order
+
+commit 970c13c54dcdb94dde9eca215ae914ccfb115d60
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Tue May 12 14:41:56 2009 +0200
+
+    Consistently use doubles to calculate the inverse scale factors
+    
+    Use of floats here triggered a bug in the gcc 4.3 soft-float code. Since
+    we are already using 1.0/scale in some places, it seems OK to make this
+    consistent.
+
+commit 97fd4ba6f39f890f6267960a50e796e581da14ee
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Tue May 12 14:33:17 2009 +0200
+
+    cosmetics
+
+commit 1300cd4814b8e1691a5651ae447e84e5753efc24
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Tue May 12 11:46:54 2009 +0200
+
+    added more const qualifiers, moved variables into local scopes
+
+commit e0be70ec8aedde56f23d216530746a93e7746ff6
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue May 12 04:16:57 2009 +0300
+
+    vt/keyboard: Flush console input when not used
+    
+    To keep the kernel happy the console buffer must be kept from filling
+    up. If the buffer is sufficiently full the kernel stop sleeping and
+    instead wakes up every tick to do something. This problem occurs when
+    the keyboard driver is not used and the linuxinput driver does not grab
+    the devices. Add a new thread whose job is to keep flushing the buffer
+    when the keyboard driver is not there to consume the data.
+
+commit a9edc19c0275527144cae7bd7ba9b66224924708
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Sun May 10 01:23:46 2009 +0300
+
+    Silence some compiler warnings
+
+commit ffa522e63e4de0a999566821f3c17b78141cec86
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri May 8 17:00:26 2009 +0200
+
+    removed trailing whitespace
+
+commit bac0f25ce65795d63354d3ba3b9eded4a910351e
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri May 8 16:55:42 2009 +0200
+
+    Sprinkled the code with const qualifiers
+
+commit 49e8ec67d124093a57492aecf5fbc65a6422a2be
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Mon May 11 16:46:14 2009 +0200
+
+    font: introduce new font attribute DFFA_NOBITMAP
+    
+    Some truetype fonts include bitmap strikes for certain sizes. A new font
+    attribute is introduced to the DFBFontAttributes enum. It maps to
+    the FT_LOAD_NO_BITMAP attribute in the freetype2 renderer. This
+    tells the renderer to always provide an anti-aliased rendering,
+    ignoring bitmap strikes embedded in the font. For bitmap-only fonts this
+    flag is ignored.
+
+commit 153cbdcce3b1334f5fc74d87516edda1ad228103
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Mon May 11 16:44:21 2009 +0200
+
+    indentation cleanup
+
+commit f94cc4934addfc80025d4fbc6a4f0b98042e6d8f
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue May 5 22:09:13 2009 +0300
+
+    matrox: Improve BES triple buffering
+    
+    The BES has two sets of buffer registers and a status register which
+    can report the status which buffer is being displayed. besvcnt can be
+    used to make the buffer flip + status read atomic which allows
+    guaranteed tear free triple buffering. besvcnt can also be used to
+    make all other BES register updates atomic.
+
+commit 094540b0a6e493945fab560c737700948b70b07e
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue May 5 22:07:20 2009 +0300
+
+    surface: Fix back<->front swap
+    
+    Wrong back and front buffer indices were used when performing the
+    back<->front buffer swap which caused the the application render
+    into the wrong buffer.
+
+commit 32e49cdac7a18d9ac0195d50c19c58186acc88e1
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Thu May 7 21:27:13 2009 +0200
+
+    input: no need to set min and max for the touchpad, it doesn't deliver
+           absolute events; check that minimum or maximum is != 0
+
+commit 6c9c5db93abc2ae6e93659af3e71a3dbdd460748
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Thu May 7 21:15:30 2009 +0200
+
+    git: don't ignore the m4 whole directory but only the files that libtool
+    adds there
+
+commit b0373d3f3b5f55be43d07f9d1b5b9cce51f65c6e
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Thu May 7 17:26:32 2009 +0200
+
+    git: ignore the m4 directory
+
+commit ea1ee89c7a06605f4c9879040542eb42c3dd582e
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Thu May 7 11:34:52 2009 +0200
+
+    input: Implement driver_get_axis_info() in the linux-input driver
+
+commit c6c28a529def38f174040f00018638cf82d4b8a2
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri May 1 09:49:18 2009 +0200
+
+    Makefile: include armasm_memcpy files in EXTRA_DIST
+    
+    Include the recently added optimized memcpy implementation for the ARM
+    platform in EXTRA_DIST so that the files end up in the release tarball.
+
+commit 338646f31ca2a5786454f02e17dc7b5adce137b9
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed Apr 29 23:04:22 2009 +0300
+
+    modules: Don't touch the module entry after dlclose()
+    
+    When a module was unloaded with dlclose() the destructor function
+    (direct_modules_unregister() for the input drivers) was called. The
+    dtor freed the module entry but the code calling dlclose() proceeded to
+    fiddle with the already freed entry afterwards. Reorganize the code
+    slightly to avoid the problem and add a few comments to remind people
+    what may happen when dlclose() is called.
+    
+    The problem sometimes manifested itself as a segfault when loading the
+    modules. Suppressing all but the required input modules was an
+    effective workaround for the problem.
+
+commit 41ef7a58e47eaba0d35635a6031f10a31adb97d5
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed Apr 29 03:09:07 2009 +0300
+
+    modules: Simplify the path string handling
+    
+    The code does unnecessary NULL checks which would have triggered an
+    assertion or segfault earlier. Also trying to avoid a few extra '/'
+    characters makes the code hard to read. Just make it simple.
+
+commit 2c9cca71b759af7e2bd124066b16f900e37dd4d0
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Fri Nov 28 00:12:06 2008 +0200
+
+    modules: Add some error checking and assertions
+
+commit 5568eef87d2fdd15d2e331725eabb029671eef62
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Fri Nov 28 00:11:52 2008 +0200
+
+    input: Check allocations
+
+commit 0a6ab4e7670baa225fbe89855279be6370ca210c
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed Apr 29 03:26:32 2009 +0300
+
+    configure: Remove a stray comma in summary output
+
+commit 9b69da8350463103a8216f1661c7e9cdea5d9898
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed Apr 29 22:01:43 2009 +0300
+
+    gl: Link w/ -Wl,-no-undefined
+
+commit b6b6ebd0b805d2453e35e8941d09ab22fb6f8c81
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed Apr 29 03:09:30 2009 +0300
+
+    Makefiles: s/-export-dynamic/-module
+    
+    Libtool's -export-dynamic option should be used when symbols from the
+    output file must be used to resolve undefined references. That is not
+    the case with our modules. Instead use the -module option which tells
+    libtool we're building a module that will be dlopened.
+
+commit b4df34ce12f0739ac6d9105d808d22d56ee07eeb
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed Apr 29 03:06:54 2009 +0300
+
+    elo: Silence a compiler warning
+
+commit 2803b16d3c853a76e50fc16c15fd195a5a78c620
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed Apr 29 03:03:59 2009 +0300
+
+    mutouch/penmount/zytronic/sdl: Make the driver names match the file name
+    
+    It's a lot easier to use disable-module when you can just look at the
+    module file name instead of having to dig through the source code.
+
+commit 05f7d9ca0f240ba92a10bd727743e1fb0750bd66
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Apr 9 11:57:42 2009 +0200
+
+    [sis315] added support for:
+             XGI Z series chip, STRETCHBLIT, and big endian handling
+             Thanks to Yi-Lin Shieh for the patch
+
+commit 58e39b27fc7c7f3bb4aeabff9f2688b7ffdf3d0d
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Apr 8 11:14:00 2009 +0200
+
+    [sis315] patch when blitting to y < 0
+             Thanks to Yi-Lin Shieh for the patch
+
+commit 282a00d95b03a732c8375f28c2009a4b82c40b48
+Merge: 50482eb... 5b02825...
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Apr 7 19:13:11 2009 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 50482eb3b7f2df314befbfd71e3f242cfb83b14a
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Apr 7 19:12:57 2009 +0200
+
+    [voodoo] bug in DisableAcceleration causing ASSERT
+             thanks to Costa Michelakis for the fix.
+
+commit 5b028250d134dcd69ee192dc91297088eb78baa8
+Author: Nikita Egorov <nikego@varma-el.com>
+Date:   Mon Apr 6 12:27:23 2009 +0400
+
+    implemented three skipped 16-bit functions when rotation angle is not 0
+
+commit 5e542f3f4b005cab15c4e7fff5c3e40022799720
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Apr 1 12:57:09 2009 +0200
+
+    [doc] rephrase
+
+commit 9239fd5c147772d2406ecff3d303509bef87e21e
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Mar 31 19:40:33 2009 +0200
+
+    [release] DirectFB 1.3.1
+
 commit 14f274b390072a7eec6a4fb8608fda901036d108
 Author: Niels Roest <niels@directfb.org>
 Date:   Tue Mar 31 11:27:07 2009 +0200
