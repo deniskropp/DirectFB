@@ -590,6 +590,11 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           return false;
      }
 
+     /* Destination buffer may have been destroyed (suspended). i.e by a vt-switching */
+     if (dst->num_buffers == 0 ) {
+          return false;
+     }
+
      /* Source may have been destroyed. */
      if (DFB_BLITTING_FUNCTION( accel )) {
           if (!src) {
