@@ -693,6 +693,8 @@ if test "$enable_jpeg" = "yes"; then
       AC_MSG_WARN([
 *** JPEG library not found. JPEG image provider will not be built.])
     fi
+  else
+    JPEG=yes
   fi
 fi
 
