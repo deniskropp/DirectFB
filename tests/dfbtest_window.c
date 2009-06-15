@@ -541,7 +541,8 @@ parse_command_line( int argc, char *argv[] )
                if (!parse_id( argv[n], &m_desc_top.parent_id ))
                     return false;
 
-               m_desc_top.flags |= DWDESC_PARENT;
+               m_desc_top.flags   |= DWDESC_PARENT;
+               m_desc_top.options |= DWOP_FOLLOW_BOUNDS;
 
                continue;
           }
@@ -627,7 +628,8 @@ parse_command_line( int argc, char *argv[] )
                if (!parse_id( argv[n], &m_desc_sub.parent_id ))
                     return false;
 
-               m_desc_sub.flags |= DWDESC_PARENT;
+               m_desc_sub.flags   |= DWDESC_PARENT;
+               m_desc_sub.options |= DWOP_FOLLOW_BOUNDS;
 
                continue;
           }
@@ -705,9 +707,9 @@ Test_CreateWindow( IDirectFBDisplayLayer *layer, void *arg )
      /*
       * Create a new top level window
       */
-     SHOW_TEST( "CreateWindow( %d,%d - %dx%d %s )...",
+     SHOW_TEST( "CreateWindow( %d,%d - %dx%d %s, options 0x%08x )...",
                 m_desc_top.posx, m_desc_top.posy, m_desc_top.width, m_desc_top.height,
-                dfb_pixelformat_name( m_desc_top.pixelformat ) );
+                dfb_pixelformat_name( m_desc_top.pixelformat ), m_desc_top.options );
 
      _T( layer->CreateWindow( layer, &m_desc_top, &window ) );
 
@@ -777,9 +779,9 @@ Test_CreateSubWindow( IDirectFBDisplayLayer *layer, void *arg )
      /*
       * Create a new sub window with 75% width/height and positioned at 20,20 within top level window
       */
-     SHOW_TEST( "CreateWindow( %d,%d - %dx%d %s + toplevel ID %u )...",
+     SHOW_TEST( "CreateWindow( %d,%d - %dx%d %s + toplevel ID %u, options 0x%08x )...",
                 m_desc_sub.posx, m_desc_sub.posy, m_desc_sub.width, m_desc_sub.height,
-                dfb_pixelformat_name( m_desc_sub.pixelformat ), m_desc_sub.toplevel_id );
+                dfb_pixelformat_name( m_desc_sub.pixelformat ), m_desc_sub.toplevel_id, m_desc_top.options );
 
      _T( layer->CreateWindow( layer, &m_desc_sub, &window ) );
 

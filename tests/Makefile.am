@@ -9,7 +9,7 @@ INCLUDES = \
 	-DLINUX_2_6
 
 
-noinst_PROGRAMS = \
+bin_PROGRAMS = \
 	dfbtest_blit	\
 	dfbtest_reinit	\
 	dfbtest_scale	\
