@@ -30,6 +30,7 @@ extern "C"
 #endif
 
 #include <directfb_util.h>
+#include <directfb_version.h>
 
 #include <direct/list.h>
 #include <direct/interface.h>
@@ -44,6 +45,26 @@ extern "C"
 #include <core/windows_internal.h> /* FIXME */
 
 #include "sawman_types.h"
+
+
+/* compatibility towards 1.2.x and 1.4.x DirectFB branches */
+#if DIRECTFB_MAJOR_VERSION==1
+#if DIRECTFB_MINOR_VERSION<=2
+#define OLD_COREWINDOWS_STRUCTURE
+#endif
+#endif
+
+#ifdef OLD_COREWINDOWS_STRUCTURE
+#define D_MAGIC_COREWINDOW_ASSERT(window)
+#define WINDOW_TOPLEVEL(window) (0)
+#define DWOP_FOLLOW_BOUNDS (0x00400000)
+#define WINDOW_SUBWINDOWS_COUNT(window) (0)
+#else
+#define D_MAGIC_COREWINDOW_ASSERT(window) D_MAGIC_ASSERT( (window), CoreWindow )
+#define WINDOW_TOPLEVEL(window) ((window)->toplevel)
+#define WINDOW_SUBWINDOWS_COUNT(window) ((window)->subwindows.count)
+#endif
+
 
 
 #define SAWMAN_MAX_UPDATE_REGIONS        8
@@ -431,9 +452,14 @@ sawman_tier_by_layer( SaWMan             *sawman,
 
 int sawman_window_border( const SaWManWindow *sawwin );
 
+#ifdef OLD_COREWINDOWS_STRUCTURE
+#define SAWMAN_VISIBLE_WINDOW(w)     ((!((w)->caps & DWCAPS_INPUTONLY) || sawman_window_border((w)->window_data)) && \
+                                      (w)->config.opacity > 0 && !DFB_WINDOW_DESTROYED(w))
+#else
 #define SAWMAN_VISIBLE_WINDOW(w)     ((!((w)->caps & DWCAPS_INPUTONLY) || sawman_window_border((w)->window_data)) && \
                                       (w)->config.opacity > 0 && !DFB_WINDOW_DESTROYED(w) && \
                                       (!(w)->toplevel || (w)->toplevel->config.opacity > 0))
+#endif
 
 #define SAWMAN_TRANSLUCENT_WINDOW(w) ((w)->config.opacity < 0xff || \
                                       (w)->config.options & (DWOP_ALPHACHANNEL | DWOP_COLORKEYING) ||\
