@@ -296,10 +296,7 @@ dfb_layer_context_activate( CoreLayerContext *context )
 
      /* Iterate through all regions. */
      fusion_vector_foreach (region, index, context->regions) {
-          /* Activate each region. */
-          if (dfb_layer_region_activate( region ))
-               D_WARN( "could not activate region!" );
-
+          /* first reallocate.. */
           if (region->surface) {
                D_ASSERT( region->surface_lock.buffer == NULL );
 
@@ -307,6 +304,10 @@ dfb_layer_context_activate( CoreLayerContext *context )
                if (ret)
                     D_DERROR( ret, "Core/Layers: Reallocation of layer surface failed!\n" );
           }
+
+          /* ..then activate each region. */
+          if (dfb_layer_region_activate( region ))
+               D_WARN( "could not activate region!" );
      }
 
      context->active = true;

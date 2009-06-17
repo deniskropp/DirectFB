@@ -6856,6 +6856,10 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      if (!destination)
           return false;
 
+     /* Destination buffer may have been destroyed (suspended), i.e. by vt-switching */
+     if (destination->num_buffers == 0)
+          return false;
+
      /* Source may have been destroyed. */
      if (DFB_BLITTING_FUNCTION( accel ) && !source)
           return false;
