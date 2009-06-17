@@ -732,6 +732,11 @@ sawman_call( SaWMan       *sawman,
                if (!sawman->manager.callbacks.SwitchFocus)
                     return DFB_NOIMPL;
                break;
+
+          case SWMCID_LAYER_RECONFIG:
+               if (!sawman->manager.callbacks.LayerReconfig)
+                    return DFB_NOIMPL;
+               break;
      }
 
      /* Execute the call in the manager executable. */
@@ -2342,6 +2347,20 @@ sawman_process_updates( SaWMan              *sawman,
                     config.pixelformat = surface->config.format;
                     config.options     = options;
                     config.buffermode  = DLBM_FRONTONLY;
+
+                    sawman->callback.layer_reconfig.layer_id = tier->layer_id;
+                    sawman->callback.layer_reconfig.single   = (SaWManWindowHandle) single;
+                    sawman->callback.layer_reconfig.config   = config;
+
+                    switch (sawman_call( sawman, SWMCID_LAYER_RECONFIG, &sawman->callback.layer_reconfig )) {
+                         case DFB_OK:
+                              config = sawman->callback.layer_reconfig.config;
+                         case DFB_UNIMPLEMENTED:
+                              break;
+
+                         default:
+                              goto no_single;
+                    }
 
                     if (dfb_layer_context_test_configuration( tier->context, &config, NULL ) != DFB_OK)
                          goto no_single;

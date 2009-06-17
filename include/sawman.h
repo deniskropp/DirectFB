@@ -184,6 +184,13 @@ typedef struct {
      SaWManWindowConfig       request;
 } SaWManWindowReconfig;
 
+typedef struct {
+     DFBDisplayLayerID        layer_id;
+
+     SaWManWindowHandle       single;
+     DFBDisplayLayerConfig    config;
+} SaWManLayerReconfig;
+
 /*
  * Callbacks, to be used together with the SaWMan Manager interface
  */
@@ -240,6 +247,9 @@ typedef struct {
 
      DirectResult (*StackResized)   ( void               *context,
                                       const DFBDimension *size );
+
+     DirectResult (*LayerReconfig)  ( void                *context,
+                                      SaWManLayerReconfig *reconfig );
 
 } SaWManCallbacks;
 

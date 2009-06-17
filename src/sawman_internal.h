@@ -85,7 +85,8 @@ typedef enum {
      SWMCID_WINDOW_RECONFIG,
      SWMCID_WINDOW_RESTACK,
      SWMCID_STACK_RESIZED,
-     SWMCID_SWITCH_FOCUS
+     SWMCID_SWITCH_FOCUS,
+     SWMCID_LAYER_RECONFIG,
 } SaWManCallID;
 
 typedef enum {
@@ -163,6 +164,7 @@ struct __SaWMan_SaWMan {
           DFBDimension         size;
           SaWManWindowHandle   handle;
           SaWManWindowHandle   relative;
+          SaWManLayerReconfig  layer_reconfig;
      } callback;
 };
 
