@@ -605,15 +605,18 @@ restack_window( SaWMan                 *sawman,
                 int                     relation,
                 DFBWindowStackingClass  stacking )
 {
-     int           i, n;
+     int           i;
      int           old;
      int           index;
      int           priority;
      StackData    *data;
-     CoreWindow   *tmp;
      SaWManWindow *tmpsaw;
      CoreWindow   *window;
-     CoreWindow   *toplevel;
+
+#ifndef OLD_COREWINDOWS_STRUCTURE
+     int           n;
+     CoreWindow   *tmp;
+#endif
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
@@ -644,9 +647,11 @@ restack_window( SaWMan                 *sawman,
      /* Get the (new) priority. */
      priority = sawwin->priority;
 
+#ifndef OLD_COREWINDOWS_STRUCTURE
      /* In case of a sub window, the sub window vector is modified and the window reinserted */
-     toplevel = window->toplevel;
-     if (toplevel) {
+     if (window->toplevel) {
+          CoreWindow *toplevel = window->toplevel;
+          
           /* Get the old index. */
           old = fusion_vector_index_of( &toplevel->subwindows, window );
           D_ASSERT( old >= 0 );
@@ -736,7 +741,9 @@ restack_window( SaWMan                 *sawman,
                }
           }
      }
-     else {
+     else
+#endif
+     {
           /* Get the old index. */
           old = sawman_window_index( sawman, sawwin );
           D_ASSERT( old >= 0 );
@@ -759,7 +766,7 @@ restack_window( SaWMan                 *sawman,
                index += relation;
 
                if (relation > 0)
-                    index += window->subwindows.count;
+                    index += WINDOW_SUBWINDOWS_COUNT(window);
 
                if (index < 0)
                     index = 0;
@@ -812,7 +819,7 @@ restack_window( SaWMan                 *sawman,
                     D_MAGIC_ASSERT( other, SaWManWindow );
                     D_MAGIC_ASSERT( under, SaWManWindow );
 
-                    if (other->window->toplevel ||
+                    if (WINDOW_TOPLEVEL(other->window) ||
                         (other->window->config.options & DWOP_KEEP_ABOVE) ||
                         (under->window->config.options & DWOP_KEEP_UNDER))
                          index--;
@@ -829,7 +836,7 @@ restack_window( SaWMan                 *sawman,
                     D_MAGIC_ASSERT( other, SaWManWindow );
                     D_MAGIC_ASSERT( above, SaWManWindow );
 
-                    if (above->window->toplevel ||
+                    if (WINDOW_TOPLEVEL(above->window) ||
                         (above->window->config.options & DWOP_KEEP_ABOVE) ||
                         (other->window->config.options & DWOP_KEEP_UNDER))
                          index++;
@@ -851,12 +858,14 @@ restack_window( SaWMan                 *sawman,
 
           D_DEBUG_AT( SaWMan_Stacking, "  -> now index %d\n", fusion_vector_index_of( &sawman->layout, sawwin ) );
 
+#ifndef OLD_COREWINDOWS_STRUCTURE
           /* Reinsert sub windows to ensure they're in order (above top level). */
           fusion_vector_foreach (tmp, i, window->subwindows) {
                sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
                sawman_insert_window( sawman, tmp->window_data, NULL, false );
                sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
           }
+#endif
 
           /* Reinsert associated windows to ensure above/under rules apply. */
           fusion_vector_foreach (tmpsaw, i, sawwin->children) {
@@ -864,13 +873,15 @@ restack_window( SaWMan                 *sawman,
                     sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
                     sawman_insert_window( sawman, tmpsaw, NULL, false );
                     sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
-
+     
+#ifndef OLD_COREWINDOWS_STRUCTURE
                     /* Reinsert sub windows to ensure they're in order (above top level). */
                     fusion_vector_foreach (tmp, n, tmpsaw->window->subwindows) {
                          sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
                          sawman_insert_window( sawman, tmp->window_data, NULL, false );
                          sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
                     }
+#endif
                }
           }
      }
@@ -2065,11 +2076,13 @@ wm_preconfigure_window( CoreWindowStack *stack,
                return DFB_IDNOTFOUND;
           }
 
+#ifndef OLD_COREWINDOWS_STRUCTURE
           if (parent->window->toplevel != window->toplevel) {
                D_ERROR( "SaWMan/WM: Can't associate windows with different toplevel!\n" );
                sawman_unlock( sawman );
                return DFB_INVARG;
           }
+#endif
 
           D_DEBUG_AT( SaWMan_WM, "  -> parent window %p\n", parent );
 

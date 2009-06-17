@@ -133,8 +133,10 @@ dump_window( SaWMan       *sawman,
                break;
      }
 
+#ifndef OLD_COREWINDOWS_STRUCTURE
      if (window->caps & DWCAPS_SUBWINDOW)
           printf( "SUBWINDOW(%2d) ", window->toplevel_id );
+#endif
 
      if (window->caps & DWCAPS_ALPHACHANNEL)
           printf( "ALPHACHANNEL  " );
