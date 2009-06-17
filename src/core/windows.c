@@ -442,11 +442,11 @@ dfb_window_create( CoreWindowStack             *stack,
      /* Create the window object. */
      window = dfb_core_create_window( layer->core );
 
-     window->id        = ++stack->id_pool;
-     window->caps      = caps;
-     window->stack     = stack;
-     window->config    = config;
-     window->parent_id = (desc->flags & DWDESC_PARENT) ? desc->parent_id : 0;
+     window->id                 = ++stack->id_pool;
+     window->caps               = caps;
+     window->stack              = stack;
+     window->config             = config;
+     window->config.association = (desc->flags & DWDESC_PARENT) ? desc->parent_id : 0;
 
      /* Set toplevel window ID (new sub window feature) */
      window->toplevel_id = toplevel_id;

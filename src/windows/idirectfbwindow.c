@@ -1206,7 +1206,25 @@ IDirectFBWindow_SetRotation(IDirectFBWindow *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      return dfb_window_set_rotation( data->window, rotation % 360 );     
- }
+}
+
+static DFBResult
+IDirectFBWindow_SetAssociation( IDirectFBWindow *thiz,
+                                DFBWindowID      window_id )
+{
+     CoreWindowConfig config;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     config.association = window_id;
+
+     return dfb_window_set_config( data->window, &config, CWCF_ASSOCIATION );
+}
 
 DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
@@ -1277,6 +1295,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->SetSrcGeometry = IDirectFBWindow_SetSrcGeometry;
      thiz->SetDstGeometry = IDirectFBWindow_SetDstGeometry;
      thiz->SetRotation = IDirectFBWindow_SetRotation;
+     thiz->SetAssociation = IDirectFBWindow_SetAssociation;
 
      return DFB_OK;
 }

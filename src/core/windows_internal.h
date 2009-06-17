@@ -101,8 +101,6 @@ struct __DFB_CoreWindow {
      DirectLink             *bound_windows;  /* list of bound windows */
      CoreWindow             *boundto;        /* window to which this window is bound (window binding) */
 
-     DFBWindowID             parent_id;      /* window id of parent window (window association) */
-
      DFBWindowID             toplevel_id;    /* in case of a sub window toplevel_id != 0 */
      CoreWindow             *toplevel;       /* for top level windows this will be NULL */
      FusionVector            subwindows;     /* list of sub windows (only valid for top level windows) */

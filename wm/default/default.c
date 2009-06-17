@@ -3379,7 +3379,7 @@ wm_preconfigure_window( CoreWindowStack *stack,
                CoreWindow      *window,
                void            *window_data )
 {
-     if (window->parent_id)
+     if (window->config.association)
           return DFB_UNIMPLEMENTED;
 
      return DFB_OK;

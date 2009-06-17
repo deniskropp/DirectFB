@@ -53,6 +53,7 @@ typedef enum {
 
      CWCF_OPTIONS       = 0x00000010,
      CWCF_EVENTS        = 0x00000020,
+     CWCF_ASSOCIATION   = 0x00000040,
 
      CWCF_COLOR_KEY     = 0x00000100,
      CWCF_OPAQUE        = 0x00000200,
@@ -64,7 +65,7 @@ typedef enum {
 
      CWCF_ROTATION      = 0x00040000,
 
-     CWCF_ALL           = 0x0007133F
+     CWCF_ALL           = 0x0007137F
 } CoreWindowConfigFlags;
 
 struct __DFB_CoreWindowConfig {
@@ -84,6 +85,8 @@ struct __DFB_CoreWindowConfig {
      DFBWindowGeometry        dst_geometry;   /* advanced destination geometry */
 
      int                      rotation;
+
+     DFBWindowID              association;
 };
 
 

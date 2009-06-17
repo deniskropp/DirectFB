@@ -541,7 +541,7 @@ parse_command_line( int argc, char *argv[] )
                if (!parse_id( argv[n], &m_desc_top.parent_id ))
                     return false;
 
-               m_desc_top.flags   |= DWDESC_PARENT;
+//               m_desc_top.flags   |= DWDESC_PARENT;
                m_desc_top.options |= DWOP_FOLLOW_BOUNDS;
 
                continue;
@@ -628,7 +628,7 @@ parse_command_line( int argc, char *argv[] )
                if (!parse_id( argv[n], &m_desc_sub.parent_id ))
                     return false;
 
-               m_desc_sub.flags   |= DWDESC_PARENT;
+//               m_desc_sub.flags   |= DWDESC_PARENT;
                m_desc_sub.options |= DWOP_FOLLOW_BOUNDS;
 
                continue;
@@ -748,6 +748,15 @@ Test_CreateWindow( IDirectFBDisplayLayer *layer, void *arg )
      _T( window->GetID( window, &window_id ) );
 
      /*
+      * Set association of new window
+      */
+     if (m_desc_top.parent_id) {
+          SHOW_INFO( "  - SetAssociation( %u )...", m_desc_top.parent_id );
+
+          _T( window->SetAssociation( window, m_desc_top.parent_id ) );
+     }
+
+     /*
       * Set top level window ID (user hasn't specified one)
       */
      m_toplevel_id = window_id;
@@ -814,6 +823,15 @@ Test_CreateSubWindow( IDirectFBDisplayLayer *layer, void *arg )
      SHOW_INFO( "  - GetID()..." );
 
      _T( window->GetID( window, &window_id ) );
+
+     /*
+      * Set association of new window
+      */
+     if (m_desc_sub.parent_id) {
+          SHOW_INFO( "  - SetAssociation( %u )...", m_desc_sub.parent_id );
+
+          _T( window->SetAssociation( window, m_desc_sub.parent_id ) );
+     }
 
      /*
       * Set top level window ID (user hasn't specified one)
