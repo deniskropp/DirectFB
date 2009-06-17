@@ -864,7 +864,7 @@ restack_window( SaWMan                 *sawman,
                     sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
                     sawman_insert_window( sawman, tmpsaw, NULL, false );
                     sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
-     
+
                     /* Reinsert sub windows to ensure they're in order (above top level). */
                     fusion_vector_foreach (tmp, n, tmpsaw->window->subwindows) {
                          sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
@@ -1706,8 +1706,8 @@ wm_process_input( CoreWindowStack     *stack,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     D_DEBUG_AT( SaWMan_WM, "Processing input event (device %d, type 0x%08x, flags 0x%08x)...\n",
-                   event->device_id, event->type, event->flags );
+     D_DEBUG_AT( SaWMan_WM, "%s( device %d, type 0x%08x, flags 0x%08x )...\n",
+                 __FUNCTION__, event->device_id, event->type, event->flags );
 
      if (stack->context->layer_id != DLID_PRIMARY)
           return DFB_OK;
@@ -2021,12 +2021,14 @@ wm_preconfigure_window( CoreWindowStack *stack,
 
      SaWManWindowInfo *info;
 
+     D_DEBUG_AT( SaWMan_WM, "%s( %p, %p, %p, %p, %p )\n", __FUNCTION__,
+                 stack, wm_data, stack_data, window, window_data );
+
      D_ASSERT( window != NULL );
      D_ASSERT( wm_data != NULL );
      D_ASSERT( window_data != NULL );
 
      sawman = wmdata->sawman;
-
      D_MAGIC_ASSERT( sawman, SaWMan );
 
      /* Lock SaWMan. */
@@ -2044,19 +2046,21 @@ wm_preconfigure_window( CoreWindowStack *stack,
      window->id = ++sawman->window_ids;
 
      /* Lookup parent window. */
-     if (window->parent_id) {
+     if (window->config.association) {
           SaWManWindow *parent = NULL;
+
+          D_DEBUG_AT( SaWMan_WM, "  -> parent win id %u\n", window->config.association );
 
           direct_list_foreach (parent, sawman->windows) {
                D_MAGIC_ASSERT( parent, SaWManWindow );
                D_ASSERT( parent->window != NULL );
 
-               if (parent->id == window->parent_id)
+               if (parent->id == window->config.association)
                     break;
           }
 
           if (!parent) {
-               D_ERROR( "SaWMan/WM: Can't find parent window with ID %d!\n", window->parent_id );
+               D_ERROR( "SaWMan/WM: Can't find parent window with ID %d!\n", window->config.association );
                sawman_unlock( sawman );
                return DFB_IDNOTFOUND;
           }
@@ -2067,12 +2071,14 @@ wm_preconfigure_window( CoreWindowStack *stack,
                return DFB_INVARG;
           }
 
+          D_DEBUG_AT( SaWMan_WM, "  -> parent window %p\n", parent );
+
           sawwin->parent = parent;
      }
 
      info = &sawman->callback.info;
      SAWMANWINDOWCONFIG_COPY( &info->config, &window->config )
- 
+
      switch (ret = sawman_call( sawman, SWMCID_WINDOW_PRECONFIG, &info->config )) {
           case DFB_OK:
                break;
@@ -2251,7 +2257,7 @@ wm_add_window( CoreWindowStack *stack,
      info->handle = (SaWManWindowHandle)sawwin;
      info->caps   = sawwin->caps;
      SAWMANWINDOWCONFIG_COPY( &info->config, &window->config )
-     
+
      switch (ret = sawman_call( sawman, SWMCID_WINDOW_ADDED, info )) {
           case DFB_OK:
                break;
@@ -2271,11 +2277,11 @@ wm_add_window( CoreWindowStack *stack,
 
           D_MAGIC_ASSERT( parent, SaWManWindow );
           D_ASSERT( parent->window != NULL );
-          D_ASSERT( parent->id == window->parent_id );
+          D_ASSERT( parent->id == window->config.association );
 
           ret = dfb_window_link( &sawwin->parent_window, parent->window );
           if (ret) {
-               D_DERROR( ret, "SaWMan/WM: Can't link parent window with ID %d!\n", window->parent_id );
+               D_DERROR( ret, "SaWMan/WM: Can't link parent window with ID %d!\n", window->config.association );
                sawman_unlock( sawman );
                return ret;
           }
@@ -2351,7 +2357,7 @@ wm_remove_window( CoreWindowStack *stack,
      info->handle = (SaWManWindowHandle)sawwin;
      info->caps   = sawwin->caps;
      SAWMANWINDOWCONFIG_COPY( &info->config, &window->config )
-     
+
      switch (ret = sawman_call( sawman, SWMCID_WINDOW_REMOVED, info )) {
           case DFB_NOIMPL:
                ret = DFB_OK;
@@ -2505,6 +2511,7 @@ wm_set_window_config( CoreWindow             *window,
           | (flags & CWCF_EVENTS       ? SWMCF_EVENTS       : 0)
           | (flags & CWCF_COLOR_KEY    ? SWMCF_COLOR_KEY    : 0)
           | (flags & CWCF_OPAQUE       ? SWMCF_OPAQUE       : 0)
+          | (flags & CWCF_ASSOCIATION  ? SWMCF_ASSOCIATION  : 0)
           | (flags & CWCF_SRC_GEOMETRY ? SWMCF_SRC_GEOMETRY : 0)
           | (flags & CWCF_DST_GEOMETRY ? SWMCF_DST_GEOMETRY : 0);
 
@@ -2520,6 +2527,7 @@ wm_set_window_config( CoreWindow             *window,
                                    | CWCF_EVENTS
                                    | CWCF_COLOR_KEY
                                    | CWCF_OPAQUE
+                                   | CWCF_ASSOCIATION
                                    | CWCF_KEY_SELECTION
                                    | CWCF_SRC_GEOMETRY
                                    | CWCF_DST_GEOMETRY ) )
@@ -2532,6 +2540,7 @@ wm_set_window_config( CoreWindow             *window,
                     | (f & SWMCF_COLOR_KEY    ? CWCF_COLOR_KEY    : 0)
                     | (f & SWMCF_KEY_SELECTION? CWCF_KEY_SELECTION: 0)
                     | (f & SWMCF_OPAQUE       ? CWCF_OPAQUE       : 0)
+                    | (f & SWMCF_ASSOCIATION  ? CWCF_ASSOCIATION  : 0)
                     | (f & SWMCF_SRC_GEOMETRY ? CWCF_SRC_GEOMETRY : 0)
                     | (f & SWMCF_DST_GEOMETRY ? CWCF_DST_GEOMETRY : 0);
                }
@@ -2642,7 +2651,7 @@ wm_set_window_config( CoreWindow             *window,
           if (config->key_selection == DWKS_LIST) {
                unsigned int             bytes = sizeof(DFBInputDeviceKeySymbol) * config->num_keys;
                DFBInputDeviceKeySymbol *keys  = config->keys;
-     
+
                D_ASSERT( config->keys != NULL );
                D_ASSERT( config->num_keys > 0 );
 
@@ -2665,10 +2674,10 @@ wm_set_window_config( CoreWindow             *window,
 
                /* sort always, also when buffer was reused */
                qsort( keys, config->num_keys, sizeof(DFBInputDeviceKeySymbol), keys_compare );
-     
+
                if (window->config.keys)
                     SHFREE( sawwin->shmpool, window->config.keys );
-     
+
                window->config.keys     = keys;
                window->config.num_keys = config->num_keys;
           }
@@ -2688,8 +2697,82 @@ wm_set_window_config( CoreWindow             *window,
      if (flags & CWCF_DST_GEOMETRY)
           window->config.dst_geometry = config->dst_geometry;
 
+     if (flags & CWCF_ASSOCIATION && window->config.association != config->association) {
+          SaWManWindow *parent = NULL;
+
+          /* Dissociate first */
+          if (sawwin->parent_window) {
+               int index;
+
+               dfb_window_unlink( &sawwin->parent_window );
+
+               index = fusion_vector_index_of( &parent->children, sawwin );
+               D_ASSERT( index >= 0 );
+               D_ASSERT( index < parent->children.count );
+
+               fusion_vector_remove( &parent->children, index );
+
+               sawwin->parent = NULL;
+
+               window->config.association = 0;
+          }
+
+
+
+          /* Lookup new parent window. */
+          if (config->association) {
+               D_DEBUG_AT( SaWMan_WM, "  -> new parent win id %u\n", config->association );
+
+               direct_list_foreach (parent, sawman->windows) {
+                    D_MAGIC_ASSERT( parent, SaWManWindow );
+                    D_ASSERT( parent->window != NULL );
+
+                    if (parent->id == config->association)
+                         break;
+               }
+
+               if (!parent) {
+                    D_ERROR( "SaWMan/WM: Can't find parent window with ID %d!\n", config->association );
+                    sawman_unlock( sawman );
+                    return DFB_IDNOTFOUND;
+               }
+
+               D_MAGIC_ASSERT( parent, SaWManWindow );
+               D_ASSERT( parent->window != NULL );
+
+               if (parent->window->toplevel != window->toplevel) {
+                    D_ERROR( "SaWMan/WM: Can't associate windows with different toplevel!\n" );
+                    sawman_unlock( sawman );
+                    return DFB_INVARG;
+               }
+
+               D_DEBUG_AT( SaWMan_WM, "  -> parent window %p\n", parent );
+
+
+               ret = dfb_window_link( &sawwin->parent_window, parent->window );
+               if (ret) {
+                    D_DERROR( ret, "SaWMan/WM: Can't link parent window with ID %d!\n", config->association );
+                    sawman_unlock( sawman );
+                    return ret;
+               }
+
+               ret = fusion_vector_add( &parent->children, sawwin );
+               if (ret) {
+                    dfb_window_unlink( &sawwin->parent_window );
+                    sawman_unlock( sawman );
+                    return ret;
+               }
+
+
+               sawwin->parent = parent;
+
+               /* Write back new association */
+               window->config.association = config->association;
+          }
+     }
+
      /* Update geometry? */
-     if (flags & (CWCF_POSITION | CWCF_SIZE | CWCF_SRC_GEOMETRY | CWCF_DST_GEOMETRY))
+     if (flags & (CWCF_POSITION | CWCF_SIZE | CWCF_SRC_GEOMETRY | CWCF_DST_GEOMETRY | CWCF_ASSOCIATION))
           sawman_update_geometry( sawwin );
 
      sawman_process_updates( sawman, DSFLIP_NONE );
@@ -2714,7 +2797,7 @@ wm_restack_window( CoreWindow             *window,
      SaWManTier      *tier;
      CoreWindowStack *stack;
      StackData       *data;
-     
+
      SaWManWindowRelation r;
 
      D_ASSERT( window != NULL );

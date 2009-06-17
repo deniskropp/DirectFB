@@ -125,10 +125,12 @@ typedef enum {
 
      SWMCF_KEY_SELECTION = 0x00001000,
 
+     SWMCF_ASSOCIATION   = 0x00002000,
+
      SWMCF_SRC_GEOMETRY  = 0x00010000,
      SWMCF_DST_GEOMETRY  = 0x00020000,
 
-     SWMCF_ALL           = 0x0003033F
+     SWMCF_ALL           = 0x0003333F
 } SaWManWindowConfigFlags;
 
 typedef struct {
@@ -145,6 +147,8 @@ typedef struct {
      DFBInputDeviceKeySymbol *keys;           /* list of keys for DWKS_LIST */
      unsigned int             num_keys;       /* number of entries in key array */
 
+     DFBWindowID              association;    /* ID of window which this is associated to */
+
      DFBWindowGeometry        src_geometry;   /* advanced source geometry */
      DFBWindowGeometry        dst_geometry;   /* advanced destination geometry */
 } SaWManWindowConfig;
@@ -157,6 +161,7 @@ typedef struct {
      (a)->events       = (b)->events;       \
      (a)->color_key    = (b)->color_key;    \
      (a)->opaque       = (b)->opaque;       \
+     (a)->association  = (b)->association;  \
      (a)->src_geometry = (b)->src_geometry; \
      (a)->dst_geometry = (b)->dst_geometry; }
 

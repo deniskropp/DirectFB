@@ -404,7 +404,7 @@ add_tier( SaWMan                *sawman,
      tier->layer_id = layer_id;
      tier->classes  = classes;
 
-     dfb_updates_init( &tier->updates, tier->update_regions, SAWMAN_MAX_UPDATE_REGIONS ); 
+     dfb_updates_init( &tier->updates, tier->update_regions, SAWMAN_MAX_UPDATE_REGIONS );
 
      D_MAGIC_SET( tier, SaWManTier );
 
@@ -1409,7 +1409,7 @@ apply_geometry( const DFBWindowGeometry *geometry,
 
      D_DEBUG_AT( SaWMan_Geometry, " => %d,%d-%dx%d\n", DFB_RECTANGLE_VALS( ret_rect ) );
 }
-                
+
 DirectResult
 sawman_update_geometry( SaWManWindow *sawwin )
 {
@@ -1674,13 +1674,13 @@ wind_of_change( SaWMan              *sawman,
           D_ASSERT( changed >= 0 );
           D_ASSERT( current >= changed );
           D_ASSERT( current < fusion_vector_size( &sawman->layout ) );
-     
+
           sawwin = fusion_vector_at( &sawman->layout, current );
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
-     
+
           window = sawwin->window;
           D_MAGIC_ASSERT( window, CoreWindow );
-     
+
           options = window->config.options;
 
           D_DEBUG_AT( SaWMan_Update, "--[%p] %4d,%4d-%4dx%4d : %d->%d\n",
@@ -2070,17 +2070,17 @@ repaint_tier( SaWMan              *sawman,
      {
           DFBResult          ret;
           CoreSurfaceBuffer *buffer;
-     
+
           D_MAGIC_ASSERT( surface, CoreSurface );
-     
+
           if (fusion_skirmish_prevail( &surface->lock ))
                return;
-     
+
           buffer = dfb_surface_get_buffer( surface, CSBR_FRONT );
           D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-     
+
           ret = dfb_surface_buffer_dump( buffer, "/", "tier" );
-     
+
           fusion_skirmish_dismiss( &surface->lock );
      }
 #endif
@@ -2394,7 +2394,7 @@ sawman_process_updates( SaWMan              *sawman,
                }
                else
                     dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
-  
+
                /* Update color key */
                if (!DFB_COLORKEY_EQUAL( single_key, tier->single_key )) {
                     D_DEBUG_AT( SaWMan_Auto, "  -> Changing single color key.\n" );
