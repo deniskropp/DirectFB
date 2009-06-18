@@ -1683,7 +1683,7 @@ wind_of_change( SaWMan              *sawman,
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
           window = sawwin->window;
-          D_MAGIC_ASSERT( window, CoreWindow );
+          D_MAGIC_COREWINDOW_ASSERT( window );
 
           options = window->config.options;
 
