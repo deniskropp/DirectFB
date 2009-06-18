@@ -415,6 +415,9 @@ unique_window_set_config( UniqueWindow           *window,
      if (flags & CWCF_EVENTS)
           window->events = config->events;
 
+     if (flags & CWCF_COLOR)
+          return DFB_UNSUPPORTED;
+
      if (flags & CWCF_COLOR_KEY)
           window->color_key = config->color_key;
 

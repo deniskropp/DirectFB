@@ -73,6 +73,9 @@ static DFBWindowDescription m_desc_sub = {
      .height        = 120,
 };
 
+static DFBColor         m_topcolor;
+static DFBColor         m_subcolor;
+
 static IDirectFBWindow *m_toplevel     = NULL;
 static DFBWindowID      m_toplevel_id  = 0;
 
@@ -293,6 +296,7 @@ print_usage (const char *prg_name)
      fprintf (stderr, "  -s, --size          <width>x<height>  Size         (%dx%d)\n", m_desc_top.width, m_desc_top.height);
      fprintf (stderr, "  -f, --format        <pixelformat>     Pixel Format (%s)\n",    dfb_pixelformat_name(m_desc_top.pixelformat));
      fprintf (stderr, "  -c, --caps          <window_caps>     Capabilities (NONE)\n");
+     fprintf (stderr, "  -l, --color         <aarrggbb>        Fixed Color  (NONE)\n");
      fprintf (stderr, "  -o, --option        <window_option>   Options      (NONE)\n");
      fprintf (stderr, "  -a, --associate     <parent_id>       Association  (N/A)\n");
      fprintf (stderr, "\n");
@@ -302,6 +306,7 @@ print_usage (const char *prg_name)
      fprintf (stderr, "  -S, --sub-size      <width>x<height>  Size         (%dx%d)\n", m_desc_sub.width, m_desc_sub.height);
      fprintf (stderr, "  -F, --sub-format    <pixelformat>     Format       (%s)\n",    dfb_pixelformat_name(m_desc_sub.pixelformat));
      fprintf (stderr, "  -C, --sub-caps      <window_caps>     Capabilities (NONE)\n");
+     fprintf (stderr, "  -L, --sub-color     <aarrggbb>        Fixed Color  (NONE)\n");
      fprintf (stderr, "  -O, --sub-option    <window_option>   Options      (NONE)\n");
      fprintf (stderr, "  -A, --sub-associate <parent_id>       Association  (N/A)\n");
      fprintf (stderr, "\n");
@@ -393,6 +398,30 @@ parse_caps( const char *arg, DFBWindowCapabilities *_c )
      fprintf (stderr, "\nInvalid caps specified!\n\n" );
 
      return DFB_FALSE;
+}
+
+static DFBBoolean
+parse_color( const char *arg, DFBColor *_c )
+{
+     long int  l   = 0;
+     char     *end = 0;
+     DFBColor  c;
+
+     l = strtol( arg, &end, 16 );
+
+     if( strlen(arg)>8 || (end && *end!=0) ) {
+          fprintf (stderr, "\nInvalid color specified!\n\n" );
+          return DFB_FALSE;
+     }
+
+     c.a = (l >> 24)       ;
+     c.r = (l >> 16) & 0xff;
+     c.g = (l >>  8) & 0xff;
+     c.b = (l      ) & 0xff;
+     
+     *_c = c;
+
+     return DFB_TRUE;
 }
 
 static DFBBoolean
@@ -520,6 +549,18 @@ parse_command_line( int argc, char *argv[] )
                continue;
           }
 
+          if (strcmp (arg, "-l") == 0 || strcmp (arg, "--color") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return false;
+               }
+
+               if (!parse_color( argv[n], &m_topcolor ))
+                    return false;
+
+               continue;
+          }
+
           if (strcmp (arg, "-o") == 0 || strcmp (arg, "--option") == 0) {
                if (++n == argc) {
                     print_usage (argv[0]);
@@ -602,6 +643,18 @@ parse_command_line( int argc, char *argv[] )
                }
 
                if (!parse_caps( argv[n], &m_desc_sub.caps ))
+                    return false;
+
+               continue;
+          }
+
+          if (strcmp (arg, "-L") == 0 || strcmp (arg, "--sub-color") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return false;
+               }
+
+               if (!parse_color( argv[n], &m_subcolor ))
                     return false;
 
                continue;
@@ -713,10 +766,18 @@ Test_CreateWindow( IDirectFBDisplayLayer *layer, void *arg )
 
      _T( layer->CreateWindow( layer, &m_desc_top, &window ) );
 
+     if (m_desc_top.caps & DWCAPS_COLOR) {
+          DFBColor c = m_topcolor;
+
+          SHOW_INFO( "  - SetColor( 0x%02x, 0x%02x, 0x%02x, 0x%02x )...", c.r, c.g, c.b, c.a );
+
+          _T( window->SetColor( window, c.r, c.g, c.b, c.a ) );
+     }
+
      /*
-      * Query its surface and clear it with light blue (if not input only)
+      * Query its surface and clear it with light blue (if not input or color only)
       */
-     if (!(m_desc_top.caps & DWCAPS_INPUTONLY)) {
+     if (!(m_desc_top.caps & (DWCAPS_INPUTONLY | DWCAPS_COLOR) )) {
           SHOW_INFO( "  - GetSurface()..." );
 
           _T( window->GetSurface( window, &surface ) );
@@ -775,7 +836,6 @@ Test_CreateWindow( IDirectFBDisplayLayer *layer, void *arg )
 static DFBResult
 Test_CreateSubWindow( IDirectFBDisplayLayer *layer, void *arg )
 {
-     IDirectFBSurface     *surface;
      IDirectFBWindow      *window;
      DFBWindowID           window_id;
      DFBDimension          size = { m_desc_sub.width, m_desc_sub.height };
@@ -794,21 +854,35 @@ Test_CreateSubWindow( IDirectFBDisplayLayer *layer, void *arg )
 
      _T( layer->CreateWindow( layer, &m_desc_sub, &window ) );
 
+     if (m_desc_sub.caps & DWCAPS_COLOR) {
+          DFBColor c = m_subcolor;
+
+          SHOW_INFO( "  - SetColor( 0x%02x, 0x%02x, 0x%02x, 0x%02x )...", c.r, c.g, c.b, c.a );
+
+          _T( window->SetColor( window, c.r, c.g, c.b, c.a ) );
+     }
+
      /*
-      * Query its surface and clear it with light gray
+      * Query its surface and clear it with light gray (if not input or color only)
       */
-     SHOW_INFO( "  - GetSurface()..." );
+     if (!(m_desc_sub.caps & (DWCAPS_INPUTONLY | DWCAPS_COLOR) )) {
+          IDirectFBSurface     *surface;
 
-     _T( window->GetSurface( window, &surface ) );
+          SHOW_INFO( "  - GetSurface()..." );
 
-     SHOW_INFO( "  - Clear( 0xC0, 0xC0, 0xC0, 0xFF )..." );
+          _T( window->GetSurface( window, &surface ) );
 
-     _T( surface->Clear( surface, 0xC0, 0xC0, 0xC0, 0xFF ) );
+          SHOW_INFO( "  - Clear( 0xC0, 0xC0, 0xC0, 0xFF )..." );
 
-     _T( surface->DrawRectangle( surface, 0, 0, size.w, size.h ) );
+          _T( surface->Clear( surface, 0xC0, 0xC0, 0xC0, 0xFF ) );
 
-     _T( surface->FillRectangle( surface, size.w / 2,          1,          1, size.h - 2 ) );
-     _T( surface->FillRectangle( surface,          1, size.h / 2, size.w - 2,          1 ) );
+          _T( surface->DrawRectangle( surface, 0, 0, size.w, size.h ) );
+
+          _T( surface->FillRectangle( surface, size.w / 2,          1,          1, size.h - 2 ) );
+          _T( surface->FillRectangle( surface,          1, size.h / 2, size.w - 2,          1 ) );
+          
+          surface->Release( surface );
+     }
 
      /*
       * Show the window
@@ -842,8 +916,6 @@ Test_CreateSubWindow( IDirectFBDisplayLayer *layer, void *arg )
      SHOW_RESULT( "...CreateWindow( %d,%d - %dx%d %s + toplevel ID %u ) done. => Sub Window ID %u",
                   m_desc_sub.posx, m_desc_sub.posy, m_desc_sub.width, m_desc_sub.height,
                   dfb_pixelformat_name( m_desc_sub.pixelformat ), m_desc_sub.toplevel_id, window_id );
-
-     surface->Release( surface );
 
      return DFB_OK;
 }

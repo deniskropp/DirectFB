@@ -345,7 +345,7 @@ IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
      if (!surface)
           return DFB_INVARG;
 
-     if (data->window->caps & DWCAPS_INPUTONLY)
+     if (data->window->caps & (DWCAPS_INPUTONLY | DWCAPS_COLOR))
           return DFB_UNSUPPORTED;
 
      if (!data->surface) {
@@ -483,6 +483,30 @@ IDirectFBWindow_GetOptions( IDirectFBWindow  *thiz,
           return DFB_INVARG;
 
      *ret_options = data->window->config.options;
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBWindow_SetColor( IDirectFBWindow *thiz,
+                          u8               r,
+                          u8               g,
+                          u8               b,
+                          u8               a )
+{
+     DFBColor color = { a: a, r: r, g: g, b: b };
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     if (!(data->window->caps & DWCAPS_COLOR))
+          return DFB_UNSUPPORTED;
+
+     dfb_window_set_color( data->window, color );
 
      return DFB_OK;
 }
@@ -1260,6 +1284,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->RemoveProperty = IDirectFBWindow_RemoveProperty;
      thiz->SetOptions = IDirectFBWindow_SetOptions;
      thiz->GetOptions = IDirectFBWindow_GetOptions;
+     thiz->SetColor = IDirectFBWindow_SetColor;
      thiz->SetColorKey = IDirectFBWindow_SetColorKey;
      thiz->SetColorKeyIndex = IDirectFBWindow_SetColorKeyIndex;
      thiz->SetOpaqueRegion = IDirectFBWindow_SetOpaqueRegion;

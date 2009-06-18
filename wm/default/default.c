@@ -3568,6 +3568,9 @@ wm_set_window_config( CoreWindow             *window,
      if (flags & CWCF_EVENTS)
           window->config.events = config->events;
 
+     if (flags & CWCF_COLOR)
+          return DFB_UNSUPPORTED;
+
      if (flags & CWCF_COLOR_KEY)
           window->config.color_key = config->color_key;
 
