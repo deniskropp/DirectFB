@@ -122,6 +122,7 @@ typedef enum {
 
      SWMCF_COLOR_KEY     = 0x00000100,
      SWMCF_OPAQUE        = 0x00000200,
+     SWMCF_COLOR         = 0x00000400,
 
      SWMCF_KEY_SELECTION = 0x00001000,
 
@@ -130,7 +131,7 @@ typedef enum {
      SWMCF_SRC_GEOMETRY  = 0x00010000,
      SWMCF_DST_GEOMETRY  = 0x00020000,
 
-     SWMCF_ALL           = 0x0003333F
+     SWMCF_ALL           = 0x0003373F
 } SaWManWindowConfigFlags;
 
 typedef struct {
@@ -140,6 +141,7 @@ typedef struct {
      DFBWindowOptions         options;        /* flags for appearance/behaviour */
 
      DFBWindowEventType       events;         /* mask of enabled events */
+     DFBColor                 color;          /* constant color (no surface needed) */
      u32                      color_key;      /* transparent pixel */
      DFBRegion                opaque;         /* region of the window forced to be opaque */
 
@@ -159,6 +161,7 @@ typedef struct {
      (a)->stacking     = (b)->stacking;     \
      (a)->options      = (b)->options;      \
      (a)->events       = (b)->events;       \
+     (a)->color        = (b)->color;        \
      (a)->color_key    = (b)->color_key;    \
      (a)->opaque       = (b)->opaque;       \
      (a)->association  = (b)->association;  \

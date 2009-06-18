@@ -2522,6 +2522,7 @@ wm_set_window_config( CoreWindow             *window,
           | (flags & CWCF_STACKING     ? SWMCF_STACKING     : 0)
           | (flags & CWCF_OPTIONS      ? SWMCF_OPTIONS      : 0)
           | (flags & CWCF_EVENTS       ? SWMCF_EVENTS       : 0)
+          | (flags & CWCF_COLOR        ? SWMCF_COLOR        : 0)
           | (flags & CWCF_COLOR_KEY    ? SWMCF_COLOR_KEY    : 0)
           | (flags & CWCF_OPAQUE       ? SWMCF_OPAQUE       : 0)
           | (flags & CWCF_ASSOCIATION  ? SWMCF_ASSOCIATION  : 0)
@@ -2538,6 +2539,7 @@ wm_set_window_config( CoreWindow             *window,
                                    | CWCF_STACKING
                                    | CWCF_OPTIONS
                                    | CWCF_EVENTS
+                                   | CWCF_COLOR
                                    | CWCF_COLOR_KEY
                                    | CWCF_OPAQUE
                                    | CWCF_ASSOCIATION
@@ -2550,6 +2552,7 @@ wm_set_window_config( CoreWindow             *window,
                     | (f & SWMCF_STACKING     ? CWCF_STACKING     : 0)
                     | (f & SWMCF_OPTIONS      ? CWCF_OPTIONS      : 0)
                     | (f & SWMCF_EVENTS       ? CWCF_EVENTS       : 0)
+                    | (f & SWMCF_COLOR        ? CWCF_COLOR        : 0)
                     | (f & SWMCF_COLOR_KEY    ? CWCF_COLOR_KEY    : 0)
                     | (f & SWMCF_KEY_SELECTION? CWCF_KEY_SELECTION: 0)
                     | (f & SWMCF_OPAQUE       ? CWCF_OPAQUE       : 0)
@@ -2611,6 +2614,9 @@ wm_set_window_config( CoreWindow             *window,
 
      if (flags & CWCF_EVENTS)
           window->config.events = config->events;
+
+     if (flags & CWCF_COLOR)
+          window->config.color = config->color;
 
      if (flags & CWCF_COLOR_KEY)
           window->config.color_key = config->color_key;

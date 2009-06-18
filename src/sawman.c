@@ -1524,7 +1524,7 @@ sawman_update_geometry( SaWManWindow *sawwin )
      clip.x1 = 0;
      clip.y1 = 0;
 
-     if (window->caps & DWCAPS_INPUTONLY) {
+     if (window->caps & (DWCAPS_INPUTONLY | DWCAPS_COLOR)) {
           clip.x2 = sawwin->bounds.w - 1;
           clip.y2 = sawwin->bounds.h - 1;
      }
@@ -2112,7 +2112,7 @@ get_single_window( SaWMan     *sawman,
           D_MAGIC_COREWINDOW_ASSERT( window );
 
           if (SAWMAN_VISIBLE_WINDOW(window) && (tier->classes & (1 << window->config.stacking))) {
-               if (single || (window->caps & DWCAPS_INPUTONLY))
+               if (single || (window->caps & (DWCAPS_INPUTONLY | DWCAPS_COLOR) ))
                     return NULL;
 
                single = sawwin;

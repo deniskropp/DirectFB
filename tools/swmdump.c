@@ -92,6 +92,8 @@ dump_window( SaWMan       *sawman,
           else
                printf( "-- border  window --  " );
      }
+     else if (window->caps & DWCAPS_COLOR)
+          printf( "-- color   window --  " );
      else {
           D_MAGIC_ASSERT( surface, CoreSurface );
 
@@ -140,6 +142,9 @@ dump_window( SaWMan       *sawman,
 
      if (window->caps & DWCAPS_ALPHACHANNEL)
           printf( "ALPHACHANNEL  " );
+
+     if (config->options & DWCAPS_COLOR)
+          printf( "COLOR         " );
 
      if (window->caps & DWCAPS_INPUTONLY)
           printf( "INPUTONLY     " );
