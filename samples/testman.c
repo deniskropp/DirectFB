@@ -740,6 +740,9 @@ window_reconfig( void                 *context,
           /* Show? */
           if (request->opacity && !current->opacity) {
                /* Activate scaling. */
+               if ( !(reconfig->flags & SWMCF_OPTIONS) )
+                    request->options = 0; /* if a flag is not set, corresponding field may not be initialised */
+
                reconfig->flags   |= SWMCF_OPTIONS;
                request->options  |= DWOP_SCALE;
 
