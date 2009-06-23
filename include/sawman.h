@@ -171,6 +171,8 @@ typedef struct {
      DFBWindowCapabilities    caps;
 
      SaWManWindowConfig       config;
+
+     unsigned long            resource_id;
 } SaWManWindowInfo;
 
 

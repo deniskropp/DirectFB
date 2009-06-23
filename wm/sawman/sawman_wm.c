@@ -2267,8 +2267,9 @@ wm_add_window( CoreWindowStack *stack,
      fusion_ref_up( &sawwin->process->ref, true );
 
      info = &sawman->callback.info;
-     info->handle = (SaWManWindowHandle)sawwin;
-     info->caps   = sawwin->caps;
+     info->handle      = (SaWManWindowHandle)sawwin;
+     info->caps        = sawwin->caps;
+     info->resource_id = window->resource_id;
      SAWMANWINDOWCONFIG_COPY( &info->config, &window->config )
 
      switch (ret = sawman_call( sawman, SWMCID_WINDOW_ADDED, info )) {
@@ -2367,8 +2368,9 @@ wm_remove_window( CoreWindowStack *stack,
      direct_list_remove( &sawman->windows, &sawwin->link );
 
      info = &sawman->callback.info;
-     info->handle = (SaWManWindowHandle)sawwin;
-     info->caps   = sawwin->caps;
+     info->handle      = (SaWManWindowHandle)sawwin;
+     info->caps        = sawwin->caps;
+     info->resource_id = window->resource_id;
      SAWMANWINDOWCONFIG_COPY( &info->config, &window->config )
 
      switch (ret = sawman_call( sawman, SWMCID_WINDOW_REMOVED, info )) {
