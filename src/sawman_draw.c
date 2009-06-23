@@ -421,6 +421,83 @@ draw_window( SaWManTier   *tier,
      dfb_state_set_clip( state, &old_clip );
 }
 
+static void
+draw_window_color( SaWManWindow *sawwin,
+                   CardState    *state,
+                   DFBRegion    *region,
+                   bool          alpha_channel )
+{
+     SaWMan                  *sawman;
+     CoreWindow              *window;
+     CoreWindowStack         *stack;
+     DFBSurfaceDrawingFlags   flags = DSDRAW_NOFX;
+     DFBRectangle             dst;
+     DFBRegion                clip;
+     DFBRegion                old_clip;
+     DFBColor                 color;
+
+
+     sawman = sawwin->sawman;
+     window = sawwin->window;
+     stack  = sawwin->stack;
+     dst    = sawwin->dst;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_ASSERT( window != NULL );
+     D_ASSERT( stack != NULL );
+     D_ASSERT( stack->context != NULL );
+
+     D_DEBUG_AT( SaWMan_Draw, "%s( %p, %d,%d-%dx%d )\n", __FUNCTION__,
+                 sawwin, DFB_RECTANGLE_VALS_FROM_REGION( region ) );
+
+     color = window->config.color;
+
+     /* Setup clipping region. */
+     clip = *region;
+
+     if (!dfb_region_rectangle_intersect( &clip, &dst ))
+          return;
+
+     /* Backup clipping region. */
+     old_clip = state->clip;
+
+     /* Use per pixel alpha blending. */
+     if (alpha_channel && (window->config.options & DWOP_ALPHACHANNEL))
+          flags |= DSDRAW_BLEND;
+
+     /* we assume the passed color is never premultiplied */
+     flags |= DSDRAW_SRC_PREMULTIPLY;
+
+     /* when not opaque, we simply adjust the color */
+     if (window->config.opacity != 0xFF) {
+          flags |= DSDRAW_BLEND;
+          color.a    = (color.a * window->config.opacity) >> 8;
+     }
+
+     dfb_state_set_drawing_flags( state, flags );
+
+     if (DFB_PIXELFORMAT_IS_INDEXED( state->destination->config.format )) {
+          unsigned int i = dfb_palette_search( state->destination->palette,
+                                               color.r, color.g, color.b, color.a );
+          dfb_state_set_color_index( state, i );
+     }
+     else
+          dfb_state_set_color( state, &color );
+
+     D_DEBUG_AT( SaWMan_Draw, "  [][] %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &clip ) );
+
+     /* Change clipping region. */
+     dfb_state_set_clip( state, &clip );
+
+     D_DEBUG_AT( SaWMan_Draw, "    => %4d,%4d-%4dx%4d\n",
+                 DFB_RECTANGLE_VALS( &dst ) );
+
+     dfb_gfxcard_fillrectangles( &dst, 1, state );
+
+     /* Restore clipping region. */
+     dfb_state_set_clip( state, &old_clip );
+}
+
 void
 sawman_draw_window( SaWManTier   *tier,
                     SaWManWindow *sawwin,
@@ -449,16 +526,18 @@ sawman_draw_window( SaWManTier   *tier,
 
      border = sawman_window_border( sawwin );
 
-     if (window->surface &&
-         dfb_region_intersect( region,
+     if (dfb_region_intersect( region,
                                sawwin->bounds.x + border,
                                sawwin->bounds.y + border,
                                sawwin->bounds.x + sawwin->bounds.w - border - 1,
                                sawwin->bounds.y + sawwin->bounds.h - border - 1 ) &&
          dfb_region_rectangle_intersect( region, &sawwin->dst )
-         )
-          draw_window( tier, sawwin, state, region, alpha_channel );
-
+         ) {
+          if( window->surface )
+               draw_window( tier, sawwin, state, region, alpha_channel );
+          else if( window->caps & DWCAPS_COLOR )
+               draw_window_color( sawwin, state, region, alpha_channel );
+     }
 
      if (border)
           draw_border( sawwin, state, pregion, border );
