@@ -106,6 +106,8 @@ struct __DFB_CoreWindow {
      FusionVector            subwindows;     /* list of sub windows (only valid for top level windows) */
 
      CoreWindow             *subfocus;       /* which of the sub windows has the focus? */
+
+     unsigned long           resource_id;
 };
 
 typedef enum {

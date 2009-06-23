@@ -451,6 +451,9 @@ dfb_window_create( CoreWindowStack             *stack,
      /* Set toplevel window ID (new sub window feature) */
      window->toplevel_id = toplevel_id;
 
+     if (desc->flags & DWDESC_RESOURCE_ID)
+          window->resource_id = desc->resource_id;
+
      D_MAGIC_SET( window, CoreWindow );
 
      ret = dfb_wm_preconfigure_window( stack, window );
