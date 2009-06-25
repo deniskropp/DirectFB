@@ -115,18 +115,5 @@ typedef struct {
      AGPDevice               *agp;
 } FBDev;
 
-/*
- * core init function, opens /dev/fb, get fbdev screeninfo
- * disables font acceleration, reads mode list
- */
-DFBResult dfb_fbdev_initialize( void );
-DFBResult dfb_fbdev_join( void );
-
-/*
- * deinitializes DirectFB fbdev stuff and restores fbdev settings
- */
-DFBResult dfb_fbdev_shutdown( bool emergency );
-DFBResult dfb_fbdev_leave   ( bool emergency );
-
 
 #endif
