@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -414,6 +414,9 @@ unique_window_set_config( UniqueWindow           *window,
 
      if (flags & CWCF_EVENTS)
           window->events = config->events;
+
+     if (flags & CWCF_COLOR)
+          return DFB_UNSUPPORTED;
 
      if (flags & CWCF_COLOR_KEY)
           window->color_key = config->color_key;

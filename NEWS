@@ -1,3 +1,31 @@
+1.4.0
+-----
+
+General bugfixes, code cleanups and memory leak plugging.
+
+Core
+- fix for possible segfault when unloading non-used input/gfx modules.
+- fbdev: Allow accelerator ID to be overridden by (existing) runtime option.
+- IDirectFBScreen::GetEncoderDescriptions: add enums for NTSC443 and 30Hz + 24Hz
+- font: DFFA_NOBITMAP will inhibit loading bitmaps if we have vector fonts too.
+
+Input
+- input: Implement driver_get_axis_info() in the linux-input driver
+- vt/keyboard: Flush console input when not used; avoids kernel waking up
+
+Gfx
+- add optional dithering when loading images into RGB16 surfaces
+- surface rotation: more complete support for 16-bit formats
+- sis315: support for XGI Z series chip, STRETCHBLIT, and big endian handling
+- matrox: use of BES guarantees atomic, tear-free triple buffering
+
+Tools
+- directfb-csource: add option to dither RGB16 images
+
+Build Environment
+- add missing include path for builddir != srcdir
+- libtool for modules: use -module instead of -export-dynamic, since we only dlopen.
+
 1.3.1
 -----
 

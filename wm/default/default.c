@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -3379,7 +3379,7 @@ wm_preconfigure_window( CoreWindowStack *stack,
                CoreWindow      *window,
                void            *window_data )
 {
-     if (window->parent_id)
+     if (window->config.association)
           return DFB_UNIMPLEMENTED;
 
      return DFB_OK;
@@ -3567,6 +3567,9 @@ wm_set_window_config( CoreWindow             *window,
 
      if (flags & CWCF_EVENTS)
           window->config.events = config->events;
+
+     if (flags & CWCF_COLOR)
+          return DFB_UNSUPPORTED;
 
      if (flags & CWCF_COLOR_KEY)
           window->config.color_key = config->color_key;

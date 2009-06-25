@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -161,7 +161,7 @@ static bool input_filter_local( DFBEvent *evt,
 static bool input_filter_global( DFBEvent *evt,
                                  void     *ctx );
 
-static void drop_window( IDirectFB_data *data );
+static void drop_window( IDirectFB_data *data, bool enable_cursor );
 
 /**********************************************************************************************************************/
 
@@ -179,7 +179,7 @@ IDirectFB_Destruct( IDirectFB *thiz )
 
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
 
-     drop_window( data );
+     drop_window( data, false );
 
      if (data->primary.context)
           dfb_layer_context_unref( data->primary.context );
@@ -271,7 +271,7 @@ IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
                          return ret;
                     }
 
-                    drop_window( data );
+                    drop_window( data, true );
 
                     data->primary.context = context;
                }
@@ -649,7 +649,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          if (ret)
                               return ret;
 
-                         drop_window( data );
+                         drop_window( data, true );
 
                          data->primary.window = window;
 
@@ -1943,7 +1943,7 @@ input_filter_global( DFBEvent *evt,
 }
 
 static void
-drop_window( IDirectFB_data *data )
+drop_window( IDirectFB_data *data, bool enable_cursor )
 {
      if (!data->primary.window)
           return;
@@ -1954,6 +1954,6 @@ drop_window( IDirectFB_data *data )
      data->primary.window  = NULL;
      data->primary.focused = false;
 
-     dfb_windowstack_cursor_enable( data->core, data->stack, true );
+     dfb_windowstack_cursor_enable( data->core, data->stack, enable_cursor );
 }
 

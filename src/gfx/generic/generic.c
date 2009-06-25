@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -6854,6 +6854,10 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
      /* Destination may have been destroyed. */
      if (!destination)
+          return false;
+
+     /* Destination buffer may have been destroyed (suspended), i.e. by vt-switching */
+     if (destination->num_buffers == 0)
           return false;
 
      /* Source may have been destroyed. */

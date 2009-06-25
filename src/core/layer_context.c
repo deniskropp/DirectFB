@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -296,10 +296,7 @@ dfb_layer_context_activate( CoreLayerContext *context )
 
      /* Iterate through all regions. */
      fusion_vector_foreach (region, index, context->regions) {
-          /* Activate each region. */
-          if (dfb_layer_region_activate( region ))
-               D_WARN( "could not activate region!" );
-
+          /* first reallocate.. */
           if (region->surface) {
                D_ASSERT( region->surface_lock.buffer == NULL );
 
@@ -307,6 +304,10 @@ dfb_layer_context_activate( CoreLayerContext *context )
                if (ret)
                     D_DERROR( ret, "Core/Layers: Reallocation of layer surface failed!\n" );
           }
+
+          /* ..then activate each region. */
+          if (dfb_layer_region_activate( region ))
+               D_WARN( "could not activate region!" );
      }
 
      context->active = true;
@@ -722,19 +723,22 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
 
                D_FLAGS_CLEAR( region->state, CLRSF_CONFIGURED );
 
+               /* Unlock the region surface */
+               if (region->surface) {
+                    if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
+                         if (!D_FLAGS_IS_SET( region->state, CLRSF_FROZEN ))
+                              D_ASSUME( region->surface_lock.buffer != NULL );
+
+                         if (region->surface_lock.buffer)
+                              dfb_surface_unlock_buffer( region->surface, &region->surface_lock );
+                    }
+               }
+
                /* (Re)allocate the region's surface. */
                if (surface) {
                     flags |= CLRCF_SURFACE | CLRCF_PALETTE;
 
                     if (region->surface) {
-                         if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
-                              if (!D_FLAGS_IS_SET( region->state, CLRSF_FROZEN ))
-                                   D_ASSUME( region->surface_lock.buffer != NULL );
-
-                              if (region->surface_lock.buffer)
-                                   dfb_surface_unlock_buffer( region->surface, &region->surface_lock );
-                         }
-
                          ret = reallocate_surface( layer, region, &region_config );
                          if (ret)
                               D_DERROR( ret, "Core/Layers: Reallocation of layer surface failed!\n" );

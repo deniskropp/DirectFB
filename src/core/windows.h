@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -53,9 +53,11 @@ typedef enum {
 
      CWCF_OPTIONS       = 0x00000010,
      CWCF_EVENTS        = 0x00000020,
+     CWCF_ASSOCIATION   = 0x00000040,
 
      CWCF_COLOR_KEY     = 0x00000100,
      CWCF_OPAQUE        = 0x00000200,
+     CWCF_COLOR         = 0x00000400,
 
      CWCF_KEY_SELECTION = 0x00001000,
 
@@ -64,7 +66,7 @@ typedef enum {
 
      CWCF_ROTATION      = 0x00040000,
 
-     CWCF_ALL           = 0x0007133F
+     CWCF_ALL           = 0x0007177F
 } CoreWindowConfigFlags;
 
 struct __DFB_CoreWindowConfig {
@@ -73,6 +75,7 @@ struct __DFB_CoreWindowConfig {
      DFBWindowStackingClass   stacking;       /* level boundaries */
      DFBWindowOptions         options;        /* flags for appearance/behaviour */
      DFBWindowEventType       events;         /* mask of enabled events */
+     DFBColor                 color;          /* color for DWCAPS_COLOR */
      u32                      color_key;      /* transparent pixel */
      DFBRegion                opaque;         /* region of the window forced to be opaque */
 
@@ -84,6 +87,8 @@ struct __DFB_CoreWindowConfig {
      DFBWindowGeometry        dst_geometry;   /* advanced destination geometry */
 
      int                      rotation;
+
+     DFBWindowID              association;
 };
 
 
@@ -205,6 +210,13 @@ dfb_window_putatop( CoreWindow *window,
 DFBResult
 dfb_window_putbelow( CoreWindow *window,
                      CoreWindow *upper );
+
+/*
+ * sets the source color key
+ */
+DFBResult
+dfb_window_set_color( CoreWindow *window,
+                      DFBColor    color );
 
 /*
  * sets the source color key

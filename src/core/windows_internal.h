@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -101,13 +101,13 @@ struct __DFB_CoreWindow {
      DirectLink             *bound_windows;  /* list of bound windows */
      CoreWindow             *boundto;        /* window to which this window is bound (window binding) */
 
-     DFBWindowID             parent_id;      /* window id of parent window (window association) */
-
      DFBWindowID             toplevel_id;    /* in case of a sub window toplevel_id != 0 */
      CoreWindow             *toplevel;       /* for top level windows this will be NULL */
      FusionVector            subwindows;     /* list of sub windows (only valid for top level windows) */
 
      CoreWindow             *subfocus;       /* which of the sub windows has the focus? */
+
+     unsigned long           resource_id;
 };
 
 typedef enum {

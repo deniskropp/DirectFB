@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -442,14 +442,17 @@ dfb_window_create( CoreWindowStack             *stack,
      /* Create the window object. */
      window = dfb_core_create_window( layer->core );
 
-     window->id        = ++stack->id_pool;
-     window->caps      = caps;
-     window->stack     = stack;
-     window->config    = config;
-     window->parent_id = (desc->flags & DWDESC_PARENT) ? desc->parent_id : 0;
+     window->id                 = ++stack->id_pool;
+     window->caps               = caps;
+     window->stack              = stack;
+     window->config             = config;
+     window->config.association = (desc->flags & DWDESC_PARENT) ? desc->parent_id : 0;
 
      /* Set toplevel window ID (new sub window feature) */
      window->toplevel_id = toplevel_id;
+
+     if (desc->flags & DWDESC_RESOURCE_ID)
+          window->resource_id = desc->resource_id;
 
      D_MAGIC_SET( window, CoreWindow );
 
@@ -489,7 +492,7 @@ dfb_window_create( CoreWindowStack             *stack,
                   window->caps, surface_caps, window->id );
 
      /* Create the window's surface using the layer's palette if possible. */
-     if (! (caps & DWCAPS_INPUTONLY)) {
+     if (! (caps & (DWCAPS_INPUTONLY | DWCAPS_COLOR))) {
           if (context->config.buffermode == DLBM_WINDOWS) {
                CoreLayerRegion *region = NULL;
 
@@ -1237,6 +1240,46 @@ dfb_window_unbind( CoreWindow *window,
      return bound ? DFB_OK : DFB_ITEMNOTFOUND;
 }
      
+/*
+ * sets the source color key
+ */
+DFBResult
+dfb_window_set_color( CoreWindow *window,
+                      DFBColor    color )
+{
+     DFBResult         ret;
+     DFBColor          cc;
+     CoreWindowConfig  config;
+     CoreWindowStack  *stack = window->stack;
+
+     D_MAGIC_ASSERT( window, CoreWindow );
+
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack ))
+          return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
+     cc = window->config.color;
+     if ( (cc.a==color.a) && (cc.r==color.r) && (cc.g==color.g) && (cc.b==color.b) ) {
+          dfb_windowstack_unlock( stack );
+          return DFB_OK;
+     }
+
+     config.color = color;
+
+     ret = dfb_wm_set_window_config( window, &config, CWCF_COLOR );
+
+     /* Unlock the window stack. */
+     dfb_windowstack_unlock( stack );
+
+     return ret;
+}
+
 DFBResult
 dfb_window_set_colorkey( CoreWindow *window,
                          u32         color_key )
@@ -1728,6 +1771,10 @@ dfb_window_id( const CoreWindow *window )
      return window->id;
 }
 
+/* 
+ * Returns window surface.
+ * For windows with DWCAPS_COLOR this returns 0.
+ */
 CoreSurface *
 dfb_window_surface( const CoreWindow *window )
 {

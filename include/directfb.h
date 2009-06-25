@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -905,9 +905,15 @@ typedef enum {
 
      DWCAPS_SUBWINDOW    = 0x00000010,  /* Not a top level window. */
 
+     DWCAPS_COLOR        = 0x00000020,  /* The window has no buffer;
+                                           it consumes no backing store.
+                                           It is filled with a constant color
+                                           and it receives events */
+
      DWCAPS_NOFOCUS      = 0x00000100,  /* Window will never get focus or receive key events, unless it grabs them. */
 
-     DWCAPS_ALL          = 0x0000011F   /* All of these. */
+
+     DWCAPS_ALL          = 0x0000013F   /* All of these. */
 } DFBWindowCapabilities;
 
 /*
@@ -5063,6 +5069,20 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      );
 
      /*
+      * Set the window color.
+      *
+      * This is used in case you specified DWCAPS_COLOR.
+      * It specifies the window draw color.
+      */
+     DFBResult (*SetColor) (
+          IDirectFBWindow               *thiz,
+          u8                             r,
+          u8                             g,
+          u8                             b,
+          u8                             a
+     );
+
+     /*
       * Set the window color key.
       *
       * If a pixel of the window matches this color the
@@ -5427,6 +5447,19 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      DFBResult (*SetRotation) (
           IDirectFBWindow               *thiz,
           int                            rotation
+     );
+
+
+   /** Association **/
+
+     /*
+      * Change the window association.
+      *
+      * If <b>window_id</b> is 0, the window will be dissociated.
+      */
+     DFBResult (*SetAssociation) (
+          IDirectFBWindow               *thiz,
+          DFBWindowID                    window_id
      );
 )
 
