@@ -28,6 +28,7 @@ directfb.spec
 Doxyfile
 gmon.out
 INSTALL
+inst
 install-sh
 *.la
 .libs
