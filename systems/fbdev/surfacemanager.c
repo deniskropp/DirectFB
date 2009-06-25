@@ -219,7 +219,7 @@ DFBResult dfb_surfacemanager_allocate( CoreDFB                *core,
 
      dfb_gfxcard_calc_buffer_size( device, buffer, &pitch, &length );
 
-     D_DEBUG_AT( SurfMan, "  -> pitch %d, length %d\n", pitch, length );
+     D_DEBUG_AT( SurfMan, "  -> pitch %d, length %d, available %d\n", pitch, length, manager->avail );
 
      if (manager->avail < length)
           return DFB_TEMPUNAVAIL;
@@ -539,12 +539,13 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
           D_BUG( "freeing free chunk" );
           return chunk;
      }
-     else {
-          D_DEBUG_AT( SurfMan, "Deallocating %d bytes at offset %d.\n", chunk->length, chunk->offset );
-     }
+
+     D_DEBUG_AT( SurfMan, "%s( %d bytes at offset %d )\n", __FUNCTION__, chunk->length, chunk->offset );
 
      if (chunk->buffer->policy == CSP_VIDEOONLY)
           manager->avail += chunk->length;
+
+     D_DEBUG_AT( SurfMan, "  -> freed %d, available %d\n", chunk->length, manager->avail );
 
      chunk->allocation = NULL;
      chunk->buffer     = NULL;
@@ -604,7 +605,9 @@ occupy_chunk( SurfaceManager *manager, Chunk *chunk, CoreSurfaceAllocation *allo
      if (!chunk)
           return NULL;
 
-     D_DEBUG_AT( SurfMan, "Allocating %d bytes at offset %d.\n", chunk->length, chunk->offset );
+     D_DEBUG_AT( SurfMan, "%s( %d bytes at offset %d )\n", __FUNCTION__, chunk->length, chunk->offset );
+
+     D_DEBUG_AT( SurfMan, "  -> occupied %d, available %d\n", chunk->length, manager->avail );
 
      chunk->allocation = allocation;
      chunk->buffer     = allocation->buffer;
