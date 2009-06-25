@@ -250,7 +250,9 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
           /* If no allocation exists, create one. */
           ret = dfb_surface_pools_allocate( buffer, accessor, access, &allocation );
           if (ret) {
-               D_DERROR( ret, "Core/SurfBuffer: Buffer allocation failed!\n" );
+               if (ret != DFB_NOVIDEOMEMORY && ret != DFB_UNSUPPORTED)
+                    D_DERROR( ret, "Core/SurfBuffer: Buffer allocation failed!\n" );
+
                return ret;
           }
 
