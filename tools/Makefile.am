@@ -15,7 +15,7 @@ if BUILD_DIRECTFB_CSOURCE
 DFB_CSOURCE = directfb-csource
 
 directfb_csource_SOURCES = directfb-csource.c
-directfb_csource_LDADD   = $(LIBPNG)
+directfb_csource_LDADD   = $(LIBPNG_LIBS)
 endif
 
 if HAVE_LINUX
@@ -83,7 +83,7 @@ dfbpenmount_SOURCES = dfbpenmount.c
 dfbpenmount_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
 
 mkdfiff_SOURCES = mkdfiff.c
-mkdfiff_LDADD   = $(LIBPNG) $(libdirect)
+mkdfiff_LDADD   = $(LIBPNG_LIBS) $(libdirect)
 
 mkdgiff_SOURCES = mkdgiff.c
 mkdgiff_LDADD   = $(FREETYPE_LIBS) $(libdirect)

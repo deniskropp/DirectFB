@@ -750,6 +750,10 @@ if test "$enable_png" = "yes"; then
       ])
   fi
 
+ dnl Test for libpng
+ if test -n "$LIBPNG_LIBS"; then
+  PNG=yes
+ else
   AC_PATH_PROG(LIBPNG_CONFIG, libpng-config, no)
   if test "$LIBPNG_CONFIG" = no; then
       PNG=no
@@ -757,11 +761,12 @@ if test "$enable_png" = "yes"; then
 *** libpng-config not found ])
   else
       PNG=yes
-      LIBPNG=`$LIBPNG_CONFIG --libs`
+      LIBPNG_CFLAGS=`$LIBPNG_CONFIG --cflags`
+      LIBPNG_LIBS=`$LIBPNG_CONFIG --libs`
   fi
 
   dnl Test for libpng
-  if test -z "$LIBPNG" && test -n "$ZLIB_LIBS"; then
+  if test -z "$LIBPNG_LIBS" && test -n "$ZLIB_LIBS"; then
     AC_CHECK_LIB(png, png_read_info,
       [
 	AC_CHECK_HEADER(png.h,
@@ -784,7 +789,7 @@ if test "$enable_png" = "yes"; then
       AC_MSG_RESULT($png_ok)
       if test "$png_ok" = yes; then
 	PNG=yes
-        LIBPNG="-lpng $ZLIB_LIBS -lm"
+        LIBPNG_LIBS="-lpng $ZLIB_LIBS -lm"
       else
 	PNG=no
         AC_MSG_WARN([
@@ -794,6 +799,7 @@ if test "$enable_png" = "yes"; then
       PNG=no
     fi
   fi
+ fi
 fi
 
 AM_CONDITIONAL(PNG_PROVIDER, test "$PNG" = "yes")
@@ -1526,9 +1532,10 @@ AC_SUBST(TSLIB_LIBS)
 AC_SUBST(ZLIB_LIBS)
 AC_SUBST(GIF_PROVIDER)
 AC_SUBST(JPEG_PROVIDER)
-AC_SUBST(PNG_PROVIDER)
 AC_SUBST(LIBJPEG)
-AC_SUBST(LIBPNG)
+AC_SUBST(PNG_PROVIDER)
+AC_SUBST(LIBPNG_CFLAGS)
+AC_SUBST(LIBPNG_LIBS)
 AC_SUBST(FREETYPE_PROVIDER)
 AC_SUBST(FREETYPE_CFLAGS)
 AC_SUBST(FREETYPE_LIBS)
@@ -1721,7 +1728,7 @@ Building Window Manager Modules:
 Building Image Provider Modules:
   GIF                       $enable_gif 
   JPEG                      $JPEG                 $LIBJPEG
-  PNG                       $PNG                 $LIBPNG
+  PNG                       $PNG                 $LIBPNG_CFLAGS	$LIBPNG_LIBS
 
 Building Video Provider Modules:
   GIF                       $enable_gif
