@@ -26,7 +26,7 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <asm/types.h>
+//#define DIRECT_ENABLE_DEBUG
 
 #include <config.h>
 
@@ -60,11 +60,7 @@ typedef struct {
 } FBDevPoolLocalData;
 
 typedef struct {
-     int   magic;
-
-     int   offset;
-     int   pitch;
-     int   size;
+     int    magic;
 
      Chunk *chunk;
 } FBDevAllocationData;
@@ -270,57 +266,21 @@ fbdevAllocateBuffer( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     if ((surface->type & CSTF_LAYER) && surface->resource_id == DLID_PRIMARY) {
-          FBDevShared *shared = dfb_fbdev->shared;
-          int          index  = dfb_surface_buffer_index( buffer );
+     if (surface->type & CSTF_LAYER && surface->resource_id == DLID_PRIMARY) {
+          D_DEBUG_AT( FBDev_Surfaces, "  -> primary layer buffer (index %d)\n", dfb_surface_buffer_index( buffer ) );
 
-          D_DEBUG_AT( FBDev_Surfaces, "  -> primary layer buffer (index %d)\n", index );
-
-          if (index == 0) {
-               const VideoMode *highest;
-               /* FIXME: this should use source.w/source.h from layer region config! */
-               unsigned int     width  = surface->config.size.w;
-               unsigned int     height = surface->config.size.h;
-
-               D_INFO( "FBDev/Mode: Setting %dx%d %s\n", width, height, dfb_pixelformat_name(surface->config.format) );
-
-               highest = dfb_fbdev_find_mode( width, height );
-               if (!highest)
-                    return DFB_UNSUPPORTED;
-
-               ret = dfb_fbdev_set_mode( highest, surface, 0, 0 );
-               if (ret)
-                    return ret;
-          }
-
-          alloc->pitch  = shared->fix.line_length;
-          alloc->size   = surface->config.size.h * alloc->pitch;
-          alloc->offset = index * alloc->size;
-
-          D_INFO( "FBDev/Surface: Allocated %dx%d %d bit %s buffer (index %d) at offset %d and pitch %d.\n",
-                  surface->config.size.w, surface->config.size.h, shared->current_var.bits_per_pixel,
-                  dfb_pixelformat_name(buffer->format), index, alloc->offset, alloc->pitch );
+          dfb_surface_calc_buffer_size( surface, 8, 1, NULL, &allocation->size );
      }
      else {
-          Chunk *chunk;
-
-          ret = dfb_surfacemanager_allocate( local->core, data->manager, buffer, allocation, &chunk );
+          ret = dfb_surfacemanager_allocate( local->core, data->manager, buffer, allocation, &alloc->chunk );
           if (ret)
                return ret;
 
-          D_MAGIC_ASSERT( chunk, Chunk );
+          D_MAGIC_ASSERT( alloc->chunk, Chunk );
 
-          alloc->offset = chunk->offset;
-          alloc->pitch  = chunk->pitch;
-          alloc->size   = chunk->length;
-
-          alloc->chunk  = chunk;
+          allocation->offset = alloc->chunk->offset;
+          allocation->size   = alloc->chunk->length;
      }
-
-     D_DEBUG_AT( FBDev_Surfaces, "  -> offset %d, pitch %d, size %d\n", alloc->offset, alloc->pitch, alloc->size );
-
-     allocation->size   = alloc->size;
-     allocation->offset = alloc->offset;
 
      D_MAGIC_SET( alloc, FBDevAllocationData );
 
@@ -361,7 +321,9 @@ fbdevLock( CoreSurfacePool       *pool,
            void                  *alloc_data,
            CoreSurfaceBufferLock *lock )
 {
-     FBDevAllocationData *alloc = alloc_data;
+     CoreSurface         *surface;
+     FBDevAllocationData *alloc  = alloc_data;
+     FBDevShared         *shared = dfb_fbdev->shared;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
@@ -370,10 +332,26 @@ fbdevLock( CoreSurfacePool       *pool,
 
      D_DEBUG_AT( FBDev_SurfLock, "%s( %p )\n", __FUNCTION__, lock->buffer );
 
-     lock->pitch  = alloc->pitch;
-     lock->offset = alloc->offset;
-     lock->addr   = dfb_fbdev->framebuffer_base + alloc->offset;
-     lock->phys   = dfb_fbdev->shared->fix.smem_start + alloc->offset;
+     surface = allocation->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     if (surface->type & CSTF_LAYER && surface->resource_id == DLID_PRIMARY) {
+          int index  = dfb_surface_buffer_index( allocation->buffer );
+
+          D_DEBUG_AT( FBDev_Surfaces, "  -> primary layer buffer (index %d)\n", index );
+
+          lock->pitch  = shared->fix.line_length;
+          lock->offset = index * surface->config.size.h * lock->pitch;
+     }
+     else {
+          D_MAGIC_ASSERT( alloc->chunk, Chunk );
+
+          lock->pitch  = alloc->chunk->pitch;
+          lock->offset = alloc->chunk->offset;
+     }
+
+     lock->addr = dfb_fbdev->framebuffer_base + lock->offset;
+     lock->phys = dfb_fbdev->shared->fix.smem_start + lock->offset;
 
      D_DEBUG_AT( FBDev_SurfLock, "  -> offset %lu, pitch %d, addr %p, phys 0x%08lx\n",
                  lock->offset, lock->pitch, lock->addr, lock->phys );
