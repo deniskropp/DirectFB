@@ -356,7 +356,7 @@ manager_call_handler( int           caller,
           case SWMCID_SWITCH_FOCUS:
                if (sawman->manager.callbacks.SwitchFocus)
                     *ret_val = sawman->manager.callbacks.SwitchFocus( sawman->manager.context,
-                                                                      (SaWManWindowRelation)call_ptr );
+                                                                      (SaWManWindowHandle)call_ptr );
                break;
 
           default:
