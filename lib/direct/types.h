@@ -50,7 +50,9 @@
 #  endif
 #endif /* DIRECT_BUILD_STDBOOL */
 
-
+/* makes it possible to prevent definition of "direct" standard types */
+#ifndef __DIRECT__STDTYPES__
+#define __DIRECT__STDTYPES__
 #ifdef USE_KOS
 
 #include <sys/types.h>
@@ -80,6 +82,7 @@ typedef int32_t s32;
 typedef int64_t s64;
 
 #endif
+#endif /* __DIRECT__STDTYPES__ */
 
 
 typedef enum {
