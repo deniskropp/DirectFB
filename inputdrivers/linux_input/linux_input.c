@@ -113,6 +113,8 @@ typedef unsigned long kernel_ulong_t;
 
 DFB_INPUT_DRIVER( linux_input )
 
+D_DEBUG_DOMAIN( Debug_LinuxInput, "Input/Linux", "Linux input driver" );
+
 #ifndef BITS_PER_LONG
 #define BITS_PER_LONG        (sizeof(long) * 8)
 #endif
@@ -143,14 +145,13 @@ typedef struct {
      DirectThread            *thread;
 
      int                      fd;
+     int                      quitpipe[2];
 
      bool                     has_leds;
      unsigned long            led_state[NBITS(LED_CNT)];
      DFBInputDeviceLockState  locks;
 
-#ifdef LINUX_INPUT_USE_FBDEV
-     VirtualTerminal         *vt;
-#endif
+     int                      vt_fd;
 
      int                      dx;
      int                      dy;
@@ -378,7 +379,6 @@ translate_key( unsigned short code )
      return DIKI_UNKNOWN;
 }
 
-#ifdef LINUX_INPUT_USE_FBDEV
 static DFBInputDeviceKeySymbol
 keyboard_get_symbol( int                             code,
                      unsigned short                  value,
@@ -579,7 +579,7 @@ keyboard_read_value( const LinuxInputData *data,
      entry.kb_index = index;
      entry.kb_value = 0;
 
-     if (ioctl( data->vt->fd, KDGKBENT, &entry )) {
+     if (ioctl( data->vt_fd, KDGKBENT, &entry )) {
           D_PERROR("DirectFB/keyboard: KDGKBENT (table: %d, index: %d) "
                     "failed!\n", table, index);
           return 0;
@@ -587,7 +587,6 @@ keyboard_read_value( const LinuxInputData *data,
 
      return entry.kb_value;
 }
-#endif /* LINUX_INPUT_USE_FBDEV */
 
 /*
  * Translates key and button events.
@@ -794,9 +793,14 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
      LinuxInputData    *data = (LinuxInputData*) driver_data;
      int                readlen, status;
      unsigned int       i;
+     int                fdmax;
      struct input_event levt[64];
      fd_set             set;
      struct touchpad_fsm_state fsm_state;
+
+     D_DEBUG_AT( Debug_LinuxInput, "%s()\n", __FUNCTION__ );
+
+     fdmax = (data->fd > data->quitpipe[0]) ? data->fd : data->quitpipe[0];
 
      /* Query min/max coordinates. */
      if (data->touchpad) {
@@ -818,6 +822,7 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
 
           FD_ZERO( &set );
           FD_SET( data->fd, &set );
+          FD_SET( data->quitpipe[0], &set );
 
           if (data->touchpad && timeout_is_set( &fsm_state.timeout )) {
                struct timeval time;
@@ -826,16 +831,19 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
                if (!timeout_passed( &fsm_state.timeout, &time )) {
                     struct timeval timeout = fsm_state.timeout;
                     timeout_sub( &timeout, &time );
-                    status = select( data->fd + 1, &set, NULL, NULL, &timeout );
+                    status = select( fdmax + 1, &set, NULL, NULL, &timeout );
                } else {
                     status = 0;
                }
           }
           else {
-               status = select( data->fd + 1, &set, NULL, NULL, NULL );
+               status = select( fdmax + 1, &set, NULL, NULL, NULL );
           }
 
           if (status < 0 && errno != EINTR)
+               break;
+
+          if (FD_ISSET( data->quitpipe[0], &set ))
                break;
 
           direct_thread_testcancel( thread );
@@ -1199,12 +1207,9 @@ driver_open_device( CoreInputDevice  *device,
                     void            **driver_data )
 {
      int              fd, ret;
+     bool             touchpad;
      unsigned long    ledbit[NBITS(LED_CNT)];
      LinuxInputData  *data;
-#ifdef LINUX_INPUT_USE_FBDEV
-     FBDev           *dfb_fbdev = dfb_system_data();
-#endif
-     bool             touchpad;
 
      /* open device */
      fd = open( device_names[number], O_RDWR );
@@ -1238,10 +1243,22 @@ driver_open_device( CoreInputDevice  *device,
 
      data->fd     = fd;
      data->device = device;
-#ifdef LINUX_INPUT_USE_FBDEV
-     data->vt     = dfb_fbdev->vt;
-#endif
      data->touchpad = touchpad;
+     data->vt_fd    = -1;
+
+     if (info->desc.min_keycode >= 0 && info->desc.max_keycode >= info->desc.min_keycode) {
+#ifdef LINUX_INPUT_USE_FBDEV
+          FBDev *dfb_fbdev = dfb_system_data();
+
+          if (dfb_fbdev->vt)
+               data->vt_fd = dup( dfb_fbdev->vt->fd );
+#endif
+          if (data->vt_fd < 0)
+               data->vt_fd = open( "/dev/tty0", O_RDWR | O_NOCTTY );
+
+          if (data->vt_fd < 0)
+               D_WARN( "no keymap support (requires /dev/tty0 - CONFIG_VT)" );
+     }
 
      /* check if the device has LEDs */
      ret = ioctl( fd, EVIOCGBIT(EV_LED, sizeof(ledbit)), ledbit );
@@ -1257,17 +1274,20 @@ driver_open_device( CoreInputDevice  *device,
           ret = ioctl( fd, EVIOCGLED(sizeof(data->led_state)), data->led_state );
           if (ret < 0) {
                D_PERROR( "DirectFB/linux_input: could not get LED state" );
-               if (dfb_config->linux_input_grab)
-                    ioctl( fd, EVIOCGRAB, 0 );
-               close( fd );
-               D_FREE( data );
-               return DFB_INIT;
+               goto driver_open_device_error;
           }
 
           /* turn off LEDs */
           set_led( data, LED_SCROLLL, 0 );
           set_led( data, LED_NUML, 0 );
           set_led( data, LED_CAPSL, 0 );
+     }
+
+     /* open a pipe to awake the reader thread when we want to quit */
+     ret = pipe( data->quitpipe );
+     if (ret < 0) {
+          D_PERROR( "DirectFB/linux_input: could not open quitpipe" );
+          goto driver_open_device_error;
      }
 
      /* start input thread */
@@ -1277,6 +1297,16 @@ driver_open_device( CoreInputDevice  *device,
      *driver_data = data;
 
      return DFB_OK;
+
+driver_open_device_error:
+     if (dfb_config->linux_input_grab)
+          ioctl( fd, EVIOCGRAB, 0 );
+     if (data->vt_fd >= 0)
+          close( data->vt_fd );
+     close( fd );
+     D_FREE( data );
+
+     return DFB_INIT;
 }
 
 /*
@@ -1322,13 +1352,12 @@ driver_get_keymap_entry( CoreInputDevice           *device,
                          void                      *driver_data,
                          DFBInputDeviceKeymapEntry *entry )
 {
-#ifdef LINUX_INPUT_USE_FBDEV
      LinuxInputData             *data = (LinuxInputData*) driver_data;
      int                         code = entry->code;
      unsigned short              value;
      DFBInputDeviceKeyIdentifier identifier;
 
-     if (!data->vt)
+     if (data->vt_fd < 0)
           return DFB_UNSUPPORTED;
 
      /* fetch the base level */
@@ -1375,9 +1404,6 @@ driver_get_keymap_entry( CoreInputDevice           *device,
                                                             DIKSI_ALT_SHIFT );
 
      return DFB_OK;
-#else
-     return DFB_UNSUPPORTED;
-#endif
 }
 
 /*
@@ -1388,10 +1414,15 @@ driver_close_device( void *driver_data )
 {
      LinuxInputData *data = (LinuxInputData*) driver_data;
 
+     D_DEBUG_AT( Debug_LinuxInput, "%s()\n", __FUNCTION__ );
+
      /* stop input thread */
      direct_thread_cancel( data->thread );
+     (void)write( data->quitpipe[1], " ", 1 );
      direct_thread_join( data->thread );
      direct_thread_destroy( data->thread );
+     close( data->quitpipe[0] );
+     close( data->quitpipe[1] );
 
      if (data->has_leds) {
           /* restore LED state */
@@ -1404,11 +1435,16 @@ driver_close_device( void *driver_data )
      if (dfb_config->linux_input_grab)
           ioctl( data->fd, EVIOCGRAB, 0 );
 
+  if (data->vt_fd >= 0)
+          close( data->vt_fd );
+
      /* close file */
      close( data->fd );
 
      /* free private data */
      D_FREE( data );
+
+     D_DEBUG_AT( Debug_LinuxInput, "%s() closed\n", __FUNCTION__ );
 }
 
 static bool
