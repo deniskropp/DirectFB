@@ -1,3 +1,29 @@
+1.4.1
+-----
+
+General bugfixes, and the following:
+
+fbdev
+- fix for BGR555
+- removal of old code, addition of debug messages.
+- Check mode switching result in fbdevSetRegion() by reading back var info.
+- Check amount of video memory in fbdevTestRegion() to avoid running over buggy drivers' framebuffer.
+- fix spurious timing problems and lockups when vt-switching.
+
+input
+- allow linux_input to run without an fbdev system
+
+API
+- add resource ID also to window structure in case window has no surface
+- add DWCAPS_COLOR: creates a window with a fixed argb colour but no surface
+- add IDirectFBWindow::SetAssociation(): dynamic window association
+
+configure
+- add #ifdef to direct types to have a possibility to surpress these
+- Allow LIBPNG_LIBS and LIBPNG_CFLAGS to overrule nasty libpng-config usage.
+- Fixed missing JPEG=yes setting in configure when LIBJPEG is set manually.
+
+
 1.4.0
 -----
 

@@ -1,3 +1,164 @@
+commit ce54b3a1abf37d382b590201bb524a31779b9a39
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Jun 26 23:18:26 2009 +0200
+
+    [direct] add possibility to prevent declaration of u8..u32;
+             in this way, you can prevent nameclashes.
+
+commit 9f26bc4797464f58fa8e9e518b6844e58626c6b7
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Jun 26 23:17:31 2009 +0200
+
+    [input] linux_input can now be used without fbdev system (e.g. devmem)
+
+commit a643ead470548d5acb1b0016c5cd8b8d8be8aa4e
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Jun 26 21:16:19 2009 +0200
+
+    [fbdev] fix for BGR555 in conjunction with fbdev systems
+
+commit 9fa1437faab48d4f40e4f8f1d83965c4f1e441ad
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jun 25 07:43:01 2009 +0200
+
+    [fbdev] Removed cruft from header file.
+
+commit 3e5920418fbb5a6c72784c7a13e4dc81cb1b3ad9
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jun 25 07:41:30 2009 +0200
+
+    ignore
+
+commit 3557657cdab83cb4a85230bffd4bfe37fb7cf008
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jun 25 07:35:57 2009 +0200
+
+    [fbdev] Big cleanup and some fixes, enhancements.
+    
+    Removed #if 0ed code.
+    
+    Removed mode switching from fbdevAllocateBuffer() and moved pitch, offset
+    determination to fbdevLock().
+    
+    Check mode switching result in fbdevSetRegion() by reading back var info.
+    
+    Check amount of video memory in fbdevTestRegion() to avoid
+    running over buggy drivers' framebuffer.
+
+commit 963ece2a2c3f9891fdf50e19cdfdaf7687413366
+Merge: f37d34d... 62d93da...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jun 25 03:23:30 2009 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit f37d34da902e318d6f2d23eb5caa758fb79e724d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jun 25 03:20:39 2009 +0200
+
+    [configure] Allow LIBPNG_LIBS and LIBPNG_CFLAGS to overrule nasty libpng-config usage.
+
+commit 23e83b4da630d60381c51f2bad5736a36f96a3ef
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jun 25 03:16:43 2009 +0200
+
+    [fbdev] Added a few surface pool debugging messages.
+
+commit 02048d2672bc46af22c7fdeeb5a018e0005f02e6
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jun 25 03:12:21 2009 +0200
+
+    [surface buffer] Print error from allocation during lock() only if not DFB_NOVIDEOMEMORY or DFB_UNSUPPORTED.
+
+commit 62d93da2ecc2a918b3376436705523e74a1f6d06
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Jun 23 22:35:10 2009 +0200
+
+    [window] add resource ID also to window structure, if window has no surface
+
+commit ce501730da1fa31c5e23f42a656632eba783ab3f
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Jun 18 12:16:33 2009 +0200
+
+    [window] support for DWCAPS_COLOR
+    
+    when you specifiy DWCAPS_COLOR, the window will have a solid color only.
+    A surface will not be created, so window->surface is 0.
+    The color can be specified with Window::SetColor(r,g,b,a).
+    This is always a "normal" color, NOT premultiplied,
+    so DSCAPS_PREMULTIPLIED has no effect here.
+    
+    Currently, this option is only supported by the SaWMan window manager.
+
+commit f0d9f96df53147e4ecffe3b97dce3f190cda8f5d
+Merge: aaa4577... 83a4d19...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jun 17 14:32:36 2009 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit aaa457773be51f72086e1df6f42347f546a07315
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jun 17 14:31:18 2009 +0200
+
+    [IDirectFBWindow] Dynamic window association via IDirectFBWindow::SetAssociation().
+    
+    This patch adds dynamic association of windows, as opposed to the static initialization
+    done via the window description.
+
+commit 83a4d19dfb4dd0239748562aa551b4766da0767b
+Merge: 436f053... c5d5677...
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Jun 15 14:50:45 2009 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit c5d567740ea070318d696635615807724425eb68
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jun 12 23:37:58 2009 +0200
+
+    [configure] Fixed missing JPEG=yes setting in configure when LIBJPEG is set manually.
+    
+    LIBJPEG can be set to something like "-L/path -ljpeg" when running configure.
+
+commit 91d3568c031dd25d381b374c1f40b963b570c7fd
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jun 12 23:31:47 2009 +0200
+
+    [dfbtest_window] Set DWOP_FOLLOW_BOUNDS when association is made.
+
+commit 34b18bdb2187cb450eaf57d29a73bb6bfa9fb122
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jun 12 23:30:51 2009 +0200
+
+    [tests] Install test programs.
+
+commit 436f053ec4305aae00eb33cd9fc87c9756e78dc3
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Jun 11 17:51:31 2009 +0200
+
+    [trace] fix so trace will also print static funcs in stack dump
+
+commit e8c54bb215a9883007ba9b5bbb3123227addefd9
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Jun 11 17:47:13 2009 +0200
+
+    [vt switching] timing problems when vt-switching.
+    doing graphic operations while DirectFB is suspended (due to vt-switching)
+    caused asserts and problems - fixed thanks to Jacques Luder.
+
+commit 30644acacb67ff46f56e278832820b335c10be0c
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Jun 8 18:58:01 2009 +0200
+
+    [destruct] with SaWMan, enabling cursor in IDestruct leads to assert
+
+commit 243d71d1cfa67ab3963590fe39b25d93a53333dc
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Jun 4 15:41:34 2009 +0200
+
+    [release] DirectFB 1.4.0
+
 commit cd3e0306347ab0601ad1e6b98b0897aac2fb8942
 Merge: b4cf1e3... b29d791...
 Author: Niels Roest <niels@directfb.org>
