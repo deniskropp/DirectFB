@@ -61,7 +61,10 @@ typedef enum {
 
      SWMWF_INSERTED = 0x00000001,
 
-     SWMWF_ALL      = 0x00000001
+     SWMWF_FOCUSED  = 0x00000002, /* only used for GetWindowInfo */
+     SWMWF_ENTERED  = 0x00000004, /* only used for GetWindowInfo */
+
+     SWMWF_ALL      = 0x00000007
 } SaWManWindowFlags;
 
 
@@ -168,16 +171,33 @@ typedef struct {
      (a)->src_geometry = (b)->src_geometry; \
      (a)->dst_geometry = (b)->dst_geometry; }
 
+#define SAWMANWINDOWCONFIG_COPY_IF( a, b, f )  {  \
+     if (f & CWCF_POSITION)   { (a)->bounds.x     = (b)->bounds.x;     \
+                                (a)->bounds.y     = (b)->bounds.y; }   \
+     if (f & CWCF_SIZE)       { (a)->bounds.w     = (b)->bounds.w;     \
+                                (a)->bounds.h     = (b)->bounds.h; }   \
+     if (f & CWCF_OPACITY)      (a)->opacity      = (b)->opacity;      \
+     if (f & CWCF_STACKING)     (a)->stacking     = (b)->stacking;     \
+     if (f & CWCF_OPTIONS)      (a)->options      = (b)->options;      \
+     if (f & CWCF_EVENTS)       (a)->events       = (b)->events;       \
+     if (f & CWCF_COLOR)        (a)->color        = (b)->color;        \
+     if (f & CWCF_COLOR_KEY)    (a)->color_key    = (b)->color_key;    \
+     if (f & CWCF_OPAQUE)       (a)->opaque       = (b)->opaque;       \
+     if (f & CWCF_ASSOCIATION)  (a)->association  = (b)->association;  \
+     if (f & CWCF_SRC_GEOMETRY) (a)->src_geometry = (b)->src_geometry; \
+     if (f & CWCF_DST_GEOMETRY) (a)->dst_geometry = (b)->dst_geometry; }
+
 typedef struct {
      SaWManWindowHandle       handle;
 
      DFBWindowCapabilities    caps;
-
      SaWManWindowConfig       config;
 
      unsigned long            resource_id;
-} SaWManWindowInfo;
+     DFBWindowID              win_id;
 
+     SaWManWindowFlags        flags;
+} SaWManWindowInfo;
 
 typedef struct {
      SaWManWindowHandle       handle;
@@ -461,6 +481,41 @@ DEFINE_INTERFACE(   ISaWManManager,
       */
      DirectResult (*Unlock) (
           ISaWManManager           *thiz
+     );
+
+     /** Information retrieval **/
+
+     /*
+      * Returns window information of the requested window.
+      * 
+      * The window information will be copied into the provided structure,
+      * except info->config.keys which will be a pointer to the internal table,
+      * so do not change the content of this table with this function.
+      */
+     DirectResult (*GetWindowInfo) (
+          ISaWManManager           *thiz,
+          SaWManWindowHandle        handle,
+          SaWManWindowInfo         *ret_info
+     );
+
+     /*
+      * Returns process information of the requested window.
+      * 
+      * The process information will be copied into the provided structure.
+      */
+     DirectResult (*GetProcessInfo) (
+          ISaWManManager           *thiz,
+          SaWManWindowHandle        handle,
+          SaWManProcess            *ret_process
+     );
+
+     /*
+      * Determines visibility of a window.
+      */
+     DirectResult (*IsWindowShowing) (
+          ISaWManManager           *thiz,
+          SaWManWindowHandle        handle,
+          DFBBoolean               *ret_showing
      );
 )
 

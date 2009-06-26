@@ -425,6 +425,98 @@ ISaWManManager_Unlock( ISaWManManager *thiz )
      return sawman_unlock( sawman );
 }
 
+static DirectResult
+ISaWManManager_GetWindowInfo( ISaWManManager     *thiz,
+                              SaWManWindowHandle  handle,
+                              SaWManWindowInfo   *info )
+{
+     SaWMan          *sawman;
+     SaWManWindow    *sawwin = (SaWManWindow*)handle;
+     CoreWindow      *window;
+
+     DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     if (!info || (handle == SAWMAN_WINDOW_NONE))
+          return DFB_INVARG;
+
+     sawman = data->sawman;
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( sawwin, SaWManWindow );
+
+     window = sawwin->window;
+     D_ASSERT( window != NULL );
+
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+
+     info->handle               = handle;
+     info->caps                 = sawwin->caps;
+     SAWMANWINDOWCONFIG_COPY( &info->config, &window->config )
+     info->config.key_selection = window->config.key_selection;
+     info->config.keys          = window->config.keys;
+     info->config.num_keys      = window->config.num_keys;
+     info->resource_id          = window->resource_id;
+     info->win_id               = window->id;
+     info->flags = sawwin->flags 
+                   | (window->flags & CWF_FOCUSED ? SWMWF_FOCUSED : 0)
+                   | (window->flags & CWF_ENTERED ? SWMWF_ENTERED : 0);
+
+     return DFB_OK;
+}
+
+static DirectResult
+ISaWManManager_GetProcessInfo( ISaWManManager     *thiz,
+                               SaWManWindowHandle  handle,
+                               SaWManProcess      *process )
+{
+     SaWMan         *sawman;
+     SaWManWindow   *sawwin = (SaWManWindow*)handle;
+
+     DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     if (!process || (handle == SAWMAN_WINDOW_NONE))
+          return DFB_INVARG;
+
+     sawman = data->sawman;
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( sawwin, SaWManWindow );
+
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+
+     *process = *sawwin->process;
+
+     return DFB_OK;
+}
+
+static DirectResult
+ISaWManManager_IsWindowShowing( ISaWManManager     *thiz,
+                                SaWManWindowHandle  handle,
+                                DFBBoolean         *ret_showing )
+{
+     DFBResult       ret;
+     bool            showing;
+     SaWMan         *sawman;
+     SaWManWindow   *sawwin = (SaWManWindow*)handle;
+
+     DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     if (!ret_showing)
+          return DFB_INVARG;
+
+     sawman = data->sawman;
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( sawwin, SaWManWindow );
+
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+
+     ret = sawman_showing_window( sawman, sawwin, &showing );
+     if (ret)
+          return ret;
+
+     *ret_showing = showing ? DFB_TRUE : DFB_FALSE;
+
+     return DFB_OK;
+}
+
 DirectResult
 ISaWManManager_Construct( ISaWManManager *thiz,
                           SaWMan         *sawman,
@@ -451,7 +543,9 @@ ISaWManManager_Construct( ISaWManManager *thiz,
      thiz->SendWindowEvent = ISaWManManager_SendWindowEvent;
      thiz->Lock            = ISaWManManager_Lock;
      thiz->Unlock          = ISaWManManager_Unlock;
+     thiz->GetWindowInfo   = ISaWManManager_GetWindowInfo;
+     thiz->GetProcessInfo  = ISaWManManager_GetProcessInfo;
+     thiz->IsWindowShowing = ISaWManManager_IsWindowShowing;
 
      return DFB_OK;
 }
-

@@ -2269,8 +2269,15 @@ wm_add_window( CoreWindowStack *stack,
      info = &sawman->callback.info;
      info->handle      = (SaWManWindowHandle)sawwin;
      info->caps        = sawwin->caps;
-     info->resource_id = window->resource_id;
      SAWMANWINDOWCONFIG_COPY( &info->config, &window->config )
+     info->config.key_selection = window->config.key_selection;
+     info->config.keys          = window->config.keys;
+     info->config.num_keys      = window->config.num_keys;
+     info->resource_id          = window->resource_id;
+     info->win_id               = window->id;
+     info->flags = sawwin->flags
+                   | (window->flags & CWF_FOCUSED ? SWMWF_FOCUSED : 0)
+                   | (window->flags & CWF_ENTERED ? SWMWF_ENTERED : 0);
 
      switch (ret = sawman_call( sawman, SWMCID_WINDOW_ADDED, info )) {
           case DFB_OK:
@@ -2370,8 +2377,15 @@ wm_remove_window( CoreWindowStack *stack,
      info = &sawman->callback.info;
      info->handle      = (SaWManWindowHandle)sawwin;
      info->caps        = sawwin->caps;
-     info->resource_id = window->resource_id;
      SAWMANWINDOWCONFIG_COPY( &info->config, &window->config )
+     info->config.key_selection = window->config.key_selection;
+     info->config.keys          = window->config.keys;
+     info->config.num_keys      = window->config.num_keys;
+     info->resource_id          = window->resource_id;
+     info->win_id               = window->id;
+     info->flags = sawwin->flags
+                   | (window->flags & CWF_FOCUSED ? SWMWF_FOCUSED : 0)
+                   | (window->flags & CWF_ENTERED ? SWMWF_ENTERED : 0);
 
      switch (ret = sawman_call( sawman, SWMCID_WINDOW_REMOVED, info )) {
           case DFB_NOIMPL:
@@ -2487,7 +2501,8 @@ wm_set_window_config( CoreWindow             *window,
      config   = &reconfig->request;
 
      SAWMANWINDOWCONFIG_COPY( current, &window->config )
-     SAWMANWINDOWCONFIG_COPY( config,  updated )
+     *config = *current; /* make sure that all fields in "request" are valid */
+     SAWMANWINDOWCONFIG_COPY_IF( config,  updated, flags )
 
      reconfig->flags = 0;
 
