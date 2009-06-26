@@ -1668,6 +1668,15 @@ dfb_fbdev_mode_to_var( const VideoMode           *mode,
                var.blue.offset   = 0;
                break;
 
+          case DSPF_BGR555:
+               var.red.length    = 5;
+               var.green.length  = 5;
+               var.blue.length   = 5;
+               var.red.offset    = 0;
+               var.green.offset  = 5;
+               var.blue.offset   = 10;
+               break;
+
           case DSPF_ARGB4444:
                var.transp.length = 4;
                var.red.length    = 4;
