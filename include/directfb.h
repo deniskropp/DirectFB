@@ -5461,6 +5461,29 @@ DEFINE_INTERFACE(   IDirectFBWindow,
           IDirectFBWindow               *thiz,
           DFBWindowID                    window_id
      );
+
+   /** Application ID **/
+
+     /*
+      * Set application ID.
+      * 
+      * The usage of the application ID is not imposed by DirectFB 
+      * and can be used at will by the application. Any change will
+      * be notified, and as such, an application manager using SaWMan
+      * can be used to act on any change.
+      */
+     DFBResult (*SetApplicationID) (
+          IDirectFBWindow               *thiz,
+          unsigned long                  application_id
+     );
+
+     /*
+      * Get current application ID.
+      */
+     DFBResult (*GetApplicationID) (
+          IDirectFBWindow               *thiz,
+          unsigned long                 *ret_application_id
+     );
 )
 
 

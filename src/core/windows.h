@@ -66,7 +66,9 @@ typedef enum {
 
      CWCF_ROTATION      = 0x00040000,
 
-     CWCF_ALL           = 0x0007177F
+     CWCF_APPLICATION_ID= 0x00080000,
+
+     CWCF_ALL           = 0x000F177F
 } CoreWindowConfigFlags;
 
 struct __DFB_CoreWindowConfig {
@@ -89,6 +91,9 @@ struct __DFB_CoreWindowConfig {
      int                      rotation;
 
      DFBWindowID              association;
+
+     unsigned long            application_id; /* this can be changed at runtime by the application.
+                                               * it's here so appman can get a callback on change. */
 };
 
 

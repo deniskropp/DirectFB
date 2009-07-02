@@ -1223,10 +1223,9 @@ IDirectFBWindow_SetDstGeometry( IDirectFBWindow         *thiz,
 }
 
 static DFBResult
-IDirectFBWindow_SetRotation(IDirectFBWindow *thiz,
-                          int rotation)
+IDirectFBWindow_SetRotation( IDirectFBWindow *thiz,
+                             int              rotation )
 {
-
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      return dfb_window_set_rotation( data->window, rotation % 360 );     
@@ -1248,6 +1247,45 @@ IDirectFBWindow_SetAssociation( IDirectFBWindow *thiz,
      config.association = window_id;
 
      return dfb_window_set_config( data->window, &config, CWCF_ASSOCIATION );
+}
+
+static DFBResult
+IDirectFBWindow_SetApplicationID( IDirectFBWindow *thiz,
+                                  unsigned long    application_id )
+                                  
+{
+     CoreWindowConfig config;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     config.application_id = application_id;
+
+     return dfb_window_set_config( data->window, &config, CWCF_APPLICATION_ID );
+}
+
+static DFBResult
+IDirectFBWindow_GetApplicationID( IDirectFBWindow *thiz,
+                                  unsigned long   *ret_application_id )
+                                  
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     if (!ret_application_id)
+          return DFB_INVARG;
+
+     *ret_application_id = data->window->config.application_id;
+
+     return DFB_OK;
 }
 
 DFBResult
@@ -1321,6 +1359,8 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->SetDstGeometry = IDirectFBWindow_SetDstGeometry;
      thiz->SetRotation = IDirectFBWindow_SetRotation;
      thiz->SetAssociation = IDirectFBWindow_SetAssociation;
+     thiz->SetApplicationID = IDirectFBWindow_SetApplicationID;
+     thiz->GetApplicationID = IDirectFBWindow_GetApplicationID;
 
      return DFB_OK;
 }
