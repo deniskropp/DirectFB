@@ -309,6 +309,21 @@ draw_window( SaWManTier   *tier,
           }
      }
 
+     /* if we specified some kind of color, we will colorise. no DWCAPS_COLOR here. */
+     if (window->config.color.a != 0) {
+          DFBColor c;
+          
+          flags |= DSBLIT_COLORIZE;
+
+          c   = window->config.color;
+          c.a = state->color.a;
+
+          if (! DFB_COLOR_EQUAL( c, state->color )) {
+               state->color     = c;
+               state->modified |= SMF_COLOR;
+          }
+     }
+
      /* Use source color keying. */
      if (window->config.options & DWOP_COLORKEYING) {
           flags |= DSBLIT_SRC_COLORKEY;
@@ -470,8 +485,8 @@ draw_window_color( SaWManWindow *sawwin,
 
      /* when not opaque, we simply adjust the color */
      if (window->config.opacity != 0xFF) {
-          flags |= DSDRAW_BLEND;
-          color.a    = (color.a * window->config.opacity) >> 8;
+          flags   |= DSDRAW_BLEND;
+          color.a  = (color.a * window->config.opacity) >> 8;
      }
 
      dfb_state_set_drawing_flags( state, flags );
