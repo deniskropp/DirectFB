@@ -395,6 +395,7 @@ ISaWManManager_SendWindowEvent( ISaWManManager       *thiz,
 
      FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
+     evt = *event;
      sawman_post_event( sawman, window, &evt );
 
      return DFB_OK;
