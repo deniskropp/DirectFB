@@ -459,6 +459,7 @@ ISaWManManager_GetWindowInfo( ISaWManManager     *thiz,
      info->config.keys          = window->config.keys;
      info->config.num_keys      = window->config.num_keys;
      info->resource_id          = window->resource_id;
+     info->application_id       = window->config.application_id;
      info->win_id               = window->id;
      info->flags = sawwin->flags 
                    | (window->flags & CWF_FOCUSED ? SWMWF_FOCUSED : 0)

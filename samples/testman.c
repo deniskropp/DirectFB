@@ -775,7 +775,7 @@ window_restack( void                 *context,
 
 static DirectResult
 switch_focus( void                 *context,
-                SaWManWindowHandle  window )
+              SaWManWindowHandle    window )
 {
      TestManager        *tm = context;
 
@@ -787,6 +787,19 @@ switch_focus( void                 *context,
 
      return DFB_OK;
 }
+
+static DirectResult application_id_changed( void          *context,
+                                            unsigned long  application_id )
+{
+     TestManager        *tm = context;
+
+     D_MAGIC_ASSERT( tm, TestManager );
+
+     D_INFO( "SaWMan/TestMan: Application ID switched to %ld\n", application_id );
+
+     return DFB_OK;
+}
+
 
 static const SaWManCallbacks callbacks = {
      Start:              start_request,
@@ -800,7 +813,9 @@ static const SaWManCallbacks callbacks = {
      WindowReconfig:     window_reconfig,
      WindowRestack:      window_restack,
      //~ StackResized
-     SwitchFocus:        switch_focus
+     SwitchFocus:        switch_focus,
+     //~ LayerReconfig
+     ApplicationIDChanged: application_id_changed
 };
 
 

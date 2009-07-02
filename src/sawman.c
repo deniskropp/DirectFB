@@ -359,6 +359,12 @@ manager_call_handler( int           caller,
                                                                       (SaWManWindowHandle)call_ptr );
                break;
 
+          case SWMCID_APPLICATION_ID_CHANGED:
+               if (sawman->manager.callbacks.ApplicationIDChanged)
+                    *ret_val = sawman->manager.callbacks.ApplicationIDChanged( sawman->manager.context,
+                                                                      (unsigned long)call_ptr );
+               break;
+
           default:
                *ret_val = DFB_NOIMPL;
      }
@@ -737,6 +743,12 @@ sawman_call( SaWMan       *sawman,
                if (!sawman->manager.callbacks.LayerReconfig)
                     return DFB_NOIMPL;
                break;
+
+          case SWMCID_APPLICATION_ID_CHANGED:
+               if (!sawman->manager.callbacks.ApplicationIDChanged)
+                    return DFB_NOIMPL;
+               break;
+
      }
 
      /* Execute the call in the manager executable. */

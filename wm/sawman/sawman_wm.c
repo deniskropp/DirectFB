@@ -2119,6 +2119,7 @@ wm_add_window( CoreWindowStack *stack,
      info->config.keys          = window->config.keys;
      info->config.num_keys      = window->config.num_keys;
      info->resource_id          = window->resource_id;
+     info->application_id       = window->config.application_id;
      info->win_id               = window->id;
      info->flags = sawwin->flags
                    | (window->flags & CWF_FOCUSED ? SWMWF_FOCUSED : 0)
@@ -2227,6 +2228,7 @@ wm_remove_window( CoreWindowStack *stack,
      info->config.keys          = window->config.keys;
      info->config.num_keys      = window->config.num_keys;
      info->resource_id          = window->resource_id;
+     info->application_id       = window->config.application_id;
      info->win_id               = window->id;
      info->flags = sawwin->flags
                    | (window->flags & CWF_FOCUSED ? SWMWF_FOCUSED : 0)
@@ -2330,6 +2332,24 @@ wm_set_window_config( CoreWindow             *window,
      ret = sawman_lock( sawman );
      if (ret)
           return ret;
+
+     /* inform about an application ID change */
+     if (flags & CWCF_APPLICATION_ID) {
+          ret = sawman_call( sawman, SWMCID_APPLICATION_ID_CHANGED, updated->application_id ));
+          if (ret == DFB_NOIMPL)
+               ret = DFB_OK;
+
+          if (ret != DFB_OK) {
+               sawman_unlock( sawman );
+               return ret;
+          }
+
+          /* if no other flags, we are done */
+          if (flags == CWCF_APPLICATION_ID) {
+               sawman_unlock( sawman );
+               return DFB_OK;
+          }
+     }
 
      /* Retrieve corresponding SaWManTier. */
      if (!sawman_tier_by_stack( sawman, stack, &tier )) {

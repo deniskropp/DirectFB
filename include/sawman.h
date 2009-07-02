@@ -165,6 +165,7 @@ typedef struct {
      SaWManWindowConfig       config;
 
      unsigned long            resource_id;
+     unsigned long            application_id;
      DFBWindowID              win_id;
 
      SaWManWindowFlags        flags;
@@ -246,6 +247,10 @@ typedef struct {
 
      DirectResult (*LayerReconfig)  ( void                *context,
                                       SaWManLayerReconfig *reconfig );
+
+     DirectResult (*ApplicationIDChanged) ( void          *context,
+                                            unsigned long  application_id );
+
 
 } SaWManCallbacks;
 
