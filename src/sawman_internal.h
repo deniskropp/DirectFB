@@ -114,6 +114,7 @@ typedef enum {
      SWMCID_STACK_RESIZED,
      SWMCID_SWITCH_FOCUS,
      SWMCID_LAYER_RECONFIG,
+     SWMCID_APPLICATION_ID_CHANGED,
 } SaWManCallID;
 
 typedef enum {
@@ -294,6 +295,15 @@ struct __SaWMan_SaWManGrabbedKey {
      SaWManWindow                 *owner;
 };
 
+typedef struct {
+     int                           magic;
+
+     bool                          active;
+
+     SaWMan                       *sawman;
+
+     CoreWindowStack              *stack;
+} StackData;
 
 DirectResult sawman_initialize( SaWMan         *sawman,
                                 FusionWorld    *world,
@@ -349,6 +359,18 @@ DirectResult sawman_withdraw_window( SaWMan                *sawman,
 
 DirectResult sawman_update_geometry( SaWManWindow          *sawwin );
 
+DirectResult sawman_set_opacity    ( SaWMan                *sawman,
+                                     SaWManWindow          *sawwin,
+                                     u8                     opacity );
+
+bool sawman_update_focus( SaWMan          *sawman,
+                          CoreWindowStack *stack );
+
+SaWManWindow *sawman_window_at_pointer( SaWMan          *sawman,
+                                        CoreWindowStack *stack,
+                                        int              x,
+                                        int              y );
+                     
 DirectResult sawman_process_updates( SaWMan                *sawman,
                                      DFBSurfaceFlipFlags    flags );
 

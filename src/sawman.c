@@ -1608,6 +1608,154 @@ sawman_update_geometry( SaWManWindow *sawwin )
      return DFB_OK;
 }
 
+DirectResult
+sawman_set_opacity( SaWMan       *sawman,
+                    SaWManWindow *sawwin,
+                    u8            opacity )
+{
+     u8               old;
+     StackData       *data;
+     CoreWindowStack *stack;
+     CoreWindow      *window;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( sawwin, SaWManWindow );
+     D_ASSERT( sawwin->stack_data != NULL );
+     D_ASSERT( sawwin->stack != NULL );
+     D_ASSERT( sawwin->window != NULL );
+
+     data   = sawwin->stack_data;
+     stack  = sawwin->stack;
+     window = sawwin->window;
+     old    = window->config.opacity;
+
+     if (!dfb_config->translucent_windows && opacity)
+          opacity = 0xFF;
+
+     if (old != opacity) {
+          window->config.opacity = opacity;
+
+          if (sawwin->flags & SWMWF_INSERTED) {
+               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_FORCE_INVISIBLE | SWMUF_UPDATE_BORDER );
+
+               /* Ungrab pointer/keyboard, pass focus... */
+               if (old && !opacity) {
+                    /* Possibly switch focus to window now under the cursor */
+                    if (sawman->focused_window == sawwin)
+                         sawman_update_focus( data->sawman, data->stack );
+
+                    sawman_withdraw_window( sawman, sawwin );
+               }
+          }
+     }
+
+     return DFB_OK;
+}
+
+bool
+sawman_update_focus( SaWMan          *sawman,
+                     CoreWindowStack *stack )
+{
+     StackData *data;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_ASSERT( stack != NULL );
+
+     data = stack->stack_data;
+
+     D_MAGIC_ASSERT( data, StackData );
+
+     /* if pointer is not grabbed */
+     if (!sawman->pointer_window) {
+          SaWManWindow *before = sawman->entered_window;
+          SaWManWindow *after  = sawman_window_at_pointer( sawman, stack, -1, -1 );
+
+          /* and the window under the cursor is another one now */
+          if (before != after) {
+               DFBWindowEvent we;
+
+               /* send leave event */
+               if (before) {
+                    D_MAGIC_ASSERT( before, SaWManWindow );
+                    D_ASSERT( before->window != NULL );
+
+                    we.type = DWET_LEAVE;
+                    we.x    = stack->cursor.x - before->bounds.x;
+                    we.y    = stack->cursor.y - before->bounds.y;
+
+                    sawman_post_event( sawman, before, &we );
+               }
+
+               /* switch focus and send enter event */
+               sawman_switch_focus( sawman, after );
+
+               if (after) {
+                    D_MAGIC_ASSERT( after, SaWManWindow );
+                    D_ASSERT( after->window != NULL );
+
+                    we.type = DWET_ENTER;
+                    we.x    = stack->cursor.x - after->bounds.x;
+                    we.y    = stack->cursor.y - after->bounds.y;
+
+                    sawman_post_event( sawman, after, &we );
+               }
+
+               /* update pointer to window under the cursor */
+               sawman->entered_window = after;
+
+               return true;
+          }
+     }
+
+     return false;
+}
+
+
+SaWManWindow*
+sawman_window_at_pointer( SaWMan          *sawman,
+                          CoreWindowStack *stack,
+                          int              x,
+                          int              y )
+{
+     int           i;
+     SaWManWindow *sawwin;
+     CoreWindow   *window;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_ASSERT( stack != NULL );
+
+     if (!stack->cursor.enabled) {
+          fusion_vector_foreach_reverse (sawwin, i, sawman->layout) {
+               D_MAGIC_ASSERT( sawwin, SaWManWindow );
+               window = sawwin->window;
+               D_ASSERT( window != NULL );
+
+               if (window->config.opacity && !(window->config.options & DWOP_GHOST))
+                    return sawwin;
+          }
+
+          return NULL;
+     }
+
+     if (x < 0)
+          x = stack->cursor.x;
+     if (y < 0)
+          y = stack->cursor.y;
+
+     fusion_vector_foreach_reverse (sawwin, i, sawman->layout) {
+          D_MAGIC_ASSERT( sawwin, SaWManWindow );
+          window = sawwin->window;
+          D_ASSERT( window != NULL );
+
+          if (!(window->config.options & DWOP_GHOST) && window->config.opacity &&
+              x >= sawwin->bounds.x  &&  x < sawwin->bounds.x + sawwin->bounds.w &&
+              y >= sawwin->bounds.y  &&  y < sawwin->bounds.y + sawwin->bounds.h)
+               return sawwin;
+     }
+
+     return NULL;
+}
+
 int
 sawman_window_border( const SaWManWindow *sawwin )
 {

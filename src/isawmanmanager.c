@@ -326,13 +326,13 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
      SaWManWindow   *window = (SaWManWindow*)handle;
      CoreWindow     *corewindow;
 
-     /* for the moment, we only accept size and position */
-     if( flags & ~(SWMCF_POSITION | SWMCF_SIZE ) )
+     /* not yet all implemented */
+     if( flags & ~(SWMCF_POSITION | SWMCF_SIZE | SWMCF_OPACITY) )
           return DFB_INVARG;
-     
+
      if( config == NULL )
           return DFB_INVARG;
-     
+
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
      sawman = data->sawman;
@@ -358,6 +358,9 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
 
           sawman_update_geometry( window );
      }
+
+     if (flags & CWCF_OPACITY)
+          sawman_set_opacity( sawman, window, config->opacity );
 
      return DFB_OK;
 }
