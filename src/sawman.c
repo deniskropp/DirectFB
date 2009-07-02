@@ -359,6 +359,11 @@ manager_call_handler( int           caller,
                                                                       (SaWManWindowHandle)call_ptr );
                break;
 
+          case SWMCID_LAYER_RECONFIG:
+               if (sawman->manager.callbacks.LayerReconfig)
+                    *ret_val = sawman->manager.callbacks.LayerReconfig( sawman->manager.context, call_ptr );
+               break;
+
           case SWMCID_APPLICATION_ID_CHANGED:
                if (sawman->manager.callbacks.ApplicationIDChanged)
                     *ret_val = sawman->manager.callbacks.ApplicationIDChanged( sawman->manager.context,
@@ -2515,7 +2520,8 @@ sawman_process_updates( SaWMan              *sawman,
                     switch (sawman_call( sawman, SWMCID_LAYER_RECONFIG, &sawman->callback.layer_reconfig )) {
                          case DFB_OK:
                               config = sawman->callback.layer_reconfig.config;
-                         case DFB_UNIMPLEMENTED:
+                         case DFB_NOIMPL: 
+                              /* continue, no change demanded */
                               break;
 
                          default:
