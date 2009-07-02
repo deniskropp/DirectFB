@@ -73,8 +73,10 @@ static DFBWindowDescription m_desc_sub = {
      .height        = 120,
 };
 
-static DFBColor         m_topcolor;
-static DFBColor         m_subcolor;
+static struct {
+     bool     valid;
+     DFBColor color;
+} m_topcolor, m_subcolor;
 
 static IDirectFBWindow *m_toplevel     = NULL;
 static DFBWindowID      m_toplevel_id  = 0;
@@ -555,9 +557,10 @@ parse_command_line( int argc, char *argv[] )
                     return false;
                }
 
-               if (!parse_color( argv[n], &m_topcolor ))
+               if (!parse_color( argv[n], &m_topcolor.color ))
                     return false;
 
+               m_topcolor.valid = true;
                continue;
           }
 
@@ -654,9 +657,10 @@ parse_command_line( int argc, char *argv[] )
                     return false;
                }
 
-               if (!parse_color( argv[n], &m_subcolor ))
+               if (!parse_color( argv[n], &m_subcolor.color ))
                     return false;
 
+               m_subcolor.valid = true;
                continue;
           }
 
@@ -766,8 +770,8 @@ Test_CreateWindow( IDirectFBDisplayLayer *layer, void *arg )
 
      _T( layer->CreateWindow( layer, &m_desc_top, &window ) );
 
-     if (m_desc_top.caps & DWCAPS_COLOR) {
-          DFBColor c = m_topcolor;
+     if (m_topcolor.valid) {
+          DFBColor c = m_topcolor.color;
 
           SHOW_INFO( "  - SetColor( 0x%02x, 0x%02x, 0x%02x, 0x%02x )...", c.r, c.g, c.b, c.a );
 
@@ -854,8 +858,8 @@ Test_CreateSubWindow( IDirectFBDisplayLayer *layer, void *arg )
 
      _T( layer->CreateWindow( layer, &m_desc_sub, &window ) );
 
-     if (m_desc_sub.caps & DWCAPS_COLOR) {
-          DFBColor c = m_subcolor;
+     if (m_subcolor.valid) {
+          DFBColor c = m_subcolor.color;
 
           SHOW_INFO( "  - SetColor( 0x%02x, 0x%02x, 0x%02x, 0x%02x )...", c.r, c.g, c.b, c.a );
 

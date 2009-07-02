@@ -5069,10 +5069,11 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      );
 
      /*
-      * Set the window color.
+      * Set the window color, or colorises the window.
       *
-      * This is used in case you specified DWCAPS_COLOR.
-      * It specifies the window draw color.
+      * In case you specified DWCAPS_COLOR, this sets the window draw color.
+      * In case you didn't, it colorises the window with this color; this will darken the window.
+      * no DWCAPS_COLOR and an opacity of 0 means: no effect.
       */
      DFBResult (*SetColor) (
           IDirectFBWindow               *thiz,

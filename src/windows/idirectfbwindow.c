@@ -503,9 +503,6 @@ IDirectFBWindow_SetColor( IDirectFBWindow *thiz,
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     if (!(data->window->caps & DWCAPS_COLOR))
-          return DFB_UNSUPPORTED;
-
      dfb_window_set_color( data->window, color );
 
      return DFB_OK;
