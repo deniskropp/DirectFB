@@ -1556,6 +1556,8 @@ driver_init_device( CoreGraphicsDevice *device,
 
      /* 3D Rage Pro is the first chip that supports auto fast fill/block write. */
      if (mdev->chip >= CHIP_3D_RAGE_PRO) {
+          u32 cfg_mem_type = mach64_in32( mmio, CONFIG_STAT0 ) & CFG_MEM_TYPE;
+
           mdev->hw_debug = mach64_in32( mmio, HW_DEBUG );
 
           /* Save original HW_DEBUG. */
@@ -1564,7 +1566,8 @@ driver_init_device( CoreGraphicsDevice *device,
           /* Enable auto fast fill and fast fill/block write scissoring. */
           mdev->hw_debug &= ~(AUTO_FF_DIS | INTER_PRIM_DIS);
 
-          if ((mach64_in32( mmio, CONFIG_STAT0 ) & CFG_MEM_TYPE) == CFG_MEM_TYPE_SGRAM) {
+          if (cfg_mem_type == CFG_MEM_TYPE_SGRAM ||
+              (mdev->chip == CHIP_3D_RAGE_PRO && cfg_mem_type == CFG_MEM_TYPE_WRAM)) {
                /* Enable auto block write and auto color register updates. */
                mdev->hw_debug &= ~(AUTO_BLKWRT_DIS | AUTO_BLKWRT_COLOR_DIS);
 

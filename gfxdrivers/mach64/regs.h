@@ -653,6 +653,7 @@
 /* CONFIG_STAT0 */
 #define CFG_MEM_TYPE                    0x00000007
 #define CFG_MEM_TYPE_SGRAM              0x00000005
+#define CFG_MEM_TYPE_WRAM               0x00000006
 
 /* DST_BRES_LNTH */
 #define DRAW_TRAP                       0x00008000
