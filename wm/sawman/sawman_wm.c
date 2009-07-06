@@ -2294,6 +2294,7 @@ wm_set_window_config( CoreWindow             *window,
      SaWManTier       *tier;
      CoreWindowStack  *stack;
 
+     SaWManWindowInfo     *info;
      SaWManWindowConfig   *config;
      SaWManWindowConfig   *current;
      SaWManWindowReconfig *reconfig;
@@ -2335,7 +2336,21 @@ wm_set_window_config( CoreWindow             *window,
 
      /* inform about an application ID change */
      if (flags & CWCF_APPLICATION_ID) {
-          ret = sawman_call( sawman, SWMCID_APPLICATION_ID_CHANGED, (void*)updated->application_id );
+          info = &sawman->callback.info;
+          info->handle      = (SaWManWindowHandle)sawwin;
+          info->caps        = sawwin->caps;
+          SAWMANWINDOWCONFIG_COPY( &info->config, &window->config )
+          info->config.key_selection = window->config.key_selection;
+          info->config.keys          = window->config.keys;
+          info->config.num_keys      = window->config.num_keys;
+          info->resource_id          = window->resource_id;
+          info->application_id       = updated->application_id;
+          info->win_id               = window->id;
+          info->flags = sawwin->flags
+                        | (window->flags & CWF_FOCUSED ? SWMWF_FOCUSED : 0)
+                        | (window->flags & CWF_ENTERED ? SWMWF_ENTERED : 0);
+
+          ret = sawman_call( sawman, SWMCID_APPLICATION_ID_CHANGED, info );
           if (ret == DFB_NOIMPL)
                ret = DFB_OK;
 
@@ -2343,6 +2358,9 @@ wm_set_window_config( CoreWindow             *window,
                sawman_unlock( sawman );
                return ret;
           }
+
+          /* accepted */
+          window->config.application_id = info->application_id;
 
           /* if no other flags, we are done */
           if (flags == CWCF_APPLICATION_ID) {

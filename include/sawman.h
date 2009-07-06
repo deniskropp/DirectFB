@@ -248,8 +248,8 @@ typedef struct {
      DirectResult (*LayerReconfig)  ( void                *context,
                                       SaWManLayerReconfig *reconfig );
 
-     DirectResult (*ApplicationIDChanged) ( void          *context,
-                                            unsigned long  application_id );
+     DirectResult (*ApplicationIDChanged) ( void             *context,
+                                            SaWManWindowInfo *info );
 
 
 } SaWManCallbacks;

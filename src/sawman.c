@@ -366,8 +366,7 @@ manager_call_handler( int           caller,
 
           case SWMCID_APPLICATION_ID_CHANGED:
                if (sawman->manager.callbacks.ApplicationIDChanged)
-                    *ret_val = sawman->manager.callbacks.ApplicationIDChanged( sawman->manager.context,
-                                                                      (unsigned long)call_ptr );
+                    *ret_val = sawman->manager.callbacks.ApplicationIDChanged( sawman->manager.context, call_ptr );
                break;
 
           default:
