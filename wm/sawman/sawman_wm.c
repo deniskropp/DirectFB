@@ -2335,7 +2335,7 @@ wm_set_window_config( CoreWindow             *window,
 
      /* inform about an application ID change */
      if (flags & CWCF_APPLICATION_ID) {
-          ret = sawman_call( sawman, SWMCID_APPLICATION_ID_CHANGED, updated->application_id ));
+          ret = sawman_call( sawman, SWMCID_APPLICATION_ID_CHANGED, (void*)updated->application_id );
           if (ret == DFB_NOIMPL)
                ret = DFB_OK;
 
