@@ -78,6 +78,12 @@ else
 OMAP_DIR =
 endif
 
+if GFX_PXA3XX
+PXA3XX_DIR = pxa3xx
+else
+PXA3XX_DIR =
+endif
+
 if GFX_RADEON
 RADEON_DIR = radeon
 else
@@ -142,6 +148,7 @@ SUBDIRS = \
 	$(NSC_DIR)	\
 	$(NVIDIA_DIR)	\
 	$(OMAP_DIR)	\
+	$(PXA3XX_DIR)	\
 	$(RADEON_DIR)	\
 	$(SAVAGE_DIR)	\
 	$(SH772X_DIR)	\
