@@ -479,54 +479,54 @@ static inline void dfb_region_clip( DFBRegion *region,
           region->y2 = y2;
 }
 
-static inline void dfb_rectangle_subtract( DFBRectangle    *rect, 
+static inline void dfb_rectangle_subtract( DFBRectangle    *rect,
                                            const DFBInsets *insets )
 {
      D_ASSERT( rect != NULL );
      D_ASSERT( insets != NULL );
-     
+
      rect->x += insets->l;
      rect->y += insets->t;
      rect->w -= insets->l + insets->r;
      rect->h -= insets->t + insets->b;
-     
+
      if (rect->w <= 0 || rect->h <= 0)
           rect->w = rect->h = 0;
 }
 
 /*
- * Compute line segment intersection. 
+ * Compute line segment intersection.
  * Return true if intersection point exists within the given segment.
  */
-static inline bool dfb_line_segment_intersect( const DFBRegion *line, 
-                                               const DFBRegion *seg, 
-                                               int             *x, 
+static inline bool dfb_line_segment_intersect( const DFBRegion *line,
+                                               const DFBRegion *seg,
+                                               int             *x,
                                                int             *y )
 {
      int x1, x2, x3, x4;
      int y1, y2, y3, y4;
      int num, den;
-     
+
      D_ASSERT( line != NULL );
      D_ASSERT( seg != NULL );
-     
+
      x1 = seg->x1;  y1 = seg->y1;  x2 = seg->y2;  y2 = seg->y2;
      x3 = line->x1; y3 = line->y1; x4 = line->x2; y4 = line->y2;
-     
+
      num = (x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3);
      den = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
 
      if (!den) /* parallel */
           return false;
-          
+
      if (num && ((num < 0) != (den < 0) || abs(num) > abs(den))) /* not within segment */
           return false;
-     
+
      if (x)
           *x = (s64)(x2 - x1) * num / den + x1;
      if (y)
           *y = (s64)(y2 - y1) * num / den + y1;
-     
+
      return true;
 }
 
