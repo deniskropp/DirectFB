@@ -89,7 +89,8 @@ driver_init_driver( CoreGraphicsDevice  *device,
      pdrv->device = device;
 
      /* Open the drawing engine device. */
-     pdrv->gfx_fd = direct_try_open( "/dev/pxa3xx_gfx", "/dev/misc/pxa3xx_gfx", O_RDWR, true );
+     pdrv->gfx_fd = direct_try_open( "/dev/pxa3xx-gcu",
+                                     "/dev/misc/pxa3xx-gcu", O_RDWR, true );
      if (pdrv->gfx_fd < 0)
           return DFB_INIT;
 
