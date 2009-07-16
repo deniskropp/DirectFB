@@ -670,11 +670,11 @@ pxa3xxBlit( void *drv, void *dev, DFBRectangle *rect, int x, int y )
           u32 *prep     = start_buffer( pdrv, 8 );
 
           if (pdev->bflags & DSBLIT_ROTATE90)
-               rotation = 1;
+               rotation = 3;
           else if (pdev->bflags & DSBLIT_ROTATE180)
                rotation = 2;
           else if (pdev->bflags & DSBLIT_ROTATE270)
-               rotation = 3;
+               rotation = 1;
 
           prep[0] = 0x4A000005 | (rotation << 4); // FIXME: use 32byte alignment hint
           prep[1] = x;
