@@ -89,6 +89,16 @@ static int pixel_formats[DFB_NUM_PIXELFORMATS] = {
 
 /**********************************************************************************************************************/
 
+static bool pxa3xxFillRectangle     ( void *drv, void *dev, DFBRectangle *rect );
+static bool pxa3xxFillRectangleBlend( void *drv, void *dev, DFBRectangle *rect );
+
+static bool pxa3xxBlit              ( void *drv, void *dev, DFBRectangle *rect, int x, int y );
+static bool pxa3xxBlitBlend         ( void *drv, void *dev, DFBRectangle *rect, int x, int y );
+
+
+/**********************************************************************************************************************/
+
+
 static inline bool
 check_blend_functions( const CardState *state )
 {
@@ -502,6 +512,9 @@ pxa3xxCheckState( void                *drv,
                if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->config.format ))
                     return;
 
+               if (flags & ~(DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA))
+                    return;
+
                /* Check blend functions. */
                if (!check_blend_functions( state ))
                     return;
@@ -573,6 +586,11 @@ pxa3xxSetState( void                *drv,
                /* ...require valid color. */
                PXA3XX_CHECK_VALIDATE( COLOR );
 
+               if (state->drawingflags & DSDRAW_BLEND)
+                    funcs->FillRectangle = pxa3xxFillRectangleBlend;
+               else
+                    funcs->FillRectangle = pxa3xxFillRectangle;
+
                /*
                 * 3) Tell which functions can be called without further validation, i.e. SetState()
                 *
@@ -585,6 +603,11 @@ pxa3xxSetState( void                *drv,
           case DFXL_STRETCHBLIT:
                /* ...require valid source. */
                PXA3XX_CHECK_VALIDATE( SOURCE );
+
+               if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL && pdev->src_alpha)
+                    funcs->Blit = pxa3xxBlitBlend;
+               else
+                    funcs->Blit = pxa3xxBlit;
 
                /*
                 * 3) Tell which functions can be called without further validation, i.e. SetState()
@@ -619,7 +642,7 @@ pxa3xxSetState( void                *drv,
 /*
  * Render a filled rectangle using the current hardware state.
  */
-bool
+static bool
 pxa3xxFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      PXA3XXDriverData *pdrv = drv;
@@ -640,90 +663,161 @@ pxa3xxFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 }
 
 /*
+ * Render a blended rectangle using the current hardware state.
+ *
+ * As the hardware does not directly support this, we blit a single
+ * pixel with blending.
+ */
+static bool
+pxa3xxFillRectangleBlend( void *drv, void *dev, DFBRectangle *rect )
+{
+     PXA3XXDriverData *pdrv   = drv;
+     PXA3XXDeviceData *pdev   = dev;
+     u32              *prep   = start_buffer( pdrv, 22 );
+     const u32         format = pixel_formats[DFB_PIXELFORMAT_INDEX( DSPF_ARGB )];
+
+     D_DEBUG_AT( PXA3XX_BLT, "%s( %d, %d - %dx%d )\n", __FUNCTION__,
+                 DFB_RECTANGLE_VALS( rect ) );
+     DUMP_INFO();
+
+     /* Set fake destination. */
+     prep[0]  = 0x020000A2;
+     prep[1]  = pdev->fake_phys;
+     prep[2]  = (format << 19) | 4;
+
+     /* Fill rectangle. */
+     prep[3]  = 0x40000014 | (format << 8);
+     prep[4]  = 0;
+     prep[5]  = 0;
+     prep[6]  = PXA3XX_WH( rect->w, 1 );
+     prep[7]  = PIXEL_ARGB( pdev->color.a, pdev->color.r, pdev->color.g, pdev->color.b );
+
+     /* Restore destination. */
+     prep[8]  = 0x020000A2;
+     prep[9]  = pdev->dst_phys;
+     prep[10] = (pixel_formats[pdev->dst_index] << 19) | (pdev->dst_pitch << 5) | pdev->dst_bpp;
+
+     /* Set fake buffer as source. */
+     prep[11] = 0x02000002;
+     prep[12] = pdev->fake_phys;
+     prep[13] = (format << 19) | 4;
+
+     /* Blit. */
+     prep[14] = 0x47000107;
+     prep[15] = rect->x;
+     prep[16] = rect->y;
+     prep[17] = 0;
+     prep[18] = 0;
+     prep[19] = rect->x;
+     prep[20] = rect->y;
+     prep[21] = PXA3XX_WH( rect->w, rect->h );
+
+     submit_buffer( pdrv, 22 );
+
+     /* Clear the flag. */
+     PXA3XX_INVALIDATE( SOURCE );
+
+     return true;
+}
+
+/*
  * Blit a rectangle using the current hardware state.
  */
-bool
+static bool
 pxa3xxBlit( void *drv, void *dev, DFBRectangle *rect, int x, int y )
 {
-     PXA3XXDriverData *pdrv = drv;
-     PXA3XXDeviceData *pdev = dev;
+     PXA3XXDriverData *pdrv     = drv;
+     PXA3XXDeviceData *pdev     = dev;
+     u32               rotation = 0;
+     u32              *prep     = start_buffer( pdrv, 6 );
 
      D_DEBUG_AT( PXA3XX_BLT, "%s( %d, %d - %dx%d  -> %d, %d )\n",
                  __FUNCTION__, DFB_RECTANGLE_VALS( rect ), x, y );
      DUMP_INFO();
 
-     if (pdev->bflags & DSBLIT_BLEND_ALPHACHANNEL && pdev->src_alpha) {
-          u32 *prep = start_buffer( pdrv, 8 );
+     if (pdev->bflags & DSBLIT_ROTATE90)
+           rotation = 3;
+     else if (pdev->bflags & DSBLIT_ROTATE180)
+           rotation = 2;
+     else if (pdev->bflags & DSBLIT_ROTATE270)
+           rotation = 1;
 
-          prep[0] = 0x47000107;
-          prep[1] = x;
-          prep[2] = y;
-          prep[3] = rect->x;
-          prep[4] = rect->y;
-          prep[5] = x;
-          prep[6] = y;
-          prep[7] = PXA3XX_WH( rect->w, rect->h );
+     prep[0] = 0x4A000005 | (rotation << 4); // FIXME: use 32byte alignment hint
+     prep[1] = x;
+     prep[2] = y;
+     prep[3] = rect->x;
+     prep[4] = rect->y;
+     prep[5] = PXA3XX_WH( rect->w, rect->h );
 
-          submit_buffer( pdrv, 8 );
-     }
-     else {
-          u32  rotation = 0;
-          u32 *prep     = start_buffer( pdrv, 6 );
-
-          if (pdev->bflags & DSBLIT_ROTATE90)
-               rotation = 3;
-          else if (pdev->bflags & DSBLIT_ROTATE180)
-               rotation = 2;
-          else if (pdev->bflags & DSBLIT_ROTATE270)
-               rotation = 1;
-
-          prep[0] = 0x4A000005 | (rotation << 4); // FIXME: use 32byte alignment hint
-          prep[1] = x;
-          prep[2] = y;
-          prep[3] = rect->x;
-          prep[4] = rect->y;
-          prep[5] = PXA3XX_WH( rect->w, rect->h );
-
-          submit_buffer( pdrv, 6 );
+     submit_buffer( pdrv, 6 );
 
 /* RASTER
-          prep[0] = 0x4BCC0007;
-          prep[1] = x;
-          prep[2] = y;
-          prep[3] = rect->x;
-          prep[4] = rect->y;
-          prep[5] = rect->x;
-          prep[6] = rect->y;
-          prep[7] = PXA3XX_WH( rect->w, rect->h );
 
-          submit_buffer( pdrv, 8 );
+     prep[0] = 0x4BCC0007;
+     prep[1] = x;
+     prep[2] = y;
+     prep[3] = rect->x;
+     prep[4] = rect->y;
+     prep[5] = rect->x;
+     prep[6] = rect->y;
+     prep[7] = PXA3XX_WH( rect->w, rect->h );
+
+     submit_buffer( pdrv, 8 );
  */
 
 /* PATTERN
-          prep[0] = 0x4C000006;
-          prep[1] = x;
-          prep[2] = y;
-          prep[3] = rect->x;
-          prep[4] = rect->y;
-          prep[5] = PXA3XX_WH( rect->w, rect->h );
-          prep[6] = PXA3XX_WH( rect->w, rect->h );
 
-          submit_buffer( pdrv, 7 );
+     prep[0] = 0x4C000006;
+     prep[1] = x;
+     prep[2] = y;
+     prep[3] = rect->x;
+     prep[4] = rect->y;
+     prep[5] = PXA3XX_WH( rect->w, rect->h );
+     prep[6] = PXA3XX_WH( rect->w, rect->h );
+
+     submit_buffer( pdrv, 7 );
  */
 
 /* BIAS
-          prep[0] = 0x49000016;
-          prep[1] = x;
-          prep[2] = y;
-          prep[3] = rect->x;
-          prep[4] = rect->y;
-          prep[5] = PXA3XX_WH( rect->w, rect->h );
-          prep[6] = 0;
 
-          submit_buffer( pdrv, 7 );
+     prep[0] = 0x49000016;
+     prep[1] = x;
+     prep[2] = y;
+     prep[3] = rect->x;
+     prep[4] = rect->y;
+     prep[5] = PXA3XX_WH( rect->w, rect->h );
+     prep[6] = 0;
+
+     submit_buffer( pdrv, 7 );
  */
-     }
 
      return true;
 }
 
+/*
+ * Blit a rectangle with alpha blending using the current hardware state.
+ */
+static bool
+pxa3xxBlitBlend( void *drv, void *dev, DFBRectangle *rect, int x, int y )
+{
+     PXA3XXDriverData *pdrv = drv;
+     PXA3XXDeviceData *pdev = dev;
+     u32              *prep = start_buffer( pdrv, 8 );
+
+     D_DEBUG_AT( PXA3XX_BLT, "%s( %d, %d - %dx%d  -> %d, %d )\n",
+                 __FUNCTION__, DFB_RECTANGLE_VALS( rect ), x, y );
+     DUMP_INFO();
+
+     prep[0] = 0x47000107;
+     prep[1] = x;
+     prep[2] = y;
+     prep[3] = rect->x;
+     prep[4] = rect->y;
+     prep[5] = x;
+     prep[6] = y;
+     prep[7] = PXA3XX_WH( rect->w, rect->h );
+
+     submit_buffer( pdrv, 8 );
+
+     return true;
+}

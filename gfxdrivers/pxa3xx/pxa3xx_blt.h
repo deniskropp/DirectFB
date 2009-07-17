@@ -5,7 +5,8 @@
 
 
 
-#define PXA3XX_SUPPORTED_DRAWINGFLAGS      (DSDRAW_NOFX)
+#define PXA3XX_SUPPORTED_DRAWINGFLAGS      (DSDRAW_NOFX | \
+                                            DSDRAW_BLEND)
 
 #define PXA3XX_SUPPORTED_DRAWINGFUNCTIONS  (DFXL_FILLRECTANGLE)
 
@@ -29,10 +30,6 @@ void pxa3xxCheckState       ( void *drv, void *dev,
 void pxa3xxSetState         ( void *drv, void *dev,
                               GraphicsDeviceFuncs *funcs,
                               CardState *state, DFBAccelerationMask accel );
-
-bool pxa3xxFillRectangle    ( void *drv, void *dev, DFBRectangle *rect );
-bool pxa3xxBlit             ( void *drv, void *dev, DFBRectangle *rect, int x, int y );
-
 
 
 #define PXA3XX_S16S16(h,l)         ((u32)((((u16)(h)) << 16) | ((u16)(l))))

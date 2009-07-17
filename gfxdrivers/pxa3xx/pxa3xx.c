@@ -130,8 +130,6 @@ driver_init_driver( CoreGraphicsDevice  *device,
      funcs->EmitCommands  = pxa3xxEmitCommands;
      funcs->CheckState    = pxa3xxCheckState;
      funcs->SetState      = pxa3xxSetState;
-     funcs->FillRectangle = pxa3xxFillRectangle;
-     funcs->Blit          = pxa3xxBlit;
 
      return DFB_OK;
 }
@@ -174,6 +172,12 @@ driver_init_device( CoreGraphicsDevice *device,
           dfb_config->font_format  = DSPF_ARGB;
           dfb_config->font_premult = false;
      }
+
+     /* Reserve memory for fake source. */
+     pdev->fake_size   = 0x4000;
+     pdev->fake_offset = dfb_gfxcard_reserve_memory( device, pdev->fake_size );
+     pdev->fake_phys   = dfb_gfxcard_memory_physical( device, pdev->fake_offset );
+     pdrv->fake_virt   = dfb_gfxcard_memory_virtual( device, pdev->fake_offset );
 
      return DFB_OK;
 }

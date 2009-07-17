@@ -11,6 +11,11 @@ typedef volatile struct pxa3xx_gcu_shared PXA3XXGfxSharedArea;
 
 
 typedef struct {
+     /* fake source buffer */
+     int                      fake_size;
+     int                      fake_offset;
+     unsigned long            fake_phys;
+
      /* state validation */
      int                      v_flags;
 
@@ -42,6 +47,8 @@ typedef struct {
 
 
 typedef struct {
+     void                    *fake_virt;
+
      PXA3XXDeviceData        *dev;
 
      CoreDFB                 *core;
