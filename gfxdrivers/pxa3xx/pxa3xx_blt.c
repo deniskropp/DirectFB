@@ -685,20 +685,22 @@ pxa3xxBlit( void *drv, void *dev, DFBRectangle *rect, int x, int y )
                submit_buffer( pdrv, 6 );
           }
           else {
-               u32 *prep = start_buffer( pdrv, 7 );
+               u32 *prep = start_buffer( pdrv, 8 );
 
-               prep[0] = 0x4C000006;
+               prep[0] = 0x4BCC0007;
                prep[1] = x;
                prep[2] = y;
                prep[3] = rect->x;
                prep[4] = rect->y;
-               prep[5] = PXA3XX_WH( rect->w, rect->h );
-               prep[6] = PXA3XX_WH( rect->w, rect->h );
+               prep[5] = 0;
+               prep[6] = 0;
+               prep[7] = PXA3XX_WH( rect->w, rect->h );
 
-               submit_buffer( pdrv, 7 );
+               submit_buffer( pdrv, 8 );
           }
 
-/* RASTER          prep[0] = 0x4BCC0007;
+/* RASTER
+          prep[0] = 0x4BCC0007;
           prep[1] = x;
           prep[2] = y;
           prep[3] = rect->x;
@@ -710,7 +712,8 @@ pxa3xxBlit( void *drv, void *dev, DFBRectangle *rect, int x, int y )
           submit_buffer( pdrv, 8 );
  */
 
-/* PATTERN          prep[0] = 0x4C000006;
+/* PATTERN
+          prep[0] = 0x4C000006;
           prep[1] = x;
           prep[2] = y;
           prep[3] = rect->x;
@@ -721,7 +724,8 @@ pxa3xxBlit( void *drv, void *dev, DFBRectangle *rect, int x, int y )
           submit_buffer( pdrv, 7 );
  */
 
-/* BIAS         prep[0] = 0x49000016;
+/* BIAS
+          prep[0] = 0x49000016;
           prep[1] = x;
           prep[2] = y;
           prep[3] = rect->x;
