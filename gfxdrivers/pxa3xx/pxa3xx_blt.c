@@ -383,10 +383,7 @@ pxa3xx_validate_COLOR( PXA3XXDriverData *pdrv,
      u32 *prep = start_buffer( pdrv, 2 );
 
      prep[0] = 0x04000011 | (pixel_formats[pdev->dst_index] << 8);
-     prep[1] = PIXEL_ARGB( state->color.a,
-                           state->color.r,
-                           state->color.g,
-                           state->color.b );
+     prep[1] = dfb_pixel_from_color( state->destination->config.format, &state->color );
 
      submit_buffer( pdrv, 2 );
 
@@ -546,7 +543,7 @@ pxa3xxSetState( void                *drv,
      else if (modified) {
           /* Invalidate destination registers. */
           if (modified & SMF_DESTINATION)
-               PXA3XX_INVALIDATE( DEST );
+               PXA3XX_INVALIDATE( DEST | COLOR );
 
           /* Invalidate source registers. */
           if (modified & SMF_SOURCE)
