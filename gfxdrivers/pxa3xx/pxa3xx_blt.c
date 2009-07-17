@@ -656,8 +656,8 @@ pxa3xxBlit( void *drv, void *dev, DFBRectangle *rect, int x, int y )
           prep[2] = y;
           prep[3] = rect->x;
           prep[4] = rect->y;
-          prep[5] = rect->x;
-          prep[6] = rect->y;
+          prep[5] = x;
+          prep[6] = y;
           prep[7] = PXA3XX_WH( rect->w, rect->h );
 
           submit_buffer( pdrv, 8 );
