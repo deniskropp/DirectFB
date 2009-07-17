@@ -24,6 +24,7 @@ typedef struct {
      int                      src_pitch;
      int                      src_bpp;
      int                      src_index;
+     bool                     src_alpha;
 
      unsigned long            mask_phys;
      int                      mask_pitch;

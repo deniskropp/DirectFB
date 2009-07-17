@@ -363,6 +363,7 @@ pxa3xx_validate_SOURCE( PXA3XXDriverData *pdrv,
      pdev->src_pitch = state->src.pitch;
      pdev->src_bpp   = DFB_BYTES_PER_PIXEL( buffer->format );
      pdev->src_index = DFB_PIXELFORMAT_INDEX( buffer->format ) % DFB_NUM_PIXELFORMATS;
+     pdev->src_alpha = DFB_PIXELFORMAT_HAS_ALPHA( buffer->format );
 
      /* Set source. */
      prep[0] = 0x02000002;
@@ -498,6 +499,9 @@ pxa3xxCheckState( void                *drv,
 
           /* Return if blending with unsupported blend functions is requested. */
           if (flags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
+               if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->config.format ))
+                    return;
+
                /* Check blend functions. */
                if (!check_blend_functions( state ))
                     return;
@@ -648,7 +652,7 @@ pxa3xxBlit( void *drv, void *dev, DFBRectangle *rect, int x, int y )
                  __FUNCTION__, DFB_RECTANGLE_VALS( rect ), x, y );
      DUMP_INFO();
 
-     if (pdev->bflags & DSBLIT_BLEND_ALPHACHANNEL) {
+     if (pdev->bflags & DSBLIT_BLEND_ALPHACHANNEL && pdev->src_alpha) {
           u32 *prep = start_buffer( pdrv, 8 );
 
           prep[0] = 0x47000107;
