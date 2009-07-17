@@ -11,6 +11,7 @@
 #define PXA3XX_SUPPORTED_DRAWINGFUNCTIONS  (DFXL_FILLRECTANGLE)
 
 #define PXA3XX_SUPPORTED_BLITTINGFLAGS     (DSBLIT_BLEND_ALPHACHANNEL | \
+                                            DSBLIT_COLORIZE | \
                                             DSBLIT_ROTATE90 | \
                                             DSBLIT_ROTATE180 | \
                                             DSBLIT_ROTATE270)

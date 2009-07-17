@@ -94,6 +94,7 @@ static bool pxa3xxFillRectangleBlend( void *drv, void *dev, DFBRectangle *rect )
 
 static bool pxa3xxBlit              ( void *drv, void *dev, DFBRectangle *rect, int x, int y );
 static bool pxa3xxBlitBlend         ( void *drv, void *dev, DFBRectangle *rect, int x, int y );
+static bool pxa3xxBlitGlyph         ( void *drv, void *dev, DFBRectangle *rect, int x, int y );
 
 
 /**********************************************************************************************************************/
@@ -512,13 +513,19 @@ pxa3xxCheckState( void                *drv,
                if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->config.format ))
                     return;
 
-               if (flags & ~(DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA))
+               /* Rotated blits are not supported with blending. */
+               if (flags & ~(DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | DSBLIT_COLORIZE))
                     return;
 
                /* Check blend functions. */
                if (!check_blend_functions( state ))
                     return;
           }
+
+          /* Colorizing is only supported for rendering ARGB glyphs. */
+          if (flags & DSBLIT_COLORIZE &&
+              (flags != (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE) || ! (state->source->type & CSTF_FONT)))
+               return;
 
           /* Return if blending with both alpha channel and value is requested. */
           if (D_FLAGS_ARE_SET( flags, DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA))
@@ -604,8 +611,12 @@ pxa3xxSetState( void                *drv,
                /* ...require valid source. */
                PXA3XX_CHECK_VALIDATE( SOURCE );
 
-               if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL && pdev->src_alpha)
-                    funcs->Blit = pxa3xxBlitBlend;
+               if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL && pdev->src_alpha) {
+                    if (state->blittingflags & DSBLIT_COLORIZE)
+                         funcs->Blit = pxa3xxBlitGlyph;
+                    else
+                         funcs->Blit = pxa3xxBlitBlend;
+               }
                else
                     funcs->Blit = pxa3xxBlit;
 
@@ -702,7 +713,7 @@ pxa3xxFillRectangleBlend( void *drv, void *dev, DFBRectangle *rect )
      prep[12] = pdev->fake_phys;
      prep[13] = (format << 19) | 4;
 
-     /* Blit. */
+     /* Blit with blending. */
      prep[14] = 0x47000107;
      prep[15] = rect->x;
      prep[16] = rect->y;
@@ -818,6 +829,87 @@ pxa3xxBlitBlend( void *drv, void *dev, DFBRectangle *rect, int x, int y )
      prep[7] = PXA3XX_WH( rect->w, rect->h );
 
      submit_buffer( pdrv, 8 );
+
+     return true;
+}
+
+/*
+ * Blit a glyph with alpha blending and colorizing using the current hardware state.
+ */
+static bool
+pxa3xxBlitGlyph( void *drv, void *dev, DFBRectangle *rect, int x, int y )
+{
+     PXA3XXDriverData *pdrv   = drv;
+     PXA3XXDeviceData *pdev   = dev;
+     u32              *prep   = start_buffer( pdrv, 40 );
+     const u32         format = pixel_formats[DFB_PIXELFORMAT_INDEX( DSPF_ARGB )];
+
+     D_DEBUG_AT( PXA3XX_BLT, "%s( %d, %d - %dx%d )\n", __FUNCTION__,
+                 DFB_RECTANGLE_VALS( rect ) );
+     DUMP_INFO();
+
+     if (rect->w * (rect->h + 1) * 4 > pdev->fake_size)
+          return false;
+
+     /* Set fake destination. */
+     prep[0]  = 0x020000A2;
+     prep[1]  = pdev->fake_phys;
+     prep[2]  = (format << 19) | ((rect->w << 2) << 5) | 4;
+
+     /* Fill first row of fake buffer. */
+     prep[3]  = 0x40000014 | (format << 8);
+     prep[4]  = 0;
+     prep[5]  = 0;
+     prep[6]  = PXA3XX_WH( rect->w, 1 );
+     prep[7]  = PIXEL_ARGB( pdev->color.a, pdev->color.r, pdev->color.g, pdev->color.b );
+
+     /* Set first row of fake buffer as source1. */
+     prep[8]  = 0x02000012;
+     prep[9]  = pdev->fake_phys;
+     prep[10] = (format << 19) | 4;
+
+     /* Blit with blending. */
+     prep[11] = 0x47000118;
+     prep[12] = 0;
+     prep[13] = 1;
+     prep[14] = rect->x;
+     prep[15] = rect->y;
+     prep[16] = 0;
+     prep[17] = 0;
+     prep[18] = PXA3XX_WH( rect->w, rect->h );
+     prep[19] = 0;
+
+     /* Restore destination. */
+     prep[20] = 0x020000A2;
+     prep[21] = pdev->dst_phys;
+     prep[22] = (pixel_formats[pdev->dst_index] << 19) | (pdev->dst_pitch << 5) | pdev->dst_bpp;
+
+     /* Restore source1 to destination. */
+     prep[23] = 0x02000012;
+     prep[24] = prep[21];
+     prep[25] = prep[22];
+
+     /* Set fake buffer as source0. */
+     prep[26] = 0x02000002;
+     prep[27] = pdev->fake_phys;
+     prep[28] = (format << 19) | ((rect->w << 2) << 5) | 4;
+
+     /* Blit with blending. */
+     prep[29] = 0x47000107;
+     prep[30] = x;
+     prep[31] = y;
+     prep[32] = 0;
+     prep[33] = 1;
+     prep[34] = x;
+     prep[35] = y;
+     prep[36] = PXA3XX_WH( rect->w, rect->h );
+
+     /* Restore source0. */
+     prep[37] = 0x02000002;
+     prep[38] = pdev->src_phys;
+     prep[39] = (pixel_formats[pdev->src_index] << 19) | (pdev->src_pitch << 5) | pdev->src_bpp;
+
+     submit_buffer( pdrv, 40 );
 
      return true;
 }
