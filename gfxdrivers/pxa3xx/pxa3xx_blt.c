@@ -667,7 +667,8 @@ pxa3xxBlit( void *drv, void *dev, DFBRectangle *rect, int x, int y )
           submit_buffer( pdrv, 8 );
      }
      else {
-          u32 rotation = 0;
+          u32  rotation = 0;
+          u32 *prep     = start_buffer( pdrv, 6 );
 
           if (pdev->bflags & DSBLIT_ROTATE90)
                rotation = 3;
@@ -676,32 +677,14 @@ pxa3xxBlit( void *drv, void *dev, DFBRectangle *rect, int x, int y )
           else if (pdev->bflags & DSBLIT_ROTATE270)
                rotation = 1;
 
-          if (rotation) {
-               u32 *prep = start_buffer( pdrv, 6 );
+          prep[0] = 0x4A000005 | (rotation << 4); // FIXME: use 32byte alignment hint
+          prep[1] = x;
+          prep[2] = y;
+          prep[3] = rect->x;
+          prep[4] = rect->y;
+          prep[5] = PXA3XX_WH( rect->w, rect->h );
 
-               prep[0] = 0x4A000005 | (rotation << 4); // FIXME: use 32byte alignment hint
-               prep[1] = x;
-               prep[2] = y;
-               prep[3] = rect->x;
-               prep[4] = rect->y;
-               prep[5] = PXA3XX_WH( rect->w, rect->h );
-
-               submit_buffer( pdrv, 6 );
-          }
-          else {
-               u32 *prep = start_buffer( pdrv, 8 );
-
-               prep[0] = 0x4BCC0007;
-               prep[1] = x;
-               prep[2] = y;
-               prep[3] = rect->x;
-               prep[4] = rect->y;
-               prep[5] = 0;
-               prep[6] = 0;
-               prep[7] = PXA3XX_WH( rect->w, rect->h );
-
-               submit_buffer( pdrv, 8 );
-          }
+          submit_buffer( pdrv, 6 );
 
 /* RASTER
           prep[0] = 0x4BCC0007;
