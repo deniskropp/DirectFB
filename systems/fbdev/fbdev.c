@@ -848,9 +848,7 @@ system_get_accelerator( void )
      if (dfb_config->accelerator)
           return dfb_config->accelerator;
 
-     if (dfb_fbdev->shared->fix.mmio_len > 0)
-          return dfb_fbdev->shared->fix.accel;
-     return -1;
+     return dfb_fbdev->shared->fix.accel;
 }
 
 static VideoMode *
