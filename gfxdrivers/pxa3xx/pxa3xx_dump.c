@@ -1,9 +1,13 @@
 /*
    PXA3xx Graphics Controller
 
-   (c) Copyright 2009  Denis Oliver Kropp <dok@directfb.org>
+   (c) Copyright 2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2009  Raumfeld GmbH (raumfeld.com)
 
    All rights reserved.
+
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Sven Neumann <s.neumann@raumfeld.com>
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
