@@ -39,6 +39,8 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 
+#include <fbdev/fb.h>
+
 #include <directfb.h>
 #include <directfb_util.h>
 
@@ -72,7 +74,11 @@ driver_probe( CoreGraphicsDevice *device )
 {
      D_DEBUG_AT( PXA3XX_Driver, "%s()\n", __FUNCTION__ );
 
-     return dfb_gfxcard_get_accelerator( device ) == 1234;  // FIXME
+#ifndef FB_ACCEL_PXA3XX
+#define FB_ACCEL_PXA3XX 99
+#endif
+
+     return dfb_gfxcard_get_accelerator( device ) == FB_ACCEL_PXA3XX;
 }
 
 static void
