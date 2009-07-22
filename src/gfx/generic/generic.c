@@ -7082,7 +7082,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                break;
           default:
                D_ONCE("unsupported destination format");
-               return false;
+               goto error;
      }
 
      if (DFB_BLITTING_FUNCTION( accel )) {
@@ -7110,13 +7110,13 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     if (dst_ycbcr &&
                         state->blittingflags & (DSBLIT_COLORIZE |
                                                 DSBLIT_SRC_PREMULTCOLOR))
-                         return false;
+                         goto error;
                case DSPF_A1:
                case DSPF_A4:
                case DSPF_A8:
                     if (DFB_PLANAR_PIXELFORMAT(gfxs->dst_format) &&
                         state->blittingflags & DSBLIT_DST_COLORKEY)
-                         return false;
+                         goto error;
                     break;
                case DSPF_I420:
                case DSPF_YV12:
@@ -7124,24 +7124,24 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                case DSPF_NV21:
                case DSPF_NV16:
                     if (state->blittingflags & DSBLIT_SRC_COLORKEY)
-                         return false;
+                         goto error;
                case DSPF_YUY2:
                case DSPF_UYVY:
                case DSPF_AYUV:
                     if (dst_ycbcr) {
                          if (state->blittingflags & (DSBLIT_COLORIZE     |
                                                      DSBLIT_SRC_PREMULTCOLOR))
-                              return false;
+                              goto error;
 
                          if (DFB_PLANAR_PIXELFORMAT(gfxs->dst_format) &&
                              state->blittingflags & DSBLIT_DST_COLORKEY)
-                              return false;
+                              goto error;
                     }
                     src_ycbcr = true;
                     break;
                default:
                     D_ONCE("unsupported source format");
-                    return false;
+                    goto error;
           }
      }
 
@@ -7720,6 +7720,10 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      dfb_state_update( state, state->flags & CSF_SOURCE_LOCKED );
 
      return true;
+
+ error:
+     gRelease( state );
+     return false;
 }
 
 void gRelease( CardState *state )
