@@ -81,8 +81,9 @@
                                  (((g)&0xFC) <<  4) | \
                                  (((b)&0xFC) >>  2) )
 
-#define PIXEL_RGB32(r,g,b)     ( ((r) << 16) | \
-                                 ((g) <<  8) | \
+#define PIXEL_RGB32(r,g,b)     ( (0xff << 24) | \
+                                 ((r)  << 16) | \
+                                 ((g)  <<  8) | \
                                   (b) )
 
 #define PIXEL_ARGB(a,r,g,b)    ( ((a) << 24) | \
