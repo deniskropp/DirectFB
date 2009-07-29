@@ -3192,6 +3192,7 @@ typedef enum {
      DSPD_DST_ATOP       = 10, /* fs: 1.0-da  fd: sa     */
      DSPD_ADD            = 11, /* fs: 1.0     fd: 1.0    */
      DSPD_XOR            = 12, /* fs: 1.0-da  fd: 1.0-sa */
+     DSPD_DST            = 13, /* fs: 0.0     fd: 1.0    */
 } DFBSurfacePorterDuffRule;
 
 /*

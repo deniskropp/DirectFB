@@ -950,6 +950,10 @@ IDirectFBSurface_SetPorterDuff( IDirectFBSurface         *thiz,
                src = DSBF_INVDESTALPHA;
                dst = DSBF_INVSRCALPHA;
                break;
+          case DSPD_DST:
+               src = DSBF_ZERO;
+               dst = DSBF_ONE;
+               break;
           default:
                return DFB_INVARG;
      }
