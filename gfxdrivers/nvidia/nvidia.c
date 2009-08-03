@@ -1539,17 +1539,17 @@ driver_init_driver( CoreGraphicsDevice  *device,
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) device_data;
      u32               arch  = 0;
-    
+
      nvdrv->device      = device;
      nvdrv->device_data = device_data;
-     
-     nvdrv->fb_base = (volatile void*) dfb_gfxcard_memory_virtual( device, 0 );
-     nvdrv->agp_base = (volatile void*) dfb_gfxcard_auxmemory_virtual( device, 0 );
 
      nvdrv->mmio_base = (volatile void*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!nvdrv->mmio_base)
           return DFB_IO;
-   
+
+     nvdrv->fb_base = (volatile void*) dfb_gfxcard_memory_virtual( device, 0 );
+     nvdrv->agp_base = (volatile void*) dfb_gfxcard_auxmemory_virtual( device, 0 );
+
      if (nvdev->use_dma) {
           nvdrv->dma_base = nvdev->use_agp ? nvdrv->agp_base : nvdrv->fb_base;
           nvdrv->dma_base += nvdev->dma_offset;
