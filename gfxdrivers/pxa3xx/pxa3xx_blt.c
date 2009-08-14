@@ -119,9 +119,10 @@ static int pixel_formats[DFB_NUM_PIXELFORMATS] = {
 static bool pxa3xxFillRectangle     ( void *drv, void *dev, DFBRectangle *rect );
 static bool pxa3xxFillRectangleBlend( void *drv, void *dev, DFBRectangle *rect );
 
-static bool pxa3xxBlit              ( void *drv, void *dev, DFBRectangle *rect, int x, int y );
-static bool pxa3xxBlitBlend         ( void *drv, void *dev, DFBRectangle *rect, int x, int y );
-static bool pxa3xxBlitGlyph         ( void *drv, void *dev, DFBRectangle *rect, int x, int y );
+static bool pxa3xxBlit               ( void *drv, void *dev, DFBRectangle *rect, int x, int y );
+static bool pxa3xxBlitBlend          ( void *drv, void *dev, DFBRectangle *rect, int x, int y );
+static bool pxa3xxBlitBlendColorAlpha( void *drv, void *dev, DFBRectangle *rect, int x, int y );
+static bool pxa3xxBlitGlyph          ( void *drv, void *dev, DFBRectangle *rect, int x, int y );
 
 
 /**********************************************************************************************************************/
@@ -525,7 +526,7 @@ pxa3xxCheckState( void                *drv,
           state->accel |= PXA3XX_SUPPORTED_DRAWINGFUNCTIONS;
      }
      else {
-          DFBSurfaceBlittingFlags flags = state->blittingflags;
+          const DFBSurfaceBlittingFlags flags = state->blittingflags;
 
           /* Return if unsupported blitting flags are set. */
           if (flags & ~PXA3XX_SUPPORTED_BLITTINGFLAGS)
@@ -644,8 +645,12 @@ pxa3xxSetState( void                *drv,
                     else
                          funcs->Blit = pxa3xxBlitBlend;
                }
-               else
-                    funcs->Blit = pxa3xxBlit;
+               else {
+                    if (state->blittingflags & DSBLIT_BLEND_COLORALPHA)
+                         funcs->Blit = pxa3xxBlitBlendColorAlpha;
+                    else
+                         funcs->Blit = pxa3xxBlit;
+               }
 
                /*
                 * 3) Tell which functions can be called without further validation, i.e. SetState()
@@ -856,6 +861,35 @@ pxa3xxBlitBlend( void *drv, void *dev, DFBRectangle *rect, int x, int y )
      prep[7] = PXA3XX_WH( rect->w, rect->h );
 
      submit_buffer( pdrv, 8 );
+
+     return true;
+}
+
+/*
+ * Blend a rectangle using the alpha value from the color using the current hardware state.
+ */
+static bool
+pxa3xxBlitBlendColorAlpha( void *drv, void *dev, DFBRectangle *rect, int x, int y )
+{
+     PXA3XXDriverData *pdrv = drv;
+     PXA3XXDeviceData *pdev = dev;
+     u32              *prep = start_buffer( pdrv, 9 );
+
+     D_DEBUG_AT( PXA3XX_BLT, "%s( %d, %d - %dx%d  -> %d, %d )\n",
+                 __FUNCTION__, DFB_RECTANGLE_VALS( rect ), x, y );
+     DUMP_INFO();
+
+     prep[0] = 0x47000138;
+     prep[1] = x;
+     prep[2] = y;
+     prep[3] = rect->x;
+     prep[4] = rect->y;
+     prep[5] = x;
+     prep[6] = y;
+     prep[7] = PXA3XX_WH( rect->w, rect->h );
+     prep[8] = (pdev->color.a << 24) | (pdev->color.a << 16);
+
+     submit_buffer( pdrv, 9 );
 
      return true;
 }
