@@ -545,6 +545,13 @@ pxa3xxCheckState( void                *drv,
                if (flags & ~(DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | DSBLIT_COLORIZE))
                     return;
 
+               /* Blending with alpha from color value is not supported
+                * in combination with other blending functions.
+                */
+               if (flags & DSBLIT_BLEND_COLORALPHA &&
+                   flags != DSBLIT_BLEND_COLORALPHA)
+                 return;
+
                /* Check blend functions. */
                if (!check_blend_functions( state ))
                     return;
@@ -553,10 +560,6 @@ pxa3xxCheckState( void                *drv,
           /* Colorizing is only supported for rendering ARGB glyphs. */
           if (flags & DSBLIT_COLORIZE &&
               (flags != (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE) || ! (state->source->type & CSTF_FONT)))
-               return;
-
-          /* Return if blending with both alpha channel and value is requested. */
-          if (D_FLAGS_ARE_SET( flags, DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA))
                return;
 
           /* Enable acceleration of blitting functions. */
