@@ -1152,6 +1152,9 @@ check_device( const char *device )
                ioctl( fd, EVIOCGRAB, 0 );
           close( fd );
 
+          if (!info.desc.caps)
+              return false;
+
           if (!dfb_config->linux_input_ir_only ||
               (info.desc.type & DIDTF_REMOTE))
                return true;
