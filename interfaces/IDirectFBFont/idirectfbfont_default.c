@@ -273,8 +273,17 @@ Construct( IDirectFBFont      *thiz,
                                    dst16[i] = (pixels[i] << 8) | 0x3FFF;
                               break;
                          case DSPF_ARGB1555:
-                              for (i=0; i<font_desc.width; i++)
-                                   dst16[i] = (pixels[i] << 8) | 0x7FFF;
+                              if (surface->config.caps & DSCAPS_PREMULTIPLIED) {
+                                   for (i=0; i<font_desc.width; i++) {
+                                        unsigned short x = pixels[i] >> 3;
+                                        dst16[i] = ((pixels[i] & 0x80) << 8) |
+                                             (x << 10) | (x << 5) | x;
+                                   }
+                              }
+                              else {
+                                   for (i=0; i<font_desc.width; i++)
+                                        dst16[i] = (pixels[i] << 8) | 0x7FFF;
+                              }
                               break;
                          case DSPF_A8:
                               direct_memcpy( lock.addr, pixels, font_desc.width );

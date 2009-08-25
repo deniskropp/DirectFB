@@ -343,8 +343,17 @@ render_glyph( CoreFont      *thiz,
                                    dst16[i] = (src[i] << 8) | 0x3FFF;
                               break;
                          case DSPF_ARGB1555:
-                              for (i=0; i<info->width; i++)
-                                   dst16[i] = (src[i] << 8) | 0x7FFF;
+                              if (thiz->surface_caps & DSCAPS_PREMULTIPLIED) {
+                                   for (i=0; i<info->width; i++) {
+                                        unsigned short x = src[i] >> 3;
+                                        dst16[i] = ((src[i] & 0x80) << 8) |
+                                             (x << 10) | (x << 5) | x;
+                                   }
+                              }
+                              else {
+                                   for (i=0; i<info->width; i++)
+                                        dst16[i] = (src[i] << 8) | 0x7FFF;
+                              }
                               break;
                          case DSPF_A8:
                               direct_memcpy( lock.addr, src, info->width );
