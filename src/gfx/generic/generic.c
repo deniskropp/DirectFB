@@ -230,7 +230,7 @@ static void gInit_64bit( void );
 #define B_MASK 0x000f
 #include "template_acc_16.h"
 
-/* ARGB4444 */
+/* RGBA4444 */
 #define EXPAND_Ato8( a ) EXPAND_4to8( a )
 #define EXPAND_Rto8( r ) EXPAND_4to8( r )
 #define EXPAND_Gto8( g ) EXPAND_4to8( g )
@@ -1483,9 +1483,9 @@ static GenefxFunc Bop_PFI_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_24_Sto_Aop,          /* DSPF_ARGB6666 */
      Bop_24_Sto_Aop,          /* DSPF_RGB18 */
      NULL,                    /* DSPF_LUT2 */
-     Bop_16_Sto_Aop,          /* DSPF_ARGB4444 */
-     Bop_16_Sto_Aop,          /* DSPF_ARGB1555 */
-     Bop_16_Sto_Aop           /* DSPF_ARGB1555 */
+     Bop_16_Sto_Aop,          /* DSPF_RGB444 */
+     Bop_16_Sto_Aop,          /* DSPF_RGB555 */
+     Bop_16_Sto_Aop           /* DSPF_BGR555 */
 };
 
 /********************************* Bop_PFI_SKto_Aop_PFI ***********************/
@@ -5398,9 +5398,9 @@ static GenefxFunc Bop_a8_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_a8_set_alphapixel_Aop_argb6666,          /* DSPF_ARGB6666 */
      Bop_a8_set_alphapixel_Aop_rgb18,             /* DSPF_RGB18 */
      NULL,                                        /* DSPF_LUT2 */
-     NULL,                                        /* DSPF_ARGB4444 */
-     NULL,                                        /* DSPF_ARGB1555 */
-     NULL                                         /* DSPF_ARGB1555 */
+     NULL,                                        /* DSPF_RGB444 */
+     NULL,                                        /* DSPF_RGB555 */
+     NULL                                         /* DSPF_BGR555 */
 };
 
 /************** Bop_a1_set_alphapixel_Aop_PFI *********************************/
