@@ -2147,6 +2147,10 @@ dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
           case DSPF_ARGB4444:
           case DSPF_RGBA4444:
           case DSPF_RGB444:
+               red_size   = 16;
+               green_size = 16;
+               blue_size  = 16;
+               break;
           case DSPF_RGB16:
                red_size   = 32;
                green_size = 64;
