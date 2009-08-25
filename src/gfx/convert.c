@@ -324,7 +324,9 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
                     const u16 *src16 = src;
 
                     for (x=0; x<width; x++)
-                         dst[x] = ((src16[x] & 0x7c00) << 1) | ((src16[x] & 0x03e0) << 1) | (src16[x] & 0x003f);
+                         dst[x] = ((src16[x] & 0x7c00) << 1) |
+                              ((src16[x] & 0x03e0) << 1) | ((src16[x] & 0x0200) >> 4) |
+                              (src16[x] & 0x001f);
 
                     src += spitch;
                     dst += dp2;
@@ -659,7 +661,7 @@ dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
 
                     for (x=0; x<width; x++)
                          dst[x] = PIXEL_RGB32( ((src16[x] & 0xf800) >> 8) | ((src16[x] & 0xe000) >> 13),
-                                               ((src16[x] & 0x07e0) >> 3) | ((src16[x] & 0x0300) >> 8),
+                                               ((src16[x] & 0x07e0) >> 3) | ((src16[x] & 0x0600) >> 9),
                                                ((src16[x] & 0x001f) << 3) | ((src16[x] & 0x001c) >> 2) );
 
                     src += spitch;
@@ -857,7 +859,7 @@ dfb_convert_to_argb( DFBSurfacePixelFormat  format,
                     for (x=0; x<width; x++)
                          dst[x] = PIXEL_ARGB( 0xff,
                                               ((src16[x] & 0xf800) >> 8) | ((src16[x] & 0xe000) >> 13),
-                                              ((src16[x] & 0x07e0) >> 3) | ((src16[x] & 0x0300) >> 8),
+                                              ((src16[x] & 0x07e0) >> 3) | ((src16[x] & 0x0600) >> 9),
                                               ((src16[x] & 0x001f) << 3) | ((src16[x] & 0x001c) >> 2) );
 
                     src += spitch;
