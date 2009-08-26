@@ -376,15 +376,17 @@ void dfb_gfxcard_drawstring             ( const u8             *text,
                                           int                   x,
                                           int                   y,
                                           CoreFont             *font,
+                                          unsigned int          layers, 
                                           CardState            *state );
 
-void dfb_gfxcard_drawglyph              ( unsigned int          index,
+void dfb_gfxcard_drawglyph              ( CoreGlyphData       **glyph,
                                           int                   x,
                                           int                   y,
                                           CoreFont             *font,
+                                          unsigned int          layers, 
                                           CardState            *state );
 
-void dfb_gfxcard_drawstring_check_state ( CoreFont             *font,
+bool dfb_gfxcard_drawstring_check_state ( CoreFont             *font,
                                           CardState            *state );
 
 DFBResult dfb_gfxcard_sync( void );

@@ -72,6 +72,7 @@ DFBResult
 dfb_font_create( CoreDFB *core, CoreFont **ret_font )
 {
      DFBResult  ret;
+     int        i;
      CoreFont  *font;
 
      D_DEBUG_AT( Core_Font, "%s()\n", __FUNCTION__ );
@@ -83,10 +84,15 @@ dfb_font_create( CoreDFB *core, CoreFont **ret_font )
      if (!font)
           return D_OOM();
 
-     ret = direct_hash_create( 163, &font->glyph_hash );
-     if (ret) {
-          D_FREE( font );
-          return ret;
+     for (i=0; i<DFB_FONT_MAX_LAYERS; i++) {
+          ret = direct_hash_create( 163, &font->layers[i].glyph_hash );
+          if (ret) {
+               while (i--)
+                    direct_hash_destroy( font->layers[i].glyph_hash );
+
+               D_FREE( font );
+               return ret;
+          }
      }
 
      font->core     = core;
@@ -104,9 +110,6 @@ dfb_font_create( CoreDFB *core, CoreFont **ret_font )
                     font->pixel_format == DSPF_RGBA5551)
                && dfb_config->font_premult)
           font->surface_caps = DSCAPS_PREMULTIPLIED;
-
-     /* the state used to blit the glyphs, may be changed by the font provider */
-     dfb_state_init( &font->state, core );
 
      font->blittingflags = DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE;
 
@@ -130,14 +133,11 @@ dfb_font_destroy( CoreFont *font )
 
      pthread_mutex_lock( &font->lock );
 
-     dfb_state_set_destination( &font->state, NULL );
-     dfb_state_set_source( &font->state, NULL );
+     for (i=0; i<DFB_FONT_MAX_LAYERS; i++) {
+          direct_hash_iterate( font->layers[i].glyph_hash, free_glyphs, NULL );
 
-     dfb_state_destroy( &font->state );
-
-     direct_hash_iterate( font->glyph_hash, free_glyphs, NULL );
-
-     direct_hash_destroy( font->glyph_hash );
+          direct_hash_destroy( font->layers[i].glyph_hash );
+     }
 
      if (font->rows) {
           for (i = 0; i < font->num_rows; i++) {
@@ -178,29 +178,12 @@ dfb_font_destroy( CoreFont *font )
      D_FREE( font );
 }
 
-void
-dfb_font_drop_destination( CoreFont    *font,
-                           CoreSurface *surface )
-{
-     D_DEBUG_AT( Core_Font, "%s()\n", __FUNCTION__ );
-
-     D_MAGIC_ASSERT( font, CoreFont );
-
-     D_ASSERT( surface != NULL );
-
-     pthread_mutex_lock( &font->lock );
-
-     if (font->state.destination == surface)
-          dfb_state_set_destination( &font->state, NULL );
-
-     pthread_mutex_unlock( &font->lock );
-}
-
 /**********************************************************************************************************************/
 
 DFBResult
 dfb_font_get_glyph_data( CoreFont        *font,
                          unsigned int     index,
+                         unsigned int     layer,
                          CoreGlyphData  **ret_data )
 {
      DFBResult         ret;
@@ -214,6 +197,7 @@ dfb_font_get_glyph_data( CoreFont        *font,
      D_MAGIC_ASSERT( font, CoreFont );
      D_ASSERT( ret_data != NULL );
 
+     D_ASSERT( layer < D_ARRAY_SIZE(font->layers) );
      D_ASSERT( font->num_rows >= 0 );
 
      if (font->num_rows) {
@@ -222,12 +206,12 @@ dfb_font_get_glyph_data( CoreFont        *font,
           D_ASSERT( font->active_row < font->num_rows );
      }
 
-     if (index < 128 && font->glyph_data[index]) {
-          *ret_data = font->glyph_data[index];
+     if (index < 128 && font->layers[layer].glyph_data[index]) {
+          *ret_data = font->layers[layer].glyph_data[index];
           return DFB_OK;
      }
 
-     data = direct_hash_lookup( font->glyph_hash, index );
+     data = direct_hash_lookup( font->layers[layer].glyph_hash, index );
      if (data) {
           D_MAGIC_ASSERT( data, CoreGlyphData );
 
@@ -255,8 +239,8 @@ dfb_font_get_glyph_data( CoreFont        *font,
 
      D_MAGIC_SET( data, CoreGlyphData );
 
-     align = (8 / (DFB_BYTES_PER_PIXEL( font->pixel_format ) ? : 1)) *
-                  (DFB_PIXELFORMAT_ALIGNMENT( font->pixel_format ) + 1) - 1;
+     data->index = index;
+     data->layer = layer;
 
      ret = font->GetGlyphData( font, index, data );
      if (ret) {
@@ -359,12 +343,13 @@ dfb_font_get_glyph_data( CoreFont        *font,
                     /* Kick out all glyphs. */
                     direct_list_foreach_safe (d, n, row->glyphs) {
                          D_MAGIC_ASSERT( d, CoreGlyphData );
+                         D_ASSERT( d->layer < D_ARRAY_SIZE(font->layers) );
 
-                         /*ret =*/ direct_hash_remove( font->glyph_hash, d->index );
+                         /*ret =*/ direct_hash_remove( font->layers[d->layer].glyph_hash, d->index );
                          //FIXME: use D_ASSERT( ret == DFB_OK );
 
                          if (d->index < 128)
-                              font->glyph_data[d->index] = NULL;
+                              font->layers[d->layer].glyph_data[d->index] = NULL;
 
                          D_MAGIC_CLEAR( d );
                          D_FREE( d );
@@ -425,10 +410,12 @@ dfb_font_get_glyph_data( CoreFont        *font,
      D_DEBUG_AT( Core_FontSurfaces, "  -> render %2d - %2dx%2d at %d:%03d font <%p>\n",
                  index, data->width, data->height, font->active_row, row->next_x, font );
 
-     data->index   = index;
      data->row     = font->active_row;
      data->start   = row->next_x;
      data->surface = row->surface;
+
+     align = (8 / (DFB_BYTES_PER_PIXEL( font->pixel_format ) ? : 1)) *
+                  (DFB_PIXELFORMAT_ALIGNMENT( font->pixel_format ) + 1) - 1;
 
      row->next_x  += (data->width + align) & ~align;
 
@@ -448,10 +435,10 @@ out:
      if (row)
           direct_list_append( &row->glyphs, &data->link );
 
-     direct_hash_insert( font->glyph_hash, index, data );
+     direct_hash_insert( font->layers[layer].glyph_hash, index, data );
 
      if (index < 128)
-          font->glyph_data[index] = data;
+          font->layers[layer].glyph_data[index] = data;
 
      *ret_data = data;
 

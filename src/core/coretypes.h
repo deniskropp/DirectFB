@@ -51,6 +51,7 @@ typedef struct __DFB_DFBGraphicsCore         CoreGraphicsDevice; /* FIXME */
 typedef struct _CoreCleanup                  CoreCleanup;
 
 typedef struct _CoreFont                     CoreFont;
+typedef struct _CoreGlyphData                CoreGlyphData;
 typedef struct _CorePalette                  CorePalette;
 
 typedef struct _CardState                    CardState;

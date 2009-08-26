@@ -164,6 +164,9 @@ struct _CardState {
      DirectSerial             src_mask_serial;    /* last source mask surface serial */
      DFBPoint                 src_mask_offset;    /* relative or absolute coordinates */
      DFBSurfaceMaskFlags      src_mask_flags;     /* controls coordinate mode and more */
+
+     DFBColor                 colors[DFB_COLOR_IDS_MAX];         /* colors for drawing or modulation */
+     unsigned int             color_indices[DFB_COLOR_IDS_MAX];  /* indices to colors in palette */
 };
 
 int  dfb_state_init( CardState *state, CoreDFB *core );

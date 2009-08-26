@@ -277,7 +277,7 @@ IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
                unsigned int   current = indices[i];
                CoreGlyphData *glyph;
 
-               if (dfb_font_get_glyph_data( font, current, &glyph ) == DFB_OK) {
+               if (dfb_font_get_glyph_data( font, current, 0, &glyph ) == DFB_OK) {  // FIXME: support font layers
                     int kx, ky = 0;
 
                     if (prev && font->GetKerning &&
@@ -360,7 +360,7 @@ IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
                unsigned int   current = indices[i];
                CoreGlyphData *glyph;
 
-               if (dfb_font_get_glyph_data( font, current, &glyph ) == DFB_OK) {
+               if (dfb_font_get_glyph_data( font, current, 0, &glyph ) == DFB_OK) {  // FIXME: support font layers
                     width += glyph->advance;
 
                     if (prev && font->GetKerning &&
@@ -410,7 +410,7 @@ IDirectFBFont_GetGlyphExtents( IDirectFBFont *thiz,
           return ret;
      }
 
-     if (dfb_font_get_glyph_data (font, index, &glyph) != DFB_OK) {
+     if (dfb_font_get_glyph_data (font, index, 0, &glyph) != DFB_OK) {     // FIXME: support font layers
           if (rect)
                rect->x = rect->y = rect->w = rect->h = 0;
 
@@ -500,7 +500,7 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
           if (ret)
                continue;
 
-          ret = dfb_font_get_glyph_data( font, index, &glyph );
+          ret = dfb_font_get_glyph_data( font, index, 0, &glyph );    // FIXME: support font layers
           if (ret)
                continue;
           

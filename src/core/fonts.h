@@ -42,10 +42,11 @@
 /*
  * glyph struct
  */
-typedef struct {
+struct _CoreGlyphData {
      DirectLink     link;
 
      unsigned int   index;
+     unsigned int   layer;
      unsigned int   row;
 
      CoreSurface   *surface;              /* contains bitmap of glyph         */
@@ -57,7 +58,7 @@ typedef struct {
      int            advance;              /* placement of next glyph          */
 
      int            magic;
-} CoreGlyphData;
+};
 
 typedef struct {
      DFBResult   (* GetCharacterIndex) ( CoreFont       *thiz,
@@ -92,6 +93,9 @@ typedef struct {
      int                          magic;
 } CoreFontCacheRow;
 
+
+#define DFB_FONT_MAX_LAYERS 2
+
 /*
  * font struct
  */
@@ -100,19 +104,22 @@ struct _CoreFont {
      CoreDFB                      *core;
 
      DFBSurfaceBlittingFlags       blittingflags;
-     CardState                     state;         /* the state used to blit glyphs    */
      DFBSurfacePixelFormat         pixel_format;
      DFBSurfaceCapabilities        surface_caps;
      int                           row_width;
      int                           max_rows;
+
+     DFBFontAttributes             attributes;
 
      CoreFontCacheRow            **rows;          /* contain bitmaps of loaded glyphs */
      int                           num_rows;
      int                           active_row;
      unsigned int                  row_stamp;
 
-     DirectHash                   *glyph_hash;    /* infos about loaded glyphs        */
-     CoreGlyphData                *glyph_data[128];
+     struct {
+          DirectHash              *glyph_hash;    /* infos about loaded glyphs        */
+          CoreGlyphData           *glyph_data[128];
+     } layers[DFB_FONT_MAX_LAYERS];
 
      int                           height;        /* font height                      */
 
@@ -158,8 +165,6 @@ DFBResult dfb_font_create( CoreDFB *core, CoreFont **ret_font );
  */
 void dfb_font_destroy( CoreFont *font );
 
-void dfb_font_drop_destination( CoreFont *font, CoreSurface *surface );
-
 /*
  * lock the font before accessing it
  */
@@ -169,8 +174,6 @@ dfb_font_lock( CoreFont *font )
      D_MAGIC_ASSERT( font, CoreFont );
 
      pthread_mutex_lock( &font->lock );
-
-     dfb_state_lock( &font->state );
 }
 
 /*
@@ -181,8 +184,6 @@ dfb_font_unlock( CoreFont *font )
 {
      D_MAGIC_ASSERT( font, CoreFont );
 
-     dfb_state_unlock( &font->state );
-
      pthread_mutex_unlock( &font->lock );
 }
 
@@ -191,6 +192,7 @@ dfb_font_unlock( CoreFont *font )
  */
 DFBResult dfb_font_get_glyph_data( CoreFont        *font,
                                    unsigned int     index,
+                                   unsigned int     layer,
                                    CoreGlyphData  **glyph_data );
 
 

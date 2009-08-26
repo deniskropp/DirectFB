@@ -290,10 +290,10 @@ Construct( IDirectFBFont      *thiz,
 
           D_MAGIC_SET( data, CoreGlyphData );
 
-          direct_hash_insert( font->glyph_hash, glyph->unicode, data );
+          direct_hash_insert( font->layers[0].glyph_hash, glyph->unicode, data );
 
           if (glyph->unicode < 128)
-               font->glyph_data[glyph->unicode] = data;
+               font->layers[0].glyph_data[glyph->unicode] = data;
      }
 
 

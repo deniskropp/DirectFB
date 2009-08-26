@@ -421,6 +421,21 @@ typedef unsigned int DFBTextEncodingID;
 
 typedef u32 DFBDisplayLayerIDs;
 
+
+typedef unsigned int DFBColorID;
+
+/*
+ * Predefined color IDs.
+ */
+#define DCID_PRIMARY 0
+#define DCID_OUTLINE 1
+
+/*
+ * Maximum number of color ids.
+ */
+#define DFB_COLOR_IDS_MAX                    8
+
+
 /*
  * Maximum number of layer ids.
  */
@@ -986,24 +1001,27 @@ typedef enum {
      DFFA_NOCHARMAP      = 0x00000008,  /* no char map, glyph indices are
                                            specified directly */
      DFFA_FIXEDCLIP      = 0x00000010,  /* width fixed advance, clip to it */
-     DFFA_NOBITMAP       = 0x00000020   /* ignore bitmap strikes; for
+     DFFA_NOBITMAP       = 0x00000020,  /* ignore bitmap strikes; for
                                            bitmap-only fonts this flag is
                                            ignored */
+     DFFA_OUTLINED       = 0x00000040
 } DFBFontAttributes;
 
 /*
  * Flags defining which fields of a DFBFontDescription are valid.
  */
 typedef enum {
-     DFDESC_ATTRIBUTES   = 0x00000001,  /* attributes field is valid */
-     DFDESC_HEIGHT       = 0x00000002,  /* height is specified */
-     DFDESC_WIDTH        = 0x00000004,  /* width is specified */
-     DFDESC_INDEX        = 0x00000008,  /* index is specified */
-     DFDESC_FIXEDADVANCE = 0x00000010,  /* specify a fixed advance overriding
-                                           any character advance of fixed or
-                                           proportional fonts */
-     DFDESC_FRACT_HEIGHT = 0x00000020,  /* fractional height is set */
-     DFDESC_FRACT_WIDTH  = 0x00000040,  /* fractional width is set */
+     DFDESC_ATTRIBUTES        = 0x00000001,  /* attributes field is valid */
+     DFDESC_HEIGHT            = 0x00000002,  /* height is specified */
+     DFDESC_WIDTH             = 0x00000004,  /* width is specified */
+     DFDESC_INDEX             = 0x00000008,  /* index is specified */
+     DFDESC_FIXEDADVANCE      = 0x00000010,  /* specify a fixed advance overriding
+                                                any character advance of fixed or
+                                                proportional fonts */
+     DFDESC_FRACT_HEIGHT      = 0x00000020,  /* fractional height is set */
+     DFDESC_FRACT_WIDTH       = 0x00000040,  /* fractional width is set */
+     DFDESC_OUTLINE_WIDTH     = 0x00000080,  /* outline width is set */
+     DFDESC_OUTLINE_OPACITY   = 0x00000100,  /* outline opacity is set */
 } DFBFontDescriptionFlags;
 
 /*
@@ -1021,6 +1039,9 @@ typedef enum {
  *
  * Fractional sizes (fract_height and fract_width) are 26.6 fixed point integers and override
  * the pixel sizes if both are specified.
+ *
+ * Outline parameters are ignored if DFFA_OUTLINED is not used (see DFBFontAttributes). To change the
+ * default values of 1.0 each use DFDESC_OUTLINE_WIDTH and/or DFDESC_OUTLINE_OPACITY.
  */
 typedef struct {
      DFBFontDescriptionFlags            flags;
@@ -1033,6 +1054,9 @@ typedef struct {
 
      int                                fract_height;
      int                                fract_width;
+
+     int                                outline_width;      /* Outline width as 16.16 fixed point integer */
+     int                                outline_opacity;    /* Outline opacity as 16.16 fixed point integer */
 } DFBFontDescription;
 
 /*
@@ -3152,6 +3176,8 @@ typedef enum {
      DSTF_BOTTOM         = 0x00000008,  /* y specifies the bottom
                                            instead of the baseline */
 
+     DSTF_OUTLINE        = 0x00000010,  /* enables outline rendering if loaded font supports it */
+
      DSTF_TOPLEFT        = DSTF_TOP | DSTF_LEFT,
      DSTF_TOPCENTER      = DSTF_TOP | DSTF_CENTER,
      DSTF_TOPRIGHT       = DSTF_TOP | DSTF_RIGHT,
@@ -4066,6 +4092,20 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           const DFBRectangle       *rect,
           void                     *ptr,
           int                       pitch
+     );
+
+
+   /** Drawing/blitting control **/
+
+     /*
+      * Sets color values used for drawing/text functions or
+      * alpha/color modulation (blitting functions).
+      */
+     DFBResult (*SetColors) (
+          IDirectFBSurface         *thiz,
+          const DFBColorID         *ids,
+          const DFBColor           *colors,
+          unsigned int              num
      );
 )
 

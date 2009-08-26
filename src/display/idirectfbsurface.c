@@ -118,19 +118,8 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 
      dfb_state_destroy( &data->state );
 
-     if (data->font) {
-          IDirectFBFont      *font      = data->font;
-          IDirectFBFont_data *font_data = font->priv;
-
-          if (font_data) {
-               if (data->surface)
-                    dfb_font_drop_destination( font_data->font, data->surface );
-
-               font->Release( font );
-          }
-          else
-               D_WARN( "font dead?" );
-     }
+     if (data->font)
+          data->font->Release( data->font );
 
      if (data->surface) {
           if (data->locked)
@@ -195,8 +184,10 @@ IDirectFBSurface_GetPixelFormat( IDirectFBSurface      *thiz,
 static DFBResult
 IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
                                       IDirectFBSurface    *source,
-                                      DFBAccelerationMask *mask )
+                                      DFBAccelerationMask *ret_mask )
 {
+     DFBAccelerationMask mask = DFXL_NONE;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
@@ -204,34 +195,59 @@ IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
      if (!data->surface)
           return DFB_DESTROYED;
 
-     if (!mask)
+     if (!ret_mask)
           return DFB_INVARG;
 
-     dfb_gfxcard_state_check( &data->state, DFXL_FILLRECTANGLE );
-     dfb_gfxcard_state_check( &data->state, DFXL_DRAWRECTANGLE );
-     dfb_gfxcard_state_check( &data->state, DFXL_DRAWLINE );
-     dfb_gfxcard_state_check( &data->state, DFXL_FILLTRIANGLE );
+     dfb_state_lock( &data->state );
 
+     /* Check drawing functions */
+     if (dfb_gfxcard_state_check( &data->state, DFXL_FILLRECTANGLE ))
+          mask |= DFXL_FILLRECTANGLE;
+
+     if (dfb_gfxcard_state_check( &data->state, DFXL_DRAWRECTANGLE ))
+          mask |= DFXL_DRAWRECTANGLE;
+
+     if (dfb_gfxcard_state_check( &data->state, DFXL_DRAWLINE ))
+          mask |= DFXL_DRAWLINE;
+
+     if (dfb_gfxcard_state_check( &data->state, DFXL_FILLTRIANGLE ))
+          mask |= DFXL_FILLTRIANGLE;
+
+     dfb_state_unlock( &data->state );
+
+     /* Check blitting functions */
      if (source) {
           IDirectFBSurface_data *src_data = source->priv;
 
           dfb_state_set_source( &data->state, src_data->surface );
 
-          dfb_gfxcard_state_check( &data->state, DFXL_BLIT );
-          dfb_gfxcard_state_check( &data->state, DFXL_STRETCHBLIT );
-          dfb_gfxcard_state_check( &data->state, DFXL_TEXTRIANGLES );
+          dfb_state_lock( &data->state );
+
+          if (dfb_gfxcard_state_check( &data->state, DFXL_BLIT ))
+               mask |= DFXL_BLIT;
+
+          if (dfb_gfxcard_state_check( &data->state, DFXL_STRETCHBLIT ))
+               mask |= DFXL_STRETCHBLIT;
+
+          if (dfb_gfxcard_state_check( &data->state, DFXL_TEXTRIANGLES ))
+               mask |= DFXL_TEXTRIANGLES;
+
+          dfb_state_unlock( &data->state );
      }
 
+     /* Check text rendering function */
      if (data->font) {
           IDirectFBFont_data *font_data = data->font->priv;
 
-          dfb_gfxcard_drawstring_check_state( font_data->font, &data->state );
+          if (dfb_gfxcard_drawstring_check_state( font_data->font, &data->state ))
+               mask |= DFXL_DRAWSTRING;
      }
 
-     *mask = data->state.accel;
+     *ret_mask = mask;
 
      return DFB_OK;
 }
+
 static DFBResult
 IDirectFBSurface_GetPosition( IDirectFBSurface *thiz,
                           int              *x,
@@ -790,6 +806,46 @@ IDirectFBSurface_SetColor( IDirectFBSurface *thiz,
           dfb_state_set_color_index( &data->state,
                                      dfb_palette_search( surface->palette, r, g, b, a ) );
 
+     data->state.colors[0]        = data->state.color;
+     data->state.color_indices[0] = data->state.color_index;
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_SetColors( IDirectFBSurface *thiz,
+                            const DFBColorID *ids,
+                            const DFBColor   *colors,
+                            unsigned int      num )
+{
+     unsigned int  i;
+     CoreSurface  *surface;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p, %p, %p, %u )\n", __FUNCTION__, thiz, ids, colors, num );
+
+     surface = data->surface;
+     if (!surface)
+          return DFB_DESTROYED;
+
+     for (i=0; i<num; i++) {
+          D_DEBUG_AT( Surface, "  -> [%d] id %d = %02x %02x %02x %02x\n",
+                      i, ids[i], colors[i].a, colors[i].r, colors[i].g, colors[i].b );
+
+          if (ids[i] >= DFB_COLOR_IDS_MAX)
+               return DFB_INVARG;
+
+          data->state.colors[ids[i]] = colors[i];
+
+          if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format ))
+               data->state.color_indices[ids[i]] = dfb_palette_search( surface->palette,
+                                                                       colors[i].r, colors[i].g, colors[i].b, colors[i].a );
+     }
+
+     dfb_state_set_color( &data->state, &data->state.colors[0] );
+     dfb_state_set_color_index( &data->state, data->state.color_indices[0] );
+
      return DFB_OK;
 }
 
@@ -821,6 +877,9 @@ IDirectFBSurface_SetColorIndex( IDirectFBSurface *thiz,
      dfb_state_set_color( &data->state, &palette->entries[index] );
 
      dfb_state_set_color_index( &data->state, index );
+
+     data->state.colors[0]        = data->state.color;
+     data->state.color_indices[0] = data->state.color_index;
 
      return DFB_OK;
 }
@@ -1150,16 +1209,8 @@ IDirectFBSurface_SetFont( IDirectFBSurface *thiz,
               data->encoding = font_data->encoding;
          }
 
-         if (data->font) {
-              IDirectFBFont_data *old_data;
-              IDirectFBFont      *old = data->font;
-
-              DIRECT_INTERFACE_GET_DATA_FROM( old, old_data, IDirectFBFont );
-
-              dfb_font_drop_destination( old_data->font, data->surface );
-
-              old->Release( old );
-         }
+         if (data->font)
+              data->font->Release( data->font );
 
          data->font = font;
      }
@@ -2045,6 +2096,7 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
      IDirectFBFont      *font;
      IDirectFBFont_data *font_data;
      CoreFont           *core_font;
+     unsigned int        layers = 1;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -2077,6 +2129,13 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
      core_font = font_data->font;
 
+     if (flags & DSTF_OUTLINE) {
+          if (!(core_font->attributes & DFFA_OUTLINED))
+               return DFB_UNSUPPORTED;
+
+          layers = 2;
+     }
+
      if (!(flags & DSTF_TOP)) {
           y -= core_font->ascender;
 
@@ -2105,7 +2164,7 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
                unsigned int   current = indices[i];
                CoreGlyphData *glyph;
 
-               if (dfb_font_get_glyph_data( core_font, current, &glyph ) == DFB_OK) {
+               if (dfb_font_get_glyph_data( core_font, current, 0, &glyph ) == DFB_OK) {
                     width += glyph->advance;
 
                     if (prev && core_font->GetKerning &&
@@ -2127,7 +2186,7 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
      dfb_gfxcard_drawstring( (const unsigned char*) text, bytes, data->encoding,
                              data->area.wanted.x + x, data->area.wanted.y + y,
-                             core_font, &data->state );
+                             core_font, layers, &data->state );
 
      return DFB_OK;
 }
@@ -2138,10 +2197,13 @@ IDirectFBSurface_DrawGlyph( IDirectFBSurface *thiz,
                             DFBSurfaceTextFlags flags )
 {
      DFBResult           ret;
+     int                 l;
      IDirectFBFont      *font;
      IDirectFBFont_data *font_data;
      CoreFont           *core_font;
+     CoreGlyphData      *glyph[DFB_FONT_MAX_LAYERS];
      unsigned int        index;
+     unsigned int        layers = 1;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -2169,13 +2231,27 @@ IDirectFBSurface_DrawGlyph( IDirectFBSurface *thiz,
 
      core_font = font_data->font;
 
-     /* FIXME: Avoid double locking. */
+     if (flags & DSTF_OUTLINE) {
+          if (!(core_font->attributes & DFFA_OUTLINED))
+               return DFB_UNSUPPORTED;
+
+          layers = 2;
+     }
+
      dfb_font_lock( core_font );
 
      ret = dfb_font_decode_character( core_font, data->encoding, character, &index );
      if (ret) {
           dfb_font_unlock( core_font );
           return ret;
+     }
+
+     for (l=0; l<layers; l++) {
+          ret = dfb_font_get_glyph_data( core_font, index, l, &glyph[l] );
+          if (ret) {
+               dfb_font_unlock( core_font );
+               return ret;
+          }
      }
 
      if (!(flags & DSTF_TOP)) {
@@ -2186,23 +2262,15 @@ IDirectFBSurface_DrawGlyph( IDirectFBSurface *thiz,
      }
 
      if (flags & (DSTF_RIGHT | DSTF_CENTER)) {
-          CoreGlyphData *glyph;
-
-          ret = dfb_font_get_glyph_data( core_font, index, &glyph );
-          if (ret) {
-               dfb_font_unlock( core_font );
-               return ret;
-          }
-
           if (flags & DSTF_RIGHT)
-               x -= glyph->advance;
+               x -= glyph[0]->advance;
           else if (flags & DSTF_CENTER)
-               x -= glyph->advance >> 1;
+               x -= glyph[0]->advance >> 1;
      }
 
-     dfb_gfxcard_drawglyph( index,
+     dfb_gfxcard_drawglyph( glyph,
                             data->area.wanted.x + x, data->area.wanted.y + y,
-                            core_font, &data->state );
+                            core_font, layers, &data->state );
 
      dfb_font_unlock( core_font );
 
@@ -2681,6 +2749,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->Write = IDirectFBSurface_Write;
      thiz->Read  = IDirectFBSurface_Read;
+
+     thiz->SetColors = IDirectFBSurface_SetColors;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );

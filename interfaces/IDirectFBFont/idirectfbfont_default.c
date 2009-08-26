@@ -178,7 +178,7 @@ Construct( IDirectFBFont      *thiz,
                     else
                          key = index;
                          
-                    if (!direct_hash_lookup( font->glyph_hash, key )) { 
+                    if (!direct_hash_lookup( font->layers[0].glyph_hash, key )) { 
                          data = D_CALLOC( 1, sizeof(CoreGlyphData) );
                          data->surface = surface;
                          data->start   = start;
@@ -200,7 +200,7 @@ Construct( IDirectFBFont      *thiz,
                          if (font->maxadvance < data->advance)
                               font->maxadvance = data->advance;
                               
-                         direct_hash_insert( font->glyph_hash, key, data );
+                         direct_hash_insert( font->layers[0].glyph_hash, key, data );
                     }
 
                     start = i + 1;
@@ -221,7 +221,7 @@ Construct( IDirectFBFont      *thiz,
           else
                key = index;
 
-          direct_hash_insert( font->glyph_hash, key, data );
+          direct_hash_insert( font->layers[0].glyph_hash, key, data );
      }
 
      {
