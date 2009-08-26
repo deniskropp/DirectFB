@@ -13,6 +13,7 @@ bin_PROGRAMS = \
 	dfbtest_blit	\
 	dfbtest_reinit	\
 	dfbtest_scale	\
+	dfbtest_sync	\
 	dfbtest_window	\
 	direct_stream	\
 	direct_test	\
@@ -33,6 +34,9 @@ dfbtest_reinit_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
 
 dfbtest_scale_SOURCES = dfbtest_scale.c
 dfbtest_scale_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
+
+dfbtest_sync_SOURCES = dfbtest_sync.c
+dfbtest_sync_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
 
 dfbtest_window_SOURCES = dfbtest_window.c
 dfbtest_window_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
