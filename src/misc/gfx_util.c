@@ -495,6 +495,11 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                     ((u16*)d)[i] = ARGB_TO_RGB444( src[i] );
                break;
 
+          case DSPF_RGBA5551:
+               for (i = 0; i < len; i++)
+                    ((u16*)d)[i] = ARGB_TO_RGBA5551( src[i] );
+               break;
+
           default:
                D_ONCE( "unimplemented destination format (0x%08x)", dst_surface->config.format );
                break;

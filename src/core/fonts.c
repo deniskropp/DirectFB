@@ -100,7 +100,8 @@ dfb_font_create( CoreDFB *core, CoreFont **ret_font )
      if ((font->pixel_format == DSPF_ARGB ||
                     font->pixel_format == DSPF_ARGB4444 ||
                     font->pixel_format == DSPF_RGBA4444 ||
-                    font->pixel_format == DSPF_ARGB1555)
+                    font->pixel_format == DSPF_ARGB1555 ||
+                    font->pixel_format == DSPF_RGBA5551)
                && dfb_config->font_premult)
           font->surface_caps = DSCAPS_PREMULTIPLIED;
 

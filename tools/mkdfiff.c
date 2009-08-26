@@ -224,6 +224,10 @@ load_image (const char            *filename,
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
                          dfb_argb_to_argb1555 ((u32 *) s, (u16 *) d, width);
                     break;
+               case DSPF_RGBA5551:
+                    for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
+                         dfb_argb_to_rgba5551 ((u32 *) s, (u16 *) d, width);
+                    break;
                case DSPF_ARGB2554:
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
                          dfb_argb_to_argb2554 ((u32 *) s, (u16 *) d, width);

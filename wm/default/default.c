@@ -498,6 +498,10 @@ window_at_pointer( CoreWindowStack *stack,
                                    case DSPF_AYUV:
                                         alpha = *(u32*)(buf) >> 24;
                                         break;
+                                   case DSPF_RGBA5551:
+                                        alpha = *(u16*)(buf) & 0x1;
+                                        alpha = alpha ? 0xff : 0x00;
+                                        break;
                                    case DSPF_ARGB1555:
                                    case DSPF_ARGB2554:
                                    case DSPF_ARGB4444:
@@ -573,6 +577,11 @@ window_at_pointer( CoreWindowStack *stack,
                                    case DSPF_BGR555:
                                         pixel = *(u16*)(buf)
                                                 & 0x7fff;
+                                        break;
+
+                                   case DSPF_RGBA5551:
+                                        pixel = *(u16*)(buf)
+                                                & 0xfffe;
                                         break;
 
                                    case DSPF_RGB332:

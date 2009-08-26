@@ -703,6 +703,7 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
 
           case DSPF_ARGB:
           case DSPF_ARGB1555:
+          case DSPF_RGBA5551:
           case DSPF_ARGB2554:
           case DSPF_ARGB4444:
           case DSPF_AiRGB:

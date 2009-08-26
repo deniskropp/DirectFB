@@ -113,6 +113,7 @@ Construct( IDirectFBFont      *thiz,
                font->pixel_format == DSPF_RGBA4444 ||
                font->pixel_format == DSPF_ARGB2554 ||
                font->pixel_format == DSPF_ARGB1555 ||
+               font->pixel_format == DSPF_RGBA5551 ||
                font->pixel_format == DSPF_A8 ||
                font->pixel_format == DSPF_A4 ||
                font->pixel_format == DSPF_A1 );
@@ -283,6 +284,19 @@ Construct( IDirectFBFont      *thiz,
                               else {
                                    for (i=0; i<font_desc.width; i++)
                                         dst16[i] = (pixels[i] << 8) | 0x7FFF;
+                              }
+                              break;
+                         case DSPF_RGBA5551:
+                              if (surface->config.caps & DSCAPS_PREMULTIPLIED) {
+                                   for (i=0; i<font_desc.width; i++) {
+                                        unsigned short x = pixels[i] >> 3;
+                                        dst16[i] = (x << 11) | (x << 6) | (x << 1) |
+                                             (pixels[i] >> 7);
+                                   }
+                              }
+                              else {
+                                   for (i=0; i<font_desc.width; i++)
+                                        dst16[i] = 0xFFFE | (pixels[i] >> 7);
                               }
                               break;
                          case DSPF_A8:

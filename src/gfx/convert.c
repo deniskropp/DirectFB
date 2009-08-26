@@ -145,6 +145,13 @@ dfb_pixel_to_color( DFBSurfacePixelFormat  format,
                ret_color->b = (pixel & 0x0000ff);
                break;
 
+          case DSPF_RGBA5551:
+               ret_color->a = EXPAND_1to8(  pixel & 1 );
+               ret_color->r = EXPAND_5to8( (pixel & 0xf800) >> 11 );
+               ret_color->g = EXPAND_5to8( (pixel & 0x07c0) >>  6 );
+               ret_color->b = EXPAND_5to8( (pixel & 0x003e) >>  1 );
+               break;
+
           default:
                ret_color->r = 0;
                ret_color->g = 0;
@@ -223,6 +230,9 @@ dfb_pixel_from_color( DFBSurfacePixelFormat  format,
           case DSPF_YV12:
                RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
                return y | (cb << 8) | (cr << 16);
+
+          case DSPF_RGBA5551:
+               return PIXEL_RGBA5551( color->a, color->r, color->g, color->b );
 
           default:
                D_WARN( "unknown format 0x%08x", format );
@@ -377,6 +387,20 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
                }
                break;
 
+          case DSPF_RGBA5551:
+               while (height--) {
+                    const u16 *src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = (src16[x] & 0xf800) |
+						(src16[x] & 0x07c0) | ((src16[x] & 0x0400) >> 5) |
+						((src16[x] & 0x003e) >> 1);
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
           default:
                D_ONCE( "unsupported format" );
      }
@@ -507,6 +531,18 @@ dfb_convert_to_rgb555( DFBSurfacePixelFormat  format,
 
                          dst[x] = PIXEL_RGB555( r, g, b );
                     }
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+		case DSPF_RGBA5551:
+               while (height--) {
+                    const u16 *src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = src16[x] >> 1;
 
                     src += spitch;
                     dst += dp2;
@@ -663,6 +699,20 @@ dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
                          dst[x] = PIXEL_RGB32( ((src16[x] & 0xf800) >> 8) | ((src16[x] & 0xe000) >> 13),
                                                ((src16[x] & 0x07e0) >> 3) | ((src16[x] & 0x0600) >> 9),
                                                ((src16[x] & 0x001f) << 3) | ((src16[x] & 0x001c) >> 2) );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+		case DSPF_RGBA5551:
+               while (height--) {
+                    const u16 *src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB32( ((src16[x] & 0xf800) >> 8) | ((src16[x] & 0xe000) >> 13),
+                                               ((src16[x] & 0x07c0) >> 3) | ((src16[x] & 0x0700) >> 8),
+                                               ((src16[x] & 0x003e) << 2) | ((src16[x] & 0x0038) >> 3) );
 
                     src += spitch;
                     dst += dp4;
@@ -866,6 +916,22 @@ dfb_convert_to_argb( DFBSurfacePixelFormat  format,
                     dst += dp4;
                }
                break;
+
+		case DSPF_RGBA5551:
+               while (height--) {
+                    const u16 *src16 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_ARGB( (src16[x] & 0x1) ? 0xff : 0x00,
+                                               ((src16[x] & 0xf800) >> 8) | ((src16[x] & 0xe000) >> 13),
+                                               ((src16[x] & 0x07c0) >> 3) | ((src16[x] & 0x0700) >> 8),
+                                               ((src16[x] & 0x003e) << 2) | ((src16[x] & 0x0038) >> 3) );
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
 
           default:
                D_ONCE( "unsupported format" );
@@ -1154,6 +1220,21 @@ dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
                     dst += dpitch;
                }
                break;
+          case DSPF_RGBA5551:
+               while (height--) {
+                    const u16 *src16 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+                         dst[n3+0] = ((src16[n] & 0xF800) >> 8) | ((src16[n] & 0xE000) >> 13);
+                         dst[n3+1] = ((src16[n] & 0x07C0) >> 3) | ((src16[n] & 0x0700) >> 8);
+                         dst[n3+2] = ((src16[n] & 0x003E) << 2) | ((src16[n] & 0x0038) >> 3);
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+
           }
           default:
                D_ONCE( "unsupported format" );
@@ -1269,6 +1350,18 @@ dfb_convert_to_a8( DFBSurfacePixelFormat  format,
                     dst += dpitch;
                }
                break;
+          case DSPF_RGBA5551:
+               while (height--) {
+                    const u16 *src16 = src;
+
+                    for (n=0; n<width; n++) {
+                         dst[n] = EXPAND_1to8(src16[n] & 0x1);
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
 
           case DSPF_RGB332:
           case DSPF_RGB444:
@@ -1366,6 +1459,19 @@ dfb_convert_to_a4( DFBSurfacePixelFormat  format,
                     dst += dpitch;
                }
                break;
+
+          case DSPF_RGBA5551:
+               while (height--) {
+                    const u16 *src16 = src;
+
+                    for (x=0, n=0; x<w2; x++, n+=2)
+                         dst[x] = ((src16[n] & 0x1) ? 0xf0 : 0) | ((src16[n+1] & 0x1) ? 0x0f : 0);
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+
 
           default:
                if (DFB_PIXELFORMAT_HAS_ALPHA( format ))

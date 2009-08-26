@@ -1657,6 +1657,17 @@ dfb_fbdev_mode_to_var( const VideoMode           *mode,
                var.blue.offset   = 0;
                break;
 
+          case DSPF_RGBA5551:
+               var.transp.length = 1;
+               var.red.length    = 5;
+               var.green.length  = 5;
+               var.blue.length   = 5;
+               var.transp.offset = 1;
+               var.red.offset    = 11;
+               var.green.offset  = 6;
+               var.blue.offset   = 1;
+               break;
+
           case DSPF_RGB555:
                var.red.length    = 5;
                var.green.length  = 5;
@@ -2138,6 +2149,7 @@ dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
 
      switch (format) {
           case DSPF_ARGB1555:
+          case DSPF_RGBA5551:
           case DSPF_RGB555:
           case DSPF_BGR555:
                red_size   = 32;

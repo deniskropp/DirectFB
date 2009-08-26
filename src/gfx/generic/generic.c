@@ -158,6 +158,24 @@ static void gInit_64bit( void );
 #define B_MASK 0x001f
 #include "template_acc_16.h"
 
+/* RGBA5551 */
+#define EXPAND_Ato8( a ) EXPAND_1to8( a )
+#define EXPAND_Rto8( r ) EXPAND_5to8( r )
+#define EXPAND_Gto8( g ) EXPAND_5to8( g )
+#define EXPAND_Bto8( b ) EXPAND_5to8( b )
+#define PIXEL_OUT( a, r, g, b ) PIXEL_RGBA5551( a, r, g, b )
+#define Sop_PFI_OP_Dacc( op ) Sop_rgba5551_##op##_Dacc
+#define Sacc_OP_Aop_PFI( op ) Sacc_##op##_Aop_rgba5551
+#define A_SHIFT 0
+#define R_SHIFT 11
+#define G_SHIFT 6
+#define B_SHIFT 1
+#define A_MASK 0x0001
+#define R_MASK 0xf800
+#define G_MASK 0x07c0
+#define B_MASK 0x003e
+#include "template_acc_16.h"
+
 /* RGB555 */
 #define EXPAND_Ato8( a ) 0xFF
 #define EXPAND_Rto8( r ) EXPAND_5to8( r )
@@ -491,7 +509,8 @@ static GenefxFunc Cop_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,               /* DSPF_LUT2 */
      Cop_to_Aop_16,      /* DSPF_RGB444 */
      Cop_to_Aop_16,      /* DSPF_RGB555 */
-     Cop_to_Aop_16       /* DSPF_BGR555 */
+     Cop_to_Aop_16,      /* DSPF_BGR555 */
+     Cop_to_Aop_16       /* DSPF_RGBA5551 */
 };
 
 /********************************* Cop_toK_Aop_PFI ****************************/
@@ -631,7 +650,8 @@ static GenefxFunc Cop_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,                    /* DSPF_LUT2 */
      Cop_toK_Aop_12,          /* DSPF_RGB444 */
      Cop_toK_Aop_15,          /* DSPF_RGB555 */
-     Cop_toK_Aop_15           /* DSPF_BGR555 */
+     Cop_toK_Aop_15,          /* DSPF_BGR555 */
+     Cop_toK_Aop_15           /* DSPF_RGBA5551 */
 };
 
 /********************************* Bop_PFI_to_Aop_PFI *************************/
@@ -707,7 +727,8 @@ static GenefxFunc Bop_PFI_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,               /* DSPF_LUT2 */
      Bop_16_to_Aop,      /* DSPF_RGB444 */
      Bop_16_to_Aop,      /* DSPF_RGB555 */
-     Bop_16_to_Aop       /* DSPF_BGR555 */
+     Bop_16_to_Aop,      /* DSPF_BGR555 */
+     Bop_16_to_Aop       /* DSPF_RGBA5551 */
 };
 
 /********************************* Bop_PFI_toR_Aop_PFI *************************/
@@ -851,7 +872,8 @@ static GenefxFunc Bop_PFI_toR_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,               /* DSPF_LUT2 */
      Bop_16_toR_Aop,      /* DSPF_RGB444 */
      Bop_16_toR_Aop,      /* DSPF_RGB555 */
-     Bop_16_toR_Aop       /* DSPF_BGR555 */
+     Bop_16_toR_Aop,      /* DSPF_BGR555 */
+     Bop_16_toR_Aop       /* DSPF_RGBA5551 */
 };
 
 /********************************* Bop_PFI_Kto_Aop_PFI ************************/
@@ -1064,7 +1086,8 @@ static GenefxFunc Bop_PFI_Kto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,                    /* DSPF_LUT2 */
      Bop_12_Kto_Aop,          /* DSPF_RGB444 */
      Bop_15_Kto_Aop,          /* DSPF_RGB555 */
-     Bop_15_Kto_Aop           /* DSPF_BGR555 */
+     Bop_15_Kto_Aop,          /* DSPF_BGR555 */
+     Bop_15_Kto_Aop           /* DSPF_RGBA5551 */
 };
 
 /********************************* Bop_PFI_toK_Aop_PFI ************************/
@@ -1203,7 +1226,8 @@ static GenefxFunc Bop_PFI_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,                    /* DSPF_LUT2 */
      Bop_12_toK_Aop,          /* DSPF_RGB444 */
      Bop_15_toK_Aop,          /* DSPF_RGB555 */
-     Bop_15_toK_Aop           /* DSPF_BGR555 */
+     Bop_15_toK_Aop,          /* DSPF_BGR555 */
+     Bop_15_toK_Aop           /* DSPF_RGBA5551 */
 };
 
 /********************************* Bop_PFI_KtoK_Aop_PFI ***********************/
@@ -1238,7 +1262,8 @@ static GenefxFunc Bop_PFI_KtoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,                    /* DSPF_LUT2 */
      Bop_12_KtoK_Aop,         /* DSPF_RGB444 */
      Bop_15_KtoK_Aop,         /* DSPF_RGB555 */
-     Bop_15_KtoK_Aop          /* DSPF_BGR555 */
+     Bop_15_KtoK_Aop,         /* DSPF_BGR555 */
+     Bop_15_KtoK_Aop          /* DSPF_RGBA5551 */
 };
 
 /********************************* Bop_PFI_Sto_Aop_PFI ************************/
@@ -1485,7 +1510,8 @@ static GenefxFunc Bop_PFI_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,                    /* DSPF_LUT2 */
      Bop_16_Sto_Aop,          /* DSPF_RGB444 */
      Bop_16_Sto_Aop,          /* DSPF_RGB555 */
-     Bop_16_Sto_Aop           /* DSPF_BGR555 */
+     Bop_16_Sto_Aop,          /* DSPF_BGR555 */
+     Bop_16_Sto_Aop           /* DSPF_RGBA5551 */
 };
 
 /********************************* Bop_PFI_SKto_Aop_PFI ***********************/
@@ -1741,7 +1767,8 @@ static GenefxFunc Bop_PFI_SKto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,                    /* DSPF_LUT2 */
      Bop_12_SKto_Aop,         /* DSPF_RGB444 */
      Bop_15_SKto_Aop,         /* DSPF_RGB555 */
-     Bop_15_SKto_Aop          /* DSPF_BGR555 */
+     Bop_15_SKto_Aop,         /* DSPF_BGR555 */
+     Bop_15_SKto_Aop          /* DSPF_RGBA5551 */
 };
 
 /********************************* Bop_PFI_StoK_Aop_PFI ***********************/
@@ -1776,7 +1803,8 @@ static GenefxFunc Bop_PFI_StoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,                    /* DSPF_LUT2 */
      Bop_12_StoK_Aop,         /* DSPF_RGB444 */
      Bop_15_StoK_Aop,         /* DSPF_RGB555 */
-     Bop_15_StoK_Aop          /* DSPF_BGR555 */
+     Bop_15_StoK_Aop,         /* DSPF_BGR555 */
+     Bop_15_StoK_Aop          /* DSPF_RGBA5551 */
 };
 
 /********************************* Bop_PFI_SKtoK_Aop_PFI **********************/
@@ -1811,7 +1839,8 @@ static GenefxFunc Bop_PFI_SKtoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,                    /* DSPF_LUT2 */
      Bop_12_SKtoK_Aop,        /* DSPF_RGB444 */
      Bop_15_SKtoK_Aop,        /* DSPF_RGB555 */
-     Bop_15_SKtoK_Aop         /* DSPF_BGR555 */
+     Bop_15_SKtoK_Aop,        /* DSPF_BGR555 */
+     Bop_15_SKtoK_Aop         /* DSPF_RGBA5551 */
 };
 
 /********************************* Sop_PFI_Sto_Dacc ***************************/
@@ -2207,7 +2236,8 @@ static GenefxFunc Sop_PFI_Sto_Dacc[DFB_NUM_PIXELFORMATS] = {
      NULL,                         /* DSPF_LUT2 */
      Sop_xrgb4444_Sto_Dacc,        /* DSPF_RGB444 */
      Sop_xrgb1555_Sto_Dacc,        /* DSPF_RGB555 */
-     Sop_xbgr1555_Sto_Dacc         /* DSPF_BGR555 */
+     Sop_xbgr1555_Sto_Dacc,        /* DSPF_BGR555 */
+     Sop_rgba5551_Sto_Dacc         /* DSPF_RGBA5551 */
 };
 
 /********************************* Sop_PFI_SKto_Dacc **************************/
@@ -2627,7 +2657,8 @@ static GenefxFunc Sop_PFI_SKto_Dacc[DFB_NUM_PIXELFORMATS] = {
      NULL,                         /* DSPF_LUT2 */
      Sop_xrgb4444_SKto_Dacc,       /* DSPF_RGB444 */
      Sop_xrgb1555_SKto_Dacc,       /* DSPF_RGB555 */
-     Sop_xbgr1555_SKto_Dacc        /* DSPF_BGR555 */
+     Sop_xbgr1555_SKto_Dacc,       /* DSPF_BGR555 */
+     Sop_rgba5551_SKto_Dacc        /* DSPF_RGBA5551 */
 };
 
 /********************************* Sop_PFI_to_Dacc ****************************/
@@ -2996,6 +3027,7 @@ static GenefxFunc Sop_PFI_to_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_xrgb4444_to_Dacc,         /* DSPF_RGB444 */
      Sop_xrgb1555_to_Dacc,         /* DSPF_RGB555 */
      Sop_xbgr1555_to_Dacc,         /* DSPF_BGR555 */
+     Sop_rgba5551_to_Dacc          /* DSPF_RGBA5551 */
 };
 
 /********************************* Sop_PFI_Kto_Dacc ***************************/
@@ -3393,6 +3425,7 @@ static GenefxFunc Sop_PFI_Kto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_xrgb4444_Kto_Dacc,        /* DSPF_RGB444 */
      Sop_xrgb1555_Kto_Dacc,        /* DSPF_RGB555 */
      Sop_xbgr1555_Kto_Dacc,        /* DSPF_BGR555 */
+     Sop_rgba5551_Kto_Dacc         /* DSPF_RGBA5551 */
 };
 
 /********************************* Sacc_to_Aop_PFI ****************************/
@@ -3920,6 +3953,7 @@ static GenefxFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_to_Aop_xrgb4444,         /* DSPF_RGB444 */
      Sacc_to_Aop_xrgb1555,         /* DSPF_RGB555 */
      Sacc_to_Aop_xbgr1555,         /* DSPF_BGR555 */
+     Sacc_to_Aop_rgba5551          /* DSPF_RGBA5551 */
 };
 
 /********************************* Sacc_Sto_Aop_PFI ***************************/
@@ -4508,6 +4542,7 @@ static GenefxFunc Sacc_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_Sto_Aop_xrgb4444,        /* DSPF_RGB444 */
      Sacc_Sto_Aop_xrgb1555,        /* DSPF_RGB555 */
      Sacc_Sto_Aop_xbgr1555,        /* DSPF_BGR555 */
+     Sacc_Sto_Aop_rgba5551         /* DSPF_RGBA5551 */
 };
 
 /********************************* Sacc_toK_Aop_PFI ***************************/
@@ -4849,6 +4884,7 @@ static GenefxFunc Sacc_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_toK_Aop_xrgb4444,        /* DSPF_RGB444 */
      Sacc_toK_Aop_xrgb1555,        /* DSPF_RGB555 */
      Sacc_toK_Aop_xbgr1555,        /* DSPF_BGR555 */
+     Sacc_toK_Aop_rgba5551         /* DSPF_RGBA5551 */
 };
 
 /********************************* Sacc_StoK_Aop_PFI **************************/
@@ -4884,6 +4920,7 @@ static GenefxFunc Sacc_StoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_StoK_Aop_xrgb4444,       /* DSPF_RGB444 */
      Sacc_StoK_Aop_xrgb1555,       /* DSPF_RGB555 */
      Sacc_StoK_Aop_xbgr1555,       /* DSPF_BGR555 */
+     Sacc_StoK_Aop_rgba5551        /* DSPF_RGBA5551 */
 };
 
 /************** Bop_a8_set_alphapixel_Aop_PFI *********************************/
@@ -4913,6 +4950,35 @@ static void Bop_a8_set_alphapixel_Aop_argb1555( GenefxState *gfxs )
                d = ((d) & 0x8000) | ((a & 0x80) << 8) | \
                    ((((rb-t1)*s+(t1<<5)) & 0x000f83e0) + \
                     ((( g-t2)*s+(t2<<5)) & 0x00007c00)) >> 5;\
+          }\
+     }
+
+     SET_PIXEL_DUFFS_DEVICE( D, S, w );
+
+#undef SET_PIXEL
+}
+
+
+static void Bop_a8_set_alphapixel_Aop_rgba5551( GenefxState *gfxs )
+{
+     int    w   = gfxs->length;
+     u8    *S   = gfxs->Bop[0];
+     u16   *D   = gfxs->Aop[0];
+     u32    Cop = gfxs->Cop;
+     u32    rb  = Cop & 0xf83e;
+     u32    g   = Cop & 0x07c0;
+
+#define SET_PIXEL(d,a) \
+     switch (a) {\
+          case 0xff: d = Cop;\
+          case 0: break;\
+          default: {\
+               register u32  s = (a>>3)+1;\
+               register u32 t1 = (d & 0xf83e);\
+               register u32 t2 = (d & 0x07c0);\
+               d = (((d) & 0x0001)<<15) | ((a & 0x80) << 8) | \
+                   ((((rb-t1)*s+(t1<<4)) & 0x000f83e0) + \
+                    ((( g-t2)*s+(t2<<4)) & 0x00007c00)) >> 5;\
           }\
      }
 
@@ -5400,7 +5466,8 @@ static GenefxFunc Bop_a8_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,                                        /* DSPF_LUT2 */
      NULL,                                        /* DSPF_RGB444 */
      NULL,                                        /* DSPF_RGB555 */
-     NULL                                         /* DSPF_BGR555 */
+     NULL,                                        /* DSPF_BGR555 */
+     Bop_a8_set_alphapixel_Aop_rgba5551           /* DSPF_RGBA5551 */
 };
 
 /************** Bop_a1_set_alphapixel_Aop_PFI *********************************/
@@ -5412,6 +5479,20 @@ static void Bop_a1_set_alphapixel_Aop_argb1555( GenefxState *gfxs )
      u8    *S   = gfxs->Bop[0];
      u16   *D   = gfxs->Aop[0];
      u16    Cop = gfxs->Cop | 0x8000;
+
+     for (i=0; i<w; i++) {
+          if (S[i>>3] & (0x80 >> (i&7)))
+               D[i] = Cop;
+     }
+}
+
+static void Bop_a1_set_alphapixel_Aop_rgba5551( GenefxState *gfxs )
+{
+     int    i;
+     int    w   = gfxs->length;
+     u8    *S   = gfxs->Bop[0];
+     u16   *D   = gfxs->Aop[0];
+     u16    Cop = gfxs->Cop | 0x0001;
 
      for (i=0; i<w; i++) {
           if (S[i>>3] & (0x80 >> (i&7)))
@@ -5717,6 +5798,7 @@ static GenefxFunc Bop_a1_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,                                        /* DSPF_RGB444 */
      NULL,                                        /* DSPF_RGB555 */
      NULL,                                        /* DSPF_BGR555 */
+     Bop_a1_set_alphapixel_Aop_rgba5551           /* DSPF_RGBA5551 */
 };
 
 
@@ -6493,7 +6575,8 @@ static GenefxFunc Bop_argb_blend_alphachannel_src_invsrc_Aop_PFI[DFB_NUM_PIXELFO
      NULL,                                             /* DSPF_LUT2 */
      NULL,                                             /* DSPF_RGB444 */
      NULL,                                             /* DSPF_RGB555 */
-     NULL                                              /* DSPF_BGR555 */
+     NULL,                                             /* DSPF_BGR555 */
+     NULL                                              /* DSPF_RGBA5551 */
 };
 
 /**********************************************************************************************************************/
@@ -6554,7 +6637,8 @@ static GenefxFunc Bop_argb_blend_alphachannel_one_invsrc_Aop_PFI[DFB_NUM_PIXELFO
      NULL,                                             /* DSPF_LUT2 */
      NULL,                                             /* DSPF_RGB444 */
      NULL,                                             /* DSPF_RGB555 */
-     NULL                                              /* DSPF_BGR555 */
+     NULL,                                             /* DSPF_BGR555 */
+     NULL                                              /* DSPF_RGBA5551 */
 };
 
 /**********************************************************************************************************************/
@@ -7080,6 +7164,9 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
           case DSPF_BGR555:
                gfxs->Cop = PIXEL_BGR555( color.r, color.g, color.b );
                break;
+          case DSPF_RGBA5551:
+               gfxs->Cop = PIXEL_RGBA5551( color.a, color.r, color.g, color.b );
+               break;
           default:
                D_ONCE("unsupported destination format");
                goto error;
@@ -7092,6 +7179,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                case DSPF_ALUT44:
                     gfxs->Blut = source->palette;
                case DSPF_ARGB1555:
+               case DSPF_RGBA5551:
                case DSPF_ARGB2554:
                case DSPF_ARGB4444:
                case DSPF_RGBA4444:
@@ -8734,7 +8822,8 @@ static const StretchFunctionTable *stretch_tables[DFB_NUM_PIXELFORMATS] = {
      NULL,                    /* DSPF_LUT2 */
      NULL,                    /* DSPF_RGB444 */
      NULL,                    /* DSPF_RGB555 */
-     NULL                     /* DSPF_BGR555 */
+     NULL,                    /* DSPF_BGR555 */
+     NULL                     /* DSPF_RGBA5551 */
 };
 
 /**********************************************************************************************************************/

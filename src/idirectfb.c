@@ -499,6 +499,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           case DSPF_A8:
           case DSPF_ARGB:
           case DSPF_ARGB1555:
+          case DSPF_RGBA5551:
           case DSPF_ARGB1666:
           case DSPF_ARGB6666:
           case DSPF_ARGB2554:
@@ -632,6 +633,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                               case DSPF_RGBA4444:
                               case DSPF_ARGB2554:
                               case DSPF_ARGB1555:
+                              case DSPF_RGBA5551:
                               case DSPF_ARGB:
                               case DSPF_AYUV:
                               case DSPF_AiRGB:

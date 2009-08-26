@@ -46,6 +46,11 @@
                                  (((g)&0xF8) << 2) | \
                                  (((b)&0xF8) >> 3) )
 
+#define PIXEL_RGBA5551(a,r,g,b)( (((a)&0x80) >> 7) | \
+                                 (((r)&0xF8) << 8) | \
+                                 (((g)&0xF8) << 3) | \
+                                 (((b)&0xF8) >> 2) )
+
 #define PIXEL_RGB555(r,g,b)  ( (((r)&0xF8) << 7) | \
                                  (((g)&0xF8) << 2) | \
                                  (((b)&0xF8) >> 3) )
@@ -308,6 +313,11 @@
                                    (((pixel) & 0x0000F800) >>  6) | \
                                    (((pixel) & 0x000000F8) >>  3) )
 
+#define ARGB_TO_RGBA5551(pixel)  ( (((pixel) & 0x80000000) >> 31) | \
+                                   (((pixel) & 0x00F80000) >>  8) | \
+                                   (((pixel) & 0x0000F800) >>  5) | \
+                                   (((pixel) & 0x000000F8) >>  2) )
+
 #define ARGB_TO_ARGB2554(pixel)  ( (((pixel) & 0xC0000000) >> 16) | \
                                    (((pixel) & 0x00F80000) >> 10) | \
                                    (((pixel) & 0x0000F800) >>  7) | \
@@ -419,6 +429,18 @@ dfb_argb_to_argb1555( const u32 *src, u16 *dst, int len )
           register u32 argb = src[i];
 
           dst[i] = ARGB_TO_ARGB1555( argb );
+     }
+}
+
+static inline void
+dfb_argb_to_rgba5551( const u32 *src, u16 *dst, int len )
+{
+     int i;
+
+     for (i=0; i<len; i++) {
+          register u32 argb = src[i];
+
+          dst[i] = ARGB_TO_RGBA5551( argb );
      }
 }
 

@@ -355,6 +355,19 @@ render_glyph( CoreFont      *thiz,
                                         dst16[i] = (src[i] << 8) | 0x7FFF;
                               }
                               break;
+                         case DSPF_RGBA5551:
+                              if (thiz->surface_caps & DSCAPS_PREMULTIPLIED) {
+                                   for (i=0; i<info->width; i++) {
+                                        unsigned short x = src[i] >> 3;
+                                        dst16[i] =  (x << 11) | (x << 6) | (x << 1) |
+                                             (src[i] >> 7);
+                                   }
+                              }
+                              else {
+                                   for (i=0; i<info->width; i++)
+                                        dst16[i] = 0xFFFE | (src[i] >> 7);
+                              }
+                              break;
                          case DSPF_A8:
                               direct_memcpy( lock.addr, src, info->width );
                               break;
@@ -419,6 +432,11 @@ render_glyph( CoreFont      *thiz,
                               for (i=0; i<info->width; i++)
                                    dst16[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
                                                 0x1 : 0x0) << 15) | 0x7FFF;
+                              break;
+                         case DSPF_RGBA5551:
+                              for (i=0; i<info->width; i++)
+                                   dst16[i] = 0xFFFE | (((src[i>>3] & (1<<(7-(i%8)))) ?
+                                                0x1 : 0x0));
                               break;
                          case DSPF_A8:
                               for (i=0; i<info->width; i++)
@@ -748,7 +766,9 @@ Construct( IDirectFBFont *thiz,
           return DFB_FAILURE;
      }
 
-     if (dfb_config->font_format == DSPF_A1 || dfb_config->font_format == DSPF_ARGB1555)
+     if (dfb_config->font_format == DSPF_A1 ||
+               dfb_config->font_format == DSPF_ARGB1555 ||
+               dfb_config->font_format == DSPF_RGBA5551)
           load_mono = true;
 
      if (desc->flags & DFDESC_ATTRIBUTES) {
@@ -858,6 +878,7 @@ Construct( IDirectFBFont *thiz,
                font->pixel_format == DSPF_RGBA4444 ||
                font->pixel_format == DSPF_ARGB2554 ||
                font->pixel_format == DSPF_ARGB1555 ||
+               font->pixel_format == DSPF_RGBA5551 ||
                font->pixel_format == DSPF_A8 ||
                font->pixel_format == DSPF_A4 ||
                font->pixel_format == DSPF_A1 );
