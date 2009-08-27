@@ -322,12 +322,17 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
                                  SaWManWindowConfigFlags   flags,
                                  SaWManWindowConfig       *config )
 {
+     DFBResult       ret;
      SaWMan         *sawman;
-     SaWManWindow   *window = (SaWManWindow*)handle;
-     CoreWindow     *corewindow;
+     SaWManWindow   *sawwin = (SaWManWindow*)handle;
+     CoreWindow     *window;
 
-     /* not yet all implemented */
-     if( flags & ~(SWMCF_POSITION | SWMCF_SIZE | SWMCF_OPACITY) )
+     /*
+       not yet implemented:
+       SWMCF_KEY_SELECTION, SWMCF_ASSOCIATION, SWMCF_STACKING
+     */
+
+     if (flags & ~(SWMCF_ALL - SWMCF_KEY_SELECTION - SWMCF_ASSOCIATION - SWMCF_STACKING))
           return DFB_INVARG;
 
      if( config == NULL )
@@ -337,30 +342,91 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
 
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
-     D_MAGIC_ASSERT( window, SaWManWindow );
+     D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
-     corewindow = window->window;
-     D_ASSERT( corewindow != NULL );
+     window = sawwin->window;
+     D_ASSERT( window != NULL );
      
      FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
-     if( flags & (SWMCF_POSITION | SWMCF_SIZE) ) {
-          if( flags == SWMCF_POSITION ) {
-               corewindow->config.bounds.x = config->bounds.x;
-               corewindow->config.bounds.y = config->bounds.y;
+      if (flags & SWMCF_OPTIONS) {
+          if ((window->config.options & DWOP_SCALE) && !(config->options & DWOP_SCALE) && window->surface) {
+               /* scaling turned off - see if we need to reallocate the surface */
+               if (window->config.bounds.w != window->surface->config.size.w ||
+                   window->config.bounds.h != window->surface->config.size.h)
+               {
+                    ret = dfb_surface_reformat( window->surface,
+                                                window->config.bounds.w,
+                                                window->config.bounds.h,
+                                                window->surface->config.format );
+                    if (ret) {
+                         D_DERROR( ret, "WM/SaWMan: Could not resize surface "
+                                        "(%dx%d -> %dx%d) to remove DWOP_SCALE!\n",
+                                   window->surface->config.size.w,
+                                   window->surface->config.size.h,
+                                   window->config.bounds.w,
+                                   window->config.bounds.h );
+                         return ret;
+                    }
+               }
           }
-          else if( flags == SWMCF_SIZE ) {
-               corewindow->config.bounds.w = config->bounds.w;
-               corewindow->config.bounds.h = config->bounds.h;
-          }
-          else
-               corewindow->config.bounds = config->bounds;          
 
-          sawman_update_geometry( window );
+          if (config->options & (DWOP_KEEP_ABOVE | DWOP_KEEP_UNDER)) {
+               D_ASSERT( sawwin->parent );
+
+               if (config->options & DWOP_KEEP_ABOVE) {
+                    D_ASSERT( sawman_window_priority(sawwin->parent) <= sawman_window_priority(sawwin) );
+
+                    sawman_insert_window( sawman, sawwin, sawwin->parent, true );
+               }
+               else {
+                    D_ASSERT( sawman_window_priority(sawwin->parent) >= sawman_window_priority(sawwin) );
+
+                    sawman_insert_window( sawman, sawwin, sawwin->parent, false );
+               }
+
+               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER | SWMUF_FORCE_COMPLETE );
+          }
+
+          window->config.options = config->options;
      }
 
-     if (flags & CWCF_OPACITY)
-          sawman_set_opacity( sawman, window, config->opacity );
+     if (flags & SWMCF_EVENTS)
+          window->config.events = config->events;
+
+     if (flags & SWMCF_COLOR)
+          window->config.color = config->color;
+
+     if (flags & SWMCF_COLOR_KEY)
+          window->config.color_key = config->color_key;
+
+     if (flags & SWMCF_OPAQUE)
+          window->config.opaque = config->opaque;
+
+     if (flags & SWMCF_OPACITY)
+          sawman_set_opacity( sawman, sawwin, config->opacity );
+
+     if( flags & (SWMCF_POSITION | SWMCF_SIZE) ) {
+          if( flags == SWMCF_POSITION ) {
+               window->config.bounds.x = config->bounds.x;
+               window->config.bounds.y = config->bounds.y;
+          }
+          else if( flags == SWMCF_SIZE ) {
+               window->config.bounds.w = config->bounds.w;
+               window->config.bounds.h = config->bounds.h;
+          }
+          else
+               window->config.bounds = config->bounds;          
+     }
+
+     if (flags & SWMCF_SRC_GEOMETRY)
+          window->config.src_geometry = config->src_geometry;
+
+     if (flags & SWMCF_DST_GEOMETRY)
+          window->config.dst_geometry = config->dst_geometry;
+
+     if (flags & (SWMCF_POSITION | SWMCF_SIZE | SWMCF_SRC_GEOMETRY | SWMCF_DST_GEOMETRY | SWMCF_ASSOCIATION))
+          sawman_update_geometry( sawwin );
 
      return DFB_OK;
 }
