@@ -2659,11 +2659,13 @@ wm_set_window_config( CoreWindow             *window,
                D_MAGIC_ASSERT( parent, SaWManWindow );
                D_ASSERT( parent->window != NULL );
 
+#ifndef OLD_COREWINDOWS_STRUCTURE
                if (parent->window->toplevel != window->toplevel) {
                     D_ERROR( "SaWMan/WM: Can't associate windows with different toplevel!\n" );
                     sawman_unlock( sawman );
                     return DFB_INVARG;
                }
+#endif
 
                D_DEBUG_AT( SaWMan_WM, "  -> parent window %p\n", parent );
 
