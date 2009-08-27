@@ -5,7 +5,7 @@ INCLUDES    = \
 	$(DFB_CFLAGS)
 
 
-noinst_PROGRAMS = sample1 testman testrun
+bin_PROGRAMS = sample1 testman testrun
 
 
 sample1_SOURCES = sample1.c
