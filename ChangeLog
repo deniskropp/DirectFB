@@ -1,3 +1,292 @@
+commit fdc611eab2b3680932c189e88cd576ffcc165e37
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 26 20:54:59 2009 +0200
+
+    Fonts/Colors: Added support for colors and multiple layers in a glyph implementing outlines.
+    
+    Added DFBColorID and DCID_PRIMARY, DCID_OUTLINE.
+    
+    Added IDirectFBSurface::SetColors() that takes an array of IDs and an array of DFBColor.
+    
+    Added DFFA_OUTLINED for loading a font with support for outlines.
+    
+    Added DFDESC_OUTLINE_WIDTH and DFDESC_OUTLINE_OPACITY.
+    
+    Added outline_width and outline_opacity to DFBFontDescription.
+    
+    Added DSTF_OUTLINE that activates the outline per DrawString().
+    
+    Simplified font rendering in core using the current state instead of its own.
+    
+    Fixed IDirectFBSurface::GetAccelerationMask().
+
+commit dc6d97bbf2a3d905655d8db985b6138e02a13d1a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 26 20:19:42 2009 +0200
+
+    dfbtext_sync: Added simple test program randomly doing operations and syncing.
+
+commit f990465367b49ed816a57d74436f7abf548593a6
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Aug 26 14:30:17 2009 +0200
+
+    format: Support RGBA5551 pixel format added.
+            Thanks to Stanislav Bezzubtcev <stas@lvk.cs.msu.su>
+
+commit f8bc3cfa4bf0a97945f1dcd5c18792e7339a769c
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Aug 25 13:05:04 2009 +0200
+
+    fbdev: Fixed RGB fields sizes in dfb_fbdev_set_gamma_ramp.
+           thanks to Stanislav Bezzubtcev <stas@lvk.cs.msu.su>
+
+commit f97dfefae9ee1d3d94e9a56be34a6669fe4521a6
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Aug 25 13:02:54 2009 +0200
+
+    gfx: Bugs in pixel format convertion fixed.
+    
+    Formats ARGB1555 and RGB555 were incorretly converted to RGB16.
+    G component extended from 5 to 6 bit by coping of the last one.
+    Now low bit of G component is a copy of upper one.
+    
+    Format RGB16 was incorretly converted to RGB32, ARGB.
+    G component extended from 6 to 8 bit by coping 4,3 bits to 1,0.
+    Now 1,0 bits of G component are copies of 5,4.
+    
+    thanks to Stanislav Bezzubtcev <stas@lvk.cs.msu.su>
+
+commit 129ab7f0a1aaaee3a88b50c468b23fd193d4e3af
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Aug 25 12:58:36 2009 +0200
+
+    font format: Allow fonts premultiplication on ARGB1555 format.
+                 thanks to Stanislav Bezzubtcev <stas@lvk.cs.msu.su>
+
+commit 8f2cab830b385ca7e31167fb959886410116e3b6
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Aug 25 12:57:42 2009 +0200
+
+    comments: fix mistake in comments.
+              thanks to Stanislav Bezzubtcev <stas@lvk.cs.msu.su>
+
+commit 0c63f702b470d4626a40e23cd1c5a8045ee91d18
+Author: André Draszik <andre.draszik@st.com>
+Date:   Sat Jul 25 13:41:50 2009 +0100
+
+    [rgb32] PIXEL_RGB32() sets alpha to ff now
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit a4c15793964d10902dfc3ff5b5e60ee49eb569b8
+Author: André Draszik <andre.draszik@st.com>
+Date:   Wed Jul 29 14:54:33 2009 +0100
+
+    [surface] add support for the DESTINATION Porter/Duff rule
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit 4e68fe0c8260e4b969a1ddf90b0e2abf7812a2d7
+Author: André Draszik <andre.draszik@st.com>
+Date:   Wed Jul 22 02:06:49 2009 +0100
+
+    [software rasterizer] buffer unlocking fixes in error paths
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit bb34ad7efb8c1c04906de37feed673558e7bd95e
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Sat Aug 15 21:20:30 2009 +0200
+
+    [pxa3xx] reject unsupported combinations of blitting flags
+    
+    Blitting with DSBLIT_BLEND_COLORALPHA is only accelerated if it is
+    not combined with other flags.
+
+commit 5f4eacf9ec031949bf863bd0e5ac23a57284dd28
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri Aug 14 13:23:12 2009 +0200
+
+    [pxa3xx] implement blits with DSBLIT_BLEND_COLORALPHA
+    
+    Accelerate blits with DSBLIT_BLEND_COLORALPHA to destination surfaces
+    without alpha channel.
+    
+    Signed-off-by: Sven Neumann <s.neumann@raumfeld.com>
+
+commit 4cb00b02ae4e5334a7b0c26550bfd7c3508bce7c
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Mon Aug 3 13:13:38 2009 +0200
+
+    [nvidia] try to map the MMIO area before anything else
+
+commit f8212adabaa85277db2ee22d7c98b90b9f616f84
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Mon Jul 20 12:12:12 2009 +0200
+
+    [fbdev]: return the accelerator ID regardless of mmio_len
+
+commit d4e25f6bea54b74f79779793a0d3e9759559f3c9
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Mon Jul 20 11:34:29 2009 +0200
+
+    [pxa3xx] fix accelerator ID in driver_probe()
+
+commit 6f7ee204f888216aee2e1c8d1761bc6be01eb2da
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Mon Jul 20 10:39:01 2009 +0200
+
+    [pxa3xx] add license and copyright header to all source files
+
+commit 04b62d0fcfe6e042137199a93e8e828c8e621509
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri Jul 17 19:42:43 2009 +0200
+
+    [pxa3xx] implement acceleration for anti-aliased text
+
+commit ad7167e12ef33b9ddf6b8b71a3199107ec9099ef
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri Jul 17 17:45:45 2009 +0200
+
+    [pxa3xx] implement blended rectangle fills
+    
+    Implement blended rectangle fills using a blit from a fake buffer.
+    Split blit implementation in two functions.
+
+commit 47c08c733837e4b7b64e1e87a3a640c38b96bc11
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri Jul 17 15:12:15 2009 +0200
+
+    [pxa3xx] go back to rotate blits
+
+commit 92d5992e6780da63732a03114e1b27e24999a5e6
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri Jul 17 13:56:30 2009 +0200
+
+    [pxa3xx] fixes to blended blits
+    
+    Blended blits to surfaces with alpha channel are not accelerated.
+    
+    Use an ordinary blit if a blended blit is requested and the source
+    does not have an alpha channel.
+
+commit e1788c17b3e382977ae2ce445da92d5021ae8eab
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri Jul 17 13:45:47 2009 +0200
+
+    [pxa3xx] fix source offset in blits with alpha-blending
+
+commit dbd30770119f7ce6399d904614daa81dc386d415
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri Jul 17 13:44:56 2009 +0200
+
+    [pxa3xx] use raster-blit, pattern-blit is fast but broken
+
+commit da87ef9891ac84c6b54496e8c53f13d8bd428a46
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri Jul 17 11:41:02 2009 +0200
+
+    [pxa3xx] set color in destination pixel format
+
+commit 37079389636738775313ef7c49b664fdb398573b
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jul 16 15:41:50 2009 +0200
+
+    [pxa3xx] Use pattern blit if non-rotated.
+
+commit 042f1294a4d23f7f95c56b5c798eb378548d966f
+Merge: 6363526... d323818...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jul 16 15:39:46 2009 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 6363526ba4603a90a23e8c64baf88fff7d600189
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Jul 16 15:39:20 2009 +0200
+
+    [pxa3xx] Fixed twist in rotation code (90 vs 270).
+
+commit d323818b2f5773f3f3cfd10c6ded6a69fb020191
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Thu Jul 16 14:19:47 2009 +0200
+
+    removed trailing whitespace
+
+commit 0e1af203066f8e0f8ad7a04588d822422e36ccee
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Tue Jul 14 11:18:27 2009 +0200
+
+    [pxa3xx] adjust the device name
+    
+    The driver name changed to pxa3xx-gcu, adjust the device path accordingly.
+
+commit bf7da40ef83bc07be9fac19eb5dff17cd6f2c2c3
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jul 10 10:18:21 2009 +0200
+
+    [pxa3xx] This adds a driver for the 2D graphics accelerator found on PXA3xx processors.
+    
+    Only resource mapping, interrupt handling and a simple ioctl
+    handler is done by the kernel part, the rest of the logic is implemented
+    in DirectFB userspace.
+    
+    Graphic applications benefit for line drawing, blend, and rectangle and
+    triangle filling operations.
+    
+    Measurements on a PXA303 using the df_dok benchmarking tool follow,
+    where the value in square brackets show the CPU usage during that test.
+    
+    Without accelerator:
+    
+      Fill Rectangle                                 3.007 secs (  175.922 MPixel/sec) [100.3%]
+      Fill Rectangles [10]                           3.178 secs (  182.696 MPixel/sec) [100.0%]
+      Fill Triangles                                 3.023 secs (   99.232 MPixel/sec) [100.3%]
+      Blit                                           3.082 secs (   39.770 MPixel/sec) [100.0%]
+      Blit 180                                       3.115 secs (   28.994 MPixel/sec) [100.3%]
+      Blit with format conversion                    3.078 secs (   18.863 MPixel/sec) [100.0%]
+    
+    With accelerator:
+    
+      Fill Rectangle                                 4.377 secs (*  88.433 MPixel/sec) [  5.9%]
+      Fill Rectangles [10]                           5.176 secs (*  87.245 MPixel/sec) [  0.5%]
+      Fill Triangles                                 3.025 secs (   87.437 MPixel/sec) [ 46.6%]
+      Blit                                          12.177 secs (*  22.250 MPixel/sec) [  1.3%]
+      Blit 180                                       8.421 secs (*  32.175 MPixel/sec) [  4.9%]
+      Blit with format conversion                    8.216 secs (*  40.045 MPixel/sec) [  2.5%]
+
+commit 5b2b7862ad470ef8f42f700a0fb7a7b9460dedf7
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Jul 2 21:36:57 2009 +0200
+
+    [colorize windows] allow the window config value "color" to colorize the window
+    
+    If you do IDirectFBWindow::SetColor on a window without DSCAPS_COLOR:
+    a color with a non-nul alpha value will multiply the window content with this color.
+    
+    Only supported by SaWMan, currently.
+    For other WMs this call has no effect.
+
+commit c170ad89b250011b652e5a29f8bd1d381e4694b4
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Jul 2 21:34:00 2009 +0200
+
+    [API] add application_id to a window
+    
+    Addition of:
+    IDirectFBWindow_SetApplicationID
+    IDirectFBWindow_GetApplicationID
+    These functions set and get a free-to-use application ID.
+    Any change, i.e. any call to the setter will inform the window manager.
+    Currently, only SaWMan implements this callback as a callback
+    to the SaWMan manager.
+
+commit 5f78372869747bb919e3523dfb7816f5811c58ab
+Author: Niels Roest <niels@directfb.org>
+Date:   Sat Jun 27 00:04:03 2009 +0200
+
+    [release] DirectFB 1.4.1
+
 commit ce54b3a1abf37d382b590201bb524a31779b9a39
 Author: Niels Roest <niels@directfb.org>
 Date:   Fri Jun 26 23:18:26 2009 +0200

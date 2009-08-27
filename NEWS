@@ -1,3 +1,39 @@
+1.4.2
+-----
+
+Time for DirectFB 1.4.2. This release has three main changes.
+The three main changes for this release are a changed font API for colours/outline,
+the addition of an application_id to a window, and the new PXA3xxx graphics driver.
+
+The full list of changes is:
+
+API changes
+- Add application_id to a window with IDirectFBWindow_Set/GetApplicationID.
+    This is a free-to-use parameter that, on change, results in a WM callback.
+- allow the window config value "color" to colorize the window
+- Fonts/Colors: API support for colors and multiple layers in a glyph implementing outlines.
+    Added DFBColorID and DCID_PRIMARY, DCID_OUTLINE
+    Added IDirectFBSurface::SetColors() that takes an array of IDs and an array of DFBColor
+    Added DFFA_OUTLINED for loading a font with support for outlines
+    Added DFDESC_OUTLINE_WIDTH and DFDESC_OUTLINE_OPACITY
+    Added outline_width and outline_opacity to DFBFontDescription
+    Added DSTF_OUTLINE that activates the outline per DrawString()
+
+core
+- Simplified font rendering in core using the current state instead of its own
+
+drivers
+- fbdev: fixed RGB fields sizes in dfb_fbdev_set_gamma_ramp
+- pxa3xx: new driver for the 2D graphics accelerator found on PXA3xx processors.
+    hardware acceleration supported for line drawing, blending/blitting,
+    rectangle and triangle filling operations and anti-aliased text.
+
+gfx
+- Bugs in pixel format convertion fixed (primarily 16 bit formats)
+- converting to RGB32 sets alpha to ff
+- buffer unlocking fixes in error paths
+- add support for the DESTINATION Porter/Duff rule
+
 1.4.1
 -----
 
