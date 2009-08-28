@@ -1743,7 +1743,7 @@ fixup_key_event( CoreInputDevice *device, DFBInputEvent *event )
                     missing &= ~(DIEF_KEYCODE | DIEF_KEYID);
                }
                else {
-                    event->key_symbol = symbol_to_id( event->key_symbol );
+                    event->key_id = symbol_to_id( event->key_symbol );
                     missing &= ~DIEF_KEYSYMBOL;
                }
           }
