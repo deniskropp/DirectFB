@@ -34,7 +34,9 @@
 #include <core/wm.h>
 
 #include <sawman.h>
-#include <sawman_internal.h>
+
+#include "sawman_updates.h"
+#include "sawman_window.h"
 
 #include "isawmanmanager.h"
 

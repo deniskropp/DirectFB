@@ -46,6 +46,7 @@ extern "C"
 
 #include "sawman_types.h"
 
+/**********************************************************************************************************************/
 
 /* compatibility towards 1.2.x and 1.4.x DirectFB branches */
 #if DIRECTFB_MAJOR_VERSION==1
@@ -94,11 +95,28 @@ extern "C"
      if (f & CWCF_SRC_GEOMETRY) (a)->src_geometry = (b)->src_geometry; \
      if (f & CWCF_DST_GEOMETRY) (a)->dst_geometry = (b)->dst_geometry; }
 
+/**********************************************************************************************************************/
+
+#ifdef OLD_COREWINDOWS_STRUCTURE
+#define SAWMAN_VISIBLE_WINDOW(w)     ((!((w)->caps & DWCAPS_INPUTONLY) || sawman_window_border((w)->window_data)) && \
+                                      (w)->config.opacity > 0 && !DFB_WINDOW_DESTROYED(w))
+#else
+#define SAWMAN_VISIBLE_WINDOW(w)     ((!((w)->caps & DWCAPS_INPUTONLY) || sawman_window_border((w)->window_data)) && \
+                                      (w)->config.opacity > 0 && !DFB_WINDOW_DESTROYED(w) && \
+                                      (!(w)->toplevel || (w)->toplevel->config.opacity > 0))
+#endif
+
+#define SAWMAN_TRANSLUCENT_WINDOW(w) ((w)->config.opacity < 0xff || \
+                                      (w)->config.options & (DWOP_ALPHACHANNEL | DWOP_COLORKEYING) ||\
+                                      (w)->config.dst_geometry.mode != DWGM_DEFAULT ||\
+                                      ((w)->caps & (DWCAPS_INPUTONLY)))
+
+/**********************************************************************************************************************/
 
 #define SAWMAN_MAX_UPDATE_REGIONS        8
 #define SAWMAN_MAX_IMPLICIT_KEYGRABS    16
 
-
+/**********************************************************************************************************************/
 
 typedef enum {
      SWMCID_START,
@@ -134,6 +152,8 @@ typedef enum {
      SWMUF_ALL                = 0x000F
 } SaWManUpdateFlags;
 
+/**********************************************************************************************************************/
+
 struct __SaWMan_SaWMan {
      int                   magic;
 
@@ -142,6 +162,8 @@ struct __SaWMan_SaWMan {
      FusionVector          layout;
 
      DirectLink           *tiers;
+
+     CoreWindowStack      *stack;
 
 
      FusionSHMPoolShared  *shmpool;
@@ -185,6 +207,7 @@ struct __SaWMan_SaWMan {
 
      DFBWindowID           window_ids;
      
+          
      /* reserved area for callback stuctures */
      struct {
           SaWManWindowInfo     info;
@@ -295,85 +318,35 @@ struct __SaWMan_SaWManGrabbedKey {
      SaWManWindow                 *owner;
 };
 
-typedef struct {
-     int                           magic;
+/**********************************************************************************************************************/
 
-     bool                          active;
+DirectResult sawman_initialize( SaWMan                *sawman,
+                                FusionWorld           *world,
+                                SaWManProcess        **ret_process );
 
-     SaWMan                       *sawman;
+DirectResult sawman_join      ( SaWMan                *sawman,
+                                FusionWorld           *world,
+                                SaWManProcess        **ret_process );
 
-     CoreWindowStack              *stack;
-} StackData;
+DirectResult sawman_shutdown  ( SaWMan                *sawman,
+                                FusionWorld           *world );
 
-DirectResult sawman_initialize( SaWMan         *sawman,
-                                FusionWorld    *world,
-                                SaWManProcess **ret_process );
-
-DirectResult sawman_join      ( SaWMan         *sawman,
-                                FusionWorld    *world,
-                                SaWManProcess **ret_process );
-
-DirectResult sawman_shutdown  ( SaWMan         *sawman,
-                                FusionWorld    *world );
-
-DirectResult sawman_leave     ( SaWMan         *sawman,
-                                FusionWorld    *world );
+DirectResult sawman_leave     ( SaWMan                *sawman,
+                                FusionWorld           *world );
 
 
-DirectResult sawman_call      ( SaWMan         *sawman,
-                                SaWManCallID    call,
-                                void           *ptr );
+DirectResult sawman_register  ( SaWMan                *sawman,
+                                const SaWManCallbacks *callbacks,
+                                void                  *context );
 
 
-DirectResult sawman_register       ( SaWMan                *sawman,
-                                     const SaWManCallbacks *callbacks,
-                                     void                  *context );
+DirectResult sawman_call      ( SaWMan                *sawman,
+                                SaWManCallID           call,
+                                void                  *ptr );
 
-DirectResult sawman_switch_focus   ( SaWMan                *sawman,
-                                     SaWManWindow          *to );
 
-DirectResult sawman_post_event     ( SaWMan                *sawman,
-                                     SaWManWindow          *sawwin,
-                                     DFBWindowEvent        *event );
-
-DirectResult sawman_update_window  ( SaWMan                *sawman,
-                                     SaWManWindow          *sawwin,
-                                     const DFBRegion       *region,
-                                     DFBSurfaceFlipFlags    flags,
-                                     SaWManUpdateFlags      update_flags );
-
-DirectResult sawman_showing_window ( SaWMan                *sawman,
-                                     SaWManWindow          *sawwin,
-                                     bool                  *ret_showing );
-
-DirectResult sawman_insert_window  ( SaWMan                *sawman,
-                                     SaWManWindow          *sawwin,
-                                     SaWManWindow          *relative,
-                                     bool                   top );
-
-DirectResult sawman_remove_window  ( SaWMan                *sawman,
-                                     SaWManWindow          *sawwin );
-
-DirectResult sawman_withdraw_window( SaWMan                *sawman,
-                                     SaWManWindow          *sawwin );
-
-DirectResult sawman_update_geometry( SaWManWindow          *sawwin );
-
-DirectResult sawman_set_opacity    ( SaWMan                *sawman,
-                                     SaWManWindow          *sawwin,
-                                     u8                     opacity );
-
-bool sawman_update_focus( SaWMan          *sawman,
-                          CoreWindowStack *stack );
-
-SaWManWindow *sawman_window_at_pointer( SaWMan          *sawman,
-                                        CoreWindowStack *stack,
-                                        int              x,
-                                        int              y );
+/**********************************************************************************************************************/
                      
-DirectResult sawman_process_updates( SaWMan                *sawman,
-                                     DFBSurfaceFlipFlags    flags );
-
 static inline DirectResult
 sawman_lock( SaWMan *sawman )
 {
@@ -500,22 +473,6 @@ sawman_tier_by_layer( SaWMan             *sawman,
 
      return false;
 }
-
-int sawman_window_border( const SaWManWindow *sawwin );
-
-#ifdef OLD_COREWINDOWS_STRUCTURE
-#define SAWMAN_VISIBLE_WINDOW(w)     ((!((w)->caps & DWCAPS_INPUTONLY) || sawman_window_border((w)->window_data)) && \
-                                      (w)->config.opacity > 0 && !DFB_WINDOW_DESTROYED(w))
-#else
-#define SAWMAN_VISIBLE_WINDOW(w)     ((!((w)->caps & DWCAPS_INPUTONLY) || sawman_window_border((w)->window_data)) && \
-                                      (w)->config.opacity > 0 && !DFB_WINDOW_DESTROYED(w) && \
-                                      (!(w)->toplevel || (w)->toplevel->config.opacity > 0))
-#endif
-
-#define SAWMAN_TRANSLUCENT_WINDOW(w) ((w)->config.opacity < 0xff || \
-                                      (w)->config.options & (DWOP_ALPHACHANNEL | DWOP_COLORKEYING) ||\
-                                      (w)->config.dst_geometry.mode != DWGM_DEFAULT ||\
-                                      ((w)->caps & (DWCAPS_INPUTONLY)))
 
 #ifdef __cplusplus
 }

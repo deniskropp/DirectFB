@@ -1,0 +1,785 @@
+/*
+   (c) Copyright 2006-2007  directfb.org
+
+   All rights reserved.
+
+   Written by Denis Oliver Kropp <dok@directfb.org>.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+
+//#define DIRECT_ENABLE_DEBUG
+
+#include <config.h>
+
+#include <unistd.h>
+
+#include <direct/debug.h>
+#include <direct/list.h>
+
+#include <fusion/conf.h>
+#include <fusion/fusion.h>
+#include <fusion/shmalloc.h>
+
+#include <core/layer_context.h>
+#include <core/layer_control.h>
+#include <core/layer_region.h>
+#include <core/palette.h>
+#include <core/screen.h>
+#include <core/windows_internal.h>
+
+#include <gfx/clip.h>
+#include <gfx/convert.h>
+#include <gfx/util.h>
+
+#include <misc/conf.h>
+
+#include <sawman.h>
+
+#include "sawman_config.h"
+#include "sawman_draw.h"
+#include "sawman_window.h"
+
+#include "isawman.h"
+
+
+D_DEBUG_DOMAIN( SaWMan_Auto,     "SaWMan/Auto",     "SaWMan auto configuration" );
+D_DEBUG_DOMAIN( SaWMan_Update,   "SaWMan/Update",   "SaWMan window manager updates" );
+
+/**********************************************************************************************************************/
+
+static void
+update_region( SaWMan          *sawman,
+               SaWManTier      *tier,
+               CardState       *state,
+               int              start,
+               int              x1,
+               int              y1,
+               int              x2,
+               int              y2 )
+{
+     int           i      = start;
+     DFBRegion     region = { x1, y1, x2, y2 };
+     CoreWindow   *window = NULL;
+     SaWManWindow *sawwin = NULL;
+
+     D_DEBUG_AT( SaWMan_Update, "%s( %p, %d, %d,%d - %d,%d )\n", __FUNCTION__, tier, start, x1, y1, x2, y2 );
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( tier, SaWManTier );
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( start < fusion_vector_size( &sawman->layout ) );
+     D_ASSUME( x1 <= x2 );
+     D_ASSUME( y1 <= y2 );
+
+     if (x1 > x2 || y1 > y2)
+          return;
+
+     /* Find next intersecting window. */
+     while (i >= 0) {
+          sawwin = fusion_vector_at( &sawman->layout, i );
+          D_MAGIC_ASSERT( sawwin, SaWManWindow );
+
+          window = sawwin->window;
+          D_MAGIC_COREWINDOW_ASSERT( window );
+
+          if (SAWMAN_VISIBLE_WINDOW( window ) && (tier->classes & (1 << window->config.stacking))) {
+               if (dfb_region_intersect( &region,
+                                         DFB_REGION_VALS_FROM_RECTANGLE( &sawwin->bounds )))
+                    break;
+          }
+
+          i--;
+     }
+
+     /* Intersecting window found? */
+     if (i >= 0) {
+          D_MAGIC_ASSERT( sawwin, SaWManWindow );
+          D_MAGIC_COREWINDOW_ASSERT( window );
+
+          if (D_FLAGS_ARE_SET( window->config.options, DWOP_ALPHACHANNEL | DWOP_OPAQUE_REGION )) {
+               DFBRegion opaque = DFB_REGION_INIT_TRANSLATED( &window->config.opaque,
+                                                              sawwin->bounds.x,
+                                                              sawwin->bounds.y );
+
+               if (!dfb_region_region_intersect( &opaque, &region )) {
+                    update_region( sawman, tier, state, i-1, x1, y1, x2, y2 );
+
+                    sawman_draw_window( tier, sawwin, state, &region, true );
+               }
+               else {
+                    if ((window->config.opacity < 0xff) || (window->config.options & DWOP_COLORKEYING)) {
+                         /* draw everything below */
+                         update_region( sawman, tier, state, i-1, x1, y1, x2, y2 );
+                    }
+                    else {
+                         /* left */
+                         if (opaque.x1 != x1)
+                              update_region( sawman, tier, state, i-1, x1, opaque.y1, opaque.x1-1, opaque.y2 );
+
+                         /* upper */
+                         if (opaque.y1 != y1)
+                              update_region( sawman, tier, state, i-1, x1, y1, x2, opaque.y1-1 );
+
+                         /* right */
+                         if (opaque.x2 != x2)
+                              update_region( sawman, tier, state, i-1, opaque.x2+1, opaque.y1, x2, opaque.y2 );
+
+                         /* lower */
+                         if (opaque.y2 != y2)
+                              update_region( sawman, tier, state, i-1, x1, opaque.y2+1, x2, y2 );
+                    }
+
+                    /* left */
+                    if (opaque.x1 != region.x1) {
+                         DFBRegion r = { region.x1, opaque.y1, opaque.x1 - 1, opaque.y2 };
+                         sawman_draw_window( tier, sawwin, state, &r, true );
+                    }
+
+                    /* upper */
+                    if (opaque.y1 != region.y1) {
+                         DFBRegion r = { region.x1, region.y1, region.x2, opaque.y1 - 1 };
+                         sawman_draw_window( tier, sawwin, state, &r, true );
+                    }
+
+                    /* right */
+                    if (opaque.x2 != region.x2) {
+                         DFBRegion r = { opaque.x2 + 1, opaque.y1, region.x2, opaque.y2 };
+                         sawman_draw_window( tier, sawwin, state, &r, true );
+                    }
+
+                    /* lower */
+                    if (opaque.y2 != region.y2) {
+                         DFBRegion r = { region.x1, opaque.y2 + 1, region.x2, region.y2 };
+                         sawman_draw_window( tier, sawwin, state, &r, true );
+                    }
+
+                    /* inner */
+                    sawman_draw_window( tier, sawwin, state, &opaque, false );
+               }
+          }
+          else {
+               if (SAWMAN_TRANSLUCENT_WINDOW( window )) {
+                    /* draw everything below */
+                    update_region( sawman, tier, state, i-1, x1, y1, x2, y2 );
+               }
+               else {
+                    DFBRegion dst = DFB_REGION_INIT_FROM_RECTANGLE( &sawwin->dst );
+
+                    dfb_region_region_intersect( &dst, &region );
+
+                    /* left */
+                    if (dst.x1 != x1)
+                         update_region( sawman, tier, state, i-1, x1, dst.y1, dst.x1-1, dst.y2 );
+
+                    /* upper */
+                    if (dst.y1 != y1)
+                         update_region( sawman, tier, state, i-1, x1, y1, x2, dst.y1-1 );
+
+                    /* right */
+                    if (dst.x2 != x2)
+                         update_region( sawman, tier, state, i-1, dst.x2+1, dst.y1, x2, dst.y2 );
+
+                    /* lower */
+                    if (dst.y2 != y2)
+                         update_region( sawman, tier, state, i-1, x1, dst.y2+1, x2, y2 );
+               }
+
+               sawman_draw_window( tier, sawwin, state, &region, true );
+          }
+     }
+     else
+          sawman_draw_background( tier, state, &region );
+}
+
+static void
+repaint_tier( SaWMan              *sawman,
+              SaWManTier          *tier,
+              const DFBRegion     *updates,
+              int                  num_updates,
+              DFBSurfaceFlipFlags  flags )
+{
+     int              i;
+     CoreLayer       *layer;
+     CoreLayerRegion *region;
+     CardState       *state;
+     CoreSurface     *surface;
+     DFBRegion        cursor_inter;
+     CoreWindowStack *stack;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( tier, SaWManTier );
+     D_ASSERT( updates != NULL );
+     D_ASSERT( num_updates > 0 );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+
+     stack = tier->stack;
+     D_ASSERT( stack != NULL );
+
+     region = tier->region;
+     D_ASSERT( region != NULL );
+
+     layer   = dfb_layer_at( tier->layer_id );
+     state   = &layer->state;
+     surface = region->surface;
+
+     if (/*!data->active ||*/ !surface)
+          return;
+
+     D_DEBUG_AT( SaWMan_Update, "%s( %p, %p )\n", __FUNCTION__, sawman, tier );
+
+     /* Set destination. */
+     state->destination  = surface;
+     state->modified    |= SMF_DESTINATION;
+
+     for (i=0; i<num_updates; i++) {
+          const DFBRegion *update = &updates[i];
+
+          DFB_REGION_ASSERT( update );
+
+          D_DEBUG_AT( SaWMan_Update, "  -> %d, %d - %dx%d  (%d)\n",
+                      DFB_RECTANGLE_VALS_FROM_REGION( update ), i );
+
+          dfb_state_set_dst_colorkey( state, dfb_color_to_pixel( region->config.format,
+                                                                 region->config.src_key.r,
+                                                                 region->config.src_key.g,
+                                                                 region->config.src_key.b ) );
+
+          /* Set clipping region. */
+          dfb_state_set_clip( state, update );
+
+          /* Compose updated region. */
+          update_region( sawman, tier, state,
+                         fusion_vector_size( &sawman->layout ) - 1,
+                         update->x1, update->y1, update->x2, update->y2 );
+
+          /* Update cursor? */
+          cursor_inter = tier->cursor_region;
+          if (tier->cursor_drawn && dfb_region_region_intersect( &cursor_inter, update )) {
+               DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &cursor_inter );
+
+               D_ASSUME( tier->cursor_bs_valid );
+
+               dfb_gfx_copy_to( surface, tier->cursor_bs, &rect,
+                                rect.x - tier->cursor_region.x1,
+                                rect.y - tier->cursor_region.y1, true );
+
+               sawman_draw_cursor( stack, state, &cursor_inter );
+          }
+     }
+
+     /* Reset destination. */
+     state->destination  = NULL;
+     state->modified    |= SMF_DESTINATION;
+
+     /* Software cursor code relies on a valid back buffer. */
+     if (stack->cursor.enabled)
+          flags |= DSFLIP_BLIT;
+
+     for (i=0; i<num_updates; i++) {
+          const DFBRegion *update = &updates[i];
+
+          DFB_REGION_ASSERT( update );
+
+          /* Flip the updated region .*/
+          dfb_layer_region_flip_update( region, update, flags );
+     }
+
+#ifdef SAWMAN_DUMP_TIER_FRAMES
+     {
+          DFBResult          ret;
+          CoreSurfaceBuffer *buffer;
+
+          D_MAGIC_ASSERT( surface, CoreSurface );
+
+          if (fusion_skirmish_prevail( &surface->lock ))
+               return;
+
+          buffer = dfb_surface_get_buffer( surface, CSBR_FRONT );
+          D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+          ret = dfb_surface_buffer_dump( buffer, "/", "tier" );
+
+          fusion_skirmish_dismiss( &surface->lock );
+     }
+#endif
+}
+
+static SaWManWindow *
+get_single_window( SaWMan     *sawman,
+                   SaWManTier *tier,
+                   bool       *ret_none )
+{
+     int           n;
+     SaWManWindow *sawwin;
+     SaWManWindow *single = NULL;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( tier, SaWManTier );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+
+     fusion_vector_foreach_reverse (sawwin, n, sawman->layout) {
+          CoreWindow *window;
+
+          D_MAGIC_ASSERT( sawwin, SaWManWindow );
+
+          window = sawwin->window;
+          D_MAGIC_COREWINDOW_ASSERT( window );
+
+          if (SAWMAN_VISIBLE_WINDOW(window) && (tier->classes & (1 << window->config.stacking))) {
+               if (single || (window->caps & (DWCAPS_INPUTONLY | DWCAPS_COLOR) ))
+                    return NULL;
+
+               single = sawwin;
+
+               if (single->dst.x == 0 &&
+                   single->dst.y == 0 &&
+                   single->dst.w == tier->size.w &&
+                   single->dst.h == tier->size.h &&
+                   !SAWMAN_TRANSLUCENT_WINDOW(window))
+                    break;
+          }
+     }
+
+     if (ret_none && !single)
+          *ret_none = true;
+
+     return single;
+}
+
+static bool
+get_border_only( SaWMan     *sawman,
+                 SaWManTier *tier )
+{
+     int           n;
+     SaWManWindow *sawwin;
+     bool          none = true;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( tier, SaWManTier );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+
+     fusion_vector_foreach_reverse (sawwin, n, sawman->layout) {
+          CoreWindow *window;
+
+          D_MAGIC_ASSERT( sawwin, SaWManWindow );
+
+          window = sawwin->window;
+          D_MAGIC_COREWINDOW_ASSERT( window );
+
+          none = false;
+
+          if (SAWMAN_VISIBLE_WINDOW(window) && !(window->caps & DWCAPS_INPUTONLY))
+               return false;
+     }
+
+     return !none;
+}
+
+/* FIXME: Split up in smaller functions and clean up things like forcing reconfiguration. */
+DirectResult
+sawman_process_updates( SaWMan              *sawman,
+                        DFBSurfaceFlipFlags  flags )
+{
+     DirectResult  ret;
+     int           idx = -1;
+     SaWManTier   *tier;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+
+     D_DEBUG_AT( SaWMan_Update, "%s( %p, 0x%08x )\n", __FUNCTION__, sawman, flags );
+
+     direct_list_foreach (tier, sawman->tiers) {
+          int              n, d;
+          int              total;
+          int              bounding;
+          bool             none = false;
+          bool             border_only;
+          SaWManWindow    *single;
+          CoreLayer       *layer;
+          CoreLayerShared *shared;
+          int              screen_width;
+          int              screen_height;
+          DFBColorKey      single_key;
+
+          idx++;
+
+          layer = dfb_layer_at( tier->layer_id );
+          D_ASSERT( layer != NULL );
+
+          shared = layer->shared;
+          D_ASSERT( shared != NULL );
+
+          D_MAGIC_ASSERT( tier, SaWManTier );
+
+          if (!tier->updates.num_regions)
+               continue;
+
+          D_DEBUG_AT( SaWMan_Update, "  -> %d updates (tier %d, layer %d)\n",
+                      tier->updates.num_regions, idx, tier->layer_id );
+
+          D_ASSERT( tier->region != NULL );
+
+          D_DEBUG_AT( SaWMan_Update, "  -> [%d] %d updates, bounding %dx%d\n",
+                      tier->layer_id, tier->updates.num_regions,
+                      tier->updates.bounding.x2 - tier->updates.bounding.x1 + 1,
+                      tier->updates.bounding.y2 - tier->updates.bounding.y1 + 1 );
+
+          if (!tier->config.width || !tier->config.height)
+               continue;
+
+          dfb_screen_get_screen_size( layer->screen, &screen_width, &screen_height );
+
+          single = get_single_window( sawman, tier, &none );
+
+          if (none && !sawman_config->show_empty) {
+               if (tier->active) {
+                    D_DEBUG_AT( SaWMan_Auto, "  -> Disabling region...\n" );
+
+                    tier->active        = false;
+                    tier->single_window = NULL;  /* enforce configuration to reallocate buffers */
+
+                    dfb_layer_region_disable( tier->region );
+               }
+               dfb_updates_reset( &tier->updates );
+               continue;
+          }
+
+          border_only = get_border_only( sawman, tier );
+
+          /* Remember color key before single mode is activated. */
+          if (!tier->single_mode)
+               tier->key = tier->context->primary.config.src_key;
+
+
+          /* If the first mode after turning off the layer is not single, then we need
+             this to force a reconfiguration to reallocate the buffers. */
+          if (!tier->active) {
+               tier->single_mode = true;               /* avoid endless loop */
+               tier->border_only = !border_only;       /* enforce configuration to reallocate buffers */
+          }
+
+          if (single && !border_only) {
+               CoreWindow             *window;
+               CoreSurface            *surface;
+               DFBDisplayLayerOptions  options = DLOP_NONE;
+               DFBRectangle            dst  = single->dst;
+               DFBRectangle            src  = single->src;
+               DFBRegion               clip = DFB_REGION_INIT_FROM_DIMENSION( &tier->size );
+
+               if (shared->description.caps & DLCAPS_SCREEN_LOCATION) {
+                    dst.x = dst.x * screen_width  / tier->size.w;
+                    dst.y = dst.y * screen_height / tier->size.h;
+                    dst.w = dst.w * screen_width  / tier->size.w;
+                    dst.h = dst.h * screen_height / tier->size.h;
+               }
+               else {
+                    if (dst.w != src.w || dst.h != src.h)
+                         goto no_single;
+
+                    if (shared->description.caps & DLCAPS_SCREEN_POSITION) {
+                         dfb_rectangle_intersect_by_region( &dst, &clip );
+
+                         src.x += dst.x - single->dst.x;
+                         src.y += dst.y - single->dst.y;
+                         src.w  = dst.w;
+                         src.h  = dst.h;
+
+                         dst.x += (screen_width  - tier->size.w) / 2;
+                         dst.y += (screen_height - tier->size.h) / 2;
+                    }
+               }
+
+#ifdef SAWMAN_NO_LAYER_DOWNSCALE
+               if (rect.w < src.w)
+                    goto no_single;
+#endif
+
+#ifdef SAWMAN_NO_LAYER_DST_WINDOW
+               if (dst.x != 0 || dst.y != 0 || dst.w != screen_width || dst.h != screen_height)
+                    goto no_single;
+#endif
+
+
+               window = single->window;
+               D_MAGIC_COREWINDOW_ASSERT( window );
+
+               surface = window->surface;
+               D_ASSERT( surface != NULL );
+
+               if (window->config.options & DWOP_ALPHACHANNEL)
+                    options |= DLOP_ALPHACHANNEL;
+
+               if (window->config.options & DWOP_COLORKEYING)
+                    options |= DLOP_SRC_COLORKEY;
+
+               single_key = tier->single_key;
+
+               if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format )) {
+                    CorePalette *palette = surface->palette;
+
+                    D_ASSERT( palette != NULL );
+                    D_ASSERT( palette->num_entries > 0 );
+
+                    dfb_surface_set_palette( tier->region->surface, surface->palette );
+
+                    if (options & DLOP_SRC_COLORKEY) {
+                         int index = window->config.color_key % palette->num_entries;
+
+                         single_key.r     = palette->entries[index].r;
+                         single_key.g     = palette->entries[index].g;
+                         single_key.b     = palette->entries[index].b;
+                         single_key.index = index;
+                    }
+               }
+               else {
+                    DFBColor color;
+
+                    dfb_pixel_to_color( surface->config.format, window->config.color_key, &color );
+
+                    single_key.r     = color.r;
+                    single_key.g     = color.g;
+                    single_key.b     = color.b;
+                    single_key.index = window->config.color_key;
+               }
+
+               /* Complete reconfig? */
+               if (tier->single_window  != single ||
+                   !DFB_RECTANGLE_EQUAL( tier->single_src, src ) ||
+                   tier->single_format  != surface->config.format ||
+                   tier->single_options != options)
+               {
+                    DFBDisplayLayerConfig  config;
+
+                    D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d [%dx%d] %s single mode for %p on %p...\n",
+                                single->src.w, single->src.h, src.w, src.h,
+                                dfb_pixelformat_name( surface->config.format ), single, tier );
+
+                    config.flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_OPTIONS | DLCONF_BUFFERMODE;
+                    config.width       = src.w;
+                    config.height      = src.h;
+                    config.pixelformat = surface->config.format;
+                    config.options     = options;
+                    config.buffermode  = DLBM_FRONTONLY;
+
+                    sawman->callback.layer_reconfig.layer_id = tier->layer_id;
+                    sawman->callback.layer_reconfig.single   = (SaWManWindowHandle) single;
+                    sawman->callback.layer_reconfig.config   = config;
+
+                    switch (sawman_call( sawman, SWMCID_LAYER_RECONFIG, &sawman->callback.layer_reconfig )) {
+                         case DFB_OK:
+                              config = sawman->callback.layer_reconfig.config;
+                         case DFB_NOIMPL: 
+                              /* continue, no change demanded */
+                              break;
+
+                         default:
+                              goto no_single;
+                    }
+
+                    if (dfb_layer_context_test_configuration( tier->context, &config, NULL ) != DFB_OK)
+                         goto no_single;
+
+                    tier->single_mode     = true;
+                    tier->single_window   = single;
+                    tier->single_width    = src.w;
+                    tier->single_height   = src.h;
+                    tier->single_src      = src;
+                    tier->single_dst      = dst;
+                    tier->single_format   = surface->config.format;
+                    tier->single_options  = options;
+                    tier->single_key      = single_key;
+
+                    tier->active          = false;
+                    tier->region->state  |= CLRSF_FROZEN;
+
+                    dfb_updates_reset( &tier->updates );
+
+                    dfb_layer_context_set_configuration( tier->context, &config );
+
+                    if (shared->description.caps & DLCAPS_SCREEN_LOCATION)
+                         dfb_layer_context_set_screenrectangle( tier->context, &dst );
+                    else if (shared->description.caps & DLCAPS_SCREEN_POSITION)
+                         dfb_layer_context_set_screenposition( tier->context, dst.x, dst.y );
+
+                    dfb_layer_context_set_src_colorkey( tier->context,
+                                                        tier->single_key.r, tier->single_key.g,
+                                                        tier->single_key.b, tier->single_key.index );
+
+                    dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
+
+                    tier->active = true;
+
+                    dfb_layer_region_flip_update( tier->region, NULL, flags );
+
+                    dfb_updates_reset( &tier->updates );
+                    continue;
+               }
+
+               /* Update destination window */
+               if (!DFB_RECTANGLE_EQUAL( tier->single_dst, dst )) {
+                    tier->single_dst = dst;
+
+                    D_DEBUG_AT( SaWMan_Auto, "  -> Changing single destination to %d,%d-%dx%d.\n",
+                                DFB_RECTANGLE_VALS(&dst) );
+
+                    dfb_layer_context_set_screenrectangle( tier->context, &dst );
+               }
+               else
+                    dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
+
+               /* Update color key */
+               if (!DFB_COLORKEY_EQUAL( single_key, tier->single_key )) {
+                    D_DEBUG_AT( SaWMan_Auto, "  -> Changing single color key.\n" );
+
+                    tier->single_key = single_key;
+
+                    dfb_layer_context_set_src_colorkey( tier->context,
+                                                        tier->single_key.r, tier->single_key.g,
+                                                        tier->single_key.b, tier->single_key.index );
+               }
+
+               tier->active = true;
+
+               dfb_layer_region_flip_update( tier->region, NULL, flags );
+
+               dfb_updates_reset( &tier->updates );
+               continue;
+          }
+
+no_single:
+
+          if (tier->single_mode) {
+               D_DEBUG_AT( SaWMan_Auto, "  -> Switching back from single mode...\n" );
+
+               tier->border_only = !border_only;       /* enforce switch */
+          }
+
+          /* Switch border/default config? */
+          if (tier->border_only != border_only) {
+               const DFBDisplayLayerConfig *config;
+
+               tier->border_only = border_only;
+
+               if (border_only)
+                    config = &tier->border_config;
+               else
+                    config = &tier->config;
+
+               D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d %s %s mode.\n", config->width, config->height,
+                           dfb_pixelformat_name( config->pixelformat ), border_only ? "border" : "standard" );
+
+               tier->active         = false;
+               tier->region->state |= CLRSF_FROZEN;
+
+               dfb_updates_reset( &tier->updates );
+
+               /* Temporarily to avoid configuration errors. */
+               dfb_layer_context_set_screenposition( tier->context, 0, 0 );
+
+               ret = dfb_layer_context_set_configuration( tier->context, config );
+               if (ret) {
+                    D_DERROR( ret, "SaWMan/Auto: Switching to standard mode failed!\n" );
+                    /* fixme */
+               }
+
+               tier->size.w = config->width;
+               tier->size.h = config->height;
+
+               /* Notify application manager about new tier size if previous mode was single. */
+               if (tier->single_mode)
+                    sawman_call( sawman, SWMCID_STACK_RESIZED, &tier->size );
+
+               if (shared->description.caps & DLCAPS_SCREEN_LOCATION) {
+                    DFBRectangle full = { 0, 0, screen_width, screen_height };
+
+                    dfb_layer_context_set_screenrectangle( tier->context, &full );
+               }
+               else if (shared->description.caps & DLCAPS_SCREEN_POSITION) {
+                    dfb_layer_context_set_screenposition( tier->context,
+                                                          (screen_width  - config->width)  / 2,
+                                                          (screen_height - config->height) / 2 );
+               }
+
+               if (config->options & DLOP_SRC_COLORKEY) {
+                    if (DFB_PIXELFORMAT_IS_INDEXED( config->pixelformat )) {
+                         int          index;
+                         CoreSurface *surface;
+                         CorePalette *palette;
+
+                         surface = tier->region->surface;
+                         D_MAGIC_ASSERT( surface, CoreSurface );
+
+                         palette = surface->palette;
+                         D_ASSERT( palette != NULL );
+                         D_ASSERT( palette->num_entries > 0 );
+
+                         index = tier->key.index % palette->num_entries;
+
+                         dfb_layer_context_set_src_colorkey( tier->context,
+                                                             palette->entries[index].r,
+                                                             palette->entries[index].g,
+                                                             palette->entries[index].b,
+                                                             index );
+                    }
+                    else
+                         dfb_layer_context_set_src_colorkey( tier->context,
+                                                             tier->key.r, tier->key.g, tier->key.b, tier->key.index );
+               }
+          }
+
+          if (!tier->active) {
+               D_DEBUG_AT( SaWMan_Auto, "  -> Activating tier...\n" );
+
+               tier->active = true;
+
+               DFBRegion region = { 0, 0, tier->size.w - 1, tier->size.h - 1 };
+               dfb_updates_add( &tier->updates, &region );
+          }
+
+          tier->single_mode   = false;
+          tier->single_window = NULL;
+
+          if (!tier->updates.num_regions)
+               continue;
+
+
+          dfb_updates_stat( &tier->updates, &total, &bounding );
+
+          n = tier->updates.max_regions - tier->updates.num_regions + 1;
+          d = n + 1;
+
+          /* Try to optimize updates. In buffer swapping modes we can save the copy by updating everything. */
+          if ((total > tier->size.w * tier->size.h) ||
+              (total > tier->size.w * tier->size.h * 3 / 5 && (tier->context->config.buffermode == DLBM_BACKVIDEO ||
+                                                               tier->context->config.buffermode == DLBM_TRIPLE)))
+          {
+               DFBRegion region = { 0, 0, tier->size.w - 1, tier->size.h - 1 };
+
+               repaint_tier( sawman, tier, &region, 1, flags );
+          }
+          else if (tier->updates.num_regions < 2 || total < bounding * n / d)
+               repaint_tier( sawman, tier, tier->updates.regions, tier->updates.num_regions, flags );
+          else
+               repaint_tier( sawman, tier, &tier->updates.bounding, 1, flags );
+
+          dfb_updates_reset( &tier->updates );
+     }
+
+     return DFB_OK;
+}
+

@@ -30,7 +30,8 @@
 #include <fusion/shmalloc.h>
 
 #include <sawman.h>
-#include <sawman_internal.h>
+
+#include "sawman_window.h"
 
 #include "isawman.h"
 #include "isawmanmanager.h"

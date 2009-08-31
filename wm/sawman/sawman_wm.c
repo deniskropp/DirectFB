@@ -73,9 +73,10 @@
 #include <core/wm_module.h>
 
 #include <sawman_config.h>
-#include <sawman_internal.h>
 
 #include "sawman_draw.h"
+#include "sawman_updates.h"
+#include "sawman_window.h"
 
 
 DFB_WINDOW_MANAGER( sawman )
@@ -92,6 +93,16 @@ typedef struct {
      SaWMan                       *sawman;
      SaWManProcess                *process;
 } WMData;
+
+typedef struct {
+     int                           magic;
+
+     bool                          active;
+
+     SaWMan                       *sawman;
+
+     CoreWindowStack              *stack;
+} StackData;
 
 /**********************************************************************************************************************/
 
@@ -1080,7 +1091,7 @@ handle_motion( CoreWindowStack *stack,
 
           sawman_post_event( sawman, sawwin, &we );
      }
-     else if (!sawman_update_focus( sawman, stack ) && sawman->entered_window) {
+     else if (!sawman_update_focus( sawman ) && sawman->entered_window) {
           SaWManWindow *sawwin = sawman->entered_window;
 
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
@@ -1357,6 +1368,9 @@ wm_init_stack( CoreWindowStack *stack,
      ret = sawman_lock( sawman );
      if (ret)
           return ret;
+
+     if (!sawman->stack)
+          sawman->stack = stack;
 
      data->stack  = stack;
      data->sawman = sawman;
@@ -1734,7 +1748,7 @@ wm_window_at( CoreWindowStack  *stack,
           return DFB_UNSUPPORTED;
      }
 
-     sawwin = sawman_window_at_pointer( data->sawman, stack, x, y );
+     sawwin = sawman_window_at_pointer( data->sawman, x, y );
 
      *ret_window = sawwin ? sawwin->window : NULL;
 
@@ -2563,7 +2577,7 @@ wm_set_window_config( CoreWindow             *window,
           sawman_set_opacity( sawman, sawwin, config->opacity );
 
           /* Possibly switch focus to window now under the cursor */
-          sawman_update_focus( sawman, stack );
+          sawman_update_focus( sawman );
      }
 
      if (flags & CWCF_KEY_SELECTION) {
@@ -2715,7 +2729,6 @@ wm_restack_window( CoreWindow             *window,
      DFBResult        ret;
      SaWMan          *sawman;
      SaWManWindow    *sawwin = window_data;
-     SaWManTier      *tier;
      CoreWindowStack *stack;
      StackData       *data;
 
@@ -2744,12 +2757,6 @@ wm_restack_window( CoreWindow             *window,
      if (ret)
           return ret;
 
-     /* Retrieve corresponding SaWManTier. */
-     if (!sawman_tier_by_stack( sawman, stack, &tier )) {
-          sawman_unlock( sawman );
-          return DFB_UNSUPPORTED;
-     }
-
      sawman->callback.handle   = (SaWManWindowHandle)sawwin;
      sawman->callback.relative = (SaWManWindowHandle)relative_data;
 
@@ -2771,7 +2778,7 @@ wm_restack_window( CoreWindow             *window,
      }
 
      /* Possibly switch focus to window now under the cursor */
-     sawman_update_focus( sawman, stack );
+     sawman_update_focus( sawman );
 
      sawman_process_updates( data->sawman, DSFLIP_NONE );
 
