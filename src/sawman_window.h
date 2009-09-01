@@ -68,14 +68,16 @@ DirectResult  sawman_set_opacity      ( SaWMan                *sawman,
                                         SaWManWindow          *sawwin,
                                         u8                     opacity );
 
-int           sawman_window_border    ( const SaWManWindow    *sawwin );
-
 bool          sawman_update_focus     ( SaWMan                *sawman );
 
 SaWManWindow *sawman_window_at_pointer( SaWMan                *sawman,
                                         int                    x,
                                         int                    y );
 
+int           sawman_window_border    ( const SaWManWindow    *sawwin );
+
+
+void          sawman_update_visible   ( SaWMan                *sawman );
 
 #ifdef __cplusplus
 }

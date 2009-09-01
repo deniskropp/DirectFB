@@ -114,6 +114,7 @@ extern "C"
 /**********************************************************************************************************************/
 
 #define SAWMAN_MAX_UPDATE_REGIONS        8
+#define SAWMAN_MAX_VISIBLE_REGIONS      10
 #define SAWMAN_MAX_IMPLICIT_KEYGRABS    16
 
 /**********************************************************************************************************************/
@@ -217,6 +218,11 @@ struct __SaWMan_SaWMan {
           SaWManWindowHandle   relative;
           SaWManLayerReconfig  layer_reconfig;
      } callback;
+
+     struct {
+          DFBUpdates             visible;
+          DFBRegion              visible_regions[SAWMAN_MAX_VISIBLE_REGIONS];
+     } bg;
 };
 
 struct __SaWMan_SaWManTier {
@@ -307,6 +313,9 @@ struct __SaWMan_SaWManWindow {
      void                  *stack_data;
 
      int                    priority;           /* derived from stacking class */
+
+     DFBUpdates             visible;
+     DFBRegion              visible_regions[SAWMAN_MAX_VISIBLE_REGIONS];
 };
 
 struct __SaWMan_SaWManGrabbedKey {

@@ -55,6 +55,8 @@
 
 #include "isawman.h"
 
+#include "region.h"
+
 
 D_DEBUG_DOMAIN( SaWMan_Auto,     "SaWMan/Auto",     "SaWMan auto configuration" );
 D_DEBUG_DOMAIN( SaWMan_Update,   "SaWMan/Update",   "SaWMan window manager updates" );
@@ -206,6 +208,182 @@ update_region( SaWMan          *sawman,
 }
 
 static void
+update_region2( SaWMan          *sawman,
+               SaWManTier      *tier,
+               CardState       *state,
+               int              start,
+               int              x1,
+               int              y1,
+               int              x2,
+               int              y2 )
+{
+     int              i;
+     SaWManWindow    *sawwin;
+     CoreWindowStack *stack;
+     misc_region_t    dirty;
+     int              num, n;
+     DFBBox          *boxes;
+     DFBBox           extents = { x1, y1, x2 + 1, y2 + 1 };
+
+     D_DEBUG_AT( SaWMan_Update, "%s( %p, %d, %d,%d - %d,%d )\n", __FUNCTION__, tier, start, x1, y1, x2, y2 );
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( tier, SaWManTier );
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( start < fusion_vector_size( &sawman->layout ) );
+     D_ASSUME( x1 <= x2 );
+     D_ASSUME( y1 <= y2 );
+
+     if (x1 > x2 || y1 > y2)
+          return;
+
+     stack = tier->stack;
+     D_ASSERT( stack != NULL );
+
+     misc_region_init_with_extents( &dirty, NULL, &extents );
+
+     fusion_vector_foreach (sawwin, i, sawman->layout) {
+          misc_region_t  visible;
+          misc_region_t  render;
+          misc_region_t  opt;
+          CoreWindow    *window;
+
+          D_MAGIC_ASSERT( sawwin, SaWManWindow );
+
+          window = sawwin->window;
+          D_MAGIC_ASSERT( window, CoreWindow );
+
+          D_DEBUG_AT( SaWMan_Update, " -=> [%d] <=-\n", i );
+
+          MISC_REGION_DEBUG_AT( SaWMan_Update, &dirty, "dirty" );
+
+          /* visible (window) */
+          misc_region_init_updates( &visible, NULL, &sawwin->visible );
+
+          /* render (extents) */
+          misc_region_init_with_extents( &render, NULL, &extents );
+
+          misc_region_init( &opt, NULL );
+
+          /* render = visible & render(extents) */
+          misc_region_intersect( &render, &visible, &render );
+
+          /* opt = render & dirty */
+          misc_region_intersect( &opt, &render, &dirty );
+
+          if (window->config.opacity == 0xff &&
+              window->surface && (window->surface->config.caps & DSCAPS_PREMULTIPLIED) &&
+              (window->config.options & DWOP_ALPHACHANNEL) && !(window->config.options & DWOP_COLORKEYING) &&
+              (window->config.dst_geometry.mode == DWGM_DEFAULT) && stack->bg.mode == DLBM_COLOR &&
+              !stack->bg.color.a && !stack->bg.color.r && !stack->bg.color.g && !stack->bg.color.b)
+          {
+               misc_region_t blend;
+
+               misc_region_init( &blend, NULL );
+
+               /* blend = render - opt */
+               misc_region_subtract( &blend, &render, &opt );
+
+               MISC_REGION_DEBUG_AT( SaWMan_Update, &visible, "visible" );
+               MISC_REGION_DEBUG_AT( SaWMan_Update, &render, "render" );
+               MISC_REGION_DEBUG_AT( SaWMan_Update, &opt, "opt" );
+               MISC_REGION_DEBUG_AT( SaWMan_Update, &blend, "blend" );
+
+               /////// FIXME: use batch blit!
+
+               /*
+                * Draw optimized window areas
+                */
+               boxes = misc_region_boxes( &opt, &num );
+
+               for (n=0; n<num; n++) {
+                    DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
+
+                    sawman_draw_window( tier, sawwin, state, &draw, false );
+               }
+
+
+               /////// FIXME: use batch blit!
+
+               /*
+                * Draw blended window areas
+                */
+               boxes = misc_region_boxes( &blend, &num );
+
+               for (n=0; n<num; n++) {
+                    DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
+
+                    sawman_draw_window( tier, sawwin, state, &draw, true );
+               }
+
+
+               misc_region_deinit( &blend );
+          }
+          else {
+               MISC_REGION_DEBUG_AT( SaWMan_Update, &visible, "visible" );
+               MISC_REGION_DEBUG_AT( SaWMan_Update, &render, "render" );
+               MISC_REGION_DEBUG_AT( SaWMan_Update, &opt, "clear" );
+
+               /////// FIXME: use fill rectangles!
+
+               /*
+                * Clear background
+                */
+               boxes = misc_region_boxes( &opt, &num );
+
+               for (n=0; n<num; n++) {
+                    DFBRegion clear = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
+
+                    sawman_draw_background( tier, state, &clear );
+               }
+
+
+               /////// FIXME: use batch blit!
+
+               /*
+                * Draw visible window areas
+                */
+               boxes = misc_region_boxes( &render, &num );
+
+               for (n=0; n<num; n++) {
+                    DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
+
+                    sawman_draw_window( tier, sawwin, state, &draw, true );
+               }
+
+          }
+
+
+          /* dirty -= render */
+          misc_region_subtract( &dirty, &dirty, &render );
+
+
+          misc_region_deinit( &opt );
+          misc_region_deinit( &render );
+          misc_region_deinit( &visible );
+     }
+
+     D_DEBUG_AT( SaWMan_Update, " -=> done <=-\n" );
+
+     MISC_REGION_DEBUG_AT( SaWMan_Update, &dirty, "dirty" );
+
+     /////// FIXME: use fill rectangles!
+
+     /*
+      * Clear background
+      */
+     boxes = misc_region_boxes( &dirty, &num );
+
+     for (n=0; n<num; n++) {
+          DFBRegion clear = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
+
+          sawman_draw_background( tier, state, &clear );
+     }
+
+     misc_region_deinit( &dirty );
+}
+
+static void
 repaint_tier( SaWMan              *sawman,
               SaWManTier          *tier,
               const DFBRegion     *updates,
@@ -262,7 +440,7 @@ repaint_tier( SaWMan              *sawman,
           dfb_state_set_clip( state, update );
 
           /* Compose updated region. */
-          update_region( sawman, tier, state,
+          update_region2( sawman, tier, state,
                          fusion_vector_size( &sawman->layout ) - 1,
                          update->x1, update->y1, update->x2, update->y2 );
 

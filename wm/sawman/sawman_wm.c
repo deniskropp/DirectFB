@@ -2117,6 +2117,8 @@ wm_add_window( CoreWindowStack *stack,
           }
      }
 
+     dfb_updates_init( &sawwin->visible, sawwin->visible_regions, D_ARRAY_SIZE(sawwin->visible_regions) );
+
      fusion_vector_init( &sawwin->children, 2, sawwin->shmpool );
 
      sawwin->priority   = sawman_window_priority( sawwin );
@@ -2285,6 +2287,8 @@ wm_remove_window( CoreWindowStack *stack,
           tier->single_window = NULL;
 
      sawman_process_updates( sdata->sawman, DSFLIP_NONE );
+
+     dfb_updates_deinit( &sawwin->visible );
 
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
@@ -2710,6 +2714,9 @@ wm_set_window_config( CoreWindow             *window,
      if (flags & (CWCF_POSITION | CWCF_SIZE | CWCF_SRC_GEOMETRY | CWCF_DST_GEOMETRY | CWCF_ASSOCIATION))
           sawman_update_geometry( sawwin );
 
+     if (flags & (CWCF_POSITION | CWCF_SIZE | CWCF_OPACITY | CWCF_OPTIONS | CWCF_ROTATION))
+          sawman_update_visible( sawman );
+
      sawman_process_updates( sawman, DSFLIP_NONE );
 
      /* Unlock SaWMan. */
@@ -2779,6 +2786,8 @@ wm_restack_window( CoreWindow             *window,
 
      /* Possibly switch focus to window now under the cursor */
      sawman_update_focus( sawman );
+
+     sawman_update_visible( sawman );
 
      sawman_process_updates( data->sawman, DSFLIP_NONE );
 

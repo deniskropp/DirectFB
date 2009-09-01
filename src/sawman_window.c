@@ -76,6 +76,13 @@ static void wind_of_showing( SaWMan              *sawman,
                              int                  changed,
                              bool                *ret_showing );
 
+static void update_visible ( SaWMan              *sawman,
+                             int                  start,
+                             int                  x1,
+                             int                  y1,
+                             int                  x2,
+                             int                  y2 );
+
 /**********************************************************************************************************************/
 
 DirectResult
@@ -491,6 +498,8 @@ sawman_insert_window( SaWMan       *sawman,
           /* Set 'inserted' flag. */
           sawwin->flags |= SWMWF_INSERTED;
      }
+
+     sawman_update_visible( sawman );
 
      return DFB_OK;
 }
@@ -1079,6 +1088,52 @@ sawman_window_border( const SaWManWindow *sawwin )
      return thickness;
 }
 
+void
+sawman_update_visible( SaWMan *sawman )
+{
+     int         i;
+     SaWManTier *tier;
+
+     D_DEBUG_AT( SaWMan_Update, "%s()\n", __FUNCTION__ );
+
+     dfb_updates_reset( &sawman->bg.visible );
+
+     for (i=0; i<sawman->layout.count; i++) {
+          SaWManWindow *window = sawman->layout.elements[i];
+
+          D_MAGIC_ASSERT( window, SaWManWindow );
+
+          dfb_updates_reset( &window->visible );
+     }
+
+     tier = (SaWManTier*) sawman->tiers;     // FIXME: using lowest tier for max resolution
+     D_MAGIC_ASSERT( tier, SaWManTier );
+
+     update_visible( sawman, sawman->layout.count - 1, 0, 0, tier->size.w, tier->size.h );
+
+#if D_DEBUG_ENABLED
+     for (i=0; i<sawman->layout.count; i++) {
+          SaWManWindow *window = sawman->layout.elements[i];
+
+          D_MAGIC_ASSERT( window, SaWManWindow );
+
+          D_DEBUG_AT( SaWMan_Update, "  -> [%2d] %p\n", i, window );
+
+          D_DEBUG_AT( SaWMan_Update, "     = [%4d,%4d %4dx%4d]\n",
+                      DFB_RECTANGLE_VALS_FROM_REGION(&window->visible.bounding) );
+
+          if (window->visible.num_regions > 1) {
+               int n;
+
+               for (n=0; n<window->visible.num_regions; n++) {
+                    D_DEBUG_AT( SaWMan_Update, "      . %4d,%4d %4dx%4d\n",
+                                DFB_RECTANGLE_VALS_FROM_REGION(&window->visible.regions[n]) );
+               }
+          }
+     }
+#endif
+}
+
 /**********************************************************************************************************************/
 
 /*
@@ -1261,5 +1316,82 @@ wind_of_showing( SaWMan     *sawman,
      }
 
      *ret_showing = true;
+}
+
+static void
+update_visible( SaWMan *sawman,
+                int     start,
+                int     x1,
+                int     y1,
+                int     x2,
+                int     y2 )
+{
+     int           i      = start;
+     DFBRegion     region = { x1, y1, x2, y2 };
+     CoreWindow   *window = NULL;
+     SaWManWindow *sawwin = NULL;
+
+     D_DEBUG_AT( SaWMan_Update, "%s( %d, %d,%d - %d,%d )\n", __FUNCTION__, start, x1, y1, x2, y2 );
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_ASSERT( start < fusion_vector_size( &sawman->layout ) );
+     D_ASSUME( x1 <= x2 );
+     D_ASSUME( y1 <= y2 );
+
+     if (x1 > x2 || y1 > y2)
+          return;
+
+     /* Find next intersecting window. */
+     while (i >= 0) {
+          sawwin = fusion_vector_at( &sawman->layout, i );
+          D_MAGIC_ASSERT( sawwin, SaWManWindow );
+
+          window = sawwin->window;
+          D_MAGIC_COREWINDOW_ASSERT( window );
+
+          if (SAWMAN_VISIBLE_WINDOW( window )) {
+               if (dfb_region_intersect( &region,
+                                         DFB_REGION_VALS_FROM_RECTANGLE( &sawwin->bounds )))
+                    break;
+          }
+
+          i--;
+     }
+
+     /* Intersecting window found? */
+     if (i >= 0) {
+          D_MAGIC_ASSERT( sawwin, SaWManWindow );
+          D_MAGIC_COREWINDOW_ASSERT( window );
+
+          if (SAWMAN_TRANSLUCENT_WINDOW( window )) {
+               /* draw everything below */
+               update_visible( sawman, i-1, x1, y1, x2, y2 );
+          }
+          else {
+               DFBRegion dst = DFB_REGION_INIT_FROM_RECTANGLE( &sawwin->dst );
+
+               dfb_region_region_intersect( &dst, &region );
+
+               /* left */
+               if (dst.x1 != x1)
+                    update_visible( sawman, i-1, x1, dst.y1, dst.x1-1, dst.y2 );
+
+               /* upper */
+               if (dst.y1 != y1)
+                    update_visible( sawman, i-1, x1, y1, x2, dst.y1-1 );
+
+               /* right */
+               if (dst.x2 != x2)
+                    update_visible( sawman, i-1, dst.x2+1, dst.y1, x2, dst.y2 );
+
+               /* lower */
+               if (dst.y2 != y2)
+                    update_visible( sawman, i-1, x1, dst.y2+1, x2, y2 );
+          }
+
+          dfb_updates_add( &sawwin->visible, &region );
+     }
+     else
+          dfb_updates_add( &sawman->bg.visible, &region );
 }
 

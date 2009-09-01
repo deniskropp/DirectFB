@@ -171,6 +171,8 @@ sawman_initialize( SaWMan         *sawman,
      for (i=0; i<SAWMAN_MAX_IMPLICIT_KEYGRABS; i++)
           sawman->keys[i].code = -1;
 
+     dfb_updates_init( &sawman->bg.visible, sawman->bg.visible_regions, D_ARRAY_SIZE(sawman->bg.visible_regions) );
+
      D_MAGIC_SET( sawman, SaWMan );
 
      sawman_lock( sawman );
@@ -338,6 +340,8 @@ sawman_shutdown( SaWMan      *sawman,
      direct_list_foreach_safe (key, next, sawman->grabbed_keys) {
           SHFREE( key->owner->shmpool, key );
      }
+
+     dfb_updates_deinit( &sawman->bg.visible );
 
      D_MAGIC_CLEAR( sawman );
 
