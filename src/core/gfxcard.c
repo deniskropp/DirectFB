@@ -884,18 +884,20 @@ dfb_gfxcard_state_release( CardState *state )
      D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( state->destination != NULL );
 
-     /* start command processing if not already running */
-     if (card->funcs.EmitCommands)
-          card->funcs.EmitCommands( card->driver_data, card->device_data );
+     if (!dfb_config->software_only) {
+          /* start command processing if not already running */
+          if (card->funcs.EmitCommands)
+               card->funcs.EmitCommands( card->driver_data, card->device_data );
 
-     /* Store the serial of the operation. */
+          /* Store the serial of the operation. */
 #if FIXME_SC_2
-     if (card->funcs.GetSerial) {
-          card->funcs.GetSerial( card->driver_data, card->device_data, &state->serial );
+          if (card->funcs.GetSerial) {
+               card->funcs.GetSerial( card->driver_data, card->device_data, &state->serial );
 
-          state->destination->back_buffer->video.serial = state->serial;
-     }
+              state->destination->back_buffer->video.serial = state->serial;
+          }
 #endif
+     }
 
      /* allow others to use the hardware */
      dfb_gfxcard_unlock();
@@ -2534,7 +2536,7 @@ DFBResult dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial )
      D_ASSERT( serial != NULL );
      D_ASSUME( card != NULL );
 
-     if (!card)
+     if (!card || dfb_config->software_only)
           return DFB_OK;
 
      D_ASSERT( card->shared != NULL );
@@ -2564,6 +2566,9 @@ void dfb_gfxcard_flush_texture_cache( void )
 {
      D_ASSUME( card != NULL );
 
+     if (dfb_config->software_only)
+          return;
+
      if (card && card->funcs.FlushTextureCache)
           card->funcs.FlushTextureCache( card->driver_data, card->device_data );
 }
@@ -2571,6 +2576,9 @@ void dfb_gfxcard_flush_texture_cache( void )
 void dfb_gfxcard_flush_read_cache( void )
 {
      D_ASSUME( card != NULL );
+
+     if (dfb_config->software_only)
+          return;
 
      if (card && card->funcs.FlushReadCache)
           card->funcs.FlushReadCache( card->driver_data, card->device_data );
@@ -2580,6 +2588,9 @@ void dfb_gfxcard_after_set_var( void )
 {
      D_ASSUME( card != NULL );
 
+     if (dfb_config->software_only)
+          return;
+
      if (card && card->funcs.AfterSetVar)
           card->funcs.AfterSetVar( card->driver_data, card->device_data );
 }
@@ -2588,6 +2599,9 @@ void dfb_gfxcard_surface_enter( CoreSurfaceBuffer *buffer, DFBSurfaceLockFlags f
 {
      D_ASSUME( card != NULL );
 
+     if (dfb_config->software_only)
+          return;
+
      if (card && card->funcs.SurfaceEnter)
           card->funcs.SurfaceEnter( card->driver_data, card->device_data, buffer, flags );
 }
@@ -2595,6 +2609,9 @@ void dfb_gfxcard_surface_enter( CoreSurfaceBuffer *buffer, DFBSurfaceLockFlags f
 void dfb_gfxcard_surface_leave( CoreSurfaceBuffer *buffer )
 {
      D_ASSUME( card != NULL );
+
+     if (dfb_config->software_only)
+          return;
 
      if (card && card->funcs.SurfaceLeave)
           card->funcs.SurfaceLeave( card->driver_data, card->device_data, buffer );
