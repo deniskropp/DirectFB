@@ -2405,8 +2405,6 @@ wm_set_window_config( CoreWindow             *window,
      *config = *current; /* make sure that all fields in "request" are valid */
      SAWMANWINDOWCONFIG_COPY_IF( config,  updated, flags )
 
-     reconfig->flags = 0;
-
      /* special consideration due to possibility of local pointer in request */
      current->key_selection = window->config.key_selection;
      current->keys          = window->config.keys;
@@ -2428,9 +2426,6 @@ wm_set_window_config( CoreWindow             *window,
                config->keys = shared_keys;
                direct_memcpy( config->keys, updated->keys, bytes );
           }
-
-          /* ..and add the flag */
-          reconfig->flags       = SWMCF_KEY_SELECTION;
      }
 
      reconfig->flags =
@@ -2445,7 +2440,8 @@ wm_set_window_config( CoreWindow             *window,
           | (flags & CWCF_OPAQUE       ? SWMCF_OPAQUE       : 0)
           | (flags & CWCF_ASSOCIATION  ? SWMCF_ASSOCIATION  : 0)
           | (flags & CWCF_SRC_GEOMETRY ? SWMCF_SRC_GEOMETRY : 0)
-          | (flags & CWCF_DST_GEOMETRY ? SWMCF_DST_GEOMETRY : 0);
+          | (flags & CWCF_DST_GEOMETRY ? SWMCF_DST_GEOMETRY : 0)
+          | (flags & CWCF_KEY_SELECTION? SWMCF_KEY_SELECTION: 0);
 
      switch (ret = sawman_call( sawman, SWMCID_WINDOW_RECONFIG, reconfig )) {
           case DFB_OK: {
