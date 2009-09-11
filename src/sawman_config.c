@@ -100,9 +100,11 @@ parse_args( const char *args )
 static DFBResult
 config_allocate()
 {
+     int i;
+
      if (sawman_config)
           return DFB_OK;
-          
+
      sawman_config = D_CALLOC( 1, sizeof(SaWManConfig) );
      if (!sawman_config)
           return D_OOM();
@@ -118,6 +120,11 @@ config_allocate()
      sawman_config->borders[0].unfocused[1] = (DFBColor){ 0xff, 0x70, 0x70, 0x70 };
      sawman_config->borders[0].unfocused[2] = (DFBColor){ 0xff, 0x60, 0x60, 0x60 };
      sawman_config->borders[0].unfocused[3] = (DFBColor){ 0xff, 0x50, 0x50, 0x50 };
+
+     for(i=0;i<4;i++) {
+          sawman_config->borders[0].focused_index[i]   = -1;
+          sawman_config->borders[0].unfocused_index[i] = -1;
+     }
 
      return DFB_OK;
 }
