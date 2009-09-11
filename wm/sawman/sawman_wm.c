@@ -2529,8 +2529,10 @@ wm_set_window_config( CoreWindow             *window,
      if (flags & CWCF_EVENTS)
           window->config.events = config->events;
 
-     if (flags & CWCF_COLOR)
+     if (flags & CWCF_COLOR) {
           window->config.color = config->color;
+          sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_NONE );
+     }
 
      if (flags & CWCF_COLOR_KEY)
           window->config.color_key = config->color_key;

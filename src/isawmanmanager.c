@@ -396,8 +396,10 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
      if (flags & SWMCF_EVENTS)
           window->config.events = config->events;
 
-     if (flags & SWMCF_COLOR)
+     if (flags & SWMCF_COLOR) {
           window->config.color = config->color;
+          sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_NONE );
+     }
 
      if (flags & SWMCF_COLOR_KEY)
           window->config.color_key = config->color_key;
