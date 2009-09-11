@@ -1679,6 +1679,11 @@ DEFINE_INTERFACE(   IDirectFB,
       * If in shared cooperative level this function sets the
       * resolution of the window that is created implicitly for
       * the primary surface.
+      * 
+      * The following values are valid for bpp: 2, 8, 12, 14, 15, 18, 24, 32.
+      * These will result in the following formats, respectively: DSPF_LUT2,
+      *  DSPF_LUT8, DSPF_ARGB4444, DSPF_ARGB2554, DSPF_ARGB1555, DSPF_RGB16,
+      *  DSPF_RGB18, DSPF_RGB24, DSPF_RGB32.
       */
      DFBResult (*SetVideoMode) (
           IDirectFB                *thiz,
