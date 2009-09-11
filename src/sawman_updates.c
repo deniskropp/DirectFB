@@ -243,124 +243,127 @@ update_region2( SaWMan          *sawman,
      misc_region_init_with_extents( &dirty, NULL, &extents );
 
      fusion_vector_foreach (sawwin, i, sawman->layout) {
-          misc_region_t  visible;
-          misc_region_t  render;
-          misc_region_t  opt;
-          CoreWindow    *window;
+          CoreWindow *window;
 
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
           window = sawwin->window;
           D_MAGIC_ASSERT( window, CoreWindow );
 
-          D_DEBUG_AT( SaWMan_Update, " -=> [%d] <=-\n", i );
+          if (SAWMAN_VISIBLE_WINDOW( window ) && (tier->classes & (1 << window->config.stacking))) {
+               misc_region_t visible;
+               misc_region_t render;
+               misc_region_t opt;
 
-          MISC_REGION_DEBUG_AT( SaWMan_Update, &dirty, "dirty" );
-
-          /* visible (window) */
-          misc_region_init_updates( &visible, NULL, &sawwin->visible );
-
-          /* render (extents) */
-          misc_region_init_with_extents( &render, NULL, &extents );
-
-          misc_region_init( &opt, NULL );
-
-          /* render = visible & render(extents) */
-          misc_region_intersect( &render, &visible, &render );
-
-          /* opt = render & dirty */
-          misc_region_intersect( &opt, &render, &dirty );
-
-          if (window->config.opacity == 0xff &&
-              window->surface && (window->surface->config.caps & DSCAPS_PREMULTIPLIED) &&
-              (window->config.options & DWOP_ALPHACHANNEL) && !(window->config.options & DWOP_COLORKEYING) &&
-              (window->config.dst_geometry.mode == DWGM_DEFAULT) && stack->bg.mode == DLBM_COLOR &&
-              !stack->bg.color.a && !stack->bg.color.r && !stack->bg.color.g && !stack->bg.color.b)
-          {
-               misc_region_t blend;
-
-               misc_region_init( &blend, NULL );
-
-               /* blend = render - opt */
-               misc_region_subtract( &blend, &render, &opt );
-
-               MISC_REGION_DEBUG_AT( SaWMan_Update, &visible, "visible" );
-               MISC_REGION_DEBUG_AT( SaWMan_Update, &render, "render" );
-               MISC_REGION_DEBUG_AT( SaWMan_Update, &opt, "opt" );
-               MISC_REGION_DEBUG_AT( SaWMan_Update, &blend, "blend" );
-
-               /////// FIXME: use batch blit!
-
-               /*
-                * Draw optimized window areas
-                */
-               boxes = misc_region_boxes( &opt, &num );
-
-               for (n=0; n<num; n++) {
-                    DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
-
-                    sawman_draw_window( tier, sawwin, state, &draw, false );
+               D_DEBUG_AT( SaWMan_Update, " -=> [%d] <=-\n", i );
+     
+               MISC_REGION_DEBUG_AT( SaWMan_Update, &dirty, "dirty" );
+     
+               /* visible (window) */
+               misc_region_init_updates( &visible, NULL, &sawwin->visible );
+     
+               /* render (extents) */
+               misc_region_init_with_extents( &render, NULL, &extents );
+     
+               misc_region_init( &opt, NULL );
+     
+               /* render = visible & render(extents) */
+               misc_region_intersect( &render, &visible, &render );
+     
+               /* opt = render & dirty */
+               misc_region_intersect( &opt, &render, &dirty );
+     
+               if (window->config.opacity == 0xff &&
+                   window->surface && (window->surface->config.caps & DSCAPS_PREMULTIPLIED) &&
+                   (window->config.options & DWOP_ALPHACHANNEL) && !(window->config.options & DWOP_COLORKEYING) &&
+                   (window->config.dst_geometry.mode == DWGM_DEFAULT) && stack->bg.mode == DLBM_COLOR &&
+                   !stack->bg.color.a && !stack->bg.color.r && !stack->bg.color.g && !stack->bg.color.b)
+               {
+                    misc_region_t blend;
+     
+                    misc_region_init( &blend, NULL );
+     
+                    /* blend = render - opt */
+                    misc_region_subtract( &blend, &render, &opt );
+     
+                    MISC_REGION_DEBUG_AT( SaWMan_Update, &visible, "visible" );
+                    MISC_REGION_DEBUG_AT( SaWMan_Update, &render, "render" );
+                    MISC_REGION_DEBUG_AT( SaWMan_Update, &opt, "opt" );
+                    MISC_REGION_DEBUG_AT( SaWMan_Update, &blend, "blend" );
+     
+                    /////// FIXME: use batch blit!
+     
+                    /*
+                     * Draw optimized window areas
+                     */
+                    boxes = misc_region_boxes( &opt, &num );
+     
+                    for (n=0; n<num; n++) {
+                         DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
+     
+                         sawman_draw_window( tier, sawwin, state, &draw, false );
+                    }
+     
+     
+                    /////// FIXME: use batch blit!
+     
+                    /*
+                     * Draw blended window areas
+                     */
+                    boxes = misc_region_boxes( &blend, &num );
+     
+                    for (n=0; n<num; n++) {
+                         DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
+     
+                         sawman_draw_window( tier, sawwin, state, &draw, true );
+                    }
+     
+     
+                    misc_region_deinit( &blend );
                }
-
-
-               /////// FIXME: use batch blit!
-
-               /*
-                * Draw blended window areas
-                */
-               boxes = misc_region_boxes( &blend, &num );
-
-               for (n=0; n<num; n++) {
-                    DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
-
-                    sawman_draw_window( tier, sawwin, state, &draw, true );
+               else {
+                    MISC_REGION_DEBUG_AT( SaWMan_Update, &visible, "visible" );
+                    MISC_REGION_DEBUG_AT( SaWMan_Update, &render, "render" );
+                    MISC_REGION_DEBUG_AT( SaWMan_Update, &opt, "clear" );
+     
+                    /////// FIXME: use fill rectangles!
+     
+                    /*
+                     * Clear background
+                     */
+                    boxes = misc_region_boxes( &opt, &num );
+     
+                    for (n=0; n<num; n++) {
+                         DFBRegion clear = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
+     
+                         sawman_draw_background( tier, state, &clear );
+                    }
+     
+     
+                    /////// FIXME: use batch blit!
+     
+                    /*
+                     * Draw visible window areas
+                     */
+                    boxes = misc_region_boxes( &render, &num );
+     
+                    for (n=0; n<num; n++) {
+                         DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
+     
+                         sawman_draw_window( tier, sawwin, state, &draw, true );
+                    }
+     
                }
-
-
-               misc_region_deinit( &blend );
+     
+     
+               /* dirty -= render */
+               misc_region_subtract( &dirty, &dirty, &render );
+     
+     
+               misc_region_deinit( &opt );
+               misc_region_deinit( &render );
+               misc_region_deinit( &visible );
           }
-          else {
-               MISC_REGION_DEBUG_AT( SaWMan_Update, &visible, "visible" );
-               MISC_REGION_DEBUG_AT( SaWMan_Update, &render, "render" );
-               MISC_REGION_DEBUG_AT( SaWMan_Update, &opt, "clear" );
-
-               /////// FIXME: use fill rectangles!
-
-               /*
-                * Clear background
-                */
-               boxes = misc_region_boxes( &opt, &num );
-
-               for (n=0; n<num; n++) {
-                    DFBRegion clear = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
-
-                    sawman_draw_background( tier, state, &clear );
-               }
-
-
-               /////// FIXME: use batch blit!
-
-               /*
-                * Draw visible window areas
-                */
-               boxes = misc_region_boxes( &render, &num );
-
-               for (n=0; n<num; n++) {
-                    DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
-
-                    sawman_draw_window( tier, sawwin, state, &draw, true );
-               }
-
-          }
-
-
-          /* dirty -= render */
-          misc_region_subtract( &dirty, &dirty, &render );
-
-
-          misc_region_deinit( &opt );
-          misc_region_deinit( &render );
-          misc_region_deinit( &visible );
      }
 
      D_DEBUG_AT( SaWMan_Update, " -=> done <=-\n" );
