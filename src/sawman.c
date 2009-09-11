@@ -416,6 +416,42 @@ sawman_register( SaWMan                *sawman,
      return DFB_OK;
 }
 
+DirectResult
+sawman_unregister( SaWMan *sawman )
+{
+     DirectResult ret;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+
+     D_ASSERT( m_sawman == sawman );
+     D_ASSERT( m_world != NULL );
+     D_MAGIC_ASSERT( m_process, SaWManProcess );
+
+     /* if no manager, we're done */
+     if (!sawman->manager.present)
+          return DFB_OK;
+
+     /* Destroy the call to the manager executable. */
+     ret = fusion_call_destroy( &sawman->manager.call );
+     if (ret)
+          return ret;
+
+     /* Clean manager data. */
+     {
+          SaWManCallbacks callbacks = { 0 };
+          sawman->manager.callbacks = callbacks;
+          sawman->manager.context   = 0;
+     }
+
+     /* Remove manager flag for our process. */
+     m_process->flags &= ~SWMPF_MANAGER;
+
+     sawman->manager.present = false;
+
+     return DFB_OK;
+}
+
 /**********************************************************************************************************************/
 
 DirectResult

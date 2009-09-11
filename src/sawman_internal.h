@@ -348,6 +348,7 @@ DirectResult sawman_register  ( SaWMan                *sawman,
                                 const SaWManCallbacks *callbacks,
                                 void                  *context );
 
+DirectResult sawman_unregister( SaWMan                *sawman );
 
 DirectResult sawman_call      ( SaWMan                *sawman,
                                 SaWManCallID           call,

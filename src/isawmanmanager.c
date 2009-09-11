@@ -45,9 +45,21 @@
 static void
 ISaWManManager_Destruct( ISaWManManager *thiz )
 {
+     DFBResult   ret;
+     SaWMan     *sawman;
+
      ISaWManManager_data *data = thiz->priv;
 
-     (void) data;
+     sawman = data->sawman;
+     D_MAGIC_ASSERT( sawman, SaWMan );
+
+     ret = sawman_lock( sawman );
+     if (ret)
+          D_DERROR( ret, "SaWMan/%s(): sawman_lock() failed!\n", __FUNCTION__ );
+     else {
+          sawman_unregister( sawman );
+          sawman_unlock( sawman );
+     }
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }

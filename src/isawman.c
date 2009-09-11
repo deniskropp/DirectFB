@@ -206,7 +206,7 @@ ISaWMan_CreateManager( ISaWMan                  *thiz,
 
      ret = ISaWManManager_Construct( manager, data->sawman, data->process );
      if (ret) {
-          /* FIXME: sawman_unregister! */
+          sawman_unregister( sawman );
           goto out;
      }
 
