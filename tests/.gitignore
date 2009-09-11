@@ -1,6 +1,7 @@
 dfbtest_blit
 dfbtest_reinit
 dfbtest_scale
+dfbtest_sync
 dfbtest_window
 direct_stream
 direct_test
