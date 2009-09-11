@@ -454,9 +454,24 @@ static void handleMouseEvent(XEvent* pXEvent, X11InputData* pData)
 static void
 handle_expose( const XExposeEvent *expose )
 {
-     CoreLayer               *layer = dfb_layer_at( DLID_PRIMARY );
-     const DisplayLayerFuncs *funcs = layer->funcs;
+     CoreLayer               *layer = 0;
+     const DisplayLayerFuncs *funcs = 0;
      CoreLayerContext        *context;
+     int                      i;
+
+     /* find the correct layer */
+     for( i=0; i<dfb_layer_num(); i++ ) {
+          X11LayerData *lds;
+
+          layer = dfb_layer_at( i );
+          lds   = (X11LayerData*)(layer->layer_data);
+          if( lds->xw && (lds->xw->window == expose->window) )
+               break;
+     }
+
+     D_ASSERT( i!=dfb_layer_num() );
+
+     funcs = layer->funcs;
 
      D_ASSERT( funcs != NULL );
      D_ASSERT( funcs->UpdateRegion != NULL );
@@ -512,7 +527,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
 
           /* FIXME: Detect key repeats, we're receiving KeyPress, KeyRelease, KeyPress, KeyRelease... !!?? */
 
-          if (!shared->xw || !shared->xw->window) {
+          if (shared->window_count == 0) {
                /* no window, so no event */
                usleep( 50000 );
                continue;
@@ -710,15 +725,6 @@ driver_close_device( void *driver_data )
      data->stop = true;
 
      XLockDisplay( x11->display );
-
-     if (shared->xw) {
-          XWindow *xw = shared->xw;
-
-          shared->xw = NULL;
-
-          /* the window must generate an event, otherwise the input thread will not end */
-          dfb_x11_close_window( x11, xw );
-     }
 
      XSync( x11->display, False );
 

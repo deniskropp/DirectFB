@@ -32,8 +32,15 @@
 #include <core/layers.h>
 #include <core/screens.h>
 
+#include "xwindow.h"
+
 extern ScreenFuncs       x11PrimaryScreenFuncs;
 extern DisplayLayerFuncs x11PrimaryLayerFuncs;
+
+typedef struct {
+     int      layer_id;
+     XWindow *xw;
+} X11LayerData;
 
 #endif // __X11__PRIMARY_H__
 

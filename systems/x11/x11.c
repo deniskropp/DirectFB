@@ -44,6 +44,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/layers.h>
+#include <core/layers_internal.h>
 #include <core/palette.h>
 #include <core/surface.h>
 #include <core/system.h>
@@ -184,6 +185,8 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
 
      x11->screen = dfb_screens_register( NULL, x11, &x11PrimaryScreenFuncs );
 
+     dfb_layers_register( x11->screen, x11, &x11PrimaryLayerFuncs );
+     dfb_layers_register( x11->screen, x11, &x11PrimaryLayerFuncs );
      dfb_layers_register( x11->screen, x11, &x11PrimaryLayerFuncs );
 
      return DFB_OK;
@@ -338,6 +341,8 @@ system_shutdown( bool emergency )
      DFBX11       *x11    = dfb_system_data();
      DFBX11Shared *shared = x11->shared;
 
+     int i;
+
      D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
 
      /*
@@ -363,8 +368,19 @@ system_shutdown( bool emergency )
 
      fusion_skirmish_prevail( &shared->lock );
 
-     if (shared->xw)
-         dfb_x11_close_window( x11, shared->xw );
+     /* close remaining windows */
+     for( i=0; i<dfb_layer_num(); i++ ) {
+          CoreLayer    *layer;
+          X11LayerData *lds;
+
+          layer = dfb_layer_at( i );
+          lds   = layer->layer_data;
+          if( lds->xw ) {
+              dfb_x11_close_window( x11, lds->xw );
+              lds->xw = 0;
+              shared->window_count--;
+          }
+     }
 
      fusion_skirmish_destroy( &shared->lock );
 
@@ -537,7 +553,7 @@ call_handler( int           caller,
                break;
 
           case X11_DESTROY_WINDOW:
-               *ret_val = dfb_x11_destroy_window_handler( x11 );
+               *ret_val = dfb_x11_destroy_window_handler( x11, call_ptr );
                break;
 
           case X11_UPDATE_SCREEN:

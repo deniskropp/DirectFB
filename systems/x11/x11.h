@@ -40,15 +40,19 @@
 #include "xwindow.h"
 
 typedef struct {
-     CoreLayerRegionConfig  config;
+     CoreLayerRegionConfig   config;
+     XWindow               **xw;
 } SetModeData;
 
 typedef struct {
      DFBRegion              region;
-
      CoreSurfaceBufferLock *lock;
+     XWindow               *xw;
 } UpdateScreenData;
 
+typedef struct {
+     XWindow               **xw;
+} DestroyData;
 
 typedef struct {
      UpdateScreenData     update;
@@ -68,10 +72,10 @@ typedef struct {
  
      CoreSurfacePoolBridge *x11_pool_bridge;
 
-//     CoreSurface         *primary;
      DFBDimension         screen_size;
 
-     XWindow             *xw;
+     int                  window_count; /* merely for optimizing wait loop */
+
 } DFBX11Shared;
 
 struct __DFB_X11 {
@@ -102,8 +106,8 @@ typedef enum {
 
 
 
-DFBResult dfb_x11_create_window_handler ( DFBX11 *x11, CoreLayerRegionConfig *config );
-DFBResult dfb_x11_destroy_window_handler( DFBX11 *x11 );
+DFBResult dfb_x11_create_window_handler ( DFBX11 *x11, SetModeData *setmode );
+DFBResult dfb_x11_destroy_window_handler( DFBX11 *x11, DestroyData *destroy );
 
 DFBResult dfb_x11_update_screen_handler ( DFBX11 *x11, UpdateScreenData *data );
 DFBResult dfb_x11_set_palette_handler   ( DFBX11 *x11, CorePalette *palette );
