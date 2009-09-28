@@ -86,6 +86,10 @@ static void gInit_MMX( void );
 static void gInit_64bit( void );
 #endif
 
+#ifdef WORDS_BIGENDIAN
+static void gInit_BigEndian();
+#endif
+
 /* RGB16 */
 #define RGB_MASK 0xffff
 #define Cop_OP_Aop_PFI( op ) Cop_##op##_Aop_16
@@ -468,8 +472,9 @@ static void Cop_to_Aop_nv12( GenefxState *gfxs )
 static void Cop_to_Aop_nv21( GenefxState *gfxs )
 {
      memset( gfxs->Aop[0], gfxs->YCop, gfxs->length );
-    
-     if (gfxs->AopY & 1) {
+
+     /* DSPF_NV16 added here since this func is executed as _nv12 for BigEndians */
+     if (gfxs->dst_format == DSPF_NV16 || gfxs->AopY & 1) {
           u16   *D   = gfxs->Aop[1];
           int    w   = gfxs->length>>1;
           u16    Cop = gfxs->CrCop | (gfxs->CbCop << 8);
@@ -3763,24 +3768,24 @@ static void Sacc_to_Aop_nv12( GenefxState *gfxs )
      int                w  = gfxs->length;
      GenefxAccumulator *S  = gfxs->Sacc;
      u8                *Dy = gfxs->Aop[0];
-     
+
      while (w--) {
           if (!(S->YUV.a & 0xF000))
                *Dy = (S->YUV.y & 0xFF00) ? 0xFF : S->YUV.y;
-          
+
           S++;
           Dy++;
      }
-          
+
      if (gfxs->dst_format == DSPF_NV16 || gfxs->AopY & 1) {
           u16 *Duv = gfxs->Aop[1];
-          
+
           w = gfxs->length>>1;
           S = gfxs->Sacc;
-          
+
           while (w--) {
                u32 cb, cr;
-               
+
                if (!(S[0].YUV.a & 0xF000) && !(S[1].YUV.a & 0xF000)) {
                     cb = (S[0].YUV.u + S[1].YUV.u) >> 1;
                     if (cb & 0xFF00)
@@ -3789,21 +3794,7 @@ static void Sacc_to_Aop_nv12( GenefxState *gfxs )
                     cr = (S[0].YUV.v + S[1].YUV.v) >> 1;
                     if (cr & 0xFF00)
                          cr = 0xFF;
-                         
-#ifdef WORDS_BIGENDIAN
-                    *Duv = cr | (cb << 8);
-               }
-               else if (!(S[0].YUV.a & 0xF000)) {
-                    cb = ((*Duv >> 8)   + ((S[0].YUV.u & 0xFF00) ? 0xFF : S[0].YUV.u)) >> 1;
-                    cr = ((*Duv & 0xFF) + ((S[0].YUV.v & 0xFF00) ? 0xFF : S[0].YUV.v)) >> 1;
-                    *Duv = cr | (cb << 8);
-               }
-               else if (!(S[1].YUV.a & 0xF000)) {
-                    cb = ((*Duv >> 8)   + ((S[1].YUV.u & 0xFF00) ? 0xFF : S[1].YUV.u)) >> 1;
-                    cr = ((*Duv & 0xFF) + ((S[1].YUV.v & 0xFF00) ? 0xFF : S[1].YUV.v)) >> 1;
-                    *Duv = cr | (cb << 8);
-               }
-#else
+
                     *Duv = cb | (cr << 8);
                }
                else if (!(S[0].YUV.a & 0xF000)) {
@@ -3816,8 +3807,7 @@ static void Sacc_to_Aop_nv12( GenefxState *gfxs )
                     cr = ((*Duv >> 8)   + ((S[1].YUV.v & 0xFF00) ? 0xFF : S[1].YUV.v)) >> 1;
                     *Duv = cb | (cr << 8);
                }
-#endif
-               
+
                S += 2;
                Duv++;
           }
@@ -3829,24 +3819,25 @@ static void Sacc_to_Aop_nv21( GenefxState *gfxs )
      int                w  = gfxs->length;
      GenefxAccumulator *S  = gfxs->Sacc;
      u8                *Dy = gfxs->Aop[0];
-     
+
      while (w--) {
           if (!(S->YUV.a & 0xF000))
                *Dy = (S->YUV.y & 0xFF00) ? 0xFF : S->YUV.y;
-          
+
           S++;
           Dy++;
      }
-          
-     if (gfxs->AopY & 1) {
+
+     /* DSPF_NV16 added here since this func is executed as _nv12 for BigEndians */
+     if (gfxs->dst_format == DSPF_NV16 || gfxs->AopY & 1) {
           u16 *Dvu = gfxs->Aop[1];
-          
+
           w = gfxs->length>>1;
           S = gfxs->Sacc;
-          
+
           while (w--) {
                u32 cb, cr;
-               
+
                if (!(S[0].YUV.a & 0xF000) && !(S[1].YUV.a & 0xF000)) {
                     cb = (S[0].YUV.u + S[1].YUV.u) >> 1;
                     if (cb & 0xFF00)
@@ -3855,7 +3846,7 @@ static void Sacc_to_Aop_nv21( GenefxState *gfxs )
                     cr = (S[0].YUV.v + S[1].YUV.v) >> 1;
                     if (cr & 0xFF00)
                          cr = 0xFF;
-                         
+
                     *Dvu = cr | (cb << 8);
                }
                else if (!(S[0].YUV.a & 0xF000)) {
@@ -3868,7 +3859,7 @@ static void Sacc_to_Aop_nv21( GenefxState *gfxs )
                     cr = ((*Dvu & 0xFF) + ((S[1].YUV.v & 0xFF00) ? 0xFF : S[1].YUV.v)) >> 1;
                     *Dvu = cr | (cb << 8);
                }
-               
+
                S += 2;
                Dvu++;
           }
@@ -4348,28 +4339,28 @@ static void Sacc_Sto_Aop_nv12( GenefxState *gfxs )
      GenefxAccumulator *Sacc  = gfxs->Sacc;
      u8                *Dy    = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
-     
+
      while (w--) {
           GenefxAccumulator *S = &Sacc[i>>16];
-          
+
           if (!(S->YUV.a & 0xF000))
                *Dy = (S->YUV.y & 0xFF00) ? 0xFF : S->YUV.y;
-          
+
           Dy++;
           i += SperD;
      }
-          
+
      if (gfxs->dst_format == DSPF_NV16 || gfxs->AopY & 1) {
           u16 *Duv = gfxs->Aop[1];
-          
+
           w = gfxs->length>>1;
           i = gfxs->Xphase>>1;
-          
+
           while (w--) {
                GenefxAccumulator *S0 = &Sacc[i>>16];
                GenefxAccumulator *S1 = &Sacc[(i+SperD)>>16];
                u32                cb, cr;
-               
+
                if (!(S0->YUV.a & 0xF000) && !(S1->YUV.a & 0xF000)) {
                     cb = (S0->YUV.u + S1->YUV.u) >> 1;
                     if (cb & 0xFF00)
@@ -4378,21 +4369,7 @@ static void Sacc_Sto_Aop_nv12( GenefxState *gfxs )
                     cr = (S0->YUV.v + S1->YUV.v) >> 1;
                     if (cr & 0xFF00)
                          cr = 0xFF;
-                         
-#ifdef WORDS_BIGENDIAN
-                    *Duv = cr | (cb << 8);
-               }
-               else if (!(S0->YUV.a & 0xF000)) {
-                    cb = ((*Duv >> 8)   + ((S0->YUV.u & 0xFF00) ? 0xFF : S0->YUV.u)) >> 1;
-                    cr = ((*Duv & 0xFF) + ((S0->YUV.v & 0xFF00) ? 0xFF : S0->YUV.v)) >> 1;
-                    *Duv = cr | (cb << 8);
-               }
-               else if (!(S1->YUV.a & 0xF000)) {
-                    cb = ((*Duv >> 8)   + ((S1->YUV.u & 0xFF00) ? 0xFF : S1->YUV.u)) >> 1;
-                    cr = ((*Duv & 0xFF) + ((S1->YUV.v & 0xFF00) ? 0xFF : S1->YUV.v)) >> 1;
-                    *Duv = cr | (cb << 8);
-               }
-#else
+
                     *Duv = cb | (cr << 8);
                }
                else if (!(S0->YUV.a & 0xF000)) {
@@ -4405,8 +4382,7 @@ static void Sacc_Sto_Aop_nv12( GenefxState *gfxs )
                     cr = ((*Duv >> 8)   + ((S1->YUV.v & 0xFF00) ? 0xFF : S1->YUV.v)) >> 1;
                     *Duv = cb | (cr << 8);
                }
-#endif
-               
+
                Duv++;
 
                i += SperD << 1;
@@ -4421,28 +4397,29 @@ static void Sacc_Sto_Aop_nv21( GenefxState *gfxs )
      GenefxAccumulator *Sacc  = gfxs->Sacc;
      u8                *Dy    = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
-     
+
      while (w--) {
           GenefxAccumulator *S = &Sacc[i>>16];
-          
+
           if (!(S->YUV.a & 0xF000))
                *Dy = (S->YUV.y & 0xFF00) ? 0xFF : S->YUV.y;
-          
+
           Dy++;
           i += SperD;
      }
-          
+
+     /* DSPF_NV16 added here since this func is executed as _nv12 for BigEndians */
      if (gfxs->dst_format == DSPF_NV16 || gfxs->AopY & 1) {
           u16 *Dvu = gfxs->Aop[1];
-          
+
           w = gfxs->length>>1;
           i = gfxs->Xphase>>1;
-          
+
           while (w--) {
                GenefxAccumulator *S0 = &Sacc[i>>16];
                GenefxAccumulator *S1 = &Sacc[(i+SperD)>>16];
                u32                cb, cr;
-               
+
                if (!(S0->YUV.a & 0xF000) && !(S1->YUV.a & 0xF000)) {
                     cb = (S0->YUV.u + S1->YUV.u) >> 1;
                     if (cb & 0xFF00)
@@ -4451,21 +4428,7 @@ static void Sacc_Sto_Aop_nv21( GenefxState *gfxs )
                     cr = (S0->YUV.v + S1->YUV.v) >> 1;
                     if (cr & 0xFF00)
                          cr = 0xFF;
-                         
-#ifdef WORDS_BIGENDIAN
-                    *Dvu = cb | (cr << 8);
-               }
-               else if (!(S0->YUV.a & 0xF000)) {
-                    cb = ((*Dvu & 0xFF) + ((S0->YUV.u & 0xFF00) ? 0xFF : S0->YUV.u)) >> 1;
-                    cr = ((*Dvu >> 8)   + ((S0->YUV.v & 0xFF00) ? 0xFF : S0->YUV.v)) >> 1;
-                    *Dvu = cb | (cr << 8);
-               }
-               else if (!(S1->YUV.a & 0xF000)) {
-                    cb = ((*Dvu & 0xFF) + ((S1->YUV.u & 0xFF00) ? 0xFF : S1->YUV.u)) >> 1;
-                    cr = ((*Dvu >> 8)   + ((S1->YUV.v & 0xFF00) ? 0xFF : S1->YUV.v)) >> 1;
-                    *Dvu = cb | (cr << 8);
-               }
-#else
+
                     *Dvu = cr | (cb << 8);
                }
                else if (!(S0->YUV.a & 0xF000)) {
@@ -4478,8 +4441,7 @@ static void Sacc_Sto_Aop_nv21( GenefxState *gfxs )
                     cr = ((*Dvu & 0xFF) + ((S1->YUV.v & 0xFF00) ? 0xFF : S1->YUV.v)) >> 1;
                     *Dvu = cr | (cb << 8);
                }
-#endif
-               
+
                Dvu++;
 
                i += SperD << 1;
@@ -6744,6 +6706,10 @@ void gGetDriverInfo( GraphicsDriverInfo *info )
 
 #if SIZEOF_LONG == 8
      gInit_64bit();
+#endif
+
+#ifdef WORDS_BIGENDIAN
+     gInit_BigEndian();
 #endif
 
 #ifdef USE_MMX
@@ -9252,6 +9218,39 @@ static void gInit_64bit( void )
      Bop_PFI_Sto_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_AiRGB)] = Bop_32_Sto_Aop_64;
 /********************************* misc accumulator operations *******************/
      Dacc_xor = Dacc_xor_64;
+}
+
+#endif
+
+#ifdef WORDS_BIGENDIAN
+
+/*
+ * patches SOME function pointers for big endian platforms,
+ * namely the nv12/nv21 combo which is simply swapped.
+ * make sure these names do not bite with gInit_MMX() or gInit_64bit().
+ */
+static void gInit_BigEndian()
+{
+/********************************* Sop_PFI_Sto_Dacc ******************************/
+     Sop_PFI_Sto_Dacc[DFB_PIXELFORMAT_INDEX(DSPF_NV12)] = Sop_nv21_Sto_Dacc;
+     Sop_PFI_Sto_Dacc[DFB_PIXELFORMAT_INDEX(DSPF_NV16)] = Sop_nv21_Sto_Dacc;
+     Sop_PFI_Sto_Dacc[DFB_PIXELFORMAT_INDEX(DSPF_NV21)] = Sop_nv12_Sto_Dacc;
+/********************************* Sop_PFI_to_Dacc *******************************/
+     Sop_PFI_to_Dacc[DFB_PIXELFORMAT_INDEX(DSPF_NV12)] = Sop_nv21_to_Dacc;
+     Sop_PFI_to_Dacc[DFB_PIXELFORMAT_INDEX(DSPF_NV16)] = Sop_nv21_to_Dacc;
+     Sop_PFI_to_Dacc[DFB_PIXELFORMAT_INDEX(DSPF_NV21)] = Sop_nv12_to_Dacc;
+/********************************* Cop_to_Aop_PFI ********************************/
+     Cop_to_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_NV12)] = Cop_to_Aop_nv21;
+     Cop_to_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_NV16)] = Cop_to_Aop_nv21;
+     Cop_to_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_NV21)] = Cop_to_Aop_nv12;
+/********************************* Sacc_to_Aop_PFI *******************************/
+     Sacc_to_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_NV12)] = Sacc_to_Aop_nv21;
+     Sacc_to_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_NV16)] = Sacc_to_Aop_nv21;
+     Sacc_to_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_NV21)] = Sacc_to_Aop_nv12;
+/********************************* Sacc_Sto_Aop_PFI ******************************/
+     Sacc_Sto_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_NV12)] = Sacc_Sto_Aop_nv21;
+     Sacc_Sto_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_NV16)] = Sacc_Sto_Aop_nv21;
+     Sacc_Sto_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_NV21)] = Sacc_Sto_Aop_nv12;
 }
 
 #endif
