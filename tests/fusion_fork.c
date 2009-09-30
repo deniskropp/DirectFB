@@ -49,6 +49,9 @@
 #include <fusion/reactor.h>
 #include <fusion/ref.h>
 
+#ifndef HAVE_FORK
+# define fork() -1
+#endif
 
 #define MSG(x...)                       \
 do {                                    \

@@ -94,6 +94,7 @@ AC_C_BIGENDIAN
 AC_CHECK_SIZEOF(int)
 AC_CHECK_SIZEOF(long)
 AC_CHECK_SIZEOF(long long)
+AC_CHECK_FUNCS(fork)
 
 
 ## Work around libstuhl during cross build...

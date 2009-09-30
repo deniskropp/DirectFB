@@ -51,6 +51,9 @@
 #include <fusion/reactor.h>
 #include <fusion/ref.h>
 
+#ifndef HAVE_FORK
+# define fork() -1
+#endif
 
 #if DIRECT_BUILD_DEBUGS
 #define MSG(x...)                       \

@@ -52,6 +52,10 @@
 #include <fusion/fusion.h>
 #include <fusion/shm/pool.h>
 
+#ifndef HAVE_FORK
+# define fork() -1
+#endif
+
 #define MAX_NUM_BLOCKS 10000
 
 #define SIZE_ALIGNMASK   0x3
