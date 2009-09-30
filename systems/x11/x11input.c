@@ -469,7 +469,9 @@ handle_expose( const XExposeEvent *expose )
                break;
      }
 
-     D_ASSERT( i!=dfb_layer_num() );
+     /* layer not found? */
+     if( i==dfb_layer_num() )
+          return;
 
      funcs = layer->funcs;
 
