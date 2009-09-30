@@ -31,7 +31,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <dirent.h>
-#include <dlfcn.h>
 #include <errno.h>
 
 #include <pthread.h>
@@ -72,6 +71,10 @@
 
 #include <misc/conf.h>
 #include <misc/util.h>
+
+#if defined(DFB_DYNAMIC_LINKING) && defined(SOPATH)
+#include <dlfcn.h>
+#endif
 
 D_DEBUG_DOMAIN( DirectFB_Core, "DirectFB/Core", "DirectFB Core" );
 

@@ -30,9 +30,6 @@
 
 #include <pthread.h>
 #include <dirent.h>
-#ifndef USE_KOS
-#include <dlfcn.h>
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -51,6 +48,7 @@
 
 #ifdef PIC
 #define DYNAMIC_LINKING
+#include <dlfcn.h>
 #endif
 
 
