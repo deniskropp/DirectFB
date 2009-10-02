@@ -2335,8 +2335,8 @@ void dfb_gfxcard_drawglyph( CoreGlyphData **glyph, int x, int y,
      DFBSurfaceBlendFunction  orig_srcblend;
      DFBSurfaceBlendFunction  orig_dstblend;
 
-     D_DEBUG_AT( Core_GraphicsOps, "%s( %u, %d,%d, %p, %p )\n",
-                 __FUNCTION__, index, x, y, font, state );
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %d,%d, %u, %p, %p )\n",
+                 __FUNCTION__, x, y, layers, font, state );
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
