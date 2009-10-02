@@ -2309,12 +2309,13 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
                x   += glyph->advance;
                prev = current;
           }
+
+          if (num_blits) {
+               dfb_gfxcard_batchblit( rects, points, num_blits, state );
+               num_blits = 0;
+          }
      }
 
-     if (num_blits) {
-          dfb_gfxcard_batchblit( rects, points, num_blits, state );
-          num_blits = 0;
-     }
 
      dfb_font_unlock( font );
 
