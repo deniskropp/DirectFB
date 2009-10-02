@@ -316,6 +316,8 @@ primaryTestRegion( CoreLayer                  *layer,
           case DSPF_RGB32:
           case DSPF_ARGB:
           case DSPF_AYUV:
+          case DSPF_AVYU:
+          case DSPF_VYU:
                break;
 
           default:
