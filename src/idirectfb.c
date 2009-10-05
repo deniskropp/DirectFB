@@ -498,6 +498,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           case DSPF_A4:
           case DSPF_A8:
           case DSPF_ARGB:
+          case DSPF_ARGB8565:
           case DSPF_ARGB1555:
           case DSPF_RGBA5551:
           case DSPF_ARGB1666:
@@ -630,6 +631,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          wd.surface_caps = caps & ~DSCAPS_FLIPPING;
 
                          switch (format) {
+                              case DSPF_ARGB8565:
                               case DSPF_ARGB4444:
                               case DSPF_RGBA4444:
                               case DSPF_ARGB2554:

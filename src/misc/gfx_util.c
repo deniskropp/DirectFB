@@ -139,6 +139,21 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                     ((u16*)d)[i] = ARGB_TO_RGBA4444( src[i] );
                break;
 
+          case DSPF_ARGB8565:
+               for (i = 0, j = -1; i < len; i++) {
+                    register u32 pixel = ARGB_TO_ARGB8565 ( src[i] );
+#ifdef WORDS_BIGENDIAN
+                    d[++j] = (pixel >> 16) & 0xff;
+                    d[++j] = (pixel >>  8) & 0xff;
+                    d[++j] = (pixel >>  0) & 0xff;
+#else
+                    d[++j] = (pixel >>  0) & 0xff;
+                    d[++j] = (pixel >>  8) & 0xff;
+                    d[++j] = (pixel >> 16) & 0xff;
+#endif
+               }
+               break;
+
           case DSPF_RGB16:
 #ifdef DFB_DITHER565
                /* use a pre-generated dither matrix to improve the appearance of the result */

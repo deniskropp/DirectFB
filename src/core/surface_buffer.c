@@ -707,6 +707,7 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
           case DSPF_ARGB2554:
           case DSPF_ARGB4444:
           case DSPF_AiRGB:
+          case DSPF_ARGB8565:
                alpha = true;
 
                /* fall through */

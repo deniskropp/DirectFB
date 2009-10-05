@@ -123,6 +123,8 @@ dfb_pixel_to_color( DFBSurfacePixelFormat  format,
                ret_color->a = EXPAND_4to8( (pixel & 0x000f)       );
                break;
 
+          case DSPF_ARGB8565:
+               ret_color->a = pixel >> 16;
           case DSPF_RGB16:
                ret_color->r = EXPAND_5to8( (pixel & 0xf800) >> 11 );
                ret_color->g = EXPAND_6to8( (pixel & 0x07e0) >>  5 );
@@ -189,6 +191,9 @@ dfb_pixel_from_color( DFBSurfacePixelFormat  format,
 
           case DSPF_RGB444:
                return PIXEL_RGB444( color->r, color->g, color->b );
+
+          case DSPF_ARGB8565:
+               return PIXEL_ARGB8565( color->a, color->r, color->g, color->b );
 
           case DSPF_RGB16:
                return PIXEL_RGB16( color->r, color->g, color->b );
@@ -424,6 +429,19 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
                }
                break;
 
+          case DSPF_ARGB8565:
+               ++height;
+               while (--height) {
+                    const u8 * __restrict src8 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = (src8[x*3+1] << 8) | src8[x*3+2];
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
           default:
                D_ONCE( "unsupported format" );
      }
@@ -584,6 +602,22 @@ dfb_convert_to_rgb555( DFBSurfacePixelFormat  format,
                          YCBCR_TO_RGB (*y++, *cb++, *cr++, r, g, b);
 
                          dst[x] = PIXEL_RGB555( r, g, b );
+                    }
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+          case DSPF_ARGB8565:
+               ++height;
+               while (--height) {
+                    const u8 * __restrict src8 = src;
+
+                    for (x=0; x<width; x++) {
+                         u32 pixel = (src8[x*3+1] << 8) | src8[x*3+2];
+
+                         dst[x] = ARGB8565_TO_ARGB1555 (pixel);
                     }
 
                     src += spitch;
@@ -771,6 +805,27 @@ dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
                     for (x=0; x<width; x++) {
                          int r, g, b;
                          YCBCR_TO_RGB (*y++, *cb++, *cr++, r, g, b);
+
+                         dst[x] = PIXEL_RGB32( r, g, b );
+                    }
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          case DSPF_ARGB8565:
+               ++height;
+               while (--height) {
+                    const u8 * __restrict src8 = src;
+
+                    for (x=0; x<width; x++) {
+                         u8 r, g, b;
+
+                         r = EXPAND_5to8( src8[x*3+1] >> 3 );
+                         g = EXPAND_6to8( (src8[x*3+1] << 5) |
+                                          (src8[x*3+2] >> 3) );
+                         b = EXPAND_5to8( src8[x*3+2] & 0x1f);
 
                          dst[x] = PIXEL_RGB32( r, g, b );
                     }
@@ -1012,6 +1067,27 @@ dfb_convert_to_argb( DFBSurfacePixelFormat  format,
                }
                break;
 
+          case DSPF_ARGB8565:
+               ++height;
+               while (--height) {
+                    const u8 * __restrict src8 = src;
+
+                    for (x=0; x<width; x++) {
+                         u8 r, g, b;
+
+                         r = EXPAND_5to8( src8[x*3+1] >> 3 );
+                         g = EXPAND_6to8( (src8[x*3+1] << 5) |
+                                          (src8[x*3+2] >> 3) );
+                         b = EXPAND_5to8( src8[x*3+2] & 0x1f);
+
+                         dst[x] = PIXEL_ARGB( src8[x*3], r, g, b );
+                    }
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
           default:
                D_ONCE( "unsupported format" );
      }
@@ -1228,6 +1304,28 @@ dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
                          dst[n3+0] = (src32[n] & 0xFF0000) >> 16;
                          dst[n3+1] = (src32[n] & 0x00FF00) >>  8;
                          dst[n3+2] = (src32[n] & 0x0000FF);
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_ARGB8565:
+               while (height--) {
+                    const u8 * __restrict src8 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+#ifdef WORDS_BIGENDIAN
+                         dst[n3+0] = (src8[n3+1] & 0xf8);
+                         dst[n3+1] = (((src8[n3+1] & 0x07) << 5)
+                                      | ((src8[n3+2] & 0xe0) >> 3));
+                         dst[n3+2] = (src8[n3+2] & 0x1f) << 3;
+#else
+                         dst[n3+0] = (src8[n3+1] & 0xf8);
+                         dst[n3+1] = (((src8[n3+1] & 0x07) << 5)
+                                      | ((src8[n3+0] & 0xe0) >> 3));
+                         dst[n3+2] = (src8[n3+0] & 0x1f) << 3;
+#endif
                     }
 
                     src += spitch;
@@ -1455,6 +1553,23 @@ dfb_convert_to_a8( DFBSurfacePixelFormat  format,
                     dst += dpitch;
                }
                break;
+          case DSPF_ARGB8565:
+               while (height--) {
+                    const u8 * __restrict src8 = src;
+                    int n3;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+#ifdef WORDS_BIGENDIAN
+                         dst[n] = src8[n3+0];
+#else
+                         dst[n] = src8[n3+2];
+#endif
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
 
           case DSPF_RGB332:
           case DSPF_RGB444:
@@ -1566,6 +1681,22 @@ dfb_convert_to_a4( DFBSurfacePixelFormat  format,
                }
                break;
 
+          case DSPF_ARGB8565:
+               while (height--) {
+                    const u8 * __restrict src8 = src;
+
+                    for (x=0, n=0; x<w2; x++, n+=6) {
+#ifdef WORDS_BIGENDIAN
+                         dst[x] = (src8[n+0] & 0xf0) | (src8[n+3] & 0xf0 >> 4);
+#else
+                         dst[x] = (src8[n+2] & 0xf0) | (src8[n+5] & 0xf0 >> 4);
+#endif
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
 
           default:
                if (DFB_PIXELFORMAT_HAS_ALPHA( format ))

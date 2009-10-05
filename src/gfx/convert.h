@@ -96,6 +96,9 @@
                                  ((g) << 8)  | \
                                   (b) )
 
+#define PIXEL_ARGB8565(a,r,g,b)( ((a) << 16) | \
+                                 PIXEL_RGB16 (r, g, b) )
+
 #define PIXEL_ARGB1666(a,r,g,b) ( (((a)&0x80) << 11) | \
                                   (((r)&0xFC) << 10) | \
                                   (((g)&0xFC) <<  4) | \
@@ -165,6 +168,9 @@
                                     (((pixel) & 0x03E0) << 1) | \
                                     (((pixel) & 0x001F)) )
 
+#define ARGB1555_TO_ARGB8565(pixel) ( (((pixel) & 0x8000) ? 0x00FF0000 : 0) | \
+                                      ARGB1555_TO_RGB16 (pixel) )
+
 #define ARGB1555_TO_RGB32(pixel)  ( (((pixel) & 0x7C00) << 9) | \
                                     (((pixel) & 0x03E0) << 6) | \
                                     (((pixel) & 0x001F) << 3) )
@@ -233,6 +239,8 @@
                                     (((pixel) & 0x0780) << 1) | \
                                     (((pixel) & 0x001E) << 3) )
 
+#define RGB16_TO_ARGB8565(pixel)  ( 0xFF0000 |                  \
+                                    ((pixel) & 0xffff) )
 
 #define RGB16_TO_RGB32(pixel)  ( (((pixel) & 0xF800) << 8) | \
                                  (((pixel) & 0x07E0) << 5) | \
@@ -254,6 +262,34 @@
 #define RGB16_TO_RGB444(pixel)  ( (((pixel) & 0xF000) >> 4) | \
                                     (((pixel) & 0x0780) >> 3) | \
                                     (((pixel) & 0x001F) >> 1) )
+
+
+#define ARGB8565_TO_RGB332(pixel)   ( RGB16_TO_RGB332 (pixel) )
+
+#define ARGB8565_TO_ARGB1555(pixel) ( (((pixel) & 0x800000) >> 16) | \
+                                      (((pixel) & 0x00F800) >>  1) | \
+                                      (((pixel) & 0x0007C0) >>  1) | \
+                                      (((pixel) & 0x00001F)) )
+
+#define ARGB8565_TO_ARGB2554(pixel) ( (((pixel) & 0xC00000) >> 16) | \
+                                      (((pixel) & 0x00F800) >>  2) | \
+                                      (((pixel) & 0x0007C0) >>  2) | \
+                                      (((pixel) & 0x00001F) >>  1) )
+
+#define ARGB8565_TO_ARGB4444(pixel) ( (((pixel) & 0xF00000) >> 16) | \
+                                      (((pixel) & 0x00F000) >>  4) | \
+                                      (((pixel) & 0x000780) >>  3) | \
+                                      (((pixel) & 0x00001F) >>  1) )
+
+#define ARGB8565_TO_RGB16(pixel)    ( ((pixel) & 0xffff) )
+
+#define ARGB8565_TO_RGB32(pixel)    ( RGB16_TO_RGB32 (pixel) )
+
+#define ARGB8565_TO_ARGB(pixel)     ( (((pixel) & 0xFF0000) << 8) | \
+                                      (((pixel) & 0x00F800) << 8) | \
+                                      (((pixel) & 0x0007E0) << 5) | \
+                                      (((pixel) & 0x00001F) << 3) )
+
 
 #define RGB18_TO_ARGB(pixel)   ( 0xFF000000 |                \
                                  (((pixel) & 0xFC00) << 10) | \
@@ -288,12 +324,20 @@
                                  (((pixel) & 0x00FC00) >> 5) | \
                                  (((pixel) & 0x0000F8) >> 3) )
 
+#define RGB32_TO_ARGB8565(pixel) ( 0xff0000 | \
+                                   RGB32_TO_RGB16 (pixel) )
+
 #define RGB32_TO_ARGB1555(pixel) ( 0x8000 | \
                                    (((pixel) & 0xF80000) >> 9) | \
                                    (((pixel) & 0x00F800) >> 6) | \
                                    (((pixel) & 0x0000F8) >> 3) )
 
 #define RGB32_TO_ARGB(pixel)   ( 0xFF000000 | (pixel) )
+
+#define ARGB_TO_ARGB8565(pixel)  ( (((pixel) & 0xFF000000) >>  8) | \
+                                   (((pixel) & 0x00F80000) >>  8) | \
+                                   (((pixel) & 0x0000FC00) >>  5) | \
+                                   (((pixel) & 0x000000F8) >>  3) )
 
 
 #define RGB32_TO_RGB555(pixel)  ( (((pixel) & 0xF80000) >> 9) | \
@@ -477,6 +521,27 @@ dfb_argb_to_rgba4444( const u32 *src, u16 *dst, int len )
           register u32 rgba = src[i];
 
           dst[i] = ARGB_TO_RGBA4444( rgba );
+     }
+}
+
+static inline void
+dfb_argb_to_argb8565( const u32 *src, u8 *dst, int len )
+{
+     int i = -1, j = -1;
+
+     while (++i < len) {
+        register u32 argb = src[i];
+
+        register u32 d = ARGB_TO_ARGB8565( argb );
+#ifdef WORDS_BIGENDIAN
+        dst[++j] = (d >> 16) & 0xff;
+        dst[++j] = (d >>  8) & 0xff;
+        dst[++j] = (d >>  0) & 0xff;
+#else
+        dst[++j] = (d >>  0) & 0xff;
+        dst[++j] = (d >>  8) & 0xff;
+        dst[++j] = (d >> 16) & 0xff;
+#endif
      }
 }
 

@@ -498,6 +498,13 @@ window_at_pointer( CoreWindowStack *stack,
                                    case DSPF_AYUV:
                                         alpha = *(u32*)(buf) >> 24;
                                         break;
+                                   case DSPF_ARGB8565:
+#ifdef WORDS_BIGENDIAN
+                                        alpha = buf[0];
+#else
+                                        alpha = buf[2];
+#endif
+                                        break;
                                    case DSPF_RGBA5551:
                                         alpha = *(u16*)(buf) & 0x1;
                                         alpha = alpha ? 0xff : 0x00;
@@ -570,6 +577,15 @@ window_at_pointer( CoreWindowStack *stack,
                                    case DSPF_RGBA4444:
                                         pixel = *(u16*)(buf) 
                                                 & 0xfff0;
+                                        break;
+
+                                   case DSPF_ARGB8565:
+                                        p = (buf);
+#ifdef WORDS_BIGENDIAN
+                                        pixel = p[1] << 8 | p[2];
+#else
+                                        pixel = p[1] << 8 | p[0];
+#endif
                                         break;
 
                                    case DSPF_ARGB1555:

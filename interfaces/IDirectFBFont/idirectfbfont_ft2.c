@@ -322,6 +322,26 @@ render_glyph( CoreFont      *thiz,
                               for (i=0; i<info->width; i++)
                                    dst32[i] = ((src[i] ^ 0xFF) << 24) | 0xFFFFFF;
                               break;
+                         case DSPF_ARGB8565:
+                              for (i = 0, j = -1; i < info->width; ++i) {
+                                  u32 d;
+                                  if (thiz->surface_caps & DSCAPS_PREMULTIPLIED) {
+                                       d = src[i] * 0x01010101;
+                                       d = ARGB_TO_ARGB8565 (d);
+                                  }
+                                  else
+                                       d = (src[i] << 16) | 0xFFFF;
+#ifdef WORDS_BIGENDIAN
+                                   dst8[++j] = (d >> 16) & 0xff;
+                                   dst8[++j] = (d >>  8) & 0xff;
+                                   dst8[++j] = (d >>  0) & 0xff;
+#else
+                                   dst8[++j] = (d >>  0) & 0xff;
+                                   dst8[++j] = (d >>  8) & 0xff;
+                                   dst8[++j] = (d >> 16) & 0xff;
+#endif
+                              }
+                              break;
                          case DSPF_ARGB4444:
                          case DSPF_RGBA4444:
                               if (thiz->surface_caps & DSCAPS_PREMULTIPLIED) {
@@ -412,6 +432,27 @@ render_glyph( CoreFont      *thiz,
                               for (i=0; i<info->width; i++)
                                    dst32[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
                                                 0x00 : 0xFF) << 24) | 0xFFFFFF;
+                              break;
+                         case DSPF_ARGB8565:
+                              for (i = 0, j = -1; i < info->width; ++i) {
+                                   u32 d;
+                                   if (thiz->surface_caps & DSCAPS_PREMULTIPLIED) {
+                                        d = ((src[i>>3] & (1<<(7-(i%8)))) ?
+                                             0xffffff : 0x000000);
+                                   }
+                                   else
+                                       d = (((src[i>>3] & (1<<(7-(i%8)))) ?
+                                             0xff : 0x00) << 16) | 0xffff;
+#ifdef WORDS_BIGENDIAN
+                                   dst8[++j] = (d >> 16) & 0xff;
+                                   dst8[++j] = (d >>  8) & 0xff;
+                                   dst8[++j] = (d >>  0) & 0xff;
+#else
+                                   dst8[++j] = (d >>  0) & 0xff;
+                                   dst8[++j] = (d >>  8) & 0xff;
+                                   dst8[++j] = (d >> 16) & 0xff;
+#endif
+                              }
                               break;
                          case DSPF_ARGB4444:
                               for (i=0; i<info->width; i++)
@@ -874,6 +915,7 @@ Construct( IDirectFBFont *thiz,
 
      D_ASSERT( font->pixel_format == DSPF_ARGB ||
                font->pixel_format == DSPF_AiRGB ||
+               font->pixel_format == DSPF_ARGB8565 ||
                font->pixel_format == DSPF_ARGB4444 ||
                font->pixel_format == DSPF_RGBA4444 ||
                font->pixel_format == DSPF_ARGB2554 ||

@@ -104,6 +104,7 @@ dfb_font_create( CoreDFB *core, CoreFont **ret_font )
      font->pixel_format = dfb_config->font_format ? : DSPF_A8;
 
      if ((font->pixel_format == DSPF_ARGB ||
+                    font->pixel_format == DSPF_ARGB8565 ||
                     font->pixel_format == DSPF_ARGB4444 ||
                     font->pixel_format == DSPF_RGBA4444 ||
                     font->pixel_format == DSPF_ARGB1555 ||

@@ -92,6 +92,7 @@ Inspector_Run( Inspector *inspector )
           DSPF_RGBA5551,
           DSPF_ARGB2554,
           DSPF_ARGB4444,
+          DSPF_ARGB8565,
           DSPF_ARGB,
           DSPF_AiRGB,
           DSPF_A1,
