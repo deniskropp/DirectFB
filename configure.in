@@ -226,7 +226,7 @@ want_ppcasm=yes
 want_armasm=yes
 
 case "$target_or_host" in
-  *-linux*)
+  *-*linux*)
     have_linux=yes
     ;;
 
