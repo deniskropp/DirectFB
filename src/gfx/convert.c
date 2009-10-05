@@ -218,14 +218,6 @@ dfb_pixel_from_color( DFBSurfacePixelFormat  format,
                RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
                return PIXEL_AYUV( color->a, y, cb, cr );
 
-          case DSPF_AVYU:
-               RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
-               return PIXEL_AVYU( color->a, y, cb, cr );
-
-          case DSPF_VYU:
-               RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
-               return PIXEL_VYU( y, cb, cr );
-
           case DSPF_YUY2:
                RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
                return PIXEL_YUY2( y, cb, cr );
@@ -403,40 +395,6 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
                          dst[x] = (src16[x] & 0xf800) |
 						(src16[x] & 0x07c0) | ((src16[x] & 0x0400) >> 5) |
 						((src16[x] & 0x003e) >> 1);
-
-                    src += spitch;
-                    dst += dp2;
-               }
-               break;
-
-          case DSPF_AVYU:
-               while (height--) {
-                    const u32 *src32 = src;
-
-                    for (x=0; x<width; x++) {
-                         int r, g, b;
-
-                         YCBCR_TO_RGB( (src32[x] >> 8) & 0xff, src32[x] & 0xff, (src32[x] >> 16) & 0xff, r, g, b );
-
-                         dst[x] = PIXEL_RGB16( r, g, b );
-                    }
-
-                    src += spitch;
-                    dst += dp2;
-               }
-               break;
-
-          case DSPF_VYU:
-               while (height--) {
-                    const u8 *src8 = src;
-
-                    for (x=0; x<width; x++) {
-                         int r, g, b;
-
-                         YCBCR_TO_RGB( src8[x*3+1], src8[x*3+2], src8[x*3], r, g, b );
-
-                         dst[x] = PIXEL_RGB16( r, g, b );
-                    }
 
                     src += spitch;
                     dst += dp2;
@@ -1197,63 +1155,6 @@ dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
                     dst += dpitch;
                }
                break;
-          case DSPF_AYUV:
-               while (height--) {
-                    const u32 *src32 = src;
-
-                    for (n=0, n3=0; n<width; n++, n3+=3) {
-                         u32 y, cb, cr;
-                         y  = (src32[n] & 0xff0000) >> 16;
-                         cb = (src32[n] & 0x00ff00) >>  8;
-                         cr = (src32[n] & 0x0000ff) >>  0;
-                         YCBCR_TO_RGB (y, cb, cr,
-                                       dst[n3+0], dst[n3+1], dst[n3+2]);
-                    }
-
-                    src += spitch;
-                    dst += dpitch;
-               }
-               break;
-          case DSPF_AVYU:
-               while (height--) {
-                    const u32 * __restrict src32 = src;
-
-                    for (n=0, n3=0; n<width; n++, n3+=3) {
-                         u32 y, cb, cr;
-                         cr = (src32[n] & 0xff0000) >> 16;
-                         y  = (src32[n] & 0x00ff00) >>  8;
-                         cb = (src32[n] & 0x0000ff) >>  0;
-                         YCBCR_TO_RGB (y, cb, cr,
-                                       dst[n3+0], dst[n3+1], dst[n3+2]);
-                    }
-
-                    src += spitch;
-                    dst += dpitch;
-               }
-               break;
-          case DSPF_VYU:
-               while (height--) {
-                    const u8 * __restrict src8 = src;
-
-                    for (n=0, n3=0; n<width; n++, n3+=3) {
-                         u32 y, cb, cr;
-#ifdef WORDS_BIGENDIAN
-                         cr = src8[n3+0];
-                         y  = src8[n3+1];
-                         cb = src8[n3+2];
-#else
-                         cb = src8[n3+2];
-                         y  = src8[n3+1];
-                         cr = src8[n3+0];
-#endif
-                         YCBCR_TO_RGB (y, cb, cr,
-                                       dst[n3+0], dst[n3+1], dst[n3+2]);
-                    }
-
-                    src += spitch;
-                    dst += dpitch;
-               }
-               break;
           case DSPF_YUY2:
                while (height--) {
                     const u32 *src32 = src;
@@ -1376,8 +1277,6 @@ dfb_convert_to_a8( DFBSurfacePixelFormat  format,
                }
                break;
           case DSPF_ARGB:
-          case DSPF_AYUV:
-          case DSPF_AVYU:
                while (height--) {
                     const u32 *src32 = src;
 
@@ -1471,7 +1370,6 @@ dfb_convert_to_a8( DFBSurfacePixelFormat  format,
           case DSPF_RGB16:
           case DSPF_RGB24:
           case DSPF_RGB32:
-          case DSPF_VYU:
           case DSPF_YUY2:
           case DSPF_UYVY:
           case DSPF_NV16:
@@ -1551,8 +1449,6 @@ dfb_convert_to_a4( DFBSurfacePixelFormat  format,
                break;
 
           case DSPF_ARGB:
-          case DSPF_AYUV:
-          case DSPF_AVYU:
                while (height--) {
                     const u32 *src32 = src;
 

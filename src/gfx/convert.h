@@ -111,11 +111,6 @@
                                  ((u) << 8)  | \
                                   (v) )
 
-#define PIXEL_AVYU(a,y,u,v)    ( ((a) << 24) | \
-                                 ((v) << 16) | \
-                                 ((y) << 8)  | \
-                                  (u) )
-
 #define PIXEL_AiRGB(a,r,g,b)   ( (((a) ^ 0xff) << 24) | \
                                  ((r) << 16) | \
                                  ((g) << 8)  | \
@@ -145,10 +140,6 @@
                                   (u) )
 
 #endif
-
-#define PIXEL_VYU(y,u,v)       ( ((v) << 16) | \
-                                 ((y) << 8)  | \
-                                  (u) )
 
 
 /* packed pixel conversions */
@@ -410,17 +401,11 @@ dfb_color_to_argb( const DFBColor *color )
 static inline u32
 dfb_color_to_aycbcr( const DFBColor *color )
 {
-     u32 y,cb,cr;
-     RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
-     return (color->a << 24) | (y << 16) | (cb << 8) | cr;
-}
+     u32 y  = (   66 * color->r + 129 * color->g +  25 * color->b  +  16*256 + 128) >> 8;
+     u32 cb = ( - 38 * color->r -  74 * color->g + 112 * color->b  + 128*256 + 128) >> 8;
+     u32 cr = (  112 * color->r -  94 * color->g -  18 * color->b  + 128*256 + 128) >> 8;
 
-static inline u32
-dfb_color_to_acrycb( const DFBColor *color )
-{
-     u32 y,cb,cr;
-     RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
-     return (color->a << 24) | (cr << 16) | (y << 8) | cb;
+     return (color->a << 24) | (y << 16) | (cb << 8) | cr;
 }
 
 static inline void

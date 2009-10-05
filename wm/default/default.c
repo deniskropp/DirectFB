@@ -496,7 +496,6 @@ window_at_pointer( CoreWindowStack *stack,
                                         break;
                                    case DSPF_ARGB:
                                    case DSPF_AYUV:
-                                   case DSPF_AVYU:
                                         alpha = *(u32*)(buf) >> 24;
                                         break;
                                    case DSPF_RGBA5551:

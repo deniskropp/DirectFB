@@ -506,7 +506,6 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           case DSPF_ARGB4444:
           case DSPF_RGBA4444:
           case DSPF_AYUV:
-          case DSPF_AVYU:
           case DSPF_AiRGB:
           case DSPF_I420:
           case DSPF_LUT2:
@@ -523,7 +522,6 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           case DSPF_NV12:
           case DSPF_NV21:
           case DSPF_NV16:
-          case DSPF_VYU:
           case DSPF_RGB444:
           case DSPF_RGB555:
           case DSPF_BGR555:
@@ -638,7 +636,6 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                               case DSPF_RGBA5551:
                               case DSPF_ARGB:
                               case DSPF_AYUV:
-                              case DSPF_AVYU:
                               case DSPF_AiRGB:
                                    wd.caps |= DWCAPS_ALPHACHANNEL;
                                    break;
