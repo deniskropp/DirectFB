@@ -537,7 +537,7 @@ dfb_convert_to_rgb555( DFBSurfacePixelFormat  format,
                }
                break;
 
-		case DSPF_RGBA5551:
+          case DSPF_RGBA5551:
                while (height--) {
                     const u16 *src16 = src;
 
@@ -705,7 +705,7 @@ dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
                }
                break;
 
-		case DSPF_RGBA5551:
+          case DSPF_RGBA5551:
                while (height--) {
                     const u16 *src16 = src;
 
@@ -917,7 +917,7 @@ dfb_convert_to_argb( DFBSurfacePixelFormat  format,
                }
                break;
 
-		case DSPF_RGBA5551:
+          case DSPF_RGBA5551:
                while (height--) {
                     const u16 *src16 = src;
 
@@ -1195,7 +1195,7 @@ dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
                     dst += dpitch;
                }
                break;
-          case DSPF_NV16: {
+          case DSPF_NV16:
                while (height--) {
                     const u16 *cbcr = src + surface_height * spitch;
                     const u8  *src8 = src;
@@ -1234,8 +1234,6 @@ dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
                     dst += dpitch;
                }
                break;
-
-          }
           default:
                D_ONCE( "unsupported format" );
      }
