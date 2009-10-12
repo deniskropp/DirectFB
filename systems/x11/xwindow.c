@@ -293,6 +293,7 @@ dfb_x11_close_window( DFBX11 *x11, XWindow* xw )
 
      XFreeGC( xw->display, xw->gc );
      XDestroyWindow( xw->display, xw->window );
+     XFreeCursor( xw->display, xw->NullCursor );
 
      D_FREE( xw );
 }
