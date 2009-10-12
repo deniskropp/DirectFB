@@ -63,8 +63,6 @@ typedef struct {
      int                 bpp;
 
      /* (Null) cursor stuff*/
-     Pixmap              pixmp1;
-     Pixmap              pixmp2;
      Cursor              NullCursor;
 } XWindow;
 

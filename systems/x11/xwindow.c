@@ -148,14 +148,19 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
      xw->gc = XCreateGC(xw->display, xw->window, 0, NULL);
 
      // Create a null cursor
+     Pixmap  pixmp1;
+     Pixmap  pixmp2;
      XColor  fore;
      XColor  back;
      char    zero = 0;
 
-     xw->pixmp1     = XCreateBitmapFromData( xw->display, xw->window, &zero, 1, 1 );
-     xw->pixmp2     = XCreateBitmapFromData( xw->display, xw->window, &zero, 1, 1 );
+     pixmp1 = XCreateBitmapFromData( xw->display, xw->window, &zero, 1, 1 );
+     pixmp2 = XCreateBitmapFromData( xw->display, xw->window, &zero, 1, 1 );
 
-     xw->NullCursor = XCreatePixmapCursor( xw->display, xw->pixmp1, xw->pixmp2, &fore, &back, 0, 0 );
+     xw->NullCursor = XCreatePixmapCursor( xw->display, pixmp1, pixmp2, &fore, &back, 0, 0 );
+
+     XFreePixmap ( xw->display, pixmp1 );
+     XFreePixmap ( xw->display, pixmp2 );
 
      XDefineCursor( xw->display, xw->window, xw->NullCursor );
 
@@ -165,7 +170,7 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
 
 
      if (x11->use_shm) {
-          // Shared memory 	
+          // Shared memory
           xw->shmseginfo=(XShmSegmentInfo *)D_CALLOC(1, sizeof(XShmSegmentInfo));
           if (!xw->shmseginfo) {
                x11->use_shm = false;
