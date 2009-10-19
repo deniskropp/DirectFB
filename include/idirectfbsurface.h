@@ -187,6 +187,14 @@ public:
      void                   SetIndexTranslation (const int                *indices,
                                                  int                       num_indices);
 
+     void                   Read                (void                     *ptr,
+                                                 int                       pitch,
+                                                 const DFBRectangle       *rect = NULL);
+
+     void                   Write               (const void               *ptr,
+                                                 int                       pitch,
+                                                 const DFBRectangle       *rect = NULL);
+
      inline IDirectFBSurface& operator = (const IDirectFBSurface& other){
           return IPPAny<IDirectFBSurface, IDirectFBSurface_C>::operator =(other);
      }

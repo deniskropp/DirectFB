@@ -402,3 +402,39 @@ void IDirectFBSurface::SetIndexTranslation (const int *indices,
      DFBCHECK( iface->SetIndexTranslation (iface, indices, num_indices) );
 }
 
+void IDirectFBSurface::Read( void                     *ptr,
+                             int                       pitch,
+                             const DFBRectangle       *rect )
+{
+     DFBRectangle r;
+
+     if (!rect) {
+          r.x = 0;
+          r.y = 0;
+
+          GetSize( &r.w, &r.h );
+
+          rect = &r;
+     }
+
+     DFBCHECK( iface->Read (iface, rect, ptr, pitch) );
+}
+
+void IDirectFBSurface::Write( const void               *ptr,
+                              int                       pitch,
+                              const DFBRectangle       *rect )
+{
+     DFBRectangle r;
+
+     if (!rect) {
+          r.x = 0;
+          r.y = 0;
+
+          GetSize( &r.w, &r.h );
+
+          rect = &r;
+     }
+
+     DFBCHECK( iface->Write (iface, rect, ptr, pitch) );
+}
+
