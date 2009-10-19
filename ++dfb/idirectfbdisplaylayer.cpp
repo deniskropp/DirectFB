@@ -71,7 +71,7 @@ void IDirectFBDisplayLayer::SetCooperativeLevel (DFBDisplayLayerCooperativeLevel
      DFBCHECK( iface->SetCooperativeLevel (iface, level) );
 }
 
-void IDirectFBDisplayLayer::SetOpacity (__u8 opacity)
+void IDirectFBDisplayLayer::SetOpacity (u8 opacity)
 {
      DFBCHECK( iface->SetOpacity (iface, opacity) );
 }
@@ -113,12 +113,12 @@ void IDirectFBDisplayLayer::SetClipRegions (const DFBRegion *regions,
      DFBCHECK( iface->SetClipRegions (iface, regions, num_regions, positive) );
 }
 
-void IDirectFBDisplayLayer::SetSrcColorKey (__u8 r, __u8 g, __u8 b)
+void IDirectFBDisplayLayer::SetSrcColorKey (u8 r, u8 g, u8 b)
 {
      DFBCHECK( iface->SetSrcColorKey (iface, r, g, b) );
 }
 
-void IDirectFBDisplayLayer::SetDstColorKey (__u8 r, __u8 g, __u8 b)
+void IDirectFBDisplayLayer::SetDstColorKey (u8 r, u8 g, u8 b)
 {
      DFBCHECK( iface->SetDstColorKey (iface, r, g, b) );
 }
@@ -182,7 +182,7 @@ void IDirectFBDisplayLayer::SetBackgroundImage (IDirectFBSurface *surface)
      DFBCHECK( iface->SetBackgroundImage (iface, surface->get_iface()) );
 }
 
-void IDirectFBDisplayLayer::SetBackgroundColor (__u8 r, __u8 g, __u8 b, __u8 a)
+void IDirectFBDisplayLayer::SetBackgroundColor (u8 r, u8 g, u8 b, u8 a)
 {
      DFBCHECK( iface->SetBackgroundColor (iface, r, g, b, a) );
 }
@@ -244,7 +244,7 @@ void IDirectFBDisplayLayer::SetCursorShape (IDirectFBSurface *shape,
      DFBCHECK( iface->SetCursorShape (iface, shape->get_iface(), hot_x, hot_y) );
 }
 
-void IDirectFBDisplayLayer::SetCursorOpacity (__u8 opacity)
+void IDirectFBDisplayLayer::SetCursorOpacity (u8 opacity)
 {
      DFBCHECK( iface->SetCursorOpacity (iface, opacity) );
 }

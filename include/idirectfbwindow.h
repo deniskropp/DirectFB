@@ -52,16 +52,16 @@ public:
 
      void                  SetOptions        (DFBWindowOptions        options);
      DFBWindowOptions      GetOptions        ();
-     void                  SetColorKey       (__u8                    r,
-                                              __u8                    g,
-                                              __u8                    b);
+     void                  SetColorKey       (u8                    r,
+                                              u8                    g,
+                                              u8                    b);
      void                  SetColorKeyIndex  (unsigned int            index);
-     void                  SetOpacity        (__u8                    opacity);
+     void                  SetOpacity        (u8                    opacity);
      void                  SetOpaqueRegion   (int                     x1,
                                               int                     y1,
                                               int                     x2,
                                               int                     y2);
-     __u8                  GetOpacity        ();
+     u8                  GetOpacity        ();
      void                  SetCursorShape    (IDirectFBSurface       *shape,
                                               int                     hot_x,
                                               int                     hot_y);

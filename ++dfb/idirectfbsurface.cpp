@@ -82,7 +82,7 @@ void IDirectFBSurface::SetPalette (IDirectFBPalette *palette)
      DFBCHECK( iface->SetPalette (iface, palette->get_iface()) );
 }
 
-void IDirectFBSurface::SetAlphaRamp (__u8 a0, __u8 a1, __u8 a2, __u8 a3)
+void IDirectFBSurface::SetAlphaRamp (u8 a0, u8 a1, u8 a2, u8 a3)
 {
      DFBCHECK( iface->SetAlphaRamp (iface, a0, a1, a2, a3) );
 }
@@ -110,7 +110,7 @@ void IDirectFBSurface::SetField (int field)
      DFBCHECK( iface->SetField (iface, field) );
 }
 
-void IDirectFBSurface::Clear (__u8 r, __u8 g, __u8 b, __u8 a)
+void IDirectFBSurface::Clear (u8 r, u8 g, u8 b, u8 a)
 {
      DFBCHECK( iface->Clear (iface, r, g, b, a) );
 }
@@ -120,7 +120,7 @@ void IDirectFBSurface::SetClip (DFBRegion *clip)
      DFBCHECK( iface->SetClip (iface, clip) );
 }
 
-void IDirectFBSurface::SetColor (__u8 r, __u8 g, __u8 b, __u8 a)
+void IDirectFBSurface::SetColor (u8 r, u8 g, u8 b, u8 a)
 {
      DFBCHECK( iface->SetColor (iface, r, g, b, a) );
 }
@@ -145,7 +145,7 @@ void IDirectFBSurface::SetPorterDuff (DFBSurfacePorterDuffRule rule)
      DFBCHECK( iface->SetPorterDuff (iface, rule) );
 }
 
-void IDirectFBSurface::SetSrcColorKey (__u8 r, __u8 g, __u8 b)
+void IDirectFBSurface::SetSrcColorKey (u8 r, u8 g, u8 b)
 {
      DFBCHECK( iface->SetSrcColorKey (iface, r, g, b) );
 }
@@ -155,7 +155,7 @@ void IDirectFBSurface::SetSrcColorKeyIndex (unsigned int index)
      DFBCHECK( iface->SetSrcColorKeyIndex (iface, index) );
 }
 
-void IDirectFBSurface::SetDstColorKey (__u8 r, __u8 g, __u8 b)
+void IDirectFBSurface::SetDstColorKey (u8 r, u8 g, u8 b)
 {
      DFBCHECK( iface->SetDstColorKey (iface, r, g, b) );
 }

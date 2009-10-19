@@ -97,7 +97,7 @@ DFBWindowOptions IDirectFBWindow::GetOptions ()
      return options;
 }
 
-void IDirectFBWindow::SetColorKey (__u8 r, __u8 g, __u8 b)
+void IDirectFBWindow::SetColorKey (u8 r, u8 g, u8 b)
 {
      DFBCHECK( iface->SetColorKey (iface, r, g, b) );
 }
@@ -107,7 +107,7 @@ void IDirectFBWindow::SetColorKeyIndex (unsigned int index)
      DFBCHECK( iface->SetColorKeyIndex (iface, index) );
 }
 
-void IDirectFBWindow::SetOpacity (__u8 opacity)
+void IDirectFBWindow::SetOpacity (u8 opacity)
 {
      DFBCHECK( iface->SetOpacity (iface, opacity) );
 }
@@ -117,9 +117,9 @@ void IDirectFBWindow::SetOpaqueRegion (int x1, int y1, int x2, int y2)
      DFBCHECK( iface->SetOpaqueRegion (iface, x1, y1, x2, y2) );
 }
 
-__u8 IDirectFBWindow::GetOpacity()
+u8 IDirectFBWindow::GetOpacity()
 {
-     __u8 opacity;
+     u8 opacity;
 
      DFBCHECK( iface->GetOpacity (iface, &opacity) );
 

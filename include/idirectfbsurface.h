@@ -55,10 +55,10 @@ public:
 
      IDirectFBPalette       GetPalette          ();
      void                   SetPalette          (IDirectFBPalette         *palette);
-     void                   SetAlphaRamp        (__u8                      a0,
-                                                 __u8                      a1,
-                                                 __u8                      a2,
-                                                 __u8                      a3);
+     void                   SetAlphaRamp        (u8                      a0,
+                                                 u8                      a1,
+                                                 u8                      a2,
+                                                 u8                      a3);
 
      void                   Lock                (DFBSurfaceLockFlags       flags,
                                                  void                    **ptr,
@@ -67,27 +67,27 @@ public:
      void                   Flip                (DFBRegion                *region = NULL,
                                                  DFBSurfaceFlipFlags       flags = static_cast<DFBSurfaceFlipFlags>(0));
      void                   SetField            (int                       field);
-     void                   Clear               (__u8                      r = 0x00,
-                                                 __u8                      g = 0x00,
-                                                 __u8                      b = 0x00,
-                                                 __u8                      a = 0x00);
+     void                   Clear               (u8                      r = 0x00,
+                                                 u8                      g = 0x00,
+                                                 u8                      b = 0x00,
+                                                 u8                      a = 0x00);
 
      void                   SetClip             (DFBRegion                *clip);
-     void                   SetColor            (__u8                      r,
-                                                 __u8                      g,
-                                                 __u8                      b,
-                                                 __u8                      a = 0xFF);
+     void                   SetColor            (u8                      r,
+                                                 u8                      g,
+                                                 u8                      b,
+                                                 u8                      a = 0xFF);
      void                   SetColorIndex       (unsigned int              index);
      void                   SetSrcBlendFunction (DFBSurfaceBlendFunction   function);
      void                   SetDstBlendFunction (DFBSurfaceBlendFunction   function);
      void                   SetPorterDuff       (DFBSurfacePorterDuffRule  rule);
-     void                   SetSrcColorKey      (__u8                      r,
-                                                 __u8                      g,
-                                                 __u8                      b);
+     void                   SetSrcColorKey      (u8                      r,
+                                                 u8                      g,
+                                                 u8                      b);
      void                   SetSrcColorKeyIndex (unsigned int              index);
-     void                   SetDstColorKey      (__u8                      r,
-                                                 __u8                      g,
-                                                 __u8                      b);
+     void                   SetDstColorKey      (u8                      r,
+                                                 u8                      g,
+                                                 u8                      b);
      void                   SetDstColorKeyIndex (unsigned int              index);
 
      void                   SetBlittingFlags    (DFBSurfaceBlittingFlags   flags);

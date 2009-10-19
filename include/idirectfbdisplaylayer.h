@@ -48,7 +48,7 @@ public:
      IDirectFBScreen        GetScreen             ();
 
      void                   SetCooperativeLevel   (DFBDisplayLayerCooperativeLevel level);
-     void                   SetOpacity            (__u8                            opacity);
+     void                   SetOpacity            (u8                            opacity);
      void                   SetSourceRectangle    (int                             x,
                                                    int                             y,
                                                    int                             width,
@@ -66,12 +66,12 @@ public:
      void                   SetClipRegions        (const DFBRegion                *regions,
                                                    int                             num_regions,
                                                    DFBBoolean                      positive);
-     void                   SetSrcColorKey        (__u8                            r,
-                                                   __u8                            g,
-                                                   __u8                            b);
-     void                   SetDstColorKey        (__u8                            r,
-                                                   __u8                            g,
-                                                   __u8                            b);
+     void                   SetSrcColorKey        (u8                            r,
+                                                   u8                            g,
+                                                   u8                            b);
+     void                   SetDstColorKey        (u8                            r,
+                                                   u8                            g,
+                                                   u8                            b);
      int                    GetLevel              ();
      void                   SetLevel              (int                             level);
      int                    GetCurrentOutputField ();
@@ -85,10 +85,10 @@ public:
 
      void                   SetBackgroundMode     (DFBDisplayLayerBackgroundMode   mode);
      void                   SetBackgroundImage    (IDirectFBSurface               *surface);
-     void                   SetBackgroundColor    (__u8                            r,
-                                                   __u8                            g,
-                                                   __u8                            b,
-                                                   __u8                            a = 0xFF);
+     void                   SetBackgroundColor    (u8                            r,
+                                                   u8                            g,
+                                                   u8                            b,
+                                                   u8                            a = 0xFF);
 
      void                   GetColorAdjustment    (DFBColorAdjustment             *adj);
      void                   SetColorAdjustment    (DFBColorAdjustment             &adj);
@@ -107,7 +107,7 @@ public:
      void                   SetCursorShape        (IDirectFBSurface               *shape,
                                                    int                             hot_x,
                                                    int                             hot_y);
-     void                   SetCursorOpacity      (__u8                            opacity);
+     void                   SetCursorOpacity      (u8                            opacity);
 
      void                   SwitchContext         (DFBBoolean                      exclusive);
 

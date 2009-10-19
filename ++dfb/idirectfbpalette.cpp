@@ -57,7 +57,7 @@ void IDirectFBPalette::GetEntries (DFBColor     *entries,
      DFBCHECK( iface->GetEntries (iface, entries, num_entries, offset) );
 }
 
-unsigned int IDirectFBPalette::FindBestMatch (__u8 r, __u8 g, __u8 b, __u8 a)
+unsigned int IDirectFBPalette::FindBestMatch (u8 r, u8 g, u8 b, u8 a)
 {
      unsigned int index;
 

@@ -49,10 +49,10 @@ public:
                                                       unsigned int  num_entries,
                                                       unsigned int  offset);
 
-     unsigned int           FindBestMatch            (__u8          r,
-                                                      __u8          g,
-                                                      __u8          b,
-                                                      __u8          a);
+     unsigned int           FindBestMatch            (u8          r,
+                                                      u8          g,
+                                                      u8          b,
+                                                      u8          a);
 
      IDirectFBPalette       CreateCopy               ();
 
