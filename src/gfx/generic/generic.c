@@ -9097,56 +9097,6 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
      gfxs->length = rect->w;
 
-     if (state->blittingflags == DSBLIT_ROTATE180 && gfxs->src_format == gfxs->dst_format) {
-          Aop_xy( gfxs, dx, dy );
-          Bop_xy( gfxs, rect->x + rect->w - 1, rect->y + rect->h - 1 );
-
-          switch (DFB_BYTES_PER_PIXEL(gfxs->dst_format)) {
-               case 4: {
-                    for (h = rect->h; h; h--) {
-                         u32 *src = gfxs->Bop[0];
-                         u32 *dst = gfxs->Aop[0];
-
-                         for (x=0; x<rect->w; x++)
-                              dst[x] = src[-x];
-
-                         Aop_next( gfxs );
-                         Bop_prev( gfxs );
-                    }
-                    return;
-               }
-               case 2: {
-                    for (h = rect->h; h; h--) {
-                         u16 *src = gfxs->Bop[0];
-                         u16 *dst = gfxs->Aop[0];
-
-                         for (x=0; x<rect->w; x++)
-                              dst[x] = src[-x];
-
-                         Aop_next( gfxs );
-                         Bop_prev( gfxs );
-                    }
-                    return;
-               }
-               case 1: {
-                    for (h = rect->h; h; h--) {
-                         u8 *src = gfxs->Bop[0];
-                         u8 *dst = gfxs->Aop[0];
-
-                         for (x=0; x<rect->w; x++)
-                              dst[x] = src[-x];
-
-                         Aop_next( gfxs );
-                         Bop_prev( gfxs );
-                    }
-                    return;
-               }
-
-               default:
-                    break;
-          }
-     }
-
      if (state->blittingflags & DSBLIT_ROTATE180) {
           Aop_xy( gfxs, dx + rect->w - 1, dy );
           Bop_xy( gfxs, rect->x, rect->y + rect->h - 1 );
