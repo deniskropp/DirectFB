@@ -253,7 +253,7 @@ main( int argc, char *argv[] )
           int j,n = rand()%100;
 
           for (j=0; j<n; j++) {
-               switch (rand()%2) {
+               switch (rand()%3) {
                     case 0:
                          dest->SetDrawingFlags( dest, rand() & (DSDRAW_BLEND) );
                          dest->FillRectangle( dest, rand()%100, rand()%100, rand()%100, rand()%100 );
@@ -265,6 +265,14 @@ main( int argc, char *argv[] )
                                                                  DSBLIT_COLORIZE           |
                                                                  DSBLIT_ROTATE90) );
                          dest->Blit( dest, source, NULL, rand()%100, rand()%100 );
+                         break;
+
+                    case 2:
+                         dest->SetBlittingFlags( dest, rand() & (DSBLIT_BLEND_ALPHACHANNEL |
+                                                                 DSBLIT_BLEND_COLORALPHA   |
+                                                                 DSBLIT_COLORIZE           |
+                                                                 DSBLIT_ROTATE90) );
+                         dest->StretchBlit( dest, source, NULL, NULL );
                          break;
                }
           }
