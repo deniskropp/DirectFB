@@ -135,14 +135,8 @@ main( int argc, char *argv[] )
           printf( "\n" );
           printf( "\n" );
 
-          printf( "%s, hw %5d-%5d, next %5d-%5d, %svalid, "
-                  "STATUS 0x%02x, B 0x%08x [%d], E %5d, H %5d, T %5d\n",
+          printf( "%s, STATUS 0x%02x, B 0x%08x [%d], E %5d, H %5d, T %5d\n",
                   gfx_shared->hw_running ? "running" : "idle   ",
-                  gfx_shared->hw_start,
-                  gfx_shared->hw_end,
-                  gfx_shared->next_start,
-                  gfx_shared->next_end,
-                  gfx_shared->next_valid ? "  " : "in",
                   PXA_GCISCR & PXA_GCISCR_ALL,
                   PXA_GCRBBR, PXA_GCRBLR,
                   (PXA_GCRBEXHR - base) / 4,
@@ -151,15 +145,15 @@ main( int argc, char *argv[] )
 
           printf( "\n" );
 
-          printf( "      %u starts, %u done, %u interrupts, %u wait_idle, %u wait_next, %u idle\n",
-                  gfx_shared->num_starts, gfx_shared->num_done, gfx_shared->num_interrupts,
-                  gfx_shared->num_wait_idle, gfx_shared->num_wait_next, gfx_shared->num_idle );
+          printf( "      %u writes, %u done, %u interrupts, %u wait_idle, %u wait_free, %u idle\n",
+                  gfx_shared->num_writes, gfx_shared->num_done, gfx_shared->num_interrupts,
+                  gfx_shared->num_wait_idle, gfx_shared->num_wait_free, gfx_shared->num_idle );
 
-          printf( "      %u words, %u words/start, %u words/idle, %u starts/idle\n",
+          printf( "      %u words, %u words/write, %u words/idle, %u writes/idle\n",
                   gfx_shared->num_words,
-                  gfx_shared->num_words  / (gfx_shared->num_starts ?: 1),
+                  gfx_shared->num_words  / (gfx_shared->num_writes ?: 1),
                   gfx_shared->num_words  / (gfx_shared->num_idle ?: 1),
-                  gfx_shared->num_starts / (gfx_shared->num_idle ?: 1) );
+                  gfx_shared->num_writes / (gfx_shared->num_idle ?: 1) );
 
           printf( "\n" );
 
