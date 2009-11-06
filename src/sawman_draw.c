@@ -514,6 +514,17 @@ draw_window_color( SaWManWindow *sawwin,
      dfb_state_set_clip( state, &old_clip );
 }
 
+static void
+draw_two_windows( SaWManTier   *tier,
+                  SaWManWindow *sawwin1,
+                  SaWManWindow *sawwin2,
+                  CardState    *state,
+                  DFBRegion    *region )
+{
+     draw_window( tier, sawwin1, state, region, false );
+     draw_window( tier, sawwin2, state, region, true );
+}
+
 void
 sawman_draw_window( SaWManTier   *tier,
                     SaWManWindow *sawwin,
@@ -562,6 +573,54 @@ sawman_draw_window( SaWManTier   *tier,
      state->source    = NULL;
      state->modified |= SMF_SOURCE;
 }
+
+void
+sawman_draw_two_windows( SaWManTier   *tier,
+                         SaWManWindow *sawwin1,
+                         SaWManWindow *sawwin2,
+                         CardState    *state,
+                         DFBRegion    *pregion )
+{
+     CoreWindow      *window1;
+     CoreWindow      *window2;
+     CoreWindowStack *stack;
+     DFBRegion        xregion = *pregion;
+     DFBRegion       *region  = &xregion;
+     int              border;
+
+     D_MAGIC_ASSERT( sawwin1, SaWManWindow );
+     D_MAGIC_ASSERT( sawwin2, SaWManWindow );
+     D_MAGIC_ASSERT( state, CardState );
+     DFB_REGION_ASSERT( region );
+
+     window1 = sawwin1->window;
+     window2 = sawwin2->window;
+     stack  = sawwin1->stack;
+
+     D_ASSERT( window1 != NULL );
+     D_ASSERT( window2 != NULL );
+     D_ASSERT( stack != NULL );
+
+     D_DEBUG_AT( SaWMan_Draw, "%s( %p, %p, %d,%d-%dx%d )\n", __FUNCTION__,
+                 sawwin1, sawwin2, DFB_RECTANGLE_VALS_FROM_REGION( pregion ) );
+
+     /* we assume that the windows are both visible and overlapping */
+     /* TODO surface */
+     draw_two_windows( tier, sawwin1, sawwin2, state, region );
+
+     border = sawman_window_border( sawwin1 );
+     if (border)
+          draw_border( sawwin1, state, pregion, border );
+
+     border = sawman_window_border( sawwin2 );
+     if (border)
+          draw_border( sawwin2, state, pregion, border );
+
+     /* Reset blitting source. */
+     state->source    = NULL;
+     state->modified |= SMF_SOURCE;
+}
+
 
 void
 sawman_draw_background( SaWManTier *tier, CardState *state, DFBRegion *region )
