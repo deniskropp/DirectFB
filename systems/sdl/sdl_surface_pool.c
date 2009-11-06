@@ -87,6 +87,8 @@ sdlInitPool( CoreDFB                    *core,
      ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
      ret_desc->priority          = CSPP_PREFERED;
 
+     ret_desc->access[CSAID_LAYER0] = CSAF_READ;
+
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "SDL" );
 
      return DFB_OK;
@@ -168,8 +170,6 @@ sdlAllocateBuffer( CoreSurfacePool       *pool,
           D_DEBUG_AT( SDL_Pool, "  -> screen surface  %dx%d, %d, 0x%08x, pitch %d\n",
                       dfb_sdl->screen->w, dfb_sdl->screen->h, dfb_sdl->screen->format->BitsPerPixel,
                       dfb_sdl->screen->flags, dfb_sdl->screen->pitch );
-
-          allocation->flags |= CSALF_ONEFORALL;
      }
      else {
           DFBSurfacePixelFormat  format = surface->config.format;
@@ -236,6 +236,9 @@ sdlAllocateBuffer( CoreSurfacePool       *pool,
                return DFB_FAILURE;
           }
      }
+
+     /* approximation */
+     allocation->size = surface->config.size.h * surface->config.size.w;
 
      D_MAGIC_SET( alloc, SDLAllocationData );
 
