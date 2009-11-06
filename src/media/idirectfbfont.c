@@ -446,6 +446,7 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
      DFBResult      ret;
      CoreFont      *font;
      const u8      *string;
+     const u8      *last;
      const u8      *end;
      CoreGlyphData *glyph;
      int            kern_x;
@@ -488,6 +489,7 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
 
           current = DIRECT_UTF8_GET_CHAR( string );
 
+          last    = string;
           string += DIRECT_UTF8_SKIP( string[0] );
 
           if (current == ' ' || current == 0x0a) {
@@ -514,7 +516,7 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
 
      dfb_font_unlock( font );
 
-     if (width<max_width && string >= end) {
+     if (width < max_width && string >= end) {
           *ret_next_line = NULL;
           *ret_str_length = length;
           *ret_width = width;
@@ -529,7 +531,7 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
                *ret_width = width;
           } else {
                *ret_str_length = length-1;
-               *ret_next_line = (const char*) string-1;
+               *ret_next_line = (const char*) last;
                /* ret_width already set in the loop */
           }
      }
