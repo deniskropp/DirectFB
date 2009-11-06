@@ -439,7 +439,7 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
                               const char    *text,
                               int            bytes,
                               int            max_width,
-                              int           *ret_width, 
+                              int           *ret_width,
                               int           *ret_str_length,
                               const char   **ret_next_line)
 {
@@ -484,7 +484,7 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
 
      do {
           *ret_width = width;
-          length ++;          
+          length ++;
 
           current = DIRECT_UTF8_GET_CHAR( string );
 
@@ -503,7 +503,7 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
           ret = dfb_font_get_glyph_data( font, index, 0, &glyph );    // FIXME: support font layers
           if (ret)
                continue;
-          
+
           width += glyph->advance;
 
           if (prev && font->GetKerning && font->GetKerning( font, prev, index, &kern_x, NULL ) == DFB_OK)
