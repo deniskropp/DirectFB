@@ -106,13 +106,8 @@ static int pixel_formats[DFB_NUM_PIXELFORMATS] = {
                                                   pxa3xx_validate_##flag( pdrv, pdev, state );      \
                                         } while (0)
 
-#define DUMP_INFO() D_DEBUG_AT( PXA3XX_BLT, "  -> %srunning, hw %d-%d, next %d-%d - %svalid\n",     \
-                                            pdrv->gfx_shared->hw_running ? "" : "not ",             \
-                                            pdrv->gfx_shared->hw_start,                             \
-                                            pdrv->gfx_shared->hw_end,                               \
-                                            pdrv->gfx_shared->next_start,                           \
-                                            pdrv->gfx_shared->next_end,                             \
-                                            pdrv->gfx_shared->next_valid ? "" : "not " );
+#define DUMP_INFO() D_DEBUG_AT( PXA3XX_BLT, "  -> %srunning\n",     \
+                                            pdrv->gfx_shared->hw_running ? "" : "not " );
 
 /**********************************************************************************************************************/
 
