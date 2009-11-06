@@ -9122,7 +9122,7 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
      }
      else if (state->blittingflags & DSBLIT_FLIP_VERTICAL) {
           Aop_X = dx;
-          Aop_Y = dy + rect->w - 1;
+          Aop_Y = dy + rect->h - 1;
 
           Bop_X = rect->x;
           Bop_Y = rect->y;
