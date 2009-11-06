@@ -250,6 +250,9 @@ typedef struct _GraphicsDeviceFuncs {
      bool (*Blit)            ( void *driver_data, void *device_data,
                                DFBRectangle *rect, int dx, int dy );
 
+     bool (*Blit2)           ( void *driver_data, void *device_data,
+                               DFBRectangle *rect, int dx, int dy, int sx2, int sy2 );
+
      bool (*StretchBlit)     ( void *driver_data, void *device_data,
                                DFBRectangle *srect, DFBRectangle *drect );
 
@@ -351,6 +354,12 @@ void dfb_gfxcard_blit                   ( DFBRectangle         *rect,
 
 void dfb_gfxcard_batchblit              ( DFBRectangle         *rects,
                                           DFBPoint             *points,
+                                          int                   num,
+                                          CardState            *state );
+
+void dfb_gfxcard_batchblit2             ( DFBRectangle         *rects,
+                                          DFBPoint             *points,
+                                          DFBPoint             *points2,
                                           int                   num,
                                           CardState            *state );
 

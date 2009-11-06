@@ -10,7 +10,9 @@ INCLUDES = \
 
 
 bin_PROGRAMS = \
+	coretest_blit2	\
 	dfbtest_blit	\
+	dfbtest_blit2	\
 	dfbtest_reinit	\
 	dfbtest_scale	\
 	dfbtest_sync	\
@@ -26,8 +28,14 @@ libdirectfb = $(top_builddir)/src/libdirectfb.la
 libfusion = $(top_builddir)/lib/fusion/libfusion.la
 libdirect = $(top_builddir)/lib/direct/libdirect.la
 
+coretest_blit2_SOURCES = coretest_blit2.c
+coretest_blit2_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
+
 dfbtest_blit_SOURCES = dfbtest_blit.c
 dfbtest_blit_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
+
+dfbtest_blit2_SOURCES = dfbtest_blit2.c
+dfbtest_blit2_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
 
 dfbtest_reinit_SOURCES = dfbtest_reinit.c
 dfbtest_reinit_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)

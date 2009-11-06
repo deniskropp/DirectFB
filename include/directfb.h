@@ -744,6 +744,7 @@ typedef enum {
                                                 see also IDirectFBSurface::SetSourceMask() */
      DSBLIT_SRC_MASK_COLOR     = 0x00200000, /* modulate source color channels with color channels from source mask,
                                                 see also IDirectFBSurface::SetSourceMask() */
+     DSBLIT_SOURCE2            = 0x00400000, /* use secondary source instead of destination for reading */
      DSBLIT_FLIP_HORIZONTAL    = 0x01000000, /* flip the image horizontally */
      DSBLIT_FLIP_VERTICAL      = 0x02000000, /* flip the image vertically */
 } DFBSurfaceBlittingFlags;
@@ -776,13 +777,14 @@ typedef enum {
      DFXL_BLIT           = 0x00010000,  /* Blit() and TileBlit() are accelerated. */
      DFXL_STRETCHBLIT    = 0x00020000,  /* StretchBlit() is accelerated. */
      DFXL_TEXTRIANGLES   = 0x00040000,  /* TextureTriangles() is accelerated. */
+     DFXL_BLIT2          = 0x00080000,  /* BatchBlit2() is accelerated. */
 
      DFXL_DRAWSTRING     = 0x01000000,  /* DrawString() and DrawGlyph() are accelerated. */
 
 
-     DFXL_ALL            = 0x0107000F,  /* All drawing/blitting functions. */
+     DFXL_ALL            = 0x010F000F,  /* All drawing/blitting functions. */
      DFXL_ALL_DRAW       = 0x0000000F,  /* All drawing functions. */
-     DFXL_ALL_BLIT       = 0x01070000,  /* All blitting functions. */
+     DFXL_ALL_BLIT       = 0x010F0000,  /* All blitting functions. */
 } DFBAccelerationMask;
 
 
@@ -4126,6 +4128,25 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           const DFBColorID         *ids,
           const DFBColor           *colors,
           unsigned int              num
+     );
+
+
+
+   /** Blitting functions **/
+
+     /*
+      * Blit a bunch of areas at once using secondary source for reading instead of destination.
+      *
+      * Source may be the same surface.
+      */
+     DFBResult (*BatchBlit2) (
+          IDirectFBSurface         *thiz,
+          IDirectFBSurface         *source,
+          IDirectFBSurface         *source2,
+          const DFBRectangle       *source_rects,
+          const DFBPoint           *dest_points,
+          const DFBPoint           *source2_points,
+          int                       num
      );
 )
 
