@@ -95,7 +95,7 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
      xw->depth     = DefaultDepthOfScreen(xw->screenptr);
      xw->visual    = DefaultVisualOfScreen(xw->screenptr);
 
-     attr.event_mask = 
+     attr.event_mask =
             ButtonPressMask
           | ButtonReleaseMask
           | PointerMotionMask
@@ -148,14 +148,19 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
      xw->gc = XCreateGC(xw->display, xw->window, 0, NULL);
 
      // Create a null cursor
+     Pixmap  pixmp1;
+     Pixmap  pixmp2;
      XColor  fore;
      XColor  back;
      char    zero = 0;
 
-     xw->pixmp1     = XCreateBitmapFromData( xw->display, xw->window, &zero, 1, 1 );
-     xw->pixmp2     = XCreateBitmapFromData( xw->display, xw->window, &zero, 1, 1 );
+     pixmp1 = XCreateBitmapFromData( xw->display, xw->window, &zero, 1, 1 );
+     pixmp2 = XCreateBitmapFromData( xw->display, xw->window, &zero, 1, 1 );
 
-     xw->NullCursor = XCreatePixmapCursor( xw->display, xw->pixmp1, xw->pixmp2, &fore, &back, 0, 0 );
+     xw->NullCursor = XCreatePixmapCursor( xw->display, pixmp1, pixmp2, &fore, &back, 0, 0 );
+
+     XFreePixmap ( xw->display, pixmp1 );
+     XFreePixmap ( xw->display, pixmp2 );
 
      XDefineCursor( xw->display, xw->window, xw->NullCursor );
 
@@ -165,7 +170,7 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
 
 
      if (x11->use_shm) {
-          // Shared memory 	
+          // Shared memory
           xw->shmseginfo=(XShmSegmentInfo *)D_CALLOC(1, sizeof(XShmSegmentInfo));
           if (!xw->shmseginfo) {
                x11->use_shm = false;
@@ -187,7 +192,7 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
 
           /* we firstly create our shared memory segment with the size we need, and
           correct permissions for the owner, the group and the world --> 0777 */
-          xw->shmseginfo->shmid=shmget(IPC_PRIVATE, 
+          xw->shmseginfo->shmid=shmget(IPC_PRIVATE,
                                        xw->ximage->bytes_per_line * xw->ximage->height * 2,
                                        IPC_CREAT|0777);
 
@@ -278,17 +283,18 @@ void
 dfb_x11_close_window( DFBX11 *x11, XWindow* xw )
 {
      if (x11->use_shm) {
-          XShmDetach(xw->display, xw->shmseginfo);
-          shmdt(xw->shmseginfo->shmaddr);
-          shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
-          D_FREE(xw->shmseginfo);
+          XShmDetach( xw->display, xw->shmseginfo );
+          shmdt( xw->shmseginfo->shmaddr );
+          shmctl( xw->shmseginfo->shmid, IPC_RMID, NULL );
+          D_FREE( xw->shmseginfo );
      }
 
-     XDestroyImage(xw->ximage);
+     XDestroyImage( xw->ximage );
 
-     XFreeGC(xw->display,xw->gc);
-     XDestroyWindow(xw->display,xw->window);
+     XFreeGC( xw->display, xw->gc );
+     XDestroyWindow( xw->display, xw->window );
+     XFreeCursor( xw->display, xw->NullCursor );
 
-     D_FREE(xw);
+     D_FREE( xw );
 }
 

@@ -8335,11 +8335,15 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                    break;
                          }
                     }
-                    else if ((gfxs->src_format == gfxs->dst_format && 
-                              (!DFB_PIXELFORMAT_IS_INDEXED(gfxs->src_format) ||
-                               dfb_palette_equal( gfxs->Alut, gfxs->Blut )))   ||
-                             ((gfxs->src_format == DSPF_I420 || gfxs->src_format == DSPF_YV12) &&
-                              (gfxs->dst_format == DSPF_I420 || gfxs->dst_format == DSPF_YV12)))
+                    else if (((gfxs->src_format == gfxs->dst_format && 
+                               (!DFB_PIXELFORMAT_IS_INDEXED(gfxs->src_format) ||
+                                dfb_palette_equal( gfxs->Alut, gfxs->Blut )))   ||
+                              ((gfxs->src_format == DSPF_I420 || gfxs->src_format == DSPF_YV12) &&
+                               (gfxs->dst_format == DSPF_I420 || gfxs->dst_format == DSPF_YV12))) &&
+                             (accel == DFXL_BLIT || !(state->blittingflags & (DSBLIT_ROTATE90  |
+                                                                              DSBLIT_ROTATE180 |
+                                                                              DSBLIT_ROTATE270 |
+                                                                              DSBLIT_FLIP_HORIZONTAL))))
                     {
                          gfxs->need_accumulator = false;
                          
@@ -8357,7 +8361,8 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                    *funcs++ = Bop_PFI_toK_Aop_PFI[dst_pfi];
                               } else if (state->blittingflags & (DSBLIT_ROTATE90  |
                                                                  DSBLIT_ROTATE180 |
-                                                                 DSBLIT_ROTATE270)) {
+                                                                 DSBLIT_ROTATE270 |
+                                                                 DSBLIT_FLIP_HORIZONTAL)) {
                                    *funcs++ = Bop_PFI_toR_Aop_PFI[dst_pfi];
                               } else
                                    *funcs++ = Bop_PFI_to_Aop_PFI[dst_pfi];
@@ -8494,6 +8499,9 @@ void gRelease( CardState *state )
                funcs[i]( gfxs );           \
      }
 
+/**********************************************************************************************************************/
+
+typedef void (*XopAdvanceFunc)( GenefxState *gfxs );
 
 static inline void Aop_xy( GenefxState *gfxs, int x, int y )
 {
@@ -8549,13 +8557,13 @@ static inline void Aop_xy( GenefxState *gfxs, int x, int y )
      }
 }
 
-static inline void Aop_crab( GenefxState *gfxs )
+static void Aop_crab( GenefxState *gfxs )
 {
      gfxs->Aop[0] += gfxs->dst_bpp;
      gfxs->AopY++;
 }
 
-static inline void Aop_next( GenefxState *gfxs )
+static void Aop_next( GenefxState *gfxs )
 {
      int pitch = gfxs->dst_pitch;
      
@@ -8618,7 +8626,7 @@ static inline void Aop_next( GenefxState *gfxs )
      gfxs->AopY++;
 }
 
-static inline void Aop_prev( GenefxState *gfxs )
+static void Aop_prev( GenefxState *gfxs )
 {
      int pitch = gfxs->dst_pitch;
      
@@ -8736,7 +8744,7 @@ static inline void Bop_xy( GenefxState *gfxs, int x, int y )
      }
 }
 
-static inline void Bop_next( GenefxState *gfxs )
+static void Bop_next( GenefxState *gfxs )
 {
      int pitch = gfxs->src_pitch;
      
@@ -8799,7 +8807,7 @@ static inline void Bop_next( GenefxState *gfxs )
      gfxs->BopY++;
 }
 
-static inline void Bop_prev( GenefxState *gfxs )
+static void Bop_prev( GenefxState *gfxs )
 {
      int pitch = gfxs->src_pitch;
      
@@ -8862,6 +8870,8 @@ static inline void Bop_prev( GenefxState *gfxs )
      gfxs->BopY--;
 }
 
+/**********************************************************************************************************************/
+
 static bool
 ABacc_prepare( GenefxState *gfxs, int width )
 {
@@ -8909,6 +8919,8 @@ ABacc_flush( GenefxState *gfxs )
           gfxs->Dacc    = NULL;
      }
 }
+
+/**********************************************************************************************************************/
 
 void gFillRectangle( CardState *state, DFBRectangle *rect )
 {
@@ -9037,8 +9049,14 @@ void gDrawLine( CardState *state, DFBRegion *line )
 
 void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 {
-     GenefxState *gfxs = state->gfxs;
-     int          x, h;
+     GenefxState    *gfxs = state->gfxs;
+     int             x, h;
+     XopAdvanceFunc  Aop_advance;
+     XopAdvanceFunc  Bop_advance;
+     int             Aop_X;
+     int             Aop_Y;
+     int             Bop_X;
+     int             Bop_Y;
 
      D_ASSERT( gfxs != NULL );
 
@@ -9061,19 +9079,6 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
      if (!ABacc_prepare( gfxs, rect->w ))
           return;
 
-     if (gfxs->src_org[0] == gfxs->dst_org[0] && dy == rect->y && dx > rect->x)
-          /* we must blit from right to left */
-          gfxs->Astep = gfxs->Bstep = -1;
-     else
-          /* we must blit from left to right*/
-          gfxs->Astep = gfxs->Bstep = 1;
-     
-     if (state->blittingflags & DSBLIT_ROTATE90)
-          gfxs->Astep *= -gfxs->dst_pitch / gfxs->dst_bpp;
-     else if (state->blittingflags & DSBLIT_ROTATE180)
-          gfxs->Astep *= -1;
-     else if (state->blittingflags & DSBLIT_ROTATE270)
-          gfxs->Astep *= gfxs->dst_pitch / gfxs->dst_bpp;
 
      switch (gfxs->src_format) {
           case DSPF_A4:
@@ -9097,142 +9102,128 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
      gfxs->length = rect->w;
 
-     if (state->blittingflags == DSBLIT_ROTATE180 && gfxs->src_format == gfxs->dst_format) {
-          Aop_xy( gfxs, dx, dy );
-          Bop_xy( gfxs, rect->x + rect->w - 1, rect->y + rect->h - 1 );
 
-          switch (DFB_BYTES_PER_PIXEL(gfxs->dst_format)) {
-               case 4: {
-                    for (h = rect->h; h; h--) {
-                         u32 *src = gfxs->Bop[0];
-                         u32 *dst = gfxs->Aop[0];
+     if (gfxs->src_org[0] == gfxs->dst_org[0] && dy == rect->y && dx > rect->x)
+          /* we must blit from right to left */
+          gfxs->Astep = gfxs->Bstep = -1;
+     else
+          /* we must blit from left to right*/
+          gfxs->Astep = gfxs->Bstep = 1;
 
-                         for (x=0; x<rect->w; x++)
-                              dst[x] = src[-x];
 
-                         Aop_next( gfxs );
-                         Bop_prev( gfxs );
-                    }
-                    return;
-               }
-               case 2: {
-                    for (h = rect->h; h; h--) {
-                         u16 *src = gfxs->Bop[0];
-                         u16 *dst = gfxs->Aop[0];
 
-                         for (x=0; x<rect->w; x++)
-                              dst[x] = src[-x];
+     if (state->blittingflags & DSBLIT_FLIP_HORIZONTAL) {
+          gfxs->Astep *= -1;
 
-                         Aop_next( gfxs );
-                         Bop_prev( gfxs );
-                    }
-                    return;
-               }
-               case 1: {
-                    for (h = rect->h; h; h--) {
-                         u8 *src = gfxs->Bop[0];
-                         u8 *dst = gfxs->Aop[0];
+          Aop_X = dx + rect->w - 1;
+          Aop_Y = dy;
 
-                         for (x=0; x<rect->w; x++)
-                              dst[x] = src[-x];
+          Bop_X = rect->x;
+          Bop_Y = rect->y;
 
-                         Aop_next( gfxs );
-                         Bop_prev( gfxs );
-                    }
-                    return;
-               }
-
-               default:
-                    break;
-          }
+          Aop_advance = Aop_next;
+          Bop_advance = Bop_next;
      }
+     else if (state->blittingflags & DSBLIT_FLIP_VERTICAL) {
+          Aop_X = dx;
+          Aop_Y = dy + rect->h - 1;
 
-     if (state->blittingflags & DSBLIT_ROTATE180) {
-          Aop_xy( gfxs, dx + rect->w - 1, dy );
-          Bop_xy( gfxs, rect->x, rect->y + rect->h - 1 );
-          
-          for (h = rect->h; h; h--) {
-               RUN_PIPELINE();
+          Bop_X = rect->x;
+          Bop_Y = rect->y;
 
-               Aop_next( gfxs );
-               Bop_prev( gfxs );
-          }
-          return;
+          Aop_advance = Aop_prev;
+          Bop_advance = Bop_next;
      }
-     else if( state->blittingflags & DSBLIT_ROTATE270 )
-     {
-          Aop_xy( gfxs, dx, dy );
-          Bop_xy( gfxs, rect->x, rect->y + rect->h - 1 );
+     else if (state->blittingflags & DSBLIT_ROTATE180) {
+          gfxs->Astep *= -1;
 
-          for( h = rect->h; h; h-- )
-          {
-               RUN_PIPELINE();
+          Aop_X = dx + rect->w - 1;
+          Aop_Y = dy;
 
-               Aop_crab( gfxs );
-               Bop_prev( gfxs );
-          }
-          return;
+          Bop_X = rect->x;
+          Bop_Y = rect->y + rect->h - 1;
+
+          Aop_advance = Aop_next;
+          Bop_advance = Bop_prev;
      }
-     else if( state->blittingflags & DSBLIT_ROTATE90 )
-     {
-          Aop_xy( gfxs, dx, dy + rect->w - 1 );
-          Bop_xy( gfxs, rect->x, rect->y );
+     else if (state->blittingflags & DSBLIT_ROTATE270) {
+          gfxs->Astep *= gfxs->dst_pitch / gfxs->dst_bpp;
 
-          for( h = rect->h; h; h-- )
-          {
-               RUN_PIPELINE();
+          Aop_X = dx;
+          Aop_Y = dy;
 
-               Aop_crab( gfxs );
-               Bop_next( gfxs );
-          }
-          return;
+          Bop_X = rect->x;
+          Bop_Y = rect->y + rect->h - 1;
+
+          Aop_advance = Aop_crab;
+          Bop_advance = Bop_prev;
      }
+     else if (state->blittingflags & DSBLIT_ROTATE90) {
+          gfxs->Astep *= -gfxs->dst_pitch / gfxs->dst_bpp;
 
-     if (gfxs->src_org[0] == gfxs->dst_org[0] && dy > rect->y &&
-         !(state->blittingflags & DSBLIT_DEINTERLACE)) {
+          Aop_X = dx;
+          Aop_Y = dy + rect->w - 1;
+
+          Bop_X = rect->x;
+          Bop_Y = rect->y;
+
+          Aop_advance = Aop_crab;
+          Bop_advance = Bop_next;
+     }
+     else if (gfxs->src_org[0] == gfxs->dst_org[0] && dy > rect->y && !(state->blittingflags & DSBLIT_DEINTERLACE)) {
           /* we must blit from bottom to top */
-          Aop_xy( gfxs, dx, dy + rect->h - 1 );
-          Bop_xy( gfxs, rect->x, rect->y + rect->h - 1 );
+          Aop_X = dx;
+          Aop_Y = dy + rect->h - 1;
 
-          for (h = rect->h; h; h--) {
-               RUN_PIPELINE();
+          Bop_X = rect->x;
+          Bop_Y = rect->y + rect->h - 1;
 
-               Aop_prev( gfxs );
-               Bop_prev( gfxs );
-          }
+          Aop_advance = Aop_prev;
+          Bop_advance = Bop_prev;
      }
      else {
           /* we must blit from top to bottom */
-          Aop_xy( gfxs, dx, dy );
-          Bop_xy( gfxs, rect->x, rect->y );
+          Aop_X = dx;
+          Aop_Y = dy;
 
-          if (state->blittingflags & DSBLIT_DEINTERLACE) {
-               if (state->source->field) {
-                    Aop_next( gfxs );
-                    Bop_next( gfxs );
-                    rect->h--;
-               }
+          Bop_X = rect->x;
+          Bop_Y = rect->y;
 
-               for (h = rect->h/2; h; h--) {
-                    RUN_PIPELINE();
+          Aop_advance = Aop_next;
+          Bop_advance = Bop_next;
+     }
 
-                    Aop_next( gfxs );
 
-                    RUN_PIPELINE();
 
-                    Aop_next( gfxs );
+     Aop_xy( gfxs, Aop_X, Aop_Y );
+     Bop_xy( gfxs, Bop_X, Bop_Y );
 
-                    Bop_next( gfxs );
-                    Bop_next( gfxs );
-               }
-          } /* ! DSBLIT_DEINTERLACE */
-          else {
-               for (h = rect->h; h; h--) {
-                    RUN_PIPELINE();
+     if (state->blittingflags & DSBLIT_DEINTERLACE) {
+          if (state->source->field) {
+               Aop_advance( gfxs );
+               Bop_advance( gfxs );
+               rect->h--;
+          }
 
-                    Aop_next( gfxs );
-                    Bop_next( gfxs );
-               }
+          for (h = rect->h/2; h; h--) {
+               RUN_PIPELINE();
+
+               Aop_advance( gfxs );
+
+               RUN_PIPELINE();
+
+               Aop_advance( gfxs );
+
+               Bop_advance( gfxs );
+               Bop_advance( gfxs );
+          }
+     } /* ! DSBLIT_DEINTERLACE */
+     else {
+          for (h = rect->h; h; h--) {
+               RUN_PIPELINE();
+
+               Aop_advance( gfxs );
+               Bop_advance( gfxs );
           }
      }
 
@@ -9726,8 +9717,14 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
 void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 {
-     GenefxState  *gfxs  = state->gfxs;
-     DFBRectangle  orect = *drect;
+     GenefxState    *gfxs  = state->gfxs;
+     DFBRectangle    orect = *drect;
+     XopAdvanceFunc  Aop_advance;
+     XopAdvanceFunc  Bop_advance;
+     int             Aop_X;
+     int             Aop_Y;
+     int             Bop_X;
+     int             Bop_Y;
 
      int fx, fy;
      int ix, iy;
@@ -9810,19 +9807,52 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
      h = drect->h;
 
-     Aop_xy( gfxs, drect->x, drect->y );
-     Bop_xy( gfxs, srect->x, srect->y );
+     if (state->blittingflags & DSBLIT_FLIP_HORIZONTAL) {
+          gfxs->Astep *= -1;
+
+          Aop_X = drect->x + drect->w - 1;
+          Aop_Y = drect->y;
+
+          Bop_X = srect->x;
+          Bop_Y = srect->y;
+
+          Aop_advance = Aop_next;
+          Bop_advance = Bop_next;
+     }
+     else if (state->blittingflags & DSBLIT_FLIP_VERTICAL) {
+          Aop_X = drect->x;
+          Aop_Y = drect->y + drect->h - 1;
+
+          Bop_X = srect->x;
+          Bop_Y = srect->y;
+
+          Aop_advance = Aop_prev;
+          Bop_advance = Bop_next;
+     }
+     else {
+          Aop_X = drect->x;
+          Aop_Y = drect->y;
+
+          Bop_X = srect->x;
+          Bop_Y = srect->y;
+
+          Aop_advance = Aop_next;
+          Bop_advance = Bop_next;
+     }
+
+     Aop_xy( gfxs, Aop_X, Aop_Y );
+     Bop_xy( gfxs, Bop_X, Bop_Y );
 
      while (h--) {
           RUN_PIPELINE();
 
-          Aop_next( gfxs );
+          Aop_advance( gfxs );
 
           iy += fy;
 
           while (iy > 0xFFFF) {
                iy -= 0x10000;
-               Bop_next( gfxs );
+               Bop_advance( gfxs );
           }
      }
 

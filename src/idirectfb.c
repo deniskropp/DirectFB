@@ -753,6 +753,11 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                     init_palette( surface, desc );
 
+                    /* Force initial update to unfreeze region as no Flip() may come from application. */
+                    if (!(caps & DSCAPS_FLIPPING))
+                         dfb_layer_region_flip_update( region, NULL, DSFLIP_NONE );
+
+
                     DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBSurface );
 
                     ret = IDirectFBSurface_Layer_Construct( iface, NULL,
