@@ -437,13 +437,82 @@ direct_trace_lookup_file( void *address, void **ret_base )
 }
 
 __attribute__((no_instrument_function))
-void
-direct_trace_print_stack( DirectTraceBuffer *buffer )
+static void
+direct_trace_print_stack_recursive( DirectTraceBuffer *buffer, int level, int levels )
 {
+     void *fn = buffer->trace[level].addr;
+
 #ifdef DYNAMIC_LINKING
      Dl_info info;
 #endif
-     int     i;
+
+     if (level == levels) {
+          /* lock, print header, unroll stack */
+
+          direct_log_lock( NULL );
+
+          if (buffer->name)
+               direct_log_printf( NULL, "(-) [%5d: -STACK- '%s']\n", buffer->tid, buffer->name );
+          else
+               direct_log_printf( NULL, "(-) [%5d: -STACK- ]\n", buffer->tid );
+
+          return;
+     }
+
+#ifdef DYNAMIC_LINKING
+     if (dladdr( fn, &info )) {
+          if (info.dli_fname) {
+               const char *symbol = NULL;//info.dli_sname;
+
+               if (!symbol) {
+                    symbol = direct_trace_lookup_symbol(info.dli_fname, (long)(fn - info.dli_fbase));
+                    if (!symbol) {
+                         symbol = direct_trace_lookup_symbol(info.dli_fname, (long)(fn));
+                         if (!symbol) {
+                              if (info.dli_sname)
+                                   symbol = info.dli_sname;
+                              else
+                                   symbol = "??";
+                         }
+                    }
+               }
+
+               direct_trace_print_stack_recursive( buffer, level+1, levels );
+               direct_log_printf( NULL, "  #%-2d 0x%08lx in %s () from %s [%p]\n",
+                                  levels - level - 1, (unsigned long) fn, symbol, info.dli_fname, info.dli_fbase );
+          }
+          else if (info.dli_sname) {
+               direct_trace_print_stack_recursive( buffer, level+1, levels );
+               direct_log_printf( NULL, "  #%-2d 0x%08lx in %s ()\n",
+                                  levels - level - 1, (unsigned long) fn, info.dli_sname );
+          }
+          else {
+               direct_trace_print_stack_recursive( buffer, level+1, levels );
+               direct_log_printf( NULL, "  #%-2d 0x%08lx in ?? ()\n",
+                                  levels - level - 1, (unsigned long) fn );
+          }
+     }
+     else
+#endif
+     {
+          const char *symbol = direct_trace_lookup_symbol(NULL, (long)(fn));
+
+          direct_trace_print_stack_recursive( buffer, level+1, levels );
+          direct_log_printf( NULL, "  #%-2d 0x%08lx in %s ()\n",
+                             levels - level - 1, (unsigned long) fn, symbol ? symbol : "??" );
+     }
+
+     if (level == 0) {
+          /* stack unrolled, print end, unlock */
+          direct_log_printf( NULL, "\n" );
+          direct_log_unlock( NULL );
+     }
+}
+
+__attribute__((no_instrument_function))
+void
+direct_trace_print_stack( DirectTraceBuffer *buffer )
+{
      int     level;
 
      if (!direct_config->trace)
@@ -468,56 +537,8 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
           return;
      }
 
-     direct_log_lock( NULL );
-
-     if (buffer->name)
-          direct_log_printf( NULL, "(-) [%5d: -STACK- '%s']\n", buffer->tid, buffer->name );
-     else
-          direct_log_printf( NULL, "(-) [%5d: -STACK- ]\n", buffer->tid );
-
-     for (i=level-1; i>=0; i--) {
-          void *fn = buffer->trace[i].addr;
-
-#ifdef DYNAMIC_LINKING
-          if (dladdr( fn, &info )) {
-               if (info.dli_fname) {
-                    const char *symbol = NULL;//info.dli_sname;
-
-                    if (!symbol) {
-                         symbol = direct_trace_lookup_symbol(info.dli_fname, (long)(fn - info.dli_fbase));
-                         if (!symbol) {
-                              symbol = direct_trace_lookup_symbol(info.dli_fname, (long)(fn));
-                              if (!symbol) {
-                                   if (info.dli_sname)
-                                        symbol = info.dli_sname;
-                                   else
-                                        symbol = "??";
-                              }
-                         }
-                    }
-
-                    direct_log_printf( NULL, "  #%-2d 0x%08lx in %s () from %s [%p]\n",
-                                       level - i - 1, (unsigned long) fn, symbol, info.dli_fname, info.dli_fbase );
-               }
-               else if (info.dli_sname) {
-                    direct_log_printf( NULL, "  #%-2d 0x%08lx in %s ()\n",
-                                       level - i - 1, (unsigned long) fn, info.dli_sname );
-               }
-               else
-                    direct_log_printf( NULL, "  #%-2d 0x%08lx in ?? ()\n",
-                                       level - i - 1, (unsigned long) fn );
-          }
-          else
-#endif
-          {
-               const char *symbol = direct_trace_lookup_symbol(NULL, (long)(fn));
-               direct_log_printf( NULL, "  #%-2d 0x%08lx in %s ()\n",
-                                  level - i - 1, (unsigned long) fn, symbol ? symbol : "??" );
-          }
-     }
-
-     direct_log_printf( NULL, "\n" );
-     direct_log_unlock( NULL );
+     /* we are starting with the last entry (0) */
+     direct_trace_print_stack_recursive( buffer, 0, level );
 
      buffer->in_trace = false;
 }
