@@ -364,6 +364,33 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                }
                break;
 
+          case DSPF_AVYU:
+               for (i = 0; i < len; i++) {
+                    u32 a, y, u, v;
+
+                    RGB_TO_YCBCR( (src[i] >> 16) & 0xff,
+                                  (src[i] >>  8) & 0xff,
+                                  (src[i]      ) & 0xff, y, u, v );
+                    a = (src[i] >> 24) & 0xff;
+
+                    ((u32*)d)[i] = PIXEL_AVYU( a, y, u, v );
+               }
+               break;
+
+          case DSPF_VYU:
+               for (i = 0, j = -1; i < len; i++) {
+                    u32 y, u, v;
+
+                    RGB_TO_YCBCR( (src[i] >> 16) & 0xff,
+                                  (src[i] >>  8) & 0xff,
+                                  (src[i]      ) & 0xff, y, u, v );
+
+                    d[++j] = v;
+                    d[++j] = y;
+                    d[++j] = u;
+               }
+               break;
+
           case DSPF_YV12:
           case DSPF_I420:
                d1 = dst[1];
