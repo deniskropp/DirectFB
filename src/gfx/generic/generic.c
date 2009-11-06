@@ -8335,11 +8335,15 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                    break;
                          }
                     }
-                    else if ((gfxs->src_format == gfxs->dst_format && 
-                              (!DFB_PIXELFORMAT_IS_INDEXED(gfxs->src_format) ||
-                               dfb_palette_equal( gfxs->Alut, gfxs->Blut )))   ||
-                             ((gfxs->src_format == DSPF_I420 || gfxs->src_format == DSPF_YV12) &&
-                              (gfxs->dst_format == DSPF_I420 || gfxs->dst_format == DSPF_YV12)))
+                    else if (((gfxs->src_format == gfxs->dst_format && 
+                               (!DFB_PIXELFORMAT_IS_INDEXED(gfxs->src_format) ||
+                                dfb_palette_equal( gfxs->Alut, gfxs->Blut )))   ||
+                              ((gfxs->src_format == DSPF_I420 || gfxs->src_format == DSPF_YV12) &&
+                               (gfxs->dst_format == DSPF_I420 || gfxs->dst_format == DSPF_YV12))) &&
+                             (accel == DFXL_BLIT || !(state->blittingflags & (DSBLIT_ROTATE90  |
+                                                                              DSBLIT_ROTATE180 |
+                                                                              DSBLIT_ROTATE270 |
+                                                                              DSBLIT_FLIP_HORIZONTAL))))
                     {
                          gfxs->need_accumulator = false;
                          
@@ -9713,8 +9717,14 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
 void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 {
-     GenefxState  *gfxs  = state->gfxs;
-     DFBRectangle  orect = *drect;
+     GenefxState    *gfxs  = state->gfxs;
+     DFBRectangle    orect = *drect;
+     XopAdvanceFunc  Aop_advance;
+     XopAdvanceFunc  Bop_advance;
+     int             Aop_X;
+     int             Aop_Y;
+     int             Bop_X;
+     int             Bop_Y;
 
      int fx, fy;
      int ix, iy;
@@ -9797,19 +9807,52 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
      h = drect->h;
 
-     Aop_xy( gfxs, drect->x, drect->y );
-     Bop_xy( gfxs, srect->x, srect->y );
+     if (state->blittingflags & DSBLIT_FLIP_HORIZONTAL) {
+          gfxs->Astep *= -1;
+
+          Aop_X = drect->x + drect->w - 1;
+          Aop_Y = drect->y;
+
+          Bop_X = srect->x;
+          Bop_Y = srect->y;
+
+          Aop_advance = Aop_next;
+          Bop_advance = Bop_next;
+     }
+     else if (state->blittingflags & DSBLIT_FLIP_VERTICAL) {
+          Aop_X = drect->x;
+          Aop_Y = drect->y + drect->h - 1;
+
+          Bop_X = srect->x;
+          Bop_Y = srect->y;
+
+          Aop_advance = Aop_prev;
+          Bop_advance = Bop_next;
+     }
+     else {
+          Aop_X = drect->x;
+          Aop_Y = drect->y;
+
+          Bop_X = srect->x;
+          Bop_Y = srect->y;
+
+          Aop_advance = Aop_next;
+          Bop_advance = Bop_next;
+     }
+
+     Aop_xy( gfxs, Aop_X, Aop_Y );
+     Bop_xy( gfxs, Bop_X, Bop_Y );
 
      while (h--) {
           RUN_PIPELINE();
 
-          Aop_next( gfxs );
+          Aop_advance( gfxs );
 
           iy += fy;
 
           while (iy > 0xFFFF) {
                iy -= 0x10000;
-               Bop_next( gfxs );
+               Bop_advance( gfxs );
           }
      }
 
