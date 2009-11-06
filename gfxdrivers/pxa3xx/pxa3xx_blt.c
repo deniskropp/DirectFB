@@ -152,64 +152,11 @@ check_blend_functions( const CardState *state )
 
 /**********************************************************************************************************************/
 
-#define PXA_GCU_REG(x)        (*(volatile u32*)(pdrv->mmio_base+(x)))
-
-#define PXA_GCRBBR           PXA_GCU_REG(0x020)
-#define PXA_GCRBLR           PXA_GCU_REG(0x024)
-#define PXA_GCRBTR           PXA_GCU_REG(0x02C)
-
-#define mb() __asm__ __volatile__ ("" : : : "memory")
-
-static inline DFBResult
-start_hardware( PXA3XXDriverData *pdrv )
-{
-     PXA3XXGfxSharedArea *shared = pdrv->gfx_shared;
-
-     D_DEBUG_AT( PXA3XX_BLT, "%s()\n", __FUNCTION__ );
-
-     DUMP_INFO();
-
-     D_ASSERT( shared->next_valid );
-
-     if (shared->hw_running || shared->next_end == shared->next_start)
-          return DFB_FAILURE;
-
-     shared->hw_running = true;
-     shared->hw_start   = shared->next_start;
-     shared->hw_end     = shared->next_end;
-
-     shared->next_start = shared->next_end = (shared->hw_end + 63) & ~0x3f;
-
-     shared->num_words += shared->hw_end - shared->hw_start;
-
-     shared->num_starts++;
-
-     DUMP_INFO();
-
-     D_ASSERT( shared->buffer[shared->hw_end] == 0x08000000 );
-
-#ifdef PXA3XX_GCU_REG_USE_IOCTLS
-     ioctl( pdrv->gfx_fd, PXA3XX_GCU_IOCTL_START );
-#else
-     mb();
-
-     PXA_GCRBLR = 0;
-
-     PXA_GCRBBR = shared->buffer_phys + shared->hw_start*4;
-     PXA_GCRBTR = shared->buffer_phys + shared->hw_end*4;
-     PXA_GCRBLR = ((shared->hw_end - shared->hw_start + 63) & ~0x3f) * 4;
-
-     mb();
-#endif
-
-     return DFB_OK;
-}
-
 __attribute__((noinline))
 static DFBResult
 flush_prepared( PXA3XXDriverData *pdrv )
 {
-     PXA3XXGfxSharedArea *shared  = pdrv->gfx_shared;
+     int result;
 
      D_DEBUG_AT( PXA3XX_BLT, "%s()\n", __FUNCTION__ );
 
@@ -219,113 +166,14 @@ flush_prepared( PXA3XXDriverData *pdrv )
      D_ASSERT( pdrv->prep_num <= D_ARRAY_SIZE(pdrv->prep_buf) );
 
      /* Something prepared? */
-     while (pdrv->prep_num) {
-          int timeout = 2;
-          int next_end;
-
-          /* Mark shared information as invalid. From this point on the interrupt handler
-           * will not continue with the next block, and we'll start the hardware ourself. */
-          shared->next_valid = false;
-
-          mb();
-
-          /* Check if there's enough space at the end.
-           * Wait until hardware has started next block before it gets too big. */
-          if (shared->next_end + pdrv->prep_num >= PXA3XX_GCU_BUFFER_WORDS ||
-              shared->next_end - shared->next_start >= PXA3XX_GCU_BUFFER_WORDS/4)
-          {
-               /* If there's no next block waiting, start at the beginning. */
-               if (shared->next_start == shared->next_end)
-                    shared->next_start = shared->next_end = 0;
-               else {
-                    D_ASSERT( shared->buffer[shared->hw_end] == 0x08000000 );
-
-                    /* Mark area as valid again. */
-                    shared->next_valid = true;
-
-                    mb();
-
-                    /* Start in case it got idle while doing the checks. */
-                    if (start_hardware( pdrv )) {
-                         /*
-                          * Hardware has not been started (still running).
-                          * Check for timeout. */
-                         if (!timeout--) {
-                              D_ERROR( "PXA3XX/Blt: Timeout waiting for processing!\n" );
-                              direct_log_printf( NULL, "  -> %srunning, hw %d-%d, next %d-%d - %svalid\n",     \
-                                                 pdrv->gfx_shared->hw_running ? "" : "not ",             \
-                                                 pdrv->gfx_shared->hw_start,                             \
-                                                 pdrv->gfx_shared->hw_end,                               \
-                                                 pdrv->gfx_shared->next_start,                           \
-                                                 pdrv->gfx_shared->next_end,                             \
-                                                 pdrv->gfx_shared->next_valid ? "" : "not " );
-                              D_ASSERT( shared->buffer[shared->hw_end] == 0x08000000 );
-//                              pxa3xxEngineReset( pdrv, pdrv->dev );
-
-                              return DFB_TIMEOUT;
-                         }
-
-                         /* Wait til next block is started. */
-                         ioctl( pdrv->gfx_fd, PXA3XX_GCU_IOCTL_WAIT_NEXT );
-                    }
-
-                    /* Start over with the checks. */
-                    continue;
-               }
+     if (pdrv->prep_num) {
+          result = write( pdrv->gfx_fd, pdrv->prep_buf, pdrv->prep_num * 4 );
+          if (result < 0) {
+               D_PERROR( "PXA3XX/BLT: write() failed!\n" );
+               return DFB_IO;
           }
 
-          /* We are appending in case there was already a next block. */
-          next_end = shared->next_end + pdrv->prep_num;
-
-          /* Reset the timeout counter. */
-          timeout = 20;
-
-          /* While the hardware is running... */
-          while (shared->hw_running) {
-               D_ASSERT( shared->buffer[shared->hw_end] == 0x08000000 );
-
-               /* ...make sure we don't over lap with its current buffer, otherwise wait. */
-               if (shared->hw_start > next_end || shared->hw_end < shared->next_start)
-                    break;
-
-               /* Check for timeout. */
-               if (!timeout--) {
-                    D_ERROR( "PXA3XX/Blt: Timeout waiting for space!\n" );
-                    direct_log_printf( NULL, "  -> %srunning, hw %d-%d, next %d-%d - %svalid\n",     \
-                                       pdrv->gfx_shared->hw_running ? "" : "not ",             \
-                                       pdrv->gfx_shared->hw_start,                             \
-                                       pdrv->gfx_shared->hw_end,                               \
-                                       pdrv->gfx_shared->next_start,                           \
-                                       pdrv->gfx_shared->next_end,                             \
-                                       pdrv->gfx_shared->next_valid ? "" : "not " );
-                    D_ASSERT( shared->buffer[shared->hw_end] == 0x08000000 );
-//                    pxa3xxEngineReset( pdrv, pdrv->dev );
-
-                    return DFB_TIMEOUT;
-               }
-
-               /* Wait til next block is started. */
-               ioctl( pdrv->gfx_fd, PXA3XX_GCU_IOCTL_WAIT_NEXT );
-          }
-
-          /* Copy from local to shared buffer. */
-          direct_memcpy( (void*) &shared->buffer[shared->next_end], &pdrv->prep_buf[0], pdrv->prep_num * sizeof(u32) );
-
-          /* Terminate the block. */
-          shared->buffer[next_end] = 0x08000000;
-
-          /* Update next block information and mark valid. */
-          shared->next_end   = next_end;
-
-          mb();
-
-          shared->next_valid = true;
-
-          /* Reset local counter. */
           pdrv->prep_num = 0;
-
-          /* Start in case it is idle. */
-          return start_hardware( pdrv );
      }
 
      return DFB_OK;
@@ -451,13 +299,8 @@ pxa3xxEngineSync( void *drv, void *dev )
           ret = errno2result( errno );
           D_PERROR( "PXA3XX/BLT: PXA3XX_GCU_IOCTL_WAIT_IDLE failed!\n" );
 
-          direct_log_printf( NULL, "  -> %srunning, hw %d-%d, next %d-%d - %svalid\n",     \
-                             pdrv->gfx_shared->hw_running ? "" : "not ",             \
-                             pdrv->gfx_shared->hw_start,                             \
-                             pdrv->gfx_shared->hw_end,                               \
-                             pdrv->gfx_shared->next_start,                           \
-                             pdrv->gfx_shared->next_end,                             \
-                             pdrv->gfx_shared->next_valid ? "" : "not " );
+          direct_log_printf( NULL, "  -> %srunning\n",
+                             pdrv->gfx_shared->hw_running ? "" : "not " );
 
           break;
      }

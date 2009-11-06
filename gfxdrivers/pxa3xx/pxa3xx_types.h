@@ -30,8 +30,7 @@
 
 #include <pxa3xx-gcu.h>
 
-
-#define PXA3XX_GFX_MAX_PREPARE             8192
+#define PXA3XX_GFX_MAX_PREPARE     (PXA3XX_GCU_BATCH_WORDS - 1)
 
 
 typedef volatile struct pxa3xx_gcu_shared PXA3XXGfxSharedArea;
@@ -85,7 +84,7 @@ typedef struct {
      PXA3XXGfxSharedArea     *gfx_shared;
 
      int                      prep_num;
-     __u32                    prep_buf[PXA3XX_GFX_MAX_PREPARE];
+     u32                      prep_buf[PXA3XX_GFX_MAX_PREPARE];
 
      volatile void           *mmio_base;
 } PXA3XXDriverData;

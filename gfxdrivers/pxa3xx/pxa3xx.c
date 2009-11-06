@@ -234,15 +234,15 @@ driver_close_driver( CoreGraphicsDevice *device,
 
      D_DEBUG_AT( PXA3XX_Driver, "%s()\n", __FUNCTION__ );
 
-     D_INFO( "PXA3XX/BLT: %u starts, %u done, %u interrupts, %u wait_idle, %u wait_next, %u idle\n",
-             shared->num_starts, shared->num_done, shared->num_interrupts,
-             shared->num_wait_idle, shared->num_wait_next, shared->num_idle );
+     D_INFO( "PXA3XX/BLT: %u writes, %u done, %u interrupts, %u wait_idle, %u wait_free, %u idle\n",
+             shared->num_writes, shared->num_done, shared->num_interrupts,
+             shared->num_wait_idle, shared->num_wait_free, shared->num_idle );
 
-     D_INFO( "PXA3XX/BLT: %u words, %u words/start, %u words/idle, %u starts/idle\n",
+     D_INFO( "PXA3XX/BLT: %u words, %u words/write, %u words/idle, %u writes/idle\n",
              shared->num_words,
-             shared->num_words  / (shared->num_starts ?: 1),
+             shared->num_words  / (shared->num_writes ?: 1),
              shared->num_words  / (shared->num_idle ?: 1),
-             shared->num_starts / (shared->num_idle ?: 1) );
+             shared->num_writes / (shared->num_idle ?: 1) );
 
      /* Unmap registers. */
      munmap( (void*) pdrv->mmio_base, 4096 );    // FIXME
