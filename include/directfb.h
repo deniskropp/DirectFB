@@ -5734,9 +5734,11 @@ DEFINE_INTERFACE(   IDirectFBFont,
       * the max width specified if there's only one character
       * that fits.
       *
-      * The number of characters that fit into this column is
-      * returned by the ret_str_length. This value can be used as
-      * the number of bytes to take when using DrawString().
+      * The number of characters that fit into this column is returned
+      * by the ret_str_length. Note that you can not use this value as
+      * the number of bytes to take when using DrawString() as it
+      * represents to the number of characters, not the number of
+      * bytes.
       *
       * In ret_next_line a pointer to the next line of text is returned. This
       * will point to NULL or the end of the string if there's no more break.
