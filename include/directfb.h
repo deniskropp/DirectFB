@@ -5740,8 +5740,9 @@ DEFINE_INTERFACE(   IDirectFBFont,
       * represents to the number of characters, not the number of
       * bytes.
       *
-      * In ret_next_line a pointer to the next line of text is returned. This
-      * will point to NULL or the end of the string if there's no more break.
+      * In ret_next_line a pointer to the next line of text is
+      * returned. This will point to NULL or the end of the string if
+      * there's no more break.
       */
      DFBResult (*GetStringBreak) (
           IDirectFBFont            *thiz,
