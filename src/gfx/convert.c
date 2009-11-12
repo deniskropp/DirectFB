@@ -316,6 +316,31 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
                }
                break;
 
+          case DSPF_UYVY:
+               while (height--) {
+                    const u32 *src32 = src;
+     
+                    for (x=0; x<width; x+=2) {
+                         int r,g,b;
+                         int y0, y1, cb, cr;
+
+                         y1 = (src32[x/2] >> 24);
+                         cr = (src32[x/2] >> 16) & 0xff;
+                         y0 = (src32[x/2] >>  8) & 0xff;
+                         cb = (src32[x/2]      ) & 0xff;
+
+                         YCBCR_TO_RGB( y0, cb, cr, r, g, b );
+                         dst[x] = PIXEL_RGB16( r, g, b );
+
+                         YCBCR_TO_RGB( y1, cb, cr, r, g, b );
+                         dst[x+1] = PIXEL_RGB16( r, g, b );
+                    }
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
           case DSPF_RGB444:
           case DSPF_ARGB4444:
                while (height--) {
