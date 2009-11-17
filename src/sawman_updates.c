@@ -72,6 +72,7 @@ typedef struct {
 
 typedef struct {
      DFBLinkRegion *regions;
+     DFBLinkRegion *malloc;
      int number;
      int free;
 } DFBLinkRegionPool;
@@ -79,20 +80,43 @@ typedef struct {
 static inline void dfb_linkregionpool_init( DFBLinkRegionPool *pool, DFBLinkRegion *regions, int number )
 {
      pool->regions = regions;
+     pool->malloc  = 0;
      pool->number  = number;
      pool->free    = 0;
+}
+
+static inline void dfb_linkregionpool_delete( DFBLinkRegionPool *pool )
+{
+     if (pool->malloc)
+          free(pool->malloc);
 }
 
 static inline DFBLinkRegion *dfb_linkregionpool_get( DFBLinkRegionPool *pool, DFBRegion *r )
 {
      DFBLinkRegion *lr;
 
+     /* check OOM */
      if (pool->free == pool->number) {
-          D_WARN("Out of link regions!!\n");
-          return NULL;
+          if (pool->malloc) {
+               D_WARN("Out of link regions!");
+               return NULL;
+          }
+          else {
+               pool->free   = 0;
+               pool->number = 400;
+               pool->malloc = malloc( sizeof(DFBLinkRegion) * 400 );
+               if (!pool->malloc) {
+                    D_WARN("out of memory!");
+                    return NULL;
+               }
+          }
      }
 
-     lr = pool->regions + pool->free;
+     if (pool->malloc)
+          lr = pool->malloc + pool->free;
+     else
+          lr = pool->regions + pool->free;
+
      pool->free++;
 
      if (r) 
@@ -661,10 +685,13 @@ update_region3( SaWMan          *sawman,
 
                                         /* proceed to draw immediately 
                                          * we can store the window in another list, but this is more efficient */
-                                        D_DEBUG_AT( SaWMan_Update, "    > optimized with double source\n" );
                                         dfb_region_clip( R, r->x1, r->y1, r->x2, r->y2 );
                                         SaWManWindow *sw = fusion_vector_at( &sawman->layout, u );
+                                        D_DEBUG_AT( SaWMan_Update, "     > window %d and %d\n", u, winNum );
+                                        D_DEBUG_AT( SaWMan_Update, "     > nb %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION(R) );
                                         sawman_draw_two_windows( tier, sw, sawwin, state, R );
+
+                                        goto continueupdates;
                                    }
                               }
                          }
@@ -709,12 +736,13 @@ update_region3( SaWMan          *sawman,
 
      /* draw background */
 
-     /* the background has to be inverted, that is easiest accomplished by
-        sorting the entries and then filling the update structure top-down */
-     //~ TODO: do_some_kind_of_sorting(backgroundNotNeeded);
-
     {
      /* inversion, but only inside updatable area */
+     /* we follow a simple algorithm:
+      * start top-left, determine the smallest band height
+      * walk from left to right and add non-occupied regions,
+      * while checking if we have regions above to fold into
+      */
      int x,y,w,h;
      x=x1; y=y1; w=0;
      while (y<=y2) {
@@ -726,12 +754,14 @@ update_region3( SaWMan          *sawman,
                if ( (r->y1 > y) && (r->y1 - y < h) )
                     h = r->y1 - y;
                if ( (r->y1 <= y) && (r->y2 >= y) && (r->y2 - y + 1 < h) )
-                    h = r->y2 - y + 1; /* if a band is ended because of this, we can optimize and "hide" the region afterwards */
+                    h = r->y2 - y + 1; /* if a band is ended because of this, we could optimize and "hide" the region afterwards */
           }
 
           /* just "walk the band", looking at the x coordinates, and add updates */
           while (x<=x2) {
                w=x2-x+1; /* maximum */
+
+               walk_the_band:
 
                direct_list_foreach(lr, backgroundNotNeeded) {
                     r = &lr->region;
@@ -742,9 +772,8 @@ update_region3( SaWMan          *sawman,
                               x = r->x2+1;
                               w = x2-x+1;
                               if (w<0) w=0;
-                              lr = (__typeof__(lr))backgroundNotNeeded;
-                              /* we will miss the first element but we just had it. */
-                              continue;
+
+                              goto walk_the_band;
                          }
                          if (r->x2 < x) /* out of reach */
                               continue;
@@ -755,11 +784,23 @@ update_region3( SaWMan          *sawman,
                }
 
                if (w && h) {
-                    DFBRegion u = { x, y, x+w-1, y+h-1 };
-                    /* we can optimize by checking if above us is a band with the correct width */
-                    lr = dfb_linkregionpool_get( &regionpool, &u );
-                    direct_list_append( &backgroundNeeded, &lr->link );
+                    DFBRegion u         = { x, y, x+w-1, y+h-1 };
+                    bool      collapsed = false;
 
+                    /* we can optimize by checking if above us is a band with the correct width */
+                    direct_list_foreach(lr, backgroundNeeded) {
+                         r = &lr->region;
+                         if ( (r->x1 == u.x1) && (r->x2 == u.x2) && (r->y2 + 1 == u.y1) ) {
+                              r->y2 = u.y2;
+                              collapsed = true;
+                              break;
+                         }
+                    }
+
+                    if (!collapsed) {
+                         lr = dfb_linkregionpool_get( &regionpool, &u );
+                         direct_list_append( &backgroundNeeded, &lr->link );
+                    }
                }
 
                x += w;
@@ -784,8 +825,8 @@ update_region3( SaWMan          *sawman,
           
           /* collate the updates to reduce number of draw calls */
           /* (is this needed?) */
-          //~ collate( &updatesNoBlend[winNum] );
-          //~ collate( &updatesBlend[winNum] );
+          /* collate( &updatesNoBlend[winNum] ); */
+          /* collate( &updatesBlend[winNum] ); */
 
           direct_list_foreach(lr, updatesNoBlend[winNum]) {
                r = &lr->region;
@@ -799,6 +840,8 @@ update_region3( SaWMan          *sawman,
                sawman_draw_window( tier, sawwin, state, r, true );
           }
      }
+
+     dfb_linkregionpool_delete( &regionpool );
 
      D_DEBUG_AT( SaWMan_Update, " -=> done <=-\n" );
 }
@@ -863,7 +906,7 @@ repaint_tier( SaWMan              *sawman,
           dfb_state_set_clip( state, update );
 
           /* Compose updated region. */
-          update_region2( sawman, tier, state,
+          update_region3( sawman, tier, state,
                           fusion_vector_size( &sawman->layout ) - 1,
                           update->x1, update->y1, update->x2, update->y2 );
 
