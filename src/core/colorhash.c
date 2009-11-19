@@ -203,7 +203,7 @@ dfb_colorhash_attach( DFBColorHashCore *core,
 {
      DFBColorHashCoreShared *shared;
 
-     D_ASSUME( core != NULL );
+//     D_ASSUME( core != NULL );
 
      if (core) {
           D_MAGIC_ASSERT( core, DFBColorHashCore );
@@ -233,7 +233,7 @@ dfb_colorhash_detach( DFBColorHashCore *core,
 {
      DFBColorHashCoreShared *shared;
 
-     D_ASSUME( core != NULL );
+//     D_ASSUME( core != NULL );
 
      if (core) {
           D_MAGIC_ASSERT( core, DFBColorHashCore );
@@ -340,7 +340,7 @@ dfb_colorhash_invalidate( DFBColorHashCore *core,
      unsigned int            index = HASH_SIZE - 1;
      DFBColorHashCoreShared *shared;
 
-     D_ASSUME( core != NULL );
+//     D_ASSUME( core != NULL );
 
      if (core) {
           D_MAGIC_ASSERT( core, DFBColorHashCore );
