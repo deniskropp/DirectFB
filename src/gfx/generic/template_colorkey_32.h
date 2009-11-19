@@ -167,7 +167,7 @@ static void Bop_PFI_OP_Aop_PFI(StoK)( GenefxState *gfxs )
      int  Dstep = gfxs->Astep;
 
      while (l--) {
-          if ((*D & RGB_MASK) != Dkey)
+          if ((*D & RGB_MASK) == Dkey)
                *D = S[i>>16];
 
           D += Dstep;
