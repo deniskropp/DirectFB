@@ -119,28 +119,24 @@ static void Bop_rgb32_toK_Aop_64( GenefxState *gfxs )
      for (w = l >> 1; w; w--) {
           u64 d = *((u64*)D);
 
-          if ((d & 0x00ffffff00ffffffull) == DDkey) {
-               if ((d & 0x00ffffff00000000ull) ==
-                    (DDkey & 0x00ffffff00000000ull)) {
-                    if ((d & 0x0000000000ffffffull) ==
-                         (DDkey & 0x0000000000ffffffull)) {
-                         *((u64*)D) = *((u64*)S);
-                    }
-                    else {
-#ifdef WORDS_BIGENDIAN
-                         D[0] = S[0];
-#else
-                         D[1] = S[1];
-#endif
-                    }
+          if ((d & 0x00ffffff00000000ull) == (DDkey & 0x00ffffff00000000ull)) {
+               if ((d & 0x0000000000ffffffull) == (DDkey & 0x0000000000ffffffull)) {
+                    *((u64*)D) = *((u64*)S);
                }
                else {
 #ifdef WORDS_BIGENDIAN
-                    D[1] = S[1];
-#else
                     D[0] = S[0];
+#else
+                    D[1] = S[1];
 #endif
                }
+          }
+          else if ((d & 0x0000000000ffffffull) == (DDkey & 0x0000000000ffffffull)) {
+#ifdef WORDS_BIGENDIAN
+               D[1] = S[1];
+#else
+               D[0] = S[0];
+#endif
           }
           S += 2;
           D += 2;
