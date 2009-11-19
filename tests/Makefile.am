@@ -13,6 +13,7 @@ bin_PROGRAMS = \
 	coretest_blit2	\
 	dfbtest_blit	\
 	dfbtest_blit2	\
+	dfbtest_mirror	\
 	dfbtest_reinit	\
 	dfbtest_scale	\
 	dfbtest_sync	\
@@ -36,6 +37,9 @@ dfbtest_blit_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
 
 dfbtest_blit2_SOURCES = dfbtest_blit2.c
 dfbtest_blit2_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
+
+dfbtest_mirror_SOURCES = dfbtest_mirror.c
+dfbtest_mirror_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
 
 dfbtest_reinit_SOURCES = dfbtest_reinit.c
 dfbtest_reinit_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
