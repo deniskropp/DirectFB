@@ -6776,7 +6776,7 @@ static void Bop_a8_set_alphapixel_Aop_argb8565( GenefxState *gfxs )
      u32    srb = Cop & 0xf81f;
      u32    sg  = Cop & 0x07e0;
 
-#warning CHECK correctness
+//#warning CHECK correctness
 /* currently, the code is a mix of ...argb() alpha handling and the other
    functions' color handling - they differ quite notably. But I think
    alpha handling in ARGB / Color handling in other functions are
