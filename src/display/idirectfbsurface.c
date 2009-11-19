@@ -115,6 +115,7 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      dfb_state_set_destination( &data->state, NULL );
      dfb_state_set_source( &data->state, NULL );
      dfb_state_set_source_mask( &data->state, NULL );
+     dfb_state_set_source2( &data->state, NULL );
 
      dfb_state_destroy( &data->state );
 
@@ -220,11 +221,15 @@ IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
           IDirectFBSurface_data *src_data = source->priv;
 
           dfb_state_set_source( &data->state, src_data->surface );
+          dfb_state_set_source2( &data->state, data->surface ); // FIXME
 
           dfb_state_lock( &data->state );
 
           if (dfb_gfxcard_state_check( &data->state, DFXL_BLIT ))
                mask |= DFXL_BLIT;
+
+          if (dfb_gfxcard_state_check( &data->state, DFXL_BLIT2 ))
+               mask |= DFXL_BLIT2;
 
           if (dfb_gfxcard_state_check( &data->state, DFXL_STRETCHBLIT ))
                mask |= DFXL_STRETCHBLIT;
@@ -1877,6 +1882,118 @@ IDirectFBSurface_BatchBlit( IDirectFBSurface   *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_BatchBlit2( IDirectFBSurface   *thiz,
+                             IDirectFBSurface   *source,
+                             IDirectFBSurface   *source2,
+                             const DFBRectangle *source_rects,
+                             const DFBPoint     *dest_points,
+                             const DFBPoint     *source2_points,
+                             int                 num )
+{
+     int                    i, dx, dy, sx, sy, sx2, sy2;
+     DFBRectangle          *rects;
+     DFBPoint              *points;
+     DFBPoint              *points2;
+     IDirectFBSurface_data *src_data;
+     IDirectFBSurface_data *src2_data;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+     if (!source || !source_rects || !dest_points || num < 1)
+          return DFB_INVARG;
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+     if (data->locked)
+          return DFB_LOCKED;
+
+
+     src_data = (IDirectFBSurface_data*)source->priv;
+
+     if (!src_data->area.current.w || !src_data->area.current.h)
+          return DFB_INVAREA;
+
+     src2_data = (IDirectFBSurface_data*)source2->priv;
+
+     if (!src2_data->area.current.w || !src2_data->area.current.h)
+          return DFB_INVAREA;
+
+
+     dx = data->area.wanted.x;
+     dy = data->area.wanted.y;
+
+     sx = src_data->area.wanted.x;
+     sy = src_data->area.wanted.y;
+
+     sx2 = src2_data->area.wanted.x;
+     sy2 = src2_data->area.wanted.y;
+
+     rects   = alloca( sizeof(DFBRectangle) * num );
+     points  = alloca( sizeof(DFBPoint) * num );
+     points2 = alloca( sizeof(DFBPoint) * num );
+
+     direct_memcpy( rects, source_rects, sizeof(DFBRectangle) * num );
+     direct_memcpy( points, dest_points, sizeof(DFBPoint) * num );
+     direct_memcpy( points2, source2_points, sizeof(DFBPoint) * num );
+
+     for (i=0; i<num; i++) {
+          DFBRectangle rect2;
+
+          rects[i].x += sx;
+          rects[i].y += sy;
+
+          points[i].x += dx;
+          points[i].y += dy;
+
+          points2[i].x += sx2;
+          points2[i].y += sy2;
+
+          if (!dfb_rectangle_intersect( &rects[i], &src_data->area.current ))
+               rects[i].w = rects[i].h = 0;
+          else {
+               points[i].x += rects[i].x - (source_rects[i].x + sx);
+               points[i].y += rects[i].y - (source_rects[i].y + sy);
+               points2[i].x += rects[i].x - (source_rects[i].x + sx);
+               points2[i].y += rects[i].y - (source_rects[i].y + sy);
+     
+     
+               rect2.x = points2[i].x;
+               rect2.y = points2[i].y;
+               rect2.w = rects[i].w;
+               rect2.h = rects[i].h;
+     
+               if (!dfb_rectangle_intersect( &rect2, &src2_data->area.current ))
+                    rects[i].w = rects[i].h = 0;
+
+               points[i].x += rect2.x - points2[i].x;
+               points[i].y += rect2.y - points2[i].y;
+               points2[i].x += rect2.x - points2[i].x;
+               points2[i].y += rect2.y - points2[i].y;
+
+               rects[i].w = rect2.w;
+               rects[i].h = rect2.h;
+          }
+     }
+
+     dfb_state_set_source( &data->state, src_data->surface );
+     dfb_state_set_source2( &data->state, src2_data->surface );
+
+     /* fetch the source color key from the source if necessary */
+     if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
+          dfb_state_set_src_colorkey( &data->state, src_data->src_key.value );
+
+     dfb_gfxcard_batchblit2( rects, points, points2, num, &data->state );
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBSurface_StretchBlit( IDirectFBSurface   *thiz,
                               IDirectFBSurface   *source,
                               const DFBRectangle *source_rect,
@@ -2526,6 +2643,7 @@ IDirectFBSurface_ReleaseSource( IDirectFBSurface *thiz )
 
      dfb_state_set_source( &data->state, NULL );
      dfb_state_set_source_mask( &data->state, NULL );
+     dfb_state_set_source2( &data->state, NULL );
 
      return DFB_OK;
 }
@@ -2714,6 +2832,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->Blit = IDirectFBSurface_Blit;
      thiz->TileBlit = IDirectFBSurface_TileBlit;
      thiz->BatchBlit = IDirectFBSurface_BatchBlit;
+     thiz->BatchBlit2 = IDirectFBSurface_BatchBlit2;
      thiz->StretchBlit = IDirectFBSurface_StretchBlit;
      thiz->TextureTriangles = IDirectFBSurface_TextureTriangles;
 

@@ -69,7 +69,9 @@ typedef enum {
      SMF_RENDER_OPTIONS    = 0x00010000,
      SMF_MATRIX            = 0x00020000,
 
-     SMF_ALL               = 0x00033FFF
+     SMF_SOURCE2           = 0x00100000,
+
+     SMF_ALL               = 0x00133FFF
 } StateModificationFlags;
 
 typedef enum {
@@ -82,10 +84,13 @@ typedef enum {
      CSF_SOURCE_LOCKED        = 0x00000010,  /* source surface is locked */
      CSF_SOURCE_MASK_LOCKED   = 0x00000020,  /* source mask surface is locked */
 
+     CSF_SOURCE2              = 0x00000100,  /* source2 is set using dfb_state_set_source2() */
+     CSF_SOURCE2_LOCKED       = 0x00000200,  /* source2 surface is locked */
+
      CSF_DRAWING              = 0x00010000,  /* something has been rendered with this state,
                                                 this is cleared by flushing the state, e.g. upon flip */
 
-     CSF_ALL                  = 0x0001003B
+     CSF_ALL                  = 0x0001033B
 } CardStateFlags;
 
 struct _CardState {
@@ -165,6 +170,10 @@ struct _CardState {
      DFBPoint                 src_mask_offset;    /* relative or absolute coordinates */
      DFBSurfaceMaskFlags      src_mask_flags;     /* controls coordinate mode and more */
 
+     CoreSurface             *source2;            /* source2 surface */
+     DirectSerial             src2_serial;        /* last source2 surface serial */
+     CoreSurfaceBufferLock    src2;
+
      DFBColor                 colors[DFB_COLOR_IDS_MAX];         /* colors for drawing or modulation */
      unsigned int             color_indices[DFB_COLOR_IDS_MAX];  /* indices to colors in palette */
 };
@@ -175,6 +184,7 @@ void dfb_state_destroy( CardState *state );
 DFBResult dfb_state_set_destination( CardState *state, CoreSurface *destination );
 DFBResult dfb_state_set_source( CardState *state, CoreSurface *source );
 DFBResult dfb_state_set_source_mask( CardState *state, CoreSurface *source_mask );
+DFBResult dfb_state_set_source2( CardState *state, CoreSurface *source2 );
 
 void dfb_state_update( CardState *state, bool update_source );
 

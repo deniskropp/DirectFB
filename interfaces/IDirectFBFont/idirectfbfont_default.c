@@ -109,6 +109,7 @@ Construct( IDirectFBFont      *thiz,
 
      D_ASSERT( font->pixel_format == DSPF_ARGB ||
                font->pixel_format == DSPF_AiRGB ||
+               font->pixel_format == DSPF_ARGB8565 ||
                font->pixel_format == DSPF_ARGB4444 ||
                font->pixel_format == DSPF_RGBA4444 ||
                font->pixel_format == DSPF_ARGB2554 ||
@@ -252,6 +253,26 @@ Construct( IDirectFBFont      *thiz,
                          case DSPF_AiRGB:
                               for (i=0; i<font_desc.width; i++)
                                    dst32[i] = ((pixels[i] ^ 0xFF) << 24) | 0xFFFFFF;
+                              break;
+                         case DSPF_ARGB8565:
+                              for (n = 0, j = -1; n < font_desc.width; ++n) {
+                                   u32 d;
+                                   if (surface->config.caps & DSCAPS_PREMULTIPLIED) {
+                                        d = (pixels[n] << 16) * 0x01010101;
+                                        d = ARGB_TO_ARGB8565 (d);
+                                   }
+                                   else
+                                        d = (pixels[n] << 16) | 0xFFFF;
+#ifdef WORDS_BIGENDIAN
+                                   dst8[++j] = (d >> 16) & 0xff;
+                                   dst8[++j] = (d >>  8) & 0xff;
+                                   dst8[++j] = (d >>  0) & 0xff;
+#else
+                                   dst8[++j] = (d >>  0) & 0xff;
+                                   dst8[++j] = (d >>  8) & 0xff;
+                                   dst8[++j] = (d >> 16) & 0xff;
+#endif
+                              }
                               break;
                          case DSPF_ARGB4444:
                          case DSPF_RGBA4444:

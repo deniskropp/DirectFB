@@ -260,6 +260,20 @@ write_glyph( DGIFFGlyphInfo *glyph, FT_GlyphSlot slot, void *dst, int pitch )
                               for (i=0; i<glyph->width; i++)
                                    dst32[i] = ((src[i] ^ 0xFF) << 24) | 0xFFFFFF;
                               break;
+                         case DSPF_ARGB8565:
+                              for (i=0, j = -1; i<glyph->width; ++i) {
+                                   u32 d = (src[i] << 16) | 0xFFFF;
+#ifdef WORDS_BIGENDIAN
+                                   dst8[++j] = (d >> 16) & 0xff;
+                                   dst8[++j] = (d >>  8) & 0xff;
+                                   dst8[++j] = (d >>  0) & 0xff;
+#else
+                                   dst8[++j] = (d >>  0) & 0xff;
+                                   dst8[++j] = (d >>  8) & 0xff;
+                                   dst8[++j] = (d >> 16) & 0xff;
+#endif
+                              }
+                              break;
                          case DSPF_ARGB4444:
                               for (i=0; i<glyph->width; i++)
                                    dst16[i] = (src[i] << 8) | 0xFFF;
@@ -309,6 +323,21 @@ write_glyph( DGIFFGlyphInfo *glyph, FT_GlyphSlot slot, void *dst, int pitch )
                               for (i=0; i<glyph->width; i++)
                                    dst32[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
                                                 0x00 : 0xFF) << 24) | 0xFFFFFF;
+                              break;
+                         case DSPF_ARGB8565:
+                              for (i=0, j = -1; i<glyph->width; ++i) {
+                                   u32 d = (((src[i>>3] & (1<<(7-(i%8)))) ?
+                                             0xFF : 0x00) << 16) | 0xFFFF;
+#ifdef WORDS_BIGENDIAN
+                                   dst8[++j] = (d >> 16) & 0xff;
+                                   dst8[++j] = (d >>  8) & 0xff;
+                                   dst8[++j] = (d >>  0) & 0xff;
+#else
+                                   dst8[++j] = (d >>  0) & 0xff;
+                                   dst8[++j] = (d >>  8) & 0xff;
+                                   dst8[++j] = (d >> 16) & 0xff;
+#endif
+                              }
                               break;
                          case DSPF_ARGB4444:
                               for (i=0; i<glyph->width; i++)

@@ -915,6 +915,7 @@ v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rect,
                palette = VIDEO_PALETTE_RGB555;
                break;
           case DSPF_RGB16:
+          case DSPF_ARGB8565:
                bpp = 16;
                palette = VIDEO_PALETTE_RGB565;
                break;
@@ -1046,6 +1047,7 @@ v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
                palette = VIDEO_PALETTE_RGB555;
                break;
           case DSPF_RGB16:
+          case DSPF_ARGB8565:
                palette = VIDEO_PALETTE_RGB565;
                break;
           case DSPF_RGB24:
@@ -1381,6 +1383,7 @@ v4l2_playto( CoreSurface *surface, DFBRectangle *rect, IDirectFBVideoProvider_V4
                palette = V4L2_PIX_FMT_RGB555;
                break;
           case DSPF_RGB16:
+          case DSPF_ARGB8565:
                palette = V4L2_PIX_FMT_RGB565;
                break;
           case DSPF_RGB24:

@@ -62,6 +62,7 @@ static struct {
      { DSPF_RGBA5551, "RGBA5551" },
      { DSPF_ARGB2554, "ARGB2554" },
      { DSPF_ARGB4444, "ARGB4444" },
+     { DSPF_ARGB8565, "ARGB8565" },
      { DSPF_RGB32,    "RGB32"    },
      { DSPF_RGB24,    "RGB24"    },
      { DSPF_RGB16,    "RGB16"    },
@@ -487,6 +488,10 @@ static DFBResult load_image (const char            *filename,
                case DSPF_ARGB4444:
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
                          dfb_argb_to_argb4444 ((u32 *) s, (u16 *) d, width);
+                    break;
+               case DSPF_ARGB8565:
+                    for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
+                         dfb_argb_to_argb8565 ((u32 *) s, (u8 *) d, width);
                     break;
                case DSPF_RGB332:
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)

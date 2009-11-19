@@ -607,6 +607,12 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
                D_BUG( "no mask" );
                return false;
           }
+
+          /* Source2 may have been destroyed. */
+          if (accel == DFXL_BLIT2 && !state->source2) {
+               D_BUG( "no source2" );
+               return false;
+          }
      }
 
      dst_buffer = dfb_surface_get_buffer( dst, state->to );
@@ -803,6 +809,24 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 
                state->flags |= CSF_SOURCE_MASK_LOCKED;
           }
+
+          /* if using source2... */
+          if (accel == DFXL_BLIT2) {
+               /* ...lock source2 for reading */
+               ret = dfb_surface_lock_buffer( state->source2, state->from, CSAID_GPU, CSAF_READ, &state->src2 );
+               if (ret) {
+                    D_DEBUG_AT( Core_Graphics, "Could not lock source2 for GPU access!\n" );
+
+                    if (state->flags & CSF_SOURCE_MASK_LOCKED)
+                         dfb_surface_unlock_buffer( src, &state->src_mask );
+
+                    dfb_surface_unlock_buffer( src, &state->src );
+                    dfb_surface_unlock_buffer( dst, &state->dst );
+                    return false;
+               }
+
+               state->flags |= CSF_SOURCE2_LOCKED;
+          }
      }
 
      /*
@@ -917,6 +941,13 @@ dfb_gfxcard_state_release( CardState *state )
           dfb_surface_unlock_buffer( state->source_mask, &state->src_mask );
 
           state->flags &= ~CSF_SOURCE_MASK_LOCKED;
+     }
+
+     /* if source2 got locked this value is true */
+     if (state->flags & CSF_SOURCE2_LOCKED) {
+          dfb_surface_unlock_buffer( state->source2, &state->src2 );
+
+          state->flags &= ~CSF_SOURCE2_LOCKED;
      }
 }
 
@@ -1882,6 +1913,86 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
 
                     gRelease( state );
                }
+          }
+     }
+
+     dfb_state_unlock( state );
+}
+
+void dfb_gfxcard_batchblit2( DFBRectangle *rects, DFBPoint *points, DFBPoint *points2,
+                             int num, CardState *state )
+{
+     int i = 0;
+
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %p, %p, %p [%d], %p )\n", __FUNCTION__, rects, points, points2, num, state );
+
+     D_ASSERT( card != NULL );
+     D_ASSERT( card->shared != NULL );
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( rects != NULL );
+     D_ASSERT( points != NULL );
+     D_ASSERT( points2 != NULL );
+     D_ASSERT( num > 0 );
+
+     /* The state is locked during graphics operations. */
+     dfb_state_lock( state );
+
+     /* Signal beginning of sequence of operations if not already done. */
+     dfb_state_start_drawing( state, card );
+
+     if (dfb_gfxcard_state_check( state, DFXL_BLIT2 ) &&
+         dfb_gfxcard_state_acquire( state, DFXL_BLIT2 ))
+     {
+          for (; i<num; i++) {
+               if ((state->render_options & DSRO_MATRIX) ||
+                   dfb_clip_blit_precheck( &state->clip,
+                                           rects[i].w, rects[i].h,
+                                           points[i].x, points[i].y ))
+               {
+                    int dx = points[i].x;
+                    int dy = points[i].y;
+
+                    if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
+                        !D_FLAGS_IS_SET( card->caps.clip, DFXL_BLIT2 ))
+                    {
+                         dfb_clip_blit( &state->clip, &rects[i], &dx, &dy );
+
+                         points2[i].x += dx - points[i].x;
+                         points2[i].y += dy - points[i].y;
+                    }
+
+                    if (!card->funcs.Blit2( card->driver_data, card->device_data,
+                                            &rects[i], dx, dy, points2[i].x, points2[i].y ))
+                         break;
+               }
+          }
+
+          dfb_gfxcard_state_release( state );
+     }
+
+     if (i < num) {
+          if (state->render_options & DSRO_MATRIX) {
+               D_UNIMPLEMENTED();
+          }
+          else {    
+               D_UNIMPLEMENTED();
+/*
+               if (gAcquire( state, DFXL_BLIT2 )) {
+                    for (; i<num; i++) {
+                         if (dfb_clip_blit_precheck( &state->clip,
+                                                     rects[i].w, rects[i].h,
+                                                     points[i].x, points[i].y ))
+                         {
+                              dfb_clip_blit( &state->clip, &rects[i],
+                                             &points[i].x, &points[i].y );
+
+                              gBlit( state, &rects[i], points[i].x, points[i].y );
+                         }
+                    }
+
+                    gRelease( state );
+               }
+*/
           }
      }
 

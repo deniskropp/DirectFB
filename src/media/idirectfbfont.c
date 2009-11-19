@@ -439,13 +439,14 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
                               const char    *text,
                               int            bytes,
                               int            max_width,
-                              int           *ret_width, 
+                              int           *ret_width,
                               int           *ret_str_length,
                               const char   **ret_next_line)
 {
      DFBResult      ret;
      CoreFont      *font;
      const u8      *string;
+     const u8      *last;
      const u8      *end;
      CoreGlyphData *glyph;
      int            kern_x;
@@ -484,10 +485,11 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
 
      do {
           *ret_width = width;
-          length ++;          
+          length ++;
 
           current = DIRECT_UTF8_GET_CHAR( string );
 
+          last    = string;
           string += DIRECT_UTF8_SKIP( string[0] );
 
           if (current == ' ' || current == 0x0a) {
@@ -503,7 +505,7 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
           ret = dfb_font_get_glyph_data( font, index, 0, &glyph );    // FIXME: support font layers
           if (ret)
                continue;
-          
+
           width += glyph->advance;
 
           if (prev && font->GetKerning && font->GetKerning( font, prev, index, &kern_x, NULL ) == DFB_OK)
@@ -514,7 +516,7 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
 
      dfb_font_unlock( font );
 
-     if (width<max_width && string >= end) {
+     if (width < max_width && string >= end) {
           *ret_next_line = NULL;
           *ret_str_length = length;
           *ret_width = width;
@@ -529,7 +531,7 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
                *ret_width = width;
           } else {
                *ret_str_length = length-1;
-               *ret_next_line = (const char*) string-1;
+               *ret_next_line = (const char*) last;
                /* ret_width already set in the loop */
           }
      }

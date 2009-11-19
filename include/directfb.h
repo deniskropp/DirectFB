@@ -506,8 +506,8 @@ typedef enum {
                                                 based on each pixel's alpha value. */
      DLCAPS_SCREEN_LOCATION   = 0x00000008,  /* The layer location on the screen can be changed,
                                                 this includes position and size as normalized
-                                                values. The default is 0.0f, 0.0f, 1.0f, 1.0f. 
-                                                Supports IDirectFBDisplayLayer::SetScreenLocation() 
+                                                values. The default is 0.0f, 0.0f, 1.0f, 1.0f.
+                                                Supports IDirectFBDisplayLayer::SetScreenLocation()
                                                 and IDirectFBDisplayLayer::SetScreenRectangle().
                                                 This implies DLCAPS_SCREEN_POSITION and _SIZE. */
      DLCAPS_FLICKER_FILTERING = 0x00000010,  /* Flicker filtering can be enabled for smooth output
@@ -536,12 +536,12 @@ typedef enum {
                                                 See also IDirectFBSurface::SetAlphaRamp(). */
      DLCAPS_PREMULTIPLIED     = 0x00020000,  /* Surfaces with premultiplied alpha are supported. */
 
-     DLCAPS_SCREEN_POSITION   = 0x00100000,  /* The layer position on the screen can be changed. 
+     DLCAPS_SCREEN_POSITION   = 0x00100000,  /* The layer position on the screen can be changed.
                                                 Supports IDirectFBDisplayLayer::SetScreenPosition(). */
-     DLCAPS_SCREEN_SIZE       = 0x00200000,  /* The layer size (defined by its source rectangle) 
-                                                can be scaled to a different size on the screen 
-                                                (defined by its screen/destination rectangle or 
-                                                its normalized size) and does not have to be 1:1 
+     DLCAPS_SCREEN_SIZE       = 0x00200000,  /* The layer size (defined by its source rectangle)
+                                                can be scaled to a different size on the screen
+                                                (defined by its screen/destination rectangle or
+                                                its normalized size) and does not have to be 1:1
                                                 with it. */
 
      DLCAPS_CLIP_REGIONS      = 0x00400000,  /* Supports IDirectFBDisplayLayer::SetClipRegions(). */
@@ -744,6 +744,7 @@ typedef enum {
                                                 see also IDirectFBSurface::SetSourceMask() */
      DSBLIT_SRC_MASK_COLOR     = 0x00200000, /* modulate source color channels with color channels from source mask,
                                                 see also IDirectFBSurface::SetSourceMask() */
+     DSBLIT_SOURCE2            = 0x00400000, /* use secondary source instead of destination for reading */
      DSBLIT_FLIP_HORIZONTAL    = 0x01000000, /* flip the image horizontally */
      DSBLIT_FLIP_VERTICAL      = 0x02000000, /* flip the image vertically */
 } DFBSurfaceBlittingFlags;
@@ -776,13 +777,14 @@ typedef enum {
      DFXL_BLIT           = 0x00010000,  /* Blit() and TileBlit() are accelerated. */
      DFXL_STRETCHBLIT    = 0x00020000,  /* StretchBlit() is accelerated. */
      DFXL_TEXTRIANGLES   = 0x00040000,  /* TextureTriangles() is accelerated. */
+     DFXL_BLIT2          = 0x00080000,  /* BatchBlit2() is accelerated. */
 
      DFXL_DRAWSTRING     = 0x01000000,  /* DrawString() and DrawGlyph() are accelerated. */
 
 
-     DFXL_ALL            = 0x0107000F,  /* All drawing/blitting functions. */
+     DFXL_ALL            = 0x010F000F,  /* All drawing/blitting functions. */
      DFXL_ALL_DRAW       = 0x0000000F,  /* All drawing functions. */
-     DFXL_ALL_BLIT       = 0x01070000,  /* All blitting functions. */
+     DFXL_ALL_BLIT       = 0x010F0000,  /* All blitting functions. */
 } DFBAccelerationMask;
 
 
@@ -1194,16 +1196,23 @@ typedef enum {
      /* 16 bit  RGBA (2 byte, red 5@11, green 5@6, blue 5@1, alpha 1@0) */
      DSPF_RGBA5551  = DFB_SURFACE_PIXELFORMAT( 30, 15, 1, 1, 0, 2, 0, 0, 0, 0, 0 ),
 
+     /* 24 bit full YUV planar (8 bit Y plane followed by an 8 bit Cb and an
+        8 bit Cr plane) */
+     DSPF_YUV444P   = DFB_SURFACE_PIXELFORMAT( 31, 24, 0, 0, 0, 1, 0, 0, 2, 0, 0 ),
+
+     /* 24 bit  ARGB (3 byte, alpha 8@16, red 5@11, green 6@5, blue 5@0) */
+     DSPF_ARGB8565  = DFB_SURFACE_PIXELFORMAT( 32, 16, 8, 1, 0, 3, 0, 0, 0, 0, 0 ),
+
      /* 32 bit  AVYU 4:4:4 (4 byte, alpha 8@24, Cr 8@16, Y 8@8, Cb 8@0) */
-     DSPF_AVYU      = DFB_SURFACE_PIXELFORMAT( 31, 24, 8, 1, 0, 4, 0, 0, 0, 0, 0 ),
+     DSPF_AVYU      = DFB_SURFACE_PIXELFORMAT( 33, 24, 8, 1, 0, 4, 0, 0, 0, 0, 0 ),
 
      /* 24 bit   VYU 4:4:4 (3 byte, Cr 8@16, Y 8@8, Cb 8@0) */
-     DSPF_VYU       = DFB_SURFACE_PIXELFORMAT( 32, 24, 0, 0, 0, 3, 0, 0, 0, 0, 0 )
+     DSPF_VYU       = DFB_SURFACE_PIXELFORMAT( 34, 24, 0, 0, 0, 3, 0, 0, 0, 0, 0 ),
 
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
-#define DFB_NUM_PIXELFORMATS            33
+#define DFB_NUM_PIXELFORMATS            35
 
 /* These macros extract information about the pixel format. */
 #define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000007F)      )
@@ -1562,7 +1571,7 @@ typedef enum {
 typedef enum {
      DVPLAY_NOFX        = 0x00000000, /* normal playback           */
      DVPLAY_REWIND      = 0x00000001, /* reverse playback          */
-     DVPLAY_LOOPING     = 0x00000002  /* automatically restart 
+     DVPLAY_LOOPING     = 0x00000002  /* automatically restart
                                          playback when end-of-stream
                                          is reached (gapless).     */
 } DFBVideoProviderPlaybackFlags;
@@ -1687,7 +1696,7 @@ DEFINE_INTERFACE(   IDirectFB,
       * If in shared cooperative level this function sets the
       * resolution of the window that is created implicitly for
       * the primary surface.
-      * 
+      *
       * The following values are valid for bpp: 2, 8, 12, 14, 15, 18, 24, 32.
       * These will result in the following formats, respectively: DSPF_LUT2,
       *  DSPF_LUT8, DSPF_ARGB4444, DSPF_ARGB2554, DSPF_ARGB1555, DSPF_RGB16,
@@ -2280,7 +2289,7 @@ typedef enum {
      DSOCONF_CONNECTORS   = 0x00000004, /* Select output connector(s). */
      DSOCONF_SLOW_BLANKING= 0x00000008, /* Can select slow blanking support. */
      DSOCONF_RESOLUTION   = 0x00000010, /* Can change output resolution */
-     
+
      DSOCONF_ALL          = 0x0000001F
 } DFBScreenOutputConfigFlags;
 
@@ -2417,7 +2426,7 @@ typedef enum {
      DSECONF_CONNECTORS   = 0x00000100, /* Select output connector(s). */
      DSECONF_SLOW_BLANKING = 0x00000200, /* Can select slow blanking support. */
      DSECONF_RESOLUTION    = 0x00000400, /* Can change resolution of the encoder.*/
-     
+
      DSECONF_ALL          = 0x000007FF
 } DFBScreenEncoderConfigFlags;
 
@@ -2490,7 +2499,7 @@ DEFINE_INTERFACE(   IDirectFBScreen,
           IDirectFBScreen                    *thiz,
           DFBScreenDescription               *ret_desc
      );
-     
+
      /*
       * Get the screen's width and height in pixels.
       */
@@ -3207,10 +3216,10 @@ typedef enum {
 typedef enum {
      DSLF_READ           = 0x00000001,  /* request read access while
                                            surface is locked */
-     DSLF_WRITE          = 0x00000002   /* Request write access. If 
-                                           specified and surface has 
-                                           a back buffer, it will be 
-                                           used. Otherwise, the front 
+     DSLF_WRITE          = 0x00000002   /* Request write access. If
+                                           specified and surface has
+                                           a back buffer, it will be
+                                           used. Otherwise, the front
                                            buffer is used. */
 } DFBSurfaceLockFlags;
 
@@ -3419,9 +3428,9 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       *
       * Returns a data pointer and the line pitch of it.<br>
       * <br>
-      * <b>Note:</b> If the surface is double/triple buffered and 
-      * the DSLF_WRITE flag is specified, the pointer is to the back 
-      * buffer.  In all other cases, the pointer is to the front 
+      * <b>Note:</b> If the surface is double/triple buffered and
+      * the DSLF_WRITE flag is specified, the pointer is to the back
+      * buffer.  In all other cases, the pointer is to the front
       * buffer.
       */
      DFBResult (*Lock) (
@@ -3808,7 +3817,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           const DFBSpan            *spans,
           unsigned int              num
      );
-     
+
      /*
       * Fill a bunch of triangles with a single call.
       *
@@ -4081,7 +4090,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
 
      /*
       * Write to the surface without the need for (Un)Lock.
-      * 
+      *
       * <b>rect</b> defines the area inside the surface.
       * <br><b>ptr</b> and <b>pitch</b> specify the source.
       * <br>The format of the surface and the source data must be the same.
@@ -4095,7 +4104,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
 
      /*
       * Read from the surface without the need for (Un)Lock.
-      * 
+      *
       * <b>rect</b> defines the area inside the surface to be read.
       * <br><b>ptr</b> and <b>pitch</b> specify the destination.
       * <br>The destination data will have the same format as the surface.
@@ -4119,6 +4128,25 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           const DFBColorID         *ids,
           const DFBColor           *colors,
           unsigned int              num
+     );
+
+
+
+   /** Blitting functions **/
+
+     /*
+      * Blit a bunch of areas at once using secondary source for reading instead of destination.
+      *
+      * Source may be the same surface.
+      */
+     DFBResult (*BatchBlit2) (
+          IDirectFBSurface         *thiz,
+          IDirectFBSurface         *source,
+          IDirectFBSurface         *source2,
+          const DFBRectangle       *source_rects,
+          const DFBPoint           *dest_points,
+          const DFBPoint           *source2_points,
+          int                       num
      );
 )
 
@@ -4371,7 +4399,7 @@ DEFINE_INTERFACE(   IDirectFBInputDevice,
           IDirectFBInputDevice          *thiz,
           IDirectFBEventBuffer          *buffer
      );
-     
+
      /*
       * Detach an event buffer from this device.
       */
@@ -5075,7 +5103,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
           IDirectFBWindow               *thiz,
           IDirectFBEventBuffer          *buffer
      );
-     
+
      /*
       * Detach an event buffer from this window.
       */
@@ -5317,7 +5345,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
 
 
    /** Binding **/
-     
+
      /*
       * Bind a window at the specified position of this window.
       *
@@ -5326,7 +5354,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * Binding the same window to multiple windows is not supported.
       * Subsequent call to Bind() automatically unbounds the bound window
       * before binding it again.<br>
-      * To move the bound window to a new position call Bind() again 
+      * To move the bound window to a new position call Bind() again
       * with the new coordinates.
       */
      DFBResult (*Bind) (
@@ -5524,8 +5552,8 @@ DEFINE_INTERFACE(   IDirectFBWindow,
 
      /*
       * Set application ID.
-      * 
-      * The usage of the application ID is not imposed by DirectFB 
+      *
+      * The usage of the application ID is not imposed by DirectFB
       * and can be used at will by the application. Any change will
       * be notified, and as such, an application manager using SaWMan
       * can be used to act on any change.
@@ -5696,22 +5724,25 @@ DEFINE_INTERFACE(   IDirectFBFont,
       * Get the next explicit or automatic break within a string
       * along with the logical width of the text, the string length,
       * and a pointer to the next text line.
-      *  
+      *
       * The bytes specifies the maximum number of bytes to take from the
       * string or -1 for complete NULL-terminated string.
       *
-      * The max_width specifies logical width of column onto which 
+      * The max_width specifies logical width of column onto which
       * the text will be drawn. Then the logical width of fitted
       * text is returned in ret_width. The returned width may overlap
-      * the max width specified if there's only one character 
+      * the max width specified if there's only one character
       * that fits.
       *
-      * The number of characters that fit into this column is
-      * returned by the ret_str_length. This value can be used as 
-      * the number of bytes to take when using DrawString().
+      * The number of characters that fit into this column is returned
+      * by the ret_str_length. Note that you can not use this value as
+      * the number of bytes to take when using DrawString() as it
+      * represents to the number of characters, not the number of
+      * bytes.
       *
-      * In ret_next_line a pointer to the next line of text is returned. This 
-      * will point to NULL or the end of the string if there's no more break.
+      * In ret_next_line a pointer to the next line of text is
+      * returned. This will point to NULL or the end of the string if
+      * there's no more break.
       */
      DFBResult (*GetStringBreak) (
           IDirectFBFont            *thiz,
@@ -5942,7 +5973,7 @@ typedef struct {
           char            encoding[DFB_STREAM_DESC_ENCODING_LENGTH]; /* encoding (e.g. "MPEG4") */
           DFBStreamFormat format;                                    /* format of the video stream */
      } video;                           /* struct containing the above two encoding properties for video */
-     
+
      struct {
           char            encoding[DFB_STREAM_DESC_ENCODING_LENGTH]; /* encoding (e.g. "AAC") */
           DFBStreamFormat format;                                    /* format of the audio stream */
@@ -6133,7 +6164,7 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
      );
 
    /** Advanced control **/
-   
+
      /*
       * Set the flags controlling playback mode.
       */
@@ -6141,21 +6172,21 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
           IDirectFBVideoProvider        *thiz,
           DFBVideoProviderPlaybackFlags  flags
      );
-     
+
      /*
       * Set the speed multiplier.
       *
-      * Values below 1.0 reduce playback speed 
+      * Values below 1.0 reduce playback speed
       * while values over 1.0 increase it.<br>
       * Specifying a value of 0.0 has the effect of
-      * putting the playback in pause mode without 
+      * putting the playback in pause mode without
       * stopping the video provider.
       */
      DFBResult (*SetSpeed) (
           IDirectFBVideoProvider   *thiz,
           double                    multiplier
      );
-     
+
      /*
       * Get current speed multiplier.
       */
@@ -6163,7 +6194,7 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
           IDirectFBVideoProvider   *thiz,
           double                   *ret_multiplier
      );
-     
+
      /*
       * Set volume level.
       *
@@ -6196,7 +6227,7 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
      /*
       * Set the audio units that are being used for output.
       * May have multiple audio outputs and need to configure them on/off
-      * dynamically. 
+      * dynamically.
       */
      DFBResult (*SetAudioOutputs) (
           IDirectFBVideoProvider     *thiz,

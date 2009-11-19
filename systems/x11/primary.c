@@ -303,6 +303,7 @@ primaryTestRegion( CoreLayer                  *layer,
      }
 
      switch (config->format) {
+          case DSPF_LUT8:
           case DSPF_RGB16:
           case DSPF_NV16:
           case DSPF_RGB444:
@@ -318,6 +319,9 @@ primaryTestRegion( CoreLayer                  *layer,
           case DSPF_AYUV:
           case DSPF_AVYU:
           case DSPF_VYU:
+          case DSPF_UYVY:
+          case DSPF_ARGB8565:
+          case DSPF_YUV444P:
                break;
 
           default:
@@ -541,7 +545,29 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
           offset = xw->ximage_offset;
 
           xw->ximage_offset = (offset ? 0 : ximage->height / 2);
-          
+
+          /* make sure the 16-bit input formats are properly 2-pixel-clipped */
+          switch (surface->config.format) {
+               case DSPF_I420:
+               case DSPF_YV12:
+               case DSPF_NV12:
+               case DSPF_NV21:
+                    if (rect.y & 1) {
+                         rect.y--;
+                         rect.h++;
+                    }
+                    /* fall through */
+               case DSPF_YUY2:
+               case DSPF_UYVY:
+               case DSPF_NV16:
+                    if (rect.x & 1) {
+                         rect.x--;
+                         rect.w++;
+                    }
+               default: /* no action */
+                    break;
+          }
+
           dst = xw->virtualscreen + rect.x * xw->bpp + (rect.y + offset) * ximage->bytes_per_line;
           src = lock->addr + DFB_BYTES_PER_LINE( surface->config.format, rect.x ) + rect.y * lock->pitch;
 
@@ -557,8 +583,27 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
                     break;
 
                case 16:
+                    if (surface->config.format == DSPF_LUT8) {
+                         int width = rect.w; int height = rect.h;
+                         const u8    *src8    = src;
+                         u16         *dst16   = dst;
+                         CorePalette *palette = surface->palette;
+                         int          x;
+                         while (height--) {
+
+                              for (x=0; x<width; x++) {
+                                   DFBColor color = palette->entries[src8[x]];
+                                   dst16[x] = PIXEL_RGB16( color.r, color.g, color.b );
+                              }
+
+                              src8  += lock->pitch;
+                              dst16 += ximage->bytes_per_line / 2;
+                         }
+                    }
+                    else {
                     dfb_convert_to_rgb16( surface->config.format, src, lock->pitch,
                                           surface->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
+                    }
                     break;
 
                case 15:

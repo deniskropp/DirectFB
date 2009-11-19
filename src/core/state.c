@@ -123,6 +123,7 @@ dfb_state_init( CardState *state, CoreDFB *core )
      direct_serial_init( &state->dst_serial );
      direct_serial_init( &state->src_serial );
      direct_serial_init( &state->src_mask_serial );
+     direct_serial_init( &state->src2_serial );
 
      D_MAGIC_SET( state, CardState );
 
@@ -145,6 +146,7 @@ dfb_state_destroy( CardState *state )
      direct_serial_deinit( &state->dst_serial );
      direct_serial_deinit( &state->src_serial );
      direct_serial_deinit( &state->src_mask_serial );
+     direct_serial_deinit( &state->src2_serial );
 
      if (state->gfxs) {
           GenefxState *gfxs = state->gfxs;
@@ -245,6 +247,42 @@ dfb_state_set_source( CardState *state, CoreSurface *source )
 }
 
 DFBResult
+dfb_state_set_source2( CardState *state, CoreSurface *source2 )
+{
+     D_MAGIC_ASSERT( state, CardState );
+
+     dfb_state_lock( state );
+
+     if (state->source2 != source2) {
+          if (source2 && dfb_surface_ref( source2 )) {
+               D_WARN( "could not ref() source2" );
+               dfb_state_unlock( state );
+               return DFB_DEAD;
+          }
+
+          if (state->source2) {
+               D_ASSERT( D_FLAGS_IS_SET( state->flags, CSF_SOURCE2 ) );
+               dfb_surface_unref( state->source2 );
+          }
+
+          state->source2   = source2;
+          state->modified |= SMF_SOURCE2;
+
+          if (source2) {
+               direct_serial_copy( &state->src2_serial, &source2->serial );
+
+               D_FLAGS_SET( state->flags, CSF_SOURCE2 );
+          }
+          else
+               D_FLAGS_CLEAR( state->flags, CSF_SOURCE2 );
+     }
+
+     dfb_state_unlock( state );
+
+     return DFB_OK;
+}
+
+DFBResult
 dfb_state_set_source_mask( CardState *state, CoreSurface *source_mask )
 {
      D_MAGIC_ASSERT( state, CardState );
@@ -319,6 +357,15 @@ dfb_state_update( CardState *state, bool update_sources )
 
           if (direct_serial_update( &state->src_mask_serial, &source_mask->serial ))
                state->modified |= SMF_SOURCE_MASK;
+     }
+
+     if (update_sources && D_FLAGS_IS_SET( state->flags, CSF_SOURCE2 )) {
+          CoreSurface *source2 = state->source2;
+
+          D_ASSERT( source2 != NULL );
+
+          if (direct_serial_update( &state->src2_serial, &source2->serial ))
+               state->modified |= SMF_SOURCE2;
      }
 }
 
