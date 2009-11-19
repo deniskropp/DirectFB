@@ -119,7 +119,7 @@ static void Bop_rgb32_toK_Aop_64( GenefxState *gfxs )
      for (w = l >> 1; w; w--) {
           u64 d = *((u64*)D);
 
-          if ((d & 0x00ffffff00ffffffull) != DDkey) {
+          if ((d & 0x00ffffff00ffffffull) == DDkey) {
                if ((d & 0x00ffffff00000000ull) ==
                     (DDkey & 0x00ffffff00000000ull)) {
                     if ((d & 0x0000000000ffffffull) ==
