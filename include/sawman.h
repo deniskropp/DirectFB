@@ -64,7 +64,9 @@ typedef enum {
      SWMWF_FOCUSED  = 0x00000002, /* only used for GetWindowInfo */
      SWMWF_ENTERED  = 0x00000004, /* only used for GetWindowInfo */
 
-     SWMWF_ALL      = 0x00000007
+     SWMWF_UPDATING = 0x00000010,
+
+     SWMWF_ALL      = 0x00000017
 } SaWManWindowFlags;
 
 

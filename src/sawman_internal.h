@@ -244,6 +244,7 @@ struct __SaWMan_SaWManTier {
 
      DFBUpdates              updates;
      DFBRegion               update_regions[SAWMAN_MAX_UPDATE_REGIONS];
+     bool                    update_once;
 
      bool                    active;
 
