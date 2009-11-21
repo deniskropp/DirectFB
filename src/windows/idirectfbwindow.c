@@ -1285,6 +1285,26 @@ IDirectFBWindow_GetApplicationID( IDirectFBWindow *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBWindow_BeginUpdates( IDirectFBWindow *thiz,
+                              const DFBRegion *update )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     dfb_windowstack_lock( data->window->stack );
+
+     dfb_wm_begin_updates( data->window, update );
+
+     dfb_windowstack_unlock( data->window->stack );
+
+     return DFB_OK;
+}
+
 DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                            CoreWindow      *window,
@@ -1358,6 +1378,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->SetAssociation = IDirectFBWindow_SetAssociation;
      thiz->SetApplicationID = IDirectFBWindow_SetApplicationID;
      thiz->GetApplicationID = IDirectFBWindow_GetApplicationID;
+     thiz->BeginUpdates = IDirectFBWindow_BeginUpdates;
 
      return DFB_OK;
 }

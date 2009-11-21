@@ -3182,6 +3182,8 @@ typedef enum {
 
      DSFLIP_PIPELINE     = 0x00000008,
 
+     DSFLIP_ONCE         = 0x00000010,
+
      DSFLIP_WAITFORSYNC  = DSFLIP_WAIT | DSFLIP_ONSYNC
 } DFBSurfaceFlipFlags;
 
@@ -5569,6 +5571,17 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      DFBResult (*GetApplicationID) (
           IDirectFBWindow               *thiz,
           unsigned long                 *ret_application_id
+     );
+
+
+   /** Updates **/
+
+     /*
+      * Signal start of window content updates.
+      */
+     DFBResult (*BeginUpdates) (
+          IDirectFBWindow               *thiz,
+          const DFBRegion               *update
      );
 )
 

@@ -3817,6 +3817,19 @@ wm_request_focus( CoreWindow *window,
      return request_focus( window, window_data );
 }
 
+static DFBResult
+wm_begin_updates( CoreWindow      *window,
+                  void            *wm_data,
+                  void            *window_data,
+                  const DFBRegion *update )
+{
+     D_ASSERT( window != NULL );
+     D_ASSERT( wm_data != NULL );
+     D_ASSERT( window_data != NULL );
+
+     return DFB_OK;
+}
+
 /**************************************************************************************************/
 
 static DFBResult

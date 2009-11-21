@@ -1120,6 +1120,26 @@ dfb_wm_request_focus( CoreWindow *window )
 }
 
 DFBResult
+dfb_wm_begin_updates( CoreWindow      *window,
+                      const DFBRegion *update )
+{
+     D_ASSERT( wm_local != NULL );
+     D_ASSERT( wm_local->funcs != NULL );
+     D_ASSERT( wm_local->funcs->RequestFocus != NULL );
+
+     D_ASSERT( window != NULL );
+
+     D_MAGIC_ASSERT( window->stack, CoreWindowStack );
+     D_MAGIC_ASSERT( window->stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &window->stack->context->lock );
+
+     D_DEBUG_AT( Core_WM, "%s( %p [%d,%d-%dx%d] )\n", __FUNCTION__,
+                 window, DFB_RECTANGLE_VALS(&window->config.bounds) );
+
+     return wm_local->funcs->BeginUpdates( window, wm_local->data, window->window_data, update );
+}
+
+DFBResult
 dfb_wm_update_stack( CoreWindowStack     *stack,
                      const DFBRegion     *region,
                      DFBSurfaceFlipFlags  flags )

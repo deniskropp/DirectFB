@@ -255,6 +255,11 @@ typedef struct {
                                       void                   *wm_data,
                                       void                   *window_data );
 
+     DFBResult (*BeginUpdates)      ( CoreWindow             *window,
+                                      void                   *wm_data,
+                                      void                   *window_data,
+                                      const DFBRegion        *update );
+
 
    /** Updates **/
 
@@ -355,6 +360,9 @@ DFBResult dfb_wm_ungrab             ( CoreWindow             *window,
                                       CoreWMGrab             *grab );
 
 DFBResult dfb_wm_request_focus      ( CoreWindow             *window );
+
+DFBResult dfb_wm_begin_updates      ( CoreWindow             *window,
+                                      const DFBRegion        *update );
 
 
 DFBResult dfb_wm_update_stack       ( CoreWindowStack        *stack,
