@@ -1300,6 +1300,8 @@ wm_post_init( void *wm_data, void *shared_data )
 
           D_MAGIC_ASSERT( tier, SaWManTier );
 
+          tier->context->lock = sawman->lock;     // FIXME: hack
+
           ret = dfb_layer_context_get_configuration( tier->context, &tier->config );
           if (ret)
                D_DERROR( ret, "SaWMan/PostInit: Could not get configuration of layer context!\n" );
