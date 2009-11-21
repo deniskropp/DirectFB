@@ -55,7 +55,7 @@ static DFBColor
 blit_pixel( CardState *state, DFBColor src, DFBColor dst )
 {
      /* Scratch for blending stage. */
-     DFBColor x;
+     DFBColor x, dst_org;
 
      /*
       * Input => short circuit to Output? (simple blits)
@@ -82,6 +82,7 @@ blit_pixel( CardState *state, DFBColor src, DFBColor dst )
      /*
       * Modulation stage
       */
+     dst_org = dst;
 
      /* Modulate source alpha value with global alpha factor? */
      if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
@@ -123,16 +124,6 @@ blit_pixel( CardState *state, DFBColor src, DFBColor dst )
           MODULATE( dst.r, dst.a );
           MODULATE( dst.g, dst.a );
           MODULATE( dst.b, dst.a );
-     }
-
-     /*
-      * XOR comes right before blending, after load, modulate and premultiply.
-      */
-     if (state->blittingflags & DSBLIT_XOR) {
-          src.a ^= dst.a;
-          src.r ^= dst.r;
-          src.g ^= dst.g;
-          src.b ^= dst.b;
      }
 
      /*
@@ -327,6 +318,16 @@ blit_pixel( CardState *state, DFBColor src, DFBColor dst )
           x.r = ((int)x.r << 8) / ((int)x.a + 1);
           x.g = ((int)x.g << 8) / ((int)x.a + 1);
           x.b = ((int)x.b << 8) / ((int)x.a + 1);
+     }
+
+     /*
+      * XOR comes at the end.
+      */
+     if (state->blittingflags & DSBLIT_XOR) {
+          x.a ^= dst_org.a;
+          x.r ^= dst_org.r;
+          x.g ^= dst_org.g;
+          x.b ^= dst_org.b;
      }
 
      /*
