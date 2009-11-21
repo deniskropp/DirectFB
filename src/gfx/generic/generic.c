@@ -9239,10 +9239,6 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     if (state->drawingflags & DSDRAW_DST_PREMULTIPLY)
                          *funcs++ = Dacc_premultiply;
 
-                    /* xor destination */
-                    if (state->drawingflags & DSDRAW_XOR)
-                         *funcs++ = Dacc_xor;
-
                     /* load source (color) */
                     Cacc.RGB.a = color.a;
                     if (!dst_ycbcr) {
@@ -9363,6 +9359,10 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     /* demultiply result */
                     if (state->drawingflags & DSDRAW_DEMULTIPLY)
                          *funcs++ = Dacc_demultiply;
+
+                    /* xor destination */
+                    if (state->drawingflags & DSDRAW_XOR)
+                         *funcs++ = Dacc_xor;
 
                     /* write to destination */
                     *funcs++ = Sacc_is_Aacc;
@@ -9551,13 +9551,6 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY)
                               *funcs++ = Dacc_premultiply;
 
-                         /* Xor source with destination */
-                         if (state->blittingflags & DSBLIT_XOR) {
-                              *funcs++ = Sacc_is_Aacc;
-                              *funcs++ = Dacc_is_Bacc;
-                              *funcs++ = Sacc_xor_Dacc;
-                         }
-
                          /* do blend functions and combine both accumulators */
                          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
                               /* Xacc will be blended and written to while
@@ -9603,6 +9596,13 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          if (state->blittingflags & DSBLIT_DEMULTIPLY) {
                               *funcs++ = Dacc_is_Bacc;
                               *funcs++ = Dacc_demultiply;
+                         }
+
+                         /* Xor source with destination */
+                         if (state->blittingflags & DSBLIT_XOR) {
+                              *funcs++ = Sacc_is_Aacc;
+                              *funcs++ = Dacc_is_Bacc;
+                              *funcs++ = Sacc_xor_Dacc;
                          }
 
                          /* write source to destination */
