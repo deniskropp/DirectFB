@@ -8232,7 +8232,30 @@ static void Dacc_xor_C( GenefxState *gfxs )
 
 static GenefxFunc Dacc_xor = Dacc_xor_C;
 
-static void Sacc_xor_Dacc( GenefxState *gfxs )
+static void Dacc_clamp_C( GenefxState *gfxs )
+{
+     int                w = gfxs->length;
+     GenefxAccumulator *D = gfxs->Dacc;
+
+     while (w--) {
+          if (!(D->RGB.a & 0xF000)) {
+               if (D->RGB.a > 0xff)
+                    D->RGB.a = 0xff;
+               if (D->RGB.r > 0xff)
+                    D->RGB.r = 0xff;
+               if (D->RGB.g > 0xff)
+                    D->RGB.g = 0xff;
+               if (D->RGB.b > 0xff)
+                    D->RGB.b = 0xff;
+          }
+
+          D++;
+     }
+}
+
+static GenefxFunc Dacc_clamp = Dacc_clamp_C;
+
+static void Sacc_xor_Dacc_C( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
@@ -8249,6 +8272,8 @@ static void Sacc_xor_Dacc( GenefxState *gfxs )
           S++;
      }
 }
+
+static GenefxFunc Sacc_xor_Dacc = Sacc_xor_Dacc_C;
 
 static void Cacc_to_Dacc( GenefxState *gfxs )
 {
@@ -8589,6 +8614,7 @@ static void Sacc_is_Tacc( GenefxState *gfxs ) { gfxs->Sacc = gfxs->Tacc;}
 
 static void Dacc_is_Aacc( GenefxState *gfxs ) { gfxs->Dacc = gfxs->Aacc;}
 static void Dacc_is_Bacc( GenefxState *gfxs ) { gfxs->Dacc = gfxs->Bacc;}
+static void Dacc_is_Tacc( GenefxState *gfxs ) { gfxs->Dacc = gfxs->Tacc;}
 
 static void Xacc_is_Aacc( GenefxState *gfxs ) { gfxs->Xacc = gfxs->Aacc;}
 static void Xacc_is_Bacc( GenefxState *gfxs ) { gfxs->Xacc = gfxs->Bacc;}
@@ -9321,13 +9347,14 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
                          /* destination blending */
                          *funcs++ = Sacc_is_NULL;
-                         *funcs++ = Xacc_is_Aacc;
+                         *funcs++ = Xacc_is_Tacc;
                          *funcs++ = Yacc_is_Aacc;
 
                          if (state->dst_blend > D_ARRAY_SIZE(Xacc_blend) || state->dst_blend < 1)
                               D_BUG( "unknown dst_blend %d", state->dst_blend );
                          else
                               *funcs++ = Xacc_blend[state->dst_blend - 1];
+
 
                          /* add source to destination accumulator */
                          switch (state->src_blend) {
@@ -9338,9 +9365,10 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                               case DSBF_INVSRCCOLOR:
                               case DSBF_SRCALPHA:
                               case DSBF_INVSRCALPHA:
-                                   if (SCacc.RGB.a || SCacc.RGB.r ||
-                                       SCacc.RGB.g || SCacc.RGB.b)
+                                   if (SCacc.RGB.a || SCacc.RGB.r || SCacc.RGB.g || SCacc.RGB.b) {
+                                        *funcs++ = Dacc_is_Tacc;
                                         *funcs++ = SCacc_add_to_Dacc;
+                                   }
                                    break;
                               case DSBF_DESTALPHA:
                               case DSBF_INVDESTALPHA:
@@ -9348,6 +9376,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                               case DSBF_INVDESTCOLOR:
                               case DSBF_SRCALPHASAT:
                                    *funcs++ = Sacc_is_Bacc;
+                                   *funcs++ = Dacc_is_Tacc;
                                    *funcs++ = Sacc_add_to_Dacc;
                                    break;
 
@@ -9361,11 +9390,13 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          *funcs++ = Dacc_demultiply;
 
                     /* xor destination */
-                    if (state->drawingflags & DSDRAW_XOR)
-                         *funcs++ = Dacc_xor;
+                    if (state->drawingflags & DSDRAW_XOR) {
+                         *funcs++ = Sacc_is_Aacc;
+                         *funcs++ = Sacc_xor_Dacc;
+                    }
 
                     /* write to destination */
-                    *funcs++ = Sacc_is_Aacc;
+                    *funcs++ = Sacc_is_Tacc;
                     if (state->drawingflags & DSDRAW_DST_COLORKEY) {
                          gfxs->Dkey = state->dst_colorkey;
                          *funcs++ = Sacc_toK_Aop_PFI[dst_pfi];
@@ -9602,6 +9633,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          if (state->blittingflags & DSBLIT_XOR) {
                               *funcs++ = Sacc_is_Aacc;
                               *funcs++ = Dacc_is_Bacc;
+                              *funcs++ = Dacc_clamp;
                               *funcs++ = Sacc_xor_Dacc;
                          }
 
