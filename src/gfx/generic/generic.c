@@ -9223,7 +9223,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
           case DFXL_FILLTRIANGLE:
-               if (state->drawingflags & ~(DSDRAW_DST_COLORKEY | DSDRAW_SRC_PREMULTIPLY)) {
+               if (state->drawingflags & ~(DSDRAW_DST_COLORKEY | DSDRAW_SRC_PREMULTIPLY | DSDRAW_DST_PREMULTIPLY)) {
                     GenefxAccumulator Cacc, SCacc;
 
                     /* not yet completed optimizing checks */
@@ -9391,12 +9391,23 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
                     /* xor destination */
                     if (state->drawingflags & DSDRAW_XOR) {
-                         *funcs++ = Sacc_is_Aacc;
-                         *funcs++ = Sacc_xor_Dacc;
+                         if (state->drawingflags & DSDRAW_BLEND) {
+                              *funcs++ = Sacc_is_Aacc;
+                              *funcs++ = Sacc_xor_Dacc;
+
+                              *funcs++ = Sacc_is_Tacc;
+                         }
+                         else {
+                              *funcs++ = Dacc_xor;
+                              *funcs++ = Sacc_is_Aacc;
+                         }
                     }
+                    else if (state->drawingflags & DSDRAW_BLEND)
+                         *funcs++ = Sacc_is_Tacc;
+                    else
+                         *funcs++ = Sacc_is_Aacc;
 
                     /* write to destination */
-                    *funcs++ = Sacc_is_Tacc;
                     if (state->drawingflags & DSDRAW_DST_COLORKEY) {
                          gfxs->Dkey = state->dst_colorkey;
                          *funcs++ = Sacc_toK_Aop_PFI[dst_pfi];
