@@ -1033,6 +1033,26 @@ get_border_only( SaWMan     *sawman,
      return !none;
 }
 
+static bool
+windows_updating( SaWMan     *sawman,
+                  SaWManTier *tier )
+{
+     int           i;
+     SaWManWindow *window;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( tier, SaWManTier );
+
+     fusion_vector_foreach (window, i, sawman->layout) {
+          D_MAGIC_ASSERT( window, SaWManWindow );
+          
+          if (window->flags & SWMWF_UPDATING)
+               return true;
+     }
+
+     return false;
+}
+
 /* FIXME: Split up in smaller functions and clean up things like forcing reconfiguration. */
 DirectResult
 sawman_process_updates( SaWMan              *sawman,
@@ -1072,6 +1092,13 @@ sawman_process_updates( SaWMan              *sawman,
 
           if (!tier->updates.num_regions)
                continue;
+
+          if (tier->update_once) {
+               if (windows_updating( sawman, tier ))
+                    continue;
+
+               tier->update_once = false;
+          }
 
           D_DEBUG_AT( SaWMan_Update, "  -> %d updates (tier %d, layer %d)\n",
                       tier->updates.num_regions, idx, tier->layer_id );
@@ -1302,6 +1329,8 @@ sawman_process_updates( SaWMan              *sawman,
                dfb_layer_region_flip_update( tier->region, NULL, flags );
 
                dfb_updates_reset( &tier->updates );
+
+               fusion_skirmish_notify( &sawman->lock );
                continue;
           }
 
@@ -1422,6 +1451,8 @@ no_single:
                repaint_tier( sawman, tier, &tier->updates.bounding, 1, flags );
 
           dfb_updates_reset( &tier->updates );
+
+          fusion_skirmish_notify( &sawman->lock );
      }
 
      return DFB_OK;

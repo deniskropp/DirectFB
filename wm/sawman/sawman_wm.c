@@ -1300,6 +1300,8 @@ wm_post_init( void *wm_data, void *shared_data )
 
           D_MAGIC_ASSERT( tier, SaWManTier );
 
+          tier->context->lock = sawman->lock;     // FIXME: hack
+
           ret = dfb_layer_context_get_configuration( tier->context, &tier->config );
           if (ret)
                D_DERROR( ret, "SaWMan/PostInit: Could not get configuration of layer context!\n" );
@@ -2977,6 +2979,29 @@ wm_request_focus( CoreWindow *window,
      return ret;
 }
 
+static DFBResult
+wm_begin_updates( CoreWindow      *window,
+                  void            *wm_data,
+                  void            *window_data,
+                  const DFBRegion *update )
+{
+     WMData       *wmdata = wm_data;
+     SaWMan       *sawman;
+     SaWManWindow *sawwin = window_data;
+
+     D_ASSERT( window != NULL );
+     D_ASSERT( wm_data != NULL );
+     D_ASSERT( window_data != NULL );
+     D_MAGIC_ASSERT( sawwin, SaWManWindow );
+
+     sawman = wmdata->sawman;
+     D_MAGIC_ASSERT( sawman, SaWMan );
+
+     sawwin->flags |= SWMWF_UPDATING;
+
+     return DFB_OK;
+}
+
 /**********************************************************************************************************************/
 
 static DFBResult
@@ -3076,6 +3101,8 @@ wm_update_window( CoreWindow          *window,
           return DFB_OK;
      }
 
+     sawwin->flags &= ~SWMWF_UPDATING;
+
      /* Retrieve corresponding SaWManTier. */
      tier = sawman_tier_by_class( sawman, window->config.stacking );
      if (!tier) {
@@ -3112,7 +3139,15 @@ wm_update_window( CoreWindow          *window,
                                 sawwin->parent ? NULL : region, /* FIXME? */
                                 flags, SWMUF_SCALE_REGION );
 
+          if (flags & DSFLIP_ONCE)
+               tier->update_once = true;
+
           sawman_process_updates( sawman, flags );
+
+          if (flags & DSFLIP_ONCE) {
+               while (tier->updates.num_regions)
+                    fusion_skirmish_wait( &sawman->lock, 0 );
+          }
      }
 
      /* Unlock SaWMan. */
