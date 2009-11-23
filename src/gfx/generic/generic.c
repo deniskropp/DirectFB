@@ -6776,7 +6776,7 @@ static void Bop_a8_set_alphapixel_Aop_argb8565( GenefxState *gfxs )
      u32    srb = Cop & 0xf81f;
      u32    sg  = Cop & 0x07e0;
 
-#warning CHECK correctness
+//#warning CHECK correctness
 /* currently, the code is a mix of ...argb() alpha handling and the other
    functions' color handling - they differ quite notably. But I think
    alpha handling in ARGB / Color handling in other functions are
@@ -8232,7 +8232,30 @@ static void Dacc_xor_C( GenefxState *gfxs )
 
 static GenefxFunc Dacc_xor = Dacc_xor_C;
 
-static void Sacc_xor_Dacc( GenefxState *gfxs )
+static void Dacc_clamp_C( GenefxState *gfxs )
+{
+     int                w = gfxs->length;
+     GenefxAccumulator *D = gfxs->Dacc;
+
+     while (w--) {
+          if (!(D->RGB.a & 0xF000)) {
+               if (D->RGB.a > 0xff)
+                    D->RGB.a = 0xff;
+               if (D->RGB.r > 0xff)
+                    D->RGB.r = 0xff;
+               if (D->RGB.g > 0xff)
+                    D->RGB.g = 0xff;
+               if (D->RGB.b > 0xff)
+                    D->RGB.b = 0xff;
+          }
+
+          D++;
+     }
+}
+
+static GenefxFunc Dacc_clamp = Dacc_clamp_C;
+
+static void Sacc_xor_Dacc_C( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
@@ -8249,6 +8272,8 @@ static void Sacc_xor_Dacc( GenefxState *gfxs )
           S++;
      }
 }
+
+static GenefxFunc Sacc_xor_Dacc = Sacc_xor_Dacc_C;
 
 static void Cacc_to_Dacc( GenefxState *gfxs )
 {
@@ -8589,6 +8614,7 @@ static void Sacc_is_Tacc( GenefxState *gfxs ) { gfxs->Sacc = gfxs->Tacc;}
 
 static void Dacc_is_Aacc( GenefxState *gfxs ) { gfxs->Dacc = gfxs->Aacc;}
 static void Dacc_is_Bacc( GenefxState *gfxs ) { gfxs->Dacc = gfxs->Bacc;}
+static void Dacc_is_Tacc( GenefxState *gfxs ) { gfxs->Dacc = gfxs->Tacc;}
 
 static void Xacc_is_Aacc( GenefxState *gfxs ) { gfxs->Xacc = gfxs->Aacc;}
 static void Xacc_is_Bacc( GenefxState *gfxs ) { gfxs->Xacc = gfxs->Bacc;}
@@ -9197,7 +9223,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
           case DFXL_FILLTRIANGLE:
-               if (state->drawingflags & ~(DSDRAW_DST_COLORKEY | DSDRAW_SRC_PREMULTIPLY)) {
+               if (state->drawingflags & ~(DSDRAW_DST_COLORKEY | DSDRAW_SRC_PREMULTIPLY | DSDRAW_DST_PREMULTIPLY)) {
                     GenefxAccumulator Cacc, SCacc;
 
                     /* not yet completed optimizing checks */
@@ -9238,10 +9264,6 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     /* premultiply destination */
                     if (state->drawingflags & DSDRAW_DST_PREMULTIPLY)
                          *funcs++ = Dacc_premultiply;
-
-                    /* xor destination */
-                    if (state->drawingflags & DSDRAW_XOR)
-                         *funcs++ = Dacc_xor;
 
                     /* load source (color) */
                     Cacc.RGB.a = color.a;
@@ -9325,13 +9347,14 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
                          /* destination blending */
                          *funcs++ = Sacc_is_NULL;
-                         *funcs++ = Xacc_is_Aacc;
+                         *funcs++ = Xacc_is_Tacc;
                          *funcs++ = Yacc_is_Aacc;
 
                          if (state->dst_blend > D_ARRAY_SIZE(Xacc_blend) || state->dst_blend < 1)
                               D_BUG( "unknown dst_blend %d", state->dst_blend );
                          else
                               *funcs++ = Xacc_blend[state->dst_blend - 1];
+
 
                          /* add source to destination accumulator */
                          switch (state->src_blend) {
@@ -9342,9 +9365,10 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                               case DSBF_INVSRCCOLOR:
                               case DSBF_SRCALPHA:
                               case DSBF_INVSRCALPHA:
-                                   if (SCacc.RGB.a || SCacc.RGB.r ||
-                                       SCacc.RGB.g || SCacc.RGB.b)
+                                   if (SCacc.RGB.a || SCacc.RGB.r || SCacc.RGB.g || SCacc.RGB.b) {
+                                        *funcs++ = Dacc_is_Tacc;
                                         *funcs++ = SCacc_add_to_Dacc;
+                                   }
                                    break;
                               case DSBF_DESTALPHA:
                               case DSBF_INVDESTALPHA:
@@ -9352,6 +9376,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                               case DSBF_INVDESTCOLOR:
                               case DSBF_SRCALPHASAT:
                                    *funcs++ = Sacc_is_Bacc;
+                                   *funcs++ = Dacc_is_Tacc;
                                    *funcs++ = Sacc_add_to_Dacc;
                                    break;
 
@@ -9364,8 +9389,25 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     if (state->drawingflags & DSDRAW_DEMULTIPLY)
                          *funcs++ = Dacc_demultiply;
 
+                    /* xor destination */
+                    if (state->drawingflags & DSDRAW_XOR) {
+                         if (state->drawingflags & DSDRAW_BLEND) {
+                              *funcs++ = Sacc_is_Aacc;
+                              *funcs++ = Sacc_xor_Dacc;
+
+                              *funcs++ = Sacc_is_Tacc;
+                         }
+                         else {
+                              *funcs++ = Dacc_xor;
+                              *funcs++ = Sacc_is_Aacc;
+                         }
+                    }
+                    else if (state->drawingflags & DSDRAW_BLEND)
+                         *funcs++ = Sacc_is_Tacc;
+                    else
+                         *funcs++ = Sacc_is_Aacc;
+
                     /* write to destination */
-                    *funcs++ = Sacc_is_Aacc;
                     if (state->drawingflags & DSDRAW_DST_COLORKEY) {
                          gfxs->Dkey = state->dst_colorkey;
                          *funcs++ = Sacc_toK_Aop_PFI[dst_pfi];
@@ -9551,13 +9593,6 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY)
                               *funcs++ = Dacc_premultiply;
 
-                         /* Xor source with destination */
-                         if (state->blittingflags & DSBLIT_XOR) {
-                              *funcs++ = Sacc_is_Aacc;
-                              *funcs++ = Dacc_is_Bacc;
-                              *funcs++ = Sacc_xor_Dacc;
-                         }
-
                          /* do blend functions and combine both accumulators */
                          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
                               /* Xacc will be blended and written to while
@@ -9603,6 +9638,14 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          if (state->blittingflags & DSBLIT_DEMULTIPLY) {
                               *funcs++ = Dacc_is_Bacc;
                               *funcs++ = Dacc_demultiply;
+                         }
+
+                         /* Xor source with destination */
+                         if (state->blittingflags & DSBLIT_XOR) {
+                              *funcs++ = Sacc_is_Aacc;
+                              *funcs++ = Dacc_is_Bacc;
+                              *funcs++ = Dacc_clamp;
+                              *funcs++ = Sacc_xor_Dacc;
                          }
 
                          /* write source to destination */

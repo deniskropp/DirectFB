@@ -97,6 +97,10 @@ static DFBResult Test_CreateSubWindow( IDirectFBDisplayLayer *layer, void *arg )
 
 /**********************************************************************************************************************/
 
+static DFBResult Test_WarpCursor( IDirectFBDisplayLayer *layer, void *arg );
+
+/**********************************************************************************************************************/
+
 static DFBResult Test_MoveWindow( IDirectFBDisplayLayer *layer, void *arg );
 static DFBResult Test_ScaleWindow( IDirectFBDisplayLayer *layer, void *arg );
 
@@ -125,6 +129,7 @@ typedef struct {
 } Test;
 
 static Test m_tests[] = {
+     { "WarpCursor",     Test_WarpCursor },
      { "Restack",        Test_RestackWindow },
      { "Move",           Test_MoveWindow },
      { "Scale",          Test_ScaleWindow },
@@ -920,6 +925,37 @@ Test_CreateSubWindow( IDirectFBDisplayLayer *layer, void *arg )
      SHOW_RESULT( "...CreateWindow( %d,%d - %dx%d %s + toplevel ID %u ) done. => Sub Window ID %u",
                   m_desc_sub.posx, m_desc_sub.posy, m_desc_sub.width, m_desc_sub.height,
                   dfb_pixelformat_name( m_desc_sub.pixelformat ), m_desc_sub.toplevel_id, window_id );
+
+     return DFB_OK;
+}
+
+static DFBResult
+Test_WarpCursor( IDirectFBDisplayLayer *layer, void *arg )
+{
+     int      i;
+     DFBPoint pos;
+
+     /*
+      * Warp the cursor
+      */
+     _T( layer->SetCooperativeLevel( layer, DLSCL_ADMINISTRATIVE ) );
+     _T( layer->GetCursorPosition( layer, &pos.x, &pos.y ) );
+
+     {
+          DFBPoint poss[] = { { pos.x - 40, pos.y - 40 },
+                              { pos.x + 40, pos.y - 40 },
+                              { pos.x + 40, pos.y + 40 },
+                              { pos.x - 40, pos.y + 40 },
+                              { pos.x     , pos.y      } };
+
+          for (i=0; i<D_ARRAY_SIZE(poss); i++) {
+               SHOW_TEST( "WarpCursor( %4d,%4d - [%02d] )...", poss[i].x, poss[i].y, i );
+
+               _T( layer->WarpCursor( layer, poss[i].x, poss[i].y ) );
+
+               SHOW_RESULT( "...WarpCursor( %4d,%4d - [%02d] ) done.", poss[i].x, poss[i].y, i );
+          }
+     }
 
      return DFB_OK;
 }

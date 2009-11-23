@@ -326,7 +326,7 @@ static void Bop_PFI_OP_Aop_PFI(StoK)( GenefxState *gfxs )
      u16  Dkey  = gfxs->Dkey;
 
      while (l--) {
-          if (MASK_RGB( *D ) != Dkey)
+          if (MASK_RGB( *D ) == Dkey)
                *D = S[i>>16];
 
           D++;
