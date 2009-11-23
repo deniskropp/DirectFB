@@ -48,7 +48,9 @@ static const DirectFBScreenMixerTreeNames( tree_names );
 static const DirectFBScreenEncoderScanModeNames( scan_mode_names );
 static const DirectFBScreenEncoderTestPictureNames( test_picture_names );
 static const DirectFBScreenEncoderTVStandardsNames( tv_standard_names );
+static const DirectFBScreenEncoderFrequencyNames( frequency_names );
 static const DirectFBScreenOutputSignalsNames( signal_names );
+static const DirectFBScreenOutputResolutionNames( resolution_names );
 
 /**************************************************************************************************/
 
@@ -290,9 +292,17 @@ static const AnyOption options[] = {
        &encoder_config.out_signals, &encoder_config.flags,
        DSECONF_OUT_SIGNALS, parse_enum, signal_names },
 
+     { "-er", "--resolution",   "<resolution>", "Set resolution",
+       &encoder_config.resolution, &encoder_config.flags,
+       DSECONF_RESOLUTION, parse_enum, resolution_names },
+
      { "-ec", "--scan-mode",    "<mode>",     "Set scan mode",
        &encoder_config.scanmode, &encoder_config.flags,
        DSECONF_SCANMODE, parse_enum, scan_mode_names },
+
+     { "-ef", "--frequency",    "<frequency>", "Set frequency",
+       &encoder_config.frequency, &encoder_config.flags,
+       DSECONF_FREQUENCY, parse_enum, frequency_names },
 
 
      { "-o",  "--output",       "<index>",    "Index of output to use",
@@ -605,6 +615,19 @@ test_picture_name( DFBScreenEncoderTestPicture test_picture )
 }
 
 static const char *
+resolution_name( DFBScreenOutputResolution resolution )
+{
+     int i;
+
+     for (i=0; i<D_ARRAY_SIZE(resolution_names); i++) {
+          if (resolution_names[i].resolution == resolution)
+               return resolution_names[i].name;
+     }
+
+     return "<invalid>";
+}
+
+static const char *
 scan_mode_name( DFBScreenEncoderTestPicture scan_mode )
 {
      int i;
@@ -612,6 +635,19 @@ scan_mode_name( DFBScreenEncoderTestPicture scan_mode )
      for (i=0; i<D_ARRAY_SIZE(scan_mode_names); i++) {
           if (scan_mode_names[i].scan_mode == scan_mode)
                return scan_mode_names[i].name;
+     }
+
+     return "<invalid>";
+}
+
+static const char *
+frequency_name( DFBScreenEncoderFrequency frequency )
+{
+     int i;
+
+     for (i=0; i<D_ARRAY_SIZE(frequency_names); i++) {
+          if (frequency_names[i].frequency == frequency)
+               return frequency_names[i].name;
      }
 
      return "<invalid>";
@@ -652,8 +688,14 @@ dump_encoder_config( const DFBScreenEncoderConfig *config )
           printf( "\n" );
      }
 
+     if (config->flags & DSECONF_RESOLUTION)
+          printf( "Resolution:    %s\n", resolution_name( config->resolution ) );
+
      if (config->flags & DSECONF_SCANMODE)
           printf( "Scan Mode:     %s\n", scan_mode_name( config->scanmode ) );
+
+     if (config->flags & DSECONF_FREQUENCY)
+          printf( "Frequency:     %s\n", frequency_name( config->frequency ) );
 
      printf( "\n" );
 }
