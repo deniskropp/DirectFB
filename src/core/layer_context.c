@@ -191,7 +191,8 @@ update_stack_geometry( CoreLayerContext *context )
           }
      }
 
-     dfb_windowstack_resize( context->stack, size.w, size.h, rotation );
+     if (context->stack)
+          dfb_windowstack_resize( context->stack, size.w, size.h, rotation );
 }
 
 DFBResult
@@ -251,11 +252,13 @@ dfb_layer_context_init( CoreLayerContext *context,
      dfb_layer_context_lock( context );
 
      /* Create the window stack. */
-     context->stack = dfb_windowstack_create( context );
-     if (!context->stack) {
-          dfb_layer_context_unlock( context );
-          dfb_layer_context_unref( context );
-          return D_OOSHM();
+     if (layer->shared->description.caps & DLCAPS_SURFACE) {
+          context->stack = dfb_windowstack_create( context );
+          if (!context->stack) {
+               dfb_layer_context_unlock( context );
+               dfb_layer_context_unref( context );
+               return D_OOSHM();
+          }
      }
 
      /* Tell the window stack about its size. */
@@ -1203,7 +1206,8 @@ dfb_layer_context_set_rotation( CoreLayerContext *context,
 
           update_stack_geometry( context );
 
-          dfb_windowstack_repaint_all( context->stack );
+          if (context->stack)
+               dfb_windowstack_repaint_all( context->stack );
      }
 
      /* Unlock the context. */
@@ -1374,11 +1378,15 @@ dfb_layer_context_create_window( CoreDFB                     *core,
      D_DEBUG_AT( Core_LayerContext, "%s( %p, %p, %p, %p )\n", __FUNCTION__, core, context, desc, ret_window );
 
      D_MAGIC_ASSERT( context, CoreLayerContext );
-     D_ASSERT( context->stack != NULL );
      D_ASSERT( desc != NULL );
      D_ASSERT( ret_window != NULL );
 
      layer = dfb_layer_at( context->layer_id );
+
+     if ((layer->shared->description.caps & DLCAPS_SURFACE) == 0)
+          return DFB_UNSUPPORTED;
+
+     D_ASSERT( context->stack != NULL );
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );
@@ -1414,10 +1422,17 @@ dfb_layer_context_find_window( CoreLayerContext *context, DFBWindowID id )
 {
      CoreWindowStack *stack;
      CoreWindow      *window;
+     CoreLayer       *layer;
 
      D_DEBUG_AT( Core_LayerContext, "%s( %p, %u )\n", __FUNCTION__, context, id );
 
      D_MAGIC_ASSERT( context, CoreLayerContext );
+
+     layer = dfb_layer_at( context->layer_id );
+
+     if ((layer->shared->description.caps & DLCAPS_SURFACE) == 0)
+          return NULL;
+
      D_ASSERT( context->stack != NULL );
 
      stack = context->stack;
