@@ -30,7 +30,6 @@
 #define __CORE__SURFACE_BUFFER_H__
 
 #include <direct/debug.h>
-#include <direct/list.h>
 
 #include <fusion/vector.h>
 
