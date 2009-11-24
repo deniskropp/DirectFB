@@ -4,5 +4,3 @@ Makefile.in
 .libs
 *.lo
 *.la
-yuvtbl-gen
-yuvtbl.h
