@@ -112,6 +112,9 @@ directfb_strings.h: directfb.h $(MKNAMES) Makefile
 	$(MKNAMES) DFBScreenEncoderScanMode DSESM UNKNOWN ScreenEncoderScanMode scan_mode $(INCP)/directfb.h \
 	   | grep -v DSESM_ALL >> $@
 
+	$(MKNAMES) DFBScreenEncoderFrequency DSEF UNKNOWN ScreenEncoderFrequency frequency $(INCP)/directfb.h \
+	   | grep -v DSEF_ALL >> $@
+
 	$(MKNAMES) DFBAccelerationMask DFXL NONE AccelerationMask mask $(INCP)/directfb.h \
 	   | grep -v DFXL_ALL >> $@
 
