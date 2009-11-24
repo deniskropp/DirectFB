@@ -149,6 +149,7 @@ driver_init_driver( CoreGraphicsDevice  *device,
                funcs->FlushTextureCache = sh7722FlushTextureCache;
 
                /* Initialize JPEG library. */
+#if 0
                ret = SH7722_JPEG_Initialize();
                if (ret) {
                     D_DERROR( ret, "SH7722/Driver: JPEG initialization failed!\n" );
@@ -157,6 +158,7 @@ driver_init_driver( CoreGraphicsDevice  *device,
                     close( sdrv->gfx_fd );
                     return DFB_INIT;
                }
+#endif
                break;
 
           case SH7723GFX_SHARED_MAGIC:
@@ -243,7 +245,7 @@ driver_init_device( CoreGraphicsDevice *device,
      	  struct fb_var_screeninfo vsi;
 		  int fbdev;
 
-		  if ((fbdev = open("/dev/fb", O_RDONLY)) < 0) {
+		  if ((fbdev = open("/dev/fb0", O_RDONLY)) < 0) {
 			   D_ERROR( "SH7722/Driver: Can't open fbdev to get LCDC info!\n" );
 			   return DFB_FAILURE;
 		  }
@@ -479,7 +481,9 @@ driver_close_driver( CoreGraphicsDevice *device,
              shared->num_starts / shared->num_idle );
 
      /* Shutdown JPEG library. */
+#if 0
      SH7722_JPEG_Shutdown();
+#endif
 
      /* Unmap shared area. */
      munmap( (void*) sdrv->gfx_shared, direct_page_align( sizeof(SH772xGfxSharedArea) ) );

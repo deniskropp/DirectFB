@@ -32,8 +32,12 @@ sh772x_driver_init( void )
 {
      int ret = -ENODEV;
 
-     if ((ctrl_inl(CCN_PVR) & 0xffff00) == 0x300800) {
+     switch(ctrl_inl(CCN_PVR) & 0xffff00) {
+
+     /* For SH7722/7723 */
+     case 0x300800:
           switch (ctrl_inl(CCN_PRR) & 0xf00) {
+               /* SH7722 */
                case 0xa00:
                     ret = sh7722_init();
                     if (ret)
@@ -42,6 +46,7 @@ sh772x_driver_init( void )
                     sh772x_init = 7722;
                     break;
 
+               /* SH7723 */
                case 0x500:
                     ret = sh7723_init();
                     if (ret)
@@ -50,6 +55,20 @@ sh772x_driver_init( void )
                     sh772x_init = 7723;
                     break;
           }
+
+     /* For SH7724 */
+     case 0x300b00:
+          switch (ctrl_inl(CCN_PRR) & 0xff00) {
+               /* SH7724 */
+               case 0x2200:
+                    ret = sh7723_init();
+                    if (ret)
+                         return ret;
+
+                    sh772x_init = 7723;
+               break;
+          }
+
      }
 
      return ret;
@@ -77,6 +96,6 @@ module_exit( sh772x_driver_exit );
 
 /**********************************************************************************************************************/
 
-MODULE_AUTHOR( "Denis Oliver Kropp <dok@directfb.org> & Janine Kropp <nin@directfb.org>" );
+MODULE_AUTHOR( "Denis Oliver Kropp <dok@directfb.org>, Janine Kropp <nin@directfb.org> & Takanari Hayama <taki@igel.co.jp>" );
 MODULE_LICENSE( "GPL v2" );
 
