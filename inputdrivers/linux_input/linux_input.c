@@ -155,6 +155,7 @@ typedef struct {
      int                      fd;
      int                      quitpipe[2];
 
+     bool                     has_keys;
      bool                     has_leds;
      unsigned long            led_state[NBITS(LED_CNT)];
      DFBInputDeviceLockState  locks;
@@ -841,6 +842,39 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
           ioctl( data->fd, EVIOCGABS(ABS_Y), &absinfo );
           fsm_state.y.min = absinfo.minimum;
           fsm_state.y.max = absinfo.maximum;
+     }
+
+     /* Query key states. */
+     if (data->has_keys) {
+          unsigned long keybit[NBITS(KEY_CNT)];
+          unsigned long keystate[NBITS(KEY_CNT)];
+          int i;
+
+          /* get keyboard bits */
+          ioctl( data->fd, EVIOCGBIT(EV_KEY, sizeof(keybit)), keybit );
+
+          /* get key states */
+          ioctl( data->fd, EVIOCGKEY(sizeof(keystate)), keystate );
+
+          /* for each key,
+             synthetize a press or release event depending on the key state */
+          for (i=0; i<=KEY_CNT; i++) {
+               if (test_bit( i, keybit )) {
+                    const int key = translate_key( i );
+
+                    if (DFB_KEY_TYPE(key) == DIKT_IDENTIFIER) {
+                         DFBInputEvent devt;
+
+                         devt.type     = (test_bit( i, keystate )
+                                          ? DIET_KEYPRESS : DIET_KEYRELEASE);
+                         devt.flags    = DIEF_KEYID | DIEF_KEYCODE;
+                         devt.key_id   = key;
+                         devt.key_code = i;
+
+                         dfb_input_dispatch( data->device, &devt );
+                    }
+               }
+          }
      }
 
      while (1) {
@@ -1734,8 +1768,9 @@ driver_open_device( CoreInputDevice  *device,
           return D_OOM();
      }
 
-     data->fd     = fd;
-     data->device = device;
+     data->fd       = fd;
+     data->device   = device;
+     data->has_keys = (info->desc.caps & DICAPS_KEYS) != 0;
      data->touchpad = touchpad;
      data->vt_fd    = -1;
 
