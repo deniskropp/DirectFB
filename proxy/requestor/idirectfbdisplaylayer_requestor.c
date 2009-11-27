@@ -327,13 +327,36 @@ IDirectFBDisplayLayer_Requestor_GetConfiguration( IDirectFBDisplayLayer *thiz,
 static DFBResult
 IDirectFBDisplayLayer_Requestor_TestConfiguration( IDirectFBDisplayLayer       *thiz,
                                                    const DFBDisplayLayerConfig *config,
-                                                   DFBDisplayLayerConfigFlags  *failed )
+                                                   DFBDisplayLayerConfigFlags  *ret_failed )
 {
+     DirectResult                ret;
+     VoodooResponseMessage      *response;
+     DFBDisplayLayerConfigFlags  failed;
+     VoodooMessageParser         parser;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Requestor)
 
-     D_UNIMPLEMENTED();
+     if (!config)
+          return DFB_INVARG;
 
-     return DFB_UNIMPLEMENTED;
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBDISPLAYLAYER_METHOD_ID_TestConfiguration, VREQ_RESPOND, &response,
+                                   VMBT_DATA, sizeof(DFBDisplayLayerConfig), config,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+
+     if (ret_failed) {
+          VOODOO_PARSER_BEGIN( parser, response );
+          VOODOO_PARSER_GET_UINT( parser, *ret_failed );
+          VOODOO_PARSER_END( parser );
+     }
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return ret;
 }
 
 static DFBResult
