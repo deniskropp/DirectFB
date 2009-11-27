@@ -97,7 +97,7 @@ IDirectFBSurface_Requestor_Destruct( IDirectFBSurface *thiz )
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 IDirectFBSurface_Requestor_AddRef( IDirectFBSurface *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
@@ -107,7 +107,7 @@ IDirectFBSurface_Requestor_AddRef( IDirectFBSurface *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBSurface_Requestor_Release( IDirectFBSurface *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)

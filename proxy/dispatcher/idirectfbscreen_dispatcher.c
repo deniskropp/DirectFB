@@ -84,7 +84,7 @@ IDirectFBScreen_Dispatcher_Destruct( IDirectFBScreen *thiz )
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 IDirectFBScreen_Dispatcher_AddRef( IDirectFBScreen *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBScreen_Dispatcher)
@@ -94,7 +94,7 @@ IDirectFBScreen_Dispatcher_AddRef( IDirectFBScreen *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBScreen_Dispatcher_Release( IDirectFBScreen *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBScreen_Dispatcher)

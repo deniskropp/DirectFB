@@ -72,7 +72,7 @@ IDirectFBWindow_Requestor_Destruct( IDirectFBWindow *thiz )
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 IDirectFBWindow_Requestor_AddRef( IDirectFBWindow *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Requestor)
@@ -82,7 +82,7 @@ IDirectFBWindow_Requestor_AddRef( IDirectFBWindow *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBWindow_Requestor_Release( IDirectFBWindow *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Requestor)

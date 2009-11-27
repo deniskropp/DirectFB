@@ -68,7 +68,7 @@ IDirectFBFont_Requestor_Destruct( IDirectFBFont *thiz )
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 IDirectFBFont_Requestor_AddRef( IDirectFBFont *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Requestor)
@@ -78,7 +78,7 @@ IDirectFBFont_Requestor_AddRef( IDirectFBFont *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBFont_Requestor_Release( IDirectFBFont *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Requestor)

@@ -81,7 +81,7 @@ IDirectFBPalette_Dispatcher_Destruct( IDirectFBPalette *thiz )
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 IDirectFBPalette_Dispatcher_AddRef( IDirectFBPalette *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBPalette_Dispatcher)
@@ -91,7 +91,7 @@ IDirectFBPalette_Dispatcher_AddRef( IDirectFBPalette *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBPalette_Dispatcher_Release( IDirectFBPalette *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBPalette_Dispatcher)

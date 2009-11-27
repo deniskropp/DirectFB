@@ -79,7 +79,7 @@ IDirectFBFont_Dispatcher_Destruct( IDirectFBFont *thiz )
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 IDirectFBFont_Dispatcher_AddRef( IDirectFBFont *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Dispatcher)
@@ -89,7 +89,7 @@ IDirectFBFont_Dispatcher_AddRef( IDirectFBFont *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBFont_Dispatcher_Release( IDirectFBFont *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Dispatcher)

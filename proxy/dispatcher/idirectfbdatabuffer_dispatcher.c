@@ -87,7 +87,7 @@ IDirectFBDataBuffer_Dispatcher_Destruct( IDirectFBDataBuffer *thiz )
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 IDirectFBDataBuffer_Dispatcher_AddRef( IDirectFBDataBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Dispatcher)
@@ -97,7 +97,7 @@ IDirectFBDataBuffer_Dispatcher_AddRef( IDirectFBDataBuffer *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBDataBuffer_Dispatcher_Release( IDirectFBDataBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Dispatcher)

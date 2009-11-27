@@ -68,7 +68,7 @@ IDirectFBDisplayLayer_Requestor_Destruct( IDirectFBDisplayLayer *thiz )
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 IDirectFBDisplayLayer_Requestor_AddRef( IDirectFBDisplayLayer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Requestor)
@@ -78,7 +78,7 @@ IDirectFBDisplayLayer_Requestor_AddRef( IDirectFBDisplayLayer *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBDisplayLayer_Requestor_Release( IDirectFBDisplayLayer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Requestor)

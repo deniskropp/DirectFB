@@ -80,7 +80,7 @@ IDirectFBScreen_Requestor_Destruct( IDirectFBScreen *thiz )
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 IDirectFBScreen_Requestor_AddRef( IDirectFBScreen *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBScreen_Requestor)
@@ -90,7 +90,7 @@ IDirectFBScreen_Requestor_AddRef( IDirectFBScreen *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBScreen_Requestor_Release( IDirectFBScreen *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBScreen_Requestor)

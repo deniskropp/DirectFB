@@ -79,7 +79,7 @@ IDirectFBImageProvider_Dispatcher_Destruct( IDirectFBImageProvider *thiz )
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_Dispatcher_AddRef( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_Dispatcher)
@@ -89,7 +89,7 @@ IDirectFBImageProvider_Dispatcher_AddRef( IDirectFBImageProvider *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_Dispatcher_Release( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_Dispatcher)

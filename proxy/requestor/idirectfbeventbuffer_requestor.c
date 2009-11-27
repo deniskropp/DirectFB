@@ -87,7 +87,7 @@ IDirectFBEventBuffer_Requestor_Destruct( IDirectFBEventBuffer *thiz )
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 IDirectFBEventBuffer_Requestor_AddRef( IDirectFBEventBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer_Requestor)
@@ -97,7 +97,7 @@ IDirectFBEventBuffer_Requestor_AddRef( IDirectFBEventBuffer *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBEventBuffer_Requestor_Release( IDirectFBEventBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer_Requestor)

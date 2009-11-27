@@ -68,7 +68,7 @@ IDirectFBPalette_Requestor_Destruct( IDirectFBPalette *thiz )
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 IDirectFBPalette_Requestor_AddRef( IDirectFBPalette *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBPalette_Requestor)
@@ -78,7 +78,7 @@ IDirectFBPalette_Requestor_AddRef( IDirectFBPalette *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBPalette_Requestor_Release( IDirectFBPalette *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBPalette_Requestor)

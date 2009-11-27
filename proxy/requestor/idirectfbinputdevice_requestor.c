@@ -71,7 +71,7 @@ IDirectFBInputDevice_Requestor_Destruct( IDirectFBInputDevice *thiz )
 
 /**************************************************************************************************/
 
-static DFBResult
+static DirectResult
 IDirectFBInputDevice_Requestor_AddRef( IDirectFBInputDevice *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice_Requestor)
@@ -81,7 +81,7 @@ IDirectFBInputDevice_Requestor_AddRef( IDirectFBInputDevice *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBInputDevice_Requestor_Release( IDirectFBInputDevice *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice_Requestor)
