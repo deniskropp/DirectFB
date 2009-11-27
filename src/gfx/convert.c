@@ -208,10 +208,10 @@ dfb_pixel_from_color( DFBSurfacePixelFormat  format,
                return PIXEL_ARGB6666( color->a, color->r, color->g, color->b );
 
           case DSPF_RGB24:
-               return PIXEL_RGB32( color->r, color->g, color->b );
+               return PIXEL_RGB32( color->r, color->g, color->b ) & 0xffffff;
 
           case DSPF_RGB32:
-               return PIXEL_RGB32( color->r, color->g, color->b );
+               return PIXEL_RGB32( color->r, color->g, color->b ) & 0xffffff;
 
           case DSPF_ARGB:
                return PIXEL_ARGB( color->a, color->r, color->g, color->b );
