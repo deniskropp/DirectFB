@@ -23,22 +23,22 @@ INCLUDES = \
 	-I$(srcdir)/kernel-module
 
 
-lib_LTLIBRARIES = libsh7722_jpeg.la
-
-libsh7722_jpeg_la_SOURCES =	\
-	sh7722_jpeglib.c	\
-	sh7722_jpeglib.h
-
-
-bin_PROGRAMS = sh7722_jpegtool
-
-sh7722_jpegtool_SOURCES = \
-	sh7722_jpegtool.c
-
-sh7722_jpegtool_LDADD = \
-	$(top_builddir)/src/libdirectfb.la	\
-	libsh7722_jpeg.la
-
+#lib_LTLIBRARIES = libsh7722_jpeg.la
+#
+#libsh7722_jpeg_la_SOURCES =	\
+#	sh7722_jpeglib.c	\
+#	sh7722_jpeglib.h
+#
+#
+#bin_PROGRAMS = sh7722_jpegtool
+#
+#sh7722_jpegtool_SOURCES = \
+#	sh7722_jpegtool.c
+#
+#sh7722_jpegtool_LDADD = \
+#	$(top_builddir)/src/libdirectfb.la	\
+#	libsh7722_jpeg.la
+#
 
 sh7722_LTLIBRARIES = libdirectfb_sh7722.la
 
@@ -55,7 +55,6 @@ libdirectfb_sh7722_la_SOURCES =	\
 	sh7722_blt.h		\
 	sh7723_blt.c		\
 	sh7723_blt.h		\
-	sh7722_jpeg.c		\
 	sh7722_layer.c		\
 	sh7722_layer.h		\
 	sh7722_lcd.c		\
@@ -66,6 +65,7 @@ libdirectfb_sh7722_la_SOURCES =	\
 	sh7722_screen.c		\
 	sh7722_screen.h		\
 	sh7722_types.h
+#	sh7722_jpeg.c		
 
 libdirectfb_sh7722_la_LDFLAGS = \
 	-module			\
@@ -73,8 +73,8 @@ libdirectfb_sh7722_la_LDFLAGS = \
 	$(DFB_LDFLAGS)
 
 libdirectfb_sh7722_la_LIBADD = \
-	$(top_builddir)/src/libdirectfb.la	\
-	libsh7722_jpeg.la
+	$(top_builddir)/src/libdirectfb.la	
+#	libsh7722_jpeg.la
 
 
 include $(top_srcdir)/rules/libobject.make

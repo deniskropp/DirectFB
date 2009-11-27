@@ -9,9 +9,6 @@ INCLUDES = \
 
 AM_CFLAGS = $(DFB_CFLAGS_OMIT_FRAME_POINTER)
 
-EXTRA_DIST = \
-	yuvtbl-gen.c
-
 internalincludedir = $(INTERNALINCLUDEDIR)/gfx/generic
 
 internalinclude_HEADERS = \
@@ -45,18 +42,6 @@ libdirectfb_generic_la_SOURCES = \
 	template_acc_16.h		\
 	template_acc_32.h		\
 	template_colorkey_16.h		\
-	template_colorkey_32.h		\
-	yuvtbl.h
+	template_colorkey_32.h
 
-generic.c: yuvtbl.h
-generic_dummy.c: yuvtbl.h
-
-yuvtbl-gen: yuvtbl-gen.c
-	$(CC) -O2 yuvtbl-gen.c -o yuvtbl-gen
-
-#yuvtbl.h: yuvtbl-gen
-#	./yuvtbl-gen > $(srcdir)/yuvtbl.h
-
-clean-local:
-	rm -f yuvtbl-gen
 

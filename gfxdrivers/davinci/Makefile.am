@@ -32,14 +32,6 @@ davincidir = $(MODULEDIR)/gfxdrivers
 includedir = @INCLUDEDIR@
 includelinuxdir = @INCLUDEDIR@/linux
 
-include_HEADERS = \
-	davincifb.h		\
-	davinci_c64x.h		\
-	davinci_gfxdriver.h
-
-includelinux_HEADERS = \
-	kernel-module/include/linux/c64x.h
-
 libdavinci_c64x_la_SOURCES =	\
 	davinci_c64x.c
 
