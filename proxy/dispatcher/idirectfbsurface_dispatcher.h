@@ -78,5 +78,14 @@
 #define IDIRECTFBSURFACE_METHOD_ID_SetEncoding               47
 #define IDIRECTFBSURFACE_METHOD_ID_DisableAcceleration       48
 #define IDIRECTFBSURFACE_METHOD_ID_ReleaseSource             49
+#define IDIRECTFBSURFACE_METHOD_ID_SetIndexTranslation       50
+#define IDIRECTFBSURFACE_METHOD_ID_SetRenderOptions          51
+#define IDIRECTFBSURFACE_METHOD_ID_SetMatrix                 52
+#define IDIRECTFBSURFACE_METHOD_ID_SetSourceMask             53
+#define IDIRECTFBSURFACE_METHOD_ID_MakeSubSurface            54
+#define IDIRECTFBSURFACE_METHOD_ID_Write                     55
+#define IDIRECTFBSURFACE_METHOD_ID_Read                      56
+#define IDIRECTFBSURFACE_METHOD_ID_SetColors                 57
+#define IDIRECTFBSURFACE_METHOD_ID_BatchBlit2                58
 
 #endif

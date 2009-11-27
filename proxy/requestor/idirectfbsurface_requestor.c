@@ -1102,14 +1102,51 @@ IDirectFBSurface_Requestor_SetIndexTranslation( IDirectFBSurface *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_Requestor_Write( IDirectFBSurface   *thiz,
+                                  const DFBRectangle *rect,
+                                  const void         *ptr,
+                                  int                 pitch )
+{
+     DFBResult    ret = DFB_OK;
+     int          y;
+     DFBRectangle r;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+
+     if (!rect || !ptr || pitch < 1)
+          return DFB_INVARG;
+
+     r.x = rect->x;
+     r.y = rect->y;
+     r.w = rect->w;
+     r.h = 1;
+
+     for (y=0; y<rect->h; y++) {
+          ret = voodoo_manager_request( data->manager, data->instance,
+                                        IDIRECTFBSURFACE_METHOD_ID_Write, VREQ_QUEUE, NULL,
+                                        VMBT_DATA, sizeof(DFBRectangle), &r,
+                                        VMBT_DATA, pitch /* FIXME */, ptr + y * pitch,
+                                        VMBT_INT, pitch,
+                                        VMBT_NONE );
+          if (ret)
+               break;
+
+          r.y++;
+     }
+
+     return ret;
+}
+
+static DFBResult
 IDirectFBSurface_Requestor_SetRenderOptions( IDirectFBSurface        *thiz,
                                              DFBSurfaceRenderOptions  options )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
-     
-     D_UNIMPLEMENTED();
-     
-     return DFB_UNIMPLEMENTED;
+
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBSURFACE_METHOD_ID_SetRenderOptions, VREQ_QUEUE, NULL,
+                                    VMBT_INT, options,
+                                    VMBT_NONE );
 }
 
 static DFBResult
@@ -1117,10 +1154,11 @@ IDirectFBSurface_Requestor_SetMatrix( IDirectFBSurface *thiz,
                                       const s32        *matrix )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
-     
-     D_UNIMPLEMENTED();
-     
-     return DFB_UNIMPLEMENTED;
+
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBSURFACE_METHOD_ID_SetMatrix, VREQ_QUEUE, NULL,
+                                    VMBT_DATA, sizeof(s32) * 9, matrix,
+                                    VMBT_NONE );
 }
 
 
@@ -1210,6 +1248,8 @@ Construct( IDirectFBSurface *thiz,
      thiz->ReleaseSource = IDirectFBSurface_Requestor_ReleaseSource;
      
      thiz->SetIndexTranslation = IDirectFBSurface_Requestor_SetIndexTranslation;
+
+     thiz->Write = IDirectFBSurface_Requestor_Write;
 
      thiz->SetRenderOptions = IDirectFBSurface_Requestor_SetRenderOptions;
      thiz->SetMatrix = IDirectFBSurface_Requestor_SetMatrix;

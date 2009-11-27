@@ -1479,6 +1479,64 @@ Dispatch_ReleaseSource( IDirectFBSurface *thiz, IDirectFBSurface *real,
 }
 
 static DirectResult
+Dispatch_Write( IDirectFBSurface *thiz, IDirectFBSurface *real,
+                VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     VoodooMessageParser  parser;
+     const DFBRectangle  *rect;
+     const void          *ptr;
+     int                  pitch;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_DATA( parser, rect );
+     VOODOO_PARSER_GET_DATA( parser, ptr );
+     VOODOO_PARSER_GET_INT( parser, pitch );
+     VOODOO_PARSER_END( parser );
+
+     real->Write( real, rect, ptr, pitch );
+
+     return DFB_OK;
+}
+
+static DirectResult
+Dispatch_SetRenderOptions( IDirectFBSurface *thiz, IDirectFBSurface *real,
+                           VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     VoodooMessageParser     parser;
+     DFBSurfaceRenderOptions options;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_INT( parser, options );
+     VOODOO_PARSER_END( parser );
+
+     real->SetRenderOptions( real, options );
+
+     return DFB_OK;
+}
+
+static DirectResult
+Dispatch_SetMatrix( IDirectFBSurface *thiz, IDirectFBSurface *real,
+                    VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     VoodooMessageParser  parser;
+     const s32           *matrix;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_DATA( parser, matrix );
+     VOODOO_PARSER_END( parser );
+
+     real->SetMatrix( real, matrix );
+
+     return DFB_OK;
+}
+
+static DirectResult
 Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMessage *msg )
 {
      D_DEBUG( "IDirectFBSurface/Dispatcher: "
@@ -1592,6 +1650,15 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
                
           case IDIRECTFBSURFACE_METHOD_ID_ReleaseSource:
                return Dispatch_ReleaseSource( dispatcher, real, manager, msg );
+
+          case IDIRECTFBSURFACE_METHOD_ID_Write:
+               return Dispatch_Write( dispatcher, real, manager, msg );
+
+          case IDIRECTFBSURFACE_METHOD_ID_SetRenderOptions:
+               return Dispatch_SetRenderOptions( dispatcher, real, manager, msg );
+
+          case IDIRECTFBSURFACE_METHOD_ID_SetMatrix:
+               return Dispatch_SetMatrix( dispatcher, real, manager, msg );
      }
 
      return DFB_NOSUCHMETHOD;
