@@ -1101,6 +1101,28 @@ IDirectFBSurface_Requestor_SetIndexTranslation( IDirectFBSurface *thiz,
      return DFB_UNIMPLEMENTED;
 }
 
+static DFBResult
+IDirectFBSurface_Requestor_SetRenderOptions( IDirectFBSurface        *thiz,
+                                             DFBSurfaceRenderOptions  options )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+     
+     D_UNIMPLEMENTED();
+     
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBSurface_Requestor_SetMatrix( IDirectFBSurface *thiz,
+                                      const s32        *matrix )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+     
+     D_UNIMPLEMENTED();
+     
+     return DFB_UNIMPLEMENTED;
+}
+
 
 /**************************************************************************************************/
 
@@ -1188,6 +1210,9 @@ Construct( IDirectFBSurface *thiz,
      thiz->ReleaseSource = IDirectFBSurface_Requestor_ReleaseSource;
      
      thiz->SetIndexTranslation = IDirectFBSurface_Requestor_SetIndexTranslation;
+
+     thiz->SetRenderOptions = IDirectFBSurface_Requestor_SetRenderOptions;
+     thiz->SetMatrix = IDirectFBSurface_Requestor_SetMatrix;
 
      return DFB_OK;
 }
