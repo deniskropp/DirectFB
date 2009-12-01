@@ -1820,8 +1820,10 @@ fusion_reactor_free (FusionReactor *reactor)
 //     D_ASSUME( reactor->destroyed );
 
      reactor->reactions = NULL;
-
      pthread_mutex_destroy( &reactor->reactions_lock );
+
+     reactor->globals = NULL;
+     pthread_mutex_destroy( &reactor->globals_lock );
 
      D_FREE( reactor );
 
