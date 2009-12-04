@@ -738,6 +738,7 @@ dispatch_key( UniqueWindow           *window,
      D_ASSERT( event != NULL );
 
      evt.type       = event->keyboard.press ? DWET_KEYDOWN : DWET_KEYUP;
+     evt.flags      = (event->keyboard.flags & UIKF_REPEAT) ? DWEF_REPEAT : 0;
      evt.key_code   = event->keyboard.key_code;
      evt.key_id     = event->keyboard.key_id;
      evt.key_symbol = event->keyboard.key_symbol;
