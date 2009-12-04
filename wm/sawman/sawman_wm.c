@@ -125,7 +125,7 @@ send_key_event( SaWMan              *sawman,
      D_ASSERT( event != NULL );
 
      we.type       = (event->type == DIET_KEYPRESS) ? DWET_KEYDOWN : DWET_KEYUP;
-     we.flags      = 0;
+     we.flags      = (event->flags & DIEF_REPEAT) ? DWEF_REPEAT : 0;
      we.key_code   = event->key_code;
      we.key_id     = event->key_id;
      we.key_symbol = event->key_symbol;
