@@ -1300,8 +1300,6 @@ wm_post_init( void *wm_data, void *shared_data )
 
           D_MAGIC_ASSERT( tier, SaWManTier );
 
-          tier->context->lock = sawman->lock;     // FIXME: hack
-
           ret = dfb_layer_context_get_configuration( tier->context, &tier->config );
           if (ret)
                D_DERROR( ret, "SaWMan/PostInit: Could not get configuration of layer context!\n" );
@@ -1392,6 +1390,12 @@ wm_init_stack( CoreWindowStack *stack,
      tier->size.w  = stack->width;
      tier->size.h  = stack->height;
 
+     /* FIXME: hack */ /* transfer/duplicate the skirmish */
+     fusion_skirmish_prevail( &sawman->lock );
+     fusion_skirmish_dismiss( &tier->context->lock );
+     tier->lock_backup   = tier->context->lock;
+     tier->context->lock = sawman->lock;
+
      ret = dfb_layer_context_get_primary_region( context, true, &tier->region );
      if (ret) {
           sawman_unlock( sawman );
@@ -1438,6 +1442,11 @@ wm_close_stack( CoreWindowStack *stack,
      }
 
      D_ASSERT( tier->context != NULL );
+
+     /* transfer lock back, hack FIXME */
+     tier->context->lock = tier->lock_backup;
+     fusion_skirmish_prevail( &tier->context->lock );
+     fusion_skirmish_dismiss( &sawman->lock );
 
      tier->stack   = NULL;
      tier->context = NULL;
