@@ -72,15 +72,23 @@ static GraphicsDriverFuncs driver_funcs = {
      .CloseDriver        = driver_close_driver
 };
 
-#define DFB_GRAPHICS_DRIVER(shortname)                           \
-__attribute__((constructor)) void directfb_##shortname( void );  \
-                                                                 \
-void                                                             \
-directfb_##shortname( void )                                     \
-{                                                                \
-     direct_modules_register( &dfb_graphics_drivers,             \
-                              DFB_GRAPHICS_DRIVER_ABI_VERSION,   \
-                              #shortname, &driver_funcs );       \
+#define DFB_GRAPHICS_DRIVER(shortname)                                     \
+__attribute__((constructor)) void directfb_##shortname##_ctor( void );     \
+__attribute__((destructor))  void directfb_##shortname##_dtor( void );     \
+                                                                           \
+void                                                                       \
+directfb_##shortname##_ctor( void )                                        \
+{                                                                          \
+     direct_modules_register( &dfb_graphics_drivers,                       \
+                              DFB_GRAPHICS_DRIVER_ABI_VERSION,             \
+                              #shortname, &driver_funcs );                 \
+}                                                                          \
+                                                                           \
+void                                                                       \
+directfb_##shortname##_dtor( void )                                        \
+{                                                                          \
+     direct_modules_unregister( &dfb_graphics_drivers,                     \
+                                #shortname );                              \
 }
 
 #endif
