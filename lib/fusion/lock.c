@@ -36,6 +36,7 @@
 #include <sys/param.h>
 
 #include <direct/debug.h>
+#include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/util.h>
 
@@ -46,11 +47,9 @@
 
 #include "fusion_internal.h"
 
-
-#if FUSION_BUILD_MULTI
-
 D_DEBUG_DOMAIN( Fusion_Skirmish, "Fusion/Skirmish", "Fusion's Skirmish (Mutex)" );
 
+#if FUSION_BUILD_MULTI
 
 #if FUSION_BUILD_KERNEL
 
@@ -574,8 +573,17 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
 {
      D_ASSERT( skirmish != NULL );
 
-     direct_util_recursive_pthread_mutex_init( &skirmish->single.lock );
-     pthread_cond_init( &skirmish->single.cond, NULL );
+     D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_init( %p, '%s' )\n", skirmish, name ? : "" );
+
+     skirmish->single = D_CALLOC( 1, sizeof(FusionSkirmishSingle) + strlen(name) + 1 );
+     if (skirmish->single == 0)
+          return DR_NOLOCALMEMORY;
+
+     skirmish->single->name = &skirmish->single + 1;
+     strcpy( skirmish->single->name, name );
+
+     direct_util_recursive_pthread_mutex_init( &skirmish->single->lock );
+     pthread_cond_init( &skirmish->single->cond, NULL );
 
      return DR_OK;
 }
@@ -584,11 +592,14 @@ DirectResult
 fusion_skirmish_prevail (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
+     D_ASSERT( skirmish->single != NULL );
 
-     if (pthread_mutex_lock( &skirmish->single.lock ))
+     D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
+
+     if (pthread_mutex_lock( &skirmish->single->lock ))
           return errno2result( errno );
 
-     skirmish->single.count++;
+     skirmish->single->count++;
 
      return DR_OK;
 }
@@ -597,11 +608,14 @@ DirectResult
 fusion_skirmish_swoop (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
+     D_ASSERT( skirmish->single != NULL );
 
-     if (pthread_mutex_trylock( &skirmish->single.lock ))
+     D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
+
+     if (pthread_mutex_trylock( &skirmish->single->lock ))
           return errno2result( errno );
 
-     skirmish->single.count++;
+     skirmish->single->count++;
 
      return DR_OK;
 }
@@ -610,16 +624,19 @@ DirectResult
 fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
 {
      D_ASSERT( skirmish != NULL );
+     D_ASSERT( skirmish->single != NULL );
      D_ASSERT( lock_count != NULL );
-     
-     if (pthread_mutex_trylock( &skirmish->single.lock )) {
+
+     D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
+
+     if (pthread_mutex_trylock( &skirmish->single->lock )) {
           *lock_count = 0;
           return errno2result( errno );
      }
 
-     *lock_count = skirmish->single.count;
+     *lock_count = skirmish->single->count;
 
-     pthread_mutex_unlock( &skirmish->single.lock );
+     pthread_mutex_unlock( &skirmish->single->lock );
 
      return DR_OK;
 }
@@ -628,10 +645,13 @@ DirectResult
 fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
+     D_ASSERT( skirmish->single != NULL );
 
-     skirmish->single.count--;
+     D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
 
-     if (pthread_mutex_unlock( &skirmish->single.lock ))
+     skirmish->single->count--;
+
+     if (pthread_mutex_unlock( &skirmish->single->lock ))
           return errno2result( errno );
 
      return DR_OK;
@@ -640,19 +660,31 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 DirectResult
 fusion_skirmish_destroy (FusionSkirmish *skirmish)
 {
-     D_ASSERT( skirmish != NULL );
-     
-     pthread_cond_broadcast( &skirmish->single.cond );
-     pthread_cond_destroy( &skirmish->single.cond );
+     int retval;
 
-     return pthread_mutex_destroy( &skirmish->single.lock );
+     D_ASSERT( skirmish != NULL );
+     D_ASSERT( skirmish->single != NULL );
+
+     D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
+
+     pthread_cond_broadcast( &skirmish->single->cond );
+     pthread_cond_destroy( &skirmish->single->cond );
+
+     retval = pthread_mutex_destroy( &skirmish->single->lock );
+     D_FREE( skirmish->single );
+
+     return errno2result( retval );
 }
+
 
 DirectResult
 fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
 {
      D_ASSERT( skirmish != NULL );
-     
+     D_ASSERT( skirmish->single != NULL );
+
+     D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
+
      if (timeout) {
           struct timespec ts;
           struct timeval  tv;
@@ -664,21 +696,24 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
           ts.tv_sec  = tv.tv_sec + timeout/1000 + ts.tv_nsec/1000000000;
           ts.tv_nsec = ts.tv_nsec % 1000000000;
           
-          ret = pthread_cond_timedwait( &skirmish->single.cond, 
-                                        &skirmish->single.lock, &ts );
+          ret = pthread_cond_timedwait( &skirmish->single->cond, 
+                                        &skirmish->single->lock, &ts );
                                         
           return (ret == ETIMEDOUT) ? DR_TIMEOUT : DR_OK;
      }
 
-     return pthread_cond_wait( &skirmish->single.cond, &skirmish->single.lock );
+     return pthread_cond_wait( &skirmish->single->cond, &skirmish->single->lock );
 }
 
 DirectResult
 fusion_skirmish_notify( FusionSkirmish *skirmish )
 {
      D_ASSERT( skirmish != NULL );
+     D_ASSERT( skirmish->single != NULL );
 
-     pthread_cond_broadcast( &skirmish->single.cond );
+     D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
+
+     pthread_cond_broadcast( &skirmish->single->cond );
 
      return DR_OK;
 }
