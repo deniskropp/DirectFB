@@ -320,7 +320,16 @@ dfb_screen_core_shutdown( DFBScreenCore *data,
      /* Begin with the most recently added screen. */
      for (i=num_screens-1; i>=0; i--) {
           CoreScreen       *screen = screens[i];
+          ScreenFuncs      *funcs  = screen->funcs;
           CoreScreenShared *shared = screen->shared;
+
+          /* Shut the screen down. */
+          if (funcs->ShutdownScreen)
+               if( funcs->ShutdownScreen( screen,
+                                          screen->driver_data,
+                                          shared->screen_data ) )
+                    D_ERROR("DirectFB/Core/screens: "
+                             "Failed to shutdown screen %d!\n", shared->screen_id);
 
           /* Deinitialize the lock. */
           fusion_skirmish_destroy( &shared->lock );

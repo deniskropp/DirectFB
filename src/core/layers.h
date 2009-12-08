@@ -144,6 +144,14 @@ typedef struct {
                                   DFBColorAdjustment         *adjustment );
 
      /*
+      * Called once by the master to shutdown the layer.
+      * Use this function to free any resources that were taken during init.
+      */
+     DFBResult (*ShutdownLayer) ( CoreLayer                  *layer,
+                                  void                       *driver_data,
+                                  void                       *layer_data );
+
+     /*
       * Called once by the master for each source.
       * Driver fills description.
       */

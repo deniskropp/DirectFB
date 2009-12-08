@@ -70,6 +70,15 @@ typedef struct {
                                   DFBScreenDescription         *description );
 
      /*
+      * Called once by the master to shutdown the screen.
+      * Use this function to free any resources that were taken during init.
+      * This function is optional.
+      */
+     DFBResult (*ShutdownScreen)( CoreScreen                   *screen,
+                                  void                         *driver_data,
+                                  void                         *screen_data );
+
+     /*
       * Called once by the master for each mixer.
       * Driver fills description and default config.
       */

@@ -302,6 +302,16 @@ dfb_layer_core_shutdown( DFBLayerCore *data,
                }
           }
 
+          /* Shut the layer down. */
+          if (funcs->ShutdownLayer) {
+               ret = funcs->ShutdownLayer( layer,
+                                           layer->driver_data,
+                                           shared->layer_data );
+               if (ret)
+                    D_DERROR( ret, "DirectFB/Core/layers: "
+                                   "Failed to shutdown layer %d!\n", shared->layer_id );
+          }
+
           /* Deinitialize the lock. */
           fusion_skirmish_destroy( &shared->lock );
 
