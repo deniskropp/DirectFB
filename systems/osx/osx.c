@@ -94,9 +94,9 @@ system_initialize( CoreDFB *core, void **data )
 
      fusion_call_init( &dfb_osx->call, dfb_osx_call_handler, NULL, dfb_core_world(core) );
 
-     screen = dfb_screens_register( NULL, NULL, &osxPrimaryScreenFuncs );
+     screen = dfb_screens_register( NULL, NULL, osxPrimaryScreenFuncs );
 
-     dfb_layers_register( screen, NULL, &osxPrimaryLayerFuncs );
+     dfb_layers_register( screen, NULL, osxPrimaryLayerFuncs );
 
      fusion_arena_add_shared_field( dfb_core_arena( core ), "OSX", dfb_osx );
 
@@ -118,9 +118,9 @@ system_join( CoreDFB *core, void **data )
      dfb_osx = ret;
      dfb_osx_core = core;
 
-     screen = dfb_screens_register( NULL, NULL, &osxPrimaryScreenFuncs );
+     screen = dfb_screens_register( NULL, NULL, osxPrimaryScreenFuncs );
 
-     dfb_layers_register( screen, NULL, &osxPrimaryLayerFuncs );
+     dfb_layers_register( screen, NULL, osxPrimaryLayerFuncs );
 
      *data = dfb_osx;
 

@@ -181,10 +181,12 @@ primaryGetScreenSize( CoreScreen *screen,
      return DFB_OK;
 }
 
-ScreenFuncs x11PrimaryScreenFuncs = {
+static ScreenFuncs primaryScreenFuncs = {
      .InitScreen    = primaryInitScreen,
      .GetScreenSize = primaryGetScreenSize,
 };
+
+ScreenFuncs *x11PrimaryScreenFuncs = &primaryScreenFuncs;
 
 /******************************************************************************/
 
@@ -438,7 +440,7 @@ primaryUpdateRegion( CoreLayer             *layer,
      return dfb_x11_update_screen( x11, lds, &region, lock );
 }
 
-DisplayLayerFuncs x11PrimaryLayerFuncs = {
+static DisplayLayerFuncs primaryLayerFuncs = {
      .LayerDataSize  = primaryLayerDataSize,
      .RegionDataSize = primaryRegionDataSize,
      .InitLayer      = primaryInitLayer,
@@ -450,6 +452,8 @@ DisplayLayerFuncs x11PrimaryLayerFuncs = {
      .FlipRegion     = primaryFlipRegion,
      .UpdateRegion   = primaryUpdateRegion,
 };
+
+DisplayLayerFuncs *x11PrimaryLayerFuncs = &primaryLayerFuncs;
 
 /******************************************************************************/
 

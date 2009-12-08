@@ -34,8 +34,8 @@
 
 #include "xwindow.h"
 
-extern ScreenFuncs       x11PrimaryScreenFuncs;
-extern DisplayLayerFuncs x11PrimaryLayerFuncs;
+extern ScreenFuncs       *x11PrimaryScreenFuncs;
+extern DisplayLayerFuncs *x11PrimaryLayerFuncs;
 
 typedef struct {
      int      layer_id;

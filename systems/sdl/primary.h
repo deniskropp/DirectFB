@@ -34,8 +34,8 @@
 #include <core/layers.h>
 #include <core/screens.h>
 
-extern ScreenFuncs       sdlPrimaryScreenFuncs;
-extern DisplayLayerFuncs sdlPrimaryLayerFuncs;
+extern ScreenFuncs       *sdlPrimaryScreenFuncs;
+extern DisplayLayerFuncs *sdlPrimaryLayerFuncs;
 
 FusionCallHandlerResult
 dfb_sdl_call_handler( int           caller,

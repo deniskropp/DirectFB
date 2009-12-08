@@ -34,8 +34,8 @@
 #include <core/layers.h>
 #include <core/screens.h>
 
-extern ScreenFuncs       osxPrimaryScreenFuncs;
-extern DisplayLayerFuncs osxPrimaryLayerFuncs;
+extern ScreenFuncs       *osxPrimaryScreenFuncs;
+extern DisplayLayerFuncs *osxPrimaryLayerFuncs;
 
 FusionCallHandlerResult
 dfb_osx_call_handler( int           caller,

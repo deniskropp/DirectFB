@@ -91,9 +91,9 @@ system_initialize( CoreDFB *core, void **data )
 
      fusion_call_init( &dfb_vnc->call, dfb_vnc_call_handler, NULL, dfb_core_world(core) );
 
-     core_screen = dfb_screens_register( NULL, NULL, &vncPrimaryScreenFuncs );
+     core_screen = dfb_screens_register( NULL, NULL, vncPrimaryScreenFuncs );
 
-     dfb_layers_register( core_screen, NULL, &vncPrimaryLayerFuncs );
+     dfb_layers_register( core_screen, NULL, vncPrimaryLayerFuncs );
 
      fusion_arena_add_shared_field( dfb_core_arena( core ), "vnc", dfb_vnc );
 
@@ -115,9 +115,9 @@ system_join( CoreDFB *core, void **data )
      dfb_vnc = ret;
      dfb_vnc_core = core;
 
-     core_screen = dfb_screens_register( NULL, NULL, &vncPrimaryScreenFuncs );
+     core_screen = dfb_screens_register( NULL, NULL, vncPrimaryScreenFuncs );
 
-     dfb_layers_register( core_screen, NULL, &vncPrimaryLayerFuncs );
+     dfb_layers_register( core_screen, NULL, vncPrimaryLayerFuncs );
 
      *data = dfb_vnc;
 

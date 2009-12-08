@@ -183,11 +183,11 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
           XShmQueryVersion( x11->display, &x11->xshm_major, &x11->xshm_minor, &x11->use_shm );
 
 
-     x11->screen = dfb_screens_register( NULL, x11, &x11PrimaryScreenFuncs );
+     x11->screen = dfb_screens_register( NULL, x11, x11PrimaryScreenFuncs );
 
-     dfb_layers_register( x11->screen, x11, &x11PrimaryLayerFuncs );
-     dfb_layers_register( x11->screen, x11, &x11PrimaryLayerFuncs );
-     dfb_layers_register( x11->screen, x11, &x11PrimaryLayerFuncs );
+     dfb_layers_register( x11->screen, x11, x11PrimaryLayerFuncs );
+     dfb_layers_register( x11->screen, x11, x11PrimaryLayerFuncs );
+     dfb_layers_register( x11->screen, x11, x11PrimaryLayerFuncs );
 
      return DFB_OK;
 }

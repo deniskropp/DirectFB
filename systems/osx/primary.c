@@ -116,10 +116,12 @@ primaryGetScreenSize( CoreScreen *screen,
      return DFB_OK;
 }
 
-ScreenFuncs osxPrimaryScreenFuncs = {
+static ScreenFuncs primaryScreenFuncs = {
      .InitScreen    = primaryInitScreen,
      .GetScreenSize = primaryGetScreenSize,
 };
+
+ScreenFuncs *osxPrimaryScreenFuncs = &primaryScreenFuncs;
 
 /******************************************************************************/
 
@@ -398,7 +400,7 @@ primaryReallocateSurface( CoreLayer             *layer,
      return DFB_OK;
 }
 
-DisplayLayerFuncs osxPrimaryLayerFuncs = {
+static DisplayLayerFuncs primaryLayerFuncs = {
      .LayerDataSize     = primaryLayerDataSize,
      .RegionDataSize    = primaryRegionDataSize,
      .InitLayer         = primaryInitLayer,
@@ -413,6 +415,8 @@ DisplayLayerFuncs osxPrimaryLayerFuncs = {
      .AllocateSurface   = primaryAllocateSurface,
      .ReallocateSurface = primaryReallocateSurface,
 };
+
+DisplayLayerFuncs *osxPrimaryLayerFuncs = &primaryLayerFuncs;
 
 /******************************************************************************/
 
