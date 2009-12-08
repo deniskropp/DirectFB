@@ -455,8 +455,8 @@ dfb_color_to_argb( const DFBColor *color )
 static inline u32
 dfb_color_to_aycbcr( const DFBColor *color )
 {
-    u32 y,cb,cr;
-    RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
+     u32 y, cb, cr;
+     RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
 
      return (color->a << 24) | (y << 16) | (cb << 8) | cr;
 }
@@ -464,7 +464,7 @@ dfb_color_to_aycbcr( const DFBColor *color )
 static inline u32
 dfb_color_to_acrycb( const DFBColor *color )
 {
-     u32 y,cb,cr;
+     u32 y, cb, cr;
      RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
 
      return (color->a << 24) | (cr << 16) | (y << 8) | cb;
