@@ -454,3 +454,8 @@ sawman_config_init( int *argc, char **argv[] )
      return DFB_OK;
 }
 
+DirectResult sawman_config_shutdown( void )
+{
+     D_FREE( sawman_config );
+     return DFB_OK;
+}
