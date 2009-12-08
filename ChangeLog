@@ -1,3 +1,730 @@
+commit 4534f132b742976fc8a887153310546cf363b082
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Dec 8 20:19:47 2009 +0100
+
+    pixelformats: fixes for YUV444P, AYUV, AVYU, VYU
+    
+    among others fixes for Bop_PFI_StoK_Aop_PFI.
+    Thanks to André Draszik <andre.draszik@st.com> for the fixes.
+
+commit cd4605d91dc0ebd03831237f35df186b9ec1ae7c
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Dec 8 13:55:03 2009 +0100
+
+    gfxdriver: add destructor to unregister.
+
+commit 91afed9692ff15ffc7d2b6221aa5cd061ff44fa9
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Dec 8 13:54:02 2009 +0100
+
+    shirmish: for single app, make skirmish a pointer
+              so skirmishes can be copied into each other
+    
+    This is useful, but also required by a "hack" in SaWMan where
+    the context lock is aliased to the sawman lock to prevent deadlocks.
+    Aliasing now works since a skirmish copy will only copy pointers, not content.
+    (also added debug statements for skirmish single app)
+    (allocation is done locally, since single app does not need shmem)
+
+commit 24bc7f756b9a8c00de469c917bd57fc8ed47fd2a
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Dec 8 13:48:11 2009 +0100
+
+    core: add shutdown functions to layers and screens
+    
+    add ShutdownScreen()
+    add ShutdownLayer()
+    both are optional
+    increase ABI of core modules because directfb modules need to be rebuild
+
+commit df9c1799dd26f03fdb712c6fc0e568f99194d999
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Dec 8 13:45:59 2009 +0100
+
+    modules: plug leak: module entries were not cleaned completely
+
+commit f78af8fc203d11e48fc1ecf9a13d210645bcaa05
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Dec 8 13:43:53 2009 +0100
+
+    systems: make function tables static, so everything not declared is 0
+
+commit 073869f667ba2175ad84096c017fb4422f21e10d
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Dec 4 19:35:20 2009 +0100
+
+    API: add DWEF_REPEAT flag to signal key repeat.
+    
+    added implementation for default and unique WM.
+    (unique also required missing function wm_begin_updates)
+    added key repeat detection for X11 driver.
+
+commit 1f3f28046aebdca611b2bb4370bb556d863cdbd5
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Dec 1 20:04:29 2009 +0100
+
+    fusion: fix mem leak in single application mode
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit fcf4bd2862241a963f4621e8f81c26786bed3396
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Dec 1 14:54:38 2009 +0100
+
+    util: function reorganising
+    
+    move some sizable functions from header file to c-file
+    add DFB_REGIONS_DEBUG_AT (corresponding to existing RECTANGLES)
+
+commit 1c1dfffcd84bc648f2b874b69be83a5a3a143c06
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Nov 27 23:15:42 2009 +0100
+
+    voodoo: Implemented IDirectFBSurface::Write(), SetRenderOptions() and SetMatrix().
+
+commit 087ffb7b15f33567b573dd6d96eb9e1c6f304b26
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Nov 27 21:33:26 2009 +0100
+
+    voodoo: Implemented IDirectFBDisplayLayer::TestConfiguration().
+
+commit e4641033488dd89021297f0856aed85b4c908d64
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Nov 27 21:32:22 2009 +0100
+
+    voodoo: Added unimplemented SetRenderOptions() and SetMatrix() to avoid segfaults.
+
+commit 97db34b9766cd203135a3bd39e0fd18a605610d5
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Nov 27 21:30:52 2009 +0100
+
+    convert: In dfb_pixel_from_color() for RGB32/24 apply 0xffffff mask to fix color keying.
+
+commit f733be004596a6ce7cc45f8ad25988eb5be6c8f1
+Merge: 6fa2598... e943dec...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Nov 27 19:54:29 2009 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 6fa259880ac7173bf33565296c442aa8328e99fb
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Nov 27 19:54:12 2009 +0100
+
+    voodoo: Fixed warnings.
+
+commit e943dec781174df22d38dc48771d79ffa1adc282
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Nov 24 20:07:20 2009 +0100
+
+    davinci: removed superfluous include file directives
+    
+    files were included in ../include/directfb exports,
+    but did not contain any outside usable function declarations.
+    not exported anymore.
+
+commit 1e433fe2b33de6ea3bf0c4234207b08b4d0f2051
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Nov 24 19:06:17 2009 +0100
+
+    generic: removal of yuvtbl references, not used anymore
+    
+    was used previously for YCbCr - RGB conversion, now done with formula
+
+commit 2c07207ff30228e1359d86d5e3910d23e566ccb1
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Nov 24 14:44:07 2009 +0100
+
+    cleanup: header file not needed
+
+commit ee09def022b124ba2018dededd52f9b713fa334e
+Merge: 170ced2... 4fc55b5...
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Nov 24 14:06:33 2009 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 170ced2f3c46026708c6ad82c5586e5ad852fcb2
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Nov 24 14:06:22 2009 +0100
+
+    sh772x: support for the new MS7724
+    
+    The patch is to support MS7724 from Renesas.
+    Thanks to Takanari Hayama for the patch.
+    
+    (since JPEG support is disabled, the libraries are not needed either)
+
+commit 4fc55b522e9a36d078e453fbbae82178f8de78a8
+Merge: 3353043... 70a94aa...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Nov 23 22:49:12 2009 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 3353043d577890755c7d66ee76f43ef88838ab61
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Nov 23 22:48:44 2009 +0100
+
+    dfbscreen: Added resolution and frequency switch.
+
+commit 81a3df28f1c2a59e23daa84a261458cbe1059b6a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Nov 23 22:47:29 2009 +0100
+
+    names: Added DFBScreenEncoderFrequency names.
+
+commit 70a94aa978775cc7450b9c8032a5de8514f7c4d6
+Merge: 96ba606... 88fd076...
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Nov 23 15:13:06 2009 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 96ba606063c5e57f01b50db02ca5cd163b2fa56a
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Nov 23 15:11:28 2009 +0100
+
+    surfaces: allow no windows on surfaceless layers
+    
+    When using SaWMan on Sigma Designs hardware,
+    it tries to create windows on layers without surface capability.
+    This causes a segmentation fault.
+    
+    Thanks to Sorin Otescu for the patch.
+
+commit 88fd0767458fbe36bb1874f61bae1a5568b67600
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Nov 21 23:13:31 2009 +0100
+
+    dfbtest_window_flip_once: Added test for IDirectFBWindow::BeginUpdates().
+    
+    Updating first window is artificially slowed down to one second, three seconds
+    for the second window. The intermediate white filling is never seen, even though
+    it takes seconds to synchronize.
+
+commit c7082756d779542681c774b23e7d9719569522bd
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Nov 21 23:11:53 2009 +0100
+
+    IDirectFBWindow: Support for synchronized window updates.
+    
+    IDirectFBWindow::BeginUpdates() has been added to mark a window as "UPDATING".
+    
+    DSFLIP_ONCE has been added, causing the Flip() to wait until all other updating
+    windows' surfaces are being flipped as well.
+
+commit dc3fe2f12af4b8470c01888a078fe95bb1b0fdd4
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Nov 21 16:24:54 2009 +0100
+
+    generic: Fixed drawing with XOR and/or DST_PREMULTIPLY without blending.
+
+commit 74570c57242520ac8ab2b77ee56a9d4dbd15c876
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Nov 21 15:27:53 2009 +0100
+
+    generic: Fix combined blend/xor for drawing and blitting.
+
+commit 2a50e5b1594e13afa1d5a1c67662e2b9ee75fc6d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Nov 21 13:18:36 2009 +0100
+
+    generic: Moved XOR to the end.
+
+commit 7f1c985b5ccb18f35f7e312dfff483f9f43e17bf
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Nov 21 13:18:17 2009 +0100
+
+    dfbfx: Moved XOR to the end.
+
+commit 8fd55e6478a5b8731722dbfcab7e0627a3d9c094
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Nov 19 23:13:02 2009 +0100
+
+    dfbtest_mirror: Added test that uses scale/mirror with destination color keing.
+
+commit 8fdf0c14ca07a41c6ea88f205fea7438804fa772
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Nov 19 22:52:39 2009 +0100
+
+    dfbtest_window: Added WarpCursor test.
+
+commit 21173cc1d50c8fcdc44ebb255f9dfab5bfa3da70
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Nov 19 22:51:38 2009 +0100
+
+    PNG: Don't use fast path if pixels have to be premultiplied.
+
+commit bf278c608c83ce425b17158a5256e1c5bbd95e1e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Nov 19 22:50:38 2009 +0100
+
+    colorhash: Commented out annoying assumptions.
+
+commit 8801fde783fe4e387aa8abaeb044e3bb89524e55
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Nov 19 22:49:53 2009 +0100
+
+    FusionObject: Print reference id in debug message of dead objects.
+
+commit b64ac6e3b56da5f7d051459d7dbbf174af24e0cc
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Nov 19 22:48:53 2009 +0100
+
+    generic: Really fixed Bop_rgb32_toK_Aop_64 this time.
+
+commit f25b0b35d35f0a39d1b7331a85f6067efb99308a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Nov 19 22:37:32 2009 +0100
+
+    generic: Commented out #warning, breaks -Werror.
+
+commit 6c834e01ab6edaea39518de1b11a75f33dcd6dfa
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Nov 19 22:37:01 2009 +0100
+
+    generic: Fixed Bop_rgb32_toK_Aop_64.
+
+commit af9e6d021033b342ab3cebceda6453c166bead73
+Merge: fc5d370... 761df41...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Nov 19 22:19:41 2009 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit fc5d3705b4c9e1b3a61607d2b662d28b1c25b4b7
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Nov 19 22:16:54 2009 +0100
+
+    [generic] Fixed Bop_PFI_OP_Aop_PFI(StoK).
+
+commit 761df415ea50841687368080cc0197975e2f67dd
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Nov 12 19:45:49 2009 +0100
+
+    pixelformat: add system X11 16bit support for UYVY
+
+commit 2ade9556d8a05d9373070267e17588fef765b08c
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Mon Nov 9 00:34:38 2009 +0100
+
+    improve the formatting
+    
+    Signed-off-by: Sven Neumann <s.neumann@raumfeld.com>
+
+commit aee6b25e6853d6f27510bc3726f30645b8accd55
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Mon Nov 9 00:30:39 2009 +0100
+
+    font: correct documentation of ret_str_length in GetStringBreak()
+    
+    The parameter ret_str_length of IDirectFBFont::GetStringBreak()
+    returns the number of characters, not the number of bytes. The
+    documentation suggested to pass this value to DrawString() for
+    the bytes parameter. This change corrects the documentation.
+    
+    Signed-off-by: Sven Neumann <s.neumann@raumfeld.com>
+
+commit 218c54ec2b41f577dc4a8487cbd184a0d17e2a71
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Sat Nov 7 00:13:13 2009 +0100
+
+    remove trailing whitespace
+    
+    Signed-off-by: Sven Neumann <s.neumann@raumfeld.com>
+
+commit dea7579c61b2f0d4e433aeeab1e969dd0e0a8429
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri Nov 6 23:52:50 2009 +0100
+
+    font: fix an UTF-8 problem in GetStringBreak
+    
+    On an UTF-8 string, we can't go back to the previous character by
+    subtracting 1. Instead keep a pointer to the previous character
+    and use that.
+    
+    Signed-off-by: Sven Neumann <s.neumann@raumfeld.com>
+
+commit 081f62f4f28d905a15e96c42ea461f5d06016c09
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri Nov 6 23:40:26 2009 +0100
+
+    font: remove trailing whitespace
+    
+    Signed-off-by: Sven Neumann <s.neumann@raumfeld.com>
+
+commit b2996ab52bb164c79f40f692989c3b7dd01d3283
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Nov 6 21:03:48 2009 +0100
+
+    API: add batchblit2
+    
+    batchblit2 takes 2 sources and 1 destination.
+    This is primarily added for hardware that supports this function directly.
+    No software fallback yet.
+
+commit d0637cd9bd139526e8e379e556e943fc2f8796f6
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Nov 6 20:31:41 2009 +0100
+
+    pxa3xx: remove some old debug statements
+    
+    got a build error so removed those in line with the last patch of Sven..
+    Prob doesn't show in "retail" build
+
+commit 9462ad9962139c6ec4d1f2e6ee0b21049cc6c10a
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Nov 6 19:55:20 2009 +0100
+
+    default wm: removed "region"; unnecessary ASSERT on COLOR window
+    
+    a window with DWCAPS_COLOR will trigger an assert since the region
+    is not set. since the region is not used at all, it is removed.
+    DWCAPS_COLOR is still not supported -> the window is not drawn.
+
+commit 0fdf41ff34ed403367d0eb05edc793b15a940860
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Nov 6 19:52:44 2009 +0100
+
+    pixel format: support for AVYU and VYU
+    
+    thanks to André Draszik
+    Small adaptions for X11 system and little endian support
+
+commit 8e5143d7f9bd07c0007ec71d5565a6d40a5b42fa
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Nov 6 15:59:07 2009 +0100
+
+    sdl: 1.4.x changes
+
+commit 7d4a6b722745044267b6730bda085bc5a16a7b57
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Nov 6 15:58:33 2009 +0100
+
+    debug: prevent deadlock in stack trace with SaWMan active
+    
+    This can only happen when a stack trace is printed.
+    Previously, the debug log system was locked during this operation.
+    When a symbol needed to be looked-up, "nm" would be started which
+    could lead to a "process_added" debug print in SaWMan;
+    this would lead to deadlock since the log system was locked already.
+    
+    Solution is to accumulate all statements (incl. symbol lookup)
+    and lock-print-unlock in one go.
+
+commit f31d17da4a3a7f7521376b43cad5ed6b65231d90
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Nov 6 15:42:46 2009 +0100
+
+    configure: beatification: remove "," in output
+
+commit 8892c8777b77619fc3a46dac05f6f69248eafb5d
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Oct 5 17:29:51 2009 +0200
+
+    pixelformats: add ARGB 8565 DSPF_ARGB8565
+    
+    24bpp, A8+RGB16
+    
+    Signed-off-by: AndrÃ© Draszik <andre.draszik@st.com>
+
+commit 82b5d2b4daa3095ba08174163b5e68d650a5ab6d
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Oct 5 17:28:06 2009 +0200
+
+    pixelformats: add YUV 4:4:4 planar DSPF_YUV444P
+    
+    this is a 3 buffer format
+    
+    Original version for DirectFB 1.0.1 by Ilyes Gouta <ilyes.gouta@st.com>.
+    
+    Ported to DirectFB 1.4, modified to fix bugs and enhanced to be faster and
+    more feature complete.
+    
+    Signed-off-by: AndrÃ© Draszik <andre.draszik@st.com>
+
+commit c1f336788a11e7ac28a3489664bbdac4452f1014
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Oct 5 17:25:46 2009 +0200
+
+    pixelformats: fix for RGBA5551 format
+    
+    introduced in
+    f990465367b49ed816a57d74436f7abf548593a6 format: Support RGBA5551 pixel format added.
+    
+    Signed-off-by: AndrÃ© Draszik <andre.draszik@st.com>
+
+commit fdf26bbb6df238266b111194327c7e4eddcb8330
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Oct 5 17:23:12 2009 +0200
+
+    Revert "pixelformats: add AVYU and VYU single plane formats"
+    
+    This reverts commit 2399f7b3b3e9faff60ad79163b41ff26def5a439.
+    Apply order was incorrect - will reapply later
+
+commit 4443218f72ce2dac9629e25460f00298085f1966
+Merge: 549668a... 878455d...
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Nov 6 19:55:55 2009 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 878455dabfb7f2dc4310faaa5dd7b539d1bf790f
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Nov 6 17:53:36 2009 +0100
+
+    generic: Added StretchBlit with DSBLIT_FLIP_HORIZONTAL/VERTICAL.
+
+commit 98840d212d4cfd109d88c2d1a0c3ac2cc086933b
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Nov 6 14:29:10 2009 +0100
+
+    generic: Fix DSBLIT_FLIP_VERTICAL for non-square blits, copy'n'paste bug.
+
+commit 438b5990c35f84a81601cc0e125238377ac04989
+Merge: 4d1764f... 01b6e0f...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Nov 6 12:58:19 2009 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 4d1764fa38bf8a196a5451339966ff1067124f1a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Nov 6 12:57:35 2009 +0100
+
+    CreateSurface: For non-flipping fullscreen primary surface, force initial update to unfreeze region as no Flip() may come from application.
+
+commit 01b6e0fa56aa3ceadbde8344c3f35cb4a1feab15
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Tue Oct 27 19:39:35 2009 +0100
+
+    pxa3xx: rewrite of the kernel - userspace interface
+    
+    The interface to the pxa3xx kernel driver had a race condition that
+    causes spurious errors. Denis rewrote this part and moved some more
+    logic to the kernel driver. All tests so far seem to indicate that
+    the new code works perfectly.
+    
+    We will push the changed kernel driver usptream now...
+
+commit c5a548e4a91fd265044a05fe6d783c7bfc8561b8
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Oct 22 17:00:39 2009 +0200
+
+    dfbtest_sync: Added StretchBlit() to random operations.
+
+commit 9f38b3d94dd5320216632c53ce52878d45551d7e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Oct 19 16:26:37 2009 +0200
+
+    generic: Implemented DSBLIT_FLIP_HORIZONTAL and DSBLIT_FLIP_VERTICAL, cleaned up gBlit() a bit.
+
+commit 653d33c6f8fdea9eb555844481bc122ca8d822c4
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Oct 19 16:25:59 2009 +0200
+
+    IDirectFBSurface: Added DSBLIT_FLIP_HORIZONTAL and DSBLIT_FLIP_VERTICAL.
+
+commit 3e8d7e52c698fef1605222cb183e6a52b6347391
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Oct 19 15:17:27 2009 +0200
+
+    generic: Removed special 180 degree rotation code. Generic version seems to be faster anyhow.
+
+commit e33986bd3268ada2bf285cecb9249786753a6bdc
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Mon Oct 12 21:45:06 2009 +0200
+
+    x11: free the X cursor resource
+    
+    Signed-off-by: Sven Neumann <s.neumann@raumfeld.com>
+
+commit abf6363afdf648842c704d581996eaf70ec99bc7
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Mon Oct 12 21:41:23 2009 +0200
+
+    x11: minor whitespace cleanup
+
+commit a51c0949936266fc51807482ee7385996675aaaa
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Mon Oct 12 21:36:56 2009 +0200
+
+    x11: release bitmaps used for creating the empty cursor
+    
+    The bitmaps used to create the NullCursor can be released immidiately
+    and don't need to be kept in the XWindow struct.
+    
+    Signed-off-by: Sven Neumann <s.neumann@raumfeld.com>
+
+commit 549668a41ad3d6b18a5d048b927a323661d54bc5
+Merge: 94646ca... 9f6e888...
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Oct 5 17:20:26 2009 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 94646ca71c16fc98b4752b6334f13a886c1b3840
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Oct 2 17:33:45 2009 +0200
+
+    font: flush "batchblit" between each layer, in case colour has changed
+
+commit 3d6e67641ee62e4051f7e4ff934b0ef72dba9fe5
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Oct 5 16:57:21 2009 +0200
+
+    configure: treat uclinux targets as linux
+    
+    The current glob for linux targets does not include the common uclinux
+    target which is merely no-mmu Linux.  In this particular code, the
+    difference is irrelevant.
+    
+    Signed-off-by: Mike Frysinger <vapier@gentoo.org>
+
+commit 9f6e8887c061527d08dd176e7221882bdbddb599
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Oct 2 17:33:45 2009 +0200
+
+    font: flush "batchblit" between each layer, in case colour has changed
+
+commit 2399f7b3b3e9faff60ad79163b41ff26def5a439
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Oct 2 17:32:59 2009 +0200
+
+    pixelformats: add AVYU and VYU single plane formats
+    
+    AVYU: 32 bpp, single plane, 4:4:4
+    VYU: 24 bpp, single plane, 4:4:4
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit b89fc158a4ca5d39fdd4d771b29196a4485ed51b
+Author: Peter Korsgaard <jacmet@sunsite.dk>
+Date:   Fri Oct 2 13:35:50 2009 +0200
+
+    gfxcard: fix build error with --enable-debug
+    
+    Commit fdc611ea (Added support for colors and multiple layers in a
+    glyph implementing outlines) changed dfb_gfxcard_drawglyph() to take
+    a layers argument instead of index, but the D_DEBUG_AT call wasn't
+    changed to match.
+    
+    Signed-off-by: Peter Korsgaard <jacmet@sunsite.dk>
+
+commit 31cf4cad4d642547f21306791687680ea501bbf5
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Sep 30 18:25:54 2009 +0200
+
+    fork: disable fork() usage in tests
+    
+    Some of the tests use fork() which fails for targets that lack fork().
+    The library itself does not care about fork() usage, but the normal build
+    fails as it tries to build the tests.
+    
+    Signed-off-by: Mike Frysinger <vapier@gentoo.org>
+
+commit e6489d882e3fc8f6ce846c1dbc7710fc41d5d4bd
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Sep 30 17:48:43 2009 +0200
+
+    dynamic linking: only include dlfcn.h when needed
+    
+    Some files include dlfcn.h but don't need to, and others include it all
+    the time instead of only when needed.  This breaks building on systems
+    that lack dynamic library support.
+    
+    Signed-off-by: Mike Frysinger <vapier@gentoo.org>
+
+commit 8f98996e9fbde407d66db11d3065516005dc465f
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Sep 30 12:22:37 2009 +0200
+
+    x11: "expose" event sometimes comes with non-owned "Window" - simply ignore.
+
+commit 8ee3089a15e09cc6219e6778ed63d42715b17ff1
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Sep 28 18:12:21 2009 +0200
+
+    generic: fixes for big-endian handling for NV12/NV16/NV21
+
+commit 17aaafcfe45c15544c3786c93952b922bae9d18a
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Sep 14 13:24:33 2009 +0200
+
+    configure: patch for new tslib.
+    
+    Thanks to Henning Heinold for the patch.
+
+commit 29820dab3f63a6eb5836f4e2f20cc25079b78576
+Author: Stanislav O\. Bezzubtsev <stas@lvk.cs.msu.su>
+Date:   Fri Sep 4 13:02:38 2009 +0400
+
+    gfxcard: don't call gfxcard functions in no-hardware mode
+    
+    There is no need to call FlushTextureCache, EmitCommands and etc.
+    gfxcard functions if the program was started with no-hardware
+    argument (or software_only flag was set from elsewhere).
+    
+    Signed-off-by: Stanislav O. Bezzubtsev <stas@lvk.cs.msu.su>
+
+commit 853397e854c60ff29d1d71cd9901b80687e7c0cd
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Sep 11 14:13:15 2009 +0200
+
+    dfbtest_sync: update .gitignore
+
+commit 275fc5b543071223ba79afcb38425a4921807afd
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Sep 11 14:11:48 2009 +0200
+
+    doc: clarification for IDirectFB::SetVideoMode
+
+commit 8266c622dae837a9037c2e5fb13d0feba6b24da2
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Sep 11 14:10:55 2009 +0200
+
+    X11: support 3 layers
+    
+    in addition to DLID_PRIMARY, layer id 1 and 2 have been added
+    These are implemented as separate X Windows, so you can observe
+    and debug multi-layer configurations on PC.
+    The mouse shape is restricted to DLID_PRIMARY but the events are
+    accepted on all X Windows.
+
+commit cd5178fd33cc6aee534d6b427cc988dd02d2cdb5
+Merge: b14e0e1... af7138a...
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Sep 11 13:39:28 2009 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit af7138ad04ee31443c9fb214742656b4af10b3bc
+Author: Lionel Landwerlin <lionel.landwerlin@openwide.fr>
+Date:   Wed Sep 2 23:49:16 2009 +0200
+
+    Fix compilation with debian packages
+    
+    The debian package build method uses a build directory different from
+    the source directory. Because of generated headers in include/, the
+    compilation for debian packages failed.
+    
+    Signed-off-by: Lionel Landwerlin <lionel.landwerlin@openwide.fr>
+
+commit b14e0e104cdf59e1082fc8868ec4d5bf36e0c6a8
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Aug 28 16:52:58 2009 +0200
+
+    input: fix for event completion when missing key ID
+           thanks to Hung Wei-Hsuan
+
+commit 1c43021d7f7664dfd5d5cc979ae5079a22d0f646
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Aug 27 21:51:24 2009 +0200
+
+    release: DirectFB 1.4.2
+
 commit fdc611eab2b3680932c189e88cd576ffcc165e37
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Wed Aug 26 20:54:59 2009 +0200
