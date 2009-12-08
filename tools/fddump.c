@@ -46,6 +46,7 @@
 #include <fusion/object.h>
 #include <fusion/ref.h>
 #include <fusion/shmalloc.h>
+#include <fusion/shm/shm.h>
 #include <fusion/shm/shm_internal.h>
 
 #include <core/dale_core.h>
@@ -54,6 +55,8 @@
 
 
 static IFusionDale *dale = NULL;
+
+static bool dump_shm;
 
 
 static DirectResult
@@ -130,6 +133,62 @@ dump_messengers( CoreDale *core )
      fd_core_enum_messengers( core, messenger_callback, NULL );
 }
 
+/**********************************************************************************************************************/
+
+#if FUSION_BUILD_MULTI
+static DirectEnumerationResult
+dump_shmpool( FusionSHMPool *pool,
+              void          *ctx )
+{
+     DirectResult  ret;
+     SHMemDesc    *desc;
+     unsigned int  total = 0;
+     int           length;
+     FusionSHMPoolShared *shared = pool->shared;
+
+     printf( "\n" );
+     printf( "----------------------------[ Shared Memory in %s ]----------------------------%n\n", shared->name, &length );
+     printf( "      Size          Address      Offset      Function                     FusionID\n" );
+
+     while (length--)
+          putc( '-', stdout );
+
+     putc( '\n', stdout );
+
+     ret = fusion_skirmish_prevail( &shared->lock );
+     if (ret) {
+          D_DERROR( ret, "Could not lock shared memory pool!\n" );
+          return DENUM_OK;
+     }
+
+     if (shared->allocs) {
+          direct_list_foreach (desc, shared->allocs) {
+               printf( " %9zu bytes at %p [%8lu] in %-30s [%3lx] (%s: %u)\n",
+                       desc->bytes, desc->mem, (ulong)desc->mem - (ulong)shared->heap,
+                       desc->func, desc->fid, desc->file, desc->line );
+
+               total += desc->bytes;
+          }
+
+          printf( "   -------\n  %7dk total\n", total >> 10 );
+     }
+
+     printf( "\nShared memory file size: %dk\n", shared->heap->size >> 10 );
+
+     fusion_skirmish_dismiss( &shared->lock );
+
+     return DENUM_OK;
+}
+
+static void
+dump_shmpools( CoreDale *core )
+{
+     fusion_shm_enum_pools( fd_core_world( core ), dump_shmpool, NULL );
+}
+#endif
+
+/**********************************************************************************************************************/
+
 int
 main( int argc, char *argv[] )
 {
@@ -146,6 +205,9 @@ main( int argc, char *argv[] )
      ret = init_fusiondale( &argc, &argv );
      if (ret)
           goto out;
+
+     if (argc > 1 && !strcmp( argv[1], "-s" ))
+          dump_shm = true;
 
      millis = direct_clock_get_millis();
 
@@ -181,36 +243,13 @@ main( int argc, char *argv[] )
      data = ifusiondale_singleton->priv;
 
      dump_messengers( data->core );
+     fflush( stdout );
 
 #if FUSION_BUILD_MULTI
-     if (argc > 1 && !strcmp( argv[1], "-s" )) {
-          SHMemDesc           *desc;
-          unsigned int         total = 0;
-          FusionSHMPoolShared *pool  = fd_core_shmpool( data->core );
-
-          ret = fusion_skirmish_prevail( &pool->lock );
-          if (ret) {
-               D_DERROR( ret, "Could not lock shared memory pool!\n" );
-               goto out;
-          }
-     
-          if (pool->allocs) {
-               printf( "\nShared memory allocations (%d): \n",
-                       direct_list_count_elements_EXPENSIVE( pool->allocs ) );
-     
-               direct_list_foreach (desc, pool->allocs) {
-                    printf( " %9zu bytes at %p allocated in %-30s (%s: %u)\n",
-                            desc->bytes, desc->mem, desc->func, desc->file, desc->line );
-
-                    total += desc->bytes;
-               }
-
-               printf( "   -------\n  %7dk total\n", total >> 10 );
-          }
-     
-          printf( "\nShared memory file size: %dk\n", pool->heap->size >> 10 );
-
-          fusion_skirmish_dismiss( &pool->lock );
+     if (dump_shm) {
+          printf( "\n" );
+          dump_shmpools( data->core );
+          fflush( stdout );
      }
 #endif
 
