@@ -6,11 +6,7 @@ LIBADDS = \
 	$(top_builddir)/src/libfusiondale.la	\
 	$(FUSION_LIBS)
 
-bin_PROGRAMS    = fdmaster
 noinst_PROGRAMS = simple t2_sender t2_receiver data_test
-
-fdmaster_SOURCES = fdmaster.c
-fdmaster_LDADD   = $(LIBADDS)
 
 simple_SOURCES = simple.c
 simple_LDADD   = $(LIBADDS)
