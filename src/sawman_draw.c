@@ -634,10 +634,15 @@ sawman_draw_two_windows( SaWManTier   *tier,
                draw_window( tier, sawwin2, 0, state, region, true );
      }
      else {
+          /* TODO: using the card capabilities will not work if
+             BLIT2 functionality is state dependant */
+          CardCapabilities caps;
+          dfb_gfxcard_get_capabilities( &caps );
+          
           /* scaling disallowed */
           if (    (sawwin1->src.w == sawwin1->dst.w)
-               && (sawwin1->src.h != sawwin1->dst.h) 
-               && dfb_gfxcard_state_check(state, DFXL_BLIT2) )
+               && (sawwin1->src.h == sawwin1->dst.h) 
+               && (caps.accel & DFXL_BLIT2) )
           {
                draw_window( tier, sawwin1, sawwin2, state, region, true );
           }
