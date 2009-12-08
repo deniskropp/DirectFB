@@ -167,6 +167,8 @@ direct_modules_unregister( DirectModuleDir *directory,
      D_MAGIC_ASSERT( entry, DirectModuleEntry );
 
      D_FREE( entry->name );
+     if (entry->file)
+          D_FREE( entry->file );
 
      direct_list_remove( &directory->entries, &entry->link );
 
