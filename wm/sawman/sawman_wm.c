@@ -1391,8 +1391,13 @@ wm_init_stack( CoreWindowStack *stack,
      tier->size.h  = stack->height;
 
      /* FIXME: hack */ /* transfer/duplicate the skirmish */
-     fusion_skirmish_prevail( &sawman->lock );
-     fusion_skirmish_dismiss( &tier->context->lock );
+     int count;
+     ret = fusion_skirmish_lock_count( &tier->context->lock, &count );
+     if (ret == DFB_OK)
+          while (count--) {
+               fusion_skirmish_prevail( &sawman->lock );
+               fusion_skirmish_dismiss( &tier->context->lock );
+          }
      tier->lock_backup   = tier->context->lock;
      tier->context->lock = sawman->lock;
 
@@ -2723,7 +2728,7 @@ wm_set_window_config( CoreWindow             *window,
      if (flags & (CWCF_POSITION | CWCF_SIZE | CWCF_SRC_GEOMETRY | CWCF_DST_GEOMETRY | CWCF_ASSOCIATION))
           sawman_update_geometry( sawwin );
 
-     if (flags & (CWCF_POSITION | CWCF_SIZE | CWCF_OPACITY | CWCF_OPTIONS | CWCF_ROTATION))
+     if (flags & (CWCF_POSITION | CWCF_SIZE | CWCF_OPACITY | CWCF_OPTIONS))
           sawman_update_visible( sawman );
 
      sawman_process_updates( sawman, DSFLIP_NONE );

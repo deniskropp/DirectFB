@@ -128,7 +128,7 @@ update_region3( SaWMan          *sawman,
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
           window = sawwin->window;
-          D_MAGIC_ASSERT( window, CoreWindow );
+          D_MAGIC_COREWINDOW_ASSERT( window );
 
           updatesBlend[winNum]   = 0;
           updatesNoBlend[winNum] = 0;

@@ -431,6 +431,7 @@ draw_window( SaWManTier   *tier,
      D_DEBUG_AT( SaWMan_Draw, "    => %4d,%4d-%4dx%4d <- %4d,%4d-%4dx%4d\n",
                  DFB_RECTANGLE_VALS( &dst ), DFB_RECTANGLE_VALS( &src ) );
 
+#ifndef OLD_COREWINDOWS_STRUCTURE
      if (sawwin2) {
           CoreWindow   *window2;
           DFBRectangle *src2;
@@ -451,7 +452,9 @@ draw_window( SaWManTier   *tier,
           p2.y = sawwin->dst.y;
           dfb_gfxcard_batchblit2( &src, &p1, &p2, 1, state );
      }
-     else {
+     else
+#endif
+     {
           /* Scale window to the screen clipped by the region being updated. */
           dfb_gfxcard_stretchblit( &src, &dst, state );
      }
@@ -634,11 +637,12 @@ sawman_draw_two_windows( SaWManTier   *tier,
                draw_window( tier, sawwin2, 0, state, region, true );
      }
      else {
+#ifndef OLD_COREWINDOWS_STRUCTURE
           /* TODO: using the card capabilities will not work if
              BLIT2 functionality is state dependant */
           CardCapabilities caps;
           dfb_gfxcard_get_capabilities( &caps );
-          
+
           /* scaling disallowed */
           if (    (sawwin1->src.w == sawwin1->dst.w)
                && (sawwin1->src.h == sawwin1->dst.h) 
@@ -646,7 +650,9 @@ sawman_draw_two_windows( SaWManTier   *tier,
           {
                draw_window( tier, sawwin1, sawwin2, state, region, true );
           }
-          else {
+          else
+#endif
+          {
                draw_window( tier, sawwin1, 0, state, region, false );
                draw_window( tier, sawwin2, 0, state, region, true );
           }
