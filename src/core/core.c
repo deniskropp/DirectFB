@@ -918,14 +918,14 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      if (dfb_input_core.initialized)
           dfb_input_core.Suspend( dfb_input_core.data_local );
 
-     fusion_stop_dispatcher( core->world, emergency );
-
      /* Destroy window objects. */
      fusion_object_pool_destroy( shared->window_pool, core->world );
 
      /* Close window stacks. */
      if (dfb_wm_core.initialized)
           dfb_wm_close_all_stacks( dfb_wm_core.data_local );
+
+     fusion_stop_dispatcher( core->world, emergency );
 
      /* Destroy layer context and region objects. */
      fusion_object_pool_destroy( shared->layer_region_pool, core->world );
