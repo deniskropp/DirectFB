@@ -75,7 +75,11 @@ main( int argc, char *argv[] )
           goto out;
      }
 
-     coma->GetLocal( coma, 666, &mem );
+     while (1) {
+          coma->GetLocal( coma, 666, &mem );
+
+          coma->FreeLocal( coma );
+     }
 
      pause();
 
