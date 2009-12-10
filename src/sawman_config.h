@@ -42,6 +42,8 @@ typedef struct {
      SaWManBorderInit      borders[3];
 
      bool                  show_empty;  /* Don't hide layer when no window is visible. */
+
+     unsigned int          flip_once_timeout;
 } SaWManConfig;
 
 

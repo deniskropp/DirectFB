@@ -3002,6 +3002,8 @@ wm_begin_updates( CoreWindow      *window,
 
      sawwin->flags |= SWMWF_UPDATING;
 
+     sawwin->update_ms = direct_clock_get_millis();
+
      return DFB_OK;
 }
 
@@ -3153,7 +3155,19 @@ wm_update_window( CoreWindow          *window,
                while (tier->updates.num_regions) {
                     D_DEBUG_AT( SaWMan_FlipOnce, "  -> waiting for updates...\n" );
 
-                    fusion_skirmish_wait( &sawman->lock, 0 );
+                    switch (fusion_skirmish_wait( &sawman->lock,
+                                                  sawman_config->flip_once_timeout ?
+                                                  sawman_config->flip_once_timeout + 10 : 0 ))
+                    {
+                         case DR_TIMEOUT:
+                              D_DEBUG_AT( SaWMan_FlipOnce, "  -> timeout waiting for updates!\n" );
+
+                              sawman_process_updates( sawman, flags );
+                              break;
+
+                         default:
+                              break;
+                    }
                }
 
                D_DEBUG_AT( SaWMan_FlipOnce, "  -> updates done.\n" );

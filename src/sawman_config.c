@@ -287,6 +287,25 @@ sawman_config_set( const char *name, const char *value )
      if (strcmp (name, "no-show-empty") == 0) {
           sawman_config->show_empty = false;
      } else
+     if (strcmp (name, "flip-once-timeout") == 0) {
+          if (value) {
+               char *error;
+               u32   timeout;
+
+               timeout = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "SaWMan/Config '%s': Error in timeout '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               sawman_config->flip_once_timeout = timeout;
+          }
+          else {
+               D_ERROR( "SaWMan/Config '%s': No timeout specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
           return DFB_UNSUPPORTED;
 
      return DFB_OK;

@@ -317,6 +317,8 @@ struct __SaWMan_SaWManWindow {
 
      DFBUpdates             visible;
      DFBRegion              visible_regions[SAWMAN_MAX_VISIBLE_REGIONS];
+
+     long long              update_ms;
 };
 
 struct __SaWMan_SaWManGrabbedKey {

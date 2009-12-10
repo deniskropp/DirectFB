@@ -585,9 +585,17 @@ windows_updating( SaWMan     *sawman,
           D_MAGIC_ASSERT( window, SaWManWindow );
           
           if (window->flags & SWMWF_UPDATING) {
-               D_DEBUG_AT( SaWMan_FlipOnce, "  -> update blocking on window id %u (flags 0x%08x)\n", window->id, window->flags );
+               long long diff = direct_clock_get_millis() - window->update_ms;
 
-               return true;
+               if (!sawman_config->flip_once_timeout || diff < sawman_config->flip_once_timeout) {
+                    D_DEBUG_AT( SaWMan_FlipOnce, "  -> update blocking on window id %u (%lld ms, flags 0x%08x)\n",
+                                window->id, diff, window->flags );
+
+                    return true;
+               }
+
+               D_DEBUG_AT( SaWMan_FlipOnce, "  -> ignoring blocking of window id %u (%lld ms, flags 0x%08x)\n",
+                           window->id, diff, window->flags );
           }
      }
 
