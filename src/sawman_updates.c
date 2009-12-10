@@ -65,166 +65,33 @@ D_DEBUG_DOMAIN( SaWMan_FlipOnce, "SaWMan/FlipOnce", "SaWMan window manager flip 
 /**********************************************************************************************************************/
 
 static void
-update_region( SaWMan          *sawman,
-               SaWManTier      *tier,
-               CardState       *state,
-               int              start,
-               int              x1,
-               int              y1,
-               int              x2,
-               int              y2 )
+update_region3( SaWMan          *sawman,
+                SaWManTier      *tier,
+                CardState       *state,
+                int              start,
+                int              x1,
+                int              y1,
+                int              x2,
+                int              y2 )
 {
-     int           i      = start;
-     DFBRegion     region = { x1, y1, x2, y2 };
-     CoreWindow   *window = NULL;
-     SaWManWindow *sawwin = NULL;
-
-     D_DEBUG_AT( SaWMan_Update, "%s( %p, %d, %d,%d - %d,%d )\n", __FUNCTION__, tier, start, x1, y1, x2, y2 );
-
-     D_MAGIC_ASSERT( sawman, SaWMan );
-     D_MAGIC_ASSERT( tier, SaWManTier );
-     D_MAGIC_ASSERT( state, CardState );
-     D_ASSERT( start < fusion_vector_size( &sawman->layout ) );
-     D_ASSUME( x1 <= x2 );
-     D_ASSUME( y1 <= y2 );
-
-     if (x1 > x2 || y1 > y2)
-          return;
-
-     /* Find next intersecting window. */
-     while (i >= 0) {
-          sawwin = fusion_vector_at( &sawman->layout, i );
-          D_MAGIC_ASSERT( sawwin, SaWManWindow );
-
-          window = sawwin->window;
-          D_MAGIC_COREWINDOW_ASSERT( window );
-
-          if (SAWMAN_VISIBLE_WINDOW( window ) && (tier->classes & (1 << window->config.stacking))) {
-               if (dfb_region_intersect( &region,
-                                         DFB_REGION_VALS_FROM_RECTANGLE( &sawwin->bounds )))
-                    break;
-          }
-
-          i--;
-     }
-
-     /* Intersecting window found? */
-     if (i >= 0) {
-          D_MAGIC_ASSERT( sawwin, SaWManWindow );
-          D_MAGIC_COREWINDOW_ASSERT( window );
-
-          if (D_FLAGS_ARE_SET( window->config.options, DWOP_ALPHACHANNEL | DWOP_OPAQUE_REGION )) {
-               DFBRegion opaque = DFB_REGION_INIT_TRANSLATED( &window->config.opaque,
-                                                              sawwin->bounds.x,
-                                                              sawwin->bounds.y );
-
-               if (!dfb_region_region_intersect( &opaque, &region )) {
-                    update_region( sawman, tier, state, i-1, x1, y1, x2, y2 );
-
-                    sawman_draw_window( tier, sawwin, state, &region, true );
-               }
-               else {
-                    if ((window->config.opacity < 0xff) || (window->config.options & DWOP_COLORKEYING)) {
-                         /* draw everything below */
-                         update_region( sawman, tier, state, i-1, x1, y1, x2, y2 );
-                    }
-                    else {
-                         /* left */
-                         if (opaque.x1 != x1)
-                              update_region( sawman, tier, state, i-1, x1, opaque.y1, opaque.x1-1, opaque.y2 );
-
-                         /* upper */
-                         if (opaque.y1 != y1)
-                              update_region( sawman, tier, state, i-1, x1, y1, x2, opaque.y1-1 );
-
-                         /* right */
-                         if (opaque.x2 != x2)
-                              update_region( sawman, tier, state, i-1, opaque.x2+1, opaque.y1, x2, opaque.y2 );
-
-                         /* lower */
-                         if (opaque.y2 != y2)
-                              update_region( sawman, tier, state, i-1, x1, opaque.y2+1, x2, y2 );
-                    }
-
-                    /* left */
-                    if (opaque.x1 != region.x1) {
-                         DFBRegion r = { region.x1, opaque.y1, opaque.x1 - 1, opaque.y2 };
-                         sawman_draw_window( tier, sawwin, state, &r, true );
-                    }
-
-                    /* upper */
-                    if (opaque.y1 != region.y1) {
-                         DFBRegion r = { region.x1, region.y1, region.x2, opaque.y1 - 1 };
-                         sawman_draw_window( tier, sawwin, state, &r, true );
-                    }
-
-                    /* right */
-                    if (opaque.x2 != region.x2) {
-                         DFBRegion r = { opaque.x2 + 1, opaque.y1, region.x2, opaque.y2 };
-                         sawman_draw_window( tier, sawwin, state, &r, true );
-                    }
-
-                    /* lower */
-                    if (opaque.y2 != region.y2) {
-                         DFBRegion r = { region.x1, opaque.y2 + 1, region.x2, region.y2 };
-                         sawman_draw_window( tier, sawwin, state, &r, true );
-                    }
-
-                    /* inner */
-                    sawman_draw_window( tier, sawwin, state, &opaque, false );
-               }
-          }
-          else {
-               if (SAWMAN_TRANSLUCENT_WINDOW( window )) {
-                    /* draw everything below */
-                    update_region( sawman, tier, state, i-1, x1, y1, x2, y2 );
-               }
-               else {
-                    DFBRegion dst = DFB_REGION_INIT_FROM_RECTANGLE( &sawwin->dst );
-
-                    dfb_region_region_intersect( &dst, &region );
-
-                    /* left */
-                    if (dst.x1 != x1)
-                         update_region( sawman, tier, state, i-1, x1, dst.y1, dst.x1-1, dst.y2 );
-
-                    /* upper */
-                    if (dst.y1 != y1)
-                         update_region( sawman, tier, state, i-1, x1, y1, x2, dst.y1-1 );
-
-                    /* right */
-                    if (dst.x2 != x2)
-                         update_region( sawman, tier, state, i-1, dst.x2+1, dst.y1, x2, dst.y2 );
-
-                    /* lower */
-                    if (dst.y2 != y2)
-                         update_region( sawman, tier, state, i-1, x1, dst.y2+1, x2, y2 );
-               }
-
-               sawman_draw_window( tier, sawwin, state, &region, true );
-          }
-     }
-     else
-          sawman_draw_background( tier, state, &region );
-}
-
-static void
-update_region2( SaWMan          *sawman,
-               SaWManTier      *tier,
-               CardState       *state,
-               int              start,
-               int              x1,
-               int              y1,
-               int              x2,
-               int              y2 )
-{
-     int              i;
-     SaWManWindow    *sawwin;
+     SaWManWindow    *sawwin = 0;
      CoreWindowStack *stack;
-     misc_region_t    dirty;
-     int              num, n;
-     DFBBox          *boxes;
-     DFBBox           extents = { x1, y1, x2 + 1, y2 + 1 };
+
+     int winNum;
+     int u;
+
+     DFBRegion updateRegion = {x1,y1,x2,y2};
+
+     DFBLinkRegionPool  regionpool;
+     DFBLinkRegion     *regionstorage;
+
+     DirectLink *backgroundNotNeeded = 0;
+     DirectLink *backgroundNeeded    = 0;
+
+     int blackBackground = false;
+
+     DFBLinkRegion *lr;
+     DFBRegion *r;
 
      D_DEBUG_AT( SaWMan_Update, "%s( %p, %d, %d,%d - %d,%d )\n", __FUNCTION__, tier, start, x1, y1, x2, y2 );
 
@@ -241,150 +108,272 @@ update_region2( SaWMan          *sawman,
      stack = tier->stack;
      D_ASSERT( stack != NULL );
 
-     misc_region_init_with_extents( &dirty, NULL, &extents );
+     /* we need some intermediate storage */
+     /* 50 = arbitrary */
+     regionstorage = alloca(sizeof(DFBLinkRegion) * 50);
+     dfb_linkregionpool_init( &regionpool, regionstorage, 50 );
 
-     fusion_vector_foreach (sawwin, i, sawman->layout) {
+     const int numberOfWindows  = fusion_vector_size( &sawman->layout );
+     DirectLink *updatesBlend[numberOfWindows];
+     DirectLink *updatesNoBlend[numberOfWindows];
+
+     /* TODO: if we have a background picture,
+      * there is a very strong case for optimizing using double blit. */
+
+     blackBackground = (stack->bg.mode == DLBM_COLOR) && !stack->bg.color.a && !stack->bg.color.r &&  !stack->bg.color.g && !stack->bg.color.b;
+
+     /* z-order: bottom to top */
+     fusion_vector_foreach (sawwin, winNum, sawman->layout) {
           CoreWindow *window;
 
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
           window = sawwin->window;
-          D_MAGIC_ASSERT( window, CoreWindow );
+          D_MAGIC_COREWINDOW_ASSERT( window );
+
+          updatesBlend[winNum]   = 0;
+          updatesNoBlend[winNum] = 0;
 
           if (SAWMAN_VISIBLE_WINDOW( window ) && (tier->classes & (1 << window->config.stacking))) {
-               misc_region_t visible;
-               misc_region_t render;
-               misc_region_t opt;
 
-               D_DEBUG_AT( SaWMan_Update, " -=> [%d] <=-\n", i );
-     
-               MISC_REGION_DEBUG_AT( SaWMan_Update, &dirty, "dirty" );
-     
-               /* visible (window) */
-               misc_region_init_updates( &visible, NULL, &sawwin->visible );
-     
-               /* render (extents) */
-               misc_region_init_with_extents( &render, NULL, &extents );
-     
-               misc_region_init( &opt, NULL );
-     
-               /* render = visible & render(extents) */
-               misc_region_intersect( &render, &visible, &render );
-     
-               /* opt = render & dirty */
-               misc_region_intersect( &opt, &render, &dirty );
-     
-               if (window->config.opacity == 0xff &&
-                   window->surface && (window->surface->config.caps & DSCAPS_PREMULTIPLIED) &&
-                   (window->config.options & DWOP_ALPHACHANNEL) && !(window->config.options & DWOP_COLORKEYING) &&
-                   (window->config.dst_geometry.mode == DWGM_DEFAULT) && stack->bg.mode == DLBM_COLOR &&
-                   !stack->bg.color.a && !stack->bg.color.r && !stack->bg.color.g && !stack->bg.color.b)
+               D_DEBUG_AT( SaWMan_Update, " -=> [%d] <=- %d\n", winNum, SAWMAN_TRANSLUCENT_WINDOW(window) );
+
+               /* check against bounding boxes to quickly discard non-overlapping windows */
+               if (!dfb_rectangle_region_intersects(&window->config.bounds, &updateRegion) )
+                    continue;
+                                                    
+               /* Optimizing. Only possible when the opacity is max and
+                  there is no color keying because this requires additional blending */
+               if (      (window->config.opacity == 0xff)
+                     &&   window->surface
+                     &&  (window->surface->config.caps & DSCAPS_PREMULTIPLIED)
+                     &&  (window->config.options & DWOP_ALPHACHANNEL)
+                     && !(window->config.options & DWOP_COLORKEYING)
+                     &&  (window->config.dst_geometry.mode == DWGM_DEFAULT)
+                     &&   blackBackground )
                {
-                    misc_region_t blend;
-     
-                    misc_region_init( &blend, NULL );
-     
-                    /* blend = render - opt */
-                    misc_region_subtract( &blend, &render, &opt );
-     
-                    MISC_REGION_DEBUG_AT( SaWMan_Update, &visible, "visible" );
-                    MISC_REGION_DEBUG_AT( SaWMan_Update, &render, "render" );
-                    MISC_REGION_DEBUG_AT( SaWMan_Update, &opt, "opt" );
-                    MISC_REGION_DEBUG_AT( SaWMan_Update, &blend, "blend" );
-     
-                    /////// FIXME: use batch blit!
-     
-                    /*
-                     * Draw optimized window areas
-                     */
-                    boxes = misc_region_boxes( &opt, &num );
-     
-                    for (n=0; n<num; n++) {
-                         DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
-     
-                         sawman_draw_window( tier, sawwin, state, &draw, false );
+                    DirectLink *updates    = 0;
+
+                    D_DEBUG_AT( SaWMan_Update, " ---> window optimized\n" );
+
+                    /* copy all applicable updates in a separate structure */
+                    for (u=0; u < sawwin->visible.num_regions; u++) {
+
+                         /* clip the visible regions to the update region */
+                         if (!dfb_region_intersects( &sawwin->visible.regions[u], x1, y1, x2, y2 ))
+                              continue;
+
+                         lr = dfb_linkregionpool_get( &regionpool, &sawwin->visible.regions[u] );
+                         dfb_region_clip( &lr->region, x1, y1, x2, y2 );
+                         direct_list_append( &updates, &lr->link );
                     }
-     
-     
-                    /////// FIXME: use batch blit!
-     
-                    /*
-                     * Draw blended window areas
-                     */
-                    boxes = misc_region_boxes( &blend, &num );
-     
-                    for (n=0; n<num; n++) {
-                         DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
-     
-                         sawman_draw_window( tier, sawwin, state, &draw, true );
+
+                    DFBLinkRegion *linkRegion = 0;
+                    direct_list_foreach(linkRegion, updates) {
+
+                         /* optimizing!
+                            check for intersections between to-be-drawn lower windows
+                            and this window.
+                              If intersection with blend: -> blend.
+                              If intersection with noBlend: -> blend, double source
+                              Else: draw opaque (add to noBlend).
+                         */
+                         
+                         for (u=winNum-1; u>=0; u--) {
+                              direct_list_foreach(lr, updatesBlend[u]) {
+                                   DFBRegion *R = &linkRegion->region;
+                                   r = &lr->region;
+                                   if (dfb_region_region_intersects( R, r )) {
+                                        /* overlap with other window! */
+
+                                        /* re-add remaing sections to reconsider */
+                                        dfb_linkregionpool_add_allowedpartofregion( &regionpool, &updates, R, r );
+
+                                        /* add intersection to updatesBlend[winNum] */
+                                        dfb_region_clip( R, r->x1, r->y1, r->x2, r->y2 );
+                                        DFBLinkRegion *lnk = dfb_linkregionpool_get( &regionpool, R );
+                                        direct_list_append( &updatesBlend[winNum], &lnk->link );
+                                        
+                                        goto continueupdates;
+                                   }
+                              }
+                              direct_list_foreach(lr, updatesNoBlend[u]) {
+                                   DFBRegion *R = &linkRegion->region;
+                                   r = &lr->region;
+                                   if (dfb_region_region_intersects( R, r )) {
+                                        /* overlap with other window! */
+                                        /* intersection, blend double source */
+
+                                        /* reorganise overlapped window;
+                                         * we need to cut out the intersection,
+                                         * and change the original entry to new ones */
+                                        dfb_linkregionpool_add_allowedpartofregion( &regionpool, &updatesNoBlend[u], r, R );
+                                        direct_list_remove( &updatesNoBlend[u], &lr->link );
+
+                                        /* re-add remaing sections to reconsider */
+                                        dfb_linkregionpool_add_allowedpartofregion( &regionpool, &updates, R, r );
+
+                                        /* proceed to draw immediately 
+                                         * we can store the window in another list, but this is more efficient */
+                                        dfb_region_clip( R, r->x1, r->y1, r->x2, r->y2 );
+                                        SaWManWindow *sw = fusion_vector_at( &sawman->layout, u );
+                                        D_DEBUG_AT( SaWMan_Update, "     > window %d and %d\n", u, winNum );
+                                        D_DEBUG_AT( SaWMan_Update, "     > nb %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION(R) );
+                                        sawman_draw_two_windows( tier, sw, sawwin, state, R );
+
+                                        goto continueupdates;
+                                   }
+                              }
+                         }
+
+                         /* if we came here, it is a non-overlapping dull window */
+                         DFBLinkRegion *lnk;
+                         
+                         lnk = dfb_linkregionpool_get( &regionpool, &linkRegion->region );
+                         direct_list_append( &updatesNoBlend[winNum], &lnk->link );
+                         lnk = dfb_linkregionpool_get( &regionpool, &linkRegion->region );
+                         direct_list_append( &backgroundNotNeeded, &lnk->link );
+
+                         continueupdates:
+                              ;
                     }
-     
-     
-                    misc_region_deinit( &blend );
                }
                else {
-                    MISC_REGION_DEBUG_AT( SaWMan_Update, &visible, "visible" );
-                    MISC_REGION_DEBUG_AT( SaWMan_Update, &render, "render" );
-                    MISC_REGION_DEBUG_AT( SaWMan_Update, &opt, "clear" );
-     
-                    /////// FIXME: use fill rectangles!
-     
-                    /*
-                     * Clear background
-                     */
-                    boxes = misc_region_boxes( &opt, &num );
-     
-                    for (n=0; n<num; n++) {
-                         DFBRegion clear = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
-     
-                         sawman_draw_background( tier, state, &clear );
+                    int translucent = SAWMAN_TRANSLUCENT_WINDOW(window);
+
+                    D_DEBUG_AT( SaWMan_Update, " ---> default %s window\n", 
+                                   translucent ? "blended" : "opaque" );
+
+                    /* store the updates of this window inside the update region */
+                    for (u=0; u < sawwin->visible.num_regions; u++) {
+                         if (dfb_region_intersects( &sawwin->visible.regions[u], x1, y1, x2, y2 )) {
+                              /* make a new region */
+                              lr = dfb_linkregionpool_get( &regionpool, &sawwin->visible.regions[u] );
+                              dfb_region_clip( &lr->region, x1, y1, x2, y2 );
+                              if (translucent)
+                                   direct_list_append( &updatesBlend[winNum], &lr->link );
+                              else {
+                                   /* ignore background */
+                                   direct_list_append( &updatesNoBlend[winNum], &lr->link );
+                                   DFBLinkRegion *lrbg = dfb_linkregionpool_get( &regionpool, &lr->region );
+                                   direct_list_append( &backgroundNotNeeded, &lrbg->link );
+                              }
+                         }
                     }
-     
-     
-                    /////// FIXME: use batch blit!
-     
-                    /*
-                     * Draw visible window areas
-                     */
-                    boxes = misc_region_boxes( &render, &num );
-     
-                    for (n=0; n<num; n++) {
-                         DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
-     
-                         sawman_draw_window( tier, sawwin, state, &draw, true );
-                    }
-     
                }
-     
-     
-               /* dirty -= render */
-               misc_region_subtract( &dirty, &dirty, &render );
-     
-     
-               misc_region_deinit( &opt );
-               misc_region_deinit( &render );
-               misc_region_deinit( &visible );
           }
      }
 
-     D_DEBUG_AT( SaWMan_Update, " -=> done <=-\n" );
+     /* draw background */
 
-     MISC_REGION_DEBUG_AT( SaWMan_Update, &dirty, "dirty" );
-
-     /////// FIXME: use fill rectangles!
-
-     /*
-      * Clear background
+    {
+     /* inversion, but only inside updatable area */
+     /* we follow a simple algorithm:
+      * start top-left, determine the smallest band height
+      * walk from left to right and add non-occupied regions,
+      * while checking if we have regions above to fold into
       */
-     boxes = misc_region_boxes( &dirty, &num );
+     int x,y,w,h;
+     x=x1; y=y1; w=0;
+     while (y<=y2) {
+          h=y2-y+1; /* maximum */
 
-     for (n=0; n<num; n++) {
-          DFBRegion clear = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
+          /* determine the height of the current band */
+          direct_list_foreach(lr, backgroundNotNeeded) {
+               r = &lr->region;
+               if ( (r->y1 > y) && (r->y1 - y < h) )
+                    h = r->y1 - y;
+               if ( (r->y1 <= y) && (r->y2 >= y) && (r->y2 - y + 1 < h) )
+                    h = r->y2 - y + 1; /* if a band is ended because of this, we could optimize and "hide" the region afterwards */
+          }
 
-          sawman_draw_background( tier, state, &clear );
+          /* just "walk the band", looking at the x coordinates, and add updates */
+          while (x<=x2) {
+               w=x2-x+1; /* maximum */
+
+               walk_the_band:
+
+               direct_list_foreach(lr, backgroundNotNeeded) {
+                    r = &lr->region;
+                    if ( (r->y1 <= y) && (r->y2 >= y) ) {
+                         /* valid window; this window is part of the band */
+                         if ( (r->x1 <= x) && (r->x2 >= x) ) {
+                              /* IN a band; adjust x and w and go back to start */
+                              x = r->x2+1;
+                              w = x2-x+1;
+                              if (w<0) w=0;
+
+                              goto walk_the_band;
+                         }
+                         if (r->x2 < x) /* out of reach */
+                              continue;
+                         if ( (r->x1 - x) < w) { /* this window is blocking the band */
+                              w = r->x1 - x;
+                         }
+                    }
+               }
+
+               if (w && h) {
+                    DFBRegion u         = { x, y, x+w-1, y+h-1 };
+                    bool      collapsed = false;
+
+                    /* we can optimize by checking if above us is a band with the correct width */
+                    direct_list_foreach(lr, backgroundNeeded) {
+                         r = &lr->region;
+                         if ( (r->x1 == u.x1) && (r->x2 == u.x2) && (r->y2 + 1 == u.y1) ) {
+                              r->y2 = u.y2;
+                              collapsed = true;
+                              break;
+                         }
+                    }
+
+                    if (!collapsed) {
+                         lr = dfb_linkregionpool_get( &regionpool, &u );
+                         direct_list_append( &backgroundNeeded, &lr->link );
+                    }
+               }
+
+               x += w;
+          }
+
+          y += h;
+          x  = x1;
+     }
+    }
+
+     D_DEBUG_AT( SaWMan_Update, "     > background\n" );
+
+     direct_list_foreach(lr, backgroundNeeded) {
+          r = &lr->region;
+          D_DEBUG_AT( SaWMan_Update, "     > %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION(r) );
+          sawman_draw_background( tier, state, r );
      }
 
-     misc_region_deinit( &dirty );
+     /* draw all the windows */
+     fusion_vector_foreach (sawwin, winNum, sawman->layout) {
+          D_DEBUG_AT( SaWMan_Update, "     > window %d\n", winNum );
+          
+          /* collate the updates to reduce number of draw calls */
+          /* (is this needed?) */
+          /* dfb_collate( &updatesNoBlend[winNum] ); */
+          /* dfb_collate( &updatesBlend[winNum] ); */
+
+          direct_list_foreach(lr, updatesNoBlend[winNum]) {
+               r = &lr->region;
+               D_DEBUG_AT( SaWMan_Update, "     > nb %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION(r) );
+               sawman_draw_window( tier, sawwin, state, r, false );
+          }
+
+          direct_list_foreach(lr, updatesBlend[winNum]) {
+               r = &lr->region;
+               D_DEBUG_AT( SaWMan_Update, "     > b %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION(r) );
+               sawman_draw_window( tier, sawwin, state, r, true );
+          }
+     }
+
+     dfb_linkregionpool_delete( &regionpool );
+
+     D_DEBUG_AT( SaWMan_Update, " -=> done <=-\n" );
 }
 
 static void
@@ -435,18 +424,21 @@ repaint_tier( SaWMan              *sawman,
           D_DEBUG_AT( SaWMan_Update, "  -> %d, %d - %dx%d  (%d)\n",
                       DFB_RECTANGLE_VALS_FROM_REGION( update ), i );
 
-          dfb_state_set_dst_colorkey( state, dfb_color_to_pixel( region->config.format,
-                                                                 region->config.src_key.r,
-                                                                 region->config.src_key.g,
-                                                                 region->config.src_key.b ) );
+          if (!DFB_PLANAR_PIXELFORMAT(region->config.format))
+               dfb_state_set_dst_colorkey( state, dfb_color_to_pixel( region->config.format,
+                                                                      region->config.src_key.r,
+                                                                      region->config.src_key.g,
+                                                                      region->config.src_key.b ) );
+          else
+               dfb_state_set_dst_colorkey( state, 0 );
 
           /* Set clipping region. */
           dfb_state_set_clip( state, update );
 
           /* Compose updated region. */
-          update_region2( sawman, tier, state,
-                         fusion_vector_size( &sawman->layout ) - 1,
-                         update->x1, update->y1, update->x2, update->y2 );
+          update_region3( sawman, tier, state,
+                          fusion_vector_size( &sawman->layout ) - 1,
+                          update->x1, update->y1, update->x2, update->y2 );
 
           /* Update cursor? */
           cursor_inter = tier->cursor_region;

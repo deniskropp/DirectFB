@@ -126,7 +126,7 @@ send_key_event( SaWMan              *sawman,
      D_ASSERT( event != NULL );
 
      we.type       = (event->type == DIET_KEYPRESS) ? DWET_KEYDOWN : DWET_KEYUP;
-     we.flags      = 0;
+     we.flags      = (event->flags & DIEF_REPEAT) ? DWEF_REPEAT : 0;
      we.key_code   = event->key_code;
      we.key_id     = event->key_id;
      we.key_symbol = event->key_symbol;
@@ -1301,8 +1301,6 @@ wm_post_init( void *wm_data, void *shared_data )
 
           D_MAGIC_ASSERT( tier, SaWManTier );
 
-          tier->context->lock = sawman->lock;     // FIXME: hack
-
           ret = dfb_layer_context_get_configuration( tier->context, &tier->config );
           if (ret)
                D_DERROR( ret, "SaWMan/PostInit: Could not get configuration of layer context!\n" );
@@ -1393,6 +1391,17 @@ wm_init_stack( CoreWindowStack *stack,
      tier->size.w  = stack->width;
      tier->size.h  = stack->height;
 
+     /* FIXME: hack */ /* transfer/duplicate the skirmish */
+     int count;
+     ret = fusion_skirmish_lock_count( &tier->context->lock, &count );
+     if (ret == DFB_OK)
+          while (count--) {
+               fusion_skirmish_prevail( &sawman->lock );
+               fusion_skirmish_dismiss( &tier->context->lock );
+          }
+     tier->lock_backup   = tier->context->lock;
+     tier->context->lock = sawman->lock;
+
      ret = dfb_layer_context_get_primary_region( context, true, &tier->region );
      if (ret) {
           sawman_unlock( sawman );
@@ -1439,6 +1448,11 @@ wm_close_stack( CoreWindowStack *stack,
      }
 
      D_ASSERT( tier->context != NULL );
+
+     /* transfer lock back, hack FIXME */
+     tier->context->lock = tier->lock_backup;
+     fusion_skirmish_prevail( &tier->context->lock );
+     fusion_skirmish_dismiss( &sawman->lock );
 
      tier->stack   = NULL;
      tier->context = NULL;
@@ -2715,7 +2729,7 @@ wm_set_window_config( CoreWindow             *window,
      if (flags & (CWCF_POSITION | CWCF_SIZE | CWCF_SRC_GEOMETRY | CWCF_DST_GEOMETRY | CWCF_ASSOCIATION))
           sawman_update_geometry( sawwin );
 
-     if (flags & (CWCF_POSITION | CWCF_SIZE | CWCF_OPACITY | CWCF_OPTIONS | CWCF_ROTATION))
+     if (flags & (CWCF_POSITION | CWCF_SIZE | CWCF_OPACITY | CWCF_OPTIONS))
           sawman_update_visible( sawman );
 
      sawman_process_updates( sawman, DSFLIP_NONE );
@@ -2852,8 +2866,10 @@ wm_grab( CoreWindow *window,
           case CWMGT_UNSELECTED_KEYS:
                if (sawman->unselkeys_window)
                     ret = DFB_LOCKED;
-               else
+               else {
                     sawman->unselkeys_window = sawwin;
+                    ret = DFB_OK;
+               }
 
                break;
 
@@ -2922,6 +2938,9 @@ wm_ungrab( CoreWindow *window,
           case CWMGT_UNSELECTED_KEYS:
                if (sawman->unselkeys_window == sawwin)
                     sawman->unselkeys_window = NULL;
+
+               ret = DFB_OK;
+               break;
 
           default:
                D_BUG( "unknown grab target" );

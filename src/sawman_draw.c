@@ -254,6 +254,7 @@ draw_border( SaWManWindow    *sawwin,
 static void
 draw_window( SaWManTier   *tier,
              SaWManWindow *sawwin,
+             SaWManWindow *sawwin2,
              CardState    *state,
              DFBRegion    *region,
              bool          alpha_channel )
@@ -267,7 +268,7 @@ draw_window( SaWManTier   *tier,
      DFBRegion                clip;
      DFBRegion                old_clip;
 
-     D_MAGIC_ASSERT( sawwin, SaWManWindow );
+     D_MAGIC_ASSERT( sawwin,  SaWManWindow );
      D_MAGIC_ASSERT( state, CardState );
      DFB_REGION_ASSERT( region );
 
@@ -430,8 +431,33 @@ draw_window( SaWManTier   *tier,
      D_DEBUG_AT( SaWMan_Draw, "    => %4d,%4d-%4dx%4d <- %4d,%4d-%4dx%4d\n",
                  DFB_RECTANGLE_VALS( &dst ), DFB_RECTANGLE_VALS( &src ) );
 
-     /* Scale window to the screen clipped by the region being updated. */
-     dfb_gfxcard_stretchblit( &src, &dst, state );
+#ifndef OLD_COREWINDOWS_STRUCTURE
+     if (sawwin2) {
+          CoreWindow   *window2;
+          DFBRectangle *src2;
+          DFBPoint      p1,p2;
+     
+          D_MAGIC_ASSERT( sawwin2, SaWManWindow );
+          window2 = sawwin2->window;
+          D_ASSERT( window2 != NULL );
+          D_ASSERT( window2->surface != NULL );
+          src2 = &sawwin2->src;
+
+          state->source2  = window2->surface;
+          state->modified = SMF_SOURCE2;
+
+          p1.x = src2->x;
+          p1.y = src2->y;
+          p2.x = sawwin->dst.x;
+          p2.y = sawwin->dst.y;
+          dfb_gfxcard_batchblit2( &src, &p1, &p2, 1, state );
+     }
+     else
+#endif
+     {
+          /* Scale window to the screen clipped by the region being updated. */
+          dfb_gfxcard_stretchblit( &src, &dst, state );
+     }
 
      /* Restore clipping region. */
      dfb_state_set_clip( state, &old_clip );
@@ -550,7 +576,7 @@ sawman_draw_window( SaWManTier   *tier,
          dfb_region_rectangle_intersect( region, &sawwin->dst )
          ) {
           if( window->surface )
-               draw_window( tier, sawwin, state, region, alpha_channel );
+               draw_window( tier, sawwin, 0, state, region, alpha_channel );
           else if( window->caps & DWCAPS_COLOR )
                draw_window_color( sawwin, state, region, alpha_channel );
      }
@@ -562,6 +588,89 @@ sawman_draw_window( SaWManTier   *tier,
      state->source    = NULL;
      state->modified |= SMF_SOURCE;
 }
+
+void
+sawman_draw_two_windows( SaWManTier   *tier,
+                         SaWManWindow *sawwin1,
+                         SaWManWindow *sawwin2,
+                         CardState    *state,
+                         DFBRegion    *pregion )
+{
+     CoreWindow      *window1;
+     CoreWindow      *window2;
+     CoreWindowStack *stack;
+     DFBRegion        xregion = *pregion;
+     DFBRegion       *region  = &xregion;
+     int              border;
+
+     D_MAGIC_ASSERT( sawwin1, SaWManWindow );
+     D_MAGIC_ASSERT( sawwin2, SaWManWindow );
+     D_MAGIC_ASSERT( state, CardState );
+     DFB_REGION_ASSERT( region );
+
+     window1 = sawwin1->window;
+     window2 = sawwin2->window;
+     stack  = sawwin1->stack;
+
+     D_ASSERT( window1 != NULL );
+     D_ASSERT( window2 != NULL );
+     D_ASSERT( stack != NULL );
+
+     D_DEBUG_AT( SaWMan_Draw, "%s( %p, %p, %d,%d-%dx%d )\n", __FUNCTION__,
+                 sawwin1, sawwin2, DFB_RECTANGLE_VALS_FROM_REGION( pregion ) );
+
+     /* we assume that the windows are both visible and overlapping */
+     bool color1 = window1->caps & DWCAPS_COLOR;
+     bool color2 = window2->caps & DWCAPS_COLOR;
+
+     if (color1 || color2) {
+          /* window 1 */
+          if (color1)
+               draw_window_color( sawwin1, state, region, false );
+          else
+               draw_window( tier, sawwin1, 0, state, region, false );
+
+          /* window 2 */
+          if (color2)
+               draw_window_color( sawwin2, state, region, true );
+          else
+               draw_window( tier, sawwin2, 0, state, region, true );
+     }
+     else {
+#ifndef OLD_COREWINDOWS_STRUCTURE
+          /* TODO: using the card capabilities will not work if
+             BLIT2 functionality is state dependant */
+          CardCapabilities caps;
+          dfb_gfxcard_get_capabilities( &caps );
+
+          /* scaling disallowed */
+          if (    (sawwin1->src.w == sawwin1->dst.w)
+               && (sawwin1->src.h == sawwin1->dst.h) 
+               && (caps.accel & DFXL_BLIT2) )
+          {
+               draw_window( tier, sawwin1, sawwin2, state, region, true );
+          }
+          else
+#endif
+          {
+               draw_window( tier, sawwin1, 0, state, region, false );
+               draw_window( tier, sawwin2, 0, state, region, true );
+          }
+     }
+
+     border = sawman_window_border( sawwin1 );
+     if (border)
+          draw_border( sawwin1, state, pregion, border );
+
+     border = sawman_window_border( sawwin2 );
+     if (border)
+          draw_border( sawwin2, state, pregion, border );
+
+     /* Reset blitting source. */
+     state->source    = NULL;
+     state->modified |= SMF_SOURCE;
+}
+
 
 void
 sawman_draw_background( SaWManTier *tier, CardState *state, DFBRegion *region )

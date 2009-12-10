@@ -57,6 +57,9 @@ extern SaWManConfig *sawman_config;
  */
 DirectResult sawman_config_init( int *argc, char **argv[] );
 
+/* remove config structure, if there is any */
+DirectResult sawman_config_shutdown( void );
+
 /*
  * Set individual option. Used by sawman_config_init(), and SaWManSetOption()
  */

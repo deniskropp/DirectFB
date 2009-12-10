@@ -345,6 +345,9 @@ sawman_shutdown( SaWMan      *sawman,
 
      D_MAGIC_CLEAR( sawman );
 
+     /* deallocate config structure */
+     sawman_config_shutdown();
+
      /* Destroy shared memory pool. */
      fusion_shm_pool_destroy( world, sawman->shmpool );
 

@@ -237,6 +237,8 @@ struct __SaWMan_SaWManTier {
      CoreLayerContext       *context;
      CoreLayerRegion        *region;
 
+     FusionSkirmish          lock_backup;
+
      DFBDisplayLayerConfig   config;
      DFBColorKey             key;
 
