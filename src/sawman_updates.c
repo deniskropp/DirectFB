@@ -60,6 +60,7 @@
 
 D_DEBUG_DOMAIN( SaWMan_Auto,     "SaWMan/Auto",     "SaWMan auto configuration" );
 D_DEBUG_DOMAIN( SaWMan_Update,   "SaWMan/Update",   "SaWMan window manager updates" );
+D_DEBUG_DOMAIN( SaWMan_FlipOnce, "SaWMan/FlipOnce", "SaWMan window manager flip once" );
 
 /**********************************************************************************************************************/
 
@@ -583,9 +584,14 @@ windows_updating( SaWMan     *sawman,
      fusion_vector_foreach (window, i, sawman->layout) {
           D_MAGIC_ASSERT( window, SaWManWindow );
           
-          if (window->flags & SWMWF_UPDATING)
+          if (window->flags & SWMWF_UPDATING) {
+               D_DEBUG_AT( SaWMan_FlipOnce, "  -> update blocking on window id %u (flags 0x%08x)\n", window->id, window->flags );
+
                return true;
+          }
      }
+
+     D_DEBUG_AT( SaWMan_FlipOnce, "  -> update not blocked by any window\n" );
 
      return false;
 }
