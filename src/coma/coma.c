@@ -46,22 +46,12 @@
 
 #include <coma/coma.h>
 #include <coma/component.h>
+#include <coma/thread.h>
 
 #include <misc/dale_config.h>
 
 
 D_DEBUG_DOMAIN( Coma_Core, "Coma/Core", "Coma Core" );
-
-/**********************************************************************************************************************/
-
-typedef struct {
-     int                  magic;
-
-     void                *ptr;
-     unsigned int         size;
-
-     FusionSHMPoolShared *pool;
-} ThreadLocalSHM;
 
 /**********************************************************************************************************************/
 
@@ -74,6 +64,10 @@ struct __COMA_ComaShared {
 
      FusionObjectPool    *component_pool;
      FusionHash          *components;
+
+     FusionObjectPool    *thread_pool;
+
+     FusionCall           thread_mem_call;
 };
 
 struct __COMA_Coma {
@@ -316,19 +310,55 @@ coma_get_component( Coma           *coma,
 
 /**********************************************************************************************************************/
 
+static FusionCallHandlerResult
+thread_mem_call_handler( int           caller,
+                         int           call_arg,
+                         void         *call_ptr,
+                         void         *ctx,
+                         unsigned int  serial,
+                         int          *ret_val )
+{
+     ComaThread *thread = call_ptr;
+
+     D_MAGIC_ASSERT( thread, ComaThread );
+
+     if (call_arg > 0) {
+          void *ptr = SHCALLOC( thread->shmpool, 1, call_arg );
+
+          if (!ptr) {
+               *ret_val = D_OOSHM();
+               return FCHR_RETURN;
+          }
+
+          if (thread->mem)
+               SHFREE( thread->shmpool, thread->mem );
+
+          thread->mem      = ptr;
+          thread->mem_size = call_arg;
+     }
+     else {
+          if (thread->mem)
+               SHFREE( thread->shmpool, thread->mem );
+
+          thread->mem      = NULL;
+          thread->mem_size = 0;
+     }
+
+     *ret_val = 0;
+
+     return FCHR_RETURN;
+}
+
+/**********************************************************************************************************************/
+
 static void
 tlshm_destroy( void *arg )
 {
-     ThreadLocalSHM *tlshm = arg;
+     ComaThread *thread = arg;
 
-     D_MAGIC_ASSERT( tlshm, ThreadLocalSHM );
+     D_MAGIC_ASSERT( thread, ComaThread );
 
-     if (tlshm->ptr)
-          SHFREE( tlshm->pool, tlshm->ptr );
-
-     D_MAGIC_CLEAR( tlshm );
-
-     SHFREE( tlshm->pool, tlshm );
+     coma_thread_unref( thread );
 }
 
 /**********************************************************************************************************************/
@@ -338,8 +368,9 @@ coma_get_local( Coma          *coma,
                 unsigned int   bytes,
                 void         **ret_ptr )
 {
-     ComaShared     *shared;
-     ThreadLocalSHM *tlshm;
+     int         ret;
+     ComaShared *shared;
+     ComaThread *thread;
 
      D_MAGIC_ASSERT( coma, Coma );
      D_ASSERT( bytes > 0 );
@@ -348,35 +379,38 @@ coma_get_local( Coma          *coma,
      shared = coma->shared;
      D_MAGIC_ASSERT( shared, ComaShared );
 
-     tlshm = pthread_getspecific( coma->tlshm_key );
-     if (!tlshm) {
-          tlshm = SHCALLOC( shared->shmpool, 1, sizeof(ThreadLocalSHM) );
-          if (!tlshm)
-               return D_OOSHM();
+     thread = pthread_getspecific( coma->tlshm_key );
+     if (!thread) {
+          /* Create thread object. */
+          thread = (ComaThread*) fusion_object_create( shared->thread_pool, coma->world );
+          if (!thread)
+               return DR_FUSION;
 
-          tlshm->pool = shared->shmpool;
+          /* Initialize thread object. */
+          ret = coma_thread_init( thread, coma );
+          if (ret) {
+               fusion_object_destroy( &thread->object );
+               return ret;
+          }
 
-          D_MAGIC_SET( tlshm, ThreadLocalSHM );
+          /* Activate component object. */
+          fusion_object_activate( &thread->object );
 
-          pthread_setspecific( coma->tlshm_key, tlshm );
+
+          pthread_setspecific( coma->tlshm_key, thread );
      }
 
-     D_MAGIC_ASSERT( tlshm, ThreadLocalSHM );
+     D_MAGIC_ASSERT( thread, ComaThread );
 
-     if (tlshm->size < bytes) {
-          void *ptr = SHCALLOC( tlshm->pool, 1, bytes );
-
-          if (!ptr)
-               return D_OOSHM();
-
-          if (tlshm->ptr)
-               SHFREE( tlshm->pool, tlshm->ptr );
-
-          tlshm->ptr  = ptr;
-          tlshm->size = bytes;
+     if (thread->mem_size < bytes) {
+          ret = fusion_call_execute( &shared->thread_mem_call, FCEF_NONE, bytes, thread, &ret );
+          if (ret) {
+               D_DERROR( ret, "Coma/Core: Thread memory call to allocate %d bytes failed!\n", bytes );
+               return ret;
+          }
      }
 
-     *ret_ptr = tlshm->ptr;
+     *ret_ptr = thread->mem;
 
      return DR_OK;
 }
@@ -384,27 +418,29 @@ coma_get_local( Coma          *coma,
 DirectResult
 coma_free_local( Coma *coma )
 {
-     ComaShared     *shared;
-     ThreadLocalSHM *tlshm;
+     int         ret;
+     ComaShared *shared;
+     ComaThread *thread;
 
      D_MAGIC_ASSERT( coma, Coma );
 
      shared = coma->shared;
      D_MAGIC_ASSERT( shared, ComaShared );
 
-     tlshm = pthread_getspecific( coma->tlshm_key );
-     if (!tlshm)
+     thread = pthread_getspecific( coma->tlshm_key );
+     if (!thread)
           return DR_ITEMNOTFOUND;
 
-     D_MAGIC_ASSERT( tlshm, ThreadLocalSHM );
+     D_MAGIC_ASSERT( thread, ComaThread );
 
-     if (!tlshm->ptr)
+     if (!thread->mem)
           return DR_BUFFEREMPTY;
 
-     SHFREE( tlshm->pool, tlshm->ptr );
-
-     tlshm->ptr  = NULL;
-     tlshm->size = 0;
+     ret = fusion_call_execute( &shared->thread_mem_call, FCEF_NONE, 0, thread, &ret );
+     if (ret) {
+          D_DERROR( ret, "Coma/Core: Thread memory call to free %d bytes failed!\n", thread->mem_size );
+          return ret;
+     }
 
      return DR_OK;
 }
@@ -484,6 +520,9 @@ coma_initialize( Coma *coma )
      fusion_skirmish_init( &shared->lock, coma->name, coma->world );
 
      shared->component_pool = coma_component_pool_create( coma );
+     shared->thread_pool    = coma_thread_pool_create( coma );
+
+     fusion_call_init( &shared->thread_mem_call, thread_mem_call_handler, coma, coma->world );
 
      return DR_OK;
 }
@@ -525,10 +564,13 @@ coma_shutdown( Coma *coma )
      D_MAGIC_ASSERT( shared, ComaShared );
 
      fusion_object_pool_destroy( shared->component_pool, coma->world );
+     fusion_object_pool_destroy( shared->thread_pool, coma->world );
 
      fusion_skirmish_destroy( &shared->lock );
 
      fusion_hash_destroy( shared->components );
+
+     fusion_call_destroy( &shared->thread_mem_call );
 
      return DR_OK;
 }

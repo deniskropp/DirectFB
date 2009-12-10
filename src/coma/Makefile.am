@@ -18,11 +18,13 @@ comainclude_HEADERS = \
 	coma.h			\
 	coma_types.h		\
 	component.h		\
+	thread.h		\
 	icoma.h			\
 	icomacomponent.h
 
 libfusiondalecoma_la_SOURCES = \
 	coma.c			\
 	component.c		\
+	thread.c		\
 	icoma.c			\
 	icomacomponent.c

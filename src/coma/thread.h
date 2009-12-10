@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2006-2007  directfb.org
+   (c) Copyright 2007  directfb.org
 
    All rights reserved.
 
@@ -21,15 +21,46 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __COMA__COMA_TYPES_H__
-#define __COMA__COMA_TYPES_H__
+#ifndef __COMA__THREAD_H__
+#define __COMA__THREAD_H__
 
-typedef struct __COMA_Coma                 Coma;
-typedef struct __COMA_ComaShared           ComaShared;
+#include <fusiondale.h>
 
-typedef struct __COMA_ComaComponent        ComaComponent;
-typedef struct __COMA_ComaNotification     ComaNotification;
-typedef struct __COMA_ComaThread           ComaThread;
+#include <fusion/object.h>
+
+#include <coma/coma_types.h>
+
+
+struct __COMA_ComaThread {
+     FusionObject         object;
+
+     int                  magic;
+
+     FusionSHMPoolShared *shmpool;
+
+     FusionID             fusion_id;
+
+     void                *mem;
+     unsigned int         mem_size;
+};
+
+/*
+ * Creates a pool of component threads.
+ */
+FusionObjectPool *coma_thread_pool_create( Coma *coma );
+
+/*
+ * Generates coma_thread_ref(), coma_thread_attach() etc.
+ */
+FUSION_OBJECT_METHODS( ComaThread, coma_thread )
+
+
+
+/*
+ * Object initialization
+ */
+
+DirectResult coma_thread_init( ComaThread *thread,
+                               Coma       *coma );
 
 #endif
-
