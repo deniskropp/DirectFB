@@ -134,18 +134,8 @@ AC_ARG_ENABLE(x11,
   enable_x11=yes)
 
 if test "$enable_x11" = "yes"; then
-  CFLAGS_saved="$CFLAGS"
-  CFLAGS="$CFLAGS -I/usr/X11R6/include"
-  AC_CHECK_HEADER(X11/X.h, x11_found=yes, x11_found=no)
-  CFLAGS="$CFLAGS_saved"
-  if test "$x11_found" = no; then
-    enable_x11=no
-    AC_MSG_WARN([
-*** no X11/X.h found -- building without X11 support.])
-  else
-    X11_LIBS="-L/usr/X11R6/lib -lX11 -lXext"
-    X11_CFLAGS="-I/usr/X11R6/include"
-  fi
+  PKG_CHECK_MODULES([X11], [xproto x11 xext], [enable_x11="yes"], [enable_x11="no",
+    AC_MSG_WARN([*** no X11 found -- building without X11 support])])
 fi
 
 AM_CONDITIONAL(X11_CORE, test "$enable_x11" = "yes")
