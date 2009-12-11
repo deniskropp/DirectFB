@@ -1044,47 +1044,64 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
 
           if (i < num) {
                /* Use software fallback. */
-               if (gAcquire( state, DFXL_FILLRECTANGLE )) {
-                    if (!(state->render_options & DSRO_MATRIX)) {
+               if (!(state->render_options & DSRO_MATRIX)) {
+                    if (gAcquire( state, DFXL_FILLRECTANGLE )) {
                          for (; i<num; i++) {
                               rect = rects[i];
-
+     
                               if (dfb_clip_rectangle( &state->clip, &rect ))
                                    gFillRectangle( state, &rect );
                          }
-                    }
-                    else if (state->matrix[1] == 0 && state->matrix[3] == 0) {
-                         /* Scaled/Translated Rectangle. */
-                         for (; i<num; i++) {
-                              int x1, y1, x2, y2;
-                              
-                              x1 = rects[i].x;    y1 = rects[i].y;
-                              x2 = x1+rects[i].w; y2 = y1+rects[i].h;
-                              DFB_TRANSFORM(x1, y1, state->matrix, state->affine_matrix);
-                              DFB_TRANSFORM(x2, y2, state->matrix, state->affine_matrix);
-                              
-                              if (x1 < x2) {
-                                   rect.x = x1;
-                                   rect.w = x2-x1;
-                              } else {
-                                   rect.x = x2;
-                                   rect.w = x1-x2;
-                              }
-                              if (y1 < y2) {
-                                   rect.y = y1;
-                                   rect.h = y2-y1;
-                              }
-                              else {
-                                   rect.y = y2;
-                                   rect.h = y1-y2;
-                              }
 
-                              if (dfb_clip_rectangle( &state->clip, &rect ))
-                                   gFillRectangle( state, &rect );
-                         }
+                         gRelease( state );
                     }
-                    else {
-                         /* Rotated rectangle. Split into triangles. */
+               }
+               else if (state->matrix[1] == 0 && state->matrix[3] == 0) {
+                    /* Scaled/Translated Rectangles */
+                    DFBRectangle tr[num];
+                    int          n = 0;
+
+                    for (; i<num; i++) {
+                         int x1, y1, x2, y2;
+                         
+                         x1 = rects[i].x;    y1 = rects[i].y;
+                         x2 = x1+rects[i].w; y2 = y1+rects[i].h;
+                         DFB_TRANSFORM(x1, y1, state->matrix, state->affine_matrix);
+                         DFB_TRANSFORM(x2, y2, state->matrix, state->affine_matrix);
+                         
+                         if (x1 < x2) {
+                              tr[n].x = x1;
+                              tr[n].w = x2-x1;
+                         } else {
+                              tr[n].x = x2;
+                              tr[n].w = x1-x2;
+                         }
+                         if (y1 < y2) {
+                              tr[n].y = y1;
+                              tr[n].h = y2-y1;
+                         }
+                         else {
+                              tr[n].y = y2;
+                              tr[n].h = y1-y2;
+                         }
+
+                         if (dfb_clip_rectangle( &state->clip, &tr[n] ))
+                              n++;
+                    }
+
+                    if (n > 0) {
+                         state->render_options &= ~DSRO_MATRIX;
+                         state->modified       |= SMF_RENDER_OPTIONS;
+
+                         dfb_gfxcard_fillrectangles( tr, n, state );
+
+                         state->render_options |= DSRO_MATRIX;
+                         state->modified       |= SMF_RENDER_OPTIONS;
+                    }
+               }
+               else {
+                    /* Rotated rectangle. Split into triangles. */
+                    if (gAcquire( state, DFXL_FILLRECTANGLE )) {
                          for (; i<num; i++) {
                               DFBTriangle tri;
                               
@@ -1110,9 +1127,9 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
                               if (tri.y3 - tri.y1 > 0)
                                    fill_tri( &tri, state, false );
                          }
-                    }
 
-                    gRelease( state );
+                         gRelease( state );
+                    }
                }
           }
      }
@@ -1785,7 +1802,30 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      }
 
      if (!hw) {
-          if (state->render_options & DSRO_MATRIX) {
+          /* Use software fallback. */
+          if (!(state->render_options & DSRO_MATRIX)) {
+               if (gAcquire( state, DFXL_BLIT )) {
+                    clip_blit_rotated( rect, &drect, &state->clip, state->blittingflags );
+
+                    gBlit( state, rect, drect.x, drect.y );
+
+                    gRelease( state );
+               }
+          }
+          else if (state->matrix[0] == 0x10000 && state->matrix[1] == 0 &&
+                   state->matrix[3] == 0       && state->matrix[4] == 0x10000)
+          {
+               state->render_options &= ~DSRO_MATRIX;
+               state->modified       |= SMF_RENDER_OPTIONS;
+
+               dfb_gfxcard_blit( rect,
+                                 dx + ((state->matrix[2] + 0x8000) >> 16),
+                                 dy + ((state->matrix[5] + 0x8000) >> 16), state );
+
+               state->render_options |= DSRO_MATRIX;
+               state->modified       |= SMF_RENDER_OPTIONS;
+          }
+          else {
                if (state->matrix[0] < 0  || state->matrix[1] != 0 ||
                    state->matrix[3] != 0 || state->matrix[4] < 0  ||
                    state->matrix[6] != 0 || state->matrix[7] != 0) {
@@ -1808,15 +1848,6 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
                                                 drect.w, drect.h, drect.x, drect.y ))
                          gStretchBlit( state, rect, &drect );
                          
-                    gRelease( state );
-               }
-          }
-          else {
-               if (gAcquire( state, DFXL_BLIT )) {
-                    clip_blit_rotated( rect, &drect, &state->clip, state->blittingflags );
-
-                    gBlit( state, rect, drect.x, drect.y );
-
                     gRelease( state );
                }
           }
