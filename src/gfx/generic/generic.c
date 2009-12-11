@@ -3081,6 +3081,35 @@ static void Sop_vyu_Sto_Dacc( GenefxState *gfxs )
      }
 }
 
+static void Sop_a4_Sto_Dacc( GenefxState *gfxs )
+{
+     int w     = gfxs->length;
+     int i     = gfxs->Xphase;
+     int SperD = gfxs->SperD;
+
+     GenefxAccumulator *D = gfxs->Dacc;
+     u8                *S = gfxs->Sop[0];
+
+     while (w--) {
+          int I = i>>16;
+          u8  s = S[I>>1];
+
+          /* FIXME: endianness? */
+          if (I & 1)
+               D->RGB.a = (s & 0x0F) | ((s << 4) & 0xF0);
+          else
+               D->RGB.a = (s & 0xF0) | (s >> 4);
+
+          D->RGB.r = 0xFF;
+          D->RGB.g = 0xFF;
+          D->RGB.b = 0xFF;
+
+          i += SperD;
+
+          D++;
+     }
+}
+
 static GenefxFunc Sop_PFI_Sto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_argb1555_Sto_Dacc,        /* DSPF_ARGB1555 */
      Sop_rgb16_Sto_Dacc,           /* DSPF_RGB16 */
@@ -3104,7 +3133,7 @@ static GenefxFunc Sop_PFI_Sto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_rgba4444_Sto_Dacc,        /* DSPF_RGBA4444 */
      Sop_nv21_Sto_Dacc,            /* DSPF_NV21 */
      Sop_ayuv_Sto_Dacc,            /* DSPF_AYUV */
-     NULL,                         /* DSPF_A4 */
+     Sop_a4_Sto_Dacc,              /* DSPF_A4 */
      Sop_argb1666_Sto_Dacc,        /* DSPF_ARGB1666 */
      Sop_argb6666_Sto_Dacc,        /* DSPF_ARGB6666 */
      Sop_rgb18_Sto_Dacc,           /* DSPF_RGB18 */
