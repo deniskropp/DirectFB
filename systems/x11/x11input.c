@@ -526,6 +526,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
           unsigned int  pull = 23;
           XEvent        xEvent; 
           DFBInputEvent dfbEvent;
+          static int    nextKeyIsRepeat = false;
 
           /* FIXME: Detect key repeats, we're receiving KeyPress, KeyRelease, KeyPress, KeyRelease... !!?? */
 
@@ -541,6 +542,17 @@ x11EventThread( DirectThread *thread, void *driver_data )
 
           while (!data->stop && pull-- && XPending( x11->display )) {
                XNextEvent( x11->display, &xEvent );
+
+               /* is this key repeat? idea from GII */
+               if ( (xEvent.type == KeyRelease) && (XPending( x11->display )) ) {
+                    XEvent peekEvent;
+                    XPeekEvent( x11->display, &peekEvent );
+                    if ( (peekEvent.type == KeyPress) &&
+                         (peekEvent.xkey.keycode == xEvent.xkey.keycode) &&
+                         (peekEvent.xkey.time - xEvent.xkey.time < 2) ) {
+                              nextKeyIsRepeat = true;
+                    }
+               }
 
                XUnlockDisplay( x11->display );
 
@@ -564,6 +576,11 @@ x11EventThread( DirectThread *thread, void *driver_data )
 
                          dfbEvent.timestamp.tv_sec  =  xEvent.xkey.time / 1000;
                          dfbEvent.timestamp.tv_usec = (xEvent.xkey.time % 1000) * 1000;
+
+                         if ( (xEvent.type == KeyPress) && nextKeyIsRepeat ) {
+                              nextKeyIsRepeat = false;
+                              dfbEvent.flags |= DIEF_REPEAT;
+                         }
 
                          dfb_input_dispatch( data->device, &dfbEvent );
                          break;

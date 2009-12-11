@@ -4642,8 +4642,9 @@ typedef enum {
      DWEF_NONE           = 0x00000000,  /* none of these */
 
      DWEF_RETURNED       = 0x00000001,  /* This is a returned event, e.g. unconsumed key. */
+     DWEF_REPEAT         = 0x00000010,  /* repeat event, e.g. repeating key */
 
-     DWEF_ALL            = 0x00000001   /* all of these */
+     DWEF_ALL            = 0x00000011   /* all of these */
 } DFBWindowEventFlags;
 
 /*
@@ -4676,6 +4677,8 @@ typedef struct {
      DFBEventClass                   clazz;      /* clazz of event */
 
      DFBWindowEventType              type;       /* type of event */
+
+     /* used by DWET_KEYDOWN, DWET_KEYUP */
      DFBWindowEventFlags             flags;      /* event flags */
 
      DFBWindowID                     window_id;  /* source of event */

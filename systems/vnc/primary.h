@@ -34,8 +34,8 @@
 #include <core/layers.h>
 #include <core/screens.h>
 
-extern ScreenFuncs       vncPrimaryScreenFuncs;
-extern DisplayLayerFuncs vncPrimaryLayerFuncs;
+extern ScreenFuncs       *vncPrimaryScreenFuncs;
+extern DisplayLayerFuncs *vncPrimaryLayerFuncs;
 
 FusionCallHandlerResult
 dfb_vnc_call_handler( int           caller,

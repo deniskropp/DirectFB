@@ -113,10 +113,12 @@ primaryGetScreenSize( CoreScreen *screen,
      return DFB_OK;
 }
 
-ScreenFuncs sdlPrimaryScreenFuncs = {
+static ScreenFuncs primaryScreenFuncs = {
      .InitScreen    = primaryInitScreen,
      .GetScreenSize = primaryGetScreenSize,
 };
+
+ScreenFuncs *sdlPrimaryScreenFuncs = &primaryScreenFuncs;
 
 /******************************************************************************/
 
@@ -309,7 +311,7 @@ primaryUpdateRegion( CoreLayer             *layer,
      return dfb_sdl_update_screen( dfb_sdl_core, NULL );
 }
 
-DisplayLayerFuncs sdlPrimaryLayerFuncs = {
+static DisplayLayerFuncs primaryLayerFuncs = {
      .LayerDataSize     = primaryLayerDataSize,
      .RegionDataSize    = primaryRegionDataSize,
      .InitLayer         = primaryInitLayer,
@@ -321,6 +323,8 @@ DisplayLayerFuncs sdlPrimaryLayerFuncs = {
      .FlipRegion        = primaryFlipRegion,
      .UpdateRegion      = primaryUpdateRegion,
 };
+
+DisplayLayerFuncs *sdlPrimaryLayerFuncs = &primaryLayerFuncs;
 
 /******************************************************************************/
 

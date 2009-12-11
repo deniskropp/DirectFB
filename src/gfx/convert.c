@@ -446,7 +446,6 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
                }
                break;
 
-
           case DSPF_VYU:
                while (height--) {
                     const u8 *src8 = src;
@@ -698,6 +697,44 @@ dfb_convert_to_rgb555( DFBSurfacePixelFormat  format,
                }
                break;
 
+          case DSPF_AVYU:
+               while (height--) {
+                    const u32 *src32 = src;
+
+                    for (x=0; x<width; x++) {
+                         int r, g, b;
+
+                         YCBCR_TO_RGB( (src32[x] >> 8) & 0xff, src32[x] & 0xff, (src32[x] >> 16) & 0xff, r, g, b );
+
+                         dst[x] = PIXEL_RGB555( r, g, b );
+                    }
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+          case DSPF_VYU:
+               while (height--) {
+                    const u8 *src8 = src;
+
+                    for (x=0; x<width; x++) {
+                         int r, g, b;
+
+#ifdef WORDS_BIGENDIAN
+                         YCBCR_TO_RGB( src8[x*3+1], src8[x*3+2], src8[x*3], r, g, b );
+#else
+                         YCBCR_TO_RGB( src8[x*3+1], src8[x*3], src8[x*3+2], r, g, b );
+#endif
+
+                         dst[x] = PIXEL_RGB555( r, g, b );
+                    }
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
           default:
                D_ONCE( "unsupported format" );
      }
@@ -899,6 +936,44 @@ dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
                          g = EXPAND_6to8( (src8[x*3+1] << 5) |
                                           (src8[x*3+2] >> 3) );
                          b = EXPAND_5to8( src8[x*3+2] & 0x1f);
+
+                         dst[x] = PIXEL_RGB32( r, g, b );
+                    }
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          case DSPF_AVYU:
+               while (height--) {
+                    const u32 *src32 = src;
+
+                    for (x=0; x<width; x++) {
+                         int r, g, b;
+
+                         YCBCR_TO_RGB( (src32[x] >> 8) & 0xff, src32[x] & 0xff, (src32[x] >> 16) & 0xff, r, g, b );
+
+                         dst[x] = PIXEL_RGB32( r, g, b );
+                    }
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          case DSPF_VYU:
+               while (height--) {
+                    const u8 *src8 = src;
+
+                    for (x=0; x<width; x++) {
+                         int r, g, b;
+
+#ifdef WORDS_BIGENDIAN
+                         YCBCR_TO_RGB( src8[x*3+1], src8[x*3+2], src8[x*3], r, g, b );
+#else
+                         YCBCR_TO_RGB( src8[x*3+1], src8[x*3], src8[x*3+2], r, g, b );
+#endif
 
                          dst[x] = PIXEL_RGB32( r, g, b );
                     }
@@ -1161,6 +1236,44 @@ dfb_convert_to_argb( DFBSurfacePixelFormat  format,
                }
                break;
 
+          case DSPF_AVYU:
+               while (height--) {
+                    const u32 *src32 = src;
+
+                    for (x=0; x<width; x++) {
+                         int r, g, b;
+
+                         YCBCR_TO_RGB( (src32[x] >> 8) & 0xff, src32[x] & 0xff, (src32[x] >> 16) & 0xff, r, g, b );
+
+                         dst[x] = PIXEL_ARGB( (src32[x] >> 24), r, g, b );
+                    }
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
+          case DSPF_VYU:
+               while (height--) {
+                    const u8 *src8 = src;
+
+                    for (x=0; x<width; x++) {
+                         int r, g, b;
+
+#ifdef WORDS_BIGENDIAN
+                         YCBCR_TO_RGB( src8[x*3+1], src8[x*3+2], src8[x*3], r, g, b );
+#else
+                         YCBCR_TO_RGB( src8[x*3+1], src8[x*3], src8[x*3+2], r, g, b );
+#endif
+
+                         dst[x] = PIXEL_ARGB( 0xff, r, g, b );
+                    }
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
           default:
                D_ONCE( "unsupported format" );
      }
@@ -1405,6 +1518,28 @@ dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
                     dst += dpitch;
                }
                break;
+          case DSPF_AYUV:
+               while (height--) {
+                    const u32 *src32 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+                         u32 y, cb, cr;
+                         y  = (src32[n] & 0xff0000) >> 16;
+                         cb = (src32[n] & 0x00ff00) >>  8;
+                         cr = (src32[n] & 0x0000ff) >>  0;
+#ifdef WORDS_BIGENDIAN
+                         YCBCR_TO_RGB (y, cb, cr,
+                                       dst[n3+0], dst[n3+1], dst[n3+2]);
+#else
+                         YCBCR_TO_RGB (y, cb, cr,
+                                       dst[n3+2], dst[n3+1], dst[n3+0]);
+#endif
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
           case DSPF_AVYU:
                while (height--) {
                     const u32 * __restrict src32 = src;
@@ -1414,8 +1549,13 @@ dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
                          cr = (src32[n] & 0xff0000) >> 16;
                          y  = (src32[n] & 0x00ff00) >>  8;
                          cb = (src32[n] & 0x0000ff) >>  0;
+#ifdef WORDS_BIGENDIAN
                          YCBCR_TO_RGB (y, cb, cr,
                                        dst[n3+0], dst[n3+1], dst[n3+2]);
+#else
+                         YCBCR_TO_RGB (y, cb, cr,
+                                       dst[n3+2], dst[n3+1], dst[n3+0]);
+#endif
                     }
 
                     src += spitch;
@@ -1428,11 +1568,19 @@ dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
 
                     for (n=0, n3=0; n<width; n++, n3+=3) {
                          register u32 y, cb, cr;
+#ifdef WORDS_BIGENDIAN
                          cr = src8[n3+0];
                          y  = src8[n3+1];
                          cb = src8[n3+2];
                          YCBCR_TO_RGB (y, cb, cr,
                                        dst[n3+0], dst[n3+1], dst[n3+2]);
+#else
+                         cr = src8[n3+2];
+                         y  = src8[n3+1];
+                         cb = src8[n3+0];
+                         YCBCR_TO_RGB (y, cb, cr,
+                                       dst[n3+2], dst[n3+1], dst[n3+0]);
+#endif
                     }
 
                     src += spitch;
@@ -1526,8 +1674,13 @@ dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
                     const u8 * __restrict cr = src + 2 * surface_height * spitch;
 
                     for (n=0, n3=0; n<width; n++, n3+=3) {
+#ifdef WORDS_BIGENDIAN
                          YCBCR_TO_RGB (*y++, *cb++, *cr++,
                                        dst[n3+0], dst[n3+1], dst[n3+2]);
+#else
+                         YCBCR_TO_RGB (*y++, *cb++, *cr++,
+                                       dst[n3+2], dst[n3+1], dst[n3+0]);
+#endif
                     }
 
                     src += spitch;
@@ -1575,6 +1728,7 @@ dfb_convert_to_a8( DFBSurfacePixelFormat  format,
                }
                break;
           case DSPF_ARGB:
+          case DSPF_AYUV:
           case DSPF_AVYU:
                while (height--) {
                     const u32 *src32 = src;
@@ -1766,6 +1920,7 @@ dfb_convert_to_a4( DFBSurfacePixelFormat  format,
                break;
 
           case DSPF_ARGB:
+          case DSPF_AYUV:
           case DSPF_AVYU:
                while (height--) {
                     const u32 *src32 = src;

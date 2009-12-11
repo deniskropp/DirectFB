@@ -141,10 +141,12 @@ primaryGetScreenSize( CoreScreen *screen,
      return DFB_OK;
 }
 
-ScreenFuncs vncPrimaryScreenFuncs = {
+static ScreenFuncs primaryScreenFuncs = {
      .InitScreen    = primaryInitScreen,
      .GetScreenSize = primaryGetScreenSize,
 };
+
+ScreenFuncs *vncPrimaryScreenFuncs = &primaryScreenFuncs;
 
 /******************************************************************************/
 
@@ -385,7 +387,7 @@ primaryReallocateSurface( CoreLayer             *layer,
      return DFB_OK;
 }
 
-DisplayLayerFuncs vncPrimaryLayerFuncs = {
+static DisplayLayerFuncs primaryLayerFuncs = {
      .LayerDataSize     = primaryLayerDataSize,
      .RegionDataSize    = primaryRegionDataSize,
      .InitLayer         = primaryInitLayer,
@@ -400,6 +402,9 @@ DisplayLayerFuncs vncPrimaryLayerFuncs = {
      .AllocateSurface   = primaryAllocateSurface,
      .ReallocateSurface = primaryReallocateSurface,
 };
+
+DisplayLayerFuncs *vncPrimaryLayerFuncs = &primaryLayerFuncs;
+
 
 /******************************************************************************/
 

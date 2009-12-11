@@ -157,6 +157,16 @@ void dfb_rectangle_union ( DFBRectangle       *rect1,
 #define DFB_REGION_CONTAINS_POINT(r,X,Y)     (((X) >= (r)->x1) && ((X) <= (r)->x2) && \
                                               ((Y) >= (r)->y1) && ((Y) <= (r)->y2))
 
+
+#define DFB_REGIONS_DEBUG_AT( Domain, regions, num )                                                          \
+     do {                                                                                                     \
+          unsigned int i;                                                                                     \
+                                                                                                              \
+          for (i=0; i<(num); i++)                                                                             \
+               D_DEBUG_AT( Domain, "  -> [%2d] %4d,%4d-%4d,%4d\n", i, DFB_REGION_VALS(&(regions)[i]) );       \
+     } while (0)
+
+
 static inline void dfb_rectangle_from_region( DFBRectangle    *rect,
                                               const DFBRegion *region )
 {
@@ -201,139 +211,20 @@ static inline void dfb_region_from_rectangle( DFBRegion          *region,
      region->y2 = rect->y + rect->h - 1;
 }
 
-static inline void dfb_region_from_rotated( DFBRegion          *region,
-                                            const DFBRegion    *from,
-                                            const DFBDimension *size,
-                                            int                 rotation )
-{
-     D_ASSERT( region != NULL );
+void dfb_region_from_rotated( DFBRegion          *region,
+                              const DFBRegion    *from,
+                              const DFBDimension *size,
+                              int                 rotation );
 
-     DFB_REGION_ASSERT( from );
-     D_ASSERT( size != NULL );
-     D_ASSERT( size->w > 0 );
-     D_ASSERT( size->h > 0 );
-     D_ASSUME( rotation == 0 || rotation == 90 || rotation == 180 || rotation == 270 );
+void dfb_rectangle_from_rotated( DFBRectangle       *rectangle,
+                                 const DFBRectangle *from,
+                                 const DFBDimension *size,
+                                 int                 rotation );
 
-     switch (rotation) {
-          default:
-               D_BUG( "invalid rotation %d", rotation );
-          case 0:
-               *region = *from;
-               break;
-
-          case 90:
-               region->x1 = from->y1;
-               region->y1 = size->w - from->x2 - 1;
-               region->x2 = from->y2;
-               region->y2 = size->w - from->x1 - 1;
-               break;
-
-          case 180:
-               region->x1 = size->w - from->x2 - 1;
-               region->y1 = size->h - from->y2 - 1;
-               region->x2 = size->w - from->x1 - 1;
-               region->y2 = size->h - from->y1 - 1;
-               break;
-
-          case 270:
-               region->x1 = size->h - from->y2 - 1;
-               region->y1 = from->x1;
-               region->x2 = size->h - from->y1 - 1;
-               region->y2 = from->x2;
-               break;
-     }
-
-     DFB_REGION_ASSERT( region );
-}
-
-static inline void dfb_rectangle_from_rotated( DFBRectangle       *rectangle,
-                                               const DFBRectangle *from,
-                                               const DFBDimension *size,
-                                               int                 rotation )
-{
-     D_ASSERT( rectangle != NULL );
-
-     DFB_RECTANGLE_ASSERT( from );
-     D_ASSERT( size != NULL );
-     D_ASSERT( size->w > 0 );
-     D_ASSERT( size->h > 0 );
-     D_ASSUME( rotation == 0 || rotation == 90 || rotation == 180 || rotation == 270 );
-
-     switch (rotation) {
-          default:
-               D_BUG( "invalid rotation %d", rotation );
-          case 0:
-               *rectangle = *from;
-               break;
-
-          case 90:
-               rectangle->x = from->y;
-               rectangle->y = size->w - from->x - from->w;
-               rectangle->w = from->h;
-               rectangle->h = from->w;
-               break;
-
-          case 180:
-               rectangle->x = size->w - from->x - from->w;
-               rectangle->y = size->h - from->y - from->h;
-               rectangle->w = from->w;
-               rectangle->h = from->h;
-               break;
-
-          case 270:
-               rectangle->x = size->h - from->y - from->h;
-               rectangle->y = from->x;
-               rectangle->w = from->h;
-               rectangle->h = from->w;
-               break;
-     }
-
-     DFB_RECTANGLE_ASSERT( rectangle );
-}
-
-static inline void dfb_point_from_rotated_region( DFBPoint           *point,
-                                                  const DFBRegion    *from,
-                                                  const DFBDimension *size,
-                                                  int                 rotation )
-{
-     D_ASSERT( point != NULL );
-
-     DFB_REGION_ASSERT( from );
-     D_ASSERT( size != NULL );
-     D_ASSERT( size->w > 0 );
-     D_ASSERT( size->h > 0 );
-     D_ASSUME( rotation == 0 || rotation == 90 || rotation == 180 || rotation == 270 );
-
-     switch (rotation) {
-          default:
-               D_BUG( "invalid rotation %d", rotation );
-          case 0:
-               point->x = from->x1;
-               point->y = from->y1;
-               break;
-
-          case 90:
-               point->x = from->y1;
-               point->y = size->w - from->x2 - 1;
-               break;
-
-          case 180:
-               point->x = size->w - from->x2 - 1;
-               point->y = size->h - from->y2 - 1;
-               break;
-
-          case 270:
-               point->x = size->h - from->y2 - 1;
-               point->y = from->x1;
-               break;
-     }
-
-     D_ASSERT( point->x >= 0 );
-     D_ASSERT( point->y >= 0 );
-     D_ASSERT( point->x < size->w );
-     D_ASSERT( point->y < size->h );
-}
-
+void dfb_point_from_rotated_region( DFBPoint           *point,
+                                    const DFBRegion    *from,
+                                    const DFBDimension *size,
+                                    int                 rotation );
 
 static inline void dfb_rectangle_translate( DFBRectangle *rect,
                                             int           dx,
@@ -494,41 +385,15 @@ static inline void dfb_rectangle_subtract( DFBRectangle    *rect,
           rect->w = rect->h = 0;
 }
 
+
 /*
  * Compute line segment intersection.
  * Return true if intersection point exists within the given segment.
  */
-static inline bool dfb_line_segment_intersect( const DFBRegion *line,
-                                               const DFBRegion *seg,
-                                               int             *x,
-                                               int             *y )
-{
-     int x1, x2, x3, x4;
-     int y1, y2, y3, y4;
-     int num, den;
-
-     D_ASSERT( line != NULL );
-     D_ASSERT( seg != NULL );
-
-     x1 = seg->x1;  y1 = seg->y1;  x2 = seg->y2;  y2 = seg->y2;
-     x3 = line->x1; y3 = line->y1; x4 = line->x2; y4 = line->y2;
-
-     num = (x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3);
-     den = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
-
-     if (!den) /* parallel */
-          return false;
-
-     if (num && ((num < 0) != (den < 0) || abs(num) > abs(den))) /* not within segment */
-          return false;
-
-     if (x)
-          *x = (s64)(x2 - x1) * num / den + x1;
-     if (y)
-          *y = (s64)(y2 - y1) * num / den + y1;
-
-     return true;
-}
+bool dfb_line_segment_intersect( const DFBRegion *line,
+                                 const DFBRegion *seg,
+                                 int             *x,
+                                 int             *y );
 
 
 /*

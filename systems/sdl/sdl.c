@@ -118,9 +118,9 @@ system_initialize( CoreDFB *core, void **data )
 
      fusion_call_init( &dfb_sdl->call, dfb_sdl_call_handler, NULL, dfb_core_world(core) );
 
-     screen = dfb_screens_register( NULL, NULL, &sdlPrimaryScreenFuncs );
+     screen = dfb_screens_register( NULL, NULL, sdlPrimaryScreenFuncs );
 
-     dfb_layers_register( screen, NULL, &sdlPrimaryLayerFuncs );
+     dfb_layers_register( screen, NULL, sdlPrimaryLayerFuncs );
 
      fusion_arena_add_shared_field( dfb_core_arena( core ), "sdl", dfb_sdl );
 
@@ -144,9 +144,9 @@ system_join( CoreDFB *core, void **data )
      dfb_sdl = ret;
      dfb_sdl_core = core;
 
-     screen = dfb_screens_register( NULL, NULL, &sdlPrimaryScreenFuncs );
+     screen = dfb_screens_register( NULL, NULL, sdlPrimaryScreenFuncs );
 
-     dfb_layers_register( screen, NULL, &sdlPrimaryLayerFuncs );
+     dfb_layers_register( screen, NULL, sdlPrimaryLayerFuncs );
 
      dfb_surface_pool_join( core, dfb_sdl->sdl_pool, &sdlSurfacePoolFuncs );
 

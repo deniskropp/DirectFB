@@ -1,3 +1,64 @@
+1.4.3
+-----
+
+Wrap up all the changes since 1.4.2 in a nice package.
+The big changes are the API changes: new pixelformats are added, a synchronisation
+mechanism is added so you can sync backbufferless window updates, and batchblit2 is added
+whichs supports hardware with double input - single output blitters; even
+automatically in conjunction with the window composer of SaWMan.
+
+API changes
+- added the following pixelformats: YUV444P, AVYU, VYU, ARGB8565
+- add IDirectFBWindow::BeginUpdates() and DSFLIP_ONCE to sync updates without double buffer space
+- add DWEF_REPEAT flag to signal key repeat
+- font: correct documentation of ret_str_length in GetStringBreak()
+- IDirectFBSurface: Added DSBLIT_FLIP_HORIZONTAL and DSBLIT_FLIP_VERTICAL
+- added IDirectFBSurface::BatchBlit2 (no software fallback offered).
+- names: Added DFBScreenEncoderFrequency names.
+
+modules
+- add ShutdownLayer() and ShutdownScreen() functions to allow proper driver clean-up.
+
+core
+- add several previously added API functions to voodoo.
+- shirmish: for single app, make skirmish a pointer so skirmishes can be copied
+- colorhash: Commented out annoying assumptions
+- surfaces: allow no windows on surfaceless layers
+- for non-flipping fullscreen primary surface, force initial update as no Flip() may come from application.
+
+graphics
+- Fix combined blend/xor for drawing and blitting
+- generic: Added StretchBlit with DSBLIT_FLIP_HORIZONTAL/VERTICAL.
+- generic: fixes for big-endian handling for NV12/NV16/NV21
+- generic: fixes for Bop_rgb32_toK_Aop_64 and Bop_PFI_OP_Aop_PFI(StoK)
+- gfxcard: don't call gfxcard functions in no-hardware mode
+- convert: In dfb_pixel_from_color() for RGB32/24 apply 0xffffff mask to fix color keying
+- added gfx driver module unregister to reclaim space of unneeded libraries.
+- sh772x: support for the new MS7724
+- pxa3xx: rewrite of the kernel - userspace interface
+- X11: support 3 layers
+
+build system
+- now supports compilation with debian packages
+- build fix for systems without dynamic library support
+- support recent tslib versions
+- configure: support uclinux by treating it similar to linux
+
+test suite
+- dfbtest_sync: Added StretchBlit() to random operations.
+- dfbscreen: Added resolution and frequency switch.
+- dfbtest_mirror: Added test that uses scale/mirror with destination color keing.
+- dfbtest_window: Added WarpCursor test.
+
+general fixes
+- plugged several static memory leaks
+- unused header file clean-up
+- bump SDL system driver to 1.4.x
+- font: fix an UTF-8 problem in GetStringBreak
+- debug: prevent deadlock in stack trace with SaWMan active
+- input: fix for event completion when missing key ID
+- PNG: Don't use fast path if pixels have to be premultiplied.
+
 1.4.2
 -----
 

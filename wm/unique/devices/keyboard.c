@@ -148,6 +148,7 @@ keyboard_process_event( UniqueDevice        *device,
 
                evt.keyboard.device_id  = event->device_id;
                evt.keyboard.press      = (event->type == DIET_KEYPRESS);
+               evt.keyboard.flags      = (event->flags & DIEF_REPEAT) ? UIKF_REPEAT : 0;
                evt.keyboard.key_code   = event->key_code;
                evt.keyboard.key_id     = event->key_id;
                evt.keyboard.key_symbol = event->key_symbol;

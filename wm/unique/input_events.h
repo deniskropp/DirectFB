@@ -73,12 +73,21 @@ typedef struct {
      int                                value;
 } UniqueInputWheelEvent;
 
+typedef enum {
+     UIKF_NONE      = 0x00000000,
+
+     UIKF_REPEAT    = 0x00000001,
+
+     UIKF_ALL       = 0x00000001
+} UniqueInputKeyboardEventFlags;
+
 typedef struct {
      UniqueInputEventType               type;
 
      DFBInputDeviceID                   device_id;
 
      bool                               press;
+     UniqueInputKeyboardEventFlags      flags;
 
      int                                key_code;
      DFBInputDeviceKeyIdentifier        key_id;

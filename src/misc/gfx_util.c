@@ -385,9 +385,15 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                                   (src[i] >>  8) & 0xff,
                                   (src[i]      ) & 0xff, y, u, v );
 
+#ifdef WORDS_BIGENDIAN
                     d[++j] = v;
                     d[++j] = y;
                     d[++j] = u;
+#else
+                    d[++j] = u;
+                    d[++j] = y;
+                    d[++j] = v;
+#endif
                }
                break;
 

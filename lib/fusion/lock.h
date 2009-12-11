@@ -36,6 +36,12 @@
 #include <direct/messages.h>
 #include <direct/util.h>
 
+typedef struct {
+     pthread_mutex_t          lock;
+     pthread_cond_t           cond;
+     int                      count;
+     char                    *name;
+} FusionSkirmishSingle;
 
 typedef union {
      /* multi app */
@@ -53,11 +59,8 @@ typedef union {
      } multi;
      
      /* single app */
-     struct {
-          pthread_mutex_t          lock;
-          pthread_cond_t           cond;
-          int                      count;
-     } single;
+     FusionSkirmishSingle *single;
+
 } FusionSkirmish;
 
 /*
