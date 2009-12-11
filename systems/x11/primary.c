@@ -371,6 +371,9 @@ primarySetRegion( CoreLayer                  *layer,
 
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
+     if (x11->shared->x_error)
+          return DFB_FAILURE;
+
      ret = dfb_x11_create_window( x11, lds, config );
      if (ret)
           return ret;
@@ -391,6 +394,9 @@ primaryRemoveRegion( CoreLayer             *layer,
      X11LayerData *lds = layer_data;
 
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
+
+     if (x11->shared->x_error)
+          return DFB_FAILURE;
 
      dfb_x11_destroy_window( x11, lds );
 
@@ -413,6 +419,9 @@ primaryFlipRegion( CoreLayer             *layer,
 
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
+     if (x11->shared->x_error)
+          return DFB_FAILURE;
+
      dfb_surface_flip( surface, false );
 
      return dfb_x11_update_screen( x11, lds, &region, lock );
@@ -433,6 +442,9 @@ primaryUpdateRegion( CoreLayer             *layer,
      DFBRegion  region = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
 
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
+
+     if (x11->shared->x_error)
+          return DFB_FAILURE;
 
      if (update && !dfb_region_region_intersect( &region, update ))
           return DFB_OK;

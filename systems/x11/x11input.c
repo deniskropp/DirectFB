@@ -743,11 +743,11 @@ driver_close_device( void *driver_data )
      /* stop input thread */
      data->stop = true;
 
-     XLockDisplay( x11->display );
-
-     XSync( x11->display, False );
-
-     XUnlockDisplay( x11->display );
+     if (!shared->x_error) {
+          XLockDisplay( x11->display );
+          XSync( x11->display, False );
+          XUnlockDisplay( x11->display );
+     }
 
      /* it is possible that this "close" function is called from the same
       * thread that the input device is actually running on.

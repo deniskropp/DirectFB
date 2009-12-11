@@ -76,6 +76,7 @@ typedef struct {
 
      int                  window_count; /* merely for optimizing wait loop */
 
+     Bool                 x_error;
 } DFBX11Shared;
 
 struct __DFB_X11 {

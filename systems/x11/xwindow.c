@@ -78,6 +78,7 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
 {
      XWindow              *xw;
      XSetWindowAttributes  attr = { .background_pixmap = 0 };
+     void                 *old_error_handler = 0;
 
      D_DEBUG_AT( X11_Window, "Creating %4dx%4d %s window...\n", iWidth, iHeight, dfb_pixelformat_name(format) );
 
@@ -106,7 +107,7 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
 
      XLockDisplay( x11->display );
 
-     XSetErrorHandler( error_handler );
+     old_error_handler = XSetErrorHandler( error_handler );
 
      error_code = 0;
 
@@ -261,14 +262,14 @@ no_shm:
                         xw->visual->visualid, xw->depth, xw->width, xw->height * 2, xw->virtualscreen, pitch );
                XFreeGC(xw->display,xw->gc);
                XDestroyWindow(xw->display,xw->window);
-               XSetErrorHandler( NULL );
+               XSetErrorHandler( old_error_handler );
                XUnlockDisplay( x11->display );
                D_FREE( xw );
                return False;
           }
      }
 
-     XSetErrorHandler( NULL );
+     XSetErrorHandler( old_error_handler );
 
      XUnlockDisplay( x11->display );
 

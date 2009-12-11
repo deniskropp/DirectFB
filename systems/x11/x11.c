@@ -113,10 +113,28 @@ static FusionCallHandlerResult call_handler( int           caller,
 
 /**********************************************************************************************************************/
 
+static DFBX11Shared *shared_for_error_handler;
+
+static int
+error_handler( Display *display, XErrorEvent *event )
+{
+     char buf[512];
+
+     D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
+
+     XGetErrorText( display, event->error_code, buf, sizeof(buf) );
+
+     D_ERROR( "X11/Core: Error! %s\n", buf );
+
+     shared_for_error_handler->x_error = True;
+
+     return 0;
+}
+
 static DFBResult
 InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
 {
-     int i, n;
+     int i, n, d;
 
      XInitThreads();
 
@@ -131,6 +149,7 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
 
      x11->screenptr = DefaultScreenOfDisplay(x11->display);
      x11->screennum = DefaultScreen(x11->display);
+     d              = DefaultDepthOfScreen(x11->screenptr);
 
      for (i=0; i<x11->screenptr->ndepths; i++) {
           const Depth *depth = &x11->screenptr->depths[i];
@@ -142,6 +161,9 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
                         n, visual->visualid, depth->depth,
                         visual->red_mask, visual->green_mask, visual->blue_mask,
                         visual->bits_per_rgb, visual->map_entries );
+
+               if (depth->depth != d)
+                    continue;
 
                switch (depth->depth) {
                     case 32:
@@ -224,6 +246,10 @@ system_initialize( CoreDFB *core, void **data )
           return D_OOSHM();
      }
 
+     /* we need the error handler to signal the error to us, so
+        use a global static */
+     shared_for_error_handler = shared;
+     XSetErrorHandler( error_handler );
 
      /*
       * Local init (master and slave)
