@@ -229,8 +229,9 @@ voodoo_server_construct( VoodooServer      *server,
 DirectResult
 voodoo_server_run( VoodooServer *server )
 {
-     DirectLink *l, *n;
-     struct pollfd pf;
+     DirectLink    *l, *n;
+     struct pollfd  pf;
+     bool           listener = true;
 
      D_ASSERT( server != NULL );
 
@@ -255,25 +256,42 @@ voodoo_server_run( VoodooServer *server )
                }
           }
 
-          pf.fd     = server->fd;
-          pf.events = POLLIN;
+          if (listener) {
+               pf.fd     = server->fd;
+               pf.events = POLLIN;
 
-          switch (poll( &pf, 1, 200 )) {
-               default:
-                    accept_connection( server );
-                    break;
+               switch (poll( &pf, 1, 200 )) {
+                    default:
+                         switch (fork()) {
+                              case 0:
+                                   listener = false;
 
-               case 0:
-                    D_DEBUG( "Voodoo/Server: Timeout during poll()\n" );
-                    break;
+                                   accept_connection( server );
+                                   break;
 
-               case -1:
-                    if (errno != EINTR) {
-                         D_PERROR( "Voodoo/Server: Could not poll() the socket!\n" );
-                         server->quit = true;
-                    }
-                    break;
+                              case -1:
+                                   D_PERROR( "Voodoo/Server: Could not fork()!\n" );
+                                   break;
+
+                              default:
+                                   break;
+                         }
+                         break;
+
+                    case 0:
+                         D_DEBUG( "Voodoo/Server: Timeout during poll()\n" );
+                         break;
+
+                    case -1:
+                         if (errno != EINTR) {
+                              D_PERROR( "Voodoo/Server: Could not poll() the socket!\n" );
+                              server->quit = true;
+                         }
+                         break;
+               }
           }
+          else
+               usleep( 200000 );
      }
 
      return DR_OK;
