@@ -55,6 +55,7 @@
 #include <direct/mem.h>
 
 #include <media/idirectfbdatabuffer.h>
+#include <media/idirectfbfont.h>
 #include <media/idirectfbimageprovider.h>
 #include <media/idirectfbvideoprovider.h>
 
@@ -199,6 +200,20 @@ IDirectFBDataBuffer_CreateVideoProvider( IDirectFBDataBuffer     *thiz,
      return IDirectFBVideoProvider_CreateFromBuffer( thiz, data->core, interface );
 }
 
+static DFBResult
+IDirectFBDataBuffer_CreateFont( IDirectFBDataBuffer       *thiz,
+                                const DFBFontDescription  *desc,
+                                IDirectFBFont            **interface )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer)
+
+     /* Check arguments */
+     if (!interface || !desc)
+          return DFB_INVARG;
+
+     return IDirectFBFont_CreateFromBuffer( thiz, data->core, desc, interface );
+}
+
 DFBResult
 IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz,
                                const char          *filename,
@@ -227,6 +242,7 @@ IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz,
      thiz->PutData                = IDirectFBDataBuffer_PutData;
      thiz->CreateImageProvider    = IDirectFBDataBuffer_CreateImageProvider;
      thiz->CreateVideoProvider    = IDirectFBDataBuffer_CreateVideoProvider;
+     thiz->CreateFont             = IDirectFBDataBuffer_CreateFont;
      
      return DFB_OK;
 }

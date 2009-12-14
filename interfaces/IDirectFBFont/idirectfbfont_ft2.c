@@ -68,8 +68,10 @@ static DFBResult
 Probe( IDirectFBFont_ProbeContext *ctx );
 
 static DFBResult
-Construct( IDirectFBFont      *thiz,
-	   ... );
+Construct( IDirectFBFont               *thiz,
+           CoreDFB                     *core,
+           IDirectFBFont_ProbeContext  *ctx,
+           DFBFontDescription          *desc );
 
 #include <direct/interface_implementation.h>
 
@@ -723,7 +725,7 @@ Probe( IDirectFBFont_ProbeContext *ctx )
 
      D_DEBUG( "DirectFB/FontFT2: Probe font `%s'.\n", ctx->filename );
 
-     if (!ctx->filename)
+     if(!ctx->content)
           return DFB_UNSUPPORTED;
 
      if (init_freetype() != DFB_OK) {
@@ -731,12 +733,13 @@ Probe( IDirectFBFont_ProbeContext *ctx )
      }
 
      pthread_mutex_lock ( &library_mutex );
+
      /*
       * This should be
-      * err = FT_New_Face( library, ctx->filename, -1, NULL );
+      * err = FT_New...Face( library, ctx->filename, -1, NULL );
       * but due to freetype bugs it doesn't work.
       */
-     err = FT_New_Face( library, ctx->filename, 0, &face );
+     err = FT_New_Memory_Face( library, ctx->content, ctx->content_size, 0, &face );
      if (!err)
           FT_Done_Face( face );
      pthread_mutex_unlock ( &library_mutex );
@@ -748,8 +751,10 @@ Probe( IDirectFBFont_ProbeContext *ctx )
 
 
 static DFBResult
-Construct( IDirectFBFont *thiz,
-	   ... )
+Construct( IDirectFBFont               *thiz,
+           CoreDFB                     *core,
+           IDirectFBFont_ProbeContext  *ctx,
+           DFBFontDescription          *desc )
 {
      int                 i;
      DFBResult           ret;
@@ -762,16 +767,8 @@ Construct( IDirectFBFont *thiz,
      bool                disable_kerning = false;
      bool                load_mono = false;
      u32                 mask = 0;
-     CoreDFB            *core;
-     char               *filename;
-     DFBFontDescription *desc;
-
-     va_list tag;
-     va_start(tag, thiz);
-     core = va_arg(tag, CoreDFB *);
-     filename = va_arg(tag, char *);
-     desc = va_arg(tag, DFBFontDescription *);
-     va_end( tag );
+     unsigned int        size = 0, size_read = 0;
+     char               *filename = ctx->filename; /* intended for printf only */
 
      D_DEBUG( "DirectFB/FontFT2: "
               "Construct font from file `%s' (index %d) at pixel size %d x %d.\n",
@@ -786,9 +783,9 @@ Construct( IDirectFBFont *thiz,
      }
 
      pthread_mutex_lock ( &library_mutex );
-     err = FT_New_Face( library, filename,
-                        (desc->flags & DFDESC_INDEX) ? desc->index : 0,
-                        &face );
+     err = FT_New_Memory_Face( library, ctx->content, ctx->content_size,
+                               (desc->flags & DFDESC_INDEX) ? desc->index : 0,
+                               &face );
      pthread_mutex_unlock ( &library_mutex );
      if (err) {
           switch (err) {

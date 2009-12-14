@@ -6522,6 +6522,16 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
           IDirectFBDataBuffer      *thiz,
           IDirectFBVideoProvider  **interface
      );
+
+     /*
+      * Load a font using the buffer's data, given a description
+      * of how to load the glyphs.
+      */
+     DFBResult (*CreateFont) (
+          IDirectFBDataBuffer       *thiz,
+          const DFBFontDescription  *desc,
+          IDirectFBFont            **interface
+     );
 )
 
 #ifdef __cplusplus

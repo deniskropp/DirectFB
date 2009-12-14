@@ -37,15 +37,31 @@
  * probing context
  */
 typedef struct {
-     const char *filename;
+     /* Only set if databuffer is created from file.
+        deprecated - use memory location below. */
+     const char    *filename;
+
+     /* if !=NULL, pointer to the file content */
+     unsigned char *content;
+     unsigned int   content_size;
 } IDirectFBFont_ProbeContext;
+
+DFBResult
+IDirectFBFont_CreateFromBuffer( IDirectFBDataBuffer       *buffer,
+                                CoreDFB                   *core,
+                                const DFBFontDescription  *desc,
+                                IDirectFBFont            **interface );
+                                
+/**********************************************************************************************************************/
 
 /*
  * private data struct of IDirectFBFont
+ * used by implementors of IDirectFBFont
  */
 typedef struct {
      int                ref;       /* reference counter    */
      CoreFont          *font;      /* pointer to core font */
+     unsigned char     *content;   /* possible allocation, free at intf. close */
 
      DFBTextEncodingID  encoding;  /* text encoding */
 } IDirectFBFont_data;

@@ -58,8 +58,10 @@ static DFBResult
 Probe( IDirectFBFont_ProbeContext *ctx );
 
 static DFBResult
-Construct( IDirectFBFont      *thiz,
-	   ... );
+Construct( IDirectFBFont               *thiz,
+           CoreDFB                     *core,
+           IDirectFBFont_ProbeContext  *ctx,
+           DFBFontDescription          *desc );
 
 #include <direct/interface_implementation.h>
 
@@ -77,8 +79,10 @@ Probe( IDirectFBFont_ProbeContext *ctx )
 }
 
 static DFBResult
-Construct( IDirectFBFont      *thiz,
-	   ... )
+Construct( IDirectFBFont               *thiz,
+           CoreDFB                     *core,
+           IDirectFBFont_ProbeContext  *ctx,
+           DFBFontDescription          *desc )
 {
      DFBResult         ret;
      CoreFont         *font;
@@ -87,17 +91,7 @@ Construct( IDirectFBFont      *thiz,
      u8               *pixels;
      int               i;
 
-     CoreDFB *core;
-     char *filename;
-     DFBFontDescription *desc;
      CoreSurfaceConfig  config;
-
-     va_list tag;
-     va_start(tag, thiz);
-     core = va_arg(tag, CoreDFB *);
-     filename = va_arg(tag, char *);
-     desc = va_arg(tag, DFBFontDescription *);
-     va_end( tag );
 
      D_DEBUG( "DirectFB/FontDefault: Construct default font");
 

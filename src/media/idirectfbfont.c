@@ -40,12 +40,13 @@
 
 #include "core/fonts.h"
 
-#include "idirectfbfont.h"
-
 #include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/tree.h>
 #include <direct/utf8.h>
+
+#include <media/idirectfbfont.h>
+#include <media/idirectfbdatabuffer.h>
 
 #include "misc/util.h"
 
@@ -53,7 +54,6 @@
 D_DEBUG_DOMAIN( Font, "IDirectFBFont", "DirectFB Font Interface" );
 
 /**********************************************************************************************************************/
-
 void
 IDirectFBFont_Destruct( IDirectFBFont *thiz )
 {
@@ -62,6 +62,10 @@ IDirectFBFont_Destruct( IDirectFBFont *thiz )
      D_DEBUG_AT( Font, "%s( %p )\n", __FUNCTION__, thiz );
 
      dfb_font_destroy (data->font);
+
+     /* release memory, if any */
+     if (data->content)
+          D_FREE( data->content );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -638,6 +642,76 @@ IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
      thiz->SetEncoding = IDirectFBFont_SetEncoding;
      thiz->EnumEncodings = IDirectFBFont_EnumEncodings;
      thiz->FindEncoding = IDirectFBFont_FindEncoding;
+
+     return DFB_OK;
+}
+
+DFBResult
+IDirectFBFont_CreateFromBuffer( IDirectFBDataBuffer       *buffer,
+                                CoreDFB                   *core,
+                                const DFBFontDescription  *desc,
+                                IDirectFBFont            **interface )
+{
+     DFBResult                   ret;
+     DirectInterfaceFuncs       *funcs = NULL;
+     IDirectFBDataBuffer_data   *buffer_data;
+     IDirectFBFont              *ifont;
+     IDirectFBFont_ProbeContext  ctx = {0};
+
+     /* Get the private information of the data buffer. */
+     buffer_data = (IDirectFBDataBuffer_data*) buffer->priv;
+     if (!buffer_data)
+          return DFB_DEAD;
+
+     /* Provide a fallback for image providers without data buffer support. */
+     ctx.filename = buffer_data->filename;
+
+     /* try to load the "file" content from the buffer */
+
+     /* we need to be able to seek (this implies non-streamed,
+        so we also know the size) so we can reuse the buffer */
+     if (buffer->SeekTo( buffer, 0 ) == DFB_OK) {
+          unsigned int size;
+
+          /* get the "file" length */
+          buffer->GetLength( buffer, &size );
+          ctx.content = D_CALLOC( 1, size );
+          if (!ctx.content)
+               return DR_NOLOCALMEMORY;
+
+          buffer->WaitForData( buffer, size );
+          buffer->GetData( buffer, size, ctx.content, &ctx.content_size );
+          if (ctx.content_size != size) {
+               D_FREE( ctx.content );
+               return DFB_FAILURE;
+          }
+     }
+
+     /* Find a suitable implementation. */
+     ret = DirectGetInterface( &funcs, "IDirectFBFont", NULL, DirectProbeInterface, &ctx );
+     if (ret) {
+          if (ctx.content)
+               D_FREE( ctx.content );
+          return ret;
+     }
+
+     DIRECT_ALLOCATE_INTERFACE( ifont, IDirectFBFont );
+
+     /* Construct the interface. */
+     ret = funcs->Construct( ifont, core, &ctx, desc );
+     if (ret) {
+          if (ctx.content)
+               D_FREE( ctx.content );
+          return ret;
+     }
+
+     /* store pointer for deletion at destroy */
+     {
+          IDirectFBFont_data *data = (IDirectFBFont_data*)(ifont->priv);
+          data->content = ctx.content;
+     }
+
+     *interface = ifont;
 
      return DFB_OK;
 }

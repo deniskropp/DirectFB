@@ -1194,9 +1194,9 @@ IDirectFB_CreateFont( IDirectFB                 *thiz,
                       IDirectFBFont            **interface )
 {
      DFBResult                   ret;
-     DirectInterfaceFuncs       *funcs = NULL;
+     DFBDataBufferDescription    dbdesc;
+     IDirectFBDataBuffer        *databuffer;
      IDirectFBFont              *font;
-     IDirectFBFont_ProbeContext  ctx;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
@@ -1222,24 +1222,24 @@ IDirectFB_CreateFont( IDirectFB                 *thiz,
                return errno2result( errno );
      }
 
-     /* Fill out probe context */
-     ctx.filename = filename;
+     /* Create a data buffer. */
+     dbdesc.flags = DBDESC_FILE;
+     dbdesc.file  = filename;
 
-     /* Find a suitable implemenation */
-     ret = DirectGetInterface( &funcs, "IDirectFBFont", NULL, DirectProbeInterface, &ctx );
+     ret = thiz->CreateDataBuffer( thiz, &dbdesc, &databuffer );
      if (ret)
           return ret;
 
-     DIRECT_ALLOCATE_INTERFACE( font, IDirectFBFont );
+     /* Create (probing) the font. */
+     ret = IDirectFBFont_CreateFromBuffer( databuffer, data->core, desc, &font );
 
-     /* Construct the interface */
-     ret = funcs->Construct( font, data->core, filename, desc );
-     if (ret)
-          return ret;
+     /* We don't need it anymore, font has its own reference. */
+     databuffer->Release( databuffer );
 
-     *interface = font;
+     if (!ret)
+          *interface = font;
 
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult

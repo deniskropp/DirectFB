@@ -61,10 +61,10 @@ static DFBResult
 Probe( IDirectFBFont_ProbeContext *ctx );
 
 static DFBResult
-Construct( IDirectFBFont      *thiz,
-           CoreDFB            *core,
-           const char         *filename,
-           DFBFontDescription *desc );
+Construct( IDirectFBFont               *thiz,
+           CoreDFB                     *core,
+           IDirectFBFont_ProbeContext  *ctx,
+           DFBFontDescription          *desc );
 
 /**********************************************************************************************************************/
 
@@ -145,10 +145,10 @@ out:
 }
 
 static DFBResult
-Construct( IDirectFBFont      *thiz,
-           CoreDFB            *core,
-           const char         *filename,
-           DFBFontDescription *desc )
+Construct( IDirectFBFont               *thiz,
+           CoreDFB                     *core,
+           IDirectFBFont_ProbeContext  *ctx,
+           DFBFontDescription          *desc )
 {
      DFBResult        ret;
      int              i;
@@ -161,10 +161,11 @@ Construct( IDirectFBFont      *thiz,
      DGIFFGlyphInfo  *glyphs;
      DGIFFGlyphRow   *row;
      DGIFFImplData   *data;
+     char            *filename;
      CoreSurfaceConfig config;
 
-//     if (desc->flags & (DFDESC_WIDTH | DFDESC_ATTRIBUTES | DFDESC_FIXEDADVANCE))
-  //        return DFB_UNSUPPORTED;
+     /* use the filename for backwards compatibility */
+     filename = ctx->filename;
 
      /* Open the file. */
      fd = open( filename, O_RDONLY );
