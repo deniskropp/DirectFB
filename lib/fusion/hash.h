@@ -46,14 +46,6 @@
 #define FUSION_HASH_MIN_SIZE 11
 #define FUSION_HASH_MAX_SIZE 13845163
 
-#define HASH_STR(h,p) \
-{\
-    h = *p;\
-    if (h)\
-        for (p += 1; *p != '\0'; p++)\
-            h = (h << 5) - h + *p;\
-}\
-
 typedef enum {
 HASH_PTR,
 HASH_STRING,
@@ -137,42 +129,6 @@ unsigned int
 fusion_hash_size (FusionHash *hash);
 
 bool fusion_hash_should_resize ( FusionHash    *hash);
-
-
-static inline FusionHashNode**
-fusion_hash_lookup_node (FusionHash *hash,
-              const void *   key)
-{
-  FusionHashNode **node;
-
-  /*TODO We could also optimize pointer hashing*/
-  if (hash->key_type == HASH_STRING )
-  {
-    unsigned int h;
-    const signed char *p = key;
-    HASH_STR(h,p)
-    node = &hash->nodes[h % hash->size];
-  }
-  else
-    node = &hash->nodes[((unsigned long)key) % hash->size];
-
-    /* Hash table lookup needs to be fast.
-     *  We therefore remove the extra conditional of testing
-     *  whether to call the key_equal_func or not from
-     *  the inner loop.
-     */
-    if (hash->key_type == HASH_STRING ) {
-        while(*node && strcmp((const char *)(*node)->key,(const char*)key))
-            node = &(*node)->next;
-    }
-    else
-        while (*node && (*node)->key != key)
-            node = &(*node)->next;
-
-  return node;
-
-}
-
 
 
 #endif /*__FUSION_HASH_H__*/

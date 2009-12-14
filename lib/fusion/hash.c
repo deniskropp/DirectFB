@@ -53,8 +53,13 @@
 
 D_DEBUG_DOMAIN( Fusion_Hash, "Fusion/Hash", "Hash table implementation" );
 
-
-
+#define HASH_STR(h,p) \
+{\
+    h = *p;\
+    if (h)\
+        for (p += 1; *p != '\0'; p++)\
+            h = (h << 5) - h + *p;\
+}\
 
 static const unsigned int primes[] =
 {
@@ -115,6 +120,39 @@ spaced_primes_closest (unsigned int num)
           if (primes[i] > num)
                return primes[i];
      return primes[nprimes - 1];
+}
+
+static inline FusionHashNode**
+fusion_hash_lookup_node (FusionHash *hash,
+                         const void *key)
+{
+     FusionHashNode **node;
+
+     /*TODO We could also optimize pointer hashing*/
+     if (hash->key_type == HASH_STRING )
+     {
+          unsigned int h;
+          const signed char *p = key;
+          HASH_STR(h,p)
+          node = &hash->nodes[h % hash->size];
+     }
+     else
+          node = &hash->nodes[((unsigned long)key) % hash->size];
+
+     /* Hash table lookup needs to be fast.
+     *  We therefore remove the extra conditional of testing
+     *  whether to call the key_equal_func or not from
+     *  the inner loop.
+     */
+     if (hash->key_type == HASH_STRING ) {
+          while(*node && strcmp((const char *)(*node)->key,(const char*)key))
+               node = &(*node)->next;
+     } else
+          while (*node && (*node)->key != key)
+               node = &(*node)->next;
+
+     return node;
+
 }
 
 /**
