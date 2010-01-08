@@ -21,6 +21,7 @@ bin_PROGRAMS = \
 	dfbtest_window_flip_once	\
 	direct_stream	\
 	direct_test	\
+	fusion_call	\
 	fusion_fork	\
 	fusion_reactor	\
 	fusion_skirmish	\
@@ -64,6 +65,9 @@ direct_stream_LDADD   = $(libdirect)
 direct_test_SOURCES = direct_test.c
 direct_test_LDADD   = $(libdirect)
 
+
+fusion_call_SOURCES = fusion_call.c
+fusion_call_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
 
 fusion_fork_SOURCES = fusion_fork.c
 fusion_fork_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
