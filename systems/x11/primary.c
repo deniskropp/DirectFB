@@ -154,7 +154,8 @@ primaryInitScreen( CoreScreen           *screen,
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
      /* Set the screen capabilities. */
-     description->caps = DSCCAPS_NONE;
+     description->caps    = DSCCAPS_OUTPUTS;
+     description->outputs = 1;
 
      /* Set the screen name. */
      snprintf( description->name,
@@ -181,9 +182,82 @@ primaryGetScreenSize( CoreScreen *screen,
      return DFB_OK;
 }
 
+static DFBResult
+primaryInitOutput( CoreScreen                   *screen,
+                   void                         *driver_data,
+                   void                         *screen_data,
+                   int                           output,
+                   DFBScreenOutputDescription   *description,
+                   DFBScreenOutputConfig        *config )
+{
+     DFBX11       *x11    = driver_data;
+     DFBX11Shared *shared = x11->shared;
+
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
+
+     description->caps = DSOCAPS_RESOLUTION;
+
+     config->flags |= DSOCONF_RESOLUTION;
+     config->resolution = DSOR_UNKNOWN;
+
+     return DFB_OK;
+}
+
+static DFBResult
+primaryTestOutputConfig( CoreScreen                  *screen,
+                         void                        *driver_data,
+                         void                        *screen_data,
+                         int                          output,
+                         const DFBScreenOutputConfig *config,
+                         DFBScreenOutputConfigFlags  *failed )
+{
+     DFBX11       *x11    = driver_data;
+     DFBX11Shared *shared = x11->shared;
+
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
+
+     return DFB_OK;
+}
+
+static DFBResult
+primarySetOutputConfig( CoreScreen                  *screen,
+                        void                        *driver_data,
+                        void                        *screen_data,
+                        int                          output,
+                        const DFBScreenOutputConfig *config )
+{
+     DFBX11       *x11    = driver_data;
+     DFBX11Shared *shared = x11->shared;
+
+     int hor[] = { 640,720,720,800,1024,1152,1280,1280,1280,1280,1400,1600,1920 };
+     int ver[] = { 480,480,576,600, 768, 864, 720, 768, 960,1024,1050,1200,1080 };
+
+     int res;
+
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
+
+     (void)output; /* all outputs are active */
+
+     /* we support screen resizing only */
+     if (config->flags != DSOCONF_RESOLUTION)
+          return DFB_INVARG;
+
+     res = D_BITn32(config->resolution);
+     if ( (res == -1) || (res >= D_ARRAY_SIZE(hor)) )
+          return DFB_INVARG;
+
+     shared->screen_size.w = hor[res];
+     shared->screen_size.h = ver[res];
+
+     return DFB_OK;
+}
+
 static ScreenFuncs primaryScreenFuncs = {
-     .InitScreen    = primaryInitScreen,
-     .GetScreenSize = primaryGetScreenSize,
+     .InitScreen       = primaryInitScreen,
+     .GetScreenSize    = primaryGetScreenSize,
+     .InitOutput       = primaryInitOutput,
+     .TestOutputConfig = primaryTestOutputConfig,
+     .SetOutputConfig  = primarySetOutputConfig
 };
 
 ScreenFuncs *x11PrimaryScreenFuncs = &primaryScreenFuncs;
