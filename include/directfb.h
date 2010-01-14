@@ -959,6 +959,10 @@ typedef enum {
                                            implies DWOP_KEEP... */
      DWOP_INDESTRUCTIBLE = 0x00002000,  /* window can't be destroyed
                                            by internal shortcut */
+     DWOP_INPUTONLY      = 0x00004000,  /* The window will be input only.
+                                           It will receive events but is not shown.
+                                           Note that toggling this bit will not
+                                           free/assign the window surface. */
      DWOP_SCALE          = 0x00010000,  /* Surface won't be changed if window size on screen changes. The surface
                                            can be resized separately using IDirectFBWindow::ResizeSurface(). */
 
@@ -966,7 +970,7 @@ typedef enum {
      DWOP_KEEP_UNDER     = 0x00200000,  /* Keep window under parent window. */
      DWOP_FOLLOW_BOUNDS  = 0x00400000,  /* Follow window bounds from parent. */
 
-     DWOP_ALL            = 0x0071307F   /* all possible options */
+     DWOP_ALL            = 0x0071707F   /* all possible options */
 } DFBWindowOptions;
 
 /*
