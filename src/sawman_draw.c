@@ -98,6 +98,15 @@ void sawman_draw_cursor    ( CoreWindowStack *stack,
      if (stack->cursor.opacity != 0xFF) {
           flags |= DSBLIT_BLEND_COLORALPHA;
 
+          if (stack->cursor.surface->config.caps & DSCAPS_PREMULTIPLIED) {
+               /* Need to premultiply source with Ac? */
+               flags |= DSBLIT_SRC_PREMULTCOLOR;
+
+               dfb_state_set_src_blend( state, DSBF_ONE );
+          }
+          else
+               dfb_state_set_src_blend( state, DSBF_SRCALPHA );
+
           /* Set opacity as blending factor. */
           if (state->color.a != stack->cursor.opacity) {
                state->color.a   = stack->cursor.opacity;
@@ -320,6 +329,15 @@ draw_window( SaWManTier   *tier,
      /* Use global alpha blending. */
      if (window->config.opacity != 0xFF) {
           flags |= DSBLIT_BLEND_COLORALPHA;
+
+          if (window->surface->config.caps & DSCAPS_PREMULTIPLIED) {
+               /* Need to premultiply source with Ac? */
+               flags |= DSBLIT_SRC_PREMULTCOLOR;
+
+               dfb_state_set_src_blend( state, DSBF_ONE );
+          }
+          else
+               dfb_state_set_src_blend( state, DSBF_SRCALPHA );
 
           /* Set opacity as blending factor. */
           if (state->color.a != window->config.opacity) {
