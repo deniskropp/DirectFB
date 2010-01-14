@@ -84,6 +84,7 @@ DFB_WINDOW_MANAGER( sawman )
 
 D_DEBUG_DOMAIN( SaWMan_WM      , "SaWMan/WM",       "SaWMan window manager module" );
 D_DEBUG_DOMAIN( SaWMan_Stacking, "SaWMan/Stacking", "SaWMan window manager stacking" );
+D_DEBUG_DOMAIN( SaWMan_FlipOnce, "SaWMan/FlipOnce", "SaWMan window manager flip once" );
 
 /**********************************************************************************************************************/
 
@@ -3021,10 +3022,14 @@ wm_begin_updates( CoreWindow      *window,
      D_ASSERT( window_data != NULL );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
+     D_DEBUG_AT( SaWMan_FlipOnce, "%s( %p ) <- window id %u\n", __FUNCTION__, window, window->id );
+
      sawman = wmdata->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
      sawwin->flags |= SWMWF_UPDATING;
+
+     sawwin->update_ms = direct_clock_get_millis();
 
      return DFB_OK;
 }
@@ -3186,14 +3191,33 @@ wm_update_window( CoreWindow          *window,
                                 sawwin->parent ? NULL : region, /* FIXME? */
                                 flags, SWMUF_SCALE_REGION );
 
-          if (flags & DSFLIP_ONCE)
+          if (flags & DSFLIP_ONCE) {
+               D_DEBUG_AT( SaWMan_FlipOnce, "  -> flip once for window id %u\n", window->id );
                tier->update_once = true;
+          }
 
           sawman_process_updates( sawman, flags );
 
           if (flags & DSFLIP_ONCE) {
-               while (tier->updates.num_regions)
-                    fusion_skirmish_wait( &sawman->lock, 0 );
+               while (tier->updates.num_regions) {
+                    D_DEBUG_AT( SaWMan_FlipOnce, "  -> waiting for updates...\n" );
+
+                    switch (fusion_skirmish_wait( &sawman->lock,
+                                                  sawman_config->flip_once_timeout ?
+                                                  sawman_config->flip_once_timeout + 10 : 0 ))
+                    {
+                         case DR_TIMEOUT:
+                              D_DEBUG_AT( SaWMan_FlipOnce, "  -> timeout waiting for updates!\n" );
+
+                              sawman_process_updates( sawman, flags );
+                              break;
+
+                         default:
+                              break;
+                    }
+               }
+
+               D_DEBUG_AT( SaWMan_FlipOnce, "  -> updates done.\n" );
           }
      }
 
