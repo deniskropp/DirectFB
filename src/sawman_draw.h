@@ -37,6 +37,7 @@
 
 void sawman_draw_cursor    ( CoreWindowStack *stack,
                              CardState       *state,
+                             CoreSurface     *surface,
                              DFBRegion       *region );
 
 void sawman_draw_window    ( SaWManTier      *tier,

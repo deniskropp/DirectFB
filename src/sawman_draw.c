@@ -55,8 +55,10 @@ D_DEBUG_DOMAIN( SaWMan_Draw, "SaWMan/Draw", "SaWMan window manager drawing" );
 
 /**********************************************************************************************************************/
 
-void
-sawman_draw_cursor( CoreWindowStack *stack, CardState *state, DFBRegion *region )
+void sawman_draw_cursor    ( CoreWindowStack *stack,
+                             CardState       *state,
+                             CoreSurface     *surface,
+                             DFBRegion       *region )
 {
      DFBRectangle            src;
      DFBRectangle            clip;
@@ -85,6 +87,12 @@ sawman_draw_cursor( CoreWindowStack *stack, CardState *state, DFBRegion *region 
      /* Intersect rectangles */
      if (!dfb_rectangle_intersect( &src, &clip ))
           return;
+
+     /* Set destination. */
+     if (surface) {
+          state->destination  = surface;
+          state->modified    |= SMF_DESTINATION;
+     }
 
      /* Use global alpha blending. */
      if (stack->cursor.opacity != 0xFF) {
@@ -167,12 +175,21 @@ sawman_draw_cursor( CoreWindowStack *stack, CardState *state, DFBRegion *region 
      state->source    = stack->cursor.surface;
      state->modified |= SMF_SOURCE;
 
+     /* Set clipping region. */
+     dfb_state_set_clip( state, region );
+
      /* Blit from the window to the region being updated. */
      dfb_gfxcard_blit( &src, region->x1, region->y1, state );
 
      /* Reset blitting source. */
      state->source    = NULL;
      state->modified |= SMF_SOURCE;
+
+     /* Reset destination. */
+     if (surface) {
+          state->destination  = NULL;
+          state->modified    |= SMF_DESTINATION;
+     }
 }
 
 static void

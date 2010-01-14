@@ -450,7 +450,7 @@ repaint_tier( SaWMan              *sawman,
                                 rect.x - tier->cursor_region.x1,
                                 rect.y - tier->cursor_region.y1, true );
 
-               sawman_draw_cursor( stack, state, &cursor_inter );
+               sawman_draw_cursor( stack, state, 0, &cursor_inter );
           }
      }
 

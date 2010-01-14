@@ -2764,6 +2764,9 @@ wm_restack_window( CoreWindow             *window,
      D_ASSERT( relative == NULL || relative_data != NULL );
      D_ASSERT( relative == NULL || relative == window || relation != 0);
 
+     D_DEBUG_AT( SaWMan_WM, "%s( sawwin %p, relative %p, relation %s )\n",
+                 __FUNCTION__, sawwin, relative_data, (relation==1) ? "TOP" : "BOTTOM" );
+
      data = sawwin->stack_data;
      D_MAGIC_ASSERT( data, StackData );
 
@@ -3139,6 +3142,7 @@ wm_update_window( CoreWindow          *window,
                if (!region || dfb_rectangle_intersect_by_region( &tmp, region )) {
                     DFBRegion    reg;
                     DFBRectangle src = tmp;
+                    DFBRegion    cursor_visible;
 
                     tmp.x -= tier->single_src.x;
                     tmp.y -= tier->single_src.y;
@@ -3148,6 +3152,25 @@ wm_update_window( CoreWindow          *window,
                     dfb_gfx_copy_to( window->surface, tier->region->surface, &src, tmp.x, tmp.y, false );
 
                     dfb_region_from_rectangle( &reg, &tmp );
+
+                    /* Update cursor? */
+                    cursor_visible = tier->cursor_region;
+                    if (tier->cursor_drawn && dfb_region_region_intersect( &cursor_visible, &reg )) {
+                         DFBRectangle     rect = DFB_RECTANGLE_INIT_FROM_REGION( &cursor_visible );
+                         CoreLayer       *layer;
+
+                         layer = dfb_layer_at( tier->layer_id );
+
+                         D_ASSUME( tier->cursor_bs_valid );
+
+                         dfb_gfx_copy_to( tier->region->surface, tier->cursor_bs, &rect,
+                                          rect.x - tier->cursor_region.x1,
+                                          rect.y - tier->cursor_region.y1, true );
+
+                         sawman_draw_cursor( stack, &layer->state,
+                                             tier->region->surface,
+                                             &cursor_visible );
+                    }
 
                     dfb_layer_region_flip_update( tier->region, &reg, flags );
                }
@@ -3331,19 +3354,8 @@ wm_update_cursor( CoreWindowStack       *stack,
                tier->cursor_bs_valid = true;
           }
 
-          /* Set destination. */
-          state->destination  = surface;
-          state->modified    |= SMF_DESTINATION;
-
-          /* Set clipping region. */
-          dfb_state_set_clip( state, &tier->cursor_region );
-
           /* draw cursor */
-          sawman_draw_cursor( stack, state, &tier->cursor_region );
-
-          /* Reset destination. */
-          state->destination  = NULL;
-          state->modified    |= SMF_DESTINATION;
+          sawman_draw_cursor( stack, state, surface, &tier->cursor_region );
 
           tier->cursor_drawn = true;
 
