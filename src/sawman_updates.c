@@ -513,7 +513,9 @@ get_single_window( SaWMan     *sawman,
           D_MAGIC_COREWINDOW_ASSERT( window );
 
           if (SAWMAN_VISIBLE_WINDOW(window) && (tier->classes & (1 << window->config.stacking))) {
-               if (single || (window->caps & (DWCAPS_INPUTONLY | DWCAPS_COLOR) ))
+               if (      single 
+                    || ( window->caps & (DWCAPS_INPUTONLY | DWCAPS_COLOR) ) 
+                    || ( window->config.options & DWOP_INPUTONLY ) )
                     return NULL;
 
                single = sawwin;
@@ -555,7 +557,9 @@ get_border_only( SaWMan     *sawman,
 
           none = false;
 
-          if (SAWMAN_VISIBLE_WINDOW(window) && !(window->caps & DWCAPS_INPUTONLY))
+          if (     SAWMAN_VISIBLE_WINDOW(window) 
+              && !(window->caps & DWCAPS_INPUTONLY)
+              && !(window->config.options & DWOP_INPUTONLY) )
                return false;
      }
 

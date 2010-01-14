@@ -86,7 +86,9 @@ dump_window( SaWMan       *sawman,
 
      printf( "%4d,%4d - %4dx%4d  ", bounds->x, bounds->y, bounds->w, bounds->h );
 
-     if (window->caps & DWCAPS_INPUTONLY) {
+     if (    (window->caps & DWCAPS_INPUTONLY)
+          || (window->config.options & DWOP_INPUTONLY) )
+     {
           if (window->caps & DWCAPS_NODECORATION)
                printf( "-- input   window --  " );
           else

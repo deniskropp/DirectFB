@@ -569,6 +569,7 @@ sawman_draw_window( SaWManTier   *tier,
      DFBRegion        xregion = *pregion;
      DFBRegion       *region  = &xregion;
      int              border;
+     bool             input;
 
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
      D_MAGIC_ASSERT( state, CardState );
@@ -585,7 +586,11 @@ sawman_draw_window( SaWManTier   *tier,
 
      border = sawman_window_border( sawwin );
 
-     if (dfb_region_intersect( region,
+     /* if input only, we only draw the border */
+     input = (window->caps & DWCAPS_INPUTONLY) || (window->config.options & DWOP_INPUTONLY);
+     
+     if (!input &&
+         dfb_region_intersect( region,
                                sawwin->bounds.x + border,
                                sawwin->bounds.y + border,
                                sawwin->bounds.x + sawwin->bounds.w - border - 1,
@@ -618,7 +623,6 @@ sawman_draw_two_windows( SaWManTier   *tier,
      CoreWindowStack *stack;
      DFBRegion        xregion = *pregion;
      DFBRegion       *region  = &xregion;
-     int              border;
 
      D_MAGIC_ASSERT( sawwin1, SaWManWindow );
      D_MAGIC_ASSERT( sawwin2, SaWManWindow );
@@ -640,17 +644,27 @@ sawman_draw_two_windows( SaWManTier   *tier,
      bool color1 = window1->caps & DWCAPS_COLOR;
      bool color2 = window2->caps & DWCAPS_COLOR;
 
+     /* if input only, we only draw the border */
+     bool input1 = (window1->caps & DWCAPS_INPUTONLY) || (window1->config.options & DWOP_INPUTONLY);
+     bool input2 = (window2->caps & DWCAPS_INPUTONLY) || (window2->config.options & DWOP_INPUTONLY);
+     
+     int border1 = sawman_window_border( sawwin1 );
+     int border2 = sawman_window_border( sawwin2 );
+
      if (color1 || color2) {
           /* window 1 */
           if (color1)
                draw_window_color( sawwin1, state, region, false );
-          else
+          else if (!input1)
                draw_window( tier, sawwin1, 0, state, region, false );
+
+          if (border1)
+               draw_border( sawwin1, state, pregion, border1 );
 
           /* window 2 */
           if (color2)
                draw_window_color( sawwin2, state, region, true );
-          else
+          else if (!input2)
                draw_window( tier, sawwin2, 0, state, region, true );
      }
      else {
@@ -665,23 +679,22 @@ sawman_draw_two_windows( SaWManTier   *tier,
                && (sawwin1->src.h == sawwin1->dst.h) 
                && (caps.accel & DFXL_BLIT2) )
           {
+               D_ASSUME ( border1 == 0 );
                draw_window( tier, sawwin1, sawwin2, state, region, true );
           }
           else
 #endif
           {
                draw_window( tier, sawwin1, 0, state, region, false );
+               if (border1)
+                    draw_border( sawwin1, state, pregion, border1 );
+
                draw_window( tier, sawwin2, 0, state, region, true );
           }
      }
 
-     border = sawman_window_border( sawwin1 );
-     if (border)
-          draw_border( sawwin1, state, pregion, border );
-
-     border = sawman_window_border( sawwin2 );
-     if (border)
-          draw_border( sawwin2, state, pregion, border );
+     if (border2)
+          draw_border( sawwin2, state, pregion, border2 );
 
      /* Reset blitting source. */
      state->source    = NULL;

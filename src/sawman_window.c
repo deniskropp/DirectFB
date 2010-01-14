@@ -828,7 +828,8 @@ sawman_update_geometry( SaWManWindow *sawwin )
      clip.x1 = 0;
      clip.y1 = 0;
 
-     if (window->caps & (DWCAPS_INPUTONLY | DWCAPS_COLOR)) {
+     if (    window->caps & (DWCAPS_INPUTONLY | DWCAPS_COLOR)
+          || window->config.options & DWOP_INPUTONLY ) {
           clip.x2 = sawwin->bounds.w - 1;
           clip.y2 = sawwin->bounds.h - 1;
      }
@@ -1181,7 +1182,8 @@ wind_of_change( SaWMan              *sawman,
           if ((tier->classes & (1 << window->config.stacking)) && (  (
               //can skip all opaque window?
               (window->config.opacity == 0xff) &&
-              !(options & (DWOP_COLORKEYING | DWOP_ALPHACHANNEL)) &&
+              !(window->caps & DWCAPS_INPUTONLY) &&
+              !(options & (DWOP_INPUTONLY | DWOP_COLORKEYING | DWOP_ALPHACHANNEL)) &&
               (opaque=*update,dfb_region_intersect( &opaque,
                                                     sawwin->dst.x, sawwin->dst.y,
                                                     sawwin->dst.x + sawwin->dst.w - 1,

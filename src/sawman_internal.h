@@ -98,16 +98,20 @@ extern "C"
 /**********************************************************************************************************************/
 
 #ifdef OLD_COREWINDOWS_STRUCTURE
-#define SAWMAN_VISIBLE_WINDOW(w)     ((!((w)->caps & DWCAPS_INPUTONLY) || sawman_window_border((w)->window_data)) && \
-                                      (w)->config.opacity > 0 && !DFB_WINDOW_DESTROYED(w))
+#define SAWMAN_VISIBLE_WINDOW(w)    ( (     !(((w)->caps & DWCAPS_INPUTONLY) || ((w)->config.options & DWOP_INPUTONLY)) \
+                                         || sawman_window_border((w)->window_data)) \
+                                      && (w)->config.opacity > 0                    \
+                                      && !DFB_WINDOW_DESTROYED(w) )
 #else
-#define SAWMAN_VISIBLE_WINDOW(w)     ((!((w)->caps & DWCAPS_INPUTONLY) || sawman_window_border((w)->window_data)) && \
-                                      (w)->config.opacity > 0 && !DFB_WINDOW_DESTROYED(w) && \
-                                      (!(w)->toplevel || (w)->toplevel->config.opacity > 0))
+#define SAWMAN_VISIBLE_WINDOW(w)    ( (     !(((w)->caps & DWCAPS_INPUTONLY) || ((w)->config.options & DWOP_INPUTONLY)) \
+                                         || sawman_window_border((w)->window_data)) \
+                                      && (w)->config.opacity > 0                    \
+                                      && !DFB_WINDOW_DESTROYED(w)                   \
+                                      && (!(w)->toplevel || (w)->toplevel->config.opacity > 0) )
 #endif
 
 #define SAWMAN_TRANSLUCENT_WINDOW(w) ((w)->config.opacity < 0xff || \
-                                      (w)->config.options & (DWOP_ALPHACHANNEL | DWOP_COLORKEYING) ||\
+                                      (w)->config.options & (DWOP_INPUTONLY | DWOP_ALPHACHANNEL | DWOP_COLORKEYING) ||\
                                       (w)->config.dst_geometry.mode != DWGM_DEFAULT ||\
                                       ((w)->caps & (DWCAPS_INPUTONLY)))
 

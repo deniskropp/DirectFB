@@ -2539,6 +2539,11 @@ wm_set_window_config( CoreWindow             *window,
                sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER | SWMUF_FORCE_COMPLETE );
           }
 
+          if ( (config->options ^ window->config.options) & DWOP_INPUTONLY ) {
+               window->config.options = config->options;
+               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_NONE );
+          }
+
           window->config.options = config->options;
      }
 

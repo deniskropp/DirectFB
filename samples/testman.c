@@ -737,6 +737,7 @@ window_reconfig( void                 *context,
      }
 
      if (reconfig->flags & SWMCF_OPACITY) {
+          D_INFO( "SaWMan/TestMan: Window config - opacity change %d\n", request->opacity );
           /* Show? */
           if (request->opacity && !current->opacity) {
                /* Activate scaling. */
