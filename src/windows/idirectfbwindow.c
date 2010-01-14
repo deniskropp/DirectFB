@@ -465,7 +465,7 @@ IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
           options &= ~DWOP_ALPHACHANNEL;
 
      /* Set new options */
-     return dfb_window_change_options( data->window, DWET_ALL, options );
+     return dfb_window_change_options( data->window, DWOP_ALL, options );
 }
 
 static DFBResult
