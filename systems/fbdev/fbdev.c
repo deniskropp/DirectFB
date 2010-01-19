@@ -1395,13 +1395,10 @@ primarySetRegion( CoreLayer                  *layer,
 
      D_DEBUG_AT( FBDev_Primary, "%s()\n", __FUNCTION__ );
 
-     if (updated & CLRCF_SOURCE) {
-          if (config->source.w == shared->current_var.xres && config->source.h == shared->current_var.yres) {
-               ret = dfb_fbdev_pan( config->source.x, lock->offset / lock->pitch + config->source.y, true );
-               if (ret)
-                    return ret;
-          }
-          else {
+     if (updated & (CLRCF_SOURCE | CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_BUFFERMODE)) {
+          if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_BUFFERMODE) ||
+              config->source.w != shared->current_var.xres ||
+              config->source.h != shared->current_var.yres) {
                const VideoMode *mode;
                VideoMode        dummy;
 
@@ -1421,6 +1418,11 @@ primarySetRegion( CoreLayer                  *layer,
 
                ret = dfb_fbdev_set_mode( mode, surface, config->source.x,
                                          lock->offset / lock->pitch + config->source.y );
+               if (ret)
+                    return ret;
+          }
+          else {
+               ret = dfb_fbdev_pan( config->source.x, lock->offset / lock->pitch + config->source.y, true );
                if (ret)
                     return ret;
           }
