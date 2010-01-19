@@ -843,7 +843,7 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
           if (status < 0 && errno != EINTR)
                break;
 
-          if (FD_ISSET( data->quitpipe[0], &set ))
+          if (status > 0 && FD_ISSET( data->quitpipe[0], &set ))
                break;
 
           direct_thread_testcancel( thread );
