@@ -71,12 +71,15 @@ public:
                                                  u8                      g = 0x00,
                                                  u8                      b = 0x00,
                                                  u8                      a = 0x00);
+     void                   Clear               (DFBColor               &color);
 
-     void                   SetClip             (DFBRegion                *clip);
+     void                   SetClip             (const DFBRegion          *clip = 0);
+     void                   SetClip             (const DFBRectangle       *clip);
      void                   SetColor            (u8                      r,
                                                  u8                      g,
                                                  u8                      b,
                                                  u8                      a = 0xFF);
+     void                   SetColor            (DFBColor               &color);
      void                   SetColorIndex       (unsigned int              index);
      void                   SetSrcBlendFunction (DFBSurfaceBlendFunction   function);
      void                   SetDstBlendFunction (DFBSurfaceBlendFunction   function);
@@ -118,6 +121,7 @@ public:
                                                  int                       y,
                                                  int                       width,
                                                  int                       height);
+     void                   FillRectangle       (DFBRectangle             &rect);
      void                   FillRectangles      (const DFBRectangle       *rects,
                                                  unsigned int              num_rects);
      void                   DrawRectangle       (int                       x,
