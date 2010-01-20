@@ -2384,23 +2384,17 @@ fbdev_ioctl_call_handler( int           caller,
      const char cursoroff_str[] = "\033[?1;0;0c";
      const char blankoff_str[] = "\033[9;0]";
 
-     if (dfb_config->vt) {
-          if (!dfb_config->kd_graphics && call_arg == FBIOPUT_VSCREENINFO)
-               ioctl( dfb_fbdev->vt->fd, KDSETMODE, KD_GRAPHICS );
-     }
+     if (dfb_config->vt && !dfb_config->kd_graphics && call_arg == FBIOPUT_VSCREENINFO)
+          ioctl( dfb_fbdev->vt->fd, KDSETMODE, KD_GRAPHICS );
 
      ret = ioctl( dfb_fbdev->fd, call_arg, call_ptr );
      if (ret)
           ret = errno;
 
-     if (dfb_config->vt) {
-          if (call_arg == FBIOPUT_VSCREENINFO) {
-               if (!dfb_config->kd_graphics) {
-                    ioctl( dfb_fbdev->vt->fd, KDSETMODE, KD_TEXT );
-                    write( dfb_fbdev->vt->fd, cursoroff_str, strlen(cursoroff_str) );
-                    write( dfb_fbdev->vt->fd, blankoff_str, strlen(blankoff_str) );
-               }
-          }
+     if (dfb_config->vt && !dfb_config->kd_graphics && call_arg == FBIOPUT_VSCREENINFO) {
+          ioctl( dfb_fbdev->vt->fd, KDSETMODE, KD_TEXT );
+          write( dfb_fbdev->vt->fd, cursoroff_str, strlen(cursoroff_str) );
+          write( dfb_fbdev->vt->fd, blankoff_str, strlen(blankoff_str) );
      }
 
      *ret_val = ret;
