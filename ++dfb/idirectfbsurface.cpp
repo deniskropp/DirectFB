@@ -244,6 +244,11 @@ void IDirectFBSurface::FillRectangle (DFBRectangle &rect)
      DFBCHECK( iface->FillRectangle (iface, rect.x, rect.y, rect.w, rect.h) );
 }
 
+void IDirectFBSurface::FillRectangle (DFBRegion &reg)
+{
+     DFBCHECK( iface->FillRectangle (iface, reg.x1, reg.y1, reg.x2-reg.x1+1, reg.y2-reg.y1+1) );
+}
+
 void IDirectFBSurface::DrawRectangle (int x, int y, int width, int height)
 {
      DFBCHECK( iface->DrawRectangle (iface, x, y, width, height) );

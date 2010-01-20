@@ -122,6 +122,7 @@ public:
                                                  int                       width,
                                                  int                       height);
      void                   FillRectangle       (DFBRectangle             &rect);
+     void                   FillRectangle       (DFBRegion                &rect);
      void                   FillRectangles      (const DFBRectangle       *rects,
                                                  unsigned int              num_rects);
      void                   DrawRectangle       (int                       x,
