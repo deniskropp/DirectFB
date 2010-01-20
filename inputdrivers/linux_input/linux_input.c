@@ -800,7 +800,7 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
 
      D_DEBUG_AT( Debug_LinuxInput, "%s()\n", __FUNCTION__ );
 
-     fdmax = (data->fd > data->quitpipe[0]) ? data->fd : data->quitpipe[0];
+     fdmax = MAX( data->fd, data->quitpipe[0] );
 
      /* Query min/max coordinates. */
      if (data->touchpad) {
