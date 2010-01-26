@@ -127,12 +127,6 @@ InitLocal( glxPoolLocalData *local,
           GLX_BLUE_SIZE,
           8,
 
-          GLX_ALPHA_SIZE,
-          8,
-
-          GLX_DEPTH_SIZE,
-          8,
-
           GLX_X_VISUAL_TYPE,
           GLX_TRUE_COLOR,
 
@@ -168,18 +162,18 @@ InitLocal( glxPoolLocalData *local,
      D_DEBUG_AT( GLX_Surfaces, "  -> found %d configs\n", local->num_configs );
 
      for (i=0; i<local->num_configs; i++) {
-          int          depth;
+          int          buffer_size;
           XVisualInfo *info = glXGetVisualFromFBConfig( local->display, local->configs[i] );
 
-          glXGetFBConfigAttrib( local->display, local->configs[i], GLX_DEPTH_SIZE, &depth );
+          glXGetFBConfigAttrib( local->display, local->configs[i], GLX_BUFFER_SIZE, &buffer_size );
 
-          D_DEBUG_AT( GLX_Surfaces, "     [%2d] ID 0x%02lx, depth %d, RGB 0x%06lx/0x%06lx/0x%06lx {%d}, class %d, z %d\n",
-                      i, info->visualid, info->depth,
+          D_DEBUG_AT( GLX_Surfaces, "     [%2d] ID 0x%02lx, buffer_size %d, RGB 0x%06lx/0x%06lx/0x%06lx {%d}, class %d, z %d\n",
+                      i, info->visualid, buffer_size,
                       info->red_mask, info->green_mask, info->blue_mask,
-                      info->bits_per_rgb, info->class, depth );
+                      info->bits_per_rgb, info->class, info->depth );
 
-          if (depth >= 8 && info->class == TrueColor) {
-               switch (info->depth) {
+          if (info->class == TrueColor) {
+               switch (buffer_size) {
                     case 32:
                          local->config32 = local->configs[i];
                          local->visual32 = info->visual;
