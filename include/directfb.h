@@ -2689,6 +2689,17 @@ DEFINE_INTERFACE(   IDirectFBScreen,
           int                                 output,
           const DFBScreenOutputConfig        *config
      );
+
+
+   /** Synchronization **/
+
+     /*
+      * Return current VSync count.
+      */
+     DFBResult (*GetVSyncCount) (
+          IDirectFBScreen                    *thiz,
+          unsigned long                      *ret_count
+     );
 )
 
 

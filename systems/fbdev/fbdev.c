@@ -209,11 +209,17 @@ static DFBResult primaryGetScreenSize( CoreScreen           *screen,
                                        int                  *ret_width,
                                        int                  *ret_height );
 
+static DFBResult primaryGetVSyncCount( CoreScreen           *screen,
+                                       void                 *driver_data,
+                                       void                 *screen_data,
+                                       unsigned long        *ret_count );
+
 static ScreenFuncs primaryScreenFuncs = {
      .InitScreen    = primaryInitScreen,
      .SetPowerMode  = primarySetPowerMode,
      .WaitVSync     = primaryWaitVSync,
      .GetScreenSize = primaryGetScreenSize,
+     .GetVSyncCount = primaryGetVSyncCount,
 };
 
 /******************************************************************************/
@@ -1063,6 +1069,32 @@ primaryWaitVSync( CoreScreen *screen,
 
      if (ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, &zero ))
           waitretrace();
+
+     return DFB_OK;
+}
+
+static DFBResult
+primaryGetVSyncCount( CoreScreen    *screen,
+                      void          *driver_data,
+                      void          *screen_data,
+                      unsigned long *ret_count )
+{
+     struct fb_vblank vblank;
+
+     D_DEBUG_AT( FBDev_Primary, "%s()\n", __FUNCTION__ );
+
+     D_ASSERT( ret_count != NULL );
+
+     if (!ret_count)
+          return DFB_INVARG;
+
+     if (ioctl( dfb_fbdev->fd, FBIOGET_VBLANK, &vblank ))
+          return errno2result( errno );
+
+     if (!D_FLAGS_IS_SET( vblank.flags, FB_VBLANK_HAVE_COUNT ))
+          return DFB_UNSUPPORTED;
+
+     *ret_count = vblank.count;
 
      return DFB_OK;
 }

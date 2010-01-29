@@ -220,6 +220,17 @@ typedef struct {
                                     void                        *screen_data,
                                     int                          mixer,
                                     CoreMixerState              *ret_state );
+
+   /** Synchronization **/
+
+     /*
+      * Wait for the vertical retrace.
+      */
+     DFBResult (*GetVSyncCount)  ( CoreScreen             *screen,
+                                   void                   *driver_data,
+                                   void                   *screen_data,
+                                   unsigned long          *ret_count );
+
 } ScreenFuncs;
 
 

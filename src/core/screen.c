@@ -111,6 +111,26 @@ dfb_screen_wait_vsync( CoreScreen *screen )
      return DFB_UNSUPPORTED;
 }
 
+DFBResult
+dfb_screen_get_vsync_count( CoreScreen *screen, unsigned long *ret_count )
+{
+     ScreenFuncs *funcs;
+
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->funcs != NULL );
+     D_ASSERT( ret_count != NULL );
+
+     funcs = screen->funcs;
+
+     if (funcs->GetVSyncCount)
+          return funcs->GetVSyncCount( screen,
+                                       screen->driver_data,
+                                       screen->screen_data,
+                                       ret_count );
+
+     return DFB_UNSUPPORTED;
+}
+
 
 /*********************************** Mixers ***********************************/
 

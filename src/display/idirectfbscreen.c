@@ -213,6 +213,15 @@ IDirectFBScreen_WaitForSync( IDirectFBScreen *thiz )
 }
 
 static DFBResult
+IDirectFBScreen_GetVSyncCount( IDirectFBScreen *thiz,
+                               unsigned long   *ret_count )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
+
+     return dfb_screen_get_vsync_count( data->screen, ret_count );
+}
+
+static DFBResult
 IDirectFBScreen_GetMixerDescriptions( IDirectFBScreen           *thiz,
                                       DFBScreenMixerDescription *descriptions )
 {
@@ -555,6 +564,7 @@ IDirectFBScreen_Construct( IDirectFBScreen *thiz,
      thiz->EnumDisplayLayers        = IDirectFBScreen_EnumDisplayLayers;
      thiz->SetPowerMode             = IDirectFBScreen_SetPowerMode;
      thiz->WaitForSync              = IDirectFBScreen_WaitForSync;
+     thiz->GetVSyncCount            = IDirectFBScreen_GetVSyncCount;
      thiz->GetMixerDescriptions     = IDirectFBScreen_GetMixerDescriptions;
      thiz->GetMixerConfiguration    = IDirectFBScreen_GetMixerConfiguration;
      thiz->TestMixerConfiguration   = IDirectFBScreen_TestMixerConfiguration;
