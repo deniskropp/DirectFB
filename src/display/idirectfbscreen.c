@@ -631,7 +631,7 @@ PatchEncoderConfig( DFBScreenEncoderConfig       *patched,
                case DSETV_PAL_60:
                case DSETV_PAL_M:
                     patched->resolution = DSOR_720_480;
-                    patched->frequency = DSEF_60HZ;
+                    patched->frequency = DSEF_59_94HZ;
                     break;
 
                case DSETV_SECAM:
@@ -643,7 +643,7 @@ PatchEncoderConfig( DFBScreenEncoderConfig       *patched,
                case DSETV_NTSC_M_JPN:
                case DSETV_NTSC_443:
                     patched->resolution = DSOR_720_480;
-                    patched->frequency = DSEF_60HZ;
+                    patched->frequency = DSEF_59_94HZ;
                     break;
 
                default:
