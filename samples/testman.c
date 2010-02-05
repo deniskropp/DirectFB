@@ -789,6 +789,35 @@ switch_focus( void                 *context,
      return DFB_OK;
 }
 
+static DirectResult layer_reconfig( void                *context,
+                                    SaWManLayerReconfig *reconfig )
+{
+     TestManager           *tm      = context;
+     DFBDisplayLayerConfig *config;
+     DFBResult              res;
+
+     D_MAGIC_ASSERT( tm, TestManager );
+     D_ASSERT( reconfig );
+
+     config = &reconfig->config;
+     D_INFO( "SaWMan/TestMan: Layer Reconfig signalled on layer %d:\n", reconfig->layer_id );
+     if (reconfig->single) {
+          SaWManWindowInfo info;
+
+          D_INFO( "   going to single mode, window: %p\n", (void*)(reconfig->single) );
+          res = tm->manager->GetWindowInfo( tm->manager, reconfig->layer_id, &info );
+          if (res)
+              D_INFO( "   size: %dx%d\n", info.config.bounds.w, info.config.bounds.h );
+     }
+
+     config->width  = 300;
+     config->height = 300;
+
+     D_INFO( "   requested layer size: %dx%d\n", config->width, config->height );
+     
+     return DFB_OK;
+}
+
 static DirectResult application_id_changed( void             *context,
                                             SaWManWindowInfo *info )
 {
@@ -815,7 +844,7 @@ static const SaWManCallbacks callbacks = {
      WindowRestack:      window_restack,
      //~ StackResized
      SwitchFocus:        switch_focus,
-     //~ LayerReconfig
+     LayerReconfig:      layer_reconfig,
      ApplicationIDChanged: application_id_changed
 };
 

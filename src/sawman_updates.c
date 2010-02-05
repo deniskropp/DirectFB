@@ -891,7 +891,7 @@ no_single:
 
           /* Switch border/default config? */
           if (tier->border_only != border_only) {
-               const DFBDisplayLayerConfig *config;
+               DFBDisplayLayerConfig *config;
 
                tier->border_only = border_only;
 
@@ -902,6 +902,18 @@ no_single:
 
                D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d %s %s mode.\n", config->width, config->height,
                            dfb_pixelformat_name( config->pixelformat ), border_only ? "border" : "standard" );
+
+               sawman->callback.layer_reconfig.layer_id = tier->layer_id;
+               sawman->callback.layer_reconfig.single   = SAWMAN_WINDOW_NONE;
+               sawman->callback.layer_reconfig.config   = *config;
+               ret = sawman_call( sawman, SWMCID_LAYER_RECONFIG, &sawman->callback.layer_reconfig );
+
+               /* on DFB_OK we try to overrule the default configuration */
+               if ( !ret && !dfb_layer_context_test_configuration( tier->context, &(sawman->callback.layer_reconfig.config), NULL ) ) {
+                    *config = sawman->callback.layer_reconfig.config;
+                    D_DEBUG_AT( SaWMan_Auto, "  -> Overruled to %dx%d %s %s mode.\n", config->width, config->height,
+                         dfb_pixelformat_name( config->pixelformat ), border_only ? "border" : "standard" );
+               }
 
                tier->active         = false;
                tier->region->state |= CLRSF_FROZEN;
