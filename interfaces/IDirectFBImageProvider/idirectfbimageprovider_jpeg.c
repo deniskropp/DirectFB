@@ -83,9 +83,12 @@ typedef struct {
      DIRenderCallback     render_callback;
      void                *render_callback_context;
 
-     u32                 *image;
-     int                  width;
-     int                  height;
+     int                  width;    /*  width of the JPEG image   */
+     int                  height;   /*  height of the JPEG image  */
+
+     u32                 *image;        /*  decoded image data    */
+     int                  image_width;  /*  width of image data   */
+     int                  image_height; /*  height of image data  */
 
      CoreDFB             *core;
 } IDirectFBImageProvider_JPEG_data;
@@ -440,6 +443,14 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      if (ret)
           return ret;
 
+     if (data->image &&
+         (rect.x || rect.y || rect.w != data->image_width || rect.h != data->image_height)) {
+           D_FREE( data->image );
+           data->image        = NULL;
+           data->image_width  = 0;
+           data->image_height = 0;
+     }
+
      /* actual loading and rendering */
      if (!data->image) {
           struct jpeg_decompress_struct cinfo;
@@ -459,11 +470,11 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                jpeg_destroy_decompress(&cinfo);
 
                if (data->image) {
-                    dfb_scale_linear_32( data->image, data->width, data->height,
+                    dfb_scale_linear_32( data->image, data->image_width, data->image_height,
                                          lock.addr, lock.pitch, &rect, dst_surface, &clip );
                     dfb_surface_unlock_buffer( dst_surface, &lock );
                     if (data->render_callback) {
-                         DFBRectangle r = { 0, 0, data->width, data->height };
+                         DFBRectangle r = { 0, 0, data->image_width, data->image_height };
 
                          if (data->render_callback( &r, data->render_callback_context ) != DIRCR_OK)
                               return DFB_INTERRUPTED;
@@ -480,10 +491,38 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           jpeg_create_decompress(&cinfo);
           jpeg_buffer_src(&cinfo, data->buffer, 0);
           jpeg_read_header(&cinfo, TRUE);
+
+#if JPEG_LIB_VERSION >= 70
+          cinfo.scale_num = 8;
+          cinfo.scale_denom = 8;
+#else
+          cinfo.scale_num = 1;
+          cinfo.scale_denom = 1;
+#endif
           jpeg_calc_output_dimensions(&cinfo);
 
-          if (cinfo.output_width == rect.w && cinfo.output_height == rect.h)
+          if (cinfo.output_width == rect.w && cinfo.output_height == rect.h) {
                direct = true;
+          }
+          else if (rect.x == 0 && rect.y == 0) {
+#if JPEG_LIB_VERSION >= 70
+               cinfo.scale_num = 16;
+               while (cinfo.scale_num > 1) {
+                    jpeg_calc_output_dimensions (&cinfo);
+                    if (cinfo.output_width > rect.w
+                        || cinfo.output_width > rect.h)
+                         --cinfo.scale_num;
+               }
+               jpeg_calc_output_dimensions (&cinfo);
+#else
+               while (cinfo.scale_denom < 8
+                      && ((cinfo.output_width >> 1) > rect.w)
+                      && ((cinfo.output_height >> 1) > rect.h)) {
+                    cinfo.scale_denom <<= 1;
+                    jpeg_calc_output_dimensions (&cinfo);
+               }
+#endif
+          }
 
           cinfo.output_components = 3;
 
@@ -507,15 +546,15 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
 
           jpeg_start_decompress(&cinfo);
 
-          data->width = cinfo.output_width;
-          data->height = cinfo.output_height;
+          data->image_width = cinfo.output_width;
+          data->image_height = cinfo.output_height;
 
           row_stride = cinfo.output_width * 3;
 
           buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr) &cinfo,
                                               JPOOL_IMAGE, row_stride, 1);
 
-          data->image = D_CALLOC( data->height, data->width * 4 );
+          data->image = D_CALLOC( data->image_height, data->image_width * 4 );
           if (!data->image) {
                dfb_surface_unlock_buffer( dst_surface, &lock );
                return D_OOM();
@@ -533,7 +572,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                               lock.addr += lock.pitch;
 
                               if (data->render_callback) {
-                                   DFBRectangle r = { 0, y, data->width, 1 };
+                                   DFBRectangle r = { 0, y, data->image_width, 1 };
 
                                    cb_result = data->render_callback( &r, 
                                                                       data->render_callback_context );
@@ -542,14 +581,14 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                          }
 
                     default:
-                         copy_line32( row_ptr, *buffer, data->width);
+                         copy_line32( row_ptr, *buffer, data->image_width );
 
                          if (direct) {
                               DFBRectangle r = { rect.x, rect.y+y, rect.w, 1 };
                               dfb_copy_buffer_32( row_ptr, lock.addr, lock.pitch,
                                                   &r, dst_surface, &clip );
                               if (data->render_callback) {
-                                   r = (DFBRectangle){ 0, y, data->width, 1 };
+                                   r = (DFBRectangle){ 0, y, data->image_width, 1 };
                                    cb_result = data->render_callback( &r, 
                                                                       data->render_callback_context );
                               }
@@ -557,15 +596,15 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                          break;
                }
 
-               row_ptr += data->width;
+               row_ptr += data->image_width;
                y++;
           }
 
           if (!direct) {
-               dfb_scale_linear_32( data->image, data->width, data->height,
+               dfb_scale_linear_32( data->image, data->image_width, data->image_height,
                                     lock.addr, lock.pitch, &rect, dst_surface, &clip );
                if (data->render_callback) {
-                    DFBRectangle r = { 0, 0, data->width, data->height };
+                    DFBRectangle r = { 0, 0, data->image_width, data->image_height };
                     cb_result = data->render_callback( &r, data->render_callback_context );
                }
           }
@@ -581,10 +620,10 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           jpeg_destroy_decompress(&cinfo);
      }
      else {
-          dfb_scale_linear_32( data->image, data->width, data->height,
+          dfb_scale_linear_32( data->image, data->image_width, data->image_height,
                                lock.addr, lock.pitch, &rect, dst_surface, &clip );
           if (data->render_callback) {
-               DFBRectangle r = { 0, 0, data->width, data->height };
+               DFBRectangle r = { 0, 0, data->image_width, data->image_height };
                data->render_callback( &r, data->render_callback_context );
           }
      }
