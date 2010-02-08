@@ -63,6 +63,11 @@
 
 #include "config.h"
 
+#if PNG_LIBPNG_VER < 10400 
+#define trans_color  trans_values
+#define trans_alpha  trans
+#endif 
+
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx );
 
@@ -168,7 +173,7 @@ push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx )
 {
-     if (png_check_sig( ctx->header, 8 ))
+     if (!png_sig_cmp( ctx->header, 0, 8 ))
           return DFB_OK;
 
      return DFB_UNSUPPORTED;
@@ -653,7 +658,7 @@ png_info_callback( png_structp png_read_ptr,
           if (data->color_type == PNG_COLOR_TYPE_PALETTE) {
                u32        key;
                png_colorp palette    = data->info_ptr->palette;
-               png_bytep  trans      = data->info_ptr->trans;
+               png_bytep  trans      = data->info_ptr->trans_alpha;
                int        num_colors = MIN( MAXCOLORMAPSIZE,
                                             data->info_ptr->num_palette );
                u8         cmap[3][num_colors];
@@ -678,7 +683,7 @@ png_info_callback( png_structp png_read_ptr,
           }
           else {
                /* ...or based on trans rgb value */
-               png_color_16p trans = &data->info_ptr->trans_values;
+               png_color_16p trans = &data->info_ptr->trans_color;
 
                data->color_key = (((trans->red & 0xff00) << 8) |
                                   ((trans->green & 0xff00)) |
@@ -689,7 +694,7 @@ png_info_callback( png_structp png_read_ptr,
      switch (data->color_type) {
           case PNG_COLOR_TYPE_PALETTE: {
                png_colorp palette    = data->info_ptr->palette;
-               png_bytep  trans      = data->info_ptr->trans;
+               png_bytep  trans      = data->info_ptr->trans_alpha;
                int        num_trans  = data->info_ptr->num_trans;
                int        num_colors = MIN( MAXCOLORMAPSIZE, data->info_ptr->num_palette );
 
