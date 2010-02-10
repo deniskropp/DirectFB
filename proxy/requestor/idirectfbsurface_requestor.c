@@ -422,6 +422,20 @@ IDirectFBSurface_Requestor_GetFramebufferOffset( IDirectFBSurface *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_Requestor_GetPhysicalAddress( IDirectFBSurface *thiz,
+                                               unsigned long    *addr )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+
+     if (!addr)
+          return DFB_INVARG;
+
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
 IDirectFBSurface_Requestor_Unlock( IDirectFBSurface *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
@@ -1199,6 +1213,7 @@ Construct( IDirectFBSurface *thiz,
 
      thiz->Lock = IDirectFBSurface_Requestor_Lock;
      thiz->GetFramebufferOffset = IDirectFBSurface_Requestor_GetFramebufferOffset;
+     thiz->GetPhysicalAddress = IDirectFBSurface_Requestor_GetPhysicalAddress;
      thiz->Unlock = IDirectFBSurface_Requestor_Unlock;
      thiz->Flip = IDirectFBSurface_Requestor_Flip;
      thiz->SetField = IDirectFBSurface_Requestor_SetField;

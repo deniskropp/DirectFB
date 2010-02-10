@@ -465,12 +465,25 @@ static DFBResult
 IDirectFBSurface_GetFramebufferOffset( IDirectFBSurface *thiz,
                                        int *offset )
 {
+     /*
+      * Previously returned the framebuffer offset of a locked surface.
+      * However, it is not a safe API to use at all, since it is not 
+      * guaranteed that the offset actually belongs to fbmem (e.g. could be AGP memory).
+      */
+
+     return DFB_FAILURE;
+}
+
+static DFBResult
+IDirectFBSurface_GetPhysicalAddress( IDirectFBSurface *thiz,
+                                     unsigned long    *addr )
+{
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (!data->surface)
           return DFB_DESTROYED;
 
-     if (!offset)
+     if (!addr)
           return DFB_INVARG;
 
      if (!data->locked)
@@ -481,7 +494,7 @@ IDirectFBSurface_GetFramebufferOffset( IDirectFBSurface *thiz,
           return DFB_UNSUPPORTED;
      }
 
-     *offset = data->lock.offset;
+     *addr = data->lock.phys;
 
      return DFB_OK;
 }
@@ -2810,6 +2823,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->Lock = IDirectFBSurface_Lock;
      thiz->GetFramebufferOffset = IDirectFBSurface_GetFramebufferOffset;
+     thiz->GetPhysicalAddress = IDirectFBSurface_GetPhysicalAddress;
      thiz->Unlock = IDirectFBSurface_Unlock;
      thiz->Flip = IDirectFBSurface_Flip;
      thiz->SetField = IDirectFBSurface_SetField;

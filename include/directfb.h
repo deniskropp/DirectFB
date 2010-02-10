@@ -3458,9 +3458,11 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
      /*
-      * Returns the framebuffer offset of a locked surface.
-      *
-      * The surface must exist in video memory.
+      * Obsolete. Returns DFB_FAILURE always.
+      * 
+      * Previously returned the framebuffer offset of a locked surface.
+      * However, it is not a safe API to use at all, since it is not 
+      * guaranteed that the offset actually belongs to fbmem (e.g. could be AGP memory).
       */
      DFBResult (*GetFramebufferOffset) (
           IDirectFBSurface *thiz,
@@ -4164,6 +4166,18 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           const DFBPoint           *dest_points,
           const DFBPoint           *source2_points,
           int                       num
+     );
+
+   /** Buffer operations **/
+
+     /*
+      * Returns the physical address of a locked surface.
+      *
+      * The surface must exist in a video memory pool.
+      */
+     DFBResult (*GetPhysicalAddress) (
+          IDirectFBSurface *thiz,
+          unsigned long    *addr
      );
 )
 
