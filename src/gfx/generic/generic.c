@@ -355,7 +355,7 @@ static bool is_ycbcr[DFB_NUM_PIXELFORMATS] = {
      true,     /* DSPF_UYVY */
      true,     /* DSPF_I420 */
      true,     /* DSPF_YV12 */
-     true,     /* DSPF_LUT8 */
+     false,    /* DSPF_LUT8 */
      false,    /* DSPF_ALUT44 */
      false,    /* DSPF_AiRGB */
      false,    /* DSPF_A1 */
