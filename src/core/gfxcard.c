@@ -2581,7 +2581,7 @@ bool dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
      if (!data) {
           D_DEBUG_AT( Core_GfxState, "  -> No font data!\n" );
           dfb_font_unlock( font );
-          return;
+          return false;
      }
 
      orig_flags    = state->blittingflags;
