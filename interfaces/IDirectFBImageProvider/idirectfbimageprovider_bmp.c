@@ -63,9 +63,9 @@ typedef enum {
 
 typedef struct {
      int                    ref;
-     
+
      IDirectFBDataBuffer   *buffer;
-     
+
      int                    width;
      int                    height;
      int                    depth;
@@ -73,11 +73,11 @@ typedef struct {
      BMPImageCompression    compression;
      unsigned int           img_offset;
      unsigned int           num_colors;
-     
+
      DFBColor              *palette;
-     
+
      u32                 *image;
-     
+
      DIRenderCallback       render_callback;
      void                  *render_callback_ctx;
 } IDirectFBImageProvider_BMP_data;
@@ -96,7 +96,7 @@ fetch_data( IDirectFBDataBuffer *buffer, void *ptr, int len )
           ret = buffer->WaitForData( buffer, len );
           if (ret == DFB_OK)
                ret = buffer->GetData( buffer, len, ptr, &read );
-          
+
           if (ret)
                return ret;
 
@@ -114,24 +114,24 @@ bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
      u8        buf[54];
      u32       tmp;
      u32       bihsize;
-     
+
      memset( buf, 0, sizeof(buf) );
-     
+
      ret = fetch_data( data->buffer, buf, sizeof(buf) );
      if (ret)
           return ret;
-      
+
      /* 2 bytes: Magic */    
      if (buf[0] != 'B' && buf[1] != 'M') {
           D_ERROR( "IDirectFBImageProvider_BMP: "
                    "Invalid magic (%c%c)!\n", buf[0], buf[1] );
           return DFB_UNSUPPORTED;
      }
-          
+
      /* 4 bytes: FileSize */
-     
+
      /* 4 bytes: Reserved */
-     
+
      /* 4 bytes: DataOffset */
      data->img_offset = buf[10] | (buf[11]<<8) | (buf[12]<<16) | (buf[13]<<24);
      if (data->img_offset < 54) {
@@ -139,7 +139,7 @@ bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
                    "Invalid offset %08x!\n", data->img_offset );
           return DFB_UNSUPPORTED;
      }
-          
+
      /* 4 bytes: HeaderSize */
      bihsize = buf[14] | (buf[15]<<8) | (buf[16]<<16) | (buf[17]<<24);
      if (bihsize < 40) {
@@ -147,7 +147,7 @@ bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
                    "Invalid image header size %d!\n", bihsize );
           return DFB_UNSUPPORTED;
      }
-          
+
      /* 4 bytes: Width */
      data->width = buf[18] | (buf[19]<<8) | (buf[20]<<16) | (buf[21]<<24);
      if (data->width < 1 || data->width > 0xffff) {
@@ -163,7 +163,7 @@ bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
                    "Invalid height %d!\n", data->height );
           return DFB_UNSUPPORTED;
      }
-          
+
      /* 2 bytes: Planes */
      tmp = buf[26] | (buf[27]<<8);
      if (tmp != 1) {
@@ -171,7 +171,7 @@ bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
                    "Unsupported number of planes %d!\n", tmp );
           return DFB_UNSUPPORTED;
      }
-          
+
      /* 2 bytes: Depth */
      data->depth = buf[28] | (buf[29]<<8);
      switch (data->depth) {
@@ -188,7 +188,7 @@ bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
                         "Unsupported depth %d!\n", data->depth );
                return DFB_UNSUPPORTED;
      }
-     
+
      /* 4 bytes: Compression */
      data->compression = buf[30] | (buf[31]<<8) | (buf[32]<<16) | (buf[33]<<24);
      switch (data->compression) {
@@ -202,20 +202,20 @@ bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
                         "Unsupported compression %d!\n", data->compression );
                return DFB_UNSUPPORTED;
      }
-     
+
      /* 4 bytes: CompressedSize */
-     
+
      /* 4 bytes: HorizontalResolution */
-     
+
      /* 4 bytes: VerticalResolution */
-     
+
      /* 4 bytes: UsedColors */
      data->num_colors = buf[46] | (buf[47]<<8) | (buf[48]<<16) | (buf[49]<<24);
      if (!data->num_colors)
           data->num_colors = 1 << data->depth;
-          
+
      /* 4 bytes: ImportantColors */
-     
+
      /* Skip remaining bytes */
      if (bihsize > 40) {
           bihsize -= 40;
@@ -226,28 +226,28 @@ bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
                     return ret;
           }
      }
-     
+
      /* Palette */
      if (data->indexed) {
           void *src;
           int   i, j;
-          
+
           data->palette = src = D_MALLOC( 256*4 );
           if (!data->palette)
                return D_OOM();
-              
+
           ret = fetch_data( data->buffer, src, data->num_colors*4 );
           if (ret)
                return ret;
-                             
+
           for (i = 0; i < data->num_colors; i++) {
                DFBColor c;
-               
+
                c.a = 0xff;
                c.r = ((u8*)src)[i*4+2];
                c.g = ((u8*)src)[i*4+1];
                c.b = ((u8*)src)[i*4+0];
-               
+
                /* For faster lookup, fill some of the 256 entries with duplicate data
                   for every bit position */
                switch (data->num_colors) {
@@ -262,7 +262,7 @@ bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
                }
           }
      }
-     
+
      return DFB_OK;
 }
 
@@ -274,13 +274,13 @@ bmp_decode_rgb_row( IDirectFBImageProvider_BMP_data *data, int row )
      u8         buf[pitch];
      u32       *dst;
      int        i;
-     
+
      ret = fetch_data( data->buffer, buf, pitch );
      if (ret)
           return ret;
-          
+
      dst = data->image + row * data->width;
-     
+
      switch (data->depth) {
           case 1:
                for (i = 0; i < data->width; i++) {
@@ -306,7 +306,7 @@ bmp_decode_rgb_row( IDirectFBImageProvider_BMP_data *data, int row )
                for (i = 0; i < data->width; i++) {
                     u32 r, g, b;
                     u16 c;
-                    
+
                     c = buf[i*2+0] | (buf[i*2+1]<<8);
                     r = (c >> 10) & 0x1f;
                     g = (c >>  5) & 0x1f;
@@ -314,7 +314,7 @@ bmp_decode_rgb_row( IDirectFBImageProvider_BMP_data *data, int row )
                     r = (r << 3) | (r >> 2);
                     g = (g << 3) | (g >> 2);
                     b = (b << 3) | (b >> 2);
-                    
+
                     dst[i] = b | (g<<8) | (r<<16) | 0xff000000;
                }
                break;
@@ -337,7 +337,7 @@ bmp_decode_rgb_row( IDirectFBImageProvider_BMP_data *data, int row )
           default:
                break;
      }
-     
+
      return DFB_OK;
 }    
      
@@ -350,10 +350,10 @@ IDirectFBImageProvider_BMP_Destruct( IDirectFBImageProvider *thiz )
 
      if (data->buffer)
           data->buffer->Release( data->buffer );
-     
+
      if (data->image)
           D_FREE( data->image );
-          
+
      if (data->palette)
           D_FREE( data->palette );
 
@@ -393,18 +393,18 @@ IDirectFBImageProvider_BMP_RenderTo( IDirectFBImageProvider *thiz,
      DFBRegion               clip;
      DIRenderCallbackResult  cb_result = DIRCR_OK;
      DFBResult               ret       = DFB_OK;
-     
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider_BMP )
-     
+
      if (!destination)
           return DFB_INVARG;
-          
+
      dst_data = destination->priv;
      if (!dst_data || !dst_data->surface)
           return DFB_DESTROYED;
-          
+
      dst_surface = dst_data->surface;
-     
+
      if (dest_rect) {
           if (dest_rect->w < 1 || dest_rect->h < 1)
                return DFB_INVARG;
@@ -415,7 +415,7 @@ IDirectFBImageProvider_BMP_RenderTo( IDirectFBImageProvider *thiz,
      else {
           rect = dst_data->area.wanted;
      }
-     
+
      dfb_region_from_rectangle( &clip, &dst_data->area.current );
      if (!dfb_rectangle_region_intersects( &rect, &clip ))
           return DFB_OK;
@@ -423,7 +423,7 @@ IDirectFBImageProvider_BMP_RenderTo( IDirectFBImageProvider *thiz,
      ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
      if (ret)
           return ret;
-     
+
      if (!data->image) {
           bool direct = (rect.w == data->width  &&
                          rect.h == data->height &&
@@ -442,26 +442,26 @@ IDirectFBImageProvider_BMP_RenderTo( IDirectFBImageProvider *thiz,
                palette->SetEntries( palette, data->palette, data->num_colors, 0 );
                palette->Release( palette );
           }
-          
+
           data->image = D_MALLOC( data->width*data->height*4 );
           if (!data->image) {
                dfb_surface_unlock_buffer( dst_surface, &lock );
                return D_OOM();
           }
-          
+
           data->buffer->SeekTo( data->buffer, data->img_offset );
-          
+
           for (y = data->height-1; y >= 0 && cb_result == DIRCR_OK; y--) {
                ret = bmp_decode_rgb_row( data, y );
                if (ret)
                     break;
-               
+
                if (direct) {
                     DFBRectangle r = { rect.x, rect.y+y, data->width, 1 };
-                    
+
                     dfb_copy_buffer_32( data->image+y*data->width,
                                         lock.addr, lock.pitch, &r, dst_surface, &clip );
-                                        
+
                     if (data->render_callback) {
                          r = (DFBRectangle) { 0, y, data->width, 1 };
                          cb_result = data->render_callback( &r,
@@ -469,7 +469,7 @@ IDirectFBImageProvider_BMP_RenderTo( IDirectFBImageProvider *thiz,
                     }
                }
           }
-          
+
           if (!direct) {
                dfb_scale_linear_32( data->image, data->width, data->height,
                                     lock.addr, lock.pitch, &rect, dst_surface, &clip );
@@ -479,7 +479,7 @@ IDirectFBImageProvider_BMP_RenderTo( IDirectFBImageProvider *thiz,
                     data->render_callback( &r, data->render_callback_ctx );
                }
           }
-          
+
           if (cb_result == DIRCR_OK) {
                data->buffer->Release( data->buffer );
                data->buffer = NULL;
@@ -499,9 +499,9 @@ IDirectFBImageProvider_BMP_RenderTo( IDirectFBImageProvider *thiz,
                data->render_callback( &r, data->render_callback_ctx );
           }
      }
-     
+
      dfb_surface_unlock_buffer( dst_surface, &lock );
-     
+
      return ret;
 }
 
