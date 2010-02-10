@@ -593,8 +593,8 @@ dump_mixer_config( const DFBScreenMixerConfig *config )
      }
 
      if (config->flags & DSMCONF_BACKGROUND)
-          printf( "Background:    0x%02x, 0x%02x, 0x%02x (RGB)\n",
-                  config->background.r, config->background.g, config->background.b );
+          printf( "Background:    0x%02x, 0x%02x, 0x%02x, 0x%02x (ARGB)\n",
+                  config->background.a, config->background.r, config->background.g, config->background.b );
 
      printf( "\n" );
 }
@@ -628,7 +628,7 @@ resolution_name( DFBScreenOutputResolution resolution )
 }
 
 static const char *
-scan_mode_name( DFBScreenEncoderTestPicture scan_mode )
+scan_mode_name( DFBScreenEncoderScanMode scan_mode )
 {
      int i;
 
