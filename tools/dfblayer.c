@@ -55,6 +55,9 @@ static DFBDisplayLayerDescription  desc;
 static DFBDisplayLayerID         id           = DLID_PRIMARY;
 static int                       width        = 0;
 static int                       height       = 0;
+static DFBBoolean                set_dest_coord = DFB_FALSE;
+static DFBBoolean                set_dest_dim   = DFB_FALSE;
+static DFBRectangle              dest;
 static DFBSurfacePixelFormat     format       = DSPF_UNKNOWN;
 static DFBDisplayLayerBufferMode buffermode   = -1;
 static int                       opacity      = -1;
@@ -173,6 +176,8 @@ print_usage (const char *prg_name)
      fprintf (stderr, "Options:\n");
      fprintf (stderr, "   -l,  --layer            <id>              Use the specified layer, default is primary\n");
      fprintf (stderr, "   -m,  --mode             <width>x<height>  Change the resolution (pixels)\n");
+     fprintf (stderr, "   -d,  --dest             <width>x<height>  Change the destination resolution (pixels)\n");
+     fprintf (stderr, "   -c,  --coord            <x>x<y>           Change the destination coordinates (pixels)\n");
      fprintf (stderr, "   -f,  --format           <pixelformat>     Change the pixel format\n");
      fprintf (stderr, "   -b,  --buffer           <buffermode>      Change the buffer mode (single/video/system)\n");
      fprintf (stderr, "   -o,  --opacity          <opacity>         Change the layer's opacity (0-255)\n");
@@ -240,10 +245,12 @@ parse_layer( const char *arg )
 }
 
 static DFBBoolean
-parse_mode( const char *arg )
+parse_mode( const char *arg,
+            int        *width_,
+            int        *height_ )
 {
-     if (sscanf( arg, "%dx%d", &width, &height ) != 2 ||
-         width < 1 || height < 1)
+     if (sscanf( arg, "%dx%d", width_, height_ ) != 2 ||
+         *width_ < 0 || *height_ < 0)
      {
           fprintf (stderr, "\nInvalid mode specified!\n\n" );
           return DFB_FALSE;
@@ -368,8 +375,36 @@ parse_command_line( int argc, char *argv[] )
                     return DFB_FALSE;
                }
 
-               if (!parse_mode( argv[n] ))
+               if (!parse_mode( argv[n], &width, &height ))
                     return DFB_FALSE;
+
+               continue;
+          }
+
+          if (strcmp (arg, "-d") == 0 || strcmp (arg, "--dest") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return DFB_FALSE;
+               }
+
+               if (!parse_mode( argv[n], &dest.w, &dest.h ))
+                    return DFB_FALSE;
+
+               set_dest_dim = DFB_TRUE;
+
+               continue;
+          }
+
+          if (strcmp (arg, "-c") == 0 || strcmp (arg, "--coord") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return DFB_FALSE;
+               }
+
+               if (!parse_mode( argv[n], &dest.x, &dest.y ))
+                    return DFB_FALSE;
+
+               set_dest_coord = DFB_TRUE;
 
                continue;
           }
@@ -539,6 +574,22 @@ set_configuration( void )
                fprintf( stderr, "Rotation (%d) not supported!\n\n", level );
           else if (ret)
                DirectFBError( "IDirectFBDisplayLayer::SetRotation() failed", ret );
+     }
+
+     if (set_dest_dim) {
+          ret = layer->SetScreenRectangle( layer,
+                                           dest.x, dest.y, dest.w, dest.h );
+          if (ret == DFB_UNSUPPORTED)
+               fprintf( stderr, "ScreenRectangle not supported!\n\n" );
+          else if (ret)
+               DirectFBError( "IDirectFBDisplayLayer::SetScreenRectangle() failed", ret );
+     }
+     else if (set_dest_coord) {
+          ret = layer->SetScreenPosition( layer, dest.x, dest.y );
+          if (ret == DFB_UNSUPPORTED)
+               fprintf( stderr, "ScreenPosition not supported!\n\n" );
+          else if (ret)
+               DirectFBError( "IDirectFBDisplayLayer::SetScreenPosition() failed", ret );
      }
 
 
