@@ -106,6 +106,8 @@ Inspector_Run( Inspector *inspector )
           DSPF_NV16,
           DSPF_AYUV,
           DSPF_YUV444P,
+          DSPF_AVYU,
+          DSPF_VYU,
      };
 
      int                    i, j, n;
