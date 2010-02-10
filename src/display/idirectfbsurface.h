@@ -50,8 +50,42 @@ typedef struct {
      DFBSurfaceCapabilities caps;            /* capabilities */
 
      struct {
-         DFBRectangle       wanted;          /* passed to GetSubSurface */
-         DFBRectangle       granted;         /* clipped by parent on creation */
+         /* 'wanted' is passed to GetSubSurface(), it doesn't matter if it's
+            too large or has negative starting coordinates as long as it
+            intersects with the 'granted' rectangle of the parent.
+            'wanted' should be seen as the origin for operations on that
+            surface. Non sub surfaces have a 'wanted' rectangle
+            of '{ 0, 0, width, height }'. 'wanted' is calculated just once
+            during surface creation. */
+         DFBRectangle       wanted;
+         /* 'granted' is the intersection of the 'wanted' rectangle and the
+            'granted' one of the parent. If they do not intersect DFB_INVAREA
+            is returned. For non sub surfaces it's the same as the 'wanted'
+            rectangle, because it's the rectangle describing the whole
+            surface. 'granted' is calculated just once during surface
+            creation */
+         DFBRectangle       granted;
+         /* 'current' is the intersection of the 'granted' rectangle and the
+            surface extents. SetClip() and many other functions are limited
+            by this.
+            This way sub surface area information is preserved during surface
+            resizing, e.g. when resizing a window. Calling SetClip() with NULL
+            causes the clipping region to exactly cover the 'current'
+            rectangle, also the flag 'clip_set' is cleared causing the
+            clipping region to be set to the new 'current' after resizing. If
+            SetClip() is called with a clipping region specified, an
+            intersection is done with the 'wanted' rectangle that is then
+            stored in 'clip_wanted' and 'clip_set' is set. However, if there
+            is no intersection 'DFB_INVARG' is returned, otherwise another
+            intersection is made with the 'current' rectangle and gets applied
+            to the surface's state.
+            Each resize, after the 'current' rectangle is updated, the
+            clipping region is set to NULL or 'clip_wanted' depending on
+            'clip_set'. This way even clipping regions are restored or
+            extended automatically. It's now possible to create a fullscreen
+            primary and call SetVideoMode() with different resolutions or
+            pixelformats several times without the need for updating the
+            primary surface by recreating it */
          DFBRectangle       current;         /* currently available area */
          DFBInsets          insets;          /* actually set by the window manager */
      } area;
