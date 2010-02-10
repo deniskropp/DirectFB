@@ -489,7 +489,6 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
 
      do {
           *ret_width = width;
-          length ++;
 
           current = DIRECT_UTF8_GET_CHAR( string );
 
@@ -501,6 +500,8 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
                *ret_str_length = length;
                *ret_width = width;
           }
+
+          length++;
 
           ret = dfb_font_decode_character( font, data->encoding, current, &index );
           if (ret)
