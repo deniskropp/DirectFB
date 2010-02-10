@@ -230,9 +230,9 @@ bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
      /* Palette */
      if (data->indexed) {
           void *src;
-          int   i;
+          int   i, j;
           
-          data->palette = src = D_MALLOC( data->num_colors*4 );
+          data->palette = src = D_MALLOC( 256*4 );
           if (!data->palette)
                return D_OOM();
               
@@ -248,7 +248,18 @@ bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
                c.g = ((u8*)src)[i*4+1];
                c.b = ((u8*)src)[i*4+0];
                
+               /* For faster lookup, fill some of the 256 entries with duplicate data
+                  for every bit position */
+               switch (data->num_colors) {
+                    case 2:
+                         for (j = 0; j < 8; j++)
+                              data->palette[i << j] = c;
+                         break;
+                    case 4:
                data->palette[i] = c;
+                         data->palette[i << 4] = c;
+                         break;
+               }
           }
      }
      
@@ -272,7 +283,7 @@ bmp_decode_rgb_row( IDirectFBImageProvider_BMP_data *data, int row )
      
      switch (data->depth) {
           case 1:
-               for (i = 0; data->width; i++) {
+               for (i = 0; i < data->width; i++) {
                     unsigned idx = buf[i>>3] & (0x80 >> (i&7));
                     DFBColor c   = data->palette[idx];
                     dst[i] = c.b | (c.g << 8) | (c.r << 16) | (c.a << 24);
@@ -280,7 +291,7 @@ bmp_decode_rgb_row( IDirectFBImageProvider_BMP_data *data, int row )
                break;
           case 4:
                for (i = 0; i < data->width; i++) {
-                    unsigned idx = buf[i>>1] & (0xf0 >> (i&1));
+                    unsigned idx = buf[i>>1] & (0xf0 >> ((i&1) << 2));
                     DFBColor c   = data->palette[idx];
                     dst[i] = c.b | (c.g << 8) | (c.r << 16) | (c.a << 24);
                }
@@ -349,7 +360,7 @@ IDirectFBImageProvider_BMP_Destruct( IDirectFBImageProvider *thiz )
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_BMP_AddRef( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider_BMP )
@@ -359,7 +370,7 @@ IDirectFBImageProvider_BMP_AddRef( IDirectFBImageProvider *thiz )
      return DFB_OK;
 }
 
-static DFBResult
+static DirectResult
 IDirectFBImageProvider_BMP_Release( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider_BMP )
