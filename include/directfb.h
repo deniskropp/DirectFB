@@ -2214,7 +2214,8 @@ typedef enum {
      DSOC_CVBS           = 0x00000008, /* CVBS connector */
      DSOC_SCART2         = 0x00000010, /* 2nd SCART connector */
      DSOC_COMPONENT      = 0x00000020, /* Component video connector */
-     DSOC_HDMI           = 0x00000040  /* HDMI connector */
+     DSOC_HDMI           = 0x00000040, /* HDMI connector */
+     DSOC_656            = 0x00000080, /* DVO connector */
 } DFBScreenOutputConnectors;
 
 /*
