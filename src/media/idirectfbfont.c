@@ -672,17 +672,43 @@ IDirectFBFont_CreateFromBuffer( IDirectFBDataBuffer       *buffer,
      /* we need to be able to seek (this implies non-streamed,
         so we also know the size) so we can reuse the buffer */
      if (buffer->SeekTo( buffer, 0 ) == DFB_OK) {
-          unsigned int size;
+          unsigned int size, got;
 
           /* get the "file" length */
           buffer->GetLength( buffer, &size );
-          ctx.content = D_CALLOC( 1, size );
+
+          ctx.content = D_MALLOC( size );
           if (!ctx.content)
                return DR_NOLOCALMEMORY;
 
-          buffer->WaitForData( buffer, size );
-          buffer->GetData( buffer, size, ctx.content, &ctx.content_size );
+          ctx.content_size = 0;
+
+          while (ctx.content_size < size) {
+               unsigned int get = size - ctx.content_size;
+
+               if (get > 8192)
+                    get = 8192;
+
+               ret = buffer->WaitForData( buffer, get );
+               if (ret) {
+                    D_DERROR( ret, "%s: WaitForData failed!\n", __FUNCTION__ );
+                    break;
+               }
+
+               ret = buffer->GetData( buffer, get, ctx.content + ctx.content_size, &got );
+               if (ret) {
+                    D_DERROR( ret, "%s: GetData failed!\n", __FUNCTION__ );
+                    break;
+               }
+
+               if (!got)
+                    break;
+
+               ctx.content_size += got;
+          }
+
           if (ctx.content_size != size) {
+               D_ERROR( "%s: Got size %u differs from supposed %u!\n", __FUNCTION__, ctx.content_size, size );
                D_FREE( ctx.content );
                return DFB_FAILURE;
           }
