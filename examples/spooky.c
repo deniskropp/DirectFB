@@ -5,6 +5,7 @@
 
 #include <math.h>
 
+#include <directfb.h>
 #include <directfb_keynames.h>
 
 #include <divine.h>
