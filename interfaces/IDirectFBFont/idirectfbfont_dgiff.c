@@ -161,7 +161,7 @@ Construct( IDirectFBFont               *thiz,
      DGIFFGlyphInfo  *glyphs;
      DGIFFGlyphRow   *row;
      DGIFFImplData   *data;
-     char            *filename;
+     const char      *filename;
      CoreSurfaceConfig config;
 
      /* use the filename for backwards compatibility */

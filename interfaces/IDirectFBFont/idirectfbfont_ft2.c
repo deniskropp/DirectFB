@@ -768,7 +768,7 @@ Construct( IDirectFBFont               *thiz,
      bool                load_mono = false;
      u32                 mask = 0;
      unsigned int        size = 0, size_read = 0;
-     char               *filename = ctx->filename; /* intended for printf only */
+     const char         *filename = ctx->filename; /* intended for printf only */
 
      D_DEBUG( "DirectFB/FontFT2: "
               "Construct font from file `%s' (index %d) at pixel size %d x %d.\n",
