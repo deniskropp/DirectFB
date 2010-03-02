@@ -120,7 +120,7 @@ main( int argc, char *argv[] )
      if (ret)
           return ret;
 
-     ret = fusion_shm_pool_allocate( pool, sizeof(struct sharedData), true, true, &shared );
+     ret = fusion_shm_pool_allocate( pool, sizeof(struct sharedData), true, true, (void**)&shared );
      if (ret)
           return ret;
 
