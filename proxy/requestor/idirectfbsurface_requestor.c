@@ -1115,6 +1115,102 @@ IDirectFBSurface_Requestor_SetIndexTranslation( IDirectFBSurface *thiz,
      return DFB_UNIMPLEMENTED;
 }
 
+#define RLE16_KEY   0xf001
+
+static bool
+rle16_encode( const u16    *src,
+              u16          *dst,
+              unsigned int  num,
+              unsigned int *ret_num )
+{
+     unsigned int n, last, count = 0, out = 0;
+
+     for (n=0; n<num; n++) {
+          if (out + 3 > num) {
+               *ret_num = num;
+               return false;
+          }
+
+          if (count > 0) {
+               D_ASSERT( src[n] == last );
+
+               count++;
+          }
+          else {
+               count = 1;
+               last  = src[n];
+          }
+
+          if (n == num-1 || src[n+1] != last) {
+               if (count > 2 || (count > 1 && last == RLE16_KEY)) {
+                    dst[out++] = RLE16_KEY;
+                    dst[out++] = count;
+                    dst[out++] = last;
+               }
+               else {
+                    if (count > 1 || last == RLE16_KEY)
+                         dst[out++] = last;
+
+                    dst[out++] = last;
+               }
+
+               count = 0;
+          }
+     }
+
+     *ret_num = out;
+
+     return true;
+}
+
+#define RLE32_KEY   0xf0012345
+
+static bool
+rle32_encode( const u32    *src,
+              u32          *dst,
+              unsigned int  num,
+              unsigned int *ret_num )
+{
+     unsigned int n, last, count = 0, out = 0;
+
+     for (n=0; n<num; n++) {
+          if (out + 3 > num) {
+               *ret_num = num;
+               return false;
+          }
+
+          if (count > 0) {
+               D_ASSERT( src[n] == last );
+
+               count++;
+          }
+          else {
+               count = 1;
+               last  = src[n];
+          }
+
+          if (n == num-1 || src[n+1] != last) {
+               if (count > 2 || (count > 1 && last == RLE32_KEY)) {
+                    dst[out++] = RLE32_KEY;
+                    dst[out++] = count;
+                    dst[out++] = last;
+               }
+               else {
+                    if (count > 1 || last == RLE32_KEY)
+                         dst[out++] = last;
+
+                    dst[out++] = last;
+               }
+
+               count = 0;
+          }
+     }
+
+     *ret_num = out;
+
+     return true;
+}
+
 static DFBResult
 IDirectFBSurface_Requestor_Write( IDirectFBSurface   *thiz,
                                   const DFBRectangle *rect,
@@ -1124,28 +1220,87 @@ IDirectFBSurface_Requestor_Write( IDirectFBSurface   *thiz,
      DFBResult    ret = DFB_OK;
      int          y;
      DFBRectangle r;
+     DFBSurfacePixelFormat format;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
-     if (!rect || !ptr || pitch < 1)
+     if (!rect || !ptr)
           return DFB_INVARG;
+
+     thiz->GetPixelFormat( thiz, &format );
 
      r.x = rect->x;
      r.y = rect->y;
      r.w = rect->w;
      r.h = 1;
 
-     for (y=0; y<rect->h; y++) {
-          ret = voodoo_manager_request( data->manager, data->instance,
-                                        IDIRECTFBSURFACE_METHOD_ID_Write, VREQ_QUEUE, NULL,
-                                        VMBT_DATA, sizeof(DFBRectangle), &r,
-                                        VMBT_DATA, pitch /* FIXME */, ptr + y * pitch,
-                                        VMBT_INT, pitch,
-                                        VMBT_NONE );
-          if (ret)
-               break;
+     switch (format) {
+          case DSPF_RGB16: {
+               unsigned int num;
+               u16          buf[rect->w];
 
-          r.y++;
+               for (y=0; y<rect->h; y++) {
+                    bool encoded = rle16_encode( ptr + y * pitch, buf, rect->w, &num );
+
+                    //D_INFO( "%3d: %u -> %u\n", r.y, rect->w, num );
+
+                    ret = voodoo_manager_request( data->manager, data->instance,
+                                                  IDIRECTFBSURFACE_METHOD_ID_Write, VREQ_QUEUE, NULL,
+                                                  VMBT_UINT, encoded ? 2 : 0,
+                                                  VMBT_DATA, sizeof(DFBRectangle), &r,
+                                                  VMBT_DATA, DFB_BYTES_PER_LINE( format, num ),
+                                                             encoded ? buf : (ptr + y * pitch),
+                                                  VMBT_INT, ABS(pitch),
+                                                  VMBT_NONE );
+                    if (ret)
+                         break;
+
+                    r.y++;
+               }
+               break;
+          }
+
+          case DSPF_RGB32:
+          case DSPF_ARGB: {
+               unsigned int num;
+               u32          buf[rect->w];
+
+               for (y=0; y<rect->h; y++) {
+                    bool encoded = rle32_encode( ptr + y * pitch, buf, rect->w, &num );
+
+                    //D_INFO( "%3d: %u -> %u\n", r.y, rect->w, num );
+
+                    ret = voodoo_manager_request( data->manager, data->instance,
+                                                  IDIRECTFBSURFACE_METHOD_ID_Write, VREQ_QUEUE, NULL,
+                                                  VMBT_UINT, encoded ? 4 : 0,
+                                                  VMBT_DATA, sizeof(DFBRectangle), &r,
+                                                  VMBT_DATA, DFB_BYTES_PER_LINE( format, num ),
+                                                             encoded ? buf : (ptr + y * pitch),
+                                                  VMBT_INT, ABS(pitch),
+                                                  VMBT_NONE );
+                    if (ret)
+                         break;
+
+                    r.y++;
+               }
+               break;
+          }
+
+          default:
+               for (y=0; y<rect->h; y++) {
+                    ret = voodoo_manager_request( data->manager, data->instance,
+                                                  IDIRECTFBSURFACE_METHOD_ID_Write, VREQ_QUEUE, NULL,
+                                                  VMBT_UINT, false,
+                                                  VMBT_DATA, sizeof(DFBRectangle), &r,
+                                                  VMBT_DATA, DFB_BYTES_PER_LINE( format, rect->w ), ptr + y * pitch,
+                                                  VMBT_INT, ABS(pitch),
+                                                  VMBT_NONE );
+                    if (ret)
+                         break;
+
+                    r.y++;
+               }
+               break;
      }
 
      return ret;

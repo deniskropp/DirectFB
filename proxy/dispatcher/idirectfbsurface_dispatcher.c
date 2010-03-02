@@ -1490,11 +1490,112 @@ Dispatch_ReleaseSource( IDirectFBSurface *thiz, IDirectFBSurface *real,
      return DFB_OK;
 }
 
+#define RLE16_KEY   0xf001
+
+static void
+rle16_decode( const u16    *src,
+              u16          *dst,
+              unsigned int  num )
+{
+     unsigned int n = 0, last, count, out = 0;
+
+     while (out < num) {
+          last = src[n++];
+
+          if (last == RLE16_KEY) {
+               count = src[n++];
+
+               if (count == RLE16_KEY) {
+                    dst[out++] = RLE16_KEY;
+               }
+               else {
+                    last = src[n++];
+
+                    while (count >= 4) {
+                         dst[out+0] =
+                         dst[out+1] =
+                         dst[out+2] =
+                         dst[out+3] = last;
+
+                         out   += 4;
+                         count -= 4;
+                    }
+
+                    while (count >= 2) {
+                         dst[out+0] =
+                         dst[out+1] = last;
+
+                         out   += 2;
+                         count -= 2;
+                    }
+
+                    while (count--)
+                         dst[out++] = last;
+               }
+          }
+          else
+               dst[out++] = last;
+     }
+
+     D_ASSERT( out == num );
+}
+
+#define RLE32_KEY   0xf0012345
+
+static void
+rle32_decode( const u32    *src,
+              u32          *dst,
+              unsigned int  num )
+{
+     unsigned int n = 0, last, count, out = 0;
+
+     while (out < num) {
+          last = src[n++];
+
+          if (last == RLE32_KEY) {
+               count = src[n++];
+
+               if (count == RLE32_KEY) {
+                    dst[out++] = RLE32_KEY;
+               }
+               else {
+                    last = src[n++];
+
+                    while (count >= 4) {
+                         dst[out+0] =
+                         dst[out+1] =
+                         dst[out+2] =
+                         dst[out+3] = last;
+
+                         out   += 4;
+                         count -= 4;
+                    }
+
+                    while (count >= 2) {
+                         dst[out+0] =
+                         dst[out+1] = last;
+
+                         out   += 2;
+                         count -= 2;
+                    }
+
+                    while (count--)
+                         dst[out++] = last;
+               }
+          }
+          else
+               dst[out++] = last;
+     }
+
+     D_ASSERT( out == num );
+}
+
 static DirectResult
 Dispatch_Write( IDirectFBSurface *thiz, IDirectFBSurface *real,
                 VoodooManager *manager, VoodooRequestMessage *msg )
 {
      VoodooMessageParser  parser;
+     unsigned int         encoded;
      const DFBRectangle  *rect;
      const void          *ptr;
      int                  pitch;
@@ -1502,12 +1603,39 @@ Dispatch_Write( IDirectFBSurface *thiz, IDirectFBSurface *real,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
 
      VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_UINT( parser, encoded );
      VOODOO_PARSER_GET_DATA( parser, rect );
      VOODOO_PARSER_GET_DATA( parser, ptr );
      VOODOO_PARSER_GET_INT( parser, pitch );
      VOODOO_PARSER_END( parser );
 
-     real->Write( real, rect, ptr, pitch );
+     if (encoded) {
+          switch (encoded) {
+               case 2: {
+                    u16 buf[rect->w];
+
+                    rle16_decode( ptr, buf, rect->w );
+
+                    real->Write( real, rect, buf, pitch );
+                    break;
+               }
+
+               case 4: {
+                    u32 buf[rect->w];
+
+                    rle32_decode( ptr, buf, rect->w );
+
+                    real->Write( real, rect, buf, pitch );
+                    break;
+               }
+
+               default:
+                    D_UNIMPLEMENTED();
+                    break;
+          }
+     }
+     else
+          real->Write( real, rect, ptr, pitch );
 
      return DFB_OK;
 }
