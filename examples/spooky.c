@@ -5,7 +5,12 @@
 
 #include <math.h>
 
+#include <directfb_keynames.h>
+
 #include <divine.h>
+
+
+static const DirectFBKeySymbolNames(m_symbols);
 
 
 static DiVine *m_divine;
@@ -232,7 +237,8 @@ static Handler m_text = {
 static void
 process_text_special( FILE *stream )
 {
-     int ms = 0;
+     int  i, ms = 0;
+     char buf[31];
 
      fscanf( stream, "%d", &ms );
 
@@ -270,6 +276,17 @@ process_text_special( FILE *stream )
                          case 'd':
                               divine_send_symbol( m_divine, DIKS_CURSOR_DOWN );
                               break;
+                    }
+                    break;
+
+               case 'S':
+                    fscanf( stream, "%30s", buf );
+
+                    for (i=0; m_symbols[i].symbol != DIKS_NULL; i++) {
+                         if (!strcasecmp( buf, m_symbols[i].name )) {
+                              divine_send_symbol( m_divine, m_symbols[i].symbol );
+                              break;
+                         }
                     }
                     break;
           }
@@ -318,7 +335,7 @@ main( int argc, char *argv[] )
                                 "               (circular)         o <radius>                 M20c1000o100\n"
                                 "                                  s <step>                   M20c1000s30o50\n"
                                 "  t    Entering text              <ms> <Text to enter>       t0 directfb.org\n"
-                                "  T    Special characters/keys    <ms> {b|d|r|Cx}            T3 CuClbbr\n"
+                                "  T    Special characters/keys    <ms> {b|d|r|Cx|S<symbol>}  T3 CuClbbr Sprint Sf11\n"
                                 "                                        a e e Cl (left)\n"
                                 "                                        c l t Cr (right)\n"
                                 "                                        k     Cu (up)\n"
