@@ -37,6 +37,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/wait.h>
 
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -83,7 +84,7 @@ struct __V_VoodooServer {
 
 /**************************************************************************************************/
 
-static DirectResult accept_connection( VoodooServer *server );
+static DirectResult accept_connection( VoodooServer *server, int fd );
 
 /**************************************************************************************************/
 
@@ -257,16 +258,31 @@ voodoo_server_run( VoodooServer *server )
           }
 
           if (listener) {
+               int              fd;
+               struct sockaddr  addr;
+               socklen_t        addrlen = sizeof(addr);
+
                pf.fd     = server->fd;
                pf.events = POLLIN;
 
                switch (poll( &pf, 1, 200 )) {
                     default:
+                         fd = accept( server->fd, &addr, &addrlen );
+                         if (fd < 0) {
+                              D_PERROR( "Voodoo/Server: Could not accept() incoming connection!\n" );
+                              break;
+                         }
+
+#if 0
+                         accept_connection( server, fd );
+#else
                          switch (fork()) {
                               case 0:
                                    listener = false;
 
-                                   accept_connection( server );
+                                   close( server->fd );
+
+                                   accept_connection( server, fd );
                                    break;
 
                               case -1:
@@ -274,11 +290,15 @@ voodoo_server_run( VoodooServer *server )
                                    break;
 
                               default:
+                                   close( fd );
                                    break;
                          }
+#endif
                          break;
 
                     case 0:
+                         waitpid( -1, NULL, WNOHANG );
+
                          D_DEBUG( "Voodoo/Server: Timeout during poll()\n" );
                          break;
 
@@ -325,11 +345,9 @@ voodoo_server_destroy( VoodooServer *server )
 /**************************************************************************************************/
 
 static DirectResult
-accept_connection( VoodooServer *server )
+accept_connection( VoodooServer *server, int fd )
 {
      DirectResult     ret;
-     struct sockaddr  addr;
-     socklen_t        addrlen = sizeof(addr);
      Connection      *connection;
 
      connection = D_CALLOC( 1, sizeof(Connection) );
@@ -338,13 +356,7 @@ accept_connection( VoodooServer *server )
           return DR_NOLOCALMEMORY;
      }
 
-     connection->fd = accept( server->fd, &addr, &addrlen );
-     if (connection->fd < 0) {
-          ret = errno2result( errno );
-          D_PERROR( "Voodoo/Server: Could not accept() incoming connection!\n" );
-          D_FREE( connection );
-          return ret;
-     }
+     connection->fd = fd;
 
      D_INFO( "Voodoo/Server: Accepted connection.\n" );
 
