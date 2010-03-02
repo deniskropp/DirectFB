@@ -1415,6 +1415,7 @@ manager_lock_response( VoodooManager          *manager,
      }
 
      if (manager->quit) {
+          D_ERROR( "Voodoo/Manager: Quit while waiting for response!\n" );
           pthread_mutex_unlock( &manager->response.lock );
           return DR_DESTROYED;
      }
