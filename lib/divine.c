@@ -34,8 +34,97 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "divine.h"
+#include <direct/direct.h>
 
+#include <misc/conf.h>
+
+#include "divine.h"
+#include "idivine.h"
+
+
+/**********************************************************************************************************************/
+
+static DFBResult CreateRemote( const char *host, int session, IDiVine **ret_interface );
+
+/**********************************************************************************************************************/
+
+DFBResult
+DiVineInit( int *argc, char *(*argv[]) )
+{
+     DFBResult ret;
+
+     ret = dfb_config_init( argc, argv );
+     if (ret)
+          return ret;
+
+     return DFB_OK;
+}
+
+/*
+ * Programs have to call this to get the super interface
+ * which is needed to access other functions
+ */
+DFBResult
+DiVineCreate( IDiVine **interface )
+{
+     DFBResult  ret;
+     IDiVine   *divine;
+
+     if (!dfb_config) {
+          /*  don't use D_ERROR() here, it uses dfb_config  */
+          direct_log_printf( NULL, "(!) DiVineCreate: DiVineInit has to be called before DiVineCreate!\n" );
+          return DFB_INIT;
+     }
+
+     if (!interface)
+          return DFB_INVARG;
+
+     direct_initialize();
+
+     if (dfb_config->remote.host)
+          return CreateRemote( dfb_config->remote.host, dfb_config->remote.session, interface );
+
+     DIRECT_ALLOCATE_INTERFACE( divine, IDiVine );
+
+     ret = IDiVine_Construct( divine );
+     if (ret)
+          return ret;
+
+     *interface = divine;
+
+     return DFB_OK;
+}
+
+/**********************************************************************************************************************/
+
+static DFBResult
+CreateRemote( const char *host, int session, IDiVine **ret_interface )
+{
+     DFBResult             ret;
+     DirectInterfaceFuncs *funcs;
+     void                 *interface;
+
+     D_ASSERT( host != NULL );
+     D_ASSERT( ret_interface != NULL );
+
+     ret = DirectGetInterface( &funcs, "IDiVine", "Requestor", NULL, NULL );
+     if (ret)
+          return ret;
+
+     ret = funcs->Allocate( &interface );
+     if (ret)
+          return ret;
+
+     ret = funcs->Construct( interface, host, session );
+     if (ret)
+          return ret;
+
+     *ret_interface = interface;
+
+     return DFB_OK;
+}
+
+/**********************************************************************************************************************/
 
 struct _DiVine {
      int fd; /* The file descriptor of the connection (pipe) */

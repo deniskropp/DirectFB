@@ -14,11 +14,11 @@
 static const DirectFBKeySymbolNames(m_symbols);
 
 
-static DiVine *m_divine;
-static int     m_x;
-static int     m_y;
+static IDiVine *m_divine;
+static int      m_x;
+static int      m_y;
 
-static int     m_sin16_16[360 * 16];
+static int      m_sin16_16[360 * 16];
 
 
 static inline int
@@ -55,7 +55,7 @@ process_button( FILE *stream )
 
      event.button = fgetc(stream) - '0';
 
-     divine_send_event( m_divine, &event );
+     m_divine->SendEvent( m_divine, &event );
 }
 
 static Handler m_button = {
@@ -88,7 +88,7 @@ process_motion( FILE *stream )
                break;
      }
 
-     divine_send_event( m_divine, &event );
+     m_divine->SendEvent( m_divine, &event );
 }
 
 static Handler m_motion = {
@@ -130,7 +130,7 @@ process_motion_special( FILE *stream )
 
                          event.axisabs = _x = m_x + ((ex * cos_16_16( (i % 360) << 16 )) >> 16) - ex;
 
-                         divine_send_event( m_divine, &event );
+                         m_divine->SendEvent( m_divine, &event );
 
 
                          event.flags = DIEF_AXISABS;
@@ -139,7 +139,7 @@ process_motion_special( FILE *stream )
 
                          event.axisabs = _y = m_y + ((ex * sin_16_16( (i % 360) << 16 )) >> 16);
 
-                         divine_send_event( m_divine, &event );
+                         m_divine->SendEvent( m_divine, &event );
 
 
                          usleep( ms * 1000 );
@@ -160,7 +160,7 @@ process_motion_special( FILE *stream )
 
                          event.axisabs = _x = m_x + ex * i;
 
-                         divine_send_event( m_divine, &event );
+                         m_divine->SendEvent( m_divine, &event );
 
 
                          event.flags = DIEF_AXISABS;
@@ -169,7 +169,7 @@ process_motion_special( FILE *stream )
 
                          event.axisabs = _y = m_y + ey * i;
 
-                         divine_send_event( m_divine, &event );
+                         m_divine->SendEvent( m_divine, &event );
 
 
                          usleep( ms * 1000 );
@@ -222,7 +222,7 @@ process_text( FILE *stream )
           if (c == '\n')
                break;
 
-          divine_send_symbol( m_divine, c );
+          m_divine->SendSymbol( m_divine, c );
 
           leading = false;
 
@@ -249,33 +249,33 @@ process_text_special( FILE *stream )
                     return;
 
                case 'b':
-                    divine_send_symbol( m_divine, DIKS_BACKSPACE );
+                    m_divine->SendSymbol( m_divine, DIKS_BACKSPACE );
                     break;
 
                case 'd':
-                    divine_send_symbol( m_divine, DIKS_DELETE );
+                    m_divine->SendSymbol( m_divine, DIKS_DELETE );
                     break;
 
                case 'r':
-                    divine_send_symbol( m_divine, DIKS_RETURN );
+                    m_divine->SendSymbol( m_divine, DIKS_RETURN );
                     break;
 
                case 'C':
                     switch (fgetc( stream )) {
                          case 'l':
-                              divine_send_symbol( m_divine, DIKS_CURSOR_LEFT );
+                              m_divine->SendSymbol( m_divine, DIKS_CURSOR_LEFT );
                               break;
 
                          case 'r':
-                              divine_send_symbol( m_divine, DIKS_CURSOR_RIGHT );
+                              m_divine->SendSymbol( m_divine, DIKS_CURSOR_RIGHT );
                               break;
 
                          case 'u':
-                              divine_send_symbol( m_divine, DIKS_CURSOR_UP );
+                              m_divine->SendSymbol( m_divine, DIKS_CURSOR_UP );
                               break;
 
                          case 'd':
-                              divine_send_symbol( m_divine, DIKS_CURSOR_DOWN );
+                              m_divine->SendSymbol( m_divine, DIKS_CURSOR_DOWN );
                               break;
                     }
                     break;
@@ -285,7 +285,7 @@ process_text_special( FILE *stream )
 
                     for (i=0; m_symbols[i].symbol != DIKS_NULL; i++) {
                          if (!strcasecmp( buf, m_symbols[i].name )) {
-                              divine_send_symbol( m_divine, m_symbols[i].symbol );
+                              m_divine->SendSymbol( m_divine, m_symbols[i].symbol );
                               break;
                          }
                     }
@@ -314,8 +314,11 @@ static Handler *m_handlers[] = {
 int
 main( int argc, char *argv[] )
 {
-     int   c;
-     FILE *stream;
+     DFBResult  ret;
+     int        c;
+     FILE      *stream;
+
+     DiVineInit( &argc, &argv );
 
      if (argc > 1) {
           if (!strcmp( argv[1], "--help" ) || argc > 2) {
@@ -356,9 +359,11 @@ main( int argc, char *argv[] )
           stream = stdin;
 
      /* open the connection to the input driver */
-     m_divine = divine_open( "/tmp/divine" );
-     if (!m_divine)
-          return -3;
+     ret = DiVineCreate( &m_divine );
+     if (ret) {
+          D_DERROR( ret, "DiVineCreate() failed!\n" );
+          return ret;
+     }
 
      /* Init 1/16th step sin table */
      for (c=0; c<360 * 16; c++)
@@ -371,7 +376,7 @@ main( int argc, char *argv[] )
      }
 
      /* close the connection */
-     divine_close( m_divine );
+     m_divine->Release( m_divine );
 
      if (stream != stdin)
           fclose( stream );

@@ -30,6 +30,54 @@
 #include <directfb.h>
 
 /*
+ * Main interface of DiVine, created by DiVineCreate().
+ */
+DECLARE_INTERFACE( IDiVine )
+
+/*
+ * Parses the command-line and initializes some variables. You
+ * absolutely need to call this before doing anything else.
+ * Removes all options used by DiVine from argv.
+ */
+DFBResult DiVineInit( int *argc, char *(*argv[]) );
+
+/*
+ * Creates the super interface.
+ */
+DFBResult DiVineCreate(
+                        IDiVine **interface  /* pointer to the created interface */
+                      );
+
+/***********
+ * IDiVine *
+ ***********/
+
+/*
+ * <i>No summary yet...</i>
+ */
+DEFINE_INTERFACE(   IDiVine,
+
+   /** Events **/
+
+     /*
+      * Sends an input event.
+      */
+     DFBResult (*SendEvent) (
+          IDiVine                 *thiz,
+          const DFBInputEvent     *event
+     );
+
+     /*
+      * Sends an input key symbol.
+      */
+     DFBResult (*SendSymbol) (
+          IDiVine                 *thiz,
+          DFBInputDeviceKeySymbol  symbol
+     );
+);
+
+
+/*
  * The DiVine struct represents the connection to the input driver.
  */
 typedef struct _DiVine DiVine;
