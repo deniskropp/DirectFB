@@ -904,6 +904,94 @@ IDirectFBWindow_Requestor_ResizeSurface( IDirectFBWindow *thiz,
      return ret;
 }
 
+static DFBResult
+IDirectFBWindow_Requestor_Bind( IDirectFBWindow *thiz,
+                                IDirectFBWindow *source,
+                                int              x,
+                                int              y )
+{
+     D_UNIMPLEMENTED();
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBWindow_Requestor_Unbind( IDirectFBWindow *thiz,
+                                  IDirectFBWindow *source )
+{
+     D_UNIMPLEMENTED();
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBWindow_Requestor_SetKeySelection( IDirectFBWindow               *thiz,
+                                           DFBWindowKeySelection          selection,
+                                           const DFBInputDeviceKeySymbol *keys,
+                                           unsigned int                   num_keys )
+{
+     D_UNIMPLEMENTED();
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBWindow_Requestor_GrabUnselectedKeys( IDirectFBWindow *thiz )
+{
+     D_UNIMPLEMENTED();
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBWindow_Requestor_UngrabUnselectedKeys( IDirectFBWindow *thiz )
+{
+     D_UNIMPLEMENTED();
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBWindow_Requestor_SetSrcGeometry( IDirectFBWindow         *thiz,
+                                          const DFBWindowGeometry *geometry )
+{
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Requestor)
+
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBWINDOW_METHOD_ID_SetSrcGeometry, VREQ_RESPOND, &response,
+                                   VMBT_DATA, sizeof(DFBWindowGeometry), geometry,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return ret;
+}
+
+static DFBResult
+IDirectFBWindow_Requestor_SetDstGeometry( IDirectFBWindow         *thiz,
+                                          const DFBWindowGeometry *geometry )
+{
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Requestor)
+
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBWINDOW_METHOD_ID_SetDstGeometry, VREQ_RESPOND, &response,
+                                   VMBT_DATA, sizeof(DFBWindowGeometry), geometry,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return ret;
+}
+
 /**************************************************************************************************/
 
 static DFBResult
@@ -968,6 +1056,13 @@ Construct( IDirectFBWindow  *thiz,
      thiz->Destroy            = IDirectFBWindow_Requestor_Destroy;
      thiz->SetBounds          = IDirectFBWindow_Requestor_SetBounds;
      thiz->ResizeSurface      = IDirectFBWindow_Requestor_ResizeSurface;
+     thiz->Bind               = IDirectFBWindow_Requestor_Bind;
+     thiz->Unbind             = IDirectFBWindow_Requestor_Unbind;
+     thiz->SetKeySelection    = IDirectFBWindow_Requestor_SetKeySelection;
+     thiz->GrabUnselectedKeys = IDirectFBWindow_Requestor_GrabUnselectedKeys;
+     thiz->UngrabUnselectedKeys = IDirectFBWindow_Requestor_UngrabUnselectedKeys;
+     thiz->SetSrcGeometry      = IDirectFBWindow_Requestor_SetSrcGeometry;
+     thiz->SetDstGeometry      = IDirectFBWindow_Requestor_SetDstGeometry;
 
      return DFB_OK;
 }

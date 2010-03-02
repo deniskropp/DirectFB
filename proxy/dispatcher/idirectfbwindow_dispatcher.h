@@ -69,6 +69,13 @@
 #define IDIRECTFBWINDOW_METHOD_ID_DetachEventBuffer         38
 #define IDIRECTFBWINDOW_METHOD_ID_SetBounds                 39
 #define IDIRECTFBWINDOW_METHOD_ID_ResizeSurface             40
+#define IDIRECTFBWINDOW_METHOD_ID_Bind                      41
+#define IDIRECTFBWINDOW_METHOD_ID_Unbind                    42
+#define IDIRECTFBWINDOW_METHOD_ID_SetKeySelection           43
+#define IDIRECTFBWINDOW_METHOD_ID_GrabUnselectedKeys        44
+#define IDIRECTFBWINDOW_METHOD_ID_UngrabUnselectedKeys      45
+#define IDIRECTFBWINDOW_METHOD_ID_SetSrcGeometry            46
+#define IDIRECTFBWINDOW_METHOD_ID_SetDstGeometry            47
 
 /*
  * private data struct of IDirectFBWindow_Dispatcher

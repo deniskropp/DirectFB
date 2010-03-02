@@ -1061,6 +1061,48 @@ Dispatch_ResizeSurface( IDirectFBWindow *thiz, IDirectFBWindow *real,
                                     VMBT_NONE );
 }
 
+static DirectResult
+Dispatch_SetSrcGeometry( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                         VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DFBResult                ret;
+     VoodooMessageParser      parser;
+     const DFBWindowGeometry *geometry;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_DATA( parser, geometry );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->SetSrcGeometry( real, geometry );
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    ret, VOODOO_INSTANCE_NONE,
+                                    VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_SetDstGeometry( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                         VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DFBResult                ret;
+     VoodooMessageParser      parser;
+     const DFBWindowGeometry *geometry;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_DATA( parser, geometry );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->SetDstGeometry( real, geometry );
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    ret, VOODOO_INSTANCE_NONE,
+                                    VMBT_NONE );
+}
+
 
 static DirectResult
 Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMessage *msg )
@@ -1149,6 +1191,12 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
                
           case IDIRECTFBWINDOW_METHOD_ID_ResizeSurface:
                return Dispatch_ResizeSurface( dispatcher, real, manager, msg );
+
+          case IDIRECTFBWINDOW_METHOD_ID_SetSrcGeometry:
+               return Dispatch_SetSrcGeometry( dispatcher, real, manager, msg );
+
+          case IDIRECTFBWINDOW_METHOD_ID_SetDstGeometry:
+               return Dispatch_SetDstGeometry( dispatcher, real, manager, msg );
      }
 
      return DFB_NOSUCHMETHOD;
