@@ -1,4 +1,8 @@
+coretest_blit2
 dfbtest_blit
+dfbtest_blit2
+dfbtest_font
+dfbtest_mirror
 dfbtest_reinit
 dfbtest_scale
 dfbtest_sync
@@ -6,6 +10,7 @@ dfbtest_window
 dfbtest_window_flip_once
 direct_stream
 direct_test
+fusion_call
 fusion_fork
 fusion_reactor
 fusion_skirmish
