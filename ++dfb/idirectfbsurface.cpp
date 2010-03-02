@@ -127,7 +127,7 @@ void IDirectFBSurface::SetClip (const DFBRegion *clip)
 
 void IDirectFBSurface::SetClip (const DFBRectangle *clip)
 {
-     DFBRegion region = { clip->x, clip->y, clip->x + clip->w - 1, clip->y + clip->h - 1 };
+     DFBRegion region( *clip );
      DFBCHECK( iface->SetClip (iface, &region) );
 }
 
@@ -374,7 +374,7 @@ void IDirectFBSurface::DrawLine (const DFBRegion &line)
 IDirectFBSurface IDirectFBSurface::GetSubSurface (int x, int y,
                                                    int width, int height)
 {
-     DFBRectangle rect = { x, y, width, height };
+     DFBRectangle rect( x, y, width, height );
 
      IDirectFBSurface_C *idirectfbsurface;
 
