@@ -641,36 +641,37 @@ IDirectFB_Requestor_CreateFont( IDirectFB                 *thiz,
                                 const DFBFontDescription  *desc,
                                 IDirectFBFont            **ret_interface )
 {
-     DirectResult           ret;
-     VoodooResponseMessage *response;
-     void                  *interface = NULL;
+     DFBResult                 ret;
+     DFBDataBufferDescription  bdesc;
+     IDirectFBDataBuffer      *buffer;
+     IDirectFBFont            *font;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
-     if (!ret_interface)
+     /* Check arguments */
+     if (!filename || !ret_interface)
           return DFB_INVARG;
 
-     if (!filename || !desc) {
-          D_ONCE( "unimplemented" );
-          return DFB_UNSUPPORTED;
-     }
+     /* Create a data buffer. */
+     bdesc.flags = DBDESC_FILE;
+     bdesc.file  = filename;
 
-     ret = voodoo_manager_request( data->manager, data->instance,
-                                   IDIRECTFB_METHOD_ID_CreateFont, VREQ_RESPOND, &response,
-                                   VMBT_STRING, filename,
-                                   VMBT_DATA, sizeof(DFBFontDescription), desc,
-                                   VMBT_NONE );
+     ret = thiz->CreateDataBuffer( thiz, &bdesc, &buffer );
      if (ret)
           return ret;
 
-     ret = response->result;
-     if (ret == DFB_OK)
-          ret = voodoo_construct_requestor( data->manager, "IDirectFBFont",
-                                            response->instance, NULL, &interface );
+     /* Create (probing) the font. */
+     ret = buffer->CreateFont( buffer, desc, &font );
+     if (ret) {
+          buffer->Release( buffer );
+          return ret;
+     }
 
-     voodoo_manager_finish_request( data->manager, response );
+     /* We don't need it anymore, font has its own reference. */
+     buffer->Release( buffer );
 
-     *ret_interface = interface;
+     /* Return the new font. */
+     *ret_interface = font;
 
      return ret;
 }

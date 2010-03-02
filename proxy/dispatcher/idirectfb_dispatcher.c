@@ -49,7 +49,9 @@
 #include <direct/thread.h>
 #include <direct/util.h>
 
-#include <core/coredefs.h>
+#include <core/core.h>
+
+#include <idirectfb.h>
 
 #include <voodoo/interface.h>
 #include <voodoo/manager.h>
@@ -83,6 +85,8 @@ typedef struct {
      int                    ref;          /* reference counter */
 
      IDirectFB             *real;
+
+     CoreDFB               *core;
 
      VoodooInstanceID       self;         /* The instance of this dispatcher itself. */
 
@@ -948,21 +952,31 @@ static DirectResult
 Dispatch_CreateFont( IDirectFB *thiz, IDirectFB *real,
                      VoodooManager *manager, VoodooRequestMessage *msg )
 {
-     DirectResult              ret;
-     IDirectFBFont            *font;
-     VoodooInstanceID          instance;
-     VoodooMessageParser       parser;
-     const char               *filename;
+     DirectResult            ret;
+     DirectLink             *l;
+     VoodooMessageParser     parser;
+     VoodooInstanceID        instance;
+     IDirectFBFont          *font;
+     IDirectFBDataBuffer    *buffer = NULL;
      const DFBFontDescription *desc;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
      VOODOO_PARSER_BEGIN( parser, msg );
-     VOODOO_PARSER_GET_STRING( parser, filename );
+     VOODOO_PARSER_GET_ID( parser, instance );
      VOODOO_PARSER_GET_DATA( parser, desc );
      VOODOO_PARSER_END( parser );
 
-     ret = real->CreateFont( real, filename, desc, &font );
+     direct_list_foreach (l, data->data_buffers) {
+          DataBufferEntry *entry = (DataBufferEntry*) l;
+
+          if (entry->instance == instance) {
+               buffer = entry->requestor;
+               break;
+          }
+     }
+
+     ret = buffer->CreateFont( buffer, desc, &font );
      if (ret)
           return ret;
 
@@ -996,7 +1010,7 @@ Dispatch_CreateDataBuffer( IDirectFB *thiz, IDirectFB *real,
      VOODOO_PARSER_END( parser );
 
      ret = voodoo_construct_requestor( manager, "IDirectFBDataBuffer",
-                                       instance, NULL, &ptr );
+                                       instance, data->core, &ptr );
      if (ret)
           return ret;
 
@@ -1131,6 +1145,7 @@ Construct( IDirectFB *thiz, VoodooManager *manager, VoodooInstanceID *ret_instan
 
      data->ref  = 1;
      data->real = real;
+     data->core = ((IDirectFB_data*)(real->priv))->core;
      data->self = instance;
 
      thiz->AddRef                  = IDirectFB_Dispatcher_AddRef;

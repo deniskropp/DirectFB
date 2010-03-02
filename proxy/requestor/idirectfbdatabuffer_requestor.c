@@ -459,12 +459,14 @@ Construct( IDirectFBDataBuffer *thiz,
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer_Requestor)
 
-     ret = IDirectFBDataBuffer_Construct( thiz, NULL, NULL );
+     ret = IDirectFBDataBuffer_Construct( thiz, NULL, arg );
      if (ret)
           return ret;
 
      data->manager  = manager;
      data->instance = instance;
+
+     data->base.filename = "";
 
      thiz->AddRef                 = IDirectFBDataBuffer_Requestor_AddRef;
      thiz->Release                = IDirectFBDataBuffer_Requestor_Release;

@@ -257,6 +257,41 @@ IDirectFBDataBuffer_Dispatcher_CreateVideoProvider( IDirectFBDataBuffer     *thi
      return DFB_UNIMPLEMENTED;
 }
 
+static DFBResult
+IDirectFBDataBuffer_Dispatcher_CreateFont( IDirectFBDataBuffer       *thiz,
+                                           const DFBFontDescription  *desc,
+                                           IDirectFBFont            **ret_interface )
+{
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     void                  *interface = NULL;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Dispatcher)
+
+     if (!ret_interface)
+          return DFB_INVARG;
+
+     ret = voodoo_manager_request( data->manager, data->super,
+                                   IDIRECTFB_METHOD_ID_CreateFont,
+                                   VREQ_RESPOND | VREQ_ASYNC, &response,
+                                   VMBT_ID, data->self,
+                                   VMBT_DATA, sizeof(DFBFontDescription), desc,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret == DFB_OK)
+          ret = voodoo_construct_requestor( data->manager, "IDirectFBFont",
+                                            response->instance, NULL, &interface );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     *ret_interface = interface;
+
+     return ret;
+}
+
 /**************************************************************************************************/
 
 static DirectResult
@@ -628,6 +663,7 @@ Construct( IDirectFBDataBuffer *thiz,
      thiz->PutData                = IDirectFBDataBuffer_Dispatcher_PutData;
      thiz->CreateImageProvider    = IDirectFBDataBuffer_Dispatcher_CreateImageProvider;
      thiz->CreateVideoProvider    = IDirectFBDataBuffer_Dispatcher_CreateVideoProvider;
+     thiz->CreateFont             = IDirectFBDataBuffer_Dispatcher_CreateFont;
      
      return DFB_OK;
 }
