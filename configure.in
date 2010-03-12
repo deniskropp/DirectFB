@@ -747,7 +747,8 @@ fi
 AC_SUBST(ZLIB_LIBS)
 
 
-dnl Test for libpng and libz
+
+dnl Test for libpng
 PNG=no
 
 AC_ARG_ENABLE(png,
@@ -755,69 +756,8 @@ AC_ARG_ENABLE(png,
                              [build PNG image provider, @<:@default=yes@:>@]),
               [], [enable_png=yes])
 if test "$enable_png" = "yes"; then
-  dnl Test for libz
-  if test -z "$ZLIB_LIBS"; then
-    AC_CHECK_LIB(z, gzsetparams,
-      [
-	AC_CHECK_HEADER(zlib.h,
-	  ZLIB_LIBS='-lz',
-	  AC_MSG_WARN([
-*** libz header files not found. PNG image provider will not be built.]))
-      ],[
-        AC_MSG_WARN([ *** libz not found. PNG image provider will not be built.])
-      ])
-  fi
-
- dnl Test for libpng
- if test -n "$LIBPNG_LIBS"; then
-  PNG=yes
- else
-  AC_PATH_PROG(LIBPNG_CONFIG, libpng-config, no)
-  if test "$LIBPNG_CONFIG" = no; then
-      PNG=no
-      AC_MSG_WARN([
-*** libpng-config not found ])
-  else
-      PNG=yes
-      LIBPNG_CFLAGS=`$LIBPNG_CONFIG --cflags`
-      LIBPNG_LIBS=`$LIBPNG_CONFIG --libs`
-  fi
-
-  dnl Test for libpng
-  if test -z "$LIBPNG_LIBS" && test -n "$ZLIB_LIBS"; then
-    AC_CHECK_LIB(png, png_read_info,
-      [
-	AC_CHECK_HEADER(png.h,
-	  png_ok=yes,
-	  AC_MSG_WARN([
-*** PNG header files not found. PNG image provider will not be built.]))
-      ],[
-        AC_MSG_WARN([
-*** PNG library not found. PNG image provider will not be built.])
-	],
-      $ZLIB_LIBS -lm)
-    if test "$png_ok" = yes; then
-      AC_MSG_CHECKING([for png_structp in png.h])
-      AC_TRY_COMPILE([#include <png.h>],
-        [png_structp pp;
-	 png_infop info;
-	 png_colorp cmap;
-	 (void)png_create_read_struct; (void)pp; (void)info; (void)cmap;],
-        png_ok=yes, png_ok=no)
-      AC_MSG_RESULT($png_ok)
-      if test "$png_ok" = yes; then
-	PNG=yes
-        LIBPNG_LIBS="-lpng $ZLIB_LIBS -lm"
-      else
-	PNG=no
-        AC_MSG_WARN([
-*** PNG library is too old. PNG image provider will not be built.])
-      fi
-    else
-      PNG=no
-    fi
-  fi
- fi
+  PKG_CHECK_MODULES([LIBPNG], [libpng >= 1.2.2], [PNG=yes], [PNG=no
+    AC_MSG_WARN([*** PNG library not found. PNG image provider will not be built.])])
 fi
 
 AM_CONDITIONAL(PNG_PROVIDER, test "$PNG" = "yes")
