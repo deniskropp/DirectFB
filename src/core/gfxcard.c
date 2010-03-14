@@ -2355,8 +2355,8 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
 
      /* simple prechecks */
      if (!(state->render_options & DSRO_MATRIX) &&
-         (x > state->clip.x2 || y > state->clip.y2 ||
-          y + font->ascender - font->descender <= state->clip.y1)) {
+         (x > state->clip.x2 || y > state->clip.y2 + font->ascender ||
+          y - font->descender <= state->clip.y1)) {
           return;
      }
 
