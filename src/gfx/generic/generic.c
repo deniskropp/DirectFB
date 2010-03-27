@@ -460,9 +460,15 @@ static void Cop_to_Aop_24( GenefxState *gfxs )
      u32  Cop = gfxs->Cop;
 
      while (w) {
-          D[0] = (Cop >> 16);
+#ifdef WORDS_BIGENDIAN
+          D[0] = (Cop >> 16) & 0xff;
           D[1] = (Cop >>  8) & 0xff;
           D[2] = (Cop >>  0) & 0xff;
+#else
+          D[0] = (Cop >>  0) & 0xff;
+          D[1] = (Cop >>  8) & 0xff;
+          D[2] = (Cop >> 16) & 0xff;
+#endif
 
           D += 3;
           --w;
