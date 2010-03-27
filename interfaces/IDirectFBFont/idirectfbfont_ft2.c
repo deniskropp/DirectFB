@@ -407,6 +407,16 @@ render_glyph( CoreFont      *thiz,
                                    dst8[j] = p;
                               }
                               break;
+                         case DSPF_A1_LSB:
+                              for (i=0, j=0; i < info->width; ++j) {
+                                   register u8 p = 0;
+
+                                   for (n=0; n<8 && i<info->width; ++i, ++n)
+                                        p |= (src[i] & 0x80) >> (7-n);
+
+                                   dst8[j] = p;
+                              }
+                              break;
                          case DSPF_LUT2:
                               for (i=0, j=0; i < info->width; ++j) {
                                    register u8 p = 0;
@@ -495,6 +505,16 @@ render_glyph( CoreFont      *thiz,
                               break;
                          case DSPF_A1:
                               direct_memcpy( lock.addr, src, DFB_BYTES_PER_LINE(DSPF_A1, info->width) );
+                              break;
+                         case DSPF_A1_LSB:
+                              for (i=0, j=0; i < info->width; ++j) {
+                                   register u8 p = 0;
+
+                                   for (n=0; n<8 && i<info->width; ++i, ++n)
+                                        p |= (((src[i] >> n) & 1) << (7-n));
+
+                                   dst8[j] = p;
+                              }
                               break;
                          default:
                               D_UNIMPLEMENTED();
@@ -805,6 +825,7 @@ Construct( IDirectFBFont               *thiz,
      }
 
      if (dfb_config->font_format == DSPF_A1 ||
+               dfb_config->font_format == DSPF_A1_LSB ||
                dfb_config->font_format == DSPF_ARGB1555 ||
                dfb_config->font_format == DSPF_RGBA5551)
           load_mono = true;
@@ -920,7 +941,8 @@ Construct( IDirectFBFont               *thiz,
                font->pixel_format == DSPF_RGBA5551 ||
                font->pixel_format == DSPF_A8 ||
                font->pixel_format == DSPF_A4 ||
-               font->pixel_format == DSPF_A1 );
+               font->pixel_format == DSPF_A1 ||
+               font->pixel_format == DSPF_A1_LSB );
 
      font->ascender   = face->size->metrics.ascender >> 6;
      font->descender  = face->size->metrics.descender >> 6;

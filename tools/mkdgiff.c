@@ -307,6 +307,16 @@ write_glyph( DGIFFGlyphInfo *glyph, FT_GlyphSlot slot, void *dst, int pitch )
                                    dst8[j] = p;
                               }
                               break;
+                         case DSPF_A1_LSB:
+                              for (i=0, j=0; i < glyph->width; ++j) {
+                                   register u8 p = 0;
+
+                                   for (n=0; n<8 && i<glyph->width; ++i, ++n)
+                                        p |= (src[i] & 0x80) >> (7-n);
+
+                                   dst8[j] = p;
+                              }
+                              break;
                          default:
                               break;
                     }
@@ -373,6 +383,16 @@ write_glyph( DGIFFGlyphInfo *glyph, FT_GlyphSlot slot, void *dst, int pitch )
                               break;
                          case DSPF_A1:
                               direct_memcpy( dst, src, DFB_BYTES_PER_LINE(DSPF_A1, glyph->width) );
+                              break;
+                         case DSPF_A1_LSB:
+                              for (i=0, j=0; i < glyph->width; ++j) {
+                                   register u8 p = 0;
+
+                                   for (n=0; n<8 && i<glyph->width; ++i, ++n)
+                                        p |= (((src[i] >> n) & 1) << (7-n));
+
+                                   dst8[j] = p;
+                              }
                               break;
                          default:
                               break;

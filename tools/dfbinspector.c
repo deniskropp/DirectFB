@@ -96,6 +96,7 @@ Inspector_Run( Inspector *inspector )
           DSPF_ARGB,
           DSPF_AiRGB,
           DSPF_A1,
+          DSPF_A1_LSB,
           DSPF_A8,
           DSPF_YUY2,
           DSPF_UYVY,
