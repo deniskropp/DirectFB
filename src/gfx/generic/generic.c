@@ -1571,6 +1571,22 @@ static void Bop_yuv444p_toK_Aop( GenefxState *gfxs )
      }
 }
 
+static void Bop_8_toK_Aop( GenefxState *gfxs )
+{
+      int   w    = gfxs->length;
+      u8   *D    = gfxs->Aop[0];
+      u8   *S    = gfxs->Bop[0];
+      u8    Dkey = gfxs->Dkey;
+
+      while (w--) {
+           if (*D == Dkey) {
+                *D = *S;
+           }
+           D++;
+           S++;
+      }
+}
+
 static GenefxFunc Bop_PFI_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_15_toK_Aop,          /* DSPF_ARGB1555 */
      Bop_16_toK_Aop,          /* DSPF_RGB16 */
@@ -1583,7 +1599,7 @@ static GenefxFunc Bop_PFI_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_yuv422_toK_Aop,      /* DSPF_UYVY */
      NULL,                    /* DSPF_I420 */
      NULL,                    /* DSPF_YV12 */
-     NULL,                    /* DSPF_LUT8 */
+     Bop_8_toK_Aop,           /* DSPF_LUT8 */
      NULL,                    /* DSPF_ALUT44 */
      Bop_32_toK_Aop,          /* DSPF_AiRGB */
      NULL,                    /* DSPF_A1 */
