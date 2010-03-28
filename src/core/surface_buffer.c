@@ -557,8 +557,17 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
      rect.w = surface->config.size.w;
      rect.h = surface->config.size.h;
 
-     if (prect && (!dfb_rectangle_intersect( &rect, prect ) || !DFB_RECTANGLE_EQUAL( rect, *prect )))
-          return DFB_INVAREA;
+     if (prect) {
+          if (!dfb_rectangle_intersect( &rect, prect )) {
+               D_DEBUG_AT( Core_SurfBuffer, "  -> no intersection!\n" );
+               return DFB_INVAREA;
+          }
+     
+          if (!DFB_RECTANGLE_EQUAL( rect, *prect )) {
+               D_DEBUG_AT( Core_SurfBuffer, "  -> got clipped to %d,%d-%dx%d!\n", DFB_RECTANGLE_VALS(&rect) );
+               return DFB_INVAREA;
+          }
+     }
 
      D_DEBUG_AT( Core_SurfBuffer, "  -> %d,%d - %dx%d (%s)\n", DFB_RECTANGLE_VALS(&rect),
                  dfb_pixelformat_name( surface->config.format ) );
