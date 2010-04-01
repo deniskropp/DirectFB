@@ -927,7 +927,8 @@ typedef enum {
      DWCAPS_COLOR        = 0x00000020,  /* The window has no buffer;
                                            it consumes no backing store.
                                            It is filled with a constant color
-                                           and it receives events */
+                                           and it receives events. The color is
+                                           never specified premultiplied. */
 
      DWCAPS_NOFOCUS      = 0x00000100,  /* Window will never get focus or receive key events, unless it grabs them. */
 
