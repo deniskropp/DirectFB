@@ -627,17 +627,17 @@ typedef enum {
                                                 factor set by SetOpacity. */
      DLOP_FIELD_PARITY        = 0x00000040,  /* Set field parity */
 
-     DLOP_LR_MONO             = 0x00000100,	/* Layer has a single set of surface buffers and a stereo depth. The number 
-                                                of buffers in each set is deteremined by DSCAPS_DOUBLE, DSCAPS_TRIPLE, etc 
-                                                as usual. If they exist, the windows on this layer must not be stereo or 
-                                                L/R mono, otherwise window information will be lost when they are composited 
+     DLOP_LR_MONO             = 0x00000100,	/* Layer has a single set of surface buffers and a stereo depth. The number
+                                                of buffers in each set is deteremined by DSCAPS_DOUBLE, DSCAPS_TRIPLE, etc
+                                                as usual. If they exist, the windows on this layer must not be stereo or
+                                                L/R mono, otherwise window information will be lost when they are composited
                                                 to the layer. The layer contents (composited windows if they exist) will
                                                 be shifted horizontally left and right by the stereo depth value when
                                                 the layer is composited on the display screen. */
-     DLOP_STEREO              = 0x00000200,	/* Layer has 2 independent sets of surface buffers (left eye & right eye 
+     DLOP_STEREO              = 0x00000200,	/* Layer has 2 independent sets of surface buffers (left eye & right eye
                                                 buffers), each with unique content. The number of buffers in each set is
                                                 deteremined by DSCAPS_DOUBLE, DSCAPS_TRIPLE, etc as usual. This option
-                                                is required if any of the windows on this layer have DWCAPS_STEREO or 
+                                                is required if any of the windows on this layer have DWCAPS_STEREO or
                                                 DWCAPS_LR_MONO set, otherwise the stereo or L/R depth content of the
                                                 windows cannot be preserved when compositing to the layer. */
      DLOP_ALL                 = 0x000003FF
@@ -966,7 +966,7 @@ typedef enum {
      DWDESC_STACKING     = 0x00000200,  /* Initial stacking class has been set. */
 
      DWDESC_TOPLEVEL_ID  = 0x00000400,  /* The top level window is set in toplevel_id field. */
-     
+
      DWDESC_COLORSPACE   = 0x00000800,  /* colorspace field is valid */
 
      DWDESC_RESOURCE_ID  = 0x00001000,  /* Resource id for window surface creation has been set. */
@@ -1013,18 +1013,18 @@ typedef enum {
 
      DWCAPS_NOFOCUS      = 0x00000100,  /* Window will never get focus or receive key events, unless it grabs them. */
 
-     DWCAPS_LR_MONO      = 0x00001000,	/* Window has a single set of surface buffers and a stereo depth. The number 
-                                           of buffers in each set is deteremined by DSCAPS_DOUBLE, DSCAPS_TRIPLE, etc 
-                                           as usual. Selecting this option requires the underlying layer to have 
-                                           DLOP_STEREO set, otherwise the stereo depth for the left and right eye 
+     DWCAPS_LR_MONO      = 0x00001000,	/* Window has a single set of surface buffers and a stereo depth. The number
+                                           of buffers in each set is deteremined by DSCAPS_DOUBLE, DSCAPS_TRIPLE, etc
+                                           as usual. Selecting this option requires the underlying layer to have
+                                           DLOP_STEREO set, otherwise the stereo depth for the left and right eye
                                            cannot be preserved when compositing to the underlying layer. The buffer is
                                            composited to both the left and right eye buffers of the layer with an x-axis
                                            right and left shift of depth pixels, respectively. */
-     DWCAPS_STEREO       = 0x00002000,	/* Window has 2 independent sets of surface buffers (left eye & right eye 
+     DWCAPS_STEREO       = 0x00002000,	/* Window has 2 independent sets of surface buffers (left eye & right eye
                                            buffers), each with unique content. The number of buffers in each set is
-                                           deteremined by DSCAPS_DOUBLE, DSCAPS_TRIPLE, etc as usual. Selecting this 
-                                           option requires the underlying layer to have DLOP_STEREO set, otherwise 
-                                           the independent content of the left and right eye cannot be preserved when 
+                                           deteremined by DSCAPS_DOUBLE, DSCAPS_TRIPLE, etc as usual. Selecting this
+                                           option requires the underlying layer to have DLOP_STEREO set, otherwise
+                                           the independent content of the left and right eye cannot be preserved when
                                            compositing to the layer. */
 
      DWCAPS_ALL          = 0x0000313F   /* All of these. */
@@ -1403,7 +1403,7 @@ typedef enum {
       ((fmt) == DSPF_YV16))
 
 /*
- * Color space used by the colors in the surface. 
+ * Color space used by the colors in the surface.
  */
 typedef enum {
      DSCS_UNKNOWN             = 0,
@@ -2306,7 +2306,7 @@ typedef struct {
                                                      INTERLACED, SEPARATED, PREMULTIPLIED. */
 } DFBDisplayLayerConfig;
 
-#define DLSO_FIXED_LIMIT      0x7f      /* Stereo fixed depth value must be between +DLSO_FIXED_LIMIT 
+#define DLSO_FIXED_LIMIT      0x7f      /* Stereo fixed depth value must be between +DLSO_FIXED_LIMIT
                                            and -DLSO_FIXED_LIMIT. */
 
 /*
@@ -3113,30 +3113,30 @@ D_DEFINE_INTERFACE(   IDirectFBDisplayLayer,
      );
 
      /*
-      * Get stereo depth. 
+      * Get stereo depth.
       */
      DFBResult (*GetStereoDepth) (
-         IDirectFBDisplayLayer               *thiz,          
+         IDirectFBDisplayLayer               *thiz,
          bool                                *follow_video,
          int                                 *z
-    );	 
+    );
 
 
      /*
-      * Set stereo depth. 
-      *  
-      * If follow_video is true then the pixel offset value from the video metadata will be used to set the 
-      * perceived depth. Otherwise, the z value specified will cause the left eye buffer 
-      * content to be shifted on the x-axis by +z and the right eye buffer to be shifted 
-      * by -z. A positive z value will cause the layer to appear closer than 
-      * the TV plane while a negative z value will make the layer appear farther away. The 
+      * Set stereo depth.
+      *
+      * If follow_video is true then the pixel offset value from the video metadata will be used to set the
+      * perceived depth. Otherwise, the z value specified will cause the left eye buffer
+      * content to be shifted on the x-axis by +z and the right eye buffer to be shifted
+      * by -z. A positive z value will cause the layer to appear closer than
+      * the TV plane while a negative z value will make the layer appear farther away. The
       * depth is limited to a value between +DLSO_FIXED_LIMIT and -DLSO_FIXED_LIMIT.
       */
      DFBResult (*SetStereoDepth) (
-         IDirectFBDisplayLayer               *thiz,          
+         IDirectFBDisplayLayer               *thiz,
          bool                                 follow_video,
          int                                  z
-    );	 
+    );
 
 
    /** Misc Settings **/
@@ -3541,9 +3541,9 @@ typedef enum {
  * Stereo eye buffer.
  */
 typedef enum {
-     DSSE_LEFT           = 0x00000001,  /* Left eye buffers to be used for all future 
+     DSSE_LEFT           = 0x00000001,  /* Left eye buffers to be used for all future
                                            operations on this surface. */
-     DSSE_RIGHT          = 0x00000002   /* Right eye buffers to be used for all future 
+     DSSE_RIGHT          = 0x00000002   /* Right eye buffers to be used for all future
                                            operations on this surface. */
 } DFBSurfaceStereoEye;
 
@@ -3812,11 +3812,11 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
    /** Buffer operations **/
 
      /*
-      * Get the current stereo eye. 
-      *  
-      * Only applicable to window/layer surfaces with the DWCAPS_STEREO or DLOP_STEREO 
-      * option. This method will retrieve which set of buffers (left or right) is currently 
-      * active for operations on this surface.  
+      * Get the current stereo eye.
+      *
+      * Only applicable to window/layer surfaces with the DWCAPS_STEREO or DLOP_STEREO
+      * option. This method will retrieve which set of buffers (left or right) is currently
+      * active for operations on this surface.
       */
      DFBResult (*GetStereoEye) (
           IDirectFBSurface         *thiz,
@@ -3824,11 +3824,11 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
      /*
-      * Select the stereo eye for future operations. 
-      *  
-      * Only applicable to window/layer surfaces with the DWCAPS_STEREO or DLOP_STEREO 
-      * option. This method will specify which set of buffers (left or right) is to be 
-      * used for future operations on this surface.  
+      * Select the stereo eye for future operations.
+      *
+      * Only applicable to window/layer surfaces with the DWCAPS_STEREO or DLOP_STEREO
+      * option. This method will specify which set of buffers (left or right) is to be
+      * used for future operations on this surface.
       */
      DFBResult (*SetStereoEye) (
           IDirectFBSurface         *thiz,
@@ -3854,9 +3854,9 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
 
      /*
       * Obsolete. Returns DFB_FAILURE always.
-      * 
+      *
       * Previously returned the framebuffer offset of a locked surface.
-      * However, it is not a safe API to use at all, since it is not 
+      * However, it is not a safe API to use at all, since it is not
       * guaranteed that the offset actually belongs to fbmem (e.g. could be AGP memory).
       */
      DFBResult (*GetFramebufferOffset) (
@@ -5676,7 +5676,7 @@ typedef enum {
 } DFBWindowCursorFlags;
 
 
-#define DWSO_FIXED_LIMIT      0x80      /* Fixed stereo depth value must be between +DWSO_FIXED_LIMIT 
+#define DWSO_FIXED_LIMIT      0x80      /* Fixed stereo depth value must be between +DWSO_FIXED_LIMIT
                                            and -DWSO_FIXED_LIMIT. */
 
 /*******************
@@ -6183,16 +6183,16 @@ D_DEFINE_INTERFACE(   IDirectFBWindow,
      );
 
      /*
-      * Get stereo depth. 
+      * Get stereo depth.
       */
      DFBResult (*GetStereoDepth) (
-         IDirectFBWindow                *thiz,          
+         IDirectFBWindow                *thiz,
          int                            *z
-     ); 
+     );
 
      /*
-      * Set stereo depth. 
-      *  
+      * Set stereo depth.
+      *
       * The depth value specified will cause the left eye buffer content to be shifted on the
       * x-axis by +z and the right eye buffer to be shifted by -z value. A positive
       * z value will cause the layer to appear closer than the TV plane while a negative
@@ -6200,9 +6200,9 @@ D_DEFINE_INTERFACE(   IDirectFBWindow,
       * between +DLSO_FIXED_LIMIT and -DLSO_FIXED_LIMIT.
       */
      DFBResult (*SetStereoDepth) (
-         IDirectFBWindow                *thiz,          
+         IDirectFBWindow                *thiz,
          int                             z
-     ); 
+     );
 
    /** Properties **/
 
