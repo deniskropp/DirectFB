@@ -579,7 +579,7 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
      if (skirmish->single == 0)
           return DR_NOLOCALMEMORY;
 
-     skirmish->single->name = &skirmish->single + 1;
+     skirmish->single->name = (char *) (skirmish->single + 1);
      strcpy( skirmish->single->name, name );
 
      direct_util_recursive_pthread_mutex_init( &skirmish->single->lock );
