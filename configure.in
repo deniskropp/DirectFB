@@ -514,7 +514,7 @@ AC_ARG_ENABLE(mmx,
               [], [enable_mmx=$have_x86])
 
 AC_ARG_ENABLE(sse,
-              AC_HELP_STRING([enable-sse],
+              AC_HELP_STRING([--enable-sse],
                              [enable SSE support @<:@default=auto@:>@]),
               [], [enable_sse=$have_x86])
 
