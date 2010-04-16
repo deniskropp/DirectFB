@@ -441,8 +441,8 @@ sawman_config_init( int *argc, char **argv[] )
                     exit(1);
                }
 
-               if (!strncmp( (*argv)[i], "--sawman:", 5 )) {
-                    ret = parse_args( (*argv)[i] + 5 );
+               if (!strncmp( (*argv)[i], "--sawman:", 9 )) {
+                    ret = parse_args( (*argv)[i] + 9 );
                     if (ret)
                          return ret;
 
