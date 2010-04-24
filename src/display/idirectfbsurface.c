@@ -534,7 +534,10 @@ IDirectFBSurface_Write( IDirectFBSurface    *thiz,
      if (!surface)
           return DFB_DESTROYED;
 
-     if (!rect || !ptr || pitch < DFB_BYTES_PER_LINE(surface->config.format,rect->w ) )
+     if (!rect || !ptr)
+          return DFB_INVARG;
+
+     if (ABS(pitch) < DFB_BYTES_PER_LINE( surface->config.format, rect->w ))
           return DFB_INVARG;
 
      if (data->locked)

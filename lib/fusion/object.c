@@ -105,7 +105,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
 
 
                default:
-                    D_ERROR( "Fusion/ObjectPool: Error locking ref of %p [%ld] in '%s'\n",
+                    D_ERROR( "Fusion/ObjectPool: Error locking ref of %p [%lu] in '%s'\n",
                              object, object->id, pool->name );
                     /* fall through */
 
@@ -115,7 +115,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
           }
 
           D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
-          D_DEBUG_AT( Fusion_Object, "  -> dead object %p [%ld] (ref %ld)\n", object, object->id, object->ref.multi.id );
+          D_DEBUG_AT( Fusion_Object, "  -> dead object %p [%lu] (ref %d)\n", object, object->id, object->ref.multi.id );
 
           if (object->state == FOS_INIT) {
                D_BUG( "== %s == incomplete object: %d (%p)", pool->name, call_arg, object );

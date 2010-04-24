@@ -133,6 +133,8 @@ fusion_ref_up (FusionRef *ref, bool global)
 {
      D_ASSERT( ref != NULL );
 
+     D_DEBUG_AT( Fusion_Ref, "fusion_ref_up( %p [%d]%s )\n", ref, ref->multi.id, global ? " GLOBAL" : "" );
+
      while (ioctl (_fusion_fd( ref->multi.shared ), global ?
                    FUSION_REF_UP_GLOBAL : FUSION_REF_UP, &ref->multi.id))
      {
@@ -156,6 +158,9 @@ fusion_ref_up (FusionRef *ref, bool global)
           return DR_FAILURE;
      }
 
+     D_DEBUG_AT( Fusion_Ref, "  -> %d references now\n",
+                 ioctl( _fusion_fd( ref->multi.shared ), FUSION_REF_STAT, &ref->multi.id ) );
+
      return DR_OK;
 }
 
@@ -163,6 +168,8 @@ DirectResult
 fusion_ref_down (FusionRef *ref, bool global)
 {
      D_ASSERT( ref != NULL );
+
+     D_DEBUG_AT( Fusion_Ref, "fusion_ref_down( %p [%d]%s )\n", ref, ref->multi.id, global ? " GLOBAL" : "" );
 
      while (ioctl (_fusion_fd( ref->multi.shared ), global ?
                    FUSION_REF_DOWN_GLOBAL : FUSION_REF_DOWN, &ref->multi.id))
@@ -184,6 +191,9 @@ fusion_ref_down (FusionRef *ref, bool global)
 
           return DR_FAILURE;
      }
+
+     D_DEBUG_AT( Fusion_Ref, "  -> %d references now\n",
+                 ioctl( _fusion_fd( ref->multi.shared ), FUSION_REF_STAT, &ref->multi.id ) );
 
      return DR_OK;
 }
