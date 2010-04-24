@@ -52,6 +52,7 @@
 #include <core/layer_control.h>
 #include <core/layer_region.h>
 #include <core/layers.h>
+#include <core/layers_internal.h>
 #include <core/palette.h>
 #include <core/screen.h>
 #include <core/screens.h>
@@ -757,10 +758,26 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                     init_palette( surface, desc );
 
-                    /* Force initial update to unfreeze region as no Flip() may come from application. */
-                    if (!(caps & DSCAPS_FLIPPING))
-                         dfb_layer_region_flip_update( region, NULL, DSFLIP_NONE );
-
+                    /* Make a single buffered primary display layer visible
+                     * since the IDirectFB::GetDisplayLayer automatic flip
+                     * defect fix prevents flipping when the region is frozen.
+                     */
+                    if (config.buffermode != DLBM_BACKVIDEO && 
+                        config.buffermode != DLBM_TRIPLE) {
+                         /* If a window stack is available, give it the
+                          * opportunity to render the background (optionally
+                          * based on configuration) and flip the display layer
+                          * so it is visible.  Otherwise, just directly flip
+                          * the display layer and make it visible.
+                          */
+                         D_ASSERT( region->context );
+                         if (region->context->stack) {
+                              dfb_windowstack_repaint_all( region->context->stack );
+                         }
+                         else {
+                              dfb_layer_region_flip_update( region, NULL, DSFLIP_NONE );
+                         }
+                    }
 
                     DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBSurface );
 

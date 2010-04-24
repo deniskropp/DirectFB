@@ -826,8 +826,22 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
           {
                update_stack_geometry( context );
 
-               /* FIXME: call only if really needed */
-               dfb_windowstack_repaint_all( stack );
+               // Fixed window stack repainting to NOT be performed when the 
+               // region is frozen, because a frozen display layer should not 
+               // be allocated and made visible until absolutely necessary 
+               // (when single buffered IDirectFBDisplayLayer::GetSurface is 
+               // called, and when double/triple buffered whe 
+               // IDirectFBSurface::Flip is called).  This prevents a display 
+               // layer surface flip from being done and showing an 
+               // uninitialized buffer when the 
+               // IDirectFB::GetDisplayLayer function is called without an 
+               // associated init-layer directfbrc command.
+               if (context->primary.region && 
+                   !D_FLAGS_IS_SET( 
+                         context->primary.region->state, 
+                         CLRSF_FROZEN )) {
+                    dfb_windowstack_repaint_all( stack );
+               }
           }
      }
 
