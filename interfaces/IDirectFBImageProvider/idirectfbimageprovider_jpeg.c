@@ -509,9 +509,10 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                cinfo.scale_num = 16;
                while (cinfo.scale_num > 1) {
                     jpeg_calc_output_dimensions (&cinfo);
-                    if (cinfo.output_width > rect.w
-                        || cinfo.output_width > rect.h)
-                         --cinfo.scale_num;
+                    if (cinfo.output_width <= rect.w
+                        || cinfo.output_height <= rect.h)
+                         break;
+                    --cinfo.scale_num;
                }
                jpeg_calc_output_dimensions (&cinfo);
 #else
