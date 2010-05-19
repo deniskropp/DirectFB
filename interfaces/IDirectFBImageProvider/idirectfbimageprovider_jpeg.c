@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -76,12 +76,7 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, JPEG )
  * private data struct of IDirectFBImageProvider_JPEG
  */
 typedef struct {
-     int                  ref;      /* reference counter */
-
-     IDirectFBDataBuffer *buffer;
-
-     DIRenderCallback     render_callback;
-     void                *render_callback_context;
+     IDirectFBImageProvider_data base;
 
      int                  width;    /*  width of the JPEG image   */
      int                  height;   /*  height of the JPEG image  */
@@ -89,8 +84,6 @@ typedef struct {
      u32                 *image;        /*  decoded image data    */
      int                  image_width;  /*  width of image data   */
      int                  image_height; /*  height of image data  */
-
-     CoreDFB             *core;
 } IDirectFBImageProvider_JPEG_data;
 
 static DirectResult
@@ -317,9 +310,9 @@ Construct( IDirectFBImageProvider *thiz,
      core = va_arg( tag, CoreDFB * );
      va_end( tag );
 
-     data->ref    = 1;
-     data->buffer = buffer;
-     data->core   = core;
+     data->base.ref    = 1;
+     data->base.buffer = buffer;
+     data->base.core   = core;
 
      buffer->AddRef( buffer );
 
@@ -363,7 +356,7 @@ IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
      IDirectFBImageProvider_JPEG_data *data =
                               (IDirectFBImageProvider_JPEG_data*)thiz->priv;
 
-     data->buffer->Release( data->buffer );
+     data->base.buffer->Release( data->base.buffer );
 
      if (data->image)
           D_FREE( data->image );
@@ -376,7 +369,7 @@ IDirectFBImageProvider_JPEG_AddRef( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
-     data->ref++;
+     data->base.ref++;
 
      return DFB_OK;
 }
@@ -386,7 +379,7 @@ IDirectFBImageProvider_JPEG_Release( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
-     if (--data->ref == 0) {
+     if (--data->base.ref == 0) {
           IDirectFBImageProvider_JPEG_Destruct( thiz );
      }
 
@@ -473,10 +466,11 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                     dfb_scale_linear_32( data->image, data->image_width, data->image_height,
                                          lock.addr, lock.pitch, &rect, dst_surface, &clip );
                     dfb_surface_unlock_buffer( dst_surface, &lock );
-                    if (data->render_callback) {
+                    if (data->base.render_callback) {
                          DFBRectangle r = { 0, 0, data->image_width, data->image_height };
 
-                         if (data->render_callback( &r, data->render_callback_context ) != DIRCR_OK)
+                         if (data->base.render_callback( &r,
+                                                         data->base.render_callback_context ) != DIRCR_OK)
                               return DFB_INTERRUPTED;
                     }
 
@@ -489,7 +483,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           }
 
           jpeg_create_decompress(&cinfo);
-          jpeg_buffer_src(&cinfo, data->buffer, 0);
+          jpeg_buffer_src(&cinfo, data->base.buffer, 0);
           jpeg_read_header(&cinfo, TRUE);
 
 #if JPEG_LIB_VERSION >= 70
@@ -572,11 +566,11 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
 
                               lock.addr += lock.pitch;
 
-                              if (data->render_callback) {
+                              if (data->base.render_callback) {
                                    DFBRectangle r = { 0, y, data->image_width, 1 };
 
-                                   cb_result = data->render_callback( &r, 
-                                                                      data->render_callback_context );
+                                   cb_result = data->base.render_callback( &r,
+                                                                           data->base.render_callback_context );
                               }
                               break;
                          }
@@ -588,10 +582,10 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                               DFBRectangle r = { rect.x, rect.y+y, rect.w, 1 };
                               dfb_copy_buffer_32( row_ptr, lock.addr, lock.pitch,
                                                   &r, dst_surface, &clip );
-                              if (data->render_callback) {
+                              if (data->base.render_callback) {
                                    r = (DFBRectangle){ 0, y, data->image_width, 1 };
-                                   cb_result = data->render_callback( &r, 
-                                                                      data->render_callback_context );
+                                   cb_result = data->base.render_callback( &r,
+                                                                           data->base.render_callback_context );
                               }
                          }
                          break;
@@ -604,9 +598,10 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           if (!direct) {
                dfb_scale_linear_32( data->image, data->image_width, data->image_height,
                                     lock.addr, lock.pitch, &rect, dst_surface, &clip );
-               if (data->render_callback) {
+               if (data->base.render_callback) {
                     DFBRectangle r = { 0, 0, data->image_width, data->image_height };
-                    cb_result = data->render_callback( &r, data->render_callback_context );
+                    cb_result = data->base.render_callback( &r,
+                                                            data->base.render_callback_context );
                }
           }
 
@@ -623,9 +618,10 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      else {
           dfb_scale_linear_32( data->image, data->image_width, data->image_height,
                                lock.addr, lock.pitch, &rect, dst_surface, &clip );
-          if (data->render_callback) {
+          if (data->base.render_callback) {
                DFBRectangle r = { 0, 0, data->image_width, data->image_height };
-               data->render_callback( &r, data->render_callback_context );
+               data->base.render_callback( &r,
+                                           data->base.render_callback_context );
           }
      }
      
@@ -644,8 +640,8 @@ IDirectFBImageProvider_JPEG_SetRenderCallback( IDirectFBImageProvider *thiz,
 {
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_JPEG)
 
-     data->render_callback         = callback;
-     data->render_callback_context = context;
+     data->base.render_callback         = callback;
+     data->base.render_callback_context = context;
 
      return DFB_OK;
 }

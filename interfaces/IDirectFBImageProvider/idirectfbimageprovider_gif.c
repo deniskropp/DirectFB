@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -91,9 +91,7 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, GIF )
  * private data struct of IDirectFBImageProvider_GIF
  */
 typedef struct {
-     int                  ref;      /* reference counter */
-
-     IDirectFBDataBuffer *buffer;
+     IDirectFBImageProvider_data base;
 
      u32                 *image;
      int                  image_width;
@@ -128,11 +126,6 @@ typedef struct {
      int clear_code, end_code;
      int table[2][(1<< MAX_LWZ_BITS)];
      int stack[(1<<(MAX_LWZ_BITS))*2], *sp;
-
-     DIRenderCallback  render_callback;
-     void             *render_callback_ctx;
-
-     CoreDFB *core;
 } IDirectFBImageProvider_GIF_data;
 
 static bool verbose       = false;
@@ -195,22 +188,23 @@ Construct( IDirectFBImageProvider *thiz,
      core = va_arg( tag, CoreDFB * );
      va_end( tag );
      
-     data->ref = 1;
+     data->base.ref = 1;
+
+     data->base.buffer = buffer;
+     data->base.core = core;
+
+     buffer->AddRef( buffer );
 
      data->GrayScale   = -1;
      data->transparent = -1;
      data->delayTime   = -1;
-
-     data->core = core;
-     data->buffer = buffer;
-     buffer->AddRef( buffer );
 
      data->image = ReadGIF( data, 1, &data->image_width, &data->image_height,
                             &data->image_transparency, &data->image_colorkey,
                             true, false );
 
      buffer->Release( buffer );
-     data->buffer = NULL;
+     data->base.buffer = NULL;
      
      if (!data->image) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
@@ -245,7 +239,7 @@ IDirectFBImageProvider_GIF_AddRef( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_GIF)
 
-     data->ref++;
+     data->base.ref++;
 
      return DFB_OK;
 }
@@ -255,7 +249,7 @@ IDirectFBImageProvider_GIF_Release( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_GIF)
 
-     if (--data->ref == 0) {
+     if (--data->base.ref == 0) {
           IDirectFBImageProvider_GIF_Destruct( thiz );
      }
 
@@ -314,7 +308,7 @@ IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
 
           dfb_surface_unlock_buffer( dst_surface, &lock );
 
-          if (data->render_callback) {
+          if (data->base.render_callback) {
                DIRenderCallbackResult r;
 
                rect.x = 0;
@@ -322,7 +316,8 @@ IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
                rect.w = data->image_width;
                rect.h = data->image_height;
 
-               r = data->render_callback( &rect, data->render_callback_ctx );
+               r = data->base.render_callback( &rect,
+                                               data->base.render_callback_context );
 
                if (r != DIRCR_OK)
                        return DFB_INTERRUPTED;
@@ -339,8 +334,8 @@ IDirectFBImageProvider_GIF_SetRenderCallback( IDirectFBImageProvider *thiz,
 {
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
 
-     data->render_callback     = callback;
-     data->render_callback_ctx = context;
+     data->base.render_callback         = callback;
+     data->base.render_callback_context = context;
      
      return DFB_OK;
 }
@@ -442,7 +437,7 @@ static int GetCode(IDirectFBImageProvider_GIF_data *data, int code_size, int fla
           data->buf[0] = data->buf[data->last_byte-2];
           data->buf[1] = data->buf[data->last_byte-1];
 
-          if ((count = GetDataBlock( data->buffer, &data->buf[2] )) == 0) {
+          if ((count = GetDataBlock( data->base.buffer, &data->buf[2] )) == 0) {
                data->done = true;
           }
 
@@ -474,21 +469,21 @@ static int DoExtension( IDirectFBImageProvider_GIF_data *data, int label )
                break;
           case 0xfe:              /* Comment Extension */
                str = "Comment Extension";
-               while (GetDataBlock( data->buffer, (u8*) buf ) != 0) {
+               while (GetDataBlock( data->base.buffer, (u8*) buf ) != 0) {
                     if (showComment)
                          GIFERRORMSG("gif comment: %s", buf );
                     }
                return false;
           case 0xf9:              /* Graphic Control Extension */
                str = "Graphic Control Extension";
-               (void) GetDataBlock( data->buffer, (u8*) buf );
+               (void) GetDataBlock( data->base.buffer, (u8*) buf );
                data->disposal    = (buf[0] >> 2) & 0x7;
                data->inputFlag   = (buf[0] >> 1) & 0x1;
                data->delayTime   = LM_to_uint( buf[1], buf[2] );
                if ((buf[0] & 0x1) != 0) {
                     data->transparent = buf[3];
                }
-               while (GetDataBlock( data->buffer, (u8*) buf ) != 0)
+               while (GetDataBlock( data->base.buffer, (u8*) buf ) != 0)
                     ;
                return false;
           default:
@@ -500,7 +495,7 @@ static int DoExtension( IDirectFBImageProvider_GIF_data *data, int label )
      if (verbose)
           GIFERRORMSG("got a '%s' extension", str );
 
-     while (GetDataBlock( data->buffer, (u8*) buf ) != 0)
+     while (GetDataBlock( data->base.buffer, (u8*) buf ) != 0)
           ;
 
      return false;
@@ -572,7 +567,7 @@ static int LWZReadByte( IDirectFBImageProvider_GIF_data *data, int flag, int inp
                     return -2;
                }
 
-               while ((count = GetDataBlock( data->buffer, buf )) > 0)
+               while ((count = GetDataBlock( data->base.buffer, buf )) > 0)
                     ;
 
                if (count != 0)
@@ -681,7 +676,7 @@ static u32* ReadImage( IDirectFBImageProvider_GIF_data *data, int width, int hei
      /*
      **  Initialize the decompression routines
      */
-     if (! ReadOK( data->buffer, &c, 1 ))
+     if (! ReadOK( data->base.buffer, &c, 1 ))
           GIFERRORMSG("EOF / read error on image data" );
 
      if (LWZReadByte( data, true, c ) < 0)
@@ -789,7 +784,7 @@ static u32* ReadGIF( IDirectFBImageProvider_GIF_data *data, int imageNumber,
      int   imageCount = 0;
      char  version[4];
 
-     if (! ReadOK( data->buffer, buf, 6 )) {
+     if (! ReadOK( data->base.buffer, buf, 6 )) {
           GIFERRORMSG("error reading magic number" );
      }
 
@@ -803,7 +798,7 @@ static u32* ReadGIF( IDirectFBImageProvider_GIF_data *data, int imageNumber,
           GIFERRORMSG("bad version number, not '87a' or '89a'" );
      }
 
-     if (! ReadOK(data->buffer,buf,7)) {
+     if (! ReadOK(data->base.buffer,buf,7)) {
           GIFERRORMSG("failed to read screen descriptor" );
      }
 
@@ -815,7 +810,7 @@ static u32* ReadGIF( IDirectFBImageProvider_GIF_data *data, int imageNumber,
      data->AspectRatio     = buf[6];
 
      if (BitSet(buf[4], LOCALCOLORMAP)) {    /* Global Colormap */
-          if (ReadColorMap( data->buffer, data->BitPixel, data->ColorMap )) {
+          if (ReadColorMap( data->base.buffer, data->BitPixel, data->ColorMap )) {
                GIFERRORMSG("error reading global colormap" );
           }
      }
@@ -831,7 +826,7 @@ static u32* ReadGIF( IDirectFBImageProvider_GIF_data *data, int imageNumber,
      data->disposal    = 0;
 
      for (;;) {
-          if (! ReadOK( data->buffer, &c, 1)) {
+          if (! ReadOK( data->base.buffer, &c, 1)) {
                GIFERRORMSG("EOF / read error on image data" );
           }
 
@@ -844,7 +839,7 @@ static u32* ReadGIF( IDirectFBImageProvider_GIF_data *data, int imageNumber,
           }
 
           if (c == '!') {         /* Extension */
-               if (! ReadOK( data->buffer, &c, 1)) {
+               if (! ReadOK( data->base.buffer, &c, 1)) {
                     GIFERRORMSG("OF / read error on extention function code");
                }
                DoExtension( data, c );
@@ -858,7 +853,7 @@ static u32* ReadGIF( IDirectFBImageProvider_GIF_data *data, int imageNumber,
 
           ++imageCount;
 
-          if (! ReadOK( data->buffer, buf, 9 )) {
+          if (! ReadOK( data->base.buffer, buf, 9 )) {
                GIFERRORMSG("couldn't read left/top/width/height");
           }
 
@@ -878,7 +873,7 @@ static u32* ReadGIF( IDirectFBImageProvider_GIF_data *data, int imageNumber,
           }
           else {
                bitPixel = 2 << (buf[8] & 0x07);
-               if (ReadColorMap( data->buffer, bitPixel, localColorMap ))
+               if (ReadColorMap( data->base.buffer, bitPixel, localColorMap ))
                     GIFERRORMSG("error reading local colormap" );
 
                if (*transparency && (key_rgb || !headeronly))

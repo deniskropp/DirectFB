@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -44,5 +44,23 @@ DFBResult
 IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
                                          CoreDFB                 *core,
                                          IDirectFBImageProvider **interface );
+
+/**********************************************************************************************************************/
+
+/*
+ * private data struct of IDirectFBImageProvider
+ * used by implementors of IDirectFBImageProvider
+ */
+typedef struct {
+     int                  ref; /* reference counter */
+
+     IDirectFBDataBuffer *buffer;
+
+     CoreDFB             *core;
+
+     DIRenderCallback     render_callback;
+     void                *render_callback_context;
+} IDirectFBImageProvider_data;
+
 
 #endif

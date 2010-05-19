@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -78,15 +78,10 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, DFIFF )
  * private data struct of IDirectFBImageProvider_DFIFF
  */
 typedef struct {
-     int                  ref;     /* reference counter */
+     IDirectFBImageProvider_data base;
 
      void                *ptr;     /* pointer to raw file data (mapped) */
      int                  len;     /* data length, i.e. file size */
-
-     DIRenderCallback     render_callback;
-     void                *render_callback_context;
-
-     CoreDFB             *core;
 } IDirectFBImageProvider_DFIFF_data;
 
 
@@ -108,7 +103,7 @@ IDirectFBImageProvider_DFIFF_AddRef( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_DFIFF)
 
-     data->ref++;
+     data->base.ref++;
 
      return DFB_OK;
 }
@@ -118,7 +113,7 @@ IDirectFBImageProvider_DFIFF_Release( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_DFIFF)
 
-     if (--data->ref == 0) {
+     if (--data->base.ref == 0) {
           IDirectFBImageProvider_DFIFF_Destruct( thiz );
      }
 
@@ -214,9 +209,10 @@ IDirectFBImageProvider_DFIFF_RenderTo( IDirectFBImageProvider *thiz,
           source->Release( source );
      }
      
-     if (data->render_callback) {
+     if (data->base.render_callback) {
           DFBRectangle rect = { 0, 0, clipped.w, clipped.h };
-          data->render_callback( &rect, data->render_callback_context );
+          data->base.render_callback( &rect,
+                                      data->base.render_callback_context );
      }
      
      return DFB_OK;
@@ -229,8 +225,8 @@ IDirectFBImageProvider_DFIFF_SetRenderCallback( IDirectFBImageProvider *thiz,
 {
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_DFIFF)
 
-     data->render_callback         = callback;
-     data->render_callback_context = context;
+     data->base.render_callback         = callback;
+     data->base.render_callback_context = context;
 
      return DFB_OK;
 }
@@ -349,10 +345,11 @@ Construct( IDirectFBImageProvider *thiz,
      /* Already close, we still have the map. */
      close( fd );
 
-     data->ref = 1;
+     data->base.ref = 1;
+     data->base.core = core;
+
      data->ptr = ptr;
      data->len = stat.st_size;
-     data->core = core;
 
      thiz->AddRef                = IDirectFBImageProvider_DFIFF_AddRef;
      thiz->Release               = IDirectFBImageProvider_DFIFF_Release;
