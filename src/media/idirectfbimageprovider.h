@@ -60,6 +60,8 @@ typedef struct {
 
      DIRenderCallback     render_callback;
      void                *render_callback_context;
+
+     void (*Destruct)( IDirectFBImageProvider *thiz );
 } IDirectFBImageProvider_data;
 
 
