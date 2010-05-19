@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -93,8 +93,7 @@ enum {
  * private data struct of IDirectFBImageProvider_PNG
  */
 typedef struct {
-     int                  ref;      /* reference counter */
-     IDirectFBDataBuffer *buffer;
+     IDirectFBImageProvider_data base;
 
      int                  stage;
      int                  rows;
@@ -113,11 +112,6 @@ typedef struct {
      int                  pitch;
      u32                  palette[256];
      DFBColor             colors[256];
-
-     DIRenderCallback     render_callback;
-     void                *render_callback_context;
-
-     CoreDFB             *core;
 } IDirectFBImageProvider_PNG_data;
 
 static DirectResult
@@ -196,11 +190,10 @@ Construct( IDirectFBImageProvider *thiz,
      core = va_arg( tag, CoreDFB * );
      va_end( tag );
 
-     data->ref    = 1;
-     data->buffer = buffer;
-     data->core   = core;
+     data->base.ref    = 1;
+     data->base.buffer = buffer;
+     data->base.core   = core;
 
-     /* Increase the data buffer reference counter. */
      buffer->AddRef( buffer );
 
      /* Create the PNG read handle. */
@@ -265,7 +258,7 @@ IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
      png_destroy_read_struct( &data->png_ptr, &data->info_ptr, NULL );
 
      /* Decrease the data buffer reference counter. */
-     data->buffer->Release( data->buffer );
+     data->base.buffer->Release( data->base.buffer );
 
      /* Deallocate image data. */
      if (data->image)
@@ -279,7 +272,7 @@ IDirectFBImageProvider_PNG_AddRef( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
-     data->ref++;
+     data->base.ref++;
 
      return DFB_OK;
 }
@@ -289,7 +282,7 @@ IDirectFBImageProvider_PNG_Release( IDirectFBImageProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
-     if (--data->ref == 0) {
+     if (--data->base.ref == 0) {
           IDirectFBImageProvider_PNG_Destruct( thiz );
      }
 
@@ -521,8 +514,8 @@ IDirectFBImageProvider_PNG_SetRenderCallback( IDirectFBImageProvider *thiz,
 {
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
-     data->render_callback         = callback;
-     data->render_callback_context = context;
+     data->base.render_callback         = callback;
+     data->base.render_callback_context = context;
 
      return DFB_OK;
 }
@@ -798,11 +791,12 @@ png_row_callback( png_structp png_read_ptr,
      /* increase row counter, FIXME: interlaced? */
      data->rows++;
 
-     if (data->render_callback) {
+     if (data->base.render_callback) {
           DIRenderCallbackResult r;
           DFBRectangle rect = { 0, row_num, data->width, 1 };
 
-          r = data->render_callback( &rect, data->render_callback_context );
+          r = data->base.render_callback( &rect,
+                                          data->base.render_callback_context );
           if (r != DIRCR_OK)
               data->stage = STAGE_ABORT;
      }
@@ -832,7 +826,7 @@ push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
                        int                              buffer_size)
 {
      DFBResult            ret;
-     IDirectFBDataBuffer *buffer = data->buffer;
+     IDirectFBDataBuffer *buffer = data->base.buffer;
 
      while (data->stage < stage) {
           unsigned int  len;
