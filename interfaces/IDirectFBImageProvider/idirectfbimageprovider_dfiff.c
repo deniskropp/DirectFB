@@ -94,30 +94,6 @@ IDirectFBImageProvider_DFIFF_Destruct( IDirectFBImageProvider *thiz )
      IDirectFBImageProvider_DFIFF_data *data = thiz->priv;
 
      munmap( data->ptr, data->len );
-
-     DIRECT_DEALLOCATE_INTERFACE( thiz );
-}
-
-static DirectResult
-IDirectFBImageProvider_DFIFF_AddRef( IDirectFBImageProvider *thiz )
-{
-     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_DFIFF)
-
-     data->base.ref++;
-
-     return DFB_OK;
-}
-
-static DirectResult
-IDirectFBImageProvider_DFIFF_Release( IDirectFBImageProvider *thiz )
-{
-     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_DFIFF)
-
-     if (--data->base.ref == 0) {
-          IDirectFBImageProvider_DFIFF_Destruct( thiz );
-     }
-
-     return DFB_OK;
 }
 
 static DFBResult
@@ -215,19 +191,6 @@ IDirectFBImageProvider_DFIFF_RenderTo( IDirectFBImageProvider *thiz,
                                       data->base.render_callback_context );
      }
      
-     return DFB_OK;
-}
-
-static DFBResult
-IDirectFBImageProvider_DFIFF_SetRenderCallback( IDirectFBImageProvider *thiz,
-                                                DIRenderCallback        callback,
-                                                void                   *context )
-{
-     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_DFIFF)
-
-     data->base.render_callback         = callback;
-     data->base.render_callback_context = context;
-
      return DFB_OK;
 }
 
@@ -351,10 +314,9 @@ Construct( IDirectFBImageProvider *thiz,
      data->ptr = ptr;
      data->len = stat.st_size;
 
-     thiz->AddRef                = IDirectFBImageProvider_DFIFF_AddRef;
-     thiz->Release               = IDirectFBImageProvider_DFIFF_Release;
+     data->base.Destruct = IDirectFBImageProvider_DFIFF_Destruct;
+
      thiz->RenderTo              = IDirectFBImageProvider_DFIFF_RenderTo;
-     thiz->SetRenderCallback     = IDirectFBImageProvider_DFIFF_SetRenderCallback;
      thiz->GetImageDescription   = IDirectFBImageProvider_DFIFF_GetImageDescription;
      thiz->GetSurfaceDescription = IDirectFBImageProvider_DFIFF_GetSurfaceDescription;
 

@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -45,13 +45,30 @@
 static DirectResult
 IDirectFBImageProvider_AddRef( IDirectFBImageProvider *thiz )
 {
-     return DFB_UNIMPLEMENTED;
+     DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider )
+
+     data->ref++;
+
+     return DFB_OK;
 }
 
 static DirectResult
 IDirectFBImageProvider_Release( IDirectFBImageProvider *thiz )
 {
-     return DFB_UNIMPLEMENTED;
+     DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider )
+
+     if (--data->ref == 0) {
+          if (data->Destruct)
+               data->Destruct( thiz );
+
+          /* Decrease the data buffer reference counter. */
+          if (data->buffer)
+               data->buffer->Release( data->buffer );
+
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
+     }
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -91,7 +108,12 @@ IDirectFBImageProvider_SetRenderCallback( IDirectFBImageProvider *thiz,
                                           DIRenderCallback        callback,
                                           void                   *callback_data )
 {
-     return DFB_UNIMPLEMENTED;
+     DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider )
+
+     data->render_callback         = callback;
+     data->render_callback_context = callback_data;
+
+     return DFB_OK;
 }
 
 static DFBResult

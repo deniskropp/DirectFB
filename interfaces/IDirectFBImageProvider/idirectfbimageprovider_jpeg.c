@@ -86,21 +86,11 @@ typedef struct {
      int                  image_height; /*  height of image data  */
 } IDirectFBImageProvider_JPEG_data;
 
-static DirectResult
-IDirectFBImageProvider_JPEG_AddRef  ( IDirectFBImageProvider *thiz );
-
-static DirectResult
-IDirectFBImageProvider_JPEG_Release ( IDirectFBImageProvider *thiz );
 
 static DFBResult
 IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                                       IDirectFBSurface       *destination,
                                       const DFBRectangle     *destination_rect );
-
-static DFBResult
-IDirectFBImageProvider_JPEG_SetRenderCallback( IDirectFBImageProvider *thiz,
-                                               DIRenderCallback        callback,
-                                               void                   *context );
 
 static DFBResult
 IDirectFBImageProvider_JPEG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
@@ -275,6 +265,16 @@ copy_line_nv16( u16 *yy, u16 *cbcr, const u8 *src_ycbcr, int width )
 }
 
 
+static void
+IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
+{
+     IDirectFBImageProvider_JPEG_data *data =
+                              (IDirectFBImageProvider_JPEG_data*)thiz->priv;
+
+     if (data->image)
+          D_FREE( data->image );
+}
+
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx )
 {
@@ -339,49 +339,12 @@ Construct( IDirectFBImageProvider *thiz,
      jpeg_abort_decompress(&cinfo);
      jpeg_destroy_decompress(&cinfo);
 
-     thiz->AddRef = IDirectFBImageProvider_JPEG_AddRef;
-     thiz->Release = IDirectFBImageProvider_JPEG_Release;
+     data->base.Destruct = IDirectFBImageProvider_JPEG_Destruct;
+
      thiz->RenderTo = IDirectFBImageProvider_JPEG_RenderTo;
-     thiz->SetRenderCallback = IDirectFBImageProvider_JPEG_SetRenderCallback;
      thiz->GetImageDescription =IDirectFBImageProvider_JPEG_GetImageDescription;
      thiz->GetSurfaceDescription =
      IDirectFBImageProvider_JPEG_GetSurfaceDescription;
-
-     return DFB_OK;
-}
-
-static void
-IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
-{
-     IDirectFBImageProvider_JPEG_data *data =
-                              (IDirectFBImageProvider_JPEG_data*)thiz->priv;
-
-     data->base.buffer->Release( data->base.buffer );
-
-     if (data->image)
-          D_FREE( data->image );
-
-     DIRECT_DEALLOCATE_INTERFACE( thiz );
-}
-
-static DirectResult
-IDirectFBImageProvider_JPEG_AddRef( IDirectFBImageProvider *thiz )
-{
-     DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
-
-     data->base.ref++;
-
-     return DFB_OK;
-}
-
-static DirectResult
-IDirectFBImageProvider_JPEG_Release( IDirectFBImageProvider *thiz )
-{
-     DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
-
-     if (--data->base.ref == 0) {
-          IDirectFBImageProvider_JPEG_Destruct( thiz );
-     }
 
      return DFB_OK;
 }
@@ -634,19 +597,6 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
 }
 
 static DFBResult
-IDirectFBImageProvider_JPEG_SetRenderCallback( IDirectFBImageProvider *thiz,
-                                               DIRenderCallback        callback,
-                                               void                   *context )
-{
-     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_JPEG)
-
-     data->base.render_callback         = callback;
-     data->base.render_callback_context = context;
-
-     return DFB_OK;
-}
-
-static DFBResult
 IDirectFBImageProvider_JPEG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
                                                    DFBSurfaceDescription  *dsc )
 {
@@ -673,4 +623,3 @@ IDirectFBImageProvider_JPEG_GetImageDescription( IDirectFBImageProvider *thiz,
 
      return DFB_OK;
 }
-

@@ -114,21 +114,11 @@ typedef struct {
      DFBColor             colors[256];
 } IDirectFBImageProvider_PNG_data;
 
-static DirectResult
-IDirectFBImageProvider_PNG_AddRef  ( IDirectFBImageProvider *thiz );
-
-static DirectResult
-IDirectFBImageProvider_PNG_Release ( IDirectFBImageProvider *thiz );
 
 static DFBResult
 IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                                      IDirectFBSurface       *destination,
                                      const DFBRectangle     *destination_rect );
-
-static DFBResult
-IDirectFBImageProvider_PNG_SetRenderCallback( IDirectFBImageProvider *thiz,
-                                              DIRenderCallback        callback,
-                                              void                   *context );
 
 static DFBResult
 IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
@@ -161,6 +151,21 @@ static DFBResult
 push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
                        int                              stage,
                        int                              buffer_size);
+
+/**********************************************************************************************************************/
+
+static void
+IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
+{
+     IDirectFBImageProvider_PNG_data *data =
+                              (IDirectFBImageProvider_PNG_data*)thiz->priv;
+
+     png_destroy_read_struct( &data->png_ptr, &data->info_ptr, NULL );
+
+     /* Deallocate image data. */
+     if (data->image)
+          D_FREE( data->image );
+}
 
 /**********************************************************************************************************************/
 
@@ -224,10 +229,9 @@ Construct( IDirectFBImageProvider *thiz,
      if (ret)
           goto error;
 
-     thiz->AddRef                = IDirectFBImageProvider_PNG_AddRef;
-     thiz->Release               = IDirectFBImageProvider_PNG_Release;
+     data->base.Destruct = IDirectFBImageProvider_PNG_Destruct;
+
      thiz->RenderTo              = IDirectFBImageProvider_PNG_RenderTo;
-     thiz->SetRenderCallback     = IDirectFBImageProvider_PNG_SetRenderCallback;
      thiz->GetImageDescription   = IDirectFBImageProvider_PNG_GetImageDescription;
      thiz->GetSurfaceDescription = IDirectFBImageProvider_PNG_GetSurfaceDescription;
 
@@ -245,48 +249,6 @@ error:
      DIRECT_DEALLOCATE_INTERFACE(thiz);
 
      return ret;
-}
-
-/**********************************************************************************************************************/
-
-static void
-IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
-{
-     IDirectFBImageProvider_PNG_data *data =
-                              (IDirectFBImageProvider_PNG_data*)thiz->priv;
-
-     png_destroy_read_struct( &data->png_ptr, &data->info_ptr, NULL );
-
-     /* Decrease the data buffer reference counter. */
-     data->base.buffer->Release( data->base.buffer );
-
-     /* Deallocate image data. */
-     if (data->image)
-          D_FREE( data->image );
-
-     DIRECT_DEALLOCATE_INTERFACE( thiz );
-}
-
-static DirectResult
-IDirectFBImageProvider_PNG_AddRef( IDirectFBImageProvider *thiz )
-{
-     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
-
-     data->base.ref++;
-
-     return DFB_OK;
-}
-
-static DirectResult
-IDirectFBImageProvider_PNG_Release( IDirectFBImageProvider *thiz )
-{
-     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
-
-     if (--data->base.ref == 0) {
-          IDirectFBImageProvider_PNG_Destruct( thiz );
-     }
-
-     return DFB_OK;
 }
 
 /**********************************************************************************************************************/
@@ -505,19 +467,6 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
           ret = DFB_INCOMPLETE;
 
      return ret;
-}
-
-static DFBResult
-IDirectFBImageProvider_PNG_SetRenderCallback( IDirectFBImageProvider *thiz,
-                                              DIRenderCallback        callback,
-                                              void                   *context )
-{
-     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
-
-     data->base.render_callback         = callback;
-     data->base.render_callback_context = context;
-
-     return DFB_OK;
 }
 
 static DFBResult
