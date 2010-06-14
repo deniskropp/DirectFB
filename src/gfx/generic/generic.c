@@ -555,12 +555,12 @@ static void Cop_to_Aop_yv16( GenefxState *gfxs )
 static void Cop_to_Aop_nv12( GenefxState *gfxs )
 {
      memset( gfxs->Aop[0], gfxs->YCop, gfxs->length );
-    
+
      if (gfxs->dst_format == DSPF_NV16 || gfxs->AopY & 1) {
           u16   *D   = gfxs->Aop[1];
           int    w   = gfxs->length>>1;
           u16    Cop = gfxs->CbCop | (gfxs->CrCop << 8);
-          
+
           while (w--)
                *D++ = Cop;
      }
@@ -575,7 +575,7 @@ static void Cop_to_Aop_nv21( GenefxState *gfxs )
           u16   *D   = gfxs->Aop[1];
           int    w   = gfxs->length>>1;
           u16    Cop = gfxs->CrCop | (gfxs->CbCop << 8);
-          
+
           while (w--)
                *D++ = Cop;
      }
@@ -897,12 +897,12 @@ static void Bop_32_to_Aop( GenefxState *gfxs )
 
 static void Bop_i420_to_Aop( GenefxState *gfxs )
 {
-     direct_memmove( gfxs->Aop[0], gfxs->Bop[0], gfxs->length ); 
+     direct_memmove( gfxs->Aop[0], gfxs->Bop[0], gfxs->length );
      if (gfxs->AopY & 1) {
           direct_memmove( gfxs->Aop[1], gfxs->Bop[1], gfxs->length>>1 );
           direct_memmove( gfxs->Aop[2], gfxs->Bop[2], gfxs->length>>1 );
      }
-}             
+}
 
 static void Bop_yv16_to_Aop( GenefxState *gfxs )
 {
@@ -1058,7 +1058,7 @@ static void Bop_i420_toR_Aop( GenefxState *gfxs )
                D2 += Dstep;
           }
      }
-}             
+}
 
 static void Bop_yv16_toR_Aop( GenefxState *gfxs )
 {
@@ -1979,19 +1979,19 @@ static void Bop_i420_Sto_Aop( GenefxState *gfxs )
      u8   *Dy    = gfxs->Aop[0];
      u8   *Sy    = gfxs->Bop[0];
      int   SperD = gfxs->SperD;
-    
+
      while (w--) {
           *Dy++ = Sy[i>>16];
 
           i += SperD;
      }
-     
+
      if (gfxs->AopY & 1) {
           u8 *Du = gfxs->Aop[1];
           u8 *Dv = gfxs->Aop[2];
           u8 *Su = gfxs->Bop[1];
           u8 *Sv = gfxs->Bop[2];
-    
+
           for (w = gfxs->length>>1, i = 0; w--;) {
                *Du++ = Su[i>>16];
 
@@ -2041,13 +2041,13 @@ static void Bop_NV_Sto_Aop( GenefxState *gfxs )
      u8   *Dy    = gfxs->Aop[0];
      u8   *Sy    = gfxs->Bop[0];
      int   SperD = gfxs->SperD;
-     
+
      while (w--) {
           *Dy++ = Sy[i>>16];
 
           i += SperD;
      }
-          
+
      if (gfxs->dst_format == DSPF_NV16 || gfxs->AopY & 1) {
           u16 *Duv = gfxs->Aop[1];
           u16 *Suv = gfxs->Bop[1];
@@ -2747,7 +2747,7 @@ static void Sop_argb6666_Sto_Dacc( GenefxState *gfxs )
           D++;
      }
 }
-  
+
 static void Sop_argb1666_Sto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
@@ -3045,9 +3045,9 @@ static void Sop_i420_Sto_Dacc( GenefxState *gfxs )
           D->YUV.y = Sy[i>>16];
           D->YUV.u = Su[i>>17];
           D->YUV.v = Sv[i>>17];
-          
+
           i += SperD;
-          
+
           D++;
      }
 }
@@ -3061,18 +3061,18 @@ static void Sop_nv12_Sto_Dacc( GenefxState *gfxs )
      GenefxAccumulator *D   = gfxs->Dacc;
      u8                *Sy  = gfxs->Sop[0];
      u16               *Suv = gfxs->Sop[1];
-     
+
      while (w--) {
           D->YUV.a = 0xFF;
           D->YUV.y = Sy[i>>16];
           D->YUV.u = Suv[i>>17] & 0xFF;
           D->YUV.v = Suv[i>>17] >> 8;
-          
+
           i += SperD;
-          
+
           D++;
      }
-} 
+}
 
 static void Sop_nv21_Sto_Dacc( GenefxState *gfxs )
 {
@@ -3083,15 +3083,15 @@ static void Sop_nv21_Sto_Dacc( GenefxState *gfxs )
      GenefxAccumulator *D   = gfxs->Dacc;
      u8                *Sy  = gfxs->Sop[0];
      u16               *Svu = gfxs->Sop[1];
-     
+
      while (w--) {
           D->YUV.a = 0xFF;
           D->YUV.y = Sy[i>>16];
           D->YUV.u = Svu[i>>17] >> 8;
           D->YUV.v = Svu[i>>17] & 0xFF;
-          
+
           i += SperD;
-          
+
           D++;
      }
 }
@@ -3107,14 +3107,14 @@ static void Sop_ayuv_Sto_Dacc( GenefxState *gfxs )
 
      while (w--) {
           u32 s = S[i>>16];
-          
+
           D->YUV.a = (s >> 24);
           D->YUV.y = (s >> 16) & 0xff;
           D->YUV.u = (s >>  8) & 0xff;
           D->YUV.v = (s      ) & 0xff;
 
           i += SperD;
-          
+
           D++;
      }
 }
@@ -4129,18 +4129,18 @@ static void Sop_i420_to_Dacc( GenefxState *gfxs )
      u8                *Sy = gfxs->Sop[0];
      u8                *Su = gfxs->Sop[1];
      u8                *Sv = gfxs->Sop[2];
-     
+
      while (w--) {
           D[1].YUV.a = D[0].YUV.a = 0xFF;
           D[0].YUV.y = Sy[0];
           D[1].YUV.y = Sy[1];
           D[1].YUV.u = D[0].YUV.u = Su[0];
           D[1].YUV.v = D[0].YUV.v = Sv[0];
-          
+
           Sy += 2;
           Su++;
           Sv++;
-          
+
           D += 2;
      }
 }
@@ -4151,17 +4151,17 @@ static void Sop_nv12_to_Dacc( GenefxState *gfxs )
      GenefxAccumulator *D   = gfxs->Dacc;
      u8                *Sy  = gfxs->Sop[0];
      u16               *Suv = gfxs->Sop[1];
-     
-     while (w--) {  
+
+     while (w--) {
           D[1].YUV.a = D[0].YUV.a = 0xFF;
           D[0].YUV.y = Sy[0];
           D[1].YUV.y = Sy[1];
           D[1].YUV.u = D[0].YUV.u = Suv[0] & 0xFF;
           D[1].YUV.v = D[0].YUV.v = Suv[0] >> 8;
-          
+
           Sy += 2;
           Suv++;
-          
+
           D += 2;
      }
 }
@@ -4172,17 +4172,17 @@ static void Sop_nv21_to_Dacc( GenefxState *gfxs )
      GenefxAccumulator *D   = gfxs->Dacc;
      u8                *Sy  = gfxs->Sop[0];
      u16               *Svu = gfxs->Sop[1];
-     
-     while (w--) {  
+
+     while (w--) {
           D[1].YUV.a = D[0].YUV.a = 0xFF;
           D[0].YUV.y = Sy[0];
           D[1].YUV.y = Sy[1];
           D[1].YUV.u = D[0].YUV.u = Svu[0] >> 8;
           D[1].YUV.v = D[0].YUV.v = Svu[0] & 0xFF;
-          
+
           Sy += 2;
           Svu++;
-          
+
           D += 2;
      }
 }
@@ -5154,22 +5154,22 @@ static void Sacc_to_Aop_i420( GenefxState *gfxs )
      int                w  = gfxs->length;
      GenefxAccumulator *S  = gfxs->Sacc;
      u8                *Dy = gfxs->Aop[0];
-    
+
      while (w--) {
           if (!(S->YUV.a & 0xF000))
                *Dy = (S->YUV.y & 0xFF00) ? 0xFF : S->YUV.y;
-          
+
           S++;
           Dy++;
      }
-          
+
      if (gfxs->AopY & 1) {
           u8 *Du = gfxs->Aop[1];
           u8 *Dv = gfxs->Aop[2];
-          
+
           w = gfxs->length>>1;
           S = gfxs->Sacc;
-          
+
           while (w--) {
                if (!(S[0].YUV.a & 0xF000) && !(S[1].YUV.a & 0xF000)) {
                     u32 tmp;
@@ -5183,7 +5183,7 @@ static void Sacc_to_Aop_i420( GenefxState *gfxs )
                     if (tmp & 0xFF00)
                          tmp = 0xFF;
                     *Dv = tmp;
-               
+
                }
                else if (!(S[0].YUV.a & 0xF000)) {
                     *Du = (*Du + ((S[0].YUV.u & 0xFF00) ? 0xFF : S[0].YUV.u)) >> 1;
@@ -5584,7 +5584,7 @@ static void Sacc_Sto_Aop_rgb18( GenefxState *gfxs )
           i += SperD;
      }
 }
- 
+
 static void Sacc_Sto_Aop_argb8565( GenefxState *gfxs )
 {
      int                w     = gfxs->length + 1;
@@ -5872,28 +5872,28 @@ static void Sacc_Sto_Aop_i420( GenefxState *gfxs )
      GenefxAccumulator *Sacc   = gfxs->Sacc;
      u8                *Dy     = gfxs->Aop[0];
      int                SperD  = gfxs->SperD;
-     
+
      while (w--) {
           GenefxAccumulator *S = &Sacc[i>>16];
-          
+
           if (!(S->YUV.a & 0xF000))
                *Dy = (S->YUV.y & 0xFF00) ? 0xFF : S->YUV.y;
-          
+
           Dy++;
           i += SperD;
      }
-          
+
      if (gfxs->AopY & 1) {
           u8 *Du = gfxs->Aop[1];
           u8 *Dv = gfxs->Aop[2];
-          
+
           w = gfxs->length>>1;
           i = gfxs->Xphase>>1;
-          
+
           while (w--) {
                GenefxAccumulator *S0 = &Sacc[i>>16];
                GenefxAccumulator *S1 = &Sacc[(i+SperD)>>16];
-               
+
                if (!(S0->YUV.a & 0xF000) && !(S1->YUV.a & 0xF000)) {
                     u32 tmp;
 
@@ -5906,7 +5906,7 @@ static void Sacc_Sto_Aop_i420( GenefxState *gfxs )
                     if (tmp & 0xFF00)
                          tmp = 0xFF;
                     *Dv = tmp;
-               
+
                }
                else if (!(S0->YUV.a & 0xF000)) {
                     *Du = (*Du + ((S0->YUV.u & 0xFF00) ? 0xFF : S0->YUV.u)) >> 1;
@@ -5916,7 +5916,7 @@ static void Sacc_Sto_Aop_i420( GenefxState *gfxs )
                     *Du = (*Du + ((S1->YUV.u & 0xFF00) ? 0xFF : S1->YUV.u)) >> 1;
                     *Dv = (*Dv + ((S1->YUV.v & 0xFF00) ? 0xFF : S1->YUV.v)) >> 1;
                }
-               
+
                Du++;
                Dv++;
                i += SperD << 1;
@@ -8325,7 +8325,7 @@ static void Bop_lut2_translate_to_Aop_lut8( GenefxState *gfxs )
           }
      }
 }
-  
+
 /********************************* Xacc_blend *********************************/
 
 static void Xacc_blend_zero( GenefxState *gfxs )
@@ -9677,10 +9677,10 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                gfxs->Cop = PIXEL_AiRGB( color.a, color.r, color.g, color.b );
                break;
           case DSPF_ARGB6666:
-               gfxs->Cop = PIXEL_ARGB6666( color.a, color.r, color.g, color.b ); 
+               gfxs->Cop = PIXEL_ARGB6666( color.a, color.r, color.g, color.b );
                break;
           case DSPF_ARGB1666:
-               gfxs->Cop = PIXEL_ARGB1666( color.a, color.r, color.g, color.b ); 
+               gfxs->Cop = PIXEL_ARGB1666( color.a, color.r, color.g, color.b );
                break;
           case DSPF_A1:
                gfxs->Cop = color.a >> 7;
@@ -10062,7 +10062,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                }
                else {
                     gfxs->need_accumulator = false;
-                    
+
                     if (state->drawingflags & DSDRAW_DST_COLORKEY) {
                          gfxs->Dkey = state->dst_colorkey;
                          *funcs++ = Cop_toK_Aop_PFI[dst_pfi];
@@ -10337,7 +10337,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                    break;
                          }
                     }
-                    else if (((gfxs->src_format == gfxs->dst_format && 
+                    else if (((gfxs->src_format == gfxs->dst_format &&
                                (!DFB_PIXELFORMAT_IS_INDEXED(gfxs->src_format) ||
                                 dfb_palette_equal( gfxs->Alut, gfxs->Blut )))   ||
                               ((gfxs->src_format == DSPF_I420 || gfxs->src_format == DSPF_YV12 || gfxs->src_format == DSPF_YV16) &&
@@ -10348,7 +10348,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                                                               DSBLIT_FLIP_HORIZONTAL))))
                     {
                          gfxs->need_accumulator = false;
-                         
+
                          if (accel == DFXL_BLIT) {
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY &&
                                   state->blittingflags & DSBLIT_DST_COLORKEY) {
@@ -10508,7 +10508,7 @@ typedef void (*XopAdvanceFunc)( GenefxState *gfxs );
 static inline void Aop_xy( GenefxState *gfxs, int x, int y )
 {
      int pitch = gfxs->dst_pitch;
-     
+
      gfxs->Aop[0] = gfxs->dst_org[0];
      gfxs->AopY   = y;
 
@@ -10523,10 +10523,10 @@ static inline void Aop_xy( GenefxState *gfxs, int x, int y )
      D_ASSUME( !(x & DFB_PIXELFORMAT_ALIGNMENT(gfxs->dst_format)) );
 
      gfxs->Aop[0] += y * pitch + DFB_BYTES_PER_LINE( gfxs->dst_format, x );
-     
+
      if (DFB_PLANAR_PIXELFORMAT(gfxs->dst_format)) {
           int dst_field_offset = gfxs->dst_field_offset;
-          
+
           switch (gfxs->dst_format) {
                case DSPF_YV12:
                case DSPF_I420:
@@ -10551,15 +10551,15 @@ static inline void Aop_xy( GenefxState *gfxs, int x, int y )
                default:
                     break;
           }
-          
+
           gfxs->Aop[1] = gfxs->dst_org[1];
           gfxs->Aop[2] = gfxs->dst_org[2];
-                    
+
           if (gfxs->dst_caps & DSCAPS_SEPARATED && gfxs->Aop_field) {
                gfxs->Aop[1] += dst_field_offset;
                gfxs->Aop[2] += dst_field_offset;
           }
-          
+
           gfxs->Aop[1] += y * pitch + x;
           gfxs->Aop[2] += y * pitch + x;
      }
@@ -10574,7 +10574,7 @@ static void Aop_crab( GenefxState *gfxs )
 static void Aop_next( GenefxState *gfxs )
 {
      int pitch = gfxs->dst_pitch;
-     
+
      if (gfxs->dst_caps & DSCAPS_SEPARATED) {
           gfxs->Aop_field++;
 
@@ -10585,10 +10585,10 @@ static void Aop_next( GenefxState *gfxs )
      }
      else
           gfxs->Aop[0] += pitch;
-          
+
      if (DFB_PLANAR_PIXELFORMAT(gfxs->dst_format)) {
           if (gfxs->dst_format == DSPF_YV12 || gfxs->dst_format == DSPF_I420) {
-               if (gfxs->AopY & 1) { 
+               if (gfxs->AopY & 1) {
                     if (gfxs->dst_caps & DSCAPS_SEPARATED) {
                          if (gfxs->Aop_field & 2) {
                               gfxs->Aop[1] += gfxs->dst_field_offset/4;
@@ -10622,7 +10622,7 @@ static void Aop_next( GenefxState *gfxs )
                }
           }
           else if (gfxs->dst_format == DSPF_NV12 || gfxs->dst_format == DSPF_NV21) {
-               if (gfxs->AopY & 1) { 
+               if (gfxs->AopY & 1) {
                     if (gfxs->dst_caps & DSCAPS_SEPARATED) {
                          if (gfxs->Aop_field & 2)
                               gfxs->Aop[1] += gfxs->dst_field_offset/2;
@@ -10662,14 +10662,14 @@ static void Aop_next( GenefxState *gfxs )
                }
           }
      }
-     
+
      gfxs->AopY++;
 }
 
 static void Aop_prev( GenefxState *gfxs )
 {
      int pitch = gfxs->dst_pitch;
-     
+
      if (gfxs->dst_caps & DSCAPS_SEPARATED) {
           gfxs->Aop_field++;
 
@@ -10680,9 +10680,9 @@ static void Aop_prev( GenefxState *gfxs )
      }
      else
           gfxs->Aop[0] -= pitch;
-          
+
      if (DFB_PLANAR_PIXELFORMAT(gfxs->dst_format)) {
-          if (gfxs->dst_format == DSPF_YV12 || gfxs->dst_format == DSPF_I420) { 
+          if (gfxs->dst_format == DSPF_YV12 || gfxs->dst_format == DSPF_I420) {
                if (gfxs->AopY & 1) {
                     if (gfxs->dst_caps & DSCAPS_SEPARATED) {
                          if (gfxs->Aop_field & 2) {
@@ -10717,7 +10717,7 @@ static void Aop_prev( GenefxState *gfxs )
                }
           }
           else if (gfxs->dst_format == DSPF_NV12 || gfxs->dst_format == DSPF_NV21) {
-               if (gfxs->AopY & 1) { 
+               if (gfxs->AopY & 1) {
                     if (gfxs->dst_caps & DSCAPS_SEPARATED) {
                          if (gfxs->Aop_field & 2)
                               gfxs->Aop[1] += gfxs->dst_field_offset/2 - pitch;
@@ -10757,7 +10757,7 @@ static void Aop_prev( GenefxState *gfxs )
                }
           }
      }
-     
+
      gfxs->AopY--;
 }
 
@@ -10765,7 +10765,7 @@ static void Aop_prev( GenefxState *gfxs )
 static inline void Bop_xy( GenefxState *gfxs, int x, int y )
 {
      int pitch = gfxs->src_pitch;
-     
+
      gfxs->Bop[0] = gfxs->src_org[0];
      gfxs->BopY   = y;
 
@@ -10780,10 +10780,10 @@ static inline void Bop_xy( GenefxState *gfxs, int x, int y )
      D_ASSUME( !(x & DFB_PIXELFORMAT_ALIGNMENT(gfxs->src_format)) );
 
      gfxs->Bop[0] += y * pitch + DFB_BYTES_PER_LINE( gfxs->src_format, x );
-     
+
      if (DFB_PLANAR_PIXELFORMAT(gfxs->src_format)) {
           int src_field_offset = gfxs->src_field_offset;
-          
+
           switch (gfxs->src_format) {
                case DSPF_YV12:
                case DSPF_I420:
@@ -10808,15 +10808,15 @@ static inline void Bop_xy( GenefxState *gfxs, int x, int y )
                default:
                     break;
           }
-          
+
           gfxs->Bop[1] = gfxs->src_org[1];
           gfxs->Bop[2] = gfxs->src_org[2];
-          
+
           if (gfxs->src_caps & DSCAPS_SEPARATED && gfxs->Bop_field) {
                gfxs->Bop[1] += src_field_offset;
                gfxs->Bop[2] += src_field_offset;
           }
-          
+
           gfxs->Bop[1] += y * pitch + x;
           gfxs->Bop[2] += y * pitch + x;
      }
@@ -10825,7 +10825,7 @@ static inline void Bop_xy( GenefxState *gfxs, int x, int y )
 static void Bop_next( GenefxState *gfxs )
 {
      int pitch = gfxs->src_pitch;
-     
+
      if (gfxs->src_caps & DSCAPS_SEPARATED) {
           gfxs->Bop_field++;
 
@@ -10836,7 +10836,7 @@ static void Bop_next( GenefxState *gfxs )
      }
      else
           gfxs->Bop[0] += pitch;
-               
+
      if (DFB_PLANAR_PIXELFORMAT(gfxs->src_format)) {
           if (gfxs->src_format == DSPF_YV12 || gfxs->src_format == DSPF_I420) {
                if (gfxs->BopY & 1) {
@@ -10913,14 +10913,14 @@ static void Bop_next( GenefxState *gfxs )
                }
           }
      }
-     
+
      gfxs->BopY++;
 }
 
 static void Bop_prev( GenefxState *gfxs )
 {
      int pitch = gfxs->src_pitch;
-     
+
      if (gfxs->src_caps & DSCAPS_SEPARATED) {
           gfxs->Bop_field++;
 
@@ -10931,7 +10931,7 @@ static void Bop_prev( GenefxState *gfxs )
      }
      else
           gfxs->Bop[0] -= pitch;
-          
+
      if (DFB_PLANAR_PIXELFORMAT(gfxs->src_format)) {
           if (gfxs->src_format == DSPF_YV12 || gfxs->src_format == DSPF_I420) {
                if (gfxs->BopY & 1) {
@@ -10967,7 +10967,7 @@ static void Bop_prev( GenefxState *gfxs )
                     gfxs->Bop[2] -= pitch/2;
                }
           }
-          else if (gfxs->src_format == DSPF_NV12 || gfxs->src_format == DSPF_NV21) { 
+          else if (gfxs->src_format == DSPF_NV12 || gfxs->src_format == DSPF_NV21) {
                if (gfxs->BopY & 1) {
                     if (gfxs->src_caps & DSCAPS_SEPARATED) {
                          if (gfxs->Bop_field & 2)
@@ -11008,7 +11008,7 @@ static void Bop_prev( GenefxState *gfxs )
                }
           }
      }
-     
+
      gfxs->BopY--;
 }
 
@@ -11240,7 +11240,7 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
                break;
           default:
                break;
-     }               
+     }
 
      gfxs->length = rect->w;
 
