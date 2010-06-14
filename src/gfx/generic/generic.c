@@ -11254,7 +11254,21 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
 
 
-     if (state->blittingflags & DSBLIT_FLIP_HORIZONTAL) {
+     if ((state->blittingflags & DSBLIT_ROTATE180)
+         || D_FLAGS_ARE_SET (state->blittingflags, (DSBLIT_FLIP_HORIZONTAL
+                                                    | DSBLIT_FLIP_VERTICAL))) {
+          gfxs->Astep *= -1;
+
+          Aop_X = dx + rect->w - 1;
+          Aop_Y = dy;
+
+          Bop_X = rect->x;
+          Bop_Y = rect->y + rect->h - 1;
+
+          Aop_advance = Aop_next;
+          Bop_advance = Bop_prev;
+     }
+     else if (state->blittingflags & DSBLIT_FLIP_HORIZONTAL) {
           gfxs->Astep *= -1;
 
           Aop_X = dx + rect->w - 1;
@@ -11275,18 +11289,6 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
           Aop_advance = Aop_prev;
           Bop_advance = Bop_next;
-     }
-     else if (state->blittingflags & DSBLIT_ROTATE180) {
-          gfxs->Astep *= -1;
-
-          Aop_X = dx + rect->w - 1;
-          Aop_Y = dy;
-
-          Bop_X = rect->x;
-          Bop_Y = rect->y + rect->h - 1;
-
-          Aop_advance = Aop_next;
-          Bop_advance = Bop_prev;
      }
      else if (state->blittingflags & DSBLIT_ROTATE270) {
           gfxs->Astep *= gfxs->dst_pitch / gfxs->dst_bpp;
