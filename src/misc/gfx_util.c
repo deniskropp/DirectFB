@@ -406,6 +406,7 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                break;
 
           case DSPF_YV12:
+          case DSPF_YV16:
           case DSPF_I420:
                d1 = dst[1];
                d2 = dst[2];
@@ -641,6 +642,26 @@ void dfb_copy_buffer_32( u32 *src,
                                      dst_surface->config.size.h/2, dpitch/2 ) + x/2;
                     d[2] = LINE_PTR( dst2, dst_surface->config.caps, y/2,
                                      dst_surface->config.size.h/2, dpitch/2 ) + x/2;
+
+                    write_argb_span( src, d, drect->w, x, y, dst_surface );
+
+                    src += sw;
+               }
+               break;
+
+          case DSPF_YV16:
+               dst2 = dst  + dpitch   * dst_surface->config.size.h;
+               dst1 = dst2 + dpitch/2 * dst_surface->config.size.h;
+
+               for (y = drect->y; y < drect->y + drect->h; y++) {
+                    u8 *d[3];
+
+                    d[0] = LINE_PTR( dst, dst_surface->config.caps, y,
+                                     dst_surface->config.size.h, dpitch ) + x;
+                    d[1] = LINE_PTR( dst1, dst_surface->config.caps, y,
+                                     dst_surface->config.size.h, dpitch/2 ) + x/2;
+                    d[2] = LINE_PTR( dst2, dst_surface->config.caps, y,
+                                     dst_surface->config.size.h, dpitch/2 ) + x/2;
 
                     write_argb_span( src, d, drect->w, x, y, dst_surface );
 
@@ -962,6 +983,10 @@ void dfb_scale_linear_32( u32 *src, int sw, int sh,
                dst2 = dst  + dpitch   * dst_surface->config.size.h;
                dst1 = dst2 + dpitch/2 * dst_surface->config.size.h/2;
                break;
+          case DSPF_YV16:
+               dst2 = dst  + dpitch   * dst_surface->config.size.h;
+               dst1 = dst2 + dpitch/2 * dst_surface->config.size.h;
+               break;
           case DSPF_NV12:
           case DSPF_NV21:
           case DSPF_NV16:
@@ -1046,6 +1071,12 @@ void dfb_scale_linear_32( u32 *src, int sw, int sh,
                                      dst_surface->config.size.h/2, dpitch/2 ) + drect->x/2;
                     d[2] = LINE_PTR( dst2, dst_surface->config.caps, i/2,
                                      dst_surface->config.size.h/2, dpitch/2 ) + drect->x/2;
+                    break;
+               case DSPF_YV16:
+                    d[1] = LINE_PTR( dst1, dst_surface->config.caps, i,
+                                     dst_surface->config.size.h, dpitch/2 ) + drect->x/2;
+                    d[2] = LINE_PTR( dst2, dst_surface->config.caps, i,
+                                     dst_surface->config.size.h, dpitch/2 ) + drect->x/2;
                     break;
                case DSPF_NV12:
                case DSPF_NV21:

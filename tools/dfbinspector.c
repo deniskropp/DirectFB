@@ -102,6 +102,7 @@ Inspector_Run( Inspector *inspector )
           DSPF_UYVY,
           DSPF_I420,
           DSPF_YV12,
+          DSPF_YV16,
           DSPF_NV12,
           DSPF_NV21,
           DSPF_NV16,

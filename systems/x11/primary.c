@@ -398,6 +398,7 @@ primaryTestRegion( CoreLayer                  *layer,
           case DSPF_UYVY:
           case DSPF_ARGB8565:
           case DSPF_YUV444P:
+          case DSPF_YV16:
                break;
 
           default:

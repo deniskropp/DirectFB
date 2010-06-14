@@ -1215,12 +1215,15 @@ typedef enum {
      DSPF_VYU       = DFB_SURFACE_PIXELFORMAT( 34, 24, 0, 0, 0, 3, 0, 0, 0, 0, 0 ),
 
      /*  1 bit alpha (1 byte/ 8 pixel, LEAST significant bit used first) */
-     DSPF_A1_LSB    = DFB_SURFACE_PIXELFORMAT( 35,  0, 1, 1, 1, 0, 7, 0, 0, 0, 0 )
+     DSPF_A1_LSB    = DFB_SURFACE_PIXELFORMAT( 35,  0, 1, 1, 1, 0, 7, 0, 0, 0, 0 ),
+
+     /* 16 bit   YUV (8 bit Y plane followed by 8 bit 2x1 subsampled V/U planes) */
+     DSPF_YV16      = DFB_SURFACE_PIXELFORMAT( 36, 16, 0, 0, 0, 1, 0, 0, 1, 0, 0 ),
 
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
-#define DFB_NUM_PIXELFORMATS            36
+#define DFB_NUM_PIXELFORMATS            37
 
 /* These macros extract information about the pixel format. */
 #define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000007F)      )

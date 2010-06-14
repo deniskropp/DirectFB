@@ -730,6 +730,7 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
           case DSPF_YUY2:
           case DSPF_UYVY:
           case DSPF_NV16:
+          case DSPF_YV16:
           case DSPF_RGB444:
           case DSPF_RGB555:
           case DSPF_BGR555:
@@ -966,6 +967,15 @@ transfer_buffer( CoreSurfaceBuffer *buffer,
           case DSPF_YV12:
           case DSPF_I420:
                for (i=0; i<surface->config.size.h; i++) {
+                    direct_memcpy( dst, src,
+                                   DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w / 2 ) );
+                    src += srcpitch / 2;
+                    dst += dstpitch / 2;
+               }
+               break;
+
+          case DSPF_YV16:
+               for (i=0; i<surface->config.size.h*2; i++) {
                     direct_memcpy( dst, src,
                                    DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w / 2 ) );
                     src += srcpitch / 2;
