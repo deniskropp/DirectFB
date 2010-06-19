@@ -54,6 +54,8 @@
 
 #include <direct/interface.h>
 #include <direct/mem.h>
+#include <direct/thread.h>
+
 #include <misc/util.h>
 
 #include <gfx/util.h>
@@ -71,7 +73,7 @@ typedef struct {
 
      CoreWindow           *window; /* pointer to core data */
 
-     pthread_t             flip_thread; /* thread for non-flipping primary
+     DirectThread         *flip_thread; /* thread for non-flipping primary
                                            surfaces, to make changes visible */
 
 //     CoreGraphicsSerial    serial;
@@ -79,7 +81,8 @@ typedef struct {
 
 /**********************************************************************************************************************/
 
-static void *Flipping_Thread( void *arg );
+static void *Flipping_Thread( DirectThread *thread,
+                              void         *arg );
 
 /**********************************************************************************************************************/
 
@@ -94,9 +97,10 @@ IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
 
      data = thiz->priv;
 
-     if ((int) data->flip_thread != -1) {
-          pthread_cancel( data->flip_thread );
-          pthread_join( data->flip_thread, NULL );
+     if (data->flip_thread) {
+          direct_thread_cancel( data->flip_thread );
+          direct_thread_join( data->flip_thread );
+          direct_thread_destroy( data->flip_thread );
      }
 
      dfb_window_unref( data->window );
@@ -305,7 +309,6 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      }
 
      data->window = window;
-     data->flip_thread = (pthread_t) -1;
 
      /*
       * Create an auto flipping thread if the application
@@ -314,7 +317,7 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
       */
      if (!(caps & DSCAPS_FLIPPING) && !(caps & DSCAPS_SUBSURFACE)) {
           if (dfb_config->autoflip_window)
-               pthread_create( &data->flip_thread, NULL, Flipping_Thread, thiz );
+               data->flip_thread = direct_thread_create( DTT_DEFAULT, Flipping_Thread, thiz, "Flipping" );
           else
                D_WARN( "Non-flipping window surface and no 'autoflip-window' option used" );
      }
@@ -330,7 +333,8 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
 /* file internal */
 
 static void *
-Flipping_Thread( void *arg )
+Flipping_Thread( DirectThread *thread,
+                 void         *arg )
 {
      IDirectFBSurface             *thiz = (IDirectFBSurface*) arg;
      IDirectFBSurface_Window_data *data = (IDirectFBSurface_Window_data*) thiz->priv;
@@ -338,7 +342,7 @@ Flipping_Thread( void *arg )
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
 
      while (data->base.surface && data->window->surface) {
-          pthread_testcancel();
+          direct_thread_testcancel( thread );
 
           /*
            * OPTIMIZE: only call if surface has been touched in the meantime
