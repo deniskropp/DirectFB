@@ -52,6 +52,12 @@
 
 #include <direct/stream.h>
 
+#if WORDS_BIGENDIAN
+#define ntohl(x) (x)
+#else
+#define ntohl(x) __swap32(x)
+#endif
+
 
 struct __D_DirectStream {
      int                   magic;
