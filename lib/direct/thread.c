@@ -495,7 +495,11 @@ direct_thread_cancel( DirectThread *thread )
 
      thread->canceled = true;
 
+#if DIRECT_BUILD_NO_PTHREAD_CANCEL
+     D_UNIMPLEMENTED();
+#else
      pthread_cancel( thread->thread );
+#endif
 }
 
 bool
@@ -537,9 +541,13 @@ direct_thread_testcancel( DirectThread *thread )
      D_ASSERT( thread->thread != -1 );
      D_ASSERT( pthread_equal( thread->thread, pthread_self() ) );
 
+#if DIRECT_BUILD_NO_PTHREAD_CANCEL
+     D_UNIMPLEMENTED();
+#else
      /* Quick check before calling the pthread function. */
      if (thread->canceled)
           pthread_testcancel();
+#endif
 }
 
 void
@@ -609,7 +617,8 @@ direct_thread_destroy( DirectThread *thread )
                thread->detached = true;
 
                pthread_detach( thread->thread );
-               pthread_cancel( thread->thread );
+
+               direct_thread_cancel( thread );
 
                return;
           }
