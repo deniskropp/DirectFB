@@ -206,7 +206,9 @@ direct_thread_create( DirectThreadType      thread_type,
      /* Initialize scheduling and other parameters. */
      pthread_attr_init( &attr );
 
+#ifdef PTHREAD_EXPLICIT_SCHED
      pthread_attr_setinheritsched( &attr, PTHREAD_EXPLICIT_SCHED );
+#endif
 
      /* Select scheduler. */
      switch (direct_config->thread_scheduler) {
