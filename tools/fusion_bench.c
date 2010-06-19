@@ -335,8 +335,16 @@ mutex_lock_unlock_loop( void *arg )
 static void
 bench_mutex_threaded( void )
 {
-     int             i;
-     pthread_mutex_t lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+     int                 i;
+     pthread_mutex_t     lock;
+     pthread_mutexattr_t attr;
+
+     pthread_mutexattr_init( &attr );
+     pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
+
+     pthread_mutex_init( &lock, &attr );
+
+     pthread_mutexattr_destroy( &attr );
 
 
      /* mutex lock/unlock (2-5 threads) */
@@ -366,8 +374,16 @@ bench_mutex_threaded( void )
 static void
 bench_mutex( void )
 {
-     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-     pthread_mutex_t rmutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+     pthread_mutex_t     mutex = PTHREAD_MUTEX_INITIALIZER;
+     pthread_mutex_t     rmutex;
+     pthread_mutexattr_t attr;
+
+     pthread_mutexattr_init( &attr );
+     pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
+
+     pthread_mutex_init( &rmutex, &attr );
+
+     pthread_mutexattr_destroy( &attr );
 
 
      /* pthread_mutex lock/unlock */
