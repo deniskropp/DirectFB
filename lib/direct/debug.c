@@ -117,6 +117,26 @@ check_domain( DirectDebugDomain *domain )
 
 /**************************************************************************************************/
 
+#ifndef killpg
+
+#include <signal.h>
+
+static int
+killpg (__pid_t pgrp, int sig)
+{
+  if (pgrp < 0)
+    {
+      __set_errno (EINVAL);
+      return -1;
+    }
+
+  return kill (- pgrp, sig);
+}
+
+#endif
+
+/**************************************************************************************************/
+
 void
 direct_debug_config_domain( const char *name, bool enable )
 {
