@@ -58,7 +58,7 @@
 #if WORDS_BIGENDIAN
 #define htons(x) (x)
 #else
-#define htons(x) __swap16(x)
+#define htons(x) ((((x) >> 8) & 0x00ff) | (((x) << 8) & 0xff00))
 #endif
 
 
