@@ -97,7 +97,9 @@ voodoo_client_create( const char     *hostname,
                     D_ERROR( "Direct/Log: Port 2323 is unreachable!\n" );
                     return DR_FAILURE;
                
+#ifdef EAI_ADDRFAMILY
                case EAI_ADDRFAMILY:
+#endif
                case EAI_NODATA:
                     D_ERROR( "Direct/Log: Host found, but has no address!\n" );
                     return DR_FAILURE;
