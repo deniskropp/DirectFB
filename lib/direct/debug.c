@@ -332,13 +332,9 @@ __attribute__((no_instrument_function))
 static void
 trap( const char *domain )
 {
-     sigval_t val;
-
      D_DEBUG( "Direct/%s: Raising SIGTRAP...\n", domain );
 
-     val.sival_int = direct_gettid();
-
-     sigqueue( direct_gettid(), SIGTRAP, val );
+     kill( direct_gettid(), SIGTRAP );
 
      D_DEBUG( "Direct/%s: ...returned after signal to ourself, maybe blocked, calling %s()!\n", domain,
 #ifdef __NR_exit_group
