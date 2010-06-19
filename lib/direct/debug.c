@@ -117,26 +117,6 @@ check_domain( DirectDebugDomain *domain )
 
 /**************************************************************************************************/
 
-#ifndef killpg
-
-#include <signal.h>
-
-static int
-killpg (__pid_t pgrp, int sig)
-{
-  if (pgrp < 0)
-    {
-      __set_errno (EINVAL);
-      return -1;
-    }
-
-  return kill (- pgrp, sig);
-}
-
-#endif
-
-/**************************************************************************************************/
-
 void
 direct_debug_config_domain( const char *name, bool enable )
 {
@@ -352,17 +332,24 @@ __attribute__((no_instrument_function))
 static void
 trap( const char *domain )
 {
+     sigval_t val;
+
      D_DEBUG( "Direct/%s: Raising SIGTRAP...\n", domain );
 
-     raise( SIGTRAP );
+     val.sival_int = direct_gettid();
 
-     D_DEBUG( "Direct/%s: ...didn't catch signal on my own, calling killpg().\n", domain );
+     sigqueue( direct_gettid(), SIGTRAP, val );
 
-     killpg( 0, SIGTRAP );
+     D_DEBUG( "Direct/%s: ...returned after signal to ourself, maybe blocked, calling %s()!\n", domain,
+#ifdef __NR_exit_group
+            "exit_group" );
 
-     D_DEBUG( "Direct/%s: ...still running, calling pthread_exit().\n", domain );
+     syscall( __NR_exit_group, DR_BUG );
+#else
+            "_exit" );
 
-     pthread_exit( NULL );
+            _exit( DR_BUG );
+#endif
 }
 
 __attribute__((no_instrument_function))
