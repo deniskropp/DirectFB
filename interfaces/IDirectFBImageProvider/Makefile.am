@@ -28,7 +28,7 @@ INCLUDES = \
 	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/src
 
-AM_CPPFLAGS = -DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"
+AM_CPPFLAGS = -DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\" $(LIBJPEG_CFLAGS) $(LIBPNG_CFLAGS)
 
 idirectfbimageprovider_LTLIBRARIES = \
 	libidirectfbimageprovider_dfiff.la	\
