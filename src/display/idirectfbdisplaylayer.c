@@ -183,9 +183,24 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
      ret = IDirectFBSurface_Layer_Construct( surface, NULL, NULL, NULL,
                                              region, DSCAPS_NONE, data->core );
 
-     if (region->config.buffermode == DLBM_FRONTONLY && data->level == DLSCL_EXCLUSIVE) {
-          surface->Clear( surface, 0, 0, 0, 0 );
-          dfb_layer_region_flip_update( region, NULL, DSFLIP_NONE );
+     // Fix to only perform single buffered clearing using a background when 
+     // configured to do so AND the display layer region is frozen.  Also 
+     // added support for this behavior when the cooperative level is 
+     // DLSCL_ADMINISTRATIVE.
+     if (region->config.buffermode == DLBM_FRONTONLY && 
+         data->level != DLSCL_SHARED && 
+         D_FLAGS_IS_SET( region->state, CLRSF_FROZEN )) {
+          // If a window stack is available, give it the opportunity to 
+          // render the background (optionally based on configuration) and 
+          // flip the display layer so it is visible.  Otherwise, just 
+          // directly flip the display layer and make it visible.
+          D_ASSERT( region->context );
+          if (region->context->stack) {
+               dfb_windowstack_repaint_all( region->context->stack );
+          }
+          else {
+               dfb_layer_region_flip_update( region, NULL, DSFLIP_NONE );
+          }
      }
 
      *interface = ret ? NULL : surface;

@@ -111,7 +111,8 @@ Construct( IDirectFBFont               *thiz,
                font->pixel_format == DSPF_RGBA5551 ||
                font->pixel_format == DSPF_A8 ||
                font->pixel_format == DSPF_A4 ||
-               font->pixel_format == DSPF_A1 );
+               font->pixel_format == DSPF_A1 ||
+               font->pixel_format == DSPF_A1_LSB );
 
      font->height    = DEFAULT_FONT_HEIGHT;
      font->ascender  = DEFAULT_FONT_ASCENDER;
@@ -327,6 +328,16 @@ Construct( IDirectFBFont               *thiz,
 
                                    for (n=0; n<8 && i<font_desc.width; ++i, ++n)
                                         p |= (pixels[i] & 0x80) >> n;
+
+                                   dst8[j] = p;
+                              }
+                              break;
+                         case DSPF_A1_LSB:
+                              for (i=0, j=0; i < font_desc.width; ++j) {
+                                   register u8 p = 0;
+
+                                   for (n=0; n<8 && i<font_desc.width; ++i, ++n)
+                                        p |= (pixels[i] & 0x80) >> (7-n);
 
                                    dst8[j] = p;
                               }

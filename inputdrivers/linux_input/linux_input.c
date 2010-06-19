@@ -990,10 +990,18 @@ get_device_info( int              fd,
           /* get keyboard bits */
           ioctl( fd, EVIOCGBIT(EV_KEY, sizeof(keybit)), keybit );
 
-	  /**  count typical keyboard keys only */
+          /* count typical keyboard keys only */
           for (i=KEY_Q; i<=KEY_M; i++)
                if (test_bit( i, keybit ))
                     num_keys++;
+
+          /* this might be a keyboard with just cursor keys, typically found
+             on front panels - handle as remote control and make sure not to
+             treat normal (full key) keyboards likewise */
+          if (!num_keys)
+               for (i=KEY_HOME; i<=KEY_PAGEDOWN; i++)
+                    if (test_bit( i, keybit ))
+                         num_ext_keys++;
 
           for (i=KEY_OK; i<KEY_CNT; i++)
                if (test_bit( i, keybit ))

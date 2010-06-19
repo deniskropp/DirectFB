@@ -103,6 +103,14 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                          d[i>>3]  = (src[i] >> 24) & 0x80;
                }
                break;
+          case DSPF_A1_LSB:
+               for (i = 0; i < len; i++) {
+                    if (i & 7)
+                         d[i>>3] |= (src[i] >> 31) << (i&7);
+                    else
+                         d[i>>3]  = (src[i] >> 31);
+               }
+               break;
 
           case DSPF_A4:
                for (i = 0, j = 0; i < len; i += 2, j++)

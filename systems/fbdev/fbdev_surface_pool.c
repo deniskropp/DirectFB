@@ -342,6 +342,9 @@ fbdevLock( CoreSurfacePool       *pool,
 
           lock->pitch  = shared->fix.line_length;
           lock->offset = index * surface->config.size.h * lock->pitch;
+#if D_DEBUG_ENABLED
+          allocation->offset = lock->offset;
+#endif
      }
      else {
           D_MAGIC_ASSERT( alloc->chunk, Chunk );

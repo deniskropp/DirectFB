@@ -927,7 +927,8 @@ typedef enum {
      DWCAPS_COLOR        = 0x00000020,  /* The window has no buffer;
                                            it consumes no backing store.
                                            It is filled with a constant color
-                                           and it receives events */
+                                           and it receives events. The color is
+                                           never specified premultiplied. */
 
      DWCAPS_NOFOCUS      = 0x00000100,  /* Window will never get focus or receive key events, unless it grabs them. */
 
@@ -1213,10 +1214,13 @@ typedef enum {
      /* 24 bit   VYU 4:4:4 (3 byte, Cr 8@16, Y 8@8, Cb 8@0) */
      DSPF_VYU       = DFB_SURFACE_PIXELFORMAT( 34, 24, 0, 0, 0, 3, 0, 0, 0, 0, 0 ),
 
+     /*  1 bit alpha (1 byte/ 8 pixel, LEAST significant bit used first) */
+     DSPF_A1_LSB    = DFB_SURFACE_PIXELFORMAT( 35,  0, 1, 1, 1, 0, 7, 0, 0, 0, 0 )
+
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
-#define DFB_NUM_PIXELFORMATS            35
+#define DFB_NUM_PIXELFORMATS            36
 
 /* These macros extract information about the pixel format. */
 #define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000007F)      )
@@ -3232,8 +3236,8 @@ typedef enum {
  * These are important for surface swapping management.
  */
 typedef enum {
-     DSLF_READ           = 0x00000001,  /* request read access while
-                                           surface is locked */
+     DSLF_READ           = 0x00000001,  /* Request read access while
+                                           surface is locked. */
      DSLF_WRITE          = 0x00000002   /* Request write access. If
                                            specified and surface has
                                            a back buffer, it will be

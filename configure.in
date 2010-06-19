@@ -58,7 +58,7 @@ AM_INIT_AUTOMAKE($PACKAGE, $VERSION, no-define)
 PKG_PROG_PKG_CONFIG
 
 
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADER([config.h])
 AM_MAINTAINER_MODE
 AC_DISABLE_STATIC
 
@@ -112,9 +112,9 @@ AM_CONDITIONAL(HAVE_MAN2HTML, test "$MAN2HTML" != "no")
 
 dnl Test for OSX
 AC_ARG_ENABLE(osx,
-  [  --enable-osx            build with Mac OS X support [[default=auto]]],,
-  enable_osx=yes)
-
+              AC_HELP_STRING([--enable-osx],
+                             [build with Mac OS X support @<:@default=auto@:>@]),
+              [], [enable_osx=yes])
 if test "$enable_osx" = "yes"; then
   AC_CHECK_HEADER(Carbon/Carbon.h, osx_found=yes, osx_found=no)
   if test "$osx_found" = no; then
@@ -130,9 +130,9 @@ AM_CONDITIONAL(OSX_CORE, test "$enable_osx" = "yes")
 
 dnl Test for X11
 AC_ARG_ENABLE(x11,
-  [  --enable-x11            build with X11 support [[default=auto]]],,
-  enable_x11=yes)
-
+              AC_HELP_STRING([--enable-x11],
+                             [build with X11 support @<:@default=auto@:>@]),
+              [], [enable_x11=yes])
 if test "$enable_x11" = "yes"; then
   PKG_CHECK_MODULES([X11], [xproto x11 xext], [enable_x11="yes"], [enable_x11="no",
     AC_MSG_WARN([*** no X11 found -- building without X11 support])])
@@ -154,8 +154,9 @@ CFLAGS="-O3 -ffast-math -pipe $CFLAGS"
 DFB_INTERNAL_CFLAGS="-D_GNU_SOURCE $DFB_INTERNAL_CFLAGS"
 
 AC_ARG_ENABLE(extra-warnings,
-  [  --enable-extra-warnings   enable extra warnings [[default=no]]],,
-  enable_extra_warnings=no)
+              AC_HELP_STRING([--enable-extra-warnings],
+                             [enable extra warnings @<:@default=no@:>@]),
+              [], [enable_extra_warnings=no])
 if test "$enable_extra_warnings" = "yes"; then
   CFLAGS="-W -Wno-sign-compare -Wno-unused-parameter -Wundef -Wcast-qual -Wcast-align -Waggregate-return -Wmissing-declarations -Winline $CFLAGS"
 fi
@@ -363,8 +364,9 @@ fi
 
 
 AC_ARG_ENABLE(profiling,
-  [  --enable-profiling        enable profiling support [[default=no]]],,
-  enable_profiling=no)
+              AC_HELP_STRING([--enable-profiling],
+                             [enable profiling support @<:@default=no@:>@]),
+              [], [enable_profiling=no])
 if test "$enable_profiling" = "yes"; then
     CFLAGS="$CFLAGS -pg -g3"
 else
@@ -373,8 +375,9 @@ fi
 
 
 AC_ARG_ENABLE(debug,
-  [  --enable-debug            enable debugging [[default=no]]],,
-  enable_debug=no)
+              AC_HELP_STRING([--enable-debug],
+                             [enable debugging @<:@default=no@:>@]),
+              [], [enable_debug=no])
 if test "$enable_debug" = "yes"; then
     CFLAGS="$CFLAGS -g3 -fno-inline -Wno-inline"
     DIRECT_BUILD_DEBUG=1
@@ -387,7 +390,9 @@ AC_SUBST(DIRECT_BUILD_DEBUG)
 
 
 AC_ARG_ENABLE(debug-support,
-  [  --enable-debug-support    enable debugging support [[default=yes]]],, enable_debug_support=yes)
+              AC_HELP_STRING([--enable-debug-support],
+                             [enable debugging support @<:@default=yes@:>@]),
+              [], [enable_debug_support=yes])
 if test "$enable_debug_support" = "yes" || test "$enable_debug" = "yes"; then
     enable_debug_support=yes
     DIRECT_BUILD_DEBUGS=1
@@ -400,8 +405,9 @@ AC_SUBST(DIRECT_BUILD_DEBUGS)
 
 
 AC_ARG_ENABLE(trace,
-  [  --enable-trace            enable call tracing [[default=no]]],,
-  enable_trace=no)
+              AC_HELP_STRING([--enable-trace],
+                             [enable call tracing @<:@default=no@:>@]),
+              [], [enable_trace=no])
 if test "$enable_trace" = "yes"; then
     DFB_INTERNAL_CFLAGS="$DFB_INTERNAL_CFLAGS -finstrument-functions"
     DIRECT_BUILD_TRACE=1
@@ -414,8 +420,9 @@ AC_SUBST(DIRECT_BUILD_TRACE)
 
 
 AC_ARG_ENABLE(text,
-  [  --enable-text             enable text output [[default=yes]]],,
-  enable_text=yes)
+              AC_HELP_STRING([--enable-text],
+                             [enable text output @<:@default=yes@:>@]),
+              [], [enable_text=yes])
 if test "$enable_text" = "no"; then
     DIRECT_BUILD_TEXT=0
 else
@@ -426,8 +433,9 @@ AC_SUBST(DIRECT_BUILD_TEXT)
 
 
 AC_ARG_ENABLE(gettid,
-  [  --enable-gettid           enable usage of gettid() [[default=yes]]],,
-  enable_gettid=yes)
+              AC_HELP_STRING([--enable-gettid],
+                             [enable usage of gettid() @<:@default=yes@:>@]),
+              [], [enable_gettid=yes])
 if test "$enable_gettid" = "no"; then
     DIRECT_BUILD_GETTID=0
 else
@@ -438,8 +446,9 @@ AC_SUBST(DIRECT_BUILD_GETTID)
 
 
 AC_ARG_ENABLE(network,
-  [  --enable-network          enable network support [[default=yes]]],,
-  enable_network=yes)
+              AC_HELP_STRING([--enable-network],
+                             [enable network support @<:@default=yes@:>@]),
+              [], [enable_network=yes])
 if test "$enable_network" = "no"; then
     DIRECT_BUILD_NETWORK=0
 else
@@ -456,8 +465,9 @@ AC_SUBST(DIRECT_BUILD_STDBOOL)
 
 linux_fusion="N/A"
 AC_ARG_ENABLE(multi,
-  [  --enable-multi            enable multi application core [[default=no]]],,
-  enable_multi=no)
+              AC_HELP_STRING([--enable-multi],
+                             [enable multi application core @<:@default=no@:>@]),
+              [], [enable_multi=no])
 if test "$enable_multi" = "yes"; then
   dnl Test for Fusion Kernel Device
   linux_fusion=yes
@@ -483,26 +493,30 @@ AC_SUBST(FUSION_BUILD_KERNEL)
 
 
 AC_ARG_ENABLE(voodoo,
-  [  --enable-voodoo           enable Voodoo (network support) [[default=no]]],,
-  enable_voodoo=no)
+              AC_HELP_STRING([--enable-voodoo],
+                             [enable Voodoo (network support) @<:@default=no@:>@]),
+              [], [enable_voodoo=no])
 
 AM_CONDITIONAL(ENABLE_VOODOO, test "$enable_voodoo" = "yes")
 
 
 AC_ARG_ENABLE(unique,
-  [  --enable-unique           enable Unique (WM Module) [[default=no]]],,
-  enable_unique=no)
+              AC_HELP_STRING([--enable-unique],
+                             [enable Unique (WM Module) @<:@default=no@:>@]),
+              [], [enable_unique=no])
 
 AM_CONDITIONAL(ENABLE_UNIQUE, test "$enable_unique" = "yes")
 
 
 AC_ARG_ENABLE(mmx,
-  [  --enable-mmx              enable MMX support [[default=auto]]],,
-  enable_mmx=$have_x86)
+              AC_HELP_STRING([--enable-mmx],
+                             [enable MMX support @<:@default=auto@:>@]),
+              [], [enable_mmx=$have_x86])
 
 AC_ARG_ENABLE(sse,
-  [  --enable-sse              enable SSE support [[default=auto]]],,
-  enable_sse=$have_x86)
+              AC_HELP_STRING([--enable-sse],
+                             [enable SSE support @<:@default=auto@:>@]),
+              [], [enable_sse=$have_x86])
 
 if test "$enable_mmx" = "yes"; then
 
@@ -530,8 +544,8 @@ if test "$enable_mmx" = "yes"; then
         AC_MSG_RESULT(no)
         AC_MSG_WARN([
 ****************************************************************
- The installed assembler does not supports the SSE command set. 
- Update your binutils package, if you want to compile SSE code. 
+ The installed assembler does not support the SSE command set.
+ Update your binutils package, if you want to compile SSE code.
 ****************************************************************])
       fi
 
@@ -542,8 +556,8 @@ if test "$enable_mmx" = "yes"; then
     AC_MSG_RESULT(no)
     AC_MSG_WARN([
 ****************************************************************
- The installed assembler does not supports the MMX command set. 
- Update your binutils package, if you want to compile MMX code. 
+ The installed assembler does not support the MMX command set.
+ Update your binutils package, if you want to compile MMX code.
 ****************************************************************])
   fi
 
@@ -557,10 +571,12 @@ fi
 AM_CONDITIONAL(BUILDMMX, test "$enable_mmx" = "yes")
 
 
+
 dnl Test for DevMem system
 AC_ARG_ENABLE(devmem,
-  [  --enable-devmem           build with generic /dev/mem support [[default=yes]]],,
-  enable_devmem=yes)
+              AC_HELP_STRING([--enable-devmem],
+                             [build with generic /dev/mem support @<:@default=yes@:>@]),
+              [], [enable_devmem=yes])
 
 AM_CONDITIONAL(DEVMEM_CORE, test "$enable_devmem" = "yes")
 
@@ -568,8 +584,9 @@ AM_CONDITIONAL(DEVMEM_CORE, test "$enable_devmem" = "yes")
 
 dnl Test for Linux frame buffer device
 AC_ARG_ENABLE(fbdev,
-  [  --enable-fbdev            build with linux fbdev support [[default=auto]]],,
-  enable_fbdev=yes)
+              AC_HELP_STRING([--enable-fbdev],
+                             [build with linux fbdev support @<:@default=auto@:>@]),
+              [], [enable_fbdev=yes])
 
 if test "$have_linux" = "no"; then
   enable_fbdev=no
@@ -587,30 +604,34 @@ AM_CONDITIONAL(FBDEV_CORE, test "$enable_fbdev" = "yes")
 
 dnl Test for SDL
 AC_ARG_ENABLE(sdl,
-  [  --enable-sdl              build with SDL support [[default=no]]],,
-  enable_sdl=no)
-
+              AC_HELP_STRING([--enable-sdl],
+                             [build with SDL support @<:@default=no@:>@]),
+              [], [enable_sdl=no])
 if test "$enable_sdl" = "yes"; then
   if test "$enable_osx" = "yes"; then
     AC_MSG_WARN([
 *** SDL is now unsupported on OSX.])
     enable_sdl=no
- else
-  PKG_CHECK_MODULES([SDL], [sdl], enable_sdl=yes, [enable_sdl=no,
-      AC_MSG_WARN([*** no sdl -- building without SDL support.])])
+  else
+    PKG_CHECK_MODULES([SDL], [sdl],
+                      [enable_sdl=yes],
+                      [
+                        enable_sdl=no,
+                        AC_MSG_WARN([*** no sdl -- building without SDL support.])
+                      ])
   fi
 fi
 
 AC_SUBST(OSX_LIBS)
 AM_CONDITIONAL(SDL_CORE, test "$enable_sdl" = "yes")
 
+
+
 dnl Test for VNC
 AC_ARG_ENABLE(vnc,
-  [  --enable-vnc              build with VNC support [[default=auto]]],,
-  enable_vnc=yes)
-                                                                     
-                                                                     
-                                                                     
+              AC_HELP_STRING([--enable-vnc],
+                             [build with VNC support @<:@default=auto@:>@]),
+              [], [enable_vnc=yes])
 if test "$enable_vnc" = "yes"; then
   AC_PATH_PROG(VNC_CONFIG, libvncserver-config, no)
   if test "$VNC_CONFIG" = "no"; then
@@ -623,17 +644,17 @@ if test "$enable_vnc" = "yes"; then
   fi
 fi
                                                                      
-                                                                     
-                                                                     
-                                                                     
 AM_CONDITIONAL(VNC_CORE, test "$enable_vnc" = "yes")
 AC_SUBST(VNC_LIBS)
 AC_SUBST(VNC_CFLAGS)
 
+
+
 dnl Test for libsysfs
 AC_ARG_ENABLE(sysfs,
-  [  --enable-sysfs            build with sysfs support [[default=auto]]],,
-  enable_sysfs=yes)
+              AC_HELP_STRING([--enable-sysfs],
+                             [build with sysfs support @<:@default=auto@:>@]),
+              [], [enable_sysfs=yes])
 
 use_sysfs=no
 SYSFS_LIBS=
@@ -655,12 +676,14 @@ fi
 AC_SUBST(SYSFS_LIBS)
 
 
+
 dnl Test for libjpeg
 JPEG=no
 
 AC_ARG_ENABLE(jpeg,
-  [  --enable-jpeg             build JPEG image provider [[default=yes]]],
-  enable_jpeg="$enableval", enable_jpeg=yes)
+              AC_HELP_STRING([--enable-jpeg],
+                             [build JPEG image provider @<:@default=yes@:>@]),
+              [], [enable_jpeg=yes])
 
 if test "$enable_jpeg" = "yes"; then
   if test -z "$LIBJPEG"; then
@@ -697,9 +720,11 @@ JPEG support is missing - many applications won't work correctly!"
 fi
 
 
+
 AC_ARG_ENABLE(zlib,
-  [  --enable-zlib             use zlib, e.g. for screen shots [[default=no]]],
-  enable_zlib="$enableval", enable_zlib=no)
+              AC_HELP_STRING([--enable-zlib],
+                             [use zlib, e.g. for screen shots @<:@default=no@:>@]),
+              [], [enable_zlib=no])
 
 use_zlib=no
 ZLIB_LIBS=
@@ -722,77 +747,17 @@ fi
 AC_SUBST(ZLIB_LIBS)
 
 
-dnl Test for libpng and libz
+
+dnl Test for libpng
 PNG=no
 
 AC_ARG_ENABLE(png,
-  [  --enable-png              build PNG image provider [[default=yes]]],
-  enable_png="$enableval", enable_png=yes)
-
+              AC_HELP_STRING([--enable-png],
+                             [build PNG image provider, @<:@default=yes@:>@]),
+              [], [enable_png=yes])
 if test "$enable_png" = "yes"; then
-  dnl Test for libz
-  if test -z "$ZLIB_LIBS"; then
-    AC_CHECK_LIB(z, gzsetparams,
-      [
-	AC_CHECK_HEADER(zlib.h,
-	  ZLIB_LIBS='-lz',
-	  AC_MSG_WARN([
-*** libz header files not found. PNG image provider will not be built.]))
-      ],[
-        AC_MSG_WARN([ *** libz not found. PNG image provider will not be built.])
-      ])
-  fi
-
- dnl Test for libpng
- if test -n "$LIBPNG_LIBS"; then
-  PNG=yes
- else
-  AC_PATH_PROG(LIBPNG_CONFIG, libpng-config, no)
-  if test "$LIBPNG_CONFIG" = no; then
-      PNG=no
-      AC_MSG_WARN([
-*** libpng-config not found ])
-  else
-      PNG=yes
-      LIBPNG_CFLAGS=`$LIBPNG_CONFIG --cflags`
-      LIBPNG_LIBS=`$LIBPNG_CONFIG --libs`
-  fi
-
-  dnl Test for libpng
-  if test -z "$LIBPNG_LIBS" && test -n "$ZLIB_LIBS"; then
-    AC_CHECK_LIB(png, png_read_info,
-      [
-	AC_CHECK_HEADER(png.h,
-	  png_ok=yes,
-	  AC_MSG_WARN([
-*** PNG header files not found. PNG image provider will not be built.]))
-      ],[
-        AC_MSG_WARN([
-*** PNG library not found. PNG image provider will not be built.])
-	],
-      $ZLIB_LIBS -lm)
-    if test "$png_ok" = yes; then
-      AC_MSG_CHECKING([for png_structp in png.h])
-      AC_TRY_COMPILE([#include <png.h>],
-        [png_structp pp;
-	 png_infop info;
-	 png_colorp cmap;
-	 (void)png_create_read_struct; (void)pp; (void)info; (void)cmap;],
-        png_ok=yes, png_ok=no)
-      AC_MSG_RESULT($png_ok)
-      if test "$png_ok" = yes; then
-	PNG=yes
-        LIBPNG_LIBS="-lpng $ZLIB_LIBS -lm"
-      else
-	PNG=no
-        AC_MSG_WARN([
-*** PNG library is too old. PNG image provider will not be built.])
-      fi
-    else
-      PNG=no
-    fi
-  fi
- fi
+  PKG_CHECK_MODULES([LIBPNG], [libpng >= 1.2.2], [PNG=yes], [PNG=no
+    AC_MSG_WARN([*** PNG library not found. PNG image provider will not be built.])])
 fi
 
 AM_CONDITIONAL(PNG_PROVIDER, test "$PNG" = "yes")
@@ -804,19 +769,22 @@ PNG support is missing - many applications won't work correctly!"
 fi
 
 
+
 dnl Allow to disable GIF support
 AC_ARG_ENABLE(gif,
-  [  --enable-gif              build GIF image/video provider [[default=yes]]],
-  enable_gif="$enableval", enable_gif=yes)
+              AC_HELP_STRING([--enable-gif],
+                             [build GIF image/video provider @<:@default=yes@:>@]),
+              [], [enable_gif=yes])
  
 AM_CONDITIONAL(GIF_PROVIDER, test "$enable_gif" = "yes")
 
 
+
 dnl Test for freetype
 AC_ARG_ENABLE(freetype,
-  [  --enable-freetype         build FreeType2 font provider [[default=yes]]],
-  enable_freetype="$enableval", enable_freetype=yes)
-
+              AC_HELP_STRING([--enable-freetype],
+                             [build FreeType2 font provider @<:@default=yes@:>@]),
+              [], [enable_freetype=yes])
 if test "$enable_freetype" = "yes"; then
   PKG_CHECK_MODULES(FREETYPE, freetype2, FREETYPE="yes", [FREETYPE="no",
     AC_MSG_WARN([*** no freetype -- FreeType font provider will not be built.])])
@@ -829,15 +797,17 @@ if test "$enable_freetype" != "no" && test "$FREETYPE" != "yes"; then
 FreeType2 support is missing - many applications won't work correctly!"
 fi
 
+
+
 dnl Test for video4linux
 V4L=no
 
 if test "$have_linux" = "yes"; then
   AC_ARG_ENABLE(video4linux,
-    [  --enable-video4linux      build Video4Linux video provider [[default=yes]]],
-    enable_v4l="$enableval", enable_v4l=yes)
-
-  if test "$enable_v4l" = "yes"; then
+                AC_HELP_STRING([--enable-video4linux],
+                               [build Video4Linux video provider @<:@default=yes@:>@]),
+                [], [enable_video4linux=yes])
+  if test "$enable_video4linux" = "yes"; then
     V4L=yes
   fi
 fi
@@ -845,15 +815,16 @@ fi
 AM_CONDITIONAL(V4L_PROVIDER, test "$V4L" = "yes")
 
 
+
 dnl Test for video4linux
 V4L2=no
 
 if test "$V4L" = "yes"; then
   AC_ARG_ENABLE(video4linux2,
-    [  --enable-video4linux2     build with Video4Linux2 support [[default=no]]],
-    enable_v4l2="$enableval", enable_v4l2=no)
-
-  if test "$enable_v4l2" = "yes"; then
+                AC_HELP_STRING([--enable-video4linux2],
+                               [build with Video4Linux2 support @<:@default=no@:>@]),
+                [], [enable_video4linux2=no])
+  if test "$enable_video4linux2" = "yes"; then
     V4L2=yes
     AC_DEFINE( DFB_HAVE_V4L2, 1, [Define to 1 if Video4Linux 2 is supported.] )
   fi
@@ -889,14 +860,15 @@ if test "$have_linux" = "yes"; then
 
 AC_MSG_CHECKING(which gfxdrivers should be built)
 AC_ARG_WITH(gfxdrivers,
-[  --with-gfxdrivers=<list>   compile gfxdrivers in <list> ]
-[                               gfxdrivers may be comma separated ]
-[                               'all' builds all drivers (default), 'none' builds none ]
-[                               Possible gfxdrivers are: ]
-[                               ati128, cle266, cyber5k, davinci, ep9x, gl, i810, i830, mach64,]
-[                               matrox, neomagic, nsc, nvidia, omap, pxa3xx, radeon, savage, sh772x,]
-[                               sis315, tdfx, unichrome, vmware], gfxdrivers="$withval",[gfxdrivers="all"])
-
+            AC_HELP_STRING([--with-gfxdrivers=LIST],
+                           [LIST is a comma separated selection of gfxdrivers]
+                           [to build. Possible gfxdrivers are: all (builds all]
+                           [drivers), none (builds none), ati128, cle266,]
+                           [cyber5k, davinci, ep9x, gl, i810, i830, mach64,]
+                           [matrox, neomagic, nsc, nvidia, omap, pxa3xx,]
+                           [radeon, savage, sh772x, sis315, tdfx, unichrome,]
+                           [vmware. @<:@default=all@:>@]),
+            [gfxdrivers="$withval"], [gfxdrivers=all])
 if test "$gfxdrivers" = "all"; then
   checkfor_ati128=yes
   checkfor_cle266=no
@@ -1120,14 +1092,16 @@ checkfor_wm97xx=no
 
 AC_MSG_CHECKING(which inputdrivers should be built)
 AC_ARG_WITH(inputdrivers,
-[  --with-inputdrivers=<list> compile inputdrivers in <list> ]
-[                               inputdrivers may be comma separated ]
-[                               'all' builds all drivers (default), 'none' builds none ]
-[                               Possible inputdrivers are: ]
-[                               dbox2remote, dreamboxremote, dynapro, elo-input, gunze, h3600_ts, ]
-[                               joystick, keyboard, linuxinput, lirc, mutouch, penmount, ps2mouse, ]
-[                               serialmouse, sonypijogdial, tslib, ucb1x00, wm97xx, zytronic],
-inputdrivers="$withval",[inputdrivers="all"])
+            AC_HELP_STRING([--with-inputdrivers=LIST],
+                           [LIST is a comma separated selection of]
+                           [inputdrivers to build. Possible inputdrivers]
+                           [are: all (builds all drivers), none (builds none),]
+                           [dbox2remote, dreamboxremote, dynapro, elo-input,]
+                           [gunze, h3600_ts, joystick, keyboard, linuxinput,]
+                           [lirc, mutouch, penmount, ps2mouse, serialmouse,]
+                           [sonypijogdial, tslib, ucb1x00, wm97xx, zytronic.]
+                           [@<:@default=all@:>@]),
+            [inputdrivers="$withval"], [inputdrivers=all])
 
 if test "$inputdrivers" = "all"; then
   checkfor_dbox2remote=yes
@@ -1357,8 +1331,11 @@ fi
 fi
 
 
+
 AC_ARG_WITH(software,
-  [  --without-software         build without software rendering (can decrease binary size by >100k)])
+            AC_HELP_STRING([--without-software],
+                           [build without software rendering (can decrease binary size by >100k)]),
+            [], [])
 if test "$with_software" != "no"; then
   with_software=yes
 fi
@@ -1366,8 +1343,11 @@ fi
 AM_CONDITIONAL(SOFTWARE_RENDERING, test "$with_software" != "no")
 
 
+
 AC_ARG_WITH(smooth-scaling,
-  [  --with-smooth-scaling      build with smooth software scaling code (can increase binary size by >100k)])
+            AC_HELP_STRING([--with-smooth-scaling],
+                           [build with smooth software scaling code (can increase binary size by >100k)]),
+            [], [])
 if test "$with_smooth_scaling" != "yes" -o "$with_software" != "yes"; then
   with_smooth_scaling=no
 else
@@ -1377,16 +1357,19 @@ fi
 AC_SUBST(DFB_SMOOTH_SCALING)
 
 
+
 AC_DEFINE(DFB_DITHER_SIMPLE,1,[Simple dithering, uses small dither table])
 AC_DEFINE(DFB_DITHER_ADVANCED,2,[Advanced dithering, uses large dither table])
 
 AC_ARG_WITH(dither-rgb16,
-  [  --with-dither-rgb16=TYPE   dithering to use when loading images into RGB16 surfaces [[default=none]]]
-  [                             Possible types are: ]
-  [                               none     - no dithering ]
-  [                               simple   - simple dithering (increases data section by 256 bytes) ]
-  [                               advanced - advanced dithering (increases data section by 64 KBytes) ])
-
+            AC_HELP_STRING([--with-dither-rgb16=TYPE],
+                           [dithering to use when loading images into RGB16]
+                           [surfaces. Possible values for TYPE are: none]
+                           [(no dithering), simple (simple dithering, which]
+                           [increases the data section by 256 bytes), advanced]
+                           [(advanced dithering, which increases the data]
+                           [section by 64 KBytes). @<:@default=none@:>@]),
+            [], [with_dither_rgb16=none])
 case x"$with_dither_rgb16" in
      x | xnone)
           with_dither_rgb16=none
@@ -1404,37 +1387,48 @@ case x"$with_dither_rgb16" in
 esac
 
 
+
 AC_ARG_WITH(tests,
-  [  --with-tests               build test programs])
+            AC_HELP_STRING([--with-tests],
+                           [build test programs]),
+            [], [])
 if test "$with_tests" != "yes"; then
   with_tests=no
 fi
 
 
+
 # How big of a buffer fusion uses to read messages from the fusion device
 AC_ARG_WITH(message-size,
-[  --with-message-size=SIZE   allow fusion messages up to SIZE bytes [[default=1024]]],
-[ ], [with_message_size=no])
+            AC_HELP_STRING([--with-message-size=SIZE],
+                           [allow fusion messages up to SIZE bytes @<:@default=1024@:>@]),
+            [], [with_message_size=no])
 test x"$with_message_size" = x"no" && with_message_size=1024
 FUSION_MESSAGE_SIZE=$with_message_size
 AC_SUBST(FUSION_MESSAGE_SIZE)
 
 
+
 # Build tools?
 AC_ARG_WITH(tools,
-  [  --without-tools            do not build any tools])
+            AC_HELP_STRING([--without-tools],
+                           [do not build any tools]),
+            [], [])
 if test "$with_tools" != "no"; then
   with_tools=yes
 fi
 
 
+
 # Sysroot used for runtime module loading, etc.
 AC_ARG_WITH(sysroot,
-[  --with-sysroot=DIR         search for lib/share et al within DIR at runtime]
-[                               (e.g. when loading modules)],
-[ RUNTIME_SYSROOT="$withval" ], [ RUNTIME_SYSROOT= ] )
+            AC_HELP_STRING([--with-sysroot=DIR],
+                           [search for lib/share et al within DIR at runtime,]
+                           [e.g. when loading modules]),
+            [RUNTIME_SYSROOT="$withval"], [RUNTIME_SYSROOT=])
 test x"$RUNTIME_SYSROOT" = x"no" && RUNTIME_SYSROOT=
 AC_SUBST(RUNTIME_SYSROOT)
+
 
 
 dnl *** Look for directfb-csource in PATH if we are cross-compiling ***
@@ -1447,6 +1441,7 @@ if test "$enable_unique" = "yes"; then
     fi
   fi
 fi
+
 
 
 AM_CONDITIONAL(GFX_ATI128, test "$ati128" = "yes")
@@ -1697,7 +1692,7 @@ Build options:
   LIBS                      $LIBS
   DYNLIB                    $DYNLIB
   THREADFLAGS               $THREADFLAGS
-  THREADLIBS                $THREADLIBS
+  THREADLIB                 $THREADLIB
 
 Misc options:
   Multi Application Core    $enable_multi
@@ -1723,10 +1718,10 @@ Building Tools              $with_tools
 Building System Modules:
   Linux FBDev support       $enable_fbdev
   Generic /dev/mem support  $enable_devmem
-  X11 support               $enable_x11                 $X11_CFLAGS    $X11_LIBS
-  OSX support               $enable_osx                 $OSX_CFLAGS    $OSX_LIBS
-  SDL support               $enable_sdl                 $SDL_CFLAGS    $SDL_LIBS
-  VNC support               $enable_vnc                 $VNC_CFLAGS    $VNC_LIBS
+  X11 support               $enable_x11                 $X11_CFLAGS $X11_LIBS
+  OSX support               $enable_osx                 $OSX_CFLAGS $OSX_LIBS
+  SDL support               $enable_sdl                 $SDL_CFLAGS $SDL_LIBS
+  VNC support               $enable_vnc                 $VNC_CFLAGS $VNC_LIBS
 
 Building Window Manager Modules:
   Default                   yes
@@ -1735,14 +1730,14 @@ Building Window Manager Modules:
 Building Image Provider Modules:
   GIF                       $enable_gif 
   JPEG                      $JPEG                 $LIBJPEG
-  PNG                       $PNG                 $LIBPNG_CFLAGS	$LIBPNG_LIBS
+  PNG                       $PNG                 $LIBPNG_CFLAGS $LIBPNG_LIBS
 
 Building Video Provider Modules:
   GIF                       $enable_gif
   Video4Linux               $V4L (v2: $V4L2)
 
 Building Font Modules:
-  FreeType2                 $FREETYPE                 $FREETYPE_CFLAGS    $FREETYPE_LIBS
+  FreeType2                 $FREETYPE                 $FREETYPE_CFLAGS $FREETYPE_LIBS
   Default font              yes]);
 
 if test "$have_linux" = "yes"; then
@@ -1788,7 +1783,7 @@ Building Input Drivers:
   PS/2 Mouse                $enable_ps2mouse
   Serial Mouse              $enable_serial_mouse
   SonyPI Jogdial            $enable_sonypi_jogdial
-  tslib                     $enable_tslib                  $TSLIB_CFLAGS    $TSLIB_LIBS
+  tslib                     $enable_tslib                 $TSLIB_CFLAGS $TSLIB_LIBS
   ucb1x00 Touchscreen       $enable_ucb1x00_ts
   WM97xx Touchscreen        $enable_wm97xx_ts]);
 fi

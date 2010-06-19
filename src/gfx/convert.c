@@ -154,6 +154,10 @@ dfb_pixel_to_color( DFBSurfacePixelFormat  format,
                ret_color->b = EXPAND_5to8( (pixel & 0x003e) >>  1 );
                break;
 
+          case DSPF_A8:
+               ret_color->a = pixel;
+               /* fall through */
+
           default:
                ret_color->r = 0;
                ret_color->g = 0;
@@ -170,6 +174,9 @@ dfb_pixel_from_color( DFBSurfacePixelFormat  format,
      switch (format) {
           case DSPF_RGB332:
                return PIXEL_RGB332( color->r, color->g, color->b );
+
+          case DSPF_A8:
+               return color->a;
 
           case DSPF_ARGB1555:
                return PIXEL_ARGB1555( color->a, color->r, color->g, color->b );

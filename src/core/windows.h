@@ -77,7 +77,7 @@ struct __DFB_CoreWindowConfig {
      DFBWindowStackingClass   stacking;       /* level boundaries */
      DFBWindowOptions         options;        /* flags for appearance/behaviour */
      DFBWindowEventType       events;         /* mask of enabled events */
-     DFBColor                 color;          /* color for DWCAPS_COLOR */
+     DFBColor                 color;          /* color for DWCAPS_COLOR, never premultiplied! */
      u32                      color_key;      /* transparent pixel */
      DFBRegion                opaque;         /* region of the window forced to be opaque */
 
