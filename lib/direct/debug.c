@@ -334,15 +334,18 @@ trap( const char *domain )
 {
      D_DEBUG( "Direct/%s: Raising SIGTRAP...\n", domain );
 
-     raise( SIGTRAP );
+     kill( direct_gettid(), SIGTRAP );
 
-     D_DEBUG( "Direct/%s: ...didn't catch signal on my own, calling killpg().\n", domain );
+     D_DEBUG( "Direct/%s: ...returned after signal to ourself, maybe blocked, calling %s()!\n", domain,
+#ifdef __NR_exit_group
+            "exit_group" );
 
-     killpg( 0, SIGTRAP );
+     syscall( __NR_exit_group, DR_BUG );
+#else
+            "_exit" );
 
-     D_DEBUG( "Direct/%s: ...still running, calling pthread_exit().\n", domain );
-
-     pthread_exit( NULL );
+            _exit( DR_BUG );
+#endif
 }
 
 __attribute__((no_instrument_function))

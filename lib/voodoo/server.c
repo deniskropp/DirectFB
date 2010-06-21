@@ -55,6 +55,12 @@
 #include <voodoo/server.h>
 #include <voodoo/internal.h>
 
+#if WORDS_BIGENDIAN
+#define htons(x) (x)
+#else
+#define htons(x) ((((x) >> 8) & 0x00ff) | (((x) << 8) & 0xff00))
+#endif
+
 
 typedef struct {
      DirectLink     link;

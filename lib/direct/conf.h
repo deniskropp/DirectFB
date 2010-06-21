@@ -32,7 +32,9 @@
 
 #include <direct/messages.h>
 
-#ifndef __LINUX__
+#if HAVE_SIGNAL_H
+#include <signal.h>
+#else
 #include <sys/signal.h>
 #endif
 

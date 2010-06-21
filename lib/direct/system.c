@@ -31,6 +31,8 @@
 #include <errno.h>
 #include <unistd.h>
 
+#include <sys/syscall.h>
+
 #include <direct/build.h>
 #include <direct/system.h>
 

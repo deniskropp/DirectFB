@@ -1342,7 +1342,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "video-phys" ) == 0) {
           if (value) {
                char *error;
-               ulong phys;
+               unsigned long phys;
 
                phys = strtoul( value, &error, 16 );
 
@@ -1361,7 +1361,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "video-length" ) == 0) {
           if (value) {
                char *error;
-               ulong length;
+               unsigned long length;
 
                length = strtoul( value, &error, 10 );
 
@@ -1380,7 +1380,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "mmio-phys" ) == 0) {
           if (value) {
                char *error;
-               ulong phys;
+               unsigned long phys;
 
                phys = strtoul( value, &error, 16 );
 
@@ -1399,7 +1399,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "mmio-length" ) == 0) {
           if (value) {
                char *error;
-               ulong length;
+               unsigned long length;
 
                length = strtoul( value, &error, 10 );
 
@@ -1418,7 +1418,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "accelerator" ) == 0) {
           if (value) {
                char *error;
-               ulong accel;
+               unsigned long accel;
 
                accel = strtoul( value, &error, 10 );
 
