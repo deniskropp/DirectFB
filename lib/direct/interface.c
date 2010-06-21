@@ -193,8 +193,10 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
       */
 
      /* NULL type means we can't find plugin, so stop immediately */
-     if (type == NULL)
+     if (type == NULL) {
+          pthread_mutex_unlock( &implementations_mutex );
           return DR_NOIMPL;
+     }
 
      path = direct_config->module_dir;
      if(!path)
