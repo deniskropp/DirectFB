@@ -13,6 +13,7 @@ bin_PROGRAMS = \
 	coretest_blit2	\
 	dfbtest_blit	\
 	dfbtest_blit2	\
+	dfbtest_fillrect	\
 	dfbtest_font	\
 	dfbtest_mirror	\
 	dfbtest_reinit	\
@@ -40,6 +41,9 @@ dfbtest_blit_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
 
 dfbtest_blit2_SOURCES = dfbtest_blit2.c
 dfbtest_blit2_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
+
+dfbtest_fillrect_SOURCES = dfbtest_fillrect.c
+dfbtest_fillrect_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
 
 dfbtest_font_SOURCES = dfbtest_font.c
 dfbtest_font_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)

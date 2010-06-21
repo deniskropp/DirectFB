@@ -1,6 +1,7 @@
 coretest_blit2
 dfbtest_blit
 dfbtest_blit2
+dfbtest_fillrect
 dfbtest_font
 dfbtest_mirror
 dfbtest_reinit
