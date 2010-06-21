@@ -957,7 +957,7 @@ IDirectFBVideoProvider_FFmpeg_GetSurfaceDescription( IDirectFBVideoProvider *thi
           case PIX_FMT_BGR32:
                desc->pixelformat = DSPF_RGB32;
                break;
-          case PIX_FMT_YUV422:
+          case PIX_FMT_YUYV422:
                desc->pixelformat = DSPF_YUY2;
                break;
           case PIX_FMT_UYVY422:
