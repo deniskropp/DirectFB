@@ -1390,7 +1390,12 @@ get_capability( void )
      InputDriverCapability   capabilities = IDC_NONE;
 
 #ifdef LINUX_INPUT_USE_FBDEV
-     FBDev *dfb_fbdev = (FBDev*) dfb_system_data();
+     FBDev *dfb_fbdev;
+
+     if (dfb_system_type() != CORE_FBDEV)
+          return 0;
+
+     dfb_fbdev = (FBDev*) dfb_system_data();
      D_ASSERT( dfb_fbdev );
 
      // Only allow USB keyboard and mouse support if the systems driver has
