@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2006-2007  directfb.org
+   (c) Copyright 2006-2010  directfb.org
 
    All rights reserved.
 
@@ -240,8 +240,6 @@ struct __SaWMan_SaWManTier {
      CoreWindowStack        *stack;
      CoreLayerContext       *context;
      CoreLayerRegion        *region;
-
-     FusionSkirmish          lock_backup;
 
      DFBDisplayLayerConfig   config;
      DFBColorKey             key;

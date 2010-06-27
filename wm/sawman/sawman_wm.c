@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  directfb.org
+   (c) Copyright 2001-2010  directfb.org
    (c) Copyright 2000-2004  convergence (integrated) media GmbH.
 
    All rights reserved.
@@ -1391,17 +1391,6 @@ wm_init_stack( CoreWindowStack *stack,
      tier->size.w  = stack->width;
      tier->size.h  = stack->height;
 
-     /* FIXME: hack */ /* transfer/duplicate the skirmish */
-     int count;
-     ret = fusion_skirmish_lock_count( &tier->context->lock, &count );
-     if (ret == DFB_OK)
-          while (count--) {
-               fusion_skirmish_prevail( &sawman->lock );
-               fusion_skirmish_dismiss( &tier->context->lock );
-          }
-     tier->lock_backup   = tier->context->lock;
-     tier->context->lock = sawman->lock;
-
      ret = dfb_layer_context_get_primary_region( context, true, &tier->region );
      if (ret) {
           sawman_unlock( sawman );
@@ -1448,11 +1437,6 @@ wm_close_stack( CoreWindowStack *stack,
      }
 
      D_ASSERT( tier->context != NULL );
-
-     /* transfer lock back, hack FIXME */
-     tier->context->lock = tier->lock_backup;
-     fusion_skirmish_prevail( &tier->context->lock );
-     fusion_skirmish_dismiss( &sawman->lock );
 
      tier->stack   = NULL;
      tier->context = NULL;
