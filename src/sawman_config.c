@@ -53,7 +53,15 @@ static const char *config_usage =
      "SaWMan options:\n"
      "\n"
      "  init-border=<num>                  Set border values for tier (0-2)\n"
-     "  border-thickness=<                 \n"
+     "  border-thickness=<num>             border thickness\n"
+     "  border-resolution=<width>x<height> Set border's width and height\n"
+     "  border-format=<pixelformat>        Set border's pixelformat\n"
+     "  border-focused-color-index<0|1|2|3>=<color>   Set focused border's color\n"
+     "  border-unfocused-color-index<0|1|2|3>=<color> Set unfocused border's color\n"
+     "  border-focused-color<0|1|2|3>=AARRGGBB   Set focused border's color\n"
+     "  border-unfocused-color<0|1|2|3>=AARRGGBB Set unfocused border's color\n"
+     "  [no-]show-empty                    Show layer even if no window is visible\n"
+     "  flip-once-timeout=<num>            Flip once timeout\n"
      "\n";
      
 
@@ -441,8 +449,8 @@ sawman_config_init( int *argc, char **argv[] )
                     exit(1);
                }
 
-               if (!strncmp( (*argv)[i], "--sawman:", 5 )) {
-                    ret = parse_args( (*argv)[i] + 5 );
+               if (!strncmp( (*argv)[i], "--sawman:", 9 )) {
+                    ret = parse_args( (*argv)[i] + 9 );
                     if (ret)
                          return ret;
 

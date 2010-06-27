@@ -870,6 +870,7 @@ main( int argc, char** argv )
 
      CHECK( DirectFBCreate( &tm.dfb ) );
 
+     CHECK( SaWManInit( &argc, &argv ) );
      CHECK( SaWManCreate( &tm.saw ) );
 
      CHECK( tm.saw->CreateManager( tm.saw, &callbacks, &tm, &tm.manager ) );
