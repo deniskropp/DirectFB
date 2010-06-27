@@ -1233,7 +1233,8 @@ fusion_reactor_detach_global( FusionReactor  *reactor,
      if (lock != reactor->globals_lock)
           D_WARN( "using old lock once more" );
 
-     D_ASSUME( reaction->attached );
+     // Do not assume the reaction is attached, because it is possible that it may not be.
+     //D_ASSUME( reaction->attached );
 
      /* Check against multiple detach. */
      if (reaction->attached) {
@@ -1376,6 +1377,10 @@ process_globals( FusionReactor      *reactor,
           if (globals[global->index]( msg_data, global->ctx ) == RS_REMOVE) {
                /*D_DEBUG_AT( Fusion_Reactor, "    -> removing %p, index %d, ctx %p\n",
                            global, global->index, global->ctx );*/
+
+               // Mark as detached, since the global reaction is being removed
+               // from the global reaction list.
+               global->attached = false;
 
                direct_list_remove( &reactor->globals, &global->link );
           }
@@ -1672,6 +1677,8 @@ fusion_reactor_attach_global (FusionReactor  *reactor,
 
      reaction->index = index;
      reaction->ctx   = ctx;
+     // Mark the reaction as attached now.
+     reaction->attached = true;
 
      pthread_mutex_lock( &reactor->globals_lock );
 
@@ -1691,7 +1698,15 @@ fusion_reactor_detach_global (FusionReactor  *reactor,
 
      pthread_mutex_lock( &reactor->globals_lock );
 
-     direct_list_remove( &reactor->globals, &reaction->link );
+     // Check to prevent multiple detaches from being performed.
+     if (reaction->attached) {
+          // Mark as detached, since the global reaction is being removed
+          // from the global reaction list.
+          reaction->attached = false;
+
+          // Remove the reaction from the list.
+          direct_list_remove( &reactor->globals, &reaction->link );
+     }
 
      pthread_mutex_unlock( &reactor->globals_lock );
 
@@ -1858,8 +1873,14 @@ process_globals( FusionReactor      *reactor,
                D_WARN( "global reaction index out of bounds (%d/%d)", global->index, max_index );
           }
           else {
-               if (globals[ global->index ]( msg_data, global->ctx ) == RS_REMOVE)
+               // Remove the reaction if requested.
+               if (globals[ global->index ]( msg_data, global->ctx ) == RS_REMOVE) {
+                    // Mark as detached, since the global reaction is being
+                    // removed from the global reaction list.
+                    global->attached = false;
+
                     direct_list_remove( &reactor->globals, &global->link );
+               }
           }
      }
 
