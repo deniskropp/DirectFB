@@ -718,9 +718,29 @@ _dfb_windowstack_inputdevice_listener( const void *msg_data,
      D_ASSERT( msg_data != NULL );
      D_MAGIC_ASSERT( stack, CoreWindowStack );
 
-     /* Lock the window stack. */
-     if (dfb_windowstack_lock( stack ))
+     // Dynamically add/decrease the ref to the layer context when using the
+     // layer context.  This will prevent the layer context from being
+     // destroyed when it is being used.
+
+     int num = 0;
+
+     // Make sure the layer context's reference count is non-zero.  If it is,
+     // return early and indicate the listener should be removed.  In this
+     // scenario, this prevents the object_reference_watcher from being called
+     // more than once triggered by the reference count changing from 1 to 0
+     // again.
+     if (dfb_layer_context_ref_stat( stack->context, &num ) || num == 0)
           return RS_REMOVE;
+
+     // Increase the layer context's reference count.
+     if (dfb_layer_context_ref( stack->context ))
+          return RS_REMOVE;
+
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack )) {
+          dfb_layer_context_unref( stack->context );
+          return RS_REMOVE;
+     }
 
      /* Call the window manager to dispatch the event. */
      if (dfb_layer_context_active( stack->context ))
@@ -728,6 +748,9 @@ _dfb_windowstack_inputdevice_listener( const void *msg_data,
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
+
+     // Decrease the layer context's reference count.
+     dfb_layer_context_unref( stack->context );
 
      return RS_OK;
 }
