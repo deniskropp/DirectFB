@@ -470,6 +470,17 @@ dfb_layer_context_get_primary_region( CoreLayerContext  *context,
 
 restart:
      while (context->primary.region) {
+          // Make sure the primary region's reference count is non-zero.  If
+          // it is, a failure is returned to indicate that it is unavailable.
+          // In this scenario, this prevents the object_reference_watcher from
+          // being called more than once triggered by the reference count
+          // changing from 1 to 0 again.
+          int num = 0;
+
+          if (dfb_layer_region_ref_stat( context->primary.region, &num ) || num == 0) {
+               dfb_layer_context_unlock( context );
+               return DFB_TEMPUNAVAIL;
+          }
          /* Increase the primary region's reference counter. */
          ret = dfb_layer_region_ref( context->primary.region );
          if (ret == DFB_OK)
@@ -478,6 +489,12 @@ restart:
          dfb_layer_context_unlock( context );
 
          if (ret == DFB_LOCKED) {
+              // If the primary region is Fusion zero-locked (being destroyed)
+              // and creating a new primary region is not requested, return
+              // an error immediately.
+              if (!create)
+                   return DFB_TEMPUNAVAIL;
+
               //sched_yield();
               usleep( 10000 );
 
@@ -729,8 +746,9 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                /* Unlock the region surface */
                if (region->surface) {
                     if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
-                         if (!D_FLAGS_IS_SET( region->state, CLRSF_FROZEN ))
-                              D_ASSUME( region->surface_lock.buffer != NULL );
+                         // The region surface is now being left in an unlocked
+                         // state, so the buffer (region->surface_lock.buffer)
+                         // can be NULL even when not frozen.
 
                          if (region->surface_lock.buffer)
                               dfb_surface_unlock_buffer( region->surface, &region->surface_lock );
