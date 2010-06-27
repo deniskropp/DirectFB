@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -82,6 +82,13 @@ void      IDirectFB_Destruct   ( IDirectFB  *thiz );
 
 DFBResult IDirectFB_SetAppFocus( IDirectFB  *thiz,
                                  DFBBoolean  focused );
+
+/*
+ * Remove the event buffer element from the internally managed linked list of
+ * connections between event buffers created by
+ * IDirectFB::CreateInputEventBuffer and input devices that are hot-plugged in.
+ */
+void      containers_remove_input_eventbuffer( IDirectFBEventBuffer *thiz );
 
 
 extern IDirectFB *idirectfb_singleton;

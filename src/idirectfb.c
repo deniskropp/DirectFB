@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -163,6 +163,95 @@ static bool input_filter_global( DFBEvent *evt,
                                  void     *ctx );
 
 static void drop_window( IDirectFB_data *data, bool enable_cursor );
+
+/**********************************************************************************************************************/
+
+/* The containers_XXXX function family will maintain the connections between
+ * event buffers created by IDirectFB::CreateInputEventBuffer and input
+ * devices that are hot-plugged in.
+ */
+
+static  DirectLink      *containers      = NULL;
+static  pthread_mutex_t  containers_lock = PTHREAD_MUTEX_INITIALIZER;
+
+typedef struct {
+     DirectLink                  link;
+     DFBInputDeviceCapabilities  caps;
+     IDirectFBEventBuffer       *iface;
+
+} Event_Buffer_Container;
+
+void
+containers_attach_device(CoreInputDevice *device)
+{
+     Event_Buffer_Container  *container;
+     DFBInputDeviceCapabilities dev_caps;
+
+     D_ASSERT( device != NULL );
+
+     dev_caps = dfb_input_device_caps(device);
+
+     pthread_mutex_lock( &containers_lock );
+
+     direct_list_foreach(container, containers) {
+          if (dev_caps & container->caps) {
+               IDirectFBEventBuffer_AttachInputDevice( container->iface, device );
+          }
+     }
+
+     pthread_mutex_unlock( &containers_lock );
+}
+
+void
+containers_detach_device(CoreInputDevice *device)
+{
+     Event_Buffer_Container  *container;
+
+     pthread_mutex_lock( &containers_lock );
+
+     direct_list_foreach(container, containers) {
+          IDirectFBEventBuffer_DetachInputDevice(container->iface, device);
+     }
+
+     pthread_mutex_unlock( &containers_lock );
+}
+
+void
+containers_add_input_eventbuffer(CreateEventBuffer_Context * context)
+{
+     Event_Buffer_Container  *container;
+
+     pthread_mutex_lock( &containers_lock );
+
+     container = D_CALLOC(1, sizeof(Event_Buffer_Container));
+     if (!container) {
+          D_OOM();
+          D_ERROR( "Can not allocate memory! in %s\n", __FUNCTION__ );
+     }
+     container->caps = context->caps;
+     container->iface = *context->interface;
+
+     direct_list_append(&containers, &container->link);
+
+     pthread_mutex_unlock( &containers_lock );
+}
+
+void
+containers_remove_input_eventbuffer(IDirectFBEventBuffer  *thiz)
+{
+     Event_Buffer_Container  *container = NULL;
+
+     pthread_mutex_lock( &containers_lock );
+
+     direct_list_foreach(container, containers) {
+          if (thiz == container->iface) {
+               direct_list_remove(&containers, &container->link);
+               D_FREE(container);
+          }
+     }
+
+     pthread_mutex_unlock( &containers_lock );
+}
 
 /**********************************************************************************************************************/
 
@@ -1122,6 +1211,9 @@ IDirectFB_CreateInputEventBuffer( IDirectFB                   *thiz,
 
      context.caps      = caps;
      context.interface = &iface;
+
+     /* Store the context of input event buffer for input device hotplug support. */
+     containers_add_input_eventbuffer(&context);
 
      dfb_input_enumerate_devices( CreateEventBuffer_Callback, &context, caps );
 

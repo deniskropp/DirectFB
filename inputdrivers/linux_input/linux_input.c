@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -104,6 +104,12 @@ typedef unsigned long kernel_ulong_t;
 #include <misc/conf.h>
 #include <misc/util.h>
 
+#include <sys/socket.h>
+#include <sys/un.h>
+
+/* Exclude hot-plug stub functionality from this input provider. */
+#define DISABLE_INPUT_HOTPLUG_FUNCTION_STUB
+
 #ifdef LINUX_INPUT_USE_FBDEV
 #include <fbdev/fbdev.h>
 #endif
@@ -124,6 +130,8 @@ D_DEBUG_DOMAIN( Debug_LinuxInput, "Input/Linux", "Linux input driver" );
 #define LONG(x)              ((x)/BITS_PER_LONG)
 #undef test_bit
 #define test_bit(bit, array) ((array[LONG(bit)] >> OFF(bit)) & 1)
+
+#define MAX_LENGTH_OF_EVENT_STRING 1024
 
 /* compat for 2.4.x kernel - just a compile fix */
 #ifndef HAVE_INPUT_ABSINFO
@@ -157,6 +165,11 @@ typedef struct {
      int                      dy;
 
      bool                     touchpad;
+
+     /* Indice of the associated device_nums and device_names array entry.
+      * Used as the second parameter of the driver_open_device function.
+      */
+     int                      index;
 } LinuxInputData;
 
 
@@ -164,6 +177,19 @@ typedef struct {
 
 static int num_devices = 0;
 static char *device_names[MAX_LINUX_INPUT_DEVICES];
+/* The entries with the same index in device_names and device_nums are the same
+ * are used in two different forms (one is "/dev/input/eventX", the other is
+ * X).
+ */
+static int               device_nums[MAX_LINUX_INPUT_DEVICES] = { 0 };
+/* Socket file descriptor for getting udev events. */
+static int               socket_fd = 0;
+/* The hot-plug thread that is launched by the launch_hotplug() function. */
+static DirectThread     *hotplug_thread = NULL;
+/* The driver suspended lock mutex. */
+static pthread_mutex_t   driver_suspended_lock;
+/* Flag that indicates if the driver is suspended when true. */
+static bool              driver_suspended = false;
 
 
 static const
@@ -1149,6 +1175,15 @@ driver_get_available( void )
 #ifdef LINUX_INPUT_USE_FBDEV
      if (dfb_system_type() != CORE_FBDEV)
           return 0;
+
+     FBDev *dfb_fbdev = (FBDev*) dfb_system_data();
+     D_ASSERT( dfb_fbdev );
+
+     // Only allow USB keyboard and mouse support if the systems driver has
+     // the Virtual Terminal file ("/dev/tty0") open and available for use.
+     // FIXME:  Additional logic needed for system drivers not similar to fbdev?
+     if (!dfb_fbdev->vt || dfb_fbdev->vt->fd < 0)
+          return 0;
 #endif
 
      /* Use the devices specified in the configuration. */
@@ -1159,8 +1194,13 @@ driver_get_available( void )
                if (num_devices >= MAX_LINUX_INPUT_DEVICES)
                     break;
 
-               if (check_device( device ))
-                    device_names[num_devices++] = D_STRDUP( device );
+               /* Update the device_names and device_nums array entries too. */
+               if (check_device( device )){
+                    D_ASSERT( device_names[num_devices] == NULL );
+                    device_names[num_devices] = D_STRDUP( device );
+                    device_nums[num_devices] = i;
+                    num_devices++;
+               }
           }
 
           return num_devices;
@@ -1175,12 +1215,21 @@ driver_get_available( void )
 
           snprintf( buf, 32, "/dev/input/event%d", i );
 
+          /* Initialize device_names and device_nums array entries. */
+          device_nums[i] = MAX_LINUX_INPUT_DEVICES;
+          device_names[i] = NULL;
+
           /* Let tslib driver handle its device. */
           if (tsdev && !strcmp( tsdev, buf ))
                continue;
 
-          if (check_device( buf ))
-               device_names[num_devices++] = D_STRDUP( buf );
+          /* Update the device_names and device_nums array entries too. */
+          if (check_device( buf )){
+               D_ASSERT( device_names[num_devices] == NULL );
+               device_names[num_devices] = D_STRDUP( buf );
+               device_nums[num_devices] = i;
+               num_devices++;
+          }
      }
 
      return num_devices;
@@ -1204,6 +1253,430 @@ driver_get_info( InputDriverInfo *info )
 }
 
 /*
+ * Enter the driver suspended state by setting the driver_suspended Boolean
+ * to prevent hotplug events from being handled.
+ */
+static DFBResult
+driver_suspend( void )
+{
+     if (pthread_mutex_lock(&driver_suspended_lock))
+          return DFB_FAILURE;
+
+     driver_suspended = true;
+
+     pthread_mutex_unlock(&driver_suspended_lock);
+
+     return DFB_OK;
+}
+
+/*
+ * Leave the driver suspended state by clearing the driver_suspended Boolean
+ * which will allow hotplug events to be handled again.
+ */
+static DFBResult
+driver_resume( void )
+{
+     if (pthread_mutex_lock(&driver_suspended_lock))
+          return DFB_FAILURE;
+
+     driver_suspended = false;
+
+     pthread_mutex_unlock(&driver_suspended_lock);
+
+     return DFB_OK;
+}
+
+/*
+ * Register /dev/input/eventX device node into the driver.  Called when a new
+ * device node is created. The device node indicated by event_num should never
+ * be registered before registering it into the driver or should be
+ * unregistered by unregister_device_node() beforehand.
+ */
+static DFBResult
+register_device_node( int event_num, int *index)
+{
+     D_DEBUG_AT( Debug_LinuxInput, "%s()\n", __FUNCTION__ );
+
+     D_ASSERT( index != NULL );
+
+     int i;
+     char buf[32];
+
+     for (i=0; i<MAX_LINUX_INPUT_DEVICES; i++) {
+          if (device_nums[i] == MAX_LINUX_INPUT_DEVICES) {
+               device_nums[i] = event_num;
+               *index = i;
+               num_devices++;
+
+               snprintf( buf, 32, "/dev/input/event%d", event_num);
+               D_ASSERT( device_names[i] == NULL );
+               device_names[i] = D_STRDUP( buf );
+
+               return DFB_OK;
+          }
+     }
+
+     /* Too many input devices plugged in to be handled by linux_input driver. */
+     D_DEBUG_AT( Debug_LinuxInput,
+                 "The amount of devices registered exceeds the limit "
+                 "supported by linux input provider.\n",
+                 MAX_LINUX_INPUT_DEVICES );
+     return DFB_UNSUPPORTED;
+}
+
+/*
+ * Unregister /dev/input/eventX device node from the driver.  Called when a new
+ * device node is removed.
+ */
+static DFBResult
+unregister_device_node( int event_num, int *index)
+{
+     D_DEBUG_AT( Debug_LinuxInput, "%s()\n", __FUNCTION__ );
+
+     D_ASSERT( index != NULL );
+
+     int i;
+
+     for (i=0; i<MAX_LINUX_INPUT_DEVICES; i++) {
+          if (device_nums[i] == event_num) {
+               device_nums[i] = MAX_LINUX_INPUT_DEVICES;
+               num_devices--;
+
+               *index = i;
+               D_FREE(device_names[i]);
+               device_names[i] = NULL;
+
+               return DFB_OK;
+          }
+     }
+
+     return DFB_UNSUPPORTED;
+}
+
+/*
+ * Check if /dev/input/eventX is handled by the input device.  If so, return
+ * DFB_OK.  Otherwise, return DFB_UNSUPPORTED.
+ */
+static DFBResult
+is_created( int index, void *data)
+{
+     D_DEBUG_AT( Debug_LinuxInput, "%s()\n", __FUNCTION__ );
+
+     D_ASSERT( data != NULL );
+
+     if (index < 0 || index >= MAX_LINUX_INPUT_DEVICES) {
+          return DFB_UNSUPPORTED;
+     }
+
+     if (index != ((LinuxInputData *)data)->index) {
+          return DFB_UNSUPPORTED;
+     }
+
+     return DFB_OK;
+}
+
+/*
+ * Indicate that the hotplug detection capability is supported by this input
+ * provider if the Virtual Terminal was opened for use by the systems driver.
+ *
+ * Note:  The systems driver will open the Virtual Terminal file
+ *        ("/dev/tty0") based on the directfbrc commands "vt" and "no-vt".
+ */
+static InputDriverCapability
+get_capability( void )
+{
+     D_DEBUG_AT( Debug_LinuxInput, "%s()\n", __FUNCTION__ );
+
+     InputDriverCapability   capabilities = IDC_NONE;
+
+#ifdef LINUX_INPUT_USE_FBDEV
+     FBDev *dfb_fbdev = (FBDev*) dfb_system_data();
+     D_ASSERT( dfb_fbdev );
+
+     // Only allow USB keyboard and mouse support if the systems driver has
+     // the Virtual Terminal file ("/dev/tty0") open and available for use.
+     // FIXME:  Additional logic needed for system drivers not similar to fbdev?
+     if (!dfb_fbdev->vt || dfb_fbdev->vt->fd < 0)
+          goto exit;
+#endif
+
+     capabilities |= IDC_HOTPLUG;
+
+exit:
+     return capabilities;
+}
+
+/*
+ * Detect udev hotplug events from socket /org/kernel/udev/monitor and act
+ * according to hotplug events received.
+ */
+static void *
+udev_hotplug_EventThread(DirectThread *thread, void * hotplug_data)
+{
+     D_DEBUG_AT( Debug_LinuxInput, "%s()\n", __FUNCTION__ );
+
+     CoreDFB           *core;
+     void              *driver;
+     HotplugThreadData *data = (HotplugThreadData *)hotplug_data;
+     int                rt, option;
+     struct sockaddr_un sock_addr;
+
+     D_ASSERT( data != NULL );
+     D_ASSERT( data->core != NULL );
+     D_ASSERT( data->driver != NULL );
+
+     core = data->core;
+     driver = data->driver;
+
+     /* Free no needed data packet */
+     D_FREE(data);
+
+     /* Open and bind the socket /org/kernel/udev/monitor */
+
+     socket_fd = socket(AF_UNIX, SOCK_DGRAM, 0);
+     if (socket_fd == -1) {
+          D_PERROR( "DirectFB/linux_input: socket() failed: %s\n",
+                    strerror(errno) );
+          goto errorExit;
+     }
+
+     memset(&sock_addr, 0, sizeof(sock_addr));
+     sock_addr.sun_family = AF_UNIX;
+     strncpy(&sock_addr.sun_path[1],
+             "/org/kernel/udev/monitor",
+             sizeof(sock_addr.sun_path) - 1);
+
+     rt = bind(socket_fd, &sock_addr,
+               sizeof(sock_addr.sun_family)+1+strlen(&sock_addr.sun_path[1]));
+     if (rt < 0) {
+          D_PERROR( "DirectFB/linux_input: bind() failed: %s\n",
+                    strerror(errno) );
+          goto errorExit;
+     }
+
+     while(1) {
+          char      udev_event[MAX_LENGTH_OF_EVENT_STRING];
+          char     *pos;
+          char     *event_cont; //udev event content
+          int       device_num, number_file, recv_len, index;
+          DFBResult ret;
+          fd_set    rset;
+
+          /* get udev event */
+          FD_ZERO(&rset);
+          FD_SET(socket_fd, &rset);
+
+          number_file = select(socket_fd+1, &rset, NULL, NULL, NULL);
+
+          if (number_file < 0 && errno != EINTR)
+               break;
+
+          /* check cancel thread */
+          direct_thread_testcancel( thread );
+
+          if (FD_ISSET(socket_fd, &rset)) {
+               recv_len = recv(socket_fd, udev_event, sizeof(udev_event), 0);
+               if (recv_len <= 0) {
+                    D_DEBUG_AT( Debug_LinuxInput,
+                                "error receiving uevent message: %s\n",
+                                strerror(errno) );
+                    continue;
+               }
+               /* check cancel thread */
+               direct_thread_testcancel( thread );
+          }
+          /* analysize udev event */
+
+          pos = strchr(udev_event, '@');
+          if (pos == NULL)
+               continue;
+
+          /* replace '@' with '\0' to separate event type and event content */
+          *pos = '\0';
+
+          event_cont = pos + 1;
+
+          pos = strstr(event_cont, "/event");
+          if (pos == NULL)
+               continue;
+
+          /* get event device number */
+          device_num = atoi(pos + 6);
+
+          /* Attempt to lock the driver suspended mutex. */
+          pthread_mutex_lock(&driver_suspended_lock);
+          if (driver_suspended)
+          {
+               /* Release the lock and quit handling hotplug events. */
+               D_DEBUG_AT( Debug_LinuxInput, "Driver is suspended\n" );
+               pthread_mutex_unlock(&driver_suspended_lock);
+               continue;
+          }
+
+          /* Handle hotplug events since the driver is not suspended. */
+          if (!strcmp(udev_event, "add")) {
+               D_DEBUG_AT( Debug_LinuxInput,
+                           "Device node /dev/input/event%d is created by udev\n",
+                           device_num);
+
+               ret = register_device_node( device_num, &index);
+               if ( DFB_OK == ret) {
+                    /* Handle the event that the input device node is created */
+                    ret = dfb_input_create_device(index, core, driver);
+
+                    /* If cannot create the device within Linux Input
+                     * provider, inform the user.
+                     */
+                    if ( DFB_OK != ret) {
+                         D_DEBUG_AT( Debug_LinuxInput,
+                                     "Linux/Input: Failed to create the "
+                                     "device for /dev/input/event%d\n",
+                                     device_num );
+                    }
+               }
+          }
+          else if (!strcmp(udev_event, "remove")) {
+               D_DEBUG_AT( Debug_LinuxInput,
+                           "Device node /dev/input/event%d is removed by udev\n",
+                           device_num );
+               ret = unregister_device_node( device_num, &index );
+
+               if ( DFB_OK == ret) {
+                    /* Handle the event that the input device node is removed */
+                    ret = dfb_input_remove_device( index, driver );
+
+                    /* If unable to remove the device within the Linux Input
+                     * provider, just print the info.
+                     */
+                    if ( DFB_OK != ret) {
+                         D_DEBUG_AT( Debug_LinuxInput,
+                                     "Linux/Input: Failed to remove the "
+                                     "device for /dev/input/event%d\n",
+                                     device_num );
+                    }
+               }
+          }
+
+          /* Hotplug event handling is complete so release the lock. */
+          pthread_mutex_unlock(&driver_suspended_lock);
+     }
+
+     D_DEBUG_AT( Debug_LinuxInput,
+                 "Finished hotplug detection thread within Linux Input "
+                 "provider.\n" );
+     return NULL;
+
+errorExit:
+     D_INFO( "Linux/Input: Fail to open udev socket, disable detecting "
+             "hotplug with Linux Input provider\n" );
+
+     if (socket_fd != -1) {
+          close(socket_fd);
+     }
+
+     return NULL;
+}
+
+/*
+ * Stop hotplug detection thread.
+ */
+static DFBResult
+stop_hotplug( void )
+{
+     D_DEBUG_AT( Debug_LinuxInput, "%s()\n", __FUNCTION__ );
+
+     /* Exit immediately if the hotplug thread is not created successfully in
+      * launch_hotplug().
+      */
+     if (!hotplug_thread)
+          goto exit;
+
+     /* Shutdown the hotplug detection thread. */
+     direct_thread_cancel(hotplug_thread);
+     direct_thread_join(hotplug_thread);
+     direct_thread_destroy(hotplug_thread);
+     hotplug_thread = NULL;
+
+     /* Destroy the suspended mutex. */
+     pthread_mutex_destroy(&driver_suspended_lock);
+
+     /* shutdown the connection of the socket */
+     if (socket_fd > 0) {
+          int rt = shutdown(socket_fd, SHUT_RDWR);
+          if (rt < 0) {
+               D_PERROR( "DirectFB/linux_input: Socket shutdown failed: %s\n",
+                         strerror(errno) );
+               return DFB_FAILURE;
+          }
+     }
+     if (socket_fd > 0) {
+          close(socket_fd);
+          socket_fd = 0;
+     }
+
+exit:
+     D_DEBUG_AT( Debug_LinuxInput, "%s() closed\n", __FUNCTION__ );
+     return DFB_OK;
+}
+
+/*
+ * Launch hotplug detection thread.
+ */
+static DFBResult
+launch_hotplug(CoreDFB         *core,
+               void            *input_driver)
+{
+     D_DEBUG_AT( Debug_LinuxInput, "%s()\n", __FUNCTION__ );
+
+     HotplugThreadData  *data;
+     DFBResult           result;
+
+     D_ASSERT( core != NULL );
+     D_ASSERT( input_driver != NULL );
+     D_ASSERT( hotplug_thread == NULL );
+
+     data = D_CALLOC(1, sizeof(HotplugThreadData));
+
+     if (!data) {
+          D_OOM();
+          result = DFB_UNSUPPORTED;
+          goto errorExit;
+     }
+
+     data->core        = core;
+     data->driver      = input_driver;
+
+     socket_fd = 0;
+
+     /* Initialize a mutex used to communicate to the hotplug handling thread
+      * when the driver is suspended.
+      */
+     pthread_mutex_init(&driver_suspended_lock, NULL);
+
+     /* Create a thread to handle hotplug events. */
+     hotplug_thread = direct_thread_create( DTT_INPUT,
+                                             udev_hotplug_EventThread,
+                                             data,
+                                             "Hotplug with Linux Input" );
+     if (!hotplug_thread) {
+          pthread_mutex_destroy(&driver_suspended_lock);
+
+          /* The hotplug thread normally deallocates the HotplugThreadData
+           * memory, however since it could not be created it must be done
+           * here.
+           */
+          D_FREE( data );
+
+          result = DFB_UNSUPPORTED;
+     }
+     else
+          result = DFB_OK;
+
+errorExit:
+     return result;
+}
+
+/*
  * Open the device, fill out information about it,
  * allocate and fill private data, start input thread.
  * Called during initialization, resuming or taking over mastership.
@@ -1219,10 +1692,14 @@ driver_open_device( CoreInputDevice  *device,
      unsigned long    ledbit[NBITS(LED_CNT)];
      LinuxInputData  *data;
 
+     D_DEBUG_AT( Debug_LinuxInput, "%s()\n", __FUNCTION__ );
+
      /* open device */
      fd = open( device_names[number], O_RDWR );
      if (fd < 0) {
-          D_PERROR( "DirectFB/linux_input: could not open device" );
+          D_DEBUG_AT( Debug_LinuxInput,
+                      "DirectFB/linux_input: could not open device %s\n",
+                      device_names[number] );
           return DFB_INIT;
      }
 
@@ -1253,6 +1730,9 @@ driver_open_device( CoreInputDevice  *device,
      data->device = device;
      data->touchpad = touchpad;
      data->vt_fd    = -1;
+
+      /* Track associated entry in device_nums and device_names array. */
+      data->index = number;
 
      if (info->desc.min_keycode >= 0 && info->desc.max_keycode >= info->desc.min_keycode) {
 #ifdef LINUX_INPUT_USE_FBDEV

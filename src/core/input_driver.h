@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -60,12 +60,80 @@ driver_get_axis_info( CoreInputDevice              *device,
 static void
 driver_close_device( void *driver_data );
 
+static DFBResult
+driver_suspend( void );
+
+static DFBResult
+driver_resume( void );
+
+static DFBResult
+is_created( int event_num, void *data);
+
+static InputDriverCapability
+get_capability( void );
+
+static DFBResult
+launch_hotplug(CoreDFB         *core,
+               void            *input_driver);
+
+static DFBResult
+stop_hotplug( void );
+
+#if !defined(DISABLE_INPUT_HOTPLUG_FUNCTION_STUB)
+/* Add hot-plug stub function implementations for all input providers by
+ * default when DISABLE_INPUT_HOTPLUG_FUNCTION_STUB is not defined.
+ */
+
+static DFBResult
+driver_suspend( void )
+{
+     return DFB_UNSUPPORTED;
+}
+
+static DFBResult
+driver_resume( void )
+{
+     return DFB_UNSUPPORTED;
+}
+
+static DFBResult
+is_created( int event_num, void *data)
+{
+     return DFB_UNSUPPORTED;
+}
+
+static InputDriverCapability
+get_capability( void )
+{
+     return IDC_NONE;
+}
+
+static DFBResult
+launch_hotplug(CoreDFB         *core,
+               void            *input_driver)
+{
+     return DFB_UNSUPPORTED;
+}
+
+static DFBResult
+stop_hotplug( void )
+{
+     return DFB_UNSUPPORTED;
+}
+#endif
+
 static const InputDriverFuncs driver_funcs = {
      .GetAvailable       = driver_get_available,
      .GetDriverInfo      = driver_get_info,
      .OpenDevice         = driver_open_device,
      .GetKeymapEntry     = driver_get_keymap_entry,
      .CloseDevice        = driver_close_device,
+     .Suspend            = driver_suspend,
+     .Resume             = driver_resume,
+     .IsCreated          = is_created,
+     .GetCapability      = get_capability,
+     .LaunchHotplug      = launch_hotplug,
+     .StopHotplug        = stop_hotplug,
 
 #ifdef DFB_INPUTDRIVER_HAS_AXIS_INFO
      .GetAxisInfo        = driver_get_axis_info

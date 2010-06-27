@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -34,6 +34,7 @@
 
 #include <direct/debug.h>
 #include <direct/list.h>
+#include <direct/mem.h>
 #include <direct/messages.h>
 
 #include <fusion/reactor.h>
@@ -76,6 +77,14 @@ typedef struct {
      CoreWindow                 *owner;
 } GrabbedKey;
 
+typedef struct {
+     DirectLink                  link;
+     void                       *ctx;
+} Stack_Container;
+
+static  DirectLink      *stack_containers = NULL;
+static  pthread_mutex_t  stack_containers_lock = PTHREAD_MUTEX_INITIALIZER;
+
 /**********************************************************************************************************************/
 
 static DFBResult load_default_cursor  ( CoreDFB         *core,
@@ -89,7 +98,84 @@ static DFBResult create_cursor_surface( CoreWindowStack *stack,
 static DFBEnumerationResult stack_attach_devices( CoreInputDevice *device,
                                                   void            *ctx );
 
+static DFBEnumerationResult stack_detach_devices( CoreInputDevice *device,
+                                                  void            *ctx );
+
 /**********************************************************************************************************************/
+
+// Implement stack_containers_XXX function family to maintain the connections
+// between windowstacks and input devices.
+static void
+stack_containers_add(CoreWindowStack *p)
+{
+     Stack_Container    *stack_cntr;
+
+     D_DEBUG_AT( Core_WindowStack, "Enter:%s()\n", __FUNCTION__);
+
+     pthread_mutex_lock( &stack_containers_lock );
+
+     stack_cntr = (Stack_Container *) D_CALLOC(1, sizeof(Stack_Container));
+     if (stack_cntr != NULL) {
+          stack_cntr->ctx = (void *)p;
+          direct_list_append(&stack_containers, &stack_cntr->link);
+     }
+     else{
+          D_ERROR( "Core/WindowStack: stack_cntr = NULL\n");
+     }
+
+     pthread_mutex_unlock( &stack_containers_lock );
+}
+
+static void
+stack_containers_remove(CoreWindowStack *p)
+{
+     Stack_Container    *stack_cntr = NULL;
+
+     D_DEBUG_AT( Core_WindowStack, "Enter:%s()\n", __FUNCTION__);
+
+     pthread_mutex_lock( &stack_containers_lock );
+
+     direct_list_foreach(stack_cntr, stack_containers) {
+          if((void *)p == stack_cntr->ctx) {
+               direct_list_remove(&stack_containers, &stack_cntr->link);
+               D_FREE(stack_cntr);
+          }
+     }
+
+     pthread_mutex_unlock( &stack_containers_lock );
+}
+
+void
+stack_containers_attach_device(CoreInputDevice *device)
+{
+     Stack_Container    *stack_container;
+
+     D_DEBUG_AT( Core_WindowStack, "Enter:%s()\n", __FUNCTION__);
+
+     pthread_mutex_lock( &stack_containers_lock );
+
+     direct_list_foreach(stack_container, stack_containers) {
+          stack_attach_devices(device, stack_container->ctx);
+     }
+
+     pthread_mutex_unlock( &stack_containers_lock );
+}
+
+void
+stack_containers_detach_device(CoreInputDevice *device)
+{
+     Stack_Container    *stack_container;
+
+     D_DEBUG_AT( Core_WindowStack, "Enter:%s()\n", __FUNCTION__);
+
+     pthread_mutex_lock( &stack_containers_lock );
+
+     direct_list_foreach(stack_container, stack_containers) {
+          stack_detach_devices(device, stack_container->ctx);
+     }
+
+     pthread_mutex_unlock( &stack_containers_lock );
+}
 
 /*
  * Allocates and initializes a window stack.
@@ -157,6 +243,8 @@ dfb_windowstack_create( CoreLayerContext *context )
      /* Attach to all input devices */
      dfb_input_enumerate_devices( stack_attach_devices, stack, DICAPS_ALL );
 
+     stack_containers_add(stack);
+
      D_DEBUG_AT( Core_WindowStack, "  -> %p\n", stack );
 
      return stack;
@@ -170,6 +258,8 @@ dfb_windowstack_detach_devices( CoreWindowStack *stack )
      D_DEBUG_AT( Core_WindowStack, "%s( %p )\n", __FUNCTION__, stack );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
+
+     stack_containers_remove(stack);
 
      /* Detach all input devices. */
      l = stack->devices;
@@ -818,6 +908,33 @@ stack_attach_devices( CoreInputDevice *device,
                               ctx, &dev->reaction );
 
      return DFENUM_OK;
+}
+
+static DFBEnumerationResult
+stack_detach_devices( CoreInputDevice *device,
+                        void            *ctx )
+{
+     DirectLink *link;
+     CoreWindowStack *stack = (CoreWindowStack*) ctx;
+
+     D_ASSERT( stack != NULL );
+     D_ASSERT( device != NULL );
+
+     link = stack->devices;
+     while (link) {
+          DirectLink  *next   = link->next;
+          StackDevice *dev = (StackDevice*) link;
+
+          if (dfb_input_device_id(device) == dev->id) {
+               direct_list_remove( &stack->devices, &dev->link );
+
+               dfb_input_detach_global(device, &dev->reaction );
+               SHFREE( stack->shmpool, dev );
+               return DFENUM_OK;
+          }
+          link = next;
+     }
+     return DFENUM_CANCEL;
 }
 
 /*

@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -61,6 +61,8 @@
 #include <core/windows_internal.h>
 
 #include <misc/util.h>
+
+#include <idirectfb.h>
 
 #include "idirectfbinputbuffer.h"
 
@@ -146,6 +148,9 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
      DirectLink                *n;
 
      D_DEBUG_AT( IDFBEvBuf, "%s( %p )\n", __FUNCTION__, thiz );
+
+     /* Remove the event buffer from the containers linked list. */
+     containers_remove_input_eventbuffer( thiz );
 
      pthread_mutex_lock( &data->events_mutex );
 

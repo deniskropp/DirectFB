@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -82,6 +82,10 @@
 #include <gfx/convert.h>
 
 
+#define CHECK_INTERVAL 20000  // Microseconds
+#define CHECK_NUMBER   200
+
+
 D_DEBUG_DOMAIN( Core_Input,    "Core/Input",     "DirectFB Input Core" );
 D_DEBUG_DOMAIN( Core_InputEvt, "Core/Input/Evt", "DirectFB Input Core Events & Dispatch" );
 
@@ -142,6 +146,7 @@ typedef struct {
 
      unsigned int                 axis_num;
      DFBInputDeviceAxisInfo      *axis_info;
+     FusionRef                    ref; /* Ref between shared device & local device */
 } InputDeviceShared;
 
 struct __DFB_CoreInputDevice {
@@ -164,6 +169,7 @@ typedef struct {
 
      int                 num;
      InputDeviceShared  *devices[MAX_INPUTDEVICES];
+     FusionReactor      *reactor; /* For input hot-plug event */
 } DFBInputCoreShared;
 
 struct __DFB_DFBInputCore {
@@ -191,6 +197,13 @@ typedef struct {
      DFBInputDeviceKeySymbol      deadkey;
      const DeadKeyCombo          *combos;
 } DeadKeyMap;
+
+/* Data struct of input device hotplug event */
+typedef struct {
+     bool             is_plugin;   /* Hotplug in or not */
+     int              dev_id;      /* Input device ID*/
+     struct timeval   stamp;       /* Time stamp of event */
+} InputDeviceHotplugEvent;
 
 /**********************************************************************************************************************/
 
@@ -327,6 +340,10 @@ static DFBInputDeviceKeySymbol     id_to_symbol( DFBInputDeviceKeyIdentifier id,
 
 /**********************************************************************************************************************/
 
+static ReactionResult local_processing_hotplug( const void *msg_data, void *ctx );
+
+/**********************************************************************************************************************/
+
 static ReactionFunc dfb_input_globals[MAX_INPUT_GLOBALS+1] = {
 /* 0 */   _dfb_windowstack_inputdevice_listener,
           NULL
@@ -380,12 +397,20 @@ dfb_input_set_global( ReactionFunc func,
 static DFBInputCore       *core_local; /* FIXME */
 static DFBInputCoreShared *core_input; /* FIXME */
 
+#if FUSION_BUILD_MULTI
+static Reaction            local_processing_react; /* Local reaction to hot-plug event */
+#endif
+
 
 static DFBResult
 dfb_input_core_initialize( CoreDFB            *core,
                            DFBInputCore       *data,
                            DFBInputCoreShared *shared )
 {
+#if FUSION_BUILD_MULTI
+     DFBResult result = DFB_OK;
+#endif
+
      D_DEBUG_AT( Core_Input, "dfb_input_core_initialize( %p, %p, %p )\n", core, data, shared );
 
      D_ASSERT( data != NULL );
@@ -400,6 +425,30 @@ dfb_input_core_initialize( CoreDFB            *core,
 
      direct_modules_explore_directory( &dfb_input_modules );
 
+#if FUSION_BUILD_MULTI
+     /* Create the reactor that responds input device hot-plug events. */
+     core_input->reactor = fusion_reactor_new(
+                              sizeof( InputDeviceHotplugEvent ),
+                              "Input Hotplug",
+                              dfb_core_world(core) );
+     if (!core_input->reactor) {
+          D_ERROR( "DirectFB/Input: fusion_reactor_new() failed!\n" );
+          result = DFB_FAILURE;
+          goto errorExit;
+     }
+
+     /* Attach local process function to the input hot-plug reactor. */
+     result = fusion_reactor_attach(
+                              core_input->reactor,
+                              local_processing_hotplug,
+                              (void*) core,
+                              &local_processing_react );
+     if (result) {
+          D_ERROR( "DirectFB/Input: fusion_reactor_attach() failed!\n" );
+          goto errorExit;
+     }
+#endif
+
      init_devices( core );
 
 
@@ -407,6 +456,15 @@ dfb_input_core_initialize( CoreDFB            *core,
      D_MAGIC_SET( shared, DFBInputCoreShared );
 
      return DFB_OK;
+
+#if FUSION_BUILD_MULTI
+errorExit:
+     /* Destroy the hot-plug reactor if it was created. */
+     if (core_input->reactor)
+          fusion_reactor_destroy(core_input->reactor);
+
+     return result;
+#endif
 }
 
 static DFBResult
@@ -415,17 +473,33 @@ dfb_input_core_join( CoreDFB            *core,
                      DFBInputCoreShared *shared )
 {
      int i;
+#if FUSION_BUILD_MULTI
+     DFBResult result;
+#endif
 
      D_DEBUG_AT( Core_Input, "dfb_input_core_join( %p, %p, %p )\n", core, data, shared );
 
      D_ASSERT( data != NULL );
      D_MAGIC_ASSERT( shared, DFBInputCoreShared );
+     D_ASSERT( shared->reactor != NULL );
 
      core_local = data;   /* FIXME */
      core_input = shared; /* FIXME */
 
      data->core   = core;
      data->shared = shared;
+
+#if FUSION_BUILD_MULTI
+     /* Attach the local process function to the input hot-plug reactor. */
+     result = fusion_reactor_attach( core_input->reactor,
+                                     local_processing_hotplug,
+                                     (void*) core,
+                                     &local_processing_react );
+     if (result) {
+          D_ERROR( "DirectFB/Input: fusion_reactor_attach failed!\n" );
+          return result;
+     }
+#endif
 
      for (i=0; i<core_input->num; i++) {
           CoreInputDevice *device;
@@ -437,6 +511,11 @@ dfb_input_core_join( CoreDFB            *core,
           }
 
           device->shared = core_input->devices[i];
+
+#if FUSION_BUILD_MULTI
+          /* Increase the reference counter. */
+          fusion_ref_up( &device->shared->ref, true );
+#endif
 
           /* add it to the list */
           direct_list_append( &data->devices, &device->link );
@@ -458,6 +537,8 @@ dfb_input_core_shutdown( DFBInputCore *data,
      DirectLink          *n;
      CoreInputDevice     *device;
      FusionSHMPoolShared *pool = dfb_core_shmpool( data->core );
+     InputDriver         *driver;
+     int                  i;
 
      D_DEBUG_AT( Core_Input, "dfb_input_core_shutdown( %p, %semergency )\n", data, emergency ? "" : "no " );
 
@@ -466,9 +547,26 @@ dfb_input_core_shutdown( DFBInputCore *data,
 
      shared = data->shared;
 
+     /* Stop each input provider's hot-plug thread that supports device hot-plugging. */
+     direct_list_foreach_safe (driver, n, core_local->drivers) {
+          if (driver->funcs->GetCapability && driver->funcs->StopHotplug) {
+               if (IDC_HOTPLUG & driver->funcs->GetCapability()) {
+                    D_DEBUG_AT( Core_Input, "Stopping hot-plug detection thread "
+                                "within %s\n ", driver->module->name );
+                    if (driver->funcs->StopHotplug()) {
+                         D_ERROR( "DirectFB/Input: StopHotplug() failed with %s\n",
+                                  driver->module->name );
+                    }
+               }
+          }
+     }
+
+#if FUSION_BUILD_MULTI
+     fusion_reactor_detach( core_input->reactor, &local_processing_react );
+     fusion_reactor_destroy( core_input->reactor );
+#endif
 
      direct_list_foreach_safe (device, n, data->devices) {
-          InputDriver       *driver;
           InputDeviceShared *devshared;
 
           D_MAGIC_ASSERT( device, CoreInputDevice );
@@ -502,6 +600,10 @@ dfb_input_core_shutdown( DFBInputCore *data,
                direct_module_unref( driver->module );
                D_FREE( driver );
           }
+
+#if FUSION_BUILD_MULTI
+          fusion_ref_destroy( &device->shared->ref );
+#endif
 
           fusion_reactor_free( devshared->reactor );
 
@@ -539,9 +641,17 @@ dfb_input_core_leave( DFBInputCore *data,
 
      shared = data->shared;
 
+#if FUSION_BUILD_MULTI
+     fusion_reactor_detach( core_input->reactor, &local_processing_react );
+#endif
 
      direct_list_foreach_safe (device, n, data->devices) {
           D_MAGIC_ASSERT( device, CoreInputDevice );
+
+#if FUSION_BUILD_MULTI
+          /* Decrease the ref between shared device and local device. */
+          fusion_ref_down( &device->shared->ref, true );
+#endif
 
           D_FREE( device );
      }
@@ -557,6 +667,7 @@ dfb_input_core_suspend( DFBInputCore *data )
 {
      DFBInputCoreShared *shared;
      CoreInputDevice    *device;
+     InputDriver        *driver;
 
      D_DEBUG_AT( Core_Input, "dfb_input_core_suspend( %p )\n", data );
 
@@ -567,8 +678,22 @@ dfb_input_core_suspend( DFBInputCore *data )
 
      D_DEBUG_AT( Core_Input, "  -> suspending...\n" );
 
+     /* Go through the drivers list and attempt to suspend all of the drivers that
+      * support the Suspend function.
+      */
+     direct_list_foreach (driver, core_local->drivers) {
+          DFBResult ret;
+
+          D_ASSERT( driver->funcs->Suspend != NULL );
+          ret = driver->funcs->Suspend();
+
+          if (ret != DFB_OK && ret != DFB_UNSUPPORTED) {
+               D_DERROR( ret, "driver->Suspend failed during suspend (%s)\n",
+                         driver->info.name );
+          }
+     }
+
      direct_list_foreach (device, data->devices) {
-          InputDriver       *driver;
           InputDeviceShared *devshared;
           
           D_MAGIC_ASSERT( device, CoreInputDevice );
@@ -609,6 +734,7 @@ dfb_input_core_resume( DFBInputCore *data )
      DFBInputCoreShared *shared;
      DFBResult           ret;
      CoreInputDevice    *device;
+     InputDriver        *driver;
 
      D_DEBUG_AT( Core_Input, "dfb_input_core_resume( %p )\n", data );
 
@@ -637,6 +763,19 @@ dfb_input_core_resume( DFBInputCore *data )
                D_DERROR( ret, "DirectFB/Input: Failed reopening device "
                          "during resume (%s)!\n", device->shared->device_info.desc.name );
                device->driver_data = NULL;
+          }
+     }
+
+     /* Go through the drivers list and attempt to resume all of the drivers that
+      * support the Resume function.
+      */
+     direct_list_foreach (driver, core_local->drivers) {
+          D_ASSERT( driver->funcs->Resume != NULL );
+
+          ret = driver->funcs->Resume();
+          if (ret != DFB_OK && ret != DFB_UNSUPPORTED) {
+               D_DERROR( ret, "driver->Resume failed during resume (%s)\n",
+                         driver->info.name );
           }
      }
 
@@ -775,7 +914,10 @@ dfb_input_dispatch( CoreInputDevice *device, DFBInputEvent *event )
      D_ASSERT( device != NULL );
      D_ASSERT( event != NULL );
 
-     D_ASSUME( device->shared != NULL );
+     /*
+      * When a USB device is hot-removed, it is possible that there are pending events
+      * still being dispatched and the shared field becomes NULL.
+      */
 
      /*
       * 0. Sanity checks & debugging...
@@ -928,6 +1070,19 @@ dfb_input_device_at( DFBInputDeviceID id )
      }
 
      return NULL;
+}
+
+/* Get an input device's capabilities. */
+DFBInputDeviceCapabilities
+dfb_input_device_caps( const CoreInputDevice *device )
+{
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     D_ASSERT( core_input != NULL );
+     D_ASSERT( device != NULL );
+     D_ASSERT( device->shared != NULL );
+
+     return device->shared->device_info.desc.caps;
 }
 
 void
@@ -1211,6 +1366,10 @@ init_devices( CoreDFB *core )
           int                     n;
           InputDriver            *driver;
           const InputDriverFuncs *funcs;
+          InputDriverCapability   driver_cap;
+          DFBResult               result;
+
+          driver_cap = IDC_NONE;
 
           funcs = direct_module_ref( module );
           if (!funcs)
@@ -1230,7 +1389,18 @@ init_devices( CoreDFB *core )
           D_DEBUG_AT( Core_Input, "  -> probing '%s'...\n", driver->info.name );
 
           driver->nr_devices = funcs->GetAvailable();
-          if (!driver->nr_devices) {
+
+          /*
+           * If the input provider supports hot-plug, always load the module.
+           */
+          if (!funcs->GetCapability) {
+               D_DEBUG_AT(Core_Input, "InputDriverFuncs::GetCapability is NULL\n");
+          }
+          else {
+               driver_cap = funcs->GetCapability();
+          }
+
+          if (!driver->nr_devices && !(driver_cap & IDC_HOTPLUG)) {
                direct_module_unref( module );
                D_FREE( driver );
                continue;
@@ -1317,6 +1487,15 @@ init_devices( CoreDFB *core )
                        buf, driver->info.version.major,
                        driver->info.version.minor, driver->info.vendor );
 
+#if FUSION_BUILD_MULTI
+               /* Initialize the ref between shared device and local device. */
+               snprintf( buf, sizeof(buf), "Ref of input device(%d)", shared->id );
+               fusion_ref_init( &shared->ref, buf, dfb_core_world(core) );
+
+               /* Increase reference counter. */
+               fusion_ref_up( &shared->ref, true );
+#endif
+
                if (device_info.desc.min_keycode > device_info.desc.max_keycode) {
                     D_BUG("min_keycode > max_keycode");
                     device_info.desc.min_keycode = -1;
@@ -1331,7 +1510,421 @@ init_devices( CoreDFB *core )
                /* add it to the list */
                input_add_device( device );
           }
+
+          /*
+           * If the driver supports hot-plug, launch its hot-plug thread to respond to
+           * hot-plug events.  Failures in launching the hot-plug thread will only
+           * result in no hot-plug feature being available.
+           */
+          if (driver_cap == IDC_HOTPLUG) {
+               result = funcs->LaunchHotplug(core, (void*) driver);
+
+               /* On failure, the input provider can still be used without hot-plug. */
+               if (result) {
+                    D_INFO( "DirectFB/Input: Failed to enable hot-plug "
+                            "detection with %s\n ", driver->info.name);
+               }
+               else {
+                    D_INFO( "DirectFB/Input: Hot-plug detection enabled with %s \n",
+                            driver->info.name);
+               }
+          }
      }
+}
+
+/*
+ * Create the DFB shared core input device, add the input device into the
+ * local device list and shared dev array and broadcast the hot-plug in
+ * message to all slaves.
+ */
+DFBResult
+dfb_input_create_device(int device_index, CoreDFB *core_in, void *driver_in)
+{
+     char                    buf[128];
+     CoreInputDevice        *device;
+     InputDeviceInfo         device_info;
+     InputDeviceShared      *shared;
+     void                   *driver_data;
+     InputDriver            *driver = NULL;
+     const InputDriverFuncs *funcs;
+     FusionSHMPoolShared    *pool;
+     int                     num_device;
+     DFBResult               result;
+
+     D_DEBUG_AT(Core_Input, "Enter: %s()\n", __FUNCTION__);
+
+     driver = (InputDriver *)driver_in;
+
+     pool = dfb_core_shmpool(core_in);
+     funcs = driver->funcs;
+     if (!funcs) {
+          D_ERROR("DirectFB/Input: driver->funcs is NULL\n");
+          goto errorExit;
+     }
+
+     device = D_CALLOC( 1, sizeof(CoreInputDevice) );
+     if (!device) {
+          D_OOM();
+          goto errorExit;
+     }
+     shared = SHCALLOC( pool, 1, sizeof(InputDeviceShared) );
+     if (!shared) {
+          D_OOM();
+          D_FREE( device );
+          goto errorExit;
+     }
+
+     device->core = core_in;
+
+     memset( &device_info, 0, sizeof(InputDeviceInfo) );
+
+     device_info.desc.min_keycode = -1;
+     device_info.desc.max_keycode = -1;
+
+     D_MAGIC_SET( device, CoreInputDevice );
+
+     if (funcs->OpenDevice( device, device_index, &device_info, &driver_data )) {
+          SHFREE( pool, shared );
+          D_MAGIC_CLEAR( device );
+          D_FREE( device );
+          D_DEBUG_AT( Core_Input,
+                      "DirectFB/Input: Cannot open device in %s, at %d in %s\n",
+                      __FUNCTION__, __LINE__, __FILE__);
+          goto errorExit;
+     }
+
+     snprintf( buf, sizeof(buf), "%s (%d)", device_info.desc.name, device_index);
+
+     /* init skirmish */
+     result = fusion_skirmish_init( &shared->lock, buf, dfb_core_world(device->core) );
+     if (result) {
+          funcs->CloseDevice( driver_data );
+          SHFREE( pool, shared );
+          D_MAGIC_CLEAR( device );
+          D_FREE( device );
+          D_ERROR("DirectFB/Input: fusion_skirmish_init() failed! in %s, at %d in %s\n",
+                  __FUNCTION__, __LINE__, __FILE__);
+          goto errorExit;
+     }
+
+     /* create reactor */
+     shared->reactor = fusion_reactor_new( sizeof(DFBInputEvent),
+                                           buf,
+                                           dfb_core_world(device->core) );
+     if (!shared->reactor) {
+          funcs->CloseDevice( driver_data );
+          SHFREE( pool, shared );
+          D_MAGIC_CLEAR( device );
+          D_FREE( device );
+          fusion_skirmish_destroy(&shared->lock);
+          D_ERROR("DirectFB/Input: fusion_reactor_new() failed! in %s, at %d in %s\n",
+                  __FUNCTION__, __LINE__, __FILE__);
+          goto errorExit;
+     }
+
+     fusion_reactor_set_lock( shared->reactor, &shared->lock );
+
+     /* init call */
+     fusion_call_init( &shared->call,
+                       input_device_call_handler,
+                       device,
+                       dfb_core_world(device->core) );
+
+     /* initialize shared data */
+     shared->id          = make_id(device_info.prefered_id);
+     shared->num         = device_index;
+     shared->device_info = device_info;
+     shared->last_key    = DIKI_UNKNOWN;
+     shared->first_press = true;
+
+     /* initialize local data */
+     device->shared      = shared;
+     device->driver      = driver;
+     device->driver_data = driver_data;
+
+     D_INFO( "DirectFB/Input: %s %d.%d (%s)\n",
+             buf, driver->info.version.major,
+             driver->info.version.minor, driver->info.vendor );
+
+#if FUSION_BUILD_MULTI
+     snprintf( buf, sizeof(buf), "Ref of input device(%d)", shared->id);
+     fusion_ref_init( &shared->ref, buf, dfb_core_world(core_in));
+     fusion_ref_up( &shared->ref, true );
+#endif
+
+     if (device_info.desc.min_keycode > device_info.desc.max_keycode) {
+          D_BUG("min_keycode > max_keycode");
+          device_info.desc.min_keycode = -1;
+          device_info.desc.max_keycode = -1;
+     }
+     else if (device_info.desc.min_keycode >= 0 && device_info.desc.max_keycode >= 0)
+          allocate_device_keymap( device->core, device );
+
+     /* add it into local device list and shared dev array */
+     D_DEBUG_AT(Core_Input,
+                "In master, add a new device with dev_id=%d\n",
+                shared->id);
+
+     input_add_device( device );
+     driver->nr_devices++;
+
+     D_DEBUG_AT(Core_Input,
+                "Successfully added new input device with dev_id=%d in shared array\n",
+                shared->id);
+
+     InputDeviceHotplugEvent    message;
+
+     /* Setup the hot-plug in message. */
+     message.is_plugin = true;
+     message.dev_id = shared->id;
+     gettimeofday (&message.stamp, NULL);
+
+     /* Send the hot-plug in message */
+#if FUSION_BUILD_MULTI
+     fusion_reactor_dispatch(core_input->reactor, &message, true, NULL);
+#else
+     local_processing_hotplug((const void *) &message, (void*) core_in);
+#endif
+     return DFB_OK;
+
+errorExit:
+     return DFB_FAILURE;
+}
+
+/*
+ * Tell whether the DFB input device handling of the system input device
+ * indicated by device_index is already created.
+ */
+static CoreInputDevice *
+search_device_created(int device_index, void *driver_in)
+{
+     DirectLink  *n;
+     CoreInputDevice *device;
+
+     D_ASSERT(driver_in != NULL);
+
+     direct_list_foreach_safe(device, n, core_local->devices) {
+          if (device->driver != driver_in)
+               continue;
+
+          if (device->driver_data == NULL) {
+               D_DEBUG_AT(Core_Input,
+                          "The device %d has been closed!\n",
+                          device->shared->id);
+               return NULL;
+          }
+
+          if (device->driver->funcs->IsCreated &&
+              !device->driver->funcs->IsCreated(device_index, device->driver_data)) {
+               return device;
+          }
+     }
+
+     return NULL;
+}
+
+/*
+ * Remove the DFB shared core input device handling of the system input device
+ * indicated by device_index and broadcast the hot-plug out message to all slaves.
+ */
+DFBResult
+dfb_input_remove_device(int device_index, void *driver_in)
+{
+     CoreInputDevice    *device;
+     InputDeviceShared  *shared;
+     FusionSHMPoolShared *pool;
+     DirectLink         *n;
+     int                 i;
+     int                 found = 0;
+     int                 device_id;
+
+     D_DEBUG_AT(Core_Input, "Enter: %s()\n", __FUNCTION__);
+
+     D_ASSERT(driver_in !=NULL);
+
+     device = search_device_created(device_index, driver_in);
+     if (device == NULL) {
+          D_DEBUG_AT(Core_Input,
+                     "DirectFB/input: Failed to find the device[%d] or the device is "
+                     "closed.\n",
+                     device_index);
+          goto errorExit;
+     }
+
+     shared = device->shared;
+     pool = dfb_core_shmpool( device->core );
+     device_id = shared->id;
+
+     D_DEBUG_AT(Core_Input, "Find the device with dev_id=%d\n", device_id);
+
+     device->driver->funcs->CloseDevice( device->driver_data );
+
+     device->driver->nr_devices--;
+
+     InputDeviceHotplugEvent    message;
+
+     /* Setup the hot-plug out message */
+     message.is_plugin = false;
+     message.dev_id = device_id;
+     gettimeofday (&message.stamp, NULL);
+
+     /* Send the hot-plug out message */
+#if FUSION_BUILD_MULTI
+     fusion_reactor_dispatch( core_input->reactor, &message, true, NULL);
+
+     int    loop = CHECK_NUMBER;
+
+     while (--loop) {
+          if ( fusion_ref_zero_trylock( &device->shared->ref ) == DFB_OK) {
+               fusion_ref_unlock(&device->shared->ref);
+               break;
+          }
+
+          usleep(CHECK_INTERVAL);
+     }
+
+     if (!loop)
+          D_DEBUG_AT(Core_Input, "Shared device might be connected to by others\n");
+
+     fusion_ref_destroy(&device->shared->ref);
+#else
+     local_processing_hotplug((const void*) &message, (void*) device->core);
+#endif
+
+     /* Remove the device from shared array */
+     for (i = 0; i < core_input->num; i++) {
+          if (!found && (core_input->devices[i]->id == shared->id))
+               found = 1;
+
+          if (found)
+               core_input->devices[i] = core_input->devices[(i + 1) % MAX_INPUTDEVICES];
+     }
+     if (found)
+          core_input->devices[core_input->num -1] = NULL;
+
+     core_input->num--;
+
+     fusion_call_destroy( &shared->call );
+     fusion_skirmish_destroy( &shared->lock );
+
+     fusion_reactor_free( shared->reactor );
+
+     if (shared->keymap.entries)
+          SHFREE( pool, shared->keymap.entries );
+
+     SHFREE( pool, shared );
+
+     D_DEBUG_AT(Core_Input,
+                "Successfully remove the device with dev_id=%d in shared array\n",
+                device_id);
+
+     return DFB_OK;
+
+errorExit:
+     return DFB_FAILURE;
+}
+
+/*
+ * Create local input device and add it into the local input devices list.
+ */
+static CoreInputDevice *
+add_device_into_local_list(int dev_id)
+{
+     int i;
+     D_DEBUG_AT(Core_Input, "Enter: %s()\n", __FUNCTION__);
+     for (i = 0; i < core_input->num; i++) {
+          if (core_input->devices[i]->id == dev_id) {
+               CoreInputDevice *device;
+
+               D_DEBUG_AT(Core_Input,
+                          "Find the device with dev_id=%d in shared array, and "
+                          "allocate local device\n",
+                          dev_id);
+
+               device = D_CALLOC( 1, sizeof(CoreInputDevice) );
+               if (!device) {
+                   return NULL;
+               }
+
+               device->shared = core_input->devices[i];
+
+#if FUSION_BUILD_MULTI
+               /* Increase the reference counter. */
+               fusion_ref_up( &device->shared->ref, true );
+#endif
+
+               /* add it to the list */
+               direct_list_append( &core_local->devices, &device->link );
+
+               D_MAGIC_SET( device, CoreInputDevice );
+               return device;
+          }
+     }
+
+     return NULL;
+}
+
+/*
+ * Local input device function that handles hot-plug in/out messages.
+ */
+static ReactionResult
+local_processing_hotplug( const void *msg_data, void *ctx )
+{
+
+     CoreDFB                       *core = ctx;
+     const InputDeviceHotplugEvent *message = msg_data;
+     CoreInputDevice               *device = NULL;
+
+     D_DEBUG_AT(Core_Input, "Enter: %s()\n", __FUNCTION__);
+
+     D_DEBUG_AT(Core_Input,
+                "<PID:%6d> hotplug-in:%d device_id=%d message!\n",
+                getpid(),
+                message->is_plugin,
+                message->dev_id );
+
+     if (message->is_plugin) {
+
+          device = dfb_input_device_at(message->dev_id);
+
+          if (!device){
+               /* Update local device list according to shared devices array */
+               if (!(device = add_device_into_local_list(message->dev_id))) {
+                    D_ERROR("DirectFB/Input: update_local_devices_list() failed\n" );
+                    goto errorExit;
+               }
+          }
+
+          /* attach the device to event containers */
+          containers_attach_device( device );
+          /* attach the device to stack containers  */
+          stack_containers_attach_device( device );
+     }
+     else {
+          device = dfb_input_device_at(message->dev_id);
+          if (device) {
+
+               direct_list_remove(&core_local->devices, &device->link);
+
+               containers_detach_device(device);
+               stack_containers_detach_device(device);
+
+#if FUSION_BUILD_MULTI
+               /* Decrease reference counter. */
+               fusion_ref_down( &device->shared->ref, true );
+#endif
+               D_MAGIC_CLEAR( device );
+               D_FREE(device);
+          }
+          else
+               D_ERROR("DirectFB/Input:Can't find the device to be removed!\n");
+
+     }
+
+     return DFB_OK;
+
+errorExit:
+     return DFB_FAILURE;
 }
 
 static DFBInputDeviceKeymapEntry *

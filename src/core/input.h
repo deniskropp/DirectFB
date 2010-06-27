@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -76,6 +76,21 @@ typedef struct {
      DFBInputDeviceDescription desc;  /* Capabilities, type, etc. */
 } InputDeviceInfo;
 
+/*
+ *  Input provider capability flags.
+ */
+typedef enum {
+     IDC_NONE      = 0x00,            /* None */
+     IDC_HOTPLUG   = 0x01,            /* Input devices support hot-plug */
+
+     IDC_ALL       = 0x01             /* All flags supported */
+} InputDriverCapability;
+
+typedef struct {
+     CoreDFB          *core;
+     void             *driver;
+} HotplugThreadData;
+
 typedef struct {
      int       (*GetAvailable)   (void);
      void      (*GetDriverInfo)  (InputDriverInfo              *driver_info);
@@ -87,6 +102,15 @@ typedef struct {
                                   void                         *driver_data,
                                   DFBInputDeviceKeymapEntry    *entry);
      void      (*CloseDevice)    (void                         *driver_data);
+     DFBResult (*Suspend)        (void);
+     DFBResult (*Resume)         (void);
+     DFBResult (*IsCreated)      (int                        index,
+                                  void                      *data);
+     InputDriverCapability
+               (*GetCapability)  (void);
+     DFBResult (*LaunchHotplug)  (CoreDFB                  *core,
+                                  void                     *input_driver);
+     DFBResult (*StopHotplug)    (void);
 
      DFBResult (*GetAxisInfo)    (CoreInputDevice              *device,
                                   void                         *driver_data,
@@ -141,6 +165,10 @@ CoreInputDevice  *dfb_input_device_at         ( DFBInputDeviceID           id );
 
 
 
+DFBInputDeviceCapabilities dfb_input_device_caps( const CoreInputDevice *device );
+
+
+
 DFBResult         dfb_input_device_get_keymap_entry( CoreInputDevice           *device,
                                                      int                        keycode,
                                                      DFBInputDeviceKeymapEntry *entry );
@@ -153,6 +181,24 @@ DFBResult         dfb_input_device_load_keymap   ( CoreInputDevice           *de
                                                    char                      *filename );
 
 DFBResult         dfb_input_device_reload_keymap   ( CoreInputDevice           *device );
+
+
+
+
+void              containers_attach_device( CoreInputDevice *device );
+
+void              containers_detach_device( CoreInputDevice *device );
+
+void              stack_containers_attach_device( CoreInputDevice *device );
+
+void              stack_containers_detach_device( CoreInputDevice *device );
+
+DFBResult         dfb_input_create_device( int      device_index,
+                                           CoreDFB *core_in,
+                                           void    *driver_in );
+
+DFBResult         dfb_input_remove_device( int   device_index,
+                                           void *driver_in );
 
 /* global reactions */
 
