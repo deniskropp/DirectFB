@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -925,7 +925,9 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      if (dfb_wm_core.initialized)
           dfb_wm_close_all_stacks( dfb_wm_core.data_local );
 
-     fusion_stop_dispatcher( core->world, emergency );
+     /* Do not stop the Fusion dispatcher here so it can be used for resource releasing
+      * related events during shutdown.
+      */
 
      /* Destroy layer context and region objects. */
      fusion_object_pool_destroy( shared->layer_region_pool, core->world );
@@ -952,6 +954,11 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 
      /* Destroy shared memory pool for surface data. */
      fusion_shm_pool_destroy( core->world, shared->shmpool_data );
+
+     /* Delayed stopping the Fusion dispatcher to enable resource releasing related
+      * events to be handled during shutdown.
+      */
+     fusion_stop_dispatcher( core->world, emergency );
 
      return 0;
 }
