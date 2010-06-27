@@ -40,6 +40,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
 
 #include <direct/build.h>
@@ -51,13 +52,6 @@
 #include <direct/util.h>
 
 #include <direct/stream.h>
-
-#if WORDS_BIGENDIAN
-#define ntohl(x) (x)
-#else
-#define ntohl(x) __swap32(x)
-#endif
-
 
 struct __D_DirectStream {
      int                   magic;
