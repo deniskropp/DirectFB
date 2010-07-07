@@ -148,6 +148,7 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
 
      xw->gc = XCreateGC(xw->display, xw->window, 0, NULL);
 
+#if 0
      // Create a null cursor
      Pixmap  pixmp1;
      Pixmap  pixmp2;
@@ -164,7 +165,7 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
      XFreePixmap ( xw->display, pixmp2 );
 
      XDefineCursor( xw->display, xw->window, xw->NullCursor );
-
+#endif
 
      /* maps the window and raises it to the top of the stack */
      XMapRaised( xw->display, xw->window );
@@ -294,7 +295,9 @@ dfb_x11_close_window( DFBX11 *x11, XWindow* xw )
 
      XFreeGC( xw->display, xw->gc );
      XDestroyWindow( xw->display, xw->window );
+#if 0
      XFreeCursor( xw->display, xw->NullCursor );
+#endif
 
      D_FREE( xw );
 }
