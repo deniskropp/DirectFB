@@ -44,6 +44,12 @@ reduces banding caused by the limited colorspace. This option has no
 effect for other pixel-formats than RGB16.
 
 .TP
+.B --transparent=AARRGGBB
+If specified, completely transparent pixels are set to this color value.
+This may be useful for color keying and to work around bugs in graphics
+driver.
+
+.TP
 .B --version
 Output version information.
 

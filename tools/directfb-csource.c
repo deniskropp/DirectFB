@@ -78,6 +78,7 @@ static DFBResult  load_image      (const char             *filename,
                                    DFBSurfaceDescription  *desc,
                                    DFBColor               *palette,
                                    int                    *palette_size,
+                                   const DFBColor         *transparent,
                                    DFBSurfacePixelFormat   rgbformat,
                                    bool                    dither565);
 static void       dither_rgb16    (const u32              *src,
@@ -118,6 +119,7 @@ int main (int         argc,
      int         i, n;
      bool        rawmode        = 0;
      bool        dither565      = 0;
+     DFBColor   *transparent    = NULL;
 
      /*  parse command line  */
 
@@ -162,9 +164,24 @@ int main (int         argc,
                     if (*name)
                          continue;
                }
+               if (strncmp (arg, "transparent=", 12) == 0 && !transparent) {
+                    char *error;
+                    u32   argb = strtoul (arg + 12, &error, 16);
 
-               print_usage (argv[0]);
-               return EXIT_FAILURE;
+                    if (! error) {
+                         transparent = alloca(sizeof (DFBColor));
+
+                         transparent->b = argb & 0xFF;
+                         argb >>= 8;
+                         transparent->g = argb & 0xFF;
+                         argb >>= 8;
+                         transparent->r = argb & 0xFF;
+                         argb >>= 8;
+                         transparent->a = argb & 0xFF;
+                    }
+                    if (transparent)
+                         continue;
+               }
           }
 
           filename[num_images++] = argv[n];
@@ -219,7 +236,7 @@ int main (int         argc,
           }
 
           if (load_image (filename[0],
-                          &desc, palette, &palette_size,
+                          &desc, palette, &palette_size, transparent,
                           rgbformat, dither565) != DFB_OK)
                return EXIT_FAILURE;
 
@@ -244,8 +261,8 @@ int main (int         argc,
                image[i].pixelformat = desc.pixelformat;
 
                if (load_image (filename[i],
-                               image + i, foo, &foo_size, rgbformat,
-                               dither565) != DFB_OK)
+                               image + i, foo, &foo_size, transparent,
+                               rgbformat, dither565) != DFB_OK)
                     return EXIT_FAILURE;
           }
 
@@ -282,6 +299,7 @@ static DFBResult load_image (const char            *filename,
                              DFBSurfaceDescription *desc,
                              DFBColor              *palette,
                              int                   *palette_size,
+                             const DFBColor        *transparent,
                              DFBSurfacePixelFormat  rgbformat,
                              bool                   dither565)
 {
@@ -446,6 +464,22 @@ static DFBResult load_image (const char            *filename,
 
      if (!dest_format)
           dest_format = src_format;
+
+     /*  replace color in completely transparent pixels  */
+     if (transparent && DFB_PIXELFORMAT_HAS_ALPHA(src_format)) {
+          unsigned char *row;
+          int            h;
+
+          for (row = data, h = height; h; h--, row += pitch) {
+                 u32 *pixel;
+                 int  w;
+
+                 for (pixel = (u32 *) row, w = width; w; w--, pixel++) {
+                      if (*pixel & 0xff0000 == 0x0)
+                           *pixel = dfb_color_to_argb (transparent);
+                 }
+          }
+     }
 
      if (DFB_BYTES_PER_PIXEL(src_format) != DFB_BYTES_PER_PIXEL(dest_format)) {
           unsigned char *s, *d, *dest;
