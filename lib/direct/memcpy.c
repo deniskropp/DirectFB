@@ -36,8 +36,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <dfb_types.h>
-
 #include <direct/conf.h>
 #include <direct/debug.h>
 #include <direct/mem.h>
