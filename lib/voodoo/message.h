@@ -94,23 +94,24 @@ struct __V_VoodooResponseMessage {
 typedef struct {
      int         magic;
 
-     const void *msg;
-     const void *ptr;
+     const char *msg;
+     const char *ptr;
 } VoodooMessageParser;
 
 
 
 #define __VOODOO_PARSER_PROLOG( parser, req_type )          \
-     const void             *_vp_ptr;                       \
+     const char             *_vp_ptr;                       \
      VoodooMessageBlockType  _vp_type;                      \
      int                     _vp_length;                    \
+     VoodooMessageParser    *_parser = &parser;             \
                                                             \
-     D_MAGIC_ASSERT( &(parser), VoodooMessageParser );      \
+     D_MAGIC_ASSERT( _parser, VoodooMessageParser );        \
                                                             \
      _vp_ptr = (parser).ptr;                                \
                                                             \
      /* Read message block type. */                         \
-     _vp_type = *(const u32*) _vp_ptr;                      \
+     _vp_type = *(const VoodooMessageBlockType*) _vp_ptr;   \
                                                             \
      D_ASSERT( _vp_type == (req_type) );                    \
                                                             \
@@ -126,15 +127,16 @@ typedef struct {
 #define VOODOO_PARSER_BEGIN( parser, message )                                                 \
      do {                                                                                      \
           const VoodooMessageHeader *_vp_header = (const VoodooMessageHeader *) (message);     \
+          VoodooMessageParser       *_parser = &parser;                                        \
                                                                                                \
           D_ASSERT( (message) != NULL );                                                       \
           D_ASSERT( _vp_header->type == VMSG_REQUEST || _vp_header->type == VMSG_RESPONSE );   \
                                                                                                \
-          (parser).msg = (message);                                                            \
+          (parser).msg = (const char*)(message);                                               \
           (parser).ptr = (parser).msg + (_vp_header->type == VMSG_REQUEST ?                    \
                               sizeof(VoodooRequestMessage) : sizeof(VoodooResponseMessage));   \
                                                                                                \
-          D_MAGIC_SET_ONLY( &(parser), VoodooMessageParser );                                  \
+          D_MAGIC_SET_ONLY( _parser, VoodooMessageParser );                                    \
      } while (0)
 
 
@@ -244,11 +246,13 @@ typedef struct {
 
 #define VOODOO_PARSER_END( parser )                                   \
      do {                                                             \
-          D_MAGIC_ASSERT( &(parser), VoodooMessageParser );           \
+          VoodooMessageParser *_parser = &parser;                     \
+                                                                      \
+          D_MAGIC_ASSERT( _parser, VoodooMessageParser );             \
                                                                       \
           D_ASSUME( *(const u32*) ((parser).ptr) == VMBT_NONE );      \
                                                                       \
-          D_MAGIC_CLEAR( &(parser) );                                 \
+          D_MAGIC_CLEAR( _parser );                                   \
      } while (0)
 
 
