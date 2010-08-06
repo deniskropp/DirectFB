@@ -153,7 +153,9 @@ void
 direct_modules_unregister( DirectModuleDir *directory,
                            const char      *name )
 {
+#ifdef DYNAMIC_LINKING
      DirectModuleEntry *entry;
+#endif
 
      D_DEBUG_AT( Direct_Modules, "Unregistering '%s' ('%s')...\n", name, directory->path );
 
