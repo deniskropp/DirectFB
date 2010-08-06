@@ -108,7 +108,7 @@ typedef struct {
                                                             \
      D_MAGIC_ASSERT( _parser, VoodooMessageParser );        \
                                                             \
-     _vp_ptr = (parser).ptr;                                \
+     _vp_ptr = _parser->ptr;                                \
                                                             \
      /* Read message block type. */                         \
      _vp_type = *(const VoodooMessageBlockType*) _vp_ptr;   \
@@ -121,7 +121,7 @@ typedef struct {
 
 #define __VOODOO_PARSER_EPILOG( parser )                    \
      /* Advance message data pointer. */                    \
-     (parser).ptr += 8 + VOODOO_MSG_ALIGN(_vp_length)
+     _parser->ptr += 8 + VOODOO_MSG_ALIGN(_vp_length)
 
 
 #define VOODOO_PARSER_BEGIN( parser, message )                                                 \
@@ -132,8 +132,8 @@ typedef struct {
           D_ASSERT( (message) != NULL );                                                       \
           D_ASSERT( _vp_header->type == VMSG_REQUEST || _vp_header->type == VMSG_RESPONSE );   \
                                                                                                \
-          (parser).msg = (const char*)(message);                                               \
-          (parser).ptr = (parser).msg + (_vp_header->type == VMSG_REQUEST ?                    \
+          _parser->msg = (const char*)(message);                                               \
+          _parser->ptr = _parser->msg + (_vp_header->type == VMSG_REQUEST ?                    \
                               sizeof(VoodooRequestMessage) : sizeof(VoodooResponseMessage));   \
                                                                                                \
           D_MAGIC_SET_ONLY( _parser, VoodooMessageParser );                                    \
@@ -250,7 +250,7 @@ typedef struct {
                                                                       \
           D_MAGIC_ASSERT( _parser, VoodooMessageParser );             \
                                                                       \
-          D_ASSUME( *(const u32*) ((parser).ptr) == VMBT_NONE );      \
+          D_ASSUME( *(const u32*) (_parser->ptr) == VMBT_NONE );      \
                                                                       \
           D_MAGIC_CLEAR( _parser );                                   \
      } while (0)
