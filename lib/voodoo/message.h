@@ -183,7 +183,7 @@ typedef struct {
           D_ASSERT( _vp_length > 0 );                                 \
                                                                       \
           /* Return pointer to data. */                               \
-          (ret_data) = _vp_ptr + 8;                                   \
+          (ret_data) = (__typeof__(ret_data))(_vp_ptr + 8);           \
                                                                       \
           __VOODOO_PARSER_EPILOG( parser );                           \
      } while (0)
