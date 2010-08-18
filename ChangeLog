@@ -1,3 +1,939 @@
+commit 229de8dd238278fb26228708b920dc2c4dc0f61b
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Thu Aug 12 18:02:30 2010 +0200
+
+    voodoo: one more warning/error
+
+commit c885424f6b06d3d675eff0e91ab8acc8148d7b21
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Fri Aug 6 20:53:00 2010 +0200
+
+    voodoo: fixed warnings
+
+commit d53c6c71e73b86917b444c809c157280ac6b43ce
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Fri Aug 6 16:32:56 2010 +0200
+
+    voodoo: fixed some warnings
+
+commit e606c000acb51a30e95b6a01e8ce4f4ce370b00d
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Fri Aug 6 16:25:04 2010 +0200
+
+    voodoo: don't redefine htons
+
+commit d2a911709b0a876651947760d80485e91852e055
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Fri Aug 6 16:24:43 2010 +0200
+
+    modules: avoid warning by adding missing #ifdef DYNAMIC_LINKING
+
+commit bfd25ad8009d2cb5fcaee235139a973cec5683df
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Fri Aug 6 16:24:17 2010 +0200
+
+    memcpy: don't include dfb_types.h
+
+commit 483b322b9c2c0025c166022cc9380838de8ec326
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Mon Jun 21 05:38:24 2010 +0300
+
+    direct/interface: Add missing pthread_mutex_unlock call
+
+commit 88dcd0e86487957f50ba153a5571ea883ea83150
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Fri Jul 3 18:23:47 2009 +0300
+
+    mach64: Enable auto block writes with WRAM
+
+commit bc671612cb7b67c64deffab70763e17a8e721b63
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Thu Aug 20 11:53:49 2009 +0300
+
+    linux_input: Ignore devices w/o caps
+    
+    Devices without caps are useless. Ignoring them will make it
+    less likely that MAX_LINUX_INPUT_DEVICES is exceeded and some actually
+    important input device gets left out.
+
+commit f0e54d88fb1774cf18fc4e317e412a3d6b6515cf
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed May 20 19:25:37 2009 +0300
+
+    surfaces: Add some missing dfb_surface_buffer_lock_deinit() calls
+
+commit ec26598c5835c036a4f8bb9d4baebd37edb5fc59
+Author: Niels Roest <niels@directfb.org>
+Date:   Sun Jun 27 23:31:52 2010 +0400
+
+    input: compatibility with system X11
+
+commit 2c1a806233d11a402eb76e39fb193eeb78d61351
+Author: Niels Roest <niels@directfb.org>
+Date:   Sun Jun 27 23:31:26 2010 +0400
+
+    revert 6697e1db627bea5e24150999819cf8e3d67ef46f
+    
+    causes problems on PC with system X11
+    to be further investigated..
+
+commit dd821f539839c85d512e5c46c318364fbd38026d
+Author: Niels Roest <niels@directfb.org>
+Date:   Sun Jun 27 23:30:10 2010 +0400
+
+    revert aa25cc7283a20da12385c80d45a3497a5a625ab6
+    
+    said patch causes program end to block on PC with system x11
+
+commit f18821c01382ac743f38614a7b85ed52bbc00718
+Author: Niels Roest <niels@directfb.org>
+Date:   Sun Jun 27 22:52:12 2010 +0400
+
+    core: Fix to not hold region buffer lock for lifetime of layer
+    
+    Made changes to avoid locking the region buffer for the
+    lifetime of the display layer and to only lock it whenever
+    needed.  This allows more than a single process to lock
+    the region context and prevents them from deadlocking.
+    
+    patch by: Timothy Strelchun <Timothy.Strelchun@Intel.Com>
+
+commit 0f1992ac4a2524277b12a3f25c99a021f6923ce0
+Author: Niels Roest <niels@directfb.org>
+Date:   Sun Jun 27 22:50:24 2010 +0400
+
+    core: Added USB hot-plug support to linux_input and input core.
+    
+    Added the ability for the DFB input core to support input
+    providers that provide hot-plug support for their associated
+    input devices.  Currently, only the linux_input input provider
+    has been updated to support the hot-plug capability.
+    
+    The changes involved:
+    1.  Added six functions in InputDriverFuncs as the common
+        interface for all input providers (drivers) to implement
+        the hot-plug feature (including suspend and remove
+        handling), and updated the DFB input core to support the
+        feature.
+    2.  Implemented hot-plug feature for the linux_input provider.
+        Also updated it to only report support for hot-plug and
+        provide devices if the systems driver (fbdev) has opened
+        the /dev/tty0 for use.
+    3.  Implemented two functions (dfb_input_create_device and
+        dfb_input_remove_device) in input.c which will be called
+        by input providers to maintain the status of input
+        devices in the DFB input core.
+    4.  Implemented stack_containers_XXX function family to
+        maintain the connections between windowstacks and input
+        devices.
+    5.  Implemented containers_XXX function family to maintain
+        the connections between input event buffers created by
+        IDirectFB::CreateInputEventBuffer and input devices.
+    
+    Patch by: Timothy Strelchun <Timothy.Strelchun@Intel.Com>
+
+commit aa25cc7283a20da12385c80d45a3497a5a625ab6
+Author: Niels Roest <niels@directfb.org>
+Date:   Sun Jun 27 22:33:36 2010 +0400
+
+    core: Enable Fusion message dispatching usage during shutdown
+    
+    Delayed stopping the Fusion dispatcher in dfb_core_shutdown(). The Fusion
+    dispatcher is needed to handle Fusion events during the releasing of resources.
+    
+    Patch by: From: Timothy Strelchun <Timothy.Strelchun@Intel.Com>
+
+commit 6294d37f509572c039616fec3c81f9d0676ae4e6
+Author: Niels Roest <niels@directfb.org>
+Date:   Sun Jun 27 22:32:18 2010 +0400
+
+    core window stack: Fixed _dfb_windowstack_inputdevice_listener race condition with layer context
+    
+    Fixed a race condition when _dfb_windowstack_inputdevice_listener
+    begins using a layer context, that is then destroyed before the
+    listener has finished using it.  This problem occurs because the
+    layer context's reference count was never incremented to account
+    for the listener's reference to it that it stored and subsequently
+    used.  Rather than establishing a reference count cycle (with the
+    window stack having a reference to the layer context which has a
+    reference to the window stack for which additional complexity
+    would be needed to break), the listener now just increments the
+    layer context's reference count prior to usage and then decrements
+    it.
+    
+    Patch by: From: Timothy Strelchun <Timothy.Strelchun@Intel.Com>
+
+commit aa1b5b1dc17f9a1c3edd508d69653943e17f4269
+Author: Niels Roest <niels@directfb.org>
+Date:   Sun Jun 27 22:31:10 2010 +0400
+
+    core: Fix various layer context lock related deadlock scenarios
+    
+    Changed dfb_layer_context_get_primary_region to return the error
+    DFB_TEMPUNAVIL if the primary region is being destroyed.
+    Previously in this scenario (which means the primary region's
+    reference count was zero and there was not a request to create a
+    new one), a deadlock could occur involving the layer context lock
+    when the primary region was being destroyed by the main thread
+    (single-app mode), the Fusion Loop thread (multi-app mode), or
+    any other thread (such as linux_input thread that triggers the
+    window stack input processing) is trying to get the primary
+    region.  In addition, object_reference_watcher would be called
+    more than once when the reference count changes from 1 to 0
+    again in the implementation.
+    
+    Patch by: From: Timothy Strelchun <Timothy.Strelchun@Intel.Com>
+
+commit 614873cdcb84e355d378c1683d10519190aff8a9
+Author: Niels Roest <niels@directfb.org>
+Date:   Sun Jun 27 22:30:17 2010 +0400
+
+    fusion: Fixed global reaction handling to prevent multiple removals
+    
+    Fixed global reaction handling so that one is not removed
+    more than once from the global reaction list in
+    fusion_reactor_detach_global and process_globals.  This
+    involved keeping the global reaction's attached field
+    updated in fusion_reactor_attach_global,
+    fusion_reactor_detach_global and process_globals.
+    
+    patch by: Timothy Strelchun <Timothy.Strelchun@Intel.Com>
+
+commit 58aae687097212c30e84180572799d8f053d32b3
+Author: Niels Roest <niels@directfb.org>
+Date:   Sun Jun 27 21:54:47 2010 +0400
+
+    direct: ntohl normally already defined in either in.h or inet.h
+
+commit 6a7320bc7e65966291836486fdf22ba6f2aec698
+Author: André Draszik <andre.draszik@st.com>
+Date:   Mon Jun 14 23:39:52 2010 +0100
+
+    generic: fix software rendering for DSBLIT_FLIP_HORIZONTAL | VERTICAL
+    
+    Which is equal to ROTATE180, of course. Other combinations require more thought,
+    though.
+
+commit cfa3c71858f39835e090939e5b50a2c00841a246
+Author: André Draszik <andre.draszik@st.com>
+Date:   Mon Jun 14 23:33:35 2010 +0100
+
+    generic: use explicit indexes when initialising arrays based on pixelformat
+
+commit d016bd96a078c03eea50243b7f0403e4e775401e
+Author: André Draszik <andre.draszik@st.com>
+Date:   Mon Jun 14 23:31:00 2010 +0100
+
+    generic: make function tables const where possible
+
+commit 8af98198253e1e25c694042336ea2c497d843d27
+Author: André Draszik <andre.draszik@st.com>
+Date:   Mon Jun 14 23:27:48 2010 +0100
+
+    generic: whitespace
+
+commit 3c2ff45fc66a33b06644803a617af989071cebb4
+Author: André Draszik <andre.draszik@st.com>
+Date:   Mon Jun 14 22:22:10 2010 +0100
+
+    pixelformats: add DSPF_YV16
+    
+    This is similar to the already existing DSPF_YV12, except no
+    horizontal downsampling is applied
+
+commit 095fe33c788cc23627f7313990d1cd70df2ed973
+Merge: 67678af... d8c19e1...
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Mon Jun 21 15:15:29 2010 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 67678af6777f1214643c8db0f50024dea1a31949
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Mon Jun 21 15:14:07 2010 +0200
+
+    tests: Added simple rectangle filling test.
+
+commit 4950edf4323ec1ca2d5ff850c7021a5deafee66f
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 18:20:30 2010 +0200
+
+    build: added LIBPNG_CFLAGS to some Makefiles
+
+commit d8c19e1ae1919c9d64d02bba5a4b407cb68826e9
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 13:17:59 2010 +0200
+
+    voodoo: no __swap16
+
+commit 3f3879e3d42cd68ddebf25b9fb5bd175622f1125
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 13:07:54 2010 +0200
+
+    direct: use kill, no sigqueue
+
+commit fc968f2f39dc296f06bc49d83284dbf0bae3c736
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 12:50:21 2010 +0200
+
+    thread: added DIRECT_BUILD_NO_PTHREAD_CANCEL
+
+commit 52a1a1db6acf29f5953f052f80f1bea4d07a5ecc
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 12:28:49 2010 +0200
+
+    thread: check for PTHREAD_EXPLICIT_SCHED
+
+commit 16c516ef6a4e6b4a808bb7f1f72cd8fbdaf6bcaa
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 12:26:00 2010 +0200
+
+    IDirectFBSurface_Window: use DirectThread for legacy flipping thread
+
+commit 5e4a8573eef5fa5bceac597d195190f267078d75
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 12:19:18 2010 +0200
+
+    conf: use unsigned long
+
+commit e85db2383497fac3d0954d022e45fd51c15d9c09
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 12:18:44 2010 +0200
+
+    fusion_bench: use pthread_mutexattr_t for recursive mutex initialization
+
+commit cd8364f0a4cb3bd2d130d9ff7a69c21a292ca454
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 12:17:50 2010 +0200
+
+    direct: use sigqueue on own tid and if that returns use exit_group or _exit
+
+commit 5bac9b4e1ddab1a102d8104726926c528ff68ab5
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 12:04:01 2010 +0200
+
+    voodoo: define htons ourselves
+
+commit b60fdaf0450c3b1ec05d2951c069eacd79ee38c7
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 12:03:03 2010 +0200
+
+    direct: define ntohl ourselves
+
+commit 0e12c876ca43f9fb10c32b813d15f2284c51b8f4
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 12:00:20 2010 +0200
+
+    voodoo: check for EAI_ADDRFAMILY
+
+commit f289702f088bcac6ead31cce0e8614535a08eaeb
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 11:59:50 2010 +0200
+
+    direct: include <sys/syscall.h>
+
+commit 1d52711428049e911a1643f898898be9ad9c7fc0
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 11:58:49 2010 +0200
+
+    direct: check for EAI_ADDRFAMILY
+
+commit 6697e1db627bea5e24150999819cf8e3d67ef46f
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 11:58:11 2010 +0200
+
+    direct: use non-recursive mutex for interfaces lock
+
+commit d5feb8d7e9bb71dafa846c6cd89dbb46b5b6fbd3
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 11:57:22 2010 +0200
+
+    direct: use fallback killpg
+
+commit 5afa698947c553bbbcb6694e540d326f8f52700d
+Merge: b7af4c5... 72ff97d...
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 11:56:50 2010 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit b7af4c55c2297d9d7ceb2283724524df3df46a25
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Sat Jun 19 11:56:28 2010 +0200
+
+    direct: check for signal.h
+
+commit 72ff97d2823d72395d4f0df5beb93bcbb669ab2b
+Author: André Draszik <andre.draszik@st.com>
+Date:   Sat Jun 5 12:38:03 2010 +0100
+
+    jpeg: correctly setup iDCT downscale for libjpeg version < 7
+    
+    Previously, for a downscale that resulted in an exactly representable
+    iDCT downscale fraction we would not have applied the correct fraction.
+
+commit e057fd2d677c181b87d79e560c2c8eb70e9c942d
+Author: André Draszik <andre.draszik@st.com>
+Date:   Thu May 13 18:40:20 2010 +0100
+
+    fbdev: prevent assertion in debug mode
+    
+    There are places in DirectFB which D_ASSUME() the lock's offset and the
+    allocation's offset to be identical, being verbose if that's not the
+    case.
+
+commit 443dc1391ca2be4aebd96119a879646244faed05
+Author: André Draszik <andre.draszik@st.com>
+Date:   Mon May 10 13:53:52 2010 +0100
+
+    fusion/ref: prevent invalid assertion when destroying a ref
+    
+    ref->multi.shared might have been zero'ed out already by the cleanup thread by
+    the time we get to run again.
+
+commit 80cfeebfd127c8e0a06bffee45d3294c62864f0e
+Author: André Draszik <andre.draszik@st.com>
+Date:   Tue Apr 27 01:47:04 2010 +0100
+
+    jpeg: fix libjpeg >= v7 usage
+    
+    apparently nobody ever tested it
+
+commit eb22c5129480d890b12c67b762f3e33e396626b0
+Author: Niels Roest <niels@directfb.org>
+Date:   Sat Apr 24 18:38:54 2010 +0400
+
+    Fix for showing unitialized buffer and superfluous clear at startup.
+    
+    Fixes display layer window stack repainting to NOT be performed
+    when it is frozen.  This prevents a display layer surface flip
+    from being done and showing an uninitialized buffer when the
+    IDirectFB::GetDisplayLayer function is called with an associated
+    no-init-layer directfbrc command (without init-init[=0-15]).
+    
+    Fixes IDirectFBDisplayLayer::GetSurface function to only perform
+    single buffered display layer clearing when the region is frozen
+    and to render the background if it is configured
+    (each time GetSurface is called the surface should not be cleared).
+    Also added support for this behavior when the cooperative level is
+    DLSCL_ADMINISTRATIVE.
+    
+    Thanks to Timothy Strelchun for the patches.
+
+commit 97901f378b8432b74dfcfad535963da9fe60a4d1
+Merge: 3e39b0a... 497bed3...
+Author: Niels Roest <niels@directfb.org>
+Date:   Sat Apr 24 17:50:49 2010 +0400
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+    
+    Conflicts:
+    
+    	lib/fusion/lock.c
+
+commit 497bed3275b6dbd1fbf1e60f4adb46400cee21b3
+Author: André Draszik <andre.draszik@st.com>
+Date:   Wed Apr 14 14:48:05 2010 +0100
+
+    fusion/lock: fix single app memory corruption
+    
+    got broken in 91afed9692ff15ffc7d2b6221aa5cd061ff44fa9
+    (shirmish: for single app, make skirmish a pointer)
+
+commit 59c4c319d5d9f6f014d81e396ae504c10ae3ad87
+Author: André Draszik <andre.draszik@st.com>
+Date:   Thu Feb 11 10:40:55 2010 +0000
+
+    fusion: fix compiler warning
+
+commit e8d323a25e75fa9e3d1fd90ea7d36718ceae8ff7
+Author: Nikita Egorov <nikego@varma-el.com>
+Date:   Thu Apr 15 14:04:12 2010 +0400
+
+    Fixed wrong conversion from A8 to RGBA5551
+
+commit 79f958bfd005609f625d669912ce7c6b9dab840d
+Author: André Draszik <andre.draszik@st.com>
+Date:   Wed Apr 14 15:09:48 2010 +0100
+
+    configure.in: fix --enable-sse help message
+    
+    got broken in commit c656a0fa9e0858474b3ca4469d9842e0a0b020b7
+    (configure.in: use AC_HELP_STRING() where appropriate)
+
+commit 84a0282e661755110bb7a08985a3e05fbaf36f5c
+Author: André Draszik <andre.draszik@st.com>
+Date:   Tue Apr 13 23:45:07 2010 +0100
+
+    convert: handle DSPF_A8 in dfb_pixel_from_color() and dfb_pixel_to_color()
+
+commit 9b8a1f74e75fe56a0269b98a93785061fa5871e2
+Author: André Draszik <andre.draszik@st.com>
+Date:   Thu Apr 1 14:49:22 2010 +0100
+
+    add some comments for DWCAPS_COLOR
+
+commit 7ff7d22bbfcdc4be22112e60e323ce7d7c76dfcb
+Author: André Draszik <andre.draszik@st.com>
+Date:   Wed Mar 31 16:58:59 2010 +0100
+
+    configure.in: little whitespace cleanup
+    
+    In addition, it's $THREADLIB, not $THREADLIBS
+
+commit cd6ce0aca8a2afda70fb83b6e3aa40b6a4cc86d8
+Author: André Draszik <andre.draszik@st.com>
+Date:   Fri Mar 12 04:56:23 2010 +0000
+
+    configure.in: use pkg-config for libpng
+    
+    Also, previously almost all shared objects had an explicit, unnecessary,
+    and unwanted dependency on libz, which is gone with this patch, too.
+    (Unless --enable-zlib is given during configure, in which case it's all
+    as before)
+
+commit c656a0fa9e0858474b3ca4469d9842e0a0b020b7
+Author: André Draszik <andre.draszik@st.com>
+Date:   Wed Mar 31 17:04:28 2010 +0100
+
+    configure.in: use AC_HELP_STRING() where appropriate
+
+commit 661f385c94816237d3ba41463ed6603dd20ff6c9
+Author: André Draszik <andre.draszik@st.com>
+Date:   Sat Sep 12 13:07:10 2009 +0100
+
+    input: handle button devices with just up/down keys as remote control
+    
+    This is mostly useful for front panels which might just have
+    up/down/left/right and maybe a few more buttons. Now they are handled
+    as remote controls, too
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit 57ca1282a64dcdd3a9ccc25712557486bd7fc506
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Mar 28 01:06:45 2010 +0100
+
+    FusionRef: Added debugging messages
+
+commit d2868e2cfc85b1a2dc01b1960d2a3725c832b303
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Mar 28 01:06:05 2010 +0100
+
+    surface: Debug in error paths of surface_buffer_write()
+
+commit 90939845d053e814d9c9b1c6324552a45933210c
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Mar 28 01:05:17 2010 +0100
+
+    IDirectFBSurface: Allow negative pitch in Write()
+
+commit 3e39b0aece87ee9ae16359259f56c43e592f1040
+Author: Niels Roest <niels@directfb.org>
+Date:   Sat Mar 27 13:54:57 2010 +0300
+
+    gfx: added LUT8 to LUT8 dest ckey blit fallback 'generic' routine
+    
+    Added function to support LUT8 to LUT8 blitting with
+    destination color key enabled for surfaces with
+    identical palettes.
+
+commit cbb1d5f6494ba20e054b37ab505e030d19f9f78a
+Author: Niels Roest <niels@directfb.org>
+Date:   Sat Mar 27 13:53:32 2010 +0300
+
+    RGB24: fixed injection
+    
+    Fixed a little endian DSPF_RGB24 byte ordering defect
+    injected 2009.11.06 as part of git commit
+    0fdf41ff34ed403367d0eb05edc793b15a940860.  Previously,
+    the red and blue pixels were reversed.
+
+commit cca0466b09ed7a6d4afb053974cd6d164007a720
+Author: Niels Roest <niels@directfb.org>
+Date:   Sat Mar 27 13:50:08 2010 +0300
+
+    pixelformat: Added DSPF_A1_LSB
+    
+    Added pixel format DSPF_A1_LSB that uses the LEAST
+    significant bit first for pixels, because the existing
+    DSPF_A1 format is MSB first.  The VDC unit on the
+    Intel(R) CE Media Processors use this for one of the
+    various formats on its many display layers.  The DFB
+    software rasterizer functionality provided is
+    equivalent to the functionality already provided for
+    the existing DSPF_A1 format (minus one/two functions
+    for other new pixel formats).
+    
+    Thanks to Timothy Strelchun for the patch.
+
+commit 3c3bd4027a006cb496854993cfb996af3c40f9fb
+Author: Niels Roest <niels@directfb.org>
+Date:   Sat Mar 27 13:41:42 2010 +0300
+
+    fusion lock: single app mode: 'name' storing overwrites pointers
+    
+    fix skirmish used in single DFB app usage mode
+    
+    Thanks to Timothy Strelchun for the patch
+
+commit 3a9360cb003f605be22134b54eeeee1858d727bd
+Author: Niels Roest <niels@directfb.org>
+Date:   Sun Mar 14 07:46:27 2010 +0300
+
+    font: drawstring clipping
+    
+    A check is done before glyph blitting to ensure that at
+    least some portion is within the clipping rectangle.
+    The check is wrong as it assumes the glyphs are referenced
+    by the top left of the bounding box instead of the baseline origin.
+    
+    Thanks to Tim Ross for the patch.
+
+commit 9536351218d33cdf31dd84fe5bedb36a99c6e7ca
+Author: dok <dok@debian.directfb.home>
+Date:   Tue Mar 2 21:27:42 2010 +0100
+
+    IDirectFBWindow: Implemented SetSrc/DstGeometry() in Dispatcher/Requestor.
+
+commit 88b4afa3ada175afba6f7b63672c041a3001d6b2
+Author: dok <dok@debian.directfb.home>
+Date:   Tue Mar 2 21:22:04 2010 +0100
+
+    Voodoo: Implemented RLE compression for 16 and 32 bit Write() calls.
+
+commit afb165989ad9e5e2704e8a980a08d072a0e7ec3e
+Author: dok <dok@debian.directfb.home>
+Date:   Tue Mar 2 21:18:39 2010 +0100
+
+    Voodoo: Fixed fork bombing until child process accepted connection.
+    
+    Also fixed zombies remaining.
+
+commit 368a0681a03b1b84bff159034951ab237f60a718
+Author: dok <dok@debian.directfb.home>
+Date:   Tue Mar 2 12:11:01 2010 +0100
+
+    dfbtest_font: Added simple font loading/rendering test.
+
+commit 509150b2882e3ff60d071751b164fb58153b8633
+Author: dok <dok@debian.directfb.home>
+Date:   Tue Mar 2 12:08:44 2010 +0100
+
+    Voodoo: Support fonts via network just like images (sending encoded/compressed data).
+
+commit 278a20b07c5fa9bddf023b1836f2bc403db84a88
+Author: dok <dok@debian.directfb.home>
+Date:   Tue Mar 2 12:07:27 2010 +0100
+
+    font: Support chunked reading of font data into ctx.content.
+
+commit b6f41c3ca975f8c9e27e77f6940b2fe7305ffeb9
+Author: dok <dok@debian.directfb.home>
+Date:   Tue Mar 2 12:06:16 2010 +0100
+
+    voodoo: Print error if manager is quit while waiting for a response.
+
+commit 3aa2b77eef6a63b64559adb3acec852bed1e1981
+Author: dok <dok@debian.directfb.home>
+Date:   Tue Mar 2 11:29:42 2010 +0100
+
+    fixed warning
+
+commit d0e6d997d17af2c394c74df8d01cf38f0a9884c2
+Author: dok <dok@debian.directfb.home>
+Date:   Tue Mar 2 11:29:13 2010 +0100
+
+    fixed warnings
+
+commit 1efc7c2322d399362dbb8a88e2ce1774fbdabb1d
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Feb 25 14:21:12 2010 +0300
+
+    fbdev: Fix RGBA5551 transparency offset
+    
+    This trivial patch fixes an obviously wrong bit layout for RGBA5551.
+    
+    Signed-off-by: David Hunter <hunterd42@gmail.com>
+
+commit b3117710d46368b76896e5eccc98f4a0dd3fc143
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Feb 10 21:39:36 2010 +0100
+
+    dfblayer: allow to set layer position and size using command line
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit 0ca394d3a9fc86728b48bd2c8c162aa42d9423c7
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Feb 10 21:38:21 2010 +0100
+
+    IDirectFBScreen: add a DVO 656 'connector' type
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit df51de1636d935dc2856d1db4d8e53a26cc7b468
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Feb 10 21:36:21 2010 +0100
+
+    dfbinspector: add DSPF_AVYU and DSPF_VYU pixelformats
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit 8301e33aaa791aacab1021ccdd5b7db46aa91b2a
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Feb 10 21:35:26 2010 +0100
+
+    dfbscreen: little fixes
+    
+    print background alpha, too
+    fix printing of scan mode name
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit c0c74444ed5601bf9b45a3b07683f97d0633ca78
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Feb 10 21:33:09 2010 +0100
+
+    gfx: LUT8 is not a YUV format
+
+commit d32220451e4fe38188db53819501a7085ba713bc
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Feb 10 21:26:33 2010 +0100
+
+    doc: surface: add some source code level documentation
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit 50f529ac86e3779c0119a78e8324b68330c806ab
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Feb 10 21:25:33 2010 +0100
+
+    warning: fix
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit c695cfefbca35a476d9cf3305fd7030de014d24b
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Feb 10 21:03:59 2010 +0100
+
+    surface: replace GetFramebufferOffset() with GetPhysicalAddress()
+    
+    The IDirectFBSurface::GetFramebufferOffset() is not really useful
+    anymore, as it returns an offset into a memory pool, not necessarily
+    into the framebuffer memory pool.
+    
+    Make it obsolete, and add IDirectFBSurface::GetPhysiclAddress(),
+    that always does what one might expect.
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit 216348491c33a5db184561bcb12d2be0ac582dc7
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Feb 10 15:05:12 2010 +0100
+
+    font: fix off-by-one bug in IDirectFBFont_GetStringBreak()
+    
+    GetStringBreak() returns one character too much (in certain cases) in
+    ret_str_length.
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit cac59c15fb795b37c2a5f7636ed474ed2a557528
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Feb 8 21:10:49 2010 +0100
+
+    jpeg: implement decimated decode for software JPEG decoder
+    
+    We can speed up scaled-down rendering of JPEG images by asking libjpeg
+    to only decode the image to a fraction of the original size.
+    
+    Thanks to Sven Neumann and André Draszik for the patch
+    works for both libjpeg62 and libjpeg7
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit 466a6d14c81e8297266dd39327d6033b38ed2990
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed Jan 20 02:23:28 2010 +0200
+
+    fbdev: Reduce useless nesting
+
+commit 8049217e6e4a3570aac83e14cdc6ff250d11dbe7
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Jan 19 04:28:03 2010 +0200
+
+    fbdev: Fix mode setting
+    
+    Since the surface pool no longer sets the mode it must be done by the
+    SetRegion call.
+
+commit c6c1118d33f69b8acbb9fd011b75e12ca4e170ed
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed Jan 20 02:21:29 2010 +0200
+
+    linux_input: Use MAX() instead of open coding it
+
+commit 03cf362e440ecf84a4012b97ccf8372ac63f4854
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Jan 19 02:28:03 2010 +0200
+
+    linux_input: Don't check quitpipe fd is select() was interrupted
+    
+    When select() is interrupted the fd sets are not updated so checking if
+    the fds are ready needs to be done after checking the return value.
+
+commit 490e3e91abf6a9cdef668ab42c89c6d251700ff7
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Feb 8 20:03:30 2010 +0100
+
+    png: support for 1.4.x libpng
+    
+    Thanks to Bernhard Rosenkraenzer for the patch
+
+commit bde552d778371722d08bc0a27a31fee4471eb517
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Jan 29 18:54:18 2010 +0100
+
+    IDirectFBScreen: add IDirectFBScreen::GetVSyncCount()
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit 7d724d90a6953791a13681d643b6bcd8d00735ef
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Jan 29 17:56:37 2010 +0100
+
+    screen: NTSC and PAL60 standards are defined as 59.94Hz not 60Hz
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit faeef7708320e4d22e9c45082d97345505e86a9d
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Jan 26 19:04:59 2010 +0100
+
+    x11: improved GLX-detection
+    
+    It seems a 24bit and a 32bit BPP visual were required,
+    but instead the depth, which is the depth buffer, is checked.
+    
+    Thanks to Erwin Rol (www.erwinrol.com) for the fix.
+
+commit e7f404865c53984593c0ca66ee63c54347a2edb8
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Jan 14 19:50:21 2010 +0100
+
+    IDirectFBWindow::SetOptions: add DWOP_INPUTONLY
+    
+    works as DWCAPS_INPUTONLY, but is a dynamic option.
+    main work is done in window manager.
+
+commit ba35178422ccbb7a10a009c5621e72860001359b
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Jan 14 19:49:11 2010 +0100
+
+    IDirectFBWindow::SetOptions bit handling bug
+    
+    bit toggling was compared with a wrong mask possibly causing
+    toggling of DWOP_GHOST, DWOP_INDESTRUCTIBLE and DWOP_INPUTONLY
+    to be ignored
+
+commit d0f706b2d04d13b76082372a8bdc4e36998f2940
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Jan 8 20:07:37 2010 +0100
+
+    tests: add fusion_call
+    
+    used to test calls
+    primarily to test skirmish transfer on calls
+    currently blocks with 4 participants - only 2 transfers allowed.
+
+commit 0654893e61f4f5c6b00048d61d1f86d7d9bac234
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Jan 8 20:05:24 2010 +0100
+
+    x11: preliminary support for IDirectFBScreen functions
+    
+    get some code in to support this
+
+commit e58b7fcb33b2209efbcf0e42ce5d233ad91777fd
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Dec 14 18:33:53 2009 +0100
+
+    font: add API to load font from databuffer
+    
+    this also requires internal changes
+    the font "probe" will now be passed either a file name or a mem struct
+    with the complete file in it (file type detection by the FreeType
+    library requires an undefined number of bytes).
+
+commit 844eb4d124498fd5268b029f4d27a68a6ea75f18
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Dec 14 18:27:57 2009 +0100
+
+    hash: move externally unused func to .c file
+
+commit 2fd85b2d80ae3d81815f9d19500d69a05da5c758
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Dec 11 14:05:24 2009 +0100
+
+    X11: add error detection, better depth support
+    
+    Add detection for "late" errors
+    (i.e. errors occurring after the function causing it returns)
+    Since X11 normally does not do automatic depth switching,
+    we deny visuals with a different depth than the "DefaultDepthOfScreen"
+
+commit 11c9b259bf82459b9383499c878a75d448489239
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Dec 11 05:10:03 2009 +0100
+
+    voodoo: Fork server for each client to have different Fusionees with full resource cleanup on disconnect.
+    
+    This makes it depend on multi app core when more than one client connects.
+
+commit 45565a9741c3f9b9dc09a5c702035838b1af27eb
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Dec 11 04:29:26 2009 +0100
+
+    gfxcard: Accelerate matrix fallback if possible, for FillRectangle() and Blit().
+    
+    In dfb_gfxcard_fillrectangles() and dfb_gfxcard_blit() don't always fall back to
+    software rendering when DSRO_MATRIX is not supported, but try to use hardware if
+    rectangles are just translated/scaled and blits are just translated.
+
+commit f99e5ff4c014c295acb35204658e2d00a5e47bc4
+Merge: c2d022f... 2dad4f2...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Dec 11 03:04:53 2009 +0100
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit c2d022f0dc7dbebaea94d8f05077205c20361d6a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Dec 11 03:04:34 2009 +0100
+
+    generic: Added Sop_a4_Sto_Dacc implementation.
+
+commit 2dad4f2dde329f4bfc0e9e658b7171ea16d080dd
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Dec 10 18:10:06 2009 +0100
+
+    configure.in: fix X11 detection - use pkgconfig
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit b49b12c58b8df83b8127cdebf20c426a70f1bb1b
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Dec 8 21:09:15 2009 +0100
+
+    release: DirectFB 1.4.3
+
+commit 922d96e4e780f8d63b0faf8cda44a4d89499d2c8
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Dec 8 21:04:20 2009 +0100
+
+    core: reorder dispatcher shutdown to allow proper windowstack cleanup
+
 commit 4534f132b742976fc8a887153310546cf363b082
 Author: Niels Roest <niels@directfb.org>
 Date:   Tue Dec 8 20:19:47 2009 +0100

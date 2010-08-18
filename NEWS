@@ -1,6 +1,114 @@
 1.4.3
 -----
 
+    voodoo: one more warning/error
+    voodoo: fixed warnings
+    voodoo: fixed some warnings
+    voodoo: don't redefine htons
+    modules: avoid warning by adding missing #ifdef DYNAMIC_LINKING
+    memcpy: don't include dfb_types.h
+    direct/interface: Add missing pthread_mutex_unlock call
+    mach64: Enable auto block writes with WRAM
+    linux_input: Ignore devices w/o caps
+    surfaces: Add some missing dfb_surface_buffer_lock_deinit() calls
+    input: compatibility with system X11
+    core: Fix to not hold region buffer lock for lifetime of layer
+    core: Added USB hot-plug support to linux_input and input core.
+    core: Enable Fusion message dispatching usage during shutdown
+    core window stack: Fixed _dfb_windowstack_inputdevice_listener race condition with layer context
+    core: Fix various layer context lock related deadlock scenarios
+    fusion: Fixed global reaction handling to prevent multiple removals
+    direct: ntohl normally already defined in either in.h or inet.h
+    generic: fix software rendering for DSBLIT_FLIP_HORIZONTAL | VERTICAL
+    generic: use explicit indexes when initialising arrays based on pixelformat
+    generic: make function tables const where possible
+    generic: whitespace
+    pixelformats: add DSPF_YV16
+    tests: Added simple rectangle filling test.
+    build: added LIBPNG_CFLAGS to some Makefiles
+    voodoo: no __swap16
+    direct: use kill, no sigqueue
+    thread: added DIRECT_BUILD_NO_PTHREAD_CANCEL
+    thread: check for PTHREAD_EXPLICIT_SCHED
+    IDirectFBSurface_Window: use DirectThread for legacy flipping thread
+    conf: use unsigned long
+    fusion_bench: use pthread_mutexattr_t for recursive mutex initialization
+    direct: use sigqueue on own tid and if that returns use exit_group or _exit
+    voodoo: define htons ourselves
+    direct: define ntohl ourselves
+    voodoo: check for EAI_ADDRFAMILY
+    direct: include <sys/syscall.h>
+    direct: check for EAI_ADDRFAMILY
+    direct: use non-recursive mutex for interfaces lock
+    direct: use fallback killpg
+    direct: check for signal.h
+    jpeg: correctly setup iDCT downscale for libjpeg version < 7
+    fbdev: prevent assertion in debug mode
+    fusion/ref: prevent invalid assertion when destroying a ref
+    jpeg: fix libjpeg >= v7 usage
+    layers: Fix for showing unitialized buffer and superfluous clear at startup.
+    fusion/lock: fix single app memory corruption
+    fusion: fix compiler warning
+    generic: Fixed wrong conversion from A8 to RGBA5551
+    configure.in: fix --enable-sse help message
+    convert: handle DSPF_A8 in dfb_pixel_from_color() and dfb_pixel_to_color()
+    header: add some comments for DWCAPS_COLOR
+    configure.in: little whitespace cleanup
+    configure.in: use pkg-config for libpng
+    configure.in: use AC_HELP_STRING() where appropriate
+    input: handle button devices with just up/down keys as remote control
+    FusionRef: Added debugging messages
+    surface: Debug in error paths of surface_buffer_write()
+    IDirectFBSurface: Allow negative pitch in Write()
+    gfx: added LUT8 to LUT8 dest ckey blit fallback 'generic' routine
+    RGB24: fixed injection
+    pixelformat: Added DSPF_A1_LSB
+    fusion lock: single app mode: 'name' storing overwrites pointers
+    font: drawstring clipping
+    IDirectFBWindow: Implemented SetSrc/DstGeometry() in Dispatcher/Requestor.
+    Voodoo: Implemented RLE compression for 16 and 32 bit Write() calls.
+    Voodoo: Fixed fork bombing until child process accepted connection.
+    dfbtest_font: Added simple font loading/rendering test.
+    Voodoo: Support fonts via network just like images (sending encoded/compressed data).
+    font: Support chunked reading of font data into ctx.content.
+    voodoo: Print error if manager is quit while waiting for a response.
+    fbdev: Fix RGBA5551 transparency offset
+    dfblayer: allow to set layer position and size using command line
+    IDirectFBScreen: add a DVO 656 'connector' type
+    dfbinspector: add DSPF_AVYU and DSPF_VYU pixelformats
+    dfbscreen: little fixes
+    gfx: LUT8 is not a YUV format
+    doc: surface: add some source code level documentation
+    warning: fix
+    surface: replace GetFramebufferOffset() with GetPhysicalAddress()
+    font: fix off-by-one bug in IDirectFBFont_GetStringBreak()
+    jpeg: implement decimated decode for software JPEG decoder
+    fbdev: Reduce useless nesting
+    fbdev: Fix mode setting
+    linux_input: Use MAX() instead of open coding it
+    linux_input: Don't check quitpipe fd is select() was interrupted
+    png: support for 1.4.x libpng
+    IDirectFBScreen: add IDirectFBScreen::GetVSyncCount()
+    screen: NTSC and PAL60 standards are defined as 59.94Hz not 60Hz
+    x11: improved GLX-detection
+    IDirectFBWindow::SetOptions: add DWOP_INPUTONLY
+    IDirectFBWindow::SetOptions bit handling bug
+    tests: add fusion_call
+    x11: preliminary support for IDirectFBScreen functions
+    font: add API to load font from databuffer
+    hash: move externally unused func to .c file
+    X11: add error detection, better depth support
+    voodoo: Fork server for each client to have different Fusionees with full resource cleanup on disconnect.
+    gfxcard: Accelerate matrix fallback if possible, for FillRectangle() and Blit().
+    generic: Added Sop_a4_Sto_Dacc implementation.
+    configure.in: fix X11 detection - use pkgconfig
+
+
+
+
+1.4.3
+-----
+
 Wrap up all the changes since 1.4.2 in a nice package.
 The big changes are the API changes: new pixelformats are added, a synchronisation
 mechanism is added so you can sync backbufferless window updates, and batchblit2 is added
