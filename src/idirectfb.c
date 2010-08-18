@@ -2029,21 +2029,23 @@ input_filter_local( DFBEvent *evt,
           if (!data->primary.focused && !data->app_focus)
                return true;
 
-          switch (event->type) {
-               case DIET_BUTTONPRESS:
-                    if (data->primary.window)
-                         dfb_windowstack_cursor_enable( data->core, data->stack, false );
-                    break;
-               case DIET_KEYPRESS:
-                    if (data->primary.window)
-                         dfb_windowstack_cursor_enable( data->core, data->stack,
-                                                        (event->key_symbol ==
-                                                         DIKS_ESCAPE) ||
-                                                        (event->modifiers &
-                                                         DIMM_META) );
-                    break;
-               default:
-                    break;
+          if (dfb_config->cursor_automation) {
+               switch (event->type) {
+                    case DIET_BUTTONPRESS:
+                         if (data->primary.window)
+                              dfb_windowstack_cursor_enable( data->core, data->stack, false );
+                         break;
+                    case DIET_KEYPRESS:
+                         if (data->primary.window)
+                              dfb_windowstack_cursor_enable( data->core, data->stack,
+                                                             (event->key_symbol ==
+                                                              DIKS_ESCAPE) ||
+                                                             (event->modifiers &
+                                                              DIMM_META) );
+                         break;
+                    default:
+                         break;
+               }
           }
      }
 
@@ -2078,6 +2080,7 @@ drop_window( IDirectFB_data *data, bool enable_cursor )
      data->primary.window  = NULL;
      data->primary.focused = false;
 
-     dfb_windowstack_cursor_enable( data->core, data->stack, enable_cursor );
+     if (dfb_config->cursor_automation)
+          dfb_windowstack_cursor_enable( data->core, data->stack, enable_cursor );
 }
 

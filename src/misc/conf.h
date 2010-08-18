@@ -243,6 +243,8 @@ typedef struct
      int           keep_accumulators;             /* Free accumulators above this limit */
 
      bool          software_trace;
+
+     bool          cursor_automation;
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

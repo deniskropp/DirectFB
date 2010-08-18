@@ -112,6 +112,7 @@ static const char *config_usage =
      "  linux-input-ir-only            Ignore all non-IR Linux Input devices\n"
      "  [no-]linux-input-grab          Grab Linux Input devices?\n"
      "  [no-]cursor                    Never create a cursor or handle it\n"
+     "  [no-]cursor-automation         Automated cursor show/hide for windowed primary surfaces\n"
      "  [no-]cursor-updates            Never show a cursor, but still handle it\n"
      "  wm=<wm>                        Window manager module ('default' or 'unique')\n"
      "  init-layer=<id>                Initialize layer with ID (following layer- options apply)\n"
@@ -415,6 +416,7 @@ static void config_allocate( void )
      dfb_config->surface_shmpool_size     = 64 * 1024 * 1024;
      dfb_config->keep_accumulators        = 1024;
      dfb_config->font_format              = DSPF_A8;
+     dfb_config->cursor_automation        = true;
 
      /* default to fbdev */
      dfb_config->system = D_STRDUP( "FBDev" );
@@ -801,6 +803,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-cursor" ) == 0) {
           dfb_config->no_cursor = true;
+     } else
+     if (strcmp (name, "cursor-automation" ) == 0) {
+          dfb_config->cursor_automation = true;
+     } else
+     if (strcmp (name, "no-cursor-automation" ) == 0) {
+          dfb_config->cursor_automation = false;
      } else
      if (strcmp (name, "cursor-updates" ) == 0) {
           dfb_config->no_cursor_updates = false;
