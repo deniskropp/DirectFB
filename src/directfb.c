@@ -69,6 +69,11 @@
 #include <idirectfb.h>
 
 
+#ifndef DIRECTFB_VERSION_VENDOR
+#define DIRECTFB_VERSION_VENDOR
+#endif
+
+
 IDirectFB *idirectfb_singleton = NULL;
 
 static DFBResult CreateRemote( const char *host, int session, IDirectFB **ret_interface );
@@ -180,8 +185,8 @@ DirectFBCreate( IDirectFB **interface )
      if ( !(direct_config->quiet & DMT_BANNER) && dfb_config->banner) {
           direct_log_printf( NULL,
                              "\n"
-                             "   ~~~~~~~~~~~~~~~~~~~~~~~~~~| DirectFB " DIRECTFB_VERSION " |~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
-                             "        (c) 2001-2009  The world wide DirectFB Open Source Community\n"
+                             "   ~~~~~~~~~~~~~~~~~~~~~~~~~~| DirectFB " DIRECTFB_VERSION DIRECTFB_VERSION_VENDOR " |~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+                             "        (c) 2001-2010  The world wide DirectFB Open Source Community\n"
                              "        (c) 2000-2004  Convergence (integrated media) GmbH\n"
                              "      ----------------------------------------------------------------\n"
                              "\n" );
