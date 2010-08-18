@@ -148,6 +148,24 @@ direct_debug_config_domain( const char *name, bool enable )
 #endif /* DIRECT_BUILD_DEBUGS */
 }
 
+bool
+direct_debug_check_domain( DirectDebugDomain *domain )
+{
+#if DIRECT_BUILD_DEBUGS  /* Build with debug support? */
+     bool enabled;
+
+     pthread_mutex_lock( &domains_lock );
+
+     enabled = check_domain( domain );
+
+     pthread_mutex_unlock( &domains_lock );
+
+     return enabled;
+#else
+     return false;
+#endif /* DIRECT_BUILD_DEBUGS */
+}
+
 /**************************************************************************************************/
 
 __attribute__((no_instrument_function))

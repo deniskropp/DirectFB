@@ -32,6 +32,8 @@
    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include <direct/debug.h>
@@ -41,6 +43,11 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/trace.h>
+
+
+D_DEBUG_DOMAIN( Direct_Test, "Direct/Test", "Direct Test" );
+
+/**********************************************************************************************************************/
 
 static int
 show_usage( const char *name )
@@ -98,6 +105,22 @@ main( int argc, char *argv[] )
 
      /* Initialize libdirect. */
      direct_initialize();
+
+
+     direct_debug_config_domain( "Direct/Test", false );
+
+     if (D_DEBUG_CHECK( Direct_Test ))
+          D_INFO( "Direct/Test debug domain check true after disabling it (no debug supporting build of libdirect)\n" );
+     else
+          D_INFO( "Direct/Test debug domain check false after disabling it\n" );
+
+
+     direct_debug_config_domain( "Direct/Test", true );
+
+     if (D_DEBUG_CHECK( Direct_Test ))
+          D_INFO( "Direct/Test debug domain check true after enabling it\n" );
+     else
+          D_INFO( "Direct/Test debug domain check false after enabling it (no debug supporting build of libdirect)\n" );
 
 
      D_INFO( "Direct/Test: Application stopping...\n" );

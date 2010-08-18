@@ -57,6 +57,8 @@ typedef struct {
 
 void direct_debug_config_domain( const char *name, bool enable );
 
+bool direct_debug_check_domain( DirectDebugDomain *domain );
+
 
 #if DIRECT_BUILD_TEXT
 
@@ -150,6 +152,9 @@ void direct_assumption( const char *exp,
           direct_break( __FUNCTION__, __FILE__, __LINE__, x );                       \
      } while (0)
 
+#define D_DEBUG_CHECK(d)                                                             \
+     direct_debug_check_domain( &d )
+
 #elif defined(DIRECT_MINI_DEBUG)
 
 /*
@@ -180,6 +185,9 @@ void direct_assumption( const char *exp,
 
 #define D_ASSERT(exp)    D_CHECK(exp, Assertion)
 #define D_ASSUME(exp)    D_CHECK(exp, Assumption)
+
+#define D_DEBUG_CHECK(d)                                                             \
+     direct_config->debug
 
 #endif    /* MINI_DEBUG  / DIRECT_BUILD_DEBUG || DIRECT_ENABLE_DEBUG || DIRECT_FORCE_DEBUG */
 
@@ -216,6 +224,10 @@ void direct_assumption( const char *exp,
 
 #ifndef D_ASSUME
 #define D_ASSUME(exp)              do {} while (0)
+#endif
+
+#ifndef D_DEBUG_CHECK
+#define D_DEBUG_CHECK(d)           false
 #endif
 
 #ifndef D_BREAK
