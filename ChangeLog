@@ -1,3 +1,25 @@
+commit 1640a04f5f8a2f499e1a8576d0af2cb53e5b426e
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Thu Aug 19 00:32:57 2010 +0200
+
+    surface: flipping enhancements
+    - added DSFLIP_QUEUE and DSFLIP_FLUSH
+    - added CSNF_DISPLAY
+    - added dfb_surface_notify_display()
+    - added dfb_gfx_copy_regions() utility function
+
+commit ad43c9b79042a06a7d527b8116265ecd71867fe5
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Thu Aug 19 00:32:51 2010 +0200
+
+    version 1.4.5
+
+commit 9caa65bb2cbab8dda476218a08b8aadf90bd95a8
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Wed Aug 18 11:31:46 2010 +0200
+
+    release 1.4.4
+
 commit 229de8dd238278fb26228708b920dc2c4dc0f61b
 Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
 Date:   Thu Aug 12 18:02:30 2010 +0200

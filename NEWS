@@ -1,4 +1,14 @@
-1.4.3
+1.4.5
+-----
+
+    surface: flipping enhancements
+    - added DSFLIP_QUEUE and DSFLIP_FLUSH
+    - added CSNF_DISPLAY
+    - added dfb_surface_notify_display()
+    - added dfb_gfx_copy_regions() utility function
+
+
+1.4.4
 -----
 
     voodoo: one more warning/error
