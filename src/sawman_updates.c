@@ -61,6 +61,7 @@
 D_DEBUG_DOMAIN( SaWMan_Auto,     "SaWMan/Auto",     "SaWMan auto configuration" );
 D_DEBUG_DOMAIN( SaWMan_Update,   "SaWMan/Update",   "SaWMan window manager updates" );
 D_DEBUG_DOMAIN( SaWMan_FlipOnce, "SaWMan/FlipOnce", "SaWMan window manager flip once" );
+D_DEBUG_DOMAIN( SaWMan_Surface,  "SaWMan/Surface",  "SaWMan window manager surface" );
 
 /**********************************************************************************************************************/
 
@@ -376,6 +377,57 @@ update_region3( SaWMan          *sawman,
      D_DEBUG_AT( SaWMan_Update, " -=> done <=-\n" );
 }
 
+void
+sawman_flush_updating( SaWMan     *sawman,
+                       SaWManTier *tier )
+{
+     int i;
+
+     D_DEBUG_AT( SaWMan_Surface, "%s( %p, %p )\n", __FUNCTION__, sawman, tier );
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( tier, SaWManTier );
+
+     D_ASSUME( tier->updating.num_regions > 0 );
+     D_ASSUME( tier->updated.num_regions == 0 );
+
+     if (tier->updating.num_regions) {
+          /* 
+           * save here as it might get reset in case surface reaction
+           * is called synchronously during dfb_layer_region_flip_update()
+           */
+          int num_regions = tier->updating.num_regions;
+
+          D_DEBUG_AT( SaWMan_Surface, "  -> making updated = updating\n" );
+
+          /* Make updated = updating */
+          direct_memcpy( &tier->updated, &tier->updating, sizeof(DFBUpdates) );
+          direct_memcpy( &tier->updated_regions[0], &tier->updating_regions[0], sizeof(DFBRegion) * tier->updating.num_regions );
+          tier->updated.regions = &tier->updated_regions[0];
+
+          D_DEBUG_AT( SaWMan_Surface, "  -> clearing updating\n" );
+
+          /* Clear updating */
+          dfb_updates_reset( &tier->updating );
+
+          D_DEBUG_AT( SaWMan_Surface, "  -> flipping the region\n" );
+
+          /* Flip the whole layer. */
+          dfb_layer_region_flip_update( tier->region, NULL, DSFLIP_ONSYNC );
+
+          D_DEBUG_AT( SaWMan_Surface, "  -> copying %d updated regions (F->B)\n", num_regions );
+
+          for (i=0; i<num_regions; i++) {
+               D_DEBUG_AT( SaWMan_Surface, "    -> %4d,%4d - %4dx%4d  [%d]\n",
+                           DFB_RECTANGLE_VALS_FROM_REGION( &tier->updated.regions[i] ), i );
+          }
+
+          /* Copy back the updated region .*/
+          dfb_gfx_copy_regions( tier->surface, CSBR_FRONT, tier->surface, CSBR_BACK,
+                                tier->updated.regions, num_regions, 0, 0 );
+     }
+}
+
 static void
 repaint_tier( SaWMan              *sawman,
               SaWManTier          *tier,
@@ -459,17 +511,42 @@ repaint_tier( SaWMan              *sawman,
      state->destination  = NULL;
      state->modified    |= SMF_DESTINATION;
 
-     /* Software cursor code relies on a valid back buffer. */
-     if (stack->cursor.enabled)
-          flags |= DSFLIP_BLIT;
+     switch (region->config.buffermode) {
+          case DLBM_TRIPLE:
+               /* Add the updated region .*/
+               for (i=0; i<num_updates; i++) {
+                    const DFBRegion *update = &updates[i];
 
-     for (i=0; i<num_updates; i++) {
-          const DFBRegion *update = &updates[i];
+                    DFB_REGION_ASSERT( update );
 
-          DFB_REGION_ASSERT( update );
+                    D_DEBUG_AT( SaWMan_Surface, "  -> adding %d, %d - %dx%d  (%d) to updating\n",
+                                DFB_RECTANGLE_VALS_FROM_REGION( update ), i );
 
-          /* Flip the updated region .*/
-          dfb_layer_region_flip_update( region, update, flags );
+                    dfb_updates_add( &tier->updating, update );
+               }
+
+               if (!tier->updated.num_regions)
+                    sawman_flush_updating( sawman, tier );
+               break;
+
+          case DLBM_BACKVIDEO:
+               /* Flip the whole region. */
+               dfb_layer_region_flip_update( region, NULL, flags );
+
+               /* Copy back the updated region. */
+               dfb_gfx_copy_regions( surface, CSBR_FRONT, surface, CSBR_BACK, updates, num_updates, 0, 0 );
+               break;
+
+          default:
+               /* Flip the updated region .*/
+               for (i=0; i<num_updates; i++) {
+                    const DFBRegion *update = &updates[i];
+
+                    DFB_REGION_ASSERT( update );
+
+                    dfb_layer_region_flip_update( region, update, flags );
+               }
+               break;
      }
 
 #ifdef SAWMAN_DUMP_TIER_FRAMES

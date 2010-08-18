@@ -117,8 +117,11 @@ extern "C"
 
 /**********************************************************************************************************************/
 
-#define SAWMAN_MAX_UPDATE_REGIONS        8
-#define SAWMAN_MAX_VISIBLE_REGIONS      10
+#define SAWMAN_MAX_UPDATE_REGIONS        8   // dirty region on a tier
+#define SAWMAN_MAX_UPDATING_REGIONS      8   // updated region on tier to be scheduled for display
+#define SAWMAN_MAX_UPDATED_REGIONS       8   // updated region on tier scheduled for display
+#define SAWMAN_MAX_VISIBLE_REGIONS      10   // for the visible window region detection
+#define SAWMAN_MAX_UPDATES_REGIONS      10   // for the DSFLIP_QUEUE / DSFLIP_FLUSH implementation
 #define SAWMAN_MAX_IMPLICIT_KEYGRABS    16
 
 /**********************************************************************************************************************/
@@ -234,12 +237,16 @@ struct __SaWMan_SaWManTier {
 
      int                     magic;
 
+     SaWMan                 *sawman;
+
      DFBDisplayLayerID       layer_id;
      SaWManStackingClasses   classes;
 
      CoreWindowStack        *stack;
      CoreLayerContext       *context;
      CoreLayerRegion        *region;
+     CoreSurface            *surface;
+     Reaction                surface_reaction;
 
      DFBDisplayLayerConfig   config;
      DFBColorKey             key;
@@ -272,6 +279,12 @@ struct __SaWMan_SaWManTier {
 
      int                     cursor_dx;
      int                     cursor_dy;
+
+     DFBUpdates              updating;
+     DFBRegion               updating_regions[SAWMAN_MAX_UPDATED_REGIONS];
+
+     DFBUpdates              updated;
+     DFBRegion               updated_regions[SAWMAN_MAX_UPDATED_REGIONS];
 };
 
 # if 0
@@ -323,6 +336,9 @@ struct __SaWMan_SaWManWindow {
      DFBRegion              visible_regions[SAWMAN_MAX_VISIBLE_REGIONS];
 
      long long              update_ms;
+
+     DFBUpdates             updates;
+     DFBRegion              updates_regions[SAWMAN_MAX_UPDATES_REGIONS];
 };
 
 struct __SaWMan_SaWManGrabbedKey {

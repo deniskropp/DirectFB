@@ -85,6 +85,7 @@ DFB_WINDOW_MANAGER( sawman )
 D_DEBUG_DOMAIN( SaWMan_WM      , "SaWMan/WM",       "SaWMan window manager module" );
 D_DEBUG_DOMAIN( SaWMan_Stacking, "SaWMan/Stacking", "SaWMan window manager stacking" );
 D_DEBUG_DOMAIN( SaWMan_FlipOnce, "SaWMan/FlipOnce", "SaWMan window manager flip once" );
+D_DEBUG_DOMAIN( SaWMan_Surface,  "SaWMan/Surface",  "SaWMan window manager surface" );
 
 /**********************************************************************************************************************/
 
@@ -1340,6 +1341,77 @@ wm_post_init( void *wm_data, void *shared_data )
 
 /**********************************************************************************************************************/
 
+static ReactionResult
+sawman_surface_reaction( const void *msg_data,
+                         void       *ctx )
+{
+     DFBResult                      ret;
+     int                            i;
+     const CoreSurfaceNotification *notification = msg_data;
+     SaWManTier                    *tier         = ctx;
+     SaWMan                        *sawman;
+
+     D_DEBUG_AT( SaWMan_Surface, "%s( %p, %p )\n", __FUNCTION__, msg_data, ctx );
+
+     D_MAGIC_ASSERT( tier, SaWManTier );
+
+     sawman = tier->sawman;
+     D_MAGIC_ASSERT( sawman, SaWMan );
+
+     if (notification->flags & CSNF_DISPLAY) {
+          D_DEBUG_AT( SaWMan_Surface, "  -> DISPLAY [%d]\n", notification->index );
+
+          switch (tier->region->config.buffermode) {
+               case DLBM_TRIPLE:
+                    /* Lock SaWMan. */
+                    ret = sawman_lock( sawman );
+                    if (ret) {
+                         D_DERROR( ret, "SaWMan/SurfaceReaction: Could not lock SaWMan!\n" );
+                         return RS_OK;
+                    }
+
+                    D_ASSUME( tier->updated.num_regions > 0 );
+
+                    if (tier->updated.num_regions) {
+                         switch (tier->region->config.buffermode) {
+                              case DLBM_TRIPLE:
+                                   D_DEBUG_AT( SaWMan_Surface, "  -> copying %d updated regions (F->I)\n", tier->updated.num_regions );
+
+                                   for (i=0; i<tier->updated.num_regions; i++) {
+                                        D_DEBUG_AT( SaWMan_Surface, "    -> %4d,%4d - %4dx%4d  [%d]\n",
+                                                    DFB_RECTANGLE_VALS_FROM_REGION( &tier->updated.regions[i] ), i );
+                                   }
+
+                                   /* Copy back the updated region .*/
+                                   dfb_gfx_copy_regions( tier->surface, CSBR_FRONT, tier->surface, CSBR_IDLE,
+                                                         tier->updated.regions, tier->updated.num_regions, 0, 0 );
+                                   break;
+
+                              default:
+                                   break;
+                         }
+
+                         dfb_updates_reset( &tier->updated );
+                    }
+
+                    if (tier->updating.num_regions) {
+                         D_DEBUG_AT( SaWMan_Surface, "  -> flushing updating regions\n" );
+
+                         sawman_flush_updating( sawman, tier );
+                    }
+
+                    /* Unlock SaWMan. */
+                    sawman_unlock( sawman );
+                    break;
+
+               default:
+                    break;
+          }
+     }
+
+     return RS_OK;
+}
+
 static DFBResult
 wm_init_stack( CoreWindowStack *stack,
                void            *wm_data,
@@ -1386,6 +1458,7 @@ wm_init_stack( CoreWindowStack *stack,
      D_INFO( "SaWMan: Initializing stack %p for tier %p, %dx%d, layer %d, context %p [%d]...\n",
              stack, tier, stack->width, stack->height, context->layer_id, context, context->object.ref.multi.id );
 
+     tier->sawman  = sawman;
      tier->stack   = stack;
      tier->context = context;
      tier->size.w  = stack->width;
@@ -1398,7 +1471,18 @@ wm_init_stack( CoreWindowStack *stack,
           return ret;
      }
 
+     ret = dfb_layer_region_get_surface( tier->region, &tier->surface );
+     if (ret) {
+          dfb_layer_region_unref( tier->region );
+          sawman_unlock( sawman );
+          D_MAGIC_CLEAR( data );
+          return ret;
+     }
+
      dfb_layer_region_globalize( tier->region );
+     dfb_surface_globalize( tier->surface );
+
+     dfb_surface_attach( tier->surface, sawman_surface_reaction, tier, &tier->surface_reaction );
 
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
@@ -1438,12 +1522,16 @@ wm_close_stack( CoreWindowStack *stack,
 
      D_ASSERT( tier->context != NULL );
 
+     dfb_surface_detach( tier->surface, &tier->surface_reaction );
+
      tier->stack   = NULL;
      tier->context = NULL;
      tier->size.w  = 0;
      tier->size.h  = 0;
 
      dfb_layer_region_unlink( &tier->region );
+
+     dfb_surface_unlink( &tier->surface );
 
      /* Destroy backing store of software cursor. */
      if (tier->cursor_bs)
@@ -2119,6 +2207,7 @@ wm_add_window( CoreWindowStack *stack,
      }
 
      dfb_updates_init( &sawwin->visible, sawwin->visible_regions, D_ARRAY_SIZE(sawwin->visible_regions) );
+     dfb_updates_init( &sawwin->updates, sawwin->updates_regions, D_ARRAY_SIZE(sawwin->updates_regions) );
 
      fusion_vector_init( &sawwin->children, 2, sawwin->shmpool );
 
@@ -2290,6 +2379,7 @@ wm_remove_window( CoreWindowStack *stack,
      sawman_process_updates( sdata->sawman, DSFLIP_NONE );
 
      dfb_updates_deinit( &sawwin->visible );
+     dfb_updates_deinit( &sawwin->updates );
 
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
@@ -3076,6 +3166,7 @@ wm_update_window( CoreWindow          *window,
                   DFBSurfaceFlipFlags  flags )
 {
      DFBResult        ret;
+     int              i;
      WMData          *wmdata = wm_data;
      SaWMan          *sawman;
      SaWManWindow    *sawwin = window_data;
@@ -3117,8 +3208,6 @@ wm_update_window( CoreWindow          *window,
           return DFB_OK;
      }
 
-     sawwin->flags &= ~SWMWF_UPDATING;
-
      /* Retrieve corresponding SaWManTier. */
      tier = sawman_tier_by_class( sawman, window->config.stacking );
      if (!tier) {
@@ -3131,77 +3220,143 @@ wm_update_window( CoreWindow          *window,
           D_ASSERT( tier->region != NULL );
 
           if (tier->single_window == sawwin) {
-               DFBRectangle tmp = tier->single_src;
+               if (flags & DSFLIP_QUEUE) {
+                    D_DEBUG_AT( SaWMan_FlipOnce, "  -> queuing update...\n" );
 
-               if (!region || dfb_rectangle_intersect_by_region( &tmp, region )) {
-                    DFBRegion    reg;
-                    DFBRectangle src = tmp;
-                    DFBRegion    cursor_visible;
+                    dfb_updates_add( &sawwin->updates, sawwin->parent ? NULL : region );
+               }
+               else {
+                    const DFBRegion *regions;
+                    int              i, num;
 
-                    tmp.x -= tier->single_src.x;
-                    tmp.y -= tier->single_src.y;
+                    if (flags & DSFLIP_FLUSH) {
+                         D_DEBUG_AT( SaWMan_FlipOnce, "  -> flushing updates...\n" );
 
-                    D_ASSERT( window->surface != NULL );
+                         if (!sawwin->updates.num_regions) {
+                              D_DEBUG_AT( SaWMan_FlipOnce, "  -> NO UPDATES\n" );
+                              sawman_unlock( sawman );
+                              return DFB_OK;
+                         }
 
-                    dfb_gfx_copy_to( window->surface, tier->region->surface, &src, tmp.x, tmp.y, false );
+                         D_DEBUG_AT( SaWMan_FlipOnce, "  -> %d updates\n", sawwin->updates.num_regions );
 
-                    dfb_region_from_rectangle( &reg, &tmp );
-
-                    /* Update cursor? */
-                    cursor_visible = tier->cursor_region;
-                    if (tier->cursor_drawn && dfb_region_region_intersect( &cursor_visible, &reg )) {
-                         DFBRectangle     rect = DFB_RECTANGLE_INIT_FROM_REGION( &cursor_visible );
-                         CoreLayer       *layer;
-
-                         layer = dfb_layer_at( tier->layer_id );
-
-                         D_ASSUME( tier->cursor_bs_valid );
-
-                         dfb_gfx_copy_to( tier->region->surface, tier->cursor_bs, &rect,
-                                          rect.x - tier->cursor_region.x1,
-                                          rect.y - tier->cursor_region.y1, true );
-
-                         sawman_draw_cursor( stack, &layer->state,
-                                             tier->region->surface,
-                                             &cursor_visible );
+                         regions = sawwin->updates.regions;
+                         num     = sawwin->updates.num_regions;
+                    }
+                    else {
+                         regions = region;
+                         num     = 1;
                     }
 
-                    dfb_layer_region_flip_update( tier->region, &reg, flags );
+                    for (i=0; i<num; i++) {
+                         DFBRectangle tmp = tier->single_src;
+
+                         if (!regions || dfb_rectangle_intersect_by_region( &tmp, &regions[i] )) {
+                              DFBRegion    reg;
+                              DFBRectangle src = tmp;
+                              DFBRegion    cursor_visible;
+
+                              tmp.x -= tier->single_src.x;
+                              tmp.y -= tier->single_src.y;
+
+                              D_ASSERT( window->surface != NULL );
+
+                              dfb_gfx_copy_to( window->surface, tier->region->surface, &src, tmp.x, tmp.y, false );
+
+                              dfb_region_from_rectangle( &reg, &tmp );
+
+                              /* Update cursor? */
+                              cursor_visible = tier->cursor_region;
+                              if (tier->cursor_drawn && dfb_region_region_intersect( &cursor_visible, &reg )) {
+                                   DFBRectangle     rect = DFB_RECTANGLE_INIT_FROM_REGION( &cursor_visible );
+                                   CoreLayer       *layer;
+
+                                   layer = dfb_layer_at( tier->layer_id );
+
+                                   D_ASSUME( tier->cursor_bs_valid );
+
+                                   dfb_gfx_copy_to( tier->region->surface, tier->cursor_bs, &rect,
+                                                    rect.x - tier->cursor_region.x1,
+                                                    rect.y - tier->cursor_region.y1, true );
+
+                                   sawman_draw_cursor( stack, &layer->state,
+                                                       tier->region->surface,
+                                                       &cursor_visible );
+                              }
+
+                              dfb_layer_region_flip_update( tier->region, &reg, flags );
+                         }
+                    }
+
+                    if (flags & DSFLIP_FLUSH)
+                         dfb_updates_reset( &sawwin->updates );
+
+                    sawwin->flags &= ~SWMWF_UPDATING;
                }
           }
      }
      else {
-          sawman_update_window( sawman, sawwin,
-                                sawwin->parent ? NULL : region, /* FIXME? */
-                                flags, SWMUF_SCALE_REGION );
+          if (flags & DSFLIP_QUEUE) {
+               D_DEBUG_AT( SaWMan_FlipOnce, "  -> queuing update...\n" );
 
-          if (flags & DSFLIP_ONCE) {
-               D_DEBUG_AT( SaWMan_FlipOnce, "  -> flip once for window id %u\n", window->id );
-               tier->update_once = true;
+               dfb_updates_add( &sawwin->updates, sawwin->parent ? NULL : region );
           }
+          else {
+               if (flags & DSFLIP_FLUSH) {
+                    D_DEBUG_AT( SaWMan_FlipOnce, "  -> flushing updates...\n" );
 
-          sawman_process_updates( sawman, flags );
-
-          if (flags & DSFLIP_ONCE) {
-               while (tier->updates.num_regions) {
-                    D_DEBUG_AT( SaWMan_FlipOnce, "  -> waiting for updates...\n" );
-
-                    switch (fusion_skirmish_wait( &sawman->lock,
-                                                  sawman_config->flip_once_timeout ?
-                                                  sawman_config->flip_once_timeout + 10 : 0 ))
-                    {
-                         case DR_TIMEOUT:
-                              D_DEBUG_AT( SaWMan_FlipOnce, "  -> timeout waiting for updates!\n" );
-
-                              sawman_process_updates( sawman, flags );
-                              break;
-
-                         default:
-                              break;
+                    if (!sawwin->updates.num_regions) {
+                         D_DEBUG_AT( SaWMan_FlipOnce, "  -> NO UPDATES\n" );
+                         sawman_unlock( sawman );
+                         return DFB_OK;
                     }
+
+                    D_DEBUG_AT( SaWMan_FlipOnce, "  -> %d updates\n", sawwin->updates.num_regions );
+
+                    for (i=0; i<sawwin->updates.num_regions; i++) {
+                         sawman_update_window( sawman, sawwin,
+                                               &sawwin->updates.regions[i],
+                                               flags, SWMUF_SCALE_REGION );
+                    }
+
+                    dfb_updates_reset( &sawwin->updates );
+               }
+               else {
+                    sawman_update_window( sawman, sawwin,
+                                          sawwin->parent ? NULL : region, /* FIXME? */
+                                          flags, SWMUF_SCALE_REGION );
                }
 
-               D_DEBUG_AT( SaWMan_FlipOnce, "  -> updates done.\n" );
+               sawwin->flags &= ~SWMWF_UPDATING;
+
+               if (flags & DSFLIP_ONCE) {
+                    D_DEBUG_AT( SaWMan_FlipOnce, "  -> flip once for window id %u\n", window->id );
+                    tier->update_once = true;
+               }
+
+               sawman_process_updates( sawman, flags );
+
+               if (flags & DSFLIP_ONCE) {
+                    while (tier->updates.num_regions) {
+                         D_DEBUG_AT( SaWMan_FlipOnce, "  -> waiting for updates...\n" );
+
+                         switch (fusion_skirmish_wait( &sawman->lock,
+                                                       sawman_config->flip_once_timeout ?
+                                                       sawman_config->flip_once_timeout + 10 : 0 ))
+                         {
+                              case DR_TIMEOUT:
+                                   D_DEBUG_AT( SaWMan_FlipOnce, "  -> timeout waiting for updates!\n" );
+
+                                   sawman_process_updates( sawman, flags );
+                                   break;
+
+                              default:
+                                   break;
+                         }
+                    }
+
+                    D_DEBUG_AT( SaWMan_FlipOnce, "  -> updates done.\n" );
+               }
           }
      }
 
@@ -3218,6 +3373,7 @@ wm_update_cursor( CoreWindowStack       *stack,
                   CoreCursorUpdateFlags  flags )
 {
      DFBResult         ret;
+     int               i;
      DFBRegion         old_region;
      WMData           *wmdata   = wm_data;
      bool              restored = false;
@@ -3226,6 +3382,8 @@ wm_update_cursor( CoreWindowStack       *stack,
      CoreSurface      *surface;
      SaWMan           *sawman;
      SaWManTier       *tier;
+     DFBRegion         updates[2];
+     int               updates_count = 0;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
@@ -3295,30 +3453,11 @@ wm_update_cursor( CoreWindowStack       *stack,
      D_ASSERT( tier->cursor_bs != NULL );
 
      /* Get the primary region. */
-     ret = dfb_layer_context_get_primary_region( context, false, &primary );
-     if (ret) {
-          sawman_unlock( sawman );
-          return ret;
-     }
+     primary = tier->region;
+     D_ASSERT( primary != NULL );
 
      surface = primary->surface;
-
      D_ASSERT( surface != NULL );
-
-     if (flags & CCUF_ENABLE) {
-         /* Ensure valid back buffer. From now on swapping is prevented until cursor is disabled.
-          * FIXME: Keep a flag to know when back/front have been swapped and need a sync.
-          */
-         switch (context->config.buffermode) {
-              case DLBM_BACKVIDEO:
-              case DLBM_TRIPLE:
-                   dfb_gfx_copy( surface, surface, NULL );
-                   break;
-
-              default:
-                   break;
-         }
-     }
 
      /* restore region under cursor */
      if (tier->cursor_drawn) {
@@ -3359,9 +3498,6 @@ wm_update_cursor( CoreWindowStack       *stack,
 
                D_ASSERT( !tier->cursor_drawn );
 
-               /* FIXME: this requires using blitted flipping all the time,
-                  but fixing it seems impossible, for now DSFLIP_BLIT is forced
-                  in repaint_stack() when the cursor is enabled. */
                dfb_gfx_copy_to( surface, tier->cursor_bs, &rect, 0, 0, true );
 
                tier->cursor_bs_valid = true;
@@ -3376,18 +3512,52 @@ wm_update_cursor( CoreWindowStack       *stack,
                if (dfb_region_region_intersects( &old_region, &tier->cursor_region ))
                     dfb_region_region_union( &old_region, &tier->cursor_region );
                else
-                    dfb_layer_region_flip_update( primary, &tier->cursor_region, DSFLIP_BLIT );
+                    updates[updates_count++] = tier->cursor_region;
 
-               dfb_layer_region_flip_update( primary, &old_region, DSFLIP_BLIT );
+               updates[updates_count++] = old_region;
           }
           else
-               dfb_layer_region_flip_update( primary, &tier->cursor_region, DSFLIP_BLIT );
+               updates[updates_count++] = tier->cursor_region;
      }
      else if (restored)
-          dfb_layer_region_flip_update( primary, &old_region, DSFLIP_BLIT );
+          updates[updates_count++] = old_region;
 
-     /* Unref primary region. */
-     dfb_layer_region_unref( primary );
+     if (updates_count) {
+          switch (primary->config.buffermode) {
+               case DLBM_TRIPLE:
+                    /* Add the updated region .*/
+                    for (i=0; i<updates_count; i++) {
+                         const DFBRegion *update = &updates[i];
+
+                         DFB_REGION_ASSERT( update );
+
+                         dfb_updates_add( &tier->updating, update );
+                    }
+
+                    if (!tier->updated.num_regions)
+                         sawman_flush_updating( sawman, tier );
+                    break;
+
+               case DLBM_BACKVIDEO:
+                    /* Flip the whole region. */
+                    dfb_layer_region_flip_update( primary, NULL, DSFLIP_NONE );
+
+                    /* Copy back the updated region. */
+                    dfb_gfx_copy_regions( surface, CSBR_FRONT, surface, CSBR_BACK, updates, updates_count, 0, 0 );
+                    break;
+
+               default:
+                    /* Flip the updated region .*/
+                    for (i=0; i<updates_count; i++) {
+                         const DFBRegion *update = &updates[i];
+
+                         DFB_REGION_ASSERT( update );
+
+                         dfb_layer_region_flip_update( primary, update, DSFLIP_NONE );
+                    }
+                    break;
+          }
+     }
 
      sawman_unlock( sawman );
 

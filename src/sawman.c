@@ -846,7 +846,9 @@ add_tier( SaWMan                *sawman,
      tier->layer_id = layer_id;
      tier->classes  = classes;
 
-     dfb_updates_init( &tier->updates, tier->update_regions, SAWMAN_MAX_UPDATE_REGIONS );
+     dfb_updates_init( &tier->updates,  tier->update_regions, SAWMAN_MAX_UPDATE_REGIONS );
+     dfb_updates_init( &tier->updating, tier->updating_regions, SAWMAN_MAX_UPDATING_REGIONS );
+     dfb_updates_init( &tier->updated,  tier->updated_regions, SAWMAN_MAX_UPDATED_REGIONS );
 
      D_MAGIC_SET( tier, SaWManTier );
 
