@@ -87,6 +87,7 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, const DFBRectang
      copy_state.source      = source;
      copy_state.destination = destination;
      copy_state.from        = from_back ? CSBR_BACK : CSBR_FRONT;
+     copy_state.to          = CSBR_BACK;
 
      if (rect) {
           if (dfb_rectangle_intersect( &sourcerect, rect ))
@@ -101,6 +102,60 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, const DFBRectang
      dfb_state_stop_drawing( &copy_state );
 
      pthread_mutex_unlock( &copy_lock );
+}
+
+void
+dfb_gfx_copy_regions( CoreSurface           *source,
+                      CoreSurfaceBufferRole  from,
+                      CoreSurface           *destination,
+                      CoreSurfaceBufferRole  to,
+                      const DFBRegion       *regions,
+                      unsigned int           num,
+                      int                    x,
+                      int                    y )
+{
+     unsigned int i, n = 0;
+     DFBRectangle rect = { 0, 0, source->config.size.w, source->config.size.h };
+     DFBRectangle rects[num];
+     DFBPoint     points[num];
+
+     for (i=0; i<num; i++) {
+          DFB_REGION_ASSERT( &regions[i] );
+
+          rects[n] = DFB_RECTANGLE_INIT_FROM_REGION( &regions[i] );
+
+          if (dfb_rectangle_intersect( &rects[n], &rect )) {
+               points[n].x = x + rects[n].x - rect.x;
+               points[n].y = y + rects[n].y - rect.y;
+
+               n++;
+          }
+     }
+
+     if (n > 0) {
+          pthread_mutex_lock( &copy_lock );
+
+          if (!copy_state_inited) {
+               dfb_state_init( &copy_state, NULL );
+               copy_state_inited = true;
+          }
+
+          copy_state.modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION;
+
+          copy_state.clip.x2     = destination->config.size.w - 1;
+          copy_state.clip.y2     = destination->config.size.h - 1;
+          copy_state.source      = source;
+          copy_state.destination = destination;
+          copy_state.from        = from;
+          copy_state.to          = to;
+
+          dfb_gfxcard_batchblit( rects, points, n, &copy_state );
+     
+          /* Signal end of sequence. */
+          dfb_state_stop_drawing( &copy_state );
+
+          pthread_mutex_unlock( &copy_lock );
+     }
 }
 
 static void

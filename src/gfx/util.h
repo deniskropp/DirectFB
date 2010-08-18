@@ -39,4 +39,14 @@ void dfb_clear_depth( CoreSurface *surface, const DFBRegion *region );
 
 void dfb_sort_triangle( DFBTriangle *tri );
 
+
+void dfb_gfx_copy_regions( CoreSurface           *source,
+                           CoreSurfaceBufferRole  from,
+                           CoreSurface           *destination,
+                           CoreSurfaceBufferRole  to,
+                           const DFBRegion       *regions,
+                           unsigned int           num,
+                           int                    x,
+                           int                    y );
+
 #endif

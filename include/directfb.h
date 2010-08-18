@@ -3207,6 +3207,9 @@ typedef enum {
 
      DSFLIP_ONCE         = 0x00000010,
 
+     DSFLIP_QUEUE        = 0x00000100,
+     DSFLIP_FLUSH        = 0x00000200,
+
      DSFLIP_WAITFORSYNC  = DSFLIP_WAIT | DSFLIP_ONSYNC
 } DFBSurfaceFlipFlags;
 

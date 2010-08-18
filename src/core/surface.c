@@ -367,6 +367,25 @@ dfb_surface_notify( CoreSurface                  *surface,
 }
 
 DFBResult
+dfb_surface_notify_display( CoreSurface       *surface,
+                            CoreSurfaceBuffer *buffer )
+{
+     CoreSurfaceNotification notification;
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
+
+     direct_serial_increase( &surface->serial );
+
+     notification.flags   = CSNF_DISPLAY;
+     notification.surface = surface;
+     notification.index   = dfb_surface_buffer_index( buffer );
+
+     return dfb_surface_dispatch( surface, &notification, dfb_surface_globals );
+}
+
+DFBResult
 dfb_surface_flip( CoreSurface *surface, bool swap )
 {
      unsigned int back, front;

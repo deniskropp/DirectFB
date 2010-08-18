@@ -54,13 +54,16 @@ typedef enum {
      CSNF_PALETTE_CHANGE = 0x00000040,  /* another palette has been set */
      CSNF_PALETTE_UPDATE = 0x00000080,  /* current palette has been altered */
      CSNF_ALPHA_RAMP     = 0x00000100,  /* alpha ramp was modified */
+     CSNF_DISPLAY        = 0x00000200,  /* surface buffer displayed */
 
-     CSNF_ALL            = 0x000001FF
+     CSNF_ALL            = 0x000003FF
 } CoreSurfaceNotificationFlags;
 
 typedef struct {
      CoreSurfaceNotificationFlags  flags;
      CoreSurface                  *surface;
+
+     int                           index;
 } CoreSurfaceNotification;
 
 
@@ -242,6 +245,9 @@ DFBResult dfb_surface_init_palette  ( CoreDFB                      *core,
 
 DFBResult dfb_surface_notify        ( CoreSurface                  *surface,
                                       CoreSurfaceNotificationFlags  flags);
+
+DFBResult dfb_surface_notify_display( CoreSurface                  *surface,
+                                      CoreSurfaceBuffer            *buffer);
 
 DFBResult dfb_surface_flip          ( CoreSurface                  *surface,
                                       bool                          swap );
