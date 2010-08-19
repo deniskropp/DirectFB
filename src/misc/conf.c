@@ -1830,9 +1830,18 @@ DFBResult dfb_config_read( const char *filename )
      /* store/restore the cwd (needed for the "include" command */
      slash = strrchr( filename, '/' );
      if( slash ) {
-          cwd = getcwd(0,0);
-          if( !cwd )
+          cwd = malloc( 4096 );
+          if (!cwd) {
+               fclose( f );
                return D_OOM();
+          }
+
+          if (!getcwd( cwd, 4096 )) {
+               ret = errno2result( errno );
+               free( cwd );
+               fclose( f );
+               return ret;
+          }
 
           /* must copy filename for path, due to const'ness */
           char nwd[strlen(filename)];
