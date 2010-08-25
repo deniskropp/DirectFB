@@ -1047,6 +1047,8 @@ get_device_info( int              fd,
      if (test_bit( EV_KEY, evbit )) {
           int i;
 
+          info->desc.caps |= DICAPS_KEYS;
+
           /* get keyboard bits */
           ioctl( fd, EVIOCGBIT(EV_KEY, sizeof(keybit)), keybit );
 
@@ -1118,7 +1120,6 @@ get_device_info( int              fd,
      /* A Keyboard, do we have at least some letters? */
      if (num_keys > 20) {
           info->desc.type |= DIDTF_KEYBOARD;
-          info->desc.caps |= DICAPS_KEYS;
 
           info->desc.min_keycode = 0;
           info->desc.max_keycode = 127;
@@ -1127,7 +1128,6 @@ get_device_info( int              fd,
      /* A Remote Control? */
      if (num_ext_keys) {
           info->desc.type |= DIDTF_REMOTE;
-          info->desc.caps |= DICAPS_KEYS;
      }
 
      /* Buttons */
