@@ -96,7 +96,7 @@ dfb_font_create( CoreDFB *core, CoreFont **ret_font )
      }
 
      font->core     = core;
-     font->max_rows = 5;
+     font->max_rows = dfb_config->max_font_rows;
 
      direct_util_recursive_pthread_mutex_init( &font->lock );
 
@@ -268,8 +268,8 @@ dfb_font_get_glyph_data( CoreFont        *font,
           if (font->row_width == 0) {
                int width = 2048 * font->height / 64;
 
-               if (width > 2048)
-                    width = 2048;
+               if (width > dfb_config->max_font_row_width)
+                    width = dfb_config->max_font_row_width;
 
                if (width < font->maxadvance)
                     width = font->maxadvance;

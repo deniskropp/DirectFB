@@ -162,6 +162,9 @@ static const char *config_usage =
      "  i8xx_overlay_pipe_b            Redirect videolayer to pixelpipe B\n"
      "  include=<config file>          Include the specified file, relative to the current file\n"
      "\n"
+     "  max-font-rows=<number>         Maximum number of glyph cache rows per font\n"
+     "  max-font-row-width=<pixels>    Maximum width of glyph cache row surface\n"
+     "\n"
      " Window surface swapping policy:\n"
      "  window-surface-policy=(auto|videohigh|videolow|systemonly|videoonly)\n"
      "     auto:       DirectFB decides depending on hardware.\n"
@@ -427,6 +430,10 @@ static void config_allocate( void )
 
      fusion_vector_init( &dfb_config->linux_input_devices, 2, NULL );
      fusion_vector_init( &dfb_config->tslib_devices, 2, NULL );
+
+
+     dfb_config->max_font_rows      = 5;
+     dfb_config->max_font_row_width = 2048;
 }
 
 const char *dfb_config_usage( void )
@@ -1436,6 +1443,44 @@ DFBResult dfb_config_set( const char *name, const char *value )
                }
 
                dfb_config->accelerator = accel;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "max-font-rows" ) == 0) {
+          if (value) {
+               char *error;
+               unsigned long num;
+
+               num = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->max_font_rows = num;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "max-font-row-width" ) == 0) {
+          if (value) {
+               char *error;
+               unsigned long width;
+
+               width = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->max_font_row_width = width;
           }
           else {
                D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
