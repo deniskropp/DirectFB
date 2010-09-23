@@ -1388,6 +1388,33 @@ esac
 
 
 
+AC_ARG_WITH(dither,
+            AC_HELP_STRING([--with-dither=TYPE],
+                           [dithering to use when loading images into non-RGB16]
+                           [surfaces. Possible values for TYPE are: none]
+                           [(no dithering), simple (simple dithering, which]
+                           [increases the data section by 64 bytes), advanced]
+                           [(advanced dithering, which increases the data]
+                           [section by 16 KBytes). @<:@default=none@:>@]),
+            [], [with_dither=none])
+case x"$with_dither" in
+     x | xnone)
+          with_dither=none
+          ;;
+     xsimple)
+          AC_DEFINE(DFB_DITHER,DFB_DITHER_SIMPLE,[Dithering to use when rendering to non-RGB16 surfaces])
+          ;;
+     xadvanced)
+          AC_DEFINE(DFB_DITHER,DFB_DITHER_ADVANCED,[Dithering to use when rendering to non-RGB16 surfaces])
+          ;;
+     *)
+          echo "Unknown dithering type $with_dither, exiting!"
+          exit 1
+          ;;
+esac
+
+
+
 AC_ARG_WITH(tests,
             AC_HELP_STRING([--with-tests],
                            [build test programs]),
@@ -1708,7 +1735,8 @@ Misc options:
   Include all strings       $enable_text
   Software Rendering        $with_software
   Smooth SW Scaling         $with_smooth_scaling
-  16bit Dithering           $with_dither_rgb16
+  Dithering                 $with_dither
+  Dithering 565             $with_dither_rgb16
   zlib compression          $use_zlib                 $ZLIB_LIBS
   sysfs support             $use_sysfs                 $SYSFS_LIBS
 

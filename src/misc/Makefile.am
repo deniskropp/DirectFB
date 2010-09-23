@@ -24,6 +24,7 @@ noinst_LTLIBRARIES = libdirectfb_misc.la
 
 libdirectfb_misc_la_SOURCES =	\
 	conf.c			\
+	dither.h		\
 	dither565.h		\
 	gfx_util.c		\
 	util.c
