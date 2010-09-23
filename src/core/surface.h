@@ -217,6 +217,8 @@ struct __DFB_CoreSurface
      GlobalReaction           palette_reaction;
 
      FusionSHMPoolShared     *shmpool;
+
+     void                    *data;         /* Shared system driver-specific data for this surface. */
 };
 
 
