@@ -653,7 +653,7 @@ static DFBResult merge_images (DFBSurfaceDescription *images,
 static void
 dither_rgb16 (const u32 *src, u16 *dest, int y, int width)
 {
-     const u32 *dm = DM_565 + ((y & (DM_HEIGHT - 1)) << DM_WIDTH_SHIFT);
+     const u32 *dm = DM_565 + ((y & (DM_565_HEIGHT - 1)) << DM_565_WIDTH_SHIFT);
      int        x;
 
      for (x = 0; x < width; x++) {
@@ -661,7 +661,7 @@ dither_rgb16 (const u32 *src, u16 *dest, int y, int width)
                      (src[x] & 0xFF00)   << 2 |
                      (src[x] & 0xFF0000) << 4);
 
-          rgb += dm[x & (DM_WIDTH - 1)];
+          rgb += dm[x & (DM_565_WIDTH - 1)];
           rgb += (0x10040100
                   - ((rgb & 0x1e0001e0) >> 5)
                   - ((rgb & 0x00070000) >> 6));
