@@ -1442,8 +1442,17 @@ process_updates( StackData           *data,
      /* Get the primary region. */
      if (!region) {
           ret = dfb_layer_context_get_primary_region( stack->context, false, &primary );
-          if (ret)
+
+          /* If there is a failure to obtain the primary region, reset and
+           * clear all pending region updates to prevent the region from
+           * performing any subsequent outdated repaints.  In some multiple
+           * display layer usage scenarios when that would previously occur,
+           * visual artifacts have been observed on other display layers.
+           */
+          if (ret) {
+               dfb_updates_reset( &data->updates );
                return ret;
+          }
      }
 
 
