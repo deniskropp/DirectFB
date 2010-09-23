@@ -6047,14 +6047,14 @@ typedef struct {
          unsigned int  minimum_level;    /* The level at which a DVPET_DATALOW event will be generated. */
          unsigned int  maximum_level;    /* The level at which a DVPET_DATAHIGH event will be generated. */
          unsigned int  current_level;    /* Current fill level of video input buffer.*/
-     } video;
+     } video;                           /* struct containing the above two encoding properties for video */
 
      struct {
          unsigned int  buffer_size;      /* Size in bytes of the input buffer to audio decoder */
          unsigned int  minimum_level;    /* The level at which a DVPET_DATALOW event will be generated. */
          unsigned int  maximum_level;    /* The level at which a DVPET_DATAHIGH event will be generated. */
          unsigned int  current_level;    /* Current fill level of audio input buffer.*/
-     } audio;
+     } audio;                           /* struct containing the above two encoding properties for audio */
 } DFBBufferOccupancy;
 
 /*
@@ -6068,14 +6068,14 @@ typedef struct {
           unsigned int  maximum_level;   /* The level at which a DVPET_DATAHIGH event will be generated. */
           unsigned int  minimum_time;    /* The level at which a DVPET_BUFFERTIMELOW event will be generated. */
           unsigned int  maximum_time;    /* The level at which a DVPET_BUFFERTIMEHIGH event will be generated. */
-     } video;
+     } video;                           /* struct containing the above two encoding properties for video */
 
      struct {
           unsigned int  minimum_level;   /* The level at which a DVPET_DATALOW event will be generated. */
           unsigned int  maximum_level;   /* The level at which a DVPET_DATAHIGH event will be generated. */
           unsigned int  minimum_time;    /* The level at which a DVPET_BUFFERTIMELOW event will be generated. */
           unsigned int  maximum_time;    /* The level at which a DVPET_BUFFERTIMEHIGH event will be generated. */
-     } audio;
+     } audio;                           /* struct containing the above two encoding properties for audio */
 } DFBBufferThresholds;
 
 /*
