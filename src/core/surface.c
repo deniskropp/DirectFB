@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -33,6 +33,9 @@
 #include <core/core.h>
 #include <core/palette.h>
 #include <core/surface.h>
+
+#include <core/system.h>
+#include <fusion/shmalloc.h>
 
 #include <core/layers_internal.h>
 #include <core/windows_internal.h>
@@ -78,6 +81,14 @@ surface_destructor( FusionObject *object, bool zombie, void *ctx )
      for (i=0; i<MAX_SURFACE_BUFFERS; i++) {
           if (surface->buffers[i])
                dfb_surface_buffer_destroy( surface->buffers[i] );
+     }
+
+     dfb_system_surface_data_destroy( surface, surface->data );
+
+     /* release the system driver specific surface data */
+     if (surface->data) {
+          SHFREE( surface->shmpool, surface->data );
+          surface->data = NULL;
      }
 
      direct_serial_deinit( &surface->serial );
@@ -130,6 +141,8 @@ dfb_surface_create( CoreDFB                  *core,
      surface = dfb_core_create_surface( core );
      if (!surface)
           return DFB_FUSION;
+
+     surface->data = NULL;
 
      if (config) {
           D_FLAGS_ASSERT( config->flags, CSCONF_ALL );
@@ -234,6 +247,19 @@ dfb_surface_create( CoreDFB                  *core,
                goto error;
      }
 
+     /* Create the system driver specific surface data information */
+     int data_size = dfb_system_surface_data_size();
+
+     if (data_size) {
+          surface->data = SHCALLOC( surface->shmpool, 1, data_size );
+          if (!surface->data) {
+              ret = D_OOSHM();
+              goto error;
+          }
+     }
+
+     dfb_system_surface_data_init(surface,surface->data);
+
      /* Create the Surface Buffers. */
      for (i=0; i<buffers; i++) {
           CoreSurfaceBuffer *buffer;
@@ -268,6 +294,13 @@ error:
      for (i=0; i<MAX_SURFACE_BUFFERS; i++) {
           if (surface->buffers[i])
                dfb_surface_buffer_destroy( surface->buffers[i] );
+     }
+
+     /* release the system driver specific surface data */
+     if (surface->data) {
+         dfb_system_surface_data_destroy( surface, surface->data );
+         SHFREE( surface->shmpool, surface->data );
+         surface->data = NULL;
      }
 
      fusion_skirmish_destroy( &surface->lock );

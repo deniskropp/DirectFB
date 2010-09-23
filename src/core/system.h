@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -189,6 +189,21 @@ typedef struct {
      void           (*GetBusID)( int *ret_bus, int *ret_dev, int *ret_func );
      void           (*GetDeviceID)( unsigned int *ret_vendor_id,
                                     unsigned int *ret_device_id );
+
+     /*
+      * Shared Surface Data Creation/Destruction Functions
+      *
+      * These functions are used to create and destroy the shared CoreSurface
+      * data.  The Init function is called before the surface's buffers are
+      * created.  The Destroy function is called after the surface buffers are
+      * released.  The allocated data is only used by the systems driver.
+      *
+      * Note: In the init and destroy functions it is legal for the data
+      *       parameter to be null.
+      */
+     int            (*SurfaceDataSize)( void );
+     void           (*SurfaceDataInit)( CoreSurface *surface, void *data );
+     void           (*SurfaceDataDestroy)( CoreSurface *surface, void *data );
 } CoreSystemFuncs;
 
 
@@ -253,6 +268,15 @@ dfb_system_get_busid( int *ret_bus, int *ret_dev, int *ret_func );
 void
 dfb_system_get_deviceid( unsigned int *ret_vendor_id,
                          unsigned int *ret_device_id );
+
+int
+dfb_system_surface_data_size( void );
+
+void
+dfb_system_surface_data_init( CoreSurface *surface, void *data );
+
+void
+dfb_system_surface_data_destroy( CoreSurface *surface, void *data );
 
 #endif
 

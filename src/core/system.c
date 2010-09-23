@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -460,5 +460,31 @@ dfb_system_get_deviceid( unsigned int *ret_vendor_id,
           *ret_vendor_id = vendor_id;
      if (ret_device_id)
           *ret_device_id = device_id;
+}
+
+int
+dfb_system_surface_data_size( void )
+{
+     D_ASSERT( system_funcs != NULL );
+
+     return system_funcs->SurfaceDataSize();
+}
+
+void
+dfb_system_surface_data_init( CoreSurface *surface, void *data )
+{
+     D_ASSERT( surface );
+     D_ASSERT( system_funcs != NULL );
+
+     system_funcs->SurfaceDataInit(surface,data);
+}
+
+void
+dfb_system_surface_data_destroy( CoreSurface *surface, void *data )
+{
+     D_ASSERT( surface );
+     D_ASSERT( system_funcs != NULL );
+
+     system_funcs->SurfaceDataDestroy(surface,data);
 }
 

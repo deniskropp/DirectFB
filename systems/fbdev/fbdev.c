@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -954,6 +954,25 @@ system_get_busid( int *ret_bus, int *ret_dev, int *ret_func )
      *ret_bus  = dfb_fbdev->shared->pci.bus;
      *ret_dev  = dfb_fbdev->shared->pci.dev;
      *ret_func = dfb_fbdev->shared->pci.func;
+}
+
+static int
+system_surface_data_size( void )
+{
+     /* Return zero because shared surface data is unneeded. */
+     return 0;
+}
+
+static void
+system_surface_data_init( CoreSurface *surface, void *data )
+{
+     /* Ignore since unneeded. */
+}
+
+static void
+system_surface_data_destroy( CoreSurface *surface, void *data )
+{
+     /* Ignore since unneeded. */
 }
 
 static void
