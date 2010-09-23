@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -231,6 +231,14 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
           case CSAID_LAYER5:
           case CSAID_LAYER6:
           case CSAID_LAYER7:
+          case CSAID_LAYER8:
+          case CSAID_LAYER9:
+          case CSAID_LAYER10:
+          case CSAID_LAYER11:
+          case CSAID_LAYER12:
+          case CSAID_LAYER13:
+          case CSAID_LAYER14:
+          case CSAID_LAYER15:
                D_DEBUG_AT( Core_SurfBuffer, "  -> LAYER %d %s%s\n", accessor - CSAID_LAYER0,
                            (access & CSAF_READ) ? "READ" : "", (access & CSAF_WRITE) ? "WRITE" : "" );
                break;

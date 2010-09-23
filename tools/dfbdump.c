@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -446,7 +446,7 @@ surface_pool_info_callback( CoreSurfacePool *pool,
                   (pool->desc.access[i] & CSAF_SHARED) ? 's' : '-' );
      }
 
-     for (i=CSAID_LAYER0; i<=CSAID_LAYER2; i++) {
+     for (i=CSAID_LAYER0; i<=CSAID_LAYER15; i++) {
           printf( " %c%c%c",
                   (pool->desc.access[i] & CSAF_READ)   ? 'r' : '-',
                   (pool->desc.access[i] & CSAF_WRITE)  ? 'w' : '-',

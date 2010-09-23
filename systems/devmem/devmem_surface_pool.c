@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -131,6 +131,14 @@ devmemInitPool( CoreDFB                    *core,
      ret_desc->access[CSAID_LAYER5] = CSAF_READ;
      ret_desc->access[CSAID_LAYER6] = CSAF_READ;
      ret_desc->access[CSAID_LAYER7] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER8] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER9] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER10] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER11] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER12] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER13] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER14] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER15] = CSAF_READ;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "/dev/mem" );
 
