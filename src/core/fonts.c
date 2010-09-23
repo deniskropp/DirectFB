@@ -130,31 +130,12 @@ dfb_font_destroy( CoreFont *font )
 
      D_MAGIC_ASSERT( font, CoreFont );
 
-     D_MAGIC_CLEAR( font );
-
      pthread_mutex_lock( &font->lock );
 
-     for (i=0; i<DFB_FONT_MAX_LAYERS; i++) {
-          direct_hash_iterate( font->layers[i].glyph_hash, free_glyphs, NULL );
+     dfb_font_dispose( font );
 
+     for (i=0; i<DFB_FONT_MAX_LAYERS; i++)
           direct_hash_destroy( font->layers[i].glyph_hash );
-     }
-
-     if (font->rows) {
-          for (i = 0; i < font->num_rows; i++) {
-               CoreFontCacheRow *row = font->rows[i];
-
-               D_MAGIC_ASSERT( row, CoreFontCacheRow );
-
-               dfb_surface_unref( row->surface );
-
-               D_MAGIC_CLEAR( row );
-
-               D_FREE( row );
-          }
-
-          D_FREE( font->rows );
-     }
 
      D_ASSERT( font->encodings != NULL || !font->last_encoding );
 
@@ -176,7 +157,52 @@ dfb_font_destroy( CoreFont *font )
      pthread_mutex_unlock( &font->lock );
      pthread_mutex_destroy( &font->lock );
 
+     D_MAGIC_CLEAR( font );
+
      D_FREE( font );
+}
+
+DFBResult
+dfb_font_dispose( CoreFont *font )
+{
+     int i;
+
+     D_DEBUG_AT( Core_Font, "%s()\n", __FUNCTION__ );
+
+     D_MAGIC_ASSERT( font, CoreFont );
+
+     pthread_mutex_lock( &font->lock );
+
+     for (i=0; i<DFB_FONT_MAX_LAYERS; i++) {
+          direct_hash_iterate( font->layers[i].glyph_hash, free_glyphs, NULL );
+
+          memset( font->layers[i].glyph_data, 0, sizeof(font->layers[i].glyph_data) );
+     }
+
+     if (font->rows) {
+          for (i = 0; i < font->num_rows; i++) {
+               CoreFontCacheRow *row = font->rows[i];
+
+               D_MAGIC_ASSERT( row, CoreFontCacheRow );
+
+               D_DEBUG_AT( Core_Font, "  -> releasing font cache row %p\n", row );
+
+               dfb_surface_unref( row->surface );
+
+               D_MAGIC_CLEAR( row );
+
+               D_FREE( row );
+          }
+
+          D_FREE( font->rows );
+
+          font->rows     = NULL;
+          font->num_rows = 0;
+     }
+
+     pthread_mutex_unlock( &font->lock );
+
+     return DFB_OK;
 }
 
 /**********************************************************************************************************************/
@@ -193,7 +219,7 @@ dfb_font_get_glyph_data( CoreFont        *font,
      int               align;
      CoreFontCacheRow *row = NULL;
 
-     D_DEBUG_AT( Core_Font, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( Core_Font, "%s( index %u, layer %u )\n", __FUNCTION__, index, layer );
 
      D_MAGIC_ASSERT( font, CoreFont );
      D_ASSERT( ret_data != NULL );
@@ -215,6 +241,8 @@ dfb_font_get_glyph_data( CoreFont        *font,
      data = direct_hash_lookup( font->layers[layer].glyph_hash, index );
      if (data) {
           D_MAGIC_ASSERT( data, CoreGlyphData );
+
+          D_DEBUG_AT( Core_Font, "  -> already in cache (%p)\n", __FUNCTION__, data );
 
           if (font->rows) {
                D_ASSERT( data->row >= 0 );
@@ -632,7 +660,11 @@ free_glyphs( DirectHash    *hash,
 {
      CoreGlyphData *data = value;
 
+     D_DEBUG_AT( Core_Font, "%s( %lu )\n", __FUNCTION__, key );
+
      D_MAGIC_ASSERT( data, CoreGlyphData );
+
+     direct_hash_remove( hash, key );
 
      D_MAGIC_CLEAR( data );
      D_FREE( data );
