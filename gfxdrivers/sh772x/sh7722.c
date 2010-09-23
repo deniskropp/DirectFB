@@ -3,7 +3,6 @@
 #endif
 
 #include <stdio.h>
-#include <jpeglib.h>
 
 #undef HAVE_STDLIB_H
 
@@ -41,7 +40,6 @@ DFB_GRAPHICS_DRIVER( sh7722 )
 
 #include "sh7722.h"
 #include "sh7722_blt.h"
-#include "sh7722_jpeglib.h"
 #include "sh7722_layer.h"
 #include "sh7722_lcd.h"
 #include "sh7722_multi.h"
@@ -147,18 +145,6 @@ driver_init_driver( CoreGraphicsDevice  *device,
                funcs->Blit              = sh7722Blit;
                funcs->StretchBlit       = sh7722StretchBlit;
                funcs->FlushTextureCache = sh7722FlushTextureCache;
-
-               /* Initialize JPEG library. */
-#if 0
-               ret = SH7722_JPEG_Initialize();
-               if (ret) {
-                    D_DERROR( ret, "SH7722/Driver: JPEG initialization failed!\n" );
-                    dfb_gfxcard_unmap_mmio( device, sdrv->mmio_base, -1 );
-                    munmap( (void*) sdrv->gfx_shared, direct_page_align( sizeof(SH772xGfxSharedArea) ) );
-                    close( sdrv->gfx_fd );
-                    return DFB_INIT;
-               }
-#endif
                break;
 
           case SH7723GFX_SHARED_MAGIC:
@@ -479,11 +465,6 @@ driver_close_driver( CoreGraphicsDevice *device,
              shared->num_words  / shared->num_starts,
              shared->num_words  / shared->num_idle,
              shared->num_starts / shared->num_idle );
-
-     /* Shutdown JPEG library. */
-#if 0
-     SH7722_JPEG_Shutdown();
-#endif
 
      /* Unmap shared area. */
      munmap( (void*) sdrv->gfx_shared, direct_page_align( sizeof(SH772xGfxSharedArea) ) );
