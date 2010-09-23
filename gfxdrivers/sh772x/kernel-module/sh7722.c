@@ -36,10 +36,6 @@
 
 /**********************************************************************************************************************/
 
-#ifndef SH7722_BEU_IRQ
-#define SH7722_BEU_IRQ 53
-#endif
-
 #ifndef SH7722_VEU_IRQ
 #define SH7722_VEU_IRQ 54
 #endif
@@ -767,18 +763,6 @@ sh7722_veu_irq( int irq, void *ctx )
 /**********************************************************************************************************************/
 
 static irqreturn_t
-sh7722_beu_irq( int irq, void *ctx )
-{
-     BEVTR = 0;
-
-     /* Nothing here so far. But Vsync could be added. */
-
-     return IRQ_HANDLED;
-}
-
-/**********************************************************************************************************************/
-
-static irqreturn_t
 sh7722_tdg_irq( int irq, void *ctx )
 {
      SH772xGfxSharedArea *shared = ctx;
@@ -1074,14 +1058,6 @@ sh7722_init( void )
              jpeg_order, jpeg_area, virt_to_phys(jpeg_area), SH7722GFX_JPEG_SIZE );
 
 
-     /* Register the BEU interrupt handler. */
-     ret = request_irq( SH7722_BEU_IRQ, sh7722_beu_irq, IRQF_DISABLED, "BEU", (void*) shared );
-     if (ret) {
-          printk( KERN_ERR "%s: request_irq() for interrupt %d failed! (error %d)\n",
-                  __FUNCTION__, SH7722_BEU_IRQ, ret );
-          goto error_beu;
-     }
-
 #ifdef SH7722GFX_IRQ_POLLER
      kernel_thread( sh7722_tdg_irq_poller, (void*) shared, CLONE_KERNEL );
 #else
@@ -1126,9 +1102,6 @@ error_jpu:
 
 error_tdg:
 #endif
-     free_irq( SH7722_BEU_IRQ, (void*) shared );
-
-error_beu:
      for (i=0; i<1<<jpeg_order; i++)
           ClearPageReserved( jpeg_page + i );
 
@@ -1167,8 +1140,6 @@ sh7722_exit( void )
 #else
      free_irq( SH7722_TDG_IRQ, (void*) shared );
 #endif
-
-     free_irq( SH7722_BEU_IRQ, (void*) shared );
 
      misc_deregister( &sh7722gfx_miscdev );
 

@@ -39,10 +39,6 @@
 
 /**********************************************************************************************************************/
 
-#ifndef SH7723_BEU_IRQ
-#define SH7723_BEU_IRQ 53
-#endif
-
 #ifndef SH7723_TDG_IRQ
 #define SH7723_TDG_IRQ 44
 #endif
@@ -233,16 +229,6 @@ sh7723_wait_next( SH772xGfxSharedArea *shared )
 }
 
 /**********************************************************************************************************************/
-
-static irqreturn_t
-sh7723_beu_irq( int irq, void *ctx )
-{
-     BEVTR = 0;
-
-     /* Nothing here so far. But Vsync could be added. */
-
-     return IRQ_HANDLED;
-}
 
 static irqreturn_t
 sh7723_tdg_irq( int irq, void *ctx )
@@ -489,14 +475,6 @@ sh7723_init( void )
      printk( KERN_INFO "sh7723gfx: shared area (order %d) at %p [%lx] using %d bytes\n",
              shared_order, shared, virt_to_phys(shared), sizeof(SH772xGfxSharedArea) );
 
-     /* Register the BEU interrupt handler. */
-     ret = request_irq( SH7723_BEU_IRQ, sh7723_beu_irq, IRQF_DISABLED, "BEU", (void*) shared );
-     if (ret) {
-          printk( KERN_ERR "%s: request_irq() for BEU interrupt %d failed! (error %d)\n",
-                  __FUNCTION__, SH7723_BEU_IRQ, ret );
-          goto error_beu;
-     }
-
 #ifdef SH7723GFX_IRQ_POLLER
      kernel_thread( sh7723_tdg_irq_poller, (void*) shared, CLONE_KERNEL );
 #else
@@ -515,9 +493,6 @@ sh7723_init( void )
 
 
 error_tdg:
-     free_irq( SH7723_BEU_IRQ, (void*) shared );
-
-error_beu:
 #ifndef SHARED_AREA_PHYS
      for (i=0; i<1<<shared_order; i++)
           ClearPageReserved( shared_page + i );
@@ -550,8 +525,6 @@ sh7723_exit( void )
 #else
      free_irq( SH7723_TDG_IRQ, (void*) shared );
 #endif
-
-     free_irq( SH7723_BEU_IRQ, (void*) shared );
 
      misc_deregister( &sh7723gfx_miscdev );
 
