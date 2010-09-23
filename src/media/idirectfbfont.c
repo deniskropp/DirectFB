@@ -619,6 +619,16 @@ IDirectFBFont_FindEncoding( IDirectFBFont     *thiz,
      return DFB_IDNOTFOUND;
 }
 
+static DFBResult
+IDirectFBFont_Dispose( IDirectFBFont *thiz )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
+
+     D_DEBUG_AT( Font, "%s( %p )\n", __FUNCTION__, thiz );
+
+     return dfb_font_dispose( data->font );
+}
+
 /**********************************************************************************************************************/
 
 DFBResult
@@ -643,6 +653,7 @@ IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
      thiz->SetEncoding = IDirectFBFont_SetEncoding;
      thiz->EnumEncodings = IDirectFBFont_EnumEncodings;
      thiz->FindEncoding = IDirectFBFont_FindEncoding;
+     thiz->Dispose = IDirectFBFont_Dispose;
 
      return DFB_OK;
 }

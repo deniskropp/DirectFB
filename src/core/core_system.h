@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -100,6 +100,15 @@ system_get_busid( int *ret_bus, int *ret_dev, int *ret_func );
 static void
 system_get_deviceid( unsigned int *ret_vendor_id, unsigned int *ret_device_id );
 
+static int
+system_surface_data_size( void );
+
+static void
+system_surface_data_init( CoreSurface *surface, void *data );
+
+static void
+system_surface_data_destroy( CoreSurface *surface, void *data );
+
 
 static CoreSystemFuncs system_funcs = {
      .GetSystemInfo       = system_get_info,
@@ -123,6 +132,9 @@ static CoreSystemFuncs system_funcs = {
      .AuxMemoryVirtual    = system_aux_memory_virtual,
      .AuxRamLength        = system_auxram_length,
      .GetBusID            = system_get_busid,
+     .SurfaceDataSize     = system_surface_data_size,
+     .SurfaceDataInit     = system_surface_data_init,
+     .SurfaceDataDestroy  = system_surface_data_destroy,
      .GetDeviceID         = system_get_deviceid
 };
 

@@ -5840,6 +5840,18 @@ DEFINE_INTERFACE(   IDirectFBFont,
           const char               *name,
           DFBTextEncodingID        *ret_encoding
      );
+
+
+   /** Resources **/
+
+     /*
+      * Dispose resources used by the font.
+      *
+      * Keeps font usable, recreating resources as needed.
+      */
+     DFBResult (*Dispose) (
+          IDirectFBFont            *thiz
+     );
 )
 
 /*

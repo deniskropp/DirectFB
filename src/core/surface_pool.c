@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -106,6 +106,16 @@ static DFBResult backup_allocation( CoreSurfacePool       *pool,
                                     CoreSurfaceAllocation *allocation );
 
 /**********************************************************************************************************************/
+
+/*
+ * Enable a surface pool to obtain its own local data without having to
+ * explicitly store a static local pointer to it during init/join.
+ */
+void *
+surface_pool_get_local( const CoreSurfacePool *pool )
+{
+     return get_local( pool );
+}
 
 DFBResult
 dfb_surface_pool_initialize( CoreDFB                 *core,

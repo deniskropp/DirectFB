@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -148,7 +148,7 @@ typedef enum {
      CSAID_ACCEL4        = 0x00000006,
      CSAID_ACCEL5        = 0x00000007,
 
-     CSAID_LAYER0        = 0x00000008,  /* display layers, registered by layer core (CSAID_LAYER0 + layer_id<0-7>) */
+     CSAID_LAYER0        = 0x00000008,  /* display layers, registered by layer core (CSAID_LAYER0 + layer_id<0-MAX_LAYERS>) */
      CSAID_LAYER1        = 0x00000009,
      CSAID_LAYER2        = 0x0000000a,
      CSAID_LAYER3        = 0x0000000b,
@@ -156,8 +156,16 @@ typedef enum {
      CSAID_LAYER5        = 0x0000000d,
      CSAID_LAYER6        = 0x0000000e,
      CSAID_LAYER7        = 0x0000000f,
+     CSAID_LAYER8        = 0x00000010,
+     CSAID_LAYER9        = 0x00000011,
+     CSAID_LAYER10       = 0x00000012,
+     CSAID_LAYER11       = 0x00000013,
+     CSAID_LAYER12       = 0x00000014,
+     CSAID_LAYER13       = 0x00000015,
+     CSAID_LAYER14       = 0x00000016,
+     CSAID_LAYER15       = 0x00000017,
 
-     _CSAID_NUM          = 0x00000010,  /* number of statically assigned IDs for usage in static arrays */
+     _CSAID_NUM          = 0x00000018,  /* number of statically assigned IDs for usage in static arrays */
 
      CSAID_ANY           = 0x00000100,  /* any other accessor needs to be registered using IDs starting from here */
 } CoreSurfaceAccessorID;
@@ -209,6 +217,8 @@ struct __DFB_CoreSurface
      GlobalReaction           palette_reaction;
 
      FusionSHMPoolShared     *shmpool;
+
+     void                    *data;         /* Shared system driver-specific data for this surface. */
 };
 
 

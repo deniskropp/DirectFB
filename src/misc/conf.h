@@ -245,6 +245,10 @@ typedef struct
      bool          software_trace;
 
      bool          cursor_automation;
+
+
+     int           max_font_rows;
+     int           max_font_row_width;
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

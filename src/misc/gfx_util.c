@@ -51,6 +51,7 @@
 #include <direct/util.h>
 
 #include <misc/util.h>
+#include <misc/dither.h>
 #include <misc/dither565.h>
 #include <misc/gfx_util.h>
 
@@ -138,8 +139,28 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                break;
 
           case DSPF_ARGB4444:
+#ifdef DFB_DITHER
+               /* use a pre-generated dither matrix to improve the appearance of the result */
+               {
+                    const u8 *dm = DM[ dy & (DM_HEIGHT - 1) ];
+
+                    for (i = 0; i < len; i++) {
+                         u32 x = (dm[(dx + i) & (DM_WIDTH - 1)] << 2) >> 4;
+                         u32 a = ((src[i] & 0xFF000000) >> 24) + x;
+                         u32 r = ((src[i] & 0x00FF0000) >> 16) + x;
+                         u32 g = ((src[i] & 0x0000FF00) >>  8) + x;
+                         u32 b = ((src[i] & 0x000000FF)      ) + x;
+
+                         ((u16*)d)[i] = PIXEL_ARGB4444( a - (a >> 4),
+                                                        r - (r >> 4),
+                                                        g - (g >> 4),
+                                                        b - (b >> 4) );
+                    }
+               }
+#else
                for (i = 0; i < len; i++)
                     ((u16*)d)[i] = ARGB_TO_ARGB4444( src[i] );
+#endif
                break;
 
           case DSPF_RGBA4444:
@@ -166,14 +187,14 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
 #ifdef DFB_DITHER565
                /* use a pre-generated dither matrix to improve the appearance of the result */
                {
-                    const u32 *dm = DM_565 + ((dy & (DM_HEIGHT - 1)) << DM_WIDTH_SHIFT);
+                    const u32 *dm = DM_565 + ((dy & (DM_565_HEIGHT - 1)) << DM_565_WIDTH_SHIFT);
 
                     for (i = 0; i < len; i++) {
                          u32 rgb = ((src[i] & 0xFF)          |
                                     (src[i] & 0xFF00)   << 2 |
                                     (src[i] & 0xFF0000) << 4);
 
-                         rgb += dm[(dx + i) & (DM_WIDTH - 1)];
+                         rgb += dm[(dx + i) & (DM_565_WIDTH - 1)];
                          rgb += (0x10040100
                                  - ((rgb & 0x1e0001e0) >> 5)
                                  - ((rgb & 0x00070000) >> 6));

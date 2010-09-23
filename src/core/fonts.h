@@ -166,6 +166,11 @@ DFBResult dfb_font_create( CoreDFB *core, CoreFont **ret_font );
 void dfb_font_destroy( CoreFont *font );
 
 /*
+ * dispose resources that can be recreated, mainly glyph cache surfaces
+ */
+DFBResult dfb_font_dispose( CoreFont *font );
+
+/*
  * lock the font before accessing it
  */
 static inline void
