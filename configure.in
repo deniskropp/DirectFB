@@ -198,7 +198,7 @@ case "$target_or_host" in
     AC_DEFINE(ARCH_PPC,1,[Define to 1 if you are compiling for PowerPC.])
     ;;
 
-  sh4-* | sh3-*)
+  sh4-* | sh3-* | sh-*)
     have_sh4=yes
     AC_DEFINE(ARCH_SH4,1,[Define to 1 if you are compiling for SH4.])
     ;;
