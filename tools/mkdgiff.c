@@ -69,6 +69,8 @@ static DFBSurfacePixelFormat  format = DSPF_A8;
 static int                    size_count;
 static int                    face_sizes[MAX_SIZE_COUNT];
 
+static bool                   premult;
+
 /**********************************************************************************************************************/
 
 static void
@@ -81,6 +83,7 @@ print_usage (const char *prg_name)
      fprintf (stderr, "Options:\n");
      fprintf (stderr, "   -f, --format    <pixelformat>   Choose the pixel format (default A8)\n");
      fprintf (stderr, "   -s, --sizes     <s1>[,s2...]    Choose sizes to generate glyph images for\n");
+     fprintf (stderr, "   -p, --premult                   Use premultiplied alpha\n");
      fprintf (stderr, "   -h, --help                      Show this help message\n");
      fprintf (stderr, "   -v, --version                   Print version information\n");
      fprintf (stderr, "\n");
@@ -209,6 +212,11 @@ parse_command_line( int argc, char *argv[] )
                continue;
           }
 
+          if (strcmp (arg, "-p") == 0 || strcmp (arg, "--premult") == 0) {
+               premult = true;
+               continue;
+          }
+
           if (filename || access( arg, R_OK )) {
                print_usage (argv[0]);
                return DFB_FALSE;
@@ -246,15 +254,16 @@ write_glyph( DGIFFGlyphInfo *glyph, FT_GlyphSlot slot, void *dst, int pitch )
                case ft_pixel_mode_grays:
                     switch (format) {
                          case DSPF_ARGB:
-                              if (0){//FIXME thiz->surface_caps & DSCAPS_PREMULTIPLIED) {
+                              if (premult) {
                                    for (i=0; i<glyph->width; i++)
                                         dst32[i] = ((src[i] << 24) |
                                                     (src[i] << 16) |
                                                     (src[i] <<  8) | src[i]);
                               }
-                              else
+                              else {
                                    for (i=0; i<glyph->width; i++)
                                         dst32[i] = (src[i] << 24) | 0xFFFFFF;
+                              }
                               break;
                          case DSPF_AiRGB:
                               for (i=0; i<glyph->width; i++)
@@ -325,9 +334,16 @@ write_glyph( DGIFFGlyphInfo *glyph, FT_GlyphSlot slot, void *dst, int pitch )
                case ft_pixel_mode_mono:
                     switch (format) {
                          case DSPF_ARGB:
-                              for (i=0; i<glyph->width; i++)
-                                   dst32[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
-                                                0xFF : 0x00) << 24) | 0xFFFFFF;
+                              if (premult) {
+                                   for (i=0; i<glyph->width; i++)
+                                        dst32[i] = ((src[i>>3] & (1<<(7-(i%8)))) ?
+                                                     0xFFFFFFFF : 0x00000000);
+                              }
+                              else {
+                                   for (i=0; i<glyph->width; i++)
+                                        dst32[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
+                                                     0xFF : 0x00) << 24) | 0xFFFFFF;
+                              }
                               break;
                          case DSPF_AiRGB:
                               for (i=0; i<glyph->width; i++)
@@ -606,6 +622,11 @@ main( int argc, char *argv[] )
      /* Parse the command line. */
      if (!parse_command_line( argc, argv ))
           return -1;
+
+     if (premult && format != DSPF_ARGB) {
+          fprintf( stderr, "\n\nPremultiplied alpha only implemented for ARGB!\n" );
+          return -2;
+     }
 
      if (!size_count) {
           fprintf( stderr, "\n\nUsing default sizes 8, 10, 12, 16, 22, 32\n" );
