@@ -135,13 +135,15 @@ D_DEBUG_DOMAIN( Debug_LinuxInput, "Input/Linux", "Linux input driver" );
 
 /* compat for 2.4.x kernel - just a compile fix */
 #ifndef HAVE_INPUT_ABSINFO
-struct input_absinfo {
+typedef struct {
         s32 value;
         s32 minimum;
         s32 maximum;
         s32 fuzz;
         s32 flat;
-};
+} Input_AbsInfo;
+#else
+typedef struct input_absinfo Input_AbsInfo;
 #endif
 
 
@@ -831,7 +833,7 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
 
      /* Query min/max coordinates. */
      if (data->touchpad) {
-          struct input_absinfo absinfo;
+          Input_AbsInfo absinfo;
 
           touchpad_fsm_init( &fsm_state );
 
@@ -1869,7 +1871,7 @@ driver_get_axis_info( CoreInputDevice              *device,
           ioctl( data->fd, EVIOCGBIT(EV_ABS, sizeof(absbit)), absbit );
 
           if (test_bit (axis, absbit)) {
-               struct input_absinfo absinfo;
+               Input_AbsInfo absinfo;
 
                if (ioctl( data->fd, EVIOCGABS(axis), &absinfo ) == 0 &&
                    (absinfo.minimum || absinfo.maximum)) {
