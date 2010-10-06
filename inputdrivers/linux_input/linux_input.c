@@ -1034,6 +1034,8 @@ get_device_info( int              fd,
      unsigned long relbit[NBITS(REL_CNT)];
      unsigned long absbit[NBITS(ABS_CNT)];
 
+     struct input_id devinfo;
+
      /* get device name */
      ioctl( fd, EVIOCGNAME(DFB_INPUT_DEVICE_DESC_NAME_LENGTH - 1), info->desc.name );
 
@@ -1153,6 +1155,12 @@ get_device_info( int              fd,
           info->prefered_id = DIDID_MOUSE;
      else
           info->prefered_id = DIDID_ANY;
+
+     /* Get VID and PID information */
+     ioctl( fd, EVIOCGID, &devinfo );
+     
+     info->desc.vendor_id  = devinfo.vendor;
+     info->desc.product_id = devinfo.product;
 }
 
 static bool
