@@ -1400,6 +1400,9 @@ typedef struct {
      char name[DFB_INPUT_DEVICE_DESC_NAME_LENGTH];   /* Device name */
 
      char vendor[DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH]; /* Device vendor */
+
+     int  vendor_id;                                 /* Vendor ID */
+     int  product_id;                                /* Product ID */
 } DFBInputDeviceDescription;
 
 typedef enum {
