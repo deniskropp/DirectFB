@@ -11203,8 +11203,9 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
      D_ASSERT( gfxs != NULL );
 
      if (dfb_config->software_warn) {
-          D_WARN( "Blit          (%4d,%4d-%4dx%4d) %6s, flags 0x%08x, color 0x%02x%02x%02x%02x, source (%4d,%4d) %6s",
+          D_WARN( "Blit          (%4d,%4d-%4dx%4d) %6s, flags 0x%08x, funcs %d/%d, color 0x%02x%02x%02x%02x, source (%4d,%4d) %6s",
                   dx, dy, rect->w, rect->h, dfb_pixelformat_name(gfxs->dst_format), state->blittingflags,
+                  state->src_blend, state->dst_blend,
                   state->color.a, state->color.r, state->color.g, state->color.b, rect->x, rect->y,
                   dfb_pixelformat_name(gfxs->src_format) );
      }
