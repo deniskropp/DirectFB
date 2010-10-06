@@ -70,7 +70,7 @@ typedef struct {
      uint32_t       num_glyphs;
      uint32_t       num_rows;
 
-     uint32_t       __pad;
+     DFBSurfaceBlittingFlags blittingflags;
 } DGIFFFaceHeader;
 
 typedef struct {

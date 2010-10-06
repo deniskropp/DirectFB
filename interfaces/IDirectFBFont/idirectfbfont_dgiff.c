@@ -225,8 +225,12 @@ Construct( IDirectFBFont               *thiz,
 
      font->maxadvance   = face->max_advance;
      font->pixel_format = face->pixelformat;
+     font->surface_caps = DSCAPS_NONE;
 
      font->num_rows     = face->num_rows;
+
+     if (face->blittingflags)
+          font->blittingflags = face->blittingflags;
 
      /* Allocate array for glyph cache rows. */
      font->rows = D_CALLOC( face->num_rows, sizeof(void*) );
