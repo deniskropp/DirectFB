@@ -19,22 +19,12 @@ INCLUDES = \
 AM_CFLAGS = $(FREETYPE_CFLAGS)
 
 idirectfbfont_LTLIBRARIES = \
-	libidirectfbfont_default.la	\
 	$(FREETYPE_PROVIDER_LTLIB)	\
 	libidirectfbfont_dgiff.la
 
 if BUILD_STATIC
 idirectfbfont_DATA = $(idirectfbfont_LTLIBRARIES:.la=.o)
 endif
-
-
-libidirectfbfont_default_la_SOURCES = idirectfbfont_default.c default_font.h
-
-libidirectfbfont_default_la_LDFLAGS = -avoid-version -module
-
-libidirectfbfont_default_la_LIBADD = \
-	$(top_builddir)/lib/direct/libdirect.la \
-	$(top_builddir)/src/libdirectfb.la
 
 
 libidirectfbfont_dgiff_la_SOURCES = idirectfbfont_dgiff.c
