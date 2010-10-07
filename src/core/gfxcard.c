@@ -2316,61 +2316,18 @@ void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
      dfb_state_unlock( state );
 }
 
-void
-dfb_gfxcard_drawstring( const u8 *text, int bytes,
-                        DFBTextEncodingID encoding, int x, int y,
-                        CoreFont *font, unsigned int layers, CardState *state )
+static void
+font_state_prepare( CardState   *state,
+                    CardState   *backup,
+                    CoreFont    *font,
+                    CoreSurface *surface )
 {
-     unsigned int             prev = 0;
-     unsigned int             indices[bytes];
-     int                      i, l, num;
-     int                      kern_x;
-     int                      kern_y;
-     CoreSurface             *surface;
-     DFBSurfaceBlittingFlags  orig_flags;
-     DFBSurfaceBlendFunction  orig_srcblend;
-     DFBSurfaceBlendFunction  orig_dstblend;
-     DFBPoint                 points[50];
-     DFBRectangle             rects[50];
-     int                      num_blits = 0;
-     int                      ox = x;
-     int                      oy = y;
-
-     if (encoding == DTEID_UTF8)
-          D_DEBUG_AT( Core_GraphicsOps, "%s( '%s' [%d], %d,%d, %p, %p )\n",
-                      __FUNCTION__, text, bytes, x, y, font, state );
-     else
-          D_DEBUG_AT( Core_GraphicsOps, "%s( %p [%d], %d, %d,%d, %p, %p )\n",
-                      __FUNCTION__, text, bytes, encoding, x, y, font, state );
-
-     D_ASSERT( card != NULL );
-     D_ASSERT( card->shared != NULL );
-     D_MAGIC_ASSERT( state, CardState );
-     D_ASSERT( text != NULL );
-     D_ASSERT( bytes > 0 );
-     D_ASSERT( font != NULL );
-
-     surface = state->destination;
-     D_MAGIC_ASSERT( surface, CoreSurface );
-
-     /* simple prechecks */
-     if (!(state->render_options & DSRO_MATRIX) &&
-         (x > state->clip.x2 || y > state->clip.y2 + font->ascender ||
-          y - font->descender <= state->clip.y1)) {
-          return;
-     }
-
-     dfb_font_lock( font );
-
-     /* Decode string to character indices. */
-     dfb_font_decode_text( font, encoding, text, bytes, indices, &num );
-
-     orig_flags    = state->blittingflags;
-     orig_srcblend = state->src_blend;
-     orig_dstblend = state->dst_blend;
-
-     if (orig_flags != DSBLIT_INDEX_TRANSLATION) {
+     if (state->blittingflags != DSBLIT_INDEX_TRANSLATION) {
           DFBSurfaceBlittingFlags flags = font->blittingflags;
+
+          backup->flags     = state->blittingflags;
+          backup->src_blend = state->src_blend;
+          backup->dst_blend = state->dst_blend;
 
           /* additional blending? */
           if ((state->drawingflags & DSDRAW_BLEND) && (state->color.a != 0xff))
@@ -2405,6 +2362,70 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
 
           dfb_state_set_blitting_flags( state, flags );
      }
+}
+
+static void
+font_state_restore( CardState *state,
+                    CardState *backup )
+{
+     if (state->flags != DSBLIT_INDEX_TRANSLATION) {
+          dfb_state_set_blitting_flags( state, backup->flags );
+          dfb_state_set_src_blend( state, backup->src_blend );
+          dfb_state_set_dst_blend( state, backup->dst_blend );
+     }
+}
+
+void
+dfb_gfxcard_drawstring( const u8 *text, int bytes,
+                        DFBTextEncodingID encoding, int x, int y,
+                        CoreFont *font, unsigned int layers, CardState *state )
+{
+     DFBResult     ret;
+     unsigned int  prev = 0;
+     unsigned int  indices[bytes];
+     int           i, l, num;
+     int           kern_x;
+     int           kern_y;
+     CoreSurface  *surface;
+     CardState     state_backup;
+     DFBPoint      points[50];
+     DFBRectangle  rects[50];
+     int           num_blits = 0;
+     int           ox = x;
+     int           oy = y;
+
+     if (encoding == DTEID_UTF8)
+          D_DEBUG_AT( Core_GraphicsOps, "%s( '%s' [%d], %d,%d, %p, %p )\n",
+                      __FUNCTION__, text, bytes, x, y, font, state );
+     else
+          D_DEBUG_AT( Core_GraphicsOps, "%s( %p [%d], %d, %d,%d, %p, %p )\n",
+                      __FUNCTION__, text, bytes, encoding, x, y, font, state );
+
+     D_ASSERT( card != NULL );
+     D_ASSERT( card->shared != NULL );
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( text != NULL );
+     D_ASSERT( bytes > 0 );
+     D_ASSERT( font != NULL );
+
+     surface = state->destination;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     /* simple prechecks */
+     if (!(state->render_options & DSRO_MATRIX) &&
+         (x > state->clip.x2 || y > state->clip.y2 + font->ascender ||
+          y - font->descender <= state->clip.y1)) {
+          return;
+     }
+
+     /* Decode string to character indices. */
+     ret = dfb_font_decode_text( font, encoding, text, bytes, indices, &num );
+     if (ret)
+          return;
+
+     font_state_prepare( state, &state_backup, font, surface );
+
+     dfb_font_lock( font );
 
      for (l=layers-1; l>=0; l--) {
           x = ox;
@@ -2458,25 +2479,17 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
           }
      }
 
-
      dfb_font_unlock( font );
 
-
-     if (orig_flags != DSBLIT_INDEX_TRANSLATION) {
-          dfb_state_set_blitting_flags( state, orig_flags );
-          dfb_state_set_src_blend( state, orig_srcblend );
-          dfb_state_set_dst_blend( state, orig_dstblend );
-     }
+     font_state_restore( state, &state_backup );
 }
 
 void dfb_gfxcard_drawglyph( CoreGlyphData **glyph, int x, int y,
                             CoreFont *font, unsigned int layers, CardState *state )
 {
-     int                      l;
-     CoreSurface             *surface;
-     DFBSurfaceBlittingFlags  orig_flags;
-     DFBSurfaceBlendFunction  orig_srcblend;
-     DFBSurfaceBlendFunction  orig_dstblend;
+     int          l;
+     CoreSurface *surface;
+     CardState    state_backup;
 
      D_DEBUG_AT( Core_GraphicsOps, "%s( %d,%d, %u, %p, %p )\n",
                  __FUNCTION__, x, y, layers, font, state );
@@ -2489,46 +2502,7 @@ void dfb_gfxcard_drawglyph( CoreGlyphData **glyph, int x, int y,
      surface = state->destination;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     orig_flags    = state->blittingflags;
-     orig_srcblend = state->src_blend;
-     orig_dstblend = state->dst_blend;
-
-     if (orig_flags != DSBLIT_INDEX_TRANSLATION) {
-          DFBSurfaceBlittingFlags flags = font->blittingflags;
-
-          /* additional blending? */
-          if ((state->drawingflags & DSDRAW_BLEND) && (state->color.a != 0xff))
-               flags |= DSBLIT_BLEND_COLORALPHA;
-
-          if (state->drawingflags & DSDRAW_DST_COLORKEY)
-               flags |= DSBLIT_DST_COLORKEY;
-
-          if (state->drawingflags & DSDRAW_XOR)
-               flags |= DSBLIT_XOR;
-
-          if (flags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
-               /* Porter/Duff SRC_OVER composition */
-               if ((DFB_PIXELFORMAT_HAS_ALPHA( surface->config.format ) && (surface->config.caps & DSCAPS_PREMULTIPLIED))
-                   ||
-                   (font->surface_caps & DSCAPS_PREMULTIPLIED))
-               {
-                    if (font->surface_caps & DSCAPS_PREMULTIPLIED) {
-                         if (flags & DSBLIT_BLEND_COLORALPHA)
-                              flags |= DSBLIT_SRC_PREMULTCOLOR;
-                    }
-                    else
-                         flags |= DSBLIT_SRC_PREMULTIPLY;
-
-                    dfb_state_set_src_blend( state, DSBF_ONE );
-               }
-               else
-                    dfb_state_set_src_blend( state, DSBF_SRCALPHA );
-
-               dfb_state_set_dst_blend( state, DSBF_INVSRCALPHA );
-          }
-
-          dfb_state_set_blitting_flags( state, flags );
-     }
+     font_state_prepare( state, &state_backup, font, surface );
 
      for (l=layers-1; l>=0; l--) {
           if (layers > 1)
@@ -2544,22 +2518,16 @@ void dfb_gfxcard_drawglyph( CoreGlyphData **glyph, int x, int y,
           }
      }
 
-     if (orig_flags != DSBLIT_INDEX_TRANSLATION) {
-          dfb_state_set_blitting_flags( state, orig_flags );
-          dfb_state_set_src_blend( state, orig_srcblend );
-          dfb_state_set_dst_blend( state, orig_dstblend );
-     }
+     font_state_restore( state, &state_backup );
 }
 
 bool dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
 {
-     int                      i;
-     bool                     result;
-     CoreSurface             *surface;
-     DFBSurfaceBlittingFlags  orig_flags;
-     DFBSurfaceBlendFunction  orig_srcblend;
-     DFBSurfaceBlendFunction  orig_dstblend;
-     CoreGlyphData           *data = NULL;
+     int            i;
+     bool           result;
+     CoreSurface   *surface;
+     CardState      state_backup;
+     CoreGlyphData *data = NULL;
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -2584,46 +2552,7 @@ bool dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
           return false;
      }
 
-     orig_flags    = state->blittingflags;
-     orig_srcblend = state->src_blend;
-     orig_dstblend = state->dst_blend;
-
-     if (orig_flags != DSBLIT_INDEX_TRANSLATION) {
-          DFBSurfaceBlittingFlags flags = font->blittingflags;
-
-          /* additional blending? */
-          if ((state->drawingflags & DSDRAW_BLEND) && (state->color.a != 0xff))
-               flags |= DSBLIT_BLEND_COLORALPHA;
-
-          if (state->drawingflags & DSDRAW_DST_COLORKEY)
-               flags |= DSBLIT_DST_COLORKEY;
-
-          if (state->drawingflags & DSDRAW_XOR)
-               flags |= DSBLIT_XOR;
-
-          if (flags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
-               /* Porter/Duff SRC_OVER composition */
-               if ((DFB_PIXELFORMAT_HAS_ALPHA( surface->config.format ) && (surface->config.caps & DSCAPS_PREMULTIPLIED))
-                   ||
-                   (font->surface_caps & DSCAPS_PREMULTIPLIED))
-               {
-                    if (font->surface_caps & DSCAPS_PREMULTIPLIED) {
-                         if (flags & DSBLIT_BLEND_COLORALPHA)
-                              flags |= DSBLIT_SRC_PREMULTCOLOR;
-                    }
-                    else
-                         flags |= DSBLIT_SRC_PREMULTIPLY;
-
-                    dfb_state_set_src_blend( state, DSBF_ONE );
-               }
-               else
-                    dfb_state_set_src_blend( state, DSBF_SRCALPHA );
-
-               dfb_state_set_dst_blend( state, DSBF_INVSRCALPHA );
-          }
-
-          dfb_state_set_blitting_flags( state, flags );
-     }
+     font_state_prepare( state, &state_backup, font, surface );
 
      /* set the source */
      dfb_state_set_source( state, data->surface );
@@ -2637,11 +2566,7 @@ bool dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
 
      dfb_font_unlock( font );
 
-     if (orig_flags != DSBLIT_INDEX_TRANSLATION) {
-          dfb_state_set_blitting_flags( state, orig_flags );
-          dfb_state_set_src_blend( state, orig_srcblend );
-          dfb_state_set_dst_blend( state, orig_dstblend );
-     }
+     font_state_restore( state, &state_backup );
 
      return result;
 }
