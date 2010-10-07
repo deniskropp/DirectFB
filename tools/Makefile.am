@@ -31,7 +31,7 @@ VOODOO_PROGS = dfbproxy
 endif
 
 if PNG_PROVIDER
-PNG_PROGS = mkdfiff
+PNG_PROGS = mkdfiff mkdgifft
 endif
 
 if FREETYPE_PROVIDER
@@ -87,6 +87,9 @@ mkdfiff_LDADD   = $(LIBPNG_LIBS) $(libdirect)
 
 mkdgiff_SOURCES = mkdgiff.c
 mkdgiff_LDADD   = $(FREETYPE_LIBS) $(libdirect)
+
+mkdgifft_SOURCES = mkdgifft.cpp
+mkdgifft_LDADD   = $(LIBPNG_LIBS) $(libdirectfb) $(libfusion) $(libdirect)
 
 fusion_bench_SOURCES = fusion_bench.c
 fusion_bench_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)

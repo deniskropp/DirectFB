@@ -14,6 +14,7 @@ directfb-csource
 fusion_bench
 mkdfiff
 mkdgiff
+mkdgifft
 raw15toraw24
 raw16toraw24
 raw32toraw24
