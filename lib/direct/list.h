@@ -196,13 +196,11 @@ direct_list_move_to_front( DirectLink **list, DirectLink *link )
      *list = link;
 }
 
-static __inline__ bool
-direct_list_check_link( const DirectLink *link )
-{
-     D_MAGIC_ASSERT_IF( link, DirectLink );
-
-     return link != NULL;
-}
+#define direct_list_check_link( link )                      \
+     ({                                                     \
+          D_MAGIC_ASSERT_IF( link, DirectLink );            \
+          link != NULL;                                     \
+     })
 
 
 #define direct_list_foreach(elem, list)                     \
