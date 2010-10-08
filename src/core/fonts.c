@@ -796,7 +796,6 @@ dfb_font_get_glyph_data( CoreFont       *font,
 {
      DFBResult        ret;
      CoreGlyphData   *data;
-     int              i;
      int              align;
      DFBFontManager  *manager;
      DFBFontCache    *cache;
@@ -823,7 +822,7 @@ dfb_font_get_glyph_data( CoreFont       *font,
      if (data) {
           D_MAGIC_ASSERT( data, CoreGlyphData );
 
-          D_DEBUG_AT( Core_Font, "  -> already in cache (%p)\n", __FUNCTION__, data );
+          D_DEBUG_AT( Core_Font, "  -> already in cache (%p)\n", data );
 
           cache = data->cache;
           row   = data->row;
