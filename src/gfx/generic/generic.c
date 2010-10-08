@@ -11192,7 +11192,7 @@ void gDrawLine( CardState *state, DFBRegion *line )
 void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 {
      GenefxState    *gfxs = state->gfxs;
-     int             x, h;
+     int             h;
      XopAdvanceFunc  Aop_advance;
      XopAdvanceFunc  Bop_advance;
      int             Aop_X;
