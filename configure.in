@@ -166,6 +166,10 @@ fi
 #  CFLAGS="-Wall -Wno-strict-aliasing $CFLAGS"
 #fi
 
+if test "$GCC" = "yes"; then
+  CFLAGS="-std=gnu99 $CFLAGS"
+fi
+
 
 #
 # check target architecture
