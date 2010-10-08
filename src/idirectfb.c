@@ -400,14 +400,14 @@ IDirectFB_GetDeviceDescription( IDirectFB                    *thiz,
      ret_desc->drawing_flags     = device_info.caps.drawing;
      ret_desc->video_memory      = dfb_gfxcard_memory_length();
 
-     snprintf( ret_desc->name,   DFB_GRAPHICS_DEVICE_DESC_NAME_LENGTH, device_info.name );
-     snprintf( ret_desc->vendor, DFB_GRAPHICS_DEVICE_DESC_NAME_LENGTH, device_info.vendor );
+     direct_snputs( ret_desc->name,   device_info.name,   DFB_GRAPHICS_DEVICE_DESC_NAME_LENGTH );
+     direct_snputs( ret_desc->vendor, device_info.vendor, DFB_GRAPHICS_DEVICE_DESC_NAME_LENGTH );
 
      ret_desc->driver.major = driver_info.version.major;
      ret_desc->driver.minor = driver_info.version.minor;
 
-     snprintf( ret_desc->driver.name,   DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,   driver_info.name );
-     snprintf( ret_desc->driver.vendor, DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH, driver_info.vendor );
+     direct_snputs( ret_desc->driver.name,   driver_info.name,   DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH );
+     direct_snputs( ret_desc->driver.vendor, driver_info.vendor, DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH );
 
      return DFB_OK;
 }
