@@ -1,3 +1,49 @@
+1.4.6
+-----
+
+    build fixes for new c++ code
+    use direct_snputs() instead of snprintf() (also fixes gcc warnings)
+    configure: add -std=gnu99 to CFLAGS
+    fonts: Reworked font cache for global cache row management.
+    map: added map implementation, like hash with custom objects as keys instead of primitives
+    graphics: Cleanup code by moving font state setup/restore into two functions.
+    font: Removed default font implementation, use of DGIFF is adviced instead.
+    list: Change direct_list_check_link to be a macro for getting the actual file:line in assertions.
+    mkdgifft: New tool to generate DGIFF from a description and image files.
+    linux_input: Fix build when HAVE_INPUT_ABSINFO is not defined though input_absinfo is available.
+    linux_input: Query vendor and product id.
+    input: Add vendor_id and product_id to DFBInputDeviceDescription.
+    DGIFF: Add blitting flags to structure in file (in place of padding), backward compatible.
+    generic: Show blend functions in Blit warning.
+    mkdgiff: Added option --premult (-p) for premultiplied alpha (ARGB only).
+    sh772x: Remove all jpeg related code
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+    directfb-csource: Follow macro name change from previous commit.
+    dfbtest_font: Extended test to load font at different sizes.
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+    header: add some comments to video provider structs to avoid errors in parser
+    gfx_util: Added dithering for non-RGB16 formats with separate configure option (only ARGB4444 so far)
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+    IDirectFBFont: Added Dispose() to free resources used by the font, but keeps it usable, recreating resources as needed.
+    sh772x: Remove the hook for the BEU IRQ as it isn't used for anything and will soon conflict with kernel resources.
+    configure: add sh-) to detect toolchain (by Phil.Edworthy@renesas.com)
+    Added systems driver specific shared surface data structure
+    Added surface_pool_get_local
+    Added layer enumerators to CoreSurfaceAccessorID & updated handling
+    Default WM clears pending region updates on process_updates failure
+    options: Added "max-font-rows" and "max-font-row-width" font cache limit options.
+    linux_input: set DICAPS_KEYS for all input devices with key events
+    x11: don't blank the cursor
+    tools: add option 'transparent' to directfb-csource
+    input: initialize linux_input key states
+    config: properly allocate memory for getcwd call
+    options: added "[no-]cursor-automation" for "Automated cursor show/hide for windowed primary surface"
+    util: added dfb_gfx_stretch_to()
+    directfb: updated banner, added optional DIRECTFB_VERSION_VENDOR display (just define via CPPFLAGS)
+    version 1.4.6
+    debug: added D_DEBUG_CHECK() macro implemented by new function direct_debug_check_domain()
+
+
 1.4.5
 -----
 

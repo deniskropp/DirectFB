@@ -1,3 +1,364 @@
+commit c8a0921edcef4dffb5e24349818ba00ebb195eb2
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Oct 8 12:00:18 2010 +0200
+
+    build fixes for new c++ code
+
+commit e3ff6d047c3d72a7c54c4ed2328ea7ae51c5061f
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Oct 8 10:49:01 2010 +0200
+
+    use direct_snputs() instead of snprintf() (also fixes gcc warnings)
+
+commit 4fd23cf60e4bd9a22b52df9e542ff59c43d86a47
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Oct 8 10:33:56 2010 +0200
+
+    configure: add -std=gnu99 to CFLAGS
+
+commit c066948c6b01f8e841d6f38b4c95e67faa5ec9f6
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Oct 8 09:55:39 2010 +0200
+
+    fonts: Reworked font cache for global cache row management.
+    
+    - Font cache rows are shared across fonts.
+    - Maximum number of cache rows is total and not per font.
+    - Cache rows are selected by individual glyph height, not font height.
+    
+    Applications may now load hundreds of fonts and use them in a random fashion
+    without having hundreds of font cache rows.
+
+commit a3ff914ff718791dde30d40729f77b17acc997f1
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Oct 8 09:51:42 2010 +0200
+
+    map: added map implementation, like hash with custom objects as keys instead of primitives
+    
+    On creation pass in a hash_func and compare_func.
+    
+    hash_func calculates hash based on key.
+    
+    compare_func checks if the object matches the key.
+
+commit c76bbdc3d7dd80d5b4f07487378f086550d17ef5
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 7 22:19:08 2010 +0200
+
+    graphics: Cleanup code by moving font state setup/restore into two functions.
+
+commit 6af0d424746666601887a846e791d408334d4e3e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 7 22:17:51 2010 +0200
+
+    font: Removed default font implementation, use of DGIFF is adviced instead.
+
+commit bd69fa94f9eeeb7e714f98420b8d8d548cbb7332
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 7 22:15:21 2010 +0200
+
+    list: Change direct_list_check_link to be a macro for getting the actual file:line in assertions.
+
+commit 8354fdff105ded6ab48adf70d2f3471e09d95241
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 7 22:13:39 2010 +0200
+
+    mkdgifft: New tool to generate DGIFF from a description and image files.
+    
+    Description looks like this:
+    
+    face {
+      size           54
+      height         47
+      ascender       40
+      descender      -6
+      maxadvance     40
+      blittingflags  BLEND_ALPHACHANNEL
+    
+      glyph {
+        unicode      0x0041
+        left          0
+        top           0
+        advance      40
+        file         "smiley1.png"
+      }
+    
+      glyph {
+        unicode      0x0042
+        left          0
+        top           0
+        advance      40
+        file         "smiley2.png"
+      }
+    }
+
+commit 538a372c1fba069547b1801070ad2f35d1400880
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Oct 6 11:56:43 2010 +0200
+
+    linux_input: Fix build when HAVE_INPUT_ABSINFO is not defined though input_absinfo is available.
+    
+    Need to add proper configure check for HAVE_INPUT_ABSINFO!
+
+commit c88992b94493ac8fda54a7cff6086ddc88871e29
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Oct 6 11:56:20 2010 +0200
+
+    linux_input: Query vendor and product id.
+
+commit 9f55d7f3cc06f2e82fefb1f15c3681f1b0ae3612
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Oct 6 11:48:37 2010 +0200
+
+    input: Add vendor_id and product_id to DFBInputDeviceDescription.
+
+commit bc4109a21dfef8d13c367c43e7bd27e0e458e35b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Oct 6 10:50:00 2010 +0200
+
+    DGIFF: Add blitting flags to structure in file (in place of padding), backward compatible.
+
+commit 1e5a56006caaada06438ea1f048fc9e6b11bc27b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Oct 6 10:49:21 2010 +0200
+
+    generic: Show blend functions in Blit warning.
+
+commit 236f652372a8f16a85e46246e8c22d4a3f899360
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Oct 6 00:14:56 2010 +0200
+
+    mkdgiff: Added option --premult (-p) for premultiplied alpha (ARGB only).
+
+commit 247146ef9edcf4560b71d6e9b5121647bbf53253
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Thu Sep 23 20:05:17 2010 +0200
+
+    sh772x: Remove all jpeg related code
+    
+    The jpeg code was commented out and also removed from the SOURCES
+    declaration in makefile.am, but the remaining code still #included
+    sh7722_jpeglib.h
+    
+    patch by Phil Edworthy <phil.edworthy@renesas.com>
+
+commit 924fff15dc8edc45799b3228f2250cfadc5b2b76
+Merge: 1fdd7ab... 8175b70...
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Thu Sep 23 13:14:16 2010 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 1fdd7abf2130c67f6606034088fecaf27ec75b40
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Thu Sep 23 13:13:02 2010 +0200
+
+    directfb-csource: Follow macro name change from previous commit.
+
+commit 8175b702f1fc9f9c5a35a5dbb5dfaedaf4a7b46d
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Thu Sep 23 12:59:51 2010 +0200
+
+    dfbtest_font: Extended test to load font at different sizes.
+
+commit 052763d884525639a463efd5bba461792a84593a
+Merge: d46d766... 52b2766...
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Thu Sep 23 12:59:15 2010 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit d46d766869e3149c4a8e6b457516a2218ed41637
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Thu Sep 23 12:58:24 2010 +0200
+
+    header: add some comments to video provider structs to avoid errors in parser
+
+commit 52b2766927eadc2a0b03c28ad6215ac19d12829a
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Thu Sep 23 12:28:39 2010 +0200
+
+    gfx_util: Added dithering for non-RGB16 formats with separate configure option (only ARGB4444 so far)
+
+commit eb0467496681c98db4a567ee48836d33e848e1a8
+Merge: 8e5341e... f9cd9ae...
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Thu Sep 23 11:21:18 2010 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 8e5341ef5cbb80a7bc9f5969d4b14e4db6796db1
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Thu Sep 23 11:20:22 2010 +0200
+
+    IDirectFBFont: Added Dispose() to free resources used by the font, but keeps it usable, recreating resources as needed.
+
+commit f9cd9aeeb438fa55f6f5ef850e02e2b4fe1ce6be
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Thu Sep 23 11:16:50 2010 +0200
+
+    sh772x: Remove the hook for the BEU IRQ as it isn't used for anything and will soon conflict with kernel resources.
+    
+    patch by Phil Edworthy <phil.edworthy@renesas.com>
+
+commit 17482789552ee3d044ce7457a83366d37361fab0
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Thu Sep 23 10:17:51 2010 +0200
+
+    configure: add sh-) to detect toolchain (by Phil.Edworthy@renesas.com)
+
+commit 34ec42ef5ec03512156fd35dc9b1fdedbdbf262b
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Thu Sep 23 10:11:04 2010 +0200
+
+    Added systems driver specific shared surface data structure
+    
+    Added a systems driver specific shared surface data structure
+    that is created/destroyed by the core.  Added three new functions
+    to the systems driver to do this: system_surface_data_size,
+    system_surface_data_init, and system_surface_data_destroy.  This
+    allows the systems driver to store custom data in the
+    CoreSurface.
+    
+    patch by timothy.strelchun@intel.com
+
+commit e0e0cb670e8de90c1f3cc99529acf7e520f37196
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Thu Sep 23 10:07:58 2010 +0200
+
+    Added surface_pool_get_local
+    
+    Added the function surface_pool_get_local to enable a surface
+    buffer pool to obtain its own local data.  Useful for custom
+    surface buffer pools so that they do not have to explicitly
+    store a static local pointer to it during init/join.
+    
+    patch by timothy.strelchun@intel.com
+
+commit 26253f2629ebdf5dcef89aaabcd2e10ebfeb5dec
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Thu Sep 23 10:05:57 2010 +0200
+
+    Added layer enumerators to CoreSurfaceAccessorID & updated handling
+    
+    Expanded CoreSurfaceAccessorID to include enumerators for all possible
+    display layers to resolve array out-of-bounds accesses that can occur
+    when display layer surfaces are locked (internally/externally) that
+    have an id value > 7 and < MAX_LAYERS.
+    
+    Updated dfbdump tool to dump information regarding all available
+    display layers.
+    
+    patch by timothy.strelchun@intel.com
+
+commit f08d4a56591008ca77ddc8607a60ee8e4a77e3d6
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Thu Sep 23 10:03:54 2010 +0200
+
+    Default WM clears pending region updates on process_updates failure
+    
+    In the default window manager's process_updates function, if there
+    is a failure to obtain the primary region, reset and clear all
+    pending region updates (such as due to cursor movement) to prevent
+    the region from performing any subsequent outdated repaints.  In
+    some multiple display layer usage scenarios when that would
+    previously occur, visual artifacts have been observed on other
+    display layers.
+    
+    patch by timothy.strelchun@intel.com
+
+commit 55d521ec406e035f10bc2ff2351c4bf8bd51313f
+Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
+Date:   Wed Sep 22 12:52:26 2010 +0200
+
+    options: Added "max-font-rows" and "max-font-row-width" font cache limit options.
+
+commit 3fc02996904812401c037972be12951d7ab654d4
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Wed Aug 25 10:11:29 2010 +0200
+
+    linux_input: set DICAPS_KEYS for all input devices with key events
+    
+    All linux input devices that have the EV_KEY bit set get DICAPS_KEYS
+    set in their DFBInputDeviceCapabilities.
+    
+    Signed-off-by: Sven Neumann <s.neumann@raumfeld.com>
+
+commit e2649a62092c921c7294e912afaf4660f38c9ee4
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Wed Jul 7 10:12:07 2010 +0200
+
+    x11: don't blank the cursor
+
+commit cb4093d57a383885974a3577146f46399d174cb7
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Wed Jul 7 10:08:09 2010 +0200
+
+    tools: add option 'transparent' to directfb-csource
+    
+    Add an option that allows to specify a color to be used for all
+    completely transparent pixels.
+
+commit cdc75f1f1eaf5172a24adea78f8647409987c9b0
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Wed Nov 25 12:02:26 2009 +0100
+
+    input: initialize linux_input key states
+    
+    IDirectFBInputDevice caches the key states (up/down) by keeping track
+    of press and release events. This doesn't take into account that a key
+    may be pressed at the time the device is opened or that a key might
+    have changed state while the device was in suspend.
+    
+    This change introduces code to the linux_input driver that queries
+    the keystates when the event thread is started and synthesizes key
+    events for all keys depending on the key state as reported by the
+    linux input layer.
+    
+    Signed-off-by: Sven Neumann <s.neumann@raumfeld.com>
+
+commit 438a9b1b5e9fbabfa243a699f2abebaa647bd211
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Thu Aug 19 02:00:42 2010 +0200
+
+    config: properly allocate memory for getcwd call
+
+commit 3a4befbd92469ea274fd51d96ffd2c061d08a999
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Thu Aug 19 01:41:05 2010 +0200
+
+    options: added "[no-]cursor-automation" for "Automated cursor show/hide for windowed primary surface"
+
+commit 8af5573e8cc42a2e0f08d2a6fb14ec414039519e
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Thu Aug 19 01:32:10 2010 +0200
+
+    util: added dfb_gfx_stretch_to()
+
+commit 819efe67a624112085faec609dbf5a2c1a30eaa8
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Thu Aug 19 01:22:07 2010 +0200
+
+    directfb: updated banner, added optional DIRECTFB_VERSION_VENDOR display (just define via CPPFLAGS)
+
+commit 2067c761f226fdd4c54d200089f8037550313d2a
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Thu Aug 19 01:15:23 2010 +0200
+
+    version 1.4.6
+
+commit f49b17b3fd5211920b9e8f20298fed62f0f8c488
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Thu Aug 19 01:11:47 2010 +0200
+
+    debug: added D_DEBUG_CHECK() macro implemented by new function direct_debug_check_domain()
+
+commit b1964ffb5d6b87be10e68f4de2dd4dd44e501e3c
+Author: Denis Oliver Kropp <dok@localhost.(none)>
+Date:   Thu Aug 19 00:35:01 2010 +0200
+
+    release 1.4.5
+
 commit 1640a04f5f8a2f499e1a8576d0af2cb53e5b426e
 Author: Denis Oliver Kropp <dok@localhost.(none)>
 Date:   Thu Aug 19 00:32:57 2010 +0200
