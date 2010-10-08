@@ -55,6 +55,9 @@
 
 #include <dgiff.h>
 
+
+D_DEBUG_DOMAIN( Font_DGIFF, "Font/DGIFF", "Font implementation for DGIFF" );
+
 /**********************************************************************************************************************/
 
 static DFBResult
@@ -75,8 +78,23 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBFont, DGIFF )
 /**********************************************************************************************************************/
 
 typedef struct {
+     unsigned int                 stamp;
+
+     CoreSurface                 *surface;
+     int                          next_x;
+
+     DirectLink                  *glyphs;
+
+     int                          magic;
+} CoreFontCacheRow;
+
+
+typedef struct {
      void *map;     /* Memory map of the file. */
      int   size;    /* Size of the memory map. */
+
+     CoreFontCacheRow            **rows;          /* contain bitmaps of loaded glyphs */
+     int                           num_rows;
 } DGIFFImplData;
 
 /**********************************************************************************************************************/
@@ -164,6 +182,8 @@ Construct( IDirectFBFont               *thiz,
      const char      *filename;
      CoreSurfaceConfig config;
 
+     D_DEBUG_AT( Font_DGIFF, "%s()\n", __func__ );
+
      /* use the filename for backwards compatibility */
      filename = ctx->filename;
 
@@ -227,14 +247,23 @@ Construct( IDirectFBFont               *thiz,
      font->pixel_format = face->pixelformat;
      font->surface_caps = DSCAPS_NONE;
 
-     font->num_rows     = face->num_rows;
+
+     data = D_CALLOC( 1, sizeof(DGIFFImplData) );
+     if (!data) {
+          ret = D_OOM();
+          goto error;
+     }
+
+     data->num_rows     = face->num_rows;
 
      if (face->blittingflags)
           font->blittingflags = face->blittingflags;
 
+     CORE_FONT_DEBUG_AT( Font_DGIFF, font );
+
      /* Allocate array for glyph cache rows. */
-     font->rows = D_CALLOC( face->num_rows, sizeof(void*) );
-     if (!font->rows) {
+     data->rows = D_CALLOC( face->num_rows, sizeof(void*) );
+     if (!data->rows) {
           ret = D_OOM();
           goto error;
      }
@@ -247,8 +276,8 @@ Construct( IDirectFBFont               *thiz,
      config.preallocated[1].pitch = 0;
 
      for (i=0; i<face->num_rows; i++) {
-          font->rows[i] = D_CALLOC( 1, sizeof(CoreFontCacheRow) );
-          if (!font->rows[i]) {
+          data->rows[i] = D_CALLOC( 1, sizeof(CoreFontCacheRow) );
+          if (!data->rows[i]) {
                ret = D_OOM();
                goto error;
           }
@@ -259,7 +288,7 @@ Construct( IDirectFBFont               *thiz,
           config.preallocated[0].pitch = row->pitch;
 
           ret = dfb_surface_create( core, &config, CSTF_PREALLOCATED, 0, NULL,
-                                    &font->rows[i]->surface );
+                                    &data->rows[i]->surface );
 
           if (ret) {
                D_DERROR( ret, "DGIFF/Font: Could not create preallocated %s %dx%d glyph row surface!\n",
@@ -267,7 +296,7 @@ Construct( IDirectFBFont               *thiz,
                goto error;
           }
 
-          D_MAGIC_SET( font->rows[i], CoreFontCacheRow );
+          D_MAGIC_SET( data->rows[i], CoreFontCacheRow );
 
           /* Jump to next row. */
           row = (void*)(row + 1) + row->pitch * row->height;
@@ -275,38 +304,32 @@ Construct( IDirectFBFont               *thiz,
 
      /* Build glyph infos. */
      for (i=0; i<face->num_glyphs; i++) {
-          CoreGlyphData  *data;
+          CoreGlyphData  *glyph_data;
           DGIFFGlyphInfo *glyph = &glyphs[i];
 
-          data = D_CALLOC( 1, sizeof(CoreGlyphData) );
-          if (!data) {
+          glyph_data = D_CALLOC( 1, sizeof(CoreGlyphData) );
+          if (!glyph_data) {
                ret = D_OOM();
                goto error;
           }
 
-          data->surface = font->rows[glyph->row]->surface;
+          glyph_data->surface = data->rows[glyph->row]->surface;
 
-          data->start   = glyph->offset;
-          data->width   = glyph->width;
-          data->height  = glyph->height;
-          data->left    = glyph->left;
-          data->top     = glyph->top;
-          data->advance = glyph->advance;
+          glyph_data->start   = glyph->offset;
+          glyph_data->width   = glyph->width;
+          glyph_data->height  = glyph->height;
+          glyph_data->left    = glyph->left;
+          glyph_data->top     = glyph->top;
+          glyph_data->advance = glyph->advance;
 
-          D_MAGIC_SET( data, CoreGlyphData );
+          D_MAGIC_SET( glyph_data, CoreGlyphData );
 
-          direct_hash_insert( font->layers[0].glyph_hash, glyph->unicode, data );
+          direct_hash_insert( font->layers[0].glyph_hash, glyph->unicode, glyph_data );
 
           if (glyph->unicode < 128)
-               font->layers[0].glyph_data[glyph->unicode] = data;
+               font->layers[0].glyph_data[glyph->unicode] = glyph_data;
      }
 
-
-     data = D_CALLOC( 1, sizeof(DGIFFImplData) );
-     if (!data) {
-          ret = D_OOM();
-          goto error;
-     }
 
      data->map  = ptr;
      data->size = stat.st_size;
@@ -326,19 +349,19 @@ Construct( IDirectFBFont               *thiz,
 
 error:
      if (font) {
-          if (font->rows) {
-               for (i=0; i<font->num_rows; i++) {
-                    if (font->rows[i]) {
-                         if (font->rows[i]->surface)
-                              dfb_surface_unref( font->rows[i]->surface );
+          if (data->rows) {
+               for (i=0; i<data->num_rows; i++) {
+                    if (data->rows[i]) {
+                         if (data->rows[i]->surface)
+                              dfb_surface_unref( data->rows[i]->surface );
 
-                         D_FREE( font->rows[i] );
+                         D_FREE( data->rows[i] );
                     }
                }
 
-               D_FREE( font->rows );
+               D_FREE( data->rows );
 
-               font->rows = NULL;
+               data->rows = NULL;
           }
 
           dfb_font_destroy( font );

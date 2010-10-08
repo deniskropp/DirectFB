@@ -158,5 +158,7 @@ CoreCleanup *dfb_core_cleanup_add( CoreDFB         *core,
 void         dfb_core_cleanup_remove( CoreDFB     *core,
                                       CoreCleanup *cleanup );
 
+DFBFontManager *dfb_core_font_manager( CoreDFB *core );
+
 #endif
 

@@ -39,26 +39,92 @@
 
 #include <core/state.h>
 
+
+
+typedef struct {
+     unsigned int             height;
+     DFBSurfacePixelFormat    pixel_format;
+     DFBSurfaceCapabilities   surface_caps;
+} DFBFontCacheType;
+
+
+DFBResult dfb_font_manager_create        ( CoreDFB                 *core,
+                                           DFBFontManager         **ret_manager );
+DFBResult dfb_font_manager_destroy       ( DFBFontManager          *manager );
+DFBResult dfb_font_manager_init          ( DFBFontManager          *manager,
+                                           CoreDFB                 *core );
+DFBResult dfb_font_manager_deinit        ( DFBFontManager          *manager );
+
+DFBResult dfb_font_manager_lock          ( DFBFontManager          *manager );
+DFBResult dfb_font_manager_unlock        ( DFBFontManager          *manager );
+
+DFBResult dfb_font_manager_get_cache     ( DFBFontManager          *manager,
+                                           const DFBFontCacheType  *type,
+                                           DFBFontCache           **ret_cache );
+
+DFBResult dfb_font_manager_remove_lru_row( DFBFontManager          *manager );
+
+DFBResult dfb_font_cache_create          ( DFBFontManager          *manager,
+                                           const DFBFontCacheType  *type,
+                                           DFBFontCache           **ret_cache );
+DFBResult dfb_font_cache_destroy         ( DFBFontCache            *cache );
+DFBResult dfb_font_cache_init            ( DFBFontCache            *cache,
+                                           DFBFontManager          *manager,
+                                           const DFBFontCacheType  *type );
+DFBResult dfb_font_cache_deinit          ( DFBFontCache            *cache );
+DFBResult dfb_font_cache_get_row         ( DFBFontCache            *cache,
+                                           unsigned int             width,
+                                           DFBFontCacheRow        **ret_row );
+
+DFBResult dfb_font_cache_row_create      ( DFBFontCache            *cache,
+                                           DFBFontCacheRow        **ret_row );
+DFBResult dfb_font_cache_row_destroy     ( DFBFontCacheRow         *row );
+DFBResult dfb_font_cache_row_init        ( DFBFontCacheRow         *row,
+                                           DFBFontCache            *cache );
+DFBResult dfb_font_cache_row_deinit      ( DFBFontCacheRow         *row );
+
+
+
+
+
 /*
  * glyph struct
  */
 struct _CoreGlyphData {
-     DirectLink     link;
+     DirectLink       link;
 
-     unsigned int   index;
-     unsigned int   layer;
-     unsigned int   row;
+     CoreFont        *font;
 
-     CoreSurface   *surface;              /* contains bitmap of glyph         */
-     int            start;                /* x offset of glyph in surface     */
-     int            width;                /* width of the glyphs bitmap       */
-     int            height;               /* height of the glyphs bitmap      */
-     int            left;                 /* x offset of the glyph            */
-     int            top;                  /* y offset of the glyph            */
-     int            advance;              /* placement of next glyph          */
+     unsigned int     index;
+     unsigned int     layer;
 
-     int            magic;
+     CoreSurface     *surface;              /* contains bitmap of glyph         */
+     int              start;                /* x offset of glyph in surface     */
+     int              width;                /* width of the glyphs bitmap       */
+     int              height;               /* height of the glyphs bitmap      */
+     int              left;                 /* x offset of the glyph            */
+     int              top;                  /* y offset of the glyph            */
+     int              advance;              /* placement of next glyph          */
+
+     int              magic;
+
+     DFBFontCache    *cache;
+     DFBFontCacheRow *row;
 };
+
+#define CORE_GLYPH_DATA_DEBUG_AT(Domain, data)                                       \
+     do {                                                                            \
+          D_DEBUG_AT( Domain, "  -> index   %d\n", (data)->index );                  \
+          D_DEBUG_AT( Domain, "  -> layer   %d\n", (data)->layer );                  \
+          D_DEBUG_AT( Domain, "  -> row     %p\n", (data)->row );                    \
+          D_DEBUG_AT( Domain, "  -> surface %p\n", (data)->surface );                \
+          D_DEBUG_AT( Domain, "  -> start   %d\n", (data)->start );                  \
+          D_DEBUG_AT( Domain, "  -> width   %d\n", (data)->width );                  \
+          D_DEBUG_AT( Domain, "  -> height  %d\n", (data)->height );                 \
+          D_DEBUG_AT( Domain, "  -> left    %d\n", (data)->left );                   \
+          D_DEBUG_AT( Domain, "  -> top     %d\n", (data)->top );                    \
+          D_DEBUG_AT( Domain, "  -> advance %d\n", (data)->advance );                \
+     } while (0)
 
 typedef struct {
      DFBResult   (* GetCharacterIndex) ( CoreFont       *thiz,
@@ -82,17 +148,6 @@ typedef struct {
      int                          magic;
 } CoreFontEncoding;
 
-typedef struct {
-     unsigned int                 stamp;
-
-     CoreSurface                 *surface;
-     int                          next_x;
-
-     DirectLink                  *glyphs;
-
-     int                          magic;
-} CoreFontCacheRow;
-
 
 #define DFB_FONT_MAX_LAYERS 2
 
@@ -103,18 +158,14 @@ typedef struct {
 struct _CoreFont {
      CoreDFB                      *core;
 
+     DFBFontManager               *manager;
+
      DFBSurfaceBlittingFlags       blittingflags;
      DFBSurfacePixelFormat         pixel_format;
      DFBSurfaceCapabilities        surface_caps;
-     int                           row_width;
-     int                           max_rows;
 
      DFBFontAttributes             attributes;
 
-     CoreFontCacheRow            **rows;          /* contain bitmaps of loaded glyphs */
-     int                           num_rows;
-     int                           active_row;
-     unsigned int                  row_stamp;
 
      struct {
           DirectHash              *glyph_hash;    /* infos about loaded glyphs        */
@@ -128,8 +179,6 @@ struct _CoreFont {
      int                           descender;     /* a negative value, the distance
                                                      from the baseline to the bottom  */
      int                           maxadvance;    /* width of largest character       */
-
-     pthread_mutex_t               lock;          /* lock during access to the font   */
 
      const CoreFontEncodingFuncs  *utf8;          /* for default encoding, DTEID_UTF8 */
      CoreFontEncoding            **encodings;     /* for other encodings              */
@@ -155,6 +204,13 @@ struct _CoreFont {
      int                           magic;
 };
 
+#define CORE_FONT_DEBUG_AT(Domain, font)                                             \
+     do {                                                                            \
+          D_DEBUG_AT( Domain, "  -> ascender  %d\n", (font)->ascender );             \
+          D_DEBUG_AT( Domain, "  -> descender %d\n", (font)->descender );            \
+          D_DEBUG_AT( Domain, "  -> height    %d\n", (font)->height );               \
+     } while (0)
+
 /*
  * allocates and initializes a new font structure
  */
@@ -178,7 +234,7 @@ dfb_font_lock( CoreFont *font )
 {
      D_MAGIC_ASSERT( font, CoreFont );
 
-     pthread_mutex_lock( &font->lock );
+     dfb_font_manager_lock( font->manager );
 }
 
 /*
@@ -189,7 +245,7 @@ dfb_font_unlock( CoreFont *font )
 {
      D_MAGIC_ASSERT( font, CoreFont );
 
-     pthread_mutex_unlock( &font->lock );
+     dfb_font_manager_unlock( font->manager );
 }
 
 /*
@@ -238,5 +294,6 @@ DFBResult dfb_font_decode_character( CoreFont          *font,
                                      DFBTextEncodingID  encoding,
                                      u32                character,
                                      unsigned int      *ret_index );
+
 
 #endif

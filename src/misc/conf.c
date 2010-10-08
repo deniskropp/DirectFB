@@ -162,7 +162,7 @@ static const char *config_usage =
      "  i8xx_overlay_pipe_b            Redirect videolayer to pixelpipe B\n"
      "  include=<config file>          Include the specified file, relative to the current file\n"
      "\n"
-     "  max-font-rows=<number>         Maximum number of glyph cache rows per font\n"
+     "  max-font-rows=<number>         Maximum number of glyph cache rows (total for all fonts)\n"
      "  max-font-row-width=<pixels>    Maximum width of glyph cache row surface\n"
      "\n"
      " Window surface swapping policy:\n"

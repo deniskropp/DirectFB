@@ -45,6 +45,7 @@
 
 #include <direct/debug.h>
 #include <direct/hash.h>
+#include <direct/map.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/utf8.h>
@@ -59,6 +60,10 @@
 D_DEBUG_DOMAIN( Core_Font,         "Core/Font",      "DirectFB Core Font" );
 D_DEBUG_DOMAIN( Core_FontSurfaces, "Core/Font/Surf", "DirectFB Core Font Surfaces" );
 
+D_DEBUG_DOMAIN( Font_Manager,      "Core/Font/Manager",  "DirectFB Core Font Manager" );
+D_DEBUG_DOMAIN( Font_Cache,        "Core/Font/Cache",    "DirectFB Core Font Cache" );
+D_DEBUG_DOMAIN( Font_CacheRow,     "Core/Font/CacheRow", "DirectFB Core Font Cache Row" );
+
 /**********************************************************************************************************************/
 
 static bool free_glyphs( DirectHash    *hash,
@@ -66,6 +71,610 @@ static bool free_glyphs( DirectHash    *hash,
                          void          *value,
                          void          *ctx );
 
+/**********************************************************************************************************************/
+
+struct __DFB_DFBFontManager {
+     int                 magic;
+
+     CoreDFB            *core;
+
+     pthread_mutex_t     lock;
+
+     DirectMap          *caches;
+
+     unsigned int        max_rows;
+     unsigned int        num_rows;
+     unsigned long long  row_stamp;     // FIXME: lru calculation wrong if value overruns (non-fatal)
+};
+
+#define DFB_FONT_MANAGER_ASSERT( manager )                            \
+     do {                                                             \
+          D_MAGIC_ASSERT( manager, DFBFontManager );                  \
+          D_ASSERT( (manager)->max_rows > 0 );                        \
+          D_ASSERT( (manager)->num_rows <= (manager)->max_rows );     \
+     } while (0)
+
+/**********************************************************************************************************************/
+
+struct __DFB_DFBFontCache {
+     int                 magic;
+
+     DFBFontManager     *manager;
+
+     DFBFontCacheType    type;
+
+     unsigned int        row_width;
+
+     DirectLink         *rows;
+};
+
+#define DFB_FONT_CACHE_ASSERT( cache )                                \
+     do {                                                             \
+          D_MAGIC_ASSERT( cache, DFBFontCache );                      \
+     } while (0)
+
+/**********************************************************************************************************************/
+
+struct __DFB_DFBFontCacheRow {
+     DirectLink          link;
+
+     int                 magic;
+
+     DFBFontCache       *cache;
+
+     unsigned long long  stamp;
+
+     CoreSurface        *surface;
+     unsigned int        next_x;
+
+     DirectLink         *glyphs;
+};
+
+#define DFB_FONT_CACHE_ROW_ASSERT( row )                              \
+     do {                                                             \
+          D_MAGIC_ASSERT( row, DFBFontCacheRow );                     \
+     } while (0)
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+static bool
+font_cache_map_compare( DirectMap    *map,
+                        const void   *key,
+                        void         *object,
+                        void         *ctx )
+{
+     const DFBFontCacheType *type  = key;
+     DFBFontCache           *cache = object;
+
+     return memcmp( type, &cache->type, sizeof(*type) ) == 0;
+}
+
+static unsigned int
+font_cache_map_hash( DirectMap    *map,
+                     const void   *key,
+                     void         *ctx )
+{
+     const DFBFontCacheType *type = key;
+
+     return (type->height * 131 + type->pixel_format) * 131 + type->surface_caps;
+}
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+DFBResult
+dfb_font_manager_create( CoreDFB         *core,
+                         DFBFontManager **ret_manager )
+{
+     D_DEBUG_AT( Font_Manager, "%s()\n", __func__ );
+
+     DFBResult       ret;
+     DFBFontManager *manager;
+
+     D_ASSERT( core != NULL );
+     D_ASSERT( ret_manager != NULL );
+
+     manager = D_CALLOC( 1, sizeof(DFBFontManager) );
+     if (!manager)
+          return D_OOM();
+
+     ret = dfb_font_manager_init( manager, core );
+     if (ret) {
+          D_FREE( manager );
+          return ret;
+     }
+
+     *ret_manager = manager;
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_font_manager_destroy( DFBFontManager *manager )
+{
+     D_DEBUG_AT( Font_Manager, "%s()\n", __func__ );
+
+     DFB_FONT_MANAGER_ASSERT( manager );
+
+     dfb_font_manager_deinit( manager );
+
+     D_FREE( manager );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_font_manager_init( DFBFontManager *manager,
+                       CoreDFB        *core )
+{
+     D_DEBUG_AT( Font_Manager, "%s()\n", __func__ );
+
+     DFBResult ret;
+
+     D_ASSERT( core != NULL );
+     D_ASSERT( manager != NULL );
+
+     manager->core      = core;
+     manager->max_rows  = dfb_config->max_font_rows;
+
+     ret = direct_map_create( 11, font_cache_map_compare, font_cache_map_hash, NULL, &manager->caches );
+     if (ret)
+          return ret;
+
+     direct_util_recursive_pthread_mutex_init( &manager->lock );
+
+     D_MAGIC_SET( manager, DFBFontManager );
+
+     return DFB_OK;
+}
+
+static DirectEnumerationResult
+destroy_caches( DirectMap *map,
+                void      *object,
+                void      *ctx )
+{
+     D_DEBUG_AT( Font_Manager, "%s( object %p )\n", __func__, object );
+
+     DFBFontCache *cache = object;
+
+     DFB_FONT_CACHE_ASSERT( cache );
+
+     dfb_font_cache_destroy( cache );
+
+     return DENUM_OK;
+}
+
+DFBResult
+dfb_font_manager_deinit( DFBFontManager *manager )
+{
+     D_DEBUG_AT( Font_Manager, "%s()\n", __func__ );
+
+     DFB_FONT_MANAGER_ASSERT( manager );
+
+     direct_map_iterate( manager->caches, destroy_caches, NULL );
+     direct_map_destroy( manager->caches );
+
+     pthread_mutex_destroy( &manager->lock );
+
+     D_MAGIC_CLEAR( manager );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_font_manager_lock( DFBFontManager *manager )
+{
+     D_DEBUG_AT( Font_Manager, "%s()\n", __func__ );
+
+     DFB_FONT_MANAGER_ASSERT( manager );
+
+     pthread_mutex_lock( &manager->lock );
+
+     // FIXME: remember row stamp here, avoiding destruction of any row used before the unlock,
+     //        might happen with looong string and smaaaall maximum of rows
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_font_manager_unlock( DFBFontManager *manager )
+{
+     D_DEBUG_AT( Font_Manager, "%s()\n", __func__ );
+
+     DFB_FONT_MANAGER_ASSERT( manager );
+
+     // FIXME: destroy LRU row until maximum number of rows is no longer exceeded,
+     //        might happen when rows are preserved due to being used after lock is called
+
+     pthread_mutex_unlock( &manager->lock );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_font_manager_get_cache( DFBFontManager          *manager,
+                            const DFBFontCacheType  *type,
+                            DFBFontCache           **ret_cache )
+{
+     D_DEBUG_AT( Font_Manager, "%s()\n", __func__ );
+
+     DFB_FONT_MANAGER_ASSERT( manager );
+     D_ASSERT( type != NULL );
+     D_ASSERT( ret_cache != NULL );
+
+     D_DEBUG_AT( Font_Manager, "  -> height %u, format 0x%x, caps 0x%x\n",
+                 type->height, type->pixel_format, type->surface_caps );
+
+     ///
+
+     DFBResult     ret;
+     DFBFontCache *cache;
+
+     DFBFontCacheType _type = *type;
+
+     if (_type.height < 8)
+          _type.height = 8;
+
+     cache = direct_map_lookup( manager->caches, &_type );
+     if (!cache) {
+          ret = dfb_font_cache_create( manager, &_type, &cache );
+          if (ret)
+               return ret;
+
+          ret = direct_map_insert( manager->caches, &_type, cache );
+          if (ret) {
+               dfb_font_cache_destroy( cache );
+               return ret;
+          }
+     }
+
+     *ret_cache = cache;
+
+     return DFB_OK;
+}
+
+typedef struct {
+     unsigned int     lru_stamp;
+     DFBFontCacheRow *lru_row;
+} FindLruRowContext;
+
+static DirectEnumerationResult
+find_lru_row( DirectMap *map,
+              void      *object,
+              void      *ctx )
+{
+     D_DEBUG_AT( Font_Manager, "%s( object %p )\n", __func__, object );
+
+     FindLruRowContext *context = ctx;
+     DFBFontCache      *cache   = object;
+     DFBFontCacheRow   *row;
+
+     DFB_FONT_CACHE_ASSERT( cache );
+
+     direct_list_foreach (row, cache->rows) {
+          D_DEBUG_AT( Font_Manager, "  -> stamp %llu\n", row->stamp );
+
+          if (!context->lru_row || context->lru_stamp > row->stamp) {
+               context->lru_row   = row;
+               context->lru_stamp = row->stamp;
+          }
+     }
+
+     return DENUM_OK;
+}
+
+DFBResult
+dfb_font_manager_remove_lru_row( DFBFontManager *manager )
+{
+     D_DEBUG_AT( Font_Manager, "%s()\n", __func__ );
+
+     FindLruRowContext  context;
+     DFBFontCache      *cache;
+
+     DFB_FONT_MANAGER_ASSERT( manager );
+
+     context.lru_stamp = 0;
+     context.lru_row   = NULL;
+
+     direct_map_iterate( manager->caches, find_lru_row, &context );
+
+     if (!context.lru_row) {
+          D_ERROR( "Core/Font: Could not find any row (LRU)!\n" );
+          return DFB_ITEMNOTFOUND;
+     }
+
+     D_DEBUG_AT( Font_Manager, "  -> row %p (stamp %llu)\n", context.lru_row, context.lru_row->stamp );
+
+     cache = context.lru_row->cache;
+     DFB_FONT_CACHE_ASSERT( cache );
+
+     direct_list_remove( &cache->rows, &context.lru_row->link );
+
+     dfb_font_cache_row_destroy( context.lru_row );
+
+     /* Decrease row counter. */
+     manager->num_rows--;
+
+     return DFB_OK;
+}
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+DFBResult
+dfb_font_cache_create( DFBFontManager          *manager,
+                       const DFBFontCacheType  *type,
+                       DFBFontCache           **ret_cache )
+{
+     DFB_FONT_MANAGER_ASSERT( manager );
+     D_ASSERT( type != NULL );
+     D_ASSERT( ret_cache != NULL );
+
+     ///
+
+     DFBResult     ret;
+     DFBFontCache *cache;
+
+     cache = D_CALLOC( 1, sizeof(DFBFontCache) );
+     if (!cache)
+          return D_OOM();
+
+     ret = dfb_font_cache_init( cache, manager, type );
+     if (ret) {
+          D_FREE( cache );
+          return ret;
+     }
+
+     *ret_cache = cache;
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_font_cache_destroy( DFBFontCache *cache )
+{
+     DFB_FONT_CACHE_ASSERT( cache );
+
+     dfb_font_cache_deinit( cache );
+
+     D_FREE( cache );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_font_cache_init( DFBFontCache           *cache,
+                     DFBFontManager         *manager,
+                     const DFBFontCacheType *type )
+{
+     D_ASSERT( cache != NULL );
+     D_ASSERT( type != NULL );
+     DFB_FONT_MANAGER_ASSERT( manager );
+
+     ///
+
+     cache->manager = manager;
+     cache->type    = *type;
+
+
+     cache->row_width = 2048 * type->height / 64;
+
+     if (cache->row_width > dfb_config->max_font_row_width)
+          cache->row_width = dfb_config->max_font_row_width;
+
+     if (cache->row_width < type->height)
+          cache->row_width = type->height;
+
+     cache->row_width = (cache->row_width + 7) & ~7;
+
+
+     D_MAGIC_SET( cache, DFBFontCache );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_font_cache_deinit( DFBFontCache *cache )
+{
+     DFBFontCacheRow *row;
+
+     DFB_FONT_CACHE_ASSERT( cache );
+
+     direct_list_foreach (row, cache->rows)
+          dfb_font_cache_row_destroy( row );
+
+     cache->rows = NULL;
+
+     D_MAGIC_CLEAR( cache );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_font_cache_get_row( DFBFontCache     *cache,
+                        unsigned int      width,
+                        DFBFontCacheRow **ret_row )
+{
+     DFBResult        ret;
+     DFBFontManager  *manager;
+     DFBFontCacheRow *row;
+     DFBFontCacheRow *best_row = NULL;
+     unsigned int     best_val = 0;
+
+     DFB_FONT_CACHE_ASSERT( cache );
+     D_ASSERT( ret_row != NULL );
+
+     manager = cache->manager;
+     DFB_FONT_MANAGER_ASSERT( manager );
+
+     /* Try freshest row first. */
+     row = (DFBFontCacheRow*) cache->rows;
+     if (row && row->next_x + width <= cache->row_width) {
+          *ret_row = row;
+
+          return DFB_OK;
+     }
+
+     /* Check for trailing space in each row. */
+     direct_list_foreach (row, cache->rows) {
+          DFB_FONT_CACHE_ROW_ASSERT( row );
+
+          /* If glyph fits... */
+          if (row->next_x + width <= cache->row_width) {
+               /* ...and no row yet or this row fits better... */
+               if (!best_row || best_val < row->next_x) {
+                    /* ...remember row */
+                    best_row = row;
+                    best_val = row->next_x;
+               }
+          }
+     }
+
+     if (best_row) {
+          *ret_row = best_row;
+
+          return DFB_OK;
+     }
+
+
+     /*
+      * Need a new cache row
+      */
+
+     /* Maximum number of rows reached? */
+     if (manager->num_rows == manager->max_rows) {
+          /* Remove the least recently used row. */
+          ret = dfb_font_manager_remove_lru_row( manager );
+          if (ret)
+               return ret;
+     }
+
+     D_ASSERT( manager->num_rows < manager->max_rows );
+
+     /* Create another row. */
+     ret = dfb_font_cache_row_create( cache, &row );
+     if (ret)
+          return ret;
+
+     /* Prepend to list (freshest is first). */
+     direct_list_prepend( &cache->rows, &row->link );
+
+     /* Increase row counter in manager. */
+     manager->num_rows++;
+
+     *ret_row = row;
+
+     return DFB_OK;
+}
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+DFBResult
+dfb_font_cache_row_create( DFBFontCache     *cache,
+                           DFBFontCacheRow **ret_row )
+{
+     DFBResult        ret;
+     DFBFontCacheRow *row;
+
+     row = D_CALLOC( 1, sizeof(DFBFontCacheRow) );
+     if (!row)
+          return D_OOM();
+
+     ret = dfb_font_cache_row_init( row, cache );
+     if (ret) {
+          D_FREE( row );
+          return ret;
+     }
+
+     *ret_row = row;
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_font_cache_row_destroy( DFBFontCacheRow *row )
+{
+     DFB_FONT_CACHE_ROW_ASSERT( row );
+
+     dfb_font_cache_row_deinit( row );
+
+     D_FREE( row );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_font_cache_row_init( DFBFontCacheRow *row,
+                         DFBFontCache    *cache )
+{
+     DFBResult       ret;
+     DFBFontManager *manager;
+
+     DFB_FONT_CACHE_ASSERT( cache );
+
+     manager = cache->manager;
+     DFB_FONT_MANAGER_ASSERT( manager );
+
+     row->cache = cache;
+
+     /* Create a new font surface. */
+     ret = dfb_surface_create_simple( manager->core,
+                                      cache->row_width,
+                                      cache->type.height,
+                                      cache->type.pixel_format,
+                                      cache->type.surface_caps,
+                                      CSTF_FONT,
+                                      0,
+                                      NULL, &row->surface );
+     if (ret) {
+          D_DERROR( ret, "Core/Font: Could not create font surface!\n" );
+          return ret;
+     }
+
+     D_DEBUG_AT( Core_FontSurfaces, "  -> new row %d - %dx%d %s\n", manager->num_rows,
+                 row->surface->config.size.w, row->surface->config.size.h,
+                 dfb_pixelformat_name(row->surface->config.format) );
+
+     D_MAGIC_SET( row, DFBFontCacheRow );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_font_cache_row_deinit( DFBFontCacheRow *row )
+{
+     CoreGlyphData *glyph, *next;
+
+     DFB_FONT_CACHE_ROW_ASSERT( row );
+
+     /* Kick out all glyphs. */
+     direct_list_foreach_safe (glyph, next, row->glyphs) {
+          CoreFont *font = glyph->font;
+
+          D_MAGIC_ASSERT( glyph, CoreGlyphData );
+          D_ASSERT( glyph->layer < D_ARRAY_SIZE(font->layers) );
+
+          /*ret =*/ direct_hash_remove( font->layers[glyph->layer].glyph_hash, glyph->index );
+          //FIXME: use D_ASSERT( ret == DFB_OK );
+
+          if (glyph->index < 128)
+               font->layers[glyph->layer].glyph_data[glyph->index] = NULL;
+
+          D_MAGIC_CLEAR( glyph );
+          D_FREE( glyph );
+     }
+
+
+     dfb_surface_unref( row->surface );
+
+     D_MAGIC_CLEAR( row );
+
+     return DFB_OK;
+}
+
+/**********************************************************************************************************************/
 /**********************************************************************************************************************/
 
 DFBResult
@@ -95,10 +704,8 @@ dfb_font_create( CoreDFB *core, CoreFont **ret_font )
           }
      }
 
-     font->core     = core;
-     font->max_rows = dfb_config->max_font_rows;
-
-     direct_util_recursive_pthread_mutex_init( &font->lock );
+     font->core    = core;
+     font->manager = dfb_core_font_manager( core );
 
      /* the proposed pixel_format, may be changed by the font provider */
      font->pixel_format = dfb_config->font_format ? : DSPF_A8;
@@ -130,8 +737,6 @@ dfb_font_destroy( CoreFont *font )
 
      D_MAGIC_ASSERT( font, CoreFont );
 
-     pthread_mutex_lock( &font->lock );
-
      dfb_font_dispose( font );
 
      for (i=0; i<DFB_FONT_MAX_LAYERS; i++)
@@ -154,9 +759,6 @@ dfb_font_destroy( CoreFont *font )
      if (font->encodings)
           D_FREE( font->encodings );
 
-     pthread_mutex_unlock( &font->lock );
-     pthread_mutex_destroy( &font->lock );
-
      D_MAGIC_CLEAR( font );
 
      D_FREE( font );
@@ -171,7 +773,7 @@ dfb_font_dispose( CoreFont *font )
 
      D_MAGIC_ASSERT( font, CoreFont );
 
-     pthread_mutex_lock( &font->lock );
+     dfb_font_manager_lock( font->manager );
 
      for (i=0; i<DFB_FONT_MAX_LAYERS; i++) {
           direct_hash_iterate( font->layers[i].glyph_hash, free_glyphs, NULL );
@@ -179,28 +781,7 @@ dfb_font_dispose( CoreFont *font )
           memset( font->layers[i].glyph_data, 0, sizeof(font->layers[i].glyph_data) );
      }
 
-     if (font->rows) {
-          for (i = 0; i < font->num_rows; i++) {
-               CoreFontCacheRow *row = font->rows[i];
-
-               D_MAGIC_ASSERT( row, CoreFontCacheRow );
-
-               D_DEBUG_AT( Core_Font, "  -> releasing font cache row %p\n", row );
-
-               dfb_surface_unref( row->surface );
-
-               D_MAGIC_CLEAR( row );
-
-               D_FREE( row );
-          }
-
-          D_FREE( font->rows );
-
-          font->rows     = NULL;
-          font->num_rows = 0;
-     }
-
-     pthread_mutex_unlock( &font->lock );
+     dfb_font_manager_unlock( font->manager );
 
      return DFB_OK;
 }
@@ -208,16 +789,18 @@ dfb_font_dispose( CoreFont *font )
 /**********************************************************************************************************************/
 
 DFBResult
-dfb_font_get_glyph_data( CoreFont        *font,
-                         unsigned int     index,
-                         unsigned int     layer,
-                         CoreGlyphData  **ret_data )
+dfb_font_get_glyph_data( CoreFont       *font,
+                         unsigned int    index,
+                         unsigned int    layer,
+                         CoreGlyphData **ret_data )
 {
-     DFBResult         ret;
-     CoreGlyphData    *data;
-     int               i;
-     int               align;
-     CoreFontCacheRow *row = NULL;
+     DFBResult        ret;
+     CoreGlyphData   *data;
+     int              i;
+     int              align;
+     DFBFontManager  *manager;
+     DFBFontCache    *cache;
+     DFBFontCacheRow *row = NULL;
 
      D_DEBUG_AT( Core_Font, "%s( index %u, layer %u )\n", __FUNCTION__, index, layer );
 
@@ -225,52 +808,55 @@ dfb_font_get_glyph_data( CoreFont        *font,
      D_ASSERT( ret_data != NULL );
 
      D_ASSERT( layer < D_ARRAY_SIZE(font->layers) );
-     D_ASSERT( font->num_rows >= 0 );
 
-     if (font->num_rows) {
-          D_ASSERT( font->num_rows <= font->max_rows || font->max_rows < 0 );
-          D_ASSERT( font->active_row >= 0 );
-          D_ASSERT( font->active_row < font->num_rows );
-     }
+     manager = font->manager;
+     DFB_FONT_MANAGER_ASSERT( manager );
 
+     /* Quick Lookup in array */
      if (index < 128 && font->layers[layer].glyph_data[index]) {
           *ret_data = font->layers[layer].glyph_data[index];
           return DFB_OK;
      }
 
+     /* Standard lookup in hash */
      data = direct_hash_lookup( font->layers[layer].glyph_hash, index );
      if (data) {
           D_MAGIC_ASSERT( data, CoreGlyphData );
 
           D_DEBUG_AT( Core_Font, "  -> already in cache (%p)\n", __FUNCTION__, data );
 
-          if (font->rows) {
-               D_ASSERT( data->row >= 0 );
-               D_ASSERT( data->row < font->num_rows );
+          cache = data->cache;
+          row   = data->row;
 
-               row = font->rows[data->row];
+          DFB_FONT_CACHE_ASSERT( cache );
+          DFB_FONT_CACHE_ROW_ASSERT( row );
 
-               D_MAGIC_ASSERT( row, CoreFontCacheRow );
-
-               row->stamp = font->row_stamp++;
-          }
+          row->stamp = manager->row_stamp++;
 
           *ret_data = data;
           return DFB_OK;
      }
 
+
+     /*
+      * No glyph data available in cache, load new glyph
+      */
+
      if (!font->GetGlyphData)
           return DFB_UNSUPPORTED;
 
+     /* Allocate glyph data */
      data = D_CALLOC( 1, sizeof(CoreGlyphData) );
      if (!data)
           return D_OOM();
 
      D_MAGIC_SET( data, CoreGlyphData );
 
+     data->font  = font;
      data->index = index;
      data->layer = layer;
 
+     /* Get glyph data from font implementation */
      ret = font->GetGlyphData( font, index, data );
      if (ret) {
           D_DERROR( ret, "Core/Font: Could not get glyph info for index %d!\n", index );
@@ -279,167 +865,40 @@ dfb_font_get_glyph_data( CoreFont        *font,
      }
 
      if (data->width < 1 || data->height < 1) {
+          D_DEBUG_AT( Core_Font, "  -> zero size glyph bitmap!\n" );
           data->start = data->width = data->height = 0;
           goto out;
      }
 
-     if (font->rows) {
-          D_ASSERT( font->active_row >= 0 );
-          D_ASSERT( font->active_row < font->num_rows );
 
-          row = font->rows[font->active_row];
+     /* Get the proper cache based on size... */
+     DFBFontCacheType type;
 
-          D_MAGIC_ASSERT( row, CoreFontCacheRow );
-     }
-     else {
-          /* Calculate row width? */
-          if (font->row_width == 0) {
-               int width = 2048 * font->height / 64;
+     type.height       = MAX( data->height, data->width );
+     type.pixel_format = font->pixel_format;
+     type.surface_caps = font->surface_caps;
 
-               if (width > dfb_config->max_font_row_width)
-                    width = dfb_config->max_font_row_width;
-
-               if (width < font->maxadvance)
-                    width = font->maxadvance;
-
-               font->row_width = (width + 7) & ~7;
-          }
+     ret = dfb_font_manager_get_cache( font->manager, &type, &cache );
+     if (ret) {
+          D_DEBUG_AT( Core_Font, "  -> could not get cache from manager!\n" );
+          goto error;
      }
 
-     /* Need another font surface? */
-     if (!row || (row->next_x + data->width > font->row_width)) {
-          D_ASSERT( font->max_rows != 0 );
-
-          /* Maximum number of rows reached? */
-          if (font->num_rows == font->max_rows) {
-               int          best_row = -1;
-               unsigned int best_val = 0;
-
-               /* Check for trailing space first. */
-               for (i=0; i<font->num_rows; i++) {
-                    row = font->rows[i];
-
-                    D_MAGIC_ASSERT( row, CoreFontCacheRow );
-
-                    if (row->next_x + data->width <= font->row_width) {
-                         if (best_row == -1 || best_val < row->next_x) {
-                              best_row = i;
-                              best_val = row->next_x;
-                         }
-                    }
-               }
-
-               /* Found a row with enough trailing space? */
-               if (best_row != -1) {
-                    font->active_row = best_row;
-                    row = font->rows[best_row];
-
-                    D_MAGIC_ASSERT( row, CoreFontCacheRow );
-
-                    D_DEBUG_AT( Core_FontSurfaces, "  -> using trailing space of row %d - %dx%d %s\n",
-                                font->active_row, row->surface->config.size.w, row->surface->config.size.h,
-                                dfb_pixelformat_name(row->surface->config.format) );
-               }
-               else {
-                    CoreGlyphData *d, *n;
-
-                    D_ASSERT( best_row == -1 );
-                    D_ASSERT( best_val == 0 );
-
-                    /* Reuse the least recently used row. */
-                    for (i=0; i<font->num_rows; i++) {
-                         row = font->rows[i];
-
-                         D_MAGIC_ASSERT( row, CoreFontCacheRow );
-
-                         if (best_row == -1 || best_val > row->stamp) {
-                              best_row = i;
-                              best_val = row->stamp;
-                         }
-                    }
-
-                    D_ASSERT( best_row != -1 );
-
-                    font->active_row = best_row;
-                    row = font->rows[best_row];
-
-                    D_MAGIC_ASSERT( row, CoreFontCacheRow );
-
-                    D_DEBUG_AT( Core_FontSurfaces, "  -> reusing row %d - %dx%d %s\n",
-                                font->active_row, row->surface->config.size.w, row->surface->config.size.h,
-                                dfb_pixelformat_name(row->surface->config.format) );
-
-                    /* Kick out all glyphs. */
-                    direct_list_foreach_safe (d, n, row->glyphs) {
-                         D_MAGIC_ASSERT( d, CoreGlyphData );
-                         D_ASSERT( d->layer < D_ARRAY_SIZE(font->layers) );
-
-                         /*ret =*/ direct_hash_remove( font->layers[d->layer].glyph_hash, d->index );
-                         //FIXME: use D_ASSERT( ret == DFB_OK );
-
-                         if (d->index < 128)
-                              font->layers[d->layer].glyph_data[d->index] = NULL;
-
-                         D_MAGIC_CLEAR( d );
-                         D_FREE( d );
-                    }
-
-                    /* Reset row. */
-                    row->glyphs = NULL;
-                    row->next_x = 0;
-               }
-          }
-          else {
-               /* Allocate new font cache row structure. */
-               row = D_CALLOC( 1, sizeof(CoreFontCacheRow) );
-               if (!row) {
-                    ret = D_OOM();
-                    goto error;
-               }
-
-               /* Create a new font surface. */
-               ret = dfb_surface_create_simple( font->core,
-                                                font->row_width,
-                                                MAX( font->height + 1, 8 ),
-                                                font->pixel_format,
-                                                font->surface_caps, CSTF_FONT,
-                                                0 /* FIXME: no shared fonts, no font id */,
-                                                NULL, &row->surface );
-               if (ret) {
-                    D_DERROR( ret, "Core/Font: Could not create font surface!\n" );
-                    D_FREE( row );
-                    goto error;
-               }
-
-               D_DEBUG_AT( Core_FontSurfaces, "  -> new row %d - %dx%d %s\n", font->num_rows,
-                           row->surface->config.size.w, row->surface->config.size.h,
-                           dfb_pixelformat_name(row->surface->config.format) );
-
-               D_MAGIC_SET( row, CoreFontCacheRow );
-
-
-               /* Append to array. FIXME: Use vector to avoid realloc each time! */
-               font->rows = D_REALLOC( font->rows, sizeof(void*) * (font->num_rows + 1) );
-               D_ASSERT( font->rows != NULL );
-
-               font->rows[font->num_rows] = row;
-
-               /* Set new row to use. */
-               font->active_row = font->num_rows++;
-          }
+     /* Check for a cache row (surface) to use */
+     ret = dfb_font_cache_get_row( cache, data->width, &row );
+     if (ret) {
+          D_DEBUG_AT( Core_Font, "  -> could not get row from cache!\n" );
+          goto error;
      }
 
-     D_MAGIC_ASSERT( row, CoreFontCacheRow );
-     D_ASSERT( font->num_rows > 0 );
-     D_ASSERT( font->num_rows <= font->max_rows || font->max_rows < 0 );
-     D_ASSERT( font->active_row >= 0 );
-     D_ASSERT( font->active_row < font->num_rows );
-     D_ASSERT( row == font->rows[font->active_row] );
+     /*
+      * Add the glyph to the cache row
+      */
 
-     D_DEBUG_AT( Core_FontSurfaces, "  -> render %2d - %2dx%2d at %d:%03d font <%p>\n",
-                 index, data->width, data->height, font->active_row, row->next_x, font );
+     D_DEBUG_AT( Core_FontSurfaces, "  -> render %2d - %2dx%2d at %03d font <%p>\n",
+                 index, data->width, data->height, row->next_x, font );
 
-     data->row     = font->active_row;
+     data->row     = row;
      data->start   = row->next_x;
      data->surface = row->surface;
 
@@ -448,16 +907,19 @@ dfb_font_get_glyph_data( CoreFont        *font,
 
      row->next_x  += (data->width + align) & ~align;
 
-     row->stamp = font->row_stamp++;
+     row->stamp = manager->row_stamp++;
 
      /* Render the glyph data into the surface. */
      ret = font->RenderGlyph( font, index, data );
      if (ret) {
+          D_DEBUG_AT( Core_Font, "  -> rendering glyph failed!\n" );
           data->start = data->width = data->height = 0;
           goto out;
      }
 
      dfb_gfxcard_flush_texture_cache();
+
+     CORE_GLYPH_DATA_DEBUG_AT( Core_Font, data );
 
 
 out:
@@ -658,15 +1120,50 @@ free_glyphs( DirectHash    *hash,
              void          *value,
              void          *ctx )
 {
-     CoreGlyphData *data = value;
-
      D_DEBUG_AT( Core_Font, "%s( %lu )\n", __FUNCTION__, key );
+
+     CoreGlyphData   *data = value;
+     DFBFontCacheRow *row;
 
      D_MAGIC_ASSERT( data, CoreGlyphData );
 
+     CORE_GLYPH_DATA_DEBUG_AT( Core_Font, data );
+
+     /* Remove glyph from font. */
      direct_hash_remove( hash, key );
 
+
+     row = data->row;
+     if (row) {
+          DFB_FONT_CACHE_ROW_ASSERT( row );
+
+          /* Remove glyph from cache row. */
+          direct_list_remove( &row->glyphs, &data->link );
+
+          /* If cache row got empty, destroy it. */
+          if (!row->glyphs) {
+               DFBFontManager *manager;
+               DFBFontCache   *cache = row->cache;
+
+               DFB_FONT_CACHE_ASSERT( cache );
+
+               manager = cache->manager;
+               DFB_FONT_MANAGER_ASSERT( manager );
+
+               /* Remove row from cache. */
+               direct_list_remove( &cache->rows, &row->link );
+
+               /* Destroy row. */
+               dfb_font_cache_row_destroy( row );
+
+               /* Decrease row counter in manager. */
+               manager->num_rows--;
+          }
+     }
+
+
      D_MAGIC_CLEAR( data );
+
      D_FREE( data );
 
      return true;

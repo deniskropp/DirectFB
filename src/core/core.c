@@ -47,6 +47,7 @@
 
 #include <core/core.h>
 #include <core/core_parts.h>
+#include <core/fonts.h>
 #include <core/layer_context.h>
 #include <core/layer_region.h>
 #include <core/palette.h>
@@ -195,6 +196,8 @@ struct __DFB_CoreDFB {
      DirectSignalHandler     *signal_handler;
      
      DirectCleanupHandler    *cleanup_handler;
+
+     DFBFontManager          *font_manager;
 };
 
 /******************************************************************************/
@@ -365,6 +368,7 @@ dfb_core_create( CoreDFB **ret_core )
 
      fusion_skirmish_dismiss( &shared->lock );
 
+     dfb_font_manager_create( core, &core->font_manager );
 
      *ret_core = core;
 
@@ -416,6 +420,8 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
                return DFB_OK;
           }
      }
+
+     dfb_font_manager_destroy( core->font_manager );
 
      direct_signal_handler_remove( core->signal_handler );
      
@@ -851,6 +857,19 @@ dfb_core_cleanup_remove( CoreDFB     *core,
      direct_list_remove( &core->cleanups, &cleanup->link );
 
      D_FREE( cleanup );
+}
+
+DFBFontManager *
+dfb_core_font_manager( CoreDFB *core )
+{
+     D_ASSUME( core != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     return core->font_manager;
 }
 
 /******************************************************************************/

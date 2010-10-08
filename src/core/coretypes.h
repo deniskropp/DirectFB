@@ -57,6 +57,11 @@ typedef struct _CorePalette                  CorePalette;
 typedef struct _CardState                    CardState;
 
 
+typedef struct __DFB_DFBFontManager          DFBFontManager;
+typedef struct __DFB_DFBFontCache            DFBFontCache;
+typedef struct __DFB_DFBFontCacheRow         DFBFontCacheRow;
+
+
 typedef struct __DFB_CoreGraphicsSerial      CoreGraphicsSerial;
 
 typedef struct __DFB_CoreScreen              CoreScreen;
