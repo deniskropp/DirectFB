@@ -46,7 +46,7 @@
 /*****************************************************************************/
 
 static DFBBoolean parse_command_line( int argc, char *argv[] );
-static DFBResult  server_run();
+static DFBResult  server_run( void );
 
 /*****************************************************************************/
 
