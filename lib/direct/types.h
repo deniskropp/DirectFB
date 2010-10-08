@@ -158,6 +158,7 @@ typedef struct __D_DirectConfig              DirectConfig;
 typedef struct __D_DirectHash                DirectHash;
 typedef struct __D_DirectLink                DirectLink;
 typedef struct __D_DirectLog                 DirectLog;
+typedef struct __D_DirectMap                 DirectMap;
 typedef struct __D_DirectModuleDir           DirectModuleDir;
 typedef struct __D_DirectModuleEntry         DirectModuleEntry;
 typedef struct __D_DirectSerial              DirectSerial;
