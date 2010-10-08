@@ -74,5 +74,6 @@ DirectResult voodoo_manager_lookup_remote  ( VoodooManager           *manager,
                                              VoodooInstanceID         instance,
                                              void                   **ret_requestor );
 
+DirectResult voodoo_manager_quit           ( VoodooManager           *manager );
 
 #endif
