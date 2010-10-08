@@ -538,7 +538,6 @@ dfb_input_core_shutdown( DFBInputCore *data,
      CoreInputDevice     *device;
      FusionSHMPoolShared *pool = dfb_core_shmpool( data->core );
      InputDriver         *driver;
-     int                  i;
 
      D_DEBUG_AT( Core_Input, "dfb_input_core_shutdown( %p, %semergency )\n", data, emergency ? "" : "no " );
 
@@ -1548,7 +1547,6 @@ dfb_input_create_device(int device_index, CoreDFB *core_in, void *driver_in)
      InputDriver            *driver = NULL;
      const InputDriverFuncs *funcs;
      FusionSHMPoolShared    *pool;
-     int                     num_device;
      DFBResult               result;
 
      D_DEBUG_AT(Core_Input, "Enter: %s()\n", __FUNCTION__);
@@ -1733,7 +1731,6 @@ dfb_input_remove_device(int device_index, void *driver_in)
      CoreInputDevice    *device;
      InputDeviceShared  *shared;
      FusionSHMPoolShared *pool;
-     DirectLink         *n;
      int                 i;
      int                 found = 0;
      int                 device_id;
@@ -1870,8 +1867,6 @@ add_device_into_local_list(int dev_id)
 static ReactionResult
 local_processing_hotplug( const void *msg_data, void *ctx )
 {
-
-     CoreDFB                       *core = ctx;
      const InputDeviceHotplugEvent *message = msg_data;
      CoreInputDevice               *device = NULL;
 
