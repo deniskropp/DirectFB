@@ -111,7 +111,7 @@ resize_map( DirectMap    *map,
      ///
 
      int       i, pos;
-     MapEntry *entry, *entries;
+     MapEntry *entries;
 
      entries = D_CALLOC( size, sizeof(MapEntry) );
      if (!entries)
@@ -140,6 +140,8 @@ resize_map( DirectMap    *map,
      map->size    = size;
      map->entries = entries;
      map->removed = 0;
+
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
