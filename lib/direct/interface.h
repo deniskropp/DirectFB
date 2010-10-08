@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -45,6 +45,7 @@
      struct _##IFACE {                            \
           void          *priv;                    \
           int            magic;                   \
+          int            refs;                    \
                                                   \
           DirectResult (*AddRef)( IFACE *thiz );  \
           DirectResult (*Release)( IFACE *thiz ); \
@@ -79,6 +80,7 @@ typedef struct {
      const char * (*GetType)(void);
      const char * (*GetImplementation)(void);
      DirectResult (*Allocate)( void **interface );
+     DirectResult (*Deallocate)( void *interface );
      
      DirectInterfaceGenericProbeFunc     Probe;
      DirectInterfaceGenericConstructFunc Construct;

@@ -1,5 +1,7 @@
 ## Makefile.am for DirectFB/lib/direct
 
+SUBDIRS = os
+
 INCLUDES = \
 	-I$(top_builddir)/include	\
 	-I$(top_builddir)/lib		\
@@ -14,6 +16,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = direct.pc
 
 EXTRA_DIST = \
+	kernelmod.c			\
 	armasm_memcpy.S			\
 	armasm_memcpy.h			\
 	ppcasm_memcpy.S			\
@@ -46,21 +49,29 @@ includedir = @INCLUDEDIR@/direct
 include_HEADERS = \
 	$(ppcasm_headers)		\
 	$(armasm_headers)		\
+	atomic.h			\
 	build.h				\
 	clock.h				\
+	compiler.h			\
 	conf.h				\
 	debug.h				\
 	direct.h			\
+	fifo.h				\
+	filesystem.h			\
 	hash.h				\
 	interface.h			\
 	interface_implementation.h	\
 	list.h				\
 	log.h				\
+	log_domain.h			\
 	map.h				\
 	mem.h				\
 	memcpy.h			\
 	messages.h			\
 	modules.h			\
+	print.h				\
+	processor.h			\
+	result.h			\
 	serial.h			\
 	signals.h			\
 	stream.h			\
@@ -70,7 +81,8 @@ include_HEADERS = \
 	tree.h				\
 	types.h				\
 	utf8.h				\
-	util.h
+	util.h				\
+	uuid.h
 
 
 lib_LTLIBRARIES = libdirect.la
@@ -82,15 +94,22 @@ libdirect_la_SOURCES = \
 	conf.c			\
 	debug.c			\
 	direct.c		\
+	direct_result.c		\
+	fifo.c			\
 	hash.c			\
 	interface.c		\
 	list.c			\
 	log.c			\
+	log_domain.c		\
 	map.c			\
 	mem.c			\
 	memcpy.c		\
 	messages.c		\
 	modules.c		\
+	print.c			\
+	processor.c		\
+	result.c		\
+	serial.c		\
 	signals.c		\
 	stream.c		\
 	system.c		\
@@ -98,12 +117,30 @@ libdirect_la_SOURCES = \
 	tree.c			\
 	thread.c		\
 	utf8.c			\
-	util.c
+	util.c			\
+	uuid.c
+
+libdirect_la_LIBADD = \
+	os/linux/glibc/libdirect_os_linux_glibc.la
 
 libdirect_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\
 	-release $(LT_RELEASE)					\
 	$(DFB_LDFLAGS)
+
+
+MKRESULT = $(top_srcdir)/tools/mkresult.sh
+
+direct_result.c: $(srcdir)/result.h $(MKRESULT)
+	@echo '#include <config.h>'    		> $@
+	@echo                                   >> $@
+	@echo '#include <direct/types.h>'    	>> $@
+	@echo                                   >> $@
+	@echo                                   >> $@
+
+	@$(MKRESULT) DirectResult DR $< 	>> $@
+
+	@echo                                   >> $@
 
 
 #

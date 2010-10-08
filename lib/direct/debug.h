@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -31,61 +31,70 @@
 
 #include <direct/build.h>
 
-#include <stdio.h>
-#include <errno.h>
-
 #include <direct/clock.h>
 #include <direct/conf.h>
 #include <direct/log.h>
 #include <direct/messages.h>
 #include <direct/system.h>
-#include <direct/thread.h>
 #include <direct/trace.h>
 #include <direct/types.h>
 
 
-typedef struct {
-     unsigned int   age;
-     bool           enabled;
-     bool           registered;
 
-     const char    *name;
-     const char    *description;
+#ifndef DIRECT_DISABLE_DEPRECATED
 
-     int            name_len;
-} DirectDebugDomain;
+// @deprecated
+#define D_DEBUG_DOMAIN( _identifier, _name, _description )                                          \
+     D_LOG_DOMAIN( _identifier, _name, _description )
 
-void direct_debug_config_domain( const char *name, bool enable );
+// @deprecated
+D_DEBUG_DOMAIN( _direct_debug_deprecated, "-", "deprecated" );
 
-bool direct_debug_check_domain( DirectDebugDomain *domain );
+// @deprecated
+#define D_DEBUG( x... )                                                                             \
+     D_DEBUG_AT( _direct_debug_deprecated, x )
 
+#endif
+
+static inline void
+direct_debug_config_domain( const char *name, bool enable )
+{
+     direct_log_domain_config_level( name, enable ? DIRECT_LOG_ALL : DIRECT_LOG_NONE );
+}
 
 #if DIRECT_BUILD_TEXT
 
-#define D_DEBUG_DOMAIN(identifier,name,description)                                  \
-     static DirectDebugDomain identifier __attribute__((unused))                     \
-            = { 0, false, false, name, description, sizeof(name) - 1 }
-
-void direct_debug_at_always( DirectDebugDomain *domain,
-                             const char        *format, ... )  D_FORMAT_PRINTF(2);
+void direct_debug_at_always( DirectLogDomain *domain,
+                             const char      *format, ... )  D_FORMAT_PRINTF(2);
 
 #define d_debug_at( domain, x... )      direct_debug_at_always( &domain, x )
 
 
 #if DIRECT_BUILD_DEBUGS
 
-void direct_debug( const char *format, ... )  D_FORMAT_PRINTF(1);
+/*
+ * Direct v2.0 - Debug Interface
+ *
+ * debug level 1-9  (0 = verbose)
+ *
+ */
+void direct_debug_log( DirectLogDomain *domain,
+                       unsigned int     debug_level,
+                       const char      *format, ... )      D_FORMAT_PRINTF(3);
 
-void direct_debug_at( DirectDebugDomain *domain,
-                      const char        *format, ... )  D_FORMAT_PRINTF(2);
 
-void direct_debug_enter( DirectDebugDomain *domain,
+
+/* old */
+void direct_debug_at( DirectLogDomain *domain,
+                      const char      *format, ... ) D_FORMAT_PRINTF(2);
+
+void direct_debug_enter( DirectLogDomain *domain,
 	      	         const char *func,
                          const char *file,
                          int         line,
                          const char *format, ... )  D_FORMAT_PRINTF(5);
 
-void direct_debug_exit( DirectDebugDomain *domain,
+void direct_debug_exit( DirectLogDomain *domain,
 	      	        const char *func,
                         const char *file,
                         int         line,
@@ -111,10 +120,9 @@ void direct_assumption( const char *exp,
 
 #define D_DEBUG_ENABLED  (1)
 
-#define D_DEBUG(x...)                                                                \
+#define D_DEBUG_LOG(_Domain,_level,_format...)                                       \
      do {                                                                            \
-          if (!direct_config || direct_config->debug)                                \
-               direct_debug( x );                                                    \
+          direct_debug_log( &_Domain, _level, _format );                                 \
      } while (0)
 
 
@@ -153,7 +161,7 @@ void direct_assumption( const char *exp,
      } while (0)
 
 #define D_DEBUG_CHECK(d)                                                             \
-     direct_debug_check_domain( &d )
+     direct_log_domain_check( &d )
 
 #elif defined(DIRECT_MINI_DEBUG)
 
@@ -163,9 +171,16 @@ void direct_assumption( const char *exp,
 
 #define D_DEBUG_ENABLED  (2)
 
+#define D_DEBUG_LOG(_Domain,_level,_format...)                                       \
+     do {                                                                            \
+          if (direct_config->log_level >= DIRECT_LOG_DEBUG)                          \
+               direct_debug_at_always( &d, x );                                      \
+     } while (0)
+
 #define D_DEBUG_AT(d,x...)                                                           \
      do {                                                                            \
-          if (direct_config->debug) direct_debug_at_always( &d, x );                 \
+          if (direct_config->log_level >= DIRECT_LOG_DEBUG)                          \
+               direct_debug_at_always( &d, x );                                      \
      } while (0)
 
 #define D_CHECK(exp, aa)                                                             \
@@ -191,6 +206,12 @@ void direct_assumption( const char *exp,
 
 #endif    /* MINI_DEBUG  / DIRECT_BUILD_DEBUG || DIRECT_ENABLE_DEBUG || DIRECT_FORCE_DEBUG */
 
+
+#define D_DEBUG_AT__(d,x...)                                                         \
+     do {                                                                            \
+          direct_log_printf( NULL, x );                                              \
+     } while (0)
+
 #endif    /* DIRECT_BUILD_TEXT */
 
 
@@ -202,8 +223,10 @@ void direct_assumption( const char *exp,
 #define D_DEBUG_ENABLED  (0)
 #endif
 
-#ifndef D_DEBUG
-#define D_DEBUG(x...)              do {} while (0)
+#ifndef D_DEBUG_LOG
+#define D_DEBUG_LOG(_Domain,_level,_format...)                                       \
+     do {                                                                            \
+     } while (0)
 #endif
 
 #ifndef D_DEBUG_AT
@@ -226,6 +249,10 @@ void direct_assumption( const char *exp,
 #define D_ASSUME(exp)              do {} while (0)
 #endif
 
+#ifndef D_DEBUG_AT__
+#define D_DEBUG_AT__(d,x...)       do {} while (0)
+#endif
+
 #ifndef D_DEBUG_CHECK
 #define D_DEBUG_CHECK(d)           false
 #endif
@@ -238,8 +265,8 @@ void direct_assumption( const char *exp,
 #define d_debug_at( domain, x... ) do {} while (0)
 #endif
 
-#ifndef D_DEBUG_DOMAIN
-#define D_DEBUG_DOMAIN(i,n,d)
+#ifndef D_LOG_DOMAIN
+#define D_LOG_DOMAIN(i,n,d)
 #endif
 
 
@@ -257,6 +284,10 @@ void direct_assumption( const char *exp,
                                       ((spell)[sizeof(spell)*2/9] <<  8) | \
                                       ((spell)[sizeof(spell)*1/9]      )) )
 
+
+#if DIRECT_BUILD_DEBUGS
+
+#define D_MAGIC_CHECK(o,m)         ((o) != NULL && (o)->magic == D_MAGIC(#m))
 
 #define D_MAGIC_SET(o,m)           do {                                              \
                                         D_ASSERT( (o) != NULL );                     \
@@ -293,6 +324,45 @@ void direct_assumption( const char *exp,
                                                                                      \
                                         (o)->magic = 0;                              \
                                    } while (0)
+
+#define D_INDEX_ASSERT(index,array)                         \
+     do {                                                   \
+          D_ASSERT( index >= 0 );                           \
+          D_ASSERT( index < D_ARRAY_SIZE(array) );          \
+     } while (0)
+
+#else
+
+
+#define D_MAGIC_CHECK(o,m)         ((o) != NULL)
+
+#define D_MAGIC_SET(o,m)           do {                                              \
+                                   } while (0)
+
+#define D_MAGIC_SET_ONLY(o,m)      do {                                              \
+                                   } while (0)
+
+#define D_MAGIC_ASSERT(o,m)        do {                                              \
+                                   } while (0)
+
+#define D_MAGIC_ASSUME(o,m)        do {                                              \
+                                   } while (0)
+
+#define D_MAGIC_ASSERT_IF(o,m)     do {                                              \
+                                   } while (0)
+
+#define D_MAGIC_CLEAR(o)           do {                                              \
+                                   } while (0)
+
+#define D_INDEX_ASSERT(index,array)                         \
+     do {                                                   \
+     } while (0)
+
+#endif
+
+
+
+#define D_FLAGS_ASSERT(flags,f)    D_ASSERT( D_FLAGS_ARE_IN(flags,f) )
 
 
 #endif

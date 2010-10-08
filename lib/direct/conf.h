@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -30,13 +30,8 @@
 #define __DIRECT__CONF_H__
 
 
-#include <direct/messages.h>
+#include <direct/log_domain.h>
 
-#if HAVE_SIGNAL_H
-#include <signal.h>
-#else
-#include <sys/signal.h>
-#endif
 
 typedef enum {
      DCFL_NONE,     /* None is fatal. */
@@ -50,9 +45,29 @@ typedef enum {
      DCTS_RR
 } DirectConfigThreadScheduler;
 
+typedef enum {
+     DMT_NONE           = 0x00000000, /* No message type. */
+
+     DMT_BANNER         = 0x00000001, /* Startup banner. */
+     DMT_INFO           = 0x00000002, /* Info messages. */
+     DMT_WARNING        = 0x00000004, /* Warnings. */
+     DMT_ERROR          = 0x00000008, /* Error messages: regular, with DFBResult, bugs,
+                                         system call errors, dlopen errors */
+     DMT_UNIMPLEMENTED  = 0x00000010, /* Messages notifying unimplemented functionality. */
+     DMT_ONCE           = 0x00000020, /* One-shot messages .*/
+     DMT_UNTESTED       = 0x00000040, /* Messages notifying unimplemented functionality. */
+
+     DMT_ALL            = 0x0000007F  /* All types. */
+} DirectMessageType;
+
+
 struct __D_DirectConfig {
      DirectMessageType             quiet;
-     bool                          debug;
+
+     DirectLogLevel                log_level;
+     bool                          log_all;
+     bool                          log_none;
+
      bool                          trace;
 
      char                         *memcpy;            /* Don't probe for memcpy routines to save a lot of
@@ -67,7 +82,10 @@ struct __D_DirectConfig {
      DirectLog                    *log;
 
      DirectConfigFatalLevel        fatal;
-     
+
+     // @deprecated / FIXME: maybe adapt?
+     bool                          debug;
+
      bool                          debugmem;
 
      bool                          thread_block_signals;

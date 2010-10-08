@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -29,10 +29,11 @@
 #ifndef __DIRECT__THREAD_H__
 #define __DIRECT__THREAD_H__
 
-#include <sys/types.h>
+#include <direct/os/mutex.h>
+#include <direct/os/thread.h>
+#include <direct/os/waitqueue.h>
 
-#include <direct/types.h>
-#include <direct/conf.h>
+/**********************************************************************************************************************/
 
 typedef enum {
      DTT_DEFAULT    =   0,
@@ -47,6 +48,46 @@ typedef void * (*DirectThreadMainFunc)( DirectThread *thread, void *arg );
 
 typedef void   (*DirectThreadInitFunc)( DirectThread *thread, void *arg );
 
+/**********************************************************************************************************************/
+
+struct __D_DirectThread {
+     int                   magic;
+
+     char                 *name;
+
+     DirectThreadType      type;        /* The thread's type, e.g. input thread. */
+     DirectThreadMainFunc  main;        /* The thread's main routine (or entry point). */
+     void                 *arg;         /* Custom argument passed to the main routine. */
+
+
+     DirectThreadHandle    handle;      /* The OS thread handle... */
+     pid_t                 tid;         /* A simplified version using an integer */
+
+
+     bool                  canceled;    /* Set when direct_thread_cancel() is called. */
+     bool                  joining;     /* Set when direct_thread_join() is called. */
+     bool                  joined;      /* Set when direct_thread_join() has finished. */
+     bool                  detached;    /* Set when direct_thread_detach() is called. */
+     bool                  terminated;  /* Set when direct_thread_terminate() is called. */
+
+     bool                  init;        /* Set to true before the main routine is called. */
+
+     DirectMutex           lock;
+     DirectWaitQueue       cond;
+
+     unsigned int          counter;
+};
+
+/**********************************************************************************************************************/
+
+#define DIRECT_THREAD_ASSERT( _thread )                                                                  \
+     do {                                                                                                \
+          D_MAGIC_ASSERT( _thread, DirectThread );                                                       \
+          D_ASSERT( (_thread)->tid != (pid_t) -1 );                                                      \
+     } while (0)
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
 
 /*
  * Add a handler being called at the beginning of new threads.
@@ -59,6 +100,9 @@ DirectThreadInitHandler *direct_thread_add_init_handler   ( DirectThreadInitFunc
  */
 void                     direct_thread_remove_init_handler( DirectThreadInitHandler *handler );
 
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
 /*
  * Create a new thread and start it.
  * The thread type is relevant for the scheduling priority.
@@ -69,31 +113,6 @@ DirectThread *direct_thread_create     ( DirectThreadType      thread_type,
                                          const char           *name );
 
 /*
- * Returns the thread of the caller.
- */
-DirectThread *direct_thread_self       ( void );
-
-/*
- * Returns the name of the specified thread.
- */
-const char   *direct_thread_get_name   ( DirectThread *thread );
-
-/*
- * Returns the thread ID of the specified thread.
- */
-pid_t         direct_thread_get_tid    ( DirectThread *thread );
-
-/*
- * Returns the name of the calling thread.
- */
-const char   *direct_thread_self_name  ( void );
-
-/*
- * Changes the name of the calling thread.
- */
-void          direct_thread_set_name   ( const char   *name );
-
-/*
  * Wait on the thread object to be notified via direct_thread_notify().
  */
 DirectResult  direct_thread_wait       ( DirectThread *thread,
@@ -102,58 +121,28 @@ DirectResult  direct_thread_wait       ( DirectThread *thread,
 /*
  * Notify the thread object waking up callers of direct_thread_wait().
  */
-void direct_thread_notify     ( DirectThread *thread );
+DirectResult direct_thread_notify     ( DirectThread *thread );
 
-void direct_thread_lock       ( DirectThread *thread );
-void direct_thread_unlock     ( DirectThread *thread );
+DirectResult direct_thread_lock       ( DirectThread *thread );
+DirectResult direct_thread_unlock     ( DirectThread *thread );
 
 /*
  * Kindly ask the thread to terminate (for joining without thread cancellation).
  */
-void direct_thread_terminate  ( DirectThread *thread );
+DirectResult direct_thread_terminate  ( DirectThread *thread );
 
-/*
- * Cancel a running thread.
- */
-void direct_thread_cancel     ( DirectThread *thread );
-
-/*
- * Returns true if the specified thread has been canceled.
- */
-bool direct_thread_is_canceled( DirectThread *thread );
-
-/*
- * Detach a thread.
- */
-void direct_thread_detach     ( DirectThread *thread );
-
-/*
- * Returns true if the specified thread has been detached.
- */
-bool direct_thread_is_detached( DirectThread *thread );
-
-/*
- * Check if the calling thread is canceled.
- * Must not be called by other threads than 'thread'.
- * This function won't return if the thread is canceled.
- */
-void direct_thread_testcancel ( DirectThread *thread );
-
-/*
- * Wait until a running thread is terminated.
- */
-void direct_thread_join       ( DirectThread *thread );
-
-/*
- * Returns true if the specified thread has been join.
- */
-bool direct_thread_is_joined  ( DirectThread *thread );
 
 /*
  * Free resources allocated by direct_thread_create.
  * If the thread is still running it will be killed.
  */
-void direct_thread_destroy    ( DirectThread *thread );
+void  direct_thread_destroy    ( DirectThread       *thread );
+
+
+pid_t direct_thread_get_tid    ( const DirectThread *thread );
+bool  direct_thread_is_canceled( const DirectThread *thread );
+bool  direct_thread_is_joined  ( const DirectThread *thread );
+
 
 /*
  * Utilities for stringification.
@@ -163,6 +152,10 @@ const char *direct_thread_type_name     ( DirectThreadType type );
 const char *direct_thread_scheduler_name( DirectConfigThreadScheduler scheduler );
 const char *direct_thread_policy_name   ( int policy );
 #endif
+
+
+
+void __D_direct_thread_call_init_handlers( DirectThread *thread );
 
 #endif
 

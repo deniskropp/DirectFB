@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -49,7 +49,7 @@
 #endif
 
 #if RUN_BENCHMARK
-D_DEBUG_DOMAIN( Direct_Memcpy, "Direct/Memcpy", "Direct's Memcpy Routines" );
+D_LOG_DOMAIN( Direct_Memcpy, "Direct/Memcpy", "Direct's Memcpy Routines" );
 #endif
 
 #ifdef USE_PPCASM
@@ -75,7 +75,7 @@ static void * generic64_memcpy( void * to, const void * from, size_t len )
           /* Align destination to 8-byte boundary */
           delta = (unsigned long)d & 7;
           if (delta) {
-               len -= 8 - delta;                 
+               len -= 8 - delta;
 
                if ((unsigned long)d & 1) {
                     *d++ = *s++;
@@ -89,10 +89,10 @@ static void * generic64_memcpy( void * to, const void * from, size_t len )
                     d += 4; s += 4;
                }
           }
-          
+
           n    = len >> 6;
           len &= 63;
-          
+
           for (; n; n--) {
                ((u64*)d)[0] = ((const u64*)s)[0];
                ((u64*)d)[1] = ((const u64*)s)[1];
@@ -110,7 +110,7 @@ static void * generic64_memcpy( void * to, const void * from, size_t len )
       */
      if (len) {
           n = len >> 3;
-          
+
           for (; n; n--) {
                *((u64*)d) = *((const u64*)s);
                d += 8; s += 8;
@@ -126,7 +126,7 @@ static void * generic64_memcpy( void * to, const void * from, size_t len )
           if (len & 1)
                *d = *s;
      }
-     
+
      return to;
 }
 
@@ -134,6 +134,14 @@ static void * generic64_memcpy( void * to, const void * from, size_t len )
 
 
 typedef void* (*memcpy_func)(void *to, const void *from, size_t len);
+
+
+static void *
+std_memcpy( void *to, const void *from, size_t len )
+{
+     return memcpy( to, from, len );
+}
+
 
 static struct {
      char                 *name;
@@ -144,7 +152,7 @@ static struct {
 } memcpy_method[] =
 {
      { NULL, NULL, NULL, 0, 0},
-     { "libc",     "libc memcpy()",             (memcpy_func) memcpy, 0, 0},
+     { "libc",     "libc memcpy()",             std_memcpy, 0, 0},
 #if SIZEOF_LONG == 8
      { "generic64","Generic 64bit memcpy()",    generic64_memcpy, 0, 0},
 #endif /* SIZEOF_LONG == 8 */
@@ -155,22 +163,14 @@ static struct {
 #endif /* __LINUX__ */
 #endif /* USE_PPCASM */
 #if defined(USE_ARMASM) && !defined(WORDS_BIGENDIAN)
-	 { "arm",      "armasm_memcpy()",            direct_armasm_memcpy, 0, 0},
+     { "arm",      "armasm_memcpy()",            direct_armasm_memcpy, 0, 0},
 #endif
      { NULL, NULL, NULL, 0, 0}
 };
 
 
-static inline unsigned long long int rdtsc( void )
-{
-     struct timeval tv;
 
-     gettimeofday (&tv, NULL);
-     return (tv.tv_sec * 1000000 + tv.tv_usec);
-}
-
-
-memcpy_func direct_memcpy = (memcpy_func) memcpy;
+memcpy_func direct_memcpy = std_memcpy;
 
 #define BUFSIZE 1024
 
@@ -218,12 +218,12 @@ direct_find_best_memcpy( void )
           if (memcpy_method[i].cpu_require & ~config_flags)
                continue;
 
-          t = rdtsc();
+          t = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
 
           for (j=0; j<500; j++)
                memcpy_method[i].function( buf1 + j*BUFSIZE, buf2 + j*BUFSIZE, BUFSIZE );
 
-          t = rdtsc() - t;
+          t = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC ) - t;
           memcpy_method[i].time = t;
 
           D_DEBUG_AT( Direct_Memcpy, "\t%-10s  %20lld\n", memcpy_method[i].name, t );

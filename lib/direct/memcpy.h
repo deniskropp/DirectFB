@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -29,8 +29,7 @@
 #ifndef __DIRECT__MEMCPY_H__
 #define __DIRECT__MEMCPY_H__
 
-#include <stdlib.h>
-#include <string.h>
+#include <direct/types.h>
 
 
 void direct_find_best_memcpy( void );

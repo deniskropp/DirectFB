@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -30,10 +30,11 @@
 
 #include <config.h>
 
-#include <stdlib.h>
-
 #include <direct/mem.h>
 #include <direct/tree.h>
+
+
+/* FIXME FIXME */
 
 
 static DirectNode *tree_node_new         ( DirectTree *tree,

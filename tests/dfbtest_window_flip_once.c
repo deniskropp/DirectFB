@@ -30,6 +30,7 @@
 #include <unistd.h>
 
 #include <direct/messages.h>
+#include <direct/thread.h>
 
 #include <directfb.h>
 

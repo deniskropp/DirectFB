@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -28,16 +28,15 @@
 
 #include <config.h>
 
-#include <stdarg.h>
-#include <string.h>
-#include <stdio.h>
-
 #include <direct/build.h>
 #include <direct/log.h>
 #include <direct/messages.h>
+#include <direct/print.h>
+#include <direct/result.h>
 #include <direct/trace.h>
 #include <direct/util.h>
 
+/**********************************************************************************************************************/
 
 #if DIRECT_BUILD_TEXT
 
@@ -51,7 +50,7 @@ direct_messages_info( const char *format, ... )
 
      va_start( ap, format );
 
-     vsnprintf( buf, sizeof(buf), format, ap );
+     direct_vsnprintf( buf, sizeof(buf), format, ap );
 
      va_end( ap );
 
@@ -68,7 +67,7 @@ direct_messages_error( const char *format, ... )
 
      va_start( ap, format );
 
-     vsnprintf( buf, sizeof(buf), format, ap );
+     direct_vsnprintf( buf, sizeof(buf), format, ap );
 
      va_end( ap );
 
@@ -87,7 +86,7 @@ direct_messages_derror( DirectResult result, const char *format, ... )
 
      va_start( ap, format );
 
-     vsnprintf( buf, sizeof(buf), format, ap );
+     direct_vsnprintf( buf, sizeof(buf), format, ap );
 
      va_end( ap );
 
@@ -106,11 +105,11 @@ direct_messages_perror( int erno, const char *format, ... )
 
      va_start( ap, format );
 
-     vsnprintf( buf, sizeof(buf), format, ap );
+     direct_vsnprintf( buf, sizeof(buf), format, ap );
 
      va_end( ap );
 
-     direct_log_printf( NULL, "(!) %s    --> %s\n", buf, strerror( erno ) );
+     direct_log_printf( NULL, "(!) %s    --> %s\n", buf, direct_strerror( erno ) );
 
      direct_trace_print_stack( NULL );
 }
@@ -125,7 +124,7 @@ direct_messages_dlerror( const char *dlerr, const char *format, ... )
 
      va_start( ap, format );
 
-     vsnprintf( buf, sizeof(buf), format, ap );
+     direct_vsnprintf( buf, sizeof(buf), format, ap );
 
      va_end( ap );
 
@@ -147,7 +146,7 @@ direct_messages_once( const char *func,
 
      va_start( ap, format );
 
-     vsnprintf( buf, sizeof(buf), format, ap );
+     direct_vsnprintf( buf, sizeof(buf), format, ap );
 
      va_end( ap );
 
@@ -180,7 +179,7 @@ direct_messages_bug( const char *func,
 
      va_start( ap, format );
 
-     vsnprintf( buf, sizeof(buf), format, ap );
+     direct_vsnprintf( buf, sizeof(buf), format, ap );
 
      va_end( ap );
 
@@ -202,7 +201,7 @@ direct_messages_warn( const char *func,
 
      va_start( ap, format );
 
-     vsnprintf( buf, sizeof(buf), format, ap );
+     direct_vsnprintf( buf, sizeof(buf), format, ap );
 
      va_end( ap );
 

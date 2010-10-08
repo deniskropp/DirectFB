@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -29,7 +29,7 @@
 #ifndef __DIRECT__SIGNALS_H__
 #define __DIRECT__SIGNALS_H__
 
-#include <direct/types.h>
+#include <direct/os/signals.h>
 
 
 typedef enum {

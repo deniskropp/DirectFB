@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -28,19 +28,17 @@
 
 #include <config.h>
 
-#include <string.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <unistd.h>
-
 #include <direct/debug.h>
+#include <direct/filesystem.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/util.h>
 
+
 /*
  * translates errno to DirectResult
  */
+__attribute__((no_instrument_function))
 DirectResult
 errno2result( int erno )
 {
@@ -55,12 +53,18 @@ errno2result( int erno )
           case EBUSY:
           case EAGAIN:
                return DR_BUSY;
+          case ETIMEDOUT:
+               return DR_TIMEOUT;
           case ECONNREFUSED:
                return DR_ACCESSDENIED;
+          case EINTR:
+               return DR_SIGNALLED;
+          case ENOSYS:
+               return DR_NOSUCHMETHOD;
           case ENODEV:
           case ENXIO:
 #ifdef ENOTSUP
-          /* ENOTSUP is not defined on NetBSD */
+               /* ENOTSUP is not defined on NetBSD */
           case ENOTSUP:
 #endif
                return DR_UNSUPPORTED;
@@ -69,143 +73,36 @@ errno2result( int erno )
      return DR_FAILURE;
 }
 
-const char *
-DirectResultString( DirectResult result )
+int
+direct_sscanf( const char *str, const char *format, ... )
 {
-     if (!D_RESULT_TYPE_IS( result, 0, 0, 0 ))
-          return "UNKNOWN RESULT CODE TYPE!";
+     int     ret;
+     va_list args;
 
-     switch (result) {
-          case DR_OK:
-               return "OK";
-          case DR_FAILURE:
-               return "General failure!";
-          case DR_INIT:
-               return "Initialization error!";
-          case DR_BUG:
-               return "Internal bug!";
-          case DR_DEAD:
-               return "Interface was released!";
-          case DR_UNSUPPORTED:
-               return "Not supported!";
-          case DR_UNIMPLEMENTED:
-               return "Not implemented!";
-          case DR_ACCESSDENIED:
-               return "Access denied!";
-          case DR_INVARG:
-               return "Invalid argument!";
-          case DR_NOLOCALMEMORY:
-               return "Out of memory!";
-          case DR_LOCKED:
-               return "Resource is locked!";
-          case DR_BUFFEREMPTY:
-               return "Buffer is empty!";
-          case DR_FILENOTFOUND:
-               return "File not found!";
-          case DR_IO:
-               return "General I/O error!";
-          case DR_NOIMPL:
-               return "No (suitable) implementation found!";
-          case DR_TIMEOUT:
-               return "Operation timed out!";
-          case DR_BUSY:
-               return "Resource is busy!";
-          case DR_THIZNULL:
-               return "'thiz' argument is NULL!";
-          case DR_IDNOTFOUND:
-               return "Requested ID not found!";
-          case DR_INVAREA:
-               return "Invalid area present!";
-          case DR_DESTROYED:
-               return "Resource was destroyed!";
-          case DR_FUSION:
-               return "Fusion IPC error detected!";
-          case DR_BUFFERTOOLARGE:
-               return "Buffer is too large!";
-          case DR_INTERRUPTED:
-               return "Operation has been interrupted!";
-          case DR_NOCONTEXT:
-               return "No context available!";
-          case DR_TEMPUNAVAIL:
-               return "Resource temporarily unavailable!";
-          case DR_LIMITEXCEEDED:
-               return "Limit has been exceeded!";
-          case DR_NOSUCHMETHOD:
-               return "No such (remote) method!";
-          case DR_NOSUCHINSTANCE:
-               return "No such (remote) instance!";
-          case DR_ITEMNOTFOUND:
-               return "Appropriate item not found!";
-          case DR_VERSIONMISMATCH:
-               return "Some versions didn't match!";
-          case DR_NOSHAREDMEMORY:
-               return "Out of shared memory!";
-          case DR_EOF:
-               return "End of file!";
-          case DR_SUSPENDED:
-               return "Object is suspended!";
-          case DR_INCOMPLETE:
-               return "Operation incomplete!";
-          case DR_NOCORE:
-               return "No core (loaded)!";
-          default:
-               break;
-     }
+     va_start( args, format );
+     ret = direct_vsscanf( str, format, args );
+     va_end( args );
 
-     return "UNKNOWN RESULT CODE!";
+     return ret;
 }
 
 int
-direct_safe_dup( int fd )
+direct_vsscanf( const char *str, const char *format, va_list args )
 {
-    int n = 0;
-    int fc[3];
-
-    while (fd >= 0 && fd <= 2) {
-        fc[n++] = fd;
-        fd = dup (fd);
-    }
-
-    while (n)
-        close (fc[--n]);
-
-    return fd;
+     return vsscanf( str, format, args );
 }
 
-int
-direct_try_open( const char *name1, const char *name2, int flags, bool error_msg )
+size_t
+direct_strlen( const char *s )
 {
-     int fd;
-
-     fd = open (name1, flags);
-     if (fd >= 0)
-          return direct_safe_dup (fd);
-
-     if (errno != ENOENT) {
-          if (error_msg)
-               D_PERROR( "Direct/Util: opening '%s' failed\n", name1 );
-          return -1;
-     }
-
-     fd = open (name2, flags);
-     if (fd >= 0)
-          return direct_safe_dup (fd);
-
-     if (error_msg) {
-          if (errno == ENOENT)
-               D_PERROR( "Direct/Util: opening '%s' and '%s' failed\n", name1, name2 );
-          else
-               D_PERROR( "Direct/Util: opening '%s' failed\n", name2 );
-     }
-
-     return -1;
+     return strlen( s );
 }
 
 void
 direct_trim( char **s )
 {
      int i;
-     int len = strlen( *s );
+     int len = direct_strlen( *s );
 
      for (i = len-1; i >= 0; i--)
           if ((*s)[i] <= ' ')
@@ -220,26 +117,190 @@ direct_trim( char **s )
                return;
 }
 
-/*
- * Utility function to initialize recursive mutexes.
- */
 int
-direct_util_recursive_pthread_mutex_init( pthread_mutex_t *mutex )
+direct_strcmp( const char *a, const char *b )
 {
-     int                 ret;
-     pthread_mutexattr_t attr;
+     return strcmp( a, b );
+}
 
-     pthread_mutexattr_init( &attr );
-#if HAVE_DECL_PTHREAD_MUTEX_RECURSIVE
-     pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
-#endif
-     ret = pthread_mutex_init( mutex, &attr );
-     if (ret)
-          D_PERROR( "Direct/Lock: Could not initialize recursive mutex!\n" );
 
-     pthread_mutexattr_destroy( &attr );
+int
+direct_strcasecmp( const char *a, const char *b )
+{
+     int c1, c2;
 
-     return ret;
+     do {
+          c1 = tolower(*a++);
+          c2 = tolower(*b++);
+     } while (c1 == c2 && c1 != 0);
+
+     return c1 - c2;
+
+//     return strcasecmp( a, b );
+}
+
+int
+direct_strncasecmp( const char *a, const char *b, size_t bytes )
+{
+     int c1, c2;
+
+     do {
+          c1 = tolower(*a++);
+          c2 = tolower(*b++);
+     } while ((--bytes > 0) && c1 == c2 && c1 != 0);
+
+     return c1 - c2;
+
+//     return strncasecmp( a, b, bytes );
+}
+
+unsigned long
+direct_strtoul( const char *nptr, char **endptr, int base )
+{
+     return strtoul( nptr, endptr, base );
+}
+
+
+static inline char *
+__D_strtok_r (char *s, const char *delim, char **save_ptr)
+{
+  char *token;
+
+  if (s == NULL)
+    s = *save_ptr;
+
+  /* Scan leading delimiters.  */
+  s += strspn (s, delim);
+  if (*s == '\0')
+    {
+      *save_ptr = s;
+      return NULL;
+    }
+
+  /* Find the end of the token.  */
+  token = s;
+  s = strpbrk (token, delim);
+  if (s == NULL)
+    /* This token finishes the string.  */
+    *save_ptr = strchr (token, '\0');
+  else
+    {
+      /* Terminate the token and make *SAVE_PTR point past it.  */
+      *s = '\0';
+      *save_ptr = s + 1;
+    }
+  return token;
+}
+
+#define __D_string2_1bptr_p(__x) \
+  ((size_t)(const void *)((__x) + 1) - (size_t)(const void *)(__x) == 1)
+
+#define __D_strtok_r(s, sep, nextp)                                             \
+  (__extension__ (__builtin_constant_p (sep) && __D_string2_1bptr_p (sep)	    \
+		  ? (((__const char *) (sep))[0] != '\0'		                        \
+		     && ((__const char *) (sep))[1] == '\0'		                        \
+		     ? __D_strtok_r_1c (s, ((__const char *) (sep))[0], nextp)          \
+		     : __D_strtok_r (s, sep, nextp))			                        \
+		  : __D_strtok_r (s, sep, nextp)))
+
+static inline char *
+__D_strtok_r_1c (char *__s, char __sep, char **__nextp)
+{
+     char *__result;
+     if (__s == NULL)
+          __s = *__nextp;
+     while (*__s == __sep)
+          ++__s;
+     __result = NULL;
+     if (*__s != '\0') {
+          __result = __s++;
+          while (*__s != '\0')
+               if (*__s++ == __sep) {
+                    __s[-1] = '\0';
+                    break;
+               }
+          *__nextp = __s;
+     }
+     return __result;
+}
+
+char *
+direct_strtok_r( char *str, const char *delim, char **saveptr )
+{
+     return __D_strtok_r( str, delim, saveptr );
+}
+
+
+
+
+static const char *strings_base[] = {
+     [EPERM]   = "Operation not permitted",
+     [ENOENT]  = "No such file or directory",
+     [ESRCH]   = "No such process",
+     [EINTR]   = "Interrupted system call",
+     [EIO]     = "I/O error",
+     [ENXIO]   = "No such device or address",
+     [E2BIG]   = "Argument list too long",
+     [ENOEXEC] = "Exec format error",
+     [EBADF]   = "Bad file number",
+     [ECHILD]  = "No child processes",
+     [EAGAIN]  = "Try again",
+     [ENOMEM]  = "Out of memory",
+     [EACCES]  = "Permission denied",
+     [EFAULT]  = "Bad address",
+     [ENOTBLK] = "Block device required",
+     [EBUSY]   = "Device or resource busy",
+     [EEXIST]  = "File exists",
+     [EXDEV]   = "Cross-device link",
+     [ENODEV]  = "No such device",
+     [ENOTDIR] = "Not a directory",
+     [EISDIR]  = "Is a directory",
+     [EINVAL]  = "Invalid argument",
+     [ENFILE]  = "File table overflow",
+     [EMFILE]  = "Too many open files",
+     [ENOTTY]  = "Not a typewriter",
+     [ETXTBSY] = "Text file busy",
+     [EFBIG]   = "File too large",
+     [ENOSPC]  = "No space left on device",
+     [ESPIPE]  = "Illegal seek",
+     [EROFS]   = "Read-only file system",
+     [EMLINK]  = "Too many links",
+     [EPIPE]   = "Broken pipe",
+     [EDOM]    = "Math argument out of domain of func",
+     [ERANGE]  = "Math result not representable",
+};
+
+const char *
+direct_strerror( int erno )
+{
+     if (erno < 0)
+          return "negative errno";
+
+     if (erno >= D_ARRAY_SIZE(strings_base))
+          return "too high errno";
+
+     return strings_base[erno];
+}
+
+char *
+direct_snputs( char       *dest,
+               const char *src,
+               size_t      n )
+{
+     char *start = dest;
+
+     D_ASSERT( dest != NULL );
+     D_ASSERT( src != NULL );
+
+     if (!n)
+          return NULL;
+
+     for (; n>1 && *src; n--)
+          *dest++ = *src++;
+
+     *dest = 0;
+
+     return start;
 }
 
 /*
@@ -254,13 +315,13 @@ direct_base64_encode( const void *data, int size )
      const unsigned char *src = (const unsigned char*)data;
      char                *ret;
      char                *buf;
-     
+
      D_ASSERT( data != NULL );
 
      buf = ret = D_MALLOC( (size + 2) / 3 * 4 + 1 );
      if (!ret)
           return NULL;
-     
+
      for (; size >= 3; size -= 3) {
           buf[0] = enc[((src[0] & 0xfc) >> 2)];
           buf[1] = enc[((src[0] & 0x03) << 4) | ((src[1] & 0xf0) >> 4)];
@@ -272,11 +333,12 @@ direct_base64_encode( const void *data, int size )
 
      if (size > 0) {
           buf[0] = enc[(src[0] & 0xfc) >> 2];
-          
+
           if (size > 1) {
                buf[1] = enc[((src[0] & 0x03) << 4) | ((src[1] & 0xf0) >> 4)];
                buf[2] = enc[((src[1] & 0x0f) << 2)];
-          } else {
+          }
+          else {
                buf[1] = enc[(src[0] & 0x03) << 4];
                buf[2] = '=';
           }
@@ -298,10 +360,10 @@ direct_base64_decode( const char *string, int *ret_size )
      unsigned char *buf;
      int            len;
      int            i, j;
-     
+
      D_ASSERT( string != NULL );
-     
-     len = strlen( string );
+
+     len = direct_strlen( string );
      buf = ret = D_MALLOC( len * 3 / 4 + 3 );
      if (!ret)
           return NULL;
@@ -318,7 +380,7 @@ direct_base64_decode( const char *string, int *ret_size )
      dec['+'] = 62;
      dec['/'] = 63;
      dec['='] = 0;
-  
+
      /* decode */
      for (j = 0; j < len; j += 4) {
           unsigned char a[4], b[4];
@@ -328,7 +390,7 @@ direct_base64_decode( const char *string, int *ret_size )
                a[i] = c;
                b[i] = dec[c];
           }
-    
+
           *buf++ = (b[0] << 2) | (b[1] >> 4);
           *buf++ = (b[1] << 4) | (b[2] >> 2);
           *buf++ = (b[2] << 6) | (b[3]     );
@@ -337,7 +399,7 @@ direct_base64_decode( const char *string, int *ret_size )
      }
 
      *buf = '\0';
-     
+
      if (ret_size)
           *ret_size = buf - ret;
 
@@ -348,10 +410,10 @@ direct_base64_decode( const char *string, int *ret_size )
  * Compute MD5 sum.
  */
 static const u8 S[4][4] = {
-     { 7, 12, 17, 22 },  /* Round 1 */
-     { 5,  9, 14, 20 },  /* Round 2 */
-     { 4, 11, 16, 23 },  /* Round 3 */
-     { 6, 10, 15, 21 }   /* Round 4 */
+     { 7, 12, 17, 22},  /* Round 1 */
+     { 5,  9, 14, 20},  /* Round 2 */
+     { 4, 11, 16, 23},  /* Round 3 */
+     { 6, 10, 15, 21}   /* Round 4 */
 };
 
 static const u32 T[64] = {
@@ -375,7 +437,7 @@ static const u32 T[64] = {
      0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
      0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391,
 };
-                
+
 static void
 md5_hash( u32 ABCD[4], u32 X[16] )
 {
@@ -385,7 +447,7 @@ md5_hash( u32 ABCD[4], u32 X[16] )
      u32 d = ABCD[0];
      int   t;
      int   i;
-    
+
 #ifdef WORDS_BIGENDIAN
      for (i = 0; i < 16; i++)
           X[i] = BSWAP32(X[i]);
@@ -403,28 +465,28 @@ md5_hash( u32 ABCD[4], u32 X[16] )
           a = b + ((a << t) | (a >> (32 - t)));
           t = d; d = c; c = b; b = a; a = t;
      }
-     
+
      ABCD[0] += d;
      ABCD[1] += c;
      ABCD[2] += b;
      ABCD[3] += a;
-}         
+}
 
-void 
+void
 direct_md5_sum( void *dst, const void *src, const int len )
 {
      u8    block[64];
      u32 ABCD[4];
      int   i, j;
-     
+
      D_ASSERT( dst != NULL );
      D_ASSERT( src != NULL );
-     
+
      ABCD[0] = 0x10325476;
      ABCD[1] = 0x98badcfe;
      ABCD[2] = 0xefcdab89;
      ABCD[3] = 0x67452301;
-     
+
      for (i = 0, j = 0; i < len; i++) {
           block[j++] = ((const u8*)src)[i];
           if (j == 64) {
@@ -432,20 +494,20 @@ direct_md5_sum( void *dst, const void *src, const int len )
                j = 0;
           }
      }
-     
+
      block[j++] = 0x80;
      memset( &block[j], 0, 64-j );
-     
+
      if (j > 56) {
           md5_hash( ABCD, (u32*)block );
           memset( block, 0, 64 );
      }
-     
+
      for (i = 0; i < 8; i++)
           block[56+i] = ((u64)len << 3) >> (i << 3);
-          
+
      md5_hash( ABCD, (u32*)block );
-     
+
      for (i = 0; i < 4; i++)
 #ifdef WORDS_BIGENDIAN
           ((u32*)dst)[i] = BSWAP32(ABCD[3-i]);
@@ -453,3 +515,21 @@ direct_md5_sum( void *dst, const void *src, const int len )
           ((u32*)dst)[i] = ABCD[3-i];
 #endif
 }
+
+
+
+void *
+direct_bsearch( const void *key,
+                const void *base,
+		      size_t      nmemb,
+                size_t      size,
+                void       *func )
+{
+#ifdef __KERNEL__
+     D_UNIMPLEMENTED();
+     return NULL;
+#else
+     return bsearch( key, base, nmemb, size, func );
+#endif
+}
+

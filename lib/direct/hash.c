@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -28,61 +28,44 @@
 
 #include <config.h>
 
-#include <stdlib.h>
-
 #include <direct/debug.h>
 #include <direct/hash.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
 
 
-D_DEBUG_DOMAIN( Direct_Hash, "Direct/Hash", "Hash table implementation" );
+D_LOG_DOMAIN( Direct_Hash, "Direct/Hash", "Hash table implementation" );
 
-
-#define REMOVED  ((void *) -1)
-
-typedef struct {
-     unsigned long  key;
-     void          *value;
-} Element;
-
-struct __D_DirectHash {
-     int       magic;
-
-     int       size;
-
-     int       count;
-     int       removed;
-
-     Element  *elements;
-};
-
-/**************************************************************************************************/
+/**********************************************************************************************************************/
 
 static inline int
 locate_key( const DirectHash *hash, unsigned long key )
 {
-     int            pos;
-     const Element *element;
+     int                      pos;
+     const DirectHashElement *element;
+
+     D_MAGIC_ASSERT( hash, DirectHash );
+     D_ASSERT( hash->size > 0 );
+     D_ASSERT( hash->Elements != NULL );
 
      pos = key % hash->size;
 
-     element = &hash->elements[pos];
+     element = &hash->Elements[pos];
 
      while (element->value) {
-          if (element->value != REMOVED && element->key == key)
+          if (element->value != DIRECT_HASH_ELEMENT_REMOVED && element->key == key)
                return pos;
 
           if (++pos == hash->size)
                pos = 0;
 
-          element = &hash->elements[pos];
+          element = &hash->Elements[pos];
      }
 
      return -1;
 }
 
-/**************************************************************************************************/
+/**********************************************************************************************************************/
 
 DirectResult
 direct_hash_create( int          size,
@@ -90,27 +73,11 @@ direct_hash_create( int          size,
 {
      DirectHash *hash;
 
-     if (size < 17)
-          size = 17;
-
-     D_DEBUG_AT( Direct_Hash, "Creating hash table with initial capacity of %d...\n", size );
-
      hash = D_CALLOC( 1, sizeof (DirectHash) );
-     if (!hash) {
-          D_WARN( "out of memory" );
-          return DR_NOLOCALMEMORY;
-     }
+     if (!hash)
+          return D_OOM();
 
-     hash->size     = size;
-     hash->elements = D_CALLOC( size, sizeof(Element) );
-
-     if (!hash->elements) {
-          D_WARN( "out of memory" );
-          D_FREE( hash );
-          return DR_NOLOCALMEMORY;
-     }
-
-     D_MAGIC_SET( hash, DirectHash );
+     direct_hash_init( hash, size );
 
      *ret_hash = hash;
 
@@ -122,10 +89,53 @@ direct_hash_destroy( DirectHash *hash )
 {
      D_MAGIC_ASSERT( hash, DirectHash );
 
+     direct_hash_deinit( hash );
+
+     D_FREE( hash );
+}
+
+/**********************************************************************************************************************/
+
+void
+direct_hash_init( DirectHash *hash,
+                  int         size )
+{
+     if (size < 17)
+          size = 17;
+
+     D_DEBUG_AT( Direct_Hash, "Creating hash table with initial capacity of %d...\n", size );
+
+     hash->size     = size;
+     hash->Elements = NULL;
+
+     D_MAGIC_SET( hash, DirectHash );
+}
+
+void
+direct_hash_deinit( DirectHash *hash )
+{
+     D_MAGIC_ASSERT( hash, DirectHash );
+
      D_MAGIC_CLEAR( hash );
 
-     D_FREE( hash->elements );
-     D_FREE( hash );
+     if (hash->Elements) {
+          if (hash->disable_debugging_alloc)
+               direct_free( hash->Elements );
+          else
+               D_FREE( hash->Elements );
+
+          hash->Elements = NULL;
+     }
+}
+
+/**********************************************************************************************************************/
+
+int
+direct_hash_count( DirectHash *hash )
+{
+     D_MAGIC_ASSERT( hash, DirectHash );
+
+     return hash->count;
 }
 
 DirectResult
@@ -133,35 +143,49 @@ direct_hash_insert( DirectHash    *hash,
                     unsigned long  key,
                     void          *value )
 {
-     int      pos;
-     Element *element;
+     int                pos;
+     DirectHashElement *element;
 
      D_MAGIC_ASSERT( hash, DirectHash );
+     D_ASSERT( hash->size > 0 );
      D_ASSERT( value != NULL );
 
+     if (!hash->Elements) {
+          if (hash->disable_debugging_alloc)
+               hash->Elements = direct_calloc( hash->size, sizeof(DirectHashElement) );
+          else
+               hash->Elements = D_CALLOC( hash->size, sizeof(DirectHashElement) );
+
+          if (!hash->Elements)
+               return D_OOM();
+     }
+
      /* Need to resize the hash table? */
-     if ((hash->count + hash->removed) > hash->size / 4) {
-          int      i, size = hash->size * 3;
-          Element *elements;
+     if ((hash->count + hash->removed) > hash->size / 2) {
+          int                i, size = hash->size * 3;
+          DirectHashElement *elements;
 
           D_DEBUG_AT( Direct_Hash, "Resizing from %d to %d... (count %d, removed %d)\n",
                       hash->size, size, hash->count, hash->removed );
 
-          elements = D_CALLOC( size, sizeof(Element) );
+          if (hash->disable_debugging_alloc)
+               elements = direct_calloc( size, sizeof(DirectHashElement) );
+          else
+               elements = D_CALLOC( size, sizeof(DirectHashElement) );
           if (!elements) {
                D_WARN( "out of memory" );
                return DR_NOLOCALMEMORY;
           }
 
           for (i=0; i<hash->size; i++) {
-               Element *element = &hash->elements[i];
-               Element *insertElement;
+               DirectHashElement *element = &hash->Elements[i];
+               DirectHashElement *insertElement;
 
-               if (element->value && element->value != REMOVED) {
+               if (element->value && element->value != DIRECT_HASH_ELEMENT_REMOVED) {
                     pos = element->key % size;
 
                     insertElement = &elements[pos];
-                    while (insertElement->value && insertElement->value != REMOVED) {
+                    while (insertElement->value && insertElement->value != DIRECT_HASH_ELEMENT_REMOVED) {
                         if (++pos == size)
                             pos = 0;
                         insertElement = &elements[pos];
@@ -171,10 +195,13 @@ direct_hash_insert( DirectHash    *hash,
                }
           }
 
-          D_FREE( hash->elements );
+          if (hash->disable_debugging_alloc)
+               direct_free( hash->Elements );
+          else
+               D_FREE( hash->Elements );
 
           hash->size     = size;
-          hash->elements = elements;
+          hash->Elements = elements;
           hash->removed  = 0;
      }
 
@@ -182,9 +209,9 @@ direct_hash_insert( DirectHash    *hash,
 
      D_DEBUG_AT( Direct_Hash, "Attempting to insert key 0x%08lx at position %d...\n", key, pos );
 
-     element = &hash->elements[pos];
+     element = &hash->Elements[pos];
 
-     while (element->value && element->value != REMOVED) {
+     while (element->value && element->value != DIRECT_HASH_ELEMENT_REMOVED) {
           if (element->key == key) {
                D_BUG( "key already exists" );
                return DR_BUG;
@@ -193,10 +220,10 @@ direct_hash_insert( DirectHash    *hash,
           if (++pos == hash->size)
                pos = 0;
 
-          element = &hash->elements[pos];
+          element = &hash->Elements[pos];
      }
 
-     if (element->value == REMOVED)
+     if (element->value == DIRECT_HASH_ELEMENT_REMOVED)
           hash->removed--;
 
      element->key   = key;
@@ -210,7 +237,7 @@ direct_hash_insert( DirectHash    *hash,
      return DR_OK;
 }
 
-void
+DirectResult
 direct_hash_remove( DirectHash    *hash,
                     unsigned long  key )
 {
@@ -218,32 +245,42 @@ direct_hash_remove( DirectHash    *hash,
 
      D_MAGIC_ASSERT( hash, DirectHash );
 
+     if (!hash->Elements)
+          return DR_BUFFEREMPTY;
+
      pos = locate_key( hash, key );
      if (pos == -1) {
           D_WARN( "key not found" );
-          return;
+          return DR_ITEMNOTFOUND;
      }
 
-     hash->elements[pos].value = REMOVED;
+     hash->Elements[pos].value = DIRECT_HASH_ELEMENT_REMOVED;
 
      hash->count--;
      hash->removed++;
 
      D_DEBUG_AT( Direct_Hash, "Removed key 0x%08lx at %d, new count = %d, removed = %d, size = %d.\n",
                  key, pos, hash->count, hash->removed, hash->size );
+
+//     direct_futex_wake( &hash->count, INT_MAX );  // FIXME: only wake if waiting
+
+     return DR_OK;
 }
 
 void *
-direct_hash_lookup( DirectHash    *hash,
-                    unsigned long  key )
+direct_hash_lookup( const DirectHash *hash,
+                    unsigned long     key )
 {
      int pos;
 
      D_MAGIC_ASSERT( hash, DirectHash );
 
+     if (!hash->Elements)
+          return NULL;
+
      pos = locate_key( hash, key );
 
-     return (pos != -1) ? hash->elements[pos].value : NULL;
+     return (pos != -1) ? hash->Elements[pos].value : NULL;
 }
 
 void
@@ -255,10 +292,13 @@ direct_hash_iterate( DirectHash             *hash,
 
      D_MAGIC_ASSERT( hash, DirectHash );
 
-     for (i=0; i<hash->size; i++) {
-          Element *element = &hash->elements[i];
+     if (!hash->Elements)
+          return;
 
-          if (!element->value || element->value == REMOVED)
+     for (i=0; i<hash->size; i++) {
+          DirectHashElement *element = &hash->Elements[i];
+
+          if (!element->value || element->value == DIRECT_HASH_ELEMENT_REMOVED)
                continue;
 
           if (!func( hash, element->key, element->value, ctx ) )

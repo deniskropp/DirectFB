@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -28,14 +28,6 @@
 
 #include <config.h>
 
-#include <pthread.h>
-#include <dirent.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
-#include <alloca.h>
-
 #include <direct/debug.h>
 #include <direct/interface.h>
 #include <direct/list.h>
@@ -43,17 +35,15 @@
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/print.h>
+#include <direct/thread.h>
 #include <direct/trace.h>
 #include <direct/util.h>
 
-#ifdef PIC
-#define DYNAMIC_LINKING
-#include <dlfcn.h>
-#endif
 
+D_LOG_DOMAIN( Direct_Interface, "Direct/Interface", "Direct Interface" );
 
-D_DEBUG_DOMAIN( Direct_Interface, "Direct/Interface", "Direct Interface" );
-
+/**********************************************************************************************************************/
 
 typedef struct {
      DirectLink            link;
@@ -71,10 +61,12 @@ typedef struct {
      int                   references;
 } DirectInterfaceImplementation;
 
-static pthread_mutex_t  implementations_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-static DirectLink      *implementations       = NULL;
+/**********************************************************************************************************************/
 
-/**************************************************************************************************/
+static DirectMutex  implementations_mutex = DIRECT_RECURSIVE_MUTEX_INITIALIZER(implementations_mutex);
+static DirectLink  *implementations       = NULL;
+
+/**********************************************************************************************************************/
 
 void
 DirectRegisterInterface( DirectInterfaceFuncs *funcs )
@@ -83,7 +75,9 @@ DirectRegisterInterface( DirectInterfaceFuncs *funcs )
 
      D_DEBUG_AT( Direct_Interface, "%s( %p )\n", __FUNCTION__, funcs );
 
-     impl = D_CALLOC( 1, sizeof(DirectInterfaceImplementation) );
+     impl = (DirectInterfaceImplementation*) D_CALLOC( 1, sizeof(DirectInterfaceImplementation) );
+
+     D_DEBUG_AT( Direct_Interface, "  -> %p\n", impl );
 
      impl->funcs          = funcs;
      impl->type           = funcs->GetType();
@@ -93,9 +87,9 @@ DirectRegisterInterface( DirectInterfaceFuncs *funcs )
 
      D_DEBUG_AT( Direct_Interface, "  -> %s | %s\n", impl->type, impl->implementation );
 
-     pthread_mutex_lock( &implementations_mutex );
+     direct_mutex_lock( &implementations_mutex );
      direct_list_prepend( &implementations, &impl->link );
-     pthread_mutex_unlock( &implementations_mutex );
+     direct_mutex_unlock( &implementations_mutex );
 }
 
 void
@@ -103,7 +97,9 @@ DirectUnregisterInterface( DirectInterfaceFuncs *funcs )
 {
      DirectInterfaceImplementation *impl;
 
-     pthread_mutex_lock( &implementations_mutex );
+     D_DEBUG_AT( Direct_Interface, "%s( %p )\n", __FUNCTION__, funcs );
+
+     direct_mutex_lock( &implementations_mutex );
 
      direct_list_foreach (impl, implementations) {
           D_MAGIC_ASSERT( impl, DirectInterfaceImplementation );
@@ -115,12 +111,16 @@ DirectUnregisterInterface( DirectInterfaceFuncs *funcs )
           }
      }
 
-     pthread_mutex_unlock( &implementations_mutex );
+     direct_mutex_unlock( &implementations_mutex );
 
      if (!impl) {
           D_BUG( "implementation not found" );
           return;
      }
+
+     D_DEBUG_AT( Direct_Interface, "  -> %s | %s\n", impl->type, impl->implementation );
+
+     D_DEBUG_AT( Direct_Interface, "  -> %p\n", impl );
 
      D_MAGIC_CLEAR( impl );
 
@@ -140,7 +140,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                     DirectInterfaceProbeFunc   probe,
                     void                      *probe_ctx )
 {
-#ifdef DYNAMIC_LINKING
+#if DIRECT_BUILD_DYNLOAD
      int                         len;
      DIR                        *dir;
      char                       *interface_dir;
@@ -154,7 +154,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
      D_DEBUG_AT( Direct_Interface, "%s( %p, '%s', '%s', %p, %p )\n", __FUNCTION__,
                  funcs, type, implementation, probe, probe_ctx );
 
-     pthread_mutex_lock( &implementations_mutex );
+     direct_mutex_lock( &implementations_mutex );
 
      /*
       * Check existing implementations first.
@@ -181,20 +181,20 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                *funcs = impl->funcs;
                impl->references++;
 
-               pthread_mutex_unlock( &implementations_mutex );
+               direct_mutex_unlock( &implementations_mutex );
 
                return DR_OK;
           }
      }
 
-#ifdef DYNAMIC_LINKING
+#if DIRECT_BUILD_DYNLOAD
      /*
       * Try to load it dynamically.
       */
 
      /* NULL type means we can't find plugin, so stop immediately */
      if (type == NULL) {
-          pthread_mutex_unlock( &implementations_mutex );
+          direct_mutex_unlock( &implementations_mutex );
           return DR_NOIMPL;
      }
 
@@ -204,12 +204,12 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 
      len = strlen(path) + strlen("/interfaces/") + strlen(type) + 1;
      interface_dir = alloca( len );
-     snprintf( interface_dir, len, "%s%sinterfaces/%s", path, (path[strlen(path)-1]=='/') ? "" : "/", type );
+     direct_snprintf( interface_dir, len, "%s%sinterfaces/%s", path, (path[strlen(path)-1]=='/') ? "" : "/", type );
 
      dir = opendir( interface_dir );
      if (!dir) {
-          D_DEBUG( "Could not open interface directory `%s'!\n", interface_dir );
-          pthread_mutex_unlock( &implementations_mutex );
+          D_DEBUG_LOG( Direct_Interface, 1, "Could not open interface directory '%s'!\n", interface_dir );
+          direct_mutex_unlock( &implementations_mutex );
           return errno2result( errno );
      }
 
@@ -227,7 +227,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
               entry->d_name[strlen(entry->d_name)-2] != 's')
                continue;
 
-          snprintf( buf, 4096, "%s/%s", interface_dir, entry->d_name );
+          direct_snprintf( buf, 4096, "%s/%s", interface_dir, entry->d_name );
 
           /*
            * Check if it got already loaded.
@@ -290,7 +290,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 
                     closedir( dir );
 
-                    pthread_mutex_unlock( &implementations_mutex );
+                    direct_mutex_unlock( &implementations_mutex );
 
                     return DR_OK;
                }
@@ -300,9 +300,9 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
      }
 
      closedir( dir );
-
-     pthread_mutex_unlock( &implementations_mutex );
 #endif
+
+     direct_mutex_unlock( &implementations_mutex );
 
      return DR_NOIMPL;
 }
@@ -323,10 +323,10 @@ typedef struct {
      DirectTraceBuffer *trace;
 } InterfaceDesc;
 
-static int              alloc_count    = 0;
-static int              alloc_capacity = 0;
-static InterfaceDesc   *alloc_list     = NULL;
-static pthread_mutex_t  alloc_lock     = PTHREAD_MUTEX_INITIALIZER;
+static int            alloc_count    = 0;
+static int            alloc_capacity = 0;
+static InterfaceDesc *alloc_list     = NULL;
+static DirectMutex    alloc_lock     = DIRECT_MUTEX_INITIALIZER(alloc_lock);
 
 /**************************************************************************************************/
 
@@ -335,7 +335,7 @@ direct_print_interface_leaks( void )
 {
      unsigned int i;
 
-     pthread_mutex_lock( &alloc_lock );
+     direct_mutex_lock( &alloc_lock );
 
      if (alloc_count /*&& (!direct_config || direct_config->debug)*/) {
           direct_log_printf( NULL, "Interface instances remaining (%d): \n", alloc_count );
@@ -351,11 +351,12 @@ direct_print_interface_leaks( void )
           }
      }
 
-     pthread_mutex_unlock( &alloc_lock );
+     direct_mutex_unlock( &alloc_lock );
 }
 
 /**************************************************************************************************/
 
+__attribute__((no_instrument_function))
 static InterfaceDesc *
 allocate_interface_desc( void )
 {
@@ -368,7 +369,7 @@ allocate_interface_desc( void )
 
      if (cap != alloc_capacity) {
           alloc_capacity = cap;
-          alloc_list     = realloc( alloc_list, sizeof(InterfaceDesc) * cap );
+          alloc_list     = direct_realloc( alloc_list, sizeof(InterfaceDesc) * cap );
 
           D_ASSERT( alloc_list != NULL );
      }
@@ -376,6 +377,7 @@ allocate_interface_desc( void )
      return &alloc_list[alloc_count++];
 }
 
+__attribute__((no_instrument_function))
 static inline void
 fill_interface_desc( InterfaceDesc     *desc,
                      const void        *interface,
@@ -387,8 +389,8 @@ fill_interface_desc( InterfaceDesc     *desc,
                      DirectTraceBuffer *trace )
 {
      desc->interface = interface;
-     desc->name      = strdup( name );
-     desc->what      = strdup( what );
+     desc->name      = direct_strdup( name );
+     desc->what      = direct_strdup( what );
      desc->func      = func;
      desc->file      = file;
      desc->line      = line;
@@ -408,14 +410,14 @@ direct_dbg_interface_add( const char *func,
 {
      InterfaceDesc *desc;
 
-     pthread_mutex_lock( &alloc_lock );
+     direct_mutex_lock( &alloc_lock );
 
      desc = allocate_interface_desc();
 
      fill_interface_desc( desc, interface, name,
                           func, file, line, what, direct_trace_copy_buffer(NULL) );
 
-     pthread_mutex_unlock( &alloc_lock );
+     direct_mutex_unlock( &alloc_lock );
 }
 
 __attribute__((no_instrument_function))
@@ -428,7 +430,7 @@ direct_dbg_interface_remove( const char *func,
 {
      unsigned int i;
 
-     pthread_mutex_lock( &alloc_lock );
+     direct_mutex_lock( &alloc_lock );
 
      for (i=0; i<alloc_count; i++) {
           InterfaceDesc *desc = &alloc_list[i];
@@ -437,19 +439,19 @@ direct_dbg_interface_remove( const char *func,
                if (desc->trace)
                     direct_trace_free_buffer( desc->trace );
 
-               free( desc->what );
-               free( desc->name );
+               direct_free( desc->what );
+               direct_free( desc->name );
 
                if (i < --alloc_count)
                     direct_memmove( desc, desc + 1, (alloc_count - i) * sizeof(InterfaceDesc) );
 
-               pthread_mutex_unlock( &alloc_lock );
+               direct_mutex_unlock( &alloc_lock );
 
                return;
           }
      }
 
-     pthread_mutex_unlock( &alloc_lock );
+     direct_mutex_unlock( &alloc_lock );
 
      D_ERROR( "Direct/Interface: unknown instance %p (%s) from [%s:%d in %s()]\n",
               interface, what, file, line, func );

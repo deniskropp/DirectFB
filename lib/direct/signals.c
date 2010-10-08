@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -28,14 +28,6 @@
 
 #include <config.h>
 
-#include <pthread.h>
-
-#include <signal.h>
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-
 #include <direct/clock.h>
 #include <direct/conf.h>
 #include <direct/debug.h>
@@ -44,10 +36,11 @@
 #include <direct/messages.h>
 #include <direct/signals.h>
 #include <direct/system.h>
+#include <direct/thread.h>
 #include <direct/trace.h>
 #include <direct/util.h>
 
-D_DEBUG_DOMAIN( Direct_Signals, "Direct/Signals", "Signal handling" );
+D_LOG_DOMAIN( Direct_Signals, "Direct/Signals", "Signal handling" );
 
 
 struct __D_DirectSignalHandler {
@@ -65,6 +58,7 @@ struct __D_DirectSignalHandler {
 typedef struct {
      int              signum;
      struct sigaction old_action;
+     struct sigaction new_action;
 } SigHandled;
 
 static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, /*SIGPIPE,*/ /*SIGPOLL,*/
@@ -77,8 +71,8 @@ static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, /*SIGPIPE,*/ /*SIGP
 
 static SigHandled sigs_handled[NUM_SIGS_TO_HANDLE];
 
-static DirectLink      *handlers = NULL;
-static pthread_mutex_t  handlers_lock;
+static DirectLink  *handlers = NULL;
+static DirectMutex  handlers_lock;
 
 /**************************************************************************************************/
 
@@ -92,7 +86,7 @@ direct_signals_initialize( void )
 {
      D_DEBUG_AT( Direct_Signals, "Initializing...\n" );
 
-     direct_util_recursive_pthread_mutex_init( &handlers_lock );
+     direct_recursive_mutex_init( &handlers_lock );
 
      install_handlers();
 
@@ -106,7 +100,7 @@ direct_signals_shutdown( void )
 
      remove_handlers();
 
-     pthread_mutex_destroy( &handlers_lock );
+     direct_mutex_deinit( &handlers_lock );
 
      return DR_OK;
 }
@@ -120,8 +114,8 @@ direct_signals_block_all( void )
 
      sigfillset( &signals );
 
-     if (pthread_sigmask( SIG_BLOCK, &signals, NULL ))
-          D_PERROR( "Direct/Signals: Setting signal mask failed!\n" );
+     if (sigprocmask( SIG_BLOCK, &signals, NULL ))
+          ;//D_PERROR( "Direct/Signals: Setting signal mask failed!\n" );
 }
 
 DirectResult
@@ -150,9 +144,9 @@ direct_signal_handler_add( int                       num,
 
      D_MAGIC_SET( handler, DirectSignalHandler );
 
-     pthread_mutex_lock( &handlers_lock );
+     direct_mutex_lock( &handlers_lock );
      direct_list_append( &handlers, &handler->link );
-     pthread_mutex_unlock( &handlers_lock );
+     direct_mutex_unlock( &handlers_lock );
 
      *ret_handler = handler;
 
@@ -167,9 +161,9 @@ direct_signal_handler_remove( DirectSignalHandler *handler )
      D_DEBUG_AT( Direct_Signals, "Removing handler %p for signal %d with context %p...\n",
                  handler->func, handler->num, handler->ctx );
 
-     pthread_mutex_lock( &handlers_lock );
+     direct_mutex_lock( &handlers_lock );
      direct_list_remove( &handlers, &handler->link );
-     pthread_mutex_unlock( &handlers_lock );
+     direct_mutex_unlock( &handlers_lock );
 
      D_MAGIC_CLEAR( handler );
 
@@ -180,18 +174,22 @@ direct_signal_handler_remove( DirectSignalHandler *handler )
 
 /**************************************************************************************************/
 
+#ifdef SA_SIGINFO
+
+#include <ucontext.h>
+
 static bool
-show_segv( const siginfo_t *info )
+show_segv( const siginfo_t *info, ucontext_t *uctx )
 {
      switch (info->si_code) {
 #ifdef SEGV_MAPERR
           case SEGV_MAPERR:
-               direct_log_printf( NULL, " (at %p, invalid address) <--\n", info->si_addr );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (at %p, invalid address) <--\n", info->si_signo, info->si_addr );
                return true;
 #endif
 #ifdef SEGV_ACCERR
           case SEGV_ACCERR:
-               direct_log_printf( NULL, " (at %p, invalid permissions) <--\n", info->si_addr );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (at %p, invalid permissions) <--\n", info->si_signo, info->si_addr );
                return true;
 #endif
      }
@@ -199,22 +197,22 @@ show_segv( const siginfo_t *info )
 }
 
 static bool
-show_bus( const siginfo_t *info )
+show_bus( const siginfo_t *info, ucontext_t *uctx )
 {
      switch (info->si_code) {
 #ifdef BUG_ADRALN
           case BUS_ADRALN:
-               direct_log_printf( NULL, " (at %p, invalid address alignment) <--\n", info->si_addr );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (at %p, invalid address alignment) <--\n", info->si_signo, info->si_addr );
                return true;
 #endif
 #ifdef BUS_ADRERR
           case BUS_ADRERR:
-               direct_log_printf( NULL, " (at %p, non-existent physical address) <--\n", info->si_addr );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (at %p, non-existent physical address) <--\n", info->si_signo, info->si_addr );
                return true;
 #endif
 #ifdef BUS_OBJERR
           case BUS_OBJERR:
-               direct_log_printf( NULL, " (at %p, object specific hardware error) <--\n", info->si_addr );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (at %p, object specific hardware error) <--\n", info->si_signo, info->si_addr );
                return true;
 #endif
      }
@@ -223,47 +221,47 @@ show_bus( const siginfo_t *info )
 }
 
 static bool
-show_ill( const siginfo_t *info )
+show_ill( const siginfo_t *info, ucontext_t *uctx )
 {
      switch (info->si_code) {
 #ifdef ILL_ILLOPC
           case ILL_ILLOPC:
-               direct_log_printf( NULL, " (at %p, illegal opcode) <--\n", info->si_addr );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (at %p, illegal opcode) <--\n", info->si_signo, info->si_addr );
                return true;
 #endif
 #ifdef ILL_ILLOPN
           case ILL_ILLOPN:
-               direct_log_printf( NULL, " (at %p, illegal operand) <--\n", info->si_addr );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (at %p, illegal operand) <--\n", info->si_signo, info->si_addr );
                return true;
 #endif
 #ifdef ILL_ILLADR
           case ILL_ILLADR:
-               direct_log_printf( NULL, " (at %p, illegal addressing mode) <--\n", info->si_addr );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (at %p, illegal addressing mode) <--\n", info->si_signo, info->si_addr );
                return true;
 #endif
 #ifdef ILL_ILLTRP
           case ILL_ILLTRP:
-               direct_log_printf( NULL, " (at %p, illegal trap) <--\n", info->si_addr );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (at %p, illegal trap) <--\n", info->si_signo, info->si_addr );
                return true;
 #endif
 #ifdef ILL_PRVOPC
           case ILL_PRVOPC:
-               direct_log_printf( NULL, " (at %p, privileged opcode) <--\n", info->si_addr );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (at %p, privileged opcode) <--\n", info->si_signo, info->si_addr );
                return true;
 #endif
 #ifdef ILL_PRVREG
           case ILL_PRVREG:
-               direct_log_printf( NULL, " (at %p, privileged register) <--\n", info->si_addr );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (at %p, privileged register) <--\n", info->si_signo, info->si_addr );
                return true;
 #endif
 #ifdef ILL_COPROC
           case ILL_COPROC:
-               direct_log_printf( NULL, " (at %p, coprocessor error) <--\n", info->si_addr );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (at %p, coprocessor error) <--\n", info->si_signo, info->si_addr );
                return true;
 #endif
 #ifdef ILL_BADSTK
           case ILL_BADSTK:
-               direct_log_printf( NULL, " (at %p, internal stack error) <--\n", info->si_addr );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (at %p, internal stack error) <--\n", info->si_signo, info->si_addr );
                return true;
 #endif
      }
@@ -272,107 +270,139 @@ show_ill( const siginfo_t *info )
 }
 
 static bool
-show_fpe( const siginfo_t *info )
+show_fpe( const siginfo_t *info, ucontext_t *uctx )
 {
      switch (info->si_code) {
 #ifdef FPE_INTDIV
           case FPE_INTDIV:
-               direct_log_printf( NULL, " (at %p, integer divide by zero) <--\n", info->si_addr );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (at %p, integer divide by zero) <--\n", info->si_signo, info->si_addr );
                return true;
 #endif
 #ifdef FPE_FLTDIV
           case FPE_FLTDIV:
-               direct_log_printf( NULL, " (at %p, floating point divide by zero) <--\n", info->si_addr );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (at %p, floating point divide by zero) <--\n", info->si_signo, info->si_addr );
                return true;
 #endif
      }
 
-     direct_log_printf( NULL, " (at %p) <--\n", info->si_addr );
+     D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (at %p) <--\n", info->si_signo, info->si_addr );
 
      return true;
 }
 
 static bool
-show_any( const siginfo_t *info )
+show_any( const siginfo_t *info, ucontext_t *uctx )
 {
      switch (info->si_code) {
 #ifdef SI_USER
           case SI_USER:
-               direct_log_printf( NULL, " (sent by pid %d, uid %d) <--\n", info->si_pid, info->si_uid );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (sent by pid %d, uid %d) <--\n", info->si_signo, info->si_pid, info->si_uid );
+               return true;
+#endif
+#ifdef SI_QUEUE
+          case SI_QUEUE:
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (queued by pid %d, uid %d, val %d, uctx %p) <--\n",
+                      info->si_signo, info->si_pid, info->si_uid, info->si_int, uctx );
                return true;
 #endif
 #ifdef SI_KERNEL
           case SI_KERNEL:
-               direct_log_printf( NULL, " (sent by the kernel) <--\n" );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (sent by the kernel) <--\n", info->si_signo );
                return true;
 #endif
      }
      return false;
 }
 
-static void
-#ifdef SA_SIGINFO
-signal_handler( int num, siginfo_t *info, void *foo )
-#else
-signal_handler( int num )
 #endif
-{
-     DirectLink *l, *n;
-     void       *addr   = NULL;
-     int         pid    = direct_gettid();
-     long long   millis = direct_clock_get_millis();
-
-     fflush(stdout);
-     fflush(stderr);
-
-     direct_log_printf( NULL, "(!) [%5d: %4lld.%03lld] --> Caught signal %d",
-                        pid, millis/1000, millis%1000, num );
 
 #ifdef SA_SIGINFO
+static void
+signal_handler( int num, siginfo_t *info, void *foo )
+{
+     ucontext_t   *uctx = foo;
+#else
+static void
+signal_handler( int num )
+{
+#endif
+     DirectResult  ret;
+     int           i;
+     DirectLink   *l, *n;
+     SigHandled   *sig  = NULL;
+     void         *addr = NULL;
+
+//     fflush(stdout);
+//     fflush(stderr);
+
+     for (i=0; i<NUM_SIGS_TO_HANDLE; i++) {
+          if (sigs_handled[i].signum == num) {
+               sig = &sigs_handled[i];
+
+               /* Using SA_RESETHAND, so... */
+               sig->signum = -1;
+               break;
+          }
+     }
+
+/*     ret = direct_sigaction( num, &sig->old_action, NULL );
+     if (ret) {
+          D_DERROR( ret, "Direct/Signals: Unable to restore previous handler for signal %d!\n", num );
+          sig = NULL;
+     }
+*/
+
+#ifndef SA_SIGINFO
+     D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d <--\n", num );
+#else
      if (info && info > (siginfo_t*) 0x100) {
           bool shown = false;
 
+          /* Kernel genrated signal? */
           if (info->si_code > 0 && info->si_code < 0x80) {
                addr = info->si_addr;
 
                switch (num) {
                     case SIGSEGV:
-                         shown = show_segv( info );
+                         shown = show_segv( info, uctx );
                          break;
 
                     case SIGBUS:
-                         shown = show_bus( info );
+                         shown = show_bus( info, uctx );
                          break;
 
                     case SIGILL:
-                         shown = show_ill( info );
+                         shown = show_ill( info, uctx );
                          break;
 
                     case SIGFPE:
-                         shown = show_fpe( info );
+                         shown = show_fpe( info, uctx );
                          break;
 
                     default:
-                         direct_log_printf( NULL, " <--\n" );
+                         D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d <--\n", info->si_signo );
                          addr  = NULL;
                          shown = true;
                          break;
                }
           }
           else
-               shown = show_any( info );
+               shown = show_any( info, uctx );
 
           if (!shown)
-               direct_log_printf( NULL, " (unknown origin) <--\n" );
+               D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d (unknown origin) <--\n", info->si_signo );
      }
      else
+          D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d, no siginfo available <--\n", num );
 #endif
-          direct_log_printf( NULL, ", no siginfo available <--\n" );
 
+     direct_log_lock( NULL );
      direct_trace_print_stacks();
+     direct_log_unlock( NULL );
+
 
      /* Loop through all handlers. */
-     pthread_mutex_lock( &handlers_lock );
+     direct_mutex_lock( &handlers_lock );
 
      direct_list_foreach_safe (l, n, handlers) {
           DirectSignalHandler *handler = (DirectSignalHandler*) l;
@@ -391,11 +421,17 @@ signal_handler( int num )
                     break;
 
                case DSHR_RESUME:
-                    millis = direct_clock_get_millis();
+                    D_LOG( Direct_Signals, FATAL, "    '-> cured!\n" );
 
-                    direct_log_printf( NULL, "(!) [%5d: %4lld.%03lld]      -> cured!\n",
-                                       pid, millis / 1000, millis % 1000 );
-                    pthread_mutex_unlock( &handlers_lock );
+                    direct_mutex_unlock( &handlers_lock );
+
+                    if (sig) {
+                         ret = direct_sigaction( num, &sig->new_action, NULL );
+                         if (ret)
+                              D_DERROR( ret, "Direct/Signals: Unable to reinstall handler for signal %d!\n", num );
+                         else
+                              sig->signum = num;
+                    }
                     return;
 
                default:
@@ -404,15 +440,11 @@ signal_handler( int num )
           }
      }
 
-     pthread_mutex_unlock( &handlers_lock );
+     direct_mutex_unlock( &handlers_lock );
 
      remove_handlers();
 
-     raise( num );
-     
-     abort();
-
-     exit( -num );
+     direct_trap( "SigHandler", num );
 }
 
 /**************************************************************************************************/
@@ -420,14 +452,13 @@ signal_handler( int num )
 static void
 install_handlers( void )
 {
-     int i;
+     DirectResult  ret;
+     int           i;
 
      for (i=0; i<NUM_SIGS_TO_HANDLE; i++) {
           sigs_handled[i].signum = -1;
 
-          if (direct_config->sighandler && !sigismember( &direct_config->dont_catch,
-                                                         sigs_to_handle[i] ))
-          {
+          if (direct_config->sighandler && !sigismember( &direct_config->dont_catch, sigs_to_handle[i] )) {
                struct sigaction action;
                int              signum = sigs_to_handle[i];
 
@@ -442,15 +473,19 @@ install_handlers( void )
                if (signum != SIGSEGV)
                     action.sa_flags |= SA_NODEFER;
 
+               action.sa_flags |= SA_RESETHAND | SA_RESTART;
+
                sigemptyset( &action.sa_mask );
 
-               if (sigaction( signum, &action, &sigs_handled[i].old_action )) {
-                    D_PERROR( "Direct/Signals: "
+               ret = direct_sigaction( signum, &action, &sigs_handled[i].old_action );
+               if (ret) {
+                    D_DERROR( ret, "Direct/Signals: "
                               "Unable to install signal handler for signal %d!\n", signum );
                     continue;
                }
 
-               sigs_handled[i].signum = signum;
+               sigs_handled[i].new_action = action;
+               sigs_handled[i].signum     = signum;
           }
      }
 }
@@ -458,14 +493,16 @@ install_handlers( void )
 static void
 remove_handlers( void )
 {
-     int i;
+     DirectResult  ret;
+     int           i;
 
      for (i=0; i<NUM_SIGS_TO_HANDLE; i++) {
           if (sigs_handled[i].signum != -1) {
                int signum = sigs_handled[i].signum;
 
-               if (sigaction( signum, &sigs_handled[i].old_action, NULL )) {
-                    D_PERROR( "Direct/Signals: "
+               ret = direct_sigaction( signum, &sigs_handled[i].old_action, NULL );
+               if (ret) {
+                    D_DERROR( ret, "Direct/Signals: "
                               "Unable to restore previous handler for signal %d!\n", signum );
                }
 

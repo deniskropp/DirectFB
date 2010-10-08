@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -30,341 +30,68 @@
 
 #include <direct/build.h>
 
-#include <stdarg.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <signal.h>
-
 #include <direct/clock.h>
 #include <direct/debug.h>
 #include <direct/list.h>
 #include <direct/log.h>
+#include <direct/mem.h>
+#include <direct/print.h>
+#include <direct/system.h>
 #include <direct/thread.h>
 #include <direct/trace.h>
 #include <direct/util.h>
 
 
+/**********************************************************************************************************************/
+
 #if DIRECT_BUILD_TEXT
 
 #if DIRECT_BUILD_DEBUGS  /* Build with debug support? */
-
-typedef struct {
-     DirectLink  link;
-     char       *name;
-     bool        enabled;
-} DebugDomainEntry;
-
-/**************************************************************************************************/
-
-static pthread_mutex_t  domains_lock = PTHREAD_MUTEX_INITIALIZER;
-static unsigned int     domains_age  = 1;
-static DirectLink      *domains      = NULL;
-
-/**************************************************************************************************/
-
-__attribute__((no_instrument_function))
-static inline DebugDomainEntry *
-lookup_domain( const char *name, bool sub )
-{
-     DebugDomainEntry *entry;
-
-     direct_list_foreach (entry, domains) {
-          if (! strcasecmp( entry->name, name ))
-               return entry;
-     }
-
-     /*
-      * If the domain being registered contains a slash, but didn't exactly match an entry
-      * in directfbrc, check to see if the domain is descended from an entry in directfbrc
-      * (e.g. 'ui/field/messages' matches 'ui' or 'ui/field')
-      */
-     if (sub && strchr(name, '/')) {
-          int passed_name_len = strlen( name );
-
-          direct_list_foreach (entry, domains) {
-               int entry_len = strlen( entry->name );
-               if ((passed_name_len > entry_len) &&
-                   (name[entry_len] == '/') &&
-                   (! strncasecmp( entry->name, name, entry_len))) {
-                    return entry;
-               }
-          }
-     }
-
-     return NULL;
-}
-
-__attribute__((no_instrument_function))
-static inline bool
-check_domain( DirectDebugDomain *domain )
-{
-     if (domain->age != domains_age) {
-          DebugDomainEntry *entry = lookup_domain( domain->name, true );
-
-          domain->age = domains_age;
-
-          if (entry) {
-               domain->registered = true;
-               domain->enabled    = entry->enabled;
-          }
-     }
-
-     return domain->registered ? domain->enabled : direct_config->debug;
-}
-
-#endif /* DIRECT_BUILD_DEBUGS */
-
-/**************************************************************************************************/
-
-void
-direct_debug_config_domain( const char *name, bool enable )
-{
-#if DIRECT_BUILD_DEBUGS  /* Build with debug support? */
-     DebugDomainEntry *entry;
-
-     pthread_mutex_lock( &domains_lock );
-
-     entry = lookup_domain( name, false );
-     if (!entry) {
-          entry = calloc( 1, sizeof(DebugDomainEntry) );
-          if (!entry) {
-               D_WARN( "out of memory" );
-               pthread_mutex_unlock( &domains_lock );
-               return;
-          }
-
-          entry->name = strdup( name );
-
-          direct_list_prepend( &domains, &entry->link );
-     }
-
-     entry->enabled = enable;
-
-     if (! ++domains_age)
-          domains_age++;
-
-     pthread_mutex_unlock( &domains_lock );
-#endif /* DIRECT_BUILD_DEBUGS */
-}
-
-bool
-direct_debug_check_domain( DirectDebugDomain *domain )
-{
-#if DIRECT_BUILD_DEBUGS  /* Build with debug support? */
-     bool enabled;
-
-     pthread_mutex_lock( &domains_lock );
-
-     enabled = check_domain( domain );
-
-     pthread_mutex_unlock( &domains_lock );
-
-     return enabled;
-#else
-     return false;
-#endif /* DIRECT_BUILD_DEBUGS */
-}
-
-/**************************************************************************************************/
-
-__attribute__((no_instrument_function))
-static inline void
-debug_domain_vprintf( const char        *name,
-                      int                name_len,
-                      const char        *format,
-                      va_list            ap )
-{
-     char        buf[512];
-     long long   millis = direct_clock_get_millis();
-     const char *thread = direct_thread_self_name();
-     int         indent = direct_trace_debug_indent() * 4;
-
-     /* Prepare user message. */
-     vsnprintf( buf, sizeof(buf), format, ap );
-
-     /* Fill up domain name column after the colon, prepending remaining space (excl. ': ') to indent. */
-     indent += (name_len < 20 ? 20 : 36) - name_len - 2;
-
-     /* Print full message. */
-     direct_log_printf( NULL, "(-) [%-15s %3lld.%03lld] (%5d) %s: %*s%s", thread ? thread : "  NO NAME",
-                        millis / 1000LL, millis % 1000LL, direct_gettid(), name, indent, "", buf );
-}
-
-#if DIRECT_BUILD_DEBUGS  /* Build with debug support? */
-
+  
 __attribute__((no_instrument_function))
 void
-direct_debug( const char *format, ... )
+direct_debug_log( DirectLogDomain *domain,
+              unsigned int     debug_level,  /* 1-9, 0 = info */
+              const char      *format, ... )
 {
      va_list ap;
 
+     debug_level += DIRECT_LOG_DEBUG_0;
+
      va_start( ap, format );
-
-     debug_domain_vprintf( "- - ", 4, format, ap );
-
+     direct_log_domain_vprintf( domain, debug_level > DIRECT_LOG_DEBUG_9 ? DIRECT_LOG_DEBUG_9 : debug_level, format, ap );
      va_end( ap );
 }
 
 __attribute__((no_instrument_function))
 void
-direct_debug_at( DirectDebugDomain *domain,
-                 const char        *format, ... )
+direct_debug_at( DirectLogDomain *domain,
+                 const char      *format, ... )
 {
-     bool enabled;
+     va_list ap;
 
-     pthread_mutex_lock( &domains_lock );
+     va_start( ap, format );
+     direct_log_domain_vprintf( domain, DIRECT_LOG_DEBUG, format, ap );
+     va_end( ap );
+}
 
-     enabled = check_domain( domain );
+#endif /* DIRECT_BUILD_DEBUGS */
 
-     pthread_mutex_unlock( &domains_lock );
-
-     if (enabled) {
+__attribute__((no_instrument_function))
+void
+direct_debug_at_always( DirectLogDomain *domain,
+                        const char      *format, ... )
+{
+     if (direct_config->log_level >= DIRECT_LOG_DEBUG) {
           va_list ap;
 
           va_start( ap, format );
-
-          debug_domain_vprintf( domain->name, domain->name_len, format, ap );
-
+          direct_log_domain_vprintf( domain, DIRECT_LOG_NONE, format, ap );
           va_end( ap );
      }
-}
-
-#endif /* DIRECT_BUILD_DEBUGS */
-
-__attribute__((no_instrument_function))
-void
-direct_debug_at_always( DirectDebugDomain *domain,
-                        const char        *format, ... )
-{
-     va_list ap;
-
-     va_start( ap, format );
-
-     debug_domain_vprintf( domain->name, domain->name_len, format, ap );
-
-     va_end( ap );
 }
 
 #if DIRECT_BUILD_DEBUGS  /* Build with debug support? */
-
-__attribute__((no_instrument_function))
-void
-direct_debug_enter( DirectDebugDomain *domain,
-                    const char *func,
-                    const char *file,
-                    int         line,
-                    const char *format, ... )
-{
-     bool enabled;
-
-     pthread_mutex_lock( &domains_lock );
-
-     enabled = check_domain( domain );
-
-     pthread_mutex_unlock( &domains_lock );
-
-     if (enabled) {
-          int         len;
-          char        dom[48];
-          char        fmt[128];
-          char        buf[512];
-          long long   millis = direct_clock_get_millis();
-          const char *name   = direct_thread_self_name();
-          va_list     ap;
-
-          va_start( ap, format );
-
-          vsnprintf( buf, sizeof(buf), format, ap );
-
-          va_end( ap );
-
-
-          len = snprintf( dom, sizeof(dom), "%s:", domain->name );
-
-          if (len < 18)
-               len = 18;
-          else
-               len = 28;
-
-          len += direct_trace_debug_indent() * 4;
-
-          snprintf( fmt, sizeof(fmt), "(>) [%%-15s %%3lld.%%03lld] (%%5d) %%-%ds Entering %%s%%s [%%s:%%d]\n", len );
-
-          direct_log_printf( NULL, fmt, name ? name : "  NO NAME  ",
-                             millis / 1000LL, millis % 1000LL, direct_gettid(), dom,
-			     func, buf, file, line );
-     }
-}
-
-__attribute__((no_instrument_function))
-void
-direct_debug_exit( DirectDebugDomain *domain,
-                   const char *func,
-                   const char *file,
-                   int         line,
-                   const char *format, ... )
-{
-     bool enabled;
-
-     pthread_mutex_lock( &domains_lock );
-
-     enabled = check_domain( domain );
-
-     pthread_mutex_unlock( &domains_lock );
-
-     if (enabled) {
-          int         len;
-          char        dom[48];
-          char        fmt[128];
-          char        buf[512];
-          long long   millis = direct_clock_get_millis();
-          const char *name   = direct_thread_self_name();
-          va_list     ap;
-
-          va_start( ap, format );
-
-          vsnprintf( buf, sizeof(buf), format, ap );
-
-          va_end( ap );
-
-
-          len = snprintf( dom, sizeof(dom), "%s:", domain->name );
-
-          if (len < 18)
-               len = 18;
-          else
-               len = 28;
-
-          len += direct_trace_debug_indent() * 4;
-
-          snprintf( fmt, sizeof(fmt), "(<) [%%-15s %%3lld.%%03lld] (%%5d) %%-%ds Returning from %%s%%s [%%s:%%d]\n", len );
-
-          direct_log_printf( NULL, fmt, name ? name : "  NO NAME  ",
-                             millis / 1000LL, millis % 1000LL, direct_gettid(), dom,
-			     func, buf, file, line );
-     }
-}
-
-__attribute__((no_instrument_function))
-static void
-trap( const char *domain )
-{
-     D_DEBUG( "Direct/%s: Raising SIGTRAP...\n", domain );
-
-     kill( direct_gettid(), SIGTRAP );
-
-     D_DEBUG( "Direct/%s: ...returned after signal to ourself, maybe blocked, calling %s()!\n", domain,
-#ifdef __NR_exit_group
-            "exit_group" );
-
-     syscall( __NR_exit_group, DR_BUG );
-#else
-            "_exit" );
-
-            _exit( DR_BUG );
-#endif
-}
 
 __attribute__((no_instrument_function))
 void
@@ -381,7 +108,7 @@ direct_break( const char *func,
 
      va_start( ap, format );
 
-     vsnprintf( buf, sizeof(buf), format, ap );
+     direct_vsnprintf( buf, sizeof(buf), format, ap );
 
      va_end( ap );
 
@@ -393,7 +120,7 @@ direct_break( const char *func,
      direct_trace_print_stack( NULL );
 
      if (direct_config->fatal_break)
-          trap( "Break" );
+          direct_trap( "Break", SIGABRT );
 }
 
 __attribute__((no_instrument_function))
@@ -414,7 +141,7 @@ direct_assertion( const char *exp,
      direct_trace_print_stack( NULL );
 
      if (direct_config->fatal >= DCFL_ASSERT)
-          trap( "Assertion" );
+          direct_trap( "Assertion", SIGTRAP );
 }
 
 __attribute__((no_instrument_function))
@@ -435,17 +162,10 @@ direct_assumption( const char *exp,
      direct_trace_print_stack( NULL );
 
      if (direct_config->fatal >= DCFL_ASSUME)
-          trap( "Assumption" );
+          direct_trap( "Assumption", SIGTRAP );
 }
 
 #endif /* DIRECT_BUILD_DEBUGS */
-
-#else
-
-void
-direct_debug_config_domain( const char *name, bool enable )
-{
-}
 
 #endif /* DIRECT_BUILD_TEXT */
 

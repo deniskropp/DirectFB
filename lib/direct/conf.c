@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -28,24 +28,23 @@
 
 #include <config.h>
 
-#include <stdlib.h>
-#include <string.h>
-
 #include <direct/conf.h>
+#include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/util.h>
 
 
 static DirectConfig config = {
-     .debug                 = false,
-     .trace                 = true,
-     .sighandler            = true,
+     .log_level               = DIRECT_LOG_DEBUG_0,
+     .trace                   = true,
+     .sighandler              = true,
 
-     .fatal                 = DCFL_ASSERT,
-     .fatal_break           = true,
-     .thread_block_signals  = true,
-     .thread_priority_scale = 100,
+     .fatal                   = DCFL_ASSERT,
+     .fatal_break             = true,
+     .thread_block_signals    = true,
+     .thread_priority_scale   = 100
 };
+
 
 DirectConfig *direct_config       = &config;
 const char   *direct_config_usage =
@@ -54,7 +53,9 @@ const char   *direct_config_usage =
      "  [no-]quiet                     Disable text output except debug messages or direct logs\n"
      "  [no-]quiet=<type>              Only quiet certain types (cumulative with 'quiet')\n"
      "                                 [ info | warning | error | once | unimplemented ]\n"
-     "  [no-]debug                     Enable debug output\n"
+     "  [no-]debug=<domain>            Configure debug domain (if no domain, sets default for unconfigured domains)\n"
+     "  debug-all                      Enable all debug output (regardless of domain configuration)\n"
+     "  debug-none                     Disable all debug output (regardless of all other debug options)\n"
      "  [no-]debugmem                  Enable memory allocation tracking\n"
      "  [no-]trace                     Enable stack trace support\n"
      "  log-file=<name>                Write all messages to a file\n"
@@ -74,7 +75,7 @@ const char   *direct_config_usage =
 DirectResult
 direct_config_set( const char *name, const char *value )
 {
-     if (strcmp (name, "disable-module" ) == 0) {
+     if (direct_strcmp (name, "disable-module" ) == 0) {
           if (value) {
                int n = 0;
 
@@ -82,8 +83,8 @@ direct_config_set( const char *name, const char *value )
                       direct_config->disable_module[n])
                     n++;
 
-               direct_config->disable_module = D_REALLOC( direct_config->disable_module,
-                                                          sizeof(char*) * (n + 2) );
+               direct_config->disable_module = (char**) D_REALLOC( direct_config->disable_module,
+                                                                   sizeof(char*) * (n + 2) );
 
                direct_config->disable_module[n] = D_STRDUP( value );
                direct_config->disable_module[n+1] = NULL;
@@ -93,7 +94,7 @@ direct_config_set( const char *name, const char *value )
                return DR_INVARG;
           }
      } else
-     if (strcmp (name, "module-dir" ) == 0) {
+     if (direct_strcmp (name, "module-dir" ) == 0) {
           if (value) {
                if (direct_config->module_dir)
                     D_FREE( direct_config->module_dir );
@@ -104,7 +105,7 @@ direct_config_set( const char *name, const char *value )
                return DR_INVARG;
           }
      } else
-     if (strcmp (name, "memcpy" ) == 0) {
+     if (direct_strcmp (name, "memcpy" ) == 0) {
           if (value) {
                if (direct_config->memcpy)
                     D_FREE( direct_config->memcpy );
@@ -116,7 +117,7 @@ direct_config_set( const char *name, const char *value )
           }
      }
      else
-          if (strcmp (name, "quiet" ) == 0 || strcmp (name, "no-quiet" ) == 0) {
+          if (direct_strcmp (name, "quiet" ) == 0 || strcmp (name, "no-quiet" ) == 0) {
           /* Enable/disable all at once by default. */
           DirectMessageType type = DMT_ALL;
 
@@ -126,6 +127,7 @@ direct_config_set( const char *name, const char *value )
                if (!strcmp( value, "warning" ))        type = DMT_WARNING;           else
                if (!strcmp( value, "error" ))          type = DMT_ERROR;             else
                if (!strcmp( value, "once" ))           type = DMT_ONCE;              else
+               if (!strcmp( value, "untested" ))       type = DMT_UNTESTED;          else
                if (!strcmp( value, "unimplemented" ))  type = DMT_UNIMPLEMENTED; 
                else {
                     D_ERROR( "DirectFB/Config '%s': Unknown message type '%s'!\n", name, value );
@@ -135,46 +137,70 @@ direct_config_set( const char *name, const char *value )
 
           /* Set/clear the corresponding flag in the configuration. */
           if (name[0] == 'q')
-               direct_config->quiet |= type;
+               D_FLAGS_SET( direct_config->quiet, type );
           else
-               direct_config->quiet &= ~type;
+               D_FLAGS_CLEAR( direct_config->quiet, type );
      }
      else
-          if (strcmp (name, "no-quiet" ) == 0) {
-          direct_config->quiet = false;
+          if (direct_strcmp (name, "no-quiet" ) == 0) {
+          direct_config->quiet = DMT_NONE;
      }
      else
-          if (strcmp (name, "debug" ) == 0) {
-          if (value)
-               direct_debug_config_domain( value, true );
-          else
-               direct_config->debug = true;
+          if (direct_strcmp (name, "debug" ) == 0) {
+          if (value) {
+               DirectLogDomainConfig config = {0};
+
+               D_UNIMPLEMENTED();
+
+               if (config.level < DIRECT_LOG_DEBUG)
+                    config.level = DIRECT_LOG_DEBUG;
+
+               direct_log_domain_configure( value, &config );
+          }
+          else if (direct_config->log_level < DIRECT_LOG_DEBUG)
+               direct_config->log_level = DIRECT_LOG_DEBUG;
      }
      else
-          if (strcmp (name, "no-debug" ) == 0) {
-          if (value)
-               direct_debug_config_domain( value, false );
-          else
-               direct_config->debug = false;
+          if (direct_strcmp (name, "no-debug" ) == 0) {
+          if (value) {
+               DirectLogDomainConfig config = {0};
+
+               D_UNIMPLEMENTED();
+
+               if (config.level > DIRECT_LOG_DEBUG_0)
+                    config.level = DIRECT_LOG_DEBUG_0;
+                    
+               direct_log_domain_configure( value, &config );
+          }
+          else if (direct_config->log_level > DIRECT_LOG_DEBUG_0)
+               direct_config->log_level = DIRECT_LOG_DEBUG_0;
      }
      else
-          if (strcmp (name, "debugmem" ) == 0) {
+          if (direct_strcmp (name, "log-all" ) == 0) {
+          direct_config->log_all = true;
+     }
+     else
+          if (direct_strcmp (name, "log-none" ) == 0) {
+          direct_config->log_none = true;
+     }
+     else
+          if (direct_strcmp (name, "debugmem" ) == 0) {
           direct_config->debugmem = true;
      }
      else
-          if (strcmp (name, "no-debugmem" ) == 0) {
+          if (direct_strcmp (name, "no-debugmem" ) == 0) {
           direct_config->debugmem = false;
      }
      else
-          if (strcmp (name, "trace" ) == 0) {
+          if (direct_strcmp (name, "trace" ) == 0) {
           direct_config->trace = true;
      }
      else
-          if (strcmp (name, "no-trace" ) == 0) {
+          if (direct_strcmp (name, "no-trace" ) == 0) {
           direct_config->trace = false;
      }
      else
-          if (strcmp (name, "log-file" ) == 0 || strcmp (name, "log-udp" ) == 0) {
+          if (direct_strcmp (name, "log-file" ) == 0 || strcmp (name, "log-udp" ) == 0) {
           if (value) {
                DirectResult  ret;
                DirectLog    *log;
@@ -191,7 +217,7 @@ direct_config_set( const char *name, const char *value )
                direct_log_set_default( log );
           }
           else {
-               if (strcmp(name,"log-udp"))
+               if (direct_strcmp(name,"log-udp"))
                     D_ERROR("Direct/Config '%s': No file name specified!\n", name);
                else
                     D_ERROR("Direct/Config '%s': No host and port specified!\n", name);
@@ -199,16 +225,16 @@ direct_config_set( const char *name, const char *value )
           }
      }
      else
-          if (strcmp (name, "fatal-level" ) == 0) {
-          if (strcasecmp (value, "none" ) == 0) {
+          if (direct_strcmp (name, "fatal-level" ) == 0) {
+          if (direct_strcasecmp (value, "none" ) == 0) {
                direct_config->fatal = DCFL_NONE;
           }
           else
-               if (strcasecmp (value, "assert" ) == 0) {
+               if (direct_strcasecmp (value, "assert" ) == 0) {
                direct_config->fatal = DCFL_ASSERT;
           }
           else
-               if (strcasecmp (value, "assume" ) == 0) {
+               if (direct_strcasecmp (value, "assume" ) == 0) {
                direct_config->fatal = DCFL_ASSUME;
           }
           else {
@@ -217,34 +243,34 @@ direct_config_set( const char *name, const char *value )
           }
      }
      else
-          if (strcmp (name, "fatal-break" ) == 0) {
+          if (direct_strcmp (name, "fatal-break" ) == 0) {
           direct_config->fatal_break = true;
      }
      else
-          if (strcmp (name, "no-fatal-break" ) == 0) {
+          if (direct_strcmp (name, "no-fatal-break" ) == 0) {
           direct_config->fatal_break = false;
      }
      else
-          if (strcmp (name, "sighandler" ) == 0) {
+          if (direct_strcmp (name, "sighandler" ) == 0) {
           direct_config->sighandler = true;
      }
      else
-          if (strcmp (name, "no-sighandler" ) == 0) {
+          if (direct_strcmp (name, "no-sighandler" ) == 0) {
           direct_config->sighandler = false;
      }
      else
-          if (strcmp (name, "dont-catch" ) == 0) {
+          if (direct_strcmp (name, "dont-catch" ) == 0) {
           if (value) {
                char *signals   = D_STRDUP( value );
                char *p = NULL, *r, *s = signals;
 
-               while ((r = strtok_r( s, ",", &p ))) {
+               while ((r = direct_strtok_r( s, ",", &p ))) {
                     char          *error;
                     unsigned long  signum;
 
                     direct_trim( &r );
 
-                    signum = strtoul( r, &error, 10 );
+                    signum = direct_strtoul( r, &error, 10 );
 
                     if (*error) {
                          D_ERROR( "Direct/Config '%s': Error in number at '%s'!\n", name, error );
@@ -265,18 +291,18 @@ direct_config_set( const char *name, const char *value )
           }
      }
      else
-          if (strcmp (name, "thread_block_signals") == 0) {
+          if (direct_strcmp (name, "thread_block_signals") == 0) {
           direct_config->thread_block_signals = true;
      }
      else
-          if (strcmp (name, "no-thread_block_signals") == 0) {
+          if (direct_strcmp (name, "no-thread_block_signals") == 0) {
           direct_config->thread_block_signals = false;
      } else
-     if (strcmp (name, "thread-priority-scale" ) == 0) {
+     if (direct_strcmp (name, "thread-priority-scale" ) == 0) {
           if (value) {
                int scale;
 
-               if (sscanf( value, "%d", &scale ) < 1) {
+               if (direct_sscanf( value, "%d", &scale ) < 1) {
                     D_ERROR("Direct/Config '%s': Could not parse value!\n", name);
                     return DR_INVARG;
                }
@@ -288,11 +314,11 @@ direct_config_set( const char *name, const char *value )
                return DR_INVARG;
           }
      } else
-     if (strcmp (name, "thread-priority" ) == 0) {  /* Must be moved to lib/direct/conf.c in trunk! */
+     if (direct_strcmp (name, "thread-priority" ) == 0) {  /* Must be moved to lib/direct/conf.c in trunk! */
           if (value) {
                int priority;
 
-               if (sscanf( value, "%d", &priority ) < 1) {
+               if (direct_sscanf( value, "%d", &priority ) < 1) {
                     D_ERROR("Direct/Config '%s': Could not parse value!\n", name);
                     return DR_INVARG;
                }
@@ -304,15 +330,15 @@ direct_config_set( const char *name, const char *value )
                return DR_INVARG;
           }
      } else
-     if (strcmp (name, "thread-scheduler" ) == 0) {  /* Must be moved to lib/direct/conf.c in trunk! */
+     if (direct_strcmp (name, "thread-scheduler" ) == 0) {  /* Must be moved to lib/direct/conf.c in trunk! */
           if (value) {
-               if (strcmp( value, "other" ) == 0) {
+               if (direct_strcmp( value, "other" ) == 0) {
                     direct_config->thread_scheduler = DCTS_OTHER;
                } else
-               if (strcmp( value, "fifo" ) == 0) {
+               if (direct_strcmp( value, "fifo" ) == 0) {
                     direct_config->thread_scheduler = DCTS_FIFO;
                } else
-               if (strcmp( value, "rr" ) == 0) {
+               if (direct_strcmp( value, "rr" ) == 0) {
                     direct_config->thread_scheduler = DCTS_RR;
                } else {
                     D_ERROR( "Direct/Config '%s': Unknown scheduler '%s'!\n", name, value );
@@ -324,11 +350,11 @@ direct_config_set( const char *name, const char *value )
                return DR_INVARG;
           }
      } else
-     if (strcmp (name, "thread-stacksize" ) == 0) {  /* Must be moved to lib/direct/conf.c in trunk! */
+     if (direct_strcmp (name, "thread-stacksize" ) == 0) {  /* Must be moved to lib/direct/conf.c in trunk! */
           if (value) {
                int size;
 
-               if (sscanf( value, "%d", &size ) < 1) {
+               if (direct_sscanf( value, "%d", &size ) < 1) {
                     D_ERROR( "Direct/Config '%s': Could not parse value!\n", name );
                     return DR_INVARG;
                }

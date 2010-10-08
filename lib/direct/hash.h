@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -31,27 +31,92 @@
 
 #include <direct/types.h>
 
+/**********************************************************************************************************************/
+
+typedef struct {
+     unsigned long  key;
+     void          *value;
+} DirectHashElement;
+
+#define DIRECT_HASH_ELEMENT_REMOVED  ((void *) -1)
+
+
+struct __D_DirectHash {
+     int                 magic;
+
+     int                 size;
+
+     int                 count;
+     int                 removed;
+
+     DirectHashElement  *Elements;
+
+     bool                disable_debugging_alloc;
+};
+
+/**********************************************************************************************************************/
+
+#define DIRECT_HASH_INIT( __size, __disable_debugging_alloc )    \
+     {                                                           \
+          .magic    = 0x0b161321,                                \
+          .size     = (__size < 17 ? 17 : __size),               \
+          .count    = 0,                                         \
+          .removed  = 0,                                         \
+          .Elements = NULL,                                      \
+          .disable_debugging_alloc = __disable_debugging_alloc   \
+     }
+
+/* Hmm, not constant?      .magic    = D_MAGIC( "DirectHash" ), */
+
+/**********************************************************************************************************************/
+
+#define DIRECT_HASH_ASSERT( hash )                                                                       \
+     do {                                                                                                \
+          D_MAGIC_ASSERT( hash, DirectHash );                                                            \
+          D_ASSERT( (hash)->size > 0 );                                                                  \
+          D_ASSERT( (hash)->Elements != NULL || (hash)->count == 0 );                                    \
+          D_ASSERT( (hash)->Elements != NULL || (hash)->removed == 0 );                                  \
+          D_ASSERT( (hash)->count + (hash)->removed < (hash)->size );                                    \
+     } while (0)
+
+/**********************************************************************************************************************/
 
 typedef bool (*DirectHashIteratorFunc)( DirectHash    *hash,
                                         unsigned long  key,
                                         void          *value,
                                         void          *ctx );
 
+/*********************************************************************************************************************** 
+** Full create including allocation ...
+*/
 
-DirectResult  direct_hash_create ( int            size,
-                                   DirectHash   **ret_hash );
+DirectResult  direct_hash_create ( int                     size,
+                                   DirectHash            **ret_hash );
 
-void          direct_hash_destroy( DirectHash    *hash );
+void          direct_hash_destroy( DirectHash             *hash );
 
-DirectResult  direct_hash_insert ( DirectHash    *hash,
-                                   unsigned long  key,
-                                   void          *value );
+/*********************************************************************************************************************** 
+** ... or just initialization of static data...
+*/
 
-void          direct_hash_remove ( DirectHash    *hash,
-                                   unsigned long  key );
+void          direct_hash_init   ( DirectHash             *hash,
+                                   int                     size );
 
-void         *direct_hash_lookup ( DirectHash    *hash,
-                                   unsigned long  key );
+void          direct_hash_deinit ( DirectHash             *hash );
+
+/**********************************************************************************************************************/
+
+int           direct_hash_count  ( DirectHash             *hash );
+
+DirectResult  direct_hash_insert ( DirectHash             *hash,
+                                   unsigned long           key,
+                                   void                   *value );
+
+DirectResult  direct_hash_remove ( DirectHash             *hash,
+                                   unsigned long           key );
+
+void         *direct_hash_lookup ( const DirectHash       *hash,
+                                   unsigned long           key );
 
 void          direct_hash_iterate( DirectHash             *hash,
                                    DirectHashIteratorFunc  func,

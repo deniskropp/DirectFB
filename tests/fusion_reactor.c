@@ -58,7 +58,7 @@
 #if DIRECT_BUILD_DEBUGS
 #define MSG(x...)                       \
 do {                                    \
-     direct_debug( x ); \
+     direct_log_printf( NULL, x );      \
 } while (0)
 #else
 #define MSG(x...)                       \

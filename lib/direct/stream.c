@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -28,21 +28,6 @@
 
 #include <config.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <errno.h>
-
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-
 #include <direct/build.h>
 #include <direct/types.h>
 #include <direct/mem.h>
@@ -53,14 +38,25 @@
 
 #include <direct/stream.h>
 
+
+D_LOG_DOMAIN( Direct_Stream, "Direct/Stream", "Stream wrapper" );
+
+
+#if DIRECT_BUILD_NETWORK
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#endif
+
+
 struct __D_DirectStream {
      int                   magic;
      int                   ref;
-     
+
      int                   fd;
      unsigned int          offset;
      int                   length;
-     
+
      char                 *mime;
 
      /* cache for piped streams */
@@ -71,21 +67,21 @@ struct __D_DirectStream {
      /* remote streams data */
      struct {
           int              sd;
-          
+
           char            *host;
           int              port;
           struct addrinfo *addr;
-          
+
           char            *user;
           char            *pass;
           char            *auth;
-          
+
           char            *path;
-          
+
           int              redirects;
-          
+
           void            *data;
-          
+
           bool             real_rtsp;
           bool             real_pack;
      } remote;
@@ -101,7 +97,7 @@ struct __D_DirectStream {
                               unsigned int *read_out );
      DirectResult  (*read)  ( DirectStream *stream,
                               unsigned int  length,
-                              void         *buf, 
+                              void         *buf,
                               unsigned int *read_out );
      DirectResult  (*seek)  ( DirectStream *stream,
                               unsigned int  offset );
@@ -110,10 +106,6 @@ struct __D_DirectStream {
 
 static void direct_stream_close( DirectStream *stream );
 
-
-#if DIRECT_BUILD_NETWORK
-D_DEBUG_DOMAIN( Direct_Stream, "Direct/Stream", "Stream wrapper" );
-#endif
 
 /************************** Begin Network Support ***************************/
 
@@ -136,20 +128,20 @@ static inline char* trim( char *s )
 
 #define space( c ) ((c) == ' '  || (c) == '\t' || \
                     (c) == '\r' || (c) == '\n' || \
-                    (c) == '"'  || (c) == '\'')  
-     
+                    (c) == '"'  || (c) == '\'')
+
      for (; space(*s); s++);
-     
+
      e = s + strlen(s) - 1;
      for (; e > s && space(*e); *e-- = '\0');
-     
+
 #undef space
 
      return s;
 }
 
 static void
-parse_url( const char *url, char **ret_host, int *ret_port, 
+parse_url( const char *url, char **ret_host, int *ret_port,
            char **ret_user, char **ret_pass, char **ret_path )
 {
      char *host = NULL;
@@ -158,7 +150,7 @@ parse_url( const char *url, char **ret_host, int *ret_port,
      char *pass = NULL;
      char *path;
      char *tmp;
-     
+
      tmp = strchr( url, '/' );
      if (tmp) {
           host = alloca( tmp - url + 1 );
@@ -196,10 +188,10 @@ parse_url( const char *url, char **ret_host, int *ret_port,
           if (tmp)
                *tmp = '\0';
      }
-     
+
      if (ret_host)
           *ret_host = D_STRDUP( host );
-     
+
      if (ret_port && port)
           *ret_port = port;
 
@@ -221,7 +213,7 @@ net_response( DirectStream *stream, char *buf, size_t size )
      fd_set         set;
      struct timeval tv;
      int            i;
-     
+
      FD_ZERO( &set );
      FD_SET( stream->remote.sd, &set );
 
@@ -229,7 +221,7 @@ net_response( DirectStream *stream, char *buf, size_t size )
           tv.tv_sec  = NET_TIMEOUT;
           tv.tv_usec = 0;
           select( stream->remote.sd+1, &set, NULL, NULL, &tv );
-          
+
           if (recv( stream->remote.sd, buf+i, 1, 0 ) != 1)
                break;
 
@@ -241,9 +233,9 @@ net_response( DirectStream *stream, char *buf, size_t size )
      }
 
      buf[i] = '\0';
-     
+
      D_DEBUG_AT( Direct_Stream, "got [%s].\n", buf );
-     
+
      return i;
 }
 
@@ -268,10 +260,10 @@ net_command( DirectStream *stream, char *buf, size_t size )
           case -1:
                return -1;
      }
-     
+
      send( stream->remote.sd, buf, strlen(buf), 0 );
      send( stream->remote.sd, "\r\n", 2, 0 );
-     
+
      D_DEBUG_AT( Direct_Stream, "sent [%s].\n", buf );
 
      while (net_response( stream, buf, size ) > 0) {
@@ -282,7 +274,7 @@ net_command( DirectStream *stream, char *buf, size_t size )
               sscanf( buf, "%3d%[ ]", &status, &space )         == 2)
                return status;
      }
-     
+
      return 0;
 }
 
@@ -298,10 +290,10 @@ net_wait( DirectStream   *stream,
 
      if (stream->fd == -1)
           return DR_EOF;
-     
+
      FD_ZERO( &s );
      FD_SET( stream->fd, &s );
-     
+
      switch (select( stream->fd+1, &s, NULL, NULL, tv )) {
           case 0:
                if (!tv && !stream->cache_size)
@@ -328,7 +320,7 @@ net_peek( DirectStream *stream,
           return DR_UNSUPPORTED;
 
      tmp = alloca( length + offset );
-     
+
      size = recv( stream->fd, tmp, length+offset, MSG_PEEK );
      switch (size) {
           case 0:
@@ -353,13 +345,13 @@ net_peek( DirectStream *stream,
 }
 
 static DirectResult
-net_read( DirectStream *stream, 
+net_read( DirectStream *stream,
           unsigned int  length,
           void         *buf,
           unsigned int *read_out )
 {
      int size;
-     
+
      size = recv( stream->fd, buf, length, 0 );
      switch (size) {
           case 0:
@@ -371,7 +363,7 @@ net_read( DirectStream *stream,
      }
 
      stream->offset += size;
-     
+
      if (read_out)
           *read_out = size;
 
@@ -390,7 +382,7 @@ net_connect( struct addrinfo *addr, int sock, int proto, int *ret_fd )
 
      for (tmp = addr; tmp; tmp = tmp->ai_next) {
           int err;
-          
+
           fd = socket( tmp->ai_family, sock, proto );
           if (fd < 0) {
                ret = errno2result( errno );
@@ -402,7 +394,7 @@ net_connect( struct addrinfo *addr, int sock, int proto, int *ret_fd )
 
           fcntl( fd, F_SETFL, fcntl( fd, F_GETFL ) | O_NONBLOCK );
 
-          D_DEBUG_AT( Direct_Stream, 
+          D_DEBUG_AT( Direct_Stream,
                       "connecting to %s...\n", tmp->ai_canonname );
 
           if (proto == IPPROTO_UDP)
@@ -421,7 +413,7 @@ net_connect( struct addrinfo *addr, int sock, int proto, int *ret_fd )
                     if (IN_MULTICAST( ntohl(saddr->sin_addr.s_addr) )) {
                          struct ip_mreq req;
 
-                         D_DEBUG_AT( Direct_Stream, 
+                         D_DEBUG_AT( Direct_Stream,
                                      "joining multicast group (%u.%u.%u.%u)...\n",
                                      (u8)tmp->ai_addr->sa_data[2], (u8)tmp->ai_addr->sa_data[3],
                                      (u8)tmp->ai_addr->sa_data[4], (u8)tmp->ai_addr->sa_data[5] );
@@ -445,11 +437,11 @@ net_connect( struct addrinfo *addr, int sock, int proto, int *ret_fd )
 
                FD_ZERO( &s );
                FD_SET( fd, &s );
-              
+
                err = select( fd+1, NULL, &s, NULL, &t );
                if (err < 1) {
                     D_DEBUG_AT( Direct_Stream, "...connection failed.\n" );
-                    
+
                     close( fd );
                     fd = -1;
 
@@ -463,7 +455,7 @@ net_connect( struct addrinfo *addr, int sock, int proto, int *ret_fd )
                }
 
                D_DEBUG_AT( Direct_Stream, "...connected.\n" );
-               
+
                ret = DR_OK;
                break;
           }
@@ -481,21 +473,21 @@ net_open( DirectStream *stream, const char *filename, int proto )
      int             sock = (proto == IPPROTO_TCP) ? SOCK_STREAM : SOCK_DGRAM;
      struct addrinfo hints;
      char            port[16];
-     
-     parse_url( filename, 
+
+     parse_url( filename,
                 &stream->remote.host,
                 &stream->remote.port,
                 &stream->remote.user,
                 &stream->remote.pass,
                 &stream->remote.path );
-     
-     snprintf( port, sizeof(port), "%d", stream->remote.port );
+
+     direct_snprintf( port, sizeof(port), "%d", stream->remote.port );
 
      memset( &hints, 0, sizeof(hints) );
      hints.ai_flags    = AI_CANONNAME;
      hints.ai_socktype = sock;
      hints.ai_family   = PF_UNSPEC;
-     
+
      if (getaddrinfo( stream->remote.host, port,
                       &hints, &stream->remote.addr )) {
           D_ERROR( "Direct/Stream: "
@@ -508,7 +500,7 @@ net_open( DirectStream *stream, const char *filename, int proto )
           return ret;
 
      stream->fd     = stream->remote.sd;
-     stream->length = -1; 
+     stream->length = -1;
      stream->wait   = net_wait;
      stream->peek   = net_peek;
      stream->read   = net_read;
@@ -524,35 +516,35 @@ http_seek( DirectStream *stream, unsigned int offset )
      DirectResult ret;
      char         buf[1280];
      int          status, len;
-     
+
      close( stream->remote.sd );
      stream->remote.sd = -1;
 
-     ret = net_connect( stream->remote.addr, 
+     ret = net_connect( stream->remote.addr,
                         SOCK_STREAM, IPPROTO_TCP, &stream->remote.sd );
      if (ret)
           return ret;
-     
+
      stream->fd = stream->remote.sd;
- 
-     len = snprintf( buf, sizeof(buf),
+
+     len = direct_snprintf( buf, sizeof(buf),
                      "GET %s HTTP/1.0\r\n"
                      "Host: %s:%d\r\n",
                      stream->remote.path,
                      stream->remote.host,
                      stream->remote.port );
      if (stream->remote.auth) {
-          len += snprintf( buf+len, sizeof(buf)-len,
+          len += direct_snprintf( buf+len, sizeof(buf)-len,
                            "Authorization: Basic %s\r\n",
                            stream->remote.auth );
      }
-     snprintf( buf+len, sizeof(buf)-len,
+     direct_snprintf( buf+len, sizeof(buf)-len,
                "User-Agent: DirectFB/%s\r\n"
                "Accept: */*\r\n"
                "Range: bytes=%d-\r\n"
                "Connection: Close\r\n",
                DIRECTFB_VERSION, offset );
-     
+
      status = net_command( stream, buf, sizeof(buf) );
      switch (status) {
           case 200 ... 299:
@@ -569,7 +561,7 @@ http_seek( DirectStream *stream, unsigned int offset )
      while (net_response( stream, buf, sizeof(buf) ) > 0);
 
      return DR_OK;
-}    
+}
 
 static DirectResult
 http_open( DirectStream *stream, const char *filename )
@@ -577,7 +569,7 @@ http_open( DirectStream *stream, const char *filename )
      DirectResult ret;
      char         buf[1280];
      int          status, len;
-     
+
      stream->remote.port = HTTP_PORT;
 
      ret = net_open( stream, filename, IPPROTO_TCP );
@@ -600,23 +592,23 @@ http_open( DirectStream *stream, const char *filename )
           stream->remote.auth = direct_base64_encode( tmp, len );
      }
 
-     len = snprintf( buf, sizeof(buf),
+     len = direct_snprintf( buf, sizeof(buf),
                      "GET %s HTTP/1.0\r\n"
                      "Host: %s:%d\r\n",
                      stream->remote.path,
                      stream->remote.host,
                      stream->remote.port );
      if (stream->remote.auth) {
-          len += snprintf( buf+len, sizeof(buf)-len,
+          len += direct_snprintf( buf+len, sizeof(buf)-len,
                            "Authorization: Basic %s\r\n",
                            stream->remote.auth );
      }
-     snprintf( buf+len, sizeof(buf)-len,
+     direct_snprintf( buf+len, sizeof(buf)-len,
                "User-Agent: DirectFB/%s\r\n"
                "Accept: */*\r\n"
                "Connection: Close\r\n",
                DIRECTFB_VERSION );
-     
+
      status = net_command( stream, buf, sizeof(buf) );
 
      while (net_response( stream, buf, sizeof(buf) ) > 0) {
@@ -638,17 +630,17 @@ http_open( DirectStream *stream, const char *filename )
                if (sscanf( tmp, "%d", &stream->length ) < 1)
                     sscanf( tmp, "bytes=%d", &stream->length );
           }
-          else if (!strncasecmp( buf, "Location:", 9 )) { 
+          else if (!strncasecmp( buf, "Location:", 9 )) {
                direct_stream_close( stream );
                stream->seek = NULL;
-               
+
                if (++stream->remote.redirects > HTTP_MAX_REDIRECTS) {
                     D_ERROR( "Direct/Stream: "
                              "reached maximum number of redirects (%d).\n",
                              HTTP_MAX_REDIRECTS );
                     return DR_LIMITEXCEEDED;
                }
-               
+
                filename = trim( buf+9 );
                if (!strncmp( filename, "http://", 7 ))
                     return http_open( stream, filename+7 );
@@ -656,7 +648,7 @@ http_open( DirectStream *stream, const char *filename )
                     return ftp_open( stream, filename+6 );
                if (!strncmp( filename, "rtsp://", 7 ))
                     return rtsp_open( stream, filename+7 );
-               
+
                return DR_UNSUPPORTED;
           }
      }
@@ -682,25 +674,25 @@ ftp_open_pasv( DirectStream *stream, char *buf, size_t size )
      DirectResult ret;
      int          i, len;
 
-     snprintf( buf, size, "PASV" );
+     direct_snprintf( buf, size, "PASV" );
      if (net_command( stream, buf, size ) != 227)
           return DR_FAILURE;
 
      /* parse IP and port for passive mode */
      for (i = 4; buf[i]; i++) {
           unsigned int d[6];
-     
+
           if (sscanf( &buf[i], "%u,%u,%u,%u,%u,%u",
                       &d[0], &d[1], &d[2], &d[3], &d[4], &d[5] ) == 6)
           {
                struct addrinfo hints, *addr;
-                    
+
                /* address */
-               len = snprintf( buf, size, 
+               len = direct_snprintf( buf, size,
                                "%u.%u.%u.%u",
                                d[0], d[1], d[2], d[3] );
                /* port */
-               snprintf( buf+len+1, size-len-1,
+               direct_snprintf( buf+len+1, size-len-1,
                          "%u", ((d[4] & 0xff) << 8) | (d[5] & 0xff) );
 
                memset( &hints, 0, sizeof(hints) );
@@ -709,15 +701,15 @@ ftp_open_pasv( DirectStream *stream, char *buf, size_t size )
                hints.ai_family   = PF_UNSPEC;
 
                if (getaddrinfo( buf, buf+len+1, &hints, &addr )) {
-                    D_DEBUG_AT( Direct_Stream, 
+                    D_DEBUG_AT( Direct_Stream,
                                 "failed to resolve host '%s'.\n", buf );
                     return DR_FAILURE;
                }
-                    
+
                ret = net_connect( addr, SOCK_STREAM, IPPROTO_TCP, &stream->fd );
-               
+
                freeaddrinfo( addr );
-               
+
                return ret;
           }
      }
@@ -730,10 +722,10 @@ ftp_seek( DirectStream *stream, unsigned int offset )
 {
      DirectResult ret = DR_OK;
      char         buf[512];
-    
+
      if (stream->fd > 0) {
           int status;
-          
+
           close( stream->fd );
           stream->fd = -1;
 
@@ -747,12 +739,12 @@ ftp_seek( DirectStream *stream, unsigned int offset )
      ret = ftp_open_pasv( stream, buf, sizeof(buf) );
      if (ret)
           return ret;
-     
-     snprintf( buf, sizeof(buf), "REST %d", offset );
+
+     direct_snprintf( buf, sizeof(buf), "REST %d", offset );
      if (net_command( stream, buf, sizeof(buf) ) != 350)
           goto error;
 
-     snprintf( buf, sizeof(buf), "RETR %s", stream->remote.path );
+     direct_snprintf( buf, sizeof(buf), "RETR %s", stream->remote.path );
      switch (net_command( stream, buf, sizeof(buf) )) {
           case 150:
           case 125:
@@ -768,7 +760,7 @@ ftp_seek( DirectStream *stream, unsigned int offset )
 error:
      close( stream->fd );
      stream->fd = -1;
-     
+
      return DR_FAILURE;
 }
 
@@ -778,7 +770,7 @@ ftp_open( DirectStream *stream, const char *filename )
      DirectResult ret;
      int          status = 0;
      char         buf[512];
-     
+
      stream->remote.port = FTP_PORT;
 
      ret = net_open( stream, filename, IPPROTO_TCP );
@@ -791,9 +783,9 @@ ftp_open( DirectStream *stream, const char *filename )
      }
      if (status != 220)
           return DR_FAILURE;
-     
+
      /* login */
-     snprintf( buf, sizeof(buf), "USER %s", stream->remote.user ? : "anonymous" );
+     direct_snprintf( buf, sizeof(buf), "USER %s", stream->remote.user ? : "anonymous" );
      switch (net_command( stream, buf, sizeof(buf) )) {
           case 230:
           case 331:
@@ -803,18 +795,18 @@ ftp_open( DirectStream *stream, const char *filename )
      }
 
      if (stream->remote.pass) {
-          snprintf( buf, sizeof(buf), "PASS %s", stream->remote.pass );
+          direct_snprintf( buf, sizeof(buf), "PASS %s", stream->remote.pass );
           if (net_command( stream, buf, sizeof(buf) ) != 230)
                return DR_FAILURE;
      }
-     
+
      /* enter binary mode */
-     snprintf( buf, sizeof(buf), "TYPE I" );
+     direct_snprintf( buf, sizeof(buf), "TYPE I" );
      if (net_command( stream, buf, sizeof(buf) ) != 200)
           return DR_FAILURE;
 
      /* get file size */
-     snprintf( buf, sizeof(buf), "SIZE %s", stream->remote.path );
+     direct_snprintf( buf, sizeof(buf), "SIZE %s", stream->remote.path );
      if (net_command( stream, buf, sizeof(buf) ) == 213)
           stream->length = strtol( buf+4, NULL, 10 );
 
@@ -824,7 +816,7 @@ ftp_open( DirectStream *stream, const char *filename )
           return ret;
 
      /* retrieve file */
-     snprintf( buf, sizeof(buf), "RETR %s", stream->remote.path );
+     direct_snprintf( buf, sizeof(buf), "RETR %s", stream->remote.path );
      switch (net_command( stream, buf, sizeof(buf) )) {
           case 125:
           case 150:
@@ -834,7 +826,7 @@ ftp_open( DirectStream *stream, const char *filename )
      }
 
      stream->seek = ftp_seek;
-     
+
      return DR_OK;
 }
 
@@ -850,10 +842,10 @@ typedef struct {
 
 typedef struct {
      char              *control;
-     
+
      int                pt;
      const RTPPayload  *payload;
-     
+
      int                dur; // duration
      int                abr; // avg bitrate
      int                mbr; // max bitrate
@@ -861,10 +853,10 @@ typedef struct {
      int                mps; // max packet size
      int                str; // start time
      int                prl; // preroll
-     
+
      char              *mime;
      int                mime_size;
-     
+
      void              *data;
      int                data_size;
 } SDPStreamDesc;
@@ -900,43 +892,43 @@ sdp_parse( DirectStream *stream, int length, SDPStreamDesc **ret_streams, int *r
      buf = D_CALLOC( 1, length+1 );
      if (!buf)
           return D_OOM();
-          
+
      FD_ZERO( &set );
      FD_SET( stream->remote.sd, &set );
-     
+
      for (tmp = buf; length;) {
           int size;
-          
+
           tv.tv_sec  = NET_TIMEOUT;
           tv.tv_usec = 0;
           select( stream->remote.sd+1, &set, NULL, NULL, &tv );
-          
+
           size = recv( stream->remote.sd, tmp, length, MSG_WAITALL );
           if (size < 1)
                break;
           tmp += size;
           length -= size;
      }
-     
+
      for (tmp = buf; tmp && *tmp;) {
           char *end;
-          
+
           end = strchr( tmp, '\n' );
           if (end) {
                if (end > tmp && *(end-1) == '\r')
                     *(end-1) = '\0';
                *end = '\0';
           }
-          
+
           D_DEBUG_AT( Direct_Stream, "SDP [%s]\n", tmp );
-          
+
           switch (*tmp) {
                case 'm':
                     /* media */
-                    if (*(tmp+1) == '=') {                   
+                    if (*(tmp+1) == '=') {
                          desc = D_REALLOC( desc, ++num*sizeof(SDPStreamDesc) );
                          memset( &desc[num-1], 0, sizeof(SDPStreamDesc) );
-                         
+
                          tmp += 2;
                          if (sscanf( tmp, "audio %d RTP/AVP %d", &i, &desc[num-1].pt ) == 2 ||
                              sscanf( tmp, "video %d RTP/AVP %d", &i, &desc[num-1].pt ) == 2) {
@@ -948,7 +940,7 @@ sdp_parse( DirectStream *stream, int length, SDPStreamDesc **ret_streams, int *r
                                         break;
                                    }
                               }
-                         }   
+                         }
                     }
                     break;
                case 'a':
@@ -961,12 +953,12 @@ sdp_parse( DirectStream *stream, int length, SDPStreamDesc **ret_streams, int *r
                          else if (!strncmp( tmp, "rtpmap:", 7 )) {
                               if (!desc[num-1].payload && desc[num-1].pt) {
                                    char *sep;
-                                   
+
                                    tmp = strchr( trim( tmp+7 ), ' ' );
                                    if (!tmp) break;
                                    sep = strchr( ++tmp, '/' );
                                    if (sep) *sep = '\0';
-                                   
+
                                    for (i = 0; i < NUM_PAYLOADS; i++) {
                                         if (strcmp( tmp, payloads[i].name ))
                                              continue;
@@ -976,7 +968,7 @@ sdp_parse( DirectStream *stream, int length, SDPStreamDesc **ret_streams, int *r
                                         break;
                                    }
                               }
-                         }                                   
+                         }
                          else if (!strncmp( tmp, "length:npt=", 11 )) {
                               double val = atof( tmp+11 );
                               desc[num-1].dur = val * 1000.0;
@@ -986,7 +978,7 @@ sdp_parse( DirectStream *stream, int length, SDPStreamDesc **ret_streams, int *r
                                    D_FREE( desc[num-1].mime );
                               desc[num-1].mime = D_STRDUP( trim( tmp+16 ) );
                               desc[num-1].mime_size = strlen( desc[num-1].mime );
-                         }                               
+                         }
                          else if (!strncmp( tmp, "AvgBitRate:", 11 )) {
                               sscanf( tmp+11, "integer;%d", &desc[num-1].abr );
                          }
@@ -1006,7 +998,7 @@ sdp_parse( DirectStream *stream, int length, SDPStreamDesc **ret_streams, int *r
                               sscanf( tmp+8, "integer;%d", &desc[num-1].prl );
                          }
                          else if (!strncmp( tmp, "OpaqueData:buffer;", 18 )) {
-                              desc[num-1].data = 
+                              desc[num-1].data =
                                    direct_base64_decode( trim( tmp+18 ),
                                                          &desc[num-1].data_size );
                          }
@@ -1015,13 +1007,13 @@ sdp_parse( DirectStream *stream, int length, SDPStreamDesc **ret_streams, int *r
                default:
                     break;
           }
-          
+
           tmp = end;
           if (tmp) tmp++;
      }
-     
-     D_FREE( buf );                   
-     
+
+     D_FREE( buf );
+
      *ret_streams = desc;
      *ret_num     = num;
 
@@ -1032,7 +1024,7 @@ static void
 sdp_free( SDPStreamDesc *streams, int num )
 {
      int i;
-     
+
      for (i = 0; i < num; i++) {
           if (streams[i].control)
                D_FREE( streams[i].control );
@@ -1056,7 +1048,7 @@ rmf_write_header( SDPStreamDesc *streams, int n_streams, void **ret_buf, unsigne
      int            prl = 0;
      int            dur = 0;
      int            i, len;
-          
+
      len = 86 + n_streams*46;
      for (i = 0; i < n_streams; i++) {
           abr += streams[i].abr;
@@ -1074,12 +1066,12 @@ rmf_write_header( SDPStreamDesc *streams, int n_streams, void **ret_buf, unsigne
           else if (streams[i].payload)
                len += 74;
      }
-          
+
      *ret_buf = dst = D_MALLOC( len );
      if (!dst)
           return D_OOM();
      *ret_size = len;
-          
+
      /* RMF */
      dst[0] = '.'; dst[1] = 'R', dst[2] = 'M'; dst[3] = 'F';
      dst[4] = dst[5] = dst[6] = 0; dst[7] = 18;              // size
@@ -1087,7 +1079,7 @@ rmf_write_header( SDPStreamDesc *streams, int n_streams, void **ret_buf, unsigne
      dst[10] = dst[11] = dst[12] = dst[13] = 0;              // ??
      dst[14] = dst[15] = dst[16] = 0; dst[17] = 4+n_streams; // num streams
      dst += 18;
-          
+
      /* PROP */
      dst[0] = 'P'; dst[1] = 'R'; dst[2] = 'O'; dst[3] = 'P';
      dst[4] = dst[5] = dst[6] = 0; dst[7] = 50;
@@ -1104,14 +1096,14 @@ rmf_write_header( SDPStreamDesc *streams, int n_streams, void **ret_buf, unsigne
      dst[46] = 0; dst[47] = n_streams;          // num streams
      dst[48] = 0; dst[49] = 7;                  // flags
      dst += 50;
-          
+
      for (i = 0; i < n_streams; i++) {
           len = 46 + streams[i].mime_size;
           if (streams[i].data)
                len += streams[i].data_size;
           else if (streams[i].payload)
                len += 74;
-               
+
           abr = streams[i].abr;
           mbr = streams[i].mbr;
           aps = streams[i].aps;
@@ -1119,7 +1111,7 @@ rmf_write_header( SDPStreamDesc *streams, int n_streams, void **ret_buf, unsigne
           str = streams[i].str;
           prl = streams[i].prl;
           dur = streams[i].dur;
-               
+
           /* MDPR */
           dst[0] = 'M'; dst[1] = 'D'; dst[2] = 'P'; dst[3] = 'R';
           dst[4] = len>>24; dst[5] = len>>16; dst[6] = len>>8; dst[7] = len;
@@ -1133,14 +1125,14 @@ rmf_write_header( SDPStreamDesc *streams, int n_streams, void **ret_buf, unsigne
           dst[32] = prl>>24; dst[33] = prl>>16; dst[34] = prl>>8; dst[35] = prl;
           dst[36] = dur>>24; dst[37] = dur>>16; dst[38] = dur>>8; dst[39] = dur;
           dst += 40;
-               
+
           /* description */
           *dst++ = 0;
           /* mimetype */
           *dst++ = streams[i].mime_size;
           for (tmp = (unsigned char*)streams[i].mime; tmp && *tmp;)
                *dst++ = *tmp++;
-               
+
           /* codec data */
           if (streams[i].data) {
                len = streams[i].data_size;
@@ -1150,11 +1142,11 @@ rmf_write_header( SDPStreamDesc *streams, int n_streams, void **ret_buf, unsigne
           }
           else if (streams[i].payload) {
                u32 fcc = streams[i].payload->fcc;
-               
+
                dst[0] = dst[1] = dst[2] = 0; dst[3] = 74;
                dst += 4;
                memset( dst, 0, 74 );
-               
+
                if (streams[i].payload->type == PAYLOAD_AUDIO) {
                     dst[0] = '.'; dst[1] = 'r'; dst[2] = 'a'; dst[3] = 0xfd;
                     dst[4] = 0; dst[5] = 5; // version
@@ -1173,14 +1165,14 @@ rmf_write_header( SDPStreamDesc *streams, int n_streams, void **ret_buf, unsigne
                dst += 4;
           }
      }
-          
+
      /* DATA */
      dst[0] = 'D'; dst[1] = 'A'; dst[2] = 'T'; dst[3] = 'A';
      dst[4] = dst[5] = dst[6] = 0; dst[7] = 18; // size
      dst[8] = dst[9] = 0;                       // version
      dst[10] = dst[11] = dst[12] = dst[13] = 0; // num packets
-     dst[14] = dst[15] = dst[16] = dst[17] = 0; // next data 
-     
+     dst[14] = dst[15] = dst[16] = dst[17] = 0; // next data
+
      return DR_OK;
 }
 
@@ -1217,25 +1209,25 @@ real_calc_challenge2( char response[64], char checksum[32], char *challenge )
      char md5[16];
      int  len;
      int  i;
-     
+
      memset( response, 0, 64 );
      memset( checksum, 0, 32 );
-     
+
      buf[0] = 0xa1; buf[1] = 0xe9; buf[2] = 0x14; buf[3] = 0x9d;
      buf[4] = 0x0e; buf[5] = 0x6b; buf[6] = 0x3b; buf[7] = 0x59;
      memset( buf+8, 0, 120 );
-     
+
      len = strlen( challenge );
      if (len == 40) {
           challenge[32] = '\0';
           len = 32;
      }
      memcpy( buf+8, challenge, MAX(len,56) );
-     
+
      for (i = 0; i < 37; i++)
           buf[8+i] ^= xor_table[i];
-      
-     /* compute response */    
+
+     /* compute response */
      direct_md5_sum( md5, buf, 64 );
      /* convert to ascii */
      for (i = 0; i < 16; i++) {
@@ -1248,7 +1240,7 @@ real_calc_challenge2( char response[64], char checksum[32], char *challenge )
      /* tail */
      len = strlen( response );
      direct_snputs( &response[len], "01d0a8e3", 64-len );
-     
+
      /* compute checksum */
      for (i = 0; i < len/4; i++)
           checksum[i] = response[i*4];
@@ -1266,8 +1258,8 @@ rtsp_session_open( DirectStream *stream )
      char           challen[64] = {0, };
      char           buf[1280];
      int            i, len;
-     
-     snprintf( buf, sizeof(buf),
+
+     direct_snprintf( buf, sizeof(buf),
                "OPTIONS rtsp://%s:%d RTSP/1.0\r\n"
                "CSeq: %d\r\n"
                "User-Agent: DirectFB/%s\r\n"
@@ -1279,18 +1271,18 @@ rtsp_session_open( DirectStream *stream )
                stream->remote.host,
                stream->remote.port,
                ++cseq, DIRECTFB_VERSION );
-     
+
      if (net_command( stream, buf, sizeof(buf) ) != 200)
           return DR_FAILURE;
-     
+
      while (net_response( stream, buf, sizeof(buf) ) > 0) {
           if (!strncmp( buf, "RealChallenge1:", 15 )) {
-               snprintf( challen, sizeof(challen), "%s", trim( buf+15 ) );
+               direct_snprintf( challen, sizeof(challen), "%s", trim( buf+15 ) );
                stream->remote.real_rtsp = true;
           }
      }
 
-     len = snprintf( buf, sizeof(buf),
+     len = direct_snprintf( buf, sizeof(buf),
                      "DESCRIBE rtsp://%s:%d%s RTSP/1.0\r\n"
                      "CSeq: %d\r\n"
                      "Accept: application/sdp\r\n"
@@ -1300,22 +1292,22 @@ rtsp_session_open( DirectStream *stream )
                      stream->remote.path,
                      ++cseq );
      if (stream->remote.real_rtsp) {
-          snprintf( buf+len, sizeof(buf)-len,
+          direct_snprintf( buf+len, sizeof(buf)-len,
                     "GUID: 00000000-0000-0000-0000-000000000000\r\n"
                     "RegionData: 0\r\n"
                     "ClientID: Linux_2.4_6.0.9.1235_play32_RN01_EN_586\r\n"
                     "SupportsMaximumASMBandwidth: 1\r\n"
                     "Require: com.real.retain-entity-for-setup\r\n" );
      }
-     
+
      status = net_command( stream, buf, sizeof(buf) );
      if (status != 200)
           return (status == 404) ? DR_FILENOTFOUND : DR_FAILURE;
-     
+
      len = 0;
      while (net_response( stream, buf, sizeof(buf) ) > 0) {
           if (!strncasecmp( buf, "ETag:", 5 )) {
-               snprintf( session, sizeof(session), "%s", trim( buf+5 ) );
+               direct_snprintf( session, sizeof(session), "%s", trim( buf+5 ) );
           }
           else if (!strncasecmp( buf, "Content-Length:", 15 )) {
                char *tmp = trim( buf+15 );
@@ -1323,22 +1315,22 @@ rtsp_session_open( DirectStream *stream )
                     sscanf( tmp, "bytes=%d", &len );
           }
      }
-     
+
      if (!len) {
           D_DEBUG_AT( Direct_Stream, "Couldn't get sdp length!\n" );
           return DR_FAILURE;
-     }       
-         
+     }
+
      ret = sdp_parse( stream, len, &streams, &n_streams );
      if (ret)
           return ret;
-     
+
      for (i = 0; i < n_streams; i++) {
           /* skip unhandled payload types */
           if (!stream->remote.real_rtsp && !streams[i].payload)
                continue;
-               
-          len = snprintf( buf, sizeof(buf),
+
+          len = direct_snprintf( buf, sizeof(buf),
                          "SETUP rtsp://%s:%d%s/%s RTSP/1.0\r\n"
                          "CSeq: %d\r\n",
                          stream->remote.host,
@@ -1349,18 +1341,18 @@ rtsp_session_open( DirectStream *stream )
                if (*challen) {
                     char response[64];
                     char checksum[32];
-                    
+
                     real_calc_challenge2( response, checksum, challen );
-                    len += snprintf( buf+len, sizeof(buf)-len,
+                    len += direct_snprintf( buf+len, sizeof(buf)-len,
                                      "RealChallenge2: %s, sd=%s\r\n",
                                      response, checksum );
                     *challen = '\0';
                }
-               len += snprintf( buf+len, sizeof(buf)-len,
+               len += direct_snprintf( buf+len, sizeof(buf)-len,
                                 "%s: %s\r\n",
                                 i ? "Session" : "If-Match", session );
           }
-          snprintf( buf+len, sizeof(buf)-len,
+          direct_snprintf( buf+len, sizeof(buf)-len,
                     "Transport: %s\r\n",
                     stream->remote.real_rtsp
                     ? "x-pn-tng/tcp;mode=play,rtp/avp/tcp;unicast;mode=play"
@@ -1370,14 +1362,14 @@ rtsp_session_open( DirectStream *stream )
                sdp_free( streams, n_streams );
                return DR_FAILURE;
           }
-          
+
           while (net_response( stream, buf, sizeof(buf) ) > 0) {
                if (!strncmp( buf, "Session:", 8 ))
-                    snprintf( session, sizeof(session), "%s", trim( buf+8 ) );
+                    direct_snprintf( session, sizeof(session), "%s", trim( buf+8 ) );
           }
      }
-     
-     len = snprintf( buf, sizeof(buf),
+
+     len = direct_snprintf( buf, sizeof(buf),
                     "PLAY rtsp://%s:%d%s RTSP/1.0\r\n"
                     "CSeq: %d\r\n",
                     stream->remote.host,
@@ -1385,34 +1377,34 @@ rtsp_session_open( DirectStream *stream )
                     stream->remote.path,
                     ++cseq );
      if (*session) {
-          len += snprintf( buf+len, sizeof(buf)-len,
+          len += direct_snprintf( buf+len, sizeof(buf)-len,
                            "Session: %s\r\n", session );
      }
-     snprintf( buf+len, sizeof(buf)-len, 
+     direct_snprintf( buf+len, sizeof(buf)-len,
                "Range: npt=0-\r\n"
                "Connection: Close\r\n" );
-     
+
      if (net_command( stream, buf, sizeof(buf) ) != 200) {
           sdp_free( streams, n_streams );
           return DR_FAILURE;
      }
-     
+
      /* discard remaining headers */
      while (net_response( stream, buf, sizeof(buf) ) > 0);
-     
+
      /* revert to blocking mode */
-     fcntl( stream->fd, F_SETFL, 
+     fcntl( stream->fd, F_SETFL,
             fcntl( stream->fd, F_GETFL ) & ~O_NONBLOCK );
-            
+
      if (!stream->remote.real_rtsp) {
           RTPPayload *p;
-          
+
           stream->remote.data = D_CALLOC( 1, (n_streams+1)*sizeof(RTPPayload) );
           if (!stream->remote.data) {
                sdp_free( streams, n_streams );
                return D_OOM();
           }
-          
+
           p = (RTPPayload*) stream->remote.data;
           for (i = 0; i < n_streams; i++) {
                if (streams[i].payload) {
@@ -1420,9 +1412,9 @@ rtsp_session_open( DirectStream *stream )
                     p->pt = streams[i].pt;
                     p++;
                }
-          }  
+          }
      }
-     
+
      stream->remote.real_pack = true;
      if (n_streams == 1 && streams[0].mime) {
           if (!strcmp( streams[0].mime, "audio/mpeg" ) ||
@@ -1442,10 +1434,10 @@ rtsp_session_open( DirectStream *stream )
                return ret;
           }
           stream->mime = D_STRDUP( "application/vnd.rn-realmedia" );
-     }         
+     }
 
      sdp_free( streams, n_streams );
-     
+
      return DR_OK;
 }
 
@@ -1457,19 +1449,19 @@ rvp_read_packet( DirectStream *stream )
      int            len;
      unsigned char  id;
      unsigned int   ts;
-     
+
      while (1) {
           do {
                size = recv( stream->fd, buf, 1, MSG_WAITALL );
                if (size < 1)
                     return DR_EOF;
           } while (buf[0] != '$');
-     
+
           size = recv( stream->fd, buf, 7, MSG_WAITALL );
           if (size < 7)
                return DR_EOF;
-          
-          len = (buf[0] << 16) + (buf[1] << 8) + buf[2]; 
+
+          len = (buf[0] << 16) + (buf[1] << 8) + buf[2];
           id = buf[3];
           if (id != 0x40 && id != 0x42) {
                if (buf[5] == 0x06) // EOS
@@ -1481,25 +1473,25 @@ rvp_read_packet( DirectStream *stream )
                len -= 9;
           }
           id = (id >> 1) & 1;
-          
+
           size = recv( stream->fd, buf, 6, MSG_WAITALL );
           if (size < 6)
                return DR_EOF;
           ts = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
-               
+
           len -= 10;
           if (len > 0) {
                unsigned char *dst;
-               
-               size = len + 12;   
+
+               size = len + 12;
                stream->cache = D_REALLOC( stream->cache, stream->cache_size+size );
                if (!stream->cache)
                     return D_OOM();
                dst = stream->cache+stream->cache_size;
                stream->cache_size += size;
-               
-               dst += rmf_write_pheader( dst, id, len, ts ); 
-               
+
+               dst += rmf_write_pheader( dst, id, len, ts );
+
                while (len) {
                     size = recv( stream->fd, dst, len, MSG_WAITALL );
                     if (size < 1)
@@ -1510,7 +1502,7 @@ rvp_read_packet( DirectStream *stream )
                break;
           }
      }
-     
+
      return DR_OK;
 }
 
@@ -1525,25 +1517,25 @@ rtp_read_packet( DirectStream *stream )
      unsigned short seq;
      unsigned int   ts;
      int            skip;
-     
+
      while (1) {
           RTPPayload *p;
-          
+
           do {
                size = recv( stream->fd, buf, 1, MSG_WAITALL );
                if (size < 1)
                     return DR_EOF;
           } while (buf[0] != '$');
-     
+
           size = recv( stream->fd, buf, 3, MSG_WAITALL );
           if (size < 3)
                return DR_EOF;
-          
+
           id = buf[0];
           len = (buf[1] << 8) | buf[2];
           if (len < 12)
                continue;
-     
+
           size = recv( stream->fd, buf, 12, MSG_WAITALL );
           if (size < 12)
                return DR_EOF;
@@ -1553,12 +1545,12 @@ rtp_read_packet( DirectStream *stream )
                D_DEBUG_AT( Direct_Stream, "Bad RTP version %d!\n", buf[0] );
           seq = (buf[2] <<  8) |  buf[3];
           ts  = (buf[4] << 24) | (buf[5] << 16) | (buf[6] << 8) | buf[7];
-          
+
           for (p = payloads; p->pt; p++) {
                if (p->pt == (buf[1] & 0x7f))
                     break;
           }
-          
+
           switch (p->pt) {
                case  0: // Unhandled
                     skip = len;
@@ -1585,12 +1577,12 @@ rtp_read_packet( DirectStream *stream )
                          skip += 4;
                     if (buf[0] & (1 << 6))
                          skip += 4;
-                    break;                   
+                    break;
                default:
                     skip = 0;
                     break;
           }
-          
+
           while (skip) {
                size = recv( stream->fd, buf, MIN(skip,12), MSG_WAITALL );
                if (size < 1)
@@ -1598,24 +1590,24 @@ rtp_read_packet( DirectStream *stream )
                len -= size;
                skip -= size;
           }
-          
+
           if (len > 0) {
                unsigned char *dst;
-               
+
                size = len;
                if (stream->remote.real_pack) {
                     size += 12;
                     if (p->type == PAYLOAD_VIDEO)
                          size += 7;
                }
-                  
+
                stream->cache = D_REALLOC( stream->cache, stream->cache_size+size );
                if (!stream->cache)
                     return D_OOM();
                dst = stream->cache+stream->cache_size;
                stream->cache_size += size;
-               
-               if (stream->remote.real_pack) {                              
+
+               if (stream->remote.real_pack) {
                     if (p->type == PAYLOAD_VIDEO) {
                          dst += rmf_write_pheader( dst, id, len+7, ts );
                          dst[0] = 0x81;
@@ -1628,7 +1620,7 @@ rtp_read_packet( DirectStream *stream )
                          dst += rmf_write_pheader( dst, id, len, ts );
                     }
                }
-               
+
                while (len) {
                     size = recv( stream->fd, dst, len, MSG_WAITALL );
                     if (size < 1)
@@ -1639,7 +1631,7 @@ rtp_read_packet( DirectStream *stream )
                break;
           }
      }
-     
+
      return DR_OK;
 }
 
@@ -1658,8 +1650,8 @@ rtsp_peek( DirectStream *stream,
 
      len = length + offset;
      while (len > stream->cache_size) {
-          ret = (stream->remote.real_rtsp) 
-                ? rvp_read_packet( stream ) 
+          ret = (stream->remote.real_rtsp)
+                ? rvp_read_packet( stream )
                 : rtp_read_packet( stream );
           if (ret) {
                if (stream->cache_size < offset)
@@ -1689,30 +1681,30 @@ rtsp_read( DirectStream *stream,
      while (size < length) {
           if (stream->cache_size) {
                unsigned int len = MIN( stream->cache_size, length-size );
-          
+
                direct_memcpy( buf+size, stream->cache, len );
                size += len;
                stream->cache_size -= len;
-          
+
                if (stream->cache_size) {
-                    direct_memcpy( stream->cache, 
+                    direct_memcpy( stream->cache,
                                    stream->cache+len, stream->cache_size );
                } else {
                     D_FREE( stream->cache );
                     stream->cache = NULL;
                }
           }
-          
+
           if (size < length) {
-               ret = (stream->remote.real_rtsp) 
-                     ? rvp_read_packet( stream ) 
+               ret = (stream->remote.real_rtsp)
+                     ? rvp_read_packet( stream )
                      : rtp_read_packet( stream );
                if (ret) {
                     if (!size)
                          return ret;
                     break;
                }
-          }          
+          }
      }
 
      stream->offset += size;
@@ -1721,32 +1713,32 @@ rtsp_read( DirectStream *stream,
           *read_out = size;
 
      return DR_OK;
-}           
- 
-static DirectResult 
+}
+
+static DirectResult
 rtsp_open( DirectStream *stream, const char *filename )
 {
      DirectResult ret;
-     
+
      stream->remote.port = RTSP_PORT;
 
      ret = net_open( stream, filename, IPPROTO_TCP );
      if (ret)
           return ret;
-          
+
      ret = rtsp_session_open( stream );
      if (ret) {
           close( stream->remote.sd );
           return ret;
      }
-       
+
      stream->peek = rtsp_peek;
      stream->read = rtsp_read;
-     
+
      return DR_OK;
 }
 
-#endif /* DIRECT_BUILD_NETWORK */   
+#endif /* DIRECT_BUILD_NETWORK */
 
 /************************** End of Network Support ***************************/
 
@@ -1759,10 +1751,10 @@ pipe_wait( DirectStream   *stream,
 
      if (stream->cache_size >= length)
           return DR_OK;
-     
+
      FD_ZERO( &s );
      FD_SET( stream->fd, &s );
-     
+
      switch (select( stream->fd+1, &s, NULL, NULL, tv )) {
           case 0:
                if (!tv && !stream->cache_size)
@@ -1791,14 +1783,14 @@ pipe_peek( DirectStream *stream,
      len = length + offset;
      if (len > stream->cache_size) {
           ssize_t s;
-          
+
           stream->cache = D_REALLOC( stream->cache, len );
           if (!stream->cache) {
                stream->cache_size = 0;
                return D_OOM();
           }
 
-          s = read( stream->fd, 
+          s = read( stream->fd,
                     stream->cache + stream->cache_size,
                     len - stream->cache_size );
           if (s < 0) {
@@ -1806,11 +1798,11 @@ pipe_peek( DirectStream *stream,
                     return errno2result( errno );
                s = 0;
           }
-          
+
           stream->cache_size += s;
           if (stream->cache_size <= offset)
                return DR_BUFFEREMPTY;
-          
+
           size = stream->cache_size - offset;
      }
 
@@ -1832,14 +1824,14 @@ pipe_read( DirectStream *stream,
 
      if (stream->cache_size) {
           size = MIN( stream->cache_size, length );
-          
+
           direct_memcpy( buf, stream->cache, size );
-     
+
           length -= size;
-          stream->cache_size -= size; 
-          
+          stream->cache_size -= size;
+
           if (stream->cache_size) {
-               direct_memcpy( stream->cache, 
+               direct_memcpy( stream->cache,
                               stream->cache+size, stream->cache_size );
           } else {
                D_FREE( stream->cache );
@@ -1849,7 +1841,7 @@ pipe_read( DirectStream *stream,
 
      if (length) {
           ssize_t s;
-          
+
           s = read( stream->fd, buf+size, length-size );
           switch (s) {
                case 0:
@@ -1876,7 +1868,7 @@ pipe_read( DirectStream *stream,
 
      return DR_OK;
 }
- 
+
 /*****************************************************************************/
 
 static DirectResult
@@ -1888,7 +1880,7 @@ file_peek( DirectStream *stream,
 {
      DirectResult ret = DR_OK;
      ssize_t      size;
-     
+
      if (lseek( stream->fd, offset, SEEK_CUR ) < 0)
           return DR_FAILURE;
 
@@ -1907,7 +1899,7 @@ file_peek( DirectStream *stream,
 
      if (lseek( stream->fd, - offset - size, SEEK_CUR ) < 0)
           return DR_FAILURE;
-     
+
      if (read_out)
           *read_out = size;
 
@@ -1933,7 +1925,7 @@ file_read( DirectStream *stream,
      }
 
      stream->offset += size;
-     
+
      if (read_out)
           *read_out = size;
 
@@ -1961,11 +1953,11 @@ file_open( DirectStream *stream, const char *filename, int fileno )
           stream->fd = open( filename, O_RDONLY | O_NONBLOCK );
      else
           stream->fd = dup( fileno );
-     
+
      if (stream->fd < 0)
           return errno2result( errno );
-    
-     fcntl( stream->fd, F_SETFL, 
+
+     fcntl( stream->fd, F_SETFL,
                fcntl( stream->fd, F_GETFL ) | O_NONBLOCK );
 
      if (lseek( stream->fd, 0, SEEK_CUR ) < 0 && errno == ESPIPE) {
@@ -1979,13 +1971,13 @@ file_open( DirectStream *stream, const char *filename, int fileno )
 
           if (fstat( stream->fd, &s ) < 0)
                return errno2result( errno );
-      
+
           stream->length = s.st_size;
           stream->peek   = file_peek;
           stream->read   = file_read;
           stream->seek   = file_seek;
      }
-     
+
      return DR_OK;
 }
 
@@ -2000,13 +1992,13 @@ direct_stream_create( const char    *filename,
 
      D_ASSERT( filename != NULL );
      D_ASSERT( ret_stream != NULL );
-     
+
      stream = D_CALLOC( 1, sizeof(DirectStream) );
      if (!stream)
           return D_OOM();
 
      D_MAGIC_SET( stream, DirectStream );
-     
+
      stream->ref =  1;
      stream->fd  = -1;
 
@@ -2059,9 +2051,9 @@ direct_stream_dup( DirectStream *stream )
      D_ASSERT( stream != NULL );
 
      D_MAGIC_ASSERT( stream, DirectStream );
-     
+
      stream->ref++;
-     
+
      return stream;
 }
 
@@ -2071,7 +2063,7 @@ direct_stream_fileno( DirectStream  *stream )
      D_ASSERT( stream != NULL );
 
      D_MAGIC_ASSERT( stream, DirectStream );
-     
+
      return stream->fd;
 }
 
@@ -2079,7 +2071,7 @@ bool
 direct_stream_seekable( DirectStream *stream )
 {
      D_ASSERT( stream != NULL );
-     
+
      D_MAGIC_ASSERT( stream, DirectStream );
 
      return stream->seek ? true : false;
@@ -2091,7 +2083,7 @@ direct_stream_remote( DirectStream *stream )
      D_ASSERT( stream != NULL );
 
      D_MAGIC_ASSERT( stream, DirectStream );
-     
+
 #if DIRECT_BUILD_NETWORK
      if (stream->remote.host)
           return true;
@@ -2103,19 +2095,19 @@ const char*
 direct_stream_mime( DirectStream *stream )
 {
      D_ASSERT( stream != NULL );
-     
+
      D_MAGIC_ASSERT( stream, DirectStream );
-     
+
      return stream->mime;
 }
 
-unsigned int 
+unsigned int
 direct_stream_offset( DirectStream *stream )
 {
      D_ASSERT( stream != NULL );
 
      D_MAGIC_ASSERT( stream, DirectStream );
-     
+
      return stream->offset;
 }
 
@@ -2137,7 +2129,7 @@ direct_stream_wait( DirectStream   *stream,
      D_ASSERT( stream != NULL );
 
      D_MAGIC_ASSERT( stream, DirectStream );
- 
+
      if (length && stream->wait)
           return stream->wait( stream, length, tv );
 
@@ -2156,7 +2148,7 @@ direct_stream_peek( DirectStream *stream,
      D_ASSERT( buf != NULL );
 
      D_MAGIC_ASSERT( stream, DirectStream );
-     
+
      if (stream->length >= 0 && (stream->offset + offset) >= stream->length)
           return DR_EOF;
 
@@ -2172,7 +2164,7 @@ direct_stream_read( DirectStream *stream,
                     void         *buf,
                     unsigned int *read_out )
 {
-     D_ASSERT( stream != NULL ); 
+     D_ASSERT( stream != NULL );
      D_ASSERT( length != 0 );
      D_ASSERT( buf != NULL );
 
@@ -2192,15 +2184,15 @@ direct_stream_seek( DirectStream *stream,
                     unsigned int  offset )
 {
      D_ASSERT( stream != NULL );
-     
+
      D_MAGIC_ASSERT( stream, DirectStream );
 
      if (stream->offset == offset)
           return DR_OK;
-     
+
      if (stream->length >= 0 && offset > stream->length)
           offset = stream->length;
-     
+
      if (stream->seek)
           return stream->seek( stream, offset );
 
@@ -2235,28 +2227,28 @@ direct_stream_close( DirectStream *stream )
           D_FREE( stream->remote.path );
           stream->remote.path = NULL;
      }
-     
+
      if (stream->remote.addr) {
           freeaddrinfo( stream->remote.addr );
           stream->remote.addr = NULL;
      }
-     
+
      if (stream->remote.data) {
           D_FREE( stream->remote.data );
           stream->remote.data = NULL;
      }
 
      if (stream->remote.sd > 0) {
-          close( stream->remote.sd ); 
+          close( stream->remote.sd );
           stream->remote.sd = -1;
      }
 #endif
-     
+
      if (stream->mime) {
           D_FREE( stream->mime );
           stream->mime = NULL;
      }
-     
+
      if (stream->cache) {
           D_FREE( stream->cache );
           stream->cache = NULL;
@@ -2264,7 +2256,7 @@ direct_stream_close( DirectStream *stream )
      }
 
      if (stream->fd >= 0) {
-          fcntl( stream->fd, F_SETFL, 
+          fcntl( stream->fd, F_SETFL,
                     fcntl( stream->fd, F_GETFL ) & ~O_NONBLOCK );
           close( stream->fd );
           stream->fd = -1;

@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -29,16 +29,10 @@
 #ifndef __DIRECT__UTIL_H__
 #define __DIRECT__UTIL_H__
 
-#include <unistd.h>
 
-#ifdef _POSIX_PRIORITY_SCHEDULING
-#include <sched.h>
-#endif
-
-#include <pthread.h>
-
-#include <direct/debug.h>
+#include <direct/clock.h>
 #include <direct/messages.h>
+#include <direct/print.h>
 
 
 #ifndef MIN
@@ -70,20 +64,19 @@
 #endif
 
 
-#define D_FLAGS_SET(flags,f)       do { (flags) |= (f); } while (0)
-#define D_FLAGS_CLEAR(flags,f)     do { (flags) &= ~(f); } while (0)
+#define D_FLAGS_SET(flags,f)       do { (flags) = (typeof(flags))((flags) |  (f)); } while (0)
+#define D_FLAGS_CLEAR(flags,f)     do { (flags) = (typeof(flags))((flags) & ~(f)); } while (0)
 #define D_FLAGS_IS_SET(flags,f)    (((flags) & (f)) != 0)
 #define D_FLAGS_ARE_SET(flags,f)   (((flags) & (f)) == (f))
 #define D_FLAGS_ARE_IN(flags,f)    (((flags) & ~(f)) == 0)
 #define D_FLAGS_INVALID(flags,f)   (((flags) & ~(f)) != 0)
 
-#define D_FLAGS_ASSERT(flags,f)    D_ASSERT( D_FLAGS_ARE_IN(flags,f) )
-
 #define D_ARRAY_SIZE(array)        ((int)(sizeof(array) / sizeof((array)[0])))
 
-#define D_UTIL_SWAP(a,b)                                    \
-     do {                                                   \
-          const typeof(a) x = (a); (a) = (b); (b) = x;      \
+
+#define D_UTIL_SWAP(a,b)                                                   \
+     do {                                                                  \
+          const typeof(a) __swap_x = (a); (a) = (b); (b) = __swap_x;       \
      } while (0)
 
 
@@ -91,6 +84,14 @@
 #define D_CONST_FUNC               __attribute__((const))
 #else
 #define D_CONST_FUNC
+#endif
+
+#if __GNUC__ >= 3
+#define D_FORMAT_PRINTF(n)         __attribute__((__format__ (__printf__, n, n+1)))
+#define D_FORMAT_VPRINTF(n)        __attribute__((__format__ (__printf__, n, 0)))
+#else
+#define D_FORMAT_PRINTF(n)
+#define D_FORMAT_VPRINTF(n)
 #endif
 
 
@@ -142,44 +143,50 @@
  */
 DirectResult errno2result( int erno );
 
-const char *DirectResultString( DirectResult result );
-
 /*
  * duplicates a file descriptor as needed to ensure it's not stdin, stdout, or stderr
  */
 int direct_safe_dup( int fd );
 
+
+#ifndef DIRECT_DISABLE_DEPRECATED
+
+// @deprecated
 int direct_try_open( const char *name1, const char *name2, int flags, bool error_msg );
 
+// @deprecated
+int direct_util_recursive_pthread_mutex_init( pthread_mutex_t *mutex );
+
+#endif
+
+
+int direct_sscanf( const char *str, const char *format, ... );
+int direct_vsscanf( const char *str, const char *format, va_list args );
+
+size_t direct_strlen( const char *s );
+
 void direct_trim( char **s );
+
+int direct_strcmp( const char *a, const char *b );
+int direct_strcasecmp( const char *a, const char *b );
+int direct_strncasecmp( const char *a, const char *b, size_t bytes );
+
+unsigned long int direct_strtoul( const char *nptr, char **endptr, int base );
+
+char *direct_strtok_r( char *str, const char *delim, char **saveptr );
+
+const char *direct_strerror( int erno );
 
 /*
  * Set a string with a maximum size including the zero termination.
  *
- * This acts like a strncpy(d,s,n), but always terminates the string like snprintf(d,n,"%s",s).
+ * This acts like a strncpy(d,s,n), but always terminates the string like direct_snprintf(d,n,"%s",s).
  *
  * Returns dest or NULL if n is zero.
  */
-static __inline__ char *
-direct_snputs( char       *dest,
-               const char *src,
-               size_t      n )
-{
-     char *start = dest;
-
-     D_ASSERT( dest != NULL );
-     D_ASSERT( src != NULL );
-
-     if (!n)
-          return NULL;
-
-     for (; n>1 && *src; n--)
-          *dest++ = *src++;
-
-     *dest = 0;
-
-     return start;
-}
+char *direct_snputs( char       *dest,
+                     const char *src,
+                     size_t      n );
 
 /*
  * Encode/Decode Base-64 strings.
@@ -225,11 +232,9 @@ direct_util_align( int value,
      return value;
 }
 
-/*
- * Utility function to initialize recursive mutexes.
- */
-int direct_util_recursive_pthread_mutex_init( pthread_mutex_t *mutex );
-
+void *
+direct_bsearch( const void *key, const void *base,
+		      size_t nmemb, size_t size, void *func );
 
 /* floor and ceil implementation to get rid of libm */
 
@@ -315,5 +320,28 @@ direct_log2( int val )
      return ret;
 }
 
+
+typedef struct {
+     long long start;
+     long long stop;
+} DirectClock;
+
+static inline void direct_clock_start( DirectClock *clock ) {
+     clock->start = direct_clock_get_micros();
+}
+
+static inline void direct_clock_stop( DirectClock *clock ) {
+     clock->stop = direct_clock_get_micros();
+}
+
+static inline int direct_clock_diff( DirectClock *clock ) {
+     return clock->stop - clock->start;
+}
+
+#define DIRECT_CLOCK_DIFF_SEC_MS( clock ) \
+     (direct_clock_diff( clock ) / 1000000), (direct_clock_diff( clock ) / 1000 % 1000)
+
+#define DIRECT_CLOCK_ITEMS_Mk_SEC( clock, n ) \
+     ((n) / direct_clock_diff( clock )), ((long)(((n) * 1000LL / direct_clock_diff( clock ) % 1000)))
 
 #endif

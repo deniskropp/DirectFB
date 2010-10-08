@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -28,36 +28,22 @@
 
 #include <config.h>
 
-#include <pthread.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <string.h>
-
-#include <direct/build.h>
+#include <direct/filesystem.h>
 #include <direct/list.h>
 #include <direct/log.h>
+#include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/print.h>
 #include <direct/system.h>
 #include <direct/thread.h>
 #include <direct/trace.h>
 #include <direct/util.h>
 
 
-#ifdef PIC
-#define DYNAMIC_LINKING
-#endif
-
-
 #if DIRECT_BUILD_TRACE
 
-#ifdef DYNAMIC_LINKING
+#if DIRECT_BUILD_DYNLOAD
 #include <dlfcn.h>
 #endif
 
@@ -90,12 +76,9 @@ struct __D_DirectTraceBuffer {
 
 static DirectTraceBuffer *buffers[MAX_BUFFERS];
 static int                buffers_num  = 0;
-#ifdef HAVE_DECL_PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
-static pthread_mutex_t    buffers_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-#else
-static pthread_mutex_t    buffers_lock = PTHREAD_MUTEX_INITIALIZER;
-#endif
-static pthread_key_t      trace_key    = -1;
+static DirectMutex        buffers_lock = DIRECT_RECURSIVE_MUTEX_INITIALIZER(buffers_lock);
+
+DIRECT_TLS_DATA( trace_key );
 
 /**************************************************************************************************/
 
@@ -106,7 +89,7 @@ buffer_destroy( void *arg )
      int                i;
      DirectTraceBuffer *buffer = arg;
 
-     pthread_mutex_lock( &buffers_lock );
+     direct_mutex_lock( &buffers_lock );
 
      /* Remove from list. */
      for (i=0; i<buffers_num; i++) {
@@ -122,7 +105,7 @@ buffer_destroy( void *arg )
      /* Deallocate the buffer. */
      direct_trace_free_buffer( buffer );
 
-     pthread_mutex_unlock( &buffers_lock );
+     direct_mutex_unlock( &buffers_lock );
 }
 
 __attribute__((no_instrument_function))
@@ -131,29 +114,28 @@ get_trace_buffer( void )
 {
      DirectTraceBuffer *buffer;
 
-     buffer = pthread_getspecific( trace_key );
+     buffer = direct_tls_get( trace_key );
      if (!buffer) {
           const char *name = direct_thread_self_name();
 
-          pthread_mutex_lock( &buffers_lock );
+          direct_mutex_lock( &buffers_lock );
 
           if (!buffers_num)
-               pthread_key_create( &trace_key, buffer_destroy );
+               direct_tls_register( &trace_key, buffer_destroy );
           else if (buffers_num == MAX_BUFFERS) {
                D_ERROR( "Direct/Trace: Maximum number of threads (%d) reached!\n", MAX_BUFFERS );
-               pthread_mutex_unlock( &buffers_lock );
+               direct_mutex_unlock( &buffers_lock );
                return NULL;
           }
 
-          pthread_setspecific( trace_key,
-                               buffer = calloc( 1, sizeof(DirectTraceBuffer) ) );
+          direct_tls_set( trace_key, buffer = direct_calloc( 1, sizeof(DirectTraceBuffer) ) );
 
           buffer->tid  = direct_gettid();
-          buffer->name = name ? strdup( name ) : NULL;
+          buffer->name = name ? direct_strdup( name ) : NULL;
 
           buffers[buffers_num++] = buffer;
 
-          pthread_mutex_unlock( &buffers_lock );
+          direct_mutex_unlock( &buffers_lock );
      }
 
      return buffer;
@@ -175,12 +157,8 @@ typedef struct {
      int         num_symbols;
 } SymbolTable;
 
-static DirectLink      *tables      = NULL;
-#ifdef HAVE_DECL_PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
-static pthread_mutex_t  tables_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-#else
-static pthread_mutex_t  tables_lock = PTHREAD_MUTEX_INITIALIZER;
-#endif
+static DirectLink  *tables      = NULL;
+static DirectMutex  tables_lock = DIRECT_RECURSIVE_MUTEX_INITIALIZER(tables_lock);
 
 
 __attribute__((no_instrument_function))
@@ -196,7 +174,7 @@ add_symbol( SymbolTable *table, long offset, const char *name )
           if (!capacity)
                capacity = 256;
 
-          symbols = malloc( capacity * sizeof(Symbol) );
+          symbols = direct_malloc( capacity * sizeof(Symbol) );
           if (!symbols) {
                D_WARN( "out of memory" );
                return;
@@ -204,7 +182,7 @@ add_symbol( SymbolTable *table, long offset, const char *name )
 
           direct_memcpy( symbols, table->symbols, table->num_symbols * sizeof(Symbol) );
 
-          free( table->symbols );
+          direct_free( table->symbols );
 
           table->symbols  = symbols;
           table->capacity = capacity;
@@ -221,25 +199,28 @@ __attribute__((no_instrument_function))
 static SymbolTable *
 load_symbols( const char *filename )
 {
+     DirectResult ret;
      SymbolTable *table;
-     FILE        *fp = NULL;
+     DirectFile   fp;
      bool         is_pipe = false;
      char         file[1024];
      char         line[1024];
      int          command_len;
-     char        *command;
      const char  *full_path = filename;
      char        *tmp;
 
      if (filename) {
-          if (access( filename, R_OK ) < 0 && errno == ENOENT) {
-               int len;
+          ret = direct_access( filename, R_OK );
+          if (ret && ret == DR_FILENOTFOUND) {
+               size_t len = 0;
 
-               if ((len = readlink( "/proc/self/exe", file, sizeof(file) - 1 )) < 0) {
-                    D_PERROR( "Direct/Trace: readlink( \"/proc/self/exe\" ) failed!\n" );
+               ret = direct_readlink( "/proc/self/exe", file, sizeof(file) - 1, &len );
+               if (ret) {
+                    D_DERROR( ret, "Direct/Trace: direct_readlink( \"/proc/self/exe\" ) failed!\n" );
                     return NULL;
                }
 
+               // Terminator!
                file[len] = 0;
 
 
@@ -247,78 +228,86 @@ load_symbols( const char *filename )
                if (!tmp)
                     return NULL;
 
-               if (strcmp( filename, tmp + 1 ))
+               if (direct_strcmp( filename, tmp + 1 ))
                     return NULL;
 
                full_path = file;
           }
      }
      else {
-          int   len;
+          size_t len = 0;
 
-          if ((len = readlink( "/proc/self/exe", file, sizeof(file) - 1 )) < 0) {
-               D_PERROR( "Direct/Trace: readlink( \"/proc/self/exe\" ) failed!\n" );
+          ret = direct_readlink( "/proc/self/exe", file, sizeof(file) - 1, &len );
+          if (ret) {
+               D_DERROR( ret, "Direct/Trace: readlink( \"/proc/self/exe\" ) failed!\n" );
                return NULL;
           }
 
+          // Terminator 2
           file[len] = 0;
 
           full_path = file;
      }
 
-     command_len = strlen( full_path ) + 32;
-     command     = alloca( command_len );
+     command_len = direct_strlen( full_path ) + 32;
 
-     /* First check if there's an "nm-n" file. */
-     tmp = strrchr( full_path, '/' );
-     if (!tmp)
-          return NULL;
+     {
+          char command[command_len+1];
 
-     *tmp = 0;
-     snprintf( command, command_len, "%s/nm-n.%s", full_path, tmp + 1 );
-     *tmp = '/';
-
-     if (access( command, R_OK ) == 0) {
-          fp = fopen( command, "r" );
-          if (!fp)
-               D_PERROR( "Direct/Trace: fopen( \"%s\", \"r\" ) failed!\n", command );
-     }
-     else {
-          snprintf( command, command_len, "%s.nm", full_path );
-          if (access( command, R_OK ) == 0) {
-               fp = fopen( command, "r" );
-               if (!fp)
-                    D_PERROR( "Direct/Trace: fopen( \"%s\", \"r\" ) failed!\n", command );
-          }
-     }
-
-     /* Fallback to live mode. */
-     if (!fp) {
-          snprintf( command, command_len, "nm -n %s", full_path );
-
-          fp = popen( command, "r" );
-          if (!fp) {
-               D_PERROR( "Direct/Trace: popen( \"%s\", \"r\" ) failed!\n", command );
+          /* First check if there's an "nm-n" file. */
+          tmp = strrchr( full_path, '/' );
+          if (!tmp)
                return NULL;
+
+          *tmp = 0;
+          direct_snprintf( command, command_len, "%s/nm-n.%s", full_path, tmp + 1 );
+          *tmp = '/';
+
+          ret = direct_access( command, R_OK );
+          if (ret == DR_OK) {
+               ret = direct_open( &fp, command, O_RDONLY, 0 );
+               if (ret)
+                    D_DERROR( ret, "Direct/Trace: direct_open( \"%s\", \"r\" ) failed!\n", command );
+          }
+          else {
+               direct_snprintf( command, command_len, "%s.nm", full_path );
+
+               ret = direct_access( command, R_OK );
+               if (ret == DR_OK) {
+                    ret = direct_open( &fp, command, O_RDONLY, 0 );
+                    if (ret)
+                         D_DERROR( ret, "Direct/Trace: direct_open( \"%s\", \"r\" ) failed!\n", command );
+               }
           }
 
-          is_pipe = true;
+          /* Fallback to live mode. */
+          if (ret) {
+               direct_snprintf( command, command_len, "nm -nC %s", full_path );
+
+               ret = direct_popen( &fp, command, O_RDONLY );
+               if (ret) {
+                    D_DERROR( ret, "Direct/Trace: direct_popen( \"%s\", \"r\" ) failed!\n", command );
+                    return NULL;
+               }
+
+               is_pipe = true;
+          }
      }
 
-     table = calloc( 1, sizeof(SymbolTable) );
+     table = direct_calloc( 1, sizeof(SymbolTable) );
      if (!table) {
           D_OOM();
           goto out;
      }
 
      if (filename)
-          table->filename = strdup( filename );
+          table->filename = direct_strdup( filename );
 
-     while (fgets( line, sizeof(line), fp )) {
+     while (direct_fgets( &fp, line, sizeof(line) ) == DR_OK) {
           int  n;
           int  digits = sizeof(long) * 2;
           long offset = 0;
-          int  length = strlen(line);
+          int  length = direct_strlen(line);
 
           if (line[0] == ' ' || length < (digits + 5) || line[length-1] != '\n')
                continue;
@@ -347,9 +336,9 @@ load_symbols( const char *filename )
 
 out:
      if (is_pipe)
-          pclose( fp );
+          direct_pclose( &fp );
      else
-          fclose( fp );
+          direct_close( &fp );
 
      return table;
 }
@@ -369,7 +358,7 @@ find_table( const char *filename )
 
      if (filename) {
           direct_list_foreach (table, tables) {
-               if (table->filename && !strcmp( filename, table->filename ))
+               if (table->filename && !direct_strcmp( filename, table->filename ))
                     return table;
           }
      }
@@ -392,23 +381,23 @@ direct_trace_lookup_symbol( const char *filename, long offset )
      Symbol      *symbol;
      SymbolTable *table;
 
-     pthread_mutex_lock( &tables_lock );
+     direct_mutex_lock( &tables_lock );
 
      table = find_table( filename );
      if (!table) {
           table = load_symbols( filename );
           if (!table) {
-               pthread_mutex_unlock( &tables_lock );
+               direct_mutex_unlock( &tables_lock );
                return false;
           }
 
           direct_list_prepend( &tables, &table->link );
      }
 
-     pthread_mutex_unlock( &tables_lock );
+     direct_mutex_unlock( &tables_lock );
 
-     symbol = bsearch( &offset, table->symbols, table->num_symbols,
-                       sizeof(Symbol), compare_symbols );
+     symbol = direct_bsearch( &offset, table->symbols, table->num_symbols,
+                              sizeof(Symbol), compare_symbols );
 
      return symbol ? symbol->name : NULL;
 }
@@ -417,7 +406,7 @@ __attribute__((no_instrument_function))
 const char *
 direct_trace_lookup_file( void *address, void **ret_base )
 {
-#ifdef DYNAMIC_LINKING
+#if DIRECT_BUILD_DYNLOAD
      Dl_info info;
 
      if (dladdr( address, &info )) {
@@ -437,82 +426,13 @@ direct_trace_lookup_file( void *address, void **ret_base )
 }
 
 __attribute__((no_instrument_function))
-static void
-direct_trace_print_stack_recursive( DirectTraceBuffer *buffer, int level, int levels )
-{
-     void *fn = buffer->trace[level].addr;
-
-#ifdef DYNAMIC_LINKING
-     Dl_info info;
-#endif
-
-     if (level == levels) {
-          /* lock, print header, unroll stack */
-
-          direct_log_lock( NULL );
-
-          if (buffer->name)
-               direct_log_printf( NULL, "(-) [%5d: -STACK- '%s']\n", buffer->tid, buffer->name );
-          else
-               direct_log_printf( NULL, "(-) [%5d: -STACK- ]\n", buffer->tid );
-
-          return;
-     }
-
-#ifdef DYNAMIC_LINKING
-     if (dladdr( fn, &info )) {
-          if (info.dli_fname) {
-               const char *symbol = NULL;//info.dli_sname;
-
-               if (!symbol) {
-                    symbol = direct_trace_lookup_symbol(info.dli_fname, (long)(fn - info.dli_fbase));
-                    if (!symbol) {
-                         symbol = direct_trace_lookup_symbol(info.dli_fname, (long)(fn));
-                         if (!symbol) {
-                              if (info.dli_sname)
-                                   symbol = info.dli_sname;
-                              else
-                                   symbol = "??";
-                         }
-                    }
-               }
-
-               direct_trace_print_stack_recursive( buffer, level+1, levels );
-               direct_log_printf( NULL, "  #%-2d 0x%08lx in %s () from %s [%p]\n",
-                                  levels - level - 1, (unsigned long) fn, symbol, info.dli_fname, info.dli_fbase );
-          }
-          else if (info.dli_sname) {
-               direct_trace_print_stack_recursive( buffer, level+1, levels );
-               direct_log_printf( NULL, "  #%-2d 0x%08lx in %s ()\n",
-                                  levels - level - 1, (unsigned long) fn, info.dli_sname );
-          }
-          else {
-               direct_trace_print_stack_recursive( buffer, level+1, levels );
-               direct_log_printf( NULL, "  #%-2d 0x%08lx in ?? ()\n",
-                                  levels - level - 1, (unsigned long) fn );
-          }
-     }
-     else
-#endif
-     {
-          const char *symbol = direct_trace_lookup_symbol(NULL, (long)(fn));
-
-          direct_trace_print_stack_recursive( buffer, level+1, levels );
-          direct_log_printf( NULL, "  #%-2d 0x%08lx in %s ()\n",
-                             levels - level - 1, (unsigned long) fn, symbol ? symbol : "??" );
-     }
-
-     if (level == 0) {
-          /* stack unrolled, print end, unlock */
-          direct_log_printf( NULL, "\n" );
-          direct_log_unlock( NULL );
-     }
-}
-
-__attribute__((no_instrument_function))
 void
 direct_trace_print_stack( DirectTraceBuffer *buffer )
 {
+#if DIRECT_BUILD_DYNLOAD
+     Dl_info info;
+#endif
+     int     i;
      int     level;
 
      if (!direct_config->trace)
@@ -537,8 +457,56 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
           return;
      }
 
-     /* we are starting with the last entry (0) */
-     direct_trace_print_stack_recursive( buffer, 0, level );
+     direct_log_lock( NULL );
+
+     if (buffer->name)
+          direct_log_printf( NULL, "(-) [%5d: -STACK- '%s']\n", buffer->tid, buffer->name );
+     else
+          direct_log_printf( NULL, "(-) [%5d: -STACK- ]\n", buffer->tid );
+
+     for (i=level-1; i>=0; i--) {
+          void *fn = buffer->trace[i].addr;
+
+#if DIRECT_BUILD_DYNLOAD
+          if (dladdr( fn, &info )) {
+               if (info.dli_fname) {
+                    const char *symbol = NULL;//info.dli_sname;
+
+                    if (!symbol) {
+                         symbol = direct_trace_lookup_symbol(info.dli_fname, (long)(fn - info.dli_fbase));
+                         if (!symbol) {
+                              symbol = direct_trace_lookup_symbol(info.dli_fname, (long)(fn));
+                              if (!symbol) {
+                                   if (info.dli_sname)
+                                        symbol = info.dli_sname;
+                                   else
+                                        symbol = "??";
+                              }
+                         }
+                    }
+
+                    direct_log_printf( NULL, "  #%-2d 0x%08lx in %s () from %s [%p]\n",
+                                       level - i - 1, (unsigned long) fn, symbol, info.dli_fname, info.dli_fbase );
+               }
+               else if (info.dli_sname) {
+                    direct_log_printf( NULL, "  #%-2d 0x%08lx in %s ()\n",
+                                       level - i - 1, (unsigned long) fn, info.dli_sname );
+               }
+               else
+                    direct_log_printf( NULL, "  #%-2d 0x%08lx in ?? ()\n",
+                                       level - i - 1, (unsigned long) fn );
+          }
+          else
+#endif
+          {
+               const char *symbol = direct_trace_lookup_symbol(NULL, (long)(fn));
+               direct_log_printf( NULL, "  #%-2d 0x%08lx in %s ()\n",
+                                  level - i - 1, (unsigned long) fn, symbol ? symbol : "??" );
+          }
+     }
+
+     direct_log_printf( NULL, "\n" );
+     direct_log_unlock( NULL );
 
      buffer->in_trace = false;
 }
@@ -553,14 +521,14 @@ direct_trace_print_stacks( void )
      if (buffer->level)
           direct_trace_print_stack( buffer );
 
-     pthread_mutex_lock( &buffers_lock );
+     direct_mutex_lock( &buffers_lock );
 
      for (i=0; i<buffers_num; i++) {
           if (buffers[i] != buffer && buffers[i]->level)
                direct_trace_print_stack( buffers[i] );
      }
 
-     pthread_mutex_unlock( &buffers_lock );
+     direct_mutex_unlock( &buffers_lock );
 }
 
 __attribute__((no_instrument_function))
@@ -600,17 +568,17 @@ direct_trace_copy_buffer( DirectTraceBuffer *buffer )
           level = MAX_LEVEL;
      }
 
-     copy = calloc( 1, sizeof(*buffer) - sizeof(buffer->trace) + sizeof(buffer->trace[0]) * level );
+     copy = direct_calloc( 1, sizeof(DirectTraceBuffer) - sizeof(Trace) * (MAX_LEVEL - level) );
      if (!copy)
           return NULL;
 
      if (buffer->name)
-          copy->name = strdup( buffer->name );
+          copy->name = direct_strdup( buffer->name );
 
      copy->tid   = buffer->tid;
      copy->level = buffer->level;
 
-     direct_memcpy( copy->trace, buffer->trace, level * sizeof(buffer->trace[0]) );
+     direct_memcpy( &copy->trace[0], &buffer->trace[0], level * sizeof(Trace) );
 
      return copy;
 }
@@ -620,17 +588,19 @@ void
 direct_trace_free_buffer( DirectTraceBuffer *buffer )
 {
      if (buffer->name)
-          free( buffer->name );
+          direct_free( buffer->name );
 
-     free( buffer );
+     direct_free( buffer );
 }
 
-/**************************************************************************************************/
+/**********************************************************************************************************************/
 
-__attribute__((no_instrument_function))
+__attribute__((no_instrument_function)) void __cyg_profile_func_enter( void *this_fn, void *call_site );
+__attribute__((no_instrument_function)) void __cyg_profile_func_exit ( void *this_fn, void *call_site );
+
 void
-__cyg_profile_func_enter (void *this_fn,
-                          void *call_site)
+__cyg_profile_func_enter( void *this_fn,
+                          void *call_site )
 {
      if (direct_config->trace) {
           DirectTraceBuffer *buffer = get_trace_buffer();
@@ -644,10 +614,9 @@ __cyg_profile_func_enter (void *this_fn,
      }
 }
 
-__attribute__((no_instrument_function))
 void
-__cyg_profile_func_exit (void *this_fn,
-                         void *call_site)
+__cyg_profile_func_exit( void *this_fn,
+                         void *call_site )
 {
      if (direct_config->trace) {
           DirectTraceBuffer *buffer = get_trace_buffer();
@@ -670,7 +639,7 @@ direct_trace_lookup_file( void *address, void **ret_base )
 {
      if (ret_base)
           *ret_base = NULL;
-          
+
      return NULL;
 }
 
