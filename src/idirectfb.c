@@ -216,7 +216,7 @@ containers_detach_device(CoreInputDevice *device)
      pthread_mutex_unlock( &containers_lock );
 }
 
-void
+static void
 containers_add_input_eventbuffer(CreateEventBuffer_Context * context)
 {
      Event_Buffer_Container  *container;
