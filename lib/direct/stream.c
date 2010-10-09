@@ -28,6 +28,8 @@
 
 #include <config.h>
 
+#include <sys/stat.h>
+
 #include <direct/build.h>
 #include <direct/types.h>
 #include <direct/mem.h>
