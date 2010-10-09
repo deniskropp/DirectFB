@@ -533,7 +533,7 @@ fusion_dbg_shmalloc( FusionSHMPoolShared *pool,
      D_ASSERT( __size > 0 );
 
      if (pool->debug)
-          return direct_malloc( file, line, func, __size );
+          return direct_dbg_malloc( file, line, func, __size );
 
      return malloc( __size );
 }
@@ -549,7 +549,7 @@ fusion_dbg_shcalloc( FusionSHMPoolShared *pool,
      D_ASSERT( __size > 0 );
 
      if (pool->debug)
-          return direct_calloc( file, line, func, __nmemb, __size );
+          return direct_dbg_calloc( file, line, func, __nmemb, __size );
 
      return calloc( __nmemb, __size );
 }
@@ -565,7 +565,7 @@ fusion_dbg_shrealloc( FusionSHMPoolShared *pool,
      D_MAGIC_ASSERT( pool, FusionSHMPoolShared );
 
      if (pool->debug)
-          return direct_realloc( file, line, func, what, __ptr, __size );
+          return direct_dbg_realloc( file, line, func, what, __ptr, __size );
 
      return realloc( __ptr, __size );
 }
@@ -580,7 +580,7 @@ fusion_dbg_shfree( FusionSHMPoolShared *pool,
      D_ASSERT( __ptr != NULL );
 
      if (pool->debug)
-          direct_free( file, line, func, what, __ptr );
+          direct_dbg_free( file, line, func, what, __ptr );
      else
           free( __ptr );
 }
@@ -595,7 +595,7 @@ fusion_dbg_shstrdup( FusionSHMPoolShared *pool,
      D_ASSERT( string != NULL );
 
      if (pool->debug)
-          return direct_strdup( file, line, func, string );
+          return direct_dbg_strdup( file, line, func, string );
 
      return strdup( string );
 }
