@@ -2325,9 +2325,9 @@ font_state_prepare( CardState   *state,
      if (state->blittingflags != DSBLIT_INDEX_TRANSLATION) {
           DFBSurfaceBlittingFlags flags = font->blittingflags;
 
-          backup->flags     = state->blittingflags;
-          backup->src_blend = state->src_blend;
-          backup->dst_blend = state->dst_blend;
+          backup->blittingflags = state->blittingflags;
+          backup->src_blend     = state->src_blend;
+          backup->dst_blend     = state->dst_blend;
 
           /* additional blending? */
           if ((state->drawingflags & DSDRAW_BLEND) && (state->color.a != 0xff))
@@ -2368,8 +2368,8 @@ static void
 font_state_restore( CardState *state,
                     CardState *backup )
 {
-     if (state->flags != DSBLIT_INDEX_TRANSLATION) {
-          dfb_state_set_blitting_flags( state, backup->flags );
+     if (state->blittingflags != DSBLIT_INDEX_TRANSLATION) {
+          dfb_state_set_blitting_flags( state, backup->blittingflags );
           dfb_state_set_src_blend( state, backup->src_blend );
           dfb_state_set_dst_blend( state, backup->dst_blend );
      }
