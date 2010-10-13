@@ -897,6 +897,7 @@ dfb_font_get_glyph_data( CoreFont       *font,
      D_DEBUG_AT( Core_FontSurfaces, "  -> render %2d - %2dx%2d at %03d font <%p>\n",
                  index, data->width, data->height, row->next_x, font );
 
+     data->cache   = cache;
      data->row     = row;
      data->start   = row->next_x;
      data->surface = row->surface;
