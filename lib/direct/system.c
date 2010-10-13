@@ -122,7 +122,7 @@ direct_futex_wake( int *uaddr, int num )
 
      while ((ret = direct_futex( uaddr, FUTEX_WAKE, num, NULL, NULL, 0 ))) {
           switch (ret) {
-               case EINTR:
+               case DR_BUSY:  // EAGAIN
                     continue;
 
                default:
