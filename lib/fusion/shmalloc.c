@@ -94,8 +94,8 @@ fill_shmem_desc( SHMemDesc *desc, int bytes, const char *func, const char *file,
      desc->mem   = desc + 1;
      desc->bytes = bytes;
 
-     snprintf( desc->func, SHMEMDESC_FUNC_NAME_LENGTH, func );
-     snprintf( desc->file, SHMEMDESC_FILE_NAME_LENGTH, file );
+     direct_snputs( desc->func, func, SHMEMDESC_FUNC_NAME_LENGTH );
+     direct_snputs( desc->file, file, SHMEMDESC_FILE_NAME_LENGTH );
 
      desc->line = line;
      desc->fid  = fusion_id;
