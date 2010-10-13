@@ -446,7 +446,7 @@ IDirectFBScreen_GetOutputDescriptions( IDirectFBScreen            *thiz,
      if (!descriptions)
           return DFB_INVARG;
 
-     if (!data->description.caps & DSCCAPS_OUTPUTS)
+     if (! (data->description.caps & DSCCAPS_OUTPUTS))
           return DFB_UNSUPPORTED;
 
      for (i=0; i<data->description.outputs; i++)
