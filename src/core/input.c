@@ -1772,7 +1772,7 @@ dfb_input_remove_device(int device_index, void *driver_in)
      int    loop = CHECK_NUMBER;
 
      while (--loop) {
-          if ( fusion_ref_zero_trylock( &device->shared->ref ) == DFB_OK) {
+          if (fusion_ref_zero_trylock( &device->shared->ref ) == DR_OK) {
                fusion_ref_unlock(&device->shared->ref);
                break;
           }
