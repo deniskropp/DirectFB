@@ -442,7 +442,7 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
 
      while (fusion_arena_exit( core->arena, dfb_core_arena_shutdown,
                                core->master ? NULL : dfb_core_arena_leave,
-                               core, emergency, NULL ) == DFB_BUSY)
+                               core, emergency, NULL ) == DR_BUSY)
      {
           D_ONCE( "waiting for DirectFB slaves to terminate" );
           usleep( 100000 );
