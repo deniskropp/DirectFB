@@ -193,6 +193,8 @@ primaryInitOutput( CoreScreen                   *screen,
      DFBX11       *x11    = driver_data;
      DFBX11Shared *shared = x11->shared;
 
+     (void) shared;
+
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
      description->caps = DSOCAPS_RESOLUTION;
@@ -213,6 +215,8 @@ primaryTestOutputConfig( CoreScreen                  *screen,
 {
      DFBX11       *x11    = driver_data;
      DFBX11Shared *shared = x11->shared;
+
+     (void) shared;
 
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
