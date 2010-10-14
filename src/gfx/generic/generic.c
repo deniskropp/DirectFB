@@ -8770,14 +8770,19 @@ static void Dacc_modulate_argb( GenefxState *gfxs )
 }
 
 static GenefxFunc Dacc_modulation[] = {
-     NULL,
-     NULL,
-     Dacc_set_alpha,
-     Dacc_modulate_alpha,
-     Dacc_modulate_rgb,
-     Dacc_modulate_rgb,
-     Dacc_modulate_rgb_set_alpha,
-     Dacc_modulate_argb
+     [DSBLIT_NOFX]                 = NULL,
+     [DSBLIT_BLEND_ALPHACHANNEL]   = NULL,
+     [DSBLIT_BLEND_COLORALPHA]     = Dacc_set_alpha,
+     [DSBLIT_BLEND_ALPHACHANNEL
+      | DSBLIT_BLEND_COLORALPHA]   = Dacc_modulate_alpha,
+     [DSBLIT_COLORIZE]             = Dacc_modulate_rgb,
+     [DSBLIT_COLORIZE
+      | DSBLIT_BLEND_ALPHACHANNEL] = Dacc_modulate_rgb,
+     [DSBLIT_COLORIZE
+      | DSBLIT_BLEND_COLORALPHA]   = Dacc_modulate_rgb_set_alpha,
+     [DSBLIT_COLORIZE
+      | DSBLIT_BLEND_ALPHACHANNEL
+      | DSBLIT_BLEND_COLORALPHA]   = Dacc_modulate_argb
 };
 
 /********************************* misc accumulator operations ****************/
@@ -10219,7 +10224,9 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          }
 
                          /* modulate the source if requested */
-                         if (Dacc_modulation[modulation & 0x7]) {
+                         if (Dacc_modulation[modulation & (DSBLIT_COLORIZE
+                                                           | DSBLIT_BLEND_ALPHACHANNEL
+                                                           | DSBLIT_BLEND_COLORALPHA)]) {
                               /* modulation source */
                               gfxs->Cacc.RGB.a = color.a + 1;
                               if (!dst_ycbcr) {
@@ -10232,7 +10239,9 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                    gfxs->Cacc.YUV.v = gfxs->CrCop + 1;
                               }
 
-                              *funcs++ = Dacc_modulation[modulation & 0x7];
+                              *funcs++ = Dacc_modulation[modulation & (DSBLIT_COLORIZE
+                                                                       | DSBLIT_BLEND_ALPHACHANNEL
+                                                                       | DSBLIT_BLEND_COLORALPHA)];
                          }
 
                          /* Premultiply (modulated) source alpha? */
