@@ -43,7 +43,7 @@
 #include "idirectfbimageprovider_dispatcher.h"
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBImageProvider *thiz,
                             IDirectFBImageProvider *real,
                             VoodooManager          *manager,

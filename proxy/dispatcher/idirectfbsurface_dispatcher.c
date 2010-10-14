@@ -70,7 +70,7 @@
 
 #include "idirectfbsurface_dispatcher.h"
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBSurface *thiz,
                             IDirectFBSurface *real,
                             VoodooManager    *manager,

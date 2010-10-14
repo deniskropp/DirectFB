@@ -47,7 +47,7 @@
 
 #include "idirectfbeventbuffer_dispatcher.h"
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBEventBuffer *thiz,
                             IDirectFBEventBuffer *real,
                             VoodooManager        *manager,

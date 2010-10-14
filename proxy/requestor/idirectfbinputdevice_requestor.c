@@ -48,7 +48,7 @@
 #include "idirectfbinputdevice_requestor.h"
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBInputDevice *thiz,
                             VoodooManager        *manager,
                             VoodooInstanceID      instance,

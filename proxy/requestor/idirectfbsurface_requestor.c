@@ -75,7 +75,7 @@
 #include "idirectfbsurface_requestor.h"
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBSurface *thiz,
                             VoodooManager    *manager,
                             VoodooInstanceID  instance,
@@ -351,7 +351,7 @@ IDirectFBSurface_Requestor_GetPalette( IDirectFBSurface  *thiz,
           return ret;
 
      ret = response->result;
-     if (ret == DFB_OK)
+     if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBPalette",
                                             response->instance, NULL, &interface );
 
@@ -1040,7 +1040,7 @@ IDirectFBSurface_Requestor_GetSubSurface( IDirectFBSurface    *thiz,
           return ret;
 
      ret = response->result;
-     if (ret == DFB_OK)
+     if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBSurface",
                                             response->instance, NULL, &interface );
 

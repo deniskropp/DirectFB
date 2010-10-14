@@ -46,7 +46,7 @@
 #include "idirectfbdatabuffer_dispatcher.h"
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBDataBuffer *thiz,
                             IDirectFBDataBuffer *real,
                             VoodooManager       *manager,
@@ -234,7 +234,7 @@ IDirectFBDataBuffer_Dispatcher_CreateImageProvider( IDirectFBDataBuffer     *thi
           return ret;
 
      ret = response->result;
-     if (ret == DFB_OK)
+     if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBImageProvider",
                                             response->instance, NULL, &interface );
 
@@ -281,7 +281,7 @@ IDirectFBDataBuffer_Dispatcher_CreateFont( IDirectFBDataBuffer       *thiz,
           return ret;
 
      ret = response->result;
-     if (ret == DFB_OK)
+     if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBFont",
                                             response->instance, NULL, &interface );
 

@@ -44,7 +44,7 @@
 #include "idirectfbwindow_dispatcher.h"
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBWindow  *thiz,
                             IDirectFBWindow  *real,
                             VoodooManager    *manager,

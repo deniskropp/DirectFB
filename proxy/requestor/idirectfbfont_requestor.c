@@ -45,7 +45,7 @@
 #include "idirectfbfont_requestor.h"
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBFont    *thiz,
                             VoodooManager    *manager,
                             VoodooInstanceID  instance,
