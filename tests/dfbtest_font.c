@@ -41,25 +41,6 @@ static const DirectFBPixelFormatNames( format_names );
 
 /**********************************************************************************************************************/
 
-static DFBBoolean
-parse_format( const char *arg, DFBSurfacePixelFormat *_f )
-{
-     int i = 0;
-
-     while (format_names[i].format != DSPF_UNKNOWN) {
-          if (!strcasecmp( arg, format_names[i].name )) {
-               *_f = format_names[i].format;
-               return DFB_TRUE;
-          }
-
-          ++i;
-     }
-
-     fprintf (stderr, "\nInvalid format specified!\n\n" );
-
-     return DFB_FALSE;
-}
-
 static int
 print_usage( const char *prg )
 {
