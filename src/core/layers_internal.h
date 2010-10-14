@@ -169,6 +169,8 @@ struct __DFB_CoreLayerRegion {
      GlobalReaction              surface_reaction;
 
      void                       *region_data;
+
+     CoreSurfaceAccessorID       surface_accessor;
 };
 
 
