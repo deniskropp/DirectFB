@@ -169,7 +169,7 @@ fi
 #fi
 
 if test "$GCC" = "yes"; then
-  CFLAGS="-std=gnu99 $CFLAGS"
+  CFLAGS_STD="-std=gnu99"
 fi
 
 
@@ -1592,6 +1592,7 @@ CFLAGS="$CFLAGS $DFB_INTERNAL_CFLAGS"
 CXXFLAGS="$CXXFLAGS $CFLAGS"
 DFB_LDFLAGS="$LDFLAGS $ZLIB_LIBS"
 
+CFLAGS="$CFLAGS $CFLAGS_STD"
 
 
 # Honor aclocal flags
