@@ -106,7 +106,7 @@ main( int argc, char *argv[] )
      MSG( "Waiting at skirmish...\n" );
 
      ret = fusion_skirmish_wait( &skirmish, 10 );
-     if (ret != DFB_TIMEOUT) {
+     if (ret != DR_TIMEOUT) {
           D_DERROR( ret, "fusion_skirmish_wait() did not timeout!\n" );
           return -3;
      }
