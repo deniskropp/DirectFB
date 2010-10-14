@@ -37,4 +37,11 @@ VNC_DIR =
 endif
   
 
-SUBDIRS = $(DEVMEM_DIR) $(FBDEV_DIR) $(X11_DIR) $(SDL_DIR) $(OSX_DIR) $(VNC_DIR)
+SUBDIRS = \
+	dummy \
+	$(DEVMEM_DIR) \
+	$(FBDEV_DIR) \
+	$(X11_DIR) \
+	$(SDL_DIR) \
+	$(OSX_DIR) \
+	$(VNC_DIR)

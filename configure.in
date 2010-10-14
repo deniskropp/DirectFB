@@ -1709,6 +1709,7 @@ src/windows/Makefile
 
 systems/Makefile
 systems/devmem/Makefile
+systems/dummy/Makefile
 systems/fbdev/Makefile
 systems/x11/Makefile
 systems/osx/Makefile
