@@ -224,7 +224,7 @@ typedef struct {
                                                                       \
           /* Return pointer to data or NULL. */                       \
           if (_vp_length)                                             \
-               (ret_data) = _vp_ptr + 8;                              \
+               (ret_data) = (__typeof__(ret_data))(_vp_ptr + 8);      \
           else                                                        \
                (ret_data) = NULL;                                     \
                                                                       \
