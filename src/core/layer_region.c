@@ -141,12 +141,16 @@ dfb_layer_region_create( CoreLayerContext  *context,
                          CoreLayerRegion  **ret_region )
 {
      CoreLayer       *layer;
+     CoreLayerShared *shared;
      CoreLayerRegion *region;
 
      D_ASSERT( context != NULL );
      D_ASSERT( ret_region != NULL );
 
      layer = dfb_layer_at( context->layer_id );
+
+     shared = layer->shared;
+     D_ASSERT( shared != NULL );
 
      /* Create the object. */
      region = dfb_core_create_layer_region( layer->core );
@@ -170,6 +174,11 @@ dfb_layer_region_create( CoreLayerContext  *context,
      fusion_object_set_lock( &region->object, &region->lock );
 
      region->state = CLRSF_FROZEN;
+
+     if (shared->description.surface_accessor)
+          region->surface_accessor = shared->description.surface_accessor;
+     else
+          region->surface_accessor = CSAID_LAYER0 + context->layer_id;
 
      /* Activate the object. */
      fusion_object_activate( &region->object );
@@ -938,7 +947,7 @@ region_buffer_lock( CoreLayerRegion       *region,
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      /* Lock the surface buffer. */
-     ret = dfb_surface_buffer_lock( buffer, CSAID_LAYER0 + context->layer_id, CSAF_READ, &region->surface_lock );
+     ret = dfb_surface_buffer_lock( buffer, region->surface_accessor, CSAF_READ, &region->surface_lock );
      if (ret) {
           D_DERROR( ret, "Core/LayerRegion: Could not lock region surface for SetRegion()!\n" );
           dfb_surface_unlock( surface );

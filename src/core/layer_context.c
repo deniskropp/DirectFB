@@ -1698,7 +1698,6 @@ allocate_surface( CoreLayer             *layer,
      const DisplayLayerFuncs *funcs;
      CoreLayerContext        *context;
      CoreSurface             *surface = NULL;
-     DFBSurfaceCapabilities   caps    = DSCAPS_VIDEOONLY;
      CoreSurfaceTypeFlags     type    = CSTF_LAYER;
      CoreSurfaceConfig        scon;
 
@@ -1732,7 +1731,8 @@ allocate_surface( CoreLayer             *layer,
           }
      }
      else {
-          CoreLayerShared *shared = layer->shared;
+          CoreLayerShared        *shared = layer->shared;
+          DFBSurfaceCapabilities  caps   = shared->description.surface_caps ?: DSCAPS_VIDEOONLY;
 
           /* Choose surface capabilities depending on the buffer mode. */
           switch (config->buffermode) {
