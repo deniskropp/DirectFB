@@ -475,7 +475,7 @@ static DFBResult load_image (const char            *filename,
                  int  w;
 
                  for (pixel = (u32 *) row, w = width; w; w--, pixel++) {
-                      if (*pixel & 0xff0000 == 0x0)
+                      if ((*pixel & 0xff0000) == 0x0)
                            *pixel = dfb_color_to_argb (transparent);
                  }
           }
@@ -876,7 +876,7 @@ static DFBResult dump_rectangles (const char    *name,
           if (len < 0) {
                int l = fprintf (fp, "  { \"%s\", ", v);
 
-               fprintf (fp, blanks - len + l);
+               fprintf (fp, "%s", blanks - len + l);
                fprintf (fp, "{ x : %4d, y : %4d, w : %4d, h : %4d } }",
                         rect->x, rect->y, rect->w, rect->h);
           }
