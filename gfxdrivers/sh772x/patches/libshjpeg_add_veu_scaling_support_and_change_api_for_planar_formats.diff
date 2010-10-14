@@ -1,0 +1,176 @@
+diff --git a/include/shjpeg/shjpeg.h b/include/shjpeg/shjpeg.h
+index 16fa76d..109da57 100644
+--- a/include/shjpeg/shjpeg.h
++++ b/include/shjpeg/shjpeg.h
+@@ -160,6 +160,7 @@ int shjpeg_decode_init(shjpeg_context_t *context);
+ int shjpeg_decode_run(shjpeg_context_t		*context,
+ 		      shjpeg_pixelformat	 format,
+ 		      unsigned long          	 phys,
++		      unsigned long          	 cphys,
+ 		      int			 width,
+ 		      int			 height,
+ 		      int                    	 pitch);
+diff --git a/src/shjpeg_decode.c b/src/shjpeg_decode.c
+index 72c92cb..44846c7 100644
+--- a/src/shjpeg_decode.c
++++ b/src/shjpeg_decode.c
+@@ -46,7 +46,9 @@ static int
+ decode_hw(shjpeg_internal_t * data,
+ 	  shjpeg_context_t * context,
+ 	  shjpeg_pixelformat format,
+-	  unsigned long phys, int width, int height, int pitch)
++	  unsigned long phys,
++	  unsigned long cphys,
++	  int width, int height, int pitch)
+ {
+ 	int ret;
+ 	unsigned int len;
+@@ -164,8 +166,9 @@ decode_hw(shjpeg_internal_t * data,
+ 			    data->jpeg_phys + SHJPEG_JPU_RELOAD_SIZE);
+ 	shjpeg_jpu_setreg32(data, JPU_JIFDDRSZ, len & 0x00FFFF00);
+ 
+-	if ((context->mode420 && format == SHJPEG_PF_NV12) ||
+-	    (!context->mode420 && format == SHJPEG_PF_NV16)) {
++	if (((context->mode420 && format == SHJPEG_PF_NV12) ||
++	    (!context->mode420 && format == SHJPEG_PF_NV16)) && 
++	    (context->width == width) && (context->height == height)) {
+ 	/* Setup JPU for decoding in frame mode (directly to surface). */
+ 		shjpeg_jpu_setreg32(data, JPU_JINTE,
+ 				    JPU_JINTS_INS5_ERROR |
+@@ -176,7 +179,7 @@ decode_hw(shjpeg_internal_t * data,
+ 				    (reload ?  JPU_JIFDCNT_RELOAD_ENABLE : 0));
+ 		shjpeg_jpu_setreg32(data, JPU_JIFDDYA1, phys);
+ 		shjpeg_jpu_setreg32(data, JPU_JIFDDCA1,
+-				    phys + pitch * height);
++				    cphys);
+ 		shjpeg_jpu_setreg32(data, JPU_JIFDDMW, pitch);
+ 	} else {
+ 		shjpeg_veu_t veu;
+@@ -226,11 +229,11 @@ decode_hw(shjpeg_internal_t * data,
+ 			veu.src.pitch   = SHJPEG_JPU_LINEBUFFER_PITCH;
+ 
+ 			/* destination */
+-			veu.dst.width   = context->width;
+-			veu.dst.height  = context->height;
++			veu.dst.width   = width;
++			veu.dst.height  = height;
+ 			veu.dst.pitch   = pitch;
+ 			veu.dst.yaddr   = phys;
+-			veu.dst.caddr   = phys + pitch * height;
++			veu.dst.caddr   = cphys;
+ 
+ 			/* transformation parameter */
+ 			veu.vbssr   = SHJPEG_JPU_LINEBUFFER_HEIGHT;
+@@ -392,11 +395,11 @@ copy_line_y(uint16_t * yy, const uint8_t * src_ycbcr, int width)
+ static int
+ decode_sw(shjpeg_context_t * context,
+ 	  shjpeg_pixelformat format,
+-	  void *addr, int width, int height, int pitch)
++	  void *addr, void *caddr, int width, int height, int pitch)
+ {
+ 	JSAMPARRAY buffer;	/* Output row buffer */
+ 	int row_stride;		/* physical row width in output buffer */
+-	void *addr_uv = addr + height * pitch;
++	void *addr_uv = caddr;
+ 	j_decompress_ptr cinfo = &context->jpeg_decomp;
+ 
+ 	D_ASSERT(context != NULL);
+@@ -683,7 +686,8 @@ int shjpeg_decode_init(shjpeg_context_t * context)
+ int
+ shjpeg_decode_run(shjpeg_context_t * context,
+ 		  shjpeg_pixelformat format,
+-		  unsigned long phys, int width, int height, int pitch)
++		  unsigned long phys, unsigned long cphys, 
++		  int width, int height, int pitch)
+ {
+ 	shjpeg_internal_t *data;
+ 	struct my_error_mgr jerr;
+@@ -698,12 +702,9 @@ shjpeg_decode_run(shjpeg_context_t * context,
+ 		return -1;
+ 	}
+ 
+-	/* check if we got a large enough surface */
+-	if ((context->width > width) ||
+-	    (context->height > height) ||
+-	    ((context->width * (SHJPEG_PF_PITCH_MULTIPLY(format))) > pitch)
+-	    || (pitch & 0x7)) {
+-		D_ERROR("libshjpeg: width, height or pitch doesn't fit.");
++	/* check pitch alignment */
++	if (pitch & 0x7) {
++		D_ERROR("libshjpeg: pitch alignment doesn't fit.");
+ 		return -1;
+ 	}
+ 
+@@ -758,7 +759,7 @@ shjpeg_decode_run(shjpeg_context_t * context,
+ 		if (context->sops->init)
+ 			context->sops->init(context->private);
+ 
+-		ret = decode_hw(data, context, format, phys, width,
++		ret = decode_hw(data, context, format, phys, cphys, width,
+ 				height, pitch);
+ 	}
+ 
+@@ -768,6 +769,7 @@ shjpeg_decode_run(shjpeg_context_t * context,
+ 		    _PAGE_ALIGN(SHJPEG_PF_PLANE_MULTIPLY(format, height)
+ 				* pitch) + _PAGE_SIZE;
+ 		void *offsetaddr;
++		void *coffsetaddr;
+ 
+ 		fd = open("/dev/mem", O_RDWR | O_SYNC);
+ 		if (fd < 0) {
+@@ -786,8 +788,9 @@ shjpeg_decode_run(shjpeg_context_t * context,
+ 		}
+ 
+ 		offsetaddr = addr + (phys & (_PAGE_SIZE - 1));
+-		ret = decode_sw(context, format, offsetaddr, width,
+-				height, pitch);
++		coffsetaddr = offsetaddr + (cphys - phys);
++		ret = decode_sw(context, format, offsetaddr, coffsetaddr, 
++		                width, height, pitch);
+ 
+ 		// set the flag to notify the use of libjpeg
+ 		if (!ret)
+diff --git a/src/shjpeg_utils.h b/src/shjpeg_utils.h
+index f6c1754..95f068d 100644
+--- a/src/shjpeg_utils.h
++++ b/src/shjpeg_utils.h
+@@ -87,7 +87,7 @@ typedef int64_t s64;
+ #define direct_page_align(a)	_PAGE_ALIGN(a)	// deprecated
+ 
+ #ifndef MAX
+-#define MAX(a,b) ((a) > (b) ? (a) : (b))
++//#define MAX(a,b) ((a) > (b) ? (a) : (b))
+ #endif
+ 
+ /*
+diff --git a/src/shjpeg_veu.c b/src/shjpeg_veu.c
+index 7a12b64..a7e038a 100644
+--- a/src/shjpeg_veu.c
++++ b/src/shjpeg_veu.c
+@@ -86,7 +86,9 @@ int shjpeg_veu_init(shjpeg_internal_t * data, shjpeg_veu_t * veu)
+ 	shjpeg_veu_setreg32(data, VEU_VTRCR, veu->vtrcr);
+ 
+ 	/* set resize register */
+-	shjpeg_veu_setreg32(data, VEU_VRFCR, 0);	/* XXX: no resize for now */
++	shjpeg_veu_setreg32(data, VEU_VRFCR, (((veu->src.height << 12) / veu->dst.height) << 16) |
++                                                    ((veu->src.width << 12) / veu->dst.width) );
++                                                    
+ 	shjpeg_veu_setreg32(data, VEU_VRFSR,
+ 			    (veu->dst.height << 16) | veu->dst.width);
+ 
+diff --git a/tests/shjpegtest.c b/tests/shjpegtest.c
+index 1fd1f7e..86f5ebb 100644
+--- a/tests/shjpegtest.c
++++ b/tests/shjpegtest.c
+@@ -449,8 +449,10 @@ main(int argc, char *argv[])
+     }
+     pitch  = (SHJPEG_PF_PITCH_MULTIPLY(format) * context->width + 7) & ~7;
+ 
++    
++    unsigned long cphys = phys + pitch * context->height;
+     /* start decoding */
+-    if (shjpeg_decode_run(context, format, phys,
++    if (shjpeg_decode_run(context, format, phys, cphys,
+ 			  context->width, context->height, pitch) < 0) {
+ 	fprintf(stderr, "shjpeg_deocde_run() failed\n");
+ 	error = 1;
