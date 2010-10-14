@@ -301,7 +301,7 @@ Entity::Dump() const
 {
      direct_log_printf( NULL, "\n" );
      direct_log_printf( NULL, "Entity (TYPE %d)\n", GetType() );
-     direct_log_printf( NULL, "  Buffer at        %p [%d]\n", buf, length );
+     direct_log_printf( NULL, "  Buffer at        %p [%zu]\n", buf, length );
 }
 
 void
@@ -849,7 +849,7 @@ do_face( const Face *face )
           DGIFFGlyphInfo *info = &glyphs[num_glyphs];
           DGIFFGlyphRow  *row  = &rows[num_rows - 1];
 
-          D_DEBUG_AT( mkdgiff, "  -> code %3lu\n", glyph->unicode );
+          D_DEBUG_AT( mkdgiff, "  -> code %3u\n", glyph->unicode );
 
           ret = load_image( glyph->file.c_str(), &descs[num_glyphs] );
           if (ret)
