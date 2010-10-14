@@ -47,7 +47,7 @@
 #include <idirectfbdatabuffer_dispatcher.h>
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBDataBuffer *thiz,
                             VoodooManager       *manager,
                             VoodooInstanceID     instance,

@@ -44,7 +44,7 @@
 #include <idirectfbeventbuffer_requestor.h>
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBInputDevice *thiz,
                             IDirectFBInputDevice *real,
                             VoodooManager        *manager,

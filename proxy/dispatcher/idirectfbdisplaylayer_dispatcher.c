@@ -42,7 +42,7 @@
 #include "idirectfbdisplaylayer_dispatcher.h"
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBDisplayLayer *thiz,
                             IDirectFBDisplayLayer *real,
                             VoodooManager         *manager,

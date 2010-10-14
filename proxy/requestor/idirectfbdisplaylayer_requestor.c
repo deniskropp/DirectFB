@@ -45,7 +45,7 @@
 #include "idirectfbdisplaylayer_requestor.h"
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBDisplayLayer *thiz,
                             VoodooManager         *manager,
                             VoodooInstanceID       instance,
@@ -168,7 +168,7 @@ IDirectFBDisplayLayer_Requestor_GetScreen( IDirectFBDisplayLayer  *thiz,
           return ret;
 
      ret = response->result;
-     if (ret == DFB_OK)
+     if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBScreen",
                                             response->instance, NULL, &interface );
 
@@ -311,7 +311,7 @@ IDirectFBDisplayLayer_Requestor_GetConfiguration( IDirectFBDisplayLayer *thiz,
           return ret;
 
      ret = response->result;
-     if (ret == DFB_OK) {
+     if (ret == DR_OK) {
           VoodooMessageParser parser;
 
           VOODOO_PARSER_BEGIN( parser, response );
@@ -329,10 +329,9 @@ IDirectFBDisplayLayer_Requestor_TestConfiguration( IDirectFBDisplayLayer       *
                                                    const DFBDisplayLayerConfig *config,
                                                    DFBDisplayLayerConfigFlags  *ret_failed )
 {
-     DirectResult                ret;
-     VoodooResponseMessage      *response;
-     DFBDisplayLayerConfigFlags  failed;
-     VoodooMessageParser         parser;
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Requestor)
 
@@ -425,7 +424,7 @@ IDirectFBDisplayLayer_Requestor_CreateWindow( IDirectFBDisplayLayer       *thiz,
           return ret;
 
      ret = response->result;
-     if (ret == DFB_OK)
+     if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBWindow",
                                             response->instance, NULL, &interface );
 

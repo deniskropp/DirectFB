@@ -43,7 +43,7 @@
 #include "idirectfbfont_dispatcher.h"
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBFont    *thiz,
                             IDirectFBFont    *real,
                             VoodooManager    *manager,

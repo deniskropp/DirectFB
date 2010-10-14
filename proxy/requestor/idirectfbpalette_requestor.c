@@ -45,7 +45,7 @@
 #include "idirectfbpalette_requestor.h"
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBPalette *thiz,
                             VoodooManager    *manager,
                             VoodooInstanceID  instance,

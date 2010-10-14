@@ -51,7 +51,7 @@
 #include "idirectfbeventbuffer_requestor.h"
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBEventBuffer *thiz,
                             VoodooManager        *manager,
                             VoodooInstanceID      instance,

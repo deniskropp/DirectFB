@@ -59,7 +59,7 @@
 
 #include "idirectfb_dispatcher.h"
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFB        *thiz,
                             VoodooManager    *manager,
                             VoodooInstanceID *ret_instance );

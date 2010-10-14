@@ -49,7 +49,7 @@
 #include "idirectfbwindow_requestor.h"
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBWindow  *thiz,
                             VoodooManager    *manager,
                             VoodooInstanceID  instance,
@@ -371,7 +371,7 @@ IDirectFBWindow_Requestor_GetSurface( IDirectFBWindow   *thiz,
           return ret;
 
      ret = response->result;
-     if (ret == DFB_OK)
+     if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBSurface",
                                             response->instance, NULL, &interface );
 

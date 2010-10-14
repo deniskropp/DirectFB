@@ -46,7 +46,7 @@
 #include <idirectfbscreen_dispatcher.h>
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBScreen  *thiz,
                             VoodooManager    *manager,
                             VoodooInstanceID  instance,

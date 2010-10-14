@@ -43,7 +43,7 @@
 #include "idirectfbpalette_dispatcher.h"
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBPalette *thiz,
                             IDirectFBPalette *real,
                             VoodooManager    *manager,
