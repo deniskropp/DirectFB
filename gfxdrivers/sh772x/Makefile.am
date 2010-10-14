@@ -47,15 +47,19 @@ libdirectfb_sh7722_la_SOURCES =	\
 	sh7722_regs.h		\
 	sh7722_screen.c		\
 	sh7722_screen.h		\
-	sh7722_types.h
+	sh7722_types.h		\
+	sh7722_jpeg.c
 
 libdirectfb_sh7722_la_LDFLAGS = \
 	-module			\
 	-avoid-version		\
-	$(DFB_LDFLAGS)
+	$(DFB_LDFLAGS)		\
+	-lshbeu			\
+	-luiomux		\
+	-lshjpeg
 
 libdirectfb_sh7722_la_LIBADD = \
-	$(top_builddir)/src/libdirectfb.la	
+	$(top_builddir)/src/libdirectfb.la
 
 
 include $(top_srcdir)/rules/libobject.make

@@ -5,6 +5,8 @@
 
 #include <sh772x_gfx.h>
 
+#include <shbeu/shbeu.h>
+
 
 #define SH7722GFX_MAX_PREPARE             8192
 
@@ -103,6 +105,11 @@ typedef struct {
      /* sh7723 */
      u32                      rclr;
      u32                      color16;
+
+     /* libshbeu */
+     beu_surface_t            shbeu_src[3];
+     beu_surface_t            shbeu_dest;
+
 } SH7722DeviceData;
 
 
@@ -130,6 +137,11 @@ typedef struct {
      int                      num_inputs;
 
      volatile void           *lcd_virt;
+
+
+     /* for libshbeu */
+     SHBEU                   *shbeu;
+
 } SH7722DriverData;
 
 #endif
