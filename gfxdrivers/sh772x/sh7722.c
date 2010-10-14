@@ -52,6 +52,8 @@ DFB_GRAPHICS_DRIVER( sh7722 )
 #include <sys/mman.h>
 #endif
 
+/* libshbeu */
+#include <shbeu/shbeu.h>
 
 D_DEBUG_DOMAIN( SH7722_Driver, "SH7722/Driver", "Renesas SH7722 Driver" );
 
@@ -125,6 +127,14 @@ driver_init_driver( CoreGraphicsDevice  *device,
      sdrv->mmio_base = dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!sdrv->mmio_base) {
           D_PERROR( "SH7722/Driver: Could not map MMIO area!\n" );
+          munmap( (void*) sdrv->gfx_shared, direct_page_align( sizeof(SH772xGfxSharedArea) ) );
+          close( sdrv->gfx_fd );
+          return DFB_INIT;
+     }
+     /* libshbeu */
+     sdrv->shbeu = shbeu_open();
+     if (!sdrv->shbeu) {
+          D_PERROR( "SH7722/Driver: Could not initialize libshbeu" );
           munmap( (void*) sdrv->gfx_shared, direct_page_align( sizeof(SH772xGfxSharedArea) ) );
           close( sdrv->gfx_fd );
           return DFB_INIT;
@@ -365,16 +375,6 @@ driver_init_device( CoreGraphicsDevice *device,
                return DFB_BUG;
      }
 
-
-     /* Wait for idle BEU. */
-     while (SH7722_GETREG32( sdrv, BSTAR ) & 1);
-
-     /* Disable all inputs. */
-     SH7722_SETREG32( sdrv, BESTR, 0 );
-
-     /* Disable all multi windows. */
-     SH7722_SETREG32( sdrv, BMWCR0, SH7722_GETREG32( sdrv, BMWCR0 ) & ~0xf );
-
 #ifndef SH772X_FBDEV_SUPPORT
      /* Clear LCD buffer. */
      switch (sdev->lcd_format) {
@@ -400,25 +400,18 @@ driver_init_device( CoreGraphicsDevice *device,
      /* Set output pixel format of the BEU. */
      switch (sdev->lcd_format) {
           case DSPF_RGB16:
-               SH7722_SETREG32( sdrv, BPKFR, BPKFR_RY_RGB | WPCK_RGB16 );
+               sdev->shbeu_dest.format = V4L2_PIX_FMT_RGB565; 
                break;
 
           case DSPF_NV16:
-               SH7722_SETREG32( sdrv, BPKFR, BPKFR_RY_RGB | BPKFR_TE_ENABLED | CHDS_YCBCR422 );
-               SH7722_SETREG32( sdrv, BDACR, sdev->lcd_phys + sdev->lcd_height * sdev->lcd_pitch );
+               sdev->shbeu_dest.pa = sdev->lcd_phys + sdev->lcd_height * sdev->lcd_pitch;
+               sdev->shbeu_dest.format = V4L2_PIX_FMT_NV16; 
                break;
 
           default:
                D_BUG( "unsupported format" );
                return DFB_BUG;
      }
-
-     SH7722_SETREG32( sdrv, BPROCR, 0x00000000 );
-
-     /* Have BEU render into LCD buffer. */
-     SH7722_SETREG32( sdrv, BBLCR1, MT_MEMORY );
-     SH7722_SETREG32( sdrv, BDAYR, sdev->lcd_phys & 0xfffffffc );
-     SH7722_SETREG32( sdrv, BDMWR, sdev->lcd_pitch & 0x0003fffc );
 
 #ifndef SH772X_FBDEV_SUPPORT
      /* Setup LCD controller to show the buffer. */
@@ -429,6 +422,15 @@ driver_init_device( CoreGraphicsDevice *device,
      /* Initialize BEU lock. */
      fusion_skirmish_init( &sdev->beu_lock, "BEU", dfb_core_world(sdrv->core) );
 
+     /* libshbeu */
+     sdev->shbeu_dest.py = sdev->lcd_phys;
+     sdev->shbeu_dest.width = sdev->lcd_width;
+     sdev->shbeu_dest.height =sdev->lcd_height;
+     sdev->shbeu_dest.alpha = 0xff;
+     sdev->shbeu_dest.pitch = sdev->lcd_pitch/DFB_BYTES_PER_PIXEL(sdev->lcd_format);
+     sdev->shbeu_dest.x = 0;
+     sdev->shbeu_dest.y = 0;
+     
      return DFB_OK;
 }
 
@@ -471,5 +473,8 @@ driver_close_driver( CoreGraphicsDevice *device,
 
      /* Close Drawing Engine device. */
      close( sdrv->gfx_fd );
+
+     /* libshbeu */
+     shbeu_close(sdrv->shbeu);
 }
 

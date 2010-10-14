@@ -83,11 +83,21 @@ sh7722InitLayer( CoreLayer                  *layer,
      /* fill out the default configuration */
      config->flags       = DLCONF_WIDTH       | DLCONF_HEIGHT |
                            DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE | DLCONF_OPTIONS;
-     config->width       = sdev->lcd_width;;
+     config->width       = sdev->lcd_width;
      config->height      = sdev->lcd_height;
      config->pixelformat = DSPF_RGB16;
      config->buffermode  = DLBM_FRONTONLY;
      config->options     = DLOP_ALPHACHANNEL;
+     
+     /* libshbeu */
+     sdev->shbeu_src[data->layer].alpha = 0xff;
+     sdev->shbeu_src[data->layer].width = sdev->lcd_width;
+     sdev->shbeu_src[data->layer].height = sdev->lcd_height;
+     sdev->shbeu_src[data->layer].pitch = sdev->lcd_pitch/DFB_BYTES_PER_PIXEL(config->pixelformat);
+     sdev->shbeu_src[data->layer].x = 0;
+     sdev->shbeu_src[data->layer].y = 0;
+     sdev->shbeu_src[data->layer].format = V4L2_PIX_FMT_RGB565;
+
 
      return DFB_OK;
 }
@@ -209,13 +219,11 @@ sh7722SetRegion( CoreLayer                  *layer,
 
      fusion_skirmish_prevail( &sdev->beu_lock );
 
-     /* Wait for idle BEU. */
-     BEU_Wait( sdrv, sdev );
-
      /* Update position? */
      if (updated & CLRCF_DEST) {
-          /* Set horizontal and vertical offset. */
-          SH7722_SETREG32( sdrv, BLOCR(n), (config->dest.y << 16) | config->dest.x );
+          /* libshbeu: Set horizontal and vertical offset. */
+          sdev->shbeu_src[n].x = config->dest.x;
+          sdev->shbeu_src[n].y = config->dest.y;
      }
 
      /* Update size? */
@@ -229,26 +237,33 @@ sh7722SetRegion( CoreLayer                  *layer,
           if (config->dest.y + ch > sdev->lcd_height)
                ch = sdev->lcd_height - config->dest.y;
 
-          /* Set width and height. */
-          SH7722_SETREG32( sdrv, BSSZR(n), (ch << 16) | cw );
-          SH7722_SETREG32( sdrv, BTPSR, (ch << 16) | cw );
+          /* libshbeu: Set width and height. */
+          sdev->shbeu_src[n].height = ch;
+          sdev->shbeu_src[n].width  = cw;
+
      }
 
      /* Update surface? */
      if (updated & CLRCF_SURFACE) {
           CoreSurfaceBuffer *buffer = lock->buffer;
 
-          /* Set buffer pitch. */
-          SH7722_SETREG32( sdrv, BSMWR(n), lock->pitch );
+          /* libshbeu: Set buffer pitch. */
+          sdev->shbeu_src[n].pitch = lock->pitch / DFB_BYTES_PER_PIXEL(buffer->format);
 
-          /* Set buffer offset (Y plane or RGB packed). */
-          SH7722_SETREG32( sdrv, BSAYR(n), lock->phys );
+          /* libshbeu: Set buffer offset (Y plane or RGB packed). */
+          sdev->shbeu_src[n].py = lock->phys;
 
+          /* libshbeu: Set alpha plane to same physical address as RGB plane if layer uses alpha */
+          if (DFB_PIXELFORMAT_HAS_ALPHA(buffer->format) && (config->options & DLOP_ALPHACHANNEL))
+               sdev->shbeu_src[n].pa = lock->phys;
+          else
+               sdev->shbeu_src[n].pa = 0;
+          
           /* Set buffer offset (UV plane). */
           if (DFB_PLANAR_PIXELFORMAT(buffer->format)) {
                D_ASSUME( buffer->format == DSPF_NV12 || buffer->format == DSPF_NV16 );
 
-               SH7722_SETREG32( sdrv, BSACR(n), lock->phys + lock->pitch * surface->config.size.h );
+               sdev->shbeu_src[n].pc = lock->phys + lock->pitch * surface->config.size.h;
           }
 
           sreg->surface = surface;
@@ -256,92 +271,54 @@ sh7722SetRegion( CoreLayer                  *layer,
 
      /* Update format? */
      if (updated & CLRCF_FORMAT) {
-          unsigned long tBSIFR = 0;
-          unsigned long tBSWPR = BSWPR_MODSEL_EACH | (SH7722_GETREG32( sdrv, BSWPR ) & ~(7 << (n*8)));
-
           /* Set pixel format. */
           switch (config->format) {
                case DSPF_NV12:
-                    tBSIFR |= CHRR_YCBCR_420 | BSIFR1_IN1TE_RGBYUV;
+                    sdev->shbeu_src[n].format = V4L2_PIX_FMT_NV12;
                     break;
 
                case DSPF_NV16:
-                    tBSIFR |= CHRR_YCBCR_422 | BSIFR1_IN1TE_RGBYUV;
+                    sdev->shbeu_src[n].format = V4L2_PIX_FMT_NV16;
                     break;
 
                case DSPF_ARGB:
-                    tBSIFR |= RPKF_ARGB;
-                    break;
-
                case DSPF_RGB32:
-                    tBSIFR |= RPKF_RGB32;
+                    sdev->shbeu_src[n].format = V4L2_PIX_FMT_RGB32; 
                     break;
 
                case DSPF_RGB24:
-                    tBSIFR |= RPKF_RGB24;
+                    sdev->shbeu_src[n].format = V4L2_PIX_FMT_RGB24; //FIXME: implement in libshbeu
                     break;
 
                case DSPF_RGB16:
-                    tBSIFR |= RPKF_RGB16;
+                    sdev->shbeu_src[n].format = V4L2_PIX_FMT_RGB565;
                     break;
  
                case DSPF_LUT8:
-                    tBSIFR |= BSIFR3_MOD0_OSD | BSIFR3_MOD1_LUT;
+                    sdev->shbeu_src[n].format = V4L2_PIX_FMT_PAL8; //FIXME: implement in libshbeu
                     break;
 
                default:
                     break;
           }
 
-#if 0
-          /* Set swapping. */
-          switch (config->format) {
-               case DSPF_LUT8:
-               case DSPF_NV12:
-               case DSPF_NV16:
-                    tBSWPR |= (BSWPR_INPUT_BYTESWAP |
-                               BSWPR_INPUT_WORDSWAP |
-                               BSWPR_INPUT_LONGSWAP) << (n*8);
-                    break;
-
-               case DSPF_RGB16:
-                    tBSWPR |= (BSWPR_INPUT_WORDSWAP |
-                               BSWPR_INPUT_LONGSWAP) << (n*8);
-                    break;
-
-               case DSPF_ARGB:
-               case DSPF_RGB32:
-               case DSPF_RGB24:
-                    tBSWPR |= (BSWPR_INPUT_LONGSWAP) << (n*8);
-                    break;
-
-               default:
-                    break;
-          }
-#endif
-
-          SH7722_SETREG32( sdrv, BSIFR(n), tBSIFR );
-          SH7722_SETREG32( sdrv, BSWPR, tBSWPR );
      }
 
      /* Update options or opacity? */
      if (updated & (CLRCF_OPTIONS | CLRCF_OPACITY | CLRCF_FORMAT)) {
-          unsigned long tBBLCR0 = BBLCR0_LAY_123;
+          /* libshbeu: Set opacity value. */
+          sdev->shbeu_src[n].alpha = (config->options & DLOP_OPACITY) ? config->opacity : 0xff;
 
-          /* Set opacity value. */
-          tBBLCR0 &= ~(0xff << (n*8));
-          tBBLCR0 |= ((config->options & CLRCF_OPACITY) ? config->opacity : 0xff) << (n*8);
-
-          /* Enable/disable alpha channel. */
+          /* libshbeu: Enable/disable alpha channel. */
           if ((config->options & DLOP_ALPHACHANNEL) && DFB_PIXELFORMAT_HAS_ALPHA(config->format))
-               tBBLCR0 |= BBLCR0_AMUX_BLENDPIXEL(n);
+               sdev->shbeu_src[n].pa = sdev->shbeu_src[n].py;
           else
-               tBBLCR0 &= ~BBLCR0_AMUX_BLENDPIXEL(n);
-
-          SH7722_SETREG32( sdrv, BBLCR0, tBBLCR0 );
+               sdev->shbeu_src[n].pa = 0;
      }
 
-     /* Update CLUT? */
+//TODO: Implement CLUT in libshbeu
+/*
+     // Update CLUT?
      if (updated & CLRCF_PALETTE && palette) {
           const DFBColor *entries = palette->entries;
 
@@ -352,27 +329,13 @@ sh7722SetRegion( CoreLayer                  *layer,
                                                             entries[i].b ) );
           }
      }
-
+*/
 
      /* Enable or disable input. */
      if ((config->options & DLOP_OPACITY) && !config->opacity)
           sdev->input_mask &= ~(1 << n);
      else
           sdev->input_mask |= (1 << n);
-
-     /* Choose parent input. */
-     if (sdev->input_mask) {
-          unsigned long tBBLCR1 = SH7722_GETREG32( sdrv, BBLCR1 ) & ~BBLCR1_PWD_INPUT_MASK;
-
-          if (sdev->input_mask & 4)
-               tBBLCR1 |= BBLCR1_PWD_INPUT3;
-          else if (sdev->input_mask & 2)
-               tBBLCR1 |= BBLCR1_PWD_INPUT2;
-          else
-               tBBLCR1 |= BBLCR1_PWD_INPUT1;
-
-          SH7722_SETREG32( sdrv, BBLCR1, tBBLCR1 );
-     }
 
      fusion_skirmish_dismiss( &sdev->beu_lock );
 
@@ -404,27 +367,27 @@ sh7722RemoveRegion( CoreLayer *layer,
 
      fusion_skirmish_prevail( &sdev->beu_lock );
 
-     /* Wait for idle BEU. */
-     BEU_Wait( sdrv, sdev );
 
      sdev->input_mask &= ~(1 << n);
 
-     /* Choose parent input. */
+     /* libshbeu: reorder src surfaces and start blending. */
      if (sdev->input_mask) {
-          unsigned long tBBLCR1 = SH7722_GETREG32( sdrv, BBLCR1 ) & ~BBLCR1_PWD_INPUT_MASK;
-
-          if (sdev->input_mask & 4)
-               tBBLCR1 |= BBLCR1_PWD_INPUT3;
-          else if (sdev->input_mask & 2)
-               tBBLCR1 |= BBLCR1_PWD_INPUT2;
-          else
-               tBBLCR1 |= BBLCR1_PWD_INPUT1;
-
-          SH7722_SETREG32( sdrv, BBLCR1, tBBLCR1 );
+          beu_surface_t* src[3] = {NULL, NULL, NULL};
+          int nr_surfaces = 0;
+          if (sdev->input_mask & 1) {
+               src[nr_surfaces] = &sdev->shbeu_src[0];
+               nr_surfaces++;
+          }
+          if (sdev->input_mask & 2) {
+               src[nr_surfaces] = &sdev->shbeu_src[1];
+               nr_surfaces++;
+          }
+          if (sdev->input_mask & 4) {
+               src[nr_surfaces] = &sdev->shbeu_src[2];
+               nr_surfaces++;
+          }
+          shbeu_blend(sdrv->shbeu, src[0], src[1], src[2], &sdev->shbeu_dest);
      }
-
-     /* Start operation! */
-     BEU_Start( sdrv, sdev );
 
      fusion_skirmish_dismiss( &sdev->beu_lock );
 
@@ -463,25 +426,30 @@ sh7722FlipRegion( CoreLayer             *layer,
 
      fusion_skirmish_prevail( &sdev->beu_lock );
 
-     /* Set buffer offset (Y plane or RGB packed). */
-     SH7722_SETREG32( sdrv, BSAYR(n), lock->phys );
+     /* set new physical address for layer */
+     sdev->shbeu_src[n].py = lock->phys;
 
-     /* Set buffer offset (UV plane). */
-     if (DFB_PLANAR_PIXELFORMAT(buffer->format)) {
-          D_ASSUME( buffer->format == DSPF_NV12 || buffer->format == DSPF_NV16 );
-
-          SH7722_SETREG32( sdrv, BSACR(n), lock->phys + lock->pitch * surface->config.size.h );
+     /* libshbeu: reorder src surfaces and start blending. */
+     if (sdev->input_mask) {
+          beu_surface_t* src[3] = {NULL, NULL, NULL};
+          int nr_surfaces = 0;
+          if (sdev->input_mask & 1) {
+               src[nr_surfaces] = &sdev->shbeu_src[0];
+               nr_surfaces++;
+          }
+          if (sdev->input_mask & 2) {
+               src[nr_surfaces] = &sdev->shbeu_src[1];
+               nr_surfaces++;
+          }
+          if (sdev->input_mask & 4) {
+               src[nr_surfaces] = &sdev->shbeu_src[2];
+               nr_surfaces++;
+          }
+          shbeu_blend(sdrv->shbeu, src[0], src[1], src[2], &sdev->shbeu_dest);
      }
 
-     /* Start operation! */
-     BEU_Start( sdrv, sdev );
-
      fusion_skirmish_dismiss( &sdev->beu_lock );
-
-     /* Wait for idle BEU? */
-     if (flags & DSFLIP_WAIT)
-          BEU_Wait( sdrv, sdev );
-
+     
      dfb_surface_flip( surface, false );
 
      return DFB_OK;
@@ -505,11 +473,24 @@ sh7722UpdateRegion( CoreLayer             *layer,
      D_ASSERT( sdrv != NULL );
      D_ASSERT( sdev != NULL );
 
-     /* Start operation! */
-     BEU_Start( sdrv, sdev );
-
-     if (!(surface->config.caps & DSCAPS_FLIPPING))
-          BEU_Wait( sdrv, sdev );
+     /* libshbeu: reorder src surfaces and start blending. */
+     if (sdev->input_mask) {
+          beu_surface_t* src[3] = {NULL, NULL, NULL};
+          int nr_surfaces = 0;
+          if (sdev->input_mask & 1) {
+               src[nr_surfaces] = &sdev->shbeu_src[0];
+               nr_surfaces++;
+          }
+          if (sdev->input_mask & 2) {
+               src[nr_surfaces] = &sdev->shbeu_src[1];
+               nr_surfaces++;
+          }
+          if (sdev->input_mask & 4) {
+               src[nr_surfaces] = &sdev->shbeu_src[2];
+               nr_surfaces++;
+          }
+          shbeu_blend(sdrv->shbeu, src[0], src[1], src[2], &sdev->shbeu_dest);
+     }
 
      return DFB_OK;
 }
