@@ -90,6 +90,7 @@ static void Sacc_add_to_Dacc_MMX( GenefxState *gfxs )
                : "%st", "memory");
 }
 
+__attribute__((unused))
 static void Sacc_to_Aop_rgb16_MMX( GenefxState *gfxs )
 {
      static const u32 preload[] = { 0xFF00FF00, 0x0000FF00 };
@@ -127,6 +128,7 @@ static void Sacc_to_Aop_rgb16_MMX( GenefxState *gfxs )
                : "%eax", "%st", "memory");
 }
 
+__attribute__((unused))
 static void Sacc_to_Aop_rgb32_MMX( GenefxState *gfxs )
 {
      static const u32 preload[]  = { 0xFF00FF00, 0x0000FF00 };
@@ -162,6 +164,7 @@ static void Sacc_to_Aop_rgb32_MMX( GenefxState *gfxs )
                : "%st", "memory");
 }
 
+__attribute__((unused))
 __attribute__((no_instrument_function))
 static void Sop_argb_Sto_Dacc_MMX( GenefxState *gfxs )
 {
@@ -201,6 +204,7 @@ static void Sop_argb_Sto_Dacc_MMX( GenefxState *gfxs )
                : "%edx", "%st", "memory");
 }
 
+__attribute__((unused))
 static void Sop_argb_to_Dacc_MMX( GenefxState *gfxs )
 {
      static const u32 zeros[]  = { 0, 0 };
@@ -223,6 +227,7 @@ static void Sop_argb_to_Dacc_MMX( GenefxState *gfxs )
                : "%st", "memory");
 }
 
+__attribute__((unused))
 static void Sop_rgb16_to_Dacc_MMX( GenefxState *gfxs )
 {
      static const u32 mask[]  = { 0x07E0001F, 0x0000F800 };
@@ -301,6 +306,7 @@ static void Sop_rgb16_to_Dacc_MMX( GenefxState *gfxs )
                : "%st", "memory");
 }
 
+__attribute__((unused))
 static void Sop_rgb32_to_Dacc_MMX( GenefxState *gfxs )
 {
      static const u32 alpha[]  = { 0, 0x00FF0000 };

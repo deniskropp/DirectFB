@@ -9248,6 +9248,7 @@ static void Dacc_is_Aacc( GenefxState *gfxs ) { gfxs->Dacc = gfxs->Aacc;}
 static void Dacc_is_Bacc( GenefxState *gfxs ) { gfxs->Dacc = gfxs->Bacc;}
 static void Dacc_is_Tacc( GenefxState *gfxs ) { gfxs->Dacc = gfxs->Tacc;}
 
+__attribute__((unused))
 static void Xacc_is_Aacc( GenefxState *gfxs ) { gfxs->Xacc = gfxs->Aacc;}
 static void Xacc_is_Bacc( GenefxState *gfxs ) { gfxs->Xacc = gfxs->Bacc;}
 static void Xacc_is_Tacc( GenefxState *gfxs ) { gfxs->Xacc = gfxs->Tacc;}
