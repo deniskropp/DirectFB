@@ -1322,6 +1322,9 @@ typedef struct {
                                                            >0 = actual number */
      int                                sources;       /* Number of selectable sources. */
      int                                clip_regions;  /* Number of clipping regions. */
+
+     DFBSurfaceCapabilities             surface_caps;
+     unsigned int                       surface_accessor;
 } DFBDisplayLayerDescription;
 
 /*
