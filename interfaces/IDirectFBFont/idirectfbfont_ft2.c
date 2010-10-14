@@ -787,7 +787,6 @@ Construct( IDirectFBFont               *thiz,
      bool                disable_kerning = false;
      bool                load_mono = false;
      u32                 mask = 0;
-     unsigned int        size = 0, size_read = 0;
      const char         *filename = ctx->filename; /* intended for printf only */
 
      D_DEBUG( "DirectFB/FontFT2: "
