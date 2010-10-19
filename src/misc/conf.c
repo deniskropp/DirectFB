@@ -432,7 +432,7 @@ static void config_allocate( void )
      fusion_vector_init( &dfb_config->tslib_devices, 2, NULL );
 
 
-     dfb_config->max_font_rows      = 5;
+     dfb_config->max_font_rows      = 99;
      dfb_config->max_font_row_width = 2048;
 }
 
