@@ -824,13 +824,12 @@ dfb_font_get_glyph_data( CoreFont       *font,
 
           D_DEBUG_AT( Core_Font, "  -> already in cache (%p)\n", data );
 
-          cache = data->cache;
-          row   = data->row;
+          row = data->row;
+          if (row) {
+               DFB_FONT_CACHE_ROW_ASSERT( row );
 
-          DFB_FONT_CACHE_ASSERT( cache );
-          DFB_FONT_CACHE_ROW_ASSERT( row );
-
-          row->stamp = manager->row_stamp++;
+               row->stamp = manager->row_stamp++;
+          }
 
           *ret_data = data;
           return DFB_OK;
@@ -897,7 +896,6 @@ dfb_font_get_glyph_data( CoreFont       *font,
      D_DEBUG_AT( Core_FontSurfaces, "  -> render %2d - %2dx%2d at %03d font <%p>\n",
                  index, data->width, data->height, row->next_x, font );
 
-     data->cache   = cache;
      data->row     = row;
      data->start   = row->next_x;
      data->surface = row->surface;
