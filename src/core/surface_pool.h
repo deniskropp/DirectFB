@@ -271,8 +271,7 @@ DFBResult dfb_surface_pool_enumerate ( CoreSurfacePool         *pool,
 /*
      Get a surface pool's process-specific void data pointer.
 */
-void *
-surface_pool_get_local( const CoreSurfacePool *pool );
+void *dfb_surface_pool_get_local( const CoreSurfacePool *pool );
 
 #endif
 
