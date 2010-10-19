@@ -1657,6 +1657,7 @@ fi
 
 if test "$GCC" = "yes"; then
   CFLAGS="-Wall -Wstrict-prototypes -Wmissing-prototypes -Wno-strict-aliasing -Werror-implicit-function-declaration $CFLAGS"
+  CXXFLAGS="-Wall -Wno-strict-aliasing $CXXFLAGS"
 fi
 
 
