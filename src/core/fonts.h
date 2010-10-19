@@ -108,7 +108,6 @@ struct _CoreGlyphData {
 
      int              magic;
 
-     DFBFontCache    *cache;
      DFBFontCacheRow *row;
 };
 
