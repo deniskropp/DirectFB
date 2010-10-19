@@ -2362,6 +2362,11 @@ font_state_prepare( CardState   *state,
 
           dfb_state_set_blitting_flags( state, flags );
      }
+     else {
+          backup->blittingflags = 0;
+          backup->src_blend     = 0;
+          backup->dst_blend     = 0;
+     }
 }
 
 static void
