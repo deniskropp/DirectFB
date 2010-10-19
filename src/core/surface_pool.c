@@ -112,7 +112,7 @@ static DFBResult backup_allocation( CoreSurfacePool       *pool,
  * explicitly store a static local pointer to it during init/join.
  */
 void *
-surface_pool_get_local( const CoreSurfacePool *pool )
+dfb_surface_pool_get_local( const CoreSurfacePool *pool )
 {
      return get_local( pool );
 }
