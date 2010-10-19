@@ -876,6 +876,9 @@ dfb_font_get_glyph_data( CoreFont       *font,
      type.pixel_format = font->pixel_format;
      type.surface_caps = font->surface_caps;
 
+     /* Avoid too many surface switches during one string rendering */
+     type.height       = MAX( font->height, type.height );
+
      ret = dfb_font_manager_get_cache( font->manager, &type, &cache );
      if (ret) {
           D_DEBUG_AT( Core_Font, "  -> could not get cache from manager!\n" );
