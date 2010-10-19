@@ -410,10 +410,9 @@ get_entities( const char     *buf,
               size_t          length,
               Entity::vector &out_vector )
 {
-     size_t        i;
-     DirectLink   *faces = NULL;
-     unsigned int  level = 0;
-     bool          quote = false;
+     size_t       i;
+     unsigned int level = 0;
+     bool         quote = false;
 
      std::string                        name;
      std::map<unsigned int,std::string> names;
@@ -815,7 +814,6 @@ do_face( const Face *face )
 
      Entity::vector   glyph_vector;
      unsigned int     glyph_count = 0;
-     Glyph           *glyph;
 
      DGIFFFaceHeader  header;
      DGIFFGlyphInfo  *glyphs;
@@ -953,7 +951,6 @@ do_face( const Face *face )
           fwrite( row_data[i], row->pitch, row->height, stdout );
      }
 
-out:
      for (i=0; i<num_rows; i++) {
           if (row_data[i])
                D_FREE( row_data[i] );
@@ -963,7 +960,7 @@ out:
      D_FREE( rows );
      D_FREE( glyphs );
 
-     return ret;
+     return 0;
 }
 
 /**********************************************************************************************************************/
@@ -971,7 +968,7 @@ out:
 int
 main( int argc, char *argv[] )
 {
-     int             i, ret;
+     int             ret;
      int             fd;
      struct stat     stat;
      void           *ptr  = MAP_FAILED;
