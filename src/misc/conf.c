@@ -309,9 +309,9 @@ static int config_read_cmdline( char *cmdbuf, int size, FILE *f )
 {
      int ret = 0;
      int len = 0;
-     
+
      ret = fread( cmdbuf, 1, 1, f );
-       
+
      /* empty dividing 0 */
      if( ret==1 && *cmdbuf==0 ) {
           ret = fread( cmdbuf, 1, 1, f );
@@ -323,7 +323,7 @@ static int config_read_cmdline( char *cmdbuf, int size, FILE *f )
           if( *cmdbuf == 0 )
                break;
      }
-     
+
      if( len ) {
           cmdbuf[len]=0;
      }
@@ -1666,7 +1666,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR("DirectFB/Config 'include': No include file specified!\n");
-               return DFB_INVARG; 
+               return DFB_INVARG;
           }
      } else
      if (fusion_config_set( name, value ) && direct_config_set( name, value ))
@@ -1684,7 +1684,7 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
      char *session;
      char *dfbargs;
      char  cmdbuf[1024];
-     
+
      if (dfb_config)
           return DFB_OK;
 
