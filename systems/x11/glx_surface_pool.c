@@ -162,10 +162,26 @@ InitLocal( glxPoolLocalData *local,
      D_DEBUG_AT( GLX_Surfaces, "  -> found %d configs\n", local->num_configs );
 
      for (i=0; i<local->num_configs; i++) {
+          int          red_size;
+          int          green_size;
+          int          blue_size;
+          int          alpha_size;
           int          buffer_size;
+          
           XVisualInfo *info = glXGetVisualFromFBConfig( local->display, local->configs[i] );
+          
+          /* 
+           * According to the GLX specification, GLX_BUFFER_SIZE is the sum of 
+           * RED_SIZE, GREEN_SIZE, BLUE_SIZE and ALPHA_SIZE.
+           * Since GLX_BUFFER_SIZE is often reported as 32 bit even if ALPHA_SIZE is 0,
+           * lets calculate the value by ourselves.
+           */             
+          glXGetFBConfigAttrib( local->display, local->configs[i], GLX_RED_SIZE, &red_size );
+          glXGetFBConfigAttrib( local->display, local->configs[i], GLX_GREEN_SIZE, &green_size );
+          glXGetFBConfigAttrib( local->display, local->configs[i], GLX_BLUE_SIZE, &blue_size );
+          glXGetFBConfigAttrib( local->display, local->configs[i], GLX_ALPHA_SIZE, &alpha_size );
 
-          glXGetFBConfigAttrib( local->display, local->configs[i], GLX_BUFFER_SIZE, &buffer_size );
+          buffer_size = red_size + green_size + blue_size + alpha_size;
 
           D_DEBUG_AT( GLX_Surfaces, "     [%2d] ID 0x%02lx, buffer_size %d, RGB 0x%06lx/0x%06lx/0x%06lx {%d}, class %d, z %d\n",
                       i, info->visualid, buffer_size,
