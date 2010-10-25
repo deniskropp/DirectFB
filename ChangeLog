@@ -1,3 +1,170 @@
+commit b3baa16aa9ae50fb6c7bbebe86631ee7c2669b2d
+Author: André Draszik <andre.draszik@st.com>
+Date:   Sat Oct 23 22:59:38 2010 +0100
+
+    directfb-csource: fix colour replacement for transparent pixels
+
+commit 37a410669cb87df3017d7e64a9479990f1b53e82
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Sat Oct 23 10:21:22 2010 +0200
+
+    Query GLX_RED_SIZE, GLX_GREEN_SIZE, GLX_BLUE_SIZE, GLX_ALPHA_SIZE and add their values instead of querying GLX_BUFFER_SIZE.
+    (Although the GLX specification says GLX_BUFFER_SIZE is the sum of GLX_RED_SIZE, GLX_GREEN_SIZE, GLX_BLUE_SIZE, GLX_ALPHA_SIZE, this is often not the case.)
+    
+    This fixes glx acceleration with nvidia and probably other drivers.
+
+commit 3c76352a640ff5db221a87e5af6f8fe9e2c2c788
+Author: André Draszik <andre.draszik@st.com>
+Date:   Thu Oct 21 17:29:52 2010 +0100
+
+    conf: whitespace
+
+commit 6071b9997e4e2f17ddd4ed897523af18f1d3c82c
+Author: André Draszik <andre.draszik@st.com>
+Date:   Wed May 19 05:29:26 2010 +0100
+
+    image providers: refactoring exercise step 2
+    
+    Move lots of common code (AddRef(), Release(), and SetRenderCallback()) to
+    one single place.
+
+commit 5c86558c232e4ebce6daa1f1aff0ade035e72dd5
+Author: André Draszik <andre.draszik@st.com>
+Date:   Wed May 19 05:05:59 2010 +0100
+
+    image providers: refactoring exercise step 1
+    
+    Create a base struct to be used by all the image providers, and make them
+    use it. This will allow us to factor out some code common to all image
+    providers.
+
+commit 8487ba165278905f5b4fad5a990037fd1fd2392f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Oct 19 14:34:24 2010 +0200
+
+    gfxcard: fixed warnings
+
+commit fab5fc38d6268ce8c1b813bfab60e6cdb1c0b0c3
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Oct 19 14:33:12 2010 +0200
+
+    fonts: set default max-font-rows to 99
+
+commit f670d7d1cab986ec24e86aee50f5b611bbbd1e36
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Oct 19 14:03:22 2010 +0200
+
+    surface pool: Fix namespace of surface_pool_get_local.
+
+commit 7eacd29270535413ff8a702a4e307e732a132ca6
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Oct 19 13:44:03 2010 +0200
+
+    fonts: One more assertion fix, check on row != NULL, just removed cache member (unused).
+
+commit a265fe402dd7c6d39bb509d2d28b10237669203a
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Oct 19 12:45:40 2010 +0200
+
+    mkdgifft: Fixed warnings.
+
+commit 9cff96f6bf10db5d0a46bb94707515e6027bc86b
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Oct 14 14:15:20 2010 +0200
+
+    - provide libshjpeg patch until merged upstream
+
+commit f434ec788d502ef33bbce3baac81552bebeb3cac
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Oct 14 14:08:58 2010 +0200
+
+    - rewrote sh772x driver to use libshbeu
+    - reintroduced jpeg provider, uses libshjpeg
+
+commit 4c7c83b08ab283203474c7e3042b860cc56905a4
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 14 12:00:48 2010 +0200
+
+    dummy: Added new dummy system module, e.g. for using DirectFB offscreen only.
+
+commit 5828cab56b84e5f3bc1c49f79ce1b22b12fdb05d
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 14 11:59:48 2010 +0200
+
+    layers: Use surface_caps and surface_accessor if specified in DFBDisplayLayerDescription.
+
+commit 9a9a94682bed7a79f56fcba5cc07afda5b467de1
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 14 11:59:03 2010 +0200
+
+    layers: Added surface_caps and surface_accessor to DFBDisplayLayerDescription.
+
+commit 91723f31b3effd1e00da5653247d5e34a79140da
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 14 11:25:19 2010 +0200
+
+    mkdgifft: Fixed warnings.
+
+commit b6399512198be47839a101f76bd99aeaa8c29fe9
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 14 11:25:01 2010 +0200
+
+    test: Fixed warning in fusion_skirmish test.
+
+commit 57ca370b4309a4a6ea4eabfd7c192d8429fa49ab
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 14 11:24:45 2010 +0200
+
+    dfbtest_font: Fixed warning.
+
+commit 423b89c511854d72a98797f2fbc5f448e88129e9
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 14 11:23:59 2010 +0200
+
+    voodoo: Fixed warning by adding cast to VOODOO_PARSER_GET_ODATA.
+
+commit e304a3557ab4fc7d4287a7ed6a0e301dff07b0fb
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 14 11:23:43 2010 +0200
+
+    proxy: Fixed warnings.
+
+commit a679cacee97fc1e563bef3aaea9cedd01226cce2
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 14 11:23:31 2010 +0200
+
+    ft2: Fixed warnings.
+
+commit d2582acc4c01ee964e23d8658bd88846fa41bf0d
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 14 11:11:06 2010 +0200
+
+    configure: Don't append '-std=gnu99' to CXXFLAGS.
+
+commit 21afdc050e0df41ab9d518940bdea8c1259034c8
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 14 11:10:27 2010 +0200
+
+    directfb-csource: Fixed warnings.
+
+commit 11040056a786a90a18e73a52227bdd594fcf45fd
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 14 11:10:10 2010 +0200
+
+    x11: Fixed warnings.
+
+commit 46da97a53e86aaf41d425d364fad7681b2e68775
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 14 11:06:54 2010 +0200
+
+    generic: Fixed warnings about unused functions (via attribute).
+
+commit d4d18f63a1c73a4855eff92bd43cf59fc6bed129
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Oct 25 11:38:56 2010 +0200
+
+    release 1.4.7
+
 commit edb6a31e1fbf85c4b60251d9562f14f9ac576d8d
 Author: Denis Oliver Kropp <dok@directfb.org>
 Date:   Tue Oct 19 14:39:34 2010 +0200

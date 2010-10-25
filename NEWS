@@ -1,6 +1,22 @@
 1.4.7
 -----
 
+    directfb-csource: fix colour replacement for transparent pixels
+    Query GLX_RED_SIZE, GLX_GREEN_SIZE, GLX_BLUE_SIZE, GLX_ALPHA_SIZE and add their values instead of querying GLX_BUFFER_SIZE. (Although the GLX specification says
+    image providers: refactoring exercise step 2
+    image providers: refactoring exercise step 1
+    fonts: set default max-font-rows to 99
+    surface pool: Fix namespace of surface_pool_get_local.
+    fonts: One more assertion fix, check on row != NULL, just removed cache member (unused).
+    - provide libshjpeg patch until merged upstream
+    - rewrote sh772x driver to use libshbeu - reintroduced jpeg provider, uses libshjpeg
+    dummy: Added new dummy system module, e.g. for using DirectFB offscreen only.
+    layers: Use surface_caps and surface_accessor if specified in DFBDisplayLayerDescription.
+    layers: Added surface_caps and surface_accessor to DFBDisplayLayerDescription.
+    test: Fixed warning in fusion_skirmish test.
+    voodoo: Fixed warning by adding cast to VOODOO_PARSER_GET_ODATA.
+    configure: Don't append '-std=gnu99' to CXXFLAGS.
+    generic: Fixed warnings about unused functions (via attribute).
     fonts: Avoid too many surface switches during one string rendering.
     fonts: Fixed wrong state member being used for blitting flags...
     fonts: Fix assertion because of missing cache assignment.
