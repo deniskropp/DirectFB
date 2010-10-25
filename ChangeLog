@@ -1,3 +1,112 @@
+commit edb6a31e1fbf85c4b60251d9562f14f9ac576d8d
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Oct 19 14:39:34 2010 +0200
+
+    fonts: Avoid too many surface switches during one string rendering.
+    (cherry picked from commit dcd6c9a7c9e5cd31c65f8bd58aa79b9b2dec6ac0)
+
+commit f0f72abac79217941177478936a42f6ba31c2861
+Author: André Draszik <andre.draszik@st.com>
+Date:   Thu Oct 14 11:59:36 2010 +0100
+
+    generic: improve code readability
+
+commit 7ce6ed2445070fae4a6fb009c09c0b467600ca24
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Oct 13 18:47:32 2010 +0200
+
+    screen: Fixed warning.
+
+commit 99a13311757106464578037909ffca332f25e2a6
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Oct 13 18:47:16 2010 +0200
+
+    input: Fixed warning.
+
+commit f380ddc5ae390580ee82201b6ca0af6599b25d89
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Oct 13 18:46:54 2010 +0200
+
+    fonts: Fixed wrong state member being used for blitting flags...
+
+commit 12c83e024a4959c28ffd903b3d09dccaab6cd244
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Oct 13 18:46:41 2010 +0200
+
+    core: Fixed warning.
+
+commit 75cc89c479cd2aac0dc792a07cf81e9512618f25
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Oct 13 18:46:23 2010 +0200
+
+    shm: Fixed warnings.
+
+commit 538ac64ac5d56fcedfad531ad3f2e4cab105c6b5
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Oct 13 18:09:29 2010 +0200
+
+    fonts: Fix assertion because of missing cache assignment.
+
+commit 5adcccfe911ce649b2947ba153a65e0949b0691f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Oct 8 15:06:38 2010 +0200
+
+    bumped to 1.4.7
+
+commit 48f62229af24971882998d4a071aaadb73b1f273
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Oct 8 15:03:11 2010 +0200
+
+    idirectfb: fixed warning
+
+commit 388de6bd4b759c7dd944d3c09343fceec08b0c2f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Oct 8 14:55:25 2010 +0200
+
+    voodoo: fixed warning
+
+commit 0b46e4b4907afc518931a5a4a623fe06fb85e50c
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Oct 8 14:55:01 2010 +0200
+
+    dfbproxy: fixed warning
+
+commit ea66150c52cdde19ebe3aab4d3386850e575ba89
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Oct 8 14:54:45 2010 +0200
+
+    generic: fixed some warnings
+
+commit af01c5f374bfb63042e1e5787acecfc169f3af28
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Oct 8 14:54:32 2010 +0200
+
+    layers: fixed warnings
+
+commit 7cf3578f2a5ee4b37cefa3caef722853c240e100
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Oct 8 14:54:11 2010 +0200
+
+    input: fixed warnings
+
+commit 4bc10659e3baaccd3042d938a291528d667462b5
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Oct 8 14:48:42 2010 +0200
+
+    fonts: fixed warnings
+
+commit 4cbea82b9f139e337fd44df7733ca78296f13616
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Oct 8 14:41:16 2010 +0200
+
+    map: fixed warnings
+
+commit beeb6144400bac729e8d68168696baa42896bc7d
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Oct 8 14:05:15 2010 +0200
+
+    release 1.4.6
+
 commit c8a0921edcef4dffb5e24349818ba00ebb195eb2
 Author: Andreas Shimokawa <andi@directfb.org>
 Date:   Fri Oct 8 12:00:18 2010 +0200
@@ -143,7 +252,7 @@ Date:   Thu Sep 23 20:05:17 2010 +0200
     patch by Phil Edworthy <phil.edworthy@renesas.com>
 
 commit 924fff15dc8edc45799b3228f2250cfadc5b2b76
-Merge: 1fdd7ab... 8175b70...
+Merge: 1fdd7ab 8175b70
 Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
 Date:   Thu Sep 23 13:14:16 2010 +0200
 
@@ -162,7 +271,7 @@ Date:   Thu Sep 23 12:59:51 2010 +0200
     dfbtest_font: Extended test to load font at different sizes.
 
 commit 052763d884525639a463efd5bba461792a84593a
-Merge: d46d766... 52b2766...
+Merge: d46d766 52b2766
 Author: Denis Oliver Kropp <dok@localhost.(none)>
 Date:   Thu Sep 23 12:59:15 2010 +0200
 
@@ -181,7 +290,7 @@ Date:   Thu Sep 23 12:28:39 2010 +0200
     gfx_util: Added dithering for non-RGB16 formats with separate configure option (only ARGB4444 so far)
 
 commit eb0467496681c98db4a567ee48836d33e848e1a8
-Merge: 8e5341e... f9cd9ae...
+Merge: 8e5341e f9cd9ae
 Author: Denis Oliver Kropp <dok@skunk.intern.txtr.com>
 Date:   Thu Sep 23 11:21:18 2010 +0200
 
@@ -625,7 +734,7 @@ Date:   Mon Jun 14 22:22:10 2010 +0100
     horizontal downsampling is applied
 
 commit 095fe33c788cc23627f7313990d1cd70df2ed973
-Merge: 67678af... d8c19e1...
+Merge: 67678af d8c19e1
 Author: Denis Oliver Kropp <dok@localhost.(none)>
 Date:   Mon Jun 21 15:15:29 2010 +0200
 
@@ -734,7 +843,7 @@ Date:   Sat Jun 19 11:57:22 2010 +0200
     direct: use fallback killpg
 
 commit 5afa698947c553bbbcb6694e540d326f8f52700d
-Merge: b7af4c5... 72ff97d...
+Merge: b7af4c5 72ff97d
 Author: Denis Oliver Kropp <dok@localhost.(none)>
 Date:   Sat Jun 19 11:56:50 2010 +0200
 
@@ -804,7 +913,7 @@ Date:   Sat Apr 24 18:38:54 2010 +0400
     Thanks to Timothy Strelchun for the patches.
 
 commit 97901f378b8432b74dfcfad535963da9fe60a4d1
-Merge: 3e39b0a... 497bed3...
+Merge: 3e39b0a 497bed3
 Author: Niels Roest <niels@directfb.org>
 Date:   Sat Apr 24 17:50:49 2010 +0400
 
@@ -1285,7 +1394,7 @@ Date:   Fri Dec 11 04:29:26 2009 +0100
     rectangles are just translated/scaled and blits are just translated.
 
 commit f99e5ff4c014c295acb35204658e2d00a5e47bc4
-Merge: c2d022f... 2dad4f2...
+Merge: c2d022f 2dad4f2
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Dec 11 03:04:53 2009 +0100
 
@@ -1420,7 +1529,7 @@ Date:   Fri Nov 27 21:30:52 2009 +0100
     convert: In dfb_pixel_from_color() for RGB32/24 apply 0xffffff mask to fix color keying.
 
 commit f733be004596a6ce7cc45f8ad25988eb5be6c8f1
-Merge: 6fa2598... e943dec...
+Merge: 6fa2598 e943dec
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Nov 27 19:54:29 2009 +0100
 
@@ -1457,7 +1566,7 @@ Date:   Tue Nov 24 14:44:07 2009 +0100
     cleanup: header file not needed
 
 commit ee09def022b124ba2018dededd52f9b713fa334e
-Merge: 170ced2... 4fc55b5...
+Merge: 170ced2 4fc55b5
 Author: Niels Roest <niels@directfb.org>
 Date:   Tue Nov 24 14:06:33 2009 +0100
 
@@ -1475,7 +1584,7 @@ Date:   Tue Nov 24 14:06:22 2009 +0100
     (since JPEG support is disabled, the libraries are not needed either)
 
 commit 4fc55b522e9a36d078e453fbbae82178f8de78a8
-Merge: 3353043... 70a94aa...
+Merge: 3353043 70a94aa
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Mon Nov 23 22:49:12 2009 +0100
 
@@ -1494,7 +1603,7 @@ Date:   Mon Nov 23 22:47:29 2009 +0100
     names: Added DFBScreenEncoderFrequency names.
 
 commit 70a94aa978775cc7450b9c8032a5de8514f7c4d6
-Merge: 96ba606... 88fd076...
+Merge: 96ba606 88fd076
 Author: Niels Roest <niels@directfb.org>
 Date:   Mon Nov 23 15:13:06 2009 +0100
 
@@ -1606,7 +1715,7 @@ Date:   Thu Nov 19 22:37:01 2009 +0100
     generic: Fixed Bop_rgb32_toK_Aop_64.
 
 commit af9e6d021033b342ab3cebceda6453c166bead73
-Merge: fc5d370... 761df41...
+Merge: fc5d370 761df41
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Thu Nov 19 22:19:41 2009 +0100
 
@@ -1784,7 +1893,7 @@ Date:   Mon Oct 5 17:23:12 2009 +0200
     Apply order was incorrect - will reapply later
 
 commit 4443218f72ce2dac9629e25460f00298085f1966
-Merge: 549668a... 878455d...
+Merge: 549668a 878455d
 Author: Niels Roest <niels@directfb.org>
 Date:   Fri Nov 6 19:55:55 2009 +0100
 
@@ -1803,7 +1912,7 @@ Date:   Fri Nov 6 14:29:10 2009 +0100
     generic: Fix DSBLIT_FLIP_VERTICAL for non-square blits, copy'n'paste bug.
 
 commit 438b5990c35f84a81601cc0e125238377ac04989
-Merge: 4d1764f... 01b6e0f...
+Merge: 4d1764f 01b6e0f
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Nov 6 12:58:19 2009 +0100
 
@@ -1878,7 +1987,7 @@ Date:   Mon Oct 12 21:36:56 2009 +0200
     Signed-off-by: Sven Neumann <s.neumann@raumfeld.com>
 
 commit 549668a41ad3d6b18a5d048b927a323661d54bc5
-Merge: 94646ca... 9f6e888...
+Merge: 94646ca 9f6e888
 Author: Niels Roest <niels@directfb.org>
 Date:   Mon Oct 5 17:20:26 2009 +0200
 
@@ -2013,7 +2122,7 @@ Date:   Fri Sep 11 14:10:55 2009 +0200
     accepted on all X Windows.
 
 commit cd5178fd33cc6aee534d6b427cc988dd02d2cdb5
-Merge: b14e0e1... af7138a...
+Merge: b14e0e1 af7138a
 Author: Niels Roest <niels@directfb.org>
 Date:   Fri Sep 11 13:39:28 2009 +0200
 
@@ -2241,7 +2350,7 @@ Date:   Thu Jul 16 15:41:50 2009 +0200
     [pxa3xx] Use pattern blit if non-rotated.
 
 commit 042f1294a4d23f7f95c56b5c798eb378548d966f
-Merge: 6363526... d323818...
+Merge: 6363526 d323818
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Thu Jul 16 15:39:46 2009 +0200
 
@@ -2381,7 +2490,7 @@ Date:   Thu Jun 25 07:35:57 2009 +0200
     running over buggy drivers' framebuffer.
 
 commit 963ece2a2c3f9891fdf50e19cdfdaf7687413366
-Merge: f37d34d... 62d93da...
+Merge: f37d34d 62d93da
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Thu Jun 25 03:23:30 2009 +0200
 
@@ -2426,7 +2535,7 @@ Date:   Thu Jun 18 12:16:33 2009 +0200
     Currently, this option is only supported by the SaWMan window manager.
 
 commit f0d9f96df53147e4ecffe3b97dce3f190cda8f5d
-Merge: aaa4577... 83a4d19...
+Merge: aaa4577 83a4d19
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Wed Jun 17 14:32:36 2009 +0200
 
@@ -2442,7 +2551,7 @@ Date:   Wed Jun 17 14:31:18 2009 +0200
     done via the window description.
 
 commit 83a4d19dfb4dd0239748562aa551b4766da0767b
-Merge: 436f053... c5d5677...
+Merge: 436f053 c5d5677
 Author: Niels Roest <niels@directfb.org>
 Date:   Mon Jun 15 14:50:45 2009 +0200
 
@@ -2495,7 +2604,7 @@ Date:   Thu Jun 4 15:41:34 2009 +0200
     [release] DirectFB 1.4.0
 
 commit cd3e0306347ab0601ad1e6b98b0897aac2fb8942
-Merge: b4cf1e3... b29d791...
+Merge: b4cf1e3 b29d791
 Author: Niels Roest <niels@directfb.org>
 Date:   Tue Jun 2 18:47:24 2009 +0200
 
@@ -2641,7 +2750,7 @@ Date:   Thu May 14 20:27:33 2009 +0200
     [input] fix for shutdown crash reproducible with "splashy" boot screen
 
 commit 49baa1d479d3fe65b33d7db5d97de2ec15bc249c
-Merge: b13d1a0... df22ef6...
+Merge: b13d1a0 df22ef6
 Author: Niels Roest <niels@directfb.org>
 Date:   Thu May 14 20:25:38 2009 +0200
 
@@ -2713,7 +2822,7 @@ Date:   Tue May 12 15:25:33 2009 +0200
     cosmetics
 
 commit 8082fcb0a454f55ab5a8c82159047661a6e4b519
-Merge: b1f8ddb... 970c13c...
+Merge: b1f8ddb 970c13c
 Author: Niels Roest <niels@directfb.org>
 Date:   Tue May 12 15:12:52 2009 +0200
 
@@ -2947,7 +3056,7 @@ Date:   Wed Apr 8 11:14:00 2009 +0200
              Thanks to Yi-Lin Shieh for the patch
 
 commit 282a00d95b03a732c8375f28c2009a4b82c40b48
-Merge: 50482eb... 5b02825...
+Merge: 50482eb 5b02825
 Author: Niels Roest <niels@directfb.org>
 Date:   Tue Apr 7 19:13:11 2009 +0200
 
@@ -3161,7 +3270,7 @@ Date:   Mon Dec 1 15:34:21 2008 +0100
     - JPU temporarily disabled due to conflicts
 
 commit 84bceadc7561536e6c81e48d94bc794fceb60fac
-Merge: 0d5e504... 36e96c1...
+Merge: 0d5e504 36e96c1
 Author: Niels Roest <niels@directfb.org>
 Date:   Mon Dec 1 12:45:58 2008 +0100
 
@@ -3376,7 +3485,7 @@ Date:   Fri Oct 24 11:21:17 2008 +0200
     [modules] fix for static linking (module unload not available then)
 
 commit 5a6be0f83ac1f20b635a7c7df23478be1621e367
-Merge: 489c4ce... 51db5c7...
+Merge: 489c4ce 51db5c7
 Author: Niels Roest <niels@directfb.org>
 Date:   Wed Oct 22 16:26:31 2008 +0200
 
@@ -3489,7 +3598,7 @@ Date:   Tue Oct 21 01:18:27 2008 +0300
     configure: Use -Wno-inline with -fno-inline.
 
 commit d0bfced1ef4e48f7b128b3a41e6740aeeb96cc6b
-Merge: 6db2d85... 73aa410...
+Merge: 6db2d85 73aa410
 Author: Niels Roest <niels@directfb.org>
 Date:   Tue Oct 21 15:09:23 2008 +0200
 
@@ -3520,7 +3629,7 @@ Date:   Sat Oct 18 07:47:25 2008 +0200
     [direct] Added direct_modules_unregister()......
 
 commit 49175b8aa213e6f980194aecdca99b2a8dc1a590
-Merge: 020f6b0... 98a7b51...
+Merge: 020f6b0 98a7b51
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Sat Oct 18 03:37:04 2008 +0200
 
@@ -3533,7 +3642,7 @@ Date:   Sat Oct 18 03:34:23 2008 +0200
     [fusion] Don't return calls with zero serial, avoiding overhead when kernel calls or FCEF_ONEWAY is used.
 
 commit 98a7b516d012097951326e01a31ed64404d3240a
-Merge: 633ac3e... 347dda2...
+Merge: 633ac3e 347dda2
 Author: Niels Roest <niels@directfb.org>
 Date:   Wed Oct 15 15:47:43 2008 +0200
 
@@ -3552,7 +3661,7 @@ Date:   Wed Oct 15 11:03:42 2008 +0200
     [default wm] Fixed advanced blending with only DSBLIT_BLEND_COLORALPHA being used.
 
 commit 3439ef31e02802217e90d38c04a097f7f7c9d9d0
-Merge: 14cfb64... 487d159...
+Merge: 14cfb64 487d159
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Wed Oct 15 11:02:09 2008 +0200
 
@@ -3582,7 +3691,7 @@ Date:   Tue Oct 14 18:44:43 2008 +0200
     - handle error condition, on tmp-storage request failure, properly
 
 commit ca876fdf1c93ca003b204cfd723d79cbc1193874
-Merge: faaaab8... 93351e5...
+Merge: faaaab8 93351e5
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Sat Oct 11 00:42:00 2008 +0200
 
@@ -3642,7 +3751,7 @@ Date:   Thu Oct 2 04:00:19 2008 +0200
     [omap] Added omapfb.h to SOURCES.
 
 commit faaaab8385e8d164633750a8685ef29667455ff4
-Merge: 2454796... 009d02a...
+Merge: 2454796 009d02a
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Wed Oct 1 02:54:01 2008 +0200
 
@@ -3735,7 +3844,7 @@ Date:   Mon Sep 29 02:26:25 2008 +0200
     when the pixmap was bound as a texture before, especially from another thread/context.
 
 commit 2454796b952bce956351bf5a1d6d289e4509e94a
-Merge: b530494... ac2a3c2...
+Merge: b530494 ac2a3c2
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Sun Sep 28 23:57:32 2008 +0200
 
@@ -4142,7 +4251,7 @@ Date:   Wed Sep 17 20:55:39 2008 +0200
     [x11] Fixed 'missing separator' error in Makefile.
 
 commit 3a60e628798ca0df33779c4b68c631a50007c060
-Merge: dec7005... ab2b4d7...
+Merge: dec7005 ab2b4d7
 Author: Niels Roest <niels@directfb.org>
 Date:   Wed Sep 17 20:39:26 2008 +0200
 
@@ -4167,7 +4276,7 @@ Date:   Wed Sep 17 16:11:12 2008 +0200
     [davinci] Workaround broken DSP cache invalidation function.
 
 commit 8403a7fd6d6d79885aa5e62a38929185b589cf4a
-Merge: d1b2807... 5c71f6f...
+Merge: d1b2807 5c71f6f
 Author: Niels Roest <niels@directfb.org>
 Date:   Wed Sep 17 19:09:06 2008 +0200
 
@@ -4199,7 +4308,7 @@ Date:   Wed Sep 17 18:32:50 2008 +0200
     [x11] Added missing header from last major cleanup.
 
 commit e08c004f94228c022cc78e91b12d9df3f5aa3641
-Merge: b67d7df... 69ecb59...
+Merge: b67d7df 69ecb59
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Wed Sep 17 18:27:56 2008 +0200
 
@@ -4569,7 +4678,7 @@ Date:   Fri Aug 22 16:44:10 2008 +0200
     [IDirectFBInputDevice] Added DFBInputDeviceAxisInfo(Flags) with DIAIF_ABS_MIN/MAX flags and abs_min/max fields.
 
 commit b12044ecd6f738bfa28052fcc8b36c520dffe578
-Merge: 6832da9... 8d5f445...
+Merge: 6832da9 8d5f445
 Author: Niels Roest <niels@directfb.org>
 Date:   Thu Aug 21 17:29:30 2008 +0200
 
@@ -4624,7 +4733,7 @@ Date:   Fri Aug 15 22:59:18 2008 +0200
     [dfbtest_window] Added options for setting window options and for window association.
 
 commit 63c4da3b3a720fd41a59e07c1344614f3956c9eb
-Merge: 779b31c... 0148ec4...
+Merge: 779b31c 0148ec4
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Aug 15 21:00:33 2008 +0200
 
@@ -4981,7 +5090,7 @@ Date:   Wed Jul 23 15:53:22 2008 +0200
     [x11] Build fix.
 
 commit 5730f838a7ac3b39b5e83e3bc7cea197fac513ed
-Merge: 701aa94... d9461ad...
+Merge: 701aa94 d9461ad
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Wed Jul 23 15:51:47 2008 +0200
 
@@ -5000,7 +5109,7 @@ Date:   Wed Jul 23 15:24:47 2008 +0200
     [version] Also increase binary age (don't think compatibility is broken).
 
 commit 701aa94e931d85cd18b0b5ff47a32beeb1472fec
-Merge: f00bc9f... 10fc3aa...
+Merge: f00bc9f 10fc3aa
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Wed Jul 23 14:59:27 2008 +0200
 
@@ -5115,7 +5224,7 @@ Date:   Mon Jul 21 13:33:24 2008 +0200
     Have a pointer to a backup pool in every pool which is set to the shared memory surface pool by default.
 
 commit 5ffb341a6f716bfc900bd722317dd63451911e0b
-Merge: c148939... d5bda88...
+Merge: c148939 d5bda88
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Mon Jul 21 13:32:34 2008 +0200
 
@@ -5308,7 +5417,7 @@ Date:   Thu Jul 10 01:07:36 2008 +0200
     [option] New runtime option "thread-priority-scale=<100th>" to apply a scaling factor on thread type based priorities.
 
 commit 5a0efaa2c12ba5eb260401e552718de71b07e475
-Merge: 111cd2d... 568cff6...
+Merge: 111cd2d 568cff6
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Thu Jul 10 00:14:43 2008 +0200
 
@@ -5321,7 +5430,7 @@ Date:   Thu Jul 10 00:14:09 2008 +0200
     [core] Only suspend the input core during shutdown if it has been initialized already.
 
 commit 568cff642107feb98c8a9b4ad3e057745811058a
-Merge: a6dcfee... 7490602...
+Merge: a6dcfee 7490602
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Thu Jul 10 00:13:05 2008 +0200
 
@@ -5422,7 +5531,7 @@ Date:   Tue Jul 8 19:50:57 2008 +0200
     [linux_input] Thanks to Phil Endecott for adding F13 to F24 support!
 
 commit 32adbf9ba07da09927e84c7bc5c973b131d5b176
-Merge: eaea0e3... ef9efd7...
+Merge: eaea0e3 ef9efd7
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Tue Jul 8 19:31:13 2008 +0200
 
@@ -5435,14 +5544,14 @@ Date:   Tue Jul 8 19:30:32 2008 +0200
     [pixelformats] This patch adds BGR555 as a new pixel format, thanks to GARDET Guillaume!
 
 commit ef9efd7e9179cb7bb3a1528437aa752831e7c781
-Merge: 22c876f... c8255c8...
+Merge: 22c876f c8255c8
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Tue Jul 8 14:34:31 2008 +0200
 
     Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
 
 commit c8255c8d85f608c5e6a4573689e993530c17004d
-Merge: d00dbd4... 701bf91...
+Merge: d00dbd4 701bf91
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Tue Jul 8 14:34:22 2008 +0200
 
@@ -5589,7 +5698,7 @@ Date:   Sun Jun 22 02:56:35 2008 +0200
     [surfaces] Fixed return type of dfb_surface_lock/unlock() for C++.
 
 commit 857c82cd4563e12ca50e57110108245d1e920149
-Merge: 4ed64ec... 399266a...
+Merge: 4ed64ec 399266a
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Sun Jun 22 02:16:45 2008 +0200
 
@@ -5752,7 +5861,7 @@ Date:   Thu Jun 12 09:34:07 2008 +0200
     [davinci] Remove sizeof() from ioctl definitions. Thanks to Eric Nelson!
 
 commit 7c1d09bb5e1e76d69af33af2e14ac4418485d7bb
-Merge: ef6be22... 1c605ad...
+Merge: ef6be22 1c605ad
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Thu Jun 12 09:16:42 2008 +0200
 
@@ -5803,7 +5912,7 @@ Date:   Mon Jun 9 19:16:15 2008 +0200
     fixed png filename
 
 commit 44c85a885e88fce2ed43a0bb5dcb7a8095ff82b0
-Merge: a420a6c... e554901...
+Merge: a420a6c e554901
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Mon Jun 9 02:44:39 2008 +0200
 
@@ -5911,7 +6020,7 @@ Date:   Sat May 31 18:08:26 2008 +0200
     1.2.0-rc1
 
 commit 504fcd5fa51fb67bcd8f2eb0dfea59cebb7f8875
-Merge: e02436f... 5b83790...
+Merge: e02436f 5b83790
 Author: Denis Oliver Kropp <dok@shark.directfb.home>
 Date:   Sat May 31 17:36:43 2008 +0200
 
@@ -5970,7 +6079,7 @@ Date:   Wed May 28 08:12:59 2008 +0200
     This reverts commit cb9e767d7a829801a53952e3a34eb770fd8bfff4.
 
 commit c2c776002794e6793867ed9a2138ab02915a73cd
-Merge: 9c357f6... c291ee5...
+Merge: 9c357f6 c291ee5
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Tue May 27 08:13:04 2008 +0200
 
@@ -6003,7 +6112,7 @@ Date:   Tue May 20 19:10:50 2008 +0200
     [davinci] More changes for HD support, thanks to Eric Nelson!
 
 commit 1384d02151c248dba0a200ad73c624a7e56b5255
-Merge: 82fa12f... c65ed1d...
+Merge: 82fa12f c65ed1d
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Tue May 20 18:44:53 2008 +0200
 
@@ -6022,7 +6131,7 @@ Date:   Tue May 20 12:04:04 2008 +0200
     [radeon] Implemented DSBLIT_SRC_PREMULTIPLY (R100/R200 only).
 
 commit 8eeb64fc9564d804e01548659f5807049b54afa8
-Merge: cb9e767... 449e86d...
+Merge: cb9e767 449e86d
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Sat May 17 23:36:19 2008 +0200
 
@@ -6134,7 +6243,7 @@ Date:   Fri Apr 11 17:51:54 2008 +0200
     ignore
 
 commit 3d9890e79aa10c9e00f4b710ae3189e94bcd182d
-Merge: 9dd3fd8... 468b12e...
+Merge: 9dd3fd8 468b12e
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Fri Apr 11 17:39:30 2008 +0200
 
@@ -6390,7 +6499,7 @@ Date:   Thu Feb 28 13:36:17 2008 +0100
     [fusion] Fix multi app core build.
 
 commit c89ee26379d95b7297c4b419efbf44221bc2f180
-Merge: 16d886a... 14b09af...
+Merge: 16d886a 14b09af
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Wed Feb 27 04:25:03 2008 +0100
 
@@ -6419,7 +6528,7 @@ Date:   Wed Feb 27 04:24:49 2008 +0100
     No more inclusion of <directfb.h> outside of DirectFB!
 
 commit 14b09af2a288f71f90dee1cfd508033969e55e42
-Merge: 8fb7df8... ca24167...
+Merge: 8fb7df8 ca24167
 Author: Claudio Ciccani <klan@directfb.org>
 Date:   Tue Feb 26 19:07:01 2008 +0100
 
@@ -6450,7 +6559,7 @@ Date:   Tue Feb 26 16:28:05 2008 +0100
     [docs] Fixed missing new argument to gendoc.pl call.
 
 commit 774d0b4c86bf1ebe75c356f9162c014ea2c91b91
-Merge: 3d9759e... b933f4a...
+Merge: 3d9759e b933f4a
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Tue Feb 26 16:25:52 2008 +0100
 
@@ -6555,7 +6664,7 @@ Date:   Wed Feb 20 01:12:00 2008 +0100
     [x11] Bring in line with 1.0 features, expose handler, format conversion, shm, smp...
 
 commit 2bb6bfccfd7d35d0fa299f6829456e1970ca49b9
-Merge: 4d12462... aec6c55...
+Merge: 4d12462 aec6c55
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Wed Feb 20 00:14:37 2008 +0100
 
@@ -6583,7 +6692,7 @@ Date:   Tue Feb 19 23:31:44 2008 +0100
     [tools] Added dfbinspector as a small C app.
 
 commit f9137c2e57b78e6a1d28ae27a3d70a4b400238ae
-Merge: f648447... 25fbe5a...
+Merge: f648447 25fbe5a
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Tue Feb 19 23:23:47 2008 +0100
 
@@ -6687,7 +6796,7 @@ Date:   Thu Feb 14 18:38:45 2008 +0100
             Switched to version 1.1.2.
 
 commit e64f23f7425322d9514a84166f0bb07f232f6301
-Merge: d8114d4... 974cc71...
+Merge: d8114d4 974cc71
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Mon Feb 11 23:36:43 2008 +0100
 
@@ -6753,7 +6862,7 @@ Date:   Sun Feb 10 17:50:03 2008 +0100
     GENDOC: Preserve preceding spaces and line breaks in comments, e.g. to use <pre>.
 
 commit 70f7977c9812df8276c520f3dccb80f2e12b0bca
-Merge: 35b3ba2... 4d7dec6...
+Merge: 35b3ba2 4d7dec6
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Sun Feb 10 13:12:37 2008 +0100
 
@@ -6817,7 +6926,7 @@ Date:   Tue Jan 29 12:26:51 2008 +0100
     Shared memory gets deinitialized only when the counter reaches 0.
 
 commit ab4530bdbb9a1d75e4cf82940ecb8d1cca4a7e2a
-Merge: 1c7c5c6... c80e5c7...
+Merge: 1c7c5c6 c80e5c7
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Mon Jan 28 22:34:54 2008 +0100
 
@@ -6851,7 +6960,7 @@ Date:   Mon Jan 28 21:45:53 2008 +0100
     DIRECT-STREAM: Fixed HTTP Content-Type parsing (mimetype might be followed by a charset).
 
 commit e36b34847dbffddb4ec3b796018d707b14801320
-Merge: 7e032d9... be5597c...
+Merge: 7e032d9 be5597c
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Sat Jan 26 12:53:00 2008 +0100
 
@@ -6909,7 +7018,7 @@ Date:   Mon Jan 21 14:41:05 2008 +0100
     BUILTIN-FUSION: Flush pending signals before re-acquiring the lock in fusion_skirmish_wait().
 
 commit 0321bd2d2a81c4a73d22a7cfdcc3daccd888a883
-Merge: f763b52... 14b96b6...
+Merge: f763b52 14b96b6
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Fri Jan 18 20:13:00 2008 +0100
 
@@ -6937,7 +7046,7 @@ Date:   Wed Jan 16 16:49:58 2008 +0100
         JPEG: Implemented directly loading to NV16 surfaces staying in YCbCr space.
 
 commit 58c282e03f7cd2cdffdad2015bd55812422723d9
-Merge: 783ce73... 3fbbd91...
+Merge: 783ce73 3fbbd91
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Wed Jan 16 16:45:37 2008 +0100
 
@@ -7030,7 +7139,7 @@ Date:   Sun Jan 13 11:02:05 2008 +0100
     Clear LCD Buffer after allocation with black using memset, one for RGB16 and two for NV16.
 
 commit 890f8bb71477aaba7d2621cdc6605863cb4b3018
-Merge: 0eca8a2... bd08a3e...
+Merge: 0eca8a2 bd08a3e
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Thu Jan 10 04:25:41 2008 +0100
 
@@ -7241,7 +7350,7 @@ Date:   Thu Jan 3 10:51:13 2008 +0100
     ignore
 
 commit c23c88c7f76e9f7a2ffa12a0d87979f8bea8a8b7
-Merge: ff62e5a... 0825352...
+Merge: ff62e5a 0825352
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Thu Jan 3 10:04:33 2008 +0100
 
@@ -7328,7 +7437,7 @@ Date:   Mon Dec 24 04:28:23 2007 +0100
     defined. No domain filters, just formatted output (all or nothing).
 
 commit f3fdc7435788346515d993651abc3640d05d4db6
-Merge: 75dd9d7... 3afd652...
+Merge: 75dd9d7 3afd652
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Mon Dec 24 02:45:51 2007 +0100
 
@@ -7380,7 +7489,7 @@ Date:   Sun Dec 23 16:11:30 2007 +0100
     - Added JPU IRQ handler: save interrupt status in shared memory, clear interrupt and wake up waiter.
 
 commit 65040dc9d34566454f94be4d1b1f47f57dd9a7c0
-Merge: 1c82251... 5a3d3e3...
+Merge: 1c82251 5a3d3e3
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Sun Dec 23 13:22:13 2007 +0100
 
@@ -7643,7 +7752,7 @@ Date:   Sun Dec 9 10:06:14 2007 +0100
     Blit from 32bit (blend) with colorizing       36.960 secs (*  31.562 MPixel/sec) [  6.3%]
 
 commit 6f65946fe5387834ec996e8ba7426237337bc1cd
-Merge: b840827... c426dac...
+Merge: b840827 c426dac
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Sun Dec 9 06:12:25 2007 +0100
 
@@ -7726,7 +7835,7 @@ Date:   Wed Dec 5 13:46:19 2007 +0100
     FUSION: Fixed warning about unused pGroupInfo.
 
 commit f0b84341906c5033c1b33c3311a39a972bdba4f4
-Merge: f00efe8... 127ec41...
+Merge: f00efe8 127ec41
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Wed Dec 5 13:34:54 2007 +0100
 
@@ -7783,7 +7892,7 @@ Date:   Sun Dec 2 08:57:29 2007 +0100
     LINUX-INPUT: Ignore input devices matching the TSLIB_TSDEVICE environment variable.
 
 commit 2b5aad59838538682ab06dc405ed37a49d386e59
-Merge: 5241ef1... 63a2d8e...
+Merge: 5241ef1 63a2d8e
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Sun Dec 2 08:25:45 2007 +0100
 
@@ -7856,7 +7965,7 @@ Date:   Wed Nov 21 02:56:10 2007 +0100
     Fixed warnings and added more safety in generic rasterizer about blend functions being array indices.
 
 commit 0d04944ae20ebed62ca0fa3b53b316e64c83581e
-Merge: 5bb065a... 0b83ac2...
+Merge: 5bb065a 0b83ac2
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Wed Nov 21 02:22:25 2007 +0100
 
@@ -7918,7 +8027,7 @@ Date:   Tue Nov 20 02:03:57 2007 +0100
     Added DFBSurfaceBlendFlags.
 
 commit eff7d38d602c8b6a518b20b0a40d72586b521837
-Merge: abe3853... 77e2a1c...
+Merge: abe3853 77e2a1c
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Tue Nov 20 00:01:16 2007 +0100
 
@@ -7931,7 +8040,7 @@ Date:   Tue Nov 20 00:01:09 2007 +0100
     Fixed warning.
 
 commit 77e2a1cabccad357cb3b3be58efe37e244137b72
-Merge: 0de9e90... beba5ac...
+Merge: 0de9e90 beba5ac
 Author: Claudio Ciccani <klan@directfb.org>
 Date:   Mon Nov 19 16:01:15 2007 +0100
 
@@ -7951,7 +8060,7 @@ Date:   Mon Nov 19 15:59:41 2007 +0100
     build a local list of references that must be removed and process them later.
 
 commit beba5ac47474e45b821362444fb31978a7183e17
-Merge: 51a97f4... d7b6ca4...
+Merge: 51a97f4 d7b6ca4
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Mon Nov 19 15:51:15 2007 +0100
 
@@ -8051,7 +8160,7 @@ Date:   Sat Nov 17 09:11:14 2007 +0100
     Fixed debug message.
 
 commit 8b7d1920aa554559299847e58a8812f78dfc6f68
-Merge: 4cc82ba... c678f5c...
+Merge: 4cc82ba c678f5c
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Sat Nov 17 09:09:56 2007 +0100
 
@@ -8100,7 +8209,7 @@ Date:   Thu Oct 18 15:57:41 2007 +0200
     Added debug and error messsages to dfb_layer_context_set_configuration().
 
 commit 01536af1b96f7212d4c55566caea1c9c8984ba68
-Merge: 619d813... 7fb1cb2...
+Merge: 619d813 7fb1cb2
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Sat Nov 17 08:18:30 2007 +0100
 
@@ -8161,7 +8270,7 @@ Date:   Fri Nov 2 14:40:52 2007 +0100
     Added missing DSCCAPS_VSYNC flag to indicate support for WaitForSync().
 
 commit 4fcb711d661e3d9b8541b08eb3c043c2df759c60
-Merge: ef9942b... 2022577...
+Merge: ef9942b 2022577
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Fri Nov 2 14:10:20 2007 +0100
 
@@ -8202,7 +8311,7 @@ Date:   Fri Nov 2 11:04:19 2007 +0100
     Fixed allocation size for planar formats in FBDev Surface Pool.
 
 commit 32897684d0b6f6bcda0c1056ea1783853b01cb58
-Merge: 7816a30... e906b75...
+Merge: 7816a30 e906b75
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Wed Oct 31 10:46:05 2007 +0100
 
@@ -8301,7 +8410,7 @@ Date:   Thu Oct 25 16:47:31 2007 +0200
     Reallocate layer region surfaces on context activation.
 
 commit 0dbccefb4af1e271453276f0755da329626fca29
-Merge: 19683c1... 6ffb80f...
+Merge: 19683c1 6ffb80f
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Thu Oct 25 13:32:23 2007 +0200
 
@@ -8316,7 +8425,7 @@ Date:   Thu Oct 25 13:32:15 2007 +0200
     Use bind() instead of connect() for receiving UDP data.
 
 commit 6ffb80f98c2190616509207ab3c4710380fb9e64
-Merge: bfaf34f... 57e5c3e...
+Merge: bfaf34f 57e5c3e
 Author: Denis Oliver Kropp <dok@shizo.directfb.home>
 Date:   Sat Oct 20 15:51:06 2007 +0200
 
@@ -8356,7 +8465,7 @@ Date:   Mon Oct 15 08:47:32 2007 +0200
     Thanks to Luis Mondesi lemsx1 gmail.
 
 commit bcd261d167587a87db3a6377836e74a24f3193a2
-Merge: 40f5795... 50297fc...
+Merge: 40f5795 50297fc
 Author: Denis Oliver Kropp <dok@shizo.zion.home>
 Date:   Sun Oct 14 18:27:57 2007 +0200
 
@@ -8375,7 +8484,7 @@ Date:   Sun Oct 14 18:26:56 2007 +0200
     Initialize libdirect in DirectFBCreate() already.
 
 commit 50297fc3e1655ded4717d5fb6db9cf3e5646d41c
-Merge: 6a364bd... 0c58770...
+Merge: 6a364bd 0c58770
 Author: Denis Oliver Kropp <dok@shizo.zion.home>
 Date:   Sun Oct 14 17:37:57 2007 +0200
 
@@ -8394,7 +8503,7 @@ Date:   Sun Oct 14 17:31:19 2007 +0200
     Fixed possible deadlock in IDirectFBDataBuffer_File_WaitForDataWithTimeout().
 
 commit 1c8ef7b8b6970d6e91294dc15b08b304a110b6a4
-Merge: eb2825d... a8f1402...
+Merge: eb2825d a8f1402
 Author: Claudio Ciccani <klan@directfb.org>
 Date:   Sun Oct 14 16:11:02 2007 +0200
 
@@ -8522,7 +8631,7 @@ Date:   Tue Oct 9 03:46:06 2007 +0200
     Added unimplemented fusion_skirmish_lock_count() for single app.
 
 commit 6e753d283215db8743876880d3871c0dd9a02bf5
-Merge: 3a39545... cc5cff7...
+Merge: 3a39545 cc5cff7
 Author: Denis Oliver Kropp <dok@shizo.zion.home>
 Date:   Thu Oct 11 16:08:02 2007 +0200
 
@@ -8590,7 +8699,7 @@ Date:   Mon Oct 8 11:58:40 2007 +0200
     Fixed illness in processing read data in serial driver and fixed error path. (2)
 
 commit 3df393e8ec53c54af2ba94e7cb3b59aae299028b
-Merge: 82e1d70... a047bd9...
+Merge: 82e1d70 a047bd9
 Author: Denis Oliver Kropp <dok@shizo.zion.home>
 Date:   Mon Oct 8 11:55:02 2007 +0200
 
@@ -8663,7 +8772,7 @@ Date:   Thu Oct 4 13:54:36 2007 +0200
     Fix usage of hardcoded /dev/mem while the error message was already using DEV_MEM macro.
 
 commit 5754b68d8c62e9a1e1e3116f583011f25a9e2432
-Merge: 303e4c7... d95d532...
+Merge: 303e4c7 d95d532
 Author: Denis Oliver Kropp <dok@shizo.zion.home>
 Date:   Thu Oct 4 13:51:56 2007 +0200
 
@@ -8851,7 +8960,7 @@ Date:   Fri Sep 21 14:32:57 2007 +0200
     Removed "Benchmarking with..." line in case study.
 
 commit cc3a850db1456c41c934a7d1d7e460b34b75ded5
-Merge: 495b733... f573fb7...
+Merge: 495b733 f573fb7
 Author: Denis Oliver Kropp <dok@shizo.zion.home>
 Date:   Fri Sep 21 14:27:53 2007 +0200
 
@@ -8888,7 +8997,7 @@ Date:   Fri Sep 21 05:00:57 2007 +0200
     Added gitignore file.
 
 commit 7ba48e5ab16a044d8c6966224fdd76ac992b3d72
-Merge: 3952674... 9066689...
+Merge: 3952674 9066689
 Author: Denis Oliver Kropp <dok@shizo.zion.home>
 Date:   Fri Sep 21 04:58:23 2007 +0200
 
@@ -9180,7 +9289,7 @@ Date:   Fri Sep 7 11:08:08 2007 +0200
     Always free resources allocated in builtin implementation of fusion_skirmish_wait(), either if the skirmish was destroyed.
 
 commit a4c8aedf8fc09ded54f40c9194cefbc818b9ba23
-Merge: 6978e3e... ace1b81...
+Merge: 6978e3e ace1b81
 Author: Denis Oliver Kropp <dok@shizo.(none)>
 Date:   Wed Sep 5 08:18:16 2007 +0200
 
@@ -9352,7 +9461,7 @@ Date:   Mon Aug 27 21:01:52 2007 +0200
     Fixed build on big endian machines.
 
 commit 06179dc659519dc65d97550ce0faf0b87e354447
-Merge: 82812b3... 32d3d68...
+Merge: 82812b3 32d3d68
 Author: Claudio Ciccani <klan@directfb.org>
 Date:   Mon Aug 27 16:03:09 2007 +0200
 
@@ -9448,7 +9557,7 @@ Date:   Wed Aug 15 13:08:15 2007 +0200
     Fix warnings and indention.
 
 commit d96503f371880bc0c5a3d7d9ee346d05e5c24734
-Merge: 4abe5ca... 29dd8f3...
+Merge: 4abe5ca 29dd8f3
 Author: Denis Oliver Kropp <dok@shizo.zion.home>
 Date:   Wed Aug 15 13:01:57 2007 +0200
 
@@ -9634,7 +9743,7 @@ Date:   Fri Aug 10 02:19:10 2007 +0200
     Fix lock order in fusion_shm_pool_destroy().
 
 commit 13f42cb5535512e47e4a54835f7c60e75c260dbd
-Merge: c0802f7... 77b5640...
+Merge: c0802f7 77b5640
 Author: Denis Oliver Kropp <dok@shizo.zion.home>
 Date:   Tue Aug 7 21:31:07 2007 +0200
 
@@ -9672,7 +9781,7 @@ Date:   Mon Aug 6 13:13:18 2007 +0200
     Added direct_serial_check() returning true if the target serial is not higher.
 
 commit bcab4383e5eff57aba0e76b0f99b0568ee883082
-Merge: 4eb2645... 0bfa945...
+Merge: 4eb2645 0bfa945
 Author: Denis Oliver Kropp <dok@shizo.zion.home>
 Date:   Mon Aug 6 13:11:41 2007 +0200
 
@@ -9712,7 +9821,7 @@ Date:   Wed Aug 1 22:47:12 2007 +0200
     Print an error and return if no layers are available.
 
 commit 1e3143ddaab9a6deee8d0abf2fce3b808a059889
-Merge: e5b17bb... 781d713...
+Merge: e5b17bb 781d713
 Author: Denis Oliver Kropp <dok@shizo.zion.home>
 Date:   Wed Aug 1 22:43:41 2007 +0200
 
@@ -9751,7 +9860,7 @@ Date:   Wed Jul 25 13:27:56 2007 +0200
     Added copyright footer.
 
 commit 313623224d91258e3fdbee90da2ba6ee447b48c8
-Merge: 19461c2... 2e28cc7...
+Merge: 19461c2 2e28cc7
 Author: Denis Oliver Kropp <dok@shizo.(none)>
 Date:   Wed Jul 25 13:27:29 2007 +0200
 
@@ -9813,7 +9922,7 @@ Date:   Wed Jul 18 20:36:01 2007 +0200
     Raise max number of shm pools to 16.
 
 commit ec4e5ed6e363b3793d8e90e6fbadd4c4ed6ded3f
-Merge: aed1290... 8f28528...
+Merge: aed1290 8f28528
 Author: Denis Oliver Kropp <dok@shizo.(none)>
 Date:   Tue Jul 17 01:09:06 2007 +0200
 
@@ -9838,7 +9947,7 @@ Date:   Mon Jul 16 18:44:15 2007 +0200
     HD extensions, thanks to Daniel J Laird!
 
 commit 826d7ae1aea550a7cf8312848f26d8111232d609
-Merge: cc04f11... fd6854f...
+Merge: cc04f11 fd6854f
 Author: Denis Oliver Kropp <dok@shizo.(none)>
 Date:   Mon Jul 16 10:27:16 2007 +0200
 
@@ -9878,7 +9987,7 @@ Date:   Tue Jul 10 16:30:49 2007 +0200
     Any X expert who can explain the error to me?
 
 commit 74e90cb10a2627fb58aaca2593105c31fd795537
-Merge: ad16899... ddc3298...
+Merge: ad16899 ddc3298
 Author: Denis Oliver Kropp <dok@shizo.(none)>
 Date:   Tue Jul 10 15:51:12 2007 +0200
 
@@ -9993,7 +10102,7 @@ Date:   Mon Jul 9 13:00:45 2007 +0200
     Finalized ARGB4444 smooth scaling support.
 
 commit d8276f7799e60009650e28888e9fcbc024bb7253
-Merge: 977ec21... 2b48aaa...
+Merge: 977ec21 2b48aaa
 Author: Denis Oliver Kropp <dok@shizo.zion.home>
 Date:   Sat Jul 7 21:17:28 2007 +0200
 
@@ -10011,7 +10120,7 @@ Date:   Fri Jul 6 15:27:22 2007 +0200
     Added option "layer-bg-color-index = n".
 
 commit 0c01366a6f5b37a1dd00b513e6c62b1056b910b8
-Merge: 14ba567... 098b862...
+Merge: 14ba567 098b862
 Author: Denis Oliver Kropp <dok@shizo.zion.home>
 Date:   Fri Jul 6 14:40:23 2007 +0200
 
@@ -10184,7 +10293,7 @@ Date:   Tue Jun 12 19:34:23 2007 +0200
     Fix hi/lo mixup for big/little endian in 32 bit wise 16 bit color keying code.
 
 commit c0142f6bf506d09449cdf9d2ca0250dcb05cf7fc
-Merge: 14f3aef... 8bba6d9...
+Merge: 14f3aef 8bba6d9
 Author: Denis Oliver Kropp <dok@shizo.(none)>
 Date:   Tue Jun 12 18:57:41 2007 +0200
 
@@ -10295,7 +10404,7 @@ Date:   Wed May 30 18:07:55 2007 +0200
     Added DWOP_KEEP_ABOVE and DWOP_KEEP_UNDER.
 
 commit ee262b3fca03b5aafefbd789b698181dd732f619
-Merge: 41e5c47... 0d71e41...
+Merge: 41e5c47 0d71e41
 Author: Denis Oliver Kropp <dok@shizo.zion.home>
 Date:   Wed May 30 10:01:58 2007 +0200
 

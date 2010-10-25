@@ -1,3 +1,11 @@
+1.4.7
+-----
+
+    fonts: Avoid too many surface switches during one string rendering.
+    fonts: Fixed wrong state member being used for blitting flags...
+    fonts: Fix assertion because of missing cache assignment.
+
+
 1.4.6
 -----
 
