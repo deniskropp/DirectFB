@@ -3358,12 +3358,12 @@ wm_window_lookup( CoreWindowStack  *stack,
 
      fusion_vector_foreach_reverse (window, i, data->windows) {
           if (window->id == window_id) {
-               break;
+               *ret_window = window;
+               return DFB_OK;
           }
      }
 
-     *ret_window = window;
-     return DFB_OK;
+     return DFB_IDNOTFOUND;
 }
 
 static DFBResult
