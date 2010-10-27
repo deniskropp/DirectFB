@@ -44,6 +44,7 @@ typedef struct {
      /* if !=NULL, pointer to the file content */
      unsigned char *content;
      unsigned int   content_size;
+     bool           content_mapped;
 } IDirectFBFont_ProbeContext;
 
 DFBResult
@@ -62,6 +63,8 @@ typedef struct {
      int                ref;       /* reference counter    */
      CoreFont          *font;      /* pointer to core font */
      unsigned char     *content;   /* possible allocation, free at intf. close */
+     unsigned int       content_size;
+     bool               content_mapped;
 
      DFBTextEncodingID  encoding;  /* text encoding */
 } IDirectFBFont_data;

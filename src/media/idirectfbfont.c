@@ -33,6 +33,9 @@
 #include <unistd.h>
 #include <string.h>
 
+#include <sys/fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 
 #include "directfb.h"
 
@@ -54,6 +57,7 @@
 D_DEBUG_DOMAIN( Font, "IDirectFBFont", "DirectFB Font Interface" );
 
 /**********************************************************************************************************************/
+
 void
 IDirectFBFont_Destruct( IDirectFBFont *thiz )
 {
@@ -64,8 +68,12 @@ IDirectFBFont_Destruct( IDirectFBFont *thiz )
      dfb_font_destroy (data->font);
 
      /* release memory, if any */
-     if (data->content)
-          D_FREE( data->content );
+     if (data->content) {
+          if (data->content_mapped)
+               munmap( data->content, data->content_size );
+          else
+               D_FREE( data->content );
+     }
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -658,6 +666,56 @@ IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
      return DFB_OK;
 }
 
+static DFBResult
+try_map_file( IDirectFBDataBuffer_data   *buffer_data,
+              IDirectFBFont_ProbeContext *ctx )
+{
+     /* try to map the "file" content first */
+     if (!access( buffer_data->filename, O_RDONLY )) {
+          int         fd;
+          struct stat st;
+
+          fd = open( buffer_data->filename, O_RDONLY );
+          if (fd < 0) {
+               D_PERROR( "IDirectFBFont: Could not open '%s'\n", buffer_data->filename );
+               return DFB_IO;
+          }
+
+          if (fstat( fd, &st )) {
+               D_PERROR( "IDirectFBFont: Could not stat '%s'\n", buffer_data->filename );
+               close( fd );
+               return DFB_IO;
+          }
+
+          ctx->content = mmap( NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0 );
+          if (ctx->content == MAP_FAILED) {
+               D_PERROR( "IDirectFBFont: Could not mmap '%s'\n", buffer_data->filename );
+               close( fd );
+               return DFB_IO;
+          }
+
+          ctx->content_size   = st.st_size;
+          ctx->content_mapped = true;
+
+          close( fd );
+
+          return DFB_OK;
+     }
+
+     return DFB_UNSUPPORTED;
+}
+
+static void
+unmap_or_free( IDirectFBFont_ProbeContext *ctx )
+{
+     if (ctx->content) {
+          if (ctx->content_mapped)
+               munmap( ctx->content, ctx->content_size );
+          else
+               D_FREE( ctx->content );
+     }
+}
+
 DFBResult
 IDirectFBFont_CreateFromBuffer( IDirectFBDataBuffer       *buffer,
                                 CoreDFB                   *core,
@@ -678,58 +736,60 @@ IDirectFBFont_CreateFromBuffer( IDirectFBDataBuffer       *buffer,
      /* Provide a fallback for image providers without data buffer support. */
      ctx.filename = buffer_data->filename;
 
-     /* try to load the "file" content from the buffer */
+     /* try to map the "file" content first */
+     if (try_map_file( buffer_data, &ctx ) != DFB_OK) {
+          /* try to load the "file" content from the buffer */
 
-     /* we need to be able to seek (this implies non-streamed,
-        so we also know the size) so we can reuse the buffer */
-     if (buffer->SeekTo( buffer, 0 ) == DFB_OK) {
-          unsigned int size, got;
+          /* we need to be able to seek (this implies non-streamed,
+             so we also know the size) so we can reuse the buffer */
+          if (buffer->SeekTo( buffer, 0 ) == DFB_OK) {
+               unsigned int size, got;
 
-          /* get the "file" length */
-          buffer->GetLength( buffer, &size );
+               /* get the "file" length */
+               buffer->GetLength( buffer, &size );
 
-          ctx.content = D_MALLOC( size );
-          if (!ctx.content)
-               return DR_NOLOCALMEMORY;
+               ctx.content = D_MALLOC( size );
+               if (!ctx.content)
+                    return DR_NOLOCALMEMORY;
 
-          ctx.content_size = 0;
+               ctx.content_size = 0;
 
-          while (ctx.content_size < size) {
-               unsigned int get = size - ctx.content_size;
+               while (ctx.content_size < size) {
+                    unsigned int get = size - ctx.content_size;
 
-               if (get > 8192)
-                    get = 8192;
+                    if (get > 8192)
+                         get = 8192;
 
-               ret = buffer->WaitForData( buffer, get );
-               if (ret) {
-                    D_DERROR( ret, "%s: WaitForData failed!\n", __FUNCTION__ );
-                    break;
+                    ret = buffer->WaitForData( buffer, get );
+                    if (ret) {
+                         D_DERROR( ret, "%s: WaitForData failed!\n", __FUNCTION__ );
+                         break;
+                    }
+
+                    ret = buffer->GetData( buffer, get, ctx.content + ctx.content_size, &got );
+                    if (ret) {
+                         D_DERROR( ret, "%s: GetData failed!\n", __FUNCTION__ );
+                         break;
+                    }
+
+                    if (!got)
+                         break;
+
+                    ctx.content_size += got;
                }
 
-               ret = buffer->GetData( buffer, get, ctx.content + ctx.content_size, &got );
-               if (ret) {
-                    D_DERROR( ret, "%s: GetData failed!\n", __FUNCTION__ );
-                    break;
+               if (ctx.content_size != size) {
+                    D_ERROR( "%s: Got size %u differs from supposed %u!\n", __FUNCTION__, ctx.content_size, size );
+                    D_FREE( ctx.content );
+                    return DFB_FAILURE;
                }
-
-               if (!got)
-                    break;
-
-               ctx.content_size += got;
-          }
-
-          if (ctx.content_size != size) {
-               D_ERROR( "%s: Got size %u differs from supposed %u!\n", __FUNCTION__, ctx.content_size, size );
-               D_FREE( ctx.content );
-               return DFB_FAILURE;
           }
      }
 
      /* Find a suitable implementation. */
      ret = DirectGetInterface( &funcs, "IDirectFBFont", NULL, DirectProbeInterface, &ctx );
      if (ret) {
-          if (ctx.content)
-               D_FREE( ctx.content );
+          unmap_or_free( &ctx );
           return ret;
      }
 
@@ -738,8 +798,7 @@ IDirectFBFont_CreateFromBuffer( IDirectFBDataBuffer       *buffer,
      /* Construct the interface. */
      ret = funcs->Construct( ifont, core, &ctx, desc );
      if (ret) {
-          if (ctx.content)
-               D_FREE( ctx.content );
+          unmap_or_free( &ctx );
           return ret;
      }
 
@@ -747,6 +806,8 @@ IDirectFBFont_CreateFromBuffer( IDirectFBDataBuffer       *buffer,
      {
           IDirectFBFont_data *data = (IDirectFBFont_data*)(ifont->priv);
           data->content = ctx.content;
+          data->content_size = ctx.content_size;
+          data->content_mapped = ctx.content_mapped;
      }
 
      *interface = ifont;
