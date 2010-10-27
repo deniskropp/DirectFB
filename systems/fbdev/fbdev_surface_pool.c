@@ -322,6 +322,29 @@ fbdevDeallocateBuffer( CoreSurfacePool       *pool,
 }
 
 static DFBResult
+fbdevMuckOut( CoreSurfacePool   *pool,
+              void              *pool_data,
+              void              *pool_local,
+              CoreSurfaceBuffer *buffer )
+{
+     CoreSurface        *surface;
+     FBDevPoolData      *data  = pool_data;
+     FBDevPoolLocalData *local = pool_local;
+
+     D_DEBUG_AT( VPSMem_Surfaces, "%s( %p )\n", __FUNCTION__, buffer );
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_MAGIC_ASSERT( data, VPSMemPoolData );
+     D_MAGIC_ASSERT( local, VPSMemPoolLocalData );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     surface = buffer->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     return dfb_surfacemanager_displace( local->core, data->manager, buffer );
+}
+
+static DFBResult
 fbdevLock( CoreSurfacePool       *pool,
            void                  *pool_data,
            void                  *pool_local,
@@ -405,6 +428,8 @@ const SurfacePoolFuncs fbdevSurfacePoolFuncs = {
      .TestConfig         = fbdevTestConfig,
      .AllocateBuffer     = fbdevAllocateBuffer,
      .DeallocateBuffer   = fbdevDeallocateBuffer,
+
+     .MuckOut            = fbdevMuckOut,
 
      .Lock               = fbdevLock,
      .Unlock             = fbdevUnlock,
