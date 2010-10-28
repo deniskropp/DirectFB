@@ -331,11 +331,11 @@ fbdevMuckOut( CoreSurfacePool   *pool,
      FBDevPoolData      *data  = pool_data;
      FBDevPoolLocalData *local = pool_local;
 
-     D_DEBUG_AT( VPSMem_Surfaces, "%s( %p )\n", __FUNCTION__, buffer );
+     D_DEBUG_AT( FBDev_Surfaces, "%s( %p )\n", __FUNCTION__, buffer );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
-     D_MAGIC_ASSERT( data, VPSMemPoolData );
-     D_MAGIC_ASSERT( local, VPSMemPoolLocalData );
+     D_MAGIC_ASSERT( data, FBDevPoolData );
+     D_MAGIC_ASSERT( local, FBDevPoolLocalData );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      surface = buffer->surface;
