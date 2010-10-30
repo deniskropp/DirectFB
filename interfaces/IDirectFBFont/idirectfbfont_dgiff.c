@@ -187,6 +187,9 @@ Construct( IDirectFBFont               *thiz,
      /* use the filename for backwards compatibility */
      filename = ctx->filename;
 
+     if (desc->flags & DFDESC_ROTATION)
+          return DFB_UNSUPPORTED;
+
      /* Open the file. */
      fd = open( filename, O_RDONLY );
      if (fd < 0) {
@@ -242,6 +245,8 @@ Construct( IDirectFBFont               *thiz,
      font->ascender     = face->ascender;
      font->descender    = face->descender;
      font->height       = face->height;
+     font->up_unit_x    =  0.0;
+     font->up_unit_y    = -1.0;
 
      font->maxadvance   = face->max_advance;
      font->pixel_format = face->pixelformat;
@@ -313,14 +318,15 @@ Construct( IDirectFBFont               *thiz,
                goto error;
           }
 
-          glyph_data->surface = data->rows[glyph->row]->surface;
+          glyph_data->surface  = data->rows[glyph->row]->surface;
 
-          glyph_data->start   = glyph->offset;
-          glyph_data->width   = glyph->width;
-          glyph_data->height  = glyph->height;
-          glyph_data->left    = glyph->left;
-          glyph_data->top     = glyph->top;
-          glyph_data->advance = glyph->advance;
+          glyph_data->start    = glyph->offset;
+          glyph_data->width    = glyph->width;
+          glyph_data->height   = glyph->height;
+          glyph_data->left     = glyph->left;
+          glyph_data->top      = glyph->top;
+          glyph_data->xadvance = glyph->advance;
+          glyph_data->yadvance = 0;
 
           D_MAGIC_SET( glyph_data, CoreGlyphData );
 

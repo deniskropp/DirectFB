@@ -2270,15 +2270,19 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
      }
 
      if (!(flags & DSTF_TOP)) {
-          y -= core_font->ascender;
+          x += core_font->ascender * core_font->up_unit_x;
+          y += core_font->ascender * core_font->up_unit_y;
 
-          if (flags & DSTF_BOTTOM)
-               y += core_font->descender;
+          if (flags & DSTF_BOTTOM) {
+               x -= core_font->descender * core_font->up_unit_x;
+               y -= core_font->descender * core_font->up_unit_y;
+          }
      }
 
      if (flags & (DSTF_RIGHT | DSTF_CENTER)) {
-          int          i, num, kx;
-          int          width = 0;
+          int          i, num, kx, ky;
+          int          xsize = 0;
+          int          ysize = 0;
           unsigned int prev = 0;
           unsigned int indices[bytes];
 
@@ -2298,11 +2302,14 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
                CoreGlyphData *glyph;
 
                if (dfb_font_get_glyph_data( core_font, current, 0, &glyph ) == DFB_OK) {
-                    width += glyph->advance;
+                    xsize += glyph->xadvance;
+                    ysize += glyph->yadvance;
 
                     if (prev && core_font->GetKerning &&
-                        core_font->GetKerning( core_font, prev, current, &kx, NULL ) == DFB_OK)
-                         width += kx;
+                        core_font->GetKerning( core_font, prev, current, &kx, &ky ) == DFB_OK) {
+                         xsize += kx;
+                         ysize += ky;
+                    }
                }
 
                prev = current;
@@ -2311,10 +2318,14 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
           dfb_font_unlock( core_font );
 
           /* Justify. */
-          if (flags & DSTF_RIGHT)
-               x -= width;
-          else if (flags & DSTF_CENTER)
-               x -= width >> 1;
+          if (flags & DSTF_RIGHT) {
+               x -= xsize;
+               y -= ysize;
+          }
+          else if (flags & DSTF_CENTER) {
+               x -= xsize >> 1;
+               y -= ysize >> 1;
+          }
      }
 
      dfb_gfxcard_drawstring( (const unsigned char*) text, bytes, data->encoding,
@@ -2388,17 +2399,24 @@ IDirectFBSurface_DrawGlyph( IDirectFBSurface *thiz,
      }
 
      if (!(flags & DSTF_TOP)) {
-          y -= core_font->ascender;
+          x += core_font->ascender * core_font->up_unit_x;
+          y += core_font->ascender * core_font->up_unit_y;
 
-          if (flags & DSTF_BOTTOM)
-               y += core_font->descender;
+          if (flags & DSTF_BOTTOM) {
+               x -= core_font->descender * core_font->up_unit_x;
+               y -= core_font->descender * core_font->up_unit_y;
+          }
      }
 
      if (flags & (DSTF_RIGHT | DSTF_CENTER)) {
-          if (flags & DSTF_RIGHT)
-               x -= glyph[0]->advance;
-          else if (flags & DSTF_CENTER)
-               x -= glyph[0]->advance >> 1;
+          if (flags & DSTF_RIGHT) {
+               x -= glyph[0]->xadvance;
+               y -= glyph[0]->yadvance;
+          }
+          else if (flags & DSTF_CENTER) {
+               x -= glyph[0]->xadvance >> 1;
+               y -= glyph[0]->yadvance >> 1;
+          }
      }
 
      dfb_gfxcard_drawglyph( glyph,
