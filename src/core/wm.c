@@ -1140,6 +1140,26 @@ dfb_wm_begin_updates( CoreWindow      *window,
 }
 
 DFBResult
+dfb_wm_set_cursor_position( CoreWindow *window,
+                            int         x,
+                            int         y )
+{
+     D_ASSERT( wm_local != NULL );
+     D_ASSERT( wm_local->funcs != NULL );
+     D_ASSERT( wm_local->funcs->SetCursorPosition != NULL );
+
+     D_ASSERT( window != NULL );
+
+     D_MAGIC_ASSERT( window->stack, CoreWindowStack );
+     D_MAGIC_ASSERT( window->stack->context, CoreLayerContext );
+     FUSION_SKIRMISH_ASSERT( &window->stack->context->lock );
+
+     D_DEBUG_AT( Core_WM, "%s( %p [%d,%d] )\n", __FUNCTION__, window, x, y );
+
+     return wm_local->funcs->SetCursorPosition( window, wm_local->data, window->window_data, x, y );
+}
+
+DFBResult
 dfb_wm_update_stack( CoreWindowStack     *stack,
                      const DFBRegion     *region,
                      DFBSurfaceFlipFlags  flags )

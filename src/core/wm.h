@@ -260,6 +260,12 @@ typedef struct {
                                       void                   *window_data,
                                       const DFBRegion        *update );
 
+     DFBResult (*SetCursorPosition) ( CoreWindow             *window,
+                                      void                   *wm_data,
+                                      void                   *window_data,
+                                      int                     x,
+                                      int                     y );
+
 
    /** Updates **/
 
@@ -363,6 +369,10 @@ DFBResult dfb_wm_request_focus      ( CoreWindow             *window );
 
 DFBResult dfb_wm_begin_updates      ( CoreWindow             *window,
                                       const DFBRegion        *update );
+
+DFBResult dfb_wm_set_cursor_position( CoreWindow             *window,
+                                      int                     x,
+                                      int                     y );
 
 
 DFBResult dfb_wm_update_stack       ( CoreWindowStack        *stack,
