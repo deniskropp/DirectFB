@@ -49,7 +49,9 @@
 #include <core/layer_region.h>
 #include <core/state.h>
 #include <core/windows.h>
+#include <core/windows_internal.h>
 #include <core/windowstack.h>
+#include <core/wm.h>
 
 #include <windows/idirectfbwindow.h>
 
@@ -932,6 +934,79 @@ IDirectFBDisplayLayer_GetRotation( IDirectFBDisplayLayer *thiz,
      return DFB_OK;
 }
 
+typedef struct {
+     unsigned long    resource_id;
+     CoreWindow      *window;
+} IDirectFBDisplayLayer_GetWindowByResourceID_Context;
+
+static DFBEnumerationResult
+IDirectFBDisplayLayer_GetWindowByResourceID_WindowCallback( CoreWindow *window,
+                                                            void       *_ctx )
+{
+     IDirectFBDisplayLayer_GetWindowByResourceID_Context *ctx = _ctx;
+
+     if (window->surface) {
+          if (window->surface->resource_id == ctx->resource_id) {
+               ctx->window = window;
+
+               return DFENUM_CANCEL;
+          }
+     }
+
+     return DFENUM_OK;
+}
+
+static DFBResult
+IDirectFBDisplayLayer_GetWindowByResourceID( IDirectFBDisplayLayer  *thiz,
+                                             unsigned long           resource_id,
+                                             IDirectFBWindow       **ret_window )
+{
+     DFBResult                                            ret;
+     CoreLayerContext                                    *context;
+     CoreWindowStack                                     *stack;
+     IDirectFBDisplayLayer_GetWindowByResourceID_Context  ctx;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (!ret_window)
+          return DFB_INVARG;
+
+     context = data->context;
+     D_MAGIC_ASSERT( context, CoreLayerContext );
+
+     stack = context->stack;
+     D_ASSERT( stack != NULL );
+
+     ctx.resource_id = resource_id;
+     ctx.window      = NULL;
+
+     ret = dfb_layer_context_lock( context );
+     if (ret)
+         return ret;
+
+     ret = dfb_wm_enum_windows( stack, IDirectFBDisplayLayer_GetWindowByResourceID_WindowCallback, &ctx );
+     if (ret == DFB_OK) {
+          if (ctx.window) {
+               IDirectFBWindow *window;
+
+               ret = dfb_window_ref( ctx.window );
+               if (ret == DFB_OK) {
+                    DIRECT_ALLOCATE_INTERFACE( window, IDirectFBWindow );
+
+                    ret = IDirectFBWindow_Construct( window, ctx.window, data->layer, data->core );
+                    if (ret == DFB_OK)
+                         *ret_window = window;
+               }
+          }
+          else
+               ret = DFB_IDNOTFOUND;
+     }
+
+     dfb_layer_context_unlock( context );
+
+     return ret;
+}
+
 DFBResult
 IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
                                  CoreLayer             *layer,
@@ -1007,6 +1082,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->SwitchContext         = IDirectFBDisplayLayer_SwitchContext;
      thiz->SetRotation           = IDirectFBDisplayLayer_SetRotation;
      thiz->GetRotation           = IDirectFBDisplayLayer_GetRotation;
+     thiz->GetWindowByResourceID = IDirectFBDisplayLayer_GetWindowByResourceID;
 
      return DFB_OK;
 }
