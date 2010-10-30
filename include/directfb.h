@@ -5622,6 +5622,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
           DFBWindowID                    window_id
      );
 
+
    /** Application ID **/
 
      /*
@@ -5654,6 +5655,17 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      DFBResult (*BeginUpdates) (
           IDirectFBWindow               *thiz,
           const DFBRegion               *update
+     );
+
+
+   /** Events **/
+
+     /*
+      * Send event
+      */
+     DFBResult (*SendEvent) (
+          IDirectFBWindow               *thiz,
+          const DFBWindowEvent          *event
      );
 )
 
