@@ -4701,7 +4701,9 @@ typedef enum {
                                                         window when it's
                                                         created */
 
-     DWET_ALL            = 0x003F033F   /* all event types */
+     DWET_UPDATE         = 0x01000000,
+
+     DWET_ALL            = 0x013F033F   /* all event types */
 } DFBWindowEventType;
 
 /*
