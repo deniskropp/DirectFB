@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <math.h>
 
 #include <sys/fcntl.h>
 #include <sys/mman.h>
@@ -167,6 +168,30 @@ IDirectFBFont_GetHeight( IDirectFBFont *thiz, int *height )
 }
 
 /*
+ * Get the line spacing vector of this font.
+ */
+static DFBResult
+IDirectFBFont_GetLineSpacingVector( IDirectFBFont *thiz, int *xspacing, int *yspacing )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
+
+     D_DEBUG_AT( Font, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (!xspacing && !yspacing)
+          return DFB_INVARG;
+
+     if (xspacing) {
+          *xspacing = - data->font->height * data->font->up_unit_x;
+     }
+
+     if (yspacing) {
+          *yspacing = - data->font->height * data->font->up_unit_y;
+     }
+
+     return DFB_OK;
+}
+
+/*
  * Get the maximum character width.
  */
 static DFBResult
@@ -249,7 +274,8 @@ IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
 {
      DFBResult  ret;
      CoreFont  *font;
-     int        width = 0;
+     int        xbaseline = 0;
+     int        ybaseline = 0;
 
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
@@ -293,17 +319,20 @@ IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
                     int kx, ky = 0;
 
                     if (prev && font->GetKerning &&
-                        font->GetKerning( font, prev, current, &kx, &ky ) == DFB_OK)
-                         width += kx;
+                        font->GetKerning( font, prev, current, &kx, &ky ) == DFB_OK) {
+                         xbaseline += kx;
+                         ybaseline += ky;
+                    }
 
                     if (ink_rect) {
-                         DFBRectangle glyph_rect = { width + glyph->left,
-                              ky + glyph->top,
+                         DFBRectangle glyph_rect = { xbaseline + glyph->left,
+                              ybaseline + glyph->top,
                               glyph->width, glyph->height};
                          dfb_rectangle_union (ink_rect, &glyph_rect);
                     }
 
-                    width += glyph->advance;
+                    xbaseline += glyph->xadvance;
+                    ybaseline += glyph->yadvance;
                }
 
                prev = current;
@@ -311,18 +340,39 @@ IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
      }
 
      if (logical_rect) {
-          logical_rect->x = 0;
-          logical_rect->y = - font->ascender;
-          logical_rect->w = width;
-          logical_rect->h = font->height;
+          // We already have the text baseline vector in (xbaseline,ybaseline).
+          // Now find the ascender and descender vectors:
+          int xascender =  font->ascender * font->up_unit_x;
+          int yascender =  font->ascender * font->up_unit_y;
+          int xdescender = font->descender * font->up_unit_x;
+          int ydescender = font->descender * font->up_unit_y;
+
+          // Now find top/bottom left/right points relative to the text:
+          int top_left_x     = xascender;
+          int top_left_y     = yascender;
+          int bottom_left_x  = xdescender;
+          int bottom_left_y  = ydescender;
+          int top_right_x    = top_left_x + xbaseline;
+          int top_right_y    = top_left_y + ybaseline;
+          int bottom_right_x = bottom_left_x + xbaseline;
+          int bottom_right_y = bottom_left_y + ybaseline;
+
+          // The logical rectangle is the bounding-box of these points:
+#define MIN4(a,b,c,d) (MIN(MIN((a),(b)),MIN((c),(d))))
+#define MAX4(a,b,c,d) (MAX(MAX((a),(b)),MAX((c),(d))))
+          logical_rect->x = MIN4(top_left_x, bottom_left_x, top_right_x, bottom_right_x);
+          logical_rect->y = MIN4(top_left_y, bottom_left_y, top_right_y, bottom_right_y);
+          logical_rect->w = MAX4(top_left_x, bottom_left_x, top_right_x, bottom_right_x) - logical_rect->x;
+          logical_rect->h = MAX4(top_left_y, bottom_left_y, top_right_y, bottom_right_y) - logical_rect->y;
      }
 
      if (ink_rect) {
-          if (ink_rect->w < 0) {
+          if (ink_rect->w < 0) {  /* PBE FIXME what is this doing? */
                ink_rect->x += ink_rect->w;
                ink_rect->w = -ink_rect->w;
           }
-          ink_rect->y -= font->ascender;
+          ink_rect->x += font->ascender * font->up_unit_x;
+          ink_rect->y += font->ascender * font->up_unit_y;
      }
 
      dfb_font_unlock( font );
@@ -340,7 +390,8 @@ IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
                               int           *ret_width )
 {
      DFBResult ret;
-     int       width = 0;
+     int       xsize = 0;
+     int       ysize = 0;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
 
@@ -353,7 +404,7 @@ IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
           bytes = strlen (text);
 
      if (bytes > 0) {
-          int           i, num, kx;
+          int           i, num, kx, ky;
           unsigned int  prev = 0;
           unsigned int  indices[bytes];
           CoreFont     *font = data->font;
@@ -373,11 +424,14 @@ IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
                CoreGlyphData *glyph;
 
                if (dfb_font_get_glyph_data( font, current, 0, &glyph ) == DFB_OK) {  // FIXME: support font layers
-                    width += glyph->advance;
+                    xsize += glyph->xadvance;
+                    ysize += glyph->yadvance;
 
                     if (prev && font->GetKerning &&
-                        font->GetKerning( font, prev, current, &kx, NULL ) == DFB_OK)
-                         width += kx;
+                        font->GetKerning( font, prev, current, &kx, &ky ) == DFB_OK) {
+                         xsize += kx;
+                         ysize += ky;
+                    }
                }
 
                prev = current;
@@ -386,7 +440,15 @@ IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
           dfb_font_unlock( font );
      }
 
-     *ret_width = width;
+     if (!ysize) {
+          *ret_width = xsize;
+     }
+     else if (!xsize) {
+          *ret_width = ysize;
+     }
+     else {
+          *ret_width = sqrt(xsize*xsize + ysize*ysize);
+     }
 
      return DFB_OK;
 }
@@ -438,7 +500,7 @@ IDirectFBFont_GetGlyphExtents( IDirectFBFont *thiz,
           }
 
           if (advance)
-               *advance = glyph->advance;
+               *advance = glyph->xadvance;
      }
 
      dfb_font_unlock( font );
@@ -462,7 +524,10 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
      const u8      *end;
      CoreGlyphData *glyph;
      int            kern_x;
+     int            kern_y;
      int            length = 0;
+     int            xsize = 0;
+     int            ysize = 0;
      int            width = 0;
      unichar        current;
      unsigned int   index;
@@ -519,10 +584,26 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
           if (ret)
                continue;
 
-          width += glyph->advance;
+          xsize += glyph->xadvance;
+          ysize += glyph->yadvance;
 
           if (prev && font->GetKerning && font->GetKerning( font, prev, index, &kern_x, NULL ) == DFB_OK)
                width += kern_x;
+
+          if (prev && font->GetKerning && font->GetKerning( font, prev, index, &kern_x, &kern_y) == DFB_OK) {
+               xsize += kern_x;
+               ysize += kern_y;
+          }
+
+          if (!ysize) {
+               width = xsize;
+          }
+          else if (!xsize) {
+               width = ysize;
+          }
+          else {
+               width = sqrt(xsize*xsize + ysize*ysize);
+          }
 
           prev = index;
      } while (width < max_width && string < end && current != 0x0a);
@@ -637,6 +718,68 @@ IDirectFBFont_Dispose( IDirectFBFont *thiz )
      return dfb_font_dispose( data->font );
 }
 
+/*
+ * Get the extents of the specified glyph.
+ */
+static DFBResult
+IDirectFBFont_GetGlyphExtentsXY( IDirectFBFont *thiz,
+                                 unsigned int   character,
+                                 DFBRectangle  *rect,
+                                 int           *xadvance,
+                                 int           *yadvance )
+{
+     DFBResult      ret;
+     CoreFont      *font;
+     CoreGlyphData *glyph;
+     unsigned int   index;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
+
+     D_DEBUG_AT( Font, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (!rect && !xadvance && !yadvance)
+          return DFB_INVARG;
+
+     font = data->font;
+
+     dfb_font_lock( font );
+
+     ret = dfb_font_decode_character( font, data->encoding, character, &index );
+     if (ret) {
+          dfb_font_unlock( font );
+          return ret;
+     }
+
+     if (dfb_font_get_glyph_data (font, index, 0, &glyph) != DFB_OK) {     // FIXME: support font layers
+          if (rect)
+               rect->x = rect->y = rect->w = rect->h = 0;
+
+          if (xadvance)
+               *xadvance = 0;
+
+          if (yadvance)
+               *yadvance = 0;
+     }
+     else {
+          if (rect) {
+               rect->x = glyph->left + font->ascender * font->up_unit_x;
+               rect->y = glyph->top  + font->ascender * font->up_unit_y;
+               rect->w = glyph->width;
+               rect->h = glyph->height;
+          }
+
+          if (xadvance)
+               *xadvance = glyph->xadvance;
+
+          if (yadvance)
+               *yadvance = glyph->yadvance;
+     }
+
+     dfb_font_unlock( font );
+
+     return DFB_OK;
+}
+
 /**********************************************************************************************************************/
 
 DFBResult
@@ -662,6 +805,8 @@ IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
      thiz->EnumEncodings = IDirectFBFont_EnumEncodings;
      thiz->FindEncoding = IDirectFBFont_FindEncoding;
      thiz->Dispose = IDirectFBFont_Dispose;
+     thiz->GetLineSpacingVector = IDirectFBFont_GetLineSpacingVector;
+     thiz->GetGlyphExtentsXY = IDirectFBFont_GetGlyphExtentsXY;
 
      return DFB_OK;
 }

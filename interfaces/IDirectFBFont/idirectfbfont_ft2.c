@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <math.h>
 
 #include <directfb.h>
 
@@ -285,8 +286,11 @@ render_glyph( CoreFont      *thiz,
      if (info->height > surface->config.size.h)
           info->height = surface->config.size.h;
 
-     info->left = face->glyph->bitmap_left;
-     info->top  = thiz->ascender - face->glyph->bitmap_top;
+     /* bitmap_left and bitmap_top are relative to the glyph's origin on the
+        baseline.  info->left and info->top are relative to the top-left of the
+        character cell. */
+     info->left =   face->glyph->bitmap_left - thiz->ascender*thiz->up_unit_x;
+     info->top  = - face->glyph->bitmap_top  - thiz->ascender*thiz->up_unit_y;
 
      if (data->fixed_clip) {
           while (info->left + info->width > data->fixed_advance)
@@ -578,8 +582,15 @@ get_glyph_info( CoreFont      *thiz,
 
      info->width   = face->glyph->bitmap.width;
      info->height  = face->glyph->bitmap.rows;
-     info->advance = data->fixed_advance ?
-                     data->fixed_advance : (face->glyph->advance.x >> 6);
+
+     if (data->fixed_advance) {
+          info->xadvance = - data->fixed_advance * thiz->up_unit_y;
+          info->yadvance =   data->fixed_advance * thiz->up_unit_x;
+     }
+     else {
+          info->xadvance =   face->glyph->advance.x >> 6;
+          info->yadvance = - face->glyph->advance.y >> 6;
+     }
 
      if (data->fixed_clip && info->width > data->fixed_advance)
           info->width = data->fixed_advance;
@@ -621,6 +632,7 @@ get_kerning( CoreFont     *thiz,
      pthread_mutex_lock ( &library_mutex );
 
      /* Lookup kerning values for the character pair. */
+     /* The vector returned by FreeType does not allow for any rotation. */
      FT_Get_Kerning( data->base.face,
                      prev, current, ft_kerning_default, &vector );
 
@@ -628,16 +640,16 @@ get_kerning( CoreFont     *thiz,
 
      /* Convert to integer. */
      if (kern_x)
-          *kern_x = vector.x >> 6;
+          *kern_x = (int)(- vector.x*thiz->up_unit_y + vector.y*thiz->up_unit_x) >> 6;
 
      if (kern_y)
-          *kern_y = vector.y >> 6;
+          *kern_y = (int)(  vector.y*thiz->up_unit_y + vector.x*thiz->up_unit_x) >> 6;
 
      return DFB_OK;
 }
 
 static void
-init_kerning_cache( FT2ImplKerningData *data )
+init_kerning_cache( FT2ImplKerningData *data, float up_unit_x, float up_unit_y )
 {
      int a, b;
 
@@ -652,8 +664,8 @@ init_kerning_cache( FT2ImplKerningData *data )
                FT_Get_Kerning( data->base.face,
                                a, b, ft_kerning_default, &vector );
 
-               cache->x = (signed char) (vector.x >> 6);
-               cache->y = (signed char) (vector.y >> 6);
+               cache->x = (signed char) ((int)(- vector.x*up_unit_y + vector.y*up_unit_x) >> 6);
+               cache->y = (signed char) ((int)(  vector.y*up_unit_y + vector.x*up_unit_x) >> 6);
           }
      }
 
@@ -789,12 +801,16 @@ Construct( IDirectFBFont               *thiz,
      u32                 mask = 0;
      const char         *filename = ctx->filename; /* intended for printf only */
 
+     float sin_rot = 0.0;
+     float cos_rot = 1.0;
+
      D_DEBUG( "DirectFB/FontFT2: "
-              "Construct font from file `%s' (index %d) at pixel size %d x %d.\n",
+              "Construct font from file `%s' (index %d) at pixel size %d x %d and rotation %d.\n",
               filename,
-              (desc->flags & DFDESC_INDEX)  ? desc->index  : 0,
-              (desc->flags & DFDESC_WIDTH)  ? desc->width  : 0,
-              (desc->flags & DFDESC_HEIGHT) ? desc->height : 0 );
+              (desc->flags & DFDESC_INDEX)    ? desc->index    : 0,
+              (desc->flags & DFDESC_WIDTH)    ? desc->width    : 0,
+              (desc->flags & DFDESC_HEIGHT)   ? desc->height   : 0,
+              (desc->flags & DFDESC_ROTATION) ? desc->rotation : 0 );
 
      if (init_freetype() != DFB_OK) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
@@ -821,6 +837,38 @@ Construct( IDirectFBFont               *thiz,
           }
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return DFB_FAILURE;
+     }
+
+     if ((desc->flags & DFDESC_ROTATION) && desc->rotation) {
+          if (!FT_IS_SCALABLE(face)) {
+               D_ERROR( "DirectFB/FontFT2: "
+                         "Face %d from font file `%s' is not scalable so cannot be rotated\n",
+                         (desc->flags & DFDESC_INDEX) ? desc->index : 0,
+                         filename );
+               pthread_mutex_lock ( &library_mutex );
+               FT_Done_Face( face );
+               pthread_mutex_unlock ( &library_mutex );
+               DIRECT_DEALLOCATE_INTERFACE( thiz );
+               return DFB_UNSUPPORTED;
+          }
+
+          float rot_radians = 2.0 * M_PI * desc->rotation / (1<<24);
+          sin_rot = sin(rot_radians);
+          cos_rot = cos(rot_radians);
+
+          int sin_rot_fx = (int)(sin_rot*65536.0);
+          int cos_rot_fx = (int)(cos_rot*65536.0);
+          FT_Matrix matrix;
+          matrix.xx =  cos_rot_fx;
+          matrix.xy = -sin_rot_fx;
+          matrix.yx =  sin_rot_fx;
+          matrix.yy =  cos_rot_fx;
+
+          pthread_mutex_lock ( &library_mutex );
+          FT_Set_Transform( face, &matrix, NULL );
+          /* FreeType docs suggest FT_Set_Transform returns an error code, but it seems
+             that this is not the case. */
+          pthread_mutex_unlock ( &library_mutex );
      }
 
      if (dfb_config->font_format == DSPF_A1 ||
@@ -948,8 +996,11 @@ Construct( IDirectFBFont               *thiz,
      font->height     = font->ascender + ABS(font->descender) + 1;
      font->maxadvance = face->size->metrics.max_advance >> 6;
 
-     D_DEBUG( "DirectFB/FontFT2: height = %d, ascender = %d, descender = %d, maxadvance = %d\n",
-              font->height, font->ascender, font->descender, font->maxadvance );
+     font->up_unit_x  = -sin_rot;
+     font->up_unit_y  = -cos_rot;
+
+     D_DEBUG( "DirectFB/FontFT2: height = %d, ascender = %d, descender = %d, maxadvance = %d, up unit: %5.2f,%5.2f\n",
+              font->height, font->ascender, font->descender, font->maxadvance, font->up_unit_x, font->up_unit_y );
 
      font->GetGlyphData = get_glyph_info;
      font->RenderGlyph  = render_glyph;
@@ -965,7 +1016,7 @@ Construct( IDirectFBFont               *thiz,
      data->disable_charmap = disable_charmap;
 
      if (FT_HAS_KERNING(face) && !disable_kerning)
-          init_kerning_cache( (FT2ImplKerningData*) data );
+          init_kerning_cache( (FT2ImplKerningData*) data, font->up_unit_x, font->up_unit_y);
 
      if (desc->flags & DFDESC_FIXEDADVANCE) {
           data->fixed_advance = desc->fixed_advance;
