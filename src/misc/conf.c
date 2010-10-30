@@ -1657,6 +1657,22 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "i8xx_overlay_pipe_b") == 0) {
           dfb_config->i8xx_overlay_pipe_b = true;
      } else
+     if (strcmp (name, "max-axis-rate" ) == 0) {
+          if (value) {
+               unsigned int rate;
+
+               if (sscanf( value, "%u", &rate ) < 1) {
+                    D_ERROR("DirectFB/Config '%s': Could not parse value!\n", name);
+                    return DFB_INVARG;
+               }
+
+               dfb_config->max_axis_rate = rate;
+          }
+          else {
+               D_ERROR("DirectFB/Config '%s': No value specified!\n", name);
+               return DFB_INVARG;
+          }
+     } else
      if (strcmp (name, "include") == 0) {
           if( value ) {
                DFBResult ret;
