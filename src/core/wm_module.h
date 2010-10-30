@@ -191,6 +191,12 @@ static DFBResult wm_begin_updates  ( CoreWindow             *window,
                                      void                   *window_data,
                                      const DFBRegion        *update );
 
+static DFBResult wm_set_cursor_position( CoreWindow             *window,
+                                         void                   *wm_data,
+                                         void                   *window_data,
+                                         int                     x,
+                                         int                     y );
+
 /** Updates **/
 
 static DFBResult wm_update_stack   ( CoreWindowStack        *stack,
@@ -245,6 +251,7 @@ static CoreWMFuncs wm_funcs = {
      .Ungrab               = wm_ungrab,
      .RequestFocus         = wm_request_focus,
      .BeginUpdates         = wm_begin_updates,
+     .SetCursorPosition    = wm_set_cursor_position,
 
      .UpdateStack          = wm_update_stack,
      .UpdateWindow         = wm_update_window,

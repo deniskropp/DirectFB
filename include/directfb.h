@@ -4711,9 +4711,10 @@ typedef enum {
      DWEF_NONE           = 0x00000000,  /* none of these */
 
      DWEF_RETURNED       = 0x00000001,  /* This is a returned event, e.g. unconsumed key. */
+     DWEF_RELATIVE       = 0x00000002,  /* This is a relative motion event (using DWCF_RELATIVE) */
      DWEF_REPEAT         = 0x00000010,  /* repeat event, e.g. repeating key */
 
-     DWEF_ALL            = 0x00000011   /* all of these */
+     DWEF_ALL            = 0x00000013   /* all of these */
 } DFBWindowEventFlags;
 
 /*
@@ -5066,6 +5067,19 @@ typedef struct {
      DFBRectangle             rectangle;
      DFBLocation              location;
 } DFBWindowGeometry;
+
+typedef enum {
+     DWCF_NONE           = 0x00000000,
+
+     DWCF_RELATIVE       = 0x00000001,
+     DWCF_EXPLICIT       = 0x00000002,
+     DWCF_UNCLIPPED      = 0x00000004,
+     DWCF_TRAPPED        = 0x00000008,
+     DWCF_FIXED          = 0x00000010,
+     DWCF_INVISIBLE      = 0x00000020,
+
+     DWCF_ALL            = 0x0000003F
+} DFBWindowCursorFlags;
 
 /*******************
  * IDirectFBWindow *
@@ -5666,6 +5680,36 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      DFBResult (*SendEvent) (
           IDirectFBWindow               *thiz,
           const DFBWindowEvent          *event
+     );
+
+
+   /** Cursor **/
+
+     /*
+      * Set cursor flags (active when in focus).
+      */
+     DFBResult (*SetCursorFlags) (
+          IDirectFBWindow               *thiz,
+          DFBWindowCursorFlags           flags
+     );
+
+     /*
+      * Set cursor resolution (coordinate space for cursor within window).
+      *
+      * The default cursor resolution is the surface dimensions.
+      */
+     DFBResult (*SetCursorResolution) (
+          IDirectFBWindow               *thiz,
+          const DFBDimension            *resolution
+     );
+
+     /*
+      * Set cursor position within window coordinates (surface or cursor resolution).
+      */
+     DFBResult (*SetCursorPosition) (
+          IDirectFBWindow               *thiz,
+          int                            x,
+          int                            y
      );
 )
 
