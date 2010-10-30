@@ -3199,6 +3199,20 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
           IDirectFBDisplayLayer              *thiz,
           int                                *ret_rotation
      );
+
+
+   /** Windows **/
+
+     /*
+      * Retrieve an interface to an existing window.
+      *
+      * The window is identified by its surface' resource id.
+      */
+     DFBResult (*GetWindowByResourceID) (
+          IDirectFBDisplayLayer              *thiz,
+          unsigned long                       resource_id,
+          IDirectFBWindow                   **ret_interface
+     );
 )
 
 
