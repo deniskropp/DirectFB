@@ -1,3 +1,66 @@
+1.4.8
+-----
+
+This release adds font rotation, advanced cursor APIs and surface buffer displacement in FBDev pool
+along with some fixes and other enhancements.
+
+API | IDirectFBDisplayLayer
+- Add GetWindowByResourceID().
+
+API | IDirectFBFont
+- Add DFDESC_ROTATION to DFBFontDescriptionFlags.
+- Add rotation to DFBFontDescription.
+- Add DFB_DEGREES and DFB_RADIANS convenience macros.
+- Add GetLineSpacingVector() and GetGlyphExtentsXY().
+
+API | IDirectFBInputDevice
+- Extend custom key definitions from 100 to 255.
+
+API | IDirectFBWindow
+- Add SendEvent() to send a window event via a window.
+- Add DFBWindowCursorFlags (per window) with the following definitions:
+      DWCF_RELATIVE   receive relative coordinates instead of absolute
+      DWCF_EXPLICIT   if window has focus it's also the pointer window
+      DWCF_UNCLIPPED  pointer is not clipped against stack boundaries
+      DWCF_TRAPPED    pointer is clipped against the window boundaries
+      DWCF_FIXED      pointer does not move at all, but still may send relative motion
+      DWCF_INVISIBLE  cursor opacity is zero when this window is pointer window
+- Add DWEF_RELATIVE to DFBWindowEventFlags to indicate x/y are relative coordinates.
+- Add SetCursorFlags() to set the per window DFBWindowCursorFlags.
+- Add SetCursorResolution() to define per window coordinate space,
+  e.g. SetCursorResolution( 100, 300 ) will always send 50,150 in the middle of the window.
+- Add SetCursorPosition() to warp the pointer relative to the
+  window based on the per window coordinate space if set.
+- Add DWET_UPDATE for sending update events (upon Flip).
+
+Options
+- Add max-axis-rate to limit the amount of input axis events.
+
+Fonts
+- Try to mmap the font file before loading all of its contents via data buffer.
+
+Windows
+- Add CWCF_CURSOR_FLAGS and CWCF_CURSOR_RESOLUTION to CoreWindowConfigFlags.
+- Add cursor_flags and cursor_resolution to CoreWindowConfig.
+- Add dfb_wm_set_cursor_position() called by IDirectFBWindow::SetCursorPosition().
+- Add SetCursorPosition() to WMFuncs.
+- Add wm_set_cursor_position() to wm module header and set it for SetCursorPosition().
+- Remove setting of cx and cy from dfb_window_post_event(), instead this is done
+  in window manager modules now.
+
+Default WM
+- Fix wm_window_lookup to return DFB_IDNOTFOUND when window with specified ID wasn't found.
+- Set cx and cy of window events.
+- Add unimplemented wm_set_cursor_position() to default window manager module.
+- Send DWET_UPDATE events when the application does a Flip on the window surface.
+
+LinoType Font
+- Add new font module using LinoType library.
+
+FBDev System
+- Add MuckOut implementation for surfaces in fbdev pool using surface manager displace.
+
+
 1.4.7
 -----
 

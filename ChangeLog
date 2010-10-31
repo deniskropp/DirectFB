@@ -1,3 +1,162 @@
+commit 23e31b5160a6da3f5ad80bbedde303733b918847
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Oct 30 16:41:27 2010 +0200
+
+    options: Added max-axis-rate to limit the amount of input axis events.
+
+commit cdd0f443c23ed28acfa5b419bfa387e5c0ff1a1a
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Oct 30 16:38:23 2010 +0200
+
+    windows: Add DWET_UPDATE for sending update events (upon Flip).
+    
+    Send DWET_UPDATE events in default window manager module when the
+    application does a Flip on the window surface.
+    
+    This way another process can capture the output of the application.
+
+commit d6bc0e52907fab783ca2de8e4f5cf29c23787089
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Oct 30 16:18:13 2010 +0200
+
+    windows: Extended cursor capabilities for advanced input devices.
+    
+    Add DFBWindowCursorFlags (per window) with the following definitions:
+      DWCF_RELATIVE   receive relative coordinates instead of absolute
+      DWCF_EXPLICIT   if window has focus it's also the pointer window
+      DWCF_UNCLIPPED  pointer is not clipped against stack boundaries
+      DWCF_TRAPPED    pointer is clipped against the window boundaries
+      DWCF_FIXED      pointer does not move at all, but still may send relative motion
+      DWCF_INVISIBLE  cursor opacity is zero when this window is pointer window
+    
+    Add DWEF_RELATIVE to DFBWindowEventFlags to indicate x/y are relative coordinates.
+    
+    Add IDirectFBWindow::SetCursorFlags() to set the per window DFBWindowCursorFlags.
+    
+    Add IDirectFBWindow::SetCursorResolution() to define per window coordinate space,
+    e.g. SetCursorResolution( 100, 300 ) will always send 50,150 in the middle of the
+    window.
+    
+    Add IDirectFBWindow::SetCursorPosition() to warp the pointer relative to the
+    window based on the per window coordinate space if set.
+    
+    --
+    
+    Add CWCF_CURSOR_FLAGS and CWCF_CURSOR_RESOLUTION to CoreWindowConfigFlags.
+    
+    Add cursor_flags and cursor_resolution to CoreWindowConfig.
+    
+    --
+    
+    Add dfb_wm_set_cursor_position() called by IDirectFBWindow::SetCursorPosition().
+    
+    --
+    
+    Add SetCursorPosition() to WMFuncs.
+    Add wm_set_cursor_position() to wm module header and set it for SetCursorPosition().
+    
+    --
+    
+    Removed setting of cx and cy from dfb_window_post_event(), instead this is done
+    in window manager modules now.
+    
+    --
+    
+    Set cx and cy of window events in default window manager module now.
+    
+    Add unimplemented wm_set_cursor_position() to default window manager module.
+
+commit d30be1d2d67918b2c279529add242e45202b90bd
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Oct 30 16:07:31 2010 +0200
+
+    windows: Added IDirectFBWindow::SendEvent() to send a window event via a window.
+
+commit bc1b2b6771faadc105ade47d32c51a4ccfa664a3
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Oct 30 14:05:14 2010 +0200
+
+    layer: Added IDirectFBDisplayLayer::GetWindowByResourceID().
+    
+    It returns the first window with a surface matching that resource id.
+
+commit 3e14efced02e4fc5301d00589ea6136ff1e14a41
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Oct 30 13:18:45 2010 +0200
+
+    fusion: Don't assert that msg_size is greater than zero.
+    
+    msg_size may be zero which means the actual message size is passed
+    with each dispatch call.
+
+commit d4b82fcc5a6395b8a506ebd712b0bfd050588260
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Oct 30 13:11:01 2010 +0200
+
+    LinoType: Added new font module using LinoType library.
+
+commit 04eb85c1b93b151ac566897f88e8207302ec21fe
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Oct 30 13:05:57 2010 +0200
+
+    fonts: Added font rotation based on initial patch from Phil Endecott.
+    
+    Add DFDESC_ROTATION to DFBFontDescriptionFlags.
+    Add rotation to DFBFontDescription.
+    Add DFB_DEGREES and DFB_RADIANS convenience macros.
+    Add IDirectFBFont::GetLineSpacingVector() and GetGlyphExtentsXY().
+
+commit 291ce79f30e46978101661d33e24819e48be1e02
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Oct 30 12:56:21 2010 +0200
+
+    keyboard: Extend custom key definitions from 100 to 255.
+
+commit b3aa46bbf436f14d3dde7ee13ca40dda9a4a9630
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Thu Oct 28 22:56:25 2010 +0200
+
+    fbdev: fix issues with fbdevMuckOut()
+    
+    Fix debug macros so the code compiles and works when compiled
+    with debug enabled.
+
+commit f8a5f871f0d54f0552590b41275f5656514c98d1
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 28 00:51:25 2010 +0200
+
+    fbdev: Add MuckOut implementation for surfaces in fbdev pool using surface manager displace.
+
+commit 5c44f6a81c32880b3d92474ac98dd15a542d4149
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Oct 27 21:46:52 2010 +0200
+
+    font: Try to mmap the font file before loading all of its contents via data buffer.
+
+commit 268ef9eafa3b02340ddecd6a06e4dd8bd79b21ff
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Oct 26 22:59:48 2010 +0200
+
+    default-wm: fixed wm_window_lookup to return DFB_IDNOTFOUND when window with specified ID wasn't found
+
+commit 9a3fd6cc069f8d6dad68fd27fe80185ea4c5b204
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Oct 31 09:53:02 2010 +0100
+
+    bump to 1.4.8
+
+commit 89b2fbb9180ecf771f9ae0d606c420bcaaf83a37
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Oct 31 09:52:33 2010 +0100
+
+    mkdgifft: Include <sys/stat.h> for fstat().
+
+commit 58b13531e9fd0c5c80bc18bee9d4c2ed2e27e8ff
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Oct 25 16:25:41 2010 +0200
+
+    real release 1.4.7
+
 commit b3baa16aa9ae50fb6c7bbebe86631ee7c2669b2d
 Author: André Draszik <andre.draszik@st.com>
 Date:   Sat Oct 23 22:59:38 2010 +0100
