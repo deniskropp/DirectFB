@@ -60,6 +60,8 @@ typedef enum {
      CWCF_COLOR         = 0x00000400,
 
      CWCF_KEY_SELECTION = 0x00001000,
+     CWCF_CURSOR_FLAGS  = 0x00002000,
+     CWCF_CURSOR_RESOLUTION = 0x00004000,
 
      CWCF_SRC_GEOMETRY  = 0x00010000,
      CWCF_DST_GEOMETRY  = 0x00020000,
@@ -68,7 +70,7 @@ typedef enum {
 
      CWCF_APPLICATION_ID= 0x00080000,
 
-     CWCF_ALL           = 0x000F177F
+     CWCF_ALL           = 0x000F777F
 } CoreWindowConfigFlags;
 
 struct __DFB_CoreWindowConfig {
@@ -94,6 +96,9 @@ struct __DFB_CoreWindowConfig {
 
      unsigned long            application_id; /* this can be changed at runtime by the application.
                                                * it's here so appman can get a callback on change. */
+
+     DFBWindowCursorFlags     cursor_flags;
+     DFBDimension             cursor_resolution;
 };
 
 

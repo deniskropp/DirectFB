@@ -129,7 +129,6 @@ fusion_reactor_new( int                msg_size,
      FusionReactor     *reactor;
      FusionWorldShared *shared;
 
-     D_ASSERT( msg_size > 0 );
      D_ASSERT( name != NULL );
      D_MAGIC_ASSERT( world, FusionWorld );
 
@@ -615,7 +614,6 @@ fusion_reactor_new( int                msg_size,
      FusionReactor     *reactor;
      FusionWorldShared *shared;
 
-     D_ASSERT( msg_size > 0 );
      D_ASSERT( name != NULL );
      D_MAGIC_ASSERT( world, FusionWorld );
 
@@ -1592,8 +1590,6 @@ fusion_reactor_new( int                msg_size,
                     const FusionWorld *world )
 {
      FusionReactor *reactor;
-
-     D_ASSERT( msg_size > 0 );
 
      reactor = D_CALLOC( 1, sizeof(FusionReactor) );
      if (!reactor)

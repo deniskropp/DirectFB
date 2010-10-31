@@ -1704,15 +1704,6 @@ dfb_window_post_event( CoreWindow     *window,
      event->clazz     = DFEC_WINDOW;
      event->window_id = window->id;
 
-     D_ASSUME( window->stack != NULL );
-
-     if (window->stack) {
-          CoreWindowStack *stack = window->stack;
-
-          event->cx = stack->cursor.x;
-          event->cy = stack->cursor.y;
-     }
-
      if (!core_window_filter( window, event ))
           dfb_window_dispatch( window, event, dfb_window_globals );
 }

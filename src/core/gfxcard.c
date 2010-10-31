@@ -2474,7 +2474,8 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
                     num_blits++;
                }
 
-               x   += glyph->advance;
+               x   += glyph->xadvance;
+               y   += glyph->yadvance;
                prev = current;
           }
 

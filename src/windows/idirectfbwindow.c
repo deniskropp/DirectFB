@@ -1305,6 +1305,97 @@ IDirectFBWindow_BeginUpdates( IDirectFBWindow *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBWindow_SendEvent( IDirectFBWindow      *thiz,
+                           const DFBWindowEvent *event )
+{
+     DFBWindowEvent evt;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s\n", __FUNCTION__ );
+
+     if (!event)
+          return DFB_INVARG;
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     evt = *event;
+
+     dfb_window_post_event( data->window, &evt );
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBWindow_SetCursorFlags( IDirectFBWindow      *thiz,
+                                DFBWindowCursorFlags  flags )
+{
+     CoreWindowConfig config;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s( 0x%04x )\n", __FUNCTION__, flags );
+
+     if (flags & ~DWCF_ALL)
+          return DFB_INVARG;
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     config.cursor_flags = flags;
+
+     return dfb_window_set_config( data->window, &config, CWCF_CURSOR_FLAGS );
+}
+
+static DFBResult
+IDirectFBWindow_SetCursorResolution( IDirectFBWindow    *thiz,
+                                     const DFBDimension *resolution )
+{
+     CoreWindowConfig config;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (resolution)
+          D_DEBUG_AT( IDirectFB_Window, "%s( %dx%d )\n", __FUNCTION__, resolution->w, resolution->h );
+     else
+          D_DEBUG_AT( IDirectFB_Window, "%s( NULL )\n", __FUNCTION__ );
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     if (resolution)
+          config.cursor_resolution = *resolution;
+     else {
+          config.cursor_resolution.w = 0;
+          config.cursor_resolution.h = 0;
+     }
+
+     return dfb_window_set_config( data->window, &config, CWCF_CURSOR_RESOLUTION );
+}
+
+static DFBResult
+IDirectFBWindow_SetCursorPosition( IDirectFBWindow    *thiz,
+                                   int                 x,
+                                   int                 y )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s( %d,%d )\n", __FUNCTION__, x, y );
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     dfb_windowstack_lock( data->window->stack );
+
+     dfb_wm_set_cursor_position( data->window, x, y );
+
+     dfb_windowstack_unlock( data->window->stack );
+
+     return DFB_OK;
+}
+
 DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                            CoreWindow      *window,
@@ -1379,6 +1470,10 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->SetApplicationID = IDirectFBWindow_SetApplicationID;
      thiz->GetApplicationID = IDirectFBWindow_GetApplicationID;
      thiz->BeginUpdates = IDirectFBWindow_BeginUpdates;
+     thiz->SendEvent = IDirectFBWindow_SendEvent;
+     thiz->SetCursorFlags = IDirectFBWindow_SetCursorFlags;
+     thiz->SetCursorResolution = IDirectFBWindow_SetCursorResolution;
+     thiz->SetCursorPosition = IDirectFBWindow_SetCursorPosition;
 
      return DFB_OK;
 }

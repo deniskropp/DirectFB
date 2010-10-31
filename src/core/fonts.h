@@ -104,7 +104,8 @@ struct _CoreGlyphData {
      int              height;               /* height of the glyphs bitmap      */
      int              left;                 /* x offset of the glyph            */
      int              top;                  /* y offset of the glyph            */
-     int              advance;              /* placement of next glyph          */
+     int              xadvance;             /* placement of next glyph          */
+     int              yadvance;
 
      int              magic;
 
@@ -113,16 +114,17 @@ struct _CoreGlyphData {
 
 #define CORE_GLYPH_DATA_DEBUG_AT(Domain, data)                                       \
      do {                                                                            \
-          D_DEBUG_AT( Domain, "  -> index   %d\n", (data)->index );                  \
-          D_DEBUG_AT( Domain, "  -> layer   %d\n", (data)->layer );                  \
-          D_DEBUG_AT( Domain, "  -> row     %p\n", (data)->row );                    \
-          D_DEBUG_AT( Domain, "  -> surface %p\n", (data)->surface );                \
-          D_DEBUG_AT( Domain, "  -> start   %d\n", (data)->start );                  \
-          D_DEBUG_AT( Domain, "  -> width   %d\n", (data)->width );                  \
-          D_DEBUG_AT( Domain, "  -> height  %d\n", (data)->height );                 \
-          D_DEBUG_AT( Domain, "  -> left    %d\n", (data)->left );                   \
-          D_DEBUG_AT( Domain, "  -> top     %d\n", (data)->top );                    \
-          D_DEBUG_AT( Domain, "  -> advance %d\n", (data)->advance );                \
+          D_DEBUG_AT( Domain, "  -> index    %d\n", (data)->index );                 \
+          D_DEBUG_AT( Domain, "  -> layer    %d\n", (data)->layer );                 \
+          D_DEBUG_AT( Domain, "  -> row      %p\n", (data)->row );                   \
+          D_DEBUG_AT( Domain, "  -> surface  %p\n", (data)->surface );               \
+          D_DEBUG_AT( Domain, "  -> start    %d\n", (data)->start );                 \
+          D_DEBUG_AT( Domain, "  -> width    %d\n", (data)->width );                 \
+          D_DEBUG_AT( Domain, "  -> height   %d\n", (data)->height );                \
+          D_DEBUG_AT( Domain, "  -> left     %d\n", (data)->left );                  \
+          D_DEBUG_AT( Domain, "  -> top      %d\n", (data)->top );                   \
+          D_DEBUG_AT( Domain, "  -> xadvance %d\n", (data)->xadvance );              \
+          D_DEBUG_AT( Domain, "  -> yadvance %d\n", (data)->yadvance );              \
      } while (0)
 
 typedef struct {
@@ -178,6 +180,9 @@ struct _CoreFont {
      int                           descender;     /* a negative value, the distance
                                                      from the baseline to the bottom  */
      int                           maxadvance;    /* width of largest character       */
+
+     float                         up_unit_x;     /* unit vector pointing 'up' in for */
+     float                         up_unit_y;     /* this font's rotation             */
 
      const CoreFontEncodingFuncs  *utf8;          /* for default encoding, DTEID_UTF8 */
      CoreFontEncoding            **encodings;     /* for other encodings              */

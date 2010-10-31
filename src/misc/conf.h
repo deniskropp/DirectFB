@@ -244,6 +244,8 @@ typedef struct
 
      bool          software_trace;
 
+     unsigned int  max_axis_rate;
+
      bool          cursor_automation;
 
 

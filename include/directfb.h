@@ -1031,6 +1031,7 @@ typedef enum {
      DFDESC_FRACT_WIDTH       = 0x00000040,  /* fractional width is set */
      DFDESC_OUTLINE_WIDTH     = 0x00000080,  /* outline width is set */
      DFDESC_OUTLINE_OPACITY   = 0x00000100,  /* outline opacity is set */
+     DFDESC_ROTATION          = 0x00000200,  /* rotation is set */
 } DFBFontDescriptionFlags;
 
 /*
@@ -1051,6 +1052,9 @@ typedef enum {
  *
  * Outline parameters are ignored if DFFA_OUTLINED is not used (see DFBFontAttributes). To change the
  * default values of 1.0 each use DFDESC_OUTLINE_WIDTH and/or DFDESC_OUTLINE_OPACITY.
+ *
+ * The rotation value is a 0.24 fixed point number of rotations.  Use the macros DFB_DEGREES
+ * and DFB_RADIANS to convert from those units.
  */
 typedef struct {
      DFBFontDescriptionFlags            flags;
@@ -1066,7 +1070,12 @@ typedef struct {
 
      int                                outline_width;      /* Outline width as 16.16 fixed point integer */
      int                                outline_opacity;    /* Outline opacity as 16.16 fixed point integer */
+
+     int                                rotation;
 } DFBFontDescription;
+
+#define DFB_DEGREES(deg) ((int)((deg)/360.0*(1<<24)))
+#define DFB_RADIANS(rad) ((int)((rad)/(2.0*M_PI)*(1<<24)))
 
 /*
  * @internal
@@ -3190,6 +3199,20 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
           IDirectFBDisplayLayer              *thiz,
           int                                *ret_rotation
      );
+
+
+   /** Windows **/
+
+     /*
+      * Retrieve an interface to an existing window.
+      *
+      * The window is identified by its surface' resource id.
+      */
+     DFBResult (*GetWindowByResourceID) (
+          IDirectFBDisplayLayer              *thiz,
+          unsigned long                       resource_id,
+          IDirectFBWindow                   **ret_interface
+     );
 )
 
 
@@ -4678,7 +4701,9 @@ typedef enum {
                                                         window when it's
                                                         created */
 
-     DWET_ALL            = 0x003F033F   /* all event types */
+     DWET_UPDATE         = 0x01000000,
+
+     DWET_ALL            = 0x013F033F   /* all event types */
 } DFBWindowEventType;
 
 /*
@@ -4688,9 +4713,10 @@ typedef enum {
      DWEF_NONE           = 0x00000000,  /* none of these */
 
      DWEF_RETURNED       = 0x00000001,  /* This is a returned event, e.g. unconsumed key. */
+     DWEF_RELATIVE       = 0x00000002,  /* This is a relative motion event (using DWCF_RELATIVE) */
      DWEF_REPEAT         = 0x00000010,  /* repeat event, e.g. repeating key */
 
-     DWEF_ALL            = 0x00000011   /* all of these */
+     DWEF_ALL            = 0x00000013   /* all of these */
 } DFBWindowEventFlags;
 
 /*
@@ -5043,6 +5069,19 @@ typedef struct {
      DFBRectangle             rectangle;
      DFBLocation              location;
 } DFBWindowGeometry;
+
+typedef enum {
+     DWCF_NONE           = 0x00000000,
+
+     DWCF_RELATIVE       = 0x00000001,
+     DWCF_EXPLICIT       = 0x00000002,
+     DWCF_UNCLIPPED      = 0x00000004,
+     DWCF_TRAPPED        = 0x00000008,
+     DWCF_FIXED          = 0x00000010,
+     DWCF_INVISIBLE      = 0x00000020,
+
+     DWCF_ALL            = 0x0000003F
+} DFBWindowCursorFlags;
 
 /*******************
  * IDirectFBWindow *
@@ -5599,6 +5638,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
           DFBWindowID                    window_id
      );
 
+
    /** Application ID **/
 
      /*
@@ -5631,6 +5671,47 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      DFBResult (*BeginUpdates) (
           IDirectFBWindow               *thiz,
           const DFBRegion               *update
+     );
+
+
+   /** Events **/
+
+     /*
+      * Send event
+      */
+     DFBResult (*SendEvent) (
+          IDirectFBWindow               *thiz,
+          const DFBWindowEvent          *event
+     );
+
+
+   /** Cursor **/
+
+     /*
+      * Set cursor flags (active when in focus).
+      */
+     DFBResult (*SetCursorFlags) (
+          IDirectFBWindow               *thiz,
+          DFBWindowCursorFlags           flags
+     );
+
+     /*
+      * Set cursor resolution (coordinate space for cursor within window).
+      *
+      * The default cursor resolution is the surface dimensions.
+      */
+     DFBResult (*SetCursorResolution) (
+          IDirectFBWindow               *thiz,
+          const DFBDimension            *resolution
+     );
+
+     /*
+      * Set cursor position within window coordinates (surface or cursor resolution).
+      */
+     DFBResult (*SetCursorPosition) (
+          IDirectFBWindow               *thiz,
+          int                            x,
+          int                            y
      );
 )
 
@@ -5676,7 +5757,7 @@ DEFINE_INTERFACE(   IDirectFBFont,
      );
 
      /*
-      * Get the logical height of this font. This is the vertical
+      * Get the logical height of this font. This is the
       * distance from one baseline to the next when writing
       * several lines of text. Note that this value does not
       * correspond the height value specified when loading the
@@ -5710,6 +5791,7 @@ DEFINE_INTERFACE(   IDirectFBFont,
           int                      *ret_kern_x,
           int                      *ret_kern_y
      );
+
 
    /** Measurements **/
 
@@ -5857,6 +5939,42 @@ DEFINE_INTERFACE(   IDirectFBFont,
       */
      DFBResult (*Dispose) (
           IDirectFBFont            *thiz
+     );
+
+
+   /** Measurements **/
+
+     /*
+      * Get the line spacing vector of this font. This is the
+      * displacement vector from one line to the next when writing
+      * several lines of text. It differs from the height only
+      * when the font is rotated.
+      */
+     DFBResult (*GetLineSpacingVector) (
+          IDirectFBFont            *thiz,
+          int                      *ret_xspacing,
+          int                      *ret_yspacing
+     );
+
+     /*
+      * Get the extents of a glyph specified by its character code (extended version).
+      *
+      * The rectangle describes the the smallest rectangle
+      * containing all pixels that are touched when drawing the
+      * glyph. It is reported relative to the baseline. If you
+      * only need the advance, pass NULL for the rectangle.
+      *
+      * The advance describes the horizontal offset to the next
+      * glyph (without kerning applied). It may be a negative
+      * value indicating left-to-right rendering. If you don't
+      * need this value, pass NULL for advance.
+      */
+     DFBResult (*GetGlyphExtentsXY) (
+          IDirectFBFont            *thiz,
+          unsigned int              character,
+          DFBRectangle             *ret_rect,
+          int                      *ret_xadvance,
+          int                      *ret_yadvance
      );
 )
 

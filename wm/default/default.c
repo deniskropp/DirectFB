@@ -219,6 +219,8 @@ post_event( CoreWindow     *window,
      event->buttons   = data->buttons;
      event->modifiers = data->modifiers;
      event->locks     = data->locks;
+     event->cx        = data->stack->cursor.x;
+     event->cy        = data->stack->cursor.y;
 
      dfb_window_post_event( window, event );
 }
@@ -260,6 +262,26 @@ send_button_event( CoreWindow          *window,
      we.button = (data->wm_level & 2) ? (event->button + 2) : event->button;
 
      transform_point_in_window( window, &we.x, &we.y );
+
+     post_event( window, data, &we );
+}
+
+static void
+send_update_event( CoreWindow      *window,
+                   StackData       *data,
+                   const DFBRegion *update )
+{
+     DFBWindowEvent we;
+
+     D_ASSERT( window != NULL );
+     D_ASSERT( data != NULL );
+     D_ASSERT( update != NULL );
+
+     we.type = DWET_UPDATE;
+     we.x    = update->x1;
+     we.y    = update->y1;
+     we.w    = update->x2 - update->x1 + 1;
+     we.h    = update->y2 - update->y1 + 1;
 
      post_event( window, data, &we );
 }
@@ -3840,6 +3862,22 @@ wm_begin_updates( CoreWindow      *window,
      return DFB_OK;
 }
 
+static DFBResult
+wm_set_cursor_position( CoreWindow      *window,
+                        void            *wm_data,
+                        void            *window_data,
+                        int              x,
+                        int              y )
+{
+     D_ASSERT( window != NULL );
+     D_ASSERT( wm_data != NULL );
+     D_ASSERT( window_data != NULL );
+
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
 /**************************************************************************************************/
 
 static DFBResult
@@ -3882,6 +3920,8 @@ wm_update_window( CoreWindow          *window,
 
      stack = window->stack;
      D_ASSERT( stack != NULL );
+
+     send_update_event( window, stack->stack_data, region );
 
      update_window( window, window_data, region, flags, false, false, true );
 
