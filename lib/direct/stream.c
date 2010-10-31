@@ -29,6 +29,7 @@
 #include <config.h>
 
 #include <sys/stat.h>
+#include <sys/select.h>
 
 #include <direct/build.h>
 #include <direct/types.h>
