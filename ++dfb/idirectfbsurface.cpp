@@ -115,14 +115,30 @@ void IDirectFBSurface::Clear (u8 r, u8 g, u8 b, u8 a)
      DFBCHECK( iface->Clear (iface, r, g, b, a) );
 }
 
-void IDirectFBSurface::SetClip (DFBRegion *clip)
+void IDirectFBSurface::Clear (DFBColor &c)
+{
+     DFBCHECK( iface->Clear (iface, c.r, c.g, c.b, c.a) );
+}
+
+void IDirectFBSurface::SetClip (const DFBRegion *clip)
 {
      DFBCHECK( iface->SetClip (iface, clip) );
+}
+
+void IDirectFBSurface::SetClip (const DFBRectangle *clip)
+{
+     DFBRegion region( *clip );
+     DFBCHECK( iface->SetClip (iface, &region) );
 }
 
 void IDirectFBSurface::SetColor (u8 r, u8 g, u8 b, u8 a)
 {
      DFBCHECK( iface->SetColor (iface, r, g, b, a) );
+}
+
+void IDirectFBSurface::SetColor (DFBColor &c)
+{
+     DFBCHECK( iface->SetColor (iface, c.r, c.g, c.b, c.a) );
 }
 
 void IDirectFBSurface::SetColorIndex (unsigned int index)
@@ -221,6 +237,16 @@ void IDirectFBSurface::SetDrawingFlags (DFBSurfaceDrawingFlags flags)
 void IDirectFBSurface::FillRectangle (int x, int y, int width, int height)
 {
      DFBCHECK( iface->FillRectangle (iface, x, y, width, height) );
+}
+
+void IDirectFBSurface::FillRectangle (DFBRectangle &rect)
+{
+     DFBCHECK( iface->FillRectangle (iface, rect.x, rect.y, rect.w, rect.h) );
+}
+
+void IDirectFBSurface::FillRectangle (DFBRegion &reg)
+{
+     DFBCHECK( iface->FillRectangle (iface, reg.x1, reg.y1, reg.x2-reg.x1+1, reg.y2-reg.y1+1) );
 }
 
 void IDirectFBSurface::DrawRectangle (int x, int y, int width, int height)
@@ -348,7 +374,7 @@ void IDirectFBSurface::DrawLine (const DFBRegion &line)
 IDirectFBSurface IDirectFBSurface::GetSubSurface (int x, int y,
                                                    int width, int height)
 {
-     DFBRectangle rect = { x, y, width, height };
+     DFBRectangle rect( x, y, width, height );
 
      IDirectFBSurface_C *idirectfbsurface;
 
