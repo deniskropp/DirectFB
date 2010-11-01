@@ -34,6 +34,9 @@
 #include <direct/messages.h>
 #include <direct/print.h>
 
+#ifndef DIRECT_DISABLE_DEPRECATED
+#include <pthread.h>
+#endif
 
 #ifndef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
