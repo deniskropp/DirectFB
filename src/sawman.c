@@ -28,18 +28,22 @@
 #include <unistd.h>
 
 #include <direct/debug.h>
+#include <direct/direct.h>
 #include <direct/list.h>
 
 #include <fusion/conf.h>
 #include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
 
+#include <core/core.h>
 #include <core/layer_context.h>
 #include <core/layer_control.h>
 #include <core/layer_region.h>
 #include <core/palette.h>
 #include <core/screen.h>
+#include <core/screens.h>
 #include <core/windows_internal.h>
+#include <core/wm.h>
 
 #include <gfx/clip.h>
 #include <gfx/convert.h>
@@ -56,10 +60,14 @@
 #include "isawman.h"
 
 
+#ifndef DIRECTFB_PURE_VOODOO
+
 D_DEBUG_DOMAIN( SaWMan_Auto,     "SaWMan/Auto",     "SaWMan auto configuration" );
 D_DEBUG_DOMAIN( SaWMan_Update,   "SaWMan/Update",   "SaWMan window manager updates" );
 D_DEBUG_DOMAIN( SaWMan_Geometry, "SaWMan/Geometry", "SaWMan window manager geometry" );
 D_DEBUG_DOMAIN( SaWMan_Stacking, "SaWMan/Stacking", "SaWMan window manager stacking" );
+D_DEBUG_DOMAIN( SaWMan_FlipOnce, "SaWMan/FlipOnce", "SaWMan window manager flip once" );
+D_DEBUG_DOMAIN( SaWMan_Cursor,   "SaWMan/Cursor",   "SaWMan window manager cursor" );
 
 
 /* FIXME: avoid globals */
@@ -90,9 +98,18 @@ static FusionCallHandlerResult process_watcher     ( int                    call
                                                      unsigned int           serial,
                                                      int                   *ret_val );
 
+static DFBResult               init_hw_cursor      ( SaWMan                *sawman );
+
 static DirectResult            add_tier            ( SaWMan                *sawman,
+                                                     FusionWorld           *world,
                                                      DFBDisplayLayerID      layer_id,
                                                      SaWManStackingClasses  classes );
+
+#endif // !DIRECTFB_PURE_VOODOO
+
+/**********************************************************************************************************************/
+
+static DFBResult CreateRemote( const char *host, int session, ISaWMan **ret_sawman );
 
 /**********************************************************************************************************************/
 
@@ -100,17 +117,33 @@ DirectResult
 SaWManInit( int    *argc,
             char ***argv )
 {
+#ifndef DIRECTFB_PURE_VOODOO
      return sawman_config_init( argc, argv );
+#else
+     return DR_OK;
+#endif
 }
 
 DirectResult
 SaWManCreate( ISaWMan **ret_sawman )
 {
+#ifndef DIRECTFB_PURE_VOODOO
      DirectResult  ret;
      ISaWMan      *sawman;
+#endif
 
      if (!ret_sawman)
           return DFB_INVARG;
+
+     direct_initialize();
+
+#ifndef DIRECTFB_PURE_VOODOO
+     if (dfb_config->remote.host)
+          return CreateRemote( dfb_config->remote.host, dfb_config->remote.session, ret_sawman );
+
+     CoreDFB *core;
+
+     dfb_core_create( &core );
 
      if (!m_sawman) {
           D_ERROR( "SaWManCreate: No running SaWMan detected! Did you use the 'wm=sawman' option?\n" );
@@ -129,9 +162,42 @@ SaWManCreate( ISaWMan **ret_sawman )
      *ret_sawman = sawman;
 
      return DFB_OK;
+#else
+     return CreateRemote( dfb_config->remote.host ?: "", dfb_config->remote.session, ret_sawman );
+#endif
 }
 
 /**********************************************************************************************************************/
+
+static DFBResult
+CreateRemote( const char *host, int session, ISaWMan **ret_sawman )
+{
+     DFBResult             ret;
+     DirectInterfaceFuncs *funcs;
+     void                 *interface;
+
+     D_ASSERT( host != NULL );
+     D_ASSERT( ret_sawman != NULL );
+
+     ret = DirectGetInterface( &funcs, "ISaWMan", "Requestor", NULL, NULL );
+     if (ret)
+          return ret;
+
+     ret = funcs->Allocate( &interface );
+     if (ret)
+          return ret;
+
+     ret = funcs->Construct( interface, host, session );
+     if (ret)
+          return ret;
+
+     *ret_sawman = interface;
+
+     return DFB_OK;
+}
+
+/**********************************************************************************************************************/
+#ifndef DIRECTFB_PURE_VOODOO
 
 DirectResult
 sawman_initialize( SaWMan         *sawman,
@@ -177,12 +243,26 @@ sawman_initialize( SaWMan         *sawman,
 
      sawman_lock( sawman );
 
+     if (!sawman_config->resolution.w || !sawman_config->resolution.h) {
+          if (!dfb_config->mode.width || !dfb_config->mode.height) {
+               CoreScreen *screen = dfb_screens_at_translated( DSCID_PRIMARY );
+
+               dfb_screen_get_screen_size( screen, &sawman->resolution.w, &sawman->resolution.h );
+          }
+          else {
+               sawman->resolution.w = dfb_config->mode.width;
+               sawman->resolution.h = dfb_config->mode.height;
+          }
+     }
+     else
+          sawman->resolution = sawman_config->resolution;
+
      /* Initialize tiers. */
      for (i=0; i<D_ARRAY_SIZE(dfb_config->layers); i++) {
           if (!dfb_config->layers[i].stacking)
                continue;
 
-          ret = add_tier( sawman, i, dfb_config->layers[i].stacking );
+          ret = add_tier( sawman, world, i, dfb_config->layers[i].stacking );
           if (ret) {
                sawman_unlock( sawman );
                D_MAGIC_CLEAR( sawman );
@@ -228,6 +308,35 @@ error:
      m_process = NULL;
 
      return ret;
+}
+
+DirectResult
+sawman_post_init( SaWMan      *sawman,
+                  FusionWorld *world )
+{
+     DFBResult ret;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_ASSERT( world != NULL );
+
+     D_ASSERT( m_sawman == sawman );
+     D_ASSERT( m_world == world );
+     D_MAGIC_ASSERT( m_process, SaWManProcess );
+
+     sawman_lock( sawman );
+
+     /* Initialize HW Cursor? */
+     if (sawman_config->cursor.hw) {
+          ret = init_hw_cursor( sawman );
+          if (ret) {
+               sawman_unlock( sawman );
+               return ret;
+          }
+     }
+
+     sawman_unlock( sawman );
+
+     return DFB_OK;
 }
 
 DirectResult
@@ -809,9 +918,39 @@ process_watcher( int           caller,
 }
 
 /**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+static DFBResult
+init_hw_cursor( SaWMan *sawman )
+{
+     DFBResult ret;
+
+     sawman->cursor.layer = dfb_layer_at( sawman_config->cursor.layer_id );
+     D_ASSERT( sawman->cursor.layer != NULL );
+
+     ret = dfb_layer_create_context( sawman->cursor.layer, &sawman->cursor.context );
+     if (ret) {
+          D_DERROR( ret, "SaWMan/Cursor: Could not create context at layer (id %u)!\n", sawman_config->cursor.layer_id );
+          return ret;
+     }
+
+     ret = dfb_layer_region_create( sawman->cursor.context, &sawman->cursor.region );
+     if (ret) {
+          D_DERROR( ret, "SaWMan/Cursor: Could not create region at layer (id %u)!\n", sawman_config->cursor.layer_id );
+          dfb_layer_context_unref( sawman->cursor.context );
+          return ret;
+     }
+
+     dfb_layer_activate_context( sawman->cursor.layer, sawman->cursor.context );
+
+     return DFB_OK;
+}
+
+/**********************************************************************************************************************/
 
 static DirectResult
 add_tier( SaWMan                *sawman,
+          FusionWorld           *world,
           DFBDisplayLayerID      layer_id,
           SaWManStackingClasses  classes )
 {
@@ -846,6 +985,8 @@ add_tier( SaWMan                *sawman,
      tier->layer_id = layer_id;
      tier->classes  = classes;
 
+     tier->reactor = fusion_reactor_new( 0, "SaWMan Tier", world );
+
      dfb_updates_init( &tier->updates,  tier->update_regions, SAWMAN_MAX_UPDATE_REGIONS );
      dfb_updates_init( &tier->updating, tier->updating_regions, SAWMAN_MAX_UPDATING_REGIONS );
      dfb_updates_init( &tier->updated,  tier->updated_regions, SAWMAN_MAX_UPDATED_REGIONS );
@@ -856,4 +997,5 @@ add_tier( SaWMan                *sawman,
 
      return DFB_OK;
 }
+#endif
 

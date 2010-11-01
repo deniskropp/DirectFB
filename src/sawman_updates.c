@@ -495,6 +495,7 @@ repaint_tier( SaWMan              *sawman,
           /* Update cursor? */
           cursor_inter = tier->cursor_region;
           if (tier->cursor_drawn && dfb_region_region_intersect( &cursor_inter, update )) {
+               int          x, y;
                DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &cursor_inter );
 
                D_ASSUME( tier->cursor_bs_valid );
@@ -503,7 +504,10 @@ repaint_tier( SaWMan              *sawman,
                                 rect.x - tier->cursor_region.x1,
                                 rect.y - tier->cursor_region.y1, true );
 
-               sawman_draw_cursor( stack, state, 0, &cursor_inter );
+               x = (s64) stack->cursor.x * (s64) tier->size.w / (s64) sawman->resolution.w;
+               y = (s64) stack->cursor.y * (s64) tier->size.h / (s64) sawman->resolution.h;
+
+               sawman_draw_cursor( stack, state, surface, &cursor_inter, x, y );
           }
      }
 
@@ -567,6 +571,17 @@ repaint_tier( SaWMan              *sawman,
           fusion_skirmish_dismiss( &surface->lock );
      }
 #endif
+
+     if (1) {
+          SaWManTierUpdate update;
+
+          direct_memcpy( &update.regions[0], updates, sizeof(DFBRegion) * num_updates );
+
+          update.num_regions = num_updates;
+          update.classes     = tier->classes;
+
+          fusion_reactor_dispatch_channel( tier->reactor, SAWMAN_TIER_UPDATE, &update, sizeof(update), true, NULL );
+     }
 }
 
 static SaWManWindow *
@@ -922,6 +937,20 @@ sawman_process_updates( SaWMan              *sawman,
                     dfb_layer_region_flip_update( tier->region, NULL, flags );
 
                     dfb_updates_reset( &tier->updates );
+
+                    if (1) {
+                         SaWManTierUpdate update;
+
+                         update.regions[0].x1 = 0;
+                         update.regions[0].y1 = 0;
+                         update.regions[0].x2 = tier->single_width  - 1;
+                         update.regions[0].y2 = tier->single_height - 1;
+
+                         update.num_regions   = 1;
+                         update.classes       = tier->classes;
+
+                         fusion_reactor_dispatch_channel( tier->reactor, SAWMAN_TIER_UPDATE, &update, sizeof(update), true, NULL );
+                    }
                     continue;
                }
 

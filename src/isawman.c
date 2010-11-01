@@ -24,6 +24,7 @@
 #include <config.h>
 
 #include <direct/interface.h>
+#include <direct/memcpy.h>
 #include <direct/messages.h>
 
 #include <fusion/fusion.h>
@@ -37,17 +38,31 @@
 #include "isawmanmanager.h"
 
 
+static ReactionResult ISaWMan_Tier_Update( const void *msg_data,
+                                           void       *ctx );
+
+/**********************************************************************************************************************/
 
 static void
 ISaWMan_Destruct( ISaWMan *thiz )
 {
+     unsigned int  i;
      ISaWMan_data *data = thiz->priv;
 
-     (void) data;
+     for (i=0; i<data->num_tiers; i++) {
+          dfb_updates_deinit( &data->tiers[i].updates );
+
+          if (data->tiers[i].attached)
+               fusion_reactor_detach( data->tiers[i].tier->reactor, &data->tiers[i].reaction );
+     }
+
+     pthread_mutex_destroy( &data->lock );
+     pthread_cond_destroy( &data->cond );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
+/**********************************************************************************************************************/
 
 static DirectResult
 ISaWMan_AddRef( ISaWMan *thiz )
@@ -69,6 +84,8 @@ ISaWMan_Release( ISaWMan *thiz )
 
      return DFB_OK;
 }
+
+/**********************************************************************************************************************/
 
 static DirectResult
 ISaWMan_Start( ISaWMan    *thiz,
@@ -228,7 +245,7 @@ ISaWMan_CreateManager( ISaWMan                  *thiz,
      if (callbacks->WindowAdded) {
           SaWManWindow     *window;
           SaWManWindowInfo *info;
-          
+
           info = &sawman->callback.info;
           direct_list_foreach (window, sawman->windows) {
                D_MAGIC_ASSERT( window, SaWManWindow );
@@ -247,16 +264,75 @@ out:
      return ret;
 }
 
+static DirectResult
+ISaWMan_GetUpdates( ISaWMan                *thiz,
+                    DFBWindowStackingClass  stacking_class,
+                    DFBRegion              *ret_updates,
+                    unsigned int           *ret_num )
+{
+     unsigned int i;
+
+     DIRECT_INTERFACE_GET_DATA( ISaWMan )
+
+     if (!ret_updates || !ret_num)
+          return DFB_INVARG;
+
+     pthread_mutex_lock( &data->lock );
+
+     for (i=0; i<data->num_tiers; i++) {
+          if (data->tiers[i].tier->classes & (1 << stacking_class)) {
+               if (!data->tiers[i].attached) {
+                    fusion_reactor_attach_channel( data->tiers[i].tier->reactor,
+                                                   SAWMAN_TIER_UPDATE, ISaWMan_Tier_Update, data, &data->tiers[i].reaction );
+
+                    data->tiers[i].attached = true;
+               }
+
+               while (!data->tiers[i].updates.num_regions) {
+                    pthread_cond_wait( &data->cond, &data->lock );
+               }
+
+               direct_memcpy( ret_updates, data->tiers[i].updates.regions, sizeof(DFBRegion) * data->tiers[i].updates.num_regions );
+
+               *ret_num = data->tiers[i].updates.num_regions;
+
+               dfb_updates_reset( &data->tiers[i].updates );
+
+               break;
+          }
+     }
+
+     pthread_mutex_unlock( &data->lock );
+
+     return DFB_OK;
+}
+
+/**********************************************************************************************************************/
+
 DirectResult
 ISaWMan_Construct( ISaWMan       *thiz,
                    SaWMan        *sawman,
                    SaWManProcess *process )
 {
+     SaWManTier *tier;
+
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, ISaWMan )
 
      data->ref     = 1;
      data->sawman  = sawman;
      data->process = process;
+
+     pthread_mutex_init( &data->lock, NULL );
+     pthread_cond_init( &data->cond, NULL );
+
+     direct_list_foreach (tier, sawman->tiers) {
+          data->tiers[data->num_tiers].tier = tier;
+
+          dfb_updates_init( &data->tiers[data->num_tiers].updates, data->tiers[data->num_tiers].updates_regions,
+                            D_ARRAY_SIZE(data->tiers[data->num_tiers].updates_regions) );
+
+          data->num_tiers++;
+     }
 
      thiz->AddRef         = ISaWMan_AddRef;
      thiz->Release        = ISaWMan_Release;
@@ -264,7 +340,35 @@ ISaWMan_Construct( ISaWMan       *thiz,
      thiz->Stop           = ISaWMan_Stop;
      thiz->ReturnKeyEvent = ISaWMan_ReturnKeyEvent;
      thiz->CreateManager  = ISaWMan_CreateManager;
+     thiz->GetUpdates     = ISaWMan_GetUpdates;
 
      return DFB_OK;
 }
 
+/**********************************************************************************************************************/
+
+static ReactionResult
+ISaWMan_Tier_Update( const void *msg_data,
+                     void       *ctx )
+{
+     int                     i, n;
+     const SaWManTierUpdate *update = msg_data;
+     ISaWMan_data           *data   = ctx;
+
+     pthread_mutex_lock( &data->lock );
+
+     for (i=0; i<data->num_tiers; i++) {
+          if (data->tiers[i].tier->classes == update->classes) {
+               for (n=0; n<update->num_regions; n++)
+                    dfb_updates_add( &data->tiers[i].updates, &update->regions[n] );
+
+               break;
+          }
+     }
+
+     pthread_mutex_unlock( &data->lock );
+
+     pthread_cond_broadcast( &data->cond );
+
+     return RS_OK;
+}

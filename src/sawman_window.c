@@ -40,6 +40,7 @@
 #include <core/palette.h>
 #include <core/screen.h>
 #include <core/windows_internal.h>
+#include <core/wm.h>
 
 #include <gfx/clip.h>
 #include <gfx/convert.h>
@@ -59,6 +60,7 @@
 D_DEBUG_DOMAIN( SaWMan_Update,   "SaWMan/Update",   "SaWMan window manager updates" );
 D_DEBUG_DOMAIN( SaWMan_Geometry, "SaWMan/Geometry", "SaWMan window manager geometry" );
 D_DEBUG_DOMAIN( SaWMan_Stacking, "SaWMan/Stacking", "SaWMan window manager stacking" );
+D_DEBUG_DOMAIN( SaWMan_Cursor,   "SaWMan/Cursor",   "SaWMan window manager cursor" );
 
 /**********************************************************************************************************************/
 
@@ -123,6 +125,8 @@ sawman_switch_focus( SaWMan       *sawman,
      }
 
      if (to) {
+          CoreWindowStack *stack   = ((SaWManTier*) sawman->tiers)->stack;
+          u8               opacity = (to->window->config.cursor_flags & DWCF_INVISIBLE) ? 0x00 : 0xff;
 
 #ifndef OLD_COREWINDOWS_STRUCTURE
           CoreWindow *window = to->window;
@@ -151,6 +155,13 @@ sawman_switch_focus( SaWMan       *sawman,
 
           if (sawman_window_border( to ))
                sawman_update_window( sawman, to, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
+
+
+          if (stack->cursor.opacity != opacity) {
+               stack->cursor.opacity = opacity;
+
+               dfb_wm_update_cursor( stack, CCUF_OPACITY );
+          }
      }
 
      sawman->focused_window = to;
@@ -572,12 +583,6 @@ sawman_withdraw_window( SaWMan       *sawman,
      window = sawwin->window;
      D_MAGIC_COREWINDOW_ASSERT( window );
 
-     /* Make sure window is inserted. */
-     if (!(sawwin->flags & SWMWF_INSERTED)) {
-          D_BUG( "window %d not inserted", window->id );
-          return DFB_BUG;
-     }
-
      /* No longer be the 'entered window'. */
      if (sawman->entered_window == sawwin)
           sawman->entered_window = NULL;
@@ -642,7 +647,7 @@ sawman_withdraw_window( SaWMan       *sawman,
      }
 
      /* Hide window. */
-     if (SAWMAN_VISIBLE_WINDOW(window)) {
+     if (SAWMAN_VISIBLE_WINDOW(window) && (sawwin->flags & SWMWF_INSERTED)) {
           window->config.opacity = 0;
 
           sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_FORCE_INVISIBLE | SWMUF_UPDATE_BORDER );
@@ -921,6 +926,7 @@ sawman_set_opacity( SaWMan       *sawman,
                     u8            opacity )
 {
      u8          old;
+     StackData  *data;
      CoreWindow *window;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
@@ -929,6 +935,7 @@ sawman_set_opacity( SaWMan       *sawman,
      D_ASSERT( sawwin->stack != NULL );
      D_ASSERT( sawwin->window != NULL );
 
+     data   = sawwin->stack_data;
      window = sawwin->window;
      old    = window->config.opacity;
 
@@ -945,7 +952,7 @@ sawman_set_opacity( SaWMan       *sawman,
                if (old && !opacity) {
                     /* Possibly switch focus to window now under the cursor */
                     if (sawman->focused_window == sawwin)
-                         sawman_update_focus( sawman );
+                         sawman_update_focus( sawman, data->stack, data->stack->cursor.x, data->stack->cursor.y );
 
                     sawman_withdraw_window( sawman, sawwin );
                }
@@ -955,15 +962,85 @@ sawman_set_opacity( SaWMan       *sawman,
      return DFB_OK;
 }
 
+DirectResult
+sawman_window_set_cursor_flags( SaWMan                *sawman,
+                                SaWManWindow          *sawwin,
+                                DFBWindowCursorFlags   flags )
+{
+     StackData       *data;
+     CoreWindowStack *stack;
+     CoreWindow      *window;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( sawwin, SaWManWindow );
+     D_ASSERT( sawwin->stack_data != NULL );
+     D_ASSERT( sawwin->stack != NULL );
+     D_ASSERT( sawwin->window != NULL );
+
+     data   = sawwin->stack_data;
+     stack  = sawwin->stack;
+     window = sawwin->window;
+
+     if (window->config.cursor_flags != flags) {
+          window->config.cursor_flags = flags;
+
+          if (sawwin == sawman->focused_window) {
+               CoreCursorUpdateFlags update  = CCUF_NONE;
+               u8                    opacity = (flags & DWCF_INVISIBLE) ? 0x00 : 0xff;
+
+               if (!(flags & DWCF_UNCLIPPED)) {
+                    int cx = stack->cursor.x;
+                    int cy = stack->cursor.y;
+
+                    if (cx < 0)
+                         cx = 0;
+                    else if (cx >= sawman->resolution.w)
+                         cx = sawman->resolution.w - 1;
+
+                    if (cy < 0)
+                         cy = 0;
+                    else if (cy >= sawman->resolution.h)
+                         cy = sawman->resolution.h - 1;
+
+                    if (cx != stack->cursor.x || cy != stack->cursor.y) {
+                         D_DEBUG_AT( SaWMan_Cursor, "  -> Cursor clipped %d,%d -> %d,%d\n",
+                                     stack->cursor.x, stack->cursor.y, cx, cy );
+                                    printf( "===JK sawman  -> Cursor clipped %d,%d -> %d,%d\n",
+                                     stack->cursor.x, stack->cursor.y, cx, cy );
+
+                         stack->cursor.x = cx;
+                         stack->cursor.y = cy;
+
+                         update |= CCUF_POSITION;
+                    }
+               }
+
+               if (stack->cursor.opacity != opacity) {
+                    stack->cursor.opacity = opacity;
+
+                    update |= CCUF_OPACITY;
+               }
+
+               if (update)
+                    dfb_wm_update_cursor( stack, update );
+          }
+     }
+
+     return DFB_OK;
+}
+
 bool
-sawman_update_focus( SaWMan *sawman )
+sawman_update_focus( SaWMan          *sawman,
+                     CoreWindowStack *stack,
+                     int              x,
+                     int              y )
 {
      D_MAGIC_ASSERT( sawman, SaWMan );
 
      /* if pointer is not grabbed */
      if (!sawman->pointer_window) {
           SaWManWindow *before = sawman->entered_window;
-          SaWManWindow *after  = sawman_window_at_pointer( sawman, -1, -1 );
+          SaWManWindow *after  = sawman_window_at_pointer( sawman, stack, x, y );
 
           /* and the window under the cursor is another one now */
           if (before != after) {
@@ -975,8 +1052,8 @@ sawman_update_focus( SaWMan *sawman )
                     D_ASSERT( before->window != NULL );
 
                     we.type = DWET_LEAVE;
-                    we.x    = sawman->stack->cursor.x - before->bounds.x;
-                    we.y    = sawman->stack->cursor.y - before->bounds.y;
+
+                    sawman_window_get_cursor_position( sawman, stack, before, &we.x, &we.y, &we.cx, &we.cy );
 
                     sawman_post_event( sawman, before, &we );
                }
@@ -989,8 +1066,8 @@ sawman_update_focus( SaWMan *sawman )
                     D_ASSERT( after->window != NULL );
 
                     we.type = DWET_ENTER;
-                    we.x    = sawman->stack->cursor.x - after->bounds.x;
-                    we.y    = sawman->stack->cursor.y - after->bounds.y;
+
+                    sawman_window_get_cursor_position( sawman, stack, after, &we.x, &we.y, &we.cx, &we.cy );
 
                     sawman_post_event( sawman, after, &we );
                }
@@ -1006,17 +1083,19 @@ sawman_update_focus( SaWMan *sawman )
 }
 
 SaWManWindow*
-sawman_window_at_pointer( SaWMan *sawman,
-                          int     x,
-                          int     y )
+sawman_window_at_pointer( SaWMan          *sawman,
+                          CoreWindowStack *stack,
+                          int              x,
+                          int              y )
 {
      int           i;
      SaWManWindow *sawwin;
      CoreWindow   *window;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
+     D_ASSERT( stack != NULL );
 
-     if (!sawman->stack->cursor.enabled) {
+     if (!stack->cursor.enabled) {
           fusion_vector_foreach_reverse (sawwin, i, sawman->layout) {
                D_MAGIC_ASSERT( sawwin, SaWManWindow );
                window = sawwin->window;
@@ -1030,22 +1109,94 @@ sawman_window_at_pointer( SaWMan *sawman,
      }
 
      if (x < 0)
-          x = sawman->stack->cursor.x;
+          x = stack->cursor.x;
      if (y < 0)
-          y = sawman->stack->cursor.y;
+          y = stack->cursor.y;
 
      fusion_vector_foreach_reverse (sawwin, i, sawman->layout) {
+          SaWManTier *tier;
+          int         tx, ty;
+
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
           window = sawwin->window;
           D_ASSERT( window != NULL );
 
+          /* Retrieve corresponding SaWManTier. */
+          tier = sawman_tier_by_class( sawman, sawwin->window->config.stacking );
+          D_MAGIC_ASSERT( tier, SaWManTier );
+
+          /* Convert to Tier coordinates */
+          tx = (s64) x * (s64) tier->size.w / (s64) sawman->resolution.w;
+          ty = (s64) y * (s64) tier->size.h / (s64) sawman->resolution.h;
+
           if (!(window->config.options & DWOP_GHOST) && window->config.opacity &&
-              x >= sawwin->bounds.x  &&  x < sawwin->bounds.x + sawwin->bounds.w &&
-              y >= sawwin->bounds.y  &&  y < sawwin->bounds.y + sawwin->bounds.h)
+              tx >= sawwin->bounds.x  &&  tx < sawwin->bounds.x + sawwin->bounds.w &&
+              ty >= sawwin->bounds.y  &&  ty < sawwin->bounds.y + sawwin->bounds.h)
                return sawwin;
      }
 
      return NULL;
+}
+
+void
+sawman_window_get_cursor_position( SaWMan          *sawman,
+                                   CoreWindowStack *stack,
+                                   SaWManWindow    *sawwin,
+                                   int             *ret_x,
+                                   int             *ret_y,
+                                   int             *ret_cx,
+                                   int             *ret_cy )
+{
+     int         x, y;
+     int         cx, cy;
+     int         sx, sy;
+     SaWManTier *tier;
+
+     D_DEBUG_AT( SaWMan_Cursor, "%s()\n", __func__ );
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( sawwin, SaWManWindow );
+     D_ASSERT( sawwin->window != NULL );
+
+     /* Retrieve corresponding SaWManTier. */
+     tier = sawman_tier_by_class( sawman, sawwin->window->config.stacking );
+     D_MAGIC_ASSERT( tier, SaWManTier );
+
+     x = stack->cursor.x;
+     y = stack->cursor.y;
+
+     /* Convert to Tier coordinates */
+     cx = (s64) x * (s64) tier->size.w / (s64) sawman->resolution.w;
+     cy = (s64) y * (s64) tier->size.h / (s64) sawman->resolution.h;
+
+     /* Subtract offset of Window within layout (tier coordinates) */
+     x = cx - sawwin->dst.x;
+     y = cy - sawwin->dst.y;
+
+     /* Convert to Window coordinates */
+     sx = sawwin->window->config.cursor_resolution.w ?: sawwin->src.w;
+     sy = sawwin->window->config.cursor_resolution.h ?: sawwin->src.h;
+
+     x = x * sx / sawwin->dst.w;
+     y = y * sy / sawwin->dst.h;
+
+     cx = cx * sx / sawwin->dst.w;
+     cy = cy * sy / sawwin->dst.h;
+
+     if (ret_x)
+          *ret_x = x;
+
+     if (ret_y)
+          *ret_y = y;
+
+     if (ret_cx)
+          *ret_cx = cx;
+
+     if (ret_cy)
+          *ret_cy = cy;
+
+     D_DEBUG_AT( SaWMan_Cursor, "  => %d,%d - %d,%d\n", x, y, cx, cy );
 }
 
 int

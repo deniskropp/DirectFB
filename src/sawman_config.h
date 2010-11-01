@@ -44,6 +44,13 @@ typedef struct {
      bool                  show_empty;  /* Don't hide layer when no window is visible. */
 
      unsigned int          flip_once_timeout;
+
+     struct {
+          bool                     hw;
+          DFBDisplayLayerID        layer_id;
+     }                     cursor;
+
+     DFBDimension          resolution;
 } SaWManConfig;
 
 

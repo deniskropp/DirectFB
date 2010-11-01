@@ -83,6 +83,7 @@ DFB_WINDOW_MANAGER( sawman )
 
 
 D_DEBUG_DOMAIN( SaWMan_WM      , "SaWMan/WM",       "SaWMan window manager module" );
+D_DEBUG_DOMAIN( SaWMan_Cursor,   "SaWMan/Cursor",   "SaWMan window manager cursor" );
 D_DEBUG_DOMAIN( SaWMan_Stacking, "SaWMan/Stacking", "SaWMan window manager stacking" );
 D_DEBUG_DOMAIN( SaWMan_FlipOnce, "SaWMan/FlipOnce", "SaWMan window manager flip once" );
 D_DEBUG_DOMAIN( SaWMan_Surface,  "SaWMan/Surface",  "SaWMan window manager surface" );
@@ -95,16 +96,6 @@ typedef struct {
      SaWMan                       *sawman;
      SaWManProcess                *process;
 } WMData;
-
-typedef struct {
-     int                           magic;
-
-     bool                          active;
-
-     SaWMan                       *sawman;
-
-     CoreWindowStack              *stack;
-} StackData;
 
 /**********************************************************************************************************************/
 
@@ -155,9 +146,9 @@ send_button_event( SaWMan              *sawman,
      D_ASSERT( window->surface != NULL );
 
      we.type   = (event->type == DIET_BUTTONPRESS) ? DWET_BUTTONDOWN : DWET_BUTTONUP;
-     we.x      = stack->cursor.x - sawwin->bounds.x;
-     we.y      = stack->cursor.y - sawwin->bounds.y;
      we.button = event->button;
+
+     sawman_window_get_cursor_position( sawman, stack, sawwin, &we.x, &we.y, &we.cx, &we.cy );
 
      if (window->config.options & DWOP_SCALE) {
           we.x = we.x * window->surface->config.size.w / sawwin->bounds.w;
@@ -551,7 +542,7 @@ restack_window( SaWMan                 *sawman,
      /* In case of a sub window, the sub window vector is modified and the window reinserted */
      if (window->toplevel) {
           CoreWindow *toplevel = window->toplevel;
-          
+
           /* Get the old index. */
           old = fusion_vector_index_of( &toplevel->subwindows, window );
           D_ASSERT( old >= 0 );
@@ -773,7 +764,7 @@ restack_window( SaWMan                 *sawman,
                     sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
                     sawman_insert_window( sawman, tmpsaw, NULL, false );
                     sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
-     
+
 #ifndef OLD_COREWINDOWS_STRUCTURE
                     /* Reinsert sub windows to ensure they're in order (above top level). */
                     fusion_vector_foreach (tmp, n, tmpsaw->window->subwindows) {
@@ -942,8 +933,8 @@ request_focus( SaWMan       *sawman,
           D_ASSERT( entered->window != NULL );
 
           we.type = DWET_LEAVE;
-          we.x    = stack->cursor.x - entered->bounds.x;
-          we.y    = stack->cursor.y - entered->bounds.y;
+
+          sawman_window_get_cursor_position( sawman, stack, entered, &we.x, &we.y, &we.cx, &we.cy );
 
           sawman_post_event( sawman, entered, &we );
 
@@ -1020,7 +1011,14 @@ handle_button_press( CoreWindowStack     *stack,
      if (!stack->cursor.enabled)
           return DFB_OK;
 
-     sawwin = sawman->pointer_window ? sawman->pointer_window : sawman->entered_window;
+     if (sawman->focused_window && sawman->focused_window->window->config.cursor_flags & DWCF_EXPLICIT)
+          sawwin = sawman->focused_window;
+     else if (sawman->pointer_window)
+          sawwin = sawman->pointer_window;
+     else {
+          sawwin = sawman->entered_window;
+     }
+
      if (sawwin)
           send_button_event( sawman, sawwin, stack, event );
 
@@ -1046,11 +1044,84 @@ handle_button_release( CoreWindowStack     *stack,
      if (!stack->cursor.enabled)
           return DFB_OK;
 
-     sawwin = sawman->pointer_window ? sawman->pointer_window : sawman->entered_window;
+     if (sawman->focused_window && sawman->focused_window->window->config.cursor_flags & DWCF_EXPLICIT)
+          sawwin = sawman->focused_window;
+     else if (sawman->pointer_window)
+          sawwin = sawman->pointer_window;
+     else {
+          sawwin = sawman->entered_window;
+     }
+
      if (sawwin)
           send_button_event( sawman, sawwin, stack, event );
 
      return DFB_OK;
+}
+
+static void
+post_motion_event( SaWMan              *sawman,
+                   SaWManWindow        *sawwin,
+                   int                  x,   // SaWMan coordinates
+                   int                  y,
+                   DFBWindowEventFlags  flags )
+{
+     SaWManTier     *tier;
+     DFBWindowEvent  we;
+     int             cx, cy;
+     int             sx, sy;
+
+     D_DEBUG_AT( SaWMan_WM, "%s( %p, %p, %d,%d, 0x%04x )\n", __FUNCTION__, sawman, sawwin, x, y, flags );
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( sawwin, SaWManWindow );
+     D_ASSERT( sawwin->window != NULL );
+
+     /* Retrieve corresponding SaWManTier. */
+     tier = sawman_tier_by_class( sawman, sawwin->window->config.stacking );
+     D_MAGIC_ASSERT( tier, SaWManTier );
+
+     D_DEBUG_AT( SaWMan_WM, "  -> Tier with resolution %dx%d\n", tier->size.w, tier->size.h );
+
+     /* Convert to Tier coordinates */
+     cx = (s64) x * (s64) tier->size.w / (s64) sawman->resolution.w;
+     cy = (s64) y * (s64) tier->size.h / (s64) sawman->resolution.h;
+
+     D_DEBUG_AT( SaWMan_WM, "  => %d, %d\n", cx, cy );
+
+     /* Subtract offset of Window within layout (tier coordinates) */
+     if (!(flags & DWEF_RELATIVE)) {
+          D_DEBUG_AT( SaWMan_WM, "  -> Window at offset %d,%d\n", sawwin->dst.x, sawwin->dst.y );
+
+          x = cx - sawwin->dst.x;
+          y = cy - sawwin->dst.y;
+
+          D_DEBUG_AT( SaWMan_WM, "  => %d, %d\n", x, y );
+     }
+     else {
+          x = cx;
+          y = cy;
+     }
+
+     sx = sawwin->window->config.cursor_resolution.w ?: sawwin->src.w;
+     sy = sawwin->window->config.cursor_resolution.h ?: sawwin->src.h;
+
+     D_DEBUG_AT( SaWMan_WM, "  -> Window with scaling %dx%d -> %dx%d\n", sawwin->dst.w, sawwin->dst.h, sx, sy );
+
+     /* Convert to Window coordinates */
+     x = x * sx / sawwin->dst.w;
+     y = y * sy / sawwin->dst.h;
+
+     D_DEBUG_AT( SaWMan_WM, "  => %d, %d\n", x, y );
+
+     /* Fill event structure */
+     we.type  = DWET_MOTION;
+     we.flags = flags;
+     we.x     = x;
+     we.y     = y;
+     we.cx    = cx;
+     we.cy    = cy;
+
+     sawman_post_event( sawman, sawwin, &we );
 }
 
 static void
@@ -1059,51 +1130,108 @@ handle_motion( CoreWindowStack *stack,
                int              dx,
                int              dy )
 {
-     int            old_cx, old_cy;
-     DFBWindowEvent we;
+     SaWManWindow         *sawwin = NULL;
+     DFBWindowCursorFlags  flags  = DWCF_NONE;
+     int                   cx, cy;
 
      D_ASSERT( stack != NULL );
      D_MAGIC_ASSERT( sawman, SaWMan );
+
+     D_DEBUG_AT( SaWMan_WM, "%s( %p, %p, %d,%d )\n", __FUNCTION__, stack, sawman, dx, dy );
+     D_DEBUG_AT( SaWMan_WM, "  -> SaWMan with resolution %dx%d\n", sawman->resolution.w, sawman->resolution.h );
 
      if (!stack->cursor.enabled)
           return;
 
 
-     old_cx = stack->cursor.x;
-     old_cy = stack->cursor.y;
-
-     dfb_windowstack_cursor_warp( stack, old_cx + dx, old_cy + dy );
-
-     dx = stack->cursor.x - old_cx;
-     dy = stack->cursor.y - old_cy;
-
-     if (!dx && !dy)
-          return;
+     cx = stack->cursor.x + dx;
+     cy = stack->cursor.y + dy;
 
 
-     if (sawman->pointer_window) {
-          SaWManWindow *sawwin = sawman->pointer_window;
+     if (sawman->focused_window && sawman->focused_window->window->config.cursor_flags & DWCF_EXPLICIT)
+          sawwin = sawman->focused_window;
+     else if (sawman->pointer_window)
+          sawwin = sawman->pointer_window;
+     else {
+          sawman_update_focus( sawman, stack, cx, cy );
 
-          D_MAGIC_ASSERT( sawwin, SaWManWindow );
-          D_ASSERT( sawwin->window != NULL );
-
-          we.type = DWET_MOTION;
-          we.x    = stack->cursor.x - sawwin->bounds.x;
-          we.y    = stack->cursor.y - sawwin->bounds.y;
-
-          sawman_post_event( sawman, sawwin, &we );
+          sawwin = sawman->entered_window;
      }
-     else if (!sawman_update_focus( sawman ) && sawman->entered_window) {
-          SaWManWindow *sawwin = sawman->entered_window;
 
-          D_MAGIC_ASSERT( sawwin, SaWManWindow );
-          D_ASSERT( sawwin->window != NULL );
+     if (sawwin)
+          flags = sawwin->window->config.cursor_flags;
 
-          we.type = DWET_MOTION;
-          we.x    = stack->cursor.x - sawwin->bounds.x;
-          we.y    = stack->cursor.y - sawwin->bounds.y;
+     if (flags & DWCF_TRAPPED) {
+          SaWManTier *tier;
 
-          sawman_post_event( sawman, sawwin, &we );
+          int x1 = sawwin->dst.x;
+          int y1 = sawwin->dst.y;
+          int x2 = sawwin->dst.x + sawwin->dst.w;
+          int y2 = sawwin->dst.y + sawwin->dst.h;
+
+          /* Retrieve corresponding SaWManTier. */
+          tier = sawman_tier_by_class( sawman, sawwin->window->config.stacking );
+          D_MAGIC_ASSERT( tier, SaWManTier );
+
+          D_DEBUG_AT( SaWMan_WM, "  -> Tier with resolution %dx%d\n", tier->size.w, tier->size.h );
+
+          D_DEBUG_AT( SaWMan_WM, "  -> Trapping in %d,%d-%dx%d\n", x1, y1, x2 - x1, y2 - y1 );
+
+          x1 = (s64) x1 * (s64) sawman->resolution.w / (s64) tier->size.w;
+          y1 = (s64) y1 * (s64) sawman->resolution.h / (s64) tier->size.h;
+          x2 = (s64) x2 * (s64) sawman->resolution.w / (s64) tier->size.w;
+          y2 = (s64) y2 * (s64) sawman->resolution.h / (s64) tier->size.h;
+
+          D_DEBUG_AT( SaWMan_WM, "  -> Scaled to %d,%d-%dx%d\n", x1, y1, x2 - x1, y2 - y1 );
+
+          if (cx < x1)
+               cx = x1;
+          else if (cx > x2)
+               cx = x2;
+
+          if (cy < y1)
+               cy = y1;
+          else if (cy > y2)
+               cy = y2;
+
+          D_DEBUG_AT( SaWMan_WM, "  -> Cursor trapped at %d,%d\n", cx, cy );
+     }
+
+     if (flags & DWCF_UNCLIPPED) {
+          D_DEBUG_AT( SaWMan_WM, "  -> Cursor unclipped at %d,%d\n", cx, cy );
+     }
+     else {
+          if (cx < 0)
+               cx = 0;
+          else if (cx >= sawman->resolution.w)
+               cx = sawman->resolution.w - 1;
+
+          if (cy < 0)
+               cy = 0;
+          else if (cy >= sawman->resolution.h)
+               cy = sawman->resolution.h - 1;
+
+          D_DEBUG_AT( SaWMan_WM, "  -> Cursor clipped at %d,%d\n", cx, cy );
+     }
+
+
+     if (flags & DWCF_FIXED)
+          D_DEBUG_AT( SaWMan_WM, "  -> Cursor is fixed at %d,%d\n", stack->cursor.x, stack->cursor.y );
+     else if (cx != stack->cursor.x || cy != stack->cursor.y) {
+          D_DEBUG_AT( SaWMan_WM, "  -> Cursor moved %d,%d -> %d,%d\n", stack->cursor.x, stack->cursor.y, cx, cy );
+
+          stack->cursor.x = cx;
+          stack->cursor.y = cy;
+
+          dfb_wm_update_cursor( stack, CCUF_POSITION );
+     }
+
+
+     if (sawwin) {
+          if (flags & DWCF_RELATIVE)
+               post_motion_event( sawman, sawwin, dx, dy, DWEF_RELATIVE );
+          else
+               post_motion_event( sawman, sawwin, cx, cy, DWEF_NONE );
      }
 }
 
@@ -1121,16 +1249,22 @@ handle_wheel( CoreWindowStack *stack,
      if (!stack->cursor.enabled)
           return;
 
-     sawwin = sawman->pointer_window ? sawman->pointer_window : sawman->entered_window;
+     if (sawman->focused_window && sawman->focused_window->window->config.cursor_flags & DWCF_EXPLICIT)
+          sawwin = sawman->focused_window;
+     else if (sawman->pointer_window)
+          sawwin = sawman->pointer_window;
+     else {
+          sawwin = sawman->entered_window;
+     }
 
      if (sawwin) {
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
           D_ASSERT( sawwin->window != NULL );
 
           we.type = DWET_WHEEL;
-          we.x    = stack->cursor.x - sawwin->bounds.x;
-          we.y    = stack->cursor.y - sawwin->bounds.y;
           we.step = dz;
+
+          sawman_window_get_cursor_position( sawman, stack, sawwin, &we.x, &we.y, &we.cx, &we.cy );
 
           sawman_post_event( sawman, sawwin, &we );
      }
@@ -1163,11 +1297,11 @@ handle_axis_motion( CoreWindowStack     *stack,
 
           switch (event->axis) {
                case DIAI_X:
-                    tier->cursor_dx += rel;
+                    sawman->cursor.dx += rel;
                     break;
 
                case DIAI_Y:
-                    tier->cursor_dy += rel;
+                    sawman->cursor.dy += rel;
                     break;
 
                case DIAI_Z:
@@ -1179,13 +1313,28 @@ handle_axis_motion( CoreWindowStack     *stack,
           }
      }
      else if (event->flags & DIEF_AXISABS) {
+          int axismin = 0;
+          int axisabs = event->axisabs;
+
+          if (event->flags & DIEF_MIN) {
+               axismin = event->min;
+
+               axisabs -= axismin;
+          }
+
           switch (event->axis) {
                case DIAI_X:
-                    tier->cursor_dx = event->axisabs - stack->cursor.x;
+                    if (event->flags & DIEF_MAX)
+                         axisabs = (s64) axisabs * (s64) sawman->resolution.w / (s64) (event->max - axismin + 1);
+
+                    sawman->cursor.dx = axisabs - stack->cursor.x;
                     break;
 
                case DIAI_Y:
-                    tier->cursor_dy = event->axisabs - stack->cursor.y;
+                    if (event->flags & DIEF_MAX)
+                         axisabs = (s64) axisabs * (s64) sawman->resolution.h / (s64) (event->max - axismin + 1);
+
+                    sawman->cursor.dy = axisabs - stack->cursor.y;
                     break;
 
                default:
@@ -1193,11 +1342,11 @@ handle_axis_motion( CoreWindowStack     *stack,
           }
      }
 
-     if (!(event->flags & DIEF_FOLLOW) && (tier->cursor_dx || tier->cursor_dy)) {
-          handle_motion( stack, sawman, tier->cursor_dx, tier->cursor_dy );
+     if (!(event->flags & DIEF_FOLLOW) && (sawman->cursor.dx || sawman->cursor.dy)) {
+          handle_motion( stack, sawman, sawman->cursor.dx, sawman->cursor.dy );
 
-          tier->cursor_dx = 0;
-          tier->cursor_dy = 0;
+          sawman->cursor.dx = 0;
+          sawman->cursor.dy = 0;
      }
 
      return DFB_OK;
@@ -1286,6 +1435,7 @@ static DFBResult
 wm_post_init( void *wm_data, void *shared_data )
 {
      DFBResult   ret;
+     WMData     *wmdata = wm_data;
      SaWMan     *sawman = shared_data;
      SaWManTier *tier;
 
@@ -1296,6 +1446,8 @@ wm_post_init( void *wm_data, void *shared_data )
      ret = sawman_lock( sawman );
      if (ret)
           return ret;
+
+     sawman_post_init( sawman, wmdata->world );
 
      direct_list_foreach (tier, sawman->tiers) {
           const SaWManBorderInit *border;
@@ -1837,7 +1989,7 @@ wm_window_at( CoreWindowStack  *stack,
           return DFB_UNSUPPORTED;
      }
 
-     sawwin = sawman_window_at_pointer( data->sawman, x, y );
+     sawwin = sawman_window_at_pointer( data->sawman, stack, x, y );
 
      *ret_window = sawwin ? sawwin->window : NULL;
 
@@ -2350,6 +2502,8 @@ wm_remove_window( CoreWindowStack *stack,
                /* Actually remove the window from the stack. */
                if (sawwin->flags & SWMWF_INSERTED)
                     sawman_remove_window( sawman, sawwin );
+               else
+                    sawman_withdraw_window( sawman, sawwin );
 
                /* Remove from parent window. */
                if (sawwin->parent) {
@@ -2530,6 +2684,8 @@ wm_set_window_config( CoreWindow             *window,
           | (flags & CWCF_COLOR_KEY    ? SWMCF_COLOR_KEY    : 0)
           | (flags & CWCF_OPAQUE       ? SWMCF_OPAQUE       : 0)
           | (flags & CWCF_ASSOCIATION  ? SWMCF_ASSOCIATION  : 0)
+          | (flags & CWCF_CURSOR_FLAGS ? SWMCF_CURSOR_FLAGS : 0)
+          | (flags & CWCF_CURSOR_RESOLUTION ? SWMCF_CURSOR_RESOLUTION : 0)
           | (flags & CWCF_SRC_GEOMETRY ? SWMCF_SRC_GEOMETRY : 0)
           | (flags & CWCF_DST_GEOMETRY ? SWMCF_DST_GEOMETRY : 0)
           | (flags & CWCF_KEY_SELECTION? SWMCF_KEY_SELECTION: 0);
@@ -2562,6 +2718,8 @@ wm_set_window_config( CoreWindow             *window,
                     | (f & SWMCF_KEY_SELECTION? CWCF_KEY_SELECTION: 0)
                     | (f & SWMCF_OPAQUE       ? CWCF_OPAQUE       : 0)
                     | (f & SWMCF_ASSOCIATION  ? CWCF_ASSOCIATION  : 0)
+                    | (f & SWMCF_CURSOR_FLAGS ? CWCF_CURSOR_FLAGS : 0)
+                    | (f & SWMCF_CURSOR_RESOLUTION ? CWCF_CURSOR_RESOLUTION : 0)
                     | (f & SWMCF_SRC_GEOMETRY ? CWCF_SRC_GEOMETRY : 0)
                     | (f & SWMCF_DST_GEOMETRY ? CWCF_DST_GEOMETRY : 0);
                }
@@ -2612,6 +2770,11 @@ wm_set_window_config( CoreWindow             *window,
                }
 
                sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER | SWMUF_FORCE_COMPLETE );
+          }
+
+          if ( (config->options ^ window->config.options) & DWOP_INPUTONLY ) {
+               window->config.options = config->options;
+               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_NONE );
           }
 
           if ( (config->options ^ window->config.options) & DWOP_INPUTONLY ) {
@@ -2675,7 +2838,7 @@ wm_set_window_config( CoreWindow             *window,
           sawman_set_opacity( sawman, sawwin, config->opacity );
 
           /* Possibly switch focus to window now under the cursor */
-          sawman_update_focus( sawman );
+          sawman_update_focus( sawman, stack, stack->cursor.x, stack->cursor.y );
      }
 
      if (flags & CWCF_KEY_SELECTION) {
@@ -2811,6 +2974,13 @@ wm_set_window_config( CoreWindow             *window,
      if (flags & (CWCF_POSITION | CWCF_SIZE | CWCF_OPACITY | CWCF_OPTIONS))
           sawman_update_visible( sawman );
 
+     /* Update cursor flags? */
+     if (flags & CWCF_CURSOR_FLAGS)
+          sawman_window_set_cursor_flags( sawman, sawwin, config->cursor_flags );
+
+     if (flags & CWCF_CURSOR_RESOLUTION)
+          window->config.cursor_resolution = config->cursor_resolution;
+
      sawman_process_updates( sawman, DSFLIP_NONE );
 
      /* Unlock SaWMan. */
@@ -2882,7 +3052,7 @@ wm_restack_window( CoreWindow             *window,
      }
 
      /* Possibly switch focus to window now under the cursor */
-     sawman_update_focus( sawman );
+     sawman_update_focus( sawman, stack, stack->cursor.x, stack->cursor.y );
 
      sawman_update_visible( sawman );
 
@@ -3108,6 +3278,91 @@ wm_begin_updates( CoreWindow      *window,
      return DFB_OK;
 }
 
+static DFBResult
+wm_set_cursor_position( CoreWindow             *window,
+                        void                   *wm_data,
+                        void                   *window_data,
+                        int                     x,
+                        int                     y )
+{
+     DFBResult        ret;
+     WMData          *wmdata = wm_data;
+     SaWMan          *sawman;
+     SaWManTier      *tier;
+     SaWManWindow    *sawwin = window_data;
+     CoreWindowStack *stack;
+     int              sx, sy;
+
+     D_DEBUG_AT( SaWMan_WM, "%s( %p, %p, %p, %d,%d )\n", __FUNCTION__, window, wm_data, window_data, x, y );
+
+     D_ASSERT( window != NULL );
+     D_ASSERT( wm_data != NULL );
+     D_ASSERT( window_data != NULL );
+     D_MAGIC_ASSERT( sawwin, SaWManWindow );
+
+     sawman = wmdata->sawman;
+     D_MAGIC_ASSERT( sawman, SaWMan );
+
+     stack = sawwin->stack;
+     D_ASSERT( stack != NULL );
+
+     /* Lock SaWMan. */
+     ret = sawman_lock( sawman );
+     if (ret)
+          return ret;
+
+     /* Retrieve corresponding SaWManTier. */
+     if (!sawman_tier_by_stack( sawman, stack, &tier )) {
+          sawman_unlock( sawman );
+          return DFB_UNSUPPORTED;
+     }
+
+     sx = sawwin->window->config.cursor_resolution.w ?: sawwin->src.w;
+     sy = sawwin->window->config.cursor_resolution.h ?: sawwin->src.h;
+
+     D_DEBUG_AT( SaWMan_WM, "  -> Window with scaling %dx%d -> %dx%d\n", sawwin->dst.w, sawwin->dst.h, sx, sy );
+
+     /* Convert to Tier coordinates */
+     x = x * sawwin->dst.w / sx + sawwin->dst.x;
+     y = y * sawwin->dst.h / sy + sawwin->dst.y;
+
+     D_DEBUG_AT( SaWMan_WM, "  => %d, %d\n", x, y );
+
+     D_DEBUG_AT( SaWMan_WM, "  -> Tier with resolution %dx%d\n", tier->size.w, tier->size.h );
+
+     /* Convert to SaWMan coordinates */
+     x = (s64) x * (s64) sawman->resolution.w / (s64) tier->size.w;
+     y = (s64) y * (s64) sawman->resolution.h / (s64) tier->size.h;
+
+     D_DEBUG_AT( SaWMan_WM, "  => %d, %d\n", x, y );
+
+     if (x < 0)
+          x = 0;
+     else if (x >= sawman->resolution.w)
+          x = sawman->resolution.w - 1;
+
+     if (y < 0)
+          y = 0;
+     else if (y >= sawman->resolution.h)
+          y = sawman->resolution.h - 1;
+
+     D_DEBUG_AT( SaWMan_WM, "  -> Cursor clipped at %d,%d\n", x, y );
+
+     if (x != stack->cursor.x || y != stack->cursor.y) {
+          D_DEBUG_AT( SaWMan_WM, "  -> Cursor moved %d,%d -> %d,%d\n", stack->cursor.x, stack->cursor.y, x, y );
+
+          stack->cursor.x = x;
+          stack->cursor.y = y;
+
+          dfb_wm_update_cursor( stack, CCUF_POSITION );
+     }
+
+     /* Unlock SaWMan. */
+     sawman_unlock( sawman );
+
+     return ret;
+}
+
 /**********************************************************************************************************************/
 
 static DFBResult
@@ -3172,6 +3427,7 @@ wm_update_window( CoreWindow          *window,
      SaWManWindow    *sawwin = window_data;
      SaWManTier      *tier;
      CoreWindowStack *stack;
+     DFBWindowEvent   event;
 
      D_ASSERT( window != NULL );
      D_ASSERT( wm_data != NULL );
@@ -3193,6 +3449,15 @@ wm_update_window( CoreWindow          *window,
           D_DEBUG_AT( SaWMan_WM, "%s( %p, %p, %p, <0,0-%dx%d> )\n", __FUNCTION__,
                       window, wm_data, window_data, sawwin->bounds.w, sawwin->bounds.h );
 
+     event.flags = DWEF_NONE;
+     event.type  = DWET_UPDATE;
+     event.x     = region->x1;
+     event.y     = region->y1;
+     event.w     = region->x2 - region->x1;
+     event.h     = region->y2 - region->y1;
+
+     sawman_post_event( sawman, sawwin, &event );
+
      if (!SAWMAN_VISIBLE_WINDOW(window))
           return DFB_OK;
 
@@ -3207,6 +3472,8 @@ wm_update_window( CoreWindow          *window,
           sawman_unlock( sawman );
           return DFB_OK;
      }
+
+     sawwin->flags &= ~SWMWF_UPDATING;
 
      /* Retrieve corresponding SaWManTier. */
      tier = sawman_tier_by_class( sawman, window->config.stacking );
@@ -3268,20 +3535,50 @@ wm_update_window( CoreWindow          *window,
                               /* Update cursor? */
                               cursor_visible = tier->cursor_region;
                               if (tier->cursor_drawn && dfb_region_region_intersect( &cursor_visible, &reg )) {
-                                   DFBRectangle     rect = DFB_RECTANGLE_INIT_FROM_REGION( &cursor_visible );
-                                   CoreLayer       *layer;
+                                   DFBRectangle  rect  = DFB_RECTANGLE_INIT_FROM_REGION( &cursor_visible );
+                                   CoreLayer    *layer = dfb_layer_at( tier->layer_id );
+                                   CardState    *state = &layer->state;
+                                   int           x;
+                                   int           y;
+                                   DFBDimension  size;
 
-                                   layer = dfb_layer_at( tier->layer_id );
+                                   if (tier->single_mode) {
+                                        size.w = tier->single_width;
+                                        size.h = tier->single_height;
+                                   }
+                                   else {
+                                        size = tier->size;
+                                   }
+
+                                   x = (s64) stack->cursor.x * (s64) size.w / (s64) sawman->resolution.w;
+                                   y = (s64) stack->cursor.y * (s64) size.h / (s64) sawman->resolution.h;
 
                                    D_ASSUME( tier->cursor_bs_valid );
+
+                                   D_DEBUG_AT( SaWMan_Cursor, "  -> saving background under cursor (%d,%d-%dx%d)\n",
+                                               DFB_RECTANGLE_VALS(&rect) );
 
                                    dfb_gfx_copy_to( tier->region->surface, tier->cursor_bs, &rect,
                                                     rect.x - tier->cursor_region.x1,
                                                     rect.y - tier->cursor_region.y1, true );
 
-                                   sawman_draw_cursor( stack, &layer->state,
-                                                       tier->region->surface,
-                                                       &cursor_visible );
+
+                                   /* Set destination. */
+                                   state->destination  = tier->region->surface;
+                                   state->modified    |= SMF_DESTINATION;
+
+                                   /* Set clipping region. */
+                                   dfb_state_set_clip( state, &cursor_visible );
+
+                                   D_DEBUG_AT( SaWMan_Cursor, "  -> drawing cursor (%d,%d-%dx%d) at %d,%d\n",
+                                               DFB_RECTANGLE_VALS_FROM_REGION(&cursor_visible), x, y );
+
+                                   /* draw cursor */
+                                   sawman_draw_cursor( stack, state, tier->region->surface, &tier->cursor_region, x, y );
+
+                                   /* Reset destination. */
+                                   state->destination  = NULL;
+                                   state->modified    |= SMF_DESTINATION;
                               }
 
                               dfb_layer_region_flip_update( tier->region, &reg, flags );
@@ -3367,6 +3664,129 @@ wm_update_window( CoreWindow          *window,
 }
 
 static DFBResult
+update_hw_cursor( SaWMan                *sawman,
+                  CoreWindowStack       *stack,
+                  CoreCursorUpdateFlags  flags )
+{
+     DFBResult                   ret;
+     int                         x, y;
+     int                         mx, my;
+     CoreLayer                  *layer;
+     CoreLayerRegionConfig       config;
+     CoreLayerRegionConfigFlags  config_flags = CLRCF_NONE;
+
+     D_DEBUG_AT( SaWMan_Cursor, "%s( %p, %p, 0x%08x )\n", __FUNCTION__, sawman, stack, flags );
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_ASSERT( stack != NULL );
+
+     layer = dfb_layer_at( stack->context->layer_id );
+
+     dfb_screen_get_layer_dimension( layer->screen, layer, &mx, &my );
+
+     x = (s64) stack->cursor.x * (s64) mx / (s64) sawman->resolution.w;
+     y = (s64) stack->cursor.y * (s64) my / (s64) sawman->resolution.h;
+
+     D_DEBUG_AT( SaWMan_Cursor, "  -> position %4d,%4d (%d,%d)\n", x, y, stack->cursor.x, stack->cursor.y );
+
+     // FIXME: initial update flags from DirectFB are CCUF_ENABLE only!
+     if (!sawman->cursor.region->surface) {
+          flags |= CCUF_POSITION | CCUF_SIZE | CCUF_SHAPE;
+
+          config_flags = CLRCF_ALL;
+          config       = sawman->cursor.context->primary.config;
+     }
+
+
+     if (flags & CCUF_DISABLE) {
+          D_DEBUG_AT( SaWMan_Cursor, "  -> DISABLE\n" );
+
+          dfb_layer_region_disable( sawman->cursor.region );
+     }
+
+     if (flags & (CCUF_POSITION | CCUF_SIZE | CCUF_SHAPE)) {
+          if (flags & CCUF_POSITION)
+               D_DEBUG_AT( SaWMan_Cursor, "  -> POSITION %4d,%4d (hot %d,%d)\n",
+                           x, y, stack->cursor.hot.x, stack->cursor.hot.y );
+
+          if (flags & CCUF_SIZE)
+               D_DEBUG_AT( SaWMan_Cursor, "  -> SIZE     %4dx%4d\n",
+                           stack->cursor.size.w, stack->cursor.size.h );
+
+          config_flags |= CLRCF_DEST;
+
+          config.dest.x = x - stack->cursor.hot.x;
+          config.dest.y = y - stack->cursor.hot.y;
+          config.dest.w = stack->cursor.size.w;
+          config.dest.h = stack->cursor.size.h;
+     }
+
+     if (flags & CCUF_OPACITY) {
+          D_DEBUG_AT( SaWMan_Cursor, "  -> OPACITY  %d\n", stack->cursor.opacity );
+
+          config_flags |= CLRCF_OPACITY;
+
+          config.opacity = stack->cursor.opacity;
+     }
+
+     if (flags & CCUF_SHAPE) {
+          D_DEBUG_AT( SaWMan_Cursor, "  -> SHAPE (%dx%d %s, caps 0x%08x)\n",
+                      stack->cursor.surface->config.size.w,
+                      stack->cursor.surface->config.size.h,
+                      dfb_pixelformat_name( stack->cursor.surface->config.format ),
+                      stack->cursor.surface->config.caps );
+
+          config_flags |= CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_SURFACE_CAPS | CLRCF_SOURCE | CLRCF_FREEZE;
+
+          config.width        = stack->cursor.surface->config.size.w;
+          config.height       = stack->cursor.surface->config.size.h;
+          config.format       = stack->cursor.surface->config.format;
+          config.surface_caps = stack->cursor.surface->config.caps;
+
+          config.source.x = 0;
+          config.source.y = 0;
+          config.source.w = stack->cursor.surface->config.size.w;
+          config.source.h = stack->cursor.surface->config.size.h;
+     }
+
+     if (config_flags) {
+          D_DEBUG_AT( SaWMan_Cursor, "  -> reconfiguring... (flags 0x%08x)\n", config_flags );
+
+          ret = dfb_layer_region_set_configuration( sawman->cursor.region, &config, config_flags );
+          if (ret) {
+               D_DERROR( ret, "SaWMan/Cursor: Failed to reconfigure HW Cursor layer region!\n" );
+               return ret;
+          }
+
+          D_DEBUG_AT( SaWMan_Cursor, "  -> reconfiguring done.\n" );
+     }
+
+     if (flags & CCUF_SHAPE) {
+          ret = dfb_layer_region_set_surface( sawman->cursor.region, stack->cursor.surface );
+          if (ret) {
+               D_DERROR( ret, "SaWMan/Cursor: Failed to set HW Cursor layer surface!\n" );
+               return ret;
+          }
+     }
+
+     if (flags & CCUF_ENABLE) {
+          D_DEBUG_AT( SaWMan_Cursor, "  -> ENABLE\n" );
+
+          dfb_layer_region_enable( sawman->cursor.region );
+     }
+
+     if (flags & CCUF_SHAPE) {
+          D_DEBUG_AT( SaWMan_Cursor, "  -> updating region...\n" );
+
+          dfb_layer_region_flip_update( sawman->cursor.region, NULL, DSFLIP_NONE );
+
+          D_DEBUG_AT( SaWMan_Cursor, "  -> updating region done.\n" );
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
 wm_update_cursor( CoreWindowStack       *stack,
                   void                  *wm_data,
                   void                  *stack_data,
@@ -3382,8 +3802,13 @@ wm_update_cursor( CoreWindowStack       *stack,
      CoreSurface      *surface;
      SaWMan           *sawman;
      SaWManTier       *tier;
+     int               x;
+     int               y;
+     DFBDimension      size;
      DFBRegion         updates[2];
      int               updates_count = 0;
+
+     D_DEBUG_AT( SaWMan_Cursor, "%s( %p, %p, %p, 0x%08x )\n", __FUNCTION__, stack, wm_data, stack_data, flags );
 
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
@@ -3403,21 +3828,33 @@ wm_update_cursor( CoreWindowStack       *stack,
           return DFB_UNSUPPORTED;
      }
 
+     if (tier->single_mode) {
+          size.w = tier->single_width;
+          size.h = tier->single_height;
+     }
+     else {
+          size = tier->size;
+     }
+
+     x = (s64) stack->cursor.x * (s64) size.w / (s64) sawman->resolution.w;
+     y = (s64) stack->cursor.y * (s64) size.h / (s64) sawman->resolution.h;
+
+     D_DEBUG_AT( SaWMan_Cursor, "  -> position %4d,%4d (%d,%d)\n", x, y, stack->cursor.x, stack->cursor.y );
+
      old_region = tier->cursor_region;
 
      if (flags & (CCUF_ENABLE | CCUF_POSITION | CCUF_SIZE)) {
-          tier->cursor_bs_valid  = false;
-
-          tier->cursor_region.x1 = stack->cursor.x - stack->cursor.hot.x;
-          tier->cursor_region.y1 = stack->cursor.y - stack->cursor.hot.y;
+          tier->cursor_region.x1 = x - stack->cursor.hot.x;
+          tier->cursor_region.y1 = y - stack->cursor.hot.y;
           tier->cursor_region.x2 = tier->cursor_region.x1 + stack->cursor.size.w - 1;
           tier->cursor_region.y2 = tier->cursor_region.y1 + stack->cursor.size.h - 1;
 
-          if (!dfb_region_intersect( &tier->cursor_region, 0, 0, stack->width - 1, stack->height - 1 )) {
-               D_BUG( "invalid cursor region" );
-               sawman_unlock( sawman );
-               return DFB_BUG;
+          if (!dfb_region_intersect( &tier->cursor_region, 0, 0, size.w - 1, size.h - 1 )) {
+               tier->cursor_region.x1 = 1;
+               tier->cursor_region.x2 = 0;
           }
+
+          tier->cursor_bs_valid = false;
      }
 
      /* Optimize case of invisible cursor moving. */
@@ -3426,6 +3863,20 @@ wm_update_cursor( CoreWindowStack       *stack,
           return DFB_OK;
      }
 
+     /*
+      * HW Cursor mode?
+      */
+     if (sawman->cursor.region) {
+          ret = update_hw_cursor( sawman, stack, flags );
+
+          sawman_unlock( sawman );
+
+          return ret;
+     }
+
+     /*
+      * SW Cursor mode
+      */
      context = stack->context;
      D_ASSERT( context != NULL );
 
@@ -3488,7 +3939,7 @@ wm_update_cursor( CoreWindowStack       *stack,
      if (flags & CCUF_DISABLE) {
           dfb_surface_unlink( &tier->cursor_bs );
      }
-     else if (stack->cursor.opacity && tier->active) {
+     else if (stack->cursor.opacity && tier->active && tier->cursor_region.x1 <= tier->cursor_region.x2) {
           CoreLayer *layer = dfb_layer_at( context->layer_id );
           CardState *state = &layer->state;
 
@@ -3504,7 +3955,7 @@ wm_update_cursor( CoreWindowStack       *stack,
           }
 
           /* draw cursor */
-          sawman_draw_cursor( stack, state, surface, &tier->cursor_region );
+          sawman_draw_cursor( stack, state, surface, &tier->cursor_region, x, y );
 
           tier->cursor_drawn = true;
 

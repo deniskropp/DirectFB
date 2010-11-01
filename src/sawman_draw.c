@@ -58,7 +58,9 @@ D_DEBUG_DOMAIN( SaWMan_Draw, "SaWMan/Draw", "SaWMan window manager drawing" );
 void sawman_draw_cursor    ( CoreWindowStack *stack,
                              CardState       *state,
                              CoreSurface     *surface,
-                             DFBRegion       *region )
+                             DFBRegion       *region,
+                             int              x,
+                             int              y )
 {
      DFBRectangle            src;
      DFBRectangle            clip;
@@ -74,8 +76,8 @@ void sawman_draw_cursor    ( CoreWindowStack *stack,
                  stack, DFB_RECTANGLE_VALS_FROM_REGION( region ) );
 
      /* Initialize source rectangle. */
-     src.x = region->x1 - stack->cursor.x + stack->cursor.hot.x;
-     src.y = region->y1 - stack->cursor.y + stack->cursor.hot.y;
+     src.x = region->x1 - x + stack->cursor.hot.x;
+     src.y = region->y1 - y + stack->cursor.hot.y;
      src.w = region->x2 - region->x1 + 1;
      src.h = region->y2 - region->y1 + 1;
 
@@ -287,7 +289,6 @@ draw_window( SaWManTier   *tier,
 {
      SaWMan                  *sawman;
      CoreWindow              *window;
-     CoreWindowStack         *stack;
      DFBSurfaceBlittingFlags  flags = DSBLIT_NOFX;
      DFBRectangle             dst;
      DFBRectangle             src;
@@ -300,15 +301,12 @@ draw_window( SaWManTier   *tier,
 
      sawman = sawwin->sawman;
      window = sawwin->window;
-     stack  = sawwin->stack;
      dst    = sawwin->dst;
      src    = sawwin->src;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( window != NULL );
      D_ASSERT( window->surface != NULL );
-     D_ASSERT( stack != NULL );
-     D_ASSERT( stack->context != NULL );
 
      D_DEBUG_AT( SaWMan_Draw, "%s( %p, %d,%d-%dx%d )\n", __FUNCTION__,
                  sawwin, DFB_RECTANGLE_VALS_FROM_REGION( region ) );
@@ -506,7 +504,6 @@ draw_window_color( SaWManWindow *sawwin,
 {
      SaWMan                  *sawman;
      CoreWindow              *window;
-     CoreWindowStack         *stack;
      DFBSurfaceDrawingFlags   flags = DSDRAW_NOFX;
      DFBRectangle             dst;
      DFBRegion                clip;
@@ -516,13 +513,10 @@ draw_window_color( SaWManWindow *sawwin,
 
      sawman = sawwin->sawman;
      window = sawwin->window;
-     stack  = sawwin->stack;
      dst    = sawwin->dst;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( window != NULL );
-     D_ASSERT( stack != NULL );
-     D_ASSERT( stack->context != NULL );
 
      D_DEBUG_AT( SaWMan_Draw, "%s( %p, %d,%d-%dx%d )\n", __FUNCTION__,
                  sawwin, DFB_RECTANGLE_VALS_FROM_REGION( region ) );
@@ -583,7 +577,6 @@ sawman_draw_window( SaWManTier   *tier,
                     bool          alpha_channel )
 {
      CoreWindow      *window;
-     CoreWindowStack *stack;
      DFBRegion        xregion = *pregion;
      DFBRegion       *region  = &xregion;
      int              border;
@@ -594,10 +587,8 @@ sawman_draw_window( SaWManTier   *tier,
      DFB_REGION_ASSERT( region );
 
      window = sawwin->window;
-     stack  = sawwin->stack;
 
      D_ASSERT( window != NULL );
-     D_ASSERT( stack != NULL );
 
      D_DEBUG_AT( SaWMan_Draw, "%s( %p, %d,%d-%dx%d )\n", __FUNCTION__,
                  sawwin, DFB_RECTANGLE_VALS_FROM_REGION( pregion ) );

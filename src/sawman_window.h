@@ -34,50 +34,66 @@ extern "C"
 #include "sawman_internal.h"
 
 
-DirectResult  sawman_switch_focus     ( SaWMan                *sawman,
-                                        SaWManWindow          *to );
+DirectResult  sawman_switch_focus              ( SaWMan                *sawman,
+                                                 SaWManWindow          *to );
 
-DirectResult  sawman_post_event       ( SaWMan                *sawman,
-                                        SaWManWindow          *sawwin,
-                                        DFBWindowEvent        *event );
+DirectResult  sawman_post_event                ( SaWMan                *sawman,
+                                                 SaWManWindow          *sawwin,
+                                                 DFBWindowEvent        *event );
 
-DirectResult  sawman_update_window    ( SaWMan                *sawman,
-                                        SaWManWindow          *sawwin,
-                                        const DFBRegion       *region,
-                                        DFBSurfaceFlipFlags    flags,
-                                        SaWManUpdateFlags      update_flags );
+DirectResult  sawman_update_window             ( SaWMan                *sawman,
+                                                 SaWManWindow          *sawwin,
+                                                 const DFBRegion       *region,
+                                                 DFBSurfaceFlipFlags    flags,
+                                                 SaWManUpdateFlags      update_flags );
 
-DirectResult  sawman_showing_window   ( SaWMan                *sawman,
-                                        SaWManWindow          *sawwin,
-                                        bool                  *ret_showing );
+DirectResult  sawman_showing_window            ( SaWMan                *sawman,
+                                                 SaWManWindow          *sawwin,
+                                                 bool                  *ret_showing );
 
-DirectResult  sawman_insert_window    ( SaWMan                *sawman,
-                                        SaWManWindow          *sawwin,
-                                        SaWManWindow          *relative,
-                                        bool                   top );
+DirectResult  sawman_insert_window             ( SaWMan                *sawman,
+                                                 SaWManWindow          *sawwin,
+                                                 SaWManWindow          *relative,
+                                                 bool                   top );
 
-DirectResult  sawman_remove_window    ( SaWMan                *sawman,
-                                        SaWManWindow          *sawwin );
+DirectResult  sawman_remove_window             ( SaWMan                *sawman,
+                                                 SaWManWindow          *sawwin );
 
-DirectResult  sawman_withdraw_window  ( SaWMan                *sawman,
-                                        SaWManWindow          *sawwin );
+DirectResult  sawman_withdraw_window           ( SaWMan                *sawman,
+                                                 SaWManWindow          *sawwin );
 
-DirectResult  sawman_update_geometry  ( SaWManWindow          *sawwin );
+DirectResult  sawman_update_geometry           ( SaWManWindow          *sawwin );
 
-DirectResult  sawman_set_opacity      ( SaWMan                *sawman,
-                                        SaWManWindow          *sawwin,
-                                        u8                     opacity );
+DirectResult  sawman_set_opacity               ( SaWMan                *sawman,
+                                                 SaWManWindow          *sawwin,
+                                                 u8                     opacity );
 
-bool          sawman_update_focus     ( SaWMan                *sawman );
+DirectResult  sawman_window_set_cursor_flags   ( SaWMan                *sawman,
+                                                 SaWManWindow          *sawwin,
+                                                 DFBWindowCursorFlags   flags );
 
-SaWManWindow *sawman_window_at_pointer( SaWMan                *sawman,
-                                        int                    x,
-                                        int                    y );
+bool          sawman_update_focus              ( SaWMan                *sawman,
+                                                 CoreWindowStack       *stack,
+                                                 int                    x,
+                                                 int                    y );
 
-int           sawman_window_border    ( const SaWManWindow    *sawwin );
+SaWManWindow *sawman_window_at_pointer         ( SaWMan                *sawman,
+                                                 CoreWindowStack       *stack,
+                                                 int                    x,
+                                                 int                    y );
+
+void          sawman_window_get_cursor_position( SaWMan                *sawman,
+                                                 CoreWindowStack       *stack,
+                                                 SaWManWindow          *sawwin,
+                                                 int                   *ret_x,
+                                                 int                   *ret_y,
+                                                 int                   *ret_cx,
+                                                 int                   *ret_cy );
+
+int           sawman_window_border             ( const SaWManWindow    *sawwin );
 
 
-void          sawman_update_visible   ( SaWMan                *sawman );
+void          sawman_update_visible            ( SaWMan                *sawman );
 
 #ifdef __cplusplus
 }

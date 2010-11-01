@@ -76,6 +76,8 @@ extern "C"
      (a)->color_key    = (b)->color_key;    \
      (a)->opaque       = (b)->opaque;       \
      (a)->association  = (b)->association;  \
+     (a)->cursor_flags = (b)->cursor_flags; \
+     (a)->cursor_resolution = (b)->cursor_resolution; \
      (a)->src_geometry = (b)->src_geometry; \
      (a)->dst_geometry = (b)->dst_geometry; }
 
@@ -92,6 +94,8 @@ extern "C"
      if (f & CWCF_COLOR_KEY)    (a)->color_key    = (b)->color_key;    \
      if (f & CWCF_OPAQUE)       (a)->opaque       = (b)->opaque;       \
      if (f & CWCF_ASSOCIATION)  (a)->association  = (b)->association;  \
+     if (f & CWCF_CURSOR_FLAGS) (a)->cursor_flags = (b)->cursor_flags; \
+     if (f & CWCF_CURSOR_RESOLUTION) (a)->cursor_resolution = (b)->cursor_resolution; \
      if (f & CWCF_SRC_GEOMETRY) (a)->src_geometry = (b)->src_geometry; \
      if (f & CWCF_DST_GEOMETRY) (a)->dst_geometry = (b)->dst_geometry; }
 
@@ -183,6 +187,8 @@ struct __SaWMan_SaWMan {
 
      SaWManScalingMode     scaling_mode;
 
+     DFBDimension          resolution;
+
      DFBInputDeviceButtonMask      buttons;
      DFBInputDeviceModifierMask    modifiers;
      DFBInputDeviceLockState       locks;
@@ -230,7 +236,30 @@ struct __SaWMan_SaWMan {
           DFBUpdates             visible;
           DFBRegion              visible_regions[SAWMAN_MAX_VISIBLE_REGIONS];
      } bg;
+
+     struct {
+          CoreLayer           *layer;
+          CoreLayerContext    *context;
+          CoreLayerRegion     *region;
+
+
+          /* Temporary motion delta until flushed by last event (without DIEF_FOLLOW) */
+          int                  dx; // Device coordinates
+          int                  dy;
+
+          SaWManWindow        *confined;
+     } cursor;
 };
+
+typedef enum {
+     SAWMAN_TIER_UPDATE
+} SaWManTierChannels;
+
+typedef struct {
+     DFBRegion              regions[SAWMAN_MAX_UPDATE_REGIONS];
+     unsigned int           num_regions;
+     SaWManStackingClasses  classes;
+} SaWManTierUpdate;
 
 struct __SaWMan_SaWManTier {
      DirectLink              link;
@@ -285,22 +314,9 @@ struct __SaWMan_SaWManTier {
 
      DFBUpdates              updated;
      DFBRegion               updated_regions[SAWMAN_MAX_UPDATED_REGIONS];
+
+     FusionReactor          *reactor;
 };
-
-# if 0
-struct __SaWMan_SaWManProcess {
-     DirectLink             link;
-
-     int                    magic;
-
-     pid_t                  pid;
-     FusionID               fusion_id;
-     SaWManProcessFlags     flags;
-
-     FusionRef              ref;
-};
-
-#endif
 
 struct __SaWMan_SaWManWindow {
      DirectLink             link;
@@ -366,6 +382,15 @@ DirectResult sawman_shutdown  ( SaWMan                *sawman,
 DirectResult sawman_leave     ( SaWMan                *sawman,
                                 FusionWorld           *world );
 
+typedef struct {
+     int                           magic;
+
+     bool                          active;
+
+     SaWMan                       *sawman;
+
+     CoreWindowStack              *stack;
+} StackData;
 
 DirectResult sawman_register  ( SaWMan                *sawman,
                                 const SaWManCallbacks *callbacks,
@@ -377,6 +402,8 @@ DirectResult sawman_call      ( SaWMan                *sawman,
                                 SaWManCallID           call,
                                 void                  *ptr );
 
+DirectResult sawman_post_init ( SaWMan         *sawman,
+                                FusionWorld    *world );
 
 /**********************************************************************************************************************/
                      

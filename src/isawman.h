@@ -26,6 +26,11 @@
 
 
 #include <sawman_types.h>
+#include <sawman_internal.h>
+
+#include <directfb_util.h>
+
+#include <pthread.h>
 
 
 /*
@@ -35,6 +40,20 @@ typedef struct {
      int                         ref;      /* reference counter */
      SaWMan                     *sawman;
      SaWManProcess              *process;
+
+     pthread_mutex_t             lock;
+     pthread_cond_t              cond;
+
+     struct {
+          SaWManTier                 *tier;
+
+          Reaction                    reaction;
+          bool                        attached;
+
+          DFBUpdates                  updates;
+          DFBRegion                   updates_regions[SAWMAN_MAX_UPDATE_REGIONS];
+     }                           tiers[3];
+     unsigned int                num_tiers;
 } ISaWMan_data;
 
 /*

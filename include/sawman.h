@@ -132,11 +132,13 @@ typedef enum {
      SWMCF_KEY_SELECTION = 0x00001000,
 
      SWMCF_ASSOCIATION   = 0x00002000,
+     SWMCF_CURSOR_FLAGS  = 0x00004000,
+     SWMCF_CURSOR_RESOLUTION = 0x00008000,
 
      SWMCF_SRC_GEOMETRY  = 0x00010000,
      SWMCF_DST_GEOMETRY  = 0x00020000,
 
-     SWMCF_ALL           = 0x0003373F
+     SWMCF_ALL           = 0x0003F73F
 } SaWManWindowConfigFlags;
 
 typedef struct {
@@ -158,6 +160,9 @@ typedef struct {
 
      DFBWindowGeometry        src_geometry;   /* advanced source geometry */
      DFBWindowGeometry        dst_geometry;   /* advanced destination geometry */
+
+     DFBWindowCursorFlags     cursor_flags;
+     DFBDimension             cursor_resolution;
 } SaWManWindowConfig;
 
 typedef struct {
@@ -315,6 +320,19 @@ DEFINE_INTERFACE(   ISaWMan,
           const SaWManCallbacks    *callbacks,
           void                     *context,
           ISaWManManager          **ret_manager
+     );
+
+
+   /** Updates **/
+
+     /*
+      * Get updates.
+      */
+     DirectResult (*GetUpdates) (
+          ISaWMan                  *thiz,
+          DFBWindowStackingClass    stacking_class,
+          DFBRegion                *ret_updates,
+          unsigned int             *ret_num
      );
 )
 

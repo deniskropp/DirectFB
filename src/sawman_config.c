@@ -62,8 +62,10 @@ static const char *config_usage =
      "  border-unfocused-color<0|1|2|3>=AARRGGBB Set unfocused border's color\n"
      "  [no-]show-empty                    Show layer even if no window is visible\n"
      "  flip-once-timeout=<num>            Flip once timeout\n"
+     "  hw-cursor=<layer-id>               Set HW Cursor mode\n"
+     "  resolution=<width>x<height>        Set virtual SaWMan resolution\n"
      "\n";
-     
+
 
 static DFBResult
 parse_args( const char *args )
@@ -311,6 +313,45 @@ sawman_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR( "SaWMan/Config '%s': No timeout specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "hw-cursor" ) == 0) {
+          if (value) {
+               int id;
+
+               if (sscanf( value, "%d", &id ) < 1) {
+                    D_ERROR("SaWMan/Config '%s': Could not parse value!\n", name);
+                    return DFB_INVARG;
+               }
+
+               if (id < 0 || id >= MAX_LAYERS) {
+                    D_ERROR("SaWMan/Config '%s': Value %d out of bounds!\n", name, id);
+                    return DFB_INVARG;
+               }
+
+               sawman_config->cursor.hw       = true;
+               sawman_config->cursor.layer_id = id;
+          }
+          else {
+               D_ERROR("SaWMan/Config '%s': No value specified!\n", name);
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "resolution" ) == 0) {
+          if (value) {
+               int width, height;
+
+               if (sscanf( value, "%dx%d", &width, &height ) < 2) {
+                    D_ERROR("SaWMan/Config '%s': Could not parse dimension!\n", name);
+                    return DFB_INVARG;
+               }
+
+               sawman_config->resolution.w = width;
+               sawman_config->resolution.h = height;
+          }
+          else {
+               D_ERROR("SaWMan/Config '%s': No width and height specified!\n", name);
                return DFB_INVARG;
           }
      } else
