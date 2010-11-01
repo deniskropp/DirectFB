@@ -46,6 +46,10 @@
 #include <fusion/conf.h>
 #include <fusion/vector.h>
 
+#if DIRECTFB_BUILD_VOODOO
+#include <voodoo/conf.h>
+#endif
+
 #include <core/coretypes.h>
 #include <core/surface.h>
 #include <core/layers.h>
@@ -610,8 +614,8 @@ DFBResult dfb_config_set( const char *name, const char *value )
                dfb_config->remote.session = session;
           }
           else {
-               D_ERROR("DirectFB/Config 'remote': No value specified!\n");
-               return DFB_INVARG;
+               dfb_config->remote.host    = D_STRDUP( "" );
+               dfb_config->remote.session = 0;
           }
      } else
      if (strcmp (name, "videoram-limit" ) == 0) {
@@ -1685,7 +1689,11 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
-     if (fusion_config_set( name, value ) && direct_config_set( name, value ))
+     if (
+#if DIRECTFB_BUILD_VOODOO
+         voodoo_config_set( name, value ) &&
+#endif
+         fusion_config_set( name, value ) && direct_config_set( name, value ))
           return DFB_UNSUPPORTED;
 
      return DFB_OK;

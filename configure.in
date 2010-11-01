@@ -491,16 +491,53 @@ else
   FUSION_BUILD_KERNEL=0
 fi
 
-AM_CONDITIONAL(ENABLE_MULTI, test "$enable_multi" = "yes")
-
-AC_SUBST(FUSION_BUILD_MULTI)
-AC_SUBST(FUSION_BUILD_KERNEL)
-
 
 AC_ARG_ENABLE(voodoo,
               AC_HELP_STRING([--enable-voodoo],
                              [enable Voodoo (network support) @<:@default=no@:>@]),
               [], [enable_voodoo=no])
+if test "$enable_voodoo" = "yes"; then
+    DIRECTFB_BUILD_VOODOO=1
+    DEP_VOODOO=voodoo
+else
+    DIRECTFB_BUILD_VOODOO=0
+    enable_voodoo=no
+    DEP_VOODOO=
+fi
+
+
+AC_ARG_ENABLE(pure_voodoo,
+              AC_HELP_STRING([--enable-pure-voodoo],
+                             [enable pure Voodoo mode @<:@default=no@:>@]),
+              [], [enable_pure_voodoo=no])
+if test "$enable_pure_voodoo" = "yes"; then
+    enable_voodoo=yes
+    DIRECTFB_BUILD_VOODOO=1
+    DIRECTFB_BUILD_PURE_VOODOO=1
+    DEP_VOODOO=voodoo
+
+    enable_multi=no
+
+    FUSION_BUILD_MULTI=0
+    FUSION_BUILD_KERNEL=0
+else
+    DIRECTFB_BUILD_PURE_VOODOO=0
+    enable_pure_voodoo=no
+fi
+
+AC_SUBST(DIRECTFB_BUILD_VOODOO)
+AM_CONDITIONAL(DIRECTFB_BUILD_VOODOO, test "$DIRECTFB_BUILD_VOODOO" = "1")
+
+AC_SUBST(DIRECTFB_BUILD_PURE_VOODOO)
+AM_CONDITIONAL(DIRECTFB_BUILD_PURE_VOODOO, test "$DIRECTFB_BUILD_PURE_VOODOO" = "1")
+
+AC_SUBST(DEP_VOODOO)
+
+
+AM_CONDITIONAL(ENABLE_MULTI, test "$enable_multi" = "yes")
+
+AC_SUBST(FUSION_BUILD_MULTI)
+AC_SUBST(FUSION_BUILD_KERNEL)
 
 AM_CONDITIONAL(ENABLE_VOODOO, test "$enable_voodoo" = "yes")
 
@@ -1434,6 +1471,21 @@ esac
 
 
 
+
+AC_ARG_WITH(setsockopt,
+            AC_HELP_STRING([--without-setsockopt],
+                           [build without setsockopt]),
+            [], [])
+if test "$with_setsockopt" != "no"; then
+  with_setsockopt=yes
+  VOODOO_BUILD_NO_SETSOCKOPT=0
+else
+  VOODOO_BUILD_NO_SETSOCKOPT=1
+fi
+
+AC_SUBST(VOODOO_BUILD_NO_SETSOCKOPT)
+
+
 AC_ARG_WITH(tests,
             AC_HELP_STRING([--with-tests],
                            [build test programs]),
@@ -1608,6 +1660,7 @@ directfb.spec
 Makefile
 
 include/Makefile
+include/directfb_build.h
 include/directfb_version.h
 
 lib/Makefile
@@ -1747,6 +1800,7 @@ Misc options:
   Fusion Kernel Device      $linux_fusion
   Fusion message size       $with_message_size
   Voodoo (network support)  $enable_voodoo
+  Pure Voodoo (net only)    $enable_pure_voodoo
   Debug supported           $enable_debug_support
   Debug enabled             $enable_debug
   Trace support             $enable_trace
@@ -1760,6 +1814,7 @@ Misc options:
   Dithering 565             $with_dither_rgb16
   zlib compression          $use_zlib                 $ZLIB_LIBS
   sysfs support             $use_sysfs                 $SYSFS_LIBS
+  Using setsockopt          $with_setsockopt
 
 Building Tests              $with_tests
 Building Tools              $with_tools

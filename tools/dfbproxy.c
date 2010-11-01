@@ -41,6 +41,7 @@
 #include <direct/mem.h>
 #include <direct/messages.h>
 
+#include <voodoo/play.h>
 #include <voodoo/server.h>
 
 /*****************************************************************************/
@@ -118,27 +119,44 @@ static DFBResult
 server_run()
 {
      DFBResult     ret;
-     VoodooServer *server;
+     VoodooPlayer *player = NULL;
+     VoodooServer *server = NULL;
+
+     ret = voodoo_player_create( NULL, &player );
+     if (ret) {
+          D_ERROR( "Voodoo/Proxy: Could not create the player (%s)!\n", DirectFBErrorString(ret) );
+          goto out;
+     }
 
      ret = voodoo_server_create( &server );
      if (ret) {
           D_ERROR( "Voodoo/Proxy: Could not create the server (%s)!\n", DirectFBErrorString(ret) );
-          return ret;
+          goto out;
      }
 
      ret = voodoo_server_register( server, "IDirectFB", ConstructDispatcher, NULL );
      if (ret) {
           D_ERROR( "Voodoo/Proxy: Could not register super interface 'IDirectFB'!\n" );
-          voodoo_server_destroy( server );
-          return ret;
+          goto out;
+     }
+
+     ret = voodoo_server_register( server, "IDiVine", ConstructDispatcher, NULL );
+     if (ret) {
+          D_ERROR( "Voodoo/Proxy: Could not register super interface 'IDiVine'!\n" );
+          goto out;
      }
 
      ret = voodoo_server_run( server );
      if (ret)
           D_ERROR( "Voodoo/Proxy: Server exiting with error (%s)!\n", DirectFBErrorString(ret) );
 
+out:
+     if (server)
      voodoo_server_destroy( server );
 
-     return DFB_OK;
+     if (player)
+          voodoo_player_destroy( player );
+
+     return ret;
 }
 

@@ -1,6 +1,6 @@
 /*
-   (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002-2004  convergence GmbH.
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
 
@@ -28,7 +28,9 @@
 #ifndef __VOODOO__BUILD_H__
 #define __VOODOO__BUILD_H__
 
-/* nothing yet */
+
+#define VOODOO_BUILD_NO_SETSOCKOPT  (@VOODOO_BUILD_NO_SETSOCKOPT@)
+
 
 #endif
 

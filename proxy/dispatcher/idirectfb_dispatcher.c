@@ -53,6 +53,7 @@
 
 #include <idirectfb.h>
 
+#include <voodoo/conf.h>
 #include <voodoo/interface.h>
 #include <voodoo/manager.h>
 #include <voodoo/message.h>
@@ -521,7 +522,7 @@ Dispatch_SetCooperativeLevel( IDirectFB *thiz, IDirectFB *real,
 
      ret = real->SetCooperativeLevel( real, level );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -539,7 +540,7 @@ Dispatch_GetDeviceDescription( IDirectFB *thiz, IDirectFB *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_DATA, sizeof(DFBGraphicsDeviceDescription), &desc,
                                     VMBT_NONE );
@@ -565,7 +566,7 @@ Dispatch_SetVideoMode( IDirectFB *thiz, IDirectFB *real,
 
      ret = real->SetVideoMode( real, width, height, bpp );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -613,7 +614,7 @@ Dispatch_EnumVideoModes( IDirectFB *thiz, IDirectFB *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_INT, context.num,
                                     VMBT_DATA, context.num * sizeof(IDirectFB_Dispatcher_EnumVideoModes_Item), context.items,
@@ -701,6 +702,14 @@ Dispatch_CreateImageProvider( IDirectFB *thiz, IDirectFB *real,
      VOODOO_PARSER_GET_ID( parser, instance );
      VOODOO_PARSER_END( parser );
 
+     if (1) {
+          ret = voodoo_manager_check_allocation( manager, 0x100000 /*FIXME*/ );
+          if (ret) {
+               D_ERROR( "Allocation not permitted!\n" );
+               return ret;
+          }
+     }
+
      direct_list_foreach (l, data->data_buffers) {
           DataBufferEntry *entry = (DataBufferEntry*) l;
 
@@ -721,7 +730,7 @@ Dispatch_CreateImageProvider( IDirectFB *thiz, IDirectFB *real,
           return ret;
      }
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, instance,
                                     VMBT_NONE );
 }
@@ -735,6 +744,7 @@ Dispatch_CreateSurface( IDirectFB *thiz, IDirectFB *real,
      IDirectFBSurface            *surface;
      VoodooInstanceID             instance;
      VoodooMessageParser          parser;
+     bool                         force_system = (voodoo_config->resource_id != 0);
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
@@ -742,7 +752,60 @@ Dispatch_CreateSurface( IDirectFB *thiz, IDirectFB *real,
      VOODOO_PARSER_GET_DATA( parser, desc );
      VOODOO_PARSER_END( parser );
 
-     ret = real->CreateSurface( real, desc, &surface );
+     if (1) {
+          int w = 256, h = 256, b = 2, size;
+
+          if (desc->flags & DSDESC_WIDTH)
+               w = desc->width;
+
+          if (desc->flags & DSDESC_HEIGHT)
+               h = desc->height;
+
+          if (desc->flags & DSDESC_PIXELFORMAT)
+               b = DFB_BYTES_PER_PIXEL( desc->pixelformat ) ?: 2;
+
+          size = w * h * b;
+
+          D_INFO( "Checking creation of %u kB surface\n", size / 1024 );
+
+          if (voodoo_config->surface_max && voodoo_config->surface_max < size) {
+               D_ERROR( "Allocation of %u kB surface not permitted (limit %u kB)\n",
+                        size / 1024, voodoo_config->surface_max / 1024 );
+               return DR_LIMITEXCEEDED;
+          }
+
+          ret = voodoo_manager_check_allocation( manager, size );
+          if (ret) {
+               D_ERROR( "Allocation not permitted!\n" );
+               return ret;
+          }
+     }
+
+     if (voodoo_config->resource_id) {
+          if (desc->flags & DSDESC_RESOURCE_ID) {
+               if (desc->resource_id == voodoo_config->resource_id) {
+                    force_system = false;
+               }
+          }
+     }
+
+     if (force_system) {
+          DFBSurfaceDescription sd = *desc;
+
+          if (sd.flags & DSDESC_CAPS) {
+               sd.caps &= ~DSCAPS_VIDEOONLY;
+               sd.caps |=  DSCAPS_SYSTEMONLY;
+          }
+          else {
+               sd.flags |= DSDESC_CAPS;
+               sd.caps   = DSCAPS_SYSTEMONLY;
+          }
+
+          ret = real->CreateSurface( real, &sd, &surface );
+     }
+     else {
+          ret = real->CreateSurface( real, desc, &surface );
+     }
      if (ret)
           return ret;
 
@@ -753,7 +816,7 @@ Dispatch_CreateSurface( IDirectFB *thiz, IDirectFB *real,
           return ret;
      }
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, instance,
                                     VMBT_NONE );
 }
@@ -797,7 +860,7 @@ Dispatch_EnumScreens( IDirectFB *thiz, IDirectFB *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_INT, context.num,
                                     VMBT_DATA, context.num * sizeof(IDirectFB_Dispatcher_EnumScreens_Item), context.items,
@@ -820,6 +883,11 @@ Dispatch_GetDisplayLayer( IDirectFB *thiz, IDirectFB *real,
      VOODOO_PARSER_GET_ID( parser, id );
      VOODOO_PARSER_END( parser );
 
+     if (voodoo_config->layer_mask && !(voodoo_config->layer_mask & (1 << id))) {
+          D_ERROR( "Layer with id %u not allowed!\n", id );
+          return DR_ACCESSDENIED;
+     }
+
      ret = real->GetDisplayLayer( real, id, &layer );
      if (ret)
           return ret;
@@ -831,7 +899,7 @@ Dispatch_GetDisplayLayer( IDirectFB *thiz, IDirectFB *real,
           return ret;
      }
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, instance,
                                     VMBT_NONE );
 }
@@ -877,7 +945,7 @@ Dispatch_EnumInputDevices( IDirectFB *thiz, IDirectFB *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_INT, context.num,
                                     VMBT_DATA, context.num * sizeof(IDirectFB_Dispatcher_EnumInputDevices_Item), context.items,
@@ -911,7 +979,7 @@ Dispatch_GetInputDevice( IDirectFB *thiz, IDirectFB *real,
           return ret;
      }
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, instance,
                                     VMBT_NONE );
 }
@@ -943,7 +1011,7 @@ Dispatch_GetScreen( IDirectFB *thiz, IDirectFB *real,
           return ret;
      }
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, instance,
                                     VMBT_NONE );
 }
@@ -976,6 +1044,18 @@ Dispatch_CreateFont( IDirectFB *thiz, IDirectFB *real,
           }
      }
 
+     if (1) {
+          unsigned int size;
+
+          buffer->GetLength( buffer, &size );
+
+          ret = voodoo_manager_check_allocation( manager, size );
+          if (ret) {
+               D_ERROR( "Allocation not permitted!\n" );
+               return ret;
+          }
+     }
+
      ret = buffer->CreateFont( buffer, desc, &font );
      if (ret)
           return ret;
@@ -987,7 +1067,7 @@ Dispatch_CreateFont( IDirectFB *thiz, IDirectFB *real,
           return ret;
      }
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, instance,
                                     VMBT_NONE );
 }
@@ -1041,7 +1121,7 @@ Dispatch_WaitIdle( IDirectFB *thiz, IDirectFB *real,
 
      ret = real->WaitIdle( real );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }

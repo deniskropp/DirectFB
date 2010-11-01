@@ -438,13 +438,34 @@ IDirectFBDisplayLayer_Requestor_CreateWindow( IDirectFBDisplayLayer       *thiz,
 static DFBResult
 IDirectFBDisplayLayer_Requestor_GetWindow( IDirectFBDisplayLayer  *thiz,
                                            DFBWindowID             id,
-                                           IDirectFBWindow       **window )
+                                           IDirectFBWindow       **ret_interface )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     void                  *interface = NULL;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Requestor)
 
-     D_UNIMPLEMENTED();
+     if (!ret_interface)
+          return DFB_INVARG;
 
-     return DFB_UNIMPLEMENTED;
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBDISPLAYLAYER_METHOD_ID_GetWindow, VREQ_RESPOND, &response,
+                                   VMBT_ID, id,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret == DR_OK)
+          ret = voodoo_construct_requestor( data->manager, "IDirectFBWindow",
+                                            response->instance, NULL, &interface );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     *ret_interface = interface;
+
+     return ret;
 }
 
 static DFBResult
@@ -547,6 +568,39 @@ IDirectFBDisplayLayer_Requestor_WaitForSync( IDirectFBDisplayLayer *thiz )
      return DFB_UNIMPLEMENTED;
 }
 
+static DFBResult
+IDirectFBDisplayLayer_Requestor_GetWindowByResourceID( IDirectFBDisplayLayer  *thiz,
+                                                       unsigned long           resource_id,
+                                                       IDirectFBWindow       **ret_interface )
+{
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     void                  *interface = NULL;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Requestor)
+
+     if (!ret_interface)
+          return DFB_INVARG;
+
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBDISPLAYLAYER_METHOD_ID_GetWindowByResourceID, VREQ_RESPOND, &response,
+                                   VMBT_ID, resource_id,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret == DR_OK)
+          ret = voodoo_construct_requestor( data->manager, "IDirectFBWindow",
+                                            response->instance, NULL, &interface );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     *ret_interface = interface;
+
+     return ret;
+}
+
 /**************************************************************************************************/
 
 static DFBResult
@@ -600,6 +654,7 @@ Construct( IDirectFBDisplayLayer *thiz,
      thiz->SetCursorOpacity      = IDirectFBDisplayLayer_Requestor_SetCursorOpacity;
      thiz->SetFieldParity        = IDirectFBDisplayLayer_Requestor_SetFieldParity;
      thiz->WaitForSync           = IDirectFBDisplayLayer_Requestor_WaitForSync;
+     thiz->GetWindowByResourceID = IDirectFBDisplayLayer_Requestor_GetWindowByResourceID;
 
      return DFB_OK;
 }

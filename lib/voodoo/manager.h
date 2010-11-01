@@ -44,10 +44,15 @@ DirectResult voodoo_manager_request        ( VoodooManager           *manager,
                                              VoodooResponseMessage  **ret_response,
                                              VoodooMessageBlockType   block_type, ... );
 
+DirectResult voodoo_manager_next_response  ( VoodooManager           *manager,
+                                             VoodooResponseMessage   *response,
+                                             VoodooResponseMessage  **ret_response );
+
 DirectResult voodoo_manager_finish_request ( VoodooManager           *manager,
                                              VoodooResponseMessage   *response );
 
 DirectResult voodoo_manager_respond        ( VoodooManager           *manager,
+                                             bool                     flush,
                                              VoodooMessageSerial      request,
                                              DirectResult             result,
                                              VoodooInstanceID         instance,
@@ -58,7 +63,10 @@ DirectResult voodoo_manager_register_local ( VoodooManager           *manager,
                                              void                    *dispatcher,
                                              void                    *real,
                                              VoodooDispatch           dispatch,
-                                             VoodooInstanceID        *ret_instance );
+                                             VoodooInstanceID        *ret_instance_id );
+
+DirectResult voodoo_manager_unregister_local( VoodooManager           *manager,
+                                              VoodooInstanceID         instance_id );
 
 DirectResult voodoo_manager_lookup_local   ( VoodooManager           *manager,
                                              VoodooInstanceID         instance,
@@ -75,5 +83,9 @@ DirectResult voodoo_manager_lookup_remote  ( VoodooManager           *manager,
                                              void                   **ret_requestor );
 
 DirectResult voodoo_manager_quit           ( VoodooManager           *manager );
+
+DirectResult voodoo_manager_check_allocation( VoodooManager           *manager,
+                                              unsigned int             amount );
+
 
 #endif

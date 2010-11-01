@@ -75,6 +75,8 @@
 #include "idirectfbsurface_requestor.h"
 
 
+D_DEBUG_DOMAIN( IDirectFBSurface_Requestor_, "IDirectFBSurface/Requestor", "IDirectFBSurface Requestor" );
+
 static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBSurface *thiz,
                             VoodooManager    *manager,
@@ -90,7 +92,13 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBSurface, Requestor )
 static void
 IDirectFBSurface_Requestor_Destruct( IDirectFBSurface *thiz )
 {
+     IDirectFBSurface_Requestor_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     voodoo_manager_request( data->manager, data->instance,
+                             IDIRECTFBSURFACE_METHOD_ID_Release, VREQ_NONE, NULL,
+                             VMBT_NONE );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -123,37 +131,38 @@ static DFBResult
 IDirectFBSurface_Requestor_GetPixelFormat( IDirectFBSurface      *thiz,
                                            DFBSurfacePixelFormat *ret_format )
 {
-     DFBResult              ret;
-     VoodooResponseMessage *response;
-     VoodooMessageParser    parser;
-     DFBSurfacePixelFormat  format;
-
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      if (!ret_format)
           return DFB_INVARG;
 
-     ret = voodoo_manager_request( data->manager, data->instance,
-                                   IDIRECTFBSURFACE_METHOD_ID_GetPixelFormat, VREQ_RESPOND, &response,
-                                   VMBT_NONE );
-     if (ret)
-          return ret;
+     if (!data->format) {
+          DFBResult              ret;
+          VoodooResponseMessage *response;
+          VoodooMessageParser    parser;
 
-     ret = response->result;
-     if (ret) {
+          ret = voodoo_manager_request( data->manager, data->instance,
+                                        IDIRECTFBSURFACE_METHOD_ID_GetPixelFormat, VREQ_RESPOND, &response,
+                                        VMBT_NONE );
+          if (ret)
+               return ret;
+
+          ret = response->result;
+          if (ret) {
+               voodoo_manager_finish_request( data->manager, response );
+               return ret;
+          }
+
+          VOODOO_PARSER_BEGIN( parser, response );
+          VOODOO_PARSER_GET_INT( parser, data->format );
+          VOODOO_PARSER_END( parser );
+
           voodoo_manager_finish_request( data->manager, response );
-          return ret;
      }
 
-     VOODOO_PARSER_BEGIN( parser, response );
-     VOODOO_PARSER_GET_INT( parser, format );
-     VOODOO_PARSER_END( parser );
+     *ret_format = data->format;
 
-     voodoo_manager_finish_request( data->manager, response );
-
-     *ret_format = format;
-
-     return ret;
+     return DFB_OK;
 }
 
 static DFBResult
@@ -213,7 +222,7 @@ IDirectFBSurface_Requestor_GetPosition( IDirectFBSurface *thiz,
           return DFB_INVARG;
 
      ret = voodoo_manager_request( data->manager, data->instance,
-                                   IDIRECTFBSURFACE_METHOD_ID_GetPosition, 
+                                   IDIRECTFBSURFACE_METHOD_ID_GetPosition,
                                    VREQ_RESPOND, &response,
                                    VMBT_NONE );
      if (ret)
@@ -386,11 +395,11 @@ IDirectFBSurface_Requestor_SetAlphaRamp( IDirectFBSurface *thiz,
                                          u8 a0, u8 a1, u8 a2, u8 a3 )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBSurface_Requestor )
-     
+
      D_UNIMPLEMENTED();
-     
+
      return DFB_UNIMPLEMENTED;
-}     
+}
 
 static DFBResult
 IDirectFBSurface_Requestor_Lock( IDirectFBSurface *thiz,
@@ -1085,7 +1094,7 @@ IDirectFBSurface_Requestor_DisableAcceleration( IDirectFBSurface   *thiz,
                                                 DFBAccelerationMask mask )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
-     
+
      return voodoo_manager_request( data->manager, data->instance,
                                     IDIRECTFBSURFACE_METHOD_ID_DisableAcceleration,
                                     VREQ_QUEUE, NULL,
@@ -1097,7 +1106,7 @@ static DFBResult
 IDirectFBSurface_Requestor_ReleaseSource( IDirectFBSurface *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
-     
+
      return voodoo_manager_request( data->manager, data->instance,
                                     IDIRECTFBSURFACE_METHOD_ID_ReleaseSource, VREQ_QUEUE, NULL,
                                     VMBT_NONE );
@@ -1109,10 +1118,34 @@ IDirectFBSurface_Requestor_SetIndexTranslation( IDirectFBSurface *thiz,
                                                 int               num_indices )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
-     
+
      D_UNIMPLEMENTED();
-     
+
      return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBSurface_Requestor_SetRenderOptions( IDirectFBSurface        *thiz,
+                                             DFBSurfaceRenderOptions  options )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBSURFACE_METHOD_ID_SetRenderOptions, VREQ_QUEUE, NULL,
+                                    VMBT_INT, options,
+                                    VMBT_NONE );
+}
+
+static DFBResult
+IDirectFBSurface_Requestor_SetMatrix( IDirectFBSurface *thiz,
+                                      const s32        *matrix )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBSURFACE_METHOD_ID_SetMatrix, VREQ_QUEUE, NULL,
+                                    VMBT_DATA, sizeof(s32) * 9, matrix,
+                                    VMBT_NONE );
 }
 
 #define RLE16_KEY   0xf001
@@ -1306,28 +1339,179 @@ IDirectFBSurface_Requestor_Write( IDirectFBSurface   *thiz,
      return ret;
 }
 
-static DFBResult
-IDirectFBSurface_Requestor_SetRenderOptions( IDirectFBSurface        *thiz,
-                                             DFBSurfaceRenderOptions  options )
-{
-     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
-     return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_SetRenderOptions, VREQ_QUEUE, NULL,
-                                    VMBT_INT, options,
-                                    VMBT_NONE );
+#define RLE16_KEY   0xf001
+
+static void
+rle16_decode( const u16    *src,
+              u16          *dst,
+              unsigned int  num )
+{
+     unsigned int n = 0, last, count, out = 0;
+
+     while (out < num) {
+          last = src[n++];
+
+          if (last == RLE16_KEY) {
+               count = src[n++];
+
+               if (count == RLE16_KEY) {
+                    dst[out++] = RLE16_KEY;
+               }
+               else {
+                    last = src[n++];
+
+                    while (count >= 4) {
+                         dst[out+0] =
+                         dst[out+1] =
+                         dst[out+2] =
+                         dst[out+3] = last;
+
+                         out   += 4;
+                         count -= 4;
+                    }
+
+                    while (count >= 2) {
+                         dst[out+0] =
+                         dst[out+1] = last;
+
+                         out   += 2;
+                         count -= 2;
+                    }
+
+                    while (count--)
+                         dst[out++] = last;
+               }
+          }
+          else
+               dst[out++] = last;
+     }
+
+     D_ASSERT( out == num );
+}
+
+#define RLE32_KEY   0xf0012345
+
+static void
+rle32_decode( const u32    *src,
+              u32          *dst,
+              unsigned int  num )
+{
+     unsigned int n = 0, last, count, out = 0;
+
+     while (out < num) {
+          last = src[n++];
+
+          if (last == RLE32_KEY) {
+               count = src[n++];
+
+               if (count == RLE32_KEY) {
+                    dst[out++] = RLE32_KEY;
+               }
+               else {
+                    last = src[n++];
+
+                    while (count >= 4) {
+                         dst[out+0] =
+                         dst[out+1] =
+                         dst[out+2] =
+                         dst[out+3] = last;
+
+                         out   += 4;
+                         count -= 4;
+                    }
+
+                    while (count >= 2) {
+                         dst[out+0] =
+                         dst[out+1] = last;
+
+                         out   += 2;
+                         count -= 2;
+                    }
+
+                    while (count--)
+                         dst[out++] = last;
+               }
+          }
+          else
+               dst[out++] = last;
+     }
+
+     D_ASSERT( out == num );
 }
 
 static DFBResult
-IDirectFBSurface_Requestor_SetMatrix( IDirectFBSurface *thiz,
-                                      const s32        *matrix )
+IDirectFBSurface_Requestor_Read( IDirectFBSurface   *thiz,
+                                 const DFBRectangle *rect,
+                                 void               *ptr,
+                                 int                 pitch )
 {
+     DFBResult              ret = DFB_OK;
+     int                    y;
+     DFBSurfacePixelFormat  format;
+     VoodooMessageParser    parser;
+     VoodooResponseMessage *response;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
-     return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_SetMatrix, VREQ_QUEUE, NULL,
-                                    VMBT_DATA, sizeof(s32) * 9, matrix,
-                                    VMBT_NONE );
+     D_DEBUG_AT( IDirectFBSurface_Requestor_, "%s( %p, %p, %d )\n", __FUNCTION__, rect, ptr, pitch );
+
+     if (!rect || !ptr)
+          return DFB_INVARG;
+
+     D_DEBUG_AT( IDirectFBSurface_Requestor_, "  -> %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS(rect) );
+
+     thiz->GetPixelFormat( thiz, &format );
+
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBSURFACE_METHOD_ID_Read, VREQ_RESPOND, &response,
+                                   VMBT_DATA, sizeof(DFBRectangle), rect,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     for (y=0; y<rect->h; y++) {
+          unsigned int  encoded;
+          const void   *buf;
+
+          D_DEBUG_AT( IDirectFBSurface_Requestor_, "  -> [%d]\n", y );
+
+          VOODOO_PARSER_BEGIN( parser, response );
+          VOODOO_PARSER_GET_UINT( parser, encoded );
+          VOODOO_PARSER_GET_DATA( parser, buf );
+          VOODOO_PARSER_END( parser );
+
+          ret = response->result;
+          if (ret)
+               break;
+
+
+          if (encoded) {
+               switch (encoded) {
+                    case 2:
+                         rle16_decode( buf, ptr + pitch * y, rect->w );
+                         break;
+
+                    case 4:
+                         rle32_decode( buf, ptr + pitch * y, rect->w );
+                         break;
+
+                    default:
+                         D_UNIMPLEMENTED();
+                         break;
+               }
+          }
+          else
+               direct_memcpy( ptr + pitch * y, buf, DFB_BYTES_PER_LINE(format, rect->w) );
+
+
+          if (y < rect->h - 1)
+               voodoo_manager_next_response( data->manager, response, &response );
+     }
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return ret;
 }
 
 
@@ -1412,17 +1596,18 @@ Construct( IDirectFBSurface *thiz,
      thiz->GetGL = IDirectFBSurface_Requestor_GetGL;
 
      thiz->Dump = IDirectFBSurface_Requestor_Dump;
-     
-     thiz->DisableAcceleration = IDirectFBSurface_Requestor_DisableAcceleration;
-     
-     thiz->ReleaseSource = IDirectFBSurface_Requestor_ReleaseSource;
-     
-     thiz->SetIndexTranslation = IDirectFBSurface_Requestor_SetIndexTranslation;
 
-     thiz->Write = IDirectFBSurface_Requestor_Write;
+     thiz->DisableAcceleration = IDirectFBSurface_Requestor_DisableAcceleration;
+
+     thiz->ReleaseSource = IDirectFBSurface_Requestor_ReleaseSource;
+
+     thiz->SetIndexTranslation = IDirectFBSurface_Requestor_SetIndexTranslation;
 
      thiz->SetRenderOptions = IDirectFBSurface_Requestor_SetRenderOptions;
      thiz->SetMatrix = IDirectFBSurface_Requestor_SetMatrix;
+
+     thiz->Read  = IDirectFBSurface_Requestor_Read;
+     thiz->Write = IDirectFBSurface_Requestor_Write;
 
      return DFB_OK;
 }

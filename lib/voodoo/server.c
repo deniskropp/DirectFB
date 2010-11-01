@@ -28,16 +28,20 @@
 
 #include <config.h>
 
+#include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include <sys/mman.h>
 #include <sys/poll.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/wait.h>
+
+#include <semaphore.h>
 
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -52,6 +56,7 @@
 #include <direct/thread.h>
 #include <direct/util.h>
 
+#include <voodoo/conf.h>
 #include <voodoo/server.h>
 #include <voodoo/internal.h>
 
@@ -63,6 +68,12 @@
 #endif
 #endif
 
+
+typedef struct {
+     sem_t          sem;
+
+     pid_t          gfxpid;
+} ServerShared;
 
 typedef struct {
      DirectLink     link;
@@ -83,30 +94,35 @@ typedef struct {
 
 struct __V_VoodooServer {
      int         fd;
+
      bool        quit;
      DirectLink *connections;
 
      int         num_super;
      Super       supers[MAX_SUPER];
+
+     ServerShared *shared;
 };
 
-/**************************************************************************************************/
+D_DEBUG_DOMAIN( Voodoo_Server, "Voodoo/Server", "Voodoo Server" );
+
+/**********************************************************************************************************************/
 
 static DirectResult accept_connection( VoodooServer *server, int fd );
 
-/**************************************************************************************************/
+/**********************************************************************************************************************/
 
 static const int one = 1;
 
-/**************************************************************************************************/
+/**********************************************************************************************************************/
 
 DirectResult
 voodoo_server_create( VoodooServer **ret_server )
 {
      DirectResult        ret;
-     int                 fd;
      struct sockaddr_in  addr;
-     VoodooServer       *server;
+     int                 fd     = -1;
+     VoodooServer       *server = NULL;
 
      D_ASSERT( ret_server != NULL );
 
@@ -115,7 +131,7 @@ voodoo_server_create( VoodooServer **ret_server )
      if (fd < 0) {
           ret = errno2result( errno );
           D_PERROR( "Voodoo/Server: Could not create the socket via socket()!\n" );
-          return ret;
+          goto error;
      }
 
      /* Allow reuse of local address. */
@@ -130,33 +146,73 @@ voodoo_server_create( VoodooServer **ret_server )
      if (bind( fd, &addr, sizeof(addr) )) {
           ret = errno2result( errno );
           D_PERROR( "Voodoo/Server: Could not bind() the socket!\n" );
-          close( fd );
-          return ret;
+          goto error;
      }
 
      /* Start listening. */
      if (listen( fd, 4 )) {
           ret = errno2result( errno );
           D_PERROR( "Voodoo/Server: Could not listen() to the socket!\n" );
-          close( fd );
-          return ret;
+          goto error;
      }
 
      /* Allocate server structure. */
      server = D_CALLOC( 1, sizeof(VoodooServer) );
      if (!server) {
+          ret = D_OOM();
           D_WARN( "out of memory" );
-          close( fd );
-          return DR_NOLOCALMEMORY;
+          goto error;
      }
 
      /* Initialize server structure. */
      server->fd = fd;
 
+     {
+          int zfd;
+
+          zfd = open( "/dev/zero", O_RDWR );
+          if (zfd < 0) {
+               ret = errno2result( errno );
+               D_PERROR( "Voodoo/Server: Failed to open /dev/zero!\n" );
+               goto error;
+          }
+
+          server->shared = mmap( NULL, sizeof(ServerShared), PROT_READ | PROT_WRITE, MAP_SHARED, zfd, 0 );
+
+          close( zfd );
+
+          if (server->shared == MAP_FAILED) {
+               ret = errno2result( errno );
+               D_PERROR( "Voodoo/Server: Failed to mmap /dev/zero!\n" );
+               server->shared = NULL;
+               goto error;
+          }
+
+          if (sem_init( &server->shared->sem, 1, 1 )) {
+               ret = errno2result( errno );
+               D_PERROR( "Voodoo/Server: Failed to create process shared semaphore!\n" );
+               goto error;
+          }
+     }
+
      /* Return the new server. */
      *ret_server = server;
 
      return DR_OK;
+
+
+error:
+     if (server) {
+          if (server->shared)
+               munmap( server->shared, sizeof(ServerShared) );
+
+          D_FREE( server );
+     }
+
+     if (fd >= 0)
+          close( fd );
+
+     return ret;
 }
 
 DirectResult
@@ -223,6 +279,21 @@ voodoo_server_construct( VoodooServer      *server,
           return DR_UNSUPPORTED;
      }
 
+     if (!strcmp( name, "IDirectFB" )) {
+          sem_wait( &server->shared->sem );
+
+          if (server->shared->gfxpid) {
+               D_INFO( "Voodoo/Server: Killing previous graphics process with pid %d\n", server->shared->gfxpid );
+               kill( server->shared->gfxpid, SIGTERM );
+          }
+
+          server->shared->gfxpid = getpid();
+
+          D_INFO( "Voodoo/Server: New graphics process has pid %d\n", server->shared->gfxpid );
+
+          sem_post( &server->shared->sem );
+     }
+
      ret = super->func( server, manager, name, super->ctx, &instance );
      if (ret) {
           D_ERROR( "Voodoo/Server: "
@@ -250,6 +321,18 @@ voodoo_server_run( VoodooServer *server )
                Connection *connection = (Connection*) l;
 
                if (voodoo_manager_is_closed( connection->manager )) {
+                    D_DEBUG_AT( Voodoo_Server, "  -> closed manager\n" );
+
+                    sem_wait( &server->shared->sem );
+
+                    if (server->shared->gfxpid == getpid()) {
+                         D_INFO( "Voodoo/Server: Closing graphics process with pid %d\n", server->shared->gfxpid );
+                         server->shared->gfxpid = 0;
+                    }
+
+                    sem_post( &server->shared->sem );
+
+
                     voodoo_manager_destroy( connection->manager );
 
                     close( connection->fd );
@@ -266,14 +349,15 @@ voodoo_server_run( VoodooServer *server )
           }
 
           if (listener) {
-               int              fd;
-               struct sockaddr  addr;
-               socklen_t        addrlen = sizeof(addr);
+               int                fd;
+               struct sockaddr_in addr;
+               socklen_t          addrlen = sizeof(addr);
+               char               buf[100];
 
                pf.fd     = server->fd;
                pf.events = POLLIN;
 
-               switch (poll( &pf, 1, 200 )) {
+               switch (poll( &pf, 1, 20000 )) {
                     default:
                          fd = accept( server->fd, &addr, &addrlen );
                          if (fd < 0) {
@@ -281,33 +365,50 @@ voodoo_server_run( VoodooServer *server )
                               break;
                          }
 
-#if 0
-                         accept_connection( server, fd );
-#else
-                         switch (fork()) {
-                              case 0:
-                                   listener = false;
+                         inet_ntop( AF_INET, &addr.sin_addr, buf, sizeof(buf) );
 
-                                   close( server->fd );
+                         D_INFO( "Voodoo/Server: Accepted connection from '%s'\n", buf );
 
-                                   accept_connection( server, fd );
-                                   break;
+                         if (voodoo_config->server_fork) {
+                              pid_t pid;
 
-                              case -1:
-                                   D_PERROR( "Voodoo/Server: Could not fork()!\n" );
-                                   break;
+                              D_DEBUG_AT( Voodoo_Server, "  -> forking...\n" );
 
-                              default:
-                                   close( fd );
-                                   break;
+                              pid = fork();
+                              switch (pid) {
+                                   case 0:
+                                        D_DEBUG_AT( Voodoo_Server, "  ===> In child process\n" );
+
+                                        listener = false;
+
+                                        close( server->fd );
+
+                                        accept_connection( server, fd );
+                                        break;
+
+                                   case -1:
+                                        D_PERROR( "Voodoo/Server: Could not fork()!\n" );
+                                        break;
+
+                                   default:
+                                        D_DEBUG_AT( Voodoo_Server, "  => Child process has pid %d\n", pid );
+
+                                        close( fd );
+                                        break;
+                              }
                          }
-#endif
+                         else {
+                              D_DEBUG_AT( Voodoo_Server, "  -> running threaded only...\n" );
+
+                              accept_connection( server, fd );
+                         }
+
                          break;
 
                     case 0:
                          waitpid( -1, NULL, WNOHANG );
 
-                         D_DEBUG( "Voodoo/Server: Timeout during poll()\n" );
+                         D_DEBUG_AT( Voodoo_Server, "  -> Timeout during poll()\n" );
                          break;
 
                     case -1:
@@ -350,7 +451,7 @@ voodoo_server_destroy( VoodooServer *server )
      return DR_OK;
 }
 
-/**************************************************************************************************/
+/**********************************************************************************************************************/
 
 static DirectResult
 accept_connection( VoodooServer *server, int fd )
@@ -365,8 +466,6 @@ accept_connection( VoodooServer *server, int fd )
      }
 
      connection->fd = fd;
-
-     D_INFO( "Voodoo/Server: Accepted connection.\n" );
 
      ret = voodoo_manager_create( connection->fd, NULL, server, &connection->manager );
      if (ret) {

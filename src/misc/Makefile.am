@@ -22,9 +22,17 @@ internalinclude_HEADERS = \
 
 noinst_LTLIBRARIES = libdirectfb_misc.la
 
+
+if DIRECTFB_BUILD_PURE_VOODOO
+NON_PURE_VOODOO_SOURCESs = 
+else
+NON_PURE_VOODOO_SOURCESs = \
+	gfx_util.c
+endif
+
 libdirectfb_misc_la_SOURCES =	\
+	$(NON_PURE_VOODOO_SOURCESs)	\
 	conf.c			\
 	dither.h		\
 	dither565.h		\
-	gfx_util.c		\
 	util.c

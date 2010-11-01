@@ -18,19 +18,27 @@ if ENABLE_VOODOO
 PROXY_DIR = proxy
 endif
 
+
+if DIRECTFB_BUILD_PURE_VOODOO
+NON_PURE_VOODOO_SUBDIRS = 
+else
+NON_PURE_VOODOO_SUBDIRS = \
+	systems			\
+	wm			\
+	interfaces 		\
+	$(LINUXONLY_DIRS)
+endif
+
 SUBDIRS = \
 	data			\
 	docs			\
 	include 		\
 	lib			\
 	src 			\
-	systems			\
-	$(TOOLS_DIR)		\
-	wm			\
-	interfaces 		\
+	$(NON_PURE_VOODOO_SUBDIRS)	\
 	$(PROXY_DIR)		\
-	$(LINUXONLY_DIRS)	\
 	$(TESTS_DIR)		\
+	$(TOOLS_DIR)		\
 	patches			\
 	rules
 

@@ -1,6 +1,16 @@
 ## Makefile.am for DirectFB/src/misc
 
-SUBDIRS = generic
+
+if DIRECTFB_BUILD_PURE_VOODOO
+NON_PURE_VOODOO_SUBDIRS = 
+else
+NON_PURE_VOODOO_SUBDIRS = \
+	generic
+endif
+
+SUBDIRS = \
+	$(NON_PURE_VOODOO_SUBDIRS)
+
 
 INCLUDES = \
 	-I$(top_builddir)/lib		\
@@ -20,10 +30,27 @@ internalinclude_HEADERS = \
 
 noinst_LTLIBRARIES = libdirectfb_gfx.la
 
-libdirectfb_gfx_la_SOURCES = \
+
+if DIRECTFB_BUILD_PURE_VOODOO
+NON_PURE_VOODOO_SOURCES = 
+else
+NON_PURE_VOODOO_SOURCES = \
 	clip.c			\
-	convert.c		\
 	util.c
+endif
+
+libdirectfb_gfx_la_SOURCES = \
+	$(NON_PURE_VOODOO_SOURCES)	\
+	convert.c
+
+
+if DIRECTFB_BUILD_PURE_VOODOO
+NON_PURE_VOODOO_LIBS = 
+else
+NON_PURE_VOODOO_LIBS = \
+	generic/libdirectfb_generic.la
+endif
 
 libdirectfb_gfx_la_LIBADD = \
-	generic/libdirectfb_generic.la
+	$(NON_PURE_VOODOO_LIBS)
+

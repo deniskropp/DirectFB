@@ -253,7 +253,7 @@ Dispatch_GetAscender( IDirectFBFont *thiz, IDirectFBFont *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_INT, ascender,
                                     VMBT_NONE );
@@ -272,7 +272,7 @@ Dispatch_GetDescender( IDirectFBFont *thiz, IDirectFBFont *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_INT, descender,
                                     VMBT_NONE );
@@ -291,7 +291,7 @@ Dispatch_GetHeight( IDirectFBFont *thiz, IDirectFBFont *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_INT, height,
                                     VMBT_NONE );
@@ -310,7 +310,7 @@ Dispatch_GetMaxAdvance( IDirectFBFont *thiz, IDirectFBFont *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_INT, max_advance,
                                     VMBT_NONE );
@@ -338,7 +338,7 @@ Dispatch_GetKerning( IDirectFBFont *thiz, IDirectFBFont *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_INT, kern_x,
                                     VMBT_INT, kern_y,
@@ -366,7 +366,7 @@ Dispatch_GetStringWidth( IDirectFBFont *thiz, IDirectFBFont *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_INT, width,
                                     VMBT_NONE );
@@ -394,7 +394,7 @@ Dispatch_GetStringExtents( IDirectFBFont *thiz, IDirectFBFont *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_DATA, sizeof(DFBRectangle), &logical,
                                     VMBT_DATA, sizeof(DFBRectangle), &ink,
@@ -421,7 +421,7 @@ Dispatch_GetGlyphExtents( IDirectFBFont *thiz, IDirectFBFont *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_DATA, sizeof(extents), &extents,
                                     VMBT_INT, advance,

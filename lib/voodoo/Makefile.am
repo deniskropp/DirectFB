@@ -29,6 +29,7 @@ include_HEADERS = \
 	manager.h		\
 	message.h		\
 	server.h		\
+	play.h			\
 	types.h
 
 
@@ -40,6 +41,7 @@ libvoodoo_la_SOURCES = \
 	interface.c		\
 	internal.h		\
 	manager.c		\
+	play.c			\
 	server.c
 
 libvoodoo_la_LDFLAGS = \

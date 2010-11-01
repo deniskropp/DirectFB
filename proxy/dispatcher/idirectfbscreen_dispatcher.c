@@ -343,7 +343,7 @@ Dispatch_GetID( IDirectFBScreen *thiz, IDirectFBScreen *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_ID, id,
                                     VMBT_NONE );
@@ -362,7 +362,7 @@ Dispatch_GetDescription( IDirectFBScreen *thiz, IDirectFBScreen *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_DATA, sizeof(DFBScreenDescription), &desc,
                                     VMBT_NONE );
@@ -381,7 +381,7 @@ Dispatch_GetSize( IDirectFBScreen *thiz, IDirectFBScreen *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_DATA, sizeof(DFBDimension), &size,
                                     VMBT_NONE );
@@ -426,7 +426,7 @@ Dispatch_EnumDisplayLayers( IDirectFBScreen *thiz, IDirectFBScreen *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_INT, context.num,
                                     VMBT_DATA, context.num * sizeof(IDirectFBScreen_Dispatcher_EnumDisplayLayers_Item), context.items,

@@ -125,11 +125,13 @@ typedef struct {
 static void IDirectFBEventBuffer_AddItem( IDirectFBEventBuffer_data *data,
                                           EventBufferItem           *item );
 
+#if !DIRECTFB_BUILD_PURE_VOODOO
 static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
                                                        void       *ctx );
 
 static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
                                                         void       *ctx );
+#endif
 
 static void *IDirectFBEventBuffer_Feed( DirectThread *thread, void *arg );
 
@@ -142,15 +144,19 @@ static void
 IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
 {
      IDirectFBEventBuffer_data *data = thiz->priv;
+#if !DIRECTFB_BUILD_PURE_VOODOO
      AttachedDevice            *device;
      AttachedWindow            *window;
+#endif
      EventBufferItem           *item;
      DirectLink                *n;
 
      D_DEBUG_AT( IDFBEvBuf, "%s( %p )\n", __FUNCTION__, thiz );
 
+#if !DIRECTFB_BUILD_PURE_VOODOO
      /* Remove the event buffer from the containers linked list. */
      containers_remove_input_eventbuffer( thiz );
+#endif
 
      pthread_mutex_lock( &data->events_mutex );
 
@@ -170,6 +176,7 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
           close( data->pipe_fds[1] );
      }
 
+#if !DIRECTFB_BUILD_PURE_VOODOO
      direct_list_foreach_safe (device, n, data->devices) {
           dfb_input_detach( device->device, &device->reaction );
 
@@ -184,6 +191,7 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
                
           D_FREE( window );
      }
+#endif
 
      direct_list_foreach_safe (item, n, data->events)
           D_FREE( item );
@@ -687,6 +695,7 @@ IDirectFBEventBuffer_Construct( IDirectFBEventBuffer      *thiz,
 
 /* directfb internals */
 
+#if !DIRECTFB_BUILD_PURE_VOODOO
 DFBResult IDirectFBEventBuffer_AttachInputDevice( IDirectFBEventBuffer *thiz,
                                                   CoreInputDevice      *device )
 {
@@ -797,6 +806,7 @@ DFBResult IDirectFBEventBuffer_DetachWindow( IDirectFBEventBuffer *thiz,
 
      return DFB_OK;
 }
+#endif
 
 /* file internals */
 
@@ -820,6 +830,7 @@ static void IDirectFBEventBuffer_AddItem( IDirectFBEventBuffer_data *data,
      pthread_mutex_unlock( &data->events_mutex );
 }
 
+#if !DIRECTFB_BUILD_PURE_VOODOO
 static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
                                                        void       *ctx )
 {
@@ -875,6 +886,7 @@ static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
 
      return RS_OK;
 }
+#endif
 
 static void *
 IDirectFBEventBuffer_Feed( DirectThread *thread, void *arg )

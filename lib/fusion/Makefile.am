@@ -46,17 +46,25 @@ include_HEADERS = \
 
 lib_LTLIBRARIES = libfusion.la
 
-libfusion_la_SOURCES = \
+
+if DIRECTFB_BUILD_PURE_VOODOO
+NON_PURE_VOODOO_SOURCESs =
+else
+NON_PURE_VOODOO_SOURCESs = \
 	arena.c			\
 	call.c			\
-	conf.c			\
 	fusion.c		\
-	hash.c			\
 	lock.c			\
 	object.c		\
 	property.c		\
 	reactor.c		\
-	ref.c			\
+	ref.c
+endif
+
+libfusion_la_SOURCES = \
+	$(NON_PURE_VOODOO_SOURCESs)	\
+	conf.c			\
+	hash.c			\
 	shmalloc.c		\
 	vector.c
 

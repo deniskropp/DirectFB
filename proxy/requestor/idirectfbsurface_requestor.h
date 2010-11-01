@@ -43,6 +43,8 @@ typedef struct {
      VoodooInstanceID       instance;
 
      IDirectFBFont         *font;
+
+     DFBSurfacePixelFormat  format;
 } IDirectFBSurface_Requestor_data;
 
 #endif

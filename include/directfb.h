@@ -38,6 +38,7 @@ extern "C"
 #include <dfb_types.h>
 #include <sys/time.h> /* struct timeval */
 
+#include <directfb_build.h>
 #include <directfb_keyboard.h>
 
 #include <direct/interface.h>
