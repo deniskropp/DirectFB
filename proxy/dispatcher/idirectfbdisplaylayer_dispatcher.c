@@ -36,6 +36,7 @@
 #include <direct/messages.h>
 #include <direct/util.h>
 
+#include <voodoo/conf.h>
 #include <voodoo/interface.h>
 #include <voodoo/manager.h>
 
@@ -442,7 +443,7 @@ Dispatch_GetID( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_ID, id,
                                     VMBT_NONE );
@@ -469,7 +470,7 @@ Dispatch_GetScreen( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
           return ret;
      }
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, instance,
                                     VMBT_NONE );
 }
@@ -510,7 +511,7 @@ Dispatch_TestConfiguration( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *
 
      ret = real->TestConfiguration( real, config, &failed );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_UINT, failed,
                                     VMBT_NONE );
@@ -534,7 +535,7 @@ Dispatch_SetCooperativeLevel( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -548,6 +549,7 @@ Dispatch_CreateWindow( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
      IDirectFBWindow            *window;
      VoodooInstanceID            instance;
      VoodooMessageParser         parser;
+     bool                        force_system = (voodoo_config->resource_id != 0);
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Dispatcher)
 
@@ -555,7 +557,67 @@ Dispatch_CreateWindow( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
      VOODOO_PARSER_GET_DATA( parser, desc );
      VOODOO_PARSER_END( parser );
 
-     ret = real->CreateWindow( real, desc, &window );
+     if (1) {
+          int w = 256, h = 256, b = 2, size;
+
+          if (desc->flags & DWDESC_WIDTH)
+               w = desc->width;
+
+          if (desc->flags & DWDESC_HEIGHT)
+               h = desc->height;
+
+          if (desc->flags & DWDESC_PIXELFORMAT)
+               b = DFB_BYTES_PER_PIXEL( desc->pixelformat ) ?: 2;
+
+          size = w * h * b;
+
+          D_INFO( "Checking creation of %u kB window\n", size / 1024 );
+
+          if (voodoo_config->surface_max && voodoo_config->surface_max < size) {
+               D_ERROR( "Allocation of %u kB window not permitted (limit %u kB)\n",
+                        size / 1024, voodoo_config->surface_max / 1024 );
+               return DR_LIMITEXCEEDED;
+          }
+
+          ret = voodoo_manager_check_allocation( manager, size );
+          if (ret) {
+               D_ERROR( "Allocation not permitted!\n" );
+               return ret;
+          }
+     }
+
+     if (voodoo_config->resource_id) {
+          if (desc->flags & DWDESC_RESOURCE_ID) {
+               if (desc->resource_id == voodoo_config->resource_id) {
+                    force_system = false;
+               }
+          }
+     }
+
+     if (force_system) {
+          DFBWindowDescription wd = *desc;
+
+          if (wd.flags & DWDESC_SURFACE_CAPS) {
+               wd.surface_caps &= ~DSCAPS_VIDEOONLY;
+               wd.surface_caps |=  DSCAPS_SYSTEMONLY;
+          }
+          else {
+               wd.flags        |= DWDESC_SURFACE_CAPS;
+               wd.surface_caps  = DSCAPS_SYSTEMONLY;
+          }
+
+          if (wd.flags & DWDESC_STACKING) {
+               if (voodoo_config->stacking_mask && !(voodoo_config->stacking_mask & (1 << wd.stacking))) {
+                    D_ERROR( "Stacking class not permitted!\n" );
+                    return DR_ACCESSDENIED;
+               }
+          }
+
+          ret = real->CreateWindow( real, &wd, &window );
+     }
+     else {
+          ret = real->CreateWindow( real, desc, &window );
+     }
      if (ret)
           return ret;
 
@@ -566,7 +628,71 @@ Dispatch_CreateWindow( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
           return ret;
      }
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
+                                    DFB_OK, instance,
+                                    VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_GetWindow( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
+                    VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult         ret;
+     DFBWindowID          id;
+     IDirectFBWindow     *window;
+     VoodooInstanceID     instance;
+     VoodooMessageParser  parser;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_ID( parser, id );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->GetWindow( real, id, &window );
+     if (ret)
+          return ret;
+
+     ret = voodoo_construct_dispatcher( manager, "IDirectFBWindow",
+                                        window, data->self, NULL, &instance, NULL );
+     if (ret) {
+          window->Release( window );
+          return ret;
+     }
+
+     return voodoo_manager_respond( manager, true, msg->header.serial,
+                                    DFB_OK, instance,
+                                    VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_GetWindowByResourceID( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
+                                VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult         ret;
+     DFBWindowID          id;
+     IDirectFBWindow     *window;
+     VoodooInstanceID     instance;
+     VoodooMessageParser  parser;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_ID( parser, id );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->GetWindowByResourceID( real, id, &window );
+     if (ret)
+          return ret;
+
+     ret = voodoo_construct_dispatcher( manager, "IDirectFBWindow",
+                                        window, data->self, NULL, &instance, NULL );
+     if (ret) {
+          window->Release( window );
+          return ret;
+     }
+
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, instance,
                                     VMBT_NONE );
 }
@@ -595,6 +721,12 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBDISPLAYLAYER_METHOD_ID_CreateWindow:
                return Dispatch_CreateWindow( dispatcher, real, manager, msg );
+
+          case IDIRECTFBDISPLAYLAYER_METHOD_ID_GetWindow:
+               return Dispatch_GetWindow( dispatcher, real, manager, msg );
+
+          case IDIRECTFBDISPLAYLAYER_METHOD_ID_GetWindowByResourceID:
+               return Dispatch_GetWindowByResourceID( dispatcher, real, manager, msg );
      }
 
      return DFB_NOSUCHMETHOD;

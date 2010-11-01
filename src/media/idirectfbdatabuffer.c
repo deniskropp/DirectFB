@@ -184,7 +184,12 @@ IDirectFBDataBuffer_CreateImageProvider( IDirectFBDataBuffer     *thiz,
      if (!interface)
           return DFB_INVARG;
 
+#if !DIRECTFB_BUILD_PURE_VOODOO
      return IDirectFBImageProvider_CreateFromBuffer( thiz, data->core, interface );
+#else
+     D_BUG( "%s in pure Voodoo build", __FUNCTION__ );
+     return DFB_BUG;
+#endif
 }
 
 static DFBResult
@@ -197,7 +202,12 @@ IDirectFBDataBuffer_CreateVideoProvider( IDirectFBDataBuffer     *thiz,
      if (!interface)
           return DFB_INVARG;
 
+#if !DIRECTFB_BUILD_PURE_VOODOO
      return IDirectFBVideoProvider_CreateFromBuffer( thiz, data->core, interface );
+#else
+     D_BUG( "%s in pure Voodoo build", __FUNCTION__ );
+     return DFB_BUG;
+#endif
 }
 
 static DFBResult
@@ -211,7 +221,12 @@ IDirectFBDataBuffer_CreateFont( IDirectFBDataBuffer       *thiz,
      if (!interface || !desc)
           return DFB_INVARG;
 
+#if !DIRECTFB_BUILD_PURE_VOODOO
      return IDirectFBFont_CreateFromBuffer( thiz, data->core, desc, interface );
+#else
+     D_BUG( "%s in pure Voodoo build", __FUNCTION__ );
+     return DFB_BUG;
+#endif
 }
 
 DFBResult

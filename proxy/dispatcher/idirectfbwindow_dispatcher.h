@@ -76,6 +76,16 @@
 #define IDIRECTFBWINDOW_METHOD_ID_UngrabUnselectedKeys      45
 #define IDIRECTFBWINDOW_METHOD_ID_SetSrcGeometry            46
 #define IDIRECTFBWINDOW_METHOD_ID_SetDstGeometry            47
+#define IDIRECTFBWINDOW_METHOD_ID_SetProperty               48
+#define IDIRECTFBWINDOW_METHOD_ID_GetProperty               49
+#define IDIRECTFBWINDOW_METHOD_ID_RemoveProperty            50
+#define IDIRECTFBWINDOW_METHOD_ID_SetRotation               51
+#define IDIRECTFBWINDOW_METHOD_ID_SetAssociation            52
+#define IDIRECTFBWINDOW_METHOD_ID_BeginUpdates              53
+#define IDIRECTFBWINDOW_METHOD_ID_SetCursorFlags            54
+#define IDIRECTFBWINDOW_METHOD_ID_SetCursorResolution       55
+#define IDIRECTFBWINDOW_METHOD_ID_SetCursorPosition         56
+#define IDIRECTFBWINDOW_METHOD_ID_SendEvent                 57
 
 /*
  * private data struct of IDirectFBWindow_Dispatcher
@@ -87,6 +97,8 @@ typedef struct {
 
      VoodooInstanceID     self;
      VoodooInstanceID     super;
+
+     VoodooManager       *manager;
 } IDirectFBWindow_Dispatcher_data;
 
 #endif

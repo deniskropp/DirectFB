@@ -161,7 +161,7 @@ Dispatch_GetSurfaceDescription( IDirectFBImageProvider *thiz, IDirectFBImageProv
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_DATA, sizeof(DFBSurfaceDescription), &desc,
                                     VMBT_NONE );
@@ -180,7 +180,7 @@ Dispatch_GetImageDescription( IDirectFBImageProvider *thiz, IDirectFBImageProvid
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_DATA, sizeof(DFBImageDescription), &desc,
                                     VMBT_NONE );
@@ -209,7 +209,7 @@ Dispatch_RenderTo( IDirectFBImageProvider *thiz, IDirectFBImageProvider *real,
 
      ret = real->RenderTo( real, surface, rect );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }

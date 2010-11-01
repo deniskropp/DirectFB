@@ -36,6 +36,7 @@
 #include <direct/messages.h>
 #include <direct/util.h>
 
+#include <voodoo/conf.h>
 #include <voodoo/interface.h>
 #include <voodoo/manager.h>
 
@@ -62,7 +63,15 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBWindow, Dispatcher )
 static void
 IDirectFBWindow_Dispatcher_Destruct( IDirectFBWindow *thiz )
 {
+     IDirectFBWindow_Dispatcher_data *data;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     data = thiz->priv;
+
+     voodoo_manager_unregister_local( data->manager, data->self );
+
+     data->real->Release( data->real );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -117,7 +126,7 @@ IDirectFBWindow_Dispatcher_DetachEventBuffer( IDirectFBWindow       *thiz,
                                               IDirectFBEventBuffer  *buffer )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
-     
+
      D_UNIMPLEMENTED();
 
      return DFB_UNIMPLEMENTED;
@@ -549,6 +558,15 @@ IDirectFBWindow_Dispatcher_ResizeSurface( IDirectFBWindow *thiz,
 /**************************************************************************************************/
 
 static DirectResult
+Dispatch_Release( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                  VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     return thiz->Release( thiz );
+}
+
+static DirectResult
 Dispatch_CreateEventBuffer( IDirectFBWindow *thiz, IDirectFBWindow *real,
                             VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -573,7 +591,7 @@ Dispatch_CreateEventBuffer( IDirectFBWindow *thiz, IDirectFBWindow *real,
      if (ret)
           buffer->Release( buffer );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -605,9 +623,25 @@ Dispatch_AttachEventBuffer( IDirectFBWindow *thiz, IDirectFBWindow *real,
 
      ret = real->AttachEventBuffer( real, buffer_data->src );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_EnableEvents( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                       VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     VoodooMessageParser parser;
+     DFBWindowEventType  mask;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_UINT( parser, mask );
+     VOODOO_PARSER_END( parser );
+
+     return real->EnableEvents( real, mask );
 }
 
 static DirectResult
@@ -637,7 +671,7 @@ Dispatch_DetachEventBuffer( IDirectFBWindow *thiz, IDirectFBWindow *real,
 
      ret = real->DetachEventBuffer( real, buffer_data->src );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -655,7 +689,7 @@ Dispatch_GetID( IDirectFBWindow *thiz, IDirectFBWindow *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_ID, id,
                                     VMBT_NONE );
@@ -674,7 +708,7 @@ Dispatch_GetPosition( IDirectFBWindow *thiz, IDirectFBWindow *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_DATA, sizeof(DFBPoint), &position,
                                     VMBT_NONE );
@@ -693,7 +727,7 @@ Dispatch_GetSize( IDirectFBWindow *thiz, IDirectFBWindow *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_DATA, sizeof(DFBDimension), &size,
                                     VMBT_NONE );
@@ -720,7 +754,7 @@ Dispatch_GetSurface( IDirectFBWindow *thiz, IDirectFBWindow *real,
           return ret;
      }
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, instance,
                                     VMBT_NONE );
 }
@@ -757,7 +791,7 @@ Dispatch_GetOptions( IDirectFBWindow *thiz, IDirectFBWindow *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_INT, options,
                                     VMBT_NONE );
@@ -794,7 +828,7 @@ Dispatch_GetOpacity( IDirectFBWindow *thiz, IDirectFBWindow *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_UINT, opacity,
                                     VMBT_NONE );
@@ -823,7 +857,7 @@ Dispatch_SetCursorShape( IDirectFBWindow *thiz, IDirectFBWindow *real,
 
      ret = real->SetCursorShape( real, surface, hot->x, hot->y );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -838,7 +872,7 @@ Dispatch_RequestFocus( IDirectFBWindow *thiz, IDirectFBWindow *real,
 
      ret = real->RequestFocus( real );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -853,7 +887,7 @@ Dispatch_GrabPointer( IDirectFBWindow *thiz, IDirectFBWindow *real,
 
      ret = real->GrabPointer( real );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -868,7 +902,7 @@ Dispatch_UngrabPointer( IDirectFBWindow *thiz, IDirectFBWindow *real,
 
      ret = real->UngrabPointer( real );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -925,7 +959,7 @@ Dispatch_Resize( IDirectFBWindow *thiz, IDirectFBWindow *real,
 
      ret = real->Resize( real, size->w, size->h );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -943,6 +977,13 @@ Dispatch_SetStackingClass( IDirectFBWindow *thiz, IDirectFBWindow *real,
      VOODOO_PARSER_BEGIN( parser, msg );
      VOODOO_PARSER_GET_INT( parser, stacking_class );
      VOODOO_PARSER_END( parser );
+
+     if (1) {
+          if (voodoo_config->stacking_mask && !(voodoo_config->stacking_mask & (1 << stacking_class))) {
+               D_ERROR( "Stacking class not permitted!\n" );
+               return DR_ACCESSDENIED;
+          }
+     }
 
      ret = real->SetStackingClass( real, stacking_class );
 
@@ -1014,7 +1055,7 @@ Dispatch_Destroy( IDirectFBWindow *thiz, IDirectFBWindow *real,
 
      ret = real->Destroy( real );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -1035,7 +1076,7 @@ Dispatch_SetBounds( IDirectFBWindow *thiz, IDirectFBWindow *real,
 
      ret = real->SetBounds( real, bounds->x, bounds->y, bounds->w, bounds->h );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -1056,7 +1097,7 @@ Dispatch_ResizeSurface( IDirectFBWindow *thiz, IDirectFBWindow *real,
 
      ret = real->ResizeSurface( real, size->w, size->h );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -1077,7 +1118,7 @@ Dispatch_SetSrcGeometry( IDirectFBWindow *thiz, IDirectFBWindow *real,
 
      ret = real->SetSrcGeometry( real, geometry );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -1098,9 +1139,53 @@ Dispatch_SetDstGeometry( IDirectFBWindow *thiz, IDirectFBWindow *real,
 
      ret = real->SetDstGeometry( real, geometry );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_GetProperty( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                      VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult         ret;
+     VoodooMessageParser  parser;
+     const char          *key;
+     void                *value = NULL;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_STRING( parser, key );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->GetProperty( real, key, &value );
+     if (ret)
+          return ret;
+
+     if (!value)
+          value = (void*) "";
+
+     return voodoo_manager_respond( manager, true, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_STRING, value,
+                                    VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_SendEvent( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                    VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     VoodooMessageParser   parser;
+     const DFBWindowEvent *event;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_DATA( parser, event );
+     VOODOO_PARSER_END( parser );
+
+     return real->SendEvent( real, event );
 }
 
 
@@ -1111,21 +1196,27 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
               "Handling request for instance %u with method %u...\n", msg->instance, msg->method );
 
      switch (msg->method) {
+          case IDIRECTFBWINDOW_METHOD_ID_Release:
+               return Dispatch_Release( dispatcher, real, manager, msg );
+
           case IDIRECTFBWINDOW_METHOD_ID_CreateEventBuffer:
                return Dispatch_CreateEventBuffer( dispatcher, real, manager, msg );
 
           case IDIRECTFBWINDOW_METHOD_ID_AttachEventBuffer:
                return Dispatch_AttachEventBuffer( dispatcher, real, manager, msg );
-               
+
+          case IDIRECTFBWINDOW_METHOD_ID_EnableEvents:
+               return Dispatch_EnableEvents( dispatcher, real, manager, msg );
+
           case IDIRECTFBWINDOW_METHOD_ID_DetachEventBuffer:
                return Dispatch_DetachEventBuffer( dispatcher, real, manager, msg );
 
           case IDIRECTFBWINDOW_METHOD_ID_GetID:
                return Dispatch_GetID( dispatcher, real, manager, msg );
-               
+
           case IDIRECTFBWINDOW_METHOD_ID_GetPosition:
                return Dispatch_GetPosition( dispatcher, real, manager, msg );
-               
+
           case IDIRECTFBWINDOW_METHOD_ID_GetSize:
                return Dispatch_GetSize( dispatcher, real, manager, msg );
 
@@ -1185,10 +1276,10 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBWINDOW_METHOD_ID_Destroy:
                return Dispatch_Destroy( dispatcher, real, manager, msg );
-               
+
           case IDIRECTFBWINDOW_METHOD_ID_SetBounds:
                return Dispatch_SetBounds( dispatcher, real, manager, msg );
-               
+
           case IDIRECTFBWINDOW_METHOD_ID_ResizeSurface:
                return Dispatch_ResizeSurface( dispatcher, real, manager, msg );
 
@@ -1197,6 +1288,12 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBWINDOW_METHOD_ID_SetDstGeometry:
                return Dispatch_SetDstGeometry( dispatcher, real, manager, msg );
+
+          case IDIRECTFBWINDOW_METHOD_ID_GetProperty:
+               return Dispatch_GetProperty( dispatcher, real, manager, msg );
+
+          case IDIRECTFBWINDOW_METHOD_ID_SendEvent:
+               return Dispatch_SendEvent( dispatcher, real, manager, msg );
      }
 
      return DFB_NOSUCHMETHOD;
@@ -1244,6 +1341,7 @@ Construct( IDirectFBWindow  *thiz,     /* Dispatcher interface */
      data->real  = real;
      data->self  = instance;
      data->super = super;
+     data->manager = manager;
 
      /* Initialize interface methods. */
      thiz->AddRef             = IDirectFBWindow_Dispatcher_AddRef;

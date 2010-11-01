@@ -304,7 +304,7 @@ Dispatch_AddRef( IDirectFBDataBuffer *thiz, IDirectFBDataBuffer *real,
 
      ret = thiz->AddRef( thiz );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -330,7 +330,7 @@ Dispatch_Flush( IDirectFBDataBuffer *thiz, IDirectFBDataBuffer *real,
 
      ret = real->Flush( real );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -345,7 +345,7 @@ Dispatch_Finish( IDirectFBDataBuffer *thiz, IDirectFBDataBuffer *real,
 
      ret = real->Finish( real );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -366,7 +366,7 @@ Dispatch_SeekTo( IDirectFBDataBuffer *thiz, IDirectFBDataBuffer *real,
 
      ret = real->SeekTo( real, offset );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -384,7 +384,7 @@ Dispatch_GetPosition( IDirectFBDataBuffer *thiz, IDirectFBDataBuffer *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_UINT, offset,
                                     VMBT_NONE );
@@ -403,7 +403,7 @@ Dispatch_GetLength( IDirectFBDataBuffer *thiz, IDirectFBDataBuffer *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_UINT, length,
                                     VMBT_NONE );
@@ -425,7 +425,7 @@ Dispatch_WaitForData( IDirectFBDataBuffer *thiz, IDirectFBDataBuffer *real,
 
      ret = real->WaitForData( real, length );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -450,7 +450,7 @@ Dispatch_WaitForDataWithTimeout( IDirectFBDataBuffer *thiz, IDirectFBDataBuffer 
 
      ret = real->WaitForDataWithTimeout( real, length, seconds, milli_seconds );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -480,7 +480,7 @@ Dispatch_GetData( IDirectFBDataBuffer *thiz, IDirectFBDataBuffer *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_UINT, read,
                                     VMBT_DATA, read, tmp,
@@ -514,7 +514,7 @@ Dispatch_PeekData( IDirectFBDataBuffer *thiz, IDirectFBDataBuffer *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_UINT, read,
                                     VMBT_DATA, read, tmp,
@@ -531,7 +531,7 @@ Dispatch_HasData( IDirectFBDataBuffer *thiz, IDirectFBDataBuffer *real,
 
      ret = real->HasData( real );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -554,7 +554,7 @@ Dispatch_PutData( IDirectFBDataBuffer *thiz, IDirectFBDataBuffer *real,
 
      ret = real->PutData( real, source, length );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }

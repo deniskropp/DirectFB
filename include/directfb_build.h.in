@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -26,28 +26,11 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __VOODOO__CONF_H__
-#define __VOODOO__CONF_H__
+#ifndef __DIRECTFB_BUILD_H__
+#define __DIRECTFB_BUILD_H__
 
-#include <voodoo/play.h>
+#define DIRECTFB_BUILD_VOODOO       (@DIRECTFB_BUILD_VOODOO@)
+#define DIRECTFB_BUILD_PURE_VOODOO  (@DIRECTFB_BUILD_PURE_VOODOO@)
 
-
-struct __V_VoodooConfig {
-     VoodooPlayInfo  play_info;
-     bool            forward_nodes;
-     unsigned int    memory_max;
-     unsigned int    surface_max;
-     unsigned int    layer_mask;
-     unsigned int    stacking_mask;
-     unsigned int    resource_id;
-     bool            server_fork;
-};
-
-extern VoodooConfig *voodoo_config;
-
-
-DirectResult voodoo_config_set( const char *name, const char *value );
-
-
-#endif
+#endif /* __DIRECTFB_BUILD_H__ */
 

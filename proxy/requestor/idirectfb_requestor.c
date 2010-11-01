@@ -43,6 +43,7 @@
 #include <input/idirectfbinputbuffer.h>
 #include <media/idirectfbdatabuffer.h>
 
+#include <idirectfb.h>
 #include <idirectfb_dispatcher.h>
 
 
@@ -75,7 +76,13 @@ typedef struct {
 static void
 IDirectFB_Requestor_Destruct( IDirectFB *thiz )
 {
+     IDirectFB_Requestor_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     voodoo_client_destroy( data->client );
+
+     idirectfb_singleton = NULL;
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }

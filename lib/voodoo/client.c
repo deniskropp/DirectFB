@@ -44,22 +44,35 @@
 #include <netdb.h>
 
 #include <direct/debug.h>
+#include <direct/list.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/util.h>
 
 #include <voodoo/client.h>
 #include <voodoo/internal.h>
+#include <voodoo/play.h>
 
+/**********************************************************************************************************************/
 
 struct __V_VoodooClient {
+     DirectLink     link;
+
+     int            refs;
+
      int            fd;
      VoodooManager *manager;
+
+     char          *host;
+     int            session;
 };
 
+static DirectLink *m_clients;
+
+/**********************************************************************************************************************/
 
 DirectResult
-voodoo_client_create( const char     *hostname,
+voodoo_client_create( const char     *host,
                       int             session,
                       VoodooClient  **ret_client )
 {
@@ -68,8 +81,53 @@ voodoo_client_create( const char     *hostname,
      struct addrinfo  hints;
      struct addrinfo *addr;
      VoodooClient    *client;
+     char             buf[100] = { 0 };
+     const char      *hostname = host;
 
      D_ASSERT( ret_client != NULL );
+
+     direct_list_foreach (client, m_clients) {
+          if (!strcmp( client->host, host ) && client->session == session) {
+               D_INFO( "Voodoo/Client: Reconnecting to '%s', increasing ref count of existing connection!\n", host );
+
+               client->refs++;
+
+               *ret_client = client;
+
+               return DR_OK;
+          }
+     }
+
+     if (!hostname || !hostname[0]) {
+          int           n;
+          VoodooPlayer *player;
+
+          ret = voodoo_player_create( NULL, &player );
+          if (ret) {
+               D_DERROR( ret, "Voodoo/Proxy: Could not create the player!\n" );
+               return ret;
+          }
+
+          for (n=0; n<10; n++) {
+               voodoo_player_broadcast( player );
+
+               usleep( 20000 );
+
+               if (voodoo_player_lookup( player, NULL, buf, sizeof(buf) ) == DR_OK)
+                    break;
+
+               usleep( 100000 );
+          }
+
+          voodoo_player_destroy( player );
+
+          if (!buf[0]) {
+               D_ERROR( "Voodoo/Play: Did not find any other player!\n" );
+               return DR_ITEMNOTFOUND;
+          }
+
+          hostname = buf;
+     }
 
      memset( &hints, 0, sizeof(hints) );
      hints.ai_flags    = AI_CANONNAME;
@@ -84,26 +142,26 @@ voodoo_client_create( const char     *hostname,
                case EAI_FAMILY:
                     D_ERROR( "Direct/Log: Unsupported address family!\n" );
                     return DR_UNSUPPORTED;
-               
+
                case EAI_SOCKTYPE:
                     D_ERROR( "Direct/Log: Unsupported socket type!\n" );
                     return DR_UNSUPPORTED;
-               
+
                case EAI_NONAME:
                     D_ERROR( "Direct/Log: Host not found!\n" );
                     return DR_FAILURE;
-                    
+
                case EAI_SERVICE:
                     D_ERROR( "Direct/Log: Port 2323 is unreachable!\n" );
                     return DR_FAILURE;
-               
+
 #ifdef EAI_ADDRFAMILY
                case EAI_ADDRFAMILY:
 #endif
                case EAI_NODATA:
                     D_ERROR( "Direct/Log: Host found, but has no address!\n" );
                     return DR_FAILURE;
-                    
+
                case EAI_MEMORY:
                     return D_OOM();
 
@@ -114,7 +172,7 @@ voodoo_client_create( const char     *hostname,
                case EAI_AGAIN:
                     D_ERROR( "Direct/Log: Temporary error, try again!\n" );
                     return DR_TEMPUNAVAIL;
-                    
+
                default:
                     D_ERROR( "Direct/Log: Unknown error occured!?\n" );
                     return DR_FAILURE;
@@ -161,6 +219,12 @@ voodoo_client_create( const char     *hostname,
           return ret;
      }
 
+     client->refs    = 1;
+     client->host    = D_STRDUP( host );
+     client->session = session;
+
+     direct_list_prepend( &m_clients, &client->link );
+
      /* Return the new client. */
      *ret_client = client;
 
@@ -172,11 +236,19 @@ voodoo_client_destroy( VoodooClient *client )
 {
      D_ASSERT( client != NULL );
 
+     D_INFO( "Voodoo/Client: Decreasing ref count of connection...\n" );
+
+     if (! --(client->refs)) {
      voodoo_manager_destroy( client->manager );
 
+          D_INFO("closing socket\n");
      close( client->fd );
 
+          direct_list_remove( &m_clients, &client->link );
+
+          D_FREE( client->host );
      D_FREE( client );
+     }
 
      return DR_OK;
 }

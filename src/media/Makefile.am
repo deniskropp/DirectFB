@@ -19,11 +19,20 @@ internalinclude_HEADERS = \
 
 noinst_LTLIBRARIES = libdirectfb_media.la
 
+
+if DIRECTFB_BUILD_PURE_VOODOO
+NON_PURE_VOODOO_SOURCESs = 
+else
+NON_PURE_VOODOO_SOURCESs = \
+	idirectfbfont.c			\
+	idirectfbimageprovider.c	\
+	idirectfbvideoprovider.c
+endif
+
 libdirectfb_media_la_SOURCES = \
+	$(NON_PURE_VOODOO_SOURCESs)	\
 	idirectfbdatabuffer.c		\
 	idirectfbdatabuffer_file.c	\
 	idirectfbdatabuffer_memory.c	\
-	idirectfbdatabuffer_streamed.c	\
-	idirectfbfont.c			\
-	idirectfbimageprovider.c		\
-	idirectfbvideoprovider.c
+	idirectfbdatabuffer_streamed.c
+

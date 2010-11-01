@@ -6,6 +6,7 @@ DISTCLEANFILES = directfb_keynames.h directfb_strings.h
 
 include_HEADERS = \
 	directfb.h		\
+	directfb_build.h	\
 	directfb_keyboard.h	\
 	directfb_keynames.h	\
 	directfb_strings.h	\

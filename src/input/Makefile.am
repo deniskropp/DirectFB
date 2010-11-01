@@ -17,6 +17,15 @@ internalinclude_HEADERS = \
 
 noinst_LTLIBRARIES = libdirectfb_input.la
 
+
+if DIRECTFB_BUILD_PURE_VOODOO
+NON_PURE_VOODOO_SOURCESs = 
+else
+NON_PURE_VOODOO_SOURCESs = \
+	idirectfbinputdevice.c
+endif
+
 libdirectfb_input_la_SOURCES = \
-	idirectfbinputdevice.c	\
+	$(NON_PURE_VOODOO_SOURCESs)	\
 	idirectfbinputbuffer.c
+

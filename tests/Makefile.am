@@ -8,9 +8,20 @@ INCLUDES = \
 	-I$(top_srcdir)/src	\
 	-DLINUX_2_6
 
+if DIRECTFB_BUILD_PURE_VOODOO
+NON_PURE_VOODOO_PROGS = 
+else
+NON_PURE_VOODOO_PROGS = \
+	coretest_blit2	\
+	fusion_call	\
+	fusion_fork	\
+	fusion_reactor	\
+	fusion_skirmish	\
+	fusion_stream
+endif
 
 bin_PROGRAMS = \
-	coretest_blit2	\
+	$(NON_PURE_VOODOO_PROGS)	\
 	dfbtest_blit	\
 	dfbtest_blit2	\
 	dfbtest_fillrect	\
@@ -22,12 +33,7 @@ bin_PROGRAMS = \
 	dfbtest_window	\
 	dfbtest_window_flip_once	\
 	direct_stream	\
-	direct_test	\
-	fusion_call	\
-	fusion_fork	\
-	fusion_reactor	\
-	fusion_skirmish	\
-	fusion_stream
+	direct_test
 
 libdirectfb = $(top_builddir)/src/libdirectfb.la
 libfusion = $(top_builddir)/lib/fusion/libfusion.la

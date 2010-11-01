@@ -192,6 +192,7 @@ DirectFBCreate( IDirectFB **interface )
                              "\n" );
      }
 
+#if !DIRECTFB_BUILD_PURE_VOODOO
      if (dfb_config->remote.host)
           return CreateRemote( dfb_config->remote.host, dfb_config->remote.session, interface );
 
@@ -219,6 +220,9 @@ DirectFBCreate( IDirectFB **interface )
      *interface = idirectfb_singleton = dfb;
 
      return DFB_OK;
+#else
+     return CreateRemote( dfb_config->remote.host ?: "", dfb_config->remote.session, interface );
+#endif
 }
 
 DFBResult

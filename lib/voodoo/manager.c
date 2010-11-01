@@ -37,11 +37,14 @@
 
 #include <sys/types.h>
 #include <sys/poll.h>
+#include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 
 #include <netinet/in.h>
+#if !VOODOO_BUILD_NO_SETSOCKOPT
 #include <netinet/ip.h>
+#endif
 #include <netinet/tcp.h>
 
 #include <direct/clock.h>
@@ -55,6 +58,7 @@
 #include <direct/thread.h>
 #include <direct/util.h>
 
+#include <voodoo/conf.h>
 #include <voodoo/internal.h>
 #include <voodoo/manager.h>
 
@@ -171,7 +175,9 @@ voodoo_manager_create( int             fd,
      VoodooManager   *manager;
      int              val;
      unsigned int     len;
+#if !VOODOO_BUILD_NO_SETSOCKOPT
      static const int tos = IPTOS_LOWDELAY;
+#endif
 
      D_ASSERT( fd >= 0 );
      D_ASSERT( (client != NULL) ^ (server != NULL) );
@@ -186,11 +192,13 @@ voodoo_manager_create( int             fd,
 
      D_DEBUG( "Voodoo/Manager: Creating manager at %p.\n", manager );
 
+#if !VOODOO_BUILD_NO_SETSOCKOPT
      if (setsockopt( fd, SOL_IP, IP_TOS, &tos, sizeof(tos) ) < 0)
           D_PERROR( "Voodoo/Manager: Could not set IP_TOS!\n" );
 
      if (setsockopt( fd, SOL_TCP, TCP_NODELAY, &one, sizeof(one) ) < 0)
           D_PERROR( "Voodoo/Manager: Could not set TCP_NODELAY!\n" );
+#endif
 
      DUMP_SOCKET_OPTION( SO_SNDLOWAT );
      DUMP_SOCKET_OPTION( SO_RCVLOWAT );
@@ -675,6 +683,38 @@ voodoo_manager_request( VoodooManager           *manager,
 }
 
 DirectResult
+voodoo_manager_next_response( VoodooManager          *manager,
+                              VoodooResponseMessage  *response,
+                              VoodooResponseMessage **ret_response )
+{
+     DirectResult        ret;
+     VoodooMessageSerial serial;
+
+     D_MAGIC_ASSERT( manager, VoodooManager );
+     D_ASSERT( response != NULL );
+
+     serial = response->request;
+
+     /* Unlock the response buffer. */
+     manager_unlock_response( manager, response );
+
+     ret = manager_lock_response( manager, serial, &response );
+     if (ret) {
+          D_ERROR( "Voodoo/Manager: "
+                   "Waiting for the response failed (%s)!\n", DirectResultString( ret ) );
+          return ret;
+     }
+
+     D_DEBUG( "Voodoo/Manager: Got response %llu (%s) with instance %u for request %llu "
+              "(%d bytes).\n", (unsigned long long)response->header.serial, DirectResultString( response->result ),
+              response->instance, (unsigned long long)response->request, response->header.size );
+
+     *ret_response = response;
+
+     return DR_OK;
+}
+
+DirectResult
 voodoo_manager_finish_request( VoodooManager         *manager,
                                VoodooResponseMessage *response )
 {
@@ -687,6 +727,7 @@ voodoo_manager_finish_request( VoodooManager         *manager,
 
 DirectResult
 voodoo_manager_respond( VoodooManager          *manager,
+                        bool                     flush,
                         VoodooMessageSerial     request,
                         DirectResult            result,
                         VoodooInstanceID        instance,
@@ -799,6 +840,31 @@ voodoo_manager_register_local( VoodooManager    *manager,
 }
 
 DirectResult
+voodoo_manager_unregister_local( VoodooManager    *manager,
+                                 VoodooInstanceID  instance_id )
+{
+     VoodooInstance *instance;
+
+     D_MAGIC_ASSERT( manager, VoodooManager );
+
+     pthread_mutex_lock( &manager->instances.lock );
+
+     instance = direct_hash_lookup( manager->instances.local, instance_id );
+     if (!instance) {
+          pthread_mutex_unlock( &manager->instances.lock );
+          return DR_NOSUCHINSTANCE;
+     }
+
+     direct_hash_remove( manager->instances.local, instance_id );
+
+     pthread_mutex_unlock( &manager->instances.lock );
+
+     D_FREE( instance );
+
+     return DR_OK;
+}
+
+DirectResult
 voodoo_manager_lookup_local( VoodooManager     *manager,
                              VoodooInstanceID   instance_id,
                              void             **ret_dispatcher,
@@ -894,6 +960,49 @@ voodoo_manager_lookup_remote( VoodooManager     *manager,
      return DR_OK;
 }
 
+DirectResult
+voodoo_manager_check_allocation( VoodooManager *manager,
+                                 unsigned int   amount )
+{
+     FILE *f;
+     char  buf[2000];
+     int   size;
+     char *p;
+
+     D_MAGIC_ASSERT( manager, VoodooManager );
+
+     if (!voodoo_config->memory_max)
+          return DR_OK;
+
+     snprintf( buf, sizeof(buf), "/proc/%d/status", getpid() );
+
+     f = fopen( buf, "r" );
+     if (!f) {
+          D_ERROR( "Could not open '%s'!\n", buf );
+          return DR_FAILURE;
+     }
+
+     fread( buf, 1, sizeof(buf), f );
+
+     fclose( f );
+
+
+     p = strstr( buf, "VmRSS:" );
+     if (!p) {
+          D_ERROR( "Could not find memory information!\n" );
+          return DR_FAILURE;
+     }
+
+     sscanf( p + 6, " %u", &size );
+
+     D_INFO( "SIZE: %u kB (+%u kB)\n", size, amount / 1024 );
+
+     if (size * 1024 + amount > voodoo_config->memory_max)
+          return DR_LIMITEXCEEDED;
+
+     return DR_OK;
+}
+
 /**************************************************************************************************/
 
 static void
@@ -938,19 +1047,19 @@ handle_super( VoodooManager      *manager,
 
           ret = voodoo_server_construct( manager->server, manager, name, &instance );
           if (ret) {
-               voodoo_manager_respond( manager, super->header.serial,
+               voodoo_manager_respond( manager, true, super->header.serial,
                                        ret, VOODOO_INSTANCE_NONE,
                                        VMBT_NONE );
                return;
           }
 
-          voodoo_manager_respond( manager, super->header.serial,
+          voodoo_manager_respond( manager, true, super->header.serial,
                                   DR_OK, instance,
                                   VMBT_NONE );
      }
      else {
           D_WARN( "can't handle this as a client" );
-          voodoo_manager_respond( manager, super->header.serial,
+          voodoo_manager_respond( manager, true, super->header.serial,
                                   DR_UNSUPPORTED, VOODOO_INSTANCE_NONE,
                                   VMBT_NONE );
      }
@@ -974,7 +1083,7 @@ dispatch_async_thread( void *arg )
      ret = instance->dispatch( instance->proxy, instance->real, manager, request );
 
      if (ret && (request->flags & VREQ_RESPOND))
-          voodoo_manager_respond( manager, request->header.serial,
+          voodoo_manager_respond( manager, true, request->header.serial,
                                   ret, VOODOO_INSTANCE_NONE,
                                   VMBT_NONE );
 
@@ -1011,7 +1120,7 @@ handle_request( VoodooManager        *manager,
                    "Requested instance %u doesn't exist (anymore)!\n", request->instance );
 
           if (request->flags & VREQ_RESPOND)
-               voodoo_manager_respond( manager, request->header.serial,
+               voodoo_manager_respond( manager, true, request->header.serial,
                                        DR_NOSUCHINSTANCE, VOODOO_INSTANCE_NONE,
                                        VMBT_NONE );
 
@@ -1042,7 +1151,7 @@ handle_request( VoodooManager        *manager,
           ret = instance->dispatch( instance->proxy, instance->real, manager, request );
 
           if (ret && (request->flags & VREQ_RESPOND))
-               voodoo_manager_respond( manager, request->header.serial,
+               voodoo_manager_respond( manager, true, request->header.serial,
                                        ret, VOODOO_INSTANCE_NONE,
                                        VMBT_NONE );
      }

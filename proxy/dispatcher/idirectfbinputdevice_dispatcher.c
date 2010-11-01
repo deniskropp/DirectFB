@@ -283,7 +283,7 @@ Dispatch_GetID( IDirectFBInputDevice *thiz, IDirectFBInputDevice *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_ID, id,
                                     VMBT_NONE );
@@ -302,7 +302,7 @@ Dispatch_GetDescription( IDirectFBInputDevice *thiz, IDirectFBInputDevice *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_DATA, sizeof(desc), &desc,
                                     VMBT_NONE );
@@ -327,7 +327,7 @@ Dispatch_GetKeymapEntry( IDirectFBInputDevice *thiz, IDirectFBInputDevice *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_DATA, sizeof(entry), &entry,
                                     VMBT_NONE );
@@ -358,7 +358,7 @@ Dispatch_CreateEventBuffer( IDirectFBInputDevice *thiz, IDirectFBInputDevice *re
      if (ret)
           buffer->Release( buffer );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -390,7 +390,7 @@ Dispatch_AttachEventBuffer( IDirectFBInputDevice *thiz, IDirectFBInputDevice *re
 
      ret = real->AttachEventBuffer( real, buffer_data->src );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -422,7 +422,7 @@ Dispatch_DetachEventBuffer( IDirectFBInputDevice *thiz, IDirectFBInputDevice *re
 
      ret = real->DetachEventBuffer( real, buffer_data->src );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }

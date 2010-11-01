@@ -65,7 +65,13 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBWindow, Requestor )
 static void
 IDirectFBWindow_Requestor_Destruct( IDirectFBWindow *thiz )
 {
+     IDirectFBWindow_Requestor_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     voodoo_manager_request( data->manager, data->instance,
+                             IDIRECTFBWINDOW_METHOD_ID_Release, VREQ_NONE, NULL,
+                             VMBT_NONE );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -214,9 +220,10 @@ IDirectFBWindow_Requestor_EnableEvents( IDirectFBWindow       *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Requestor)
 
-     D_UNIMPLEMENTED();
-
-     return DFB_UNIMPLEMENTED;
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBWINDOW_METHOD_ID_EnableEvents, VREQ_NONE, NULL,
+                                    VMBT_UINT, mask,
+                                    VMBT_NONE );
 }
 
 static DFBResult
@@ -398,13 +405,40 @@ IDirectFBWindow_Requestor_SetProperty( IDirectFBWindow  *thiz,
 static DFBResult
 IDirectFBWindow_Requestor_GetProperty( IDirectFBWindow  *thiz,
                                        const char       *key,
-                                       void            **value )
+                                       void            **ret_value )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+     const char            *value;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Requestor)
 
-     D_UNIMPLEMENTED();
+     if (!ret_value)
+          return DFB_INVARG;
 
-     return DFB_UNIMPLEMENTED;
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBWINDOW_METHOD_ID_GetProperty, VREQ_RESPOND, &response,
+                                   VMBT_STRING, key,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_STRING( parser, value );
+     VOODOO_PARSER_END( parser );
+
+     *ret_value = D_STRDUP( value );    // FIXME: LEAK
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -418,7 +452,6 @@ IDirectFBWindow_Requestor_RemoveProperty( IDirectFBWindow  *thiz,
 
      return DFB_UNIMPLEMENTED;
 }
-
 
 static DFBResult
 IDirectFBWindow_Requestor_SetOptions( IDirectFBWindow  *thiz,
@@ -992,6 +1025,18 @@ IDirectFBWindow_Requestor_SetDstGeometry( IDirectFBWindow         *thiz,
      return ret;
 }
 
+static DFBResult
+IDirectFBWindow_Requestor_SendEvent( IDirectFBWindow      *thiz,
+                                     const DFBWindowEvent *event )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Requestor)
+
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBWINDOW_METHOD_ID_SendEvent, VREQ_NONE, NULL,
+                                    VMBT_DATA, sizeof(DFBWindowEvent), event,
+                                    VMBT_NONE );
+}
+
 /**************************************************************************************************/
 
 static DFBResult
@@ -1063,6 +1108,7 @@ Construct( IDirectFBWindow  *thiz,
      thiz->UngrabUnselectedKeys = IDirectFBWindow_Requestor_UngrabUnselectedKeys;
      thiz->SetSrcGeometry      = IDirectFBWindow_Requestor_SetSrcGeometry;
      thiz->SetDstGeometry      = IDirectFBWindow_Requestor_SetDstGeometry;
+     thiz->SendEvent          = IDirectFBWindow_Requestor_SendEvent;
 
      return DFB_OK;
 }

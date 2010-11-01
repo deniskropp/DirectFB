@@ -191,7 +191,7 @@ Dispatch_GetCapabilities( IDirectFBPalette *thiz, IDirectFBPalette *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_INT, caps,
                                     VMBT_NONE );
@@ -210,7 +210,7 @@ Dispatch_GetSize( IDirectFBPalette *thiz, IDirectFBPalette *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_UINT, size,
                                     VMBT_NONE );
@@ -236,7 +236,7 @@ Dispatch_SetEntries( IDirectFBPalette *thiz, IDirectFBPalette *real,
 
      ret = real->SetEntries( real, entries, num_entries, offset );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -268,7 +268,7 @@ Dispatch_GetEntries( IDirectFBPalette *thiz, IDirectFBPalette *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_DATA, num_entries * sizeof(DFBColor), entries,
                                     VMBT_NONE );
@@ -293,7 +293,7 @@ Dispatch_FindBestMatch( IDirectFBPalette *thiz, IDirectFBPalette *real,
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_UINT, index,
                                     VMBT_NONE );
