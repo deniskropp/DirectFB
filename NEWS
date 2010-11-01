@@ -1,3 +1,42 @@
+1.4.9
+-----
+
+Major Voodoo improvements in this release!
+
+Configure Options
+- Add "--enable-pure-voodoo" to build a client only library.
+- Add "--without-setsockopt" to disable usage of setsockopt() call.
+- Generate directfb_build.h with Voodoo options.
+- When Voodoo is enabled, add library dependency to pkg-config file and pass runtime options to libvoodoo.
+
+Runtime Options
+- Add "[no-]server-fork" choosing between fork() and thread based connection handling.
+- Add "player-name=<name>", "player-vendor=<name>", "player-model=<name>", "player-uuid=<name>" to set Voodoo Player information.
+- Add "proxy-memory-max=<kB>" to set maximum amount of memory per connection.
+- Add "proxy-surface-max=<kB>" to set maximum amount of memory per surface.
+- Add "proxy-layer-mask" to limit the set of layers to be used by clients.
+- Add "proxy-stacking-mask" to limit the stacking classes to be used clients.
+- Add "proxy-resource-id" to make all surfaces system only except those with the specified resource ID.
+
+Voodoo
+- Reuse connections when same server is used.
+- Lookup remote player if no host has been specified.
+- Implement multi response adding voodoo_manager_next_response() call.
+- Add flush parameter to voodoo_manager_respond() to allow efficient transmission of multi response.
+- Add voodoo_manager_unregister_local() which should have been there since the beginning *sigh*
+- Add voodoo_manager_check_allocation() looking at VmRSS if "proxy-memory-max" option is used.
+
+Implementation
+- Add implementation for IDirectFBDisplayLayer::GetWindow() and GetWindowByResourceID().
+- Add implementation for IDirectFBWindow::EnableEvents(), GetProperty() and SendEvent().
+- Add implementation for IDirectFBSurface::Read().
+- Add Release calls to IDirectFBSurface and IDirectFBWindow.
+- Cache pixel format in IDirectFBSurface::GetPixelFormat().
+
+Voodoo Play
+- Introduce discovery and transport implementation, stay tuned...
+
+
 1.4.8
 -----
 
