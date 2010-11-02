@@ -1173,6 +1173,10 @@ remove_allocation( CoreSurfacePool       *pool,
      fusion_vector_remove( &buffer->allocs, index_buffer );
      fusion_vector_remove( &pool->allocs,   index_pool );
 
+     /* Reset 'read' allocation pointer of buffer */
+     if (buffer->read == allocation)
+          buffer->read = NULL;
+
      /* Update 'written' allocation pointer of buffer */
      if (buffer->written == allocation) {
           /* Reset pointer first */
@@ -1189,10 +1193,6 @@ remove_allocation( CoreSurfacePool       *pool,
                }
           }
      }
-
-     /* Reset 'read' allocation pointer of buffer */
-     if (buffer->read == allocation)
-          buffer->read = NULL;
 }
 
 static DFBResult
