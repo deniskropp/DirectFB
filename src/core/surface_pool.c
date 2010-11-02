@@ -785,7 +785,7 @@ fixme_retry:
                }
 
                /* Ensure mucked out allocation is backed up in another pool */
-               ret = backup_allocation( pool, buffer, allocation );
+               ret = backup_allocation( pool, alloc_buffer, allocation );
                if (ret) {
                     D_WARN( "could not backup allocation (%s)", DirectFBErrorString(ret) );
                     dfb_surface_unlock( alloc_surface );
@@ -1213,6 +1213,7 @@ backup_allocation( CoreSurfacePool       *pool,
      FUSION_SKIRMISH_ASSERT( &buffer->surface->lock );
      FUSION_SKIRMISH_ASSERT( &pool->lock );
      D_ASSERT( pool == allocation->pool );
+     D_ASSERT( buffer == allocation->buffer );
 
      /* Check if allocation is the only up to date (requiring a backup) */
      if (direct_serial_check( &allocation->serial, &buffer->serial )) {
