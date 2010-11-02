@@ -101,9 +101,7 @@ static void      remove_allocation( CoreSurfacePool       *pool,
                                     CoreSurfaceBuffer     *buffer,
                                     CoreSurfaceAllocation *allocation );
 
-static DFBResult backup_allocation( CoreSurfacePool       *pool,
-                                    CoreSurfaceBuffer     *buffer,
-                                    CoreSurfaceAllocation *allocation );
+static DFBResult backup_allocation( CoreSurfaceAllocation *allocation );
 
 /**********************************************************************************************************************/
 
@@ -785,7 +783,7 @@ fixme_retry:
                }
 
                /* Ensure mucked out allocation is backed up in another pool */
-               ret = backup_allocation( pool, alloc_buffer, allocation );
+               ret = backup_allocation( allocation );
                if (ret) {
                     D_WARN( "could not backup allocation (%s)", DirectFBErrorString(ret) );
                     dfb_surface_unlock( alloc_surface );
@@ -1196,24 +1194,27 @@ remove_allocation( CoreSurfacePool       *pool,
 }
 
 static DFBResult
-backup_allocation( CoreSurfacePool       *pool,
-                   CoreSurfaceBuffer     *buffer,
-                   CoreSurfaceAllocation *allocation )
+backup_allocation( CoreSurfaceAllocation *allocation )
 {
      DFBResult              ret = DFB_OK;
      int                    i;
      CoreSurfaceAllocation *backup = NULL;
+     CoreSurfacePool       *pool;
+     CoreSurfaceBuffer     *buffer;
 
-     D_DEBUG_AT( Core_SurfacePool, "%s( %p, %p )\n", __FUNCTION__, pool, allocation );
+     D_DEBUG_AT( Core_SurfacePool, "%s( %p )\n", __FUNCTION__, allocation );
 
-     D_MAGIC_ASSERT( pool, CoreSurfacePool );
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+
+     pool = allocation->pool;
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+
+     buffer = allocation->buffer;
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
      D_MAGIC_ASSERT( buffer->surface, CoreSurface );
      FUSION_SKIRMISH_ASSERT( &buffer->surface->lock );
      FUSION_SKIRMISH_ASSERT( &pool->lock );
-     D_ASSERT( pool == allocation->pool );
-     D_ASSERT( buffer == allocation->buffer );
 
      /* Check if allocation is the only up to date (requiring a backup) */
      if (direct_serial_check( &allocation->serial, &buffer->serial )) {
