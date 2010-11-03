@@ -60,7 +60,7 @@
 #include "isawman.h"
 
 
-#ifndef DIRECTFB_BUILD_PURE_VOODOO
+#if !DIRECTFB_BUILD_PURE_VOODOO
 
 D_DEBUG_DOMAIN( SaWMan_Auto,     "SaWMan/Auto",     "SaWMan auto configuration" );
 D_DEBUG_DOMAIN( SaWMan_Update,   "SaWMan/Update",   "SaWMan window manager updates" );
@@ -117,7 +117,7 @@ DirectResult
 SaWManInit( int    *argc,
             char ***argv )
 {
-#ifndef DIRECTFB_BUILD_PURE_VOODOO
+#if !DIRECTFB_BUILD_PURE_VOODOO
      return sawman_config_init( argc, argv );
 #else
      return DR_OK;
@@ -127,7 +127,7 @@ SaWManInit( int    *argc,
 DirectResult
 SaWManCreate( ISaWMan **ret_sawman )
 {
-#ifndef DIRECTFB_BUILD_PURE_VOODOO
+#if !DIRECTFB_BUILD_PURE_VOODOO
      DirectResult  ret;
      ISaWMan      *sawman;
 #endif
@@ -137,7 +137,7 @@ SaWManCreate( ISaWMan **ret_sawman )
 
      direct_initialize();
 
-#ifndef DIRECTFB_BUILD_PURE_VOODOO
+#if !DIRECTFB_BUILD_PURE_VOODOO
      if (dfb_config->remote.host)
           return CreateRemote( dfb_config->remote.host, dfb_config->remote.session, ret_sawman );
 
@@ -197,7 +197,7 @@ CreateRemote( const char *host, int session, ISaWMan **ret_sawman )
 }
 
 /**********************************************************************************************************************/
-#ifndef DIRECTFB_BUILD_PURE_VOODOO
+#if !DIRECTFB_BUILD_PURE_VOODOO
 
 DirectResult
 sawman_initialize( SaWMan         *sawman,
