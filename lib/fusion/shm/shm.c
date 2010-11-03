@@ -52,8 +52,8 @@
 
 /**********************************************************************************************************************/
 
-static int
-find_tmpfs( char *name, int len )
+int
+fusion_find_tmpfs( char *name, int len )
 {
      int    largest = 0;
      char   buffer[1024];
@@ -129,7 +129,7 @@ fusion_shm_init( FusionWorld *world )
           if (fusion_config->tmpfs) {
                direct_snputs( shared->tmpfs, fusion_config->tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN );
           }
-          else if (!find_tmpfs( shared->tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN )) {
+          else if (!fusion_find_tmpfs( shared->tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN )) {
                D_ERROR( "Fusion/SHM: Could not find tmpfs mount point, falling back to /dev/shm!\n" );
                direct_snputs( shared->tmpfs, "/dev/shm", FUSION_SHM_TMPFS_PATH_NAME_LEN );
           }

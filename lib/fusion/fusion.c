@@ -386,6 +386,67 @@ fusion_fork_handler_child( void )
 
 /**********************************************************************************************************************/
 
+static DirectResult
+map_shared_root( int                 world_index,
+                 FusionWorldShared **ret_shared )
+{
+     DirectResult ret = DR_OK;
+     int          fd;
+     void        *map;
+     char         tmpfs[FUSION_SHM_TMPFS_PATH_NAME_LEN];
+     char         root_file[FUSION_SHM_TMPFS_PATH_NAME_LEN+32];
+
+     if (fusion_config->tmpfs) {
+          direct_snputs( tmpfs, fusion_config->tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN );
+     }
+     else if (!fusion_find_tmpfs( tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN )) {
+          D_ERROR( "Fusion/SHM: Could not find tmpfs mount point, falling back to /dev/shm!\n" );
+          direct_snputs( tmpfs, "/dev/shm", FUSION_SHM_TMPFS_PATH_NAME_LEN );
+     }
+
+     snprintf( root_file, sizeof(root_file), "%s/fusion.%d", tmpfs, world_index );
+
+     /* open the virtual file */
+     fd = open( root_file, O_RDWR | O_CREAT | O_TRUNC, 0660 );
+     if (fd < 0) {
+          ret = errno2result(errno);
+          D_PERROR( "Fusion/SHM: Could not open shared memory file '%s'!\n", root_file );
+          return ret;
+     }
+
+     if (fusion_config->shmfile_gid != (gid_t)-1) {
+          /* chgrp the SH_FILE dev entry */
+          if (fchown( fd, -1, fusion_config->shmfile_gid ) != 0)
+               D_WARN( "Fusion/SHM: Changing owner on %s failed... continuing on.", root_file );
+     }
+
+     fchmod( fd, 0660 );
+     ftruncate( fd, sizeof(FusionWorldShared) );
+
+     D_DEBUG_AT( Fusion_Main, "  -> mmaping shared memory file... (%zu bytes)\n", sizeof(FusionWorldShared) );
+
+
+
+     /* Map shared area. */
+     map = mmap( (void*) 0x20000000 + 0x2000 * world_index, sizeof(FusionWorldShared),
+                 PROT_READ | PROT_WRITE, MAP_FIXED | MAP_SHARED, fd, 0 );
+     if (map == MAP_FAILED) {
+          ret = errno2result(errno);
+          D_PERROR( "Fusion/Init: Mapping shared area failed!\n" );
+          goto out;
+     }
+
+     *ret_shared = map;
+
+
+out:
+     close( fd );
+
+     return ret;
+}
+
+/**********************************************************************************************************************/
+
 /*
  * Enters a fusion world by joining or creating it.
  *
@@ -563,12 +624,9 @@ fusion_enter( int               world_index,
      }
 
      /* Map shared area. */
-     shared = mmap( (void*) 0x20000000 + 0x2000 * world_index, sizeof(FusionWorldShared),
-                    PROT_READ | PROT_WRITE, MAP_FIXED | MAP_SHARED, fd, 0 );
-     if (shared == MAP_FAILED) {
-          D_PERROR( "Fusion/Init: Mapping shared area failed!\n" );
+     ret = map_shared_root( world_index, &shared );
+     if (ret)
           goto error;
-     }
 
      D_DEBUG_AT( Fusion_Main, "  -> shared area at %p, size %zu\n", shared, sizeof(FusionWorldShared) );
 
