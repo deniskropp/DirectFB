@@ -42,7 +42,8 @@ endif
 
 libdirectfb_la_SOURCES = 		\
 	$(NON_PURE_VOODOO_SOURCES)	\
-	directfb.c
+	directfb.c			\
+	directfb_result.c
 
 libdirectfb_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\
@@ -76,6 +77,20 @@ libdirectfb_la_LIBADD = \
 	../lib/direct/libdirect.la	\
 	../lib/fusion/libfusion.la	\
 	$(VOODOO_LIB)
+
+
+MKRESULT = $(top_srcdir)/tools/mkresult.sh
+
+directfb_result.c: $(top_srcdir)/include/directfb.h $(MKRESULT)
+	@echo '#include <config.h>'    		> $@
+	@echo                                   >> $@
+	@echo '#include <directfb.h>'    	>> $@
+	@echo                                   >> $@
+	@echo                                   >> $@
+
+	@$(MKRESULT) DFBResult DFB $< 	>> $@
+
+	@echo                                   >> $@
 
 
 #

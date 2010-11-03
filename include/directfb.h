@@ -180,7 +180,7 @@ typedef enum {
      /*
       * DirectFB specific result codes starting at (after) this offset
       */
-     DFB__RESULT_OFFSET  = D_RESULT_TYPE_BASE( 'D','F','B' ),
+     DFB__RESULT_BASE    = D_RESULT_TYPE_CODE_BASE( 'D','F','B','1' ),
 
      DFB_NOVIDEOMEMORY,  /* There's not enough video memory. */
      DFB_MISSINGFONT,    /* No font has been set. */
