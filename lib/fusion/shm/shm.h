@@ -44,5 +44,8 @@ DirectResult fusion_shm_enum_pools( FusionWorld           *world,
                                     FusionSHMPoolCallback  callback,
                                     void                  *ctx );
 
+
+int fusion_find_tmpfs( char *name, int len );
+
 #endif
 
