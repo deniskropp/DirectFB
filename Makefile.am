@@ -35,10 +35,10 @@ SUBDIRS = \
 	include 		\
 	lib			\
 	src 			\
+	$(TOOLS_DIR)		\
 	$(NON_PURE_VOODOO_SUBDIRS)	\
 	$(PROXY_DIR)		\
 	$(TESTS_DIR)		\
-	$(TOOLS_DIR)		\
 	patches			\
 	rules
 
