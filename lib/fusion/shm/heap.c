@@ -596,7 +596,6 @@ __shmalloc_init_heap( FusionSHM  *shm,
                       const char *filename,
                       void       *addr_base,
                       int         space,
-                      int        *ret_fd,
                       int        *ret_size )
 {
      DirectResult     ret;
@@ -606,13 +605,12 @@ __shmalloc_init_heap( FusionSHM  *shm,
      int              fd       = -1;
      shmalloc_heap   *heap     = NULL;
 
-     D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, '%s', %p, %d, %p, %p )\n",
-                 __FUNCTION__, shm, filename, addr_base, space, ret_fd, ret_size );
+     D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, '%s', %p, %d, %p )\n",
+                 __FUNCTION__, shm, filename, addr_base, space, ret_size );
 
      D_MAGIC_ASSERT( shm, FusionSHM );
      D_ASSERT( filename != NULL );
      D_ASSERT( addr_base != NULL );
-     D_ASSERT( ret_fd != NULL );
      D_ASSERT( ret_size != NULL );
 
      shared = shm->shared;
@@ -658,6 +656,8 @@ __shmalloc_init_heap( FusionSHM  *shm,
           goto error;
      }
 
+     close( fd );
+
      D_DEBUG_AT( Fusion_SHMHeap, "  -> done.\n" );
 
      heap->size     = size;
@@ -665,9 +665,10 @@ __shmalloc_init_heap( FusionSHM  *shm,
      heap->heapinfo = (void*) heap + BLOCKALIGN(sizeof(shmalloc_heap));
      heap->heapbase = (char*) heap->heapinfo;
 
+     direct_snputs( heap->filename, filename, sizeof(heap->filename) );
+
      D_MAGIC_SET( heap, shmalloc_heap );
 
-     *ret_fd   = fd;
      *ret_size = size;
 
      return DR_OK;
@@ -689,22 +690,20 @@ DirectResult
 __shmalloc_join_heap( FusionSHM  *shm,
                       const char *filename,
                       void       *addr_base,
-                      int         size,
-                      int        *ret_fd )
+                      int         size )
 {
      DirectResult     ret;
      FusionSHMShared *shared;
      int              fd   = -1;
      shmalloc_heap   *heap = NULL;
 
-     D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, '%s', %p, %d, %p )\n",
-                 __FUNCTION__, shm, filename, addr_base, size, ret_fd );
+     D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, '%s', %p, %d )\n",
+                 __FUNCTION__, shm, filename, addr_base, size );
 
      D_MAGIC_ASSERT( shm, FusionSHM );
      D_ASSERT( filename != NULL );
      D_ASSERT( addr_base != NULL );
      D_ASSERT( size >= sizeof(shmalloc_heap) );
-     D_ASSERT( ret_fd != NULL );
 
      shared = shm->shared;
 
@@ -737,11 +736,11 @@ __shmalloc_join_heap( FusionSHM  *shm,
           goto error;
      }
 
+     close( fd );
+
      D_MAGIC_ASSERT( heap, shmalloc_heap );
 
      D_DEBUG_AT( Fusion_SHMHeap, "  -> done.\n" );
-
-     *ret_fd = fd;
 
      return DR_OK;
 
@@ -759,9 +758,6 @@ error:
 void *
 __shmalloc_brk( shmalloc_heap *heap, int increment )
 {
-     FusionSHMShared     *shm;
-     FusionWorld         *world;
-     FusionSHMPool       *pool;
      FusionSHMPoolShared *shared;
 
      D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, %d )\n", __FUNCTION__, heap, increment );
@@ -770,15 +766,6 @@ __shmalloc_brk( shmalloc_heap *heap, int increment )
 
      shared = heap->pool;
      D_MAGIC_ASSERT( shared, FusionSHMPoolShared );
-
-     shm = shared->shm;
-     D_MAGIC_ASSERT( shm, FusionSHMShared );
-
-     world = _fusion_world( shm->world );
-     D_MAGIC_ASSERT( world, FusionWorld );
-
-     pool = &world->shm.pools[shared->index];
-     D_MAGIC_ASSERT( pool, FusionSHMPool );
 
      if (increment) {
           int new_size = heap->size + increment;
@@ -789,7 +776,7 @@ __shmalloc_brk( shmalloc_heap *heap, int increment )
                return NULL;
           }
 
-          if (ftruncate( pool->fd, new_size ) < 0) {
+          if (truncate( heap->filename, new_size ) < 0) {
                D_PERROR( "Fusion/SHM: ftruncating shared memory file failed!\n" );
                return NULL;
           }
