@@ -1,3 +1,38 @@
+commit ab434fd1bde1e2585e995eb071fd1d4010cd9687
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Nov 3 11:54:58 2010 +0100
+
+    bumped to 1.4.10
+
+commit 4e3276085240dee2453d98c986c9e4cdc346208f
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Tue Nov 2 16:29:29 2010 +0100
+
+    surfaces: refactor backup_allocation()
+    
+    Refactor backup_allocation() to only take a single parameter.
+
+commit 5f9118ba4447507dedb03d26b66421c1376e07d4
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Tue Nov 2 16:21:23 2010 +0100
+
+    surfaces: fix buffer passed to backup_allocation()
+
+commit 6f2b54bd8ff22a9bb676e4a548f32fe65a4baa4a
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Tue Nov 2 16:18:10 2010 +0100
+
+    surfaces: fix reset of 'read' allocation pointer
+    
+    Move the block that resets the 'read' allocation pointer before
+    the block that changes the local variable 'allocation'.
+
+commit ff26e23815073933ad2d81e197b2f7a6744240fa
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Nov 2 00:18:45 2010 +0100
+
+    release 1.4.9
+
 commit 6b6af66b2ee496d2a573f300927082e7b745acb9
 Author: Denis Oliver Kropp <dok@directfb.org>
 Date:   Tue Nov 2 00:14:26 2010 +0100

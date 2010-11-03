@@ -1,3 +1,14 @@
+1.4.10
+------
+
+Minor but important fixes for buffer displacement.
+
+Surfaces
+- refactor backup_allocation()
+- fix buffer passed to backup_allocation()
+- fix reset of 'read' allocation pointer
+
+
 1.4.9
 -----
 
