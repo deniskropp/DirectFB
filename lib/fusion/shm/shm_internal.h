@@ -58,7 +58,6 @@ struct __Fusion_FusionSHMPool {
 
      int                  pool_id;      /* The pool's ID within the world. */
 
-     int                  fd;           /* File descriptor of shared memory file. */
      char                *filename;     /* Name of the shared memory file. */
 };
 
@@ -233,6 +232,8 @@ struct __shmalloc_heap {
 
      /* Back pointer to shared memory pool. */
      FusionSHMPoolShared *pool;
+
+     char filename[FUSION_SHM_TMPFS_PATH_NAME_LEN+32];
 };
 
 
@@ -247,14 +248,12 @@ DirectResult __shmalloc_init_heap( FusionSHM     *shm,
                                    const char    *filename,
                                    void          *addr_base,
                                    int            space,
-                                   int           *ret_fd,
                                    int           *ret_size );
 
 DirectResult __shmalloc_join_heap( FusionSHM     *shm,
                                    const char    *filename,
                                    void          *addr_base,
-                                   int            size,
-                                   int           *ret_fd );
+                                   int            size );
 
 void        *__shmalloc_brk      ( shmalloc_heap *heap,
                                    int            increment );
