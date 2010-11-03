@@ -847,6 +847,22 @@ wm_begin_updates( CoreWindow      *window,
      return DFB_OK;
 }
 
+static DFBResult
+wm_set_cursor_position( CoreWindow      *window,
+                        void            *wm_data,
+                        void            *window_data,
+                        int              x,
+                        int              y )
+{
+     D_ASSERT( window != NULL );
+     D_ASSERT( wm_data != NULL );
+     D_ASSERT( window_data != NULL );
+
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
 /**************************************************************************************************/
 
 static DFBResult
