@@ -418,7 +418,7 @@ static inline int _D__atomic_add_return(int i, volatile int *v)
      ({                                                                         \
           volatile long         **__fptr = (volatile long**)(void*)(fptr);      \
           volatile long          *__iptr;                                       \
-          volatile volatile int  n = 1;                                         \
+          volatile int           n = 1;                                         \
           volatile int           r = 0;                                         \
                                                                                 \
           while (true) {                                                        \
