@@ -387,7 +387,8 @@ fusion_fork_handler_child( void )
 /**********************************************************************************************************************/
 
 static DirectResult
-map_shared_root( int                 world_index,
+map_shared_root( void               *shm_base,
+                 int                 world_index,
                  FusionWorldShared **ret_shared )
 {
      DirectResult ret = DR_OK;
@@ -428,7 +429,7 @@ map_shared_root( int                 world_index,
 
 
      /* Map shared area. */
-     map = mmap( (void*) 0x20000000 + 0x2000 * world_index, sizeof(FusionWorldShared),
+     map = mmap( shm_base + 0x10000 * world_index, sizeof(FusionWorldShared),
                  PROT_READ | PROT_WRITE, MAP_FIXED | MAP_SHARED, fd, 0 );
      if (map == MAP_FAILED) {
           ret = errno2result(errno);
@@ -623,8 +624,18 @@ fusion_enter( int               world_index,
           goto error;
      }
 
+
+     unsigned long shm_base;
+
+     if (ioctl( fd, FUSION_SHMPOOL_GET_BASE, &shm_base )) {
+          ret = errno2result(errno);
+          D_PERROR( "Fusion/Init: FUSION_SHMPOOL_GET_BASE failed!\n" );
+          goto error;
+     }
+
+
      /* Map shared area. */
-     ret = map_shared_root( world_index, &shared );
+     ret = map_shared_root( (void*) shm_base, world_index, &shared );
      if (ret)
           goto error;
 
