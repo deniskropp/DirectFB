@@ -95,6 +95,7 @@ typedef struct {
 struct __V_VoodooServer {
      int         fd;
 
+     bool        fork;
      bool        quit;
      DirectLink *connections;
 
@@ -117,7 +118,8 @@ static const int one = 1;
 /**********************************************************************************************************************/
 
 DirectResult
-voodoo_server_create( VoodooServer **ret_server )
+voodoo_server_create( bool           fork,
+                      VoodooServer **ret_server )
 {
      DirectResult        ret;
      struct sockaddr_in  addr;
@@ -369,7 +371,7 @@ voodoo_server_run( VoodooServer *server )
 
                          D_INFO( "Voodoo/Server: Accepted connection from '%s'\n", buf );
 
-                         if (voodoo_config->server_fork) {
+                         if (server->fork) {
                               pid_t pid;
 
                               D_DEBUG_AT( Voodoo_Server, "  -> forking...\n" );
