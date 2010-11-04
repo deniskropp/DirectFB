@@ -376,7 +376,7 @@ vmwareFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 }
 
 /*
- * Render a filled rectangle using the current hardware state.
+ * Blit a surface using the current hardware state.
  */
 bool
 vmwareBlit( void *drv, void *dev, DFBRectangle *srect, int dx, int dy )
