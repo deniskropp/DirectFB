@@ -1737,7 +1737,6 @@ void dfb_gfxcard_filltrapezoids( const DFBTrapezoid *traps, int num, CardState *
      if (!hw && i < num) {
           /* otherwise use two triangles */
 
-          /* try hardware accelerated rectangle filling */
           if ( dfb_gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
                dfb_gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
           {
@@ -1754,7 +1753,7 @@ void dfb_gfxcard_filltrapezoids( const DFBTrapezoid *traps, int num, CardState *
                                          traps[i].x2 + traps[i].w2 - 1, traps[i].y2 };
               
                     if (D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) ||
-                        D_FLAGS_IS_SET( card->caps.clip, DFXL_FILLRECTANGLE ) ||
+                        D_FLAGS_IS_SET( card->caps.clip, DFXL_FILLTRIANGLE ) ||
                         (state->render_options & DSRO_MATRIX))
                     {
                          tri1_failed = card->funcs.FillTriangle( card->driver_data,
