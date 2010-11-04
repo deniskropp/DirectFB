@@ -118,7 +118,9 @@ static const int one = 1;
 /**********************************************************************************************************************/
 
 DirectResult
-voodoo_server_create( bool           fork,
+voodoo_server_create( const char    *_addr,
+                      int            port,
+                      bool           fork,
                       VoodooServer **ret_server )
 {
      DirectResult        ret;
@@ -142,8 +144,8 @@ voodoo_server_create( bool           fork,
 
      /* Bind the socket to the local port. */
      addr.sin_family      = AF_INET;
-     addr.sin_addr.s_addr = inet_addr( "0.0.0.0" );
-     addr.sin_port        = htons( 2323 );
+     addr.sin_addr.s_addr = inet_addr( _addr ?: "0.0.0.0" );
+     addr.sin_port        = htons( port ?: 2323 );
 
      if (bind( fd, &addr, sizeof(addr) )) {
           ret = errno2result( errno );
