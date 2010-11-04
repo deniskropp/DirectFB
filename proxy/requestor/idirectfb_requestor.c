@@ -881,7 +881,7 @@ Probe()
  * Fills in function pointers and intializes data structure.
  */
 static DFBResult
-Construct( IDirectFB *thiz, const char *host, int session )
+Construct( IDirectFB *thiz, const char *host, int port )
 {
      DFBResult ret;
 
@@ -890,7 +890,7 @@ Construct( IDirectFB *thiz, const char *host, int session )
      data->ref   = 1;
      data->level = DFSCL_NORMAL;
 
-     ret = voodoo_client_create( host, session, &data->client );
+     ret = voodoo_client_create( host, port, &data->client );
      if (ret) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;
