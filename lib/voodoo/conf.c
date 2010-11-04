@@ -31,6 +31,7 @@
 #include <string.h>
 
 #include <direct/conf.h>
+#include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/util.h>
 
@@ -50,6 +51,7 @@ const char   *voodoo_config_usage =
      "  proxy-memory-max=<kB>          Set maximum amount of memory per connection\n"
      "  proxy-surface-max=<kB>         Set maximum amount of memory per surface\n"
      "  [no-]server-fork               Fork a new process for each connection (default: no)\n"
+     "  server-single=<interface>      Enable single client mode for super interface, e.g. IDirectFB\n"
      "\n";
 
 /**********************************************************************************************************************/
@@ -178,6 +180,20 @@ voodoo_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-server-fork" ) == 0) {
           voodoo_config->server_fork = false;
+     } else
+     if (strcmp (name, "server-single" ) == 0) {
+          if (value) {
+               if (voodoo_config->server_single)
+                    D_FREE( voodoo_config->server_single );
+
+               voodoo_config->server_single = D_STRDUP( value );
+               if (!voodoo_config->server_single)
+                    D_OOM();
+          }
+          else {
+               D_ERROR( "Voodoo/Config '%s': No value specified!\n", name );
+               return DR_INVARG;
+          }
      } else
      if (direct_config_set( name, value ))
           return DR_UNSUPPORTED;
