@@ -64,7 +64,7 @@ struct __V_VoodooClient {
      VoodooManager *manager;
 
      char          *host;
-     int            session;
+     int            port;
 };
 
 static DirectLink *m_clients;
@@ -73,7 +73,7 @@ static DirectLink *m_clients;
 
 DirectResult
 voodoo_client_create( const char     *host,
-                      int             session,
+                      int             port,
                       VoodooClient  **ret_client )
 {
      DirectResult     ret;
@@ -83,11 +83,15 @@ voodoo_client_create( const char     *host,
      VoodooClient    *client;
      char             buf[100] = { 0 };
      const char      *hostname = host;
+     char             portstr[10];
 
      D_ASSERT( ret_client != NULL );
 
+     if (!port)
+          port = 2323;
+
      direct_list_foreach (client, m_clients) {
-          if (!strcmp( client->host, host ) && client->session == session) {
+          if (!strcmp( client->host, host ) && client->port == port) {
                D_INFO( "Voodoo/Client: Reconnecting to '%s', increasing ref count of existing connection!\n", host );
 
                client->refs++;
@@ -136,7 +140,9 @@ voodoo_client_create( const char     *host,
 
      D_INFO( "Voodoo/Client: Looking up host '%s'...\n", hostname );
 
-     err = getaddrinfo( hostname, "2323", &hints, &addr );
+     snprintf( portstr, sizeof(portstr), "%d", port );
+
+     err = getaddrinfo( hostname, portstr, &hints, &addr );
      if (err) {
           switch (err) {
                case EAI_FAMILY:
@@ -152,7 +158,7 @@ voodoo_client_create( const char     *host,
                     return DR_FAILURE;
 
                case EAI_SERVICE:
-                    D_ERROR( "Direct/Log: Port 2323 is unreachable!\n" );
+                    D_ERROR( "Direct/Log: Service is unreachable!\n" );
                     return DR_FAILURE;
 
 #ifdef EAI_ADDRFAMILY
@@ -187,7 +193,7 @@ voodoo_client_create( const char     *host,
           return errno2result( errno );
      }
 
-     D_INFO( "Voodoo/Client: Connecting to '%s:2323'...\n", addr->ai_canonname );
+     D_INFO( "Voodoo/Client: Connecting to '%s:%d'...\n", addr->ai_canonname, port );
 
      /* Connect to the server. */
      err = connect( fd, addr->ai_addr, addr->ai_addrlen );
@@ -219,9 +225,9 @@ voodoo_client_create( const char     *host,
           return ret;
      }
 
-     client->refs    = 1;
-     client->host    = D_STRDUP( host );
-     client->session = session;
+     client->refs = 1;
+     client->host = D_STRDUP( host );
+     client->port = port;
 
      direct_list_prepend( &m_clients, &client->link );
 

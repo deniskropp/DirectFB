@@ -194,7 +194,7 @@ DirectFBCreate( IDirectFB **interface )
 
 #if !DIRECTFB_BUILD_PURE_VOODOO
      if (dfb_config->remote.host)
-          return CreateRemote( dfb_config->remote.host, dfb_config->remote.session, interface );
+          return CreateRemote( dfb_config->remote.host, dfb_config->remote.port, interface );
 
      ret = dfb_core_create( &core_dfb );
      if (ret)
@@ -221,7 +221,7 @@ DirectFBCreate( IDirectFB **interface )
 
      return DFB_OK;
 #else
-     return CreateRemote( dfb_config->remote.host ?: "", dfb_config->remote.session, interface );
+     return CreateRemote( dfb_config->remote.host ?: "", dfb_config->remote.port, interface );
 #endif
 }
 
@@ -271,7 +271,7 @@ DirectFBErrorFatal( const char *msg, DFBResult error )
 /**************************************************************************************************/
 
 static DFBResult
-CreateRemote( const char *host, int session, IDirectFB **ret_interface )
+CreateRemote( const char *host, int port, IDirectFB **ret_interface )
 {
      DFBResult             ret;
      DirectInterfaceFuncs *funcs;
@@ -288,7 +288,7 @@ CreateRemote( const char *host, int session, IDirectFB **ret_interface )
      if (ret)
           return ret;
 
-     ret = funcs->Construct( interface, host, session );
+     ret = funcs->Construct( interface, host, port );
      if (ret)
           return ret;
 

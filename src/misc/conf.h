@@ -163,7 +163,7 @@ typedef struct
 
      struct {
           char *host;                             /* Remote host to connect to. */
-          int   session;                          /* Remote session number. */
+          int   port;                             /* Remote port number. */
      } remote;
 
      char      *wm;                               /* Window manager to use. */
