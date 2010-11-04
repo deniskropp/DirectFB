@@ -363,3 +363,23 @@ void dfb_sort_triangle( DFBTriangle *tri )
      }
 }
 
+void dfb_sort_trapezoid( DFBTrapezoid *trap )
+{
+     int temp;
+
+     if (trap->y1 > trap->y2) {
+          temp = trap->x1;
+          trap->x1 = trap->x2;
+          trap->x2 = temp;
+
+          temp = trap->y1;
+          trap->y1 = trap->y2;
+          trap->y2 = temp;
+
+          temp = trap->w1;
+          trap->w1 = trap->w2;
+          trap->w2 = temp;
+     }
+}
+
+

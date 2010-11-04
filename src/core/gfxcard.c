@@ -1614,8 +1614,7 @@ void dfb_gfxcard_filltriangles( const DFBTriangle *tris, int num, CardState *sta
                int      n;
                
                for (; i < num; i++) {               
-                    /* FIXME: DSRO_MATRIX. */
-                    if (dfb_clip_triangle( &state->clip, &tris[i], p, &n )) {
+                    if (!(state->render_options & DSRO_MATRIX) && dfb_clip_triangle( &state->clip, &tris[i], p, &n )) {
                          DFBTriangle tri;
                          int         j;
                          
@@ -1668,7 +1667,7 @@ void dfb_gfxcard_filltriangles( const DFBTriangle *tris, int num, CardState *sta
                     dfb_sort_triangle( &tri );
                
                     if (tri.y3 - tri.y1 > 0)
-                         fill_tri( &tri, state, true );
+                        fill_tri( &tri, state, true );
                }
                
                dfb_gfxcard_state_release( state );
@@ -1694,6 +1693,162 @@ void dfb_gfxcard_filltriangles( const DFBTriangle *tris, int num, CardState *sta
      }
 
      dfb_state_unlock( state );
+}
+
+void dfb_gfxcard_filltrapezoids( const DFBTrapezoid *traps, int num, CardState *state )
+{
+     bool hw = false;
+     int  i  = 0;
+
+     D_ASSERT( card != NULL );
+     D_ASSERT( card->shared != NULL );
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( traps != NULL );
+     D_ASSERT( num > 0 );
+
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %p [%d], %p )\n", __FUNCTION__, traps, num, state );
+
+     /* The state is locked during graphics operations. */
+     dfb_state_lock( state );
+     /* Signal beginning of sequence of operations if not already done. */
+     dfb_state_start_drawing( state, card );
+
+     if (dfb_gfxcard_state_check( state, DFXL_FILLTRAPEZOID ) &&
+         dfb_gfxcard_state_acquire( state, DFXL_FILLTRAPEZOID ))
+     {
+          if (D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) ||
+              D_FLAGS_IS_SET( card->caps.clip, DFXL_FILLTRAPEZOID ) ||
+              (state->render_options & DSRO_MATRIX))
+          {
+               for (; i < num; i++) {
+                    DFBTrapezoid trap = traps[i];
+                    
+                    hw = card->funcs.FillTrapezoid( card->driver_data,
+                                                    card->device_data, &trap );
+                    if (!hw)
+                         break;
+               }
+                    
+          }          
+
+          dfb_gfxcard_state_release( state );
+     }
+     if (!hw && i < num) {
+          /* otherwise use two triangles */
+
+          /* try hardware accelerated rectangle filling */
+          if ( dfb_gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
+               dfb_gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
+          {
+               for (; i < num; i++) {
+                    bool tri1_failed = true;
+                    bool tri2_failed = true;
+
+                    DFBTriangle tri1 = { traps[i].x1,                   traps[i].y1, 
+                                         traps[i].x1 + traps[i].w1 - 1, traps[i].y1,
+                                         traps[i].x2,                   traps[i].y2 };
+
+                    DFBTriangle tri2 = { traps[i].x1 + traps[i].w1 - 1, traps[i].y1,
+                                         traps[i].x2,                   traps[i].y2,
+                                         traps[i].x2 + traps[i].w2 - 1, traps[i].y2 };
+              
+                    if (D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) ||
+                        D_FLAGS_IS_SET( card->caps.clip, DFXL_FILLRECTANGLE ) ||
+                        (state->render_options & DSRO_MATRIX))
+                    {
+                         tri1_failed = card->funcs.FillTriangle( card->driver_data,
+                                                                 card->device_data, &tri1 );
+
+                         tri2_failed = card->funcs.FillTriangle( card->driver_data,
+                                                                 card->device_data, &tri2 );
+                    }
+
+                    if (tri1_failed || tri2_failed) {
+                         dfb_gfxcard_state_release( state );
+
+                         if (gAcquire( state, DFXL_FILLTRIANGLE )) {
+                         
+                              if (state->render_options & DSRO_MATRIX) {
+                                   /* transform first triangle completely */
+                                   if (tri1_failed || tri2_failed) {
+                              
+                                        DFB_TRANSFORM(tri1.x1, tri1.y1, state->matrix, state->affine_matrix);
+                                        DFB_TRANSFORM(tri1.x2, tri1.y2, state->matrix, state->affine_matrix);
+                                        DFB_TRANSFORM(tri1.x3, tri1.y3, state->matrix, state->affine_matrix);
+                                   }
+                              
+                                   if (tri2_failed) {
+                                        /* transform last coordinate of first triangle,
+                                           and assing first ones from first */
+                                        DFB_TRANSFORM(tri2.x3, tri2.y3, state->matrix, state->affine_matrix);
+                                        tri2.x1 = tri1.x2;
+                                        tri2.y1 = tri1.y2;
+                                        tri2.x2 = tri1.x3;
+                                        tri2.x2 = tri1.y3;
+                                   }
+                              
+                                   /* sort triangles (matrix could have rotated them */
+                                   dfb_sort_triangle( &tri1 );
+                                   dfb_sort_triangle( &tri2 );
+                              }
+                              
+                              if (tri1_failed && (tri1.y3 - tri1.y1 > 0))
+                                   fill_tri( &tri1, state, false );
+                              
+                              if (tri2_failed && (tri2.y3 - tri2.y1 > 0))
+                                   fill_tri( &tri2, state, false );
+                              
+                              gRelease( state );
+                         }
+                         dfb_gfxcard_state_acquire( state, DFXL_FILLTRIANGLE );
+                    }
+               }
+               dfb_gfxcard_state_release( state );
+          }
+
+          else if (gAcquire( state, DFXL_FILLTRIANGLE )) {
+               for (; i < num; i++) {
+                    dfb_sort_trapezoid(&traps[i]);
+
+                    DFBTriangle tri1 = { traps[i].x1,                   traps[i].y1,
+                                         traps[i].x1 + traps[i].w1 - 1, traps[i].y1,
+                                         traps[i].x2,                   traps[i].y2 };
+
+                    DFBTriangle tri2 = { traps[i].x1 + traps[i].w1 - 1, traps[i].y1,
+                                         traps[i].x2,                   traps[i].y2,
+                                         traps[i].x2 + traps[i].w2 - 1, traps[i].y2 };
+
+
+                    if (state->render_options & DSRO_MATRIX) {
+                         /* transform first triangle completely */
+                         DFB_TRANSFORM(tri1.x1, tri1.y1, state->matrix, state->affine_matrix);
+                         DFB_TRANSFORM(tri1.x2, tri1.y2, state->matrix, state->affine_matrix);
+                         DFB_TRANSFORM(tri1.x3, tri1.y3, state->matrix, state->affine_matrix);
+
+                         /* transform last coordinate of second triangle, and assign first ones from first */
+                         tri2.x1 = tri1.x2;
+                         tri2.y1 = tri1.y2;
+                         tri2.x2 = tri1.x3;
+                         tri2.y2 = tri1.y3;
+                         DFB_TRANSFORM(tri2.x3, tri2.y3, state->matrix, state->affine_matrix);
+
+                         /* sort triangles (matrix could have rotated them */
+                         dfb_sort_triangle( &tri1 );
+                         dfb_sort_triangle( &tri2 );
+                    }
+
+                    if (tri1.y3 - tri1.y1 > 0)
+                         fill_tri( &tri1, state, false );
+                    if (tri2.y3 - tri2.y1 > 0)
+                         fill_tri( &tri2, state, false );
+               }
+
+               gRelease( state );
+          }
+
+     }
+     dfb_state_unlock( state );
+
 }
 
 static void
