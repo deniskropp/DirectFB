@@ -1613,8 +1613,9 @@ void dfb_gfxcard_filltriangles( const DFBTriangle *tris, int num, CardState *sta
                DFBPoint p[6];
                int      n;
                
-               for (; i < num; i++) {               
-                    if (!(state->render_options & DSRO_MATRIX) && dfb_clip_triangle( &state->clip, &tris[i], p, &n )) {
+               for (; i < num; i++) {
+                    /* FIXME: DSRO_MATRIX. */
+                    if (dfb_clip_triangle( &state->clip, &tris[i], p, &n )) {
                          DFBTriangle tri;
                          int         j;
                          
