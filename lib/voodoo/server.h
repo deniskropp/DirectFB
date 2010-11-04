@@ -32,7 +32,9 @@
 #include <voodoo/types.h>
 
 
-DirectResult voodoo_server_create  ( bool                   fork,
+DirectResult voodoo_server_create  ( const char            *addr,
+                                     int                    port,
+                                     bool                   fork,
                                      VoodooServer         **ret_server );
 
 DirectResult voodoo_server_register( VoodooServer          *server,
