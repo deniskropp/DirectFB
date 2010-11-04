@@ -214,6 +214,9 @@ IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
      if (dfb_gfxcard_state_check( &data->state, DFXL_FILLTRIANGLE ))
           mask |= DFXL_FILLTRIANGLE;
 
+     if (dfb_gfxcard_state_check( &data->state, DFXL_FILLTRAPEZOID ))
+          mask |= DFXL_FILLTRAPEZOID;
+
      dfb_state_unlock( &data->state );
 
      /* Check blitting functions */
@@ -1511,6 +1514,58 @@ IDirectFBSurface_FillTriangle( IDirectFBSurface *thiz,
      tri.y3 += data->area.wanted.y;
 
      dfb_gfxcard_filltriangles( &tri, 1, &data->state );
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_FillTrapezoids( IDirectFBSurface   *thiz,
+                                 const DFBTrapezoid *traps,
+                                 unsigned int        num_traps )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+     if (data->locked)
+          return DFB_LOCKED;
+
+     if (!traps || !num_traps)
+          return DFB_INVARG;
+
+     if (data->area.wanted.x || data->area.wanted.y) {
+          unsigned int  i;
+          DFBTrapezoid  *local_traps;
+          bool           malloced = (num_traps > 170);
+
+          if (malloced)
+               local_traps = D_MALLOC( sizeof(DFBTrapezoid) * num_traps );
+          else
+               local_traps = alloca( sizeof(DFBTrapezoid) * num_traps );
+
+          for (i=0; i<num_traps; i++) {
+               local_traps[i].x1 = traps[i].x1 + data->area.wanted.x;
+               local_traps[i].y1 = traps[i].y1 + data->area.wanted.y;
+               local_traps[i].w1 = traps[i].w1;
+               local_traps[i].x2 = traps[i].x2 + data->area.wanted.x;
+               local_traps[i].y2 = traps[i].y2 + data->area.wanted.y;
+               local_traps[i].w2 = traps[i].w2;
+          }
+
+          dfb_gfxcard_filltrapezoids( local_traps, num_traps, &data->state );
+
+          if (malloced)
+               D_FREE( local_traps );
+     }
+     else
+          dfb_gfxcard_filltrapezoids( traps, num_traps, &data->state );
 
      return DFB_OK;
 }
@@ -2880,6 +2935,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->FillRectangles = IDirectFBSurface_FillRectangles;
      thiz->FillSpans = IDirectFBSurface_FillSpans;
      thiz->FillTriangles = IDirectFBSurface_FillTriangles;
+     thiz->FillTrapezoids = IDirectFBSurface_FillTrapezoids;
 
      thiz->SetFont = IDirectFBSurface_SetFont;
      thiz->GetFont = IDirectFBSurface_GetFont;

@@ -39,6 +39,7 @@ void dfb_back_to_front_copy_rotation( CoreSurface *surface, const DFBRegion *reg
 void dfb_clear_depth( CoreSurface *surface, const DFBRegion *region );
 
 void dfb_sort_triangle( DFBTriangle *tri );
+void dfb_sort_trapezoid( DFBTrapezoid *trap );
 
 
 void dfb_gfx_copy_regions( CoreSurface           *source,

@@ -244,6 +244,9 @@ typedef struct _GraphicsDeviceFuncs {
      bool (*FillTriangle)  ( void *driver_data, void *device_data,
                              DFBTriangle *tri );
 
+     bool (*FillTrapezoid) ( void *driver_data, void *device_data,
+                             DFBTrapezoid *trap );
+
      /*
       * blitting functions
       */
@@ -344,6 +347,10 @@ void dfb_gfxcard_fillspans              ( int                   y,
                                           CardState            *state );
 
 void dfb_gfxcard_filltriangles          ( const DFBTriangle    *tris,
+                                          int                   num,
+                                          CardState            *state );
+
+void dfb_gfxcard_filltrapezoids         ( const DFBTrapezoid   *traps,
                                           int                   num,
                                           CardState            *state );
 

@@ -278,6 +278,18 @@ typedef struct {
 } DFBTriangle;
 
 /*
+ * A trapezoid specified by two points with a width each.
+ */
+typedef struct {
+     int            x1;  /* X coordinate of first span */
+     int            y1;  /* Y coordinate of first span  */
+     int            w1;  /* width of first span */
+     int            x2;  /* X coordinate of second span */
+     int            y2;  /* Y coordinate of second span */
+     int            w2;  /* width of second span */
+} DFBTrapezoid;
+
+/*
  * A color defined by channels with 8bit each.
  */
 typedef struct {
@@ -774,6 +786,7 @@ typedef enum {
      DFXL_DRAWRECTANGLE  = 0x00000002,  /* DrawRectangle() is accelerated. */
      DFXL_DRAWLINE       = 0x00000004,  /* DrawLine() is accelerated. */
      DFXL_FILLTRIANGLE   = 0x00000008,  /* FillTriangle() is accelerated. */
+     DFXL_FILLTRAPEZOID  = 0x00000010,  /* FillTrapezoid() is accelerated. */
 
      DFXL_BLIT           = 0x00010000,  /* Blit() and TileBlit() are accelerated. */
      DFXL_STRETCHBLIT    = 0x00020000,  /* StretchBlit() is accelerated. */
@@ -783,8 +796,8 @@ typedef enum {
      DFXL_DRAWSTRING     = 0x01000000,  /* DrawString() and DrawGlyph() are accelerated. */
 
 
-     DFXL_ALL            = 0x010F000F,  /* All drawing/blitting functions. */
-     DFXL_ALL_DRAW       = 0x0000000F,  /* All drawing functions. */
+     DFXL_ALL            = 0x010F001F,  /* All drawing/blitting functions. */
+     DFXL_ALL_DRAW       = 0x0000001F,  /* All drawing functions. */
      DFXL_ALL_BLIT       = 0x010F0000,  /* All blitting functions. */
 } DFBAccelerationMask;
 
@@ -4219,6 +4232,20 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*GetPhysicalAddress) (
           IDirectFBSurface *thiz,
           unsigned long    *addr
+     );
+
+   /** Drawing functions **/
+
+     /*
+      * Fill a bunch of trapezoids with a single call.
+      *
+      * Fill <b>num</b> trapezoids with the current color following the
+      * drawing flags. Each trapezoid specified by a DFBTrapezoid.
+      */
+     DFBResult (*FillTrapezoids) (
+          IDirectFBSurface         *thiz,
+          const DFBTrapezoid       *traps,
+          unsigned int              num
      );
 )
 
