@@ -72,7 +72,7 @@
 typedef struct {
      sem_t          sem;
 
-     pid_t          gfxpid;
+     pid_t          single_pid;
 } ServerShared;
 
 typedef struct {
@@ -283,17 +283,17 @@ voodoo_server_construct( VoodooServer      *server,
           return DR_UNSUPPORTED;
      }
 
-     if (!strcmp( name, "IDirectFB" )) {
+     if (voodoo_config->server_single && !strcmp( name, voodoo_config->server_single )) {
           sem_wait( &server->shared->sem );
 
-          if (server->shared->gfxpid) {
-               D_INFO( "Voodoo/Server: Killing previous graphics process with pid %d\n", server->shared->gfxpid );
-               kill( server->shared->gfxpid, SIGTERM );
+          if (server->shared->single_pid) {
+               D_INFO( "Voodoo/Server: Killing previous single process with pid %d\n", server->shared->single_pid );
+               kill( server->shared->single_pid, SIGTERM );
           }
 
-          server->shared->gfxpid = getpid();
+          server->shared->single_pid = getpid();
 
-          D_INFO( "Voodoo/Server: New graphics process has pid %d\n", server->shared->gfxpid );
+          D_INFO( "Voodoo/Server: New single process has pid %d\n", server->shared->single_pid );
 
           sem_post( &server->shared->sem );
      }
@@ -329,9 +329,9 @@ voodoo_server_run( VoodooServer *server )
 
                     sem_wait( &server->shared->sem );
 
-                    if (server->shared->gfxpid == getpid()) {
-                         D_INFO( "Voodoo/Server: Closing graphics process with pid %d\n", server->shared->gfxpid );
-                         server->shared->gfxpid = 0;
+                    if (server->shared->single_pid == getpid()) {
+                         D_INFO( "Voodoo/Server: Closing single process with pid %d\n", server->shared->single_pid );
+                         server->shared->single_pid = 0;
                     }
 
                     sem_post( &server->shared->sem );
@@ -449,6 +449,9 @@ voodoo_server_destroy( VoodooServer *server )
 
           D_FREE( connection );
      }
+
+     if (server->shared)
+          munmap( server->shared, sizeof(ServerShared) );
 
      D_FREE( server );
 

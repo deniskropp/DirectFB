@@ -41,6 +41,7 @@ struct __V_VoodooConfig {
      unsigned int    stacking_mask;
      unsigned int    resource_id;
      bool            server_fork;
+     char           *server_single;
 };
 
 extern VoodooConfig *voodoo_config;
