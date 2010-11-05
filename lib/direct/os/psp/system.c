@@ -92,6 +92,12 @@ direct_trap( const char *domain, int sig )
 
 /**********************************************************************************************************************/
 
+DirectResult
+direct_kill( pid_t pid, int sig )
+{
+     return DR_UNSUPPORTED;
+}
+
 void
 direct_sync()
 {
