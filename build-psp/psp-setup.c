@@ -76,7 +76,7 @@ static void setup_callbacks (void)
      extern void IDirectFBImageProvider_GIF_ctor(void);
      extern void IDirectFBImageProvider_JPEG_ctor(void);
      extern void IDirectFBImageProvider_PNG_ctor(void);
-     extern void IDirectFBFont_DGIFF_ctor(void);
+//     extern void IDirectFBFont_DGIFF_ctor(void);
 //     extern void IDirectFBFont_FT2_ctor(void);
 
      directfb_dummy();
@@ -85,7 +85,7 @@ static void setup_callbacks (void)
      IDirectFBImageProvider_GIF_ctor();
      IDirectFBImageProvider_JPEG_ctor();
      IDirectFBImageProvider_PNG_ctor();
-     IDirectFBFont_DGIFF_ctor();
+//     IDirectFBFont_DGIFF_ctor();
 //     IDirectFBFont_FT2_ctor();
 
 
