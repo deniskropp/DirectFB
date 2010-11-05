@@ -470,10 +470,18 @@ install_handlers( void )
                action.sa_flags     = 0;
 #endif
 
+#ifdef SA_NODEFER
                if (signum != SIGSEGV)
                     action.sa_flags |= SA_NODEFER;
+#endif
 
-               action.sa_flags |= SA_RESETHAND | SA_RESTART;
+#ifdef SA_RESETHAND
+               action.sa_flags |= SA_RESETHAND;
+#endif
+
+#ifdef SA_RESTART
+               action.sa_flags |= SA_RESTART;
+#endif
 
                sigemptyset( &action.sa_mask );
 
