@@ -149,7 +149,7 @@ direct_file_get_info( DirectFile *file, DirectFileInfo *ret_info )
      D_ASSERT( file != NULL );
      D_ASSERT( ret_info != NULL );
 
-     if (stat( file->fd, &st ))
+     if (fstat( file->fd, &st ))
           return errno2result( errno );
 
      ret_info->flags = DFIF_SIZE;
