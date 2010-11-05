@@ -20,7 +20,7 @@ CXXFLAGS += $(CFLAGS) $(CXXFLAGS)
 ASFLAGS  += $(CFLAGS) $(ASFLAGS)
 
 LDFLAGS  += -L$(LIBDIR) -L .
-PSPLIBS  = -lc -lpthread-psp -lpspdebug -lpspdisplay -lpspge -lpspctrl -lpspsdk -lpspnet -lpspnet_inet -lpspnet_apctl -lpspnet_resolver -lpsputility -lpspuser -lpspkernel -lpsprtc
+PSPLIBS  = -lc -lpthread-psp -lpspdebug -lpspdisplay -lpspge -lpspctrl -lpspsdk -lc -lpspnet -lpspnet_inet -lpspnet_apctl -lpspnet_resolver -lpsputility -lpspuser -lpspkernel -lpsprtc
 
 ####################################################################
 #
