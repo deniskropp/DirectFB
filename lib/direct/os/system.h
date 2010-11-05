@@ -50,6 +50,8 @@ DirectResult direct_tgkill( int tgid, int tid, int sig );
 /* shall not return! */
 void direct_trap( const char *domain, int sig );
 
+void direct_sync( void );
+
 
 
 #define FUTEX_WAIT              0

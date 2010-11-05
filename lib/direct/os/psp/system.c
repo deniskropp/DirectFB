@@ -92,6 +92,13 @@ direct_trap( const char *domain, int sig )
 
 /**********************************************************************************************************************/
 
+void
+direct_sync()
+{
+}
+
+/**********************************************************************************************************************/
+
 DirectResult
 direct_futex( int *uaddr, int op, int val, const struct timespec *timeout, int *uaddr2, int val3 )
 {
