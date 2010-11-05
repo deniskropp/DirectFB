@@ -358,9 +358,9 @@ $(SOURCE)/SaWMan/tools/%: $(SOURCE)/SaWMan/tools/%.o libdirectfb.so
 
 clean::
 	rm -f libdirectfb.*o* $(TOOLS) $(TEST) $(GEN_HEADERS)
-	find $(TOP) -name "*.o" | xargs rm -f
-	find $(TOP) -name "*.so" | xargs rm -f
-	find $(TOP) -name "*.nm" | xargs rm -f
+	find $(SOURCE) -name "*.o" | xargs rm -f
+	find $(SOURCE) -name "*.so" | xargs rm -f
+	find $(SOURCE) -name "*.nm" | xargs rm -f
 
 install:: all
 	@(if test -z "$(DESTDIR)"; then echo "**** DESTDIR not set! ****"; exit 1; fi)
