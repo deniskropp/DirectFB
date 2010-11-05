@@ -158,12 +158,12 @@ WM_OBJECTS = \
 	$(SOURCE)/wm/default/default.o
 
 PROVIDER_OBJECTS = \
-	$(SOURCE)/interfaces/IDirectFBFont/idirectfbfont_dgiff.o	\
-	$(SOURCE)/interfaces/IDirectFBFont/idirectfbfont_ft2.o	\
 	$(SOURCE)/interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.o	\
 	$(SOURCE)/interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.o	\
 	$(SOURCE)/interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.o
 
+#	$(SOURCE)/interfaces/IDirectFBFont/idirectfbfont_dgiff.o	\
+#	$(SOURCE)/interfaces/IDirectFBFont/idirectfbfont_ft2.o	\
 	
 SYSTEM_OBJECTS = $(SOURCE)/systems/dummy/dummy.o
 
