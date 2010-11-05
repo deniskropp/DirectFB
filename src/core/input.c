@@ -3001,7 +3001,7 @@ core_input_filter( CoreInputDevice *device, DFBInputEvent *event )
                          dfb_layer_context_unref( context );
 
 #else
-                         kill( 0, SIGINT );
+                         direct_kill( 0, SIGINT );
 #endif
 
                          return true;
