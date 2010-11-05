@@ -152,10 +152,15 @@ LIB_DIRECT_OBJECTS = \
 	$(SOURCE)/lib/direct/os/psp/signals.o			\
 	$(SOURCE)/lib/direct/os/psp/system.o			\
 	$(SOURCE)/lib/direct/os/psp/thread.o			\
-	$(SOURCE)/lib/direct/os/psp/util.o			\
+	$(SOURCE)/lib/direct/os/psp/util.o
+
+PROVIDER_OBJECTS = \
 	$(SOURCE)/interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.o	\
 	$(SOURCE)/interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.o	\
 	$(SOURCE)/interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.o
+	
+SYSTEM_OBJECTS = $(SOURCE)/systems/dummy/dummy.o
+
 #
 # libfusion object files
 LIB_FUSION_OBJECTS = \
@@ -253,7 +258,9 @@ OBJECTS += \
 	$(DIRECTFB_OBJECTS)						\
 	$(LIB_DIRECT_OBJECTS)						\
 	$(LIB_FUSION_OBJECTS_SINGLE)					\
-	$(LIB_FUSION_OBJECTS)
+	$(LIB_FUSION_OBJECTS)						\
+	$(PROVIDER_OBJECTS)						\
+	$(SYSTEM_OBJECTS)
 
 #
 # Build complete include path
