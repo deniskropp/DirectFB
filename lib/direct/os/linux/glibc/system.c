@@ -164,6 +164,18 @@ direct_sigprocmask( int __how, __const sigset_t *__restrict __set,
      return DR_OK;
 }
 
+uid_t
+direct_getuid()
+{
+     return getuid();
+}
+
+uid_t
+direct_geteuid()
+{
+     return geteuid();
+}
+
 /**********************************************************************************************************************/
 
 DirectResult
