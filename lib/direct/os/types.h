@@ -85,6 +85,27 @@
 #include <direct/os/linux/kernel/waitqueue.h>
 #endif
 
+#elif DIRECT_BUILD_OSTYPE == DIRECT_OS_PSP
+
+#ifdef __DIRECT__OS__TYPES_H__
+#include <direct/os/linux/kernel/types.h>
+#endif
+
+#ifdef __DIRECT__OS__FILESYSTEM_H__
+#include <direct/os/linux/kernel/filesystem.h>
+#endif
+
+#ifdef __DIRECT__OS__MUTEX_H__
+#include <direct/os/linux/kernel/mutex.h>
+#endif
+
+#ifdef __DIRECT__OS__THREAD_H__
+#include <direct/os/linux/kernel/thread.h>
+#endif
+
+#ifdef __DIRECT__OS__WAITQUEUE_H__
+#include <direct/os/linux/kernel/waitqueue.h>
+#endif
 
 
 #else
