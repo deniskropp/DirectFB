@@ -155,6 +155,7 @@ LIB_DIRECT_OBJECTS = \
 	$(SOURCE)/lib/direct/os/psp/signals.o			\
 	$(SOURCE)/lib/direct/os/psp/system.o			\
 	$(SOURCE)/lib/direct/os/psp/thread.o			\
+	$(SOURCE)/lib/direct/os/psp/util.o			\
 	$(SOURCE)/interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.o	\
 	$(SOURCE)/interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.o	\
 	$(SOURCE)/interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.o
