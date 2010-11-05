@@ -88,23 +88,23 @@
 #elif DIRECT_BUILD_OSTYPE == DIRECT_OS_PSP
 
 #ifdef __DIRECT__OS__TYPES_H__
-#include <direct/os/linux/kernel/types.h>
+#include <direct/os/psp/types.h>
 #endif
 
 #ifdef __DIRECT__OS__FILESYSTEM_H__
-#include <direct/os/linux/kernel/filesystem.h>
+#include <direct/os/psp/filesystem.h>
 #endif
 
 #ifdef __DIRECT__OS__MUTEX_H__
-#include <direct/os/linux/kernel/mutex.h>
+#include <direct/os/psp/mutex.h>
 #endif
 
 #ifdef __DIRECT__OS__THREAD_H__
-#include <direct/os/linux/kernel/thread.h>
+#include <direct/os/psp/thread.h>
 #endif
 
 #ifdef __DIRECT__OS__WAITQUEUE_H__
-#include <direct/os/linux/kernel/waitqueue.h>
+#include <direct/os/psp/waitqueue.h>
 #endif
 
 
