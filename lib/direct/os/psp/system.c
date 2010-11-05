@@ -103,6 +103,12 @@ direct_sync()
 {
 }
 
+DirectResult
+direct_socketpair( int __domain, int __type, int __protocol, int __fds[2] )
+{
+     return DR_UNSUPPORTED;
+}
+
 /**********************************************************************************************************************/
 
 DirectResult
