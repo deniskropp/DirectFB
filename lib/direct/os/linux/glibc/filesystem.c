@@ -158,6 +158,23 @@ direct_file_get_info( DirectFile *file, DirectFileInfo *ret_info )
      return DR_OK;
 }
 
+DirectResult
+direct_file_dup( DirectFile *file, const DirectFile *other )
+{
+     int fd;
+
+     D_ASSERT( file != NULL );
+     D_ASSERT( other != NULL );
+
+     fd = dup( other->fd );
+     if (fd < 0)
+          return errno2result( errno );
+
+     file->fd = fd;
+
+     return DR_OK;
+}
+
 /**********************************************************************************************************************/
 
 DirectResult
