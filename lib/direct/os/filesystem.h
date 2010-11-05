@@ -33,6 +33,20 @@
 
 /**********************************************************************************************************************/
 
+
+/* API is subject to change! */
+
+
+typedef enum {
+     DFP_NONE  = 0,
+
+     DFP_READ  = 1,
+     DFP_WRTIE = 2,
+
+     DFP_ALL   = 3,
+} DirectFilePermission;
+
+
 __attribute__((no_instrument_function))
 DirectResult  direct_open ( DirectFile *file, const char *name, int flags, mode_t mode );
 
@@ -44,6 +58,12 @@ DirectResult  direct_write( DirectFile *file, const void *buffer, size_t bytes, 
 
 __attribute__((no_instrument_function))
 DirectResult  direct_close( DirectFile *file );
+
+__attribute__((no_instrument_function))
+DirectResult  direct_mmap( DirectFile *file, void *addr, size_t offset, size_t bytes, DirectFilePermission flags );
+
+__attribute__((no_instrument_function))
+DirectResult  direct_unmap( DirectFile *file, void *addr, size_t bytes );
 
 /**********************************************************************************************************************/
 
