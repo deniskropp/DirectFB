@@ -296,7 +296,7 @@ libdirectfb.a: $(OBJECTS)
 	$(CC) $(CFLAGS) -c $(CPPFLAGS) $(INCLUDES) -o $@ $<
 
 $(SOURCE)/tools/%: $(SOURCE)/tools/%.o libdirectfb.a
-	$(CC) $(LDFLAGS) -o $@ $< $(LIBS) $(PSPLIBS) libdirectfb.a
+	$(CC) $(LDFLAGS) -o $@ $< libdirectfb.a $(LIBS) $(PSPLIBS)
 	$(FIXUP) $@
 
 
