@@ -312,6 +312,7 @@ libdirectfb.a: $(OBJECTS)
 $(SOURCE)/tools/%: $(SOURCE)/tools/%.o psp-setup.o libdirectfb.a
 	$(CC) $(LDFLAGS) -o $@ $< $(TOP)/psp-setup.o libdirectfb.a $(LIBS) $(PSPLIBS)
 	$(FIXUP) $@
+	$(STRIP) $@
 
 
 %.nm: %
