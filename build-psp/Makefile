@@ -192,6 +192,7 @@ SURFACE_CORE_OBJECTS_NEW = \
 #
 # DirectFB object files
 DIRECTFB_OBJECTS = \
+	$(SOURCE)/src/gfx/generic/generic.o			\
 	$(SURFACE_CORE_OBJECTS_NEW)					\
 	$(SOURCE)/src/core/clipboard.o				\
 	$(SOURCE)/src/core/colorhash.o				\
@@ -221,7 +222,6 @@ DIRECTFB_OBJECTS = \
 	$(SOURCE)/src/display/idirectfbsurface_window.o	\
 	$(SOURCE)/src/gfx/clip.o				\
 	$(SOURCE)/src/gfx/convert.o				\
-	$(SOURCE)/src/gfx/generic/generic.o			\
 	$(SOURCE)/src/gfx/util.o				\
 	$(SOURCE)/src/idirectfb.o				\
 	$(SOURCE)/src/input/idirectfbinputbuffer.o		\
@@ -250,10 +250,10 @@ DIRECTFB_INCLUDES += \
 #
 # Build list of all objects
 OBJECTS += \
+	$(DIRECTFB_OBJECTS)						\
 	$(LIB_DIRECT_OBJECTS)						\
 	$(LIB_FUSION_OBJECTS_SINGLE)					\
-	$(LIB_FUSION_OBJECTS)						\
-	$(DIRECTFB_OBJECTS)
+	$(LIB_FUSION_OBJECTS)
 
 #
 # Build complete include path
@@ -295,8 +295,8 @@ libdirectfb.a: $(OBJECTS)
 %.o: %.c $(GEN_HEADERS)
 	$(CC) $(CFLAGS) -c $(CPPFLAGS) $(INCLUDES) -o $@ $<
 
-$(SOURCE)/tools/%: $(SOURCE)/tools/%.o libdirectfb.a
-	$(CC) $(LDFLAGS) -o $@ $< libdirectfb.a $(LIBS) $(PSPLIBS)
+$(SOURCE)/tools/%: $(SOURCE)/tools/%.o psp-setup.o libdirectfb.a
+	$(CC) $(LDFLAGS) -o $@ $< $(TOP)/psp-setup.o libdirectfb.a $(LIBS) $(PSPLIBS)
 	$(FIXUP) $@
 
 
