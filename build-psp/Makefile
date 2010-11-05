@@ -90,11 +90,11 @@ datadir = /usr/local/share/directfb-examples
 
 #
 # Take system jpeg
-PSPLIBS     += -ljpeg
+LIBS     += -ljpeg
 
 #
 # Take system png
-PSPLIBS     += -lpng -lz
+LIBS     += -lpng -lz
 
 ##################################################################################
 #
