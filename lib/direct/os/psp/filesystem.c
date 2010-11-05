@@ -145,6 +145,23 @@ direct_file_unmap( DirectFile *file, void *addr, size_t bytes )
      return DR_OK;
 }
 
+DirectResult
+direct_file_get_info( DirectFile *file, DirectFileInfo *ret_info )
+{
+     struct stat st;
+
+     D_ASSERT( file != NULL );
+     D_ASSERT( ret_info != NULL );
+
+     if (fstat( file->fd, &st ))
+          return errno2result( errno );
+
+     ret_info->flags = DFIF_SIZE;
+     ret_info->size  = st.st_size;
+
+     return DR_OK;
+}
+
 /**********************************************************************************************************************/
 
 DirectResult
