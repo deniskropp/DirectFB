@@ -75,6 +75,8 @@ DirectResult  direct_file_unmap( DirectFile *file, void *addr, size_t bytes );
 
 DirectResult  direct_file_get_info( DirectFile *file, DirectFileInfo *ret_info );
 
+DirectResult  direct_file_dup( DirectFile *file, const DirectFile *other );
+
 /**********************************************************************************************************************/
 
 DirectResult  direct_fgets ( DirectFile *file, char *buf, size_t length );
