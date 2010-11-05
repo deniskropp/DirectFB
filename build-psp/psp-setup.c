@@ -70,6 +70,25 @@ int update_thread (SceSize args, void *argp)
 static void setup_callbacks (void) __attribute__((constructor));
 static void setup_callbacks (void)
 {
+     extern void directfb_dummy(void);
+     extern void directfbwm_default(void);
+     extern void IDirectFBImageProvider_DFIFF_ctor(void);
+     extern void IDirectFBImageProvider_GIF_ctor(void);
+     extern void IDirectFBImageProvider_JPEG_ctor(void);
+     extern void IDirectFBImageProvider_PNG_ctor(void);
+     extern void IDirectFBFont_DGIFF_ctor(void);
+     extern void IDirectFBFont_FT2_ctor(void);
+
+     directfb_dummy();
+     directfbwm_default();
+     IDirectFBImageProvider_DFIFF_ctor();
+     IDirectFBImageProvider_GIF_ctor();
+     IDirectFBImageProvider_JPEG_ctor();
+     IDirectFBImageProvider_PNG_ctor();
+     IDirectFBFont_DGIFF_ctor();
+     IDirectFBFont_FT2_ctor();
+
+
 	int id;
 
 	if ((id = sceKernelCreateThread("update_thread", update_thread, 0x11, 0xFA0, 0, 0)) >= 0)
