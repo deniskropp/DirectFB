@@ -114,18 +114,18 @@ direct_file_map( DirectFile *file, void *addr, size_t offset, size_t bytes, Dire
 {
      void *map;
      int   bytes_read = 0;
-     struct stat stat_info;
-
+     
      D_ASSERT( file != NULL );
      D_ASSERT( ret_addr != NULL );
 
-     fstat( file->fd, &stat_info);
-
+     if (offset)
+          return DR_UNSUPPORTED;
+          
      map = malloc(bytes);
      if (!map)
           return D_OOM();
 
-     bytes_read = pread( file->fd, map, bytes, offset );
+     bytes_read = read( file->fd, map, bytes );
      
      if (bytes_read != bytes) {
           return DR_IO;
