@@ -63,9 +63,9 @@ direct_recursive_mutex_init( DirectMutex *mutex )
      pthread_mutexattr_t attr;
 
      pthread_mutexattr_init( &attr );
-#if HAVE_DECL_PTHREAD_MUTEX_RECURSIVE
+
      pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
-#endif
+
      result = pthread_mutex_init( &mutex->lock, &attr );
      if (result) {
           ret = errno2result( errno );
@@ -87,8 +87,8 @@ direct_mutex_init( DirectMutex *mutex )
 static inline DirectResult
 direct_mutex_lock( DirectMutex *mutex )
 {
-//     if (pthread_mutex_lock( &mutex->lock ))
-//          return errno2result( errno );
+     if (pthread_mutex_lock( &mutex->lock ))
+          return errno2result( errno );
 
      return DR_OK;
 }
@@ -96,8 +96,8 @@ direct_mutex_lock( DirectMutex *mutex )
 static inline DirectResult
 direct_mutex_unlock( DirectMutex *mutex )
 {
-//     if (pthread_mutex_unlock( &mutex->lock ))
-//          return errno2result( errno );
+     if (pthread_mutex_unlock( &mutex->lock ))
+          return errno2result( errno );
 
      return DR_OK;
 }
