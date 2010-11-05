@@ -336,7 +336,7 @@ dfb_core_create( CoreDFB **ret_core )
 
      if (dfb_config->sync) {
           D_INFO( "DirectFB/Core: calling sync()...\n" );
-          sync();
+          direct_sync();
      }
 
      direct_signal_handler_add( DIRECT_SIGNAL_ANY, dfb_core_signal_handler, core, &core->signal_handler );
