@@ -108,6 +108,39 @@ direct_close( DirectFile *file )
      return DR_OK;
 }
 
+DirectResult
+direct_mmap( DirectFile *file, void *addr, size_t offset, size_t bytes, DirectFilePermission flags, void **ret_addr )
+{
+     void *map;
+     int   prot = 0;
+
+     D_ASSERT( file != NULL );
+     D_ASSERT( ret_addr != NULL );
+
+     if (flags & DFP_READ)
+          prot |= PROT_READ;
+
+     if (flags & DFP_WRTIE)
+          prot |= PROT_WRITE;
+
+     map = mmap( addr, bytes, prot, MAP_SHARED, file->fd, offset );
+     if (map == MAP_FAILED)
+          return errno2result( errno );
+
+     *ret_addr = map;
+
+     return DR_OK;
+}
+
+DirectResult
+direct_munmap( DirectFile *file, void *addr, size_t bytes )
+{
+     if (munmap( addr, bytes ))
+          return errno2result( errno );
+
+     return DR_OK;
+}
+
 /**********************************************************************************************************************/
 
 DirectResult
