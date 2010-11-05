@@ -109,6 +109,25 @@ direct_socketpair( int __domain, int __type, int __protocol, int __fds[2] )
      return DR_UNSUPPORTED;
 }
 
+DirectResult
+direct_sigprocmask( int __how, __const sigset_t *__restrict __set,
+                    sigset_t *__restrict __oset )
+{
+     return DR_UNSUPPORTED;
+}
+
+uid_t
+direct_getuid()
+{
+     return 0;
+}
+
+uid_t
+direct_geteuid()
+{
+     return 0;
+}
+
 /**********************************************************************************************************************/
 
 DirectResult
