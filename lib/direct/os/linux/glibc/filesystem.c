@@ -35,7 +35,7 @@
 /**********************************************************************************************************************/
 
 DirectResult
-direct_open( DirectFile *file, const char *name, int flags, mode_t mode )
+direct_file_open( DirectFile *file, const char *name, int flags, mode_t mode )
 {
      D_ASSERT( file != NULL );
      D_ASSERT( name != NULL );
@@ -50,7 +50,7 @@ direct_open( DirectFile *file, const char *name, int flags, mode_t mode )
 }
 
 DirectResult
-direct_read( DirectFile *file, void *buffer, size_t bytes, size_t *ret_bytes )
+direct_file_read( DirectFile *file, void *buffer, size_t bytes, size_t *ret_bytes )
 {
      ssize_t num;
 
@@ -68,7 +68,7 @@ direct_read( DirectFile *file, void *buffer, size_t bytes, size_t *ret_bytes )
 }
 
 DirectResult
-direct_write( DirectFile *file, const void *buffer, size_t bytes, size_t *ret_bytes )
+direct_file_write( DirectFile *file, const void *buffer, size_t bytes, size_t *ret_bytes )
 {
      ssize_t num;
 
@@ -86,7 +86,7 @@ direct_write( DirectFile *file, const void *buffer, size_t bytes, size_t *ret_by
 }
 
 DirectResult
-direct_close( DirectFile *file )
+direct_file_close( DirectFile *file )
 {
      int ret;
 
@@ -109,7 +109,7 @@ direct_close( DirectFile *file )
 }
 
 DirectResult
-direct_mmap( DirectFile *file, void *addr, size_t offset, size_t bytes, DirectFilePermission flags, void **ret_addr )
+direct_file_map( DirectFile *file, void *addr, size_t offset, size_t bytes, DirectFilePermission flags, void **ret_addr )
 {
      void *map;
      int   prot = 0;
@@ -133,7 +133,7 @@ direct_mmap( DirectFile *file, void *addr, size_t offset, size_t bytes, DirectFi
 }
 
 DirectResult
-direct_munmap( DirectFile *file, void *addr, size_t bytes )
+direct_file_unmap( DirectFile *file, void *addr, size_t bytes )
 {
      if (munmap( addr, bytes ))
           return errno2result( errno );

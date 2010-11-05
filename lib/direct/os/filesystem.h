@@ -43,47 +43,52 @@ typedef enum {
      DFP_READ  = 1,
      DFP_WRTIE = 2,
 
-     DFP_ALL   = 3,
+     DFP_ALL   = 3
 } DirectFilePermission;
 
+typedef struct {
+     DFIF_NONE = 0,
 
-__attribute__((no_instrument_function))
-DirectResult  direct_open ( DirectFile *file, const char *name, int flags, mode_t mode );
+     DFIF_SIZE = 1,
 
-__attribute__((no_instrument_function))
-DirectResult  direct_read ( DirectFile *file, void *buffer, size_t bytes, size_t *ret_bytes );
+     DFIF_ALL  = 1
+} DirectFileInfoFlags;
 
-__attribute__((no_instrument_function))
-DirectResult  direct_write( DirectFile *file, const void *buffer, size_t bytes, size_t *ret_bytes );
+typedef struct {
+     DirectFileInfoFlags flags;
 
-__attribute__((no_instrument_function))
-DirectResult  direct_close( DirectFile *file );
+     size_t              size;
+} DirectFileInfo;
 
-__attribute__((no_instrument_function))
-DirectResult  direct_mmap( DirectFile *file, void *addr, size_t offset, size_t bytes, DirectFilePermission flags, void **ret_addr );
 
-__attribute__((no_instrument_function))
-DirectResult  direct_munmap( DirectFile *file, void *addr, size_t bytes );
+DirectResult  direct_file_open ( DirectFile *file, const char *name, int flags, mode_t mode );
+
+DirectResult  direct_file_read ( DirectFile *file, void *buffer, size_t bytes, size_t *ret_bytes );
+
+DirectResult  direct_file_write( DirectFile *file, const void *buffer, size_t bytes, size_t *ret_bytes );
+
+DirectResult  direct_file_close( DirectFile *file );
+
+DirectResult  direct_file_map( DirectFile *file, void *addr, size_t offset, size_t bytes, DirectFilePermission flags, void **ret_addr );
+
+DirectResult  direct_file_unmap( DirectFile *file, void *addr, size_t bytes );
+
+DirectResult  direct_file_get_info( DirectFile *file, DirectFileInfo *ret_info );
 
 /**********************************************************************************************************************/
 
-__attribute__((no_instrument_function))
 DirectResult  direct_fgets ( DirectFile *file, char *buf, size_t length );
 
 /**********************************************************************************************************************/
 
-__attribute__((no_instrument_function))
 DirectResult  direct_popen ( DirectFile *file, const char *name, int flags );
 
-__attribute__((no_instrument_function))
 DirectResult  direct_pclose( DirectFile *file );
 
 /**********************************************************************************************************************/
 
-__attribute__((no_instrument_function))
 DirectResult  direct_readlink( const char *name, char *buf, size_t length, size_t *ret_length );
 
-__attribute__((no_instrument_function))
 DirectResult  direct_access( const char *name, int flags );
 
 
