@@ -19,8 +19,8 @@ CFLAGS   += $(addprefix -I,$(INCDIR))  -Werror-implicit-function-declaration
 CXXFLAGS += $(CFLAGS) $(CXXFLAGS)
 ASFLAGS  += $(CFLAGS) $(ASFLAGS)
 
-LDFLAGS  += -L$(LIBDIR)
-PSPLIBS  = -lc -lpthread-psp -lstdc++ -lpspdebug -lpspdisplay -lpspge -lpspctrl -lpspsdk -lc -lpspnet -lpspnet_inet -lpspnet_apctl -lpspnet_resolver -lpsputility -lpspuser -lpspkernel -lpsprtc
+LDFLAGS  += -L$(LIBDIR) -L .
+PSPLIBS  = -lc -lpthread-psp -lpspdebug -lpspdisplay -lpspge -lpspctrl -lpspsdk -lpspnet -lpspnet_inet -lpspnet_apctl -lpspnet_resolver -lpsputility -lpspuser -lpspkernel -lpsprtc
 
 ####################################################################
 #
@@ -42,7 +42,7 @@ default: all
 
 #
 # Compiler flags
-CFLAGS += -fpic -pipe -O2 -Wall
+CFLAGS += -O2 -Wall -fno-strict-aliasing 
 
 #
 # Configuration header files
@@ -83,21 +83,18 @@ prefix  = /usr/local/pspdev
 
 datadir = /usr/local/share/directfb-examples
 
-# Compiler flags
-CFLAGS += -ffast-math -Wno-strict-aliasing -fPIC -Werror
-
 #
 # Take system freetype
-INCLUDES += $(shell pkg-config --cflags freetype2)
-LIBS     += $(shell pkg-config --libs freetype2)
+#INCLUDES += $(shell pkg-config --cflags freetype2)
+#LIBS     += $(shell pkg-config --libs freetype2)
 
 #
 # Take system jpeg
-LIBS     += -ljpeg
+PSPLIBS     += -ljpeg
 
 #
 # Take system png
-LIBS     += -lpng -lz
+PSPLIBS     += -lpng -lz
 
 ##################################################################################
 #
@@ -266,9 +263,9 @@ INCLUDES += \
 
 #
 # All libraries
-LIBS += \
+PSPLIBS += \
 	-lfreetype							\
-	-lm								\
+	-lm
 
 
 #
@@ -291,11 +288,14 @@ all: $(GEN_HEADERS) libdirectfb.o $(TOOLS) $(TEST) $(TOOLS:%=%.nm)
 libdirectfb.o:  $(GEN_HEADERS) $(OBJECTS)
 	$(LD) $(LDFLAGS) -r -o $@ $(OBJECTS)
 
+libdirectfb.a:  $(GEN_HEADERS) $(OBJECTS)
+	$(AR) cru libdirectfb.a ${OBJECTS}
+                
 %.o: %.c
 	$(CC) $(CFLAGS) -c $(CPPFLAGS) $(INCLUDES) -o $@ $<
 
-$(SOURCE)/tools/%: $(SOURCE)/tools/%.o libdirectfb.o
-	$(CC) $(LDFLAGS) -o $@ $< libdirectfb.o $(LIBS) $(PSPLIBS)
+$(SOURCE)/tools/%: $(SOURCE)/tools/%.o libdirectfb.a
+	$(CC) $(LDFLAGS) -o $@ $<  libdirectfb.a $(LIBS) $(PSPLIBS)
 
 
 %.nm: %
