@@ -36,7 +36,7 @@
 /**********************************************************************************************************************/
 
 DirectResult
-direct_open( DirectFile *file, const char *name, int flags, mode_t mode )
+direct_file_open( DirectFile *file, const char *name, int flags, mode_t mode )
 {
      D_ASSERT( file != NULL );
      D_ASSERT( name != NULL );
@@ -51,7 +51,7 @@ direct_open( DirectFile *file, const char *name, int flags, mode_t mode )
 }
 
 DirectResult
-direct_read( DirectFile *file, void *buffer, size_t bytes, size_t *ret_bytes )
+direct_file_read( DirectFile *file, void *buffer, size_t bytes, size_t *ret_bytes )
 {
      ssize_t num;
 
@@ -69,7 +69,7 @@ direct_read( DirectFile *file, void *buffer, size_t bytes, size_t *ret_bytes )
 }
 
 DirectResult
-direct_write( DirectFile *file, const void *buffer, size_t bytes, size_t *ret_bytes )
+direct_file_write( DirectFile *file, const void *buffer, size_t bytes, size_t *ret_bytes )
 {
      ssize_t num;
 
@@ -87,7 +87,7 @@ direct_write( DirectFile *file, const void *buffer, size_t bytes, size_t *ret_by
 }
 
 DirectResult
-direct_close( DirectFile *file )
+direct_file_close( DirectFile *file )
 {
      int ret;
 
