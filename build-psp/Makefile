@@ -12,12 +12,15 @@ MKSFO    = mksfo
 PACK_PBP = pack-pbp
 FIXUP    = psp-fixup-imports
 # Add in PSPSDK includes and libraries.
-INCDIR   := $(INCDIR) . $(PSPSDK)/include
-LIBDIR   := $(LIBDIR) . $(PSPSDK)/lib
+INCDIR   +=  $(PSPSDK)/include
+LIBDIR   +=  $(PSPSDK)/lib  -L/usr/local/pspdev/psp/lib
 
-CFLAGS   := $(addprefix -I,$(INCDIR)) $(CFLAGS) -Werror-implicit-function-declaration
-CXXFLAGS := $(CFLAGS) $(CXXFLAGS)
-ASFLAGS  := $(CFLAGS) $(ASFLAGS)
+CFLAGS   += $(addprefix -I,$(INCDIR))  -Werror-implicit-function-declaration
+CXXFLAGS += $(CFLAGS) $(CXXFLAGS)
+ASFLAGS  += $(CFLAGS) $(ASFLAGS)
+
+LDFLAGS  += -L$(LIBDIR)
+PSPLIBS  = -lc -lpthread-psp -lstdc++ -lpspdebug -lpspdisplay -lpspge -lpspctrl -lpspsdk -lc -lpspnet -lpspnet_inet -lpspnet_apctl -lpspnet_resolver -lpsputility -lpspuser -lpspkernel -lpsprtc
 
 ####################################################################
 #
@@ -40,10 +43,6 @@ default: all
 #
 # Compiler flags
 CFLAGS += -fpic -pipe -O2 -Wall
-
-#
-# Linker flags
-LDFLAGS += -L.
 
 #
 # Configuration header files
@@ -241,40 +240,11 @@ DIRECTFB_OBJECTS = \
 	$(SOURCE)/src/windows/idirectfbwindow.o
 
 #
-# DirectFB requestor object files
-DIRECTFB_OBJECTS += $(SOURCE)/proxy/requestor/idirectfb_requestor.o \
-	$(SOURCE)/proxy/requestor/idirectfbdatabuffer_requestor.o \
-	$(SOURCE)/proxy/requestor/idirectfbdisplaylayer_requestor.o \
-	$(SOURCE)/proxy/requestor/idirectfbeventbuffer_requestor.o \
-	$(SOURCE)/proxy/requestor/idirectfbfont_requestor.o \
-	$(SOURCE)/proxy/requestor/idirectfbimageprovider_requestor.o \
-	$(SOURCE)/proxy/requestor/idirectfbinputdevice_requestor.o \
-	$(SOURCE)/proxy/requestor/idirectfbpalette_requestor.o \
-	$(SOURCE)/proxy/requestor/idirectfbscreen_requestor.o \
-	$(SOURCE)/proxy/requestor/idirectfbsurface_requestor.o \
-	$(SOURCE)/proxy/requestor/idirectfbwindow_requestor.o
-
-#
-# DirectFB dispatcher object files
-DIRECTFB_OBJECTS += $(SOURCE)/proxy/dispatcher/idirectfb_dispatcher.o \
-	$(SOURCE)/proxy/dispatcher/idirectfbdatabuffer_dispatcher.o \
-	$(SOURCE)/proxy/dispatcher/idirectfbdisplaylayer_dispatcher.o \
-	$(SOURCE)/proxy/dispatcher/idirectfbeventbuffer_dispatcher.o \
-	$(SOURCE)/proxy/dispatcher/idirectfbfont_dispatcher.o \
-	$(SOURCE)/proxy/dispatcher/idirectfbimageprovider_dispatcher.o \
-	$(SOURCE)/proxy/dispatcher/idirectfbinputdevice_dispatcher.o \
-	$(SOURCE)/proxy/dispatcher/idirectfbpalette_dispatcher.o \
-	$(SOURCE)/proxy/dispatcher/idirectfbscreen_dispatcher.o \
-	$(SOURCE)/proxy/dispatcher/idirectfbsurface_dispatcher.o \
-	$(SOURCE)/proxy/dispatcher/idirectfbwindow_dispatcher.o	
-#
 # DirectFB header files
 DIRECTFB_INCLUDES += \
 	-I$(SOURCE)/include					\
 	-I$(SOURCE)/lib					\
 	-I$(SOURCE)/src					\
-	-I$(SOURCE)/proxy/requestor					\
-	-I$(SOURCE)/proxy/dispatcher					\
 	-I$(SOURCE)/systems
 
 
@@ -297,8 +267,6 @@ INCLUDES += \
 LIBS += \
 	-lfreetype							\
 	-lm								\
-	-lpthread							\
-	-ldl
 
 
 #
@@ -316,25 +284,17 @@ GEN_HEADERS = \
 
 #
 # Rules
-all: $(GEN_HEADERS) libdirectfb.o libdirectfb.so libdirectfb.so.nm $(TOOLS) $(TEST) $(TOOLS:%=%.nm)
+all: $(GEN_HEADERS) libdirectfb.o $(TOOLS) $(TEST) $(TOOLS:%=%.nm)
 
 libdirectfb.o:  $(GEN_HEADERS) $(OBJECTS)
 	$(LD) $(LDFLAGS) -r -o $@ $(OBJECTS)
 
-libdirectfb.so: $(GEN_HEADERS) $(OBJECTS)
-	$(CC) -shared -Wl,-soname,libdirectfb.so $(LDFLAGS) $(LIBS) -o $@ $(OBJECTS)
-
-libdirectfb.so.nm: libdirectfb.so
-	$(NM) -n libdirectfb.so > libdirectfb.so.nm
-
 %.o: %.c
 	$(CC) $(CFLAGS) -c $(CPPFLAGS) $(INCLUDES) -o $@ $<
 
-$(SOURCE)/tests/%: $(SOURCE)/tests/%.o libdirectfb.so
-	$(CC) $(LDFLAGS) -o $@ $< -ldirectfb $(LIBS)
+$(SOURCE)/tools/%: $(SOURCE)/tools/%.o libdirectfb.o
+	$(CC) $(LDFLAGS) -o $@ $< libdirectfb.o $(LIBS) $(PSPLIBS)
 
-$(SOURCE)/tools/%: $(SOURCE)/tools/%.o libdirectfb.so
-	$(CC) $(LDFLAGS) -o $@ $< -ldirectfb $(LIBS)
 
 %.nm: %
 	$(NM) -n $< > $@
@@ -359,8 +319,6 @@ install:: all
 	install -d $(DESTDIR)$(moddir)/systems
 	install -d $(DESTDIR)$(moddir)/wm
 	install -c -m 755 $(TEST) $(TOOLS) $(TOOLS:%=%.nm) $(DESTDIR)$(bindir)/
-	install -c -m 755 libdirectfb.so $(DESTDIR)$(libdir)/
-	install -c -m 644 libdirectfb.so.nm $(DESTDIR)$(libdir)/
 
 
 
