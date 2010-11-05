@@ -252,6 +252,7 @@ DIRECTFB_INCLUDES += \
 # Build list of all objects
 OBJECTS += \
 	$(LIB_DIRECT_OBJECTS)						\
+	$(LIB_FUSION_OBJECTS_SINGLE)					\
 	$(LIB_FUSION_OBJECTS)						\
 	$(DIRECTFB_OBJECTS)
 
