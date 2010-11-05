@@ -109,6 +109,42 @@ direct_close( DirectFile *file )
      return DR_OK;
 }
 
+DirectResult
+direct_file_map( DirectFile *file, void *addr, size_t offset, size_t bytes, DirectFilePermission flags, void **ret_addr )
+{
+     void *map;
+     int   bytes_read = 0;
+     struct stat stat_info;
+
+     D_ASSERT( file != NULL );
+     D_ASSERT( ret_addr != NULL );
+
+     fstat( file->fd, &stat_info);
+
+     map = malloc(bytes);
+     if (!map)
+          return D_OOM();
+
+     bytes_read = pread( file->fd, map, bytes, offset );
+     
+     if (bytes_read != bytes) {
+          return DR_IO;
+     }
+     *ret_addr = map;
+
+     return DR_OK;
+}
+
+DirectResult
+direct_file_unmap( DirectFile *file, void *addr, size_t bytes )
+{
+     D_ASSERT( addr != NULL );
+
+     free( addr );
+
+     return DR_OK;
+}
+
 /**********************************************************************************************************************/
 
 DirectResult
