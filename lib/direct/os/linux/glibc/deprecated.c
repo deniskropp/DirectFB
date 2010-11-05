@@ -59,7 +59,7 @@ direct_try_open( const char *name1, const char *name2, int flags, bool error_msg
      DirectResult ret;
      DirectFile   file;
 
-     ret = direct_open( &file, name1, flags, 660 );
+     ret = direct_file_open( &file, name1, flags, 660 );
      if (ret) {
           if (ret != DR_FILENOTFOUND) {
                if (error_msg)
@@ -67,7 +67,7 @@ direct_try_open( const char *name1, const char *name2, int flags, bool error_msg
                return -1;
           }
 
-          ret = direct_open( &file, name2, flags, 660 );
+          ret = direct_file_open( &file, name2, flags, 660 );
           if (ret && error_msg) {
                if (ret == DR_FILENOTFOUND)
                     D_DERROR( ret, "Direct/Util: Opening '%s' and '%s' failed!\n", name1, name2 );
