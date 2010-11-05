@@ -62,6 +62,10 @@ DirectResult direct_sigprocmask( int __how, __const sigset_t *__restrict __set,
 
 
 
+uid_t direct_getuid( void );
+uid_t direct_geteuid( void );
+
+
 #define FUTEX_WAIT              0
 #define FUTEX_WAKE              1
 
