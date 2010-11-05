@@ -166,6 +166,8 @@ direct_file_dup( DirectFile *file, const DirectFile *other )
      D_ASSERT( file != NULL );
      D_ASSERT( other != NULL );
 
+     file->file = NULL;
+
      fd = dup( other->fd );
      if (fd < 0)
           return errno2result( errno );
