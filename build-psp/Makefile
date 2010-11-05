@@ -85,7 +85,7 @@ prefix  = /usr/local/pspdev
 datadir = /usr/local/share/directfb-examples
 
 # Compiler flags
-CFLAGS += -ffast-math -Wno-strict-aliasing -fPIC -Wno-error
+CFLAGS += -ffast-math -Wno-strict-aliasing -fPIC -Werror
 
 #
 # Take system freetype
