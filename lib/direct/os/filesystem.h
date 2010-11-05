@@ -63,7 +63,7 @@ __attribute__((no_instrument_function))
 DirectResult  direct_mmap( DirectFile *file, void *addr, size_t offset, size_t bytes, DirectFilePermission flags, void **ret_addr );
 
 __attribute__((no_instrument_function))
-DirectResult  direct_unmap( DirectFile *file, void *addr, size_t bytes );
+DirectResult  direct_munmap( DirectFile *file, void *addr, size_t bytes );
 
 /**********************************************************************************************************************/
 
