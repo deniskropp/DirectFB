@@ -154,10 +154,15 @@ LIB_DIRECT_OBJECTS = \
 	$(SOURCE)/lib/direct/os/psp/thread.o			\
 	$(SOURCE)/lib/direct/os/psp/util.o
 
+WM_OBJECTS = \
+	$(SOURCE)/wm/default/default.o
+
 PROVIDER_OBJECTS = \
 	$(SOURCE)/interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.o	\
 	$(SOURCE)/interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.o	\
 	$(SOURCE)/interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.o
+
+#	$(SOURCE)/interfaces/IDirectFBImageProvider/idirectfbimageprovider_dfiff.o	\
 	
 SYSTEM_OBJECTS = $(SOURCE)/systems/dummy/dummy.o
 
@@ -260,6 +265,7 @@ OBJECTS += \
 	$(LIB_FUSION_OBJECTS_SINGLE)					\
 	$(LIB_FUSION_OBJECTS)						\
 	$(PROVIDER_OBJECTS)						\
+	$(WM_OBJECTS)						\
 	$(SYSTEM_OBJECTS)
 
 #
