@@ -39,6 +39,8 @@
 #include <direct/signals.h>
 #include <direct/thread.h>
 
+#include <pspthreadman.h>
+
 
 D_LOG_DOMAIN( Direct_Thread    , "Direct/Thread",      "Thread management" );
 D_LOG_DOMAIN( Direct_ThreadInit, "Direct/Thread/Init", "Thread initialization" );
@@ -337,6 +339,12 @@ direct_thread_join( DirectThread *thread )
 
           D_DEBUG_AT( Direct_Thread, "  -> joined.\n" );
      }
+}
+
+void
+direct_thread_sleep( long long micros )
+{
+     sceKernelDelayThread( micros );
 }
 
 /**********************************************************************************************************************/
