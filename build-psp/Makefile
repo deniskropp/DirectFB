@@ -283,18 +283,12 @@ DIRECTFB_INCLUDES += \
 OBJECTS += \
 	$(LIB_DIRECT_OBJECTS)						\
 	$(LIB_FUSION_OBJECTS)						\
-	$(DIRECTFB_OBJECTS)						\
-	$(DIVINE_OBJECTS)						\
-	$(SAWMAN_OBJECTS)						\
-	$(FUSIONDALE_OBJECTS)
+	$(DIRECTFB_OBJECTS)
 
 #
 # Build complete include path
 INCLUDES += \
-	$(DIRECTFB_INCLUDES)						\
-	$(DIVINE_INCLUDES)						\
-	$(SAWMAN_INCLUDES)						\
-	$(FUSIONDALE_INCLUDES)
+	$(DIRECTFB_INCLUDES)
 
 
 
@@ -310,12 +304,7 @@ LIBS += \
 #
 # All tools and tests
 TOOLS += \
-	$(SOURCE)/tools/dfbinfo				\
-	$(SOURCE)/tools/dfbdump				\
-	$(SOURCE)/tools/dfbproxy				\
-	$(SOURCE)/tools/fusion_bench				\
-	$(SOURCE)/tests/fusion_reactor				\
-	$(SOURCE)/SaWMan/tools/swmdump
+	$(SOURCE)/tools/dfbinfo
 
 #
 # List of generated header files
@@ -345,9 +334,6 @@ $(SOURCE)/tests/%: $(SOURCE)/tests/%.o libdirectfb.so
 	$(CC) $(LDFLAGS) -o $@ $< -ldirectfb $(LIBS)
 
 $(SOURCE)/tools/%: $(SOURCE)/tools/%.o libdirectfb.so
-	$(CC) $(LDFLAGS) -o $@ $< -ldirectfb $(LIBS)
-
-$(SOURCE)/SaWMan/tools/%: $(SOURCE)/SaWMan/tools/%.o libdirectfb.so
 	$(CC) $(LDFLAGS) -o $@ $< -ldirectfb $(LIBS)
 
 %.nm: %
