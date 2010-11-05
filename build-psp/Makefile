@@ -297,6 +297,7 @@ libdirectfb.a: $(OBJECTS)
 
 $(SOURCE)/tools/%: $(SOURCE)/tools/%.o libdirectfb.o
 	$(CC) $(LDFLAGS) -o $@ $<  libdirectfb.o $(LIBS) $(PSPLIBS)
+	$(FIXUP) $@
 
 
 %.nm: %
