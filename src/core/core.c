@@ -445,7 +445,7 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
                                core, emergency, NULL ) == DR_BUSY)
      {
           D_ONCE( "waiting for DirectFB slaves to terminate" );
-          usleep( 100000 );
+          direct_thread_sleep( 100000 );
      }
 
      fusion_exit( core->world, emergency );
