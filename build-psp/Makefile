@@ -292,15 +292,16 @@ libdirectfb.o:  $(GEN_HEADERS) $(OBJECTS)
 libdirectfb.a:  $(GEN_HEADERS) $(OBJECTS)
 	$(AR) cru libdirectfb.a ${OBJECTS}
                 
-%.o: %.c
+%.o: %.c $(GEN_HEADERS)
 	$(CC) $(CFLAGS) -c $(CPPFLAGS) $(INCLUDES) -o $@ $<
 
-$(SOURCE)/tools/%: $(SOURCE)/tools/%.o libdirectfb.a
-	$(CC) $(LDFLAGS) -o $@ $<  libdirectfb.a $(LIBS) $(PSPLIBS)
+$(SOURCE)/tools/%: $(SOURCE)/tools/%.o libdirectfb.o
+	$(CC) $(LDFLAGS) -o $@ $<  libdirectfb.o $(LIBS) $(PSPLIBS)
 
 
 %.nm: %
 	$(NM) -n $< > $@
+
 
 
 .PHONY: clean install
