@@ -114,8 +114,7 @@ direct_signals_block_all( void )
 
      sigfillset( &signals );
 
-     if (sigprocmask( SIG_BLOCK, &signals, NULL ))
-          ;//D_PERROR( "Direct/Signals: Setting signal mask failed!\n" );
+     direct_sigprocmask( SIG_BLOCK, &signals, NULL );
 }
 
 DirectResult
