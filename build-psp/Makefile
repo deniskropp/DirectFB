@@ -284,7 +284,7 @@ GEN_HEADERS = \
 
 #
 # Rules
-all: $(GEN_HEADERS) libdirectfb.o $(TOOLS) $(TEST) $(TOOLS:%=%.nm)
+all: $(GEN_HEADERS) libdirectfb.a $(TOOLS) $(TEST) $(TOOLS:%=%.nm)
 
 libdirectfb.o: $(OBJECTS)
 	$(LD) $(LDFLAGS) -r -o $@ $(OBJECTS)
@@ -295,8 +295,8 @@ libdirectfb.a: $(OBJECTS)
 %.o: %.c $(GEN_HEADERS)
 	$(CC) $(CFLAGS) -c $(CPPFLAGS) $(INCLUDES) -o $@ $<
 
-$(SOURCE)/tools/%: $(SOURCE)/tools/%.o libdirectfb.o
-	$(CC) $(LDFLAGS) -o $@ $<  libdirectfb.o $(LIBS) $(PSPLIBS)
+$(SOURCE)/tools/%: $(SOURCE)/tools/%.o libdirectfb.a
+	$(CC) $(LDFLAGS) -o $@ $< $(LIBS) $(PSPLIBS) libdirectfb.a
 	$(FIXUP) $@
 
 
