@@ -286,12 +286,12 @@ GEN_HEADERS = \
 # Rules
 all: $(GEN_HEADERS) libdirectfb.o $(TOOLS) $(TEST) $(TOOLS:%=%.nm)
 
-libdirectfb.o:  $(GEN_HEADERS) $(OBJECTS)
+libdirectfb.o: $(OBJECTS)
 	$(LD) $(LDFLAGS) -r -o $@ $(OBJECTS)
 
-libdirectfb.a:  $(GEN_HEADERS) $(OBJECTS)
-	$(AR) cru libdirectfb.a ${OBJECTS}
-                
+libdirectfb.a: $(OBJECTS)
+	$(AR) cru libdirectfb.a $(OBJECTS)
+
 %.o: %.c $(GEN_HEADERS)
 	$(CC) $(CFLAGS) -c $(CPPFLAGS) $(INCLUDES) -o $@ $<
 
