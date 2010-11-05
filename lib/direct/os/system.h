@@ -57,6 +57,11 @@ DirectResult direct_socketpair( int __domain, int __type, int __protocol, int __
 
 
 
+DirectResult direct_sigprocmask( int __how, __const sigset_t *__restrict __set,
+                                 sigset_t *__restrict __oset );
+
+
+
 #define FUTEX_WAIT              0
 #define FUTEX_WAKE              1
 
