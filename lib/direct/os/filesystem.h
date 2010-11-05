@@ -46,7 +46,7 @@ typedef enum {
      DFP_ALL   = 3
 } DirectFilePermission;
 
-typedef struct {
+typedef enum {
      DFIF_NONE = 0,
 
      DFIF_SIZE = 1,
