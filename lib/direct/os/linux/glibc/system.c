@@ -131,6 +131,42 @@ direct_trap( const char *domain, int sig )
 /**********************************************************************************************************************/
 
 DirectResult
+direct_kill( pid_t pid, int sig )
+{
+     if (kill( pid, sig ))
+          return errno2result( errno );
+
+     return DR_OK;
+}
+
+void
+direct_sync( void )
+{
+     sync();
+}
+
+DirectResult
+direct_socketpair( int __domain, int __type, int __protocol, int __fds[2] )
+{
+     if (socketpair( __domain, __type, __protocol, __fds ))
+          return errno2result( errno );
+
+     return DR_OK;
+}
+
+DirectResult
+direct_sigprocmask( int __how, __const sigset_t *__restrict __set,
+                    sigset_t *__restrict __oset )
+{
+     if (sigprocmask( __how, __set, __oset ))
+          return errno2result( errno );
+
+     return DR_OK;
+}
+
+/**********************************************************************************************************************/
+
+DirectResult
 direct_futex( int *uaddr, int op, int val, const struct timespec *timeout, int *uaddr2, int val3 )
 {
      int          ret;
