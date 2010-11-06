@@ -1,5 +1,10 @@
 ## Makefile.am for DirectFB/tests
 
+if DIRECTFB_BUILD_VOODOO
+SUBDIRS = voodoo
+endif
+
+
 INCLUDES = \
 	-I$(top_builddir)/lib \
 	-I$(top_builddir)/include \
