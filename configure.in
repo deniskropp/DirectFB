@@ -597,6 +597,16 @@ AM_CONDITIONAL(DIRECTFB_BUILD_PURE_VOODOO, test "$DIRECTFB_BUILD_PURE_VOODOO" = 
 
 AC_SUBST(DEP_VOODOO)
 
+dnl If we're not building a pure voodoo lib, we need the sqrt symbol
+dnl for src/media/idirectfbfont.c
+MEDIALIB=""
+if test "$enable_pure_voodoo" = "no"; then
+  AC_CHECK_LIB(m, sqrt,
+    MEDIALIB="-lm",
+    AC_MSG_ERROR([
+*** DirectFB requires libm.]))
+fi
+AC_SUBST(MEDIALIB)
 
 AM_CONDITIONAL(ENABLE_MULTI, test "$enable_multi" = "yes")
 
