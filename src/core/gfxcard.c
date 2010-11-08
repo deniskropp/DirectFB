@@ -1808,15 +1808,16 @@ void dfb_gfxcard_filltrapezoids( const DFBTrapezoid *traps, int num, CardState *
 
           else if (gAcquire( state, DFXL_FILLTRIANGLE )) {
                for (; i < num; i++) {
-                    dfb_sort_trapezoid(&traps[i]);
+                    DFBTrapezoid trap = traps[i];
+                    dfb_sort_trapezoid(&trap);
 
-                    DFBTriangle tri1 = { traps[i].x1,                   traps[i].y1,
-                                         traps[i].x1 + traps[i].w1 - 1, traps[i].y1,
-                                         traps[i].x2,                   traps[i].y2 };
+                    DFBTriangle tri1 = { trap.x1,                   traps[i].y1,
+                                         trap.x1 + traps[i].w1 - 1, traps[i].y1,
+                                         trap.x2,                   traps[i].y2 };
 
-                    DFBTriangle tri2 = { traps[i].x1 + traps[i].w1 - 1, traps[i].y1,
-                                         traps[i].x2,                   traps[i].y2,
-                                         traps[i].x2 + traps[i].w2 - 1, traps[i].y2 };
+                    DFBTriangle tri2 = { trap.x1 + traps[i].w1 - 1, traps[i].y1,
+                                         trap.x2,                   traps[i].y2,
+                                         trap.x2 + traps[i].w2 - 1, traps[i].y2 };
 
 
                     if (state->render_options & DSRO_MATRIX) {
