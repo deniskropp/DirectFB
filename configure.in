@@ -1845,6 +1845,7 @@ interfaces/IDirectFBVideoProvider/Makefile
 data/Makefile
 
 tests/Makefile
+tests/voodoo/Makefile
 tools/Makefile
 
 docs/Makefile
