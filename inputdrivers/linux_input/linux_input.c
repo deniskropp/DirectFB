@@ -1365,7 +1365,7 @@ register_device_node( int event_num, int *index)
 
      /* Too many input devices plugged in to be handled by linux_input driver. */
      D_DEBUG_AT( Debug_LinuxInput,
-                 "The amount of devices registered exceeds the limit "
+                 "The amount of devices registered exceeds the limit (%u) "
                  "supported by linux input provider.\n",
                  MAX_LINUX_INPUT_DEVICES );
      return DFB_UNSUPPORTED;
