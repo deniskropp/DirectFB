@@ -300,9 +300,9 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
      }
 
      closedir( dir );
+#endif
 
      pthread_mutex_unlock( &implementations_mutex );
-#endif
 
      return DR_NOIMPL;
 }
