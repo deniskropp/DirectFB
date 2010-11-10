@@ -8,5 +8,5 @@ Description: Graphics and windowing library for the Linux frame buffer device
 Version: @VERSION@
 Requires: @DEP_VOODOO@ fusion direct
 Libs: -L${libdir} -ldirectfb @THREADLIB@ @OSX_LIBS@
-Libs.private: -L${libdir} @DYNLIB@ @ZLIB_LIBS@
+Libs.private: -L${libdir} @MEDIALIB@ @DYNLIB@ @ZLIB_LIBS@
 Cflags: @THREADFLAGS@ -I@INCLUDEDIR@
