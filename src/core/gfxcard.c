@@ -1218,7 +1218,9 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (!dfb_rectangle_region_intersects( rect, &state->clip )) {
+     if (!(state->render_options & DSRO_MATRIX) &&
+         !dfb_rectangle_region_intersects( rect, &state->clip ))
+     {
           dfb_state_unlock( state );
           return;
      }
