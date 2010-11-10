@@ -389,6 +389,7 @@ fusion_fork_handler_child( void )
 static DirectResult
 map_shared_root( void               *shm_base,
                  int                 world_index,
+                 bool                master,
                  FusionWorldShared **ret_shared )
 {
      DirectResult ret = DR_OK;
@@ -396,6 +397,10 @@ map_shared_root( void               *shm_base,
      void        *map;
      char         tmpfs[FUSION_SHM_TMPFS_PATH_NAME_LEN];
      char         root_file[FUSION_SHM_TMPFS_PATH_NAME_LEN+32];
+     int          flags = O_RDWR;
+
+     if (master)
+          flags |= O_CREAT | O_TRUNC;
 
      if (fusion_config->tmpfs) {
           direct_snputs( tmpfs, fusion_config->tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN );
@@ -408,7 +413,7 @@ map_shared_root( void               *shm_base,
      snprintf( root_file, sizeof(root_file), "%s/fusion.%d", tmpfs, world_index );
 
      /* open the virtual file */
-     fd = open( root_file, O_RDWR | O_CREAT | O_TRUNC, 0660 );
+     fd = open( root_file, flags, 0660 );
      if (fd < 0) {
           ret = errno2result(errno);
           D_PERROR( "Fusion/SHM: Could not open shared memory file '%s'!\n", root_file );
@@ -421,8 +426,10 @@ map_shared_root( void               *shm_base,
                D_WARN( "Fusion/SHM: Changing owner on %s failed... continuing on.", root_file );
      }
 
-     fchmod( fd, 0660 );
-     ftruncate( fd, sizeof(FusionWorldShared) );
+     if (master) {
+          fchmod( fd, 0660 );
+          ftruncate( fd, sizeof(FusionWorldShared) );
+     }
 
      D_DEBUG_AT( Fusion_Main, "  -> mmaping shared memory file... (%zu bytes)\n", sizeof(FusionWorldShared) );
 
@@ -635,7 +642,7 @@ fusion_enter( int               world_index,
 
 
      /* Map shared area. */
-     ret = map_shared_root( (void*) shm_base, world_index, &shared );
+     ret = map_shared_root( (void*) shm_base, world_index, enter.fusion_id == FUSION_ID_MASTER, &shared );
      if (ret)
           goto error;
 
