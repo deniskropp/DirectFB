@@ -1027,7 +1027,13 @@ typedef enum {
      DFFA_NOBITMAP       = 0x00000020,  /* ignore bitmap strikes; for
                                            bitmap-only fonts this flag is
                                            ignored */
-     DFFA_OUTLINED       = 0x00000040
+     DFFA_OUTLINED       = 0x00000040,
+     DFFA_AUTOHINTING    = 0x00000080,  /* prefer auto-hinter over the font's
+                                           native hinter */
+     DFFA_SOFTHINTING    = 0x00000100   /* use a lighter hinting algorithm
+                                           that produces glyphs that are more
+                                           fuzzy but better resemble the
+                                           original shape */
 } DFBFontAttributes;
 
 /*

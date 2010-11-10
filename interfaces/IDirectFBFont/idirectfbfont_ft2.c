@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -59,11 +59,18 @@
 #include FT_GLYPH_H
 
 #ifndef FT_LOAD_TARGET_MONO
-    /* FT_LOAD_TARGET_MONO was added in FreeType-2.1.3, we have to use (less good)
-       FT_LOAD_MONOCHROME with older versions. Make it an alias for code simplicity. */
+    /* FT_LOAD_TARGET_MONO was added in FreeType-2.1.3. We have to use
+       (less good) FT_LOAD_MONOCHROME with older versions. Make it an
+       alias for code simplicity. */
     #define FT_LOAD_TARGET_MONO FT_LOAD_MONOCHROME
 #endif
 
+#ifndef FT_LOAD_FORCE_AUTOHINT
+    #define FT_LOAD_FORCE_AUTOHINT 0
+#endif
+#ifndef FT_LOAD_TARGET_LIGHT
+    #define FT_LOAD_TARGET_LIGHT 0
+#endif
 
 static DFBResult
 Probe( IDirectFBFont_ProbeContext *ctx );
@@ -882,6 +889,10 @@ Construct( IDirectFBFont               *thiz,
                load_flags |= FT_LOAD_NO_HINTING;
           if (desc->attributes & DFFA_NOBITMAP)
                load_flags |= FT_LOAD_NO_BITMAP;
+          if (desc->attributes & DFFA_AUTOHINTING)
+               load_flags |= FT_LOAD_FORCE_AUTOHINT;
+          if (desc->attributes & DFFA_SOFTHINTING)
+               load_flags |= FT_LOAD_TARGET_LIGHT;
           if (desc->attributes & DFFA_NOCHARMAP)
                disable_charmap = true;
           if (desc->attributes & DFFA_NOKERNING)
