@@ -1490,9 +1490,9 @@ typedef struct {
 
 #define SETUP_DDA(xs,ys,xe,ye,dda)         \
      do {                                  \
-          int dx = xe - xs;                \
-          int dy = ye - ys;                \
-          dda.xi = xs;                     \
+          int dx = (xe) - (xs);            \
+          int dy = (ye) - (ys);            \
+          dda.xi = (xs);                   \
           if (dy != 0) {                   \
                dda.mi = dx / dy;           \
                dda.mf = 2*(dx % dy);       \
@@ -1521,6 +1521,7 @@ typedef struct {
                dda.xf -= dda._2dy;         \
           }                                \
      } while (0)
+
 
 
 /**
@@ -1583,6 +1584,64 @@ fill_tri( DFBTriangle *tri, CardState *state, bool accelerated )
           y++;
      }
 }
+
+/**
+ *  render a trapezoid using two parallel DDA's
+ */
+static void
+fill_trap( DFBTrapezoid *trap, CardState *state, bool accelerated )
+{
+     int y, yend;
+     DDA dda1 = { .xi = 0 }, dda2 = { .xi = 0 };
+     int clip_x1 = state->clip.x1;
+     int clip_x2 = state->clip.x2;
+
+     D_MAGIC_ASSERT( state, CardState );
+
+     y = trap->y1;
+     yend = trap->y2;
+
+     if (yend > state->clip.y2)
+          yend = state->clip.y2;
+
+     /* top left to bottom left */
+     SETUP_DDA(trap->x1,                trap->y1, trap->x2,                trap->y2, dda1);
+     /* top right to bottom right */
+     SETUP_DDA(trap->x1 + trap->w1 - 1, trap->y1, trap->x2 + trap->w2 - 1, trap->y2, dda2);
+
+     while (y <= yend) {
+          DFBRectangle rect;
+
+          rect.w = ABS(dda1.xi - dda2.xi);
+          rect.x = MIN(dda1.xi, dda2.xi);
+
+          if (clip_x2 < rect.x + rect.w)
+               rect.w = clip_x2 - rect.x + 1;
+
+          if (rect.w > 0) {
+               if (clip_x1 > rect.x) {
+                    rect.w -= (clip_x1 - rect.x);
+                    rect.x = clip_x1;
+               }
+               rect.y = y;
+               rect.h = 1;
+
+               if (rect.w > 0 && rect.y >= state->clip.y1) {
+                    if (accelerated)
+                         card->funcs.FillRectangle( card->driver_data,
+                                                    card->device_data, &rect );
+                    else
+                         gFillRectangle( state, &rect );
+               }
+          }
+
+          INC_DDA(dda1);
+          INC_DDA(dda2);
+
+          y++;
+     }
+}
+
 
 
 void dfb_gfxcard_filltriangles( const DFBTriangle *tris, int num, CardState *state )
@@ -1811,16 +1870,17 @@ void dfb_gfxcard_filltrapezoids( const DFBTrapezoid *traps, int num, CardState *
                     DFBTrapezoid trap = traps[i];
                     dfb_sort_trapezoid(&trap);
 
-                    DFBTriangle tri1 = { trap.x1,                   traps[i].y1,
-                                         trap.x1 + traps[i].w1 - 1, traps[i].y1,
-                                         trap.x2,                   traps[i].y2 };
-
-                    DFBTriangle tri2 = { trap.x1 + traps[i].w1 - 1, traps[i].y1,
-                                         trap.x2,                   traps[i].y2,
-                                         trap.x2 + traps[i].w2 - 1, traps[i].y2 };
-
-
                     if (state->render_options & DSRO_MATRIX) {
+                         /* split into triangles, for easier rotation */
+                         DFBTriangle tri1 = { trap.x1,                   traps[i].y1,
+                                              trap.x1 + traps[i].w1 - 1, traps[i].y1,
+                                              trap.x2,                   traps[i].y2 };
+
+                         DFBTriangle tri2 = { trap.x1 + traps[i].w1 - 1, traps[i].y1,
+                                              trap.x2,                   traps[i].y2,
+                                              trap.x2 + traps[i].w2 - 1, traps[i].y2 };
+
+
                          /* transform first triangle completely */
                          DFB_TRANSFORM(tri1.x1, tri1.y1, state->matrix, state->affine_matrix);
                          DFB_TRANSFORM(tri1.x2, tri1.y2, state->matrix, state->affine_matrix);
@@ -1836,12 +1896,15 @@ void dfb_gfxcard_filltrapezoids( const DFBTrapezoid *traps, int num, CardState *
                          /* sort triangles (matrix could have rotated them */
                          dfb_sort_triangle( &tri1 );
                          dfb_sort_triangle( &tri2 );
-                    }
 
-                    if (tri1.y3 - tri1.y1 > 0)
-                         fill_tri( &tri1, state, false );
-                    if (tri2.y3 - tri2.y1 > 0)
-                         fill_tri( &tri2, state, false );
+                         if (tri1.y3 - tri1.y1 > 0)
+                              fill_tri( &tri1, state, false );
+                         if (tri2.y3 - tri2.y1 > 0)
+                              fill_tri( &tri2, state, false );
+
+                    }
+                    else 
+                         fill_trap( &trap, state, false );
                }
 
                gRelease( state );
