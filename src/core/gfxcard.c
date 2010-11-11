@@ -1934,7 +1934,7 @@ clip_blit_rotated( DFBRectangle *srect, DFBRectangle *drect, const DFBRegion *cl
 
      dfb_region_region_intersect( &clipped, clip );
      dfb_rectangle_from_region( drect, &clipped );
-
+/* FIXME
      if (flags & DSBLIT_FLIP_HORIZONTAL) {
           int temp;
           temp = dest.x1;
@@ -1956,7 +1956,7 @@ clip_blit_rotated( DFBRectangle *srect, DFBRectangle *drect, const DFBRegion *cl
           clipped.y1 = clipped.y2;
           clipped.y2 = temp;
      }
-
+*/
      if (flags & DSBLIT_ROTATE90) {
           srect->x += dest.y2 - clipped.y2;
           srect->y += clipped.x1 - dest.x1;
