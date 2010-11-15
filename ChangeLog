@@ -1,3 +1,188 @@
+commit 756cae8913299750275dddc046babdb2c53ead78
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Nov 11 11:56:56 2010 +0100
+
+    gfxcard: disable clipping for DSBLIT_FLIP_ flags until fixed :(
+
+commit bd2c6f130b8000282f5845218dbebc2855a3efae
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Nov 10 19:45:06 2010 +0100
+
+    gfxcard: fix clipping for vertically and horizontally flipped blits
+
+commit 5e2e7c99d926801b7982cfc8bd5611d95017f8a0
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Wed Nov 10 09:13:30 2010 +0100
+
+    directfb.pc: add -lm to Libs.private if needed
+
+commit 97b2ff9500c5a4e9508f1f914005a340e22de970
+Author: Lionel Landwerlin <llandwerlin@gmail.com>
+Date:   Sun Nov 7 21:45:19 2010 +0100
+
+    Add -lm flag when nedded
+    
+    Signed-off-by: Lionel Landwerlin <llandwerlin@gmail.com>
+
+commit 81a5bcad6452a0602b45679653d08615a44b4b60
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Nov 10 11:50:31 2010 +0100
+
+    gfxcard: no preclipping if matrix is set in DrawRectangle()
+
+commit 94dc0a74d25c782e470de75902d4544cfbca181d
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Nov 10 09:42:40 2010 +0100
+
+    fusion: Fix broken join due to new root page file.
+
+commit 41e0e66acfaa04ee987a81f4491c8ae44bdc726d
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Nov 8 14:58:11 2010 +0100
+
+    gfxcard: added fill_trap() function for filling Trapezoids without splitting into rectangles
+    
+    The new function is used if no matrix is set and there is no hardware support for neither trapezoids nor rectangles
+
+commit 85a84819d31858286fa70442c4b04607d46feee7
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Nov 8 12:40:01 2010 +0100
+
+    git: Don't ignore dfb_types.h.
+
+commit f88251ef962d56f390a45a35cdcccc75f56db612
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Nov 8 11:51:21 2010 +0100
+
+    linux_input: fix warnings
+
+commit 0c5747e16b115398bb279f436d281105801541f2
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Nov 8 10:29:15 2010 +0100
+
+    gfxcard: copy Trapezoid before sorting
+
+commit d023c06fda5d6253110ae369cf05613218abdfe2
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Nov 4 19:20:15 2010 +0100
+
+    small fixes
+
+commit c588e5cf936821f5feaf1fcdf840677602b9fc7b
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Nov 4 19:09:47 2010 +0100
+
+    reverted one change I accidently pushed
+
+commit ff6e81435cc163edcaf97794052f2f57665137b9
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Nov 4 18:49:44 2010 +0100
+
+    IDirectFBSurface: added FillTrapezoids()
+    
+    - added new type DFBTrapezoid
+    - added FillTrapeziod() to GraphicsDeviceFuncs
+    - software and hardware fallback to triangles
+    - matrix operations supported
+
+commit f38139834b2e47ee60c9e25f6f300d2d26073579
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Nov 6 23:46:04 2010 +0100
+
+    voodoo: Add simple Voodoo client/server test programs.
+
+commit 06de6b780dc66b93d168af49ff04db56285b4544
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Nov 4 15:49:48 2010 +0100
+
+    voodoo: Added option "server-single=" that allows to enable the single client feature that was accidentally committed without a run time option for it.
+
+commit 08d564d33518dd2d4a7c8ad0f601fe4d9449f80f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Nov 4 12:01:11 2010 +0100
+
+    voodoo: Change session to port and use default of 2323 if port is 0 (compatible).
+    
+    Sessions other than 0 haven't been supported so far anyhow.
+    
+    Fixed parsing of value after colon in remote= option.
+
+commit 64d8e79a95951dd6c43f80f4460e759ce090dffb
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Nov 4 10:48:17 2010 +0100
+
+    voodoo: Added addr and port parameter to voodoo_server_create().
+    
+    This allows running multiple servers on one system, listening on
+    different ports or specific interfaces, e.g. local only.
+
+commit 95669ed28be4274da5cfd45243524d4c135cf942
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Nov 4 10:48:13 2010 +0100
+
+    fix comment in driver
+
+commit 87322dbbb050da1fade90ddadb1dfd3417f6230b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Nov 4 10:35:55 2010 +0100
+
+    voodoo: Added parameter to choose between fork/thread to voodoo_server_create().
+    
+    The recently added runtime option "server-fork" is passed to the function by dfbproxy.
+
+commit c00a7bd8f6c32497d337763aca9be75dbc1a6c30
+Author: André Draszik <andre.draszik@st.com>
+Date:   Tue Nov 9 08:52:29 2010 +0000
+
+    direct/interface: fix deadlock in DirectGetInterface() for static builds
+    
+    If there is no image provider available then DirectGetInterface()
+    failed to call pthread_mutex_unlock() when statically compiled
+    and linked. This means the next call to CreateImageProvider()
+    blocked forever.
+
+commit df8ce4857508c3d8e020ecefa5e288e19d21765e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Nov 3 18:13:18 2010 +0100
+
+    bumped to 1.4.11
+
+commit 12152b08a3d29aff7a9cb122e12f94c127cb1c36
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Nov 3 18:11:46 2010 +0100
+
+    shm: Use FUSION_SHMPOOL_GET_BASE to get rid off hard coded address in user space.
+
+commit 33056e30ca907ee27732764f558292db1469916e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Nov 3 16:23:23 2010 +0100
+
+    uniquewm: Added missing wm_set_cursor_position() as unimplemented.
+
+commit b63c01574b61d47358a431393072a9302441f3ba
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Nov 3 16:22:46 2010 +0100
+
+    fusion: Close files of shm pools for safety.
+
+commit 77fa2842842ffbac7db93e794660499b39d19f67
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Nov 3 15:17:38 2010 +0100
+
+    fusion: Map shared root structure via tmp file like pools.
+
+commit a6e4de1c0a1cc3951f5cf0dc819602e5f42ea09f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Nov 3 15:06:35 2010 +0100
+
+    build: Build tools before wm to let unique use directfb-csource.
+
+commit a26116dee31101d06a8b2b12b5f235e2960a925c
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Nov 3 13:08:07 2010 +0100
+
+    release 1.4.10
+
 commit ab434fd1bde1e2585e995eb071fd1d4010cd9687
 Author: Denis Oliver Kropp <dok@directfb.org>
 Date:   Wed Nov 3 11:54:58 2010 +0100

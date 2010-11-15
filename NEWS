@@ -1,3 +1,36 @@
+1.4.11
+------
+
+Fix for broken multi application support and other fixes or enhancements.
+
+API | IDirectFBSurface
+- Add FillTrapezoids() with new type DFBTrapezoid.
+
+Runtime Option
+- Added option "server-single=" that allows to enable the single client feature that was accidentally committed without a run time option for it.
+
+libdirect
+- Fix deadlock in DirectGetInterface() for static builds.
+
+libfusion
+- Fix broken join due to new root page file.
+
+libvoodoo
+- Add parameter to choose between fork/thread to voodoo_server_create().
+- Add addr and port parameter to voodoo_server_create().
+
+Graphics Core
+- Add FillTrapezoid() to GraphicsDeviceFuncs.
+- Add dfb_gfxcard_fill_trapezoids() with software and hardware fallback to rectangles, matrix operations supported.
+- No more preclipping if matrix is set in DrawRectangle().
+
+Tests
+- Add simple Voodoo client/server test programs.
+
+Fixes
+- Add -lm flag to Libs.private when needed.
+
+
 1.4.10
 ------
 
