@@ -29,6 +29,7 @@ libdirect_os_linux_glibc_la_SOURCES = \
 	filesystem.c	\
 	log.c		\
 	mem.c		\
+	mutex.c		\
 	signals.c	\
 	system.c	\
 	thread.c

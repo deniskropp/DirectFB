@@ -33,19 +33,17 @@
 
 /**********************************************************************************************************************/
 
-static inline DirectResult direct_mutex_init           ( DirectMutex *mutex );
+DirectResult direct_mutex_init           ( DirectMutex *mutex );
 
-static inline DirectResult direct_recursive_mutex_init ( DirectMutex *mutex );
+DirectResult direct_recursive_mutex_init ( DirectMutex *mutex );
 
-__attribute__((no_instrument_function))
-static inline DirectResult direct_mutex_lock           ( DirectMutex *mutex );
+DirectResult direct_mutex_lock           ( DirectMutex *mutex );
 
-__attribute__((no_instrument_function))
-static inline DirectResult direct_mutex_unlock         ( DirectMutex *mutex );
+DirectResult direct_mutex_unlock         ( DirectMutex *mutex );
 
-static inline DirectResult direct_mutex_trylock        ( DirectMutex *mutex );
+DirectResult direct_mutex_trylock        ( DirectMutex *mutex );
 
-static inline DirectResult direct_mutex_deinit         ( DirectMutex *mutex );
+DirectResult direct_mutex_deinit         ( DirectMutex *mutex );
 
 #endif
 
