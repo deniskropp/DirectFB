@@ -101,6 +101,7 @@ static const char *config_usage =
      "  font-format=<pixelformat>      Set the preferred font format\n"
      "  [no-]font-premult              Enable/disable premultiplied glyph images in ARGB format\n"
      "  [no-]deinit-check              Enable deinit check at exit\n"
+     "  [no-]core-sighandler           Enable/disable core signal handler (for emergency shutdowns)\n"
      "  block-all-signals              Block all signals\n"
      "  [no-]vt-switch                 Allocate/switch to a new VT\n"
      "  vt-num=<num>                   Use given VT instead of current/new one\n"
@@ -438,6 +439,8 @@ static void config_allocate( void )
 
      dfb_config->max_font_rows      = 99;
      dfb_config->max_font_row_width = 2048;
+
+     dfb_config->core_sighandler    = true;
 }
 
 const char *dfb_config_usage( void )
@@ -819,6 +822,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "block-all-signals" ) == 0) {
           dfb_config->block_all_signals = true;
+     } else
+     if (strcmp (name, "core-sighandler" ) == 0) {
+          dfb_config->core_sighandler = true;
+     } else
+     if (strcmp (name, "no-core-sighandler" ) == 0) {
+          dfb_config->core_sighandler = false;
      } else
      if (strcmp (name, "deinit-check" ) == 0) {
           dfb_config->deinit_check = true;

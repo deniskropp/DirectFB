@@ -251,6 +251,8 @@ typedef struct
 
      int           max_font_rows;
      int           max_font_row_width;
+
+     bool          core_sighandler;
 } DFBConfig;
 
 extern DFBConfig *dfb_config;
