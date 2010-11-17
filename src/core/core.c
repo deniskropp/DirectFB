@@ -339,7 +339,8 @@ dfb_core_create( CoreDFB **ret_core )
           sync();
      }
 
-     direct_signal_handler_add( DIRECT_SIGNAL_ANY, dfb_core_signal_handler, core, &core->signal_handler );
+     if (dfb_config->core_sighandler)
+          direct_signal_handler_add( DIRECT_SIGNAL_ANY, dfb_core_signal_handler, core, &core->signal_handler );
 
      if (fusion_arena_enter( core->world, "DirectFB/Core",
                              dfb_core_arena_initialize, dfb_core_arena_join,
@@ -423,7 +424,8 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
 
      dfb_font_manager_destroy( core->font_manager );
 
-     direct_signal_handler_remove( core->signal_handler );
+     if (core->signal_handler)
+          direct_signal_handler_remove( core->signal_handler );
      
      if (core->cleanup_handler)
           direct_cleanup_handler_remove( core->cleanup_handler );
