@@ -34,6 +34,7 @@
 #include <fusion/conf.h>
 #include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
+#include <fusion/shm/pool.h>
 
 #include <core/core.h>
 #include <core/layer_context.h>
@@ -139,7 +140,7 @@ SaWManCreate( ISaWMan **ret_sawman )
 
 #if !DIRECTFB_BUILD_PURE_VOODOO
      if (dfb_config->remote.host)
-          return CreateRemote( dfb_config->remote.host, dfb_config->remote.session, ret_sawman );
+          return CreateRemote( dfb_config->remote.host, dfb_config->remote.port, ret_sawman );
 
      CoreDFB *core;
 
@@ -163,14 +164,14 @@ SaWManCreate( ISaWMan **ret_sawman )
 
      return DFB_OK;
 #else
-     return CreateRemote( dfb_config->remote.host ?: "", dfb_config->remote.session, ret_sawman );
+     return CreateRemote( dfb_config->remote.host ?: "", dfb_config->remote.port, ret_sawman );
 #endif
 }
 
 /**********************************************************************************************************************/
 
 static DFBResult
-CreateRemote( const char *host, int session, ISaWMan **ret_sawman )
+CreateRemote( const char *host, int port, ISaWMan **ret_sawman )
 {
      DFBResult             ret;
      DirectInterfaceFuncs *funcs;
@@ -187,7 +188,7 @@ CreateRemote( const char *host, int session, ISaWMan **ret_sawman )
      if (ret)
           return ret;
 
-     ret = funcs->Construct( interface, host, session );
+     ret = funcs->Construct( interface, host, port );
      if (ret)
           return ret;
 
@@ -223,9 +224,6 @@ sawman_initialize( SaWMan         *sawman,
      if (ret)
           goto error;
 
-     /* Initialize lock. */
-     fusion_skirmish_init( &sawman->lock, "SaWMan", world );
-
      /* Initialize window layout vector. */
      fusion_vector_init( &sawman->layout, 8, sawman->shmpool );
 
@@ -240,8 +238,6 @@ sawman_initialize( SaWMan         *sawman,
      dfb_updates_init( &sawman->bg.visible, sawman->bg.visible_regions, D_ARRAY_SIZE(sawman->bg.visible_regions) );
 
      D_MAGIC_SET( sawman, SaWMan );
-
-     sawman_lock( sawman );
 
      if (!sawman_config->resolution.w || !sawman_config->resolution.h) {
           if (!dfb_config->mode.width || !dfb_config->mode.height) {
@@ -264,7 +260,6 @@ sawman_initialize( SaWMan         *sawman,
 
           ret = add_tier( sawman, world, i, dfb_config->layers[i].stacking );
           if (ret) {
-               sawman_unlock( sawman );
                D_MAGIC_CLEAR( sawman );
                goto error;
           }
@@ -277,12 +272,9 @@ sawman_initialize( SaWMan         *sawman,
      /* Register ourself as a new process. */
      ret = register_process( sawman, SWMPF_MASTER, world );
      if (ret) {
-          sawman_unlock( sawman );
           D_MAGIC_CLEAR( sawman );
           goto error;
      }
-
-     sawman_unlock( sawman );
 
      if (ret_process)
           *ret_process = m_process;
@@ -299,6 +291,11 @@ error:
                D_MAGIC_CLEAR( tier );
                SHFREE( sawman->shmpool, tier );
           }
+     }
+
+     if (sawman->shmpool) {
+          fusion_shm_pool_destroy( world, sawman->shmpool );
+          sawman->shmpool = NULL;
      }
 
      fusion_call_destroy( &sawman->process_watch );
@@ -387,7 +384,6 @@ DirectResult
 sawman_shutdown( SaWMan      *sawman,
                  FusionWorld *world )
 {
-     DirectResult      ret;
      DirectLink       *next;
      SaWManProcess    *process;
      SaWManWindow     *sawwin;
@@ -406,11 +402,6 @@ sawman_shutdown( SaWMan      *sawman,
 
      D_ASSERT( process == m_process );
      D_ASSERT( process->fusion_id == fusion_id( world ) );
-
-     /* Lock SaWMan. */
-     ret = sawman_lock( sawman );
-     if (ret)
-          return ret;
 
      /* Shutdown our own process. */
      unregister_process( sawman, process );
@@ -441,9 +432,6 @@ sawman_shutdown( SaWMan      *sawman,
 
      /* Destroy window layout vector. */
      fusion_vector_destroy( &sawman->layout );
-
-     /* Destroy lock. */
-     fusion_skirmish_destroy( &sawman->lock );
 
      /* Free grabbed keys. */
      direct_list_foreach_safe (key, next, sawman->grabbed_keys) {
@@ -500,7 +488,7 @@ sawman_register( SaWMan                *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( callbacks != NULL );
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      D_ASSERT( m_sawman == sawman );
      D_ASSERT( m_world != NULL );
@@ -534,7 +522,7 @@ sawman_unregister( SaWMan *sawman )
      DirectResult ret;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      D_ASSERT( m_sawman == sawman );
      D_ASSERT( m_world != NULL );
@@ -574,7 +562,7 @@ sawman_call( SaWMan       *sawman,
      int ret = DFB_FUSION;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      D_ASSERT( m_sawman == sawman );
 
@@ -778,7 +766,7 @@ register_process( SaWMan             *sawman,
      SaWManProcess *process;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      /* Allocate process data. */
      process = SHCALLOC( sawman->shmpool, 1, sizeof(SaWManProcess) );
@@ -840,7 +828,7 @@ unregister_process( SaWMan        *sawman,
 {
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( process, SaWManProcess );
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      /* Destroy reference counter. */
      fusion_ref_destroy( &process->ref );
@@ -961,7 +949,6 @@ add_tier( SaWMan                *sawman,
      D_ASSERT( layer_id < MAX_LAYERS );
      D_ASSERT( (classes &  7) != 0 );
      D_ASSERT( (classes & ~7) == 0 );
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
 
      direct_list_foreach (tier, sawman->tiers) {
           D_MAGIC_ASSERT( tier, SaWManTier );

@@ -101,7 +101,7 @@ sawman_switch_focus( SaWMan       *sawman,
      from = sawman->focused_window;
      D_MAGIC_ASSERT_IF( from, SaWManWindow );
 
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      if (from == to)
           return DFB_OK;
@@ -178,7 +178,7 @@ sawman_post_event( SaWMan         *sawman,
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
      D_ASSERT( sawwin->window != NULL );
      D_ASSERT( event != NULL );
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      event->buttons   = sawman->buttons;
      event->modifiers = sawman->modifiers;
@@ -204,7 +204,7 @@ sawman_update_window( SaWMan              *sawman,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
      DFB_REGION_ASSERT_IF( region );
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      stack  = sawwin->stack;
      window = sawwin->window;
@@ -299,7 +299,7 @@ sawman_showing_window( SaWMan       *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      stack  = sawwin->stack;
      window = sawwin->window;
@@ -353,7 +353,7 @@ sawman_insert_window( SaWMan       *sawman,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
      D_MAGIC_ASSERT_IF( relative, SaWManWindow );
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      window = sawwin->window;
      D_MAGIC_COREWINDOW_ASSERT( window );
@@ -526,7 +526,7 @@ sawman_remove_window( SaWMan       *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      window = sawwin->window;
      D_MAGIC_COREWINDOW_ASSERT( window );
@@ -578,7 +578,7 @@ sawman_withdraw_window( SaWMan       *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      window = sawwin->window;
      D_MAGIC_COREWINDOW_ASSERT( window );
@@ -747,7 +747,7 @@ sawman_update_geometry( SaWManWindow *sawwin )
      D_MAGIC_ASSERT_IF( sawman, SaWMan );
 
      if (sawman)
-          FUSION_SKIRMISH_ASSERT( &sawman->lock );
+          FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      window = sawwin->window;
      D_MAGIC_COREWINDOW_ASSERT( window );
@@ -1212,7 +1212,7 @@ sawman_window_border( const SaWManWindow *sawwin )
 
      sawman = sawwin->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      if (sawwin->caps & DWCAPS_NODECORATION)
           return 0;

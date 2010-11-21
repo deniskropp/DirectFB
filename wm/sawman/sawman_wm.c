@@ -1589,6 +1589,9 @@ wm_init_stack( CoreWindowStack *stack,
      D_ASSERT( context->config.width > 0 );
      D_ASSERT( context->config.height > 0 );
 
+     if (!sawman->lock)
+          sawman->lock = &stack->context->lock;
+
      /* Lock SaWMan. */
      ret = sawman_lock( sawman );
      if (ret)
@@ -3637,7 +3640,7 @@ wm_update_window( CoreWindow          *window,
                     while (tier->updates.num_regions) {
                          D_DEBUG_AT( SaWMan_FlipOnce, "  -> waiting for updates...\n" );
 
-                         switch (fusion_skirmish_wait( &sawman->lock,
+                         switch (fusion_skirmish_wait( sawman->lock,
                                                        sawman_config->flip_once_timeout ?
                                                        sawman_config->flip_once_timeout + 10 : 0 ))
                          {

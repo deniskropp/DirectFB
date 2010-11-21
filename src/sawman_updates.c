@@ -447,7 +447,7 @@ repaint_tier( SaWMan              *sawman,
      D_MAGIC_ASSERT( tier, SaWManTier );
      D_ASSERT( updates != NULL );
      D_ASSERT( num_updates > 0 );
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      stack = tier->stack;
      D_ASSERT( stack != NULL );
@@ -595,7 +595,7 @@ get_single_window( SaWMan     *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( tier, SaWManTier );
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      fusion_vector_foreach_reverse (sawwin, n, sawman->layout) {
           CoreWindow *window;
@@ -638,7 +638,7 @@ get_border_only( SaWMan     *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( tier, SaWManTier );
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      fusion_vector_foreach_reverse (sawwin, n, sawman->layout) {
           CoreWindow *window;
@@ -702,7 +702,7 @@ sawman_process_updates( SaWMan              *sawman,
      SaWManTier   *tier;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      D_DEBUG_AT( SaWMan_Update, "%s( %p, 0x%08x )\n", __FUNCTION__, sawman, flags );
 
@@ -983,7 +983,7 @@ sawman_process_updates( SaWMan              *sawman,
 
                dfb_updates_reset( &tier->updates );
 
-               fusion_skirmish_notify( &sawman->lock );
+               fusion_skirmish_notify( sawman->lock );
                continue;
           }
 
@@ -1117,7 +1117,7 @@ no_single:
 
           dfb_updates_reset( &tier->updates );
 
-          fusion_skirmish_notify( &sawman->lock );
+          fusion_skirmish_notify( sawman->lock );
      }
 
      return DFB_OK;

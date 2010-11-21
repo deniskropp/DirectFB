@@ -113,7 +113,7 @@ ISaWManManager_QueueUpdate( ISaWManManager         *thiz,
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      tier = sawman_tier_by_class( sawman, stacking );
 
@@ -138,7 +138,7 @@ ISaWManManager_ProcessUpdates( ISaWManManager      *thiz,
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      return sawman_process_updates( sawman, flags );
 }
@@ -186,7 +186,7 @@ ISaWManManager_SetVisible( ISaWManManager     *thiz,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
 
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      D_UNIMPLEMENTED();
 
@@ -210,7 +210,7 @@ ISaWManManager_SwitchFocus( ISaWManManager     *thiz,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
 
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      return sawman_switch_focus( sawman, window );
 }
@@ -241,7 +241,7 @@ ISaWManManager_GetSize( ISaWManManager         *thiz,
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      tier = sawman_tier_by_class( sawman, stacking );
 
@@ -271,7 +271,7 @@ ISaWManManager_InsertWindow( ISaWManManager       *thiz,
      D_MAGIC_ASSERT( window, SaWManWindow );
      D_MAGIC_ASSERT_IF( sawrel, SaWManWindow );
 
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      return sawman_insert_window( sawman, window, sawrel, 
                     (relation == SWMWR_TOP) ? DFB_TRUE : DFB_FALSE );
@@ -294,7 +294,7 @@ ISaWManManager_RemoveWindow( ISaWManManager     *thiz,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
 
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      return sawman_remove_window( sawman, window );
 }
@@ -313,7 +313,7 @@ ISaWManManager_SetScalingMode( ISaWManManager    *thiz,
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      if (sawman->scaling_mode != mode) {
           SaWManTier *tier;
@@ -361,7 +361,7 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
      window = sawwin->window;
      D_ASSERT( window != NULL );
      
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
       if (flags & SWMCF_OPTIONS) {
           if ((window->config.options & DWOP_SCALE) && !(config->options & DWOP_SCALE) && window->surface) {
@@ -475,7 +475,7 @@ ISaWManManager_SendWindowEvent( ISaWManManager       *thiz,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
 
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      evt = *event;
      sawman_post_event( sawman, window, &evt );
@@ -506,7 +506,7 @@ ISaWManManager_Unlock( ISaWManManager *thiz )
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      return sawman_unlock( sawman );
 }
@@ -532,7 +532,7 @@ ISaWManManager_GetWindowInfo( ISaWManManager     *thiz,
      window = sawwin->window;
      D_ASSERT( window != NULL );
 
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      info->handle               = handle;
      info->caps                 = sawwin->caps;
@@ -567,7 +567,7 @@ ISaWManManager_GetProcessInfo( ISaWManManager     *thiz,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      *process = *sawwin->process;
 
@@ -593,7 +593,7 @@ ISaWManManager_IsWindowShowing( ISaWManManager     *thiz,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
-     FUSION_SKIRMISH_ASSERT( &sawman->lock );
+     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      ret = sawman_showing_window( sawman, sawwin, &showing );
      if (ret)
