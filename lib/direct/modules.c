@@ -249,38 +249,17 @@ direct_modules_explore_directory( DirectModuleDir *directory )
 
           if ((handle = open_module( module )) != NULL) {
                if (!module->loaded) {
-                    int    len;
-                    void (*func)( void );
+                    dlclose( handle );
 
-                    D_ERROR( "Direct/Modules: Module '%s' did not register itself after loading! "
-                             "Trying default module constructor...\n", entry->d_name );
+                    D_ERROR( "Direct/Modules: Module '%s' did not "
+                             "register itself after loading!\n",
+                             entry->d_name );
 
-                    len = strlen( entry->d_name );
+                    module->disabled = true;
 
-                    entry->d_name[len-3] = 0;
-
-                    func = dlsym( handle, entry->d_name + 3 );
-                    if (func) {
-                         func();
-
-                         if (!module->loaded) {
-                              D_ERROR( "Direct/Modules: ... even did not register after "
-                                       "explicitly calling the module constructor!\n" );
-                         }
-                    }
-                    else {
-                         D_ERROR( "Direct/Modules: ... default contructor not found!\n" );
-                    }
-
-                    if (!module->loaded) {
-                         module->disabled = true;
-
-                         direct_list_prepend( &directory->entries,
-                                              &module->link );
-                    }
+                    direct_list_prepend( &directory->entries, &module->link );
                }
-
-               if (module->disabled) {
+               else if (module->disabled) {
                     module->loaded = false;
 
                     /* may call direct_modules_unregister() */
