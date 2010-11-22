@@ -1934,29 +1934,7 @@ clip_blit_rotated( DFBRectangle *srect, DFBRectangle *drect, const DFBRegion *cl
 
      dfb_region_region_intersect( &clipped, clip );
      dfb_rectangle_from_region( drect, &clipped );
-/* FIXME
-     if (flags & DSBLIT_FLIP_HORIZONTAL) {
-          int temp;
-          temp = dest.x1;
-          dest.x1 = dest.x2;
-          dest.x2 = temp;
 
-          temp = clipped.x1;
-          clipped.x1 = clipped.x2;
-          clipped.x2 = temp;
-     }
-
-     if (flags & DSBLIT_FLIP_VERTICAL) {
-          int temp;
-          temp = dest.y1;
-          dest.y1 = dest.y2;
-          dest.y2 = temp;
-
-          temp = clipped.y1;
-          clipped.y1 = clipped.y2;
-          clipped.y2 = temp;
-     }
-*/
      if (flags & DSBLIT_ROTATE90) {
           srect->x += dest.y2 - clipped.y2;
           srect->y += clipped.x1 - dest.x1;
@@ -1984,7 +1962,27 @@ clip_blit_rotated( DFBRectangle *srect, DFBRectangle *drect, const DFBRegion *cl
           D_DEBUG_AT( Core_GraphicsOps, "  => %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d (270°)\n",
                       DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect) );
      }
-     else {
+     else if (flags & (DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL)) {
+          // FIXME: rotation and FLIP_ should be supported together, it is not the case in the software driver, 
+          // so dont support it here either for now
+          int xfixup, yfixup;
+
+          if (flags & DSBLIT_FLIP_HORIZONTAL)
+              xfixup = dest.x2 - clipped.x2;
+          else 
+              xfixup = clipped.x1 - dest.x1;
+     
+          if (flags & DSBLIT_FLIP_VERTICAL)
+              yfixup = dest.y2 - clipped.y2;
+          else
+              yfixup = clipped.y1 - dest.y1;
+     
+          srect->x += xfixup;
+          srect->y += yfixup;
+          srect->w = drect->w;
+          srect->h = drect->h;          
+
+     } else {
           srect->x += clipped.x1 - dest.x1;
           srect->y += clipped.y1 - dest.y1;
           srect->w  = drect->w;
