@@ -1,1 +1,1 @@
-EXTRA_DIST = libobject.make
+EXTRA_DIST = libobject.make nmfile.make
