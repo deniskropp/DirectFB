@@ -53,4 +53,3 @@ endif
 
 libdirectfb_gfx_la_LIBADD = \
 	$(NON_PURE_VOODOO_LIBS)
-
