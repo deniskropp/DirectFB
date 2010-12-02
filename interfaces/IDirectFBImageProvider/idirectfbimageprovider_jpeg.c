@@ -461,16 +461,21 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           }
           else if (rect.x == 0 && rect.y == 0) {
 #if JPEG_LIB_VERSION >= 70
-               cinfo.scale_num = 16;
-               while (cinfo.scale_num > 1) {
-                    jpeg_calc_output_dimensions (&cinfo);
-                    if (cinfo.output_width <= rect.w
-                        || cinfo.output_height <= rect.h)
-                         break;
-                    --cinfo.scale_num;
-               }
+               /*  The supported scaling ratios in libjpeg 7 and 8
+                *  are N/8 with all N from 1 to 16.
+                */
+               cinfo.scale_num = 1;
                jpeg_calc_output_dimensions (&cinfo);
+               while (cinfo.scale_num < 16
+                      && cinfo.output_width < rect.w
+                      && cinfo.output_height < rect.h) {
+                    ++cinfo.scale_num;
+                    jpeg_calc_output_dimensions (&cinfo);
+               }
 #else
+               /*  The supported scaling ratios in libjpeg 6
+                *  are 1/1, 1/2, 1/4, and 1/8.
+                */
                while (cinfo.scale_denom < 8
                       && ((cinfo.output_width >> 1) >= rect.w)
                       && ((cinfo.output_height >> 1) >= rect.h)) {
