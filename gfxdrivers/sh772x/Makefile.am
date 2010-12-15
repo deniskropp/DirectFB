@@ -15,8 +15,8 @@ EXTRA_DIST = \
 
 INCLUDES = \
 	-I$(top_builddir)/include	\
-	-I$(top_srcdir)/include		\
 	-I$(top_builddir)/lib		\
+	-I$(top_srcdir)/include		\
 	-I$(top_srcdir)/lib		\
 	-I$(top_srcdir)/src		\
 	-I$(top_srcdir)/systems		\

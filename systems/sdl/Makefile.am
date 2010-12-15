@@ -1,9 +1,9 @@
 ## Makefile.am for DirectFB/systems/sdl
 
 INCLUDES = \
-	-I$(top_srcdir)/include		\
 	-I$(top_builddir)/include	\
 	-I$(top_builddir)/lib		\
+	-I$(top_srcdir)/include		\
 	-I$(top_srcdir)/lib		\
 	-I$(top_srcdir)/src		\
 	$(SDL_CFLAGS)
