@@ -186,26 +186,48 @@ IFusionDaleMessenger_RegisterListener( IFusionDaleMessenger     *thiz,
                                        void                     *context,
                                        FDMessengerListenerID    *ret_id )
 {
+     DirectResult ret;
      DIRECT_INTERFACE_GET_DATA(IFusionDaleMessenger)
 
      /* Check arguments */
      if (!event_id || !callback || !ret_id)
           return DR_INVARG;
 
-     return fd_messenger_port_add_listener( data->port, event_id, callback, context, ret_id );
+     /* Lock the messenger (has to happen before port is locked!). */
+     ret = fd_messenger_lock( data->messenger );
+     if (ret)
+          return ret;
+
+     ret = fd_messenger_port_add_listener( data->port, event_id, callback, context, ret_id );
+
+     /* Unlock the messenger. */
+     fd_messenger_unlock( data->messenger );
+
+     return ret;
 }
 
 static DirectResult
 IFusionDaleMessenger_UnregisterListener( IFusionDaleMessenger  *thiz,
                                          FDMessengerListenerID  listener_id )
 {
+     DirectResult ret;
      DIRECT_INTERFACE_GET_DATA(IFusionDaleMessenger)
 
      /* Check arguments */
      if (!listener_id)
           return DR_INVARG;
 
-     return fd_messenger_port_remove_listener( data->port, listener_id );
+     /* Lock the messenger (has to happen before port is locked!). */
+     ret = fd_messenger_lock( data->messenger );
+     if (ret)
+          return ret;
+
+     ret = fd_messenger_port_remove_listener( data->port, listener_id );
+
+     /* Unlock the messenger. */
+     fd_messenger_unlock( data->messenger );
+
+     return ret;
 }
 
 static DirectResult

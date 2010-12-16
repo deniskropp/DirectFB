@@ -257,16 +257,6 @@ fd_messenger_port_create( CoreDale           *core,
      if (ret)
           goto error;
 
-     /* Attach global reaction to process all events. */
-     ret = fd_messenger_attach_global( messenger, FD_MESSENGER_PORT_MESSENGER_LISTENER, port, &port->reaction );
-     if (ret)
-          goto error;
-
-     /* Attach to the port to receive events that we listen to. */
-     ret = fd_messenger_port_attach( port, fd_messenger_port_reaction, port, &port->local_reaction );
-     if (ret)
-          goto error_attach;
-
      /* Initialize lock. */
      ret = fusion_skirmish_init( &port->lock, "Messenger Port", fd_core_world(core) );
      if (ret)
@@ -287,6 +277,17 @@ fd_messenger_port_create( CoreDale           *core,
      }
 
      fusion_reactor_set_lock( port->object.reactor, &port->lock );
+     fusion_reactor_direct( port->object.reactor, false );
+
+     /* Attach global reaction to process all events. */
+     ret = fd_messenger_attach_global( messenger, FD_MESSENGER_PORT_MESSENGER_LISTENER, port, &port->reaction );
+     if (ret)
+          goto error_attach_global;
+
+     /* Attach to the port to receive events that we listen to. */
+     ret = fd_messenger_port_attach( port, fd_messenger_port_reaction, port, &port->local_reaction );
+     if (ret)
+          goto error_attach;
 
      /* Activate messenger port object. */
      fusion_object_activate( &port->object );
@@ -299,6 +300,12 @@ fd_messenger_port_create( CoreDale           *core,
      return DR_OK;
 
 
+error_attach:
+     fd_messenger_detach_global( messenger, &port->reaction );
+
+error_attach_global:
+     fusion_hash_destroy( port->listeners );
+
 error_hash2:
      fusion_hash_destroy( port->nodes );
 
@@ -306,15 +313,9 @@ error_hash:
      fusion_skirmish_destroy( &port->lock );
 
 error_skirmish:
-     fd_messenger_detach( messenger, &port->local_reaction );
-
-error_attach:
-     fd_messenger_detach_global( messenger, &port->reaction );
+     fd_messenger_unlink( &port->messenger );
 
 error:
-     if (port->messenger)
-          fd_messenger_unlink( &port->messenger );
-
      fusion_object_destroy( &port->object );
 
      return ret;
@@ -647,6 +648,7 @@ fd_messenger_event_dispatch( CoreMessengerEvent *event,
           }
      }
 
+
      direct_list_foreach( node, event->nodes ) {
           CoreMessengerPort *port;
 
@@ -658,7 +660,11 @@ fd_messenger_event_dispatch( CoreMessengerEvent *event,
 
           D_MAGIC_ASSERT( port, CoreMessengerPort );
 
+          /* Lock port. */
+          fusion_skirmish_prevail( &port->lock );
+          
           if (node->listeners) {
+//               dispatch->count++;
 
                if (!node->next_dispatch)
                     node->next_dispatch = dispatch;
@@ -668,6 +674,9 @@ fd_messenger_event_dispatch( CoreMessengerEvent *event,
 
                dispatched = true;
           }
+
+          /* Unlock port. */
+          fusion_skirmish_dismiss( &port->lock );
      }
 
 
@@ -723,13 +732,10 @@ fd_messenger_port_send_event( CoreMessengerPort  *port,
 
      D_MAGIC_ASSERT( event, CoreMessengerEvent );
 
-     /* Dispatch via messenger. */
-     //ret = fd_messenger_dispatch_event( messenger, event, param, data_ptr, data_size );
-
-     ret = fd_messenger_event_dispatch( event, param, data_ptr, data_size );
-
      /* Unlock port. */
      fusion_skirmish_dismiss( &port->lock );
+
+     ret = fd_messenger_event_dispatch( event, param, data_ptr, data_size );
 
      return ret;
 }
