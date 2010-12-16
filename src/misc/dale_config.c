@@ -39,6 +39,8 @@
 
 #include <fusion/conf.h>
 
+#include <coma/policy.h>
+
 #include "dale_config.h"
 
 
@@ -55,6 +57,7 @@ static const char *config_usage =
      "  coma-shmpool-size=<kb>         Set the maximum size of the shared memory pool created by\n"
      "                                 each component manager (once for all EnterComa with same name)\n"
      "  session=<num>                  Select multi app world (-1 = new)\n"
+     "  remote=<host>[:<session>]      Select remote session to connect to\n"
      "  [no-]banner                    Show FusionDale banner on startup\n"
      "\n";
      
@@ -140,6 +143,28 @@ fd_config_set( const char *name, const char *value )
                return DR_INVARG;
           }
      }
+     else if (strcmp (name, "remote" ) == 0) {
+          if (value) {
+               char host[128];
+               int  session = 0;
+
+               if (sscanf( value, "%127s:%d", host, &session ) < 1) {
+                    D_ERROR("FusionDale/Config 'remote': "
+                            "Could not parse value (format is <host>[:<session>])!\n");
+                    return DR_INVARG;
+               }
+
+               if (fusiondale_config->remote.host)
+                    D_FREE( fusiondale_config->remote.host );
+
+               fusiondale_config->remote.host    = D_STRDUP( host );
+               fusiondale_config->remote.session = session;
+          }
+          else {
+               fusiondale_config->remote.host    = D_STRDUP( "" );
+               fusiondale_config->remote.session = 0;
+          }
+     }
      else if (!strcmp( name, "coma-shmpool-size" )) {
           if (value) {
                int size_kb;
@@ -167,6 +192,22 @@ fd_config_set( const char *name, const char *value )
      }
      else if (strcmp ( name, "no-force-slave" ) == 0) {
           fusiondale_config->force_slave = false;
+     }
+     else if (strcmp ( name, "coma-allow" ) == 0) {
+          if (value) {
+               coma_policy_config( value, true );
+          }
+          else {
+               fusiondale_config->coma_policy = true;
+          }
+     }
+     else if (strcmp ( name, "coma-deny" ) == 0) {
+          if (value) {
+               coma_policy_config( value, false );
+          }
+          else {
+               fusiondale_config->coma_policy = false;
+          }
      } else
      if (fusion_config_set( name, value ) && direct_config_set( name, value ))
           return DR_UNSUPPORTED;
@@ -225,7 +266,7 @@ fd_config_init( int *argc, char **argv[] )
      DirectResult  ret;
      char         *home   = getenv( "HOME" );
      char         *prog   = NULL;
-     char         *fsargs;
+     char         *fdargs;
      
      if (fusiondale_config)
           return DR_OK;
@@ -284,9 +325,9 @@ fd_config_init( int *argc, char **argv[] )
      }
      
      /* Read settings from environment variable. */
-     fsargs = getenv( "FSARGS" );
-     if (fsargs) {
-          ret = parse_args( fsargs );
+     fdargs = getenv( "FDARGS" );
+     if (fdargs) {
+          ret = parse_args( fdargs );
           if (ret)
                return ret;
      }

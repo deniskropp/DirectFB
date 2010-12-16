@@ -68,21 +68,8 @@ struct __COMA_ComaShared {
      FusionObjectPool    *thread_pool;
 
      FusionCall           thread_mem_call;
-};
 
-struct __COMA_Coma {
-     int                  magic;
-
-     char                *name;
-
-     int                  fusion_id;
-
-     FusionWorld         *world;
-     FusionArena         *arena;
-
-     ComaShared          *shared;
-
-     pthread_key_t        tlshm_key;
+     FusionHash          *allocations;
 };
 
 /**********************************************************************************************************************/
@@ -310,6 +297,58 @@ coma_get_component( Coma           *coma,
 
 /**********************************************************************************************************************/
 
+DirectResult
+coma_allocate( Coma          *coma,
+               unsigned int   bytes,
+               void         **ret_ptr )
+{
+     void *ptr;
+
+     ptr = SHCALLOC( coma->shared->shmpool, 1, bytes );
+     if (!ptr)
+          return D_OOSHM();
+
+     fusion_hash_insert( coma->shared->allocations, ptr, (void*) (unsigned long) bytes );
+
+     *ret_ptr = ptr;
+
+     return DR_OK;
+}
+
+DirectResult
+coma_deallocate( Coma *coma,
+                 void *ptr )
+{
+     if (!fusion_hash_lookup( coma->shared->allocations, ptr ))
+          return DR_ITEMNOTFOUND;
+
+     fusion_hash_remove( coma->shared->allocations, ptr, NULL, NULL );
+
+     SHFREE( coma->shared->shmpool, ptr );
+
+     return DR_OK;
+}
+
+DirectResult
+coma_allocation_size ( Coma            *coma,
+                       void            *ptr,
+                       int             *ret_size )
+{
+     int size;
+
+     size = (unsigned long) fusion_hash_lookup( coma->shared->allocations, ptr );
+     if (!size) {
+          D_WARN( "zero length from lookup of %p", ptr );
+          return DR_ITEMNOTFOUND;
+     }
+
+     *ret_size = size;
+
+     return DR_OK;
+}
+
+/**********************************************************************************************************************/
+
 static FusionCallHandlerResult
 thread_mem_call_handler( int           caller,
                          int           call_arg,
@@ -524,6 +563,8 @@ coma_initialize( Coma *coma )
 
      fusion_call_init( &shared->thread_mem_call, thread_mem_call_handler, coma, coma->world );
 
+     fusion_hash_create( shared->shmpool, HASH_PTR, HASH_INT, 23, &shared->allocations );
+
      return DR_OK;
 }
 
@@ -571,6 +612,8 @@ coma_shutdown( Coma *coma )
      fusion_hash_destroy( shared->components );
 
      fusion_call_destroy( &shared->thread_mem_call );
+
+     fusion_hash_destroy( shared->allocations );
 
      return DR_OK;
 }

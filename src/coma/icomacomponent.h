@@ -26,6 +26,8 @@
 
 #include <fusiondale.h>
 
+#include <fusion/reactor.h>
+
 #include <coma/coma_types.h>
 
 typedef struct {

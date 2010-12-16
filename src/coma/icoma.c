@@ -144,20 +144,12 @@ IComa_Allocate( IComa         *thiz,
                 unsigned int   bytes,
                 void         **ret_ptr )
 {
-     void *ptr;
-
      DIRECT_INTERFACE_GET_DATA(IComa)
 
      if (!bytes || !ret_ptr)
           return DR_INVARG;
 
-     ptr = SHCALLOC( coma_shmpool(data->coma), 1, bytes );
-     if (!ptr)
-          return D_OOSHM();
-
-     *ret_ptr = ptr;
-
-     return DR_OK;
+     return coma_allocate( data->coma, bytes, ret_ptr );
 }
 
 static DirectResult
@@ -169,9 +161,7 @@ IComa_Deallocate( IComa *thiz,
      if (!ptr)
           return DR_INVARG;
 
-     SHFREE( coma_shmpool(data->coma), ptr );
-
-     return DR_OK;
+     return coma_deallocate( data->coma, ptr );
 }
 
 static DirectResult

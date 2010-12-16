@@ -56,6 +56,18 @@ DirectResult coma_get_component   ( Coma            *coma,
                                     const char      *name,
                                     unsigned int     timeout,
                                     ComaComponent  **ret_component );
+
+DirectResult coma_allocate        ( Coma            *coma,
+                                    unsigned int     bytes,
+                                    void           **ret_ptr );
+
+DirectResult coma_deallocate      ( Coma            *coma,
+                                    void            *ptr );
+
+DirectResult coma_allocation_size ( Coma            *coma,
+                                    void            *ptr,
+                                    int             *ret_size );
+
 /*
  * Thread local SHM
  */
@@ -77,5 +89,23 @@ FusionSHMPoolShared *coma_shmpool( const Coma *coma );
  */
 void _coma_internal_remove_component( Coma          *coma,
                                       ComaComponent *component );
+
+
+
+struct __COMA_Coma {
+     int                  magic;
+
+     char                *name;
+
+     int                  fusion_id;
+
+     FusionWorld         *world;
+     FusionArena         *arena;
+
+     ComaShared          *shared;
+
+     pthread_key_t        tlshm_key;
+};
+
 
 #endif

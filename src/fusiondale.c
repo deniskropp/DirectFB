@@ -44,6 +44,10 @@ IFusionDale *ifusiondale_singleton = NULL;
 
 /**************************************************************************************************/
 
+static DirectResult CreateRemote( const char *host, int session, IFusionDale **ret_interface );
+
+/**********************************************************************************************************************/
+
 /*
  * Version checking
  */
@@ -83,6 +87,10 @@ FusionDaleUsageString( void )
 DirectResult
 FusionDaleInit( int *argc, char **argv[] )
 {
+#ifdef DSLINUX
+     IFusionDale_Requestor_ctor();
+#endif
+
      return fd_config_init( argc, argv );
 }
 
@@ -117,14 +125,18 @@ FusionDaleCreate( IFusionDale **ret_interface )
 
      if (!ret_interface)
           return DR_INVARG;
-          
+
      if (ifusiondale_singleton) {
           ifusiondale_singleton->AddRef( ifusiondale_singleton );
           *ret_interface = ifusiondale_singleton;
           return DR_OK;
      }
 
-     if (!direct_config->quiet && fusiondale_config->banner) {
+#ifndef DIRECTFB_PURE_VOODOO
+     if (fusiondale_config->remote.host)
+          return CreateRemote( fusiondale_config->remote.host, fusiondale_config->remote.session, ret_interface );
+
+     if (!(direct_config->quiet & DMT_BANNER) && fusiondale_config->banner) {
           direct_log_printf( NULL,
                "\n"
                "     *--------------) FusionDale v%d.%d.%d (--------------*\n"
@@ -135,14 +147,17 @@ FusionDaleCreate( IFusionDale **ret_interface )
      }
 
      DIRECT_ALLOCATE_INTERFACE( ifusiondale_singleton, IFusionDale );
-     
+
      ret = IFusionDale_Construct( ifusiondale_singleton );
      if (ret != DR_OK)
           ifusiondale_singleton = NULL;
-          
+
      *ret_interface = ifusiondale_singleton;
 
-     return ret;
+     return DR_OK;
+#else
+     return CreateRemote( fusiondale_config->remote.host ?: "", fusiondale_config->remote.session, ret_interface );
+#endif
 }
 
 DirectResult
@@ -168,5 +183,34 @@ const char *
 FusionDaleErrorString( DirectResult error )
 {
      return DirectResultString( error );
+}
+
+/**********************************************************************************************************************/
+
+static DirectResult
+CreateRemote( const char *host, int session, IFusionDale **ret_interface )
+{
+     DirectResult          ret;
+     DirectInterfaceFuncs *funcs;
+     void                 *interface;
+
+     D_ASSERT( host != NULL );
+     D_ASSERT( ret_interface != NULL );
+
+     ret = DirectGetInterface( &funcs, "IFusionDale", "Requestor", NULL, NULL );
+     if (ret)
+          return ret;
+
+     ret = funcs->Allocate( &interface );
+     if (ret)
+          return ret;
+
+     ret = funcs->Construct( interface, host, session );
+     if (ret)
+          return ret;
+
+     *ret_interface = interface;
+
+     return DR_OK;
 }
 

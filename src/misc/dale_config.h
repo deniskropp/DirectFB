@@ -35,6 +35,13 @@ typedef struct {
 
      int             coma_shmpool_size; /* Set the maximum size of the shared memory pool created by
                                            each component manager (once for all EnterComa with same name). */
+
+     struct {
+          char           *host;
+          int             session;
+     }               remote;
+
+     bool            coma_policy;
 } FusionDaleConfig;
 
 extern FusionDaleConfig *fusiondale_config;
