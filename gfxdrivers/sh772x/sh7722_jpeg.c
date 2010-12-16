@@ -257,9 +257,6 @@ IDirectFBImageProvider_SH7722_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      /* calculate physical address according to destination rect */
      unsigned long phys = lock.phys + DFB_BYTES_PER_LINE(dst_surface->config.format, rect.x) + rect.y * lock.pitch;
 
-     /* physical address of the c plane */
-     unsigned long cphys = 0;
-
      shjpeg_pixelformat pixelfmt;
 
      switch (dst_surface->config.format) {
@@ -274,12 +271,9 @@ IDirectFBImageProvider_SH7722_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                break;
           case DSPF_NV12:
                pixelfmt = SHJPEG_PF_NV12;
-               cphys = lock.phys + lock.pitch * dst_surface->config.size.h 
-                         + DFB_BYTES_PER_LINE(dst_surface->config.format, rect.x) + (rect.y/2) * lock.pitch;
                break;
           case DSPF_NV16:
                pixelfmt = SHJPEG_PF_NV16;
-               cphys = phys + lock.pitch * dst_surface->config.size.h;
                break;
           case DSPF_A8:
                pixelfmt = SHJPEG_PF_GRAYSCALE;
@@ -290,7 +284,7 @@ IDirectFBImageProvider_SH7722_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      }
 
 
-     if (shjpeg_decode_run( data->info, pixelfmt, phys, cphys, rect.w, rect.h, lock.pitch) < 0)
+     if (shjpeg_decode_run( data->info, pixelfmt, phys, rect.w, rect.h, lock.pitch) < 0)
           ret = DFB_FAILURE;
 
      dfb_surface_unlock_buffer( dst_surface, &lock );
