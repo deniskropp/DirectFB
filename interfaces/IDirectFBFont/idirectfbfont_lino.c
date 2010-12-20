@@ -457,6 +457,7 @@ render_glyph( CoreFont      *thiz,
                case false:
                     switch (surface->config.format) {
                          case DSPF_ARGB:
+                         case DSPF_ABGR:
                               if (thiz->surface_caps & DSCAPS_PREMULTIPLIED) {
                                    for (i=0; i<info->width; i++)
                                         dst32[i] = src[i] * 0x01010101;
@@ -524,6 +525,7 @@ render_glyph( CoreFont      *thiz,
                case true:
                     switch (surface->config.format) {
                          case DSPF_ARGB:
+                         case DSPF_ABGR:
                               for (i=0; i<info->width; i++)
                                    dst32[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
                                                 0xFF : 0x00) << 24) | 0xFFFFFF;
@@ -1227,6 +1229,7 @@ Construct( IDirectFBFont               *thiz,
      font->attributes = desc->attributes;
 
      D_ASSERT( font->pixel_format == DSPF_ARGB ||
+               font->pixel_format == DSPF_ABGR ||
                font->pixel_format == DSPF_AiRGB ||
                font->pixel_format == DSPF_ARGB4444 ||
                font->pixel_format == DSPF_ARGB2554 ||

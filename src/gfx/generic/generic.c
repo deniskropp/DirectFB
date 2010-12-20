@@ -306,6 +306,24 @@ static void gInit_BigEndian();
 #define B_MASK 0x000000ff
 #include "template_acc_32.h"
 
+/* ABGR */
+#define EXPAND_Ato8( a ) (a)
+#define EXPAND_Rto8( r ) (r)
+#define EXPAND_Gto8( g ) (g)
+#define EXPAND_Bto8( b ) (b)
+#define PIXEL_OUT( a, r, g, b ) PIXEL_ABGR( a, r, g, b )
+#define Sop_PFI_OP_Dacc( op ) Sop_abgr_##op##_Dacc
+#define Sacc_OP_Aop_PFI( op ) Sacc_##op##_Aop_abgr
+#define A_SHIFT 24
+#define B_SHIFT 16
+#define G_SHIFT 8
+#define R_SHIFT 0
+#define A_MASK 0xff000000
+#define B_MASK 0x00ff0000
+#define G_MASK 0x0000ff00
+#define R_MASK 0x000000ff
+#include "template_acc_32.h"
+
 /* RGB32 */
 #define EXPAND_Ato8( a ) 0xFF
 #define EXPAND_Rto8( r ) (r)
@@ -349,6 +367,7 @@ static const bool is_ycbcr[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = false,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = false,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = false,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = false,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = false,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = true,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = false,
@@ -594,6 +613,7 @@ static GenefxFunc Cop_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Cop_to_Aop_24,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Cop_to_Aop_32,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Cop_to_Aop_32,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Cop_to_Aop_32,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Cop_to_Aop_8,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Cop_to_Aop_yuv422,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Cop_to_Aop_8,
@@ -834,6 +854,7 @@ static const GenefxFunc Cop_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Cop_toK_Aop_24,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Cop_toK_Aop_32,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Cop_toK_Aop_32,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Cop_toK_Aop_32,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Cop_toK_Aop_8,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Cop_toK_Aop_yuv422,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Cop_toK_Aop_8,
@@ -931,6 +952,7 @@ static const GenefxFunc Bop_PFI_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Bop_24_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_32_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Bop_32_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Bop_32_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Bop_8_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Bop_16_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Bop_8_to_Aop,
@@ -1129,6 +1151,7 @@ static const GenefxFunc Bop_PFI_toR_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Bop_24_toR_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_32_toR_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Bop_32_toR_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Bop_32_toR_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Bop_8_toR_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Bop_16_toR_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Bop_8_toR_Aop,
@@ -1415,6 +1438,7 @@ static GenefxFunc Bop_PFI_Kto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Bop_rgb24_Kto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_32_Kto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Bop_32_Kto_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Bop_32_Kto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Bop_a8_Kto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Bop_yuv422_Kto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Bop_8_Kto_Aop,
@@ -1633,6 +1657,7 @@ static GenefxFunc Bop_PFI_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Bop_rgb24_toK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_32_toK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Bop_32_toK_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Bop_32_toK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Bop_yuv422_toK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Bop_rgb332_toK_Aop,
@@ -1784,6 +1809,7 @@ static const GenefxFunc Bop_PFI_KtoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_32_KtoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Bop_32_KtoK_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Bop_32_KtoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = NULL,
@@ -2091,6 +2117,7 @@ static GenefxFunc Bop_PFI_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Bop_24_Sto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_32_Sto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Bop_32_Sto_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Bop_32_Sto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Bop_8_Sto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Bop_yuy2_Sto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Bop_8_Sto_Aop,
@@ -2412,6 +2439,7 @@ static const GenefxFunc Bop_PFI_SKto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Bop_rgb24_SKto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_32_SKto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Bop_32_SKto_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Bop_32_SKto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Bop_a8_SKto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Bop_yuy2_SKto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Bop_8_SKto_Aop,
@@ -2545,6 +2573,7 @@ static const GenefxFunc Bop_PFI_StoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_32_StoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Bop_32_StoK_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Bop_32_StoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = NULL,
@@ -2686,6 +2715,7 @@ static const GenefxFunc Bop_PFI_SKtoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_32_SKtoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Bop_32_SKtoK_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Bop_32_SKtoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = NULL,
@@ -3229,6 +3259,7 @@ static GenefxFunc Sop_PFI_Sto_Dacc[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Sop_rgb24_Sto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Sop_rgb32_Sto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Sop_argb_Sto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Sop_abgr_Sto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Sop_a8_Sto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Sop_yuy2_Sto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Sop_rgb332_Sto_Dacc,
@@ -3803,6 +3834,7 @@ static const GenefxFunc Sop_PFI_SKto_Dacc[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Sop_rgb24_SKto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Sop_rgb32_SKto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Sop_argb_SKto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Sop_abgr_SKto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Sop_a8_SKto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Sop_yuy2_SKto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Sop_rgb332_SKto_Dacc,
@@ -4272,6 +4304,7 @@ static GenefxFunc Sop_PFI_to_Dacc[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Sop_rgb24_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Sop_rgb32_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Sop_argb_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Sop_abgr_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Sop_a8_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Sop_yuy2_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Sop_rgb332_to_Dacc,
@@ -4808,6 +4841,7 @@ static const GenefxFunc Sop_PFI_Kto_Dacc[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Sop_rgb24_Kto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Sop_rgb32_Kto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Sop_argb_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Sop_abgr_Kto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Sop_a8_Kto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Sop_yuy2_Kto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Sop_rgb332_Kto_Dacc,
@@ -5472,6 +5506,7 @@ static GenefxFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Sacc_to_Aop_rgb24,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Sacc_to_Aop_rgb32,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Sacc_to_Aop_argb,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Sacc_to_Aop_abgr,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Sacc_to_Aop_a8,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Sacc_to_Aop_yuy2,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Sacc_to_Aop_rgb332,
@@ -6205,6 +6240,7 @@ static GenefxFunc Sacc_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Sacc_Sto_Aop_rgb24,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Sacc_Sto_Aop_rgb32,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Sacc_Sto_Aop_argb,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Sacc_Sto_Aop_abgr,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Sacc_Sto_Aop_a8,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Sacc_Sto_Aop_yuy2,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Sacc_Sto_Aop_rgb332,
@@ -6672,6 +6708,7 @@ static const GenefxFunc Sacc_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Sacc_toK_Aop_rgb24,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Sacc_toK_Aop_rgb32,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Sacc_toK_Aop_argb,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Sacc_toK_Aop_abgr,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Sacc_toK_Aop_a8,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Sacc_toK_Aop_yuy2,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Sacc_toK_Aop_rgb332,
@@ -6845,6 +6882,7 @@ static const GenefxFunc Sacc_StoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Sacc_StoK_Aop_rgb32,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Sacc_StoK_Aop_argb,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Sacc_StoK_Aop_abgr,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = NULL,
@@ -7282,6 +7320,7 @@ static void Bop_a8_set_alphapixel_Aop_argb( GenefxState *gfxs )
 #undef SET_PIXEL
 }
 
+
 static void Bop_a8_set_alphapixel_Aop_airgb( GenefxState *gfxs )
 {
      int    w   = gfxs->length;
@@ -7563,6 +7602,7 @@ static const GenefxFunc Bop_a8_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Bop_a8_set_alphapixel_Aop_rgb24,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_a8_set_alphapixel_Aop_rgb32,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Bop_a8_set_alphapixel_Aop_argb,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Bop_a8_set_alphapixel_Aop_argb,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Bop_a8_set_alphapixel_Aop_a8,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Bop_a8_set_alphapixel_Aop_yuy2,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Bop_a8_set_alphapixel_Aop_rgb332,
@@ -7945,6 +7985,7 @@ static const GenefxFunc Bop_a1_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Bop_a1_set_alphapixel_Aop_rgb24,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_a1_set_alphapixel_Aop_rgb32,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Bop_a1_set_alphapixel_Aop_argb,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Bop_a1_set_alphapixel_Aop_argb,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Bop_a1_set_alphapixel_Aop_a8,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Bop_a1_set_alphapixel_Aop_yuy2,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Bop_a1_set_alphapixel_Aop_rgb332,
@@ -8254,6 +8295,7 @@ static const GenefxFunc Bop_a1_lsb_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] 
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Bop_a1_lsb_set_alphapixel_Aop_rgb24,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_a1_lsb_set_alphapixel_Aop_rgb32,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Bop_a1_lsb_set_alphapixel_Aop_argb,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Bop_a1_lsb_set_alphapixel_Aop_argb,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Bop_a1_lsb_set_alphapixel_Aop_a8,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = Bop_a1_lsb_set_alphapixel_Aop_yuy2,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = Bop_a1_lsb_set_alphapixel_Aop_rgb332,
@@ -9110,6 +9152,7 @@ static const GenefxFunc Bop_argb_blend_alphachannel_src_invsrc_Aop_PFI[DFB_NUM_P
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_argb_blend_alphachannel_src_invsrc_Aop_rgb32,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = NULL,
@@ -9178,6 +9221,7 @@ static const GenefxFunc Bop_argb_blend_alphachannel_one_invsrc_Aop_PFI[DFB_NUM_P
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_argb_blend_alphachannel_one_invsrc_Aop_argb,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Bop_argb_blend_alphachannel_one_invsrc_Aop_argb,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = NULL,
@@ -9679,6 +9723,9 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
           case DSPF_ARGB:
                gfxs->Cop = PIXEL_ARGB( color.a, color.r, color.g, color.b );
                break;
+          case DSPF_ABGR:
+               gfxs->Cop = PIXEL_ABGR( color.a, color.r, color.g, color.b );
+               break;
           case DSPF_AiRGB:
                gfxs->Cop = PIXEL_AiRGB( color.a, color.r, color.g, color.b );
                break;
@@ -9799,6 +9846,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                case DSPF_RGB24:
                case DSPF_RGB32:
                case DSPF_ARGB:
+               case DSPF_ABGR:
                case DSPF_AiRGB:
                case DSPF_RGB332:
                case DSPF_RGB444:
@@ -11584,6 +11632,7 @@ static const StretchFunctionTable *stretch_tables[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = &stretch_hvx_RGB32,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = &stretch_hvx_ARGB,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = &stretch_hvx_ABGR,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = NULL,
@@ -11726,6 +11775,37 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
                     else {
                          for (i=0; i<gfxs->Blut->num_entries; i++)
                               colors[i] = PIXEL_ARGB( entries[i].a, entries[i].r, entries[i].g, entries[i].b );
+                    }
+                    break;
+
+               case DSPF_ABGR:
+                    if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY) {
+                         for (i=0; i<gfxs->Blut->num_entries; i++) {
+                              int alpha = entries[i].a + 1;
+
+                              switch (alpha) {
+                                   case 0:
+                                        colors[i] = 0;
+                                        break;
+
+                                   case 255:
+                                        colors[i] = PIXEL_ABGR( entries[i].a,
+                                                                entries[i].r,
+                                                                entries[i].g,
+                                                                entries[i].b );
+                                        break;
+
+                                   default:
+                                        colors[i] = PIXEL_ABGR( entries[i].a,
+                                                                (alpha * entries[i].r) >> 8,
+                                                                (alpha * entries[i].g) >> 8,
+                                                                (alpha * entries[i].b) >> 8 );
+                              }
+                         }
+                    }
+                    else {
+                         for (i=0; i<gfxs->Blut->num_entries; i++)
+                              colors[i] = PIXEL_ABGR( entries[i].a, entries[i].r, entries[i].g, entries[i].b );
                     }
                     break;
 

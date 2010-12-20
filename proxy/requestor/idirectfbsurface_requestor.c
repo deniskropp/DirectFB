@@ -1268,7 +1268,8 @@ IDirectFBSurface_Requestor_Write( IDirectFBSurface   *thiz,
      r.h = 1;
 
      switch (format) {
-          case DSPF_RGB16: {
+          case DSPF_RGB16:
+          case DSPF_ARGB1555: {
                unsigned int num;
                u16          buf[rect->w];
 
@@ -1294,7 +1295,8 @@ IDirectFBSurface_Requestor_Write( IDirectFBSurface   *thiz,
           }
 
           case DSPF_RGB32:
-          case DSPF_ARGB: {
+          case DSPF_ARGB:
+          case DSPF_ABGR: {
                unsigned int num;
                u32          buf[rect->w];
 

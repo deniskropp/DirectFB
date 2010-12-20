@@ -1,4 +1,4 @@
-/*
+#/*
    (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
@@ -95,6 +95,11 @@
                                  ((r) << 16) | \
                                  ((g) << 8)  | \
                                   (b) )
+
+#define PIXEL_ABGR(a,r,g,b)    ( ((a) << 24) | \
+                                 ((b) << 16) | \
+                                 ((g) << 8)  | \
+                                  (r) )
 
 #define PIXEL_ARGB8565(a,r,g,b)( ((a) << 16) | \
                                  PIXEL_RGB16 (r, g, b) )
@@ -398,6 +403,10 @@
 #define ARGB_TO_BGR555(pixel)  ( (((pixel) & 0x00F80000) >>  19) | \
                                    (((pixel) & 0x0000F800) >>  6) | \
                                    (((pixel) & 0x000000F8) <<  7) )
+
+#define ARGB_TO_ABGR(pixel)  ( ((pixel) & 0xFF00FF00) | \
+                                  (((pixel) & 0x000000FF) << 16) | \
+                                  (((pixel) & 0x00FF0000) >> 16) )
 
 /* RGB <-> YCbCr conversion */
 

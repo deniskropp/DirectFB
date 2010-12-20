@@ -267,6 +267,11 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                direct_memcpy( d, src, len*4 );
                break;
 
+          case DSPF_ABGR:
+               for (i = 0; i < len; i++)
+                    ((u32*)d)[i] = ARGB_TO_ABGR( src[i] );
+               break;
+
           case DSPF_AiRGB:
                for (i = 0; i < len; i++)
                     ((u32*)d)[i] = src[i] ^ 0xff000000;

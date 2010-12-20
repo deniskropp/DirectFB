@@ -924,6 +924,7 @@ v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rect,
                palette = VIDEO_PALETTE_RGB24;
                break;
           case DSPF_ARGB:
+          case DSPF_ABGR:
           case DSPF_AiRGB:
           case DSPF_RGB32:
                bpp = 32;
