@@ -513,7 +513,7 @@ dfb_wm_post_init( CoreDFB *core )
 {
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
-     D_ASSERT( wm_local->funcs->Resume != NULL );
+     D_ASSERT( wm_local->funcs->PostInit != NULL );
      D_ASSERT( wm_shared != NULL );
 
      return wm_local->funcs->PostInit( wm_local->data, wm_shared->data );
@@ -1125,7 +1125,7 @@ dfb_wm_begin_updates( CoreWindow      *window,
 {
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
-     D_ASSERT( wm_local->funcs->RequestFocus != NULL );
+     D_ASSERT( wm_local->funcs->BeginUpdates != NULL );
 
      D_ASSERT( window != NULL );
 
@@ -1214,7 +1214,7 @@ dfb_wm_update_cursor( CoreWindowStack       *stack,
 {
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
-     D_ASSERT( wm_local->funcs->UpdateStack != NULL );
+     D_ASSERT( wm_local->funcs->UpdateCursor != NULL );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
