@@ -133,12 +133,12 @@ void direct_assumption( const char *exp,
 
 #define D_DEBUG_ENTER(d,x...)                                                        \
      do {                                                                            \
-          direct_debug_enter( &d, __FUNCTION__, __FILE__, __LINE__, x );             \
+          /*direct_debug_enter( &d, __FUNCTION__, __FILE__, __LINE__, x );*/             \
      } while (0)
 
 #define D_DEBUG_EXIT(d,x...)                                                         \
      do {                                                                            \
-          direct_debug_exit( &d, __FUNCTION__, __FILE__, __LINE__, x );              \
+          /*direct_debug_exit( &d, __FUNCTION__, __FILE__, __LINE__, x );*/              \
      } while (0)
 
 #define D_ASSERT(exp)                                                                \
