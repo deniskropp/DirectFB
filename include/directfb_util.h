@@ -41,6 +41,7 @@ extern "C"
 
 #include <directfb_strings.h>
 
+#include <direct/thread.h>
 #include <direct/types.h>
 #include <direct/debug.h>
 
