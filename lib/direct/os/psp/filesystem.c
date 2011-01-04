@@ -32,6 +32,7 @@
 #include <direct/filesystem.h>
 #include <direct/util.h>
 
+
 /**********************************************************************************************************************/
 
 DirectResult
@@ -112,21 +113,23 @@ DirectResult
 direct_file_map( DirectFile *file, void *addr, size_t offset, size_t bytes, DirectFilePermission flags, void **ret_addr )
 {
      void *map;
-     int   prot = 0;
-
+     int   bytes_read = 0;
+     
      D_ASSERT( file != NULL );
      D_ASSERT( ret_addr != NULL );
 
-     if (flags & DFP_READ)
-          prot |= PROT_READ;
+     if (offset)
+          return DR_UNSUPPORTED;
+          
+     map = malloc(bytes);
+     if (!map)
+          return D_OOM();
 
-     if (flags & DFP_WRTIE)
-          prot |= PROT_WRITE;
-
-     map = mmap( addr, bytes, prot, MAP_SHARED, file->fd, offset );
-     if (map == MAP_FAILED)
-          return errno2result( errno );
-
+     bytes_read = read( file->fd, map, bytes );
+     
+     if (bytes_read != bytes) {
+          return DR_IO;
+     }
      *ret_addr = map;
 
      return DR_OK;
@@ -135,8 +138,9 @@ direct_file_map( DirectFile *file, void *addr, size_t offset, size_t bytes, Dire
 DirectResult
 direct_file_unmap( DirectFile *file, void *addr, size_t bytes )
 {
-     if (munmap( addr, bytes ))
-          return errno2result( errno );
+     D_ASSERT( addr != NULL );
+
+     free( addr );
 
      return DR_OK;
 }
@@ -154,25 +158,6 @@ direct_file_get_info( DirectFile *file, DirectFileInfo *ret_info )
 
      ret_info->flags = DFIF_SIZE;
      ret_info->size  = st.st_size;
-
-     return DR_OK;
-}
-
-DirectResult
-direct_file_dup( DirectFile *file, const DirectFile *other )
-{
-     int fd;
-
-     D_ASSERT( file != NULL );
-     D_ASSERT( other != NULL );
-
-     file->file = NULL;
-
-     fd = dup( other->fd );
-     if (fd < 0)
-          return errno2result( errno );
-
-     file->fd = fd;
 
      return DR_OK;
 }
@@ -206,34 +191,13 @@ direct_fgets( DirectFile *file, char *buf, size_t length )
 DirectResult
 direct_popen( DirectFile *file, const char *name, int flags )
 {
-     D_ASSERT( file != NULL );
-     D_ASSERT( name != NULL );
-
-     file->file = popen( name, (flags & O_WRONLY) ? "w" : (flags & O_RDWR) ? "rw" : "r" );
-     if (!file->file)
-          return errno2result( errno );
-
-     file->fd = fileno( file->file );
-
-     return DR_OK;
+     return DR_UNSUPPORTED;
 }
 
 DirectResult
 direct_pclose( DirectFile *file )
 {
-     int ret;
-
-     D_ASSERT( file != NULL );
-     D_ASSERT( file->file != NULL );
-
-     ret = fclose( file->file );
-
-     close( file->fd );
-
-     if (ret < 0)
-          return errno2result( errno );
-
-     return DR_OK;
+     return DR_UNSUPPORTED;
 }
 
 /**********************************************************************************************************************/
@@ -241,18 +205,7 @@ direct_pclose( DirectFile *file )
 DirectResult
 direct_readlink( const char *name, char *buf, size_t length, size_t *ret_length )
 {
-     int ret;
-
-     D_ASSERT( name != NULL );
-
-     ret = readlink( name, buf, length );
-     if (ret < 0)
-          return errno2result( errno );
-
-     if (ret_length)
-          *ret_length = ret;
-
-     return DR_OK;
+     return DR_UNSUPPORTED;
 }
 
 /**********************************************************************************************************************/

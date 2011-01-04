@@ -349,7 +349,7 @@ Flipping_Thread( DirectThread *thread,
            */
           thiz->Flip( thiz, NULL, 0 );
 
-          usleep(40000);
+          direct_thread_sleep( 40000 );
      }
 
      return NULL;

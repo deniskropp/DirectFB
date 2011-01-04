@@ -26,51 +26,40 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __DIRECT__OS__SYSTEM_H__
-#define __DIRECT__OS__SYSTEM_H__
+#include <config.h>
 
-#include <direct/os/types.h>
+#include <direct/log.h>
+#include <direct/messages.h>
+#include <pspdebug.h>
+/**********************************************************************************************************************/
+
+__attribute__((no_instrument_function))
+static DirectResult
+pspdebugscreen_log_write( DirectLog  *log,
+                  const char *buffer,
+                  size_t      bytes )
+{
+     pspDebugScreenPrintf( "%s", buffer );
+
+     return DR_OK;
+}
 
 /**********************************************************************************************************************/
 
-/*
- * Mainly special system calls...
- */
+__attribute__((no_instrument_function))
+DirectResult
+direct_log_init( DirectLog  *log,
+                 const char *param )
+{
+     pspDebugScreenInit();          
+     log->write = pspdebugscreen_log_write;
 
-long  direct_pagesize( void );
+     return DR_OK;
+}
 
-unsigned long direct_page_align( unsigned long value );
-
-pid_t direct_getpid( void );
-pid_t direct_gettid( void );
-
-/* May return DR_TASK_NOT_FOUND */
-DirectResult direct_tgkill( int tgid, int tid, int sig );
-
-/* shall not return! */
-void direct_trap( const char *domain, int sig );
-
-DirectResult direct_kill( pid_t pid, int sig );
-void         direct_sync( void );
-
-DirectResult direct_socketpair( int __domain, int __type, int __protocol, int __fds[2] );
-
-
-
-DirectResult direct_sigprocmask( int __how, __const sigset_t *__restrict __set,
-                                 sigset_t *__restrict __oset );
-
-
-
-uid_t direct_getuid( void );
-uid_t direct_geteuid( void );
-
-
-#define FUTEX_WAIT              0
-#define FUTEX_WAKE              1
-
-DirectResult direct_futex( int *uaddr, int op, int val, const struct timespec *timeout, int *uaddr2, int val3 );
-
-
-#endif
+DirectResult
+direct_log_deinit( DirectLog *log )
+{
+     return DR_OK;
+}
 

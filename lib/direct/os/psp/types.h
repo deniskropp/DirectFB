@@ -26,51 +26,58 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __DIRECT__OS__SYSTEM_H__
-#define __DIRECT__OS__SYSTEM_H__
+#ifndef __DIRECT__OS__LINUX__GLIBC__TYPES_H__
+#define __DIRECT__OS__LINUX__GLIBC__TYPES_H__
 
-#include <direct/os/types.h>
 
-/**********************************************************************************************************************/
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#include <string.h>
+
+#include <unistd.h>
+
+#include <ctype.h>
+
+#include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <sched.h>
+#include <signal.h>
+
+#include <sys/param.h>
+#include <sys/resource.h>
+#include <sys/time.h>
+
+
 
 /*
- * Mainly special system calls...
+ * Define the bool type by including stdbool.h (preferably)...
  */
-
-long  direct_pagesize( void );
-
-unsigned long direct_page_align( unsigned long value );
-
-pid_t direct_getpid( void );
-pid_t direct_gettid( void );
-
-/* May return DR_TASK_NOT_FOUND */
-DirectResult direct_tgkill( int tgid, int tid, int sig );
-
-/* shall not return! */
-void direct_trap( const char *domain, int sig );
-
-DirectResult direct_kill( pid_t pid, int sig );
-void         direct_sync( void );
-
-DirectResult direct_socketpair( int __domain, int __type, int __protocol, int __fds[2] );
+#if DIRECT_BUILD_STDBOOL
+#  include <stdbool.h>
+/*
+ * ...or defining it ourself, if not using C++ or another definition
+ */
+#elif !defined(__cplusplus) && !defined(__bool_true_false_are_defined)
+#  warning Fallback definition of bool using u8! Checking for 'flags & 0x100' or higher bits will be false :(
+   typedef u8 bool;
+#  ifndef false
+#   define false (0)
+#  endif
+#  ifndef true
+#   define true (!false)
+#  endif
+#endif /* DIRECT_BUILD_STDBOOL */
 
 
-
-DirectResult direct_sigprocmask( int __how, __const sigset_t *__restrict __set,
-                                 sigset_t *__restrict __oset );
-
-
-
-uid_t direct_getuid( void );
-uid_t direct_geteuid( void );
-
-
-#define FUTEX_WAIT              0
-#define FUTEX_WAKE              1
-
-DirectResult direct_futex( int *uaddr, int op, int val, const struct timespec *timeout, int *uaddr2, int val3 );
-
+#if DIRECT_BUILD_DYNLOAD
+#include <dlfcn.h>
+#endif
 
 #endif
 

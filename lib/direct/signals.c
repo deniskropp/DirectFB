@@ -114,8 +114,7 @@ direct_signals_block_all( void )
 
      sigfillset( &signals );
 
-     if (sigprocmask( SIG_BLOCK, &signals, NULL ))
-          ;//D_PERROR( "Direct/Signals: Setting signal mask failed!\n" );
+     direct_sigprocmask( SIG_BLOCK, &signals, NULL );
 }
 
 DirectResult
@@ -470,10 +469,18 @@ install_handlers( void )
                action.sa_flags     = 0;
 #endif
 
+#ifdef SA_NODEFER
                if (signum != SIGSEGV)
                     action.sa_flags |= SA_NODEFER;
+#endif
 
-               action.sa_flags |= SA_RESETHAND | SA_RESTART;
+#ifdef SA_RESETHAND
+               action.sa_flags |= SA_RESETHAND;
+#endif
+
+#ifdef SA_RESTART
+               action.sa_flags |= SA_RESTART;
+#endif
 
                sigemptyset( &action.sa_mask );
 

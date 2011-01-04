@@ -49,7 +49,9 @@ const char   *fusion_config_usage =
      "libfusion options:\n"
      "  force-slave                    Always enter as a slave, waiting for the master, if not there\n"
      "  tmpfs=<directory>              Location of shared memory file\n"
+#if FUSION_BUILD_MULTI
      "  shmfile-group=<groupname>      Group that owns shared memory files\n"
+#endif
      "  [no-]debugshm                  Enable shared memory allocation tracking\n"
      "  [no-]madv-remove               Enable usage of MADV_REMOVE (default = auto)\n"
      "\n";
@@ -70,6 +72,7 @@ fusion_config_set( const char *name, const char *value )
                return DR_INVARG;
           }
      } else
+#if FUSION_BUILD_MULTI
      if (strcmp (name, "shmfile-group" ) == 0) {
           if (value) {
                struct group *group_info;
@@ -85,6 +88,7 @@ fusion_config_set( const char *name, const char *value )
                return DR_INVARG;
           }
      } else
+#endif
      if (strcmp (name, "force-slave" ) == 0) {
           fusion_config->force_slave = true;
      } else

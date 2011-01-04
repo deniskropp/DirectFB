@@ -39,8 +39,6 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
-#include <sys/utsname.h>
 
 #include <direct/clock.h>
 #include <direct/debug.h>
@@ -64,6 +62,10 @@
 
 
 #if FUSION_BUILD_MULTI
+
+#include <sys/mman.h>
+#include <sys/utsname.h>
+
 
 D_DEBUG_DOMAIN( Fusion_Main,          "Fusion/Main",          "Fusion - High level IPC" );
 D_DEBUG_DOMAIN( Fusion_Main_Dispatch, "Fusion/Main/Dispatch", "Fusion - High level IPC Dispatch" );

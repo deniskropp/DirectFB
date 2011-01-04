@@ -34,35 +34,29 @@
 #include <signal.h>
 #include <unistd.h>
 
-#include <linux/unistd.h>
-
 #include <direct/atomic.h>
 #include <direct/debug.h>
 #include <direct/signals.h>
 #include <direct/system.h>
 #include <direct/util.h>
 
+#include <pspkernel.h>
 D_LOG_DOMAIN( Direct_Futex, "Direct/Futex", "Direct Futex" );
 D_LOG_DOMAIN( Direct_Trap,  "Direct/Trap",  "Direct Trap" );
 
-/**********************************************************************************************************************/
-
-#if DIRECT_BUILD_GETTID && defined(HAVE_LINUX_UNISTD_H)
-#include <linux/unistd.h>
-#endif
-
+#define PAGESIZE 4096
 /**********************************************************************************************************************/
 
 long
 direct_pagesize( void )
 {
-     return sysconf( _SC_PAGESIZE );
+     return PAGESIZE;
 }
 
 unsigned long
 direct_page_align( unsigned long value )
 {
-     unsigned long mask = sysconf( _SC_PAGESIZE ) - 1;
+     unsigned long mask = PAGESIZE -1;
 
      return (value + mask) & ~mask;
 }
@@ -79,14 +73,7 @@ __attribute__((no_instrument_function))
 pid_t
 direct_gettid( void )
 {
-     pid_t tid = -1;
-#if DIRECT_BUILD_GETTID && defined(__NR_gettid) /* present on linux >= 2.4.20 */
-     tid = syscall(__NR_gettid);
-#endif
-     if (tid < 0)
-          tid = getpid();
-
-     return tid;
+     return sceKernelGetThreadId();
 }
 
 /**********************************************************************************************************************/
@@ -94,38 +81,13 @@ direct_gettid( void )
 DirectResult
 direct_tgkill( int tgid, int tid, int sig )
 {
-#if defined(__NR_tgkill) /* present on linux >= 2.5.75 */
-     if (syscall(__NR_tgkill) < 0)
-#else
-#warning no tgkill
-#endif
-          return errno2result( errno );
-
      return DR_OK;
 }
 
 void
 direct_trap( const char *domain, int sig )
 {
-     sigval_t val;
-
-     D_LOG( Direct_Trap, VERBOSE, "Raising signal %d from %s...\n", sig, domain );
-
-     val.sival_int = direct_gettid();
-
-     sigqueue( direct_gettid(), sig, val );
-//     direct_tgkill( direct_getpid(), direct_gettid(), sig );
-
-     D_LOG( Direct_Trap, VERBOSE, "...tgkill(%d) on ourself returned, maybe blocked, calling %s()!\n", sig,
-#ifdef __NR_exit_group
-            "exit_group" );
-
-     syscall( __NR_exit_group, DR_BUG );
-#else
-            "_exit" );
-
-            _exit( DR_BUG );
-#endif
+     _exit(0);
 }
 
 /**********************************************************************************************************************/
@@ -133,47 +95,37 @@ direct_trap( const char *domain, int sig )
 DirectResult
 direct_kill( pid_t pid, int sig )
 {
-     if (kill( pid, sig ))
-          return errno2result( errno );
-
-     return DR_OK;
+     return DR_UNSUPPORTED;
 }
 
 void
-direct_sync( void )
+direct_sync()
 {
-     sync();
 }
 
 DirectResult
 direct_socketpair( int __domain, int __type, int __protocol, int __fds[2] )
 {
-     if (socketpair( __domain, __type, __protocol, __fds ))
-          return errno2result( errno );
-
-     return DR_OK;
+     return DR_UNSUPPORTED;
 }
 
 DirectResult
 direct_sigprocmask( int __how, __const sigset_t *__restrict __set,
                     sigset_t *__restrict __oset )
 {
-     if (sigprocmask( __how, __set, __oset ))
-          return errno2result( errno );
-
-     return DR_OK;
+     return DR_UNSUPPORTED;
 }
 
 uid_t
 direct_getuid()
 {
-     return getuid();
+     return 0;
 }
 
 uid_t
 direct_geteuid()
 {
-     return geteuid();
+     return 0;
 }
 
 /**********************************************************************************************************************/
@@ -181,28 +133,6 @@ direct_geteuid()
 DirectResult
 direct_futex( int *uaddr, int op, int val, const struct timespec *timeout, int *uaddr2, int val3 )
 {
-     int          ret;
-     unsigned int count;
-
-     switch (op) {
-          case FUTEX_WAIT:
-               count = D_SYNC_ADD_AND_FETCH( &__Direct_Futex_Wait_Count, 1 );
-               D_DEBUG_AT( Direct_Futex, "## ## WAIT FOR --> %p <--  %d (<-%d) ## ## ## ## * %u\n", uaddr, *uaddr, val, count );
-               break;
-
-          case FUTEX_WAKE:
-               count = D_SYNC_ADD_AND_FETCH( &__Direct_Futex_Wake_Count, 1 );
-               D_DEBUG_AT( Direct_Futex, "###   WAKE UP =--> %p <--= %d (->%d) ### ### ### * %u\n", uaddr, *uaddr, val, count );
-               break;
-
-          default:
-               D_DEBUG_AT( Direct_Futex, "# #  UNKNOWN FUTEX OP  # #\n" );
-     }
-
-     ret = syscall( __NR_futex, uaddr, op, val, timeout, uaddr2, val3 );
-     if (ret < 0)
-          return errno2result( errno );
-
      return DR_OK;
 }
 

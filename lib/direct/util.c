@@ -123,37 +123,6 @@ direct_strcmp( const char *a, const char *b )
      return strcmp( a, b );
 }
 
-
-int
-direct_strcasecmp( const char *a, const char *b )
-{
-     int c1, c2;
-
-     do {
-          c1 = tolower(*a++);
-          c2 = tolower(*b++);
-     } while (c1 == c2 && c1 != 0);
-
-     return c1 - c2;
-
-//     return strcasecmp( a, b );
-}
-
-int
-direct_strncasecmp( const char *a, const char *b, size_t bytes )
-{
-     int c1, c2;
-
-     do {
-          c1 = tolower(*a++);
-          c2 = tolower(*b++);
-     } while ((--bytes > 0) && c1 == c2 && c1 != 0);
-
-     return c1 - c2;
-
-//     return strncasecmp( a, b, bytes );
-}
-
 unsigned long
 direct_strtoul( const char *nptr, char **endptr, int base )
 {

@@ -31,6 +31,8 @@
 
 #include <directfb.h>
 
+#include <direct/filesystem.h>
+
 #include <core/coretypes.h>
 
 /*

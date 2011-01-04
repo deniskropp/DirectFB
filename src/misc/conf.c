@@ -430,7 +430,7 @@ static void config_allocate( void )
      dfb_config->system = D_STRDUP( "FBDev" );
 
      /* default to no-vt-switch if we don't have root privileges */
-     if (geteuid())
+     if (direct_geteuid())
           dfb_config->vt_switch = false;
 
      fusion_vector_init( &dfb_config->linux_input_devices, 2, NULL );

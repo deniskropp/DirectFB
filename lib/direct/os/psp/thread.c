@@ -39,6 +39,8 @@
 #include <direct/signals.h>
 #include <direct/thread.h>
 
+#include <pspthreadman.h>
+
 
 D_LOG_DOMAIN( Direct_Thread    , "Direct/Thread",      "Thread management" );
 D_LOG_DOMAIN( Direct_ThreadInit, "Direct/Thread/Init", "Thread initialization" );
@@ -120,14 +122,7 @@ direct_thread_init( DirectThread *thread )
                break;
      }
 
-     D_DEBUG_AT( Direct_ThreadInit, "  -> %s (%d) [%d;%d]\n", direct_thread_policy_name(policy), priority,
-                 sched_get_priority_min( policy ), sched_get_priority_max( policy ) );
-
-     if (priority < sched_get_priority_min( policy ))
-          priority = sched_get_priority_min( policy );
-
-     if (priority > sched_get_priority_max( policy ))
-          priority = sched_get_priority_max( policy );
+     D_DEBUG_AT( Direct_ThreadInit, "  -> %s (%d)\n", direct_thread_policy_name(policy), priority );
 
      param.sched_priority = priority;
 
@@ -279,7 +274,6 @@ void
 direct_thread_cancel( DirectThread *thread )
 {
      D_MAGIC_ASSERT( thread, DirectThread );
-     D_ASSERT( thread->handle.thread != -1 );
      D_ASSERT( !pthread_equal( thread->handle.thread, pthread_self() ) );
 
      D_ASSUME( !thread->canceled );
@@ -295,7 +289,6 @@ void
 direct_thread_detach( DirectThread *thread )
 {
      D_MAGIC_ASSERT( thread, DirectThread );
-     D_ASSERT( thread->handle.thread != -1 );
      D_ASSERT( !pthread_equal( thread->handle.thread, pthread_self() ) );
 
      D_ASSUME( !thread->canceled );
@@ -311,7 +304,6 @@ void
 direct_thread_testcancel( DirectThread *thread )
 {
      D_MAGIC_ASSERT( thread, DirectThread );
-     D_ASSERT( thread->handle.thread != -1 );
      D_ASSERT( pthread_equal( thread->handle.thread, pthread_self() ) );
 
      /* Quick check before calling the pthread function. */
@@ -323,7 +315,6 @@ void
 direct_thread_join( DirectThread *thread )
 {
      D_MAGIC_ASSERT( thread, DirectThread );
-     D_ASSERT( thread->handle.thread != -1 );
 
      D_ASSUME( !pthread_equal( thread->handle.thread, pthread_self() ) );
      D_ASSUME( !thread->joining );
@@ -353,7 +344,7 @@ direct_thread_join( DirectThread *thread )
 void
 direct_thread_sleep( long long micros )
 {
-     usleep( micros );
+     sceKernelDelayThread( micros );
 }
 
 /**********************************************************************************************************************/

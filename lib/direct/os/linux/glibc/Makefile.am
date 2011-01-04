@@ -32,4 +32,5 @@ libdirect_os_linux_glibc_la_SOURCES = \
 	mutex.c		\
 	signals.c	\
 	system.c	\
-	thread.c
+	thread.c	\
+	util.c
