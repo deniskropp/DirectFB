@@ -35,7 +35,7 @@
 /**********************************************************************************************************************/
 
 DirectResult
-direct_open( DirectFile *file, const char *name, int flags, mode_t mode )
+direct_file_open( DirectFile *file, const char *name, int flags, mode_t mode )
 {
      D_ASSERT( file != NULL );
      D_ASSERT( name != NULL );
@@ -50,7 +50,7 @@ direct_open( DirectFile *file, const char *name, int flags, mode_t mode )
 }
 
 DirectResult
-direct_read( DirectFile *file, void *buffer, size_t bytes, size_t *ret_bytes )
+direct_file_read( DirectFile *file, void *buffer, size_t bytes, size_t *ret_bytes )
 {
      ssize_t num;
 
@@ -68,7 +68,7 @@ direct_read( DirectFile *file, void *buffer, size_t bytes, size_t *ret_bytes )
 }
 
 DirectResult
-direct_write( DirectFile *file, const void *buffer, size_t bytes, size_t *ret_bytes )
+direct_file_write( DirectFile *file, const void *buffer, size_t bytes, size_t *ret_bytes )
 {
      ssize_t num;
 
@@ -86,7 +86,7 @@ direct_write( DirectFile *file, const void *buffer, size_t bytes, size_t *ret_by
 }
 
 DirectResult
-direct_close( DirectFile *file )
+direct_file_close( DirectFile *file )
 {
      int ret;
 
@@ -104,6 +104,75 @@ direct_close( DirectFile *file )
 
      if (ret < 0)
           return errno2result( errno );
+
+     return DR_OK;
+}
+
+DirectResult
+direct_file_map( DirectFile *file, void *addr, size_t offset, size_t bytes, DirectFilePermission flags, void **ret_addr )
+{
+     void *map;
+     int   prot = 0;
+
+     D_ASSERT( file != NULL );
+     D_ASSERT( ret_addr != NULL );
+
+     if (flags & DFP_READ)
+          prot |= PROT_READ;
+
+     if (flags & DFP_WRTIE)
+          prot |= PROT_WRITE;
+
+     map = mmap( addr, bytes, prot, MAP_SHARED, file->fd, offset );
+     if (map == MAP_FAILED)
+          return errno2result( errno );
+
+     *ret_addr = map;
+
+     return DR_OK;
+}
+
+DirectResult
+direct_file_unmap( DirectFile *file, void *addr, size_t bytes )
+{
+     if (munmap( addr, bytes ))
+          return errno2result( errno );
+
+     return DR_OK;
+}
+
+DirectResult
+direct_file_get_info( DirectFile *file, DirectFileInfo *ret_info )
+{
+     struct stat st;
+
+     D_ASSERT( file != NULL );
+     D_ASSERT( ret_info != NULL );
+
+     if (fstat( file->fd, &st ))
+          return errno2result( errno );
+
+     ret_info->flags = DFIF_SIZE;
+     ret_info->size  = st.st_size;
+
+     return DR_OK;
+}
+
+DirectResult
+direct_file_dup( DirectFile *file, const DirectFile *other )
+{
+     int fd;
+
+     D_ASSERT( file != NULL );
+     D_ASSERT( other != NULL );
+
+     file->file = NULL;
+
+     fd = dup( other->fd );
+     if (fd < 0)
+          return errno2result( errno );
+
+     file->fd = fd;
 
      return DR_OK;
 }

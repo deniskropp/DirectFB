@@ -50,6 +50,20 @@ DirectResult direct_tgkill( int tgid, int tid, int sig );
 /* shall not return! */
 void direct_trap( const char *domain, int sig );
 
+DirectResult direct_kill( pid_t pid, int sig );
+void         direct_sync( void );
+
+DirectResult direct_socketpair( int __domain, int __type, int __protocol, int __fds[2] );
+
+
+
+DirectResult direct_sigprocmask( int __how, __const sigset_t *__restrict __set,
+                                 sigset_t *__restrict __oset );
+
+
+
+uid_t direct_getuid( void );
+uid_t direct_geteuid( void );
 
 
 #define FUTEX_WAIT              0

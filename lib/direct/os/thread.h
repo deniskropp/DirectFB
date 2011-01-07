@@ -74,5 +74,8 @@ void           direct_thread_testcancel ( DirectThread *thread );
  */
 void           direct_thread_join       ( DirectThread *thread );
 
+
+void           direct_thread_sleep      ( long long     micros );
+
 #endif
 

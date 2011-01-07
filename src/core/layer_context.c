@@ -496,7 +496,7 @@ restart:
                    return DFB_TEMPUNAVAIL;
 
               //sched_yield();
-              usleep( 10000 );
+              direct_thread_sleep( 10000 );
 
               if (dfb_layer_context_lock( context ))
                    return DFB_FUSION;

@@ -543,6 +543,8 @@ static DFBResult
 IDirectFBEventBuffer_CreateFileDescriptor( IDirectFBEventBuffer *thiz,
                                            int                  *ret_fd )
 {
+     DirectResult ret;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      D_DEBUG_AT( IDFBEvBuf, "%s( %p )\n", __FUNCTION__, thiz );
@@ -561,10 +563,11 @@ IDirectFBEventBuffer_CreateFileDescriptor( IDirectFBEventBuffer *thiz,
      }
 
      /* Create the file descriptor(s). */
-     if (socketpair( PF_LOCAL, SOCK_STREAM, 0, data->pipe_fds )) {
-          D_PERROR( "%s(): socketpair( PF_LOCAL, SOCK_STREAM, 0, fds ) failed!\n", __FUNCTION__ );
+     ret = direct_socketpair( PF_LOCAL, SOCK_STREAM, 0, data->pipe_fds );
+     if (ret) {
+          D_DERROR( ret, "%s(): direct_socketpair( PF_LOCAL, SOCK_STREAM, 0, fds ) failed!\n", __FUNCTION__ );
           pthread_mutex_unlock( &data->events_mutex );
-          return errno2result( errno );
+          return ret;
      }
 
      D_DEBUG_AT( IDFBEvBuf, "  -> entering pipe mode\n" );

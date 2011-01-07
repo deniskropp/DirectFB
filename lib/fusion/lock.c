@@ -490,7 +490,7 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
      sigaction( SIGRESTART, &act, &oldact );
      
      /* Unblock SIGRESTART. */
-     sigprocmask( SIG_SETMASK, NULL, &mask );
+     direct_sigprocmask( SIG_SETMASK, NULL, &mask );
      sigdelset( &mask, SIGRESTART );
 
      fusion_skirmish_dismiss( skirmish );
@@ -506,9 +506,9 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
                     break;
                }
                
-               sigprocmask( SIG_SETMASK, &mask, &set );
+               direct_sigprocmask( SIG_SETMASK, &mask, &set );
                usleep( stop - now );
-               sigprocmask( SIG_SETMASK, &set, NULL );           
+               direct_sigprocmask( SIG_SETMASK, &set, NULL );           
           }
           else {
                sigsuspend( &mask );
