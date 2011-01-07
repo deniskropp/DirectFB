@@ -32,6 +32,16 @@
 #include <voodoo/types.h>
 #include <voodoo/message.h>
 
+DirectResult voodoo_manager_create         ( int                      fd[2],
+                                             VoodooClient            *client,
+                                             VoodooServer            *server,
+                                             VoodooManager          **ret_manager );
+
+DirectResult voodoo_manager_quit           ( VoodooManager           *manager );
+
+bool         voodoo_manager_is_closed      ( const VoodooManager     *manager );
+
+DirectResult voodoo_manager_destroy        ( VoodooManager           *manager );
 
 DirectResult voodoo_manager_super          ( VoodooManager           *manager,
                                              const char              *name,

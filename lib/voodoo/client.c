@@ -51,6 +51,7 @@
 
 #include <voodoo/client.h>
 #include <voodoo/internal.h>
+#include <voodoo/manager.h>
 #include <voodoo/play.h>
 
 /**********************************************************************************************************************/
@@ -81,6 +82,7 @@ voodoo_client_create( const char     *host,
      struct addrinfo  hints;
      struct addrinfo *addr;
      VoodooClient    *client;
+     int              fds[2];
      char             buf[100] = { 0 };
      const char      *hostname = host;
      char             portstr[10];
@@ -217,8 +219,11 @@ voodoo_client_create( const char     *host,
      /* Initialize client structure. */
      client->fd = fd;
 
+     fds[0] = fd;
+     fds[1] = fd;
+
      /* Create the manager. */
-     ret = voodoo_manager_create( fd, client, NULL, &client->manager );
+     ret = voodoo_manager_create( fds, client, NULL, &client->manager );
      if (ret) {
           D_FREE( client );
           close( fd );

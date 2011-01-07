@@ -26,6 +26,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include <unistd.h>
@@ -36,10 +38,12 @@
 #include <time.h>
 
 #include <sys/types.h>
+#include <sys/mman.h>
 #include <sys/poll.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <sys/uio.h>
 
 #include <netinet/in.h>
 #if !VOODOO_BUILD_NO_SETSOCKOPT
@@ -63,10 +67,17 @@
 #include <voodoo/manager.h>
 
 
-#define IN_BUF_MAX   (32 * 1024)
-#define OUT_BUF_MAX  (17 * 1024)
-#define MAX_MSG_SIZE (17 * 1024)
+#define IN_BUF_MAX   (320 * 1024)
+#define OUT_BUF_MAX  (1280 * 1024)
+#define MAX_MSG_SIZE (16 * 1024)
 
+
+D_DEBUG_DOMAIN( Voodoo_Dispatch, "Voodoo/Dispatch", "Voodoo Dispatch" );
+D_DEBUG_DOMAIN( Voodoo_Input,    "Voodoo/Input",    "Voodoo Input" );
+D_DEBUG_DOMAIN( Voodoo_Manager,  "Voodoo/Manager",  "Voodoo Manager" );
+D_DEBUG_DOMAIN( Voodoo_Output,   "Voodoo/Output",   "Voodoo Output" );
+
+/**********************************************************************************************************************/
 
 typedef struct {
      bool                        super;
@@ -78,7 +89,7 @@ typedef struct {
 struct __V_VoodooManager {
      int                         magic;
 
-     int                         fd;
+     int                         fd[2];
 
      bool                        quit;
 
@@ -109,8 +120,9 @@ struct __V_VoodooManager {
           DirectThread          *thread;
           pthread_mutex_t        lock;
           pthread_cond_t         wait;
-          u8                     buffer[IN_BUF_MAX + MAX_MSG_SIZE];
+          u8                    *buffer;
           int                    start;
+          int                    last;
           int                    end;
           int                    max;
      } input;
@@ -119,7 +131,7 @@ struct __V_VoodooManager {
           DirectThread          *thread;
           pthread_mutex_t        lock;
           pthread_cond_t         wait;
-          u8                     buffer[OUT_BUF_MAX];
+          u8                    *buffer;
           int                    start;
           int                    end;
      } output;
@@ -159,14 +171,14 @@ static const int one = 1;
      val = 0;                                                                   \
      len = 4;                                                                   \
                                                                                 \
-     if (getsockopt( fd, SOL_SOCKET, o, &val, &len ))                           \
+     if (getsockopt( fd[0], SOL_SOCKET, o, &val, &len ))                           \
           D_PERROR( "Voodoo/Manager: getsockopt() for " #o " failed!\n" );      \
      else                                                                       \
           D_DEBUG( "Voodoo/Manager: " #o " is %d\n", val );
 
 
 DirectResult
-voodoo_manager_create( int             fd,
+voodoo_manager_create( int             fd[2],
                        VoodooClient   *client,
                        VoodooServer   *server,
                        VoodooManager **ret_manager )
@@ -179,8 +191,9 @@ voodoo_manager_create( int             fd,
      static const int tos = IPTOS_LOWDELAY;
 #endif
 
-     D_ASSERT( fd >= 0 );
-     D_ASSERT( (client != NULL) ^ (server != NULL) );
+     D_ASSERT( fd[0] >= 0 );
+     D_ASSERT( fd[1] >= 0 );
+//     D_ASSERT( (client != NULL) ^ (server != NULL) );
      D_ASSERT( ret_manager != NULL );
 
      /* Allocate manager structure. */
@@ -193,10 +206,10 @@ voodoo_manager_create( int             fd,
      D_DEBUG( "Voodoo/Manager: Creating manager at %p.\n", manager );
 
 #if !VOODOO_BUILD_NO_SETSOCKOPT
-     if (setsockopt( fd, SOL_IP, IP_TOS, &tos, sizeof(tos) ) < 0)
+     if (setsockopt( fd[0], SOL_IP, IP_TOS, &tos, sizeof(tos) ) < 0)
           D_PERROR( "Voodoo/Manager: Could not set IP_TOS!\n" );
 
-     if (setsockopt( fd, SOL_TCP, TCP_NODELAY, &one, sizeof(one) ) < 0)
+     if (setsockopt( fd[0], SOL_TCP, TCP_NODELAY, &one, sizeof(one) ) < 0)
           D_PERROR( "Voodoo/Manager: Could not set TCP_NODELAY!\n" );
 #endif
 
@@ -221,7 +234,8 @@ voodoo_manager_create( int             fd,
      }
 
      /* Store file descriptor. */
-     manager->fd = fd;
+     manager->fd[0] = fd[0];
+     manager->fd[1] = fd[1];
 
      /* Store client or server. */
      manager->client = client;
@@ -240,6 +254,9 @@ voodoo_manager_create( int             fd,
 
      /* Set default buffer limit. */
      manager->input.max = IN_BUF_MAX;
+
+     manager->input.buffer  = malloc( IN_BUF_MAX + MAX_MSG_SIZE );
+     manager->output.buffer = mmap( NULL, OUT_BUF_MAX, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0 );
 
      D_MAGIC_SET( manager, VoodooManager );
 
@@ -801,8 +818,8 @@ voodoo_manager_register_local( VoodooManager    *manager,
      VoodooInstanceID  instance_id;
 
      D_MAGIC_ASSERT( manager, VoodooManager );
-     D_ASSERT( dispatcher != NULL );
-     D_ASSERT( real != NULL );
+//     D_ASSERT( dispatcher != NULL );
+//     D_ASSERT( real != NULL );
      D_ASSERT( dispatch != NULL );
      D_ASSERT( ret_instance != NULL );
 
@@ -1169,9 +1186,9 @@ handle_response( VoodooManager         *manager,
      D_ASSERT( response->header.type == VMSG_RESPONSE );
      D_ASSERT( response->request < manager->msg_serial );
 
-     D_DEBUG( "Voodoo/Dispatch: Handling RESPONSE message %llu (%s) with instance %u for request "
-              "%llu (%d bytes).\n", (unsigned long long)response->header.serial, DirectResultString( response->result ),
-              response->instance, (unsigned long long)response->request, response->header.size );
+     D_DEBUG_AT( Voodoo_Dispatch, "Handling RESPONSE message %llu (%s) with instance %u for request "
+                 "%llu (%d bytes).\n", (unsigned long long)response->header.serial, DirectResultString( response->result ),
+                 response->instance, (unsigned long long)response->request, response->header.size );
 
      pthread_mutex_lock( &manager->response.lock );
 
@@ -1200,15 +1217,16 @@ manager_dispatch_loop( DirectThread *thread, void *arg )
      while (!manager->quit) {
           VoodooMessageHeader *header;
           int                  aligned;
+          int                  start;
 
           D_MAGIC_ASSERT( manager, VoodooManager );
 
-          D_DEBUG( "Voodoo/Dispatch: START %d, END %d, MAX %d\n",
-                   manager->input.start, manager->input.end, manager->input.max );
+          D_DEBUG_AT( Voodoo_Dispatch, "START %d, LAST %d, END %d, MAX %d\n",
+                      manager->input.start, manager->input.last, manager->input.end, manager->input.max );
 
           /* Wait for at least four bytes which contain the length of the message. */
-          while (manager->input.end - manager->input.start < 4) {
-               D_DEBUG( "Voodoo/Dispatch: Waiting for messages...\n" );
+          while (manager->input.last - manager->input.start < 4) {
+               D_DEBUG_AT( Voodoo_Dispatch, "Waiting for messages...\n" );
 
                pthread_cond_wait( &manager->input.wait, &manager->input.lock );
 
@@ -1219,72 +1237,54 @@ manager_dispatch_loop( DirectThread *thread, void *arg )
           if (manager->quit)
                break;
 
-          /* Get the message header. */
-          header  = (VoodooMessageHeader *)(manager->input.buffer + manager->input.start);
-          aligned = VOODOO_MSG_ALIGN( header->size );
-
-          D_DEBUG( "Voodoo/Dispatch: Next message has %d (%d) bytes and is of type %d...\n",
-                   header->size, aligned, header->type );
-
-          D_ASSERT( header->size >= sizeof(VoodooMessageHeader) );
-          D_ASSERT( header->size <= MAX_MSG_SIZE );
-
-          /* Extend the buffer if the message doesn't fit into the default boundary. */
-          if (aligned > manager->input.max - manager->input.start) {
-               D_ASSERT( manager->input.max == IN_BUF_MAX );
-
-               D_DEBUG( "Voodoo/Dispatch: ...fetching tail of message.\n" );
-
-               manager->input.max = manager->input.start + aligned;
-
-               pthread_cond_broadcast( &manager->input.wait );
-          }
-
-          /* Wait until the complete message is received. */
-          while (aligned > manager->input.end - manager->input.start) {
-               pthread_cond_wait( &manager->input.wait, &manager->input.lock );
-
-               if (manager->quit)
-                    break;
-          }
-
-          if (manager->quit)
-               break;
+          start = manager->input.start;
 
           /* Unlock the input buffer. */
           pthread_mutex_unlock( &manager->input.lock );
 
-          switch (header->type) {
-               case VMSG_SUPER:
-                    handle_super( manager, (VoodooSuperMessage*) header );
-                    break;
 
-               case VMSG_REQUEST:
-                    handle_request( manager, (VoodooRequestMessage*) header );
-                    break;
+          while (start != manager->input.last) {
+               /* Get the message header. */
+               header  = (VoodooMessageHeader *)(manager->input.buffer + start);
+               aligned = VOODOO_MSG_ALIGN( header->size );
 
-               case VMSG_RESPONSE:
-                    handle_response( manager, (VoodooResponseMessage*) header );
-                    break;
+               D_DEBUG_AT( Voodoo_Dispatch, "Next message has %d (%d) bytes and is of type %d...\n",
+                           header->size, aligned, header->type );
 
-               default:
-                    D_BUG( "invalid message type %d", header->type );
-                    break;
+               D_ASSERT( header->size >= sizeof(VoodooMessageHeader) );
+               D_ASSERT( header->size <= MAX_MSG_SIZE );
+
+               D_ASSERT( aligned <= manager->input.end - start );
+
+               switch (header->type) {
+                    case VMSG_SUPER:
+                         handle_super( manager, (VoodooSuperMessage*) header );
+                         break;
+
+                    case VMSG_REQUEST:
+                         handle_request( manager, (VoodooRequestMessage*) header );
+                         break;
+
+                    case VMSG_RESPONSE:
+                         handle_response( manager, (VoodooResponseMessage*) header );
+                         break;
+
+                    default:
+                         D_BUG( "invalid message type %d", header->type );
+                         break;
+               }
+
+               start += aligned;
           }
+
 
           /* Lock the input buffer. */
           pthread_mutex_lock( &manager->input.lock );
 
-          manager->input.start += aligned;
+          manager->input.start = start;
 
-          if (manager->input.start == manager->input.end) {
-               if (manager->input.start == manager->input.max)
-                    pthread_cond_broadcast( &manager->input.wait );
-
-               manager->input.start = manager->input.end = 0;
-
-               manager->input.max = IN_BUF_MAX;
-          }
+          if (start == manager->input.max)
+               pthread_cond_broadcast( &manager->input.wait );
      }
 
      /* Unlock the input buffer. */
@@ -1297,13 +1297,15 @@ static void *
 manager_input_loop( DirectThread *thread, void *arg )
 {
      int            len;
-     struct pollfd  pf;
      VoodooManager *manager = arg;
 
      manager->millis = direct_clock_get_millis();
 
      while (!manager->quit) {
           D_MAGIC_ASSERT( manager, VoodooManager );
+
+#if 0
+          struct pollfd pf;
 
           pf.fd     = manager->fd;
           pf.events = POLLIN;
@@ -1319,7 +1321,7 @@ manager_input_loop( DirectThread *thread, void *arg )
                case 0:
                     continue;
           }
-
+#endif
           pthread_mutex_lock( &manager->input.lock );
 
           while (manager->input.end == manager->input.max) {
@@ -1327,11 +1329,22 @@ manager_input_loop( DirectThread *thread, void *arg )
 
                if (manager->quit)
                     break;
+
+               if (manager->input.start == manager->input.max) {
+                    manager->input.start = 0;
+                    manager->input.end   = 0;
+                    manager->input.last  = 0;
+                    manager->input.max   = IN_BUF_MAX;
+               }
           }
 
+          pthread_mutex_unlock( &manager->input.lock );
+
           if (!manager->quit) {
-               len = recv( manager->fd, manager->input.buffer + manager->input.end,
-                           manager->input.max - manager->input.end, MSG_DONTWAIT );
+//               len = recv( manager->fd, manager->input.buffer + manager->input.end,
+//                           manager->input.max - manager->input.end, 0/*MSG_DONTWAIT*/ );
+               len = read( manager->fd[0], manager->input.buffer + manager->input.end,
+                           manager->input.max - manager->input.end/*, MSG_DONTWAIT*/ );
                if (len < 0) {
                     switch (errno) {
                          case EINTR:
@@ -1343,17 +1356,53 @@ manager_input_loop( DirectThread *thread, void *arg )
                     }
                }
                else if (len > 0) {
-                    D_DEBUG( "Voodoo/Input: Received %d bytes...\n", len );
+                    int last = manager->input.last;
+
+                    D_DEBUG_AT( Voodoo_Input, "Received %d bytes...\n", len );
 
                     manager->input.end += len;
 
-                    pthread_cond_broadcast( &manager->input.wait );
+                    do {
+                         VoodooMessageHeader *header;
+                         int                  aligned;
+
+                         /* Get the message header. */
+                         header  = (VoodooMessageHeader *)(manager->input.buffer + last);
+                         aligned = VOODOO_MSG_ALIGN( header->size );
+                         
+                         D_DEBUG_AT( Voodoo_Input, "Next message has %d (%d) bytes and is of type %d...\n",
+                                     header->size, aligned, header->type );
+     
+                         D_ASSERT( header->size >= sizeof(VoodooMessageHeader) );
+                         D_ASSERT( header->size <= MAX_MSG_SIZE );
+
+                         /* Extend the buffer if the message doesn't fit into the default boundary. */
+                         if (aligned > manager->input.max - last) {
+                              D_ASSERT( manager->input.max == IN_BUF_MAX );
+     
+                              D_DEBUG_AT( Voodoo_Input, "...fetching tail of message.\n" );
+     
+                              manager->input.max = last + aligned;
+
+                              break;
+                         }
+
+                         last += aligned;
+                    } while (last < manager->input.end);
+
+                    if (last != manager->input.last) {
+                         pthread_mutex_lock( &manager->input.lock );
+
+                         manager->input.last = last;
+
+                         pthread_cond_broadcast( &manager->input.wait );
+
+                         pthread_mutex_unlock( &manager->input.lock );
+                    }
                }
                else
                     handle_disconnect( manager );
           }
-
-          pthread_mutex_unlock( &manager->input.lock );
      }
 
      return NULL;
@@ -1363,11 +1412,13 @@ static void *
 manager_output_loop( DirectThread *thread, void *arg )
 {
      int            len;
-     struct pollfd  pf;
      VoodooManager *manager = arg;
 
      while (!manager->quit) {
           D_MAGIC_ASSERT( manager, VoodooManager );
+
+#if 0
+          struct pollfd pf;
 
           pf.fd     = manager->fd;
           pf.events = POLLOUT;
@@ -1383,8 +1434,12 @@ manager_output_loop( DirectThread *thread, void *arg )
                case 0:
                     continue;
           }
+#endif
 
           pthread_mutex_lock( &manager->output.lock );
+
+          D_DEBUG_AT( Voodoo_Output, "START %d, END %d\n",
+                      manager->output.start, manager->output.end );
 
           while (manager->output.start == manager->output.end) {
                struct timeval  now;
@@ -1407,13 +1462,41 @@ manager_output_loop( DirectThread *thread, void *arg )
                     break;
           }
 
+          pthread_mutex_unlock( &manager->output.lock );
+
           if (!manager->quit) {
-               len = send( manager->fd, manager->output.buffer + manager->output.start,
-                           manager->output.end - manager->output.start, MSG_DONTWAIT );
+//               int          left = manager->output.end - manager->output.start;
+//               struct iovec iov[2];
+//               len = send( manager->fd, manager->output.buffer + manager->output.start,
+//                           manager->output.end - manager->output.start, 0/*MSG_DONTWAIT*/ );
+#if 1
+               D_DEBUG_AT( Voodoo_Output, "Sending %d bytes...\n", manager->output.end - manager->output.start );
+               len = write( manager->fd[1], manager->output.buffer + manager->output.start,
+                            manager->output.end - manager->output.start );
+#else
+               if (manager->output.start & 0xfff || left < 0x1000) {
+                    iov[0].iov_base = manager->output.buffer + manager->output.start;
+                    iov[0].iov_len  = 0x1000 - (manager->output.start & 0xfff);
+
+                    if (iov[0].iov_len > left)
+                         iov[0].iov_len = left;
+
+                    len = vmsplice( manager->fd[1], iov, 1, 0 );
+               }
+               else {
+                    iov[0].iov_base = manager->output.buffer + manager->output.start;
+                    iov[0].iov_len  = left & ~0xfff;
+
+//                    printf("base %p, len %d\n", iov[0].iov_base, iov[0].iov_len);
+
+                    len = vmsplice( manager->fd[1], iov, 1, SPLICE_F_GIFT );
+               }
+#endif
                if (len < 0) {
                     switch (errno) {
                          case EINTR:
                          case EAGAIN:
+                              D_DEBUG_AT( Voodoo_Output, "  -> EAGAIN\n" );
                               break;
                          default:
                               D_PERROR( "Voodoo/Output: Could not send() data!\n" );
@@ -1421,19 +1504,21 @@ manager_output_loop( DirectThread *thread, void *arg )
                     }
                }
                else {
-                    D_DEBUG( "Voodoo/Output: Sent %d/%d bytes...\n", len, manager->output.end - manager->output.start );
+                    D_DEBUG_AT( Voodoo_Output, "Sent %d/%d bytes...\n", len, manager->output.end - manager->output.start );
 
                     manager->output.start += len;
+
+                    pthread_mutex_lock( &manager->output.lock );
 
                     if (manager->output.start == manager->output.end) {
                          manager->output.start = manager->output.end = 0;
 
                          pthread_cond_broadcast( &manager->output.wait );
                     }
+
+                    pthread_mutex_unlock( &manager->output.lock );
                }
           }
-
-          pthread_mutex_unlock( &manager->output.lock );
      }
 
      return NULL;
@@ -1475,6 +1560,8 @@ manager_lock_output( VoodooManager  *manager,
 
      *ret_ptr = manager->output.buffer + manager->output.end;
 
+     D_DEBUG_AT( Voodoo_Output, "Output locked at %d (length %d)...\n", manager->output.end, aligned );
+
      manager->output.end += aligned;
 
      return DR_OK;
@@ -1506,7 +1593,7 @@ manager_lock_response( VoodooManager          *manager,
      D_MAGIC_ASSERT( manager, VoodooManager );
      D_ASSERT( ret_response != NULL );
 
-     D_DEBUG( "Voodoo/Manager: Locking response to request %llu...\n", (unsigned long long)request );
+     D_DEBUG_AT( Voodoo_Manager, "Locking response to request %llu...\n", (unsigned long long)request );
 
      pthread_mutex_lock( &manager->response.lock );
 

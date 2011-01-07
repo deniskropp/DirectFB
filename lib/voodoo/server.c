@@ -57,8 +57,9 @@
 #include <direct/util.h>
 
 #include <voodoo/conf.h>
-#include <voodoo/server.h>
 #include <voodoo/internal.h>
+#include <voodoo/manager.h>
+#include <voodoo/server.h>
 
 #ifndef htons
 #if WORDS_BIGENDIAN
@@ -465,6 +466,7 @@ accept_connection( VoodooServer *server, int fd )
 {
      DirectResult     ret;
      Connection      *connection;
+     int              fds[2];
 
      connection = D_CALLOC( 1, sizeof(Connection) );
      if (!connection) {
@@ -474,7 +476,10 @@ accept_connection( VoodooServer *server, int fd )
 
      connection->fd = fd;
 
-     ret = voodoo_manager_create( connection->fd, NULL, server, &connection->manager );
+     fds[0] = connection->fd;
+     fds[1] = connection->fd;
+
+     ret = voodoo_manager_create( fds, NULL, server, &connection->manager );
      if (ret) {
           close( connection->fd );
           D_FREE( connection );
