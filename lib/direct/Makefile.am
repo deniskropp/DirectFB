@@ -56,6 +56,7 @@ include_HEADERS = \
 	conf.h				\
 	debug.h				\
 	direct.h			\
+	fastlz.h			\
 	fifo.h				\
 	filesystem.h			\
 	hash.h				\
@@ -95,6 +96,7 @@ libdirect_la_SOURCES = \
 	debug.c			\
 	direct.c		\
 	direct_result.c		\
+	fastlz.c		\
 	fifo.c			\
 	hash.c			\
 	interface.c		\
