@@ -1817,11 +1817,11 @@ void dfb_gfxcard_filltrapezoids( const DFBTrapezoid *traps, int num, CardState *
                         D_FLAGS_IS_SET( card->caps.clip, DFXL_FILLTRIANGLE ) ||
                         (state->render_options & DSRO_MATRIX))
                     {
-                         tri1_failed = card->funcs.FillTriangle( card->driver_data,
-                                                                 card->device_data, &tri1 );
+                         tri1_failed = !card->funcs.FillTriangle( card->driver_data,
+                                                                  card->device_data, &tri1 );
 
-                         tri2_failed = card->funcs.FillTriangle( card->driver_data,
-                                                                 card->device_data, &tri2 );
+                         tri2_failed = !card->funcs.FillTriangle( card->driver_data,
+                                                                  card->device_data, &tri2 );
                     }
 
                     if (tri1_failed || tri2_failed) {
