@@ -84,7 +84,7 @@
 #endif
 
 #if !defined(FASTLZ_STRICT_ALIGN)
-#define FASTLZ_READU16(p) *((const flzuint16*)(p)) 
+#define FASTLZ_READU16(p) (*(const u16*)(p))
 #else
 #define FASTLZ_READU16(p) ((p)[0] | (p)[1]<<8)
 #endif
