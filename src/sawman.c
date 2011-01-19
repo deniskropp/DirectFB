@@ -562,7 +562,8 @@ sawman_call( SaWMan       *sawman,
      int ret = DFB_FUSION;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
+     if (sawman->lock)
+          FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      D_ASSERT( m_sawman == sawman );
 
@@ -766,7 +767,8 @@ register_process( SaWMan             *sawman,
      SaWManProcess *process;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
+     if (sawman->lock)
+          FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      /* Allocate process data. */
      process = SHCALLOC( sawman->shmpool, 1, sizeof(SaWManProcess) );
