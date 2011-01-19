@@ -265,18 +265,18 @@ load_symbols( const char *filename )
 
           ret = direct_access( command, R_OK );
           if (ret == DR_OK) {
-               ret = direct_open( &fp, command, O_RDONLY, 0 );
+               ret = direct_file_open( &fp, command, O_RDONLY, 0 );
                if (ret)
-                    D_DERROR( ret, "Direct/Trace: direct_open( \"%s\", \"r\" ) failed!\n", command );
+                    D_DERROR( ret, "Direct/Trace: direct_file_open( \"%s\", \"r\" ) failed!\n", command );
           }
           else {
                direct_snprintf( command, command_len, "%s.nm", full_path );
 
                ret = direct_access( command, R_OK );
                if (ret == DR_OK) {
-                    ret = direct_open( &fp, command, O_RDONLY, 0 );
+                    ret = direct_file_open( &fp, command, O_RDONLY, 0 );
                     if (ret)
-                         D_DERROR( ret, "Direct/Trace: direct_open( \"%s\", \"r\" ) failed!\n", command );
+                         D_DERROR( ret, "Direct/Trace: direct_file_open( \"%s\", \"r\" ) failed!\n", command );
                }
           }
 
@@ -338,7 +338,7 @@ out:
      if (is_pipe)
           direct_pclose( &fp );
      else
-          direct_close( &fp );
+          direct_file_close( &fp );
 
      return table;
 }
