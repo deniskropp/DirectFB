@@ -26,6 +26,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <directfb_build.h>	// FIXME
+
 #include <fusiondale.h>
 #include <fusiondale_version.h>
 
@@ -116,8 +118,10 @@ FusionDaleSetOption( const char *name, const char *value )
 DirectResult
 FusionDaleCreate( IFusionDale **ret_interface )
 {
+#if !DIRECTFB_BUILD_PURE_VOODOO
      DirectResult ret;
-     
+#endif
+
      if (!fusiondale_config) {
           D_ERROR( "FusionDaleCreate: FusionDaleInit has to be called first!\n" );
           return DR_INIT;
@@ -132,7 +136,7 @@ FusionDaleCreate( IFusionDale **ret_interface )
           return DR_OK;
      }
 
-#ifndef DIRECTFB_PURE_VOODOO
+#if !DIRECTFB_BUILD_PURE_VOODOO
      if (fusiondale_config->remote.host)
           return CreateRemote( fusiondale_config->remote.host, fusiondale_config->remote.session, ret_interface );
 
@@ -156,7 +160,7 @@ FusionDaleCreate( IFusionDale **ret_interface )
 
      return DR_OK;
 #else
-     return CreateRemote( fusiondale_config->remote.host ?: "", fusiondale_config->remote.session, ret_interface );
+     return CreateRemote( fusiondale_config->remote.host ? fusiondale_config->remote.host : "", fusiondale_config->remote.session, ret_interface );
 #endif
 }
 
@@ -192,7 +196,7 @@ CreateRemote( const char *host, int session, IFusionDale **ret_interface )
 {
      DirectResult          ret;
      DirectInterfaceFuncs *funcs;
-     void                 *interface;
+     void                 *interface_ptr;
 
      D_ASSERT( host != NULL );
      D_ASSERT( ret_interface != NULL );
@@ -201,15 +205,15 @@ CreateRemote( const char *host, int session, IFusionDale **ret_interface )
      if (ret)
           return ret;
 
-     ret = funcs->Allocate( &interface );
+     ret = funcs->Allocate( &interface_ptr );
      if (ret)
           return ret;
 
-     ret = funcs->Construct( interface, host, session );
+     ret = funcs->Construct( interface_ptr, host, session );
      if (ret)
           return ret;
 
-     *ret_interface = interface;
+     *ret_interface = interface_ptr;
 
      return DR_OK;
 }
