@@ -31,8 +31,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <pthread.h>
-
 #include <direct/debug.h>
 #include <direct/list.h>
 #include <direct/util.h>
