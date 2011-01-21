@@ -28,11 +28,12 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#include <directfb_build.h>
 
 #include <direct/direct.h>
 
@@ -65,10 +66,12 @@ DiVineInit( int *argc, char *(*argv[]) )
  * which is needed to access other functions
  */
 DFBResult
-DiVineCreate( IDiVine **interface )
+DiVineCreate( IDiVine **interface_ptr )
 {
+#ifndef DIRECTFB_BUILD_PURE_VOODOO
      DFBResult  ret;
      IDiVine   *divine;
+#endif
 
      if (!dfb_config) {
           /*  don't use D_ERROR() here, it uses dfb_config  */
@@ -76,13 +79,14 @@ DiVineCreate( IDiVine **interface )
           return DFB_INIT;
      }
 
-     if (!interface)
+     if (!interface_ptr)
           return DFB_INVARG;
 
      direct_initialize();
 
+#ifndef DIRECTFB_BUILD_PURE_VOODOO
      if (dfb_config->remote.host)
-          return CreateRemote( dfb_config->remote.host, dfb_config->remote.session, interface );
+          return CreateRemote( dfb_config->remote.host, dfb_config->remote.port, interface_ptr );
 
      DIRECT_ALLOCATE_INTERFACE( divine, IDiVine );
 
@@ -90,41 +94,44 @@ DiVineCreate( IDiVine **interface )
      if (ret)
           return ret;
 
-     *interface = divine;
+     *interface_ptr = divine;
 
      return DFB_OK;
+#else
+     return CreateRemote( dfb_config->remote.host, dfb_config->remote.port, interface_ptr );
+#endif
 }
 
 /**********************************************************************************************************************/
 
 static DFBResult
-CreateRemote( const char *host, int session, IDiVine **ret_interface )
+CreateRemote( const char *host, int port, IDiVine **ret_interface )
 {
      DFBResult             ret;
      DirectInterfaceFuncs *funcs;
-     void                 *interface;
+     void                 *interface_ptr;
 
-     D_ASSERT( host != NULL );
      D_ASSERT( ret_interface != NULL );
 
      ret = DirectGetInterface( &funcs, "IDiVine", "Requestor", NULL, NULL );
      if (ret)
           return ret;
 
-     ret = funcs->Allocate( &interface );
+     ret = funcs->Allocate( &interface_ptr );
      if (ret)
           return ret;
 
-     ret = funcs->Construct( interface, host, session );
+     ret = funcs->Construct( interface_ptr, host, port );
      if (ret)
           return ret;
 
-     *ret_interface = interface;
+     *ret_interface = interface_ptr;
 
      return DFB_OK;
 }
 
 /**********************************************************************************************************************/
+#ifndef DIRECTFB_BUILD_PURE_VOODOO
 
 struct _DiVine {
      int fd; /* The file descriptor of the connection (pipe) */
@@ -353,3 +360,5 @@ divine_close( DiVine *divine )
      /* Free connection object */
      free( divine );
 }
+
+#endif
