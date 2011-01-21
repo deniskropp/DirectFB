@@ -125,7 +125,7 @@ Dispatch_SendEvent( IDiVine *thiz, IDiVine *real,
 
      ret = real->SendEvent( real, event );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
@@ -146,7 +146,7 @@ Dispatch_SendSymbol( IDiVine *thiz, IDiVine *real,
 
      ret = real->SendSymbol( real, symbol );
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
                                     VMBT_NONE );
 }
