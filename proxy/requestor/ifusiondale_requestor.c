@@ -112,7 +112,7 @@ IFusionDale_Requestor_EnterComa( IFusionDale  *thiz,
 {
      DirectResult           ret;
      VoodooResponseMessage *response;
-     void                  *interface = NULL;
+     void                  *interface_ptr = NULL;
 
      DIRECT_INTERFACE_GET_DATA(IFusionDale_Requestor)
 
@@ -126,11 +126,11 @@ IFusionDale_Requestor_EnterComa( IFusionDale  *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IComa",
-                                            response->instance, NULL, &interface );
+                                            response->instance, NULL, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
-     *ret_coma = interface;
+     *ret_coma = interface_ptr;
 
      return ret;
 }
