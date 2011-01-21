@@ -120,7 +120,7 @@ IComa_Requestor_GetComponent( IComa           *thiz,
 {
      DirectResult           ret;
      VoodooResponseMessage *response;
-     void                  *interface = NULL;
+     void                  *interface_ptr = NULL;
 
      DIRECT_INTERFACE_GET_DATA(IComa_Requestor)
 
@@ -135,11 +135,11 @@ IComa_Requestor_GetComponent( IComa           *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IComaComponent",
-                                            response->instance, thiz, &interface );
+                                            response->instance, thiz, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
-     *ret_component = interface;
+     *ret_component = interface_ptr;
 
      return ret;
 }
@@ -172,13 +172,13 @@ IComa_Requestor_GetLocal( IComa         *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IComa_Requestor)
 
-     coma_tls = pthread_getspecific( data->tlshm_key );
+     coma_tls = direct_tls_get( data->tlshm_key );
      if (!coma_tls) {
           coma_tls = D_CALLOC( 1, sizeof(ComaTLS) );
           if (!coma_tls)
                return D_OOM();
 
-          pthread_setspecific( data->tlshm_key, coma_tls );
+          direct_tls_set( data->tlshm_key, coma_tls );
      }
 
      if (coma_tls->capacity < length) {
@@ -203,7 +203,7 @@ IComa_Requestor_FreeLocal( IComa *thiz )
 
      DIRECT_INTERFACE_GET_DATA(IComa_Requestor)
 
-     coma_tls = pthread_getspecific( data->tlshm_key );
+     coma_tls = direct_tls_get( data->tlshm_key );
      if (!coma_tls)
           return DR_BUG;
 
@@ -243,7 +243,7 @@ Construct( IComa            *thiz,
      data->manager  = manager;
      data->instance = instance;
 
-     pthread_key_create( &data->tlshm_key, tlshm_destroy );
+     direct_tls_register( &data->tlshm_key, tlshm_destroy );
 
      thiz->AddRef          = IComa_Requestor_AddRef;
      thiz->Release         = IComa_Requestor_Release;

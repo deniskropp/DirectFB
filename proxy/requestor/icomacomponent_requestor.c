@@ -133,7 +133,7 @@ IComaComponent_Requestor_Call( IComaComponent  *thiz,
      if (arg) {
           ComaTLS *coma_tls;
 
-          coma_tls = pthread_getspecific( coma_data->tlshm_key );
+          coma_tls = direct_tls_get( coma_data->tlshm_key );
           if (!coma_tls)
                return DR_BUG;
 

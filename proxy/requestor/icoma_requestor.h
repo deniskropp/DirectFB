@@ -31,7 +31,7 @@
 
 #include <voodoo/types.h>
 
-#include <pthread.h>
+#include <direct/thread.h>
 
 /*
  * private data struct of IComa_Requestor
@@ -44,7 +44,7 @@ typedef struct {
 
      VoodooInstanceID     instance;
 
-     pthread_key_t        tlshm_key;
+     DirectTLS            tlshm_key;
 } IComa_Requestor_data;
 
 
