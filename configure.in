@@ -601,10 +601,13 @@ dnl If we're not building a pure voodoo lib, we need the sqrt symbol
 dnl for src/media/idirectfbfont.c
 MEDIALIB=""
 if test "$enable_pure_voodoo" = "no"; then
+save_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Wno-error"
   AC_CHECK_LIB(m, sqrt,
     MEDIALIB="-lm",
     AC_MSG_ERROR([
 *** DirectFB requires libm.]))
+CFLAGS="$save_CFLAGS"
 fi
 AC_SUBST(MEDIALIB)
 
