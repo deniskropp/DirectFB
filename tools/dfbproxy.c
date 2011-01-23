@@ -119,7 +119,15 @@ parse_command_line( int argc, char *argv[] )
 static DFBResult
 server_run()
 {
+     static const char *super_interfaces[] = {
+          "IDirectFB",
+          "IDiVine",
+          "IFusionDale",
+          "ISaWMan"
+     };
+
      DFBResult     ret;
+     size_t        i;
      VoodooPlayer *player = NULL;
      VoodooServer *server = NULL;
 
@@ -135,16 +143,12 @@ server_run()
           goto out;
      }
 
-     ret = voodoo_server_register( server, "IDirectFB", ConstructDispatcher, NULL );
-     if (ret) {
-          D_ERROR( "Voodoo/Proxy: Could not register super interface 'IDirectFB'!\n" );
-          goto out;
-     }
-
-     ret = voodoo_server_register( server, "IDiVine", ConstructDispatcher, NULL );
-     if (ret) {
-          D_ERROR( "Voodoo/Proxy: Could not register super interface 'IDiVine'!\n" );
-          goto out;
+     for (i=0; i<D_ARRAY_SIZE(super_interfaces); i++) {
+          ret = voodoo_server_register( server, super_interfaces[i], ConstructDispatcher, NULL );
+          if (ret) {
+               D_DERROR( ret, "Voodoo/Proxy: Could not register super interface '%s'!\n", super_interfaces[i] );
+               goto out;
+          }
      }
 
      ret = voodoo_server_run( server );
