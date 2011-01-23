@@ -36,6 +36,11 @@
 
 #include <config.h>
 
+#include <list>
+#include <map>
+#include <string>
+#include <vector>
+
 extern "C" {
 #include <errno.h>
 #include <stdio.h>
@@ -60,11 +65,6 @@ extern "C" {
 
 #include <dgiff.h>
 }
-
-#include <list>
-#include <map>
-#include <string>
-#include <vector>
 
 
 #define MAX_ROW_WIDTH    2047
