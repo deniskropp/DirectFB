@@ -29,7 +29,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 
 #include <direct/messages.h>
 
@@ -47,7 +46,7 @@ parse_format( const char *arg, DFBSurfacePixelFormat *_f )
      int i = 0;
 
      while (format_names[i].format != DSPF_UNKNOWN) {
-          if (!strcasecmp( arg, format_names[i].name )) {
+          if (!direct_strcasecmp( arg, format_names[i].name )) {
                *_f = format_names[i].format;
                return DFB_TRUE;
           }
