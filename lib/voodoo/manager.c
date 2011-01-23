@@ -67,9 +67,9 @@
 #include <voodoo/manager.h>
 
 
-#define IN_BUF_MAX   (320 * 1024)
-#define OUT_BUF_MAX  (1280 * 1024)
-#define MAX_MSG_SIZE (16 * 1024)
+#define IN_BUF_MAX   (64 * 1024)
+#define OUT_BUF_MAX  (64 * 1024)
+#define MAX_MSG_SIZE (17 * 1024)
 
 
 D_DEBUG_DOMAIN( Voodoo_Dispatch, "Voodoo/Dispatch", "Voodoo Dispatch" );
