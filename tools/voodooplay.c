@@ -35,7 +35,6 @@
 #include <config.h>
 
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 
 #include <directfb.h>
@@ -44,6 +43,7 @@
 #include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 #include <direct/util.h>
 
 #include <voodoo/play.h>
@@ -104,7 +104,7 @@ main( int argc, char *argv[] )
      do {
           voodoo_player_broadcast( player );
 
-          usleep( 100000 );
+          direct_thread_sleep( 100000 );
 
           voodoo_player_enumerate( player, player_callback, NULL );
 
@@ -121,7 +121,7 @@ main( int argc, char *argv[] )
                }
           }
 
-          sleep( 2 );
+          direct_thread_sleep( 2000000 );
      } while (m_run);
 
 
