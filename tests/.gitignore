@@ -16,3 +16,8 @@ fusion_fork
 fusion_reactor
 fusion_skirmish
 fusion_stream
+voodoo_bench
+voodoo_bench_client
+voodoo_bench_client_unix
+voodoo_bench_server
+voodoo_bench_server_unix

@@ -38,10 +38,16 @@ bin_PROGRAMS = \
 	dfbtest_window	\
 	dfbtest_window_flip_once	\
 	direct_stream	\
-	direct_test
+	direct_test	\
+	voodoo_bench	\
+	voodoo_bench_client		\
+	voodoo_bench_server		\
+	voodoo_bench_client_unix	\
+	voodoo_bench_server_unix
 
 libdirectfb = $(top_builddir)/src/libdirectfb.la
 libfusion = $(top_builddir)/lib/fusion/libfusion.la
+libvoodoo = $(top_builddir)/lib/voodoo/libvoodoo.la
 libdirect = $(top_builddir)/lib/direct/libdirect.la
 
 coretest_blit2_SOURCES = coretest_blit2.c
@@ -99,3 +105,18 @@ fusion_skirmish_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
 
 fusion_stream_SOURCES = fusion_stream.c
 fusion_stream_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
+
+voodoo_bench_SOURCES = voodoo_bench.c
+voodoo_bench_LDADD   = $(libdirectfb) $(libfusion) $(libvoodoo) $(libdirect)
+
+voodoo_bench_client_SOURCES = voodoo_bench_client.c
+voodoo_bench_client_LDADD   = $(libdirectfb) $(libfusion) $(libvoodoo) $(libdirect)
+
+voodoo_bench_server_SOURCES = voodoo_bench_server.c
+voodoo_bench_server_LDADD   = $(libdirectfb) $(libfusion) $(libvoodoo) $(libdirect)
+
+voodoo_bench_client_unix_SOURCES = voodoo_bench_client_unix.c
+voodoo_bench_client_unix_LDADD   = $(libdirectfb) $(libfusion) $(libvoodoo) $(libdirect)
+
+voodoo_bench_server_unix_SOURCES = voodoo_bench_server_unix.c
+voodoo_bench_server_unix_LDADD   = $(libdirectfb) $(libfusion) $(libvoodoo) $(libdirect)
