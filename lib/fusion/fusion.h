@@ -58,68 +58,68 @@ typedef void (*FusionForkCallback) ( FusionForkAction action, FusionForkState st
  * If <b>world_index</b> is negative, the next free index is used to create a new world.
  * Otherwise the world with the specified index is joined or created.
  */
-DirectResult fusion_enter( int               world_index,
-                           int               abi_version,
-                           FusionEnterRole   role,
-                           FusionWorld     **ret_world );
+DirectResult FUSION_API fusion_enter( int               world_index,
+                                      int               abi_version,
+                                      FusionEnterRole   role,
+                                      FusionWorld     **ret_world );
 
 /*
  * Exits the fusion world.
  *
  * If 'emergency' is true the function won't join but kill the dispatcher thread.
  */
-DirectResult fusion_exit( FusionWorld *world,
-                          bool         emergency );
-
-DirectResult fusion_stop_dispatcher( FusionWorld *world,
+DirectResult FUSION_API fusion_exit( FusionWorld *world,
                                      bool         emergency );
+
+DirectResult FUSION_API fusion_stop_dispatcher( FusionWorld *world,
+                                                bool         emergency );
 
 /*
  * Sets the fork() action of the calling Fusionee within the world.
  */
-void fusion_world_set_fork_action( FusionWorld      *world,
-                                   FusionForkAction  action );
+void FUSION_API fusion_world_set_fork_action( FusionWorld      *world,
+                                              FusionForkAction  action );
                                    
 /*
  * Gets the current fork() action.
  */ 
-FusionForkAction fusion_world_get_fork_action( FusionWorld *world );
+FusionForkAction FUSION_API fusion_world_get_fork_action( FusionWorld *world );
 
 /*
  * Registers a callback called upon fork().
  */
-void fusion_world_set_fork_callback( FusionWorld        *world,
-                                     FusionForkCallback  callback );
+void FUSION_API fusion_world_set_fork_callback( FusionWorld        *world,
+                                                FusionForkCallback  callback );
 
 /*
  * Return the index of the specified world.
  */
-int fusion_world_index( const FusionWorld *world );
+int FUSION_API fusion_world_index( const FusionWorld *world );
 
 /*
  * Return the own Fusion ID within the specified world.
  */
-FusionID fusion_id( const FusionWorld *world );
+FusionID FUSION_API fusion_id( const FusionWorld *world );
 
 /*
  * Return if the world is a multi application world.
  */
-bool fusion_is_multi( const FusionWorld *world );
+bool FUSION_API fusion_is_multi( const FusionWorld *world );
 
 /*
  * Return the thread ID of the Fusion Dispatcher within the specified world.
  */
-pid_t fusion_dispatcher_tid( const FusionWorld *world );
+pid_t FUSION_API fusion_dispatcher_tid( const FusionWorld *world );
 
 /*
  * Return true if this process is the master.
  */
-bool fusion_master( const FusionWorld *world );
+bool FUSION_API fusion_master( const FusionWorld *world );
 
 /*
  * Wait until all pending messages are processed.
  */
-DirectResult fusion_sync( const FusionWorld *world );
+DirectResult FUSION_API fusion_sync( const FusionWorld *world );
 
 /*
  * Sends a signal to one or more fusionees and optionally waits
@@ -129,14 +129,14 @@ DirectResult fusion_sync( const FusionWorld *world );
  * A timeout of zero means infinite waiting while a negative value
  * means no waiting at all.
  */
-DirectResult fusion_kill( FusionWorld *world,
-                          FusionID     fusion_id,
-                          int          signal,
-                          int          timeout_ms );
+DirectResult FUSION_API fusion_kill( FusionWorld *world,
+                                     FusionID     fusion_id,
+                                     int          signal,
+                                     int          timeout_ms );
 
 /* Check if a pointer points to the shared memory. */
-bool fusion_is_shared( FusionWorld *world,
-                       const void  *ptr );
+bool FUSION_API fusion_is_shared( FusionWorld *world,
+                                  const void  *ptr );
 
 #endif
 

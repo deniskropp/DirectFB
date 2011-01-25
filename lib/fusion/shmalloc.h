@@ -49,46 +49,46 @@
 
 
 
-void  fusion_dbg_print_memleaks( FusionSHMPoolShared *pool );
+void FUSION_API  fusion_dbg_print_memleaks( FusionSHMPoolShared *pool );
 
 
-void *fusion_dbg_shmalloc ( FusionSHMPoolShared *pool,
-                            const char *file, int line,
-                            const char *func, size_t __size );
+void FUSION_API *fusion_dbg_shmalloc ( FusionSHMPoolShared *pool,
+                                       const char *file, int line,
+                                       const char *func, size_t __size );
 
-void *fusion_dbg_shcalloc ( FusionSHMPoolShared *pool,
-                            const char *file, int line,
-                            const char *func, size_t __nmemb, size_t __size);
+void FUSION_API *fusion_dbg_shcalloc ( FusionSHMPoolShared *pool,
+                                       const char *file, int line,
+                                       const char *func, size_t __nmemb, size_t __size);
 
-void *fusion_dbg_shrealloc( FusionSHMPoolShared *pool,
-                            const char *file, int line,
-                            const char *func, const char *what, void *__ptr,
-                            size_t __size );
+void FUSION_API *fusion_dbg_shrealloc( FusionSHMPoolShared *pool,
+                                       const char *file, int line,
+                                       const char *func, const char *what, void *__ptr,
+                                       size_t __size );
 
-void  fusion_dbg_shfree   ( FusionSHMPoolShared *pool,
-                            const char *file, int line,
-                            const char *func, const char *what, void *__ptr );
+void FUSION_API  fusion_dbg_shfree   ( FusionSHMPoolShared *pool,
+                                       const char *file, int line,
+                                       const char *func, const char *what, void *__ptr );
 
-char *fusion_dbg_shstrdup ( FusionSHMPoolShared *pool,
-                            const char *file, int line,
-                            const char *func, const char *string );
+char FUSION_API *fusion_dbg_shstrdup ( FusionSHMPoolShared *pool,
+                                       const char *file, int line,
+                                       const char *func, const char *string );
 
 
 /* Allocate SIZE bytes of memory.  */
-void *fusion_shmalloc (FusionSHMPoolShared *pool, size_t __size);
+void FUSION_API *fusion_shmalloc (FusionSHMPoolShared *pool, size_t __size);
 
 /* Allocate NMEMB elements of SIZE bytes each, all initialized to 0.  */
-void *fusion_shcalloc (FusionSHMPoolShared *pool, size_t __nmemb, size_t __size);
+void FUSION_API *fusion_shcalloc (FusionSHMPoolShared *pool, size_t __nmemb, size_t __size);
 
 /* Re-allocate the previously allocated block
    in __ptr, making the new block SIZE bytes long.  */
-void *fusion_shrealloc (FusionSHMPoolShared *pool, void *__ptr, size_t __size);
+void FUSION_API *fusion_shrealloc (FusionSHMPoolShared *pool, void *__ptr, size_t __size);
 
 /* Free a block allocated by `shmalloc', `shrealloc' or `shcalloc'.  */
-void  fusion_shfree (FusionSHMPoolShared *pool, void *__ptr);
+void FUSION_API  fusion_shfree (FusionSHMPoolShared *pool, void *__ptr);
 
 /* Duplicate string in shared memory. */
-char *fusion_shstrdup (FusionSHMPoolShared *pool, const char *string);
+char FUSION_API *fusion_shstrdup (FusionSHMPoolShared *pool, const char *string);
 
 
 

@@ -37,7 +37,7 @@
 #include <fusion/vector.h>
 
 
-static inline bool ensure_capacity( FusionVector *vector )
+static __inline__ bool ensure_capacity( FusionVector *vector )
 {
      D_MAGIC_ASSERT( vector, FusionVector );
      D_ASSERT( vector->capacity > 0 );

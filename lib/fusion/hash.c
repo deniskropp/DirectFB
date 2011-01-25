@@ -115,14 +115,14 @@ fusion_hash_node_destroy (FusionHash *hash,FusionHashNode *node,
 static unsigned int
 spaced_primes_closest (unsigned int num)
 {
-     int i;
+     unsigned int i;
      for (i = 0; i < nprimes; i++)
           if (primes[i] > num)
                return primes[i];
      return primes[nprimes - 1];
 }
 
-static inline FusionHashNode**
+static __inline__ FusionHashNode**
 fusion_hash_lookup_node (FusionHash *hash,
                          const void *key)
 {

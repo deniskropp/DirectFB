@@ -35,8 +35,6 @@
 #include <sys/param.h>
 #include <sys/types.h>
 
-#include <pthread.h>
-
 #include <direct/debug.h>
 #include <direct/list.h>
 #include <direct/mem.h>

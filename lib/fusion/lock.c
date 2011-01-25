@@ -582,8 +582,8 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
      skirmish->single->name = (char*)(skirmish->single + 1);
      strcpy( skirmish->single->name, name );
 
-     direct_util_recursive_pthread_mutex_init( &skirmish->single->lock );
-     pthread_cond_init( &skirmish->single->cond, NULL );
+     direct_recursive_mutex_init( &skirmish->single->lock );
+     direct_waitqueue_init( &skirmish->single->cond );
 
      return DR_OK;
 }
@@ -596,7 +596,7 @@ fusion_skirmish_prevail (FusionSkirmish *skirmish)
 
      D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
 
-     if (pthread_mutex_lock( &skirmish->single->lock ))
+     if (direct_mutex_lock( &skirmish->single->lock ))
           return errno2result( errno );
 
      skirmish->single->count++;
@@ -612,7 +612,7 @@ fusion_skirmish_swoop (FusionSkirmish *skirmish)
 
      D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
 
-     if (pthread_mutex_trylock( &skirmish->single->lock ))
+     if (direct_mutex_trylock( &skirmish->single->lock ))
           return errno2result( errno );
 
      skirmish->single->count++;
@@ -629,14 +629,14 @@ fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
 
      D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
 
-     if (pthread_mutex_trylock( &skirmish->single->lock )) {
+     if (direct_mutex_trylock( &skirmish->single->lock )) {
           *lock_count = 0;
           return errno2result( errno );
      }
 
      *lock_count = skirmish->single->count;
 
-     pthread_mutex_unlock( &skirmish->single->lock );
+     direct_mutex_unlock( &skirmish->single->lock );
 
      return DR_OK;
 }
@@ -651,7 +651,7 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 
      skirmish->single->count--;
 
-     if (pthread_mutex_unlock( &skirmish->single->lock ))
+     if (direct_mutex_unlock( &skirmish->single->lock ))
           return errno2result( errno );
 
      return DR_OK;
@@ -667,10 +667,10 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
 
      D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
 
-     pthread_cond_broadcast( &skirmish->single->cond );
-     pthread_cond_destroy( &skirmish->single->cond );
+     direct_waitqueue_broadcast( &skirmish->single->cond );
+     direct_waitqueue_deinit( &skirmish->single->cond );
 
-     retval = pthread_mutex_destroy( &skirmish->single->lock );
+     retval = direct_mutex_deinit( &skirmish->single->lock );
      D_FREE( skirmish->single );
 
      return errno2result( retval );
@@ -685,24 +685,11 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
 
      D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
 
-     if (timeout) {
-          struct timespec ts;
-          struct timeval  tv;
-          int             ret;
-          
-          gettimeofday( &tv, NULL );
-          
-          ts.tv_nsec = tv.tv_usec*1000 + (timeout%1000)*1000000;
-          ts.tv_sec  = tv.tv_sec + timeout/1000 + ts.tv_nsec/1000000000;
-          ts.tv_nsec = ts.tv_nsec % 1000000000;
-          
-          ret = pthread_cond_timedwait( &skirmish->single->cond, 
-                                        &skirmish->single->lock, &ts );
-                                        
-          return (ret == ETIMEDOUT) ? DR_TIMEOUT : DR_OK;
-     }
+     if (timeout)
+          return direct_waitqueue_wait_timeout( &skirmish->single->cond, 
+                                                &skirmish->single->lock, timeout * 1000 );
 
-     return pthread_cond_wait( &skirmish->single->cond, &skirmish->single->lock );
+     return direct_waitqueue_wait( &skirmish->single->cond, &skirmish->single->lock );
 }
 
 DirectResult
@@ -713,7 +700,7 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
 
      D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
 
-     pthread_cond_broadcast( &skirmish->single->cond );
+     direct_waitqueue_broadcast( &skirmish->single->cond );
 
      return DR_OK;
 }

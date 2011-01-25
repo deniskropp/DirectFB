@@ -30,8 +30,6 @@
 
 #include <sys/param.h>
 
-#include <pthread.h>
-
 #include <direct/debug.h>
 #include <direct/messages.h>
 #include <direct/thread.h>

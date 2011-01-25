@@ -62,19 +62,19 @@ typedef struct {
 /*
  * Create a new reactor configured for the specified message data size.
  */
-FusionReactor *fusion_reactor_new          ( int                 msg_size,
-                                             const char         *name,
-                                             const FusionWorld  *world );
+FusionReactor FUSION_API *fusion_reactor_new          ( int                 msg_size,
+                                                        const char         *name,
+                                                        const FusionWorld  *world );
 
 /*
  * Destroy the reactor.
  */
-DirectResult   fusion_reactor_destroy      ( FusionReactor      *reactor );
+DirectResult  FUSION_API  fusion_reactor_destroy      ( FusionReactor      *reactor );
 
 /*
  * Free the reactor.
  */
-DirectResult   fusion_reactor_free         ( FusionReactor      *reactor );
+DirectResult  FUSION_API  fusion_reactor_free         ( FusionReactor      *reactor );
 
 
 /*
@@ -86,34 +86,34 @@ DirectResult   fusion_reactor_free         ( FusionReactor      *reactor );
  * To avoid dead locks caused by alternating lock orders of the global reaction
  * lock and another lock, the default lock is replaced by the other lock.
  */
-DirectResult   fusion_reactor_set_lock     ( FusionReactor      *reactor,
-                                             FusionSkirmish     *skirmish );
+DirectResult  FUSION_API  fusion_reactor_set_lock     ( FusionReactor      *reactor,
+                                                        FusionSkirmish     *skirmish );
 
-DirectResult   fusion_reactor_set_lock_only( FusionReactor      *reactor,
-                                             FusionSkirmish     *lock );
+DirectResult  FUSION_API  fusion_reactor_set_lock_only( FusionReactor      *reactor,
+                                                        FusionSkirmish     *lock );
 
 /*
  * Attach a local reaction to the reactor (channel 0).
  */
-DirectResult   fusion_reactor_attach       ( FusionReactor      *reactor,
-                                             ReactionFunc        func,
-                                             void               *ctx,
-                                             Reaction           *reaction );
+DirectResult  FUSION_API  fusion_reactor_attach       ( FusionReactor      *reactor,
+                                                        ReactionFunc        func,
+                                                        void               *ctx,
+                                                        Reaction           *reaction );
 
 /*
  * Attach a local reaction to a specific reactor channel (0-1023).
  */
-DirectResult   fusion_reactor_attach_channel( FusionReactor      *reactor,
-                                              int                 channel,
-                                              ReactionFunc        func,
-                                              void               *ctx,
-                                              Reaction           *reaction );
+DirectResult  FUSION_API  fusion_reactor_attach_channel( FusionReactor      *reactor,
+                                                         int                 channel,
+                                                         ReactionFunc        func,
+                                                         void               *ctx,
+                                                         Reaction           *reaction );
 
 /*
  * Detach an attached local reaction from the reactor.
  */
-DirectResult   fusion_reactor_detach       ( FusionReactor      *reactor,
-                                             Reaction           *reaction );
+DirectResult  FUSION_API  fusion_reactor_detach       ( FusionReactor      *reactor,
+                                                        Reaction           *reaction );
 
 
 /*
@@ -127,26 +127,26 @@ DirectResult   fusion_reactor_detach       ( FusionReactor      *reactor,
  * local address. Instead, it's specified by an index into a built in function table that
  * must be passed to fusion_reactor_dispatch() each time it is called.
  */
-DirectResult   fusion_reactor_attach_global( FusionReactor      *reactor,
-                                             int                 index,
-                                             void               *ctx,
-                                             GlobalReaction     *reaction );
+DirectResult  FUSION_API  fusion_reactor_attach_global( FusionReactor      *reactor,
+                                                        int                 index,
+                                                        void               *ctx,
+                                                        GlobalReaction     *reaction );
 
 /*
  * Detach an attached global reaction from the reactor.
  */
-DirectResult   fusion_reactor_detach_global( FusionReactor      *reactor,
-                                             GlobalReaction     *reaction );
+DirectResult  FUSION_API  fusion_reactor_detach_global( FusionReactor      *reactor,
+                                                        GlobalReaction     *reaction );
 
 /*
  * Dispatch a message to any attached reaction (channel 0).
  *
  * Setting 'self' to false excludes the caller's local reactions.
  */
-DirectResult   fusion_reactor_dispatch     ( FusionReactor      *reactor,
-                                             const void         *msg_data,
-                                             bool                self,
-                                             const ReactionFunc *globals );
+DirectResult  FUSION_API  fusion_reactor_dispatch     ( FusionReactor      *reactor,
+                                                        const void         *msg_data,
+                                                        bool                self,
+                                                        const ReactionFunc *globals );
 
 /*
  * Dispatch a message to any attached reaction with a given size. Instead of
@@ -155,43 +155,43 @@ DirectResult   fusion_reactor_dispatch     ( FusionReactor      *reactor,
  *
  * Setting 'self' to false excludes the caller's local reactions.
  */
-DirectResult   fusion_reactor_sized_dispatch( FusionReactor      *reactor,
-                                              const void         *msg_data,
-                                              int                 msg_size,
-                                              bool                self,
-                                              const ReactionFunc *globals );
+DirectResult  FUSION_API  fusion_reactor_sized_dispatch( FusionReactor      *reactor,
+                                                         const void         *msg_data,
+                                                         int                 msg_size,
+                                                         bool                self,
+                                                         const ReactionFunc *globals );
 
 /*
  * Dispatch a message via a specific channel (0-1023).
  *
  * Setting 'self' to false excludes the caller's local reactions.
  */
-DirectResult   fusion_reactor_dispatch_channel( FusionReactor      *reactor,
-                                                int                 channel,
-                                                const void         *msg_data,
-                                                int                 msg_size,
-                                                bool                self,
-                                                const ReactionFunc *globals );
+DirectResult  FUSION_API  fusion_reactor_dispatch_channel( FusionReactor      *reactor,
+                                                           int                 channel,
+                                                           const void         *msg_data,
+                                                           int                 msg_size,
+                                                           bool                self,
+                                                           const ReactionFunc *globals );
 
 
 /*
  * Have the call executed when a dispatched message has been processed by all recipients.
  */
-DirectResult   fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
-                                                     FusionCall     *call,
-                                                     void           *call_ptr );
+DirectResult  FUSION_API  fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
+                                                                FusionCall     *call,
+                                                                void           *call_ptr );
 
 /*
  * Change the name of the reactor (debug).
  */
-DirectResult   fusion_reactor_set_name             ( FusionReactor  *reactor,
-                                                     const char     *name );
+DirectResult  FUSION_API  fusion_reactor_set_name             ( FusionReactor  *reactor,
+                                                                const char     *name );
 
 /*
  * Specify whether local message handlers (reactions) should be called directly.
  */
-DirectResult   fusion_reactor_direct        ( FusionReactor      *reactor,
-                                              bool                direct );
+DirectResult  FUSION_API  fusion_reactor_direct        ( FusionReactor      *reactor,
+                                                         bool                direct );
 
 #endif
 

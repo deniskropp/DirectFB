@@ -83,52 +83,52 @@ typedef bool (*FusionHashIteratorFunc)( FusionHash *hash,
                                         void       *ctx );
 
 
-DirectResult
+DirectResult FUSION_API
 fusion_hash_resize (FusionHash  *hash);
 
-DirectResult
+DirectResult FUSION_API
 fusion_hash_create (FusionSHMPoolShared *pool,
                     FusionHashType key_type,
                     FusionHashType value_type,
                     int  size, FusionHash **ret_hash );
 
-DirectResult
+DirectResult FUSION_API
 fusion_hash_create_local (FusionHashType key_type, FusionHashType value_type,
                           int  size, FusionHash **ret_hash );
 
-DirectResult
+DirectResult FUSION_API
 fusion_hash_remove (FusionHash    *hash,
                     const void *  key,
                     void **old_key,
                     void **old_value);
 
-DirectResult
+DirectResult FUSION_API
 fusion_hash_insert( FusionHash *hash, void  *key, void  *value );
 
-DirectResult
+DirectResult FUSION_API
 fusion_hash_replace (FusionHash *hash,
                      void *   key, 
                      void *   value,
                      void **old_key,
                      void **old_value);
-void
+void FUSION_API
 fusion_hash_destroy( FusionHash *hash );
 
-void
+void FUSION_API
 fusion_hash_set_autofree( FusionHash *hash, bool free_keys, bool free_values );
 
-void *
+void FUSION_API *
 fusion_hash_lookup (FusionHash *hash, const void * key);
 
-void
+void FUSION_API
 fusion_hash_iterate( FusionHash             *hash,
                      FusionHashIteratorFunc  func,
                      void                   *ctx );
 
-unsigned int
+unsigned int FUSION_API
 fusion_hash_size (FusionHash *hash);
 
-bool fusion_hash_should_resize ( FusionHash    *hash);
+bool FUSION_API fusion_hash_should_resize ( FusionHash    *hash);
 
 
 #endif /*__FUSION_HASH_H__*/

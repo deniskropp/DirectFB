@@ -30,7 +30,7 @@
 #define __FUSION__FUSION_INTERNAL_H__
 
 #include <sys/types.h>
-#include <sys/param.h>
+//#include <sys/param.h>
 
 #include <string.h>
 
@@ -107,7 +107,7 @@ struct __Fusion_FusionWorld {
       * List of reactors with at least one local reaction attached.
       */
      DirectLink          *reactor_nodes;
-     pthread_mutex_t      reactor_nodes_lock;
+     DirectMutex          reactor_nodes_lock;
 
      FusionSHM            shm;
 

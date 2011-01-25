@@ -1293,7 +1293,7 @@ _fusion_reactor_free_all( FusionWorld *world )
      D_DEBUG_AT( Fusion_Reactor, "_fusion_reactor_free_all() <- nodes %p\n", world->reactor_nodes );
 
 
-     pthread_mutex_lock( &world->reactor_nodes_lock );
+     direct_mutex_lock( &world->reactor_nodes_lock );
 
      direct_list_foreach_safe (node, node_temp, world->reactor_nodes) {
           NodeLink *link, *link_temp;
@@ -1320,7 +1320,7 @@ _fusion_reactor_free_all( FusionWorld *world )
 
      world->reactor_nodes = NULL;
 
-     pthread_mutex_unlock( &world->reactor_nodes_lock );
+     direct_mutex_unlock( &world->reactor_nodes_lock );
 }
 
 static void
@@ -1426,7 +1426,7 @@ lock_node( int reactor_id, bool add_it, bool wlock, FusionReactor *reactor, Fusi
      }
 
 
-     pthread_mutex_lock( &world->reactor_nodes_lock );
+     direct_mutex_lock( &world->reactor_nodes_lock );
 
      direct_list_foreach_safe (node, n, world->reactor_nodes) {
           D_MAGIC_ASSERT( node, ReactorNode );
@@ -1478,7 +1478,7 @@ lock_node( int reactor_id, bool add_it, bool wlock, FusionReactor *reactor, Fusi
                     direct_list_move_to_front( &world->reactor_nodes, &node->link );
                }
 
-               pthread_mutex_unlock( &world->reactor_nodes_lock );
+               direct_mutex_unlock( &world->reactor_nodes_lock );
 
                return node;
           }
@@ -1533,12 +1533,12 @@ lock_node( int reactor_id, bool add_it, bool wlock, FusionReactor *reactor, Fusi
 
           direct_list_prepend( &world->reactor_nodes, &node->link );
 
-          pthread_mutex_unlock( &world->reactor_nodes_lock );
+          direct_mutex_unlock( &world->reactor_nodes_lock );
 
           return node;
      }
 
-     pthread_mutex_unlock( &world->reactor_nodes_lock );
+     direct_mutex_unlock( &world->reactor_nodes_lock );
 
      return NULL;
 }

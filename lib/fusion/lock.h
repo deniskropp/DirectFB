@@ -29,16 +29,15 @@
 #ifndef __FUSION__LOCK_H__
 #define __FUSION__LOCK_H__
 
-#include <pthread.h>
-
 #include <fusion/types.h>
 
 #include <direct/messages.h>
+#include <direct/thread.h>
 #include <direct/util.h>
 
 typedef struct {
-     pthread_mutex_t          lock;
-     pthread_cond_t           cond;
+     DirectMutex              lock;
+     DirectWaitQueue          cond;
      int                      count;
      char                    *name;
 } FusionSkirmishSingle;
@@ -66,43 +65,43 @@ typedef union {
 /*
  * Initialize.
  */
-DirectResult fusion_skirmish_init   ( FusionSkirmish    *skirmish,
-                                      const char        *name,
-                                      const FusionWorld *world );
+DirectResult FUSION_API fusion_skirmish_init   ( FusionSkirmish    *skirmish,
+                                                 const char        *name,
+                                                 const FusionWorld *world );
 
 /*
  * Lock.
  */
-DirectResult fusion_skirmish_prevail( FusionSkirmish    *skirmish );
+DirectResult FUSION_API fusion_skirmish_prevail( FusionSkirmish    *skirmish );
 
 /*
  * Try lock.
  */
-DirectResult fusion_skirmish_swoop  ( FusionSkirmish    *skirmish );
+DirectResult FUSION_API fusion_skirmish_swoop  ( FusionSkirmish    *skirmish );
 
 /*
  * Find out how many times current thread has acquired lock. 
  */
-DirectResult fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count );
+DirectResult FUSION_API fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count );
 
 /*
  * Unlock.
  */
-DirectResult fusion_skirmish_dismiss( FusionSkirmish    *skirmish );
+DirectResult FUSION_API fusion_skirmish_dismiss( FusionSkirmish    *skirmish );
 
 /*
  * Deinitialize.
  */
-DirectResult fusion_skirmish_destroy( FusionSkirmish    *skirmish );
+DirectResult FUSION_API fusion_skirmish_destroy( FusionSkirmish    *skirmish );
 
 /*
  * Wait & Notify.
  *
  * Must be locked!
  */
-DirectResult fusion_skirmish_wait   ( FusionSkirmish    *skirmish,
-                                      unsigned int       timeout );
-DirectResult fusion_skirmish_notify ( FusionSkirmish    *skirmish );
+DirectResult FUSION_API fusion_skirmish_wait   ( FusionSkirmish    *skirmish,
+                                                 unsigned int       timeout );
+DirectResult FUSION_API fusion_skirmish_notify ( FusionSkirmish    *skirmish );
 
 
 #if D_DEBUG_ENABLED

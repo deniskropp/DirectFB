@@ -43,13 +43,16 @@ struct __Fusion_FusionConfig {
      gid_t shmfile_gid;       /* group that owns shm file */     
 };
 
-extern FusionConfig *fusion_config;
+extern FusionConfig FUSION_API *fusion_config;
 
-extern const char   *fusion_config_usage;
+extern const char   FUSION_API *fusion_config_usage;
 
 
-DirectResult fusion_config_set( const char *name, const char *value );
+DirectResult        FUSION_API  fusion_config_set( const char *name, const char *value );
 
+
+void __Fusion_conf_init( void );
+void __Fusion_conf_deinit( void );
 
 #endif
 

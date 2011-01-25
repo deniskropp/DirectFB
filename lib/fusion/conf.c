@@ -30,7 +30,6 @@
 
 #include <stddef.h>
 #include <string.h>
-#include <grp.h>
 
 #include <direct/conf.h>
 #include <direct/mem.h>
@@ -38,11 +37,12 @@
 
 #include <fusion/conf.h>
 
+#if FUSION_BUILD_MULTI
+#include <grp.h>
+#endif
 
-static FusionConfig config = {
-     .tmpfs       = NULL,
-     .shmfile_gid = -1,
-};
+
+static FusionConfig config;
 
 FusionConfig *fusion_config       = &config;
 const char   *fusion_config_usage =
@@ -55,6 +55,19 @@ const char   *fusion_config_usage =
      "  [no-]debugshm                  Enable shared memory allocation tracking\n"
      "  [no-]madv-remove               Enable usage of MADV_REMOVE (default = auto)\n"
      "\n";
+
+/**********************************************************************************************************************/
+
+void
+__Fusion_conf_init()
+{
+     fusion_config->shmfile_gid = -1;
+}
+
+void
+__Fusion_conf_deinit()
+{
+}
 
 /**********************************************************************************************************************/
 

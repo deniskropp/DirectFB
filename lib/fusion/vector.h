@@ -46,30 +46,30 @@ typedef struct {
      FusionSHMPoolShared *pool;
 } FusionVector;
 
-void         fusion_vector_init       ( FusionVector        *vector,
-                                        int                  capacity,
-                                        FusionSHMPoolShared *pool );
+void         FUSION_API fusion_vector_init       ( FusionVector        *vector,
+                                                   int                  capacity,
+                                                   FusionSHMPoolShared *pool );
 
-void         fusion_vector_destroy    ( FusionVector        *vector );
+void         FUSION_API fusion_vector_destroy    ( FusionVector        *vector );
 
-DirectResult fusion_vector_add        ( FusionVector        *vector,
-                                        void                *element );
+DirectResult FUSION_API fusion_vector_add        ( FusionVector        *vector,
+                                                   void                *element );
 
-DirectResult fusion_vector_insert     ( FusionVector        *vector,
-                                        void                *element,
-                                        int                  index );
+DirectResult FUSION_API fusion_vector_insert     ( FusionVector        *vector,
+                                                   void                *element,
+                                                   int                  index );
 
-DirectResult fusion_vector_move       ( FusionVector        *vector,
-                                        int                  from,
-                                        int                  to );
+DirectResult FUSION_API fusion_vector_move       ( FusionVector        *vector,
+                                                   int                  from,
+                                                   int                  to );
 
-DirectResult fusion_vector_remove     ( FusionVector        *vector,
-                                        int                  index );
+DirectResult FUSION_API fusion_vector_remove     ( FusionVector        *vector,
+                                                   int                  index );
 
-DirectResult fusion_vector_remove_last( FusionVector        *vector );
+DirectResult FUSION_API fusion_vector_remove_last( FusionVector        *vector );
 
 
-static inline bool
+static __inline__ bool
 fusion_vector_has_elements( const FusionVector *vector )
 {
      D_MAGIC_ASSERT( vector, FusionVector );
@@ -77,7 +77,7 @@ fusion_vector_has_elements( const FusionVector *vector )
      return vector->count > 0;
 }
 
-static inline bool
+static __inline__ bool
 fusion_vector_is_empty( const FusionVector *vector )
 {
      D_MAGIC_ASSERT( vector, FusionVector );
@@ -85,7 +85,7 @@ fusion_vector_is_empty( const FusionVector *vector )
      return vector->count == 0;
 }
 
-static inline int
+static __inline__ int
 fusion_vector_size( const FusionVector *vector )
 {
      D_MAGIC_ASSERT( vector, FusionVector );
@@ -93,7 +93,7 @@ fusion_vector_size( const FusionVector *vector )
      return vector->count;
 }
 
-static inline void *
+static __inline__ void *
 fusion_vector_at( const FusionVector *vector, int index )
 {
      D_MAGIC_ASSERT( vector, FusionVector );
@@ -103,7 +103,7 @@ fusion_vector_at( const FusionVector *vector, int index )
      return vector->elements[index];
 }
 
-static inline bool
+static __inline__ bool
 fusion_vector_contains( const FusionVector *vector, const void *element )
 {
      int           i;
@@ -124,7 +124,7 @@ fusion_vector_contains( const FusionVector *vector, const void *element )
      return false;
 }
 
-static inline int
+static __inline__ int
 fusion_vector_index_of( const FusionVector *vector, const void *element )
 {
      int           i;

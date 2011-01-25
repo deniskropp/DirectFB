@@ -29,7 +29,6 @@
 #include <config.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <errno.h>
 
 #include <direct/build.h>
@@ -40,11 +39,12 @@
 #include <fusion/build.h>
 #include <fusion/shmalloc.h>
 
-#include <fusion/fusion_internal.h>
 #include <fusion/shm/shm_internal.h>
 
 
 #if FUSION_BUILD_MULTI
+
+#include <fusion/fusion_internal.h>
 
 /*************************** MULTI APPLICATION CORE ***************************/
 
