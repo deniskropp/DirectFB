@@ -61,37 +61,40 @@ typedef struct {
 } DirectFileInfo;
 
 
-DirectResult  direct_file_open ( DirectFile *file, const char *name, int flags, mode_t mode );
+DirectResult DIRECT_API  direct_file_open ( DirectFile *file, const char *name, int flags, mode_t mode );
 
-DirectResult  direct_file_read ( DirectFile *file, void *buffer, size_t bytes, size_t *ret_bytes );
+DirectResult DIRECT_API  direct_file_read ( DirectFile *file, void *buffer, size_t bytes, size_t *ret_bytes );
 
-DirectResult  direct_file_write( DirectFile *file, const void *buffer, size_t bytes, size_t *ret_bytes );
+DirectResult DIRECT_API  direct_file_write( DirectFile *file, const void *buffer, size_t bytes, size_t *ret_bytes );
 
-DirectResult  direct_file_close( DirectFile *file );
+DirectResult DIRECT_API  direct_file_seek( DirectFile *file, off_t offset );
+DirectResult DIRECT_API  direct_file_seek_to( DirectFile *file, off_t offset );
 
-DirectResult  direct_file_map( DirectFile *file, void *addr, size_t offset, size_t bytes, DirectFilePermission flags, void **ret_addr );
+DirectResult DIRECT_API  direct_file_close( DirectFile *file );
 
-DirectResult  direct_file_unmap( DirectFile *file, void *addr, size_t bytes );
+DirectResult DIRECT_API  direct_file_map( DirectFile *file, void *addr, size_t offset, size_t bytes, DirectFilePermission flags, void **ret_addr );
 
-DirectResult  direct_file_get_info( DirectFile *file, DirectFileInfo *ret_info );
+DirectResult DIRECT_API  direct_file_unmap( DirectFile *file, void *addr, size_t bytes );
 
-DirectResult  direct_file_dup( DirectFile *file, const DirectFile *other );
+DirectResult DIRECT_API  direct_file_get_info( DirectFile *file, DirectFileInfo *ret_info );
 
-/**********************************************************************************************************************/
-
-DirectResult  direct_fgets ( DirectFile *file, char *buf, size_t length );
-
-/**********************************************************************************************************************/
-
-DirectResult  direct_popen ( DirectFile *file, const char *name, int flags );
-
-DirectResult  direct_pclose( DirectFile *file );
+DirectResult DIRECT_API  direct_file_dup( DirectFile *file, const DirectFile *other );
 
 /**********************************************************************************************************************/
 
-DirectResult  direct_readlink( const char *name, char *buf, size_t length, size_t *ret_length );
+DirectResult DIRECT_API  direct_fgets ( DirectFile *file, char *buf, size_t length );
 
-DirectResult  direct_access( const char *name, int flags );
+/**********************************************************************************************************************/
+
+DirectResult DIRECT_API  direct_popen ( DirectFile *file, const char *name, int flags );
+
+DirectResult DIRECT_API  direct_pclose( DirectFile *file );
+
+/**********************************************************************************************************************/
+
+DirectResult DIRECT_API  direct_readlink( const char *name, char *buf, size_t length, size_t *ret_length );
+
+DirectResult DIRECT_API  direct_access( const char *name, int flags );
 
 
 #define	R_OK	4

@@ -220,10 +220,10 @@ direct_serial_update( DirectSerial *serial, const DirectSerial *source )
      return false;
 }
 
-DirectResult direct_serial_wait  ( DirectSerial       *serial,
-                                   const DirectSerial *source );
-DirectResult direct_serial_notify( DirectSerial       *serial,
-                                   const DirectSerial *source );
+DirectResult DIRECT_API direct_serial_wait  ( DirectSerial       *serial,
+                                              const DirectSerial *source );
+DirectResult DIRECT_API direct_serial_notify( DirectSerial       *serial,
+                                              const DirectSerial *source );
 
 
 static __inline__ int

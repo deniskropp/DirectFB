@@ -49,17 +49,31 @@ typedef struct {
 
 /**********************************************************************************************************************/
 
-static DirectMutex   domains_lock = DIRECT_MUTEX_INITIALIZER(domains_lock);
-static unsigned int  domains_age  = 1;
-static DirectLink   *domains      = NULL;    // FIXME: use hash table like in direct/result.c
+static DirectMutex   domains_lock;
+static unsigned int  domains_age;
+static DirectLink   *domains;      // FIXME: use hash table like in direct/result.c
+
+void
+__D_log_domain_init()
+{
+     domains_age = 1;
+
+     direct_mutex_init( &domains_lock );
+}
+
+void
+__D_log_domain_deinit()
+{
+     direct_mutex_deinit( &domains_lock );
+}
 
 /**********************************************************************************************************************/
 
-__attribute__((no_instrument_function))
-static inline LogDomainEntry *
+__no_instrument_function__
+static __inline__ LogDomainEntry *
 lookup_domain( const char *name, bool sub );
 
-static inline LogDomainEntry *
+static __inline__ LogDomainEntry *
 lookup_domain( const char *name, bool sub )
 {
      LogDomainEntry *entry;
@@ -90,7 +104,7 @@ lookup_domain( const char *name, bool sub )
      return NULL;
 }
 
-__attribute__((no_instrument_function))
+__no_instrument_function__
 static DirectLogLevel
 check_domain( DirectLogDomain *domain );
 
@@ -193,7 +207,7 @@ direct_log_domain_check( DirectLogDomain *domain )
 /* FIXME: merge following */
 
 
-__attribute__((no_instrument_function))
+__no_instrument_function__
 DirectResult
 direct_log_domain_vprintf( DirectLogDomain *domain,
                            DirectLogLevel   level,
@@ -208,12 +222,17 @@ direct_log_domain_vprintf( DirectLogDomain *domain,
           DirectThread *thread = direct_thread_self();
           int           indent = direct_trace_debug_indent() * 4;
           int           len;
-          va_list       ap2;
 
           /* Prepare user message. */
+#ifdef __GNUC__
+          va_list ap2;
+
           va_copy( ap2, ap );
           len = direct_vsnprintf( buf, sizeof(buf), format, ap2 );
           va_end( ap2 );
+#else
+          len = direct_vsnprintf( buf, sizeof(buf), format, ap );
+#endif
           if (len < 0)
                return DR_FAILURE;
 
@@ -249,7 +268,7 @@ direct_log_domain_vprintf( DirectLogDomain *domain,
      return DR_OK;
 }
 
-__attribute__((no_instrument_function))
+__no_instrument_function__
 DirectResult
 direct_log_domain_log( DirectLogDomain *domain,
                        DirectLogLevel   level,
@@ -316,6 +335,16 @@ direct_log_domain_log( DirectLogDomain *domain,
 }
 
 #else
+
+void
+__D_log_domain_init()
+{
+}
+
+void
+__D_log_domain_deinit()
+{
+}
 
 void
 direct_log_domain_vprintf( DirectLogDomain *domain,

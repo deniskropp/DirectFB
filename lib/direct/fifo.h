@@ -58,20 +58,20 @@ struct __D_DirectFifo {
 
 /**********************************************************************************************************************/
 
-void  direct_fifo_init   ( DirectFifo *fifo );
-void  direct_fifo_destroy( DirectFifo *fifo );
+void DIRECT_API  direct_fifo_init   ( DirectFifo *fifo );
+void DIRECT_API  direct_fifo_destroy( DirectFifo *fifo );
 
 /**********************************************************************************************************************/
 
-int   direct_fifo_push( DirectFifo *fifo, DirectFifoItem *item );
-void *direct_fifo_pull( DirectFifo *fifo );
-void *direct_fifo_pop ( DirectFifo *fifo );
+int  DIRECT_API  direct_fifo_push( DirectFifo *fifo, DirectFifoItem *item );
+void DIRECT_API *direct_fifo_pull( DirectFifo *fifo );
+void DIRECT_API *direct_fifo_pop ( DirectFifo *fifo );
 
 /**********************************************************************************************************************/
 
-DirectResult direct_fifo_wait      ( DirectFifo *fifo );
-DirectResult direct_fifo_wait_timed( DirectFifo *fifo, int timeout_ms );
-DirectResult direct_fifo_wakeup    ( DirectFifo *fifo );
+DirectResult DIRECT_API direct_fifo_wait      ( DirectFifo *fifo );
+DirectResult DIRECT_API direct_fifo_wait_timed( DirectFifo *fifo, int timeout_ms );
+DirectResult DIRECT_API direct_fifo_wakeup    ( DirectFifo *fifo );
 
 
 #endif

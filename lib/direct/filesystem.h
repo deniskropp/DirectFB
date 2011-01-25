@@ -29,6 +29,8 @@
 #ifndef __DIRECT__FILESYSTEM_H__
 #define __DIRECT__FILESYSTEM_H__
 
+#include <direct/types.h>
+
 #include <direct/os/filesystem.h>
 
 /**********************************************************************************************************************/

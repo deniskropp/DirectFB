@@ -66,9 +66,14 @@
                     (((u32)(x)<< 8) & 0x00ff0000) | (((u32)(x)<<24) & 0xff000000))
 #endif
 
+#ifdef __GNUC__
+#define D_FLAGS_SET(flags,f)       do { (flags) = (__typeof__(flags))((flags) |  (f)); } while (0)
+#define D_FLAGS_CLEAR(flags,f)     do { (flags) = (__typeof__(flags))((flags) & ~(f)); } while (0)
+#else
+#define D_FLAGS_SET(flags,f)       do { (flags) = (unsigned int)((flags) |  (f)); } while (0)
+#define D_FLAGS_CLEAR(flags,f)     do { (flags) = (unsigned int)((flags) & ~(f)); } while (0)
+#endif
 
-#define D_FLAGS_SET(flags,f)       do { (flags) = (typeof(flags))((flags) |  (f)); } while (0)
-#define D_FLAGS_CLEAR(flags,f)     do { (flags) = (typeof(flags))((flags) & ~(f)); } while (0)
 #define D_FLAGS_IS_SET(flags,f)    (((flags) & (f)) != 0)
 #define D_FLAGS_ARE_SET(flags,f)   (((flags) & (f)) == (f))
 #define D_FLAGS_ARE_IN(flags,f)    (((flags) & ~(f)) == 0)
@@ -144,41 +149,43 @@
 /*
  * translates errno to DirectResult
  */
-DirectResult errno2result( int erno );
+DirectResult DIRECT_API errno2result( int erno );
 
 /*
  * duplicates a file descriptor as needed to ensure it's not stdin, stdout, or stderr
  */
-int direct_safe_dup( int fd );
+int DIRECT_API direct_safe_dup( int fd );
 
 
 #ifndef DIRECT_DISABLE_DEPRECATED
 
 // @deprecated
-int direct_try_open( const char *name1, const char *name2, int flags, bool error_msg );
+int DIRECT_API direct_try_open( const char *name1, const char *name2, int flags, bool error_msg );
 
 // @deprecated
-int direct_util_recursive_pthread_mutex_init( pthread_mutex_t *mutex );
+int DIRECT_API direct_util_recursive_pthread_mutex_init( pthread_mutex_t *mutex );
 
 #endif
 
 
-int direct_sscanf( const char *str, const char *format, ... );
-int direct_vsscanf( const char *str, const char *format, va_list args );
+const char DIRECT_API *direct_inet_ntop( int af, const void* src, char* dst, int cnt );
 
-size_t direct_strlen( const char *s );
+int DIRECT_API direct_sscanf( const char *str, const char *format, ... );
+int DIRECT_API direct_vsscanf( const char *str, const char *format, va_list args );
 
-void direct_trim( char **s );
+size_t DIRECT_API direct_strlen( const char *s );
 
-int direct_strcmp( const char *a, const char *b );
-int direct_strcasecmp( const char *a, const char *b );
-int direct_strncasecmp( const char *a, const char *b, size_t bytes );
+void DIRECT_API direct_trim( char **s );
 
-unsigned long int direct_strtoul( const char *nptr, char **endptr, int base );
+int DIRECT_API direct_strcmp( const char *a, const char *b );
+int DIRECT_API direct_strcasecmp( const char *a, const char *b );
+int DIRECT_API direct_strncasecmp( const char *a, const char *b, size_t bytes );
 
-char *direct_strtok_r( char *str, const char *delim, char **saveptr );
+unsigned long int DIRECT_API direct_strtoul( const char *nptr, char **endptr, int base );
 
-const char *direct_strerror( int erno );
+char DIRECT_API *direct_strtok_r( char *str, const char *delim, char **saveptr );
+
+const char DIRECT_API *direct_strerror( int erno );
 
 /*
  * Set a string with a maximum size including the zero termination.
@@ -187,20 +194,20 @@ const char *direct_strerror( int erno );
  *
  * Returns dest or NULL if n is zero.
  */
-char *direct_snputs( char       *dest,
-                     const char *src,
-                     size_t      n );
+char DIRECT_API *direct_snputs( char       *dest,
+                                const char *src,
+                                size_t      n );
 
 /*
  * Encode/Decode Base-64 strings.
  */
-char *direct_base64_encode( const void *data, int size );
-void *direct_base64_decode( const char *string, int *ret_size );
+char DIRECT_API *direct_base64_encode( const void *data, int size );
+void DIRECT_API *direct_base64_decode( const char *string, int *ret_size );
 
 /*
  * Compute MD5 sum (store 16-bytes long result in "dst").
  */
-void  direct_md5_sum( void *dst, const void *src, const int len );
+void DIRECT_API direct_md5_sum( void *dst, const void *src, const int len );
 
 /*
  * Slow implementation, but quite fast if only low bits are set.
@@ -235,7 +242,7 @@ direct_util_align( int value,
      return value;
 }
 
-void *
+void DIRECT_API *
 direct_bsearch( const void *key, const void *base,
 		      size_t nmemb, size_t size, void *func );
 
@@ -267,8 +274,8 @@ D_IFLOOR(float f)
 #else
         {
                 union { int i; float f; } u;
-                u.f = af; ai = u.i;
-                u.f = bf; bi = u.i;
+                u.f = (float) af; ai = u.i;
+                u.f = (float) bf; bi = u.i;
         }
 #endif
 
@@ -302,8 +309,8 @@ D_ICEIL(float f)
 #else
         {
                 union { int i; float f; } u;
-                u.f = af; ai = u.i;
-                u.f = bf; bi = u.i;
+                u.f = (float) af; ai = u.i;
+                u.f = (float) bf; bi = u.i;
         }
 #endif
 
@@ -329,15 +336,15 @@ typedef struct {
      long long stop;
 } DirectClock;
 
-static inline void direct_clock_start( DirectClock *clock ) {
+static __inline__ void direct_clock_start( DirectClock *clock ) {
      clock->start = direct_clock_get_micros();
 }
 
-static inline void direct_clock_stop( DirectClock *clock ) {
+static __inline__ void direct_clock_stop( DirectClock *clock ) {
      clock->stop = direct_clock_get_micros();
 }
 
-static inline int direct_clock_diff( DirectClock *clock ) {
+static __inline__ long long direct_clock_diff( DirectClock *clock ) {
      return clock->stop - clock->start;
 }
 
@@ -346,5 +353,9 @@ static inline int direct_clock_diff( DirectClock *clock ) {
 
 #define DIRECT_CLOCK_ITEMS_Mk_SEC( clock, n ) \
      ((n) / direct_clock_diff( clock )), ((long)(((n) * 1000LL / direct_clock_diff( clock ) % 1000)))
+
+
+void __D_util_init( void );
+void __D_util_deinit( void );
 
 #endif

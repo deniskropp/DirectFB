@@ -243,12 +243,16 @@ direct_list_move_to_front( DirectLink **list, DirectLink *link )
      *list = link;
 }
 
+#ifdef __GNUC__
 #define direct_list_check_link( link )                      \
      ({                                                     \
           D_MAGIC_ASSERT_IF( link, DirectLink );            \
           link != NULL;                                     \
      })
-
+#else
+#define direct_list_check_link( link )                      \
+          (link != NULL)
+#endif
 
 #define direct_list_foreach(elem, list)                     \
      for (elem = (__typeof__(elem))(list);                  \

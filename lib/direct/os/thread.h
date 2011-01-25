@@ -33,49 +33,49 @@
 
 /**********************************************************************************************************************/
 
-DirectResult   direct_thread_init       ( DirectThread *thread );
+DirectResult DIRECT_API   direct_thread_init       ( DirectThread *thread );
 
-void           direct_thread_deinit     ( DirectThread *thread );
+void         DIRECT_API   direct_thread_deinit     ( DirectThread *thread );
 
 /*
  * Returns the thread of the caller.
  */
-DirectThread  *direct_thread_self       ( void );
+DirectThread DIRECT_API  *direct_thread_self       ( void );
 
 /*
  * Returns the name of the calling thread.
  */
-const char    *direct_thread_self_name  ( void );
+const char   DIRECT_API  *direct_thread_self_name  ( void );
 
 /*
  * Changes the name of the calling thread.
  */
-void           direct_thread_set_name   ( const char   *name );
+void         DIRECT_API   direct_thread_set_name   ( const char   *name );
 
 /*
  * Cancel a running thread.
  */
-void           direct_thread_cancel     ( DirectThread *thread );
+void         DIRECT_API   direct_thread_cancel     ( DirectThread *thread );
 
 /*
  * Detach a thread.
  */
-void           direct_thread_detach     ( DirectThread *thread );
+void         DIRECT_API   direct_thread_detach     ( DirectThread *thread );
 
 /*
  * Check if the calling thread is canceled.
  * Must not be called by other threads than 'thread'.
  * This function won't return if the thread is canceled.
  */
-void           direct_thread_testcancel ( DirectThread *thread );
+void         DIRECT_API   direct_thread_testcancel ( DirectThread *thread );
 
 /*
  * Wait until a running thread is terminated.
  */
-void           direct_thread_join       ( DirectThread *thread );
+void         DIRECT_API   direct_thread_join       ( DirectThread *thread );
 
 
-void           direct_thread_sleep      ( long long     micros );
+void         DIRECT_API   direct_thread_sleep      ( long long     micros );
 
 #endif
 

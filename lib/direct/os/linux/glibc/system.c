@@ -176,6 +176,12 @@ direct_geteuid()
      return geteuid();
 }
 
+char *
+direct_getenv( const char *name )
+{
+     return getenv( name );
+}
+
 /**********************************************************************************************************************/
 
 DirectResult

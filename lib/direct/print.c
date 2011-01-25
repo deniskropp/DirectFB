@@ -78,13 +78,17 @@ direct_print( char        *buf,
      *ret_ptr = buf;
 
      if (buf) {
-          va_list args_copy;
-
           buf[0] = 0;
+
+#ifdef __GNUC__
+          va_list args_copy;
 
           va_copy( args_copy, args );
           len = direct_vsnprintf( buf, size, format, args_copy );
           va_end( args_copy );
+#else
+          len = direct_vsnprintf( buf, size, format, args );
+#endif
 
           if (len < 0)
                return DR_FAILURE;
@@ -93,7 +97,7 @@ direct_print( char        *buf,
           size = 0;
 
 
-     if (len >= size) {
+     if (len >= (int) size) {
           char *ptr = buf;
 
           ptr = direct_malloc( len+1 );

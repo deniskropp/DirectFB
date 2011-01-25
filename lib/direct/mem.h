@@ -33,25 +33,25 @@
 
 /**********************************************************************************************************************/
 
-void direct_print_memleaks( void );
+void DIRECT_API direct_print_memleaks( void );
 
 /**********************************************************************************************************************/
 
-void *direct_dbg_malloc ( const char *file, int line,
-                          const char *func, size_t bytes );
+void DIRECT_API *direct_dbg_malloc ( const char *file, int line,
+                                     const char *func, size_t bytes );
 
-void *direct_dbg_calloc ( const char *file, int line,
-                          const char *func, size_t count, size_t bytes);
+void DIRECT_API *direct_dbg_calloc ( const char *file, int line,
+                                     const char *func, size_t count, size_t bytes);
 
-void *direct_dbg_realloc( const char *file, int line,
-                          const char *func, const char *what, void *mem,
-                          size_t bytes );
+void DIRECT_API *direct_dbg_realloc( const char *file, int line,
+                                     const char *func, const char *what, void *mem,
+                                     size_t bytes );
 
-char *direct_dbg_strdup ( const char *file, int line,
-                          const char *func, const char *str );
+char DIRECT_API *direct_dbg_strdup ( const char *file, int line,
+                                     const char *func, const char *str );
 
-void  direct_dbg_free   ( const char *file, int line,
-                          const char *func, const char *what, void *mem );
+void DIRECT_API  direct_dbg_free   ( const char *file, int line,
+                                     const char *func, const char *what, void *mem );
 
 /**********************************************************************************************************************/
 
@@ -82,6 +82,9 @@ void  direct_dbg_free   ( const char *file, int line,
 
 #endif
 
+
+void __D_mem_init( void );
+void __D_mem_deinit( void );
 
 #endif
 

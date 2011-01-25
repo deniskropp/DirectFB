@@ -98,13 +98,15 @@ struct __D_DirectConfig {
      int                           thread_priority_scale;
 };
 
-extern DirectConfig *direct_config;
+extern DirectConfig DIRECT_API *direct_config;
 
-extern const char   *direct_config_usage;
+extern const char   DIRECT_API *direct_config_usage;
+
+DirectResult        DIRECT_API  direct_config_set( const char *name, const char *value );
 
 
-DirectResult direct_config_set( const char *name, const char *value );
-
+void __D_conf_init( void );
+void __D_conf_deinit( void );
 
 #endif
 

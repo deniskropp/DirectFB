@@ -38,14 +38,14 @@
 
 /**********************************************************************************************************************/
 
-int direct_vsnprintf( char *buf, size_t size, const char *format, va_list args );
-int direct_snprintf ( char *buf, size_t size, const char *format, ... )               D_FORMAT_PRINTF(3);
+int DIRECT_API direct_vsnprintf( char *buf, size_t size, const char *format, va_list args );
+int DIRECT_API direct_snprintf ( char *buf, size_t size, const char *format, ... )               D_FORMAT_PRINTF(3);
 
-DirectResult direct_print( char         *buf,
-                           size_t       size,
-                           const char  *format,
-                           va_list      args,
-                           char       **ret_ptr );
+DirectResult DIRECT_API direct_print( char         *buf,
+                                      size_t       size,
+                                      const char  *format,
+                                      va_list      args,
+                                      char       **ret_ptr );
 
 
 /*

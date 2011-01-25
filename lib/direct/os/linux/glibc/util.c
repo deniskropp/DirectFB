@@ -32,6 +32,8 @@
 
 #include <string.h>
 
+#include <arpa/inet.h>
+
 #include <direct/util.h>
 
 /**********************************************************************************************************************/
@@ -48,3 +50,14 @@ direct_strncasecmp( const char *a, const char *b, size_t bytes )
      return strncasecmp( a, b, bytes );
 }
 
+int
+direct_vsscanf( const char *str, const char *format, va_list args )
+{
+     return vsscanf( str, format, args );
+}
+
+const char *
+direct_inet_ntop( int af, const void* src, char* dst, int cnt )
+{
+     return inet_ntop( af, src, dst, cnt );
+}

@@ -33,15 +33,15 @@
 
 /**********************************************************************************************************************/
 
-void *direct_malloc ( size_t bytes );
+void DIRECT_API *direct_malloc ( size_t bytes );
 
-void *direct_calloc ( size_t count, size_t bytes);
+void DIRECT_API *direct_calloc ( size_t count, size_t bytes);
 
-void *direct_realloc( void *mem, size_t bytes );
+void DIRECT_API *direct_realloc( void *mem, size_t bytes );
 
-char *direct_strdup ( const char *string );
+char DIRECT_API *direct_strdup ( const char *string );
 
-void  direct_free   ( void *mem );
+void DIRECT_API  direct_free   ( void *mem );
 
 
 #endif

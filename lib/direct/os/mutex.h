@@ -33,17 +33,19 @@
 
 /**********************************************************************************************************************/
 
-DirectResult direct_mutex_init           ( DirectMutex *mutex );
+#ifndef DIRECT_OS_MUTEX_DEFINED
+DirectResult DIRECT_API direct_mutex_init           ( DirectMutex *mutex );
 
-DirectResult direct_recursive_mutex_init ( DirectMutex *mutex );
+DirectResult DIRECT_API direct_recursive_mutex_init ( DirectMutex *mutex );
 
-DirectResult direct_mutex_lock           ( DirectMutex *mutex );
+DirectResult DIRECT_API direct_mutex_lock           ( DirectMutex *mutex );
 
-DirectResult direct_mutex_unlock         ( DirectMutex *mutex );
+DirectResult DIRECT_API direct_mutex_unlock         ( DirectMutex *mutex );
 
-DirectResult direct_mutex_trylock        ( DirectMutex *mutex );
+DirectResult DIRECT_API direct_mutex_trylock        ( DirectMutex *mutex );
 
-DirectResult direct_mutex_deinit         ( DirectMutex *mutex );
+DirectResult DIRECT_API direct_mutex_deinit         ( DirectMutex *mutex );
+#endif
 
 #endif
 

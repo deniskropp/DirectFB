@@ -54,8 +54,20 @@ struct __D_DirectThreadInitHandler {
 
 /**********************************************************************************************************************/
 
-static DirectMutex  handler_lock = DIRECT_MUTEX_INITIALIZER(handler_lock);
-static DirectLink  *handlers     = NULL;
+static DirectMutex  handler_lock;
+static DirectLink  *handlers;
+
+void
+__D_thread_init()
+{
+     direct_mutex_init( &handler_lock );
+}
+
+void
+__D_thread_deinit()
+{
+     direct_mutex_deinit( &handler_lock );
+}
 
 /**********************************************************************************************************************/
 

@@ -41,8 +41,8 @@ struct __D_DirectMutex {
 
 /**********************************************************************************************************************/
 
-#define DIRECT_MUTEX_INITIALIZER(name)            { PTHREAD_MUTEX_INITIALIZER }
-#define DIRECT_RECURSIVE_MUTEX_INITIALIZER(name)  { PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP }
+#define DIRECT_MUTEX_INITIALIZER(name)            { x PTHREAD_MUTEX_INITIALIZER }
+#define DIRECT_RECURSIVE_MUTEX_INITIALIZER(name)  { x PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP }
 
 #endif
 

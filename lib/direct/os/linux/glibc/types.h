@@ -49,6 +49,8 @@
 #include <sched.h>
 #include <signal.h>
 
+#include <netinet/in.h>
+
 #include <sys/mman.h>
 #include <sys/param.h>
 #include <sys/resource.h>
@@ -56,6 +58,8 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 
+
+typedef unsigned int       unichar;
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -67,6 +71,17 @@ typedef int16_t s16;
 typedef int32_t s32;
 typedef int64_t s64;
 
+
+#define __inline__                      inline
+#define __unused__                      __attribute__((unused))
+#define __no_instrument_function__      __attribute__((no_instrument_function))
+#define __constructor__                 __attribute__((constructor))
+#define __destructor__                  __attribute__((destructor))
+#define __typeof__(x)                   typeof(x)
+#define __func__                        __FUNCTION__
+
+#define _ZD "%zd"
+#define _ZU "%zu"
 
 /*
  * Define the bool type by including stdbool.h (preferably)...

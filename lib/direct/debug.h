@@ -40,12 +40,12 @@
 #include <direct/types.h>
 
 
-
-#ifndef DIRECT_DISABLE_DEPRECATED
-
 // @deprecated
 #define D_DEBUG_DOMAIN( _identifier, _name, _description )                                          \
      D_LOG_DOMAIN( _identifier, _name, _description )
+
+#ifndef DIRECT_DISABLE_DEPRECATED
+
 
 // @deprecated
 D_DEBUG_DOMAIN( _direct_debug_deprecated, "-", "deprecated" );
@@ -56,7 +56,7 @@ D_DEBUG_DOMAIN( _direct_debug_deprecated, "-", "deprecated" );
 
 #endif
 
-static inline void
+static __inline__ void
 direct_debug_config_domain( const char *name, bool enable )
 {
      direct_log_domain_config_level( name, enable ? DIRECT_LOG_ALL : DIRECT_LOG_NONE );
@@ -64,10 +64,10 @@ direct_debug_config_domain( const char *name, bool enable )
 
 #if DIRECT_BUILD_TEXT
 
-void direct_debug_at_always( DirectLogDomain *domain,
-                             const char      *format, ... )  D_FORMAT_PRINTF(2);
+void DIRECT_API direct_debug_at_always( DirectLogDomain *domain,
+                                        const char      *format, ... )  D_FORMAT_PRINTF(2);
 
-#define d_debug_at( domain, x... )      direct_debug_at_always( &domain, x )
+#define d_debug_at( domain, ... )      direct_debug_at_always( &domain, __VA_ARGS__ )
 
 
 #if DIRECT_BUILD_DEBUGS
@@ -78,65 +78,65 @@ void direct_debug_at_always( DirectLogDomain *domain,
  * debug level 1-9  (0 = verbose)
  *
  */
-void direct_debug_log( DirectLogDomain *domain,
-                       unsigned int     debug_level,
-                       const char      *format, ... )      D_FORMAT_PRINTF(3);
+void DIRECT_API direct_debug_log( DirectLogDomain *domain,
+                                  unsigned int     debug_level,
+                                  const char      *format, ... )      D_FORMAT_PRINTF(3);
 
 
 
 /* old */
-void direct_debug_at( DirectLogDomain *domain,
-                      const char      *format, ... ) D_FORMAT_PRINTF(2);
+void DIRECT_API direct_debug_at( DirectLogDomain *domain,
+                                 const char      *format, ... ) D_FORMAT_PRINTF(2);
 
-void direct_debug_enter( DirectLogDomain *domain,
-	      	         const char *func,
-                         const char *file,
-                         int         line,
-                         const char *format, ... )  D_FORMAT_PRINTF(5);
+void DIRECT_API direct_debug_enter( DirectLogDomain *domain,
+                                    const char *func,
+                                    const char *file,
+                                    int         line,
+                                    const char *format, ... )  D_FORMAT_PRINTF(5);
 
-void direct_debug_exit( DirectLogDomain *domain,
-	      	        const char *func,
-                        const char *file,
-                        int         line,
-                        const char *format, ... )  D_FORMAT_PRINTF(5);
+void DIRECT_API direct_debug_exit( DirectLogDomain *domain,
+                                   const char *func,
+                                   const char *file,
+                                   int         line,
+                                   const char *format, ... )  D_FORMAT_PRINTF(5);
 
-void direct_break( const char *func,
-                   const char *file,
-                   int         line,
-                   const char *format, ... )  D_FORMAT_PRINTF(4);
+void DIRECT_API direct_break( const char *func,
+                              const char *file,
+                              int         line,
+                              const char *format, ... )  D_FORMAT_PRINTF(4);
 
-void direct_assertion( const char *exp,
-                       const char *func,
-                       const char *file,
-                       int         line );
+void DIRECT_API direct_assertion( const char *exp,
+                                  const char *func,
+                                  const char *file,
+                                  int         line );
 
-void direct_assumption( const char *exp,
-                        const char *func,
-                        const char *file,
-                        int         line );
+void DIRECT_API direct_assumption( const char *exp,
+                                   const char *func,
+                                   const char *file,
+                                   int         line );
 #endif
 
 #if DIRECT_BUILD_DEBUG || defined(DIRECT_ENABLE_DEBUG) || defined(DIRECT_FORCE_DEBUG)
 
 #define D_DEBUG_ENABLED  (1)
 
-#define D_DEBUG_LOG(_Domain,_level,_format...)                                       \
+#define D_DEBUG_LOG(_Domain,_level,...)                                              \
      do {                                                                            \
-          direct_debug_log( &_Domain, _level, _format );                                 \
+          direct_debug_log( &_Domain, _level, __VA_ARGS__ );                         \
      } while (0)
 
 
-#define D_DEBUG_AT(d,x...)                                                           \
+#define D_DEBUG_AT(d,...)                                                            \
      do {                                                                            \
-          direct_debug_at( &d, x );                                                  \
+          direct_debug_at( &d, __VA_ARGS__ );                                        \
      } while (0)
 
-#define D_DEBUG_ENTER(d,x...)                                                        \
+#define D_DEBUG_ENTER(d,...)                                                         \
      do {                                                                            \
           /*direct_debug_enter( &d, __FUNCTION__, __FILE__, __LINE__, x );*/             \
      } while (0)
 
-#define D_DEBUG_EXIT(d,x...)                                                         \
+#define D_DEBUG_EXIT(d,...)                                                          \
      do {                                                                            \
           /*direct_debug_exit( &d, __FUNCTION__, __FILE__, __LINE__, x );*/              \
      } while (0)
@@ -155,9 +155,9 @@ void direct_assumption( const char *exp,
      } while (0)
 
 
-#define D_BREAK(x...)                                                                \
+#define D_BREAK(...)                                                                 \
      do {                                                                            \
-          direct_break( __FUNCTION__, __FILE__, __LINE__, x );                       \
+          direct_break( __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__ );                       \
      } while (0)
 
 #define D_DEBUG_CHECK(d)                                                             \
@@ -171,16 +171,16 @@ void direct_assumption( const char *exp,
 
 #define D_DEBUG_ENABLED  (2)
 
-#define D_DEBUG_LOG(_Domain,_level,_format...)                                       \
+#define D_DEBUG_LOG(_Domain,_level,...)                                              \
      do {                                                                            \
           if (direct_config->log_level >= DIRECT_LOG_DEBUG)                          \
-               direct_debug_at_always( &d, x );                                      \
+               direct_debug_at_always( &d, __VA_ARGS__ );                            \
      } while (0)
 
-#define D_DEBUG_AT(d,x...)                                                           \
+#define D_DEBUG_AT(d,...)                                                            \
      do {                                                                            \
           if (direct_config->log_level >= DIRECT_LOG_DEBUG)                          \
-               direct_debug_at_always( &d, x );                                      \
+               direct_debug_at_always( &d, __VA_ARGS__ );                            \
      } while (0)
 
 #define D_CHECK(exp, aa)                                                             \
@@ -207,9 +207,9 @@ void direct_assumption( const char *exp,
 #endif    /* MINI_DEBUG  / DIRECT_BUILD_DEBUG || DIRECT_ENABLE_DEBUG || DIRECT_FORCE_DEBUG */
 
 
-#define D_DEBUG_AT__(d,x...)                                                         \
+#define D_DEBUG_AT__(d,...)                                                          \
      do {                                                                            \
-          direct_log_printf( NULL, x );                                              \
+          direct_log_printf( NULL, __VA_ARGS__ );                                    \
      } while (0)
 
 #endif    /* DIRECT_BUILD_TEXT */
@@ -224,21 +224,25 @@ void direct_assumption( const char *exp,
 #endif
 
 #ifndef D_DEBUG_LOG
-#define D_DEBUG_LOG(_Domain,_level,_format...)                                       \
+#define D_DEBUG_LOG(_Domain,_level,...)                                              \
      do {                                                                            \
      } while (0)
 #endif
 
+#ifndef D_DEBUG
+#define D_DEBUG(d,...)             do {} while (0)
+#endif
+
 #ifndef D_DEBUG_AT
-#define D_DEBUG_AT(d,x...)         do {} while (0)
+#define D_DEBUG_AT(d,...)          do {} while (0)
 #endif
 
 #ifndef D_DEBUG_ENTER
-#define D_DEBUG_ENTER(d,x...)      do {} while (0)
+#define D_DEBUG_ENTER(d,...)       do {} while (0)
 #endif
 
 #ifndef D_DEBUG_EXIT
-#define D_DEBUG_EXIT(d,x...)       do {} while (0)
+#define D_DEBUG_EXIT(d,...)        do {} while (0)
 #endif
 
 #ifndef D_ASSERT
@@ -250,7 +254,7 @@ void direct_assumption( const char *exp,
 #endif
 
 #ifndef D_DEBUG_AT__
-#define D_DEBUG_AT__(d,x...)       do {} while (0)
+#define D_DEBUG_AT__(d,...)        do {} while (0)
 #endif
 
 #ifndef D_DEBUG_CHECK
@@ -258,11 +262,11 @@ void direct_assumption( const char *exp,
 #endif
 
 #ifndef D_BREAK
-#define D_BREAK(x...)              do {} while (0)
+#define D_BREAK(...)               do {} while (0)
 #endif
 
 #ifndef d_debug_at
-#define d_debug_at( domain, x... ) do {} while (0)
+#define d_debug_at( domain, ... )  do {} while (0)
 #endif
 
 #ifndef D_LOG_DOMAIN

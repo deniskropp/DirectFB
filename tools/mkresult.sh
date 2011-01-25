@@ -18,8 +18,19 @@ cat << EOF
 
 #include <direct/result.h>
 
-static const char *${ENUM}__strings[] = {
-     "${ENUM}",
+static const char *${ENUM}__strings[${PREFIX}__RESULT_END - ${PREFIX}__RESULT_BASE];
+
+static DirectResultType ${ENUM}__type = {
+     0, 0,
+     ${PREFIX}__RESULT_BASE,
+     ${ENUM}__strings,
+     sizeof(${ENUM}__strings) / sizeof(char*)
+};
+
+void
+${ENUM}__init(void)
+{
+     ${ENUM}__strings[0] = "${ENUM}";
 
 EOF
 
@@ -29,16 +40,22 @@ EOF
     done
 
     while read line; do
-        (echo "$line" | egrep -q "^ *} +${ENUM};") && break
+        (echo "$line" | egrep -q "^ *${PREFIX}__RESULT_END") && break
 
-        test -z "$line" || echo "$line" | perl -p -e "s/^\\s*(${PREFIX}_[\\w_]+)\\s*,?\\s+\\/\\*\\s*(.*[^ ])\\s*\\*\\//     [D_RESULT_INDEX(\\1)] = \\\"\\2\\\",/"
+        test -z "$line" || echo "$line" | perl -p -e "s/^\\s*(${PREFIX}_[\\w_]+)\\s*,?\\s+\\/\\*\\s*(.*[^ ])\\s*\\*\\//     ${ENUM}__strings[D_RESULT_INDEX(\\1)] = \\\"\\2\\\";/"
     done
 ) < ${HEADER}
 
 cat << EOF
-};                                         
 
-DIRECT_RESULT_TYPE( ${ENUM}, ${PREFIX} );
+     DirectResultTypeRegister( &${ENUM}__type );
+}
+
+void
+${ENUM}__deinit(void)
+{
+     DirectResultTypeUnregister( &${ENUM}__type );
+}
 
 EOF
 

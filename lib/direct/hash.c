@@ -38,7 +38,7 @@ D_LOG_DOMAIN( Direct_Hash, "Direct/Hash", "Hash table implementation" );
 
 /**********************************************************************************************************************/
 
-static inline int
+static __inline__ int
 locate_key( const DirectHash *hash, unsigned long key )
 {
      int                      pos;

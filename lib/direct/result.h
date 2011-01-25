@@ -134,6 +134,8 @@ typedef enum {
      DR_NOCORE,          /* Core part not available */
      DR_SIGNALLED,       /* Received a signal, e.g. while waiting */
      DR_TASK_NOT_FOUND,  /* The corresponding task has not been found */
+
+     DR__RESULT_END
 } DirectResult;
 
 /**********************************************************************************************************************/
@@ -150,16 +152,13 @@ typedef struct {
 } DirectResultType;
 
 
-const char  *DirectResultString( DirectResult result );
+const char   DIRECT_API *DirectResultString( DirectResult result );
 
-DirectResult DirectResultTypeRegister  ( DirectResultType *type );
-DirectResult DirectResultTypeUnregister( DirectResultType *type );
+DirectResult DIRECT_API  DirectResultTypeRegister  ( DirectResultType *type );
+DirectResult DIRECT_API  DirectResultTypeUnregister( DirectResultType *type );
 
 
 /*
- * Macro for automatic result type (de)registration
- *
- *
  * Example usage:
  *
  *   static const char *FooResult__strings[] = {
@@ -169,8 +168,6 @@ DirectResult DirectResultTypeUnregister( DirectResultType *type );
  *        "Too bar",          // FOO_TOO_BAR
  *   };
  *
- *   DIRECT_RESULT_TYPE( FooResult, FOO );
- *
  *
  * Corresponding example enumeration:
  *
@@ -179,32 +176,14 @@ DirectResult DirectResultTypeUnregister( DirectResultType *type );
  *
  *        FOO_GENERAL_FOOBAR, // General foobar
  *        FOO_TOO_BAR,        // Too bar
+ * 
+ *        FOO__RESULT_END
  *   } FooResult;
  */
-#define DIRECT_RESULT_TYPE( Type, PREFIX )                                                     \
-                                                                                               \
-static DirectResultType Type ## __type = {                                                     \
-     .base               = PREFIX ## __RESULT_BASE,                                            \
-     .result_strings     = Type ## __strings,                                                  \
-     .result_count       = sizeof(Type ## __strings) / sizeof(char*),                          \
-};                                                                                             \
-                                                                                               \
-__attribute__((constructor)) int  Type ## __ctor( void );                                      \
-__attribute__((destructor))  void Type ## __dtor( void );                                      \
-                                                                                               \
-int                                                                                            \
-Type ## __ctor(void)                                                                           \
-{                                                                                              \
-     DirectResultTypeRegister( &Type ## __type );                                              \
-     return 0;                                                                                 \
-}                                                                                              \
-                                                                                               \
-void                                                                                           \
-Type ## __dtor(void)                                                                           \
-{                                                                                              \
-     DirectResultTypeUnregister( &Type ## __type );                                            \
-}
 
+
+void __D_result_init( void );
+void __D_result_deinit( void );
 
 #endif
 

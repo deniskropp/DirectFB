@@ -35,10 +35,81 @@
 #include <direct/util.h>
 
 
+/**********************************************************************************************************************/
+
+static const char *strings_base[150];
+
+#define STRINGS_ADD( index, string )                        \
+     do {                                                   \
+          D_ASSERT( index < D_ARRAY_SIZE(strings_base) );   \
+          strings_base[index] = string;                     \
+     } while (0)
+
+void
+__D_util_init()
+{
+     STRINGS_ADD( EPERM,   "Operation not permitted" );
+     STRINGS_ADD( ENOENT,  "No such file or directory" );
+     STRINGS_ADD( ESRCH,   "No such process" );
+     STRINGS_ADD( EINTR,   "Interrupted system call" );
+     STRINGS_ADD( EIO,     "I/O error" );
+     STRINGS_ADD( ENXIO,   "No such device or address" );
+     STRINGS_ADD( E2BIG,   "Argument list too long" );
+     STRINGS_ADD( ENOEXEC, "Exec format error" );
+     STRINGS_ADD( EBADF,   "Bad file number" );
+     STRINGS_ADD( ECHILD,  "No child processes" );
+     STRINGS_ADD( EAGAIN,  "Try again" );
+     STRINGS_ADD( ENOMEM,  "Out of memory" );
+     STRINGS_ADD( EACCES,  "Permission denied" );
+     STRINGS_ADD( EFAULT,  "Bad address" );
+#ifdef ENOTBLK
+     STRINGS_ADD( ENOTBLK, "Block device required" );
+#endif
+     STRINGS_ADD( EBUSY,   "Device or resource busy" );
+     STRINGS_ADD( EEXIST,  "File exists" );
+     STRINGS_ADD( EXDEV,   "Cross-device link" );
+     STRINGS_ADD( ENODEV,  "No such device" );
+     STRINGS_ADD( ENOTDIR, "Not a directory" );
+     STRINGS_ADD( EISDIR,  "Is a directory" );
+     STRINGS_ADD( EINVAL,  "Invalid argument" );
+     STRINGS_ADD( ENFILE,  "File table overflow" );
+     STRINGS_ADD( EMFILE,  "Too many open files" );
+     STRINGS_ADD( ENOTTY,  "Not a typewriter" );
+     STRINGS_ADD( ETXTBSY, "Text file busy" );
+     STRINGS_ADD( EFBIG,   "File too large" );
+     STRINGS_ADD( ENOSPC,  "No space left on device" );
+     STRINGS_ADD( ESPIPE,  "Illegal seek" );
+     STRINGS_ADD( EROFS,   "Read-only file system" );
+     STRINGS_ADD( EMLINK,  "Too many links" );
+     STRINGS_ADD( EPIPE,   "Broken pipe" );
+     STRINGS_ADD( EDOM,    "Math argument out of domain of func" );
+     STRINGS_ADD( ERANGE,  "Math result not representable" );
+}
+
+void
+__D_util_deinit()
+{
+}
+
+/**********************************************************************************************************************/
+
+const char *
+direct_strerror( int erno )
+{
+     if (erno < 0)
+          return "negative errno";
+
+     if (erno >= D_ARRAY_SIZE(strings_base))
+          return "too high errno";
+
+     return strings_base[erno];
+}
+
+
 /*
  * translates errno to DirectResult
  */
-__attribute__((no_instrument_function))
+__no_instrument_function__
 DirectResult
 errno2result( int erno )
 {
@@ -86,11 +157,13 @@ direct_sscanf( const char *str, const char *format, ... )
      return ret;
 }
 
+/*
 int
 direct_vsscanf( const char *str, const char *format, va_list args )
 {
      return vsscanf( str, format, args );
 }
+*/
 
 size_t
 direct_strlen( const char *s )
@@ -130,7 +203,7 @@ direct_strtoul( const char *nptr, char **endptr, int base )
 }
 
 
-static inline char *
+static __inline__ char *
 __D_strtok_r (char *s, const char *delim, char **save_ptr)
 {
   char *token;
@@ -161,6 +234,7 @@ __D_strtok_r (char *s, const char *delim, char **save_ptr)
   return token;
 }
 
+#ifdef __GNUC__
 #define __D_string2_1bptr_p(__x) \
   ((size_t)(const void *)((__x) + 1) - (size_t)(const void *)(__x) == 1)
 
@@ -171,8 +245,9 @@ __D_strtok_r (char *s, const char *delim, char **save_ptr)
 		     ? __D_strtok_r_1c (s, ((__const char *) (sep))[0], nextp)          \
 		     : __D_strtok_r (s, sep, nextp))			                        \
 		  : __D_strtok_r (s, sep, nextp)))
+#endif
 
-static inline char *
+static __inline__ char *
 __D_strtok_r_1c (char *__s, char __sep, char **__nextp)
 {
      char *__result;
@@ -197,58 +272,6 @@ char *
 direct_strtok_r( char *str, const char *delim, char **saveptr )
 {
      return __D_strtok_r( str, delim, saveptr );
-}
-
-
-
-
-static const char *strings_base[] = {
-     [EPERM]   = "Operation not permitted",
-     [ENOENT]  = "No such file or directory",
-     [ESRCH]   = "No such process",
-     [EINTR]   = "Interrupted system call",
-     [EIO]     = "I/O error",
-     [ENXIO]   = "No such device or address",
-     [E2BIG]   = "Argument list too long",
-     [ENOEXEC] = "Exec format error",
-     [EBADF]   = "Bad file number",
-     [ECHILD]  = "No child processes",
-     [EAGAIN]  = "Try again",
-     [ENOMEM]  = "Out of memory",
-     [EACCES]  = "Permission denied",
-     [EFAULT]  = "Bad address",
-     [ENOTBLK] = "Block device required",
-     [EBUSY]   = "Device or resource busy",
-     [EEXIST]  = "File exists",
-     [EXDEV]   = "Cross-device link",
-     [ENODEV]  = "No such device",
-     [ENOTDIR] = "Not a directory",
-     [EISDIR]  = "Is a directory",
-     [EINVAL]  = "Invalid argument",
-     [ENFILE]  = "File table overflow",
-     [EMFILE]  = "Too many open files",
-     [ENOTTY]  = "Not a typewriter",
-     [ETXTBSY] = "Text file busy",
-     [EFBIG]   = "File too large",
-     [ENOSPC]  = "No space left on device",
-     [ESPIPE]  = "Illegal seek",
-     [EROFS]   = "Read-only file system",
-     [EMLINK]  = "Too many links",
-     [EPIPE]   = "Broken pipe",
-     [EDOM]    = "Math argument out of domain of func",
-     [ERANGE]  = "Math result not representable",
-};
-
-const char *
-direct_strerror( int erno )
-{
-     if (erno < 0)
-          return "negative errno";
-
-     if (erno >= D_ARRAY_SIZE(strings_base))
-          return "too high errno";
-
-     return strings_base[erno];
 }
 
 char *
@@ -473,7 +496,7 @@ direct_md5_sum( void *dst, const void *src, const int len )
      }
 
      for (i = 0; i < 8; i++)
-          block[56+i] = ((u64)len << 3) >> (i << 3);
+          block[56+i] = (u8)(((u64)len << 3) >> (i << 3));
 
      md5_hash( ABCD, (u32*)block );
 

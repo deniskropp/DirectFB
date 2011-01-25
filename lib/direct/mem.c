@@ -63,7 +63,19 @@ typedef struct {
 /**********************************************************************************************************************/
 
 static DirectHash  alloc_hash = DIRECT_HASH_INIT( 523, true );
-static DirectMutex alloc_lock = DIRECT_MUTEX_INITIALIZER(alloc_lock);
+static DirectMutex alloc_lock;
+
+void
+__D_mem_init()
+{
+     direct_mutex_init( &alloc_lock );
+}
+
+void
+__D_mem_deinit()
+{
+     direct_mutex_deinit( &alloc_lock );
+}
 
 /**********************************************************************************************************************/
 
@@ -109,8 +121,8 @@ direct_print_memleaks( void )
 
 /**********************************************************************************************************************/
 
-__attribute__((no_instrument_function))
-static inline MemDesc *
+__no_instrument_function__
+static __inline__ MemDesc *
 fill_mem_desc( MemDesc *desc, int bytes, const char *func, const char *file, int line, DirectTraceBuffer *trace )
 {
      D_ASSERT( desc != NULL );
@@ -166,7 +178,7 @@ direct_dbg_malloc( const char* file, int line, const char *func, size_t bytes )
      val    = mem;
      val[0] = ~0;
 
-     return mem + DISABLED_OFFSET;
+     return (char*) mem + DISABLED_OFFSET;
 }
 
 void *
@@ -209,7 +221,7 @@ direct_dbg_calloc( const char* file, int line, const char *func, size_t count, s
      val    = mem;
      val[0] = ~0;
 
-     return mem + DISABLED_OFFSET;
+     return (char*) mem + DISABLED_OFFSET;
 }
 
 void *
@@ -228,7 +240,7 @@ direct_dbg_realloc( const char *file, int line, const char *func, const char *wh
           return NULL;
      }
 
-     val = mem - DISABLED_OFFSET;
+     val = (unsigned long*)((char*) mem - DISABLED_OFFSET);
 
      if (val[0] == ~0) {
           D_DEBUG_AT( Direct_Mem, "  *%6zu bytes [%s:%d in %s()] '%s'\n", bytes, file, line, func, what );
@@ -242,7 +254,7 @@ direct_dbg_realloc( const char *file, int line, const char *func, const char *wh
 
                mem = val;
 
-               return mem + DISABLED_OFFSET;
+               return (char*) mem + DISABLED_OFFSET;
           }
 
           return NULL;
@@ -251,7 +263,7 @@ direct_dbg_realloc( const char *file, int line, const char *func, const char *wh
      /* Debug only. */
      direct_mutex_lock( &alloc_lock );
 
-     desc = mem - sizeof(MemDesc);
+     desc = (MemDesc*)((char*) mem - sizeof(MemDesc));
      D_ASSERT( desc->mem == mem );
 
      if (direct_hash_remove( &alloc_hash, (unsigned long) mem )) {
@@ -331,9 +343,9 @@ direct_dbg_strdup( const char* file, int line, const char *func, const char *str
      val    = mem;
      val[0] = ~0;
 
-     direct_memcpy( mem + DISABLED_OFFSET, string, bytes );
+     direct_memcpy( (char*) mem + DISABLED_OFFSET, string, bytes );
 
-     return mem + DISABLED_OFFSET;
+     return (char*) mem + DISABLED_OFFSET;
 }
 
 void
@@ -347,7 +359,7 @@ direct_dbg_free( const char *file, int line, const char *func, const char *what,
           return;
      }
 
-     val = mem - DISABLED_OFFSET;
+     val = (unsigned long*)((char*) mem - DISABLED_OFFSET);
 
      if (val[0] == ~0) {
           D_DEBUG_AT( Direct_Mem, "  - number of bytes of %s [%s:%d in %s()] -> %p\n", what, file, line, func, mem );
@@ -362,7 +374,7 @@ direct_dbg_free( const char *file, int line, const char *func, const char *what,
      /* Debug only. */
      direct_mutex_lock( &alloc_lock );
 
-     desc = mem - sizeof(MemDesc);
+     desc = (MemDesc*)((char*) mem - sizeof(MemDesc));
      D_ASSERT( desc->mem == mem );
 
      if (direct_hash_remove( &alloc_hash, (unsigned long) mem )) {
@@ -384,6 +396,16 @@ direct_dbg_free( const char *file, int line, const char *func, const char *what,
 /**********************************************************************************************************************/
 
 #else
+
+void
+__D_mem_init()
+{
+}
+
+void
+__D_mem_deinit()
+{
+}
 
 void
 direct_print_memleaks( void )

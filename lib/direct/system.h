@@ -32,14 +32,14 @@
 #include <direct/os/system.h>
 
 
-DirectResult direct_futex_wait      ( int *uaddr, int val );
-DirectResult direct_futex_wait_timed( int *uaddr, int val, int ms );
+DirectResult DIRECT_API direct_futex_wait      ( int *uaddr, int val );
+DirectResult DIRECT_API direct_futex_wait_timed( int *uaddr, int val, int ms );
 
-DirectResult direct_futex_wake      ( int *uaddr, int num );
+DirectResult DIRECT_API direct_futex_wake      ( int *uaddr, int num );
 
 // Temporarily for testing
-extern unsigned int __Direct_Futex_Wait_Count;
-extern unsigned int __Direct_Futex_Wake_Count;
+extern unsigned int DIRECT_API __Direct_Futex_Wait_Count;
+extern unsigned int DIRECT_API __Direct_Futex_Wake_Count;
 
 #endif
 

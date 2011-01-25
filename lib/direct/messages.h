@@ -38,84 +38,84 @@
 #include <direct/conf.h>
 
 
-void direct_messages_info         ( const char *format, ... )  D_FORMAT_PRINTF(1);
+void DIRECT_API direct_messages_info         ( const char *format, ... )  D_FORMAT_PRINTF(1);
 
-void direct_messages_error        ( const char *format, ... )  D_FORMAT_PRINTF(1);
+void DIRECT_API direct_messages_error        ( const char *format, ... )  D_FORMAT_PRINTF(1);
 
-void direct_messages_derror       ( DirectResult result,
-                                    const char *format, ... )  D_FORMAT_PRINTF(2);
+void DIRECT_API direct_messages_derror       ( DirectResult result,
+                                               const char *format, ... )  D_FORMAT_PRINTF(2);
 
-void direct_messages_perror       ( int         erno,
-                                    const char *format, ... )  D_FORMAT_PRINTF(2);
+void DIRECT_API direct_messages_perror       ( int         erno,
+                                               const char *format, ... )  D_FORMAT_PRINTF(2);
 
-void direct_messages_dlerror      ( const char *dlerr,
-                                    const char *format, ... )  D_FORMAT_PRINTF(2);
+void DIRECT_API direct_messages_dlerror      ( const char *dlerr,
+                                               const char *format, ... )  D_FORMAT_PRINTF(2);
 
-void direct_messages_once         ( const char *func,
-                                    const char *file,
-                                    int         line,
-                                    const char *format, ... )  D_FORMAT_PRINTF(4);
+void DIRECT_API direct_messages_once         ( const char *func,
+                                               const char *file,
+                                               int         line,
+                                               const char *format, ... )  D_FORMAT_PRINTF(4);
 
-void direct_messages_unimplemented( const char *func,
-                                    const char *file,
-                                    int         line );
+void DIRECT_API direct_messages_unimplemented( const char *func,
+                                               const char *file,
+                                               int         line );
 
-void direct_messages_bug          ( const char *func,
-                                    const char *file,
-                                    int         line,
-                                    const char *format, ... )  D_FORMAT_PRINTF(4);
+void DIRECT_API direct_messages_bug          ( const char *func,
+                                               const char *file,
+                                               int         line,
+                                               const char *format, ... )  D_FORMAT_PRINTF(4);
 
-void direct_messages_warn         ( const char *func,
-                                    const char *file,
-                                    int         line,
-                                    const char *format, ... )  D_FORMAT_PRINTF(4);
+void DIRECT_API direct_messages_warn         ( const char *func,
+                                               const char *file,
+                                               int         line,
+                                               const char *format, ... )  D_FORMAT_PRINTF(4);
 
 
-#define D_INFO(x...)     do {                                                                  \
+#define D_INFO(...)      do {                                                                  \
                               if (!(direct_config->quiet & DMT_INFO))                          \
-                                   direct_messages_info( x );                                  \
+                                   direct_messages_info( __VA_ARGS__ );                        \
                          } while (0)
 
-#define D_ERROR(x...)    do {                                                                  \
+#define D_ERROR(...)     do {                                                                  \
                               if (!(direct_config->quiet & DMT_ERROR))                         \
-                                   direct_messages_error( x );                                 \
+                                   direct_messages_error( __VA_ARGS__ );                       \
                          } while (0)
 
-#define D_ERROR_AT(d,x...)    do {                                                                            \
+#define D_ERROR_AT(d,...)    do {                                                                             \
                                    if (!(direct_config->quiet & DMT_ERROR))                                   \
                                         direct_log_domain_log( &(d), DIRECT_LOG_ERROR,                        \
-                                                               __PRETTY_FUNCTION__, __FILE__, __LINE__, x );  \
+                                                               __PRETTY_FUNCTION__, __FILE__, __LINE__, __VA_ARGS__ );  \
                               } while (0)
 
-#define D_DERROR(r,x...) do {                                                                  \
-                              if (!(direct_config->quiet & DMT_ERROR))                         \
-                                   direct_messages_derror( (DirectResult) r, x );              \
+#define D_DERROR(r,...) do {                                                                  \
+                              if (!(direct_config->quiet & DMT_ERROR))                        \
+                                   direct_messages_derror( (DirectResult) r, __VA_ARGS__ );   \
                          } while (0)
 
 // FIXME
-#define D_DERROR_AT(d,r,x...) do {                                                                  \
+#define D_DERROR_AT(d,r,...) do {                                                                   \
                               if (!(direct_config->quiet & DMT_ERROR))                         \
                                    direct_log_domain_log( &(d), DIRECT_LOG_ERROR,                        \
-                                                          __PRETTY_FUNCTION__, __FILE__, __LINE__, x );  \
+                                                          __PRETTY_FUNCTION__, __FILE__, __LINE__, __VA_ARGS__ );  \
                          } while (0)
 
-#define D_PERROR(x...)   do {                                                                  \
+#define D_PERROR(...)    do {                                                                  \
                               if (!(direct_config->quiet & DMT_ERROR))                         \
-                                   direct_messages_perror( errno, x );                         \
+                                   direct_messages_perror( errno, __VA_ARGS__ );               \
                          } while (0)
 
-#define D_DLERROR(x...)  do {                                                                  \
+#define D_DLERROR(...)   do {                                                                  \
                               if (!(direct_config->quiet & DMT_ERROR))                         \
-                                   direct_messages_dlerror( dlerror(), x );                    \
+                                   direct_messages_dlerror( dlerror(), __VA_ARGS__ );          \
                          } while (0)
 
 
-#define D_ONCE(x...)     do {                                                                  \
+#define D_ONCE(...)      do {                                                                  \
                               if (!(direct_config->quiet & DMT_ONCE)) {                        \
                                    static bool first = true;                                   \
                                    if (first) {                                                \
                                         direct_messages_once( __FUNCTION__,                    \
-                                                              __FILE__, __LINE__, x );         \
+                                                              __FILE__, __LINE__, __VA_ARGS__ );         \
                                         first = false;                                         \
                                    }                                                           \
                               }                                                                \
@@ -143,14 +143,14 @@ void direct_messages_warn         ( const char *func,
                               }                                                                \
                          } while (0)
 
-#define D_BUG(x...)      do {                                                                  \
+#define D_BUG(...)       do {                                                                  \
                               if (!(direct_config->quiet & DMT_ERROR))                         \
-                                   direct_messages_bug( __FUNCTION__, __FILE__, __LINE__, x ); \
+                                   direct_messages_bug( __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__ ); \
                          } while (0)
 
-#define D_WARN(x...)     do {                                                                  \
+#define D_WARN(...)      do {                                                                  \
                               if (!(direct_config->quiet & DMT_WARNING))                       \
-                                   direct_messages_warn( __FUNCTION__, __FILE__, __LINE__, x );\
+                                   direct_messages_warn( __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__ );\
                          } while (0)
 
 #define D_OOM()          (direct_messages_warn( __FUNCTION__, __FILE__, __LINE__,              \

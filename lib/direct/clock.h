@@ -33,17 +33,17 @@
 
 /**********************************************************************************************************************/
 
-long long direct_clock_get_abs_micros( void );
-long long direct_clock_get_abs_millis( void );
+long long DIRECT_API direct_clock_get_abs_micros( void );
+long long DIRECT_API direct_clock_get_abs_millis( void );
 
-long long direct_clock_get_micros( void );
-long long direct_clock_get_millis( void );
+long long DIRECT_API direct_clock_get_micros( void );
+long long DIRECT_API direct_clock_get_millis( void );
 
 
 #ifndef DIRECT_DISABLE_DEPRECATED
 
 // @deprecated
-void direct_clock_set_start( const struct timeval *start );
+void DIRECT_API direct_clock_set_start( const struct timeval *start );
 
 #endif
 

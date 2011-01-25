@@ -34,16 +34,7 @@
 #include <direct/util.h>
 
 
-static DirectConfig config = {
-     .log_level               = DIRECT_LOG_DEBUG_0,
-     .trace                   = true,
-     .sighandler              = true,
-
-     .fatal                   = DCFL_ASSERT,
-     .fatal_break             = true,
-     .thread_block_signals    = true,
-     .thread_priority_scale   = 100
-};
+static DirectConfig config;
 
 
 DirectConfig *direct_config       = &config;
@@ -69,6 +60,26 @@ const char   *direct_config_usage =
      "  module-dir=<directory>         Override default module search directory (default = $libdir/directfb-x.y-z)\n"
      "  thread-priority-scale=<100th>  Apply scaling factor on thread type based priorities\n"
      "\n";
+
+/**********************************************************************************************************************/
+
+void
+__D_conf_init()
+{
+     direct_config->log_level             = DIRECT_LOG_DEBUG_0;
+     direct_config->trace                 = true;
+     direct_config->sighandler            = true;
+
+     direct_config->fatal                 = DCFL_ASSERT;
+     direct_config->fatal_break           = true;
+     direct_config->thread_block_signals  = true;
+     direct_config->thread_priority_scale = 100;
+}
+
+void
+__D_conf_deinit()
+{
+}
 
 /**********************************************************************************************************************/
 

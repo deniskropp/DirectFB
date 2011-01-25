@@ -38,7 +38,19 @@ D_LOG_DOMAIN( Direct_Result, "Direct/Result", "Direct Result Types" );
 /**********************************************************************************************************************/
 
 static DirectHash  result_types = DIRECT_HASH_INIT( 7, true );
-static DirectMutex result_mutex = DIRECT_MUTEX_INITIALIZER( result_mutex );
+static DirectMutex result_mutex;
+
+void
+__D_result_init()
+{
+     direct_mutex_init( &result_mutex );
+}
+
+void
+__D_result_deinit()
+{
+     direct_mutex_deinit( &result_mutex );
+}
 
 /**********************************************************************************************************************/
 

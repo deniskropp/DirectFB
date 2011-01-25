@@ -35,24 +35,24 @@
 static const char   *GetType( void );
 static const char   *GetImplementation( void );
 static DirectResult  Allocate( void **ret_interface );
-static DirectResult  Deallocate( void *interface );
+static DirectResult  Deallocate( void *interface_ptr );
 //static DirectResult  Probe( void *ctx, ... );
 //static DirectResult  Construct( void *interface, ... );
 
 
 static DirectInterfaceFuncs interface_funcs = {
-     .GetType            = GetType,
-     .GetImplementation  = GetImplementation,
-     .Allocate           = Allocate,
-     .Deallocate         = Deallocate,
-     .Probe              = (void*) Probe,    //FIXME
-     .Construct          = (void*) Construct //FIXME
+     /* GetType */            GetType,
+     /* GetImplementation */  GetImplementation,
+     /* Allocate */           Allocate,
+     /* Deallocate */         Deallocate,
+     /* Probe */              (void*) Probe,    //FIXME
+     /* Construct */          (void*) Construct //FIXME
 };
 
 #define DIRECT_INTERFACE_IMPLEMENTATION(type, impl)              \
                                                                  \
-__attribute__((constructor)) void type##_##impl##_ctor( void );  \
-__attribute__((destructor))  void type##_##impl##_dtor( void );  \
+__constructor__ void type##_##impl##_ctor( void );               \
+__destructor__  void type##_##impl##_dtor( void );               \
                                                                  \
 static const char *                                              \
 GetType( void )                                                  \
@@ -74,9 +74,9 @@ Allocate( void **ret_interface )                                 \
 }                                                                \
                                                                  \
 static DirectResult                                              \
-Deallocate( void *interface )                                    \
+Deallocate( void *interface_ptr )                                \
 {                                                                \
-     DIRECT_DEALLOCATE_INTERFACE( (IAny*) (interface) );         \
+     DIRECT_DEALLOCATE_INTERFACE( (IAny*) (interface_ptr) );     \
      return DR_OK;                                               \
 }                                                                \
                                                                  \

@@ -33,17 +33,19 @@
 
 /**********************************************************************************************************************/
 
-static inline DirectResult direct_waitqueue_init        ( DirectWaitQueue *queue );
+#ifndef DIRECT_OS_WAITQUEUE_DEFINED
+DirectResult DIRECT_API direct_waitqueue_init        ( DirectWaitQueue *queue );
 
-static inline DirectResult direct_waitqueue_wait        ( DirectWaitQueue *queue, DirectMutex *mutex );
+DirectResult DIRECT_API direct_waitqueue_wait        ( DirectWaitQueue *queue, DirectMutex *mutex );
 
-static inline DirectResult direct_waitqueue_wait_timeout( DirectWaitQueue *queue, DirectMutex *mutex, unsigned long micros );
+DirectResult DIRECT_API direct_waitqueue_wait_timeout( DirectWaitQueue *queue, DirectMutex *mutex, unsigned long micros );
 
-static inline DirectResult direct_waitqueue_signal      ( DirectWaitQueue *queue );
+DirectResult DIRECT_API direct_waitqueue_signal      ( DirectWaitQueue *queue );
 
-static inline DirectResult direct_waitqueue_broadcast   ( DirectWaitQueue *queue );
+DirectResult DIRECT_API direct_waitqueue_broadcast   ( DirectWaitQueue *queue );
 
-static inline DirectResult direct_waitqueue_deinit      ( DirectWaitQueue *queue );
+DirectResult DIRECT_API direct_waitqueue_deinit      ( DirectWaitQueue *queue );
+#endif
 
 #endif
 

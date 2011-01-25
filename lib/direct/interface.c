@@ -63,8 +63,20 @@ typedef struct {
 
 /**********************************************************************************************************************/
 
-static DirectMutex  implementations_mutex = DIRECT_RECURSIVE_MUTEX_INITIALIZER(implementations_mutex);
-static DirectLink  *implementations       = NULL;
+static DirectMutex  implementations_mutex;
+static DirectLink  *implementations;
+
+void
+__D_interface_init()
+{
+     direct_recursive_mutex_init( &implementations_mutex );
+}
+
+void
+__D_interface_deinit()
+{
+     direct_mutex_deinit( &implementations_mutex );
+}
 
 /**********************************************************************************************************************/
 
@@ -312,7 +324,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 #if DIRECT_BUILD_DEBUGS  /* Build with debug support? */
 
 typedef struct {
-     const void        *interface;
+     const void        *interface_ptr;
      char              *name;
      char              *what;
 
@@ -323,17 +335,29 @@ typedef struct {
      DirectTraceBuffer *trace;
 } InterfaceDesc;
 
-static int            alloc_count    = 0;
-static int            alloc_capacity = 0;
-static InterfaceDesc *alloc_list     = NULL;
-static DirectMutex    alloc_lock     = DIRECT_MUTEX_INITIALIZER(alloc_lock);
+static int            alloc_count;
+static int            alloc_capacity;
+static InterfaceDesc *alloc_list;
+static DirectMutex    alloc_lock;
+
+void
+__D_interface_dbg_init()
+{
+     direct_mutex_init( &alloc_lock );
+}
+
+void
+__D_interface_dbg_deinit()
+{
+     direct_mutex_deinit( &alloc_lock );
+}
 
 /**************************************************************************************************/
 
 void
 direct_print_interface_leaks( void )
 {
-     unsigned int i;
+     int i;
 
      direct_mutex_lock( &alloc_lock );
 
@@ -344,7 +368,7 @@ direct_print_interface_leaks( void )
                InterfaceDesc *desc = &alloc_list[i];
 
                direct_log_printf( NULL, "  - '%s' at %p (%s) allocated in %s (%s: %u)\n", desc->name,
-                        desc->interface, desc->what, desc->func, desc->file, desc->line );
+                        desc->interface_ptr, desc->what, desc->func, desc->file, desc->line );
 
                if (desc->trace)
                     direct_trace_print_stack( desc->trace );
@@ -356,7 +380,7 @@ direct_print_interface_leaks( void )
 
 /**************************************************************************************************/
 
-__attribute__((no_instrument_function))
+__no_instrument_function__
 static InterfaceDesc *
 allocate_interface_desc( void )
 {
@@ -377,10 +401,10 @@ allocate_interface_desc( void )
      return &alloc_list[alloc_count++];
 }
 
-__attribute__((no_instrument_function))
-static inline void
+__no_instrument_function__
+static __inline__ void
 fill_interface_desc( InterfaceDesc     *desc,
-                     const void        *interface,
+                     const void        *interface_ptr,
                      const char        *name,
                      const char        *func,
                      const char        *file,
@@ -388,24 +412,24 @@ fill_interface_desc( InterfaceDesc     *desc,
                      const char        *what,
                      DirectTraceBuffer *trace )
 {
-     desc->interface = interface;
-     desc->name      = direct_strdup( name );
-     desc->what      = direct_strdup( what );
-     desc->func      = func;
-     desc->file      = file;
-     desc->line      = line;
-     desc->trace     = trace;
+     desc->interface_ptr = interface_ptr;
+     desc->name          = direct_strdup( name );
+     desc->what          = direct_strdup( what );
+     desc->func          = func;
+     desc->file          = file;
+     desc->line          = line;
+     desc->trace         = trace;
 }
 
 /**************************************************************************************************/
 
-__attribute__((no_instrument_function))
+__no_instrument_function__
 void
 direct_dbg_interface_add( const char *func,
                           const char *file,
                           int         line,
                           const char *what,
-                          const void *interface,
+                          const void *interface_ptr,
                           const char *name )
 {
      InterfaceDesc *desc;
@@ -414,28 +438,28 @@ direct_dbg_interface_add( const char *func,
 
      desc = allocate_interface_desc();
 
-     fill_interface_desc( desc, interface, name,
+     fill_interface_desc( desc, interface_ptr, name,
                           func, file, line, what, direct_trace_copy_buffer(NULL) );
 
      direct_mutex_unlock( &alloc_lock );
 }
 
-__attribute__((no_instrument_function))
+__no_instrument_function__
 void
 direct_dbg_interface_remove( const char *func,
                              const char *file,
                              int         line,
                              const char *what,
-                             const void *interface )
+                             const void *interface_ptr )
 {
-     unsigned int i;
+     int i;
 
      direct_mutex_lock( &alloc_lock );
 
      for (i=0; i<alloc_count; i++) {
           InterfaceDesc *desc = &alloc_list[i];
 
-          if (desc->interface == interface) {
+          if (desc->interface_ptr == interface_ptr) {
                if (desc->trace)
                     direct_trace_free_buffer( desc->trace );
 
@@ -454,11 +478,21 @@ direct_dbg_interface_remove( const char *func,
      direct_mutex_unlock( &alloc_lock );
 
      D_ERROR( "Direct/Interface: unknown instance %p (%s) from [%s:%d in %s()]\n",
-              interface, what, file, line, func );
+              interface_ptr, what, file, line, func );
      D_BREAK( "unknown instance" );
 }
 
 #else     /* DIRECT_BUILD_DEBUG */
+
+void
+__D_interface_dbg_init()
+{
+}
+
+void
+__D_interface_dbg_deinit()
+{
+}
 
 void
 direct_print_interface_leaks( void )

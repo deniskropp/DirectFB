@@ -72,15 +72,13 @@ struct __D_DirectMap {
 static int
 locate_entry( DirectMap *map, unsigned int hash, const void *key )
 {
+     int             pos;
+     const MapEntry *entry;
+
      D_DEBUG_AT( Direct_Map, "%s( hash %u )\n", __func__, hash );
 
      DIRECT_MAP_ASSERT( map );
      D_ASSERT( key != NULL );
-
-     ///
-
-     int             pos;
-     const MapEntry *entry;
 
      pos = hash % map->size;
 
@@ -103,15 +101,13 @@ static DirectResult
 resize_map( DirectMap    *map,
             unsigned int  size )
 {
+     unsigned int  i, pos;
+     MapEntry     *entries;
+
      D_DEBUG_AT( Direct_Map, "%s( size %u )\n", __func__, size );
 
      DIRECT_MAP_ASSERT( map );
      D_ASSERT( size > 3 );
-
-     ///
-
-     int       i, pos;
-     MapEntry *entries;
 
      entries = D_CALLOC( size, sizeof(MapEntry) );
      if (!entries)
@@ -153,15 +149,13 @@ direct_map_create( unsigned int           initial_size,
                    void                  *ctx,
                    DirectMap            **ret_map )
 {
+     DirectMap *map;
+
      D_DEBUG_AT( Direct_Map, "%s( size %u, compare %p, hash %p )\n", __func__, initial_size, compare_func, hash_func );
 
      D_ASSERT( compare_func != NULL );
      D_ASSERT( hash_func != NULL );
      D_ASSERT( ret_map != NULL );
-
-     ///
-
-     DirectMap *map;
 
      if (initial_size < 3)
           initial_size = 3;
@@ -195,8 +189,6 @@ direct_map_destroy( DirectMap *map )
 
      DIRECT_MAP_ASSERT( map );
 
-     ///
-
      D_MAGIC_CLEAR( map );
 
      D_FREE( map->entries );
@@ -208,26 +200,26 @@ direct_map_insert( DirectMap  *map,
                    const void *key,
                    void       *object )
 {
+     unsigned int hash;
+     int          pos;
+     MapEntry    *entry;
+
      D_DEBUG_AT( Direct_Map, "%s( key %p, object %p )\n", __func__, key, object );
 
      DIRECT_MAP_ASSERT( map );
      D_ASSERT( key != NULL );
      D_ASSERT( object != NULL );
 
-     ///
-
      /* Need to resize the map? */
      if ((map->count + map->removed) > map->size / 4)
           resize_map( map, map->size * 3 );
 
-
-     unsigned int hash = map->hash( map, key, map->ctx );
-     int          pos  = hash % map->size;
+	 hash = map->hash( map, key, map->ctx );
+	 pos  = hash % map->size;
 
      D_DEBUG_AT( Direct_Map, "  -> hash %u, pos %d\n", hash, pos );
 
-
-     MapEntry *entry = &map->entries[pos];
+     entry = &map->entries[pos];
 
      while (entry->object && entry->object != REMOVED) {
           if (entry->hash == hash && map->compare( map, key, entry->object, map->ctx )) {
@@ -265,15 +257,15 @@ DirectResult
 direct_map_remove( DirectMap  *map,
                    const void *key )
 {
+     unsigned int hash;
+     int          pos;
+
      D_DEBUG_AT( Direct_Map, "%s( key %p )\n", __func__, key );
 
      DIRECT_MAP_ASSERT( map );
      D_ASSERT( key != NULL );
 
-     ///
-
-     unsigned int hash = map->hash( map, key, map->ctx );
-     int          pos;
+     hash = map->hash( map, key, map->ctx );
 
      pos = locate_entry( map, hash, key );
      if (pos == -1) {
@@ -295,15 +287,15 @@ void *
 direct_map_lookup( DirectMap  *map,
                    const void *key )
 {
+     unsigned int hash;
+     int          pos;
+
      D_DEBUG_AT( Direct_Map, "%s( key %p )\n", __func__, key );
 
      DIRECT_MAP_ASSERT( map );
      D_ASSERT( key != NULL );
 
-     ///
-
-     unsigned int hash = map->hash( map, key, map->ctx );
-     int          pos;
+     hash = map->hash( map, key, map->ctx );
 
      pos = locate_entry( map, hash, key );
 
@@ -315,14 +307,12 @@ direct_map_iterate( DirectMap             *map,
                     DirectMapIteratorFunc  func,
                     void                  *ctx )
 {
+     unsigned int i;
+
      D_DEBUG_AT( Direct_Map, "%s( func %p )\n", __func__, func );
 
      DIRECT_MAP_ASSERT( map );
      D_ASSERT( func != NULL );
-
-     ///
-
-     int i;
 
      for (i=0; i<map->size; i++) {
           MapEntry *entry = &map->entries[i];

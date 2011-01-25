@@ -158,7 +158,7 @@ tree_node_insert (DirectTree *tree,
           return tree_node_new (tree, key, value);
      }
 
-     cmp = key - node->key;
+     cmp = (char*) key - (char*) node->key;
      if (cmp == 0) {
           node->value = value;
           return node;
@@ -210,7 +210,7 @@ tree_node_lookup (DirectNode *node,
      if (!node)
           return NULL;
 
-     cmp = key - node->key;
+     cmp = (char*) key - (char*) node->key;
      if (cmp == 0)
           return node;
 

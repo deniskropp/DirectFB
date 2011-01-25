@@ -314,9 +314,33 @@ static inline int _D__atomic_add_return(int i, volatile int *v)
 
 
 
+#ifdef WIN32
+
 /*
- * GCC Atomic Builtins
+ * Win32
  */
+
+#ifndef D_SYNC_BOOL_COMPARE_AND_SWAP
+#define D_SYNC_BOOL_COMPARE_AND_SWAP( ptr, old_value, new_value )     \
+	 0
+#endif
+
+#ifndef D_SYNC_FETCH_AND_CLEAR
+#define D_SYNC_FETCH_AND_CLEAR( ptr )                                 \
+	 0
+#endif
+
+#ifndef D_SYNC_ADD_AND_FETCH
+#define D_SYNC_ADD_AND_FETCH( ptr, value )                            \
+	 0
+#endif
+
+#ifndef D_SYNC_ADD
+#define D_SYNC_ADD( ptr, value )                                      \
+	 0
+#endif
+
+#else //WIN32
 
 #ifndef D_SYNC_BOOL_COMPARE_AND_SWAP
 #define D_SYNC_BOOL_COMPARE_AND_SWAP( ptr, old_value, new_value )     \
@@ -348,6 +372,7 @@ static inline int _D__atomic_add_return(int i, volatile int *v)
      do { (void) D_SYNC_ADD_AND_FETCH( ptr, value ); } while (0)
 #endif
 
+#endif //!WIN32
 
 /*
  * FIFO Push
@@ -400,6 +425,11 @@ static inline int _D__atomic_add_return(int i, volatile int *v)
  */
 
 #ifndef D_SYNC_POP_SINGLE
+
+#ifdef WIN32
+#define D_SYNC_POP_SINGLE( fptr )                                                         \
+     0
+#else
 #define D_SYNC_POP_SINGLE( fptr )                                                         \
      ({                                                                                   \
           volatile long **__fptr = (volatile long**)(void*)(fptr);                        \
@@ -411,6 +441,7 @@ static inline int _D__atomic_add_return(int i, volatile int *v)
                                                                                           \
           (__typeof__(*(fptr))) __iptr;                                                   \
      })
+#endif
 #endif
 
 #ifndef D_SYNC_POP_MULTI

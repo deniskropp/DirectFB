@@ -32,9 +32,9 @@
 #include <direct/os/types.h>
 
 
-DirectResult direct_sigaction( int                     signum,
-                               const struct sigaction *act,
-                               struct sigaction       *oldact );
+DirectResult DIRECT_API direct_sigaction( int                     signum,
+                                          const struct sigaction *act,
+                                          struct sigaction       *oldact );
 
 
 #endif

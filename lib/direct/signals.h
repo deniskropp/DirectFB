@@ -43,15 +43,15 @@ typedef DirectSignalHandlerResult (*DirectSignalHandlerFunc)( int   num,
                                                               void *ctx );
 
 
-DirectResult direct_signals_initialize( void );
-DirectResult direct_signals_shutdown( void );
+DirectResult DIRECT_API direct_signals_initialize( void );
+DirectResult DIRECT_API direct_signals_shutdown( void );
 
 /*
  * Modifies the current thread's signal mask to block everything.
  * Should be called by input threads once to avoid killing themselves
  * in the signal handler by deinitializing all input drivers.
  */
-void direct_signals_block_all( void );
+void DIRECT_API direct_signals_block_all( void );
 
 /*
  * Signal number to use when registering a handler for any interrupt.
@@ -59,12 +59,12 @@ void direct_signals_block_all( void );
 #define DIRECT_SIGNAL_ANY     -1
 
 
-DirectResult direct_signal_handler_add   ( int                       num,
-                                           DirectSignalHandlerFunc   func,
-                                           void                     *ctx,
-                                           DirectSignalHandler     **ret_handler );
+DirectResult DIRECT_API direct_signal_handler_add   ( int                       num,
+                                                      DirectSignalHandlerFunc   func,
+                                                      void                     *ctx,
+                                                      DirectSignalHandler     **ret_handler );
 
-DirectResult direct_signal_handler_remove( DirectSignalHandler      *handler );
+DirectResult DIRECT_API direct_signal_handler_remove( DirectSignalHandler      *handler );
 
 
 #endif

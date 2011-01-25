@@ -60,6 +60,7 @@ include_HEADERS = \
 	fifo.h				\
 	filesystem.h			\
 	hash.h				\
+	init.h				\
 	interface.h			\
 	interface_implementation.h	\
 	list.h				\
@@ -99,6 +100,7 @@ libdirect_la_SOURCES = \
 	fastlz.c		\
 	fifo.c			\
 	hash.c			\
+	init.c			\
 	interface.c		\
 	list.c			\
 	log.c			\

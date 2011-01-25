@@ -45,81 +45,81 @@
  *   fd:/<fileno>
  *   stdin:/
  */
-DirectResult  direct_stream_create  ( const char     *filename,
-                                      DirectStream  **ret_stream );
+DirectResult DIRECT_API  direct_stream_create  ( const char     *filename,
+                                                 DirectStream  **ret_stream );
                                       
 /*
  * Duplicate the stream (never fails).
  */
-DirectStream *direct_stream_dup     ( DirectStream   *stream );     
+DirectStream DIRECT_API *direct_stream_dup     ( DirectStream   *stream );     
 
 /*
  * Return the file descriptor associated to the stream.
  */
-int           direct_stream_fileno  ( DirectStream   *stream );
+int          DIRECT_API  direct_stream_fileno  ( DirectStream   *stream );
 
 /*
  * True if stream is seekable.
  */
-bool          direct_stream_seekable( DirectStream   *stream );
+bool         DIRECT_API  direct_stream_seekable( DirectStream   *stream );
 
 /*
  * True if stream originates from a remote host.
  */
-bool          direct_stream_remote  ( DirectStream   *stream );
+bool         DIRECT_API  direct_stream_remote  ( DirectStream   *stream );
 
 /*
  * Get the mime description of the stream.
  * Returns NULL if the information is not available.
  */
-const char*   direct_stream_mime    ( DirectStream   *stream );
+const char   DIRECT_API *direct_stream_mime    ( DirectStream   *stream );
 
 /*
  * Get stream length.
  */
-unsigned int  direct_stream_length  ( DirectStream   *stream );
+unsigned int DIRECT_API  direct_stream_length  ( DirectStream   *stream );
 
 /*
  * Get stream position.
  */
-unsigned int  direct_stream_offset  ( DirectStream   *stream );
+unsigned int DIRECT_API  direct_stream_offset  ( DirectStream   *stream );
 
 /*
  * Wait for data to be available.
  * If 'timeout' is NULL, the function blocks indefinitely.
  * Set the 'timeout' to 0 to make the function return immediatly.
  */
-DirectResult  direct_stream_wait    ( DirectStream   *stream,
-                                      unsigned int    length,
-                                      struct timeval *timeout );
+DirectResult DIRECT_API  direct_stream_wait    ( DirectStream   *stream,
+                                                 unsigned int    length,
+                                                 struct timeval *timeout );
 
 /*
  * Peek 'length' bytes of data at offset 'offset' from the stream.
  */
-DirectResult  direct_stream_peek    ( DirectStream   *stream,
-                                      unsigned int    length,
-                                      int             offset,
-                                      void           *buf,
-                                      unsigned int   *read_out );
+DirectResult DIRECT_API  direct_stream_peek    ( DirectStream   *stream,
+                                                 unsigned int    length,
+                                                 int             offset,
+                                                 void           *buf,
+                                                 unsigned int   *read_out );
 
 /*
  * Fetch 'length' bytes of data from the stream.
  */
-DirectResult  direct_stream_read    ( DirectStream   *stream,
-                                      unsigned int    length,
-                                      void           *buf,
-                                      unsigned int   *read_out );
+DirectResult DIRECT_API  direct_stream_read    ( DirectStream   *stream,
+                                                 unsigned int    length,
+                                                 void           *buf,
+                                                 unsigned int   *read_out );
 
 /*
  * Seek to the specified absolute offset within the stream.
  */
-DirectResult  direct_stream_seek    ( DirectStream   *stream,
-                                      unsigned int    offset );
+DirectResult DIRECT_API  direct_stream_seek    ( DirectStream   *stream,
+                                                 unsigned int    offset );
 
 /*
  * Destroy the stream wrapper.
  */
-void          direct_stream_destroy ( DirectStream   *stream );
+void         DIRECT_API  direct_stream_destroy ( DirectStream   *stream );
 
 
 #endif /* __DIRECT__STREAM_H__ */

@@ -42,10 +42,32 @@
 /* Statically allocated to avoid endless loops between D_CALLOC() and D_DEBUG(), while the latter would only
  * call the allocation once, if there wouldn't be the loopback...
  */
-static DirectLog   fallback_log;
+static DirectLog  fallback_log;
+static DirectLog *default_log;
 
-static DirectLog  *default_log   = NULL;
-static DirectOnce  init_fallback = DIRECT_ONCE_INIT;
+void
+__D_log_init()
+{
+     fallback_log.type = DLT_STDERR;
+
+     direct_recursive_mutex_init( &fallback_log.lock );
+
+     direct_log_init( &fallback_log, NULL );
+
+     D_MAGIC_SET( &fallback_log, DirectLog );
+}
+
+void
+__D_log_deinit()
+{
+     direct_log_deinit( &fallback_log );
+
+     direct_mutex_deinit( &fallback_log.lock );
+
+     D_MAGIC_CLEAR( &fallback_log );
+
+     default_log = NULL;
+}
 
 /**********************************************************************************************************************/
 
@@ -63,15 +85,16 @@ direct_log_create( DirectLogType   type,
 
      log->type = type;
 
+     direct_recursive_mutex_init( &log->lock );
+
      ret = direct_log_init( log, param );
      if (ret) {
+          direct_mutex_deinit( &log->lock );
           D_FREE( log );
           return ret;
      }
 
      D_ASSERT( log->write != NULL );
-
-     direct_recursive_mutex_init( &log->lock );
 
      D_MAGIC_SET( log, DirectLog );
 
@@ -92,6 +115,8 @@ direct_log_destroy( DirectLog *log )
 
      direct_log_deinit( log );
 
+     direct_mutex_deinit( &log->lock );
+
      D_MAGIC_CLEAR( log );
 
      D_FREE( log );
@@ -99,15 +124,15 @@ direct_log_destroy( DirectLog *log )
      return DR_OK;
 }
 
-__attribute__((no_instrument_function))
+__no_instrument_function__
 DirectResult
 direct_log_printf( DirectLog  *log,
                    const char *format, ... )
 {
-     DirectResult  ret;
+     DirectResult  ret = 0;
      va_list       args;
      int           len;
-     char          buf[200];
+     char          buf[2000];
      char         *ptr = buf;
 
      /*
@@ -168,7 +193,7 @@ direct_log_set_default( DirectLog *log )
      return DR_OK;
 }
 
-__attribute__((no_instrument_function))
+__no_instrument_function__
 void
 direct_log_lock( DirectLog *log )
 {
@@ -182,7 +207,7 @@ direct_log_lock( DirectLog *log )
      direct_mutex_lock( &log->lock );
 }
 
-__attribute__((no_instrument_function))
+__no_instrument_function__
 void
 direct_log_unlock( DirectLog *log )
 {
@@ -233,25 +258,10 @@ direct_log_flush( DirectLog *log,
 
 /**********************************************************************************************************************/
 
-__attribute__((no_instrument_function))
-static void
-init_fallback_log( void )
-{
-     fallback_log.type = DLT_STDERR;
-
-     direct_log_init( &fallback_log, NULL );
-
-     direct_recursive_mutex_init( &fallback_log.lock );
-
-     D_MAGIC_SET( &fallback_log, DirectLog );
-}
-
-__attribute__((no_instrument_function))
+__no_instrument_function__
 DirectLog *
 direct_log_default( void )
 {
-     direct_once( &init_fallback, init_fallback_log );
-
-     return default_log ?: &fallback_log;
+     return default_log ? default_log : &fallback_log;
 }
 

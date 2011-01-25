@@ -44,6 +44,7 @@ DirectResult
 direct_futex_wait( int *uaddr,
                    int  val )
 {
+#ifndef WIN32
      DirectResult ret;
 
      D_ASSERT( uaddr != NULL );
@@ -70,6 +71,11 @@ direct_futex_wait( int *uaddr,
      }
 
      return DR_OK;
+#else
+     D_UNIMPLEMENTED();
+
+     return DR_UNIMPLEMENTED;
+#endif
 }
 
 DirectResult
@@ -77,6 +83,7 @@ direct_futex_wait_timed( int *uaddr,
                          int  val,
                          int  ms )
 {
+#ifndef WIN32
      DirectResult    ret;
      struct timespec timeout;
 
@@ -106,13 +113,18 @@ direct_futex_wait_timed( int *uaddr,
                     return ret;
           }
      }
-
      return DR_OK;
+#else
+     D_UNIMPLEMENTED();
+
+     return DR_UNIMPLEMENTED;
+#endif
 }
 
 DirectResult
 direct_futex_wake( int *uaddr, int num )
 {
+#ifndef WIN32
      DirectResult ret;
 
      D_ASSERT( uaddr != NULL );
@@ -132,6 +144,11 @@ direct_futex_wake( int *uaddr, int num )
      }
 
      return DR_OK;
+#else
+     D_UNIMPLEMENTED();
+
+     return DR_UNIMPLEMENTED;
+#endif
 }
 
 unsigned int __Direct_Futex_Wait_Count = 0;

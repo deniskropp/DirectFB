@@ -53,15 +53,15 @@ struct __D_DirectNode
 };
 
 
-DirectTree *direct_tree_new    ( void );
+DirectTree DIRECT_API *direct_tree_new    ( void );
 
-void        direct_tree_destroy( DirectTree *tree );
+void       DIRECT_API  direct_tree_destroy( DirectTree *tree );
 
-void        direct_tree_insert ( DirectTree *tree,
-                                 void       *key,
-                                 void       *value );
+void       DIRECT_API  direct_tree_insert ( DirectTree *tree,
+                                            void       *key,
+                                            void       *value );
 
-void       *direct_tree_lookup ( DirectTree *tree,
-                                 void       *key );
+void       DIRECT_API *direct_tree_lookup ( DirectTree *tree,
+                                            void       *key );
 
 #endif

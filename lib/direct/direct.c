@@ -53,37 +53,38 @@ struct __D_DirectCleanupHandler {
 
 /**************************************************************************************************/
 
-static int          refs      = 0;
-static DirectLink  *handlers  = NULL; 
-static DirectMutex  main_lock = DIRECT_MUTEX_INITIALIZER(main_lock);
-
-/**************************************************************************************************/
-
-__attribute__((destructor)) void __D_direct_cleanup( void );
+static int          refs;
+static DirectLink  *handlers;
+static DirectMutex  main_lock;
 
 void
-__D_direct_cleanup( void )
+__D_direct_init()
+{
+     direct_mutex_init( &main_lock );
+}
+
+void
+__D_direct_deinit()
 {
      DirectCleanupHandler *handler, *temp;
-     
-     if (!refs)
-          return;
-          
+
      direct_list_foreach_safe (handler, temp, handlers) {
-          D_DEBUG_AT( Direct_Main, "Calling cleanup func %p...\n", handler->func );
+          D_DEBUG_AT( Direct_Main, "Calling cleanup func %p( %p )...\n", handler->func, handler->ctx );
+
+          direct_list_remove( &handlers, &handler->link );
 
           handler->func( handler->ctx );
-          
-          /*direct_list_remove( &handlers, &handler->link );
 
           D_MAGIC_CLEAR( handler );
 
-          D_FREE( handler );*/
+          D_FREE( handler );
      }
-     
+
      direct_print_memleaks();
 
      direct_print_interface_leaks();
+
+     direct_mutex_deinit( &main_lock );
 }
 
 /**************************************************************************************************/
@@ -136,13 +137,16 @@ direct_cleanup_handler_remove( DirectCleanupHandler *handler )
      D_DEBUG_AT( Direct_Main, "Removing cleanup handler %p with context %p...\n", 
                  handler->func, handler->ctx );
 
-     direct_mutex_lock( &main_lock );
-     direct_list_remove( &handlers, &handler->link );
-     direct_mutex_unlock( &main_lock );
-
-     D_MAGIC_CLEAR( handler );
-
-     D_FREE( handler );
+     /* Safety check, in case handler is removed from within itself being invoked */
+     if (handler->link.prev) {
+          direct_mutex_lock( &main_lock );
+          direct_list_remove( &handlers, &handler->link );
+          direct_mutex_unlock( &main_lock );
+     
+          D_MAGIC_CLEAR( handler );
+     
+          D_FREE( handler );
+     }
 
      return DR_OK;
 }
@@ -182,8 +186,6 @@ direct_shutdown()
 
      if (refs == 1) {
           D_DEBUG_AT( Direct_Main, "...shutting down now.\n" );
-
-          __D_direct_cleanup();
 
           direct_signals_shutdown();
      }

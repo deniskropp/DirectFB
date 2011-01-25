@@ -29,9 +29,27 @@
 #ifndef __DIRECT__TYPES_H__
 #define __DIRECT__TYPES_H__
 
-#include <direct/result.h>
-
 #include <direct/os/types.h>
+
+
+#ifdef WIN32
+// The following ifdef block is the standard way of creating macros which make exporting 
+// from a DLL simpler. All files within this DLL are compiled with the DIRECT_EXPORTS
+// symbol defined on the command line. This symbol should not be defined on any project
+// that uses this DLL. This way any other project whose source files include this file see 
+// DIRECT_API functions as being imported from a DLL, whereas this DLL sees symbols
+// defined with this macro as being exported.
+#ifdef DIRECT_EXPORTS
+#define DIRECT_API __declspec(dllexport)
+#else
+#define DIRECT_API __declspec(dllimport)
+#endif
+#else
+#define DIRECT_API
+#endif
+
+
+#include <direct/result.h>
 
 /**********************************************************************************************************************/
 
@@ -43,8 +61,6 @@ typedef enum {
      DENUM_CANCEL   = 0x00000001   /* Cancel enumeration */
 } DirectEnumerationResult;
 
-
-typedef u32 unichar;
 
 typedef struct __D_DirectCleanupHandler      DirectCleanupHandler;
 typedef struct __D_DirectConfig              DirectConfig;

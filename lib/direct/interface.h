@@ -35,14 +35,14 @@
 /*
  * Forward declaration macro for interfaces.
  */
-#define DECLARE_INTERFACE( IFACE )                \
-     typedef struct _##IFACE IFACE;
+#define D_DECLARE_INTERFACE( IFACE )              \
+     typedef struct _ ## IFACE IFACE;
 
 /*
  * Macro for an interface definition.
  */
-#define DEFINE_INTERFACE( IFACE, IDATA... )       \
-     struct _##IFACE {                            \
+#define D_DEFINE_INTERFACE( IFACE, ... )          \
+     struct _ ## IFACE {                          \
           void          *priv;                    \
           int            magic;                   \
           int            refs;                    \
@@ -50,18 +50,30 @@
           DirectResult (*AddRef)( IFACE *thiz );  \
           DirectResult (*Release)( IFACE *thiz ); \
                                                   \
-          IDATA                                   \
+          __VA_ARGS__                             \
      };
+
+
+#ifndef DIRECT_DISABLE_DEPRECATED
+
+// @deprecated
+#define DECLARE_INTERFACE D_DECLARE_INTERFACE
+
+// @deprecated
+#define DEFINE_INTERFACE  D_DEFINE_INTERFACE
+
+#endif
+
 
 /*
  * Declare base interface
  */
-DECLARE_INTERFACE( IAny )
+D_DECLARE_INTERFACE( IAny )
 
 /*
  * Define base interface
  */
-DEFINE_INTERFACE( IAny, )
+D_DEFINE_INTERFACE( IAny )
 
 /*
  * Function type for probing of interface implementations
@@ -71,7 +83,7 @@ typedef DirectResult (*DirectInterfaceGenericProbeFunc)( void *ctx, ... );
 /*
  * Function type for initialization of interface instances
  */
-typedef DirectResult (*DirectInterfaceGenericConstructFunc)( void *interface, ... );
+typedef DirectResult (*DirectInterfaceGenericConstructFunc)( void *interface_ptr, ... );
 
 /*
  * Function table for interface implementations
@@ -79,8 +91,8 @@ typedef DirectResult (*DirectInterfaceGenericConstructFunc)( void *interface, ..
 typedef struct {
      const char * (*GetType)(void);
      const char * (*GetImplementation)(void);
-     DirectResult (*Allocate)( void **interface );
-     DirectResult (*Deallocate)( void *interface );
+     DirectResult (*Allocate)( void **interface_ptr );
+     DirectResult (*Deallocate)( void *interface_ptr );
      
      DirectInterfaceGenericProbeFunc     Probe;
      DirectInterfaceGenericConstructFunc Construct;
@@ -98,42 +110,42 @@ typedef DirectResult (*DirectInterfaceProbeFunc)( DirectInterfaceFuncs *impl, vo
  *
  * After success 'funcs' is set.
  */
-DirectResult DirectGetInterface( DirectInterfaceFuncs     **funcs,
-                                 const char                *type,
-                                 const char                *implementation,
-                                 DirectInterfaceProbeFunc   probe,
-                                 void                      *probe_ctx );
+DirectResult DIRECT_API DirectGetInterface( DirectInterfaceFuncs     **funcs,
+                                            const char                *type,
+                                            const char                *implementation,
+                                            DirectInterfaceProbeFunc   probe,
+                                            void                      *probe_ctx );
 
 /*
  * Default probe function. Calls "funcs->Probe(ctx)".
  * Can be used as the 'probe' argument to DirectGetInterface.
  * 'probe_ctx' should then be set to the interface specific probe context.
  */
-DirectResult DirectProbeInterface( DirectInterfaceFuncs *funcs, void *ctx );
+DirectResult DIRECT_API DirectProbeInterface( DirectInterfaceFuncs *funcs, void *ctx );
 
 /*
  * Called by implementation modules during 'dlopen'ing or at startup if linked
  * into the executable.
  */
-void DirectRegisterInterface( DirectInterfaceFuncs *funcs );
+void DIRECT_API DirectRegisterInterface( DirectInterfaceFuncs *funcs );
 
-void DirectUnregisterInterface( DirectInterfaceFuncs *funcs );
+void DIRECT_API DirectUnregisterInterface( DirectInterfaceFuncs *funcs );
 
-void direct_print_interface_leaks(void);
+void DIRECT_API direct_print_interface_leaks(void);
 
 #if DIRECT_BUILD_DEBUGS
-void direct_dbg_interface_add   ( const char *func,
-                                  const char *file,
-                                  int         line,
-                                  const char *what,
-                                  const void *interface,
-                                  const char *name );
+void DIRECT_API direct_dbg_interface_add   ( const char *func,
+                                             const char *file,
+                                             int         line,
+                                             const char *what,
+                                             const void *interface_ptr,
+                                             const char *name );
 
-void direct_dbg_interface_remove( const char *func,
-                                  const char *file,
-                                  int         line,
-                                  const char *what,
-                                  const void *interface );
+void DIRECT_API direct_dbg_interface_remove( const char *func,
+                                             const char *file,
+                                             int         line,
+                                             const char *what,
+                                             const void *interface_ptr );
 #endif
 
 #if DIRECT_BUILD_DEBUG || defined(DIRECT_ENABLE_DEBUG) || defined(DIRECT_FORCE_DEBUG)
@@ -212,6 +224,13 @@ void direct_dbg_interface_remove( const char *func,
                return DR_DEAD;                                                       \
      } while (0)
 
+
+
+void __D_interface_init( void );
+void __D_interface_deinit( void );
+
+void __D_interface_dbg_init( void );
+void __D_interface_dbg_deinit( void );
 
 #endif
 

@@ -83,31 +83,31 @@ typedef struct {
 /**********************************************************************************************************************/
 
 #define D_LOG_DOMAIN( _identifier, _name, _description )                                                           \
-     static DirectLogDomain _identifier __attribute__((unused)) = {                                                \
+     static DirectLogDomain _identifier __unused__ = {                                                \
             _description, _name, sizeof(_name) - 1, 0, false, {DIRECT_LOG_NONE,0}                                  \
      }
 
 /**********************************************************************************************************************/
 
-void direct_log_domain_configure( const char                  *name,
-                                  const DirectLogDomainConfig *config );
+void         DIRECT_API direct_log_domain_configure( const char                  *name,
+                                                     const DirectLogDomainConfig *config );
 
 
-DirectResult direct_log_domain_vprintf( DirectLogDomain *domain,
-                                        DirectLogLevel   level,
-                                        const char      *format,
-                                        va_list          ap )       D_FORMAT_VPRINTF(3);
+DirectResult DIRECT_API direct_log_domain_vprintf( DirectLogDomain *domain,
+                                                   DirectLogLevel   level,
+                                                   const char      *format,
+                                                   va_list          ap )       D_FORMAT_VPRINTF(3);
 
-DirectResult direct_log_domain_log( DirectLogDomain *domain,
-                                    DirectLogLevel   level,
-                                    const char      *func,
-                                    const char      *file,
-                                    int              line,
-                                    const char      *format, ... )  D_FORMAT_PRINTF(6);
+DirectResult DIRECT_API direct_log_domain_log( DirectLogDomain *domain,
+                                               DirectLogLevel   level,
+                                               const char      *func,
+                                               const char      *file,
+                                               int              line,
+                                               const char      *format, ... )  D_FORMAT_PRINTF(6);
 
 /**********************************************************************************************************************/
 
-static inline void
+static __inline__ void
 direct_log_domain_config_level( const char     *name,
                                 DirectLogLevel  level )
 {
@@ -119,20 +119,23 @@ direct_log_domain_config_level( const char     *name,
      direct_log_domain_configure( name, &config );
 }
   
-bool direct_log_domain_check( DirectLogDomain *domain );
+bool DIRECT_API direct_log_domain_check( DirectLogDomain *domain );
 
 /**********************************************************************************************************************/
 
-#define D_LOG( _Domain, _LEVEL, _msg... )                                                                          \
-     do {                                                                                                          \
-          direct_log_domain_log( &(_Domain), DIRECT_LOG_ ## _LEVEL, __FUNCTION__, __FILE__, __LINE__, _msg );      \
+#define D_LOG( _Domain, _LEVEL, ... )                                                                                 \
+     do {                                                                                                             \
+          direct_log_domain_log( &(_Domain), DIRECT_LOG_ ## _LEVEL, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__ );  \
      } while (0)
 
-#define D_LOG_( _Domain, _level, _msg... )                                                                         \
-     do {                                                                                                          \
-          direct_log_domain_log( &(_Domain), _level, __FUNCTION__, __FILE__, __LINE__, _msg );                     \
+#define D_LOG_( _Domain, _level, ... )                                                                                \
+     do {                                                                                                             \
+          direct_log_domain_log( &(_Domain), _level, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__ );                 \
      } while (0)
 
+
+void __D_log_domain_init( void );
+void __D_log_domain_deinit( void );
 
 #endif
 

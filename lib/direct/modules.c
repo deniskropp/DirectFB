@@ -29,8 +29,6 @@
 #include <config.h>
 
 #include <sys/types.h>
-#include <alloca.h>
-#include <dirent.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -41,6 +39,8 @@
 #include <direct/modules.h>
 
 #if DIRECT_BUILD_DYNLOAD
+#include <alloca.h>
+#include <dirent.h>
 #include <dlfcn.h>
 #endif
 

@@ -86,6 +86,28 @@ direct_file_write( DirectFile *file, const void *buffer, size_t bytes, size_t *r
 }
 
 DirectResult
+direct_file_seek( DirectFile *file, off_t offset )
+{
+     D_ASSERT( file != NULL );
+
+     if (lseek( file->fd, offset, SEEK_CUR ) < 0)
+          return errno2result( errno );
+
+     return DR_OK;
+}
+
+DirectResult
+direct_file_seek_to( DirectFile *file, off_t offset )
+{
+     D_ASSERT( file != NULL );
+
+     if (lseek( file->fd, offset, SEEK_SET ) < 0)
+          return errno2result( errno );
+
+     return DR_OK;
+}
+
+DirectResult
 direct_file_close( DirectFile *file )
 {
      int ret;

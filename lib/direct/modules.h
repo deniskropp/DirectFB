@@ -73,18 +73,18 @@ struct __D_DirectModuleDir {
           .loading     = NULL,                         \
      }
 
-int   direct_modules_explore_directory( DirectModuleDir *directory );
+int  DIRECT_API  direct_modules_explore_directory( DirectModuleDir *directory );
 
-void  direct_modules_register( DirectModuleDir *directory,
-                               unsigned int     abi_version,
-                               const char      *name,
-                               const void      *funcs );
+void DIRECT_API  direct_modules_register( DirectModuleDir *directory,
+                                          unsigned int     abi_version,
+                                          const char      *name,
+                                          const void      *funcs );
 
-void  direct_modules_unregister( DirectModuleDir *directory,
-                                 const char      *name );
+void DIRECT_API  direct_modules_unregister( DirectModuleDir *directory,
+                                            const char      *name );
 
-const void *direct_module_ref  ( DirectModuleEntry *module );
-void        direct_module_unref( DirectModuleEntry *module );
+const void DIRECT_API *direct_module_ref  ( DirectModuleEntry *module );
+void       DIRECT_API  direct_module_unref( DirectModuleEntry *module );
 
 #endif
 

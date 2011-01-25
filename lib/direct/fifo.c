@@ -61,22 +61,19 @@ direct_fifo_destroy( DirectFifo *fifo )
 
 /**********************************************************************************************************************/
 
-__attribute__((unused))
-__attribute__((noinline))
+__unused__
 static int
 d_sync_add_and_fetch( int *p, int v )
 {
       return D_SYNC_ADD_AND_FETCH( p, v );
 }
 
-__attribute__((noinline))
 static void
 d_sync_push( void *f, void *i )
 {
       D_SYNC_PUSH( f, i );
 }
 
-__attribute__((noinline))
 static void *
 d_sync_fetch_and_clear( void **p )
 {

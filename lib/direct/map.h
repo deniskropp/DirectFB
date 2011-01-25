@@ -46,27 +46,27 @@ typedef DirectEnumerationResult (*DirectMapIteratorFunc)( DirectMap    *map,
                                                           void         *ctx );
 
 
-DirectResult  direct_map_create ( unsigned int            initial_size,
-                                  DirectMapCompareFunc    compare_func,
-                                  DirectMapHashFunc       hash_func,
-                                  void                   *ctx,
-                                  DirectMap             **ret_map );
+DirectResult DIRECT_API  direct_map_create ( unsigned int            initial_size,
+                                             DirectMapCompareFunc    compare_func,
+                                             DirectMapHashFunc       hash_func,
+                                             void                   *ctx,
+                                             DirectMap             **ret_map );
 
-void          direct_map_destroy( DirectMap              *map );
+void         DIRECT_API  direct_map_destroy( DirectMap              *map );
 
-DirectResult  direct_map_insert ( DirectMap              *map,
-                                  const void             *key,
-                                  void                   *object );
+DirectResult DIRECT_API  direct_map_insert ( DirectMap              *map,
+                                             const void             *key,
+                                             void                   *object );
 
-DirectResult  direct_map_remove ( DirectMap              *map,
-                                  const void             *key );
+DirectResult DIRECT_API  direct_map_remove ( DirectMap              *map,
+                                             const void             *key );
 
-void         *direct_map_lookup ( DirectMap              *map,
-                                  const void             *key );
+void         DIRECT_API *direct_map_lookup ( DirectMap              *map,
+                                             const void             *key );
 
-void          direct_map_iterate( DirectMap              *map,
-                                  DirectMapIteratorFunc   func,
-                                  void                   *ctx );
+void         DIRECT_API  direct_map_iterate( DirectMap              *map,
+                                             DirectMapIteratorFunc   func,
+                                             void                   *ctx );
 
 #endif
 

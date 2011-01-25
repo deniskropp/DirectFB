@@ -32,10 +32,10 @@
 #include <direct/types.h>
 
 
-void direct_find_best_memcpy( void );
-void direct_print_memcpy_routines( void );
+void DIRECT_API direct_find_best_memcpy( void );
+void DIRECT_API direct_print_memcpy_routines( void );
 
-extern void *(*direct_memcpy)( void *to, const void *from, size_t len );
+extern void DIRECT_API *(*direct_memcpy)( void *to, const void *from, size_t len );
 
 static __inline__ void *direct_memmove( void *to, const void *from, size_t len )
 {

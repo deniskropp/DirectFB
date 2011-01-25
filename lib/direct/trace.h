@@ -40,21 +40,21 @@
  *
  * Stores load address of object in 'ret_base' on success.
  */
-const char *direct_trace_lookup_file  ( void        *address,
-                                        void       **ret_base );
+const char DIRECT_API *direct_trace_lookup_file  ( void        *address,
+                                                   void       **ret_base );
 
 /*
  * Look up a symbol by filename and offset.
  *
  * Returns symbol name on success or NULL.
  */
-const char *direct_trace_lookup_symbol( const char  *filename,
-                                        long         offset );
+const char DIRECT_API *direct_trace_lookup_symbol( const char  *filename,
+                                                   long         offset );
 
 /*
  * Convenience function combining direct_trace_lookup_file() and direct_trace_lookup_symbol().
  */
-static inline const char *
+static __inline__ const char *
 direct_trace_lookup_symbol_at( void *address )
 {
      void       *base;
@@ -72,27 +72,27 @@ direct_trace_lookup_symbol_at( void *address )
 /*
  * Print stack in 'buffer' or current if NULL.
  */
-void direct_trace_print_stack( DirectTraceBuffer *buffer );
+void DIRECT_API direct_trace_print_stack( DirectTraceBuffer *buffer );
 
 /*
  * Print stack of each known thread.
  */
-void direct_trace_print_stacks( void );
+void DIRECT_API direct_trace_print_stacks( void );
 
 /*
  * Returns indent level for debug output.
  */
-int  direct_trace_debug_indent( void );
+int  DIRECT_API direct_trace_debug_indent( void );
 
 /*
  * Create a copy of a stack in 'buffer' or of current if NULL.
  */
-DirectTraceBuffer *direct_trace_copy_buffer( DirectTraceBuffer *buffer );
+DirectTraceBuffer DIRECT_API *direct_trace_copy_buffer( DirectTraceBuffer *buffer );
 
 /*
  * Free a (copied) stack buffer.
  */
-void               direct_trace_free_buffer( DirectTraceBuffer *buffer );
+void              DIRECT_API  direct_trace_free_buffer( DirectTraceBuffer *buffer );
 
 #endif
 

@@ -82,26 +82,26 @@ struct __D_DirectProcessor {
 
 /**********************************************************************************************************************/
 
-DirectResult direct_processor_init    ( DirectProcessor            *processor,
-                                        const char                 *name,
-                                        const DirectProcessorFuncs *funcs,
-                                        unsigned int                data_size,
-                                        void                       *context,
-                                        int                         idle_ms );
+DirectResult DIRECT_API  direct_processor_init    ( DirectProcessor            *processor,
+                                                    const char                 *name,
+                                                    const DirectProcessorFuncs *funcs,
+                                                    unsigned int                data_size,
+                                                    void                       *context,
+                                                    int                         idle_ms );
 
-DirectResult direct_processor_destroy ( DirectProcessor *processor );
+DirectResult DIRECT_API  direct_processor_destroy ( DirectProcessor *processor );
 
-void        *direct_processor_allocate( DirectProcessor *processor );
+void         DIRECT_API *direct_processor_allocate( DirectProcessor *processor );
 
-void         direct_processor_post    ( DirectProcessor *processor,
-                                        void            *data );
+void         DIRECT_API  direct_processor_post    ( DirectProcessor *processor,
+                                                    void            *data );
 
-void         direct_processor_recycle ( DirectProcessor *processor,
-                                        void            *data );
+void         DIRECT_API  direct_processor_recycle ( DirectProcessor *processor,
+                                                    void            *data );
 
 #if 0
-void         direct_processor_lock    ( DirectProcessor *processor );
-void         direct_processor_unlock  ( DirectProcessor *processor );
+void         DIRECT_API  direct_processor_lock    ( DirectProcessor *processor );
+void         DIRECT_API  direct_processor_unlock  ( DirectProcessor *processor );
 #endif
 
 #endif

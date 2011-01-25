@@ -31,19 +31,23 @@
 
 #include <direct/types.h>
 
-DirectResult direct_initialize( void );
-DirectResult direct_shutdown( void );
+DirectResult DIRECT_API direct_initialize( void );
+DirectResult DIRECT_API direct_shutdown( void );
 
 
 typedef void (*DirectCleanupHandlerFunc)( void *ctx );
 
 
-DirectResult direct_cleanup_handler_add( DirectCleanupHandlerFunc   func,
-                                         void                      *ctx,
-                                         DirectCleanupHandler     **ret_handler );
+DirectResult DIRECT_API direct_cleanup_handler_add( DirectCleanupHandlerFunc   func,
+                                                    void                      *ctx,
+                                                    DirectCleanupHandler     **ret_handler );
 
-DirectResult direct_cleanup_handler_remove( DirectCleanupHandler   *handler );
+DirectResult DIRECT_API direct_cleanup_handler_remove( DirectCleanupHandler   *handler );
 
+
+
+void __D_direct_init( void );
+void __D_direct_deinit( void );
 
 #endif
 

@@ -29,10 +29,10 @@
 #include <config.h>
 
 #include <sys/stat.h>
-#include <sys/select.h>
 
 #include <direct/build.h>
-#include <direct/types.h>
+
+#include <direct/filesystem.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
@@ -46,6 +46,7 @@ D_LOG_DOMAIN( Direct_Stream, "Direct/Stream", "Stream wrapper" );
 
 
 #if DIRECT_BUILD_NETWORK
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -57,8 +58,10 @@ struct __D_DirectStream {
      int                   ref;
 
      int                   fd;
-     unsigned int          offset;
-     int                   length;
+     DirectFile            file;
+
+     off_t                 offset;
+     ssize_t               length;
 
      char                 *mime;
 
@@ -630,8 +633,8 @@ http_open( DirectStream *stream, const char *filename )
           }
           else if (!strncasecmp( buf, "Content-Length:", 15 )) {
                char *tmp = trim( buf+15 );
-               if (sscanf( tmp, "%d", &stream->length ) < 1)
-                    sscanf( tmp, "bytes=%d", &stream->length );
+               if (sscanf( tmp, "%zd", &stream->length ) < 1)
+                    sscanf( tmp, "bytes=%zd", &stream->length );
           }
           else if (!strncasecmp( buf, "Location:", 9 )) {
                direct_stream_close( stream );
@@ -1745,6 +1748,7 @@ rtsp_open( DirectStream *stream, const char *filename )
 
 /************************** End of Network Support ***************************/
 
+#ifndef WIN32
 static DirectResult
 pipe_wait( DirectStream   *stream,
            unsigned int    length,
@@ -1871,9 +1875,11 @@ pipe_read( DirectStream *stream,
 
      return DR_OK;
 }
+#endif
 
 /*****************************************************************************/
 
+#ifndef WIN32
 static DirectResult
 file_peek( DirectStream *stream,
            unsigned int  length,
@@ -1948,20 +1954,88 @@ file_seek( DirectStream *stream, unsigned int offset )
 
      return DR_OK;
 }
+#else
+static DirectResult
+file_peek( DirectStream *stream,
+           unsigned int  length,
+           int           offset,
+           void         *buf,
+           unsigned int *read_out )
+{
+     DirectResult ret = DR_OK;
+     size_t       size;
+
+     ret = direct_file_seek( &stream->file, offset );
+     if (ret)
+          return ret;
+
+     ret = direct_file_read( &stream->file, buf, length, &size );
+     if (ret)
+          return ret;
+
+     ret = direct_file_seek( &stream->file, - offset - size );
+     if (ret)
+          return ret;
+
+     if (read_out)
+          *read_out = size;
+
+     return ret;
+}
+
+static DirectResult
+file_read( DirectStream *stream,
+           unsigned int  length,
+           void         *buf,
+           unsigned int *read_out )
+{
+     DirectResult ret;
+     size_t       size;
+
+     ret = direct_file_read( &stream->file, buf, length, &size );
+     if (ret)
+          return ret;
+
+     stream->offset += size;
+
+     if (read_out)
+          *read_out = size;
+
+     return DR_OK;
+}
+
+static DirectResult
+file_seek( DirectStream *stream, unsigned int offset )
+{
+     DirectResult ret;
+
+     ret = direct_file_seek_to( &stream->file, offset );
+     if (ret)
+          return ret;
+
+     stream->offset = offset;
+
+     return DR_OK;
+}
+#endif
+
 
 static DirectResult
 file_open( DirectStream *stream, const char *filename, int fileno )
 {
-     if (filename)
+#ifndef WIN32
+     if (filename) {
           stream->fd = open( filename, O_RDONLY | O_NONBLOCK );
-     else
+     }
+     else {
           stream->fd = dup( fileno );
 
-     if (stream->fd < 0)
-          return errno2result( errno );
+          if (stream->fd < 0)
+               return errno2result( errno );
 
-     fcntl( stream->fd, F_SETFL,
-               fcntl( stream->fd, F_GETFL ) | O_NONBLOCK );
+          fcntl( stream->fd, F_SETFL,
+                 fcntl( stream->fd, F_GETFL ) | O_NONBLOCK );
+     }
 
      if (lseek( stream->fd, 0, SEEK_CUR ) < 0 && errno == ESPIPE) {
           stream->length = -1;
@@ -1980,6 +2054,32 @@ file_open( DirectStream *stream, const char *filename, int fileno )
           stream->read   = file_read;
           stream->seek   = file_seek;
      }
+#else
+     DirectResult   ret;
+     DirectFileInfo info;
+
+     if (filename) {
+          ret = direct_file_open( &stream->file, filename, O_RDONLY | O_NONBLOCK, 0644 );
+          if (ret)
+               return ret;
+     }
+     else {
+          D_UNIMPLEMENTED();
+
+          return DR_UNIMPLEMENTED;
+     }
+
+     ret = direct_file_get_info( &stream->file, &info );
+     if (ret) {
+          direct_file_close( &stream->file );
+          return ret;
+     }
+
+     stream->length = info.size;
+     stream->peek   = file_peek;
+     stream->read   = file_read;
+     stream->seek   = file_seek;
+#endif
 
      return DR_OK;
 }
@@ -2005,10 +2105,13 @@ direct_stream_create( const char    *filename,
      stream->ref =  1;
      stream->fd  = -1;
 
+#ifndef WIN32
      if (!strncmp( filename, "stdin:/", 7 )) {
           ret = file_open( stream, NULL, STDIN_FILENO );
      }
-     else if (!strncmp( filename, "file:/", 6 )) {
+     else
+#endif
+     if (!strncmp( filename, "file:/", 6 )) {
           ret = file_open( stream, filename+6, -1 );
      }
      else if (!strncmp( filename, "fd:/", 4 )) {
@@ -2121,7 +2224,7 @@ direct_stream_length( DirectStream *stream )
 
      D_MAGIC_ASSERT( stream, DirectStream );
 
-     return (stream->length >= 0) ? stream->length : stream->offset;
+     return (unsigned int)((stream->length >= 0) ? stream->length : stream->offset);
 }
 
 DirectResult
@@ -2194,7 +2297,7 @@ direct_stream_seek( DirectStream *stream,
           return DR_OK;
 
      if (stream->length >= 0 && offset > stream->length)
-          offset = stream->length;
+          offset = (unsigned int) stream->length;
 
      if (stream->seek)
           return stream->seek( stream, offset );
@@ -2258,12 +2361,16 @@ direct_stream_close( DirectStream *stream )
           stream->cache_size = 0;
      }
 
+#ifndef WIN32
      if (stream->fd >= 0) {
           fcntl( stream->fd, F_SETFL,
                     fcntl( stream->fd, F_GETFL ) & ~O_NONBLOCK );
           close( stream->fd );
           stream->fd = -1;
      }
+#else
+	 direct_file_close( &stream->file );
+#endif
 }
 
 void

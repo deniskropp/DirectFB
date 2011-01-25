@@ -58,12 +58,12 @@ struct __D_DirectHash {
 
 #define DIRECT_HASH_INIT( __size, __disable_debugging_alloc )    \
      {                                                           \
-          .magic    = 0x0b161321,                                \
-          .size     = (__size < 17 ? 17 : __size),               \
-          .count    = 0,                                         \
-          .removed  = 0,                                         \
-          .Elements = NULL,                                      \
-          .disable_debugging_alloc = __disable_debugging_alloc   \
+          0x0b161321,                                            \
+          (__size < 17 ? 17 : __size),                           \
+          0,                                                     \
+          0,                                                     \
+          NULL,                                                  \
+          __disable_debugging_alloc                              \
      }
 
 /* Hmm, not constant?      .magic    = D_MAGIC( "DirectHash" ), */
@@ -90,37 +90,37 @@ typedef bool (*DirectHashIteratorFunc)( DirectHash    *hash,
 ** Full create including allocation ...
 */
 
-DirectResult  direct_hash_create ( int                     size,
-                                   DirectHash            **ret_hash );
+DirectResult DIRECT_API  direct_hash_create ( int                     size,
+                                              DirectHash            **ret_hash );
 
-void          direct_hash_destroy( DirectHash             *hash );
+void         DIRECT_API  direct_hash_destroy( DirectHash             *hash );
 
 /*********************************************************************************************************************** 
 ** ... or just initialization of static data...
 */
 
-void          direct_hash_init   ( DirectHash             *hash,
-                                   int                     size );
+void         DIRECT_API  direct_hash_init   ( DirectHash             *hash,
+                                              int                     size );
 
-void          direct_hash_deinit ( DirectHash             *hash );
+void         DIRECT_API  direct_hash_deinit ( DirectHash             *hash );
 
 /**********************************************************************************************************************/
 
-int           direct_hash_count  ( DirectHash             *hash );
+int          DIRECT_API  direct_hash_count  ( DirectHash             *hash );
 
-DirectResult  direct_hash_insert ( DirectHash             *hash,
-                                   unsigned long           key,
-                                   void                   *value );
+DirectResult DIRECT_API  direct_hash_insert ( DirectHash             *hash,
+                                              unsigned long           key,
+                                              void                   *value );
 
-DirectResult  direct_hash_remove ( DirectHash             *hash,
-                                   unsigned long           key );
+DirectResult DIRECT_API  direct_hash_remove ( DirectHash             *hash,
+                                              unsigned long           key );
 
-void         *direct_hash_lookup ( const DirectHash       *hash,
-                                   unsigned long           key );
+void         DIRECT_API *direct_hash_lookup ( const DirectHash       *hash,
+                                              unsigned long           key );
 
-void          direct_hash_iterate( DirectHash             *hash,
-                                   DirectHashIteratorFunc  func,
-                                   void                   *ctx );
+void         DIRECT_API  direct_hash_iterate( DirectHash             *hash,
+                                              DirectHashIteratorFunc  func,
+                                              void                   *ctx );
 
 #endif
 
