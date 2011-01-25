@@ -185,6 +185,8 @@ typedef enum {
      DFB_NOVIDEOMEMORY,  /* There's not enough video memory. */
      DFB_MISSINGFONT,    /* No font has been set. */
      DFB_MISSINGIMAGE,   /* No image has been set. */
+
+     DFB__RESULT_END
 } DFBResult;
 
 /*
