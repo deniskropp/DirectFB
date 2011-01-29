@@ -28,11 +28,12 @@
 
 #include <config.h>
 
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef WIN32
+#include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/poll.h>
 #include <sys/types.h>
@@ -45,6 +46,7 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
+#endif
 
 #include <directfb_version.h>
 
@@ -61,10 +63,6 @@
 #include <voodoo/internal.h>
 #include <voodoo/play.h>
 
-#ifdef MACOS
-#define	min(a,b)	((a) < (b) ? (a) : (b))
-#define	max(a,b)	((a) > (b) ? (a) : (b))
-#endif
 
 D_DEBUG_DOMAIN( Voodoo_Play, "Voodoo/Play", "Voodoo Play" );
 
@@ -86,7 +84,7 @@ struct __V_VoodooPlayer {
 
      int                 fd;
 
-     pthread_mutex_t     lock;
+     DirectMutex         lock;
 
      bool                quit;
 
@@ -121,7 +119,7 @@ generate_uuid( char *buf )
 {
      int i;
 
-     srand( direct_clock_get_abs_micros() );
+     srand( (unsigned int) direct_clock_get_abs_micros() );
 
      for (i=0; i<16; i++) {
           buf[i] = rand();
@@ -130,31 +128,64 @@ generate_uuid( char *buf )
 
 /**********************************************************************************************************************/
 
+#ifdef WIN32
+
+#define close(x) do {} while (0)   // FIXME
+extern int StartWinsock( void );
+
+void __Voodoo_play_init()
+{
+     StartWinsock();
+}
+void __Voodoo_play_deinit( void )
+{
+
+}
+
+#else
+
+#define SOCKET int
+#define INVALID_SOCKET -1
+
+void __Voodoo_play_init()
+{
+
+}
+void __Voodoo_play_deinit()
+{
+
+}
+
+#endif
+
+
 DirectResult
 voodoo_player_create( const VoodooPlayInfo  *info,
                       VoodooPlayer         **ret_player )
 {
      DirectResult        ret;
-     int                 fd;
+     SOCKET                 fd;
      struct sockaddr_in  addr;
      VoodooPlayer       *player;
 
      D_ASSERT( ret_player != NULL );
 
      /* Create the player socket. */
-     fd = socket( PF_INET, SOCK_DGRAM, 0 );
-     if (fd < 0) {
+     fd = socket( AF_INET, SOCK_DGRAM, 0 );
+     if (fd == INVALID_SOCKET) {
           ret = errno2result( errno );
           D_PERROR( "Voodoo/Player: Could not create the socket via socket()!\n" );
           return ret;
      }
 
+#ifndef WIN32
      /* Allow reuse of local address. */
      if (setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one) ) < 0)
           D_PERROR( "Voodoo/Player: Could not set SO_REUSEADDR!\n" );
 
      if (setsockopt( fd, SOL_SOCKET, SO_BROADCAST, &one, sizeof(one) ) < 0)
           D_PERROR( "Voodoo/Player: Could not set SO_BROADCAST!\n" );
+#endif
 
      /* Bind the socket to the local port. */
      addr.sin_family      = AF_INET;
@@ -176,7 +207,7 @@ voodoo_player_create( const VoodooPlayInfo  *info,
           return DR_NOLOCALMEMORY;
      }
 
-     pthread_mutex_init( &player->lock, NULL );
+     direct_mutex_init( &player->lock );
 
      /* Initialize player structure. */
      player->fd = fd;
@@ -225,7 +256,7 @@ voodoo_player_destroy( VoodooPlayer *player )
 
      close( player->fd );
 
-     pthread_mutex_destroy( &player->lock );
+     direct_mutex_deinit( &player->lock );
 
      D_MAGIC_CLEAR( player );
 
@@ -237,118 +268,31 @@ voodoo_player_destroy( VoodooPlayer *player )
 DirectResult
 voodoo_player_broadcast( VoodooPlayer *player )
 {
-     int           ret;
-#ifdef MACOS
-     char          *ptr, lastname[IFNAMSIZ];
-#else
-     int           i;
-#endif
-     struct ifreq  req[16];
-     struct ifconf conf;
+     DirectResult ret;
 
-     D_MAGIC_ASSERT( player, VoodooPlayer );
+     if (voodoo_config->play_broadcast) {
+          in_addr_t addr = inet_addr( voodoo_config->play_broadcast );
 
-     conf.ifc_buf = (char*) req;
-     conf.ifc_len = sizeof(req);
-
-     ret = ioctl( player->fd, SIOCGIFCONF, &conf );
-     if (ret) {
-          D_PERROR( "Voodoo/Player: ioctl( SIOCGIFCONF ) failed!\n" );
-          return DR_FAILURE;
+          player_send_info( player, &addr, true );
      }
+     else {
+          VoodooPlayAddress *broadcasts;
+          size_t             i, num;
 
-#ifdef MACOS
-     // TIV: On iPhone (and I believe in general on BSD, you can't just plainly iterate on struct size)
-     
-     lastname[0] = 0;
-     
-     for (ptr = conf.ifc_buf; ptr < conf.ifc_buf + conf.ifc_len; )
-     {
-         char                 buf[100];
-         int                  len, flags;
-         struct ifreq         ifrcopy, *ifr  = (struct ifreq *)ptr;
-         struct sockaddr_in  *addr = (struct sockaddr_in*) &ifr->ifr_broadaddr;
-
-         len = max(sizeof(struct sockaddr), ifr->ifr_addr.sa_len);
-         ptr += sizeof(ifr->ifr_name) + len; // for next one in buffer
-         
-         if (strncmp(lastname, ifr->ifr_name, IFNAMSIZ) == 0)
-         {
-             continue; /* already processed this interface */
-         }
-
-         memcpy(lastname, ifr->ifr_name, IFNAMSIZ);
-
-         ifrcopy = *ifr;
-         ioctl( player->fd, SIOCGIFFLAGS, &ifrcopy);
-         flags = ifrcopy.ifr_flags;
-         if ((flags & IFF_UP) == 0)
-         {
-             D_INFO( "Voodoo/Player:   %-16s is not up.\n", ifrcopy.ifr_name );
-             continue;	// ignore if interface not up
-         }
-
-         ret = ioctl( player->fd, SIOCGIFBRDADDR, ifr );
-         if (ret) {
-             D_PERROR( "Voodoo/Player: ioctl( SIOCGIFBRDADDR ) %-16s failed!\n", ifr->ifr_name );
-             continue;
-         }
-         
-         if (addr->sin_addr.s_addr) {
-              inet_ntop( AF_INET, &addr->sin_addr, buf, sizeof(buf) );
-
-              D_INFO( "Voodoo/Player:   %-16s (%s)\n", ifr->ifr_name, buf );
-         }
-         else {
-              ret = ioctl( player->fd, SIOCGIFDSTADDR, ifr );
-              if (ret) {
-                   D_PERROR( "Voodoo/Player: ioctl( SIOCGIFDSTADDR ) failed!\n" );
-                   continue;
-              }
-
-              inet_ntop( AF_INET, &addr->sin_addr, buf, sizeof(buf) );
-
-              D_INFO( "Voodoo/Player:   %-16s (%s) (P-t-P)\n", ifr->ifr_name, buf );
-         }
-         
-         player_send_info( player, &addr->sin_addr.s_addr, true );
-     }
-#else
-     D_INFO( "Voodoo/Player: Detected %zu interfaces\n", conf.ifc_len/sizeof(req[0]) );
-
-     for (i=0; i<conf.ifc_len/sizeof(req[0]); i++) {
-          struct sockaddr_in *addr = (struct sockaddr_in*) &req[i].ifr_broadaddr;
-          char                buf[100];
-
-          ret = ioctl( player->fd, SIOCGIFBRDADDR, &req[i] );
+          ret = voodoo_play_get_broadcast( &broadcasts, &num );
           if (ret) {
-               D_PERROR( "Voodoo/Player: ioctl( SIOCGIFBRDADDR ) failed!\n" );
-               continue;
+               D_DERROR( ret, "Voodoo/Play: Unable to retrieve list of broadcast addresses!\n" );
+               return ret;
           }
 
-          if (addr->sin_addr.s_addr) {
-               inet_ntop( AF_INET, &addr->sin_addr, buf, sizeof(buf) );
-
-               D_INFO( "Voodoo/Player:   %-16s (%s)\n", req[i].ifr_name, buf );
-          }
-          else {
-               ret = ioctl( player->fd, SIOCGIFDSTADDR, &req[i] );
-               if (ret) {
-                    D_PERROR( "Voodoo/Player: ioctl( SIOCGIFDSTADDR ) failed!\n" );
-                    continue;
-               }
-
-               inet_ntop( AF_INET, &addr->sin_addr, buf, sizeof(buf) );
-
-               D_INFO( "Voodoo/Player:   %-16s (%s) (P-t-P)\n", req[i].ifr_name, buf );
+          for (i=0; i<num; i++) {
+               in_addr_t addr = VOODOO_PLAY_INET_ADDR( broadcasts[i] );
+               
+               player_send_info( player, &addr, true );
           }
 
-          //addr->sin_addr.s_addr = inet_addr( "192.168.1.150" );
-          //addr->sin_addr.s_addr = inet_addr( "192.168.255.255" );
-
-          player_send_info( player, &addr->sin_addr.s_addr, true );
+          D_FREE( broadcasts );
      }
-#endif
 
      return DR_OK;
 }
@@ -363,17 +307,17 @@ voodoo_player_lookup( VoodooPlayer *player,
 
      D_MAGIC_ASSERT( player, VoodooPlayer );
 
-     pthread_mutex_lock( &player->lock );
+     direct_mutex_lock( &player->lock );
 
      direct_list_foreach (node, player->nodes) {
           if (!name || !name[0] || !strcmp( node->info.name, name )) {
                direct_snputs( ret_addr, node->addr, max_addr );
-               pthread_mutex_unlock( &player->lock );
+               direct_mutex_unlock( &player->lock );
                return DR_OK;
           }
      }
 
-     pthread_mutex_unlock( &player->lock );
+     direct_mutex_unlock( &player->lock );
 
      return DR_ITEMNOTFOUND;
 }
@@ -389,15 +333,15 @@ voodoo_player_enumerate( VoodooPlayer          *player,
 
      D_MAGIC_ASSERT( player, VoodooPlayer );
 
-     pthread_mutex_lock( &player->lock );
+     direct_mutex_lock( &player->lock );
 
      direct_list_foreach (node, player->nodes) {
           if (callback( ctx, &node->info, &node->version,
-                        node->addr, now - node->last_seen ) == DENUM_CANCEL)
+                        node->addr, (unsigned int) (now - node->last_seen) ) == DENUM_CANCEL)
                break;
      }
 
-     pthread_mutex_unlock( &player->lock );
+     direct_mutex_unlock( &player->lock );
 
      return DR_OK;
 }
@@ -413,6 +357,7 @@ player_send_info( VoodooPlayer    *player,
      struct sockaddr_in  addr;
      VoodooPlayMessage   msg;
      PlayerNode         *node;
+     char                buf[100];
 
      D_MAGIC_ASSERT( player, VoodooPlayer );
 
@@ -424,7 +369,13 @@ player_send_info( VoodooPlayer    *player,
      addr.sin_addr.s_addr = *in_addr;
      addr.sin_port        = htons( 2323 );
 
-     ret = sendto( player->fd, &msg, sizeof(msg), 0, (struct sockaddr*) &addr, sizeof(addr) );
+
+     direct_inet_ntop( AF_INET, &addr.sin_addr, buf, sizeof(buf) );
+
+     D_INFO( "Voodoo/Player: Sending %s to %s\n", discover ? "DISCOVER" : "SENDINFO", buf );
+
+
+     ret = sendto( player->fd, (const char*) &msg, sizeof(msg), 0, (struct sockaddr*) &addr, sizeof(addr) );
      if (ret < 0) {
           D_PERROR( "Voodoo/Player: sendto() failed!\n" );
           return;
@@ -440,7 +391,7 @@ player_send_info( VoodooPlayer    *player,
                msg.type    = discover ? VPMT_DISCOVER : VPMT_SENDINFO;
                msg.info    = info;
      
-               ret = sendto( player->fd, &msg, sizeof(msg), 0, (struct sockaddr*) &addr, sizeof(addr) );
+               ret = sendto( player->fd, (const char*) &msg, sizeof(msg), 0, (struct sockaddr*) &addr, sizeof(addr) );
                if (ret < 0) {
                     D_PERROR( "Voodoo/Player: sendto() failed!\n" );
                     return;
@@ -503,23 +454,30 @@ player_main_loop( DirectThread *thread, void *arg )
      D_MAGIC_ASSERT( player, VoodooPlayer );
 
      while (!player->quit) {
-          struct pollfd  pf;
+          fd_set         rfds;
+          struct timeval tv;
+          int            retval;
 
-          pf.fd     = player->fd;
-          pf.events = POLLIN;
+          FD_ZERO( &rfds );
+          FD_SET( player->fd, &rfds );
 
-          switch (poll( &pf, 1, 100 )) {
+          tv.tv_sec  = 0;
+          tv.tv_usec = 100000;
+
+          retval = select( player->fd+1, &rfds, NULL, NULL, &tv );
+
+          switch (retval) {
                default:
-                    ret = recvfrom( player->fd, &msg, sizeof(msg), 0, (struct sockaddr*) &addr, &addr_len );
+                    ret = recvfrom( player->fd, (char*) &msg, sizeof(msg), 0, (struct sockaddr*) &addr, &addr_len );
                     if (ret < 0) {
                          D_PERROR( "Voodoo/Player: recvfrom() failed!\n" );
-                         usleep( 500000 );
+                         direct_thread_sleep( 500000 );
                          continue;
                     }
 
-                    inet_ntop( AF_INET, &addr.sin_addr, buf, sizeof(buf) );
+                    direct_inet_ntop( AF_INET, &addr.sin_addr, buf, sizeof(buf) );
 
-                    pthread_mutex_lock( &player->lock );
+                    direct_mutex_lock( &player->lock );
 
                     /* Send reply if message is not from ourself */
                     if (memcmp( msg.info.uuid, player->info.uuid, 16 )) {
@@ -542,22 +500,22 @@ player_main_loop( DirectThread *thread, void *arg )
                     else
                          D_INFO( "Voodoo/Player: Received message from ourself (%s)\n", buf );
 
-                    pthread_mutex_unlock( &player->lock );
+                    direct_mutex_unlock( &player->lock );
                     break;
 
                case 0:
-                    D_DEBUG( "Voodoo/Player: Timeout during poll()\n" );
+                    D_DEBUG( "Voodoo/Player: Timeout during select()\n" );
                     break;
 
                case -1:
-                    if (errno != EINTR) {
-                         D_PERROR( "Voodoo/Player: Could not poll() the socket!\n" );
+                    if (errno && errno != EINTR) {
+                         D_PERROR( "Voodoo/Player: select() on socket failed!\n" );
                          player->quit = true;
                     }
                     break;
           }
      }
 
-     return DR_OK;
+     return NULL;
 }
 

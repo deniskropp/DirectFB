@@ -28,20 +28,9 @@
 
 #include <config.h>
 
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <sys/poll.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 
 #include <direct/debug.h>
 #include <direct/list.h>
@@ -61,14 +50,14 @@ struct __V_VoodooClient {
 
      int            refs;
 
-     int            fd;
+     VoodooLink     vl;
      VoodooManager *manager;
 
      char          *host;
      int            port;
 };
 
-static DirectLink *m_clients;
+static DirectLink *m_clients; // FIXME: add lock
 
 /**********************************************************************************************************************/
 
@@ -77,15 +66,10 @@ voodoo_client_create( const char     *host,
                       int             port,
                       VoodooClient  **ret_client )
 {
-     DirectResult     ret;
-     int              err, fd;
-     struct addrinfo  hints;
-     struct addrinfo *addr;
-     VoodooClient    *client;
-     int              fds[2];
-     char             buf[100] = { 0 };
-     const char      *hostname = host;
-     char             portstr[10];
+     DirectResult  ret;
+     VoodooClient *client;
+     char          buf[100] = { 0 };
+     const char   *hostname = host;
 
      D_ASSERT( ret_client != NULL );
 
@@ -117,12 +101,12 @@ voodoo_client_create( const char     *host,
           for (n=0; n<10; n++) {
                voodoo_player_broadcast( player );
 
-               usleep( 20000 );
+               direct_thread_sleep( 20000 );
 
                if (voodoo_player_lookup( player, NULL, buf, sizeof(buf) ) == DR_OK)
                     break;
 
-               usleep( 100000 );
+               direct_thread_sleep( 100000 );
           }
 
           voodoo_player_destroy( player );
@@ -135,98 +119,25 @@ voodoo_client_create( const char     *host,
           hostname = buf;
      }
 
-     memset( &hints, 0, sizeof(hints) );
-     hints.ai_flags    = AI_CANONNAME;
-     hints.ai_socktype = SOCK_STREAM;
-     hints.ai_family   = PF_UNSPEC;
+     /* Allocate client structure. */
+     client = D_CALLOC( 1, sizeof(VoodooClient) );
+     if (!client)
+          return D_OOM();
 
-     D_INFO( "Voodoo/Client: Looking up host '%s'...\n", hostname );
 
-     snprintf( portstr, sizeof(portstr), "%d", port );
-
-     err = getaddrinfo( hostname, portstr, &hints, &addr );
-     if (err) {
-          switch (err) {
-               case EAI_FAMILY:
-                    D_ERROR( "Direct/Log: Unsupported address family!\n" );
-                    return DR_UNSUPPORTED;
-
-               case EAI_SOCKTYPE:
-                    D_ERROR( "Direct/Log: Unsupported socket type!\n" );
-                    return DR_UNSUPPORTED;
-
-               case EAI_NONAME:
-                    D_ERROR( "Direct/Log: Host not found!\n" );
-                    return DR_FAILURE;
-
-               case EAI_SERVICE:
-                    D_ERROR( "Direct/Log: Service is unreachable!\n" );
-                    return DR_FAILURE;
-
-#ifdef EAI_ADDRFAMILY
-               case EAI_ADDRFAMILY:
-#endif
-               case EAI_NODATA:
-                    D_ERROR( "Direct/Log: Host found, but has no address!\n" );
-                    return DR_FAILURE;
-
-               case EAI_MEMORY:
-                    return D_OOM();
-
-               case EAI_FAIL:
-                    D_ERROR( "Direct/Log: A non-recoverable name server error occurred!\n" );
-                    return DR_FAILURE;
-
-               case EAI_AGAIN:
-                    D_ERROR( "Direct/Log: Temporary error, try again!\n" );
-                    return DR_TEMPUNAVAIL;
-
-               default:
-                    D_ERROR( "Direct/Log: Unknown error occured!?\n" );
-                    return DR_FAILURE;
-          }
-     }
-
-     /* Create the client socket. */
-     fd = socket( addr->ai_family, SOCK_STREAM, 0 );
-     if (fd < 0) {
-          D_PERROR( "Voodoo/Client: Could not create the socket via socket()!\n" );
-          freeaddrinfo( addr );
-          return errno2result( errno );
-     }
-
-     D_INFO( "Voodoo/Client: Connecting to '%s:%d'...\n", addr->ai_canonname, port );
-
-     /* Connect to the server. */
-     err = connect( fd, addr->ai_addr, addr->ai_addrlen );
-     freeaddrinfo( addr );
-
-     if (err) {
-          ret = errno2result( errno );
-          D_PERROR( "Voodoo/Client: Could not connect() to the server!\n" );
-          close( fd );
+     /* Initialize client structure. */
+     ret = voodoo_link_init_connect( &client->vl, hostname, port );
+     if (ret) {
+          D_DERROR( ret, "Voodoo/Client: Failed to initialize Voodoo Link!\n" );
+          D_FREE( client );
           return ret;
      }
 
-     /* Allocate client structure. */
-     client = D_CALLOC( 1, sizeof(VoodooClient) );
-     if (!client) {
-          D_WARN( "out of memory" );
-          close( fd );
-          return DR_NOLOCALMEMORY;
-     }
-
-     /* Initialize client structure. */
-     client->fd = fd;
-
-     fds[0] = fd;
-     fds[1] = fd;
-
      /* Create the manager. */
-     ret = voodoo_manager_create( fds, client, NULL, &client->manager );
+     ret = voodoo_manager_create( &client->vl, client, NULL, &client->manager );
      if (ret) {
+          client->vl.Close( &client->vl );
           D_FREE( client );
-          close( fd );
           return ret;
      }
 
@@ -250,15 +161,14 @@ voodoo_client_destroy( VoodooClient *client )
      D_INFO( "Voodoo/Client: Decreasing ref count of connection...\n" );
 
      if (! --(client->refs)) {
-     voodoo_manager_destroy( client->manager );
+          voodoo_manager_destroy( client->manager );
 
-          D_INFO("closing socket\n");
-     close( client->fd );
+          client->vl.Close( &client->vl );
 
           direct_list_remove( &m_clients, &client->link );
 
           D_FREE( client->host );
-     D_FREE( client );
+          D_FREE( client );
      }
 
      return DR_OK;

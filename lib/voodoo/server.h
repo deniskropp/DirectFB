@@ -32,18 +32,18 @@
 #include <voodoo/types.h>
 
 
-DirectResult voodoo_server_create  ( const char            *addr,
-                                     int                    port,
-                                     bool                   fork,
-                                     VoodooServer         **ret_server );
+DirectResult VOODOO_API voodoo_server_create  ( const char            *addr,
+                                                int                    port,
+                                                bool                   fork,
+                                                VoodooServer         **ret_server );
 
-DirectResult voodoo_server_register( VoodooServer          *server,
-                                     const char            *name,
-                                     VoodooSuperConstruct   func,
-                                     void                  *ctx );
+DirectResult VOODOO_API voodoo_server_register( VoodooServer          *server,
+                                                const char            *name,
+                                                VoodooSuperConstruct   func,
+                                                void                  *ctx );
 
-DirectResult voodoo_server_run     ( VoodooServer          *server );
+DirectResult VOODOO_API voodoo_server_run     ( VoodooServer          *server );
 
-DirectResult voodoo_server_destroy ( VoodooServer          *server );
+DirectResult VOODOO_API voodoo_server_destroy ( VoodooServer          *server );
 
 #endif

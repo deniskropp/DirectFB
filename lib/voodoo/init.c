@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -26,15 +26,44 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __VOODOO__INTERNAL_H__
-#define __VOODOO__INTERNAL_H__
+#include <config.h>
 
-#include <voodoo/types.h>
+#include <direct/util.h>
+
+#include <voodoo/init.h>
+#include <voodoo/play.h>
 
 
-DirectResult VOODOO_API voodoo_server_construct( VoodooServer         *server,
-                                                 VoodooManager        *manager,
-                                                 const char           *name,
-                                                 VoodooInstanceID     *ret_instance );
+/**********************************************************************************************************************/
 
-#endif
+typedef void (*Func)( void );
+
+
+static Func init_funcs[] = {
+     __Voodoo_play_init
+};
+
+static Func deinit_funcs[] = {
+     __Voodoo_play_deinit,
+};
+
+/**********************************************************************************************************************/
+
+void
+__Voodoo_init_all()
+{
+     size_t i;
+
+     for (i=0; i<D_ARRAY_SIZE(init_funcs); i++)
+          init_funcs[i]();
+}
+
+void
+__Voodoo_deinit_all()
+{
+     size_t i;
+
+     for (i=0; i<D_ARRAY_SIZE(deinit_funcs); i++)
+          deinit_funcs[i]();
+}
+

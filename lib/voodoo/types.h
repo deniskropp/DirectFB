@@ -32,6 +32,23 @@
 #include <direct/types.h>
 
 
+#ifdef WIN32
+// The following ifdef block is the standard way of creating macros which make exporting 
+// from a DLL simpler. All files within this DLL are compiled with the VOODOO_EXPORTS
+// symbol defined on the command line. This symbol should not be defined on any project
+// that uses this DLL. This way any other project whose source files include this file see 
+// VOODOO_API functions as being imported from a DLL, whereas this DLL sees symbols
+// defined with this macro as being exported.
+#ifdef VOODOO_EXPORTS
+#define VOODOO_API __declspec(dllexport)
+#else
+#define VOODOO_API __declspec(dllimport)
+#endif
+#else
+#define VOODOO_API
+#endif
+
+
 typedef u32 VoodooInstanceID;
 typedef u32 VoodooMethodID;
 typedef u64 VoodooMessageSerial;
@@ -47,6 +64,7 @@ typedef struct __V_VoodooResponseMessage VoodooResponseMessage;
 
 typedef struct __V_VoodooClient          VoodooClient;
 typedef struct __V_VoodooConfig          VoodooConfig;
+typedef struct __V_VoodooLink            VoodooLink;
 typedef struct __V_VoodooManager         VoodooManager;
 typedef struct __V_VoodooPlayer          VoodooPlayer;
 typedef struct __V_VoodooServer          VoodooServer;

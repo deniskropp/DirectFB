@@ -32,13 +32,13 @@
 #include <voodoo/types.h>
 
 
-DirectResult   voodoo_client_create ( const char         *host,
-                                      int                 session,
-                                      VoodooClient      **ret_client );
+DirectResult  VOODOO_API  voodoo_client_create ( const char         *host,
+                                                 int                 session,
+                                                 VoodooClient      **ret_client );
 
-DirectResult   voodoo_client_destroy( VoodooClient       *client );
+DirectResult  VOODOO_API  voodoo_client_destroy( VoodooClient       *client );
 
 
-VoodooManager *voodoo_client_manager( const VoodooClient *client );
+VoodooManager VOODOO_API *voodoo_client_manager( const VoodooClient *client );
 
 #endif

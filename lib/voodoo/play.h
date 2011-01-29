@@ -29,6 +29,8 @@
 #ifndef __VOODOO__PLAY_H__
 #define __VOODOO__PLAY_H__
 
+#include <direct/debug.h>
+
 #include <voodoo/types.h>
 
 
@@ -99,6 +101,39 @@ typedef struct {
 } VoodooPlayMessage;
 
 
+typedef enum {
+    VPAT_UNKNOWN    = 0x00000000,
+
+    VPAT_IPV4       = 0x00000001,
+    VPAT_LOCAL      = 0x00000002,
+} VoodooPlayAddressType;
+
+typedef struct {
+    VoodooPlayAddressType   type;
+
+    union {
+        u8                  ipv4[4];
+    };
+} VoodooPlayAddress;
+
+#define VOODOO_PLAY_INET_ADDR( vpa )    \
+    htonl( ((vpa).ipv4[0] << 24) | ((vpa).ipv4[1] << 16) | ((vpa).ipv4[2] << 8) | (vpa).ipv4[3] )
+
+static __inline__ void
+voodoo_play_from_inet_addr( VoodooPlayAddress *addr,
+                            unsigned int       inet )
+{
+    D_ASSERT( addr != NULL );
+
+    addr->type = VPAT_IPV4;
+
+    addr->ipv4[0] = (u8)(ntohl(inet) >> 24);
+    addr->ipv4[1] = (u8)(ntohl(inet) >> 16);
+    addr->ipv4[2] = (u8)(ntohl(inet) >> 8);
+    addr->ipv4[3] = (u8)(ntohl(inet));
+}
+
+
 typedef DirectEnumerationResult (*VoodooPlayerCallback)( void                    *ctx,
                                                          const VoodooPlayInfo    *info,
                                                          const VoodooPlayVersion *version,
@@ -106,20 +141,30 @@ typedef DirectEnumerationResult (*VoodooPlayerCallback)( void                   
                                                          unsigned int             ms_since_last_seen );
 
 
-DirectResult voodoo_player_create   ( const VoodooPlayInfo  *info,
-                                      VoodooPlayer         **ret_player );
+DirectResult VOODOO_API voodoo_player_create   ( const VoodooPlayInfo  *info,
+                                                 VoodooPlayer         **ret_player );
 
-DirectResult voodoo_player_destroy  ( VoodooPlayer          *player );
+DirectResult VOODOO_API voodoo_player_destroy  ( VoodooPlayer          *player );
 
-DirectResult voodoo_player_broadcast( VoodooPlayer          *player );
+DirectResult VOODOO_API voodoo_player_broadcast( VoodooPlayer          *player );
 
-DirectResult voodoo_player_lookup   ( VoodooPlayer          *player,
-                                      const char            *name,
-                                      char                  *ret_addr,
-                                      int                    max_addr );
+DirectResult VOODOO_API voodoo_player_lookup   ( VoodooPlayer          *player,
+                                                 const char            *name,
+                                                 char                  *ret_addr,
+                                                 int                    max_addr );
 
-DirectResult voodoo_player_enumerate( VoodooPlayer          *player,
-                                      VoodooPlayerCallback   callback,
-                                      void                  *ctx );
+DirectResult VOODOO_API voodoo_player_enumerate( VoodooPlayer          *player,
+                                                 VoodooPlayerCallback   callback,
+                                                 void                  *ctx );
+
+
+
+DirectResult VOODOO_API voodoo_play_get_broadcast( VoodooPlayAddress **ret_addr,
+                                                   size_t             *ret_num );
+
+
+void __Voodoo_play_init( void );
+void __Voodoo_play_deinit( void );
+
 
 #endif

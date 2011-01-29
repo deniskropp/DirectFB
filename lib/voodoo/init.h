@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2011  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -26,15 +26,15 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __VOODOO__INTERNAL_H__
-#define __VOODOO__INTERNAL_H__
+#ifndef __VOODOO__INIT_H__
+#define __VOODOO__INIT_H__
 
-#include <voodoo/types.h>
+#include <direct/types.h>
 
 
-DirectResult VOODOO_API voodoo_server_construct( VoodooServer         *server,
-                                                 VoodooManager        *manager,
-                                                 const char           *name,
-                                                 VoodooInstanceID     *ret_instance );
+__constructor__ void __Voodoo_init_all  ( void );
+__destructor__  void __Voodoo_deinit_all( void );
+
 
 #endif
+
