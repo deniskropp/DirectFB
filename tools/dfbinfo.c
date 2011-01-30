@@ -241,31 +241,39 @@ display_layer_callback( DFBDisplayLayerID           id,
 
      /* Sources */
      if (desc.caps & DLCAPS_SOURCES) {
-          DFBResult                         ret;
-          IDirectFBDisplayLayer            *layer;
-          DFBDisplayLayerSourceDescription  descs[desc.sources];
+          DFBResult              ret;
+          IDirectFBDisplayLayer *layer;
 
           ret = dfb->GetDisplayLayer( dfb, id, &layer );
           if (ret) {
                DirectFBError( "DirectFB::GetDisplayLayer() failed", ret );
           }
           else {
-               ret = layer->GetSourceDescriptions( layer, descs );
-               if (ret) {
-                    DirectFBError( "DirectFBDisplayLayer::GetSourceDescriptions() failed", ret );
-               }
-               else {
-                    printf( "        Sources: " );
+               DFBDisplayLayerSourceDescription *descs;
 
-                    for (i=0; i<desc.sources; i++) {
-                         if (i > 0)
-                              printf( ", %s", descs[i].name );
-                         else
-                              printf( "%s", descs[i].name );
+               descs = D_CALLOC( desc.sources, sizeof(*descs) );
+               if (descs) {
+                    ret = layer->GetSourceDescriptions( layer, descs );
+                    if (ret) {
+                         DirectFBError( "DirectFBDisplayLayer::GetSourceDescriptions() failed", ret );
+                    }
+                    else {
+                         printf( "        Sources: " );
+
+                         for (i=0; i<desc.sources; i++) {
+                              if (i > 0)
+                                   printf( ", %s", descs[i].name );
+                              else
+                                   printf( "%s", descs[i].name );
+                         }
+
+                         printf( "\n" );
                     }
 
-                    printf( "\n" );
+                    D_FREE( descs );
                }
+               else
+                    D_OOM();
 
                layer->Release( layer );
           }
@@ -293,13 +301,20 @@ static void
 dump_mixers( IDirectFBScreen *screen,
              int              num )
 {
-     int                       i, n;
-     DFBResult                 ret;
-     DFBScreenMixerDescription descs[num];
+     int                        i, n;
+     DFBResult                  ret;
+     DFBScreenMixerDescription *descs;
+
+     descs = D_CALLOC( num, sizeof(*descs) );
+     if (!descs) {
+          D_OOM();
+          return;
+     }
 
      ret = screen->GetMixerDescriptions( screen, descs );
      if (ret) {
           DirectFBError( "IDirectFBScreen::GetMixerDescriptions", ret );
+          D_FREE( descs );
           return;
      }
 
@@ -346,19 +361,28 @@ dump_mixers( IDirectFBScreen *screen,
      }
 
      printf( "\n" );
+
+     D_FREE( descs );
 }
 
 static void
 dump_encoders( IDirectFBScreen *screen,
                int              num )
 {
-     int                         i, n;
-     DFBResult                   ret;
-     DFBScreenEncoderDescription descs[num];
+     int                          i, n;
+     DFBResult                    ret;
+     DFBScreenEncoderDescription *descs;
+
+     descs = D_CALLOC( num, sizeof(*descs) );
+     if (!descs) {
+          D_OOM();
+          return;
+     }
 
      ret = screen->GetEncoderDescriptions( screen, descs );
      if (ret) {
           DirectFBError( "IDirectFBScreen::GetEncoderDescriptions", ret );
+          D_FREE( descs );
           return;
      }
 
@@ -440,19 +464,28 @@ dump_encoders( IDirectFBScreen *screen,
      }
 
      printf( "\n" );
+
+     D_FREE( descs );
 }
 
 static void
 dump_outputs( IDirectFBScreen *screen,
               int              num )
 {
-     int                        i, n;
-     DFBResult                  ret;
-     DFBScreenOutputDescription descs[num];
+     int                         i, n;
+     DFBResult                   ret;
+     DFBScreenOutputDescription *descs;
+
+     descs = D_CALLOC( num, sizeof(*descs) );
+     if (!descs) {
+          D_OOM();
+          return;
+     }
 
      ret = screen->GetOutputDescriptions( screen, descs );
      if (ret) {
           DirectFBError( "IDirectFBScreen::GetOutputDescriptions", ret );
+          D_FREE( descs );
           return;
      }
 
@@ -470,7 +503,7 @@ dump_outputs( IDirectFBScreen *screen,
 
           printf( "\n" );
 
-	  /* Connectors */
+          /* Connectors */
           if (descs[i].caps & DSOCAPS_CONNECTORS) {
               printf( "     Connectors: " );
 
@@ -508,6 +541,8 @@ dump_outputs( IDirectFBScreen *screen,
      }
 
      printf( "\n" );
+
+     D_FREE( descs );
 }
 
 static DFBEnumerationResult
