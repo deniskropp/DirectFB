@@ -1,0 +1,149 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{512961B1-CDF6-4C5F-B0BA-518E96DD252D}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>libdirectfb</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;DIRECTFB_EXPORTS;BUILDTIME="now";SYSCONFDIR="c:\\";_DEBUG;_WINDOWS;_USRDLL;LIBDIRECTFB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>P:\DirectFBWin32\Win32;P:\DirectFBWin32\proxy\requestor;P:\DirectFBWin32\proxy\dispatcher;P:\DirectFBWin32\src;P:\DirectFBWin32\include;P:\DirectFBWin32\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>libdirect.lib;libfusion.lib;libvoodoo.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>P:\DirectFBWin32\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;DIRECTFB_EXPORTS;BUILDTIME="now";SYSCONFDIR="c:\\";NDEBUG;_WINDOWS;_USRDLL;LIBDIRECTFB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>P:\DirectFBWin32\proxy\requestor;P:\DirectFBWin32\proxy\dispatcher;P:\DirectFBWin32\src;P:\DirectFBWin32\include;P:\DirectFBWin32\lib;P:\DirectFBWin32\Win32;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>libdirect.lib;libfusion.lib;libvoodoo.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>P:\DirectFBWin32\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\proxy\dispatcher\idirectfbdatabuffer_dispatcher.c" />
+    <ClCompile Include="..\..\proxy\dispatcher\idirectfbdisplaylayer_dispatcher.c" />
+    <ClCompile Include="..\..\proxy\dispatcher\idirectfbeventbuffer_dispatcher.c" />
+    <ClCompile Include="..\..\proxy\dispatcher\idirectfbfont_dispatcher.c" />
+    <ClCompile Include="..\..\proxy\dispatcher\idirectfbimageprovider_dispatcher.c" />
+    <ClCompile Include="..\..\proxy\dispatcher\idirectfbinputdevice_dispatcher.c" />
+    <ClCompile Include="..\..\proxy\dispatcher\idirectfbpalette_dispatcher.c" />
+    <ClCompile Include="..\..\proxy\dispatcher\idirectfbscreen_dispatcher.c" />
+    <ClCompile Include="..\..\proxy\dispatcher\idirectfbsurface_dispatcher.c" />
+    <ClCompile Include="..\..\proxy\dispatcher\idirectfbwindow_dispatcher.c" />
+    <ClCompile Include="..\..\proxy\dispatcher\idirectfb_dispatcher.c" />
+    <ClCompile Include="..\..\proxy\requestor\idirectfbdatabuffer_requestor.c" />
+    <ClCompile Include="..\..\proxy\requestor\idirectfbdisplaylayer_requestor.c" />
+    <ClCompile Include="..\..\proxy\requestor\idirectfbeventbuffer_requestor.c" />
+    <ClCompile Include="..\..\proxy\requestor\idirectfbfont_requestor.c" />
+    <ClCompile Include="..\..\proxy\requestor\idirectfbimageprovider_requestor.c" />
+    <ClCompile Include="..\..\proxy\requestor\idirectfbinputdevice_requestor.c" />
+    <ClCompile Include="..\..\proxy\requestor\idirectfbpalette_requestor.c" />
+    <ClCompile Include="..\..\proxy\requestor\idirectfbscreen_requestor.c" />
+    <ClCompile Include="..\..\proxy\requestor\idirectfbsurface_requestor.c" />
+    <ClCompile Include="..\..\proxy\requestor\idirectfbwindow_requestor.c" />
+    <ClCompile Include="..\..\proxy\requestor\idirectfb_requestor.c" />
+    <ClCompile Include="..\..\src\directfb.c" />
+    <ClCompile Include="..\..\src\directfb_result.c" />
+    <ClCompile Include="..\..\src\init.c" />
+    <ClCompile Include="..\..\src\input\idirectfbinputbuffer.c" />
+    <ClCompile Include="..\..\src\media\idirectfbdatabuffer.c" />
+    <ClCompile Include="..\..\src\media\idirectfbdatabuffer_file.c" />
+    <ClCompile Include="..\..\src\media\idirectfbdatabuffer_memory.c" />
+    <ClCompile Include="..\..\src\media\idirectfbdatabuffer_streamed.c" />
+    <ClCompile Include="..\..\src\misc\conf.c" />
+    <ClCompile Include="..\..\src\misc\util.c" />
+    <ClCompile Include="dllmain.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\include\dfb_types.h" />
+    <ClInclude Include="..\..\include\directfb.h" />
+    <ClInclude Include="..\..\include\directfb_keyboard.h" />
+    <ClInclude Include="..\..\include\directfb_util.h" />
+    <ClInclude Include="..\..\proxy\dispatcher\idirectfbdatabuffer_dispatcher.h" />
+    <ClInclude Include="..\..\proxy\dispatcher\idirectfbdisplaylayer_dispatcher.h" />
+    <ClInclude Include="..\..\proxy\dispatcher\idirectfbeventbuffer_dispatcher.h" />
+    <ClInclude Include="..\..\proxy\dispatcher\idirectfbfont_dispatcher.h" />
+    <ClInclude Include="..\..\proxy\dispatcher\idirectfbfoo_dispatcher.h" />
+    <ClInclude Include="..\..\proxy\dispatcher\idirectfbimageprovider_dispatcher.h" />
+    <ClInclude Include="..\..\proxy\dispatcher\idirectfbinputdevice_dispatcher.h" />
+    <ClInclude Include="..\..\proxy\dispatcher\idirectfbpalette_dispatcher.h" />
+    <ClInclude Include="..\..\proxy\dispatcher\idirectfbscreen_dispatcher.h" />
+    <ClInclude Include="..\..\proxy\dispatcher\idirectfbsurface_dispatcher.h" />
+    <ClInclude Include="..\..\proxy\dispatcher\idirectfbwindow_dispatcher.h" />
+    <ClInclude Include="..\..\proxy\dispatcher\idirectfb_dispatcher.h" />
+    <ClInclude Include="..\..\src\gfx\convert.h" />
+    <ClInclude Include="..\..\src\init.h" />
+    <ClInclude Include="..\..\src\media\idirectfbdatabuffer.h" />
+    <ClInclude Include="..\..\src\media\idirectfbfont.h" />
+    <ClInclude Include="..\..\src\media\idirectfbimageprovider.h" />
+    <ClInclude Include="..\..\src\media\idirectfbvideoprovider.h" />
+    <ClInclude Include="..\..\src\misc\conf.h" />
+    <ClInclude Include="..\config.h" />
+    <ClInclude Include="..\directfb_version.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
