@@ -53,9 +53,11 @@
 #include <windows.h>
 
 
+#ifndef __cplusplus
 #define bool int
 #define true 1
 #define false 0
+#endif
 
 typedef unsigned int       unichar;
 
