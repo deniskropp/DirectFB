@@ -29,24 +29,40 @@
 
 #include <directfb.h>
 
+#ifdef WIN32
+// The following ifdef block is the standard way of creating macros which make exporting 
+// from a DLL simpler. All files within this DLL are compiled with the DIVINE_EXPORTS
+// symbol defined on the command line. This symbol should not be defined on any project
+// that uses this DLL. This way any other project whose source files include this file see 
+// DIVINE_API functions as being imported from a DLL, whereas this DLL sees symbols
+// defined with this macro as being exported.
+#ifdef DIVINE_EXPORTS
+#define DIVINE_API __declspec(dllexport)
+#else
+#define DIVINE_API __declspec(dllimport)
+#endif
+#else
+#define DIVINE_API
+#endif
+
 /*
  * Main interface of DiVine, created by DiVineCreate().
  */
-DECLARE_INTERFACE( IDiVine )
+D_DECLARE_INTERFACE( IDiVine )
 
 /*
  * Parses the command-line and initializes some variables. You
  * absolutely need to call this before doing anything else.
  * Removes all options used by DiVine from argv.
  */
-DFBResult DiVineInit( int *argc, char *(*argv[]) );
+DFBResult DIVINE_API DiVineInit( int *argc, char *(*argv[]) );
 
 /*
  * Creates the super interface.
  */
-DFBResult DiVineCreate(
-                        IDiVine **interface  /* pointer to the created interface */
-                      );
+DFBResult DIVINE_API DiVineCreate(
+                                    IDiVine **interface_ptr  /* pointer to the created interface */
+                                  );
 
 /***********
  * IDiVine *
@@ -55,7 +71,7 @@ DFBResult DiVineCreate(
 /*
  * <i>No summary yet...</i>
  */
-DEFINE_INTERFACE(   IDiVine,
+D_DEFINE_INTERFACE(   IDiVine,
 
    /** Events **/
 
@@ -88,49 +104,49 @@ typedef struct _DiVine DiVine;
  *
  * Returns the DiVine connection object.
  */
-DiVine *divine_open (const char *path);
+DiVine DIVINE_API *divine_open (const char *path);
 
 
 /*
  * Sends an input event.
  */
-void divine_send_event (DiVine *divine, const DFBInputEvent *event);
+void DIVINE_API divine_send_event (DiVine *divine, const DFBInputEvent *event);
 
 /*
  * Sends a press and a release event for the specified symbol.
  */
-void divine_send_symbol (DiVine *divine, DFBInputDeviceKeySymbol symbol);
+void DIVINE_API divine_send_symbol (DiVine *divine, DFBInputDeviceKeySymbol symbol);
 
 /*
  * Sends a press and a release event for the specified identifier.
  */
-void divine_send_identifier (DiVine *divine, DFBInputDeviceKeyIdentifier identifier);
+void DIVINE_API divine_send_identifier (DiVine *divine, DFBInputDeviceKeyIdentifier identifier);
 
 /*
  * Sends a press and a release event for the specified ANSI string.
  * Use this to feed terminal input into a DirectFB application.
  */
-void divine_send_vt102 (DiVine *divine, int size, const char *ansistr);
+void DIVINE_API divine_send_vt102 (DiVine *divine, int size, const char *ansistr);
 
 /*
  *
  */
-void divine_send_motion_absolute( DiVine *divine, int x, int y );
+void DIVINE_API divine_send_motion_absolute( DiVine *divine, int x, int y );
 
 /*
  *
  */
-void divine_send_button_press( DiVine *divine, DFBInputDeviceButtonIdentifier button );
+void DIVINE_API divine_send_button_press( DiVine *divine, DFBInputDeviceButtonIdentifier button );
 
 /*
  *
  */
-void divine_send_button_release( DiVine *divine, DFBInputDeviceButtonIdentifier button );
+void DIVINE_API divine_send_button_release( DiVine *divine, DFBInputDeviceButtonIdentifier button );
 
 
 /*
  * Closes the pipe and destroys the connection object.
  */
-void divine_close (DiVine *divine);
+void DIVINE_API divine_close (DiVine *divine);
 
 #endif
