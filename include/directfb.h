@@ -36,12 +36,15 @@ extern "C"
 #endif
 
 #include <dfb_types.h>
-#include <sys/time.h> /* struct timeval */
 
 #include <directfb_build.h>
 #include <directfb_keyboard.h>
 
 #include <direct/interface.h>
+
+#ifdef WIN32
+#undef CreateWindow  // FIXME
+#endif
 
 /*
  * Version handling.
@@ -56,77 +59,77 @@ extern const unsigned int directfb_interface_age;
  * Check for a certain DirectFB version.
  * In case of an error a message is returned describing the mismatch.
  */
-const char * DirectFBCheckVersion( unsigned int required_major,
-                                   unsigned int required_minor,
-                                   unsigned int required_micro );
+const char DIRECTFB_API *DirectFBCheckVersion( unsigned int required_major,
+                                               unsigned int required_minor,
+                                               unsigned int required_micro );
 
 
 /*
  * Main interface of DirectFB, created by DirectFBCreate().
  */
-DECLARE_INTERFACE( IDirectFB )
+D_DECLARE_INTERFACE( IDirectFB )
 
 /*
  * Interface to a surface object, being a graphics context for rendering and state control,
  * buffer operations, palette access and sub area translate'n'clip logic.
  */
-DECLARE_INTERFACE( IDirectFBSurface )
+D_DECLARE_INTERFACE( IDirectFBSurface )
 
 /*
  * Interface for read/write access to the colors of a palette object and for cloning it.
  */
-DECLARE_INTERFACE( IDirectFBPalette )
+D_DECLARE_INTERFACE( IDirectFBPalette )
 
 /*
  * Input device interface for keymap access, event buffers and state queries.
  */
-DECLARE_INTERFACE( IDirectFBInputDevice )
+D_DECLARE_INTERFACE( IDirectFBInputDevice )
 
 /*
  * Layer interface for configuration, window stack usage or direct surface access, with shared/exclusive context.
  */
-DECLARE_INTERFACE( IDirectFBDisplayLayer )
+D_DECLARE_INTERFACE( IDirectFBDisplayLayer )
 
 /*
  * Interface to a window object, controlling appearance and focus, positioning and stacking,
  * event buffers and surface access.
  */
-DECLARE_INTERFACE( IDirectFBWindow )
+D_DECLARE_INTERFACE( IDirectFBWindow )
 
 /*
  * Interface to a local event buffer to send/receive events, wait for events, abort waiting or reset buffer.
  */
-DECLARE_INTERFACE( IDirectFBEventBuffer )
+D_DECLARE_INTERFACE( IDirectFBEventBuffer )
 
 /*
  * Font interface for getting metrics, measuring strings or single characters, query/choose encodings.
  */
-DECLARE_INTERFACE( IDirectFBFont )
+D_DECLARE_INTERFACE( IDirectFBFont )
 
 /*
  * Interface to an image provider, retrieving information about the image and rendering it to a surface.
  */
-DECLARE_INTERFACE( IDirectFBImageProvider )
+D_DECLARE_INTERFACE( IDirectFBImageProvider )
 
 /*
  * Interface to a video provider for playback with advanced control and basic stream information.
  */
-DECLARE_INTERFACE( IDirectFBVideoProvider )
+D_DECLARE_INTERFACE( IDirectFBVideoProvider )
 
 /*
  * Data buffer interface, providing unified access to different kinds of data storage and live feed.
  */
-DECLARE_INTERFACE( IDirectFBDataBuffer )
+D_DECLARE_INTERFACE( IDirectFBDataBuffer )
 
 /*
  * Interface to different display outputs, encoders, connector settings, power management and synchronization.
  */
-DECLARE_INTERFACE( IDirectFBScreen )
+D_DECLARE_INTERFACE( IDirectFBScreen )
 
 /*
  * OpenGL context of a surface.
  */
-DECLARE_INTERFACE( IDirectFBGL )
+D_DECLARE_INTERFACE( IDirectFBGL )
 
 
 /*
@@ -371,25 +374,25 @@ typedef struct {
  * Print a description of the result code along with an
  * optional message that is put in front with a colon.
  */
-DFBResult DirectFBError(
-                             const char  *msg,    /* optional message */
-                             DFBResult    result  /* result code to interpret */
-                       );
+DFBResult DIRECTFB_API DirectFBError(
+                                          const char  *msg,    /* optional message */
+                                          DFBResult    result  /* result code to interpret */
+                                    );
 
 /*
  * Behaves like DirectFBError, but shuts down the calling application.
  */
-DFBResult DirectFBErrorFatal(
-                             const char  *msg,    /* optional message */
-                             DFBResult    result  /* result code to interpret */
-                            );
+DFBResult DIRECTFB_API DirectFBErrorFatal(
+                                               const char  *msg,    /* optional message */
+                                               DFBResult    result  /* result code to interpret */
+                                         );
 
 /*
  * Returns a string describing 'result'.
  */
-const char *DirectFBErrorString(
-                         DFBResult    result
-                      );
+const char DIRECTFB_API *DirectFBErrorString(
+                                                  DFBResult    result
+                                            );
 
 /*
  * Retrieves information about supported command-line flags in the
@@ -403,28 +406,27 @@ const char *DirectFBUsageString( void );
  * absolutely need to call this before doing anything else.
  * Removes all options used by DirectFB from argv.
  */
-DFBResult DirectFBInit(
-                         int         *argc,    /* pointer to main()'s argc */
-                         char      *(*argv[])  /* pointer to main()'s argv */
-                      );
+DFBResult DIRECTFB_API DirectFBInit(
+                                         int         *argc,    /* pointer to main()'s argc */
+                                         char      *(*argv[])  /* pointer to main()'s argv */
+                                   );
 
 /*
  * Sets configuration parameters supported on command line and in
  * config file. Can only be called before DirectFBCreate but after
  * DirectFBInit.
  */
-DFBResult DirectFBSetOption(
-                         const char  *name,
-                         const char  *value
-                      );
+DFBResult DIRECTFB_API DirectFBSetOption(
+                                              const char  *name,
+                                              const char  *value
+                                        );
 
 /*
  * Creates the super interface.
  */
-DFBResult DirectFBCreate(
-                          IDirectFB **interface  /* pointer to the
-                                                    created interface */
-                        );
+DFBResult DIRECTFB_API DirectFBCreate(
+                                           IDirectFB **interface_ptr  /* pointer to the created interface */
+                                     );
 
 
 typedef unsigned int DFBScreenID;
@@ -1726,7 +1728,7 @@ typedef struct {
  * content types. On creation a suitable implementation is
  * automatically chosen.
  */
-DEFINE_INTERFACE(   IDirectFB,
+D_DEFINE_INTERFACE(   IDirectFB,
 
    /** Cooperative level, video mode **/
 
@@ -2532,7 +2534,7 @@ typedef struct {
 /*
  * <i>No summary yet...</i>
  */
-DEFINE_INTERFACE(   IDirectFBScreen,
+D_DEFINE_INTERFACE(   IDirectFBScreen,
 
    /** Retrieving information **/
 
@@ -2758,7 +2760,7 @@ DEFINE_INTERFACE(   IDirectFBScreen,
 /*
  * <i>No summary yet...</i>
  */
-DEFINE_INTERFACE(   IDirectFBDisplayLayer,
+D_DEFINE_INTERFACE(   IDirectFBDisplayLayer,
 
    /** Information **/
 
@@ -3398,7 +3400,7 @@ typedef enum {
 /*
  * <i>No summary yet...</i>
  */
-DEFINE_INTERFACE(   IDirectFBSurface,
+D_DEFINE_INTERFACE(   IDirectFBSurface,
 
    /** Retrieving information **/
 
@@ -4268,7 +4270,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
 /*
  * <i>No summary yet...</i>
  */
-DEFINE_INTERFACE(   IDirectFBPalette,
+D_DEFINE_INTERFACE(   IDirectFBPalette,
 
    /** Retrieving information **/
 
@@ -4433,7 +4435,7 @@ typedef enum {
 /*
  * <i>No summary yet...</i>
  */
-DEFINE_INTERFACE(   IDirectFBInputDevice,
+D_DEFINE_INTERFACE(   IDirectFBInputDevice,
 
    /** Retrieving information **/
 
@@ -4958,7 +4960,7 @@ typedef struct {
 /*
  * <i>No summary yet...</i>
  */
-DEFINE_INTERFACE(   IDirectFBEventBuffer,
+D_DEFINE_INTERFACE(   IDirectFBEventBuffer,
 
 
    /** Buffer handling **/
@@ -5129,7 +5131,7 @@ typedef enum {
 /*
  * <i>No summary yet...</i>
  */
-DEFINE_INTERFACE(   IDirectFBWindow,
+D_DEFINE_INTERFACE(   IDirectFBWindow,
 
    /** Retrieving information **/
 
@@ -5771,7 +5773,7 @@ typedef DFBEnumerationResult (*DFBTextEncodingCallback) (
 /*
  * <i>No summary yet...</i>
  */
-DEFINE_INTERFACE(   IDirectFBFont,
+D_DEFINE_INTERFACE(   IDirectFBFont,
 
    /** Retrieving information **/
 
@@ -6059,7 +6061,7 @@ typedef DIRenderCallbackResult (*DIRenderCallback)(DFBRectangle *rect, void *ctx
 /*
  * <i>No summary yet...</i>
  */
-DEFINE_INTERFACE(   IDirectFBImageProvider,
+D_DEFINE_INTERFACE(   IDirectFBImageProvider,
 
    /** Retrieving information **/
 
@@ -6266,7 +6268,7 @@ typedef void (*DVFrameCallback)(void *ctx);
 /*
  * <i>No summary yet...</i>
  */
-DEFINE_INTERFACE(   IDirectFBVideoProvider,
+D_DEFINE_INTERFACE(   IDirectFBVideoProvider,
 
    /** Retrieving information **/
 
@@ -6569,7 +6571,7 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
 /*
  * <i>No summary yet...</i>
  */
-DEFINE_INTERFACE(   IDirectFBDataBuffer,
+D_DEFINE_INTERFACE(   IDirectFBDataBuffer,
 
 
    /** Buffer handling **/
@@ -6727,7 +6729,7 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
       */
      DFBResult (*CreateImageProvider) (
           IDirectFBDataBuffer      *thiz,
-          IDirectFBImageProvider  **interface
+          IDirectFBImageProvider  **interface_ptr
      );
 
      /*
@@ -6735,7 +6737,7 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
       */
      DFBResult (*CreateVideoProvider) (
           IDirectFBDataBuffer      *thiz,
-          IDirectFBVideoProvider  **interface
+          IDirectFBVideoProvider  **interface_ptr
      );
 
      /*
@@ -6745,7 +6747,7 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
      DFBResult (*CreateFont) (
           IDirectFBDataBuffer       *thiz,
           const DFBFontDescription  *desc,
-          IDirectFBFont            **interface
+          IDirectFBFont            **interface_ptr
      );
 )
 

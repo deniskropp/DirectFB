@@ -255,14 +255,14 @@ typedef struct
      bool          core_sighandler;
 } DFBConfig;
 
-extern DFBConfig *dfb_config;
+extern DFBConfig DIRECTFB_API *dfb_config;
 
 /*
  * Allocate Config struct, fill with defaults and parse command line options
  * for overrides. Options identified as DirectFB options are stripped out
  * of the array.
  */
-DFBResult dfb_config_init( int *argc, char *(*argv[]) );
+DFBResult DIRECTFB_API dfb_config_init( int *argc, char *(*argv[]) );
 
 /*
  * Read configuration options from file. Called by config_init().
@@ -272,18 +272,18 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) );
  * Returns DFB_INVARG if an invalid option assignment is done,
  * e.g. "--desktop-buffer-mode=somethingwrong".
  */
-DFBResult dfb_config_read( const char *filename );
+DFBResult DIRECTFB_API dfb_config_read( const char *filename );
 
 
 /*
  * Set indiviual option. Used by config_init(), config_read() and
  * DirectFBSetOption()
  */
-DFBResult dfb_config_set( const char *name, const char *value );
+DFBResult DIRECTFB_API dfb_config_set( const char *name, const char *value );
 
-const char *dfb_config_usage( void );
+const char DIRECTFB_API *dfb_config_usage( void );
 
-DFBSurfacePixelFormat dfb_config_parse_pixelformat( const char *format );
+DFBSurfacePixelFormat DIRECTFB_API dfb_config_parse_pixelformat( const char *format );
 
 #endif
 
