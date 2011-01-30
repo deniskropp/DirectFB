@@ -23,7 +23,8 @@
 
 #include <config.h>
 
-#include <unistd.h>
+#include <directfb_build.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -39,7 +40,9 @@
 
 #include <fusion/conf.h>
 
+#if !DIRECTFB_BUILD_PURE_VOODOO
 #include <coma/policy.h>
+#endif
 
 #include "dale_config.h"
 
@@ -65,7 +68,7 @@ static const char *config_usage =
 static DirectResult
 parse_args( const char *args )
 {
-     char *buf = alloca( strlen(args) + 1 );
+     char *buf = malloc( strlen(args) + 1 );
 
      strcpy( buf, args );
 
@@ -93,11 +96,14 @@ parse_args( const char *args )
                     D_ERROR( "FusionDale/Config: Unknown option '%s'!\n", buf );
                     break;
                default:
+		            free( buf );
                     return ret;
           }
 
           buf = next;
      }
+
+     free( buf );
 
      return DR_OK;
 }
@@ -193,6 +199,7 @@ fd_config_set( const char *name, const char *value )
      else if (strcmp ( name, "no-force-slave" ) == 0) {
           fusiondale_config->force_slave = false;
      }
+#if !DIRECTFB_BUILD_PURE_VOODOO
      else if (strcmp ( name, "coma-allow" ) == 0) {
           if (value) {
                coma_policy_config( value, true );
@@ -209,6 +216,7 @@ fd_config_set( const char *name, const char *value )
                fusiondale_config->coma_policy = false;
           }
      } else
+#endif
      if (fusion_config_set( name, value ) && direct_config_set( name, value ))
           return DR_UNSUPPORTED;
 
@@ -264,7 +272,7 @@ DirectResult
 fd_config_init( int *argc, char **argv[] )
 {
      DirectResult  ret;
-     char         *home   = getenv( "HOME" );
+     char         *home   = direct_getenv( "HOME" );
      char         *prog   = NULL;
      char         *fdargs;
      
@@ -281,9 +289,13 @@ fd_config_init( int *argc, char **argv[] )
      /* Read user settings. */
      if (home) {
           int  len = strlen(home) + sizeof("/.fusiondalerc");
+#ifndef WIN32
           char buf[len];
+#else
+          char buf[4096];
+#endif
 
-          snprintf( buf, len, "%s/.fusiondalerc", home );
+          direct_snprintf( buf, len, "%s/.fusiondalerc", home );
 
           ret = fd_config_read( buf );
           if (ret  &&  ret != DR_IO)
@@ -303,9 +315,13 @@ fd_config_init( int *argc, char **argv[] )
      /* Read global application settings. */
      if (prog && prog[0]) {
           int  len = sizeof(SYSCONFDIR"/fusiondalerc.") + strlen(prog);
+#ifndef WIN32
           char buf[len];
+#else
+          char buf[4096];
+#endif
 
-          snprintf( buf, len, SYSCONFDIR"/fusiondalerc.%s", prog );
+          direct_snprintf( buf, len, SYSCONFDIR"/fusiondalerc.%s", prog );
 
           ret = fd_config_read( buf );
           if (ret  &&  ret != DR_IO)
@@ -315,9 +331,13 @@ fd_config_init( int *argc, char **argv[] )
      /* Read user application settings. */
      if (home && prog && prog[0]) {
           int  len = strlen(home) + sizeof("/.fusiondalerc.") + strlen(prog);
+#ifndef WIN32
           char buf[len];
+#else
+          char buf[4096];
+#endif
 
-          snprintf( buf, len, "%s/.fusiondalerc.%s", home, prog );
+          direct_snprintf( buf, len, "%s/.fusiondalerc.%s", home, prog );
 
           ret = fd_config_read( buf );
           if (ret  &&  ret != DR_IO)
@@ -325,7 +345,7 @@ fd_config_init( int *argc, char **argv[] )
      }
      
      /* Read settings from environment variable. */
-     fdargs = getenv( "FDARGS" );
+     fdargs = direct_getenv( "FDARGS" );
      if (fdargs) {
           ret = parse_args( fdargs );
           if (ret)
