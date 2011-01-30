@@ -30,7 +30,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include <string.h>
 
@@ -247,17 +246,27 @@ IDirectFBScreen_Requestor_EnumDisplayLayers( IDirectFBScreen         *thiz,
 
      VOODOO_PARSER_BEGIN( parser, response );
      VOODOO_PARSER_GET_INT( parser, num );
-     VOODOO_PARSER_COPY_DATA( parser, items );
+
+     items = D_MALLOC( sizeof(*items) * num );
+     if (items)
+          VOODOO_PARSER_READ_DATA( parser, items, sizeof(*items) * num );
+     else
+          ret = D_OOM();
+
      VOODOO_PARSER_END( parser );
 
      voodoo_manager_finish_request( data->manager, response );
 
-     for (i=0; i<num; i++) {
-          if (callbackfunc( items[i].layer_id, items[i].desc, callbackdata ) == DFENUM_CANCEL)
-               return DFB_OK;
+     if (items) {
+          for (i=0; i<num; i++) {
+               if (callbackfunc( items[i].layer_id, items[i].desc, callbackdata ) == DFENUM_CANCEL)
+                    break;
+          }
+
+          D_FREE( items );
      }
 
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult

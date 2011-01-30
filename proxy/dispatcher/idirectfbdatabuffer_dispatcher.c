@@ -218,7 +218,7 @@ IDirectFBDataBuffer_Dispatcher_CreateImageProvider( IDirectFBDataBuffer     *thi
 {
      DirectResult           ret;
      VoodooResponseMessage *response;
-     void                  *interface = NULL;
+     void                  *interface_ptr = NULL;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Dispatcher)
 
@@ -236,11 +236,11 @@ IDirectFBDataBuffer_Dispatcher_CreateImageProvider( IDirectFBDataBuffer     *thi
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBImageProvider",
-                                            response->instance, NULL, &interface );
+                                            response->instance, NULL, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
-     *ret_interface = interface;
+     *ret_interface = interface_ptr;
 
      return ret;
 }
@@ -264,7 +264,7 @@ IDirectFBDataBuffer_Dispatcher_CreateFont( IDirectFBDataBuffer       *thiz,
 {
      DirectResult           ret;
      VoodooResponseMessage *response;
-     void                  *interface = NULL;
+     void                  *interface_ptr = NULL;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Dispatcher)
 
@@ -283,11 +283,11 @@ IDirectFBDataBuffer_Dispatcher_CreateFont( IDirectFBDataBuffer       *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBFont",
-                                            response->instance, NULL, &interface );
+                                            response->instance, NULL, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
-     *ret_interface = interface;
+     *ret_interface = interface_ptr;
 
      return ret;
 }
@@ -474,17 +474,25 @@ Dispatch_GetData( IDirectFBDataBuffer *thiz, IDirectFBDataBuffer *real,
      if (length > 16384)
           length = 16384;
 
-     tmp = alloca( length );
+     tmp = D_MALLOC( length );
+     if (!tmp)
+          return D_OOM();
 
      ret = real->GetData( real, length, tmp, &read );
-     if (ret)
+     if (ret) {
+          D_FREE( tmp );
           return ret;
+     }
 
-     return voodoo_manager_respond( manager, true, msg->header.serial,
-                                    ret, VOODOO_INSTANCE_NONE,
-                                    VMBT_UINT, read,
-                                    VMBT_DATA, read, tmp,
-                                    VMBT_NONE );
+     ret = voodoo_manager_respond( manager, true, msg->header.serial,
+                                   ret, VOODOO_INSTANCE_NONE,
+                                   VMBT_UINT, read,
+                                   VMBT_DATA, read, tmp,
+                                   VMBT_NONE );
+
+     D_FREE( tmp );
+
+     return ret;
 }
 
 static DirectResult
@@ -508,17 +516,25 @@ Dispatch_PeekData( IDirectFBDataBuffer *thiz, IDirectFBDataBuffer *real,
      if (length > 16384)
           length = 16384;
 
-     tmp = alloca( length );
+     tmp = D_MALLOC( length );
+     if (!tmp)
+          return D_OOM();
 
      ret = real->PeekData( real, length, offset, tmp, &read );
-     if (ret)
+     if (ret) {
+          D_FREE( tmp );
           return ret;
+     }
 
-     return voodoo_manager_respond( manager, true, msg->header.serial,
-                                    ret, VOODOO_INSTANCE_NONE,
-                                    VMBT_UINT, read,
-                                    VMBT_DATA, read, tmp,
-                                    VMBT_NONE );
+     ret = voodoo_manager_respond( manager, true, msg->header.serial,
+                                   ret, VOODOO_INSTANCE_NONE,
+                                   VMBT_UINT, read,
+                                   VMBT_DATA, read, tmp,
+                                   VMBT_NONE );
+
+     D_FREE( tmp );
+
+     return ret;
 }
 
 static DirectResult

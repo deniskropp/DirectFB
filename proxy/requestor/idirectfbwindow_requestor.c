@@ -364,7 +364,7 @@ IDirectFBWindow_Requestor_GetSurface( IDirectFBWindow   *thiz,
 {
      DirectResult           ret;
      VoodooResponseMessage *response;
-     void                  *interface = NULL;
+     void                  *interface_ptr = NULL;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Requestor)
 
@@ -380,11 +380,11 @@ IDirectFBWindow_Requestor_GetSurface( IDirectFBWindow   *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBSurface",
-                                            response->instance, NULL, &interface );
+                                            response->instance, NULL, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
-     *ret_interface = interface;
+     *ret_interface = interface_ptr;
 
      return ret;
 }

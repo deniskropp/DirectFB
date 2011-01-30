@@ -197,17 +197,27 @@ IDirectFB_Requestor_EnumVideoModes( IDirectFB            *thiz,
 
      VOODOO_PARSER_BEGIN( parser, response );
      VOODOO_PARSER_GET_INT( parser, num );
-     VOODOO_PARSER_COPY_DATA( parser, items );
+
+     items = D_MALLOC( sizeof(*items) * num );
+     if (items)
+          VOODOO_PARSER_READ_DATA( parser, items, sizeof(*items) * num );
+     else
+          ret = D_OOM();
+
      VOODOO_PARSER_END( parser );
 
      voodoo_manager_finish_request( data->manager, response );
 
-     for (i=0; i<num; i++) {
-          if (callbackfunc( items[i].width, items[i].height, items[i].bpp, callbackdata ) == DFENUM_CANCEL)
-               return DFB_OK;
+     if (items) {
+          for (i=0; i<num; i++) {
+               if (callbackfunc( items[i].width, items[i].height, items[i].bpp, callbackdata ) == DFENUM_CANCEL)
+                    break;
+          }
+
+          D_FREE( items );
      }
 
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult
@@ -247,7 +257,7 @@ IDirectFB_Requestor_CreateSurface( IDirectFB                    *thiz,
 {
      DirectResult           ret;
      VoodooResponseMessage *response;
-     void                  *interface = NULL;
+     void                  *interface_ptr = NULL;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
@@ -259,7 +269,7 @@ IDirectFB_Requestor_CreateSurface( IDirectFB                    *thiz,
 
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IDIRECTFB_METHOD_ID_CreateSurface, VREQ_RESPOND, &response,
-                                   VMBT_DATA, sizeof(DFBSurfaceDescription), desc,
+                                   VMBT_DFBSurfaceDescription( *desc ),
                                    VMBT_NONE );
      if (ret)
           return ret;
@@ -267,11 +277,11 @@ IDirectFB_Requestor_CreateSurface( IDirectFB                    *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBSurface",
-                                            response->instance, NULL, &interface );
+                                            response->instance, NULL, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
-     *ret_interface = interface;
+     *ret_interface = interface_ptr;
 
      return ret;
 }
@@ -279,11 +289,11 @@ IDirectFB_Requestor_CreateSurface( IDirectFB                    *thiz,
 static DFBResult
 IDirectFB_Requestor_CreatePalette( IDirectFB                    *thiz,
                                    const DFBPaletteDescription  *desc,
-                                   IDirectFBPalette            **interface )
+                                   IDirectFBPalette            **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
-     if (!interface)
+     if (!interface_ptr)
           return DFB_INVARG;
 
      D_UNIMPLEMENTED();
@@ -321,17 +331,27 @@ IDirectFB_Requestor_EnumScreens( IDirectFB         *thiz,
 
      VOODOO_PARSER_BEGIN( parser, response );
      VOODOO_PARSER_GET_INT( parser, num );
-     VOODOO_PARSER_COPY_DATA( parser, items );
+
+     items = D_MALLOC( sizeof(*items) * num );
+     if (items)
+          VOODOO_PARSER_READ_DATA( parser, items, sizeof(*items) * num );
+     else
+          ret = D_OOM();
+
      VOODOO_PARSER_END( parser );
 
      voodoo_manager_finish_request( data->manager, response );
 
-     for (i=0; i<num; i++) {
-          if (callbackfunc( items[i].screen_id, items[i].desc, callbackdata ) == DFENUM_CANCEL)
-               return DFB_OK;
+     if (items) {
+          for (i=0; i<num; i++) {
+               if (callbackfunc( items[i].screen_id, items[i].desc, callbackdata ) == DFENUM_CANCEL)
+                    break;
+          }
+
+          D_FREE( items );
      }
 
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult
@@ -341,13 +361,12 @@ IDirectFB_Requestor_GetScreen( IDirectFB        *thiz,
 {
      DirectResult           ret;
      VoodooResponseMessage *response;
-     void                  *interface = NULL;
+     void                  *interface_ptr = NULL;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
      if (!ret_interface)
           return DFB_INVARG;
-
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IDIRECTFB_METHOD_ID_GetScreen, VREQ_RESPOND, &response,
                                    VMBT_ID, id,
@@ -358,11 +377,11 @@ IDirectFB_Requestor_GetScreen( IDirectFB        *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBScreen",
-                                            response->instance, NULL, &interface );
+                                            response->instance, NULL, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
-     *ret_interface = interface;
+     *ret_interface = interface_ptr;
 
      return ret;
 }
@@ -389,7 +408,7 @@ IDirectFB_Requestor_GetDisplayLayer( IDirectFB              *thiz,
 {
      DirectResult           ret;
      VoodooResponseMessage *response;
-     void                  *interface = NULL;
+     void                  *interface_ptr = NULL;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
@@ -406,11 +425,11 @@ IDirectFB_Requestor_GetDisplayLayer( IDirectFB              *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBDisplayLayer",
-                                            response->instance, NULL, &interface );
+                                            response->instance, NULL, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
-     *ret_interface = interface;
+     *ret_interface = interface_ptr;
 
      return ret;
 }
@@ -444,14 +463,24 @@ IDirectFB_Requestor_EnumInputDevices( IDirectFB              *thiz,
 
      VOODOO_PARSER_BEGIN( parser, response );
      VOODOO_PARSER_GET_INT( parser, num );
-     VOODOO_PARSER_COPY_DATA( parser, items );
+
+     items = D_MALLOC( sizeof(*items) * num );
+     if (items)
+          VOODOO_PARSER_READ_DATA( parser, items, sizeof(*items) * num );
+     else
+          ret = D_OOM();
+
      VOODOO_PARSER_END( parser );
 
      voodoo_manager_finish_request( data->manager, response );
 
-     for (i=0; i<num; i++) {
-          if (callbackfunc( items[i].device_id, items[i].desc, callbackdata ) == DFENUM_CANCEL)
-               return DFB_OK;
+     if (items) {
+          for (i=0; i<num; i++) {
+               if (callbackfunc( items[i].device_id, items[i].desc, callbackdata ) == DFENUM_CANCEL)
+                    break;
+          }
+
+          D_FREE( items );
      }
 
      return ret;
@@ -464,7 +493,7 @@ IDirectFB_Requestor_GetInputDevice( IDirectFB             *thiz,
 {
      DirectResult           ret;
      VoodooResponseMessage *response;
-     void                  *interface = NULL;
+     void                  *interface_ptr = NULL;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
@@ -481,11 +510,11 @@ IDirectFB_Requestor_GetInputDevice( IDirectFB             *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBInputDevice",
-                                            response->instance, NULL, &interface );
+                                            response->instance, NULL, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
-     *ret_interface = interface;
+     *ret_interface = interface_ptr;
 
      return ret;
 }
@@ -629,12 +658,12 @@ IDirectFB_Requestor_CreateImageProvider( IDirectFB               *thiz,
 static DFBResult
 IDirectFB_Requestor_CreateVideoProvider( IDirectFB               *thiz,
                                          const char              *filename,
-                                         IDirectFBVideoProvider **interface )
+                                         IDirectFBVideoProvider **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
      /* Check arguments */
-     if (!interface || !filename)
+     if (!interface_ptr || !filename)
           return DFB_INVARG;
 
      D_UNIMPLEMENTED();
@@ -857,7 +886,7 @@ IDirectFB_Requestor_GetInterface( IDirectFB   *thiz,
                                   const char  *type,
                                   const char  *implementation,
                                   void        *arg,
-                                  void       **interface )
+                                  void       **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 

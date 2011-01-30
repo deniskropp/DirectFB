@@ -40,6 +40,7 @@
 #include <voodoo/interface.h>
 #include <voodoo/manager.h>
 
+#include <idirectfb_dispatcher.h>
 #include <idirectfbimageprovider_dispatcher.h>
 
 #include "idirectfbsurface_requestor.h"
@@ -128,7 +129,7 @@ IDirectFBImageProvider_Requestor_GetSurfaceDescription( IDirectFBImageProvider *
      }
 
      VOODOO_PARSER_BEGIN( parser, response );
-     VOODOO_PARSER_READ_DATA( parser, desc, sizeof(DFBSurfaceDescription) );
+     VOODOO_PARSER_READ_DFBSurfaceDescription( parser, *desc );
      VOODOO_PARSER_END( parser );
 
      voodoo_manager_finish_request( data->manager, response );

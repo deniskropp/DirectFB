@@ -30,7 +30,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 
 #include <math.h>
@@ -38,31 +37,11 @@
 
 #include <directfb.h>
 
-#include <core/core.h>
-#include <core/coredefs.h>
-#include <core/coretypes.h>
-
-#include <core/gfxcard.h>
-#include <core/fonts.h>
-#include <core/state.h>
-#include <core/palette.h>
-#include <core/surface.h>
-
-#include <media/idirectfbfont.h>
-
-#include <display/idirectfbsurface.h>
-#include <display/idirectfbpalette.h>
-
-#include <misc/util.h>
-
 #include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/util.h>
-
-#include <gfx/convert.h>
-#include <gfx/util.h>
 
 #include <voodoo/interface.h>
 #include <voodoo/manager.h>
@@ -216,11 +195,11 @@ IDirectFBSurface_Dispatcher_GetAccelerationMask( IDirectFBSurface    *thiz,
 
 static DFBResult
 IDirectFBSurface_Dispatcher_GetPalette( IDirectFBSurface  *thiz,
-                                        IDirectFBPalette **interface )
+                                        IDirectFBPalette **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
 
-     if (!interface)
+     if (!interface_ptr)
           return DFB_INVARG;
 
      return DFB_UNIMPLEMENTED;
@@ -668,11 +647,11 @@ IDirectFBSurface_Dispatcher_GetSubSurface( IDirectFBSurface    *thiz,
 
 static DFBResult
 IDirectFBSurface_Dispatcher_GetGL( IDirectFBSurface   *thiz,
-                                   IDirectFBGL       **interface )
+                                   IDirectFBGL       **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
 
-     if (!interface)
+     if (!interface_ptr)
           return DFB_INVARG;
 
      return DFB_UNIMPLEMENTED;
@@ -1632,20 +1611,50 @@ Dispatch_Write( IDirectFBSurface *thiz, IDirectFBSurface *real,
      if (encoded) {
           switch (encoded) {
                case 2: {
-                    u16 buf[rect->w];
+                    if (rect->w > 2048) {
+                         u16 *buf = D_MALLOC( rect->w * 2 );
 
-                    rle16_decode( ptr, buf, rect->w );
+                         if (buf) {
+                              rle16_decode( ptr, buf, rect->w );
 
-                    real->Write( real, rect, buf, pitch );
+                              real->Write( real, rect, buf, pitch );
+
+                              D_FREE( buf );
+                         }
+                         else
+                              D_OOM();
+                    }
+                    else {
+                         u16 buf[2048];
+
+                         rle16_decode( ptr, buf, rect->w );
+
+                         real->Write( real, rect, buf, pitch );
+                    }
                     break;
                }
 
                case 4: {
-                    u32 buf[rect->w];
+                    if (rect->w > 1024) {
+                         u32 *buf = D_MALLOC( rect->w * 4 );
 
-                    rle32_decode( ptr, buf, rect->w );
+                         if (buf) {
+                              rle32_decode( ptr, buf, rect->w );
 
-                    real->Write( real, rect, buf, pitch );
+                              real->Write( real, rect, buf, pitch );
+
+                              D_FREE( buf );
+                         }
+                         else
+                              D_OOM();
+                    }
+                    else {
+                         u32 buf[1024];
+
+                         rle32_decode( ptr, buf, rect->w );
+
+                         real->Write( real, rect, buf, pitch );
+                    }
                     break;
                }
 

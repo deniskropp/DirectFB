@@ -76,4 +76,35 @@ typedef struct {
      DFBInputDeviceDescription desc;
 } IDirectFB_Dispatcher_EnumInputDevices_Item;
 
+
+#if 0
+#define VOODOO_PARSER_READ_DFBSurfaceDescription( p, desc ) \
+	do { \
+	     VOODOO_PARSER_GET_INT( p, (desc).flags ); \
+	     VOODOO_PARSER_GET_INT( p, (desc).caps ); \
+	     VOODOO_PARSER_GET_INT( p, (desc).width ); \
+	     VOODOO_PARSER_GET_INT( p, (desc).height ); \
+	     VOODOO_PARSER_GET_INT( p, (desc).pixelformat ); \
+	     VOODOO_PARSER_GET_UINT( p, (desc).resource_id ); \
+	     VOODOO_PARSER_GET_INT( p, (desc).hints ); \
+	} while (0)
+
+#define VMBT_DFBSurfaceDescription( desc ) \
+	VMBT_INT, (desc).flags, \
+	VMBT_INT, (desc).caps, \
+	VMBT_INT, (desc).width, \
+	VMBT_INT, (desc).height, \
+	VMBT_INT, (desc).pixelformat, \
+	VMBT_UINT, (desc).resource_id, \
+	VMBT_INT, (desc).hints
+#else
+#define VOODOO_PARSER_READ_DFBSurfaceDescription( p, desc ) \
+	do { \
+	     VOODOO_PARSER_READ_DATA( p, &(desc), sizeof(DFBSurfaceDescription) ); \
+	} while (0)
+
+#define VMBT_DFBSurfaceDescription( desc ) \
+	VMBT_DATA, sizeof(DFBSurfaceDescription), &(desc)
+#endif
+
 #endif
