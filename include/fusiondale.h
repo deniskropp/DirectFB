@@ -31,6 +31,22 @@ extern "C"
 {
 #endif
 
+#ifdef WIN32
+// The following ifdef block is the standard way of creating macros which make exporting 
+// from a DLL simpler. All files within this DLL are compiled with the DIRECTFB_EXPORTS
+// symbol defined on the command line. This symbol should not be defined on any project
+// that uses this DLL. This way any other project whose source files include this file see 
+// DIRECTFB_API functions as being imported from a DLL, whereas this DLL sees symbols
+// defined with this macro as being exported.
+#ifdef FUSIONDALE_EXPORTS
+#define FUSIONDALE_API __declspec(dllexport)
+#else
+#define FUSIONDALE_API __declspec(dllimport)
+#endif
+#else
+#define FUSIONDALE_API
+#endif
+
 /*
  * Version handling.
  */
@@ -51,84 +67,84 @@ const char * FusionDaleCheckVersion( unsigned int required_major,
 /*
  * Main FusionDale interface.
  */
-DECLARE_INTERFACE( IFusionDale )
+D_DECLARE_INTERFACE( IFusionDale )
 
 /*
  * Event manager.
  */
-DECLARE_INTERFACE( IFusionDaleMessenger )
+D_DECLARE_INTERFACE( IFusionDaleMessenger )
 
 /*
  * Component manager.
  */
-DECLARE_INTERFACE( IComa )
+D_DECLARE_INTERFACE( IComa )
 
 /*
  * Component.
  */
-DECLARE_INTERFACE( IComaComponent )
+D_DECLARE_INTERFACE( IComaComponent )
 
 /*
  * Parses the command-line and initializes some variables. You absolutely need to
  * call this before doing anything else. Removes all options used by FusionDale from argv.
  */
-DirectResult FusionDaleInit(
-                              int    *argc,   /* pointer to main()'s argc */
-                              char *(*argv[]) /* pointer to main()'s argv */
-                            );
+DirectResult FUSIONDALE_API FusionDaleInit(
+                                             int    *argc,   /* pointer to main()'s argc */
+                                             char *(*argv[]) /* pointer to main()'s argv */
+                                           );
 
 /*
  * Sets configuration parameters supported on command line and in config file.
  * Can only be called before FusionDaleCreate but after FusionDaleInit.
  */
-DirectResult FusionDaleSetOption(
-                                   const char *name,
-                                   const char *value
-                                 );
+DirectResult FUSIONDALE_API FusionDaleSetOption(
+                                                  const char *name,
+                                                  const char *value
+                                                );
 
 /*
  * Creates the super interface.
  */
-DirectResult FusionDaleCreate(
-                                IFusionDale **ret_interface  /* pointer to the created interface */
-                              );
+DirectResult FUSIONDALE_API FusionDaleCreate(
+                                               IFusionDale **ret_interface  /* pointer to the created interface */
+                                             );
 
 /*
  * Print a description of the result code along with an
  * optional message that is put in front with a colon.
  */
-DirectResult FusionDaleError(
-                               const char   *msg,      /* optional message */
-                               DirectResult  result    /* result code to interpret */
-                             );
+DirectResult FUSIONDALE_API FusionDaleError(
+                                              const char   *msg,      /* optional message */
+                                              DirectResult  result    /* result code to interpret */
+                                            );
                           
 /*
  * Behaves like FusionDaleError, but shuts down the calling application.
  */
-DirectResult FusionDaleErrorFatal(
-                                    const char   *msg,      /* optional message */
-                                    DirectResult  result    /* result code to interpret */
-                                  );
+DirectResult FUSIONDALE_API FusionDaleErrorFatal(
+                                                   const char   *msg,      /* optional message */
+                                                   DirectResult  result    /* result code to interpret */
+                                                 );
 
 /*
  * Returns a string describing 'result'.
  */
-const char *FusionDaleErrorString(
-                                    DirectResult result
-                                  );
+const char FUSIONDALE_API *FusionDaleErrorString(
+                                                   DirectResult result
+                                                 );
                                   
 /*
  * Retrieves information about supported command-line flags in the
  * form of a user-readable string formatted suitable to be printed
  * as usage information.
  */
-const char *FusionDaleUsageString( void );
+const char FUSIONDALE_API *FusionDaleUsageString( void );
 
 
 /*
  * <i><b>IFusionDale</b></i> is the main FusionDale interface.
  */
-DEFINE_INTERFACE( IFusionDale,
+D_DEFINE_INTERFACE( IFusionDale,
 
    /** Events **/
 
@@ -183,7 +199,7 @@ typedef void (*FDMessengerEventCallback)( FDMessengerEventID  event_id,
 /*
  * <i><b>IFusionDaleMessenger</b></i> is an event manager.
  */
-DEFINE_INTERFACE( IFusionDaleMessenger,
+D_DEFINE_INTERFACE( IFusionDaleMessenger,
 
    /** Events **/
 
@@ -340,7 +356,7 @@ typedef struct {
 /*
  * <i><b>IComa</b></i> is a component manager with its own name space created/joined by IFusionDale::EnterComa().
  */
-DEFINE_INTERFACE( IComa,
+D_DEFINE_INTERFACE( IComa,
 
    /** Components **/
 
@@ -438,7 +454,7 @@ DEFINE_INTERFACE( IComa,
 /*
  * <i><b>IComaComponent</b></i> is a component created by IComa::CreateComponent() or returned by IComa::GetComponent().
  */
-DEFINE_INTERFACE( IComaComponent,
+D_DEFINE_INTERFACE( IComaComponent,
 
    /** Initialization **/
 
