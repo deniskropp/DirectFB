@@ -79,7 +79,7 @@ unsigned int IDirectFBDataBuffer::GetData (unsigned int  length,
      ret = iface->GetData (iface, length, data, &read_length);
 
      if (ret != DFB_OK  &&  ret != DFB_BUFFEREMPTY)
-          throw new DFBException (__PRETTY_FUNCTION__, ret);
+          throw new DFBException (__FUNCTION__, ret);
 
      return read_length;
 }
@@ -94,7 +94,7 @@ unsigned int IDirectFBDataBuffer::PeekData (unsigned int  length,
      ret = iface->PeekData (iface, length, offset, data, &read_length);
 
      if (ret != DFB_OK  &&  ret != DFB_BUFFEREMPTY)
-          throw new DFBException (__PRETTY_FUNCTION__, ret);
+          throw new DFBException (__FUNCTION__, ret);
 
      return read_length;
 }
@@ -106,7 +106,7 @@ bool IDirectFBDataBuffer::HasData ()
      ret = iface->HasData (iface);
 
      if (ret != DFB_OK  &&  ret != DFB_BUFFEREMPTY)
-          throw new DFBException (__PRETTY_FUNCTION__, ret);
+          throw new DFBException (__FUNCTION__, ret);
 
      return (ret == DFB_OK);
 }

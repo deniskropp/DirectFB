@@ -43,7 +43,7 @@ bool IDirectFBEventBuffer::WaitForEventWithTimeout (unsigned int seconds,
      ret = iface->WaitForEventWithTimeout (iface, seconds, milli_seconds);
 
      if (ret != DFB_OK  &&  ret != DFB_TIMEOUT)
-          throw new DFBException(__PRETTY_FUNCTION__, ret);
+          throw new DFBException(__FUNCTION__, ret);
 
      return (ret == DFB_OK);
 }
@@ -60,7 +60,7 @@ bool IDirectFBEventBuffer::GetEvent (DFBEvent *event)
      ret = iface->GetEvent (iface, event);
 
      if (ret != DFB_OK  &&  ret != DFB_BUFFEREMPTY)
-          throw new DFBException (__PRETTY_FUNCTION__, ret);
+          throw new DFBException (__FUNCTION__, ret);
 
      return (ret == DFB_OK);
 }
@@ -72,7 +72,7 @@ bool IDirectFBEventBuffer::PeekEvent (DFBEvent *event)
      ret = iface->PeekEvent (iface, event);
 
      if (ret != DFB_OK  &&  ret != DFB_BUFFEREMPTY)
-          throw new DFBException (__PRETTY_FUNCTION__, ret);
+          throw new DFBException (__FUNCTION__, ret);
 
      return (ret == DFB_OK);
 }
@@ -84,7 +84,7 @@ bool IDirectFBEventBuffer::HasEvent ()
      ret = iface->HasEvent (iface);
 
      if (ret != DFB_OK  &&  ret != DFB_BUFFEREMPTY)
-          throw new DFBException (__PRETTY_FUNCTION__, ret);
+          throw new DFBException (__FUNCTION__, ret);
 
      return (ret == DFB_OK);
 }
