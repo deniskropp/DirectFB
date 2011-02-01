@@ -74,6 +74,11 @@ for HEADER in $HEADERS; do
             echo "---------------- D $TARGET"
             ;;
 
+        ../Win32/++DFB/include/*)
+            TARGET=`echo $HEADER | cut -d/ -f5-`
+            echo "---------------- D $TARGET"
+            ;;
+
         ../Win32/direct/*)
             TARGET=`echo $HEADER | cut -d/ -f3-`
             echo "---------------- C $TARGET"
