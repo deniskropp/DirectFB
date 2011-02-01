@@ -28,7 +28,7 @@
 
 #include <config.h>
 
-#include <time.h>
+#include <sys/timeb.h>
 
 #include <direct/clock.h>
 #include <direct/messages.h>
@@ -44,7 +44,11 @@ __no_instrument_function__
 long long
 direct_clock_get_time( DirectClockType type )
 {
-     return 0;
+     struct _timeb timebuffer;
+
+     _ftime64_s( &timebuffer );
+
+     return timebuffer.time * 1000000LL + timebuffer.millitm * 1000LL;
 }
 
 DirectResult
