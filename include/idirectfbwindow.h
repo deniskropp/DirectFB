@@ -34,78 +34,84 @@ friend
      class IDirectFBDisplayLayer;
 
 public:
-     IDirectFBWindow(IDirectFBWindow_C* myptr=NULL):IPPAny<IDirectFBWindow, IDirectFBWindow_C>(myptr){}
+     PPDFB_API IDirectFBWindow(IDirectFBWindow_C* myptr=NULL):IPPAny<IDirectFBWindow, IDirectFBWindow_C>(myptr){}
 
-     DFBWindowID           GetID             ();
-     void                  GetPosition       (int                    *x,
-                                              int                    *y);
-     void                  GetSize           (int                    *width,
-                                              int                    *height);
+     DFBWindowID           PPDFB_API GetID             ();
+     void                  PPDFB_API GetPosition       (int                    *x,
+                                                        int                    *y);
+     void                  PPDFB_API GetSize           (int                    *width,
+                                                        int                    *height);
 
-     IDirectFBEventBuffer  CreateEventBuffer ();
-     void                  AttachEventBuffer (IDirectFBEventBuffer   *buffer);
-     void                  DetachEventBuffer (IDirectFBEventBuffer   *buffer);
-     void                  EnableEvents      (DFBWindowEventType      mask);
-     void                  DisableEvents     (DFBWindowEventType      mask);
+     IDirectFBEventBuffer  PPDFB_API CreateEventBuffer ();
+     void                  PPDFB_API AttachEventBuffer (IDirectFBEventBuffer   *buffer);
+     void                  PPDFB_API DetachEventBuffer (IDirectFBEventBuffer   *buffer);
+     void                  PPDFB_API EnableEvents      (DFBWindowEventType      mask);
+     void                  PPDFB_API DisableEvents     (DFBWindowEventType      mask);
 
-     IDirectFBSurface      GetSurface        ();
+     IDirectFBSurface      PPDFB_API GetSurface        ();
 
-     void                  SetOptions        (DFBWindowOptions        options);
-     DFBWindowOptions      GetOptions        ();
-     void                  SetColorKey       (u8                    r,
-                                              u8                    g,
-                                              u8                    b);
-     void                  SetColorKeyIndex  (unsigned int            index);
-     void                  SetOpacity        (u8                    opacity);
-     void                  SetOpaqueRegion   (int                     x1,
-                                              int                     y1,
-                                              int                     x2,
-                                              int                     y2);
-     u8                  GetOpacity        ();
-     void                  SetCursorShape    (IDirectFBSurface       *shape,
-                                              int                     hot_x,
-                                              int                     hot_y);
+     void                  PPDFB_API SetOptions        (DFBWindowOptions        options);
+     DFBWindowOptions      PPDFB_API GetOptions        ();
+     void                  PPDFB_API SetColorKey       (u8                    r,
+                                                        u8                    g,
+                                                        u8                    b);
+     void                  PPDFB_API SetColorKeyIndex  (unsigned int            index);
+     void                  PPDFB_API SetOpacity        (u8                    opacity);
+     void                  PPDFB_API SetOpaqueRegion   (int                     x1,
+                                                        int                     y1,
+                                                        int                     x2,
+                                                        int                     y2);
+     u8                    PPDFB_API GetOpacity        ();
+     void                  PPDFB_API SetCursorShape    (IDirectFBSurface       *shape,
+                                                        int                     hot_x,
+                                                        int                     hot_y);
 
-     void                  RequestFocus      ();
-     void                  GrabKeyboard      ();
-     void                  UngrabKeyboard    ();
-     void                  GrabPointer       ();
-     void                  UngrabPointer     ();
-     void                  GrabKey           (DFBInputDeviceKeySymbol    symbol,
-                                              DFBInputDeviceModifierMask modifiers);
-     void                  UngrabKey         (DFBInputDeviceKeySymbol    symbol,
-                                              DFBInputDeviceModifierMask modifiers);
+     void                  PPDFB_API RequestFocus      ();
+     void                  PPDFB_API GrabKeyboard      ();
+     void                  PPDFB_API UngrabKeyboard    ();
+     void                  PPDFB_API GrabPointer       ();
+     void                  PPDFB_API UngrabPointer     ();
+     void                  PPDFB_API GrabKey           (DFBInputDeviceKeySymbol    symbol,
+                                                        DFBInputDeviceModifierMask modifiers);
+     void                  PPDFB_API UngrabKey         (DFBInputDeviceKeySymbol    symbol,
+                                                        DFBInputDeviceModifierMask modifiers);
 
-     void                  Move              (int                     dx,
-                                              int                     dy);
-     void                  MoveTo            (int                     x,
-                                              int                     y);
-     void                  Resize            (int                     width,
-                                              int                     height);
+     void                  PPDFB_API Move              (int                     dx,
+                                                        int                     dy);
+     void                  PPDFB_API MoveTo            (int                     x,
+                                                        int                     y);
+     void                  PPDFB_API Resize            (int                     width,
+                                                        int                     height);
 
-     void                  SetStackingClass  (DFBWindowStackingClass  stacking_class);
-     void                  Raise             ();
-     void                  Lower             ();
-     void                  RaiseToTop        ();
-     void                  LowerToBottom     ();
-     void                  PutAtop           (IDirectFBWindow        *lower);
-     void                  PutBelow          (IDirectFBWindow        *upper);
+     void                  PPDFB_API SetStackingClass  (DFBWindowStackingClass  stacking_class);
+     void                  PPDFB_API Raise             ();
+     void                  PPDFB_API Lower             ();
+     void                  PPDFB_API RaiseToTop        ();
+     void                  PPDFB_API LowerToBottom     ();
+     void                  PPDFB_API PutAtop           (IDirectFBWindow        *lower);
+     void                  PPDFB_API PutBelow          (IDirectFBWindow        *upper);
 
-     void                  Close             ();
-     void                  Destroy           ();
+     void                  PPDFB_API Close             ();
+     void                  PPDFB_API Destroy           ();
 
-     void                  SetBounds         (int                     x,
-                                              int                     y,
-                                              int                     width,
-                                              int                     height);
+     void                  PPDFB_API SetBounds         (int                     x,
+                                                        int                     y,
+                                                        int                     width,
+                                                        int                     height);
 
-     void                  ResizeSurface     (int                     width,
-                                              int                     height);
+     void                  PPDFB_API ResizeSurface     (int                     width,
+                                                        int                     height);
 
-     inline IDirectFBWindow& operator = (const IDirectFBWindow& other){
+     void                  PPDFB_API BeginUpdates      (const DFBRegion        *update = NULL);
+
+     void                  PPDFB_API SetDstGeometry    (DFBWindowGeometry       *geometry);
+     void                  PPDFB_API SetSrcGeometry    (DFBWindowGeometry       *geometry);
+
+
+     inline IDirectFBWindow PPDFB_API & operator = (const IDirectFBWindow& other){
           return IPPAny<IDirectFBWindow, IDirectFBWindow_C>::operator =(other);
      }
-     inline IDirectFBWindow& operator = (IDirectFBWindow_C* other){
+     inline IDirectFBWindow PPDFB_API & operator = (IDirectFBWindow_C* other){
           return IPPAny<IDirectFBWindow, IDirectFBWindow_C>::operator =(other);
      }
 };

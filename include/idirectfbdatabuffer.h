@@ -34,37 +34,37 @@ friend
      class IDirectFB;
 
 public:
-     IDirectFBDataBuffer(IDirectFBDataBuffer_C *myptr=NULL):IPPAny<IDirectFBDataBuffer, IDirectFBDataBuffer_C>(myptr){}
+     PPDFB_API IDirectFBDataBuffer(IDirectFBDataBuffer_C *myptr=NULL):IPPAny<IDirectFBDataBuffer, IDirectFBDataBuffer_C>(myptr){}
 
-     void                    Flush                   ();
-     void                    Finish                  ();
-     void                    SeekTo                  (unsigned int  offset);
-     unsigned int            GetPosition             ();
-     unsigned int            GetLength               ();
+     void                    PPDFB_API Flush                   ();
+     void                    PPDFB_API Finish                  ();
+     void                    PPDFB_API SeekTo                  (unsigned int  offset);
+     unsigned int            PPDFB_API GetPosition             ();
+     unsigned int            PPDFB_API GetLength               ();
 
-     void                    WaitForData             (unsigned int  length);
-     void                    WaitForDataWithTimeout  (unsigned int  length,
-                                                      unsigned int  seconds,
-                                                      unsigned int  milli_seconds);
+     void                    PPDFB_API WaitForData             (unsigned int  length);
+     void                    PPDFB_API WaitForDataWithTimeout  (unsigned int  length,
+                                                                unsigned int  seconds,
+                                                                unsigned int  milli_seconds);
 
-     unsigned int            GetData                 (unsigned int  length,
-                                                      void         *data);
-     unsigned int            PeekData                (unsigned int  length,
-                                                      int           offset,
-                                                      void         *data);
+     unsigned int            PPDFB_API GetData                 (unsigned int  length,
+                                                                void         *data);
+     unsigned int            PPDFB_API PeekData                (unsigned int  length,
+                                                                int           offset,
+                                                                void         *data);
 
-     bool                    HasData                 ();
+     bool                    PPDFB_API HasData                 ();
 
-     void                    PutData                 (const void   *data,
-                                                      unsigned int  length);
+     void                    PPDFB_API PutData                 (const void   *data,
+                                                                unsigned int  length);
 
-     IDirectFBImageProvider  CreateImageProvider     ();
-     IDirectFBVideoProvider  CreateVideoProvider     ();
+     IDirectFBImageProvider  PPDFB_API CreateImageProvider     ();
+     IDirectFBVideoProvider  PPDFB_API CreateVideoProvider     ();
 
-     inline IDirectFBDataBuffer& operator = (const IDirectFBDataBuffer& other){
+     inline IDirectFBDataBuffer PPDFB_API & operator = (const IDirectFBDataBuffer& other){
           return IPPAny<IDirectFBDataBuffer, IDirectFBDataBuffer_C>::operator =(other);
      }
-     inline IDirectFBDataBuffer& operator = (IDirectFBDataBuffer_C* other){
+     inline IDirectFBDataBuffer PPDFB_API & operator = (IDirectFBDataBuffer_C* other){
           return IPPAny<IDirectFBDataBuffer, IDirectFBDataBuffer_C>::operator =(other);
      }
 

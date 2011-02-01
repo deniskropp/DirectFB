@@ -36,40 +36,41 @@ friend
      class IDirectFBDataBuffer;
 
 public:
-     IDirectFBVideoProvider(IDirectFBVideoProvider_C* myptr=NULL):IPPAny<IDirectFBVideoProvider, IDirectFBVideoProvider_C>(myptr){}
+     PPDFB_API IDirectFBVideoProvider(IDirectFBVideoProvider_C* myptr=NULL):IPPAny<IDirectFBVideoProvider, IDirectFBVideoProvider_C>(myptr){}
 
-     DFBVideoProviderCapabilities GetCapabilities       ();
-     void                         GetSurfaceDescription (DFBSurfaceDescription *dsc);
-     void                         GetStreamDescription  (DFBStreamDescription  *dsc);
+     DFBVideoProviderCapabilities PPDFB_API GetCapabilities       ();
+     void                         PPDFB_API GetSurfaceDescription (DFBSurfaceDescription *dsc);
+     void                         PPDFB_API GetStreamDescription  (DFBStreamDescription  *dsc);
 
-     void                         PlayTo                (IDirectFBSurface      *destination,
-                                                         DFBRectangle          *destination_rect = NULL,
-                                                         DVFrameCallback        callback = NULL,
-                                                         void                  *ctx = NULL);
-     void                         Stop                  ();
-     DFBVideoProviderStatus       GetStatus             ();
+     void                         PPDFB_API PlayTo                (IDirectFBSurface      *destination,
+                                                                   DFBRectangle          *destination_rect = NULL,
+                                                                   DVFrameCallback        callback = NULL,
+                                                                   void                  *ctx = NULL);
+     void                         PPDFB_API Stop                  ();
+     DFBVideoProviderStatus       PPDFB_API GetStatus             ();
      
-     void                         SeekTo                (double                 seconds);
-     double                       GetPos                ();
-     double                       GetLength             ();
+     void                         PPDFB_API SeekTo                (double                 seconds);
+     double                       PPDFB_API GetPos                ();
+     double                       PPDFB_API GetLength             ();
 
-     void                         GetColorAdjustment    (DFBColorAdjustment    *adj);
-     void                         SetColorAdjustment    (DFBColorAdjustment    &adj);
+     void                         PPDFB_API GetColorAdjustment    (DFBColorAdjustment    *adj);
+     void                         PPDFB_API SetColorAdjustment    (DFBColorAdjustment    &adj);
 
-     void                         SendEvent             (DFBEvent              &evt);
+     void                         PPDFB_API SendEvent             (DFBEvent              &evt);
 
-     void                         SetPlaybackFlags      (DFBVideoProviderPlaybackFlags flags);
+     void                         PPDFB_API SetPlaybackFlags      (DFBVideoProviderPlaybackFlags flags);
 
-     void                         SetSpeed              (double                 multiplier);
-     double                       GetSpeed              ();
+     void                         PPDFB_API SetSpeed              (double                 multiplier);
+     double                       PPDFB_API GetSpeed              ();
 
-     void                         SetVolume             (float                  level);
-     float                        GetVolume             ();
-     
-     inline IDirectFBVideoProvider& operator = (const IDirectFBVideoProvider& other){
+     void                         PPDFB_API SetVolume             (float                  level);
+     float                        PPDFB_API GetVolume             ();
+
+
+     inline IDirectFBVideoProvider PPDFB_API & operator = (const IDirectFBVideoProvider& other){
           return IPPAny<IDirectFBVideoProvider, IDirectFBVideoProvider_C>::operator =(other);
      }
-     inline IDirectFBVideoProvider& operator = (IDirectFBVideoProvider_C* other){
+     inline IDirectFBVideoProvider PPDFB_API & operator = (IDirectFBVideoProvider_C* other){
           return IPPAny<IDirectFBVideoProvider, IDirectFBVideoProvider_C>::operator =(other);
      }
 };

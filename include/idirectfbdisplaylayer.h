@@ -34,87 +34,87 @@ friend
      class IDirectFB;
 
 public:
-     IDirectFBDisplayLayer(IDirectFBDisplayLayer_C* myptr=NULL):IPPAny<IDirectFBDisplayLayer, IDirectFBDisplayLayer_C>(myptr){}
+     PPDFB_API IDirectFBDisplayLayer(IDirectFBDisplayLayer_C* myptr=NULL):IPPAny<IDirectFBDisplayLayer, IDirectFBDisplayLayer_C>(myptr){}
 
-     DFBDisplayLayerID      GetID                 ();
+     DFBDisplayLayerID      PPDFB_API GetID                 ();
 
      DFBDisplayLayerDescription
-                            GetDescription        ();
+                            PPDFB_API GetDescription        ();
                             
-     void                   GetSourceDescriptions (DFBDisplayLayerSourceDescription *desc);
+     void                   PPDFB_API GetSourceDescriptions (DFBDisplayLayerSourceDescription *desc);
 
-     IDirectFBSurface       GetSurface            ();
+     IDirectFBSurface       PPDFB_API GetSurface            ();
 
-     IDirectFBScreen        GetScreen             ();
+     IDirectFBScreen        PPDFB_API GetScreen             ();
 
-     void                   SetCooperativeLevel   (DFBDisplayLayerCooperativeLevel level);
-     void                   SetOpacity            (u8                            opacity);
-     void                   SetSourceRectangle    (int                             x,
-                                                   int                             y,
-                                                   int                             width,
-                                                   int                             height);
-     void                   SetScreenLocation     (float                           x,
-                                                   float                           y,
-                                                   float                           width,
-                                                   float                           height);
-     void                   SetScreenPosition     (int                             x,
-                                                   int                             y);
-     void                   SetScreenRectangle    (int                             x,
-                                                   int                             y,
-                                                   int                             width,
-                                                   int                             height);
-     void                   SetClipRegions        (const DFBRegion                *regions,
-                                                   int                             num_regions,
-                                                   DFBBoolean                      positive);
-     void                   SetSrcColorKey        (u8                            r,
-                                                   u8                            g,
-                                                   u8                            b);
-     void                   SetDstColorKey        (u8                            r,
-                                                   u8                            g,
-                                                   u8                            b);
-     int                    GetLevel              ();
-     void                   SetLevel              (int                             level);
-     int                    GetCurrentOutputField ();
-     void                   SetFieldParity        (int                             field);
-     void                   WaitForSync           ();
+     void                   PPDFB_API SetCooperativeLevel   (DFBDisplayLayerCooperativeLevel level);
+     void                   PPDFB_API SetOpacity            (u8                            opacity);
+     void                   PPDFB_API SetSourceRectangle    (int                             x,
+                                                             int                             y,
+                                                             int                             width,
+                                                             int                             height);
+     void                   PPDFB_API SetScreenLocation     (float                           x,
+                                                             float                           y,
+                                                             float                           width,
+                                                             float                           height);
+     void                   PPDFB_API SetScreenPosition     (int                             x,
+                                                             int                             y);
+     void                   PPDFB_API SetScreenRectangle    (int                             x,
+                                                             int                             y,
+                                                             int                             width,
+                                                             int                             height);
+     void                   PPDFB_API SetClipRegions        (const DFBRegion                *regions,
+                                                             int                             num_regions,
+                                                             DFBBoolean                      positive);
+     void                   PPDFB_API SetSrcColorKey        (u8                            r,
+                                                             u8                            g,
+                                                             u8                            b);
+     void                   PPDFB_API SetDstColorKey        (u8                            r,
+                                                             u8                            g,
+                                                             u8                            b);
+     int                    PPDFB_API GetLevel              ();
+     void                   PPDFB_API SetLevel              (int                             level);
+     int                    PPDFB_API GetCurrentOutputField ();
+     void                   PPDFB_API SetFieldParity        (int                             field);
+     void                   PPDFB_API WaitForSync           ();
 
-     void                   GetConfiguration      (DFBDisplayLayerConfig          *config);
-     void                   TestConfiguration     (DFBDisplayLayerConfig          &config,
-                                                   DFBDisplayLayerConfigFlags     *failed = NULL);
-     void                   SetConfiguration      (DFBDisplayLayerConfig          &config);
+     void                   PPDFB_API GetConfiguration      (DFBDisplayLayerConfig          *config);
+     void                   PPDFB_API TestConfiguration     (DFBDisplayLayerConfig          &config,
+                                                             DFBDisplayLayerConfigFlags     *failed = NULL);
+     void                   PPDFB_API SetConfiguration      (DFBDisplayLayerConfig          &config);
 
-     void                   SetBackgroundMode     (DFBDisplayLayerBackgroundMode   mode);
-     void                   SetBackgroundImage    (IDirectFBSurface               *surface);
-     void                   SetBackgroundColor    (u8                            r,
-                                                   u8                            g,
-                                                   u8                            b,
-                                                   u8                            a = 0xFF);
+     void                   PPDFB_API SetBackgroundMode     (DFBDisplayLayerBackgroundMode   mode);
+     void                   PPDFB_API SetBackgroundImage    (IDirectFBSurface               *surface);
+     void                   PPDFB_API SetBackgroundColor    (u8                            r,
+                                                             u8                            g,
+                                                             u8                            b,
+                                                             u8                            a = 0xFF);
 
-     void                   GetColorAdjustment    (DFBColorAdjustment             *adj);
-     void                   SetColorAdjustment    (DFBColorAdjustment             &adj);
+     void                   PPDFB_API GetColorAdjustment    (DFBColorAdjustment             *adj);
+     void                   PPDFB_API SetColorAdjustment    (DFBColorAdjustment             &adj);
 
-     IDirectFBWindow        CreateWindow          (DFBWindowDescription           &desc);
-     IDirectFBWindow        GetWindow             (DFBWindowID                     window_id);
+     IDirectFBWindow        PPDFB_API CreateWindow          (DFBWindowDescription           &desc);
+     IDirectFBWindow        PPDFB_API GetWindow             (DFBWindowID                     window_id);
 
-     void                   EnableCursor          (bool                            enable);
-     void                   GetCursorPosition     (int                            *x,
-                                                   int                            *y);
-     void                   WarpCursor            (int                             x,
-                                                   int                             y);
-     void                   SetCursorAcceleration (int                             numerator,
-                                                   int                             denominator,
-                                                   int                             threshold);
-     void                   SetCursorShape        (IDirectFBSurface               *shape,
-                                                   int                             hot_x,
-                                                   int                             hot_y);
-     void                   SetCursorOpacity      (u8                            opacity);
+     void                   PPDFB_API EnableCursor          (bool                            enable);
+     void                   PPDFB_API GetCursorPosition     (int                            *x,
+                                                             int                            *y);
+     void                   PPDFB_API WarpCursor            (int                             x,
+                                                             int                             y);
+     void                   PPDFB_API SetCursorAcceleration (int                             numerator,
+                                                             int                             denominator,
+                                                             int                             threshold);
+     void                   PPDFB_API SetCursorShape        (IDirectFBSurface               *shape,
+                                                             int                             hot_x,
+                                                             int                             hot_y);
+     void                   PPDFB_API SetCursorOpacity      (u8                            opacity);
 
-     void                   SwitchContext         (DFBBoolean                      exclusive);
+     void                   PPDFB_API SwitchContext         (DFBBoolean                      exclusive);
 
-     inline IDirectFBDisplayLayer& operator = (const IDirectFBDisplayLayer& other){
+     inline IDirectFBDisplayLayer PPDFB_API & operator = (const IDirectFBDisplayLayer& other){
           return IPPAny<IDirectFBDisplayLayer, IDirectFBDisplayLayer_C>::operator =(other);
      }
-     inline IDirectFBDisplayLayer& operator = (IDirectFBDisplayLayer_C* other){
+     inline IDirectFBDisplayLayer PPDFB_API & operator = (IDirectFBDisplayLayer_C* other){
           return IPPAny<IDirectFBDisplayLayer, IDirectFBDisplayLayer_C>::operator =(other);
      }
 };

@@ -36,31 +36,31 @@ friend
      class IDirectFBSurface;
 
 public:
-     IDirectFBPalette(IDirectFBPalette_C* myptr=NULL):IPPAny<IDirectFBPalette, IDirectFBPalette_C>(myptr){}
+     PPDFB_API IDirectFBPalette(IDirectFBPalette_C* myptr=NULL):IPPAny<IDirectFBPalette, IDirectFBPalette_C>(myptr){}
 
-     DFBPaletteCapabilities GetCapabilities          ();
-     unsigned int           GetSize                  ();
+     DFBPaletteCapabilities PPDFB_API GetCapabilities          ();
+     unsigned int           PPDFB_API GetSize                  ();
 
-     void                   SetEntries               (DFBColor     *entries,
-                                                      unsigned int  num_entries,
-                                                      unsigned int  offset);
+     void                   PPDFB_API SetEntries               (DFBColor     *entries,
+                                                                unsigned int  num_entries,
+                                                                unsigned int  offset);
 
-     void                   GetEntries               (DFBColor     *entries,
-                                                      unsigned int  num_entries,
-                                                      unsigned int  offset);
+     void                   PPDFB_API GetEntries               (DFBColor     *entries,
+                                                                unsigned int  num_entries,
+                                                                unsigned int  offset);
 
-     unsigned int           FindBestMatch            (u8          r,
-                                                      u8          g,
-                                                      u8          b,
-                                                      u8          a);
+     unsigned int           PPDFB_API FindBestMatch            (u8          r,
+                                                                u8          g,
+                                                                u8          b,
+                                                                u8          a);
 
-     IDirectFBPalette       CreateCopy               ();
+     IDirectFBPalette       PPDFB_API CreateCopy               ();
 
 
-     inline IDirectFBPalette& operator = (const IDirectFBPalette& other){
+     inline IDirectFBPalette PPDFB_API & operator = (const IDirectFBPalette& other){
           return IPPAny<IDirectFBPalette, IDirectFBPalette_C>::operator =(other);
      }
-     inline IDirectFBPalette& operator = (IDirectFBPalette_C* other){
+     inline IDirectFBPalette PPDFB_API & operator = (IDirectFBPalette_C* other){
           return IPPAny<IDirectFBPalette, IDirectFBPalette_C>::operator =(other);
      }
 };

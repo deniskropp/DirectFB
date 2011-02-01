@@ -34,31 +34,33 @@ friend
      class IDirectFB;
 
 public:
-     IDirectFBInputDevice(IDirectFBInputDevice_C* myptr=NULL):IPPAny<IDirectFBInputDevice, IDirectFBInputDevice_C>(myptr){}
+     PPDFB_API IDirectFBInputDevice(IDirectFBInputDevice_C* myptr=NULL):IPPAny<IDirectFBInputDevice, IDirectFBInputDevice_C>(myptr){}
 
-     DFBInputDeviceID           GetID             ();
-     void                       GetDescription    (DFBInputDeviceDescription      *desc);
+     DFBInputDeviceID           PPDFB_API GetID             ();
+     void                       PPDFB_API GetDescription    (DFBInputDeviceDescription      *desc);
 
-     void                       GetKeymapEntry    (int                             code,
-                                                   DFBInputDeviceKeymapEntry      *entry);
+     void                       PPDFB_API GetKeymapEntry    (int                             code,
+                                                             DFBInputDeviceKeymapEntry      *entry);
 
-     IDirectFBEventBuffer       CreateEventBuffer ();
-     void                       AttachEventBuffer (IDirectFBEventBuffer           *buffer);
-     void                       DetachEventBuffer (IDirectFBEventBuffer           *buffer);
+     IDirectFBEventBuffer       PPDFB_API CreateEventBuffer ();
+     void                       PPDFB_API AttachEventBuffer (IDirectFBEventBuffer           *buffer);
+     void                       PPDFB_API DetachEventBuffer (IDirectFBEventBuffer           *buffer);
 
-     DFBInputDeviceKeyState     GetKeyState       (DFBInputDeviceKeyIdentifier     key_id);
-     DFBInputDeviceModifierMask GetModifiers      ();
-     DFBInputDeviceLockState    GetLockState      ();
-     DFBInputDeviceButtonMask   GetButtons        ();
-     DFBInputDeviceButtonState  GetButtonState    (DFBInputDeviceButtonIdentifier  button);
-     int                        GetAxis           (DFBInputDeviceAxisIdentifier    axis);
+     DFBInputDeviceKeyState     PPDFB_API GetKeyState       (DFBInputDeviceKeyIdentifier     key_id);
+     DFBInputDeviceModifierMask PPDFB_API GetModifiers      ();
+     DFBInputDeviceLockState    PPDFB_API GetLockState      ();
+     DFBInputDeviceButtonMask   PPDFB_API GetButtons        ();
+     DFBInputDeviceButtonState  PPDFB_API GetButtonState    (DFBInputDeviceButtonIdentifier  button);
+     int                        PPDFB_API GetAxis           (DFBInputDeviceAxisIdentifier    axis);
 
-     void                       GetXY             (int                            *x,
-                                                   int                            *y);
-     inline IDirectFBInputDevice& operator = (const IDirectFBInputDevice& other){
+     void                       PPDFB_API GetXY             (int                            *x,
+                                                             int                            *y);
+
+
+     inline IDirectFBInputDevice PPDFB_API & operator = (const IDirectFBInputDevice& other){
           return IPPAny<IDirectFBInputDevice, IDirectFBInputDevice_C>::operator =(other);
      }
-     inline IDirectFBInputDevice& operator = (IDirectFBInputDevice_C* other){
+     inline IDirectFBInputDevice PPDFB_API & operator = (IDirectFBInputDevice_C* other){
           return IPPAny<IDirectFBInputDevice, IDirectFBInputDevice_C>::operator =(other);
      }
 

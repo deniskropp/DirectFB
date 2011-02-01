@@ -245,3 +245,18 @@ void IDirectFBWindow::ResizeSurface (int width,
      DFBCHECK( iface->ResizeSurface (iface, width, height) );
 }
 
+void IDirectFBWindow::BeginUpdates (const DFBRegion *update)
+{
+     DFBCHECK( iface->BeginUpdates (iface, update) );
+}
+
+void IDirectFBWindow::SetDstGeometry (DFBWindowGeometry *geometry)
+{
+     DFBCHECK( iface->SetDstGeometry (iface, geometry) );
+}
+
+void IDirectFBWindow::SetSrcGeometry (DFBWindowGeometry *geometry)
+{
+     DFBCHECK( iface->SetSrcGeometry (iface, geometry) );
+}
+

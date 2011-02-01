@@ -25,12 +25,12 @@
 #ifndef DFBPP_INTERNAL_H
 #define DFBPP_INTERNAL_H
 
-#define DFBCHECK(x...)                                                \
+#define DFBCHECK(...)                                                 \
      do {                                                             \
-          DFBResult ret = (x);                                        \
+          DFBResult ret = (__VA_ARGS__);                              \
                                                                       \
           if (ret)                                                    \
-               throw new DFBException (__PRETTY_FUNCTION__, ret);     \
+               throw new DFBException (__FUNCTION__, ret);            \
      } while (0);
 
 

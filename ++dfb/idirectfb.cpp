@@ -221,10 +221,10 @@ void *IDirectFB::GetInterface (const char *type,
                                const char *implementation,
                                void       *arg)
 {
-     void *interface;
+     void *interface_ptr;
 
-     DFBCHECK( iface->GetInterface (iface, type, implementation, arg, &interface) );
+     DFBCHECK( iface->GetInterface (iface, type, implementation, arg, &interface_ptr) );
 
-     return interface;
+     return interface_ptr;
 }
 

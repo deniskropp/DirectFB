@@ -36,65 +36,65 @@ friend
      class IDirectFBDisplayLayer;
 
 public:
-     IDirectFBScreen(IDirectFBScreen_C* myptr=NULL):IPPAny<IDirectFBScreen, IDirectFBScreen_C>(myptr){}
+     PPDFB_API IDirectFBScreen(IDirectFBScreen_C* myptr=NULL):IPPAny<IDirectFBScreen, IDirectFBScreen_C>(myptr){}
 
-     DFBScreenID            GetID                 ();
+     DFBScreenID            PPDFB_API GetID                 ();
 
-     DFBScreenDescription   GetDescription        ();
+     DFBScreenDescription   PPDFB_API GetDescription        ();
 
-     void                   GetSize               (int                        *width,
-                                                   int                        *height);
+     void                   PPDFB_API GetSize               (int                        *width,
+                                                             int                        *height);
 
-     void                   EnumDisplayLayers     (DFBDisplayLayerCallback     callback,
-                                                   void                       *callbackdata);
+     void                   PPDFB_API EnumDisplayLayers     (DFBDisplayLayerCallback     callback,
+                                                             void                       *callbackdata);
 
-     void                   SetPowerMode          (DFBScreenPowerMode          mode);
+     void                   PPDFB_API SetPowerMode          (DFBScreenPowerMode          mode);
 
-     void                   WaitForSync           ();
-
-
-     void                   GetMixerDescriptions     (DFBScreenMixerDescription    *descriptions);
-
-     void                   GetMixerConfiguration    (int                           mixer,
-                                                      DFBScreenMixerConfig         *config);
-
-     void                   TestMixerConfiguration   (int                           mixer,
-                                                      const DFBScreenMixerConfig   &config,
-                                                      DFBScreenMixerConfigFlags    *failed);
-
-     void                   SetMixerConfiguration    (int                           mixer,
-                                                      const DFBScreenMixerConfig   &config);
+     void                   PPDFB_API WaitForSync           ();
 
 
-     void                   GetEncoderDescriptions   (DFBScreenEncoderDescription  *descriptions);
+     void                   PPDFB_API GetMixerDescriptions     (DFBScreenMixerDescription    *descriptions);
 
-     void                   GetEncoderConfiguration  (int                           encoder,
-                                                      DFBScreenEncoderConfig       *config);
+     void                   PPDFB_API GetMixerConfiguration    (int                           mixer,
+                                                                DFBScreenMixerConfig         *config);
 
-     void                   TestEncoderConfiguration (int                           encoder,
-                                                      const DFBScreenEncoderConfig &config,
-                                                      DFBScreenEncoderConfigFlags  *failed);
+     void                   PPDFB_API TestMixerConfiguration   (int                           mixer,
+                                                                const DFBScreenMixerConfig   &config,
+                                                                DFBScreenMixerConfigFlags    *failed);
 
-     void                   SetEncoderConfiguration  (int                           encoder,
-                                                      const DFBScreenEncoderConfig &config);
+     void                   PPDFB_API SetMixerConfiguration    (int                           mixer,
+                                                                const DFBScreenMixerConfig   &config);
 
 
-     void                   GetOutputDescriptions    (DFBScreenOutputDescription   *descriptions);
+     void                   PPDFB_API GetEncoderDescriptions   (DFBScreenEncoderDescription  *descriptions);
 
-     void                   GetOutputConfiguration   (int                           output,
-                                                      DFBScreenOutputConfig        *config);
+     void                   PPDFB_API GetEncoderConfiguration  (int                           encoder,
+                                                                DFBScreenEncoderConfig       *config);
 
-     void                   TestOutputConfiguration  (int                           output,
-                                                      const DFBScreenOutputConfig  &config,
-                                                      DFBScreenOutputConfigFlags   *failed);
+     void                   PPDFB_API TestEncoderConfiguration (int                           encoder,
+                                                                const DFBScreenEncoderConfig &config,
+                                                                DFBScreenEncoderConfigFlags  *failed);
 
-     void                   SetOutputConfiguration   (int                           output,
-                                                      const DFBScreenOutputConfig  &config);
+     void                   PPDFB_API SetEncoderConfiguration  (int                           encoder,
+                                                                const DFBScreenEncoderConfig &config);
 
-     inline IDirectFBScreen& operator = (const IDirectFBScreen& other){
+
+     void                   PPDFB_API GetOutputDescriptions    (DFBScreenOutputDescription   *descriptions);
+
+     void                   PPDFB_API GetOutputConfiguration   (int                           output,
+                                                                DFBScreenOutputConfig        *config);
+
+     void                   PPDFB_API TestOutputConfiguration  (int                           output,
+                                                                const DFBScreenOutputConfig  &config,
+                                                                DFBScreenOutputConfigFlags   *failed);
+
+     void                   PPDFB_API SetOutputConfiguration   (int                           output,
+                                                                const DFBScreenOutputConfig  &config);
+
+     inline IDirectFBScreen PPDFB_API & operator = (const IDirectFBScreen& other){
           return IPPAny<IDirectFBScreen, IDirectFBScreen_C>::operator =(other);
      }
-     inline IDirectFBScreen& operator = (IDirectFBScreen_C* other){
+     inline IDirectFBScreen PPDFB_API & operator = (IDirectFBScreen_C* other){
           return IPPAny<IDirectFBScreen, IDirectFBScreen_C>::operator =(other);
      }
 

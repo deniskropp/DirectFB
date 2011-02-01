@@ -38,31 +38,31 @@ friend
      class IDirectFBWindow;
 
 public:
-     IDirectFBEventBuffer(IDirectFBEventBuffer_C* myptr=NULL):IPPAny<IDirectFBEventBuffer, IDirectFBEventBuffer_C>(myptr){}
+     PPDFB_API IDirectFBEventBuffer(IDirectFBEventBuffer_C* myptr=NULL):IPPAny<IDirectFBEventBuffer, IDirectFBEventBuffer_C>(myptr){}
 
-     void                  Reset                    ();
+     void                  PPDFB_API Reset                    ();
 
-     void                  WaitForEvent             ();
-     bool                  WaitForEventWithTimeout  (unsigned int  seconds,
-                                                     unsigned int  milli_seconds);
+     void                  PPDFB_API WaitForEvent             ();
+     bool                  PPDFB_API WaitForEventWithTimeout  (unsigned int  seconds,
+                                                               unsigned int  milli_seconds);
 
-     void                  WakeUp                   ();
+     void                  PPDFB_API WakeUp                   ();
 
-     bool                  GetEvent                 (DFBEvent     *event);
-     bool                  PeekEvent                (DFBEvent     *event);
-     bool                  HasEvent                 ();
+     bool                  PPDFB_API GetEvent                 (DFBEvent     *event);
+     bool                  PPDFB_API PeekEvent                (DFBEvent     *event);
+     bool                  PPDFB_API HasEvent                 ();
 
-     void                  PostEvent                (DFBEvent     &event);
+     void                  PPDFB_API PostEvent                (DFBEvent     &event);
 
-     int                   CreateFileDescriptor     ();
+     int                   PPDFB_API CreateFileDescriptor     ();
 
-     void                  EnableStatistics         (DFBBoolean           enable);
-     void                  GetStatistics            (DFBEventBufferStats *stats);
+     void                  PPDFB_API EnableStatistics         (DFBBoolean           enable);
+     void                  PPDFB_API GetStatistics            (DFBEventBufferStats *stats);
      
-     inline IDirectFBEventBuffer& operator = (const IDirectFBEventBuffer& other){
+     inline IDirectFBEventBuffer PPDFB_API & operator = (const IDirectFBEventBuffer& other){
           return IPPAny<IDirectFBEventBuffer, IDirectFBEventBuffer_C>::operator =(other);
      }
-     inline IDirectFBEventBuffer& operator = (IDirectFBEventBuffer_C* other){
+     inline IDirectFBEventBuffer PPDFB_API & operator = (IDirectFBEventBuffer_C* other){
           return IPPAny<IDirectFBEventBuffer, IDirectFBEventBuffer_C>::operator =(other);
      }
 

@@ -36,21 +36,21 @@ friend
      class IDirectFBDataBuffer;
 
 public:
-     IDirectFBImageProvider(IDirectFBImageProvider_C* myptr=NULL):IPPAny<IDirectFBImageProvider, IDirectFBImageProvider_C>(myptr){}
+     PPDFB_API IDirectFBImageProvider(IDirectFBImageProvider_C* myptr=NULL):IPPAny<IDirectFBImageProvider, IDirectFBImageProvider_C>(myptr){}
 
-     void                    GetSurfaceDescription (DFBSurfaceDescription *dsc);
-     void                    GetImageDescription   (DFBImageDescription   *dsc);
+     void                    PPDFB_API GetSurfaceDescription (DFBSurfaceDescription *dsc);
+     void                    PPDFB_API GetImageDescription   (DFBImageDescription   *dsc);
 
-     void                    RenderTo              (IDirectFBSurface      *destination,
-                                                    DFBRectangle          *destination_rect);
+     void                    PPDFB_API RenderTo              (IDirectFBSurface      *destination,
+                                                              DFBRectangle          *destination_rect);
 
-     void                    SetRenderCallback     (DIRenderCallback       callback,
-                                                    void                  *callback_data);
+     void                    PPDFB_API SetRenderCallback     (DIRenderCallback       callback,
+                                                              void                  *callback_data);
 
-     inline IDirectFBImageProvider& operator = (const IDirectFBImageProvider& other){
+     inline IDirectFBImageProvider PPDFB_API & operator = (const IDirectFBImageProvider& other){
           return IPPAny<IDirectFBImageProvider, IDirectFBImageProvider_C>::operator =(other);
      }
-     inline IDirectFBImageProvider& operator = (IDirectFBImageProvider_C* other){
+     inline IDirectFBImageProvider PPDFB_API & operator = (IDirectFBImageProvider_C* other){
           return IPPAny<IDirectFBImageProvider, IDirectFBImageProvider_C>::operator =(other);
      }
 };

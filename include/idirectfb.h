@@ -34,62 +34,62 @@ friend
      class DirectFB;
 
 public:
-     IDirectFB(IDirectFB_C *myptr = NULL):IPPAny<IDirectFB, IDirectFB_C>(myptr){}
-     ~IDirectFB(){}
-     void                    SetCooperativeLevel    (DFBCooperativeLevel         level);
-     void                    SetVideoMode           (unsigned int                width,
-                                                     unsigned int                height,
-                                                     unsigned int                bpp);
+     PPDFB_API IDirectFB(IDirectFB_C *myptr = NULL):IPPAny<IDirectFB, IDirectFB_C>(myptr){}
+     PPDFB_API ~IDirectFB(){}
+     void                    PPDFB_API SetCooperativeLevel    (DFBCooperativeLevel         level);
+     void                    PPDFB_API SetVideoMode           (unsigned int                width,
+                                                               unsigned int                height,
+                                                               unsigned int                bpp);
 
-     void                    GetDeviceDescription   (DFBGraphicsDeviceDescription *desc);
-     void                    EnumVideoModes         (DFBVideoModeCallback        callback,
-                                                     void                       *callbackdata);
+     void                    PPDFB_API GetDeviceDescription   (DFBGraphicsDeviceDescription *desc);
+     void                    PPDFB_API EnumVideoModes         (DFBVideoModeCallback        callback,
+                                                               void                       *callbackdata);
 
-     IDirectFBSurface        CreateSurface          (DFBSurfaceDescription      &desc) const;
-     IDirectFBPalette        CreatePalette          (DFBPaletteDescription      &desc);
+     IDirectFBSurface        PPDFB_API CreateSurface          (DFBSurfaceDescription      &desc) const;
+     IDirectFBPalette        PPDFB_API CreatePalette          (DFBPaletteDescription      &desc);
 
-     void                    EnumScreens            (DFBScreenCallback           callback,
-                                                     void                       *callbackdata);
-     IDirectFBScreen         GetScreen              (DFBScreenID                 screen_id);
+     void                    PPDFB_API EnumScreens            (DFBScreenCallback           callback,
+                                                               void                       *callbackdata);
+     IDirectFBScreen         PPDFB_API GetScreen              (DFBScreenID                 screen_id);
 
-     void                    EnumDisplayLayers      (DFBDisplayLayerCallback     callback,
-                                                     void                       *callbackdata);
-     IDirectFBDisplayLayer   GetDisplayLayer        (DFBDisplayLayerID           layer_id);
+     void                    PPDFB_API EnumDisplayLayers      (DFBDisplayLayerCallback     callback,
+                                                               void                       *callbackdata);
+     IDirectFBDisplayLayer   PPDFB_API GetDisplayLayer        (DFBDisplayLayerID           layer_id);
 
-     void                    EnumInputDevices       (DFBInputDeviceCallback      callback,
-                                                     void                       *callbackdata) const;
-     IDirectFBInputDevice    GetInputDevice         (DFBInputDeviceID            device_id) const;
-     IDirectFBEventBuffer    CreateEventBuffer      () const;
-     IDirectFBEventBuffer    CreateInputEventBuffer (DFBInputDeviceCapabilities caps,
-                                                     DFBBoolean                 global = DFB_FALSE);
+     void                    PPDFB_API EnumInputDevices       (DFBInputDeviceCallback      callback,
+                                                               void                       *callbackdata) const;
+     IDirectFBInputDevice    PPDFB_API GetInputDevice         (DFBInputDeviceID            device_id) const;
+     IDirectFBEventBuffer    PPDFB_API CreateEventBuffer      () const;
+     IDirectFBEventBuffer    PPDFB_API CreateInputEventBuffer (DFBInputDeviceCapabilities caps,
+                                                               DFBBoolean                 global = DFB_FALSE);
 
-     IDirectFBImageProvider  CreateImageProvider    (const char                 *filename) const;
-     IDirectFBVideoProvider  CreateVideoProvider    (const char                 *filename);
-     IDirectFBFont           CreateFont             (const char                 *filename,
-                                                     DFBFontDescription         &desc) const ;
-     IDirectFBDataBuffer     CreateDataBuffer       (DFBDataBufferDescription   &desc);
+     IDirectFBImageProvider  PPDFB_API CreateImageProvider    (const char                 *filename) const;
+     IDirectFBVideoProvider  PPDFB_API CreateVideoProvider    (const char                 *filename);
+     IDirectFBFont           PPDFB_API CreateFont             (const char                 *filename,
+                                                               DFBFontDescription         &desc) const ;
+     IDirectFBDataBuffer     PPDFB_API CreateDataBuffer       (DFBDataBufferDescription   &desc);
 
-     struct timeval          SetClipboardData       (const char                 *mime_type,
-                                                     const void                 *data,
-                                                     unsigned int                size);
-     void                    GetClipboardData       (char                      **mime_type,
-                                                     void                      **data,
-                                                     unsigned int               *size);
-     struct timeval          GetClipboardTimeStamp  ();
+     struct timeval          PPDFB_API SetClipboardData       (const char                 *mime_type,
+                                                               const void                 *data,
+                                                               unsigned int                size);
+     void                    PPDFB_API GetClipboardData       (char                      **mime_type,
+                                                               void                      **data,
+                                                               unsigned int               *size);
+     struct timeval          PPDFB_API GetClipboardTimeStamp  ();
 
-     void                    Suspend                ();
-     void                    Resume                 ();
-     void                    WaitIdle               ();
-     void                    WaitForSync            ();
+     void                    PPDFB_API Suspend                ();
+     void                    PPDFB_API Resume                 ();
+     void                    PPDFB_API WaitIdle               ();
+     void                    PPDFB_API WaitForSync            ();
 
-     void                   *GetInterface           (const char                 *type,
-                                                     const char                 *implementation,
-                                                     void                       *arg);
+     void                   PPDFB_API *GetInterface           (const char                 *type,
+                                                               const char                 *implementation,
+                                                               void                       *arg);
 
-     inline IDirectFB& operator = (const IDirectFB& other){
+     inline IDirectFB PPDFB_API & operator = (const IDirectFB& other){
           return IPPAny<IDirectFB, IDirectFB_C>::operator =(other);
      }
-     inline IDirectFB& operator = (IDirectFB_C* other){
+     inline IDirectFB PPDFB_API & operator = (IDirectFB_C* other){
           return IPPAny<IDirectFB, IDirectFB_C>::operator =(other);
      }
 };

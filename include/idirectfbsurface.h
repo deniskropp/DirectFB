@@ -42,168 +42,168 @@ friend
      class IDirectFBWindow;
 
 public:
-     IDirectFBSurface(IDirectFBSurface_C* myptr=NULL):IPPAny<IDirectFBSurface, IDirectFBSurface_C>(myptr){}
+     PPDFB_API IDirectFBSurface(IDirectFBSurface_C* myptr=NULL):IPPAny<IDirectFBSurface, IDirectFBSurface_C>(myptr){}
 
-     DFBSurfaceCapabilities GetCapabilities     ();
-     void                   GetPosition         (int                      *x,
-                                                 int                      *y);
-     void                   GetSize             (int                      *width,
-                                                 int                      *height);
-     void                   GetVisibleRectangle (DFBRectangle             *rect);
-     DFBSurfacePixelFormat  GetPixelFormat      ();
-     DFBAccelerationMask    GetAccelerationMask (IDirectFBSurface         *source = NULL);
+     DFBSurfaceCapabilities PPDFB_API GetCapabilities     ();
+     void                   PPDFB_API GetPosition         (int                      *x,
+                                                           int                      *y);
+     void                   PPDFB_API GetSize             (int                      *width,
+                                                           int                      *height);
+     void                   PPDFB_API GetVisibleRectangle (DFBRectangle             *rect);
+     DFBSurfacePixelFormat  PPDFB_API GetPixelFormat      ();
+     DFBAccelerationMask    PPDFB_API GetAccelerationMask (IDirectFBSurface         *source = NULL);
 
-     IDirectFBPalette       GetPalette          ();
-     void                   SetPalette          (IDirectFBPalette         *palette);
-     void                   SetAlphaRamp        (u8                      a0,
-                                                 u8                      a1,
-                                                 u8                      a2,
-                                                 u8                      a3);
+     IDirectFBPalette       PPDFB_API GetPalette          ();
+     void                   PPDFB_API SetPalette          (IDirectFBPalette         *palette);
+     void                   PPDFB_API SetAlphaRamp        (u8                      a0,
+                                                           u8                      a1,
+                                                           u8                      a2,
+                                                           u8                      a3);
 
-     void                   Lock                (DFBSurfaceLockFlags       flags,
-                                                 void                    **ptr,
-                                                 int                      *pitch);
-     void                   Unlock              ();
-     void                   Flip                (DFBRegion                *region = NULL,
-                                                 DFBSurfaceFlipFlags       flags = static_cast<DFBSurfaceFlipFlags>(0));
-     void                   SetField            (int                       field);
-     void                   Clear               (u8                      r = 0x00,
-                                                 u8                      g = 0x00,
-                                                 u8                      b = 0x00,
-                                                 u8                      a = 0x00);
-     void                   Clear               (DFBColor               &color);
+     void                   PPDFB_API Lock                (DFBSurfaceLockFlags       flags,
+                                                           void                    **ptr,
+                                                           int                      *pitch);
+     void                   PPDFB_API Unlock              ();
+     void                   PPDFB_API Flip                (DFBRegion                *region = NULL,
+                                                           DFBSurfaceFlipFlags       flags = static_cast<DFBSurfaceFlipFlags>(0));
+     void                   PPDFB_API SetField            (int                       field);
+     void                   PPDFB_API Clear               (u8                      r = 0x00,
+                                                           u8                      g = 0x00,
+                                                           u8                      b = 0x00,
+                                                           u8                      a = 0x00);
+     void                   PPDFB_API Clear               (DFBColor               &color);
 
-     void                   SetClip             (const DFBRegion          *clip = 0);
-     void                   SetClip             (const DFBRectangle       *clip);
-     void                   SetColor            (u8                      r,
-                                                 u8                      g,
-                                                 u8                      b,
-                                                 u8                      a = 0xFF);
-     void                   SetColor            (DFBColor               &color);
-     void                   SetColorIndex       (unsigned int              index);
-     void                   SetSrcBlendFunction (DFBSurfaceBlendFunction   function);
-     void                   SetDstBlendFunction (DFBSurfaceBlendFunction   function);
-     void                   SetPorterDuff       (DFBSurfacePorterDuffRule  rule);
-     void                   SetSrcColorKey      (u8                      r,
-                                                 u8                      g,
-                                                 u8                      b);
-     void                   SetSrcColorKeyIndex (unsigned int              index);
-     void                   SetDstColorKey      (u8                      r,
-                                                 u8                      g,
-                                                 u8                      b);
-     void                   SetDstColorKeyIndex (unsigned int              index);
+     void                   PPDFB_API SetClip             (const DFBRegion          *clip = 0);
+     void                   PPDFB_API SetClip             (const DFBRectangle       *clip);
+     void                   PPDFB_API SetColor            (u8                      r,
+                                                           u8                      g,
+                                                           u8                      b,
+                                                           u8                      a = 0xFF);
+     void                   PPDFB_API SetColor            (DFBColor               &color);
+     void                   PPDFB_API SetColorIndex       (unsigned int              index);
+     void                   PPDFB_API SetSrcBlendFunction (DFBSurfaceBlendFunction   function);
+     void                   PPDFB_API SetDstBlendFunction (DFBSurfaceBlendFunction   function);
+     void                   PPDFB_API SetPorterDuff       (DFBSurfacePorterDuffRule  rule);
+     void                   PPDFB_API SetSrcColorKey      (u8                      r,
+                                                           u8                      g,
+                                                           u8                      b);
+     void                   PPDFB_API SetSrcColorKeyIndex (unsigned int              index);
+     void                   PPDFB_API SetDstColorKey      (u8                      r,
+                                                           u8                      g,
+                                                           u8                      b);
+     void                   PPDFB_API SetDstColorKeyIndex (unsigned int              index);
 
-     void                   SetBlittingFlags    (DFBSurfaceBlittingFlags   flags);
-     void                   Blit                (IDirectFBSurface         *source,
-                                                 const DFBRectangle       *source_rect = NULL,
-                                                 int                       x = 0,
-                                                 int                       y = 0);
-     void                   TileBlit            (IDirectFBSurface         *source,
-                                                 const DFBRectangle       *source_rect = NULL,
-                                                 int                       x = 0,
-                                                 int                       y = 0);
-     void                   BatchBlit           (IDirectFBSurface         *source,
-                                                 const DFBRectangle       *source_rects,
-                                                 const DFBPoint           *dest_points,
-                                                 int                       num);
-     void                   StretchBlit         (IDirectFBSurface         *source,
-                                                 const DFBRectangle       *source_rect = NULL,
-                                                 const DFBRectangle       *destination_rect = NULL);
+     void                   PPDFB_API SetBlittingFlags    (DFBSurfaceBlittingFlags   flags);
+     void                   PPDFB_API Blit                (IDirectFBSurface         *source,
+                                                           const DFBRectangle       *source_rect = NULL,
+                                                           int                       x = 0,
+                                                           int                       y = 0);
+     void                   PPDFB_API TileBlit            (IDirectFBSurface         *source,
+                                                           const DFBRectangle       *source_rect = NULL,
+                                                           int                       x = 0,
+                                                           int                       y = 0);
+     void                   PPDFB_API BatchBlit           (IDirectFBSurface         *source,
+                                                           const DFBRectangle       *source_rects,
+                                                           const DFBPoint           *dest_points,
+                                                           int                       num);
+     void                   PPDFB_API StretchBlit         (IDirectFBSurface         *source,
+                                                           const DFBRectangle       *source_rect = NULL,
+                                                           const DFBRectangle       *destination_rect = NULL);
 
-     void                   TextureTriangles    (IDirectFBSurface         *source,
-                                                 const DFBVertex          *vertices,
-                                                 const int                *indices,
-                                                 int                       num,
-                                                 DFBTriangleFormation      formation);
+     void                   PPDFB_API TextureTriangles    (IDirectFBSurface         *source,
+                                                           const DFBVertex          *vertices,
+                                                           const int                *indices,
+                                                           int                       num,
+                                                           DFBTriangleFormation      formation);
 
-     void                   SetDrawingFlags     (DFBSurfaceDrawingFlags    flags);
-     void                   FillRectangle       (int                       x,
-                                                 int                       y,
-                                                 int                       width,
-                                                 int                       height);
-     void                   FillRectangle       (DFBRectangle             &rect);
-     void                   FillRectangle       (DFBRegion                &rect);
-     void                   FillRectangles      (const DFBRectangle       *rects,
-                                                 unsigned int              num_rects);
-     void                   DrawRectangle       (int                       x,
-                                                 int                       y,
-                                                 int                       width,
-                                                 int                       height);
-     void                   DrawLine            (int                       x1,
-                                                 int                       y1,
-                                                 int                       x2,
-                                                 int                       y2); 
-     void                   DrawLines           (const DFBRegion          *lines,
-                                                 unsigned int              num_lines);
-     void                   FillTriangle        (int                       x1,
-                                                 int                       y1,
-                                                 int                       x2,
-                                                 int                       y2,
-                                                 int                       x3,
-                                                 int                       y3);
-     void                   FillSpans           (int                       y,
-                                                 const DFBSpan            *spans,
-                                                 unsigned int              num);
+     void                   PPDFB_API SetDrawingFlags     (DFBSurfaceDrawingFlags    flags);
+     void                   PPDFB_API FillRectangle       (int                       x,
+                                                           int                       y,
+                                                           int                       width,
+                                                           int                       height);
+     void                   PPDFB_API FillRectangle       (DFBRectangle             &rect);
+     void                   PPDFB_API FillRectangle       (DFBRegion                &rect);
+     void                   PPDFB_API FillRectangles      (const DFBRectangle       *rects,
+                                                           unsigned int              num_rects);
+     void                   PPDFB_API DrawRectangle       (int                       x,
+                                                           int                       y,
+                                                           int                       width,
+                                                           int                       height);
+     void                   PPDFB_API DrawLine            (int                       x1,
+                                                           int                       y1,
+                                                           int                       x2,
+                                                           int                       y2); 
+     void                   PPDFB_API DrawLines           (const DFBRegion          *lines,
+                                                           unsigned int              num_lines);
+     void                   PPDFB_API FillTriangle        (int                       x1,
+                                                           int                       y1,
+                                                           int                       x2,
+                                                           int                       y2,
+                                                           int                       x3,
+                                                           int                       y3);
+     void                   PPDFB_API FillSpans           (int                       y,
+                                                           const DFBSpan            *spans,
+                                                           unsigned int              num);
 
-     void                   SetFont             (const IDirectFBFont &font) const;
-     IDirectFBFont          GetFont             () const;
-     void                   DrawString          (const char               *text,
-                                                 int                       bytes,
-                                                 int                       x,
-                                                 int                       y,
-                                                 DFBSurfaceTextFlags       flags);
-     void                   DrawGlyph           (unsigned int              index,
-                                                 int                       x,
-                                                 int                       y,
-                                                 DFBSurfaceTextFlags       flags);
-     void                   SetEncoding         (DFBTextEncodingID         encoding);
+     void                   PPDFB_API SetFont             (const IDirectFBFont &font) const;
+     IDirectFBFont          PPDFB_API GetFont             () const;
+     void                   PPDFB_API DrawString          (const char               *text,
+                                                           int                       bytes,
+                                                           int                       x,
+                                                           int                       y,
+                                                           DFBSurfaceTextFlags       flags);
+     void                   PPDFB_API DrawGlyph           (unsigned int              index,
+                                                           int                       x,
+                                                           int                       y,
+                                                           DFBSurfaceTextFlags       flags);
+     void                   PPDFB_API SetEncoding         (DFBTextEncodingID         encoding);
 
-     IDirectFBSurface       GetSubSurface       (DFBRectangle             *rect);
+     IDirectFBSurface       PPDFB_API GetSubSurface       (DFBRectangle             *rect);
 
-     void                   Dump                (const char               *directory,
-                                                 const char               *prefix);
+     void                   PPDFB_API Dump                (const char               *directory,
+                                                           const char               *prefix);
 
-     void                   DisableAcceleration (DFBAccelerationMask       mask);
+     void                   PPDFB_API DisableAcceleration (DFBAccelerationMask       mask);
 
-     IDirectFBGL           *GetGL               ();
+     IDirectFBGL           PPDFB_API *GetGL               ();
 
      /* Additional methods added for enhanced usability */
 
-     int                    GetWidth            ();
-     int                    GetHeight           ();
+     int                    PPDFB_API GetWidth            ();
+     int                    PPDFB_API GetHeight           ();
 
-     void                   SetColor            (const DFBColor           &color);
-     void                   SetColor            (const DFBColor           *color);
+     void                   PPDFB_API SetColor            (const DFBColor           &color);
+     void                   PPDFB_API SetColor            (const DFBColor           *color);
 
-     void                   FillRectangle       (const DFBRectangle       &rect);
-     void                   DrawRectangle       (const DFBRectangle       &rect);
-     void                   DrawLine            (const DFBRegion          &line);
+     void                   PPDFB_API FillRectangle       (const DFBRectangle       &rect);
+     void                   PPDFB_API DrawRectangle       (const DFBRectangle       &rect);
+     void                   PPDFB_API DrawLine            (const DFBRegion          &line);
 
-     IDirectFBSurface       GetSubSurface       (int                       x,
-                                                 int                       y,
-                                                 int                       width,
-                                                 int                       height);
+     IDirectFBSurface       PPDFB_API GetSubSurface       (int                       x,
+                                                           int                       y,
+                                                           int                       width,
+                                                           int                       height);
 
-     void                   GetClip             (DFBRegion                *clip);
+     void                   PPDFB_API GetClip             (DFBRegion                *clip);
 
-     int                    GetFramebufferOffset();
+     int                    PPDFB_API GetFramebufferOffset();
 
-     void                   ReleaseSource       ();
-     void                   SetIndexTranslation (const int                *indices,
-                                                 int                       num_indices);
+     void                   PPDFB_API ReleaseSource       ();
+     void                   PPDFB_API SetIndexTranslation (const int                *indices,
+                                                           int                       num_indices);
 
-     void                   Read                (void                     *ptr,
-                                                 int                       pitch,
-                                                 const DFBRectangle       *rect = NULL);
+     void                   PPDFB_API Read                (void                     *ptr,
+                                                           int                       pitch,
+                                                           const DFBRectangle       *rect = NULL);
 
-     void                   Write               (const void               *ptr,
-                                                 int                       pitch,
-                                                 const DFBRectangle       *rect = NULL);
+     void                   PPDFB_API Write               (const void               *ptr,
+                                                           int                       pitch,
+                                                           const DFBRectangle       *rect = NULL);
 
-     inline IDirectFBSurface& operator = (const IDirectFBSurface& other){
+     inline IDirectFBSurface PPDFB_API & operator = (const IDirectFBSurface& other){
           return IPPAny<IDirectFBSurface, IDirectFBSurface_C>::operator =(other);
      }
-     inline IDirectFBSurface& operator = (IDirectFBSurface_C* other){
+     inline IDirectFBSurface PPDFB_API & operator = (IDirectFBSurface_C* other){
           return IPPAny<IDirectFBSurface, IDirectFBSurface_C>::operator =(other);
      }
 };

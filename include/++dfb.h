@@ -29,6 +29,25 @@
 #error Please include '++dfb.h' before 'directfb.h'.
 #endif
 
+
+#ifdef WIN32
+// The following ifdef block is the standard way of creating macros which make exporting 
+// from a DLL simpler. All files within this DLL are compiled with the PPDFB_EXPORTS
+// symbol defined on the command line. This symbol should not be defined on any project
+// that uses this DLL. This way any other project whose source files include this file see 
+// PPDFB_API functions as being imported from a DLL, whereas this DLL sees symbols
+// defined with this macro as being exported.
+#ifdef PPDFB_EXPORTS
+#define PPDFB_API __declspec(dllexport)
+#else
+#define PPDFB_API __declspec(dllimport)
+#endif
+#else
+#define PPDFB_API
+#endif
+
+
+
 #include <iostream>
 
 #define IDirectFB              IDirectFB_C
@@ -429,19 +448,19 @@ class IDirectFBDataBuffer;
 
 class DirectFB {
 public:
-     static void      Init   (int *argc = NULL, char *(*argv[]) = NULL);
-     static IDirectFB Create ();
+     static void      PPDFB_API Init   (int *argc = NULL, char *(*argv[]) = NULL);
+     static IDirectFB PPDFB_API Create ();
 };
 
 class DFBException {
 public:
-     DFBException (const char *action, DFBResult result_code);
+     PPDFB_API DFBException (const char *action, DFBResult result_code);
 
-     const char *GetAction() const;
-     const char *GetResult() const;
-     DFBResult   GetResultCode() const;
+     const char PPDFB_API *GetAction() const;
+     const char PPDFB_API *GetResult() const;
+     DFBResult  PPDFB_API  GetResultCode() const;
 
-     friend std::ostream &operator << (std::ostream &stream, DFBException *ex);
+     friend std::ostream PPDFB_API &operator << (std::ostream &stream, DFBException *ex);
 
 private:
      const char *action;
