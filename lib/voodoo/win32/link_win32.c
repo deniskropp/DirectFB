@@ -48,7 +48,9 @@
 /**********************************************************************************************************************/
 
 typedef struct {
-     SOCKET socket;
+     SOCKET      socket;
+     DirectMutex lock;
+     WSAEVENT    event;
 } Link;
 
 static void
@@ -59,6 +61,12 @@ Close( VoodooLink *link )
      D_INFO( "Voodoo/Link: Closing connection.\n" );
 
      // FIXME: how to close socket?
+
+     direct_mutex_deinit( &l->lock );
+
+     WSACloseEvent( l->event );
+
+     D_FREE( l );
 }
 
 static ssize_t
@@ -68,7 +76,44 @@ Read( VoodooLink *link,
 {
      Link *l = link->priv;
 
-     return recv( l->socket, buffer, count, 0 );
+     while (true) {
+          ssize_t        ret;
+          fd_set         rfds;
+          struct timeval tv;
+          int            retval;
+
+          FD_ZERO( &rfds );
+          FD_SET( l->socket, &rfds );
+
+          tv.tv_sec  = 0;
+          tv.tv_usec = 0;//10000;
+
+          direct_mutex_lock( &l->lock );
+
+          retval = select( l->socket+1, &rfds, NULL, NULL, &tv );
+          switch (retval) {
+               default:
+                    ret = recv( l->socket, buffer, count, 0 );
+                    direct_mutex_unlock( &l->lock );
+                    return ret;
+
+               case 0:
+                    D_DEBUG( "Voodoo/Link: Timeout during select()\n" );
+                    break;
+
+               case -1:
+                    //if (errno && errno != EINTR)
+                    D_PERROR( "Voodoo/Player: select() on socket failed!\n" );
+                    direct_mutex_unlock( &l->lock );
+                    return -1;
+          }
+
+          direct_mutex_unlock( &l->lock );
+
+          direct_thread_sleep( 20000 );
+     }
+
+     return -1;
 }
 
 static ssize_t
@@ -76,9 +121,164 @@ Write( VoodooLink *link,
        const void *buffer,
        size_t      count )
 {
+     ssize_t  ret;
+     Link    *l = link->priv;
+
+     direct_mutex_lock( &l->lock );
+
+     ret = send( l->socket, buffer, count, 0 );
+     if (ret < 0) {
+          D_PERROR( "send(): WSA error %d\n", WSAGetLastError() );
+     }
+
+     direct_mutex_unlock( &l->lock );
+
+     return ret;
+}
+
+static DirectResult
+SendReceive( VoodooLink  *link,
+             VoodooChunk *sends,
+             size_t       num_send,
+             VoodooChunk *recvs,
+             size_t       num_recv )
+{
+     Link    *l = link->priv;
+     size_t   i;
+     ssize_t  ret;
+     DWORD    wait_result;
+
+//     direct_mutex_lock( &l->lock );
+
+     for (i=0; i<num_send; i++) {
+          //printf("writing %d\n",sends[i].length);
+          ret = send( l->socket, sends[i].ptr, sends[i].length, 0 );
+          //printf("wrote %d/%d\n",ret,sends[i].length);
+          if (ret < 0) {
+               if (WSAGetLastError() == 10035) {
+                    break;
+               }
+               D_PERROR( "Voodoo/Link: Failed to send() data error %d!\n", WSAGetLastError() );
+          }
+          else {
+               sends[i].done = ret;
+
+               if (sends[i].done != sends[i].length) {
+                    D_UNIMPLEMENTED();
+               //               direct_mutex_unlock( &l->lock );
+                    return DR_UNIMPLEMENTED;
+               }
+
+               return DR_OK;
+          }
+     }
+
+
+     while (true) {
+          LONG events = 0;
+          WSANETWORKEVENTS WsaNetworkEvents;
+
+          if (num_recv) {
+               //printf("wait for recv\n");
+               events |= FD_READ;
+          }
+
+          if (num_send) {
+               //printf("wait for send\n");
+               events |= FD_WRITE;
+          }
+
+          WSAEventSelect( l->socket, l->event, events );
+
+          wait_result = WSAWaitForMultipleEvents( 1, &l->event, FALSE, 10, FALSE );
+          switch (wait_result) {
+               case WSA_WAIT_EVENT_0:
+                    WSAResetEvent( l->event );
+
+                    WSAEnumNetworkEvents(l->socket, l->event, &WsaNetworkEvents);
+                    //printf("<-- events 0x%08x\n",WsaNetworkEvents.lNetworkEvents);
+
+                    if (!WsaNetworkEvents.lNetworkEvents)
+                         return DR_INTERRUPTED;
+
+                    if (WsaNetworkEvents.lNetworkEvents & FD_WRITE) {
+                         //printf("<-- event write\n");
+
+                         for (i=0; i<num_send; i++) {
+                              //printf("writing %d\n",sends[i].length);
+                              ret = send( l->socket, sends[i].ptr, sends[i].length, 0 );
+                              //printf("wrote %d/%d\n",ret,sends[i].length);
+                              if (ret < 0) {
+                                   if (WSAGetLastError() == 10035) {
+                                        break;
+                                   }
+                                   D_PERROR( "Voodoo/Link: Failed to send() data error %d!\n", WSAGetLastError() );
+                              }
+                              else {
+                                   sends[i].done = ret;
+                         
+                                   if (sends[i].done != sends[i].length) {
+                                        D_UNIMPLEMENTED();
+                                   //               direct_mutex_unlock( &l->lock );
+                                        return DR_UNIMPLEMENTED;
+                                   }
+                         
+                                   return DR_OK;
+                              }
+                         }
+                    }
+     
+                    if (WsaNetworkEvents.lNetworkEvents & FD_READ) {
+                         //printf("<-- event read\n");
+
+                         for (i=0; i<num_recv; i++) {
+                              ret = recv( l->socket, recvs[i].ptr, recvs[i].length, 0 );
+                              //printf("read %d\n",ret);
+                              if (ret < 0) {
+                                   if (WSAGetLastError() == 10035) {
+                                        break;
+                                   }
+                                   D_PERROR( "Voodoo/Link: Failed to recv() data error %d!\n", WSAGetLastError() );
+                    //               direct_mutex_unlock( &l->lock );
+                                   return DR_FAILURE;
+                              }
+          
+                              recvs[i].done = ret;
+          
+                              if (recvs[i].done < recvs[i].length)
+                                   return DR_OK;
+
+                              return DR_OK;
+                         }
+                    }
+                    break;
+     
+               case WSA_WAIT_TIMEOUT:
+                    //printf("<-- timeout\n");
+                    return DR_TIMEOUT;
+                    break;
+     
+               default:
+                    D_ERROR( "Voodoo/Link: WaitForMultipleObjects() failed!\n" );
+                    return DR_FAILURE;
+          }
+     }
+
+//     direct_mutex_unlock( &l->lock );
+
+     return DR_OK;
+}
+
+static DirectResult
+WakeUp( VoodooLink *link )
+{
      Link *l = link->priv;
 
-     return send( l->socket, buffer, count, 0 );
+     //printf("*** wakeup\n");
+
+     SetEvent( l->event );
+
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
@@ -167,10 +367,16 @@ voodoo_link_init_connect( VoodooLink *link,
           return ret;
      }
 
-     link->priv  = l;
-     link->Close = Close;
-     link->Read  = Read;
-     link->Write = Write;
+     direct_mutex_init( &l->lock );
+
+     l->event  = WSACreateEvent();
+
+     link->priv        = l;
+     link->Close       = Close;
+     link->Read        = Read;
+     link->Write       = Write;
+     link->SendReceive = SendReceive;
+     link->WakeUp      = WakeUp;
 
      return DR_OK;
 }

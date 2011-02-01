@@ -56,12 +56,16 @@
 #include <voodoo/play.h>
 
 
+D_DEBUG_DOMAIN( Voodoo_Link, "Voodoo/Link", "Voodoo Link" );
+
+/**********************************************************************************************************************/
+
 #if !VOODOO_BUILD_NO_SETSOCKOPT
 static const int one = 1;
 static const int tos = IPTOS_LOWDELAY;
 #endif
 
-/**************************************************************************************************/
+/**********************************************************************************************************************/
 
 #define DUMP_SOCKET_OPTION(fd,o)                                                \
 do {                                                                            \
@@ -78,6 +82,7 @@ do {                                                                            
 
 typedef struct {
      int fd;
+     int wakeup_fds[2];
 } Link;
 
 static void
@@ -111,6 +116,167 @@ Write( VoodooLink *link,
      Link *l = link->priv;
 
      return send( l->fd, buffer, count, 0 );
+}
+
+static DirectResult
+SendReceive( VoodooLink  *link,
+             VoodooChunk *sends,
+             size_t       num_send,
+             VoodooChunk *recvs,
+             size_t       num_recv )
+{
+     Link    *l = link->priv;
+     size_t   i;
+     ssize_t  ret;
+     int      select_result;
+
+     D_DEBUG_AT( Voodoo_Link, "%s( link %p, sends %p, num_send %zu, recvs %p, num_recv %zu )\n",
+                 __func__, link, sends, num_send, recvs, num_recv );
+/*
+     for (i=0; i<num_send; i++) {
+          //printf("writing %d\n",sends[i].length);
+          ret = send( l->fd, sends[i].ptr, sends[i].length, 0 );
+          printf("wrote %d/%d\n",ret,sends[i].length);
+          if (ret < 0) {
+               if (errno == EAGAIN) {
+                    break;
+               }
+               D_PERROR( "Voodoo/Link: Failed to send() data!\n" );
+          }
+          else {
+               sends[i].done = ret;
+
+               if (sends[i].done != sends[i].length) {
+                    D_UNIMPLEMENTED();
+               //               direct_mutex_unlock( &l->lock );
+                    return DR_UNIMPLEMENTED;
+               }
+
+               return DR_OK;
+          }
+     }
+*/
+
+     while (true) {
+          fd_set         fds_read;
+          fd_set         fds_write;
+          struct timeval tv;
+
+          FD_ZERO( &fds_read );
+          FD_ZERO( &fds_write );
+
+          if (num_recv) {
+               //printf("wait for recv\n");
+               FD_SET( l->fd, &fds_read );
+          }
+
+          if (num_send) {
+               //printf("wait for send\n");
+               FD_SET( l->fd, &fds_write );
+          }
+
+          FD_SET( l->wakeup_fds[0], &fds_read );
+
+          tv.tv_sec  = 0;
+          tv.tv_usec = 50000;
+
+          D_DEBUG_AT( Voodoo_Link, "  -> select( %s%s )...\n", num_recv ? "R" : " ", num_send ? "W" : " " );
+          select_result = select( MAX(l->wakeup_fds[0],l->fd)+1, &fds_read, &fds_write, NULL, &tv );
+          D_DEBUG_AT( Voodoo_Link, "  -> select result: %d\n", select_result );
+          switch (select_result) {
+               default:
+                    if (FD_ISSET( l->fd, &fds_write )) {
+                         D_DEBUG_AT( Voodoo_Link, "  => WRITE\n" );
+
+                         //printf("<-- event write\n");
+
+                         for (i=0; i<num_send; i++) {
+                              //printf("writing %d\n",sends[i].length);
+                              ret = send( l->fd, sends[i].ptr, sends[i].length, 0 );
+                              //printf("wrote %d/%d\n",ret,sends[i].length);
+                              if (ret < 0) {
+                                   if (errno == EAGAIN) {
+                                        break;
+                                   }
+                                   D_PERROR( "Voodoo/Link: Failed to send() data!\n" );
+                              }
+                              else {
+                                   sends[i].done = ret;
+                         
+                                   if (sends[i].done != sends[i].length) {
+                                        D_UNIMPLEMENTED();
+                                        return DR_UNIMPLEMENTED;
+                                   }
+                         
+                                   return DR_OK;
+                              }
+                         }
+                    }
+     
+                    if (FD_ISSET( l->fd, &fds_read )) {
+                         D_DEBUG_AT( Voodoo_Link, "  => READ\n" );
+
+                         //printf("<-- event read\n");
+
+                         for (i=0; i<num_recv; i++) {
+                              ret = recv( l->fd, recvs[i].ptr, recvs[i].length, 0 );
+                              //printf("read %d\n",ret);
+                              if (ret < 0) {
+                                   if (errno == EAGAIN) {
+                                        break;
+                                   }
+                                   D_PERROR( "Voodoo/Link: Failed to recv() data!\n" );
+                                   return DR_FAILURE;
+                              }
+
+                              if (!ret)
+                                   return DR_IO;
+          
+                              recvs[i].done = ret;
+          
+                              if (recvs[i].done < recvs[i].length)
+                                   return DR_OK;
+
+                              return DR_OK;
+                         }
+                    }
+
+                    if (FD_ISSET( l->wakeup_fds[0], &fds_read )) {
+                         D_DEBUG_AT( Voodoo_Link, "  => WAKE UP\n" );
+
+                         static char buf[1000];
+                         read( l->wakeup_fds[0], buf, sizeof(buf) );
+                         return DR_INTERRUPTED;
+                    }
+                    break;
+     
+               case 0:
+                    D_DEBUG_AT( Voodoo_Link, "  => TIMEOUT\n" );
+
+                    //printf("<-- timeout\n");
+                    return DR_TIMEOUT;
+                    break;
+     
+               case -1:
+                    D_ERROR( "Voodoo/Link: select() failed!\n" );
+                    return DR_FAILURE;
+          }
+     }
+
+     return DR_OK;
+}
+
+static DirectResult
+WakeUp( VoodooLink *link )
+{
+     Link *l = link->priv;
+     char  c = 0;
+
+     //printf("*** wakeup\n");
+
+     write( l->wakeup_fds[1], &c, 1 );
+
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
@@ -224,11 +390,15 @@ voodoo_link_init_connect( VoodooLink *link,
      DUMP_SOCKET_OPTION( l->fd, SO_SNDBUF );
      DUMP_SOCKET_OPTION( l->fd, SO_RCVBUF );
 
+     pipe( l->wakeup_fds );
 
-     link->priv  = l;
-     link->Close = Close;
-     link->Read  = Read;
-     link->Write = Write;
+
+     link->priv        = l;
+     link->Close       = Close;
+     link->Read        = Read;
+     link->Write       = Write;
+     link->SendReceive = SendReceive;
+     link->WakeUp      = WakeUp;
 
      return DR_OK;
 }
@@ -245,10 +415,14 @@ voodoo_link_init_fd( VoodooLink *link,
 
      l->fd = fd;
 
-     link->priv  = l;
-     link->Close = Close;
-     link->Read  = Read;
-     link->Write = Write;
+     pipe( l->wakeup_fds );
+
+     link->priv        = l;
+     link->Close       = Close;
+     link->Read        = Read;
+     link->Write       = Write;
+     link->SendReceive = SendReceive;
+     link->WakeUp      = WakeUp;
 
      return DR_OK;
 }

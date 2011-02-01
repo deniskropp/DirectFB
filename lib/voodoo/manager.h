@@ -33,6 +33,14 @@
 #include <voodoo/message.h>
 
 
+
+typedef struct {
+     void   *ptr;
+     size_t  length;
+     size_t  done;
+} VoodooChunk;
+
+
 struct __V_VoodooLink {
      void *priv;
 
@@ -50,7 +58,13 @@ struct __V_VoodooLink {
 
 
      /* For later... */
-     DirectResult (*SendReceive)( void );
+     DirectResult (*SendReceive)( VoodooLink  *link,
+                                  VoodooChunk *send,
+                                  size_t       num_send,
+                                  VoodooChunk *recv,
+                                  size_t       num_recv );
+
+     DirectResult (*WakeUp)     ( VoodooLink  *link );
 };
 
 DirectResult VOODOO_API voodoo_link_init_connect( VoodooLink *link,
