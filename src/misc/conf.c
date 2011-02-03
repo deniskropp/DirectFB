@@ -28,7 +28,6 @@
 
 #include <config.h>
 
-#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -50,11 +49,9 @@
 #include <voodoo/conf.h>
 #endif
 
-#include <core/coretypes.h>
+#if !DIRECTFB_BUILD_PURE_VOODOO
 #include <core/surface.h>
-#include <core/layers.h>
-
-#include <gfx/convert.h>
+#endif
 
 #include <misc/conf.h>
 
@@ -207,12 +204,12 @@ dfb_config_parse_pixelformat( const char *format )
      size_t length = strlen(format);
 
      for (i=0; dfb_pixelformat_names[i].format != DSPF_UNKNOWN; i++) {
-          if (!strcasecmp( format, dfb_pixelformat_names[i].name ))
+          if (!direct_strcasecmp( format, dfb_pixelformat_names[i].name ))
                return dfb_pixelformat_names[i].format;
      }
 
      for (i=0; dfb_pixelformat_names[i].format != DSPF_UNKNOWN; i++) {
-          if (!strncasecmp( format, dfb_pixelformat_names[i].name, length ))
+          if (!direct_strncasecmp( format, dfb_pixelformat_names[i].name, length ))
                return dfb_pixelformat_names[i].format;
      }
 
@@ -230,9 +227,16 @@ print_config_usage( void )
 static DFBResult
 parse_args( const char *args )
 {
-     char *buf = alloca( strlen(args) + 1 );
+     int   len = strlen(args);
+     char *buf, *tmp;
 
-     strcpy( buf, args );
+     tmp = D_MALLOC( len + 1 );
+     if (!tmp)
+          return D_OOM();
+
+     buf = tmp;
+
+     direct_memcpy( buf, args, len + 1 );
 
      while (buf && buf[0]) {
           DFBResult  ret;
@@ -263,11 +267,14 @@ parse_args( const char *args )
                     D_ERROR( "DirectFB/Config: Unknown option '%s'!\n", buf );
                     break;
                default:
+                    D_FREE( tmp );
                     return ret;
           }
 
           buf = next;
      }
+
+     D_FREE( tmp );
 
      return DFB_OK;
 }
@@ -283,7 +290,7 @@ static void config_values_parse( FusionVector *vector, const char *arg )
           return;
      }
 
-     while ((r = strtok_r( s, ",", &p ))) {
+     while ((r = direct_strtok_r( s, ",", &p ))) {
           direct_trim( &r );
 
           r = D_STRDUP( r );
@@ -487,7 +494,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                int bus, dev, func;
 
-               if (sscanf( value, "%d:%d:%d", &bus, &dev, &func ) != 3) {
+               if (direct_sscanf( value, "%d:%d:%d", &bus, &dev, &func ) != 3) {
                     D_ERROR( "DirectFB/Config 'busid': Could not parse busid!\n");
                     return DFB_INVARG;
                }
@@ -512,7 +519,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                int width, height;
 
-               if (sscanf( value, "%dx%d", &width, &height ) < 2) {
+               if (direct_sscanf( value, "%dx%d", &width, &height ) < 2) {
                     D_ERROR("DirectFB/Config 'scaled': Could not parse size!\n");
                     return DFB_INVARG;
                }
@@ -529,7 +536,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                int id;
 
-               if (sscanf( value, "%d", &id ) < 1) {
+               if (direct_sscanf( value, "%d", &id ) < 1) {
                     D_ERROR("DirectFB/Config 'primary-layer': Could not parse id!\n");
                     return DFB_INVARG;
                }
@@ -571,7 +578,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                int size_kb;
 
-               if (sscanf( value, "%d", &size_kb ) < 1) {
+               if (direct_sscanf( value, "%d", &size_kb ) < 1) {
                     D_ERROR( "DirectFB/Config '%s': Could not parse value!\n", name);
                     return DFB_INVARG;
                }
@@ -587,7 +594,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                int session;
 
-               if (sscanf( value, "%d", &session ) < 1) {
+               if (direct_sscanf( value, "%d", &session ) < 1) {
                     D_ERROR("DirectFB/Config 'session': Could not parse value!\n");
                     return DFB_INVARG;
                }
@@ -608,7 +615,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
                     int len  = (long) colon - (long) value;
                     int port = 0;
 
-                    if (sscanf( colon + 1, "%d", &port ) < 1) {
+                    if (direct_sscanf( colon + 1, "%d", &port ) < 1) {
                          D_ERROR("DirectFB/Config 'remote': "
                                  "Could not parse value (format is <host>[:<port>])!\n");
                          return DFB_INVARG;
@@ -642,7 +649,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                int limit;
 
-               if (sscanf( value, "%d", &limit ) < 1) {
+               if (direct_sscanf( value, "%d", &limit ) < 1) {
                     D_ERROR("DirectFB/Config 'videoram-limit': Could not parse value!\n");
                     return DFB_INVARG;
                }
@@ -661,7 +668,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                int limit;
 
-               if (sscanf( value, "%d", &limit ) < 1) {
+               if (direct_sscanf( value, "%d", &limit ) < 1) {
                     D_ERROR("DirectFB/Config '%s': Could not parse value!\n", name);
                     return DFB_INVARG;
                }
@@ -730,7 +737,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
                     flags = DCWF_CREATE_SURFACE;
 
                     if (opt)
-                         sscanf( opt, "%dx%d",
+                         direct_sscanf( opt, "%dx%d",
                                  &dfb_config->warn.create_surface.min_size.w,
                                  &dfb_config->warn.create_surface.min_size.h );
                } else
@@ -741,7 +748,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
                     flags = DCWF_ALLOCATE_BUFFER;
 
                     if (opt)
-                         sscanf( opt, "%dx%d",
+                         direct_sscanf( opt, "%dx%d",
                                  &dfb_config->warn.allocate_buffer.min_size.w,
                                  &dfb_config->warn.allocate_buffer.min_size.h );
                }
@@ -773,7 +780,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                int mode;
 
-               if (sscanf( value, "%d", &mode ) < 1 || mode < 0 || mode > 8) {
+               if (direct_sscanf( value, "%d", &mode ) < 1 || mode < 0 || mode > 8) {
                     D_ERROR( "DirectFB/Config 'agp': "
                              "invalid agp mode '%s'!\n", value );
                     return DFB_INVARG;
@@ -798,7 +805,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                int limit;
 
-               if (sscanf( value, "%d", &limit ) < 1) {
+               if (direct_sscanf( value, "%d", &limit ) < 1) {
                     D_ERROR( "DirectFB/Config 'agpmem-limit': "
                              "Could not parse value!\n" );
                     return DFB_INVARG;
@@ -949,7 +956,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                int vt_num;
 
-               if (sscanf( value, "%d", &vt_num ) < 1) {
+               if (direct_sscanf( value, "%d", &vt_num ) < 1) {
                     D_ERROR("DirectFB/Config 'vt-num': Could not parse value!\n");
                     return DFB_INVARG;
                }
@@ -973,6 +980,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "no-graphics-vt" ) == 0) {
           dfb_config->kd_graphics = false;
      } else
+#if !DIRECTFB_BUILD_PURE_VOODOO
      if (strcmp (name, "window-surface-policy" ) == 0) {
           if (value) {
                if (strcmp( value, "auto" ) == 0) {
@@ -1002,11 +1010,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
+#endif
      if (strcmp (name, "init-layer" ) == 0) {
           if (value) {
                int id;
 
-               if (sscanf( value, "%d", &id ) < 1) {
+               if (direct_sscanf( value, "%d", &id ) < 1) {
                     D_ERROR("DirectFB/Config '%s': Could not parse id!\n", name);
                     return DFB_INVARG;
                }
@@ -1029,7 +1038,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                int id;
 
-               if (sscanf( value, "%d", &id ) < 1) {
+               if (direct_sscanf( value, "%d", &id ) < 1) {
                     D_ERROR("DirectFB/Config '%s': Could not parse id!\n", name);
                     return DFB_INVARG;
                }
@@ -1052,7 +1061,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                int width, height;
 
-               if (sscanf( value, "%dx%d", &width, &height ) < 2) {
+               if (direct_sscanf( value, "%dx%d", &width, &height ) < 2) {
                     D_ERROR("DirectFB/Config '%s': Could not parse width and height!\n", name);
                     return DFB_INVARG;
                }
@@ -1078,7 +1087,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                int depth;
 
-               if (sscanf( value, "%d", &depth ) < 1) {
+               if (direct_sscanf( value, "%d", &depth ) < 1) {
                     D_ERROR("DirectFB/Config '%s': Could not parse value!\n", name);
                     return DFB_INVARG;
                }
@@ -1290,7 +1299,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
 
                conf->stacking = 0;
 
-               while ((r = strtok_r( s, ",", &p ))) {
+               while ((r = direct_strtok_r( s, ",", &p ))) {
                     direct_trim( &r );
 
                     if (!strcmp( r, "lower" ))
@@ -1367,7 +1376,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                int rotate;
 
-               if (sscanf( value, "%d", &rotate ) < 1) {
+               if (direct_sscanf( value, "%d", &rotate ) < 1) {
                     D_ERROR("DirectFB/Config '%s': Could not parse value!\n", name);
                     return DFB_INVARG;
                }
@@ -1672,7 +1681,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                int rev;
 
-               if (sscanf( value, "%d", &rev ) < 1) {
+               if (direct_sscanf( value, "%d", &rev ) < 1) {
                     D_ERROR("DirectFB/Config 'unichrome-revision': Could not parse revision!\n");
                     return DFB_INVARG;
                }
@@ -1691,7 +1700,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
           if (value) {
                unsigned int rate;
 
-               if (sscanf( value, "%u", &rate ) < 1) {
+               if (direct_sscanf( value, "%u", &rate ) < 1) {
                     D_ERROR("DirectFB/Config '%s': Could not parse value!\n", name);
                     return DFB_INVARG;
                }
@@ -1729,11 +1738,15 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
 {
      DFBResult ret;
      int i;
-     char *home = getenv( "HOME" );
+#ifndef WIN32
+     char *home = direct_getenv( "HOME" );
+#endif
      char *prog = NULL;
      char *session;
      char *dfbargs;
+#ifndef WIN32
      char  cmdbuf[1024];
+#endif
 
      if (dfb_config)
           return DFB_OK;
@@ -1745,17 +1758,19 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
      if (ret  &&  ret != DFB_IO)
           return ret;
 
+#ifndef WIN32
      /* Read user settings. */
      if (home) {
           int  len = strlen(home) + strlen("/.directfbrc") + 1;
           char buf[len];
 
-          snprintf( buf, len, "%s/.directfbrc", home );
+          direct_snprintf( buf, len, "%s/.directfbrc", home );
 
           ret = dfb_config_read( buf );
           if (ret  &&  ret != DFB_IO)
                return ret;
      }
+#endif
 
      /* Get application name. */
      if (argc && *argc && argv && *argv) {
@@ -1766,6 +1781,7 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
           else
                prog = (*argv)[0];
      }
+#ifndef WIN32
      else {
           /* if we didn't receive argc/argv we try the proc system */
           FILE *f;
@@ -1786,6 +1802,7 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
                fclose( f );
           }
      }
+#endif
 
      /* Strip lt- prefix. */
      if (prog) {
@@ -1793,12 +1810,13 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
             prog += 3;
      }
 
+#ifndef WIN32
      /* Read global application settings. */
      if (prog && prog[0]) {
           int  len = strlen( SYSCONFDIR"/directfbrc." ) + strlen(prog) + 1;
           char buf[len];
 
-          snprintf( buf, len, SYSCONFDIR"/directfbrc.%s", prog );
+          direct_snprintf( buf, len, SYSCONFDIR"/directfbrc.%s", prog );
 
           ret = dfb_config_read( buf );
           if (ret  &&  ret != DFB_IO)
@@ -1810,15 +1828,16 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
           int  len = strlen(home) + strlen("/.directfbrc.") + strlen(prog) + 1;
           char buf[len];
 
-          snprintf( buf, len, "%s/.directfbrc.%s", home, prog );
+          direct_snprintf( buf, len, "%s/.directfbrc.%s", home, prog );
 
           ret = dfb_config_read( buf );
           if (ret  &&  ret != DFB_IO)
                return ret;
      }
+#endif
 
      /* Read settings from environment variable. */
-     dfbargs = getenv( "DFBARGS" );
+     dfbargs = direct_getenv( "DFBARGS" );
      if (dfbargs) {
           ret = parse_args( dfbargs );
           if (ret)
@@ -1826,7 +1845,7 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
      }
 
      /* Active session is used if present, only command line can override. */
-     session = getenv( "DIRECTFB_SESSION" );
+     session = direct_getenv( "DIRECTFB_SESSION" );
      if (session)
           dfb_config_set( "session", session );
 
@@ -1867,6 +1886,7 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
                }
           }
      }
+#ifndef WIN32
      else if (prog) {
           /* we have prog, so we try again the proc filesystem */
           FILE *f;
@@ -1894,6 +1914,7 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
                fclose( f );
           }
      }
+#endif
 
      if (!dfb_config->vt_switch)
           dfb_config->kd_graphics = true;
@@ -1922,6 +1943,7 @@ DFBResult dfb_config_read( const char *filename )
           D_DEBUG_AT( DirectFB_Config, "Parsing config file '%s'.\n", filename );
      }
 
+#ifndef WIN32
      /* store/restore the cwd (needed for the "include" command */
      slash = strrchr( filename, '/' );
      if( slash ) {
@@ -1946,6 +1968,7 @@ DFBResult dfb_config_read( const char *filename )
 
           D_DEBUG_AT( DirectFB_Config, "changing configuration lookup directory to '%s'.\n", nwd );
      }
+#endif
 
      while (fgets( line, 400, f )) {
           char *name = line;
@@ -1982,11 +2005,13 @@ DFBResult dfb_config_read( const char *filename )
 
      fclose( f );
 
+#ifndef WIN32
      /* restore original cwd */
      if( cwd ) {
           chdir( cwd );
           free( cwd );
      }
+#endif
 
      return ret;
 }

@@ -30,21 +30,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include <string.h>
 
 #include <directfb.h>
-
-#include <core/coredefs.h>
-#include <core/layers.h>
-#include <core/screen.h>
 
 #include <direct/debug.h>
 #include <direct/interface.h>
 
 #include <voodoo/manager.h>
 #include <voodoo/message.h>
+
+#include <core/coredefs.h>
 
 #include "idirectfbscreen_dispatcher.h"
 

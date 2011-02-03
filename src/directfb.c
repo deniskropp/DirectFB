@@ -30,14 +30,23 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-
 #include <string.h>
+
+#include <direct/conf.h>
+#include <direct/direct.h>
+#include <direct/interface.h>
+#include <direct/log.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
+#include <direct/util.h>
 
 #include <directfb.h>
 #include <directfb_version.h>
 
 #include <misc/conf.h>
+
+#if !DIRECTFB_BUILD_PURE_VOODOO
+#include <unistd.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
@@ -56,15 +65,8 @@
 
 #include <gfx/convert.h>
 
-#include <direct/conf.h>
-#include <direct/direct.h>
-#include <direct/interface.h>
-#include <direct/log.h>
-#include <direct/mem.h>
-#include <direct/messages.h>
-#include <direct/util.h>
-
 #include <display/idirectfbsurface.h>
+#endif
 
 #include <idirectfb.h>
 
@@ -158,11 +160,13 @@ DirectFBSetOption( const char *name, const char *value )
  * which is needed to access other functions
  */
 DFBResult
-DirectFBCreate( IDirectFB **interface )
+DirectFBCreate( IDirectFB **interface_ptr )
 {
+#if !DIRECTFB_BUILD_PURE_VOODOO
      DFBResult  ret;
      IDirectFB *dfb;
      CoreDFB   *core_dfb;
+#endif
 
      if (!dfb_config) {
           /*  don't use D_ERROR() here, it uses dfb_config  */
@@ -171,12 +175,12 @@ DirectFBCreate( IDirectFB **interface )
           return DFB_INIT;
      }
 
-     if (!interface)
+     if (!interface_ptr)
           return DFB_INVARG;
 
      if (idirectfb_singleton) {
           idirectfb_singleton->AddRef( idirectfb_singleton );
-          *interface = idirectfb_singleton;
+          *interface_ptr = idirectfb_singleton;
           return DFB_OK;
      }
 
@@ -194,7 +198,7 @@ DirectFBCreate( IDirectFB **interface )
 
 #if !DIRECTFB_BUILD_PURE_VOODOO
      if (dfb_config->remote.host)
-          return CreateRemote( dfb_config->remote.host, dfb_config->remote.port, interface );
+          return CreateRemote( dfb_config->remote.host, dfb_config->remote.port, interface_ptr );
 
      ret = dfb_core_create( &core_dfb );
      if (ret)
@@ -217,11 +221,11 @@ DirectFBCreate( IDirectFB **interface )
           dfb_core_activate( core_dfb );
      }
 
-     *interface = idirectfb_singleton = dfb;
+     *interface_ptr = idirectfb_singleton = dfb;
 
      return DFB_OK;
 #else
-     return CreateRemote( dfb_config->remote.host ?: "", dfb_config->remote.port, interface );
+     return CreateRemote( dfb_config->remote.host ? dfb_config->remote.host : "", dfb_config->remote.port, interface_ptr );
 #endif
 }
 
@@ -241,19 +245,6 @@ DirectFBError( const char *msg, DFBResult error )
 const char *
 DirectFBErrorString( DFBResult error )
 {
-     if (D_RESULT_TYPE_IS( error, 'D','F','B' )) {
-          switch (error) {
-               case DFB_NOVIDEOMEMORY:
-                    return "Out of video memory!";
-               case DFB_MISSINGFONT:
-                    return "No font has been set!";
-               case DFB_MISSINGIMAGE:
-                    return "No image has been set!";
-               default:
-                    return "UKNOWN DIRECTFB RESULT!";
-          }
-     }
-
      return DirectResultString( error );
 }
 
@@ -275,7 +266,7 @@ CreateRemote( const char *host, int port, IDirectFB **ret_interface )
 {
      DFBResult             ret;
      DirectInterfaceFuncs *funcs;
-     void                 *interface;
+     void                 *interface_ptr;
 
      D_ASSERT( host != NULL );
      D_ASSERT( ret_interface != NULL );
@@ -284,15 +275,15 @@ CreateRemote( const char *host, int port, IDirectFB **ret_interface )
      if (ret)
           return ret;
 
-     ret = funcs->Allocate( &interface );
+     ret = funcs->Allocate( &interface_ptr );
      if (ret)
           return ret;
 
-     ret = funcs->Construct( interface, host, port );
+     ret = funcs->Construct( interface_ptr, host, port );
      if (ret)
           return ret;
 
-     *ret_interface = idirectfb_singleton = interface;
+     *ret_interface = idirectfb_singleton = interface_ptr;
 
      return DFB_OK;
 }

@@ -167,7 +167,7 @@ IDirectFBPalette_Dispatcher_FindBestMatch( IDirectFBPalette *thiz,
 
 static DFBResult
 IDirectFBPalette_Dispatcher_CreateCopy( IDirectFBPalette  *thiz,
-                                        IDirectFBPalette **interface )
+                                        IDirectFBPalette **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBPalette_Dispatcher)
 
@@ -258,20 +258,26 @@ Dispatch_GetEntries( IDirectFBPalette *thiz, IDirectFBPalette *real,
      VOODOO_PARSER_GET_UINT( parser, offset );
      VOODOO_PARSER_END( parser );
 
-     entries = alloca( num_entries * sizeof(DFBColor) );
+     entries = D_MALLOC( num_entries * sizeof(DFBColor) );
      if (!entries) {
           D_WARN( "out of memory" );
           return DFB_NOSYSTEMMEMORY;
      }
 
      ret = real->GetEntries( real, entries, num_entries, offset );
-     if (ret)
+     if (ret) {
+          D_FREE( entries );
           return ret;
+     }
 
-     return voodoo_manager_respond( manager, true, msg->header.serial,
-                                    DFB_OK, VOODOO_INSTANCE_NONE,
-                                    VMBT_DATA, num_entries * sizeof(DFBColor), entries,
-                                    VMBT_NONE );
+     ret = voodoo_manager_respond( manager, true, msg->header.serial,
+                                   DFB_OK, VOODOO_INSTANCE_NONE,
+                                   VMBT_DATA, num_entries * sizeof(DFBColor), entries,
+                                   VMBT_NONE );
+
+     D_FREE( entries );
+
+     return ret;
 }
 
 static DirectResult

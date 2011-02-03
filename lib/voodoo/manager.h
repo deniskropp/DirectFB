@@ -32,70 +32,98 @@
 #include <voodoo/types.h>
 #include <voodoo/message.h>
 
-DirectResult voodoo_manager_create         ( int                      fd[2],
-                                             VoodooClient            *client,
-                                             VoodooServer            *server,
-                                             VoodooManager          **ret_manager );
 
-DirectResult voodoo_manager_quit           ( VoodooManager           *manager );
+struct __V_VoodooLink {
+     void *priv;
 
-bool         voodoo_manager_is_closed      ( const VoodooManager     *manager );
+     void    (*Close)( VoodooLink *link );
 
-DirectResult voodoo_manager_destroy        ( VoodooManager           *manager );
+     /* See 'read(2)', blocking */
+     ssize_t (*Read) ( VoodooLink *link,
+                       void       *buffer,
+                       size_t      count );
 
-DirectResult voodoo_manager_super          ( VoodooManager           *manager,
-                                             const char              *name,
-                                             VoodooInstanceID        *ret_instance );
+     /* See 'write(2)', blocking */
+     ssize_t (*Write)( VoodooLink *link,
+                       const void *buffer,
+                       size_t      count );
 
-DirectResult voodoo_manager_request        ( VoodooManager           *manager,
-                                             VoodooInstanceID         instance,
-                                             VoodooMethodID           method,
-                                             VoodooRequestFlags       flags,
-                                             VoodooResponseMessage  **ret_response,
-                                             VoodooMessageBlockType   block_type, ... );
 
-DirectResult voodoo_manager_next_response  ( VoodooManager           *manager,
-                                             VoodooResponseMessage   *response,
-                                             VoodooResponseMessage  **ret_response );
+     /* For later... */
+     DirectResult (*SendReceive)( void );
+};
 
-DirectResult voodoo_manager_finish_request ( VoodooManager           *manager,
-                                             VoodooResponseMessage   *response );
+DirectResult VOODOO_API voodoo_link_init_connect( VoodooLink *link,
+                                                  const char *hostname,
+                                                  int         port );
+DirectResult VOODOO_API voodoo_link_init_fd( VoodooLink *link,
+                                             int         fd );
 
-DirectResult voodoo_manager_respond        ( VoodooManager           *manager,
-                                             bool                     flush,
-                                             VoodooMessageSerial      request,
-                                             DirectResult             result,
-                                             VoodooInstanceID         instance,
-                                             VoodooMessageBlockType   block_type, ... );
 
-DirectResult voodoo_manager_register_local ( VoodooManager           *manager,
-                                             bool                     super,
-                                             void                    *dispatcher,
-                                             void                    *real,
-                                             VoodooDispatch           dispatch,
-                                             VoodooInstanceID        *ret_instance_id );
+DirectResult VOODOO_API voodoo_manager_create         ( VoodooLink              *link,
+                                                        VoodooClient            *client,
+                                                        VoodooServer            *server,
+                                                        VoodooManager          **ret_manager );
 
-DirectResult voodoo_manager_unregister_local( VoodooManager           *manager,
-                                              VoodooInstanceID         instance_id );
+DirectResult VOODOO_API voodoo_manager_quit           ( VoodooManager           *manager );
 
-DirectResult voodoo_manager_lookup_local   ( VoodooManager           *manager,
-                                             VoodooInstanceID         instance,
-                                             void                   **ret_dispatcher,
-                                             void                   **ret_real );
+bool         VOODOO_API voodoo_manager_is_closed      ( const VoodooManager     *manager );
 
-DirectResult voodoo_manager_register_remote( VoodooManager           *manager,
-                                             bool                     super,
-                                             void                    *requestor,
-                                             VoodooInstanceID         instance );
+DirectResult VOODOO_API voodoo_manager_destroy        ( VoodooManager           *manager );
 
-DirectResult voodoo_manager_lookup_remote  ( VoodooManager           *manager,
-                                             VoodooInstanceID         instance,
-                                             void                   **ret_requestor );
+DirectResult VOODOO_API voodoo_manager_super          ( VoodooManager           *manager,
+                                                        const char              *name,
+                                                        VoodooInstanceID        *ret_instance );
 
-DirectResult voodoo_manager_quit           ( VoodooManager           *manager );
+DirectResult VOODOO_API voodoo_manager_request        ( VoodooManager           *manager,
+                                                        VoodooInstanceID         instance,
+                                                        VoodooMethodID           method,
+                                                        VoodooRequestFlags       flags,
+                                                        VoodooResponseMessage  **ret_response,
+                                                        VoodooMessageBlockType   block_type, ... );
 
-DirectResult voodoo_manager_check_allocation( VoodooManager           *manager,
-                                              unsigned int             amount );
+DirectResult VOODOO_API voodoo_manager_next_response  ( VoodooManager           *manager,
+                                                        VoodooResponseMessage   *response,
+                                                        VoodooResponseMessage  **ret_response );
+
+DirectResult VOODOO_API voodoo_manager_finish_request ( VoodooManager           *manager,
+                                                        VoodooResponseMessage   *response );
+
+DirectResult VOODOO_API voodoo_manager_respond        ( VoodooManager           *manager,
+                                                        bool                     flush,
+                                                        VoodooMessageSerial      request,
+                                                        DirectResult             result,
+                                                        VoodooInstanceID         instance,
+                                                        VoodooMessageBlockType   block_type, ... );
+
+DirectResult VOODOO_API voodoo_manager_register_local ( VoodooManager           *manager,
+                                                        bool                     super,
+                                                        void                    *dispatcher,
+                                                        void                    *real,
+                                                        VoodooDispatch           dispatch,
+                                                        VoodooInstanceID        *ret_instance_id );
+
+DirectResult VOODOO_API voodoo_manager_unregister_local( VoodooManager           *manager,
+                                                         VoodooInstanceID         instance_id );
+
+DirectResult VOODOO_API voodoo_manager_lookup_local   ( VoodooManager           *manager,
+                                                        VoodooInstanceID         instance,
+                                                        void                   **ret_dispatcher,
+                                                        void                   **ret_real );
+
+DirectResult VOODOO_API voodoo_manager_register_remote( VoodooManager           *manager,
+                                                        bool                     super,
+                                                        void                    *requestor,
+                                                        VoodooInstanceID         instance );
+
+DirectResult VOODOO_API voodoo_manager_lookup_remote  ( VoodooManager           *manager,
+                                                        VoodooInstanceID         instance,
+                                                        void                   **ret_requestor );
+
+DirectResult VOODOO_API voodoo_manager_quit           ( VoodooManager           *manager );
+
+DirectResult VOODOO_API voodoo_manager_check_allocation( VoodooManager           *manager,
+                                                         unsigned int             amount );
 
 
 #endif

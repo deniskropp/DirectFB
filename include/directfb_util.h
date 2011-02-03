@@ -45,33 +45,33 @@ extern "C"
 #include <direct/types.h>
 #include <direct/debug.h>
 
-bool dfb_region_intersect( DFBRegion *region,
-                           int x1, int y1, int x2, int y2 );
+bool DIRECTFB_API dfb_region_intersect( DFBRegion *region,
+                                        int x1, int y1, int x2, int y2 );
 
-bool dfb_region_region_intersect( DFBRegion       *region,
-                                  const DFBRegion *clip );
+bool DIRECTFB_API dfb_region_region_intersect( DFBRegion       *region,
+                                               const DFBRegion *clip );
 
-bool dfb_region_rectangle_intersect( DFBRegion          *region,
-                                     const DFBRectangle *rect );
+bool DIRECTFB_API dfb_region_rectangle_intersect( DFBRegion          *region,
+                                                  const DFBRectangle *rect );
 
-bool dfb_unsafe_region_intersect( DFBRegion *region,
-                                  int x1, int y1, int x2, int y2 );
+bool DIRECTFB_API dfb_unsafe_region_intersect( DFBRegion *region,
+                                               int x1, int y1, int x2, int y2 );
 
-bool dfb_unsafe_region_rectangle_intersect( DFBRegion          *region,
-                                            const DFBRectangle *rect );
+bool DIRECTFB_API dfb_unsafe_region_rectangle_intersect( DFBRegion          *region,
+                                                         const DFBRectangle *rect );
 
-bool dfb_rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
-                                               DFBRegion    *region );
+bool DIRECTFB_API dfb_rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
+                                                            DFBRegion    *region );
 
-bool dfb_rectangle_intersect_by_region( DFBRectangle    *rectangle,
-                                        const DFBRegion *region );
+bool DIRECTFB_API dfb_rectangle_intersect_by_region( DFBRectangle    *rectangle,
+                                                     const DFBRegion *region );
 
-bool dfb_rectangle_intersect( DFBRectangle       *rectangle,
-                              const DFBRectangle *clip );
+bool DIRECTFB_API dfb_rectangle_intersect( DFBRectangle       *rectangle,
+                                           const DFBRectangle *clip );
 
 /* returns the result in the first rectangle */
-void dfb_rectangle_union ( DFBRectangle       *rect1,
-                           const DFBRectangle *rect2 );
+void DIRECTFB_API dfb_rectangle_union ( DFBRectangle       *rect1,
+                                        const DFBRectangle *rect2 );
 
 
 #define DFB_RECTANGLE_ASSERT(r)              \
@@ -168,8 +168,8 @@ void dfb_rectangle_union ( DFBRectangle       *rect1,
      } while (0)
 
 
-static inline void dfb_rectangle_from_region( DFBRectangle    *rect,
-                                              const DFBRegion *region )
+static __inline__ void dfb_rectangle_from_region( DFBRectangle    *rect,
+                                                  const DFBRegion *region )
 {
      D_ASSERT( rect != NULL );
 
@@ -181,9 +181,9 @@ static inline void dfb_rectangle_from_region( DFBRectangle    *rect,
      rect->h = region->y2 - region->y1 + 1;
 }
 
-static inline void dfb_rectangle_from_rectangle_plus_insets( DFBRectangle       *rect,
-                                                             const DFBRectangle *inner,
-                                                             const DFBInsets    *insets )
+static __inline__ void dfb_rectangle_from_rectangle_plus_insets( DFBRectangle       *rect,
+                                                                 const DFBRectangle *inner,
+                                                                 const DFBInsets    *insets )
 {
      D_ASSERT( rect != NULL );
      D_ASSERT( insets != NULL );
@@ -196,8 +196,8 @@ static inline void dfb_rectangle_from_rectangle_plus_insets( DFBRectangle       
      rect->h = inner->h + insets->t + insets->b;
 }
 
-static inline void dfb_region_from_rectangle( DFBRegion          *region,
-                                              const DFBRectangle *rect )
+static __inline__ void dfb_region_from_rectangle( DFBRegion          *region,
+                                                  const DFBRectangle *rect )
 {
      D_ASSERT( region != NULL );
 
@@ -212,24 +212,24 @@ static inline void dfb_region_from_rectangle( DFBRegion          *region,
      region->y2 = rect->y + rect->h - 1;
 }
 
-void dfb_region_from_rotated( DFBRegion          *region,
-                              const DFBRegion    *from,
-                              const DFBDimension *size,
-                              int                 rotation );
+void DIRECTFB_API dfb_region_from_rotated( DFBRegion          *region,
+                                           const DFBRegion    *from,
+                                           const DFBDimension *size,
+                                           int                 rotation );
 
-void dfb_rectangle_from_rotated( DFBRectangle       *rectangle,
-                                 const DFBRectangle *from,
-                                 const DFBDimension *size,
-                                 int                 rotation );
+void DIRECTFB_API dfb_rectangle_from_rotated( DFBRectangle       *rectangle,
+                                              const DFBRectangle *from,
+                                              const DFBDimension *size,
+                                              int                 rotation );
 
-void dfb_point_from_rotated_region( DFBPoint           *point,
-                                    const DFBRegion    *from,
-                                    const DFBDimension *size,
-                                    int                 rotation );
+void DIRECTFB_API dfb_point_from_rotated_region( DFBPoint           *point,
+                                                 const DFBRegion    *from,
+                                                 const DFBDimension *size,
+                                                 int                 rotation );
 
-static inline void dfb_rectangle_translate( DFBRectangle *rect,
-                                            int           dx,
-                                            int           dy )
+static __inline__ void dfb_rectangle_translate( DFBRectangle *rect,
+                                                int           dx,
+                                                int           dy )
 {
      DFB_RECTANGLE_ASSERT( rect );
 
@@ -237,9 +237,9 @@ static inline void dfb_rectangle_translate( DFBRectangle *rect,
      rect->y += dy;
 }
 
-static inline void dfb_region_translate( DFBRegion *region,
-                                         int        dx,
-                                         int        dy )
+static __inline__ void dfb_region_translate( DFBRegion *region,
+                                             int        dx,
+                                             int        dy )
 {
      DFB_REGION_ASSERT( region );
 
@@ -249,9 +249,9 @@ static inline void dfb_region_translate( DFBRegion *region,
      region->y2 += dy;
 }
 
-static inline void dfb_rectangle_resize( DFBRectangle *rect,
-                                         int           width,
-                                         int           height )
+static __inline__ void dfb_rectangle_resize( DFBRectangle *rect,
+                                             int           width,
+                                             int           height )
 {
      DFB_RECTANGLE_ASSERT( rect );
 
@@ -262,9 +262,9 @@ static inline void dfb_rectangle_resize( DFBRectangle *rect,
      rect->h = height;
 }
 
-static inline void dfb_region_resize( DFBRegion *region,
-                                      int        width,
-                                      int        height )
+static __inline__ void dfb_region_resize( DFBRegion *region,
+                                          int        width,
+                                          int        height )
 {
      DFB_REGION_ASSERT( region );
 
@@ -275,11 +275,11 @@ static inline void dfb_region_resize( DFBRegion *region,
      region->y2 = region->y1 + height - 1;
 }
 
-static inline bool dfb_region_intersects( const DFBRegion *region,
-                                          int              x1,
-                                          int              y1,
-                                          int              x2,
-                                          int              y2 )
+static __inline__ bool dfb_region_intersects( const DFBRegion *region,
+                                              int              x1,
+                                              int              y1,
+                                              int              x2,
+                                              int              y2 )
 {
      DFB_REGION_ASSERT( region );
 
@@ -292,8 +292,8 @@ static inline bool dfb_region_intersects( const DFBRegion *region,
              region->y2 >= y1);
 }
 
-static inline bool dfb_region_region_intersects( const DFBRegion *region,
-                                                 const DFBRegion *other )
+static __inline__ bool dfb_region_region_intersects( const DFBRegion *region,
+                                                     const DFBRegion *other )
 {
      DFB_REGION_ASSERT( region );
      DFB_REGION_ASSERT( other );
@@ -304,8 +304,8 @@ static inline bool dfb_region_region_intersects( const DFBRegion *region,
              region->y2 >= other->y1);
 }
 
-static inline bool dfb_region_region_extends( const DFBRegion *a,
-                                              const DFBRegion *b )
+static __inline__ bool dfb_region_region_extends( const DFBRegion *a,
+                                                  const DFBRegion *b )
 {
      if (a->x1 == b->x1 && a->x2 == b->x2)
           return (a->y1 == b->y2 - 1) || (a->y2 == b->y1 - 1);
@@ -316,8 +316,8 @@ static inline bool dfb_region_region_extends( const DFBRegion *a,
      return false;
 }
 
-static inline void dfb_region_region_union( DFBRegion       *region,
-                                            const DFBRegion *other )
+static __inline__ void dfb_region_region_union( DFBRegion       *region,
+                                                const DFBRegion *other )
 {
      DFB_REGION_ASSERT( region );
      DFB_REGION_ASSERT( other );
@@ -335,7 +335,7 @@ static inline void dfb_region_region_union( DFBRegion       *region,
           region->y2 = other->y2;
 }
 
-static inline bool dfb_rectangle_region_intersects( const DFBRectangle *rect,
+static __inline__ bool dfb_rectangle_region_intersects( const DFBRectangle *rect,
                                                     const DFBRegion    *region )
 {
      DFB_RECTANGLE_ASSERT( rect );
@@ -348,11 +348,11 @@ static inline bool dfb_rectangle_region_intersects( const DFBRectangle *rect,
              rect->y + rect->h > region->y1);
 }
 
-static inline void dfb_region_clip( DFBRegion *region,
-                                    int        x1,
-                                    int        y1,
-                                    int        x2,
-                                    int        y2 )
+static __inline__ void dfb_region_clip( DFBRegion *region,
+                                        int        x1,
+                                        int        y1,
+                                        int        x2,
+                                        int        y2 )
 {
      DFB_REGION_ASSERT( region );
 
@@ -371,8 +371,8 @@ static inline void dfb_region_clip( DFBRegion *region,
           region->y2 = y2;
 }
 
-static inline void dfb_rectangle_subtract( DFBRectangle    *rect,
-                                           const DFBInsets *insets )
+static __inline__ void dfb_rectangle_subtract( DFBRectangle    *rect,
+                                               const DFBInsets *insets )
 {
      D_ASSERT( rect != NULL );
      D_ASSERT( insets != NULL );
@@ -391,22 +391,23 @@ static inline void dfb_rectangle_subtract( DFBRectangle    *rect,
  * Compute line segment intersection.
  * Return true if intersection point exists within the given segment.
  */
-bool dfb_line_segment_intersect( const DFBRegion *line,
-                                 const DFBRegion *seg,
-                                 int             *x,
-                                 int             *y );
+bool DIRECTFB_API dfb_line_segment_intersect( const DFBRegion *line,
+                                              const DFBRegion *seg,
+                                              int             *x,
+                                              int             *y );
 
 
 /*
  * Copied declaration of DFBPixelFormatName from directfb_strings.h
  */
-extern const struct DFBPixelFormatName dfb_pixelformat_names[];
+extern const struct DFBPixelFormatName DIRECTFB_API dfb_pixelformat_names[];
 
 
-const char *dfb_input_event_type_name ( DFBInputEventType     type );
-const char *dfb_pixelformat_name      ( DFBSurfacePixelFormat format );
-const char *dfb_window_event_type_name( DFBWindowEventType    type );
+const char DIRECTFB_API *dfb_input_event_type_name ( DFBInputEventType     type );
+const char DIRECTFB_API *dfb_pixelformat_name      ( DFBSurfacePixelFormat format );
+const char DIRECTFB_API *dfb_window_event_type_name( DFBWindowEventType    type );
 
+DFBSurfacePixelFormat DIRECTFB_API dfb_pixelformat_for_depth( int depth );
 
 
 typedef struct {
@@ -428,34 +429,34 @@ typedef struct {
      } while (0)
 
 
-void dfb_updates_init( DFBUpdates      *updates,
-                       DFBRegion       *regions,
-                       int              max_regions );
+void DIRECTFB_API dfb_updates_init( DFBUpdates      *updates,
+                                    DFBRegion       *regions,
+                                    int              max_regions );
 
-void dfb_updates_add ( DFBUpdates      *updates,
-                       const DFBRegion *region );
+void DIRECTFB_API dfb_updates_add ( DFBUpdates      *updates,
+                                    const DFBRegion *region );
 
-void dfb_updates_stat( DFBUpdates      *updates,
-                       int             *ret_total,
-                       int             *ret_bounding );
+void DIRECTFB_API dfb_updates_stat( DFBUpdates      *updates,
+                                    int             *ret_total,
+                                    int             *ret_bounding );
 
-void dfb_updates_get_rectangles( DFBUpdates   *updates,
-                                 DFBRectangle *ret_rects,
-                                 int          *ret_num );
+void DIRECTFB_API dfb_updates_get_rectangles( DFBUpdates   *updates,
+                                              DFBRectangle *ret_rects,
+                                              int          *ret_num );
 
-static inline void
+static __inline__ void
 dfb_updates_add_rect( DFBUpdates      *updates,
                       int              x,
                       int              y,
                       int              w,
                       int              h )
 {
-     DFBRegion region = DFB_REGION_INIT_FROM_RECTANGLE_VALS( x, y, w, h );
+     DFBRegion region = { x, y, x+w-1, y+h-1 };
 
      dfb_updates_add( updates, &region );
 }
 
-static inline void
+static __inline__ void
 dfb_updates_reset( DFBUpdates *updates )
 {
      D_MAGIC_ASSERT( updates, DFBUpdates );
@@ -463,7 +464,7 @@ dfb_updates_reset( DFBUpdates *updates )
      updates->num_regions = 0;
 }
 
-static inline void
+static __inline__ void
 dfb_updates_deinit( DFBUpdates *updates )
 {
      D_MAGIC_ASSERT( updates, DFBUpdates );

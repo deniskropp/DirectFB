@@ -29,8 +29,13 @@
 #ifndef __IDIRECTFBEVENTBUFFER_H__
 #define __IDIRECTFBEVENTBUFFER_H__
 
+#include <directfb_build.h>
+
 #include <fusion/types.h>
+
+#if !DIRECTFB_BUILD_PURE_VOODOO
 #include <core/input.h>
+#endif
 
 typedef bool (*EventBufferFilterCallback)( DFBEvent *evt,
                                            void     *ctx );
@@ -42,6 +47,7 @@ DFBResult IDirectFBEventBuffer_Construct( IDirectFBEventBuffer      *thiz,
                                           EventBufferFilterCallback  filter,
                                           void                      *filter_ctx );
 
+#if !DIRECTFB_BUILD_PURE_VOODOO
 DFBResult IDirectFBEventBuffer_AttachInputDevice( IDirectFBEventBuffer *thiz,
                                                   CoreInputDevice      *device );
 DFBResult IDirectFBEventBuffer_DetachInputDevice( IDirectFBEventBuffer *thiz,
@@ -51,6 +57,7 @@ DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
                                              CoreWindow           *window );
 DFBResult IDirectFBEventBuffer_DetachWindow( IDirectFBEventBuffer *thiz,
                                              CoreWindow           *window );
+#endif
 
 
 #endif

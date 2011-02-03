@@ -30,29 +30,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include <string.h>
 #include <errno.h>
 
-#include <sys/time.h>
-
-#include <pthread.h>
-
-#include <fusion/reactor.h>
+#include <direct/interface.h>
 #include <direct/list.h>
+#include <direct/mem.h>
+#include <direct/thread.h>
 
 #include <directfb.h>
 
-#include <core/coredefs.h>
-#include <core/coretypes.h>
-
-#include <core/input.h>
-#include <core/windows.h>
-
 #include <misc/util.h>
-#include <direct/interface.h>
-#include <direct/mem.h>
 
 #include <media/idirectfbdatabuffer.h>
 #include <media/idirectfbfont.h>
@@ -176,16 +165,16 @@ IDirectFBDataBuffer_PutData( IDirectFBDataBuffer *thiz,
 
 static DFBResult
 IDirectFBDataBuffer_CreateImageProvider( IDirectFBDataBuffer     *thiz,
-                                         IDirectFBImageProvider **interface )
+                                         IDirectFBImageProvider **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer)
 
      /* Check arguments */
-     if (!interface)
+     if (!interface_ptr)
           return DFB_INVARG;
 
 #if !DIRECTFB_BUILD_PURE_VOODOO
-     return IDirectFBImageProvider_CreateFromBuffer( thiz, data->core, interface );
+     return IDirectFBImageProvider_CreateFromBuffer( thiz, data->core, interface_ptr );
 #else
      D_BUG( "%s in pure Voodoo build", __FUNCTION__ );
      return DFB_BUG;
@@ -194,16 +183,16 @@ IDirectFBDataBuffer_CreateImageProvider( IDirectFBDataBuffer     *thiz,
 
 static DFBResult
 IDirectFBDataBuffer_CreateVideoProvider( IDirectFBDataBuffer     *thiz,
-                                         IDirectFBVideoProvider **interface )
+                                         IDirectFBVideoProvider **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer)
 
      /* Check arguments */
-     if (!interface)
+     if (!interface_ptr)
           return DFB_INVARG;
 
 #if !DIRECTFB_BUILD_PURE_VOODOO
-     return IDirectFBVideoProvider_CreateFromBuffer( thiz, data->core, interface );
+     return IDirectFBVideoProvider_CreateFromBuffer( thiz, data->core, interface_ptr );
 #else
      D_BUG( "%s in pure Voodoo build", __FUNCTION__ );
      return DFB_BUG;
@@ -213,16 +202,16 @@ IDirectFBDataBuffer_CreateVideoProvider( IDirectFBDataBuffer     *thiz,
 static DFBResult
 IDirectFBDataBuffer_CreateFont( IDirectFBDataBuffer       *thiz,
                                 const DFBFontDescription  *desc,
-                                IDirectFBFont            **interface )
+                                IDirectFBFont            **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer)
 
      /* Check arguments */
-     if (!interface || !desc)
+     if (!interface_ptr || !desc)
           return DFB_INVARG;
 
 #if !DIRECTFB_BUILD_PURE_VOODOO
-     return IDirectFBFont_CreateFromBuffer( thiz, data->core, desc, interface );
+     return IDirectFBFont_CreateFromBuffer( thiz, data->core, desc, interface_ptr );
 #else
      D_BUG( "%s in pure Voodoo build", __FUNCTION__ );
      return DFB_BUG;

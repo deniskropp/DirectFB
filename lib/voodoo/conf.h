@@ -42,12 +42,13 @@ struct __V_VoodooConfig {
      unsigned int    resource_id;
      bool            server_fork;
      char           *server_single;
+     char           *play_broadcast;
 };
 
-extern VoodooConfig *voodoo_config;
+extern VoodooConfig VOODOO_API *voodoo_config;
 
 
-DirectResult voodoo_config_set( const char *name, const char *value );
+DirectResult        VOODOO_API  voodoo_config_set( const char *name, const char *value );
 
 
 #endif

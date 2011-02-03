@@ -32,17 +32,17 @@
 #include <voodoo/types.h>
 
 
-DirectResult
+DirectResult VOODOO_API
 voodoo_construct_requestor( VoodooManager     *manager,
                             const char        *name,
                             VoodooInstanceID   instance,
                             void              *arg,
                             void             **ret_interface );
 
-DirectResult
+DirectResult VOODOO_API
 voodoo_construct_dispatcher( VoodooManager     *manager,
                              const char        *name,
-                             void              *interface,
+                             void              *interface_ptr,
                              VoodooInstanceID   super,
                              void              *arg,
                              VoodooInstanceID  *ret_instance,

@@ -48,7 +48,7 @@ typedef struct {
 DFBResult
 IDirectFBVideoProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
                                          CoreDFB                 *core,
-                                         IDirectFBVideoProvider **interface );
+                                         IDirectFBVideoProvider **interface_ptr );
 
 #endif
 

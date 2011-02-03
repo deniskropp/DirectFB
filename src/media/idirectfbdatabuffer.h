@@ -29,7 +29,7 @@
 #ifndef __IDIRECTFBDATABUFFER_H__
 #define __IDIRECTFBDATABUFFER_H__
 
-#include <core/core.h>
+#include <core/coretypes.h>
 
 /*
  * private data struct of IDirectFBDataBuffer
@@ -50,7 +50,7 @@ typedef struct {
      IDirectFBDataBuffer_data base;
 
      DirectStream    *stream;
-     pthread_mutex_t  mutex;
+     DirectMutex      mutex;
 } IDirectFBDataBuffer_File_data;
 
 /*

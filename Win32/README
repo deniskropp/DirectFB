@@ -1,0 +1,6 @@
+Win32 native port of pure Voodoo DirectFB
+
+Requires FusionDale and DiVine to be checked out in this directory.
+
+
+Tested with Visual C++ 2010 Express.

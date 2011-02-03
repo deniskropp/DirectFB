@@ -30,39 +30,19 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 
 #include <math.h>
 
 
 #include <directfb.h>
-
-#include <core/core.h>
-#include <core/coredefs.h>
-#include <core/coretypes.h>
-
-#include <core/gfxcard.h>
-#include <core/fonts.h>
-#include <core/state.h>
-#include <core/palette.h>
-#include <core/surface.h>
-
-#include <media/idirectfbfont.h>
-
-#include <display/idirectfbsurface.h>
-#include <display/idirectfbpalette.h>
-
-#include <misc/util.h>
+#include <directfb_util.h>
 
 #include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/util.h>
-
-#include <gfx/convert.h>
-#include <gfx/util.h>
 
 #include <voodoo/interface.h>
 #include <voodoo/manager.h>
@@ -346,7 +326,7 @@ IDirectFBSurface_Requestor_GetPalette( IDirectFBSurface  *thiz,
 {
      DirectResult           ret;
      VoodooResponseMessage *response;
-     void                  *interface = NULL;
+     void                  *interface_ptr = NULL;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
@@ -362,11 +342,11 @@ IDirectFBSurface_Requestor_GetPalette( IDirectFBSurface  *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBPalette",
-                                            response->instance, NULL, &interface );
+                                            response->instance, NULL, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
-     *ret_interface = interface;
+     *ret_interface = interface_ptr;
 
      return ret;
 }
@@ -1034,7 +1014,7 @@ IDirectFBSurface_Requestor_GetSubSurface( IDirectFBSurface    *thiz,
 {
      DirectResult           ret;
      VoodooResponseMessage *response;
-     void                  *interface = NULL;
+     void                  *interface_ptr = NULL;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
@@ -1051,22 +1031,22 @@ IDirectFBSurface_Requestor_GetSubSurface( IDirectFBSurface    *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBSurface",
-                                            response->instance, NULL, &interface );
+                                            response->instance, NULL, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
-     *ret_interface = interface;
+     *ret_interface = interface_ptr;
 
      return ret;
 }
 
 static DFBResult
 IDirectFBSurface_Requestor_GetGL( IDirectFBSurface   *thiz,
-                                  IDirectFBGL       **interface )
+                                  IDirectFBGL       **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
-     if (!interface)
+     if (!interface_ptr)
           return DFB_INVARG;
 
      D_UNIMPLEMENTED();
@@ -1270,54 +1250,68 @@ IDirectFBSurface_Requestor_Write( IDirectFBSurface   *thiz,
      switch (format) {
           case DSPF_RGB16:
           case DSPF_ARGB1555: {
-               unsigned int num;
-               u16          buf[rect->w];
+               unsigned int  num;
+               u16          *buf = (u16*) D_MALLOC( rect->w * 2 );
 
-               for (y=0; y<rect->h; y++) {
-                    bool encoded = rle16_encode( ptr + y * pitch, buf, rect->w, &num );
+               if (buf) {
+                    for (y=0; y<rect->h; y++) {
+                         bool encoded = rle16_encode( (u16*)((char*) ptr + y * pitch), buf, rect->w, &num );
 
-                    //D_INFO( "%3d: %u -> %u\n", r.y, rect->w, num );
+                         //D_INFO( "%3d: %u -> %u\n", r.y, rect->w, num );
 
-                    ret = voodoo_manager_request( data->manager, data->instance,
-                                                  IDIRECTFBSURFACE_METHOD_ID_Write, VREQ_QUEUE, NULL,
-                                                  VMBT_UINT, encoded ? 2 : 0,
-                                                  VMBT_DATA, sizeof(DFBRectangle), &r,
-                                                  VMBT_DATA, DFB_BYTES_PER_LINE( format, num ),
-                                                             encoded ? buf : (ptr + y * pitch),
-                                                  VMBT_INT, ABS(pitch),
-                                                  VMBT_NONE );
-                    if (ret)
-                         break;
+                         ret = voodoo_manager_request( data->manager, data->instance,
+                                                       IDIRECTFBSURFACE_METHOD_ID_Write, VREQ_QUEUE, NULL,
+                                                       VMBT_UINT, encoded ? 2 : 0,
+                                                       VMBT_DATA, sizeof(DFBRectangle), &r,
+                                                       VMBT_DATA, DFB_BYTES_PER_LINE( format, num ),
+                                                                  encoded ? buf : (u16*)((char*) ptr + y * pitch),
+                                                       VMBT_INT, ABS(pitch),
+                                                       VMBT_NONE );
+                         if (ret)
+                              break;
 
-                    r.y++;
+                         r.y++;
+                    }
+
+                    D_FREE( buf );
                }
+               else
+                    D_OOM();
+
                break;
           }
 
           case DSPF_RGB32:
           case DSPF_ARGB:
           case DSPF_ABGR: {
-               unsigned int num;
-               u32          buf[rect->w];
+               unsigned int  num;
+               u32          *buf = (u32*) D_MALLOC( rect->w * 4 );
 
-               for (y=0; y<rect->h; y++) {
-                    bool encoded = rle32_encode( ptr + y * pitch, buf, rect->w, &num );
+               if (buf) {
+                    for (y=0; y<rect->h; y++) {
+                         bool encoded = rle32_encode( (u32*)((char*) ptr + y * pitch), buf, rect->w, &num );
 
-                    //D_INFO( "%3d: %u -> %u\n", r.y, rect->w, num );
+                         //D_INFO( "%3d: %u -> %u\n", r.y, rect->w, num );
 
-                    ret = voodoo_manager_request( data->manager, data->instance,
-                                                  IDIRECTFBSURFACE_METHOD_ID_Write, VREQ_QUEUE, NULL,
-                                                  VMBT_UINT, encoded ? 4 : 0,
-                                                  VMBT_DATA, sizeof(DFBRectangle), &r,
-                                                  VMBT_DATA, DFB_BYTES_PER_LINE( format, num ),
-                                                             encoded ? buf : (ptr + y * pitch),
-                                                  VMBT_INT, ABS(pitch),
-                                                  VMBT_NONE );
-                    if (ret)
-                         break;
+                         ret = voodoo_manager_request( data->manager, data->instance,
+                                                       IDIRECTFBSURFACE_METHOD_ID_Write, VREQ_QUEUE, NULL,
+                                                       VMBT_UINT, encoded ? 4 : 0,
+                                                       VMBT_DATA, sizeof(DFBRectangle), &r,
+                                                       VMBT_DATA, DFB_BYTES_PER_LINE( format, num ),
+                                                                  encoded ? buf : (u32*)((char*) ptr + y * pitch),
+                                                       VMBT_INT, ABS(pitch),
+                                                       VMBT_NONE );
+                         if (ret)
+                              break;
 
-                    r.y++;
+                         r.y++;
+                    }
+
+                    D_FREE( buf );
                }
+               else
+                    D_OOM();
+
                break;
           }
 
@@ -1327,7 +1321,7 @@ IDirectFBSurface_Requestor_Write( IDirectFBSurface   *thiz,
                                                   IDIRECTFBSURFACE_METHOD_ID_Write, VREQ_QUEUE, NULL,
                                                   VMBT_UINT, false,
                                                   VMBT_DATA, sizeof(DFBRectangle), &r,
-                                                  VMBT_DATA, DFB_BYTES_PER_LINE( format, rect->w ), ptr + y * pitch,
+                                                  VMBT_DATA, DFB_BYTES_PER_LINE( format, rect->w ), (char*) ptr + y * pitch,
                                                   VMBT_INT, ABS(pitch),
                                                   VMBT_NONE );
                     if (ret)
@@ -1491,11 +1485,11 @@ IDirectFBSurface_Requestor_Read( IDirectFBSurface   *thiz,
           if (encoded) {
                switch (encoded) {
                     case 2:
-                         rle16_decode( buf, ptr + pitch * y, rect->w );
+                         rle16_decode( buf, (u16*)((char*) ptr + pitch * y), rect->w );
                          break;
 
                     case 4:
-                         rle32_decode( buf, ptr + pitch * y, rect->w );
+                         rle32_decode( buf, (u32*)((char*) ptr + pitch * y), rect->w );
                          break;
 
                     default:
@@ -1504,7 +1498,7 @@ IDirectFBSurface_Requestor_Read( IDirectFBSurface   *thiz,
                }
           }
           else
-               direct_memcpy( ptr + pitch * y, buf, DFB_BYTES_PER_LINE(format, rect->w) );
+               direct_memcpy( (char*) ptr + pitch * y, buf, DFB_BYTES_PER_LINE(format, rect->w) );
 
 
           if (y < rect->h - 1)

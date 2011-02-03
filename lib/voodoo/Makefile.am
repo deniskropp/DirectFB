@@ -1,5 +1,8 @@
 ## Makefile.am for DirectFB/lib/voodoo
 
+SUBDIRS = unix
+
+
 INCLUDES = \
 	-I$(top_builddir)/include	\
 	-I$(top_builddir)/lib		\
@@ -25,6 +28,7 @@ include_HEADERS = \
 	build.h			\
 	client.h		\
 	conf.h			\
+	init.h			\
 	interface.h		\
 	manager.h		\
 	message.h		\
@@ -38,6 +42,7 @@ lib_LTLIBRARIES = libvoodoo.la
 libvoodoo_la_SOURCES = \
 	client.c		\
 	conf.c			\
+	init.c			\
 	interface.c		\
 	internal.h		\
 	manager.c		\
@@ -49,7 +54,9 @@ libvoodoo_la_LDFLAGS = \
 	-release $(LT_RELEASE)					\
 	$(DFB_LDFLAGS)
 
-libvoodoo_la_LIBADD = ../direct/libdirect.la
+libvoodoo_la_LIBADD = \
+	unix/libvoodoo_unix.la	\
+	../direct/libdirect.la
 
 
 #

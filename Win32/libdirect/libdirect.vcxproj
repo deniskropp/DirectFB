@@ -1,0 +1,174 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;DIRECT_EXPORTS;_DEBUG;_CONSOLE;ENABLE_DEBUG=1;ENABLE_TRACE=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>P:\DirectFBWin32\Win32;P:\DirectFBWin32\include;P:\DirectFBWin32\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableLanguageExtensions>false</DisableLanguageExtensions>
+    </ClCompile>
+    <Link>
+      <TargetMachine>MachineX86</TargetMachine>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;DIRECT_EXPORTS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>P:\DirectFBWin32\Win32;P:\DirectFBWin32\include;P:\DirectFBWin32\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableLanguageExtensions>true</DisableLanguageExtensions>
+    </ClCompile>
+    <Link>
+      <TargetMachine>MachineX86</TargetMachine>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\lib\direct\atomic.h" />
+    <ClInclude Include="..\..\lib\direct\clock.h" />
+    <ClInclude Include="..\..\lib\direct\compiler.h" />
+    <ClInclude Include="..\..\lib\direct\conf.h" />
+    <ClInclude Include="..\..\lib\direct\debug.h" />
+    <ClInclude Include="..\..\lib\direct\direct.h" />
+    <ClInclude Include="..\..\lib\direct\fifo.h" />
+    <ClInclude Include="..\..\lib\direct\filesystem.h" />
+    <ClInclude Include="..\..\lib\direct\hash.h" />
+    <ClInclude Include="..\..\lib\direct\init.h" />
+    <ClInclude Include="..\..\lib\direct\interface.h" />
+    <ClInclude Include="..\..\lib\direct\interface_implementation.h" />
+    <ClInclude Include="..\..\lib\direct\list.h" />
+    <ClInclude Include="..\..\lib\direct\log.h" />
+    <ClInclude Include="..\..\lib\direct\log_domain.h" />
+    <ClInclude Include="..\..\lib\direct\map.h" />
+    <ClInclude Include="..\..\lib\direct\mem.h" />
+    <ClInclude Include="..\..\lib\direct\memcpy.h" />
+    <ClInclude Include="..\..\lib\direct\messages.h" />
+    <ClInclude Include="..\..\lib\direct\modules.h" />
+    <ClInclude Include="..\..\lib\direct\os\clock.h" />
+    <ClInclude Include="..\..\lib\direct\os\filesystem.h" />
+    <ClInclude Include="..\..\lib\direct\os\log.h" />
+    <ClInclude Include="..\..\lib\direct\os\mem.h" />
+    <ClInclude Include="..\..\lib\direct\os\mutex.h" />
+    <ClInclude Include="..\..\lib\direct\os\signals.h" />
+    <ClInclude Include="..\..\lib\direct\os\system.h" />
+    <ClInclude Include="..\..\lib\direct\os\thread.h" />
+    <ClInclude Include="..\..\lib\direct\os\tls.h" />
+    <ClInclude Include="..\..\lib\direct\os\types.h" />
+    <ClInclude Include="..\..\lib\direct\os\waitqueue.h" />
+    <ClInclude Include="..\..\lib\direct\os\win32\filesystem.h" />
+    <ClInclude Include="..\..\lib\direct\os\win32\mutex.h" />
+    <ClInclude Include="..\..\lib\direct\os\win32\thread.h" />
+    <ClInclude Include="..\..\lib\direct\os\win32\types.h" />
+    <ClInclude Include="..\..\lib\direct\os\win32\waitqueue.h" />
+    <ClInclude Include="..\..\lib\direct\print.h" />
+    <ClInclude Include="..\..\lib\direct\processor.h" />
+    <ClInclude Include="..\..\lib\direct\result.h" />
+    <ClInclude Include="..\..\lib\direct\serial.h" />
+    <ClInclude Include="..\..\lib\direct\signals.h" />
+    <ClInclude Include="..\..\lib\direct\stream.h" />
+    <ClInclude Include="..\..\lib\direct\system.h" />
+    <ClInclude Include="..\..\lib\direct\thread.h" />
+    <ClInclude Include="..\..\lib\direct\trace.h" />
+    <ClInclude Include="..\..\lib\direct\tree.h" />
+    <ClInclude Include="..\..\lib\direct\types.h" />
+    <ClInclude Include="..\..\lib\direct\utf8.h" />
+    <ClInclude Include="..\..\lib\direct\util.h" />
+    <ClInclude Include="..\..\lib\direct\uuid.h" />
+    <ClInclude Include="direct\build.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\lib\direct\clock.c" />
+    <ClCompile Include="..\..\lib\direct\conf.c" />
+    <ClCompile Include="..\..\lib\direct\debug.c" />
+    <ClCompile Include="..\..\lib\direct\direct.c" />
+    <ClCompile Include="..\..\lib\direct\direct_result.c" />
+    <ClCompile Include="..\..\lib\direct\hash.c" />
+    <ClCompile Include="..\..\lib\direct\init.c" />
+    <ClCompile Include="..\..\lib\direct\interface.c" />
+    <ClCompile Include="..\..\lib\direct\list.c" />
+    <ClCompile Include="..\..\lib\direct\log.c" />
+    <ClCompile Include="..\..\lib\direct\log_domain.c" />
+    <ClCompile Include="..\..\lib\direct\map.c" />
+    <ClCompile Include="..\..\lib\direct\mem.c" />
+    <ClCompile Include="..\..\lib\direct\memcpy.c" />
+    <ClCompile Include="..\..\lib\direct\messages.c" />
+    <ClCompile Include="..\..\lib\direct\modules.c" />
+    <ClCompile Include="..\..\lib\direct\os\win32\clock_win32.c" />
+    <ClCompile Include="..\..\lib\direct\os\win32\deprecated.c" />
+    <ClCompile Include="..\..\lib\direct\os\win32\filesystem_win32.c" />
+    <ClCompile Include="..\..\lib\direct\os\win32\log_win32.c" />
+    <ClCompile Include="..\..\lib\direct\os\win32\mem_win32.c" />
+    <ClCompile Include="..\..\lib\direct\os\win32\signal.c" />
+    <ClCompile Include="..\..\lib\direct\os\win32\signals.c" />
+    <ClCompile Include="..\..\lib\direct\os\win32\system_win32.c" />
+    <ClCompile Include="..\..\lib\direct\os\win32\thread_win32.c" />
+    <ClCompile Include="..\..\lib\direct\os\win32\util_win32.c" />
+    <ClCompile Include="..\..\lib\direct\print.c" />
+    <ClCompile Include="..\..\lib\direct\result.c" />
+    <ClCompile Include="..\..\lib\direct\serial.c" />
+    <ClCompile Include="..\..\lib\direct\stream.c" />
+    <ClCompile Include="..\..\lib\direct\system.c" />
+    <ClCompile Include="..\..\lib\direct\thread.c" />
+    <ClCompile Include="..\..\lib\direct\trace.c" />
+    <ClCompile Include="..\..\lib\direct\tree.c" />
+    <ClCompile Include="..\..\lib\direct\utf8.c" />
+    <ClCompile Include="..\..\lib\direct\util.c" />
+    <ClCompile Include="..\..\lib\direct\uuid.c" />
+    <ClCompile Include="dllmain.c" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

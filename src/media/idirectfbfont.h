@@ -53,7 +53,7 @@ DFBResult
 IDirectFBFont_CreateFromBuffer( IDirectFBDataBuffer       *buffer,
                                 CoreDFB                   *core,
                                 const DFBFontDescription  *desc,
-                                IDirectFBFont            **interface );
+                                IDirectFBFont            **interface_ptr );
                                 
 /**********************************************************************************************************************/
 

@@ -38,8 +38,7 @@
 #include <voodoo/conf.h>
 
 
-static VoodooConfig config = {
-};
+static VoodooConfig config;
 
 VoodooConfig *voodoo_config = &config;
 const char   *voodoo_config_usage =
@@ -99,7 +98,7 @@ voodoo_config_set( const char *name, const char *value )
           if (value) {
                unsigned int max;
 
-               if (sscanf( value, "%u", &max ) != 1) {
+               if (direct_sscanf( value, "%u", &max ) != 1) {
                     D_ERROR( "Voodoo/Config '%s': Invalid value specified!\n", name );
                     return DR_INVARG;
                }
@@ -115,7 +114,7 @@ voodoo_config_set( const char *name, const char *value )
           if (value) {
                unsigned int max;
 
-               if (sscanf( value, "%u", &max ) != 1) {
+               if (direct_sscanf( value, "%u", &max ) != 1) {
                     D_ERROR( "Voodoo/Config '%s': Invalid value specified!\n", name );
                     return DR_INVARG;
                }
@@ -131,7 +130,7 @@ voodoo_config_set( const char *name, const char *value )
           if (value) {
                unsigned int mask;
 
-               if (sscanf( value, "%u", &mask ) != 1) {
+               if (direct_sscanf( value, "%u", &mask ) != 1) {
                     D_ERROR( "Voodoo/Config '%s': Invalid value specified!\n", name );
                     return DR_INVARG;
                }
@@ -147,7 +146,7 @@ voodoo_config_set( const char *name, const char *value )
           if (value) {
                unsigned int mask;
 
-               if (sscanf( value, "%u", &mask ) != 1) {
+               if (direct_sscanf( value, "%u", &mask ) != 1) {
                     D_ERROR( "Voodoo/Config '%s': Invalid value specified!\n", name );
                     return DR_INVARG;
                }
@@ -163,7 +162,7 @@ voodoo_config_set( const char *name, const char *value )
           if (value) {
                unsigned int resource_id;
 
-               if (sscanf( value, "%u", &resource_id ) != 1) {
+               if (direct_sscanf( value, "%u", &resource_id ) != 1) {
                     D_ERROR( "Voodoo/Config '%s': Invalid value specified!\n", name );
                     return DR_INVARG;
                }
@@ -188,6 +187,20 @@ voodoo_config_set( const char *name, const char *value )
 
                voodoo_config->server_single = D_STRDUP( value );
                if (!voodoo_config->server_single)
+                    D_OOM();
+          }
+          else {
+               D_ERROR( "Voodoo/Config '%s': No value specified!\n", name );
+               return DR_INVARG;
+          }
+     } else
+     if (strcmp (name, "play-broadcast" ) == 0) {
+          if (value) {
+               if (voodoo_config->play_broadcast)
+                    D_FREE( voodoo_config->play_broadcast );
+
+               voodoo_config->play_broadcast = D_STRDUP( value );
+               if (!voodoo_config->play_broadcast)
                     D_OOM();
           }
           else {

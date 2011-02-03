@@ -79,7 +79,7 @@ typedef struct {
 typedef struct {
      DirectLink     link;
 
-     int            fd;
+     VoodooLink     vl;
      VoodooManager *manager;
 } Connection;
 
@@ -340,7 +340,7 @@ voodoo_server_run( VoodooServer *server )
 
                     voodoo_manager_destroy( connection->manager );
 
-                    close( connection->fd );
+                    connection->vl.Close( &connection->vl );
 
                     direct_list_remove( &server->connections, l );
 
@@ -446,7 +446,7 @@ voodoo_server_destroy( VoodooServer *server )
 
           voodoo_manager_destroy( connection->manager );
 
-          close( connection->fd );
+          connection->vl.Close( &connection->vl );
 
           D_FREE( connection );
      }
@@ -464,9 +464,8 @@ voodoo_server_destroy( VoodooServer *server )
 static DirectResult
 accept_connection( VoodooServer *server, int fd )
 {
-     DirectResult     ret;
-     Connection      *connection;
-     int              fds[2];
+     DirectResult  ret;
+     Connection   *connection;
 
      connection = D_CALLOC( 1, sizeof(Connection) );
      if (!connection) {
@@ -474,14 +473,11 @@ accept_connection( VoodooServer *server, int fd )
           return DR_NOLOCALMEMORY;
      }
 
-     connection->fd = fd;
+     voodoo_link_init_fd( &connection->vl, fd );
 
-     fds[0] = connection->fd;
-     fds[1] = connection->fd;
-
-     ret = voodoo_manager_create( fds, NULL, server, &connection->manager );
+     ret = voodoo_manager_create( &connection->vl, NULL, server, &connection->manager );
      if (ret) {
-          close( connection->fd );
+          connection->vl.Close( &connection->vl );
           D_FREE( connection );
           return ret;
      }

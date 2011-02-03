@@ -30,13 +30,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-
-#include <string.h>
 
 #include <directfb.h>
 
@@ -48,8 +41,6 @@
 #include <direct/messages.h>
 #include <direct/thread.h>
 #include <direct/util.h>
-
-#include <core/core.h>
 
 #include <idirectfb.h>
 
@@ -194,11 +185,11 @@ IDirectFB_Dispatcher_SetVideoMode( IDirectFB    *thiz,
 static DFBResult
 IDirectFB_Dispatcher_CreateSurface( IDirectFB                    *thiz,
                                     const DFBSurfaceDescription  *desc,
-                                    IDirectFBSurface            **interface )
+                                    IDirectFBSurface            **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
-     if (!desc || !interface)
+     if (!desc || !interface_ptr)
           return DFB_INVARG;
 
 
@@ -209,11 +200,11 @@ IDirectFB_Dispatcher_CreateSurface( IDirectFB                    *thiz,
 static DFBResult
 IDirectFB_Dispatcher_CreatePalette( IDirectFB                    *thiz,
                                     const DFBPaletteDescription  *desc,
-                                    IDirectFBPalette            **interface )
+                                    IDirectFBPalette            **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
-     if (!interface)
+     if (!interface_ptr)
           return DFB_INVARG;
 
 
@@ -239,11 +230,11 @@ IDirectFB_Dispatcher_EnumScreens( IDirectFB         *thiz,
 static DFBResult
 IDirectFB_Dispatcher_GetScreen( IDirectFB        *thiz,
                                 DFBScreenID       id,
-                                IDirectFBScreen **interface )
+                                IDirectFBScreen **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
-     if (!interface)
+     if (!interface_ptr)
           return DFB_INVARG;
 
 
@@ -269,11 +260,11 @@ IDirectFB_Dispatcher_EnumDisplayLayers( IDirectFB               *thiz,
 static DFBResult
 IDirectFB_Dispatcher_GetDisplayLayer( IDirectFB              *thiz,
                                       DFBDisplayLayerID       id,
-                                      IDirectFBDisplayLayer **interface )
+                                      IDirectFBDisplayLayer **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
-     if (!interface)
+     if (!interface_ptr)
           return DFB_INVARG;
 
 
@@ -299,11 +290,11 @@ IDirectFB_Dispatcher_EnumInputDevices( IDirectFB              *thiz,
 static DFBResult
 IDirectFB_Dispatcher_GetInputDevice( IDirectFB             *thiz,
                                      DFBInputDeviceID       id,
-                                     IDirectFBInputDevice **interface )
+                                     IDirectFBInputDevice **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
-     if (!interface)
+     if (!interface_ptr)
           return DFB_INVARG;
 
 
@@ -313,11 +304,11 @@ IDirectFB_Dispatcher_GetInputDevice( IDirectFB             *thiz,
 
 static DFBResult
 IDirectFB_Dispatcher_CreateEventBuffer( IDirectFB             *thiz,
-                                        IDirectFBEventBuffer **interface)
+                                        IDirectFBEventBuffer **interface_ptr)
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
-     if (!interface)
+     if (!interface_ptr)
           return DFB_INVARG;
 
 
@@ -329,11 +320,11 @@ static DFBResult
 IDirectFB_Dispatcher_CreateInputEventBuffer( IDirectFB                   *thiz,
                                              DFBInputDeviceCapabilities   caps,
                                              DFBBoolean                   global,
-                                             IDirectFBEventBuffer       **interface)
+                                             IDirectFBEventBuffer       **interface_ptr)
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
-     if (!interface)
+     if (!interface_ptr)
           return DFB_INVARG;
 
 
@@ -344,12 +335,12 @@ IDirectFB_Dispatcher_CreateInputEventBuffer( IDirectFB                   *thiz,
 static DFBResult
 IDirectFB_Dispatcher_CreateImageProvider( IDirectFB               *thiz,
                                           const char              *filename,
-                                          IDirectFBImageProvider **interface )
+                                          IDirectFBImageProvider **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
      /* Check arguments */
-     if (!filename || !interface)
+     if (!filename || !interface_ptr)
           return DFB_INVARG;
 
 
@@ -360,12 +351,12 @@ IDirectFB_Dispatcher_CreateImageProvider( IDirectFB               *thiz,
 static DFBResult
 IDirectFB_Dispatcher_CreateVideoProvider( IDirectFB               *thiz,
                                           const char              *filename,
-                                          IDirectFBVideoProvider **interface )
+                                          IDirectFBVideoProvider **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
      /* Check arguments */
-     if (!interface || !filename)
+     if (!interface_ptr || !filename)
           return DFB_INVARG;
 
 
@@ -377,12 +368,12 @@ static DFBResult
 IDirectFB_Dispatcher_CreateFont( IDirectFB                 *thiz,
                                  const char                *filename,
                                  const DFBFontDescription  *desc,
-                                 IDirectFBFont            **interface )
+                                 IDirectFBFont            **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
      /* Check arguments */
-     if (!interface)
+     if (!interface_ptr)
           return DFB_INVARG;
 
 
@@ -393,11 +384,11 @@ IDirectFB_Dispatcher_CreateFont( IDirectFB                 *thiz,
 static DFBResult
 IDirectFB_Dispatcher_CreateDataBuffer( IDirectFB                       *thiz,
                                        const DFBDataBufferDescription  *desc,
-                                       IDirectFBDataBuffer            **interface )
+                                       IDirectFBDataBuffer            **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
-     if (!interface)
+     if (!interface_ptr)
           return DFB_INVARG;
 
 
@@ -495,7 +486,7 @@ IDirectFB_Dispatcher_GetInterface( IDirectFB   *thiz,
                                    const char  *type,
                                    const char  *implementation,
                                    void        *arg,
-                                   void       **interface )
+                                   void       **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
@@ -739,30 +730,30 @@ static DirectResult
 Dispatch_CreateSurface( IDirectFB *thiz, IDirectFB *real,
                         VoodooManager *manager, VoodooRequestMessage *msg )
 {
-     DirectResult                 ret;
-     const DFBSurfaceDescription *desc;
-     IDirectFBSurface            *surface;
-     VoodooInstanceID             instance;
-     VoodooMessageParser          parser;
-     bool                         force_system = (voodoo_config->resource_id != 0);
+     DirectResult           ret;
+     DFBSurfaceDescription  desc;
+     IDirectFBSurface      *surface;
+     VoodooInstanceID       instance;
+     VoodooMessageParser    parser;
+     bool                   force_system = (voodoo_config->resource_id != 0);
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
      VOODOO_PARSER_BEGIN( parser, msg );
-     VOODOO_PARSER_GET_DATA( parser, desc );
+     VOODOO_PARSER_READ_DFBSurfaceDescription( parser, desc );
      VOODOO_PARSER_END( parser );
 
      if (1) {
-          int w = 256, h = 256, b = 2, size;
+          unsigned int w = 256, h = 256, b = 2, size;
 
-          if (desc->flags & DSDESC_WIDTH)
-               w = desc->width;
+          if (desc.flags & DSDESC_WIDTH)
+               w = desc.width;
 
-          if (desc->flags & DSDESC_HEIGHT)
-               h = desc->height;
+          if (desc.flags & DSDESC_HEIGHT)
+               h = desc.height;
 
-          if (desc->flags & DSDESC_PIXELFORMAT)
-               b = DFB_BYTES_PER_PIXEL( desc->pixelformat ) ?: 2;
+          if (desc.flags & DSDESC_PIXELFORMAT)
+               b = DFB_BYTES_PER_PIXEL( desc.pixelformat ) ? DFB_BYTES_PER_PIXEL( desc.pixelformat ) : 2;
 
           size = w * h * b;
 
@@ -782,15 +773,15 @@ Dispatch_CreateSurface( IDirectFB *thiz, IDirectFB *real,
      }
 
      if (voodoo_config->resource_id) {
-          if (desc->flags & DSDESC_RESOURCE_ID) {
-               if (desc->resource_id == voodoo_config->resource_id) {
+          if (desc.flags & DSDESC_RESOURCE_ID) {
+               if (desc.resource_id == voodoo_config->resource_id) {
                     force_system = false;
                }
           }
      }
 
      if (force_system) {
-          DFBSurfaceDescription sd = *desc;
+          DFBSurfaceDescription sd = desc;
 
           if (sd.flags & DSDESC_CAPS) {
                sd.caps &= ~DSCAPS_VIDEOONLY;
@@ -804,7 +795,7 @@ Dispatch_CreateSurface( IDirectFB *thiz, IDirectFB *real,
           ret = real->CreateSurface( real, &sd, &surface );
      }
      else {
-          ret = real->CreateSurface( real, desc, &surface );
+          ret = real->CreateSurface( real, &desc, &surface );
      }
      if (ret)
           return ret;

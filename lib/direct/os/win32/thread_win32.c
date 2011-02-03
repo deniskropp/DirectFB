@@ -91,8 +91,8 @@ StartThread(LPVOID iValue)
      D_DEBUG_AT( Direct_ThreadInit, "  -> running...\n" );
      ret = (DWORD) thread->main( thread, thread->arg );
 
-     D_DEBUG_AT( Direct_Thread, "  -> Returning %p from '%s' (%s, %d)...\n",
-                 ret, thread->name, direct_thread_type_name(thread->type), thread->tid );
+//     D_DEBUG_AT( Direct_Thread, "  -> Returning %p from '%s' (%s, %d)...\n",
+//                 ret, thread->name, direct_thread_type_name(thread->type), thread->tid );
 
      //D_MAGIC_ASSERT( thread, DirectThread );
 

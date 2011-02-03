@@ -1768,6 +1768,7 @@ lib/fusion/shm/Makefile
 
 lib/voodoo/Makefile
 lib/voodoo/build.h
+lib/voodoo/unix/Makefile
 lib/voodoo/voodoo.pc
 
 patches/Makefile

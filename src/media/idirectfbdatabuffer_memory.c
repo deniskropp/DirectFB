@@ -30,25 +30,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 
 #include <string.h>
 #include <errno.h>
 
-#include <sys/time.h>
-
-#include <pthread.h>
-
-#include <fusion/reactor.h>
 #include <direct/list.h>
+#include <direct/thread.h>
 
 #include <directfb.h>
-
-#include <core/coredefs.h>
-#include <core/coretypes.h>
-
-#include <core/input.h>
-#include <core/windows.h>
 
 #include <direct/interface.h>
 #include <direct/mem.h>
@@ -173,7 +162,7 @@ IDirectFBDataBuffer_Memory_GetData( IDirectFBDataBuffer *thiz,
 
      size = MIN( length, data->length - data->pos );
 
-     direct_memcpy( data_buffer, data->buffer + data->pos, size );
+     direct_memcpy( data_buffer, (char*) data->buffer + data->pos, size );
 
      data->pos += size;
 
@@ -202,7 +191,7 @@ IDirectFBDataBuffer_Memory_PeekData( IDirectFBDataBuffer *thiz,
 
      size = MIN( length, data->length - data->pos - offset );
 
-     direct_memcpy( data_buffer, data->buffer + data->pos + offset, size );
+     direct_memcpy( data_buffer, (char*) data->buffer + data->pos + offset, size );
 
      if (read_out)
           *read_out = size;

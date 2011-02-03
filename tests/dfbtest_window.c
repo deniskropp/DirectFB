@@ -40,7 +40,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include <direct/messages.h>
 #include <direct/util.h>
@@ -56,21 +55,25 @@ static const DirectFBWindowOptionsNames( options_names );
 /**********************************************************************************************************************/
 
 static DFBWindowDescription m_desc_top = {
-     .flags         = DWDESC_CAPS | DWDESC_POSX | DWDESC_POSY |
-                      DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_PIXELFORMAT | DWDESC_OPTIONS,
-     .posx          = 100,
-     .posy          = 100,
-     .width         = 200,
-     .height        = 200,
+     /* .flags         =*/ DWDESC_CAPS | DWDESC_POSX | DWDESC_POSY |
+                           DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_PIXELFORMAT | DWDESC_OPTIONS,
+     /* .caps          =*/ DWCAPS_NONE,
+     /* .width         =*/ 200,
+     /* .height        =*/ 200,
+     /* .pixelformat   =*/ DSPF_UNKNOWN,
+     /* .posx          =*/ 100,
+     /* .posy          =*/ 100,
 };
 
 static DFBWindowDescription m_desc_sub = {
-     .flags         = DWDESC_CAPS | DWDESC_POSX | DWDESC_POSY |
-                      DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_PIXELFORMAT | DWDESC_OPTIONS | DWDESC_TOPLEVEL_ID,
-     .posx          = 40,
-     .posy          = 40,
-     .width         = 120,
-     .height        = 120,
+     /* .flags         =*/ DWDESC_CAPS | DWDESC_POSX | DWDESC_POSY |
+                           DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_PIXELFORMAT | DWDESC_OPTIONS | DWDESC_TOPLEVEL_ID,
+     /* .caps          =*/ DWCAPS_NONE,
+     /* .width         =*/ 120,
+     /* .height        =*/ 120,
+     /* .pixelformat   =*/ DSPF_UNKNOWN,
+     /* .posx          =*/ 40,
+     /* .posy          =*/ 40,
 };
 
 static struct {
@@ -148,10 +151,10 @@ static DFBResult RunTest( TestFunc func, const char *func_name, IDirectFBDisplay
 static void ShowMessage( unsigned int ms, const char *name,
                          const char *prefix, const char *format, ... ) D_FORMAT_PRINTF(4);
 
-#define SHOW_TEST(msg...)    ShowMessage( 2000, __FUNCTION__, \
-                                          "===============================================================\n\n", msg )
-#define SHOW_INFO(msg...)    ShowMessage(  500, __FUNCTION__, "", msg )
-#define SHOW_RESULT(msg...)  ShowMessage( 3000, __FUNCTION__, "", msg )
+#define SHOW_TEST(...)    ShowMessage( 2000, __FUNCTION__, \
+                                          "===============================================================\n\n", __VA_ARGS__ )
+#define SHOW_INFO(...)    ShowMessage(  500, __FUNCTION__, "", __VA_ARGS__ )
+#define SHOW_RESULT(...)  ShowMessage( 3000, __FUNCTION__, "", __VA_ARGS__ )
 
 /**********************************************************************************************************************/
 
@@ -210,13 +213,8 @@ main( int argc, char *argv[] )
                RunTest( m_tests[i].func, m_tests[i].name, layer, (void*) (unsigned long) m_subwindow_id );
      }
 
-     if (m_wait_at_end) {
-          sigset_t block;
-
-          sigemptyset( &block );
-
-          sigsuspend( &block );
-     }
+     while (m_wait_at_end)
+          direct_thread_sleep( 1000000 );
 
      SHOW_INFO( "Shutting down..." );
 
@@ -332,7 +330,7 @@ parse_test( const char *arg, bool sub )
      int i;
 
      for (i=0; i<D_ARRAY_SIZE(m_tests); i++) {
-          if (!strncasecmp( arg, m_tests[i].name, strlen(arg) )) {
+          if (!direct_strncasecmp( arg, m_tests[i].name, strlen(arg) )) {
                if (sub)
                     m_tests[i].run_sub = true;
                else
@@ -375,7 +373,7 @@ parse_format( const char *arg, DFBSurfacePixelFormat *_f )
      int i = 0;
 
      while (format_names[i].format != DSPF_UNKNOWN) {
-          if (!strcasecmp( arg, format_names[i].name )) {
+          if (!direct_strcasecmp( arg, format_names[i].name )) {
                *_f = format_names[i].format;
                return DFB_TRUE;
           }
@@ -394,7 +392,7 @@ parse_caps( const char *arg, DFBWindowCapabilities *_c )
      int i = 0;
 
      while (caps_names[i].capability != DWCAPS_NONE) {
-          if (!strncasecmp( arg, caps_names[i].name, strlen(arg) )) {
+          if (!direct_strncasecmp( arg, caps_names[i].name, strlen(arg) )) {
                *_c |= caps_names[i].capability;
                return DFB_TRUE;
           }
@@ -437,7 +435,7 @@ parse_option( const char *arg, DFBWindowOptions *_o )
      int i = 0;
 
      while (options_names[i].option != DWOP_NONE) {
-          if (!strncasecmp( arg, options_names[i].name, strlen(arg) )) {
+          if (!direct_strncasecmp( arg, options_names[i].name, strlen(arg) )) {
                *_o |= options_names[i].option;
                return DFB_TRUE;
           }
@@ -739,17 +737,17 @@ ShowMessage( unsigned int ms, const char *name, const char *prefix, const char *
 
      direct_log_printf( NULL, "%s [[ %-30s ]]  %s\n", prefix, name, buf );
 
-     usleep( ms * 1000 );
+     direct_thread_sleep( ms * 1000 );
 }
 
 /**********************************************************************************************************************/
 
-#define _T(x...)  \
+#define _T(...)  \
      do {                                                                       \
-          DFBResult ret = x;                                                    \
+          DFBResult ret = __VA_ARGS__;                                          \
                                                                                 \
           if (ret) {                                                            \
-               D_DERROR( ret, "Tests/Window: '%s' failed!\n", #x );             \
+               D_DERROR( ret, "Tests/Window: '%s' failed!\n", #__VA_ARGS__ );   \
                return ret;                                                      \
           }                                                                     \
      } while (0)
