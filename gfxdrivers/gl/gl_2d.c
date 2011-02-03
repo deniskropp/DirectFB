@@ -67,7 +67,7 @@ enum {
 
      BLENDFUNC    = 0x00010000,
 
-     ALL          = 0x0001031F
+     ALL          = 0x0001071F
 };
 
 /*
@@ -334,13 +334,13 @@ gl_validate_SRC_COLORKEY( GLDriverData *gdrv,
 {
      D_DEBUG_AT( GL__2D, "%s()\n", __FUNCTION__ );
 
-     /* convert RGB32 color values to float */
-     float fr = (float)((state->src_colorkey & 0x00FF0000) >> 16)/255.0f;
-     float fg = (float)((state->src_colorkey & 0x0000FF00) >>  8)/255.0f;
-     float fb = (float)((state->src_colorkey & 0x000000FF)      )/255.0f;
-          
-     /* send float converted color key to shader */
-     glUniform3fARB( gdev->location_colorkey, fr, fg, fb );
+     /* convert RGB32 color values to int */
+     int r = (state->src_colorkey & 0x00FF0000) >> 16;
+     int g = (state->src_colorkey & 0x0000FF00) >>  8;
+     int b = (state->src_colorkey & 0x000000FF)      ;
+     
+     /* send converted color key to shader */
+     glUniform3iARB( gdev->location_colorkey, r, g, b );
 
      /* Set the flag. */
      GL_VALIDATE( SRC_COLORKEY );     
@@ -551,11 +551,15 @@ compile_shader( GLDeviceData *gdev )
      static const char * ff = "#extension GL_ARB_texture_rectangle : enable\n"
                               "\n"
                               "uniform sampler2DRect myTexture;\n"
-                              "uniform vec3 src_colorkey;\n"              
+                              "uniform ivec3 src_colorkey;\n"              
                               "void main (void)\n" 
                               "{\n" 
                               "   vec4 value = texture2DRect(myTexture, vec2(gl_TexCoord[0]));\n"
-                              "   if (vec3(value) == src_colorkey)\n"
+                              "   int r = int(value.r*255.0);\n"
+                              "   int g = int(value.g*255.0);\n"
+                              "   int b = int(value.b*255.0);\n"
+                              "\n"
+                              "   if (r == src_colorkey.x && g == src_colorkey.y && b == src_colorkey.z)\n"
                               "      discard;\n"
                               "   gl_FragColor = value;\n"
                               "}\n";
