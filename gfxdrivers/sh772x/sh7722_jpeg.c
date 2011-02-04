@@ -449,17 +449,17 @@ IDirectFBImageProvider_SH7722_JPEG_WriteBack( IDirectFBImageProvider *thiz,
 
           /* backup callbacks and private data and setup for file io */
           shjpeg_sops *sops_tmp       = data->info->sops;
-          void        *private_tmp = data->info->private;
+          void        *private_tmp = data->info->priv_data;
 
           data->info->sops = &sops_file;
-          data->info->private = (void*) &fd;
+          data->info->priv_data = (void*) &fd;
 
           if (shjpeg_encode(data->info, pixelfmt, lock.phys, jpeg_size.w, jpeg_size.h, lock.pitch) < 0)
                ret = DFB_FAILURE;
 
           /* restore callbacks and private data */
           data->info->sops = sops_tmp;
-          data->info->private = private_tmp;
+          data->info->priv_data = private_tmp;
                                               
           dfb_surface_unlock_buffer( src_surface, &lock );
      }
@@ -530,7 +530,7 @@ Construct( IDirectFBImageProvider *thiz,
 
           /* set callbacks to context */
           data->info->sops = &sops_databuffer;
-          data->info->private = (void*) buffer;
+          data->info->priv_data = (void*) buffer;
 
           if (shjpeg_decode_init( data->info ) < 0) {
                buffer->Release( buffer );
