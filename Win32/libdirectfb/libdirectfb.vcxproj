@@ -48,10 +48,12 @@
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <PreprocessorDefinitions>WIN32;DIRECTFB_EXPORTS;BUILDTIME="now";SYSCONFDIR="c:\\";_DEBUG;_WINDOWS;_USRDLL;LIBDIRECTFB_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>P:\DirectFBWin32\Win32;P:\DirectFBWin32\proxy\requestor;P:\DirectFBWin32\proxy\dispatcher;P:\DirectFBWin32\src;P:\DirectFBWin32\include;P:\DirectFBWin32\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
