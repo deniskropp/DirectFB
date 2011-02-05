@@ -36,6 +36,12 @@
 
 #include <gfx/convert.h>
 
+#define GL_GLEXT_PROTOTYPES
+#include <GL/gl.h>
+#include <GL/glext.h>
+#include <GL/glx.h>
+#include <GL/glxext.h>
+
 #include "gl_2d.h"
 #include "gl_gfxdriver.h"
 
@@ -57,10 +63,11 @@ enum {
 
      SOURCE       = 0x00000100,
      COLOR_BLIT   = 0x00000200,
+     SRC_COLORKEY = 0x00000400,
 
      BLENDFUNC    = 0x00010000,
 
-     ALL          = 0x0001031F
+     ALL          = 0x0001071F
 };
 
 /*
@@ -317,6 +324,29 @@ gl_validate_COLOR_BLIT( GLDriverData *gdrv,
 }
 
 /*
+ * Called by glSetState() to ensure that the colorkey is properly set
+ * for execution of blitting functions.
+ */
+static inline void
+gl_validate_SRC_COLORKEY( GLDriverData *gdrv,
+                          GLDeviceData *gdev,
+                          CardState    *state )
+{
+     D_DEBUG_AT( GL__2D, "%s()\n", __FUNCTION__ );
+
+     /* convert RGB32 color values to int */
+     int r = (state->src_colorkey & 0x00FF0000) >> 16;
+     int g = (state->src_colorkey & 0x0000FF00) >>  8;
+     int b = (state->src_colorkey & 0x000000FF)      ;
+     
+     /* send converted color key to shader */
+     glUniform3iARB( gdev->location_colorkey, r, g, b );
+
+     /* Set the flag. */
+     GL_VALIDATE( SRC_COLORKEY );     
+}
+
+/*
  * Called by glSetState() to ensure that the blend functions are properly set
  * for execution of drawing and blitting functions.
  */
@@ -489,6 +519,66 @@ glEmitCommands( void *drv, void *dev )
 }
 
 /**********************************************************************************************************************/
+static bool
+printGLInfoLog(GLhandleARB obj)
+{
+     int infologLength = 0;
+     int charsWritten  = 0;
+     char *infoLog;
+
+     glGetObjectParameterivARB( obj, GL_OBJECT_INFO_LOG_LENGTH_ARB, &infologLength );
+     if (infologLength > 1) {
+          infoLog = (char *)malloc( infologLength );
+          glGetInfoLogARB( obj, infologLength, &charsWritten, infoLog );
+          D_WARN( "OpenGL InfoLog: %s\n",infoLog );
+          free( infoLog );
+          return true;
+     }
+     return false;
+}
+
+static bool
+compile_shader( GLDeviceData *gdev )
+{
+     GLhandleARB f, p;
+
+     p = glCreateProgramObjectARB();
+
+     if (p == -1) return false;
+
+     f = glCreateShaderObjectARB( GL_FRAGMENT_SHADER );
+
+     static const char * ff = "#extension GL_ARB_texture_rectangle : enable\n"
+                              "\n"
+                              "uniform sampler2DRect myTexture;\n"
+                              "uniform ivec3 src_colorkey;\n"              
+                              "void main (void)\n" 
+                              "{\n" 
+                              "   vec4 value = texture2DRect(myTexture, vec2(gl_TexCoord[0]));\n"
+                              "   int r = int(value.r*255.0);\n"
+                              "   int g = int(value.g*255.0);\n"
+                              "   int b = int(value.b*255.0);\n"
+                              "\n"
+                              "   if (r == src_colorkey.x && g == src_colorkey.y && b == src_colorkey.z)\n"
+                              "      discard;\n"
+                              "   gl_FragColor = value;\n"
+                              "}\n";
+
+     glShaderSourceARB( f, 1, &ff, NULL );
+     glCompileShaderARB( f );
+     glAttachObjectARB( p, f );
+     glLinkProgramARB( p );
+
+     if (printGLInfoLog( p ))
+          return false;
+
+     gdev->shader_colorkey = p;
+     gdev->location_colorkey = glGetUniformLocationARB( p ,"src_colorkey" );
+
+     return true;
+}
+
+/**********************************************************************************************************************/
 
 /*
  * Check for acceleration of 'accel' using the given 'state'.
@@ -499,6 +589,8 @@ glCheckState( void                *drv,
               CardState           *state,
               DFBAccelerationMask  accel )
 {
+     GLDeviceData *gdev = (GLDeviceData*) dev;
+
      D_DEBUG_AT( GL__2D, "%s( state %p, accel 0x%08x ) <- dest %p [%lu]\n", __FUNCTION__,
                  state, accel, state->destination, state->dst.offset );
 
@@ -542,9 +634,36 @@ glCheckState( void                *drv,
           }
 
           /* Return if unsupported blitting flags are set. */
-          if (state->blittingflags & ~GL_SUPPORTED_BLITTINGFLAGS) {
-               D_DEBUG_AT( GL__2D, "  -> unsupported blitting flags 0x%08x\n", state->blittingflags );
-               return;
+          if (state->blittingflags & ~gdev->supported_blittingflags) {
+               /* 
+                * if there are unsupported blittingflags, check if DSBLIT_SRC_COLORKEY 
+                * is among them. If so, try to compile a fragment shader for colorkeying, 
+                * if it worked, add DSBLIT_SRC_COLORKEY to the supported blittingflags. 
+                *  
+                * The downside is that source colorkeying will never be reported in the 
+                * CardCapabilities. So applications querieing them will get the wrong 
+                * information. 
+                *  
+                * Compilation of shaders should be done in init_driver(), but OpenGL is not 
+                * ready to compile shaders there. 
+                *  
+                * FIXME: find a better solution 
+                */ 
+               if (!gdev->glsl_probed && (state->blittingflags & DSBLIT_SRC_COLORKEY)) {
+                         if (compile_shader(gdev)) {
+                              gdev->has_glsl = true;
+                              gdev->supported_blittingflags |= DSBLIT_SRC_COLORKEY;
+                         }
+                         gdev->glsl_probed = true;
+                         /* recheck: return if one of the blitting flags is still unsupported */
+                         if (state->blittingflags & ~gdev->supported_blittingflags)
+                              return;
+               }
+               else {
+                    D_DEBUG_AT( GL__2D, "  -> unsupported blitting flags 0x%08x\n", state->blittingflags );
+     
+                    return;
+               }
           }
      }
 
@@ -603,6 +722,9 @@ glSetState( void                *drv,
           if (modified & SMF_BLITTING_FLAGS)
                GL_INVALIDATE( COLOR_BLIT );
 
+          if (modified & SMF_SRC_COLORKEY)
+               GL_INVALIDATE( SRC_COLORKEY );
+
           if (modified & SMF_SOURCE)
                GL_INVALIDATE( SOURCE );
 
@@ -628,6 +750,7 @@ glSetState( void                *drv,
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
           case DFXL_FILLTRIANGLE:
+               glUseProgramObjectARB(0);
                glDisable( GL_TEXTURE_RECTANGLE_ARB );
 
                /* ...require valid drawing color. */
@@ -670,6 +793,12 @@ glSetState( void                *drv,
                else
                     glDisable( GL_BLEND );
 
+               if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+                    glUseProgramObjectARB(gdev->shader_colorkey);
+                    GL_CHECK_VALIDATE( SRC_COLORKEY );
+               } 
+               else
+                    glUseProgramObjectARB(0);
 
                /* If colorizing or premultiplication of global alpha is used... */
                if (state->blittingflags & (DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR | DSBLIT_BLEND_COLORALPHA)) {
@@ -717,7 +846,7 @@ glSetState( void                *drv,
 bool
 glFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
-     GLDriverData *gdrv = drv;
+     GLDriverData *gdrv = (GLDriverData*)drv;
 
      int x1 = rect->x;
      int y1 = rect->y;

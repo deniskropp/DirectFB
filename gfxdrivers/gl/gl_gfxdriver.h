@@ -43,8 +43,16 @@ typedef struct {
 
 
 typedef struct {
+    DFBSurfaceBlittingFlags  supported_blittingflags;
+
      /* validation flags */
      int                      v_flags;
+
+     /* GLSL related */
+     bool                     has_glsl;
+     bool                     glsl_probed;
+     GLhandleARB              shader_colorkey;
+     GLint                    location_colorkey;
 
      /** Add shared data here... **/
 } GLDeviceData;
