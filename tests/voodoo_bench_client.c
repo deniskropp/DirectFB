@@ -59,7 +59,7 @@
 #include <voodoo/server.h>
 
 
-#define BENCH_SYNC 1
+#define BENCH_SYNC 0
 
 
 #define VOODOOTEST_METHOD_ID_Push 1
@@ -68,7 +68,7 @@
 /**********************************************************************************************************************/
 
 #if BENCH_SYNC
-#define NUM_ITEMS   2000000
+#define NUM_ITEMS   200000
 #else
 #define NUM_ITEMS   20000000
 #endif
@@ -84,15 +84,16 @@ main( int argc, char *argv[] )
 
 //     direct_config->log_level = DIRECT_LOG_ALL;
 
-     direct_log_domain_config_level( "Voodoo/Input", DIRECT_LOG_DEBUG_9 );
-     direct_log_domain_config_level( "Voodoo/Output", DIRECT_LOG_DEBUG_9 );
-     direct_log_domain_config_level( "Voodoo/Dispatch", DIRECT_LOG_DEBUG_9 );
-     direct_log_domain_config_level( "Voodoo/Manager", DIRECT_LOG_DEBUG_9 );
+//     direct_log_domain_config_level( "Voodoo/Input", DIRECT_LOG_DEBUG_9 );
+//     direct_log_domain_config_level( "Voodoo/Output", DIRECT_LOG_DEBUG_9 );
+//     direct_log_domain_config_level( "Voodoo/Dispatch", DIRECT_LOG_DEBUG_9 );
+//     direct_log_domain_config_level( "Voodoo/Manager", DIRECT_LOG_DEBUG_9 );
+//     direct_log_domain_config_level( "Voodoo/Link", DIRECT_LOG_DEBUG_9 );
 
 
      int               err;
      int               fd;
-     int               fds[2];
+     VoodooLink        link;
      VoodooManager    *manager;
      struct addrinfo   hints;
      struct addrinfo  *addr;
@@ -174,11 +175,9 @@ main( int argc, char *argv[] )
 
 
 
-     fds[0] = fd;
-     fds[1] = fd;
+     voodoo_link_init_fd( &link, fd );
 
-
-     voodoo_manager_create( fds, NULL, NULL, &manager );
+     voodoo_manager_create( &link, NULL, NULL, &manager );
 
 
 
@@ -219,7 +218,7 @@ main( int argc, char *argv[] )
 
 
      D_INFO( "Voodoo/Test: Stopped after %d.%03d seconds... (%lld items/sec)\n",
-             DIRECT_CLOCK_DIFF_SEC_MS( &clock ), NUM_ITEMS * 1000000ULL / direct_clock_diff( &clock ) );
+             DIRECT_CLOCK_DIFF_SEC_MS( &clock ), NUM_ITEMS * 1000000LL / direct_clock_diff( &clock ) );
 
 
      /* Shutdown libdirect. */

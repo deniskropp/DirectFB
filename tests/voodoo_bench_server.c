@@ -117,14 +117,15 @@ main( int argc, char *argv[] )
 
 //     direct_config->log_level = DIRECT_LOG_ALL;
 
-     direct_log_domain_config_level( "Voodoo/Input", DIRECT_LOG_DEBUG_9 );
-     direct_log_domain_config_level( "Voodoo/Output", DIRECT_LOG_DEBUG_9 );
-     direct_log_domain_config_level( "Voodoo/Dispatch", DIRECT_LOG_DEBUG_9 );
-     direct_log_domain_config_level( "Voodoo/Manager", DIRECT_LOG_DEBUG_9 );
+//     direct_log_domain_config_level( "Voodoo/Input", DIRECT_LOG_DEBUG_9 );
+//     direct_log_domain_config_level( "Voodoo/Output", DIRECT_LOG_DEBUG_9 );
+//     direct_log_domain_config_level( "Voodoo/Dispatch", DIRECT_LOG_DEBUG_9 );
+//     direct_log_domain_config_level( "Voodoo/Manager", DIRECT_LOG_DEBUG_9 );
 
+//     direct_log_domain_config_level( "Voodoo/Link", DIRECT_LOG_DEBUG_9 );
 
      int                 lfd;
-     int                 fds[2];
+     VoodooLink          link;
      VoodooManager      *manager;
      VoodooInstanceID    instance;
      struct sockaddr_in  addr;
@@ -191,11 +192,10 @@ main( int argc, char *argv[] )
      }
 
 
-     fds[0] = cfd;
-     fds[1] = cfd;
+     voodoo_link_init_fd( &link, cfd );
 
 
-     voodoo_manager_create( fds, NULL, NULL, &manager );
+     voodoo_manager_create( &link, NULL, NULL, &manager );
 
      voodoo_manager_register_local( manager, true, NULL, NULL, Dispatch, &instance );
 
