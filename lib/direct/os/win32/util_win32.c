@@ -50,14 +50,6 @@ direct_strncasecmp( const char *a, const char *b, size_t bytes )
      return strncmp( a, b, bytes );
 }
 
-int
-direct_vsscanf( const char *str, const char *format, va_list args )
-{
-     D_UNIMPLEMENTED();
-
-     return 0;
-}
-
 const char *
 direct_inet_ntop( int af, const void* src, char* dst, int cnt )
 {

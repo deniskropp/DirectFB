@@ -20,7 +20,7 @@
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -39,6 +39,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <TargetExt>.dll</TargetExt>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -46,9 +47,10 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <AdditionalIncludeDirectories>P:\DirectFBWin32\Win32;P:\DirectFBWin32\include;P:\DirectFBWin32\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableLanguageExtensions>false</DisableLanguageExtensions>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -126,7 +128,7 @@
     <ClInclude Include="..\..\lib\direct\utf8.h" />
     <ClInclude Include="..\..\lib\direct\util.h" />
     <ClInclude Include="..\..\lib\direct\uuid.h" />
-    <ClInclude Include="direct\build.h" />
+    <ClInclude Include="..\direct\build.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\lib\direct\clock.c" />
@@ -155,6 +157,7 @@
     <ClCompile Include="..\..\lib\direct\os\win32\system_win32.c" />
     <ClCompile Include="..\..\lib\direct\os\win32\thread_win32.c" />
     <ClCompile Include="..\..\lib\direct\os\win32\util_win32.c" />
+    <ClCompile Include="..\..\lib\direct\os\win32\vsscanf.cpp" />
     <ClCompile Include="..\..\lib\direct\print.c" />
     <ClCompile Include="..\..\lib\direct\result.c" />
     <ClCompile Include="..\..\lib\direct\serial.c" />
