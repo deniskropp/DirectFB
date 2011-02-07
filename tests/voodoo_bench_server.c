@@ -55,8 +55,11 @@
 #include <direct/util.h>
 
 #include <voodoo/internal.h>
+#include <voodoo/link.h>
 #include <voodoo/manager.h>
 #include <voodoo/server.h>
+
+#include <misc/conf.h>
 
 
 
@@ -112,17 +115,11 @@ main( int argc, char *argv[] )
 {
      static const int one = 1;
 
+     dfb_config_init( &argc, &argv );
+
      /* Initialize libdirect. */
      direct_initialize();
 
-//     direct_config->log_level = DIRECT_LOG_ALL;
-
-//     direct_log_domain_config_level( "Voodoo/Input", DIRECT_LOG_DEBUG_9 );
-//     direct_log_domain_config_level( "Voodoo/Output", DIRECT_LOG_DEBUG_9 );
-//     direct_log_domain_config_level( "Voodoo/Dispatch", DIRECT_LOG_DEBUG_9 );
-//     direct_log_domain_config_level( "Voodoo/Manager", DIRECT_LOG_DEBUG_9 );
-
-//     direct_log_domain_config_level( "Voodoo/Link", DIRECT_LOG_DEBUG_9 );
 
      int                 lfd;
      VoodooLink          link;
@@ -192,7 +189,9 @@ main( int argc, char *argv[] )
      }
 
 
-     voodoo_link_init_fd( &link, cfd );
+     int fds[2] = { cfd, cfd };
+
+     voodoo_link_init_fd( &link, fds );
 
 
      voodoo_manager_create( &link, NULL, NULL, &manager );

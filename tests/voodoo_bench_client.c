@@ -55,8 +55,11 @@
 #include <direct/util.h>
 
 #include <voodoo/internal.h>
+#include <voodoo/link.h>
 #include <voodoo/manager.h>
 #include <voodoo/server.h>
+
+#include <misc/conf.h>
 
 
 #define BENCH_SYNC 0
@@ -79,103 +82,18 @@ main( int argc, char *argv[] )
      DirectClock clock;
      int         counter = 0;
 
+     dfb_config_init( &argc, &argv );
+
      /* Initialize libdirect. */
      direct_initialize();
 
-//     direct_config->log_level = DIRECT_LOG_ALL;
 
-//     direct_log_domain_config_level( "Voodoo/Input", DIRECT_LOG_DEBUG_9 );
-//     direct_log_domain_config_level( "Voodoo/Output", DIRECT_LOG_DEBUG_9 );
-//     direct_log_domain_config_level( "Voodoo/Dispatch", DIRECT_LOG_DEBUG_9 );
-//     direct_log_domain_config_level( "Voodoo/Manager", DIRECT_LOG_DEBUG_9 );
-//     direct_log_domain_config_level( "Voodoo/Link", DIRECT_LOG_DEBUG_9 );
-
-
-     int               err;
-     int               fd;
      VoodooLink        link;
      VoodooManager    *manager;
-     struct addrinfo   hints;
-     struct addrinfo  *addr;
      const char       *hostname = argv[1] ?: "127.0.0.1";
-     char              portstr[10];
 
 
-     memset( &hints, 0, sizeof(hints) );
-     hints.ai_flags    = AI_CANONNAME;
-     hints.ai_socktype = SOCK_STREAM;
-     hints.ai_family   = PF_UNSPEC;
-
-     D_INFO( "Voodoo/Client: Looking up host '%s'...\n", hostname );
-
-     snprintf( portstr, sizeof(portstr), "%d", 23239 );
-
-     err = getaddrinfo( hostname, portstr, &hints, &addr );
-     if (err) {
-          switch (err) {
-               case EAI_FAMILY:
-                    D_ERROR( "Direct/Log: Unsupported address family!\n" );
-                    return DR_UNSUPPORTED;
-
-               case EAI_SOCKTYPE:
-                    D_ERROR( "Direct/Log: Unsupported socket type!\n" );
-                    return DR_UNSUPPORTED;
-
-               case EAI_NONAME:
-                    D_ERROR( "Direct/Log: Host not found!\n" );
-                    return DR_FAILURE;
-
-               case EAI_SERVICE:
-                    D_ERROR( "Direct/Log: Service is unreachable!\n" );
-                    return DR_FAILURE;
-
-#ifdef EAI_ADDRFAMILY
-               case EAI_ADDRFAMILY:
-#endif
-               case EAI_NODATA:
-                    D_ERROR( "Direct/Log: Host found, but has no address!\n" );
-                    return DR_FAILURE;
-
-               case EAI_MEMORY:
-                    return D_OOM();
-
-               case EAI_FAIL:
-                    D_ERROR( "Direct/Log: A non-recoverable name server error occurred!\n" );
-                    return DR_FAILURE;
-
-               case EAI_AGAIN:
-                    D_ERROR( "Direct/Log: Temporary error, try again!\n" );
-                    return DR_TEMPUNAVAIL;
-
-               default:
-                    D_ERROR( "Direct/Log: Unknown error occured!?\n" );
-                    return DR_FAILURE;
-          }
-     }
-
-     /* Create the client socket. */
-     fd = socket( addr->ai_family, SOCK_STREAM, 0 );
-     if (fd < 0) {
-          D_PERROR( "Voodoo/Client: Could not create the socket via socket()!\n" );
-          freeaddrinfo( addr );
-          return -1;
-     }
-
-     D_INFO( "Voodoo/Client: Connecting to '%s:%s'...\n", addr->ai_canonname, portstr );
-
-     /* Connect to the server. */
-     err = connect( fd, addr->ai_addr, addr->ai_addrlen );
-     freeaddrinfo( addr );
-
-     if (err) {
-          D_PERROR( "Voodoo/Client: Could not connect() to the server!\n" );
-          close( fd );
-          return -2;
-     }
-
-
-
-     voodoo_link_init_fd( &link, fd );
+     voodoo_link_init_connect( &link, hostname, 23239 );
 
      voodoo_manager_create( &link, NULL, NULL, &manager );
 
@@ -186,7 +104,7 @@ main( int argc, char *argv[] )
 #if !BENCH_SYNC
      do {
           voodoo_manager_request( manager, 1,
-                                  VOODOOTEST_METHOD_ID_Push, VREQ_NONE, NULL,
+                                  VOODOOTEST_METHOD_ID_Push, VREQ_QUEUE, NULL,
                                   VMBT_INT, counter++,
                                   VMBT_NONE );
      } while (counter < NUM_ITEMS);
@@ -217,7 +135,7 @@ main( int argc, char *argv[] )
      direct_clock_stop( &clock );
 
 
-     D_INFO( "Voodoo/Test: Stopped after %d.%03d seconds... (%lld items/sec)\n",
+     D_INFO( "Voodoo/Test: Stopped after %lld.%03lld seconds... (%lld items/sec)\n",
              DIRECT_CLOCK_DIFF_SEC_MS( &clock ), NUM_ITEMS * 1000000LL / direct_clock_diff( &clock ) );
 
 
