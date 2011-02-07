@@ -107,8 +107,8 @@ typedef struct {
      u32                      color16;
 
      /* libshbeu */
-     beu_surface_t            shbeu_src[3];
-     beu_surface_t            shbeu_dest;
+     struct shbeu_surface     shbeu_src[3];
+     struct shbeu_surface     shbeu_dest;
 
 } SH7722DeviceData;
 
