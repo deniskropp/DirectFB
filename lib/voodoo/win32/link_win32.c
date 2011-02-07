@@ -40,6 +40,7 @@
 
 #include <voodoo/client.h>
 #include <voodoo/internal.h>
+#include <voodoo/link.h>
 #include <voodoo/manager.h>
 #include <voodoo/play.h>
 
@@ -161,7 +162,7 @@ SendReceive( VoodooLink  *link,
                D_PERROR( "Voodoo/Link: Failed to send() data error %d!\n", WSAGetLastError() );
           }
           else {
-               sends[i].done = ret;
+               sends[i].done = (size_t) ret;
 
                if (sends[i].done != sends[i].length) {
                     D_UNIMPLEMENTED();
@@ -215,7 +216,7 @@ SendReceive( VoodooLink  *link,
                                    D_PERROR( "Voodoo/Link: Failed to send() data error %d!\n", WSAGetLastError() );
                               }
                               else {
-                                   sends[i].done = ret;
+                                   sends[i].done = (size_t) ret;
                          
                                    if (sends[i].done != sends[i].length) {
                                         D_UNIMPLEMENTED();
@@ -243,7 +244,7 @@ SendReceive( VoodooLink  *link,
                                    return DR_FAILURE;
                               }
           
-                              recvs[i].done = ret;
+                              recvs[i].done = (size_t) ret;
           
                               if (recvs[i].done < recvs[i].length)
                                    return DR_OK;

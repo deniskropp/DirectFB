@@ -43,6 +43,7 @@
 
 #include <voodoo/conf.h>
 #include <voodoo/internal.h>
+#include <voodoo/link.h>
 #include <voodoo/manager.h>
 #include <voodoo/server.h>
 
