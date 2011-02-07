@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2011  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -33,14 +33,20 @@
 
 /**********************************************************************************************************************/
 
-int direct_fastlz_compress  ( const void *input,
-                              int         length,
-                              void       *output );
+int direct_fastlz_compress      ( const void    *input,
+                                  int            length,
+                                  void          *output );
 
-int direct_fastlz_decompress( const void *input,
-                              int         length,
-                              void       *output,
-                              int         maxout );
+int direct_fastlz_decompress    ( const void    *input,
+                                  int            length,
+                                  void          *output,
+                                  int            maxout );
+
+
+int direct_fastlz_compress_multi( const void   **inputs,
+                                  int           *lengths,
+                                  unsigned int   num,
+                                  void          *output );
 
 #endif
 

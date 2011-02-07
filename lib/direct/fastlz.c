@@ -29,6 +29,7 @@
 #include <config.h>
 
 #include <direct/fastlz.h>
+#include <direct/messages.h>
 
 #include "flz.h"
 
@@ -50,3 +51,44 @@ direct_fastlz_decompress( const void *input,
      return fastlz_decompress( input, length, output, maxout );
 }
 
+int
+direct_fastlz_compress_multi( const void   **inputs,
+                              int           *lengths,
+                              unsigned int   num,
+                              void          *output )
+{
+     // FIXME: Optimize by modifying fastlz compressor to take an array of buffers directly
+
+     unsigned int  i;
+     int           total  = 0;
+     int           offset = 0;
+     void         *buffer;
+     int           result;
+
+     if (num == 0)
+          return 0;
+
+     if (num == 1)
+          return direct_fastlz_compress( inputs[0], lengths[0], output );
+
+     for (i=0; i<num; i++)
+          total += lengths[i];
+
+     buffer = malloc( total );
+     if (!buffer) {
+          D_OOM();
+          return 0;
+     }
+
+     for (i=0; i<num; i++) {
+          memcpy( buffer + offset, inputs[i], lengths[i] );
+
+          offset += lengths[i];
+     }
+
+     result = direct_fastlz_compress( buffer, total, output );
+
+     free( buffer );
+
+     return result;
+}
