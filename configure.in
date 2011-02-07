@@ -1121,6 +1121,9 @@ if test "$checkfor_sh772x" = "yes" && test "$have_sh4" = "yes"; then
        AC_MSG_WARN([*** Missing UIOMUX, SHBEU or SHJPEG library -- sh772x driver will not be built.])
   fi
 fi
+if test "$sh772x" = "yes"; then
+  AC_DEFINE(HAVE_GFX_SH772X, [], [Define to 1 if sh772x])
+fi
 
 if test "$checkfor_sis315" = "yes"; then
   sis315=yes

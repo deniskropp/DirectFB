@@ -49,6 +49,10 @@
 
 #include <core/core_system.h>
 
+#ifdef HAVE_GFX_SH772X
+#include <uiomux/uiomux.h>
+#endif
+
 DFB_CORE_SYSTEM( devmem )
 
 /**********************************************************************************************************************/
@@ -87,6 +91,10 @@ MapMemAndReg( DevMemData    *data,
                return DFB_INIT;
           }
      }
+
+#ifdef HAVE_GFX_SH772X
+	uiomux_register (data->mem, mem_phys, mem_length);
+#endif
 
      close( fd );
 
