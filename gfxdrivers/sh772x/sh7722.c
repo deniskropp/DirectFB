@@ -54,6 +54,7 @@ DFB_GRAPHICS_DRIVER( sh7722 )
 
 /* libshbeu */
 #include <shbeu/shbeu.h>
+#include <uiomux/uiomux.h>
 
 D_DEBUG_DOMAIN( SH7722_Driver, "SH7722/Driver", "Renesas SH7722 Driver" );
 
@@ -241,7 +242,7 @@ driver_init_device( CoreGraphicsDevice *device,
      	  struct fb_var_screeninfo vsi;
 		  int fbdev;
 
-		  if ((fbdev = open("/dev/fb0", O_RDONLY)) < 0) {
+		  if ((fbdev = open("/dev/fb0", O_RDWR)) < 0) {
 			   D_ERROR( "SH7722/Driver: Can't open fbdev to get LCDC info!\n" );
 			   return DFB_FAILURE;
 		  }
@@ -264,7 +265,6 @@ driver_init_device( CoreGraphicsDevice *device,
 		  sdev->lcd_size   = fsi.smem_len;
 		  sdev->lcd_offset = 0;
 		  sdev->lcd_phys   = fsi.smem_start;
-#if 0
 		  sdrv->lcd_virt   = mmap(NULL, fsi.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED,
 				  				  fbdev, 0);
 		  if (sdrv->lcd_virt == MAP_FAILED) {
@@ -272,6 +272,7 @@ driver_init_device( CoreGraphicsDevice *device,
 			   close(fbdev);
 			   return DFB_FAILURE;
 		  }
+
 
           /* Clear LCD buffer. */
           switch (sdev->lcd_format) {
@@ -288,7 +289,9 @@ driver_init_device( CoreGraphicsDevice *device,
                     D_BUG( "unsupported format" );
                     return DFB_BUG;
           }
-#endif
+
+          /* Register the framebuffer with UIOMux */
+          uiomux_register (sdrv->lcd_virt, sdev->lcd_phys, sdev->lcd_size);
 
 		  close(fbdev);
      }     
@@ -400,12 +403,15 @@ driver_init_device( CoreGraphicsDevice *device,
      /* Set output pixel format of the BEU. */
      switch (sdev->lcd_format) {
           case DSPF_RGB16:
-               sdev->shbeu_dest.format = V4L2_PIX_FMT_RGB565; 
+               sdev->shbeu_dest.s.pc = NULL;
+               sdev->shbeu_dest.s.pa = NULL;
+               sdev->shbeu_dest.s.format = REN_RGB565;
                break;
 
           case DSPF_NV16:
-               sdev->shbeu_dest.pa = sdev->lcd_phys + sdev->lcd_height * sdev->lcd_pitch;
-               sdev->shbeu_dest.format = V4L2_PIX_FMT_NV16; 
+               sdev->shbeu_dest.s.pc = sdrv->lcd_virt + sdev->lcd_height * sdev->lcd_pitch;
+               sdev->shbeu_dest.s.pa = NULL;
+               sdev->shbeu_dest.s.format = REN_NV16;
                break;
 
           default:
@@ -423,11 +429,11 @@ driver_init_device( CoreGraphicsDevice *device,
      fusion_skirmish_init( &sdev->beu_lock, "BEU", dfb_core_world(sdrv->core) );
 
      /* libshbeu */
-     sdev->shbeu_dest.py = sdev->lcd_phys;
-     sdev->shbeu_dest.width = sdev->lcd_width;
-     sdev->shbeu_dest.height =sdev->lcd_height;
+     sdev->shbeu_dest.s.py = sdrv->lcd_virt;
+     sdev->shbeu_dest.s.w = sdev->lcd_width;
+     sdev->shbeu_dest.s.h =sdev->lcd_height;
+     sdev->shbeu_dest.s.pitch = sdev->lcd_pitch/DFB_BYTES_PER_PIXEL(sdev->lcd_format);
      sdev->shbeu_dest.alpha = 0xff;
-     sdev->shbeu_dest.pitch = sdev->lcd_pitch/DFB_BYTES_PER_PIXEL(sdev->lcd_format);
      sdev->shbeu_dest.x = 0;
      sdev->shbeu_dest.y = 0;
      

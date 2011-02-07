@@ -90,13 +90,13 @@ sh7722InitLayer( CoreLayer                  *layer,
      config->options     = DLOP_ALPHACHANNEL;
      
      /* libshbeu */
+     sdev->shbeu_src[data->layer].s.w = sdev->lcd_width;
+     sdev->shbeu_src[data->layer].s.h = sdev->lcd_height;
+     sdev->shbeu_src[data->layer].s.pitch = sdev->lcd_pitch/DFB_BYTES_PER_PIXEL(config->pixelformat);
+     sdev->shbeu_src[data->layer].s.format = REN_RGB565;
      sdev->shbeu_src[data->layer].alpha = 0xff;
-     sdev->shbeu_src[data->layer].width = sdev->lcd_width;
-     sdev->shbeu_src[data->layer].height = sdev->lcd_height;
-     sdev->shbeu_src[data->layer].pitch = sdev->lcd_pitch/DFB_BYTES_PER_PIXEL(config->pixelformat);
      sdev->shbeu_src[data->layer].x = 0;
      sdev->shbeu_src[data->layer].y = 0;
-     sdev->shbeu_src[data->layer].format = V4L2_PIX_FMT_RGB565;
 
 
      return DFB_OK;
@@ -238,8 +238,8 @@ sh7722SetRegion( CoreLayer                  *layer,
                ch = sdev->lcd_height - config->dest.y;
 
           /* libshbeu: Set width and height. */
-          sdev->shbeu_src[n].height = ch;
-          sdev->shbeu_src[n].width  = cw;
+          sdev->shbeu_src[n].s.h = ch;
+          sdev->shbeu_src[n].s.w  = cw;
 
      }
 
@@ -248,22 +248,22 @@ sh7722SetRegion( CoreLayer                  *layer,
           CoreSurfaceBuffer *buffer = lock->buffer;
 
           /* libshbeu: Set buffer pitch. */
-          sdev->shbeu_src[n].pitch = lock->pitch / DFB_BYTES_PER_PIXEL(buffer->format);
+          sdev->shbeu_src[n].s.pitch = lock->pitch / DFB_BYTES_PER_PIXEL(buffer->format);
 
           /* libshbeu: Set buffer offset (Y plane or RGB packed). */
-          sdev->shbeu_src[n].py = lock->phys;
+          sdev->shbeu_src[n].s.py = lock->addr;
+          sdev->shbeu_src[n].s.pc = NULL;
+          sdev->shbeu_src[n].s.pa = NULL;
 
           /* libshbeu: Set alpha plane to same physical address as RGB plane if layer uses alpha */
           if (DFB_PIXELFORMAT_HAS_ALPHA(buffer->format) && (config->options & DLOP_ALPHACHANNEL))
-               sdev->shbeu_src[n].pa = lock->phys;
-          else
-               sdev->shbeu_src[n].pa = 0;
+               sdev->shbeu_src[n].s.pa = lock->addr;
           
           /* Set buffer offset (UV plane). */
           if (DFB_PLANAR_PIXELFORMAT(buffer->format)) {
                D_ASSUME( buffer->format == DSPF_NV12 || buffer->format == DSPF_NV16 );
 
-               sdev->shbeu_src[n].pc = lock->phys + lock->pitch * surface->config.size.h;
+               sdev->shbeu_src[n].s.pc = lock->addr + lock->pitch * surface->config.size.h;
           }
 
           sreg->surface = surface;
@@ -274,30 +274,31 @@ sh7722SetRegion( CoreLayer                  *layer,
           /* Set pixel format. */
           switch (config->format) {
                case DSPF_NV12:
-                    sdev->shbeu_src[n].format = V4L2_PIX_FMT_NV12;
+                    sdev->shbeu_src[n].s.format = REN_NV12;
                     break;
 
                case DSPF_NV16:
-                    sdev->shbeu_src[n].format = V4L2_PIX_FMT_NV16;
+                    sdev->shbeu_src[n].s.format = REN_NV16;
                     break;
 
                case DSPF_ARGB:
                case DSPF_RGB32:
-                    sdev->shbeu_src[n].format = V4L2_PIX_FMT_RGB32; 
+                    sdev->shbeu_src[n].s.format = REN_RGB32;
                     break;
 
                case DSPF_RGB24:
-                    sdev->shbeu_src[n].format = V4L2_PIX_FMT_RGB24; //FIXME: implement in libshbeu
+                    sdev->shbeu_src[n].s.format = REN_RGB24; //FIXME: implement in libshbeu
                     break;
 
                case DSPF_RGB16:
-                    sdev->shbeu_src[n].format = V4L2_PIX_FMT_RGB565;
+                    sdev->shbeu_src[n].s.format = REN_RGB565;
                     break;
  
+/* Currently not supported
                case DSPF_LUT8:
-                    sdev->shbeu_src[n].format = V4L2_PIX_FMT_PAL8; //FIXME: implement in libshbeu
+                    sdev->shbeu_src[n].s.format = REN_PAL8; //FIXME: implement in libshbeu
                     break;
-
+*/
                default:
                     break;
           }
@@ -311,9 +312,9 @@ sh7722SetRegion( CoreLayer                  *layer,
 
           /* libshbeu: Enable/disable alpha channel. */
           if ((config->options & DLOP_ALPHACHANNEL) && DFB_PIXELFORMAT_HAS_ALPHA(config->format))
-               sdev->shbeu_src[n].pa = sdev->shbeu_src[n].py;
+               sdev->shbeu_src[n].s.pa = sdev->shbeu_src[n].s.py;
           else
-               sdev->shbeu_src[n].pa = 0;
+               sdev->shbeu_src[n].s.pa = 0;
      }
 
 //TODO: Implement CLUT in libshbeu
@@ -372,7 +373,7 @@ sh7722RemoveRegion( CoreLayer *layer,
 
      /* libshbeu: reorder src surfaces and start blending. */
      if (sdev->input_mask) {
-          beu_surface_t* src[3] = {NULL, NULL, NULL};
+          struct shbeu_surface * src[3] = {NULL, NULL, NULL};
           int nr_surfaces = 0;
           if (sdev->input_mask & 1) {
                src[nr_surfaces] = &sdev->shbeu_src[0];
@@ -427,11 +428,11 @@ sh7722FlipRegion( CoreLayer             *layer,
      fusion_skirmish_prevail( &sdev->beu_lock );
 
      /* set new physical address for layer */
-     sdev->shbeu_src[n].py = lock->phys;
+     sdev->shbeu_src[n].s.py = lock->addr;
 
      /* libshbeu: reorder src surfaces and start blending. */
      if (sdev->input_mask) {
-          beu_surface_t* src[3] = {NULL, NULL, NULL};
+          struct shbeu_surface * src[3] = {NULL, NULL, NULL};
           int nr_surfaces = 0;
           if (sdev->input_mask & 1) {
                src[nr_surfaces] = &sdev->shbeu_src[0];
@@ -475,7 +476,7 @@ sh7722UpdateRegion( CoreLayer             *layer,
 
      /* libshbeu: reorder src surfaces and start blending. */
      if (sdev->input_mask) {
-          beu_surface_t* src[3] = {NULL, NULL, NULL};
+          struct shbeu_surface * src[3] = {NULL, NULL, NULL};
           int nr_surfaces = 0;
           if (sdev->input_mask & 1) {
                src[nr_surfaces] = &sdev->shbeu_src[0];
