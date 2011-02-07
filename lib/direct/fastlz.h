@@ -33,20 +33,20 @@
 
 /**********************************************************************************************************************/
 
-int direct_fastlz_compress      ( const void    *input,
-                                  int            length,
-                                  void          *output );
+int DIRECT_API direct_fastlz_compress      ( const void    *input,
+                                             int            length,
+                                             void          *output );
 
-int direct_fastlz_decompress    ( const void    *input,
-                                  int            length,
-                                  void          *output,
-                                  int            maxout );
+int DIRECT_API direct_fastlz_decompress    ( const void    *input,
+                                             int            length,
+                                             void          *output,
+                                             int            maxout );
 
 
-int direct_fastlz_compress_multi( const void   **inputs,
-                                  int           *lengths,
-                                  unsigned int   num,
-                                  void          *output );
+int DIRECT_API direct_fastlz_compress_multi( const void   **inputs,
+                                             int           *lengths,
+                                             unsigned int   num,
+                                             void          *output );
 
 #endif
 
