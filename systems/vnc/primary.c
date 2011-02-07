@@ -33,6 +33,7 @@
 #include <dlfcn.h>
 
 #include <directfb.h>
+#include <directfb_util.h>
 
 #include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
