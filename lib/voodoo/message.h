@@ -180,7 +180,7 @@ typedef struct {
      do {                                                             \
           __VOODOO_PARSER_PROLOG( parser, VMBT_DATA );                \
                                                                       \
-          D_ASSERT( _vp_length > 0 );                                 \
+          /*D_ASSERT( _vp_length > 0 );*/                                 \
                                                                       \
           /* Return pointer to data. */                               \
           (ret_data) = (__typeof__(ret_data))(_vp_ptr + 8);           \
@@ -192,7 +192,7 @@ typedef struct {
      do {                                                             \
           __VOODOO_PARSER_PROLOG( parser, VMBT_DATA );                \
                                                                       \
-          D_ASSERT( _vp_length > 0 );                                 \
+          /*D_ASSERT( _vp_length > 0 );*/                                 \
           D_ASSERT( _vp_length <= max_len );                          \
                                                                       \
           /* Copy data block. */                                      \
@@ -205,7 +205,7 @@ typedef struct {
      do {                                                             \
           __VOODOO_PARSER_PROLOG( parser, VMBT_DATA );                \
                                                                       \
-          D_ASSERT( _vp_length > 0 );                                 \
+          /*D_ASSERT( _vp_length > 0 );*/                                 \
                                                                       \
           /* Allocate memory on the stack. */                         \
           (ret_data) = alloca( _vp_length );                          \

@@ -26,6 +26,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include <unistd.h>
@@ -51,7 +53,9 @@
 #include <direct/util.h>
 
 #include <voodoo/client.h>
+#include <voodoo/conf.h>
 #include <voodoo/internal.h>
+#include <voodoo/link.h>
 #include <voodoo/manager.h>
 #include <voodoo/play.h>
 
@@ -81,7 +85,7 @@ do {                                                                            
 /**********************************************************************************************************************/
 
 typedef struct {
-     int fd;
+     int fd[2];
      int wakeup_fds[2];
 } Link;
 
@@ -92,7 +96,10 @@ Close( VoodooLink *link )
 
      D_INFO( "Voodoo/Link: Closing connection.\n" );
 
-     close( l->fd );
+     close( l->fd[0] );
+
+     if (l->fd[1] != l->fd[0])
+          close( l->fd[1] );
 
      D_FREE( link->priv );
      link->priv = NULL;
@@ -105,7 +112,7 @@ Read( VoodooLink *link,
 {
      Link *l = link->priv;
 
-     return recv( l->fd, buffer, count, 0 );
+     return recv( l->fd[0], buffer, count, 0 );
 }
 
 static ssize_t
@@ -115,7 +122,7 @@ Write( VoodooLink *link,
 {
      Link *l = link->priv;
 
-     return send( l->fd, buffer, count, 0 );
+     return send( l->fd[1], buffer, count, 0 );
 }
 
 static DirectResult
@@ -167,32 +174,32 @@ SendReceive( VoodooLink  *link,
 
           if (num_recv) {
                //printf("wait for recv\n");
-               FD_SET( l->fd, &fds_read );
+               FD_SET( l->fd[0], &fds_read );
           }
 
           if (num_send) {
                //printf("wait for send\n");
-               FD_SET( l->fd, &fds_write );
+               FD_SET( l->fd[1], &fds_write );
           }
 
           FD_SET( l->wakeup_fds[0], &fds_read );
 
           tv.tv_sec  = 0;
-          tv.tv_usec = 50000;
+          tv.tv_usec = 100000;
 
           D_DEBUG_AT( Voodoo_Link, "  -> select( %s%s )...\n", num_recv ? "R" : " ", num_send ? "W" : " " );
-          select_result = select( MAX(l->wakeup_fds[0],l->fd)+1, &fds_read, &fds_write, NULL, &tv );
+          select_result = select( MAX(MAX(l->wakeup_fds[0],l->fd[0]),l->fd[1])+1, &fds_read, &fds_write, NULL, &tv );
           D_DEBUG_AT( Voodoo_Link, "  -> select result: %d\n", select_result );
           switch (select_result) {
                default:
-                    if (FD_ISSET( l->fd, &fds_write )) {
+                    if (FD_ISSET( l->fd[1], &fds_write )) {
                          D_DEBUG_AT( Voodoo_Link, "  => WRITE\n" );
 
                          //printf("<-- event write\n");
 
                          for (i=0; i<num_send; i++) {
                               //printf("writing %d\n",sends[i].length);
-                              ret = send( l->fd, sends[i].ptr, sends[i].length, 0 );
+                              ret = send( l->fd[1], sends[i].ptr, sends[i].length, 0 );
                               //printf("wrote %d/%d\n",ret,sends[i].length);
                               if (ret < 0) {
                                    if (errno == EAGAIN) {
@@ -213,13 +220,13 @@ SendReceive( VoodooLink  *link,
                          }
                     }
      
-                    if (FD_ISSET( l->fd, &fds_read )) {
+                    if (FD_ISSET( l->fd[0], &fds_read )) {
                          D_DEBUG_AT( Voodoo_Link, "  => READ\n" );
 
                          //printf("<-- event read\n");
 
                          for (i=0; i<num_recv; i++) {
-                              ret = recv( l->fd, recvs[i].ptr, recvs[i].length, 0 );
+                              ret = recv( l->fd[0], recvs[i].ptr, recvs[i].length, 0 );
                               //printf("read %d\n",ret);
                               if (ret < 0) {
                                    if (errno == EAGAIN) {
@@ -272,8 +279,6 @@ WakeUp( VoodooLink *link )
      Link *l = link->priv;
      char  c = 0;
 
-     //printf("*** wakeup\n");
-
      write( l->wakeup_fds[1], &c, 1 );
 
      return DR_OK;
@@ -292,7 +297,6 @@ voodoo_link_init_connect( VoodooLink *link,
      struct addrinfo *addr;
      char             portstr[10];
      Link            *l;
-
 
 
      memset( &hints, 0, sizeof(hints) );
@@ -353,42 +357,54 @@ voodoo_link_init_connect( VoodooLink *link,
           return D_OOM();
 
      /* Create the client socket. */
-     l->fd = socket( addr->ai_family, SOCK_STREAM, 0 );
-     if (l->fd < 0) {
+     l->fd[0] = socket( addr->ai_family, SOCK_STREAM, 0 );
+     if (l->fd[0] < 0) {
           ret = errno2result( errno );
           D_PERROR( "Voodoo/Link: Socket creation failed!\n" );
           freeaddrinfo( addr );
           D_FREE( l );
           return ret;
      }
+     l->fd[1] = l->fd[0];
 
      D_INFO( "Voodoo/Link: Connecting to '%s:%d'...\n", addr->ai_canonname, port );
 
      /* Connect to the server. */
-     err = connect( l->fd, addr->ai_addr, addr->ai_addrlen );
+     err = connect( l->fd[0], addr->ai_addr, addr->ai_addrlen );
      freeaddrinfo( addr );
 
      if (err) {
           ret = errno2result( errno );
           D_PERROR( "Voodoo/Link: Socket connect failed!\n" );
-          close( l->fd );
+          close( l->fd[0] );
           D_FREE( l );
           return ret;
      }
 
 
 #if !VOODOO_BUILD_NO_SETSOCKOPT
-     if (setsockopt( l->fd, SOL_IP, IP_TOS, &tos, sizeof(tos) ) < 0)
+     if (setsockopt( l->fd[0], SOL_IP, IP_TOS, &tos, sizeof(tos) ) < 0)
           D_PERROR( "Voodoo/Manager: Could not set IP_TOS!\n" );
 
-     if (setsockopt( l->fd, SOL_TCP, TCP_NODELAY, &one, sizeof(one) ) < 0)
+     if (setsockopt( l->fd[0], SOL_TCP, TCP_NODELAY, &one, sizeof(one) ) < 0)
           D_PERROR( "Voodoo/Manager: Could not set TCP_NODELAY!\n" );
 #endif
 
-     DUMP_SOCKET_OPTION( l->fd, SO_SNDLOWAT );
-     DUMP_SOCKET_OPTION( l->fd, SO_RCVLOWAT );
-     DUMP_SOCKET_OPTION( l->fd, SO_SNDBUF );
-     DUMP_SOCKET_OPTION( l->fd, SO_RCVBUF );
+     DUMP_SOCKET_OPTION( l->fd[0], SO_SNDLOWAT );
+     DUMP_SOCKET_OPTION( l->fd[0], SO_RCVLOWAT );
+     DUMP_SOCKET_OPTION( l->fd[0], SO_SNDBUF );
+     DUMP_SOCKET_OPTION( l->fd[0], SO_RCVBUF );
+
+     if (!voodoo_config->link_raw) {
+          link->code = 0x80008676;
+
+          if (write( l->fd[1], &link->code, sizeof(link->code) ) != 4) {
+               D_ERROR( "Voodoo/Link: Coult not write initial four bytes!\n" );
+               close( l->fd[0] );
+               D_FREE( l );
+               return DR_IO;
+          }
+     }
 
      pipe( l->wakeup_fds );
 
@@ -405,15 +421,21 @@ voodoo_link_init_connect( VoodooLink *link,
 
 DirectResult
 voodoo_link_init_fd( VoodooLink *link,
-                     int         fd )
+                     int         fd[2] )
 {
      Link *l;
+
+     if (read( fd[0], &link->code, sizeof(link->code) ) != 4) {
+          D_ERROR( "Voodoo/Link: Coult not read initial four bytes!\n" );
+          return DR_IO;
+     }
 
      l = D_CALLOC( 1, sizeof(Link) );
      if (!l)
           return D_OOM();
 
-     l->fd = fd;
+     l->fd[0] = fd[0];
+     l->fd[1] = fd[1];
 
      pipe( l->wakeup_fds );
 

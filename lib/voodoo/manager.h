@@ -33,46 +33,146 @@
 #include <voodoo/message.h>
 
 
+#ifdef __cplusplus
+extern "C" {
+#include <direct/thread.h>
+}
+
+#include <map>
+
 
 typedef struct {
-     void   *ptr;
-     size_t  length;
-     size_t  done;
-} VoodooChunk;
+     bool                        super;
+     IAny                       *proxy;
+     IAny                       *real;
+     VoodooDispatch              dispatch;
+} VoodooInstance;
+
+typedef std::map<VoodooInstanceID,VoodooInstance*> InstanceMap;
 
 
-struct __V_VoodooLink {
-     void *priv;
+class VoodooManager {
+public:
+     int                         magic;
 
-     void    (*Close)( VoodooLink *link );
+     bool                        is_quit;
 
-     /* See 'read(2)', blocking */
-     ssize_t (*Read) ( VoodooLink *link,
-                       void       *buffer,
-                       size_t      count );
+private:
+     VoodooLink                 *link;
+     VoodooConnection           *connection;
 
-     /* See 'write(2)', blocking */
-     ssize_t (*Write)( VoodooLink *link,
-                       const void *buffer,
-                       size_t      count );
+     long long                   millis;
+
+     VoodooClient               *client;     /* Either client ... */
+     VoodooServer               *server;     /* ... or server is valid. */
+
+     size_t                      msg_count;
+     VoodooMessageSerial         msg_serial;
+
+     struct {
+          DirectMutex            lock;
+          InstanceMap            local;
+          InstanceMap            remote;
+          VoodooInstanceID       last;
+     } instances;
+
+     struct {
+          DirectMutex            lock;
+          DirectWaitQueue        wait_get;
+          DirectWaitQueue        wait_put;
+          VoodooResponseMessage *current;
+     } response;
 
 
-     /* For later... */
-     DirectResult (*SendReceive)( VoodooLink  *link,
-                                  VoodooChunk *send,
-                                  size_t       num_send,
-                                  VoodooChunk *recv,
-                                  size_t       num_recv );
 
-     DirectResult (*WakeUp)     ( VoodooLink  *link );
+public:
+     VoodooManager( VoodooLink   *link,
+                    VoodooClient *client,
+                    VoodooServer *server );
+     ~VoodooManager();
+
+
+     void         quit                 ();
+
+
+     void         handle_disconnect    ();
+     void         handle_super         ( VoodooSuperMessage      *super );
+
+     void         handle_request       ( VoodooRequestMessage    *request );
+     void         handle_response      ( VoodooResponseMessage   *response );
+
+
+private:
+     static void *dispatch_async_thread( DirectThread            *thread,
+                                         void                    *arg );
+
+
+
+
+public:
+     DirectResult do_super             ( const char              *name,
+                                         VoodooInstanceID        *ret_instance );
+
+     DirectResult do_request           ( VoodooInstanceID         instance,
+                                         VoodooMethodID           method,
+                                         VoodooRequestFlags       flags,
+                                         VoodooResponseMessage  **ret_response,
+                                         VoodooMessageBlockType   block_type,
+                                         va_list                  args );
+
+     DirectResult next_response        ( VoodooResponseMessage   *response,
+                                         VoodooResponseMessage  **ret_response );
+
+     DirectResult finish_request       ( VoodooResponseMessage   *response );
+
+     DirectResult do_respond           ( bool                     flush,
+                                         VoodooMessageSerial      request,
+                                         DirectResult             result,
+                                         VoodooInstanceID         instance,
+                                         VoodooMessageBlockType   block_type,
+                                         va_list                  args );
+
+private:
+     inline int   calc_blocks          ( VoodooMessageBlockType   type,
+                                         va_list                  args );
+
+     inline void  write_blocks         ( void                    *dst,
+                                         VoodooMessageBlockType   type,
+                                         va_list                  args );
+
+     DirectResult lock_response        ( VoodooMessageSerial      request,
+                                         VoodooResponseMessage  **ret_response );
+
+     DirectResult unlock_response      ( VoodooResponseMessage   *response );
+
+
+public:
+     DirectResult register_local       ( bool                     super,
+                                         void                    *dispatcher,
+                                         void                    *real,
+                                         VoodooDispatch           dispatch,
+                                         VoodooInstanceID        *ret_instance );
+
+     DirectResult unregister_local     ( VoodooInstanceID         instance_id );
+
+     DirectResult lookup_local         ( VoodooInstanceID         instance_id,
+                                         void                   **ret_dispatcher,
+                                         void                   **ret_real );
+
+     DirectResult register_remote      ( bool                     super,
+                                         void                    *requestor,
+                                         VoodooInstanceID         instance_id );
+
+     DirectResult lookup_remote        ( VoodooInstanceID         instance_id,
+                                         void                   **ret_requestor );
 };
+#endif
 
-DirectResult VOODOO_API voodoo_link_init_connect( VoodooLink *link,
-                                                  const char *hostname,
-                                                  int         port );
-DirectResult VOODOO_API voodoo_link_init_fd( VoodooLink *link,
-                                             int         fd );
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 DirectResult VOODOO_API voodoo_manager_create         ( VoodooLink              *link,
                                                         VoodooClient            *client,
@@ -85,9 +185,15 @@ bool         VOODOO_API voodoo_manager_is_closed      ( const VoodooManager     
 
 DirectResult VOODOO_API voodoo_manager_destroy        ( VoodooManager           *manager );
 
+
+/* Super */
+
 DirectResult VOODOO_API voodoo_manager_super          ( VoodooManager           *manager,
                                                         const char              *name,
                                                         VoodooInstanceID        *ret_instance );
+
+
+/* Request */
 
 DirectResult VOODOO_API voodoo_manager_request        ( VoodooManager           *manager,
                                                         VoodooInstanceID         instance,
@@ -103,12 +209,18 @@ DirectResult VOODOO_API voodoo_manager_next_response  ( VoodooManager           
 DirectResult VOODOO_API voodoo_manager_finish_request ( VoodooManager           *manager,
                                                         VoodooResponseMessage   *response );
 
+
+/* Response */
+
 DirectResult VOODOO_API voodoo_manager_respond        ( VoodooManager           *manager,
                                                         bool                     flush,
                                                         VoodooMessageSerial      request,
                                                         DirectResult             result,
                                                         VoodooInstanceID         instance,
                                                         VoodooMessageBlockType   block_type, ... );
+
+
+/* Instances */
 
 DirectResult VOODOO_API voodoo_manager_register_local ( VoodooManager           *manager,
                                                         bool                     super,
@@ -134,10 +246,15 @@ DirectResult VOODOO_API voodoo_manager_lookup_remote  ( VoodooManager           
                                                         VoodooInstanceID         instance,
                                                         void                   **ret_requestor );
 
-DirectResult VOODOO_API voodoo_manager_quit           ( VoodooManager           *manager );
+
+/* Security */
 
 DirectResult VOODOO_API voodoo_manager_check_allocation( VoodooManager           *manager,
                                                          unsigned int             amount );
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

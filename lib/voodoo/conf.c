@@ -51,6 +51,8 @@ const char   *voodoo_config_usage =
      "  proxy-surface-max=<kB>         Set maximum amount of memory per surface\n"
      "  [no-]server-fork               Fork a new process for each connection (default: no)\n"
      "  server-single=<interface>      Enable single client mode for super interface, e.g. IDirectFB\n"
+     "  compression-min=<bytes>        Enable compression (if != 0) for packets with at least num bytes\n"
+     "  [no-]link-raw                  Set link mode to 'raw'\n"
      "\n";
 
 /**********************************************************************************************************************/
@@ -207,6 +209,28 @@ voodoo_config_set( const char *name, const char *value )
                D_ERROR( "Voodoo/Config '%s': No value specified!\n", name );
                return DR_INVARG;
           }
+     } else
+     if (strcmp (name, "compression-min" ) == 0) {
+          if (value) {
+               unsigned int min;
+
+               if (direct_sscanf( value, "%u", &min ) != 1) {
+                    D_ERROR( "Voodoo/Config '%s': Invalid value specified!\n", name );
+                    return DR_INVARG;
+               }
+
+               voodoo_config->compression_min = min;
+          }
+          else {
+               D_ERROR( "Voodoo/Config '%s': No value specified!\n", name );
+               return DR_INVARG;
+          }
+     } else
+     if (strcmp (name, "link-raw" ) == 0) {
+          voodoo_config->link_raw = true;
+     } else
+     if (strcmp (name, "no-link-raw" ) == 0) {
+          voodoo_config->link_raw = false;
      } else
      if (direct_config_set( name, value ))
           return DR_UNSUPPORTED;

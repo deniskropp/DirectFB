@@ -28,6 +28,9 @@ include_HEADERS = \
 	build.h			\
 	client.h		\
 	conf.h			\
+	connection.h		\
+	connection_packet.h	\
+	connection_raw.h	\
 	init.h			\
 	interface.h		\
 	manager.h		\
@@ -42,10 +45,13 @@ lib_LTLIBRARIES = libvoodoo.la
 libvoodoo_la_SOURCES = \
 	client.c		\
 	conf.c			\
+	connection.cpp		\
+	connection_packet.cpp	\
+	connection_raw.cpp	\
 	init.c			\
 	interface.c		\
 	internal.h		\
-	manager.c		\
+	manager.cpp		\
 	play.c			\
 	server.c
 

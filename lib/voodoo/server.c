@@ -58,6 +58,7 @@
 
 #include <voodoo/conf.h>
 #include <voodoo/internal.h>
+#include <voodoo/link.h>
 #include <voodoo/manager.h>
 #include <voodoo/server.h>
 
@@ -340,7 +341,7 @@ voodoo_server_run( VoodooServer *server )
 
                     voodoo_manager_destroy( connection->manager );
 
-                    connection->vl.Close( &connection->vl );
+                    //connection->vl.Close( &connection->vl );
 
                     direct_list_remove( &server->connections, l );
 
@@ -446,7 +447,7 @@ voodoo_server_destroy( VoodooServer *server )
 
           voodoo_manager_destroy( connection->manager );
 
-          connection->vl.Close( &connection->vl );
+          //connection->vl.Close( &connection->vl );
 
           D_FREE( connection );
      }
@@ -465,6 +466,7 @@ static DirectResult
 accept_connection( VoodooServer *server, int fd )
 {
      DirectResult  ret;
+     int           fds[2] = { fd, fd };
      Connection   *connection;
 
      connection = D_CALLOC( 1, sizeof(Connection) );
@@ -473,7 +475,7 @@ accept_connection( VoodooServer *server, int fd )
           return DR_NOLOCALMEMORY;
      }
 
-     voodoo_link_init_fd( &connection->vl, fd );
+     voodoo_link_init_fd( &connection->vl, fds );
 
      ret = voodoo_manager_create( &connection->vl, NULL, server, &connection->manager );
      if (ret) {

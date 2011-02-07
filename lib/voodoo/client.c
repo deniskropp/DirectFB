@@ -40,6 +40,7 @@
 
 #include <voodoo/client.h>
 #include <voodoo/internal.h>
+#include <voodoo/link.h>
 #include <voodoo/manager.h>
 #include <voodoo/play.h>
 
@@ -163,7 +164,7 @@ voodoo_client_destroy( VoodooClient *client )
      if (! --(client->refs)) {
           voodoo_manager_destroy( client->manager );
 
-          client->vl.Close( &client->vl );
+          //client->vl.Close( &client->vl );
 
           direct_list_remove( &m_clients, &client->link );
 

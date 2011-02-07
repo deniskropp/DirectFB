@@ -51,7 +51,7 @@
 
 typedef u32 VoodooInstanceID;
 typedef u32 VoodooMethodID;
-typedef u64 VoodooMessageSerial;
+typedef u32 VoodooMessageSerial;
 
 #define VOODOO_INSTANCE_NONE  ((VoodooInstanceID) 0)
 
@@ -65,9 +65,17 @@ typedef struct __V_VoodooResponseMessage VoodooResponseMessage;
 typedef struct __V_VoodooClient          VoodooClient;
 typedef struct __V_VoodooConfig          VoodooConfig;
 typedef struct __V_VoodooLink            VoodooLink;
-typedef struct __V_VoodooManager         VoodooManager;
+//typedef struct __V_VoodooManager         VoodooManager;
 typedef struct __V_VoodooPlayer          VoodooPlayer;
 typedef struct __V_VoodooServer          VoodooServer;
+
+#ifdef __cplusplus
+class VoodooConnection;
+class VoodooManager;
+class VoodooPacket;
+#else
+typedef void*         VoodooManager;
+#endif
 
 
 typedef DirectResult (*VoodooSuperConstruct)( VoodooServer         *server,
@@ -80,6 +88,10 @@ typedef DirectResult (*VoodooDispatch)      ( void                 *dispatcher,
                                               void                 *real,
                                               VoodooManager        *manager,
                                               VoodooRequestMessage *msg );
+
+
+#define MAX_MSG_SIZE          (17 * 1024)
+#define VOODOO_PACKET_MAX     (MAX_MSG_SIZE*4)
 
 #endif
 

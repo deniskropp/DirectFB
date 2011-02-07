@@ -26,32 +26,43 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __VOODOO__CONF_H__
-#define __VOODOO__CONF_H__
+#ifndef __VOODOO__CONNECTION_H__
+#define __VOODOO__CONNECTION_H__
 
-#include <voodoo/play.h>
+extern "C" {
+#include <voodoo/types.h>
+}
 
 
-struct __V_VoodooConfig {
-     VoodooPlayInfo  play_info;
-     bool            forward_nodes;
-     unsigned int    memory_max;
-     unsigned int    surface_max;
-     unsigned int    layer_mask;
-     unsigned int    stacking_mask;
-     unsigned int    resource_id;
-     bool            server_fork;
-     char           *server_single;
-     char           *play_broadcast;
-     unsigned int    compression_min;
-     bool            link_raw;
+class VoodooConnection {
+protected:
+     int                         magic;
+
+     VoodooManager              *manager;
+     VoodooLink                 *link;
+
+public:
+     VoodooConnection( VoodooManager *manager,
+                       VoodooLink    *link );
+
+     virtual ~VoodooConnection();
+
+
+     virtual DirectResult lock_output  ( int            length,
+                                         void         **ret_ptr ) = 0;
+
+     virtual DirectResult unlock_output( bool           flush ) = 0;
+
+
+
+     virtual VoodooPacket *GetPacket( size_t        length ) = 0;
+     virtual void          PutPacket( VoodooPacket *packet,
+                                      bool          flush ) = 0;
+
+protected:
+     void ProcessMessages( VoodooMessageHeader *first,
+                           size_t               total_length );
 };
-
-extern VoodooConfig VOODOO_API *voodoo_config;
-
-
-DirectResult        VOODOO_API  voodoo_config_set( const char *name, const char *value );
 
 
 #endif
-
