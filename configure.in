@@ -1182,7 +1182,14 @@ if test "$checkfor_savage" = "yes" && test "$have_sysio" = "yes"; then
 fi
 
 if test "$checkfor_sh772x" = "yes" && test "$have_sh4" = "yes"; then
-  sh772x=yes
+  PKG_CHECK_MODULES([SH772X_DEP],
+    [uiomux >= 1.5.0 shbeu >= 1.0.2 shjpeg >= 1.3.1], [sh772x=yes], [sh772x=no])
+  if test "$sh772x" = "no"; then
+       AC_MSG_WARN([*** Missing UIOMUX, SHBEU or SHJPEG library -- sh772x driver will not be built.])
+  fi
+fi
+if test "$sh772x" = "yes"; then
+  AC_DEFINE(HAVE_GFX_SH772X, [], [Define to 1 if sh772x])
 fi
 
 if test "$checkfor_sis315" = "yes"; then
