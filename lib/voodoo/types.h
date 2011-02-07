@@ -51,7 +51,7 @@
 
 typedef u32 VoodooInstanceID;
 typedef u32 VoodooMethodID;
-typedef u32 VoodooMessageSerial;
+typedef u64 VoodooMessageSerial;
 
 #define VOODOO_INSTANCE_NONE  ((VoodooInstanceID) 0)
 
