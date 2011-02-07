@@ -50,13 +50,13 @@ libdirectfb_sh7722_la_SOURCES =	\
 	sh7722_types.h		\
 	sh7722_jpeg.c
 
+libdirectfb_sh7722_la_CFLAGS = $(SH772X_DEP_CFLAGS)
+
 libdirectfb_sh7722_la_LDFLAGS = \
 	-module			\
 	-avoid-version		\
 	$(DFB_LDFLAGS)		\
-	-lshbeu			\
-	-luiomux		\
-	-lshjpeg
+	$(SH772X_DEP_LIBS)
 
 libdirectfb_sh7722_la_LIBADD = \
 	$(top_builddir)/src/libdirectfb.la
