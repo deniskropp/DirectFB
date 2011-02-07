@@ -32,7 +32,11 @@
 
 #include <misc/conf.h>
 
+#define GL_GLEXT_PROTOTYPES
+#include <GL/gl.h>
+#include <GL/glext.h>
 #include <GL/glx.h>
+#include <GL/glxext.h>
 
 #include <x11/x11.h>
 
@@ -140,6 +144,8 @@ driver_init_device( CoreGraphicsDevice *device,
                     void               *driver_data,
                     void               *device_data )
 {
+     GLDeviceData *gdev = (GLDeviceData*) device_data;
+
      const char   *renderer;
      Display      *display;
      XVisualInfo  *visual;
@@ -198,6 +204,8 @@ driver_init_device( CoreGraphicsDevice *device,
                                   GL_SUPPORTED_BLITTINGFUNCTIONS;
      device_info->caps.drawing  = GL_SUPPORTED_DRAWINGFLAGS;
      device_info->caps.blitting = GL_SUPPORTED_BLITTINGFLAGS;
+
+     gdev->supported_blittingflags = GL_SUPPORTED_BLITTINGFLAGS;
 
      return DFB_OK;
 }
