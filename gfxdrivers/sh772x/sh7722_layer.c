@@ -287,7 +287,7 @@ sh7722SetRegion( CoreLayer                  *layer,
                     break;
 
                case DSPF_RGB24:
-                    sdev->shbeu_src[n].s.format = REN_RGB24; //FIXME: implement in libshbeu
+                    sdev->shbeu_src[n].s.format = REN_BGR24;
                     break;
 
                case DSPF_RGB16:
