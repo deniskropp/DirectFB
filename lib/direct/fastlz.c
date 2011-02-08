@@ -81,7 +81,7 @@ direct_fastlz_compress_multi( const void   **inputs,
      }
 
      for (i=0; i<num; i++) {
-          memcpy( buffer + offset, inputs[i], lengths[i] );
+          memcpy( (char*) buffer + offset, inputs[i], lengths[i] );
 
           offset += lengths[i];
      }

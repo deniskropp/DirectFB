@@ -82,13 +82,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\lib\voodoo\build.h" />
     <ClInclude Include="..\..\lib\voodoo\client.h" />
     <ClInclude Include="..\..\lib\voodoo\conf.h" />
+    <ClInclude Include="..\..\lib\voodoo\connection.h" />
+    <ClInclude Include="..\..\lib\voodoo\connection_packet.h" />
+    <ClInclude Include="..\..\lib\voodoo\connection_raw.h" />
     <ClInclude Include="..\..\lib\voodoo\init.h" />
     <ClInclude Include="..\..\lib\voodoo\interface.h" />
     <ClInclude Include="..\..\lib\voodoo\internal.h" />
+    <ClInclude Include="..\..\lib\voodoo\link.h" />
     <ClInclude Include="..\..\lib\voodoo\manager.h" />
     <ClInclude Include="..\..\lib\voodoo\message.h" />
+    <ClInclude Include="..\..\lib\voodoo\packet.h" />
     <ClInclude Include="..\..\lib\voodoo\play.h" />
     <ClInclude Include="..\..\lib\voodoo\server.h" />
     <ClInclude Include="..\..\lib\voodoo\types.h" />
@@ -96,9 +102,12 @@
   <ItemGroup>
     <ClCompile Include="..\..\lib\voodoo\client.c" />
     <ClCompile Include="..\..\lib\voodoo\conf.c" />
+    <ClCompile Include="..\..\lib\voodoo\connection.cpp" />
+    <ClCompile Include="..\..\lib\voodoo\connection_packet.cpp" />
+    <ClCompile Include="..\..\lib\voodoo\connection_raw.cpp" />
     <ClCompile Include="..\..\lib\voodoo\init.c" />
     <ClCompile Include="..\..\lib\voodoo\interface.c" />
-    <ClCompile Include="..\..\lib\voodoo\manager.c" />
+    <ClCompile Include="..\..\lib\voodoo\manager.cpp" />
     <ClCompile Include="..\..\lib\voodoo\play.c" />
     <ClCompile Include="..\..\lib\voodoo\win32\interfaces.cpp" />
     <ClCompile Include="..\..\lib\voodoo\win32\link_win32.c" />
