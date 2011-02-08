@@ -130,13 +130,8 @@ sh7722TestRegion( CoreLayer                  *layer,
           case DSPF_RGB32:
           case DSPF_RGB24:
           case DSPF_RGB16:
-               break;
-
           case DSPF_NV12:
           case DSPF_NV16:
-               /* YUV only for first input */
-               if (slay->layer != SH7722_LAYER_INPUT1)
-                    fail |= CLRCF_FORMAT;
                break;
 
           default:
