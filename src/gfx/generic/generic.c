@@ -9193,15 +9193,23 @@ static const GenefxFunc Bop_argb_blend_alphachannel_src_invsrc_Aop_PFI[DFB_NUM_P
 #define SET_PIXEL_DUFFS_DEVICE( D, S, w ) \
      SET_PIXEL_DUFFS_DEVICE_N( D, S, w, 3 )
 
-#define SET_PIXEL( D, S )                                   \
-do {                                                        \
-     int invsrc = 256 - (S >> 24);                          \
-                                                            \
-     u32 Drb = ((D & 0x00ff00ff) * invsrc) >> 8;            \
-     u32 Dag = ((D & 0xff00ff00) >> 8) * invsrc;            \
-                                                            \
-     D = S + (Drb & 0x00ff00ff) + (Dag & 0xff00ff00);       \
-} while (0)
+#define SET_PIXEL( D, S )                                                  \
+     switch (S >> 24) {                                                    \
+          case 0:                                                          \
+               break;                                                      \
+          case 0xff:                                                       \
+               D = S;                                                      \
+               break;                                                      \
+          default:                                                         \
+               {                                                           \
+                    int invsrc = 256 - (S >> 24);                          \
+                                                                           \
+                    u32 Drb = ((D & 0x00ff00ff) * invsrc) >> 8;            \
+                    u32 Dag = ((D & 0xff00ff00) >> 8) * invsrc;            \
+                                                                           \
+                    D = S + (Drb & 0x00ff00ff) + (Dag & 0xff00ff00);       \
+               }                                                           \
+     } while (0)
 
 static void Bop_argb_blend_alphachannel_one_invsrc_Aop_argb( GenefxState *gfxs )
 {
@@ -9221,6 +9229,88 @@ static const GenefxFunc Bop_argb_blend_alphachannel_one_invsrc_Aop_PFI[DFB_NUM_P
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_argb_blend_alphachannel_one_invsrc_Aop_argb,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Bop_argb_blend_alphachannel_one_invsrc_Aop_argb,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_UYVY)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_I420)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YV12)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT8)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ALUT44)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AiRGB)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A1)]       = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV12)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV16)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB2554)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB4444)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBA4444)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV21)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AYUV)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A4)]       = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1666)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB6666)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB18)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT2)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB444)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB555)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_BGR555)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YV16)]     = NULL,
+};
+
+/**********************************************************************************************************************/
+
+/* change the last value to adjust the size of the device (1-4) */
+#define SET_PIXEL_DUFFS_DEVICE( D, S, w ) \
+     SET_PIXEL_DUFFS_DEVICE_N( D, S, w, 3 )
+
+#define SET_PIXEL( D, S )                                                  \
+     switch (S >> 24) {                                                    \
+          case 0:                                                          \
+               break;                                                      \
+          case 0xff:                                                       \
+               D = S;                                                      \
+               break;                                                      \
+          default:                                                         \
+               {                                                           \
+                    int src    = (S >> 24) + 1;                            \
+                    int invsrc = 256 - (S >> 24);                          \
+                                                                           \
+                    u32 Drb = ((D & 0x00ff00ff) * invsrc) >> 8;            \
+                    u32 Dag = ((D & 0xff00ff00) >> 8) * invsrc;            \
+                                                                           \
+                    u32 Srb = ((S & 0x00ff00ff) * src) >> 8;               \
+                    u32 Sxg = ((S & 0xff00ff00) >> 8) * src;               \
+                                                                           \
+                    D = (Srb & 0x00ff00ff) + (Sxg & 0x0000ff00) +          \
+                        (Drb & 0x00ff00ff) + (Dag & 0xff00ff00);           \
+               }                                                           \
+     } while (0)
+
+static void Bop_argb_blend_alphachannel_one_invsrc_premultiply_Aop_argb( GenefxState *gfxs )
+{
+     int  w = gfxs->length;
+     u32 *S = gfxs->Bop[0];
+     u32 *D = gfxs->Aop[0];
+
+     SET_PIXEL_DUFFS_DEVICE( D, S, w );
+}
+
+#undef SET_PIXEL_DUFFS_DEVICE
+#undef SET_PIXEL
+
+static const GenefxFunc Bop_argb_blend_alphachannel_one_invsrc_premultiply_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1555)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB16)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_argb_blend_alphachannel_one_invsrc_premultiply_Aop_argb,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Bop_argb_blend_alphachannel_one_invsrc_premultiply_Aop_argb,
      [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = NULL,
@@ -10145,6 +10235,17 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                         Bop_argb_blend_alphachannel_one_invsrc_Aop_PFI[dst_pfi])
                     {
                          *funcs++ = Bop_argb_blend_alphachannel_one_invsrc_Aop_PFI[dst_pfi];
+                         break;
+                    }
+               }
+               if (state->blittingflags == (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_SRC_PREMULTIPLY) &&
+                   state->src_blend     == DSBF_ONE                  &&
+                   state->dst_blend     == DSBF_INVSRCALPHA)
+               {
+                    if (gfxs->src_format == DSPF_ARGB &&
+                        Bop_argb_blend_alphachannel_one_invsrc_premultiply_Aop_PFI[dst_pfi])
+                    {
+                         *funcs++ = Bop_argb_blend_alphachannel_one_invsrc_premultiply_Aop_PFI[dst_pfi];
                          break;
                     }
                }
